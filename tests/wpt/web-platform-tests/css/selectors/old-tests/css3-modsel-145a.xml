@@ -1,0 +1,33 @@
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>:nth-of-type() pseudo-class with hidden elements</title>
+  <style type="text/css"><![CDATA[
+  line { display: block; }
+  [type~=odd] { background: red; }
+  line:nth-of-type(odd) { background: lime; }
+  [hidden] { display: none; }
+]]></style>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="help" href="https://www.w3.org/TR/css3-selectors/#selectors"/> <!-- bogus link to make sure it gets found -->
+  <meta name="flags" content=" namespace" />
+ </head>
+ <body>
+ <test xmlns="http://www.example.org/">
+  <line type="odd">This line should be green.</line>
+  <line type="even">This line should be unstyled.</line>
+  <line type="odd" hidden="hidden">This line should be green.</line>
+  <line type="even">This line should be unstyled.</line>
+  <line type="odd">This line should be green.</line>
+  <line type="even">This line should be unstyled.</line>
+  <line type="odd">This line should be green.</line>
+  <line type="even" hidden="hidden">This line should be unstyled.</line>
+  <line type="odd">This line should be green.</line>
+  <line type="even">This line should be unstyled.</line>
+  <line type="odd">This line should be green.</line>
+  <line type="even" hidden="hidden">This line should be unstyled.</line>
+  <line type="odd" hidden="hidden">This line should be green.</line>
+  <line type="even">This line should be unstyled.</line>
+  <line type="odd">This line should be green.</line>
+ </test>
+</body>
+</html>

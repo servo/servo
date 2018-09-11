@@ -32,8 +32,7 @@ pub fn update_animation_state<E>(
     new_animations_receiver: &Receiver<Animation>,
     pipeline_id: PipelineId,
     timer: &Timer,
-)
-where
+) where
     E: TElement,
 {
     let mut new_running_animations = vec![];
@@ -66,7 +65,7 @@ where
     if running_animations.is_empty() && new_running_animations.is_empty() {
         // Nothing to do. Return early so we don't flood the compositor with
         // `ChangeRunningAnimationsState` messages.
-        return
+        return;
     }
 
     let now = timer.seconds();
@@ -82,30 +81,32 @@ where
             let still_running = !running_animation.is_expired() && match running_animation {
                 Animation::Transition(_, started_at, ref frame, _expired) => {
                     now < started_at + frame.duration
-                }
+                },
                 Animation::Keyframes(_, _, _, ref mut state) => {
                     // This animation is still running, or we need to keep
                     // iterating.
                     now < state.started_at + state.duration || state.tick()
-                }
+                },
             };
 
             if still_running {
                 animations_still_running.push(running_animation);
-                continue
+                continue;
             }
 
             if let Animation::Transition(node, _, ref frame, _) = running_animation {
-                script_chan.send(ConstellationControlMsg::TransitionEnd(node.to_untrusted_node_address(),
-                                                                        frame.property_animation
-                                                                             .property_name().into(),
-                                                                        frame.duration))
-                           .unwrap();
+                script_chan
+                    .send(ConstellationControlMsg::TransitionEnd(
+                        node.to_untrusted_node_address(),
+                        frame.property_animation.property_name().into(),
+                        frame.duration,
+                    )).unwrap();
             }
 
-            expired_animations.entry(*key)
-                              .or_insert_with(Vec::new)
-                              .push(running_animation);
+            expired_animations
+                .entry(*key)
+                .or_insert_with(Vec::new)
+                .push(running_animation);
         }
 
         if animations_still_running.is_empty() {
@@ -125,16 +126,17 @@ where
             match newly_transitioning_nodes {
                 Some(ref mut nodes) => {
                     nodes.push(new_running_animation.node().to_untrusted_node_address());
-                }
+                },
                 None => {
                     warn!("New transition encountered from compositor-initiated layout.");
-                }
+                },
             }
         }
 
-        running_animations.entry(*new_running_animation.node())
-                          .or_insert_with(Vec::new)
-                          .push(new_running_animation)
+        running_animations
+            .entry(*new_running_animation.node())
+            .or_insert_with(Vec::new)
+            .push(new_running_animation)
     }
 
     let animation_state = if running_animations.is_empty() {
@@ -143,9 +145,11 @@ where
         AnimationState::AnimationsPresent
     };
 
-    constellation_chan.send(ConstellationMsg::ChangeRunningAnimationsState(pipeline_id,
-                                                                           animation_state))
-                      .unwrap();
+    constellation_chan
+        .send(ConstellationMsg::ChangeRunningAnimationsState(
+            pipeline_id,
+            animation_state,
+        )).unwrap();
 }
 
 /// Recalculates style for a set of animations. This does *not* run with the DOM
@@ -154,8 +158,7 @@ pub fn recalc_style_for_animations<E>(
     context: &LayoutContext,
     flow: &mut Flow,
     animations: &FxHashMap<OpaqueNode, Vec<Animation>>,
-)
-where
+) where
     E: TElement,
 {
     let mut damage = RestyleDamage::empty();
@@ -170,10 +173,7 @@ where
                     &ServoMetricsProvider,
                 );
                 let difference =
-                    RestyleDamage::compute_style_difference(
-                        &old_style,
-                        &fragment.style,
-                    );
+                    RestyleDamage::compute_style_difference(&old_style, &fragment.style);
                 damage |= difference.damage;
             }
         }

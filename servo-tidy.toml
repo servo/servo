@@ -14,6 +14,7 @@ lint-scripts = [
 # which are packages allowed to use the blocked package.
 [blocked-packages]
 rand = [
+  "crossbeam-channel",
   "gaol",
   "hashglobe", # only uses in tests
   "ipc-channel",
@@ -35,10 +36,15 @@ num = [
 # Ignored packages with duplicated versions
 packages = [
   "bitflags",
+  "crossbeam-epoch",
+  "crossbeam-utils",
+  #TODO: remove ipc-channel when #21325 lands
+  "ipc-channel",
   "log",
   "rand",
   "winapi",
-
+  # TODO: remove slab when #21426 lands
+  "slab",
   "syn",
   "quote",
   "proc-macro2",

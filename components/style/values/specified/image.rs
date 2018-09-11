@@ -55,19 +55,19 @@ impl SpecifiedValueInfo for Gradient {
     fn collect_completion_keywords(f: KeywordsCollectFn) {
         // This list here should keep sync with that in Gradient::parse.
         f(&[
-          "linear-gradient",
-          "-webkit-linear-gradient",
-          "-moz-linear-gradient",
-          "repeating-linear-gradient",
-          "-webkit-repeating-linear-gradient",
-          "-moz-repeating-linear-gradient",
-          "radial-gradient",
-          "-webkit-radial-gradient",
-          "-moz-radial-gradient",
-          "repeating-radial-gradient",
-          "-webkit-repeating-radial-gradient",
-          "-moz-repeating-radial-gradient",
-          "-webkit-gradient",
+            "linear-gradient",
+            "-webkit-linear-gradient",
+            "-moz-linear-gradient",
+            "repeating-linear-gradient",
+            "-webkit-repeating-linear-gradient",
+            "-moz-repeating-linear-gradient",
+            "radial-gradient",
+            "-webkit-radial-gradient",
+            "-moz-radial-gradient",
+            "repeating-radial-gradient",
+            "-webkit-repeating-radial-gradient",
+            "-moz-repeating-radial-gradient",
+            "-webkit-gradient",
         ]);
     }
 }
@@ -239,9 +239,9 @@ impl Parse for Gradient {
         #[cfg(feature = "gecko")]
         {
             use gecko_bindings::structs;
-            if compat_mode == CompatMode::Moz && !unsafe {
-                structs::StaticPrefs_sVarCache_layout_css_prefixes_gradients
-            } {
+            if compat_mode == CompatMode::Moz &&
+                !unsafe { structs::StaticPrefs_sVarCache_layout_css_prefixes_gradients }
+            {
                 return Err(input.new_custom_error(StyleParseErrorKind::UnexpectedFunction(func)));
             }
         }
@@ -760,9 +760,9 @@ impl LineDirection {
                 // There is no `to` keyword in webkit prefixed syntax. If it's consumed,
                 // parsing should throw an error.
                 CompatMode::WebKit if to_ident.is_ok() => {
-                    return Err(i.new_custom_error(SelectorParseErrorKind::UnexpectedIdent(
-                        "to".into(),
-                    )))
+                    return Err(
+                        i.new_custom_error(SelectorParseErrorKind::UnexpectedIdent("to".into()))
+                    )
                 },
                 _ => {},
             }
@@ -969,8 +969,7 @@ impl Parse for PaintWorklet {
                 .try(|input| {
                     input.expect_comma()?;
                     input.parse_comma_separated(|input| SpecifiedValue::parse(input))
-                })
-                .unwrap_or(vec![]);
+                }).unwrap_or(vec![]);
             Ok(PaintWorklet { name, arguments })
         })
     }

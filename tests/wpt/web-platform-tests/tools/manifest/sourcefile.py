@@ -12,7 +12,7 @@ except ImportError:
 import html5lib
 
 from . import XMLParser
-from .item import Stub, ManualTest, WebdriverSpecTest, RefTestNode, TestharnessTest, SupportFile, ConformanceCheckerTest, VisualTest
+from .item import Stub, ManualTest, WebDriverSpecTest, RefTestNode, TestharnessTest, SupportFile, ConformanceCheckerTest, VisualTest
 from .utils import rel_path_to_url, ContextManagerBytesIO, cached_property
 
 wd_pattern = "*.py"
@@ -645,7 +645,7 @@ class SourceFile(object):
             rv = TestharnessTest.item_type, tests
 
         elif self.name_is_webdriver:
-            rv = WebdriverSpecTest.item_type, [WebdriverSpecTest(self, self.url,
+            rv = WebDriverSpecTest.item_type, [WebDriverSpecTest(self, self.url,
                                                                  timeout=self.timeout)]
 
         elif self.content_is_css_manual and not self.name_is_reference:

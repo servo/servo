@@ -30,8 +30,8 @@
 
             // An array of tests to be done.  Each entry specifies the event
             // type and the event time.  The events are inserted in the order
-            // given (in |values|), and the second event should replace the
-            // first, as required by the spec.
+            // given (in |values|), and the second event should be inserted
+            // after the first one, as required by the spec.
             let testCases = [
               {
                 event: 'setValueAtTime',
@@ -57,7 +57,7 @@
               {
                 event: 'setValueCurveAtTime',
                 frame: 3 * RENDER_QUANTUM_FRAMES,
-                values: [[98, 99], [3, 4]],
+                values: [[3, 4]],
                 extraArgs: RENDER_QUANTUM_FRAMES / context.sampleRate,
                 outputTestFrame: 4 * RENDER_QUANTUM_FRAMES,
                 expectedOutputValue: 4

@@ -84,6 +84,15 @@ function runTest(preserve) {
   var ctx1 = c1.getContext('2d');
   var ctx2 = c2.getContext('2d');
   var gl = wtu.create3DContext(c3, { alpha:false, preserveDrawingBuffer:preserve });
+  if (!gl) {
+    testFailed("context does not exist");
+    if (preserve) {
+      finishTest()
+    } else {
+      runTest(true);
+    }
+    return;
+  }
   gl.clearColor(1, 0, 0, 1);
   gl.clear(gl.COLOR_BUFFER_BIT);
   ctx1.drawImage(c3, 0, 0);

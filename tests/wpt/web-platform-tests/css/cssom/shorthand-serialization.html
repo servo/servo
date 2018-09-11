@@ -58,6 +58,20 @@
             assert_equals(testElem.style.margin, "20px");
             assert_equals(testElem.style.cssText, "margin: 20px;")
         }, "Shorthand serialization after setting");
+
+        test(function() {
+            const testElem = document.getElementById("test");
+            testElem.style.cssText = "margin: initial;";
+            assert_equals(testElem.style.margin, "initial");
+            assert_equals(testElem.style.cssText, "margin: initial;");
+        }, "Shorthand serialization with 'initial' value.");
+
+        test(function() {
+            const testElem = document.getElementById("test");
+            testElem.style.setProperty("margin-top", "initial", "important");
+            assert_equals(testElem.style.margin, "");
+            assert_equals(testElem.style.cssText, "margin-top: initial !important; margin-right: initial; margin-bottom: initial; margin-left: initial;");
+        }, "Shorthand serialization with 'initial' value, one longhand with important flag.");
     </script>
 </body>
 </html>

@@ -6,7 +6,6 @@
 /// (http://mxr.mozilla.org/mozilla-central/source/toolkit/devtools/server/actors/root.js).
 /// Connection point for all new remote devtools interactions, providing lists of know actors
 /// that perform more specific actions (tabs, addons, browser chrome, etc.)
-
 use actor::{Actor, ActorMessageStatus, ActorRegistry};
 use actors::performance::PerformanceActor;
 use actors::tab::{TabActor, TabActorMsg};
@@ -65,11 +64,13 @@ impl Actor for RootActor {
         "root".to_owned()
     }
 
-    fn handle_message(&self,
-                      registry: &ActorRegistry,
-                      msg_type: &str,
-                      _msg: &Map<String, Value>,
-                      stream: &mut TcpStream) -> Result<ActorMessageStatus, ()> {
+    fn handle_message(
+        &self,
+        registry: &ActorRegistry,
+        msg_type: &str,
+        _msg: &Map<String, Value>,
+        stream: &mut TcpStream,
+    ) -> Result<ActorMessageStatus, ()> {
         Ok(match msg_type {
             "listAddons" => {
                 let actor = ListAddonsReply {
@@ -78,20 +79,22 @@ impl Actor for RootActor {
                 };
                 stream.write_json_packet(&actor);
                 ActorMessageStatus::Processed
-            }
+            },
 
             //https://wiki.mozilla.org/Remote_Debugging_Protocol#Listing_Browser_Tabs
             "listTabs" => {
                 let actor = ListTabsReply {
                     from: "root".to_owned(),
                     selected: 0,
-                    tabs: self.tabs.iter().map(|tab| {
-                        registry.find::<TabActor>(tab).encodable()
-                    }).collect()
+                    tabs: self
+                        .tabs
+                        .iter()
+                        .map(|tab| registry.find::<TabActor>(tab).encodable())
+                        .collect(),
                 };
                 stream.write_json_packet(&actor);
                 ActorMessageStatus::Processed
-            }
+            },
 
             "protocolDescription" => {
                 let msg = ProtocolDescriptionReply {
@@ -102,9 +105,9 @@ impl Actor for RootActor {
                 };
                 stream.write_json_packet(&msg);
                 ActorMessageStatus::Processed
-            }
+            },
 
-            _ => ActorMessageStatus::Ignored
+            _ => ActorMessageStatus::Ignored,
         })
     }
 }
@@ -118,7 +121,7 @@ impl RootActor {
                 sources: true,
                 highlightable: true,
                 customHighlighters: true,
-                networkMonitor: true
+                networkMonitor: true,
             },
         }
     }

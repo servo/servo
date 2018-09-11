@@ -9,7 +9,7 @@ use std::io;
 pub type WebGLSender<T> = ipc_channel::ipc::IpcSender<T>;
 pub type WebGLReceiver<T> = ipc_channel::ipc::IpcReceiver<T>;
 
-pub fn webgl_channel<T: Serialize + for<'de> Deserialize<'de>>()
-        -> Result<(WebGLSender<T>, WebGLReceiver<T>), io::Error> {
+pub fn webgl_channel<T: Serialize + for<'de> Deserialize<'de>>(
+) -> Result<(WebGLSender<T>, WebGLReceiver<T>), io::Error> {
     ipc_channel::ipc::channel()
 }

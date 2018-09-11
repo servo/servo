@@ -24,7 +24,7 @@ with testharness.js. See also the [general guidelines][] for all test types.
 A test file can have multiple variants by including `meta` elements,
 for example:
 
-```
+```html
 <meta name="variant" content="">
 <meta name="variant" content="?wss">
 ```
@@ -36,7 +36,7 @@ There are two utility scripts in that work well together with variants,
 a test that would otherwise have too many tests to be useful can be
 split up in ranges of subtests. For example:
 
-```
+```html
 <!doctype html>
 <title>Testing variants</title>
 <meta name="variant" content="?1-1000">
@@ -60,7 +60,7 @@ With `subsetTestByKey`, the key is given as the first argument, and the
 query string can include or exclude a key (will be matched as a regular
 expression).
 
-```
+```html
 <!doctype html>
 <title>Testing variants by key</title>
 <meta name="variant" content="?include=Foo">
@@ -103,13 +103,15 @@ JavaScript file with the `.js` removed.
 For example, one could write a test for the `FileReaderSync` API by
 creating a `FileAPI/FileReaderSync.worker.js` as follows:
 
-    importScripts("/resources/testharness.js");
-    test(function () {
-      var blob = new Blob(["Hello"]);
-      var fr = new FileReaderSync();
-      assert_equals(fr.readAsText(blob), "Hello");
-    }, "FileReaderSync#readAsText.");
-    done();
+```js
+importScripts("/resources/testharness.js");
+test(function () {
+    var blob = new Blob(["Hello"]);
+    var fr = new FileReaderSync();
+    assert_equals(fr.readAsText(blob), "Hello");
+}, "FileReaderSync#readAsText.");
+done();
+```
 
 This test could then be run from `FileAPI/FileReaderSync.worker.html`.
 
@@ -124,29 +126,33 @@ By default, the test runs in a window scope and a dedicated worker scope.
 For example, one could write a test for the `Blob` constructor by
 creating a `FileAPI/Blob-constructor.any.js` as follows:
 
-    test(function () {
-      var blob = new Blob();
-      assert_equals(blob.size, 0);
-      assert_equals(blob.type, "");
-      assert_false(blob.isClosed);
-    }, "The Blob constructor.");
+```js
+test(function () {
+    var blob = new Blob();
+    assert_equals(blob.size, 0);
+    assert_equals(blob.type, "");
+    assert_false(blob.isClosed);
+}, "The Blob constructor.");
+```
 
 This test could then be run from `FileAPI/Blob-constructor.any.worker.html` as well
 as `FileAPI/Blob-constructor.any.html`.
 
 It is possible to customize the set of scopes with a metadata comment, such as
 
-    // META: global=sharedworker
-    //       ==> would run in the default window and dedicated worker scopes,
-    //           as well as the shared worker scope
-    // META: global=!default,serviceworker
-    //       ==> would only run in the service worker scope
-    // META: global=!window
-    //       ==> would run in the default dedicated worker scope, but not the
-    //           window scope
-    // META: global=worker
-    //       ==> would run in the default window scope, as well as in the
-    //           dedicated, shared and service worker scopes
+```
+// META: global=sharedworker
+//       ==> would run in the default window and dedicated worker scopes,
+//           as well as the shared worker scope
+// META: global=!default,serviceworker
+//       ==> would only run in the service worker scope
+// META: global=!window
+//       ==> would run in the default dedicated worker scope, but not the
+//           window scope
+// META: global=worker
+//       ==> would run in the default window scope, as well as in the
+//           dedicated, shared and service worker scopes
+```
 
 For a test file <code><var>x</var>.any.js</code>, the available scope keywords
 are:
@@ -172,8 +178,10 @@ Use `// META: title=This is the title of the test` at the beginning of the resou
 
 Use `// META: script=link/to/resource.js` at the beginning of the resource. For example,
 
-    // META: script=/common/utils.js
-    // META: script=resources/utils.js
+```
+// META: script=/common/utils.js
+// META: script=resources/utils.js
+```
 
 can be used to include both the global and a local `utils.js` in a test.
 
@@ -185,8 +193,10 @@ Use `// META: timeout=long` at the beginning of the resource.
 
 Use `// META: variant=url-suffix` at the beginning of the resource. For example,
 
-    // META: variant=
-    // META: variant=?wss
+```
+// META: variant=
+// META: variant=?wss
+```
 
 
 [general guidelines]: {{ site.baseurl }}{% link _writing-tests/general-guidelines.md %}

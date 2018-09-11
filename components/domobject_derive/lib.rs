@@ -5,8 +5,10 @@
 #![recursion_limit = "128"]
 
 extern crate proc_macro;
-#[macro_use] extern crate quote;
-#[macro_use] extern crate syn;
+#[macro_use]
+extern crate quote;
+#[macro_use]
+extern crate syn;
 
 #[proc_macro_derive(DomObject)]
 pub fn expand_token_stream(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
@@ -74,7 +76,9 @@ fn expand_dom_object(input: syn::DeriveInput) -> quote::Tokens {
     }));
 
     let mut generics = input.generics.clone();
-    generics.params.push(parse_quote!(__T: ::dom::bindings::reflector::DomObject));
+    generics
+        .params
+        .push(parse_quote!(__T: ::dom::bindings::reflector::DomObject));
 
     let (impl_generics, _, where_clause) = generics.split_for_impl();
 

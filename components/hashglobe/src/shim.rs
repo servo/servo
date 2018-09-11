@@ -29,11 +29,11 @@ impl<T: 'static> Unique<T> {
     }
 }
 
-unsafe impl<T: Send + 'static> Send for Unique<T> { }
+unsafe impl<T: Send + 'static> Send for Unique<T> {}
 
-unsafe impl<T: Sync + 'static> Sync for Unique<T> { }
+unsafe impl<T: Sync + 'static> Sync for Unique<T> {}
 
-pub struct Shared<T: 'static>  {
+pub struct Shared<T: 'static> {
     ptr: NonZeroPtr<T>,
     _marker: PhantomData<T>,
     // force it to be !Send/!Sync

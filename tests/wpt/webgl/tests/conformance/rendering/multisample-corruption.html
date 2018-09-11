@@ -51,9 +51,14 @@ debug('Regression test for <a href="https://code.google.com/p/chromium/issues/de
 var wtu = WebGLTestUtils;
 
 var gl = wtu.create3DContext("example", {antialias: true, preserveDrawingBuffer: true});
-var test = IterableTest.createMultisampleCorruptionTest(gl);
-var iterations = parseInt(wtu.getUrlOptions().iterations, 10) || 25;
-IterableTest.run(test, iterations);
+if (!gl) {
+    testFailed("context does not exist");
+    finishTest();
+} else {
+    var test = IterableTest.createMultisampleCorruptionTest(gl);
+    var iterations = parseInt(wtu.getUrlOptions().iterations, 10) || 25;
+    IterableTest.run(test, iterations);
+}
 
 var successfullyParsed = true;
 </script>

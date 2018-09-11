@@ -20,7 +20,6 @@ use style_traits::viewport::ViewportConstraints;
 use webrender;
 use webrender_api::{self, DeviceIntPoint, DeviceUintSize};
 
-
 /// Sends messages to the compositor.
 pub struct CompositorProxy {
     pub sender: Sender<Msg>,
@@ -48,7 +47,7 @@ impl Clone for CompositorProxy {
 
 /// The port that the compositor receives messages on.
 pub struct CompositorReceiver {
-    pub receiver: Receiver<Msg>
+    pub receiver: Receiver<Msg>,
 }
 
 impl CompositorReceiver {

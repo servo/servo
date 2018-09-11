@@ -66,17 +66,17 @@
         should(function() {
           // There has to be at least one coefficient.
           context.createIIRFilter([], []);
-        }, 'createIIRFilter([], [])').throw('NotSupportedError');
+        }, 'createIIRFilter([], [])').throw(DOMException, 'NotSupportedError');
 
         should(function() {
           // There has to be at least one coefficient.
           context.createIIRFilter([1], []);
-        }, 'createIIRFilter([1], [])').throw('NotSupportedError');
+        }, 'createIIRFilter([1], [])').throw(DOMException, 'NotSupportedError');
 
         should(function() {
           // There has to be at least one coefficient.
           context.createIIRFilter([], [1]);
-        }, 'createIIRFilter([], [1])').throw('NotSupportedError');
+        }, 'createIIRFilter([], [1])').throw(DOMException, 'NotSupportedError');
 
         should(
             function() {
@@ -96,7 +96,7 @@
               context.createIIRFilter(coef, [1]);
             },
             'createIIRFilter(new Float32Array(21), [1])')
-            .throw('NotSupportedError');
+            .throw(DOMException, 'NotSupportedError');
 
         should(
             function() {
@@ -106,7 +106,7 @@
               context.createIIRFilter([1], coef);
             },
             'createIIRFilter([1], new Float32Array(21))')
-            .throw('NotSupportedError');
+            .throw(DOMException, 'NotSupportedError');
 
         should(
             function() {
@@ -114,7 +114,7 @@
               context.createIIRFilter([1], new Float32Array(2));
             },
             'createIIRFilter([1], new Float32Array(2))')
-            .throw('InvalidStateError');
+            .throw(DOMException, 'InvalidStateError');
 
         should(
             function() {
@@ -122,7 +122,7 @@
               context.createIIRFilter(new Float32Array(10), [1]);
             },
             'createIIRFilter(new Float32Array(10), [1])')
-            .throw('InvalidStateError');
+            .throw(DOMException, 'InvalidStateError');
 
         should(function() {
           // Feedback coefficients must be finite.
@@ -183,7 +183,7 @@
                   new Float32Array(20));
             },
             'getFrequencyResponse(new Float32Array(10), new Float32Array(1), new Float32Array(20))')
-            .throw('InvalidAccessError');
+            .throw(DOMException, 'InvalidAccessError');
 
         should(
             function() {
@@ -193,7 +193,7 @@
                   new Float32Array(1));
             },
             'getFrequencyResponse(new Float32Array(10), new Float32Array(20), new Float32Array(1))')
-            .throw('InvalidAccessError');
+            .throw(DOMException, 'InvalidAccessError');
 
         task.done();
       });

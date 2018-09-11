@@ -356,10 +356,9 @@ trait PrivateMatchMethods: TElement {
             tasks.insert(UpdateAnimationsTasks::CSS_ANIMATIONS);
         }
 
-        let before_change_style = if self.might_need_transitions_update(
-            old_values.as_ref().map(|s| &**s),
-            new_values,
-        ) {
+        let before_change_style = if self
+            .might_need_transitions_update(old_values.as_ref().map(|s| &**s), new_values)
+        {
             let after_change_style = if self.has_css_transitions() {
                 self.after_change_style(context, new_values)
             } else {
@@ -469,9 +468,11 @@ trait PrivateMatchMethods: TElement {
         pseudo: Option<&PseudoElement>,
     ) -> ChildCascadeRequirement {
         debug!("accumulate_damage_for: {:?}", self);
-        debug_assert!(!shared_context
-            .traversal_flags
-            .contains(TraversalFlags::Forgetful));
+        debug_assert!(
+            !shared_context
+                .traversal_flags
+                .contains(TraversalFlags::Forgetful)
+        );
 
         let difference = self.compute_style_difference(old_values, new_values, pseudo);
 

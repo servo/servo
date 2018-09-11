@@ -13,7 +13,7 @@ function runTest(button, options, expected){
       response.addEventListener("payerdetailchange", resolve);
     });
     const error = button.previousElementSibling.textContent.trim();
-    const retryPromise = response.retry({ error });
+    await response.retry({ error });
     const event = await eventPromise;
     assert_true(event instanceof PaymentRequestUpdateEvent);
     for(const [prop, value] of Object.entries(expected)){

@@ -15,19 +15,19 @@ impl Actor for ProfilerActor {
         self.name.clone()
     }
 
-    fn handle_message(&self,
-                      _registry: &ActorRegistry,
-                      _msg_type: &str,
-                      _msg: &Map<String, Value>,
-                      _stream: &mut TcpStream) -> Result<ActorMessageStatus, ()> {
+    fn handle_message(
+        &self,
+        _registry: &ActorRegistry,
+        _msg_type: &str,
+        _msg: &Map<String, Value>,
+        _stream: &mut TcpStream,
+    ) -> Result<ActorMessageStatus, ()> {
         Ok(ActorMessageStatus::Ignored)
     }
 }
 
 impl ProfilerActor {
     pub fn new(name: String) -> ProfilerActor {
-        ProfilerActor {
-            name: name,
-        }
+        ProfilerActor { name: name }
     }
 }

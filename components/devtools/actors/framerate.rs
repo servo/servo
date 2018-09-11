@@ -26,21 +26,24 @@ impl Actor for FramerateActor {
         self.name.clone()
     }
 
-
-    fn handle_message(&self,
-                      _registry: &ActorRegistry,
-                      _msg_type: &str,
-                      _msg: &Map<String, Value>,
-                      _stream: &mut TcpStream) -> Result<ActorMessageStatus, ()> {
+    fn handle_message(
+        &self,
+        _registry: &ActorRegistry,
+        _msg_type: &str,
+        _msg: &Map<String, Value>,
+        _stream: &mut TcpStream,
+    ) -> Result<ActorMessageStatus, ()> {
         Ok(ActorMessageStatus::Ignored)
     }
 }
 
 impl FramerateActor {
     /// return name of actor
-    pub fn create(registry: &ActorRegistry,
-                  pipeline_id: PipelineId,
-                  script_sender: IpcSender<DevtoolScriptControlMsg>) -> String {
+    pub fn create(
+        registry: &ActorRegistry,
+        pipeline_id: PipelineId,
+        script_sender: IpcSender<DevtoolScriptControlMsg>,
+    ) -> String {
         let actor_name = registry.new_name("framerate");
         let mut actor = FramerateActor {
             name: actor_name.clone(),
@@ -60,8 +63,7 @@ impl FramerateActor {
         self.ticks.push(HighResolutionStamp::wrap(tick));
 
         if self.is_recording {
-            let msg = DevtoolScriptControlMsg::RequestAnimationFrame(self.pipeline,
-                                                                     self.name());
+            let msg = DevtoolScriptControlMsg::RequestAnimationFrame(self.pipeline, self.name());
             self.script_sender.send(msg).unwrap();
         }
     }
@@ -78,8 +80,7 @@ impl FramerateActor {
         self.start_time = Some(precise_time_ns());
         self.is_recording = true;
 
-        let msg = DevtoolScriptControlMsg::RequestAnimationFrame(self.pipeline,
-                                                                 self.name());
+        let msg = DevtoolScriptControlMsg::RequestAnimationFrame(self.pipeline, self.name());
         self.script_sender.send(msg).unwrap();
     }
 
@@ -90,7 +91,6 @@ impl FramerateActor {
         self.is_recording = false;
         self.start_time = None;
     }
-
 }
 
 impl Drop for FramerateActor {

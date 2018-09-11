@@ -11,8 +11,7 @@ use style_traits::cursor::CursorKind;
 /// A generic value for the `cursor` property.
 ///
 /// https://drafts.csswg.org/css-ui/#cursor
-#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo,
-         ToComputedValue)]
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue)]
 pub struct Cursor<Image> {
     /// The parsed images for the cursor.
     pub images: Box<[Image]>,
@@ -45,8 +44,7 @@ impl<Image: ToCss> ToCss for Cursor<Image> {
 }
 
 /// A generic value for item of `image cursors`.
-#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo,
-         ToComputedValue)]
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue)]
 pub struct CursorImage<ImageUrl, Number> {
     /// The url to parse images from.
     pub url: ImageUrl,

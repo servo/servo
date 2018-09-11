@@ -1,0 +1,2 @@
+Set-Cookie: foo=bar
+Set-Cookie: foo=qux; path=/cookie-parser-result/foo

@@ -71,7 +71,10 @@ impl ANGLEInstancedArraysMethods for ANGLEInstancedArrays {
         count: i32,
         primcount: i32,
     ) {
-        self.ctx.draw_arrays_instanced(mode, first, count, primcount);
+        handle_potential_webgl_error!(
+            self.ctx,
+            self.ctx.draw_arrays_instanced(mode, first, count, primcount)
+        )
     }
 
     // https://www.khronos.org/registry/webgl/extensions/ANGLE_instanced_arrays/
@@ -83,7 +86,10 @@ impl ANGLEInstancedArraysMethods for ANGLEInstancedArrays {
         offset: i64,
         primcount: i32,
     ) {
-        self.ctx.draw_elements_instanced(mode, count, type_, offset, primcount);
+        handle_potential_webgl_error!(
+            self.ctx,
+            self.ctx.draw_elements_instanced(mode, count, type_, offset, primcount)
+        )
     }
 
     fn VertexAttribDivisorANGLE(&self, index: u32, divisor: u32) {

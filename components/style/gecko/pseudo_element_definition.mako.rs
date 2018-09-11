@@ -13,6 +13,9 @@ pub enum PseudoElement {
         ${pseudo.capitalized_pseudo()},
         % endif
     % endfor
+    /// ::-webkit-* that we don't recognize
+    /// https://github.com/whatwg/compat/issues/103
+    UnknownWebkit(Atom),
 }
 
 /// Important: If you change this, you should also update Gecko's
@@ -47,11 +50,12 @@ PseudoElement::${pseudo.capitalized_pseudo()}${"({})".format(tree_arg) if pseudo
 impl PseudoElement {
     /// Get the pseudo-element as an atom.
     #[inline]
-    pub fn atom(&self) -> Atom {
+    fn atom(&self) -> Atom {
         match *self {
             % for pseudo in PSEUDOS:
                 ${pseudo_element_variant(pseudo)} => atom!("${pseudo.value}"),
             % endfor
+            PseudoElement::UnknownWebkit(..) => unreachable!(),
         }
     }
 
@@ -62,6 +66,7 @@ impl PseudoElement {
             % for i, pseudo in enumerate(PSEUDOS):
             ${pseudo_element_variant(pseudo)} => ${i},
             % endfor
+            PseudoElement::UnknownWebkit(..) => unreachable!(),
         }
     }
 
@@ -105,6 +110,12 @@ impl PseudoElement {
         }
     }
 
+    /// Whether this pseudo-element is an unknown Webkit-prefixed pseudo-element.
+    #[inline]
+    pub fn is_unknown_webkit_pseudo_element(&self) -> bool {
+        matches!(*self, PseudoElement::UnknownWebkit(..))
+    }
+
     /// Gets the flags associated to this pseudo-element, or 0 if it's an
     /// anonymous box.
     pub fn flags(&self) -> u32 {
@@ -123,6 +134,7 @@ impl PseudoElement {
                     structs::SERVO_CSS_PSEUDO_ELEMENT_FLAGS_${pseudo.pseudo_ident},
                 % endif
             % endfor
+            PseudoElement::UnknownWebkit(..) => 0,
         }
     }
 
@@ -143,7 +155,7 @@ impl PseudoElement {
 
     /// Construct a `CSSPseudoElementType` from a pseudo-element
     #[inline]
-    pub fn pseudo_type(&self) -> CSSPseudoElementType {
+    fn pseudo_type(&self) -> CSSPseudoElementType {
         use gecko_bindings::structs::CSSPseudoElementType_InheritingAnonBox;
 
         match *self {
@@ -158,6 +170,7 @@ impl PseudoElement {
                     PseudoElement::${pseudo.capitalized_pseudo()} => CSSPseudoElementType::NonInheritingAnonBox,
                 % endif
             % endfor
+            PseudoElement::UnknownWebkit(..) => unreachable!(),
         }
     }
 
@@ -242,10 +255,17 @@ impl PseudoElement {
                 return Some(PseudoElement::Placeholder);
             }
             _ => {
-                // FIXME: -moz-tree check should probably be
-                // ascii-case-insensitive.
-                if name.starts_with("-moz-tree-") {
+                if starts_with_ignore_ascii_case(name, "-moz-tree-") {
                     return PseudoElement::tree_pseudo_element(name, Box::new([]))
+                }
+                if unsafe {
+                    structs::StaticPrefs_sVarCache_layout_css_unknown_webkit_pseudo_element
+                } {
+                    const WEBKIT_PREFIX: &str = "-webkit-";
+                    if starts_with_ignore_ascii_case(name, WEBKIT_PREFIX) {
+                        let part = string_as_ascii_lowercase(&name[WEBKIT_PREFIX.len()..]);
+                        return Some(PseudoElement::UnknownWebkit(part.into()));
+                    }
                 }
             }
         }
@@ -259,7 +279,7 @@ impl PseudoElement {
     /// Returns `None` if the pseudo-element is not recognized.
     #[inline]
     pub fn tree_pseudo_element(name: &str, args: Box<[Atom]>) -> Option<Self> {
-        debug_assert!(name.starts_with("-moz-tree-"));
+        debug_assert!(starts_with_ignore_ascii_case(name, "-moz-tree-"));
         let tree_part = &name[10..];
         % for pseudo in TREE_PSEUDOS:
             if tree_part.eq_ignore_ascii_case("${pseudo.value[11:]}") {
@@ -277,6 +297,10 @@ impl ToCss for PseudoElement {
             % for pseudo in PSEUDOS:
                 ${pseudo_element_variant(pseudo)} => dest.write_str("${pseudo.value}")?,
             % endfor
+            PseudoElement::UnknownWebkit(ref atom) => {
+                dest.write_str(":-webkit-")?;
+                serialize_atom_identifier(atom, dest)?;
+            }
         }
         if let Some(args) = self.tree_pseudo_args() {
             if !args.is_empty() {

@@ -324,7 +324,8 @@ where
     fn insert_before(&mut self, sheet: S, before_sheet: &S) {
         debug_assert!(!self.contains(&sheet));
 
-        let index = self.entries
+        let index = self
+            .entries
             .iter()
             .position(|entry| entry.sheet == *before_sheet)
             .expect("`before_sheet` stylesheet not found");

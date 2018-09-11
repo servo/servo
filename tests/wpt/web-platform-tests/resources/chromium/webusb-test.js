@@ -12,8 +12,22 @@ let internal = {
 
   webUsbService: null,
   webUsbServiceInterceptor: null,
-  webUsbServiceCrossFrameProxy: null,
+
+  messagePort: null,
 };
+
+function getMessagePort(target) {
+  return new Promise(resolve => {
+    target.addEventListener('message', messageEvent => {
+      if (messageEvent.data.type === 'ReadyForAttachment') {
+        if (internal.messagePort === null) {
+          internal.messagePort = messageEvent.data.port;
+        }
+        resolve();
+      }
+    }, {once: true});
+  });
+}
 
 // Converts an ECMAScript String object to an instance of
 // mojo_base.mojom.String16.
@@ -421,25 +435,6 @@ class FakeUSBDevice {
   }
 }
 
-// A helper for forwarding MojoHandle instances from one frame to another.
-class CrossFrameHandleProxy {
-  constructor(callback) {
-    let {handle0, handle1} = Mojo.createMessagePipe();
-    this.sender_ = handle0;
-    this.receiver_ = handle1;
-    this.receiver_.watch({readable: true}, () => {
-      let message = this.receiver_.readMessage();
-      assert_equals(message.buffer.byteLength, 0);
-      assert_equals(message.handles.length, 1);
-      callback(message.handles[0]);
-    });
-  }
-
-  forwardHandle(handle) {
-    this.sender_.writeMessage(new ArrayBuffer, [handle]);
-  }
-}
-
 class USBTest {
   constructor() {
     this.onrequestdevice = undefined;
@@ -449,14 +444,17 @@ class USBTest {
     if (internal.initialized)
       return;
 
+    // Be ready to handle 'ReadyForAttachment' message from child iframes.
+    if ('window' in self) {
+      getMessagePort(window);
+    }
+
     internal.webUsbService = new FakeWebUsbService();
     internal.webUsbServiceInterceptor =
         new MojoInterfaceInterceptor(blink.mojom.WebUsbService.name);
     internal.webUsbServiceInterceptor.oninterfacerequest =
         e => internal.webUsbService.addBinding(e.handle);
     internal.webUsbServiceInterceptor.start();
-    internal.webUsbServiceCrossFrameProxy = new CrossFrameHandleProxy(
-        handle => internal.webUsbService.addBinding(handle));
 
     // Wait for a call to GetDevices() to pass between the renderer and the
     // mock in order to establish that everything is set up.
@@ -464,20 +462,32 @@ class USBTest {
     internal.initialized = true;
   }
 
-  async attachToWindow(otherWindow) {
+  // Returns a promise that is resolved when the implementation of |usb| in the
+  // global scope for |context| is controlled by the current context.
+  attachToContext(context) {
     if (!internal.initialized)
-      throw new Error('Call initialize() before attachToWindow().');
+      throw new Error('Call initialize() before attachToContext()');
 
-    otherWindow.webUsbServiceInterceptor =
-        new otherWindow.MojoInterfaceInterceptor(
-            blink.mojom.WebUsbService.name);
-    otherWindow.webUsbServiceInterceptor.oninterfacerequest =
-        e => internal.webUsbServiceCrossFrameProxy.forwardHandle(e.handle);
-    otherWindow.webUsbServiceInterceptor.start();
-
-    // Wait for a call to GetDevices() to pass between the renderer and the
-    // mock in order to establish that everything is set up.
-    await otherWindow.navigator.usb.getDevices();
+    let target = context.constructor.name === 'Worker' ? context : window;
+    return getMessagePort(target).then(() => {
+      return new Promise(resolve => {
+        internal.messagePort.onmessage = channelEvent => {
+          switch (channelEvent.data.type) {
+            case blink.mojom.WebUsbService.name:
+              internal.webUsbService.addBinding(channelEvent.data.handle);
+              break;
+            case 'Complete':
+              resolve();
+              break;
+          }
+        };
+        internal.messagePort.postMessage({
+          type: 'Attach' ,
+          interfaces: [
+            blink.mojom.WebUsbService.name,
+          ]});
+      });
+    });
   }
 
   addFakeDevice(deviceInit) {
@@ -501,6 +511,9 @@ class USBTest {
     // the fact that this polyfill can do this synchronously.
     return new Promise(resolve => {
       setTimeout(() => {
+        if (internal.messagePort !== null)
+          internal.messagePort.close();
+        internal.messagePort = null;
         internal.webUsbService.removeAllDevices();
         resolve();
       }, 0);

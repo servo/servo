@@ -193,17 +193,17 @@
         // gain1 is not connected to gain3.gain. Exception should be thrown.
         should(function() {
           gain1.disconnect(gain3.gain);
-        }, 'gain1.disconnect(gain3.gain)').throw('InvalidAccessError');
+        }, 'gain1.disconnect(gain3.gain)').throw(DOMException, 'InvalidAccessError');
 
         // When the output index is good but the destination is invalid.
         should(function() {
           splitter.disconnect(gain1.gain, 1);
-        }, 'splitter.disconnect(gain1.gain, 1)').throw('InvalidAccessError');
+        }, 'splitter.disconnect(gain1.gain, 1)').throw(DOMException, 'InvalidAccessError');
 
         // When both arguments are wrong, throw IndexSizeError first.
         should(function() {
           splitter.disconnect(gain1.gain, 2);
-        }, 'splitter.disconnect(gain1.gain, 2)').throw('IndexSizeError');
+        }, 'splitter.disconnect(gain1.gain, 2)').throw(DOMException, 'IndexSizeError');
 
         task.done();
       });

@@ -22,7 +22,7 @@
         };
 
         if (illegal) {
-          should(tester, message).throw('IndexSizeError');
+          should(tester, message).throw(DOMException, 'IndexSizeError');
         } else {
           should(tester, message).notThrow();
         }

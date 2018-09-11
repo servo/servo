@@ -18,10 +18,13 @@ pub enum ImmutableOrigin {
     /// Consists of the URL's scheme, host and port
     Tuple(
         String,
-        #[serde(deserialize_with = "url_serde::deserialize", serialize_with = "url_serde::serialize")]
+        #[serde(
+            deserialize_with = "url_serde::deserialize",
+            serialize_with = "url_serde::serialize"
+        )]
         Host,
         u16,
-    )
+    ),
 }
 
 impl ImmutableOrigin {
@@ -160,7 +163,8 @@ impl MutableOrigin {
     }
 
     pub fn effective_domain(&self) -> Option<Host> {
-        self.immutable().host()
+        self.immutable()
+            .host()
             .map(|host| self.domain().unwrap_or_else(|| host.clone()))
     }
 }

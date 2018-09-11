@@ -35,7 +35,7 @@ impl OscillatorNode {
         window: &Window,
         context: &BaseAudioContext,
         oscillator_options: &OscillatorOptions,
-    ) -> OscillatorNode {
+    ) -> Fallible<OscillatorNode> {
         let mut node_options = AudioNodeOptions::empty();
         node_options.channelCount = Some(2);
         node_options.channelCountMode = Some(ChannelCountMode::Max);
@@ -46,7 +46,7 @@ impl OscillatorNode {
             &node_options,
             0, /* inputs */
             1, /* outputs */
-        );
+        )?;
         let node_id = source_node.node().node_id();
         let frequency = AudioParam::new(
             window,
@@ -69,12 +69,12 @@ impl OscillatorNode {
             440. / 2.,
         );
 
-        OscillatorNode {
+        Ok(OscillatorNode {
             source_node,
             oscillator_type: oscillator_options.type_,
             frequency: Dom::from_ref(&frequency),
             detune: Dom::from_ref(&detune),
-        }
+        })
     }
 
     #[allow(unrooted_must_root)]
@@ -82,9 +82,9 @@ impl OscillatorNode {
         window: &Window,
         context: &BaseAudioContext,
         options: &OscillatorOptions,
-    ) -> DomRoot<OscillatorNode> {
-        let node = OscillatorNode::new_inherited(window, context, options);
-        reflect_dom_object(Box::new(node), window, OscillatorNodeBinding::Wrap)
+    ) -> Fallible<DomRoot<OscillatorNode>> {
+        let node = OscillatorNode::new_inherited(window, context, options)?;
+        Ok(reflect_dom_object(Box::new(node), window, OscillatorNodeBinding::Wrap))
     }
 
     pub fn Constructor(
@@ -92,7 +92,7 @@ impl OscillatorNode {
         context: &BaseAudioContext,
         options: &OscillatorOptions,
     ) -> Fallible<DomRoot<OscillatorNode>> {
-        Ok(OscillatorNode::new(window, context, options))
+        OscillatorNode::new(window, context, options)
     }
 }
 

@@ -1068,6 +1068,23 @@ const transformListType = {
           { time: 500,  expected: [  1, 1, 1,  1, 100, 100 ] },
           { time: 1000, expected: [  1, 1, 1,  1, 100, 100 ] }]);
     }, `${property}: non-invertible matrices in mismatched transform lists`);
+
+    test(t => {
+      const idlName = propertyToIDL(property);
+      const target = createTestElement(t, setup);
+      const animation = target.animate(
+        {
+          [idlName]: ['perspective(0)', 'perspective(10px)'],
+        },
+        1000
+      );
+      testAnimationSampleMatrices(animation, idlName,
+        [{ time: 500,  expected: [ 1, 0, 0, 0,
+                                   0, 1, 0, 0,
+                                   0, 0, 1, -0.05,
+                                   0, 0, 0, 1 ] }]);
+    }, `${property}: perspective`);
+
   },
 
   testAddition: function(property, setup) {

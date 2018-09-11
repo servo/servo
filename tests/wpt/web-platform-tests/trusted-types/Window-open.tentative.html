@@ -5,23 +5,21 @@
 <body>
 <script>
   // helper functions for the tests
-  function testWindowOpen(t, win) {
-    createURL_policy(window)
-        .then(t.step_func_done(p => {
-            let url = p.createURL(INPUTS.URL);
-            let child_window = win.open(url, "", "");
-            child_window.onload = t.step_func_done(_ => {
-              assert_equals(child_window.location.href, "" + url);
-              child_window.close();
-            });
-        }));
+  function testWindowOpen(t, win, testNumber) {
+    let p = createURL_policy(window, testNumber);
+    let url = p.createURL(INPUTS.URL);
+    let child_window = win.open(url, "", "");
+    child_window.onload = t.step_func_done(_ => {
+      assert_equals(child_window.location.href, "" + url);
+      child_window.close();
+    });
   }
 
-  async_test(t => {
-    testWindowOpen(t, window);
+  test(t => {
+    testWindowOpen(t, window, 1);
   }, "window.open via policy (successful URL transformation).");
 
-  async_test(t => {
-    testWindowOpen(t, document);
+  test(t => {
+    testWindowOpen(t, document, 2);
   }, "document.open via policy (successful URL transformation).");
 </script>

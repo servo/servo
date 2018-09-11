@@ -23,10 +23,10 @@ pub struct User {
     size: usize,
 }
 
-extern fn ft_alloc(mem: FT_Memory, req_size: c_long) -> *mut c_void {
+extern "C" fn ft_alloc(mem: FT_Memory, req_size: c_long) -> *mut c_void {
     unsafe {
         let ptr = malloc(req_size as usize);
-        let ptr = ptr as *mut c_void;  // libc::c_void vs std::os::raw::c_void
+        let ptr = ptr as *mut c_void; // libc::c_void vs std::os::raw::c_void
         let actual_size = usable_size(ptr);
         let user = (*mem).user as *mut User;
         (*user).size += actual_size;
@@ -34,7 +34,7 @@ extern fn ft_alloc(mem: FT_Memory, req_size: c_long) -> *mut c_void {
     }
 }
 
-extern fn ft_free(mem: FT_Memory, ptr: *mut c_void) {
+extern "C" fn ft_free(mem: FT_Memory, ptr: *mut c_void) {
     unsafe {
         let actual_size = usable_size(ptr);
         let user = (*mem).user as *mut User;
@@ -43,8 +43,12 @@ extern fn ft_free(mem: FT_Memory, ptr: *mut c_void) {
     }
 }
 
-extern fn ft_realloc(mem: FT_Memory, _old_size: c_long, new_req_size: c_long,
-                     old_ptr: *mut c_void) -> *mut c_void {
+extern "C" fn ft_realloc(
+    mem: FT_Memory,
+    _old_size: c_long,
+    new_req_size: c_long,
+    old_ptr: *mut c_void,
+) -> *mut c_void {
     unsafe {
         let old_actual_size = usable_size(old_ptr);
         let new_ptr = realloc(old_ptr as *mut _, new_req_size as usize);
@@ -108,9 +112,7 @@ impl MallocSizeOf for FontContextHandle {
 
 impl FontContextHandle {
     pub fn new() -> FontContextHandle {
-        let user = Box::into_raw(Box::new(User {
-            size: 0,
-        }));
+        let user = Box::into_raw(Box::new(User { size: 0 }));
         let mem = Box::into_raw(Box::new(FT_MemoryRec_ {
             user: user as *mut c_void,
             alloc: Some(ft_alloc),
@@ -121,12 +123,18 @@ impl FontContextHandle {
             let mut ctx: FT_Library = ptr::null_mut();
 
             let result = FT_New_Library(mem, &mut ctx);
-            if !succeeded(result) { panic!("Unable to initialize FreeType library"); }
+            if !succeeded(result) {
+                panic!("Unable to initialize FreeType library");
+            }
 
             FT_Add_Default_Modules(ctx);
 
             FontContextHandle {
-                ctx: Rc::new(FreeTypeLibraryHandle { ctx: ctx, mem: mem, user: user }),
+                ctx: Rc::new(FreeTypeLibraryHandle {
+                    ctx: ctx,
+                    mem: mem,
+                    user: user,
+                }),
             }
         }
     }

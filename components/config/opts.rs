@@ -22,7 +22,6 @@ use std::process;
 use std::sync::atomic::{AtomicBool, ATOMIC_BOOL_INIT, Ordering};
 use url::{self, Url};
 
-
 /// Global flags for Servo, currently set on the command line.
 #[derive(Clone, Deserialize, Serialize)]
 pub struct Opts {
@@ -230,10 +229,12 @@ pub struct Opts {
 }
 
 fn print_usage(app: &str, opts: &Options) {
-    let message = format!("Usage: {} [ options ... ] [URL]\n\twhere options include", app);
+    let message = format!(
+        "Usage: {} [ options ... ] [URL]\n\twhere options include",
+        app
+    );
     println!("{}", opts.usage(&message));
 }
-
 
 /// Debug options for Servo, currently set on the command line with -Z
 #[derive(Default)]
@@ -333,7 +334,6 @@ pub struct DebugOptions {
     pub signpost: bool,
 }
 
-
 impl DebugOptions {
     pub fn extend(&mut self, debug_string: String) -> Result<(), String> {
         for option in debug_string.split(',') {
@@ -371,50 +371,103 @@ impl DebugOptions {
                 "" => {},
                 _ => return Err(String::from(option)),
             };
-        };
+        }
         Ok(())
     }
 }
-
 
 fn print_debug_usage(app: &str) -> ! {
     fn print_option(name: &str, description: &str) {
         println!("\t{:<35} {}", name, description);
     }
 
-    println!("Usage: {} debug option,[options,...]\n\twhere options include\n\nOptions:", app);
+    println!(
+        "Usage: {} debug option,[options,...]\n\twhere options include\n\nOptions:",
+        app
+    );
 
-    print_option("bubble-widths", "Bubble intrinsic widths separately like other engines.");
+    print_option(
+        "bubble-widths",
+        "Bubble intrinsic widths separately like other engines.",
+    );
     print_option("disable-text-aa", "Disable antialiasing of rendered text.");
-    print_option("disable-canvas-aa", "Disable antialiasing on the HTML canvas element.");
-    print_option("dump-style-tree", "Print the DOM with computed styles after each restyle.");
+    print_option(
+        "disable-canvas-aa",
+        "Disable antialiasing on the HTML canvas element.",
+    );
+    print_option(
+        "dump-style-tree",
+        "Print the DOM with computed styles after each restyle.",
+    );
     print_option("dump-flow-tree", "Print the flow tree after each layout.");
-    print_option("dump-display-list", "Print the display list after each layout.");
-    print_option("dump-display-list-json", "Print the display list in JSON form.");
-    print_option("relayout-event", "Print notifications when there is a relayout.");
-    print_option("profile-script-events", "Enable profiling of script-related events.");
-    print_option("profile-heartbeats", "Enable heartbeats for all thread categories.");
-    print_option("show-fragment-borders", "Paint borders along fragment boundaries.");
-    print_option("show-parallel-layout", "Mark which thread laid each flow out with colors.");
-    print_option("trace-layout", "Write layout trace to an external file for debugging.");
-    print_option("disable-share-style-cache",
-                 "Disable the style sharing cache.");
-    print_option("parallel-display-list-building", "Build display lists in parallel.");
-    print_option("convert-mouse-to-touch", "Send touch events instead of mouse events");
-    print_option("replace-surrogates", "Replace unpaires surrogates in DOM strings with U+FFFD. \
-                                        See https://github.com/servo/servo/issues/6564");
+    print_option(
+        "dump-display-list",
+        "Print the display list after each layout.",
+    );
+    print_option(
+        "dump-display-list-json",
+        "Print the display list in JSON form.",
+    );
+    print_option(
+        "relayout-event",
+        "Print notifications when there is a relayout.",
+    );
+    print_option(
+        "profile-script-events",
+        "Enable profiling of script-related events.",
+    );
+    print_option(
+        "profile-heartbeats",
+        "Enable heartbeats for all thread categories.",
+    );
+    print_option(
+        "show-fragment-borders",
+        "Paint borders along fragment boundaries.",
+    );
+    print_option(
+        "show-parallel-layout",
+        "Mark which thread laid each flow out with colors.",
+    );
+    print_option(
+        "trace-layout",
+        "Write layout trace to an external file for debugging.",
+    );
+    print_option(
+        "disable-share-style-cache",
+        "Disable the style sharing cache.",
+    );
+    print_option(
+        "parallel-display-list-building",
+        "Build display lists in parallel.",
+    );
+    print_option(
+        "convert-mouse-to-touch",
+        "Send touch events instead of mouse events",
+    );
+    print_option(
+        "replace-surrogates",
+        "Replace unpaires surrogates in DOM strings with U+FFFD. \
+         See https://github.com/servo/servo/issues/6564",
+    );
     print_option("gc-profile", "Log GC passes and their durations.");
-    print_option("load-webfonts-synchronously",
-                 "Load web fonts synchronously to avoid non-deterministic network-driven reflows");
-    print_option("disable-vsync",
-                 "Disable vsync mode in the compositor to allow profiling at more than monitor refresh rate");
+    print_option(
+        "load-webfonts-synchronously",
+        "Load web fonts synchronously to avoid non-deterministic network-driven reflows",
+    );
+    print_option(
+        "disable-vsync",
+        "Disable vsync mode in the compositor to allow profiling at more than monitor refresh rate",
+    );
     print_option("wr-stats", "Show WebRender profiler on screen.");
     print_option("msaa", "Use multisample antialiasing in WebRender.");
     print_option("full-backtraces", "Print full backtraces for all errors");
     print_option("wr-debug", "Display webrender tile borders.");
     print_option("wr-no-batch", "Disable webrender instanced batching.");
     print_option("precache-shaders", "Compile all shaders during init.");
-    print_option("signpost", "Emit native OS signposts for profile events (currently macOS only)");
+    print_option(
+        "signpost",
+        "Emit native OS signposts for profile events (currently macOS only)",
+    );
 
     println!("");
 
@@ -445,7 +498,7 @@ enum UserAgent {
     Desktop,
     Android,
     #[allow(non_camel_case_types)]
-    iOS
+    iOS,
 }
 
 fn default_user_agent_string(agent: UserAgent) -> &'static str {
@@ -468,17 +521,12 @@ fn default_user_agent_string(agent: UserAgent) -> &'static str {
     const DESKTOP_UA_STRING: &'static str =
         "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.10; rv:55.0) Servo/1.0 Firefox/55.0";
 
-
     match agent {
-        UserAgent::Desktop => {
-            DESKTOP_UA_STRING
-        }
-        UserAgent::Android => {
-            "Mozilla/5.0 (Android; Mobile; rv:55.0) Servo/1.0 Firefox/55.0"
-        }
+        UserAgent::Desktop => DESKTOP_UA_STRING,
+        UserAgent::Android => "Mozilla/5.0 (Android; Mobile; rv:55.0) Servo/1.0 Firefox/55.0",
         UserAgent::iOS => {
             "Mozilla/5.0 (iPhone; CPU iPhone OS 8_3 like Mac OS X; rv:55.0) Servo/1.0 Firefox/55.0"
-        }
+        },
     }
 }
 
@@ -564,54 +612,146 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
     opts.optopt("o", "output", "Output file", "output.png");
     opts.optopt("s", "size", "Size of tiles", "512");
     opts.optopt("", "device-pixel-ratio", "Device pixels per px", "");
-    opts.optflagopt("p", "profile", "Time profiler flag and either a TSV output filename \
-        OR an interval for output to Stdout (blank for Stdout with interval of 5s)", "10 \
-        OR time.tsv");
-    opts.optflagopt("", "profiler-trace-path",
-                    "Path to dump a self-contained HTML timeline of profiler traces",
-                    "");
-    opts.optflagopt("m", "memory-profile", "Memory profiler flag and output interval", "10");
+    opts.optflagopt(
+        "p",
+        "profile",
+        "Time profiler flag and either a TSV output filename \
+         OR an interval for output to Stdout (blank for Stdout with interval of 5s)",
+        "10 \
+         OR time.tsv",
+    );
+    opts.optflagopt(
+        "",
+        "profiler-trace-path",
+        "Path to dump a self-contained HTML timeline of profiler traces",
+        "",
+    );
+    opts.optflagopt(
+        "m",
+        "memory-profile",
+        "Memory profiler flag and output interval",
+        "10",
+    );
     opts.optflag("x", "exit", "Exit after load flag");
-    opts.optopt("y", "layout-threads", "Number of threads to use for layout", "1");
-    opts.optflag("i", "nonincremental-layout", "Enable to turn off incremental layout.");
-    opts.optflagopt("", "userscripts",
-                    "Uses userscripts in resources/user-agent-js, or a specified full path", "");
-    opts.optmulti("", "user-stylesheet",
-                  "A user stylesheet to be added to every document", "file.css");
-    opts.optopt("", "shaders",
-        "Shaders will be loaded from the specified directory instead of using the builtin ones.", "");
+    opts.optopt(
+        "y",
+        "layout-threads",
+        "Number of threads to use for layout",
+        "1",
+    );
+    opts.optflag(
+        "i",
+        "nonincremental-layout",
+        "Enable to turn off incremental layout.",
+    );
+    opts.optflagopt(
+        "",
+        "userscripts",
+        "Uses userscripts in resources/user-agent-js, or a specified full path",
+        "",
+    );
+    opts.optmulti(
+        "",
+        "user-stylesheet",
+        "A user stylesheet to be added to every document",
+        "file.css",
+    );
+    opts.optopt(
+        "",
+        "shaders",
+        "Shaders will be loaded from the specified directory instead of using the builtin ones.",
+        "",
+    );
     opts.optflag("z", "headless", "Headless mode");
-    opts.optflag("f", "hard-fail", "Exit on thread failure instead of displaying about:failure");
-    opts.optflag("F", "soft-fail", "Display about:failure on thread failure instead of exiting");
-    opts.optflagopt("", "remote-debugging-port", "Start remote debugger server on port", "2794");
-    opts.optflagopt("", "devtools", "Start remote devtools server on port", "6000");
-    opts.optflagopt("", "webdriver", "Start remote WebDriver server on port", "7000");
+    opts.optflag(
+        "f",
+        "hard-fail",
+        "Exit on thread failure instead of displaying about:failure",
+    );
+    opts.optflag(
+        "F",
+        "soft-fail",
+        "Display about:failure on thread failure instead of exiting",
+    );
+    opts.optflagopt(
+        "",
+        "remote-debugging-port",
+        "Start remote debugger server on port",
+        "2794",
+    );
+    opts.optflagopt(
+        "",
+        "devtools",
+        "Start remote devtools server on port",
+        "6000",
+    );
+    opts.optflagopt(
+        "",
+        "webdriver",
+        "Start remote WebDriver server on port",
+        "7000",
+    );
     opts.optopt("", "resolution", "Set window resolution.", "1024x740");
-    opts.optopt("u",
-                "user-agent",
-                "Set custom user agent string (or ios / android / desktop for platform default)",
-                "NCSA Mosaic/1.0 (X11;SunOS 4.1.4 sun4m)");
+    opts.optopt(
+        "u",
+        "user-agent",
+        "Set custom user agent string (or ios / android / desktop for platform default)",
+        "NCSA Mosaic/1.0 (X11;SunOS 4.1.4 sun4m)",
+    );
     opts.optflag("M", "multiprocess", "Run in multiprocess mode");
     opts.optflag("S", "sandbox", "Run in a sandbox if multiprocess");
-    opts.optopt("",
-                "random-pipeline-closure-probability",
-                "Probability of randomly closing a pipeline (for testing constellation hardening).",
-                "0.0");
-    opts.optopt("", "random-pipeline-closure-seed", "A fixed seed for repeatbility of random pipeline closure.", "");
-    opts.optmulti("Z", "debug",
-                  "A comma-separated string of debug options. Pass help to show available options.", "");
+    opts.optopt(
+        "",
+        "random-pipeline-closure-probability",
+        "Probability of randomly closing a pipeline (for testing constellation hardening).",
+        "0.0",
+    );
+    opts.optopt(
+        "",
+        "random-pipeline-closure-seed",
+        "A fixed seed for repeatbility of random pipeline closure.",
+        "",
+    );
+    opts.optmulti(
+        "Z",
+        "debug",
+        "A comma-separated string of debug options. Pass help to show available options.",
+        "",
+    );
     opts.optflag("h", "help", "Print this message");
-    opts.optopt("", "resources-path", "Path to find static resources", "/home/servo/resources");
-    opts.optopt("", "certificate-path", "Path to find SSL certificates", "/home/servo/resources/certs");
-    opts.optopt("", "content-process" , "Run as a content process and connect to the given pipe",
-                "servo-ipc-channel.abcdefg");
-    opts.optmulti("", "pref",
-                  "A preference to set to enable", "dom.bluetooth.enabled");
+    opts.optopt(
+        "",
+        "resources-path",
+        "Path to find static resources",
+        "/home/servo/resources",
+    );
+    opts.optopt(
+        "",
+        "certificate-path",
+        "Path to find SSL certificates",
+        "/home/servo/resources/certs",
+    );
+    opts.optopt(
+        "",
+        "content-process",
+        "Run as a content process and connect to the given pipe",
+        "servo-ipc-channel.abcdefg",
+    );
+    opts.optmulti(
+        "",
+        "pref",
+        "A preference to set to enable",
+        "dom.bluetooth.enabled",
+    );
     opts.optflag("b", "no-native-titlebar", "Do not use native titlebar");
     opts.optflag("w", "webrender", "Use webrender backend");
     opts.optopt("G", "graphics", "Select graphics backend (gl or es2)", "gl");
-    opts.optopt("", "config-dir",
-                    "config directory following xdg spec on linux platform", "");
+    opts.optopt(
+        "",
+        "config-dir",
+        "config directory following xdg spec on linux platform",
+        "",
+    );
     opts.optflag("v", "version", "Display servo version information");
     opts.optflag("", "unminify-js", "Unminify Javascript");
     opts.optopt("", "profiler-db-user", "Profiler database user", "");
@@ -654,44 +794,50 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
     } else {
         None
     };
-    let is_running_problem_test =
-        url_opt
-        .as_ref()
-        .map_or(false, |url|
-             url.starts_with("http://web-platform.test:8000/2dcontext/drawing-images-to-the-canvas/") ||
-             url.starts_with("http://web-platform.test:8000/_mozilla/mozilla/canvas/") ||
-             url.starts_with("http://web-platform.test:8000/_mozilla/css/canvas_over_area.html"));
+    let is_running_problem_test = url_opt.as_ref().map_or(false, |url| {
+        url.starts_with("http://web-platform.test:8000/2dcontext/drawing-images-to-the-canvas/") ||
+            url.starts_with("http://web-platform.test:8000/_mozilla/mozilla/canvas/") ||
+            url.starts_with("http://web-platform.test:8000/_mozilla/css/canvas_over_area.html")
+    });
 
-    let url_opt = url_opt.and_then(|url_string| parse_url_or_filename(&cwd, url_string)
-                                   .or_else(|error| {
-                                       warn!("URL parsing failed ({:?}).", error);
-                                       Err(error)
-                                   }).ok());
+    let url_opt = url_opt.and_then(|url_string| {
+        parse_url_or_filename(&cwd, url_string)
+            .or_else(|error| {
+                warn!("URL parsing failed ({:?}).", error);
+                Err(error)
+            }).ok()
+    });
 
     let tile_size: usize = match opt_match.opt_str("s") {
-        Some(tile_size_str) => tile_size_str.parse()
+        Some(tile_size_str) => tile_size_str
+            .parse()
             .unwrap_or_else(|err| args_fail(&format!("Error parsing option: -s ({})", err))),
         None => 512,
     };
 
-    let device_pixels_per_px = opt_match.opt_str("device-pixel-ratio").map(|dppx_str|
-        dppx_str.parse()
-            .unwrap_or_else(|err| args_fail(&format!("Error parsing option: --device-pixel-ratio ({})", err)))
-    );
+    let device_pixels_per_px = opt_match.opt_str("device-pixel-ratio").map(|dppx_str| {
+        dppx_str.parse().unwrap_or_else(|err| {
+            args_fail(&format!(
+                "Error parsing option: --device-pixel-ratio ({})",
+                err
+            ))
+        })
+    });
 
     // If only the flag is present, default to a 5 second period for both profilers
     let time_profiling = if opt_match.opt_present("p") {
         match opt_match.opt_str("p") {
             Some(argument) => match argument.parse::<f64>() {
-                Ok(interval) => Some(OutputOptions::Stdout(interval)) ,
-                Err(_) => {
-                    match ServoUrl::parse(&argument) {
-                        Ok(url) => Some(OutputOptions::DB(url, opt_match.opt_str("profiler-db-name"),
-                                                          opt_match.opt_str("profiler-db-user"),
-                                                          opt_match.opt_str("profiler-db-pass"))),
-                        Err(_) => Some(OutputOptions::FileName(argument)),
-                    }
-                }
+                Ok(interval) => Some(OutputOptions::Stdout(interval)),
+                Err(_) => match ServoUrl::parse(&argument) {
+                    Ok(url) => Some(OutputOptions::DB(
+                        url,
+                        opt_match.opt_str("profiler-db-name"),
+                        opt_match.opt_str("profiler-db-user"),
+                        opt_match.opt_str("profiler-db-pass"),
+                    )),
+                    Err(_) => Some(OutputOptions::FileName(argument)),
+                },
             },
             None => Some(OutputOptions::Stdout(5.0 as f64)),
         }
@@ -704,34 +850,50 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
         let mut path = PathBuf::from(time_profiler_trace_path);
         path.pop();
         if let Err(why) = fs::create_dir_all(&path) {
-            error!("Couldn't create/open {:?}: {:?}",
-                Path::new(time_profiler_trace_path).to_string_lossy(), why);
+            error!(
+                "Couldn't create/open {:?}: {:?}",
+                Path::new(time_profiler_trace_path).to_string_lossy(),
+                why
+            );
         }
     }
 
     let mem_profiler_period = opt_match.opt_default("m", "5").map(|period| {
-        period.parse().unwrap_or_else(|err| args_fail(&format!("Error parsing option: -m ({})", err)))
+        period
+            .parse()
+            .unwrap_or_else(|err| args_fail(&format!("Error parsing option: -m ({})", err)))
     });
 
-    let mut layout_threads: Option<usize> = opt_match.opt_str("y")
-        .map(|layout_threads_str| {
-            layout_threads_str.parse()
-                .unwrap_or_else(|err| args_fail(&format!("Error parsing option: -y ({})", err)))
-        });
+    let mut layout_threads: Option<usize> = opt_match.opt_str("y").map(|layout_threads_str| {
+        layout_threads_str
+            .parse()
+            .unwrap_or_else(|err| args_fail(&format!("Error parsing option: -y ({})", err)))
+    });
 
     let nonincremental_layout = opt_match.opt_present("i");
 
-    let random_pipeline_closure_probability = opt_match.opt_str("random-pipeline-closure-probability").map(|prob|
-        prob.parse().unwrap_or_else(|err| {
-            args_fail(&format!("Error parsing option: --random-pipeline-closure-probability ({})", err))
-        })
-    );
+    let random_pipeline_closure_probability = opt_match
+        .opt_str("random-pipeline-closure-probability")
+        .map(|prob| {
+            prob.parse().unwrap_or_else(|err| {
+                args_fail(&format!(
+                    "Error parsing option: --random-pipeline-closure-probability ({})",
+                    err
+                ))
+            })
+        });
 
-    let random_pipeline_closure_seed = opt_match.opt_str("random-pipeline-closure-seed").map(|seed|
-        seed.parse().unwrap_or_else(|err| {
-            args_fail(&format!("Error parsing option: --random-pipeline-closure-seed ({})", err))
-        })
-    );
+    let random_pipeline_closure_seed =
+        opt_match
+            .opt_str("random-pipeline-closure-seed")
+            .map(|seed| {
+                seed.parse().unwrap_or_else(|err| {
+                    args_fail(&format!(
+                        "Error parsing option: --random-pipeline-closure-seed ({})",
+                        err
+                    ))
+                })
+            });
 
     let mut bubble_inline_sizes_separately = debug_options.bubble_widths;
     if debug_options.trace_layout {
@@ -739,29 +901,40 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
         bubble_inline_sizes_separately = true;
     }
 
-    let debugger_port = opt_match.opt_default("remote-debugging-port", "2794").map(|port| {
-        port.parse()
-            .unwrap_or_else(|err| args_fail(&format!("Error parsing option: --remote-debugging-port ({})", err)))
-    });
+    let debugger_port = opt_match
+        .opt_default("remote-debugging-port", "2794")
+        .map(|port| {
+            port.parse().unwrap_or_else(|err| {
+                args_fail(&format!(
+                    "Error parsing option: --remote-debugging-port ({})",
+                    err
+                ))
+            })
+        });
 
     let devtools_port = opt_match.opt_default("devtools", "6000").map(|port| {
-        port.parse().unwrap_or_else(|err| args_fail(&format!("Error parsing option: --devtools ({})", err)))
+        port.parse()
+            .unwrap_or_else(|err| args_fail(&format!("Error parsing option: --devtools ({})", err)))
     });
 
     let webdriver_port = opt_match.opt_default("webdriver", "7000").map(|port| {
-        port.parse().unwrap_or_else(|err| args_fail(&format!("Error parsing option: --webdriver ({})", err)))
+        port.parse().unwrap_or_else(|err| {
+            args_fail(&format!("Error parsing option: --webdriver ({})", err))
+        })
     });
 
     let initial_window_size = match opt_match.opt_str("resolution") {
         Some(res_string) => {
-            let res: Vec<u32> = res_string.split('x').map(|r| {
-                r.parse().unwrap_or_else(|err| args_fail(&format!("Error parsing option: --resolution ({})", err)))
-            }).collect();
+            let res: Vec<u32> = res_string
+                .split('x')
+                .map(|r| {
+                    r.parse().unwrap_or_else(|err| {
+                        args_fail(&format!("Error parsing option: --resolution ({})", err))
+                    })
+                }).collect();
             TypedSize2D::new(res[0], res[1])
-        }
-        None => {
-            TypedSize2D::new(1024, 740)
-        }
+        },
+        None => TypedSize2D::new(1024, 740),
     };
 
     if opt_match.opt_present("M") {
@@ -776,20 +949,24 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
         None => default_user_agent_string(DEFAULT_USER_AGENT).into(),
     };
 
-    let user_stylesheets = opt_match.opt_strs("user-stylesheet").iter().map(|filename| {
-        let path = cwd.join(filename);
-        let url = ServoUrl::from_url(Url::from_file_path(&path).unwrap());
-        let mut contents = Vec::new();
-        File::open(path)
-            .unwrap_or_else(|err| args_fail(&format!("Couldn't open {}: {}", filename, err)))
-            .read_to_end(&mut contents)
-            .unwrap_or_else(|err| args_fail(&format!("Couldn't read {}: {}", filename, err)));
-        (contents, url)
-    }).collect();
+    let user_stylesheets = opt_match
+        .opt_strs("user-stylesheet")
+        .iter()
+        .map(|filename| {
+            let path = cwd.join(filename);
+            let url = ServoUrl::from_url(Url::from_file_path(&path).unwrap());
+            let mut contents = Vec::new();
+            File::open(path)
+                .unwrap_or_else(|err| args_fail(&format!("Couldn't open {}: {}", filename, err)))
+                .read_to_end(&mut contents)
+                .unwrap_or_else(|err| args_fail(&format!("Couldn't read {}: {}", filename, err)));
+            (contents, url)
+        }).collect();
 
-    let do_not_use_native_titlebar =
-        opt_match.opt_present("b") ||
-        !PREFS.get("shell.native-titlebar.enabled").as_boolean().unwrap();
+    let do_not_use_native_titlebar = opt_match.opt_present("b") || !PREFS
+        .get("shell.native-titlebar.enabled")
+        .as_boolean()
+        .unwrap();
 
     let is_printing_version = opt_match.opt_present("v") || opt_match.opt_present("version");
 
@@ -870,7 +1047,10 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
     if let Some(layout_threads) = layout_threads {
         PREFS.set("layout.threads", PrefValue::Number(layout_threads as f64));
     } else if let Some(layout_threads) = PREFS.get("layout.threads").as_string() {
-        PREFS.set("layout.threads", PrefValue::Number(layout_threads.parse::<f64>().unwrap()));
+        PREFS.set(
+            "layout.threads",
+            PrefValue::Number(layout_threads.parse::<f64>().unwrap()),
+        );
     } else if *PREFS.get("layout.threads") == PrefValue::Missing {
         let layout_threads = cmp::max(num_cpus::get() * 3 / 4, 1);
         PREFS.set("layout.threads", PrefValue::Number(layout_threads as f64));
@@ -926,8 +1106,8 @@ pub fn parse_pref_from_command_line(pref: &str) {
         Some(&"true") | None => PREFS.set(pref_name, PrefValue::Boolean(true)),
         Some(value) => match value.parse::<f64>() {
             Ok(v) => PREFS.set(pref_name, PrefValue::Number(v)),
-            Err(_) => PREFS.set(pref_name, PrefValue::String(value.to_string()))
-        }
+            Err(_) => PREFS.set(pref_name, PrefValue::String(value.to_string())),
+        },
     };
 }
 
@@ -941,7 +1121,7 @@ pub fn parse_url_or_filename(cwd: &Path, input: &str) -> Result<ServoUrl, ()> {
         Ok(url) => Ok(url),
         Err(url::ParseError::RelativeUrlWithoutBase) => {
             Url::from_file_path(&*cwd.join(input)).map(ServoUrl::from_url)
-        }
+        },
         Err(_) => Err(()),
     }
 }

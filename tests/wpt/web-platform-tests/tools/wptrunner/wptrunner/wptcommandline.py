@@ -192,6 +192,12 @@ scheme host and port.""")
                               help="Path to directory containing extra json files to add to run info")
     config_group.add_argument("--product", action="store", choices=product_choices,
                               default=None, help="Browser against which to run tests")
+    config_group.add_argument("--browser-version", action="store",
+                              default=None, help="Informative string detailing the browser "
+                              "release version. This is included in the run_info data.")
+    config_group.add_argument("--browser-channel", action="store",
+                              default=None, help="Informative string detailing the browser "
+                              "release channel. This is included in the run_info data.")
     config_group.add_argument("--config", action="store", type=abs_path, dest="config",
                               help="Path to config file")
     config_group.add_argument("--install-fonts", action="store_true",
@@ -287,6 +293,11 @@ scheme host and port.""")
     sauce_group.add_argument("--sauce-connect-binary",
                              dest="sauce_connect_binary",
                              help="Path to Sauce Connect binary")
+    sauce_group.add_argument("--sauce-init-timeout", action="store",
+                             type=int, default=30,
+                             help="Number of seconds to wait for Sauce "
+                                  "Connect tunnel to be available before "
+                                  "aborting")
 
     webkit_group = parser.add_argument_group("WebKit-specific")
     webkit_group.add_argument("--webkit-port", dest="webkit_port",
@@ -554,8 +565,14 @@ def create_parser_update(product_choices=None):
     parser.add_argument("--stability", nargs="?", action="store", const="unstable", default=None,
         help=("Reason for disabling tests. When updating test results, disable tests that have "
               "inconsistent results across many runs with the given reason."))
-    parser.add_argument("--continue", action="store_true", help="Continue a previously started run of the update script")
-    parser.add_argument("--abort", action="store_true", help="Clear state from a previous incomplete run of the update script")
+    parser.add_argument("--no-remove-obsolete", action="store_false", dest="remove_obsolete", default=True,
+                        help=("Don't remove metadata files that no longer correspond to a test file"))
+    parser.add_argument("--no-store-state", action="store_false", dest="store_state",
+                        help="Store state so that steps can be resumed after failure")
+    parser.add_argument("--continue", action="store_true",
+                        help="Continue a previously started run of the update script")
+    parser.add_argument("--abort", action="store_true",
+                        help="Clear state from a previous incomplete run of the update script")
     parser.add_argument("--exclude", action="store", nargs="*",
                         help="List of glob-style paths to exclude when syncing tests")
     parser.add_argument("--include", action="store", nargs="*",

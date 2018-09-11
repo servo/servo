@@ -11,10 +11,14 @@
 
 // TODO spec says that UAs should not support this
 // we should probably remove from gecko (https://bugzilla.mozilla.org/show_bug.cgi?id=1328331)
-${helpers.single_keyword("ime-mode", "auto normal active disabled inactive",
-                         products="gecko", gecko_ffi_name="mIMEMode",
-                         animation_value_type="discrete",
-                         spec="https://drafts.csswg.org/css-ui/#input-method-editor")}
+${helpers.single_keyword(
+    "ime-mode",
+    "auto normal active disabled inactive",
+    products="gecko",
+    gecko_ffi_name="mIMEMode",
+    animation_value_type="discrete",
+    spec="https://drafts.csswg.org/css-ui/#input-method-editor",
+)}
 
 ${helpers.single_keyword(
     "scrollbar-width",
@@ -27,30 +31,40 @@ ${helpers.single_keyword(
     spec="https://drafts.csswg.org/css-scrollbars-1/#scrollbar-width"
 )}
 
-${helpers.single_keyword("-moz-user-select", "auto text none all element elements" +
-                            " toggle tri-state -moz-all -moz-text",
-                         products="gecko",
-                         alias="-webkit-user-select",
-                         gecko_ffi_name="mUserSelect",
-                         gecko_enum_prefix="StyleUserSelect",
-                         gecko_strip_moz_prefix=False,
-                         aliases="-moz-none=none",
-                         animation_value_type="discrete",
-                         spec="https://drafts.csswg.org/css-ui-4/#propdef-user-select")}
+${helpers.single_keyword(
+    "-moz-user-select",
+    "auto text none all element elements toggle tri-state -moz-all -moz-text",
+    products="gecko",
+    alias="-webkit-user-select",
+    gecko_ffi_name="mUserSelect",
+    gecko_enum_prefix="StyleUserSelect",
+    gecko_strip_moz_prefix=False,
+    aliases="-moz-none=none",
+    animation_value_type="discrete",
+    spec="https://drafts.csswg.org/css-ui-4/#propdef-user-select",
+)}
 
 // TODO(emilio): This probably should be hidden from content.
-${helpers.single_keyword("-moz-window-dragging", "default drag no-drag", products="gecko",
-                         gecko_ffi_name="mWindowDragging",
-                         gecko_enum_prefix="StyleWindowDragging",
-                         animation_value_type="discrete",
-                         spec="None (Nonstandard Firefox-only property)")}
+${helpers.single_keyword(
+    "-moz-window-dragging",
+    "default drag no-drag",
+    products="gecko",
+    gecko_ffi_name="mWindowDragging",
+    gecko_enum_prefix="StyleWindowDragging",
+    animation_value_type="discrete",
+    spec="None (Nonstandard Firefox-only property)",
+)}
 
-${helpers.single_keyword("-moz-window-shadow", "none default menu tooltip sheet", products="gecko",
-                         gecko_ffi_name="mWindowShadow",
-                         gecko_constant_prefix="NS_STYLE_WINDOW_SHADOW",
-                         animation_value_type="discrete",
-                         enabled_in="chrome",
-                         spec="None (Nonstandard internal property)")}
+${helpers.single_keyword(
+    "-moz-window-shadow",
+    "none default menu tooltip sheet",
+    products="gecko",
+    gecko_ffi_name="mWindowShadow",
+    gecko_constant_prefix="NS_STYLE_WINDOW_SHADOW",
+    animation_value_type="discrete",
+    enabled_in="chrome",
+    spec="None (Nonstandard internal property)",
+)}
 
 ${helpers.predefined_type(
     "-moz-window-opacity",
@@ -89,9 +103,11 @@ ${helpers.predefined_type(
 )}
 
 // TODO(emilio): Probably also should be hidden from content.
-${helpers.predefined_type("-moz-force-broken-image-icon",
-                          "MozForceBrokenImageIcon",
-                          "computed::MozForceBrokenImageIcon::false_value()",
-                          animation_value_type="discrete",
-                          products="gecko",
-                          spec="None (Nonstandard Firefox-only property)")}
+${helpers.predefined_type(
+    "-moz-force-broken-image-icon",
+    "MozForceBrokenImageIcon",
+    "computed::MozForceBrokenImageIcon::false_value()",
+    animation_value_type="discrete",
+    products="gecko",
+    spec="None (Nonstandard Firefox-only property)",
+)}

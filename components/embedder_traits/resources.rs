@@ -7,10 +7,12 @@ use std::sync::RwLock;
 
 lazy_static! {
     static ref RES: RwLock<Option<Box<ResourceReaderMethods + Sync + Send>>> = RwLock::new({
-        #[cfg(not(feature = "tests"))] {
+        #[cfg(not(feature = "tests"))]
+        {
             None
         }
-        #[cfg(feature = "tests")] {
+        #[cfg(feature = "tests")]
+        {
             Some(resources_for_tests())
         }
     });
@@ -21,7 +23,11 @@ pub fn set(reader: Box<ResourceReaderMethods + Sync + Send>) {
 }
 
 pub fn read_bytes(res: Resource) -> Vec<u8> {
-    RES.read().unwrap().as_ref().expect("Resource reader not set.").read(res)
+    RES.read()
+        .unwrap()
+        .as_ref()
+        .expect("Resource reader not set.")
+        .read(res)
 }
 
 pub fn read_string(res: Resource) -> String {
@@ -29,11 +35,19 @@ pub fn read_string(res: Resource) -> String {
 }
 
 pub fn sandbox_access_files() -> Vec<PathBuf> {
-    RES.read().unwrap().as_ref().expect("Resource reader not set.").sandbox_access_files()
+    RES.read()
+        .unwrap()
+        .as_ref()
+        .expect("Resource reader not set.")
+        .sandbox_access_files()
 }
 
 pub fn sandbox_access_files_dirs() -> Vec<PathBuf> {
-    RES.read().unwrap().as_ref().expect("Resource reader not set.").sandbox_access_files_dirs()
+    RES.read()
+        .unwrap()
+        .as_ref()
+        .expect("Resource reader not set.")
+        .sandbox_access_files_dirs()
 }
 
 pub enum Resource {
@@ -64,8 +78,12 @@ fn resources_for_tests() -> Box<ResourceReaderMethods + Sync + Send> {
     use std::io::Read;
     struct ResourceReader;
     impl ResourceReaderMethods for ResourceReader {
-        fn sandbox_access_files(&self) -> Vec<PathBuf> { vec![] }
-        fn sandbox_access_files_dirs(&self) -> Vec<PathBuf> { vec![] }
+        fn sandbox_access_files(&self) -> Vec<PathBuf> {
+            vec![]
+        }
+        fn sandbox_access_files_dirs(&self) -> Vec<PathBuf> {
+            vec![]
+        }
         fn read(&self, file: Resource) -> Vec<u8> {
             let file = match file {
                 Resource::Preferences => "prefs.json",
@@ -92,8 +110,10 @@ fn resources_for_tests() -> Box<ResourceReaderMethods + Sync + Send> {
             }
             path.push(file);
             let mut buffer = vec![];
-            File::open(path).expect(&format!("Can't find file: {}", file))
-                .read_to_end(&mut buffer).expect("Can't read file");
+            File::open(path)
+                .expect(&format!("Can't find file: {}", file))
+                .read_to_end(&mut buffer)
+                .expect("Can't read file");
             buffer
         }
     }

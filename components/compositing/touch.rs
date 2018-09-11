@@ -19,12 +19,15 @@ pub struct TouchHandler {
 #[derive(Clone, Copy, Debug)]
 pub struct TouchPoint {
     pub id: TouchId,
-    pub point: TypedPoint2D<f32, DevicePixel>
+    pub point: TypedPoint2D<f32, DevicePixel>,
 }
 
 impl TouchPoint {
     pub fn new(id: TouchId, point: TypedPoint2D<f32, DevicePixel>) -> Self {
-        TouchPoint { id: id, point: point }
+        TouchPoint {
+            id: id,
+            point: point,
+        }
     }
 }
 
@@ -79,22 +82,25 @@ impl TouchHandler {
         self.active_touch_points.push(point);
 
         self.state = match self.state {
-            Nothing               => WaitingForScript,
-            Touching | Panning    => Pinching,
-            WaitingForScript      => WaitingForScript,
-            DefaultPrevented      => DefaultPrevented,
+            Nothing => WaitingForScript,
+            Touching | Panning => Pinching,
+            WaitingForScript => WaitingForScript,
+            DefaultPrevented => DefaultPrevented,
             Pinching | MultiTouch => MultiTouch,
         };
     }
 
-    pub fn on_touch_move(&mut self, id: TouchId, point: TypedPoint2D<f32, DevicePixel>)
-                         -> TouchAction {
+    pub fn on_touch_move(
+        &mut self,
+        id: TouchId,
+        point: TypedPoint2D<f32, DevicePixel>,
+    ) -> TouchAction {
         let idx = match self.active_touch_points.iter_mut().position(|t| t.id == id) {
             Some(i) => i,
             None => {
                 warn!("Got a touchmove event for a non-active touch point");
                 return TouchAction::NoAction;
-            }
+            },
         };
         let old_point = self.active_touch_points[idx].point;
 
@@ -103,21 +109,19 @@ impl TouchHandler {
                 let delta = point - old_point;
 
                 if delta.x.abs() > TOUCH_PAN_MIN_SCREEN_PX ||
-                   delta.y.abs() > TOUCH_PAN_MIN_SCREEN_PX
+                    delta.y.abs() > TOUCH_PAN_MIN_SCREEN_PX
                 {
                     self.state = Panning;
                     TouchAction::Scroll(delta)
                 } else {
                     TouchAction::NoAction
                 }
-            }
+            },
             Panning => {
                 let delta = point - old_point;
                 TouchAction::Scroll(delta)
-            }
-            DefaultPrevented => {
-                TouchAction::DispatchEvent
-            }
+            },
+            DefaultPrevented => TouchAction::DispatchEvent,
             Pinching => {
                 let (d0, c0) = self.pinch_distance_and_center();
                 self.active_touch_points[idx].point = point;
@@ -127,7 +131,7 @@ impl TouchHandler {
                 let scroll_delta = c1 - c0 * TypedScale::new(magnification);
 
                 TouchAction::Zoom(magnification, scroll_delta)
-            }
+            },
             WaitingForScript => TouchAction::NoAction,
             MultiTouch => TouchAction::NoAction,
             Nothing => unreachable!(),
@@ -141,15 +145,18 @@ impl TouchHandler {
         action
     }
 
-    pub fn on_touch_up(&mut self, id: TouchId, _point: TypedPoint2D<f32, DevicePixel>)
-                       -> TouchAction {
+    pub fn on_touch_up(
+        &mut self,
+        id: TouchId,
+        _point: TypedPoint2D<f32, DevicePixel>,
+    ) -> TouchAction {
         match self.active_touch_points.iter().position(|t| t.id == id) {
             Some(i) => {
                 self.active_touch_points.swap_remove(i);
-            }
+            },
             None => {
                 warn!("Got a touch up event for a non-active touch point");
-            }
+            },
         }
         match self.state {
             Touching => {
@@ -157,21 +164,21 @@ impl TouchHandler {
                 // FIXME: Don't send a click if preventDefault is called on the touchend event.
                 self.state = Nothing;
                 TouchAction::Click
-            }
+            },
             Nothing | Panning => {
                 self.state = Nothing;
                 TouchAction::NoAction
-            }
+            },
             Pinching => {
                 self.state = Panning;
                 TouchAction::NoAction
-            }
+            },
             WaitingForScript | DefaultPrevented | MultiTouch => {
                 if self.active_touch_points.is_empty() {
                     self.state = Nothing;
                 }
                 TouchAction::NoAction
-            }
+            },
         }
     }
 
@@ -179,25 +186,25 @@ impl TouchHandler {
         match self.active_touch_points.iter().position(|t| t.id == id) {
             Some(i) => {
                 self.active_touch_points.swap_remove(i);
-            }
+            },
             None => {
                 warn!("Got a touchcancel event for a non-active touch point");
                 return;
-            }
+            },
         }
         match self.state {
-            Nothing => {}
+            Nothing => {},
             Touching | Panning => {
                 self.state = Nothing;
-            }
+            },
             Pinching => {
                 self.state = Panning;
-            }
+            },
             WaitingForScript | DefaultPrevented | MultiTouch => {
                 if self.active_touch_points.is_empty() {
                     self.state = Nothing;
                 }
-            }
+            },
         }
     }
 
@@ -209,7 +216,7 @@ impl TouchHandler {
                     1 => Touching,
                     2 => Pinching,
                     _ => MultiTouch,
-                }
+                },
             }
         }
     }

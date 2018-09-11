@@ -21,8 +21,6 @@ test(() => {
 }, 'TransformStream constructor should not call setters for highWaterMark or size');
 
 test(t => {
-  /* eslint-disable no-native-reassign */
-
   const oldReadableStream = ReadableStream;
   const oldWritableStream = WritableStream;
   const getReader = ReadableStream.prototype.getReader;
@@ -47,7 +45,6 @@ test(t => {
                     'getReader should work when called on ts.readable');
   assert_not_equals(getWriter.call(ts.writable), undefined,
                     'getWriter should work when called on ts.writable');
-  /* eslint-enable no-native-reassign */
 }, 'TransformStream should use the original value of ReadableStream and WritableStream');
 
 done();

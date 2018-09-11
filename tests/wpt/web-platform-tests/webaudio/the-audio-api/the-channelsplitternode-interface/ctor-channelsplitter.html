@@ -41,8 +41,11 @@
 
       audit.define('test AudioNodeOptions', (task, should) => {
         testAudioNodeOptions(should, context, 'ChannelSplitterNode', {
-          channelCount:
-              {value: 6, isFixed: true, errorType: 'InvalidStateError'},
+          channelCount: {
+            value: 6,
+            isFixed: true,
+            exceptionType: 'InvalidStateError'
+          },
           channelCountMode: {
             value: 'explicit',
             isFixed: true,
@@ -50,7 +53,7 @@
           channelInterpretation: {
             value: 'discrete',
             isFixed: true,
-            errorType: 'InvalidStateError'
+            exceptionType: 'InvalidStateError'
           },
         });
         task.done();
@@ -84,7 +87,7 @@
               node = new ChannelSplitterNode(context, options);
             },
             'new ChannelSplitterNode(c, ' + JSON.stringify(options) + ')')
-            .throw('IndexSizeError');
+            .throw(DOMException, 'IndexSizeError');
 
         options = {channelCount: 3};
         should(
@@ -92,7 +95,7 @@
               node = new ChannelSplitterNode(context, options);
             },
             'new ChannelSplitterNode(c, ' + JSON.stringify(options) + ')')
-            .throw('InvalidStateError');
+            .throw(DOMException, 'InvalidStateError');
 
         options = {channelCountMode: 'max'};
         should(
@@ -100,7 +103,7 @@
               node = new ChannelSplitterNode(context, options);
             },
             'new ChannelSplitterNode(c, ' + JSON.stringify(options) + ')')
-            .throw('InvalidStateError');
+            .throw(DOMException, 'InvalidStateError');
 
         task.done();
       });

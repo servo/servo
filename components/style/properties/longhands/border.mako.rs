@@ -61,51 +61,70 @@
     )}
 % endfor
 
-${helpers.gecko_keyword_conversion(Keyword('border-style',
-                                   "none solid double dotted dashed hidden groove ridge inset outset"),
-                                   type="::values::specified::BorderStyle")}
+${helpers.gecko_keyword_conversion(
+    Keyword('border-style',
+    "none solid double dotted dashed hidden groove ridge inset outset"),
+    type="::values::specified::BorderStyle",
+)}
 
 // FIXME(#4126): when gfx supports painting it, make this Size2D<LengthOrPercentage>
 % for corner in ["top-left", "top-right", "bottom-right", "bottom-left"]:
-    ${helpers.predefined_type("border-" + corner + "-radius", "BorderCornerRadius",
-                              "computed::BorderCornerRadius::zero()",
-                              "parse", extra_prefixes="webkit",
-                              spec="https://drafts.csswg.org/css-backgrounds/#border-%s-radius" % corner,
-                              boxed=True,
-                              flags="APPLIES_TO_FIRST_LETTER",
-                              animation_value_type="BorderCornerRadius")}
+    ${helpers.predefined_type(
+        "border-" + corner + "-radius",
+        "BorderCornerRadius",
+        "computed::BorderCornerRadius::zero()",
+        "parse",
+        extra_prefixes="webkit",
+        spec="https://drafts.csswg.org/css-backgrounds/#border-%s-radius" % corner,
+        boxed=True,
+        flags="APPLIES_TO_FIRST_LETTER",
+        animation_value_type="BorderCornerRadius",
+    )}
 % endfor
 
-${helpers.single_keyword("box-decoration-break", "slice clone",
-                         gecko_enum_prefix="StyleBoxDecorationBreak",
-                         gecko_pref="layout.css.box-decoration-break.enabled",
-                         spec="https://drafts.csswg.org/css-break/#propdef-box-decoration-break",
-                         products="gecko", animation_value_type="discrete")}
+${helpers.single_keyword(
+    "box-decoration-break",
+    "slice clone",
+    gecko_enum_prefix="StyleBoxDecorationBreak",
+    gecko_pref="layout.css.box-decoration-break.enabled",
+    spec="https://drafts.csswg.org/css-break/#propdef-box-decoration-break",
+    products="gecko",
+    animation_value_type="discrete",
+)}
 
-${helpers.single_keyword("-moz-float-edge", "content-box margin-box",
-                         gecko_ffi_name="mFloatEdge",
-                         gecko_enum_prefix="StyleFloatEdge",
-                         products="gecko",
-                         spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-float-edge)",
-                         animation_value_type="discrete")}
+${helpers.single_keyword(
+    "-moz-float-edge",
+    "content-box margin-box",
+    gecko_ffi_name="mFloatEdge",
+    gecko_enum_prefix="StyleFloatEdge",
+    products="gecko",
+    spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-float-edge)",
+    animation_value_type="discrete",
+)}
 
-${helpers.predefined_type("border-image-source", "ImageLayer",
+${helpers.predefined_type(
+    "border-image-source",
+    "ImageLayer",
     initial_value="Either::First(None_)",
     initial_specified_value="Either::First(None_)",
     spec="https://drafts.csswg.org/css-backgrounds/#the-background-image",
     vector=False,
     animation_value_type="discrete",
     flags="APPLIES_TO_FIRST_LETTER",
-    boxed=True)}
+    boxed=True,
+)}
 
-${helpers.predefined_type("border-image-outset", "LengthOrNumberRect",
+${helpers.predefined_type(
+    "border-image-outset",
+    "LengthOrNumberRect",
     parse_method="parse_non_negative",
     initial_value="computed::LengthOrNumberRect::all(computed::LengthOrNumber::zero())",
     initial_specified_value="specified::LengthOrNumberRect::all(specified::LengthOrNumber::zero())",
     spec="https://drafts.csswg.org/css-backgrounds/#border-image-outset",
     animation_value_type="discrete",
     flags="APPLIES_TO_FIRST_LETTER",
-    boxed=True)}
+    boxed=True,
+)}
 
 ${helpers.predefined_type(
     "border-image-repeat",
@@ -117,21 +136,27 @@ ${helpers.predefined_type(
     flags="APPLIES_TO_FIRST_LETTER",
 )}
 
-${helpers.predefined_type("border-image-width", "BorderImageWidth",
+${helpers.predefined_type(
+    "border-image-width",
+    "BorderImageWidth",
     initial_value="computed::BorderImageWidth::all(computed::BorderImageSideWidth::one())",
     initial_specified_value="specified::BorderImageWidth::all(specified::BorderImageSideWidth::one())",
     spec="https://drafts.csswg.org/css-backgrounds/#border-image-width",
     animation_value_type="discrete",
     flags="APPLIES_TO_FIRST_LETTER",
-    boxed=True)}
+    boxed=True,
+)}
 
-${helpers.predefined_type("border-image-slice", "BorderImageSlice",
+${helpers.predefined_type(
+    "border-image-slice",
+    "BorderImageSlice",
     initial_value="computed::NumberOrPercentage::Percentage(computed::Percentage(1.)).into()",
     initial_specified_value="specified::NumberOrPercentage::Percentage(specified::Percentage::new(1.)).into()",
     spec="https://drafts.csswg.org/css-backgrounds/#border-image-slice",
     animation_value_type="discrete",
     flags="APPLIES_TO_FIRST_LETTER",
-    boxed=True)}
+    boxed=True,
+)}
 
 #[cfg(feature = "gecko")]
 impl ::values::computed::BorderImageWidth {
@@ -155,8 +180,9 @@ impl ::values::computed::BorderImageWidth {
         % endfor
     }
 
-    pub fn from_gecko_rect(sides: &::gecko_bindings::structs::nsStyleSides)
-                           -> Option<::values::computed::BorderImageWidth> {
+    pub fn from_gecko_rect(
+        sides: &::gecko_bindings::structs::nsStyleSides,
+    ) -> Option<::values::computed::BorderImageWidth> {
         use gecko_bindings::structs::nsStyleUnit::{eStyleUnit_Factor, eStyleUnit_Auto};
         use gecko_bindings::sugar::ns_style_coord::CoordData;
         use gecko::values::GeckoStyleCoordConvertible;

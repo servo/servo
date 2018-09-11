@@ -1,0 +1,2 @@
+Set-Cookie: test="fubar! = foo;bar\";" parser; max-age=6
+Set-Cookie: five; max-age=2.63,

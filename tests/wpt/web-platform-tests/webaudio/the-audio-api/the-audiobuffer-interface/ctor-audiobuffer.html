@@ -96,7 +96,7 @@
               let buffer = new AudioBuffer(options);
             },
             'new AudioBuffer(' + JSON.stringify(options) + ')')
-            .throw('NotSupportedError');
+            .throw(DOMException, 'NotSupportedError');
 
         options = {numberOfChannels: 99, length: 0, sampleRate: 16000};
         should(
@@ -104,7 +104,7 @@
               let buffer = new AudioBuffer(options);
             },
             'new AudioBuffer(' + JSON.stringify(options) + ')')
-            .throw('NotSupportedError');
+            .throw(DOMException, 'NotSupportedError');
 
         options = {numberOfChannels: 1, length: 0, sampleRate: 16000};
         should(
@@ -112,7 +112,7 @@
               let buffer = new AudioBuffer(options);
             },
             'new AudioBuffer(' + JSON.stringify(options) + ')')
-            .throw('NotSupportedError');
+            .throw(DOMException, 'NotSupportedError');
 
         options = {numberOfChannels: 1, length: 1, sampleRate: 100};
         should(
@@ -120,7 +120,7 @@
               let buffer = new AudioBuffer(options);
             },
             'new AudioBuffer(' + JSON.stringify(options) + ')')
-            .throw('NotSupportedError');
+            .throw(DOMException, 'NotSupportedError');
 
         task.done();
       });
@@ -178,7 +178,7 @@
               buffer.getChannelData(options.numberOfChannels);
             },
             'buffer.getChannelData(' + options.numberOfChannels + ')')
-            .throw('IndexSizeError');
+            .throw(DOMException, 'IndexSizeError');
 
         task.done();
       });

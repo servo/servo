@@ -1,0 +1,2 @@
+Set-Cookie: a=b; path=/
+Set-Cookie: x=y; path=/cookie-parser-result

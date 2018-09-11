@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Display: parsing display with valid values</title>
+<link rel="author" title="Eric Willigers" href="mailto:ericwilligers@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css2/visuren.html#display-prop">
+<link rel="help" href="https://drafts.csswg.org/css-display/#the-display-properties">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#grid-containers">
+<meta name="assert" content="display supports the full spec grammar.">
+<meta name="assert" content="display supports the new values 'grid | inline-grid'.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+// https://drafts.csswg.org/css-grid-1/#grid-containers
+test_valid_value("display", "grid");
+test_valid_value("display", "inline-grid");
+
+// https://drafts.csswg.org/css2/visuren.html#display-prop
+test_valid_value("display", "inline");
+test_valid_value("display", "block");
+test_valid_value("display", "list-item");
+test_valid_value("display", "inline-block");
+test_valid_value("display", "table");
+test_valid_value("display", "inline-table");
+test_valid_value("display", "table-row-group");
+test_valid_value("display", "table-header-group");
+test_valid_value("display", "table-footer-group");
+test_valid_value("display", "table-row");
+test_valid_value("display", "table-column-group");
+test_valid_value("display", "table-column");
+test_valid_value("display", "table-cell");
+test_valid_value("display", "table-caption");
+test_valid_value("display", "none");
+</script>
+</body>
+</html>

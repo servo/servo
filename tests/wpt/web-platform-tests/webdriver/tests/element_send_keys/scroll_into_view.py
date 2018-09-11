@@ -1,7 +1,6 @@
 from tests.support.asserts import assert_success
-from tests.support.fixtures import is_element_in_viewport
+from tests.support.helpers import is_element_in_viewport
 from tests.support.inline import inline
-
 
 def element_send_keys(session, element, text):
     return session.transport.send(

@@ -425,6 +425,10 @@ pub mod animated_properties {
 #[derive(Clone, Copy, Debug)]
 pub struct NonCustomPropertyId(usize);
 
+/// The length of all the non-custom properties.
+pub const NON_CUSTOM_PROPERTY_ID_COUNT: usize =
+    ${len(data.longhands) + len(data.shorthands) + len(data.all_aliases())};
+
 % if product == "gecko":
 #[allow(dead_code)]
 unsafe fn static_assert_nscsspropertyid() {
@@ -435,6 +439,11 @@ unsafe fn static_assert_nscsspropertyid() {
 % endif
 
 impl NonCustomPropertyId {
+    /// Returns the underlying index, used for use counter.
+    pub fn bit(self) -> usize {
+        self.0
+    }
+
     #[cfg(feature = "gecko")]
     #[inline]
     fn to_nscsspropertyid(self) -> nsCSSPropertyID {
@@ -450,7 +459,7 @@ impl NonCustomPropertyId {
         if prop < 0 {
             return Err(());
         }
-        if prop >= ${len(data.longhands) + len(data.shorthands) + len(data.all_aliases())} {
+        if prop >= NON_CUSTOM_PROPERTY_ID_COUNT as i32 {
             return Err(());
         }
         // unsafe: guaranteed by static_assert_nscsspropertyid above.
@@ -460,7 +469,7 @@ impl NonCustomPropertyId {
     /// Get the property name.
     #[inline]
     pub fn name(self) -> &'static str {
-        static MAP: [&'static str; ${len(data.longhands) + len(data.shorthands) + len(data.all_aliases())}] = [
+        static MAP: [&'static str; NON_CUSTOM_PROPERTY_ID_COUNT] = [
             % for property in data.longhands + data.shorthands + data.all_aliases():
             "${property.name}",
             % endfor
@@ -635,7 +644,7 @@ impl NonCustomPropertyId {
                 PropertyId::Shorthand(transmute((self.0 - ${len(data.longhands)}) as u16))
             }
         }
-        assert!(self.0 < ${len(data.longhands) + len(data.shorthands) + len(data.all_aliases())});
+        assert!(self.0 < NON_CUSTOM_PROPERTY_ID_COUNT);
         let alias_id: AliasId = unsafe {
             transmute((self.0 - ${len(data.longhands) + len(data.shorthands)}) as u16)
         };
@@ -671,7 +680,7 @@ impl From<AliasId> for NonCustomPropertyId {
 /// A set of all properties
 #[derive(Clone, PartialEq)]
 pub struct NonCustomPropertyIdSet {
-    storage: [u32; (${len(data.longhands) + len(data.shorthands) + len(data.all_aliases())} - 1 + 32) / 32]
+    storage: [u32; (NON_CUSTOM_PROPERTY_ID_COUNT - 1 + 32) / 32]
 }
 
 impl NonCustomPropertyIdSet {
@@ -1554,6 +1563,7 @@ impl UnparsedValue {
                 ParsingMode::DEFAULT,
                 quirks_mode,
                 None,
+                None,
             );
 
             let mut input = ParserInput::new(&css);
@@ -1853,7 +1863,8 @@ impl PropertyId {
         }
     }
 
-    fn non_custom_id(&self) -> Option<NonCustomPropertyId> {
+    /// Returns the `NonCustomPropertyId` corresponding to this property id.
+    pub fn non_custom_id(&self) -> Option<NonCustomPropertyId> {
         Some(match *self {
             PropertyId::Custom(_) => return None,
             PropertyId::Shorthand(shorthand_id) => shorthand_id.into(),
@@ -2198,7 +2209,7 @@ impl PropertyDeclaration {
                 // FIXME: fully implement https://github.com/w3c/csswg-drafts/issues/774
                 // before adding skip_whitespace here.
                 // This probably affects some test results.
-                let value = match input.try(|i| CSSWideKeyword::parse(i)) {
+                let value = match input.try(CSSWideKeyword::parse) {
                     Ok(keyword) => DeclaredValueOwned::CSSWideKeyword(keyword),
                     Err(()) => match ::custom_properties::SpecifiedValue::parse(input) {
                         Ok(value) => DeclaredValueOwned::Value(value),
@@ -2212,12 +2223,12 @@ impl PropertyDeclaration {
                     name: property_name,
                     value,
                 }));
-                Ok(())
+                return Ok(());
             }
             PropertyId::LonghandAlias(id, _) |
             PropertyId::Longhand(id) => {
                 input.skip_whitespace();  // Unnecessary for correctness, but may help try() rewind less.
-                input.try(|i| CSSWideKeyword::parse(i)).map(|keyword| {
+                input.try(CSSWideKeyword::parse).map(|keyword| {
                     PropertyDeclaration::CSSWideKeyword(
                         WideKeywordDeclaration { id, keyword },
                     )
@@ -2253,12 +2264,12 @@ impl PropertyDeclaration {
                     })
                 }).map(|declaration| {
                     declarations.push(declaration)
-                })
+                })?;
             }
             PropertyId::ShorthandAlias(id, _) |
             PropertyId::Shorthand(id) => {
                 input.skip_whitespace();  // Unnecessary for correctness, but may help try() rewind less.
-                if let Ok(keyword) = input.try(|i| CSSWideKeyword::parse(i)) {
+                if let Ok(keyword) = input.try(CSSWideKeyword::parse) {
                     if id == ShorthandId::All {
                         declarations.all_shorthand = AllShorthand::CSSWideKeyword(keyword)
                     } else {
@@ -2271,51 +2282,55 @@ impl PropertyDeclaration {
                             ))
                         }
                     }
-                    Ok(())
                 } else {
                     input.look_for_var_functions();
                     // Not using parse_entirely here: each ${shorthand.ident}::parse_into function
                     // needs to do so *before* pushing to `declarations`.
                     id.parse_into(declarations, context, input).or_else(|err| {
                         while let Ok(_) = input.next() {}  // Look for var() after the error.
-                        if input.seen_var_functions() {
-                            input.reset(&start);
-                            let (first_token_type, css) =
-                                ::custom_properties::parse_non_custom_with_var(input).map_err(|e| {
-                                    StyleParseErrorKind::new_invalid(
-                                        non_custom_id.unwrap().name(),
-                                        e,
-                                    )
-                                })?;
-                            let unparsed = Arc::new(UnparsedValue {
-                                css: css.into_owned(),
-                                first_token_type: first_token_type,
-                                url_data: context.url_data.clone(),
-                                from_shorthand: Some(id),
-                            });
-                            if id == ShorthandId::All {
-                                declarations.all_shorthand = AllShorthand::WithVariables(unparsed)
-                            } else {
-                                for id in id.longhands() {
-                                    declarations.push(
-                                        PropertyDeclaration::WithVariables(VariableDeclaration {
-                                            id,
-                                            value: unparsed.clone(),
-                                        })
-                                    )
-                                }
-                            }
-                            Ok(())
-                        } else {
-                            Err(StyleParseErrorKind::new_invalid(
+                        if !input.seen_var_functions() {
+                            return Err(StyleParseErrorKind::new_invalid(
                                 non_custom_id.unwrap().name(),
                                 err,
-                            ))
+                            ));
                         }
-                    })
+
+                        input.reset(&start);
+                        let (first_token_type, css) =
+                            ::custom_properties::parse_non_custom_with_var(input).map_err(|e| {
+                                StyleParseErrorKind::new_invalid(
+                                    non_custom_id.unwrap().name(),
+                                    e,
+                                )
+                            })?;
+                        let unparsed = Arc::new(UnparsedValue {
+                            css: css.into_owned(),
+                            first_token_type: first_token_type,
+                            url_data: context.url_data.clone(),
+                            from_shorthand: Some(id),
+                        });
+                        if id == ShorthandId::All {
+                            declarations.all_shorthand = AllShorthand::WithVariables(unparsed)
+                        } else {
+                            for id in id.longhands() {
+                                declarations.push(
+                                    PropertyDeclaration::WithVariables(VariableDeclaration {
+                                        id,
+                                        value: unparsed.clone(),
+                                    })
+                                )
+                            }
+                        }
+                        Ok(())
+                    })?;
                 }
             }
         }
+        debug_assert!(non_custom_id.is_some(), "Custom properties should've returned earlier");
+        if let Some(use_counters) = context.use_counters {
+            use_counters.non_custom_properties.record(non_custom_id.unwrap());
+        }
+        Ok(())
     }
 }
 

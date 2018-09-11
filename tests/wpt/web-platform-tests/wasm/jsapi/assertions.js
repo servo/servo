@@ -15,3 +15,59 @@ function assert_function_length(fn, length, description) {
   assert_true(propdesc.configurable, "configurable", `${description} length should be configurable`);
   assert_equals(propdesc.value, length, `${description} length should be ${length}`);
 }
+
+function assert_exported_function(fn, { name, length }, description) {
+  assert_equals(Object.getPrototypeOf(fn), Function.prototype,
+                `${description}: prototype`);
+
+  assert_function_name(fn, name, description);
+  assert_function_length(fn, length, description);
+}
+
+function assert_Instance(instance, expected_exports) {
+  assert_equals(Object.getPrototypeOf(instance), WebAssembly.Instance.prototype,
+                "prototype");
+  assert_true(Object.isExtensible(instance), "extensible");
+
+  assert_equals(instance.exports, instance.exports, "exports should be idempotent");
+  const exports = instance.exports;
+
+  assert_equals(Object.getPrototypeOf(exports), null, "exports prototype");
+  assert_false(Object.isExtensible(exports), "extensible exports");
+  for (const [key, expected] of Object.entries(expected_exports)) {
+    const property = Object.getOwnPropertyDescriptor(exports, key);
+    assert_equals(typeof property, "object", `${key} should be present`);
+    assert_false(property.writable, `${key}: writable`);
+    assert_true(property.enumerable, `${key}: enumerable`);
+    assert_false(property.configurable, `${key}: configurable`);
+    const actual = property.value;
+    assert_true(Object.isExtensible(actual), `${key}: extensible`);
+
+    switch (expected.kind) {
+    case "function":
+      assert_exported_function(actual, expected, `value of ${key}`);
+      break;
+    case "global":
+      assert_equals(Object.getPrototypeOf(actual), WebAssembly.Global.prototype,
+                    `value of ${key}: prototype`);
+      assert_equals(actual.value, expected.value, `value of ${key}: value`);
+      assert_equals(actual.valueOf(), expected.value, `value of ${key}: valueOf()`);
+      break;
+    case "memory":
+      assert_equals(Object.getPrototypeOf(actual), WebAssembly.Memory.prototype,
+                    `value of ${key}: prototype`);
+      assert_equals(Object.getPrototypeOf(actual.buffer), ArrayBuffer.prototype,
+                    `value of ${key}: prototype of buffer`);
+      assert_equals(actual.buffer.byteLength, 0x10000 * expected.size, `value of ${key}: size of buffer`);
+      const array = new Uint8Array(actual.buffer);
+      assert_equals(array[0], 0, `value of ${key}: first element of buffer`);
+      assert_equals(array[array.byteLength - 1], 0, `value of ${key}: last element of buffer`);
+      break;
+    case "table":
+      assert_equals(Object.getPrototypeOf(actual), WebAssembly.Table.prototype,
+                    `value of ${key}: prototype`);
+      assert_equals(actual.length, expected.length, `value of ${key}: length of table`);
+      break;
+    }
+  }
+}

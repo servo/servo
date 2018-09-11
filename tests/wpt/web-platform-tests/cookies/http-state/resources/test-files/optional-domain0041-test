@@ -1,0 +1,2 @@
+Set-Cookie: foo=bar; domain=example.org; domain=
+Location: http://home.example.org:8888/cookie-parser-result?optional-domain0041

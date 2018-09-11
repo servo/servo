@@ -100,10 +100,14 @@ promise_test(
     function() {
         return true;
     },
-    "promise_test with function that doesn't return a Promise");
+    "promise_test with function that doesn't return a Promise (should FAIL)");
 
 promise_test(function(){},
              "promise_test with function that doesn't return anything");
+
+promise_test(
+    function() { return { then: 23 }; },
+    "promise_test that returns a non-thenable (should FAIL)");
 
 promise_test(
     function() {
@@ -170,15 +174,21 @@ promise_test(
       "properties": {}
     },
     {
-      "status_string": "PASS",
-      "name": "promise_test with function that doesn't return a Promise",
-      "message": null,
+      "status_string": "FAIL",
+      "name": "promise_test with function that doesn't return a Promise (should FAIL)",
+      "message": "promise_test: test body must return a 'thenable' object (received an object with no `then` method)",
       "properties": {}
     },
     {
       "status_string": "FAIL",
       "name": "promise_test with function that doesn't return anything",
-      "message": "assert_not_equals: got disallowed value undefined",
+      "message": "promise_test: test body must return a 'thenable' object (received undefined)",
+      "properties": {}
+    },
+    {
+      "status_string": "FAIL",
+      "name": "promise_test that returns a non-thenable (should FAIL)",
+      "message": "promise_test: test body must return a 'thenable' object (received an object with no `then` method)",
       "properties": {}
     },
     {

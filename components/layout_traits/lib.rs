@@ -36,21 +36,23 @@ use std::sync::mpsc::{Receiver, Sender};
 // Here to remove the compositor -> layout dependency
 pub trait LayoutThreadFactory {
     type Message;
-    fn create(id: PipelineId,
-              top_level_browsing_context_id: TopLevelBrowsingContextId,
-              url: ServoUrl,
-              is_iframe: bool,
-              chan: (Sender<Self::Message>, Receiver<Self::Message>),
-              pipeline_port: IpcReceiver<LayoutControlMsg>,
-              constellation_chan: IpcSender<ConstellationMsg>,
-              script_chan: IpcSender<ConstellationControlMsg>,
-              image_cache: Arc<ImageCache>,
-              font_cache_thread: FontCacheThread,
-              time_profiler_chan: time::ProfilerChan,
-              mem_profiler_chan: mem::ProfilerChan,
-              content_process_shutdown_chan: Option<IpcSender<()>>,
-              webrender_api_sender: webrender_api::RenderApiSender,
-              webrender_document: webrender_api::DocumentId,
-              layout_threads: usize,
-              paint_time_metrics: PaintTimeMetrics);
+    fn create(
+        id: PipelineId,
+        top_level_browsing_context_id: TopLevelBrowsingContextId,
+        url: ServoUrl,
+        is_iframe: bool,
+        chan: (Sender<Self::Message>, Receiver<Self::Message>),
+        pipeline_port: IpcReceiver<LayoutControlMsg>,
+        constellation_chan: IpcSender<ConstellationMsg>,
+        script_chan: IpcSender<ConstellationControlMsg>,
+        image_cache: Arc<ImageCache>,
+        font_cache_thread: FontCacheThread,
+        time_profiler_chan: time::ProfilerChan,
+        mem_profiler_chan: mem::ProfilerChan,
+        content_process_shutdown_chan: Option<IpcSender<()>>,
+        webrender_api_sender: webrender_api::RenderApiSender,
+        webrender_document: webrender_api::DocumentId,
+        layout_threads: usize,
+        paint_time_metrics: PaintTimeMetrics,
+    );
 }

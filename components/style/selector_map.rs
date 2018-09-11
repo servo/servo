@@ -287,7 +287,9 @@ impl SelectorMap<Rule> {
                 context,
                 flags_setter,
             ) {
-                matching_rules.push(rule.to_applicable_declaration_block(cascade_level, shadow_cascade_order));
+                matching_rules.push(
+                    rule.to_applicable_declaration_block(cascade_level, shadow_cascade_order),
+                );
             }
         }
     }
@@ -305,10 +307,12 @@ impl<T: SelectorMapEntry> SelectorMap<T> {
 
         let vector = match find_bucket(entry.selector()) {
             Bucket::Root => &mut self.root,
-            Bucket::ID(id) => self.id_hash
+            Bucket::ID(id) => self
+                .id_hash
                 .try_entry(id.clone(), quirks_mode)?
                 .or_insert_with(SmallVec::new),
-            Bucket::Class(class) => self.class_hash
+            Bucket::Class(class) => self
+                .class_hash
                 .try_entry(class.clone(), quirks_mode)?
                 .or_insert_with(SmallVec::new),
             Bucket::LocalName { name, lower_name } => {
@@ -333,7 +337,8 @@ impl<T: SelectorMapEntry> SelectorMap<T> {
                     .try_entry(name.clone())?
                     .or_insert_with(SmallVec::new)
             },
-            Bucket::Namespace(url) => self.namespace_hash
+            Bucket::Namespace(url) => self
+                .namespace_hash
                 .try_entry(url.clone())?
                 .or_insert_with(SmallVec::new),
             Bucket::Universal => &mut self.other,
@@ -490,8 +495,9 @@ fn specific_bucket_for<'a>(component: &'a Component<SelectorImpl>) -> Bucket<'a>
             name: &selector.name,
             lower_name: &selector.lower_name,
         },
-        Component::Namespace(_, ref url) |
-        Component::DefaultNamespace(ref url) => Bucket::Namespace(url),
+        Component::Namespace(_, ref url) | Component::DefaultNamespace(ref url) => {
+            Bucket::Namespace(url)
+        },
         // ::slotted(..) isn't a normal pseudo-element, so we can insert it on
         // the rule hash normally without much problem. For example, in a
         // selector like:
@@ -534,7 +540,7 @@ fn find_bucket<'a>(mut iter: SelectorIter<'a, SelectorImpl>) -> Bucket<'a> {
                 Bucket::Root => return new_bucket,
                 Bucket::ID(..) => {
                     current_bucket = new_bucket;
-                }
+                },
                 Bucket::Class(..) => {
                     if !matches!(current_bucket, Bucket::ID(..)) {
                         current_bucket = new_bucket;
@@ -549,7 +555,7 @@ fn find_bucket<'a>(mut iter: SelectorIter<'a, SelectorImpl>) -> Bucket<'a> {
                     if matches!(current_bucket, Bucket::Universal) {
                         current_bucket = new_bucket;
                     }
-                }
+                },
                 Bucket::Universal => {},
             }
         }

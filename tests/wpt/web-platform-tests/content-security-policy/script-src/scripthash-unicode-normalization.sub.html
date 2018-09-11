@@ -20,9 +20,9 @@
     <script nonce="nonceynonce">
       var t_spv = async_test("Should fire securitypolicyviolation");
       window.addEventListener('securitypolicyviolation', t_spv.step_func_done(function(e) {
-          assert_equals(e.violatedDirective, "script-src");
+          assert_equals(e.violatedDirective, "script-src-elem");
       }));
-      
+
       var matchingContent = 'Å';
       var nonMatchingContent = 'Å';
 

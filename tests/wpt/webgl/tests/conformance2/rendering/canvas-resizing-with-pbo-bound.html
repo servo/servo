@@ -78,6 +78,8 @@ function nextTest() {
 
   if (!gl) {
     testFailed("context does not exist");
+
+    wtu.requestAnimFrame(nextTest);
   } else {
     testPassed("context exists");
 

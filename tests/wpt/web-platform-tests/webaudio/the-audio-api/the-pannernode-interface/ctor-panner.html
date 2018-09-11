@@ -107,7 +107,7 @@
               node = new PannerNode(context, options);
             },
             'new PannerNode(c, ' + JSON.stringify(options) + ')')
-            .throw('NotSupportedError');
+            .throw(DOMException, 'NotSupportedError');
 
         options = {channelCount: 3};
         should(
@@ -115,7 +115,7 @@
               node = new PannerNode(context, options);
             },
             'new PannerNode(c, ' + JSON.stringify(options) + ')')
-            .throw('NotSupportedError');
+            .throw(DOMException, 'NotSupportedError');
 
         options = {channelCount: 99};
         should(
@@ -123,7 +123,7 @@
               node = new PannerNode(context, options);
             },
             'new PannerNode(c, ' + JSON.stringify(options) + ')')
-            .throw('NotSupportedError');
+            .throw(DOMException, 'NotSupportedError');
 
         // Test channelCountMode.  A mode of "max" is illegal, but others are
         // ok.
@@ -153,7 +153,7 @@
               node = new PannerNode(context, options);
             },
             'new PannerNode(c, ' + JSON.stringify(options) + ')')
-            .throw('NotSupportedError');
+            .throw(DOMException, 'NotSupportedError');
 
         options = {channelCountMode: 'foobar'};
         should(
@@ -192,6 +192,106 @@
             'new PannerNode(c, ' + JSON.stringify(options) + ')')
             .throw(TypeError);
 
+        // Test maxDistance
+        options = {maxDistance: -1};
+        should(
+            () => {
+              node = new PannerNode(context, options);
+            },
+            'new PannerNode(c, ' + JSON.stringify(options) + ')')
+            .throw(RangeError);
+        options = {maxDistance: 100};
+        should(
+            () => {
+              node = new PannerNode(context, options);
+            },
+            'node7 = new PannerNode(c, ' + JSON.stringify(options) + ')')
+            .notThrow();
+        should(node.maxDistance, 'node7.maxDistance')
+            .beEqualTo(options.maxDistance);
+
+        // Test rolloffFactor
+        options = {rolloffFactor: -1};
+        should(
+            () => {
+              node = new PannerNode(context, options);
+            },
+            'new PannerNode(c, ' + JSON.stringify(options) + ')')
+            .throw(RangeError);
+        options = {rolloffFactor: 0};
+        should(
+            () => {
+              node = new PannerNode(context, options);
+            },
+            'node8 = new PannerNode(c, ' + JSON.stringify(options) + ')')
+            .notThrow();
+        should(node.rolloffFactor, 'node8.rolloffFactor')
+            .beEqualTo(options.rolloffFactor);
+
+        options = {rolloffFactor: 0.5};
+        should(
+            () => {
+              node = new PannerNode(context, options);
+            },
+            'node8 = new PannerNode(c, ' + JSON.stringify(options) + ')')
+            .notThrow();
+        should(node.rolloffFactor, 'node8.rolloffFactor')
+            .beEqualTo(options.rolloffFactor);
+
+        options = {rolloffFactor: 100};
+        should(
+            () => {
+              node = new PannerNode(context, options);
+            },
+            'node8 = new PannerNode(c, ' + JSON.stringify(options) + ')')
+            .notThrow();
+        should(node.rolloffFactor, 'node8.rolloffFactor')
+            .beEqualTo(options.rolloffFactor);
+
+        // Test coneOuterGain
+        options = {coneOuterGain: -1};
+        should(
+            () => {
+              node = new PannerNode(context, options);
+            },
+            'new PannerNode(c, ' + JSON.stringify(options) + ')')
+            .throw(DOMException, 'InvalidStateError');
+        options = {coneOuterGain: 1.1};
+        should(
+            () => {
+              node = new PannerNode(context, options);
+            },
+            'new PannerNode(c, ' + JSON.stringify(options) + ')')
+            .throw(DOMException, 'InvalidStateError');
+        options = {coneOuterGain: 0.0};
+        should(
+            () => {
+              node = new PannerNode(context, options);
+            },
+            'node9 = new PannerNode(c, ' + JSON.stringify(options) + ')')
+            .notThrow();
+        should(node.coneOuterGain, 'node9.coneOuterGain')
+            .beEqualTo(options.coneOuterGain);
+        options = {coneOuterGain: 0.5};
+        should(
+            () => {
+              node = new PannerNode(context, options);
+            },
+            'node9 = new PannerNode(c, ' + JSON.stringify(options) + ')')
+            .notThrow();
+        should(node.coneOuterGain, 'node9.coneOuterGain')
+            .beEqualTo(options.coneOuterGain);
+
+        options = {coneOuterGain: 1.0};
+        should(
+            () => {
+              node = new PannerNode(context, options);
+            },
+            'node9 = new PannerNode(c, ' + JSON.stringify(options) + ')')
+            .notThrow();
+        should(node.coneOuterGain, 'node9.coneOuterGain')
+            .beEqualTo(options.coneOuterGain);
+
         task.done();
       });
 
@@ -218,7 +318,7 @@
           rolloffFactor: 3 * Math.PI,
           coneInnerAngle: 4 * Math.PI,
           coneOuterAngle: 5 * Math.PI,
-          coneOuterGain: 6 * Math.PI
+          coneOuterGain: 0.1 * Math.PI
         };
 
         should(

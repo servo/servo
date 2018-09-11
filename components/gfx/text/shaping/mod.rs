@@ -17,4 +17,3 @@ pub mod harfbuzz;
 pub trait ShaperMethods {
     fn shape_text(&self, text: &str, options: &ShapingOptions, glyphs: &mut GlyphStore);
 }
-

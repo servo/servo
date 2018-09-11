@@ -17,16 +17,23 @@ macro_rules! unreachable_serializable {
 
         impl<'a, T> Deserialize<'a> for $name<T> {
             fn deserialize<D>(_: D) -> Result<$name<T>, D::Error>
-                            where D: Deserializer<'a> {
+            where
+                D: Deserializer<'a>,
+            {
                 unreachable!();
             }
         }
     };
 }
 
-#[derive(Clone)]
 pub struct WebGLSender<T>(mpsc::Sender<T>);
 pub struct WebGLReceiver<T>(mpsc::Receiver<T>);
+
+impl<T> Clone for WebGLSender<T> {
+    fn clone(&self) -> Self {
+        WebGLSender(self.0.clone())
+    }
+}
 
 impl<T> WebGLSender<T> {
     #[inline]

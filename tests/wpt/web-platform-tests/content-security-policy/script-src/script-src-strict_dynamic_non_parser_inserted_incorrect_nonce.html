@@ -16,7 +16,7 @@
     <script nonce='dummy'>
         async_test(function(t) {
             window.addEventListener('securitypolicyviolation', t.step_func_done(function(e) {
-                assert_equals(e.effectiveDirective, 'script-src');
+                assert_equals(e.effectiveDirective, 'script-src-elem');
             }));
         }, 'All the expected CSP violation reports have been fired.');
     </script>

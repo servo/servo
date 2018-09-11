@@ -1,0 +1,20 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>:hover pseudo-class</title>
+  <style type="text/css"><![CDATA[div:hover > p:first-child { background-color : lime }]]></style>
+  <link rel="author" title="Daniel Glazman" href="http://glazman.org/"/>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="help" href="https://www.w3.org/TR/css3-selectors/#selectors"/> <!-- bogus link to make sure it gets found -->
+  <meta name="flags" content=" interact" />
+ </head>
+ <body>
+ <div>
+  <p>The background color of this paragraph should turn to green when the mouse pointer hovers over any of the following:<br></br><strong>This text.</strong></p>
+  <p>This text.</p>
+  <table><tr><td><table><tr><td><dl><dt>This text.</dt><dd>This text.</dd></dl></td></tr></table></td></tr><tr><td>This text.</td></tr></table>
+  <p><sub>This text.</sub></p>
+  <p>...and anything else between the top of the first paragraph and the bottom of this paragraph.</p>
+ </div>
+</body>
+</html>

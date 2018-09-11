@@ -1,0 +1,41 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset=utf-8>
+    <title>Tests basic cookie setting functionality</title>
+    <meta name=help href="https://tools.ietf.org/html/rfc6265#page-8">
+
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="resources/cookie-http-state-template.js"></script>
+  </head>
+  <body style="background:#EEE">
+    <h3>Log</h3>
+    <div id="log" style="height:50px; overflow-y:scroll; background: #FFF">
+    </div>
+    <h3>IFrames</h3>
+    <div id="iframes" style="height:170px; overflow-y:scroll; background: #FFF">
+    </div>
+    <h3>Test Results</h3>
+    <script>
+      setup({ explicit_timeout: true });
+
+      const TEST_CASES = [
+        {file: "value0001", name: "value0001"},
+        {file: "value0002", name: "value0002"},
+        {file: "value0003", name: "value0003"},
+        {file: "value0004", name: "value0004"},
+        {file: "value0005", name: "value0005"},
+        {file: "value0006", name: "value0006"},
+      ];
+
+      for (const i in TEST_CASES) {
+        const t = TEST_CASES[i];
+        promise_test(createCookieTest(t.file),
+                     t.file + " - " + t.name,
+                     { timeout: 3000 });
+      }
+
+    </script>
+  </body>
+</html>

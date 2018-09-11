@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/webusb/resources/fake-devices.js"></script>
+<script src="/webusb/resources/usb-helpers.js"></script>
+<script>
+'use strict';
+
+async function connectInWorker() {
+  let worker = new Worker('/webusb/resources/open-in-worker.js');
+  let opened = false;
+
+  await navigator.usb.test.attachToContext(worker);
+  function nextWorkerMessage() {
+    return new Promise(resolve => worker.addEventListener(
+        'message', e => resolve(e.data)));
+  }
+  worker.postMessage({ type: 'Ready' });
+
+  assert_equals('Ready', (await nextWorkerMessage()).type);
+  let fakeDevice = navigator.usb.test.addFakeDevice(fakeDeviceInit);
+  let closedPromise = new Promise(resolve => fakeDevice.onclose = resolve)
+      .then(() => assert_true(opened));
+
+  assert_equals('Success', (await nextWorkerMessage()).type);
+  opened = true;
+  return { worker, closedPromise };
+}
+
+usb_test(async () => {
+  let { worker, closedPromise } = await connectInWorker();
+  worker.terminate();
+  await closedPromise;
+}, 'terminating worker disconnects device.');
+</script>

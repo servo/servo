@@ -116,6 +116,8 @@ use std::sync::Arc;
 use std::sync::mpsc::{Receiver, Select, Sender, channel};
 use std::thread;
 use style::thread_state::{self, ThreadState};
+use task_queue::{QueuedTask, QueuedTaskConversion, TaskQueue};
+use task_source::TaskSourceName;
 use task_source::dom_manipulation::DOMManipulationTaskSource;
 use task_source::file_reading::FileReadingTaskSource;
 use task_source::history_traversal::HistoryTraversalTaskSource;
@@ -123,6 +125,7 @@ use task_source::networking::NetworkingTaskSource;
 use task_source::performance_timeline::PerformanceTimelineTaskSource;
 use task_source::remote_event::RemoteEventTaskSource;
 use task_source::user_interaction::UserInteractionTaskSource;
+use task_source::websocket::WebsocketTaskSource;
 use time::{get_time, precise_time_ns, Tm};
 use url::Position;
 use url::percent_encoding::percent_decode;
@@ -242,6 +245,51 @@ pub enum MainThreadScriptMsg {
     },
     /// Dispatches a job queue.
     DispatchJobQueue { scope_url: ServoUrl },
+    /// Wake-up call from the task queue.
+    WakeUp,
+}
+
+impl QueuedTaskConversion for MainThreadScriptMsg {
+    fn task_source_name(&self) -> Option<&TaskSourceName> {
+        let script_msg = match self {
+            MainThreadScriptMsg::Common(script_msg) => script_msg,
+            _ => return None,
+        };
+        match script_msg {
+            CommonScriptMsg::Task(_category, _boxed, _pipeline_id, task_source) => Some(&task_source),
+            _ => return None,
+        }
+    }
+
+    fn into_queued_task(self) -> Option<QueuedTask> {
+        let script_msg = match self {
+            MainThreadScriptMsg::Common(script_msg) => script_msg,
+            _ => return None,
+        };
+        let (category, boxed, pipeline_id, task_source) = match script_msg {
+            CommonScriptMsg::Task(category, boxed, pipeline_id, task_source) =>
+                (category, boxed, pipeline_id, task_source),
+            _ => return None,
+        };
+        Some((None, category, boxed, pipeline_id, task_source))
+    }
+
+    fn from_queued_task(queued_task: QueuedTask) -> Self {
+        let (_worker, category, boxed, pipeline_id, task_source) = queued_task;
+        let script_msg = CommonScriptMsg::Task(category, boxed, pipeline_id, task_source);
+        MainThreadScriptMsg::Common(script_msg)
+    }
+
+    fn wake_up_msg() -> Self {
+        MainThreadScriptMsg::WakeUp
+    }
+
+    fn is_wake_up(&self) -> bool {
+        match self {
+            MainThreadScriptMsg::WakeUp => true,
+            _ => false,
+        }
+    }
 }
 
 impl OpaqueSender<CommonScriptMsg> for Box<ScriptChan + Send> {
@@ -398,6 +446,8 @@ impl<'a> Iterator for DocumentsIter<'a> {
 type IncompleteParserContexts = Vec<(PipelineId, ParserContext)>;
 unsafe_no_jsmanaged_fields!(RefCell<IncompleteParserContexts>);
 
+unsafe_no_jsmanaged_fields!(TaskQueue<MainThreadScriptMsg>);
+
 #[derive(JSTraceable)]
 // ScriptThread instances are rooted on creation, so this is okay
 #[allow(unrooted_must_root)]
@@ -423,8 +473,9 @@ pub struct ScriptThread {
     /// A handle to the bluetooth thread.
     bluetooth_thread: IpcSender<BluetoothRequest>,
 
-    /// The port on which the script thread receives messages (load URL, exit, etc.)
-    port: Receiver<MainThreadScriptMsg>,
+    /// A queue of tasks to be executed in this script-thread.
+    task_queue: TaskQueue<MainThreadScriptMsg>,
+
     /// A channel to hand out to script thread-based entities that need to be able to enqueue
     /// events in the event queue.
     chan: MainThreadScriptChan,
@@ -856,6 +907,8 @@ impl ScriptThread {
 
         let (image_cache_channel, image_cache_port) = channel();
 
+        let task_queue = TaskQueue::new(port, chan.clone());
+
         ScriptThread {
             documents: DomRefCell::new(Documents::new()),
             window_proxies: DomRefCell::new(HashMap::new()),
@@ -871,7 +924,7 @@ impl ScriptThread {
             resource_threads: state.resource_threads,
             bluetooth_thread: state.bluetooth_thread,
 
-            port: port,
+            task_queue,
 
             chan: MainThreadScriptChan(chan.clone()),
             dom_manipulation_task_sender: chan.clone(),
@@ -968,7 +1021,7 @@ impl ScriptThread {
         debug!("Waiting for event.");
         let mut event = {
             let sel = Select::new();
-            let mut script_port = sel.handle(&self.port);
+            let mut script_port = sel.handle(self.task_queue.select());
             let mut control_port = sel.handle(&self.control_port);
             let mut timer_event_port = sel.handle(&self.timer_event_port);
             let mut devtools_port = sel.handle(&self.devtools_port);
@@ -984,7 +1037,8 @@ impl ScriptThread {
             }
             let ret = sel.wait();
             if ret == script_port.id() {
-                FromScript(self.port.recv().unwrap())
+                self.task_queue.take_tasks();
+                FromScript(self.task_queue.recv().unwrap())
             } else if ret == control_port.id() {
                 FromConstellation(self.control_port.recv().unwrap())
             } else if ret == timer_event_port.id() {
@@ -1077,7 +1131,7 @@ impl ScriptThread {
             // and check for more resize events. If there are no events pending, we'll move
             // on and execute the sequential non-resize events we've seen.
             match self.control_port.try_recv() {
-                Err(_) => match self.port.try_recv() {
+                Err(_) => match self.task_queue.try_recv() {
                     Err(_) => match self.timer_event_port.try_recv() {
                         Err(_) => match self.devtools_port.try_recv() {
                             Err(_) => match self.image_cache_port.try_recv() {
@@ -1226,13 +1280,14 @@ impl ScriptThread {
             MixedMessage::FromDevtools(_) => None,
             MixedMessage::FromScript(ref inner_msg) => {
                 match *inner_msg {
-                    MainThreadScriptMsg::Common(CommonScriptMsg::Task(_, _, pipeline_id)) =>
+                    MainThreadScriptMsg::Common(CommonScriptMsg::Task(_, _, pipeline_id, _)) =>
                         pipeline_id,
                     MainThreadScriptMsg::Common(CommonScriptMsg::CollectReports(_)) => None,
                     MainThreadScriptMsg::Navigate(pipeline_id, ..) => Some(pipeline_id),
                     MainThreadScriptMsg::WorkletLoaded(pipeline_id) => Some(pipeline_id),
                     MainThreadScriptMsg::RegisterPaintWorklet { pipeline_id, .. } => Some(pipeline_id),
                     MainThreadScriptMsg::DispatchJobQueue { .. }  => None,
+                    MainThreadScriptMsg::WakeUp => None,
                 }
             },
             MixedMessage::FromImageCache((pipeline_id, _)) => Some(pipeline_id),
@@ -1379,7 +1434,7 @@ impl ScriptThread {
             MainThreadScriptMsg::Navigate(parent_pipeline_id, load_data, replace) => {
                 self.handle_navigate(parent_pipeline_id, None, load_data, replace)
             },
-            MainThreadScriptMsg::Common(CommonScriptMsg::Task(_, task, _)) => {
+            MainThreadScriptMsg::Common(CommonScriptMsg::Task(_, task, _, _)) => {
                 task.run_box()
             }
             MainThreadScriptMsg::Common(CommonScriptMsg::CollectReports(chan)) => {
@@ -1404,6 +1459,7 @@ impl ScriptThread {
             MainThreadScriptMsg::DispatchJobQueue { scope_url } => {
                 self.job_queue_map.run_job(scope_url, self)
             }
+             MainThreadScriptMsg::WakeUp => {},
         }
     }
 
@@ -1841,6 +1897,10 @@ impl ScriptThread {
         RemoteEventTaskSource(self.remote_event_task_sender.clone(), pipeline_id)
     }
 
+    pub fn websocket_task_source(&self, pipeline_id: PipelineId) -> WebsocketTaskSource {
+        WebsocketTaskSource(self.remote_event_task_sender.clone(), pipeline_id)
+    }
+
     /// Handles a request for the window title.
     fn handle_get_title_msg(&self, pipeline_id: PipelineId) {
         let document = match { self.documents.borrow().find_document(pipeline_id) } {
@@ -2165,6 +2225,7 @@ impl ScriptThread {
             self.file_reading_task_source(incomplete.pipeline_id),
             self.performance_timeline_task_source(incomplete.pipeline_id).clone(),
             self.remote_event_task_source(incomplete.pipeline_id),
+            self.websocket_task_source(incomplete.pipeline_id),
             self.image_cache_channel.clone(),
             self.image_cache.clone(),
             self.resource_threads.clone(),

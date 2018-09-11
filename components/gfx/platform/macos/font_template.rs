@@ -27,7 +27,6 @@ use webrender_api::NativeFontHandle;
 #[derive(Deserialize, Serialize)]
 pub struct FontTemplateData {
     // If you add members here, review the Debug impl below
-
     /// The `CTFont` object, if present. This is cached here so that we don't have to keep creating
     /// `CTFont` instances over and over. It can always be recreated from the `identifier` and/or
     /// `font_data` fields.
@@ -38,21 +37,21 @@ pub struct FontTemplateData {
     ctfont: CachedCTFont,
 
     pub identifier: Atom,
-    pub font_data: Option<Arc<Vec<u8>>>
+    pub font_data: Option<Arc<Vec<u8>>>,
 }
 
 impl fmt::Debug for FontTemplateData {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         fmt.debug_struct("FontTemplateData")
-           .field("ctfont", &self.ctfont)
-           .field("identifier", &self.identifier)
-           .field(
-               "font_data",
-               &self.font_data
+            .field("ctfont", &self.ctfont)
+            .field("identifier", &self.identifier)
+            .field(
+                "font_data",
+                &self
+                    .font_data
                     .as_ref()
-                    .map(|bytes| format!("[{} bytes]", bytes.len()))
-            )
-           .finish()
+                    .map(|bytes| format!("[{} bytes]", bytes.len())),
+            ).finish()
     }
 }
 
@@ -64,7 +63,7 @@ impl FontTemplateData {
         Ok(FontTemplateData {
             ctfont: CachedCTFont(Mutex::new(HashMap::new())),
             identifier: identifier.to_owned(),
-            font_data: font_data.map(Arc::new)
+            font_data: font_data.map(Arc::new),
         })
     }
 
@@ -83,10 +82,10 @@ impl FontTemplateData {
                     match cgfont_result {
                         Ok(cgfont) => {
                             Some(core_text::font::new_from_CGFont(&cgfont, clamped_pt_size))
-                        }
-                        Err(_) => None
+                        },
+                        Err(_) => None,
                     }
-                }
+                },
                 None => core_text::font::new_from_name(&*self.identifier, clamped_pt_size).ok(),
             };
             if let Some(ctfont) = ctfont {
@@ -104,16 +103,23 @@ impl FontTemplateData {
             return font_data;
         }
 
-        let path = ServoUrl::parse(&*self.ctfont(0.0)
-                                    .expect("No Core Text font available!")
-                                    .url()
-                                    .expect("No URL for Core Text font!")
-                                    .get_string()
-                                    .to_string()).expect("Couldn't parse Core Text font URL!")
-                                                 .as_url().to_file_path()
-                                                 .expect("Core Text font didn't name a path!");
+        let path = ServoUrl::parse(
+            &*self
+                .ctfont(0.0)
+                .expect("No Core Text font available!")
+                .url()
+                .expect("No URL for Core Text font!")
+                .get_string()
+                .to_string(),
+        ).expect("Couldn't parse Core Text font URL!")
+        .as_url()
+        .to_file_path()
+        .expect("Core Text font didn't name a path!");
         let mut bytes = Vec::new();
-        File::open(path).expect("Couldn't open font file!").read_to_end(&mut bytes).unwrap();
+        File::open(path)
+            .expect("Couldn't open font file!")
+            .read_to_end(&mut bytes)
+            .unwrap();
         bytes
     }
 
@@ -125,7 +131,8 @@ impl FontTemplateData {
 
     /// Returns the native font that underlies this font template, if applicable.
     pub fn native_font(&self) -> Option<NativeFontHandle> {
-        self.ctfont(0.0).map(|ctfont| NativeFontHandle(ctfont.copy_to_CGFont()))
+        self.ctfont(0.0)
+            .map(|ctfont| NativeFontHandle(ctfont.copy_to_CGFont()))
     }
 }
 
@@ -140,14 +147,19 @@ impl Deref for CachedCTFont {
 }
 
 impl Serialize for CachedCTFont {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error> where S: Serializer {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
         serializer.serialize_none()
     }
 }
 
 impl<'de> Deserialize<'de> for CachedCTFont {
     fn deserialize<D>(deserializer: D) -> Result<CachedCTFont, D::Error>
-                      where D: Deserializer<'de> {
+    where
+        D: Deserializer<'de>,
+    {
         struct NoneOptionVisitor;
 
         impl<'de> Visitor<'de> for NoneOptionVisitor {
@@ -158,7 +170,10 @@ impl<'de> Deserialize<'de> for CachedCTFont {
             }
 
             #[inline]
-            fn visit_none<E>(self) -> Result<CachedCTFont, E> where E: Error {
+            fn visit_none<E>(self) -> Result<CachedCTFont, E>
+            where
+                E: Error,
+            {
                 Ok(CachedCTFont(Mutex::new(HashMap::new())))
             }
         }

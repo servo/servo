@@ -59,6 +59,7 @@ use task_source::file_reading::FileReadingTaskSource;
 use task_source::networking::NetworkingTaskSource;
 use task_source::performance_timeline::PerformanceTimelineTaskSource;
 use task_source::remote_event::RemoteEventTaskSource;
+use task_source::websocket::WebsocketTaskSource;
 use time::{Timespec, get_time};
 use timers::{IsInterval, OneshotTimerCallback, OneshotTimerHandle};
 use timers::{OneshotTimers, TimerCallback};
@@ -426,6 +427,18 @@ impl GlobalScope {
         }
         if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
             return worker.remote_event_task_source();
+        }
+        unreachable!();
+    }
+
+    /// `ScriptChan` to send messages to the websocket task source of
+    /// this global scope.
+    pub fn websocket_task_source(&self) -> WebsocketTaskSource {
+        if let Some(window) = self.downcast::<Window>() {
+            return window.websocket_task_source();
+        }
+        if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
+            return worker.websocket_task_source();
         }
         unreachable!();
     }

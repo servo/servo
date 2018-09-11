@@ -30,7 +30,7 @@
             should(() => convolver.buffer = buffer, message).notThrow();
           } else {
             should(() => convolver.buffer = buffer, message)
-                .throw('NotSupportedError');
+                .throw(DOMException, 'NotSupportedError');
           }
         }
 

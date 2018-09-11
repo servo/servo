@@ -9,27 +9,69 @@
   <body>
     <div id="log"></div>
     <script>
-      var test = async_test()
-      test.step(function() {
+      test(function(t) {
         var client = new XMLHttpRequest(),
             result = [],
-            expected = [1,  4, 1] // open() -> 1,
-                                    // abort() -> 4, open() -> 1
-        client.onreadystatechange = function() {
-          test.step(function() {
-            result.push(client.readyState)
-          })
-        }
+            expected = [
+              'readystatechange', 0, 1,  // open()
+              'readystatechange', 2, 4,  // abort()
+              'abort',            2, 4,  // abort()
+              'loadend',          2, 4,  // abort()
+              'readystatechange', 3, 1,  // open()
+            ]
+
+        var state = 0
+
+        client.onreadystatechange = t.step_func(function() {
+          result.push('readystatechange', state, client.readyState)
+        })
+        client.onabort = t.step_func(function() {
+          // abort event must be fired synchronously from abort().
+          assert_equals(state, 2)
+
+          // readystatechange should be fired before abort.
+          assert_array_equals(result, [
+            'readystatechange', 0, 1,  // open()
+            'readystatechange', 2, 4,  // abort()
+          ])
+
+          // readyState should be set to unsent (0) at the very end of abort(),
+          // after this (and onloadend) is called.
+          assert_equals(client.readyState, 4)
+
+          result.push('abort', state, client.readyState)
+        })
+        client.onloadend = t.step_func(function() {
+          // abort event must be fired synchronously from abort().
+          assert_equals(state, 2)
+
+          // readystatechange should be fired before abort.
+          assert_array_equals(result, [
+            'readystatechange', 0, 1,  // open()
+            'readystatechange', 2, 4,  // abort()
+            'abort',            2, 4,  // abort()
+          ])
+
+          // readyState should be set to unsent (0) at the very end of abort(),
+          // after this is called.
+          assert_equals(client.readyState, 4)
+
+          result.push('loadend', state, client.readyState)
+        })
+
         client.open("GET", "resources/well-formed.xml")
         assert_equals(client.readyState, 1)
+
+        state = 1
         client.send(null)
+        state = 2
         client.abort()
         assert_equals(client.readyState, 0)
+        state = 3
         client.open("GET", "resources/well-formed.xml")
         assert_equals(client.readyState, 1)
         assert_array_equals(result, expected)
       })
-      test.done()
     </script>
   </body>
 </html>

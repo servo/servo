@@ -1,0 +1,58 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset=utf-8>
+    <title>Tests chromium cookie functionality</title>
+    <meta name=help href="https://tools.ietf.org/html/rfc6265#page-8">
+
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="resources/cookie-http-state-template.js"></script>
+  </head>
+  <body style="background:#EEE">
+    <h3>Log</h3>
+    <div id="log" style="height:50px; overflow-y:scroll; background: #FFF">
+    </div>
+    <h3>IFrames</h3>
+    <div id="iframes" style="height:170px; overflow-y:scroll; background: #FFF">
+    </div>
+    <h3>Test Results</h3>
+    <script>
+      setup({ explicit_timeout: true });
+
+      const TEST_CASES = [
+        {file: "chromium0001", name: "chromium0001"},
+        {file: "chromium0002", name: "chromium0002"},
+        {file: "chromium0003", name: "chromium0003"},
+        {file: "chromium0004", name: "chromium0004"},
+        {file: "chromium0005", name: "chromium0005"},
+        {file: "chromium0006", name: "chromium0006"},
+        {file: "chromium0007", name: "chromium0007"},
+        {file: "chromium0008", name: "chromium0008"},
+        {file: "chromium0009", name: "chromium0009"},
+        {file: "chromium0010", name: "chromium0010"},
+        {file: "chromium0011", name: "chromium0011"},
+        {file: "chromium0012", name: "chromium0012"},
+        {file: "chromium0013", name: "chromium0013"},
+        {file: "chromium0014", name: "chromium0014"},
+        {file: "chromium0015", name: "chromium0015"},
+        {file: "chromium0016", name: "chromium0016"},
+        {file: "chromium0017", name: "chromium0017"},
+        {file: "chromium0018", name: "chromium0018"},
+        {file: "chromium0019", name: "chromium0019"},
+        {file: "disabled-chromium0020", name: "disabled-chromium0020"},
+        {file: "chromium0021", name: "chromium0021"},
+        {file: "disabled-chromium0022", name: "disabled-chromium0022"},
+        {file: "disabled-chromium0023", name: "disabled-chromium0023"},
+      ];
+
+      for (const i in TEST_CASES) {
+        const t = TEST_CASES[i];
+        promise_test(createCookieTest(t.file),
+                     t.file + " - " + t.name,
+                     { timeout: 3000 });
+      }
+
+    </script>
+  </body>
+</html>

@@ -128,6 +128,7 @@ use task_source::networking::NetworkingTaskSource;
 use task_source::performance_timeline::PerformanceTimelineTaskSource;
 use task_source::remote_event::RemoteEventTaskSource;
 use task_source::user_interaction::UserInteractionTaskSource;
+use task_source::websocket::WebsocketTaskSource;
 use time;
 use timers::{IsInterval, TimerCallback};
 use url::Position;
@@ -186,6 +187,8 @@ pub struct Window {
     performance_timeline_task_source: PerformanceTimelineTaskSource,
     #[ignore_malloc_size_of = "task sources are hard"]
     remote_event_task_source: RemoteEventTaskSource,
+    #[ignore_malloc_size_of = "task sources are hard"]
+    websocket_task_source: WebsocketTaskSource,
     navigator: MutNullableDom<Navigator>,
     #[ignore_malloc_size_of = "Arc"]
     image_cache: Arc<ImageCache>,
@@ -374,6 +377,10 @@ impl Window {
 
     pub fn remote_event_task_source(&self) -> RemoteEventTaskSource {
         self.remote_event_task_source.clone()
+    }
+
+    pub fn websocket_task_source(&self) -> WebsocketTaskSource {
+        self.websocket_task_source.clone()
     }
 
     pub fn main_thread_script_chan(&self) -> &Sender<MainThreadScriptMsg> {
@@ -1089,6 +1096,7 @@ impl WindowMethods for Window {
             ParsingMode::DEFAULT,
             quirks_mode,
             self.css_error_reporter(),
+            None,
         );
         let media_query_list =
             media_queries::MediaList::parse(&context, &mut parser);
@@ -1666,7 +1674,8 @@ impl Window {
                     let _ = self.script_chan.send(CommonScriptMsg::Task(
                         ScriptThreadEventCategory::DomEvent,
                         Box::new(self.task_canceller(TaskSourceName::DOMManipulation).wrap_task(task)),
-                        self.pipeline_id()
+                        self.pipeline_id(),
+                        TaskSourceName::DOMManipulation,
                     ));
                     doc.set_url(url.clone());
                     return
@@ -1902,6 +1911,7 @@ impl Window {
         file_reading_task_source: FileReadingTaskSource,
         performance_timeline_task_source: PerformanceTimelineTaskSource,
         remote_event_task_source: RemoteEventTaskSource,
+        websocket_task_source: WebsocketTaskSource,
         image_cache_chan: Sender<ImageCacheMsg>,
         image_cache: Arc<ImageCache>,
         resource_threads: ResourceThreads,
@@ -1955,6 +1965,7 @@ impl Window {
             file_reading_task_source,
             performance_timeline_task_source,
             remote_event_task_source,
+            websocket_task_source,
             image_cache_chan,
             image_cache,
             navigator: Default::default(),
@@ -2123,7 +2134,8 @@ impl Window {
         let _ = self.script_chan.send(CommonScriptMsg::Task(
             ScriptThreadEventCategory::DomEvent,
             Box::new(self.task_canceller(TaskSourceName::DOMManipulation).wrap_task(task)),
-            self.pipeline_id()
+            self.pipeline_id(),
+            TaskSourceName::DOMManipulation,
         ));
     }
 }

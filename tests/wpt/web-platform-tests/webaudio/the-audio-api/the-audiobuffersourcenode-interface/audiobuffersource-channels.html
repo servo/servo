@@ -47,7 +47,7 @@
             should(function() {
               source.buffer =
                   new AudioBuffer({length: 128, sampleRate: context.sampleRate})
-            }, 'source.buffer = new buffer').throw('InvalidStateError');
+            }, 'source.buffer = new buffer').throw(DOMException, 'InvalidStateError');
 
             // The buffer has been set; it's ok to set it to null.
             should(function() {
@@ -58,7 +58,7 @@
             // again.
             should(function() {
               source.buffer = buffer;
-            }, 'source.buffer = buffer again').throw('InvalidStateError');
+            }, 'source.buffer = buffer again').throw(DOMException, 'InvalidStateError');
 
             // But setting to null is ok.
             should(function() {

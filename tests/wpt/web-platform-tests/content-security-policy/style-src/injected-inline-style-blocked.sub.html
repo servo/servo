@@ -7,7 +7,7 @@
     <title>injected-inline-style-blocked</title>
     <script src="/resources/testharness.js"></script>
     <script src="/resources/testharnessreport.js"></script>
-    <script src='../support/logTest.sub.js?logs=["violated-directive=style-src","PASS"]'></script>
+    <script src='../support/logTest.sub.js?logs=["violated-directive=style-src-elem","PASS"]'></script>
     <script src="../support/alertAssert.sub.js?alerts=[]"></script>
 </head>
 
@@ -17,14 +17,14 @@
             log("violated-directive=" + e.violatedDirective);
        });
     </script>
-            
+
     <div id="test1">
         PASS 1/2
     </div>
     <div id="test2">
         PASS 2/2
     </div>
-    
+
     <script src="support/inject-style.js"></script>
     <script>
         log(document.styleSheets.length == 0 ? "PASS" : "FAIL");

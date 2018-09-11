@@ -16,9 +16,9 @@
       var scriptsrc2 = async_test("Verify cascading of default-src to script-src policy: allow");
       var allowedScriptRan = false;
       var t_spv = async_test("Should fire violation events for every failed violation");
-      
+
       window.addEventListener("securitypolicyviolation", t_spv.step_func_done(function(e) {
-          assert_equals(e.violatedDirective, "script-src");
+          assert_equals(e.violatedDirective, "script-src-elem");
       }));
     </script>
 

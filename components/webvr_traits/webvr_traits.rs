@@ -15,11 +15,20 @@ pub enum WebVRMsg {
     UnregisterContext(PipelineId),
     PollEvents(IpcSender<bool>),
     GetDisplays(IpcSender<WebVRResult<Vec<VRDisplayData>>>),
-    GetFrameData(PipelineId, u32, f64, f64, IpcSender<WebVRResult<VRFrameData>>),
+    GetFrameData(
+        PipelineId,
+        u32,
+        f64,
+        f64,
+        IpcSender<WebVRResult<VRFrameData>>,
+    ),
     ResetPose(PipelineId, u32, IpcSender<WebVRResult<VRDisplayData>>),
     RequestPresent(PipelineId, u32, IpcSender<WebVRResult<()>>),
     ExitPresent(PipelineId, u32, Option<IpcSender<WebVRResult<()>>>),
     CreateCompositor(u32),
-    GetGamepads(Vec<u32>, IpcSender<WebVRResult<Vec<(Option<VRGamepadData>, VRGamepadState)>>>),
+    GetGamepads(
+        Vec<u32>,
+        IpcSender<WebVRResult<Vec<(Option<VRGamepadData>, VRGamepadState)>>>,
+    ),
     Exit,
 }

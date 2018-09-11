@@ -43,12 +43,14 @@ impl TableColGroupFlow {
     pub fn from_fragments(fragment: Fragment, fragments: Vec<Fragment>) -> TableColGroupFlow {
         let writing_mode = fragment.style().writing_mode;
         TableColGroupFlow {
-            base: BaseFlow::new(Some(fragment.style()),
-                                writing_mode,
-                                ForceNonfloatedFlag::ForceNonfloated),
+            base: BaseFlow::new(
+                Some(fragment.style()),
+                writing_mode,
+                ForceNonfloatedFlag::ForceNonfloated,
+            ),
             fragment: Some(fragment),
             cols: fragments,
-            inline_sizes: vec!(),
+            inline_sizes: vec![],
         }
     }
 }
@@ -67,8 +69,10 @@ impl Flow for TableColGroupFlow {
     }
 
     fn bubble_inline_sizes(&mut self) {
-        let _scope = layout_debug_scope!("table_colgroup::bubble_inline_sizes {:x}",
-                                            self.base.debug_id());
+        let _scope = layout_debug_scope!(
+            "table_colgroup::bubble_inline_sizes {:x}",
+            self.base.debug_id()
+        );
 
         for fragment in &self.cols {
             // Retrieve the specified value from the appropriate CSS property.
@@ -81,19 +85,17 @@ impl Flow for TableColGroupFlow {
 
     /// Table column inline-sizes are assigned in the table flow and propagated to table row flows
     /// and/or rowgroup flows. Therefore, table colgroup flows do not need to assign inline-sizes.
-    fn assign_inline_sizes(&mut self, _: &LayoutContext) {
-    }
+    fn assign_inline_sizes(&mut self, _: &LayoutContext) {}
 
     /// Table columns do not have block-size.
-    fn assign_block_size(&mut self, _: &LayoutContext) {
-    }
+    fn assign_block_size(&mut self, _: &LayoutContext) {}
 
     fn update_late_computed_inline_position_if_necessary(&mut self, _: Au) {}
 
     fn update_late_computed_block_position_if_necessary(&mut self, _: Au) {}
 
     // Table columns are invisible.
-    fn build_display_list(&mut self, _: &mut DisplayListBuildState) { }
+    fn build_display_list(&mut self, _: &mut DisplayListBuildState) {}
 
     fn collect_stacking_contexts(&mut self, state: &mut StackingContextCollectionState) {
         self.base.stacking_context_id = state.current_stacking_context_id;
@@ -110,10 +112,13 @@ impl Flow for TableColGroupFlow {
         panic!("Table column groups can't be containing blocks!")
     }
 
-    fn iterate_through_fragment_border_boxes(&self,
-                                             _: &mut FragmentBorderBoxIterator,
-                                             _: i32,
-                                             _: &Point2D<Au>) {}
+    fn iterate_through_fragment_border_boxes(
+        &self,
+        _: &mut FragmentBorderBoxIterator,
+        _: i32,
+        _: &Point2D<Au>,
+    ) {
+    }
 
     fn mutate_fragments(&mut self, _: &mut FnMut(&mut Fragment)) {}
 }

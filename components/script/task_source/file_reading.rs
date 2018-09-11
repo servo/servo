@@ -34,6 +34,7 @@ impl TaskSource for FileReadingTaskSource {
             ScriptThreadEventCategory::FileRead,
             Box::new(canceller.wrap_task(task)),
             Some(self.1),
+            FileReadingTaskSource::NAME,
         ))
     }
 }

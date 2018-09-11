@@ -44,7 +44,7 @@ cache:
   - .ccache
 
 install:
-  - choco install pkgconfiglite
+  - appveyor-retry choco install pkgconfiglite
   - appveyor-retry appveyor DownloadFile https://gstreamer.freedesktop.org/data/pkg/windows/1.14.1/gstreamer-1.0-devel-x86_64-1.14.1.msi
   - appveyor-retry appveyor DownloadFile https://gstreamer.freedesktop.org/data/pkg/windows/1.14.1/gstreamer-1.0-x86_64-1.14.1.msi
   - msiexec /i gstreamer-1.0-devel-x86_64-1.14.1.msi /quiet /qn /norestart /log install-devel.log
@@ -54,8 +54,6 @@ install:
   - rustup-init.exe -y --default-host x86_64-pc-windows-msvc --default-toolchain none
   - set PATH=%PATH%;C:\Users\appveyor\.cargo\bin
   - set PKG_CONFIG_PATH=%PKG_CONFIG_PATH%;C:\gstreamer\1.0\x86_64\lib\pkgconfig
-  - set LIB=%LIB%;C:\gstreamer\1.0\x86_64\lib
-  - set LIBPATH=C:\gstreamer\1.0\x86_64\lib;%LIBPATH%
   - rustup -V
   - mach rustc --version
   - mach cargo --version

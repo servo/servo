@@ -101,9 +101,10 @@ If `virtualenv` does not exist, try `python-virtualenv`.
 ``` sh
 sudo dnf install curl libtool gcc-c++ libXi-devel \
     freetype-devel mesa-libGL-devel mesa-libEGL-devel glib2-devel libX11-devel libXrandr-devel gperf \
-    fontconfig-devel cabextract ttmkfdir python python-virtualenv python-pip expat-devel \
+    fontconfig-devel cabextract ttmkfdir python2 python2-virtualenv python2-pip expat-devel \
     rpm-build openssl-devel cmake bzip2-devel libXcursor-devel libXmu-devel mesa-libOSMesa-devel \
-    dbus-devel ncurses-devel harfbuzz-devel ccache mesa-libGLU-devel clang clang-libs gstreamer autoconf213
+    dbus-devel ncurses-devel harfbuzz-devel ccache mesa-libGLU-devel clang clang-libs gstreamer1-devel \
+    gstreamer1-plugins-base-devel gstreamer1-plugins-bad-free-devel autoconf213
 ```
 #### On CentOS
 
@@ -132,13 +133,13 @@ export LIBCLANG_PATH=/opt/rh/llvm-toolset-7/root/usr/lib64
 sudo zypper install libX11-devel libexpat-devel libbz2-devel Mesa-libEGL-devel Mesa-libGL-devel cabextract cmake \
     dbus-1-devel fontconfig-devel freetype-devel gcc-c++ git glib2-devel gperf \
     harfbuzz-devel libOSMesa-devel libXcursor-devel libXi-devel libXmu-devel libXrandr-devel libopenssl-devel \
-    python-pip python-virtualenv rpm-build glu-devel ccache llvm-clang libclang 
+    python-pip python-virtualenv rpm-build glu-devel ccache llvm-clang libclang
 ```
 #### On Arch Linux
 
 ``` sh
 sudo pacman -S --needed base-devel git python2 python2-virtualenv python2-pip mesa cmake bzip2 libxmu glu \
-    pkg-config ttf-fira-sans harfbuzz ccache clang 
+    pkg-config ttf-fira-sans harfbuzz ccache clang autoconf2.13
 ```
 #### On Gentoo Linux
 

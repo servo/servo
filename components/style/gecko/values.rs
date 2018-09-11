@@ -488,7 +488,9 @@ where
 
 /// Convert a given RGBA value to `nscolor`.
 pub fn convert_rgba_to_nscolor(rgba: &RGBA) -> u32 {
-    ((rgba.alpha as u32) << 24) | ((rgba.blue as u32) << 16) | ((rgba.green as u32) << 8) |
+    ((rgba.alpha as u32) << 24) |
+        ((rgba.blue as u32) << 16) |
+        ((rgba.green as u32) << 8) |
         (rgba.red as u32)
 }
 
@@ -537,8 +539,7 @@ impl CounterStyleOrNone {
                     .map(|symbol| match *symbol {
                         Symbol::String(ref s) => nsCStr::from(s),
                         Symbol::Ident(_) => unreachable!("Should not have identifier in symbols()"),
-                    })
-                    .collect();
+                    }).collect();
                 let symbols: Vec<_> = symbols
                     .iter()
                     .map(|symbol| symbol as &nsACString as *const _)

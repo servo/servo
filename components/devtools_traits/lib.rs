@@ -8,7 +8,6 @@
 
 #![crate_name = "devtools_traits"]
 #![crate_type = "rlib"]
-
 #![allow(non_snake_case)]
 #![deny(unsafe_code)]
 
@@ -17,9 +16,11 @@ extern crate bitflags;
 extern crate hyper;
 extern crate ipc_channel;
 extern crate malloc_size_of;
-#[macro_use] extern crate malloc_size_of_derive;
+#[macro_use]
+extern crate malloc_size_of_derive;
 extern crate msg;
-#[macro_use] extern crate serde;
+#[macro_use]
+extern crate serde;
 extern crate servo_url;
 extern crate time;
 
@@ -45,7 +46,7 @@ pub struct CSSError {
     pub filename: String,
     pub line: u32,
     pub column: u32,
-    pub msg: String
+    pub msg: String,
 }
 
 /// Messages to instruct the devtools server to update its known actors/state
@@ -75,9 +76,11 @@ pub enum ChromeToDevtoolsControlMsg {
 pub enum ScriptToDevtoolsControlMsg {
     /// A new global object was created, associated with a particular pipeline.
     /// The means of communicating directly with it are provided.
-    NewGlobal((PipelineId, Option<WorkerId>),
-              IpcSender<DevtoolScriptControlMsg>,
-              DevtoolsPageInfo),
+    NewGlobal(
+        (PipelineId, Option<WorkerId>),
+        IpcSender<DevtoolScriptControlMsg>,
+        DevtoolsPageInfo,
+    ),
     /// A particular page has invoked the console API.
     ConsoleAPI(PipelineId, ConsoleMessage, Option<WorkerId>),
     /// An animation frame with the given timestamp was processed in a script thread.
@@ -201,13 +204,21 @@ pub enum DevtoolScriptControlMsg {
     /// Retrieve the computed layout properties of the given node in the given pipeline.
     GetLayout(PipelineId, String, IpcSender<Option<ComputedNodeLayout>>),
     /// Retrieve all stored console messages for the given pipeline.
-    GetCachedMessages(PipelineId, CachedConsoleMessageTypes, IpcSender<Vec<CachedConsoleMessage>>),
+    GetCachedMessages(
+        PipelineId,
+        CachedConsoleMessageTypes,
+        IpcSender<Vec<CachedConsoleMessage>>,
+    ),
     /// Update a given node's attributes with a list of modifications.
     ModifyAttribute(PipelineId, String, Vec<Modification>),
     /// Request live console messages for a given pipeline (true if desired, false otherwise).
     WantsLiveNotifications(PipelineId, bool),
     /// Request live notifications for a given set of timeline events for a given pipeline.
-    SetTimelineMarkers(PipelineId, Vec<TimelineMarkerType>, IpcSender<Option<TimelineMarker>>),
+    SetTimelineMarkers(
+        PipelineId,
+        Vec<TimelineMarkerType>,
+        IpcSender<Option<TimelineMarker>>,
+    ),
     /// Withdraw request for live timeline notifications for a given pipeline.
     DropTimelineMarkers(PipelineId, Vec<TimelineMarkerType>),
     /// Request a callback directed at the given actor name from the next animation frame

@@ -39,14 +39,14 @@
     var p6 = document.getElementById('p6');
     var p7 = document.getElementById('p7');
 
-    assert_equals(getComputedStyle(g0).d, "none");
-    assert_equals(getComputedStyle(p1).d, "none");
-    assert_equals(getComputedStyle(p2).d, "path('M 10 2 H 20')");
-    assert_equals(getComputedStyle(p3).d, "path('M 10 3 H 30')");
-    assert_equals(getComputedStyle(p4).d, "path('M 10 4 H 40')");
-    assert_equals(getComputedStyle(g5).d, "path('M 10 5 H 50')");
-    assert_equals(getComputedStyle(p6).d, "path('M 10 5 H 50')");
-    assert_equals(getComputedStyle(p7).d, "none");
+    assert_equals(getComputedStyle(g0).d, 'none');
+    assert_equals(getComputedStyle(p1).d, 'none');
+    assert_equals(getComputedStyle(p2).d, 'path("M 10 2 H 20")');
+    assert_equals(getComputedStyle(p3).d, 'path("M 10 3 H 30")');
+    assert_equals(getComputedStyle(p4).d, 'path("M 10 4 H 40")');
+    assert_equals(getComputedStyle(g5).d, 'path("M 10 5 H 50")');
+    assert_equals(getComputedStyle(p6).d, 'path("M 10 5 H 50")');
+    assert_equals(getComputedStyle(p7).d, 'none');
   });
   ]]></script>
 </svg>

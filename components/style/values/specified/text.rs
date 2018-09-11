@@ -94,7 +94,10 @@ impl Parse for LineHeight {
             {
                 Ok(GenericLineHeight::MozBlockHeight)
             },
-            ident => Err(location.new_custom_error(SelectorParseErrorKind::UnexpectedIdent(ident.clone()))),
+            ident => {
+                Err(location
+                    .new_custom_error(SelectorParseErrorKind::UnexpectedIdent(ident.clone())))
+            },
         }
     }
 }
@@ -587,8 +590,7 @@ impl TextEmphasisKeywordValue {
 }
 
 /// Fill mode for the text-emphasis-style property
-#[derive(Clone, Copy, Debug, MallocSizeOf, Parse, PartialEq, SpecifiedValueInfo,
-         ToCss)]
+#[derive(Clone, Copy, Debug, MallocSizeOf, Parse, PartialEq, SpecifiedValueInfo, ToCss)]
 pub enum TextEmphasisFillMode {
     /// `filled`
     Filled,
@@ -597,8 +599,7 @@ pub enum TextEmphasisFillMode {
 }
 
 /// Shape keyword for the text-emphasis-style property
-#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, Parse, PartialEq,
-         SpecifiedValueInfo, ToCss)]
+#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, Parse, PartialEq, SpecifiedValueInfo, ToCss)]
 pub enum TextEmphasisShapeKeyword {
     /// `dot`
     Dot,
@@ -724,8 +725,18 @@ impl Parse for TextEmphasisStyle {
 }
 
 /// The allowed horizontal values for the `text-emphasis-position` property.
-#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, Parse, PartialEq,
-         SpecifiedValueInfo, ToComputedValue, ToCss)]
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    Eq,
+    MallocSizeOf,
+    Parse,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToComputedValue,
+    ToCss,
+)]
 pub enum TextEmphasisHorizontalWritingModeValue {
     /// Draw marks over the text in horizontal writing mode.
     Over,
@@ -734,8 +745,18 @@ pub enum TextEmphasisHorizontalWritingModeValue {
 }
 
 /// The allowed vertical values for the `text-emphasis-position` property.
-#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, Parse, PartialEq,
-         SpecifiedValueInfo, ToComputedValue, ToCss)]
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    Eq,
+    MallocSizeOf,
+    Parse,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToComputedValue,
+    ToCss,
+)]
 pub enum TextEmphasisVerticalWritingModeValue {
     /// Draws marks to the right of the text in vertical writing mode.
     Right,
@@ -744,8 +765,9 @@ pub enum TextEmphasisVerticalWritingModeValue {
 }
 
 /// Specified value of `text-emphasis-position` property.
-#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo,
-         ToComputedValue, ToCss)]
+#[derive(
+    Clone, Copy, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue, ToCss,
+)]
 pub struct TextEmphasisPosition(
     pub TextEmphasisHorizontalWritingModeValue,
     pub TextEmphasisVerticalWritingModeValue,
@@ -846,8 +868,7 @@ impl Parse for MozTabSize {
             return Ok(GenericMozTabSize::Number(number));
         }
         Ok(GenericMozTabSize::Length(NonNegativeLength::parse(
-            context,
-            input,
+            context, input,
         )?))
     }
 }

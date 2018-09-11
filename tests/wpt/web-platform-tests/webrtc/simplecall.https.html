@@ -36,7 +36,7 @@
     localStream.getTracks().forEach(function(track) {
       gFirstConnection.addTrack(track, localStream);
     });
-    gFirstConnection.createOffer(onOfferCreated, failed('createOffer'));
+    gFirstConnection.createOffer().then(onOfferCreated, failed('createOffer'));
 
     var videoTag = document.getElementById('local-view');
     videoTag.srcObject = localStream;
@@ -59,7 +59,7 @@
                                                   sdp: offerSdp });
     gSecondConnection.setRemoteDescription(parsedOffer);
 
-    gSecondConnection.createAnswer(onAnswerCreated,
+    gSecondConnection.createAnswer().then(onAnswerCreated,
                                    failed('createAnswer'));
   };
 

@@ -13,7 +13,7 @@ var test6_load = event_test('no src, parser-inserted, has style sheets blocking 
     false, false);
 
 document.write(
-    `<link rel="stylesheet" href="resources/slow.py"></link>
+    `<link rel="stylesheet" href="/common/slow.py"></link>
     <script onload="onLoad(test6_load);"
         onerror="onError(test6_load);">
     "use strict";

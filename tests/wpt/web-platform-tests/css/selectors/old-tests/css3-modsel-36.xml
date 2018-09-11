@@ -1,0 +1,19 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>:only-child pseudo-class</title>
+  <style type="text/css"><![CDATA[.red { background-color : red }
+p:only-child { background-color : lime }
+div.testText > div > p { margin-left : 1em }
+]]></style>
+  <link rel="author" title="Daniel Glazman" href="http://glazman.org/"/>
+  <link rel="help" href="https://www.w3.org/TR/css3-selectors/#selectors"/> <!-- bogus link to make sure it gets found -->
+  <meta name="flags" content="" />
+ </head>
+ <body>
+<p>This paragraph should have normal background</p>
+<div>This div contains only one paragraph
+    <p class="red">This paragraph should have green background</p>
+</div>
+</body>
+</html>

@@ -3,11 +3,12 @@
 <script src="/resources/testharnessreport.js"></script>
 <script src="/cookies/resources/cookie-helper.sub.js"></script>
 <script>
-  ["", "domain="+CROSS_SITE_HOST, "MaxAge=10", "HttpOnly"].forEach(extraParams => {
+  ["", "MaxAge=10", "HttpOnly"].forEach(extraParams => {
     // Without 'secure'
     set_prefixed_cookie_via_http_test({
       prefix: "__Secure-",
       params: "Path=/;" + extraParams,
+      origin: self.origin,
       shouldExistViaHTTP: false,
       title: "__Secure: secure origin: Should not set 'Path=/;" + extraParams + "'"
     });
@@ -16,8 +17,27 @@
     set_prefixed_cookie_via_http_test({
       prefix: "__Secure-",
       params: "Secure;Path=/;" + extraParams,
+      origin: self.origin,
       shouldExistViaHTTP: true,
       title: "__Secure: secure origin: Should set 'Secure;Path=/;" + extraParams + "'"
     });
+  });
+
+  // Without 'secure'
+  set_prefixed_cookie_via_http_test({
+    prefix: "__Secure-",
+    params: "Path=/;domain=" + CROSS_SITE_HOST,
+    origin: SECURE_CROSS_SITE_ORIGIN,
+    shouldExistViaHTTP: false,
+    title: "__Secure: secure origin: Should not set 'Path=/;domain=" + CROSS_SITE_HOST + "'"
+  });
+
+  // With 'secure'
+  set_prefixed_cookie_via_http_test({
+    prefix: "__Secure-",
+    params: "Secure;Path=/;domain=" + CROSS_SITE_HOST,
+    origin: SECURE_CROSS_SITE_ORIGIN,
+    shouldExistViaHTTP: true,
+    title: "__Secure: secure origin: Should set 'Secure;Path=/;domain=" + CROSS_SITE_HOST + "'"
   });
 </script>

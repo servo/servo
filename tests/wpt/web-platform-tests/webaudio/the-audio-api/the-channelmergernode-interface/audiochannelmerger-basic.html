@@ -24,7 +24,7 @@
 
         should(function() {
           merger = context.createChannelMerger(0);
-        }, 'context.createChannelMerger(0)').throw('IndexSizeError');
+        }, 'context.createChannelMerger(0)').throw(DOMException, 'IndexSizeError');
 
         should(function() {
           merger = context.createChannelMerger(32);
@@ -34,7 +34,7 @@
         // context has a 32-channel-limit in Chrome.
         should(function() {
           merger = context.createChannelMerger(33);
-        }, 'context.createChannelMerger(33)').throw('IndexSizeError');
+        }, 'context.createChannelMerger(33)').throw(DOMException, 'IndexSizeError');
 
         task.done();
       });
@@ -49,14 +49,14 @@
 
         should(function() {
           merger.channelCount = 3;
-        }, 'merger.channelCount = 3').throw('InvalidStateError');
+        }, 'merger.channelCount = 3').throw(DOMException, 'InvalidStateError');
 
         should(merger.channelCountMode, 'merger.channelCountMode')
             .beEqualTo('explicit');
 
         should(function() {
           merger.channelCountMode = 'max';
-        }, 'merger.channelCountMode = "max"').throw('InvalidStateError');
+        }, 'merger.channelCountMode = "max"').throw(DOMException, 'InvalidStateError');
 
         task.done();
       });

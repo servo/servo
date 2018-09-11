@@ -1,18 +1,20 @@
-import pytest
+import copy
+import json
+import os
+import urlparse
 
-from tests.support.fixtures import (
-    add_event_listeners,
-    configuration,
-    closed_window,
-    create_cookie,
-    create_dialog,
-    create_frame,
-    create_window,
-    current_session,
-    http,
-    server_config,
-    session,
-    url)
+import pytest
+import webdriver
+
+from tests.support import defaults
+from tests.support.helpers import cleanup_session
+from tests.support.http_request import HTTPRequest
+from tests.support.wait import wait
+
+
+_current_session = None
+_custom_session = False
+
 
 def pytest_configure(config):
     # register the capabilities marker
@@ -33,17 +35,199 @@ def pytest_generate_tests(metafunc):
             metafunc.parametrize("capabilities", marker.args, ids=None)
 
 
-pytest.fixture()(add_event_listeners)
-pytest.fixture(scope="session")(configuration)
-pytest.fixture()(create_cookie)
-pytest.fixture()(create_dialog)
-pytest.fixture()(create_frame)
-pytest.fixture()(create_window)
-pytest.fixture(scope="function")(current_session)
-pytest.fixture()(http)
-pytest.fixture()(server_config)
-pytest.fixture(scope="function")(session)
-pytest.fixture()(url)
+@pytest.fixture
+def add_event_listeners(session):
+    """Register listeners for tracked events on element."""
+    def add_event_listeners(element, tracked_events):
+        element.session.execute_script("""
+            let element = arguments[0];
+            let trackedEvents = arguments[1];
 
-# Fixtures for specific tests
-pytest.fixture()(closed_window)
+            if (!("events" in window)) {
+              window.events = [];
+            }
+
+            for (var i = 0; i < trackedEvents.length; i++) {
+              element.addEventListener(trackedEvents[i], function (event) {
+                window.events.push(event.type);
+              });
+            }
+            """, args=(element, tracked_events))
+    return add_event_listeners
+
+
+@pytest.fixture
+def create_cookie(session, url):
+    """Create a cookie"""
+    def create_cookie(name, value, **kwargs):
+        if kwargs.get("path", None) is not None:
+            session.url = url(kwargs["path"])
+
+        session.set_cookie(name, value, **kwargs)
+        return session.cookies(name)
+
+    return create_cookie
+
+
+@pytest.fixture
+def create_frame(session):
+    """Create an `iframe` element in the current browsing context and insert it
+    into the document. Return a reference to the newly-created element."""
+    def create_frame():
+        append = """
+            var frame = document.createElement('iframe');
+            document.body.appendChild(frame);
+            return frame;
+        """
+        return session.execute_script(append)
+
+    return create_frame
+
+
+@pytest.fixture
+def create_window(session):
+    """Open new window and return the window handle."""
+    def create_window():
+        windows_before = session.handles
+        name = session.execute_script("window.open()")
+        assert len(session.handles) == len(windows_before) + 1
+        new_windows = list(set(session.handles) - set(windows_before))
+        return new_windows.pop()
+    return create_window
+
+
+@pytest.fixture
+def http(configuration):
+    return HTTPRequest(configuration["host"], configuration["port"])
+
+
+@pytest.fixture
+def server_config():
+    return json.loads(os.environ.get("WD_SERVER_CONFIG"))
+
+
+@pytest.fixture(scope="session")
+def configuration():
+    host = os.environ.get("WD_HOST", defaults.DRIVER_HOST)
+    port = int(os.environ.get("WD_PORT", str(defaults.DRIVER_PORT)))
+    capabilities = json.loads(os.environ.get("WD_CAPABILITIES", "{}"))
+
+    return {
+        "host": host,
+        "port": port,
+        "capabilities": capabilities
+    }
+
+
+@pytest.fixture(scope="function")
+def session(capabilities, configuration, request):
+    """Create and start a session for a test that does not itself test session creation.
+
+    By default the session will stay open after each test, but we always try to start a
+    new one and assume that if that fails there is already a valid session. This makes it
+    possible to recover from some errors that might leave the session in a bad state, but
+    does not demand that we start a new session per test."""
+    global _current_session
+
+    # Update configuration capabilities with custom ones from the
+    # capabilities fixture, which can be set by tests
+    caps = copy.deepcopy(configuration["capabilities"])
+    caps.update(capabilities)
+    caps = {"alwaysMatch": caps}
+
+    # If there is a session with different capabilities active, end it now
+    if _current_session is not None and (
+            caps != _current_session.requested_capabilities):
+        _current_session.end()
+        _current_session = None
+
+    if _current_session is None:
+        _current_session = webdriver.Session(
+            configuration["host"],
+            configuration["port"],
+            capabilities=caps)
+    try:
+        _current_session.start()
+    except webdriver.error.SessionNotCreatedException:
+        if not _current_session.session_id:
+            raise
+
+    # Enforce a fixed default window size
+    _current_session.window.size = defaults.WINDOW_SIZE
+
+    yield _current_session
+
+    cleanup_session(_current_session)
+
+
+@pytest.fixture(scope="function")
+def current_session():
+    return _current_session
+
+
+@pytest.fixture
+def url(server_config):
+    def inner(path, protocol="http", query="", fragment=""):
+        port = server_config["ports"][protocol][0]
+        host = "%s:%s" % (server_config["browser_host"], port)
+        return urlparse.urlunsplit((protocol, host, path, query, fragment))
+
+    inner.__name__ = "url"
+    return inner
+
+
+@pytest.fixture
+def create_dialog(session):
+    """Create a dialog (one of "alert", "prompt", or "confirm") and provide a
+    function to validate that the dialog has been "handled" (either accepted or
+    dismissed) by returning some value."""
+
+    def create_dialog(dialog_type, text=None):
+        assert dialog_type in ("alert", "confirm", "prompt"), (
+            "Invalid dialog type: '%s'" % dialog_type)
+
+        if text is None:
+            text = ""
+
+        assert isinstance(text, basestring), "`text` parameter must be a string"
+
+        # Script completes itself when the user prompt has been opened.
+        # For prompt() dialogs, add a value for the 'default' argument,
+        # as some user agents (IE, for example) do not produce consistent
+        # values for the default.
+        session.execute_async_script("""
+            let dialog_type = arguments[0];
+            let text = arguments[1];
+
+            setTimeout(function() {
+              if (dialog_type == 'prompt') {
+                window.dialog_return_value = window[dialog_type](text, '');
+              } else {
+                window.dialog_return_value = window[dialog_type](text);
+              }
+            }, 0);
+            """, args=(dialog_type, text))
+
+        wait(session,
+             lambda s: s.alert.text == text,
+             "No user prompt with text '{}' detected".format(text),
+             timeout=15,
+             ignored_exceptions=webdriver.NoSuchAlertException)
+
+    return create_dialog
+
+
+@pytest.fixture
+def closed_window(session, create_window):
+    original_handle = session.window_handle
+
+    new_handle = create_window()
+    session.window_handle = new_handle
+
+    session.close()
+    assert new_handle not in session.handles, "Unable to close window {}".format(new_handle)
+
+    yield new_handle
+
+    session.window_handle = original_handle
+

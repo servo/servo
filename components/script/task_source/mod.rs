@@ -10,6 +10,7 @@ pub mod networking;
 pub mod performance_timeline;
 pub mod remote_event;
 pub mod user_interaction;
+pub mod websocket;
 
 use dom::globalscope::GlobalScope;
 use enum_iterator::IntoEnumIterator;
@@ -20,7 +21,7 @@ use task::{TaskCanceller, TaskOnce};
 // Note: When adding a task source, update this enum.
 // Note: The HistoryTraversalTaskSource is not part of this,
 // because it doesn't implement TaskSource.
-#[derive(Eq, Hash, IntoEnumIterator, JSTraceable, PartialEq)]
+#[derive(Clone, Eq, Hash, IntoEnumIterator, JSTraceable, PartialEq)]
 pub enum TaskSourceName {
     DOMManipulation,
     FileReading,
@@ -28,7 +29,8 @@ pub enum TaskSourceName {
     Networking,
     PerformanceTimeline,
     UserInteraction,
-    RemoteEvent
+    RemoteEvent,
+    Websocket,
 }
 
 impl TaskSourceName {

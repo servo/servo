@@ -8,6 +8,7 @@
     set_prefixed_cookie_via_http_test({
       prefix: "__Secure-",
       params: "Path=/;" + extraParams,
+      origin: self.origin,
       shouldExistViaHTTP: false,
       title: "__Secure: Non-secure origin: Should not set 'Path=/;" + extraParams + "'"
     });
@@ -16,8 +17,9 @@
     set_prefixed_cookie_via_http_test({
       prefix: "__Secure-",
       params: "Secure; Path=/;" + extraParams,
-      shouldExistViaHTTP: true,
-      title: "__Secure: Non-secure origin: Should set 'Secure; Path=/;" + extraParams + "'"
+      origin: self.origin,
+      shouldExistViaHTTP: false,
+      title: "__Secure: Non-secure origin: Should not set 'Secure; Path=/;" + extraParams + "'"
     });
   });
 </script>

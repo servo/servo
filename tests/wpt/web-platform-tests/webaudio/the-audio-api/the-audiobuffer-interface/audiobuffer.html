@@ -53,7 +53,7 @@
               buffer.getChannelData(buffer.numberOfChannels);
             },
             'buffer.getChannelData(' + buffer.numberOfChannels + ')')
-            .throw('IndexSizeError');
+            .throw(DOMException, 'IndexSizeError');
 
         let buffer2 = context.createBuffer(1, 1000, 24576);
         let expectedDuration = 1000 / 24576;

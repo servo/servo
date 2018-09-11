@@ -44,7 +44,7 @@
                 if (violation.blockedURI.split('?')[1] !== 'nonWhitelisted-appendChild') {
                     return;
                 }
-                assert_equals(violation.effectiveDirective, 'script-src');
+                assert_equals(violation.effectiveDirective, 'script-src-elem');
                 assert_equals(violation.originalPolicy, "script-src 'self' 'nonce-dummy'");
                 t.done();
             }));

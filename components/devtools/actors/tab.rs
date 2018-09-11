@@ -37,7 +37,7 @@ struct TabDetachedReply {
 
 #[derive(Serialize)]
 struct ReconfigureReply {
-    from: String
+    from: String,
 }
 
 #[derive(Serialize)]
@@ -84,25 +84,28 @@ impl Actor for TabActor {
         self.name.clone()
     }
 
-    fn handle_message(&self,
-                      registry: &ActorRegistry,
-                      msg_type: &str,
-                      msg: &Map<String, Value>,
-                      stream: &mut TcpStream) -> Result<ActorMessageStatus, ()> {
+    fn handle_message(
+        &self,
+        registry: &ActorRegistry,
+        msg_type: &str,
+        msg: &Map<String, Value>,
+        stream: &mut TcpStream,
+    ) -> Result<ActorMessageStatus, ()> {
         Ok(match msg_type {
             "reconfigure" => {
                 if let Some(options) = msg.get("options").and_then(|o| o.as_object()) {
                     if let Some(val) = options.get("performReload") {
                         if val.as_bool().unwrap_or(false) {
                             let console_actor = registry.find::<ConsoleActor>(&self.console);
-                            let _ = console_actor.script_chan.send(
-                                DevtoolScriptControlMsg::Reload(console_actor.pipeline));
+                            let _ = console_actor
+                                .script_chan
+                                .send(DevtoolScriptControlMsg::Reload(console_actor.pipeline));
                         }
                     }
                 }
                 stream.write_json_packet(&ReconfigureReply { from: self.name() });
                 ActorMessageStatus::Processed
-            }
+            },
 
             // https://wiki.mozilla.org/Remote_Debugging_Protocol#Listing_Browser_Tabs
             // (see "To attach to a _tabActor_")
@@ -116,12 +119,17 @@ impl Actor for TabActor {
                     traits: TabTraits,
                 };
                 let console_actor = registry.find::<ConsoleActor>(&self.console);
-                console_actor.streams.borrow_mut().push(stream.try_clone().unwrap());
+                console_actor
+                    .streams
+                    .borrow_mut()
+                    .push(stream.try_clone().unwrap());
                 stream.write_json_packet(&msg);
-                console_actor.script_chan.send(
-                    WantsLiveNotifications(console_actor.pipeline, true)).unwrap();
+                console_actor
+                    .script_chan
+                    .send(WantsLiveNotifications(console_actor.pipeline, true))
+                    .unwrap();
                 ActorMessageStatus::Processed
-            }
+            },
 
             //FIXME: The current implementation won't work for multiple connections. Need to ensure 105
             //       that the correct stream is removed.
@@ -133,21 +141,23 @@ impl Actor for TabActor {
                 let console_actor = registry.find::<ConsoleActor>(&self.console);
                 console_actor.streams.borrow_mut().pop();
                 stream.write_json_packet(&msg);
-                console_actor.script_chan.send(
-                    WantsLiveNotifications(console_actor.pipeline, false)).unwrap();
+                console_actor
+                    .script_chan
+                    .send(WantsLiveNotifications(console_actor.pipeline, false))
+                    .unwrap();
                 ActorMessageStatus::Processed
-            }
+            },
 
             "listFrames" => {
                 let msg = ListFramesReply {
                     from: self.name(),
-                    frames: vec!(),
+                    frames: vec![],
                 };
                 stream.write_json_packet(&msg);
                 ActorMessageStatus::Processed
-            }
+            },
 
-            _ => ActorMessageStatus::Ignored
+            _ => ActorMessageStatus::Ignored,
         })
     }
 }

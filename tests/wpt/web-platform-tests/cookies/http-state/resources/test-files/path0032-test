@@ -1,0 +1,3 @@
+Set-Cookie: foo=bar; path=/cookie-parser-result
+Set-Cookie: foo=qux; path=/cookie-parser-result/
+Location: /cookie-parser-result/dog?path0032

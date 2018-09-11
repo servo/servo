@@ -32,7 +32,8 @@ pub type LayoutFontContext = FontContext<FontCacheThread>;
 thread_local!(static FONT_CONTEXT_KEY: RefCell<Option<LayoutFontContext>> = RefCell::new(None));
 
 pub fn with_thread_local_font_context<F, R>(layout_context: &LayoutContext, f: F) -> R
-    where F: FnOnce(&mut LayoutFontContext) -> R
+where
+    F: FnOnce(&mut LayoutFontContext) -> R,
 {
     FONT_CONTEXT_KEY.with(|k| {
         let mut font_context = k.borrow_mut();
@@ -69,9 +70,11 @@ pub struct LayoutContext<'a> {
     pub font_cache_thread: Mutex<FontCacheThread>,
 
     /// A cache of WebRender image info.
-    pub webrender_image_cache: Arc<RwLock<HashMap<(ServoUrl, UsePlaceholder),
-                                                  WebRenderImageInfo,
-                                                  BuildHasherDefault<FnvHasher>>>>,
+    pub webrender_image_cache: Arc<
+        RwLock<
+            HashMap<(ServoUrl, UsePlaceholder), WebRenderImageInfo, BuildHasherDefault<FnvHasher>>,
+        >,
+    >,
 
     /// Paint worklets
     pub registered_painters: &'a RegisteredPainters,
@@ -101,11 +104,12 @@ impl<'a> LayoutContext<'a> {
         &self.style_context
     }
 
-    pub fn get_or_request_image_or_meta(&self,
-                                        node: OpaqueNode,
-                                        url: ServoUrl,
-                                        use_placeholder: UsePlaceholder)
-                                        -> Option<ImageOrMetadataAvailable> {
+    pub fn get_or_request_image_or_meta(
+        &self,
+        node: OpaqueNode,
+        url: ServoUrl,
+        use_placeholder: UsePlaceholder,
+    ) -> Option<ImageOrMetadataAvailable> {
         //XXXjdm For cases where we do not request an image, we still need to
         //       ensure the node gets another script-initiated reflow or it
         //       won't be requested at all.
@@ -116,9 +120,9 @@ impl<'a> LayoutContext<'a> {
         };
 
         // See if the image is already available
-        let result = self.image_cache.find_image_or_metadata(url.clone(),
-                                                             use_placeholder,
-                                                             can_request);
+        let result =
+            self.image_cache
+                .find_image_or_metadata(url.clone(), use_placeholder, can_request);
         match result {
             Ok(image_or_metadata) => Some(image_or_metadata),
             // Image failed to load, so just return nothing
@@ -130,9 +134,14 @@ impl<'a> LayoutContext<'a> {
                     node: node.to_untrusted_node_address(),
                     id: id,
                 };
-                self.pending_images.as_ref().unwrap().lock().unwrap().push(image);
+                self.pending_images
+                    .as_ref()
+                    .unwrap()
+                    .lock()
+                    .unwrap()
+                    .push(image);
                 None
-            }
+            },
             // Image has been requested, is still pending. Return no image for this paint loop.
             // When the image loads it will trigger a reflow and/or repaint.
             Err(ImageState::Pending(id)) => {
@@ -148,19 +157,22 @@ impl<'a> LayoutContext<'a> {
                     pending_images.lock().unwrap().push(image);
                 }
                 None
-            }
+            },
         }
     }
 
-    pub fn get_webrender_image_for_url(&self,
-                                       node: OpaqueNode,
-                                       url: ServoUrl,
-                                       use_placeholder: UsePlaceholder)
-                                       -> Option<WebRenderImageInfo> {
-        if let Some(existing_webrender_image) = self.webrender_image_cache
-                                                    .read()
-                                                    .get(&(url.clone(), use_placeholder)) {
-            return Some((*existing_webrender_image).clone())
+    pub fn get_webrender_image_for_url(
+        &self,
+        node: OpaqueNode,
+        url: ServoUrl,
+        use_placeholder: UsePlaceholder,
+    ) -> Option<WebRenderImageInfo> {
+        if let Some(existing_webrender_image) = self
+            .webrender_image_cache
+            .read()
+            .get(&(url.clone(), use_placeholder))
+        {
+            return Some((*existing_webrender_image).clone());
         }
 
         match self.get_or_request_image_or_meta(node, url.clone(), use_placeholder) {
@@ -170,11 +182,10 @@ impl<'a> LayoutContext<'a> {
                     Some(image_info)
                 } else {
                     let mut webrender_image_cache = self.webrender_image_cache.write();
-                    webrender_image_cache.insert((url, use_placeholder),
-                                                 image_info);
+                    webrender_image_cache.insert((url, use_placeholder), image_info);
                     Some(image_info)
                 }
-            }
+            },
             None | Some(ImageOrMetadataAvailable::MetadataAvailable(_)) => None,
         }
     }

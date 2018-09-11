@@ -576,7 +576,12 @@ policies and contribution forms [3].
                 var promise = test.step(func, test, test);
 
                 test.step(function() {
-                    assert_not_equals(promise, undefined);
+                    assert(!!promise, "promise_test", null,
+                           "test body must return a 'thenable' object (received ${value})",
+                           {value:promise});
+                    assert(typeof promise.then === "function", "promise_test", null,
+                           "test body must return a 'thenable' object (received an object with no `then` method)",
+                           null);
                 });
 
                 // Test authors may use the `step` method within a

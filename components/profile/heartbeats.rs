@@ -14,24 +14,22 @@ use std::path::Path;
 
 /// Initialize heartbeats
 pub fn init() {
-    lock_and_work(|hbs_opt|
+    lock_and_work(|hbs_opt| {
         if hbs_opt.is_none() {
             let mut hbs: Box<HashMap<ProfilerCategory, Heartbeat>> = Box::new(HashMap::new());
             maybe_create_heartbeat(&mut hbs, ProfilerCategory::ApplicationHeartbeat);
             *hbs_opt = Some(Box::into_raw(hbs))
         }
-    );
+    });
 }
 
 /// Log regmaining buffer data and cleanup heartbeats
 pub fn cleanup() {
-    let hbs_opt_box: Option<Box<HashMap<ProfilerCategory, Heartbeat>>> = lock_and_work(|hbs_opt|
-        hbs_opt.take().map(|hbs_ptr|
-            unsafe {
-                Box::from_raw(hbs_ptr)
-            }
-        )
-    );
+    let hbs_opt_box: Option<Box<HashMap<ProfilerCategory, Heartbeat>>> = lock_and_work(|hbs_opt| {
+        hbs_opt
+            .take()
+            .map(|hbs_ptr| unsafe { Box::from_raw(hbs_ptr) })
+    });
     if let Some(mut hbs) = hbs_opt_box {
         for (_, v) in hbs.iter_mut() {
             // log any remaining heartbeat records before dropping
@@ -43,23 +41,23 @@ pub fn cleanup() {
 
 /// Check if a heartbeat exists for the given category
 pub fn is_heartbeat_enabled(category: &ProfilerCategory) -> bool {
-    let is_enabled = lock_and_work(|hbs_opt|
-        hbs_opt.map_or(false, |hbs_ptr|
-            unsafe {
-                (*hbs_ptr).contains_key(category)
-            }
-        )
-    );
+    let is_enabled = lock_and_work(|hbs_opt| {
+        hbs_opt.map_or(false, |hbs_ptr| unsafe {
+            (*hbs_ptr).contains_key(category)
+        })
+    });
     is_enabled || is_create_heartbeat(category)
 }
 
 /// Issue a heartbeat (if one exists) for the given category
-pub fn maybe_heartbeat(category: &ProfilerCategory,
-                       start_time: u64,
-                       end_time: u64,
-                       start_energy: u64,
-                       end_energy: u64) {
-    lock_and_work(|hbs_opt|
+pub fn maybe_heartbeat(
+    category: &ProfilerCategory,
+    start_time: u64,
+    end_time: u64,
+    start_energy: u64,
+    end_energy: u64,
+) {
+    lock_and_work(|hbs_opt| {
         if let Some(hbs_ptr) = *hbs_opt {
             unsafe {
                 if !(*hbs_ptr).contains_key(category) {
@@ -70,13 +68,14 @@ pub fn maybe_heartbeat(category: &ProfilerCategory,
                 }
             }
         }
-    );
+    });
 }
 
 // TODO(cimes): Android doesn't really do environment variables. Need a better way to configure dynamically.
 
 fn is_create_heartbeat(category: &ProfilerCategory) -> bool {
-    opts::get().profile_heartbeats || var_os(format!("SERVO_HEARTBEAT_ENABLE_{:?}", category)).is_some()
+    opts::get().profile_heartbeats ||
+        var_os(format!("SERVO_HEARTBEAT_ENABLE_{:?}", category)).is_some()
 }
 
 fn open_heartbeat_log<P: AsRef<Path>>(name: P) -> Option<File> {
@@ -111,8 +110,10 @@ fn get_heartbeat_window_size(category: &ProfilerCategory) -> usize {
 }
 
 /// Possibly create a heartbeat
-fn maybe_create_heartbeat(hbs: &mut HashMap<ProfilerCategory, Heartbeat>,
-                          category: ProfilerCategory) {
+fn maybe_create_heartbeat(
+    hbs: &mut HashMap<ProfilerCategory, Heartbeat>,
+    category: ProfilerCategory,
+) {
     if is_create_heartbeat(&category) {
         // get optional log file
         let logfile: Option<File> = get_heartbeat_log(&category);
@@ -151,11 +152,11 @@ mod synchronized_heartbeat {
     static HBS_SPINLOCK: AtomicBool = ATOMIC_BOOL_INIT;
 
     pub fn lock_and_work<F, R>(work: F) -> R
-        where F: FnOnce(&mut Option<*mut HashMap<ProfilerCategory, Heartbeat>>) -> R {
+    where
+        F: FnOnce(&mut Option<*mut HashMap<ProfilerCategory, Heartbeat>>) -> R,
+    {
         while HBS_SPINLOCK.compare_and_swap(false, true, Ordering::SeqCst) {}
-        let result = unsafe {
-            work(&mut HBS)
-        };
+        let result = unsafe { work(&mut HBS) };
         HBS_SPINLOCK.store(false, Ordering::SeqCst);
         result
     }
@@ -163,7 +164,7 @@ mod synchronized_heartbeat {
     /// Callback function used to log the window buffer.
     /// When this is called from native C, the heartbeat is safely locked internally and the global lock is held.
     /// If calling from this file, you must already hold the global lock!
-    pub extern fn heartbeat_window_callback(hb: *const HeartbeatContext) {
+    pub extern "C" fn heartbeat_window_callback(hb: *const HeartbeatContext) {
         unsafe {
             if let Some(hbs_ptr) = HBS {
                 for (_, v) in (*hbs_ptr).iter_mut() {

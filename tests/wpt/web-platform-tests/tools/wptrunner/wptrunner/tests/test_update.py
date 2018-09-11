@@ -32,7 +32,7 @@ item_classes = {"testharness": manifest_item.TestharnessTest,
                 "reftest_node": manifest_item.RefTestNode,
                 "manual": manifest_item.ManualTest,
                 "stub": manifest_item.Stub,
-                "wdspec": manifest_item.WebdriverSpecTest,
+                "wdspec": manifest_item.WebDriverSpecTest,
                 "conformancechecker": manifest_item.ConformanceCheckerTest,
                 "visual": manifest_item.VisualTest,
                 "support": manifest_item.SupportFile}

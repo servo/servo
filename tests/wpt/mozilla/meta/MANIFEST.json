@@ -11927,16 +11927,6 @@
     [
      {}
     ]
-   ],
-   "webgl/OWNERS": [
-    [
-     {}
-    ]
-   ],
-   "webgl/common.js": [
-    [
-     {}
-    ]
    ]
   },
   "testharness": {
@@ -20684,6 +20674,16 @@
      {}
     ]
    ],
+   "mozilla/task_queue_throttling.any.js": [
+    [
+     "/_mozilla/mozilla/task_queue_throttling.any.html",
+     {}
+    ],
+    [
+     "/_mozilla/mozilla/task_queue_throttling.any.worker.html",
+     {}
+    ]
+   ],
    "mozilla/textcontent.html": [
     [
      "/_mozilla/mozilla/textcontent.html",
@@ -20879,42 +20879,6 @@
    "mozilla/worklets/test_worklet.html": [
     [
      "/_mozilla/mozilla/worklets/test_worklet.html",
-     {}
-    ]
-   ],
-   "webgl/bufferSubData.html": [
-    [
-     "/_mozilla/webgl/bufferSubData.html",
-     {}
-    ]
-   ],
-   "webgl/compressedTexImage2D.html": [
-    [
-     "/_mozilla/webgl/compressedTexImage2D.html",
-     {}
-    ]
-   ],
-   "webgl/compressedTexSubImage2D.html": [
-    [
-     "/_mozilla/webgl/compressedTexSubImage2D.html",
-     {}
-    ]
-   ],
-   "webgl/texImage2D.html": [
-    [
-     "/_mozilla/webgl/texImage2D.html",
-     {}
-    ]
-   ],
-   "webgl/texSubImage2D.html": [
-    [
-     "/_mozilla/webgl/texSubImage2D.html",
-     {}
-    ]
-   ],
-   "webgl/uniformMatrixNfv.html": [
-    [
-     "/_mozilla/webgl/uniformMatrixNfv.html",
      {}
     ]
    ]
@@ -27074,7 +27038,7 @@
    "testharness"
   ],
   "mozilla/interfaces.html": [
-   "179f9c6c6928b3a4194c82f85cd1cce81123a5bc",
+   "d48b52d06eaa76167fb8bc2c23f2410ec74ba247",
    "testharness"
   ],
   "mozilla/interfaces.js": [
@@ -32713,6 +32677,10 @@
    "321132b7e7e21d542ce86e4322db04aba3e9d11e",
    "support"
   ],
+  "mozilla/task_queue_throttling.any.js": [
+   "bbf464f384d55a44db6948d6cc7ab5f54509b800",
+   "testharness"
+  ],
   "mozilla/test.jpg": [
    "110b3d6b666d35a117ca8c8ada32bf1002943044",
    "support"
@@ -33008,38 +32976,6 @@
   "mozilla/worklets/throw_exception.js": [
    "6ca4f80fc2728c00848bb4474b62fa3596ed2f18",
    "support"
-  ],
-  "webgl/OWNERS": [
-   "7507064ad72f41047fe1db39c3cb95da7ffea252",
-   "support"
-  ],
-  "webgl/bufferSubData.html": [
-   "a97df9062d6ea964e500059e155b29604edc21b6",
-   "testharness"
-  ],
-  "webgl/common.js": [
-   "416c21ce9330d3f73576b6b5aa01dab06c5798ee",
-   "support"
-  ],
-  "webgl/compressedTexImage2D.html": [
-   "b0a031add0be018f995e4463114d333a0d9eb85a",
-   "testharness"
-  ],
-  "webgl/compressedTexSubImage2D.html": [
-   "539f9e17f8a811c5acb4f07cf6cbd17015726632",
-   "testharness"
-  ],
-  "webgl/texImage2D.html": [
-   "2f769160dfdeaa3b0a73380e5540b30dfc971489",
-   "testharness"
-  ],
-  "webgl/texSubImage2D.html": [
-   "294b30c7607edc38aed19a31e44c5237eee8b970",
-   "testharness"
-  ],
-  "webgl/uniformMatrixNfv.html": [
-   "f75cbcb99724219224c63d0dc595b1c001298500",
-   "testharness"
   ]
  },
  "url_base": "/_mozilla/",

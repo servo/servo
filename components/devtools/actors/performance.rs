@@ -51,11 +51,13 @@ impl Actor for PerformanceActor {
         self.name.clone()
     }
 
-    fn handle_message(&self,
-                      _registry: &ActorRegistry,
-                      msg_type: &str,
-                      _msg: &Map<String, Value>,
-                      stream: &mut TcpStream) -> Result<ActorMessageStatus, ()> {
+    fn handle_message(
+        &self,
+        _registry: &ActorRegistry,
+        msg_type: &str,
+        _msg: &Map<String, Value>,
+        stream: &mut TcpStream,
+    ) -> Result<ActorMessageStatus, ()> {
         Ok(match msg_type {
             "connect" => {
                 let msg = ConnectReply {
@@ -79,11 +81,11 @@ impl Actor for PerformanceActor {
                     value: SuccessMsg {
                         success: true,
                         errors: vec![],
-                    }
+                    },
                 };
                 stream.write_json_packet(&msg);
                 ActorMessageStatus::Processed
-            }
+            },
             _ => ActorMessageStatus::Ignored,
         })
     }
@@ -91,28 +93,34 @@ impl Actor for PerformanceActor {
 
 impl PerformanceActor {
     pub fn new(name: String) -> PerformanceActor {
-        PerformanceActor {
-            name: name,
-        }
+        PerformanceActor { name: name }
     }
 
     pub fn description() -> ActorDescription {
         ActorDescription {
             category: "actor",
             typeName: "performance",
-            methods: vec![
-                Method {
-                    name: "canCurrentlyRecord",
-                    request: Value::Object(vec![
-                        ("type".to_owned(), Value::String("canCurrentlyRecord".to_owned())),
-                    ].into_iter().collect()),
-                    response: Value::Object(vec![
-                        ("value".to_owned(), Value::Object(vec![
-                            ("_retval".to_owned(), Value::String("json".to_owned())),
-                        ].into_iter().collect())),
-                    ].into_iter().collect()),
-                },
-            ],
+            methods: vec![Method {
+                name: "canCurrentlyRecord",
+                request: Value::Object(
+                    vec![(
+                        "type".to_owned(),
+                        Value::String("canCurrentlyRecord".to_owned()),
+                    )].into_iter()
+                    .collect(),
+                ),
+                response: Value::Object(
+                    vec![(
+                        "value".to_owned(),
+                        Value::Object(
+                            vec![("_retval".to_owned(), Value::String("json".to_owned()))]
+                                .into_iter()
+                                .collect(),
+                        ),
+                    )].into_iter()
+                    .collect(),
+                ),
+            }],
         }
     }
 }

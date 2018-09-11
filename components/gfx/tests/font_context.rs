@@ -58,26 +58,24 @@ impl TestFontSource {
     }
 
     fn add_face(family: &mut FontTemplates, name: &str, identifier: Option<&str>) {
-        let mut path: PathBuf = [
-            env!("CARGO_MANIFEST_DIR"),
-            "tests",
-            "support",
-            "CSSTest",
-        ].iter().collect();
+        let mut path: PathBuf = [env!("CARGO_MANIFEST_DIR"), "tests", "support", "CSSTest"]
+            .iter()
+            .collect();
         path.push(format!("{}.ttf", name));
 
         let file = File::open(path).unwrap();
         let identifier = Atom::from(identifier.unwrap_or(name));
 
-        family.add_template(
-            identifier,
-            Some(file.bytes().map(|b| b.unwrap()).collect())
-        )
+        family.add_template(identifier, Some(file.bytes().map(|b| b.unwrap()).collect()))
     }
 }
 
 impl FontSource for TestFontSource {
-    fn get_font_instance(&mut self, _key: webrender_api::FontKey, _size: Au) -> webrender_api::FontInstanceKey {
+    fn get_font_instance(
+        &mut self,
+        _key: webrender_api::FontKey,
+        _size: Au,
+    ) -> webrender_api::FontInstanceKey {
         webrender_api::FontInstanceKey(webrender_api::IdNamespace(0), 0)
     }
 
@@ -92,11 +90,9 @@ impl FontSource for TestFontSource {
         self.families
             .get_mut(family_descriptor.name())
             .and_then(|family| family.find_font_for_style(&template_descriptor, handle))
-            .map(|template| {
-                FontTemplateInfo {
-                    font_template: template,
-                    font_key: webrender_api::FontKey(webrender_api::IdNamespace(0), 0),
-                }
+            .map(|template| FontTemplateInfo {
+                font_template: template,
+                font_key: webrender_api::FontKey(webrender_api::IdNamespace(0), 0),
             })
     }
 }
@@ -116,12 +112,14 @@ fn style() -> FontStyleStruct {
 }
 
 fn font_family(names: Vec<&str>) -> FontFamily {
-    let names: Vec<SingleFontFamily> = names.into_iter().map(|name|
-        SingleFontFamily::FamilyName(FamilyName {
-            name: Atom::from(name),
-            syntax: FamilyNameSyntax::Quoted,
-        })
-    ).collect();
+    let names: Vec<SingleFontFamily> = names
+        .into_iter()
+        .map(|name| {
+            SingleFontFamily::FamilyName(FamilyName {
+                name: Atom::from(name),
+                syntax: FamilyNameSyntax::Quoted,
+            })
+        }).collect();
 
     FontFamily(FontFamilyList::new(names.into_boxed_slice()))
 }
@@ -156,19 +154,36 @@ fn test_font_group_find_by_codepoint() {
     let mut context = FontContext::new(source);
 
     let mut style = style();
-    style.set_font_family(font_family(vec!("CSSTest ASCII", "CSSTest Basic")));
+    style.set_font_family(font_family(vec!["CSSTest ASCII", "CSSTest Basic"]));
 
     let group = context.font_group(Arc::new(style));
 
-    let font = group.borrow_mut().find_by_codepoint(&mut context, 'a').unwrap();
+    let font = group
+        .borrow_mut()
+        .find_by_codepoint(&mut context, 'a')
+        .unwrap();
     assert_eq!(&*font.borrow().identifier(), "csstest-ascii");
-    assert_eq!(count.get(), 1, "only the first font in the list should have been loaded");
+    assert_eq!(
+        count.get(),
+        1,
+        "only the first font in the list should have been loaded"
+    );
 
-    let font = group.borrow_mut().find_by_codepoint(&mut context, 'a').unwrap();
+    let font = group
+        .borrow_mut()
+        .find_by_codepoint(&mut context, 'a')
+        .unwrap();
     assert_eq!(&*font.borrow().identifier(), "csstest-ascii");
-    assert_eq!(count.get(), 1, "we shouldn't load the same font a second time");
+    assert_eq!(
+        count.get(),
+        1,
+        "we shouldn't load the same font a second time"
+    );
 
-    let font = group.borrow_mut().find_by_codepoint(&mut context, 'á').unwrap();
+    let font = group
+        .borrow_mut()
+        .find_by_codepoint(&mut context, 'á')
+        .unwrap();
     assert_eq!(&*font.borrow().identifier(), "csstest-basic-regular");
     assert_eq!(count.get(), 2, "both fonts should now have been loaded");
 }
@@ -179,19 +194,27 @@ fn test_font_fallback() {
     let mut context = FontContext::new(source);
 
     let mut style = style();
-    style.set_font_family(font_family(vec!("CSSTest ASCII")));
+    style.set_font_family(font_family(vec!["CSSTest ASCII"]));
 
     let group = context.font_group(Arc::new(style));
 
-    let font = group.borrow_mut().find_by_codepoint(&mut context, 'a').unwrap();
+    let font = group
+        .borrow_mut()
+        .find_by_codepoint(&mut context, 'a')
+        .unwrap();
     assert_eq!(
-        &*font.borrow().identifier(), "csstest-ascii",
+        &*font.borrow().identifier(),
+        "csstest-ascii",
         "a family in the group should be used if there is a matching glyph"
     );
 
-    let font = group.borrow_mut().find_by_codepoint(&mut context, 'á').unwrap();
+    let font = group
+        .borrow_mut()
+        .find_by_codepoint(&mut context, 'á')
+        .unwrap();
     assert_eq!(
-        &*font.borrow().identifier(), "fallback",
+        &*font.borrow().identifier(),
+        "fallback",
         "a fallback font should be used if there is no matching glyph in the group"
     );
 }
@@ -212,10 +235,8 @@ fn test_font_template_is_cached() {
         pt_size: Au(10),
     };
 
-    let family_descriptor = FontFamilyDescriptor::new(
-        FontFamilyName::from("CSSTest Basic"),
-        FontSearchScope::Any,
-    );
+    let family_descriptor =
+        FontFamilyDescriptor::new(FontFamilyName::from("CSSTest Basic"), FontSearchScope::Any);
 
     let font1 = context.font(&font_descriptor, &family_descriptor).unwrap();
 
@@ -228,5 +249,9 @@ fn test_font_template_is_cached() {
         "the same font should not have been returned"
     );
 
-    assert_eq!(count.get(), 1, "we should only have fetched the template data from the cache thread once");
+    assert_eq!(
+        count.get(),
+        1,
+        "we should only have fetched the template data from the cache thread once"
+    );
 }

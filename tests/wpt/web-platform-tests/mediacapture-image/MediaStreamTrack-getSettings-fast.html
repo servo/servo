@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<canvas id='canvas' width=10 height=10/>
+</body>
+<script>
+
+// This test verifies that MediaStreamTrack.getSettings() exists and that it
+// returns something.  Other tests go deeper.
+test(function() {
+  var canvas = document.getElementById('canvas');
+  var context = canvas.getContext("2d");
+  context.fillStyle = "red";
+  context.fillRect(0, 0, 10, 10);
+
+  var stream = canvas.captureStream();
+  assert_equals(stream.getAudioTracks().length, 0);
+  assert_equals(stream.getVideoTracks().length, 1);
+
+  var videoTrack = stream.getVideoTracks()[0];
+
+  assert_equals(typeof videoTrack.getSettings, 'function');
+
+  settings = videoTrack.getSettings();
+  assert_equals(typeof settings, 'object');
+}, 'MediaStreamTrack.getSettings()');
+
+</script>

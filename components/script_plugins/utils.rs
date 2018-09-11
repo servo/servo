@@ -4,7 +4,7 @@
 
 use rustc::hir::def_id::DefId;
 use rustc::lint::LateContext;
-use syntax::codemap::{ExpnFormat, Span};
+use syntax::source_map::{ExpnFormat, Span};
 
 /// check if a DefId's path matches the given absolute type path
 /// usage e.g. with

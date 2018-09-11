@@ -1,0 +1,2 @@
+Set-Cookie: foo=bar; domain=.sibling.example.org
+Location: http://sibling.example.org:8888/cookie-parser-result?domain0041

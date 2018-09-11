@@ -58,6 +58,7 @@ pub use self::length::{NonNegativeLengthOrPercentage, NonNegativeLengthOrPercent
 pub use self::list::Quotes;
 #[cfg(feature = "gecko")]
 pub use self::list::ListStyleType;
+pub use self::motion::OffsetPath;
 pub use self::outline::OutlineStyle;
 pub use self::rect::LengthOrNumberRect;
 pub use self::resolution::Resolution;
@@ -67,6 +68,7 @@ pub use self::position::{PositionComponent, ZIndex};
 pub use self::svg::{SVGLength, SVGOpacity, SVGPaint, SVGPaintKind};
 pub use self::svg::{SVGPaintOrder, SVGStrokeDashArray, SVGWidth};
 pub use self::svg::MozContextProperties;
+pub use self::svg_path::SVGPathData;
 pub use self::table::XSpan;
 pub use self::text::{InitialLetter, LetterSpacing, LineHeight, MozTabSize, TextAlign};
 pub use self::text::{TextEmphasisPosition, TextEmphasisStyle};
@@ -100,6 +102,7 @@ pub mod grid;
 pub mod image;
 pub mod length;
 pub mod list;
+pub mod motion;
 pub mod outline;
 pub mod percentage;
 pub mod position;
@@ -107,6 +110,7 @@ pub mod rect;
 pub mod resolution;
 pub mod source_size_list;
 pub mod svg;
+pub mod svg_path;
 pub mod table;
 pub mod text;
 pub mod time;
@@ -147,8 +151,20 @@ fn parse_number_with_clamping_mode<'i, 't>(
 // FIXME(emilio): Should move to border.rs
 #[allow(missing_docs)]
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
-#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, Ord, Parse, PartialEq,
-         PartialOrd, SpecifiedValueInfo, ToComputedValue, ToCss)]
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    Eq,
+    MallocSizeOf,
+    Ord,
+    Parse,
+    PartialEq,
+    PartialOrd,
+    SpecifiedValueInfo,
+    ToComputedValue,
+    ToCss,
+)]
 pub enum BorderStyle {
     None = -1,
     Solid = 6,
@@ -326,8 +342,7 @@ impl Parse for GreaterThanOrEqualToOneNumber {
 ///
 /// FIXME(emilio): Should probably use Either.
 #[allow(missing_docs)]
-#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo,
-         ToCss)]
+#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss)]
 pub enum NumberOrPercentage {
     Percentage(Percentage),
     Number(Number),
@@ -365,8 +380,7 @@ impl Parse for NumberOrPercentage {
 }
 
 #[allow(missing_docs)]
-#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, PartialOrd,
-         SpecifiedValueInfo, ToCss)]
+#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, PartialOrd, SpecifiedValueInfo, ToCss)]
 pub struct Opacity(Number);
 
 impl Parse for Opacity {
@@ -626,13 +640,16 @@ impl ToComputedValue for ClipRect {
     fn to_computed_value(&self, context: &Context) -> super::computed::ClipRect {
         super::computed::ClipRect {
             top: self.top.as_ref().map(|top| top.to_computed_value(context)),
-            right: self.right
+            right: self
+                .right
                 .as_ref()
                 .map(|right| right.to_computed_value(context)),
-            bottom: self.bottom
+            bottom: self
+                .bottom
                 .as_ref()
                 .map(|bottom| bottom.to_computed_value(context)),
-            left: self.left
+            left: self
+                .left
                 .as_ref()
                 .map(|left| left.to_computed_value(context)),
         }
@@ -756,8 +773,7 @@ impl AllowQuirks {
 /// An attr(...) rule
 ///
 /// `[namespace? `|`]? ident`
-#[derive(Clone, Debug, Eq, MallocSizeOf, PartialEq, SpecifiedValueInfo,
-         ToComputedValue)]
+#[derive(Clone, Debug, Eq, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue)]
 #[css(function)]
 pub struct Attr {
     /// Optional namespace prefix and URL.
@@ -810,7 +826,10 @@ impl Attr {
                         let prefix = Prefix::from(ns.as_ref());
                         let ns = match get_namespace_for_prefix(&prefix, context) {
                             Some(ns) => ns,
-                            None => return Err(location.new_custom_error(StyleParseErrorKind::UnspecifiedError)),
+                            None => {
+                                return Err(location
+                                    .new_custom_error(StyleParseErrorKind::UnspecifiedError))
+                            },
                         };
                         Some((prefix, ns))
                     } else {

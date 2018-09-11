@@ -1,9 +1,8 @@
 from datetime import datetime, timedelta
 
 from tests.support.asserts import assert_error, assert_success
-from tests.support.fixtures import clear_all_cookies
+from tests.support.helpers import clear_all_cookies
 from tests.support.inline import inline
-
 
 def get_named_cookie(session, name):
     return session.transport.send(

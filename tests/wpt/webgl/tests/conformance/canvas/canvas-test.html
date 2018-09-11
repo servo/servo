@@ -57,6 +57,7 @@ var ctx2d = canvas2d.getContext("2d");
 var gl = wtu.create3DContext(canvas);
 if (!gl) {
   testFailed("context does not exist");
+  finishTest();
 } else {
   testPassed("context exists");
 

@@ -2,9 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#[cfg(not(target_os = "macos"))] extern crate gfx;
-#[cfg(not(target_os = "macos"))] extern crate servo_atoms;
-#[cfg(not(target_os = "macos"))] extern crate style;
+#[cfg(not(target_os = "macos"))]
+extern crate gfx;
+#[cfg(not(target_os = "macos"))]
+extern crate servo_atoms;
+#[cfg(not(target_os = "macos"))]
+extern crate style;
 
 // Test doesn't yet run on Mac, see https://github.com/servo/servo/pull/19928 for explanation.
 #[cfg(not(target_os = "macos"))]
@@ -28,14 +31,16 @@ fn test_font_template_descriptor() {
             "support",
             "dejavu-fonts-ttf-2.37",
             "ttf",
-        ].iter().collect();
+        ]
+            .iter()
+            .collect();
         path.push(format!("{}.ttf", filename));
 
         let file = File::open(path).unwrap();
 
         let mut template = FontTemplate::new(
             Atom::from(filename),
-            Some(file.bytes().map(|b| b.unwrap()).collect())
+            Some(file.bytes().map(|b| b.unwrap()).collect()),
         ).unwrap();
 
         let context = FontContextHandle::new();
@@ -43,27 +48,39 @@ fn test_font_template_descriptor() {
         template.descriptor(&context).unwrap()
     }
 
-    assert_eq!(descriptor("DejaVuSans"), FontTemplateDescriptor {
-        weight: FontWeight::normal(),
-        stretch: FontStretch::hundred(),
-        style: FontStyle::Normal,
-    });
+    assert_eq!(
+        descriptor("DejaVuSans"),
+        FontTemplateDescriptor {
+            weight: FontWeight::normal(),
+            stretch: FontStretch::hundred(),
+            style: FontStyle::Normal,
+        }
+    );
 
-    assert_eq!(descriptor("DejaVuSans-Bold"), FontTemplateDescriptor {
-        weight: FontWeight::bold(),
-        stretch: FontStretch::hundred(),
-        style: FontStyle::Normal,
-    });
+    assert_eq!(
+        descriptor("DejaVuSans-Bold"),
+        FontTemplateDescriptor {
+            weight: FontWeight::bold(),
+            stretch: FontStretch::hundred(),
+            style: FontStyle::Normal,
+        }
+    );
 
-    assert_eq!(descriptor("DejaVuSans-Oblique"), FontTemplateDescriptor {
-        weight: FontWeight::normal(),
-        stretch: FontStretch::hundred(),
-        style: FontStyle::Italic,
-    });
+    assert_eq!(
+        descriptor("DejaVuSans-Oblique"),
+        FontTemplateDescriptor {
+            weight: FontWeight::normal(),
+            stretch: FontStretch::hundred(),
+            style: FontStyle::Italic,
+        }
+    );
 
-    assert_eq!(descriptor("DejaVuSansCondensed-BoldOblique"), FontTemplateDescriptor {
-        weight: FontWeight::bold(),
-        stretch: FontStretch(NonNegative(Percentage(0.875))),
-        style: FontStyle::Italic,
-    });
+    assert_eq!(
+        descriptor("DejaVuSansCondensed-BoldOblique"),
+        FontTemplateDescriptor {
+            weight: FontWeight::bold(),
+            stretch: FontStretch(NonNegative(Percentage(0.875))),
+            style: FontStyle::Italic,
+        }
+    );
 }

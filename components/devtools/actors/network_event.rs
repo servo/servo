@@ -34,7 +34,7 @@ struct HttpRequest {
 struct HttpResponse {
     headers: Option<Headers>,
     status: Option<RawStatus>,
-    body: Option<Vec<u8>>
+    body: Option<Vec<u8>>,
 }
 
 pub struct NetworkEventActor {
@@ -52,7 +52,7 @@ pub struct EventActor {
     pub startedDateTime: String,
     pub timeStamp: i64,
     pub isXHR: bool,
-    pub private: bool
+    pub private: bool,
 }
 
 #[derive(Serialize)]
@@ -79,13 +79,11 @@ pub struct ResponseContentMsg {
     pub discardResponseBody: bool,
 }
 
-
 #[derive(Serialize)]
 pub struct ResponseHeadersMsg {
     pub headers: usize,
     pub headersSize: usize,
 }
-
 
 #[derive(Serialize)]
 pub struct RequestCookiesMsg {
@@ -103,7 +101,7 @@ struct GetRequestHeadersReply {
     from: String,
     headers: Vec<Header>,
     headerSize: usize,
-    rawHeaders: String
+    rawHeaders: String,
 }
 
 #[derive(Serialize)]
@@ -117,7 +115,7 @@ struct GetResponseHeadersReply {
     from: String,
     headers: Vec<Header>,
     headerSize: usize,
-    rawHeaders: String
+    rawHeaders: String,
 }
 
 #[derive(Serialize)]
@@ -131,19 +129,19 @@ struct GetResponseContentReply {
 struct GetRequestPostDataReply {
     from: String,
     postData: Option<Vec<u8>>,
-    postDataDiscarded: bool
+    postDataDiscarded: bool,
 }
 
 #[derive(Serialize)]
 struct GetRequestCookiesReply {
     from: String,
-    cookies: Vec<u8>
+    cookies: Vec<u8>,
 }
 
 #[derive(Serialize)]
 struct GetResponseCookiesReply {
     from: String,
-    cookies: Vec<u8>
+    cookies: Vec<u8>,
 }
 
 #[derive(Serialize)]
@@ -179,11 +177,13 @@ impl Actor for NetworkEventActor {
         self.name.clone()
     }
 
-    fn handle_message(&self,
-                      _registry: &ActorRegistry,
-                      msg_type: &str,
-                      _msg: &Map<String, Value>,
-                      stream: &mut TcpStream) -> Result<ActorMessageStatus, ()> {
+    fn handle_message(
+        &self,
+        _registry: &ActorRegistry,
+        msg_type: &str,
+        _msg: &Map<String, Value>,
+        stream: &mut TcpStream,
+    ) -> Result<ActorMessageStatus, ()> {
         Ok(match msg_type {
             "getRequestHeaders" => {
                 let mut headers = Vec::new();
@@ -194,7 +194,10 @@ impl Actor for NetworkEventActor {
                     let value = item.value_string();
                     rawHeadersString = rawHeadersString + name + ":" + &value + "\r\n";
                     headersSize += name.len() + value.len();
-                    headers.push(Header { name: name.to_owned(), value: value.to_owned() });
+                    headers.push(Header {
+                        name: name.to_owned(),
+                        value: value.to_owned(),
+                    });
                 }
                 let msg = GetRequestHeadersReply {
                     from: self.name(),
@@ -204,7 +207,7 @@ impl Actor for NetworkEventActor {
                 };
                 stream.write_json_packet(&msg);
                 ActorMessageStatus::Processed
-            }
+            },
             "getRequestCookies" => {
                 let mut cookies = Vec::new();
                 if let Some(req_cookies) = self.request.headers.get_raw("Cookie") {
@@ -221,7 +224,7 @@ impl Actor for NetworkEventActor {
                 };
                 stream.write_json_packet(&msg);
                 ActorMessageStatus::Processed
-            }
+            },
             "getRequestPostData" => {
                 let msg = GetRequestPostDataReply {
                     from: self.name(),
@@ -230,7 +233,7 @@ impl Actor for NetworkEventActor {
                 };
                 stream.write_json_packet(&msg);
                 ActorMessageStatus::Processed
-            }
+            },
             "getResponseHeaders" => {
                 if let Some(ref response_headers) = self.response.headers {
                     let mut headers = vec![];
@@ -258,7 +261,7 @@ impl Actor for NetworkEventActor {
                     stream.write_json_packet(&msg);
                 }
                 ActorMessageStatus::Processed
-            }
+            },
             "getResponseCookies" => {
                 let mut cookies = Vec::new();
                 if let Some(res_cookies) = self.request.headers.get_raw("set-cookie") {
@@ -275,7 +278,7 @@ impl Actor for NetworkEventActor {
                 };
                 stream.write_json_packet(&msg);
                 ActorMessageStatus::Processed
-            }
+            },
             "getResponseContent" => {
                 let msg = GetResponseContentReply {
                     from: self.name(),
@@ -284,7 +287,7 @@ impl Actor for NetworkEventActor {
                 };
                 stream.write_json_packet(&msg);
                 ActorMessageStatus::Processed
-            }
+            },
             "getEventTimings" => {
                 // TODO: This is a fake timings msg
                 let timingsObj = Timings {
@@ -304,19 +307,19 @@ impl Actor for NetworkEventActor {
                 };
                 stream.write_json_packet(&msg);
                 ActorMessageStatus::Processed
-            }
+            },
             "getSecurityInfo" => {
                 // TODO: Send the correct values for securityInfo.
                 let msg = GetSecurityInfoReply {
                     from: self.name(),
                     securityInfo: SecurityInfo {
-                        state: "insecure".to_owned()
+                        state: "insecure".to_owned(),
                     },
                 };
                 stream.write_json_packet(&msg);
                 ActorMessageStatus::Processed
-            }
-            _ => ActorMessageStatus::Ignored
+            },
+            _ => ActorMessageStatus::Ignored,
         })
     }
 }
@@ -382,8 +385,13 @@ impl NetworkEventActor {
         // TODO: Send the correct values for all these fields.
         let hSizeOption = self.response.headers.as_ref().map(|headers| headers.len());
         let hSize = hSizeOption.unwrap_or(0);
-        let (status_code, status_message) = self.response.status.as_ref().
-                map_or((0, "".to_owned()), |&RawStatus(ref code, ref text)| (*code, text.clone().into_owned()));
+        let (status_code, status_message) = self
+            .response
+            .status
+            .as_ref()
+            .map_or((0, "".to_owned()), |&RawStatus(ref code, ref text)| {
+                (*code, text.clone().into_owned())
+            });
         // TODO: Send the correct values for remoteAddress and remotePort and http_version.
         ResponseStartMsg {
             httpVersion: "HTTP/1.1".to_owned(),
@@ -392,7 +400,7 @@ impl NetworkEventActor {
             status: status_code.to_string(),
             statusText: status_message,
             headersSize: hSize,
-            discardResponseBody: false
+            discardResponseBody: false,
         }
     }
 
@@ -401,7 +409,7 @@ impl NetworkEventActor {
         if let Some(ref headers) = self.response.headers {
             mString = match headers.get() {
                 Some(&ContentType(ref mime)) => mime.to_string(),
-                None => "".to_owned()
+                None => "".to_owned(),
             };
         }
         // TODO: Set correct values when response's body is sent to the devtools in http_loader.
@@ -418,7 +426,7 @@ impl NetworkEventActor {
         if let Some(ref headers) = self.response.headers {
             cookies_size = match headers.get() {
                 Some(&Cookie(ref cookie)) => cookie.len(),
-                None => 0
+                None => 0,
             };
         }
         ResponseCookiesMsg {
@@ -431,10 +439,9 @@ impl NetworkEventActor {
         let mut headers_byte_count = 0;
         if let Some(ref headers) = self.response.headers {
             headers_size = headers.len();
-            for item in headers.iter()  {
+            for item in headers.iter() {
                 headers_byte_count += item.name().len() + item.value_string().len();
             }
-
         }
         ResponseHeadersMsg {
             headers: headers_size,
@@ -443,10 +450,11 @@ impl NetworkEventActor {
     }
 
     pub fn request_headers(&self) -> RequestHeadersMsg {
-        let size = self.request
-                       .headers
-                       .iter()
-                       .fold(0, |acc, h| acc + h.name().len() + h.value_string().len());
+        let size = self
+            .request
+            .headers
+            .iter()
+            .fold(0, |acc, h| acc + h.name().len() + h.value_string().len());
         RequestHeadersMsg {
             headers: self.request.headers.len(),
             headersSize: size,
@@ -456,7 +464,7 @@ impl NetworkEventActor {
     pub fn request_cookies(&self) -> RequestCookiesMsg {
         let cookies_size = match self.request.headers.get() {
             Some(&Cookie(ref cookie)) => cookie.len(),
-            None => 0
+            None => 0,
         };
         RequestCookiesMsg {
             cookies: cookies_size,

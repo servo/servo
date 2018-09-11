@@ -94,13 +94,24 @@ pub struct LayoutRPCImpl(pub Arc<Mutex<LayoutThreadData>>);
 
 // https://drafts.csswg.org/cssom-view/#overflow-directions
 fn overflow_direction(writing_mode: &WritingMode) -> OverflowDirection {
-    match (writing_mode.block_flow_direction(), writing_mode.inline_base_direction()) {
+    match (
+        writing_mode.block_flow_direction(),
+        writing_mode.inline_base_direction(),
+    ) {
         (BlockFlowDirection::TopToBottom, InlineBaseDirection::LeftToRight) |
-            (BlockFlowDirection::LeftToRight, InlineBaseDirection::LeftToRight) => OverflowDirection::RightAndDown,
+        (BlockFlowDirection::LeftToRight, InlineBaseDirection::LeftToRight) => {
+            OverflowDirection::RightAndDown
+        },
         (BlockFlowDirection::TopToBottom, InlineBaseDirection::RightToLeft) |
-            (BlockFlowDirection::RightToLeft, InlineBaseDirection::LeftToRight) => OverflowDirection::LeftAndDown,
-        (BlockFlowDirection::RightToLeft, InlineBaseDirection::RightToLeft) => OverflowDirection::LeftAndUp,
-        (BlockFlowDirection::LeftToRight, InlineBaseDirection::RightToLeft) => OverflowDirection::RightAndUp
+        (BlockFlowDirection::RightToLeft, InlineBaseDirection::LeftToRight) => {
+            OverflowDirection::LeftAndDown
+        },
+        (BlockFlowDirection::RightToLeft, InlineBaseDirection::RightToLeft) => {
+            OverflowDirection::LeftAndUp
+        },
+        (BlockFlowDirection::LeftToRight, InlineBaseDirection::RightToLeft) => {
+            OverflowDirection::RightAndUp
+        },
     }
 }
 
@@ -130,20 +141,24 @@ impl LayoutRPC for LayoutRPCImpl {
         let &LayoutRPCImpl(ref rw_data) = self;
         let rw_data = rw_data.lock().unwrap();
         NodeGeometryResponse {
-            client_rect: rw_data.client_rect_response
+            client_rect: rw_data.client_rect_response,
         }
     }
 
     fn node_scroll_area(&self) -> NodeGeometryResponse {
         NodeGeometryResponse {
-            client_rect: self.0.lock().unwrap().scroll_area_response
+            client_rect: self.0.lock().unwrap().scroll_area_response,
         }
     }
 
     fn node_scroll_id(&self) -> NodeScrollIdResponse {
-        NodeScrollIdResponse(self.0.lock()
-                             .unwrap().scroll_id_response
-                             .expect("scroll id is not correctly fetched"))
+        NodeScrollIdResponse(
+            self.0
+                .lock()
+                .unwrap()
+                .scroll_id_response
+                .expect("scroll id is not correctly fetched"),
+        )
     }
 
     /// Retrieves the resolved value for a CSS style property.
@@ -187,7 +202,7 @@ impl UnioningFragmentBorderBoxIterator {
     fn new(node_address: OpaqueNode) -> UnioningFragmentBorderBoxIterator {
         UnioningFragmentBorderBoxIterator {
             node_address: node_address,
-            rect: None
+            rect: None,
         }
     }
 }
@@ -195,12 +210,8 @@ impl UnioningFragmentBorderBoxIterator {
 impl FragmentBorderBoxIterator for UnioningFragmentBorderBoxIterator {
     fn process(&mut self, _: &Fragment, _: i32, border_box: &Rect<Au>) {
         self.rect = match self.rect {
-            Some(rect) => {
-                Some(rect.union(border_box))
-            }
-            None => {
-                Some(*border_box)
-            }
+            Some(rect) => Some(rect.union(border_box)),
+            None => Some(*border_box),
         };
     }
 
@@ -237,12 +248,12 @@ enum Side {
     Left,
     Right,
     Bottom,
-    Top
+    Top,
 }
 
 enum MarginPadding {
     Margin,
-    Padding
+    Padding,
 }
 
 enum PositionProperty {
@@ -270,9 +281,11 @@ struct PositionRetrievingFragmentBorderBoxIterator {
 }
 
 impl PositionRetrievingFragmentBorderBoxIterator {
-    fn new(node_address: OpaqueNode,
-           property: PositionProperty,
-           position: Point2D<Au>) -> PositionRetrievingFragmentBorderBoxIterator {
+    fn new(
+        node_address: OpaqueNode,
+        property: PositionProperty,
+        position: Point2D<Au>,
+    ) -> PositionRetrievingFragmentBorderBoxIterator {
         PositionRetrievingFragmentBorderBoxIterator {
             node_address: node_address,
             position: position,
@@ -284,18 +297,19 @@ impl PositionRetrievingFragmentBorderBoxIterator {
 
 impl FragmentBorderBoxIterator for PositionRetrievingFragmentBorderBoxIterator {
     fn process(&mut self, fragment: &Fragment, _: i32, border_box: &Rect<Au>) {
-        let border_padding = fragment.border_padding.to_physical(fragment.style.writing_mode);
-        self.result =
-            Some(match self.property {
-                     PositionProperty::Left => self.position.x,
-                     PositionProperty::Top => self.position.y,
-                     PositionProperty::Width => border_box.size.width - border_padding.horizontal(),
-                     PositionProperty::Height => border_box.size.height - border_padding.vertical(),
-                     // TODO: the following 2 calculations are completely wrong.
-                     // They should return the difference between the parent's and this
-                     // fragment's border boxes.
-                     PositionProperty::Right => border_box.max_x() + self.position.x,
-                     PositionProperty::Bottom => border_box.max_y() + self.position.y,
+        let border_padding = fragment
+            .border_padding
+            .to_physical(fragment.style.writing_mode);
+        self.result = Some(match self.property {
+            PositionProperty::Left => self.position.x,
+            PositionProperty::Top => self.position.y,
+            PositionProperty::Width => border_box.size.width - border_padding.horizontal(),
+            PositionProperty::Height => border_box.size.height - border_padding.vertical(),
+            // TODO: the following 2 calculations are completely wrong.
+            // They should return the difference between the parent's and this
+            // fragment's border boxes.
+            PositionProperty::Right => border_box.max_x() + self.position.x,
+            PositionProperty::Bottom => border_box.max_y() + self.position.y,
         });
     }
 
@@ -313,8 +327,12 @@ struct MarginRetrievingFragmentBorderBoxIterator {
 }
 
 impl MarginRetrievingFragmentBorderBoxIterator {
-    fn new(node_address: OpaqueNode, side: Side, margin_padding:
-    MarginPadding, writing_mode: WritingMode) -> MarginRetrievingFragmentBorderBoxIterator {
+    fn new(
+        node_address: OpaqueNode,
+        side: Side,
+        margin_padding: MarginPadding,
+        writing_mode: WritingMode,
+    ) -> MarginRetrievingFragmentBorderBoxIterator {
         MarginRetrievingFragmentBorderBoxIterator {
             node_address: node_address,
             side: side,
@@ -329,13 +347,13 @@ impl FragmentBorderBoxIterator for MarginRetrievingFragmentBorderBoxIterator {
     fn process(&mut self, fragment: &Fragment, _: i32, _: &Rect<Au>) {
         let rect = match self.margin_padding {
             MarginPadding::Margin => &fragment.margin,
-            MarginPadding::Padding => &fragment.border_padding
+            MarginPadding::Padding => &fragment.border_padding,
         };
         self.result = Some(match self.side {
-                               Side::Left => rect.left(self.writing_mode),
-                               Side::Right => rect.right(self.writing_mode),
-                               Side::Bottom => rect.bottom(self.writing_mode),
-                               Side::Top => rect.top(self.writing_mode)
+            Side::Left => rect.left(self.writing_mode),
+            Side::Right => rect.right(self.writing_mode),
+            Side::Bottom => rect.bottom(self.writing_mode),
+            Side::Top => rect.top(self.writing_mode),
         });
     }
 
@@ -345,7 +363,9 @@ impl FragmentBorderBoxIterator for MarginRetrievingFragmentBorderBoxIterator {
 }
 
 pub fn process_content_box_request<N: LayoutNode>(
-        requested_node: N, layout_root: &mut Flow) -> Option<Rect<Au>> {
+    requested_node: N,
+    layout_root: &mut Flow,
+) -> Option<Rect<Au>> {
     // FIXME(pcwalton): This has not been updated to handle the stacking context relative
     // stuff. So the position is wrong in most cases.
     let mut iterator = UnioningFragmentBorderBoxIterator::new(requested_node.opaque());
@@ -353,8 +373,10 @@ pub fn process_content_box_request<N: LayoutNode>(
     iterator.rect
 }
 
-pub fn process_content_boxes_request<N: LayoutNode>(requested_node: N, layout_root: &mut Flow)
-        -> Vec<Rect<Au>> {
+pub fn process_content_boxes_request<N: LayoutNode>(
+    requested_node: N,
+    layout_root: &mut Flow,
+) -> Vec<Rect<Au>> {
     // FIXME(pcwalton): This has not been updated to handle the stacking context relative
     // stuff. So the position is wrong in most cases.
     let mut iterator = CollectingFragmentBorderBoxIterator::new(requested_node.opaque());
@@ -371,7 +393,7 @@ impl FragmentLocatingFragmentIterator {
     fn new(node_address: OpaqueNode) -> FragmentLocatingFragmentIterator {
         FragmentLocatingFragmentIterator {
             node_address: node_address,
-            client_rect: Rect::zero()
+            client_rect: Rect::zero(),
         }
     }
 }
@@ -382,7 +404,7 @@ struct UnioningFragmentScrollAreaIterator {
     origin_rect: Rect<i32>,
     level: Option<i32>,
     is_child: bool,
-    overflow_direction: OverflowDirection
+    overflow_direction: OverflowDirection,
 }
 
 impl UnioningFragmentScrollAreaIterator {
@@ -394,7 +416,7 @@ impl UnioningFragmentScrollAreaIterator {
             level: None,
             is_child: false,
             // FIXME(#20867)
-            overflow_direction: OverflowDirection::RightAndDown
+            overflow_direction: OverflowDirection::RightAndDown,
         }
     }
 }
@@ -469,29 +491,38 @@ impl FragmentBorderBoxIterator for UnioningFragmentScrollAreaIterator {
         let (left_border, right_border) = (left_border.px(), right_border.px());
         let (top_border, bottom_border) = (top_border.px(), bottom_border.px());
         let right_padding = (border_box.size.width.to_f32_px() - right_border - left_border) as i32;
-        let bottom_padding = (border_box.size.height.to_f32_px() - bottom_border - top_border) as i32;
+        let bottom_padding =
+            (border_box.size.height.to_f32_px() - bottom_border - top_border) as i32;
         let top_padding = top_border as i32;
         let left_padding = left_border as i32;
 
         match self.level {
-            Some(start_level) if level <= start_level => { self.is_child = false; }
+            Some(start_level) if level <= start_level => {
+                self.is_child = false;
+            },
             Some(_) => {
-                let padding = Rect::new(Point2D::new(left_padding, top_padding),
-                                        Size2D::new(right_padding, bottom_padding));
+                let padding = Rect::new(
+                    Point2D::new(left_padding, top_padding),
+                    Size2D::new(right_padding, bottom_padding),
+                );
                 let top_margin = fragment.margin.top(fragment.style.writing_mode).to_px();
                 let left_margin = fragment.margin.left(fragment.style.writing_mode).to_px();
                 let bottom_margin = fragment.margin.bottom(fragment.style.writing_mode).to_px();
                 let right_margin = fragment.margin.right(fragment.style.writing_mode).to_px();
-                let margin = Rect::new(Point2D::new(left_margin, top_margin),
-                                       Size2D::new(right_margin, bottom_margin));
+                let margin = Rect::new(
+                    Point2D::new(left_margin, top_margin),
+                    Size2D::new(right_margin, bottom_margin),
+                );
                 self.union_rect = self.union_rect.union(&margin).union(&padding);
-            }
+            },
             None => {
                 self.level = Some(level);
                 self.is_child = true;
                 self.overflow_direction = overflow_direction(&fragment.style.writing_mode);
-                self.origin_rect = Rect::new(Point2D::new(left_padding, top_padding),
-                                             Size2D::new(right_padding, bottom_padding));
+                self.origin_rect = Rect::new(
+                    Point2D::new(left_padding, top_padding),
+                    Size2D::new(right_padding, bottom_padding),
+                );
             },
         };
     }
@@ -509,8 +540,11 @@ impl FragmentBorderBoxIterator for ParentOffsetBorderBoxIterator {
             // for its parent. Remove all nodes at this level or
             // higher, as they can't be parents of this node.
             self.parent_nodes.truncate(level as usize);
-            assert_eq!(self.parent_nodes.len(), level as usize,
-                "Skipped at least one level in the flow tree!");
+            assert_eq!(
+                self.parent_nodes.len(),
+                level as usize,
+                "Skipped at least one level in the flow tree!"
+            );
         }
 
         if !fragment.is_primary_fragment() {
@@ -530,8 +564,10 @@ impl FragmentBorderBoxIterator for ParentOffsetBorderBoxIterator {
             // Found the fragment in the flow tree that matches the
             // DOM node being looked for.
 
-            assert!(self.node_offset_box.is_none(),
-                "Node was being treated as inline, but it has an associated fragment!");
+            assert!(
+                self.node_offset_box.is_none(),
+                "Node was being treated as inline, but it has an associated fragment!"
+            );
 
             self.has_processed_node = true;
             self.node_offset_box = Some(NodeOffsetBoxInfo {
@@ -544,7 +580,10 @@ impl FragmentBorderBoxIterator for ParentOffsetBorderBoxIterator {
                 self.parent_nodes.clear();
             }
         } else if let Some(node) = fragment.inline_context.as_ref().and_then(|inline_context| {
-            inline_context.nodes.iter().find(|node| node.address == self.node_address)
+            inline_context
+                .nodes
+                .iter()
+                .find(|node| node.address == self.node_address)
         }) {
             // TODO: Handle cases where the `offsetParent` is an inline
             // element. This will likely be impossible until
@@ -554,7 +593,9 @@ impl FragmentBorderBoxIterator for ParentOffsetBorderBoxIterator {
             // contains the DOM node we're looking for, i.e. the node
             // is inline and contains this fragment.
             match self.node_offset_box {
-                Some(NodeOffsetBoxInfo { ref mut rectangle, .. }) => {
+                Some(NodeOffsetBoxInfo {
+                    ref mut rectangle, ..
+                }) => {
                     *rectangle = rectangle.union(border_box);
                 },
                 None => {
@@ -571,7 +612,10 @@ impl FragmentBorderBoxIterator for ParentOffsetBorderBoxIterator {
                 },
             }
 
-            if node.flags.contains(InlineFragmentNodeFlags::LAST_FRAGMENT_OF_ELEMENT) {
+            if node
+                .flags
+                .contains(InlineFragmentNodeFlags::LAST_FRAGMENT_OF_ELEMENT)
+            {
                 self.has_processed_node = true;
             }
         } else if self.node_offset_box.is_none() {
@@ -580,9 +624,11 @@ impl FragmentBorderBoxIterator for ParentOffsetBorderBoxIterator {
             // it's at level 1 (below the root node)?
             let is_body_element = level == 1;
 
-            let is_valid_parent = match (is_body_element,
-                                         fragment.style.get_box().position,
-                                         &fragment.specific) {
+            let is_valid_parent = match (
+                is_body_element,
+                fragment.style.get_box().position,
+                &fragment.specific,
+            ) {
                 // Spec says it's valid if any of these are true:
                 //  1) Is the body element
                 //  2) Is static position *and* is a table or table cell
@@ -600,7 +646,9 @@ impl FragmentBorderBoxIterator for ParentOffsetBorderBoxIterator {
             };
 
             let parent_info = if is_valid_parent {
-                let border_width = fragment.border_width().to_physical(fragment.style.writing_mode);
+                let border_width = fragment
+                    .border_width()
+                    .to_physical(fragment.style.writing_mode);
 
                 Some(ParentBorderBoxInfo {
                     node_address: fragment.node,
@@ -619,9 +667,10 @@ impl FragmentBorderBoxIterator for ParentOffsetBorderBoxIterator {
     }
 }
 
-
-pub fn process_node_geometry_request<N: LayoutNode>(requested_node: N, layout_root: &mut Flow)
-        -> Rect<i32> {
+pub fn process_node_geometry_request<N: LayoutNode>(
+    requested_node: N,
+    layout_root: &mut Flow,
+) -> Rect<i32> {
     let mut iterator = FragmentLocatingFragmentIterator::new(requested_node.opaque());
     sequential::iterate_through_flow_tree_fragment_border_boxes(layout_root, &mut iterator);
     iterator.client_rect
@@ -629,28 +678,41 @@ pub fn process_node_geometry_request<N: LayoutNode>(requested_node: N, layout_ro
 
 pub fn process_node_scroll_id_request<N: LayoutNode>(
     id: PipelineId,
-    requested_node: N
+    requested_node: N,
 ) -> ExternalScrollId {
     let layout_node = requested_node.to_threadsafe();
     layout_node.generate_scroll_id(id)
 }
 
 /// https://drafts.csswg.org/cssom-view/#scrolling-area
-pub fn process_node_scroll_area_request< N: LayoutNode>(requested_node: N, layout_root: &mut Flow)
-        -> Rect<i32> {
+pub fn process_node_scroll_area_request<N: LayoutNode>(
+    requested_node: N,
+    layout_root: &mut Flow,
+) -> Rect<i32> {
     let mut iterator = UnioningFragmentScrollAreaIterator::new(requested_node.opaque());
     sequential::iterate_through_flow_tree_fragment_border_boxes(layout_root, &mut iterator);
     match iterator.overflow_direction {
         OverflowDirection::RightAndDown => {
-            let right = max(iterator.union_rect.size.width, iterator.origin_rect.size.width);
-            let bottom = max(iterator.union_rect.size.height, iterator.origin_rect.size.height);
+            let right = max(
+                iterator.union_rect.size.width,
+                iterator.origin_rect.size.width,
+            );
+            let bottom = max(
+                iterator.union_rect.size.height,
+                iterator.origin_rect.size.height,
+            );
             Rect::new(iterator.origin_rect.origin, Size2D::new(right, bottom))
         },
         OverflowDirection::LeftAndDown => {
-            let bottom = max(iterator.union_rect.size.height, iterator.origin_rect.size.height);
+            let bottom = max(
+                iterator.union_rect.size.height,
+                iterator.origin_rect.size.height,
+            );
             let left = min(iterator.union_rect.origin.x, iterator.origin_rect.origin.x);
-            Rect::new(Point2D::new(left, iterator.origin_rect.origin.y),
-                      Size2D::new(iterator.origin_rect.size.width, bottom))
+            Rect::new(
+                Point2D::new(left, iterator.origin_rect.origin.y),
+                Size2D::new(iterator.origin_rect.size.width, bottom),
+            )
         },
         OverflowDirection::LeftAndUp => {
             let top = min(iterator.union_rect.origin.y, iterator.origin_rect.origin.y);
@@ -659,21 +721,29 @@ pub fn process_node_scroll_area_request< N: LayoutNode>(requested_node: N, layou
         },
         OverflowDirection::RightAndUp => {
             let top = min(iterator.union_rect.origin.y, iterator.origin_rect.origin.y);
-            let right = max(iterator.union_rect.size.width, iterator.origin_rect.size.width);
-            Rect::new(Point2D::new(iterator.origin_rect.origin.x, top),
-                      Size2D::new(right, iterator.origin_rect.size.height))
-        }
+            let right = max(
+                iterator.union_rect.size.width,
+                iterator.origin_rect.size.width,
+            );
+            Rect::new(
+                Point2D::new(iterator.origin_rect.origin.x, top),
+                Size2D::new(right, iterator.origin_rect.size.height),
+            )
+        },
     }
 }
 
 /// Return the resolved value of property for a given (pseudo)element.
 /// <https://drafts.csswg.org/cssom/#resolved-value>
-pub fn process_resolved_style_request<'a, N>(context: &LayoutContext,
-                                             node: N,
-                                             pseudo: &Option<PseudoElement>,
-                                             property: &PropertyId,
-                                             layout_root: &mut Flow) -> String
-    where N: LayoutNode,
+pub fn process_resolved_style_request<'a, N>(
+    context: &LayoutContext,
+    node: N,
+    pseudo: &Option<PseudoElement>,
+    property: &PropertyId,
+    layout_root: &mut Flow,
+) -> String
+where
+    N: LayoutNode,
 {
     use style::stylist::RuleInclusion;
     use style::traversal::resolve_style;
@@ -700,15 +770,13 @@ pub fn process_resolved_style_request<'a, N>(context: &LayoutContext,
     let styles = resolve_style(&mut context, element, RuleInclusion::All, pseudo.as_ref());
     let style = styles.primary();
     let longhand_id = match *property {
-        PropertyId::LonghandAlias(id, _) |
-        PropertyId::Longhand(id) => id,
+        PropertyId::LonghandAlias(id, _) | PropertyId::Longhand(id) => id,
         // Firefox returns blank strings for the computed value of shorthands,
         // so this should be web-compatible.
-        PropertyId::ShorthandAlias(..) |
-        PropertyId::Shorthand(_) => return String::new(),
+        PropertyId::ShorthandAlias(..) | PropertyId::Shorthand(_) => return String::new(),
         PropertyId::Custom(ref name) => {
             return style.computed_value_to_string(PropertyDeclarationId::Custom(name))
-        }
+        },
     };
 
     // No need to care about used values here, since we're on a display: none
@@ -735,7 +803,7 @@ where
         Some(PseudoElement::Selection) => None,
         // FIXME(emilio): What about the other pseudos? Probably they shouldn't
         // just return the element's style!
-        _ => Some(layout_el)
+        _ => Some(layout_el),
     };
 
     let layout_el = match layout_el {
@@ -744,29 +812,24 @@ where
             // the element itself in this case, Firefox uses the resolved value.
             // https://www.w3.org/Bugs/Public/show_bug.cgi?id=29006
             return String::new();
-        }
-        Some(layout_el) => layout_el
+        },
+        Some(layout_el) => layout_el,
     };
 
     let style = &*layout_el.resolved_style();
     let longhand_id = match *property {
-        PropertyId::LonghandAlias(id, _) |
-        PropertyId::Longhand(id) => id,
+        PropertyId::LonghandAlias(id, _) | PropertyId::Longhand(id) => id,
         // Firefox returns blank strings for the computed value of shorthands,
         // so this should be web-compatible.
-        PropertyId::ShorthandAlias(..) |
-        PropertyId::Shorthand(_) => return String::new(),
+        PropertyId::ShorthandAlias(..) | PropertyId::Shorthand(_) => return String::new(),
         PropertyId::Custom(ref name) => {
             return style.computed_value_to_string(PropertyDeclarationId::Custom(name))
-        }
+        },
     };
 
     let positioned = match style.get_box().position {
-        Position::Relative |
-        Position::Sticky |
-        Position::Fixed |
-        Position::Absolute => true,
-        _ => false
+        Position::Relative | Position::Sticky | Position::Fixed | Position::Absolute => true,
+        _ => false,
     };
 
     //TODO: determine whether requested property applies to the element.
@@ -780,15 +843,20 @@ where
             layout_el: <N::ConcreteThreadSafeLayoutNode as ThreadSafeLayoutNode>::ConcreteThreadSafeLayoutElement,
             layout_root: &mut Flow,
             requested_node: N,
-            longhand_id: LonghandId) -> String {
+            longhand_id: LonghandId,
+        ) -> String
+    {
         let maybe_data = layout_el.borrow_layout_data();
         let position = maybe_data.map_or(Point2D::zero(), |data| {
             match (*data).flow_construction_result {
-                ConstructionResult::Flow(ref flow_ref, _) =>
-                    flow_ref.deref().base().stacking_relative_position.to_point(),
+                ConstructionResult::Flow(ref flow_ref, _) => flow_ref
+                    .deref()
+                    .base()
+                    .stacking_relative_position
+                    .to_point(),
                 // TODO(dzbarsky) search parents until we find node with a flow ref.
                 // https://github.com/servo/servo/issues/8307
-                _ => Point2D::zero()
+                _ => Point2D::zero(),
             }
         });
         let property = match longhand_id {
@@ -798,24 +866,32 @@ where
             LonghandId::Right => PositionProperty::Right,
             LonghandId::Width => PositionProperty::Width,
             LonghandId::Height => PositionProperty::Height,
-            _ => unreachable!()
+            _ => unreachable!(),
         };
-        let mut iterator =
-            PositionRetrievingFragmentBorderBoxIterator::new(requested_node.opaque(),
-                                                             property,
-                                                             position);
-        sequential::iterate_through_flow_tree_fragment_border_boxes(layout_root,
-                                                                    &mut iterator);
-        iterator.result.map(|r| r.to_css_string()).unwrap_or(String::new())
+        let mut iterator = PositionRetrievingFragmentBorderBoxIterator::new(
+            requested_node.opaque(),
+            property,
+            position,
+        );
+        sequential::iterate_through_flow_tree_fragment_border_boxes(layout_root, &mut iterator);
+        iterator
+            .result
+            .map(|r| r.to_css_string())
+            .unwrap_or(String::new())
     }
 
     // TODO: we will return neither the computed nor used value for margin and padding.
     match longhand_id {
-        LonghandId::MarginBottom | LonghandId::MarginTop |
-        LonghandId::MarginLeft | LonghandId::MarginRight |
-        LonghandId::PaddingBottom | LonghandId::PaddingTop |
-        LonghandId::PaddingLeft | LonghandId::PaddingRight
-        if applies && style.get_box().display != Display::None => {
+        LonghandId::MarginBottom |
+        LonghandId::MarginTop |
+        LonghandId::MarginLeft |
+        LonghandId::MarginRight |
+        LonghandId::PaddingBottom |
+        LonghandId::PaddingTop |
+        LonghandId::PaddingLeft |
+        LonghandId::PaddingRight
+            if applies && style.get_box().display != Display::None =>
+        {
             let (margin_padding, side) = match longhand_id {
                 LonghandId::MarginBottom => (MarginPadding::Margin, Side::Bottom),
                 LonghandId::MarginTop => (MarginPadding::Margin, Side::Top),
@@ -825,40 +901,50 @@ where
                 LonghandId::PaddingTop => (MarginPadding::Padding, Side::Top),
                 LonghandId::PaddingLeft => (MarginPadding::Padding, Side::Left),
                 LonghandId::PaddingRight => (MarginPadding::Padding, Side::Right),
-                _ => unreachable!()
+                _ => unreachable!(),
             };
-            let mut iterator =
-                MarginRetrievingFragmentBorderBoxIterator::new(requested_node.opaque(),
-                                                               side,
-                                                               margin_padding,
-                                                               style.writing_mode);
-            sequential::iterate_through_flow_tree_fragment_border_boxes(layout_root,
-                                                                        &mut iterator);
-            iterator.result.map(|r| r.to_css_string()).unwrap_or(String::new())
-        },
+            let mut iterator = MarginRetrievingFragmentBorderBoxIterator::new(
+                requested_node.opaque(),
+                side,
+                margin_padding,
+                style.writing_mode,
+            );
+            sequential::iterate_through_flow_tree_fragment_border_boxes(layout_root, &mut iterator);
+            iterator
+                .result
+                .map(|r| r.to_css_string())
+                .unwrap_or(String::new())
+        }
 
         LonghandId::Bottom | LonghandId::Top | LonghandId::Right | LonghandId::Left
-        if applies && positioned && style.get_box().display != Display::None => {
+            if applies && positioned && style.get_box().display != Display::None =>
+        {
             used_value_for_position_property(layout_el, layout_root, requested_node, longhand_id)
-        }
+        },
         LonghandId::Width | LonghandId::Height
-        if applies && style.get_box().display != Display::None => {
+            if applies && style.get_box().display != Display::None =>
+        {
             used_value_for_position_property(layout_el, layout_root, requested_node, longhand_id)
-        }
+        },
         // FIXME: implement used value computation for line-height
-        _ => {
-            style.computed_value_to_string(PropertyDeclarationId::Longhand(longhand_id))
-        }
+        _ => style.computed_value_to_string(PropertyDeclarationId::Longhand(longhand_id)),
     }
 }
 
-pub fn process_offset_parent_query<N: LayoutNode>(requested_node: N, layout_root: &mut Flow)
-        -> OffsetParentResponse {
+pub fn process_offset_parent_query<N: LayoutNode>(
+    requested_node: N,
+    layout_root: &mut Flow,
+) -> OffsetParentResponse {
     let mut iterator = ParentOffsetBorderBoxIterator::new(requested_node.opaque());
     sequential::iterate_through_flow_tree_fragment_border_boxes(layout_root, &mut iterator);
 
     let node_offset_box = iterator.node_offset_box;
-    let parent_info = iterator.parent_nodes.into_iter().rev().filter_map(|info| info).next();
+    let parent_info = iterator
+        .parent_nodes
+        .into_iter()
+        .rev()
+        .filter_map(|info| info)
+        .next();
     match (node_offset_box, parent_info) {
         (Some(node_offset_box), Some(parent_info)) => {
             let origin = node_offset_box.offset - parent_info.origin.to_vector();
@@ -867,15 +953,12 @@ pub fn process_offset_parent_query<N: LayoutNode>(requested_node: N, layout_root
                 node_address: Some(parent_info.node_address.to_untrusted_node_address()),
                 rect: Rect::new(origin, size),
             }
-        }
-        _ => {
-            OffsetParentResponse::empty()
-        }
+        },
+        _ => OffsetParentResponse::empty(),
     }
 }
 
-pub fn process_style_query<N: LayoutNode>(requested_node: N)
-        -> StyleResponse {
+pub fn process_style_query<N: LayoutNode>(requested_node: N) -> StyleResponse {
     let element = requested_node.as_element().unwrap();
     let data = element.borrow_data();
 
@@ -888,8 +971,10 @@ enum InnerTextItem {
 }
 
 // https://html.spec.whatwg.org/multipage/#the-innertext-idl-attribute
-pub fn process_element_inner_text_query<N: LayoutNode>(node: N,
-                                                       indexable_text: &IndexableText) -> String {
+pub fn process_element_inner_text_query<N: LayoutNode>(
+    node: N,
+    indexable_text: &IndexableText,
+) -> String {
     // Step 1.
     let mut results = Vec::new();
     // Step 2.
@@ -923,7 +1008,7 @@ pub fn process_element_inner_text_query<N: LayoutNode>(node: N,
                 if count > max_req_line_break_count {
                     max_req_line_break_count = count;
                 }
-            }
+            },
         }
     }
     inner_text.into_iter().collect()
@@ -931,22 +1016,21 @@ pub fn process_element_inner_text_query<N: LayoutNode>(node: N,
 
 // https://html.spec.whatwg.org/multipage/#inner-text-collection-steps
 #[allow(unsafe_code)]
-fn inner_text_collection_steps<N: LayoutNode>(node: N,
-                                              indexable_text: &IndexableText,
-                                              results: &mut Vec<InnerTextItem>) {
+fn inner_text_collection_steps<N: LayoutNode>(
+    node: N,
+    indexable_text: &IndexableText,
+    results: &mut Vec<InnerTextItem>,
+) {
     let mut items = Vec::new();
     for child in node.traverse_preorder() {
         let node = match child.type_id() {
-            LayoutNodeType::Text => {
-                child.parent_node().unwrap()
-            },
+            LayoutNodeType::Text => child.parent_node().unwrap(),
             _ => child,
         };
 
         let element_data = unsafe {
-            node.get_style_and_layout_data().map(|d| {
-                &(*(d.ptr.as_ptr() as *mut StyleData)).element_data
-            })
+            node.get_style_and_layout_data()
+                .map(|d| &(*(d.ptr.as_ptr() as *mut StyleData)).element_data)
         };
 
         if element_data.is_none() {
@@ -980,15 +1064,16 @@ fn inner_text_collection_steps<N: LayoutNode>(node: N,
             },
             LayoutNodeType::Element(LayoutElementType::HTMLBRElement) => {
                 // Step 5.
-                items.push(InnerTextItem::Text(String::from("\u{000A}" /* line feed */)));
+                items.push(InnerTextItem::Text(String::from(
+                    "\u{000A}", /* line feed */
+                )));
             },
             LayoutNodeType::Element(LayoutElementType::HTMLParagraphElement) => {
                 // Step 8.
                 items.insert(0, InnerTextItem::RequiredLineBreakCount(2));
                 items.push(InnerTextItem::RequiredLineBreakCount(2));
-            }
+            },
             _ => {},
-
         }
 
         match display {

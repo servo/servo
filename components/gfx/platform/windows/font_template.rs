@@ -11,7 +11,6 @@ use webrender_api::NativeFontHandle;
 #[derive(Deserialize, Serialize)]
 pub struct FontTemplateData {
     // If you add members here, review the Debug impl below
-
     pub bytes: Option<Vec<u8>>,
     pub identifier: Atom,
 }
@@ -19,20 +18,22 @@ pub struct FontTemplateData {
 impl fmt::Debug for FontTemplateData {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         fmt.debug_struct("FontTemplateData")
-           .field(
-               "bytes",
-               &self.bytes
+            .field(
+                "bytes",
+                &self
+                    .bytes
                     .as_ref()
-                    .map(|bytes| format!("[{} bytes]", bytes.len()))
-            )
-           .field("identifier", &self.identifier)
-           .finish()
+                    .map(|bytes| format!("[{} bytes]", bytes.len())),
+            ).field("identifier", &self.identifier)
+            .finish()
     }
 }
 
 impl FontTemplateData {
-    pub fn new(identifier: Atom,
-               font_data: Option<Vec<u8>>) -> Result<FontTemplateData, io::Error> {
+    pub fn new(
+        identifier: Atom,
+        font_data: Option<Vec<u8>>,
+    ) -> Result<FontTemplateData, io::Error> {
         Ok(FontTemplateData {
             bytes: font_data,
             identifier: identifier,

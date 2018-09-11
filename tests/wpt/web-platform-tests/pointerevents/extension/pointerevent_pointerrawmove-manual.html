@@ -1,0 +1,55 @@
+<!doctype html>
+<html>
+    <head>
+        <title>pointerrawmove</title>
+        <meta name="viewport" content="width=device-width">
+        <link rel="stylesheet" type="text/css" href="../pointerevent_styles.css">
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <!-- Additional helper script for common checks across event types -->
+        <script type="text/javascript" src="../pointerevent_support.js"></script>
+    </head>
+    <body onload="run()">
+        <h2>pointerrawmove</h2>
+        <h4>Test Description: This test checks if pointerrawmove is dispatched correctly. </h4>
+        <p>Move your mouse within the black box.</p>
+        <p>Press left button down and then press middle button while holding down left button. Then release the buttons</p>
+        <div id="target0"></div>
+        <script>
+            var test_pointerrawmove = async_test("pointerrawmove event received");
+
+            var pointerrawmoveReceived = false;
+            var pointerdownReceived = false;
+            var pointerrawmoveFromButtonChangeReceived = false;
+
+            function run() {
+                var target0 = document.getElementById("target0");
+
+                on_event(target0, "pointerrawmove", function (event) {
+                    pointerrawmoveReceived = true;
+                    if (pointerdownReceived && event.button != -1)
+                      pointerrawmoveFromButtonChangeReceived = true;
+                });
+                on_event(target0, "pointermove", function (event) {
+                    test_pointerrawmove.step(function() {
+                        assert_true(pointerrawmoveReceived,
+                                    "Pointerrawmove event should have been received before pointermove.");
+                        }, "Pointerrawmove event should have been received before pointermove.");
+                });
+                on_event(target0, "pointerdown", function (event) {
+                    pointerdownReceived = true;
+                });
+                on_event(target0, "pointerup", function (event) {
+                    test_pointerrawmove.step(function() {
+                        assert_true(pointerrawmoveFromButtonChangeReceived,
+                                    "Pointerrawmove event should have been received from chorded button changes.");
+                        }, "Pointerrawmove event should have been received from chorded button changes.");
+                    test_pointerrawmove.done();
+                });
+            }
+
+        </script>
+        <div id="complete-notice">
+        </div>
+    </body>
+</html>

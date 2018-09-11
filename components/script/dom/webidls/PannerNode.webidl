@@ -45,7 +45,7 @@ interface PannerNode : AudioNode {
   readonly attribute AudioParam orientationY;
   readonly attribute AudioParam orientationZ;
   attribute DistanceModelType distanceModel;
-  attribute double refDistance;
+  [SetterThrows] attribute double refDistance;
   [SetterThrows] attribute double maxDistance;
   [SetterThrows] attribute double rolloffFactor;
   attribute double coneInnerAngle;

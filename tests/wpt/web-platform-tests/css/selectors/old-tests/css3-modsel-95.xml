@@ -1,0 +1,22 @@
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>Universal selector with universal namespace</title>
+  <style type="text/css"><![CDATA[@namespace a url(http://www.example.org/a);
+@namespace b url(http://www.example.org/b);
+div.test * { background-color : red ; display : block ; margin-bottom : 1em }
+div.test *|* { background-color : lime }]]></style>
+  <link rel="author" title="Daniel Glazman" href="http://glazman.org/"/>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="help" href="https://www.w3.org/TR/css3-selectors/#selectors"/> <!-- bogus link to make sure it gets found -->
+  <meta name="flags" content=" namespace" />
+ </head>
+ <body>
+ <div class="test">
+  <p>This line should  have a green background</p>
+  <p xmlns="http://www.example.org/b">This line should have a green background</p>
+  <q xmlns="http://www.example.org/b">This line should have a green background</q>
+  <p xmlns="http://www.example.org/a">This line should have a green background</p>
+  <foo xmlns="http://www.example.org/b">This line should have a green background</foo>
+ </div>
+</body>
+</html>

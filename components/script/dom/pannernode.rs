@@ -54,16 +54,29 @@ impl PannerNode {
     ) -> Fallible<PannerNode> {
         let count = options.parent.channelCount.unwrap_or(2);
         let mode = options.parent.channelCountMode.unwrap_or(ChannelCountMode::Clamped_max);
+        let interpretation = options.parent.channelInterpretation.unwrap_or(ChannelInterpretation::Speakers);
         if mode == ChannelCountMode::Max {
             return Err(Error::NotSupported)
         }
-        if count > 2 {
+        if count > 2 || count == 0 {
             return Err(Error::NotSupported)
+        }
+        if *options.maxDistance <= 0. {
+            return Err(Error::Range("maxDistance should be positive".into()))
+        }
+        if *options.refDistance < 0. {
+            return Err(Error::Range("refDistance should be non-negative".into()))
+        }
+        if *options.rolloffFactor < 0. {
+            return Err(Error::Range("rolloffFactor should be non-negative".into()))
+        }
+        if *options.coneOuterGain < 0. || *options.coneOuterGain > 1. {
+            return Err(Error::InvalidState)
         }
         let mut node_options = AudioNodeOptions::empty();
         node_options.channelCount = Some(count);
         node_options.channelCountMode = Some(mode);
-        node_options.channelInterpretation = Some(ChannelInterpretation::Speakers);
+        node_options.channelInterpretation = Some(interpretation);
         let options = options.into();
         let node = AudioNode::new_inherited(
             AudioNodeInit::PannerNode(options),
@@ -71,7 +84,7 @@ impl PannerNode {
             &node_options,
             1, // inputs
             1, // outputs
-        );
+        )?;
         let id = node.node_id();
         let position_x = AudioParam::new(
             window,
@@ -230,10 +243,14 @@ impl PannerNodeMethods for PannerNode {
         Finite::wrap(self.ref_distance.get())
     }
     // https://webaudio.github.io/web-audio-api/#dom-pannernode-refdistance
-    fn SetRefDistance(&self, val: Finite<f64>) {
+    fn SetRefDistance(&self, val: Finite<f64>) -> Fallible<()> {
+        if *val < 0. {
+            return Err(Error::Range("value should be non-negative".into()))
+        }
         self.ref_distance.set(*val);
         let msg = PannerNodeMessage::SetRefDistance(self.ref_distance.get());
         self.upcast::<AudioNode>().message(AudioNodeMessage::PannerNode(msg));
+        Ok(())
     }
     // https://webaudio.github.io/web-audio-api/#dom-pannernode-maxdistance
     fn MaxDistance(&self) -> Finite<f64> {
@@ -241,8 +258,8 @@ impl PannerNodeMethods for PannerNode {
     }
     // https://webaudio.github.io/web-audio-api/#dom-pannernode-maxdistance
     fn SetMaxDistance(&self, val: Finite<f64>) -> Fallible<()> {
-        if *val < 0. {
-            return Err(Error::NotSupported)
+        if *val <= 0. {
+            return Err(Error::Range("value should be positive".into()))
         }
         self.max_distance.set(*val);
         let msg = PannerNodeMessage::SetMaxDistance(self.max_distance.get());
@@ -256,7 +273,7 @@ impl PannerNodeMethods for PannerNode {
     // https://webaudio.github.io/web-audio-api/#dom-pannernode-rollofffactor
     fn SetRolloffFactor(&self, val: Finite<f64>) -> Fallible<()> {
         if *val < 0. {
-            return Err(Error::Range("value should be positive".into()))
+            return Err(Error::Range("value should be non-negative".into()))
         }
         self.rolloff_factor.set(*val);
         let msg = PannerNodeMessage::SetRolloff(self.rolloff_factor.get());
@@ -289,7 +306,7 @@ impl PannerNodeMethods for PannerNode {
     }
     // https://webaudio.github.io/web-audio-api/#dom-pannernode-coneoutergain
     fn SetConeOuterGain(&self, val: Finite<f64>) -> Fallible<()> {
-        if *val < 0. || *val > 360. {
+        if *val < 0. || *val > 1. {
             return Err(Error::InvalidState)
         }
         self.cone_outer_gain.set(*val);

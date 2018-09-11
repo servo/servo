@@ -104,8 +104,9 @@ impl Parse for FontWeight {
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
         let first = AbsoluteFontWeight::parse(context, input)?;
-        let second =
-            input.try(|input| AbsoluteFontWeight::parse(context, input)).ok();
+        let second = input
+            .try(|input| AbsoluteFontWeight::parse(context, input))
+            .ok();
         Ok(FontWeight(first, second))
     }
 }
@@ -122,8 +123,9 @@ impl Parse for FontStretch {
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
         let first = SpecifiedFontStretch::parse(context, input)?;
-        let second =
-            input.try(|input| SpecifiedFontStretch::parse(context, input)).ok();
+        let second = input
+            .try(|input| SpecifiedFontStretch::parse(context, input))
+            .ok();
         Ok(FontStretch(first, second))
     }
 }
@@ -149,12 +151,12 @@ impl Parse for FontStyle {
             GenericFontStyle::Normal => FontStyle::Normal,
             GenericFontStyle::Italic => FontStyle::Italic,
             GenericFontStyle::Oblique(angle) => {
-                let second_angle = input.try(|input| {
-                    SpecifiedFontStyle::parse_angle(context, input)
-                }).unwrap_or_else(|_| angle.clone());
+                let second_angle = input
+                    .try(|input| SpecifiedFontStyle::parse_angle(context, input))
+                    .unwrap_or_else(|_| angle.clone());
 
                 FontStyle::Oblique(angle, second_angle)
-            }
+            },
         })
     }
 }
@@ -178,7 +180,7 @@ impl ToCss for FontStyle {
                     second.to_css(dest)?;
                 }
                 Ok(())
-            }
+            },
         }
     }
 }
@@ -235,15 +237,13 @@ impl<'a> FontFace<'a> {
                         // We support only opentype fonts and truetype is an alias for
                         // that format. Sources without format hints need to be
                         // downloaded in case we support them.
-                        hints.is_empty() ||
-                            hints.iter().any(|hint| {
-                                hint == "truetype" || hint == "opentype" || hint == "woff"
-                            })
+                        hints.is_empty() || hints
+                            .iter()
+                            .any(|hint| hint == "truetype" || hint == "opentype" || hint == "woff")
                     } else {
                         true
                     }
-                })
-                .cloned()
+                }).cloned()
                 .collect(),
         )
     }

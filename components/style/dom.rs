@@ -19,7 +19,7 @@ use element_state::ElementState;
 use font_metrics::FontMetricsProvider;
 use media_queries::Device;
 use properties::{AnimationRules, ComputedValues, PropertyDeclarationBlock};
-use selector_parser::{AttrValue, PseudoClassStringArg, PseudoElement, SelectorImpl};
+use selector_parser::{AttrValue, Lang, PseudoElement, SelectorImpl};
 use selectors::Element as SelectorsElement;
 use selectors::matching::{ElementSelectorFlags, QuirksMode, VisitedHandlingMode};
 use selectors::sink::Push;
@@ -42,7 +42,10 @@ use traversal_flags::TraversalFlags;
 /// data structures. Also, layout code tends to be faster when the DOM is not being accessed, for
 /// locality reasons. Using `OpaqueNode` enforces this invariant.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-#[cfg_attr(feature = "servo", derive(MallocSizeOf, Deserialize, Serialize))]
+#[cfg_attr(
+    feature = "servo",
+    derive(MallocSizeOf, Deserialize, Serialize)
+)]
 pub struct OpaqueNode(pub usize);
 
 impl OpaqueNode {
@@ -342,7 +345,7 @@ pub trait TShadowRoot: Sized + Copy + Clone + PartialEq {
     fn host(&self) -> <Self::ConcreteNode as TNode>::ConcreteElement;
 
     /// Get the style data for this ShadowRoot.
-    fn style_data<'a>(&self) -> &'a CascadeData
+    fn style_data<'a>(&self) -> Option<&'a CascadeData>
     where
         Self: 'a;
 
@@ -459,7 +462,9 @@ pub trait TElement:
     fn is_svg_element(&self) -> bool;
 
     /// Return whether this element is an element in the XUL namespace.
-    fn is_xul_element(&self) -> bool { false }
+    fn is_xul_element(&self) -> bool {
+        false
+    }
 
     /// Return the list of slotted nodes of this node.
     fn slotted_nodes(&self) -> &[Self::ConcreteNode] {
@@ -824,30 +829,36 @@ pub trait TElement:
 
         if let Some(shadow) = self.containing_shadow() {
             doc_rules_apply = false;
-            f(
-                shadow.style_data(),
-                self.as_node().owner_doc().quirks_mode(),
-                Some(shadow.host()),
-            );
+            if let Some(data) = shadow.style_data() {
+                f(
+                    data,
+                    self.as_node().owner_doc().quirks_mode(),
+                    Some(shadow.host()),
+                );
+            }
         }
 
         if let Some(shadow) = self.shadow_root() {
-            f(
-                shadow.style_data(),
-                self.as_node().owner_doc().quirks_mode(),
-                Some(shadow.host()),
-            );
+            if let Some(data) = shadow.style_data() {
+                f(
+                    data,
+                    self.as_node().owner_doc().quirks_mode(),
+                    Some(shadow.host()),
+                );
+            }
         }
 
         let mut current = self.assigned_slot();
         while let Some(slot) = current {
             // Slots can only have assigned nodes when in a shadow tree.
             let shadow = slot.containing_shadow().unwrap();
-            f(
-                shadow.style_data(),
-                self.as_node().owner_doc().quirks_mode(),
-                Some(shadow.host()),
-            );
+            if let Some(data) = shadow.style_data() {
+                f(
+                    data,
+                    self.as_node().owner_doc().quirks_mode(),
+                    Some(shadow.host()),
+                );
+            }
             current = slot.assigned_slot();
         }
 
@@ -886,11 +897,7 @@ pub trait TElement:
     /// of the `xml:lang=""` or `lang=""` attribute to use in place of
     /// looking at the element and its ancestors.  (This argument is used
     /// to implement matching of `:lang()` against snapshots.)
-    fn match_element_lang(
-        &self,
-        override_lang: Option<Option<AttrValue>>,
-        value: &PseudoClassStringArg,
-    ) -> bool;
+    fn match_element_lang(&self, override_lang: Option<Option<AttrValue>>, value: &Lang) -> bool;
 
     /// Returns whether this element is the main body element of the HTML
     /// document it is on.

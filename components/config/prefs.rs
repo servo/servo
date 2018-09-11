@@ -30,7 +30,7 @@ pub enum PrefValue {
     Boolean(bool),
     String(String),
     Number(f64),
-    Missing
+    Missing,
 }
 
 impl PrefValue {
@@ -41,26 +41,22 @@ impl PrefValue {
             Json::F64(x) => PrefValue::Number(x),
             Json::I64(x) => PrefValue::Number(x as f64),
             Json::U64(x) => PrefValue::Number(x as f64),
-            _ => return Err(())
+            _ => return Err(()),
         };
         Ok(value)
     }
 
     pub fn as_boolean(&self) -> Option<bool> {
         match *self {
-            PrefValue::Boolean(value) => {
-                Some(value)
-            },
-            _ => None
+            PrefValue::Boolean(value) => Some(value),
+            _ => None,
         }
     }
 
     pub fn as_string(&self) -> Option<&str> {
         match *self {
-            PrefValue::String(ref value) => {
-                Some(&value)
-            },
-            _ => None
+            PrefValue::String(ref value) => Some(&value),
+            _ => None,
         }
     }
 
@@ -82,16 +78,10 @@ impl PrefValue {
 impl ToJson for PrefValue {
     fn to_json(&self) -> Json {
         match *self {
-            PrefValue::Boolean(x) => {
-                Json::Boolean(x)
-            },
-            PrefValue::String(ref x) => {
-                Json::String(x.clone())
-            },
-            PrefValue::Number(x) => {
-                Json::F64(x)
-            },
-            PrefValue::Missing => Json::Null
+            PrefValue::Boolean(x) => Json::Boolean(x),
+            PrefValue::String(ref x) => Json::String(x.clone()),
+            PrefValue::Number(x) => Json::F64(x),
+            PrefValue::Missing => Json::Null,
         }
     }
 }
@@ -99,9 +89,8 @@ impl ToJson for PrefValue {
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum Pref {
     NoDefault(Arc<PrefValue>),
-    WithDefault(Arc<PrefValue>, Option<Arc<PrefValue>>)
+    WithDefault(Arc<PrefValue>, Option<Arc<PrefValue>>),
 }
-
 
 impl Pref {
     pub fn new(value: PrefValue) -> Pref {
@@ -120,12 +109,10 @@ impl Pref {
     pub fn value(&self) -> &Arc<PrefValue> {
         match *self {
             Pref::NoDefault(ref x) => x,
-            Pref::WithDefault(ref default, ref override_value) => {
-                match *override_value {
-                    Some(ref x) => x,
-                    None => default
-                }
-            }
+            Pref::WithDefault(ref default, ref override_value) => match *override_value {
+                Some(ref x) => x,
+                None => default,
+            },
         }
     }
 
@@ -133,12 +120,8 @@ impl Pref {
         // TODO - this should error if we try to override a pref of one type
         // with a value of a different type
         match *self {
-            Pref::NoDefault(ref mut pref_value) => {
-                *pref_value = Arc::new(value)
-            },
-            Pref::WithDefault(_, ref mut override_value) => {
-                *override_value = Some(Arc::new(value))
-            }
+            Pref::NoDefault(ref mut pref_value) => *pref_value = Arc::new(value),
+            Pref::WithDefault(_, ref mut override_value) => *override_value = Some(Arc::new(value)),
         }
     }
 }
@@ -151,8 +134,10 @@ impl ToJson for Pref {
 
 pub fn default_prefs() -> Preferences {
     let prefs = Preferences(Arc::new(RwLock::new(HashMap::new())));
-    prefs.set("layout.threads", PrefValue::Number(
-        max(num_cpus::get() * 3 / 4, 1) as f64));
+    prefs.set(
+        "layout.threads",
+        PrefValue::Number(max(num_cpus::get() * 3 / 4, 1) as f64),
+    );
     prefs
 }
 
@@ -169,7 +154,10 @@ pub fn read_prefs(txt: &str) -> Result<HashMap<String, Pref>, ()> {
                 Ok(x) => {
                     prefs.insert(name, x);
                 },
-                Err(_) => println!("Ignoring non-boolean/string/i64 preference value for {:?}", name),
+                Err(_) => println!(
+                    "Ignoring non-boolean/string/i64 preference value for {:?}",
+                    name
+                ),
             }
         }
     }
@@ -181,14 +169,14 @@ pub fn add_user_prefs() {
         Some(ref config_path) => {
             let mut path = PathBuf::from(config_path);
             init_user_prefs(&mut path);
-        }
+        },
         None => {
             if let Some(mut path) = default_config_dir() {
                 if path.join("prefs.json").exists() {
                     init_user_prefs(&mut path);
                 }
             }
-        }
+        },
     }
 }
 
@@ -201,8 +189,10 @@ fn init_user_prefs(path: &mut PathBuf) {
             PREFS.extend(prefs);
         }
     } else {
-    writeln!(&mut stderr(), "Error opening prefs.json from config directory")
-        .expect("failed printing to stderr");
+        writeln!(
+            &mut stderr(),
+            "Error opening prefs.json from config directory"
+        ).expect("failed printing to stderr");
     }
 }
 
@@ -210,7 +200,11 @@ pub struct Preferences(Arc<RwLock<HashMap<String, Pref>>>);
 
 impl Preferences {
     pub fn get(&self, name: &str) -> Arc<PrefValue> {
-        self.0.read().unwrap().get(name).map_or(Arc::new(PrefValue::Missing), |x| x.value().clone())
+        self.0
+            .read()
+            .unwrap()
+            .get(name)
+            .map_or(Arc::new(PrefValue::Missing), |x| x.value().clone())
     }
 
     pub fn cloned(&self) -> HashMap<String, Pref> {
@@ -244,7 +238,12 @@ impl Preferences {
 
     pub fn reset_all(&self) {
         let names = {
-            self.0.read().unwrap().keys().cloned().collect::<Vec<String>>()
+            self.0
+                .read()
+                .unwrap()
+                .keys()
+                .cloned()
+                .collect::<Vec<String>>()
         };
         for name in names.iter() {
             self.reset(name);
@@ -260,7 +259,9 @@ impl Preferences {
     }
 
     pub fn is_dom_to_texture_enabled(&self) -> bool {
-        self.get("dom.webgl.dom_to_texture.enabled").as_boolean().unwrap_or(false)
+        self.get("dom.webgl.dom_to_texture.enabled")
+            .as_boolean()
+            .unwrap_or(false)
     }
 
     pub fn is_webgl2_enabled(&self) -> bool {

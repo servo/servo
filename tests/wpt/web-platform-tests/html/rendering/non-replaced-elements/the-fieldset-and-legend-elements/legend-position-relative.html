@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<title>legend position: relative</title>
+<link rel=match href=legend-position-relative-ref.html>
+<style>
+fieldset { border: 100px solid lime; width: 200px; padding: 0; margin: 0 }
+legend { position: relative; left: 100px; width: 100px; height: 100px; padding: 0 }
+.behind { position: absolute; left: 208px; width: 100px; height: 100px; background: red; z-index: -1 }
+</style>
+<p>There should be no red.</p>
+<div class=behind></div>
+<fieldset><legend></legend></fieldset>

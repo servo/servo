@@ -439,7 +439,10 @@ class ManifestLoader(object):
         if (not os.path.exists(manifest_path) or
             self.force_manifest_update):
             self.update_manifest(manifest_path, tests_path, url_base, download=self.manifest_download)
-        manifest_file = manifest.load(tests_path, manifest_path, types=self.types, meta_filters=self.meta_filters)
+        try:
+            manifest_file = manifest.load(tests_path, manifest_path, types=self.types, meta_filters=self.meta_filters)
+        except manifest.ManifestVersionMismatch:
+            manifest_file = manifest.Manifest(url_base)
         if manifest_file.url_base != url_base:
             self.logger.info("Updating url_base in manifest from %s to %s" % (manifest_file.url_base,
                                                                               url_base))

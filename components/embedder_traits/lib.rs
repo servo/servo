@@ -24,9 +24,8 @@ use std::sync::mpsc::{Receiver, Sender};
 use style_traits::cursor::CursorKind;
 use webrender_api::{DeviceIntPoint, DeviceUintSize};
 
-
 /// Used to wake up the event loop, provided by the servo port/embedder.
-pub trait EventLoopWaker : 'static + Send {
+pub trait EventLoopWaker: 'static + Send {
     fn clone(&self) -> Box<EventLoopWaker + Send>;
     fn wake(&self);
 }
@@ -58,11 +57,13 @@ impl Clone for EmbedderProxy {
 
 /// The port that the embedder receives messages on.
 pub struct EmbedderReceiver {
-    pub receiver: Receiver<(Option<TopLevelBrowsingContextId>, EmbedderMsg)>
+    pub receiver: Receiver<(Option<TopLevelBrowsingContextId>, EmbedderMsg)>,
 }
 
 impl EmbedderReceiver {
-    pub fn try_recv_embedder_msg(&mut self) -> Option<(Option<TopLevelBrowsingContextId>, EmbedderMsg)> {
+    pub fn try_recv_embedder_msg(
+        &mut self,
+    ) -> Option<(Option<TopLevelBrowsingContextId>, EmbedderMsg)> {
         self.receiver.try_recv().ok()
     }
     pub fn recv_embedder_msg(&mut self) -> (Option<TopLevelBrowsingContextId>, EmbedderMsg) {
@@ -148,7 +149,7 @@ impl Debug for EmbedderMsg {
             EmbedderMsg::HideIME => write!(f, "HideIME"),
             EmbedderMsg::Shutdown => write!(f, "Shutdown"),
             EmbedderMsg::AllowOpeningBrowser(..) => write!(f, "AllowOpeningBrowser"),
-            EmbedderMsg::BrowserCreated(..) => write!(f, "BrowserCreated")
+            EmbedderMsg::BrowserCreated(..) => write!(f, "BrowserCreated"),
         }
     }
 }

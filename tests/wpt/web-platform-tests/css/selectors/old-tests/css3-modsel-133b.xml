@@ -1,0 +1,27 @@
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>NEGATED Attribute dash-separated value selector with universal namespace</title>
+  <style type="text/css"><![CDATA[@namespace a url(http://www.example.org/a);
+@namespace b url(http://www.example.org/b);
+@namespace html url(http://www.w3.org/1999/xhtml);
+*|p, *|q, *|r, *|s { display : block ; margin-bottom : 1em }
+*|p.foo, *|q, *|s { background-color : lime ! important }
+div.stub html|*:not([*|lang|="en"]),
+  div.stub *|*:not(html|*):not([a|foo|="un-d"]) { background-color : red }
+]]></style>
+  <link rel="author" title="Daniel Glazman" href="http://glazman.org/"/>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="help" href="https://www.w3.org/TR/css3-selectors/#selectors"/> <!-- bogus link to make sure it gets found -->
+  <meta name="flags" content=" namespace" />
+ </head>
+ <body xmlns:a="http://www.example.org/a" xmlns:b="http://www.example.org/b">
+<div class="stub">
+<p lang="en-us">This paragraph should be unstyled.</p>
+<p lang="fr" class="foo">This paragraph should have a green background.</p>
+<q xmlns="http://www.example.org/a" a:foo="un-deux-trois">This paragraph should have a green background.</q>
+<q xmlns="http://www.example.org/a" a:foo="un-second-deuxieme-trois">This paragraph should have a green background.</q>
+<r xmlns="http://www.example.org/a" a:foo="un-d-trois">This paragraph should be unstyled.</r>
+<s xmlns="http://www.example.org/b" b:foo="un-d-trois">This paragraph should have a green background.</s>
+</div>
+</body>
+</html>

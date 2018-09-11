@@ -54,11 +54,11 @@
             should(
                 () => audioNode.connect(context.destination, 5, 0),
                 'audioNode.connect(context.destination, 5, 0)')
-                .throw('IndexSizeError');
+                .throw(DOMException, 'IndexSizeError');
             should(
                 () => audioNode.connect(context.destination, 0, 5),
                 'audioNode.connect(context.destination, 0, 5)')
-                .throw('IndexSizeError');
+                .throw(DOMException, 'IndexSizeError');
 
             should(
                 () => audioNode.connect(context.destination, 0, 0),
@@ -71,7 +71,7 @@
             should(
                 () => window.audioNode.connect(context2.destination),
                 'Connecting a node to a different context')
-                .throw('InvalidAccessError');
+                .throw(DOMException, 'InvalidAccessError');
 
             // 3-arg AudioContext doesn't create an offline context anymore.
             should(

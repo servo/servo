@@ -32,14 +32,18 @@
             bufferSource.buffer = toneBuffer;
 
             window.context = context;
-            should(() => context.createDelay(180)).throw("NotSupportedError",
-              "Delay length cannot be 180 seconds or more");
-            should(() => context.createDelay(0)).throw("NotSupportedError",
-              "Delay length cannot be 0");
-            should(() => context.createDelay(-1)).throw("NotSupportedError",
-              "Delay length cannot be negative");
-            should(() => context.createDelay(NaN)).throw(TypeError,
-              "Delay length cannot be a NaN");
+            should(() => context.createDelay(180),
+                   'Setting Delay length to 180 seconds or more')
+                .throw(DOMException, 'NotSupportedError');
+            should(() => context.createDelay(0),
+                   'Setting Delay length to 0 seconds')
+                .throw(DOMException, 'NotSupportedError');
+            should(() => context.createDelay(-1),
+                   'Setting Delay length to negative')
+                .throw(DOMException, 'NotSupportedError');
+            should(() => context.createDelay(NaN),
+                   'Setting Delay length to NaN')
+                .throw(TypeError);
 
             let delay = context.createDelay(179);
             delay.delayTime.value = delayTimeSeconds;

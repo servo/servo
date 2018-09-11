@@ -13,7 +13,9 @@
       window.onload = test.step_func(function() {
         var client = new XMLHttpRequest();
         var abortFired = false;
+        var sync = true;
         client.onabort = test.step_func(function (e) {
+          assert_false(sync);
           assert_equals(e.type, 'abort');
           abortFired = true;
         });
@@ -24,6 +26,7 @@
           test.done();
         }, 200);
         window.stop();
+        sync = false;
       });
     </script>
   </body>

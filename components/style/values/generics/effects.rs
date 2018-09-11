@@ -5,8 +5,17 @@
 //! Generic types for CSS values related to effects.
 
 /// A generic value for a single `box-shadow`.
-#[derive(Animate, Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo,
-         ToAnimatedValue, ToAnimatedZero, ToCss)]
+#[derive(
+    Animate,
+    Clone,
+    Debug,
+    MallocSizeOf,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToAnimatedValue,
+    ToAnimatedZero,
+    ToCss,
+)]
 pub struct BoxShadow<Color, SizeLength, BlurShapeLength, ShapeLength> {
     /// The base shadow.
     pub base: SimpleShadow<Color, SizeLength, BlurShapeLength>,
@@ -21,8 +30,17 @@ pub struct BoxShadow<Color, SizeLength, BlurShapeLength, ShapeLength> {
 /// A generic value for a single `filter`.
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
 #[animation(no_bound(Url))]
-#[derive(Clone, ComputeSquaredDistance, Debug, MallocSizeOf, PartialEq,
-         SpecifiedValueInfo, ToAnimatedValue, ToComputedValue, ToCss)]
+#[derive(
+    Clone,
+    ComputeSquaredDistance,
+    Debug,
+    MallocSizeOf,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToAnimatedValue,
+    ToComputedValue,
+    ToCss,
+)]
 pub enum Filter<Angle, Factor, Length, DropShadow, Url> {
     /// `blur(<length>)`
     #[css(function)]
@@ -63,8 +81,18 @@ pub enum Filter<Angle, Factor, Length, DropShadow, Url> {
 ///
 /// Contrary to the canonical order from the spec, the color is serialised
 /// first, like in Gecko and Webkit.
-#[derive(Animate, Clone, ComputeSquaredDistance, Debug, MallocSizeOf, PartialEq,
-         SpecifiedValueInfo, ToAnimatedValue, ToAnimatedZero, ToCss)]
+#[derive(
+    Animate,
+    Clone,
+    ComputeSquaredDistance,
+    Debug,
+    MallocSizeOf,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToAnimatedValue,
+    ToAnimatedZero,
+    ToCss,
+)]
 pub struct SimpleShadow<Color, SizeLength, ShapeLength> {
     /// Color.
     pub color: Color,

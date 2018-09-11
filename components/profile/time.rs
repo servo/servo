@@ -50,11 +50,7 @@ impl Formattable for Option<TimerMetadata> {
                     },
                     _ => {
                         /* The profiling output is the terminal */
-                        let url = if url.len() > 30 {
-                            &url[..30]
-                        } else {
-                            url
-                        };
+                        let url = if url.len() > 30 { &url[..30] } else { url };
                         let incremental = match meta.incremental {
                             TimerMetadataReflowType::Incremental => "    yes",
                             TimerMetadataReflowType::FirstReflow => "    no ",
@@ -67,16 +63,12 @@ impl Formattable for Option<TimerMetadata> {
                     },
                 }
             },
-            None => {
-                match *output {
-                    Some(OutputOptions::FileName(_)) => {
-                        format!(" {}\t{}\t{}", "    N/A", "  N/A", "             N/A")
-                    },
-                    _ => {
-                        format!(" {:14} {:9} {:30}", "    N/A", "  N/A", "             N/A")
-                    }
-                }
-            }
+            None => match *output {
+                Some(OutputOptions::FileName(_)) => {
+                    format!(" {}\t{}\t{}", "    N/A", "  N/A", "             N/A")
+                },
+                _ => format!(" {:14} {:9} {:30}", "    N/A", "  N/A", "             N/A"),
+            },
         }
     }
 }
@@ -102,7 +94,7 @@ impl Formattable for ProfilerCategory {
             ProfilerCategory::LayoutSelectorMatch |
             ProfilerCategory::LayoutTreeBuilder |
             ProfilerCategory::LayoutTextShaping => "| + ",
-            _ => ""
+            _ => "",
         };
         let name = match *self {
             ProfilerCategory::Compositing => "Compositing",
@@ -183,27 +175,29 @@ impl Profiler {
             Some(ref option) => {
                 // Spawn the time profiler thread
                 let outputoption = option.clone();
-                thread::Builder::new().name("Time profiler".to_owned()).spawn(move || {
-                    let trace = file_path.as_ref()
-                        .and_then(|p| TraceDump::new(p).ok());
-                    let mut profiler = Profiler::new(port, trace, Some(outputoption));
-                    profiler.start();
-                }).expect("Thread spawning failed");
+                thread::Builder::new()
+                    .name("Time profiler".to_owned())
+                    .spawn(move || {
+                        let trace = file_path.as_ref().and_then(|p| TraceDump::new(p).ok());
+                        let mut profiler = Profiler::new(port, trace, Some(outputoption));
+                        profiler.start();
+                    }).expect("Thread spawning failed");
                 // decide if we need to spawn the timer thread
                 match option {
-                    &OutputOptions::FileName(_) |
-                    &OutputOptions::DB(_, _, _, _) => { /* no timer thread needed */ },
+                    &OutputOptions::FileName(_) | &OutputOptions::DB(_, _, _, _) => {
+                        /* no timer thread needed */
+                    },
                     &OutputOptions::Stdout(period) => {
                         // Spawn a timer thread
                         let chan = chan.clone();
-                        thread::Builder::new().name("Time profiler timer".to_owned()).spawn(move || {
-                            loop {
+                        thread::Builder::new()
+                            .name("Time profiler timer".to_owned())
+                            .spawn(move || loop {
                                 thread::sleep(duration_from_seconds(period));
                                 if chan.send(ProfilerMsg::Print).is_err() {
                                     break;
                                 }
-                            }
-                        }).expect("Thread spawning failed");
+                            }).expect("Thread spawning failed");
                     },
                 }
             },
@@ -211,37 +205,37 @@ impl Profiler {
                 // this is when the -p option hasn't been specified
                 if file_path.is_some() {
                     // Spawn the time profiler
-                    thread::Builder::new().name("Time profiler".to_owned()).spawn(move || {
-                        let trace = file_path.as_ref()
-                            .and_then(|p| TraceDump::new(p).ok());
-                        let mut profiler = Profiler::new(port, trace, None);
-                        profiler.start();
-                    }).expect("Thread spawning failed");
+                    thread::Builder::new()
+                        .name("Time profiler".to_owned())
+                        .spawn(move || {
+                            let trace = file_path.as_ref().and_then(|p| TraceDump::new(p).ok());
+                            let mut profiler = Profiler::new(port, trace, None);
+                            profiler.start();
+                        }).expect("Thread spawning failed");
                 } else {
                     // No-op to handle messages when the time profiler is not printing:
-                    thread::Builder::new().name("Time profiler".to_owned()).spawn(move || {
-                        loop {
+                    thread::Builder::new()
+                        .name("Time profiler".to_owned())
+                        .spawn(move || loop {
                             match port.recv() {
                                 Err(_) => break,
                                 Ok(ProfilerMsg::Exit(chan)) => {
                                     let _ = chan.send(());
                                     break;
                                 },
-                                _ => {}
+                                _ => {},
                             }
-                        }
-                    }).expect("Thread spawning failed");
+                        }).expect("Thread spawning failed");
                 }
-            }
+            },
         }
 
         heartbeats::init();
         let profiler_chan = ProfilerChan(chan);
 
         // only spawn the application-level profiler thread if its heartbeat is enabled
-        let run_ap_thread = || {
-            heartbeats::is_heartbeat_enabled(&ProfilerCategory::ApplicationHeartbeat)
-        };
+        let run_ap_thread =
+            || heartbeats::is_heartbeat_enabled(&ProfilerCategory::ApplicationHeartbeat);
         if run_ap_thread() {
             let profiler_chan = profiler_chan.clone();
             // min of 1 heartbeat/sec, max of 20 should provide accurate enough power/energy readings
@@ -249,39 +243,52 @@ impl Profiler {
             const SLEEP_MS: u32 = 10;
             const MIN_ENERGY_INTERVAL_MS: u32 = 50;
             const MAX_ENERGY_INTERVAL_MS: u32 = 1000;
-            let interval_ms = enforce_range(MIN_ENERGY_INTERVAL_MS, MAX_ENERGY_INTERVAL_MS, energy_interval_ms());
+            let interval_ms = enforce_range(
+                MIN_ENERGY_INTERVAL_MS,
+                MAX_ENERGY_INTERVAL_MS,
+                energy_interval_ms(),
+            );
             let loop_count: u32 = (interval_ms as f32 / SLEEP_MS as f32).ceil() as u32;
-            thread::Builder::new().name("Application heartbeat profiler".to_owned()).spawn(move || {
-                let mut start_time = precise_time_ns();
-                let mut start_energy = read_energy_uj();
-                loop {
-                    for _ in 0..loop_count {
-                        if run_ap_thread() {
-                            thread::sleep(Duration::from_millis(SLEEP_MS as u64))
-                        } else {
-                            return
+            thread::Builder::new()
+                .name("Application heartbeat profiler".to_owned())
+                .spawn(move || {
+                    let mut start_time = precise_time_ns();
+                    let mut start_energy = read_energy_uj();
+                    loop {
+                        for _ in 0..loop_count {
+                            if run_ap_thread() {
+                                thread::sleep(Duration::from_millis(SLEEP_MS as u64))
+                            } else {
+                                return;
+                            }
                         }
+                        let end_time = precise_time_ns();
+                        let end_energy = read_energy_uj();
+                        // send using the inner channel
+                        // (using ProfilerChan.send() forces an unwrap
+                        // and sometimes panics for this background profiler)
+                        let ProfilerChan(ref c) = profiler_chan;
+                        if let Err(_) = c.send(ProfilerMsg::Time(
+                            (ProfilerCategory::ApplicationHeartbeat, None),
+                            (start_time, end_time),
+                            (start_energy, end_energy),
+                        )) {
+                            return;
+                        }
+                        start_time = end_time;
+                        start_energy = end_energy;
                     }
-                    let end_time = precise_time_ns();
-                    let end_energy = read_energy_uj();
-                    // send using the inner channel
-                    // (using ProfilerChan.send() forces an unwrap and sometimes panics for this background profiler)
-                    let ProfilerChan(ref c) = profiler_chan;
-                    if let Err(_) = c.send(ProfilerMsg::Time((ProfilerCategory::ApplicationHeartbeat, None),
-                                                             (start_time, end_time),
-                                                             (start_energy, end_energy))) {
-                        return;
-                    }
-                    start_time = end_time;
-                    start_energy = end_energy;
-                }
-            }).expect("Thread spawning failed");
+                }).expect("Thread spawning failed");
         }
 
         profiler_chan
     }
 
-    pub fn new(port: IpcReceiver<ProfilerMsg>, trace: Option<TraceDump>, output: Option<OutputOptions>) -> Profiler {
+    pub fn new(
+        port: IpcReceiver<ProfilerMsg>,
+        trace: Option<TraceDump>,
+        output: Option<OutputOptions>,
+    ) -> Profiler {
         Profiler {
             port: port,
             buckets: BTreeMap::new(),
@@ -293,9 +300,9 @@ impl Profiler {
 
     pub fn start(&mut self) {
         while let Ok(msg) = self.port.recv() {
-           if !self.handle_msg(msg) {
-               break
-           }
+            if !self.handle_msg(msg) {
+                break;
+            }
         }
     }
 
@@ -320,7 +327,9 @@ impl Profiler {
             ProfilerMsg::Get(k, sender) => {
                 let vec_option = self.buckets.get(&k);
                 match vec_option {
-                    Some(vec_entry) => sender.send(ProfilerData::Record(vec_entry.to_vec())).unwrap(),
+                    Some(vec_entry) => sender
+                        .send(ProfilerData::Record(vec_entry.to_vec()))
+                        .unwrap(),
                     None => sender.send(ProfilerData::NoRecords).unwrap(),
                 };
             },
@@ -344,11 +353,12 @@ impl Profiler {
 
         let data_len = data.len();
         debug_assert!(data_len > 0);
-        let (mean, median, min, max) =
-            (data.iter().sum::<f64>() / (data_len as f64),
+        let (mean, median, min, max) = (
+            data.iter().sum::<f64>() / (data_len as f64),
             data[data_len / 2],
             data[0],
-            data[data_len - 1]);
+            data[data_len - 1],
+        );
         (mean, median, min, max)
     }
 
@@ -357,21 +367,34 @@ impl Profiler {
             Some(OutputOptions::FileName(ref filename)) => {
                 let path = Path::new(&filename);
                 let mut file = match File::create(&path) {
-                    Err(e) => panic!("Couldn't create {}: {}",
-                                     path.display(),
-                                     Error::description(&e)),
+                    Err(e) => panic!(
+                        "Couldn't create {}: {}",
+                        path.display(),
+                        Error::description(&e)
+                    ),
                     Ok(file) => file,
                 };
-                write!(file, "_category_\t_incremental?_\t_iframe?_\t_url_\t_mean (ms)_\t\
-                    _median (ms)_\t_min (ms)_\t_max (ms)_\t_events_\n").unwrap();
+                write!(
+                    file,
+                    "_category_\t_incremental?_\t_iframe?_\t_url_\t_mean (ms)_\t\
+                     _median (ms)_\t_min (ms)_\t_max (ms)_\t_events_\n"
+                ).unwrap();
                 for (&(ref category, ref meta), ref mut data) in &mut self.buckets {
                     data.sort_by(|a, b| a.partial_cmp(b).expect("No NaN values in profiles"));
                     let data_len = data.len();
                     if data_len > 0 {
                         let (mean, median, min, max) = Self::get_statistics(data);
-                        write!(file, "{}\t{}\t{:15.4}\t{:15.4}\t{:15.4}\t{:15.4}\t{:15}\n",
-                            category.format(&self.output), meta.format(&self.output),
-                            mean, median, min, max, data_len).unwrap();
+                        write!(
+                            file,
+                            "{}\t{}\t{:15.4}\t{:15.4}\t{:15.4}\t{:15.4}\t{:15}\n",
+                            category.format(&self.output),
+                            meta.format(&self.output),
+                            mean,
+                            median,
+                            min,
+                            max,
+                            data_len
+                        ).unwrap();
                     }
                 }
             },
@@ -379,18 +402,35 @@ impl Profiler {
                 let stdout = io::stdout();
                 let mut lock = stdout.lock();
 
-                writeln!(&mut lock, "{:35} {:14} {:9} {:30} {:15} {:15} {:-15} {:-15} {:-15}",
-                         "_category_", "_incremental?_", "_iframe?_",
-                         "            _url_", "    _mean (ms)_", "  _median (ms)_",
-                         "     _min (ms)_", "     _max (ms)_", "      _events_").unwrap();
+                writeln!(
+                    &mut lock,
+                    "{:35} {:14} {:9} {:30} {:15} {:15} {:-15} {:-15} {:-15}",
+                    "_category_",
+                    "_incremental?_",
+                    "_iframe?_",
+                    "            _url_",
+                    "    _mean (ms)_",
+                    "  _median (ms)_",
+                    "     _min (ms)_",
+                    "     _max (ms)_",
+                    "      _events_"
+                ).unwrap();
                 for (&(ref category, ref meta), ref mut data) in &mut self.buckets {
                     data.sort_by(|a, b| a.partial_cmp(b).expect("No NaN values in profiles"));
                     let data_len = data.len();
                     if data_len > 0 {
                         let (mean, median, min, max) = Self::get_statistics(data);
-                        writeln!(&mut lock, "{:-35}{} {:15.4} {:15.4} {:15.4} {:15.4} {:15}",
-                                 category.format(&self.output), meta.format(&self.output), mean, median, min, max,
-                                 data_len).unwrap();
+                        writeln!(
+                            &mut lock,
+                            "{:-35}{} {:15.4} {:15.4} {:15.4} {:15.4} {:15}",
+                            category.format(&self.output),
+                            meta.format(&self.output),
+                            mean,
+                            median,
+                            min,
+                            max,
+                            data_len
+                        ).unwrap();
                     }
                 }
                 writeln!(&mut lock, "").unwrap();
@@ -434,22 +474,22 @@ impl Profiler {
                         }
                     }
                 }
-
             },
             None => { /* Do nothing if no output option has been set */ },
         };
     }
 }
 
-fn enforce_range<T>(min: T, max: T, value: T) -> T where T: Ord {
+fn enforce_range<T>(min: T, max: T, value: T) -> T
+where
+    T: Ord,
+{
     assert!(min <= max);
     match value.cmp(&max) {
         Ordering::Equal | Ordering::Greater => max,
-        Ordering::Less => {
-            match value.cmp(&min) {
-                Ordering::Equal | Ordering::Less => min,
-                Ordering::Greater => value,
-            }
+        Ordering::Less => match value.cmp(&min) {
+            Ordering::Equal | Ordering::Less => min,
+            Ordering::Greater => value,
         },
     }
 }

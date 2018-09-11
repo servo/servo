@@ -13,6 +13,7 @@ use dom::bindings::root::DomRoot;
 use dom::webglobject::WebGLObject;
 use dom::webglrenderingcontext::WebGLRenderingContext;
 use dom_struct::dom_struct;
+use ipc_channel::ipc;
 use std::cell::Cell;
 
 #[dom_struct]
@@ -62,10 +63,7 @@ impl WebGLBuffer {
         self.id
     }
 
-    pub fn buffer_data<T>(&self, target: u32, data: T, usage: u32) -> WebGLResult<()>
-    where
-        T: Into<Vec<u8>>,
-    {
+    pub fn buffer_data(&self, data: &[u8], usage: u32) -> WebGLResult<()> {
         match usage {
             WebGLRenderingContextConstants::STREAM_DRAW |
             WebGLRenderingContextConstants::STATIC_DRAW |
@@ -73,17 +71,13 @@ impl WebGLBuffer {
             _ => return Err(WebGLError::InvalidEnum),
         }
 
-        if let Some(previous_target) = self.target.get() {
-            if target != previous_target {
-                return Err(WebGLError::InvalidOperation);
-            }
-        }
-        let data = data.into();
         self.capacity.set(data.len());
         self.usage.set(usage);
+        let (sender, receiver) = ipc::bytes_channel().unwrap();
         self.upcast::<WebGLObject>()
             .context()
-            .send_command(WebGLCommand::BufferData(target, data.into(), usage));
+            .send_command(WebGLCommand::BufferData(self.target.get().unwrap(), receiver, usage));
+        sender.send(data).unwrap();
         Ok(())
     }
 
@@ -154,6 +148,7 @@ impl WebGLBuffer {
 
 impl Drop for WebGLBuffer {
     fn drop(&mut self) {
-        self.delete();
+        self.mark_for_deletion();
+        assert!(self.is_deleted());
     }
 }

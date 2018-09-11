@@ -17,41 +17,19 @@
 
       let audit = Audit.createTaskRunner();
 
-      audit.define('linear-clamp-low', (task, should) => {
-        runTest(should, {
-          distanceModel: 'linear',
-          // Fairly arbitrary value outside the nominal range
-          rolloffFactor: -1,
-          clampedRolloff: 0
-        }).then(() => task.done());
-      });
-
-      audit.define('linear-clamp-high', (task, should) => {
-        runTest(should, {
-          distanceModel: 'linear',
-          // Fairly arbitrary value outside the nominal range
-          rolloffFactor: 2,
-          clampedRolloff: 1
-        }).then(() => task.done());
-      });
-
-      audit.define('inverse-clamp', (task, should) => {
-        runTest(should, {
-          distanceModel: 'inverse',
-          // Fairly arbitrary value outside the nominal range
-          rolloffFactor: -1,
-          clampedRolloff: 0
-        }).then(() => task.done());
-      });
-
-      audit.define('exponential-clamp', (task, should) => {
-        runTest(should, {
-          distanceModel: 'exponential',
-          // Fairly arbitrary value outside the nominal range
-          rolloffFactor: -2,
-          clampedRolloff: 0
-        }).then(() => task.done());
-      });
+      audit.define(
+          {
+            label: 'linear-clamp-high',
+            description: 'rolloffFactor clamping for linear distance model'
+          },
+          (task, should) => {
+            runTest(should, {
+              distanceModel: 'linear',
+              // Fairly arbitrary value outside the nominal range
+              rolloffFactor: 2,
+              clampedRolloff: 1
+            }).then(() => task.done());
+          });
 
       // Test clamping of the rolloffFactor.  The test is done by comparing the
       // output of a panner with the rolloffFactor set outside the nominal range

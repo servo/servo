@@ -53,12 +53,12 @@ impl ToCss for MediaCondition {
             MediaCondition::Not(ref c) => {
                 dest.write_str("not ")?;
                 c.to_css(dest)
-            }
+            },
             MediaCondition::InParens(ref c) => {
                 dest.write_char('(')?;
                 c.to_css(dest)?;
                 dest.write_char(')')
-            }
+            },
             MediaCondition::Operation(ref list, op) => {
                 let mut iter = list.iter();
                 iter.next().unwrap().to_css(dest)?;
@@ -69,7 +69,7 @@ impl ToCss for MediaCondition {
                     item.to_css(dest)?;
                 }
                 Ok(())
-            }
+            },
         }
     }
 }
@@ -104,14 +104,12 @@ impl MediaCondition {
         let is_negation = match *input.next()? {
             Token::ParenthesisBlock => false,
             Token::Ident(ref ident) if ident.eq_ignore_ascii_case("not") => true,
-            ref t => {
-                return Err(location.new_unexpected_token_error(t.clone()))
-            }
+            ref t => return Err(location.new_unexpected_token_error(t.clone())),
         };
 
         if is_negation {
             let inner_condition = Self::parse_in_parens(context, input)?;
-            return Ok(MediaCondition::Not(Box::new(inner_condition)))
+            return Ok(MediaCondition::Not(Box::new(inner_condition)));
         }
 
         // ParenthesisBlock.
@@ -162,7 +160,7 @@ impl MediaCondition {
         input.parse_nested_block(|input| {
             // Base case.
             if let Ok(inner) = input.try(|i| Self::parse(context, i)) {
-                return Ok(MediaCondition::InParens(Box::new(inner)))
+                return Ok(MediaCondition::InParens(Box::new(inner)));
             }
             let expr = MediaFeatureExpression::parse_in_parenthesis_block(context, input)?;
             Ok(MediaCondition::Feature(expr))
@@ -178,14 +176,10 @@ impl MediaCondition {
             MediaCondition::Operation(ref conditions, op) => {
                 let mut iter = conditions.iter();
                 match op {
-                    Operator::And => {
-                        iter.all(|c| c.matches(device, quirks_mode))
-                    }
-                    Operator::Or => {
-                        iter.any(|c| c.matches(device, quirks_mode))
-                    }
+                    Operator::And => iter.all(|c| c.matches(device, quirks_mode)),
+                    Operator::Or => iter.any(|c| c.matches(device, quirks_mode)),
                 }
-            }
+            },
         }
     }
 }

@@ -1,0 +1,57 @@
+<!doctype html>
+<title>-webkit-appearance</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<button id=button>Test</button>
+<script>
+  const button = document.getElementById('button');
+  // values from https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-appearance
+  // intersection of Firefox and Chrome.
+  const values = ["none",
+                  "button",
+                  "button-bevel",
+                  "caret",
+                  "checkbox",
+                  "listbox",
+                  "listitem",
+                  "menulist",
+                  "menulist-button",
+                  "menulist-text",
+                  "menulist-textfield",
+                  "radio",
+                  "searchfield",
+                  "textfield",
+                 ];
+  for (const value of values) {
+    test(() => {
+      button.removeAttribute('style');
+      button.style.setProperty('-webkit-appearance', value);
+      assert_equals(button.style.WebkitAppearance, value);
+      assert_equals(button.style.webkitAppearance, value); // lowercase w
+      const style = getComputedStyle(button);
+      assert_equals(style.WebkitAppearance, value);
+      assert_equals(style.webkitAppearance, value); // lowercase w
+    }, `-webkit-appearance: ${value}`);
+  }
+
+  const invalidValues = ["bogus-button"];
+  for (const invalidValue of invalidValues) {
+    test(() => {
+      button.removeAttribute('style');
+      button.style.setProperty('-webkit-appearance', invalidValue);
+      assert_equals(button.style.WebkitAppearance, "");
+      assert_equals(button.style.webkitAppearance, ""); // lowercase w
+      const style = getComputedStyle(button);
+      assert_equals(style.WebkitAppearance, "button");
+      assert_equals(style.webkitAppearance, "button"); // lowercase w
+    }, `-webkit-appearance: ${invalidValue} (invalid)`);
+  }
+
+  test(() => {
+    button.removeAttribute('style');
+    button.style.setProperty('appearance', 'auto');
+    assert_equals(button.style.appearance, undefined);
+    const style = getComputedStyle(button);
+    assert_equals(style.appearance, undefined);
+  }, 'appearance');
+</script>

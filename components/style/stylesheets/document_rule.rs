@@ -109,7 +109,7 @@ pub enum DocumentMatchingFunction {
     Regexp(String),
     /// Matching function for a media document.
     #[css(function)]
-    MediaDocument(MediaDocumentKind)
+    MediaDocument(MediaDocumentKind),
 }
 
 macro_rules! parse_quoted_or_unquoted_string {
@@ -120,8 +120,7 @@ macro_rules! parse_quoted_or_unquoted_string {
                 .parse_entirely(|input| {
                     let string = input.expect_string()?;
                     Ok($url_matching_function(string.as_ref().to_owned()))
-                })
-                .or_else(|_: ParseError| {
+                }).or_else(|_: ParseError| {
                     while let Ok(_) = input.next() {}
                     Ok($url_matching_function(input.slice_from(start).to_string()))
                 })
@@ -136,7 +135,7 @@ impl DocumentMatchingFunction {
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
         if let Ok(url) = input.try(|input| CssUrl::parse(context, input)) {
-            return Ok(DocumentMatchingFunction::Url(url))
+            return Ok(DocumentMatchingFunction::Url(url));
         }
 
         let location = input.current_source_location();
@@ -181,7 +180,9 @@ impl DocumentMatchingFunction {
             DocumentMatchingFunction::UrlPrefix(_) => GeckoDocumentMatchingFunction::URLPrefix,
             DocumentMatchingFunction::Domain(_) => GeckoDocumentMatchingFunction::Domain,
             DocumentMatchingFunction::Regexp(_) => GeckoDocumentMatchingFunction::RegExp,
-            DocumentMatchingFunction::MediaDocument(_) => GeckoDocumentMatchingFunction::MediaDocument,
+            DocumentMatchingFunction::MediaDocument(_) => {
+                GeckoDocumentMatchingFunction::MediaDocument
+            },
         };
 
         let pattern = nsCStr::from(match *self {
@@ -189,14 +190,12 @@ impl DocumentMatchingFunction {
             DocumentMatchingFunction::UrlPrefix(ref pat) |
             DocumentMatchingFunction::Domain(ref pat) |
             DocumentMatchingFunction::Regexp(ref pat) => pat,
-            DocumentMatchingFunction::MediaDocument(kind) => {
-                match kind {
-                    MediaDocumentKind::All => "all",
-                    MediaDocumentKind::Image => "image",
-                    MediaDocumentKind::Plugin => "plugin",
-                    MediaDocumentKind::Video => "video",
-                }
-            }
+            DocumentMatchingFunction::MediaDocument(kind) => match kind {
+                MediaDocumentKind::All => "all",
+                MediaDocumentKind::Image => "image",
+                MediaDocumentKind::Plugin => "plugin",
+                MediaDocumentKind::Video => "video",
+            },
         });
         unsafe { Gecko_DocumentRule_UseForPresentation(device.pres_context(), &*pattern, func) }
     }

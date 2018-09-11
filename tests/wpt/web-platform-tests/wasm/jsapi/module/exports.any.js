@@ -7,15 +7,54 @@ setup(() => {
   emptyModuleBinary = new WasmModuleBuilder().toBuffer();
 });
 
+function assert_ModuleExportDescriptor(export_, expected) {
+  assert_equals(Object.getPrototypeOf(export_), Object.prototype, "Prototype");
+  assert_true(Object.isExtensible(export_), "isExtensible");
+
+  const name = Object.getOwnPropertyDescriptor(export_, "name");
+  assert_true(name.writable, "name: writable");
+  assert_true(name.enumerable, "name: enumerable");
+  assert_true(name.configurable, "name: configurable");
+  assert_equals(name.value, expected.name);
+
+  const kind = Object.getOwnPropertyDescriptor(export_, "kind");
+  assert_true(kind.writable, "kind: writable");
+  assert_true(kind.enumerable, "kind: enumerable");
+  assert_true(kind.configurable, "kind: configurable");
+  assert_equals(kind.value, expected.kind);
+}
+
+function assert_exports(exports, expected) {
+  assert_true(Array.isArray(exports), "Should be array");
+  assert_equals(Object.getPrototypeOf(exports), Array.prototype, "Prototype");
+  assert_true(Object.isExtensible(exports), "isExtensible");
+
+  assert_equals(exports.length, expected.length);
+  for (let i = 0; i < expected.length; ++i) {
+    assert_ModuleExportDescriptor(exports[i], expected[i]);
+  }
+}
+
 test(() => {
   assert_throws(new TypeError(), () => WebAssembly.Module.exports());
 }, "Missing arguments");
 
 test(() => {
-  assert_throws(new TypeError(), () => WebAssembly.Module.exports({}));
-  assert_throws(new TypeError(), () => WebAssembly.Module.exports(""));
-  assert_throws(new TypeError(), () => WebAssembly.Module.exports(undefined));
-  assert_throws(new TypeError(), () => WebAssembly.Module.exports(null));
+  const invalidArguments = [
+    undefined,
+    null,
+    true,
+    "",
+    Symbol(),
+    1,
+    {},
+    WebAssembly.Module,
+    WebAssembly.Module.prototype,
+  ];
+  for (const argument of invalidArguments) {
+    assert_throws(new TypeError(), () => WebAssembly.Module.exports(argument),
+                  `exports(${format_value(argument)})`);
+  }
 }, "Non-Module arguments");
 
 test(() => {
@@ -40,37 +79,13 @@ test(() => {
 test(() => {
   const module = new WebAssembly.Module(emptyModuleBinary);
   const exports = WebAssembly.Module.exports(module);
-  assert_true(Array.isArray(exports));
-}, "Return type");
-
-test(() => {
-  const module = new WebAssembly.Module(emptyModuleBinary);
-  const exports = WebAssembly.Module.exports(module);
-  assert_true(Array.isArray(exports), "Should be array");
-  assert_equals(Object.getPrototypeOf(exports), Array.prototype, "Prototype");
-  assert_array_equals(exports, []);
+  assert_exports(exports, []);
 }, "Empty module");
 
 test(() => {
   const module = new WebAssembly.Module(emptyModuleBinary);
   assert_not_equals(WebAssembly.Module.exports(module), WebAssembly.Module.exports(module));
 }, "Empty module: array caching");
-
-function assert_ModuleExportDescriptor(export_, expected) {
-  assert_equals(Object.getPrototypeOf(export_), Object.prototype, "Prototype");
-
-  const name = Object.getOwnPropertyDescriptor(export_, "name");
-  assert_true(name.writable, "name: writable");
-  assert_true(name.enumerable, "name: enumerable");
-  assert_true(name.configurable, "name: configurable");
-  assert_equals(name.value, expected.name);
-
-  const kind = Object.getOwnPropertyDescriptor(export_, "kind");
-  assert_true(kind.writable, "kind: writable");
-  assert_true(kind.enumerable, "kind: enumerable");
-  assert_true(kind.configurable, "kind: configurable");
-  assert_equals(kind.value, expected.kind);
-}
 
 test(() => {
   const builder = new WasmModuleBuilder();
@@ -103,9 +118,6 @@ test(() => {
   const buffer = builder.toBuffer()
   const module = new WebAssembly.Module(buffer);
   const exports = WebAssembly.Module.exports(module);
-  assert_true(Array.isArray(exports), "Should be array");
-  assert_equals(Object.getPrototypeOf(exports), Array.prototype, "Prototype");
-
   const expected = [
     { "kind": "function", "name": "fn" },
     { "kind": "function", "name": "fn2" },
@@ -114,8 +126,5 @@ test(() => {
     { "kind": "global", "name": "global2" },
     { "kind": "memory", "name": "memory" },
   ];
-  assert_equals(exports.length, expected.length);
-  for (let i = 0; i < expected.length; ++i) {
-    assert_ModuleExportDescriptor(exports[i], expected[i]);
-  }
+  assert_exports(exports, expected);
 }, "exports");

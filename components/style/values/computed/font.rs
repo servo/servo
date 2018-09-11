@@ -35,8 +35,7 @@ pub use values::specified::font::{FontSynthesis, MozScriptSizeMultiplier, XLang,
 /// https://drafts.csswg.org/css-fonts-4/#propdef-font-weight
 ///
 /// This is effectively just a `Number`.
-#[derive(Clone, ComputeSquaredDistance, Copy, Debug, MallocSizeOf, PartialEq,
-         ToCss)]
+#[derive(Clone, ComputeSquaredDistance, Copy, Debug, MallocSizeOf, PartialEq, ToCss)]
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
 pub struct FontWeight(pub Number);
 
@@ -60,8 +59,17 @@ impl ToAnimatedValue for FontWeight {
     }
 }
 
-#[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug, MallocSizeOf, PartialEq,
-         ToAnimatedZero, ToCss)]
+#[derive(
+    Animate,
+    Clone,
+    ComputeSquaredDistance,
+    Copy,
+    Debug,
+    MallocSizeOf,
+    PartialEq,
+    ToAnimatedZero,
+    ToCss,
+)]
 /// The computed value of font-size
 pub struct FontSize {
     /// The size.
@@ -217,9 +225,9 @@ impl FontFamily {
     #[inline]
     /// Get default font family as `serif` which is a generic font-family
     pub fn serif() -> Self {
-        FontFamily(FontFamilyList::new(Box::new([
-            SingleFontFamily::Generic(atom!("serif")),
-        ])))
+        FontFamily(FontFamilyList::new(Box::new([SingleFontFamily::Generic(
+            atom!("serif"),
+        )])))
     }
 }
 
@@ -473,9 +481,7 @@ impl SingleFontFamily {
             FontFamilyType::eFamily_monospace => SingleFontFamily::Generic(atom!("monospace")),
             FontFamilyType::eFamily_cursive => SingleFontFamily::Generic(atom!("cursive")),
             FontFamilyType::eFamily_fantasy => SingleFontFamily::Generic(atom!("fantasy")),
-            FontFamilyType::eFamily_moz_fixed => {
-                SingleFontFamily::Generic(atom!("-moz-fixed"))
-            },
+            FontFamilyType::eFamily_moz_fixed => SingleFontFamily::Generic(atom!("-moz-fixed")),
             FontFamilyType::eFamily_named => {
                 let name = Atom::from(&*family.mName);
                 SingleFontFamily::FamilyName(FamilyName {
@@ -851,9 +857,10 @@ impl ToAnimatedValue for FontStyleAngle {
     #[inline]
     fn from_animated_value(animated: Self::AnimatedValue) -> Self {
         FontStyleAngle(Angle::Deg(
-            animated.degrees()
+            animated
+                .degrees()
                 .min(specified::FONT_STYLE_OBLIQUE_MAX_ANGLE_DEGREES)
-                .max(specified::FONT_STYLE_OBLIQUE_MIN_ANGLE_DEGREES)
+                .max(specified::FONT_STYLE_OBLIQUE_MIN_ANGLE_DEGREES),
         ))
     }
 }
@@ -882,9 +889,10 @@ impl FontStyle {
     /// https://drafts.csswg.org/css-fonts-4/#valdef-font-style-oblique-angle
     #[inline]
     pub fn default_angle() -> FontStyleAngle {
-        FontStyleAngle(Angle::Deg(specified::DEFAULT_FONT_STYLE_OBLIQUE_ANGLE_DEGREES))
+        FontStyleAngle(Angle::Deg(
+            specified::DEFAULT_FONT_STYLE_OBLIQUE_ANGLE_DEGREES,
+        ))
     }
-
 
     /// Get the font style from Gecko's nsFont struct.
     #[cfg(feature = "gecko")]
@@ -923,7 +931,7 @@ impl ToCss for FontStyle {
                     angle.to_css(dest)?;
                 }
                 Ok(())
-            }
+            },
         }
     }
 }

@@ -56,24 +56,28 @@ canvas.addEventListener(
 
 var wtu = WebGLTestUtils;
 var gl = wtu.create3DContext(canvas, {preserveDrawingBuffer: true});
-shouldBeNonNull("gl");
 
-var array = new Float32Array([0]);
-var buf = gl.createBuffer();
-gl.bindBuffer(gl.ARRAY_BUFFER, buf);
-gl.bufferData(gl.ARRAY_BUFFER, array, gl.STATIC_DRAW);
-wtu.glErrorShouldBe(gl, gl.NO_ERROR);
-
-var attribLocation = 1;
-gl.enableVertexAttribArray(attribLocation);
-gl.vertexAttribPointer(attribLocation, 1, gl.FLOAT, false, 0, 0);
-
-gl.deleteBuffer(buf);
-
-setTimeout(function() {
-    // Wait for possible context loss
+if (!gl) {
+    testFailed("context does not exist");
     finishTest();
-}, 2000);
+} else {
+    var array = new Float32Array([0]);
+    var buf = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+    gl.bufferData(gl.ARRAY_BUFFER, array, gl.STATIC_DRAW);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR);
+
+    var attribLocation = 1;
+    gl.enableVertexAttribArray(attribLocation);
+    gl.vertexAttribPointer(attribLocation, 1, gl.FLOAT, false, 0, 0);
+
+    gl.deleteBuffer(buf);
+
+    setTimeout(function() {
+        // Wait for possible context loss
+        finishTest();
+    }, 2000);
+}
 
 var successfullyParsed = true;
 </script>

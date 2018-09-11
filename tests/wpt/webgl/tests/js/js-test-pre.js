@@ -142,9 +142,10 @@ function notifyFinishedToHarness() {
 }
 
 (function () {
-  var oldNotify = notifyFinishedToHarness;
   var t = async_test("Overall test");
-  window.notifyFinishedToHarness = t.step_func_done(oldNotify);
+  var done = t.step_func_done(notifyFinishedToHarness);
+  window.notifyFinishedToHarness = done;
+  window.addEventListener("error", done);
 }())
 
 var _bufferedConsoleLogs = [];

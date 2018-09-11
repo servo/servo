@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <script src='/resources/testharness.js'></script>
+    <script src='/resources/testharnessreport.js'></script>
+  </head>
+  <body>
+    <div id='fs'></div>
+    <script>
+var check_report_format = (reports, observer) => {
+  let report = reports[0];
+  assert_equals(report.type, "feature-policy");
+  assert_equals(report.url, document.location.href);
+  assert_equals(report.body.feature, "fullscreen");
+  assert_equals(report.body.sourceFile, document.location.href);
+  assert_equals(typeof report.body.message, "string");
+  assert_equals(typeof report.body.lineNumber, "number");
+  assert_equals(typeof report.body.columnNumber, "number");
+};
+
+async_test(t => {
+  new ReportingObserver(t.step_func_done(check_report_format),
+                        {types: ['feature-policy']}).observe();
+  document.getElementById('fs').requestFullscreen().then(t.unreached_func(
+    "Fullscreen should not be allowed in this document.")).catch(()=>{});
+}, "Fullscreen Report Format");
+    </script>
+  </body>
+</html>

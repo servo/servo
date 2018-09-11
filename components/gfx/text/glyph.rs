@@ -4,7 +4,10 @@
 
 use app_units::Au;
 use euclid::Point2D;
-#[cfg(all(feature = "unstable", any(target_feature = "sse2", target_feature = "neon")))]
+#[cfg(all(
+    feature = "unstable",
+    any(target_feature = "sse2", target_feature = "neon")
+))]
 use packed_simd::u32x4;
 use range::{self, EachIndex, Range, RangeIndex};
 use std::{fmt, mem, u16};
@@ -28,9 +31,7 @@ pub struct GlyphEntry {
 
 impl GlyphEntry {
     fn new(value: u32) -> GlyphEntry {
-        GlyphEntry {
-            value: value,
-        }
+        GlyphEntry { value: value }
     }
 
     fn initial() -> GlyphEntry {
@@ -54,11 +55,11 @@ impl GlyphEntry {
     fn complex(starts_cluster: bool, starts_ligature: bool, glyph_count: usize) -> GlyphEntry {
         assert!(glyph_count <= u16::MAX as usize);
 
-        debug!("creating complex glyph entry: starts_cluster={}, starts_ligature={}, \
-                glyph_count={}",
-               starts_cluster,
-               starts_ligature,
-               glyph_count);
+        debug!(
+            "creating complex glyph entry: starts_cluster={}, starts_ligature={}, \
+             glyph_count={}",
+            starts_cluster, starts_ligature, glyph_count
+        );
 
         GlyphEntry::new(glyph_count as u32)
     }
@@ -73,16 +74,16 @@ pub type GlyphId = u32;
 
 // TODO: make this more type-safe.
 
-const FLAG_CHAR_IS_SPACE: u32       = 0x40000000;
+const FLAG_CHAR_IS_SPACE: u32 = 0x40000000;
 #[cfg(feature = "unstable")]
 #[cfg(any(target_feature = "sse2", target_feature = "neon"))]
 const FLAG_CHAR_IS_SPACE_SHIFT: u32 = 30;
-const FLAG_IS_SIMPLE_GLYPH: u32     = 0x80000000;
+const FLAG_IS_SIMPLE_GLYPH: u32 = 0x80000000;
 
 // glyph advance; in Au's.
-const GLYPH_ADVANCE_MASK: u32       = 0x3FFF0000;
-const GLYPH_ADVANCE_SHIFT: u32      = 16;
-const GLYPH_ID_MASK: u32            = 0x0000FFFF;
+const GLYPH_ADVANCE_MASK: u32 = 0x3FFF0000;
+const GLYPH_ADVANCE_SHIFT: u32 = 16;
+const GLYPH_ID_MASK: u32 = 0x0000FFFF;
 
 // Non-simple glyphs (more than one glyph per char; missing glyph,
 // newline, tab, large advance, or nonzero x/y offsets) may have one
@@ -91,7 +92,7 @@ const GLYPH_ID_MASK: u32            = 0x0000FFFF;
 // unicode char.
 
 // The number of detailed glyphs for this char.
-const GLYPH_COUNT_MASK:              u32 = 0x0000FFFF;
+const GLYPH_COUNT_MASK: u32 = 0x0000FFFF;
 
 fn is_simple_glyph_id(id: GlyphId) -> bool {
     ((id as u32) & GLYPH_ID_MASK) == id
@@ -205,8 +206,8 @@ struct DetailedGlyphStore {
 impl<'a> DetailedGlyphStore {
     fn new() -> DetailedGlyphStore {
         DetailedGlyphStore {
-            detail_buffer: vec!(), // TODO: default size?
-            detail_lookup: vec!(),
+            detail_buffer: vec![], // TODO: default size?
+            detail_lookup: vec![],
             lookup_is_sorted: false,
         }
     }
@@ -217,7 +218,10 @@ impl<'a> DetailedGlyphStore {
             detail_offset: self.detail_buffer.len(),
         };
 
-        debug!("Adding entry[off={:?}] for detailed glyphs: {:?}", entry_offset, glyphs);
+        debug!(
+            "Adding entry[off={:?}] for detailed glyphs: {:?}",
+            entry_offset, glyphs
+        );
 
         /* TODO: don't actually assert this until asserts are compiled
         in/out based on severity, debug/release, etc. This assertion
@@ -235,9 +239,15 @@ impl<'a> DetailedGlyphStore {
         self.lookup_is_sorted = false;
     }
 
-    fn detailed_glyphs_for_entry(&'a self, entry_offset: ByteIndex, count: u16)
-                                  -> &'a [DetailedGlyph] {
-        debug!("Requesting detailed glyphs[n={}] for entry[off={:?}]", count, entry_offset);
+    fn detailed_glyphs_for_entry(
+        &'a self,
+        entry_offset: ByteIndex,
+        count: u16,
+    ) -> &'a [DetailedGlyph] {
+        debug!(
+            "Requesting detailed glyphs[n={}] for entry[off={:?}]",
+            count, entry_offset
+        );
 
         // FIXME: Is this right? --pcwalton
         // TODO: should fix this somewhere else
@@ -253,18 +263,21 @@ impl<'a> DetailedGlyphStore {
             detail_offset: 0, // unused
         };
 
-        let i = self.detail_lookup.binary_search(&key)
+        let i = self
+            .detail_lookup
+            .binary_search(&key)
             .expect("Invalid index not found in detailed glyph lookup table!");
         let main_detail_offset = self.detail_lookup[i].detail_offset;
         assert!(main_detail_offset + (count as usize) <= self.detail_buffer.len());
         // return a slice into the buffer
-        &self.detail_buffer[main_detail_offset .. main_detail_offset + count as usize]
+        &self.detail_buffer[main_detail_offset..main_detail_offset + count as usize]
     }
 
-    fn detailed_glyph_with_index(&'a self,
-                                     entry_offset: ByteIndex,
-                                     detail_offset: u16)
-            -> &'a DetailedGlyph {
+    fn detailed_glyph_with_index(
+        &'a self,
+        entry_offset: ByteIndex,
+        detail_offset: u16,
+    ) -> &'a DetailedGlyph {
         assert!((detail_offset as usize) <= self.detail_buffer.len());
         assert!(self.lookup_is_sorted);
 
@@ -273,7 +286,9 @@ impl<'a> DetailedGlyphStore {
             detail_offset: 0, // unused
         };
 
-        let i = self.detail_lookup.binary_search(&key)
+        let i = self
+            .detail_lookup
+            .binary_search(&key)
             .expect("Invalid index not found in detailed glyph lookup table!");
         let main_detail_offset = self.detail_lookup[i].detail_offset;
         assert!(main_detail_offset + (detail_offset as usize) < self.detail_buffer.len());
@@ -290,7 +305,7 @@ impl<'a> DetailedGlyphStore {
         // immutable locations thus don't play well with freezing.
 
         // Thar be dragons here. You have been warned. (Tips accepted.)
-        let mut unsorted_records: Vec<DetailedGlyphRecord> = vec!();
+        let mut unsorted_records: Vec<DetailedGlyphRecord> = vec![];
         mem::swap(&mut self.detail_lookup, &mut unsorted_records);
         let mut mut_records: Vec<DetailedGlyphRecord> = unsorted_records;
         mut_records.sort_by(|a, b| {
@@ -320,12 +335,13 @@ pub struct GlyphData {
 
 impl GlyphData {
     /// Creates a new entry for one glyph.
-    pub fn new(id: GlyphId,
-               advance: Au,
-               offset: Option<Point2D<Au>>,
-               cluster_start: bool,
-               ligature_start: bool)
-            -> GlyphData {
+    pub fn new(
+        id: GlyphId,
+        advance: Au,
+        offset: Option<Point2D<Au>>,
+        cluster_start: bool,
+        ligature_start: bool,
+    ) -> GlyphData {
         GlyphData {
             id: id,
             advance: advance,
@@ -351,8 +367,11 @@ impl<'a> GlyphInfo<'a> {
         match self {
             GlyphInfo::Simple(store, entry_i) => store.entry_buffer[entry_i.to_usize()].id(),
             GlyphInfo::Detail(store, entry_i, detail_j) => {
-                store.detail_store.detailed_glyph_with_index(entry_i, detail_j).id
-            }
+                store
+                    .detail_store
+                    .detailed_glyph_with_index(entry_i, detail_j)
+                    .id
+            },
         }
     }
 
@@ -362,8 +381,11 @@ impl<'a> GlyphInfo<'a> {
         match self {
             GlyphInfo::Simple(store, entry_i) => store.entry_buffer[entry_i.to_usize()].advance(),
             GlyphInfo::Detail(store, entry_i, detail_j) => {
-                store.detail_store.detailed_glyph_with_index(entry_i, detail_j).advance
-            }
+                store
+                    .detail_store
+                    .detailed_glyph_with_index(entry_i, detail_j)
+                    .advance
+            },
         }
     }
 
@@ -371,9 +393,12 @@ impl<'a> GlyphInfo<'a> {
     pub fn offset(self) -> Option<Point2D<Au>> {
         match self {
             GlyphInfo::Simple(_, _) => None,
-            GlyphInfo::Detail(store, entry_i, detail_j) => {
-                Some(store.detail_store.detailed_glyph_with_index(entry_i, detail_j).offset)
-            }
+            GlyphInfo::Detail(store, entry_i, detail_j) => Some(
+                store
+                    .detail_store
+                    .detailed_glyph_with_index(entry_i, detail_j)
+                    .offset,
+            ),
         }
     }
 
@@ -477,14 +502,11 @@ impl<'a> GlyphStore {
     }
 
     /// Adds a single glyph.
-    pub fn add_glyph_for_byte_index(&mut self,
-                                    i: ByteIndex,
-                                    character: char,
-                                    data: &GlyphData) {
+    pub fn add_glyph_for_byte_index(&mut self, i: ByteIndex, character: char, data: &GlyphData) {
         let glyph_is_compressible = is_simple_glyph_id(data.id) &&
             is_simple_advance(data.advance) &&
-                data.offset == Point2D::zero() &&
-                data.cluster_start;  // others are stored in detail buffer
+            data.offset == Point2D::zero() &&
+            data.cluster_start; // others are stored in detail buffer
 
         debug_assert!(data.ligature_start); // can't compress ligature continuation glyphs.
         debug_assert!(i < self.len());
@@ -512,20 +534,29 @@ impl<'a> GlyphStore {
         let glyph_count = data_for_glyphs.len();
 
         let first_glyph_data = data_for_glyphs[0];
-        let glyphs_vec: Vec<DetailedGlyph> = (0..glyph_count).map(|i| {
-            DetailedGlyph::new(data_for_glyphs[i].id,
-                               data_for_glyphs[i].advance,
-                               data_for_glyphs[i].offset)
-        }).collect();
+        let glyphs_vec: Vec<DetailedGlyph> = (0..glyph_count)
+            .map(|i| {
+                DetailedGlyph::new(
+                    data_for_glyphs[i].id,
+                    data_for_glyphs[i].advance,
+                    data_for_glyphs[i].offset,
+                )
+            }).collect();
 
         self.has_detailed_glyphs = true;
-        self.detail_store.add_detailed_glyphs_for_entry(i, &glyphs_vec);
+        self.detail_store
+            .add_detailed_glyphs_for_entry(i, &glyphs_vec);
 
-        let entry = GlyphEntry::complex(first_glyph_data.cluster_start,
-                                        first_glyph_data.ligature_start,
-                                        glyph_count);
+        let entry = GlyphEntry::complex(
+            first_glyph_data.cluster_start,
+            first_glyph_data.ligature_start,
+            glyph_count,
+        );
 
-        debug!("Adding multiple glyphs[idx={:?}, count={}]: {:?}", i, glyph_count, entry);
+        debug!(
+            "Adding multiple glyphs[idx={:?}, count={}]: {:?}",
+            i, glyph_count, entry
+        );
 
         self.entry_buffer[i.to_usize()] = entry;
     }
@@ -540,9 +571,13 @@ impl<'a> GlyphStore {
         }
 
         GlyphIterator {
-            store:       self,
-            byte_index:  if self.is_rtl { range.end() } else { range.begin() - ByteIndex(1) },
-            byte_range:  *range,
+            store: self,
+            byte_index: if self.is_rtl {
+                range.end()
+            } else {
+                range.begin() - ByteIndex(1)
+            },
+            byte_range: *range,
             glyph_range: None,
         }
     }
@@ -551,7 +586,12 @@ impl<'a> GlyphStore {
     // and advance of the glyph in the range at the given advance, if reached. Otherwise, returns the
     // the number of glyphs and the advance for the given range.
     #[inline]
-    pub fn range_index_of_advance(&self, range: &Range<ByteIndex>, advance: Au, extra_word_spacing: Au) -> (usize, Au) {
+    pub fn range_index_of_advance(
+        &self,
+        range: &Range<ByteIndex>,
+        advance: Au,
+        extra_word_spacing: Au,
+    ) -> (usize, Au) {
         let mut index = 0;
         let mut current_advance = Au(0);
         for glyph in self.iter_glyphs_for_byte_range(range) {
@@ -580,7 +620,11 @@ impl<'a> GlyphStore {
     }
 
     #[inline]
-    pub fn advance_for_byte_range_slow_path(&self, range: &Range<ByteIndex>, extra_word_spacing: Au) -> Au {
+    pub fn advance_for_byte_range_slow_path(
+        &self,
+        range: &Range<ByteIndex>,
+        extra_word_spacing: Au,
+    ) -> Au {
         self.iter_glyphs_for_byte_range(range)
             .fold(Au(0), |advance, glyph| {
                 if glyph.char_is_space() {
@@ -594,7 +638,11 @@ impl<'a> GlyphStore {
     #[inline]
     #[cfg(feature = "unstable")]
     #[cfg(any(target_feature = "sse2", target_feature = "neon"))]
-    fn advance_for_byte_range_simple_glyphs(&self, range: &Range<ByteIndex>, extra_word_spacing: Au) -> Au {
+    fn advance_for_byte_range_simple_glyphs(
+        &self,
+        range: &Range<ByteIndex>,
+        extra_word_spacing: Au,
+    ) -> Au {
         let advance_mask = u32x4::splat(GLYPH_ADVANCE_MASK);
         let space_flag_mask = u32x4::splat(FLAG_CHAR_IS_SPACE);
         let mut simd_advance = u32x4::splat(0);
@@ -614,16 +662,14 @@ impl<'a> GlyphStore {
             simd_spaces = simd_spaces + spaces;
         }
 
-        let advance =
-            (simd_advance.extract(0) +
-             simd_advance.extract(1) +
-             simd_advance.extract(2) +
-             simd_advance.extract(3)) as i32;
-        let spaces =
-            (simd_spaces.extract(0) +
-             simd_spaces.extract(1) +
-             simd_spaces.extract(2) +
-             simd_spaces.extract(3)) as i32;
+        let advance = (simd_advance.extract(0) +
+            simd_advance.extract(1) +
+            simd_advance.extract(2) +
+            simd_advance.extract(3)) as i32;
+        let spaces = (simd_spaces.extract(0) +
+            simd_spaces.extract(1) +
+            simd_spaces.extract(2) +
+            simd_spaces.extract(3)) as i32;
         let mut leftover_advance = Au(0);
         let mut leftover_spaces = 0;
         for i in leftover_entries..range.end().to_usize() {
@@ -637,8 +683,15 @@ impl<'a> GlyphStore {
 
     /// When SIMD isn't available, fallback to the slow path.
     #[inline]
-    #[cfg(not(all(feature = "unstable", any(target_feature = "sse2", target_feature = "neon"))))]
-    fn advance_for_byte_range_simple_glyphs(&self, range: &Range<ByteIndex>, extra_word_spacing: Au) -> Au {
+    #[cfg(not(all(
+        feature = "unstable",
+        any(target_feature = "sse2", target_feature = "neon")
+    )))]
+    fn advance_for_byte_range_simple_glyphs(
+        &self,
+        range: &Range<ByteIndex>,
+        extra_word_spacing: Au,
+    ) -> Au {
         self.advance_for_byte_range_slow_path(range, extra_word_spacing)
     }
 
@@ -676,23 +729,27 @@ impl fmt::Debug for GlyphStore {
         let mut detailed_buffer = self.detail_store.detail_buffer.iter();
         for entry in self.entry_buffer.iter() {
             if entry.is_simple() {
-                write!(formatter,
-                            "  simple id={:?} advance={:?}\n",
-                            entry.id(),
-                            entry.advance())?;
-                continue
+                write!(
+                    formatter,
+                    "  simple id={:?} advance={:?}\n",
+                    entry.id(),
+                    entry.advance()
+                )?;
+                continue;
             }
             if entry.is_initial() {
-                continue
+                continue;
             }
             write!(formatter, "  complex...")?;
             if detailed_buffer.next().is_none() {
-                continue
+                continue;
             }
-            write!(formatter,
-                        "  detailed id={:?} advance={:?}\n",
-                        entry.id(),
-                        entry.advance())?;
+            write!(
+                formatter,
+                "  detailed id={:?} advance={:?}\n",
+                entry.id(),
+                entry.advance()
+            )?;
         }
         Ok(())
     }
@@ -712,27 +769,37 @@ impl<'a> GlyphIterator<'a> {
     fn next_glyph_range(&mut self) -> Option<GlyphInfo<'a>> {
         match self.glyph_range.as_mut().unwrap().next() {
             Some(j) => {
-                Some(GlyphInfo::Detail(self.store, self.byte_index, j.get() as u16 /* ??? */))
-            }
+                Some(GlyphInfo::Detail(
+                    self.store,
+                    self.byte_index,
+                    j.get() as u16, /* ??? */
+                ))
+            },
             None => {
                 // No more glyphs for current character.  Try to get another.
                 self.glyph_range = None;
                 self.next()
-            }
+            },
         }
     }
 
     // Slow path when there is a complex glyph.
     #[inline(never)]
     fn next_complex_glyph(&mut self, entry: &GlyphEntry, i: ByteIndex) -> Option<GlyphInfo<'a>> {
-        let glyphs = self.store.detail_store.detailed_glyphs_for_entry(i, entry.glyph_count());
-        self.glyph_range = Some(range::each_index(ByteIndex(0), ByteIndex(glyphs.len() as isize)));
+        let glyphs = self
+            .store
+            .detail_store
+            .detailed_glyphs_for_entry(i, entry.glyph_count());
+        self.glyph_range = Some(range::each_index(
+            ByteIndex(0),
+            ByteIndex(glyphs.len() as isize),
+        ));
         self.next()
     }
 }
 
 impl<'a> Iterator for GlyphIterator<'a> {
-    type Item  = GlyphInfo<'a>;
+    type Item = GlyphInfo<'a>;
 
     // I tried to start with something simpler and apply FlatMap, but the
     // inability to store free variables in the FlatMap struct was problematic.
@@ -744,7 +811,7 @@ impl<'a> Iterator for GlyphIterator<'a> {
     fn next(&mut self) -> Option<GlyphInfo<'a>> {
         // Would use 'match' here but it borrows contents in a way that interferes with mutation.
         if self.glyph_range.is_some() {
-            return self.next_glyph_range()
+            return self.next_glyph_range();
         }
 
         // No glyph range. Look at next byte.
@@ -755,7 +822,7 @@ impl<'a> Iterator for GlyphIterator<'a> {
         };
         let i = self.byte_index;
         if !self.byte_range.contains(i) {
-            return None
+            return None;
         }
         debug_assert!(i < self.store.len());
         let entry = self.store.entry_buffer[i.to_usize()];

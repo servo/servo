@@ -21,7 +21,9 @@ async_test(function(t)
         {
             assert_equals(document.fullscreenElement, last);
             trusted_request(t, first, last);
-            document.onfullscreenerror = t.step_func_done();
+            document.onfullscreenchange = t.step_func_done(function() {
+                assert_equals(document.fullscreenElement, first);
+            });
         });
     });
 });

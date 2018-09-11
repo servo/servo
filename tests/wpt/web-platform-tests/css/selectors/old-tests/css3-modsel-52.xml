@@ -1,0 +1,28 @@
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>NEGATED attribute space-separated value selector</title>
+  <style type="text/css"><![CDATA[@namespace a url(http://www.example.org/a);
+@namespace b url(http://www.example.org/b);
+div.stub p { color : red }
+div.stub > a|*, div.stub > b|* { color : red ; display : block ; margin-bottom : 1em }
+div.stub *|*:not([test~="foo"]) { color : lime }
+div.stub *|p:not([class~="foo"]) { color : lime }
+div.stub b|*[test~="foo2"] { color : lime }
+]]></style>
+  <link rel="author" title="Daniel Glazman" href="http://glazman.org/"/>
+  <link rel="help" href="https://www.w3.org/TR/css3-selectors/#selectors"/> <!-- bogus link to make sure it gets found -->
+  <meta name="flags" content=" namespace" />
+ </head>
+ <body>
+<div class="stub">
+<q xmlns="http://www.example.org/a" test="bar foo tut">
+  <r test="tut foofoo bar">This text should be</r>
+  <r>in green characters</r>
+</q>
+<s xmlns="http://www.example.org/a" test="bar tut">This text should be in green characters</s>
+<t xmlns="http://www.example.org/a">This text should be in green characters</t>
+<p class="tit foo1 tut">This text should be in green characters</p>
+<u xmlns="http://www.example.org/b" test="tit foo2 tut">This text should be in green characters</u>
+</div>
+</body>
+</html>

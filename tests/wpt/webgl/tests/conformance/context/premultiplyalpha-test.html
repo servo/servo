@@ -175,6 +175,12 @@ function doNextTest() {
         + ", antialias: " + antialias
         + ", imageFormat: " + test.imageFormat);
 
+    if (!gl) {
+      testFailed("context does not exist");
+      doNextTest();
+      return;
+    }
+
     shouldBe('gl.getContextAttributes().premultipliedAlpha', premultipliedAlpha.toString());
     shouldBeTrue('gl.getContextAttributes().preserveDrawingBuffer');
 

@@ -4,10 +4,9 @@
 
 use rustc::hir::{self, ExprKind};
 use rustc::hir::intravisit as visit;
-use rustc::hir::map as ast_map;
 use rustc::lint::{LateContext, LintPass, LintArray, LateLintPass, LintContext};
 use rustc::ty;
-use syntax::{ast, codemap, symbol::Ident};
+use syntax::{ast, source_map, symbol::Ident};
 use utils::{match_def_path, in_derive_expn};
 
 declare_lint!(UNROOTED_MUST_ROOT, Deny,
@@ -43,7 +42,7 @@ fn is_unrooted_ty(cx: &LateContext, ty: &ty::TyS, in_new_function: bool) -> bool
     let mut ret = false;
     ty.maybe_walk(|t| {
         match t.sty {
-            ty::TyAdt(did, _) => {
+            ty::Adt(did, _) => {
                 if cx.tcx.has_attr(did.did, "must_root") {
                     ret = true;
                     false
@@ -67,9 +66,9 @@ fn is_unrooted_ty(cx: &LateContext, ty: &ty::TyS, in_new_function: bool) -> bool
                     true
                 }
             },
-            ty::TyRef(..) => false, // don't recurse down &ptrs
-            ty::TyRawPtr(..) => false, // don't recurse down *ptrs
-            ty::TyFnDef(..) | ty::TyFnPtr(_) => false,
+            ty::Ref(..) => false, // don't recurse down &ptrs
+            ty::RawPtr(..) => false, // don't recurse down *ptrs
+            ty::FnDef(..) | ty::FnPtr(_) => false,
             _ => true
         }
     });
@@ -91,7 +90,7 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for UnrootedPass {
                         _gen: &hir::Generics,
                         id: ast::NodeId) {
         let item = match cx.tcx.hir.get(id) {
-            ast_map::Node::NodeItem(item) => item,
+            hir::Node::Item(item) => item,
             _ => cx.tcx.hir.expect_item(cx.tcx.hir.get_parent(id)),
         };
         if item.attrs.iter().all(|a| !a.check_name("must_root")) {
@@ -130,7 +129,7 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for UnrootedPass {
                 kind: visit::FnKind,
                 decl: &'tcx hir::FnDecl,
                 body: &'tcx hir::Body,
-                span: codemap::Span,
+                span: source_map::Span,
                 id: ast::NodeId) {
         let in_new_function = match kind {
             visit::FnKind::ItemFn(n, _, _, _, _) |

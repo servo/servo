@@ -30,10 +30,9 @@ type MediaFeatureEvaluator<T> = fn(
 pub type KeywordSerializer = fn(KeywordDiscriminant) -> String;
 
 /// Parses a given identifier.
-pub type KeywordParser = for <'a, 'i, 't> fn(
-    context: &'a ParserContext,
-    input: &'a mut Parser<'i, 't>,
-) -> Result<KeywordDiscriminant, ParseError<'i>>;
+pub type KeywordParser =
+    for<'a, 'i, 't> fn(context: &'a ParserContext, input: &'a mut Parser<'i, 't>)
+        -> Result<KeywordDiscriminant, ParseError<'i>>;
 
 /// An evaluator for a given media feature.
 ///
@@ -70,50 +69,49 @@ pub enum Evaluator {
 /// asserts if that's not true. As of today there's nothing like that (does that
 /// even make sense?).
 macro_rules! keyword_evaluator {
-    ($actual_evaluator:ident, $keyword_type:ty) => {
-        {
-            fn __parse<'i, 't>(
-                context: &$crate::parser::ParserContext,
-                input: &mut $crate::cssparser::Parser<'i, 't>,
-            ) -> Result<
-                $crate::media_queries::media_feature::KeywordDiscriminant,
-                ::style_traits::ParseError<'i>,
-            > {
-                let kw = <$keyword_type as $crate::parser::Parse>::parse(context, input)?;
-                Ok(kw as $crate::media_queries::media_feature::KeywordDiscriminant)
-            }
-
-            fn __serialize(kw: $crate::media_queries::media_feature::KeywordDiscriminant) -> String {
-                // This unwrap is ok because the only discriminants that get
-                // back to us is the ones that `parse` produces.
-                let value: $keyword_type =
-                    ::num_traits::cast::FromPrimitive::from_u8(kw).unwrap();
-                <$keyword_type as ::style_traits::ToCss>::to_css_string(&value)
-            }
-
-            fn __evaluate(
-                device: &$crate::media_queries::Device,
-                value: Option<$crate::media_queries::media_feature::KeywordDiscriminant>,
-                range_or_operator: Option<$crate::media_queries::media_feature_expression::RangeOrOperator>,
-            ) -> bool {
-                debug_assert!(
-                    range_or_operator.is_none(),
-                    "Since when do keywords accept ranges?"
-                );
-                // This unwrap is ok because the only discriminants that get
-                // back to us is the ones that `parse` produces.
-                let value: Option<$keyword_type> =
-                    value.map(|kw| ::num_traits::cast::FromPrimitive::from_u8(kw).unwrap());
-                $actual_evaluator(device, value)
-            }
-
-            $crate::media_queries::media_feature::Evaluator::Enumerated {
-                parser: __parse,
-                serializer: __serialize,
-                evaluator: __evaluate,
-            }
+    ($actual_evaluator:ident, $keyword_type:ty) => {{
+        fn __parse<'i, 't>(
+            context: &$crate::parser::ParserContext,
+            input: &mut $crate::cssparser::Parser<'i, 't>,
+        ) -> Result<
+            $crate::media_queries::media_feature::KeywordDiscriminant,
+            ::style_traits::ParseError<'i>,
+        > {
+            let kw = <$keyword_type as $crate::parser::Parse>::parse(context, input)?;
+            Ok(kw as $crate::media_queries::media_feature::KeywordDiscriminant)
         }
-    }
+
+        fn __serialize(kw: $crate::media_queries::media_feature::KeywordDiscriminant) -> String {
+            // This unwrap is ok because the only discriminants that get
+            // back to us is the ones that `parse` produces.
+            let value: $keyword_type = ::num_traits::cast::FromPrimitive::from_u8(kw).unwrap();
+            <$keyword_type as ::style_traits::ToCss>::to_css_string(&value)
+        }
+
+        fn __evaluate(
+            device: &$crate::media_queries::Device,
+            value: Option<$crate::media_queries::media_feature::KeywordDiscriminant>,
+            range_or_operator: Option<
+                $crate::media_queries::media_feature_expression::RangeOrOperator,
+            >,
+        ) -> bool {
+            debug_assert!(
+                range_or_operator.is_none(),
+                "Since when do keywords accept ranges?"
+            );
+            // This unwrap is ok because the only discriminants that get
+            // back to us is the ones that `parse` produces.
+            let value: Option<$keyword_type> =
+                value.map(|kw| ::num_traits::cast::FromPrimitive::from_u8(kw).unwrap());
+            $actual_evaluator(device, value)
+        }
+
+        $crate::media_queries::media_feature::Evaluator::Enumerated {
+            parser: __parse,
+            serializer: __serialize,
+            evaluator: __evaluate,
+        }
+    }};
 }
 
 bitflags! {
@@ -169,7 +167,7 @@ macro_rules! feature {
             evaluator: $evaluator,
             requirements: $reqs,
         }
-    }
+    };
 }
 
 impl fmt::Debug for MediaFeatureDescription {

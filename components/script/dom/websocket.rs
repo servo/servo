@@ -39,8 +39,8 @@ use std::cell::Cell;
 use std::ptr;
 use std::thread;
 use task::{TaskOnce, TaskCanceller};
-use task_source::{TaskSource, TaskSourceName};
-use task_source::networking::NetworkingTaskSource;
+use task_source::TaskSource;
+use task_source::websocket::WebsocketTaskSource;
 
 #[derive(Clone, Copy, Debug, JSTraceable, MallocSizeOf, PartialEq)]
 enum WebSocketRequestState {
@@ -70,7 +70,7 @@ mod close_code {
 
 pub fn close_the_websocket_connection(
     address: Trusted<WebSocket>,
-    task_source: &NetworkingTaskSource,
+    task_source: &WebsocketTaskSource,
     canceller: &TaskCanceller,
     code: Option<u16>,
     reason: String,
@@ -86,7 +86,7 @@ pub fn close_the_websocket_connection(
 
 pub fn fail_the_websocket_connection(
     address: Trusted<WebSocket>,
-    task_source: &NetworkingTaskSource,
+    task_source: &WebsocketTaskSource,
     canceller: &TaskCanceller,
 ) {
     let close_task = CloseTask {
@@ -199,11 +199,8 @@ impl WebSocket {
         };
         let _ = global.core_resource_thread().send(CoreResourceMsg::Fetch(request, channels));
 
-        // TODO: use a dedicated task source,
-        // https://html.spec.whatwg.org/multipage/#websocket-task-source
-        // When making the switch, also update the task_canceller call.
-        let task_source = global.networking_task_source();
-        let canceller = global.task_canceller(TaskSourceName::Networking);
+        let task_source = global.websocket_task_source();
+        let canceller = global.task_canceller(WebsocketTaskSource::NAME);
         thread::spawn(move || {
             while let Ok(event) = dom_event_receiver.recv() {
                 match event {
@@ -268,7 +265,13 @@ impl WebSocket {
             let pipeline_id = self.global().pipeline_id();
             self.global()
                 .script_chan()
-                .send(CommonScriptMsg::Task(WebSocketEvent, task, Some(pipeline_id)))
+                // TODO: Use a dedicated `websocket-task-source` task source instead.
+                .send(CommonScriptMsg::Task(
+                    WebSocketEvent,
+                    task,
+                    Some(pipeline_id),
+                    WebsocketTaskSource::NAME,
+                ))
                 .unwrap();
         }
 
@@ -401,10 +404,10 @@ impl WebSocketMethods for WebSocket {
                 // TODO: use a dedicated task source,
                 // https://html.spec.whatwg.org/multipage/#websocket-task-source
                 // When making the switch, also update the task_canceller call.
-                let task_source = self.global().networking_task_source();
+                let task_source = self.global().websocket_task_source();
                 fail_the_websocket_connection(address,
                                               &task_source,
-                                              &self.global().task_canceller(TaskSourceName::Networking));
+                                              &self.global().task_canceller(WebsocketTaskSource::NAME));
             }
             WebSocketRequestState::Open => {
                 self.ready_state.set(WebSocketRequestState::Closing);

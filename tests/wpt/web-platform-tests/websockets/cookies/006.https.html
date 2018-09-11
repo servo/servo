@@ -1,0 +1,37 @@
+<!doctype html>
+<title>WebSockets: setting Secure cookie with document.cookie, checking ws request</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=../constants.js?pipe=sub></script>
+<!--
+There's no "ws:" scheme variant of this test because mixed-content checks
+won't permit creating an insecure WebSocket on a secure page.
+-->
+<meta name="variant" content="?wss">
+<div id=log></div>
+<script>
+var cookie_id = ((new Date())-0) + '.' + Math.random();
+async_test(function(t) {
+  if (window.WebSocket) {
+    document.cookie = 'ws_test_'+cookie_id+'=test; Path=/; Secure';
+  }
+  t.add_cleanup(function() {
+    // remove cookie
+    document.cookie = 'ws_test_'+cookie_id+'=; Path=/; Secure; Expires=Sun, 06 Nov 1994 08:49:37 GMT';
+  });
+  var ws = new WebSocket(SCHEME_DOMAIN_PORT+'/echo-cookie');
+  ws.onmessage = t.step_func(function(e) {
+    ws.close();
+    var cookie_was_seen = e.data.indexOf('ws_test_'+cookie_id+'=test') != -1;
+    if (SCHEME_DOMAIN_PORT.substr(0,3) == 'wss') {
+      assert_true(cookie_was_seen,
+                  'cookie should have been visible to wss');
+    } else {
+      assert_false(cookie_was_seen,
+                   'cookie should not have been visible to ws');
+    }
+    t.done();
+  })
+  ws.onerror = ws.onclose = t.step_func(function(e) {assert_unreached(e.type)});
+});
+</script>

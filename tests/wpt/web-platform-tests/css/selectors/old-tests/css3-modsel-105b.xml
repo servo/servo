@@ -1,0 +1,24 @@
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>Attribute value selector with universal namespace</title>
+  <style type="text/css"><![CDATA[@namespace a url(http://www.example.org/a);
+@namespace b url(http://www.example.org/b);
+@namespace html url(http://www.w3.org/1999/xhtml);
+*|p, *|q, *|r, *|s { display : block ; margin-bottom : 1em }
+*|p, *|r, *|s { background-color : lime ! important }
+*|*[*|title="si on chantait"] { background-color : red }
+]]></style>
+  <link rel="author" title="Daniel Glazman" href="http://glazman.org/"/>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="help" href="https://www.w3.org/TR/css3-selectors/#selectors"/> <!-- bogus link to make sure it gets found -->
+  <link rel="match" href="reference/lime-bg-paras-g-u-u-g-g.xht"/>
+  <meta name="flags" content=" namespace" />
+ </head>
+ <body xmlns:a="http://www.example.org/a" xmlns:b="http://www.example.org/b">
+<p title="si on chantait">This paragraph should have a green background.</p>
+<q xmlns="http://www.example.org/a" a:foo="si on chantait">This paragraph should be unstyled.</q>
+<q xmlns="http://www.example.org/a" a:title="si nous chantions">This paragraph should be unstyled.</q>
+<r xmlns="http://www.example.org/a" a:title="si on chantait">This paragraph should have a green background.</r>
+<s xmlns="http://www.example.org/b" b:title="si on chantait">This paragraph should have a green background.</s>
+</body>
+</html>

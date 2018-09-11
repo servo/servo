@@ -1414,8 +1414,7 @@ impl FragmentDisplayListBuilding for Fragment {
                         url.clone(),
                         UsePlaceholder::No,
                     )
-                })
-                .and_then(|image| {
+                }).and_then(|image| {
                     build_image_border_details(image, border_style_struct, outset_layout)
                 }),
         };
@@ -1957,8 +1956,7 @@ impl FragmentDisplayListBuilding for Fragment {
                                 .send(CanvasMsg::FromLayout(
                                     FromLayoutMsg::SendData(sender),
                                     canvas_fragment_info.canvas_id.clone(),
-                                ))
-                                .unwrap();
+                                )).unwrap();
                             receiver.recv().unwrap().image_key
                         },
                         None => return,
@@ -2070,10 +2068,12 @@ impl FragmentDisplayListBuilding for Fragment {
         // FIXME(pcwalton): Get the real container size.
         let container_size = Size2D::zero();
         let metrics = &text_fragment.run.font_metrics;
-        let baseline_origin = stacking_relative_content_box.origin +
-            LogicalPoint::new(self.style.writing_mode, Au(0), metrics.ascent)
-                .to_physical(self.style.writing_mode, container_size)
-                .to_vector();
+        let baseline_origin = stacking_relative_content_box.origin + LogicalPoint::new(
+            self.style.writing_mode,
+            Au(0),
+            metrics.ascent,
+        ).to_physical(self.style.writing_mode, container_size)
+        .to_vector();
 
         // Base item for all text/shadows
         let base = state.create_base_display_item(

@@ -234,7 +234,7 @@ class Stub(URLManifestItem):
     item_type = "stub"
 
 
-class WebdriverSpecTest(URLManifestItem):
+class WebDriverSpecTest(URLManifestItem):
     item_type = "wdspec"
 
     def __init__(self, source_file, url, url_base="/", timeout=None, manifest=None):

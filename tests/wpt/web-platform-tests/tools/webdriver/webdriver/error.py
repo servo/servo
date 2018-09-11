@@ -6,8 +6,10 @@ class WebDriverException(Exception):
     http_status = None
     status_code = None
 
-    def __init__(self, message=None, stacktrace=None):
+    def __init__(self, http_status=None, status_code=None, message=None, stacktrace=None):
         super(WebDriverException, self)
+        self.http_status = http_status
+        self.status_code = status_code
         self.message = message
         self.stacktrace = stacktrace
 
@@ -113,7 +115,7 @@ class NoSuchWindowException(WebDriverException):
 
 
 class ScriptTimeoutException(WebDriverException):
-    http_status = 408
+    http_status = 500
     status_code = "script timeout"
 
 
@@ -128,7 +130,7 @@ class StaleElementReferenceException(WebDriverException):
 
 
 class TimeoutException(WebDriverException):
-    http_status = 408
+    http_status = 500
     status_code = "timeout"
 
 
@@ -171,6 +173,8 @@ def from_response(response):
     """
     if response.status == 200:
         raise UnknownErrorException(
+            response.status,
+            None,
             "Response is not an error:\n"
             "%s" % json.dumps(response.body))
 
@@ -178,6 +182,8 @@ def from_response(response):
         value = response.body["value"]
     else:
         raise UnknownErrorException(
+            response.status,
+            None,
             "Expected 'value' key in response body:\n"
             "%s" % json.dumps(response.body))
 
@@ -187,7 +193,7 @@ def from_response(response):
     stack = value["stacktrace"] or None
 
     cls = get(code)
-    return cls(message, stacktrace=stack)
+    return cls(response.status, code, message, stacktrace=stack)
 
 
 def get(error_code):

@@ -322,13 +322,11 @@ mod bindings {
                     .expect(&format!(
                         "Unrecognized line in ServoArcTypeList.h: '{}'",
                         line
-                    ))
-                    .get(1)
+                    )).get(1)
                     .unwrap()
                     .as_str()
                     .to_string()
-            })
-            .collect()
+            }).collect()
     }
 
     struct BuilderWithConfig<'a> {
@@ -406,11 +404,7 @@ mod bindings {
     fn generate_structs() {
         let builder = Builder::get_initial_builder()
             .enable_cxx_namespaces()
-            .with_codegen_config(CodegenConfig {
-                types: true,
-                vars: true,
-                ..CodegenConfig::nothing()
-            });
+            .with_codegen_config(CodegenConfig::TYPES | CodegenConfig::VARS);
         let mut fixups = vec![];
         let builder = BuilderWithConfig::new(builder, CONFIG["structs"].as_table().unwrap())
             .handle_common(&mut fixups)
@@ -440,8 +434,7 @@ mod bindings {
                     servo,
                     if generic { "<T>" } else { "" }
                 ))
-            })
-            .get_builder();
+            }).get_builder();
         write_binding_file(builder, STRUCTS_FILE, &fixups);
     }
 
@@ -500,10 +493,7 @@ mod bindings {
     fn generate_bindings() {
         let builder = Builder::get_initial_builder()
             .disable_name_namespacing()
-            .with_codegen_config(CodegenConfig {
-                functions: true,
-                ..CodegenConfig::nothing()
-            });
+            .with_codegen_config(CodegenConfig::FUNCTIONS);
         let config = CONFIG["bindings"].as_table().unwrap();
         let mut structs_types = HashSet::new();
         let mut fixups = vec![];
@@ -560,8 +550,7 @@ mod bindings {
                 .raw_line(format!(
                     "pub type {0}Strong = ::gecko_bindings::sugar::ownership::Strong<{0}>;",
                     ty
-                ))
-                .borrowed_type(ty)
+                )).borrowed_type(ty)
                 .zero_size_type(ty, &structs_types);
         }
         write_binding_file(builder, BINDINGS_FILE, &fixups);

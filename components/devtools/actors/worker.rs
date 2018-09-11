@@ -17,11 +17,13 @@ impl Actor for WorkerActor {
     fn name(&self) -> String {
         self.name.clone()
     }
-    fn handle_message(&self,
-                      _: &ActorRegistry,
-                      _: &str,
-                      _: &Map<String, Value>,
-                      _: &mut TcpStream) -> Result<ActorMessageStatus, ()> {
+    fn handle_message(
+        &self,
+        _: &ActorRegistry,
+        _: &str,
+        _: &Map<String, Value>,
+        _: &mut TcpStream,
+    ) -> Result<ActorMessageStatus, ()> {
         Ok(ActorMessageStatus::Processed)
     }
 }

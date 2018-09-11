@@ -147,10 +147,11 @@ impl Drop for Shaper {
 impl Shaper {
     pub fn new(font: *const Font) -> Shaper {
         unsafe {
-            let hb_face: *mut hb_face_t =
-                hb_face_create_for_tables(Some(font_table_func),
-                                          font as *const c_void as *mut c_void,
-                                          None);
+            let hb_face: *mut hb_face_t = hb_face_create_for_tables(
+                Some(font_table_func),
+                font as *const c_void as *mut c_void,
+                None,
+            );
             let hb_font: *mut hb_font_t = hb_font_create(hb_face);
 
             // Set points-per-em. if zero, performs no hinting in that direction.
@@ -158,12 +159,19 @@ impl Shaper {
             hb_font_set_ppem(hb_font, pt_size as c_uint, pt_size as c_uint);
 
             // Set scaling. Note that this takes 16.16 fixed point.
-            hb_font_set_scale(hb_font,
-                              Shaper::float_to_fixed(pt_size) as c_int,
-                              Shaper::float_to_fixed(pt_size) as c_int);
+            hb_font_set_scale(
+                hb_font,
+                Shaper::float_to_fixed(pt_size) as c_int,
+                Shaper::float_to_fixed(pt_size) as c_int,
+            );
 
             // configure static function callbacks.
-            hb_font_set_funcs(hb_font, HB_FONT_FUNCS.0, font as *mut Font as *mut c_void, None);
+            hb_font_set_funcs(
+                hb_font,
+                HB_FONT_FUNCS.0,
+                font as *mut Font as *mut c_void,
+                None,
+            );
 
             Shaper {
                 hb_face: hb_face,
@@ -188,22 +196,30 @@ impl ShaperMethods for Shaper {
     fn shape_text(&self, text: &str, options: &ShapingOptions, glyphs: &mut GlyphStore) {
         unsafe {
             let hb_buffer: *mut hb_buffer_t = hb_buffer_create();
-            hb_buffer_set_direction(hb_buffer, if options.flags.contains(ShapingFlags::RTL_FLAG) {
-                HB_DIRECTION_RTL
-            } else {
-                HB_DIRECTION_LTR
-            });
+            hb_buffer_set_direction(
+                hb_buffer,
+                if options.flags.contains(ShapingFlags::RTL_FLAG) {
+                    HB_DIRECTION_RTL
+                } else {
+                    HB_DIRECTION_LTR
+                },
+            );
 
             hb_buffer_set_script(hb_buffer, options.script.to_hb_script());
 
-            hb_buffer_add_utf8(hb_buffer,
-                               text.as_ptr() as *const c_char,
-                               text.len() as c_int,
-                               0,
-                               text.len() as c_int);
+            hb_buffer_add_utf8(
+                hb_buffer,
+                text.as_ptr() as *const c_char,
+                text.len() as c_int,
+                0,
+                text.len() as c_int,
+            );
 
             let mut features = Vec::new();
-            if options.flags.contains(ShapingFlags::IGNORE_LIGATURES_SHAPING_FLAG) {
+            if options
+                .flags
+                .contains(ShapingFlags::IGNORE_LIGATURES_SHAPING_FLAG)
+            {
                 features.push(hb_feature_t {
                     tag: LIGA,
                     value: 0,
@@ -211,7 +227,10 @@ impl ShaperMethods for Shaper {
                     end: hb_buffer_get_length(hb_buffer),
                 })
             }
-            if options.flags.contains(ShapingFlags::DISABLE_KERNING_SHAPING_FLAG) {
+            if options
+                .flags
+                .contains(ShapingFlags::DISABLE_KERNING_SHAPING_FLAG)
+            {
                 features.push(hb_feature_t {
                     tag: KERN,
                     value: 0,
@@ -220,7 +239,12 @@ impl ShaperMethods for Shaper {
                 })
             }
 
-            hb_shape(self.hb_font, hb_buffer, features.as_mut_ptr(), features.len() as u32);
+            hb_shape(
+                self.hb_font,
+                hb_buffer,
+                features.as_mut_ptr(),
+                features.len() as u32,
+            );
             self.save_glyph_results(text, options, glyphs, hb_buffer);
             hb_buffer_destroy(hb_buffer);
         }
@@ -228,18 +252,21 @@ impl ShaperMethods for Shaper {
 }
 
 impl Shaper {
-    fn save_glyph_results(&self,
-                          text: &str,
-                          options: &ShapingOptions,
-                          glyphs: &mut GlyphStore,
-                          buffer: *mut hb_buffer_t) {
+    fn save_glyph_results(
+        &self,
+        text: &str,
+        options: &ShapingOptions,
+        glyphs: &mut GlyphStore,
+        buffer: *mut hb_buffer_t,
+    ) {
         let glyph_data = ShapedGlyphData::new(buffer);
         let glyph_count = glyph_data.len();
         let byte_max = text.len();
 
-        debug!("Shaped text[byte count={}], got back {} glyph info records.",
-               byte_max,
-               glyph_count);
+        debug!(
+            "Shaped text[byte count={}], got back {} glyph info records.",
+            byte_max, glyph_count
+        );
 
         // make map of what chars have glyphs
         let mut byte_to_glyph = vec![NO_GLYPH; byte_max];
@@ -250,9 +277,10 @@ impl Shaper {
             if loc < byte_max {
                 byte_to_glyph[loc] = i as i32;
             } else {
-                debug!("ERROR: tried to set out of range byte_to_glyph: idx={}, glyph idx={}",
-                       loc,
-                       i);
+                debug!(
+                    "ERROR: tried to set out of range byte_to_glyph: idx={}, glyph idx={}",
+                    loc, i
+                );
             }
             debug!("{} -> {}", i, loc);
         }
@@ -296,10 +324,14 @@ impl Shaper {
                 }
 
                 // if there's just one glyph, then we don't need further checks.
-                if glyph_span.len() == 1 { break; }
+                if glyph_span.len() == 1 {
+                    break;
+                }
 
                 // if no glyphs were found yet, extend the char byte range more.
-                if glyph_span.len() == 0 { continue; }
+                if glyph_span.len() == 0 {
+                    continue;
+                }
 
                 // If byte_range now includes all the byte offsets found in glyph_span, then we
                 // have found a contiguous "cluster" and can stop extending it.
@@ -308,11 +340,11 @@ impl Shaper {
                     let loc = glyph_data.byte_offset_of_glyph(j) as usize;
                     if !(byte_range.start <= loc && loc < byte_range.end) {
                         all_glyphs_are_within_cluster = false;
-                        break
+                        break;
                     }
                 }
                 if all_glyphs_are_within_cluster {
-                    break
+                    break;
                 }
 
                 // Otherwise, the bytes we have seen so far correspond to a non-contiguous set of
@@ -348,34 +380,29 @@ impl Shaper {
                     const TAB_COLS: i32 = 8;
                     let (space_glyph_id, space_advance) = glyph_space_advance(self.font);
                     let advance = Au::from_f64_px(space_advance) * TAB_COLS;
-                    let data = GlyphData::new(space_glyph_id,
-                                              advance,
-                                              Default::default(),
-                                              true,
-                                              true);
+                    let data =
+                        GlyphData::new(space_glyph_id, advance, Default::default(), true, true);
                     glyphs.add_glyph_for_byte_index(byte_idx, character, &data);
                 } else {
                     let shape = glyph_data.entry_for_glyph(glyph_span.start, &mut y_pos);
                     let advance = self.advance_for_shaped_glyph(shape.advance, character, options);
-                    let data = GlyphData::new(shape.codepoint,
-                                              advance,
-                                              shape.offset,
-                                              true,
-                                              true);
+                    let data = GlyphData::new(shape.codepoint, advance, shape.offset, true, true);
                     glyphs.add_glyph_for_byte_index(byte_idx, character, &data);
                 }
             } else {
                 // collect all glyphs to be assigned to the first character.
-                let mut datas = vec!();
+                let mut datas = vec![];
 
                 for glyph_i in glyph_span.clone() {
                     let shape = glyph_data.entry_for_glyph(glyph_i, &mut y_pos);
-                    datas.push(GlyphData::new(shape.codepoint,
-                                              shape.advance,
-                                              shape.offset,
-                                              true,  // treat as cluster start
-                                              glyph_i > glyph_span.start));
-                                              // all but first are ligature continuations
+                    datas.push(GlyphData::new(
+                        shape.codepoint,
+                        shape.advance,
+                        shape.offset,
+                        true, // treat as cluster start
+                        glyph_i > glyph_span.start,
+                    ));
+                    // all but first are ligature continuations
                 }
                 // now add the detailed glyph entry.
                 glyphs.add_glyphs_for_byte_index(byte_idx, &datas);
@@ -390,8 +417,12 @@ impl Shaper {
         glyphs.finalize_changes();
     }
 
-    fn advance_for_shaped_glyph(&self, mut advance: Au, character: char, options: &ShapingOptions)
-                                -> Au {
+    fn advance_for_shaped_glyph(
+        &self,
+        mut advance: Au,
+        character: char,
+        options: &ShapingOptions,
+    ) -> Au {
         if let Some(letter_spacing) = options.letter_spacing {
             advance = advance + letter_spacing;
         };
@@ -403,7 +434,8 @@ impl Shaper {
         if character == ' ' || character == '\u{a0}' {
             // https://drafts.csswg.org/css-text-3/#word-spacing-property
             let (length, percent) = options.word_spacing;
-            advance = (advance + length) + Au::new((advance.0 as f32 * percent.into_inner()) as i32);
+            advance =
+                (advance + length) + Au::new((advance.0 as f32 * percent.into_inner()) as i32);
         }
 
         advance
@@ -420,20 +452,29 @@ lazy_static! {
         let hb_funcs = hb_font_funcs_create();
         hb_font_funcs_set_nominal_glyph_func(hb_funcs, Some(glyph_func), ptr::null_mut(), None);
         hb_font_funcs_set_glyph_h_advance_func(
-            hb_funcs, Some(glyph_h_advance_func), ptr::null_mut(), None);
+            hb_funcs,
+            Some(glyph_h_advance_func),
+            ptr::null_mut(),
+            None,
+        );
         hb_font_funcs_set_glyph_h_kerning_func(
-            hb_funcs, Some(glyph_h_kerning_func), ptr::null_mut(), None);
+            hb_funcs,
+            Some(glyph_h_kerning_func),
+            ptr::null_mut(),
+            None,
+        );
 
         FontFuncs(hb_funcs)
     };
 }
 
-extern fn glyph_func(_: *mut hb_font_t,
-                     font_data: *mut c_void,
-                     unicode: hb_codepoint_t,
-                     glyph: *mut hb_codepoint_t,
-                     _: *mut c_void)
-                  -> hb_bool_t {
+extern "C" fn glyph_func(
+    _: *mut hb_font_t,
+    font_data: *mut c_void,
+    unicode: hb_codepoint_t,
+    glyph: *mut hb_codepoint_t,
+    _: *mut c_void,
+) -> hb_bool_t {
     let font: *const Font = font_data as *const Font;
     assert!(!font.is_null());
 
@@ -442,17 +483,18 @@ extern fn glyph_func(_: *mut hb_font_t,
             Some(g) => {
                 *glyph = g as hb_codepoint_t;
                 true as hb_bool_t
-            }
-            None => false as hb_bool_t
+            },
+            None => false as hb_bool_t,
         }
     }
 }
 
-extern fn glyph_h_advance_func(_: *mut hb_font_t,
-                               font_data: *mut c_void,
-                               glyph: hb_codepoint_t,
-                               _: *mut c_void)
-                            -> hb_position_t {
+extern "C" fn glyph_h_advance_func(
+    _: *mut hb_font_t,
+    font_data: *mut c_void,
+    glyph: hb_codepoint_t,
+    _: *mut c_void,
+) -> hb_position_t {
     let font: *mut Font = font_data as *mut Font;
     assert!(!font.is_null());
 
@@ -468,19 +510,20 @@ fn glyph_space_advance(font: *const Font) -> (hb_codepoint_t, f64) {
     match unsafe { (*font).glyph_index(space_unicode) } {
         Some(g) => {
             space_glyph = g as hb_codepoint_t;
-        }
-        None => panic!("No space info")
+        },
+        None => panic!("No space info"),
     }
     let space_advance = unsafe { (*font).glyph_h_advance(space_glyph as GlyphId) };
     (space_glyph, space_advance)
 }
 
-extern fn glyph_h_kerning_func(_: *mut hb_font_t,
-                               font_data: *mut c_void,
-                               first_glyph: hb_codepoint_t,
-                               second_glyph: hb_codepoint_t,
-                               _: *mut c_void)
-                            -> hb_position_t {
+extern "C" fn glyph_h_kerning_func(
+    _: *mut hb_font_t,
+    font_data: *mut c_void,
+    first_glyph: hb_codepoint_t,
+    second_glyph: hb_codepoint_t,
+    _: *mut c_void,
+) -> hb_position_t {
     let font: *mut Font = font_data as *mut Font;
     assert!(!font.is_null());
 
@@ -491,10 +534,11 @@ extern fn glyph_h_kerning_func(_: *mut hb_font_t,
 }
 
 // Callback to get a font table out of a font.
-extern fn font_table_func(_: *mut hb_face_t,
-                              tag: hb_tag_t,
-                              user_data: *mut c_void)
-                              -> *mut hb_blob_t {
+extern "C" fn font_table_func(
+    _: *mut hb_face_t,
+    tag: hb_tag_t,
+    user_data: *mut c_void,
+) -> *mut hb_blob_t {
     unsafe {
         // NB: These asserts have security implications.
         let font = user_data as *const Font;
@@ -511,20 +555,22 @@ extern fn font_table_func(_: *mut hb_face_t,
 
                 let buf = (*font_table_ptr).buffer();
                 // HarfBuzz calls `destroy_blob_func` when the buffer is no longer needed.
-                let blob = hb_blob_create(buf.as_ptr() as *const c_char,
-                                          buf.len() as c_uint,
-                                          HB_MEMORY_MODE_READONLY,
-                                          font_table_ptr as *mut c_void,
-                                          Some(destroy_blob_func));
+                let blob = hb_blob_create(
+                    buf.as_ptr() as *const c_char,
+                    buf.len() as c_uint,
+                    HB_MEMORY_MODE_READONLY,
+                    font_table_ptr as *mut c_void,
+                    Some(destroy_blob_func),
+                );
 
                 assert!(!blob.is_null());
                 blob
-            }
+            },
         }
     }
 }
 
-extern fn destroy_blob_func(font_table_ptr: *mut c_void) {
+extern "C" fn destroy_blob_func(font_table_ptr: *mut c_void) {
     unsafe {
         drop(Box::from_raw(font_table_ptr as *mut FontTable));
     }

@@ -110,7 +110,7 @@
                 'new Float32Array(10), ' +
                 'new Float32Array(1), ' +
                 'new Float32Array(20))')
-            .throw('InvalidAccessError');
+            .throw(DOMException, 'InvalidAccessError');
 
         should(
             function() {
@@ -123,7 +123,7 @@
                 'new Float32Array(10), ' +
                 'new Float32Array(20), ' +
                 'new Float32Array(1))')
-            .throw('InvalidAccessError');
+            .throw(DOMException, 'InvalidAccessError');
 
         task.done();
       });

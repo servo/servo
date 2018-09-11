@@ -41,15 +41,26 @@ unsafe fn get_class_from_attr(attr: &structs::nsAttrValue) -> Class {
     debug_assert_eq!(base_type, structs::nsAttrValue_ValueBaseType_eOtherBase);
 
     let container = ptr::<structs::MiscContainer>(attr);
-    debug_assert_eq!((*container).mType, structs::nsAttrValue_ValueType_eAtomArray);
-    let array =
-        (*container).__bindgen_anon_1.mValue.as_ref().__bindgen_anon_1.mAtomArray.as_ref();
+    debug_assert_eq!(
+        (*container).mType,
+        structs::nsAttrValue_ValueType_eAtomArray
+    );
+    let array = (*container)
+        .__bindgen_anon_1
+        .mValue
+        .as_ref()
+        .__bindgen_anon_1
+        .mAtomArray
+        .as_ref();
     Class::More(&***array)
 }
 
 #[inline(always)]
 unsafe fn get_id_from_attr(attr: &structs::nsAttrValue) -> &WeakAtom {
-    debug_assert_eq!(base_type(attr), structs::nsAttrValue_ValueBaseType_eAtomBase);
+    debug_assert_eq!(
+        base_type(attr),
+        structs::nsAttrValue_ValueBaseType_eAtomBase
+    );
     WeakAtom::new(ptr::<nsAtom>(attr))
 }
 
@@ -59,7 +70,8 @@ pub fn find_attr<'a>(
     attrs: &'a [structs::AttrArray_InternalAttr],
     name: &Atom,
 ) -> Option<&'a structs::nsAttrValue> {
-    attrs.iter()
+    attrs
+        .iter()
         .find(|attr| attr.mName.mBits == name.as_ptr() as usize)
         .map(|attr| &attr.mValue)
 }
@@ -80,19 +92,17 @@ pub fn has_class(
 ) -> bool {
     match unsafe { get_class_from_attr(attr) } {
         Class::None => false,
-        Class::One(atom) => unsafe {
-            case_sensitivity.eq_atom(name, WeakAtom::new(atom))
+        Class::One(atom) => unsafe { case_sensitivity.eq_atom(name, WeakAtom::new(atom)) },
+        Class::More(atoms) => match case_sensitivity {
+            CaseSensitivity::CaseSensitive => {
+                atoms.iter().any(|atom| atom.mRawPtr == name.as_ptr())
+            },
+            CaseSensitivity::AsciiCaseInsensitive => unsafe {
+                atoms
+                    .iter()
+                    .any(|atom| WeakAtom::new(atom.mRawPtr).eq_ignore_ascii_case(name))
+            },
         },
-        Class::More(atoms) => {
-            match case_sensitivity {
-                CaseSensitivity::CaseSensitive => {
-                    atoms.iter().any(|atom| atom.mRawPtr == name.as_ptr())
-                }
-                CaseSensitivity::AsciiCaseInsensitive => unsafe {
-                    atoms.iter().any(|atom| WeakAtom::new(atom.mRawPtr).eq_ignore_ascii_case(name))
-                }
-            }
-        }
     }
 }
 
@@ -111,7 +121,7 @@ where
                 for atom in atoms {
                     Atom::with(atom.mRawPtr, &mut callback)
                 }
-            }
+            },
         }
     }
 }

@@ -1,0 +1,25 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>:hover pseudo-class on links</title>
+  <style type="text/css"><![CDATA[
+p { color: navy; }
+
+.a a:hover { background: green; color: white; }
+
+.b a:hover { background: red; color: yellow; }
+.b a:link { background: green; color: white; }
+
+.c :link { background: green; color: white; }
+.c :visited:hover { background: red; color: yellow; }
+]]></style>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="help" href="https://www.w3.org/TR/css3-selectors/#selectors"/> <!-- bogus link to make sure it gets found -->
+  <meta name="flags" content=" interact" />
+ </head>
+ <body>
+<p class="a">The background color of <a href="#foo">this anchor (<strong>here</strong>)</a> should turn to green when the pointing device hovers over it.</p>
+<p class="b">The background color of <a href="#foo">this anchor (<strong>here</strong>)</a> should <strong>remain green when you hover it</strong>.</p>
+<p class="c">The background color of <a href="http://link.example.com/">this anchor (<strong>here</strong>)</a> should <strong>remain green when the pointing device hovers over it</strong> (do not follow that link).</p>
+</body>
+</html>

@@ -1,0 +1,43 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>RTCQuicStream.https.html</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="RTCQuicTransport-helper.js"></script>
+<script>
+'use strict';
+
+// These tests are based on the following specification:
+// https://w3c.github.io/webrtc-quic/
+
+// The following helper functions are called from RTCQuicTransport-helper.js:
+//   makeQuicTransport
+
+test(t => {
+  const quicTransport = makeQuicTransport(t, []);
+  const quicStream = quicTransport.createStream();
+  assert_equals(quicStream.transport, quicTransport,
+      'Expect transport to be set to the creating RTCQuicTransport.');
+  assert_equals(quicStream.state, 'new', `Expect state to be 'new'.`);
+  assert_equals(quicStream.readBufferedAmount, 0,
+      'Expect read buffered amount to be 0.');
+  assert_equals(quicStream.writeBufferedAmount, 0,
+      'Expect write buffered amount to be 0.');
+}, 'createStream() returns an RTCQuicStream with initial properties set.');
+
+test(t => {
+  const quicTransport = makeQuicTransport(t, []);
+  quicTransport.stop();
+  assert_throws('InvalidStateError', () => quicTransport.createStream());
+}, 'createStream() throws if the transport is closed.');
+
+test(t => {
+  const quicTransport = makeQuicTransport(t, []);
+  const firstQuicStream = quicTransport.createStream();
+  const secondQuicStream = quicTransport.createStream();
+  quicTransport.stop();
+  assert_equals(firstQuicStream.state, 'closed');
+  assert_equals(secondQuicStream.state, 'closed');
+}, 'RTCQuicTransport.stop() closes all streams.');
+
+</script>

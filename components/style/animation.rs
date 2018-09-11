@@ -213,7 +213,12 @@ pub enum Animation {
     /// node-dependent state (i.e. iteration count, etc.).
     ///
     /// TODO(emilio): The animation object could be refcounted.
-    Keyframes(OpaqueNode, KeyframesAnimation, Atom, KeyframesAnimationState),
+    Keyframes(
+        OpaqueNode,
+        KeyframesAnimation,
+        Atom,
+        KeyframesAnimationState,
+    ),
 }
 
 impl Animation {
@@ -304,8 +309,7 @@ impl PropertyAnimation {
         let duration = box_style.transition_duration_mod(transition_index);
 
         match transition_property {
-            TransitionProperty::Custom(..) |
-            TransitionProperty::Unsupported(..) => result,
+            TransitionProperty::Custom(..) | TransitionProperty::Unsupported(..) => result,
             TransitionProperty::Shorthand(ref shorthand_id) => shorthand_id
                 .longhands()
                 .filter_map(|longhand| {
@@ -316,8 +320,7 @@ impl PropertyAnimation {
                         old_style,
                         new_style,
                     )
-                })
-                .collect(),
+                }).collect(),
             TransitionProperty::Longhand(longhand_id) => {
                 let animation = PropertyAnimation::from_longhand(
                     longhand_id,
@@ -455,8 +458,7 @@ pub fn start_transitions_if_applicable(
                         property_animation: property_animation,
                     },
                     /* is_expired = */ false,
-                ))
-                .unwrap();
+                )).unwrap();
 
             had_animations = true;
         }
@@ -505,7 +507,9 @@ where
                 Some(previous_style),
                 Some(previous_style),
                 font_metrics_provider,
-                CascadeMode::Unvisited { visited_rules: None },
+                CascadeMode::Unvisited {
+                    visited_rules: None,
+                },
                 context.quirks_mode(),
                 /* rule_cache = */ None,
                 &mut Default::default(),
@@ -596,8 +600,7 @@ where
                         expired: false,
                         cascade_style: new_style.clone(),
                     },
-                ))
-                .unwrap();
+                )).unwrap();
             had_animations = true;
         }
     }
@@ -735,8 +738,7 @@ pub fn update_style_for_animation<E>(
                             } else {
                                 None
                             }
-                        })
-                        .unwrap_or(animation.steps.len() - 1);
+                        }).unwrap_or(animation.steps.len() - 1);
                 },
                 _ => unreachable!(),
             }

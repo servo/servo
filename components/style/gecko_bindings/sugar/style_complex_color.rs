@@ -59,7 +59,7 @@ impl From<ComputedColor> for StyleComplexColor {
                     mFgRatio: ratios.fg,
                     mTag: Tag::eComplex,
                 }
-            }
+            },
         }
     }
 }
@@ -70,11 +70,11 @@ impl From<StyleComplexColor> for ComputedColor {
             Tag::eNumeric => {
                 debug_assert!(other.mBgRatio == 1. && other.mFgRatio == 0.);
                 GenericColor::Numeric(convert_nscolor_to_rgba(other.mColor))
-            }
+            },
             Tag::eForeground => {
                 debug_assert!(other.mBgRatio == 0. && other.mFgRatio == 1.);
                 GenericColor::Foreground
-            }
+            },
             Tag::eComplex => {
                 debug_assert!(other.mBgRatio != 1. || other.mFgRatio != 0.);
                 debug_assert!(other.mBgRatio != 0. || other.mFgRatio != 1.);
@@ -85,7 +85,7 @@ impl From<StyleComplexColor> for ComputedColor {
                         fg: other.mFgRatio,
                     },
                 )
-            }
+            },
             Tag::eAuto => unreachable!("Unsupport StyleComplexColor with tag eAuto"),
         }
     }

@@ -1,7 +1,42 @@
 {
-    "test-jobs": {"path": "jobs.py", "script": "run", "parser": "create_parser", "help": "List test jobs that should run for a set of commits",
-                  "virtualenv": false},
-    "check-stability": {"path": "check_stability.py", "script": "run", "parser": "get_parser", "parse_known": true, "help": "Check test stability",
-                        "virtualenv": true, "install": ["requests"], "requirements": ["../wptrunner/requirements.txt"]},
-    "make-hosts-file": {"path": "make_hosts_file.py", "script": "run", "parser": "create_parser", "help": "Output a hosts file to stdout", "virtualenv": false}
+  "test-jobs": {
+    "path": "jobs.py",
+    "script": "run",
+    "parser": "create_parser",
+    "help": "List test jobs that should run for a set of commits",
+    "virtualenv": false
+  },
+  "check-stability": {
+    "path": "check_stability.py",
+    "script": "run",
+    "parser": "get_parser",
+    "parse_known": true,
+    "help": "Check test stability",
+    "virtualenv": true,
+    "install": [
+      "requests"
+    ],
+    "requirements": [
+      "../wptrunner/requirements.txt"
+    ]
+  },
+  "make-hosts-file": {
+    "path": "make_hosts_file.py",
+    "script": "run",
+    "parser": "create_parser",
+    "help": "Output a hosts file to stdout",
+    "virtualenv": false
+  },
+  "tc-download": {
+    "path": "tcdownload.py",
+    "script": "run",
+    "parser": "get_parser",
+    "parse_known": true,
+    "help": "Download logs from taskcluster",
+    "virtualenv": true,
+    "install": [
+      "requests",
+      "pygithub"
+    ]
+  }
 }

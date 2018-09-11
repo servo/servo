@@ -52,7 +52,8 @@ impl nsStyleCoord_CalcValue {
 
 impl PartialEq for nsStyleCoord_CalcValue {
     fn eq(&self, other: &Self) -> bool {
-        self.mLength == other.mLength && self.mPercent == other.mPercent &&
+        self.mLength == other.mLength &&
+            self.mPercent == other.mPercent &&
             self.mHasPercent == other.mHasPercent
     }
 }
@@ -409,9 +410,12 @@ pub unsafe trait CoordData {
     unsafe fn get_float(&self) -> f32 {
         use gecko_bindings::structs::nsStyleUnit::*;
         debug_assert!(
-            self.unit() == eStyleUnit_Percent || self.unit() == eStyleUnit_Factor ||
-                self.unit() == eStyleUnit_Degree || self.unit() == eStyleUnit_Grad ||
-                self.unit() == eStyleUnit_Radian || self.unit() == eStyleUnit_Turn ||
+            self.unit() == eStyleUnit_Percent ||
+                self.unit() == eStyleUnit_Factor ||
+                self.unit() == eStyleUnit_Degree ||
+                self.unit() == eStyleUnit_Grad ||
+                self.unit() == eStyleUnit_Radian ||
+                self.unit() == eStyleUnit_Turn ||
                 self.unit() == eStyleUnit_FlexFraction
         );
         *self.union().mFloat.as_ref()
@@ -422,7 +426,8 @@ pub unsafe trait CoordData {
     unsafe fn get_integer(&self) -> i32 {
         use gecko_bindings::structs::nsStyleUnit::*;
         debug_assert!(
-            self.unit() == eStyleUnit_Coord || self.unit() == eStyleUnit_Integer ||
+            self.unit() == eStyleUnit_Coord ||
+                self.unit() == eStyleUnit_Integer ||
                 self.unit() == eStyleUnit_Enumerated
         );
         *self.union().mInt.as_ref()

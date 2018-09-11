@@ -44,7 +44,7 @@ struct Emitter {
 #[derive(Serialize)]
 struct IsRecordingReply {
     from: String,
-    value: bool
+    value: bool,
 }
 
 #[derive(Serialize)]
@@ -103,8 +103,10 @@ pub struct HighResolutionStamp(f64);
 
 impl HighResolutionStamp {
     pub fn new(start_stamp: PreciseTime, time: PreciseTime) -> HighResolutionStamp {
-        let duration = start_stamp.to(time).num_microseconds()
-                                  .expect("Too big duration in microseconds");
+        let duration = start_stamp
+            .to(time)
+            .num_microseconds()
+            .expect("Too big duration in microseconds");
         HighResolutionStamp(duration as f64 / 1000 as f64)
     }
 
@@ -122,11 +124,12 @@ impl Serialize for HighResolutionStamp {
 static DEFAULT_TIMELINE_DATA_PULL_TIMEOUT: u64 = 200; //ms
 
 impl TimelineActor {
-    pub fn new(name: String,
-               pipeline: PipelineId,
-               script_sender: IpcSender<DevtoolScriptControlMsg>) -> TimelineActor {
-        let marker_types = vec!(TimelineMarkerType::Reflow,
-                                TimelineMarkerType::DOMEvent);
+    pub fn new(
+        name: String,
+        pipeline: PipelineId,
+        script_sender: IpcSender<DevtoolScriptControlMsg>,
+    ) -> TimelineActor {
+        let marker_types = vec![TimelineMarkerType::Reflow, TimelineMarkerType::DOMEvent];
 
         TimelineActor {
             name: name,
@@ -141,15 +144,20 @@ impl TimelineActor {
         }
     }
 
-    fn pull_timeline_data(&self, receiver: IpcReceiver<Option<TimelineMarker>>, mut emitter: Emitter) {
+    fn pull_timeline_data(
+        &self,
+        receiver: IpcReceiver<Option<TimelineMarker>>,
+        mut emitter: Emitter,
+    ) {
         let is_recording = self.is_recording.clone();
 
         if !*is_recording.lock().unwrap() {
             return;
         }
 
-        thread::Builder::new().name("PullTimelineMarkers".to_owned()).spawn(move || {
-            loop {
+        thread::Builder::new()
+            .name("PullTimelineMarkers".to_owned())
+            .spawn(move || loop {
                 if !*is_recording.lock().unwrap() {
                     break;
                 }
@@ -161,8 +169,7 @@ impl TimelineActor {
                 emitter.send(markers);
 
                 thread::sleep(Duration::from_millis(DEFAULT_TIMELINE_DATA_PULL_TIMEOUT));
-            }
-        }).expect("Thread spawning failed");
+            }).expect("Thread spawning failed");
     }
 }
 
@@ -171,19 +178,24 @@ impl Actor for TimelineActor {
         self.name.clone()
     }
 
-    fn handle_message(&self,
-                      registry: &ActorRegistry,
-                      msg_type: &str,
-                      msg: &Map<String, Value>,
-                      stream: &mut TcpStream) -> Result<ActorMessageStatus, ()> {
+    fn handle_message(
+        &self,
+        registry: &ActorRegistry,
+        msg_type: &str,
+        msg: &Map<String, Value>,
+        stream: &mut TcpStream,
+    ) -> Result<ActorMessageStatus, ()> {
         Ok(match msg_type {
             "start" => {
                 **self.is_recording.lock().as_mut().unwrap() = true;
 
                 let (tx, rx) = ipc::channel::<Option<TimelineMarker>>().unwrap();
-                self.script_sender.send(SetTimelineMarkers(self.pipeline,
-                                                           self.marker_types.clone(),
-                                                           tx)).unwrap();
+                self.script_sender
+                    .send(SetTimelineMarkers(
+                        self.pipeline,
+                        self.marker_types.clone(),
+                        tx,
+                    )).unwrap();
 
                 *self.stream.borrow_mut() = stream.try_clone().ok();
 
@@ -198,18 +210,22 @@ impl Actor for TimelineActor {
                 if let Some(with_ticks) = msg.get("withTicks") {
                     if let Some(true) = with_ticks.as_bool() {
                         let framerate_actor = Some(FramerateActor::create(
-                                registry,
-                                self.pipeline.clone(),
-                                self.script_sender.clone()));
+                            registry,
+                            self.pipeline.clone(),
+                            self.script_sender.clone(),
+                        ));
                         *self.framerate_actor.borrow_mut() = framerate_actor;
                     }
                 }
 
-                let emitter = Emitter::new(self.name(), registry.shareable(),
-                                           registry.start_stamp(),
-                                           stream.try_clone().unwrap(),
-                                           self.memory_actor.borrow().clone(),
-                                           self.framerate_actor.borrow().clone());
+                let emitter = Emitter::new(
+                    self.name(),
+                    registry.shareable(),
+                    registry.start_stamp(),
+                    stream.try_clone().unwrap(),
+                    self.memory_actor.borrow().clone(),
+                    self.framerate_actor.borrow().clone(),
+                );
 
                 self.pull_timeline_data(rx, emitter);
 
@@ -219,7 +235,7 @@ impl Actor for TimelineActor {
                 };
                 stream.write_json_packet(&msg);
                 ActorMessageStatus::Processed
-            }
+            },
 
             "stop" => {
                 let msg = StopReply {
@@ -228,7 +244,11 @@ impl Actor for TimelineActor {
                 };
 
                 stream.write_json_packet(&msg);
-                self.script_sender.send(DropTimelineMarkers(self.pipeline, self.marker_types.clone())).unwrap();
+                self.script_sender
+                    .send(DropTimelineMarkers(
+                        self.pipeline,
+                        self.marker_types.clone(),
+                    )).unwrap();
 
                 if let Some(ref actor_name) = *self.framerate_actor.borrow() {
                     registry.drop_actor_later(actor_name.clone());
@@ -241,32 +261,32 @@ impl Actor for TimelineActor {
                 **self.is_recording.lock().as_mut().unwrap() = false;
                 self.stream.borrow_mut().take();
                 ActorMessageStatus::Processed
-            }
+            },
 
             "isRecording" => {
                 let msg = IsRecordingReply {
                     from: self.name(),
-                    value: self.is_recording.lock().unwrap().clone()
+                    value: self.is_recording.lock().unwrap().clone(),
                 };
 
                 stream.write_json_packet(&msg);
                 ActorMessageStatus::Processed
-            }
+            },
 
-            _ => {
-                ActorMessageStatus::Ignored
-            }
+            _ => ActorMessageStatus::Ignored,
         })
     }
 }
 
 impl Emitter {
-    pub fn new(name: String,
-               registry: Arc<Mutex<ActorRegistry>>,
-               start_stamp: PreciseTime,
-               stream: TcpStream,
-               memory_actor_name: Option<String>,
-               framerate_actor_name: Option<String>) -> Emitter {
+    pub fn new(
+        name: String,
+        registry: Arc<Mutex<ActorRegistry>>,
+        start_stamp: PreciseTime,
+        stream: TcpStream,
+        memory_actor_name: Option<String>,
+        framerate_actor_name: Option<String>,
+    ) -> Emitter {
         Emitter {
             from: name,
             stream: stream,

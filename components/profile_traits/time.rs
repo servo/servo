@@ -37,9 +37,16 @@ pub enum ProfilerData {
 #[derive(Clone, Deserialize, Serialize)]
 pub enum ProfilerMsg {
     /// Normal message used for reporting time
-    Time((ProfilerCategory, Option<TimerMetadata>), (u64, u64), (u64, u64)),
+    Time(
+        (ProfilerCategory, Option<TimerMetadata>),
+        (u64, u64),
+        (u64, u64),
+    ),
     /// Message used to get time spend entries for a particular ProfilerBuckets (in nanoseconds)
-    Get((ProfilerCategory, Option<TimerMetadata>), IpcSender<ProfilerData>),
+    Get(
+        (ProfilerCategory, Option<TimerMetadata>),
+        IpcSender<ProfilerData>,
+    ),
     /// Message used to force print the profiling metrics
     Print,
     /// Tells the profiler to shut down.
@@ -118,12 +125,14 @@ pub enum TimerMetadataReflowType {
     FirstReflow,
 }
 
-pub fn profile<T, F>(category: ProfilerCategory,
-                     meta: Option<TimerMetadata>,
-                     profiler_chan: ProfilerChan,
-                     callback: F)
-                  -> T
-    where F: FnOnce() -> T,
+pub fn profile<T, F>(
+    category: ProfilerCategory,
+    meta: Option<TimerMetadata>,
+    profiler_chan: ProfilerChan,
+    callback: F,
+) -> T
+where
+    F: FnOnce() -> T,
 {
     if opts::get().signpost {
         signpost::start(category as u32, &[0, 0, 0, (category as usize) >> 4]);
@@ -139,24 +148,30 @@ pub fn profile<T, F>(category: ProfilerCategory,
         signpost::end(category as u32, &[0, 0, 0, (category as usize) >> 4]);
     }
 
-    send_profile_data(category,
-                      meta,
-                      &profiler_chan,
-                      start_time,
-                      end_time,
-                      start_energy,
-                      end_energy);
+    send_profile_data(
+        category,
+        meta,
+        &profiler_chan,
+        start_time,
+        end_time,
+        start_energy,
+        end_energy,
+    );
     val
 }
 
-pub fn send_profile_data(category: ProfilerCategory,
-                         meta: Option<TimerMetadata>,
-                         profiler_chan: &ProfilerChan,
-                         start_time: u64,
-                         end_time: u64,
-                         start_energy: u64,
-                         end_energy: u64) {
-    profiler_chan.send(ProfilerMsg::Time((category, meta),
-                                         (start_time, end_time),
-                                         (start_energy, end_energy)));
+pub fn send_profile_data(
+    category: ProfilerCategory,
+    meta: Option<TimerMetadata>,
+    profiler_chan: &ProfilerChan,
+    start_time: u64,
+    end_time: u64,
+    start_energy: u64,
+    end_energy: u64,
+) {
+    profiler_chan.send(ProfilerMsg::Time(
+        (category, meta),
+        (start_time, end_time),
+        (start_energy, end_energy),
+    ));
 }

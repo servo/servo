@@ -18,8 +18,7 @@ use values::specified::grid::parse_line_names;
 /// A `<grid-line>` type.
 ///
 /// <https://drafts.csswg.org/css-grid/#typedef-grid-row-start-grid-line>
-#[derive(Clone, Debug, Default, MallocSizeOf, PartialEq, SpecifiedValueInfo,
-         ToComputedValue)]
+#[derive(Clone, Debug, Default, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue)]
 pub struct GridLine<Integer> {
     /// Flag to check whether it's a `span` keyword.
     pub is_span: bool,
@@ -149,8 +148,18 @@ impl Parse for GridLine<specified::Integer> {
 
 #[allow(missing_docs)]
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
-#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, Parse, PartialEq,
-         SpecifiedValueInfo, ToComputedValue, ToCss)]
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    Eq,
+    MallocSizeOf,
+    Parse,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToComputedValue,
+    ToCss,
+)]
 pub enum TrackKeyword {
     Auto,
     MaxContent,
@@ -161,8 +170,7 @@ pub enum TrackKeyword {
 /// avoid re-implementing it for the computed type.
 ///
 /// <https://drafts.csswg.org/css-grid/#typedef-track-breadth>
-#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo,
-         ToComputedValue, ToCss)]
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue, ToCss)]
 pub enum TrackBreadth<L> {
     /// The generic type is almost always a non-negative `<length-percentage>`
     Breadth(L),
@@ -383,8 +391,7 @@ impl Parse for RepeatCount<specified::Integer> {
 ///
 /// It can also hold `repeat()` function parameters, which expands into the respective
 /// values in its computed form.
-#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo,
-         ToComputedValue)]
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue)]
 #[css(function = "repeat")]
 pub struct TrackRepeat<L, I> {
     /// The number of times for the value to be repeated (could also be `auto-fit` or `auto-fill`)
@@ -409,7 +416,8 @@ impl<L: ToCss, I: ToCss> ToCss for TrackRepeat<L, I> {
         dest.write_str(", ")?;
 
         let mut line_names_iter = self.line_names.iter();
-        for (i, (ref size, ref names)) in self.track_sizes
+        for (i, (ref size, ref names)) in self
+            .track_sizes
             .iter()
             .zip(&mut line_names_iter)
             .enumerate()
@@ -471,8 +479,7 @@ impl<L: Clone> TrackRepeat<L, specified::Integer> {
 }
 
 /// Track list values. Can be <track-size> or <track-repeat>
-#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo,
-         ToComputedValue, ToCss)]
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue, ToCss)]
 pub enum TrackListValue<LengthOrPercentage, Integer> {
     /// A <track-size> value.
     TrackSize(TrackSize<LengthOrPercentage>),
@@ -578,8 +585,7 @@ impl<L: ToCss, I: ToCss> ToCss for TrackList<L, I> {
 ///
 /// `subgrid [ <line-names> | repeat(<positive-integer> | auto-fill, <line-names>+) ]+`
 /// Old spec: https://www.w3.org/TR/2015/WD-css-grid-1-20150917/#typedef-line-name-list
-#[derive(Clone, Debug, Default, MallocSizeOf, PartialEq, SpecifiedValueInfo,
-         ToComputedValue)]
+#[derive(Clone, Debug, Default, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue)]
 pub struct LineNameList {
     /// The optional `<line-name-list>`
     pub names: Box<[Box<[CustomIdent]>]>,
@@ -624,7 +630,9 @@ impl Parse for LineNameList {
                     RepeatCount::AutoFill if fill_idx.is_none() => {
                         // `repeat(autof-fill, ..)` should have just one line name.
                         if names_list.len() != 1 {
-                            return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
+                            return Err(
+                                input.new_custom_error(StyleParseErrorKind::UnspecifiedError)
+                            );
                         }
                         let names = names_list.pop().unwrap();
 
@@ -682,8 +690,7 @@ impl ToCss for LineNameList {
 /// Variants for `<grid-template-rows> | <grid-template-columns>`
 /// Subgrid deferred to Level 2 spec due to lack of implementation.
 /// But it's implemented in gecko, so we have to as well.
-#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo,
-         ToComputedValue, ToCss)]
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue, ToCss)]
 pub enum GridTemplateComponent<L, I> {
     /// `none` value.
     None,

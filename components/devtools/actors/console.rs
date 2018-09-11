@@ -94,32 +94,48 @@ impl Actor for ConsoleActor {
         self.name.clone()
     }
 
-    fn handle_message(&self,
-                      registry: &ActorRegistry,
-                      msg_type: &str,
-                      msg: &Map<String, Value>,
-                      stream: &mut TcpStream) -> Result<ActorMessageStatus, ()> {
+    fn handle_message(
+        &self,
+        registry: &ActorRegistry,
+        msg_type: &str,
+        msg: &Map<String, Value>,
+        stream: &mut TcpStream,
+    ) -> Result<ActorMessageStatus, ()> {
         Ok(match msg_type {
             "getCachedMessages" => {
-                let str_types = msg.get("messageTypes").unwrap().as_array().unwrap().into_iter().map(|json_type| {
-                    json_type.as_str().unwrap()
-                });
+                let str_types = msg
+                    .get("messageTypes")
+                    .unwrap()
+                    .as_array()
+                    .unwrap()
+                    .into_iter()
+                    .map(|json_type| json_type.as_str().unwrap());
                 let mut message_types = CachedConsoleMessageTypes::empty();
                 for str_type in str_types {
                     match str_type {
                         "PageError" => message_types.insert(CachedConsoleMessageTypes::PAGE_ERROR),
-                        "ConsoleAPI" => message_types.insert(CachedConsoleMessageTypes::CONSOLE_API),
+                        "ConsoleAPI" => {
+                            message_types.insert(CachedConsoleMessageTypes::CONSOLE_API)
+                        },
                         s => debug!("unrecognized message type requested: \"{}\"", s),
                     };
-                };
+                }
                 let (chan, port) = ipc::channel().unwrap();
-                self.script_chan.send(DevtoolScriptControlMsg::GetCachedMessages(
-                    self.pipeline, message_types, chan)).unwrap();
-                let messages = port.recv().map_err(|_| ())?.into_iter().map(|message| {
-                    let json_string = message.encode().unwrap();
-                    let json = serde_json::from_str::<Value>(&json_string).unwrap();
-                    json.as_object().unwrap().to_owned()
-                }).collect();
+                self.script_chan
+                    .send(DevtoolScriptControlMsg::GetCachedMessages(
+                        self.pipeline,
+                        message_types,
+                        chan,
+                    )).unwrap();
+                let messages = port
+                    .recv()
+                    .map_err(|_| ())?
+                    .into_iter()
+                    .map(|message| {
+                        let json_string = message.encode().unwrap();
+                        let json = serde_json::from_str::<Value>(&json_string).unwrap();
+                        json.as_object().unwrap().to_owned()
+                    }).collect();
 
                 let msg = GetCachedMessagesReply {
                     from: self.name(),
@@ -127,56 +143,60 @@ impl Actor for ConsoleActor {
                 };
                 stream.write_json_packet(&msg);
                 ActorMessageStatus::Processed
-            }
+            },
 
             "startListeners" => {
                 //TODO: actually implement listener filters that support starting/stopping
                 let msg = StartedListenersReply {
                     from: self.name(),
                     nativeConsoleAPI: true,
-                    startedListeners:
-                        vec!("PageError".to_owned(), "ConsoleAPI".to_owned()),
+                    startedListeners: vec!["PageError".to_owned(), "ConsoleAPI".to_owned()],
                     traits: StartedListenersTraits {
                         customNetworkRequest: true,
-                    }
+                    },
                 };
                 stream.write_json_packet(&msg);
                 ActorMessageStatus::Processed
-            }
+            },
 
             "stopListeners" => {
                 //TODO: actually implement listener filters that support starting/stopping
                 let msg = StopListenersReply {
                     from: self.name(),
-                    stoppedListeners: msg.get("listeners")
-                                         .unwrap()
-                                         .as_array()
-                                         .unwrap_or(&vec!())
-                                         .iter()
-                                         .map(|listener| listener.as_str().unwrap().to_owned())
-                                         .collect(),
+                    stoppedListeners: msg
+                        .get("listeners")
+                        .unwrap()
+                        .as_array()
+                        .unwrap_or(&vec![])
+                        .iter()
+                        .map(|listener| listener.as_str().unwrap().to_owned())
+                        .collect(),
                 };
                 stream.write_json_packet(&msg);
                 ActorMessageStatus::Processed
-            }
+            },
 
             //TODO: implement autocompletion like onAutocomplete in
             //      http://mxr.mozilla.org/mozilla-central/source/toolkit/devtools/server/actors/webconsole.js
             "autocomplete" => {
                 let msg = AutocompleteReply {
                     from: self.name(),
-                    matches: vec!(),
+                    matches: vec![],
                     matchProp: "".to_owned(),
                 };
                 stream.write_json_packet(&msg);
                 ActorMessageStatus::Processed
-            }
+            },
 
             "evaluateJS" => {
                 let input = msg.get("text").unwrap().as_str().unwrap().to_owned();
                 let (chan, port) = ipc::channel().unwrap();
-                self.script_chan.send(DevtoolScriptControlMsg::EvaluateJS(
-                    self.pipeline, input.clone(), chan)).unwrap();
+                self.script_chan
+                    .send(DevtoolScriptControlMsg::EvaluateJS(
+                        self.pipeline,
+                        input.clone(),
+                        chan,
+                    )).unwrap();
 
                 //TODO: extract conversion into protocol module or some other useful place
                 let result = match port.recv().map_err(|_| ())? {
@@ -184,12 +204,12 @@ impl Actor for ConsoleActor {
                         let mut m = Map::new();
                         m.insert("type".to_owned(), Value::String("undefined".to_owned()));
                         Value::Object(m)
-                    }
+                    },
                     NullValue => {
                         let mut m = Map::new();
                         m.insert("type".to_owned(), Value::String("null".to_owned()));
                         Value::Object(m)
-                    }
+                    },
                     BooleanValue(val) => Value::Bool(val),
                     NumberValue(val) => {
                         if val.is_nan() {
@@ -211,7 +231,7 @@ impl Actor for ConsoleActor {
                         } else {
                             Value::Number(Number::from_f64(val).unwrap())
                         }
-                    }
+                    },
                     StringValue(s) => Value::String(s),
                     ActorValue { class, uuid } => {
                         //TODO: make initial ActorValue message include these properties?
@@ -225,7 +245,7 @@ impl Actor for ConsoleActor {
                         m.insert("frozen".to_owned(), Value::Bool(false));
                         m.insert("sealed".to_owned(), Value::Bool(false));
                         Value::Object(m)
-                    }
+                    },
                 };
 
                 //TODO: catch and return exception values from JS evaluation
@@ -240,7 +260,7 @@ impl Actor for ConsoleActor {
                 };
                 stream.write_json_packet(&msg);
                 ActorMessageStatus::Processed
-            }
+            },
 
             "setPreferences" => {
                 let msg = SetPreferencesReply {
@@ -249,9 +269,9 @@ impl Actor for ConsoleActor {
                 };
                 stream.write_json_packet(&msg);
                 ActorMessageStatus::Processed
-            }
+            },
 
-            _ => ActorMessageStatus::Ignored
+            _ => ActorMessageStatus::Ignored,
         })
     }
 }

@@ -1,0 +1,42 @@
+<html>
+<head>
+<meta charset="utf-8">
+<title>Many properties do not support quirky-length</title>
+<link rel="author" title="Eric Willigers" href="mailto:ericwilligers@chromium.org">
+<link rel="help" href="https://quirks.spec.whatwg.org/#the-unitless-length-quirk">
+<meta name="assert" content="quirky-length is not supported by properties not listed.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<div id="target"></div>
+<script>
+'use strict';
+
+var properties = [
+    'background-blend-mode',
+    'background-size',
+    'box-shadow',
+    'clip-path',
+    'column-span',
+    'filter',
+    'mask',
+    'object-position',
+    'perspective-origin',
+    'text-shadow',
+    'transform-origin'
+];
+
+for (let property of properties) {
+  test(() => {
+    if (!getComputedStyle(target)[property]) {
+      assert_unreached('Property ' + property + ' not supported');
+    }
+    target.style[property] = '1234';
+    assert_not_equals(target.style[property], '1234');
+    assert_not_equals(target.style[property], '1234px');
+  }, 'Property ' + property + ' does not support quirky length');
+}
+</script>
+</body>
+</html>

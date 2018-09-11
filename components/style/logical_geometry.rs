@@ -957,8 +957,10 @@ impl<T: Copy> LogicalMargin<T> {
 impl<T: PartialEq + Zero> LogicalMargin<T> {
     #[inline]
     pub fn is_zero(&self) -> bool {
-        self.block_start == Zero::zero() && self.inline_end == Zero::zero() &&
-            self.block_end == Zero::zero() && self.inline_start == Zero::zero()
+        self.block_start == Zero::zero() &&
+            self.inline_end == Zero::zero() &&
+            self.block_end == Zero::zero() &&
+            self.inline_start == Zero::zero()
     }
 }
 

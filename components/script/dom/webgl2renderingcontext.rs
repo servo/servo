@@ -240,14 +240,18 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         self.base.GenerateMipmap(target)
     }
 
-    #[allow(unsafe_code)]
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
-    unsafe fn BufferData(&self, cx: *mut JSContext, target: u32, data: *mut JSObject, usage: u32) -> Fallible<()> {
-        self.base.BufferData(cx, target, data, usage)
+    fn BufferData(
+        &self,
+        target: u32,
+        data: Option<ArrayBufferViewOrArrayBuffer>,
+        usage: u32,
+    ) {
+        self.base.BufferData(target, data, usage)
     }
 
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
-    fn BufferData_(&self, target: u32, size: i64, usage: u32) -> Fallible<()> {
+    fn BufferData_(&self, target: u32, size: i64, usage: u32) {
         self.base.BufferData_(target, size, usage)
     }
 
@@ -957,7 +961,10 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         count: i32,
         primcount: i32,
     ) {
-        self.base.draw_arrays_instanced(mode, first, count, primcount);
+        handle_potential_webgl_error!(
+            self.base,
+            self.base.draw_arrays_instanced(mode, first, count, primcount)
+        )
     }
 
     /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.9
@@ -969,7 +976,10 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         offset: i64,
         primcount: i32,
     ) {
-        self.base.draw_elements_instanced(mode, count, type_, offset, primcount);
+        handle_potential_webgl_error!(
+            self.base,
+            self.base.draw_elements_instanced(mode, count, type_, offset, primcount)
+        )
     }
 
     /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.9

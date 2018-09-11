@@ -47,6 +47,7 @@ use task_source::file_reading::FileReadingTaskSource;
 use task_source::networking::NetworkingTaskSource;
 use task_source::performance_timeline::PerformanceTimelineTaskSource;
 use task_source::remote_event::RemoteEventTaskSource;
+use task_source::websocket::WebsocketTaskSource;
 use time::precise_time_ns;
 use timers::{IsInterval, TimerCallback};
 
@@ -386,6 +387,10 @@ impl WorkerGlobalScope {
         RemoteEventTaskSource(self.script_chan(), self.pipeline_id())
     }
 
+    pub fn websocket_task_source(&self) -> WebsocketTaskSource {
+        WebsocketTaskSource(self.script_chan(), self.pipeline_id())
+    }
+
     pub fn new_script_pair(&self) -> (Box<ScriptChan + Send>, Box<ScriptPort + Send>) {
         let dedicated = self.downcast::<DedicatedWorkerGlobalScope>();
         if let Some(dedicated) = dedicated {
@@ -397,7 +402,7 @@ impl WorkerGlobalScope {
 
     pub fn process_event(&self, msg: CommonScriptMsg) {
         match msg {
-            CommonScriptMsg::Task(_, task, _) => {
+            CommonScriptMsg::Task(_, task, _, _) => {
                 task.run_box()
             },
             CommonScriptMsg::CollectReports(reports_chan) => {
@@ -407,8 +412,6 @@ impl WorkerGlobalScope {
                 reports_chan.send(reports);
             },
         }
-
-        // FIXME(jdm): Should we do a microtask checkpoint here?
     }
 
     pub fn handle_fire_timer(&self, timer_id: TimerEventId) {

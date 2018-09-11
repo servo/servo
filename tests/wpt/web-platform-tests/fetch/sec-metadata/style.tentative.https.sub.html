@@ -1,75 +1,70 @@
 <!DOCTYPE html>
-
+<html>
 <link rel="author" href="mtrzos@google.com" title="Maciek Trzos">
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
 <script src=/fetch/sec-metadata/resources/helper.js></script>
+<body></body>
 <script>
-  function test_same_origin() {
-    var same_origin_test = async_test("Same-Origin style");
-    same_origin_test.step(function () {
-        key = "style-same-origin";
-        expected_same_origin = {"destination":"style", "site":"same-origin"};
+  promise_test(t => {
+    return new Promise((resolve, reject) => {
+      let key = "style-same-origin";
 
-        //  Requests from the server the saved value of the Sec-Metadata header
-        same_origin_xhr = new XMLHttpRequest();
-        same_origin_xhr.open("GET", "/fetch/sec-metadata/resources/record-header.py?retrieve=true&file=" + key);
+      let e = document.createElement('link');
+      e.rel = "stylesheet";
+      e.href = "https://{{host}}:{{ports[https][0]}}/fetch/sec-metadata/resources/record-header.py?file=" + key;
+      e.onload = e => {
+        let expected = {"destination":"style", "site":"same-origin"};
+        fetch("/fetch/sec-metadata/resources/record-header.py?retrieve=true&file=" + key)
+          .then(response => response.text())
+          .then(text => assert_header_equals(text, expected))
+          .then(_ => resolve())
+          .catch(e => reject(e));
+      };
 
-        // Async test step triggered when the response is loaded
-        same_origin_xhr.onreadystatechange = same_origin_test.step_func(function () {
-          verify_response(same_origin_xhr, same_origin_test, expected_same_origin)
-        });
-        same_origin_xhr.send();
-    });
-  }
+      document.body.appendChild(e);
+    })
+  }, "Same-Origin style");
 
-  function test_same_site() {
-    var same_site_test = async_test("Same-Site style");
-    same_site_test.step(function () {
-        key = "style-same-site";
-        expected_same_site = {"destination":"style", "site":"same-site"};
+  promise_test(t => {
+    return new Promise((resolve, reject) => {
+      let key = "style-same-site";
 
-        //  Requests from the server the saved value of the Sec-Metadata header
-        same_site_xhr = new XMLHttpRequest();
-        same_site_xhr.open("GET", "/fetch/sec-metadata/resources/record-header.py?retrieve=true&file=" + key);
+      let e = document.createElement('link');
+      e.rel = "stylesheet";
+      e.href = "https://{{hosts[][www]}}:{{ports[https][0]}}/fetch/sec-metadata/resources/record-header.py?file=" + key;
+      e.onload = e => {
+        let expected = {"destination":"style", "site":"same-site"};
+        fetch("/fetch/sec-metadata/resources/record-header.py?retrieve=true&file=" + key)
+          .then(response => response.text())
+          .then(text => assert_header_equals(text, expected))
+          .then(_ => resolve())
+          .catch(e => reject(e));
+      };
 
-        // Async test step triggered when the response is loaded
-        same_site_xhr.onreadystatechange = same_site_test.step_func(function () {
-          verify_response(same_site_xhr, same_site_test, expected_same_site)
-        });
-        same_site_xhr.send();
-    });
-  }
+      document.body.appendChild(e);
+    })
+  }, "Same-Site style");
 
-  function test_cross_site() {
-    var cross_site_test = async_test("Cross-Site style");
-    cross_site_test.step(function () {
-        key = "style-cross-site";
-        expected_cross_site = {"destination":"style", "site":"cross-site"};
+  promise_test(t => {
+    return new Promise((resolve, reject) => {
+      let key = "style-cross-site";
 
-        //  Requests from the server the saved value of the Sec-Metadata header
-        cross_site_xhr = new XMLHttpRequest();
-        cross_site_xhr.open("GET", "/fetch/sec-metadata/resources/record-header.py?retrieve=true&file=" + key);
+      let e = document.createElement('link');
+      e.rel = "stylesheet";
+      e.href = "https://{{hosts[alt][www]}}:{{ports[https][0]}}/fetch/sec-metadata/resources/record-header.py?file=" + key;
+      e.onload = e => {
+        let expected = {"destination":"style", "site":"cross-site"};
+        fetch("/fetch/sec-metadata/resources/record-header.py?retrieve=true&file=" + key)
+          .then(response => response.text())
+          .then(text => assert_header_equals(text, expected))
+          .then(_ => resolve())
+          .catch(e => reject(e));
+      };
 
-        // Async test step triggered when the response is loaded
-        cross_site_xhr.onreadystatechange = cross_site_test.step_func(function () {
-          verify_response(cross_site_xhr, cross_site_test, expected_cross_site)
-        });
-        cross_site_xhr.send();
-    });
-  }
+      document.body.appendChild(e);
+    })
+  }, "Cross-Site style");
 </script>
-<body>
-  <!-- Same-Origin request -->
-  <link href="https://{{host}}:{{ports[https][0]}}/fetch/sec-metadata/resources/record-header.py?file=style-same-origin"
-  rel="stylesheet" onload="test_same_origin()" onerror="test_same_origin()">
-
-  <!-- Same-Site request -->
-  <link href="https://{{hosts[][www]}}:{{ports[https][0]}}/fetch/sec-metadata/resources/record-header.py?file=style-same-site"
-  rel="stylesheet" onload="test_same_site()" onerror="test_same_site()">
-
-  <!-- Cross-Site request -->
-  <link href="https://{{hosts[alt][www]}}:{{ports[https][0]}}/fetch/sec-metadata/resources/record-header.py?file=style-cross-site"
-  rel="stylesheet" onload="test_cross_site()" onerror="test_cross_site()">
-</body>
+</html>
 

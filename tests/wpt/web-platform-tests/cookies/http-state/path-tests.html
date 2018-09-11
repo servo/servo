@@ -1,0 +1,68 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset=utf-8>
+    <title>Tests basic cookie setting functionality</title>
+    <meta name=help href="https://tools.ietf.org/html/rfc6265#page-8">
+
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="resources/cookie-http-state-template.js"></script>
+  </head>
+  <body style="background:#EEE">
+    <h3>Log</h3>
+    <div id="log" style="height:50px; overflow-y:scroll; background: #FFF">
+    </div>
+    <h3>IFrames</h3>
+    <div id="iframes" style="height:170px; overflow-y:scroll; background: #FFF">
+    </div>
+    <h3>Test Results</h3>
+    <script>
+      setup({ explicit_timeout: true });
+
+      const TEST_CASES = [
+        {file: "path0001", name: "path0001"},
+        {file: "path0002", name: "path0002"},
+        {file: "path0003", name: "path0003"},
+        {file: "path0004", name: "path0004"},
+        {file: "path0005", name: "path0005"},
+        {file: "path0006", name: "path0006"},
+        {file: "path0007", name: "path0007"},
+        {file: "path0008", name: "path0008"},
+        {file: "path0009", name: "path0009"},
+        {file: "path0010", name: "path0010"},
+        {file: "path0011", name: "path0011"},
+        {file: "path0012", name: "path0012"},
+        {file: "path0013", name: "path0013"},
+        {file: "path0014", name: "path0014"},
+        {file: "path0015", name: "path0015"},
+        {file: "path0016", name: "path0016"},
+        {file: "path0017", name: "path0017"},
+        {file: "path0018", name: "path0018"},
+        {file: "path0019", name: "path0019"},
+        {file: "path0020", name: "path0020"},
+        {file: "path0021", name: "path0021"},
+        {file: "path0022", name: "path0022"},
+        {file: "path0023", name: "path0023"},
+        {file: "path0024", name: "path0024"},
+        {file: "path0025", name: "path0025"},
+        {file: "path0026", name: "path0026"},
+        {file: "path0027", name: "path0027"},
+        {file: "path0028", name: "path0028"},
+        {file: "disabled-path0029", name: "disabled-path0029"},
+        {file: "path0029", name: "path0029"},
+        {file: "path0030", name: "path0030"},
+        {file: "path0031", name: "path0031"},
+        {file: "path0032", name: "path0032"},
+      ];
+
+      for (const i in TEST_CASES) {
+        const t = TEST_CASES[i];
+        promise_test(createCookieTest(t.file),
+                     t.file + " - " + t.name,
+                     { timeout: 3000 });
+      }
+
+    </script>
+  </body>
+</html>

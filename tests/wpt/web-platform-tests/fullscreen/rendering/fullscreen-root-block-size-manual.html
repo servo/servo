@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<style>
+  html, body {
+    margin: 0px;
+  }
+</style>
+<title>fullscreen root block sizing</title>
+<!-- This page intentionally has no content. It needs to have
+no width or height. This is to ensure that the root element
+gets sizing in fullscreen mode as it does in as it does not
+in fullscreen mode.
+-->
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script>
+async_test(t => {
+  document.onfullscreenchange = t.step_func_done(() => {
+    assert_equals(document.fullscreenElement, document.documentElement);
+    assert_true(document.documentElement.getBoundingClientRect().width > 0);
+  });
+  document.documentElement.addEventListener('click', e => {
+      document.documentElement.requestFullscreen();
+  }, {once: true});
+  test_driver.click(document.documentElement);
+});
+</script>

@@ -1,0 +1,35 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>Dynamic updating of :first-child and :last-child</title>
+  <style type="text/css"><![CDATA[
+   #two:first-child { background: red; }
+   #three:last-child { background: lime; }
+]]></style>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="help" href="https://www.w3.org/TR/css3-selectors/#selectors"/> <!-- bogus link to make sure it gets found -->
+  <meta name="flags" content=" dom" />
+ </head>
+ <body>
+
+ <div>
+
+  <script type="text/javascript">
+   <![CDATA[
+
+    function test() {
+      el2 = document.getElementById('two');
+      el3 = document.getElementById('three');
+      el2.parentNode.insertBefore(el3.nextSibling, el2);
+    }
+
+    window.setTimeout("test()", 100);
+   ]]>
+  </script>
+
+  <div><p id="two">This line should be unstyled. (2)</p><p id="three">This line should have a green background. (3)</p><p>This line should be unstyled. (4 moving to 1)</p></div>
+
+ </div>
+
+</body>
+</html>

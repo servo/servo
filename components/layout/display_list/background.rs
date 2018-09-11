@@ -444,8 +444,7 @@ fn convert_gradient_stops(
         .filter_map(|item| match *item {
             GenericGradientItem::ColorStop(ref stop) => Some(*stop),
             _ => None,
-        })
-        .collect::<Vec<_>>();
+        }).collect::<Vec<_>>();
 
     assert!(stop_items.len() >= 2);
 

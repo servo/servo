@@ -243,7 +243,8 @@ impl VariableValue {
         self.first_token_type.set_if_nothing(css_first_token_type);
         // If self.first_token_type was nothing,
         // self.last_token_type is also nothing and this will be false:
-        if self.last_token_type
+        if self
+            .last_token_type
             .needs_separator_when_before(css_first_token_type)
         {
             self.css.push_str("/**/")
@@ -569,7 +570,8 @@ impl<'a> CustomPropertiesBuilder<'a> {
             _ => {},
         }
 
-        let existing_value = self.custom_properties
+        let existing_value = self
+            .custom_properties
             .as_ref()
             .and_then(|m| m.get(name))
             .or_else(|| self.inherited.and_then(|m| m.get(name)));

@@ -225,6 +225,11 @@ function generateTest(internalFormat, pixelFormat, pixelType, prologue, resource
         // Note: We use preserveDrawingBuffer:true to prevent canvas
         // visibility from interfering with the tests.
         var visibleCtx = wtu.create3DContext(null, { preserveDrawingBuffer:true });
+        if (!visibleCtx) {
+            testFailed("context does not exist");
+            finishTest();
+            return;
+        }
         var visibleCanvas = visibleCtx.canvas;
         var descriptionNode = document.getElementById("description");
         document.body.insertBefore(visibleCanvas, descriptionNode);

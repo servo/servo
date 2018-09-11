@@ -18,7 +18,6 @@ pub trait FallibleVec<T> {
     fn try_push(&mut self, value: T) -> Result<(), FailedAllocationError>;
 }
 
-
 /////////////////////////////////////////////////////////////////
 // Vec
 
@@ -52,14 +51,14 @@ fn try_double_vec<T>(vec: &mut Vec<T>) -> Result<(), FailedAllocationError> {
     let new_cap: usize = if old_cap == 0 {
         4
     } else {
-        old_cap.checked_mul(2).ok_or(FailedAllocationError::new(
-            "capacity overflow for Vec",
-        ))?
+        old_cap
+            .checked_mul(2)
+            .ok_or(FailedAllocationError::new("capacity overflow for Vec"))?
     };
 
-    let new_size_bytes = new_cap.checked_mul(mem::size_of::<T>()).ok_or(
-        FailedAllocationError::new("capacity overflow for Vec"),
-    )?;
+    let new_size_bytes = new_cap
+        .checked_mul(mem::size_of::<T>())
+        .ok_or(FailedAllocationError::new("capacity overflow for Vec"))?;
 
     let new_ptr = unsafe {
         if old_cap == 0 {
@@ -75,14 +74,11 @@ fn try_double_vec<T>(vec: &mut Vec<T>) -> Result<(), FailedAllocationError> {
         ));
     }
 
-    let new_vec = unsafe {
-        Vec::from_raw_parts(new_ptr as *mut T, old_len, new_cap)
-    };
+    let new_vec = unsafe { Vec::from_raw_parts(new_ptr as *mut T, old_len, new_cap) };
 
     mem::forget(mem::replace(vec, new_vec));
     Ok(())
 }
-
 
 /////////////////////////////////////////////////////////////////
 // SmallVec
@@ -107,8 +103,7 @@ impl<T: Array> FallibleVec<T::Item> for SmallVec<T> {
 #[cfg(feature = "known_system_malloc")]
 #[inline(never)]
 #[cold]
-fn try_double_small_vec<T>(svec: &mut SmallVec<T>)
--> Result<(), FailedAllocationError>
+fn try_double_small_vec<T>(svec: &mut SmallVec<T>) -> Result<(), FailedAllocationError>
 where
     T: Array,
 {
@@ -122,20 +117,20 @@ where
     let new_cap: usize = if old_cap == 0 {
         4
     } else {
-        old_cap.checked_mul(2).ok_or(FailedAllocationError::new(
-            "capacity overflow for SmallVec",
-        ))?
+        old_cap
+            .checked_mul(2)
+            .ok_or(FailedAllocationError::new("capacity overflow for SmallVec"))?
     };
 
     // This surely shouldn't fail, if |old_cap| was previously accepted as a
     // valid value.  But err on the side of caution.
-    let old_size_bytes = old_cap.checked_mul(mem::size_of::<T>()).ok_or(
-        FailedAllocationError::new("capacity overflow for SmallVec"),
-    )?;
+    let old_size_bytes = old_cap
+        .checked_mul(mem::size_of::<T>())
+        .ok_or(FailedAllocationError::new("capacity overflow for SmallVec"))?;
 
-    let new_size_bytes = new_cap.checked_mul(mem::size_of::<T>()).ok_or(
-        FailedAllocationError::new("capacity overflow for SmallVec"),
-    )?;
+    let new_size_bytes = new_cap
+        .checked_mul(mem::size_of::<T>())
+        .ok_or(FailedAllocationError::new("capacity overflow for SmallVec"))?;
 
     let new_ptr;
     if svec.spilled() {
@@ -149,8 +144,7 @@ where
         unsafe {
             new_ptr = alloc::alloc(new_size_bytes, 0);
             if !new_ptr.is_null() && old_size_bytes > 0 {
-                copy_nonoverlapping(old_ptr as *const u8,
-                                    new_ptr as *mut u8, old_size_bytes);
+                copy_nonoverlapping(old_ptr as *const u8, new_ptr as *mut u8, old_size_bytes);
             }
         }
     }
@@ -161,9 +155,7 @@ where
         ));
     }
 
-    let new_vec = unsafe {
-        Vec::from_raw_parts(new_ptr as *mut T::Item, old_len, new_cap)
-    };
+    let new_vec = unsafe { Vec::from_raw_parts(new_ptr as *mut T::Item, old_len, new_cap) };
 
     let new_svec = SmallVec::from_vec(new_vec);
     mem::forget(mem::replace(svec, new_svec));

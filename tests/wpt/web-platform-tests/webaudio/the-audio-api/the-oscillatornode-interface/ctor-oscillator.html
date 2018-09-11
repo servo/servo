@@ -87,7 +87,7 @@
               node = new OscillatorNode(context, options);
             },
             'new OscillatorNode(c, ' + JSON.stringify(options) + ')')
-            .throw('InvalidStateError');
+            .throw(DOMException, 'InvalidStateError');
 
         options = {
           type: 'custom',

@@ -9,8 +9,14 @@
     <script src="/resources/testharnessreport.js"></script>
     <script src="resources/cookie-http-state-template.js"></script>
   </head>
-  <body>
-    <div id="log"></div>
+  <body style="background:#EEE">
+    <h3>Log</h3>
+    <div id="log" style="height:50px; overflow-y:scroll; background: #FFF">
+    </div>
+    <h3>IFrames</h3>
+    <div id="iframes" style="height:170px; overflow-y:scroll; background: #FFF">
+    </div>
+    <h3>Test Results</h3>
     <script>
       setup({ explicit_timeout: true });
 

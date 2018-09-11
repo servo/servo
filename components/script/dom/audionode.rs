@@ -44,9 +44,14 @@ impl AudioNode {
         options: &AudioNodeOptions,
         number_of_inputs: u32,
         number_of_outputs: u32,
-    ) -> AudioNode {
+    ) -> Fallible<AudioNode> {
+        if let Some(c) = options.channelCount {
+            if c == 0 || c > MAX_CHANNEL_COUNT {
+                return Err(Error::NotSupported);
+            }
+        }
         let node_id = context.audio_context_impl().create_node(node_type);
-        AudioNode::new_inherited_for_id(node_id, context, options, number_of_inputs, number_of_outputs)
+        Ok(AudioNode::new_inherited_for_id(node_id, context, options, number_of_inputs, number_of_outputs))
     }
 
     pub fn new_inherited_for_id(
@@ -218,6 +223,11 @@ impl AudioNodeMethods for AudioNode {
                     return Err(Error::NotSupported)
                 }
             }
+            EventTargetTypeId::AudioNode(AudioNodeTypeId::ChannelMergerNode) => {
+                if value != 1 {
+                    return Err(Error::InvalidState)
+                }
+            }
             // XXX We do not support any of the other AudioNodes with
             // constraints yet. Add more cases here as we add support
             // for new AudioNodes.
@@ -254,6 +264,11 @@ impl AudioNodeMethods for AudioNode {
             EventTargetTypeId::AudioNode(AudioNodeTypeId::PannerNode) => {
                 if value == ChannelCountMode::Max {
                     return Err(Error::NotSupported)
+                }
+            }
+            EventTargetTypeId::AudioNode(AudioNodeTypeId::ChannelMergerNode) => {
+                if value != ChannelCountMode::Explicit {
+                    return Err(Error::InvalidState)
                 }
             }
             // XXX We do not support any of the other AudioNodes with

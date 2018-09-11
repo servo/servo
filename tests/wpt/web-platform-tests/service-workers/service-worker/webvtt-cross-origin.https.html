@@ -7,11 +7,14 @@
 <script src="resources/test-helpers.sub.js?pipe=sub"></script>
 <body>
 <script>
-// This file tests opaque responses for WebVTT text track. It creates
-// an iframe with a <track> element, controlled by a service worker.
+// This file tests responses for WebVTT text track from a service worker. It
+// creates an iframe with a <track> element, controlled by a service worker.
 // Each test tries to load a text track, the service worker intercepts the
-// requests and responds with opaque or non-opaque responses. The opaque
-// responses should result in load errors.
+// requests and responds with opaque or non-opaque responses. As the
+// crossorigin attribute is not set, request's mode is always "same-origin",
+// and as specified in https://fetch.spec.whatwg.org/#http-fetch,
+// a response from a service worker whose type is neither "basic" nor
+// "default" is rejected.
 
 const host_info = get_host_info();
 const kScript = 'resources/fetch-rewrite-worker.js';
@@ -100,9 +103,9 @@ promise_test(t => {
     url += '&credentials=same-origin';
     return load_track(url)
       .then(result => {
-          assert_equals(result, 'load event');
+          assert_equals(result, 'error event');
         });
-  }, 'cross-origin text track with approved cors request should load');
+  }, 'cross-origin text track with approved cors request should not load');
 
 // Redirect tests.
 
@@ -165,8 +168,8 @@ promise_test(t => {
     url += '&credentials=same-origin';
     return load_track(url)
       .then(result => {
-          assert_equals(result, 'load event');
+          assert_equals(result, 'error event');
         });
-  }, 'same-origin text track that redirects to a cross-origin text track with approved cors should load');
+  }, 'same-origin text track that redirects to a cross-origin text track with approved cors should not load');
 </script>
 </body>

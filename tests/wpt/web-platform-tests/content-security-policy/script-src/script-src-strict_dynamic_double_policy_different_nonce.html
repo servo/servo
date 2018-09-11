@@ -28,7 +28,7 @@
                 if (violation.blockedURI.split('?')[1] !== 'unNonced-appendChild') {
                     return;
                 }
-                assert_equals(violation.effectiveDirective, 'script-src');
+                assert_equals(violation.effectiveDirective, 'script-src-elem');
                 t.done();
             }));
 

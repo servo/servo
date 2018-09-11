@@ -12,5 +12,5 @@ def main(request, response):
             if (window.top != window)
                 window.top.postMessage(data, "*");
         </script>
-    """ % json.dumps(request.headers["sec-metadata"])
+    """ % json.dumps(request.headers.get("Sec-Metadata", ""))
     return headers, body

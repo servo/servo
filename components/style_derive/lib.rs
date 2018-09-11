@@ -4,10 +4,13 @@
 
 #![recursion_limit = "128"]
 
-#[macro_use] extern crate darling;
+#[macro_use]
+extern crate darling;
 extern crate proc_macro;
-#[macro_use] extern crate quote;
-#[macro_use] extern crate syn;
+#[macro_use]
+extern crate quote;
+#[macro_use]
+extern crate syn;
 extern crate synstructure;
 
 use proc_macro::TokenStream;

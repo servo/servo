@@ -1296,9 +1296,27 @@ impl Animate for ComputedTransformOperation {
                 &TransformOperation::Perspective(ref fd),
                 &TransformOperation::Perspective(ref td),
             ) => {
-                Ok(TransformOperation::Perspective(
-                    fd.animate(td, procedure)?
-                ))
+                use values::computed::CSSPixelLength;
+                use values::generics::transform::create_perspective_matrix;
+
+                // From https://drafts.csswg.org/css-transforms-2/#interpolation-of-transform-functions:
+                //
+                //    The transform functions matrix(), matrix3d() and
+                //    perspective() get converted into 4x4 matrices first and
+                //    interpolated as defined in section Interpolation of
+                //    Matrices afterwards.
+                //
+                let from = create_perspective_matrix(fd.px());
+                let to = create_perspective_matrix(td.px());
+
+                let interpolated =
+                    Matrix3D::from(from).animate(&Matrix3D::from(to), procedure)?;
+
+                let decomposed = decompose_3d_matrix(interpolated)?;
+                let perspective_z = decomposed.perspective.2;
+                let used_value =
+                    if perspective_z == 0. { 0. } else { -1. / perspective_z };
+                Ok(TransformOperation::Perspective(CSSPixelLength::new(used_value)))
             },
             _ if self.is_translate() && other.is_translate() => {
                 self.to_translate_3d().animate(&other.to_translate_3d(), procedure)

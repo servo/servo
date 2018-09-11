@@ -230,7 +230,7 @@
         // There is no output #2. An exception should be thrown.
         should(function() {
           splitter.disconnect(2);
-        }, 'splitter.disconnect(2)').throw('IndexSizeError');
+        }, 'splitter.disconnect(2)').throw(DOMException, 'IndexSizeError');
 
         // Disconnecting the output already disconnected should not throw.
         should(function() {
@@ -241,34 +241,34 @@
         // gain1 is not connected gain2. An exception should be thrown.
         should(function() {
           gain1.disconnect(gain2);
-        }, 'gain1.disconnect(gain2)').throw('InvalidAccessError');
+        }, 'gain1.disconnect(gain2)').throw(DOMException, 'InvalidAccessError');
 
         // gain1 and gain3 are not connected. An exception should be thrown.
         should(function() {
           gain1.disconnect(gain3);
-        }, 'gain1.disconnect(gain3)').throw('InvalidAccessError');
+        }, 'gain1.disconnect(gain3)').throw(DOMException, 'InvalidAccessError');
 
         // There is no output #2 in the splitter. An exception should be thrown.
         should(function() {
           splitter.disconnect(gain2, 2);
-        }, 'splitter.disconnect(gain2, 2)').throw('IndexSizeError');
+        }, 'splitter.disconnect(gain2, 2)').throw(DOMException, 'IndexSizeError');
 
         // The splitter and gain1 are not connected. An exception should be
         // thrown.
         should(function() {
           splitter.disconnect(gain1, 0);
-        }, 'splitter.disconnect(gain1, 0)').throw('InvalidAccessError');
+        }, 'splitter.disconnect(gain1, 0)').throw(DOMException, 'InvalidAccessError');
 
         // The splitter output #0 and the gain3 output #0 are not connected. An
         // exception should be thrown.
         should(function() {
           splitter.disconnect(gain3, 0, 0);
-        }, 'splitter.disconnect(gain3, 0, 0)').throw('InvalidAccessError');
+        }, 'splitter.disconnect(gain3, 0, 0)').throw(DOMException, 'InvalidAccessError');
 
         // The output index is out of bound. An exception should be thrown.
         should(function() {
           splitter.disconnect(merger, 3, 0);
-        }, 'splitter.disconnect(merger, 3, 0)').throw('IndexSizeError');
+        }, 'splitter.disconnect(merger, 3, 0)').throw(DOMException, 'IndexSizeError');
 
         task.done();
       });

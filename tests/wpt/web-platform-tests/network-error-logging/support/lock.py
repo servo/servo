@@ -1,4 +1,14 @@
-_LOCK_KEY = "network-error-logging:lock"
+# This file implements a shared lock that lets us ensure that the test cases in
+# this directory run serially.  Each test case obtains this lock as its first
+# step, and releases it as its last.  (The nel_test helper function in
+# nel.sub.js automates this process.)  Because the lock needs to be shared
+# across all of the test cases, we use a hard-coded stash key.  This hard-coded
+# key is a random UUID, which should not conflict with any other auto-generated
+# stash keys.
+
+import time
+
+_LOCK_KEY = "67966d2e-a847-41d8-b7c3-5f6aee3375ba"
 _TIMEOUT = 5  # seconds
 
 def wait_for_lock(request):

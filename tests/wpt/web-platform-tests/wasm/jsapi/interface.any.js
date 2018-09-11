@@ -63,6 +63,10 @@ test(() => {
 }, "WebAssembly: property descriptor");
 
 test(() => {
+  assert_throws(new TypeError(), () => WebAssembly());
+}, "WebAssembly: calling");
+
+test(() => {
   assert_throws(new TypeError(), () => new WebAssembly());
 }, "WebAssembly: constructing");
 
@@ -89,6 +93,15 @@ for (const name of interfaces) {
 
   test(() => {
     const interface_object = WebAssembly[name];
+    const propdesc = Object.getOwnPropertyDescriptor(interface_object, "prototype");
+    assert_equals(typeof propdesc, "object");
+    assert_false(propdesc.writable, "writable");
+    assert_false(propdesc.enumerable, "enumerable");
+    assert_false(propdesc.configurable, "configurable");
+  }, `WebAssembly.${name}: prototype`);
+
+  test(() => {
+    const interface_object = WebAssembly[name];
     const interface_prototype_object = interface_object.prototype;
     const propdesc = Object.getOwnPropertyDescriptor(interface_prototype_object, "constructor");
     assert_equals(typeof propdesc, "object");
@@ -96,7 +109,7 @@ for (const name of interfaces) {
     assert_false(propdesc.enumerable, "enumerable");
     assert_true(propdesc.configurable, "configurable");
     assert_equals(propdesc.value, interface_object);
-  }, `WebAssembly.${name}: prototype`);
+  }, `WebAssembly.${name}: prototype.constructor`);
 }
 
 test_operations(WebAssembly, "WebAssembly", [

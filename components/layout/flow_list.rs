@@ -38,10 +38,13 @@ impl Serialize for FlowList {
                 FlowClass::TableRow => to_value(f.as_table_row()).unwrap(),
                 FlowClass::TableCell => to_value(f.as_table_cell()).unwrap(),
                 FlowClass::Flex => to_value(f.as_flex()).unwrap(),
-                FlowClass::ListItem | FlowClass::TableColGroup | FlowClass::TableCaption |
-                FlowClass::Multicol | FlowClass::MulticolColumn => {
+                FlowClass::ListItem |
+                FlowClass::TableColGroup |
+                FlowClass::TableCaption |
+                FlowClass::Multicol |
+                FlowClass::MulticolColumn => {
                     Value::Null // Not implemented yet
-                }
+                },
             };
             flow_val.insert("data".to_owned(), data);
             serializer.serialize_element(&flow_val)?;
@@ -152,7 +155,7 @@ impl FlowList {
     #[inline]
     pub fn split_off(&mut self, i: usize) -> Self {
         FlowList {
-            flows: self.flows.split_off(i)
+            flows: self.flows.split_off(i),
         }
     }
 }

@@ -79,7 +79,7 @@ impl TableFlow {
             column_computed_inline_sizes: Vec::new(),
             collapsed_inline_direction_border_widths_for_table: Vec::new(),
             collapsed_block_direction_border_widths_for_table: Vec::new(),
-            table_layout: table_layout
+            table_layout: table_layout,
         }
     }
 
@@ -87,10 +87,10 @@ impl TableFlow {
     /// a larger value than one of `self_inline_sizes`. Returns the minimum and preferred inline
     /// sizes.
     fn update_automatic_column_inline_sizes(
-            parent_inline_sizes: &mut Vec<ColumnIntrinsicInlineSize>,
-            child_cell_inline_sizes: &[CellIntrinsicInlineSize],
-            surrounding_size: Au)
-            -> IntrinsicISizes {
+        parent_inline_sizes: &mut Vec<ColumnIntrinsicInlineSize>,
+        child_cell_inline_sizes: &[CellIntrinsicInlineSize],
+        surrounding_size: Au,
+    ) -> IntrinsicISizes {
         let mut total_inline_sizes = IntrinsicISizes {
             minimum_inline_size: surrounding_size,
             preferred_inline_size: surrounding_size,
@@ -117,8 +117,10 @@ impl TableFlow {
                     } else {
                         let column_size = &child_cell_inline_size.column_size;
                         *parent_sizes = ColumnIntrinsicInlineSize {
-                            minimum_length: cmp::max(parent_sizes.minimum_length,
-                                                     column_size.minimum_length),
+                            minimum_length: cmp::max(
+                                parent_sizes.minimum_length,
+                                column_size.minimum_length,
+                            ),
                             percentage: parent_sizes.greatest_percentage(column_size),
                             preferred: cmp::max(parent_sizes.preferred, column_size.preferred),
                             constrained: parent_sizes.constrained || column_size.constrained,
@@ -158,12 +160,14 @@ impl TableFlow {
 
     /// Updates the minimum and preferred inline-size calculation for a single row. This is
     /// factored out into a separate function because we process children of rowgroups too.
-    fn update_column_inline_sizes_for_row(row: &TableRowFlow,
-                                          column_inline_sizes: &mut Vec<ColumnIntrinsicInlineSize>,
-                                          computation: &mut IntrinsicISizesContribution,
-                                          first_row: bool,
-                                          table_layout: TableLayout,
-                                          surrounding_inline_size: Au) {
+    fn update_column_inline_sizes_for_row(
+        row: &TableRowFlow,
+        column_inline_sizes: &mut Vec<ColumnIntrinsicInlineSize>,
+        computation: &mut IntrinsicISizesContribution,
+        first_row: bool,
+        table_layout: TableLayout,
+        surrounding_inline_size: Au,
+    ) {
         // Read column inline-sizes from the table-row, and assign inline-size=0 for the columns
         // not defined in the column group.
         //
@@ -178,13 +182,14 @@ impl TableFlow {
                         column_inline_sizes.push(cell_inline_size.column_size);
                     }
                 }
-            }
+            },
             TableLayout::Auto => {
                 computation.union_block(&TableFlow::update_automatic_column_inline_sizes(
                     column_inline_sizes,
                     &row.cell_intrinsic_inline_sizes,
-                    surrounding_inline_size))
-            }
+                    surrounding_inline_size,
+                ))
+            },
         }
     }
 
@@ -207,21 +212,31 @@ impl TableFlow {
 
     fn column_styles(&self) -> Vec<ColumnStyle> {
         let mut styles = vec![];
-        for group in self.block_flow.base.child_iter()
-                       .filter(|kid| kid.is_table_colgroup()) {
+        for group in self
+            .block_flow
+            .base
+            .child_iter()
+            .filter(|kid| kid.is_table_colgroup())
+        {
             // XXXManishearth these as_foo methods should return options
             // so that we can filter_map
             let group = group.as_table_colgroup();
-            let colgroup_style = group.fragment.as_ref()
-                                      .map(|f| f.style());
+            let colgroup_style = group.fragment.as_ref().map(|f| f.style());
 
             // The colgroup's span attribute is only relevant when
             // it has no children
             // https://html.spec.whatwg.org/multipage/#forming-a-table
             if group.cols.is_empty() {
-                let span = group.fragment.as_ref()
-                                .map(|f| f.column_span()).unwrap_or(1);
-                styles.push(ColumnStyle { span, colgroup_style, col_style: None });
+                let span = group
+                    .fragment
+                    .as_ref()
+                    .map(|f| f.column_span())
+                    .unwrap_or(1);
+                styles.push(ColumnStyle {
+                    span,
+                    colgroup_style,
+                    col_style: None,
+                });
             } else {
                 for col in &group.cols {
                     // XXXManishearth Arc-cloning colgroup_style is suboptimal
@@ -267,45 +282,59 @@ impl Flow for TableFlow {
     /// The maximum min/pref inline-sizes of each column are set from the rows for the automatic
     /// table layout calculation.
     fn bubble_inline_sizes(&mut self) {
-        let _scope = layout_debug_scope!("table::bubble_inline_sizes {:x}",
-                                         self.block_flow.base.debug_id());
+        let _scope = layout_debug_scope!(
+            "table::bubble_inline_sizes {:x}",
+            self.block_flow.base.debug_id()
+        );
 
         // Get column inline sizes from colgroups
-        for kid in self.block_flow.base.child_iter_mut().filter(|kid| kid.is_table_colgroup()) {
+        for kid in self
+            .block_flow
+            .base
+            .child_iter_mut()
+            .filter(|kid| kid.is_table_colgroup())
+        {
             for specified_inline_size in &kid.as_mut_table_colgroup().inline_sizes {
-                self.column_intrinsic_inline_sizes.push(ColumnIntrinsicInlineSize {
-                    minimum_length: match *specified_inline_size {
-                        LengthOrPercentageOrAuto::Auto |
-                        LengthOrPercentageOrAuto::Calc(_) |
-                        LengthOrPercentageOrAuto::Percentage(_) => Au(0),
-                        LengthOrPercentageOrAuto::Length(length) => Au::from(length),
-                    },
-                    percentage: match *specified_inline_size {
-                        LengthOrPercentageOrAuto::Auto |
-                        LengthOrPercentageOrAuto::Calc(_) |
-                        LengthOrPercentageOrAuto::Length(_) => 0.0,
-                        LengthOrPercentageOrAuto::Percentage(percentage) => percentage.0,
-                    },
-                    preferred: Au(0),
-                    constrained: false,
-                })
+                self.column_intrinsic_inline_sizes
+                    .push(ColumnIntrinsicInlineSize {
+                        minimum_length: match *specified_inline_size {
+                            LengthOrPercentageOrAuto::Auto |
+                            LengthOrPercentageOrAuto::Calc(_) |
+                            LengthOrPercentageOrAuto::Percentage(_) => Au(0),
+                            LengthOrPercentageOrAuto::Length(length) => Au::from(length),
+                        },
+                        percentage: match *specified_inline_size {
+                            LengthOrPercentageOrAuto::Auto |
+                            LengthOrPercentageOrAuto::Calc(_) |
+                            LengthOrPercentageOrAuto::Length(_) => 0.0,
+                            LengthOrPercentageOrAuto::Percentage(percentage) => percentage.0,
+                        },
+                        preferred: Au(0),
+                        constrained: false,
+                    })
             }
         }
 
         self.collapsed_inline_direction_border_widths_for_table = Vec::new();
         self.collapsed_block_direction_border_widths_for_table = vec![Au(0)];
 
-        let collapsing_borders = self.block_flow
-                                     .fragment
-                                     .style
-                                     .get_inherited_table()
-                                     .border_collapse == border_collapse::T::Collapse;
+        let collapsing_borders = self
+            .block_flow
+            .fragment
+            .style
+            .get_inherited_table()
+            .border_collapse ==
+            border_collapse::T::Collapse;
         let table_inline_collapsed_borders = if collapsing_borders {
             Some(TableInlineCollapsedBorders {
-                start: CollapsedBorder::inline_start(&*self.block_flow.fragment.style,
-                                                     CollapsedBorderProvenance::FromTable),
-                end: CollapsedBorder::inline_end(&*self.block_flow.fragment.style,
-                                                 CollapsedBorderProvenance::FromTable),
+                start: CollapsedBorder::inline_start(
+                    &*self.block_flow.fragment.style,
+                    CollapsedBorderProvenance::FromTable,
+                ),
+                end: CollapsedBorder::inline_end(
+                    &*self.block_flow.fragment.style,
+                    CollapsedBorderProvenance::FromTable,
+                ),
             })
         } else {
             None
@@ -314,8 +343,9 @@ impl Flow for TableFlow {
         let mut computation = IntrinsicISizesContribution::new();
         let mut previous_collapsed_block_end_borders =
             PreviousBlockCollapsedBorders::FromTable(CollapsedBorder::block_start(
-                    &*self.block_flow.fragment.style,
-                    CollapsedBorderProvenance::FromTable));
+                &*self.block_flow.fragment.style,
+                CollapsedBorderProvenance::FromTable,
+            ));
         let mut first_row = true;
         let (border_padding, _) = self.block_flow.fragment.surrounding_intrinsic_inline_size();
 
@@ -323,48 +353,50 @@ impl Flow for TableFlow {
             let mut iterator = TableRowIterator::new(&mut self.block_flow.base).peekable();
             while let Some(row) = iterator.next() {
                 TableFlow::update_column_inline_sizes_for_row(
-                        row,
-                        &mut self.column_intrinsic_inline_sizes,
-                        &mut computation,
-                        first_row,
-                        self.table_layout,
-                        border_padding);
+                    row,
+                    &mut self.column_intrinsic_inline_sizes,
+                    &mut computation,
+                    first_row,
+                    self.table_layout,
+                    border_padding,
+                );
                 if collapsing_borders {
                     let next_index_and_sibling = iterator.peek();
-                    let next_collapsed_borders_in_block_direction =
-                        match next_index_and_sibling {
-                            Some(next_sibling) => {
-                                NextBlockCollapsedBorders::FromNextRow(
-                                    &next_sibling.as_table_row()
-                                                 .preliminary_collapsed_borders
-                                                 .block_start)
-                            }
-                            None => {
-                                NextBlockCollapsedBorders::FromTable(
-                                    CollapsedBorder::block_end(&*self.block_flow.fragment.style,
-                                                               CollapsedBorderProvenance::FromTable))
-                            }
-                        };
-                    perform_border_collapse_for_row(row,
+                    let next_collapsed_borders_in_block_direction = match next_index_and_sibling {
+                        Some(next_sibling) => NextBlockCollapsedBorders::FromNextRow(
+                            &next_sibling
+                                .as_table_row()
+                                .preliminary_collapsed_borders
+                                .block_start,
+                        ),
+                        None => NextBlockCollapsedBorders::FromTable(CollapsedBorder::block_end(
+                            &*self.block_flow.fragment.style,
+                            CollapsedBorderProvenance::FromTable,
+                        )),
+                    };
+                    perform_border_collapse_for_row(
+                        row,
                         table_inline_collapsed_borders.as_ref().unwrap(),
                         previous_collapsed_block_end_borders,
                         next_collapsed_borders_in_block_direction,
                         &mut self.collapsed_inline_direction_border_widths_for_table,
-                        &mut self.collapsed_block_direction_border_widths_for_table);
+                        &mut self.collapsed_block_direction_border_widths_for_table,
+                    );
                     previous_collapsed_block_end_borders =
                         PreviousBlockCollapsedBorders::FromPreviousRow(
-                            row.final_collapsed_borders.block_end.clone());
+                            row.final_collapsed_borders.block_end.clone(),
+                        );
                 }
                 first_row = false
-            };
+            }
         }
 
         let total_horizontal_spacing = self.total_horizontal_spacing();
-        let mut style_specified_intrinsic_inline_size =
-            self.block_flow
-                .fragment
-                .style_specified_intrinsic_inline_size()
-                .finish();
+        let mut style_specified_intrinsic_inline_size = self
+            .block_flow
+            .fragment
+            .style_specified_intrinsic_inline_size()
+            .finish();
         style_specified_intrinsic_inline_size.minimum_inline_size -= total_horizontal_spacing;
         style_specified_intrinsic_inline_size.preferred_inline_size -= total_horizontal_spacing;
         computation.union_block(&style_specified_intrinsic_inline_size);
@@ -376,9 +408,14 @@ impl Flow for TableFlow {
     /// Recursively (top-down) determines the actual inline-size of child contexts and fragments.
     /// When called on this context, the context has had its inline-size set by the parent context.
     fn assign_inline_sizes(&mut self, layout_context: &LayoutContext) {
-        let _scope = layout_debug_scope!("table::assign_inline_sizes {:x}",
-                                            self.block_flow.base.debug_id());
-        debug!("assign_inline_sizes({}): assigning inline_size for flow", "table");
+        let _scope = layout_debug_scope!(
+            "table::assign_inline_sizes {:x}",
+            self.block_flow.base.debug_id()
+        );
+        debug!(
+            "assign_inline_sizes({}): assigning inline_size for flow",
+            "table"
+        );
 
         let shared_context = layout_context.shared_context();
         // The position was set to the containing block by the flow's parent.
@@ -396,9 +433,11 @@ impl Flow for TableFlow {
         }
 
         let inline_size_computer = InternalTable;
-        inline_size_computer.compute_used_inline_size(&mut self.block_flow,
-                                                      shared_context,
-                                                      containing_block_inline_size);
+        inline_size_computer.compute_used_inline_size(
+            &mut self.block_flow,
+            shared_context,
+            containing_block_inline_size,
+        );
 
         let inline_start_content_edge = self.block_flow.fragment.border_padding.inline_start;
         let inline_end_content_edge = self.block_flow.fragment.border_padding.inline_end;
@@ -406,7 +445,8 @@ impl Flow for TableFlow {
         let spacing_per_cell = self.spacing();
         let total_horizontal_spacing = self.total_horizontal_spacing();
         let content_inline_size = self.block_flow.fragment.border_box.size.inline -
-            padding_and_borders - total_horizontal_spacing;
+            padding_and_borders -
+            total_horizontal_spacing;
         let mut remaining_inline_size = content_inline_size;
 
         match self.table_layout {
@@ -416,32 +456,32 @@ impl Flow for TableFlow {
                 // https://drafts.csswg.org/css2/tables.html#fixed-table-layout
                 for column_inline_size in &self.column_intrinsic_inline_sizes {
                     if column_inline_size.constrained {
-                        self.column_computed_inline_sizes.push(ColumnComputedInlineSize {
-                            size: column_inline_size.minimum_length,
-                        });
+                        self.column_computed_inline_sizes
+                            .push(ColumnComputedInlineSize {
+                                size: column_inline_size.minimum_length,
+                            });
                         remaining_inline_size -= column_inline_size.minimum_length;
                     } else if column_inline_size.percentage != 0.0 {
                         let size = remaining_inline_size.scale_by(column_inline_size.percentage);
-                        self.column_computed_inline_sizes.push(ColumnComputedInlineSize {
-                            size: size,
-                        });
+                        self.column_computed_inline_sizes
+                            .push(ColumnComputedInlineSize { size: size });
                         remaining_inline_size -= size;
                     } else {
                         // Set the size to 0 now, distribute the remaining widths later
-                        self.column_computed_inline_sizes.push(ColumnComputedInlineSize {
-                            size: Au(0),
-                        });
+                        self.column_computed_inline_sizes
+                            .push(ColumnComputedInlineSize { size: Au(0) });
                     }
                 }
 
                 // Distribute remaining content inline size
                 if unspecified_inline_sizes_indices.len() > 0 {
                     for &index in &unspecified_inline_sizes_indices {
-                        self.column_computed_inline_sizes[index].size =
-                            remaining_inline_size.scale_by(1.0 / unspecified_inline_sizes_indices.len() as f32);
+                        self.column_computed_inline_sizes[index].size = remaining_inline_size
+                            .scale_by(1.0 / unspecified_inline_sizes_indices.len() as f32);
                     }
                 } else {
-                    let total_minimum_size = self.column_intrinsic_inline_sizes
+                    let total_minimum_size = self
+                        .column_intrinsic_inline_sizes
                         .iter()
                         .filter(|size| size.constrained)
                         .map(|size| size.minimum_length.0 as f32)
@@ -453,57 +493,66 @@ impl Flow for TableFlow {
                             remaining_inline_size.scale_by(inline_size as f32 / total_minimum_size);
                     }
                 }
-            }
+            },
             _ => {
                 // The table wrapper already computed the inline-sizes and propagated them down
                 // to us.
-            }
+            },
         }
 
         let column_computed_inline_sizes = &self.column_computed_inline_sizes;
         let collapsed_inline_direction_border_widths_for_table =
             &self.collapsed_inline_direction_border_widths_for_table;
-        let mut collapsed_block_direction_border_widths_for_table =
-            self.collapsed_block_direction_border_widths_for_table.iter().peekable();
+        let mut collapsed_block_direction_border_widths_for_table = self
+            .collapsed_block_direction_border_widths_for_table
+            .iter()
+            .peekable();
         let mut incoming_rowspan = vec![];
-        self.block_flow.propagate_assigned_inline_size_to_children(shared_context,
-                                                                   inline_start_content_edge,
-                                                                   inline_end_content_edge,
-                                                                   content_inline_size,
-                                                                   |child_flow,
-                                                                    _child_index,
-                                                                    _content_inline_size,
-                                                                    writing_mode,
-                                                                    _inline_start_margin_edge,
-                                                                    _inline_end_margin_edge| {
-            table_row::propagate_column_inline_sizes_to_child(
-                child_flow,
-                writing_mode,
-                column_computed_inline_sizes,
-                &spacing_per_cell,
-                &mut incoming_rowspan);
-            if child_flow.is_table_row() {
-                let child_table_row = child_flow.as_mut_table_row();
-                child_table_row.populate_collapsed_border_spacing(
-                    collapsed_inline_direction_border_widths_for_table,
-                    &mut collapsed_block_direction_border_widths_for_table);
-            } else if child_flow.is_table_rowgroup() {
-                let child_table_rowgroup = child_flow.as_mut_table_rowgroup();
-                child_table_rowgroup.populate_collapsed_border_spacing(
-                    collapsed_inline_direction_border_widths_for_table,
-                    &mut collapsed_block_direction_border_widths_for_table);
-            }
-        });
+        self.block_flow.propagate_assigned_inline_size_to_children(
+            shared_context,
+            inline_start_content_edge,
+            inline_end_content_edge,
+            content_inline_size,
+            |child_flow,
+             _child_index,
+             _content_inline_size,
+             writing_mode,
+             _inline_start_margin_edge,
+             _inline_end_margin_edge| {
+                table_row::propagate_column_inline_sizes_to_child(
+                    child_flow,
+                    writing_mode,
+                    column_computed_inline_sizes,
+                    &spacing_per_cell,
+                    &mut incoming_rowspan,
+                );
+                if child_flow.is_table_row() {
+                    let child_table_row = child_flow.as_mut_table_row();
+                    child_table_row.populate_collapsed_border_spacing(
+                        collapsed_inline_direction_border_widths_for_table,
+                        &mut collapsed_block_direction_border_widths_for_table,
+                    );
+                } else if child_flow.is_table_rowgroup() {
+                    let child_table_rowgroup = child_flow.as_mut_table_rowgroup();
+                    child_table_rowgroup.populate_collapsed_border_spacing(
+                        collapsed_inline_direction_border_widths_for_table,
+                        &mut collapsed_block_direction_border_widths_for_table,
+                    );
+                }
+            },
+        );
     }
 
     fn assign_block_size(&mut self, lc: &LayoutContext) {
         debug!("assign_block_size: assigning block_size for table");
         let vertical_spacing = self.spacing().vertical();
-        self.block_flow.assign_block_size_for_table_like_flow(vertical_spacing, lc)
+        self.block_flow
+            .assign_block_size_for_table_like_flow(vertical_spacing, lc)
     }
 
     fn compute_stacking_relative_position(&mut self, layout_context: &LayoutContext) {
-        self.block_flow.compute_stacking_relative_position(layout_context)
+        self.block_flow
+            .compute_stacking_relative_position(layout_context)
     }
 
     fn generated_containing_block_size(&self, flow: OpaqueFlow) -> LogicalSize<Au> {
@@ -511,24 +560,29 @@ impl Flow for TableFlow {
     }
 
     fn update_late_computed_inline_position_if_necessary(&mut self, inline_position: Au) {
-        self.block_flow.update_late_computed_inline_position_if_necessary(inline_position)
+        self.block_flow
+            .update_late_computed_inline_position_if_necessary(inline_position)
     }
 
     fn update_late_computed_block_position_if_necessary(&mut self, block_position: Au) {
-        self.block_flow.update_late_computed_block_position_if_necessary(block_position)
+        self.block_flow
+            .update_late_computed_block_position_if_necessary(block_position)
     }
 
     fn build_display_list(&mut self, state: &mut DisplayListBuildState) {
-        let border_painting_mode = match self.block_flow
-                                             .fragment
-                                             .style
-                                             .get_inherited_table()
-                                             .border_collapse {
+        let border_painting_mode = match self
+            .block_flow
+            .fragment
+            .style
+            .get_inherited_table()
+            .border_collapse
+        {
             border_collapse::T::Separate => BorderPaintingMode::Separate,
             border_collapse::T::Collapse => BorderPaintingMode::Hidden,
         };
 
-        self.block_flow.build_display_list_for_block(state, border_painting_mode);
+        self.block_flow
+            .build_display_list_for_block(state, border_painting_mode);
 
         let iter = TableCellStyleIterator::new(&self);
         for style in iter {
@@ -538,8 +592,10 @@ impl Flow for TableFlow {
 
     fn collect_stacking_contexts(&mut self, state: &mut StackingContextCollectionState) {
         // Stacking contexts are collected by the table wrapper.
-        self.block_flow.collect_stacking_contexts_for_block(state,
-            StackingContextCollectionFlags::NEVER_CREATES_STACKING_CONTEXT);
+        self.block_flow.collect_stacking_contexts_for_block(
+            state,
+            StackingContextCollectionFlags::NEVER_CREATES_STACKING_CONTEXT,
+        );
     }
 
     fn repair_style(&mut self, new_style: &::ServoArc<ComputedValues>) {
@@ -550,11 +606,17 @@ impl Flow for TableFlow {
         self.block_flow.compute_overflow()
     }
 
-    fn iterate_through_fragment_border_boxes(&self,
-                                             iterator: &mut FragmentBorderBoxIterator,
-                                             level: i32,
-                                             stacking_context_position: &Point2D<Au>) {
-        self.block_flow.iterate_through_fragment_border_boxes(iterator, level, stacking_context_position)
+    fn iterate_through_fragment_border_boxes(
+        &self,
+        iterator: &mut FragmentBorderBoxIterator,
+        level: i32,
+        stacking_context_position: &Point2D<Au>,
+    ) {
+        self.block_flow.iterate_through_fragment_border_boxes(
+            iterator,
+            level,
+            stacking_context_position,
+        )
     }
 
     fn mutate_fragments(&mut self, mutator: &mut FnMut(&mut Fragment)) {
@@ -592,15 +654,16 @@ impl ISizeAndMarginsComputer for InternalTable {
         &self,
         block: &mut BlockFlow,
         shared_context: &SharedStyleContext,
-        parent_flow_inline_size: Au
+        parent_flow_inline_size: Au,
     ) {
-        let mut input = self.compute_inline_size_constraint_inputs(block,
-                                                                   parent_flow_inline_size,
-                                                                   shared_context);
+        let mut input = self.compute_inline_size_constraint_inputs(
+            block,
+            parent_flow_inline_size,
+            shared_context,
+        );
 
         // Tables are always at least as wide as their minimum inline size.
-        let minimum_inline_size =
-            block.base.intrinsic_inline_sizes.minimum_inline_size -
+        let minimum_inline_size = block.base.intrinsic_inline_sizes.minimum_inline_size -
             block.fragment.border_padding.inline_start_end();
         input.available_inline_size = cmp::max(input.available_inline_size, minimum_inline_size);
 
@@ -609,8 +672,11 @@ impl ISizeAndMarginsComputer for InternalTable {
     }
 
     /// Solve the inline-size and margins constraints for this block flow.
-    fn solve_inline_size_constraints(&self, _: &mut BlockFlow, input: &ISizeConstraintInput)
-                                     -> ISizeConstraintSolution {
+    fn solve_inline_size_constraints(
+        &self,
+        _: &mut BlockFlow,
+        input: &ISizeConstraintInput,
+    ) -> ISizeConstraintSolution {
         ISizeConstraintSolution::new(input.available_inline_size, Au(0), Au(0))
     }
 }
@@ -697,20 +763,28 @@ impl<T> VecExt<T> for Vec<T> {
 /// Updates the border styles in the block direction for a single row. This function should
 /// only be called if border collapsing is on. It is factored out into a separate function
 /// because we process children of rowgroups too.
-fn perform_border_collapse_for_row(child_table_row: &mut TableRowFlow,
-                                   table_inline_borders: &TableInlineCollapsedBorders,
-                                   previous_block_borders: PreviousBlockCollapsedBorders,
-                                   next_block_borders: NextBlockCollapsedBorders,
-                                   inline_spacing: &mut Vec<Au>,
-                                   block_spacing: &mut Vec<Au>) {
+fn perform_border_collapse_for_row(
+    child_table_row: &mut TableRowFlow,
+    table_inline_borders: &TableInlineCollapsedBorders,
+    previous_block_borders: PreviousBlockCollapsedBorders,
+    next_block_borders: NextBlockCollapsedBorders,
+    inline_spacing: &mut Vec<Au>,
+    block_spacing: &mut Vec<Au>,
+) {
     // TODO mbrubeck: Take rowspan and colspan into account.
-    let number_of_borders_inline_direction = child_table_row.preliminary_collapsed_borders.inline.len();
+    let number_of_borders_inline_direction =
+        child_table_row.preliminary_collapsed_borders.inline.len();
     // Compute interior inline borders.
-    for (i, this_inline_border) in child_table_row.preliminary_collapsed_borders
-                                                  .inline
-                                                  .iter_mut()
-                                                  .enumerate() {
-        child_table_row.final_collapsed_borders.inline.push_or_set(i, *this_inline_border);
+    for (i, this_inline_border) in child_table_row
+        .preliminary_collapsed_borders
+        .inline
+        .iter_mut()
+        .enumerate()
+    {
+        child_table_row
+            .final_collapsed_borders
+            .inline
+            .push_or_set(i, *this_inline_border);
         if i == 0 {
             child_table_row.final_collapsed_borders.inline[i].combine(&table_inline_borders.start);
         } else if i + 1 == number_of_borders_inline_direction {
@@ -718,22 +792,28 @@ fn perform_border_collapse_for_row(child_table_row: &mut TableRowFlow,
         }
 
         let inline_spacing = inline_spacing.get_mut_or_push(i, Au(0));
-        *inline_spacing = cmp::max(*inline_spacing, child_table_row.final_collapsed_borders.inline[i].width)
+        *inline_spacing = cmp::max(
+            *inline_spacing,
+            child_table_row.final_collapsed_borders.inline[i].width,
+        )
     }
 
     // Compute block-start borders.
     let block_start_borders = &mut child_table_row.final_collapsed_borders.block_start;
-    *block_start_borders = child_table_row.preliminary_collapsed_borders.block_start.clone();
+    *block_start_borders = child_table_row
+        .preliminary_collapsed_borders
+        .block_start
+        .clone();
     for (i, this_border) in block_start_borders.iter_mut().enumerate() {
         match previous_block_borders {
             PreviousBlockCollapsedBorders::FromPreviousRow(ref previous_block_borders) => {
                 if previous_block_borders.len() > i {
                     this_border.combine(&previous_block_borders[i]);
                 }
-            }
+            },
             PreviousBlockCollapsedBorders::FromTable(table_border) => {
                 this_border.combine(&table_border);
-            }
+            },
         }
     }
 
@@ -741,20 +821,22 @@ fn perform_border_collapse_for_row(child_table_row: &mut TableRowFlow,
     let next_block = &mut child_table_row.final_collapsed_borders.block_end;
     block_spacing.push(Au(0));
     let block_spacing = block_spacing.last_mut().unwrap();
-    for (i, this_block_border) in child_table_row.preliminary_collapsed_borders
-                                                 .block_end
-                                                 .iter()
-                                                 .enumerate() {
+    for (i, this_block_border) in child_table_row
+        .preliminary_collapsed_borders
+        .block_end
+        .iter()
+        .enumerate()
+    {
         let next_block = next_block.push_or_set(i, *this_block_border);
         match next_block_borders {
             NextBlockCollapsedBorders::FromNextRow(next_block_borders) => {
                 if next_block_borders.len() > i {
                     next_block.combine(&next_block_borders[i])
                 }
-            }
+            },
             NextBlockCollapsedBorders::FromTable(ref next_block_borders) => {
                 next_block.combine(next_block_borders);
-            }
+            },
         }
         *block_spacing = cmp::max(*block_spacing, next_block.width)
     }
@@ -764,27 +846,41 @@ fn perform_border_collapse_for_row(child_table_row: &mut TableRowFlow,
 /// rowgroups.
 pub trait TableLikeFlow {
     /// Lays out the rows of a table.
-    fn assign_block_size_for_table_like_flow(&mut self, block_direction_spacing: Au,
-                                             layout_context: &LayoutContext);
+    fn assign_block_size_for_table_like_flow(
+        &mut self,
+        block_direction_spacing: Au,
+        layout_context: &LayoutContext,
+    );
 }
 
 impl TableLikeFlow for BlockFlow {
-    fn assign_block_size_for_table_like_flow(&mut self, block_direction_spacing: Au,
-                                             layout_context: &LayoutContext) {
-        debug_assert!(self.fragment.style.get_inherited_table().border_collapse ==
-                      border_collapse::T::Separate || block_direction_spacing == Au(0));
+    fn assign_block_size_for_table_like_flow(
+        &mut self,
+        block_direction_spacing: Au,
+        layout_context: &LayoutContext,
+    ) {
+        debug_assert!(
+            self.fragment.style.get_inherited_table().border_collapse ==
+                border_collapse::T::Separate ||
+                block_direction_spacing == Au(0)
+        );
 
-        fn border_spacing_for_row(fragment: &Fragment, row: &TableRowFlow,
-                                  block_direction_spacing: Au) -> Au {
+        fn border_spacing_for_row(
+            fragment: &Fragment,
+            row: &TableRowFlow,
+            block_direction_spacing: Au,
+        ) -> Au {
             match fragment.style.get_inherited_table().border_collapse {
                 border_collapse::T::Separate => block_direction_spacing,
-                border_collapse::T::Collapse => {
-                    row.collapsed_border_spacing.block_start
-                }
+                border_collapse::T::Collapse => row.collapsed_border_spacing.block_start,
             }
         }
 
-        if self.base.restyle_damage.contains(ServoRestyleDamage::REFLOW) {
+        if self
+            .base
+            .restyle_damage
+            .contains(ServoRestyleDamage::REFLOW)
+        {
             let mut sizes = vec![Default::default()];
             // The amount of border spacing up to and including this row,
             // but not including the spacing beneath it
@@ -803,14 +899,16 @@ impl TableLikeFlow for BlockFlow {
                         first = false;
                         continue;
                     }
-                    cumulative_border_spacing +=
-                        border_spacing_for_row(&self.fragment, kid.as_table_row(),
-                                               block_direction_spacing);
+                    cumulative_border_spacing += border_spacing_for_row(
+                        &self.fragment,
+                        kid.as_table_row(),
+                        block_direction_spacing,
+                    );
                     sizes.push(TableRowSizeData {
                         // we haven't calculated sizes yet
                         size: Au(0),
                         cumulative_border_spacing,
-                        rowgroup_id
+                        rowgroup_id,
                     });
                 } else if kid.is_table_rowgroup() && !first {
                     rowgroup_id += 1;
@@ -822,16 +920,16 @@ impl TableLikeFlow for BlockFlow {
             let mut i = 0;
             for kid in self.base.child_iter_mut() {
                 if kid.is_table_row() {
-                    let size = kid.as_mut_table_row()
-                        .compute_block_size_table_row_base(layout_context,
-                                                           &mut incoming_rowspan_data,
-                                                           &sizes,
-                                                           i);
+                    let size = kid.as_mut_table_row().compute_block_size_table_row_base(
+                        layout_context,
+                        &mut incoming_rowspan_data,
+                        &sizes,
+                        i,
+                    );
                     sizes[i].size = size;
                     i += 1;
                 }
             }
-
 
             // Our current border-box position.
             let block_start_border_padding = self.fragment.border_padding.block_start;
@@ -848,12 +946,12 @@ impl TableLikeFlow for BlockFlow {
                     has_rows = true;
                     let row = kid.as_mut_table_row();
                     row.assign_block_size_to_self_and_children(&sizes, i);
-                    row.mut_base().restyle_damage
-                        .remove(ServoRestyleDamage::REFLOW_OUT_OF_FLOW |
-                                ServoRestyleDamage::REFLOW);
-                    current_block_offset = current_block_offset +
-                        border_spacing_for_row(&self.fragment, row,
-                                               block_direction_spacing);
+                    row.mut_base().restyle_damage.remove(
+                        ServoRestyleDamage::REFLOW_OUT_OF_FLOW | ServoRestyleDamage::REFLOW,
+                    );
+                    current_block_offset =
+                        current_block_offset +
+                            border_spacing_for_row(&self.fragment, row, block_direction_spacing);
                     i += 1;
                 }
 
@@ -873,13 +971,13 @@ impl TableLikeFlow for BlockFlow {
             let mut block_size = current_block_offset - block_start_border_padding;
             let mut candidate_block_size_iterator = CandidateBSizeIterator::new(
                 &self.fragment,
-                self.base.block_container_explicit_block_size);
+                self.base.block_container_explicit_block_size,
+            );
             while let Some(candidate_block_size) = candidate_block_size_iterator.next() {
-                candidate_block_size_iterator.candidate_value =
-                    match candidate_block_size {
-                        MaybeAuto::Auto => block_size,
-                        MaybeAuto::Specified(value) => value
-                    };
+                candidate_block_size_iterator.candidate_value = match candidate_block_size {
+                    MaybeAuto::Auto => block_size,
+                    MaybeAuto::Specified(value) => value,
+                };
             }
 
             // Adjust `current_block_offset` as necessary to account for the explicitly-specified
@@ -889,8 +987,11 @@ impl TableLikeFlow for BlockFlow {
             current_block_offset = current_block_offset + delta;
 
             // Take border, padding, and spacing into account.
-            let block_end_offset = self.fragment.border_padding.block_end +
-                if has_rows { block_direction_spacing } else { Au(0) };
+            let block_end_offset = self.fragment.border_padding.block_end + if has_rows {
+                block_direction_spacing
+            } else {
+                Au(0)
+            };
             current_block_offset = current_block_offset + block_end_offset;
 
             // Now that `current_block_offset` is at the block-end of the border box, compute the
@@ -910,7 +1011,9 @@ impl TableLikeFlow for BlockFlow {
             }
         }
 
-        self.base.restyle_damage.remove(ServoRestyleDamage::REFLOW_OUT_OF_FLOW | ServoRestyleDamage::REFLOW);
+        self.base
+            .restyle_damage
+            .remove(ServoRestyleDamage::REFLOW_OUT_OF_FLOW | ServoRestyleDamage::REFLOW);
     }
 }
 
@@ -937,7 +1040,7 @@ enum NextBlockCollapsedBorders<'a> {
 /// provides the Fragment for rowgroups if any
 struct TableRowAndGroupIterator<'a> {
     kids: FlowListIterator<'a>,
-    group: Option<(&'a Fragment, FlowListIterator<'a>)>
+    group: Option<(&'a Fragment, FlowListIterator<'a>)>,
 }
 
 impl<'a> TableRowAndGroupIterator<'a> {
@@ -956,7 +1059,7 @@ impl<'a> Iterator for TableRowAndGroupIterator<'a> {
         // If we're inside a rowgroup, iterate through the rowgroup's children.
         if let Some(ref mut group) = self.group {
             if let Some(grandkid) = group.1.next() {
-                return Some((Some(group.0), grandkid.as_table_row()))
+                return Some((Some(group.0), grandkid.as_table_row()));
             }
         }
         // Otherwise, iterate through the table's children.
@@ -973,8 +1076,8 @@ impl<'a> Iterator for TableRowAndGroupIterator<'a> {
                 } else {
                     self.next() // Skip children that are not rows or rowgroups
                 }
-            }
-            None => None
+            },
+            None => None,
         }
     }
 }
@@ -983,7 +1086,7 @@ impl<'a> Iterator for TableRowAndGroupIterator<'a> {
 /// provides the Fragment for rowgroups if any
 struct MutTableRowAndGroupIterator<'a> {
     kids: MutFlowListIterator<'a>,
-    group: Option<(&'a Fragment, MutFlowListIterator<'a>)>
+    group: Option<(&'a Fragment, MutFlowListIterator<'a>)>,
 }
 
 impl<'a> MutTableRowAndGroupIterator<'a> {
@@ -1002,7 +1105,7 @@ impl<'a> Iterator for MutTableRowAndGroupIterator<'a> {
         // If we're inside a rowgroup, iterate through the rowgroup's children.
         if let Some(ref mut group) = self.group {
             if let Some(grandkid) = group.1.next() {
-                return Some((Some(group.0), grandkid.as_mut_table_row()))
+                return Some((Some(group.0), grandkid.as_mut_table_row()));
             }
         }
         // Otherwise, iterate through the table's children.
@@ -1019,8 +1122,8 @@ impl<'a> Iterator for MutTableRowAndGroupIterator<'a> {
                 } else {
                     self.next() // Skip children that are not rows or rowgroups
                 }
-            }
-            None => None
+            },
+            None => None,
         }
     }
 }
@@ -1052,7 +1155,6 @@ struct TableCellStyleIterator<'table> {
     row_iterator: TableRowAndGroupIterator<'table>,
     row_info: Option<TableCellStyleIteratorRowInfo<'table>>,
     column_index: TableCellColumnIndexData,
-
 }
 
 struct TableCellStyleIteratorRowInfo<'table> {
@@ -1069,13 +1171,15 @@ impl<'table> TableCellStyleIterator<'table> {
             Some(TableCellStyleIteratorRowInfo {
                 row: &row,
                 rowgroup: group,
-                cell_iterator: row.block_flow.base.child_iter()
+                cell_iterator: row.block_flow.base.child_iter(),
             })
         } else {
             None
         };
         TableCellStyleIterator {
-            column_styles, row_iterator, row_info,
+            column_styles,
+            row_iterator,
+            row_info,
             column_index: Default::default(),
         }
     }
@@ -1118,14 +1222,12 @@ impl TableCellColumnIndexData {
     fn advance(&mut self, amount: u32, column_styles: &[ColumnStyle]) {
         self.absolute += amount;
         self.relative_offset += amount;
-        if let Some(mut current_col) =
-            column_styles.get(self.relative as usize) {
+        if let Some(mut current_col) = column_styles.get(self.relative as usize) {
             while self.relative_offset >= current_col.span {
                 // move to the next column
                 self.relative += 1;
                 self.relative_offset -= current_col.span;
-                if let Some(column_style) =
-                    column_styles.get(self.relative as usize) {
+                if let Some(column_style) = column_styles.get(self.relative as usize) {
                     current_col = column_style;
                 } else {
                     // we ran out of column_styles,
@@ -1144,7 +1246,11 @@ impl<'table> Iterator for TableCellStyleIterator<'table> {
         // FIXME We do this awkward .take() followed by shoving it back in
         // because without NLL the row_info borrow lasts too long
         if let Some(mut row_info) = self.row_info.take() {
-            if let Some(rowspan) = row_info.row.incoming_rowspan.get(self.column_index.absolute as usize) {
+            if let Some(rowspan) = row_info
+                .row
+                .incoming_rowspan
+                .get(self.column_index.absolute as usize)
+            {
                 // we are not allowed to use this column as a starting point. Try the next one.
                 if *rowspan > 1 {
                     self.column_index.advance(1, &self.column_styles);
@@ -1159,9 +1265,14 @@ impl<'table> Iterator for TableCellStyleIterator<'table> {
                 let row_style = row_info.row.block_flow.fragment.style();
                 let cell = cell.as_table_cell();
                 let (col_style, colgroup_style) = if let Some(column_style) =
-                        self.column_styles.get(self.column_index.relative as usize) {
-                    let styles = (column_style.col_style.clone(), column_style.colgroup_style.clone());
-                    self.column_index.advance(cell.column_span, &self.column_styles);
+                    self.column_styles.get(self.column_index.relative as usize)
+                {
+                    let styles = (
+                        column_style.col_style.clone(),
+                        column_style.colgroup_style.clone(),
+                    );
+                    self.column_index
+                        .advance(cell.column_span, &self.column_styles);
 
                     styles
                 } else {
@@ -1175,14 +1286,14 @@ impl<'table> Iterator for TableCellStyleIterator<'table> {
                     col_style,
                     rowgroup_style,
                     row_style,
-                })
+                });
             } else {
                 // next row
                 if let Some((group, row)) = self.row_iterator.next() {
                     self.row_info = Some(TableCellStyleIteratorRowInfo {
                         row: &row,
                         rowgroup: group,
-                        cell_iterator: row.block_flow.base.child_iter()
+                        cell_iterator: row.block_flow.base.child_iter(),
                     });
                     self.column_index = Default::default();
                     self.next()
@@ -1203,17 +1314,29 @@ impl<'table> TableCellStyleInfo<'table> {
     fn build_display_list(&self, mut state: &mut DisplayListBuildState) {
         use style::computed_values::visibility::T as Visibility;
 
-        if !self.cell.visible || self.cell.block_flow.fragment.style()
-                                     .get_inherited_box().visibility != Visibility::Visible {
-            return
+        if !self.cell.visible ||
+            self.cell
+                .block_flow
+                .fragment
+                .style()
+                .get_inherited_box()
+                .visibility !=
+                Visibility::Visible
+        {
+            return;
         }
-        let border_painting_mode = match self.cell.block_flow
-                                             .fragment
-                                             .style
-                                             .get_inherited_table()
-                                             .border_collapse {
+        let border_painting_mode = match self
+            .cell
+            .block_flow
+            .fragment
+            .style
+            .get_inherited_table()
+            .border_collapse
+        {
             border_collapse::T::Separate => BorderPaintingMode::Separate,
-            border_collapse::T::Collapse => BorderPaintingMode::Collapse(&self.cell.collapsed_borders),
+            border_collapse::T::Collapse => {
+                BorderPaintingMode::Collapse(&self.cell.collapsed_borders)
+            },
         };
         {
             let cell_flow = &self.cell.block_flow;
@@ -1227,7 +1350,9 @@ impl<'table> TableCellStyleInfo<'table> {
                 }
                 let background_color = sty.resolve_color(background.background_color);
                 cell_flow.build_display_list_for_background_if_applicable_with_background(
-                    state, background, background_color
+                    state,
+                    background,
+                    background_color,
                 );
             };
 
@@ -1243,6 +1368,8 @@ impl<'table> TableCellStyleInfo<'table> {
             build_dl(self.row_style, &mut state);
         }
         // the restyle damage will be set in TableCellFlow::build_display_list()
-        self.cell.block_flow.build_display_list_for_block_no_damage(state, border_painting_mode)
+        self.cell
+            .block_flow
+            .build_display_list_for_block_no_damage(state, border_painting_mode)
     }
 }

@@ -19,9 +19,15 @@ where F: for<'t> Fn(&ParserContext, &mut Parser<'static, 't>) -> Result<T, Parse
 fn parse_input<'i: 't, 't, T, F>(f: F, input: &'t mut ParserInput<'i>) -> Result<T, ParseError<'i>>
 where F: Fn(&ParserContext, &mut Parser<'i, 't>) -> Result<T, ParseError<'i>> {
     let url = ::servo_url::ServoUrl::parse("http://localhost").unwrap();
-    let context = ParserContext::new(Origin::Author, &url, Some(CssRuleType::Style),
-                                     ParsingMode::DEFAULT,
-                                     QuirksMode::NoQuirks, None);
+    let context = ParserContext::new(
+        Origin::Author,
+        &url,
+        Some(CssRuleType::Style),
+        ParsingMode::DEFAULT,
+        QuirksMode::NoQuirks,
+        None,
+        None,
+    );
     let mut parser = Parser::new(input);
     f(&context, &mut parser)
 }

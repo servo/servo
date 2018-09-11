@@ -5,11 +5,10 @@
 #![cfg_attr(feature = "unstable", feature(core_intrinsics))]
 #![cfg_attr(feature = "unstable", feature(on_unimplemented))]
 #![feature(const_fn)]
+#![feature(drain_filter)]
 #![feature(mpsc_select)]
 #![feature(plugin)]
-#![feature(string_retain)]
 #![feature(try_from)]
-#![feature(use_extern_macros)]
 
 #![deny(unsafe_code)]
 #![allow(non_snake_case)]
@@ -125,6 +124,7 @@ pub mod script_thread;
 mod serviceworker_manager;
 mod serviceworkerjob;
 mod stylesheet_loader;
+mod task_queue;
 mod task_source;
 pub mod test;
 pub mod textinput;

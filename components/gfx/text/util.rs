@@ -9,7 +9,7 @@ pub enum CompressionMode {
     CompressNone,
     CompressWhitespace,
     CompressWhitespaceNewline,
-    DiscardNewline
+    DiscardNewline,
 }
 
 // ported from Gecko's nsTextFrameUtils::TransformText.
@@ -22,11 +22,12 @@ pub enum CompressionMode {
 // * Issue #114: record skipped and kept chars for mapping original to new text
 //
 // * Untracked: various edge cases for bidi, CJK, etc.
-pub fn transform_text(text: &str,
-                      mode: CompressionMode,
-                      incoming_whitespace: bool,
-                      output_text: &mut String)
-                      -> bool {
+pub fn transform_text(
+    text: &str,
+    mode: CompressionMode,
+    incoming_whitespace: bool,
+    output_text: &mut String,
+) -> bool {
     let out_whitespace = match mode {
         CompressionMode::CompressNone | CompressionMode::DiscardNewline => {
             for ch in text.chars() {
@@ -53,12 +54,13 @@ pub fn transform_text(text: &str,
                     if is_always_discardable_char(ch) {
                         // revert whitespace setting, since this char was discarded
                         next_in_whitespace = in_whitespace;
-                        // TODO: record skipped char
+                    // TODO: record skipped char
                     } else {
                         // TODO: record kept char
                         output_text.push(ch);
                     }
-                } else { /* next_in_whitespace; possibly add a space char */
+                } else {
+                    /* next_in_whitespace; possibly add a space char */
                     if in_whitespace {
                         // TODO: record skipped char
                     } else {
@@ -70,17 +72,17 @@ pub fn transform_text(text: &str,
                 in_whitespace = next_in_whitespace;
             } /* /for str::each_char */
             in_whitespace
-        }
+        },
     };
 
     return out_whitespace;
 
     fn is_in_whitespace(ch: char, mode: CompressionMode) -> bool {
         match (ch, mode) {
-            (' ', _)  => true,
+            (' ', _) => true,
             ('\t', _) => true,
             ('\n', CompressionMode::CompressWhitespaceNewline) => true,
-            (_, _)    => false
+            (_, _) => false,
         }
     }
 
@@ -89,8 +91,10 @@ pub fn transform_text(text: &str,
             return true;
         }
         match mode {
-            CompressionMode::DiscardNewline | CompressionMode::CompressWhitespaceNewline => ch == '\n',
-            _ => false
+            CompressionMode::DiscardNewline | CompressionMode::CompressWhitespaceNewline => {
+                ch == '\n'
+            },
+            _ => false,
         }
     }
 
@@ -113,7 +117,7 @@ pub fn is_bidi_control(c: char) -> bool {
         '\u{202A}'...'\u{202E}' => true,
         '\u{2066}'...'\u{2069}' => true,
         '\u{200E}' | '\u{200F}' | '\u{061C}' => true,
-        _ => false
+        _ => false,
     }
 }
 
@@ -143,14 +147,11 @@ pub fn is_cjk(codepoint: char) -> bool {
             UnicodeBlock::CJKUnifiedIdeographs |
             UnicodeBlock::CJKCompatibilityIdeographs |
             UnicodeBlock::CJKCompatibilityForms |
-            UnicodeBlock::HalfwidthandFullwidthForms => {
-                return true
-            }
+            UnicodeBlock::HalfwidthandFullwidthForms => return true,
 
-            _ => {}
+            _ => {},
         }
     }
-
 
     // https://en.wikipedia.org/wiki/Plane_(Unicode)#Supplementary_Ideographic_Plane
     unicode_plane(codepoint) == 2

@@ -23,7 +23,9 @@ mod freetype {
     /// Creates a String from the given null-terminated buffer.
     /// Panics if the buffer does not contain UTF-8.
     unsafe fn c_str_to_string(s: *const c_char) -> String {
-        str::from_utf8(CStr::from_ptr(s).to_bytes()).unwrap().to_owned()
+        str::from_utf8(CStr::from_ptr(s).to_bytes())
+            .unwrap()
+            .to_owned()
     }
 
     pub mod font;

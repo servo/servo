@@ -47,6 +47,7 @@ def get_loader(test_paths, product, debug=None, run_info_extras=None, **kwargs):
 
     run_info = wpttest.get_run_info(kwargs["run_info"], product,
                                     browser_version=kwargs.get("browser_version"),
+                                    browser_channel=kwargs.get("browser_channel"),
                                     debug=debug,
                                     extras=run_info_extras)
 
