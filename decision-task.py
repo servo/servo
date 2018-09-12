@@ -1,5 +1,6 @@
 # coding: utf8
 
+import hashlib
 import json
 import os
 import re
@@ -46,6 +47,7 @@ DECISION_TASK_ID = os.environ["TASK_ID"]
 
 # https://docs.taskcluster.net/docs/reference/workers/docker-worker/docs/features#feature-taskclusterproxy
 QUEUE = taskcluster.Queue(options={"baseUrl": "http://taskcluster/queue/v1/"})
+INDEX = taskcluster.Index(options={"baseUrl": "http://taskcluster/index/v1/"})
 
 IMAGE_ARTIFACT_FILENAME = "image.tar.lz4"
 
@@ -66,6 +68,15 @@ def create_task_with_in_tree_dockerfile(name, command, image, **kwargs):
 def build_image(name):
     with open(os.path.join(REPO, name + ".dockerfile"), "rb") as f:
         dockerfile = f.read()
+    digest = hashlib.sha256(dockerfile).hexdigest()
+    route = "index.project.servo.servo-taskcluster-experiments.docker-image." + digest
+
+    try:
+        result = INDEX.findTask(route)
+        return result["taskId"]
+    except taskcluster.TaskclusterRestFailure as e:
+        if e.status_code != 404:
+            raise
 
     image_build_task = create_task(
         "docker image build task for image: " + name,
@@ -84,12 +95,13 @@ def build_image(name):
             "dind": True,  # docker-in-docker
         },
         with_repo=False,
+        routes=[route],
     )
     return image_build_task
 
 
 def create_task(name, command, image, artifacts=None, dependencies=None, env=None, cache=None,
-                scopes=None, features=None, with_repo=True):
+                scopes=None, routes=None, features=None, with_repo=True):
     env = env or {}
 
     if with_repo:
@@ -118,6 +130,7 @@ def create_task(name, command, image, artifacts=None, dependencies=None, env=Non
             "source": os.environ["GITHUB_EVENT_SOURCE"],
         },
         "scopes": scopes or [],
+        "routes": routes or [],
         "payload": {
             "cache": cache or {},
             "maxRunTime": 3600,

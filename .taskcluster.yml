@@ -23,6 +23,7 @@ tasks:
         - "queue:create-task:highest:aws-provisioner-v1/servo-*"
         - "docker-worker:cache:cargo-registry-cache"
         - "docker-worker:cache:cargo-git-cache"
+        - "queue:route:index.project.servo.servo-taskcluster-experiments.*"
 
       payload:
         maxRunTime: 1200
