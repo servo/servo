@@ -318,8 +318,9 @@ fn create_and_insert_some_stuff() {
         assert!(bf.might_contain_hash(hash_as_str(i)));
     }
 
-    let false_positives =
-        (1001_usize..2000).filter(|i| bf.might_contain_hash(hash_as_str(*i))).count();
+    let false_positives = (1001_usize..2000)
+        .filter(|i| bf.might_contain_hash(hash_as_str(*i)))
+        .count();
 
     assert!(false_positives < 190, "{} is not < 190", false_positives); // 19%.
 
@@ -331,7 +332,9 @@ fn create_and_insert_some_stuff() {
         assert!(bf.might_contain_hash(hash_as_str(i)));
     }
 
-    let false_positives = (0_usize..100).filter(|i| bf.might_contain_hash(hash_as_str(*i))).count();
+    let false_positives = (0_usize..100)
+        .filter(|i| bf.might_contain_hash(hash_as_str(*i)))
+        .count();
 
     assert!(false_positives < 20, "{} is not < 20", false_positives); // 20%.
 
