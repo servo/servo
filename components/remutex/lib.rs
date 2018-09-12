@@ -10,8 +10,10 @@
 //! It provides the same interface as https://github.com/rust-lang/rust/blob/master/src/libstd/sys/common/remutex.rs
 //! so if those types are ever exported, we should be able to replace this implemtation.
 
-#[macro_use] extern crate lazy_static;
-#[macro_use] extern crate log;
+#[macro_use]
+extern crate lazy_static;
+#[macro_use]
+extern crate log;
 
 use std::cell::{Cell, UnsafeCell};
 use std::num::NonZeroUsize;
@@ -26,7 +28,9 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct ThreadId(NonZeroUsize);
 
-lazy_static!{ static ref THREAD_COUNT: AtomicUsize = AtomicUsize::new(1); }
+lazy_static! {
+    static ref THREAD_COUNT: AtomicUsize = AtomicUsize::new(1);
+}
 
 impl ThreadId {
     #[allow(unsafe_code)]
@@ -96,7 +100,8 @@ impl HandOverHandMutex {
         // that is the lifetime is 'a not 'static.
         let guard_ptr = &mut *(self.guard.get() as *mut u8 as *mut Option<MutexGuard<'a, ()>>);
         *guard_ptr = Some(guard);
-        self.owner.store(Some(ThreadId::current()), Ordering::Relaxed);
+        self.owner
+            .store(Some(ThreadId::current()), Ordering::Relaxed);
     }
     #[allow(unsafe_code)]
     unsafe fn unset_guard_and_owner(&self) {
@@ -116,7 +121,9 @@ impl HandOverHandMutex {
             Ok(guard) => (guard, Ok(())),
             Err(err) => (err.into_inner(), Err(PoisonError::new(()))),
         };
-        unsafe { self.set_guard_and_owner(guard); }
+        unsafe {
+            self.set_guard_and_owner(guard);
+        }
         result
     }
     #[allow(unsafe_code)]
@@ -124,14 +131,21 @@ impl HandOverHandMutex {
         let (guard, result) = match self.mutex.try_lock() {
             Ok(guard) => (guard, Ok(())),
             Err(TryLockError::WouldBlock) => return Err(TryLockError::WouldBlock),
-            Err(TryLockError::Poisoned(err)) => (err.into_inner(), Err(TryLockError::Poisoned(PoisonError::new(())))),
+            Err(TryLockError::Poisoned(err)) => (
+                err.into_inner(),
+                Err(TryLockError::Poisoned(PoisonError::new(()))),
+            ),
         };
-        unsafe { self.set_guard_and_owner(guard); }
+        unsafe {
+            self.set_guard_and_owner(guard);
+        }
         result
     }
     #[allow(unsafe_code)]
     pub fn unlock(&self) {
-        unsafe { self.unset_guard_and_owner(); }
+        unsafe {
+            self.unset_guard_and_owner();
+        }
     }
     pub fn owner(&self) -> Option<ThreadId> {
         self.owner.load(Ordering::Relaxed)
@@ -185,7 +199,7 @@ impl<T> ReentrantMutex<T> {
                 match err {
                     TryLockError::WouldBlock => {
                         trace!("{:?} Would block.", ThreadId::current());
-                        return Err(TryLockError::WouldBlock)
+                        return Err(TryLockError::WouldBlock);
                     },
                     TryLockError::Poisoned(_) => {
                         trace!("{:?} Poison!", ThreadId::current());
@@ -200,7 +214,11 @@ impl<T> ReentrantMutex<T> {
 
     fn unlock(&self) {
         trace!("{:?} Unlocking.", ThreadId::current());
-        let count = self.count.get().checked_sub(1).expect("Underflowed lock count.");
+        let count = self
+            .count
+            .get()
+            .checked_sub(1)
+            .expect("Underflowed lock count.");
         trace!("{:?} Decrementing count to {}.", ThreadId::current(), count);
         self.count.set(count);
         if count == 0 {
@@ -210,7 +228,11 @@ impl<T> ReentrantMutex<T> {
     }
 
     fn mk_guard(&self) -> ReentrantMutexGuard<T> {
-        let count = self.count.get().checked_add(1).expect("Overflowed lock count.");
+        let count = self
+            .count
+            .get()
+            .checked_add(1)
+            .expect("Overflowed lock count.");
         trace!("{:?} Incrementing count to {}.", ThreadId::current(), count);
         self.count.set(count);
         ReentrantMutexGuard { mutex: self }
@@ -218,7 +240,10 @@ impl<T> ReentrantMutex<T> {
 }
 
 #[must_use]
-pub struct ReentrantMutexGuard<'a, T> where T: 'static {
+pub struct ReentrantMutexGuard<'a, T>
+where
+    T: 'static,
+{
     mutex: &'a ReentrantMutex<T>,
 }
 
