@@ -64,17 +64,16 @@ def create_task_with_in_tree_dockerfile(name, command, image, **kwargs):
 
 
 def build_image(name):
-    with open(os.path.join(REPO, "docker", name, "Dockerfile"), "rb") as f:
+    with open(os.path.join(REPO, name + ".dockerfile"), "rb") as f:
         dockerfile = f.read()
 
     image_build_task = create_task(
         "docker image build task for image: " + name,
         """
-            echo "$DOCKERFILE" | docker build -t "$IMAGE" -
-            docker save "$IMAGE" | lz4 > /%s
+            echo "$DOCKERFILE" | docker build -t taskcluster-built -
+            docker save taskcluster-built | lz4 > /%s
         """ % IMAGE_ARTIFACT_FILENAME,
         env={
-            "IMAGE": name,
             "DOCKERFILE": dockerfile,
         },
         artifacts=[
