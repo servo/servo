@@ -632,7 +632,10 @@ class WebSocketDaemon(object):
 def start_ws_server(host, port, paths, routes, bind_address, config, **kwargs):
     # Ensure that when we start this in a new process we don't inherit the
     # global lock in the logging module
-    reload_module(logging)
+    try:
+        logging._releaseLock()
+    except RuntimeError:
+        pass
     return WebSocketDaemon(host,
                            str(port),
                            repo_root,
@@ -645,7 +648,10 @@ def start_ws_server(host, port, paths, routes, bind_address, config, **kwargs):
 def start_wss_server(host, port, paths, routes, bind_address, config, **kwargs):
     # Ensure that when we start this in a new process we don't inherit the
     # global lock in the logging module
-    reload_module(logging)
+    try:
+        logging._releaseLock()
+    except RuntimeError:
+        pass
     return WebSocketDaemon(host,
                            str(port),
                            repo_root,
