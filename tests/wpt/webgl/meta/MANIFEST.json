@@ -36364,7 +36364,7 @@
    "testharness"
   ],
   "conformance/rendering/framebuffer-switch.html": [
-   "943f571b3b15f9794e2a9e3f89fcdadf1d49b6dd",
+   "fc8c3dc5dac8a2ece2b286325bf8f1b227f3aee6",
    "testharness"
   ],
   "conformance/rendering/framebuffer-texture-clear.html": [
@@ -36372,7 +36372,7 @@
    "testharness"
   ],
   "conformance/rendering/framebuffer-texture-switch.html": [
-   "5b677f79ad9378638624dab7c001f8381eed5e87",
+   "04d03a0bc2e2f834762f0bb47e484a38323213f8",
    "testharness"
   ],
   "conformance/rendering/gl-clear.html": [

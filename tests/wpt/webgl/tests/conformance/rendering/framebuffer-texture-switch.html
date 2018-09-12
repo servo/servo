@@ -44,6 +44,7 @@
 "use strict";
 description("Test framebuffer texture attachment switching. The test uses one framebuffer object and switches its color attachment.");
 var wtu = WebGLTestUtils;
+var canvas = document.getElementById("canvas");
 
 var gl = wtu.create3DContext("canvas");
 var program = wtu.setupTexturedQuad(gl);
