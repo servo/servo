@@ -77,6 +77,7 @@ def build_image(name):
     except taskcluster.TaskclusterRestFailure as e:
         if e.status_code != 404:
             raise
+        print("404 when looking up route", route, e, vars(e))
 
     image_build_task = create_task(
         "docker image build task for image: " + name,
