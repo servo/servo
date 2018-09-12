@@ -1,0 +1,15 @@
+<ObjectModel name="Servo2D" version="1">
+    <TransformNode/>
+    <QuadNode castShadow="false" name="content" pos="-0.250000, -0.190000, 0.000000" receiveShadow="false" shader="UnlitColorTex2d" size="0.500000, 0.440000"/>
+    <UiLinearLayout alignment="Top, Center" gravityWellEnabled="false" gravityWellRoundness="0.000000" gravityWellSize="0.000000, 0.000000" gravityWellSnap="ClosestEdge" itemAlignment="Center, Left" itemPadding="0.000000, 0.010000, 0.000000, 0.010000" name="uiLinearLayout1" orientation="Horizontal" pos="0.000000, -0.200000, 0.000000" size="0.500000, 0.050000">
+        <Content>
+            <UiButton gravityWellEnabled="false" gravityWellRoundness="0.000000" gravityWellSize="0.000000, 0.000000" gravityWellSnap="ClosestEdge" name="backButton" pos="0.000000, -0.600000, 0.000000" size="0.100000, 0.100000" text="Back" textSize="0.050000"/>
+        </Content>
+        <Content>
+            <UiButton gravityWellEnabled="false" gravityWellRoundness="0.000000" gravityWellSize="0.000000, 0.000000" gravityWellSnap="ClosestEdge" name="fwdButton" size="0.100000, 0.100000" text="Fwd" textSize="0.050000"/>
+        </Content>
+        <Content>
+            <UiTextEdit alignment="Center, Left" font="" gravityWellEnabled="false" gravityWellRoundness="0.000000" gravityWellSize="0.000000, 0.000000" gravityWellSnap="ClosestEdge" name="urlBar" scrollSpeed="0.500000" size="0.600000, 0.050000" text="https://servo.org/" textSize="0.050000"/>
+        </Content>
+    </UiLinearLayout>
+</ObjectModel>

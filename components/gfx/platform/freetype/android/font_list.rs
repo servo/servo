@@ -127,7 +127,7 @@ struct FontList {
 impl FontList {
     fn new() -> FontList {
         // Possible paths containing the font mapping xml file.
-        let paths = ["/etc/fonts.xml", "/system/etc/system_fonts.xml"];
+        let paths = ["/etc/fonts.xml", "/system/etc/system_fonts.xml", "/package/etc/fonts.xml"];
 
         // Try to load and parse paths until one of them success.
         let mut result = None;
@@ -135,6 +135,10 @@ impl FontList {
             result = Self::from_path(path);
             !result.is_some()
         });
+
+        if result.is_none() {
+            warn!("Couldn't find font list");
+        }
 
         match result {
             Some(result) => result,
@@ -209,6 +213,7 @@ impl FontList {
         let alternatives = [
             ("sans-serif", "Roboto-Regular.ttf"),
             ("Droid Sans", "DroidSans.ttf"),
+            ("Lomino", "/system/etc/ml/kali/Fonts/Lomino/Medium/LominoUI_Md.ttf"),
         ];
 
         alternatives
@@ -225,7 +230,11 @@ impl FontList {
 
     // All Android fonts are located in /system/fonts
     fn font_absolute_path(filename: &str) -> String {
-        format!("/system/fonts/{}", filename)
+        if filename.starts_with("/") {
+            String::from(filename)
+        } else {
+            format!("/system/fonts/{}", filename)
+        }
     }
 
     fn find_family(&self, name: &str) -> Option<&FontFamily> {
