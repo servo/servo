@@ -19,4 +19,15 @@ test(() => {
   assert_equals(test, "pass");
   assert_equals(event.methodDetails, methodDetails);
 }, "Must have a methodDetails IDL attribute, which is initialized with to the methodName dictionary value");
+
+test(() => {
+  const event = new PaymentMethodChangeEvent("test");
+  assert_equals(event.methodDetails, null, "methodDetails attribute must initialize to null");
+
+  const event2 = new PaymentMethodChangeEvent("test", { methodName: "basic-card" });
+  assert_equals(event2.methodDetails, null, "methodDetails attribute must initialize to null");
+
+  const event3 = new PaymentMethodChangeEvent("test", {});
+  assert_equals(event2.methodDetails, null, "methodDetails attribute must initialize to null");
+}, "The methodDetails member defaults to null");
 </script>

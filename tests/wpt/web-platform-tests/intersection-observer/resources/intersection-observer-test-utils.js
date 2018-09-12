@@ -6,23 +6,73 @@
 //   - Modify DOM in a way that should trigger an IntersectionObserver callback.
 // - BeginFrame
 //   - requestAnimationFrame handler runs
-//     - First step_timeout()
+//     - Second requestAnimationFrame()
 //   - Style, layout, paint
 //   - IntersectionObserver generates new notifications
 //     - Posts a task to deliver notifications
-// - First step_timeout handler runs
-//   - Second step_timeout()
 // - Task to deliver IntersectionObserver notifications runs
 //   - IntersectionObserver callbacks run
-// - Second step_timeout handler runs
+// - Second requestAnimationFrameHandler runs
+//     - step_timeout()
+// - step_timeout handler runs
 //   - myTestFunction1()
 //     - [optional] waitForNotification(myTestFunction2)
 //       - requestAnimationFrame()
 //     - Verify newly-arrived IntersectionObserver notifications
 //     - [optional] Modify DOM to trigger new notifications
+//
+// Ideally, it should be sufficient to use requestAnimationFrame followed
+// by two step_timeouts, with the first step_timeout firing in between the
+// requestAnimationFrame handler and the task to deliver notifications.
+// However, the precise timing of requestAnimationFrame, the generation of
+// a new display frame (when IntersectionObserver notifications are
+// generated), and the delivery of these events varies between engines, making
+// this tricky to test in a non-flaky way.
+//
+// In particular, in WebKit, requestAnimationFrame and the generation of
+// a display frame are two separate tasks, so a step_timeout called within
+// requestAnimationFrame can fire before a display frame is generated.
+//
+// In Gecko, on the other hand, requestAnimationFrame and the generation of
+// a display frame are a single task, and IntersectionObserver notifications
+// are generated during this task. However, the task posted to deliver these
+// notifications can fire after the following requestAnimationFrame.
+//
+// This means that in general, by the time the second requestAnimationFrame
+// handler runs, we know that IntersectionObservations have been generated,
+// and that a task to deliver these notifications has been posted (though
+// possibly not yet delivered). Then, by the time the step_timeout() handler
+// runs, these notifications have been delivered.
+//
+// Since waitForNotification uses a double-rAF, it is now possible that
+// IntersectionObservers may have generated more notifications than what is
+// under test, but have not yet scheduled the new batch of notifications for
+// delivery. As a result, observer.takeRecords should NOT be used in tests:
+//
+// - myTestFunction0()
+//   - waitForNotification(myTestFunction1)
+//     - requestAnimationFrame()
+//   - Modify DOM in a way that should trigger an IntersectionObserver callback.
+// - BeginFrame
+//   - requestAnimationFrame handler runs
+//     - Second requestAnimationFrame()
+//   - Style, layout, paint
+//   - IntersectionObserver generates a batch of notifications
+//     - Posts a task to deliver notifications
+// - Task to deliver IntersectionObserver notifications runs
+//   - IntersectionObserver callbacks run
+// - BeginFrame
+//   - Second requestAnimationFrameHandler runs
+//     - step_timeout()
+//   - IntersectionObserver generates another batch of notifications
+//     - Post task to deliver notifications
+// - step_timeout handler runs
+//   - myTestFunction1()
+//     - At this point, observer.takeRecords will get the second batch of
+//       notifications.
 function waitForNotification(t, f) {
   requestAnimationFrame(function() {
-    t.step_timeout(function() { t.step_timeout(f); });
+    requestAnimationFrame(function() { t.step_timeout(f); });
   });
 }
 

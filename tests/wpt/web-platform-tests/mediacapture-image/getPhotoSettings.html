@@ -27,4 +27,20 @@ image_capture_test(async (t, imageCaptureTest) => {
 
 }, 'exercises ImageCapture.getPhotoSettings()');
 
+promise_test(t => {
+  let canvas = document.getElementById('canvas');
+  let context = canvas.getContext('2d');
+  context.fillStyle = 'red';
+  context.fillRect(0, 0, 10, 10);
+  let stream = canvas.captureStream();
+  let videoTrack = stream.getVideoTracks()[0];
+  videoTrack.stop();
+
+  let capturer = new ImageCapture(videoTrack);
+  assert_equals(videoTrack.readyState, 'ended');
+
+  return promise_rejects(t, 'InvalidStateError', capturer.getPhotoSettings())
+
+}, 'getPhotoSettings() of an ended Track should throw "InvalidStateError"');
+
 </script>

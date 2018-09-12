@@ -4,6 +4,8 @@ import os
 import sys
 import tempfile
 
+import pytest
+
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 
 from mozlog import structured
@@ -19,6 +21,8 @@ skip: true
 """
 
 
+@pytest.mark.xfail(sys.platform == "win32",
+                   reason="NamedTemporaryFile cannot be reopened on Win32")
 def test_filter_unicode():
     tests = make_mock_manifest(("test", "a", 10), ("test", "a/b", 10),
                                ("test", "c", 10))
