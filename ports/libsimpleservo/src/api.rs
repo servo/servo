@@ -71,7 +71,7 @@ pub trait HostTrait {
 }
 
 pub struct ServoGlue {
-    servo: Servo<ServoCallbacks>,
+    servo: Servo,
     batch_mode: bool,
     callbacks: Rc<ServoCallbacks>,
     /// id of the top level browsing context. It is unique as tabs

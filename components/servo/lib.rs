@@ -121,18 +121,15 @@ pub use msg::constellation_msg::{KeyState, TopLevelBrowsingContextId as BrowserI
 /// application Servo is embedded in. Clients then create an event
 /// loop to pump messages between the embedding application and
 /// various browser components.
-pub struct Servo<Window: WindowMethods + 'static> {
-    compositor: IOCompositor<Window>,
+pub struct Servo {
+    compositor: IOCompositor,
     constellation_chan: Sender<ConstellationMsg>,
     embedder_receiver: EmbedderReceiver,
     embedder_events: Vec<(Option<BrowserId>, EmbedderMsg)>,
 }
 
-impl<Window> Servo<Window>
-where
-    Window: WindowMethods + 'static,
-{
-    pub fn new(window: Rc<Window>) -> Servo<Window> {
+impl Servo {
+    pub fn new(window: Rc<WindowMethods>) -> Servo {
         // Global configuration options, parsed from the command line.
         let opts = opts::get();
 
