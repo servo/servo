@@ -800,10 +800,11 @@ impl FetchResponseListener for ParserContext {
             return;
         }
 
-        if let Err(err) = status {
+        match status {
+            // are we throwing this away or can we use it?
+            Ok(_) => (),
             // TODO(Savago): we should send a notification to callers #5463.
-            debug!("Failed to load page URL {}, error: {:?}", self.url, err);
-            println!("Failed to load page URL {}, error: {:?}", self.url, err);
+            Err(err) => debug!("Failed to load page URL {}, error: {:?}", self.url, err),
         }
 
         parser.document.set_redirect_count(self.resource_timing.redirect_count);
@@ -813,6 +814,7 @@ impl FetchResponseListener for ParserContext {
             parser.parse_sync();
         }
 
+        //TODO only submit if this is the current document resource
         self.submit_resource_timing();
     }
 
@@ -826,6 +828,7 @@ impl FetchResponseListener for ParserContext {
 
     // store a PerformanceNavigationTiming entry in the globalscope's Performance buffer
     fn submit_resource_timing(&mut self) {
+        println!("submitting from servoparser");
         let parser = match self.parser.as_ref() {
             Some(parser) => parser.root(),
             None => return,
