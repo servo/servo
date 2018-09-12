@@ -39,7 +39,7 @@ def main():
 
 # https://github.com/servo/taskcluster-bootstrap-docker-images#image-builder
 IMAGE_BUILDER_IMAGE = "servobrowser/taskcluster-bootstrap:image-builder@sha256:" \
-    "5ccb6e43c35de15924ebd3472433e8b3b352973f8dfe7c4c43c757ea60461bce"
+    "0a7d012ce444d62ffb9e7f06f0c52fedc24b68c2060711b313263367f7272d9d"
 
 # https://docs.taskcluster.net/docs/reference/workers/docker-worker/docs/environment
 DECISION_TASK_ID = os.environ["TASK_ID"]
@@ -84,17 +84,25 @@ def build_image(name):
         features={
             "dind": True,  # docker-in-docker
         },
+        with_repo=False,
     )
     return image_build_task
 
 
 def create_task(name, command, image, artifacts=None, dependencies=None, env=None, cache=None,
-                scopes=None, features=None):
+                scopes=None, features=None, with_repo=True):
     env = env or {}
-    for k in ["GITHUB_EVENT_CLONE_URL", "GITHUB_EVENT_COMMIT_SHA"]:
-        env.setdefault(k, os.environ[k])
 
-    task_id = taskcluster.slugId().decode("utf8")
+    if with_repo:
+        for k in ["GITHUB_EVENT_CLONE_URL", "GITHUB_EVENT_COMMIT_SHA"]:
+            env.setdefault(k, os.environ[k])
+
+        command = """
+                git clone $GITHUB_EVENT_CLONE_URL repo
+                cd repo
+                git checkout $GITHUB_EVENT_COMMIT_SHA
+            """ + command
+
     payload = {
         "taskGroupId": DECISION_TASK_ID,
         "dependencies": [DECISION_TASK_ID] + (dependencies or []),
@@ -121,14 +129,7 @@ def create_task(name, command, image, artifacts=None, dependencies=None, env=Non
                 "-x",
                 "-e",
                 "-c",
-                deindent(
-                    """
-                        git clone $GITHUB_EVENT_CLONE_URL repo
-                        cd repo
-                        git checkout $GITHUB_EVENT_COMMIT_SHA
-                    """
-                    + command
-                )
+                deindent(command)
             ],
             "env": env,
             "artifacts": {
@@ -142,6 +143,8 @@ def create_task(name, command, image, artifacts=None, dependencies=None, env=Non
             "features": features or {},
         },
     }
+
+    task_id = taskcluster.slugId().decode("utf8")
     QUEUE.createTask(task_id, payload)
     print("Scheduled %s: %s" % (name, task_id))
     return task_id
