@@ -47,7 +47,7 @@ impl Default for GLState {
 
 /// A WebGLThread manages the life cycle and message multiplexing of
 /// a set of WebGLContexts living in the same thread.
-pub struct WebGLThread<VR: WebVRRenderHandler + 'static, OB: WebGLThreadObserver> {
+pub struct WebGLThread<VR: WebVRRenderHandler + 'static> {
     /// Factory used to create a new GLContext shared with the WR/Main thread.
     gl_factory: GLContextFactory,
     /// Channel used to generate/update or delete `webrender_api::ImageKey`s.
@@ -62,17 +62,16 @@ pub struct WebGLThread<VR: WebVRRenderHandler + 'static, OB: WebGLThreadObserver
     next_webgl_id: usize,
     /// Handler user to send WebVR commands.
     webvr_compositor: Option<VR>,
-    /// Generic observer that listens WebGLContext creation, resize or removal events.
-    observer: OB,
     /// Texture ids and sizes used in DOM to texture outputs.
     dom_outputs: FnvHashMap<webrender_api::PipelineId, DOMToTextureData>,
 }
 
-impl<VR: WebVRRenderHandler + 'static, OB: WebGLThreadObserver> WebGLThread<VR, OB> {
-    pub fn new(gl_factory: GLContextFactory,
-               webrender_api_sender: webrender_api::RenderApiSender,
-               webvr_compositor: Option<VR>,
-               observer: OB) -> Self {
+impl<VR: WebVRRenderHandler + 'static> WebGLThread<VR> {
+    pub fn new(
+        gl_factory: GLContextFactory,
+        webrender_api_sender: webrender_api::RenderApiSender,
+        webvr_compositor: Option<VR>,
+    ) -> Self {
         WebGLThread {
             gl_factory,
             webrender_api: webrender_api_sender.create_api(),
@@ -81,25 +80,25 @@ impl<VR: WebVRRenderHandler + 'static, OB: WebGLThreadObserver> WebGLThread<VR, 
             bound_context_id: None,
             next_webgl_id: 0,
             webvr_compositor,
-            observer: observer,
             dom_outputs: Default::default(),
         }
     }
 
     /// Creates a new `WebGLThread` and returns a Sender to
     /// communicate with it.
-    pub fn start(gl_factory: GLContextFactory,
-                 webrender_api_sender: webrender_api::RenderApiSender,
-                 webvr_compositor: Option<VR>,
-                 observer: OB)
-                 -> WebGLSender<WebGLMsg> {
+    pub fn start(
+        gl_factory: GLContextFactory,
+        webrender_api_sender: webrender_api::RenderApiSender,
+        webvr_compositor: Option<VR>,
+    ) -> WebGLSender<WebGLMsg> {
         let (sender, receiver) = webgl_channel::<WebGLMsg>().unwrap();
         let result = sender.clone();
         thread::Builder::new().name("WebGLThread".to_owned()).spawn(move || {
-            let mut renderer = WebGLThread::new(gl_factory,
-                                                webrender_api_sender,
-                                                webvr_compositor,
-                                                observer);
+            let mut renderer = WebGLThread::new(
+                gl_factory,
+                webrender_api_sender,
+                webvr_compositor,
+            );
             let webgl_chan = WebGLChan(sender);
             loop {
                 let msg = receiver.recv().unwrap();
@@ -248,8 +247,6 @@ impl<VR: WebVRRenderHandler + 'static, OB: WebGLThreadObserver> WebGLThread<VR, 
                     gl_sync: None,
                 });
 
-                self.observer.on_context_create(id, texture_id, size);
-
                 Ok((id, limits, share_mode))
             },
             Err(msg) => {
@@ -271,8 +268,6 @@ impl<VR: WebVRRenderHandler + 'static, OB: WebGLThreadObserver> WebGLThread<VR, 
         match data.ctx.resize(size) {
             Ok(_) => {
                 let (real_size, texture_id, _) = data.ctx.get_info();
-                self.observer.on_context_resize(context_id, texture_id, real_size);
-
                 let info = self.cached_context_info.get_mut(&context_id).unwrap();
                 // Update webgl texture size. Texture id may change too.
                 info.texture_id = texture_id;
@@ -313,9 +308,7 @@ impl<VR: WebVRRenderHandler + 'static, OB: WebGLThreadObserver> WebGLThread<VR, 
         }
 
         // Release GL context.
-        if self.contexts.remove(&context_id).is_some() {
-            self.observer.on_context_delete(context_id);
-        }
+        self.contexts.remove(&context_id);
 
         // Removing a GLContext may make the current bound context_id dirty.
         self.bound_context_id = None;
@@ -581,7 +574,7 @@ impl<VR: WebVRRenderHandler + 'static, OB: WebGLThreadObserver> WebGLThread<VR, 
     }
 }
 
-impl<VR: WebVRRenderHandler + 'static, OB: WebGLThreadObserver> Drop for WebGLThread<VR, OB> {
+impl<VR: WebVRRenderHandler + 'static> Drop for WebGLThread<VR> {
     fn drop(&mut self) {
         // Call remove_context functions in order to correctly delete WebRender image keys.
         let context_ids: Vec<WebGLContextId> = self.contexts.keys().map(|id| *id).collect();
@@ -605,14 +598,6 @@ struct WebGLContextInfo {
     share_mode: WebGLContextShareMode,
     /// GLSync Object used for a correct synchronization with Webrender external image callbacks.
     gl_sync: Option<gl::GLsync>,
-}
-
-/// Trait used to observe events in a WebGL Thread.
-/// Used in webrender::ExternalImageHandler when multiple WebGL threads are used.
-pub trait WebGLThreadObserver: Send + 'static {
-    fn on_context_create(&mut self, ctx_id: WebGLContextId, texture_id: u32, size: Size2D<i32>);
-    fn on_context_resize(&mut self, ctx_id: WebGLContextId, texture_id: u32, size: Size2D<i32>);
-    fn on_context_delete(&mut self, ctx_id: WebGLContextId);
 }
 
 /// This trait is used as a bridge between the `WebGLThreads` implementation and
