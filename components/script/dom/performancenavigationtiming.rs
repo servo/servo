@@ -16,6 +16,8 @@ use dom_struct::dom_struct;
 
 #[dom_struct]
 // https://w3c.github.io/navigation-timing/#dom-performancenavigationtiming
+/// Only the current document resource is included in the performance timeline;
+/// there is only one PerformanceNavigationTiming object in the performance timeline. 
 pub struct PerformanceNavigationTiming {
     // https://w3c.github.io/navigation-timing/#PerformanceResourceTiming
     performanceresourcetiming: PerformanceResourceTiming,
