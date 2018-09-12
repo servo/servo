@@ -6,7 +6,6 @@ use dom::audioparam::AudioParam;
 use dom::audioscheduledsourcenode::AudioScheduledSourceNode;
 use dom::baseaudiocontext::BaseAudioContext;
 use dom::bindings::codegen::Bindings::AudioNodeBinding::{ChannelCountMode, ChannelInterpretation};
-use dom::bindings::codegen::Bindings::AudioNodeBinding::AudioNodeOptions;
 use dom::bindings::codegen::Bindings::AudioParamBinding::AutomationRate;
 use dom::bindings::codegen::Bindings::OscillatorNodeBinding::{self, OscillatorOptions, OscillatorType};
 use dom::bindings::codegen::Bindings::OscillatorNodeBinding::OscillatorNodeMethods;
@@ -34,16 +33,15 @@ impl OscillatorNode {
     pub fn new_inherited(
         window: &Window,
         context: &BaseAudioContext,
-        oscillator_options: &OscillatorOptions,
+        options: &OscillatorOptions,
     ) -> Fallible<OscillatorNode> {
-        let mut node_options = AudioNodeOptions::empty();
-        node_options.channelCount = Some(2);
-        node_options.channelCountMode = Some(ChannelCountMode::Max);
-        node_options.channelInterpretation = Some(ChannelInterpretation::Speakers);
+        let node_options = options.parent
+                                  .unwrap_or(2, ChannelCountMode::Max,
+                                             ChannelInterpretation::Speakers);
         let source_node = AudioScheduledSourceNode::new_inherited(
-            AudioNodeInit::OscillatorNode(oscillator_options.into()),
+            AudioNodeInit::OscillatorNode(options.into()),
             context,
-            &node_options,
+            node_options,
             0, /* inputs */
             1, /* outputs */
         )?;
@@ -71,7 +69,7 @@ impl OscillatorNode {
 
         Ok(OscillatorNode {
             source_node,
-            oscillator_type: oscillator_options.type_,
+            oscillator_type: options.type_,
             frequency: Dom::from_ref(&frequency),
             detune: Dom::from_ref(&detune),
         })

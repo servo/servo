@@ -5,6 +5,7 @@
 use dom::audionode::{AudioNode, MAX_CHANNEL_COUNT};
 use dom::baseaudiocontext::BaseAudioContext;
 use dom::bindings::codegen::Bindings::AudioDestinationNodeBinding::{self, AudioDestinationNodeMethods};
+use dom::bindings::codegen::Bindings::AudioNodeBinding::{ChannelCountMode, ChannelInterpretation};
 use dom::bindings::codegen::Bindings::AudioNodeBinding::AudioNodeOptions;
 use dom::bindings::reflector::reflect_dom_object;
 use dom::bindings::root::DomRoot;
@@ -21,11 +22,13 @@ impl AudioDestinationNode {
         context: &BaseAudioContext,
         options: &AudioNodeOptions,
     ) -> AudioDestinationNode {
+        let node_options = options.unwrap_or(2, ChannelCountMode::Max,
+                                             ChannelInterpretation::Speakers);
         AudioDestinationNode {
             node: AudioNode::new_inherited_for_id(
                 context.destination_node(),
                 context,
-                options,
+                node_options,
                 1,
                 1,
             ),

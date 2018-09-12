@@ -9,8 +9,6 @@ use dom::baseaudiocontext::BaseAudioContext;
 use dom::bindings::codegen::Bindings::AudioBufferSourceNodeBinding;
 use dom::bindings::codegen::Bindings::AudioBufferSourceNodeBinding::AudioBufferSourceNodeMethods;
 use dom::bindings::codegen::Bindings::AudioBufferSourceNodeBinding::AudioBufferSourceOptions;
-use dom::bindings::codegen::Bindings::AudioNodeBinding::{ChannelCountMode, ChannelInterpretation};
-use dom::bindings::codegen::Bindings::AudioNodeBinding::AudioNodeOptions;
 use dom::bindings::codegen::Bindings::AudioParamBinding::AutomationRate;
 use dom::bindings::codegen::Bindings::AudioScheduledSourceNodeBinding::AudioScheduledSourceNodeMethods;
 use dom::bindings::error::{Error, Fallible};
@@ -45,14 +43,11 @@ impl AudioBufferSourceNode {
         context: &BaseAudioContext,
         options: &AudioBufferSourceOptions,
     ) -> Fallible<AudioBufferSourceNode> {
-        let mut node_options = AudioNodeOptions::empty();
-        node_options.channelCount = Some(2);
-        node_options.channelCountMode = Some(ChannelCountMode::Max);
-        node_options.channelInterpretation = Some(ChannelInterpretation::Speakers);
+        let node_options = Default::default();
         let source_node = AudioScheduledSourceNode::new_inherited(
             AudioNodeInit::AudioBufferSourceNode(options.into()),
             context,
-            &node_options,
+            node_options,
             0, /* inputs */
             1, /* outputs */
         )?;

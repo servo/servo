@@ -6,7 +6,6 @@ use dom::audionode::AudioNode;
 use dom::audioparam::AudioParam;
 use dom::baseaudiocontext::BaseAudioContext;
 use dom::bindings::codegen::Bindings::AudioNodeBinding::{ChannelCountMode, ChannelInterpretation};
-use dom::bindings::codegen::Bindings::AudioNodeBinding::AudioNodeOptions;
 use dom::bindings::codegen::Bindings::AudioParamBinding::AutomationRate;
 use dom::bindings::codegen::Bindings::GainNodeBinding::{self, GainNodeMethods, GainOptions};
 use dom::bindings::error::Fallible;
@@ -32,17 +31,13 @@ impl GainNode {
         context: &BaseAudioContext,
         options: &GainOptions,
     ) -> Fallible<GainNode> {
-        let mut node_options = AudioNodeOptions::empty();
-        let count = options.parent.channelCount.unwrap_or(2);
-        let mode = options.parent.channelCountMode.unwrap_or(ChannelCountMode::Max);
-        let interpretation = options.parent.channelInterpretation.unwrap_or(ChannelInterpretation::Speakers);
-        node_options.channelCount = Some(count);
-        node_options.channelCountMode = Some(mode);
-        node_options.channelInterpretation = Some(interpretation);
+        let node_options = options.parent
+                                  .unwrap_or(2, ChannelCountMode::Max,
+                                             ChannelInterpretation::Speakers);
         let node = AudioNode::new_inherited(
             AudioNodeInit::GainNode(options.into()),
             context,
-            &node_options,
+            node_options,
             1, // inputs
             1, // outputs
         )?;

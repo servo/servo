@@ -39,6 +39,8 @@ packages = [
   "crossbeam-epoch",
   "crossbeam-utils",
   "log",
+  #TODO: remove num-rational when https://github.com/PistonDevelopers/image/pull/809 is merged.
+  "num-rational",
   "rand",
   "winapi",
   # TODO: remove slab when #21426 lands
