@@ -60,7 +60,8 @@ fn trylock_works() {
     thread::spawn(move || {
         let lock = m2.try_lock();
         assert!(lock.is_err());
-    }).join().unwrap();
+    }).join()
+    .unwrap();
     let _lock3 = m.try_lock().unwrap();
 }
 
@@ -75,7 +76,7 @@ impl<'a> Drop for Answer<'a> {
 fn poison_works() {
     let m = Arc::new(ReentrantMutex::new(RefCell::new(0)));
     let mc = m.clone();
-    let result = thread::spawn(move ||{
+    let result = thread::spawn(move || {
         let lock = mc.lock().unwrap();
         *lock.borrow_mut() = 1;
         let lock2 = mc.lock().unwrap();
@@ -88,4 +89,3 @@ fn poison_works() {
     let r = m.lock().err().unwrap().into_inner();
     assert_eq!(*r.borrow(), 42);
 }
-
