@@ -15,7 +15,7 @@ def main():
         image="servo-x86_64-linux",
 
         artifacts=[
-            ("executable.gz", "/repo/something-rust/something-rust.gz"),
+            ("executable.gz", "/repo/something-rust/something-rust.gz", "1 week"),
         ],
 
         # https://docs.taskcluster.net/docs/reference/workers/docker-worker/docs/caches
@@ -88,7 +88,7 @@ def build_image(name):
             "DOCKERFILE": dockerfile,
         },
         artifacts=[
-            (IMAGE_ARTIFACT_FILENAME, "/" + IMAGE_ARTIFACT_FILENAME),
+            (IMAGE_ARTIFACT_FILENAME, "/" + IMAGE_ARTIFACT_FILENAME, "1 week"),
         ],
         image=IMAGE_BUILDER_IMAGE,
         features={
@@ -148,9 +148,9 @@ def create_task(name, command, image, artifacts=None, dependencies=None, env=Non
                 "public/" + artifact_name: {
                     "type": "file",
                     "path": path,
-                    "expires": taskcluster.fromNowJSON("1 week"),
+                    "expires": taskcluster.fromNowJSON(expires),
                 }
-                for artifact_name, path in artifacts or []
+                for artifact_name, path, expires in artifacts or []
             },
             "features": features or {},
         },
