@@ -136,8 +136,6 @@ pub trait WindowMethods {
     fn create_event_loop_waker(&self) -> Box<EventLoopWaker>;
     /// Get the coordinates of the native window, the screen and the framebuffer.
     fn get_coordinates(&self) -> EmbedderCoordinates;
-    /// Does this window support a clipboard
-    fn supports_clipboard(&self) -> bool;
     /// Set whether the application is currently animating.
     /// Typically, when animations are active, the window
     /// will want to avoid blocking on UI events, and just

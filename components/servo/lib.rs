@@ -150,7 +150,6 @@ where
             create_compositor_channel(window.create_event_loop_waker());
         let (embedder_proxy, embedder_receiver) =
             create_embedder_channel(window.create_event_loop_waker());
-        let supports_clipboard = window.supports_clipboard();
         let time_profiler_chan = profile_time::Profiler::create(
             &opts.time_profiling,
             opts.time_profiler_trace_path.clone(),
@@ -220,7 +219,6 @@ where
             mem_profiler_chan.clone(),
             debugger_chan,
             devtools_chan,
-            supports_clipboard,
             &mut webrender,
             webrender_document,
             webrender_api_sender,
@@ -492,7 +490,6 @@ fn create_constellation(
     mem_profiler_chan: mem::ProfilerChan,
     debugger_chan: Option<debugger::Sender>,
     devtools_chan: Option<Sender<devtools_traits::DevtoolsControlMsg>>,
-    supports_clipboard: bool,
     webrender: &mut webrender::Renderer,
     webrender_document: webrender_api::DocumentId,
     webrender_api_sender: webrender_api::RenderApiSender,
@@ -568,7 +565,6 @@ fn create_constellation(
         private_resource_threads,
         time_profiler_chan,
         mem_profiler_chan,
-        supports_clipboard,
         webrender_document,
         webrender_api_sender,
         webgl_threads,

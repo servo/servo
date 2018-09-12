@@ -374,10 +374,6 @@ pub struct InitialConstellationState {
 
     /// A channel to the webgl thread.
     pub webvr_chan: Option<IpcSender<WebVRMsg>>,
-
-    /// Whether the constellation supports the clipboard.
-    /// TODO: this field is not used, remove it?
-    pub supports_clipboard: bool,
 }
 
 /// Data needed for webdriver
@@ -621,16 +617,12 @@ where
                         ),
                     },
                     phantom: PhantomData,
-                    clipboard_ctx: if state.supports_clipboard {
-                        match ClipboardContext::new() {
-                            Ok(c) => Some(c),
-                            Err(e) => {
-                                warn!("Error creating clipboard context ({})", e);
-                                None
-                            },
-                        }
-                    } else {
-                        None
+                    clipboard_ctx: match ClipboardContext::new() {
+                        Ok(c) => Some(c),
+                        Err(e) => {
+                            warn!("Error creating clipboard context ({})", e);
+                            None
+                        },
                     },
                     webdriver: WebDriverData::new(),
                     scheduler_chan: TimerScheduler::start(),
