@@ -19,12 +19,17 @@
 
 // Have this here rather than in non_android_main.rs to work around
 // https://github.com/rust-lang/rust/issues/53205
-#[cfg(not(target_os = "android"))] #[macro_use] extern crate log;
+#[cfg(not(target_os = "android"))]
+#[macro_use]
+extern crate log;
 
-#[cfg(not(target_os = "android"))] include!("non_android_main.rs");
+#[cfg(not(target_os = "android"))]
+include!("non_android_main.rs");
 
 #[cfg(target_os = "android")]
 pub fn main() {
-    println!("Cannot start /ports/servo/ on Android. \
-         Use /support/android/apk/ + /ports/libsimpleservo/ instead");
+    println!(
+        "Cannot start /ports/servo/ on Android. \
+         Use /support/android/apk/ + /ports/libsimpleservo/ instead"
+    );
 }

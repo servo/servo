@@ -4,20 +4,29 @@
 
 extern crate backtrace;
 extern crate euclid;
-#[cfg(target_os = "windows")] extern crate gdi32;
+#[cfg(target_os = "windows")]
+extern crate gdi32;
 extern crate gleam;
 extern crate glutin;
-#[macro_use] extern crate lazy_static;
-#[cfg(any(target_os = "linux", target_os = "macos"))] extern crate osmesa_sys;
+#[macro_use]
+extern crate lazy_static;
+#[cfg(any(target_os = "linux", target_os = "macos"))]
+extern crate osmesa_sys;
 extern crate servo;
 #[cfg(feature = "unstable")]
 #[macro_use]
 extern crate sig;
-#[cfg(any(target_os = "macos", target_os = "linux", target_os = "windows"))]
+#[cfg(any(
+    target_os = "macos",
+    target_os = "linux",
+    target_os = "windows"
+))]
 extern crate tinyfiledialogs;
+#[cfg(target_os = "windows")]
+extern crate user32;
+#[cfg(target_os = "windows")]
+extern crate winapi;
 extern crate winit;
-#[cfg(target_os = "windows")] extern crate winapi;
-#[cfg(target_os = "windows")] extern crate user32;
 
 // The window backed by glutin
 mod glutin_app;
@@ -100,21 +109,21 @@ pub fn main() {
         warn!("Panic hook called.");
         let msg = match info.payload().downcast_ref::<&'static str>() {
             Some(s) => *s,
-            None => {
-                match info.payload().downcast_ref::<String>() {
-                    Some(s) => &**s,
-                    None => "Box<Any>",
-                }
+            None => match info.payload().downcast_ref::<String>() {
+                Some(s) => &**s,
+                None => "Box<Any>",
             },
         };
         let current_thread = thread::current();
         let name = current_thread.name().unwrap_or("<unnamed>");
         if let Some(location) = info.location() {
-            println!("{} (thread {}, at {}:{})",
-                     msg,
-                     name,
-                     location.file(),
-                     location.line());
+            println!(
+                "{} (thread {}, at {}:{})",
+                msg,
+                name,
+                location.file(),
+                location.line()
+            );
         } else {
             println!("{} (thread {})", msg, name);
         }
@@ -142,7 +151,9 @@ pub fn main() {
     // or a blank page in case the homepage is not set either.
     let cwd = env::current_dir().unwrap();
     let cmdline_url = opts::get().url.clone();
-    let pref_url = PREFS.get("shell.homepage").as_string()
+    let pref_url = PREFS
+        .get("shell.homepage")
+        .as_string()
         .and_then(|str| parse_url_or_filename(&cwd, str).ok());
     let blank_url = ServoUrl::parse("about:blank").ok();
 
@@ -195,43 +206,49 @@ pub fn main() {
 
 #[allow(non_snake_case)]
 #[no_mangle]
-pub extern "C" fn glBindVertexArrayOES(_array: usize)
-{
+pub extern "C" fn glBindVertexArrayOES(_array: usize) {
     unimplemented!()
 }
 
 #[allow(non_snake_case)]
 #[no_mangle]
-pub extern "C" fn glDeleteVertexArraysOES(_n: isize, _arrays: *const ())
-{
+pub extern "C" fn glDeleteVertexArraysOES(_n: isize, _arrays: *const ()) {
     unimplemented!()
 }
 
 #[allow(non_snake_case)]
 #[no_mangle]
-pub extern "C" fn glGenVertexArraysOES(_n: isize, _arrays: *const ())
-{
+pub extern "C" fn glGenVertexArraysOES(_n: isize, _arrays: *const ()) {
     unimplemented!()
 }
 
 #[allow(non_snake_case)]
 #[no_mangle]
-pub extern "C" fn glRenderbufferStorageMultisampleIMG(_: isize, _: isize, _: isize, _: isize, _: isize)
-{
+pub extern "C" fn glRenderbufferStorageMultisampleIMG(
+    _: isize,
+    _: isize,
+    _: isize,
+    _: isize,
+    _: isize,
+) {
     unimplemented!()
 }
 
 #[allow(non_snake_case)]
 #[no_mangle]
-pub extern "C" fn glFramebufferTexture2DMultisampleIMG(_: isize, _: isize, _: isize, _: isize, _: isize, _: isize)
-{
+pub extern "C" fn glFramebufferTexture2DMultisampleIMG(
+    _: isize,
+    _: isize,
+    _: isize,
+    _: isize,
+    _: isize,
+    _: isize,
+) {
     unimplemented!()
 }
 
 #[allow(non_snake_case)]
 #[no_mangle]
-pub extern "C" fn glDiscardFramebufferEXT(_: isize, _: isize, _: *const ())
-{
+pub extern "C" fn glDiscardFramebufferEXT(_: isize, _: isize, _: *const ()) {
     unimplemented!()
 }
-
