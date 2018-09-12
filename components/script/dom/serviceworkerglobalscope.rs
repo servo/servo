@@ -22,17 +22,16 @@ use dom::worker::TrustedWorkerAddress;
 use dom::workerglobalscope::WorkerGlobalScope;
 use dom_struct::dom_struct;
 use ipc_channel::ipc::{self, IpcSender, IpcReceiver};
-use ipc_channel::router::ROUTER;
 use js::jsapi::{JSAutoCompartment, JSContext, JS_AddInterruptCallback};
 use js::jsval::UndefinedValue;
 use net_traits::{load_whole_resource, IpcSend, CustomResponseMediator};
 use net_traits::request::{CredentialsMode, Destination, RequestInit};
 use script_runtime::{CommonScriptMsg, ScriptChan, new_rt_and_cx, Runtime};
 use script_traits::{TimerEvent, WorkerGlobalScopeInit, ScopeThings, ServiceWorkerMsg, WorkerScriptLoadOrigin};
+use servo_channel::{channel, route_ipc_receiver_to_new_servo_sender, Receiver, Sender};
 use servo_config::prefs::PREFS;
 use servo_rand::random;
 use servo_url::ServoUrl;
-use std::sync::mpsc::{Receiver, Sender, channel};
 use std::thread;
 use std::time::Duration;
 use style::thread_state::{self, ThreadState};
@@ -272,7 +271,7 @@ impl ServiceWorkerGlobalScope {
             let runtime = unsafe { new_rt_and_cx() };
 
             let (devtools_mpsc_chan, devtools_mpsc_port) = channel();
-            ROUTER.route_ipc_receiver_to_mpsc_sender(devtools_receiver, devtools_mpsc_chan);
+            route_ipc_receiver_to_new_servo_sender(devtools_receiver, devtools_mpsc_chan);
             // TODO XXXcreativcoder use this timer_ipc_port, when we have a service worker instance here
             let (timer_ipc_chan, _timer_ipc_port) = ipc::channel().unwrap();
             let (timer_chan, timer_port) = channel();

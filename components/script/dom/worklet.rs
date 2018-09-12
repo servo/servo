@@ -48,6 +48,7 @@ use script_runtime::Runtime;
 use script_runtime::ScriptThreadEventCategory;
 use script_runtime::new_rt_and_cx;
 use script_thread::{MainThreadScriptMsg, ScriptThread};
+use servo_channel::{channel, Sender, Receiver};
 use servo_rand;
 use servo_url::ImmutableOrigin;
 use servo_url::ServoUrl;
@@ -58,9 +59,6 @@ use std::rc::Rc;
 use std::sync::Arc;
 use std::sync::atomic::AtomicIsize;
 use std::sync::atomic::Ordering;
-use std::sync::mpsc;
-use std::sync::mpsc::Receiver;
-use std::sync::mpsc::Sender;
 use std::thread;
 use style::thread_state::{self, ThreadState};
 use swapper::Swapper;
@@ -309,7 +307,7 @@ impl WorkletThreadPool {
 
     /// For testing.
     pub fn test_worklet_lookup(&self, id: WorkletId, key: String) -> Option<String> {
-        let (sender, receiver) = mpsc::channel();
+        let (sender, receiver) = channel();
         let msg = WorkletData::Task(id, WorkletTask::Test(TestWorkletTask::Lookup(key, sender)));
         let _ = self.primary_sender.send(msg);
         receiver.recv().expect("Test worklet has died?")
@@ -355,7 +353,7 @@ struct WorkletThreadRole {
 
 impl WorkletThreadRole {
     fn new(is_hot_backup: bool, is_cold_backup: bool) -> WorkletThreadRole {
-        let (sender, receiver) = mpsc::channel();
+        let (sender, receiver) = channel();
         WorkletThreadRole {
             sender: sender,
             receiver: receiver,
@@ -419,7 +417,7 @@ impl WorkletThread {
     #[allow(unsafe_code)]
     #[allow(unrooted_must_root)]
     fn spawn(role: WorkletThreadRole, init: WorkletThreadInit) -> Sender<WorkletControl> {
-        let (control_sender, control_receiver) = mpsc::channel();
+        let (control_sender, control_receiver) = channel();
         // TODO: name this thread
         thread::spawn(move || {
             // TODO: add a new IN_WORKLET thread state?
@@ -488,12 +486,12 @@ impl WorkletThread {
                 if let Some(control) = self.control_buffer.take() {
                     self.process_control(control);
                 }
-                while let Ok(control) = self.control_receiver.try_recv() {
+                while let Some(control) = self.control_receiver.try_recv() {
                     self.process_control(control);
                 }
                 self.gc();
             } else if self.control_buffer.is_none() {
-                if let Ok(control) = self.control_receiver.try_recv() {
+                if let Some(control) = self.control_receiver.try_recv() {
                     self.control_buffer = Some(control);
                     let msg = WorkletData::StartSwapRoles(self.role.sender.clone());
                     let _ = self.cold_backup_sender.send(msg);

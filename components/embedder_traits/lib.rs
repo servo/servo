@@ -10,6 +10,7 @@ extern crate log;
 extern crate msg;
 #[macro_use]
 extern crate serde;
+extern crate servo_channel;
 extern crate servo_url;
 extern crate style_traits;
 extern crate webrender_api;
@@ -18,9 +19,9 @@ pub mod resources;
 
 use ipc_channel::ipc::IpcSender;
 use msg::constellation_msg::{InputMethodType, Key, KeyModifiers, KeyState, TopLevelBrowsingContextId};
+use servo_channel::{Receiver, Sender};
 use servo_url::ServoUrl;
 use std::fmt::{Debug, Error, Formatter};
-use std::sync::mpsc::{Receiver, Sender};
 use style_traits::cursor::CursorKind;
 use webrender_api::{DeviceIntPoint, DeviceUintSize};
 
@@ -40,7 +41,7 @@ impl EmbedderProxy {
     pub fn send(&self, msg: (Option<TopLevelBrowsingContextId>, EmbedderMsg)) {
         // Send a message and kick the OS event loop awake.
         if let Err(err) = self.sender.send(msg) {
-            warn!("Failed to send response ({}).", err);
+            warn!("Failed to send response ({:?}).", err);
         }
         self.event_loop_waker.wake();
     }
@@ -64,7 +65,7 @@ impl EmbedderReceiver {
     pub fn try_recv_embedder_msg(
         &mut self,
     ) -> Option<(Option<TopLevelBrowsingContextId>, EmbedderMsg)> {
-        self.receiver.try_recv().ok()
+        self.receiver.try_recv()
     }
     pub fn recv_embedder_msg(&mut self) -> (Option<TopLevelBrowsingContextId>, EmbedderMsg) {
         self.receiver.recv().unwrap()

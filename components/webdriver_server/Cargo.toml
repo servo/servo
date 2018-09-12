@@ -15,13 +15,14 @@ cookie = "0.10"
 euclid = "0.19"
 hyper = "0.10"
 image = "0.19"
-ipc-channel = "0.10"
+ipc-channel = "0.11"
 log = "0.4"
 msg = {path = "../msg"}
 net_traits = {path = "../net_traits"}
 regex = "1.0"
 rustc-serialize = "0.3.4"
 script_traits = {path = "../script_traits"}
+servo_channel = {path = "../channel"}
 servo_config = {path = "../config"}
 servo_url = {path = "../url"}
 url = "1.2"

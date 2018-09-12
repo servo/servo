@@ -6,7 +6,6 @@
 #![cfg_attr(feature = "unstable", feature(on_unimplemented))]
 #![feature(const_fn)]
 #![feature(drain_filter)]
-#![feature(mpsc_select)]
 #![feature(plugin)]
 #![feature(try_from)]
 
@@ -84,6 +83,7 @@ extern crate serde_bytes;
 extern crate servo_allocator;
 extern crate servo_arc;
 #[macro_use] extern crate servo_atoms;
+#[macro_use] extern crate servo_channel;
 extern crate servo_config;
 extern crate servo_geometry;
 extern crate servo_media;

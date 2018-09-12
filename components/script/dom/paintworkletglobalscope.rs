@@ -49,6 +49,8 @@ use profile_traits::ipc;
 use script_traits::{DrawAPaintImageResult, PaintWorkletError};
 use script_traits::Painter;
 use servo_atoms::Atom;
+use servo_channel::{channel, Sender};
+use servo_channel::base_channel;
 use servo_config::prefs::PREFS;
 use servo_url::ServoUrl;
 use std::cell::Cell;
@@ -58,8 +60,6 @@ use std::ptr::null_mut;
 use std::rc::Rc;
 use std::sync::Arc;
 use std::sync::Mutex;
-use std::sync::mpsc;
-use std::sync::mpsc::Sender;
 use std::thread;
 use std::time::Duration;
 use style_traits::CSSPixel;
@@ -350,7 +350,7 @@ impl PaintWorkletGlobalScope {
                                   arguments: Vec<String>)
                                   -> Result<DrawAPaintImageResult, PaintWorkletError> {
                 let name = self.name.clone();
-                let (sender, receiver) = mpsc::channel();
+                let (sender, receiver) = channel();
                 let task = PaintWorkletTask::DrawAPaintImage(name,
                                                              size,
                                                              device_pixel_ratio,
@@ -364,9 +364,12 @@ impl PaintWorkletGlobalScope {
                                    .as_u64()
                                    .unwrap_or(10u64);
 
-                let timeout_duration = Duration::from_millis(timeout);
-                receiver.recv_timeout(timeout_duration)
-                        .map_err(|e| PaintWorkletError::from(e))
+                select! {
+                    recv(base_channel::after(Duration::from_millis(timeout))) => {
+                        Err(PaintWorkletError::Timeout)
+                    }
+                    recv(receiver.select(), msg) => msg.ok_or(PaintWorkletError::Timeout)
+                }
             }
         }
         Box::new(WorkletPainter {

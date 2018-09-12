@@ -1,16 +1,21 @@
 [package]
-name = "webvr_traits"
+name = "servo_channel"
 version = "0.0.1"
 authors = ["The Servo Project Developers"]
 license = "MPL-2.0"
 publish = false
 
 [lib]
-name = "webvr_traits"
+name = "servo_channel"
 path = "lib.rs"
+test = false
+doctest = false
 
 [dependencies]
+crossbeam-channel = "0.2.5"
 ipc-channel = "0.11"
-msg = {path = "../msg"}
-rust-webvr-api = {version = "0.9", features = ["serde-serialization"]}
 serde = "1.0"
+
+[[test]]
+name = "main"
+path = "tests/disconnect.rs"

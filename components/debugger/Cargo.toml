@@ -12,4 +12,5 @@ crate_type = ["rlib"]
 
 [dependencies]
 log = "0.4"
+servo_channel = {path = "../channel"}
 ws = "0.7.3"

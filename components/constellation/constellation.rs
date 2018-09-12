@@ -132,6 +132,7 @@ use script_traits::{LogEntry, ScriptToConstellationChan, ServiceWorkerMsg, webdr
 use script_traits::{SWManagerMsg, ScopeThings, UpdatePipelineIdReason, WebDriverCommandMsg};
 use script_traits::{WindowSizeData, WindowSizeType};
 use serde::{Deserialize, Serialize};
+use servo_channel::{Receiver, Sender, channel};
 use servo_config::opts;
 use servo_config::prefs::PREFS;
 use servo_rand::{Rng, SeedableRng, ServoRng, random};
@@ -145,7 +146,6 @@ use std::mem::replace;
 use std::process;
 use std::rc::{Rc, Weak};
 use std::sync::Arc;
-use std::sync::mpsc::{Receiver, Sender, channel};
 use std::thread;
 use style_traits::CSSPixel;
 use style_traits::cursor::CursorKind;
@@ -875,7 +875,6 @@ where
     }
 
     /// Handles loading pages, navigation, and granting access to the compositor
-    #[allow(unsafe_code)]
     fn handle_request(&mut self) {
         enum Request {
             Script((PipelineId, FromScriptMsg)),
@@ -896,25 +895,23 @@ where
         // produces undefined behaviour, resulting in the destructor
         // being called. If this happens, there's not much we can do
         // other than panic.
-        let request = {
-            let receiver_from_script = &self.script_receiver;
-            let receiver_from_compositor = &self.compositor_receiver;
-            let receiver_from_layout = &self.layout_receiver;
-            let receiver_from_network_listener = &self.network_listener_receiver;
-            let receiver_from_swmanager = &self.swmanager_receiver;
-            select! {
-                msg = receiver_from_script.recv() =>
-                    msg.expect("Unexpected script channel panic in constellation").map(Request::Script),
-                msg = receiver_from_compositor.recv() =>
-                    Ok(Request::Compositor(msg.expect("Unexpected compositor channel panic in constellation"))),
-                msg = receiver_from_layout.recv() =>
-                    msg.expect("Unexpected layout channel panic in constellation").map(Request::Layout),
-                msg = receiver_from_network_listener.recv() =>
-                    Ok(Request::NetworkListener(
-                        msg.expect("Unexpected network listener channel panic in constellation")
-                    )),
-                msg = receiver_from_swmanager.recv() =>
-                    msg.expect("Unexpected panic channel panic in constellation").map(Request::FromSWManager)
+        let request = select! {
+            recv(self.script_receiver.select(), msg) => {
+                msg.expect("Unexpected script channel panic in constellation").map(Request::Script)
+            }
+            recv(self.compositor_receiver.select(), msg) => {
+                Ok(Request::Compositor(msg.expect("Unexpected compositor channel panic in constellation")))
+            }
+            recv(self.layout_receiver.select(), msg) => {
+                msg.expect("Unexpected layout channel panic in constellation").map(Request::Layout)
+            }
+            recv(self.network_listener_receiver.select(), msg) => {
+                Ok(Request::NetworkListener(
+                    msg.expect("Unexpected network listener channel panic in constellation")
+                ))
+            }
+            recv(self.swmanager_receiver.select(), msg) => {
+                msg.expect("Unexpected panic channel panic in constellation").map(Request::FromSWManager)
             }
         };
 
@@ -1442,7 +1439,7 @@ where
             debug!("Exiting devtools.");
             let msg = DevtoolsControlMsg::FromChrome(ChromeToDevtoolsControlMsg::ServerExitMsg);
             if let Err(e) = chan.send(msg) {
-                warn!("Exit devtools failed ({})", e);
+                warn!("Exit devtools failed ({:?})", e);
             }
         }
 

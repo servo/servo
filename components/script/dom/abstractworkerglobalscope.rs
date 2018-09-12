@@ -11,7 +11,7 @@ use dom::globalscope::GlobalScope;
 use dom::worker::TrustedWorkerAddress;
 use dom::workerglobalscope::WorkerGlobalScope;
 use script_runtime::{ScriptChan, CommonScriptMsg, ScriptPort};
-use std::sync::mpsc::{Receiver, Select, Sender};
+use servo_channel::{Receiver, Sender};
 use task_queue::{QueuedTaskConversion, TaskQueue};
 
 /// A ScriptChan that can be cloned freely and will silently send a TrustedWorkerAddress with
@@ -65,9 +65,9 @@ impl ScriptChan for WorkerThreadWorkerChan {
 impl ScriptPort for Receiver<DedicatedWorkerScriptMsg> {
     fn recv(&self) -> Result<CommonScriptMsg, ()> {
         let common_msg = match self.recv() {
-            Ok(DedicatedWorkerScriptMsg::CommonWorker(_worker, common_msg)) => common_msg,
-            Err(_) => return Err(()),
-            Ok(DedicatedWorkerScriptMsg::WakeUp) => panic!("unexpected worker event message!")
+            Some(DedicatedWorkerScriptMsg::CommonWorker(_worker, common_msg)) => common_msg,
+            None => return Err(()),
+            Some(DedicatedWorkerScriptMsg::WakeUp) => panic!("unexpected worker event message!")
         };
         match common_msg {
             WorkerScriptMsg::Common(script_msg) => Ok(script_msg),
@@ -89,7 +89,6 @@ pub trait WorkerEventLoopMethods {
     fn from_devtools_msg(&self, msg: DevtoolScriptControlMsg) -> Self::Event;
 }
 
-#[allow(unsafe_code)]
 // https://html.spec.whatwg.org/multipage/#worker-event-loop
 pub fn run_worker_event_loop<T, TimerMsg, WorkerMsg, Event>(worker_scope: &T,
                                                             worker: Option<&TrustedWorkerAddress>)
@@ -101,31 +100,18 @@ where
     + DomObject {
     let scope = worker_scope.upcast::<WorkerGlobalScope>();
     let timer_event_port = worker_scope.timer_event_port();
-    let devtools_port = scope.from_devtools_receiver();
+    let devtools_port = match scope.from_devtools_sender() {
+        Some(_) => Some(scope.from_devtools_receiver().select()),
+        None => None,
+    };
     let task_queue = worker_scope.task_queue();
-    let sel = Select::new();
-    let mut worker_handle = sel.handle(task_queue.select());
-    let mut timer_event_handle = sel.handle(timer_event_port);
-    let mut devtools_handle = sel.handle(devtools_port);
-    unsafe {
-        worker_handle.add();
-        timer_event_handle.add();
-        if scope.from_devtools_sender().is_some() {
-            devtools_handle.add();
-        }
-    }
-    let ret = sel.wait();
-    let event = {
-        if ret == worker_handle.id() {
-            task_queue.take_tasks();
+    let event = select! {
+        recv(task_queue.select(), msg) => {
+            task_queue.take_tasks(msg.unwrap());
             worker_scope.from_worker_msg(task_queue.recv().unwrap())
-        } else if ret == timer_event_handle.id() {
-            worker_scope.from_timer_msg(timer_event_port.recv().unwrap())
-        } else if ret == devtools_handle.id() {
-            worker_scope.from_devtools_msg(devtools_port.recv().unwrap())
-        } else {
-            panic!("unexpected select result!")
-        }
+        },
+        recv(timer_event_port.select(), msg) => worker_scope.from_timer_msg(msg.unwrap()),
+        recv(devtools_port, msg) => worker_scope.from_devtools_msg(msg.unwrap()),
     };
     let mut sequential = vec![];
     sequential.push(event);
@@ -138,14 +124,14 @@ where
         // Batch all events that are ready.
         // The task queue will throttle non-priority tasks if necessary.
         match task_queue.try_recv() {
-            Err(_) => match timer_event_port.try_recv() {
-                Err(_) => match devtools_port.try_recv() {
-                    Err(_) => break,
-                    Ok(ev) => sequential.push(worker_scope.from_devtools_msg(ev)),
+            None => match timer_event_port.try_recv() {
+                None => match devtools_port.and_then(|port| port.try_recv()) {
+                    None => break,
+                    Some(ev) => sequential.push(worker_scope.from_devtools_msg(ev)),
                 },
-                Ok(ev) => sequential.push(worker_scope.from_timer_msg(ev)),
+                Some(ev) => sequential.push(worker_scope.from_timer_msg(ev)),
             },
-            Ok(ev) => sequential.push(worker_scope.from_worker_msg(ev)),
+            Some(ev) => sequential.push(worker_scope.from_worker_msg(ev)),
         }
     }
     // Step 3

@@ -4,7 +4,6 @@
 
 #![deny(unsafe_code)]
 #![cfg_attr(feature = "unstable", feature(conservative_impl_trait))]
-#![feature(mpsc_select)]
 
 extern crate backtrace;
 extern crate bluetooth_traits;
@@ -32,8 +31,9 @@ extern crate net;
 extern crate net_traits;
 extern crate profile_traits;
 extern crate script_traits;
-#[macro_use]
 extern crate serde;
+#[macro_use]
+extern crate servo_channel;
 extern crate servo_config;
 extern crate servo_rand;
 extern crate servo_remutex;

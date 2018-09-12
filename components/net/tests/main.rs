@@ -16,6 +16,7 @@ extern crate msg;
 extern crate net;
 extern crate net_traits;
 extern crate profile_traits;
+extern crate servo_channel;
 extern crate servo_config;
 extern crate servo_url;
 extern crate time;
@@ -46,9 +47,9 @@ use net::test::HttpState;
 use net_traits::FetchTaskTarget;
 use net_traits::request::Request;
 use net_traits::response::Response;
+use servo_channel::{channel, Sender};
 use servo_url::ServoUrl;
 use std::sync::{Arc, Mutex};
-use std::sync::mpsc::{Sender, channel};
 
 const DEFAULT_USER_AGENT: &'static str = "Such Browser. Very Layout. Wow.";
 

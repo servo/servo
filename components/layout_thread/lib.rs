@@ -5,8 +5,6 @@
 //! The layout thread. Performs layout on the DOM, builds display lists and sends them to be
 //! painted.
 
-#![feature(mpsc_select)]
-
 extern crate app_units;
 extern crate atomic_refcell;
 extern crate embedder_traits;
@@ -44,6 +42,8 @@ extern crate serde_json;
 extern crate servo_allocator;
 extern crate servo_arc;
 extern crate servo_atoms;
+#[macro_use]
+extern crate servo_channel;
 extern crate servo_config;
 extern crate servo_geometry;
 extern crate servo_url;
@@ -67,7 +67,6 @@ use gfx::font_context;
 use gfx_traits::{Epoch, node_id_from_scroll_id};
 use histogram::Histogram;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
-use ipc_channel::router::ROUTER;
 use layout::animation;
 use layout::construct::ConstructionResult;
 use layout::context::LayoutContext;
@@ -111,6 +110,7 @@ use script_traits::Painter;
 use selectors::Element;
 use servo_arc::Arc as ServoArc;
 use servo_atoms::Atom;
+use servo_channel::{Receiver, Sender, channel, route_ipc_receiver_to_new_servo_receiver};
 use servo_config::opts;
 use servo_config::prefs::PREFS;
 use servo_geometry::MaxRect;
@@ -123,7 +123,6 @@ use std::ops::{Deref, DerefMut};
 use std::process;
 use std::sync::{Arc, Mutex, MutexGuard};
 use std::sync::atomic::{AtomicUsize, Ordering};
-use std::sync::mpsc::{Receiver, Sender, channel};
 use std::thread;
 use style::animation::Animation;
 use style::context::{QuirksMode, RegisteredSpeculativePainter, RegisteredSpeculativePainters};
@@ -504,12 +503,12 @@ impl LayoutThread {
         let (new_animations_sender, new_animations_receiver) = channel();
 
         // Proxy IPC messages from the pipeline to the layout thread.
-        let pipeline_receiver = ROUTER.route_ipc_receiver_to_new_mpsc_receiver(pipeline_port);
+        let pipeline_receiver = route_ipc_receiver_to_new_servo_receiver(pipeline_port);
 
         // Ask the router to proxy IPC messages from the font cache thread to the layout thread.
         let (ipc_font_cache_sender, ipc_font_cache_receiver) = ipc::channel().unwrap();
         let font_cache_receiver =
-            ROUTER.route_ipc_receiver_to_new_mpsc_receiver(ipc_font_cache_receiver);
+            route_ipc_receiver_to_new_servo_receiver(ipc_font_cache_receiver);
 
         LayoutThread {
             id: id,
@@ -639,22 +638,10 @@ impl LayoutThread {
             FromFontCache,
         }
 
-        let request = {
-            let port_from_script = &self.port;
-            let port_from_pipeline = &self.pipeline_port;
-            let port_from_font_cache = &self.font_cache_receiver;
-            select! {
-                msg = port_from_pipeline.recv() => {
-                    Request::FromPipeline(msg.unwrap())
-                },
-                msg = port_from_script.recv() => {
-                    Request::FromScript(msg.unwrap())
-                },
-                msg = port_from_font_cache.recv() => {
-                    msg.unwrap();
-                    Request::FromFontCache
-                }
-            }
+        let request = select! {
+            recv(self.pipeline_port.select(), msg) => Request::FromPipeline(msg.unwrap()),
+            recv(self.port.select(), msg) => Request::FromScript(msg.unwrap()),
+            recv(self.font_cache_receiver.select(), msg) => { msg.unwrap(); Request::FromFontCache }
         };
 
         match request {
