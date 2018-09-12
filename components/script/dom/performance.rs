@@ -289,6 +289,7 @@ impl Performance {
     fn now(&self) -> f64 {
         (time::precise_time_ns() - self.navigation_start_precise).to_ms()
     }
+
 }
 
 impl PerformanceMethods for Performance {
@@ -413,4 +414,17 @@ impl PerformanceMethods for Performance {
             .borrow_mut()
             .clear_entries_by_name_and_type(measure_name, Some(DOMString::from("measure")));
     }
+
+    // https://w3c.github.io/resource-timing/#dom-performance-clearresourcetimings
+    fn ClearResourceTimings(&self) {
+        //TODO
+    }
+
+    // https://w3c.github.io/resource-timing/#dom-performance-setresourcetimingbuffersize
+    fn SetResourceTimingBufferSize(&self, _maxSize: u32) {
+
+    }
+
+    // https://w3c.github.io/resource-timing/#dom-performance-onresourcetimingbufferfull
+    event_handler!(onresourcetimingbufferfull, GetOnresourcetimingbufferfull, SetOnresourcetimingbufferfull);
 }
