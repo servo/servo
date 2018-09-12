@@ -803,6 +803,7 @@ impl FetchResponseListener for ParserContext {
         if let Err(err) = status {
             // TODO(Savago): we should send a notification to callers #5463.
             debug!("Failed to load page URL {}, error: {:?}", self.url, err);
+            println!("Failed to load page URL {}, error: {:?}", self.url, err);
         }
 
         parser.document.set_redirect_count(self.resource_timing.redirect_count);
