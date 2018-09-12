@@ -11,7 +11,7 @@ use offscreen_gl_context::{GLLimits, GLVersion};
 use offscreen_gl_context::{NativeGLContext, NativeGLContextHandle, NativeGLContextMethods};
 use offscreen_gl_context::{OSMesaContext, OSMesaContextHandle};
 use std::sync::{Arc, Mutex};
-use super::webgl_thread::WebGLImpl;
+use super::webgl_thread::{WebGLImpl, GLState};
 
 /// The GLContextFactory is used to create shared GL contexts with the main thread GL context.
 /// Currently, shared textures are used to render WebGL textures into the WR compositor.
@@ -144,13 +144,13 @@ impl GLContextWrapper {
         }
     }
 
-    pub fn apply_command(&self, cmd: WebGLCommand) {
+    pub fn apply_command(&self, cmd: WebGLCommand, state: &mut GLState) {
         match *self {
             GLContextWrapper::Native(ref ctx) => {
-                WebGLImpl::apply(ctx, cmd);
+                WebGLImpl::apply(ctx, state, cmd);
             }
             GLContextWrapper::OSMesa(ref ctx) => {
-                WebGLImpl::apply(ctx, cmd);
+                WebGLImpl::apply(ctx, state, cmd);
             }
         }
     }

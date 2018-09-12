@@ -18,6 +18,33 @@ use webrender_api;
 /// It allows to get a WebGLThread handle for each script pipeline.
 pub use ::webgl_mode::WebGLThreads;
 
+struct GLContextData {
+    ctx: GLContextWrapper,
+    state: GLState,
+}
+
+pub struct GLState {
+    clear_color: (f32, f32, f32, f32),
+    scissor_test_enabled: bool,
+    stencil_write_mask: (u32, u32),
+    stencil_clear_value: i32,
+    depth_write_mask: bool,
+    depth_clear_value: f64,
+}
+
+impl Default for GLState {
+    fn default() -> GLState {
+        GLState {
+            clear_color: (0., 0., 0., 0.),
+            scissor_test_enabled: false,
+            stencil_write_mask: (0, 0),
+            stencil_clear_value: 0,
+            depth_write_mask: true,
+            depth_clear_value: 1.,
+        }
+    }
+}
+
 /// A WebGLThread manages the life cycle and message multiplexing of
 /// a set of WebGLContexts living in the same thread.
 pub struct WebGLThread<VR: WebVRRenderHandler + 'static, OB: WebGLThreadObserver> {
@@ -26,7 +53,7 @@ pub struct WebGLThread<VR: WebVRRenderHandler + 'static, OB: WebGLThreadObserver
     /// Channel used to generate/update or delete `webrender_api::ImageKey`s.
     webrender_api: webrender_api::RenderApi,
     /// Map of live WebGLContexts.
-    contexts: FnvHashMap<WebGLContextId, GLContextWrapper>,
+    contexts: FnvHashMap<WebGLContextId, GLContextData>,
     /// Cached information for WebGLContexts.
     cached_context_info: FnvHashMap<WebGLContextId, WebGLContextInfo>,
     /// Current bound context.
@@ -93,9 +120,9 @@ impl<VR: WebVRRenderHandler + 'static, OB: WebGLThreadObserver> WebGLThread<VR, 
             WebGLMsg::CreateContext(version, size, attributes, result_sender) => {
                 let result = self.create_webgl_context(version, size, attributes);
                 result_sender.send(result.map(|(id, limits, share_mode)| {
-                    let ctx = Self::make_current_if_needed(id, &self.contexts, &mut self.bound_context_id)
+                    let data = Self::make_current_if_needed(id, &self.contexts, &mut self.bound_context_id)
                                     .expect("WebGLContext not found");
-                    let glsl_version = Self::get_glsl_version(ctx);
+                    let glsl_version = Self::get_glsl_version(&data.ctx);
 
                     WebGLCreateContextResult {
                         sender: WebGLMsgSender::new(id, webgl_chan.clone()),
@@ -139,8 +166,9 @@ impl<VR: WebVRRenderHandler + 'static, OB: WebGLThreadObserver> WebGLThread<VR, 
 
     /// Handles a WebGLCommand for a specific WebGLContext
     fn handle_webgl_command(&mut self, context_id: WebGLContextId, command: WebGLCommand) {
-        if let Some(ctx) = Self::make_current_if_needed(context_id, &self.contexts, &mut self.bound_context_id) {
-            ctx.apply_command(command);
+        let data = Self::make_current_if_needed_mut(context_id, &mut self.contexts, &mut self.bound_context_id);
+        if let Some(data) = data {
+            data.ctx.apply_command(command, &mut data.state);
         }
     }
 
@@ -158,28 +186,28 @@ impl<VR: WebVRRenderHandler + 'static, OB: WebGLThreadObserver> WebGLThread<VR, 
 
     /// Handles a lock external callback received from webrender::ExternalImageHandler
     fn handle_lock(&mut self, context_id: WebGLContextId, sender: WebGLSender<(u32, Size2D<i32>, usize)>) {
-        let ctx = Self::make_current_if_needed(context_id, &self.contexts, &mut self.bound_context_id)
+        let data = Self::make_current_if_needed(context_id, &self.contexts, &mut self.bound_context_id)
                         .expect("WebGLContext not found in a WebGLMsg::Lock message");
         let info = self.cached_context_info.get_mut(&context_id).unwrap();
         // Insert a OpenGL Fence sync object that sends a signal when all the WebGL commands are finished.
         // The related gl().wait_sync call is performed in the WR thread. See WebGLExternalImageApi for mor details.
-        let gl_sync = ctx.gl().fence_sync(gl::SYNC_GPU_COMMANDS_COMPLETE, 0);
+        let gl_sync = data.ctx.gl().fence_sync(gl::SYNC_GPU_COMMANDS_COMPLETE, 0);
         info.gl_sync = Some(gl_sync);
         // It is important that the fence sync is properly flushed into the GPU's command queue.
         // Without proper flushing, the sync object may never be signaled.
-        ctx.gl().flush();
+        data.ctx.gl().flush();
 
         sender.send((info.texture_id, info.size, gl_sync as usize)).unwrap();
     }
 
     /// Handles an unlock external callback received from webrender::ExternalImageHandler
     fn handle_unlock(&mut self, context_id: WebGLContextId) {
-        let ctx = Self::make_current_if_needed(context_id, &self.contexts, &mut self.bound_context_id)
+        let data = Self::make_current_if_needed(context_id, &self.contexts, &mut self.bound_context_id)
                         .expect("WebGLContext not found in a WebGLMsg::Unlock message");
         let info = self.cached_context_info.get_mut(&context_id).unwrap();
         if let Some(gl_sync) = info.gl_sync.take() {
             // Release the GLSync object.
-            ctx.gl().delete_sync(gl_sync);
+            data.ctx.gl().delete_sync(gl_sync);
         }
     }
 
@@ -207,7 +235,10 @@ impl<VR: WebVRRenderHandler + 'static, OB: WebGLThreadObserver> WebGLThread<VR, 
                 let id = WebGLContextId(self.next_webgl_id);
                 let (size, texture_id, limits) = ctx.get_info();
                 self.next_webgl_id += 1;
-                self.contexts.insert(id, ctx);
+                self.contexts.insert(id, GLContextData {
+                    ctx,
+                    state: Default::default(),
+                });
                 self.cached_context_info.insert(id, WebGLContextInfo {
                     texture_id,
                     size,
@@ -232,10 +263,14 @@ impl<VR: WebVRRenderHandler + 'static, OB: WebGLThreadObserver> WebGLThread<VR, 
                             context_id: WebGLContextId,
                             size: Size2D<i32>,
                             sender: WebGLSender<Result<(), String>>) {
-        let ctx = Self::make_current_if_needed_mut(context_id, &mut self.contexts, &mut self.bound_context_id);
-        match ctx.resize(size) {
+        let data = Self::make_current_if_needed_mut(
+            context_id,
+            &mut self.contexts,
+            &mut self.bound_context_id
+        ).expect("Missing WebGL context!");
+        match data.ctx.resize(size) {
             Ok(_) => {
-                let (real_size, texture_id, _) = ctx.get_info();
+                let (real_size, texture_id, _) = data.ctx.get_info();
                 self.observer.on_context_resize(context_id, texture_id, real_size);
 
                 let info = self.cached_context_info.get_mut(&context_id).unwrap();
@@ -306,7 +341,7 @@ impl<VR: WebVRRenderHandler + 'static, OB: WebGLThreadObserver> WebGLThread<VR, 
                 })
             },
             WebGLContextShareMode::Readback => {
-                let pixels = Self::raw_pixels(&self.contexts[&context_id], info.size);
+                let pixels = Self::raw_pixels(&self.contexts[&context_id].ctx, info.size);
                 match info.image_key.clone() {
                     Some(image_key) => {
                         // ImageKey was already created, but WR Images must
@@ -339,18 +374,20 @@ impl<VR: WebVRRenderHandler + 'static, OB: WebGLThreadObserver> WebGLThread<VR, 
     fn handle_dom_to_texture(&mut self, command: DOMToTextureCommand) {
         match command {
             DOMToTextureCommand::Attach(context_id, texture_id, document_id, pipeline_id, size) => {
-                let ctx = Self::make_current_if_needed(context_id, &self.contexts, &mut self.bound_context_id)
+                let data = Self::make_current_if_needed(context_id, &self.contexts, &mut self.bound_context_id)
                                 .expect("WebGLContext not found in a WebGL DOMToTextureCommand::Attach command");
                 // Initialize the texture that WR will use for frame outputs.
-                ctx.gl().tex_image_2d(gl::TEXTURE_2D,
-                                      0,
-                                      gl::RGBA as gl::GLint,
-                                      size.width,
-                                      size.height,
-                                      0,
-                                      gl::RGBA,
-                                      gl::UNSIGNED_BYTE,
-                                      None);
+                data.ctx.gl().tex_image_2d(
+                    gl::TEXTURE_2D,
+                    0,
+                    gl::RGBA as gl::GLint,
+                    size.width,
+                    size.height,
+                    0,
+                    gl::RGBA,
+                    gl::UNSIGNED_BYTE,
+                    None
+                );
                 self.dom_outputs.insert(pipeline_id, DOMToTextureData {
                     context_id, texture_id, document_id, size
                 });
@@ -361,14 +398,14 @@ impl<VR: WebVRRenderHandler + 'static, OB: WebGLThreadObserver> WebGLThread<VR, 
             DOMToTextureCommand::Lock(pipeline_id, gl_sync, sender) => {
                 let contexts = &self.contexts;
                 let bound_context_id = &mut self.bound_context_id;
-                let result = self.dom_outputs.get(&pipeline_id).and_then(|data| {
-                    let ctx = Self::make_current_if_needed(data.context_id, contexts, bound_context_id);
-                    ctx.and_then(|ctx| {
+                let result = self.dom_outputs.get(&pipeline_id).and_then(|dom_data| {
+                    let data = Self::make_current_if_needed(dom_data.context_id, contexts, bound_context_id);
+                    data.and_then(|data| {
                         // The next glWaitSync call is used to synchronize the two flows of
                         // OpenGL commands (WR and WebGL) in order to avoid using semi-ready WR textures.
                         // glWaitSync doesn't block WebGL CPU thread.
-                        ctx.gl().wait_sync(gl_sync as gl::GLsync, 0, gl::TIMEOUT_IGNORED);
-                        Some((data.texture_id.get(), data.size))
+                        data.ctx.gl().wait_sync(gl_sync as gl::GLsync, 0, gl::TIMEOUT_IGNORED);
+                        Some((dom_data.texture_id.get(), dom_data.size))
                     })
                 });
 
@@ -390,28 +427,37 @@ impl<VR: WebVRRenderHandler + 'static, OB: WebGLThreadObserver> WebGLThread<VR, 
 
     /// Gets a reference to a GLContextWrapper for a given WebGLContextId and makes it current if required.
     fn make_current_if_needed<'a>(context_id: WebGLContextId,
-                                  contexts: &'a FnvHashMap<WebGLContextId, GLContextWrapper>,
-                                  bound_id: &mut Option<WebGLContextId>) -> Option<&'a GLContextWrapper> {
-        contexts.get(&context_id).and_then(|ctx| {
+                                  contexts: &'a FnvHashMap<WebGLContextId, GLContextData>,
+                                  bound_id: &mut Option<WebGLContextId>) -> Option<&'a GLContextData> {
+        let data = contexts.get(&context_id);
+
+        if let Some(data) = data {
             if Some(context_id) != *bound_id {
-                ctx.make_current();
+                data.ctx.make_current();
                 *bound_id = Some(context_id);
             }
+        }
 
-            Some(ctx)
-        })
+        data
     }
 
     /// Gets a mutable reference to a GLContextWrapper for a WebGLContextId and makes it current if required.
-    fn make_current_if_needed_mut<'a>(context_id: WebGLContextId,
-                                      contexts: &'a mut FnvHashMap<WebGLContextId, GLContextWrapper>,
-                                      bound_id: &mut Option<WebGLContextId>) -> &'a mut GLContextWrapper {
-        let ctx = contexts.get_mut(&context_id).expect("WebGLContext not found!");
-        if Some(context_id) != *bound_id {
-            ctx.make_current();
-            *bound_id = Some(context_id);
+    fn make_current_if_needed_mut<'a>(
+        context_id: WebGLContextId,
+        contexts: &'a mut FnvHashMap<WebGLContextId, GLContextData>,
+        bound_id: &mut Option<WebGLContextId>)
+        -> Option<&'a mut GLContextData>
+    {
+        let data = contexts.get_mut(&context_id);
+
+        if let Some(ref data) = data {
+            if Some(context_id) != *bound_id {
+                data.ctx.make_current();
+                *bound_id = Some(context_id);
+            }
         }
-        ctx
+
+        data
     }
 
     /// Creates a `webrender_api::ImageKey` that uses shared textures.
@@ -636,7 +682,11 @@ pub struct WebGLImpl;
 
 impl WebGLImpl {
     #[allow(unsafe_code)]
-    pub fn apply<Native: NativeGLContextMethods>(ctx: &GLContext<Native>, command: WebGLCommand) {
+    pub fn apply<Native: NativeGLContextMethods>(
+        ctx: &GLContext<Native>,
+        state: &mut GLState,
+        command: WebGLCommand
+    ) {
         match command {
             WebGLCommand::GetContextAttributes(ref sender) =>
                 sender.send(*ctx.borrow_attributes()).unwrap(),
@@ -667,13 +717,19 @@ impl WebGLImpl {
             },
             WebGLCommand::Clear(mask) =>
                 ctx.gl().clear(mask),
-            WebGLCommand::ClearColor(r, g, b, a) =>
-                ctx.gl().clear_color(r, g, b, a),
-            WebGLCommand::ClearDepth(depth) => {
-                ctx.gl().clear_depth(depth.max(0.).min(1.) as f64)
+            WebGLCommand::ClearColor(r, g, b, a) => {
+                state.clear_color = (r, g, b, a);
+                ctx.gl().clear_color(r, g, b, a);
             }
-            WebGLCommand::ClearStencil(stencil) =>
-                ctx.gl().clear_stencil(stencil),
+            WebGLCommand::ClearDepth(depth) => {
+                let value = depth.max(0.).min(1.) as f64;
+                state.depth_clear_value = value;
+                ctx.gl().clear_depth(value)
+            }
+            WebGLCommand::ClearStencil(stencil) => {
+                state.stencil_clear_value = stencil;
+                ctx.gl().clear_stencil(stencil);
+            }
             WebGLCommand::ColorMask(r, g, b, a) =>
                 ctx.gl().color_mask(r, g, b, a),
             WebGLCommand::CopyTexImage2D(target, level, internal_format, x, y, width, height, border) =>
@@ -684,21 +740,50 @@ impl WebGLImpl {
                 ctx.gl().cull_face(mode),
             WebGLCommand::DepthFunc(func) =>
                 ctx.gl().depth_func(func),
-            WebGLCommand::DepthMask(flag) =>
-                ctx.gl().depth_mask(flag),
+            WebGLCommand::DepthMask(flag) => {
+                state.depth_write_mask = flag;
+                ctx.gl().depth_mask(flag);
+            }
             WebGLCommand::DepthRange(near, far) => {
                 ctx.gl().depth_range(near.max(0.).min(1.) as f64, far.max(0.).min(1.) as f64)
             }
-            WebGLCommand::Disable(cap) =>
-                ctx.gl().disable(cap),
-            WebGLCommand::Enable(cap) =>
-                ctx.gl().enable(cap),
-            WebGLCommand::FramebufferRenderbuffer(target, attachment, renderbuffertarget, rb) =>
-                ctx.gl().framebuffer_renderbuffer(target, attachment, renderbuffertarget,
-                                                  rb.map_or(0, WebGLRenderbufferId::get)),
-            WebGLCommand::FramebufferTexture2D(target, attachment, textarget, texture, level) =>
-                ctx.gl().framebuffer_texture_2d(target, attachment, textarget,
-                                                texture.map_or(0, WebGLTextureId::get), level),
+            WebGLCommand::Disable(cap) => {
+                if cap == gl::SCISSOR_TEST {
+                    state.scissor_test_enabled = false;
+                }
+                ctx.gl().disable(cap);
+            }
+            WebGLCommand::Enable(cap) => {
+                if cap == gl::SCISSOR_TEST {
+                    state.scissor_test_enabled = true;
+                }
+                ctx.gl().enable(cap);
+            }
+            WebGLCommand::FramebufferRenderbuffer(target, attachment, renderbuffertarget, rb) => {
+                let attach = |attachment| {
+                    ctx.gl().framebuffer_renderbuffer(target, attachment,
+                                                      renderbuffertarget,
+                                                      rb.map_or(0, WebGLRenderbufferId::get))
+                };
+                if attachment == gl::DEPTH_STENCIL_ATTACHMENT {
+                    attach(gl::DEPTH_ATTACHMENT);
+                    attach(gl::STENCIL_ATTACHMENT);
+                } else {
+                    attach(attachment);
+                }
+            }
+            WebGLCommand::FramebufferTexture2D(target, attachment, textarget, texture, level) => {
+                let attach = |attachment| {
+                    ctx.gl().framebuffer_texture_2d(target, attachment, textarget,
+                                                    texture.map_or(0, WebGLTextureId::get), level)
+                };
+                if attachment == gl::DEPTH_STENCIL_ATTACHMENT {
+                    attach(gl::DEPTH_ATTACHMENT);
+                    attach(gl::STENCIL_ATTACHMENT);
+                } else {
+                    attach(attachment)
+                }
+            }
             WebGLCommand::FrontFace(mode) =>
                 ctx.gl().front_face(mode),
             WebGLCommand::DisableVertexAttribArray(attrib_id) =>
@@ -726,10 +811,18 @@ impl WebGLImpl {
                 ctx.gl().stencil_func(func, ref_, mask),
             WebGLCommand::StencilFuncSeparate(face, func, ref_, mask) =>
                 ctx.gl().stencil_func_separate(face, func, ref_, mask),
-            WebGLCommand::StencilMask(mask) =>
-                ctx.gl().stencil_mask(mask),
-            WebGLCommand::StencilMaskSeparate(face, mask) =>
-                ctx.gl().stencil_mask_separate(face, mask),
+            WebGLCommand::StencilMask(mask) => {
+                state.stencil_write_mask = (mask, mask);
+                ctx.gl().stencil_mask(mask);
+            }
+            WebGLCommand::StencilMaskSeparate(face, mask) => {
+                if face == gl::FRONT {
+                    state.stencil_write_mask.0 = mask;
+                } else {
+                    state.stencil_write_mask.1 = mask;
+                }
+                ctx.gl().stencil_mask_separate(face, mask);
+            }
             WebGLCommand::StencilOp(fail, zfail, zpass) =>
                 ctx.gl().stencil_op(fail, zfail, zpass),
             WebGLCommand::StencilOpSeparate(face, fail, zfail, zpass) =>
@@ -1105,6 +1198,9 @@ impl WebGLImpl {
                 }
                 sender.send(value).unwrap();
             }
+            WebGLCommand::InitializeFramebuffer { color, depth, stencil } => {
+                Self::initialize_framebuffer(ctx.gl(), state, color, depth, stencil)
+            }
         }
 
         // TODO: update test expectations in order to enable debug assertions
@@ -1113,6 +1209,62 @@ impl WebGLImpl {
             error!("Last GL operation failed: {:?}", command)
         }
         assert_eq!(error, gl::NO_ERROR, "Unexpected WebGL error: 0x{:x} ({})", error, error);
+    }
+
+    fn initialize_framebuffer(
+        gl: &gl::Gl,
+        state: &GLState,
+        color: bool,
+        depth: bool,
+        stencil: bool,
+    ) {
+        let bits = [
+            (color, gl::COLOR_BUFFER_BIT),
+            (depth, gl::DEPTH_BUFFER_BIT),
+            (stencil, gl::STENCIL_BUFFER_BIT),
+        ].iter().fold(0, |bits, &(enabled, bit)| bits | if enabled { bit } else { 0 });
+
+        if state.scissor_test_enabled {
+            gl.disable(gl::SCISSOR_TEST);
+        }
+
+        if color {
+            gl.clear_color(0., 0., 0., 0.);
+        }
+
+        if depth {
+            gl.depth_mask(true);
+            gl.clear_depth(1.);
+        }
+
+        if stencil {
+            gl.stencil_mask_separate(gl::FRONT, 0xFFFFFFFF);
+            gl.stencil_mask_separate(gl::BACK, 0xFFFFFFFF);
+            gl.clear_stencil(0);
+        }
+
+        gl.clear(bits);
+
+        if state.scissor_test_enabled {
+            gl.enable(gl::SCISSOR_TEST);
+        }
+
+        if color {
+            let (r, g, b, a) = state.clear_color;
+            gl.clear_color(r, g, b, a);
+        }
+
+        if depth {
+            gl.depth_mask(state.depth_write_mask);
+            gl.clear_depth(state.depth_clear_value);
+        }
+
+        if stencil {
+            let (front, back) = state.stencil_write_mask;
+            gl.stencil_mask_separate(gl::FRONT, front);
+            gl.stencil_mask_separate(gl::BACK, back);
+            gl.clear_stencil(state.stencil_clear_value);
+        }
     }
 
     #[allow(unsafe_code)]

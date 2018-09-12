@@ -296,6 +296,7 @@ pub enum WebGLCommand {
     GetUniformFloat4(WebGLProgramId, i32, WebGLSender<[f32; 4]>),
     GetUniformFloat9(WebGLProgramId, i32, WebGLSender<[f32; 9]>),
     GetUniformFloat16(WebGLProgramId, i32, WebGLSender<[f32; 16]>),
+    InitializeFramebuffer { color: bool, depth: bool, stencil: bool },
 }
 
 macro_rules! define_resource_id_struct {

@@ -146,7 +146,7 @@ impl WebGLTexture {
             }
         };
 
-        let base_image_info = self.base_image_info().unwrap();
+        let base_image_info = self.base_image_info();
         if !base_image_info.is_initialized() {
             return Err(WebGLError::InvalidOperation);
         }
@@ -186,6 +186,22 @@ impl WebGLTexture {
                     DOMToTextureCommand::Detach(self.id),
                 );
             }
+
+            /*
+            If a texture object is deleted while its image is attached to the currently
+            bound framebuffer, then it is as if FramebufferTexture2D had been called, with
+            a texture of 0, for each attachment point to which this image was attached
+            in the currently bound framebuffer.
+            - GLES 2.0, 4.4.3, "Attaching Texture Images to a Framebuffer"
+             */
+            let currently_bound_framebuffer =
+                self.upcast::<WebGLObject>()
+                    .context()
+                    .bound_framebuffer();
+            if let Some(fb) = currently_bound_framebuffer {
+                fb.detach_texture(self);
+            }
+
             context.send_command(WebGLCommand::DeleteTexture(self.id));
         }
     }
@@ -327,7 +343,7 @@ impl WebGLTexture {
     fn is_cube_complete(&self) -> bool {
         debug_assert_eq!(self.face_count.get(), 6);
 
-        let image_info = self.base_image_info().unwrap();
+        let image_info = self.base_image_info();
         if !image_info.is_defined() {
             return false;
         }
@@ -389,10 +405,10 @@ impl WebGLTexture {
         self.image_info_array.borrow_mut()[pos as usize] = image_info;
     }
 
-    fn base_image_info(&self) -> Option<ImageInfo> {
+    fn base_image_info(&self) -> ImageInfo {
         assert!((self.base_mipmap_level as usize) < MAX_LEVEL_COUNT);
 
-        Some(self.image_info_at_face(0, self.base_mipmap_level))
+        self.image_info_at_face(0, self.base_mipmap_level)
     }
 
     pub fn set_attached_to_dom(&self) {
