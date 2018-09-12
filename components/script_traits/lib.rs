@@ -28,7 +28,8 @@ extern crate msg;
 extern crate net_traits;
 extern crate profile_traits;
 extern crate rustc_serialize;
-#[macro_use] extern crate serde;
+#[macro_use]
+extern crate serde;
 extern crate servo_atoms;
 extern crate servo_url;
 extern crate style_traits;
@@ -134,12 +135,16 @@ pub struct LoadData {
     /// The creator pipeline id if this is an about:blank load.
     pub creator_pipeline_id: Option<PipelineId>,
     /// The method.
-    #[serde(deserialize_with = "::hyper_serde::deserialize",
-            serialize_with = "::hyper_serde::serialize")]
+    #[serde(
+        deserialize_with = "::hyper_serde::deserialize",
+        serialize_with = "::hyper_serde::serialize"
+    )]
     pub method: Method,
     /// The headers.
-    #[serde(deserialize_with = "::hyper_serde::deserialize",
-            serialize_with = "::hyper_serde::serialize")]
+    #[serde(
+        deserialize_with = "::hyper_serde::deserialize",
+        serialize_with = "::hyper_serde::serialize"
+    )]
     pub headers: Headers,
     /// The data.
     pub data: Option<Vec<u8>>,
@@ -158,16 +163,17 @@ pub enum JsEvalResult {
     /// <https://html.spec.whatwg.org/multipage/#navigate> 12.11
     NoContent,
     /// The js evaluation had a string result.
-    Ok(Vec<u8>)
+    Ok(Vec<u8>),
 }
 
 impl LoadData {
     /// Create a new `LoadData` object.
-    pub fn new(url: ServoUrl,
-               creator_pipeline_id: Option<PipelineId>,
-               referrer_policy: Option<ReferrerPolicy>,
-               referrer_url: Option<ServoUrl>)
-               -> LoadData {
+    pub fn new(
+        url: ServoUrl,
+        creator_pipeline_id: Option<PipelineId>,
+        referrer_policy: Option<ReferrerPolicy>,
+        referrer_url: Option<ServoUrl>,
+    ) -> LoadData {
         LoadData {
             url: url,
             creator_pipeline_id: creator_pipeline_id,
@@ -293,7 +299,12 @@ pub enum ConstellationControlMsg {
     PostMessage(PipelineId, Option<ImmutableOrigin>, Vec<u8>),
     /// Updates the current pipeline ID of a given iframe.
     /// First PipelineId is for the parent, second is the new PipelineId for the frame.
-    UpdatePipelineId(PipelineId, BrowsingContextId, PipelineId, UpdatePipelineIdReason),
+    UpdatePipelineId(
+        PipelineId,
+        BrowsingContextId,
+        PipelineId,
+        UpdatePipelineIdReason,
+    ),
     /// Updates the history state and url of a given pipeline.
     UpdateHistoryState(PipelineId, Option<HistoryStateId>, ServoUrl),
     /// Removes inaccesible history states.
@@ -321,7 +332,14 @@ pub enum ConstellationControlMsg {
     },
     /// Cause a `storage` event to be dispatched at the appropriate window.
     /// The strings are key, old value and new value.
-    DispatchStorageEvent(PipelineId, StorageType, ServoUrl, Option<String>, Option<String>, Option<String>),
+    DispatchStorageEvent(
+        PipelineId,
+        StorageType,
+        ServoUrl,
+        Option<String>,
+        Option<String>,
+        Option<String>,
+    ),
     /// Report an error from a CSS parser for the given pipeline
     ReportCSSError(PipelineId, String, u32, u32, String),
     /// Reload the given page.
@@ -446,19 +464,29 @@ pub enum CompositorEvent {
         MouseButton,
         Point2D<f32>,
         Option<UntrustedNodeAddress>,
-        Option<Point2D<f32>>
+        Option<Point2D<f32>>,
     ),
     /// The mouse was moved over a point (or was moved out of the recognizable region).
     MouseMoveEvent(Option<Point2D<f32>>, Option<UntrustedNodeAddress>),
     /// A touch event was generated with a touch ID and location.
-    TouchEvent(TouchEventType, TouchId, Point2D<f32>, Option<UntrustedNodeAddress>),
+    TouchEvent(
+        TouchEventType,
+        TouchId,
+        Point2D<f32>,
+        Option<UntrustedNodeAddress>,
+    ),
     /// A key was pressed.
     KeyEvent(Option<char>, Key, KeyState, KeyModifiers),
 }
 
 /// Requests a TimerEvent-Message be sent after the given duration.
 #[derive(Deserialize, Serialize)]
-pub struct TimerEventRequest(pub IpcSender<TimerEvent>, pub TimerSource, pub TimerEventId, pub MsDuration);
+pub struct TimerEventRequest(
+    pub IpcSender<TimerEvent>,
+    pub TimerSource,
+    pub TimerEventId,
+    pub MsDuration,
+);
 
 /// Type of messages that can be sent to the timer scheduler.
 #[derive(Deserialize, Serialize)]
@@ -567,8 +595,10 @@ pub trait ScriptThreadFactory {
     /// Type of message sent from script to layout.
     type Message;
     /// Create a `ScriptThread`.
-    fn create(state: InitialScriptState, load_data: LoadData)
-        -> (Sender<Self::Message>, Receiver<Self::Message>);
+    fn create(
+        state: InitialScriptState,
+        load_data: LoadData,
+    ) -> (Sender<Self::Message>, Receiver<Self::Message>);
 }
 
 /// Whether the sandbox attribute is present for an iframe element
@@ -677,7 +707,11 @@ pub enum WebDriverCommandMsg {
     /// Act as if keys were pressed in the browsing context with the given ID.
     SendKeys(BrowsingContextId, Vec<(Key, KeyModifiers, KeyState)>),
     /// Set the window size.
-    SetWindowSize(TopLevelBrowsingContextId, DeviceUintSize, IpcSender<WindowSizeData>),
+    SetWindowSize(
+        TopLevelBrowsingContextId,
+        DeviceUintSize,
+        IpcSender<WindowSizeData>,
+    ),
     /// Take a screenshot of the window.
     TakeScreenshot(TopLevelBrowsingContextId, IpcSender<Option<Image>>),
 }
@@ -705,7 +739,11 @@ pub enum ConstellationMsg {
     /// Request to traverse the joint session history of the provided browsing context.
     TraverseHistory(TopLevelBrowsingContextId, TraversalDirection),
     /// Inform the constellation of a window being resized.
-    WindowSize(Option<TopLevelBrowsingContextId>, WindowSizeData, WindowSizeType),
+    WindowSize(
+        Option<TopLevelBrowsingContextId>,
+        WindowSizeData,
+        WindowSizeType,
+    ),
     /// Requests that the constellation instruct layout to begin a new tick of the animation.
     TickAnimation(PipelineId, AnimationTickType),
     /// Dispatch a webdriver command
@@ -813,17 +851,20 @@ impl From<RecvTimeoutError> for PaintWorkletError {
 /// Execute paint code in the worklet thread pool.
 pub trait Painter: SpeculativePainter {
     /// <https://drafts.css-houdini.org/css-paint-api/#draw-a-paint-image>
-    fn draw_a_paint_image(&self,
-                          size: TypedSize2D<f32, CSSPixel>,
-                          zoom: TypedScale<f32, CSSPixel, DevicePixel>,
-                          properties: Vec<(Atom, String)>,
-                          arguments: Vec<String>)
-                          -> Result<DrawAPaintImageResult, PaintWorkletError>;
+    fn draw_a_paint_image(
+        &self,
+        size: TypedSize2D<f32, CSSPixel>,
+        zoom: TypedScale<f32, CSSPixel, DevicePixel>,
+        properties: Vec<(Atom, String)>,
+        arguments: Vec<String>,
+    ) -> Result<DrawAPaintImageResult, PaintWorkletError>;
 }
 
 impl fmt::Debug for Painter {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        fmt.debug_tuple("Painter").field(&format_args!("..")).finish()
+        fmt.debug_tuple("Painter")
+            .field(&format_args!(".."))
+            .finish()
     }
 }
 
