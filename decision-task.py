@@ -1,8 +1,9 @@
 # coding: utf8
 
-import os
-import sys
 import json
+import os
+import re
+import sys
 import taskcluster
 
 
@@ -111,14 +112,17 @@ def create_task(name, command, image, artifacts=None, dependencies=None, env=Non
             "command": [
                 "/bin/bash",
                 "--login",
+                "-x",
+                "-e",
                 "-c",
-                """
-                    set -e
-                    set -x
-                    git clone $GITHUB_EVENT_CLONE_URL repo
-                    cd repo
-                    git checkout $GITHUB_EVENT_COMMIT_SHA
-                """ + command
+                deindent(
+                    """
+                        git clone $GITHUB_EVENT_CLONE_URL repo
+                        cd repo
+                        git checkout $GITHUB_EVENT_COMMIT_SHA
+                    """
+                    + command
+                )
             ],
             "env": env,
             "artifacts": {
@@ -135,6 +139,10 @@ def create_task(name, command, image, artifacts=None, dependencies=None, env=Non
     QUEUE.createTask(task_id, payload)
     print("Scheduled %s: %s" % (name, task_id))
     return task_id
+
+
+def deindent(string):
+    return re.sub("\n +", "\n ", string)
 
 
 if __name__ == "__main__":
