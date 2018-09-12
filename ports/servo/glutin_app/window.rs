@@ -785,10 +785,6 @@ impl WindowMethods for Window {
     fn prepare_for_composite(&self, _width: Length<u32, DevicePixel>, _height: Length<u32, DevicePixel>) -> bool {
         true
     }
-
-    fn supports_clipboard(&self) -> bool {
-        true
-    }
 }
 
 fn winit_phase_to_touch_event_type(phase: TouchPhase) -> TouchEventType {
