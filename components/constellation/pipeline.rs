@@ -162,7 +162,7 @@ pub struct InitialPipelineState {
     /// Whether the browsing context in which pipeline is embedded is visible
     /// for the purposes of scheduling and resource management. This field is
     /// only used to notify script and compositor threads after spawning
-    /// a pipeline. 
+    /// a pipeline.
     pub prev_visibility: bool,
 
     /// Webrender api.
