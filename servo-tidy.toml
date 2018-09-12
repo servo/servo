@@ -45,6 +45,8 @@ packages = [
   #TODO: remove ipc-channel when #21325 lands
   "ipc-channel",
   "log",
+  #TODO: remove num-rational when https://github.com/PistonDevelopers/image/pull/809 is merged.
+  "num-rational",
   "rand",
   "winapi",
   # TODO: remove slab when #21426 lands
