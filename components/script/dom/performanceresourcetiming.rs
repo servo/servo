@@ -23,6 +23,7 @@ use servo_url::ServoUrl;
 
 // TODO remove this allow statement when CSS and Beacon are used
 #[allow(dead_code)]
+#[derive(Debug, PartialEq)]
 pub enum InitiatorType {
     LocalName(String),
     CSS,

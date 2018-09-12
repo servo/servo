@@ -267,7 +267,10 @@ impl<T: FetchResponseListener> Action<T> for FetchResponseMsg {
                     // (e.g. due to a network error) MAY be included as PerformanceResourceTiming
                     // objects in the Performance Timeline and MUST contain initialized attribute
                     // values for processed substeps of the processing model.
-                    Err(e) => listener.process_response_eof(Err(e)),
+                    Err(e) => {
+                        println!("error");
+                        listener.process_response_eof(Err(e))
+                    },
                 }
             },
         }

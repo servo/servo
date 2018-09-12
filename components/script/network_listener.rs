@@ -33,7 +33,13 @@ pub fn submit_timing<T: ResourceTimingListener + FetchResponseListener>(listener
 		warn!("Submitting non-resource ({:?}) timing as resource", listener.resource_timing().timing_type);
 		return;
 	}
+
     let (initiator_type, url) = listener.resource_timing_information();
+    if initiator_type == InitiatorType::Other {
+        warn!("Ignoring InitiatorType::Other resource {:?}", url);
+        return;
+    }
+
     let global = listener.resource_timing_global();
     let performance_entry = PerformanceResourceTiming::new(
         &global, url, initiator_type, None, &listener.resource_timing());
