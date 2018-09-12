@@ -746,7 +746,12 @@ impl ToComputedValue for KeywordSize {
     fn to_computed_value(&self, cx: &Context) -> NonNegativeLength {
         use context::QuirksMode;
         use values::specified::length::au_to_int_px;
-        // Data from nsRuleNode.cpp in Gecko
+
+        // The tables in this function are originally from
+        // nsRuleNode::CalcFontPointSize in Gecko:
+        //
+        // https://dxr.mozilla.org/mozilla-central/rev/35fbf14b9/layout/style/nsRuleNode.cpp#3262-3336
+
         // Mapping from base size and HTML size to pixels
         // The first index is (base_size - 9), the second is the
         // HTML size. "0" is CSS keyword xx-small, not HTML size 0,
@@ -765,9 +770,6 @@ impl ToComputedValue for KeywordSize {
             [9, 10, 13, 16, 18, 24, 32, 48],
         ];
 
-        // Data from nsRuleNode.cpp in Gecko
-        // (https://dxr.mozilla.org/mozilla-central/rev/35fbf14b9/layout/style/nsRuleNode.cpp#3303)
-        //
         // This table gives us compatibility with WinNav4 for the default fonts only.
         // In WinNav4, the default fonts were:
         //

@@ -1200,9 +1200,6 @@ impl StrongRuleNode {
         }
     }
 
-    /// Implementation of `nsRuleNode::HasAuthorSpecifiedRules` for Servo rule
-    /// nodes.
-    ///
     /// Returns true if any properties specified by `rule_type_mask` was set by
     /// an author rule.
     #[cfg(feature = "gecko")]
