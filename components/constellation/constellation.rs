@@ -1787,7 +1787,7 @@ where
             replace,
         } = load_info.info;
 
-        let (load_data, window_size, is_private) = {
+        let (load_data, is_private) = {
             // If no url is specified, reload.
             let old_pipeline = load_info.old_pipeline_id
                 .and_then(|id| self.pipelines.get(&id));
@@ -1800,10 +1800,6 @@ where
                 // TODO - loaddata here should have referrer info (not None, None)
                 LoadData::new(url, Some(parent_pipeline_id), None, None)
             });
-
-            let window_size = self.browsing_contexts
-                .get(&browsing_context_id)
-                .and_then(|ctx| ctx.size);
 
             let is_parent_private = {
                 let parent_browsing_context_id =
@@ -1828,10 +1824,10 @@ where
             };
             let is_private = is_private || is_parent_private;
 
-            (load_data, window_size, is_private)
+            (load_data, is_private)
         };
 
-        let (replace, is_visible) = {
+        let (replace, window_size, is_visible) = {
             let browsing_context = match self.browsing_contexts.get(&browsing_context_id) {
                 Some(ctx) => ctx,
                 None => return warn!(
@@ -1844,7 +1840,7 @@ where
             } else {
                 None
             };
-            (replace, browsing_context.is_visible)
+            (replace, browsing_context.size, browsing_context.is_visible)
         };
 
         // Create the new pipeline, attached to the parent and push to pending changes
@@ -3353,10 +3349,7 @@ where
             let parent_pipeline_id = match change.new_browsing_context_info {
                 // This will be a new browsing context.
                 Some(ref info) => info.parent_pipeline_id,
-                // This is an existing browsing context. TODO this is an unfortunate effect of
-                // introducing `Option<NewBrowsingContextInfo>` to `SessionHistoryChange`. Can we
-                // avoid this browsing context lookup for existing browsing contexts (which is
-                // going to be the majority of the cases in most use cases)?
+                // This is an existing browsing context.
                 None => match self.browsing_contexts.get(&change.browsing_context_id) {
                     Some(ctx) => ctx.parent_pipeline_id,
                     None => return warn!(

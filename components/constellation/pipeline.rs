@@ -159,7 +159,10 @@ pub struct InitialPipelineState {
     /// The ID of the pipeline namespace for this script thread.
     pub pipeline_namespace_id: PipelineNamespaceId,
 
-    /// Pipeline visibility to be inherited
+    /// Whether the browsing context in which pipeline is embedded is visible
+    /// for the purposes of scheduling and resource management. This field is
+    /// only used to notify script and compositor threads after spawning
+    /// a pipeline. 
     pub prev_visibility: bool,
 
     /// Webrender api.
