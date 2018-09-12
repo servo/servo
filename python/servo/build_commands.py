@@ -165,6 +165,10 @@ class MachCommands(CommandBase):
                      default=None,
                      action='store_true',
                      help='Build for Android')
+    @CommandArgument('--magicleap',
+                     default=None,
+                     action='store_true',
+                     help='Build for Magic Leap')
     @CommandArgument('--no-package',
                      action='store_true',
                      help='For Android, disable packaging into a .apk after building')
@@ -189,7 +193,7 @@ class MachCommands(CommandBase):
                      action='store_true',
                      help='Build the libsimpleservo library instead of the servo executable')
     def build(self, target=None, release=False, dev=False, jobs=None,
-              features=None, android=None, no_package=False, verbose=False, very_verbose=False,
+              features=None, android=None, magicleap=None, no_package=False, verbose=False, very_verbose=False,
               debug_mozjs=False, params=None, with_debug_assertions=False,
               libsimpleservo=False):
 
@@ -244,6 +248,9 @@ class MachCommands(CommandBase):
         if android:
             target = self.config["android"]["target"]
 
+        if magicleap and not target:
+            target = "aarch64-linux-android"
+
         if target:
             if self.config["tools"]["use-rustup"]:
                 # 'rustup target add' fails if the toolchain is not installed at all.
@@ -253,7 +260,7 @@ class MachCommands(CommandBase):
                             "--toolchain", self.toolchain(), target])
 
             opts += ["--target", target]
-            if not android:
+            if not android and not magicleap:
                 android = self.handle_android_target(target)
 
         self.ensure_bootstrapped(target=target)
@@ -441,6 +448,89 @@ class MachCommands(CommandBase):
                         pc = os.path.join(pkg_config_path, each)
                         expr = "s#libdir=.*#libdir=%s#g" % gst_lib_path
                         subprocess.call(["perl", "-i", "-pe", expr, pc])
+
+        if magicleap:
+            if platform.system() not in ["Darwin"]:
+                raise Exception("Magic Leap builds are only supported on macOS.")
+
+            ml_sdk = env.get("MAGICLEAP_SDK")
+            if not ml_sdk:
+                raise Exception("Magic Leap builds need the MAGICLEAP_SDK environment variable")
+
+            ml_support = path.join(self.get_top_dir(), "support", "magicleap")
+
+            # We pretend to be an Android build
+            env.setdefault("ANDROID_VERSION", "21")
+            env.setdefault("ANDROID_NDK", env["MAGICLEAP_SDK"])
+            env.setdefault("ANDROID_NDK_VERSION", "16.0.0")
+            env.setdefault("ANDROID_PLATFORM_DIR", path.join(env["MAGICLEAP_SDK"], "lumin"))
+            env.setdefault("ANDROID_TOOLCHAIN_DIR", path.join(env["MAGICLEAP_SDK"], "tools", "toolchains"))
+            env.setdefault("ANDROID_CLANG", path.join(env["ANDROID_TOOLCHAIN_DIR"], "bin", "clang"))
+
+            # A random collection of search paths
+            env.setdefault("STLPORT_LIBS", " ".join([
+                "-L" + path.join(env["MAGICLEAP_SDK"], "lumin", "stl", "libc++-lumin", "lib"),
+                "-lc++"
+            ]))
+            env.setdefault("STLPORT_CPPFLAGS", " ".join([
+                "-I" + path.join(env["MAGICLEAP_SDK"], "lumin", "stl", "libc++-lumin", "include")
+            ]))
+            env.setdefault("CPPFLAGS", " ".join([
+                "--no-standard-includes",
+                "--sysroot=" + env["ANDROID_PLATFORM_DIR"],
+                "-I" + path.join(env["ANDROID_PLATFORM_DIR"], "usr", "include"),
+                "-isystem" + path.join(env["ANDROID_TOOLCHAIN_DIR"], "lib64", "clang", "3.8", "include"),
+            ]))
+            env.setdefault("CFLAGS", " ".join([
+                env["CPPFLAGS"],
+                "-L" + path.join(env["ANDROID_TOOLCHAIN_DIR"], "lib", "gcc", target, "4.9.x"),
+            ]))
+            env.setdefault("CXXFLAGS", " ".join([
+                # Sigh, Angle gets confused if there's another EGL around
+                "-I./gfx/angle/checkout/include",
+                env["STLPORT_CPPFLAGS"],
+                env["CFLAGS"]
+            ]))
+
+            # The toolchain commands
+            env.setdefault("AR", path.join(env["ANDROID_TOOLCHAIN_DIR"], "bin", "aarch64-linux-android-ar"))
+            env.setdefault("AS", path.join(env["ANDROID_TOOLCHAIN_DIR"], "bin", "aarch64-linux-android-as"))
+            env.setdefault("CC", path.join(env["ANDROID_TOOLCHAIN_DIR"], "bin", "aarch64-linux-android-clang"))
+            env.setdefault("CPP", path.join(env["ANDROID_TOOLCHAIN_DIR"], "bin", "aarch64-linux-android-clang -E"))
+            env.setdefault("CXX", path.join(env["ANDROID_TOOLCHAIN_DIR"], "bin", "aarch64-linux-android-clang++"))
+            env.setdefault("LD", path.join(env["ANDROID_TOOLCHAIN_DIR"], "bin", "aarch64-linux-android-ld"))
+            env.setdefault("OBJCOPY", path.join(env["ANDROID_TOOLCHAIN_DIR"], "bin", "aarch64-linux-android-objcopy"))
+            env.setdefault("OBJDUMP", path.join(env["ANDROID_TOOLCHAIN_DIR"], "bin", "aarch64-linux-android-objdump"))
+            env.setdefault("RANLIB", path.join(env["ANDROID_TOOLCHAIN_DIR"], "bin", "aarch64-linux-android-ranlib"))
+            env.setdefault("STRIP", path.join(env["ANDROID_TOOLCHAIN_DIR"], "bin", "aarch64-linux-android-strip"))
+
+            # Undo all of that when compiling build tools for the host
+            env.setdefault("HOST_CFLAGS", "")
+            env.setdefault("HOST_CXXFLAGS", "")
+            env.setdefault("HOST_CC", "gcc")
+            env.setdefault("HOST_CXX", "g++")
+            env.setdefault("HOST_LD", "ld")
+
+            # Some random build configurations
+            env.setdefault("HARFBUZZ_SYS_NO_PKG_CONFIG", "1")
+            env.setdefault("PKG_CONFIG_ALLOW_CROSS", "1")
+            env.setdefault("CMAKE_TOOLCHAIN_FILE", path.join(ml_support, "toolchain.cmake"))
+
+            # The Open SSL configuration
+            env.setdefault("OPENSSL_DIR", path.join(self.get_target_dir(), target, "magicleap", "openssl"))
+            env.setdefault("OPENSSL_VERSION", "1.0.2k")
+            env.setdefault("OPENSSL_STATIC", "1")
+
+            # Override the linker set in .cargo/config
+            env.setdefault("CARGO_TARGET_AARCH64_LINUX_ANDROID_LINKER", path.join(ml_support, "fake-ld.sh"))
+
+            # Only build libmlservo
+            opts += ["--package", "libmlservo"]
+
+            # Download and build OpenSSL if necessary
+            status = call(path.join(ml_support, "openssl.sh"), env=env, verbose=verbose)
+            if status:
+                return status
 
         if very_verbose:
             print (["Calling", "cargo", "build"] + opts)

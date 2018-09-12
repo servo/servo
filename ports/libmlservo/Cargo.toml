@@ -1,0 +1,19 @@
+[package]
+name = "libmlservo"
+version = "0.0.1"
+authors = ["The Servo Project Developers"]
+license = "MPL-2.0"
+publish = false
+
+[lib]
+name = "mlservo"
+crate-type = ["staticlib"]
+test = false
+bench = false
+
+[dependencies]
+libservo = { path = "../../components/servo" }
+log = "0.4"
+servo-egl = "0.2"
+smallvec = "0.6"
+

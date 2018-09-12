@@ -1,0 +1,26 @@
+KIND = program
+
+INCS = \
+    code/inc/ \
+    code/inc.gen/
+
+SRCS = \
+    code/src/main.cpp \
+    code/src/Servo2D.cpp
+
+LIBPATHS.debug = \
+    ../../../target/aarch64-linux-android/debug
+
+LIBPATHS.release = \
+    ../../../target/aarch64-linux-android/release
+
+STLIBS = \
+    mlservo
+
+SHLIBS = \
+    log \
+    z
+
+USES = \
+    lumin_runtime \
+    code/srcsGen

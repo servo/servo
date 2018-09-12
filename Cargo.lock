@@ -1902,6 +1902,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "libmlservo"
+version = "0.0.1"
+dependencies = [
+ "libservo 0.0.1",
+ "log 0.4.5 (registry+https://github.com/rust-lang/crates.io-index)",
+ "servo-egl 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "smallvec 0.6.3 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
 name = "libservo"
 version = "0.0.1"
 dependencies = [
@@ -2234,13 +2244,13 @@ dependencies = [
  "lazy_static 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.42 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.4.5 (registry+https://github.com/rust-lang/crates.io-index)",
- "mozjs_sys 0.61.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "mozjs_sys 0.61.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "num-traits 0.2.4 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
 name = "mozjs_sys"
-version = "0.61.1"
+version = "0.61.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "bindgen 0.39.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -4506,7 +4516,7 @@ dependencies = [
 "checksum mitochondria 1.1.2 (registry+https://github.com/rust-lang/crates.io-index)" = "9de3eca27871df31c33b807f834b94ef7d000956f57aa25c5aed9c5f0aae8f6f"
 "checksum mozangle 0.1.7 (registry+https://github.com/rust-lang/crates.io-index)" = "45a8a18a41cfab0fde25cc2f43ea89064d211a0fbb33225b8ff93ab20406e0e7"
 "checksum mozjs 0.9.3 (registry+https://github.com/rust-lang/crates.io-index)" = "bd0bdded611cb03c8ca638e0b663befe67eb7fbcb1fe2dfd25061656ee4ff365"
-"checksum mozjs_sys 0.61.1 (registry+https://github.com/rust-lang/crates.io-index)" = "070dd9dcd0be8b524fe4f6fcc791d56d630518652f98c2b152fdebe28eb71a5b"
+"checksum mozjs_sys 0.61.2 (registry+https://github.com/rust-lang/crates.io-index)" = "28276d28cc79226f3a26c790f00c8ce74459d097d3698f17df05ab9f683c1e52"
 "checksum msdos_time 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)" = "aad9dfe950c057b1bfe9c1f2aa51583a8468ef2a5baba2ebbe06d775efeb7729"
 "checksum muldiv 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)" = "451a9a05d2a32c566c897835e0ea95cf79ed2fdfe957924045a1721a36c9980f"
 "checksum net2 0.2.33 (registry+https://github.com/rust-lang/crates.io-index)" = "42550d9fb7b6684a6d404d9fa7250c2eb2646df731d1c06afc06dcee9e1bcf88"

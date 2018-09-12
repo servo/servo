@@ -77,6 +77,10 @@ files = [
 directories = [
   # Upstream
   "./support/android/apk",
+  "./support/magicleap/Servo2D/.vscode",
+  "./support/magicleap/Servo2D/code/inc.gen",
+  "./support/magicleap/Servo2D/code/src.gen",
+  "./support/magicleap/Servo2D/pipeline",
   "./tests/wpt/harness",
   "./tests/wpt/update",
   "./tests/wpt/web-platform-tests",
