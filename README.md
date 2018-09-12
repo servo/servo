@@ -78,6 +78,10 @@ If you've already partially compiled servo but forgot to do this step, run `./ma
 
 #### On Debian-based Linuxes
 
+Please run `./mach bootstrap`.
+
+If this doesn't work, file a bug, and, run the commands below:
+
 ``` sh
 sudo apt install git curl autoconf libx11-dev \
     libfreetype6-dev libgl1-mesa-dri libglib2.0-dev xorg-dev \
@@ -89,14 +93,49 @@ sudo apt install git curl autoconf libx11-dev \
 ```
 
 If you using a version prior to **Ubuntu 17.04** or **Debian Sid**, replace `libssl1.0-dev` with `libssl-dev`.
+Additionally, you'll need a local copy of GStreamer with a version later than 12.0. You can place it in `support/linux/gstreamer/gstreamer`, or run `./mach bootstrap-gstreamer` to set it up.
 
 If you are using **Ubuntu 16.04** run `export HARFBUZZ_SYS_NO_PKG_CONFIG=1` before building to avoid an error with harfbuzz.
 
-If you are on **Ubuntu 14.04** and encountered errors on installing these dependencies involving `libcheese`, see [#6158](https://github.com/servo/servo/issues/6158) for a workaround.
+If you are on **Ubuntu 14.04** and encountered errors on installing these dependencies involving `libcheese`, see [#6158](https://github.com/servo/servo/issues/6158) for a workaround. You may also need to install gcc 4.9, clang 4.0, and cmake 3.2:
+
+<details>
+gcc 4.9:
+
+```sh
+sudo add-apt-repository ppa:ubuntu-toolchain-r/test
+sudo apt-get update
+sudo apt-get install gcc-4.9 g++-4.9
+sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-4.9 60 --slave /usr/bin/g++ g++ /usr/bin/g++-4.9
+```
+
+clang 4.0:
+
+```sh
+wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
+sudo apt-add-repository "deb http://apt.llvm.org/trusty/ llvm-toolchain-trusty-4.0 main"
+sudo apt-get update
+sudo apt-get install -y clang-4.0
+```
+
+cmake 3.2:
+
+```sh
+sudo apt-get install software-properties-common
+sudo add-apt-repository ppa:george-edison55/cmake-3.x
+sudo apt-get update
+sudo apt-get install cmake
+```
+
+</details>
 
 If `virtualenv` does not exist, try `python-virtualenv`.
 
 #### On Fedora
+
+Please run `./mach bootstrap`.
+
+If this doesn't work, file a bug, and, run the commands below:
 
 ``` sh
 sudo dnf install curl libtool gcc-c++ libXi-devel \
@@ -107,6 +146,11 @@ sudo dnf install curl libtool gcc-c++ libXi-devel \
     gstreamer1-plugins-base-devel gstreamer1-plugins-bad-free-devel autoconf213
 ```
 #### On CentOS
+
+
+Please run `./mach bootstrap`.
+
+If this doesn't work, file a bug, and, run the commands below:
 
 ``` sh
 sudo yum install curl libtool gcc-c++ libXi-devel \

@@ -20,8 +20,11 @@ def main(args):
     topdir = os.path.abspath(os.path.dirname(sys.argv[0]))
     sys.path.insert(0, os.path.join(topdir, "python"))
     import mach_bootstrap
-    mach = mach_bootstrap.bootstrap(topdir)
-    sys.exit(mach.run(sys.argv[1:]))
+    if len(sys.argv) > 1 and sys.argv[1] == "bootstrap":
+        sys.exit(mach_bootstrap.bootstrap_command_only(topdir))
+    else:
+        mach = mach_bootstrap.bootstrap(topdir)
+        sys.exit(mach.run(sys.argv[1:]))
 
 
 if __name__ == '__main__':

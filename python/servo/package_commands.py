@@ -184,7 +184,6 @@ class PackageCommands(CommandBase):
                      default=None,
                      help='Package using the given Gradle flavor')
     def package(self, release=False, dev=False, android=None, debug=False, debugger=None, target=None, flavor=None):
-        env = self.build_env()
         if android is None:
             android = self.config["build"]["android"]
         if target and android:
@@ -192,6 +191,9 @@ class PackageCommands(CommandBase):
             sys.exit(1)
         if not android:
             android = self.handle_android_target(target)
+        else:
+            target = self.config["android"]["target"]
+        env = self.build_env(target=target)
         binary_path = self.get_binary_path(release, dev, android=android)
         dir_to_root = self.get_top_dir()
         target_dir = path.dirname(binary_path)
