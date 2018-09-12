@@ -49,6 +49,8 @@ QUEUE = taskcluster.Queue(options={"baseUrl": "http://taskcluster/queue/v1/"})
 
 IMAGE_ARTIFACT_FILENAME = "image.tar.lz4"
 
+REPO = os.path.dirname(__file__)
+
 
 def create_task_with_in_tree_dockerfile(name, command, image, **kwargs):
     image_build_task = build_image(image)
@@ -62,14 +64,18 @@ def create_task_with_in_tree_dockerfile(name, command, image, **kwargs):
 
 
 def build_image(name):
+    with open(os.path.join(REPO, "docker", name, "Dockerfile"), "rb") as f:
+        dockerfile = f.read()
+
     image_build_task = create_task(
         "docker image build task for image: " + name,
         """
-            docker build -t "$IMAGE" "docker/$IMAGE"
+            echo "$DOCKERFILE" | docker build -t "$IMAGE" -
             docker save "$IMAGE" | lz4 > /%s
         """ % IMAGE_ARTIFACT_FILENAME,
         env={
             "IMAGE": name,
+            "DOCKERFILE": dockerfile,
         },
         artifacts=[
             (IMAGE_ARTIFACT_FILENAME, "/" + IMAGE_ARTIFACT_FILENAME),
