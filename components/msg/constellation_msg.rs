@@ -224,17 +224,21 @@ impl PipelineNamespace {
 
 thread_local!(pub static PIPELINE_NAMESPACE: Cell<Option<PipelineNamespace>> = Cell::new(None));
 
-#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, Ord, PartialEq, PartialOrd, Serialize)]
+#[derive(
+    Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, Ord, PartialEq, PartialOrd, Serialize,
+)]
 pub struct PipelineNamespaceId(pub u32);
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
 pub struct PipelineIndex(pub NonZeroU32);
 malloc_size_of_is_0!(PipelineIndex);
 
-#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, Ord, PartialEq, PartialOrd, Serialize)]
+#[derive(
+    Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, Ord, PartialEq, PartialOrd, Serialize,
+)]
 pub struct PipelineId {
     pub namespace_id: PipelineNamespaceId,
-    pub index: PipelineIndex
+    pub index: PipelineIndex,
 }
 
 impl PipelineId {
@@ -289,7 +293,9 @@ impl fmt::Display for PipelineId {
 pub struct BrowsingContextIndex(pub NonZeroU32);
 malloc_size_of_is_0!(BrowsingContextIndex);
 
-#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, Ord, PartialEq, PartialOrd, Serialize)]
+#[derive(
+    Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, Ord, PartialEq, PartialOrd, Serialize,
+)]
 pub struct BrowsingContextId {
     pub namespace_id: PipelineNamespaceId,
     pub index: BrowsingContextIndex,
@@ -316,7 +322,9 @@ impl fmt::Display for BrowsingContextId {
 
 thread_local!(pub static TOP_LEVEL_BROWSING_CONTEXT_ID: Cell<Option<TopLevelBrowsingContextId>> = Cell::new(None));
 
-#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, Ord, PartialEq, PartialOrd, Serialize)]
+#[derive(
+    Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, Ord, PartialEq, PartialOrd, Serialize,
+)]
 pub struct TopLevelBrowsingContextId(BrowsingContextId);
 
 impl TopLevelBrowsingContextId {
@@ -362,7 +370,9 @@ impl PartialEq<BrowsingContextId> for TopLevelBrowsingContextId {
 pub struct HistoryStateIndex(pub NonZeroU32);
 malloc_size_of_is_0!(HistoryStateIndex);
 
-#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, Ord, PartialEq, PartialOrd, Serialize)]
+#[derive(
+    Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, Ord, PartialEq, PartialOrd, Serialize,
+)]
 pub struct HistoryStateId {
     pub namespace_id: PipelineNamespaceId,
     pub index: HistoryStateIndex,
@@ -390,13 +400,19 @@ impl fmt::Display for HistoryStateId {
 // We provide ids just for unit testing.
 pub const TEST_NAMESPACE: PipelineNamespaceId = PipelineNamespaceId(1234);
 #[allow(unsafe_code)]
-pub const TEST_PIPELINE_INDEX: PipelineIndex = unsafe { PipelineIndex(NonZeroU32::new_unchecked(5678)) };
-pub const TEST_PIPELINE_ID: PipelineId = PipelineId { namespace_id: TEST_NAMESPACE, index: TEST_PIPELINE_INDEX };
+pub const TEST_PIPELINE_INDEX: PipelineIndex =
+    unsafe { PipelineIndex(NonZeroU32::new_unchecked(5678)) };
+pub const TEST_PIPELINE_ID: PipelineId = PipelineId {
+    namespace_id: TEST_NAMESPACE,
+    index: TEST_PIPELINE_INDEX,
+};
 #[allow(unsafe_code)]
 pub const TEST_BROWSING_CONTEXT_INDEX: BrowsingContextIndex =
     unsafe { BrowsingContextIndex(NonZeroU32::new_unchecked(8765)) };
-pub const TEST_BROWSING_CONTEXT_ID: BrowsingContextId =
-    BrowsingContextId { namespace_id: TEST_NAMESPACE, index: TEST_BROWSING_CONTEXT_INDEX };
+pub const TEST_BROWSING_CONTEXT_ID: BrowsingContextId = BrowsingContextId {
+    namespace_id: TEST_NAMESPACE,
+    index: TEST_BROWSING_CONTEXT_INDEX,
+};
 
 // Used to specify the kind of input method editor appropriate to edit a field.
 // This is a subset of htmlinputelement::InputType because some variants of InputType
