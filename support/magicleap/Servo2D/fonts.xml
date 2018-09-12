@@ -1,0 +1,19 @@
+<familyset>
+  <family name="sans-serif">
+    <font weight="300" style="normal">/system/etc/ml/kali/Fonts/Lomino/Light/LominoUI_Lt.ttf</font>
+    <font weight="300" style="italic">/system/etc/ml/kali/Fonts/Lomino/LightItalic/LominoUI_LtIt.ttf</font>
+    <font weight="400" style="normal">/system/etc/ml/kali/Fonts/Lomino/Regular/LominoUI_Rg.ttf</font>
+    <font weight="400" style="italic">/system/etc/ml/kali/Fonts/Lomino/Italic/LominoUI_It.ttf</font>
+    <font weight="500" style="normal">/system/etc/ml/kali/Fonts/Lomino/Medium/LominoUI_Md.ttf</font>
+    <font weight="500" style="italic">/system/etc/ml/kali/Fonts/Lomino/MediumItalic/LominoUI_MdIt.ttf</font>
+    <font weight="700" style="normal">/system/etc/ml/kali/Fonts/Lomino/Bold/LominoUI_Bd.ttf</font>
+    <font weight="700" style="italic">/system/etc/ml/kali/Fonts/Lomino/BoldItalic/LominoUI_BdIt.ttf</font>
+    <font weight="900" style="normal">/system/etc/ml/kali/Fonts/Lomino/ExtraBold/LominoUI_XBd.ttf</font>
+    <font weight="900" style="italic">/system/etc/ml/kali/Fonts/Lomino/ExtraBoldItalic/LominoUI_XBdIt.ttf</font>
+  </family>
+
+  <alias name="arial" to="sans-serif" />
+  <alias name="helvetica" to="sans-serif" />
+  <alias name="tahoma" to="sans-serif" />
+  <alias name="verdana" to="sans-serif" />
+</familyset>
