@@ -26,9 +26,8 @@ tasks:
 
       payload:
         maxRunTime: 1200
-        # https://hub.docker.com/r/servobrowser/decision-task/builds/
-        # https://github.com/SimonSapin/servo-decision-task-image
-        image: "servobrowser/decision-task@sha256:8c9b4de60fc584828ae9a297a780945c2aa505d3b037ead3907554ab2e16aced"
+        # https://github.com/servo/taskcluster-bootstrap-docker-images#decision-task
+        image: "servobrowser/taskcluster-bootstrap:decision-task@sha256:28045b7ec0485ef363f8cb14f194008b47e9ede99f2ea40a1e945e921fce976e"
         features:
           taskclusterProxy: true
         env:

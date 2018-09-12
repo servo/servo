@@ -7,7 +7,7 @@ import taskcluster
 
 
 def main():
-    build_task = create_task_with_built_image(
+    build_task = create_task_with_in_tree_dockerfile(
         "build task",
         "./build-task.sh",
         image="servo-x86_64-linux",
@@ -36,10 +36,9 @@ def main():
     )
 
 
-# https://hub.docker.com/r/servobrowser/image-builder/
-# https://github.com/SimonSapin/servo-docker-image-builder-image
-IMAGE_BUILDER_IMAGE = "servobrowser/image-builder@sha256:" \
-    "f2370c4b28aa537e47c0cacb82cc53272233fa256b6634c0eebc46e2dd019333"
+# https://github.com/servo/taskcluster-bootstrap-docker-images#image-builder
+IMAGE_BUILDER_IMAGE = "servobrowser/taskcluster-bootstrap:image-builder@sha256:" \
+    "5ccb6e43c35de15924ebd3472433e8b3b352973f8dfe7c4c43c757ea60461bce"
 
 # https://docs.taskcluster.net/docs/reference/workers/docker-worker/docs/environment
 DECISION_TASK_ID = os.environ["TASK_ID"]
@@ -50,7 +49,7 @@ QUEUE = taskcluster.Queue(options={"baseUrl": "http://taskcluster/queue/v1/"})
 IMAGE_ARTIFACT_FILENAME = "image.tar.lz4"
 
 
-def create_task_with_built_image(name, command, image, **kwargs):
+def create_task_with_in_tree_dockerfile(name, command, image, **kwargs):
     image_build_task = build_image(image)
     kwargs.setdefault("dependencies", []).append(image_build_task)
     image = {
