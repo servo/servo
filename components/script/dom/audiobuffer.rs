@@ -287,14 +287,18 @@ impl AudioBufferMethods for AudioBuffer {
             return Err(Error::IndexSize);
         }
 
-        typedarray!(in(cx) let array: Float32Array = js_channel);
-        if let Ok(mut array) = array {
+        typedarray!(in(cx) let js_channel: Float32Array = js_channel);
+        if let Ok(mut js_channel) = js_channel {
             let bytes_to_copy = min(self.length - start_in_channel, source.len() as u32) as usize;
-            let offset = start_in_channel as usize;
             unsafe {
-                let data = &source.as_slice()[offset..offset + bytes_to_copy];
-                array.update(data);
-                (*self.shared_channels.borrow_mut()).buffers[channel_number as usize] = data.to_vec();
+                let data = &source.as_slice()[0..bytes_to_copy];
+                // Update shared channel.
+                let mut shared_channels = self.shared_channels.borrow_mut();
+                let shared_channel = shared_channels.data_chan_mut(channel_number as u8);
+                let (_, mut shared_channel) = shared_channel.split_at_mut(start_in_channel as usize);
+                shared_channel[0..bytes_to_copy].copy_from_slice(data);
+                // Update js channel.
+                js_channel.update(data);
             }
         } else {
             return Err(Error::IndexSize);
