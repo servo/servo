@@ -162,6 +162,8 @@ pub struct HTMLMediaElement {
     #[ignore_malloc_size_of = "Arc"]
     frame_renderer: Arc<Mutex<MediaFrameRenderer>>,
     fetch_canceller: DomRefCell<FetchCanceller>,
+    /// https://html.spec.whatwg.org/multipage/media.html#show-poster-flag
+    show_poster: Cell<bool>,
 }
 
 /// <https://html.spec.whatwg.org/multipage/#dom-media-networkstate>
@@ -207,6 +209,7 @@ impl HTMLMediaElement {
             frame_renderer:
                 Arc::new(Mutex::new(MediaFrameRenderer::new(document.window().get_webrender_api_sender()))),
             fetch_canceller: DomRefCell::new(Default::default()),
+            show_poster: Cell::new(true),
         }
     }
 
@@ -272,8 +275,10 @@ impl HTMLMediaElement {
             self.paused.set(false);
 
             // Step 6.2.
-            // FIXME(nox): Set show poster flag to false and run time marches on
-            // steps if show poster flag is true.
+            if self.show_poster.get() {
+                self.show_poster.set(false);
+                self.time_marches_on();
+            }
 
             // Step 6.3.
             task_source.queue_simple_event(self.upcast(), atom!("play"), &window);
@@ -315,6 +320,11 @@ impl HTMLMediaElement {
 
         // Step 9.
         // Not applicable here, the promise is returned from Play.
+    }
+
+    /// https://html.spec.whatwg.org/multipage/media.html#time-marches-on
+    fn time_marches_on(&self) {
+        // TODO: implement this.
     }
 
     /// <https://html.spec.whatwg.org/multipage/#internal-pause-steps>
@@ -468,7 +478,11 @@ impl HTMLMediaElement {
             if self.autoplaying.get() && self.Paused() && self.Autoplay() {
                 // Step 1
                 self.paused.set(false);
-                // TODO step 2: show poster
+                // Step 2
+                if self.show_poster.get() {
+                    self.show_poster.set(false);
+                    self.time_marches_on();
+                }
                 // Step 3
                 task_source.queue_simple_event(self.upcast(), atom!("play"), &window);
                 // Step 4
@@ -489,7 +503,7 @@ impl HTMLMediaElement {
         self.network_state.set(NetworkState::NoSource);
 
         // Step 2.
-        // FIXME(nox): Set show poster flag to true.
+        self.show_poster.set(true);
 
         // Step 3.
         self.delay_load_event(true);
@@ -517,6 +531,8 @@ impl HTMLMediaElement {
     // https://html.spec.whatwg.org/multipage/#concept-media-load-algorithm
     fn resource_selection_algorithm_sync(&self, base_url: ServoUrl) {
         // Step 5.
+        // FIXME(ferjm): Implement blocked_on_parser logic
+        // https://html.spec.whatwg.org/multipage/media.html#blocked-on-parser
         // FIXME(nox): Maybe populate the list of pending text tracks.
 
         // Step 6.
@@ -736,7 +752,7 @@ impl HTMLMediaElement {
                     this.network_state.set(NetworkState::NoSource);
 
                     // Step 4.
-                    // FIXME(nox): Set show poster flag to true.
+                    this.show_poster.set(true);
 
                     // Step 5.
                     this.upcast::<EventTarget>().fire_event(atom!("error"));
