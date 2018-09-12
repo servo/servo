@@ -1861,6 +1861,7 @@ impl Window {
                                                  mql.Matches());
             event.upcast::<Event>().fire(mql.upcast::<EventTarget>());
         }
+        self.Document().react_to_environment_changes();
     }
 
     /// Slow down/speed up timers based on visibility.
