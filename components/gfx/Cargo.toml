@@ -29,7 +29,7 @@ libc = "0.2"
 log = "0.4"
 malloc_size_of = { path = "../malloc_size_of" }
 net_traits = {path = "../net_traits"}
-new-ordered-float = "1.0"
+ordered-float = "1.0"
 packed_simd = {version = "0.1", optional = true}
 range = {path = "../range"}
 serde = "1.0"
