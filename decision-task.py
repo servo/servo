@@ -69,7 +69,7 @@ def build_image(name):
     with open(os.path.join(REPO, name + ".dockerfile"), "rb") as f:
         dockerfile = f.read()
     digest = hashlib.sha256(dockerfile).hexdigest()
-    route = "index.project.servo.servo-taskcluster-experiments.docker-image." + digest
+    route = "project.servo.servo-taskcluster-experiments.docker-image." + digest
 
     try:
         result = INDEX.findTask(route)
@@ -96,7 +96,7 @@ def build_image(name):
             "dind": True,  # docker-in-docker
         },
         with_repo=False,
-        routes=[route],
+        routes=["index." + route],
     )
     return image_build_task
 
