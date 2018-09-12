@@ -5,19 +5,18 @@
 #![deny(unsafe_code)]
 
 extern crate malloc_size_of;
-#[macro_use] extern crate malloc_size_of_derive;
+#[macro_use]
+extern crate malloc_size_of_derive;
 extern crate num_traits;
-#[macro_use] extern crate serde;
+#[macro_use]
+extern crate serde;
 
 use std::cmp::{self, max, min};
 use std::fmt;
 use std::ops;
 
 pub trait Int:
-    Copy
-    + ops::Add<Self, Output=Self>
-    + ops::Sub<Self, Output=Self>
-    + cmp::Ord
+    Copy + ops::Add<Self, Output = Self> + ops::Sub<Self, Output = Self> + cmp::Ord
 {
     fn zero() -> Self;
     fn one() -> Self;
@@ -27,27 +26,47 @@ pub trait Int:
 }
 impl Int for isize {
     #[inline]
-    fn zero() -> isize { 0 }
+    fn zero() -> isize {
+        0
+    }
     #[inline]
-    fn one() -> isize { 1 }
+    fn one() -> isize {
+        1
+    }
     #[inline]
-    fn max_value() -> isize { ::std::isize::MAX }
+    fn max_value() -> isize {
+        ::std::isize::MAX
+    }
     #[inline]
-    fn from_usize(n: usize) -> Option<isize> { num_traits::NumCast::from(n) }
+    fn from_usize(n: usize) -> Option<isize> {
+        num_traits::NumCast::from(n)
+    }
     #[inline]
-    fn to_usize(self) -> usize { num_traits::NumCast::from(self).unwrap() }
+    fn to_usize(self) -> usize {
+        num_traits::NumCast::from(self).unwrap()
+    }
 }
 impl Int for usize {
     #[inline]
-    fn zero() -> usize { 0 }
+    fn zero() -> usize {
+        0
+    }
     #[inline]
-    fn one() -> usize { 1 }
+    fn one() -> usize {
+        1
+    }
     #[inline]
-    fn max_value() -> usize { ::std::usize::MAX }
+    fn max_value() -> usize {
+        ::std::usize::MAX
+    }
     #[inline]
-    fn from_usize(n: usize) -> Option<usize> { Some(n) }
+    fn from_usize(n: usize) -> Option<usize> {
+        Some(n)
+    }
     #[inline]
-    fn to_usize(self) -> usize { self }
+    fn to_usize(self) -> usize {
+        self
+    }
 }
 
 /// An index type to be used by a `Range`
@@ -60,19 +79,27 @@ pub trait RangeIndex: Int + fmt::Debug {
 impl RangeIndex for isize {
     type Index = isize;
     #[inline]
-    fn new(x: isize) -> isize { x }
+    fn new(x: isize) -> isize {
+        x
+    }
 
     #[inline]
-    fn get(self) -> isize { self }
+    fn get(self) -> isize {
+        self
+    }
 }
 
 impl RangeIndex for usize {
     type Index = usize;
     #[inline]
-    fn new(x: usize) -> usize { x }
+    fn new(x: usize) -> usize {
+        x
+    }
 
     #[inline]
-    fn get(self) -> usize { self }
+    fn get(self) -> usize {
+        self
+    }
 }
 
 /// Implements a range index type with operator overloads
@@ -204,7 +231,10 @@ impl<I: RangeIndex> Range<I> {
     /// ~~~
     #[inline]
     pub fn new(begin: I, length: I) -> Range<I> {
-        Range { begin: begin, length: length }
+        Range {
+            begin: begin,
+            length: length,
+        }
     }
 
     #[inline]
@@ -220,7 +250,9 @@ impl<I: RangeIndex> Range<I> {
     /// <- o - - - - - +============+ - - - ->
     /// ~~~
     #[inline]
-    pub fn begin(&self) -> I { self.begin  }
+    pub fn begin(&self) -> I {
+        self.begin
+    }
 
     /// The index offset from the beginning to the end of the range.
     ///
@@ -230,7 +262,9 @@ impl<I: RangeIndex> Range<I> {
     /// <- o - - - - - +============+ - - - ->
     /// ~~~
     #[inline]
-    pub fn length(&self) -> I { self.length }
+    pub fn length(&self) -> I {
+        self.length
+    }
 
     /// The index offset to the end of the range.
     ///
@@ -240,7 +274,9 @@ impl<I: RangeIndex> Range<I> {
     /// <- o - - - - - +============+ - - - ->
     /// ~~~
     #[inline]
-    pub fn end(&self) -> I { self.begin + self.length }
+    pub fn end(&self) -> I {
+        self.begin + self.length
+    }
 
     /// `true` if the index is between the beginning and the end of the range.
     ///
