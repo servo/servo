@@ -1115,12 +1115,12 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
         self.send_canvas_2d_msg(Canvas2dMsg::GetImageData(dest_rect, canvas_size, sender));
         let mut data = receiver.recv().unwrap();
 
-        // Un-premultiply alpha
+        // Byte swap and unmultiply alpha.
         for chunk in data.chunks_mut(4) {
-            let alpha = chunk[3] as usize;
-            chunk[0] = UNPREMULTIPLY_TABLE[256 * alpha + chunk[0] as usize];
-            chunk[1] = UNPREMULTIPLY_TABLE[256 * alpha + chunk[1] as usize];
-            chunk[2] = UNPREMULTIPLY_TABLE[256 * alpha + chunk[2] as usize];
+            let (b, g, r, a) = (chunk[0], chunk[1], chunk[2], chunk[3]);
+            chunk[0] = UNPREMULTIPLY_TABLE[256 * (a as usize) + r as usize];
+            chunk[1] = UNPREMULTIPLY_TABLE[256 * (a as usize) + g as usize];
+            chunk[2] = UNPREMULTIPLY_TABLE[256 * (a as usize) + b as usize];
         }
 
         ImageData::new(&self.global(), sw, sh, Some(data.to_vec()))
