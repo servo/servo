@@ -44,6 +44,7 @@
 "use strict";
 description("Test framebuffer switching. The test switches between two framebuffers, copying rendering results from one to the other.");
 var wtu = WebGLTestUtils;
+var canvas = document.getElementById("canvas");
 
 var gl = wtu.create3DContext("canvas");
 var program = wtu.setupTexturedQuad(gl);

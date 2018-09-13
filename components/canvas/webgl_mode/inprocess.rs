@@ -3,7 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use ::gl_context::GLContextFactory;
-use ::webgl_thread::{WebGLExternalImageApi, WebGLExternalImageHandler, WebGLThreadObserver, WebGLThread};
 use canvas_traits::webgl::{WebGLChan, WebGLContextId, WebGLMsg, WebGLPipeline, WebGLReceiver};
 use canvas_traits::webgl::{WebGLSender, WebVRCommand, WebVRRenderHandler};
 use canvas_traits::webgl::DOMToTextureCommand;
@@ -12,8 +11,8 @@ use euclid::Size2D;
 use fnv::FnvHashMap;
 use gleam::gl;
 use servo_config::prefs::PREFS;
-use std::marker::PhantomData;
 use std::rc::Rc;
+use webgl_thread::{WebGLExternalImageApi, WebGLExternalImageHandler, WebGLThread};
 use webrender;
 use webrender_api;
 
@@ -37,7 +36,6 @@ impl WebGLThreads {
             gl_factory,
             webrender_api_sender,
             webvr_compositor.map(|c| WebVRRenderWrapper(c)),
-            PhantomData,
         );
         let output_handler = if PREFS.is_dom_to_texture_enabled() {
             Some(Box::new(OutputHandler::new(
@@ -109,27 +107,6 @@ impl WebGLExternalImageApi for WebGLExternalImages {
 
     fn unlock(&mut self, ctx_id: WebGLContextId) {
         self.webgl_channel.send(WebGLMsg::Unlock(ctx_id)).unwrap();
-    }
-}
-
-/// Custom observer used in a `WebGLThread`.
-impl WebGLThreadObserver for PhantomData<()> {
-    fn on_context_create(&mut self, ctx_id: WebGLContextId, texture_id: u32, size: Size2D<i32>) {
-        debug!(
-            "WebGLContext created (ctx_id: {:?} texture_id: {:?} size: {:?}",
-            ctx_id, texture_id, size
-        );
-    }
-
-    fn on_context_resize(&mut self, ctx_id: WebGLContextId, texture_id: u32, size: Size2D<i32>) {
-        debug!(
-            "WebGLContext resized (ctx_id: {:?} texture_id: {:?} size: {:?}",
-            ctx_id, texture_id, size
-        );
-    }
-
-    fn on_context_delete(&mut self, ctx_id: WebGLContextId) {
-        debug!("WebGLContext deleted (ctx_id: {:?})", ctx_id);
     }
 }
 
