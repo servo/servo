@@ -4,7 +4,7 @@
 
 use cssparser::RGBA;
 use euclid::{Transform2D, Point2D, Vector2D, Rect, Size2D};
-use ipc_channel::ipc::IpcSender;
+use ipc_channel::ipc::{IpcBytesSender, IpcSender};
 use serde_bytes::ByteBuf;
 use std::default::Default;
 use std::str::FromStr;
@@ -51,7 +51,7 @@ pub enum Canvas2dMsg {
     Fill,
     FillText(String, f64, f64, Option<f64>),
     FillRect(Rect<f32>),
-    GetImageData(Rect<i32>, Size2D<f64>, IpcSender<ByteBuf>),
+    GetImageData(Rect<i32>, Size2D<f64>, IpcBytesSender),
     IsPointInPath(f64, f64, FillRule, IpcSender<bool>),
     LineTo(Point2D<f32>),
     MoveTo(Point2D<f32>),
