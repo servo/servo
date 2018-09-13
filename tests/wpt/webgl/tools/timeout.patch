@@ -94,3 +94,13 @@ index c1542f4fa9..b3ee786e0b 100644
  <link rel="stylesheet" href="../../resources/js-test-style.css"/>
  <script src=/resources/testharness.js></script>
  <script src=/resources/testharnessreport.js></script>
+--- i/conformance/glsl/misc/shader-uniform-packing-restrictions.html
++++ w/conformance/glsl/misc/shader-uniform-packing-restrictions.html
+@@ -29,6 +29,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL uniform packing restrctions Conformance Test</title>
+ <link rel="stylesheet" href="../../../resources/js-test-style.css"/>
+ <link rel="stylesheet" href="../../../resources/glsl-feature-tests.css"/>
