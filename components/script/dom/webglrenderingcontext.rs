@@ -1752,22 +1752,6 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             Err(_) => return,
         };
 
-        let image_info = texture.image_info_for_target(&target, level);
-
-        // The color buffer components can be dropped during the conversion to
-        // the internal_format, but new components cannot be added.
-        //
-        // Note that this only applies if we're copying to an already
-        // initialized texture.
-        //
-        // GL_INVALID_OPERATION is generated if the color buffer cannot be
-        // converted to the internal_format.
-        if let Some(old_internal_format) = image_info.internal_format() {
-            if old_internal_format.components() > internal_format.components() {
-                return self.webgl_error(InvalidOperation);
-            }
-        }
-
         // NB: TexImage2D depth is always equal to 1
         handle_potential_webgl_error!(self, texture.initialize(target,
                                                                width as u32,

@@ -11,7 +11,7 @@ use azure::azure_hl::SurfacePattern;
 use canvas_traits::canvas::*;
 use cssparser::RGBA;
 use euclid::{Transform2D, Point2D, Vector2D, Rect, Size2D};
-use ipc_channel::ipc::IpcSender;
+use ipc_channel::ipc::{IpcBytesSender, IpcSender};
 use num_traits::ToPrimitive;
 use serde_bytes::ByteBuf;
 use std::mem;
@@ -456,13 +456,9 @@ impl<'a> CanvasData<'a> {
         &self,
         dest_rect: Rect<i32>,
         canvas_size: Size2D<f64>,
-        chan: IpcSender<ByteBuf>,
+        sender: IpcBytesSender,
     ) {
-        let mut dest_data = self.read_pixels(dest_rect, canvas_size);
-
-        // bgra -> rgba
-        byte_swap(&mut dest_data);
-        chan.send(dest_data.into()).unwrap();
+        sender.send(&self.read_pixels(dest_rect, canvas_size)).unwrap();
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-putimagedata
