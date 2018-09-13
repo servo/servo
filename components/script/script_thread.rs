@@ -2065,24 +2065,21 @@ impl ScriptThread {
         }
     }
 
-    fn ask_constellation_for_browsing_context_id(&self, pipeline_id: PipelineId) -> Option<BrowsingContextId> {
+    fn ask_constellation_for_browsing_context_info(
+        &self,
+        pipeline_id: PipelineId
+    ) -> Option<(BrowsingContextId, Option<PipelineId>)> {
         let (result_sender, result_receiver) = ipc::channel().unwrap();
-        let msg = ScriptMsg::GetBrowsingContextId(pipeline_id, result_sender);
+        let msg = ScriptMsg::GetBrowsingContextInfo(pipeline_id, result_sender);
         self.script_sender.send((pipeline_id, msg)).expect("Failed to send to constellation.");
-        result_receiver.recv().expect("Failed to get frame id from constellation.")
+        result_receiver.recv().expect("Failed to get browsing context info from constellation.")
     }
 
-    fn ask_constellation_for_parent_info(&self, pipeline_id: PipelineId) -> Option<PipelineId> {
-        let (result_sender, result_receiver) = ipc::channel().unwrap();
-        let msg = ScriptMsg::GetParentInfo(pipeline_id, result_sender);
-        self.script_sender.send((pipeline_id, msg)).expect("Failed to send to constellation.");
-        result_receiver.recv().expect("Failed to get frame id from constellation.")
-    }
-
-    fn ask_constellation_for_top_level_info(&self,
-                                            sender_pipeline: PipelineId,
-                                            browsing_context_id: BrowsingContextId)
-                                            -> Option<TopLevelBrowsingContextId> {
+    fn ask_constellation_for_top_level_info(
+        &self,
+        sender_pipeline: PipelineId,
+        browsing_context_id: BrowsingContextId
+    ) -> Option<TopLevelBrowsingContextId> {
         let (result_sender, result_receiver) = ipc::channel().unwrap();
         let msg = ScriptMsg::GetTopForBrowsingContext(browsing_context_id, result_sender);
         self.script_sender.send((sender_pipeline, msg)).expect("Failed to send to constellation.");
@@ -2095,25 +2092,29 @@ impl ScriptThread {
     // get the browsing context for the parent if there is one,
     // construct a new dissimilar-origin browsing context, add it
     // to the `window_proxies` map, and return it.
-    fn remote_window_proxy(&self,
-                           global_to_clone: &GlobalScope,
-                           top_level_browsing_context_id: TopLevelBrowsingContextId,
-                           pipeline_id: PipelineId,
-                           opener: Option<BrowsingContextId>)
-                           -> Option<DomRoot<WindowProxy>>
-    {
-        let browsing_context_id = self.ask_constellation_for_browsing_context_id(pipeline_id)?;
+    fn remote_window_proxy(
+        &self,
+        global_to_clone: &GlobalScope,
+        top_level_browsing_context_id: TopLevelBrowsingContextId,
+        pipeline_id: PipelineId,
+        opener: Option<BrowsingContextId>
+    ) -> Option<DomRoot<WindowProxy>> {
+        let (browsing_context_id, parent_pipeline_id) =
+            self.ask_constellation_for_browsing_context_info(pipeline_id)?;
         if let Some(window_proxy) = self.window_proxies.borrow().get(&browsing_context_id) {
             return Some(DomRoot::from_ref(window_proxy));
         }
-        let parent = self.ask_constellation_for_parent_info(pipeline_id).and_then(|parent_id| {
+
+        let parent = parent_pipeline_id.and_then(|parent_id| {
             self.remote_window_proxy(global_to_clone, top_level_browsing_context_id, parent_id, opener)
         });
-        let window_proxy = WindowProxy::new_dissimilar_origin(global_to_clone,
-                                                              browsing_context_id,
-                                                              top_level_browsing_context_id,
-                                                              parent.r(),
-                                                              opener);
+        let window_proxy = WindowProxy::new_dissimilar_origin(
+            global_to_clone,
+            browsing_context_id,
+            top_level_browsing_context_id,
+            parent.r(),
+            opener
+        );
         self.window_proxies.borrow_mut().insert(browsing_context_id, Dom::from_ref(&*window_proxy));
         Some(window_proxy)
     }

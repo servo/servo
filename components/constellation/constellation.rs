@@ -1218,28 +1218,14 @@ where
             FromScriptMsg::TouchEventProcessed(result) => self
                 .compositor_proxy
                 .send(ToCompositorMsg::TouchEventProcessed(result)),
-            FromScriptMsg::GetBrowsingContextId(pipeline_id, sender) => {
+            FromScriptMsg::GetBrowsingContextInfo(pipeline_id, sender) => {
                 let result = self
                     .pipelines
                     .get(&pipeline_id)
-                    .map(|pipeline| pipeline.browsing_context_id);
+                    .and_then(|pipeline| self.browsing_contexts.get(&pipeline.browsing_context_id))
+                    .map(|ctx| (ctx.id, ctx.parent_pipeline_id));
                 if let Err(e) = sender.send(result) {
-                    warn!("Sending reply to get browsing context failed ({:?}).", e);
-                }
-            },
-            // TODO(mandreyel): maybe change semantics of this message to
-            // reflect moving parent_info into BrowsingContext, i.e. message
-            // could be: GetParentInfo(BrowsingContextId, Sender)
-            FromScriptMsg::GetParentInfo(pipeline_id, sender) => {
-                let browsing_context = self.pipelines
-                    .get(&pipeline_id)
-                    .and_then(|pipeline| self.browsing_contexts.get(&pipeline.browsing_context_id));
-                if let Some(browsing_context) = browsing_context {
-                    if let Err(e) = sender.send(browsing_context.parent_pipeline_id) {
-                        warn!("Sending reply to get parent info failed ({:?}).", e);
-                    }
-                } else {
-                    warn!("GetParentInfo for pipeline {} with no browsing context.", pipeline_id)
+                    warn!("Sending reply to get browsing context info failed ({:?}).", e);
                 }
             },
             FromScriptMsg::GetTopForBrowsingContext(browsing_context_id, sender) => {

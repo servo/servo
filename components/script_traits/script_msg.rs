@@ -108,14 +108,16 @@ pub enum ScriptMsg {
     Focus,
     /// Requests that the constellation retrieve the current contents of the clipboard
     GetClipboardContents(IpcSender<String>),
-    /// Get the browsing context id for a given pipeline.
-    GetBrowsingContextId(PipelineId, IpcSender<Option<BrowsingContextId>>),
-    /// Get the parent info for a given pipeline.
-    GetParentInfo(PipelineId, IpcSender<Option<PipelineId>>),
     /// Get the top-level browsing context info for a given browsing context.
     GetTopForBrowsingContext(
         BrowsingContextId,
         IpcSender<Option<TopLevelBrowsingContextId>>,
+    ),
+    /// Get the browsing context id of the browsing context in which pipeline is
+    /// embedded and the parent pipeline id of that browsing context.
+    GetBrowsingContextInfo(
+        PipelineId,
+        IpcSender<Option<(BrowsingContextId, Option<PipelineId>)>>,
     ),
     /// Get the nth child browsing context ID for a given browsing context, sorted in tree order.
     GetChildBrowsingContextId(
@@ -201,8 +203,7 @@ impl fmt::Debug for ScriptMsg {
             CreateCanvasPaintThread(..) => "CreateCanvasPaintThread",
             Focus => "Focus",
             GetClipboardContents(..) => "GetClipboardContents",
-            GetBrowsingContextId(..) => "GetBrowsingContextId",
-            GetParentInfo(..) => "GetParentInfo",
+            GetBrowsingContextInfo(..) => "GetBrowsingContextInfo",
             GetTopForBrowsingContext(..) => "GetParentBrowsingContext",
             GetChildBrowsingContextId(..) => "GetChildBrowsingContextId",
             LoadComplete => "LoadComplete",
