@@ -4,6 +4,7 @@
 Project-independent library for Taskcluster decision tasks
 """
 
+import datetime
 import hashlib
 import json
 import os
@@ -26,6 +27,10 @@ class DecisionTask:
         # https://docs.taskcluster.net/docs/reference/workers/docker-worker/docs/features#feature-taskclusterproxy
         self.queue_service = taskcluster.Queue(options={"baseUrl": "http://taskcluster/queue/v1/"})
         self.index_service = taskcluster.Index(options={"baseUrl": "http://taskcluster/index/v1/"})
+        self.now = datetime.datetime.utcnow()
+
+    def from_now_json(self, offset):
+        return taskcluster.stringDate(taskcluster.fromNow(offset, dateObj=self.now))
 
     def create_task_with_in_tree_dockerfile(self, *, dockerfile, **kwargs):
         image_build_task = self.build_image(dockerfile)
@@ -73,7 +78,7 @@ class DecisionTask:
             ],
             extra={
                 "index": {
-                    "expires": taskcluster.fromNowJSON(self.docker_image_cache_expiry),
+                    "expires": self.from_now_json(self.docker_image_cache_expiry),
                 },
             },
         )
@@ -116,8 +121,8 @@ class DecisionTask:
             "provisionerId": "aws-provisioner-v1",
             "workerType": "servo-docker-worker",
 
-            "created": taskcluster.fromNowJSON(""),
-            "deadline": taskcluster.fromNowJSON("1 day"),
+            "created": self.from_now_json(""),
+            "deadline": self.from_now_json("1 day"),
             "metadata": {
                 "name": "%s: %s" % (self.project_name, task_name),
                 "description": "",
@@ -144,7 +149,7 @@ class DecisionTask:
                     "public/" + os.path.basename(path): {
                         "type": "file",
                         "path": path,
-                        "expires": taskcluster.fromNowJSON(expires),
+                        "expires": self.from_now_json(expires),
                     }
                     for path, expires in artifacts or []
                 },
