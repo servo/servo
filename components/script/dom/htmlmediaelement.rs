@@ -360,8 +360,7 @@ impl HTMLMediaElement {
                         // Step 2.3.2.
                         this.upcast::<EventTarget>().fire_event(atom!("pause"));
 
-                        //FIXME(victor)
-                        //this.player.pause();
+                        this.player.pause();
 
                         // Step 2.3.3.
                         // Done after running this closure in
