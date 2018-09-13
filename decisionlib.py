@@ -12,70 +12,62 @@ import sys
 import taskcluster
 
 
-# Used in task names
-PROJECT_NAME = "Taskcluster experiments for Servo"
-
-DOCKER_IMAGE_CACHE_EXPIRY = "1 week"
-
-# https://docs.taskcluster.net/docs/reference/workers/docker-worker/docs/environment
-DECISION_TASK_ID = os.environ["TASK_ID"]
-
-# https://docs.taskcluster.net/docs/reference/workers/docker-worker/docs/features#feature-taskclusterproxy
-QUEUE = taskcluster.Queue(options={"baseUrl": "http://taskcluster/queue/v1/"})
-INDEX = taskcluster.Index(options={"baseUrl": "http://taskcluster/index/v1/"})
-
-# https://github.com/servo/taskcluster-bootstrap-docker-images#image-builder
-DOCKER_IMAGE_BUILDER_IMAGE = "servobrowser/taskcluster-bootstrap:image-builder@sha256:" \
-    "0a7d012ce444d62ffb9e7f06f0c52fedc24b68c2060711b313263367f7272d9d"
-
-DOCKER_IMAGE_ARTIFACT_FILENAME = "image.tar.lz4"
-
-REPO = os.path.dirname(__file__)
-
-
 class DecisionTask:
-    def create_task_with_in_tree_dockerfile(self, *, image, **kwargs):
-        image_build_task = self.build_image(image)
+    DOCKER_IMAGE_ARTIFACT_FILENAME = "image.tar.lz4"
+
+    # https://github.com/servo/taskcluster-bootstrap-docker-images#image-builder
+    DOCKER_IMAGE_BUILDER_IMAGE = "servobrowser/taskcluster-bootstrap:image-builder@sha256:" \
+        "0a7d012ce444d62ffb9e7f06f0c52fedc24b68c2060711b313263367f7272d9d"
+
+    def __init__(self, project_name, docker_image_cache_expiry="1 year"):
+        self.project_name = project_name
+        self.docker_image_cache_expiry = docker_image_cache_expiry
+
+        # https://docs.taskcluster.net/docs/reference/workers/docker-worker/docs/features#feature-taskclusterproxy
+        self.queue_service = taskcluster.Queue(options={"baseUrl": "http://taskcluster/queue/v1/"})
+        self.index_service = taskcluster.Index(options={"baseUrl": "http://taskcluster/index/v1/"})
+
+    def create_task_with_in_tree_dockerfile(self, *, dockerfile, **kwargs):
+        image_build_task = self.build_image(dockerfile)
         kwargs.setdefault("dependencies", []).append(image_build_task)
         image = {
             "type": "task-image",
             "taskId": image_build_task,
-            "path": "public/" + DOCKER_IMAGE_ARTIFACT_FILENAME,
+            "path": "public/" + self.DOCKER_IMAGE_ARTIFACT_FILENAME,
         }
         return self.create_task(image=image, **kwargs)
 
-
-    def build_image(self, image_name):
-        with open(os.path.join(REPO, image_name + ".dockerfile"), "rb") as f:
+    def build_image(self, dockerfile):
+        with open(dockerfile, "rb") as f:
             dockerfile = f.read()
         digest = hashlib.sha256(dockerfile).hexdigest()
         route = "project.servo.servo-taskcluster-experiments.docker-image." + digest
 
         try:
-            result = INDEX.findTask(route)
+            result = self.index_service.findTask(route)
             return result["taskId"]
         except taskcluster.TaskclusterRestFailure as e:
             if e.status_code != 404:
                 raise
 
         image_build_task = self.create_task(
-            task_name="docker image build task for image: " + image_name,
+            task_name="docker image build task for image: " + self.image_name(dockerfile),
             command="""
                 echo "$DOCKERFILE" | docker build -t taskcluster-built -
                 docker save taskcluster-built | lz4 > /%s
-            """ % DOCKER_IMAGE_ARTIFACT_FILENAME,
+            """ % self.DOCKER_IMAGE_ARTIFACT_FILENAME,
             env={
                 "DOCKERFILE": dockerfile,
             },
             artifacts=[
                 (
-                    DOCKER_IMAGE_ARTIFACT_FILENAME,
-                    "/" + DOCKER_IMAGE_ARTIFACT_FILENAME,
-                    DOCKER_IMAGE_CACHE_EXPIRY
+                    self.DOCKER_IMAGE_ARTIFACT_FILENAME,
+                    "/" + self.DOCKER_IMAGE_ARTIFACT_FILENAME,
+                    self.docker_image_cache_expiry
                 ),
             ],
             max_run_time_minutes=20,
-            image=DOCKER_IMAGE_BUILDER_IMAGE,
+            image=self.DOCKER_IMAGE_BUILDER_IMAGE,
             features={
                 "dind": True,  # docker-in-docker
             },
@@ -85,12 +77,21 @@ class DecisionTask:
             ],
             extra={
                 "index": {
-                    "expires": taskcluster.fromNowJSON(DOCKER_IMAGE_CACHE_EXPIRY),
+                    "expires": taskcluster.fromNowJSON(self.docker_image_cache_expiry),
                 },
             },
         )
         return image_build_task
 
+    def image_name(self, dockerfile):
+        basename = os.path.basename(dockerfile)
+        suffix = ".dockerfile"
+        if basename == "Dockerfile":
+            return os.path.basename(os.path.dirname(os.path.abspath(dockerfile)))
+        elif basename.endswith(suffix):
+            return basename[:-len(suffix)]
+        else:
+            return basename
 
     def create_task(self, *, task_name, command, image, max_run_time_minutes,
                     artifacts=None, dependencies=None, env=None, cache=None, scopes=None,
@@ -100,6 +101,7 @@ class DecisionTask:
 
         if with_repo:
             for k in ["GITHUB_EVENT_CLONE_URL", "GITHUB_EVENT_COMMIT_SHA"]:
+                # Set in .taskcluster.yml
                 env.setdefault(k, os.environ[k])
 
             command = """
@@ -108,9 +110,12 @@ class DecisionTask:
                     git checkout $GITHUB_EVENT_COMMIT_SHA
                 """ + command
 
+        # https://docs.taskcluster.net/docs/reference/workers/docker-worker/docs/environment
+        decision_task_id = os.environ["TASK_ID"]
+
         payload = {
-            "taskGroupId": DECISION_TASK_ID,
-            "dependencies": [DECISION_TASK_ID] + (dependencies or []),
+            "taskGroupId": decision_task_id,
+            "dependencies": [decision_task_id] + (dependencies or []),
             "schedulerId": "taskcluster-github",
             "provisionerId": "aws-provisioner-v1",
             "workerType": "servo-docker-worker",
@@ -118,7 +123,7 @@ class DecisionTask:
             "created": taskcluster.fromNowJSON(""),
             "deadline": taskcluster.fromNowJSON("1 day"),
             "metadata": {
-                "name": "%s: %s" % (PROJECT_NAME, task_name),
+                "name": "%s: %s" % (self.project_name, task_name),
                 "description": "",
                 "owner": os.environ["GITHUB_EVENT_OWNER"],
                 "source": os.environ["GITHUB_EVENT_SOURCE"],
@@ -152,7 +157,7 @@ class DecisionTask:
         }
 
         task_id = taskcluster.slugId().decode("utf8")
-        QUEUE.createTask(task_id, payload)
+        self.queue_service.createTask(task_id, payload)
         print("Scheduled %s: %s" % (task_name, task_id))
         return task_id
 

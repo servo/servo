@@ -1,15 +1,19 @@
 # coding: utf8
 
+import os.path
 from decisionlib import DecisionTask
 
 
 def main():
-    decision = DecisionTask()
+    decision = DecisionTask(
+        project_name="Taskcluster experimenfts for Servo",  # Used in task names
+        docker_image_cache_expiry="1 week",
+    )
 
     build_task = decision.create_task_with_in_tree_dockerfile(
         task_name="build task",
         command="./build-task.sh",
-        image="servo-x86_64-linux",
+        dockerfile=dockerfile("servo-x86_64-linux"),
         max_run_time_minutes=20,
 
         artifacts=[
@@ -35,6 +39,10 @@ def main():
         dependencies=[build_task],
         env={"BUILD_TASK_ID": build_task},
     )
+
+
+def dockerfile(name):
+    return os.path.join(os.path.dirname(__file__), name + ".dockerfile")
 
 
 if __name__ == "__main__":
