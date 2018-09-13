@@ -22,10 +22,11 @@ pub fn match_def_path(cx: &LateContext, def_id: DefId, path: &[&str]) -> bool {
         return false;
     }
 
-    other.into_iter()
-         .map(|e| e.data)
-         .zip(path)
-         .all(|(nm, p)| &*nm.as_interned_str().as_str() == *p)
+    other
+        .into_iter()
+        .map(|e| e.data)
+        .zip(path)
+        .all(|(nm, p)| &*nm.as_interned_str().as_str() == *p)
 }
 
 pub fn in_derive_expn(span: Span) -> bool {

@@ -13,8 +13,6 @@
 //!  - `#[dom_struct]` : Implies #[derive(JSTraceable, DenyPublicFields)]`, and `#[must_root]`.
 //!                       Use this for structs that correspond to a DOM type
 
-
-
 #![deny(unsafe_code)]
 #![feature(macro_at_most_once_rep)]
 #![feature(plugin)]
