@@ -400,6 +400,7 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
             Some(LayoutNodeType::Element(LayoutElementType::HTMLImageElement)) => {
                 let image_info = Box::new(ImageFragmentInfo::new(
                     node.image_url(),
+                    node.image_density(),
                     node,
                     &self.layout_context,
                 ));
@@ -408,6 +409,7 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
             Some(LayoutNodeType::Element(LayoutElementType::HTMLObjectElement)) => {
                 let image_info = Box::new(ImageFragmentInfo::new(
                     node.object_data(),
+                    None,
                     node,
                     &self.layout_context,
                 ));
@@ -1471,6 +1473,7 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
             ImageUrlOrNone::Url(ref url_value) => {
                 let image_info = Box::new(ImageFragmentInfo::new(
                     url_value.url().map(|u| u.clone()),
+                    None,
                     node,
                     &self.layout_context,
                 ));
