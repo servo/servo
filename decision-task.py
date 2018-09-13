@@ -13,6 +13,7 @@ def main():
         "build task",
         "./build-task.sh",
         image="servo-x86_64-linux",
+        max_run_time_minutes=20,
 
         artifacts=[
             ("executable.gz", "/repo/something-rust/something-rust.gz", "1 week"),
@@ -33,6 +34,7 @@ def main():
         "run task",
         "./run-task.sh",
         image="buildpack-deps:bionic-scm",
+        max_run_time_minutes=20,
         dependencies=[build_task],
         env={"BUILD_TASK_ID": build_task},
     )
@@ -95,6 +97,7 @@ def build_image(name):
                 DOCKER_IMAGE_CACHE_EXPIRY
             ),
         ],
+        max_run_time_minutes=20,
         image=IMAGE_BUILDER_IMAGE,
         features={
             "dind": True,  # docker-in-docker
@@ -112,8 +115,10 @@ def build_image(name):
     return image_build_task
 
 
-def create_task(name, command, image, artifacts=None, dependencies=None, env=None, cache=None,
-                scopes=None, routes=None, extra=None, features=None, with_repo=True):
+def create_task(name, command, image, max_run_time_minutes,
+                artifacts=None, dependencies=None, env=None, cache=None, scopes=None,
+                routes=None, extra=None, features=None,
+                with_repo=True):
     env = env or {}
 
     if with_repo:
@@ -134,7 +139,7 @@ def create_task(name, command, image, artifacts=None, dependencies=None, env=Non
         "workerType": "servo-docker-worker",
 
         "created": taskcluster.fromNowJSON(""),
-        "deadline": taskcluster.fromNowJSON("1 hour"),
+        "deadline": taskcluster.fromNowJSON("1 day"),
         "metadata": {
             "name": "Taskcluster experiments for Servo: " + name,
             "description": "",
@@ -146,7 +151,7 @@ def create_task(name, command, image, artifacts=None, dependencies=None, env=Non
         "extra": extra or {},
         "payload": {
             "cache": cache or {},
-            "maxRunTime": 3600,
+            "maxRunTime": max_run_time_minutes * 60,
             "image": image,
             "command": [
                 "/bin/bash",

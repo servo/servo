@@ -10,7 +10,7 @@ tasks:
       provisionerId: aws-provisioner-v1
       workerType: servo-docker-worker
       created: {$fromNow: ''}
-      deadline: {$fromNow: '1 hour'}
+      deadline: {$fromNow: '1 day'}
       metadata:
         name: "Taskcluster experiments for Servo: decision task"
         description: ""
@@ -26,7 +26,7 @@ tasks:
         - "queue:route:index.project.servo.servo-taskcluster-experiments.*"
 
       payload:
-        maxRunTime: 1200
+        maxRunTime: {$eval: '20 * 60'}
         # https://github.com/servo/taskcluster-bootstrap-docker-images#decision-task
         image: "servobrowser/taskcluster-bootstrap:decision-task@sha256:28045b7ec0485ef363f8cb14f194008b47e9ede99f2ea40a1e945e921fce976e"
         features:
