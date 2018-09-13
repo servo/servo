@@ -20,8 +20,11 @@ class DecisionTask:
     DOCKER_IMAGE_BUILDER_IMAGE = "servobrowser/taskcluster-bootstrap:image-builder@sha256:" \
         "0a7d012ce444d62ffb9e7f06f0c52fedc24b68c2060711b313263367f7272d9d"
 
-    def __init__(self, project_name, docker_image_cache_expiry="1 year"):
+    def __init__(self, project_name, *, route_prefix,
+                 worker_type="github-worker", docker_image_cache_expiry="1 year"):
         self.project_name = project_name
+        self.route_prefix = route_prefix
+        self.worker_type = worker_type
         self.docker_image_cache_expiry = docker_image_cache_expiry
 
         # https://docs.taskcluster.net/docs/reference/workers/docker-worker/docs/features#feature-taskclusterproxy
@@ -46,7 +49,7 @@ class DecisionTask:
         with open(dockerfile, "rb") as f:
             dockerfile = f.read()
         digest = hashlib.sha256(dockerfile).hexdigest()
-        route = "project.servo.servo-taskcluster-experiments.docker-image." + digest
+        route = "%s.docker-image.%s" % (self.route_prefix, digest)
 
         try:
             result = self.index_service.findTask(route)
@@ -98,12 +101,17 @@ class DecisionTask:
                     artifacts=None, dependencies=None, env=None, cache=None, scopes=None,
                     routes=None, extra=None, features=None,
                     with_repo=True):
+        # Set in .taskcluster.yml
+        commit_sha = os.environ["GITHUB_EVENT_COMMIT_SHA"]
+        clone_url = os.environ["GITHUB_EVENT_CLONE_URL"]
+        source = os.environ["GITHUB_EVENT_SOURCE"]
+        owner = os.environ["GITHUB_EVENT_OWNER"]
+
         env = env or {}
 
         if with_repo:
-            for k in ["GITHUB_EVENT_CLONE_URL", "GITHUB_EVENT_COMMIT_SHA"]:
-                # Set in .taskcluster.yml
-                env.setdefault(k, os.environ[k])
+            env["GITHUB_EVENT_COMMIT_SHA"] = commit_sha
+            env["GITHUB_EVENT_CLONE_URL"] = clone_url
 
             command = """
                     git clone $GITHUB_EVENT_CLONE_URL repo
@@ -119,15 +127,15 @@ class DecisionTask:
             "dependencies": [decision_task_id] + (dependencies or []),
             "schedulerId": "taskcluster-github",
             "provisionerId": "aws-provisioner-v1",
-            "workerType": "servo-docker-worker",
+            "workerType": self.worker_type,
 
             "created": self.from_now_json(""),
             "deadline": self.from_now_json("1 day"),
             "metadata": {
                 "name": "%s: %s" % (self.project_name, task_name),
                 "description": "",
-                "owner": os.environ["GITHUB_EVENT_OWNER"],
-                "source": os.environ["GITHUB_EVENT_SOURCE"],
+                "owner": owner,
+                "source": source,
             },
             "scopes": scopes or [],
             "routes": routes or [],

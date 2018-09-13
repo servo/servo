@@ -7,7 +7,9 @@ from decisionlib import DecisionTask
 def main():
     decision = DecisionTask(
         project_name="Taskcluster experimenfts for Servo",  # Used in task names
+        route_prefix="project.servo.servo-taskcluster-experiments",
         docker_image_cache_expiry="1 week",
+        worker_type="servo-docker-worker",
     )
 
     build_task = decision.create_task_with_in_tree_dockerfile(
