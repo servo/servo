@@ -3,8 +3,18 @@
 // (https://github.com/tidoust/reffy-reports)
 // Source: Fullscreen API Standard (https://fullscreen.spec.whatwg.org/)
 
+enum FullscreenNavigationUI {
+  "auto",
+  "show",
+  "hide"
+};
+
+dictionary FullscreenOptions {
+  FullscreenNavigationUI navigationUI = "auto";
+};
+
 partial interface Element {
-  Promise<void> requestFullscreen();
+  Promise<void> requestFullscreen(optional FullscreenOptions options);
 
   attribute EventHandler onfullscreenchange;
   attribute EventHandler onfullscreenerror;

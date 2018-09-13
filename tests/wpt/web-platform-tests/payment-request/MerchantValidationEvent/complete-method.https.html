@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="help" href="https://w3c.github.io/browser-payment-api/#dom-merchantvalidationevent-complete">
+<title>Test for the MerchantValidationEvent's complete() method.</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+test(() => {
+  const event = new MerchantValidationEvent("test");
+  assert_throws("InvalidStateError", () => {
+    event.complete("");
+  })
+}, "If event's isTrusted attribute is false, then then throw an InvalidStateError DOMException.");
+</script>

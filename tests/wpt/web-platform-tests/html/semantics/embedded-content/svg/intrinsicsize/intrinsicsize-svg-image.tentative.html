@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="match" href="intrinsicsize-svg-image-ref.html">
+<meta name="assert" content="test">
+<body>
+<svg width=200 height=200>
+  <image href="/images/background.png"/>
+</svg>
+<svg width=200 height=200>
+  <image href="/images/background.png" intrinsicsize="300x150"/>
+</svg>
+<svg width=400 height=400>
+  <image href="/images/background.png" intrinsicsize="300x150"/>
+</svg>
+<svg width=200 height=200>
+  <image href="/images/background.png" intrinsicsize="300x150" width="300"/>
+</svg>
+<svg width=200 height=200>
+  <image href="/images/background.png" intrinsicsize="300x150" height="50"/>
+</svg>
+<svg width=200 height=200>
+  <image href="/images/background.png" intrinsicsize="300x150" width="100" height="100"/>
+</svg>
+</body>

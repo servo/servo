@@ -73,4 +73,23 @@ var testAudio = async_test(function() {
     this.unreached_func('Error creating MediaStream.'));
 }, 'verifies that an ImageCapture cannot be created out of an Audio Track');
 
+var testParameter = test(function() {
+  const invalidParameters = [
+    "invalid",
+    null,
+    123,
+    {},
+    "",
+    true
+  ];
+  assert_throws(new TypeError(),
+                function() { var capturer = new ImageCapture(); },
+               'an ImageCapturer can not be created with no parameter');
+  invalidParameters.map(parameter => {
+    assert_throws(new TypeError(),
+                  function() { var capturer = new ImageCapture(parameter); },
+                 `an ImageCapturer can not be created with a ${parameter} parameter`);
+  });
+}, 'throw "TypeError" if parameter is not MediaStreamTrack.');
+
 </script>

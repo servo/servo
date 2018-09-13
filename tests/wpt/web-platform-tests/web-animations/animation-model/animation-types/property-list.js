@@ -1005,6 +1005,11 @@ const gCSSProperties = {
     types: [
     ]
   },
+  'offset-path': {
+    // https://drafts.fxtf.org/motion-1/#offset-path-property
+    types: [
+    ]
+  },
   'opacity': {
     // https://drafts.csswg.org/css-color/#propdef-opacity
     types: [

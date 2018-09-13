@@ -1,5 +1,7 @@
 import logging
 import pickle
+
+from distutils.spawn import find_executable
 from logging import handlers
 
 import pytest
@@ -176,6 +178,8 @@ def test_ports_no_ssl():
         assert ports["ws"] == [1003]
 
 
+@pytest.mark.skipif(find_executable("openssl") is None,
+                    reason="requires OpenSSL")
 def test_ports_openssl():
     with config.ConfigBuilder(ports={"http": [1001], "https": [1002], "ws": [1003], "wss": [1004]},
                               ssl={"type": "openssl"}) as c:

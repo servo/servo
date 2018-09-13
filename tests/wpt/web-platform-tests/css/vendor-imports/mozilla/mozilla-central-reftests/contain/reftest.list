@@ -21,6 +21,7 @@
 == contain-size-inline-block-001.html contain-size-inline-block-001-ref.html
 == contain-size-flex-001.html contain-size-flex-001-ref.html
 == contain-size-inline-flex-001.html contain-size-inline-flex-001-ref.html
+== contain-size-grid-001.html contain-size-grid-001-ref.html
 == contain-size-multicol-001.html contain-size-multicol-001-ref.html
 == contain-size-fieldset-001.html contain-size-fieldset-001-ref.html
 == contain-size-fieldset-002.html contain-size-fieldset-002-ref.html
