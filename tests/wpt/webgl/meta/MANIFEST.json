@@ -12085,7 +12085,9 @@
    "conformance/glsl/misc/shader-uniform-packing-restrictions.html": [
     [
      "/_webgl/conformance/glsl/misc/shader-uniform-packing-restrictions.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "conformance/glsl/misc/shader-varying-packing-restrictions.html": [
@@ -28644,7 +28646,7 @@
    "testharness"
   ],
   "conformance/glsl/misc/shader-uniform-packing-restrictions.html": [
-   "f6b879a8d8c531cb63392308f6d1c3b0e789e105",
+   "4d6f691246209793ec7fabfcfe1d143641135220",
    "testharness"
   ],
   "conformance/glsl/misc/shader-varying-packing-restrictions.html": [
