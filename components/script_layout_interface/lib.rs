@@ -15,13 +15,15 @@ extern crate canvas_traits;
 extern crate cssparser;
 extern crate euclid;
 extern crate gfx_traits;
-#[macro_use] extern crate html5ever;
+#[macro_use]
+extern crate html5ever;
 extern crate ipc_channel;
 extern crate libc;
 #[macro_use]
 extern crate log;
 extern crate malloc_size_of;
-#[macro_use] extern crate malloc_size_of_derive;
+#[macro_use]
+extern crate malloc_size_of_derive;
 extern crate metrics;
 extern crate msg;
 extern crate net_traits;
@@ -99,7 +101,6 @@ impl DomParallelInfo {
     }
 }
 
-
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum LayoutNodeType {
     Element(LayoutElementType),
@@ -127,7 +128,7 @@ pub enum LayoutElementType {
 
 pub enum HTMLCanvasDataSource {
     WebGL(webrender_api::ImageKey),
-    Image(Option<IpcSender<CanvasMsg>>)
+    Image(Option<IpcSender<CanvasMsg>>),
 }
 
 pub struct HTMLCanvasData {
@@ -150,7 +151,8 @@ pub struct TrustedNodeAddress(pub *const c_void);
 unsafe impl Send for TrustedNodeAddress {}
 
 pub fn is_image_data(uri: &str) -> bool {
-    static TYPES: &'static [&'static str] = &["data:image/png", "data:image/gif", "data:image/jpeg"];
+    static TYPES: &'static [&'static str] =
+        &["data:image/png", "data:image/gif", "data:image/jpeg"];
     TYPES.iter().any(|&type_| uri.starts_with(type_))
 }
 

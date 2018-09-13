@@ -63,7 +63,9 @@ impl PseudoElementType {
 
     pub fn style_pseudo_element(&self) -> PseudoElement {
         match *self {
-            PseudoElementType::Normal => unreachable!("style_pseudo_element called with PseudoElementType::Normal"),
+            PseudoElementType::Normal => {
+                unreachable!("style_pseudo_element called with PseudoElementType::Normal")
+            },
             PseudoElementType::Before => PseudoElement::Before,
             PseudoElementType::After => PseudoElement::After,
             PseudoElementType::DetailsSummary => PseudoElement::DetailsSummary,
@@ -101,12 +103,17 @@ pub trait LayoutNode: Debug + GetLayoutData + TNode {
     }
 }
 
-pub struct ReverseChildrenIterator<ConcreteNode> where ConcreteNode: LayoutNode {
+pub struct ReverseChildrenIterator<ConcreteNode>
+where
+    ConcreteNode: LayoutNode,
+{
     current: Option<ConcreteNode>,
 }
 
 impl<ConcreteNode> Iterator for ReverseChildrenIterator<ConcreteNode>
-                            where ConcreteNode: LayoutNode {
+where
+    ConcreteNode: LayoutNode,
+{
     type Item = ConcreteNode;
     fn next(&mut self) -> Option<ConcreteNode> {
         let node = self.current;
@@ -115,17 +122,21 @@ impl<ConcreteNode> Iterator for ReverseChildrenIterator<ConcreteNode>
     }
 }
 
-pub struct TreeIterator<ConcreteNode> where ConcreteNode: LayoutNode {
+pub struct TreeIterator<ConcreteNode>
+where
+    ConcreteNode: LayoutNode,
+{
     stack: Vec<ConcreteNode>,
 }
 
-impl<ConcreteNode> TreeIterator<ConcreteNode> where ConcreteNode: LayoutNode {
+impl<ConcreteNode> TreeIterator<ConcreteNode>
+where
+    ConcreteNode: LayoutNode,
+{
     fn new(root: ConcreteNode) -> TreeIterator<ConcreteNode> {
         let mut stack = vec![];
         stack.push(root);
-        TreeIterator {
-            stack: stack,
-        }
+        TreeIterator { stack: stack }
     }
 
     pub fn next_skipping_children(&mut self) -> Option<ConcreteNode> {
@@ -134,7 +145,9 @@ impl<ConcreteNode> TreeIterator<ConcreteNode> where ConcreteNode: LayoutNode {
 }
 
 impl<ConcreteNode> Iterator for TreeIterator<ConcreteNode>
-                            where ConcreteNode: LayoutNode {
+where
+    ConcreteNode: LayoutNode,
+{
     type Item = ConcreteNode;
     fn next(&mut self) -> Option<ConcreteNode> {
         let ret = self.stack.pop();
@@ -143,16 +156,17 @@ impl<ConcreteNode> Iterator for TreeIterator<ConcreteNode>
     }
 }
 
-
 /// A thread-safe version of `LayoutNode`, used during flow construction. This type of layout
 /// node does not allow any parents or siblings of nodes to be accessed, to avoid races.
-pub trait ThreadSafeLayoutNode: Clone + Copy + Debug + GetLayoutData + NodeInfo + PartialEq + Sized {
+pub trait ThreadSafeLayoutNode:
+    Clone + Copy + Debug + GetLayoutData + NodeInfo + PartialEq + Sized
+{
     type ConcreteNode: LayoutNode<ConcreteThreadSafeLayoutNode = Self>;
     type ConcreteElement: TElement;
 
-    type ConcreteThreadSafeLayoutElement:
-        ThreadSafeLayoutElement<ConcreteThreadSafeLayoutNode = Self>
-        + ::selectors::Element<Impl=SelectorImpl>;
+    type ConcreteThreadSafeLayoutElement: ThreadSafeLayoutElement<
+            ConcreteThreadSafeLayoutNode = Self,
+        > + ::selectors::Element<Impl = SelectorImpl>;
     type ChildrenIterator: Iterator<Item = Self> + Sized;
 
     /// Converts self into an `OpaqueNode`.
@@ -173,19 +187,27 @@ pub trait ThreadSafeLayoutNode: Clone + Copy + Debug + GetLayoutData + NodeInfo 
     fn parent_style(&self) -> Arc<ComputedValues>;
 
     fn get_before_pseudo(&self) -> Option<Self> {
-        self.as_element().and_then(|el| el.get_before_pseudo()).map(|el| el.as_node())
+        self.as_element()
+            .and_then(|el| el.get_before_pseudo())
+            .map(|el| el.as_node())
     }
 
     fn get_after_pseudo(&self) -> Option<Self> {
-        self.as_element().and_then(|el| el.get_after_pseudo()).map(|el| el.as_node())
+        self.as_element()
+            .and_then(|el| el.get_after_pseudo())
+            .map(|el| el.as_node())
     }
 
     fn get_details_summary_pseudo(&self) -> Option<Self> {
-        self.as_element().and_then(|el| el.get_details_summary_pseudo()).map(|el| el.as_node())
+        self.as_element()
+            .and_then(|el| el.get_details_summary_pseudo())
+            .map(|el| el.as_node())
     }
 
     fn get_details_content_pseudo(&self) -> Option<Self> {
-        self.as_element().and_then(|el| el.get_details_content_pseudo()).map(|el| el.as_node())
+        self.as_element()
+            .and_then(|el| el.get_details_content_pseudo())
+            .map(|el| el.as_node())
     }
 
     fn debug_id(self) -> usize;
@@ -199,7 +221,8 @@ pub trait ThreadSafeLayoutNode: Clone + Copy + Debug + GetLayoutData + NodeInfo 
 
     #[inline]
     fn get_pseudo_element_type(&self) -> PseudoElementType {
-        self.as_element().map_or(PseudoElementType::Normal, |el| el.get_pseudo_element_type())
+        self.as_element()
+            .map_or(PseudoElementType::Normal, |el| el.get_pseudo_element_type())
     }
 
     fn get_style_and_layout_data(&self) -> Option<OpaqueStyleAndLayoutData>;
@@ -286,13 +309,8 @@ pub trait DangerousThreadSafeLayoutNode: ThreadSafeLayoutNode {
     unsafe fn dangerous_next_sibling(&self) -> Option<Self>;
 }
 
-pub trait ThreadSafeLayoutElement
-    : Clone
-    + Copy
-    + Sized
-    + Debug
-    + ::selectors::Element<Impl=SelectorImpl>
-    + GetLayoutData
+pub trait ThreadSafeLayoutElement:
+    Clone + Copy + Sized + Debug + ::selectors::Element<Impl = SelectorImpl> + GetLayoutData
 {
     type ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode<ConcreteThreadSafeLayoutElement = Self>;
 
@@ -332,7 +350,13 @@ pub trait ThreadSafeLayoutElement
 
     #[inline]
     fn get_before_pseudo(&self) -> Option<Self> {
-        if self.style_data().styles.pseudos.get(&PseudoElement::Before).is_some() {
+        if self
+            .style_data()
+            .styles
+            .pseudos
+            .get(&PseudoElement::Before)
+            .is_some()
+        {
             Some(self.with_pseudo(PseudoElementType::Before))
         } else {
             None
@@ -341,7 +365,13 @@ pub trait ThreadSafeLayoutElement
 
     #[inline]
     fn get_after_pseudo(&self) -> Option<Self> {
-        if self.style_data().styles.pseudos.get(&PseudoElement::After).is_some() {
+        if self
+            .style_data()
+            .styles
+            .pseudos
+            .get(&PseudoElement::After)
+            .is_some()
+        {
             Some(self.with_pseudo(PseudoElementType::After))
         } else {
             None
@@ -350,8 +380,7 @@ pub trait ThreadSafeLayoutElement
 
     #[inline]
     fn get_details_summary_pseudo(&self) -> Option<Self> {
-        if self.local_name() == &local_name!("details") &&
-           self.namespace() == &ns!(html) {
+        if self.local_name() == &local_name!("details") && self.namespace() == &ns!(html) {
             Some(self.with_pseudo(PseudoElementType::DetailsSummary))
         } else {
             None
@@ -361,8 +390,9 @@ pub trait ThreadSafeLayoutElement
     #[inline]
     fn get_details_content_pseudo(&self) -> Option<Self> {
         if self.local_name() == &local_name!("details") &&
-           self.namespace() == &ns!(html) &&
-           self.get_attr(&ns!(), &local_name!("open")).is_some() {
+            self.namespace() == &ns!(html) &&
+            self.get_attr(&ns!(), &local_name!("open")).is_some()
+        {
             Some(self.with_pseudo(PseudoElementType::DetailsContent))
         } else {
             None
@@ -377,49 +407,52 @@ pub trait ThreadSafeLayoutElement
     fn style(&self, context: &SharedStyleContext) -> Arc<ComputedValues> {
         let data = self.style_data();
         match self.get_pseudo_element_type() {
-            PseudoElementType::Normal => {
-                data.styles.primary().clone()
-            },
+            PseudoElementType::Normal => data.styles.primary().clone(),
             other => {
                 // Precompute non-eagerly-cascaded pseudo-element styles if not
                 // cached before.
                 let style_pseudo = other.style_pseudo_element();
                 match style_pseudo.cascade_type() {
                     // Already computed during the cascade.
-                    PseudoElementCascadeType::Eager => {
-                        self.style_data()
-                            .styles.pseudos.get(&style_pseudo)
-                            .unwrap().clone()
-                    },
-                    PseudoElementCascadeType::Precomputed => {
-                        context.stylist.precomputed_values_for_pseudo::<Self::ConcreteElement>(
+                    PseudoElementCascadeType::Eager => self
+                        .style_data()
+                        .styles
+                        .pseudos
+                        .get(&style_pseudo)
+                        .unwrap()
+                        .clone(),
+                    PseudoElementCascadeType::Precomputed => context
+                        .stylist
+                        .precomputed_values_for_pseudo::<Self::ConcreteElement>(
                             &context.guards,
                             &style_pseudo,
                             Some(data.styles.primary()),
                             &ServoMetricsProvider,
-                        )
-                    }
+                        ),
                     PseudoElementCascadeType::Lazy => {
-                        context.stylist.lazily_compute_pseudo_element_style(
-                           &context.guards,
-                           unsafe { self.unsafe_get() },
-                           &style_pseudo,
-                           RuleInclusion::All,
-                           data.styles.primary(),
-                           /* is_probe = */ false,
-                           &ServoMetricsProvider,
-                           /* matching_func = */ None,
-                        ).unwrap()
-                    }
+                        context
+                            .stylist
+                            .lazily_compute_pseudo_element_style(
+                                &context.guards,
+                                unsafe { self.unsafe_get() },
+                                &style_pseudo,
+                                RuleInclusion::All,
+                                data.styles.primary(),
+                                /* is_probe = */ false,
+                                &ServoMetricsProvider,
+                                /* matching_func = */ None,
+                            ).unwrap()
+                    },
                 }
-            }
+            },
         }
     }
 
     #[inline]
     fn selected_style(&self) -> Arc<ComputedValues> {
         let data = self.style_data();
-        data.styles.pseudos
+        data.styles
+            .pseudos
             .get(&PseudoElement::Selection)
             .unwrap_or(data.styles.primary())
             .clone()
@@ -436,11 +469,13 @@ pub trait ThreadSafeLayoutElement
     fn resolved_style(&self) -> Arc<ComputedValues> {
         let data = self.style_data();
         match self.get_pseudo_element_type() {
-            PseudoElementType::Normal
-                => data.styles.primary().clone(),
-            other
-                => data.styles.pseudos
-                       .get(&other.style_pseudo_element()).unwrap().clone(),
+            PseudoElementType::Normal => data.styles.primary().clone(),
+            other => data
+                .styles
+                .pseudos
+                .get(&other.style_pseudo_element())
+                .unwrap()
+                .clone(),
         }
     }
 }
