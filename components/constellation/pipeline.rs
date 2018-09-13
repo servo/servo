@@ -58,10 +58,6 @@ pub struct Pipeline {
     /// The ID of the top-level browsing context that contains this Pipeline.
     pub top_level_browsing_context_id: TopLevelBrowsingContextId,
 
-    /// The parent pipeline of this one. `None` if this is a root pipeline.
-    /// TODO: move this field to `BrowsingContext`.
-    pub parent_info: Option<PipelineId>,
-
     pub opener: Option<BrowsingContextId>,
 
     /// The event loop handling this pipeline.
@@ -84,14 +80,6 @@ pub struct Pipeline {
 
     /// The child browsing contexts of this pipeline (these are iframes in the document).
     pub children: Vec<BrowsingContextId>,
-
-    /// Whether this pipeline is in private browsing mode.
-    /// TODO: move this field to `BrowsingContext`.
-    pub is_private: bool,
-
-    /// Whether this pipeline should be treated as visible for the purposes of scheduling and
-    /// resource management.
-    pub visible: bool,
 
     /// The Load Data used to create this pipeline.
     pub load_data: LoadData,
@@ -119,7 +107,7 @@ pub struct InitialPipelineState {
 
     /// The ID of the parent pipeline and frame type, if any.
     /// If `None`, this is the root.
-    pub parent_info: Option<PipelineId>,
+    pub parent_pipeline_id: Option<PipelineId>,
 
     pub opener: Option<BrowsingContextId>,
 
@@ -171,17 +159,17 @@ pub struct InitialPipelineState {
     /// The ID of the pipeline namespace for this script thread.
     pub pipeline_namespace_id: PipelineNamespaceId,
 
-    /// Pipeline visibility to be inherited
-    pub prev_visibility: Option<bool>,
+    /// Whether the browsing context in which pipeline is embedded is visible
+    /// for the purposes of scheduling and resource management. This field is
+    /// only used to notify script and compositor threads after spawning
+    /// a pipeline.
+    pub prev_visibility: bool,
 
     /// Webrender api.
     pub webrender_api_sender: webrender_api::RenderApiSender,
 
     /// The ID of the document processed by this script thread.
     pub webrender_document: webrender_api::DocumentId,
-
-    /// Whether this pipeline is considered private.
-    pub is_private: bool,
 
     /// A channel to the WebGL thread.
     pub webgl_chan: Option<WebGLPipeline>,
@@ -216,7 +204,7 @@ impl Pipeline {
         let script_chan = match state.event_loop {
             Some(script_chan) => {
                 let new_layout_info = NewLayoutInfo {
-                    parent_info: state.parent_info,
+                    parent_info: state.parent_pipeline_id,
                     new_pipeline_id: state.id,
                     browsing_context_id: state.browsing_context_id,
                     top_level_browsing_context_id: state.top_level_browsing_context_id,
@@ -270,7 +258,7 @@ impl Pipeline {
                     id: state.id,
                     browsing_context_id: state.browsing_context_id,
                     top_level_browsing_context_id: state.top_level_browsing_context_id,
-                    parent_info: state.parent_info,
+                    parent_pipeline_id: state.parent_pipeline_id,
                     opener: state.opener,
                     script_to_constellation_chan: state.script_to_constellation_chan.clone(),
                     scheduler_chan: state.scheduler_chan,
@@ -317,14 +305,12 @@ impl Pipeline {
             state.id,
             state.browsing_context_id,
             state.top_level_browsing_context_id,
-            state.parent_info,
             state.opener,
             script_chan,
             pipeline_chan,
             state.compositor_proxy,
-            state.is_private,
             url,
-            state.prev_visibility.unwrap_or(true),
+            state.prev_visibility,
             state.load_data,
         ))
     }
@@ -335,21 +321,18 @@ impl Pipeline {
         id: PipelineId,
         browsing_context_id: BrowsingContextId,
         top_level_browsing_context_id: TopLevelBrowsingContextId,
-        parent_info: Option<PipelineId>,
         opener: Option<BrowsingContextId>,
         event_loop: Rc<EventLoop>,
         layout_chan: IpcSender<LayoutControlMsg>,
         compositor_proxy: CompositorProxy,
-        is_private: bool,
         url: ServoUrl,
-        visible: bool,
+        is_visible: bool,
         load_data: LoadData,
     ) -> Pipeline {
         let pipeline = Pipeline {
             id: id,
             browsing_context_id: browsing_context_id,
             top_level_browsing_context_id: top_level_browsing_context_id,
-            parent_info: parent_info,
             opener: opener,
             event_loop: event_loop,
             layout_chan: layout_chan,
@@ -357,14 +340,12 @@ impl Pipeline {
             url: url,
             children: vec![],
             running_animations: false,
-            visible: visible,
-            is_private: is_private,
             load_data: load_data,
             history_state_id: None,
             history_states: HashSet::new(),
         };
 
-        pipeline.notify_visibility();
+        pipeline.notify_visibility(is_visible);
 
         pipeline
     }
@@ -448,24 +429,15 @@ impl Pipeline {
     }
 
     /// Notify the script thread that this pipeline is visible.
-    fn notify_visibility(&self) {
+    pub fn notify_visibility(&self, is_visible: bool) {
         let script_msg =
-            ConstellationControlMsg::ChangeFrameVisibilityStatus(self.id, self.visible);
-        let compositor_msg = CompositorMsg::PipelineVisibilityChanged(self.id, self.visible);
+            ConstellationControlMsg::ChangeFrameVisibilityStatus(self.id, is_visible);
+        let compositor_msg = CompositorMsg::PipelineVisibilityChanged(self.id, is_visible);
         let err = self.event_loop.send(script_msg);
         if let Err(e) = err {
             warn!("Sending visibility change failed ({}).", e);
         }
         self.compositor_proxy.send(compositor_msg);
-    }
-
-    /// Change the visibility of this pipeline.
-    pub fn change_visibility(&mut self, visible: bool) {
-        if visible == self.visible {
-            return;
-        }
-        self.visible = visible;
-        self.notify_visibility();
     }
 }
 
@@ -477,7 +449,7 @@ pub struct UnprivilegedPipelineContent {
     id: PipelineId,
     top_level_browsing_context_id: TopLevelBrowsingContextId,
     browsing_context_id: BrowsingContextId,
-    parent_info: Option<PipelineId>,
+    parent_pipeline_id: Option<PipelineId>,
     opener: Option<BrowsingContextId>,
     script_to_constellation_chan: ScriptToConstellationChan,
     layout_to_constellation_chan: IpcSender<LayoutMsg>,
@@ -526,7 +498,7 @@ impl UnprivilegedPipelineContent {
                 id: self.id,
                 browsing_context_id: self.browsing_context_id,
                 top_level_browsing_context_id: self.top_level_browsing_context_id,
-                parent_info: self.parent_info,
+                parent_info: self.parent_pipeline_id,
                 opener: self.opener,
                 control_chan: self.script_chan.clone(),
                 control_port: self.script_port,
@@ -553,7 +525,7 @@ impl UnprivilegedPipelineContent {
             self.id,
             self.top_level_browsing_context_id,
             self.load_data.url,
-            self.parent_info.is_some(),
+            self.parent_pipeline_id.is_some(),
             layout_pair,
             self.pipeline_port,
             self.layout_to_constellation_chan,
