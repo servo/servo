@@ -56,7 +56,7 @@ PACKAGES = {
         'target/release/brew/servo.tar.gz',
     ],
     'windows-msvc': [
-        r'target\release\msi\Servo.msi',
+        r'target\release\msi\Servo.exe',
         r'target\release\msi\Servo.zip',
     ],
 }
