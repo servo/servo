@@ -828,7 +828,6 @@ impl FetchResponseListener for ParserContext {
 
     // store a PerformanceNavigationTiming entry in the globalscope's Performance buffer
     fn submit_resource_timing(&mut self) {
-        println!("submitting from servoparser");
         let parser = match self.parser.as_ref() {
             Some(parser) => parser.root(),
             None => return,

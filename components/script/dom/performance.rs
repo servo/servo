@@ -422,7 +422,7 @@ impl PerformanceMethods for Performance {
 
     // https://w3c.github.io/resource-timing/#dom-performance-setresourcetimingbuffersize
     fn SetResourceTimingBufferSize(&self, _maxSize: u32) {
-
+        //TODO
     }
 
     // https://w3c.github.io/resource-timing/#dom-performance-onresourcetimingbufferfull
