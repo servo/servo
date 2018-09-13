@@ -49,7 +49,8 @@ DECISION_TASK_ID = os.environ["TASK_ID"]
 QUEUE = taskcluster.Queue(options={"baseUrl": "http://taskcluster/queue/v1/"})
 INDEX = taskcluster.Index(options={"baseUrl": "http://taskcluster/index/v1/"})
 
-IMAGE_ARTIFACT_FILENAME = "image.tar.lz4"
+DOCKER_IMAGE_ARTIFACT_FILENAME = "image.tar.lz4"
+DOCKER_IMAGE_CACHE_EXPIRY = "1 week"
 
 REPO = os.path.dirname(__file__)
 
@@ -60,7 +61,7 @@ def create_task_with_in_tree_dockerfile(name, command, image, **kwargs):
     image = {
         "type": "task-image",
         "taskId": image_build_task,
-        "path": "public/" + IMAGE_ARTIFACT_FILENAME,
+        "path": "public/" + DOCKER_IMAGE_ARTIFACT_FILENAME,
     }
     return create_task(name, command, image, **kwargs)
 
@@ -77,32 +78,42 @@ def build_image(name):
     except taskcluster.TaskclusterRestFailure as e:
         if e.status_code != 404:
             raise
-        print("404 when looking up route", route, e, vars(e))
 
     image_build_task = create_task(
         "docker image build task for image: " + name,
         """
             echo "$DOCKERFILE" | docker build -t taskcluster-built -
             docker save taskcluster-built | lz4 > /%s
-        """ % IMAGE_ARTIFACT_FILENAME,
+        """ % DOCKER_IMAGE_ARTIFACT_FILENAME,
         env={
             "DOCKERFILE": dockerfile,
         },
         artifacts=[
-            (IMAGE_ARTIFACT_FILENAME, "/" + IMAGE_ARTIFACT_FILENAME, "1 week"),
+            (
+                DOCKER_IMAGE_ARTIFACT_FILENAME,
+                "/" + DOCKER_IMAGE_ARTIFACT_FILENAME,
+                DOCKER_IMAGE_CACHE_EXPIRY
+            ),
         ],
         image=IMAGE_BUILDER_IMAGE,
         features={
             "dind": True,  # docker-in-docker
         },
         with_repo=False,
-        routes=["index." + route],
+        routes=[
+            "index." + route,
+        ],
+        extra={
+            "index": {
+                "expires": taskcluster.fromNowJSON(DOCKER_IMAGE_CACHE_EXPIRY),
+            },
+        },
     )
     return image_build_task
 
 
 def create_task(name, command, image, artifacts=None, dependencies=None, env=None, cache=None,
-                scopes=None, routes=None, features=None, with_repo=True):
+                scopes=None, routes=None, extra=None, features=None, with_repo=True):
     env = env or {}
 
     if with_repo:
@@ -132,6 +143,7 @@ def create_task(name, command, image, artifacts=None, dependencies=None, env=Non
         },
         "scopes": scopes or [],
         "routes": routes or [],
+        "extra": extra or {},
         "payload": {
             "cache": cache or {},
             "maxRunTime": 3600,
