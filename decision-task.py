@@ -10,8 +10,8 @@ import taskcluster
 
 def main():
     build_task = create_task_with_in_tree_dockerfile(
-        "build task",
-        "./build-task.sh",
+        task_name="build task",
+        command="./build-task.sh",
         image="servo-x86_64-linux",
         max_run_time_minutes=20,
 
@@ -31,8 +31,8 @@ def main():
     )
 
     create_task(
-        "run task",
-        "./run-task.sh",
+        task_name="run task",
+        command="./run-task.sh",
         image="buildpack-deps:bionic-scm",
         max_run_time_minutes=20,
         dependencies=[build_task],
@@ -57,7 +57,7 @@ DOCKER_IMAGE_CACHE_EXPIRY = "1 week"
 REPO = os.path.dirname(__file__)
 
 
-def create_task_with_in_tree_dockerfile(name, command, image, **kwargs):
+def create_task_with_in_tree_dockerfile(*, image, **kwargs):
     image_build_task = build_image(image)
     kwargs.setdefault("dependencies", []).append(image_build_task)
     image = {
@@ -65,11 +65,11 @@ def create_task_with_in_tree_dockerfile(name, command, image, **kwargs):
         "taskId": image_build_task,
         "path": "public/" + DOCKER_IMAGE_ARTIFACT_FILENAME,
     }
-    return create_task(name, command, image, **kwargs)
+    return create_task(image=image, **kwargs)
 
 
-def build_image(name):
-    with open(os.path.join(REPO, name + ".dockerfile"), "rb") as f:
+def build_image(image_name):
+    with open(os.path.join(REPO, image_name + ".dockerfile"), "rb") as f:
         dockerfile = f.read()
     digest = hashlib.sha256(dockerfile).hexdigest()
     route = "project.servo.servo-taskcluster-experiments.docker-image." + digest
@@ -82,8 +82,8 @@ def build_image(name):
             raise
 
     image_build_task = create_task(
-        "docker image build task for image: " + name,
-        """
+        task_name="docker image build task for image: " + image_name,
+        command="""
             echo "$DOCKERFILE" | docker build -t taskcluster-built -
             docker save taskcluster-built | lz4 > /%s
         """ % DOCKER_IMAGE_ARTIFACT_FILENAME,
@@ -115,7 +115,7 @@ def build_image(name):
     return image_build_task
 
 
-def create_task(name, command, image, max_run_time_minutes,
+def create_task(*, task_name, command, image, max_run_time_minutes,
                 artifacts=None, dependencies=None, env=None, cache=None, scopes=None,
                 routes=None, extra=None, features=None,
                 with_repo=True):
@@ -141,7 +141,7 @@ def create_task(name, command, image, max_run_time_minutes,
         "created": taskcluster.fromNowJSON(""),
         "deadline": taskcluster.fromNowJSON("1 day"),
         "metadata": {
-            "name": "Taskcluster experiments for Servo: " + name,
+            "name": "Taskcluster experiments for Servo: " + task_name,
             "description": "",
             "owner": os.environ["GITHUB_EVENT_OWNER"],
             "source": os.environ["GITHUB_EVENT_SOURCE"],
@@ -176,7 +176,7 @@ def create_task(name, command, image, max_run_time_minutes,
 
     task_id = taskcluster.slugId().decode("utf8")
     QUEUE.createTask(task_id, payload)
-    print("Scheduled %s: %s" % (name, task_id))
+    print("Scheduled %s: %s" % (task_name, task_id))
     return task_id
 
 
