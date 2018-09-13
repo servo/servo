@@ -32,7 +32,7 @@ use dom::imagedata::ImageData;
 use dom::node::{Node, NodeDamage, window_from_node};
 use dom_struct::dom_struct;
 use euclid::{Transform2D, Point2D, Vector2D, Rect, Size2D, vec2};
-use ipc_channel::ipc::IpcSender;
+use ipc_channel::ipc::{self, IpcSender};
 use net_traits::image::base::PixelFormat;
 use net_traits::image_cache::CanRequestImages;
 use net_traits::image_cache::ImageCache;
@@ -41,7 +41,7 @@ use net_traits::image_cache::ImageResponse;
 use net_traits::image_cache::ImageState;
 use net_traits::image_cache::UsePlaceholder;
 use num_traits::ToPrimitive;
-use profile_traits::ipc;
+use profile_traits::ipc as profiled_ipc;
 use script_traits::ScriptMsg;
 use servo_url::ServoUrl;
 use std::{cmp, fmt, mem};
@@ -130,7 +130,7 @@ impl CanvasRenderingContext2D {
                          size: Size2D<i32>)
                          -> CanvasRenderingContext2D {
         debug!("Creating new canvas rendering context.");
-        let (sender, receiver) = ipc::channel(global.time_profiler_chan().clone()).unwrap();
+        let (sender, receiver) = profiled_ipc::channel(global.time_profiler_chan().clone()).unwrap();
         let script_to_constellation_chan = global.script_to_constellation_chan();
         debug!("Asking constellation to create new canvas thread.");
         script_to_constellation_chan.send(ScriptMsg::CreateCanvasPaintThread(size, sender)).unwrap();
@@ -790,7 +790,7 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
             CanvasFillRule::Nonzero => FillRule::Nonzero,
             CanvasFillRule::Evenodd => FillRule::Evenodd,
         };
-        let (sender, receiver) = ipc::channel::<bool>(self.global().time_profiler_chan().clone()).unwrap();
+        let (sender, receiver) = profiled_ipc::channel::<bool>(self.global().time_profiler_chan().clone()).unwrap();
         self.send_canvas_2d_msg(Canvas2dMsg::IsPointInPath(x, y, fill_rule, sender));
         receiver.recv().unwrap()
     }
@@ -1107,7 +1107,7 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
         let sh = cmp::max(1, sh.to_u32().unwrap());
         let sw = cmp::max(1, sw.to_u32().unwrap());
 
-        let (sender, receiver) = ipc::channel(self.global().time_profiler_chan().clone()).unwrap();
+        let (sender, receiver) = ipc::bytes_channel().unwrap();
         let dest_rect = Rect::new(Point2D::new(sx.to_i32().unwrap(), sy.to_i32().unwrap()),
                                   Size2D::new(sw as i32, sh as i32));
         let canvas_size = self.canvas.as_ref().map(|c| c.get_size()).unwrap_or(Size2D::zero());
