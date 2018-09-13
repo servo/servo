@@ -30,6 +30,7 @@ class DecisionTask:
         # https://docs.taskcluster.net/docs/reference/workers/docker-worker/docs/features#feature-taskclusterproxy
         self.queue_service = taskcluster.Queue(options={"baseUrl": "http://taskcluster/queue/v1/"})
         self.index_service = taskcluster.Index(options={"baseUrl": "http://taskcluster/index/v1/"})
+
         self.now = datetime.datetime.utcnow()
 
     def from_now_json(self, offset):
