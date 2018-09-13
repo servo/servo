@@ -458,11 +458,7 @@ impl<'a> CanvasData<'a> {
         canvas_size: Size2D<f64>,
         chan: IpcSender<ByteBuf>,
     ) {
-        let mut dest_data = self.read_pixels(dest_rect, canvas_size);
-
-        // bgra -> rgba
-        byte_swap(&mut dest_data);
-        chan.send(dest_data.into()).unwrap();
+        chan.send(self.read_pixels(dest_rect, canvas_size).into()).unwrap();
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-putimagedata
