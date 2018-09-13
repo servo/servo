@@ -437,11 +437,6 @@ impl WindowMethods for ServoCallbacks {
         self.host_callbacks.flush();
     }
 
-    fn supports_clipboard(&self) -> bool {
-        debug!("WindowMethods::supports_clipboard");
-        false
-    }
-
     fn create_event_loop_waker(&self) -> Box<EventLoopWaker> {
         debug!("WindowMethods::create_event_loop_waker");
         self.waker.clone()

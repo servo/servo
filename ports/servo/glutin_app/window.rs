@@ -813,10 +813,6 @@ impl WindowMethods for Window {
     ) -> bool {
         true
     }
-
-    fn supports_clipboard(&self) -> bool {
-        true
-    }
 }
 
 fn winit_phase_to_touch_event_type(phase: TouchPhase) -> TouchEventType {
