@@ -110,7 +110,7 @@ dependencies = [
 [[package]]
 name = "azure"
 version = "0.33.0"
-source = "git+https://github.com/servo/rust-azure#d275ff7010545aa8d569d197ed251712dff17b30"
+source = "git+https://github.com/servo/rust-azure#43e61bda11f26e8462cfa63affac17c43df53b84"
 dependencies = [
  "cmake 0.1.29 (registry+https://github.com/rust-lang/crates.io-index)",
  "euclid 0.19.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -2850,7 +2850,7 @@ dependencies = [
  "lazy_static 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.42 (registry+https://github.com/rust-lang/crates.io-index)",
  "num_cpus 1.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "rand 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "rand 0.3.22 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
