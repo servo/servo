@@ -17,7 +17,7 @@ def main():
         max_run_time_minutes=20,
 
         artifacts=[
-            ("executable.gz", "/repo/something-rust/something-rust.gz", "1 week"),
+            ("/repo/something-rust/executable.gz", "1 week"),
         ],
 
         # https://docs.taskcluster.net/docs/reference/workers/docker-worker/docs/caches

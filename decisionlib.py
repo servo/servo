@@ -60,11 +60,7 @@ class DecisionTask:
                 "DOCKERFILE": dockerfile,
             },
             artifacts=[
-                (
-                    self.DOCKER_IMAGE_ARTIFACT_FILENAME,
-                    "/" + self.DOCKER_IMAGE_ARTIFACT_FILENAME,
-                    self.docker_image_cache_expiry
-                ),
+                ("/" + self.DOCKER_IMAGE_ARTIFACT_FILENAME, self.docker_image_cache_expiry),
             ],
             max_run_time_minutes=20,
             image=self.DOCKER_IMAGE_BUILDER_IMAGE,
@@ -145,12 +141,12 @@ class DecisionTask:
                 ],
                 "env": env,
                 "artifacts": {
-                    "public/" + artifact_name: {
+                    "public/" + os.path.basename(path): {
                         "type": "file",
                         "path": path,
                         "expires": taskcluster.fromNowJSON(expires),
                     }
-                    for artifact_name, path, expires in artifacts or []
+                    for path, expires in artifacts or []
                 },
                 "features": features or {},
             },
