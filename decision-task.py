@@ -1,10 +1,12 @@
 # coding: utf8
 
-from decisionlib import *
+from decisionlib import DecisionTask
 
 
 def main():
-    build_task = create_task_with_in_tree_dockerfile(
+    decision = DecisionTask()
+
+    build_task = decision.create_task_with_in_tree_dockerfile(
         task_name="build task",
         command="./build-task.sh",
         image="servo-x86_64-linux",
@@ -25,7 +27,7 @@ def main():
         },
     )
 
-    create_task(
+    decision.create_task(
         task_name="run task",
         command="./run-task.sh",
         image="buildpack-deps:bionic-scm",

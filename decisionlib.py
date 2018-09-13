@@ -33,127 +33,128 @@ DOCKER_IMAGE_ARTIFACT_FILENAME = "image.tar.lz4"
 REPO = os.path.dirname(__file__)
 
 
-def create_task_with_in_tree_dockerfile(*, image, **kwargs):
-    image_build_task = build_image(image)
-    kwargs.setdefault("dependencies", []).append(image_build_task)
-    image = {
-        "type": "task-image",
-        "taskId": image_build_task,
-        "path": "public/" + DOCKER_IMAGE_ARTIFACT_FILENAME,
-    }
-    return create_task(image=image, **kwargs)
+class DecisionTask:
+    def create_task_with_in_tree_dockerfile(self, *, image, **kwargs):
+        image_build_task = self.build_image(image)
+        kwargs.setdefault("dependencies", []).append(image_build_task)
+        image = {
+            "type": "task-image",
+            "taskId": image_build_task,
+            "path": "public/" + DOCKER_IMAGE_ARTIFACT_FILENAME,
+        }
+        return self.create_task(image=image, **kwargs)
 
 
-def build_image(image_name):
-    with open(os.path.join(REPO, image_name + ".dockerfile"), "rb") as f:
-        dockerfile = f.read()
-    digest = hashlib.sha256(dockerfile).hexdigest()
-    route = "project.servo.servo-taskcluster-experiments.docker-image." + digest
+    def build_image(self, image_name):
+        with open(os.path.join(REPO, image_name + ".dockerfile"), "rb") as f:
+            dockerfile = f.read()
+        digest = hashlib.sha256(dockerfile).hexdigest()
+        route = "project.servo.servo-taskcluster-experiments.docker-image." + digest
 
-    try:
-        result = INDEX.findTask(route)
-        return result["taskId"]
-    except taskcluster.TaskclusterRestFailure as e:
-        if e.status_code != 404:
-            raise
+        try:
+            result = INDEX.findTask(route)
+            return result["taskId"]
+        except taskcluster.TaskclusterRestFailure as e:
+            if e.status_code != 404:
+                raise
 
-    image_build_task = create_task(
-        task_name="docker image build task for image: " + image_name,
-        command="""
-            echo "$DOCKERFILE" | docker build -t taskcluster-built -
-            docker save taskcluster-built | lz4 > /%s
-        """ % DOCKER_IMAGE_ARTIFACT_FILENAME,
-        env={
-            "DOCKERFILE": dockerfile,
-        },
-        artifacts=[
-            (
-                DOCKER_IMAGE_ARTIFACT_FILENAME,
-                "/" + DOCKER_IMAGE_ARTIFACT_FILENAME,
-                DOCKER_IMAGE_CACHE_EXPIRY
-            ),
-        ],
-        max_run_time_minutes=20,
-        image=DOCKER_IMAGE_BUILDER_IMAGE,
-        features={
-            "dind": True,  # docker-in-docker
-        },
-        with_repo=False,
-        routes=[
-            "index." + route,
-        ],
-        extra={
-            "index": {
-                "expires": taskcluster.fromNowJSON(DOCKER_IMAGE_CACHE_EXPIRY),
+        image_build_task = self.create_task(
+            task_name="docker image build task for image: " + image_name,
+            command="""
+                echo "$DOCKERFILE" | docker build -t taskcluster-built -
+                docker save taskcluster-built | lz4 > /%s
+            """ % DOCKER_IMAGE_ARTIFACT_FILENAME,
+            env={
+                "DOCKERFILE": dockerfile,
             },
-        },
-    )
-    return image_build_task
-
-
-def create_task(*, task_name, command, image, max_run_time_minutes,
-                artifacts=None, dependencies=None, env=None, cache=None, scopes=None,
-                routes=None, extra=None, features=None,
-                with_repo=True):
-    env = env or {}
-
-    if with_repo:
-        for k in ["GITHUB_EVENT_CLONE_URL", "GITHUB_EVENT_COMMIT_SHA"]:
-            env.setdefault(k, os.environ[k])
-
-        command = """
-                git clone $GITHUB_EVENT_CLONE_URL repo
-                cd repo
-                git checkout $GITHUB_EVENT_COMMIT_SHA
-            """ + command
-
-    payload = {
-        "taskGroupId": DECISION_TASK_ID,
-        "dependencies": [DECISION_TASK_ID] + (dependencies or []),
-        "schedulerId": "taskcluster-github",
-        "provisionerId": "aws-provisioner-v1",
-        "workerType": "servo-docker-worker",
-
-        "created": taskcluster.fromNowJSON(""),
-        "deadline": taskcluster.fromNowJSON("1 day"),
-        "metadata": {
-            "name": "%s: %s" % (PROJECT_NAME, task_name),
-            "description": "",
-            "owner": os.environ["GITHUB_EVENT_OWNER"],
-            "source": os.environ["GITHUB_EVENT_SOURCE"],
-        },
-        "scopes": scopes or [],
-        "routes": routes or [],
-        "extra": extra or {},
-        "payload": {
-            "cache": cache or {},
-            "maxRunTime": max_run_time_minutes * 60,
-            "image": image,
-            "command": [
-                "/bin/bash",
-                "--login",
-                "-x",
-                "-e",
-                "-c",
-                deindent(command)
+            artifacts=[
+                (
+                    DOCKER_IMAGE_ARTIFACT_FILENAME,
+                    "/" + DOCKER_IMAGE_ARTIFACT_FILENAME,
+                    DOCKER_IMAGE_CACHE_EXPIRY
+                ),
             ],
-            "env": env,
-            "artifacts": {
-                "public/" + artifact_name: {
-                    "type": "file",
-                    "path": path,
-                    "expires": taskcluster.fromNowJSON(expires),
-                }
-                for artifact_name, path, expires in artifacts or []
+            max_run_time_minutes=20,
+            image=DOCKER_IMAGE_BUILDER_IMAGE,
+            features={
+                "dind": True,  # docker-in-docker
             },
-            "features": features or {},
-        },
-    }
+            with_repo=False,
+            routes=[
+                "index." + route,
+            ],
+            extra={
+                "index": {
+                    "expires": taskcluster.fromNowJSON(DOCKER_IMAGE_CACHE_EXPIRY),
+                },
+            },
+        )
+        return image_build_task
 
-    task_id = taskcluster.slugId().decode("utf8")
-    QUEUE.createTask(task_id, payload)
-    print("Scheduled %s: %s" % (task_name, task_id))
-    return task_id
+
+    def create_task(self, *, task_name, command, image, max_run_time_minutes,
+                    artifacts=None, dependencies=None, env=None, cache=None, scopes=None,
+                    routes=None, extra=None, features=None,
+                    with_repo=True):
+        env = env or {}
+
+        if with_repo:
+            for k in ["GITHUB_EVENT_CLONE_URL", "GITHUB_EVENT_COMMIT_SHA"]:
+                env.setdefault(k, os.environ[k])
+
+            command = """
+                    git clone $GITHUB_EVENT_CLONE_URL repo
+                    cd repo
+                    git checkout $GITHUB_EVENT_COMMIT_SHA
+                """ + command
+
+        payload = {
+            "taskGroupId": DECISION_TASK_ID,
+            "dependencies": [DECISION_TASK_ID] + (dependencies or []),
+            "schedulerId": "taskcluster-github",
+            "provisionerId": "aws-provisioner-v1",
+            "workerType": "servo-docker-worker",
+
+            "created": taskcluster.fromNowJSON(""),
+            "deadline": taskcluster.fromNowJSON("1 day"),
+            "metadata": {
+                "name": "%s: %s" % (PROJECT_NAME, task_name),
+                "description": "",
+                "owner": os.environ["GITHUB_EVENT_OWNER"],
+                "source": os.environ["GITHUB_EVENT_SOURCE"],
+            },
+            "scopes": scopes or [],
+            "routes": routes or [],
+            "extra": extra or {},
+            "payload": {
+                "cache": cache or {},
+                "maxRunTime": max_run_time_minutes * 60,
+                "image": image,
+                "command": [
+                    "/bin/bash",
+                    "--login",
+                    "-x",
+                    "-e",
+                    "-c",
+                    deindent(command)
+                ],
+                "env": env,
+                "artifacts": {
+                    "public/" + artifact_name: {
+                        "type": "file",
+                        "path": path,
+                        "expires": taskcluster.fromNowJSON(expires),
+                    }
+                    for artifact_name, path, expires in artifacts or []
+                },
+                "features": features or {},
+            },
+        }
+
+        task_id = taskcluster.slugId().decode("utf8")
+        QUEUE.createTask(task_id, payload)
+        print("Scheduled %s: %s" % (task_name, task_id))
+        return task_id
 
 
 def deindent(string):
