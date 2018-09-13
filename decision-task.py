@@ -74,7 +74,7 @@ def build_image(name):
 
     try:
         result = INDEX.findTask(route)
-        return result["taskId"]
+#        return result["taskId"]
     except taskcluster.TaskclusterRestFailure as e:
         if e.status_code != 404:
             raise
