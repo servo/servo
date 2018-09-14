@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<title>Reference</title>
+<link rel="author" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact">
+<style>
+    .grid {
+        display: grid;
+        float: left;
+        margin: 1em;
+        grid-template-columns: 40px 20px 40px;
+        align-content: center;
+        border: solid silver;
+        font: 20px/1 Ahem;
+        color: transparent;
+    }
+    .grid > div {
+        background: blue;
+    }
+    .b {
+        grid-column: 3;
+    }
+    .c {
+        grid-column: 2;
+    }
+</style>
+
+<p>Test passes if the two shapes below are identical
+
+<div class="grid">
+    <div class="a">X</div>
+    <div class="b">X</div>
+    <div class="c">XXX</div>
+</div>
+
+<div class="grid ref">
+    <div class="a">X</div>
+    <div class="b">X</div>
+    <div class="c">XXX</div>
+</div>

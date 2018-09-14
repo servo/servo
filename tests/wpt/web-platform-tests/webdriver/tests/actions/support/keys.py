@@ -740,7 +740,7 @@ ALL_EVENTS = {
     }
 }
 
-if sys.platform == "mac":
+if sys.platform == "darwin":
     MODIFIER_KEY = Keys.META
 else:
     MODIFIER_KEY = Keys.CONTROL

@@ -188,14 +188,17 @@ dictionary CacheQueryOptions {
   boolean ignoreSearch = false;
   boolean ignoreMethod = false;
   boolean ignoreVary = false;
-  DOMString cacheName;
 };
 
 [SecureContext, Exposed=(Window,Worker)]
 interface CacheStorage {
-  [NewObject] Promise<any> match(RequestInfo request, optional CacheQueryOptions options);
+  [NewObject] Promise<any> match(RequestInfo request, optional MultiCacheQueryOptions options);
   [NewObject] Promise<boolean> has(DOMString cacheName);
   [NewObject] Promise<Cache> open(DOMString cacheName);
   [NewObject] Promise<boolean> delete(DOMString cacheName);
   [NewObject] Promise<sequence<DOMString>> keys();
+};
+
+dictionary MultiCacheQueryOptions : CacheQueryOptions {
+  DOMString cacheName;
 };

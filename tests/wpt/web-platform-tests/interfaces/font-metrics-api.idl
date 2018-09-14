@@ -1,0 +1,39 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into reffy-reports
+// (https://github.com/tidoust/reffy-reports)
+// Source: Font Metrics API Level 1 (https://drafts.css-houdini.org/font-metrics-api/)
+
+partial interface Document {
+    FontMetrics measureElement(Element element);
+    FontMetrics measureText(DOMString text, StylePropertyMapReadOnly styleMap);
+};
+
+interface FontMetrics {
+  readonly attribute double width;
+  readonly attribute sequence<double> advances;
+
+  readonly attribute double boundingBoxLeft;
+  readonly attribute double boundingBoxRight;
+
+  readonly attribute double height;
+  readonly attribute double emHeightAscent;
+  readonly attribute double emHeightDescent;
+  readonly attribute double boundingBoxAscent;
+  readonly attribute double boundingBoxDescent;
+  readonly attribute double fontBoundingBoxAscent;
+  readonly attribute double fontBoundingBoxDescent;
+
+  readonly attribute Baseline dominantBaseline;
+  readonly attribute sequence<Baseline> baselines;
+  readonly attribute sequence<Font> fonts;
+};
+
+interface Baseline {
+  readonly attribute DOMString name;
+  readonly attribute double value;
+};
+
+interface Font {
+  readonly attribute DOMString name;
+  readonly attribute unsigned long glyphsRendered;
+};

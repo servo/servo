@@ -22,8 +22,8 @@ interface BackgroundFetchManager {
 };
 
 dictionary BackgroundFetchUIOptions {
-  sequence<ImageResource> icons = [];
-  DOMString title = "";
+  sequence<ImageResource> icons;
+  DOMString title;
 };
 
 dictionary BackgroundFetchOptions : BackgroundFetchUIOptions {

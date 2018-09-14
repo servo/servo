@@ -1,5 +1,6 @@
 // META: title=Web Locks API: Lock held until callback result resolves
 // META: script=resources/helpers.js
+// META: global=window,dedicatedworker,sharedworker,serviceworker
 
 'use strict';
 

@@ -311,13 +311,6 @@ dictionary CSSMatrixComponentOptions {
     boolean is2D;
 };
 
-[Exposed=(Window, Worker, PaintWorklet, LayoutWorklet),
- Constructor(CSSNumericValue x, CSSNumericValue y)]
-interface CSSPositionValue : CSSStyleValue {
-    attribute CSSNumericValue x;
-    attribute CSSNumericValue y;
-};
-
 [Exposed=(Window, Worker, PaintWorklet, LayoutWorklet)]
 interface CSSImageValue : CSSStyleValue {
 };

@@ -184,17 +184,29 @@ function requestViaFetch(url) {
   return fetch(url);
 }
 
+function dedicatedWorkerUrlThatFetches(url) {
+  return `data:text/javascript,
+    fetch('${url}')
+      .then(() => postMessage(''),
+            () => postMessage(''));`;
+}
+
+function workerUrlThatImports(url) {
+  return `data:text/javascript,import '${url}';`;
+}
+
 /**
  * Creates a new Worker, binds message and error events wrapping them into.
  *     {@code worker.eventPromise} and posts an empty string message to start
  *     the worker.
  * @param {string} url The endpoint URL for the worker script.
+ * @param {object} options The options for Worker constructor.
  * @return {Promise} The promise for success/error events.
  */
-function requestViaWorker(url) {
+function requestViaDedicatedWorker(url, options) {
   var worker;
   try {
-    worker = new Worker(url);
+    worker = new Worker(url, options);
   } catch (e) {
     return Promise.reject(e);
   }
@@ -202,6 +214,29 @@ function requestViaWorker(url) {
   worker.postMessage('');
 
   return worker.eventPromise;
+}
+
+// Returns a reference to a worklet object corresponding to a given type.
+function get_worklet(type) {
+  if (type == 'animation')
+    return CSS.animationWorklet;
+  if (type == 'layout')
+    return CSS.layoutWorklet;
+  if (type == 'paint')
+    return CSS.paintWorklet;
+  if (type == 'audio')
+    return new OfflineAudioContext(2,44100*40,44100).audioWorklet;
+
+  assert_unreached('unknown worklet type is passed.');
+  return undefined;
+}
+
+function requestViaWorklet(type, url) {
+  try {
+    return get_worklet(type).addModule(url);
+  } catch (e) {
+    return Promise.reject(e);
+  }
 }
 
 /**

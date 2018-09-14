@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+'use strict';
+
+const srcs = [
+  "/images/green.svg",
+  "/images/green.png",
+];
+
+// Set new attribute, and wait til the media element is repainted.
+function updateAttribute(e, attribute, value) {
+  return new Promise(resolve => {
+    requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+    e.setAttribute(attribute, value);
+  });
+}
+
+for (var src of srcs) {
+  promise_test(async() => {
+    var img = document.createElement('IMG');
+    document.body.appendChild(img);
+    img.src = src;
+    await new Promise(resolve =>
+      img.addEventListener('load', () => resolve(), {once: true}));
+    await updateAttribute(img, 'intrinsicSize', '400 x 500');
+    assert_equals(img.width, 400, 'width');
+    assert_equals(img.height, 500, 'height');
+    assert_equals(img.naturalWidth, 400, 'naturalWidth');
+    assert_equals(img.naturalHeight, 500, 'naturalHeight');
+
+    await updateAttribute(img, 'width', '800');
+    assert_equals(img.width, 800, 'width');
+    assert_equals(img.height, 1000, 'height');
+    assert_equals(img.naturalWidth, 400, 'naturalWidth');
+    assert_equals(img.naturalHeight, 500, 'naturalHeight');
+
+    await updateAttribute(img, 'style', 'height:800px;');
+    assert_equals(img.width, 800, 'width');
+    assert_equals(img.height, 800, 'height');
+    assert_equals(img.naturalWidth, 400, 'naturalWidth');
+    assert_equals(img.naturalHeight, 500, 'naturalHeight');
+
+    await updateAttribute(img, 'width', '');
+    assert_equals(img.width, 640, 'width');
+    assert_equals(img.height, 800, 'height');
+    assert_equals(img.naturalWidth, 400, 'naturalWidth');
+    assert_equals(img.naturalHeight, 500, 'naturalHeight');
+
+    await updateAttribute(img, 'style', 'height:800px; writing-mode: vertical-rl;');
+    assert_equals(img.width, 640, 'width');
+    assert_equals(img.height, 800, 'height');
+    assert_equals(img.naturalWidth, 400, 'naturalWidth');
+    assert_equals(img.naturalHeight, 500, 'naturalHeight');
+
+    await updateAttribute(img, 'style', 'height:800px; writing-mode: horizontal-tb;');
+    assert_equals(img.width, 640, 'width');
+    assert_equals(img.height, 800, 'height');
+    assert_equals(img.naturalWidth, 400, 'naturalWidth');
+    assert_equals(img.naturalHeight, 500, 'naturalHeight');
+  }, 'Test intrinsicsize for html image element, src=' + src);
+}
+</script>
+</body>

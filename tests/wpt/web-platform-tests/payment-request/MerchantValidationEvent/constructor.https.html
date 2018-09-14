@@ -6,7 +6,9 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script>
-const applePay = Object.freeze({ supportedMethods: "https://apple.com/apple-pay"});
+const applePay = Object.freeze({
+  supportedMethods: "https://apple.com/apple-pay",
+});
 const basicCard = Object.freeze({ supportedMethods: "basic-card" });
 const defaultMethods = Object.freeze([basicCard, applePay]);
 const defaultDetails = Object.freeze({
@@ -56,21 +58,69 @@ test(() => {
 test(() => {
   const validationURL = "http://\u005B"; // invalid URL
   assert_throws(new TypeError(), () => {
-    new MerchantValidationEvent("test", { validationURL })
+    new MerchantValidationEvent("test", { validationURL });
   });
 }, "Must throw TypeError if initialized with an invalid URL.");
 
 test(() => {
   const validationURL = "";
-  const relativePaths = [
-    "",
-    ".",
-    "/test",
-  ]
-  for(const path of relativePaths ) {
+  const relativePaths = ["", ".", "/test"];
+  for (const path of relativePaths) {
     const event = new MerchantValidationEvent("test", { validationURL: path });
     const expected = new URL(path, document.location.href).href;
     assert_equals(event.validationURL, expected);
   }
 }, "Relative validationURLs use the document as the base.");
+
+test(() => {
+  const methodName = "https://pass.com";
+  const event = new MerchantValidationEvent("test", { methodName });
+  assert_idl_attribute(event, "methodName");
+  assert_equals(event.methodName, "https://pass.com");
+}, "Must have a methodName IDL attribute, which is initialized with to the methodName dictionary value.");
+
+test(() => {
+  const event = new MerchantValidationEvent("test", {});
+  assert_equals(event.methodName, "");
+}, "When no methodName is passed, methodName attribute defaults to the empty string");
+
+test(() => {
+  const validPMIs = [
+    "https://example.com/pay",
+    "https://example.com/pay?version=1",
+    "https://example.com/pay/version/1",
+    "basic-card",
+    "https://apple.com/apple-pay",
+    // special case for as default value
+    "",
+  ];
+  for (const methodName of validPMIs) {
+    const event = new MerchantValidationEvent("test", { methodName });
+    assert_equals(event.methodName, methodName);
+  }
+}, "MerchantValidationEvent can be constructed with valid PMIs");
+
+test(() => {
+  const invalidPMIs = [
+    // ❌ Contains Unicode character outside the valid ranges.
+    "basic-💳",
+    // ❌ Contains uppercase characters.
+    "Basic-Card",
+    // ❌ Contains Unicode characters outside the valid ranges.
+    "¡basic-*-card!",
+    // ❌ Uses http://, a username, and a password.
+    "http://username:password@example.com/pay",
+    // ❌ Uses unknown URI scheme.
+    "unknown://example.com/pay",
+  ];
+  for (const methodName of invalidPMIs) {
+    assert_throws(
+      new RangeError(),
+      () => {
+        const event = new MerchantValidationEvent("test", { methodName });
+      },
+      `expected to throw when constructed with invalid PMI: '${methodName}'`
+    );
+  }
+}, "MerchantValidationEvent can't be constructed with invalid PMIs");
 </script>
