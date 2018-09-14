@@ -132,12 +132,13 @@ impl<'a> CanvasPaintThread <'a> {
                 self.canvas(canvas_id).is_point_in_path(x, y, fill_rule, chan)
             },
             Canvas2dMsg::DrawImage(
-                imagedata,
+                mut imagedata,
                 image_size,
                 dest_rect,
                 source_rect,
                 smoothing_enabled,
             ) => {
+                byte_swap(&mut imagedata);
                 self.canvas(canvas_id).draw_image(
                     imagedata.into(),
                     image_size,
@@ -169,8 +170,6 @@ impl<'a> CanvasPaintThread <'a> {
                 let mut image_data = self.canvas(canvas_id).read_pixels(
                             source_rect.to_i32(),
                             image_size);
-                // TODO: avoid double byte_swap.
-                byte_swap(&mut image_data);
                 self.canvas(other_canvas_id).draw_image(
                     image_data.into(),
                     source_rect.size,
