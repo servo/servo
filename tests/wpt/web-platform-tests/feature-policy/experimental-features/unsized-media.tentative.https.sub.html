@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<iframe></iframe>
+<script>
+'use strict';
+const default_width = 300;
+const default_height = 150;
+const srcs = [
+  "/feature-policy/experimental-features/resources/image.jpg",
+  "/feature-policy/experimental-features/resources/image.png",
+  "/feature-policy/experimental-features/resources/image.svg"
+];
+const test_cases = [
+// Test when no size is specified, img/video is laid out by the default size.
+{expected_width: default_width, expected_height: default_height},
+// Test when only one dimension is specified, img/video uses the default length for
+// the other dimension.
+{attribute: "width", value: 500, expected_width: 500, expected_height: 500 / 2},
+{attribute: "height", value: 800, expected_width: 800 * 2, expected_height: 800},
+// Test when only one dimension is specified by CSS style, img/video uses the
+// default length for the other dimension.
+{attribute: "style", value: "width:500px;", expected_width: 500, expected_height: 500 / 2},
+{attribute: "style", value: "height:800px;", expected_width: 800 * 2, expected_height: 800},
+// Test when the size of the image is specified, img/video is laid out by the
+// specified size.
+{attribute: "width", value: 500, attribute1: "height", value1: 800, expected_width: 500, expected_height:800},
+{attribute: "style", value: "width:500px;height:800px;", expected_width: 500, expected_height:800}
+];
+
+for (var test of test_cases) {
+  for (var src of srcs) {
+    async_test(t=> {
+      var img = document.createElement('IMG');
+      var expected_width = test.expected_width;
+      var expected_height = test.expected_height;
+      img.setAttribute("src", src);
+      if (typeof test.attribute !== "undefined") {
+        img.setAttribute(test.attribute, test.value);
+      }
+      if (typeof test.attribute1 !== "undefined") {
+        img.setAttribute(test.attribute1, test.value1);
+      }
+      img.addEventListener('load', t.step_func(function() {
+        assert_equals(img.width, expected_width, 'width:');
+        assert_equals(img.height, expected_height, 'height:');
+        t.done();
+      }));
+      document.body.appendChild(img);
+    }, 'Test image with attribute ' + test.attribute + '=' + test.value +
+       ' and attribute ' + test.attribute1 + '=' + test.value1 + ' on src ' + src);
+  }
+  async_test(t=> {
+    var video = document.createElement('video');
+    video.addEventListener('canplaythrough', t.step_func(function() {
+      assert_equals(video.getBoundingClientRect().width, expected_width, 'width:');
+      assert_equals(video.getBoundingClientRect().height, expected_height, 'height:');
+      t.done();
+    }));
+    var expected_width = test.expected_width;
+    var expected_height = test.expected_height;
+    video.setAttribute("src", "/feature-policy/experimental-features/resources/video.ogv");
+    if (typeof test.attribute !== "undefined") {
+      video.setAttribute(test.attribute, test.value);
+    }
+    if (typeof test.attribute1 !== "undefined") {
+      video.setAttribute(test.attribute1, test.value1);
+    }
+    document.body.appendChild(video);
+  }, 'Test video with attribute ' + test.attribute + '=' + test.value +
+     ' and attribute ' + test.attribute1 + '=' + test.value1);
+}
+
+// Test unsized-image works in local and remote iframes.
+var iframe = document.querySelector('iframe');
+var iframe_srcs = [
+  "/feature-policy/experimental-features/resources/feature-policy-image.html",
+  "https://{{domains[www]}}:{{ports[https][0]}}/feature-policy/experimental-features/resources/feature-policy-image.html"];
+for (var src of iframe_srcs) {
+  promise_test(function() {
+    iframe.src = src;
+    return new Promise(function(resolve, reject) {
+      window.addEventListener('message', function(e) {
+        resolve(e.data);
+      });
+    }).then(function(data) {
+      assert_equals(data.width, default_width, 'width');
+      assert_equals(data.height, default_height, 'height');
+    });
+  }, 'Test image size is correctly rendered in iframe of src ' + src);
+}
+</script>
+</body>

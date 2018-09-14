@@ -63,6 +63,8 @@ class TestSub(TestUsingServer):
         expected = "localhost localhost %i" % self.server.port
         self.assertEqual(resp.read().rstrip(), expected)
 
+    @pytest.mark.xfail(sys.platform == "win32",
+                       reason="https://github.com/web-platform-tests/wpt/issues/12949")
     @pytest.mark.xfail(sys.version_info >= (3,), reason="wptserve only works on Py2")
     def test_sub_file_hash(self):
         resp = self.request("/sub_file_hash.sub.txt")
@@ -86,6 +88,8 @@ JwGFonfXwg=="""
         expected = "PASS"
         self.assertEqual(resp.read().rstrip(), expected)
 
+    @pytest.mark.xfail(sys.platform == "win32",
+                       reason="https://github.com/web-platform-tests/wpt/issues/12949")
     @pytest.mark.xfail(sys.version_info >= (3,), reason="wptserve only works on Py2")
     def test_sub_location(self):
         resp = self.request("/sub_location.sub.txt?query_string")

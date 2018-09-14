@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <script src='/resources/testharness.js'></script>
+    <script src='/resources/testharnessreport.js'></script>
+  </head>
+  <body>
+    <script>
+var check_report_format = (reports, observer) => {
+  let report = reports[0];
+  assert_equals(report.type, "feature-policy");
+  assert_equals(report.url, document.location.href);
+  assert_equals(report.body.feature, "vr");
+  assert_equals(report.body.sourceFile, document.location.href);
+  assert_equals(typeof report.body.message, "string");
+  assert_equals(typeof report.body.lineNumber, "number");
+  assert_equals(typeof report.body.columnNumber, "number");
+};
+
+promise_test(async (t) => {
+  const report = new Promise(resolve => {
+    new ReportingObserver((reports, observer) => resolve([reports, observer]),
+                          {types: ['feature-policy']}).observe();
+  });
+  await promise_rejects(t, 'SecurityError', navigator.xr.requestDevice(),
+                        "XR device access should not be allowed in this document.");
+  const [reports, observer] = await report;
+  check_report_format(reports, observer);
+}, "XR Report Format");
+    </script>
+  </body>
+</html>
