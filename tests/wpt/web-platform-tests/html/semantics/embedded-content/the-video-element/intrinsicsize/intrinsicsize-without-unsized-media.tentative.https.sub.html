@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+'use strict';
+
+promise_test(async() => {
+  var video = document.createElement('video');
+  document.body.appendChild(video);
+  video.src = "/images/pattern.ogv";
+  await new Promise(resolve =>
+    video.addEventListener('canplaythrough', () => resolve(), {once: true}));
+  video.intrinsicSize = '400 x 500';
+  assert_equals(video.getBoundingClientRect().width, 400, 'width');
+  assert_equals(video.getBoundingClientRect().height, 500, 'height');
+  assert_equals(video.videoWidth, 400, 'naturalWidth');
+  assert_equals(video.videoHeight, 500, 'naturalHeight');
+
+  video.width = '800';
+  assert_equals(video.getBoundingClientRect().width, 800, 'width');
+  assert_equals(video.getBoundingClientRect().height, 1000, 'height');
+  assert_equals(video.videoWidth, 400, 'naturalWidth');
+  assert_equals(video.videoHeight, 500, 'naturalHeight');
+
+  video.style = 'height:800px;';
+  assert_equals(video.getBoundingClientRect().width, 800, 'width');
+  assert_equals(video.getBoundingClientRect().height, 800, 'height');
+  assert_equals(video.videoWidth, 400, 'naturalWidth');
+  assert_equals(video.videoHeight, 500, 'naturalHeight');
+
+  video.removeAttribute('width');
+  assert_equals(video.getBoundingClientRect().width, 640, 'width');
+  assert_equals(video.getBoundingClientRect().height, 800, 'height');
+  assert_equals(video.videoWidth, 400, 'naturalWidth');
+  assert_equals(video.videoHeight, 500, 'naturalHeight');
+}, 'Test intrinsicsize for html video element');
+</script>
+</body>

@@ -1,5 +1,6 @@
 // META: title=Web Locks API: navigator.locks.request method
 // META: script=resources/helpers.js
+// META: global=window,dedicatedworker,sharedworker,serviceworker
 
 'use strict';
 

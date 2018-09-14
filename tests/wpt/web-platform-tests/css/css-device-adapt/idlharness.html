@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<title>css-device-adapt IDL tests</title>
+<link rel="help" href="https://drafts.csswg.org/css-device-adapt/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/WebIDLParser.js"></script>
+<script src="/resources/idlharness.js"></script>
+
+<style>
+  p { color: black; }
+</style>
+<style>
+ @viewport { width: device-width; }
+</style>
+
+<script>
+  'use strict';
+
+  idl_test(
+    ['css-device-adapt'],
+    ['cssom'],
+    idl_array => {
+      idl_array.add_objects({
+        CSSRule: ['cssRule'],
+        CSSViewportRule: ['cssViewportRule'],
+      });
+      self.cssRule = document.styleSheets[0].cssRules[0];
+      self.cssViewportRule = document.styleSheets[1].cssRules[0];
+    }
+  );
+</script>

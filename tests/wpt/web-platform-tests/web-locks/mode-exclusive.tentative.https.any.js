@@ -1,4 +1,5 @@
 // META: title=Web Locks API: Exclusive Mode
+// META: global=window,dedicatedworker,sharedworker,serviceworker
 
 'use strict';
 

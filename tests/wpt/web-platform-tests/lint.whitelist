@@ -650,6 +650,8 @@ CSS-COLLIDING-REF-NAME: css/css-flexbox/reference/percentage-size-subitems-001-r
 CSS-COLLIDING-REF-NAME: css/css-grid/grid-items/percentage-size-subitems-001-ref.html
 CSS-COLLIDING-REF-NAME: css/css-contain/reference/contain-size-button-001-ref.html
 CSS-COLLIDING-REF-NAME: css/vendor-imports/mozilla/mozilla-central-reftests/contain/contain-size-button-001-ref.html
+CSS-COLLIDING-REF-NAME: css/css-contain/reference/contain-size-grid-001-ref.html
+CSS-COLLIDING-REF-NAME: css/vendor-imports/mozilla/mozilla-central-reftests/contain/contain-size-grid-001-ref.html
 CSS-COLLIDING-SUPPORT-NAME: css/css-backgrounds/support/red.png
 CSS-COLLIDING-SUPPORT-NAME: css/compositing/mix-blend-mode/support/red.png
 CSS-COLLIDING-SUPPORT-NAME: css/compositing/background-blending/support/red.png

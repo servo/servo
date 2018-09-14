@@ -92,6 +92,8 @@ def test_help():
 
 
 @pytest.mark.slow
+@pytest.mark.xfail(sys.platform == "win32",
+                   reason="https://github.com/web-platform-tests/wpt/issues/12935")
 def test_list_tests(manifest_dir):
     """The `--list-tests` option should not produce an error under normal
     conditions."""
@@ -103,6 +105,8 @@ def test_list_tests(manifest_dir):
 
 
 @pytest.mark.slow
+@pytest.mark.xfail(sys.platform == "win32",
+                   reason="https://github.com/web-platform-tests/wpt/issues/12935")
 def test_list_tests_missing_manifest(manifest_dir):
     """The `--list-tests` option should not produce an error in the absence of
     a test manifest file."""
@@ -126,6 +130,8 @@ def test_list_tests_missing_manifest(manifest_dir):
 
 
 @pytest.mark.slow
+@pytest.mark.xfail(sys.platform == "win32",
+                   reason="https://github.com/web-platform-tests/wpt/issues/12935")
 def test_list_tests_invalid_manifest(manifest_dir):
     """The `--list-tests` option should not produce an error in the presence of
     a malformed test manifest file."""
@@ -366,6 +372,8 @@ def test_files_changed_ignore_rules():
 @pytest.mark.slow  # this updates the manifest
 @pytest.mark.xfail(sys.platform == "win32",
                    reason="Tests currently don't work on Windows for path reasons")
+@pytest.mark.skipif(sys.platform == "win32",
+                    reason="https://github.com/web-platform-tests/wpt/issues/12934")
 def test_tests_affected(capsys, manifest_dir):
     # This doesn't really work properly for random commits because we test the files in
     # the current working directory for references to the changed files, not the ones at
@@ -382,6 +390,8 @@ def test_tests_affected(capsys, manifest_dir):
 @pytest.mark.slow  # this updates the manifest
 @pytest.mark.xfail(sys.platform == "win32",
                    reason="Tests currently don't work on Windows for path reasons")
+@pytest.mark.skipif(sys.platform == "win32",
+                    reason="https://github.com/web-platform-tests/wpt/issues/12934")
 def test_tests_affected_null(capsys, manifest_dir):
     # This doesn't really work properly for random commits because we test the files in
     # the current working directory for references to the changed files, not the ones at

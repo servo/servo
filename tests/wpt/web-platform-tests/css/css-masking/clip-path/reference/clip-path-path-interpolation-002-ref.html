@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>CSS Masking: Reference for clip-path's path evenodd interpolation</title>
+  <style type="text/css">
+    #rect {
+      width: 100px;
+      height: 100px;
+      background-color: green;
+      clip-path: url("#clip");
+    }
+  </style>
+</head>
+<body>
+  <div id="rect"></div>
+  <svg height="0" width="0">
+    <defs>
+      <clipPath id="clip">
+        <path clip-rule="evenodd" d="M35,35 H90 V90 H35Z M25,25 H70 V70 H25Z"/>
+      </clipPath>
+    </defs>
+  </svg>
+</body>
+</html>

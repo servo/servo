@@ -73,8 +73,8 @@ backgroundFetchTest(async (test, backgroundFetch) => {
   assert_equals(registration.uploadTotal, 0);
   assert_equals(registration.uploaded, 0);
   assert_equals(registration.downloadTotal, 0);
-  assert_equals(registration.state, "pending");
-  assert_equals(registration.failureReason, "");
+  assert_equals(registration.result, '');
+  assert_equals(registration.failureReason, '');
   // Skip `downloaded`, as the transfer may have started already.
 
   const {type, eventRegistration, results} = await getMessageFromServiceWorker();
@@ -82,8 +82,8 @@ backgroundFetchTest(async (test, backgroundFetch) => {
   assert_equals(results.length, 1);
 
   assert_equals(eventRegistration.id, registration.id);
-  assert_equals(eventRegistration.state, "success");
-  assert_equals(eventRegistration.failureReason, "");
+  assert_equals(eventRegistration.result, 'success');
+  assert_equals(eventRegistration.failureReason, '');
 
   assert_true(results[0].url.includes('resources/feature-name.txt'));
   assert_equals(results[0].status, 200);
@@ -97,7 +97,7 @@ backgroundFetchTest(async (test, backgroundFetch) => {
   // Very large download total that will definitely exceed the quota.
   const options = {downloadTotal: Number.MAX_SAFE_INTEGER};
   await promise_rejects(
-      test, "QUOTA_EXCEEDED_ERR",
+      test, 'QUOTA_EXCEEDED_ERR',
       backgroundFetch.fetch(registrationId, 'resources/feature-name.txt', options),
       'This fetch should have thrown a quota exceeded error');
 
@@ -112,8 +112,8 @@ backgroundFetchTest(async (test, backgroundFetch) => {
   assert_equals(results.length, 2);
 
   assert_equals(eventRegistration.id, registration.id);
-  assert_equals(eventRegistration.state, "success");
-  assert_equals(eventRegistration.failureReason, "");
+  assert_equals(eventRegistration.result, 'success');
+  assert_equals(eventRegistration.failureReason, '');
 
   for (const result of results) {
     assert_true(result.url.includes('resources/feature-name.txt'));
@@ -122,3 +122,26 @@ backgroundFetchTest(async (test, backgroundFetch) => {
   }
 
 }, 'Fetches can have requests with duplicate URLs');
+
+backgroundFetchTest(async (test, backgroundFetch) => {
+  const request =
+      new Request('resources/feature-name.txt',
+                  {method: 'POST', body: 'TestBody'});
+
+  const registration = await backgroundFetch.fetch('my-id', request);
+
+  const {type, eventRegistration, results} = await getMessageFromServiceWorker();
+  assert_equals('backgroundfetchsuccess', type);
+  assert_equals(results.length, 1);
+
+  assert_equals(eventRegistration.id, registration.id);
+  assert_equals(eventRegistration.state, 'success');
+  assert_equals(eventRegistration.failureReason, '');
+
+  for (const result of results) {
+    assert_true(result.url.includes('resources/feature-name.txt'));
+    assert_equals(result.status, 200);
+    assert_equals(result.text, 'Background Fetch');
+  }
+
+}, 'Fetches can have requests with a body');

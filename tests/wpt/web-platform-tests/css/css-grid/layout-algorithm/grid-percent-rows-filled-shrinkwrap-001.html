@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Grid Layout Test: Filled Percentage Row, Shrinkwrap Height</title>
+<link rel="help" href="https://www.w3.org/TR/css-grid-1/#algo-overview">
+<link rel="match" href="references/grid-percent-rows-filled-shrinkwrap-001-ref.html">
+<link rel="author" title="Manuel Rego Casasnovas" href="mailto:rego@igalia.com">
+<link rel="author" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact">
+<style>
+    .grid {
+        display: grid;
+        float: left;
+        margin: 1em;
+        grid-template-rows: auto 20% auto;
+        grid-auto-flow: column;
+        border: solid silver;
+        font: 20px/1 Ahem;
+        color: transparent;
+    }
+    .grid > div {
+        background: blue;
+    }
+    .b {
+        grid-row: 3;
+    }
+    .c {
+        grid-row: 2;
+    }
+
+    .ref {
+        grid-template-rows: 40px 20px 40px;
+    }
+</style>
+
+<p>Test passes if the two shapes below are identical
+
+<div class="grid">
+    <div class="a">X</div>
+    <div class="b">X</div>
+    <div class="c">X<br>X<br>X</div>
+</div>
+
+<div class="grid ref">
+    <div class="a">X</div>
+    <div class="b">X</div>
+    <div class="c">X</div>
+</div>
