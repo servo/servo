@@ -65,7 +65,14 @@ function MixedContentTestCase(scenario, description, sanityChecker) {
     "iframe-tag": requestViaIframe,
     "img-tag":  requestViaImage,
     "script-tag": requestViaScript,
-    "worker-request": requestViaWorker,
+    "worker-request":
+        url => requestViaDedicatedWorker(url),
+    "module-worker-top-level":
+        url => requestViaDedicatedWorker(url, {type: "module"}),
+    "module-data-worker-import":
+        url => requestViaDedicatedWorker(workerUrlThatImports(url), {type: "module"}),
+    "classic-data-worker-fetch":
+        url => requestViaDedicatedWorker(dedicatedWorkerUrlThatFetches(url), {}),
     "xhr-request": requestViaXhr,
     "audio-tag": requestViaAudio,
     "video-tag": requestViaVideo,
@@ -75,8 +82,6 @@ function MixedContentTestCase(scenario, description, sanityChecker) {
     "link-prefetch-tag": requestViaLinkPrefetch,
     "websocket-request": requestViaWebSocket
   };
-
-  sanityChecker.checkScenario(scenario, resourceMap);
 
   // Mapping all expected MIME types to the scenario.
   var contentType = {
@@ -88,7 +93,12 @@ function MixedContentTestCase(scenario, description, sanityChecker) {
     "iframe-tag": "text/html",
     "img-tag":  "image/png",
     "script-tag": "text/javascript",
+
     "worker-request": "application/javascript",
+    "module-worker-top-level": "application/javascript",
+    "module-data-worker-import": "application/javascript",
+    "classic-data-worker-fetch": "application/javascript",
+
     "xhr-request": "application/json",
     "audio-tag": "audio/wav",
     "video-tag": "video/ogg",
@@ -98,6 +108,20 @@ function MixedContentTestCase(scenario, description, sanityChecker) {
     "link-prefetch-tag": "text/html",
     "websocket-request": "application/json"
   };
+
+  for (const workletType of ['animation', 'audio', 'layout', 'paint']) {
+    resourceMap[`worklet-${workletType}-top-level`] =
+      url => requestViaWorklet(workletType, url);
+    contentType[`worklet-${workletType}-top-level`] =
+      "application/javascript";
+
+    resourceMap[`worklet-${workletType}-data-import`] =
+      url => requestViaWorklet(workletType, workerUrlThatImports(url));
+    contentType[`worklet-${workletType}-data-import`] =
+      "application/javascript";
+  }
+
+  sanityChecker.checkScenario(scenario, resourceMap);
 
   var mixed_content_test = async_test(description);
 

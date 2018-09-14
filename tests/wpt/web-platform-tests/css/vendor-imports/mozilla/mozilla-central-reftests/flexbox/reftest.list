@@ -261,6 +261,7 @@
 == flexbox-writing-mode-013.html flexbox-writing-mode-013-ref.html
 == flexbox-writing-mode-014.html flexbox-writing-mode-014-ref.html
 == flexbox-writing-mode-015.html flexbox-writing-mode-015-ref.html
+== flexbox-writing-mode-016.html flexbox-writing-mode-016-ref.html
 
 # Single-line size clamping
 == flexbox-single-line-clamp-1.html flexbox-single-line-clamp-1-ref.html

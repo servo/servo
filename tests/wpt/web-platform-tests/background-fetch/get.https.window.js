@@ -41,8 +41,8 @@ backgroundFetchTest(async (test, backgroundFetch) => {
   assert_equals(registration.uploadTotal, 0);
   assert_equals(registration.uploaded, 0);
   assert_equals(registration.downloadTotal, 1234);
-  assert_equals(registration.state, "pending");
-  assert_equals(registration.failureReason, "");
+  assert_equals(registration.result, '');
+  assert_equals(registration.failureReason, '');
   // Skip `downloaded`, as the transfer may have started already.
 
   const secondRegistration = await backgroundFetch.get(registrationId);
