@@ -374,32 +374,3 @@ def WebIDLTest(parser, harness):
         threw = True
     harness.ok(threw,
                "Should not allow unknown extended attributes on interfaces")
-
-    parser = parser.reset()
-    threw = False
-    try:
-        parser.parse("""
-            interface B {};
-            [ArrayClass]
-            interface A : B {
-            };
-        """)
-        results = parser.finish()
-    except:
-        threw = True
-    harness.ok(threw,
-               "Should not allow [ArrayClass] on interfaces with parents")
-
-    parser = parser.reset()
-    threw = False
-    try:
-        parser.parse("""
-            [ArrayClass]
-            interface A {
-            };
-        """)
-        results = parser.finish()
-    except:
-        threw = True
-    harness.ok(not threw,
-               "Should allow [ArrayClass] on interfaces without parents")
