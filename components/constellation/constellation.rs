@@ -2064,12 +2064,13 @@ where
                 return None;
             },
         };
-        let (window_size, pipeline_id, parent_pipeline_id, is_visible) =
+        let (window_size, pipeline_id, parent_pipeline_id, is_private, is_visible) =
             match self.browsing_contexts.get(&browsing_context_id) {
                 Some(ctx) => (
                     ctx.size,
                     ctx.pipeline_id,
                     ctx.parent_pipeline_id,
+                    ctx.is_private,
                     ctx.is_visible,
                 ),
                 None => {
@@ -2141,9 +2142,6 @@ where
 
                 let new_pipeline_id = PipelineId::new();
                 let sandbox = IFrameSandboxState::IFrameUnsandboxed;
-                // TODO(mandreyel): why is this false? Should we not inherit the
-                // privacy of the (existing) browsing context?
-                let is_private = false;
                 self.new_pipeline(
                     new_pipeline_id,
                     browsing_context_id,
