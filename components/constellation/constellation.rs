@@ -289,8 +289,10 @@ pub struct Constellation<Message, LTF, STF> {
     /// we store a `SessionHistoryChange` object for the navigation in progress.
     pending_changes: Vec<SessionHistoryChange>,
 
-    /// The currently focused pipeline for key events.
-    focus_pipeline_id: Option<PipelineId>,
+    /// The currently focused browsing context for key events. The focused
+    /// pipeline is the current entry of the focused browsing
+    /// context.
+    focused_browsing_context_id: Option<BrowsingContextId>,
 
     /// Pipeline IDs are namespaced in order to avoid name collisions,
     /// and the namespaces are allocated by the constellation.
@@ -606,7 +608,7 @@ where
                     // We initialize the namespace at 2, since we reserved
                     // namespace 0 for the embedder, and 0 for the constellation
                     next_pipeline_namespace_id: PipelineNamespaceId(2),
-                    focus_pipeline_id: None,
+                    focused_browsing_context_id: None,
                     time_profiler_chan: state.time_profiler_chan,
                     mem_profiler_chan: state.mem_profiler_chan,
                     window_size: WindowSizeData {
@@ -961,14 +963,12 @@ where
                 self.handle_get_pipeline(browsing_context_id, resp_chan);
             },
             FromCompositorMsg::GetFocusTopLevelBrowsingContext(resp_chan) => {
-                let focus_browsing_context = self
-                    .focus_pipeline_id
-                    .and_then(|pipeline_id| self.pipelines.get(&pipeline_id))
-                    .map(|pipeline| pipeline.top_level_browsing_context_id)
-                    .filter(|&top_level_browsing_context_id| {
-                        let browsing_context_id =
-                            BrowsingContextId::from(top_level_browsing_context_id);
-                        self.browsing_contexts.contains_key(&browsing_context_id)
+                let focus_browsing_context = self.focused_browsing_context_id
+                    .and_then(|ctx_id| self.browsing_contexts.get(&ctx_id))
+                    .map(|ctx| ctx.top_level_id)
+                    .filter(|&top_level_ctx_id| {
+                        let ctx_id = BrowsingContextId::from(top_level_ctx_id);
+                        self.browsing_contexts.contains_key(&ctx_id)
                     });
                 let _ = resp_chan.send(focus_browsing_context);
             },
@@ -1644,9 +1644,10 @@ where
         let is_private = false;
         let is_visible = true;
 
-        if self.focus_pipeline_id.is_none() {
-            self.focus_pipeline_id = Some(pipeline_id);
+        if self.focused_browsing_context_id.is_none() {
+            self.focused_browsing_context_id = Some(browsing_context_id);
         }
+
         self.joint_session_histories
             .insert(top_level_browsing_context_id, JointSessionHistory::new());
         self.new_pipeline(
@@ -2624,11 +2625,21 @@ where
     }
 
     fn handle_key_msg(&mut self, ch: Option<char>, key: Key, state: KeyState, mods: KeyModifiers) {
-        // Send to the explicitly focused pipeline. If it doesn't exist, fall back to sending to
-        // the compositor.
-        match self.focus_pipeline_id {
-            Some(pipeline_id) => {
+        // Send to the focused browsing contexts' current pipeline.  If it
+        // doesn't exist, fall back to sending to the compositor.
+        match self.focused_browsing_context_id {
+            Some(browsing_context_id) => {
                 let event = CompositorEvent::KeyEvent(ch, key, state, mods);
+                let pipeline_id = {
+                    let browsing_context = match self.browsing_contexts.get(&browsing_context_id) {
+                        Some(ctx) => ctx,
+                        None => return warn!(
+                            "Got key event for nonexistent browsing context {}.",
+                            browsing_context_id,
+                        ),
+                    };
+                    browsing_context.pipeline_id
+                };
                 let msg = ConstellationControlMsg::SendEvent(pipeline_id, event);
                 let result = match self.pipelines.get(&pipeline_id) {
                     Some(pipeline) => pipeline.event_loop.send(msg),
@@ -2729,37 +2740,46 @@ where
     }
 
     fn handle_focus_msg(&mut self, pipeline_id: PipelineId) {
-        self.focus_pipeline_id = Some(pipeline_id);
-
-        // Focus parent iframes recursively
-        self.focus_parent_pipeline(pipeline_id);
-    }
-
-    fn focus_parent_pipeline(&mut self, pipeline_id: PipelineId) {
         let browsing_context_id = match self.pipelines.get(&pipeline_id) {
             Some(pipeline) => pipeline.browsing_context_id,
             None => return warn!("Pipeline {:?} focus parent after closure.", pipeline_id),
         };
+        self.focused_browsing_context_id = Some(browsing_context_id);
+
+        // Focus parent iframes recursively
+        self.focus_parent_pipeline(browsing_context_id);
+    }
+
+    fn focus_parent_pipeline(&mut self, browsing_context_id: BrowsingContextId) {
         let parent_pipeline_id = match self.browsing_contexts.get(&browsing_context_id) {
             Some(ctx) => ctx.parent_pipeline_id,
-            None => return warn!("Browsing context {:?} focus parent after closure.", browsing_context_id),
+            None => return warn!(
+                "Browsing context {:?} focus parent after closure.",
+                browsing_context_id
+            ),
         };
         let parent_pipeline_id = match parent_pipeline_id {
-            Some(info) => info,
-            None => return debug!("Pipeline {:?} focus has no parent.", pipeline_id),
+            Some(parent_id) => parent_id,
+            None => return debug!(
+                "Browsing context {:?} focus has no parent.",
+                browsing_context_id
+            ),
         };
 
-        // Send a message to the parent of the provided pipeline (if it exists)
-        // telling it to mark the iframe element as focused.
+        // Send a message to the parent of the provided browsing context (if it
+        // exists) telling it to mark the iframe element as focused.
         let msg = ConstellationControlMsg::FocusIFrame(parent_pipeline_id, browsing_context_id);
-        let result = match self.pipelines.get(&parent_pipeline_id) {
-            Some(pipeline) => pipeline.event_loop.send(msg),
+        let (result, parent_browsing_context_id) = match self.pipelines.get(&parent_pipeline_id) {
+            Some(pipeline) => {
+                let result = pipeline.event_loop.send(msg);
+                (result, pipeline.browsing_context_id)
+            },
             None => return warn!("Pipeline {:?} focus after closure.", parent_pipeline_id),
         };
         if let Err(e) = result {
             self.handle_send_error(parent_pipeline_id, e);
         }
-        self.focus_parent_pipeline(parent_pipeline_id);
+        self.focus_parent_pipeline(parent_browsing_context_id);
     }
 
     fn handle_remove_iframe_msg(
@@ -3097,11 +3117,13 @@ where
             change.browsing_context_id, change.new_pipeline_id
         );
 
-        // If the currently focused pipeline is the one being changed (or a child
-        // of the pipeline being changed) then update the focus pipeline to be
-        // the replacement.
-        if self.focused_pipeline_is_descendant_of(change.browsing_context_id) {
-            self.focus_pipeline_id = Some(change.new_pipeline_id);
+        // If the currently focused browsing context is a child of the browsing
+        // context in which the page is being loaded, then update the focused
+        // browsing context to that one.
+        //
+        // TODO(mandreyel): is this correct?
+        if self.focused_browsing_context_is_descendant_of(change.browsing_context_id) {
+            self.focused_browsing_context_id = Some(change.browsing_context_id);
         }
 
         let (old_pipeline_id, top_level_id) =
@@ -3243,6 +3265,16 @@ where
 
         self.notify_history_changed(change.top_level_browsing_context_id);
         self.update_frame_tree_if_active(change.top_level_browsing_context_id);
+    }
+
+    fn focused_browsing_context_is_descendant_of(
+        &self,
+        browsing_context_id: BrowsingContextId
+    ) -> bool {
+        self.focused_browsing_context_id.map_or(false, |focus_ctx_id| {
+            self.fully_active_descendant_browsing_contexts_iter(browsing_context_id)
+                .any(|nested_ctx| nested_ctx.id == focus_ctx_id)
+        })
     }
 
     fn trim_history(&mut self, top_level_browsing_context_id: TopLevelBrowsingContextId) {
@@ -3395,16 +3427,15 @@ where
         &mut self,
         pipeline_states: HashMap<PipelineId, Epoch>,
     ) -> ReadyToSave {
-        // Note that this function can panic, due to ipc-channel creation failure.
-        // avoiding this panic would require a mechanism for dealing
+        // Note that this function can panic, due to ipc-channel creation
+        // failure. Avoiding this panic would require a mechanism for dealing
         // with low-resource scenarios.
         //
         // If there is no focus browsing context yet, the initial page has
         // not loaded, so there is nothing to save yet.
-        let top_level_browsing_context_id = self
-            .focus_pipeline_id
-            .and_then(|pipeline_id| self.pipelines.get(&pipeline_id))
-            .map(|pipeline| pipeline.top_level_browsing_context_id);
+        let top_level_browsing_context_id = self.focused_browsing_context_id
+            .and_then(|ctx_id| self.browsing_contexts.get(&ctx_id))
+            .map(|ctx| ctx.top_level_id);
         let top_level_browsing_context_id = match top_level_browsing_context_id {
             Some(id) => id,
             None => return ReadyToSave::NoTopLevelBrowsingContext,
@@ -3882,12 +3913,5 @@ where
             self.compositor_proxy
                 .send(ToCompositorMsg::SetFrameTree(frame_tree));
         }
-    }
-
-    fn focused_pipeline_is_descendant_of(&self, browsing_context_id: BrowsingContextId) -> bool {
-        self.focus_pipeline_id.map_or(false, |pipeline_id| {
-            self.fully_active_descendant_browsing_contexts_iter(browsing_context_id)
-                .any(|browsing_context| browsing_context.pipeline_id == pipeline_id)
-        })
     }
 }
