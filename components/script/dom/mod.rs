@@ -215,6 +215,7 @@ pub mod types {
 pub mod abstractworker;
 pub mod abstractworkerglobalscope;
 pub mod activation;
+pub mod analysernode;
 pub mod attr;
 pub mod audiobuffer;
 pub mod audiobuffersourcenode;
