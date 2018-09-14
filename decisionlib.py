@@ -32,12 +32,13 @@ class DecisionTask:
         self.index_service = taskcluster.Index(options={"baseUrl": "http://taskcluster/index/v1/"})
 
         self.now = datetime.datetime.utcnow()
+        self.built_images = {}
 
     def from_now_json(self, offset):
         return taskcluster.stringDate(taskcluster.fromNow(offset, dateObj=self.now))
 
     def create_task_with_in_tree_dockerfile(self, *, dockerfile, **kwargs):
-        image_build_task = self.build_image(dockerfile)
+        image_build_task = self.find_or_build_image(dockerfile)
         kwargs.setdefault("dependencies", []).append(image_build_task)
         image = {
             "type": "task-image",
@@ -46,10 +47,17 @@ class DecisionTask:
         }
         return self.create_task(image=image, **kwargs)
 
-    def build_image(self, dockerfile):
+    def find_or_build_image(self, dockerfile):
+        image_build_task = self.built_images.get(dockerfile)
+        if image_build_task is None:
+            image_build_task = self._find_or_build_image(dockerfile)
+            self.built_images[dockerfile] = image_build_task
+        return image_build_task
+
+    def _find_or_build_image(self, dockerfile):
         with open(dockerfile, "rb") as f:
-            dockerfile = f.read()
-        digest = hashlib.sha256(dockerfile).hexdigest()
+            dockerfile_contents = f.read()
+        digest = hashlib.sha256(dockerfile_contents).hexdigest()
         route = "%s.docker-image.%s" % (self.route_prefix, digest)
 
         try:
@@ -59,14 +67,14 @@ class DecisionTask:
             if e.status_code != 404:
                 raise
 
-        image_build_task = self.create_task(
+        return self.create_task(
             task_name="docker image build task for image: " + self.image_name(dockerfile),
             command="""
                 echo "$DOCKERFILE" | docker build -t taskcluster-built -
                 docker save taskcluster-built | lz4 > /%s
             """ % self.DOCKER_IMAGE_ARTIFACT_FILENAME,
             env={
-                "DOCKERFILE": dockerfile,
+                "DOCKERFILE": dockerfile_contents,
             },
             artifacts=[
                 ("/" + self.DOCKER_IMAGE_ARTIFACT_FILENAME, self.docker_image_cache_expiry),
@@ -86,7 +94,6 @@ class DecisionTask:
                 },
             },
         )
-        return image_build_task
 
     def image_name(self, dockerfile):
         basename = os.path.basename(dockerfile)
