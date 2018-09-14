@@ -28,7 +28,7 @@ def main():
         task_name="servo build task",
         command="./servo-build-task.sh",
         dockerfile=dockerfile("servo-x86_64-linux"),
-        max_run_time_minutes=60,
+        max_run_time_minutes=3 * 60,
         scopes=CARGO_CACHE_SCOPES,
         cache=CARGO_CACHE,
     )
