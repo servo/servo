@@ -38,7 +38,7 @@ impl AnalyserNode {
         options: &AnalyserOptions,
     ) -> Fallible<(AnalyserNode, IpcReceiver<Block>)> {
         let node_options = options.parent
-                                  .unwrap_or(1, ChannelCountMode::Max,
+                                  .unwrap_or(2, ChannelCountMode::Max,
                                              ChannelInterpretation::Speakers);
 
         if options.fftSize > 32768 || options.fftSize < 32 ||
