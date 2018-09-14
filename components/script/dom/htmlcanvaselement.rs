@@ -188,7 +188,8 @@ impl HTMLCanvasElement {
         }
     }
 
-    pub fn get_or_init_webgl_context(
+    #[allow(unsafe_code)]
+    unsafe fn get_or_init_webgl_context(
         &self,
         cx: *mut JSContext,
         options: HandleValue,
@@ -209,7 +210,8 @@ impl HTMLCanvasElement {
         }
     }
 
-    pub fn get_or_init_webgl2_context(
+    #[allow(unsafe_code)]
+    unsafe fn get_or_init_webgl2_context(
         &self,
         cx: *mut JSContext,
         options: HandleValue,
@@ -243,11 +245,14 @@ impl HTMLCanvasElement {
     }
 
     #[allow(unsafe_code)]
-    fn get_gl_attributes(cx: *mut JSContext, options: HandleValue) -> Option<GLContextAttributes> {
-        match unsafe { WebGLContextAttributes::new(cx, options) } {
+    unsafe fn get_gl_attributes(
+        cx: *mut JSContext,
+        options: HandleValue,
+    ) -> Option<GLContextAttributes> {
+        match WebGLContextAttributes::new(cx, options) {
             Ok(ConversionResult::Success(ref attrs)) => Some(From::from(attrs)),
             Ok(ConversionResult::Failure(ref error)) => {
-                unsafe { throw_type_error(cx, &error); }
+                throw_type_error(cx, &error);
                 None
             }
             _ => {
