@@ -18,7 +18,7 @@ CARGO_CACHE = {
 
 def main():
     decision = DecisionTask(
-        project_name="Taskcluster experimenfts for Servo",  # Used in task names
+        project_name="Taskcluster experiments for Servo",  # Used in task names
         route_prefix="project.servo.servo-taskcluster-experiments",
         docker_image_cache_expiry="1 week",
         worker_type="servo-docker-worker",
