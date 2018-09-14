@@ -246,8 +246,6 @@ impl CanvasRenderingContext2D {
             CanvasImageSource::HTMLCanvasElement(canvas) => {
                 canvas.origin_is_clean()
             }
-            CanvasImageSource::CanvasRenderingContext2D(image) =>
-                image.origin_is_clean(),
             CanvasImageSource::HTMLImageElement(image) => {
                 let image_origin = image.get_origin().expect("Image's origin is missing");
                 image_origin.same_origin(GlobalScope::entry().origin())
@@ -291,11 +289,6 @@ impl CanvasRenderingContext2D {
         let result = match image {
             CanvasImageSource::HTMLCanvasElement(ref canvas) => {
                 self.draw_html_canvas_element(&canvas,
-                                              sx, sy, sw, sh,
-                                              dx, dy, dw, dh)
-            }
-            CanvasImageSource::CanvasRenderingContext2D(ref image) => {
-                self.draw_html_canvas_element(&image.Canvas(),
                                               sx, sy, sw, sh,
                                               dx, dy, dw, dh)
             }
@@ -1216,12 +1209,6 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
 
                 canvas.fetch_all_data().ok_or(Error::InvalidState)?
             },
-            CanvasImageSource::CanvasRenderingContext2D(ref context) => {
-                let canvas = context.Canvas();
-                let _ = canvas.get_or_init_2d_context();
-
-                canvas.fetch_all_data().ok_or(Error::InvalidState)?
-            }
             CanvasImageSource::CSSStyleValue(ref value) => {
                 value.get_url(self.base_url.clone())
                     .and_then(|url| self.fetch_image_data(url))
