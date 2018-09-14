@@ -145,6 +145,7 @@ impl WebGLRenderbuffer {
         };
 
         self.internal_format.set(Some(internal_format));
+        self.is_initialized.set(false);
 
         // FIXME: Invalidate completeness after the call
 
