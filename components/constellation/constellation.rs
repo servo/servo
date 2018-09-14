@@ -191,16 +191,24 @@ pub struct Constellation<Message, LTF, STF> {
     /// A channel for the constellation to receive messages from network listener.
     network_listener_receiver: Receiver<(PipelineId, FetchResponseMsg)>,
 
+    // COMP2
+    // Stays here as only the sender needs to be clone per compositor.
     /// A channel for the constellation to receive messages from the compositor thread.
     compositor_receiver: Receiver<FromCompositorMsg>,
 
+    // COMP2
+    // Stays
     /// A channel through which messages can be sent to the embedder.
     embedder_proxy: EmbedderProxy,
 
+    // COMP2
+    // Compositor
     /// A channel (the implementation of which is port-specific) for the
     /// constellation to send messages to the compositor thread.
     compositor_proxy: CompositorProxy,
 
+    // COMP2
+    // Compositor
     /// The last frame tree sent to WebRender.
     active_browser_id: Option<TopLevelBrowsingContextId>,
 
@@ -258,9 +266,13 @@ pub struct Constellation<Message, LTF, STF> {
     /// timer thread.
     scheduler_chan: IpcSender<TimerSchedulerMsg>,
 
+    // COMP2
+    // Compositor info
     /// A single WebRender document the constellation operates on.
     webrender_document: webrender_api::DocumentId,
 
+    // COMP2
+    // Compositor info
     /// A channel for the constellation to send messages to the
     /// WebRender thread.
     webrender_api_sender: webrender_api::RenderApiSender,
@@ -296,6 +308,8 @@ pub struct Constellation<Message, LTF, STF> {
     /// and the namespaces are allocated by the constellation.
     next_pipeline_namespace_id: PipelineNamespaceId,
 
+    // COMP2
+    // Compositor info
     /// The size of the top-level window.
     window_size: WindowSizeData,
 
@@ -309,6 +323,8 @@ pub struct Constellation<Message, LTF, STF> {
     document_states: HashMap<PipelineId, DocumentState>,
 
     /// Are we shutting down?
+    // COMP2
+    /// This is checked in many places. We also need to check if there is a compositor at this point.
     shutting_down: bool,
 
     /// Have we seen any warnings? Hopefully always empty!
@@ -337,6 +353,8 @@ pub struct InitialConstellationState {
     /// A channel through which messages can be sent to the embedder.
     pub embedder_proxy: EmbedderProxy,
 
+    // COMP2
+    // attachCompositor
     /// A channel through which messages can be sent to the compositor.
     pub compositor_proxy: CompositorProxy,
 
@@ -364,9 +382,13 @@ pub struct InitialConstellationState {
     /// A channel to the memory profiler thread.
     pub mem_profiler_chan: mem::ProfilerChan,
 
+    // COMP2
+    // Move to createCompositor function
     /// Webrender document ID.
     pub webrender_document: webrender_api::DocumentId,
 
+    // COMP2
+    // Move to createCompositor function
     /// Webrender API.
     pub webrender_api_sender: webrender_api::RenderApiSender,
 
@@ -656,6 +678,8 @@ where
 
     /// The main event loop for the constellation.
     fn run(&mut self) {
+        // COMP2
+        // Don't exit if not pipelines
         while !self.shutting_down || !self.pipelines.is_empty() {
             // Randomly close a pipeline if --random-pipeline-closure-probability is set
             // This is for testing the hardening of the constellation.
@@ -691,6 +715,9 @@ where
         is_private: bool,
         is_visible: bool,
     ) {
+        // COMP2
+        // FIXME: only possible if compositor
+
         if self.shutting_down {
             return;
         }
@@ -951,6 +978,8 @@ where
     fn handle_request_from_compositor(&mut self, message: FromCompositorMsg) {
         debug!("constellation got {:?} message", message);
         match message {
+            // COMP2
+            // FIXME: rename that to close. We don't exit servo anymore
             FromCompositorMsg::Exit => {
                 self.handle_exit();
             },
@@ -1471,6 +1500,7 @@ where
             warn!("Exit storage thread failed ({})", e);
         }
 
+        // COMP2
         debug!("Asking compositor to complete shutdown.");
         self.compositor_proxy
             .send(ToCompositorMsg::ShutdownComplete);
@@ -1846,6 +1876,8 @@ where
         load_info: IFrameLoadInfo,
         layout_sender: IpcSender<LayoutControlMsg>,
     ) {
+        // COMP2
+        // Only possible if compositor
         let IFrameLoadInfo {
             parent_pipeline_id,
             new_pipeline_id,
@@ -1911,6 +1943,8 @@ where
     fn handle_script_new_auxiliary(&mut self,
                                 load_info: AuxiliaryBrowsingContextLoadInfo,
                                 layout_sender: IpcSender<LayoutControlMsg>) {
+        // COMP2
+        // Only possible if compositor… but actually, more like at least one pipeline?
         let AuxiliaryBrowsingContextLoadInfo {
             opener_pipeline_id,
             new_top_level_browsing_context_id,
@@ -1975,6 +2009,8 @@ where
     }
 
     fn handle_pending_paint_metric(&self, pipeline_id: PipelineId, epoch: Epoch) {
+        // COMP2
+        // Only possible if compositor
         self.compositor_proxy
             .send(ToCompositorMsg::PendingPaintMetric(pipeline_id, epoch))
     }
@@ -1989,6 +2025,8 @@ where
         pipeline_id: PipelineId,
         animation_state: AnimationState,
     ) {
+        // COMP2
+        // Only possible if compositor
         self.compositor_proxy
             .send(ToCompositorMsg::ChangeRunningAnimationsState(
                 pipeline_id,
@@ -2233,6 +2271,8 @@ where
 
             if !current_top_level_pipeline_will_be_replaced {
                 // Notify embedder and compositor top level document finished loading.
+                // COMP2
+                // FIXME: Why?
                 self.compositor_proxy
                     .send(ToCompositorMsg::LoadComplete(top_level_browsing_context_id));
                 self.embedder_proxy.send((
@@ -2936,6 +2976,8 @@ where
                 }
             },
             WebDriverCommandMsg::TakeScreenshot(_, reply) => {
+                // COMP2
+                // Only possible if compositor
                 self.compositor_proxy
                     .send(ToCompositorMsg::CreatePng(reply));
             },
@@ -3379,6 +3421,8 @@ where
         pipeline_id: PipelineId,
         constraints: ViewportConstraints,
     ) {
+        // COMP2
+        // Only possible if compositor
         self.compositor_proxy
             .send(ToCompositorMsg::ViewportConstrained(
                 pipeline_id,
@@ -3857,6 +3901,8 @@ where
         &mut self,
         top_level_browsing_context_id: TopLevelBrowsingContextId,
     ) {
+        // COMP2
+        // Only possible if compositor
         // Only send the frame tree if it's the active one or if no frame tree
         // has been sent yet.
         if self.active_browser_id.is_none() ||
@@ -3868,6 +3914,8 @@ where
 
     /// Send the current frame tree to compositor
     fn send_frame_tree(&mut self, top_level_browsing_context_id: TopLevelBrowsingContextId) {
+        // COMP2
+        // Only possible if compositor
         self.active_browser_id = Some(top_level_browsing_context_id);
         let browsing_context_id = BrowsingContextId::from(top_level_browsing_context_id);
 

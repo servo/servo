@@ -486,15 +486,23 @@ fn create_constellation(
     user_agent: Cow<'static, str>,
     config_dir: Option<PathBuf>,
     embedder_proxy: EmbedderProxy,
+
+    // COMP2
+    // Move
     compositor_proxy: CompositorProxy,
+
     time_profiler_chan: time::ProfilerChan,
     mem_profiler_chan: mem::ProfilerChan,
     debugger_chan: Option<debugger::Sender>,
     devtools_chan: Option<Sender<devtools_traits::DevtoolsControlMsg>>,
+
+    // COMP2
+    // Move these 4 to attachCompositor
     webrender: &mut webrender::Renderer,
     webrender_document: webrender_api::DocumentId,
     webrender_api_sender: webrender_api::RenderApiSender,
     window_gl: Rc<gl::Gl>,
+
 ) -> (Sender<ConstellationMsg>, SWManagerSenders) {
     let bluetooth_thread: IpcSender<BluetoothRequest> =
         BluetoothThreadFactory::new(embedder_proxy.clone());
@@ -568,6 +576,8 @@ fn create_constellation(
         mem_profiler_chan,
         webrender_document,
         webrender_api_sender,
+        // COMP2
+        // Can't be created without compositor
         webgl_threads,
         webvr_chan,
     };
