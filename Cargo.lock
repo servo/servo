@@ -262,6 +262,11 @@ dependencies = [
 ]
 
 [[package]]
+name = "boxfnonce"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
 name = "brotli"
 version = "1.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3274,7 +3279,7 @@ dependencies = [
 [[package]]
 name = "servo-media"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#f52c1c677a757cb8435d9e4c77680473d32c4aab"
+source = "git+https://github.com/servo/media#8f65e32617b068e8a0d152236848fd98cc08a3ae"
 dependencies = [
  "servo-media-audio 0.1.0 (git+https://github.com/servo/media)",
  "servo-media-gstreamer 0.1.0 (git+https://github.com/servo/media)",
@@ -3284,12 +3289,15 @@ dependencies = [
 [[package]]
 name = "servo-media-audio"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#f52c1c677a757cb8435d9e4c77680473d32c4aab"
+source = "git+https://github.com/servo/media#8f65e32617b068e8a0d152236848fd98cc08a3ae"
 dependencies = [
+ "boxfnonce 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "byte-slice-cast 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "euclid 0.19.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "num-traits 0.2.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "petgraph 0.4.13 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde 1.0.66 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde_derive 1.0.66 (registry+https://github.com/rust-lang/crates.io-index)",
  "servo_media_derive 0.1.0 (git+https://github.com/servo/media)",
  "smallvec 0.6.3 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
@@ -3297,7 +3305,7 @@ dependencies = [
 [[package]]
 name = "servo-media-gstreamer"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#f52c1c677a757cb8435d9e4c77680473d32c4aab"
+source = "git+https://github.com/servo/media#8f65e32617b068e8a0d152236848fd98cc08a3ae"
 dependencies = [
  "byte-slice-cast 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "glib 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -3315,7 +3323,7 @@ dependencies = [
 [[package]]
 name = "servo-media-player"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#f52c1c677a757cb8435d9e4c77680473d32c4aab"
+source = "git+https://github.com/servo/media#8f65e32617b068e8a0d152236848fd98cc08a3ae"
 dependencies = [
  "ipc-channel 0.11.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 1.0.66 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -3410,7 +3418,7 @@ dependencies = [
 [[package]]
 name = "servo_media_derive"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#f52c1c677a757cb8435d9e4c77680473d32c4aab"
+source = "git+https://github.com/servo/media#8f65e32617b068e8a0d152236848fd98cc08a3ae"
 dependencies = [
  "quote 0.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "syn 0.13.1 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -4350,6 +4358,7 @@ dependencies = [
 "checksum blurmac 0.1.0 (git+https://github.com/servo/devices)" = "<none>"
 "checksum blurmock 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)" = "68dd72da3a3bb40f3d3bdd366c4cf8e2b1d208c366304f382c80cef8126ca8da"
 "checksum blurz 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)" = "e73bda0f4c71c63a047351070097f3f507e6718e86b9ee525173371ef7b94b73"
+"checksum boxfnonce 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)" = "cbec60c560f322d8e3cd403f91d8908cfd965fff53ba97154bd1b9d90149d98e"
 "checksum brotli 1.1.2 (registry+https://github.com/rust-lang/crates.io-index)" = "fe87b40996b84fdc56e57c165d93079f4b50cb806598118e692ddfaa3d3c57c0"
 "checksum brotli-decompressor 1.1.1 (registry+https://github.com/rust-lang/crates.io-index)" = "313f4b6cc0b365d6b88eda5aa40175ee34ac6efa9a79e0b3b8202eca90247ba8"
 "checksum build_const 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)" = "39092a32794787acd8525ee150305ff051b0aa6cc2abaf193924f5ab05425f39"
