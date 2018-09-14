@@ -17,7 +17,7 @@ use dom::bindings::inheritance::Castable;
 use dom::bindings::num::Finite;
 use dom::bindings::reflector::DomObject;
 use dom::bindings::root::{Dom, DomRoot, LayoutDom};
-use dom::bindings::str::DOMString;
+use dom::bindings::str::{DOMString, USVString};
 use dom::canvasrenderingcontext2d::{CanvasRenderingContext2D, LayoutCanvasRenderingContext2DHelpers};
 use dom::document::Document;
 use dom::element::{AttributeMutation, Element, RawLayoutElementHelpers};
@@ -191,12 +191,12 @@ impl HTMLCanvasElement {
     pub fn get_or_init_webgl_context(
         &self,
         cx: *mut JSContext,
-        attrs: Option<HandleValue>
+        options: HandleValue,
     ) -> Option<DomRoot<WebGLRenderingContext>> {
         if self.context.borrow().is_none() {
             let window = window_from_node(self);
             let size = self.get_size();
-            let attrs = Self::get_gl_attributes(cx, attrs)?;
+            let attrs = Self::get_gl_attributes(cx, options)?;
             let maybe_ctx = WebGLRenderingContext::new(&window, self, WebGLVersion::WebGL1, size, attrs);
 
             *self.context.borrow_mut() = maybe_ctx.map( |ctx| CanvasContext::WebGL(Dom::from_ref(&*ctx)));
@@ -212,7 +212,7 @@ impl HTMLCanvasElement {
     pub fn get_or_init_webgl2_context(
         &self,
         cx: *mut JSContext,
-        attrs: Option<HandleValue>
+        options: HandleValue,
     ) -> Option<DomRoot<WebGL2RenderingContext>> {
         if !PREFS.is_webgl2_enabled() {
             return None
@@ -220,7 +220,7 @@ impl HTMLCanvasElement {
         if self.context.borrow().is_none() {
             let window = window_from_node(self);
             let size = self.get_size();
-            let attrs = Self::get_gl_attributes(cx, attrs)?;
+            let attrs = Self::get_gl_attributes(cx, options)?;
             let maybe_ctx = WebGL2RenderingContext::new(&window, self, size, attrs);
 
             *self.context.borrow_mut() = maybe_ctx.map( |ctx| CanvasContext::WebGL2(Dom::from_ref(&*ctx)));
@@ -243,12 +243,8 @@ impl HTMLCanvasElement {
     }
 
     #[allow(unsafe_code)]
-    fn get_gl_attributes(cx: *mut JSContext, attrs: Option<HandleValue>) -> Option<GLContextAttributes> {
-        let webgl_attributes = match attrs {
-            Some(attrs) => attrs,
-            None => return Some(GLContextAttributes::default()),
-        };
-        match unsafe { WebGLContextAttributes::new(cx, webgl_attributes) } {
+    fn get_gl_attributes(cx: *mut JSContext, options: HandleValue) -> Option<GLContextAttributes> {
+        match unsafe { WebGLContextAttributes::new(cx, options) } {
             Ok(ConversionResult::Success(ref attrs)) => Some(From::from(attrs)),
             Ok(ConversionResult::Failure(ref error)) => {
                 unsafe { throw_type_error(cx, &error); }
@@ -310,36 +306,39 @@ impl HTMLCanvasElementMethods for HTMLCanvasElement {
     // https://html.spec.whatwg.org/multipage/#dom-canvas-height
     make_uint_setter!(SetHeight, "height", DEFAULT_HEIGHT);
 
-    #[allow(unsafe_code)]
     // https://html.spec.whatwg.org/multipage/#dom-canvas-getcontext
-    unsafe fn GetContext(&self,
-                  cx: *mut JSContext,
-                  id: DOMString,
-                  attributes: Vec<HandleValue>)
-        -> Option<RenderingContext> {
+    #[allow(unsafe_code)]
+    unsafe fn GetContext(
+        &self,
+        cx: *mut JSContext,
+        id: DOMString,
+        options: HandleValue,
+    ) -> Option<RenderingContext> {
         match &*id {
             "2d" => {
                 self.get_or_init_2d_context()
                     .map(RenderingContext::CanvasRenderingContext2D)
             }
             "webgl" | "experimental-webgl" => {
-                self.get_or_init_webgl_context(cx, attributes.get(0).cloned())
+                self.get_or_init_webgl_context(cx, options)
                     .map(RenderingContext::WebGLRenderingContext)
             }
             "webgl2" | "experimental-webgl2" => {
-                self.get_or_init_webgl2_context(cx, attributes.get(0).cloned())
+                self.get_or_init_webgl2_context(cx, options)
                     .map(RenderingContext::WebGL2RenderingContext)
             }
             _ => None
         }
     }
 
-    #[allow(unsafe_code)]
     // https://html.spec.whatwg.org/multipage/#dom-canvas-todataurl
-    unsafe fn ToDataURL(&self,
-                 _context: *mut JSContext,
-                 _mime_type: Option<DOMString>,
-                 _arguments: Vec<HandleValue>) -> Fallible<DOMString> {
+    #[allow(unsafe_code)]
+    unsafe fn ToDataURL(
+        &self,
+        _context: *mut JSContext,
+        _mime_type: Option<DOMString>,
+        _quality: HandleValue,
+    ) -> Fallible<USVString> {
         // Step 1.
         if let Some(CanvasContext::Context2d(ref context)) = *self.context.borrow() {
             if !context.origin_is_clean() {
@@ -349,7 +348,7 @@ impl HTMLCanvasElementMethods for HTMLCanvasElement {
 
         // Step 2.
         if self.Width() == 0 || self.Height() == 0 {
-            return Ok(DOMString::from("data:,"));
+            return Ok(USVString("data:,".into()));
         }
 
         // Step 3.
@@ -363,13 +362,13 @@ impl HTMLCanvasElementMethods for HTMLCanvasElement {
             Some(CanvasContext::WebGL(ref context)) => {
                 match context.get_image_data(self.Width(), self.Height()) {
                     Some(data) => data,
-                    None => return Ok("data:,".into()),
+                    None => return Ok(USVString("data:,".into())),
                 }
             }
             Some(CanvasContext::WebGL2(ref context)) => {
                 match context.base_context().get_image_data(self.Width(), self.Height()) {
                     Some(data) => data,
-                    None => return Ok("data:,".into()),
+                    None => return Ok(USVString("data:,".into())),
                 }
             }
             None => {
@@ -388,7 +387,7 @@ impl HTMLCanvasElementMethods for HTMLCanvasElement {
         }
 
         let encoded = base64::encode(&encoded);
-        Ok(DOMString::from(format!("data:{};base64,{}", mime_type, encoded)))
+        Ok(USVString(format!("data:{};base64,{}", mime_type, encoded)))
     }
 }
 
