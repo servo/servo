@@ -14,7 +14,7 @@ use dom::element::AttributeMutation;
 use dom::htmlelement::HTMLElement;
 use dom::htmlimageelement::HTMLImageElement;
 use dom::htmlmediaelement::HTMLMediaElement;
-use dom::node::Node;
+use dom::node::{Node, UnbindContext};
 use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
@@ -54,9 +54,10 @@ impl VirtualMethods for HTMLSourceElement {
         match attr.local_name() {
             &local_name!("srcset") | &local_name!("sizes")  |
             &local_name!("media") | &local_name!("type") => {
-                if let Some(next_sibling) = self.upcast::<Node>().GetNextSibling() {
-                    if let Some(htmlimageelement_sibling) = next_sibling.downcast::<HTMLImageElement>() {
-                        htmlimageelement_sibling.update_the_image_data();
+                let mut next_siblings_iterator = self.upcast::<Node>().following_siblings();
+                if let Some(next_sibling) = next_siblings_iterator.next() {
+                    if let Some(html_image_element_sibling) = next_sibling.downcast::<HTMLImageElement>() {
+                        html_image_element_sibling.update_the_image_data();
                     }
                 }
             },
@@ -70,6 +71,24 @@ impl VirtualMethods for HTMLSourceElement {
         let parent = self.upcast::<Node>().GetParentNode().unwrap();
         if let Some(media) = parent.downcast::<HTMLMediaElement>() {
             media.handle_source_child_insertion();
+        }
+
+        let mut next_siblings_iterator = self.upcast::<Node>().following_siblings();
+        if let Some(next_sibling) = next_siblings_iterator.next() {
+            if let Some(html_image_element_sibling) = next_sibling.downcast::<HTMLImageElement>() {
+                html_image_element_sibling.update_the_image_data();
+            }
+        }
+    }
+
+    fn unbind_from_tree(&self, context: &UnbindContext) {
+        self.super_type().unwrap().unbind_from_tree(context);
+
+        let mut next_siblings_iterator = self.upcast::<Node>().following_siblings();
+        if let Some(next_sibling) = next_siblings_iterator.next() {
+            if let Some(html_image_element_sibling) = next_sibling.downcast::<HTMLImageElement>() {
+                html_image_element_sibling.update_the_image_data();
+            }
         }
     }
 }

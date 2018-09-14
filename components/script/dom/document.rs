@@ -59,7 +59,6 @@ use dom::htmlhtmlelement::HTMLHtmlElement;
 use dom::htmliframeelement::HTMLIFrameElement;
 use dom::htmlimageelement::HTMLImageElement;
 use dom::htmlmetaelement::HTMLMetaElement;
-use dom::htmlpictureelement::HTMLPictureElement;
 use dom::htmlscriptelement::{HTMLScriptElement, ScriptResult};
 use dom::htmltitleelement::HTMLTitleElement;
 use dom::keyboardevent::KeyboardEvent;
@@ -2233,24 +2232,12 @@ impl Document {
 
     pub fn register_responsive_image(&self, img: &HTMLImageElement) {
         self.responsive_images.borrow_mut().push(Dom::from_ref(img));
-        let elem = img.upcast::<Element>();
-        let is_parent_picture = elem.upcast::<Node>().GetParentElement()
-            .map_or(false, |p| p.is::<HTMLPictureElement>());
-        if is_parent_picture {
-            img.update_the_image_data();
-        }
     }
 
     pub fn unregister_responsive_image(&self, img: &HTMLImageElement) {
         let index = self.responsive_images.borrow().iter().position(|x| **x == *img);
         if let Some(i) = index {
             self.responsive_images.borrow_mut().remove(i);
-            let elem = img.upcast::<Element>();
-            let is_parent_picture = elem.upcast::<Node>().GetParentElement()
-                .map_or(false, |p| p.is::<HTMLPictureElement>());
-            if is_parent_picture {
-                img.update_the_image_data();
-            }
         }
     }
 }
