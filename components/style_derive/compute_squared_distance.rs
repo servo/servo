@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use animate::{AnimationInputAttrs, AnimationVariantAttrs};
+use animate::{AnimationInputAttrs, AnimationVariantAttrs, AnimationFieldAttrs};
 use cg;
 use quote::Tokens;
 use syn::{DeriveInput, Path};
@@ -47,8 +47,23 @@ pub fn derive(mut input: DeriveInput) -> Tokens {
                             parse_quote!(#ty: ::values::distance::ComputeSquaredDistance),
                         );
                     }
-                    quote! {
-                        ::values::distance::ComputeSquaredDistance::compute_squared_distance(#this, #other)?
+
+                    let animation_field_attrs =
+                        cg::parse_field_attrs::<AnimationFieldAttrs>(&this.ast());
+
+                    if animation_field_attrs.constant {
+                        quote! {
+                            {
+                                if #this != #other {
+                                    return Err(());
+                                }
+                                ::values::distance::SquaredDistance::from_sqrt(0.)
+                            }
+                        }
+                    } else {
+                        quote! {
+                            ::values::distance::ComputeSquaredDistance::compute_squared_distance(#this, #other)?
+                        }
                     }
                 }), quote!(+));
                 sum

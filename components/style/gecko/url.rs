@@ -9,6 +9,7 @@ use gecko_bindings::bindings;
 use gecko_bindings::structs::ServoBundledURI;
 use gecko_bindings::structs::mozilla::css::URLValueData;
 use gecko_bindings::structs::root::{RustString, nsStyleImageRequest};
+use gecko_bindings::structs::root::mozilla::CORSMode;
 use gecko_bindings::structs::root::mozilla::css::{ImageValue, URLValue};
 use gecko_bindings::sugar::refptr::RefPtr;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
@@ -186,14 +187,33 @@ impl SpecifiedImageUrl {
         Self::from_css_url(CssUrl::parse_from_string(url, context))
     }
 
-    fn from_css_url(url: CssUrl) -> Self {
+    fn from_css_url_with_cors(url: CssUrl, cors: CORSMode) -> Self {
         let image_value = unsafe {
-            let ptr = bindings::Gecko_ImageValue_Create(url.for_ffi());
+            let ptr = bindings::Gecko_ImageValue_Create(url.for_ffi(), cors);
             // We do not expect Gecko_ImageValue_Create returns null.
             debug_assert!(!ptr.is_null());
             RefPtr::from_addrefed(ptr)
         };
         Self { url, image_value }
+    }
+
+    fn from_css_url(url: CssUrl) -> Self {
+        use gecko_bindings::structs::root::mozilla::CORSMode_CORS_NONE;
+        Self::from_css_url_with_cors(url, CORSMode_CORS_NONE)
+    }
+
+    fn from_css_url_with_cors_anonymous(url: CssUrl) -> Self {
+        use gecko_bindings::structs::root::mozilla::CORSMode_CORS_ANONYMOUS;
+        Self::from_css_url_with_cors(url, CORSMode_CORS_ANONYMOUS)
+    }
+
+    /// Provides an alternate method for parsing that associates the URL
+    /// with anonymous CORS headers.
+    pub fn parse_with_cors_anonymous<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
+        CssUrl::parse(context, input).map(Self::from_css_url_with_cors_anonymous)
     }
 }
 

@@ -98,6 +98,18 @@ impl CssUrl {
             resolved: ServoUrl::parse(url).ok(),
         }
     }
+
+    /// Parses a URL request and records that the corresponding request needs to
+    /// be CORS-enabled.
+    ///
+    /// This is only for shape images and masks in Gecko, thus unimplemented for
+    /// now so somebody notices when trying to do so.
+    pub fn parse_with_cors_anonymous<'i, 't>(
+        _context: &ParserContext,
+        _input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
+        unimplemented!("Need to record somewhere that the request needs to be CORS-enabled")
+    }
 }
 
 impl Parse for CssUrl {

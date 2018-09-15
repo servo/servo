@@ -59,6 +59,7 @@ extern crate serde;
 #[cfg(feature = "servo")]
 extern crate serde_bytes;
 extern crate servo_arc;
+#[cfg(feature = "servo")]
 extern crate servo_channel;
 extern crate smallbitvec;
 extern crate smallvec;
@@ -1024,6 +1025,7 @@ where
 
 // Placeholder for unique case where internals of Sender cannot be measured.
 // malloc size of is 0 macro complains about type supplied!
+#[cfg(feature = "servo")]
 impl<T> MallocSizeOf for servo_channel::Sender<T> {
     fn size_of(&self, _ops: &mut MallocSizeOfOps) -> usize {
         0

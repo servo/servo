@@ -538,13 +538,6 @@ impl ToCss for ArcFlag {
     }
 }
 
-impl ComputeSquaredDistance for ArcFlag {
-    #[inline]
-    fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {
-        (self.0 as i32).compute_squared_distance(&(other.0 as i32))
-    }
-}
-
 /// SVG Path parser.
 struct PathParser<'a> {
     chars: Peekable<Cloned<slice::Iter<'a, u8>>>,

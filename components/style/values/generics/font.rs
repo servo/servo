@@ -13,7 +13,6 @@ use std::fmt::{self, Write};
 use std::io::Cursor;
 use style_traits::{CssWriter, KeywordsCollectFn, ParseError};
 use style_traits::{SpecifiedValueInfo, StyleParseErrorKind, ToCss};
-use values::distance::{ComputeSquaredDistance, SquaredDistance};
 
 /// https://drafts.csswg.org/css-fonts-4/#feature-tag-value
 #[derive(Clone, Debug, Eq, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue)]
@@ -47,7 +46,16 @@ where
 ///
 /// https://drafts.csswg.org/css-fonts-4/#font-variation-settings-def
 #[derive(
-    Animate, Clone, Debug, Eq, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue, ToCss,
+    Animate,
+    Clone,
+    ComputeSquaredDistance,
+    Debug,
+    Eq,
+    MallocSizeOf,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToComputedValue,
+    ToCss,
 )]
 pub struct VariationValue<Number> {
     /// A four-character tag, packed into a u32 (one byte per character).
@@ -55,19 +63,6 @@ pub struct VariationValue<Number> {
     pub tag: FontTag,
     /// The actual value.
     pub value: Number,
-}
-
-impl<Number> ComputeSquaredDistance for VariationValue<Number>
-where
-    Number: ComputeSquaredDistance,
-{
-    #[inline]
-    fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {
-        if self.tag != other.tag {
-            return Err(());
-        }
-        self.value.compute_squared_distance(&other.value)
-    }
 }
 
 /// A value both for font-variation-settings and font-feature-settings.
