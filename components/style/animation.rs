@@ -15,7 +15,6 @@ use properties::longhands::animation_direction::computed_value::single_value::T 
 use properties::longhands::animation_play_state::computed_value::single_value::T as AnimationPlayState;
 use rule_tree::CascadeLevel;
 use servo_arc::Arc;
-use servo_channel::Sender;
 use std::fmt;
 use stylesheets::keyframes_rule::{KeyframesAnimation, KeyframesStep, KeyframesStepValue};
 use timer::Timer;
@@ -24,6 +23,13 @@ use values::computed::box_::TransitionProperty;
 use values::computed::transform::TimingFunction;
 use values::generics::box_::AnimationIterationCount;
 use values::generics::transform::{StepPosition, TimingFunction as GenericTimingFunction};
+
+// NOTE(emilio): This code isn't really executed in servo, but we don't want to
+// compile it out so that people remember it exists.
+#[cfg(feature = "servo")]
+use servo_channel::Sender;
+#[cfg(feature = "gecko")]
+use std::sync::mpsc::Sender;
 
 /// This structure represents a keyframes animation current iteration state.
 ///
