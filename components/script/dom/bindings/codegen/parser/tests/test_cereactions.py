@@ -131,17 +131,3 @@ def WebIDLTest(parser, harness):
     harness.ok(threw,
                "Should have thrown for [CEReactions] used on a stringifier")
 
-    parser = parser.reset()
-    threw = False
-    try:
-        parser.parse("""
-            interface Foo {
-              [CEReactions] jsonifier;
-            };
-        """)
-
-        results = parser.finish()
-    except:
-        threw = True
-
-    harness.ok(threw, "Should have thrown for [CEReactions] used on a jsonifier")

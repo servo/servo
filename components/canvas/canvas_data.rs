@@ -729,7 +729,7 @@ fn crop_image(
 /// smoothing_enabled: It determines if smoothing is applied to the image result
 fn write_image(
     draw_target: &DrawTarget,
-    mut image_data: Vec<u8>,
+    image_data: Vec<u8>,
     image_size: Size2D<f64>,
     dest_rect: Rect<f64>,
     smoothing_enabled: bool,
@@ -740,8 +740,6 @@ fn write_image(
         return
     }
     let image_rect = Rect::new(Point2D::zero(), image_size);
-    // rgba -> bgra
-    byte_swap(&mut image_data);
 
     // From spec https://html.spec.whatwg.org/multipage/#dom-context-2d-drawimage
     // When scaling up, if the imageSmoothingEnabled attribute is set to true, the user agent should attempt

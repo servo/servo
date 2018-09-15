@@ -540,8 +540,10 @@ impl WebGLRenderingContext {
                     return Err(());
                 }
             },
-            ImageDataOrHTMLImageElementOrHTMLCanvasElementOrHTMLVideoElement::HTMLVideoElement(_rooted_video)
-                => unimplemented!(),
+            ImageDataOrHTMLImageElementOrHTMLCanvasElementOrHTMLVideoElement::HTMLVideoElement(_) => {
+                // TODO: https://github.com/servo/servo/issues/6711
+                return Err(());
+            }
         };
 
         return Ok((pixels, size, premultiplied));

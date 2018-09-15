@@ -6,12 +6,12 @@ use canvas_traits::canvas::CanvasImageData;
 use canvas_traits::canvas::CanvasMsg;
 use canvas_traits::canvas::FromLayoutMsg;
 use dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasFillRule;
+use dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasImageSource;
 use dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasLineCap;
 use dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasLineJoin;
 use dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasRenderingContext2DMethods;
 use dom::bindings::codegen::Bindings::PaintRenderingContext2DBinding;
 use dom::bindings::codegen::Bindings::PaintRenderingContext2DBinding::PaintRenderingContext2DMethods;
-use dom::bindings::codegen::UnionTypes::HTMLImageElementOrHTMLCanvasElementOrCanvasRenderingContext2DOrCSSStyleValue;
 use dom::bindings::codegen::UnionTypes::StringOrCanvasGradientOrCanvasPattern;
 use dom::bindings::error::ErrorResult;
 use dom::bindings::error::Fallible;
@@ -194,37 +194,40 @@ impl PaintRenderingContext2DMethods for PaintRenderingContext2D {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-drawimage
-    fn DrawImage(&self,
-                 image: HTMLImageElementOrHTMLCanvasElementOrCanvasRenderingContext2DOrCSSStyleValue,
-                 dx: f64,
-                 dy: f64)
-                 -> ErrorResult {
+    fn DrawImage(
+        &self,
+        image: CanvasImageSource,
+        dx: f64,
+        dy: f64,
+    ) -> ErrorResult {
         self.context.DrawImage(image, dx, dy)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-drawimage
-    fn DrawImage_(&self,
-                  image: HTMLImageElementOrHTMLCanvasElementOrCanvasRenderingContext2DOrCSSStyleValue,
-                  dx: f64,
-                  dy: f64,
-                  dw: f64,
-                  dh: f64)
-                  -> ErrorResult {
+    fn DrawImage_(
+        &self,
+        image: CanvasImageSource,
+        dx: f64,
+        dy: f64,
+        dw: f64,
+        dh: f64,
+    ) -> ErrorResult {
         self.context.DrawImage_(image, dx, dy, dw, dh)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-drawimage
-    fn DrawImage__(&self,
-                   image: HTMLImageElementOrHTMLCanvasElementOrCanvasRenderingContext2DOrCSSStyleValue,
-                   sx: f64,
-                   sy: f64,
-                   sw: f64,
-                   sh: f64,
-                   dx: f64,
-                   dy: f64,
-                   dw: f64,
-                   dh: f64)
-                   -> ErrorResult {
+    fn DrawImage__(
+        &self,
+        image: CanvasImageSource,
+        sx: f64,
+        sy: f64,
+        sw: f64,
+        sh: f64,
+        dx: f64,
+        dy: f64,
+        dw: f64,
+        dh: f64,
+    ) -> ErrorResult {
         self.context.DrawImage__(image, sx, sy, sw, sh, dx, dy, dw, dh)
     }
 
@@ -321,10 +324,11 @@ impl PaintRenderingContext2DMethods for PaintRenderingContext2D {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-createpattern
-    fn CreatePattern(&self,
-                     image: HTMLImageElementOrHTMLCanvasElementOrCanvasRenderingContext2DOrCSSStyleValue,
-                     repetition: DOMString)
-                     -> Fallible<DomRoot<CanvasPattern>> {
+    fn CreatePattern(
+        &self,
+        image: CanvasImageSource,
+        repetition: DOMString,
+    ) -> Fallible<DomRoot<CanvasPattern>> {
         self.context.CreatePattern(image, repetition)
     }
 

@@ -5,20 +5,18 @@
 // https://html.spec.whatwg.org/multipage/#htmlcanvaselement
 typedef (CanvasRenderingContext2D or WebGLRenderingContext or WebGL2RenderingContext) RenderingContext;
 
-[HTMLConstructor]
+[Exposed=Window,
+ HTMLConstructor]
 interface HTMLCanvasElement : HTMLElement {
-  [CEReactions, Pure]
-           attribute unsigned long width;
-  [CEReactions, Pure]
-           attribute unsigned long height;
+  [CEReactions, Pure] attribute unsigned long width;
+  [CEReactions, Pure] attribute unsigned long height;
 
-  RenderingContext? getContext(DOMString contextId, any... arguments);
-  //boolean probablySupportsContext(DOMString contextId, any... arguments);
-
-  //void setContext(RenderingContext context);
-  //CanvasProxy transferControlToProxy();
+  RenderingContext? getContext(DOMString contextId, optional any options = null);
 
   [Throws]
-  DOMString toDataURL(optional DOMString type, any... arguments);
-  //void toBlob(FileCallback? _callback, optional DOMString type, any... arguments);
+  USVString toDataURL(optional DOMString type, optional any quality);
+  //void toBlob(BlobCallback _callback, optional DOMString type, optional any quality);
+  //OffscreenCanvas transferControlToOffscreen();
 };
+
+//callback BlobCallback = void (Blob? blob);

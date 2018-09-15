@@ -2,30 +2,25 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+// https://html.spec.whatwg.org/multipage/#2dcontext
+
+// typedef (HTMLImageElement or
+//          SVGImageElement) HTMLOrSVGImageElement;
+typedef HTMLImageElement HTMLOrSVGImageElement;
+
+typedef (HTMLOrSVGImageElement or
+         /*HTMLVideoElement or*/
+         HTMLCanvasElement or
+         /*ImageBitmap or*/
+         /*OffscreenCanvas or*/
+         /*CSSImageValue*/ CSSStyleValue) CanvasImageSource;
+
 enum CanvasFillRule { "nonzero", "evenodd" };
 
-// https://html.spec.whatwg.org/multipage/#2dcontext
-typedef (HTMLImageElement or
-         /* HTMLVideoElement or */
-         HTMLCanvasElement or
-         CanvasRenderingContext2D or
-         /* ImageBitmap or */
-         // This should probably be a CSSImageValue
-         // https://github.com/w3c/css-houdini-drafts/issues/416
-         CSSStyleValue) CanvasImageSource;
-
-//[Constructor(optional unsigned long width, unsigned long height)]
+[Exposed=Window]
 interface CanvasRenderingContext2D {
-
   // back-reference to the canvas
   readonly attribute HTMLCanvasElement canvas;
-
-  // canvas dimensions
-  //         attribute unsigned long width;
-  //         attribute unsigned long height;
-
-  // for contexts that aren't directly fixed to a specific canvas
-  //void commit(); // push the image to the output bitmap
 };
 CanvasRenderingContext2D implements CanvasState;
 CanvasRenderingContext2D implements CanvasTransform;
@@ -33,25 +28,25 @@ CanvasRenderingContext2D implements CanvasCompositing;
 CanvasRenderingContext2D implements CanvasImageSmoothing;
 CanvasRenderingContext2D implements CanvasFillStrokeStyles;
 CanvasRenderingContext2D implements CanvasShadowStyles;
+CanvasRenderingContext2D implements CanvasFilters;
 CanvasRenderingContext2D implements CanvasRect;
 CanvasRenderingContext2D implements CanvasDrawPath;
 CanvasRenderingContext2D implements CanvasUserInterface;
 CanvasRenderingContext2D implements CanvasText;
 CanvasRenderingContext2D implements CanvasDrawImage;
-CanvasRenderingContext2D implements CanvasHitRegion;
 CanvasRenderingContext2D implements CanvasImageData;
 CanvasRenderingContext2D implements CanvasPathDrawingStyles;
 CanvasRenderingContext2D implements CanvasTextDrawingStyles;
 CanvasRenderingContext2D implements CanvasPath;
 
-[NoInterfaceObject, Exposed=(Window, PaintWorklet)]
+[Exposed=(PaintWorklet, Window), NoInterfaceObject]
 interface CanvasState {
   // state
   void save(); // push state on state stack
   void restore(); // pop state stack and restore state
 };
 
-[NoInterfaceObject, Exposed=(Window, PaintWorklet)]
+[Exposed=(PaintWorklet, Window), NoInterfaceObject]
 interface CanvasTransform {
   // transformations (default transform is the identity matrix)
   void scale(unrestricted double x, unrestricted double y);
@@ -75,23 +70,22 @@ interface CanvasTransform {
   void resetTransform();
 };
 
-[NoInterfaceObject, Exposed=(Window, PaintWorklet)]
+[Exposed=(PaintWorklet, Window), NoInterfaceObject]
 interface CanvasCompositing {
   // compositing
   attribute unrestricted double globalAlpha; // (default 1.0)
   attribute DOMString globalCompositeOperation; // (default source-over)
 };
 
-[NoInterfaceObject, Exposed=(Window, PaintWorklet)]
+[Exposed=(PaintWorklet, Window), NoInterfaceObject]
 interface CanvasImageSmoothing {
   // image smoothing
   attribute boolean imageSmoothingEnabled; // (default true)
   // attribute ImageSmoothingQuality imageSmoothingQuality; // (default low)
 };
 
-[NoInterfaceObject, Exposed=(Window, PaintWorklet)]
+[Exposed=(PaintWorklet, Window), NoInterfaceObject]
 interface CanvasFillStrokeStyles {
-
   // colours and styles (see also the CanvasDrawingStyles interface)
   attribute (DOMString or CanvasGradient or CanvasPattern) strokeStyle; // (default black)
   attribute (DOMString or CanvasGradient or CanvasPattern) fillStyle; // (default black)
@@ -102,7 +96,7 @@ interface CanvasFillStrokeStyles {
   CanvasPattern createPattern(CanvasImageSource image, [TreatNullAs=EmptyString] DOMString repetition);
 };
 
-[NoInterfaceObject, Exposed=(Window, PaintWorklet)]
+[Exposed=(PaintWorklet, Window), NoInterfaceObject]
 interface CanvasShadowStyles {
   // shadows
   attribute unrestricted double shadowOffsetX; // (default 0)
@@ -111,32 +105,30 @@ interface CanvasShadowStyles {
   attribute DOMString shadowColor; // (default transparent black)
 };
 
-[NoInterfaceObject, Exposed=(Window, PaintWorklet)]
+[Exposed=(PaintWorklet, Window), NoInterfaceObject]
+interface CanvasFilters {
+  // filters
+  //attribute DOMString filter; // (default "none")
+};
+
+[Exposed=(PaintWorklet, Window), NoInterfaceObject]
 interface CanvasRect {
   // rects
-  //[LenientFloat]
   void clearRect(unrestricted double x, unrestricted double y, unrestricted double w, unrestricted double h);
-  //[LenientFloat]
   void fillRect(unrestricted double x, unrestricted double y, unrestricted double w, unrestricted double h);
-  //[LenientFloat]
   void strokeRect(unrestricted double x, unrestricted double y, unrestricted double w, unrestricted double h);
 };
 
-[NoInterfaceObject, Exposed=(Window, PaintWorklet)]
+[Exposed=(PaintWorklet, Window), NoInterfaceObject]
 interface CanvasDrawPath {
-  // path API (see also CanvasPathMethods)
+  // path API (see also CanvasPath)
   void beginPath();
   void fill(optional CanvasFillRule fillRule = "nonzero");
   //void fill(Path2D path, optional CanvasFillRule fillRule = "nonzero");
   void stroke();
   //void stroke(Path2D path);
-  //void drawFocusIfNeeded(Element element);
-  //void drawFocusIfNeeded(Path2D path, Element element);
-  //void scrollPathIntoView();
-  //void scrollPathIntoView(Path2D path);
   void clip(optional CanvasFillRule fillRule = "nonzero");
   //void clip(Path2D path, optional CanvasFillRule fillRule = "nonzero");
-  //void resetClip();
   boolean isPointInPath(unrestricted double x, unrestricted double y,
                         optional CanvasFillRule fillRule = "nonzero");
   //boolean isPointInPath(Path2D path, unrestricted double x, unrestricted double y,
@@ -145,14 +137,17 @@ interface CanvasDrawPath {
   //boolean isPointInStroke(Path2D path, unrestricted double x, unrestricted double y);
 };
 
-[NoInterfaceObject]
+[Exposed=(PaintWorklet, Window), NoInterfaceObject]
 interface CanvasUserInterface {
-  // TODO?
+  //void drawFocusIfNeeded(Element element);
+  //void drawFocusIfNeeded(Path2D path, Element element);
+  //void scrollPathIntoView();
+  //void scrollPathIntoView(Path2D path);
 };
 
-[NoInterfaceObject]
+[Exposed=(PaintWorklet, Window), NoInterfaceObject]
 interface CanvasText {
-  // text (see also the CanvasDrawingStyles interface)
+  // text (see also the CanvasPathDrawingStyles and CanvasTextDrawingStyles interfaces)
   [Pref="dom.canvas-text.enabled"]
   void fillText(DOMString text, unrestricted double x, unrestricted double y,
                 optional unrestricted double maxWidth);
@@ -161,7 +156,7 @@ interface CanvasText {
   //TextMetrics measureText(DOMString text);
 };
 
-[NoInterfaceObject, Exposed=(Window, PaintWorklet)]
+[Exposed=(PaintWorklet, Window), NoInterfaceObject]
 interface CanvasDrawImage {
   // drawing images
   [Throws]
@@ -176,15 +171,7 @@ interface CanvasDrawImage {
                                           unrestricted double dw, unrestricted double dh);
 };
 
-[NoInterfaceObject]
-interface CanvasHitRegion {
-  // hit regions
-  //void addHitRegion(optional HitRegionOptions options);
-  //void removeHitRegion(DOMString id);
-  //void clearHitRegions();
-};
-
-[NoInterfaceObject]
+[Exposed=Window, NoInterfaceObject]
 interface CanvasImageData {
   // pixel manipulation
   [Throws]
@@ -199,9 +186,6 @@ interface CanvasImageData {
                     double dirtyX, double dirtyY,
                     double dirtyWidth, double dirtyHeight);
 };
-CanvasRenderingContext2D implements CanvasPathDrawingStyles;
-CanvasRenderingContext2D implements CanvasTextDrawingStyles;
-CanvasRenderingContext2D implements CanvasPath;
 
 enum CanvasLineCap { "butt", "round", "square" };
 enum CanvasLineJoin { "round", "bevel", "miter"};
@@ -209,12 +193,12 @@ enum CanvasTextAlign { "start", "end", "left", "right", "center" };
 enum CanvasTextBaseline { "top", "hanging", "middle", "alphabetic", "ideographic", "bottom" };
 enum CanvasDirection { "ltr", "rtl", "inherit" };
 
-[NoInterfaceObject, Exposed=(Window, PaintWorklet)]
+[Exposed=(PaintWorklet, Window), NoInterfaceObject]
 interface CanvasPathDrawingStyles {
   // line caps/joins
   attribute unrestricted double lineWidth; // (default 1)
-  attribute CanvasLineCap lineCap; // "butt", "round", "square" (default "butt")
-  attribute CanvasLineJoin lineJoin; // "round", "bevel", "miter" (default "miter")
+  attribute CanvasLineCap lineCap; // (default "butt")
+  attribute CanvasLineJoin lineJoin; // (default "miter")
   attribute unrestricted double miterLimit; // (default 10)
 
   // dashed lines
@@ -223,7 +207,7 @@ interface CanvasPathDrawingStyles {
   //attribute unrestricted double lineDashOffset;
 };
 
-[NoInterfaceObject]
+[Exposed=(PaintWorklet, Window), NoInterfaceObject]
 interface CanvasTextDrawingStyles {
   // text
   //attribute DOMString font; // (default 10px sans-serif)
@@ -233,7 +217,7 @@ interface CanvasTextDrawingStyles {
   //attribute CanvasDirection direction; // "ltr", "rtl", "inherit" (default: "inherit")
 };
 
-[NoInterfaceObject, Exposed=(Window, Worker, PaintWorklet)]
+[Exposed=(PaintWorklet, Window), NoInterfaceObject]
 interface CanvasPath {
   // shared path API methods
   void closePath();
@@ -253,17 +237,12 @@ interface CanvasPath {
   void arcTo(unrestricted double x1, unrestricted double y1,
              unrestricted double x2, unrestricted double y2,
              unrestricted double radius);
-  // [LenientFloat] void arcTo(double x1, double y1, double x2, double y2,
-  //                           double radiusX, double radiusY, double rotation);
 
   void rect(unrestricted double x, unrestricted double y, unrestricted double w, unrestricted double h);
 
   [Throws]
   void arc(unrestricted double x, unrestricted double y, unrestricted double radius,
            unrestricted double startAngle, unrestricted double endAngle, optional boolean anticlockwise = false);
-  // [LenientFloat] void ellipse(double x, double y, double radiusX, double radiusY,
-  //                             double rotation, double startAngle, double endAngle,
-  //                             boolean anticlockwise);
 
   [Throws]
   void ellipse(unrestricted double x, unrestricted double y, unrestricted double radius_x,
