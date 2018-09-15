@@ -38,7 +38,7 @@ pub struct CanvasImageData {
 pub enum Canvas2dMsg {
     Arc(Point2D<f32>, f32, f32, f32, bool),
     ArcTo(Point2D<f32>, Point2D<f32>, f32),
-    DrawImage(ByteBuf, Size2D<f64>, Rect<f64>, Rect<f64>, bool),
+    DrawImage(Option<ByteBuf>, Size2D<f64>, Rect<f64>, Rect<f64>, bool),
     DrawImageSelf(Size2D<f64>, Rect<f64>, Rect<f64>, bool),
     DrawImageInOther(
         CanvasId, Size2D<f64>, Rect<f64>, Rect<f64>, bool),

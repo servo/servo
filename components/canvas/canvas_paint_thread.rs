@@ -132,15 +132,21 @@ impl<'a> CanvasPaintThread <'a> {
                 self.canvas(canvas_id).is_point_in_path(x, y, fill_rule, chan)
             },
             Canvas2dMsg::DrawImage(
-                mut imagedata,
+                imagedata,
                 image_size,
                 dest_rect,
                 source_rect,
                 smoothing_enabled,
             ) => {
-                byte_swap(&mut imagedata);
+                let data = match imagedata {
+                    None => vec![0; image_size.width as usize * image_size.height as usize * 4],
+                    Some(mut data) => {
+                        byte_swap(&mut data);
+                        data.into()
+                    },
+                };
                 self.canvas(canvas_id).draw_image(
-                    imagedata.into(),
+                    data,
                     image_size,
                     dest_rect,
                     source_rect,
