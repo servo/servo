@@ -167,8 +167,11 @@ impl Image {
         })
     }
 
-    /// Provides an alternate method for parsing that associates the URL
-    /// with anonymous CORS headers.
+    /// Provides an alternate method for parsing that associates the URL with
+    /// anonymous CORS headers.
+    ///
+    /// FIXME(emilio): It'd be nicer for this to pass a `CorsMode` parameter to
+    /// a shared function instead.
     pub fn parse_with_cors_anonymous<'i, 't>(
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
