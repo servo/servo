@@ -97,7 +97,6 @@ impl Parse for FloatAreaShape {
 impl<ReferenceBox, ImageOrUrl> ShapeSource<BasicShape, ReferenceBox, ImageOrUrl>
 where
     ReferenceBox: Parse,
-    ImageOrUrl: Parse,
 {
     /// The internal parser for ShapeSource.
     fn parse_common<'i, 't>(
