@@ -322,7 +322,7 @@ fn all_pointer_capabilities(device: &Device) -> PointerCapabilities {
     )
 }
 
-#[derive(Debug, Copy, Clone, FromPrimitive, ToCss, Parse)]
+#[derive(Clone, Copy, Debug, FromPrimitive, Parse, ToCss)]
 #[repr(u8)]
 enum Pointer {
     None,
@@ -356,7 +356,7 @@ fn eval_any_pointer(device: &Device, query_value: Option<Pointer>) -> bool {
     eval_pointer_capabilities(query_value, all_pointer_capabilities(device))
 }
 
-#[derive(Debug, Copy, Clone, FromPrimitive, ToCss, Parse)]
+#[derive(Clone, Copy, Debug, FromPrimitive, Parse, ToCss)]
 #[repr(u8)]
 enum Hover {
     None,
