@@ -168,7 +168,7 @@ interface RTCIceCandidate {
     readonly        attribute DOMString? foundation;
     readonly        attribute RTCIceComponent? component;
     readonly        attribute unsigned long? priority;
-    readonly        attribute DOMString? ip;
+    readonly        attribute DOMString? address;
     readonly        attribute RTCIceProtocol? protocol;
     readonly        attribute unsigned short? port;
     readonly        attribute RTCIceCandidateType? type;

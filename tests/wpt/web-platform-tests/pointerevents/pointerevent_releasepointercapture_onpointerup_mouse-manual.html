@@ -25,9 +25,14 @@
             var isPointerCapture = false;
             var pointerupGot = false;
             var count=0;
+            var event_log = [];
 
             var detected_pointertypes = {};
-            add_completion_callback(showPointerTypes);
+            add_completion_callback(end_of_test);
+            function end_of_test() {
+                showLoggedEvents();
+                showPointerTypes();
+            }
 
             var target0 = document.getElementById('target0');
             var captureButton = document.getElementById('btnCapture');
@@ -45,7 +50,7 @@
                 });
 
                 on_event(target0, 'gotpointercapture', function(e) {
-                    log("gotpointercapture", document.getElementById('target0'));
+                    event_log.push('gotpointercapture@target0');
                 });
 
                 // If the setPointerCapture method has been invoked on the pointer specified by pointerId,
@@ -58,13 +63,13 @@
                     test(function() {
                         assert_true(pointerupGot, "pointerup was received before lostpointercapture")
                     }, "pointerup was received before lostpointercapture");
-                    log("lostpointercapture", document.getElementById('target0'));
+                    event_log.push('lostpointercapture@target0');
                     isPointerCapture = false;
                     done();
                 });
 
                 on_event(target0, 'pointerup', function(e) {
-                    log("pointerup", target0);
+                    event_log.push('pointerup@target0');
                     pointerupGot = true;
                 });
             }
@@ -73,6 +78,7 @@
         <div id="complete-notice">
             <p>Test complete: Scroll to Summary to view Pass/Fail Results.</p>
             <p>The following pointer types were detected: <span id="pointertype-log"></span>.</p>
+            <p>The following events were logged: <span id="event-log"></span>.</p>
         </div>
         <div id="log"></div>
     </body>

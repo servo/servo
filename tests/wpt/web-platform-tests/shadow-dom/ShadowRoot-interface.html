@@ -94,8 +94,10 @@ function testStyleSheets(mode) {
         var host = document.createElement('div');
         var shadowRoot = host.attachShadow({'mode': mode});
 
-        assert_equals(shadowRoot.styleSheets.length, 0, 'shadowRoot.styleSheets must be empty when the shadow root does not contain any stylesheets');
         shadowRoot.innerHTML = '<span></span><style> a.rule {} </style><style> b.rule {} </style>';
+        assert_equals(shadowRoot.styleSheets.length, 0, 'shadowRoot.styleSheets must be empty when the shadow root is not connected');
+
+        document.body.appendChild(host);
         assert_equals(shadowRoot.styleSheets.length, 2, 'shadowRoot.styleSheets must contain two items when the shadow root has two style elements');
         var styles = shadowRoot.querySelectorAll('style');
         assert_equals(shadowRoot.styleSheets[0], styles[0].sheet, 'shadowRoot.styleSheets[0] must be the first style element in the shadow root');

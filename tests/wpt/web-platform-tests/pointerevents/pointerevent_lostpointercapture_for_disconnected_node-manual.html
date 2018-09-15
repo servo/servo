@@ -26,9 +26,14 @@
         <script type='text/javascript'>
             var isDisconnected = false;
             var count = 0;
+            var event_log = [];
 
             var detected_pointertypes = {};
-            add_completion_callback(showPointerTypes);
+            add_completion_callback(end_of_test);
+            function end_of_test() {
+                showLoggedEvents();
+                showPointerTypes();
+            }
 
             var target0 = document.getElementById('target0');
             var target1 = document.getElementById('target1');
@@ -43,13 +48,13 @@
                 });
 
                 on_event(target0, 'gotpointercapture', function(e) {
-                    log("gotpointercapture", target1);
+                    event_log.push('gotpointercapture@target1');
                     isDisconnected = true;
                     target0.parentNode.removeChild(target0);
                 });
 
                 on_event(target0, 'lostpointercapture', function(e) {
-                    log("lostpointercapture on element", target1);
+                    event_log.push('lostpointercapture@target0');
                     test(function() {
                         // TA: 11.3
                         assert_unreached("lostpointercapture must be fired on the document, not the capturing element");
@@ -57,7 +62,7 @@
                 });
 
                 on_event(document, 'lostpointercapture', function(e) {
-                    log("lostpointercapture on document", target1);
+                    event_log.push('lostpointercapture@document');
                     test(function() {
                         // TA: 11.3
                         assert_true(isDisconnected, "lostpointercapture must be fired on the document");
@@ -69,6 +74,7 @@
         <h1>Pointer Events Capture Test</h1>
         <div id="complete-notice">
             <p>The following pointer types were detected: <span id="pointertype-log"></span>.</p>
+            <p>The following events were logged: <span id="event-log"></span>.</p>
         </div>
         <div id="log"></div>
     </body>

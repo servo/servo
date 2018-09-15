@@ -33,6 +33,11 @@ function redirected_test(options) {
         assert_equals(
             cloned_response.redirected, options.expected_redirected,
             'The redirected flag of cloned response must match. URL: ' + options.url);
+        if (options.expected_response_url) {
+            assert_equals(
+                cloned_response.url, options.expected_response_url,
+                'The URL does not meet expectation. URL: ' + options.url);
+        }
         return cache.put(options.url, response);
       })
     .then(_ => cache.match(options.url))
@@ -348,4 +353,23 @@ promise_test(t => setup_and_clean()
         });
     }),
   'Fetch should not follow the redirect response 21 times.');
+
+// =======================================================
+// A test for verifying the url of a service-worker-redirected request is
+// propagated to the outer response.
+// =======================================================
+promise_test(t => setup_and_clean()
+    .then(() => {
+      const url = host_info['HTTPS_ORIGIN'] + base_path() + 'dummy?url=' +
+                  encodeURIComponent(TARGET_URL) +'&sw=fetch-url';
+      return redirected_test({url: url,
+                              fetch_option: {},
+                              fetch_method: frame.contentWindow.fetch,
+                              expected_type: 'basic',
+                              expected_redirected: false,
+                              expected_intercepted_urls: [url],
+                              expected_response_url: TARGET_URL});
+    }),
+  'The URL for the service worker redirected request should be propagated to ' +
+  'response.');
 </script>
