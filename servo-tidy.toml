@@ -13,23 +13,20 @@ lint-scripts = [
 # For each blocked package, we can list the exceptions,
 # which are packages allowed to use the blocked package.
 [blocked-packages]
+num = []
 rand = [
   "crossbeam-channel",  # Used to initialize a thread-local
   "gaol",
-  "hashglobe", # only uses in tests
+  "hashglobe", # Only used in tests
   "ipc-channel",
   "parking_lot_core",
   "phf_generator",
-  "rayon",
+  "rand",
   "rayon-core",
   "servo_rand",
   "tempfile",
   "uuid",
   "ws",
-  "rand",
-]
-num = [
-  "chrono",
 ]
 
 [ignore]
@@ -39,15 +36,15 @@ packages = [
   "crossbeam-epoch",
   "crossbeam-utils",
   "log",
-  #TODO: remove num-rational when https://github.com/PistonDevelopers/image/pull/809 is merged.
+  # TODO: remove num-rational when https://github.com/PistonDevelopers/image/pull/809 is merged.
   "num-rational",
+  "proc-macro2",
+  "quote",
   "rand",
-  "winapi",
   # TODO: remove slab when #21426 lands
   "slab",
   "syn",
-  "quote",
-  "proc-macro2",
+  "winapi",
 ]
 # Files that are ignored for all tidy and lint checks.
 files = [
