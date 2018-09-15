@@ -2618,7 +2618,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "plane-split"
-version = "0.12.1"
+version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "binary-space-partition 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -2801,7 +2801,7 @@ dependencies = [
  "lazy_static 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.42 (registry+https://github.com/rust-lang/crates.io-index)",
  "num_cpus 1.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "rand 0.3.22 (registry+https://github.com/rust-lang/crates.io-index)",
+ "rand 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -4029,7 +4029,7 @@ dependencies = [
 [[package]]
 name = "webrender"
 version = "0.57.2"
-source = "git+https://github.com/servo/webrender#38f3b57cd9bf2c6fb736d14832fee87eb576e322"
+source = "git+https://github.com/servo/webrender#9156a4465f6ad715a0206cdd9a7e9a6f0385fbd6"
 dependencies = [
  "app_units 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "base64 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -4049,7 +4049,7 @@ dependencies = [
  "lazy_static 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.4.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "num-traits 0.2.4 (registry+https://github.com/rust-lang/crates.io-index)",
- "plane-split 0.12.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "plane-split 0.13.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "rayon 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "ron 0.1.7 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 1.0.66 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -4064,7 +4064,7 @@ dependencies = [
 [[package]]
 name = "webrender_api"
 version = "0.57.2"
-source = "git+https://github.com/servo/webrender#38f3b57cd9bf2c6fb736d14832fee87eb576e322"
+source = "git+https://github.com/servo/webrender#9156a4465f6ad715a0206cdd9a7e9a6f0385fbd6"
 dependencies = [
  "app_units 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "bincode 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -4506,7 +4506,7 @@ dependencies = [
 "checksum phf_generator 0.7.21 (registry+https://github.com/rust-lang/crates.io-index)" = "6b07ffcc532ccc85e3afc45865469bf5d9e4ef5bfcf9622e3cfe80c2d275ec03"
 "checksum phf_shared 0.7.21 (registry+https://github.com/rust-lang/crates.io-index)" = "07e24b0ca9643bdecd0632f2b3da6b1b89bbb0030e0b992afc1113b23a7bc2f2"
 "checksum pkg-config 0.3.14 (registry+https://github.com/rust-lang/crates.io-index)" = "676e8eb2b1b4c9043511a9b7bea0915320d7e502b0a079fb03f9635a5252b18c"
-"checksum plane-split 0.12.1 (registry+https://github.com/rust-lang/crates.io-index)" = "ff3a4fc9e31d70eb6828e9a2d7a401a824d9f281686a39a8fc06f08796edb1bb"
+"checksum plane-split 0.13.0 (registry+https://github.com/rust-lang/crates.io-index)" = "64d766f38b15fe1337bdddfc869ef5c50437323f857aaaadc6490197db80a1b8"
 "checksum png 0.12.0 (registry+https://github.com/rust-lang/crates.io-index)" = "f54b9600d584d3b8a739e1662a595fab051329eff43f20e7d8cc22872962145b"
 "checksum podio 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)" = "780fb4b6698bbf9cf2444ea5d22411cef2953f0824b98f33cf454ec5615645bd"
 "checksum precomputed-hash 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)" = "925383efa346730478fb4838dbe9137d2a47675ad789c546d150a6e1dd4ab31c"

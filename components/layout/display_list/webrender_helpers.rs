@@ -123,6 +123,7 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                     item.item.image_rendering,
                     item.item.alpha_type,
                     item.item.image_key,
+                    item.item.color,
                 );
             },
             DisplayItem::Border(ref item) => {

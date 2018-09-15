@@ -1081,6 +1081,7 @@ impl FragmentDisplayListBuilding for Fragment {
                     tile_spacing: placement.tile_spacing.to_layout(),
                     image_rendering: style.get_inherited_box().image_rendering.to_layout(),
                     alpha_type: webrender_api::AlphaType::PremultipliedAlpha,
+                    color: webrender_api::ColorF::WHITE,
                 },
             );
         });
@@ -1994,6 +1995,7 @@ impl FragmentDisplayListBuilding for Fragment {
                                     .image_rendering
                                     .to_layout(),
                                 alpha_type: webrender_api::AlphaType::PremultipliedAlpha,
+                                color: webrender_api::ColorF::WHITE,
                             },
                         );
                     }
@@ -2011,6 +2013,7 @@ impl FragmentDisplayListBuilding for Fragment {
                             tile_spacing: LayoutSize::zero(),
                             image_rendering: ImageRendering::Auto,
                             alpha_type: webrender_api::AlphaType::PremultipliedAlpha,
+                            color: webrender_api::ColorF::WHITE,
                         },
                     );
                 }
@@ -2040,6 +2043,7 @@ impl FragmentDisplayListBuilding for Fragment {
                     tile_spacing: LayoutSize::zero(),
                     image_rendering: ImageRendering::Auto,
                     alpha_type: webrender_api::AlphaType::PremultipliedAlpha,
+                    color: webrender_api::ColorF::WHITE,
                 };
 
                 state.add_image_item(base, display_item);

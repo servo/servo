@@ -636,7 +636,8 @@ impl<T: WebGLExternalImageApi> webrender::ExternalImageHandler for WebGLExternal
     /// The WR client should not change the image content until the unlock() call.
     fn lock(&mut self,
             key: webrender_api::ExternalImageId,
-            _channel_index: u8) -> webrender::ExternalImage {
+            _channel_index: u8,
+            _rendering: webrender_api::ImageRendering) -> webrender::ExternalImage {
         let ctx_id = WebGLContextId(key.0 as _);
         let (texture_id, size) = self.handler.lock(ctx_id);
 
