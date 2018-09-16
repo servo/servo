@@ -109,8 +109,8 @@ dependencies = [
 
 [[package]]
 name = "azure"
-version = "0.33.0"
-source = "git+https://github.com/servo/rust-azure#43e61bda11f26e8462cfa63affac17c43df53b84"
+version = "0.34.0"
+source = "git+https://github.com/servo/rust-azure#1536ca66954356ece017343e3cd30b293134dc3f"
 dependencies = [
  "cmake 0.1.29 (registry+https://github.com/rust-lang/crates.io-index)",
  "euclid 0.19.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -324,7 +324,7 @@ dependencies = [
 name = "canvas"
 version = "0.0.1"
 dependencies = [
- "azure 0.33.0 (git+https://github.com/servo/rust-azure)",
+ "azure 0.34.0 (git+https://github.com/servo/rust-azure)",
  "canvas_traits 0.0.1",
  "compositing 0.0.1",
  "cssparser 0.24.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -2851,7 +2851,7 @@ dependencies = [
  "lazy_static 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.42 (registry+https://github.com/rust-lang/crates.io-index)",
  "num_cpus 1.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "rand 0.3.22 (registry+https://github.com/rust-lang/crates.io-index)",
+ "rand 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -4335,7 +4335,7 @@ dependencies = [
 "checksum atomic_refcell 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)" = "fb2dcb6e6d35f20276943cc04bb98e538b348d525a04ac79c10021561d202f21"
 "checksum atty 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)" = "21e50800ec991574876040fff8ee46b136a53e985286fbe6a3bdfe6421b78860"
 "checksum audio-video-metadata 0.1.7 (registry+https://github.com/rust-lang/crates.io-index)" = "3c23600291b35b9cd381f5cfca636f5d7d75e7d7192eddf867de84a6732cad5c"
-"checksum azure 0.33.0 (git+https://github.com/servo/rust-azure)" = "<none>"
+"checksum azure 0.34.0 (git+https://github.com/servo/rust-azure)" = "<none>"
 "checksum backtrace 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)" = "72f9b4182546f4b04ebc4ab7f84948953a118bd6021a1b6a6c909e3e94f6be76"
 "checksum backtrace-sys 0.1.16 (registry+https://github.com/rust-lang/crates.io-index)" = "44585761d6161b0f57afc49482ab6bd067e4edef48c12a152c237eb0203f7661"
 "checksum base64 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)" = "96434f987501f0ed4eb336a411e0631ecd1afa11574fe148587adc4ff96143c9"

@@ -405,51 +405,52 @@ impl<'a> CanvasData<'a> {
         }
     }
 
+    #[allow(unsafe_code)]
     pub fn send_pixels(&mut self, chan: IpcSender<Option<ByteBuf>>) {
-        self.drawtarget.snapshot().get_data_surface().with_data(|element| {
-            chan.send(Some(Vec::from(element).into())).unwrap();
-        })
+        let data = unsafe { self.drawtarget.snapshot().get_data_surface().data().to_vec() };
+        chan.send(Some(data.into())).unwrap();
     }
 
+    #[allow(unsafe_code)]
     pub fn send_data(&mut self, chan: IpcSender<CanvasImageData>) {
-        self.drawtarget.snapshot().get_data_surface().with_data(|element| {
-            let size = self.drawtarget.get_size();
+        let size = self.drawtarget.get_size();
 
-            let descriptor = webrender_api::ImageDescriptor {
-                size: webrender_api::DeviceUintSize::new(size.width as u32, size.height as u32),
-                stride: None,
-                format: webrender_api::ImageFormat::BGRA8,
-                offset: 0,
-                is_opaque: false,
-                allow_mipmaps: false,
-            };
-            let data = webrender_api::ImageData::Raw(Arc::new(element.into()));
+        let descriptor = webrender_api::ImageDescriptor {
+            size: webrender_api::DeviceUintSize::new(size.width as u32, size.height as u32),
+            stride: None,
+            format: webrender_api::ImageFormat::BGRA8,
+            offset: 0,
+            is_opaque: false,
+            allow_mipmaps: false,
+        };
+        let data = webrender_api::ImageData::Raw(Arc::new(
+            unsafe { self.drawtarget.snapshot().get_data_surface().data().into() },
+        ));
 
-            let mut txn = webrender_api::Transaction::new();
+        let mut txn = webrender_api::Transaction::new();
 
-            match self.image_key {
-                Some(image_key) => {
-                    debug!("Updating image {:?}.", image_key);
-                    txn.update_image(image_key, descriptor, data, None);
-                }
-                None => {
-                    self.image_key = Some(self.webrender_api.generate_image_key());
-                    debug!("New image {:?}.", self.image_key);
-                    txn.add_image(self.image_key.unwrap(), descriptor, data, None);
-                }
+        match self.image_key {
+            Some(image_key) => {
+                debug!("Updating image {:?}.", image_key);
+                txn.update_image(image_key, descriptor, data, None);
             }
-
-            if let Some(image_key) = mem::replace(&mut self.very_old_image_key, self.old_image_key.take()) {
-                txn.delete_image(image_key);
+            None => {
+                self.image_key = Some(self.webrender_api.generate_image_key());
+                debug!("New image {:?}.", self.image_key);
+                txn.add_image(self.image_key.unwrap(), descriptor, data, None);
             }
+        }
 
-            self.webrender_api.update_resources(txn.resource_updates);
+        if let Some(image_key) = mem::replace(&mut self.very_old_image_key, self.old_image_key.take()) {
+            txn.delete_image(image_key);
+        }
 
-            let data = CanvasImageData {
-                image_key: self.image_key.unwrap(),
-            };
-            chan.send(data).unwrap();
-        })
+        self.webrender_api.update_resources(txn.resource_updates);
+
+        let data = CanvasImageData {
+            image_key: self.image_key.unwrap(),
+        };
+        chan.send(data).unwrap();
     }
 
     pub fn image_data(
@@ -606,6 +607,7 @@ impl<'a> CanvasData<'a> {
     /// It reads image data from the canvas
     /// canvas_size: The size of the canvas we're reading from
     /// read_rect: The area of the canvas we want to read from
+    #[allow(unsafe_code)]
     pub fn read_pixels(&self, read_rect: Rect<i32>, canvas_size: Size2D<f64>) -> Vec<u8> {
         let canvas_size = canvas_size.to_i32();
         let canvas_rect = Rect::new(Point2D::new(0i32, 0i32), canvas_size);
@@ -617,8 +619,7 @@ impl<'a> CanvasData<'a> {
         }
 
         let data_surface = self.drawtarget.snapshot().get_data_surface();
-        let mut src_data = Vec::new();
-        data_surface.with_data(|element| { src_data = element.to_vec(); });
+        let src_data = unsafe { data_surface.data() };
         let stride = data_surface.stride();
 
         //start offset of the copyable rectangle
