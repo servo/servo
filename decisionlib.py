@@ -122,7 +122,7 @@ class DecisionTask:
             env["GITHUB_EVENT_CLONE_URL"] = clone_url
 
             command = """
-                    git clone $GITHUB_EVENT_CLONE_URL repo
+                    git clone --depth 1 $GITHUB_EVENT_CLONE_URL repo
                     cd repo
                     git checkout $GITHUB_EVENT_COMMIT_SHA
                 """ + command
