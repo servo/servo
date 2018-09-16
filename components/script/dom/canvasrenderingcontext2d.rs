@@ -361,25 +361,13 @@ impl CanvasRenderingContext2D {
         if let Some(context) = canvas.context() {
             match *context {
                 CanvasContext::Context2d(ref context) => {
-                    if self.canvas.as_ref().map_or(false, |c| &**c == canvas) {
-                        self.send_canvas_2d_msg(Canvas2dMsg::DrawImageSelf(
-                            image_size,
-                            dest_rect,
-                            source_rect,
-                            smoothing_enabled,
-                        ));
-                    } else {
-                        context.get_ipc_renderer().send(CanvasMsg::Canvas2d(
-                            Canvas2dMsg::DrawImageInOther(
-                                self.get_canvas_id(),
-                                image_size,
-                                dest_rect,
-                                source_rect,
-                                smoothing_enabled,
-                            ),
-                            context.get_canvas_id(),
-                        )).unwrap();
-                    }
+                    context.send_canvas_2d_msg(Canvas2dMsg::DrawImageInOther(
+                        self.get_canvas_id(),
+                        image_size,
+                        dest_rect,
+                        source_rect,
+                        smoothing_enabled,
+                    ));
                 },
                 _ => return Err(Error::InvalidState),
             }

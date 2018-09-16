@@ -85,21 +85,6 @@ impl<'a> CanvasData<'a> {
         }
     }
 
-    pub fn draw_image_self(
-        &self,
-        image_size: Size2D<f64>,
-        dest_rect: Rect<f64>,
-        source_rect: Rect<f64>,
-        smoothing_enabled: bool
-    ) {
-        // Reads pixels from source image
-        // In this case source and target are the same canvas
-        let image_data = self.read_pixels(source_rect.to_i32(), image_size);
-
-        // The dimensions of image_data are source_rect.size
-        self.draw_image(image_data, source_rect.size, dest_rect, source_rect, smoothing_enabled);
-    }
-
     pub fn save_context_state(&mut self) {
         self.saved_states.push(self.state.clone());
     }

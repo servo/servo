@@ -153,19 +153,6 @@ impl<'a> CanvasPaintThread <'a> {
                     smoothing_enabled,
                 )
             },
-            Canvas2dMsg::DrawImageSelf(
-                image_size,
-                dest_rect,
-                source_rect,
-                smoothing_enabled
-            ) => {
-                self.canvas(canvas_id).draw_image_self(
-                    image_size,
-                    dest_rect,
-                    source_rect,
-                    smoothing_enabled
-                )
-            },
             Canvas2dMsg::DrawImageInOther(
                 other_canvas_id,
                 image_size,
@@ -173,9 +160,10 @@ impl<'a> CanvasPaintThread <'a> {
                 source_rect,
                 smoothing
             ) => {
-                let mut image_data = self.canvas(canvas_id).read_pixels(
-                            source_rect.to_i32(),
-                            image_size);
+                let image_data = self.canvas(canvas_id).read_pixels(
+                    source_rect.to_i32(),
+                    image_size,
+                );
                 self.canvas(other_canvas_id).draw_image(
                     image_data.into(),
                     source_rect.size,
