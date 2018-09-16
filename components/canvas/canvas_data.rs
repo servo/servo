@@ -613,9 +613,8 @@ impl<'a> CanvasData<'a> {
         let canvas_rect = Rect::new(Point2D::new(0i32, 0i32), canvas_size);
         let src_read_rect = canvas_rect.intersection(&read_rect).unwrap_or(Rect::zero());
 
-        let mut image_data = vec![];
         if src_read_rect.is_empty() || canvas_size.width <= 0 && canvas_size.height <= 0 {
-          return image_data;
+          return vec![];
         }
 
         let data_surface = self.drawtarget.snapshot().get_data_surface();
@@ -624,6 +623,9 @@ impl<'a> CanvasData<'a> {
 
         //start offset of the copyable rectangle
         let mut src = (src_read_rect.origin.y * stride + src_read_rect.origin.x * 4) as usize;
+        let mut image_data = Vec::with_capacity(
+            (src_read_rect.size.width * src_read_rect.size.height * 4) as usize,
+        );
         //copy the data to the destination vector
         for _ in 0..src_read_rect.size.height {
             let row = &src_data[src .. src + (4 * src_read_rect.size.width) as usize];
