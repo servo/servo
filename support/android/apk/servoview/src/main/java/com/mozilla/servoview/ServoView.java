@@ -26,6 +26,8 @@ import com.mozilla.servoview.Servo.RunCallback;
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
 
+import org.freedesktop.gstreamer.GStreamer;
+
 public class ServoView extends GLSurfaceView
         implements
         GestureDetector.OnGestureListener,
@@ -147,6 +149,11 @@ public class ServoView extends GLSurfaceView
         inGLThread(() -> {
             String uri = mInitialUri == null ? null : mInitialUri.toString();
             mServo = new Servo(this, this, mClient, mActivity, mServoArgs, uri, mServoLog, width, height, density, showLogs);
+            try {
+              GStreamer.init((Context) mActivity);
+            } catch (Exception e) {
+              e.printStackTrace();
+            }
         });
     }
 
