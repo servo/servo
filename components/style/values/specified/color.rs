@@ -317,12 +317,12 @@ impl Color {
             .map_err(|()| location.new_custom_error(StyleParseErrorKind::UnspecifiedError))
     }
 
-    /// Returns false if the color is completely transparent, and
-    /// true otherwise.
-    pub fn is_non_transparent(&self) -> bool {
+    /// Returns true if the color is completely transparent, and false
+    /// otherwise.
+    pub fn is_transparent(&self) -> bool {
         match *self {
-            Color::Numeric { ref parsed, .. } => parsed.alpha != 0,
-            _ => true,
+            Color::Numeric { ref parsed, .. } => parsed.alpha == 0,
+            _ => false,
         }
     }
 }
