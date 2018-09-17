@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/helper.sub.js"></script>
+
+<meta http-equiv="Content-Security-Policy" content="trusted-types">
+<body>
+<script>
+  // setTimeout tests
+  // TrustedScript assignments do not throw.
+  async_test(t => {
+    window.timeoutTest = t;
+    let policy = createScript_policy(window, 'timeout');
+    let script = policy.createScript("window.timeoutTest.done();");
+    setTimeout(script);
+  }, "window.setTimeout assigned via policy (successful Script transformation).");
+
+  // String assignments throw.
+  test(t => {
+    window.timeoutTestString = t.unreached_func();
+    assert_throws(new TypeError(), _ => {
+      setTimeout("window.timeoutTestString();");
+    });
+  }, "`window.setTimeout(string)` throws.");
+
+  // Null assignment throws.
+  test(t => {
+    assert_throws(new TypeError(), _ => {
+      setTimeout(null);
+    });
+  }, "`window.setTimeout(null)` throws.");
+
+  // setInterval tests
+  // TrustedScript assignments do not throw.
+  async_test(t => {
+    window.intervalTest = t;
+    let policy = createScript_policy(window, 'script');
+    let script = policy.createScript("window.intervalTest.done();");
+    setInterval(script);
+  }, "window.setInterval assigned via policy (successful Script transformation).");
+
+  // String assignments throw.
+  test(t => {
+    window.intervalTestString = t.unreached_func();
+    assert_throws(new TypeError(), _ => {
+      setInterval("window.intervalTestString()");
+    });
+  }, "`window.setInterval(string)` throws.");
+
+  // Null assignment throws.
+  test(t => {
+    assert_throws(new TypeError(), _ => {
+      setInterval(null);
+    });
+  }, "`window.setInterval(null)` throws.");
+</script>

@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/helper.sub.js"></script>
+<body>
+<script>
+  async_test(t => {
+    window.timeoutTest = t;
+    let policy = createScript_policy(window, 'timeout');
+    let script = policy.createScript("window.timeoutTest.done();");
+    setTimeout(script);
+  }, "window.setTimeout assigned via policy (successful Script transformation).");
+
+  async_test(t => {
+    window.intervalTest = t;
+    let policy = createScript_policy(window, 'script');
+    let script = policy.createScript("window.intervalTest.done();");
+    setInterval(script);
+  }, "window.setInterval assigned via policy (successful Script transformation).");
+</script>

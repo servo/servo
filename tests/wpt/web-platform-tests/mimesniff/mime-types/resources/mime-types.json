@@ -194,9 +194,9 @@
   },
   {
     "input": "text/html;charset=\"\";charset=GBK",
-    "output": "text/html;charset=GBK",
+    "output": "text/html;charset=\"\"",
     "navigable": true,
-    "encoding": "GBK"
+    "encoding": null
   },
   {
     "input": "text/html;charset=\";charset=GBK",

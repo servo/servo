@@ -46,9 +46,6 @@ test(unit(function (ctx) {
     assert_equals(s.styleSheets.length, 0, 'There should be no style sheets');
 }), 'A_06_00_03_T02');
 
-//TODO Now this tests produces an error on Chromium because styleSheets.length
-//returns 0 when the shadow root is orphaned.
-//Tracking bug: http://crbug.com/392771
 test(unit(function (ctx) {
     var d = newRenderedHTMLDocument(ctx);
     var host = d.createElement('div');
@@ -60,8 +57,7 @@ test(unit(function (ctx) {
     style.textContent = 'div {width: 50%;}';
     s.appendChild(style);
 
-    // The following line fixes the issue on Chromium, http://crbug.com/392771
-    // d.body.appendChild(host);
+    d.body.appendChild(host);
     assert_equals(s.styleSheets.length, 1, 'Style sheet is not accessible via styleSheets');
 }), 'A_06_00_03_T03');
 </script>

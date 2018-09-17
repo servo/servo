@@ -40,8 +40,13 @@
             var testStarted = false;
             var eventRcvd = false;
             var isAsync = false;
+            var event_log = [];
 
-            add_completion_callback(showPointerTypes);
+            add_completion_callback(end_of_test);
+            function end_of_test() {
+                showLoggedEvents();
+                showPointerTypes();
+            }
 
             var target0 = document.getElementById('target0');
             var captureButton = document.getElementById('btnCapture');
@@ -72,11 +77,11 @@
                             testStarted = true;
                             rPointerCapture(event);
                             isAsync = true;
-                            log("gotpointercapture", target0);
+                            event_log.push('gotpointercapture@target0');
                             return;
                         }
                         else if (event.type == "lostpointercapture") {
-                            log("lostpointercapture", target0);
+                            event_log.push('lostpointercapture@target0');
                             captureButton.value = 'Set Capture';
                             isPointerCapture = false;
 
@@ -123,6 +128,7 @@
         <h1>Pointer Events Capture Test</h1>
         <div id="complete-notice">
             <p>The following pointer types were detected: <span id="pointertype-log"></span>.</p>
+            <p>The following events were logged: <span id="event-log"></span>.</p>
         </div>
         <div id="log"></div>
     </body>

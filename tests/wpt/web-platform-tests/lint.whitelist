@@ -208,6 +208,8 @@ SET TIMEOUT: streams/piping/general.js
 SET TIMEOUT: streams/readable-streams/cancel.js
 SET TIMEOUT: streams/resources/rs-utils.js
 SET TIMEOUT: streams/writable-streams/byte-length-queuing-strategy.js
+SET TIMEOUT: trusted-types/block-string-assignment-to-DOMWindowTimers-setTimeout-setInterval.tentative.html
+SET TIMEOUT: trusted-types/DOMWindowTimers-setTimeout-setInterval.tentative.html
 SET TIMEOUT: user-timing/*
 SET TIMEOUT: webaudio/the-audio-api/the-mediaelementaudiosourcenode-interface/mediaElementAudioSourceToScriptProcessorTest.html
 SET TIMEOUT: webauthn/*timeout.https.html
