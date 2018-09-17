@@ -1438,39 +1438,6 @@ impl ShorthandId {
     }
 }
 
-/// Servo's representation of a declared value for a given `T`, which is the
-/// declared value for that property.
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub enum DeclaredValue<'a, T: 'a> {
-    /// A known specified value from the stylesheet.
-    Value(&'a T),
-    /// An CSS-wide keyword.
-    CSSWideKeyword(CSSWideKeyword),
-}
-
-/// A variant of DeclaredValue that owns its data. This separation exists so
-/// that PropertyDeclaration can avoid embedding a DeclaredValue (and its
-/// extra discriminant word) and synthesize dependent DeclaredValues for
-/// PropertyDeclaration instances as needed.
-#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-#[derive(Clone, Debug, Eq, PartialEq, ToCss)]
-pub enum DeclaredValueOwned<T> {
-    /// A known specified value from the stylesheet.
-    Value(T),
-    /// An CSS-wide keyword.
-    CSSWideKeyword(CSSWideKeyword),
-}
-
-impl<T> DeclaredValueOwned<T> {
-    /// Creates a dependent DeclaredValue from this DeclaredValueOwned.
-    fn borrow(&self) -> DeclaredValue<T> {
-        match *self {
-            DeclaredValueOwned::Value(ref v) => DeclaredValue::Value(v),
-            DeclaredValueOwned::CSSWideKeyword(v) => DeclaredValue::CSSWideKeyword(v),
-        }
-    }
-}
-
 /// An unparsed property value that contains `var()` functions.
 #[derive(Debug, Eq, PartialEq)]
 pub struct UnparsedValue {
@@ -1929,6 +1896,16 @@ pub struct VariableDeclaration {
     value: Arc<UnparsedValue>,
 }
 
+/// A custom property declaration value is either an unparsed value or a CSS
+/// wide-keyword.
+#[derive(Clone, PartialEq, ToCss)]
+pub enum CustomDeclarationValue {
+    /// A value.
+    Value(Arc<::custom_properties::SpecifiedValue>),
+    /// A wide keyword.
+    CSSWideKeyword(CSSWideKeyword),
+}
+
 /// A custom property declaration with the property name and the declared value.
 #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[derive(Clone, PartialEq, ToCss)]
@@ -1938,7 +1915,7 @@ pub struct CustomDeclaration {
     pub name: ::custom_properties::Name,
     /// The value of the custom property.
     #[cfg_attr(feature = "gecko", ignore_malloc_size_of = "XXX: how to handle this?")]
-    pub value: DeclaredValueOwned<Arc<::custom_properties::SpecifiedValue>>,
+    pub value: CustomDeclarationValue,
 }
 
 impl fmt::Debug for PropertyDeclaration {
@@ -2120,13 +2097,13 @@ impl PropertyDeclaration {
     /// This is the case of custom properties and values that contain
     /// unsubstituted variables.
     pub fn value_is_unparsed(&self) -> bool {
-      match *self {
-          PropertyDeclaration::WithVariables(..) => true,
-          PropertyDeclaration::Custom(ref declaration) => {
-            !matches!(declaration.value.borrow(), DeclaredValue::CSSWideKeyword(..))
-          }
-          _ => false,
-      }
+        match *self {
+            PropertyDeclaration::WithVariables(..) => true,
+            PropertyDeclaration::Custom(ref declaration) => {
+                matches!(declaration.value, CustomDeclarationValue::Value(..))
+            }
+            _ => false,
+        }
     }
 
     /// Returns true if this property declaration is for one of the animatable
@@ -2171,9 +2148,9 @@ impl PropertyDeclaration {
                 // before adding skip_whitespace here.
                 // This probably affects some test results.
                 let value = match input.try(CSSWideKeyword::parse) {
-                    Ok(keyword) => DeclaredValueOwned::CSSWideKeyword(keyword),
+                    Ok(keyword) => CustomDeclarationValue::CSSWideKeyword(keyword),
                     Err(()) => match ::custom_properties::SpecifiedValue::parse(input) {
-                        Ok(value) => DeclaredValueOwned::Value(value),
+                        Ok(value) => CustomDeclarationValue::Value(value),
                         Err(e) => return Err(StyleParseErrorKind::new_invalid(
                             format!("--{}", property_name),
                             e,

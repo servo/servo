@@ -289,7 +289,7 @@
         #[allow(unused_imports)]
         use properties::longhands;
         #[allow(unused_imports)]
-        use properties::{DeclaredValue, LonghandId, LonghandIdSet};
+        use properties::{LonghandId, LonghandIdSet};
         #[allow(unused_imports)]
         use properties::{CSSWideKeyword, ComputedValues, PropertyDeclaration};
         #[allow(unused_imports)]

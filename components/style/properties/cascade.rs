@@ -246,7 +246,7 @@ where
 
         for (declaration, _cascade_level) in iter_declarations() {
             if let PropertyDeclaration::Custom(ref declaration) = *declaration {
-                builder.cascade(&declaration.name, declaration.value.borrow());
+                builder.cascade(&declaration.name, &declaration.value);
             }
         }
 

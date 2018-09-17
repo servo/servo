@@ -10,7 +10,7 @@ use Atom;
 use cssparser::{Delimiter, Parser, ParserInput, SourcePosition, Token, TokenSerializationType};
 use hash::map::Entry;
 use precomputed_hash::PrecomputedHash;
-use properties::{CSSWideKeyword, DeclaredValue};
+use properties::{CSSWideKeyword, CustomDeclarationValue};
 use selector_map::{PrecomputedHashMap, PrecomputedHashSet};
 use selectors::parser::SelectorParseErrorKind;
 use servo_arc::Arc;
@@ -519,14 +519,14 @@ impl<'a> CustomPropertiesBuilder<'a> {
     pub fn cascade(
         &mut self,
         name: &'a Name,
-        specified_value: DeclaredValue<'a, Arc<SpecifiedValue>>,
+        specified_value: &CustomDeclarationValue,
     ) {
         let was_already_present = !self.seen.insert(name);
         if was_already_present {
             return;
         }
 
-        if !self.value_may_affect_style(name, &specified_value) {
+        if !self.value_may_affect_style(name, specified_value) {
             return;
         }
 
@@ -538,12 +538,12 @@ impl<'a> CustomPropertiesBuilder<'a> {
         }
 
         let map = self.custom_properties.as_mut().unwrap();
-        match specified_value {
-            DeclaredValue::Value(ref specified_value) => {
-                self.may_have_cycles |= !specified_value.references.is_empty();
-                map.insert(name.clone(), (*specified_value).clone());
+        match *specified_value {
+            CustomDeclarationValue::Value(ref unparsed_value) => {
+                self.may_have_cycles |= !unparsed_value.references.is_empty();
+                map.insert(name.clone(), (*unparsed_value).clone());
             },
-            DeclaredValue::CSSWideKeyword(keyword) => match keyword {
+            CustomDeclarationValue::CSSWideKeyword(keyword) => match keyword {
                 CSSWideKeyword::Initial => {
                     map.remove(name);
                 },
@@ -556,11 +556,11 @@ impl<'a> CustomPropertiesBuilder<'a> {
     fn value_may_affect_style(
         &self,
         name: &Name,
-        value: &DeclaredValue<Arc<SpecifiedValue>>,
+        value: &CustomDeclarationValue,
     ) -> bool {
         match *value {
-            DeclaredValue::CSSWideKeyword(CSSWideKeyword::Unset) |
-            DeclaredValue::CSSWideKeyword(CSSWideKeyword::Inherit) => {
+            CustomDeclarationValue::CSSWideKeyword(CSSWideKeyword::Unset) |
+            CustomDeclarationValue::CSSWideKeyword(CSSWideKeyword::Inherit) => {
                 // Custom properties are inherited by default. So
                 // explicit 'inherit' or 'unset' means we can just use
                 // any existing value in the inherited CustomPropertiesMap.
@@ -576,12 +576,12 @@ impl<'a> CustomPropertiesBuilder<'a> {
             .or_else(|| self.inherited.and_then(|m| m.get(name)));
 
         match (existing_value, value) {
-            (None, &DeclaredValue::CSSWideKeyword(CSSWideKeyword::Initial)) => {
+            (None, &CustomDeclarationValue::CSSWideKeyword(CSSWideKeyword::Initial)) => {
                 // The initial value of a custom property is the same as it
                 // not existing in the map.
                 return false;
             },
-            (Some(existing_value), &DeclaredValue::Value(specified_value)) => {
+            (Some(existing_value), &CustomDeclarationValue::Value(ref specified_value)) => {
                 // Don't bother overwriting an existing inherited value with
                 // the same specified value.
                 if existing_value == specified_value {
