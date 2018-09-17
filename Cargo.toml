@@ -27,3 +27,5 @@ opt-level = 3
 #
 #     [patch."https://github.com/servo/<repository>"]
 #     <crate> = { path = "/path/to/local/checkout" }
+[patch."https://github.com/servo/media"]
+servo-media = { git = "https://github.com/ferjm/media", branch = "enable.gst.android" }
