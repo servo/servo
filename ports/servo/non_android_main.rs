@@ -147,6 +147,8 @@ pub fn main() {
 
     let mut browser = browser::Browser::new(window.clone());
 
+    println!("PAUL:1");
+
     // If the url is not provided, we fallback to the homepage in PREFS,
     // or a blank page in case the homepage is not set either.
     let cwd = env::current_dir().unwrap();
@@ -159,13 +161,19 @@ pub fn main() {
 
     let target_url = cmdline_url.or(pref_url).or(blank_url).unwrap();
 
+    println!("PAUL:2");
+
     let mut servo = Servo::new(window.clone());
+    println!("PAUL:3");
     let browser_id = BrowserId::new();
-    servo.handle_events(vec![WindowEvent::NewBrowser(target_url, browser_id)]);
+    // servo.handle_events(vec![WindowEvent::NewBrowser(target_url, browser_id)]);
+
+    println!("PAUL:4");
 
     servo.setup_logging();
 
     window.run(|| {
+        println!("PAUL:loop");
         let win_events = window.get_events();
 
         // FIXME: this could be handled by Servo. We don't need
@@ -180,7 +188,7 @@ pub fn main() {
         let mut servo_events = servo.get_events();
         loop {
             browser.handle_servo_events(servo_events);
-            servo.handle_events(browser.get_events());
+            // servo.handle_events(browser.get_events());
             if browser.shutdown_requested() {
                 return true;
             }
@@ -191,7 +199,7 @@ pub fn main() {
         }
 
         if need_resize {
-            servo.repaint_synchronously();
+            // servo.repaint_synchronously();
         }
         false
     });
