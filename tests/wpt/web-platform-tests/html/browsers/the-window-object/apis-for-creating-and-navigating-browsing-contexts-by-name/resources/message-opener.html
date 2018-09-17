@@ -1,12 +1,22 @@
 <script src="/common/PrefixedPostMessage.js"></script>
 <script>
 var prefixedMessage = new PrefixedMessageResource();
-window.addEventListener('load', () => {
+var max = 50, attempts = 0;
+function sendCoordinates() {
+  // Certain windowing systems position windows asynchronously.
+  // As a result, the window may not be positioned yet when the
+  // load event fires. To accommodate this, allow waiting up to
+  // 5 seconds for positioning to take place.
+  if (!window.screenX && !window.screenY && ++attempts < max) {
+    setTimeout(sendCoordinates, 100);
+    return;
+  }
   prefixedMessage.postToOpener({
     left: window.screenX,
     top: window.screenY,
     width: window.innerWidth,
     height: window.innerHeight
   });
-});
+}
+window.addEventListener('load', sendCoordinates);
 </script>

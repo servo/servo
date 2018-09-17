@@ -68,6 +68,8 @@ self.addEventListener('fetch', function(event) {
         return Response.redirect(params['url']);
       } else if (params['sw'] == 'fetch') {
         return fetch(event.request);
+      } else if (params['sw'] == 'fetch-url') {
+        return fetch(params['url']);
       } else if (params['sw'] == 'follow') {
         return fetch(new Request(event.request.url, {redirect: 'follow'}));
       } else if (params['sw'] == 'manual') {

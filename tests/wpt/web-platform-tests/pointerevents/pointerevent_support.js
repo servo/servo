@@ -136,15 +136,7 @@ function showLoggedEvents() {
     complete_notice.style.display = "block";
 }
 
-function log(msg, el) {
-    if (++count > 10){
-      count = 0;
-      el.innerHTML = ' ';
-    }
-    el.innerHTML = msg + '; ' + el.innerHTML;
-}
-
- function failOnScroll() {
+function failOnScroll() {
     assert_true(false,
     "scroll received while shouldn't");
 }

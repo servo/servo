@@ -19,7 +19,6 @@ partial interface HTMLIFrameElement {
 };
 interface FeaturePolicyViolationReportBody : ReportBody {
   readonly attribute DOMString featureId;
-  readonly attribute DOMString message;
   readonly attribute DOMString? sourceFile;
   readonly attribute long? lineNumber;
   readonly attribute long? columnNumber;

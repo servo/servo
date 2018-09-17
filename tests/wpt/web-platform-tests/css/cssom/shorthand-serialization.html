@@ -70,8 +70,17 @@
             const testElem = document.getElementById("test");
             testElem.style.setProperty("margin-top", "initial", "important");
             assert_equals(testElem.style.margin, "");
-            assert_equals(testElem.style.cssText, "margin-top: initial !important; margin-right: initial; margin-bottom: initial; margin-left: initial;");
         }, "Shorthand serialization with 'initial' value, one longhand with important flag.");
+
+        test(function() {
+            const testElem = document.getElementById("test");
+            testElem.style.cssText = "";
+            testElem.style.setProperty("margin-top", "initial");
+            testElem.style.setProperty("margin-right", "initial");
+            testElem.style.setProperty("margin-bottom", "initial");
+            testElem.style.setProperty("margin-left", "initial", "important");
+            assert_equals(testElem.style.margin, "");
+        }, "Shorthand serialization with 'initial' value, longhands set individually, one with important flag.");
     </script>
 </body>
 </html>
