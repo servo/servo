@@ -247,8 +247,7 @@ impl CanvasRenderingContext2D {
                 canvas.origin_is_clean()
             }
             CanvasImageSource::HTMLImageElement(image) => {
-                let image_origin = image.get_origin().expect("Image's origin is missing");
-                image_origin.same_origin(GlobalScope::entry().origin())
+                image.same_origin(GlobalScope::entry().origin())
             }
             CanvasImageSource::CSSStyleValue(_) => true,
         }

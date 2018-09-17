@@ -55,7 +55,7 @@ use network_listener::{NetworkListener, PreInvoke};
 use num_traits::ToPrimitive;
 use script_thread::ScriptThread;
 use servo_url::ServoUrl;
-use servo_url::origin::ImmutableOrigin;
+use servo_url::origin::MutableOrigin;
 use std::cell::{Cell, RefMut};
 use std::char;
 use std::collections::HashSet;
@@ -1186,11 +1186,10 @@ impl HTMLImageElement {
         useMapElements.map(|mapElem| mapElem.get_area_elements())
     }
 
-    pub fn get_origin(&self) -> Option<ImmutableOrigin> {
-        match self.current_request.borrow_mut().final_url {
-            Some(ref url) => Some(url.origin()),
-            None => None
-        }
+    pub fn same_origin(&self, origin: &MutableOrigin) -> bool {
+        self.current_request.borrow_mut().final_url.as_ref().map_or(false, |url| {
+            url.scheme() == "data" || url.origin().same_origin(origin)
+        })
     }
 
 }
