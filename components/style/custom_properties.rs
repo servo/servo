@@ -543,7 +543,6 @@ impl<'a> CustomPropertiesBuilder<'a> {
                 self.may_have_cycles |= !specified_value.references.is_empty();
                 map.insert(name.clone(), (*specified_value).clone());
             },
-            DeclaredValue::WithVariables(_) => unreachable!(),
             DeclaredValue::CSSWideKeyword(keyword) => match keyword {
                 CSSWideKeyword::Initial => {
                     map.remove(name);

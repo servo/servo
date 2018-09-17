@@ -1444,8 +1444,6 @@ impl ShorthandId {
 pub enum DeclaredValue<'a, T: 'a> {
     /// A known specified value from the stylesheet.
     Value(&'a T),
-    /// An unparsed value that contains `var()` functions.
-    WithVariables(&'a Arc<UnparsedValue>),
     /// An CSS-wide keyword.
     CSSWideKeyword(CSSWideKeyword),
 }
@@ -1459,11 +1457,6 @@ pub enum DeclaredValue<'a, T: 'a> {
 pub enum DeclaredValueOwned<T> {
     /// A known specified value from the stylesheet.
     Value(T),
-    /// An unparsed value that contains `var()` functions.
-    WithVariables(
-        #[cfg_attr(feature = "gecko", ignore_malloc_size_of = "XXX: how to handle this?")]
-        Arc<UnparsedValue>
-    ),
     /// An CSS-wide keyword.
     CSSWideKeyword(CSSWideKeyword),
 }
@@ -1473,7 +1466,6 @@ impl<T> DeclaredValueOwned<T> {
     fn borrow(&self) -> DeclaredValue<T> {
         match *self {
             DeclaredValueOwned::Value(ref v) => DeclaredValue::Value(v),
-            DeclaredValueOwned::WithVariables(ref v) => DeclaredValue::WithVariables(v),
             DeclaredValueOwned::CSSWideKeyword(v) => DeclaredValue::CSSWideKeyword(v),
         }
     }

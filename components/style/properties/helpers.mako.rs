@@ -379,7 +379,6 @@
                         % endif
                     % endif
                 }
-                DeclaredValue::WithVariables(_) => unreachable!(),
                 DeclaredValue::CSSWideKeyword(keyword) => match keyword {
                     % if not data.current_style_struct.inherited:
                     CSSWideKeyword::Unset |
