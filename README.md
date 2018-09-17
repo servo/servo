@@ -54,14 +54,14 @@ Please select your operating system:
 #### On macOS (homebrew)
 
 ``` sh
-brew install automake autoconf@2.13 pkg-config python cmake yasm
+brew install automake autoconf@2.13 pkg-config python cmake yasm llvm
 brew install gstreamer gst-plugins-base gst-plugins-good       gst-plugins-bad gst-plugins-ugly gst-libav gst-rtsp-server       --with-orc -with-libogg --with-opus --with-pango --with-theora       --with-libvorbis
 pip install virtualenv
 ```
 #### On macOS (MacPorts)
 
 ``` sh
-sudo port install python27 py27-virtualenv cmake yasm
+sudo port install python27 py27-virtualenv cmake yasm llvm
 ```
 #### On macOS >= 10.11 (El Capitan), you also have to install OpenSSL
 
