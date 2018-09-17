@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/feature-policy/experimental-features/resources/common.js"></script>
+<style>
+html, body {
+  height: 100%;
+  width: 100%;
+}
+
+iframe {
+  width: 400px;
+  height: 400px;
+  margin: 10px;
+}
+
+.spacer {
+  width: 100%;
+  height: 300%;
+}
+</style>
+<div class="spacer"></div>
+<script>
+  let cross_origin_url =
+      "http://{{hosts[alt][www]}}:{{ports[http][0]}}/" +
+      "feature-policy/experimental-features/resources/lazyload-contents.html";
+
+  let load_timeout = 400; // ms
+  let expected_timeout_msg = false;
+  let expected_load_msg = "This page is lazyloaded.";
+
+  window.scrollTo(0, 0);
+
+  // Sanity-check: Make sure lazyload='on' works as intended.
+  promise_test(async(t) => {
+    // Add a frame with lazyload="on".
+    let frame_on = createIframe(document.body, {
+        id: "ON",
+        lazyload: "on",
+        src: `${cross_origin_url}?id=ON`
+      });
+    // Sanity-check: The frame is not visible.
+    assert_greater_than(
+        frame_on.getBoundingClientRect().top,
+        window.innerHeight * 2,
+        "Unexpected position for <iframe> with ID 'ON'.");
+    let msg_or_timeout_attr_on =
+        await waitForMessageOrTimeout(t, "ON", load_timeout);
+    assert_equals(msg_or_timeout_attr_on,
+                  expected_timeout_msg,
+                  "With lazyload='on', the frame should not load.");
+  }, "Sanity-check: Contents do not load immediately (no eager-loading) " +
+     "when the lazyload attribute is 'on' and frame is in viewport.");
+
+  // When feature is enabled, a frame can turn off lazy loading by setting the
+  // attribute to 'off'.
+  promise_test(async(t) => {
+    // Add a frame with lazyload="off".
+    let frame_off = createIframe(document.body, {
+        id: "OFF",
+        lazyload: "off",
+        src: `${cross_origin_url}?id=OFF`
+      });
+    // Sanity-check: The frame is not visible.
+    assert_greater_than(
+        frame_off.getBoundingClientRect().top,
+        window.innerHeight * 2,
+        "Unexpected position for <iframe> with ID 'OFF'.");
+    let msg_or_timeout_attr_off =
+        await waitForMessageOrTimeout(t, "OFF", load_timeout);
+
+    assert_equals(msg_or_timeout_attr_off,
+                  expected_load_msg,
+                  "With lazyload='off', the frame should load.");
+  }, "When 'lazyload' feature is enabled, a frame can avoid lazyloading by " +
+     "setting 'lazyload' attribute to 'off'");
+</script>

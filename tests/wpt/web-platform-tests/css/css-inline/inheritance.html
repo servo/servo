@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Inheritance of CSS Inline Layout properties</title>
+<link rel="author" title="Eric Willigers" href="mailto:ericwilligers@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-inline-3/#property-index">
+<meta name="assert" content="Properties inherit or not according to the spec.">
+<meta name="assert" content="Properties have initial values according to the spec.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/inheritance-testcommon.js"></script>
+</head>
+<body>
+<div id="container">
+<div id="target"></div>
+</div>
+<script>
+assert_not_inherited('alignment-baseline', 'baseline', 'central');
+assert_not_inherited('baseline-shift', '0px', '10px');
+assert_inherited('dominant-baseline', 'normal', 'central');
+assert_not_inherited('initial-letters', 'normal', '2 3');
+assert_inherited('initial-letters-align', 'alphabetic', 'hanging');
+assert_inherited('initial-letters-wrap', 'none', 'grid');
+assert_not_inherited('initial-sizing', 'normal', 'stretch');
+assert_not_inherited('vertical-align', 'baseline', '10px');
+</script>
+</body>
+</html>

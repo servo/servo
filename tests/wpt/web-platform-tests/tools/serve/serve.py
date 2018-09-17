@@ -19,7 +19,6 @@ from collections import defaultdict, OrderedDict
 from multiprocessing import Process, Event
 
 from localpaths import repo_root
-from six.moves import reload_module
 
 from manifest.sourcefile import read_script_metadata, js_meta_re, parse_variants
 from wptserve import server as wptserve, handlers
@@ -630,9 +629,12 @@ class WebSocketDaemon(object):
 
 
 def start_ws_server(host, port, paths, routes, bind_address, config, **kwargs):
-    # Ensure that when we start this in a new process we don't inherit the
-    # global lock in the logging module
-    reload_module(logging)
+    # Ensure that when we start this in a new process we have the global lock
+    # in the logging module unlocked
+    try:
+        logging._releaseLock()
+    except RuntimeError:
+        pass
     return WebSocketDaemon(host,
                            str(port),
                            repo_root,
@@ -643,9 +645,12 @@ def start_ws_server(host, port, paths, routes, bind_address, config, **kwargs):
 
 
 def start_wss_server(host, port, paths, routes, bind_address, config, **kwargs):
-    # Ensure that when we start this in a new process we don't inherit the
-    # global lock in the logging module
-    reload_module(logging)
+    # Ensure that when we start this in a new process we have the global lock
+    # in the logging module unlocked
+    try:
+        logging._releaseLock()
+    except RuntimeError:
+        pass
     return WebSocketDaemon(host,
                            str(port),
                            repo_root,

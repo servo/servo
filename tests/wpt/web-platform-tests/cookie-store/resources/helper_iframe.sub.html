@@ -1,0 +1,31 @@
+<!doctype html>
+<meta charset='utf-8'>
+<link rel='author' href='jarrydg@chromium.org' title='Jarryd Goodman'>
+<script>
+  'use strict';
+
+  // Writing a cookie:
+  //   Input: { cookieToSet: { name: 'cookie-name', value: 'cookie-value' } }
+  //   Response: "Cookie has been set"
+  //
+  // Read a cookie.
+  //   Command: { existingCookieName: 'cookie-name' }
+  //   Response: Result of cookieStore.get():
+  //     { frameCookie: { name: 'cookie-name', value: 'cookie-value' } }
+  window.addEventListener('message', async function (event) {
+    const { opname } = event.data;
+    if (opname === 'set-cookie') {
+      const { name, value } = event.data
+      await cookieStore.set({
+        name,
+        value,
+        domain: '{{host}}',
+      });
+      event.source.postMessage('Cookie has been set', event.origin);
+    } else if (opname === 'get-cookie') {
+      const { name } = event.data
+      const frameCookie = await cookieStore.get(name);
+      event.source.postMessage({frameCookie}, event.origin);
+    }
+  });
+</script>

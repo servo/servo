@@ -16,7 +16,7 @@
 == descriptor-prefix.html   descriptor-prefix-ref.html
 == descriptor-suffix.html   descriptor-suffix-ref.html
 == descriptor-range.html    descriptor-range-ref.html
-== descriptor-pad.html      descriptor-pad-ref.html
+== descriptor-pad.html descriptor-pad-ref.html
 == descriptor-fallback.html descriptor-fallback-ref.html
 == descriptor-symbols.html  descriptor-symbols-ref.html
 == descriptor-negative-invalid.html descriptor-negative-invalid-ref.html

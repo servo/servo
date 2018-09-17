@@ -237,7 +237,7 @@ dictionary RTCTransportStats : RTCStats {
 dictionary RTCIceCandidateStats : RTCStats {
              DOMString transportId;
              RTCNetworkType networkType;
-             DOMString ip;
+             DOMString address;
              long port;
              DOMString protocol;
              RTCIceCandidateType candidateType;

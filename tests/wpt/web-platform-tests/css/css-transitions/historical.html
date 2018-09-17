@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+
+<title>Historical CSS Transition features must be removed</title>
+<link rel="help" href="http://www.w3.org/TR/css3-transitions">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+function isInterfaceNuked(name) {
+  test(function() {
+    assert_equals(window[name], undefined)
+  }, "Historical CSS features must be removed: " + name)
+}
+var nukedInterfaces = [
+  "WebKitTransitionEvent", // Replaced by unprefixed TransitionEvent
+];
+nukedInterfaces.forEach(isInterfaceNuked);
+</script>

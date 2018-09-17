@@ -36,9 +36,14 @@
             var isTargetAuthenticityTested = false;
             var lostPointerCaptureReceived = false;
             var count = 0;
+            var event_log = [];
 
             var detected_pointertypes = {};
-            add_completion_callback(showPointerTypes);
+            add_completion_callback(end_of_test);
+            function end_of_test() {
+                showLoggedEvents();
+                showPointerTypes();
+            }
 
             var target0 = document.getElementById('target0');
             var target1 = document.getElementById('target1');
@@ -69,14 +74,14 @@
 
                 on_event(target0, 'gotpointercapture', function(e) {
                     test_gotpointercapture.done();
-                    log("gotpointercapture", target0);
+                    event_log.push('gotpointercapture@target0');
                 });
 
                 on_event(target0, 'lostpointercapture', function(e) {
                     isPointerCapture = false;
                     lostPointerCaptureReceived = true;
                     test_lostpointercapture.done();
-                    log("lostpointercapture", target0);
+                    event_log.push('lostpointercapture@target0');
                 });
 
                 run();
@@ -85,7 +90,7 @@
             function run() {
                 on_event(target0, "pointerover", function (event) {
                     detected_pointertypes[ event.pointerType ] = true;
-                    log("pointerover", target0);
+                    event_log.push('pointerover@target0');
                     if(isPointerCapture) {
                         test_pointerover_capture.done();
                         if (!isRelatedTargetValueTested) {
@@ -108,7 +113,7 @@
                 });
 
                 on_event(target0, "pointerout", function (event) {
-                    log("pointerout", target0);
+                    event_log.push('pointerout@target0');
                     if(isPointerCapture) {
                         test(function() {
                             assert_unreached("pointerout shouldn't be sent to captured node as all the events are targeted at the capturing node");
@@ -124,7 +129,7 @@
                 });
 
                 on_event(target0, "pointerenter", function (event) {
-                    log("pointerenter", target0);
+                    event_log.push('pointerenter@target0');
                     if(isPointerCapture) {
                         test_pointerenter_capture.done();
                     }
@@ -134,7 +139,7 @@
                 });
 
                 on_event(target0, "pointerleave", function (event) {
-                    log("pointerleave", target0);
+                    event_log.push('pointerleave@target0');
                     if(isPointerCapture) {
                         test(function() {
                             assert_unreached("pointerleave shouldn't be sent to captured node as all the events are targeted at the capturing node");
@@ -151,7 +156,7 @@
 
                 // fail if capture is set but event is received for the non-captured target
                 on_event(target1, "pointerover", function (event) {
-                    log("pointerover", target1);
+                    event_log.push('pointerover@target1');
                     if(isPointerCapture == true) {
                         test(function() {
                             assert_unreached("pointerover shouldn't trigger for this target when capture is enabled");
@@ -160,7 +165,7 @@
                 });
 
                 on_event(target1, "pointerout", function (event) {
-                    log("pointerout", target1);
+                    event_log.push('pointerout@target1');
                     if(isPointerCapture == true) {
                         test(function() {
                             assert_unreached("pointerout shouldn't trigger for this target when capture is enabled");
@@ -169,7 +174,7 @@
                 });
 
                 on_event(target1, "pointerenter", function (event) {
-                    log("pointerenter", target1);
+                    event_log.push('pointerenter@target1');
                     if(isPointerCapture == true) {
                         test(function() {
                             assert_unreached("pointerenter shouldn't trigger for this target when capture is enabled");
@@ -178,7 +183,7 @@
                 });
 
                 on_event(target1, "pointerleave", function (event) {
-                    log("pointerleave", target1);
+                    event_log.push('pointerleave@target1');
                     if(isPointerCapture == true) {
                         test(function() {
                             assert_unreached("pointerleave shouldn't trigger for this target when capture is enabled");
@@ -190,6 +195,7 @@
         <h1>Pointer Events Capture Test</h1>
         <div id="complete-notice">
             <p>The following pointer types were detected: <span id="pointertype-log"></span>.</p>
+            <p>The following events were logged: <span id="event-log"></span>.</p>
         </div>
         <div id="log"></div>
     </body>
