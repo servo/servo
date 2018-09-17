@@ -14,6 +14,7 @@ import android.app.Activity;
 public class JNIServo {
     JNIServo() {
         System.loadLibrary("c++_shared");
+        System.loadLibrary("gstreamer_android");
         System.loadLibrary("simpleservo");
     }
 
