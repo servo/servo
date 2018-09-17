@@ -953,7 +953,7 @@ impl ExtremumLength {
     /// TODO: After these values are supported for both axes (and maybe
     /// unprefixed, see bug 1322780) all this complexity can go away, and
     /// everything can be derived (no need for uncacheable stuff).
-    fn valid_for(&self, wm: WritingMode, longhand: LonghandId) -> bool {
+    fn valid_for(wm: WritingMode, longhand: LonghandId) -> bool {
         // We only make sense on the inline axis.
         match longhand {
             // FIXME(emilio): The flex-basis thing is not quite clear...
@@ -1018,7 +1018,7 @@ impl ToComputedValue for specified::MozLength {
                     .rule_cache_conditions
                     .borrow_mut()
                     .set_writing_mode_dependency(context.builder.writing_mode);
-                if !ext.valid_for(
+                if !ExtremumLength::valid_for(
                     context.builder.writing_mode,
                     context.for_non_inherited_property.unwrap(),
                 ) {
@@ -1080,7 +1080,7 @@ impl ToComputedValue for specified::MaxLength {
                     .rule_cache_conditions
                     .borrow_mut()
                     .set_writing_mode_dependency(context.builder.writing_mode);
-                if !ext.valid_for(
+                if !ExtremumLength::valid_for(
                     context.builder.writing_mode,
                     context.for_non_inherited_property.unwrap(),
                 ) {
