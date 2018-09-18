@@ -99,9 +99,9 @@ impl FrameTreeId {
 enum LayerPixel {}
 
 /// NB: Never block on the constellation, because sometimes the constellation blocks on us.
-pub struct IOCompositor<Window: WindowMethods> {
+pub struct IOCompositor {
     /// The application window.
-    pub window: Rc<Window>,
+    pub window: Rc<WindowMethods>,
 
     /// The port on which we receive messages.
     port: CompositorReceiver,
@@ -292,8 +292,8 @@ impl webrender_api::RenderNotifier for RenderNotifier {
     }
 }
 
-impl<Window: WindowMethods> IOCompositor<Window> {
-    fn new(window: Rc<Window>, state: InitialCompositorState) -> Self {
+impl IOCompositor {
+    fn new(window: Rc<WindowMethods>, state: InitialCompositorState) -> Self {
         let composite_target = match opts::get().output_file {
             Some(_) => CompositeTarget::PngFile,
             None => CompositeTarget::Window,
@@ -332,7 +332,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         }
     }
 
-    pub fn create(window: Rc<Window>, state: InitialCompositorState) -> Self {
+    pub fn create(window: Rc<WindowMethods>, state: InitialCompositorState) -> Self {
         let mut compositor = IOCompositor::new(window, state);
 
         // Set the size of the root layer.

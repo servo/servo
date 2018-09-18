@@ -133,6 +133,7 @@ pub trait WindowMethods {
     #[cfg(feature = "gleam")]
     fn gl(&self) -> Rc<gl::Gl>;
     /// Returns a thread-safe object to wake up the window's event loop.
+    // FIXME: do we still really need that?
     fn create_event_loop_waker(&self) -> Box<EventLoopWaker>;
     /// Get the coordinates of the native window, the screen and the framebuffer.
     fn get_coordinates(&self) -> EmbedderCoordinates;

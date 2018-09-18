@@ -6,7 +6,7 @@ members = [
 ]
 default-members = [
     "ports/servo",
-    "ports/libsimpleservo/",
+    # "ports/libsimpleservo/",
     "tests/unit/*",
 ]
 exclude = [".cargo"]

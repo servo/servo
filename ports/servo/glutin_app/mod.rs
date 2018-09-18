@@ -4,17 +4,18 @@
 
 //! A simple application that uses glutin to open a window for Servo to display in.
 
+pub mod app;
 pub mod keyutils;
 pub mod window;
 
 use servo::servo_config::opts;
 use std::rc::Rc;
 
-pub fn create_window() -> Rc<window::Window> {
-    // Read command-line options.
-    let opts = opts::get();
-    let foreground = opts.output_file.is_none() && !opts.headless;
+// pub fn create_window() -> Rc<window::Window> {
+//     // Read command-line options.
+//     let opts = opts::get();
+//     let foreground = opts.output_file.is_none() && !opts.headless;
 
-    // Open a window.
-    window::Window::new(foreground, opts.initial_window_size)
-}
+//     // Open a window.
+//     window::Window::new(events_loop, foreground, opts.initial_window_size)
+// }

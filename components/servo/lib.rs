@@ -122,18 +122,16 @@ pub use msg::constellation_msg::{KeyState, TopLevelBrowsingContextId as BrowserI
 /// application Servo is embedded in. Clients then create an event
 /// loop to pump messages between the embedding application and
 /// various browser components.
-pub struct Servo<Window: WindowMethods + 'static> {
-    compositor: Option<IOCompositor<Window>>,
+pub struct Servo {
+    compositor: Option<IOCompositor>,
     constellation_chan: Sender<ConstellationMsg>,
     embedder_receiver: EmbedderReceiver,
     embedder_events: Vec<(Option<BrowserId>, EmbedderMsg)>,
 }
 
-impl<Window> Servo<Window>
-where
-    Window: WindowMethods + 'static,
-{
-    pub fn new(window: Rc<Window>) -> Servo<Window> {
+//FIXME: figure out the dynamic dispatch overhead
+impl Servo {
+    pub fn new(waker: Box<EventLoopWaker>) -> Servo {
         // Global configuration options, parsed from the command line.
         let opts = opts::get();
 
@@ -150,7 +148,7 @@ where
         // let (compositor_proxy, compositor_receiver) =
         //     create_compositor_channel(window.create_event_loop_waker());
         let (embedder_proxy, embedder_receiver) =
-            create_embedder_channel(window.create_event_loop_waker());
+            create_embedder_channel(waker);
         let time_profiler_chan = profile_time::Profiler::create(
             &opts.time_profiling,
             opts.time_profiler_trace_path.clone(),

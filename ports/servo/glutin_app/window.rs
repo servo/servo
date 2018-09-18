@@ -136,26 +136,27 @@ impl HeadlessContext {
     }
 }
 
-enum WindowKind {
-    Window(GlWindow, RefCell<winit::EventsLoop>),
+pub enum WindowKind {
+    Window(GlWindow),
     Headless(HeadlessContext),
 }
 
 /// The type of a window.
 pub struct Window {
-    kind: WindowKind,
+    pub event_queue: RefCell<Vec<WindowEvent>>,
+    pub kind: WindowKind,
     screen_size: TypedSize2D<u32, DeviceIndependentPixel>,
     inner_size: Cell<TypedSize2D<u32, DeviceIndependentPixel>>,
     mouse_down_button: Cell<Option<winit::MouseButton>>,
     mouse_down_point: Cell<TypedPoint2D<i32, DevicePixel>>,
-    event_queue: RefCell<Vec<WindowEvent>>,
     mouse_pos: Cell<TypedPoint2D<i32, DevicePixel>>,
     key_modifiers: Cell<KeyModifiers>,
     last_pressed_key: Cell<Option<Key>>,
     animation_state: Cell<AnimationState>,
     fullscreen: Cell<bool>,
     gl: Rc<gl::Gl>,
-    suspended: Cell<bool>,
+    pub suspended: Cell<bool>,
+    waker: winit::EventsLoopProxy,
 }
 
 #[cfg(not(target_os = "windows"))]
@@ -172,6 +173,7 @@ fn window_creation_scale_factor() -> TypedScale<f32, DeviceIndependentPixel, Dev
 
 impl Window {
     pub fn new(
+        events_loop: &winit::EventsLoop,
         is_foreground: bool,
         window_size: TypedSize2D<u32, DeviceIndependentPixel>,
     ) -> Rc<Window> {
@@ -179,6 +181,8 @@ impl Window {
             (window_size.to_f32() * window_creation_scale_factor()).to_u32();
         let width = win_size.to_untyped().width;
         let height = win_size.to_untyped().height;
+
+        let waker = events_loop.create_proxy();
 
         // If there's no chrome, start off with the window invisible. It will be set to visible in
         // `load_end()`. This avoids an ugly flash of unstyled content (especially important since
@@ -193,7 +197,6 @@ impl Window {
             inner_size = TypedSize2D::new(width, height);
             WindowKind::Headless(HeadlessContext::new(width, height))
         } else {
-            let events_loop = winit::EventsLoop::new();
             let mut window_builder = winit::WindowBuilder::new()
                 .with_title("Servo".to_string())
                 .with_decorations(!opts::get().no_native_titlebar)
@@ -242,11 +245,11 @@ impl Window {
 
             glutin_window.show();
 
-            WindowKind::Window(glutin_window, RefCell::new(events_loop))
+            WindowKind::Window(glutin_window)
         };
 
         let gl = match window_kind {
-            WindowKind::Window(ref window, ..) => match gl::GlType::default() {
+            WindowKind::Window(ref window) => match gl::GlType::default() {
                 gl::GlType::Gl => unsafe {
                     gl::GlFns::load_with(|s| window.get_proc_address(s) as *const _)
                 },
@@ -287,6 +290,7 @@ impl Window {
             inner_size: Cell::new(inner_size),
             screen_size,
             suspended: Cell::new(false),
+            waker,
         };
 
         window.present();
@@ -301,7 +305,7 @@ impl Window {
     pub fn page_height(&self) -> f32 {
         let dpr = self.servo_hidpi_factor();
         match self.kind {
-            WindowKind::Window(ref window, _) => {
+            WindowKind::Window(ref window) => {
                 let size = window
                     .get_inner_size()
                     .expect("Failed to get window inner size.");
@@ -312,20 +316,20 @@ impl Window {
     }
 
     pub fn set_title(&self, title: &str) {
-        if let WindowKind::Window(ref window, _) = self.kind {
+        if let WindowKind::Window(ref window) = self.kind {
             window.set_title(title);
         }
     }
 
     pub fn set_inner_size(&self, size: DeviceUintSize) {
-        if let WindowKind::Window(ref window, _) = self.kind {
+        if let WindowKind::Window(ref window) = self.kind {
             let size = size.to_f32() / self.device_hidpi_factor();
             window.set_inner_size(LogicalSize::new(size.width.into(), size.height.into()))
         }
     }
 
     pub fn set_position(&self, point: DeviceIntPoint) {
-        if let WindowKind::Window(ref window, _) = self.kind {
+        if let WindowKind::Window(ref window) = self.kind {
             let point = point.to_f32() / self.device_hidpi_factor();
             window.set_position(LogicalPosition::new(point.x.into(), point.y.into()))
         }
@@ -333,7 +337,7 @@ impl Window {
 
     pub fn set_fullscreen(&self, state: bool) {
         match self.kind {
-            WindowKind::Window(ref window, ..) => {
+            WindowKind::Window(ref window) => {
                 if self.fullscreen.get() != state {
                     window.set_fullscreen(None);
                 }
@@ -343,59 +347,8 @@ impl Window {
         self.fullscreen.set(state);
     }
 
-    fn is_animating(&self) -> bool {
+    pub fn is_animating(&self) -> bool {
         self.animation_state.get() == AnimationState::Animating && !self.suspended.get()
-    }
-
-    pub fn run<T>(&self, mut servo_callback: T)
-    where
-        T: FnMut() -> bool,
-    {
-        match self.kind {
-            WindowKind::Window(_, ref events_loop) => {
-                let mut stop = false;
-                loop {
-                    if self.is_animating() {
-                        // We block on compositing (servo_callback ends up calling swap_buffers)
-                        events_loop.borrow_mut().poll_events(|e| {
-                            self.winit_event_to_servo_event(e);
-                        });
-                        stop = servo_callback();
-                    } else {
-                        // We block on winit's event loop (window events)
-                        events_loop.borrow_mut().run_forever(|e| {
-                            self.winit_event_to_servo_event(e);
-                            if !self.event_queue.borrow().is_empty() {
-                                if !self.suspended.get() {
-                                    stop = servo_callback();
-                                }
-                            }
-                            if stop || self.is_animating() {
-                                winit::ControlFlow::Break
-                            } else {
-                                winit::ControlFlow::Continue
-                            }
-                        });
-                    }
-                    if stop {
-                        break;
-                    }
-                }
-            },
-            WindowKind::Headless(..) => {
-                loop {
-                    // Sleep the main thread to avoid using 100% CPU
-                    // This can be done better, see comments in #18777
-                    if self.event_queue.borrow().is_empty() {
-                        thread::sleep(time::Duration::from_millis(5));
-                    }
-                    let stop = servo_callback();
-                    if stop {
-                        break;
-                    }
-                }
-            },
-        }
     }
 
     #[cfg(not(any(target_arch = "arm", target_arch = "aarch64")))]
@@ -461,7 +414,7 @@ impl Window {
         }
     }
 
-    fn winit_event_to_servo_event(&self, event: winit::Event) {
+    pub fn winit_event_to_servo_event(&self, event: winit::Event) {
         match event {
             Event::WindowEvent {
                 event: winit::WindowEvent::ReceivedCharacter(ch),
@@ -559,7 +512,7 @@ impl Window {
             } => {
                 // size is DeviceIndependentPixel.
                 // window.resize() takes DevicePixel.
-                if let WindowKind::Window(ref window, _) = self.kind {
+                if let WindowKind::Window(ref window) = self.kind {
                     let size = size.to_physical(self.device_hidpi_factor().get() as f64);
                     window.resize(size);
                 }
@@ -571,6 +524,8 @@ impl Window {
                     self.event_queue.borrow_mut().push(WindowEvent::Resize);
                 }
             },
+            // FIXME: This should move to app
+            // All non-window behavior should move to app
             Event::Suspended(suspended) => {
                 self.suspended.set(suspended);
                 if !suspended {
@@ -639,7 +594,7 @@ impl Window {
 
     fn device_hidpi_factor(&self) -> TypedScale<f32, DeviceIndependentPixel, DevicePixel> {
         match self.kind {
-            WindowKind::Window(ref window, ..) => TypedScale::new(window.get_hidpi_factor() as f32),
+            WindowKind::Window(ref window) => TypedScale::new(window.get_hidpi_factor() as f32),
             WindowKind::Headless(..) => TypedScale::new(1.0),
         }
     }
@@ -656,7 +611,7 @@ impl Window {
 
     pub fn set_cursor(&self, cursor: CursorKind) {
         match self.kind {
-            WindowKind::Window(ref window, ..) => {
+            WindowKind::Window(ref window) => {
                 use winit::MouseCursor;
 
                 let winit_cursor = match cursor {
@@ -711,7 +666,7 @@ impl WindowMethods for Window {
 
     fn get_coordinates(&self) -> EmbedderCoordinates {
         match self.kind {
-            WindowKind::Window(ref window, _) => {
+            WindowKind::Window(ref window) => {
                 // TODO(ajeffrey): can this fail?
                 let dpr = self.device_hidpi_factor();
                 let LogicalSize { width, height } = window
@@ -759,7 +714,7 @@ impl WindowMethods for Window {
 
     fn present(&self) {
         match self.kind {
-            WindowKind::Window(ref window, ..) => {
+            WindowKind::Window(ref window) => {
                 if let Err(err) = window.swap_buffers() {
                     warn!("Failed to swap window buffers ({}).", err);
                 }
@@ -768,34 +723,20 @@ impl WindowMethods for Window {
         }
     }
 
+    // Can we avoid the redundancy
     fn create_event_loop_waker(&self) -> Box<EventLoopWaker> {
-        struct GlutinEventLoopWaker {
-            proxy: Option<Arc<winit::EventsLoopProxy>>,
-        }
+        struct GlutinEventLoopWaker(winit::EventsLoopProxy);
         impl GlutinEventLoopWaker {
             fn new(window: &Window) -> GlutinEventLoopWaker {
-                let proxy = match window.kind {
-                    WindowKind::Window(_, ref events_loop) => {
-                        Some(Arc::new(events_loop.borrow().create_proxy()))
-                    },
-                    WindowKind::Headless(..) => None,
-                };
-                GlutinEventLoopWaker { proxy }
+                GlutinEventLoopWaker(window.waker.clone())
             }
         }
         impl EventLoopWaker for GlutinEventLoopWaker {
             fn wake(&self) {
-                // kick the OS event loop awake.
-                if let Some(ref proxy) = self.proxy {
-                    if let Err(err) = proxy.wakeup() {
-                        warn!("Failed to wake up event loop ({}).", err);
-                    }
-                }
+                self.0.wakeup();
             }
             fn clone(&self) -> Box<EventLoopWaker + Send> {
-                Box::new(GlutinEventLoopWaker {
-                    proxy: self.proxy.clone(),
-                })
+                Box::new(GlutinEventLoopWaker(self.0.clone()))
             }
         }
 

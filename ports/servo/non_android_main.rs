@@ -46,6 +46,7 @@ use std::env;
 use std::panic;
 use std::process;
 use std::thread;
+use std::sync::{Arc, RwLock};
 
 pub mod platform {
     #[cfg(target_os = "macos")]
@@ -143,27 +144,29 @@ pub fn main() {
         process::exit(0);
     }
 
-    let window = glutin_app::create_window();
+    // let window = glutin_app::create_window();
+    // FIXME: maybe move app.rs content to lib.rs
+    let mut app = glutin_app::app::App::new();
 
-    let mut browser = browser::Browser::new(window.clone());
+    // let mut browser = browser::Browser::new(window.clone());
 
     println!("PAUL:1");
 
-    // If the url is not provided, we fallback to the homepage in PREFS,
-    // or a blank page in case the homepage is not set either.
-    let cwd = env::current_dir().unwrap();
-    let cmdline_url = opts::get().url.clone();
-    let pref_url = PREFS
-        .get("shell.homepage")
-        .as_string()
-        .and_then(|str| parse_url_or_filename(&cwd, str).ok());
-    let blank_url = ServoUrl::parse("about:blank").ok();
+    // // If the url is not provided, we fallback to the homepage in PREFS,
+    // // or a blank page in case the homepage is not set either.
+    // let cwd = env::current_dir().unwrap();
+    // let cmdline_url = opts::get().url.clone();
+    // let pref_url = PREFS
+    //     .get("shell.homepage")
+    //     .as_string()
+    //     .and_then(|str| parse_url_or_filename(&cwd, str).ok());
+    // let blank_url = ServoUrl::parse("about:blank").ok();
 
-    let target_url = cmdline_url.or(pref_url).or(blank_url).unwrap();
+    // let target_url = cmdline_url.or(pref_url).or(blank_url).unwrap();
 
     println!("PAUL:2");
 
-    let mut servo = Servo::new(window.clone());
+    let mut servo = Servo::new(app.create_event_loop_waker());
     println!("PAUL:3");
     let browser_id = BrowserId::new();
     // servo.handle_events(vec![WindowEvent::NewBrowser(target_url, browser_id)]);
@@ -172,35 +175,54 @@ pub fn main() {
 
     servo.setup_logging();
 
-    window.run(|| {
+    let mut create_window = Arc::new(RwLock::new(false));
+    {
+        use std::thread;
+        use std::time::Duration;
+        let waker = app.create_event_loop_waker();
+        let c = create_window.clone();
+        thread::spawn(move || {
+            thread::sleep(Duration::from_millis(1500));
+            *c.write().unwrap() = true;
+            waker.wake();
+        });
+    }
+
+
+    app.run(|| {
         println!("PAUL:loop");
-        let win_events = window.get_events();
+        if *create_window.read().unwrap() {
+            *create_window.write().unwrap() = false;
+            let _ = app.new_window();
+        }
+        println!("create_window: {}", create_window.read().unwrap());
+        // let win_events = window.get_events();
 
         // FIXME: this could be handled by Servo. We don't need
         // a repaint_synchronously function exposed.
-        let need_resize = win_events.iter().any(|e| match *e {
-            WindowEvent::Resize => true,
-            _ => false,
-        });
+        // let need_resize = win_events.iter().any(|e| match *e {
+        //     WindowEvent::Resize => true,
+        //     _ => false,
+        // });
 
-        browser.handle_window_events(win_events);
+        // browser.handle_window_events(win_events);
 
         let mut servo_events = servo.get_events();
         loop {
-            browser.handle_servo_events(servo_events);
-            // servo.handle_events(browser.get_events());
-            if browser.shutdown_requested() {
-                return true;
-            }
-            servo_events = servo.get_events();
-            if servo_events.is_empty() {
-                break;
-            }
+            // browser.handle_servo_events(servo_events);
+            // // servo.handle_events(browser.get_events());
+            // if browser.shutdown_requested() {
+            //     return true;
+            // }
+            // servo_events = servo.get_events();
+            // if servo_events.is_empty() {
+            //     break;
+            // }
         }
 
-        if need_resize {
-            // servo.repaint_synchronously();
-        }
+        // if need_resize {
+        //     // servo.repaint_synchronously();
+        // }
         false
     });
 
