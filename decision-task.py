@@ -1,5 +1,10 @@
 # coding: utf8
 
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+
 import os.path
 from decisionlib import DecisionTask
 
@@ -15,44 +20,62 @@ CARGO_CACHE = {
     "cargo-git-cache": "/root/.cargo/git",
 }
 
+BUILD_ENV = {
+    "RUST_BACKTRACE": "1",
+    "RUSTFLAGS": "-Dwarnings",
+    "CARGO_INCREMENTAL": "0",
+    "SCCACHE_IDLE_TIMEOUT": "1200",
+}
+
 
 def main():
     decision = DecisionTask(
-        project_name="Taskcluster experiments for Servo",  # Used in task names
-        route_prefix="project.servo.servo-taskcluster-experiments",
-        docker_image_cache_expiry="1 week",
+        project_name="Servo",  # Used in task names
+        route_prefix="project.servo.servo",
         worker_type="servo-docker-worker",
     )
 
+    # FIXME: remove this before merging in servo/servo
+    os.environ["GIT_URL"] = "https://github.com/SimonSapin/servo"
+    os.environ["GIT_REF"] = "refs/heads/master"
+    os.environ["GIT_SHA"] = "605d74c59b6de7ae2b535d42fde40405a96b67e0"
+    decision.docker_image_cache_expiry = "1 week"
+    decision.route_prefix = "project.servo.servo-taskcluster-experiments"
+    # ~
+
     decision.create_task_with_in_tree_dockerfile(
-        task_name="servo build task",
-        command="./servo-build-task.sh",
-        dockerfile=dockerfile("servo-x86_64-linux"),
+        task_name="building for Linux x86_64 in dev mode + unit tests",
+        command="""
+            ./mach build --dev
+            ./mach test-unit
+        """,
+        env=BUILD_ENV,
+        dockerfile=dockerfile("build-x86_64-linux"),
         max_run_time_minutes=3 * 60,
         scopes=CARGO_CACHE_SCOPES,
         cache=CARGO_CACHE,
     )
 
-    build_task = decision.create_task_with_in_tree_dockerfile(
-        task_name="build task",
-        command="./build-task.sh",
-        dockerfile=dockerfile("servo-x86_64-linux"),
-        max_run_time_minutes=20,
+    decision.create_task_with_in_tree_dockerfile(
+        task_name="building for Linux x86_64 in release mode",
+        command="""
+            ./mach build --release
+        """,
+        env=BUILD_ENV,
+        dockerfile=dockerfile("build-x86_64-linux"),
+        max_run_time_minutes=3 * 60,
         scopes=CARGO_CACHE_SCOPES,
         cache=CARGO_CACHE,
-
-        artifacts=[
-            ("/repo/something-rust/executable.gz", "1 week"),
-        ],
     )
 
-    decision.create_task(
-        task_name="run task",
-        command="./run-task.sh",
-        image="buildpack-deps:bionic-scm",
+    decision.create_task_with_in_tree_dockerfile(
+        task_name="tidy",
+        command="""
+            ./mach test-tidy --no-progress --all
+            ./mach test-tidy --no-progress --self-test
+        """,
+        dockerfile=dockerfile("build-x86_64-linux"),
         max_run_time_minutes=20,
-        dependencies=[build_task],
-        env={"BUILD_TASK_ID": build_task},
     )
 
 
