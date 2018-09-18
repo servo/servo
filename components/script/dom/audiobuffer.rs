@@ -227,7 +227,7 @@ impl AudioBufferMethods for AudioBuffer {
             return Err(Error::Type("Cannot copy to shared buffer".to_owned()));
         }
 
-        if channel_number >= self.number_of_channels || start_in_channel > self.length {
+        if channel_number >= self.number_of_channels || start_in_channel >= self.length {
             return Err(Error::IndexSize);
         }
 
