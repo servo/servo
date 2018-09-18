@@ -169,7 +169,7 @@ impl<T> Arc<T> {
     /// Convert the Arc<T> to a raw pointer, suitable for use across FFI
     ///
     /// Note: This returns a pointer to the data T, which is offset in the allocation.
-    /// 
+    ///
     /// It is recommended to use RawOffsetArc for this.
     #[inline]
     fn into_raw(this: Self) -> *const T {
@@ -312,7 +312,7 @@ impl<T: Clone> Arc<T> {
     ///
     /// If this `Arc` is uniquely owned, `make_mut()` will provide a mutable
     /// reference to the contents. If not, `make_mut()` will create a _new_ `Arc`
-    /// with a copy of the contents, update `this` to point to it, and provide 
+    /// with a copy of the contents, update `this` to point to it, and provide
     /// a mutable reference to its contents.
     ///
     /// This is useful for implementing copy-on-write schemes where you wish to
@@ -702,9 +702,11 @@ impl<H, T> ThinArc<H, T> {
         F: FnOnce(&Arc<HeaderSliceWithLength<H, [T]>>) -> U,
     {
         // Synthesize transient Arc, which never touches the refcount of the ArcInner.
-        let transient = unsafe { NoDrop::new(Arc {
-            p: ptr::NonNull::new_unchecked(thin_to_thick(self.ptr)),
-        })};
+        let transient = unsafe {
+            NoDrop::new(Arc {
+                p: ptr::NonNull::new_unchecked(thin_to_thick(self.ptr)),
+            })
+        };
 
         // Expose the transient Arc to the callback, which may clone it if it wants.
         let result = f(&transient);
@@ -722,7 +724,7 @@ impl<H, T> ThinArc<H, T> {
     /// iterator to generate the slice.
     pub fn from_header_and_iter<I>(header: H, items: I) -> Self
     where
-        I: Iterator<Item = T> + ExactSizeIterator
+        I: Iterator<Item = T> + ExactSizeIterator,
     {
         let header = HeaderWithLength::new(header, items.len());
         Arc::into_thin(Arc::from_header_and_iter(header, items))
@@ -1056,7 +1058,6 @@ pub struct ArcUnion<A, B> {
 unsafe impl<A: Sync + Send, B: Send + Sync> Send for ArcUnion<A, B> {}
 unsafe impl<A: Sync + Send, B: Send + Sync> Sync for ArcUnion<A, B> {}
 
-
 impl<A: PartialEq, B: PartialEq> PartialEq for ArcUnion<A, B> {
     fn eq(&self, other: &Self) -> bool {
         use ArcUnionBorrow::*;
@@ -1104,16 +1105,12 @@ impl<A, B> ArcUnion<A, B> {
 
     /// Creates an `ArcUnion` from an instance of the first type.
     pub fn from_first(other: Arc<A>) -> Self {
-        unsafe {
-            Self::new(Arc::into_raw(other) as *mut _)
-        }
+        unsafe { Self::new(Arc::into_raw(other) as *mut _) }
     }
 
     /// Creates an `ArcUnion` from an instance of the second type.
     pub fn from_second(other: Arc<B>) -> Self {
-        unsafe {
-            Self::new(((Arc::into_raw(other) as usize) | 0x1) as *mut _)
-        }
+        unsafe { Self::new(((Arc::into_raw(other) as usize) | 0x1) as *mut _) }
     }
 
     /// Returns true if this `ArcUnion` contains the first type.

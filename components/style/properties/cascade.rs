@@ -13,7 +13,6 @@ use media_queries::Device;
 use properties::{ComputedValues, StyleBuilder};
 use properties::{LonghandId, LonghandIdSet};
 use properties::{PropertyDeclaration, PropertyDeclarationId, DeclarationImportanceIterator};
-use properties::{CSSWideKeyword, WideKeywordDeclaration};
 use properties::CASCADE_PROPERTY;
 use rule_cache::{RuleCache, RuleCacheConditions};
 use rule_tree::{CascadeLevel, StrongRuleNode};
@@ -790,6 +789,8 @@ impl<'a, 'b: 'a> Cascade<'a, 'b> {
                     self.seen.contains(LonghandId::MozMinFontSizeRatio) ||
                     self.seen.contains(LonghandId::FontFamily)
                 {
+                    use properties::{CSSWideKeyword, WideKeywordDeclaration};
+
                     // font-size must be explicitly inherited to handle lang
                     // changes and scriptlevel changes.
                     //

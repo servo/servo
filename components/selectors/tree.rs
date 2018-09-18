@@ -22,7 +22,7 @@ impl OpaqueElement {
     /// Creates a new OpaqueElement from an arbitrarily-typed pointer.
     pub fn new<T>(ptr: &T) -> Self {
         unsafe {
-            OpaqueElement(NonNull::new_unchecked(ptr as *const T as *const () as *mut ()))    
+            OpaqueElement(NonNull::new_unchecked(ptr as *const T as *const () as *mut ()))
         }
     }
 }
