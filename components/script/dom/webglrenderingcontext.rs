@@ -1235,7 +1235,15 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             constants::UNPACK_ALIGNMENT => {
                 return UInt32Value(self.texture_unpacking_alignment.get());
             },
-            _ => {}
+            constants::UNPACK_COLORSPACE_CONVERSION_WEBGL => {
+                let unpack = self.texture_unpacking_settings.get();
+                return UInt32Value(if unpack.contains(TextureUnpacking::CONVERT_COLORSPACE) {
+                    constants::BROWSER_DEFAULT_WEBGL
+                } else {
+                    constants::NONE
+                });
+            },
+            _ => {},
         }
 
         // Handle any MAX_ parameters by retrieving the limits that were stored
