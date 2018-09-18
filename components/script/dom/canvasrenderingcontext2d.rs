@@ -27,7 +27,7 @@ use dom::canvasgradient::{CanvasGradient, CanvasGradientStyle, ToFillOrStrokeSty
 use dom::canvaspattern::CanvasPattern;
 use dom::element::Element;
 use dom::globalscope::GlobalScope;
-use dom::htmlcanvaselement::HTMLCanvasElement;
+use dom::htmlcanvaselement::{CanvasContext, HTMLCanvasElement};
 use dom::imagedata::ImageData;
 use dom::node::{Node, NodeDamage, window_from_node};
 use dom_struct::dom_struct;
@@ -247,8 +247,7 @@ impl CanvasRenderingContext2D {
                 canvas.origin_is_clean()
             }
             CanvasImageSource::HTMLImageElement(image) => {
-                let image_origin = image.get_origin().expect("Image's origin is missing");
-                image_origin.same_origin(GlobalScope::entry().origin())
+                image.same_origin(GlobalScope::entry().origin())
             }
             CanvasImageSource::CSSStyleValue(_) => true,
         }
@@ -315,17 +314,18 @@ impl CanvasRenderingContext2D {
         result
     }
 
-    fn draw_html_canvas_element(&self,
-                                canvas: &HTMLCanvasElement,
-                                sx: f64,
-                                sy: f64,
-                                sw: Option<f64>,
-                                sh: Option<f64>,
-                                dx: f64,
-                                dy: f64,
-                                dw: Option<f64>,
-                                dh: Option<f64>)
-                                -> ErrorResult {
+    fn draw_html_canvas_element(
+        &self,
+        canvas: &HTMLCanvasElement,
+        sx: f64,
+        sy: f64,
+        sw: Option<f64>,
+        sh: Option<f64>,
+        dx: f64,
+        dy: f64,
+        dw: Option<f64>,
+        dh: Option<f64>,
+    ) -> ErrorResult {
         // 1. Check the usability of the image argument
         if !canvas.is_valid() {
             return Err(Error::InvalidState);
@@ -339,15 +339,17 @@ impl CanvasRenderingContext2D {
 
         let image_size = Size2D::new(canvas_size.width as f64, canvas_size.height as f64);
         // 2. Establish the source and destination rectangles
-        let (source_rect, dest_rect) = self.adjust_source_dest_rects(image_size,
-                                                                     sx,
-                                                                     sy,
-                                                                     sw,
-                                                                     sh,
-                                                                     dx,
-                                                                     dy,
-                                                                     dw,
-                                                                     dh);
+        let (source_rect, dest_rect) = self.adjust_source_dest_rects(
+            image_size,
+            sx,
+            sy,
+            sw,
+            sh,
+            dx,
+            dy,
+            dw,
+            dh,
+        );
 
         if !is_rect_valid(source_rect) || !is_rect_valid(dest_rect) {
             return Ok(());
@@ -355,29 +357,28 @@ impl CanvasRenderingContext2D {
 
         let smoothing_enabled = self.state.borrow().image_smoothing_enabled;
 
-        if self.canvas.as_ref().map_or(false, |c| &**c == canvas) {
-            self.send_canvas_2d_msg(Canvas2dMsg::DrawImageSelf(
-                image_size, dest_rect, source_rect, smoothing_enabled));
+        if let Some(context) = canvas.context() {
+            match *context {
+                CanvasContext::Context2d(ref context) => {
+                    context.send_canvas_2d_msg(Canvas2dMsg::DrawImageInOther(
+                        self.get_canvas_id(),
+                        image_size,
+                        dest_rect,
+                        source_rect,
+                        smoothing_enabled,
+                    ));
+                },
+                _ => return Err(Error::InvalidState),
+            }
         } else {
-            let context = match canvas.get_or_init_2d_context() {
-                Some(context) => context,
-                None => return Err(Error::InvalidState),
-            };
-
-            let msg = CanvasMsg::Canvas2d(
-                Canvas2dMsg::DrawImageInOther(
-                    self.get_canvas_id(),
-                    image_size,
-                    dest_rect,
-                    source_rect,
-                    smoothing_enabled
-                ),
-                context.get_canvas_id()
-            );
-
-            let renderer = context.get_ipc_renderer();
-            renderer.send(msg).unwrap();
-        };
+            self.send_canvas_2d_msg(Canvas2dMsg::DrawImage(
+                None,
+                image_size,
+                dest_rect,
+                source_rect,
+                smoothing_enabled,
+            ));
+        }
 
         self.mark_as_dirty();
         Ok(())
@@ -447,7 +448,7 @@ impl CanvasRenderingContext2D {
 
         let smoothing_enabled = self.state.borrow().image_smoothing_enabled;
         self.send_canvas_2d_msg(Canvas2dMsg::DrawImage(
-            image_data.into(),
+            Some(image_data.into()),
             image_size,
             dest_rect,
             source_rect,
@@ -1205,8 +1206,6 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
                     .ok_or(Error::InvalidState)?
             },
             CanvasImageSource::HTMLCanvasElement(ref canvas) => {
-                let _ = canvas.get_or_init_2d_context();
-
                 canvas.fetch_all_data().ok_or(Error::InvalidState)?
             },
             CanvasImageSource::CSSStyleValue(ref value) => {

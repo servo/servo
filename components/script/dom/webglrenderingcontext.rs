@@ -13,15 +13,16 @@ use canvas_traits::webgl::WebGLError::*;
 use dom::bindings::codegen::Bindings::ANGLEInstancedArraysBinding::ANGLEInstancedArraysConstants;
 use dom::bindings::codegen::Bindings::EXTBlendMinmaxBinding::EXTBlendMinmaxConstants;
 use dom::bindings::codegen::Bindings::OESVertexArrayObjectBinding::OESVertexArrayObjectConstants;
-use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::{self, WebGLContextAttributes};
+use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding;
+use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::TexImageSource;
+use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLContextAttributes;
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextMethods;
 use dom::bindings::codegen::UnionTypes::ArrayBufferViewOrArrayBuffer;
 use dom::bindings::codegen::UnionTypes::Float32ArrayOrUnrestrictedFloatSequence;
-use dom::bindings::codegen::UnionTypes::ImageDataOrHTMLImageElementOrHTMLCanvasElementOrHTMLVideoElement;
 use dom::bindings::codegen::UnionTypes::Int32ArrayOrLongSequence;
 use dom::bindings::conversions::{DerivedFrom, ToJSValConvertible};
-use dom::bindings::error::{Error, ErrorResult};
+use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
 use dom::bindings::root::{Dom, DomOnceCell, DomRoot, LayoutDom, MutNullableDom};
@@ -30,7 +31,7 @@ use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::htmlcanvaselement::HTMLCanvasElement;
 use dom::htmlcanvaselement::utils as canvas_utils;
 use dom::htmliframeelement::HTMLIFrameElement;
-use dom::node::{Node, NodeDamage, window_from_node};
+use dom::node::{Node, NodeDamage, document_from_node, window_from_node};
 use dom::webgl_extensions::WebGLExtensions;
 use dom::webgl_validations::WebGLValidator;
 use dom::webgl_validations::tex_image_2d::{CommonTexImage2DValidator, CommonTexImage2DValidatorResult};
@@ -76,7 +77,6 @@ pub fn is_gles() -> bool {
     cfg!(any(target_os = "android", target_os = "ios"))
 }
 
-type ImagePixelResult = Result<(Vec<u8>, Size2D<i32>, bool), ()>;
 pub const MAX_UNIFORM_AND_ATTRIBUTE_LEN: usize = 256;
 
 // From the GLES 2.0.25 spec, page 85:
@@ -490,21 +490,21 @@ impl WebGLRenderingContext {
 
     fn get_image_pixels(
         &self,
-        source: ImageDataOrHTMLImageElementOrHTMLCanvasElementOrHTMLVideoElement,
-    ) -> ImagePixelResult {
-        // NOTE: Getting the pixels probably can be short-circuited if some
-        // parameter is invalid.
-        //
-        // Nontheless, since it's the error case, I'm not totally sure the
-        // complexity is worth it.
-        let (pixels, size, premultiplied) = match source {
-            ImageDataOrHTMLImageElementOrHTMLCanvasElementOrHTMLVideoElement::ImageData(image_data) => {
+        source: TexImageSource,
+    ) -> Fallible<Option<(Vec<u8>, Size2D<i32>, bool)>> {
+        Ok(Some(match source {
+            TexImageSource::ImageData(image_data) => {
                 (image_data.get_data_array(), image_data.get_size(), false)
             },
-            ImageDataOrHTMLImageElementOrHTMLCanvasElementOrHTMLVideoElement::HTMLImageElement(image) => {
+            TexImageSource::HTMLImageElement(image) => {
+                let document = document_from_node(&*self.canvas);
+                if !image.same_origin(document.origin()) {
+                    return Err(Error::Security);
+                }
+
                 let img_url = match image.get_url() {
                     Some(url) => url,
-                    None => return Err(()),
+                    None => return Ok(None),
                 };
 
                 let window = window_from_node(&*self.canvas);
@@ -513,7 +513,7 @@ impl WebGLRenderingContext {
                     ImageResponse::Loaded(img, _) => img,
                     ImageResponse::PlaceholderLoaded(_, _) | ImageResponse::None |
                     ImageResponse::MetadataLoaded(_)
-                        => return Err(()),
+                        => return Ok(None),
                 };
 
                 let size = Size2D::new(img.width as i32, img.height as i32);
@@ -531,22 +531,23 @@ impl WebGLRenderingContext {
             // TODO(emilio): Getting canvas data is implemented in CanvasRenderingContext2D,
             // but we need to refactor it moving it to `HTMLCanvasElement` and support
             // WebGLContext (probably via GetPixels()).
-            ImageDataOrHTMLImageElementOrHTMLCanvasElementOrHTMLVideoElement::HTMLCanvasElement(canvas) => {
+            TexImageSource::HTMLCanvasElement(canvas) => {
+                if !canvas.origin_is_clean() {
+                    return Err(Error::Security);
+                }
                 if let Some((mut data, size)) = canvas.fetch_all_data() {
                     // Pixels got from Canvas have already alpha premultiplied
                     byte_swap(&mut data);
                     (data, size, true)
                 } else {
-                    return Err(());
+                    return Ok(None);
                 }
             },
-            ImageDataOrHTMLImageElementOrHTMLCanvasElementOrHTMLVideoElement::HTMLVideoElement(_) => {
+            TexImageSource::HTMLVideoElement(_) => {
                 // TODO: https://github.com/servo/servo/issues/6711
-                return Err(());
+                return Ok(None);
             }
-        };
-
-        return Ok((pixels, size, premultiplied));
+        }))
     }
 
     // TODO(emilio): Move this logic to a validator.
@@ -1234,7 +1235,15 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             constants::UNPACK_ALIGNMENT => {
                 return UInt32Value(self.texture_unpacking_alignment.get());
             },
-            _ => {}
+            constants::UNPACK_COLORSPACE_CONVERSION_WEBGL => {
+                let unpack = self.texture_unpacking_settings.get();
+                return UInt32Value(if unpack.contains(TextureUnpacking::CONVERT_COLORSPACE) {
+                    constants::BROWSER_DEFAULT_WEBGL
+                } else {
+                    constants::NONE
+                });
+            },
+            _ => {},
         }
 
         // Handle any MAX_ parameters by retrieving the limits that were stored
@@ -3520,16 +3529,15 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         internal_format: u32,
         format: u32,
         data_type: u32,
-        source: ImageDataOrHTMLImageElementOrHTMLCanvasElementOrHTMLVideoElement,
+        source: TexImageSource,
     ) -> ErrorResult {
         if !self.extension_manager.is_tex_type_enabled(data_type) {
             return Ok(self.webgl_error(InvalidEnum));
         }
 
-        // Get pixels from image source
-        let (pixels, size, premultiplied) = match self.get_image_pixels(source) {
-            Ok((pixels, size, premultiplied)) => (pixels, size, premultiplied),
-            Err(_) => return Ok(()),
+        let (pixels, size, premultiplied) = match self.get_image_pixels(source)? {
+            Some(triple) => triple,
+            None => return Ok(()),
         };
 
         let validator = TexImage2DValidator::new(self,
@@ -3613,7 +3621,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         height: i32,
         format: u32,
         data_type: u32,
-        mut pixels: CustomAutoRooterGuard<Option<ArrayBufferView>>,
+        pixels: CustomAutoRooterGuard<Option<ArrayBufferView>>,
     ) -> ErrorResult {
         let validator = TexImage2DValidator::new(self, target, level,
                                                  format, width, height,
@@ -3644,10 +3652,11 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
         // If data is null, a buffer of sufficient size
         // initialized to 0 is passed.
-        let buff = match *pixels {
-            None => vec![0u8; expected_byte_length as usize],
-            Some(ref mut data) => data.to_vec(),
-        };
+        let buff = handle_potential_webgl_error!(
+            self,
+            pixels.as_ref().map(|p| p.to_vec()).ok_or(InvalidValue),
+            return Ok(())
+        );
 
         // From the WebGL spec:
         //
@@ -3677,11 +3686,11 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         yoffset: i32,
         format: u32,
         data_type: u32,
-        source: ImageDataOrHTMLImageElementOrHTMLCanvasElementOrHTMLVideoElement,
+        source: TexImageSource,
     ) -> ErrorResult {
-        let (pixels, size, premultiplied) = match self.get_image_pixels(source) {
-            Ok((pixels, size, premultiplied)) => (pixels, size, premultiplied),
-            Err(_) => return Ok(()),
+        let (pixels, size, premultiplied) = match self.get_image_pixels(source)? {
+            Some(triple) => triple,
+            None => return Ok(()),
         };
 
         let validator = TexImage2DValidator::new(self, target, level, format,
