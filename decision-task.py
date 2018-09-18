@@ -37,45 +37,25 @@ def main():
 
     # FIXME: remove this before merging in servo/servo
     os.environ["GIT_URL"] = "https://github.com/SimonSapin/servo"
-    os.environ["GIT_REF"] = "refs/heads/master"
+    os.environ["GIT_REF"] = "refs/heads/taskcluster-experiments-20180918"
     os.environ["GIT_SHA"] = "605d74c59b6de7ae2b535d42fde40405a96b67e0"
     decision.docker_image_cache_expiry = "1 week"
     decision.route_prefix = "project.servo.servo-taskcluster-experiments"
     # ~
 
     decision.create_task_with_in_tree_dockerfile(
-        task_name="building for Linux x86_64 in dev mode + unit tests",
-        command="""
-            ./mach build --dev
-            ./mach test-unit
-        """,
-        env=BUILD_ENV,
-        dockerfile=dockerfile("build-x86_64-linux"),
-        max_run_time_minutes=3 * 60,
-        scopes=CARGO_CACHE_SCOPES,
-        cache=CARGO_CACHE,
-    )
-
-    decision.create_task_with_in_tree_dockerfile(
-        task_name="building for Linux x86_64 in release mode",
-        command="""
-            ./mach build --release
-        """,
-        env=BUILD_ENV,
-        dockerfile=dockerfile("build-x86_64-linux"),
-        max_run_time_minutes=3 * 60,
-        scopes=CARGO_CACHE_SCOPES,
-        cache=CARGO_CACHE,
-    )
-
-    decision.create_task_with_in_tree_dockerfile(
-        task_name="tidy",
+        task_name="Linux x86_64: tidy + dev build + unit tests",
         command="""
             ./mach test-tidy --no-progress --all
-            ./mach test-tidy --no-progress --self-test
+            #./mach build --dev
+            #./mach test-unit
+            #./mach test-tidy --no-progress --self-test
         """,
+        env=BUILD_ENV,
         dockerfile=dockerfile("build-x86_64-linux"),
-        max_run_time_minutes=20,
+        max_run_time_minutes=60,
+        scopes=CARGO_CACHE_SCOPES,
+        cache=CARGO_CACHE,
     )
 
 
