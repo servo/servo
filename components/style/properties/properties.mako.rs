@@ -1113,16 +1113,19 @@ impl LonghandId {
     }
 
     /// Returns PropertyFlags for given longhand property.
-    pub fn flags(&self) -> PropertyFlags {
-        match *self {
+    #[inline(always)]
+    pub fn flags(self) -> PropertyFlags {
+        // TODO(emilio): This can be simplified further as Rust gains more
+        // constant expression support.
+        const FLAGS: [u8; ${len(data.longhands)}] = [
             % for property in data.longhands:
-                LonghandId::${property.camel_case} =>
-                    % for flag in property.flags:
-                        PropertyFlags::${flag} |
-                    % endfor
-                    PropertyFlags::empty(),
+                % for flag in property.flags:
+                    PropertyFlags::${flag}.bits |
+                % endfor
+                0,
             % endfor
-        }
+        ];
+        PropertyFlags::from_bits_truncate(FLAGS[self as usize])
     }
 
     /// Only a few properties are allowed to depend on the visited state of
