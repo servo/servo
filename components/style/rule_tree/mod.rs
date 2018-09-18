@@ -12,7 +12,7 @@ use gecko::selector_parser::PseudoElement;
 #[cfg(feature = "gecko")]
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use properties::{Importance, LonghandIdSet, PropertyDeclarationBlock};
-use servo_arc::{Arc, ArcBorrow, ArcUnion, ArcUnionBorrow, NonZeroPtrMut};
+use servo_arc::{Arc, ArcBorrow, ArcUnion, ArcUnionBorrow};
 use shared_lock::{Locked, SharedRwLockReadGuard, StylesheetGuards};
 use smallvec::SmallVec;
 use std::io::{self, Write};
@@ -942,14 +942,16 @@ impl MallocSizeOf for RuleNode {
 
 #[derive(Clone)]
 struct WeakRuleNode {
-    p: NonZeroPtrMut<RuleNode>,
+    p: ptr::NonNull<RuleNode>,
 }
 
 /// A strong reference to a rule node.
 #[derive(Debug, Eq, Hash, PartialEq)]
 pub struct StrongRuleNode {
-    p: NonZeroPtrMut<RuleNode>,
+    p: ptr::NonNull<RuleNode>,
 }
+
+unsafe impl Send for StrongRuleNode {}
 
 #[cfg(feature = "servo")]
 malloc_size_of_is_0!(StrongRuleNode);
@@ -968,7 +970,7 @@ impl StrongRuleNode {
 
     fn from_ptr(ptr: *mut RuleNode) -> Self {
         StrongRuleNode {
-            p: NonZeroPtrMut::new(ptr),
+            p: ptr::NonNull::new(ptr).expect("Pointer must not be null"),
         }
     }
 
@@ -1052,7 +1054,7 @@ impl StrongRuleNode {
 
     /// Raw pointer to the RuleNode
     pub fn ptr(&self) -> *mut RuleNode {
-        self.p.ptr()
+        self.p.as_ptr()
     }
 
     fn get(&self) -> &RuleNode {
@@ -1665,12 +1667,12 @@ impl WeakRuleNode {
 
     fn from_ptr(ptr: *mut RuleNode) -> Self {
         WeakRuleNode {
-            p: NonZeroPtrMut::new(ptr),
+            p: ptr::NonNull::new(ptr).expect("Pointer must not be null"),
         }
     }
 
     fn ptr(&self) -> *mut RuleNode {
-        self.p.ptr()
+        self.p.as_ptr()
     }
 }
 

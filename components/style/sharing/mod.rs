@@ -76,12 +76,13 @@ use properties::ComputedValues;
 use rule_tree::StrongRuleNode;
 use selectors::NthIndexCache;
 use selectors::matching::{ElementSelectorFlags, VisitedHandlingMode};
-use servo_arc::{Arc, NonZeroPtrMut};
+use servo_arc::Arc;
 use smallbitvec::SmallBitVec;
 use smallvec::SmallVec;
 use std::marker::PhantomData;
 use std::mem;
 use std::ops::Deref;
+use std::ptr::NonNull;
 use style_resolver::{PrimaryStyle, ResolvedElementStyles};
 use stylist::Stylist;
 use uluru::{Entry, LRUCache};
@@ -112,10 +113,16 @@ pub enum StyleSharingBehavior {
 
 /// Opaque pointer type to compare ComputedValues identities.
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct OpaqueComputedValues(NonZeroPtrMut<()>);
+pub struct OpaqueComputedValues(NonNull<()>);
+
+unsafe impl Send for OpaqueComputedValues {}
+unsafe impl Sync for OpaqueComputedValues {}
+
 impl OpaqueComputedValues {
     fn from(cv: &ComputedValues) -> Self {
-        let p = NonZeroPtrMut::new(cv as *const ComputedValues as *const () as *mut ());
+        let p = unsafe {
+            NonNull::new_unchecked(cv as *const ComputedValues as *const () as *mut ())
+        };
         OpaqueComputedValues(p)
     }
 
