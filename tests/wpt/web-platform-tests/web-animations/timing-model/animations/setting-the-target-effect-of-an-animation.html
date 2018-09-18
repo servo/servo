@@ -113,7 +113,7 @@ test(t => {
    'existing animation, the target effect\'s timing is updated to reflect ' +
    'the current time of the new animation.');
 
-test(async t => {
+promise_test(async t => {
   const anim = createDiv(t).animate(null, 100 * MS_PER_SEC);
   anim.updatePlaybackRate(2);
   assert_equals(anim.playbackRate, 1);

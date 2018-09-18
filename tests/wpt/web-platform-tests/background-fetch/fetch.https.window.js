@@ -5,6 +5,9 @@
 // Covers basic functionality provided by BackgroundFetchManager.fetch().
 // https://wicg.github.io/background-fetch/#background-fetch-manager-fetch
 
+const wait = milliseconds =>
+  new Promise(resolve => step_timeout(resolve, milliseconds));
+
 promise_test(async test => {
   // 6.3.1.9.2: If |registration|’s active worker is null, then reject promise
   //            with a TypeError and abort these steps.
@@ -12,16 +15,16 @@ promise_test(async test => {
   const scope = 'service_workers/' + location.pathname;
 
   const serviceWorkerRegistration =
-      await service_worker_unregister_and_register(test, script, scope);
+    await service_worker_unregister_and_register(test, script, scope);
 
   assert_equals(
-      serviceWorkerRegistration.active, null,
-      'There must not be an activated worker');
+    serviceWorkerRegistration.active, null,
+    'There must not be an activated worker');
 
   await promise_rejects(
-      test, new TypeError(),
-      serviceWorkerRegistration.backgroundFetch.fetch(
-          uniqueId(), ['resources/feature-name.txt']),
+    test, new TypeError(),
+    serviceWorkerRegistration.backgroundFetch.fetch(
+      uniqueId(), ['resources/feature-name.txt']),
       'fetch() must reject on pending and installing workers');
 
 }, 'Background Fetch requires an activated Service Worker');
@@ -30,26 +33,26 @@ backgroundFetchTest(async (test, backgroundFetch) => {
   // 6.3.1.6: If |requests| is empty, then return a promise rejected with a
   //          TypeError.
   await promise_rejects(
-      test, new TypeError(), backgroundFetch.fetch(uniqueId(), []),
-      'Empty sequences are treated as NULL');
+    test, new TypeError(), backgroundFetch.fetch(uniqueId(), []),
+    'Empty sequences are treated as NULL');
 
   // 6.3.1.7.1: Let |internalRequest| be the request of the result of invoking
   //            the Request constructor with |request|. If this throws an
   //            exception, return a promise rejected with the exception.
   await promise_rejects(
-      test, new TypeError(),
-      backgroundFetch.fetch(uniqueId(), 'https://user:pass@domain/secret.txt'),
-      'Exceptions thrown in the Request constructor are rethrown');
+    test, new TypeError(),
+    backgroundFetch.fetch(uniqueId(), 'https://user:pass@domain/secret.txt'),
+    'Exceptions thrown in the Request constructor are rethrown');
 
   // 6.3.1.7.2: If |internalRequest|’s mode is "no-cors", then return a
   //            promise rejected with a TypeError.
   {
     const request =
-        new Request('resources/feature-name.txt', {mode: 'no-cors'});
+      new Request('resources/feature-name.txt', {mode: 'no-cors'});
 
     await promise_rejects(
-        test, new TypeError(), backgroundFetch.fetch(uniqueId(), request),
-        'Requests must not be in no-cors mode');
+      test, new TypeError(), backgroundFetch.fetch(uniqueId(), request),
+      'Requests must not be in no-cors mode');
   }
 
 }, 'Argument verification is done for BackgroundFetchManager.fetch()');
@@ -67,7 +70,7 @@ backgroundFetchTest(async (test, backgroundFetch) => {
 backgroundFetchTest(async (test, backgroundFetch) => {
   const registrationId = uniqueId();
   const registration =
-      await backgroundFetch.fetch(registrationId, 'resources/feature-name.txt');
+    await backgroundFetch.fetch(registrationId, 'resources/feature-name.txt');
 
   assert_equals(registration.id, registrationId);
   assert_equals(registration.uploadTotal, 0);
@@ -75,6 +78,7 @@ backgroundFetchTest(async (test, backgroundFetch) => {
   assert_equals(registration.downloadTotal, 0);
   assert_equals(registration.result, '');
   assert_equals(registration.failureReason, '');
+  assert_true(registration.recordsAvailable);
   // Skip `downloaded`, as the transfer may have started already.
 
   const {type, eventRegistration, results} = await getMessageFromServiceWorker();
@@ -97,15 +101,15 @@ backgroundFetchTest(async (test, backgroundFetch) => {
   // Very large download total that will definitely exceed the quota.
   const options = {downloadTotal: Number.MAX_SAFE_INTEGER};
   await promise_rejects(
-      test, 'QUOTA_EXCEEDED_ERR',
-      backgroundFetch.fetch(registrationId, 'resources/feature-name.txt', options),
-      'This fetch should have thrown a quota exceeded error');
+    test, 'QUOTA_EXCEEDED_ERR',
+    backgroundFetch.fetch(registrationId, 'resources/feature-name.txt', options),
+    'This fetch should have thrown a quota exceeded error');
 
 }, 'Background Fetch that exceeds the quota throws a QuotaExceededError');
 
 backgroundFetchTest(async (test, backgroundFetch) => {
   const registration = await backgroundFetch.fetch(
-      'my-id', ['resources/feature-name.txt', 'resources/feature-name.txt']);
+    'my-id', ['resources/feature-name.txt', 'resources/feature-name.txt']);
 
   const {type, eventRegistration, results} = await getMessageFromServiceWorker();
   assert_equals('backgroundfetchsuccess', type);
@@ -125,8 +129,8 @@ backgroundFetchTest(async (test, backgroundFetch) => {
 
 backgroundFetchTest(async (test, backgroundFetch) => {
   const request =
-      new Request('resources/feature-name.txt',
-                  {method: 'POST', body: 'TestBody'});
+    new Request('resources/feature-name.txt',
+                {method: 'POST', body: 'TestBody'});
 
   const registration = await backgroundFetch.fetch('my-id', request);
 
@@ -145,3 +149,25 @@ backgroundFetchTest(async (test, backgroundFetch) => {
   }
 
 }, 'Fetches can have requests with a body');
+
+backgroundFetchTest(async (test, backgroundFetch) => {
+  const registrationId = uniqueId();
+  const registration =
+    await backgroundFetch.fetch(registrationId, 'resources/feature-name.txt');
+  assert_true(registration.recordsAvailable);
+
+  const {type, eventRegistration, results} = await getMessageFromServiceWorker();
+  assert_equals('backgroundfetchsuccess', type);
+  assert_equals(results.length, 1);
+
+  // Wait for up to 5 seconds for the |eventRegistration|'s recordsAvailable
+  // flag to be set to false, which happens after the successful invocation
+  // of the ServiceWorker event has finished.
+  for (let i = 0; i < 50; ++i) {
+    if (!registration.recordsAvailable)
+      break;
+    await wait(100);
+  }
+
+  assert_false(registration.recordsAvailable);
+}, 'recordsAvailable is false after onbackgroundfetchsuccess finishes execution.');

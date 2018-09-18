@@ -236,7 +236,7 @@ class WebDriverRun(object):
     def _run(self):
         try:
             self.result = True, self.func(self.protocol, self.url, self.timeout)
-        except client.TimeoutException:
+        except (client.TimeoutException, client.ScriptTimeoutException):
             self.result = False, ("EXTERNAL-TIMEOUT", None)
         except (socket.timeout, client.UnknownErrorException):
             self.result = False, ("CRASH", None)
