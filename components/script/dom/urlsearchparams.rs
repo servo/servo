@@ -37,26 +37,32 @@ impl URLSearchParams {
     }
 
     pub fn new(global: &GlobalScope, url: Option<&URL>) -> DomRoot<URLSearchParams> {
-        reflect_dom_object(Box::new(URLSearchParams::new_inherited(url)), global,
-                           URLSearchParamsWrap)
+        reflect_dom_object(
+            Box::new(URLSearchParams::new_inherited(url)),
+            global,
+            URLSearchParamsWrap,
+        )
     }
 
     // https://url.spec.whatwg.org/#dom-urlsearchparams-urlsearchparams
-    pub fn Constructor(global: &GlobalScope, init: Option<USVStringOrURLSearchParams>) ->
-                       Fallible<DomRoot<URLSearchParams>> {
+    pub fn Constructor(
+        global: &GlobalScope,
+        init: Option<USVStringOrURLSearchParams>,
+    ) -> Fallible<DomRoot<URLSearchParams>> {
         // Step 1.
         let query = URLSearchParams::new(global, None);
         match init {
             Some(USVStringOrURLSearchParams::USVString(init)) => {
                 // Step 2.
                 *query.list.borrow_mut() = form_urlencoded::parse(init.0.as_bytes())
-                    .into_owned().collect();
+                    .into_owned()
+                    .collect();
             },
             Some(USVStringOrURLSearchParams::URLSearchParams(init)) => {
                 // Step 3.
                 *query.list.borrow_mut() = init.list.borrow().clone();
             },
-            None => {}
+            None => {},
         }
         // Step 4.
         Ok(query)
@@ -87,20 +93,22 @@ impl URLSearchParamsMethods for URLSearchParams {
     // https://url.spec.whatwg.org/#dom-urlsearchparams-get
     fn Get(&self, name: USVString) -> Option<USVString> {
         let list = self.list.borrow();
-        list.iter().find(|&kv| kv.0 == name.0)
+        list.iter()
+            .find(|&kv| kv.0 == name.0)
             .map(|ref kv| USVString(kv.1.clone()))
     }
 
     // https://url.spec.whatwg.org/#dom-urlsearchparams-getall
     fn GetAll(&self, name: USVString) -> Vec<USVString> {
         let list = self.list.borrow();
-        list.iter().filter_map(|&(ref k, ref v)| {
-            if k == &name.0 {
-                Some(USVString(v.clone()))
-            } else {
-                None
-            }
-        }).collect()
+        list.iter()
+            .filter_map(|&(ref k, ref v)| {
+                if k == &name.0 {
+                    Some(USVString(v.clone()))
+                } else {
+                    None
+                }
+            }).collect()
     }
 
     // https://url.spec.whatwg.org/#dom-urlsearchparams-has
@@ -132,8 +140,8 @@ impl URLSearchParamsMethods for URLSearchParams {
                 Some(index) => list[index].1 = value.0,
                 None => list.push((name.0, value.0)), // Step 2.
             };
-        }  // Un-borrow self.list
-        // Step 3.
+        } // Un-borrow self.list
+          // Step 3.
         self.update_steps();
     }
 
@@ -142,7 +150,6 @@ impl URLSearchParamsMethods for URLSearchParams {
         DOMString::from(self.serialize_utf8())
     }
 }
-
 
 impl URLSearchParams {
     // https://url.spec.whatwg.org/#concept-urlencoded-serializer
@@ -154,7 +161,6 @@ impl URLSearchParams {
     }
 }
 
-
 impl URLSearchParams {
     // https://url.spec.whatwg.org/#concept-urlsearchparams-update
     fn update_steps(&self) {
@@ -163,7 +169,6 @@ impl URLSearchParams {
         }
     }
 }
-
 
 impl Iterable for URLSearchParams {
     type Key = USVString;

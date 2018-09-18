@@ -104,7 +104,7 @@ enum LastChunkState {
 
 pub struct ElementAttribute {
     name: QualName,
-    value: DOMString
+    value: DOMString,
 }
 
 #[derive(Clone, Copy, JSTraceable, MallocSizeOf, PartialEq)]
@@ -117,7 +117,7 @@ impl ElementAttribute {
     pub fn new(name: QualName, value: DOMString) -> ElementAttribute {
         ElementAttribute {
             name: name,
-            value: value
+            value: value,
         }
     }
 }
@@ -128,49 +128,70 @@ impl ServoParser {
     }
 
     pub fn parse_html_document(document: &Document, input: DOMString, url: ServoUrl) {
-        let parser = if PREFS.get("dom.servoparser.async_html_tokenizer.enabled").as_boolean().unwrap() {
-            ServoParser::new(document,
-                             Tokenizer::AsyncHtml(self::async_html::Tokenizer::new(document, url, None)),
-                             LastChunkState::NotReceived,
-                             ParserKind::Normal)
+        let parser = if PREFS
+            .get("dom.servoparser.async_html_tokenizer.enabled")
+            .as_boolean()
+            .unwrap()
+        {
+            ServoParser::new(
+                document,
+                Tokenizer::AsyncHtml(self::async_html::Tokenizer::new(document, url, None)),
+                LastChunkState::NotReceived,
+                ParserKind::Normal,
+            )
         } else {
-            ServoParser::new(document,
-                             Tokenizer::Html(self::html::Tokenizer::new(document, url, None, ParsingAlgorithm::Normal)),
-                             LastChunkState::NotReceived,
-                             ParserKind::Normal)
+            ServoParser::new(
+                document,
+                Tokenizer::Html(self::html::Tokenizer::new(
+                    document,
+                    url,
+                    None,
+                    ParsingAlgorithm::Normal,
+                )),
+                LastChunkState::NotReceived,
+                ParserKind::Normal,
+            )
         };
         parser.parse_string_chunk(String::from(input));
     }
 
     // https://html.spec.whatwg.org/multipage/#parsing-html-fragments
-    pub fn parse_html_fragment(context: &Element, input: DOMString) -> impl Iterator<Item=DomRoot<Node>> {
+    pub fn parse_html_fragment(
+        context: &Element,
+        input: DOMString,
+    ) -> impl Iterator<Item = DomRoot<Node>> {
         let context_node = context.upcast::<Node>();
         let context_document = context_node.owner_doc();
         let window = context_document.window();
         let url = context_document.url();
 
         // Step 1.
-        let loader = DocumentLoader::new_with_threads(context_document.loader().resource_threads().clone(),
-                                                      Some(url.clone()));
-        let document = Document::new(window,
-                                     HasBrowsingContext::No,
-                                     Some(url.clone()),
-                                     context_document.origin().clone(),
-                                     IsHTMLDocument::HTMLDocument,
-                                     None,
-                                     None,
-                                     DocumentActivity::Inactive,
-                                     DocumentSource::FromParser,
-                                     loader,
-                                     None,
-                                     None,
-                                     Default::default());
+        let loader = DocumentLoader::new_with_threads(
+            context_document.loader().resource_threads().clone(),
+            Some(url.clone()),
+        );
+        let document = Document::new(
+            window,
+            HasBrowsingContext::No,
+            Some(url.clone()),
+            context_document.origin().clone(),
+            IsHTMLDocument::HTMLDocument,
+            None,
+            None,
+            DocumentActivity::Inactive,
+            DocumentSource::FromParser,
+            loader,
+            None,
+            None,
+            Default::default(),
+        );
 
         // Step 2.
         document.set_quirks_mode(context_document.quirks_mode());
 
         // Step 11.
-        let form = context_node.inclusive_ancestors()
+        let form = context_node
+            .inclusive_ancestors()
             .find(|element| element.is::<HTMLFormElement>());
 
         let fragment_context = FragmentContext {
@@ -178,13 +199,17 @@ impl ServoParser {
             form_elem: form.r(),
         };
 
-        let parser = ServoParser::new(&document,
-                                      Tokenizer::Html(self::html::Tokenizer::new(&document,
-                                                                                 url,
-                                                                                 Some(fragment_context),
-                                                                                 ParsingAlgorithm::Fragment)),
-                                      LastChunkState::Received,
-                                      ParserKind::Normal);
+        let parser = ServoParser::new(
+            &document,
+            Tokenizer::Html(self::html::Tokenizer::new(
+                &document,
+                url,
+                Some(fragment_context),
+                ParsingAlgorithm::Fragment,
+            )),
+            LastChunkState::Received,
+            ParserKind::Normal,
+        );
         parser.parse_string_chunk(String::from(input));
 
         // Step 14.
@@ -214,10 +239,12 @@ impl ServoParser {
     }
 
     pub fn parse_xml_document(document: &Document, input: DOMString, url: ServoUrl) {
-        let parser = ServoParser::new(document,
-                                      Tokenizer::Xml(self::xml::Tokenizer::new(document, url)),
-                                      LastChunkState::NotReceived,
-                                      ParserKind::Normal);
+        let parser = ServoParser::new(
+            document,
+            Tokenizer::Xml(self::xml::Tokenizer::new(document, url)),
+            LastChunkState::NotReceived,
+            ParserKind::Normal,
+        );
         parser.parse_string_chunk(String::from(input));
     }
 
@@ -243,12 +270,18 @@ impl ServoParser {
     ///     ^
     ///     insertion point
     /// ```
-    pub fn resume_with_pending_parsing_blocking_script(&self, script: &HTMLScriptElement, result: ScriptResult) {
+    pub fn resume_with_pending_parsing_blocking_script(
+        &self,
+        script: &HTMLScriptElement,
+        result: ScriptResult,
+    ) {
         assert!(self.suspended.get());
         self.suspended.set(false);
 
-        mem::swap(&mut *self.script_input.borrow_mut(),
-                  &mut *self.network_input.borrow_mut());
+        mem::swap(
+            &mut *self.script_input.borrow_mut(),
+            &mut *self.network_input.borrow_mut(),
+        );
         while let Some(chunk) = self.script_input.borrow_mut().pop_front() {
             self.network_input.borrow_mut().push_back(chunk);
         }
@@ -278,7 +311,9 @@ impl ServoParser {
             // parser is suspended, we just append everything to the
             // script input and abort these steps.
             for chunk in text {
-                self.script_input.borrow_mut().push_back(String::from(chunk).into());
+                self.script_input
+                    .borrow_mut()
+                    .push_back(String::from(chunk).into());
             }
             return;
         }
@@ -334,14 +369,16 @@ impl ServoParser {
         *self.network_input.borrow_mut() = BufferQueue::new();
 
         // Step 2.
-        self.document.set_ready_state(DocumentReadyState::Interactive);
+        self.document
+            .set_ready_state(DocumentReadyState::Interactive);
 
         // Step 3.
         self.tokenizer.borrow_mut().end();
         self.document.set_current_parser(None);
 
         // Step 4.
-        self.document.set_ready_state(DocumentReadyState::Interactive);
+        self.document
+            .set_ready_state(DocumentReadyState::Interactive);
     }
 
     // https://html.spec.whatwg.org/multipage/#active-parser
@@ -350,11 +387,12 @@ impl ServoParser {
     }
 
     #[allow(unrooted_must_root)]
-    fn new_inherited(document: &Document,
-                     tokenizer: Tokenizer,
-                     last_chunk_state: LastChunkState,
-                     kind: ParserKind)
-                     -> Self {
+    fn new_inherited(
+        document: &Document,
+        tokenizer: Tokenizer,
+        last_chunk_state: LastChunkState,
+        kind: ParserKind,
+    ) -> Self {
         ServoParser {
             reflector: Reflector::new(),
             document: Dom::from_ref(document),
@@ -371,14 +409,22 @@ impl ServoParser {
     }
 
     #[allow(unrooted_must_root)]
-    fn new(document: &Document,
-           tokenizer: Tokenizer,
-           last_chunk_state: LastChunkState,
-           kind: ParserKind)
-           -> DomRoot<Self> {
-        reflect_dom_object(Box::new(ServoParser::new_inherited(document, tokenizer, last_chunk_state, kind)),
-                           document.window(),
-                           ServoParserBinding::Wrap)
+    fn new(
+        document: &Document,
+        tokenizer: Tokenizer,
+        last_chunk_state: LastChunkState,
+        kind: ParserKind,
+    ) -> DomRoot<Self> {
+        reflect_dom_object(
+            Box::new(ServoParser::new_inherited(
+                document,
+                tokenizer,
+                last_chunk_state,
+                kind,
+            )),
+            document.window(),
+            ServoParserBinding::Wrap,
+        )
     }
 
     fn push_bytes_input_chunk(&self, chunk: Vec<u8>) {
@@ -391,11 +437,9 @@ impl ServoParser {
             match result {
                 Err(()) => {
                     *incomplete_utf8 = Some(incomplete);
-                    return
-                }
-                Ok(remaining) => {
-                    chunk = remaining
-                }
+                    return;
+                },
+                Ok(remaining) => chunk = remaining,
             }
         }
 
@@ -413,10 +457,16 @@ impl ServoParser {
             incremental: TimerMetadataReflowType::FirstReflow,
         };
         let profiler_category = self.tokenizer.borrow().profiler_category();
-        profile(profiler_category,
-                Some(metadata),
-                self.document.window().upcast::<GlobalScope>().time_profiler_chan().clone(),
-                || self.do_parse_sync())
+        profile(
+            profiler_category,
+            Some(metadata),
+            self.document
+                .window()
+                .upcast::<GlobalScope>()
+                .time_profiler_chan()
+                .clone(),
+            || self.do_parse_sync(),
+        )
     }
 
     fn do_parse_sync(&self) {
@@ -427,7 +477,9 @@ impl ServoParser {
 
         if self.last_chunk_received.get() {
             if let Some(_) = self.incomplete_utf8.borrow_mut().take() {
-                self.network_input.borrow_mut().push_back(StrTendril::from("\u{FFFD}"))
+                self.network_input
+                    .borrow_mut()
+                    .push_back(StrTendril::from("\u{FFFD}"))
             }
         }
         self.tokenize(|tokenizer| tokenizer.feed(&mut *self.network_input.borrow_mut()));
@@ -460,7 +512,8 @@ impl ServoParser {
     }
 
     fn tokenize<F>(&self, mut feed: F)
-        where F: FnMut(&mut Tokenizer) -> Result<(), DomRoot<HTMLScriptElement>>,
+    where
+        F: FnMut(&mut Tokenizer) -> Result<(), DomRoot<HTMLScriptElement>>,
     {
         loop {
             assert!(!self.suspended.get());
@@ -497,7 +550,8 @@ impl ServoParser {
         assert!(self.incomplete_utf8.borrow().is_none());
 
         // Step 1.
-        self.document.set_ready_state(DocumentReadyState::Interactive);
+        self.document
+            .set_ready_state(DocumentReadyState::Interactive);
 
         // Step 2.
         self.tokenizer.borrow_mut().end();
@@ -510,13 +564,15 @@ impl ServoParser {
 }
 
 struct FragmentParsingResult<I>
-    where I: Iterator<Item=DomRoot<Node>>
+where
+    I: Iterator<Item = DomRoot<Node>>,
 {
     inner: I,
 }
 
 impl<I> Iterator for FragmentParsingResult<I>
-    where I: Iterator<Item=DomRoot<Node>>
+where
+    I: Iterator<Item = DomRoot<Node>>,
 {
     type Item = DomRoot<Node>;
 
@@ -621,12 +677,10 @@ impl FetchResponseListener for ParserContext {
         let mut ssl_error = None;
         let mut network_error = None;
         let metadata = match meta_result {
-            Ok(meta) => {
-                Some(match meta {
-                    FetchMetadata::Unfiltered(m) => m,
-                    FetchMetadata::Filtered { unsafe_, .. } => unsafe_,
-                })
-            },
+            Ok(meta) => Some(match meta {
+                FetchMetadata::Unfiltered(m) => m,
+                FetchMetadata::Filtered { unsafe_, .. } => unsafe_,
+            }),
             Err(NetworkError::SslValidation(url, reason)) => {
                 ssl_error = Some(reason);
                 let mut meta = Metadata::default(url);
@@ -643,7 +697,10 @@ impl FetchResponseListener for ParserContext {
             },
             Err(_) => None,
         };
-        let content_type = metadata.clone().and_then(|meta| meta.content_type).map(Serde::into_inner);
+        let content_type = metadata
+            .clone()
+            .and_then(|meta| meta.content_type)
+            .map(Serde::into_inner);
         let parser = match ScriptThread::page_headers_available(&self.id, metadata) {
             Some(parser) => parser,
             None => return,
@@ -795,14 +852,16 @@ impl Sink {
     }
 
     fn has_parent_node(&self, node: &Dom<Node>) -> bool {
-         node.GetParentNode().is_some()
+        node.GetParentNode().is_some()
     }
 }
 
-#[allow(unrooted_must_root)]  // FIXME: really?
+#[allow(unrooted_must_root)] // FIXME: really?
 impl TreeSink for Sink {
     type Output = Self;
-    fn finish(self) -> Self { self }
+    fn finish(self) -> Self {
+        self
+    }
 
     type Handle = Dom<Node>;
 
@@ -811,7 +870,8 @@ impl TreeSink for Sink {
     }
 
     fn get_template_contents(&mut self, target: &Dom<Node>) -> Dom<Node> {
-        let template = target.downcast::<HTMLTemplateElement>()
+        let template = target
+            .downcast::<HTMLTemplateElement>()
             .expect("tried to get template contents of non-HTMLTemplateElement in HTML parsing");
         Dom::from_ref(template.Content().upcast())
     }
@@ -821,7 +881,8 @@ impl TreeSink for Sink {
     }
 
     fn elem_name<'a>(&self, target: &'a Dom<Node>) -> ExpandedName<'a> {
-        let elem = target.downcast::<Element>()
+        let elem = target
+            .downcast::<Element>()
             .expect("tried to get name of non-Element in HTML parsing");
         ExpandedName {
             ns: elem.namespace(),
@@ -829,8 +890,12 @@ impl TreeSink for Sink {
         }
     }
 
-    fn create_element(&mut self, name: QualName, attrs: Vec<Attribute>, _flags: ElementFlags)
-            -> Dom<Node> {
+    fn create_element(
+        &mut self,
+        name: QualName,
+        attrs: Vec<Attribute>,
+        _flags: ElementFlags,
+    ) -> Dom<Node> {
         let attrs = attrs
             .into_iter()
             .map(|attr| ElementAttribute::new(attr.name, DOMString::from(String::from(attr.value))))
@@ -853,15 +918,26 @@ impl TreeSink for Sink {
     fn create_pi(&mut self, target: StrTendril, data: StrTendril) -> Dom<Node> {
         let doc = &*self.document;
         let pi = ProcessingInstruction::new(
-            DOMString::from(String::from(target)), DOMString::from(String::from(data)),
-            doc);
+            DOMString::from(String::from(target)),
+            DOMString::from(String::from(data)),
+            doc,
+        );
         Dom::from_ref(pi.upcast())
     }
 
-    fn associate_with_form(&mut self, target: &Dom<Node>, form: &Dom<Node>, nodes: (&Dom<Node>, Option<&Dom<Node>>)) {
+    fn associate_with_form(
+        &mut self,
+        target: &Dom<Node>,
+        form: &Dom<Node>,
+        nodes: (&Dom<Node>, Option<&Dom<Node>>),
+    ) {
         let (element, prev_element) = nodes;
         let tree_node = prev_element.map_or(element, |prev| {
-            if self.has_parent_node(element) { element } else { prev }
+            if self.has_parent_node(element) {
+                element
+            } else {
+                prev
+            }
         });
         if !self.same_tree(tree_node, form) {
             return;
@@ -878,14 +954,17 @@ impl TreeSink for Sink {
             control.set_form_owner_from_parser(&form);
         } else {
             // TODO remove this code when keygen is implemented.
-            assert_eq!(node.NodeName(), "KEYGEN", "Unknown form-associatable element");
+            assert_eq!(
+                node.NodeName(),
+                "KEYGEN",
+                "Unknown form-associatable element"
+            );
         }
     }
 
-    fn append_before_sibling(&mut self,
-            sibling: &Dom<Node>,
-            new_node: NodeOrText<Dom<Node>>) {
-        let parent = sibling.GetParentNode()
+    fn append_before_sibling(&mut self, sibling: &Dom<Node>, new_node: NodeOrText<Dom<Node>>) {
+        let parent = sibling
+            .GetParentNode()
             .expect("append_before_sibling called on node without parent");
 
         insert(&parent, Some(&*sibling), new_node);
@@ -921,20 +1000,34 @@ impl TreeSink for Sink {
         }
     }
 
-    fn append_doctype_to_document(&mut self, name: StrTendril, public_id: StrTendril,
-                                  system_id: StrTendril) {
+    fn append_doctype_to_document(
+        &mut self,
+        name: StrTendril,
+        public_id: StrTendril,
+        system_id: StrTendril,
+    ) {
         let doc = &*self.document;
         let doctype = DocumentType::new(
-            DOMString::from(String::from(name)), Some(DOMString::from(String::from(public_id))),
-            Some(DOMString::from(String::from(system_id))), doc);
-        doc.upcast::<Node>().AppendChild(doctype.upcast()).expect("Appending failed");
+            DOMString::from(String::from(name)),
+            Some(DOMString::from(String::from(public_id))),
+            Some(DOMString::from(String::from(system_id))),
+            doc,
+        );
+        doc.upcast::<Node>()
+            .AppendChild(doctype.upcast())
+            .expect("Appending failed");
     }
 
     fn add_attrs_if_missing(&mut self, target: &Dom<Node>, attrs: Vec<Attribute>) {
-        let elem = target.downcast::<Element>()
+        let elem = target
+            .downcast::<Element>()
             .expect("tried to set attrs on non-Element in HTML parsing");
         for attr in attrs {
-            elem.set_attribute_from_parser(attr.name, DOMString::from(String::from(attr.value)), None);
+            elem.set_attribute_from_parser(
+                attr.name,
+                DOMString::from(String::from(attr.value)),
+                None,
+            );
         }
     }
 
@@ -968,10 +1061,11 @@ impl TreeSink for Sink {
     /// Specifically, the <annotation-xml> cases.
     fn is_mathml_annotation_xml_integration_point(&self, handle: &Dom<Node>) -> bool {
         let elem = handle.downcast::<Element>().unwrap();
-        elem.get_attribute(&ns!(), &local_name!("encoding")).map_or(false, |attr| {
-            attr.value().eq_ignore_ascii_case("text/html")
-                || attr.value().eq_ignore_ascii_case("application/xhtml+xml")
-        })
+        elem.get_attribute(&ns!(), &local_name!("encoding"))
+            .map_or(false, |attr| {
+                attr.value().eq_ignore_ascii_case("text/html") ||
+                    attr.value().eq_ignore_ascii_case("application/xhtml+xml")
+            })
     }
 
     fn set_current_line(&mut self, line_number: u64) {
@@ -993,7 +1087,8 @@ fn create_element_for_token(
     parsing_algorithm: ParsingAlgorithm,
 ) -> DomRoot<Element> {
     // Step 3.
-    let is = attrs.iter()
+    let is = attrs
+        .iter()
         .find(|attr| attr.name.local.eq_str_ignore_ascii_case("is"))
         .map(|attr| LocalName::from(&*attr.value));
 
@@ -1001,7 +1096,8 @@ fn create_element_for_token(
     let definition = document.lookup_custom_element_definition(&name.ns, &name.local, is.as_ref());
 
     // Step 5.
-    let will_execute_script = definition.is_some() && parsing_algorithm != ParsingAlgorithm::Fragment;
+    let will_execute_script =
+        definition.is_some() && parsing_algorithm != ParsingAlgorithm::Fragment;
 
     // Step 6.
     if will_execute_script {
@@ -1009,7 +1105,10 @@ fn create_element_for_token(
         document.increment_throw_on_dynamic_markup_insertion_counter();
         // Step 6.2
         if is_execution_stack_empty() {
-            document.window().upcast::<GlobalScope>().perform_a_microtask_checkpoint();
+            document
+                .window()
+                .upcast::<GlobalScope>()
+                .perform_a_microtask_checkpoint();
         }
         // Step 6.3
         ScriptThread::push_new_element_queue()

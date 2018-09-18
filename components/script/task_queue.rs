@@ -15,13 +15,12 @@ use std::default::Default;
 use task::TaskBox;
 use task_source::TaskSourceName;
 
-
 pub type QueuedTask = (
     Option<TrustedWorkerAddress>,
     ScriptThreadEventCategory,
     Box<TaskBox>,
     Option<PipelineId>,
-    TaskSourceName
+    TaskSourceName,
 );
 
 /// Defining the operations used to convert from a msg T to a QueuedTask.
@@ -43,7 +42,7 @@ pub struct TaskQueue<T> {
     /// A "business" counter, reset for each iteration of the event-loop
     taken_task_counter: Cell<u64>,
     /// Tasks that will be throttled for as long as we are "busy".
-    throttled: DomRefCell<HashMap<TaskSourceName, VecDeque<QueuedTask>>>
+    throttled: DomRefCell<HashMap<TaskSourceName, VecDeque<QueuedTask>>>,
 }
 
 impl<T: QueuedTaskConversion> TaskQueue<T> {
@@ -70,20 +69,22 @@ impl<T: QueuedTaskConversion> TaskQueue<T> {
             }
         }
 
-        let to_be_throttled: Vec<T> = incoming.drain_filter(|msg|{
-            let task_source = match msg.task_source_name() {
-                Some(task_source) => task_source,
-                None => return false,
-            };
-            match task_source {
-                TaskSourceName::PerformanceTimeline => return true,
-                _ => {
-                    // A task that will not be throttled, start counting "business"
-                    self.taken_task_counter.set(self.taken_task_counter.get() + 1);
-                    return false
-                },
-            }
-        }).collect();
+        let to_be_throttled: Vec<T> = incoming
+            .drain_filter(|msg| {
+                let task_source = match msg.task_source_name() {
+                    Some(task_source) => task_source,
+                    None => return false,
+                };
+                match task_source {
+                    TaskSourceName::PerformanceTimeline => return true,
+                    _ => {
+                        // A task that will not be throttled, start counting "business"
+                        self.taken_task_counter
+                            .set(self.taken_task_counter.get() + 1);
+                        return false;
+                    },
+                }
+            }).collect();
 
         for msg in incoming {
             // Immediately send non-throttled tasks for processing.
@@ -94,7 +95,9 @@ impl<T: QueuedTaskConversion> TaskQueue<T> {
             // Categorize tasks per task queue.
             let (worker, category, boxed, pipeline_id, task_source) = match msg.into_queued_task() {
                 Some(queued_task) => queued_task,
-                None => unreachable!("A message to be throttled should always be convertible into a queued task"),
+                None => unreachable!(
+                    "A message to be throttled should always be convertible into a queued task"
+                ),
             };
             let mut throttled_tasks = self.throttled.borrow_mut();
             throttled_tasks
@@ -162,7 +165,8 @@ impl<T: QueuedTaskConversion> TaskQueue<T> {
                     };
                     let msg = T::from_queued_task(queued_task);
                     let _ = self.msg_queue.borrow_mut().push_back(msg);
-                    self.taken_task_counter.set(self.taken_task_counter.get() + 1);
+                    self.taken_task_counter
+                        .set(self.taken_task_counter.get() + 1);
                     throttled_length = throttled_length - 1;
                 },
             }

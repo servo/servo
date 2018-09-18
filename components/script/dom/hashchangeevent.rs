@@ -33,21 +33,26 @@ impl HashChangeEvent {
     }
 
     pub fn new_uninitialized(window: &Window) -> DomRoot<HashChangeEvent> {
-        reflect_dom_object(Box::new(HashChangeEvent::new_inherited(String::new(), String::new())),
-                           window,
-                           HashChangeEventBinding::Wrap)
+        reflect_dom_object(
+            Box::new(HashChangeEvent::new_inherited(String::new(), String::new())),
+            window,
+            HashChangeEventBinding::Wrap,
+        )
     }
 
-    pub fn new(window: &Window,
-               type_: Atom,
-               bubbles: bool,
-               cancelable: bool,
-               old_url: String,
-               new_url: String)
-               -> DomRoot<HashChangeEvent> {
-        let ev = reflect_dom_object(Box::new(HashChangeEvent::new_inherited(old_url, new_url)),
-                                    window,
-                                    HashChangeEventBinding::Wrap);
+    pub fn new(
+        window: &Window,
+        type_: Atom,
+        bubbles: bool,
+        cancelable: bool,
+        old_url: String,
+        new_url: String,
+    ) -> DomRoot<HashChangeEvent> {
+        let ev = reflect_dom_object(
+            Box::new(HashChangeEvent::new_inherited(old_url, new_url)),
+            window,
+            HashChangeEventBinding::Wrap,
+        );
         {
             let event = ev.upcast::<Event>();
             event.init_event(type_, bubbles, cancelable);
@@ -55,16 +60,19 @@ impl HashChangeEvent {
         ev
     }
 
-    pub fn Constructor(window: &Window,
-                       type_: DOMString,
-                       init: &HashChangeEventBinding::HashChangeEventInit)
-                       -> Fallible<DomRoot<HashChangeEvent>> {
-        Ok(HashChangeEvent::new(window,
-                                Atom::from(type_),
-                                init.parent.bubbles,
-                                init.parent.cancelable,
-                                init.oldURL.0.clone(),
-                                init.newURL.0.clone()))
+    pub fn Constructor(
+        window: &Window,
+        type_: DOMString,
+        init: &HashChangeEventBinding::HashChangeEventInit,
+    ) -> Fallible<DomRoot<HashChangeEvent>> {
+        Ok(HashChangeEvent::new(
+            window,
+            Atom::from(type_),
+            init.parent.bubbles,
+            init.parent.cancelable,
+            init.oldURL.0.clone(),
+            init.newURL.0.clone(),
+        ))
     }
 }
 

@@ -36,7 +36,9 @@ impl FormData {
             for datum in form.get_form_dataset(None) {
                 match hashmap.entry(LocalName::from(datum.name.as_ref())) {
                     Occupied(entry) => entry.into_mut().push(datum),
-                    Vacant(entry) => { entry.insert(vec!(datum)); }
+                    Vacant(entry) => {
+                        entry.insert(vec![datum]);
+                    },
                 }
             }
         }
@@ -48,11 +50,17 @@ impl FormData {
     }
 
     pub fn new(form: Option<&HTMLFormElement>, global: &GlobalScope) -> DomRoot<FormData> {
-        reflect_dom_object(Box::new(FormData::new_inherited(form)),
-                           global, FormDataWrap)
+        reflect_dom_object(
+            Box::new(FormData::new_inherited(form)),
+            global,
+            FormDataWrap,
+        )
     }
 
-    pub fn Constructor(global: &GlobalScope, form: Option<&HTMLFormElement>) -> Fallible<DomRoot<FormData>> {
+    pub fn Constructor(
+        global: &GlobalScope,
+        form: Option<&HTMLFormElement>,
+    ) -> Fallible<DomRoot<FormData>> {
         // TODO: Construct form data set for form if it is supplied
         Ok(FormData::new(form, global))
     }
@@ -70,7 +78,9 @@ impl FormDataMethods for FormData {
         let mut data = self.data.borrow_mut();
         match data.entry(LocalName::from(name.0)) {
             Occupied(entry) => entry.into_mut().push(datum),
-            Vacant(entry) => { entry.insert(vec!(datum)); }
+            Vacant(entry) => {
+                entry.insert(vec![datum]);
+            },
         }
     }
 
@@ -87,7 +97,9 @@ impl FormDataMethods for FormData {
 
         match data.entry(LocalName::from(name.0)) {
             Occupied(entry) => entry.into_mut().push(datum),
-            Vacant(entry) => { entry.insert(vec!(datum)); },
+            Vacant(entry) => {
+                entry.insert(vec![datum]);
+            },
         }
     }
 
@@ -98,24 +110,33 @@ impl FormDataMethods for FormData {
 
     // https://xhr.spec.whatwg.org/#dom-formdata-get
     fn Get(&self, name: USVString) -> Option<FileOrUSVString> {
-        self.data.borrow()
-                 .get(&LocalName::from(name.0))
-                 .map(|entry| match entry[0].value {
-                     FormDatumValue::String(ref s) => FileOrUSVString::USVString(USVString(s.to_string())),
-                     FormDatumValue::File(ref b) => FileOrUSVString::File(DomRoot::from_ref(&*b)),
-                 })
+        self.data
+            .borrow()
+            .get(&LocalName::from(name.0))
+            .map(|entry| match entry[0].value {
+                FormDatumValue::String(ref s) => {
+                    FileOrUSVString::USVString(USVString(s.to_string()))
+                },
+                FormDatumValue::File(ref b) => FileOrUSVString::File(DomRoot::from_ref(&*b)),
+            })
     }
 
     // https://xhr.spec.whatwg.org/#dom-formdata-getall
     fn GetAll(&self, name: USVString) -> Vec<FileOrUSVString> {
-        self.data.borrow()
-                 .get(&LocalName::from(name.0))
-                 .map_or(vec![], |data|
-                    data.iter().map(|item| match item.value {
-                        FormDatumValue::String(ref s) => FileOrUSVString::USVString(USVString(s.to_string())),
-                        FormDatumValue::File(ref b) => FileOrUSVString::File(DomRoot::from_ref(&*b)),
+        self.data
+            .borrow()
+            .get(&LocalName::from(name.0))
+            .map_or(vec![], |data| {
+                data.iter()
+                    .map(|item| match item.value {
+                        FormDatumValue::String(ref s) => {
+                            FileOrUSVString::USVString(USVString(s.to_string()))
+                        },
+                        FormDatumValue::File(ref b) => {
+                            FileOrUSVString::File(DomRoot::from_ref(&*b))
+                        },
                     }).collect()
-                 )
+            })
     }
 
     // https://xhr.spec.whatwg.org/#dom-formdata-has
@@ -125,25 +146,31 @@ impl FormDataMethods for FormData {
 
     // https://xhr.spec.whatwg.org/#dom-formdata-set
     fn Set(&self, name: USVString, str_value: USVString) {
-        self.data.borrow_mut().insert(LocalName::from(name.0.clone()), vec![FormDatum {
-            ty: DOMString::from("string"),
-            name: DOMString::from(name.0),
-            value: FormDatumValue::String(DOMString::from(str_value.0)),
-        }]);
+        self.data.borrow_mut().insert(
+            LocalName::from(name.0.clone()),
+            vec![FormDatum {
+                ty: DOMString::from("string"),
+                name: DOMString::from(name.0),
+                value: FormDatumValue::String(DOMString::from(str_value.0)),
+            }],
+        );
     }
 
     #[allow(unrooted_must_root)]
     // https://xhr.spec.whatwg.org/#dom-formdata-set
     fn Set_(&self, name: USVString, blob: &Blob, filename: Option<USVString>) {
-        self.data.borrow_mut().insert(LocalName::from(name.0.clone()), vec![FormDatum {
-            ty: DOMString::from("file"),
-            name: DOMString::from(name.0),
-            value: FormDatumValue::File(DomRoot::from_ref(&*self.create_an_entry(blob, filename))),
-        }]);
+        self.data.borrow_mut().insert(
+            LocalName::from(name.0.clone()),
+            vec![FormDatum {
+                ty: DOMString::from("file"),
+                name: DOMString::from(name.0),
+                value: FormDatumValue::File(DomRoot::from_ref(
+                    &*self.create_an_entry(blob, filename),
+                )),
+            }],
+        );
     }
-
 }
-
 
 impl FormData {
     // https://xhr.spec.whatwg.org/#create-an-entry
@@ -157,11 +184,19 @@ impl FormData {
 
         let bytes = blob.get_bytes().unwrap_or(vec![]);
 
-        File::new(&self.global(), BlobImpl::new_from_bytes(bytes), name, None, &blob.type_string())
+        File::new(
+            &self.global(),
+            BlobImpl::new_from_bytes(bytes),
+            name,
+            None,
+            &blob.type_string(),
+        )
     }
 
     pub fn datums(&self) -> Vec<FormDatum> {
-        self.data.borrow().values()
+        self.data
+            .borrow()
+            .values()
             .flat_map(|value| value.iter())
             .map(|value| value.clone())
             .collect()
@@ -173,16 +208,21 @@ impl Iterable for FormData {
     type Value = FileOrUSVString;
 
     fn get_iterable_length(&self) -> u32 {
-        self.data.borrow().values().map(|value| value.len()).sum::<usize>() as u32
+        self.data
+            .borrow()
+            .values()
+            .map(|value| value.len())
+            .sum::<usize>() as u32
     }
 
     fn get_value_at_index(&self, n: u32) -> FileOrUSVString {
         let data = self.data.borrow();
-        let value = &data.values()
-                         .flat_map(|value| value.iter())
-                         .nth(n as usize)
-                         .unwrap()
-                         .value;
+        let value = &data
+            .values()
+            .flat_map(|value| value.iter())
+            .nth(n as usize)
+            .unwrap()
+            .value;
         match *value {
             FormDatumValue::String(ref s) => FileOrUSVString::USVString(USVString(s.to_string())),
             FormDatumValue::File(ref b) => FileOrUSVString::File(DomRoot::from_ref(&*b)),
@@ -191,10 +231,11 @@ impl Iterable for FormData {
 
     fn get_key_at_index(&self, n: u32) -> USVString {
         let data = self.data.borrow();
-        let value = &data.iter()
-                         .flat_map(|(key, value)| iter::repeat(key).take(value.len()))
-                         .nth(n as usize)
-                         .unwrap();
+        let value = &data
+            .iter()
+            .flat_map(|(key, value)| iter::repeat(key).take(value.len()))
+            .nth(n as usize)
+            .unwrap();
         USVString(value.to_string())
     }
 }

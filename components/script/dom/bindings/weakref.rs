@@ -70,9 +70,11 @@ pub trait WeakReferenceable: DomObject + Sized {
             let box_ = &*ptr;
             assert!(box_.value.get().is_some());
             let new_count = box_.count.get() + 1;
-            trace!("Incrementing WeakBox refcount for {:p} to {}.",
-                   self,
-                   new_count);
+            trace!(
+                "Incrementing WeakBox refcount for {:p} to {}.",
+                self,
+                new_count
+            );
             box_.count.set(new_count);
             WeakRef {
                 ptr: ptr::NonNull::new_unchecked(ptr),
@@ -91,9 +93,10 @@ impl<T: WeakReferenceable> WeakRef<T> {
 
     /// DomRoot a weak reference. Returns `None` if the object was already collected.
     pub fn root(&self) -> Option<DomRoot<T>> {
-        unsafe { &*self.ptr.as_ptr() }.value.get().map(|ptr| unsafe {
-            DomRoot::from_ref(&*ptr.as_ptr())
-        })
+        unsafe { &*self.ptr.as_ptr() }
+            .value
+            .get()
+            .map(|ptr| unsafe { DomRoot::from_ref(&*ptr.as_ptr()) })
     }
 
     /// Return whether the weakly-referenced object is still alive.
@@ -108,9 +111,7 @@ impl<T: WeakReferenceable> Clone for WeakRef<T> {
             let box_ = &*self.ptr.as_ptr();
             let new_count = box_.count.get() + 1;
             box_.count.set(new_count);
-            WeakRef {
-                ptr: self.ptr,
-            }
+            WeakRef { ptr: self.ptr }
         }
     }
 }
@@ -122,10 +123,10 @@ impl<T: WeakReferenceable> MallocSizeOf for WeakRef<T> {
 }
 
 impl<T: WeakReferenceable> PartialEq for WeakRef<T> {
-   fn eq(&self, other: &Self) -> bool {
+    fn eq(&self, other: &Self) -> bool {
         unsafe {
             (*self.ptr.as_ptr()).value.get().map(ptr::NonNull::as_ptr) ==
-            (*other.ptr.as_ptr()).value.get().map(ptr::NonNull::as_ptr)
+                (*other.ptr.as_ptr()).value.get().map(ptr::NonNull::as_ptr)
         }
     }
 }
@@ -190,7 +191,9 @@ impl<T: WeakReferenceable> MutableWeakRef<T> {
     /// DomRoot a mutable weak reference. Returns `None` if the object
     /// was already collected.
     pub fn root(&self) -> Option<DomRoot<T>> {
-        unsafe { &*self.cell.get() }.as_ref().and_then(WeakRef::root)
+        unsafe { &*self.cell.get() }
+            .as_ref()
+            .and_then(WeakRef::root)
     }
 }
 
@@ -233,7 +236,10 @@ impl<T: WeakReferenceable> WeakRefVec<T> {
         let mut i = 0;
         while i < self.vec.len() {
             if self.vec[i].is_alive() {
-                f(WeakRefEntry { vec: self, index: &mut i });
+                f(WeakRefEntry {
+                    vec: self,
+                    index: &mut i,
+                });
             } else {
                 self.vec.swap_remove(i);
             }
@@ -293,13 +299,13 @@ impl<'a, T: WeakReferenceable + 'a> Drop for WeakRefEntry<'a, T> {
 
 #[derive(MallocSizeOf)]
 pub struct DOMTracker<T: WeakReferenceable> {
-    dom_objects: DomRefCell<WeakRefVec<T>>
+    dom_objects: DomRefCell<WeakRefVec<T>>,
 }
 
 impl<T: WeakReferenceable> DOMTracker<T> {
     pub fn new() -> Self {
         Self {
-            dom_objects: DomRefCell::new(WeakRefVec::new())
+            dom_objects: DomRefCell::new(WeakRefVec::new()),
         }
     }
 

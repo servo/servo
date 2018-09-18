@@ -36,9 +36,7 @@ impl Tokenizer {
         let tb = XmlTreeBuilder::new(sink, Default::default());
         let tok = XmlTokenizer::new(tb, Default::default());
 
-        Tokenizer {
-            inner: tok,
-        }
+        Tokenizer { inner: tok }
     }
 
     pub fn feed(&mut self, input: &mut BufferQueue) -> Result<(), DomRoot<HTMLScriptElement>> {
@@ -77,7 +75,9 @@ unsafe impl JSTraceable for XmlTokenizer<XmlTreeBuilder<Dom<Node>, Sink>> {
             type Handle = Dom<Node>;
             #[allow(unrooted_must_root)]
             fn trace_handle(&self, node: &Dom<Node>) {
-                unsafe { node.trace(self.0); }
+                unsafe {
+                    node.trace(self.0);
+                }
             }
         }
 

@@ -26,19 +26,29 @@ pub struct HTMLTableSectionElement {
 }
 
 impl HTMLTableSectionElement {
-    fn new_inherited(local_name: LocalName, prefix: Option<Prefix>, document: &Document)
-                     -> HTMLTableSectionElement {
+    fn new_inherited(
+        local_name: LocalName,
+        prefix: Option<Prefix>,
+        document: &Document,
+    ) -> HTMLTableSectionElement {
         HTMLTableSectionElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(local_name: LocalName, prefix: Option<Prefix>, document: &Document)
-               -> DomRoot<HTMLTableSectionElement> {
-        Node::reflect_node(Box::new(HTMLTableSectionElement::new_inherited(local_name, prefix, document)),
-                           document,
-                           HTMLTableSectionElementBinding::Wrap)
+    pub fn new(
+        local_name: LocalName,
+        prefix: Option<Prefix>,
+        document: &Document,
+    ) -> DomRoot<HTMLTableSectionElement> {
+        Node::reflect_node(
+            Box::new(HTMLTableSectionElement::new_inherited(
+                local_name, prefix, document,
+            )),
+            document,
+            HTMLTableSectionElementBinding::Wrap,
+        )
     }
 }
 
@@ -46,8 +56,7 @@ impl HTMLTableSectionElement {
 struct RowsFilter;
 impl CollectionFilter for RowsFilter {
     fn filter(&self, elem: &Element, root: &Node) -> bool {
-        elem.is::<HTMLTableRowElement>() &&
-            elem.upcast::<Node>().GetParentNode().r() == Some(root)
+        elem.is::<HTMLTableRowElement>() && elem.upcast::<Node>().GetParentNode().r() == Some(root)
     }
 }
 
@@ -63,16 +72,14 @@ impl HTMLTableSectionElementMethods for HTMLTableSectionElement {
         node.insert_cell_or_row(
             index,
             || self.Rows(),
-            || HTMLTableRowElement::new(local_name!("tr"), None, &node.owner_doc()))
+            || HTMLTableRowElement::new(local_name!("tr"), None, &node.owner_doc()),
+        )
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-tbody-deleterow
     fn DeleteRow(&self, index: i32) -> ErrorResult {
         let node = self.upcast::<Node>();
-        node.delete_cell_or_row(
-            index,
-            || self.Rows(),
-            |n| n.is::<HTMLTableRowElement>())
+        node.delete_cell_or_row(index, || self.Rows(), |n| n.is::<HTMLTableRowElement>())
     }
 }
 
@@ -100,7 +107,10 @@ impl VirtualMethods for HTMLTableSectionElement {
     fn parse_plain_attribute(&self, local_name: &LocalName, value: DOMString) -> AttrValue {
         match *local_name {
             local_name!("bgcolor") => AttrValue::from_legacy_color(value.into()),
-            _ => self.super_type().unwrap().parse_plain_attribute(local_name, value),
+            _ => self
+                .super_type()
+                .unwrap()
+                .parse_plain_attribute(local_name, value),
         }
     }
 }

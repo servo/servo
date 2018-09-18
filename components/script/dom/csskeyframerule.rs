@@ -25,8 +25,10 @@ pub struct CSSKeyframeRule {
 }
 
 impl CSSKeyframeRule {
-    fn new_inherited(parent_stylesheet: &CSSStyleSheet, keyframerule: Arc<Locked<Keyframe>>)
-                     -> CSSKeyframeRule {
+    fn new_inherited(
+        parent_stylesheet: &CSSStyleSheet,
+        keyframerule: Arc<Locked<Keyframe>>,
+    ) -> CSSKeyframeRule {
         CSSKeyframeRule {
             cssrule: CSSRule::new_inherited(parent_stylesheet),
             keyframerule: keyframerule,
@@ -35,11 +37,19 @@ impl CSSKeyframeRule {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(window: &Window, parent_stylesheet: &CSSStyleSheet,
-               keyframerule: Arc<Locked<Keyframe>>) -> DomRoot<CSSKeyframeRule> {
-        reflect_dom_object(Box::new(CSSKeyframeRule::new_inherited(parent_stylesheet, keyframerule)),
-                           window,
-                           CSSKeyframeRuleBinding::Wrap)
+    pub fn new(
+        window: &Window,
+        parent_stylesheet: &CSSStyleSheet,
+        keyframerule: Arc<Locked<Keyframe>>,
+    ) -> DomRoot<CSSKeyframeRule> {
+        reflect_dom_object(
+            Box::new(CSSKeyframeRule::new_inherited(
+                parent_stylesheet,
+                keyframerule,
+            )),
+            window,
+            CSSKeyframeRuleBinding::Wrap,
+        )
     }
 }
 
@@ -69,6 +79,9 @@ impl SpecificCSSRule for CSSKeyframeRule {
 
     fn get_css(&self) -> DOMString {
         let guard = self.cssrule.shared_lock().read();
-        self.keyframerule.read_with(&guard).to_css_string(&guard).into()
+        self.keyframerule
+            .read_with(&guard)
+            .to_css_string(&guard)
+            .into()
     }
 }

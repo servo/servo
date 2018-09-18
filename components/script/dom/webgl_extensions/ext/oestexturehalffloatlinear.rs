@@ -26,9 +26,11 @@ impl OESTextureHalfFloatLinear {
 impl WebGLExtension for OESTextureHalfFloatLinear {
     type Extension = OESTextureHalfFloatLinear;
     fn new(ctx: &WebGLRenderingContext) -> DomRoot<OESTextureHalfFloatLinear> {
-        reflect_dom_object(Box::new(OESTextureHalfFloatLinear::new_inherited()),
-                           &*ctx.global(),
-                           OESTextureHalfFloatLinearBinding::Wrap)
+        reflect_dom_object(
+            Box::new(OESTextureHalfFloatLinear::new_inherited()),
+            &*ctx.global(),
+            OESTextureHalfFloatLinearBinding::Wrap,
+        )
     }
 
     fn spec() -> WebGLExtensionSpec {
@@ -36,9 +38,11 @@ impl WebGLExtension for OESTextureHalfFloatLinear {
     }
 
     fn is_supported(ext: &WebGLExtensions) -> bool {
-        ext.supports_any_gl_extension(&["GL_OES_texture_float_linear",
-                                        "GL_ARB_half_float_pixel",
-                                        "GL_NV_half_float"])
+        ext.supports_any_gl_extension(&[
+            "GL_OES_texture_float_linear",
+            "GL_ARB_half_float_pixel",
+            "GL_NV_half_float",
+        ])
     }
 
     fn enable(ext: &WebGLExtensions) {

@@ -16,7 +16,7 @@ use webvr_traits::WebVRFieldOfView;
 pub struct VRFieldOfView {
     reflector_: Reflector,
     #[ignore_malloc_size_of = "Defined in rust-webvr"]
-    fov: DomRefCell<WebVRFieldOfView>
+    fov: DomRefCell<WebVRFieldOfView>,
 }
 
 unsafe_no_jsmanaged_fields!(WebVRFieldOfView);
@@ -25,14 +25,16 @@ impl VRFieldOfView {
     fn new_inherited(fov: WebVRFieldOfView) -> VRFieldOfView {
         VRFieldOfView {
             reflector_: Reflector::new(),
-            fov: DomRefCell::new(fov)
+            fov: DomRefCell::new(fov),
         }
     }
 
     pub fn new(global: &GlobalScope, fov: WebVRFieldOfView) -> DomRoot<VRFieldOfView> {
-        reflect_dom_object(Box::new(VRFieldOfView::new_inherited(fov)),
-                           global,
-                           VRFieldOfViewBinding::Wrap)
+        reflect_dom_object(
+            Box::new(VRFieldOfView::new_inherited(fov)),
+            global,
+            VRFieldOfViewBinding::Wrap,
+        )
     }
 }
 

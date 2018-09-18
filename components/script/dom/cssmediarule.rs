@@ -31,8 +31,10 @@ pub struct CSSMediaRule {
 }
 
 impl CSSMediaRule {
-    fn new_inherited(parent_stylesheet: &CSSStyleSheet, mediarule: Arc<Locked<MediaRule>>)
-                     -> CSSMediaRule {
+    fn new_inherited(
+        parent_stylesheet: &CSSStyleSheet,
+        mediarule: Arc<Locked<MediaRule>>,
+    ) -> CSSMediaRule {
         let guard = parent_stylesheet.shared_lock().read();
         let list = mediarule.read_with(&guard).rules.clone();
         CSSMediaRule {
@@ -43,19 +45,26 @@ impl CSSMediaRule {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(window: &Window, parent_stylesheet: &CSSStyleSheet,
-               mediarule: Arc<Locked<MediaRule>>) -> DomRoot<CSSMediaRule> {
-        reflect_dom_object(Box::new(CSSMediaRule::new_inherited(parent_stylesheet, mediarule)),
-                           window,
-                           CSSMediaRuleBinding::Wrap)
+    pub fn new(
+        window: &Window,
+        parent_stylesheet: &CSSStyleSheet,
+        mediarule: Arc<Locked<MediaRule>>,
+    ) -> DomRoot<CSSMediaRule> {
+        reflect_dom_object(
+            Box::new(CSSMediaRule::new_inherited(parent_stylesheet, mediarule)),
+            window,
+            CSSMediaRuleBinding::Wrap,
+        )
     }
 
     fn medialist(&self) -> DomRoot<MediaList> {
         self.medialist.or_init(|| {
             let guard = self.cssconditionrule.shared_lock().read();
-            MediaList::new(self.global().as_window(),
-                           self.cssconditionrule.parent_stylesheet(),
-                           self.mediarule.read_with(&guard).media_queries.clone())
+            MediaList::new(
+                self.global().as_window(),
+                self.cssconditionrule.parent_stylesheet(),
+                self.mediarule.read_with(&guard).media_queries.clone(),
+            )
         })
     }
 
@@ -106,7 +115,10 @@ impl SpecificCSSRule for CSSMediaRule {
 
     fn get_css(&self) -> DOMString {
         let guard = self.cssconditionrule.shared_lock().read();
-        self.mediarule.read_with(&guard).to_css_string(&guard).into()
+        self.mediarule
+            .read_with(&guard)
+            .to_css_string(&guard)
+            .into()
     }
 }
 

@@ -63,8 +63,11 @@ impl TestBinding {
     }
 
     pub fn new(global: &GlobalScope) -> DomRoot<TestBinding> {
-        reflect_dom_object(Box::new(TestBinding::new_inherited()),
-                           global, TestBindingBinding::Wrap)
+        reflect_dom_object(
+            Box::new(TestBinding::new_inherited()),
+            global,
+            TestBindingBinding::Wrap,
+        )
     }
 
     pub fn Constructor(global: &GlobalScope) -> Fallible<DomRoot<TestBinding>> {
@@ -83,47 +86,89 @@ impl TestBinding {
 }
 
 impl TestBindingMethods for TestBinding {
-    fn BooleanAttribute(&self) -> bool { false }
+    fn BooleanAttribute(&self) -> bool {
+        false
+    }
     fn SetBooleanAttribute(&self, _: bool) {}
-    fn ByteAttribute(&self) -> i8 { 0 }
+    fn ByteAttribute(&self) -> i8 {
+        0
+    }
     fn SetByteAttribute(&self, _: i8) {}
-    fn OctetAttribute(&self) -> u8 { 0 }
+    fn OctetAttribute(&self) -> u8 {
+        0
+    }
     fn SetOctetAttribute(&self, _: u8) {}
-    fn ShortAttribute(&self) -> i16 { 0 }
+    fn ShortAttribute(&self) -> i16 {
+        0
+    }
     fn SetShortAttribute(&self, _: i16) {}
-    fn UnsignedShortAttribute(&self) -> u16 { 0 }
+    fn UnsignedShortAttribute(&self) -> u16 {
+        0
+    }
     fn SetUnsignedShortAttribute(&self, _: u16) {}
-    fn LongAttribute(&self) -> i32 { 0 }
+    fn LongAttribute(&self) -> i32 {
+        0
+    }
     fn SetLongAttribute(&self, _: i32) {}
-    fn UnsignedLongAttribute(&self) -> u32 { 0 }
+    fn UnsignedLongAttribute(&self) -> u32 {
+        0
+    }
     fn SetUnsignedLongAttribute(&self, _: u32) {}
-    fn LongLongAttribute(&self) -> i64 { 0 }
+    fn LongLongAttribute(&self) -> i64 {
+        0
+    }
     fn SetLongLongAttribute(&self, _: i64) {}
-    fn UnsignedLongLongAttribute(&self) -> u64 { 0 }
+    fn UnsignedLongLongAttribute(&self) -> u64 {
+        0
+    }
     fn SetUnsignedLongLongAttribute(&self, _: u64) {}
-    fn UnrestrictedFloatAttribute(&self) -> f32 { 0. }
+    fn UnrestrictedFloatAttribute(&self) -> f32 {
+        0.
+    }
     fn SetUnrestrictedFloatAttribute(&self, _: f32) {}
-    fn FloatAttribute(&self) -> Finite<f32> { Finite::wrap(0.) }
+    fn FloatAttribute(&self) -> Finite<f32> {
+        Finite::wrap(0.)
+    }
     fn SetFloatAttribute(&self, _: Finite<f32>) {}
-    fn UnrestrictedDoubleAttribute(&self) -> f64 { 0. }
+    fn UnrestrictedDoubleAttribute(&self) -> f64 {
+        0.
+    }
     fn SetUnrestrictedDoubleAttribute(&self, _: f64) {}
-    fn DoubleAttribute(&self) -> Finite<f64> { Finite::wrap(0.) }
+    fn DoubleAttribute(&self) -> Finite<f64> {
+        Finite::wrap(0.)
+    }
     fn SetDoubleAttribute(&self, _: Finite<f64>) {}
-    fn StringAttribute(&self) -> DOMString { DOMString::new() }
+    fn StringAttribute(&self) -> DOMString {
+        DOMString::new()
+    }
     fn SetStringAttribute(&self, _: DOMString) {}
-    fn UsvstringAttribute(&self) -> USVString { USVString("".to_owned()) }
+    fn UsvstringAttribute(&self) -> USVString {
+        USVString("".to_owned())
+    }
     fn SetUsvstringAttribute(&self, _: USVString) {}
-    fn ByteStringAttribute(&self) -> ByteString { ByteString::new(vec!()) }
+    fn ByteStringAttribute(&self) -> ByteString {
+        ByteString::new(vec![])
+    }
     fn SetByteStringAttribute(&self, _: ByteString) {}
-    fn EnumAttribute(&self) -> TestEnum { TestEnum::_empty }
+    fn EnumAttribute(&self) -> TestEnum {
+        TestEnum::_empty
+    }
     fn SetEnumAttribute(&self, _: TestEnum) {}
     fn InterfaceAttribute(&self) -> DomRoot<Blob> {
-        Blob::new(&self.global(), BlobImpl::new_from_bytes(vec![]), "".to_owned())
+        Blob::new(
+            &self.global(),
+            BlobImpl::new_from_bytes(vec![]),
+            "".to_owned(),
+        )
     }
     fn SetInterfaceAttribute(&self, _: &Blob) {}
-    fn UnionAttribute(&self) -> HTMLElementOrLong { HTMLElementOrLong::Long(0) }
+    fn UnionAttribute(&self) -> HTMLElementOrLong {
+        HTMLElementOrLong::Long(0)
+    }
     fn SetUnionAttribute(&self, _: HTMLElementOrLong) {}
-    fn Union2Attribute(&self) -> EventOrString { EventOrString::String(DOMString::new()) }
+    fn Union2Attribute(&self) -> EventOrString {
+        EventOrString::String(DOMString::new())
+    }
     fn SetUnion2Attribute(&self, _: EventOrString) {}
     fn Union3Attribute(&self) -> EventOrUSVString {
         EventOrUSVString::USVString(USVString("".to_owned()))
@@ -150,7 +195,7 @@ impl TestBindingMethods for TestBinding {
     }
     fn SetUnion8Attribute(&self, _: BlobOrUnsignedLong) {}
     fn Union9Attribute(&self) -> ByteStringOrLong {
-        ByteStringOrLong::ByteString(ByteString::new(vec!()))
+        ByteStringOrLong::ByteString(ByteString::new(vec![]))
     }
     fn SetUnion9Attribute(&self, _: ByteStringOrLong) {}
     #[allow(unsafe_code)]
@@ -159,7 +204,9 @@ impl TestBindingMethods for TestBinding {
         NonNull::new(array.get()).expect("got a null pointer")
     }
     #[allow(unsafe_code)]
-    unsafe fn AnyAttribute(&self, _: *mut JSContext) -> JSVal { NullValue() }
+    unsafe fn AnyAttribute(&self, _: *mut JSContext) -> JSVal {
+        NullValue()
+    }
     #[allow(unsafe_code)]
     unsafe fn SetAnyAttribute(&self, _: *mut JSContext, _: HandleValue) {}
     #[allow(unsafe_code)]
@@ -170,48 +217,94 @@ impl TestBindingMethods for TestBinding {
     #[allow(unsafe_code)]
     unsafe fn SetObjectAttribute(&self, _: *mut JSContext, _: *mut JSObject) {}
 
-    fn GetBooleanAttributeNullable(&self) -> Option<bool> { Some(false) }
+    fn GetBooleanAttributeNullable(&self) -> Option<bool> {
+        Some(false)
+    }
     fn SetBooleanAttributeNullable(&self, _: Option<bool>) {}
-    fn GetByteAttributeNullable(&self) -> Option<i8> { Some(0) }
+    fn GetByteAttributeNullable(&self) -> Option<i8> {
+        Some(0)
+    }
     fn SetByteAttributeNullable(&self, _: Option<i8>) {}
-    fn GetOctetAttributeNullable(&self) -> Option<u8> { Some(0) }
+    fn GetOctetAttributeNullable(&self) -> Option<u8> {
+        Some(0)
+    }
     fn SetOctetAttributeNullable(&self, _: Option<u8>) {}
-    fn GetShortAttributeNullable(&self) -> Option<i16> { Some(0) }
+    fn GetShortAttributeNullable(&self) -> Option<i16> {
+        Some(0)
+    }
     fn SetShortAttributeNullable(&self, _: Option<i16>) {}
-    fn GetUnsignedShortAttributeNullable(&self) -> Option<u16> { Some(0) }
+    fn GetUnsignedShortAttributeNullable(&self) -> Option<u16> {
+        Some(0)
+    }
     fn SetUnsignedShortAttributeNullable(&self, _: Option<u16>) {}
-    fn GetLongAttributeNullable(&self) -> Option<i32> { Some(0) }
+    fn GetLongAttributeNullable(&self) -> Option<i32> {
+        Some(0)
+    }
     fn SetLongAttributeNullable(&self, _: Option<i32>) {}
-    fn GetUnsignedLongAttributeNullable(&self) -> Option<u32> { Some(0) }
+    fn GetUnsignedLongAttributeNullable(&self) -> Option<u32> {
+        Some(0)
+    }
     fn SetUnsignedLongAttributeNullable(&self, _: Option<u32>) {}
-    fn GetLongLongAttributeNullable(&self) -> Option<i64> { Some(0) }
+    fn GetLongLongAttributeNullable(&self) -> Option<i64> {
+        Some(0)
+    }
     fn SetLongLongAttributeNullable(&self, _: Option<i64>) {}
-    fn GetUnsignedLongLongAttributeNullable(&self) -> Option<u64> { Some(0) }
+    fn GetUnsignedLongLongAttributeNullable(&self) -> Option<u64> {
+        Some(0)
+    }
     fn SetUnsignedLongLongAttributeNullable(&self, _: Option<u64>) {}
-    fn GetUnrestrictedFloatAttributeNullable(&self) -> Option<f32> { Some(0.) }
+    fn GetUnrestrictedFloatAttributeNullable(&self) -> Option<f32> {
+        Some(0.)
+    }
     fn SetUnrestrictedFloatAttributeNullable(&self, _: Option<f32>) {}
-    fn GetFloatAttributeNullable(&self) -> Option<Finite<f32>> { Some(Finite::wrap(0.)) }
+    fn GetFloatAttributeNullable(&self) -> Option<Finite<f32>> {
+        Some(Finite::wrap(0.))
+    }
     fn SetFloatAttributeNullable(&self, _: Option<Finite<f32>>) {}
-    fn GetUnrestrictedDoubleAttributeNullable(&self) -> Option<f64> { Some(0.) }
+    fn GetUnrestrictedDoubleAttributeNullable(&self) -> Option<f64> {
+        Some(0.)
+    }
     fn SetUnrestrictedDoubleAttributeNullable(&self, _: Option<f64>) {}
-    fn GetDoubleAttributeNullable(&self) -> Option<Finite<f64>> { Some(Finite::wrap(0.)) }
+    fn GetDoubleAttributeNullable(&self) -> Option<Finite<f64>> {
+        Some(Finite::wrap(0.))
+    }
     fn SetDoubleAttributeNullable(&self, _: Option<Finite<f64>>) {}
-    fn GetByteStringAttributeNullable(&self) -> Option<ByteString> { Some(ByteString::new(vec!())) }
+    fn GetByteStringAttributeNullable(&self) -> Option<ByteString> {
+        Some(ByteString::new(vec![]))
+    }
     fn SetByteStringAttributeNullable(&self, _: Option<ByteString>) {}
-    fn GetStringAttributeNullable(&self) -> Option<DOMString> { Some(DOMString::new()) }
+    fn GetStringAttributeNullable(&self) -> Option<DOMString> {
+        Some(DOMString::new())
+    }
     fn SetStringAttributeNullable(&self, _: Option<DOMString>) {}
-    fn GetUsvstringAttributeNullable(&self) -> Option<USVString> { Some(USVString("".to_owned())) }
+    fn GetUsvstringAttributeNullable(&self) -> Option<USVString> {
+        Some(USVString("".to_owned()))
+    }
     fn SetUsvstringAttributeNullable(&self, _: Option<USVString>) {}
     fn SetBinaryRenamedAttribute(&self, _: DOMString) {}
-    fn ForwardedAttribute(&self) -> DomRoot<TestBinding> { DomRoot::from_ref(self) }
-    fn BinaryRenamedAttribute(&self) -> DOMString { DOMString::new() }
+    fn ForwardedAttribute(&self) -> DomRoot<TestBinding> {
+        DomRoot::from_ref(self)
+    }
+    fn BinaryRenamedAttribute(&self) -> DOMString {
+        DOMString::new()
+    }
     fn SetBinaryRenamedAttribute2(&self, _: DOMString) {}
-    fn BinaryRenamedAttribute2(&self) -> DOMString { DOMString::new() }
-    fn Attr_to_automatically_rename(&self) -> DOMString { DOMString::new() }
+    fn BinaryRenamedAttribute2(&self) -> DOMString {
+        DOMString::new()
+    }
+    fn Attr_to_automatically_rename(&self) -> DOMString {
+        DOMString::new()
+    }
     fn SetAttr_to_automatically_rename(&self, _: DOMString) {}
-    fn GetEnumAttributeNullable(&self) -> Option<TestEnum> { Some(TestEnum::_empty) }
+    fn GetEnumAttributeNullable(&self) -> Option<TestEnum> {
+        Some(TestEnum::_empty)
+    }
     fn GetInterfaceAttributeNullable(&self) -> Option<DomRoot<Blob>> {
-        Some(Blob::new(&self.global(), BlobImpl::new_from_bytes(vec![]), "".to_owned()))
+        Some(Blob::new(
+            &self.global(),
+            BlobImpl::new_from_bytes(vec![]),
+            "".to_owned(),
+        ))
     }
     fn SetInterfaceAttributeNullable(&self, _: Option<&Blob>) {}
     fn GetInterfaceAttributeWeak(&self) -> Option<DomRoot<URL>> {
@@ -221,7 +314,9 @@ impl TestBindingMethods for TestBinding {
         self.url.set(url);
     }
     #[allow(unsafe_code)]
-    unsafe fn GetObjectAttributeNullable(&self, _: *mut JSContext) -> Option<NonNull<JSObject>> { None }
+    unsafe fn GetObjectAttributeNullable(&self, _: *mut JSContext) -> Option<NonNull<JSObject>> {
+        None
+    }
     #[allow(unsafe_code)]
     unsafe fn SetObjectAttributeNullable(&self, _: *mut JSContext, _: *mut JSObject) {}
     fn GetUnionAttributeNullable(&self) -> Option<HTMLElementOrLong> {
@@ -245,55 +340,119 @@ impl TestBindingMethods for TestBinding {
     }
     fn SetUnion5AttributeNullable(&self, _: Option<StringOrBoolean>) {}
     fn GetUnion6AttributeNullable(&self) -> Option<ByteStringOrLong> {
-        Some(ByteStringOrLong::ByteString(ByteString::new(vec!())))
+        Some(ByteStringOrLong::ByteString(ByteString::new(vec![])))
     }
     fn SetUnion6AttributeNullable(&self, _: Option<ByteStringOrLong>) {}
     fn BinaryRenamedMethod(&self) {}
     fn ReceiveVoid(&self) {}
-    fn ReceiveBoolean(&self) -> bool { false }
-    fn ReceiveByte(&self) -> i8 { 0 }
-    fn ReceiveOctet(&self) -> u8 { 0 }
-    fn ReceiveShort(&self) -> i16 { 0 }
-    fn ReceiveUnsignedShort(&self) -> u16 { 0 }
-    fn ReceiveLong(&self) -> i32 { 0 }
-    fn ReceiveUnsignedLong(&self) -> u32 { 0 }
-    fn ReceiveLongLong(&self) -> i64 { 0 }
-    fn ReceiveUnsignedLongLong(&self) -> u64 { 0 }
-    fn ReceiveUnrestrictedFloat(&self) -> f32 { 0. }
-    fn ReceiveFloat(&self) -> Finite<f32> { Finite::wrap(0.) }
-    fn ReceiveUnrestrictedDouble(&self) -> f64 { 0. }
-    fn ReceiveDouble(&self) -> Finite<f64> { Finite::wrap(0.) }
-    fn ReceiveString(&self) -> DOMString { DOMString::new() }
-    fn ReceiveUsvstring(&self) -> USVString { USVString("".to_owned()) }
-    fn ReceiveByteString(&self) -> ByteString { ByteString::new(vec!()) }
-    fn ReceiveEnum(&self) -> TestEnum { TestEnum::_empty }
+    fn ReceiveBoolean(&self) -> bool {
+        false
+    }
+    fn ReceiveByte(&self) -> i8 {
+        0
+    }
+    fn ReceiveOctet(&self) -> u8 {
+        0
+    }
+    fn ReceiveShort(&self) -> i16 {
+        0
+    }
+    fn ReceiveUnsignedShort(&self) -> u16 {
+        0
+    }
+    fn ReceiveLong(&self) -> i32 {
+        0
+    }
+    fn ReceiveUnsignedLong(&self) -> u32 {
+        0
+    }
+    fn ReceiveLongLong(&self) -> i64 {
+        0
+    }
+    fn ReceiveUnsignedLongLong(&self) -> u64 {
+        0
+    }
+    fn ReceiveUnrestrictedFloat(&self) -> f32 {
+        0.
+    }
+    fn ReceiveFloat(&self) -> Finite<f32> {
+        Finite::wrap(0.)
+    }
+    fn ReceiveUnrestrictedDouble(&self) -> f64 {
+        0.
+    }
+    fn ReceiveDouble(&self) -> Finite<f64> {
+        Finite::wrap(0.)
+    }
+    fn ReceiveString(&self) -> DOMString {
+        DOMString::new()
+    }
+    fn ReceiveUsvstring(&self) -> USVString {
+        USVString("".to_owned())
+    }
+    fn ReceiveByteString(&self) -> ByteString {
+        ByteString::new(vec![])
+    }
+    fn ReceiveEnum(&self) -> TestEnum {
+        TestEnum::_empty
+    }
     fn ReceiveInterface(&self) -> DomRoot<Blob> {
-        Blob::new(&self.global(), BlobImpl::new_from_bytes(vec![]), "".to_owned())
+        Blob::new(
+            &self.global(),
+            BlobImpl::new_from_bytes(vec![]),
+            "".to_owned(),
+        )
     }
     #[allow(unsafe_code)]
-    unsafe fn ReceiveAny(&self, _: *mut JSContext) -> JSVal { NullValue() }
+    unsafe fn ReceiveAny(&self, _: *mut JSContext) -> JSVal {
+        NullValue()
+    }
     #[allow(unsafe_code)]
     unsafe fn ReceiveObject(&self, cx: *mut JSContext) -> NonNull<JSObject> {
         self.ObjectAttribute(cx)
     }
-    fn ReceiveUnion(&self) -> HTMLElementOrLong { HTMLElementOrLong::Long(0) }
-    fn ReceiveUnion2(&self) -> EventOrString { EventOrString::String(DOMString::new()) }
-    fn ReceiveUnion3(&self) -> StringOrLongSequence { StringOrLongSequence::LongSequence(vec![]) }
-    fn ReceiveUnion4(&self) -> StringOrStringSequence { StringOrStringSequence::StringSequence(vec![]) }
-    fn ReceiveUnion5(&self) -> BlobOrBlobSequence { BlobOrBlobSequence::BlobSequence(vec![]) }
-    fn ReceiveUnion6(&self) -> StringOrUnsignedLong { StringOrUnsignedLong::String(DOMString::new()) }
-    fn ReceiveUnion7(&self) -> StringOrBoolean { StringOrBoolean::Boolean(true) }
-    fn ReceiveUnion8(&self) -> UnsignedLongOrBoolean { UnsignedLongOrBoolean::UnsignedLong(0u32) }
+    fn ReceiveUnion(&self) -> HTMLElementOrLong {
+        HTMLElementOrLong::Long(0)
+    }
+    fn ReceiveUnion2(&self) -> EventOrString {
+        EventOrString::String(DOMString::new())
+    }
+    fn ReceiveUnion3(&self) -> StringOrLongSequence {
+        StringOrLongSequence::LongSequence(vec![])
+    }
+    fn ReceiveUnion4(&self) -> StringOrStringSequence {
+        StringOrStringSequence::StringSequence(vec![])
+    }
+    fn ReceiveUnion5(&self) -> BlobOrBlobSequence {
+        BlobOrBlobSequence::BlobSequence(vec![])
+    }
+    fn ReceiveUnion6(&self) -> StringOrUnsignedLong {
+        StringOrUnsignedLong::String(DOMString::new())
+    }
+    fn ReceiveUnion7(&self) -> StringOrBoolean {
+        StringOrBoolean::Boolean(true)
+    }
+    fn ReceiveUnion8(&self) -> UnsignedLongOrBoolean {
+        UnsignedLongOrBoolean::UnsignedLong(0u32)
+    }
     fn ReceiveUnion9(&self) -> HTMLElementOrUnsignedLongOrStringOrBoolean {
         HTMLElementOrUnsignedLongOrStringOrBoolean::Boolean(true)
     }
-    fn ReceiveUnion10(&self) -> ByteStringOrLong { ByteStringOrLong::ByteString(ByteString::new(vec!())) }
-    fn ReceiveUnion11(&self) -> ByteStringSequenceOrLongOrString {
-        ByteStringSequenceOrLongOrString::ByteStringSequence(vec!(ByteString::new(vec!())))
+    fn ReceiveUnion10(&self) -> ByteStringOrLong {
+        ByteStringOrLong::ByteString(ByteString::new(vec![]))
     }
-    fn ReceiveSequence(&self) -> Vec<i32> { vec![1] }
+    fn ReceiveUnion11(&self) -> ByteStringSequenceOrLongOrString {
+        ByteStringSequenceOrLongOrString::ByteStringSequence(vec![ByteString::new(vec![])])
+    }
+    fn ReceiveSequence(&self) -> Vec<i32> {
+        vec![1]
+    }
     fn ReceiveInterfaceSequence(&self) -> Vec<DomRoot<Blob>> {
-        vec![Blob::new(&self.global(), BlobImpl::new_from_bytes(vec![]), "".to_owned())]
+        vec![Blob::new(
+            &self.global(),
+            BlobImpl::new_from_bytes(vec![]),
+            "".to_owned(),
+        )]
     }
     #[allow(unsafe_code)]
     unsafe fn ReceiveUnionIdentity(
@@ -304,25 +463,63 @@ impl TestBindingMethods for TestBinding {
         arg
     }
 
-    fn ReceiveNullableBoolean(&self) -> Option<bool> { Some(false) }
-    fn ReceiveNullableByte(&self) -> Option<i8> { Some(0) }
-    fn ReceiveNullableOctet(&self) -> Option<u8> { Some(0) }
-    fn ReceiveNullableShort(&self) -> Option<i16> { Some(0) }
-    fn ReceiveNullableUnsignedShort(&self) -> Option<u16> { Some(0) }
-    fn ReceiveNullableLong(&self) -> Option<i32> { Some(0) }
-    fn ReceiveNullableUnsignedLong(&self) -> Option<u32> { Some(0) }
-    fn ReceiveNullableLongLong(&self) -> Option<i64> { Some(0) }
-    fn ReceiveNullableUnsignedLongLong(&self) -> Option<u64> { Some(0) }
-    fn ReceiveNullableUnrestrictedFloat(&self) -> Option<f32> { Some(0.) }
-    fn ReceiveNullableFloat(&self) -> Option<Finite<f32>> { Some(Finite::wrap(0.)) }
-    fn ReceiveNullableUnrestrictedDouble(&self) -> Option<f64> { Some(0.) }
-    fn ReceiveNullableDouble(&self) -> Option<Finite<f64>> { Some(Finite::wrap(0.)) }
-    fn ReceiveNullableString(&self) -> Option<DOMString> { Some(DOMString::new()) }
-    fn ReceiveNullableUsvstring(&self) -> Option<USVString> { Some(USVString("".to_owned())) }
-    fn ReceiveNullableByteString(&self) -> Option<ByteString> { Some(ByteString::new(vec!())) }
-    fn ReceiveNullableEnum(&self) -> Option<TestEnum> { Some(TestEnum::_empty) }
+    fn ReceiveNullableBoolean(&self) -> Option<bool> {
+        Some(false)
+    }
+    fn ReceiveNullableByte(&self) -> Option<i8> {
+        Some(0)
+    }
+    fn ReceiveNullableOctet(&self) -> Option<u8> {
+        Some(0)
+    }
+    fn ReceiveNullableShort(&self) -> Option<i16> {
+        Some(0)
+    }
+    fn ReceiveNullableUnsignedShort(&self) -> Option<u16> {
+        Some(0)
+    }
+    fn ReceiveNullableLong(&self) -> Option<i32> {
+        Some(0)
+    }
+    fn ReceiveNullableUnsignedLong(&self) -> Option<u32> {
+        Some(0)
+    }
+    fn ReceiveNullableLongLong(&self) -> Option<i64> {
+        Some(0)
+    }
+    fn ReceiveNullableUnsignedLongLong(&self) -> Option<u64> {
+        Some(0)
+    }
+    fn ReceiveNullableUnrestrictedFloat(&self) -> Option<f32> {
+        Some(0.)
+    }
+    fn ReceiveNullableFloat(&self) -> Option<Finite<f32>> {
+        Some(Finite::wrap(0.))
+    }
+    fn ReceiveNullableUnrestrictedDouble(&self) -> Option<f64> {
+        Some(0.)
+    }
+    fn ReceiveNullableDouble(&self) -> Option<Finite<f64>> {
+        Some(Finite::wrap(0.))
+    }
+    fn ReceiveNullableString(&self) -> Option<DOMString> {
+        Some(DOMString::new())
+    }
+    fn ReceiveNullableUsvstring(&self) -> Option<USVString> {
+        Some(USVString("".to_owned()))
+    }
+    fn ReceiveNullableByteString(&self) -> Option<ByteString> {
+        Some(ByteString::new(vec![]))
+    }
+    fn ReceiveNullableEnum(&self) -> Option<TestEnum> {
+        Some(TestEnum::_empty)
+    }
     fn ReceiveNullableInterface(&self) -> Option<DomRoot<Blob>> {
-        Some(Blob::new(&self.global(), BlobImpl::new_from_bytes(vec![]), "".to_owned()))
+        Some(Blob::new(
+            &self.global(),
+            BlobImpl::new_from_bytes(vec![]),
+            "".to_owned(),
+        ))
     }
     #[allow(unsafe_code)]
     unsafe fn ReceiveNullableObject(&self, cx: *mut JSContext) -> Option<NonNull<JSObject>> {
@@ -344,9 +541,11 @@ impl TestBindingMethods for TestBinding {
         Some(UnsignedLongOrBoolean::UnsignedLong(0u32))
     }
     fn ReceiveNullableUnion6(&self) -> Option<ByteStringOrLong> {
-        Some(ByteStringOrLong::ByteString(ByteString::new(vec!())))
+        Some(ByteStringOrLong::ByteString(ByteString::new(vec![])))
     }
-    fn ReceiveNullableSequence(&self) -> Option<Vec<i32>> { Some(vec![1]) }
+    fn ReceiveNullableSequence(&self) -> Option<Vec<i32>> {
+        Some(vec![1])
+    }
     fn ReceiveTestDictionaryWithSuccessOnKeyword(&self) -> RootedTraceableBox<TestDictionary> {
         RootedTraceableBox::new(TestDictionary {
             anyValue: RootedTraceableBox::new(Heap::default()),
@@ -465,11 +664,20 @@ impl TestBindingMethods for TestBinding {
     #[allow(unsafe_code)]
     unsafe fn PassAnySequence(&self, _: *mut JSContext, _: CustomAutoRooterGuard<Vec<JSVal>>) {}
     #[allow(unsafe_code)]
-    unsafe fn AnySequencePassthrough(&self, _: *mut JSContext, seq: CustomAutoRooterGuard<Vec<JSVal>>) -> Vec<JSVal> {
+    unsafe fn AnySequencePassthrough(
+        &self,
+        _: *mut JSContext,
+        seq: CustomAutoRooterGuard<Vec<JSVal>>,
+    ) -> Vec<JSVal> {
         (*seq).clone()
     }
     #[allow(unsafe_code)]
-    unsafe fn PassObjectSequence(&self, _: *mut JSContext, _: CustomAutoRooterGuard<Vec<*mut JSObject>>) {}
+    unsafe fn PassObjectSequence(
+        &self,
+        _: *mut JSContext,
+        _: CustomAutoRooterGuard<Vec<*mut JSObject>>,
+    ) {
+    }
     fn PassStringSequence(&self, _: Vec<DOMString>) {}
     fn PassInterfaceSequence(&self, _: Vec<DomRoot<Blob>>) {}
 
@@ -496,7 +704,7 @@ impl TestBindingMethods for TestBinding {
     fn PassNullableInterface(&self, _: Option<&Blob>) {}
     #[allow(unsafe_code)]
     unsafe fn PassNullableObject(&self, _: *mut JSContext, _: *mut JSObject) {}
-    fn PassNullableTypedArray(&self, _: CustomAutoRooterGuard<Option<typedarray::Int8Array>>) { }
+    fn PassNullableTypedArray(&self, _: CustomAutoRooterGuard<Option<typedarray::Int8Array>>) {}
     fn PassNullableUnion(&self, _: Option<HTMLElementOrLong>) {}
     fn PassNullableUnion2(&self, _: Option<EventOrString>) {}
     fn PassNullableUnion3(&self, _: Option<StringOrLongSequence>) {}
@@ -626,8 +834,10 @@ impl TestBindingMethods for TestBinding {
     fn PassOptionalNullableStringWithNonNullDefault(&self, _: Option<DOMString>) {}
     fn PassOptionalNullableUsvstringWithNonNullDefault(&self, _: Option<USVString>) {}
     // fn PassOptionalNullableEnumWithNonNullDefault(self, _: Option<TestEnum>) {}
-    fn PassOptionalOverloaded(&self, a: &TestBinding, _: u32, _: u32) -> DomRoot<TestBinding> { DomRoot::from_ref(a) }
-    fn PassOptionalOverloaded_(&self, _: &Blob,  _: u32) { }
+    fn PassOptionalOverloaded(&self, a: &TestBinding, _: u32, _: u32) -> DomRoot<TestBinding> {
+        DomRoot::from_ref(a)
+    }
+    fn PassOptionalOverloaded_(&self, _: &Blob, _: u32) {}
 
     fn PassVariadicBoolean(&self, _: Vec<bool>) {}
     fn PassVariadicBooleanAndDefault(&self, _: bool, _: Vec<bool>) {}
@@ -663,26 +873,42 @@ impl TestBindingMethods for TestBinding {
         PREFS.get(pref_name.as_ref()).as_boolean().unwrap_or(false)
     }
     fn StringMozPreference(&self, pref_name: DOMString) -> DOMString {
-        PREFS.get(pref_name.as_ref()).as_string().map(|s| DOMString::from(s)).unwrap_or_else(|| DOMString::new())
+        PREFS
+            .get(pref_name.as_ref())
+            .as_string()
+            .map(|s| DOMString::from(s))
+            .unwrap_or_else(|| DOMString::new())
     }
-    fn PrefControlledAttributeDisabled(&self) -> bool { false }
-    fn PrefControlledAttributeEnabled(&self) -> bool { false }
+    fn PrefControlledAttributeDisabled(&self) -> bool {
+        false
+    }
+    fn PrefControlledAttributeEnabled(&self) -> bool {
+        false
+    }
     fn PrefControlledMethodDisabled(&self) {}
     fn PrefControlledMethodEnabled(&self) {}
-    fn FuncControlledAttributeDisabled(&self) -> bool { false }
-    fn FuncControlledAttributeEnabled(&self) -> bool { false }
+    fn FuncControlledAttributeDisabled(&self) -> bool {
+        false
+    }
+    fn FuncControlledAttributeEnabled(&self) -> bool {
+        false
+    }
     fn FuncControlledMethodDisabled(&self) {}
     fn FuncControlledMethodEnabled(&self) {}
 
     fn PassMozMap(&self, _: MozMap<i32>) {}
-    fn PassNullableMozMap(&self, _: Option<MozMap<i32> >) {}
+    fn PassNullableMozMap(&self, _: Option<MozMap<i32>>) {}
     fn PassMozMapOfNullableInts(&self, _: MozMap<Option<i32>>) {}
     fn PassOptionalMozMapOfNullableInts(&self, _: Option<MozMap<Option<i32>>>) {}
-    fn PassOptionalNullableMozMapOfNullableInts(&self, _: Option<Option<MozMap<Option<i32>> >>) {}
+    fn PassOptionalNullableMozMapOfNullableInts(&self, _: Option<Option<MozMap<Option<i32>>>>) {}
     fn PassCastableObjectMozMap(&self, _: MozMap<DomRoot<TestBinding>>) {}
     fn PassNullableCastableObjectMozMap(&self, _: MozMap<Option<DomRoot<TestBinding>>>) {}
     fn PassCastableObjectNullableMozMap(&self, _: Option<MozMap<DomRoot<TestBinding>>>) {}
-    fn PassNullableCastableObjectNullableMozMap(&self, _: Option<MozMap<Option<DomRoot<TestBinding>>>>) {}
+    fn PassNullableCastableObjectNullableMozMap(
+        &self,
+        _: Option<MozMap<Option<DomRoot<TestBinding>>>>,
+    ) {
+    }
     fn PassOptionalMozMap(&self, _: Option<MozMap<i32>>) {}
     fn PassOptionalNullableMozMap(&self, _: Option<Option<MozMap<i32>>>) {}
     fn PassOptionalNullableMozMapWithDefaultValue(&self, _: Option<MozMap<i32>>) {}
@@ -692,23 +918,47 @@ impl TestBindingMethods for TestBinding {
     fn PassMozMapOfMozMaps(&self, _: MozMap<MozMap<i32>>) {}
     fn PassMozMapUnion(&self, _: UnionTypes::LongOrStringByteStringRecord) {}
     fn PassMozMapUnion2(&self, _: UnionTypes::TestBindingOrStringByteStringRecord) {}
-    fn PassMozMapUnion3(&self, _: UnionTypes::TestBindingOrByteStringSequenceSequenceOrStringByteStringRecord) {}
-    fn ReceiveMozMap(&self) -> MozMap<i32> { MozMap::new() }
-    fn ReceiveNullableMozMap(&self) -> Option<MozMap<i32>> { Some(MozMap::new()) }
-    fn ReceiveMozMapOfNullableInts(&self) -> MozMap<Option<i32>> { MozMap::new() }
-    fn ReceiveNullableMozMapOfNullableInts(&self) -> Option<MozMap<Option<i32>>> { Some(MozMap::new()) }
-    fn ReceiveMozMapOfMozMaps(&self) -> MozMap<MozMap<i32>> { MozMap::new() }
-    fn ReceiveAnyMozMap(&self) -> MozMap<JSVal> { MozMap::new() }
+    fn PassMozMapUnion3(
+        &self,
+        _: UnionTypes::TestBindingOrByteStringSequenceSequenceOrStringByteStringRecord,
+    ) {
+    }
+    fn ReceiveMozMap(&self) -> MozMap<i32> {
+        MozMap::new()
+    }
+    fn ReceiveNullableMozMap(&self) -> Option<MozMap<i32>> {
+        Some(MozMap::new())
+    }
+    fn ReceiveMozMapOfNullableInts(&self) -> MozMap<Option<i32>> {
+        MozMap::new()
+    }
+    fn ReceiveNullableMozMapOfNullableInts(&self) -> Option<MozMap<Option<i32>>> {
+        Some(MozMap::new())
+    }
+    fn ReceiveMozMapOfMozMaps(&self) -> MozMap<MozMap<i32>> {
+        MozMap::new()
+    }
+    fn ReceiveAnyMozMap(&self) -> MozMap<JSVal> {
+        MozMap::new()
+    }
 
     #[allow(unrooted_must_root)]
     #[allow(unsafe_code)]
-    unsafe fn ReturnResolvedPromise(&self, cx: *mut JSContext, v: HandleValue) -> Fallible<Rc<Promise>> {
+    unsafe fn ReturnResolvedPromise(
+        &self,
+        cx: *mut JSContext,
+        v: HandleValue,
+    ) -> Fallible<Rc<Promise>> {
         Promise::new_resolved(&self.global(), cx, v)
     }
 
     #[allow(unrooted_must_root)]
     #[allow(unsafe_code)]
-    unsafe fn ReturnRejectedPromise(&self, cx: *mut JSContext, v: HandleValue) -> Fallible<Rc<Promise>> {
+    unsafe fn ReturnRejectedPromise(
+        &self,
+        cx: *mut JSContext,
+        v: HandleValue,
+    ) -> Fallible<Rc<Promise>> {
         Promise::new_rejected(&self.global(), cx, v)
     }
 
@@ -733,20 +983,24 @@ impl TestBindingMethods for TestBinding {
             promise: TrustedPromise::new(promise),
             value: value,
         };
-        let _ = self.global()
-            .schedule_callback(
-                OneshotTimerCallback::TestBindingCallback(cb),
-                MsDuration::new(delay));
+        let _ = self.global().schedule_callback(
+            OneshotTimerCallback::TestBindingCallback(cb),
+            MsDuration::new(delay),
+        );
     }
 
     #[allow(unrooted_must_root)]
-    fn PromiseNativeHandler(&self,
-                            resolve: Option<Rc<SimpleCallback>>,
-                            reject: Option<Rc<SimpleCallback>>) -> Rc<Promise> {
+    fn PromiseNativeHandler(
+        &self,
+        resolve: Option<Rc<SimpleCallback>>,
+        reject: Option<Rc<SimpleCallback>>,
+    ) -> Rc<Promise> {
         let global = self.global();
-        let handler = PromiseNativeHandler::new(&global,
-                                                resolve.map(SimpleHandler::new),
-                                                reject.map(SimpleHandler::new));
+        let handler = PromiseNativeHandler::new(
+            &global,
+            resolve.map(SimpleHandler::new),
+            reject.map(SimpleHandler::new),
+        );
         let p = Promise::new(&global);
         p.append_native_handler(&handler);
         return p;
@@ -775,17 +1029,18 @@ impl TestBindingMethods for TestBinding {
         Promise::new(&self.global())
     }
 
-    fn AcceptPromise(&self, _promise: &Promise) {
-    }
+    fn AcceptPromise(&self, _promise: &Promise) {}
 
     fn PassSequenceSequence(&self, _seq: Vec<Vec<i32>>) {}
-    fn ReturnSequenceSequence(&self) -> Vec<Vec<i32>> { vec![] }
+    fn ReturnSequenceSequence(&self) -> Vec<Vec<i32>> {
+        vec![]
+    }
     fn PassUnionSequenceSequence(&self, seq: LongOrLongSequenceSequence) {
         match seq {
             LongOrLongSequenceSequence::Long(_) => (),
             LongOrLongSequenceSequence::LongSequenceSequence(seq) => {
                 let _seq: Vec<Vec<i32>> = seq;
-            }
+            },
         }
     }
 
@@ -802,7 +1057,9 @@ impl TestBindingMethods for TestBinding {
         self.global().as_window().advance_animation_clock(ms, tick);
     }
 
-    fn Panic(&self) { panic!("explicit panic from script") }
+    fn Panic(&self) {
+        panic!("explicit panic from script")
+    }
 
     fn EntryGlobal(&self) -> DomRoot<GlobalScope> {
         GlobalScope::entry()
@@ -813,23 +1070,37 @@ impl TestBindingMethods for TestBinding {
 }
 
 impl TestBinding {
-    pub fn BooleanAttributeStatic(_: &GlobalScope) -> bool { false }
+    pub fn BooleanAttributeStatic(_: &GlobalScope) -> bool {
+        false
+    }
     pub fn SetBooleanAttributeStatic(_: &GlobalScope, _: bool) {}
     pub fn ReceiveVoidStatic(_: &GlobalScope) {}
-    pub fn PrefControlledStaticAttributeDisabled(_: &GlobalScope) -> bool { false }
-    pub fn PrefControlledStaticAttributeEnabled(_: &GlobalScope) -> bool { false }
+    pub fn PrefControlledStaticAttributeDisabled(_: &GlobalScope) -> bool {
+        false
+    }
+    pub fn PrefControlledStaticAttributeEnabled(_: &GlobalScope) -> bool {
+        false
+    }
     pub fn PrefControlledStaticMethodDisabled(_: &GlobalScope) {}
     pub fn PrefControlledStaticMethodEnabled(_: &GlobalScope) {}
-    pub fn FuncControlledStaticAttributeDisabled(_: &GlobalScope) -> bool { false }
-    pub fn FuncControlledStaticAttributeEnabled(_: &GlobalScope) -> bool { false }
+    pub fn FuncControlledStaticAttributeDisabled(_: &GlobalScope) -> bool {
+        false
+    }
+    pub fn FuncControlledStaticAttributeEnabled(_: &GlobalScope) -> bool {
+        false
+    }
     pub fn FuncControlledStaticMethodDisabled(_: &GlobalScope) {}
     pub fn FuncControlledStaticMethodEnabled(_: &GlobalScope) {}
 }
 
 #[allow(unsafe_code)]
 impl TestBinding {
-    pub unsafe fn condition_satisfied(_: *mut JSContext, _: HandleObject) -> bool { true }
-    pub unsafe fn condition_unsatisfied(_: *mut JSContext, _: HandleObject) -> bool { false }
+    pub unsafe fn condition_satisfied(_: *mut JSContext, _: HandleObject) -> bool {
+        true
+    }
+    pub unsafe fn condition_unsatisfied(_: *mut JSContext, _: HandleObject) -> bool {
+        false
+    }
 }
 
 #[derive(JSTraceable, MallocSizeOf)]

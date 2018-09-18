@@ -29,11 +29,7 @@ impl fmt::Debug for UserInteractionTaskSource {
 impl TaskSource for UserInteractionTaskSource {
     const NAME: TaskSourceName = TaskSourceName::UserInteraction;
 
-    fn queue_with_canceller<T>(
-        &self,
-        task: T,
-        canceller: &TaskCanceller,
-    ) -> Result<(), ()>
+    fn queue_with_canceller<T>(&self, task: T, canceller: &TaskCanceller) -> Result<(), ()>
     where
         T: TaskOnce + 'static,
     {
@@ -48,14 +44,21 @@ impl TaskSource for UserInteractionTaskSource {
 }
 
 impl UserInteractionTaskSource {
-    pub fn queue_event(&self,
-                       target: &EventTarget,
-                       name: Atom,
-                       bubbles: EventBubbles,
-                       cancelable: EventCancelable,
-                       window: &Window) {
+    pub fn queue_event(
+        &self,
+        target: &EventTarget,
+        name: Atom,
+        bubbles: EventBubbles,
+        cancelable: EventCancelable,
+        window: &Window,
+    ) {
         let target = Trusted::new(target);
-        let task = EventTask { target, name, bubbles, cancelable };
+        let task = EventTask {
+            target,
+            name,
+            bubbles,
+            cancelable,
+        };
         let _ = self.queue(task, window.upcast());
     }
 }

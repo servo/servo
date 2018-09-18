@@ -30,7 +30,10 @@ pub struct TextControlSelection<'a, E: TextControlElement> {
 }
 
 impl<'a, E: TextControlElement> TextControlSelection<'a, E> {
-    pub fn new(element: &'a E, textinput: &'a DomRefCell<TextInput<ScriptToConstellationChan>>) -> Self {
+    pub fn new(
+        element: &'a E,
+        textinput: &'a DomRefCell<TextInput<ScriptToConstellationChan>>,
+    ) -> Self {
         TextControlSelection { element, textinput }
     }
 
@@ -123,7 +126,7 @@ impl<'a, E: TextControlElement> TextControlSelection<'a, E> {
             Some(self.start()),
             Some(self.end()),
             direction.map(|d| SelectionDirection::from(d)),
-            None
+            None,
         );
         Ok(())
     }
@@ -136,7 +139,12 @@ impl<'a, E: TextControlElement> TextControlSelection<'a, E> {
         }
 
         // Step 2
-        self.set_range(Some(start), Some(end), direction.map(|d| SelectionDirection::from(d)), None);
+        self.set_range(
+            Some(start),
+            Some(end),
+            direction.map(|d| SelectionDirection::from(d)),
+            None,
+        );
         Ok(())
     }
 
@@ -146,7 +154,7 @@ impl<'a, E: TextControlElement> TextControlSelection<'a, E> {
         replacement: DOMString,
         start: Option<u32>,
         end: Option<u32>,
-        selection_mode: SelectionMode
+        selection_mode: SelectionMode,
     ) -> ErrorResult {
         // Step 1
         if !self.element.selection_api_applies() {
@@ -244,7 +252,12 @@ impl<'a, E: TextControlElement> TextControlSelection<'a, E> {
         }
 
         // Step 14
-        self.set_range(Some(selection_start), Some(selection_end), None, Some(original_selection_state));
+        self.set_range(
+            Some(selection_start),
+            Some(selection_end),
+            None,
+            Some(original_selection_state),
+        );
         Ok(())
     }
 
@@ -266,10 +279,11 @@ impl<'a, E: TextControlElement> TextControlSelection<'a, E> {
         start: Option<u32>,
         end: Option<u32>,
         direction: Option<SelectionDirection>,
-        original_selection_state: Option<SelectionState>
+        original_selection_state: Option<SelectionState>,
     ) {
         let mut textinput = self.textinput.borrow_mut();
-        let original_selection_state = original_selection_state.unwrap_or_else(|| textinput.selection_state());
+        let original_selection_state =
+            original_selection_state.unwrap_or_else(|| textinput.selection_state());
 
         // Step 1
         let start = start.unwrap_or(0);
@@ -288,9 +302,12 @@ impl<'a, E: TextControlElement> TextControlSelection<'a, E> {
                 atom!("select"),
                 EventBubbles::Bubbles,
                 EventCancelable::NotCancelable,
-                &window);
+                &window,
+            );
         }
 
-        self.element.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
+        self.element
+            .upcast::<Node>()
+            .dirty(NodeDamage::OtherNodeDamage);
     }
 }

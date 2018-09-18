@@ -18,26 +18,33 @@ use html5ever::{LocalName, Prefix};
 
 #[dom_struct]
 pub struct HTMLSourceElement {
-    htmlelement: HTMLElement
+    htmlelement: HTMLElement,
 }
 
 impl HTMLSourceElement {
-    fn new_inherited(local_name: LocalName,
-                     prefix: Option<Prefix>,
-                     document: &Document) -> HTMLSourceElement {
+    fn new_inherited(
+        local_name: LocalName,
+        prefix: Option<Prefix>,
+        document: &Document,
+    ) -> HTMLSourceElement {
         HTMLSourceElement {
-            htmlelement:
-                HTMLElement::new_inherited(local_name, prefix, document)
+            htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(local_name: LocalName,
-               prefix: Option<Prefix>,
-               document: &Document) -> DomRoot<HTMLSourceElement> {
-        Node::reflect_node(Box::new(HTMLSourceElement::new_inherited(local_name, prefix, document)),
-                           document,
-                           HTMLSourceElementBinding::Wrap)
+    pub fn new(
+        local_name: LocalName,
+        prefix: Option<Prefix>,
+        document: &Document,
+    ) -> DomRoot<HTMLSourceElement> {
+        Node::reflect_node(
+            Box::new(HTMLSourceElement::new_inherited(
+                local_name, prefix, document,
+            )),
+            document,
+            HTMLSourceElementBinding::Wrap,
+        )
     }
 }
 
@@ -86,5 +93,4 @@ impl HTMLSourceElementMethods for HTMLSourceElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-source-media
     make_setter!(SetMedia, "media");
-
 }

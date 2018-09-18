@@ -23,7 +23,7 @@ use std::rc::Rc;
 pub struct ServiceWorkerContainer {
     eventtarget: EventTarget,
     controller: MutNullableDom<ServiceWorker>,
-    client: Dom<Client>
+    client: Dom<Client>,
 }
 
 impl ServiceWorkerContainer {
@@ -52,9 +52,7 @@ impl ServiceWorkerContainerMethods for ServiceWorkerContainer {
     #[allow(unrooted_must_root)]
     // https://w3c.github.io/ServiceWorker/#service-worker-container-register-method and - A
     // https://w3c.github.io/ServiceWorker/#start-register-algorithm - B
-    fn Register(&self,
-                script_url: USVString,
-                options: &RegistrationOptions) -> Rc<Promise> {
+    fn Register(&self, script_url: USVString, options: &RegistrationOptions) -> Rc<Promise> {
         // A: Step 1
         let promise = Promise::new(&*self.global());
         let USVString(ref script_url) = script_url;
@@ -65,7 +63,7 @@ impl ServiceWorkerContainerMethods for ServiceWorkerContainer {
             Err(_) => {
                 promise.reject_error(Error::Type("Invalid script URL".to_owned()));
                 return promise;
-            }
+            },
         };
         // B: Step 2
         match script_url.scheme() {
@@ -73,12 +71,15 @@ impl ServiceWorkerContainerMethods for ServiceWorkerContainer {
             _ => {
                 promise.reject_error(Error::Type("Only secure origins are allowed".to_owned()));
                 return promise;
-            }
+            },
         }
         // B: Step 3
         if script_url.path().to_ascii_lowercase().contains("%2f") ||
-        script_url.path().to_ascii_lowercase().contains("%5c") {
-            promise.reject_error(Error::Type("Script URL contains forbidden characters".to_owned()));
+            script_url.path().to_ascii_lowercase().contains("%5c")
+        {
+            promise.reject_error(Error::Type(
+                "Script URL contains forbidden characters".to_owned(),
+            ));
             return promise;
         }
         // B: Step 4-5
@@ -90,10 +91,10 @@ impl ServiceWorkerContainerMethods for ServiceWorkerContainer {
                     Err(_) => {
                         promise.reject_error(Error::Type("Invalid scope URL".to_owned()));
                         return promise;
-                    }
+                    },
                 }
             },
-            None => script_url.join("./").unwrap()
+            None => script_url.join("./").unwrap(),
         };
         // B: Step 6
         match scope.scheme() {
@@ -101,17 +102,26 @@ impl ServiceWorkerContainerMethods for ServiceWorkerContainer {
             _ => {
                 promise.reject_error(Error::Type("Only secure origins are allowed".to_owned()));
                 return promise;
-            }
+            },
         }
         // B: Step 7
         if scope.path().to_ascii_lowercase().contains("%2f") ||
-        scope.path().to_ascii_lowercase().contains("%5c") {
-            promise.reject_error(Error::Type("Scope URL contains forbidden characters".to_owned()));
+            scope.path().to_ascii_lowercase().contains("%5c")
+        {
+            promise.reject_error(Error::Type(
+                "Scope URL contains forbidden characters".to_owned(),
+            ));
             return promise;
         }
 
         // B: Step 8
-        let job = Job::create_job(JobType::Register, scope, script_url, promise.clone(), &*self.client);
+        let job = Job::create_job(
+            JobType::Register,
+            scope,
+            script_url,
+            promise.clone(),
+            &*self.client,
+        );
         ScriptThread::schedule_job(job);
         promise
     }

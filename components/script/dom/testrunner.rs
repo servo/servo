@@ -15,7 +15,7 @@ use ipc_channel::ipc::IpcSender;
 use profile_traits::ipc;
 
 // https://webbluetoothcg.github.io/web-bluetooth/tests#test-runner
- #[dom_struct]
+#[dom_struct]
 pub struct TestRunner {
     reflector_: Reflector,
 }
@@ -28,9 +28,11 @@ impl TestRunner {
     }
 
     pub fn new(global: &GlobalScope) -> DomRoot<TestRunner> {
-        reflect_dom_object(Box::new(TestRunner::new_inherited()),
-                           global,
-                           TestRunnerBinding::Wrap)
+        reflect_dom_object(
+            Box::new(TestRunner::new_inherited()),
+            global,
+            TestRunnerBinding::Wrap,
+        )
     }
 
     fn get_bluetooth_thread(&self) -> IpcSender<BluetoothRequest> {
@@ -42,14 +44,12 @@ impl TestRunnerMethods for TestRunner {
     // https://webbluetoothcg.github.io/web-bluetooth/tests#setBluetoothMockDataSet
     fn SetBluetoothMockDataSet(&self, dataSetName: DOMString) -> ErrorResult {
         let (sender, receiver) = ipc::channel(self.global().time_profiler_chan().clone()).unwrap();
-        self.get_bluetooth_thread().send(BluetoothRequest::Test(String::from(dataSetName), sender)).unwrap();
+        self.get_bluetooth_thread()
+            .send(BluetoothRequest::Test(String::from(dataSetName), sender))
+            .unwrap();
         match receiver.recv().unwrap().into() {
-            Ok(()) => {
-                Ok(())
-            },
-            Err(error) => {
-                Err(Error::from(error))
-            },
+            Ok(()) => Ok(()),
+            Err(error) => Err(Error::from(error)),
         }
     }
 }

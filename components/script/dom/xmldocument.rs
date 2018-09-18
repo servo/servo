@@ -28,44 +28,49 @@ pub struct XMLDocument {
 }
 
 impl XMLDocument {
-    fn new_inherited(window: &Window,
-                     has_browsing_context: HasBrowsingContext,
-                     url: Option<ServoUrl>,
-                     origin: MutableOrigin,
-                     is_html_document: IsHTMLDocument,
-                     content_type: Option<Mime>,
-                     last_modified: Option<String>,
-                     activity: DocumentActivity,
-                     source: DocumentSource,
-                     doc_loader: DocumentLoader) -> XMLDocument {
+    fn new_inherited(
+        window: &Window,
+        has_browsing_context: HasBrowsingContext,
+        url: Option<ServoUrl>,
+        origin: MutableOrigin,
+        is_html_document: IsHTMLDocument,
+        content_type: Option<Mime>,
+        last_modified: Option<String>,
+        activity: DocumentActivity,
+        source: DocumentSource,
+        doc_loader: DocumentLoader,
+    ) -> XMLDocument {
         XMLDocument {
-            document: Document::new_inherited(window,
-                                              has_browsing_context,
-                                              url,
-                                              origin,
-                                              is_html_document,
-                                              content_type,
-                                              last_modified,
-                                              activity,
-                                              source,
-                                              doc_loader,
-                                              None,
-                                              None,
-                                              Default::default()),
+            document: Document::new_inherited(
+                window,
+                has_browsing_context,
+                url,
+                origin,
+                is_html_document,
+                content_type,
+                last_modified,
+                activity,
+                source,
+                doc_loader,
+                None,
+                None,
+                Default::default(),
+            ),
         }
     }
 
-    pub fn new(window: &Window,
-               has_browsing_context: HasBrowsingContext,
-               url: Option<ServoUrl>,
-               origin: MutableOrigin,
-               doctype: IsHTMLDocument,
-               content_type: Option<Mime>,
-               last_modified: Option<String>,
-               activity: DocumentActivity,
-               source: DocumentSource,
-               doc_loader: DocumentLoader)
-               -> DomRoot<XMLDocument> {
+    pub fn new(
+        window: &Window,
+        has_browsing_context: HasBrowsingContext,
+        url: Option<ServoUrl>,
+        origin: MutableOrigin,
+        doctype: IsHTMLDocument,
+        content_type: Option<Mime>,
+        last_modified: Option<String>,
+        activity: DocumentActivity,
+        source: DocumentSource,
+        doc_loader: DocumentLoader,
+    ) -> DomRoot<XMLDocument> {
         let doc = reflect_dom_object(
             Box::new(XMLDocument::new_inherited(
                 window,
@@ -77,10 +82,10 @@ impl XMLDocument {
                 last_modified,
                 activity,
                 source,
-                doc_loader
+                doc_loader,
             )),
             window,
-            XMLDocumentBinding::Wrap
+            XMLDocumentBinding::Wrap,
         );
         {
             let node = doc.upcast::<Node>();
@@ -103,7 +108,11 @@ impl XMLDocumentMethods for XMLDocument {
 
     #[allow(unsafe_code)]
     // https://html.spec.whatwg.org/multipage/#dom-tree-accessors:dom-document-nameditem-filter
-    unsafe fn NamedGetter(&self, _cx: *mut JSContext, name: DOMString) -> Option<NonNull<JSObject>> {
+    unsafe fn NamedGetter(
+        &self,
+        _cx: *mut JSContext,
+        name: DOMString,
+    ) -> Option<NonNull<JSObject>> {
         self.upcast::<Document>().NamedGetter(_cx, name)
     }
 }

@@ -29,18 +29,28 @@ const DIALOG_TITLE: &'static str = "Permission request dialog";
 const NONSECURE_DIALOG_MESSAGE: &'static str = "feature is only safe to use in secure context,\
  but servo can't guarantee\n that the current context is secure. Do you want to proceed and grant permission?";
 const REQUEST_DIALOG_MESSAGE: &'static str = "Do you want to grant permission for";
-const ROOT_DESC_CONVERSION_ERROR: &'static str = "Can't convert to an IDL value of type PermissionDescriptor";
+const ROOT_DESC_CONVERSION_ERROR: &'static str =
+    "Can't convert to an IDL value of type PermissionDescriptor";
 
 pub trait PermissionAlgorithm {
     type Descriptor;
     type Status;
-    fn create_descriptor(cx: *mut JSContext,
-                         permission_descriptor_obj: *mut JSObject)
-                         -> Result<Self::Descriptor, Error>;
-    fn permission_query(cx: *mut JSContext, promise: &Rc<Promise>,
-                        descriptor: &Self::Descriptor, status: &Self::Status);
-    fn permission_request(cx: *mut JSContext, promise: &Rc<Promise>,
-                          descriptor: &Self::Descriptor, status: &Self::Status);
+    fn create_descriptor(
+        cx: *mut JSContext,
+        permission_descriptor_obj: *mut JSObject,
+    ) -> Result<Self::Descriptor, Error>;
+    fn permission_query(
+        cx: *mut JSContext,
+        promise: &Rc<Promise>,
+        descriptor: &Self::Descriptor,
+        status: &Self::Status,
+    );
+    fn permission_request(
+        cx: *mut JSContext,
+        promise: &Rc<Promise>,
+        descriptor: &Self::Descriptor,
+        status: &Self::Status,
+    );
     fn permission_revoke(descriptor: &Self::Descriptor, status: &Self::Status);
 }
 
@@ -64,21 +74,24 @@ impl Permissions {
     }
 
     pub fn new(global: &GlobalScope) -> DomRoot<Permissions> {
-        reflect_dom_object(Box::new(Permissions::new_inherited()),
-                           global,
-                           PermissionsBinding::Wrap)
+        reflect_dom_object(
+            Box::new(Permissions::new_inherited()),
+            global,
+            PermissionsBinding::Wrap,
+        )
     }
 
     #[allow(unrooted_must_root)]
     // https://w3c.github.io/permissions/#dom-permissions-query
     // https://w3c.github.io/permissions/#dom-permissions-request
     // https://w3c.github.io/permissions/#dom-permissions-revoke
-    fn manipulate(&self,
-                  op: Operation,
-                  cx: *mut JSContext,
-                  permissionDesc: *mut JSObject,
-                  promise: Option<Rc<Promise>>)
-                  -> Rc<Promise> {
+    fn manipulate(
+        &self,
+        op: Operation,
+        cx: *mut JSContext,
+        permissionDesc: *mut JSObject,
+        promise: Option<Rc<Promise>>,
+    ) -> Rc<Promise> {
         // (Query, Request) Step 3.
         let p = match promise {
             Some(promise) => promise,
@@ -113,18 +126,23 @@ impl Permissions {
 
                 match &op {
                     // (Request) Step 6 - 8.
-                    &Operation::Request => Bluetooth::permission_request(cx, &p, &bluetooth_desc, &result),
+                    &Operation::Request => {
+                        Bluetooth::permission_request(cx, &p, &bluetooth_desc, &result)
+                    },
 
                     // (Query) Step 6 - 7.
-                    &Operation::Query => Bluetooth::permission_query(cx, &p, &bluetooth_desc, &result),
+                    &Operation::Query => {
+                        Bluetooth::permission_query(cx, &p, &bluetooth_desc, &result)
+                    },
 
                     &Operation::Revoke => {
                         // (Revoke) Step 3.
                         let globalscope = self.global();
-                        globalscope.as_window()
-                                   .permission_state_invocation_results()
-                                   .borrow_mut()
-                                   .remove(&root_desc.name.to_string());
+                        globalscope
+                            .as_window()
+                            .permission_state_invocation_results()
+                            .borrow_mut()
+                            .remove(&root_desc.name.to_string());
 
                         // (Revoke) Step 4.
                         Bluetooth::permission_revoke(&bluetooth_desc, &result)
@@ -153,10 +171,11 @@ impl Permissions {
                     &Operation::Revoke => {
                         // (Revoke) Step 3.
                         let globalscope = self.global();
-                        globalscope.as_window()
-                                   .permission_state_invocation_results()
-                                   .borrow_mut()
-                                   .remove(&root_desc.name.to_string());
+                        globalscope
+                            .as_window()
+                            .permission_state_invocation_results()
+                            .borrow_mut()
+                            .remove(&root_desc.name.to_string());
 
                         // (Revoke) Step 4.
                         Permissions::permission_revoke(&root_desc, &status);
@@ -202,11 +221,14 @@ impl PermissionAlgorithm for Permissions {
     type Status = PermissionStatus;
 
     #[allow(unsafe_code)]
-    fn create_descriptor(cx: *mut JSContext,
-                         permission_descriptor_obj: *mut JSObject)
-                         -> Result<PermissionDescriptor, Error> {
+    fn create_descriptor(
+        cx: *mut JSContext,
+        permission_descriptor_obj: *mut JSObject,
+    ) -> Result<PermissionDescriptor, Error> {
         rooted!(in(cx) let mut property = UndefinedValue());
-        property.handle_mut().set(ObjectValue(permission_descriptor_obj));
+        property
+            .handle_mut()
+            .set(ObjectValue(permission_descriptor_obj));
         unsafe {
             match PermissionDescriptor::new(cx, property.handle()) {
                 Ok(ConversionResult::Success(descriptor)) => Ok(descriptor),
@@ -217,19 +239,23 @@ impl PermissionAlgorithm for Permissions {
     }
 
     // https://w3c.github.io/permissions/#boolean-permission-query-algorithm
-    fn permission_query(_cx: *mut JSContext,
-                        _promise: &Rc<Promise>,
-                        _descriptor: &PermissionDescriptor,
-                        status: &PermissionStatus) {
+    fn permission_query(
+        _cx: *mut JSContext,
+        _promise: &Rc<Promise>,
+        _descriptor: &PermissionDescriptor,
+        status: &PermissionStatus,
+    ) {
         // Step 1.
         status.set_state(get_descriptor_permission_state(status.get_query(), None));
     }
 
     // https://w3c.github.io/permissions/#boolean-permission-request-algorithm
-    fn permission_request(cx: *mut JSContext,
-                          promise: &Rc<Promise>,
-                          descriptor: &PermissionDescriptor,
-                          status: &PermissionStatus) {
+    fn permission_request(
+        cx: *mut JSContext,
+        promise: &Rc<Promise>,
+        descriptor: &PermissionDescriptor,
+        status: &PermissionStatus,
+    ) {
         // Step 1.
         Permissions::permission_query(cx, promise, descriptor, status);
 
@@ -238,14 +264,18 @@ impl PermissionAlgorithm for Permissions {
             PermissionState::Prompt => {
                 let perm_name = status.get_query();
                 // https://w3c.github.io/permissions/#request-permission-to-use (Step 3 - 4)
-                let state =
-                    prompt_user(&format!("{} {} ?", REQUEST_DIALOG_MESSAGE, perm_name.clone()));
+                let state = prompt_user(&format!(
+                    "{} {} ?",
+                    REQUEST_DIALOG_MESSAGE,
+                    perm_name.clone()
+                ));
 
                 let globalscope = GlobalScope::current().expect("No current global object");
-                globalscope.as_window()
-                           .permission_state_invocation_results()
-                           .borrow_mut()
-                           .insert(perm_name.to_string(), state);
+                globalscope
+                    .as_window()
+                    .permission_state_invocation_results()
+                    .borrow_mut()
+                    .insert(perm_name.to_string(), state);
             },
 
             // Step 2.
@@ -260,9 +290,10 @@ impl PermissionAlgorithm for Permissions {
 }
 
 // https://w3c.github.io/permissions/#permission-state
-pub fn get_descriptor_permission_state(permission_name: PermissionName,
-                                       env_settings_obj: Option<&GlobalScope>)
-                                       -> PermissionState {
+pub fn get_descriptor_permission_state(
+    permission_name: PermissionName,
+    env_settings_obj: Option<&GlobalScope>,
+) -> PermissionState {
     // Step 1.
     let settings = match env_settings_obj {
         Some(env_settings_obj) => DomRoot::from_ref(env_settings_obj),
@@ -276,33 +307,42 @@ pub fn get_descriptor_permission_state(permission_name: PermissionName,
     // and let the user decide to grant the permission or not.
     let state = match allowed_in_nonsecure_contexts(&permission_name) {
         true => PermissionState::Prompt,
-        false => {
-            match PREFS.get("dom.permissions.testing.allowed_in_nonsecure_contexts").as_boolean().unwrap_or(false) {
-                true => PermissionState::Granted,
-                false => {
-                    settings.as_window()
-                            .permission_state_invocation_results()
-                            .borrow_mut()
-                            .remove(&permission_name.to_string());
-                    prompt_user(&format!("The {} {}", permission_name, NONSECURE_DIALOG_MESSAGE))
-                },
-            }
+        false => match PREFS
+            .get("dom.permissions.testing.allowed_in_nonsecure_contexts")
+            .as_boolean()
+            .unwrap_or(false)
+        {
+            true => PermissionState::Granted,
+            false => {
+                settings
+                    .as_window()
+                    .permission_state_invocation_results()
+                    .borrow_mut()
+                    .remove(&permission_name.to_string());
+                prompt_user(&format!(
+                    "The {} {}",
+                    permission_name, NONSECURE_DIALOG_MESSAGE
+                ))
+            },
         },
     };
 
     // Step 3.
-    if let Some(prev_result) = settings.as_window()
-                                       .permission_state_invocation_results()
-                                       .borrow()
-                                       .get(&permission_name.to_string()) {
+    if let Some(prev_result) = settings
+        .as_window()
+        .permission_state_invocation_results()
+        .borrow()
+        .get(&permission_name.to_string())
+    {
         return prev_result.clone();
     }
 
     // Store the invocation result
-    settings.as_window()
-            .permission_state_invocation_results()
-            .borrow_mut()
-            .insert(permission_name.to_string(), state);
+    settings
+        .as_window()
+        .permission_state_invocation_results()
+        .borrow_mut()
+        .insert(permission_name.to_string(), state);
 
     // Step 4.
     state
@@ -313,10 +353,12 @@ fn prompt_user(message: &str) -> PermissionState {
     if opts::get().headless {
         return PermissionState::Denied;
     }
-    match tinyfiledialogs::message_box_yes_no(DIALOG_TITLE,
-                                              message,
-                                              MessageBoxIcon::Question,
-                                              YesNo::No) {
+    match tinyfiledialogs::message_box_yes_no(
+        DIALOG_TITLE,
+        message,
+        MessageBoxIcon::Question,
+        YesNo::No,
+    ) {
         YesNo::Yes => PermissionState::Granted,
         YesNo::No => PermissionState::Denied,
     }

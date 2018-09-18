@@ -28,13 +28,13 @@ use task_source::dom_manipulation::DOMManipulationTaskSource;
 pub enum JobType {
     Register,
     Unregister,
-    Update
+    Update,
 }
 
 #[derive(Clone)]
 pub enum SettleType {
     Resolve(Trusted<ServiceWorkerRegistration>),
-    Reject(Error)
+    Reject(Error),
 }
 
 #[must_root]
@@ -47,17 +47,19 @@ pub struct Job {
     pub equivalent_jobs: Vec<Job>,
     // client can be a window client, worker client so `Client` will be an enum in future
     pub client: Dom<Client>,
-    pub referrer: ServoUrl
+    pub referrer: ServoUrl,
 }
 
 impl Job {
     #[allow(unrooted_must_root)]
     // https://w3c.github.io/ServiceWorker/#create-job-algorithm
-    pub fn create_job(job_type: JobType,
-                      scope_url: ServoUrl,
-                      script_url: ServoUrl,
-                      promise: Rc<Promise>,
-                      client: &Client) -> Job {
+    pub fn create_job(
+        job_type: JobType,
+        scope_url: ServoUrl,
+        script_url: ServoUrl,
+        promise: Rc<Promise>,
+        client: &Client,
+    ) -> Job {
         Job {
             job_type: job_type,
             scope_url: scope_url,
@@ -65,7 +67,7 @@ impl Job {
             promise: promise,
             equivalent_jobs: vec![],
             client: Dom::from_ref(client),
-            referrer: client.creation_url()
+            referrer: client.creation_url(),
         }
     }
     #[allow(unrooted_must_root)]
@@ -83,7 +85,7 @@ impl PartialEq for Job {
                 JobType::Register | JobType::Update => {
                     self.scope_url == other.scope_url && self.script_url == other.script_url
                 },
-                JobType::Unregister => self.scope_url == other.scope_url
+                JobType::Unregister => self.scope_url == other.scope_url,
             }
         } else {
             false
@@ -158,16 +160,22 @@ impl JobQueue {
         // Step 1-3
         if !UrlHelper::is_origin_trustworthy(&job.script_url) {
             // Step 1.1
-            reject_job_promise(job,
-                               Error::Type("Invalid script ServoURL".to_owned()),
-                               &script_thread.dom_manipulation_task_source(pipeline_id));
+            reject_job_promise(
+                job,
+                Error::Type("Invalid script ServoURL".to_owned()),
+                &script_thread.dom_manipulation_task_source(pipeline_id),
+            );
             // Step 1.2 (see run_job)
             return;
-        } else if job.script_url.origin() != job.referrer.origin() || job.scope_url.origin() != job.referrer.origin() {
+        } else if job.script_url.origin() != job.referrer.origin() ||
+            job.scope_url.origin() != job.referrer.origin()
+        {
             // Step 2.1/3.1
-            reject_job_promise(job,
-                               Error::Security,
-                               &script_thread.dom_manipulation_task_source(pipeline_id));
+            reject_job_promise(
+                job,
+                Error::Security,
+                &script_thread.dom_manipulation_task_source(pipeline_id),
+            );
             // Step 2.2/3.2 (see run_job)
             return;
         }
@@ -182,7 +190,11 @@ impl JobQueue {
             if let Some(ref newest_worker) = reg.get_newest_worker() {
                 if (&*newest_worker).get_script_url() == job.script_url {
                     // Step 5.3.1
-                    resolve_job_promise(job, &*reg, &script_thread.dom_manipulation_task_source(pipeline_id));
+                    resolve_job_promise(
+                        job,
+                        &*reg,
+                        &script_thread.dom_manipulation_task_source(pipeline_id),
+                    );
                     // Step 5.3.2 (see run_job)
                     return;
                 }
@@ -202,7 +214,7 @@ impl JobQueue {
         debug!("finishing previous job");
         let run_job = if let Some(job_vec) = (*self.0.borrow_mut()).get_mut(&scope_url) {
             assert_eq!(job_vec.first().as_ref().unwrap().scope_url, scope_url);
-            let _  = job_vec.remove(0);
+            let _ = job_vec.remove(0);
             !job_vec.is_empty()
         } else {
             warn!("non-existent job vector for Servourl: {:?}", scope_url);
@@ -227,16 +239,24 @@ impl JobQueue {
             None => {
                 let err_type = Error::Type("No registration to update".to_owned());
                 // Step 2.1
-                reject_job_promise(job, err_type, &script_thread.dom_manipulation_task_source(pipeline_id));
+                reject_job_promise(
+                    job,
+                    err_type,
+                    &script_thread.dom_manipulation_task_source(pipeline_id),
+                );
                 // Step 2.2 (see run_job)
                 return;
-            }
+            },
         };
         // Step 2
         if reg.get_uninstalling() {
             let err_type = Error::Type("Update called on an uninstalling registration".to_owned());
             // Step 2.1
-            reject_job_promise(job, err_type, &script_thread.dom_manipulation_task_source(pipeline_id));
+            reject_job_promise(
+                job,
+                err_type,
+                &script_thread.dom_manipulation_task_source(pipeline_id),
+            );
             // Step 2.2 (see run_job)
             return;
         }
@@ -244,10 +264,14 @@ impl JobQueue {
         let newest_worker = reg.get_newest_worker();
         let newest_worker_url = newest_worker.as_ref().map(|w| w.get_script_url());
         // Step 4
-        if newest_worker_url.as_ref() == Some(&job.script_url)  && job.job_type == JobType::Update {
+        if newest_worker_url.as_ref() == Some(&job.script_url) && job.job_type == JobType::Update {
             let err_type = Error::Type("Invalid script ServoURL".to_owned());
             // Step 4.1
-            reject_job_promise(job, err_type, &script_thread.dom_manipulation_task_source(pipeline_id));
+            reject_job_promise(
+                job,
+                err_type,
+                &script_thread.dom_manipulation_task_source(pipeline_id),
+            );
             // Step 4.2 (see run_job)
             return;
         }
@@ -255,7 +279,11 @@ impl JobQueue {
         if let Some(newest_worker) = newest_worker {
             job.client.set_controller(&*newest_worker);
             // Step 8.1
-            resolve_job_promise(job, &*reg, &script_thread.dom_manipulation_task_source(pipeline_id));
+            resolve_job_promise(
+                job,
+                &*reg,
+                &script_thread.dom_manipulation_task_source(pipeline_id),
+            );
             // Step 8.2 present in run_job
         }
         // TODO Step 9 (create new service worker)
@@ -270,7 +298,11 @@ fn settle_job_promise(promise: &Promise, settle: SettleType) {
 }
 
 #[allow(unrooted_must_root)]
-fn queue_settle_promise_for_job(job: &Job, settle: SettleType, task_source: &DOMManipulationTaskSource) {
+fn queue_settle_promise_for_job(
+    job: &Job,
+    settle: SettleType,
+    task_source: &DOMManipulationTaskSource,
+) {
     let global = job.client.global();
     let promise = TrustedPromise::new(job.promise.clone());
     // FIXME(nox): Why are errors silenced here?
@@ -298,6 +330,10 @@ fn reject_job_promise(job: &Job, err: Error, task_source: &DOMManipulationTaskSo
     queue_settle_promise(job, SettleType::Reject(err), task_source)
 }
 
-fn resolve_job_promise(job: &Job, reg: &ServiceWorkerRegistration, task_source: &DOMManipulationTaskSource) {
+fn resolve_job_promise(
+    job: &Job,
+    reg: &ServiceWorkerRegistration,
+    task_source: &DOMManipulationTaskSource,
+) {
     queue_settle_promise(job, SettleType::Resolve(Trusted::new(reg)), task_source)
 }

@@ -12,7 +12,8 @@ use std::os::raw::c_void;
 /// objects by hand in code.
 #[allow(unsafe_code)]
 pub unsafe fn malloc_size_of_including_raw_self<T: MallocSizeOf>(
-    ops: &mut MallocSizeOfOps, obj: *const c_void) -> usize
-{
+    ops: &mut MallocSizeOfOps,
+    obj: *const c_void,
+) -> usize {
     ops.malloc_size_of(obj) + (*(obj as *const T)).size_of(ops)
 }

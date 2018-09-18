@@ -24,8 +24,9 @@ pub struct StylePropertyMapReadOnly {
 }
 
 impl StylePropertyMapReadOnly {
-    fn new_inherited<Entries>(entries: Entries) -> StylePropertyMapReadOnly where
-        Entries: IntoIterator<Item=(Atom, Dom<CSSStyleValue>)>
+    fn new_inherited<Entries>(entries: Entries) -> StylePropertyMapReadOnly
+    where
+        Entries: IntoIterator<Item = (Atom, Dom<CSSStyleValue>)>,
     {
         StylePropertyMapReadOnly {
             reflector: Reflector::new(),
@@ -33,8 +34,12 @@ impl StylePropertyMapReadOnly {
         }
     }
 
-    pub fn from_iter<Entries>(global: &GlobalScope, entries: Entries) -> DomRoot<StylePropertyMapReadOnly> where
-        Entries: IntoIterator<Item=(Atom, String)>,
+    pub fn from_iter<Entries>(
+        global: &GlobalScope,
+        entries: Entries,
+    ) -> DomRoot<StylePropertyMapReadOnly>
+    where
+        Entries: IntoIterator<Item = (Atom, String)>,
     {
         let mut keys = Vec::new();
         rooted_vec!(let mut values);
@@ -48,7 +53,11 @@ impl StylePropertyMapReadOnly {
             values.push(Dom::from_ref(&*value));
         }
         let iter = keys.drain(..).zip(values.iter().cloned());
-        reflect_dom_object(Box::new(StylePropertyMapReadOnly::new_inherited(iter)), global, Wrap)
+        reflect_dom_object(
+            Box::new(StylePropertyMapReadOnly::new_inherited(iter)),
+            global,
+            Wrap,
+        )
     }
 }
 
@@ -56,7 +65,9 @@ impl StylePropertyMapReadOnlyMethods for StylePropertyMapReadOnly {
     /// <https://drafts.css-houdini.org/css-typed-om-1/#dom-stylepropertymapreadonly-get>
     fn Get(&self, property: DOMString) -> Option<DomRoot<CSSStyleValue>> {
         // TODO: avoid constructing an Atom
-        self.entries.get(&Atom::from(property)).map(|value| DomRoot::from_ref(&**value))
+        self.entries
+            .get(&Atom::from(property))
+            .map(|value| DomRoot::from_ref(&**value))
     }
 
     /// <https://drafts.css-houdini.org/css-typed-om-1/#dom-stylepropertymapreadonly-has>
@@ -67,7 +78,9 @@ impl StylePropertyMapReadOnlyMethods for StylePropertyMapReadOnly {
 
     /// <https://drafts.css-houdini.org/css-typed-om-1/#dom-stylepropertymapreadonly-getproperties>
     fn GetProperties(&self) -> Vec<DOMString> {
-        let mut result: Vec<DOMString> = self.entries.keys()
+        let mut result: Vec<DOMString> = self
+            .entries
+            .keys()
             .map(|key| DOMString::from(&**key))
             .collect();
         // https://drafts.css-houdini.org/css-typed-om-1/#dom-stylepropertymap-getproperties

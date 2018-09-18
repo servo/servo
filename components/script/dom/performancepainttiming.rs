@@ -18,24 +18,33 @@ pub struct PerformancePaintTiming {
 }
 
 impl PerformancePaintTiming {
-    fn new_inherited(metric_type: ProgressiveWebMetricType, start_time: u64) -> PerformancePaintTiming {
+    fn new_inherited(
+        metric_type: ProgressiveWebMetricType,
+        start_time: u64,
+    ) -> PerformancePaintTiming {
         let name = match metric_type {
             ProgressiveWebMetricType::FirstPaint => DOMString::from("first-paint"),
-            ProgressiveWebMetricType::FirstContentfulPaint => DOMString::from("first-contentful-paint"),
+            ProgressiveWebMetricType::FirstContentfulPaint => {
+                DOMString::from("first-contentful-paint")
+            },
             _ => DOMString::from(""),
         };
         PerformancePaintTiming {
-            entry: PerformanceEntry::new_inherited(name,
-                                                   DOMString::from("paint"),
-                                                   start_time.to_ms(),
-                                                   0.)
+            entry: PerformanceEntry::new_inherited(
+                name,
+                DOMString::from("paint"),
+                start_time.to_ms(),
+                0.,
+            ),
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(global: &GlobalScope,
-               metric_type: ProgressiveWebMetricType,
-               start_time: u64) -> DomRoot<PerformancePaintTiming> {
+    pub fn new(
+        global: &GlobalScope,
+        metric_type: ProgressiveWebMetricType,
+        start_time: u64,
+    ) -> DomRoot<PerformancePaintTiming> {
         let entry = PerformancePaintTiming::new_inherited(metric_type, start_time);
         reflect_dom_object(Box::new(entry), global, PerformancePaintTimingBinding::Wrap)
     }

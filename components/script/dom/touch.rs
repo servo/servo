@@ -25,10 +25,16 @@ pub struct Touch {
 }
 
 impl Touch {
-    fn new_inherited(identifier: i32, target: &EventTarget,
-                     screen_x: Finite<f64>, screen_y: Finite<f64>,
-                     client_x: Finite<f64>, client_y: Finite<f64>,
-                     page_x: Finite<f64>, page_y: Finite<f64>) -> Touch {
+    fn new_inherited(
+        identifier: i32,
+        target: &EventTarget,
+        screen_x: Finite<f64>,
+        screen_y: Finite<f64>,
+        client_x: Finite<f64>,
+        client_y: Finite<f64>,
+        page_x: Finite<f64>,
+        page_y: Finite<f64>,
+    ) -> Touch {
         Touch {
             reflector_: Reflector::new(),
             identifier: identifier,
@@ -42,19 +48,23 @@ impl Touch {
         }
     }
 
-    pub fn new(window: &Window, identifier: i32, target: &EventTarget,
-              screen_x: Finite<f64>, screen_y: Finite<f64>,
-              client_x: Finite<f64>, client_y: Finite<f64>,
-              page_x: Finite<f64>, page_y: Finite<f64>) -> DomRoot<Touch> {
-        reflect_dom_object(Box::new(
-            Touch::new_inherited(
-                identifier, target,
-                screen_x, screen_y,
-                client_x, client_y,
-                page_x, page_y
+    pub fn new(
+        window: &Window,
+        identifier: i32,
+        target: &EventTarget,
+        screen_x: Finite<f64>,
+        screen_y: Finite<f64>,
+        client_x: Finite<f64>,
+        client_y: Finite<f64>,
+        page_x: Finite<f64>,
+        page_y: Finite<f64>,
+    ) -> DomRoot<Touch> {
+        reflect_dom_object(
+            Box::new(Touch::new_inherited(
+                identifier, target, screen_x, screen_y, client_x, client_y, page_x, page_y,
             )),
             window,
-            TouchBinding::Wrap
+            TouchBinding::Wrap,
         )
     }
 }

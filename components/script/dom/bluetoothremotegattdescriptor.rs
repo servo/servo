@@ -6,7 +6,7 @@ use bluetooth_traits::{BluetoothRequest, BluetoothResponse};
 use bluetooth_traits::blocklist::{Blocklist, uuid_is_blocklisted};
 use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::BluetoothRemoteGATTCharacteristicBinding::
-    BluetoothRemoteGATTCharacteristicMethods;
+BluetoothRemoteGATTCharacteristicMethods;
 use dom::bindings::codegen::Bindings::BluetoothRemoteGATTDescriptorBinding;
 use dom::bindings::codegen::Bindings::BluetoothRemoteGATTDescriptorBinding::BluetoothRemoteGATTDescriptorMethods;
 use dom::bindings::codegen::Bindings::BluetoothRemoteGATTServerBinding::BluetoothRemoteGATTServerMethods;
@@ -35,10 +35,11 @@ pub struct BluetoothRemoteGATTDescriptor {
 }
 
 impl BluetoothRemoteGATTDescriptor {
-    pub fn new_inherited(characteristic: &BluetoothRemoteGATTCharacteristic,
-                         uuid: DOMString,
-                         instance_id: String)
-                         -> BluetoothRemoteGATTDescriptor {
+    pub fn new_inherited(
+        characteristic: &BluetoothRemoteGATTCharacteristic,
+        uuid: DOMString,
+        instance_id: String,
+    ) -> BluetoothRemoteGATTDescriptor {
         BluetoothRemoteGATTDescriptor {
             reflector_: Reflector::new(),
             characteristic: Dom::from_ref(characteristic),
@@ -48,17 +49,20 @@ impl BluetoothRemoteGATTDescriptor {
         }
     }
 
-    pub fn new(global: &GlobalScope,
-               characteristic: &BluetoothRemoteGATTCharacteristic,
-               uuid: DOMString,
-               instanceID: String)
-               -> DomRoot<BluetoothRemoteGATTDescriptor>{
+    pub fn new(
+        global: &GlobalScope,
+        characteristic: &BluetoothRemoteGATTCharacteristic,
+        uuid: DOMString,
+        instanceID: String,
+    ) -> DomRoot<BluetoothRemoteGATTDescriptor> {
         reflect_dom_object(
             Box::new(BluetoothRemoteGATTDescriptor::new_inherited(
-                characteristic, uuid, instanceID
+                characteristic,
+                uuid,
+                instanceID,
             )),
             global,
-            BluetoothRemoteGATTDescriptorBinding::Wrap
+            BluetoothRemoteGATTDescriptorBinding::Wrap,
         )
     }
 
@@ -74,7 +78,7 @@ impl BluetoothRemoteGATTDescriptor {
 impl BluetoothRemoteGATTDescriptorMethods for BluetoothRemoteGATTDescriptor {
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattdescriptor-characteristic
     fn Characteristic(&self) -> DomRoot<BluetoothRemoteGATTCharacteristic> {
-       DomRoot::from_ref(&self.characteristic)
+        DomRoot::from_ref(&self.characteristic)
     }
 
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattdescriptor-uuid
@@ -82,7 +86,7 @@ impl BluetoothRemoteGATTDescriptorMethods for BluetoothRemoteGATTDescriptor {
         self.uuid.clone()
     }
 
-     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattdescriptor-value
+    // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattdescriptor-value
     fn GetValue(&self) -> Option<ByteString> {
         self.value.borrow().clone()
     }
@@ -99,7 +103,13 @@ impl BluetoothRemoteGATTDescriptorMethods for BluetoothRemoteGATTDescriptor {
         }
 
         // Step 2.
-        if !self.Characteristic().Service().Device().get_gatt().Connected() {
+        if !self
+            .Characteristic()
+            .Service()
+            .Device()
+            .get_gatt()
+            .Connected()
+        {
             p.reject_error(Network);
             return p;
         }
@@ -108,8 +118,9 @@ impl BluetoothRemoteGATTDescriptorMethods for BluetoothRemoteGATTDescriptor {
         // Note: Steps 3 - 4 and substeps of Step 5 are implemented in components/bluetooth/lib.rs
         // in readValue function and in handle_response function.
         let sender = response_async(&p, self);
-        self.get_bluetooth_thread().send(
-            BluetoothRequest::ReadValue(self.get_instance_id(), sender)).unwrap();
+        self.get_bluetooth_thread()
+            .send(BluetoothRequest::ReadValue(self.get_instance_id(), sender))
+            .unwrap();
         return p;
     }
 
@@ -135,7 +146,13 @@ impl BluetoothRemoteGATTDescriptorMethods for BluetoothRemoteGATTDescriptor {
         }
 
         // Step 4.
-        if !self.Characteristic().Service().Device().get_gatt().Connected() {
+        if !self
+            .Characteristic()
+            .Service()
+            .Device()
+            .get_gatt()
+            .Connected()
+        {
             p.reject_error(Network);
             return p;
         }
@@ -144,8 +161,12 @@ impl BluetoothRemoteGATTDescriptorMethods for BluetoothRemoteGATTDescriptor {
         // Note: Steps 5 - 6 and substeps of Step 7 are implemented in components/bluetooth/lib.rs
         // in writeValue function and in handle_response function.
         let sender = response_async(&p, self);
-        self.get_bluetooth_thread().send(
-            BluetoothRequest::WriteValue(self.get_instance_id(), vec, sender)).unwrap();
+        self.get_bluetooth_thread()
+            .send(BluetoothRequest::WriteValue(
+                self.get_instance_id(),
+                vec,
+                sender,
+            )).unwrap();
         return p;
     }
 }

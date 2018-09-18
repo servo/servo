@@ -48,9 +48,11 @@ impl Navigator {
     }
 
     pub fn new(window: &Window) -> DomRoot<Navigator> {
-        reflect_dom_object(Box::new(Navigator::new_inherited()),
-                           window,
-                           NavigatorBinding::Wrap)
+        reflect_dom_object(
+            Box::new(Navigator::new_inherited()),
+            window,
+            NavigatorBinding::Wrap,
+        )
     }
 }
 
@@ -107,7 +109,8 @@ impl NavigatorMethods for Navigator {
 
     // https://html.spec.whatwg.org/multipage/#dom-navigator-mimetypes
     fn MimeTypes(&self) -> DomRoot<MimeTypeArray> {
-        self.mime_types.or_init(|| MimeTypeArray::new(&self.global()))
+        self.mime_types
+            .or_init(|| MimeTypeArray::new(&self.global()))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-navigator-javaenabled
@@ -117,9 +120,8 @@ impl NavigatorMethods for Navigator {
 
     // https://w3c.github.io/ServiceWorker/#navigator-service-worker-attribute
     fn ServiceWorker(&self) -> DomRoot<ServiceWorkerContainer> {
-        self.service_worker.or_init(|| {
-            ServiceWorkerContainer::new(&self.global())
-        })
+        self.service_worker
+            .or_init(|| ServiceWorkerContainer::new(&self.global()))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-navigator-cookieenabled
@@ -129,9 +131,9 @@ impl NavigatorMethods for Navigator {
 
     // https://www.w3.org/TR/gamepad/#navigator-interface-extension
     fn GetGamepads(&self) -> DomRoot<GamepadList> {
-        let root = self.gamepads.or_init(|| {
-            GamepadList::new(&self.global(), &[])
-        });
+        let root = self
+            .gamepads
+            .or_init(|| GamepadList::new(&self.global(), &[]));
 
         let vr_gamepads = self.Vr().get_gamepads();
         root.add_if_not_exists(&vr_gamepads);
@@ -140,7 +142,8 @@ impl NavigatorMethods for Navigator {
     }
     // https://w3c.github.io/permissions/#navigator-and-workernavigator-extension
     fn Permissions(&self) -> DomRoot<Permissions> {
-        self.permissions.or_init(|| Permissions::new(&self.global()))
+        self.permissions
+            .or_init(|| Permissions::new(&self.global()))
     }
 
     // https://w3c.github.io/webvr/spec/1.1/#navigator-getvrdisplays-attribute

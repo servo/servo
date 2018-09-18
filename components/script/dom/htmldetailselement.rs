@@ -22,27 +22,34 @@ use task_source::TaskSource;
 #[dom_struct]
 pub struct HTMLDetailsElement {
     htmlelement: HTMLElement,
-    toggle_counter: Cell<u32>
+    toggle_counter: Cell<u32>,
 }
 
 impl HTMLDetailsElement {
-    fn new_inherited(local_name: LocalName,
-                     prefix: Option<Prefix>,
-                     document: &Document) -> HTMLDetailsElement {
+    fn new_inherited(
+        local_name: LocalName,
+        prefix: Option<Prefix>,
+        document: &Document,
+    ) -> HTMLDetailsElement {
         HTMLDetailsElement {
-            htmlelement:
-                HTMLElement::new_inherited(local_name, prefix, document),
-            toggle_counter: Cell::new(0)
+            htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
+            toggle_counter: Cell::new(0),
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(local_name: LocalName,
-               prefix: Option<Prefix>,
-               document: &Document) -> DomRoot<HTMLDetailsElement> {
-        Node::reflect_node(Box::new(HTMLDetailsElement::new_inherited(local_name, prefix, document)),
-                           document,
-                           HTMLDetailsElementBinding::Wrap)
+    pub fn new(
+        local_name: LocalName,
+        prefix: Option<Prefix>,
+        document: &Document,
+    ) -> DomRoot<HTMLDetailsElement> {
+        Node::reflect_node(
+            Box::new(HTMLDetailsElement::new_inherited(
+                local_name, prefix, document,
+            )),
+            document,
+            HTMLDetailsElementBinding::Wrap,
+        )
     }
 }
 

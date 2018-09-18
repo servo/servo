@@ -26,9 +26,11 @@ impl OESTextureHalfFloat {
 impl WebGLExtension for OESTextureHalfFloat {
     type Extension = OESTextureHalfFloat;
     fn new(ctx: &WebGLRenderingContext) -> DomRoot<OESTextureHalfFloat> {
-        reflect_dom_object(Box::new(OESTextureHalfFloat::new_inherited()),
-                           &*ctx.global(),
-                           OESTextureHalfFloatBinding::Wrap)
+        reflect_dom_object(
+            Box::new(OESTextureHalfFloat::new_inherited()),
+            &*ctx.global(),
+            OESTextureHalfFloatBinding::Wrap,
+        )
     }
 
     fn spec() -> WebGLExtensionSpec {
@@ -36,10 +38,12 @@ impl WebGLExtension for OESTextureHalfFloat {
     }
 
     fn is_supported(ext: &WebGLExtensions) -> bool {
-        ext.supports_any_gl_extension(&["GL_OES_texture_half_float",
-                                        "GL_ARB_half_float_pixel",
-                                        "GL_NV_half_float",
-                                        "GL_EXT_color_buffer_half_float"])
+        ext.supports_any_gl_extension(&[
+            "GL_OES_texture_half_float",
+            "GL_ARB_half_float_pixel",
+            "GL_NV_half_float",
+            "GL_EXT_color_buffer_half_float",
+        ])
     }
 
     fn enable(ext: &WebGLExtensions) {
@@ -53,7 +57,11 @@ impl WebGLExtension for OESTextureHalfFloat {
             ext.add_effective_tex_internal_format(webgl::RGB, hf, gl::RGB16F);
             ext.add_effective_tex_internal_format(webgl::LUMINANCE, hf, gl::LUMINANCE16F_ARB);
             ext.add_effective_tex_internal_format(webgl::ALPHA, hf, gl::ALPHA16F_ARB);
-            ext.add_effective_tex_internal_format(webgl::LUMINANCE_ALPHA, hf, gl::LUMINANCE_ALPHA16F_ARB);
+            ext.add_effective_tex_internal_format(
+                webgl::LUMINANCE_ALPHA,
+                hf,
+                gl::LUMINANCE_ALPHA16F_ARB,
+            );
         }
     }
 

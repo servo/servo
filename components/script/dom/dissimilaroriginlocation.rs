@@ -40,9 +40,11 @@ impl DissimilarOriginLocation {
     }
 
     pub fn new(window: &DissimilarOriginWindow) -> DomRoot<DissimilarOriginLocation> {
-        reflect_dom_object(Box::new(DissimilarOriginLocation::new_inherited(window)),
-                           window,
-                           DissimilarOriginLocationBinding::Wrap)
+        reflect_dom_object(
+            Box::new(DissimilarOriginLocation::new_inherited(window)),
+            window,
+            DissimilarOriginLocationBinding::Wrap,
+        )
     }
 
     #[allow(dead_code)]

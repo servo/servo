@@ -14,16 +14,16 @@ use std::default::Default;
 /// Create the reflector for a new DOM object and yield ownership to the
 /// reflector.
 pub fn reflect_dom_object<T, U>(
-        obj: Box<T>,
-        global: &U,
-        wrap_fn: unsafe fn(*mut JSContext, &GlobalScope, Box<T>) -> DomRoot<T>)
-        -> DomRoot<T>
-    where T: DomObject, U: DerivedFrom<GlobalScope>
+    obj: Box<T>,
+    global: &U,
+    wrap_fn: unsafe fn(*mut JSContext, &GlobalScope, Box<T>) -> DomRoot<T>,
+) -> DomRoot<T>
+where
+    T: DomObject,
+    U: DerivedFrom<GlobalScope>,
 {
     let global_scope = global.upcast();
-    unsafe {
-        wrap_fn(global_scope.get_cx(), global_scope, obj)
-    }
+    unsafe { wrap_fn(global_scope.get_cx(), global_scope, obj) }
 }
 
 /// A struct to store a reference to the reflector of a DOM object.
@@ -79,7 +79,10 @@ pub trait DomObject: 'static {
     fn reflector(&self) -> &Reflector;
 
     /// Returns the global scope of the realm that the DomObject was created in.
-    fn global(&self) -> DomRoot<GlobalScope> where Self: Sized {
+    fn global(&self) -> DomRoot<GlobalScope>
+    where
+        Self: Sized,
+    {
         GlobalScope::from_reflector(self)
     }
 }

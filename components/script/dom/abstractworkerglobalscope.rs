@@ -25,7 +25,10 @@ pub struct SendableWorkerScriptChan {
 
 impl ScriptChan for SendableWorkerScriptChan {
     fn send(&self, msg: CommonScriptMsg) -> Result<(), ()> {
-        let msg = DedicatedWorkerScriptMsg::CommonWorker(self.worker.clone(), WorkerScriptMsg::Common(msg));
+        let msg = DedicatedWorkerScriptMsg::CommonWorker(
+            self.worker.clone(),
+            WorkerScriptMsg::Common(msg),
+        );
         self.sender.send(msg).map_err(|_| ())
     }
 
@@ -48,10 +51,11 @@ pub struct WorkerThreadWorkerChan {
 
 impl ScriptChan for WorkerThreadWorkerChan {
     fn send(&self, msg: CommonScriptMsg) -> Result<(), ()> {
-        let msg = DedicatedWorkerScriptMsg::CommonWorker(self.worker.clone(), WorkerScriptMsg::Common(msg));
-        self.sender
-            .send(msg)
-            .map_err(|_| ())
+        let msg = DedicatedWorkerScriptMsg::CommonWorker(
+            self.worker.clone(),
+            WorkerScriptMsg::Common(msg),
+        );
+        self.sender.send(msg).map_err(|_| ())
     }
 
     fn clone(&self) -> Box<ScriptChan + Send> {
@@ -67,7 +71,7 @@ impl ScriptPort for Receiver<DedicatedWorkerScriptMsg> {
         let common_msg = match self.recv() {
             Some(DedicatedWorkerScriptMsg::CommonWorker(_worker, common_msg)) => common_msg,
             None => return Err(()),
-            Some(DedicatedWorkerScriptMsg::WakeUp) => panic!("unexpected worker event message!")
+            Some(DedicatedWorkerScriptMsg::WakeUp) => panic!("unexpected worker event message!"),
         };
         match common_msg {
             WorkerScriptMsg::Common(script_msg) => Ok(script_msg),
@@ -90,14 +94,17 @@ pub trait WorkerEventLoopMethods {
 }
 
 // https://html.spec.whatwg.org/multipage/#worker-event-loop
-pub fn run_worker_event_loop<T, TimerMsg, WorkerMsg, Event>(worker_scope: &T,
-                                                            worker: Option<&TrustedWorkerAddress>)
-where
+pub fn run_worker_event_loop<T, TimerMsg, WorkerMsg, Event>(
+    worker_scope: &T,
+    worker: Option<&TrustedWorkerAddress>,
+) where
     TimerMsg: Send,
     WorkerMsg: QueuedTaskConversion + Send,
-    T: WorkerEventLoopMethods<TimerMsg = TimerMsg,  WorkerMsg = WorkerMsg, Event = Event>
-    + DerivedFrom<WorkerGlobalScope> + DerivedFrom<GlobalScope>
-    + DomObject {
+    T: WorkerEventLoopMethods<TimerMsg = TimerMsg, WorkerMsg = WorkerMsg, Event = Event>
+        + DerivedFrom<WorkerGlobalScope>
+        + DerivedFrom<GlobalScope>
+        + DomObject,
+{
     let scope = worker_scope.upcast::<WorkerGlobalScope>();
     let timer_event_port = worker_scope.timer_event_port();
     let devtools_port = match scope.from_devtools_sender() {
@@ -140,8 +147,10 @@ where
         // Step 6
         let _ar = match worker {
             Some(worker) => worker_scope.handle_worker_post_event(worker),
-            None => None
+            None => None,
         };
-        worker_scope.upcast::<GlobalScope>().perform_a_microtask_checkpoint();
+        worker_scope
+            .upcast::<GlobalScope>()
+            .perform_a_microtask_checkpoint();
     }
 }

@@ -48,20 +48,24 @@ impl WebGLContextEvent {
         // available.
         let status_message = DOMString::new();
         reflect_dom_object(
-                        Box::new(WebGLContextEvent::new_inherited(status_message)),
-                        window,
-                        WebGLContextEventBinding::Wrap)
+            Box::new(WebGLContextEvent::new_inherited(status_message)),
+            window,
+            WebGLContextEventBinding::Wrap,
+        )
     }
 
-    pub fn new(window: &Window,
-               type_: Atom,
-               bubbles: EventBubbles,
-               cancelable: EventCancelable,
-               status_message: DOMString) -> DomRoot<WebGLContextEvent> {
+    pub fn new(
+        window: &Window,
+        type_: Atom,
+        bubbles: EventBubbles,
+        cancelable: EventCancelable,
+        status_message: DOMString,
+    ) -> DomRoot<WebGLContextEvent> {
         let event = reflect_dom_object(
-                        Box::new(WebGLContextEvent::new_inherited(status_message)),
-                        window,
-                        WebGLContextEventBinding::Wrap);
+            Box::new(WebGLContextEvent::new_inherited(status_message)),
+            window,
+            WebGLContextEventBinding::Wrap,
+        );
 
         {
             let parent = event.upcast::<Event>();
@@ -71,9 +75,11 @@ impl WebGLContextEvent {
         event
     }
 
-    pub fn Constructor(window: &Window,
-                       type_: DOMString,
-                       init: &WebGLContextEventInit) -> Fallible<DomRoot<WebGLContextEvent>> {
+    pub fn Constructor(
+        window: &Window,
+        type_: DOMString,
+        init: &WebGLContextEventInit,
+    ) -> Fallible<DomRoot<WebGLContextEvent>> {
         let status_message = match init.statusMessage.as_ref() {
             Some(message) => message.clone(),
             None => DOMString::new(),
@@ -83,10 +89,12 @@ impl WebGLContextEvent {
 
         let cancelable = EventCancelable::from(init.parent.cancelable);
 
-        Ok(WebGLContextEvent::new(window,
-                                  Atom::from(type_),
-                                  bubbles,
-                                  cancelable,
-                                  status_message))
+        Ok(WebGLContextEvent::new(
+            window,
+            Atom::from(type_),
+            bubbles,
+            cancelable,
+            status_message,
+        ))
     }
 }

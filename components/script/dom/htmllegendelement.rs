@@ -24,10 +24,11 @@ pub struct HTMLLegendElement {
 }
 
 impl HTMLLegendElement {
-    fn new_inherited(local_name: LocalName,
-                     prefix: Option<Prefix>,
-                     document: &Document)
-                     -> HTMLLegendElement {
+    fn new_inherited(
+        local_name: LocalName,
+        prefix: Option<Prefix>,
+        document: &Document,
+    ) -> HTMLLegendElement {
         HTMLLegendElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
             form_owner: Default::default(),
@@ -35,13 +36,18 @@ impl HTMLLegendElement {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(local_name: LocalName,
-               prefix: Option<Prefix>,
-               document: &Document)
-               -> DomRoot<HTMLLegendElement> {
-        Node::reflect_node(Box::new(HTMLLegendElement::new_inherited(local_name, prefix, document)),
-                           document,
-                           HTMLLegendElementBinding::Wrap)
+    pub fn new(
+        local_name: LocalName,
+        prefix: Option<Prefix>,
+        document: &Document,
+    ) -> DomRoot<HTMLLegendElement> {
+        Node::reflect_node(
+            Box::new(HTMLLegendElement::new_inherited(
+                local_name, prefix, document,
+            )),
+            document,
+            HTMLLegendElementBinding::Wrap,
+        )
     }
 }
 
@@ -55,7 +61,8 @@ impl VirtualMethods for HTMLLegendElement {
             s.bind_to_tree(tree_in_doc);
         }
 
-        self.upcast::<Element>().check_ancestors_disabled_state_for_form_control();
+        self.upcast::<Element>()
+            .check_ancestors_disabled_state_for_form_control();
     }
 
     fn unbind_from_tree(&self, context: &UnbindContext) {
@@ -63,14 +70,16 @@ impl VirtualMethods for HTMLLegendElement {
 
         let node = self.upcast::<Node>();
         let el = self.upcast::<Element>();
-        if node.ancestors().any(|ancestor| ancestor.is::<HTMLFieldSetElement>()) {
+        if node
+            .ancestors()
+            .any(|ancestor| ancestor.is::<HTMLFieldSetElement>())
+        {
             el.check_ancestors_disabled_state_for_form_control();
         } else {
             el.check_disabled_attribute();
         }
     }
 }
-
 
 impl HTMLLegendElementMethods for HTMLLegendElement {
     // https://html.spec.whatwg.org/multipage/#dom-legend-form

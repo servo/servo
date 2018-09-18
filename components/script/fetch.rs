@@ -46,7 +46,7 @@ struct FetchContext {
 #[derive(Default, JSTraceable, MallocSizeOf)]
 pub struct FetchCanceller {
     #[ignore_malloc_size_of = "channels are hard"]
-    cancel_chan: Option<ipc::IpcSender<()>>
+    cancel_chan: Option<ipc::IpcSender<()>>,
 }
 
 impl FetchCanceller {
@@ -108,7 +108,11 @@ fn request_init_from_request(request: NetTraitsRequest) -> NetTraitsRequestInit 
         use_cors_preflight: request.use_cors_preflight,
         credentials_mode: request.credentials_mode,
         use_url_credentials: request.use_url_credentials,
-        origin: GlobalScope::current().expect("No current global object").origin().immutable().clone(),
+        origin: GlobalScope::current()
+            .expect("No current global object")
+            .origin()
+            .immutable()
+            .clone(),
         referrer_url: from_referrer_to_referrer_url(&request),
         referrer_policy: request.referrer_policy,
         pipeline_id: request.pipeline_id,
@@ -120,7 +124,11 @@ fn request_init_from_request(request: NetTraitsRequest) -> NetTraitsRequestInit 
 
 // https://fetch.spec.whatwg.org/#fetch-method
 #[allow(unrooted_must_root)]
-pub fn Fetch(global: &GlobalScope, input: RequestInfo, init: RootedTraceableBox<RequestInit>) -> Rc<Promise> {
+pub fn Fetch(
+    global: &GlobalScope,
+    input: RequestInfo,
+    init: RootedTraceableBox<RequestInit>,
+) -> Rc<Promise> {
     let core_resource_thread = global.core_resource_thread();
 
     // Step 1
@@ -155,14 +163,20 @@ pub fn Fetch(global: &GlobalScope, input: RequestInfo, init: RootedTraceableBox<
     let listener = NetworkListener {
         context: fetch_context,
         task_source: global.networking_task_source(),
-        canceller: Some(global.task_canceller(TaskSourceName::Networking))
+        canceller: Some(global.task_canceller(TaskSourceName::Networking)),
     };
 
-    ROUTER.add_route(action_receiver.to_opaque(), Box::new(move |message| {
-        listener.notify_fetch(message.to().unwrap());
-    }));
-    core_resource_thread.send(
-        NetTraitsFetch(request_init, FetchChannels::ResponseMsg(action_sender, None))).unwrap();
+    ROUTER.add_route(
+        action_receiver.to_opaque(),
+        Box::new(move |message| {
+            listener.notify_fetch(message.to().unwrap());
+        }),
+    );
+    core_resource_thread
+        .send(NetTraitsFetch(
+            request_init,
+            FetchChannels::ResponseMsg(action_sender, None),
+        )).unwrap();
 
     promise
 }
@@ -180,7 +194,11 @@ impl FetchResponseListener for FetchContext {
 
     #[allow(unrooted_must_root)]
     fn process_response(&mut self, fetch_metadata: Result<FetchMetadata, NetworkError>) {
-        let promise = self.fetch_promise.take().expect("fetch promise is missing").root();
+        let promise = self
+            .fetch_promise
+            .take()
+            .expect("fetch promise is missing")
+            .root();
 
         // JSAutoCompartment needs to be manually made.
         // Otherwise, Servo will crash.
@@ -195,28 +213,32 @@ impl FetchResponseListener for FetchContext {
                 return;
             },
             // Step 4.2
-            Ok(metadata) => {
-                match metadata {
-                    FetchMetadata::Unfiltered(m) => {
+            Ok(metadata) => match metadata {
+                FetchMetadata::Unfiltered(m) => {
+                    fill_headers_with_metadata(self.response_object.root(), m);
+                    self.response_object
+                        .root()
+                        .set_type(DOMResponseType::Default);
+                },
+                FetchMetadata::Filtered { filtered, .. } => match filtered {
+                    FilteredMetadata::Basic(m) => {
                         fill_headers_with_metadata(self.response_object.root(), m);
-                        self.response_object.root().set_type(DOMResponseType::Default);
+                        self.response_object.root().set_type(DOMResponseType::Basic);
                     },
-                    FetchMetadata::Filtered { filtered, .. } => match filtered {
-                        FilteredMetadata::Basic(m) => {
-                            fill_headers_with_metadata(self.response_object.root(), m);
-                            self.response_object.root().set_type(DOMResponseType::Basic);
-                        },
-                        FilteredMetadata::Cors(m) => {
-                            fill_headers_with_metadata(self.response_object.root(), m);
-                            self.response_object.root().set_type(DOMResponseType::Cors);
-                        },
-                        FilteredMetadata::Opaque =>
-                            self.response_object.root().set_type(DOMResponseType::Opaque),
-                        FilteredMetadata::OpaqueRedirect =>
-                            self.response_object.root().set_type(DOMResponseType::Opaqueredirect)
-                    }
-                }
-            }
+                    FilteredMetadata::Cors(m) => {
+                        fill_headers_with_metadata(self.response_object.root(), m);
+                        self.response_object.root().set_type(DOMResponseType::Cors);
+                    },
+                    FilteredMetadata::Opaque => self
+                        .response_object
+                        .root()
+                        .set_type(DOMResponseType::Opaque),
+                    FilteredMetadata::OpaqueRedirect => self
+                        .response_object
+                        .root()
+                        .set_type(DOMResponseType::Opaqueredirect),
+                },
+            },
         }
         // Step 4.3
         promise.resolve_native(&self.response_object.root());

@@ -28,7 +28,10 @@ pub enum CompleteForRendering {
 #[derive(Clone, JSTraceable, MallocSizeOf)]
 enum WebGLFramebufferAttachment {
     Renderbuffer(Dom<WebGLRenderbuffer>),
-    Texture { texture: Dom<WebGLTexture>, level: i32 },
+    Texture {
+        texture: Dom<WebGLTexture>,
+        level: i32,
+    },
 }
 
 impl WebGLFramebufferAttachment {
@@ -42,16 +45,18 @@ impl WebGLFramebufferAttachment {
     fn mark_initialized(&self) {
         match *self {
             WebGLFramebufferAttachment::Renderbuffer(ref r) => r.mark_initialized(),
-            WebGLFramebufferAttachment::Texture { .. } => ()
+            WebGLFramebufferAttachment::Texture { .. } => (),
         }
     }
 
     fn root(&self) -> WebGLFramebufferAttachmentRoot {
         match *self {
-            WebGLFramebufferAttachment::Renderbuffer(ref rb) =>
-                WebGLFramebufferAttachmentRoot::Renderbuffer(DomRoot::from_ref(&rb)),
-            WebGLFramebufferAttachment::Texture { ref texture, .. } =>
-                WebGLFramebufferAttachmentRoot::Texture(DomRoot::from_ref(&texture)),
+            WebGLFramebufferAttachment::Renderbuffer(ref rb) => {
+                WebGLFramebufferAttachmentRoot::Renderbuffer(DomRoot::from_ref(&rb))
+            },
+            WebGLFramebufferAttachment::Texture { ref texture, .. } => {
+                WebGLFramebufferAttachmentRoot::Texture(DomRoot::from_ref(&texture))
+            },
         }
     }
 }
@@ -100,13 +105,13 @@ impl WebGLFramebuffer {
     pub fn maybe_new(context: &WebGLRenderingContext) -> Option<DomRoot<Self>> {
         let (sender, receiver) = webgl_channel().unwrap();
         context.send_command(WebGLCommand::CreateFramebuffer(sender));
-        receiver.recv().unwrap().map(|id| WebGLFramebuffer::new(context, id))
+        receiver
+            .recv()
+            .unwrap()
+            .map(|id| WebGLFramebuffer::new(context, id))
     }
 
-    pub fn new(
-        context: &WebGLRenderingContext,
-        id: WebGLFramebufferId,
-    ) -> DomRoot<Self> {
+    pub fn new(context: &WebGLRenderingContext, id: WebGLFramebufferId) -> DomRoot<Self> {
         reflect_dom_object(
             Box::new(WebGLFramebuffer::new_inherited(context, id)),
             &*context.global(),
@@ -114,7 +119,6 @@ impl WebGLFramebuffer {
         )
     }
 }
-
 
 impl WebGLFramebuffer {
     pub fn id(&self) -> WebGLFramebufferId {
@@ -128,9 +132,12 @@ impl WebGLFramebuffer {
         self.update_status();
 
         self.target.set(Some(target));
-        self.upcast::<WebGLObject>().context().send_command(
-            WebGLCommand::BindFramebuffer(target, WebGLFramebufferBindingRequest::Explicit(self.id)),
-        );
+        self.upcast::<WebGLObject>()
+            .context()
+            .send_command(WebGLCommand::BindFramebuffer(
+                target,
+                WebGLFramebufferBindingRequest::Explicit(self.id),
+            ));
     }
 
     pub fn delete(&self) {
@@ -161,7 +168,12 @@ impl WebGLFramebuffer {
         let has_zs = zs.is_some();
         let attachments = [&*c, &*z, &*s, &*zs];
         let attachment_constraints = [
-            &[constants::RGBA4, constants::RGB5_A1, constants::RGB565, constants::RGBA][..],
+            &[
+                constants::RGBA4,
+                constants::RGB5_A1,
+                constants::RGB565,
+                constants::RGBA,
+            ][..],
             &[constants::DEPTH_COMPONENT16][..],
             &[constants::STENCIL_INDEX8][..],
             &[constants::DEPTH_STENCIL][..],
@@ -180,8 +192,7 @@ impl WebGLFramebuffer {
         //     If any of the constraints above are violated, then:
         //
         //     checkFramebufferStatus must return FRAMEBUFFER_UNSUPPORTED."
-        if (has_zs && (has_z || has_s)) ||
-            (has_z && has_s) {
+        if (has_zs && (has_z || has_s)) || (has_z && has_s) {
             self.status.set(constants::FRAMEBUFFER_UNSUPPORTED);
             return;
         }
@@ -192,12 +203,17 @@ impl WebGLFramebuffer {
             let (format, size) = match **attachment {
                 Some(WebGLFramebufferAttachment::Renderbuffer(ref att_rb)) => {
                     (Some(att_rb.internal_format()), att_rb.size())
-                }
-                Some(WebGLFramebufferAttachment::Texture { texture: ref att_tex, level } ) => {
+                },
+                Some(WebGLFramebufferAttachment::Texture {
+                    texture: ref att_tex,
+                    level,
+                }) => {
                     let info = att_tex.image_info_at_face(0, level as u32);
-                    (info.internal_format().map(|t| t.as_gl_constant()),
-                     Some((info.width() as i32, info.height() as i32)))
-                }
+                    (
+                        info.internal_format().map(|t| t.as_gl_constant()),
+                        Some((info.width() as i32, info.height() as i32)),
+                    )
+                },
                 None => (None, None),
             };
 
@@ -205,7 +221,8 @@ impl WebGLFramebuffer {
             // that the size matches.
             if size.is_some() {
                 if fb_size.is_some() && size != fb_size {
-                    self.status.set(constants::FRAMEBUFFER_INCOMPLETE_DIMENSIONS);
+                    self.status
+                        .set(constants::FRAMEBUFFER_INCOMPLETE_DIMENSIONS);
                     return;
                 } else {
                     fb_size = size;
@@ -214,7 +231,8 @@ impl WebGLFramebuffer {
 
             if let Some(format) = format {
                 if constraints.iter().all(|c| *c != format) {
-                    self.status.set(constants::FRAMEBUFFER_INCOMPLETE_ATTACHMENT);
+                    self.status
+                        .set(constants::FRAMEBUFFER_INCOMPLETE_ATTACHMENT);
                     return;
                 }
             }
@@ -225,10 +243,12 @@ impl WebGLFramebuffer {
             if self.size.get().map_or(false, |(w, h)| w != 0 && h != 0) {
                 self.status.set(constants::FRAMEBUFFER_COMPLETE);
             } else {
-                self.status.set(constants::FRAMEBUFFER_INCOMPLETE_ATTACHMENT);
+                self.status
+                    .set(constants::FRAMEBUFFER_INCOMPLETE_ATTACHMENT);
             }
         } else {
-            self.status.set(constants::FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT);
+            self.status
+                .set(constants::FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT);
         }
     }
 
@@ -251,7 +271,10 @@ impl WebGLFramebuffer {
                 (&self.color, constants::COLOR_BUFFER_BIT),
                 (&self.depth, constants::DEPTH_BUFFER_BIT),
                 (&self.stencil, constants::STENCIL_BUFFER_BIT),
-                (&self.depthstencil, constants::DEPTH_BUFFER_BIT | constants::STENCIL_BUFFER_BIT)
+                (
+                    &self.depthstencil,
+                    constants::DEPTH_BUFFER_BIT | constants::STENCIL_BUFFER_BIT,
+                ),
             ];
             let mut clear_bits = 0;
             for &(attachment, bits) in &attachments {
@@ -262,7 +285,9 @@ impl WebGLFramebuffer {
                     }
                 }
             }
-            self.upcast::<WebGLObject>().context().initialize_framebuffer(clear_bits);
+            self.upcast::<WebGLObject>()
+                .context()
+                .initialize_framebuffer(clear_bits);
             self.is_initialized.set(true);
         }
 
@@ -270,28 +295,31 @@ impl WebGLFramebuffer {
     }
 
     pub fn renderbuffer(&self, attachment: u32, rb: Option<&WebGLRenderbuffer>) -> WebGLResult<()> {
-        let binding = self.attachment_binding(attachment).ok_or(WebGLError::InvalidEnum)?;
+        let binding = self
+            .attachment_binding(attachment)
+            .ok_or(WebGLError::InvalidEnum)?;
 
         let rb_id = match rb {
             Some(rb) => {
                 if !rb.ever_bound() {
                     return Err(WebGLError::InvalidOperation);
                 }
-                *binding.borrow_mut() = Some(WebGLFramebufferAttachment::Renderbuffer(Dom::from_ref(rb)));
+                *binding.borrow_mut() =
+                    Some(WebGLFramebufferAttachment::Renderbuffer(Dom::from_ref(rb)));
                 Some(rb.id())
-            }
+            },
 
-            _ => None
+            _ => None,
         };
 
-        self.upcast::<WebGLObject>().context().send_command(
-            WebGLCommand::FramebufferRenderbuffer(
+        self.upcast::<WebGLObject>()
+            .context()
+            .send_command(WebGLCommand::FramebufferRenderbuffer(
                 constants::FRAMEBUFFER,
                 attachment,
                 constants::RENDERBUFFER,
                 rb_id,
-            ),
-        );
+            ));
 
         if rb.is_none() {
             self.detach_binding(binding, attachment);
@@ -315,15 +343,14 @@ impl WebGLFramebuffer {
 
     fn attachment_binding(
         &self,
-        attachment: u32
-    ) -> Option<&DomRefCell<Option<WebGLFramebufferAttachment>>>
-    {
+        attachment: u32,
+    ) -> Option<&DomRefCell<Option<WebGLFramebufferAttachment>>> {
         match attachment {
             constants::COLOR_ATTACHMENT0 => Some(&self.color),
             constants::DEPTH_ATTACHMENT => Some(&self.depth),
             constants::STENCIL_ATTACHMENT => Some(&self.stencil),
             constants::DEPTH_STENCIL_ATTACHMENT => Some(&self.depthstencil),
-            _ => None
+            _ => None,
         }
     }
 
@@ -332,26 +359,22 @@ impl WebGLFramebuffer {
             let context = self.upcast::<WebGLObject>().context();
             match *attachment {
                 WebGLFramebufferAttachment::Renderbuffer(ref rb) => {
-                    context.send_command(
-                        WebGLCommand::FramebufferRenderbuffer(
-                            constants::FRAMEBUFFER,
-                            attachment_point,
-                            constants::RENDERBUFFER,
-                            Some(rb.id())
-                        )
-                    );
-                }
+                    context.send_command(WebGLCommand::FramebufferRenderbuffer(
+                        constants::FRAMEBUFFER,
+                        attachment_point,
+                        constants::RENDERBUFFER,
+                        Some(rb.id()),
+                    ));
+                },
                 WebGLFramebufferAttachment::Texture { ref texture, level } => {
-                    context.send_command(
-                        WebGLCommand::FramebufferTexture2D(
-                            constants::FRAMEBUFFER,
-                            attachment_point,
-                            texture.target().expect("missing texture target"),
-                            Some(texture.id()),
-                            level
-                        )
-                    );
-                }
+                    context.send_command(WebGLCommand::FramebufferTexture2D(
+                        constants::FRAMEBUFFER,
+                        attachment_point,
+                        texture.target().expect("missing texture target"),
+                        Some(texture.id()),
+                        level,
+                    ));
+                },
             }
         };
 
@@ -372,12 +395,22 @@ impl WebGLFramebuffer {
 
     pub fn attachment(&self, attachment: u32) -> Option<WebGLFramebufferAttachmentRoot> {
         let binding = self.attachment_binding(attachment)?;
-        binding.borrow().as_ref().map(WebGLFramebufferAttachment::root)
+        binding
+            .borrow()
+            .as_ref()
+            .map(WebGLFramebufferAttachment::root)
     }
 
-    pub fn texture2d(&self, attachment: u32, textarget: u32, texture: Option<&WebGLTexture>,
-                     level: i32) -> WebGLResult<()> {
-        let binding = self.attachment_binding(attachment).ok_or(WebGLError::InvalidEnum)?;
+    pub fn texture2d(
+        &self,
+        attachment: u32,
+        textarget: u32,
+        texture: Option<&WebGLTexture>,
+        level: i32,
+    ) -> WebGLResult<()> {
+        let binding = self
+            .attachment_binding(attachment)
+            .ok_or(WebGLError::InvalidEnum)?;
 
         let tex_id = match texture {
             // Note, from the GLES 2.0.25 spec, page 113:
@@ -417,33 +450,31 @@ impl WebGLFramebuffer {
                 };
 
                 match texture.target() {
-                    Some(constants::TEXTURE_CUBE_MAP) if is_cube => {}
-                    Some(_) if !is_cube => {}
+                    Some(constants::TEXTURE_CUBE_MAP) if is_cube => {},
+                    Some(_) if !is_cube => {},
                     _ => return Err(WebGLError::InvalidOperation),
                 }
 
                 *binding.borrow_mut() = Some(WebGLFramebufferAttachment::Texture {
                     texture: Dom::from_ref(texture),
-                    level: level }
-                );
+                    level: level,
+                });
 
                 Some(texture.id())
-            }
+            },
 
-            _ => {
-                None
-            }
+            _ => None,
         };
 
-        self.upcast::<WebGLObject>().context().send_command(
-            WebGLCommand::FramebufferTexture2D(
+        self.upcast::<WebGLObject>()
+            .context()
+            .send_command(WebGLCommand::FramebufferTexture2D(
                 constants::FRAMEBUFFER,
                 attachment,
                 textarget,
                 tex_id,
                 level,
-            ),
-        );
+            ));
 
         if texture.is_none() {
             self.detach_binding(binding, attachment);
@@ -455,20 +486,24 @@ impl WebGLFramebuffer {
     }
 
     fn with_matching_renderbuffers<F>(&self, rb: &WebGLRenderbuffer, mut closure: F)
-        where F: FnMut(&DomRefCell<Option<WebGLFramebufferAttachment>>, u32)
+    where
+        F: FnMut(&DomRefCell<Option<WebGLFramebufferAttachment>>, u32),
     {
         let attachments = [
             (&self.color, constants::COLOR_ATTACHMENT0),
             (&self.depth, constants::DEPTH_ATTACHMENT),
             (&self.stencil, constants::STENCIL_ATTACHMENT),
-            (&self.depthstencil, constants::DEPTH_STENCIL_ATTACHMENT)
+            (&self.depthstencil, constants::DEPTH_STENCIL_ATTACHMENT),
         ];
 
         for (attachment, name) in &attachments {
             let matched = {
                 match *attachment.borrow() {
                     Some(WebGLFramebufferAttachment::Renderbuffer(ref att_rb))
-                        if rb.id() == att_rb.id() => true,
+                        if rb.id() == att_rb.id() =>
+                    {
+                        true
+                    },
                     _ => false,
                 }
             };
@@ -480,20 +515,27 @@ impl WebGLFramebuffer {
     }
 
     fn with_matching_textures<F>(&self, texture: &WebGLTexture, mut closure: F)
-        where F: FnMut(&DomRefCell<Option<WebGLFramebufferAttachment>>, u32)
+    where
+        F: FnMut(&DomRefCell<Option<WebGLFramebufferAttachment>>, u32),
     {
         let attachments = [
             (&self.color, constants::COLOR_ATTACHMENT0),
             (&self.depth, constants::DEPTH_ATTACHMENT),
             (&self.stencil, constants::STENCIL_ATTACHMENT),
-            (&self.depthstencil, constants::DEPTH_STENCIL_ATTACHMENT)
+            (&self.depthstencil, constants::DEPTH_STENCIL_ATTACHMENT),
         ];
 
         for (attachment, name) in &attachments {
             let matched = {
                 match *attachment.borrow() {
-                    Some(WebGLFramebufferAttachment::Texture { texture: ref att_texture, .. })
-                        if texture.id() == att_texture.id() => true,
+                    Some(WebGLFramebufferAttachment::Texture {
+                        texture: ref att_texture,
+                        ..
+                    })
+                        if texture.id() == att_texture.id() =>
+                    {
+                        true
+                    },
                     _ => false,
                 }
             };

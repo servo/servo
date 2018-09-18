@@ -27,9 +27,11 @@ impl OESStandardDerivatives {
 impl WebGLExtension for OESStandardDerivatives {
     type Extension = OESStandardDerivatives;
     fn new(ctx: &WebGLRenderingContext) -> DomRoot<OESStandardDerivatives> {
-        reflect_dom_object(Box::new(OESStandardDerivatives::new_inherited()),
-                           &*ctx.global(),
-                           OESStandardDerivativesBinding::Wrap)
+        reflect_dom_object(
+            Box::new(OESStandardDerivatives::new_inherited()),
+            &*ctx.global(),
+            OESStandardDerivativesBinding::Wrap,
+        )
     }
 
     fn spec() -> WebGLExtensionSpec {
@@ -42,8 +44,12 @@ impl WebGLExtension for OESStandardDerivatives {
     }
 
     fn enable(ext: &WebGLExtensions) {
-        ext.enable_hint_target(OESStandardDerivativesConstants::FRAGMENT_SHADER_DERIVATIVE_HINT_OES);
-        ext.enable_get_parameter_name(OESStandardDerivativesConstants::FRAGMENT_SHADER_DERIVATIVE_HINT_OES);
+        ext.enable_hint_target(
+            OESStandardDerivativesConstants::FRAGMENT_SHADER_DERIVATIVE_HINT_OES,
+        );
+        ext.enable_get_parameter_name(
+            OESStandardDerivativesConstants::FRAGMENT_SHADER_DERIVATIVE_HINT_OES,
+        );
     }
 
     fn name() -> &'static str {

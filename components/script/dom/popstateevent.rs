@@ -37,17 +37,20 @@ impl PopStateEvent {
     }
 
     pub fn new_uninitialized(window: &Window) -> DomRoot<PopStateEvent> {
-        reflect_dom_object(Box::new(PopStateEvent::new_inherited()),
-                           window,
-                           PopStateEventBinding::Wrap)
+        reflect_dom_object(
+            Box::new(PopStateEvent::new_inherited()),
+            window,
+            PopStateEventBinding::Wrap,
+        )
     }
 
-    pub fn new(window: &Window,
-               type_: Atom,
-               bubbles: bool,
-               cancelable: bool,
-               state: HandleValue)
-               -> DomRoot<PopStateEvent> {
+    pub fn new(
+        window: &Window,
+        type_: Atom,
+        bubbles: bool,
+        cancelable: bool,
+        state: HandleValue,
+    ) -> DomRoot<PopStateEvent> {
         let ev = PopStateEvent::new_uninitialized(window);
         ev.state.set(state.get());
         {
@@ -57,20 +60,21 @@ impl PopStateEvent {
         ev
     }
 
-    pub fn Constructor(window: &Window,
-                       type_: DOMString,
-                       init: RootedTraceableBox<PopStateEventBinding::PopStateEventInit>)
-                       -> Fallible<DomRoot<PopStateEvent>> {
-        Ok(PopStateEvent::new(window,
-                              Atom::from(type_),
-                              init.parent.bubbles,
-                              init.parent.cancelable,
-                              init.state.handle()))
+    pub fn Constructor(
+        window: &Window,
+        type_: DOMString,
+        init: RootedTraceableBox<PopStateEventBinding::PopStateEventInit>,
+    ) -> Fallible<DomRoot<PopStateEvent>> {
+        Ok(PopStateEvent::new(
+            window,
+            Atom::from(type_),
+            init.parent.bubbles,
+            init.parent.cancelable,
+            init.state.handle(),
+        ))
     }
 
-    pub fn dispatch_jsval(target: &EventTarget,
-                          window: &Window,
-                          state: HandleValue) {
+    pub fn dispatch_jsval(target: &EventTarget, window: &Window, state: HandleValue) {
         let event = PopStateEvent::new(window, atom!("popstate"), false, false, state);
         event.upcast::<Event>().fire(target);
     }

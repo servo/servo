@@ -184,18 +184,22 @@ struct InProgressLoad {
 
 impl InProgressLoad {
     /// Create a new InProgressLoad object.
-    fn new(id: PipelineId,
-           browsing_context_id: BrowsingContextId,
-           top_level_browsing_context_id: TopLevelBrowsingContextId,
-           parent_info: Option<PipelineId>,
-           opener: Option<BrowsingContextId>,
-           layout_chan: Sender<message::Msg>,
-           window_size: Option<WindowSizeData>,
-           url: ServoUrl,
-           origin: MutableOrigin) -> InProgressLoad {
+    fn new(
+        id: PipelineId,
+        browsing_context_id: BrowsingContextId,
+        top_level_browsing_context_id: TopLevelBrowsingContextId,
+        parent_info: Option<PipelineId>,
+        opener: Option<BrowsingContextId>,
+        layout_chan: Sender<message::Msg>,
+        window_size: Option<WindowSizeData>,
+        url: ServoUrl,
+        origin: MutableOrigin,
+    ) -> InProgressLoad {
         let current_time = get_time();
         let navigation_start_precise = precise_time_ns();
-        layout_chan.send(message::Msg::SetNavigationStart(navigation_start_precise)).unwrap();
+        layout_chan
+            .send(message::Msg::SetNavigationStart(navigation_start_precise))
+            .unwrap();
         InProgressLoad {
             pipeline_id: id,
             browsing_context_id: browsing_context_id,
@@ -241,7 +245,7 @@ pub enum MainThreadScriptMsg {
         pipeline_id: PipelineId,
         name: Atom,
         properties: Vec<Atom>,
-        painter: Box<Painter>
+        painter: Box<Painter>,
     },
     /// Dispatches a job queue.
     DispatchJobQueue { scope_url: ServoUrl },
@@ -256,7 +260,9 @@ impl QueuedTaskConversion for MainThreadScriptMsg {
             _ => return None,
         };
         match script_msg {
-            CommonScriptMsg::Task(_category, _boxed, _pipeline_id, task_source) => Some(&task_source),
+            CommonScriptMsg::Task(_category, _boxed, _pipeline_id, task_source) => {
+                Some(&task_source)
+            },
             _ => return None,
         }
     }
@@ -267,8 +273,9 @@ impl QueuedTaskConversion for MainThreadScriptMsg {
             _ => return None,
         };
         let (category, boxed, pipeline_id, task_source) = match script_msg {
-            CommonScriptMsg::Task(category, boxed, pipeline_id, task_source) =>
-                (category, boxed, pipeline_id, task_source),
+            CommonScriptMsg::Task(category, boxed, pipeline_id, task_source) => {
+                (category, boxed, pipeline_id, task_source)
+            },
             _ => return None,
         };
         Some((None, category, boxed, pipeline_id, task_source))
@@ -356,7 +363,9 @@ pub struct MainThreadScriptChan(pub Sender<MainThreadScriptMsg>);
 
 impl ScriptChan for MainThreadScriptChan {
     fn send(&self, msg: CommonScriptMsg) -> Result<(), ()> {
-        self.0.send(MainThreadScriptMsg::Common(msg)).map_err(|_| ())
+        self.0
+            .send(MainThreadScriptMsg::Common(msg))
+            .map_err(|_| ())
     }
 
     fn clone(&self) -> Box<ScriptChan + Send> {
@@ -389,7 +398,9 @@ impl Documents {
     }
 
     pub fn remove(&mut self, pipeline_id: PipelineId) -> Option<DomRoot<Document>> {
-        self.map.remove(&pipeline_id).map(|ref doc| DomRoot::from_ref(&**doc))
+        self.map
+            .remove(&pipeline_id)
+            .map(|ref doc| DomRoot::from_ref(&**doc))
     }
 
     pub fn is_empty(&self) -> bool {
@@ -397,7 +408,9 @@ impl Documents {
     }
 
     pub fn find_document(&self, pipeline_id: PipelineId) -> Option<DomRoot<Document>> {
-        self.map.get(&pipeline_id).map(|doc| DomRoot::from_ref(&**doc))
+        self.map
+            .get(&pipeline_id)
+            .map(|doc| DomRoot::from_ref(&**doc))
     }
 
     pub fn len(&self) -> usize {
@@ -405,17 +418,22 @@ impl Documents {
     }
 
     pub fn find_window(&self, pipeline_id: PipelineId) -> Option<DomRoot<Window>> {
-        self.find_document(pipeline_id).map(|doc| DomRoot::from_ref(doc.window()))
+        self.find_document(pipeline_id)
+            .map(|doc| DomRoot::from_ref(doc.window()))
     }
 
     pub fn find_global(&self, pipeline_id: PipelineId) -> Option<DomRoot<GlobalScope>> {
-        self.find_window(pipeline_id).map(|window| DomRoot::from_ref(window.upcast()))
+        self.find_window(pipeline_id)
+            .map(|window| DomRoot::from_ref(window.upcast()))
     }
 
-    pub fn find_iframe(&self, pipeline_id: PipelineId, browsing_context_id: BrowsingContextId)
-                       -> Option<DomRoot<HTMLIFrameElement>>
-    {
-        self.find_document(pipeline_id).and_then(|doc| doc.find_iframe(browsing_context_id))
+    pub fn find_iframe(
+        &self,
+        pipeline_id: PipelineId,
+        browsing_context_id: BrowsingContextId,
+    ) -> Option<DomRoot<HTMLIFrameElement>> {
+        self.find_document(pipeline_id)
+            .and_then(|doc| doc.find_iframe(browsing_context_id))
     }
 
     pub fn iter<'a>(&'a self) -> DocumentsIter<'a> {
@@ -434,7 +452,9 @@ impl<'a> Iterator for DocumentsIter<'a> {
     type Item = (PipelineId, DomRoot<Document>);
 
     fn next(&mut self) -> Option<(PipelineId, DomRoot<Document>)> {
-        self.iter.next().map(|(id, doc)| (*id, DomRoot::from_ref(&**doc)))
+        self.iter
+            .next()
+            .map(|(id, doc)| (*id, DomRoot::from_ref(&**doc)))
     }
 }
 
@@ -587,9 +607,7 @@ impl<'a> ScriptMemoryFailsafe<'a> {
     }
 
     fn new(owner: &'a ScriptThread) -> ScriptMemoryFailsafe<'a> {
-        ScriptMemoryFailsafe {
-            owner: Some(owner),
-        }
+        ScriptMemoryFailsafe { owner: Some(owner) }
     }
 }
 
@@ -607,50 +625,65 @@ impl<'a> Drop for ScriptMemoryFailsafe<'a> {
 impl ScriptThreadFactory for ScriptThread {
     type Message = message::Msg;
 
-    fn create(state: InitialScriptState,
-              load_data: LoadData)
-              -> (Sender<message::Msg>, Receiver<message::Msg>) {
+    fn create(
+        state: InitialScriptState,
+        load_data: LoadData,
+    ) -> (Sender<message::Msg>, Receiver<message::Msg>) {
         let (script_chan, script_port) = channel();
 
         let (sender, receiver) = channel();
         let layout_chan = sender.clone();
-        thread::Builder::new().name(format!("ScriptThread {:?}", state.id)).spawn(move || {
-            thread_state::initialize(ThreadState::SCRIPT);
-            PipelineNamespace::install(state.pipeline_namespace_id);
-            TopLevelBrowsingContextId::install(state.top_level_browsing_context_id);
-            let roots = RootCollection::new();
-            let _stack_roots = ThreadLocalStackRoots::new(&roots);
-            let id = state.id;
-            let browsing_context_id = state.browsing_context_id;
-            let top_level_browsing_context_id = state.top_level_browsing_context_id;
-            let parent_info = state.parent_info;
-            let opener = state.opener;
-            let mem_profiler_chan = state.mem_profiler_chan.clone();
-            let window_size = state.window_size;
-            let script_thread = ScriptThread::new(state,
-                                                  script_port,
-                                                  script_chan.clone());
+        thread::Builder::new()
+            .name(format!("ScriptThread {:?}", state.id))
+            .spawn(move || {
+                thread_state::initialize(ThreadState::SCRIPT);
+                PipelineNamespace::install(state.pipeline_namespace_id);
+                TopLevelBrowsingContextId::install(state.top_level_browsing_context_id);
+                let roots = RootCollection::new();
+                let _stack_roots = ThreadLocalStackRoots::new(&roots);
+                let id = state.id;
+                let browsing_context_id = state.browsing_context_id;
+                let top_level_browsing_context_id = state.top_level_browsing_context_id;
+                let parent_info = state.parent_info;
+                let opener = state.opener;
+                let mem_profiler_chan = state.mem_profiler_chan.clone();
+                let window_size = state.window_size;
+                let script_thread = ScriptThread::new(state, script_port, script_chan.clone());
 
-            SCRIPT_THREAD_ROOT.with(|root| {
-                root.set(Some(&script_thread as *const _));
-            });
+                SCRIPT_THREAD_ROOT.with(|root| {
+                    root.set(Some(&script_thread as *const _));
+                });
 
-            let mut failsafe = ScriptMemoryFailsafe::new(&script_thread);
+                let mut failsafe = ScriptMemoryFailsafe::new(&script_thread);
 
-            let origin = MutableOrigin::new(load_data.url.origin());
-            let new_load = InProgressLoad::new(id, browsing_context_id, top_level_browsing_context_id, parent_info,
-                                               opener, layout_chan, window_size, load_data.url.clone(), origin);
-            script_thread.pre_page_load(new_load, load_data);
+                let origin = MutableOrigin::new(load_data.url.origin());
+                let new_load = InProgressLoad::new(
+                    id,
+                    browsing_context_id,
+                    top_level_browsing_context_id,
+                    parent_info,
+                    opener,
+                    layout_chan,
+                    window_size,
+                    load_data.url.clone(),
+                    origin,
+                );
+                script_thread.pre_page_load(new_load, load_data);
 
-            let reporter_name = format!("script-reporter-{}", id);
-            mem_profiler_chan.run_with_memory_reporting(|| {
-                script_thread.start();
-                let _ = script_thread.content_process_shutdown_chan.send(());
-            }, reporter_name, script_chan, CommonScriptMsg::CollectReports);
+                let reporter_name = format!("script-reporter-{}", id);
+                mem_profiler_chan.run_with_memory_reporting(
+                    || {
+                        script_thread.start();
+                        let _ = script_thread.content_process_shutdown_chan.send(());
+                    },
+                    reporter_name,
+                    script_chan,
+                    CommonScriptMsg::CollectReports,
+                );
 
-            // This must always be the very last operation performed before the thread completes
-            failsafe.neuter();
-        }).expect("Thread spawning failed");
+                // This must always be the very last operation performed before the thread completes
+                failsafe.neuter();
+            }).expect("Thread spawning failed");
 
         (sender, receiver)
     }
@@ -664,28 +697,36 @@ impl ScriptThread {
             let new_nodes = nodes
                 .into_iter()
                 .map(|n| Dom::from_ref(&*from_untrusted_node_address(js_runtime, n)));
-            script_thread.transitioning_nodes.borrow_mut().extend(new_nodes);
+            script_thread
+                .transitioning_nodes
+                .borrow_mut()
+                .extend(new_nodes);
         })
     }
 
     pub fn set_mutation_observer_compound_microtask_queued(value: bool) {
         SCRIPT_THREAD_ROOT.with(|root| {
             let script_thread = unsafe { &*root.get().unwrap() };
-            script_thread.mutation_observer_compound_microtask_queued.set(value);
+            script_thread
+                .mutation_observer_compound_microtask_queued
+                .set(value);
         })
     }
 
     pub fn is_mutation_observer_compound_microtask_queued() -> bool {
         SCRIPT_THREAD_ROOT.with(|root| {
             let script_thread = unsafe { &*root.get().unwrap() };
-            return script_thread.mutation_observer_compound_microtask_queued.get();
+            return script_thread
+                .mutation_observer_compound_microtask_queued
+                .get();
         })
     }
 
     pub fn add_mutation_observer(observer: &MutationObserver) {
         SCRIPT_THREAD_ROOT.with(|root| {
             let script_thread = unsafe { &*root.get().unwrap() };
-            script_thread.mutation_observers
+            script_thread
+                .mutation_observers
                 .borrow_mut()
                 .push(Dom::from_ref(observer));
         })
@@ -694,14 +735,20 @@ impl ScriptThread {
     pub fn get_mutation_observers() -> Vec<DomRoot<MutationObserver>> {
         SCRIPT_THREAD_ROOT.with(|root| {
             let script_thread = unsafe { &*root.get().unwrap() };
-            script_thread.mutation_observers.borrow().iter().map(|o| DomRoot::from_ref(&**o)).collect()
+            script_thread
+                .mutation_observers
+                .borrow()
+                .iter()
+                .map(|o| DomRoot::from_ref(&**o))
+                .collect()
         })
     }
 
     pub fn mark_document_with_no_blocked_loads(doc: &Document) {
         SCRIPT_THREAD_ROOT.with(|root| {
             let script_thread = unsafe { &*root.get().unwrap() };
-            script_thread.docs_with_no_blocking_loads
+            script_thread
+                .docs_with_no_blocking_loads
                 .borrow_mut()
                 .insert(Dom::from_ref(doc));
         })
@@ -714,8 +761,10 @@ impl ScriptThread {
         })
     }
 
-    pub fn page_headers_available(id: &PipelineId, metadata: Option<Metadata>)
-                                  -> Option<DomRoot<ServoParser>> {
+    pub fn page_headers_available(
+        id: &PipelineId,
+        metadata: Option<Metadata>,
+    ) -> Option<DomRoot<ServoParser>> {
         SCRIPT_THREAD_ROOT.with(|root| {
             let script_thread = unsafe { &*root.get().unwrap() };
             script_thread.handle_page_headers_available(id, metadata)
@@ -755,65 +804,85 @@ impl ScriptThread {
             if let Some(script_thread) = root.get() {
                 let script_thread = unsafe { &*script_thread };
                 let pipeline_id = Some(new_layout_info.new_pipeline_id);
-                script_thread.profile_event(ScriptThreadEventCategory::AttachLayout, pipeline_id, || {
-                    script_thread.handle_new_layout(new_layout_info, origin);
-                })
+                script_thread.profile_event(
+                    ScriptThreadEventCategory::AttachLayout,
+                    pipeline_id,
+                    || {
+                        script_thread.handle_new_layout(new_layout_info, origin);
+                    },
+                )
             }
         });
     }
 
-    pub fn get_top_level_for_browsing_context(sender_pipeline: PipelineId,
-                                              browsing_context_id: BrowsingContextId)
-                                              -> Option<TopLevelBrowsingContextId> {
-        SCRIPT_THREAD_ROOT.with(|root| root.get().and_then(|script_thread| {
-            let script_thread = unsafe { &*script_thread };
-            script_thread.ask_constellation_for_top_level_info(sender_pipeline, browsing_context_id)
-        }))
+    pub fn get_top_level_for_browsing_context(
+        sender_pipeline: PipelineId,
+        browsing_context_id: BrowsingContextId,
+    ) -> Option<TopLevelBrowsingContextId> {
+        SCRIPT_THREAD_ROOT.with(|root| {
+            root.get().and_then(|script_thread| {
+                let script_thread = unsafe { &*script_thread };
+                script_thread
+                    .ask_constellation_for_top_level_info(sender_pipeline, browsing_context_id)
+            })
+        })
     }
 
     pub fn find_document(id: PipelineId) -> Option<DomRoot<Document>> {
-        SCRIPT_THREAD_ROOT.with(|root| root.get().and_then(|script_thread| {
-            let script_thread = unsafe { &*script_thread };
-            script_thread.documents.borrow().find_document(id)
-        }))
+        SCRIPT_THREAD_ROOT.with(|root| {
+            root.get().and_then(|script_thread| {
+                let script_thread = unsafe { &*script_thread };
+                script_thread.documents.borrow().find_document(id)
+            })
+        })
     }
 
     pub fn find_window_proxy(id: BrowsingContextId) -> Option<DomRoot<WindowProxy>> {
-        SCRIPT_THREAD_ROOT.with(|root| root.get().and_then(|script_thread| {
-            let script_thread = unsafe { &*script_thread };
-            script_thread.window_proxies.borrow().get(&id)
-                .map(|context| DomRoot::from_ref(&**context))
-        }))
+        SCRIPT_THREAD_ROOT.with(|root| {
+            root.get().and_then(|script_thread| {
+                let script_thread = unsafe { &*script_thread };
+                script_thread
+                    .window_proxies
+                    .borrow()
+                    .get(&id)
+                    .map(|context| DomRoot::from_ref(&**context))
+            })
+        })
     }
 
     pub fn find_window_proxy_by_name(name: &DOMString) -> Option<DomRoot<WindowProxy>> {
-        SCRIPT_THREAD_ROOT.with(|root| root.get().and_then(|script_thread| {
-            let script_thread = unsafe { &*script_thread };
-            for (_, proxy) in script_thread.window_proxies.borrow().iter() {
-                if proxy.get_name() == *name {
-                    return Some(DomRoot::from_ref(&**proxy))
+        SCRIPT_THREAD_ROOT.with(|root| {
+            root.get().and_then(|script_thread| {
+                let script_thread = unsafe { &*script_thread };
+                for (_, proxy) in script_thread.window_proxies.borrow().iter() {
+                    if proxy.get_name() == *name {
+                        return Some(DomRoot::from_ref(&**proxy));
+                    }
                 }
-            }
-            None
-        }))
+                None
+            })
+        })
     }
 
     pub fn worklet_thread_pool() -> Rc<WorkletThreadPool> {
         SCRIPT_THREAD_ROOT.with(|root| {
             let script_thread = unsafe { &*root.get().unwrap() };
-            script_thread.worklet_thread_pool.borrow_mut().get_or_insert_with(|| {
-                let init = WorkletGlobalScopeInit {
-                    to_script_thread_sender: script_thread.chan.0.clone(),
-                    resource_threads: script_thread.resource_threads.clone(),
-                    mem_profiler_chan: script_thread.mem_profiler_chan.clone(),
-                    time_profiler_chan: script_thread.time_profiler_chan.clone(),
-                    devtools_chan: script_thread.devtools_chan.clone(),
-                    to_constellation_sender: script_thread.script_sender.clone(),
-                    scheduler_chan: script_thread.scheduler_chan.clone(),
-                    image_cache: script_thread.image_cache.clone(),
-                };
-                Rc::new(WorkletThreadPool::spawn(init))
-            }).clone()
+            script_thread
+                .worklet_thread_pool
+                .borrow_mut()
+                .get_or_insert_with(|| {
+                    let init = WorkletGlobalScopeInit {
+                        to_script_thread_sender: script_thread.chan.0.clone(),
+                        resource_threads: script_thread.resource_threads.clone(),
+                        mem_profiler_chan: script_thread.mem_profiler_chan.clone(),
+                        time_profiler_chan: script_thread.time_profiler_chan.clone(),
+                        devtools_chan: script_thread.devtools_chan.clone(),
+                        to_constellation_sender: script_thread.script_sender.clone(),
+                        scheduler_chan: script_thread.scheduler_chan.clone(),
+                        image_cache: script_thread.image_cache.clone(),
+                    };
+                    Rc::new(WorkletThreadPool::spawn(init))
+                }).clone()
         })
     }
 
@@ -822,23 +891,30 @@ impl ScriptThread {
         pipeline_id: PipelineId,
         name: Atom,
         properties: Vec<Atom>,
-        painter: Box<Painter>)
-    {
+        painter: Box<Painter>,
+    ) {
         let window = self.documents.borrow().find_window(pipeline_id);
         let window = match window {
             Some(window) => window,
-            None => return warn!("Paint worklet registered after pipeline {} closed.", pipeline_id),
+            None => {
+                return warn!(
+                    "Paint worklet registered after pipeline {} closed.",
+                    pipeline_id
+                )
+            },
         };
-        let _ = window.layout_chan().send(
-            Msg::RegisterPaint(name, properties, painter),
-        );
+        let _ = window
+            .layout_chan()
+            .send(Msg::RegisterPaint(name, properties, painter));
     }
 
     pub fn push_new_element_queue() {
         SCRIPT_THREAD_ROOT.with(|root| {
             if let Some(script_thread) = root.get() {
                 let script_thread = unsafe { &*script_thread };
-                script_thread.custom_element_reaction_stack.push_new_element_queue();
+                script_thread
+                    .custom_element_reaction_stack
+                    .push_new_element_queue();
             }
         })
     }
@@ -847,18 +923,24 @@ impl ScriptThread {
         SCRIPT_THREAD_ROOT.with(|root| {
             if let Some(script_thread) = root.get() {
                 let script_thread = unsafe { &*script_thread };
-                script_thread.custom_element_reaction_stack.pop_current_element_queue();
+                script_thread
+                    .custom_element_reaction_stack
+                    .pop_current_element_queue();
             }
         })
     }
 
-    pub fn enqueue_callback_reaction(element: &Element,
-                                     reaction: CallbackReaction,
-                                     definition: Option<Rc<CustomElementDefinition>>) {
+    pub fn enqueue_callback_reaction(
+        element: &Element,
+        reaction: CallbackReaction,
+        definition: Option<Rc<CustomElementDefinition>>,
+    ) {
         SCRIPT_THREAD_ROOT.with(|root| {
             if let Some(script_thread) = root.get() {
                 let script_thread = unsafe { &*script_thread };
-                script_thread.custom_element_reaction_stack.enqueue_callback_reaction(element, reaction, definition);
+                script_thread
+                    .custom_element_reaction_stack
+                    .enqueue_callback_reaction(element, reaction, definition);
             }
         })
     }
@@ -867,7 +949,9 @@ impl ScriptThread {
         SCRIPT_THREAD_ROOT.with(|root| {
             if let Some(script_thread) = root.get() {
                 let script_thread = unsafe { &*script_thread };
-                script_thread.custom_element_reaction_stack.enqueue_upgrade_reaction(element, definition);
+                script_thread
+                    .custom_element_reaction_stack
+                    .enqueue_upgrade_reaction(element, definition);
             }
         })
     }
@@ -876,16 +960,19 @@ impl ScriptThread {
         SCRIPT_THREAD_ROOT.with(|root| {
             if let Some(script_thread) = root.get() {
                 let script_thread = unsafe { &*script_thread };
-                script_thread.custom_element_reaction_stack.invoke_backup_element_queue();
+                script_thread
+                    .custom_element_reaction_stack
+                    .invoke_backup_element_queue();
             }
         })
     }
 
     /// Creates a new script thread.
-    pub fn new(state: InitialScriptState,
-               port: Receiver<MainThreadScriptMsg>,
-               chan: Sender<MainThreadScriptMsg>)
-               -> ScriptThread {
+    pub fn new(
+        state: InitialScriptState,
+        port: Receiver<MainThreadScriptMsg>,
+        chan: Sender<MainThreadScriptMsg>,
+    ) -> ScriptThread {
         let runtime = unsafe { new_rt_and_cx() };
         let cx = runtime.cx();
 
@@ -912,8 +999,8 @@ impl ScriptThread {
         ScriptThread {
             documents: DomRefCell::new(Documents::new()),
             window_proxies: DomRefCell::new(HashMap::new()),
-            incomplete_loads: DomRefCell::new(vec!()),
-            incomplete_parser_contexts: RefCell::new(vec!()),
+            incomplete_loads: DomRefCell::new(vec![]),
+            incomplete_parser_contexts: RefCell::new(vec![]),
             registration_map: DomRefCell::new(HashMap::new()),
             job_queue_map: Rc::new(JobQueue::new()),
 
@@ -1001,7 +1088,7 @@ impl ScriptThread {
 
         // Handle pending resize events.
         // Gather them first to avoid a double mut borrow on self.
-        let mut resizes = vec!();
+        let mut resizes = vec![];
 
         for (id, document) in self.documents.borrow().iter() {
             // Only process a resize if layout is idle.
@@ -1040,69 +1127,71 @@ impl ScriptThread {
                 // This has to be handled before the ResizeMsg below,
                 // otherwise the page may not have been added to the
                 // child list yet, causing the find() to fail.
-                FromConstellation(ConstellationControlMsg::AttachLayout(
-                        new_layout_info)) => {
+                FromConstellation(ConstellationControlMsg::AttachLayout(new_layout_info)) => {
                     let pipeline_id = new_layout_info.new_pipeline_id;
-                    self.profile_event(ScriptThreadEventCategory::AttachLayout, Some(pipeline_id), || {
-                        // If this is an about:blank load, it must share the creator's origin.
-                        // This must match the logic in the constellation when creating a new pipeline
-                        let origin = if new_layout_info.load_data.url.as_str() != "about:blank" {
-                            MutableOrigin::new(new_layout_info.load_data.url.origin())
-                        } else if let Some(parent) = new_layout_info.parent_info
-                                .and_then(|pipeline_id| self.documents.borrow()
-                                .find_document(pipeline_id)) {
-                            parent.origin().clone()
-                        } else if let Some(creator) = new_layout_info.load_data.creator_pipeline_id
-                                .and_then(|pipeline_id| self.documents.borrow()
-                                .find_document(pipeline_id)) {
-                            creator.origin().clone()
-                        } else {
-                            MutableOrigin::new(ImmutableOrigin::new_opaque())
-                        };
+                    self.profile_event(
+                        ScriptThreadEventCategory::AttachLayout,
+                        Some(pipeline_id),
+                        || {
+                            // If this is an about:blank load, it must share the creator's origin.
+                            // This must match the logic in the constellation when creating a new pipeline
+                            let origin = if new_layout_info.load_data.url.as_str() != "about:blank"
+                            {
+                                MutableOrigin::new(new_layout_info.load_data.url.origin())
+                            } else if let Some(parent) =
+                                new_layout_info.parent_info.and_then(|pipeline_id| {
+                                    self.documents.borrow().find_document(pipeline_id)
+                                }) {
+                                parent.origin().clone()
+                            } else if let Some(creator) = new_layout_info
+                                .load_data
+                                .creator_pipeline_id
+                                .and_then(|pipeline_id| {
+                                    self.documents.borrow().find_document(pipeline_id)
+                                }) {
+                                creator.origin().clone()
+                            } else {
+                                MutableOrigin::new(ImmutableOrigin::new_opaque())
+                            };
 
-                        self.handle_new_layout(new_layout_info, origin);
-                    })
-                }
+                            self.handle_new_layout(new_layout_info, origin);
+                        },
+                    )
+                },
                 FromConstellation(ConstellationControlMsg::Resize(id, size, size_type)) => {
                     // step 7.7
                     self.profile_event(ScriptThreadEventCategory::Resize, Some(id), || {
                         self.handle_resize(id, size, size_type);
                     })
-                }
-                FromConstellation(ConstellationControlMsg::Viewport(id, rect)) => {
-                    self.profile_event(ScriptThreadEventCategory::SetViewport, Some(id), || {
+                },
+                FromConstellation(ConstellationControlMsg::Viewport(id, rect)) => self
+                    .profile_event(ScriptThreadEventCategory::SetViewport, Some(id), || {
                         self.handle_viewport(id, rect);
-                    })
-                }
+                    }),
                 FromConstellation(ConstellationControlMsg::SetScrollState(id, scroll_state)) => {
                     self.profile_event(ScriptThreadEventCategory::SetScrollState, Some(id), || {
                         self.handle_set_scroll_state(id, &scroll_state);
                     })
-                }
-                FromConstellation(ConstellationControlMsg::TickAllAnimations(
-                        pipeline_id)) => {
+                },
+                FromConstellation(ConstellationControlMsg::TickAllAnimations(pipeline_id)) => {
                     // step 7.8
                     if !animation_ticks.contains(&pipeline_id) {
                         animation_ticks.insert(pipeline_id);
                         sequential.push(event);
                     }
-                }
-                FromConstellation(ConstellationControlMsg::SendEvent(
-                        _,
-                        MouseMoveEvent(..))) => {
+                },
+                FromConstellation(ConstellationControlMsg::SendEvent(_, MouseMoveEvent(..))) => {
                     match mouse_move_event_index {
                         None => {
                             mouse_move_event_index = Some(sequential.len());
                             sequential.push(event);
-                        }
-                        Some(index) => {
-                            sequential[index] = event
-                        }
+                        },
+                        Some(index) => sequential[index] = event,
                     }
-                }
+                },
                 _ => {
                     sequential.push(event);
-                }
+                },
             }
 
             // If any of our input sources has an event pending, we'll perform another iteration
@@ -1154,7 +1243,7 @@ impl ScriptThread {
             self.perform_a_microtask_checkpoint();
 
             if let Some(retval) = result {
-                return retval
+                return retval;
             }
         }
 
@@ -1192,28 +1281,21 @@ impl ScriptThread {
 
     fn categorize_msg(&self, msg: &MixedMessage) -> ScriptThreadEventCategory {
         match *msg {
-            MixedMessage::FromConstellation(ref inner_msg) => {
-                match *inner_msg {
-                    ConstellationControlMsg::SendEvent(_, _) =>
-                        ScriptThreadEventCategory::DomEvent,
-                    _ => ScriptThreadEventCategory::ConstellationMsg
-                }
+            MixedMessage::FromConstellation(ref inner_msg) => match *inner_msg {
+                ConstellationControlMsg::SendEvent(_, _) => ScriptThreadEventCategory::DomEvent,
+                _ => ScriptThreadEventCategory::ConstellationMsg,
             },
             // TODO https://github.com/servo/servo/issues/18998
             MixedMessage::FromDevtools(_) => ScriptThreadEventCategory::DevtoolsMsg,
             MixedMessage::FromImageCache(_) => ScriptThreadEventCategory::ImageCacheMsg,
-            MixedMessage::FromScript(ref inner_msg) => {
-                match *inner_msg {
-                    MainThreadScriptMsg::Common(CommonScriptMsg::Task(category, ..)) => {
-                        category
-                    },
-                    MainThreadScriptMsg::RegisterPaintWorklet { .. } => {
-                        ScriptThreadEventCategory::WorkletEvent
-                    },
-                    _ => ScriptThreadEventCategory::ScriptEvent,
-                }
+            MixedMessage::FromScript(ref inner_msg) => match *inner_msg {
+                MainThreadScriptMsg::Common(CommonScriptMsg::Task(category, ..)) => category,
+                MainThreadScriptMsg::RegisterPaintWorklet { .. } => {
+                    ScriptThreadEventCategory::WorkletEvent
+                },
+                _ => ScriptThreadEventCategory::ScriptEvent,
             },
-            MixedMessage::FromScheduler(_) => ScriptThreadEventCategory::TimerEvent
+            MixedMessage::FromScheduler(_) => ScriptThreadEventCategory::TimerEvent,
         }
     }
 
@@ -1247,7 +1329,11 @@ impl ScriptThread {
                     // FIXME https://github.com/servo/servo/issues/15079
                     TransitionEnd(..) => None,
                     WebFontLoaded(id) => Some(id),
-                    DispatchIFrameLoadEvent { target: _, parent: id, child: _ } => Some(id),
+                    DispatchIFrameLoadEvent {
+                        target: _,
+                        parent: id,
+                        child: _,
+                    } => Some(id),
                     DispatchStorageEvent(id, ..) => Some(id),
                     ReportCSSError(id, ..) => Some(id),
                     Reload(id, ..) => Some(id),
@@ -1256,52 +1342,60 @@ impl ScriptThread {
                 }
             },
             MixedMessage::FromDevtools(_) => None,
-            MixedMessage::FromScript(ref inner_msg) => {
-                match *inner_msg {
-                    MainThreadScriptMsg::Common(CommonScriptMsg::Task(_, _, pipeline_id, _)) =>
-                        pipeline_id,
-                    MainThreadScriptMsg::Common(CommonScriptMsg::CollectReports(_)) => None,
-                    MainThreadScriptMsg::Navigate(pipeline_id, ..) => Some(pipeline_id),
-                    MainThreadScriptMsg::WorkletLoaded(pipeline_id) => Some(pipeline_id),
-                    MainThreadScriptMsg::RegisterPaintWorklet { pipeline_id, .. } => Some(pipeline_id),
-                    MainThreadScriptMsg::DispatchJobQueue { .. }  => None,
-                    MainThreadScriptMsg::WakeUp => None,
-                }
+            MixedMessage::FromScript(ref inner_msg) => match *inner_msg {
+                MainThreadScriptMsg::Common(CommonScriptMsg::Task(_, _, pipeline_id, _)) => {
+                    pipeline_id
+                },
+                MainThreadScriptMsg::Common(CommonScriptMsg::CollectReports(_)) => None,
+                MainThreadScriptMsg::Navigate(pipeline_id, ..) => Some(pipeline_id),
+                MainThreadScriptMsg::WorkletLoaded(pipeline_id) => Some(pipeline_id),
+                MainThreadScriptMsg::RegisterPaintWorklet { pipeline_id, .. } => Some(pipeline_id),
+                MainThreadScriptMsg::DispatchJobQueue { .. } => None,
+                MainThreadScriptMsg::WakeUp => None,
             },
             MixedMessage::FromImageCache((pipeline_id, _)) => Some(pipeline_id),
             MixedMessage::FromScheduler(ref timer_event) => {
                 let TimerEvent(source, _) = *timer_event;
                 match source {
                     TimerSource::FromWindow(pipeline_id) => Some(pipeline_id),
-                    _ => None
+                    _ => None,
                 }
-            }
+            },
         }
     }
 
-    fn profile_event<F, R>(&self, category: ScriptThreadEventCategory, pipeline_id: Option<PipelineId>, f: F) -> R
-        where F: FnOnce() -> R {
+    fn profile_event<F, R>(
+        &self,
+        category: ScriptThreadEventCategory,
+        pipeline_id: Option<PipelineId>,
+        f: F,
+    ) -> R
+    where
+        F: FnOnce() -> R,
+    {
         let start = precise_time_ns();
         let value = if opts::get().profile_script_events {
             let profiler_cat = match category {
                 ScriptThreadEventCategory::AttachLayout => ProfilerCategory::ScriptAttachLayout,
-                ScriptThreadEventCategory::ConstellationMsg => ProfilerCategory::ScriptConstellationMsg,
+                ScriptThreadEventCategory::ConstellationMsg => {
+                    ProfilerCategory::ScriptConstellationMsg
+                },
                 ScriptThreadEventCategory::DevtoolsMsg => ProfilerCategory::ScriptDevtoolsMsg,
                 ScriptThreadEventCategory::DocumentEvent => ProfilerCategory::ScriptDocumentEvent,
                 ScriptThreadEventCategory::DomEvent => ProfilerCategory::ScriptDomEvent,
                 ScriptThreadEventCategory::FileRead => ProfilerCategory::ScriptFileRead,
-                ScriptThreadEventCategory::FormPlannedNavigation => ProfilerCategory::ScriptPlannedNavigation,
+                ScriptThreadEventCategory::FormPlannedNavigation => {
+                    ProfilerCategory::ScriptPlannedNavigation
+                },
                 ScriptThreadEventCategory::ImageCacheMsg => ProfilerCategory::ScriptImageCacheMsg,
                 ScriptThreadEventCategory::InputEvent => ProfilerCategory::ScriptInputEvent,
                 ScriptThreadEventCategory::NetworkEvent => ProfilerCategory::ScriptNetworkEvent,
                 ScriptThreadEventCategory::Resize => ProfilerCategory::ScriptResize,
                 ScriptThreadEventCategory::ScriptEvent => ProfilerCategory::ScriptEvent,
-                ScriptThreadEventCategory::SetScrollState => {
-                    ProfilerCategory::ScriptSetScrollState
-                }
+                ScriptThreadEventCategory::SetScrollState => ProfilerCategory::ScriptSetScrollState,
                 ScriptThreadEventCategory::UpdateReplacedElement => {
                     ProfilerCategory::ScriptUpdateReplacedElement
-                }
+                },
                 ScriptThreadEventCategory::StylesheetLoad => ProfilerCategory::ScriptStylesheetLoad,
                 ScriptThreadEventCategory::SetViewport => ProfilerCategory::ScriptSetViewport,
                 ScriptThreadEventCategory::TimerEvent => ProfilerCategory::ScriptTimerEvent,
@@ -1309,10 +1403,16 @@ impl ScriptThread {
                 ScriptThreadEventCategory::WebVREvent => ProfilerCategory::ScriptWebVREvent,
                 ScriptThreadEventCategory::WorkerEvent => ProfilerCategory::ScriptWorkerEvent,
                 ScriptThreadEventCategory::WorkletEvent => ProfilerCategory::ScriptWorkletEvent,
-                ScriptThreadEventCategory::ServiceWorkerEvent => ProfilerCategory::ScriptServiceWorkerEvent,
-                ScriptThreadEventCategory::EnterFullscreen => ProfilerCategory::ScriptEnterFullscreen,
+                ScriptThreadEventCategory::ServiceWorkerEvent => {
+                    ProfilerCategory::ScriptServiceWorkerEvent
+                },
+                ScriptThreadEventCategory::EnterFullscreen => {
+                    ProfilerCategory::ScriptEnterFullscreen
+                },
                 ScriptThreadEventCategory::ExitFullscreen => ProfilerCategory::ScriptExitFullscreen,
-                ScriptThreadEventCategory::PerformanceTimelineTask => ProfilerCategory::ScriptPerformanceEvent,
+                ScriptThreadEventCategory::PerformanceTimelineTask => {
+                    ProfilerCategory::ScriptPerformanceEvent
+                },
             };
             profile(profiler_cat, None, self.time_profiler_chan.clone(), f)
         } else {
@@ -1320,10 +1420,14 @@ impl ScriptThread {
         };
         let end = precise_time_ns();
         for (doc_id, doc) in self.documents.borrow().iter() {
-           if let Some(pipeline_id) = pipeline_id {
+            if let Some(pipeline_id) = pipeline_id {
                 if pipeline_id == doc_id && end - start > MAX_TASK_NS {
                     if opts::get().print_pwm {
-                        println!("Task took longer than max allowed ({:?}) {:?}", category, end - start);
+                        println!(
+                            "Task took longer than max allowed ({:?}) {:?}",
+                            category,
+                            end - start
+                        );
                     }
                     doc.start_tti();
                 }
@@ -1337,73 +1441,120 @@ impl ScriptThread {
         match msg {
             ConstellationControlMsg::NavigationResponse(id, fetch_data) => {
                 match fetch_data {
-                    FetchResponseMsg::ProcessResponse(metadata) => self.handle_fetch_metadata(id, metadata),
-                    FetchResponseMsg::ProcessResponseChunk(chunk) => self.handle_fetch_chunk(id, chunk),
+                    FetchResponseMsg::ProcessResponse(metadata) => {
+                        self.handle_fetch_metadata(id, metadata)
+                    },
+                    FetchResponseMsg::ProcessResponseChunk(chunk) => {
+                        self.handle_fetch_chunk(id, chunk)
+                    },
                     FetchResponseMsg::ProcessResponseEOF(eof) => self.handle_fetch_eof(id, eof),
                     _ => unreachable!(),
                 };
             },
-            ConstellationControlMsg::Navigate(parent_pipeline_id, browsing_context_id, load_data, replace) =>
-                self.handle_navigate(parent_pipeline_id, Some(browsing_context_id), load_data, replace),
-            ConstellationControlMsg::UnloadDocument(pipeline_id) =>
-                self.handle_unload_document(pipeline_id),
-            ConstellationControlMsg::SendEvent(id, event) =>
-                self.handle_event(id, event),
-            ConstellationControlMsg::ResizeInactive(id, new_size) =>
-                self.handle_resize_inactive_msg(id, new_size),
-            ConstellationControlMsg::GetTitle(pipeline_id) =>
-                self.handle_get_title_msg(pipeline_id),
-            ConstellationControlMsg::SetDocumentActivity(pipeline_id, activity) =>
-                self.handle_set_document_activity_msg(pipeline_id, activity),
-            ConstellationControlMsg::ChangeFrameVisibilityStatus(pipeline_id, visible) =>
-                self.handle_visibility_change_msg(pipeline_id, visible),
-            ConstellationControlMsg::NotifyVisibilityChange(parent_pipeline_id, browsing_context_id, visible) =>
-                self.handle_visibility_change_complete_msg(parent_pipeline_id, browsing_context_id, visible),
-            ConstellationControlMsg::PostMessage(pipeline_id, origin, data) =>
-                self.handle_post_message_msg(pipeline_id, origin, data),
-            ConstellationControlMsg::UpdatePipelineId(parent_pipeline_id,
-                                                      browsing_context_id,
-                                                      new_pipeline_id,
-                                                      reason) =>
-                self.handle_update_pipeline_id(parent_pipeline_id,
-                                               browsing_context_id,
-                                               new_pipeline_id,
-                                               reason),
-            ConstellationControlMsg::UpdateHistoryState(pipeline_id, history_state_id, url) =>
-                self.handle_update_history_state_msg(pipeline_id, history_state_id, url),
-            ConstellationControlMsg::RemoveHistoryStates(pipeline_id, history_states) =>
-                self.handle_remove_history_states(pipeline_id, history_states),
-            ConstellationControlMsg::FocusIFrame(parent_pipeline_id, frame_id) =>
-                self.handle_focus_iframe_msg(parent_pipeline_id, frame_id),
-            ConstellationControlMsg::WebDriverScriptCommand(pipeline_id, msg) =>
-                self.handle_webdriver_msg(pipeline_id, msg),
-            ConstellationControlMsg::TickAllAnimations(pipeline_id) =>
-                self.handle_tick_all_animations(pipeline_id),
-            ConstellationControlMsg::TransitionEnd(unsafe_node, name, duration) =>
-                self.handle_transition_event(unsafe_node, name, duration),
-            ConstellationControlMsg::WebFontLoaded(pipeline_id) =>
-                self.handle_web_font_loaded(pipeline_id),
+            ConstellationControlMsg::Navigate(
+                parent_pipeline_id,
+                browsing_context_id,
+                load_data,
+                replace,
+            ) => self.handle_navigate(
+                parent_pipeline_id,
+                Some(browsing_context_id),
+                load_data,
+                replace,
+            ),
+            ConstellationControlMsg::UnloadDocument(pipeline_id) => {
+                self.handle_unload_document(pipeline_id)
+            },
+            ConstellationControlMsg::SendEvent(id, event) => self.handle_event(id, event),
+            ConstellationControlMsg::ResizeInactive(id, new_size) => {
+                self.handle_resize_inactive_msg(id, new_size)
+            },
+            ConstellationControlMsg::GetTitle(pipeline_id) => {
+                self.handle_get_title_msg(pipeline_id)
+            },
+            ConstellationControlMsg::SetDocumentActivity(pipeline_id, activity) => {
+                self.handle_set_document_activity_msg(pipeline_id, activity)
+            },
+            ConstellationControlMsg::ChangeFrameVisibilityStatus(pipeline_id, visible) => {
+                self.handle_visibility_change_msg(pipeline_id, visible)
+            },
+            ConstellationControlMsg::NotifyVisibilityChange(
+                parent_pipeline_id,
+                browsing_context_id,
+                visible,
+            ) => self.handle_visibility_change_complete_msg(
+                parent_pipeline_id,
+                browsing_context_id,
+                visible,
+            ),
+            ConstellationControlMsg::PostMessage(pipeline_id, origin, data) => {
+                self.handle_post_message_msg(pipeline_id, origin, data)
+            },
+            ConstellationControlMsg::UpdatePipelineId(
+                parent_pipeline_id,
+                browsing_context_id,
+                new_pipeline_id,
+                reason,
+            ) => self.handle_update_pipeline_id(
+                parent_pipeline_id,
+                browsing_context_id,
+                new_pipeline_id,
+                reason,
+            ),
+            ConstellationControlMsg::UpdateHistoryState(pipeline_id, history_state_id, url) => {
+                self.handle_update_history_state_msg(pipeline_id, history_state_id, url)
+            },
+            ConstellationControlMsg::RemoveHistoryStates(pipeline_id, history_states) => {
+                self.handle_remove_history_states(pipeline_id, history_states)
+            },
+            ConstellationControlMsg::FocusIFrame(parent_pipeline_id, frame_id) => {
+                self.handle_focus_iframe_msg(parent_pipeline_id, frame_id)
+            },
+            ConstellationControlMsg::WebDriverScriptCommand(pipeline_id, msg) => {
+                self.handle_webdriver_msg(pipeline_id, msg)
+            },
+            ConstellationControlMsg::TickAllAnimations(pipeline_id) => {
+                self.handle_tick_all_animations(pipeline_id)
+            },
+            ConstellationControlMsg::TransitionEnd(unsafe_node, name, duration) => {
+                self.handle_transition_event(unsafe_node, name, duration)
+            },
+            ConstellationControlMsg::WebFontLoaded(pipeline_id) => {
+                self.handle_web_font_loaded(pipeline_id)
+            },
             ConstellationControlMsg::DispatchIFrameLoadEvent {
-                target: browsing_context_id, parent: parent_id, child: child_id } =>
-                self.handle_iframe_load_event(parent_id, browsing_context_id, child_id),
-            ConstellationControlMsg::DispatchStorageEvent(pipeline_id, storage, url, key, old_value, new_value) =>
-                self.handle_storage_event(pipeline_id, storage, url, key, old_value, new_value),
-            ConstellationControlMsg::ReportCSSError(pipeline_id, filename, line, column, msg) =>
-                self.handle_css_error_reporting(pipeline_id, filename, line, column, msg),
-            ConstellationControlMsg::Reload(pipeline_id) =>
-                self.handle_reload(pipeline_id),
-            ConstellationControlMsg::ExitPipeline(pipeline_id, discard_browsing_context) =>
-                self.handle_exit_pipeline_msg(pipeline_id, discard_browsing_context),
-            ConstellationControlMsg::WebVREvents(pipeline_id, events) =>
-                self.handle_webvr_events(pipeline_id, events),
-            ConstellationControlMsg::PaintMetric(pipeline_id, metric_type, metric_value) =>
-                self.handle_paint_metric(pipeline_id, metric_type, metric_value),
+                target: browsing_context_id,
+                parent: parent_id,
+                child: child_id,
+            } => self.handle_iframe_load_event(parent_id, browsing_context_id, child_id),
+            ConstellationControlMsg::DispatchStorageEvent(
+                pipeline_id,
+                storage,
+                url,
+                key,
+                old_value,
+                new_value,
+            ) => self.handle_storage_event(pipeline_id, storage, url, key, old_value, new_value),
+            ConstellationControlMsg::ReportCSSError(pipeline_id, filename, line, column, msg) => {
+                self.handle_css_error_reporting(pipeline_id, filename, line, column, msg)
+            },
+            ConstellationControlMsg::Reload(pipeline_id) => self.handle_reload(pipeline_id),
+            ConstellationControlMsg::ExitPipeline(pipeline_id, discard_browsing_context) => {
+                self.handle_exit_pipeline_msg(pipeline_id, discard_browsing_context)
+            },
+            ConstellationControlMsg::WebVREvents(pipeline_id, events) => {
+                self.handle_webvr_events(pipeline_id, events)
+            },
+            ConstellationControlMsg::PaintMetric(pipeline_id, metric_type, metric_value) => {
+                self.handle_paint_metric(pipeline_id, metric_type, metric_value)
+            },
             msg @ ConstellationControlMsg::AttachLayout(..) |
             msg @ ConstellationControlMsg::Viewport(..) |
             msg @ ConstellationControlMsg::SetScrollState(..) |
             msg @ ConstellationControlMsg::Resize(..) |
-            msg @ ConstellationControlMsg::ExitScriptThread =>
-                      panic!("should have handled {:?} already", msg),
+            msg @ ConstellationControlMsg::ExitScriptThread => {
+                panic!("should have handled {:?} already", msg)
+            },
         }
     }
 
@@ -1412,9 +1563,7 @@ impl ScriptThread {
             MainThreadScriptMsg::Navigate(parent_pipeline_id, load_data, replace) => {
                 self.handle_navigate(parent_pipeline_id, None, load_data, replace)
             },
-            MainThreadScriptMsg::Common(CommonScriptMsg::Task(_, task, _, _)) => {
-                task.run_box()
-            }
+            MainThreadScriptMsg::Common(CommonScriptMsg::Task(_, task, _, _)) => task.run_box(),
             MainThreadScriptMsg::Common(CommonScriptMsg::CollectReports(chan)) => {
                 self.collect_reports(chan)
             },
@@ -1426,18 +1575,11 @@ impl ScriptThread {
                 name,
                 properties,
                 painter,
-            } => {
-                self.handle_register_paint_worklet(
-                    pipeline_id,
-                    name,
-                    properties,
-                    painter,
-                )
-            },
+            } => self.handle_register_paint_worklet(pipeline_id, name, properties, painter),
             MainThreadScriptMsg::DispatchJobQueue { scope_url } => {
                 self.job_queue_map.run_job(scope_url, self)
-            }
-             MainThreadScriptMsg::WakeUp => {},
+            },
+            MainThreadScriptMsg::WakeUp => {},
         }
     }
 
@@ -1452,7 +1594,12 @@ impl ScriptThread {
         let window = self.documents.borrow().find_window(pipeline_id);
         let window = match window {
             Some(w) => w,
-            None => return warn!("Received fire timer msg for a closed pipeline {}.", pipeline_id),
+            None => {
+                return warn!(
+                    "Received fire timer msg for a closed pipeline {}.",
+                    pipeline_id
+                )
+            },
         };
 
         window.handle_fire_timer(id);
@@ -1461,38 +1608,44 @@ impl ScriptThread {
     fn handle_msg_from_devtools(&self, msg: DevtoolScriptControlMsg) {
         let documents = self.documents.borrow();
         match msg {
-            DevtoolScriptControlMsg::EvaluateJS(id, s, reply) => {
-                match documents.find_window(id) {
-                    Some(window) => devtools::handle_evaluate_js(window.upcast(), s, reply),
-                    None => return warn!("Message sent to closed pipeline {}.", id),
-                }
+            DevtoolScriptControlMsg::EvaluateJS(id, s, reply) => match documents.find_window(id) {
+                Some(window) => devtools::handle_evaluate_js(window.upcast(), s, reply),
+                None => return warn!("Message sent to closed pipeline {}.", id),
             },
-            DevtoolScriptControlMsg::GetRootNode(id, reply) =>
-                devtools::handle_get_root_node(&*documents, id, reply),
-            DevtoolScriptControlMsg::GetDocumentElement(id, reply) =>
-                devtools::handle_get_document_element(&*documents, id, reply),
-            DevtoolScriptControlMsg::GetChildren(id, node_id, reply) =>
-                devtools::handle_get_children(&*documents, id, node_id, reply),
-            DevtoolScriptControlMsg::GetLayout(id, node_id, reply) =>
-                devtools::handle_get_layout(&*documents, id, node_id, reply),
-            DevtoolScriptControlMsg::GetCachedMessages(id, message_types, reply) =>
-                devtools::handle_get_cached_messages(id, message_types, reply),
-            DevtoolScriptControlMsg::ModifyAttribute(id, node_id, modifications) =>
-                devtools::handle_modify_attribute(&*documents, id, node_id, modifications),
-            DevtoolScriptControlMsg::WantsLiveNotifications(id, to_send) => {
-                match documents.find_window(id) {
-                    Some(window) => devtools::handle_wants_live_notifications(window.upcast(), to_send),
-                    None => return warn!("Message sent to closed pipeline {}.", id),
-                }
+            DevtoolScriptControlMsg::GetRootNode(id, reply) => {
+                devtools::handle_get_root_node(&*documents, id, reply)
             },
-            DevtoolScriptControlMsg::SetTimelineMarkers(id, marker_types, reply) =>
-                devtools::handle_set_timeline_markers(&*documents, id, marker_types, reply),
-            DevtoolScriptControlMsg::DropTimelineMarkers(id, marker_types) =>
-                devtools::handle_drop_timeline_markers(&*documents, id, marker_types),
-            DevtoolScriptControlMsg::RequestAnimationFrame(id, name) =>
-                devtools::handle_request_animation_frame(&*documents, id, name),
-            DevtoolScriptControlMsg::Reload(id) =>
-                devtools::handle_reload(&*documents, id),
+            DevtoolScriptControlMsg::GetDocumentElement(id, reply) => {
+                devtools::handle_get_document_element(&*documents, id, reply)
+            },
+            DevtoolScriptControlMsg::GetChildren(id, node_id, reply) => {
+                devtools::handle_get_children(&*documents, id, node_id, reply)
+            },
+            DevtoolScriptControlMsg::GetLayout(id, node_id, reply) => {
+                devtools::handle_get_layout(&*documents, id, node_id, reply)
+            },
+            DevtoolScriptControlMsg::GetCachedMessages(id, message_types, reply) => {
+                devtools::handle_get_cached_messages(id, message_types, reply)
+            },
+            DevtoolScriptControlMsg::ModifyAttribute(id, node_id, modifications) => {
+                devtools::handle_modify_attribute(&*documents, id, node_id, modifications)
+            },
+            DevtoolScriptControlMsg::WantsLiveNotifications(id, to_send) => match documents
+                .find_window(id)
+            {
+                Some(window) => devtools::handle_wants_live_notifications(window.upcast(), to_send),
+                None => return warn!("Message sent to closed pipeline {}.", id),
+            },
+            DevtoolScriptControlMsg::SetTimelineMarkers(id, marker_types, reply) => {
+                devtools::handle_set_timeline_markers(&*documents, id, marker_types, reply)
+            },
+            DevtoolScriptControlMsg::DropTimelineMarkers(id, marker_types) => {
+                devtools::handle_drop_timeline_markers(&*documents, id, marker_types)
+            },
+            DevtoolScriptControlMsg::RequestAnimationFrame(id, name) => {
+                devtools::handle_request_animation_frame(&*documents, id, name)
+            },
+            DevtoolScriptControlMsg::Reload(id) => devtools::handle_reload(&*documents, id),
         }
     }
 
@@ -1506,44 +1659,94 @@ impl ScriptThread {
     fn handle_webdriver_msg(&self, pipeline_id: PipelineId, msg: WebDriverScriptCommand) {
         let documents = self.documents.borrow();
         match msg {
-            WebDriverScriptCommand::AddCookie(params, reply) =>
-                webdriver_handlers::handle_add_cookie(&*documents, pipeline_id, params, reply),
-            WebDriverScriptCommand::ExecuteScript(script, reply) =>
-                webdriver_handlers::handle_execute_script(&*documents, pipeline_id, script, reply),
-            WebDriverScriptCommand::FindElementCSS(selector, reply) =>
-                webdriver_handlers::handle_find_element_css(&*documents, pipeline_id, selector, reply),
-            WebDriverScriptCommand::FindElementsCSS(selector, reply) =>
-                webdriver_handlers::handle_find_elements_css(&*documents, pipeline_id, selector, reply),
-            WebDriverScriptCommand::FocusElement(element_id, reply) =>
-                webdriver_handlers::handle_focus_element(&*documents, pipeline_id, element_id, reply),
-            WebDriverScriptCommand::GetActiveElement(reply) =>
-                webdriver_handlers::handle_get_active_element(&*documents, pipeline_id, reply),
-            WebDriverScriptCommand::GetCookies(reply) =>
-                webdriver_handlers::handle_get_cookies(&*documents, pipeline_id, reply),
-            WebDriverScriptCommand::GetCookie(name, reply) =>
-                webdriver_handlers::handle_get_cookie(&*documents, pipeline_id, name, reply),
-            WebDriverScriptCommand::GetElementTagName(node_id, reply) =>
-                webdriver_handlers::handle_get_name(&*documents, pipeline_id, node_id, reply),
-            WebDriverScriptCommand::GetElementAttribute(node_id, name, reply) =>
-                webdriver_handlers::handle_get_attribute(&*documents, pipeline_id, node_id, name, reply),
-            WebDriverScriptCommand::GetElementCSS(node_id, name, reply) =>
-                webdriver_handlers::handle_get_css(&*documents, pipeline_id, node_id, name, reply),
-            WebDriverScriptCommand::GetElementRect(node_id, reply) =>
-                webdriver_handlers::handle_get_rect(&*documents, pipeline_id, node_id, reply),
-            WebDriverScriptCommand::GetElementText(node_id, reply) =>
-                webdriver_handlers::handle_get_text(&*documents, pipeline_id, node_id, reply),
-            WebDriverScriptCommand::GetBrowsingContextId(webdriver_frame_id, reply) =>
-                webdriver_handlers::handle_get_browsing_context_id(&*documents, pipeline_id, webdriver_frame_id, reply),
-            WebDriverScriptCommand::GetUrl(reply) =>
-                webdriver_handlers::handle_get_url(&*documents, pipeline_id, reply),
-            WebDriverScriptCommand::IsEnabled(element_id, reply) =>
-                webdriver_handlers::handle_is_enabled(&*documents, pipeline_id, element_id, reply),
-            WebDriverScriptCommand::IsSelected(element_id, reply) =>
-                webdriver_handlers::handle_is_selected(&*documents, pipeline_id, element_id, reply),
-            WebDriverScriptCommand::GetTitle(reply) =>
-                webdriver_handlers::handle_get_title(&*documents, pipeline_id, reply),
-            WebDriverScriptCommand::ExecuteAsyncScript(script, reply) =>
-                webdriver_handlers::handle_execute_async_script(&*documents, pipeline_id, script, reply),
+            WebDriverScriptCommand::AddCookie(params, reply) => {
+                webdriver_handlers::handle_add_cookie(&*documents, pipeline_id, params, reply)
+            },
+            WebDriverScriptCommand::ExecuteScript(script, reply) => {
+                webdriver_handlers::handle_execute_script(&*documents, pipeline_id, script, reply)
+            },
+            WebDriverScriptCommand::FindElementCSS(selector, reply) => {
+                webdriver_handlers::handle_find_element_css(
+                    &*documents,
+                    pipeline_id,
+                    selector,
+                    reply,
+                )
+            },
+            WebDriverScriptCommand::FindElementsCSS(selector, reply) => {
+                webdriver_handlers::handle_find_elements_css(
+                    &*documents,
+                    pipeline_id,
+                    selector,
+                    reply,
+                )
+            },
+            WebDriverScriptCommand::FocusElement(element_id, reply) => {
+                webdriver_handlers::handle_focus_element(
+                    &*documents,
+                    pipeline_id,
+                    element_id,
+                    reply,
+                )
+            },
+            WebDriverScriptCommand::GetActiveElement(reply) => {
+                webdriver_handlers::handle_get_active_element(&*documents, pipeline_id, reply)
+            },
+            WebDriverScriptCommand::GetCookies(reply) => {
+                webdriver_handlers::handle_get_cookies(&*documents, pipeline_id, reply)
+            },
+            WebDriverScriptCommand::GetCookie(name, reply) => {
+                webdriver_handlers::handle_get_cookie(&*documents, pipeline_id, name, reply)
+            },
+            WebDriverScriptCommand::GetElementTagName(node_id, reply) => {
+                webdriver_handlers::handle_get_name(&*documents, pipeline_id, node_id, reply)
+            },
+            WebDriverScriptCommand::GetElementAttribute(node_id, name, reply) => {
+                webdriver_handlers::handle_get_attribute(
+                    &*documents,
+                    pipeline_id,
+                    node_id,
+                    name,
+                    reply,
+                )
+            },
+            WebDriverScriptCommand::GetElementCSS(node_id, name, reply) => {
+                webdriver_handlers::handle_get_css(&*documents, pipeline_id, node_id, name, reply)
+            },
+            WebDriverScriptCommand::GetElementRect(node_id, reply) => {
+                webdriver_handlers::handle_get_rect(&*documents, pipeline_id, node_id, reply)
+            },
+            WebDriverScriptCommand::GetElementText(node_id, reply) => {
+                webdriver_handlers::handle_get_text(&*documents, pipeline_id, node_id, reply)
+            },
+            WebDriverScriptCommand::GetBrowsingContextId(webdriver_frame_id, reply) => {
+                webdriver_handlers::handle_get_browsing_context_id(
+                    &*documents,
+                    pipeline_id,
+                    webdriver_frame_id,
+                    reply,
+                )
+            },
+            WebDriverScriptCommand::GetUrl(reply) => {
+                webdriver_handlers::handle_get_url(&*documents, pipeline_id, reply)
+            },
+            WebDriverScriptCommand::IsEnabled(element_id, reply) => {
+                webdriver_handlers::handle_is_enabled(&*documents, pipeline_id, element_id, reply)
+            },
+            WebDriverScriptCommand::IsSelected(element_id, reply) => {
+                webdriver_handlers::handle_is_selected(&*documents, pipeline_id, element_id, reply)
+            },
+            WebDriverScriptCommand::GetTitle(reply) => {
+                webdriver_handlers::handle_get_title(&*documents, pipeline_id, reply)
+            },
+            WebDriverScriptCommand::ExecuteAsyncScript(script, reply) => {
+                webdriver_handlers::handle_execute_async_script(
+                    &*documents,
+                    pipeline_id,
+                    script,
+                    reply,
+                )
+            },
         }
     }
 
@@ -1576,12 +1779,19 @@ impl ScriptThread {
         warn!("Page rect message sent to nonexistent pipeline");
     }
 
-    fn handle_set_scroll_state(&self,
-                               id: PipelineId,
-                               scroll_states: &[(UntrustedNodeAddress, Vector2D<f32>)]) {
+    fn handle_set_scroll_state(
+        &self,
+        id: PipelineId,
+        scroll_states: &[(UntrustedNodeAddress, Vector2D<f32>)],
+    ) {
         let window = match { self.documents.borrow().find_window(id) } {
             Some(window) => window,
-            None => return warn!("Set scroll state message sent to nonexistent pipeline: {:?}", id),
+            None => {
+                return warn!(
+                    "Set scroll state message sent to nonexistent pipeline: {:?}",
+                    id
+                )
+            },
         };
 
         let mut scroll_offsets = HashMap::new();
@@ -1623,17 +1833,28 @@ impl ScriptThread {
             image_cache: self.image_cache.clone(),
             content_process_shutdown_chan: content_process_shutdown_chan,
             layout_threads: layout_threads,
-            paint_time_metrics: PaintTimeMetrics::new(new_pipeline_id,
-                                                      self.time_profiler_chan.clone(),
-                                                      self.layout_to_constellation_chan.clone(),
-                                                      self.control_chan.clone(),
-                                                      load_data.url.clone()),
+            paint_time_metrics: PaintTimeMetrics::new(
+                new_pipeline_id,
+                self.time_profiler_chan.clone(),
+                self.layout_to_constellation_chan.clone(),
+                self.control_chan.clone(),
+                load_data.url.clone(),
+            ),
         });
 
         // Pick a layout thread, any layout thread
-        let current_layout_chan = self.documents.borrow().iter().next()
+        let current_layout_chan = self
+            .documents
+            .borrow()
+            .iter()
+            .next()
             .map(|(_, document)| document.window().layout_chan().clone())
-            .or_else(|| self.incomplete_loads.borrow().first().map(|load| load.layout_chan.clone()));
+            .or_else(|| {
+                self.incomplete_loads
+                    .borrow()
+                    .first()
+                    .map(|load| load.layout_chan.clone())
+            });
 
         match current_layout_chan {
             None => panic!("Layout attached to empty script thread."),
@@ -1642,15 +1863,17 @@ impl ScriptThread {
         };
 
         // Kick off the fetch for the new resource.
-        let new_load = InProgressLoad::new(new_pipeline_id,
-                                           browsing_context_id,
-                                           top_level_browsing_context_id,
-                                           parent_info,
-                                           opener,
-                                           layout_chan,
-                                           window_size,
-                                           load_data.url.clone(),
-                                           origin);
+        let new_load = InProgressLoad::new(
+            new_pipeline_id,
+            browsing_context_id,
+            top_level_browsing_context_id,
+            parent_info,
+            opener,
+            layout_chan,
+            window_size,
+            load_data.url.clone(),
+            origin,
+        );
         if load_data.url.as_str() == "about:blank" {
             self.start_page_load_about_blank(new_load, load_data.js_eval_result);
         } else {
@@ -1669,12 +1892,16 @@ impl ScriptThread {
     }
 
     /// Updates iframe element after a change in visibility
-    fn handle_visibility_change_complete_msg(&self,
-                                             parent_pipeline_id: PipelineId,
-                                             browsing_context_id: BrowsingContextId,
-                                             visible: bool)
-    {
-        let iframe = self.documents.borrow().find_iframe(parent_pipeline_id, browsing_context_id);
+    fn handle_visibility_change_complete_msg(
+        &self,
+        parent_pipeline_id: PipelineId,
+        browsing_context_id: BrowsingContextId,
+        visible: bool,
+    ) {
+        let iframe = self
+            .documents
+            .borrow()
+            .find_iframe(parent_pipeline_id, browsing_context_id);
         if let Some(iframe) = iframe {
             iframe.change_visibility_status(visible);
         }
@@ -1684,21 +1911,23 @@ impl ScriptThread {
     fn handle_visibility_change_msg(&self, id: PipelineId, visible: bool) {
         // Separate message sent since parent script thread could be different (Iframe of different
         // domain)
-        self.script_sender.send((id, ScriptMsg::VisibilityChangeComplete(visible))).unwrap();
+        self.script_sender
+            .send((id, ScriptMsg::VisibilityChangeComplete(visible)))
+            .unwrap();
 
         let window = self.documents.borrow().find_window(id);
         match window {
             Some(window) => {
                 window.alter_resource_utilization(visible);
                 return;
-            }
+            },
             None => {
                 let mut loads = self.incomplete_loads.borrow_mut();
                 if let Some(ref mut load) = loads.iter_mut().find(|load| load.pipeline_id == id) {
                     load.is_visible = visible;
                     return;
                 }
-            }
+            },
         }
 
         warn!("change visibility message sent to nonexistent pipeline");
@@ -1706,7 +1935,12 @@ impl ScriptThread {
 
     /// Handles activity change message
     fn handle_set_document_activity_msg(&self, id: PipelineId, activity: DocumentActivity) {
-        debug!("Setting activity of {} to be {:?} in {:?}.", id, activity, thread::current().name());
+        debug!(
+            "Setting activity of {} to be {:?} in {:?}.",
+            id,
+            activity,
+            thread::current().name()
+        );
         let document = self.documents.borrow().find_document(id);
         if let Some(document) = document {
             document.set_activity(activity);
@@ -1720,10 +1954,16 @@ impl ScriptThread {
         warn!("change of activity sent to nonexistent pipeline");
     }
 
-    fn handle_focus_iframe_msg(&self,
-                               parent_pipeline_id: PipelineId,
-                               browsing_context_id: BrowsingContextId) {
-        let doc = self.documents.borrow().find_document(parent_pipeline_id).unwrap();
+    fn handle_focus_iframe_msg(
+        &self,
+        parent_pipeline_id: PipelineId,
+        browsing_context_id: BrowsingContextId,
+    ) {
+        let doc = self
+            .documents
+            .borrow()
+            .find_document(parent_pipeline_id)
+            .unwrap();
         let frame_element = doc.find_iframe(browsing_context_id);
 
         if let Some(ref frame_element) = frame_element {
@@ -1733,7 +1973,12 @@ impl ScriptThread {
         }
     }
 
-    fn handle_post_message_msg(&self, pipeline_id: PipelineId, origin: Option<ImmutableOrigin>, data: Vec<u8>) {
+    fn handle_post_message_msg(
+        &self,
+        pipeline_id: PipelineId,
+        origin: Option<ImmutableOrigin>,
+        data: Vec<u8>,
+    ) {
         match { self.documents.borrow().find_window(pipeline_id) } {
             None => return warn!("postMessage after pipeline {} closed.", pipeline_id),
             Some(window) => window.post_message(origin, StructuredCloneData::Vector(data)),
@@ -1747,31 +1992,51 @@ impl ScriptThread {
         }
     }
 
-    fn handle_update_pipeline_id(&self,
-                                 parent_pipeline_id: PipelineId,
-                                 browsing_context_id: BrowsingContextId,
-                                 new_pipeline_id: PipelineId,
-                                 reason: UpdatePipelineIdReason) {
-        let frame_element = self.documents.borrow().find_iframe(parent_pipeline_id, browsing_context_id);
+    fn handle_update_pipeline_id(
+        &self,
+        parent_pipeline_id: PipelineId,
+        browsing_context_id: BrowsingContextId,
+        new_pipeline_id: PipelineId,
+        reason: UpdatePipelineIdReason,
+    ) {
+        let frame_element = self
+            .documents
+            .borrow()
+            .find_iframe(parent_pipeline_id, browsing_context_id);
         if let Some(frame_element) = frame_element {
             frame_element.update_pipeline_id(new_pipeline_id, reason);
         }
     }
 
     fn handle_update_history_state_msg(
-        &self, pipeline_id: PipelineId,
+        &self,
+        pipeline_id: PipelineId,
         history_state_id: Option<HistoryStateId>,
         url: ServoUrl,
     ) {
         match { self.documents.borrow().find_window(pipeline_id) } {
-            None => return warn!("update history state after pipeline {} closed.", pipeline_id),
+            None => {
+                return warn!(
+                    "update history state after pipeline {} closed.",
+                    pipeline_id
+                )
+            },
             Some(window) => window.History().r().activate_state(history_state_id, url),
         }
     }
 
-    fn handle_remove_history_states(&self, pipeline_id: PipelineId, history_states: Vec<HistoryStateId>) {
+    fn handle_remove_history_states(
+        &self,
+        pipeline_id: PipelineId,
+        history_states: Vec<HistoryStateId>,
+    ) {
         match { self.documents.borrow().find_window(pipeline_id) } {
-            None => return warn!("update history state after pipeline {} closed.", pipeline_id),
+            None => {
+                return warn!(
+                    "update history state after pipeline {} closed.",
+                    pipeline_id
+                )
+            },
             Some(window) => window.History().r().remove_states(history_states),
         }
     }
@@ -1785,9 +2050,16 @@ impl ScriptThread {
 
     /// We have received notification that the response associated with a load has completed.
     /// Kick off the document and frame tree creation process using the result.
-    fn handle_page_headers_available(&self, id: &PipelineId,
-                                     metadata: Option<Metadata>) -> Option<DomRoot<ServoParser>> {
-        let idx = self.incomplete_loads.borrow().iter().position(|load| { load.pipeline_id == *id });
+    fn handle_page_headers_available(
+        &self,
+        id: &PipelineId,
+        metadata: Option<Metadata>,
+    ) -> Option<DomRoot<ServoParser>> {
+        let idx = self
+            .incomplete_loads
+            .borrow()
+            .iter()
+            .position(|load| load.pipeline_id == *id);
         // The matching in progress load structure may not exist if
         // the pipeline exited before the page load completed.
         match idx {
@@ -1795,34 +2067,44 @@ impl ScriptThread {
                 // https://html.spec.whatwg.org/multipage/#process-a-navigate-response
                 // 2. If response's status is 204 or 205, then abort these steps.
                 match metadata {
-                    Some(Metadata { status: Some((204 ... 205, _)), .. }) => {
+                    Some(Metadata {
+                        status: Some((204...205, _)),
+                        ..
+                    }) => {
                         self.script_sender
                             .send((id.clone(), ScriptMsg::AbortLoadUrl))
                             .unwrap();
                         return None;
                     },
-                    _ => ()
+                    _ => (),
                 };
 
                 let load = self.incomplete_loads.borrow_mut().remove(idx);
                 metadata.map(|meta| self.load(meta, load))
-            }
+            },
             None => {
                 assert!(self.closed_pipelines.borrow().contains(id));
                 None
-            }
+            },
         }
     }
 
-    pub fn handle_get_registration(&self, scope_url: &ServoUrl) -> Option<DomRoot<ServiceWorkerRegistration>> {
+    pub fn handle_get_registration(
+        &self,
+        scope_url: &ServoUrl,
+    ) -> Option<DomRoot<ServiceWorkerRegistration>> {
         let maybe_registration_ref = self.registration_map.borrow();
-        maybe_registration_ref.get(scope_url).map(|x| DomRoot::from_ref(&**x))
+        maybe_registration_ref
+            .get(scope_url)
+            .map(|x| DomRoot::from_ref(&**x))
     }
 
-    pub fn handle_serviceworker_registration(&self,
-                                         scope: &ServoUrl,
-                                         registration: &ServiceWorkerRegistration,
-                                         pipeline_id: PipelineId) {
+    pub fn handle_serviceworker_registration(
+        &self,
+        scope: &ServoUrl,
+        registration: &ServiceWorkerRegistration,
+        pipeline_id: PipelineId,
+    ) {
         {
             let ref mut reg_ref = *self.registration_map.borrow_mut();
             // according to spec we should replace if an older registration exists for
@@ -1835,7 +2117,7 @@ impl ScriptThread {
         let ref maybe_registration_ref = *self.registration_map.borrow();
         let maybe_registration = match maybe_registration_ref.get(scope) {
             Some(r) => r,
-            None => return
+            None => return,
         };
         let window = match { self.documents.borrow().find_window(pipeline_id) } {
             Some(window) => window,
@@ -1843,23 +2125,39 @@ impl ScriptThread {
         };
 
         let script_url = maybe_registration.get_installed().get_script_url();
-        let scope_things = ServiceWorkerRegistration::create_scope_things(window.upcast(), script_url);
-        let _ = self.script_sender.send((pipeline_id, ScriptMsg::RegisterServiceWorker(scope_things, scope.clone())));
+        let scope_things =
+            ServiceWorkerRegistration::create_scope_things(window.upcast(), script_url);
+        let _ = self.script_sender.send((
+            pipeline_id,
+            ScriptMsg::RegisterServiceWorker(scope_things, scope.clone()),
+        ));
     }
 
     pub fn schedule_job_queue(&self, scope_url: ServoUrl) {
-        let _ = self.chan.0.send(MainThreadScriptMsg::DispatchJobQueue { scope_url });
+        let _ = self
+            .chan
+            .0
+            .send(MainThreadScriptMsg::DispatchJobQueue { scope_url });
     }
 
-    pub fn dom_manipulation_task_source(&self, pipeline_id: PipelineId) -> DOMManipulationTaskSource {
+    pub fn dom_manipulation_task_source(
+        &self,
+        pipeline_id: PipelineId,
+    ) -> DOMManipulationTaskSource {
         DOMManipulationTaskSource(self.dom_manipulation_task_sender.clone(), pipeline_id)
     }
 
-    pub fn performance_timeline_task_source(&self, pipeline_id: PipelineId) -> PerformanceTimelineTaskSource {
+    pub fn performance_timeline_task_source(
+        &self,
+        pipeline_id: PipelineId,
+    ) -> PerformanceTimelineTaskSource {
         PerformanceTimelineTaskSource(self.performance_timeline_task_sender.clone(), pipeline_id)
     }
 
-    pub fn user_interaction_task_source(&self, pipeline_id: PipelineId) -> UserInteractionTaskSource {
+    pub fn user_interaction_task_source(
+        &self,
+        pipeline_id: PipelineId,
+    ) -> UserInteractionTaskSource {
         UserInteractionTaskSource(self.user_interaction_task_sender.clone(), pipeline_id)
     }
 
@@ -1895,9 +2193,11 @@ impl ScriptThread {
         self.closed_pipelines.borrow_mut().insert(id);
 
         // Check if the exit message is for an in progress load.
-        let idx = self.incomplete_loads.borrow().iter().position(|load| {
-            load.pipeline_id == id
-        });
+        let idx = self
+            .incomplete_loads
+            .borrow()
+            .iter()
+            .position(|load| load.pipeline_id == id);
 
         let document = self.documents.borrow_mut().remove(id);
 
@@ -1924,7 +2224,9 @@ impl ScriptThread {
 
         debug!("shutting down layout for page {}", id);
         chan.send(message::Msg::ExitNow).ok();
-        self.script_sender.send((id, ScriptMsg::PipelineExited)).ok();
+        self.script_sender
+            .send((id, ScriptMsg::PipelineExited))
+            .ok();
 
         // Now that layout is shut down, it's OK to remove the document.
         if let Some(document) = document {
@@ -1952,8 +2254,20 @@ impl ScriptThread {
         debug!("Exiting script thread.");
 
         let mut pipeline_ids = Vec::new();
-        pipeline_ids.extend(self.incomplete_loads.borrow().iter().next().map(|load| load.pipeline_id));
-        pipeline_ids.extend(self.documents.borrow().iter().next().map(|(pipeline_id, _)| pipeline_id));
+        pipeline_ids.extend(
+            self.incomplete_loads
+                .borrow()
+                .iter()
+                .next()
+                .map(|load| load.pipeline_id),
+        );
+        pipeline_ids.extend(
+            self.documents
+                .borrow()
+                .iter()
+                .next()
+                .map(|(pipeline_id, _)| pipeline_id),
+        );
 
         for pipeline_id in pipeline_ids {
             self.handle_exit_pipeline_msg(pipeline_id, DiscardBrowsingContext::Yes);
@@ -1972,26 +2286,30 @@ impl ScriptThread {
     }
 
     /// Handles firing of transition events.
-    fn handle_transition_event(&self, unsafe_node: UntrustedNodeAddress, name: String, duration: f64) {
+    fn handle_transition_event(
+        &self,
+        unsafe_node: UntrustedNodeAddress,
+        name: String,
+        duration: f64,
+    ) {
         let js_runtime = self.js_runtime.rt();
-        let node = unsafe {
-            from_untrusted_node_address(js_runtime, unsafe_node)
-        };
+        let node = unsafe { from_untrusted_node_address(js_runtime, unsafe_node) };
 
-        let idx = self.transitioning_nodes
+        let idx = self
+            .transitioning_nodes
             .borrow()
             .iter()
             .position(|n| &**n as *const _ == &*node as *const _);
         match idx {
             Some(idx) => {
                 self.transitioning_nodes.borrow_mut().remove(idx);
-            }
+            },
             None => {
                 // If no index is found, we can't know whether this node is safe to use.
                 // It's better not to fire a DOM event than crash.
                 warn!("Ignoring transition end notification for unknown node.");
                 return;
-            }
+            },
         }
 
         let window = window_from_node(&*node);
@@ -2013,11 +2331,9 @@ impl ScriptThread {
             propertyName: DOMString::from(name),
             elapsedTime: Finite::new(duration as f32).unwrap(),
             // FIXME: Handle pseudo-elements properly
-            pseudoElement: DOMString::new()
+            pseudoElement: DOMString::new(),
         };
-        let transition_event = TransitionEvent::new(&window,
-                                                    atom!("transitionend"),
-                                                    &init);
+        let transition_event = TransitionEvent::new(&window, atom!("transitionend"), &init);
         transition_event.upcast::<Event>().fire(node.upcast());
     }
 
@@ -2038,8 +2354,15 @@ impl ScriptThread {
     }
 
     /// Notify a window of a storage event
-    fn handle_storage_event(&self, pipeline_id: PipelineId, storage_type: StorageType, url: ServoUrl,
-                            key: Option<String>, old_value: Option<String>, new_value: Option<String>) {
+    fn handle_storage_event(
+        &self,
+        pipeline_id: PipelineId,
+        storage_type: StorageType,
+        url: ServoUrl,
+        key: Option<String>,
+        old_value: Option<String>,
+        new_value: Option<String>,
+    ) {
         let window = match { self.documents.borrow().find_window(pipeline_id) } {
             None => return warn!("Storage event sent to closed pipeline {}.", pipeline_id),
             Some(window) => window,
@@ -2054,11 +2377,16 @@ impl ScriptThread {
     }
 
     /// Notify the containing document of a child iframe that has completed loading.
-    fn handle_iframe_load_event(&self,
-                                parent_id: PipelineId,
-                                browsing_context_id: BrowsingContextId,
-                                child_id: PipelineId) {
-        let iframe = self.documents.borrow().find_iframe(parent_id, browsing_context_id);
+    fn handle_iframe_load_event(
+        &self,
+        parent_id: PipelineId,
+        browsing_context_id: BrowsingContextId,
+        child_id: PipelineId,
+    ) {
+        let iframe = self
+            .documents
+            .borrow()
+            .find_iframe(parent_id, browsing_context_id);
         match iframe {
             Some(iframe) => iframe.iframe_load_event_steps(child_id),
             None => warn!("Message sent to closed pipeline {}.", parent_id),
@@ -2067,23 +2395,31 @@ impl ScriptThread {
 
     fn ask_constellation_for_browsing_context_info(
         &self,
-        pipeline_id: PipelineId
+        pipeline_id: PipelineId,
     ) -> Option<(BrowsingContextId, Option<PipelineId>)> {
         let (result_sender, result_receiver) = ipc::channel().unwrap();
         let msg = ScriptMsg::GetBrowsingContextInfo(pipeline_id, result_sender);
-        self.script_sender.send((pipeline_id, msg)).expect("Failed to send to constellation.");
-        result_receiver.recv().expect("Failed to get browsing context info from constellation.")
+        self.script_sender
+            .send((pipeline_id, msg))
+            .expect("Failed to send to constellation.");
+        result_receiver
+            .recv()
+            .expect("Failed to get browsing context info from constellation.")
     }
 
     fn ask_constellation_for_top_level_info(
         &self,
         sender_pipeline: PipelineId,
-        browsing_context_id: BrowsingContextId
+        browsing_context_id: BrowsingContextId,
     ) -> Option<TopLevelBrowsingContextId> {
         let (result_sender, result_receiver) = ipc::channel().unwrap();
         let msg = ScriptMsg::GetTopForBrowsingContext(browsing_context_id, result_sender);
-        self.script_sender.send((sender_pipeline, msg)).expect("Failed to send to constellation.");
-        result_receiver.recv().expect("Failed to get top-level id from constellation.")
+        self.script_sender
+            .send((sender_pipeline, msg))
+            .expect("Failed to send to constellation.");
+        result_receiver
+            .recv()
+            .expect("Failed to get top-level id from constellation.")
     }
 
     // Get the browsing context for a pipeline that may exist in another
@@ -2097,7 +2433,7 @@ impl ScriptThread {
         global_to_clone: &GlobalScope,
         top_level_browsing_context_id: TopLevelBrowsingContextId,
         pipeline_id: PipelineId,
-        opener: Option<BrowsingContextId>
+        opener: Option<BrowsingContextId>,
     ) -> Option<DomRoot<WindowProxy>> {
         let (browsing_context_id, parent_pipeline_id) =
             self.ask_constellation_for_browsing_context_info(pipeline_id)?;
@@ -2106,16 +2442,23 @@ impl ScriptThread {
         }
 
         let parent = parent_pipeline_id.and_then(|parent_id| {
-            self.remote_window_proxy(global_to_clone, top_level_browsing_context_id, parent_id, opener)
+            self.remote_window_proxy(
+                global_to_clone,
+                top_level_browsing_context_id,
+                parent_id,
+                opener,
+            )
         });
         let window_proxy = WindowProxy::new_dissimilar_origin(
             global_to_clone,
             browsing_context_id,
             top_level_browsing_context_id,
             parent.r(),
-            opener
+            opener,
         );
-        self.window_proxies.borrow_mut().insert(browsing_context_id, Dom::from_ref(&*window_proxy));
+        self.window_proxies
+            .borrow_mut()
+            .insert(browsing_context_id, Dom::from_ref(&*window_proxy));
         Some(window_proxy)
     }
 
@@ -2125,36 +2468,44 @@ impl ScriptThread {
     // get the browsing context for the parent if there is one,
     // construct a new similar-origin browsing context, add it
     // to the `window_proxies` map, and return it.
-    fn local_window_proxy(&self,
-                          window: &Window,
-                          browsing_context_id: BrowsingContextId,
-                          top_level_browsing_context_id: TopLevelBrowsingContextId,
-                          parent_info: Option<PipelineId>,
-                          opener: Option<BrowsingContextId>)
-                          -> DomRoot<WindowProxy>
-    {
+    fn local_window_proxy(
+        &self,
+        window: &Window,
+        browsing_context_id: BrowsingContextId,
+        top_level_browsing_context_id: TopLevelBrowsingContextId,
+        parent_info: Option<PipelineId>,
+        opener: Option<BrowsingContextId>,
+    ) -> DomRoot<WindowProxy> {
         if let Some(window_proxy) = self.window_proxies.borrow().get(&browsing_context_id) {
             window_proxy.set_currently_active(&*window);
             return DomRoot::from_ref(window_proxy);
         }
         let iframe = parent_info.and_then(|parent_id| {
-            self.documents.borrow().find_iframe(parent_id, browsing_context_id)
+            self.documents
+                .borrow()
+                .find_iframe(parent_id, browsing_context_id)
         });
         let parent = match (parent_info, iframe.as_ref()) {
             (_, Some(iframe)) => Some(window_from_node(&**iframe).window_proxy()),
-            (Some(parent_id), _) => self.remote_window_proxy(window.upcast(),
-                                                             top_level_browsing_context_id,
-                                                             parent_id,
-                                                             opener),
+            (Some(parent_id), _) => self.remote_window_proxy(
+                window.upcast(),
+                top_level_browsing_context_id,
+                parent_id,
+                opener,
+            ),
             _ => None,
         };
-        let window_proxy = WindowProxy::new(&window,
-                                            browsing_context_id,
-                                            top_level_browsing_context_id,
-                                            iframe.r().map(Castable::upcast),
-                                            parent.r(),
-                                            opener);
-        self.window_proxies.borrow_mut().insert(browsing_context_id, Dom::from_ref(&*window_proxy));
+        let window_proxy = WindowProxy::new(
+            &window,
+            browsing_context_id,
+            top_level_browsing_context_id,
+            iframe.r().map(Castable::upcast),
+            parent.r(),
+            opener,
+        );
+        self.window_proxies
+            .borrow_mut()
+            .insert(browsing_context_id, Dom::from_ref(&*window_proxy));
         window_proxy
     }
 
@@ -2164,23 +2515,28 @@ impl ScriptThread {
         let final_url = metadata.final_url.clone();
         {
             // send the final url to the layout thread.
-            incomplete.layout_chan
-                      .send(message::Msg::SetFinalUrl(final_url.clone()))
-                      .unwrap();
+            incomplete
+                .layout_chan
+                .send(message::Msg::SetFinalUrl(final_url.clone()))
+                .unwrap();
 
             // update the pipeline url
             self.script_sender
-                .send((incomplete.pipeline_id, ScriptMsg::SetFinalUrl(final_url.clone())))
-                .unwrap();
+                .send((
+                    incomplete.pipeline_id,
+                    ScriptMsg::SetFinalUrl(final_url.clone()),
+                )).unwrap();
         }
-        debug!("ScriptThread: loading {} on pipeline {:?}", incomplete.url, incomplete.pipeline_id);
+        debug!(
+            "ScriptThread: loading {} on pipeline {:?}",
+            incomplete.url, incomplete.pipeline_id
+        );
 
         let MainThreadScriptChan(ref sender) = self.chan;
         let HistoryTraversalTaskSource(ref history_sender) = self.history_traversal_task_source;
 
         let (ipc_timer_event_chan, ipc_timer_event_port) = ipc::channel().unwrap();
-        route_ipc_receiver_to_new_servo_sender(ipc_timer_event_port,
-                                                 self.timer_event_chan.clone());
+        route_ipc_receiver_to_new_servo_sender(ipc_timer_event_port, self.timer_event_chan.clone());
 
         let origin = if final_url.as_str() == "about:blank" {
             incomplete.origin.clone()
@@ -2202,7 +2558,8 @@ impl ScriptThread {
             self.networking_task_source(incomplete.pipeline_id),
             HistoryTraversalTaskSource(history_sender.clone()),
             self.file_reading_task_source(incomplete.pipeline_id),
-            self.performance_timeline_task_source(incomplete.pipeline_id).clone(),
+            self.performance_timeline_task_source(incomplete.pipeline_id)
+                .clone(),
             self.remote_event_task_source(incomplete.pipeline_id),
             self.websocket_task_source(incomplete.pipeline_id),
             self.image_cache_channel.clone(),
@@ -2230,30 +2587,46 @@ impl ScriptThread {
         );
 
         // Initialize the browsing context for the window.
-        let window_proxy = self.local_window_proxy(&window,
-                                                   incomplete.browsing_context_id,
-                                                   incomplete.top_level_browsing_context_id,
-                                                   incomplete.parent_info,
-                                                   incomplete.opener);
+        let window_proxy = self.local_window_proxy(
+            &window,
+            incomplete.browsing_context_id,
+            incomplete.top_level_browsing_context_id,
+            incomplete.parent_info,
+            incomplete.opener,
+        );
         window.init_window_proxy(&window_proxy);
 
         let last_modified = metadata.headers.as_ref().and_then(|headers| {
-            headers.get().map(|&LastModified(HttpDate(ref tm))| dom_last_modified(tm))
+            headers
+                .get()
+                .map(|&LastModified(HttpDate(ref tm))| dom_last_modified(tm))
         });
 
-        let content_type = metadata.content_type
-                                   .as_ref()
-                                   .map(|&Serde(ContentType(ref mimetype))| mimetype.clone());
+        let content_type = metadata
+            .content_type
+            .as_ref()
+            .map(|&Serde(ContentType(ref mimetype))| mimetype.clone());
 
-        let loader = DocumentLoader::new_with_threads(self.resource_threads.clone(),
-                                                      Some(final_url.clone()));
+        let loader = DocumentLoader::new_with_threads(
+            self.resource_threads.clone(),
+            Some(final_url.clone()),
+        );
 
         let is_html_document = match metadata.content_type {
-            Some(Serde(ContentType(Mime(TopLevel::Application, SubLevel::Ext(ref sub_level), _))))
-                if sub_level.ends_with("+xml") => IsHTMLDocument::NonHTMLDocument,
+            Some(Serde(ContentType(Mime(
+                TopLevel::Application,
+                SubLevel::Ext(ref sub_level),
+                _,
+            ))))
+                if sub_level.ends_with("+xml") =>
+            {
+                IsHTMLDocument::NonHTMLDocument
+            },
 
             Some(Serde(ContentType(Mime(TopLevel::Application, SubLevel::Xml, _)))) |
-            Some(Serde(ContentType(Mime(TopLevel::Text, SubLevel::Xml, _)))) => IsHTMLDocument::NonHTMLDocument,
+            Some(Serde(ContentType(Mime(TopLevel::Text, SubLevel::Xml, _)))) => {
+                IsHTMLDocument::NonHTMLDocument
+            },
 
             _ => IsHTMLDocument::HTMLDocument,
         };
@@ -2263,28 +2636,33 @@ impl ScriptThread {
             None => None,
         };
 
-        let referrer_policy = metadata.headers
-                                      .as_ref()
-                                      .map(Serde::deref)
-                                      .and_then(Headers::get::<ReferrerPolicyHeader>)
-                                      .map(ReferrerPolicy::from);
+        let referrer_policy = metadata
+            .headers
+            .as_ref()
+            .map(Serde::deref)
+            .and_then(Headers::get::<ReferrerPolicyHeader>)
+            .map(ReferrerPolicy::from);
 
-        let document = Document::new(&window,
-                                     HasBrowsingContext::Yes,
-                                     Some(final_url.clone()),
-                                     incomplete.origin,
-                                     is_html_document,
-                                     content_type,
-                                     last_modified,
-                                     incomplete.activity,
-                                     DocumentSource::FromParser,
-                                     loader,
-                                     referrer,
-                                     referrer_policy,
-                                     incomplete.canceller);
+        let document = Document::new(
+            &window,
+            HasBrowsingContext::Yes,
+            Some(final_url.clone()),
+            incomplete.origin,
+            is_html_document,
+            content_type,
+            last_modified,
+            incomplete.activity,
+            DocumentSource::FromParser,
+            loader,
+            referrer,
+            referrer_policy,
+            incomplete.canceller,
+        );
         document.set_ready_state(DocumentReadyState::Loading);
 
-        self.documents.borrow_mut().insert(incomplete.pipeline_id, &*document);
+        self.documents
+            .borrow_mut()
+            .insert(incomplete.pipeline_id, &*document);
 
         window.init_document(&document);
 
@@ -2293,7 +2671,11 @@ impl ScriptThread {
             .unwrap();
 
         // Notify devtools that a new script global exists.
-        self.notify_devtools(document.Title(), final_url.clone(), (incomplete.pipeline_id, None));
+        self.notify_devtools(
+            document.Title(),
+            final_url.clone(),
+            (incomplete.pipeline_id, None),
+        );
 
         let parse_input = DOMString::new();
 
@@ -2319,16 +2701,22 @@ impl ScriptThread {
         document.get_current_parser().unwrap()
     }
 
-    fn notify_devtools(&self, title: DOMString, url: ServoUrl, ids: (PipelineId, Option<WorkerId>)) {
+    fn notify_devtools(
+        &self,
+        title: DOMString,
+        url: ServoUrl,
+        ids: (PipelineId, Option<WorkerId>),
+    ) {
         if let Some(ref chan) = self.devtools_chan {
             let page_info = DevtoolsPageInfo {
                 title: String::from(title),
                 url: url,
             };
             chan.send(ScriptToDevtoolsControlMsg::NewGlobal(
-                        ids,
-                        self.devtools_sender.clone(),
-                        page_info)).unwrap();
+                ids,
+                self.devtools_sender.clone(),
+                page_info,
+            )).unwrap();
         }
     }
 
@@ -2346,7 +2734,7 @@ impl ScriptThread {
         match event {
             ResizeEvent(new_size, size_type) => {
                 self.handle_resize_event(pipeline_id, new_size, size_type);
-            }
+            },
 
             MouseButtonEvent(event_type, button, point, node_address, point_in_node) => {
                 self.handle_mouse_event(
@@ -2355,9 +2743,9 @@ impl ScriptThread {
                     button,
                     point,
                     node_address,
-                    point_in_node
+                    point_in_node,
                 );
-            }
+            },
 
             MouseMoveEvent(point, node_address) => {
                 let document = match { self.documents.borrow().find_document(pipeline_id) } {
@@ -2369,9 +2757,12 @@ impl ScriptThread {
                 // Get the previous target temporarily
                 let prev_mouse_over_target = self.topmost_mouse_over_target.get();
 
-                document.handle_mouse_move_event(self.js_runtime.rt(), point,
-                                                 &self.topmost_mouse_over_target,
-                                                 node_address);
+                document.handle_mouse_move_event(
+                    self.js_runtime.rt(),
+                    point,
+                    &self.topmost_mouse_over_target,
+                    node_address,
+                );
 
                 // Short-circuit if nothing changed
                 if self.topmost_mouse_over_target.get() == prev_mouse_over_target {
@@ -2382,17 +2773,20 @@ impl ScriptThread {
 
                 // Notify Constellation about the topmost anchor mouse over target.
                 if let Some(target) = self.topmost_mouse_over_target.get() {
-                    if let Some(anchor) = target.upcast::<Node>()
-                                                .inclusive_ancestors()
-                                                .filter_map(DomRoot::downcast::<HTMLAnchorElement>)
-                                                .next() {
-                        let status = anchor.upcast::<Element>()
-                                           .get_attribute(&ns!(), &local_name!("href"))
-                                           .and_then(|href| {
-                                               let value = href.value();
-                                               let url = document.url();
-                                               url.join(&value).map(|url| url.to_string()).ok()
-                                           });
+                    if let Some(anchor) = target
+                        .upcast::<Node>()
+                        .inclusive_ancestors()
+                        .filter_map(DomRoot::downcast::<HTMLAnchorElement>)
+                        .next()
+                    {
+                        let status = anchor
+                            .upcast::<Element>()
+                            .get_attribute(&ns!(), &local_name!("href"))
+                            .and_then(|href| {
+                                let value = href.value();
+                                let url = document.url();
+                                url.join(&value).map(|url| url.to_string()).ok()
+                            });
                         let event = EmbedderMsg::Status(status);
                         window.send_to_embedder(event);
 
@@ -2403,23 +2797,25 @@ impl ScriptThread {
                 // We might have to reset the anchor state
                 if !state_already_changed {
                     if let Some(target) = prev_mouse_over_target {
-                        if let Some(_) = target.upcast::<Node>()
-                                               .inclusive_ancestors()
-                                               .filter_map(DomRoot::downcast::<HTMLAnchorElement>)
-                                               .next() {
+                        if let Some(_) = target
+                            .upcast::<Node>()
+                            .inclusive_ancestors()
+                            .filter_map(DomRoot::downcast::<HTMLAnchorElement>)
+                            .next()
+                        {
                             let event = EmbedderMsg::Status(None);
                             window.send_to_embedder(event);
                         }
                     }
                 }
-            }
+            },
             TouchEvent(event_type, identifier, point, node_address) => {
                 let touch_result = self.handle_touch_event(
                     pipeline_id,
                     event_type,
                     identifier,
                     point,
-                    node_address
+                    node_address,
                 );
                 match (event_type, touch_result) {
                     (TouchEventType::Down, TouchEventResult::Processed(handled)) => {
@@ -2431,12 +2827,12 @@ impl ScriptThread {
                         };
                         let message = ScriptMsg::TouchEventProcessed(result);
                         self.script_sender.send((pipeline_id, message)).unwrap();
-                    }
+                    },
                     _ => {
                         // TODO: Calling preventDefault on a touchup event should prevent clicks.
-                    }
+                    },
                 }
-            }
+            },
 
             KeyEvent(ch, key, state, modifiers) => {
                 let document = match { self.documents.borrow().find_document(pipeline_id) } {
@@ -2444,7 +2840,7 @@ impl ScriptThread {
                     None => return warn!("Message sent to closed pipeline {}.", pipeline_id),
                 };
                 document.dispatch_key_event(ch, key, state, modifiers);
-            }
+            },
         }
     }
 
@@ -2455,7 +2851,7 @@ impl ScriptThread {
         button: MouseButton,
         point: Point2D<f32>,
         node_address: Option<UntrustedNodeAddress>,
-        point_in_node: Option<Point2D<f32>>
+        point_in_node: Option<Point2D<f32>>,
     ) {
         let document = match { self.documents.borrow().find_document(pipeline_id) } {
             Some(document) => document,
@@ -2467,7 +2863,7 @@ impl ScriptThread {
             point,
             mouse_event_type,
             node_address,
-            point_in_node
+            point_in_node,
         );
     }
 
@@ -2477,7 +2873,7 @@ impl ScriptThread {
         event_type: TouchEventType,
         identifier: TouchId,
         point: Point2D<f32>,
-        node_address: Option<UntrustedNodeAddress>
+        node_address: Option<UntrustedNodeAddress>,
     ) -> TouchEventResult {
         let document = match { self.documents.borrow().find_document(pipeline_id) } {
             Some(document) => document,
@@ -2491,17 +2887,20 @@ impl ScriptThread {
             event_type,
             identifier,
             point,
-            node_address
+            node_address,
         )
     }
 
     /// <https://html.spec.whatwg.org/multipage/#navigating-across-documents>
     /// The entry point for content to notify that a new load has been requested
     /// for the given pipeline (specifically the "navigate" algorithm).
-    fn handle_navigate(&self, parent_pipeline_id: PipelineId,
-                              browsing_context_id: Option<BrowsingContextId>,
-                              mut load_data: LoadData,
-                              replace: bool) {
+    fn handle_navigate(
+        &self,
+        parent_pipeline_id: PipelineId,
+        browsing_context_id: Option<BrowsingContextId>,
+        mut load_data: LoadData,
+        replace: bool,
+    ) {
         let is_javascript = load_data.url.scheme() == "javascript";
         if is_javascript {
             let window = self.documents.borrow().find_window(parent_pipeline_id);
@@ -2512,16 +2911,23 @@ impl ScriptThread {
 
         match browsing_context_id {
             Some(browsing_context_id) => {
-                let iframe = self.documents.borrow().find_iframe(parent_pipeline_id, browsing_context_id);
+                let iframe = self
+                    .documents
+                    .borrow()
+                    .find_iframe(parent_pipeline_id, browsing_context_id);
                 if let Some(iframe) = iframe {
-                    iframe.navigate_or_reload_child_browsing_context(Some(load_data), NavigationType::Regular, replace);
+                    iframe.navigate_or_reload_child_browsing_context(
+                        Some(load_data),
+                        NavigationType::Regular,
+                        replace,
+                    );
                 }
-            }
+            },
             None => {
                 self.script_sender
                     .send((parent_pipeline_id, ScriptMsg::LoadUrl(load_data, replace)))
                     .unwrap();
-            }
+            },
         }
     }
 
@@ -2539,15 +2945,20 @@ impl ScriptThread {
         let script_source = percent_decode(encoded.as_bytes()).decode_utf8_lossy();
 
         // Script source is ready to be evaluated (11.)
-        let _ac = JSAutoCompartment::new(global_scope.get_cx(), global_scope.reflector().get_jsobject().get());
+        let _ac = JSAutoCompartment::new(
+            global_scope.get_cx(),
+            global_scope.reflector().get_jsobject().get(),
+        );
         rooted!(in(global_scope.get_cx()) let mut jsval = UndefinedValue());
         global_scope.evaluate_js_on_global_with_result(&script_source, jsval.handle_mut());
 
         load_data.js_eval_result = if jsval.get().is_string() {
             unsafe {
-                let strval = DOMString::from_jsval(global_scope.get_cx(),
-                                                   jsval.handle(),
-                                                   StringificationBehavior::Empty);
+                let strval = DOMString::from_jsval(
+                    global_scope.get_cx(),
+                    jsval.handle(),
+                    StringificationBehavior::Empty,
+                );
                 match strval {
                     Ok(ConversionResult::Success(s)) => {
                         Some(JsEvalResult::Ok(String::from(s).as_bytes().to_vec()))
@@ -2562,7 +2973,12 @@ impl ScriptThread {
         load_data.url = ServoUrl::parse("about:blank").unwrap();
     }
 
-    fn handle_resize_event(&self, pipeline_id: PipelineId, new_size: WindowSizeData, size_type: WindowSizeType) {
+    fn handle_resize_event(
+        &self,
+        pipeline_id: PipelineId,
+        new_size: WindowSizeData,
+        size_type: WindowSizeType,
+    ) {
         let document = match { self.documents.borrow().find_document(pipeline_id) } {
             Some(document) => document,
             None => return warn!("Message sent to closed pipeline {}.", pipeline_id),
@@ -2574,10 +2990,14 @@ impl ScriptThread {
 
         // http://dev.w3.org/csswg/cssom-view/#resizing-viewports
         if size_type == WindowSizeType::Resize {
-            let uievent = UIEvent::new(&window,
-                                       DOMString::from("resize"), EventBubbles::DoesNotBubble,
-                                       EventCancelable::NotCancelable, Some(&window),
-                                       0i32);
+            let uievent = UIEvent::new(
+                &window,
+                DOMString::from("resize"),
+                EventBubbles::DoesNotBubble,
+                EventCancelable::NotCancelable,
+                Some(&window),
+                0i32,
+            );
             uievent.upcast::<Event>().fire(window.upcast());
         }
 
@@ -2604,25 +3024,37 @@ impl ScriptThread {
             body: load_data.data,
             redirect_mode: RedirectMode::Manual,
             origin: incomplete.origin.immutable().clone(),
-            .. RequestInit::default()
+            ..RequestInit::default()
         };
 
         let context = ParserContext::new(id, load_data.url);
-        self.incomplete_parser_contexts.borrow_mut().push((id, context));
+        self.incomplete_parser_contexts
+            .borrow_mut()
+            .push((id, context));
 
         let cancel_chan = incomplete.canceller.initialize();
 
-        self.script_sender.send((id, ScriptMsg::InitiateNavigateRequest(req_init, cancel_chan))).unwrap();
+        self.script_sender
+            .send((
+                id,
+                ScriptMsg::InitiateNavigateRequest(req_init, cancel_chan),
+            )).unwrap();
         self.incomplete_loads.borrow_mut().push(incomplete);
     }
 
-    fn handle_fetch_metadata(&self, id: PipelineId, fetch_metadata: Result<FetchMetadata, NetworkError>) {
+    fn handle_fetch_metadata(
+        &self,
+        id: PipelineId,
+        fetch_metadata: Result<FetchMetadata, NetworkError>,
+    ) {
         match fetch_metadata {
             Ok(_) => {},
             Err(ref e) => warn!("Network error: {:?}", e),
         };
         let mut incomplete_parser_contexts = self.incomplete_parser_contexts.borrow_mut();
-        let parser = incomplete_parser_contexts.iter_mut().find(|&&mut (pipeline_id, _)| pipeline_id == id);
+        let parser = incomplete_parser_contexts
+            .iter_mut()
+            .find(|&&mut (pipeline_id, _)| pipeline_id == id);
         if let Some(&mut (_, ref mut ctxt)) = parser {
             ctxt.process_response(fetch_metadata);
         }
@@ -2630,16 +3062,20 @@ impl ScriptThread {
 
     fn handle_fetch_chunk(&self, id: PipelineId, chunk: Vec<u8>) {
         let mut incomplete_parser_contexts = self.incomplete_parser_contexts.borrow_mut();
-        let parser = incomplete_parser_contexts.iter_mut().find(|&&mut (pipeline_id, _)| pipeline_id == id);
+        let parser = incomplete_parser_contexts
+            .iter_mut()
+            .find(|&&mut (pipeline_id, _)| pipeline_id == id);
         if let Some(&mut (_, ref mut ctxt)) = parser {
             ctxt.process_response_chunk(chunk);
         }
     }
 
     fn handle_fetch_eof(&self, id: PipelineId, eof: Result<(), NetworkError>) {
-        let idx = self.incomplete_parser_contexts.borrow().iter().position(|&(pipeline_id, _)| {
-            pipeline_id == id
-        });
+        let idx = self
+            .incomplete_parser_contexts
+            .borrow()
+            .iter()
+            .position(|&(pipeline_id, _)| pipeline_id == id);
         if let Some(idx) = idx {
             let (_, mut ctxt) = self.incomplete_parser_contexts.borrow_mut().remove(idx);
             ctxt.process_response_eof(eof);
@@ -2648,7 +3084,11 @@ impl ScriptThread {
 
     /// Synchronously fetch `about:blank`. Stores the `InProgressLoad`
     /// argument until a notification is received that the fetch is complete.
-    fn start_page_load_about_blank(&self, incomplete: InProgressLoad, js_eval_result: Option<JsEvalResult>) {
+    fn start_page_load_about_blank(
+        &self,
+        incomplete: InProgressLoad,
+        js_eval_result: Option<JsEvalResult>,
+    ) {
         let id = incomplete.pipeline_id;
 
         self.incomplete_loads.borrow_mut().push(incomplete);
@@ -2667,7 +3107,7 @@ impl ScriptThread {
                 meta.status = Some((204, b"No Content".to_vec()));
                 vec![]
             },
-            None => vec![]
+            None => vec![],
         };
 
         context.process_response(Ok(FetchMetadata::Unfiltered(meta)));
@@ -2675,8 +3115,14 @@ impl ScriptThread {
         context.process_response_eof(Ok(()));
     }
 
-    fn handle_css_error_reporting(&self, pipeline_id: PipelineId, filename: String,
-                                  line: u32, column: u32, msg: String) {
+    fn handle_css_error_reporting(
+        &self,
+        pipeline_id: PipelineId,
+        filename: String,
+        line: u32,
+        column: u32,
+        msg: String,
+    ) {
         let sender = match self.devtools_chan {
             Some(ref sender) => sender,
             None => return,
@@ -2688,7 +3134,7 @@ impl ScriptThread {
                     filename: filename,
                     line: line,
                     column: column,
-                    msg: msg
+                    msg: msg,
                 };
                 let message = ScriptToDevtoolsControlMsg::ReportCSSError(pipeline_id, css_error);
                 sender.send(message).unwrap();
@@ -2711,16 +3157,23 @@ impl ScriptThread {
         }
     }
 
-    fn handle_paint_metric(&self,
-                           pipeline_id: PipelineId,
-                           metric_type: ProgressiveWebMetricType,
-                           metric_value: u64) {
+    fn handle_paint_metric(
+        &self,
+        pipeline_id: PipelineId,
+        metric_type: ProgressiveWebMetricType,
+        metric_value: u64,
+    ) {
         let window = self.documents.borrow().find_window(pipeline_id);
         if let Some(window) = window {
-            let entry = PerformancePaintTiming::new(&window.upcast::<GlobalScope>(),
-                                                    metric_type, metric_value);
-            window.Performance().queue_entry(&entry.upcast::<PerformanceEntry>(),
-                                             true /* buffer performance entry */);
+            let entry = PerformancePaintTiming::new(
+                &window.upcast::<GlobalScope>(),
+                metric_type,
+                metric_value,
+            );
+            window.Performance().queue_entry(
+                &entry.upcast::<PerformanceEntry>(),
+                true, /* buffer performance entry */
+            );
         }
     }
 
@@ -2732,7 +3185,8 @@ impl ScriptThread {
     }
 
     fn perform_a_microtask_checkpoint(&self) {
-        self.microtask_queue.checkpoint(|id| self.documents.borrow().find_global(id))
+        self.microtask_queue
+            .checkpoint(|id| self.documents.borrow().find_global(id))
     }
 }
 
@@ -2745,5 +3199,8 @@ impl Drop for ScriptThread {
 }
 
 fn dom_last_modified(tm: &Tm) -> String {
-    tm.to_local().strftime("%m/%d/%Y %H:%M:%S").unwrap().to_string()
+    tm.to_local()
+        .strftime("%m/%d/%Y %H:%M:%S")
+        .unwrap()
+        .to_string()
 }

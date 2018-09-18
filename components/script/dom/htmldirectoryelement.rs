@@ -12,25 +12,32 @@ use html5ever::{LocalName, Prefix};
 
 #[dom_struct]
 pub struct HTMLDirectoryElement {
-    htmlelement: HTMLElement
+    htmlelement: HTMLElement,
 }
 
 impl HTMLDirectoryElement {
-    fn new_inherited(local_name: LocalName,
-                     prefix: Option<Prefix>,
-                     document: &Document) -> HTMLDirectoryElement {
+    fn new_inherited(
+        local_name: LocalName,
+        prefix: Option<Prefix>,
+        document: &Document,
+    ) -> HTMLDirectoryElement {
         HTMLDirectoryElement {
-            htmlelement:
-                HTMLElement::new_inherited(local_name, prefix, document)
+            htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(local_name: LocalName,
-               prefix: Option<Prefix>,
-               document: &Document) -> DomRoot<HTMLDirectoryElement> {
-        Node::reflect_node(Box::new(HTMLDirectoryElement::new_inherited(local_name, prefix, document)),
-                           document,
-                           HTMLDirectoryElementBinding::Wrap)
+    pub fn new(
+        local_name: LocalName,
+        prefix: Option<Prefix>,
+        document: &Document,
+    ) -> DomRoot<HTMLDirectoryElement> {
+        Node::reflect_node(
+            Box::new(HTMLDirectoryElement::new_inherited(
+                local_name, prefix, document,
+            )),
+            document,
+            HTMLDirectoryElementBinding::Wrap,
+        )
     }
 }

@@ -52,7 +52,12 @@ pub enum CommonScriptMsg {
     /// supplied channel.
     CollectReports(ReportsChan),
     /// Generic message that encapsulates event handling.
-    Task(ScriptThreadEventCategory, Box<TaskBox>, Option<PipelineId>, TaskSourceName),
+    Task(
+        ScriptThreadEventCategory,
+        Box<TaskBox>,
+        Option<PipelineId>,
+        TaskSourceName,
+    ),
 }
 
 impl fmt::Debug for CommonScriptMsg {
@@ -113,21 +118,26 @@ pub trait ScriptPort {
 /// SM callback for promise job resolution. Adds a promise callback to the current
 /// global's microtask queue.
 #[allow(unsafe_code)]
-unsafe extern "C" fn enqueue_job(cx: *mut JSContext,
-                                 job: HandleObject,
-                                 _allocation_site: HandleObject,
-                                 _incumbent_global: HandleObject,
-                                 _data: *mut c_void) -> bool {
-    wrap_panic(AssertUnwindSafe(|| {
-        //XXXjdm - use a different global now?
-        let global = GlobalScope::from_object(job.get());
-        let pipeline = global.pipeline_id();
-        global.enqueue_microtask(Microtask::Promise(EnqueuedPromiseCallback {
-            callback: PromiseJobCallback::new(cx, job.get()),
-            pipeline: pipeline,
-        }));
-        true
-    }), false)
+unsafe extern "C" fn enqueue_job(
+    cx: *mut JSContext,
+    job: HandleObject,
+    _allocation_site: HandleObject,
+    _incumbent_global: HandleObject,
+    _data: *mut c_void,
+) -> bool {
+    wrap_panic(
+        AssertUnwindSafe(|| {
+            //XXXjdm - use a different global now?
+            let global = GlobalScope::from_object(job.get());
+            let pipeline = global.pipeline_id();
+            global.enqueue_microtask(Microtask::Promise(EnqueuedPromiseCallback {
+                callback: PromiseJobCallback::new(cx, job.get()),
+                pipeline: pipeline,
+            }));
+            true
+        }),
+        false,
+    )
 }
 
 #[derive(JSTraceable)]
@@ -163,7 +173,9 @@ pub unsafe fn new_rt_and_cx() -> Runtime {
         SetGCSliceCallback(cx, Some(gc_slice_callback));
     }
 
-    unsafe extern "C" fn empty_wrapper_callback(_: *mut JSContext, _: *mut JSObject) -> bool { true }
+    unsafe extern "C" fn empty_wrapper_callback(_: *mut JSContext, _: *mut JSObject) -> bool {
+        true
+    }
     SetDOMCallbacks(cx, &DOM_CALLBACKS);
     SetPreserveWrapperCallback(cx, Some(empty_wrapper_callback));
     // Pre barriers aren't working correctly at the moment
@@ -213,25 +225,27 @@ pub unsafe fn new_rt_and_cx() -> Runtime {
     if let Some(val) = PREFS.get("js.offthread_compilation_enabled").as_boolean() {
         JS_SetOffthreadIonCompilationEnabled(cx, val);
     }
-    if let Some(val) = PREFS.get("js.baseline.unsafe_eager_compilation.enabled").as_boolean() {
-        let trigger: i32 = if val {
-            0
-        } else {
-            -1
-        };
-        JS_SetGlobalJitCompilerOption(cx,
-                                      JSJitCompilerOption::JSJITCOMPILER_BASELINE_WARMUP_TRIGGER,
-                                      trigger as u32);
+    if let Some(val) = PREFS
+        .get("js.baseline.unsafe_eager_compilation.enabled")
+        .as_boolean()
+    {
+        let trigger: i32 = if val { 0 } else { -1 };
+        JS_SetGlobalJitCompilerOption(
+            cx,
+            JSJitCompilerOption::JSJITCOMPILER_BASELINE_WARMUP_TRIGGER,
+            trigger as u32,
+        );
     }
-    if let Some(val) = PREFS.get("js.ion.unsafe_eager_compilation.enabled").as_boolean() {
-        let trigger: i64 = if val {
-            0
-        } else {
-            -1
-        };
-        JS_SetGlobalJitCompilerOption(cx,
-                                      JSJitCompilerOption::JSJITCOMPILER_ION_WARMUP_TRIGGER,
-                                      trigger as u32);
+    if let Some(val) = PREFS
+        .get("js.ion.unsafe_eager_compilation.enabled")
+        .as_boolean()
+    {
+        let trigger: i64 = if val { 0 } else { -1 };
+        JS_SetGlobalJitCompilerOption(
+            cx,
+            JSJitCompilerOption::JSJITCOMPILER_ION_WARMUP_TRIGGER,
+            trigger as u32,
+        );
     }
     // TODO: handle js.discard_system_source.enabled
     // TODO: handle js.asyncstack.enabled (needs new Spidermonkey)
@@ -242,7 +256,11 @@ pub unsafe fn new_rt_and_cx() -> Runtime {
     }
     // TODO: handle js.shared_memory.enabled
     if let Some(val) = PREFS.get("js.mem.high_water_mark").as_i64() {
-        JS_SetGCParameter(cx, JSGCParamKey::JSGC_MAX_MALLOC_BYTES, val as u32 * 1024 * 1024);
+        JS_SetGCParameter(
+            cx,
+            JSGCParamKey::JSGC_MAX_MALLOC_BYTES,
+            val as u32 * 1024 * 1024,
+        );
     }
     if let Some(val) = PREFS.get("js.mem.max").as_i64() {
         let max = if val <= 0 || val >= 0x1000 {
@@ -281,10 +299,16 @@ pub unsafe fn new_rt_and_cx() -> Runtime {
             JS_SetGCParameter(cx, JSGCParamKey::JSGC_HIGH_FREQUENCY_TIME_LIMIT, val as u32);
         }
     }
-    if let Some(val) = PREFS.get("js.mem.gc.dynamic_mark_slice.enabled").as_boolean() {
+    if let Some(val) = PREFS
+        .get("js.mem.gc.dynamic_mark_slice.enabled")
+        .as_boolean()
+    {
         JS_SetGCParameter(cx, JSGCParamKey::JSGC_DYNAMIC_MARK_SLICE, val as u32);
     }
-    if let Some(val) = PREFS.get("js.mem.gc.dynamic_heap_growth.enabled").as_boolean() {
+    if let Some(val) = PREFS
+        .get("js.mem.gc.dynamic_heap_growth.enabled")
+        .as_boolean()
+    {
         JS_SetGCParameter(cx, JSGCParamKey::JSGC_DYNAMIC_HEAP_GROWTH, val as u32);
     }
     if let Some(val) = PREFS.get("js.mem.gc.low_frequency_heap_growth").as_i64() {
@@ -292,14 +316,28 @@ pub unsafe fn new_rt_and_cx() -> Runtime {
             JS_SetGCParameter(cx, JSGCParamKey::JSGC_LOW_FREQUENCY_HEAP_GROWTH, val as u32);
         }
     }
-    if let Some(val) = PREFS.get("js.mem.gc.high_frequency_heap_growth_min").as_i64() {
+    if let Some(val) = PREFS
+        .get("js.mem.gc.high_frequency_heap_growth_min")
+        .as_i64()
+    {
         if val >= 0 && val < 10000 {
-            JS_SetGCParameter(cx, JSGCParamKey::JSGC_HIGH_FREQUENCY_HEAP_GROWTH_MIN, val as u32);
+            JS_SetGCParameter(
+                cx,
+                JSGCParamKey::JSGC_HIGH_FREQUENCY_HEAP_GROWTH_MIN,
+                val as u32,
+            );
         }
     }
-    if let Some(val) = PREFS.get("js.mem.gc.high_frequency_heap_growth_max").as_i64() {
+    if let Some(val) = PREFS
+        .get("js.mem.gc.high_frequency_heap_growth_max")
+        .as_i64()
+    {
         if val >= 0 && val < 10000 {
-            JS_SetGCParameter(cx, JSGCParamKey::JSGC_HIGH_FREQUENCY_HEAP_GROWTH_MAX, val as u32);
+            JS_SetGCParameter(
+                cx,
+                JSGCParamKey::JSGC_HIGH_FREQUENCY_HEAP_GROWTH_MAX,
+                val as u32,
+            );
         }
     }
     if let Some(val) = PREFS.get("js.mem.gc.high_frequency_low_limit_mb").as_i64() {
@@ -314,12 +352,23 @@ pub unsafe fn new_rt_and_cx() -> Runtime {
     }
     if let Some(val) = PREFS.get("js.mem.gc.allocation_threshold_factor").as_i64() {
         if val >= 0 && val < 10000 {
-            JS_SetGCParameter(cx, JSGCParamKey::JSGC_ALLOCATION_THRESHOLD_FACTOR, val as u32);
+            JS_SetGCParameter(
+                cx,
+                JSGCParamKey::JSGC_ALLOCATION_THRESHOLD_FACTOR,
+                val as u32,
+            );
         }
     }
-    if let Some(val) = PREFS.get("js.mem.gc.allocation_threshold_avoid_interrupt_factor").as_i64() {
+    if let Some(val) = PREFS
+        .get("js.mem.gc.allocation_threshold_avoid_interrupt_factor")
+        .as_i64()
+    {
         if val >= 0 && val < 10000 {
-            JS_SetGCParameter(cx, JSGCParamKey::JSGC_ALLOCATION_THRESHOLD_FACTOR_AVOID_INTERRUPT, val as u32);
+            JS_SetGCParameter(
+                cx,
+                JSGCParamKey::JSGC_ALLOCATION_THRESHOLD_FACTOR_AVOID_INTERRUPT,
+                val as u32,
+            );
         }
     }
     if let Some(val) = PREFS.get("js.mem.gc.empty_chunk_count_min").as_i64() {
@@ -347,10 +396,10 @@ unsafe extern "C" fn get_size(obj: *mut JSObject) -> usize {
             }
             let mut ops = MallocSizeOfOps::new(::servo_allocator::usable_size, None, None);
             (v.malloc_size_of)(&mut ops, dom_object)
-        }
+        },
         Err(_e) => {
             return 0;
-        }
+        },
     }
 }
 
@@ -375,30 +424,42 @@ pub fn get_reports(cx: *mut JSContext, path_seg: String) -> Vec<Report> {
             // mmap/VirtualAlloc, which means it's not on the malloc "heap", so we use
             // `ExplicitNonHeapSize` as its kind.
 
-            report(path!["gc-heap", "used"],
-                   ReportKind::ExplicitNonHeapSize,
-                   stats.gcHeapUsed);
+            report(
+                path!["gc-heap", "used"],
+                ReportKind::ExplicitNonHeapSize,
+                stats.gcHeapUsed,
+            );
 
-            report(path!["gc-heap", "unused"],
-                   ReportKind::ExplicitNonHeapSize,
-                   stats.gcHeapUnused);
+            report(
+                path!["gc-heap", "unused"],
+                ReportKind::ExplicitNonHeapSize,
+                stats.gcHeapUnused,
+            );
 
-            report(path!["gc-heap", "admin"],
-                   ReportKind::ExplicitNonHeapSize,
-                   stats.gcHeapAdmin);
+            report(
+                path!["gc-heap", "admin"],
+                ReportKind::ExplicitNonHeapSize,
+                stats.gcHeapAdmin,
+            );
 
-            report(path!["gc-heap", "decommitted"],
-                   ReportKind::ExplicitNonHeapSize,
-                   stats.gcHeapDecommitted);
+            report(
+                path!["gc-heap", "decommitted"],
+                ReportKind::ExplicitNonHeapSize,
+                stats.gcHeapDecommitted,
+            );
 
             // SpiderMonkey uses the system heap, not jemalloc.
-            report(path!["malloc-heap"],
-                   ReportKind::ExplicitSystemHeapSize,
-                   stats.mallocHeap);
+            report(
+                path!["malloc-heap"],
+                ReportKind::ExplicitSystemHeapSize,
+                stats.mallocHeap,
+            );
 
-            report(path!["non-heap"],
-                   ReportKind::ExplicitNonHeapSize,
-                   stats.nonHeap);
+            report(
+                path!["non-heap"],
+                ReportKind::ExplicitNonHeapSize,
+                stats.nonHeap,
+            );
         }
     }
     reports
@@ -408,34 +469,30 @@ thread_local!(static GC_CYCLE_START: Cell<Option<Tm>> = Cell::new(None));
 thread_local!(static GC_SLICE_START: Cell<Option<Tm>> = Cell::new(None));
 
 #[allow(unsafe_code)]
-unsafe extern "C" fn gc_slice_callback(_cx: *mut JSContext, progress: GCProgress, desc: *const GCDescription) {
+unsafe extern "C" fn gc_slice_callback(
+    _cx: *mut JSContext,
+    progress: GCProgress,
+    desc: *const GCDescription,
+) {
     match progress {
-        GCProgress::GC_CYCLE_BEGIN => {
-            GC_CYCLE_START.with(|start| {
-                start.set(Some(now()));
-                println!("GC cycle began");
-            })
-        },
-        GCProgress::GC_SLICE_BEGIN => {
-            GC_SLICE_START.with(|start| {
-                start.set(Some(now()));
-                println!("GC slice began");
-            })
-        },
-        GCProgress::GC_SLICE_END => {
-            GC_SLICE_START.with(|start| {
-                let dur = now() - start.get().unwrap();
-                start.set(None);
-                println!("GC slice ended: duration={}", dur);
-            })
-        },
-        GCProgress::GC_CYCLE_END => {
-            GC_CYCLE_START.with(|start| {
-                let dur = now() - start.get().unwrap();
-                start.set(None);
-                println!("GC cycle ended: duration={}", dur);
-            })
-        },
+        GCProgress::GC_CYCLE_BEGIN => GC_CYCLE_START.with(|start| {
+            start.set(Some(now()));
+            println!("GC cycle began");
+        }),
+        GCProgress::GC_SLICE_BEGIN => GC_SLICE_START.with(|start| {
+            start.set(Some(now()));
+            println!("GC slice began");
+        }),
+        GCProgress::GC_SLICE_END => GC_SLICE_START.with(|start| {
+            let dur = now() - start.get().unwrap();
+            start.set(None);
+            println!("GC slice ended: duration={}", dur);
+        }),
+        GCProgress::GC_CYCLE_END => GC_CYCLE_START.with(|start| {
+            let dur = now() - start.get().unwrap();
+            start.set(None);
+            println!("GC cycle ended: duration={}", dur);
+        }),
     };
     if !desc.is_null() {
         let desc: &GCDescription = &*desc;
@@ -443,25 +500,30 @@ unsafe extern "C" fn gc_slice_callback(_cx: *mut JSContext, progress: GCProgress
             JSGCInvocationKind::GC_NORMAL => "GC_NORMAL",
             JSGCInvocationKind::GC_SHRINK => "GC_SHRINK",
         };
-        println!("  isZone={}, invocation_kind={}", desc.isZone_, invocation_kind);
+        println!(
+            "  isZone={}, invocation_kind={}",
+            desc.isZone_, invocation_kind
+        );
     }
     let _ = stdout().flush();
 }
 
 #[allow(unsafe_code)]
-unsafe extern "C" fn debug_gc_callback(_cx: *mut JSContext, status: JSGCStatus, _data: *mut os::raw::c_void) {
+unsafe extern "C" fn debug_gc_callback(
+    _cx: *mut JSContext,
+    status: JSGCStatus,
+    _data: *mut os::raw::c_void,
+) {
     match status {
         JSGCStatus::JSGC_BEGIN => thread_state::enter(ThreadState::IN_GC),
-        JSGCStatus::JSGC_END   => thread_state::exit(ThreadState::IN_GC),
+        JSGCStatus::JSGC_END => thread_state::exit(ThreadState::IN_GC),
     }
 }
 
-thread_local!(
-    static THREAD_ACTIVE: Cell<bool> = Cell::new(true);
-);
+thread_local!(static THREAD_ACTIVE: Cell<bool> = Cell::new(true););
 
 #[allow(unsafe_code)]
-unsafe extern fn trace_rust_roots(tr: *mut JSTracer, _data: *mut os::raw::c_void) {
+unsafe extern "C" fn trace_rust_roots(tr: *mut JSTracer, _data: *mut os::raw::c_void) {
     if !THREAD_ACTIVE.with(|t| t.get()) {
         return;
     }

@@ -126,7 +126,7 @@ pub unsafe fn throw_dom_exception(cx: *mut JSContext, global: &GlobalScope, resu
         Error::JSFailed => {
             assert!(JS_IsExceptionPending(cx));
             return;
-        }
+        },
     };
 
     assert!(!JS_IsExceptionPending(cx));
@@ -149,8 +149,7 @@ pub struct ErrorInfo {
 }
 
 impl ErrorInfo {
-    unsafe fn from_native_error(cx: *mut JSContext, object: HandleObject)
-                                -> Option<ErrorInfo> {
+    unsafe fn from_native_error(cx: *mut JSContext, object: HandleObject) -> Option<ErrorInfo> {
         let report = JS_ErrorFromException(cx, object);
         if report.is_null() {
             return None;
@@ -205,7 +204,9 @@ impl ErrorInfo {
 /// The `dispatch_event` argument is temporary and non-standard; passing false
 /// prevents dispatching the `error` event.
 pub unsafe fn report_pending_exception(cx: *mut JSContext, dispatch_event: bool) {
-    if !JS_IsExceptionPending(cx) { return; }
+    if !JS_IsExceptionPending(cx) {
+        return;
+    }
 
     rooted!(in(cx) let mut value = UndefinedValue());
     if !JS_GetPendingException(cx, value.handle_mut()) {
@@ -219,23 +220,19 @@ pub unsafe fn report_pending_exception(cx: *mut JSContext, dispatch_event: bool)
         rooted!(in(cx) let object = value.to_object());
         ErrorInfo::from_native_error(cx, object.handle())
             .or_else(|| ErrorInfo::from_dom_exception(object.handle()))
-            .unwrap_or_else(|| {
-                ErrorInfo {
-                    message: format!("uncaught exception: unknown (can't convert to string)"),
-                    filename: String::new(),
-                    lineno: 0,
-                    column: 0,
-                }
+            .unwrap_or_else(|| ErrorInfo {
+                message: format!("uncaught exception: unknown (can't convert to string)"),
+                filename: String::new(),
+                lineno: 0,
+                column: 0,
             })
     } else {
         match USVString::from_jsval(cx, value.handle(), ()) {
-            Ok(ConversionResult::Success(USVString(string))) => {
-                ErrorInfo {
-                    message: format!("uncaught exception: {}", string),
-                    filename: String::new(),
-                    lineno: 0,
-                    column: 0,
-                }
+            Ok(ConversionResult::Success(USVString(string))) => ErrorInfo {
+                message: format!("uncaught exception: {}", string),
+                filename: String::new(),
+                lineno: 0,
+                column: 0,
             },
             _ => {
                 panic!("Uncaught exception: failed to stringify primitive");
@@ -243,15 +240,13 @@ pub unsafe fn report_pending_exception(cx: *mut JSContext, dispatch_event: bool)
         }
     };
 
-    error!("Error at {}:{}:{} {}",
-           error_info.filename,
-           error_info.lineno,
-           error_info.column,
-           error_info.message);
+    error!(
+        "Error at {}:{}:{} {}",
+        error_info.filename, error_info.lineno, error_info.column, error_info.message
+    );
 
     if dispatch_event {
-        GlobalScope::from_context(cx)
-            .report_an_error(error_info, value.handle());
+        GlobalScope::from_context(cx).report_an_error(error_info, value.handle());
     }
 }
 
@@ -259,14 +254,21 @@ pub unsafe fn report_pending_exception(cx: *mut JSContext, dispatch_event: bool)
 /// given DOM type.
 pub unsafe fn throw_invalid_this(cx: *mut JSContext, proto_id: u16) {
     debug_assert!(!JS_IsExceptionPending(cx));
-    let error = format!("\"this\" object does not implement interface {}.",
-                        proto_id_to_name(proto_id));
+    let error = format!(
+        "\"this\" object does not implement interface {}.",
+        proto_id_to_name(proto_id)
+    );
     throw_type_error(cx, &error);
 }
 
 impl Error {
     /// Convert this error value to a JS value, consuming it in the process.
-    pub unsafe fn to_jsval(self, cx: *mut JSContext, global: &GlobalScope, rval: MutableHandleValue) {
+    pub unsafe fn to_jsval(
+        self,
+        cx: *mut JSContext,
+        global: &GlobalScope,
+        rval: MutableHandleValue,
+    ) {
         assert!(!JS_IsExceptionPending(cx));
         throw_dom_exception(cx, global, self);
         assert!(JS_IsExceptionPending(cx));

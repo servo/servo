@@ -25,20 +25,27 @@ impl RadioNodeList {
     #[allow(unrooted_must_root)]
     fn new_inherited(list_type: NodeListType) -> RadioNodeList {
         RadioNodeList {
-            node_list: NodeList::new_inherited(list_type)
+            node_list: NodeList::new_inherited(list_type),
         }
     }
 
     #[allow(unrooted_must_root)]
     pub fn new(window: &Window, list_type: NodeListType) -> DomRoot<RadioNodeList> {
-        reflect_dom_object(Box::new(RadioNodeList::new_inherited(list_type)),
-                           window,
-                           RadioNodeListBinding::Wrap)
+        reflect_dom_object(
+            Box::new(RadioNodeList::new_inherited(list_type)),
+            window,
+            RadioNodeListBinding::Wrap,
+        )
     }
 
     pub fn new_simple_list<T>(window: &Window, iter: T) -> DomRoot<RadioNodeList>
-                              where T: Iterator<Item=DomRoot<Node>> {
-        RadioNodeList::new(window, NodeListType::Simple(iter.map(|r| Dom::from_ref(&*r)).collect()))
+    where
+        T: Iterator<Item = DomRoot<Node>>,
+    {
+        RadioNodeList::new(
+            window,
+            NodeListType::Simple(iter.map(|r| Dom::from_ref(&*r)).collect()),
+        )
     }
 
     // FIXME: This shouldn't need to be implemented here since NodeList (the parent of
@@ -81,15 +88,15 @@ impl RadioNodeListMethods for RadioNodeList {
                             input.SetChecked(true);
                             return;
                         }
-                    }
+                    },
                     InputType::Radio => {
                         // Step 2
                         if input.Value() == value {
                             input.SetChecked(true);
                             return;
                         }
-                    }
-                    _ => {}
+                    },
+                    _ => {},
                 }
             }
         }

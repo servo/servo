@@ -31,8 +31,11 @@ impl NamedNodeMap {
     }
 
     pub fn new(window: &Window, elem: &Element) -> DomRoot<NamedNodeMap> {
-        reflect_dom_object(Box::new(NamedNodeMap::new_inherited(elem)),
-                           window, NamedNodeMapBinding::Wrap)
+        reflect_dom_object(
+            Box::new(NamedNodeMap::new_inherited(elem)),
+            window,
+            NamedNodeMapBinding::Wrap,
+        )
     }
 }
 
@@ -44,7 +47,10 @@ impl NamedNodeMapMethods for NamedNodeMap {
 
     // https://dom.spec.whatwg.org/#dom-namednodemap-item
     fn Item(&self, index: u32) -> Option<DomRoot<Attr>> {
-        self.owner.attrs().get(index as usize).map(|js| DomRoot::from_ref(&**js))
+        self.owner
+            .attrs()
+            .get(index as usize)
+            .map(|js| DomRoot::from_ref(&**js))
     }
 
     // https://dom.spec.whatwg.org/#dom-namednodemap-getnameditem
@@ -53,8 +59,11 @@ impl NamedNodeMapMethods for NamedNodeMap {
     }
 
     // https://dom.spec.whatwg.org/#dom-namednodemap-getnameditemns
-    fn GetNamedItemNS(&self, namespace: Option<DOMString>, local_name: DOMString)
-                     -> Option<DomRoot<Attr>> {
+    fn GetNamedItemNS(
+        &self,
+        namespace: Option<DOMString>,
+        local_name: DOMString,
+    ) -> Option<DomRoot<Attr>> {
         let ns = namespace_from_domstring(namespace);
         self.owner.get_attribute(&ns, &LocalName::from(local_name))
     }
@@ -72,14 +81,20 @@ impl NamedNodeMapMethods for NamedNodeMap {
     // https://dom.spec.whatwg.org/#dom-namednodemap-removenameditem
     fn RemoveNamedItem(&self, name: DOMString) -> Fallible<DomRoot<Attr>> {
         let name = self.owner.parsed_name(name);
-        self.owner.remove_attribute_by_name(&name).ok_or(Error::NotFound)
+        self.owner
+            .remove_attribute_by_name(&name)
+            .ok_or(Error::NotFound)
     }
 
     // https://dom.spec.whatwg.org/#dom-namednodemap-removenameditemns
-    fn RemoveNamedItemNS(&self, namespace: Option<DOMString>, local_name: DOMString)
-                      -> Fallible<DomRoot<Attr>> {
+    fn RemoveNamedItemNS(
+        &self,
+        namespace: Option<DOMString>,
+        local_name: DOMString,
+    ) -> Fallible<DomRoot<Attr>> {
         let ns = namespace_from_domstring(namespace);
-        self.owner.remove_attribute(&ns, &LocalName::from(local_name))
+        self.owner
+            .remove_attribute(&ns, &LocalName::from(local_name))
             .ok_or(Error::NotFound)
     }
 
@@ -95,12 +110,12 @@ impl NamedNodeMapMethods for NamedNodeMap {
 
     // https://heycam.github.io/webidl/#dfn-supported-property-names
     fn SupportedPropertyNames(&self) -> Vec<DOMString> {
-        let mut names = vec!();
+        let mut names = vec![];
         let html_element_in_html_document = self.owner.html_element_in_html_document();
         for attr in self.owner.attrs().iter() {
             let s = &**attr.name();
             if html_element_in_html_document && !s.bytes().all(|b| b.to_ascii_lowercase() == b) {
-                continue
+                continue;
             }
 
             if !names.iter().any(|name| &*name == s) {

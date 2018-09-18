@@ -31,8 +31,10 @@ pub struct CSSStyleRule {
 }
 
 impl CSSStyleRule {
-    fn new_inherited(parent_stylesheet: &CSSStyleSheet, stylerule: Arc<Locked<StyleRule>>)
-                     -> CSSStyleRule {
+    fn new_inherited(
+        parent_stylesheet: &CSSStyleSheet,
+        stylerule: Arc<Locked<StyleRule>>,
+    ) -> CSSStyleRule {
         CSSStyleRule {
             cssrule: CSSRule::new_inherited(parent_stylesheet),
             stylerule: stylerule,
@@ -41,11 +43,16 @@ impl CSSStyleRule {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(window: &Window, parent_stylesheet: &CSSStyleSheet,
-               stylerule: Arc<Locked<StyleRule>>) -> DomRoot<CSSStyleRule> {
-        reflect_dom_object(Box::new(CSSStyleRule::new_inherited(parent_stylesheet, stylerule)),
-                           window,
-                           CSSStyleRuleBinding::Wrap)
+    pub fn new(
+        window: &Window,
+        parent_stylesheet: &CSSStyleSheet,
+        stylerule: Arc<Locked<StyleRule>>,
+    ) -> DomRoot<CSSStyleRule> {
+        reflect_dom_object(
+            Box::new(CSSStyleRule::new_inherited(parent_stylesheet, stylerule)),
+            window,
+            CSSStyleRuleBinding::Wrap,
+        )
     }
 }
 
@@ -57,7 +64,10 @@ impl SpecificCSSRule for CSSStyleRule {
 
     fn get_css(&self) -> DOMString {
         let guard = self.cssrule.shared_lock().read();
-        self.stylerule.read_with(&guard).to_css_string(&guard).into()
+        self.stylerule
+            .read_with(&guard)
+            .to_css_string(&guard)
+            .into()
     }
 }
 
@@ -70,10 +80,10 @@ impl CSSStyleRuleMethods for CSSStyleRule {
                 self.global().as_window(),
                 CSSStyleOwner::CSSRule(
                     Dom::from_ref(self.upcast()),
-                    self.stylerule.read_with(&guard).block.clone()
+                    self.stylerule.read_with(&guard).block.clone(),
                 ),
                 None,
-                CSSModificationAccess::ReadWrite
+                CSSModificationAccess::ReadWrite,
             )
         })
     }
@@ -89,7 +99,13 @@ impl CSSStyleRuleMethods for CSSStyleRule {
     fn SetSelectorText(&self, value: DOMString) {
         // It's not clear from the spec if we should use the stylesheet's namespaces.
         // https://github.com/w3c/csswg-drafts/issues/1511
-        let namespaces = self.cssrule.parent_stylesheet().style_stylesheet().contents.namespaces.read();
+        let namespaces = self
+            .cssrule
+            .parent_stylesheet()
+            .style_stylesheet()
+            .contents
+            .namespaces
+            .read();
         let parser = SelectorParser {
             stylesheet_origin: Origin::Author,
             namespaces: &namespaces,
@@ -104,7 +120,10 @@ impl CSSStyleRuleMethods for CSSStyleRule {
             mem::swap(&mut stylerule.selectors, &mut s);
             // It seems like we will want to avoid having to invalidate all
             // stylesheets eventually!
-            self.global().as_window().Document().invalidate_stylesheets();
+            self.global()
+                .as_window()
+                .Document()
+                .invalidate_stylesheets();
         }
     }
 }

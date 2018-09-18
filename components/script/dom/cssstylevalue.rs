@@ -48,7 +48,9 @@ impl CSSStyleValue {
     pub fn get_url(&self, base_url: ServoUrl) -> Option<ServoUrl> {
         let mut input = ParserInput::new(&*self.value);
         let mut parser = Parser::new(&mut input);
-        parser.expect_url().ok()
+        parser
+            .expect_url()
+            .ok()
             .and_then(|string| base_url.join(&*string).ok())
     }
 }

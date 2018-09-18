@@ -84,9 +84,10 @@ impl AudioScheduledSourceNodeMethods for AudioScheduledSourceNode {
             );
         });
 
-        self.node().message(
-            AudioNodeMessage::AudioScheduledSourceNode(
-                AudioScheduledSourceNodeMessage::RegisterOnEndedCallback(callback)));
+        self.node()
+            .message(AudioNodeMessage::AudioScheduledSourceNode(
+                AudioScheduledSourceNodeMessage::RegisterOnEndedCallback(callback),
+            ));
 
         self.started.set(true);
         self.node

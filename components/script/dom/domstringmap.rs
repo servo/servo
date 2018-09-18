@@ -28,9 +28,11 @@ impl DOMStringMap {
 
     pub fn new(element: &HTMLElement) -> DomRoot<DOMStringMap> {
         let window = window_from_node(element);
-        reflect_dom_object(Box::new(DOMStringMap::new_inherited(element)),
-                           &*window,
-                           DOMStringMapBinding::Wrap)
+        reflect_dom_object(
+            Box::new(DOMStringMap::new_inherited(element)),
+            &*window,
+            DOMStringMapBinding::Wrap,
+        )
     }
 }
 
@@ -53,6 +55,10 @@ impl DOMStringMapMethods for DOMStringMap {
 
     // https://html.spec.whatwg.org/multipage/#the-domstringmap-interface:supported-property-names
     fn SupportedPropertyNames(&self) -> Vec<DOMString> {
-        self.element.supported_prop_names_custom_attr().iter().cloned().collect()
+        self.element
+            .supported_prop_names_custom_attr()
+            .iter()
+            .cloned()
+            .collect()
     }
 }

@@ -64,16 +64,11 @@ impl WebGLExtension for ANGLEInstancedArrays {
 
 impl ANGLEInstancedArraysMethods for ANGLEInstancedArrays {
     // https://www.khronos.org/registry/webgl/extensions/ANGLE_instanced_arrays/
-    fn DrawArraysInstancedANGLE(
-        &self,
-        mode: u32,
-        first: i32,
-        count: i32,
-        primcount: i32,
-    ) {
+    fn DrawArraysInstancedANGLE(&self, mode: u32, first: i32, count: i32, primcount: i32) {
         handle_potential_webgl_error!(
             self.ctx,
-            self.ctx.draw_arrays_instanced(mode, first, count, primcount)
+            self.ctx
+                .draw_arrays_instanced(mode, first, count, primcount)
         )
     }
 
@@ -88,7 +83,8 @@ impl ANGLEInstancedArraysMethods for ANGLEInstancedArrays {
     ) {
         handle_potential_webgl_error!(
             self.ctx,
-            self.ctx.draw_elements_instanced(mode, count, type_, offset, primcount)
+            self.ctx
+                .draw_elements_instanced(mode, count, type_, offset, primcount)
         )
     }
 

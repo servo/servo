@@ -34,38 +34,53 @@ impl TextDecoder {
             encoding: encoding,
             fatal: fatal,
             ignoreBOM: ignoreBOM,
-            decoder: RefCell::new(
-                if ignoreBOM { encoding.new_decoder() } else { encoding.new_decoder_without_bom_handling() }
-            ),
+            decoder: RefCell::new(if ignoreBOM {
+                encoding.new_decoder()
+            } else {
+                encoding.new_decoder_without_bom_handling()
+            }),
             in_stream: RefCell::new(Vec::new()),
             do_not_flush: Cell::new(false),
         }
     }
 
     fn make_range_error() -> Fallible<DomRoot<TextDecoder>> {
-        Err(Error::Range("The given encoding is not supported.".to_owned()))
+        Err(Error::Range(
+            "The given encoding is not supported.".to_owned(),
+        ))
     }
 
-    pub fn new(global: &GlobalScope, encoding: &'static Encoding, fatal: bool, ignoreBOM: bool)
-            -> DomRoot<TextDecoder> {
-        reflect_dom_object(Box::new(TextDecoder::new_inherited(encoding, fatal, ignoreBOM)),
-                           global,
-                           TextDecoderBinding::Wrap)
+    pub fn new(
+        global: &GlobalScope,
+        encoding: &'static Encoding,
+        fatal: bool,
+        ignoreBOM: bool,
+    ) -> DomRoot<TextDecoder> {
+        reflect_dom_object(
+            Box::new(TextDecoder::new_inherited(encoding, fatal, ignoreBOM)),
+            global,
+            TextDecoderBinding::Wrap,
+        )
     }
 
     /// <https://encoding.spec.whatwg.org/#dom-textdecoder>
-    pub fn Constructor(global: &GlobalScope,
-                       label: DOMString,
-                       options: &TextDecoderBinding::TextDecoderOptions)
-                            -> Fallible<DomRoot<TextDecoder>> {
+    pub fn Constructor(
+        global: &GlobalScope,
+        label: DOMString,
+        options: &TextDecoderBinding::TextDecoderOptions,
+    ) -> Fallible<DomRoot<TextDecoder>> {
         let encoding = match Encoding::for_label_no_replacement(label.as_bytes()) {
             None => return TextDecoder::make_range_error(),
-            Some(enc) => enc
+            Some(enc) => enc,
         };
-        Ok(TextDecoder::new(global, encoding, options.fatal, options.ignoreBOM))
+        Ok(TextDecoder::new(
+            global,
+            encoding,
+            options.fatal,
+            options.ignoreBOM,
+        ))
     }
 }
-
 
 impl TextDecoderMethods for TextDecoder {
     // https://encoding.spec.whatwg.org/#dom-textdecoder-encoding
@@ -87,12 +102,13 @@ impl TextDecoderMethods for TextDecoder {
     fn Decode(
         &self,
         input: Option<ArrayBufferViewOrArrayBuffer>,
-        options: &TextDecodeOptions
+        options: &TextDecodeOptions,
     ) -> Fallible<USVString> {
         // Step 1.
         if !self.do_not_flush.get() {
             if self.ignoreBOM {
-                self.decoder.replace(self.encoding.new_decoder_without_bom_handling());
+                self.decoder
+                    .replace(self.encoding.new_decoder_without_bom_handling());
             } else {
                 self.decoder.replace(self.encoding.new_decoder());
             }
@@ -120,21 +136,27 @@ impl TextDecoderMethods for TextDecoder {
             let (remaining, s) = if self.fatal {
                 // Step 4.
                 let mut out_stream = String::with_capacity(
-                    decoder.max_utf8_buffer_length_without_replacement(in_stream.len()).unwrap()
+                    decoder
+                        .max_utf8_buffer_length_without_replacement(in_stream.len())
+                        .unwrap(),
                 );
                 // Step 5: Implemented by encoding_rs::Decoder.
-                match decoder.decode_to_string_without_replacement(&in_stream, &mut out_stream, !options.stream) {
-                    (DecoderResult::InputEmpty, read) => {
-                        (in_stream.split_off(read), out_stream)
-                    },
+                match decoder.decode_to_string_without_replacement(
+                    &in_stream,
+                    &mut out_stream,
+                    !options.stream,
+                ) {
+                    (DecoderResult::InputEmpty, read) => (in_stream.split_off(read), out_stream),
                     // Step 5.3.3.
                     _ => return Err(Error::Type("Decoding failed".to_owned())),
                 }
             } else {
                 // Step 4.
-                let mut out_stream = String::with_capacity(decoder.max_utf8_buffer_length(in_stream.len()).unwrap());
+                let mut out_stream =
+                    String::with_capacity(decoder.max_utf8_buffer_length(in_stream.len()).unwrap());
                 // Step 5: Implemented by encoding_rs::Decoder.
-                let (_result, read, _replaced) = decoder.decode_to_string(&in_stream, &mut out_stream, !options.stream);
+                let (_result, read, _replaced) =
+                    decoder.decode_to_string(&in_stream, &mut out_stream, !options.stream);
                 (in_stream.split_off(read), out_stream)
             };
             (remaining, s)

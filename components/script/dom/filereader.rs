@@ -466,8 +466,7 @@ impl FileReader {
                     task_source,
                     canceller,
                 )
-            })
-            .expect("Thread spawning failed");
+            }).expect("Thread spawning failed");
 
         Ok(())
     }

@@ -46,10 +46,7 @@ pub struct DissimilarOriginWindow {
 
 impl DissimilarOriginWindow {
     #[allow(unsafe_code)]
-    pub fn new(
-        global_to_clone_from: &GlobalScope,
-        window_proxy: &WindowProxy,
-    ) -> DomRoot<Self> {
+    pub fn new(global_to_clone_from: &GlobalScope, window_proxy: &WindowProxy) -> DomRoot<Self> {
         let cx = global_to_clone_from.get_cx();
         // Any timer events fired on this window are ignored.
         let (timer_event_chan, _) = ipc::channel().unwrap();
@@ -142,7 +139,12 @@ impl DissimilarOriginWindowMethods for DissimilarOriginWindow {
 
     #[allow(unsafe_code)]
     // https://html.spec.whatwg.org/multipage/#dom-window-postmessage
-    unsafe fn PostMessage(&self, cx: *mut JSContext, message: HandleValue, origin: DOMString) -> ErrorResult {
+    unsafe fn PostMessage(
+        &self,
+        cx: *mut JSContext,
+        message: HandleValue,
+        origin: DOMString,
+    ) -> ErrorResult {
         // Step 3-5.
         let origin = match &origin[..] {
             "*" => None,
@@ -153,7 +155,7 @@ impl DissimilarOriginWindowMethods for DissimilarOriginWindow {
             url => match ServoUrl::parse(&url) {
                 Ok(url) => Some(url.origin()),
                 Err(_) => return Err(Error::Syntax),
-            }
+            },
         };
 
         // Step 1-2, 6-8.
@@ -190,7 +192,8 @@ impl DissimilarOriginWindowMethods for DissimilarOriginWindow {
 
     // https://html.spec.whatwg.org/multipage/#dom-location
     fn Location(&self) -> DomRoot<DissimilarOriginLocation> {
-        self.location.or_init(|| DissimilarOriginLocation::new(self))
+        self.location
+            .or_init(|| DissimilarOriginLocation::new(self))
     }
 }
 
@@ -200,9 +203,11 @@ impl DissimilarOriginWindow {
             None => return warn!("postMessage called with no incumbent global"),
             Some(incumbent) => incumbent,
         };
-        let msg = ScriptMsg::PostMessage(self.window_proxy.browsing_context_id(),
-                                                origin,
-                                                data.move_to_arraybuffer());
+        let msg = ScriptMsg::PostMessage(
+            self.window_proxy.browsing_context_id(),
+            origin,
+            data.move_to_arraybuffer(),
+        );
         let _ = incumbent.script_to_constellation_chan().send(msg);
     }
 }

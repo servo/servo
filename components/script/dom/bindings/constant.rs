@@ -51,16 +51,15 @@ impl ConstantSpec {
 
 /// Defines constants on `obj`.
 /// Fails on JSAPI failure.
-pub unsafe fn define_constants(
-        cx: *mut JSContext,
-        obj: HandleObject,
-        constants: &[ConstantSpec]) {
+pub unsafe fn define_constants(cx: *mut JSContext, obj: HandleObject, constants: &[ConstantSpec]) {
     for spec in constants {
         rooted!(in(cx) let value = spec.get_value());
-        assert!(JS_DefineProperty(cx,
-                                  obj,
-                                  spec.name.as_ptr() as *const libc::c_char,
-                                  value.handle(),
-                                  (JSPROP_ENUMERATE | JSPROP_READONLY | JSPROP_PERMANENT) as u32));
+        assert!(JS_DefineProperty(
+            cx,
+            obj,
+            spec.name.as_ptr() as *const libc::c_char,
+            value.handle(),
+            (JSPROP_ENUMERATE | JSPROP_READONLY | JSPROP_PERMANENT) as u32
+        ));
     }
 }

@@ -25,7 +25,7 @@ pub struct GamepadEvent {
 
 pub enum GamepadEventType {
     Connected,
-    Disconnected
+    Disconnected,
 }
 
 impl GamepadEvent {
@@ -36,14 +36,17 @@ impl GamepadEvent {
         }
     }
 
-    pub fn new(global: &GlobalScope,
-               type_: Atom,
-               bubbles: bool,
-               cancelable: bool,
-               gamepad: &Gamepad)
-               -> DomRoot<GamepadEvent> {
+    pub fn new(
+        global: &GlobalScope,
+        type_: Atom,
+        bubbles: bool,
+        cancelable: bool,
+        gamepad: &Gamepad,
+    ) -> DomRoot<GamepadEvent> {
         let ev = reflect_dom_object(
-            Box::new(GamepadEvent::new_inherited(&gamepad)), global, GamepadEventBinding::Wrap
+            Box::new(GamepadEvent::new_inherited(&gamepad)),
+            global,
+            GamepadEventBinding::Wrap,
         );
         {
             let event = ev.upcast::<Event>();
@@ -52,30 +55,32 @@ impl GamepadEvent {
         ev
     }
 
-    pub fn new_with_type(global: &GlobalScope, event_type: GamepadEventType, gamepad: &Gamepad)
-                         -> DomRoot<GamepadEvent> {
+    pub fn new_with_type(
+        global: &GlobalScope,
+        event_type: GamepadEventType,
+        gamepad: &Gamepad,
+    ) -> DomRoot<GamepadEvent> {
         let name = match event_type {
             GamepadEventType::Connected => "gamepadconnected",
-            GamepadEventType::Disconnected => "gamepaddisconnected"
+            GamepadEventType::Disconnected => "gamepaddisconnected",
         };
 
-        GamepadEvent::new(&global,
-                          name.into(),
-                          false,
-                          false,
-                          &gamepad)
+        GamepadEvent::new(&global, name.into(), false, false, &gamepad)
     }
 
     // https://w3c.github.io/gamepad/#gamepadevent-interface
-    pub fn Constructor(window: &Window,
-                       type_: DOMString,
-                       init: &GamepadEventBinding::GamepadEventInit)
-                       -> Fallible<DomRoot<GamepadEvent>> {
-        Ok(GamepadEvent::new(&window.global(),
-                             Atom::from(type_),
-                             init.parent.bubbles,
-                             init.parent.cancelable,
-                             &init.gamepad))
+    pub fn Constructor(
+        window: &Window,
+        type_: DOMString,
+        init: &GamepadEventBinding::GamepadEventInit,
+    ) -> Fallible<DomRoot<GamepadEvent>> {
+        Ok(GamepadEvent::new(
+            &window.global(),
+            Atom::from(type_),
+            init.parent.bubbles,
+            init.parent.cancelable,
+            &init.gamepad,
+        ))
     }
 }
 

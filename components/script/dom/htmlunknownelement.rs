@@ -12,25 +12,32 @@ use html5ever::{LocalName, Prefix};
 
 #[dom_struct]
 pub struct HTMLUnknownElement {
-    htmlelement: HTMLElement
+    htmlelement: HTMLElement,
 }
 
 impl HTMLUnknownElement {
-    fn new_inherited(local_name: LocalName,
-                     prefix: Option<Prefix>,
-                     document: &Document) -> HTMLUnknownElement {
+    fn new_inherited(
+        local_name: LocalName,
+        prefix: Option<Prefix>,
+        document: &Document,
+    ) -> HTMLUnknownElement {
         HTMLUnknownElement {
-            htmlelement:
-                HTMLElement::new_inherited(local_name, prefix, document)
+            htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(local_name: LocalName,
-               prefix: Option<Prefix>,
-               document: &Document) -> DomRoot<HTMLUnknownElement> {
-        Node::reflect_node(Box::new(HTMLUnknownElement::new_inherited(local_name, prefix, document)),
-                           document,
-                           HTMLUnknownElementBinding::Wrap)
+    pub fn new(
+        local_name: LocalName,
+        prefix: Option<Prefix>,
+        document: &Document,
+    ) -> DomRoot<HTMLUnknownElement> {
+        Node::reflect_node(
+            Box::new(HTMLUnknownElement::new_inherited(
+                local_name, prefix, document,
+            )),
+            document,
+            HTMLUnknownElementBinding::Wrap,
+        )
     }
 }

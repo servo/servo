@@ -15,7 +15,7 @@ use webvr_traits::WebVRGamepadButton;
 #[dom_struct]
 pub struct GamepadButtonList {
     reflector_: Reflector,
-    list: Vec<Dom<GamepadButton>>
+    list: Vec<Dom<GamepadButton>>,
 }
 
 impl GamepadButtonList {
@@ -27,13 +27,18 @@ impl GamepadButtonList {
         }
     }
 
-    pub fn new_from_vr(global: &GlobalScope, buttons: &[WebVRGamepadButton]) -> DomRoot<GamepadButtonList> {
+    pub fn new_from_vr(
+        global: &GlobalScope,
+        buttons: &[WebVRGamepadButton],
+    ) -> DomRoot<GamepadButtonList> {
         rooted_vec!(let list <- buttons.iter()
                                        .map(|btn| GamepadButton::new(&global, btn.pressed, btn.touched)));
 
-        reflect_dom_object(Box::new(GamepadButtonList::new_inherited(list.r())),
-                           global,
-                           GamepadButtonListBinding::Wrap)
+        reflect_dom_object(
+            Box::new(GamepadButtonList::new_inherited(list.r())),
+            global,
+            GamepadButtonListBinding::Wrap,
+        )
     }
 
     pub fn sync_from_vr(&self, vr_buttons: &[WebVRGamepadButton]) {
@@ -51,7 +56,9 @@ impl GamepadButtonListMethods for GamepadButtonList {
 
     // https://w3c.github.io/gamepad/#dom-gamepad-buttons
     fn Item(&self, index: u32) -> Option<DomRoot<GamepadButton>> {
-        self.list.get(index as usize).map(|button| DomRoot::from_ref(&**button))
+        self.list
+            .get(index as usize)
+            .map(|button| DomRoot::from_ref(&**button))
     }
 
     // https://w3c.github.io/gamepad/#dom-gamepad-buttons

@@ -15,26 +15,33 @@ use dom_struct::dom_struct;
 #[dom_struct]
 pub struct GamepadList {
     reflector_: Reflector,
-    list: DomRefCell<Vec<Dom<Gamepad>>>
+    list: DomRefCell<Vec<Dom<Gamepad>>>,
 }
 
 impl GamepadList {
     fn new_inherited(list: &[&Gamepad]) -> GamepadList {
         GamepadList {
             reflector_: Reflector::new(),
-            list: DomRefCell::new(list.iter().map(|g| Dom::from_ref(&**g)).collect())
+            list: DomRefCell::new(list.iter().map(|g| Dom::from_ref(&**g)).collect()),
         }
     }
 
     pub fn new(global: &GlobalScope, list: &[&Gamepad]) -> DomRoot<GamepadList> {
-        reflect_dom_object(Box::new(GamepadList::new_inherited(list)),
-                           global,
-                           GamepadListBinding::Wrap)
+        reflect_dom_object(
+            Box::new(GamepadList::new_inherited(list)),
+            global,
+            GamepadListBinding::Wrap,
+        )
     }
 
     pub fn add_if_not_exists(&self, gamepads: &[DomRoot<Gamepad>]) {
         for gamepad in gamepads {
-            if !self.list.borrow().iter().any(|g| g.gamepad_id() == gamepad.gamepad_id()) {
+            if !self
+                .list
+                .borrow()
+                .iter()
+                .any(|g| g.gamepad_id() == gamepad.gamepad_id())
+            {
                 self.list.borrow_mut().push(Dom::from_ref(&*gamepad));
                 // Ensure that the gamepad has the correct index
                 gamepad.update_index(self.list.borrow().len() as i32 - 1);
@@ -51,7 +58,10 @@ impl GamepadListMethods for GamepadList {
 
     // https://w3c.github.io/gamepad/#dom-navigator-getgamepads
     fn Item(&self, index: u32) -> Option<DomRoot<Gamepad>> {
-        self.list.borrow().get(index as usize).map(|gamepad| DomRoot::from_ref(&**gamepad))
+        self.list
+            .borrow()
+            .get(index as usize)
+            .map(|gamepad| DomRoot::from_ref(&**gamepad))
     }
 
     // https://w3c.github.io/gamepad/#dom-navigator-getgamepads

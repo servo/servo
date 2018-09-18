@@ -20,7 +20,7 @@ pub struct ProgressEvent {
     event: Event,
     length_computable: bool,
     loaded: u64,
-    total: u64
+    total: u64,
 }
 
 impl ProgressEvent {
@@ -29,34 +29,56 @@ impl ProgressEvent {
             event: Event::new_inherited(),
             length_computable: length_computable,
             loaded: loaded,
-            total: total
+            total: total,
         }
     }
     pub fn new_uninitialized(global: &GlobalScope) -> DomRoot<ProgressEvent> {
-        reflect_dom_object(Box::new(ProgressEvent::new_inherited(false, 0, 0)),
-                           global,
-                           ProgressEventBinding::Wrap)
+        reflect_dom_object(
+            Box::new(ProgressEvent::new_inherited(false, 0, 0)),
+            global,
+            ProgressEventBinding::Wrap,
+        )
     }
-    pub fn new(global: &GlobalScope, type_: Atom,
-               can_bubble: EventBubbles, cancelable: EventCancelable,
-               length_computable: bool, loaded: u64, total: u64) -> DomRoot<ProgressEvent> {
-        let ev = reflect_dom_object(Box::new(ProgressEvent::new_inherited(length_computable, loaded, total)),
-                                    global,
-                                    ProgressEventBinding::Wrap);
+    pub fn new(
+        global: &GlobalScope,
+        type_: Atom,
+        can_bubble: EventBubbles,
+        cancelable: EventCancelable,
+        length_computable: bool,
+        loaded: u64,
+        total: u64,
+    ) -> DomRoot<ProgressEvent> {
+        let ev = reflect_dom_object(
+            Box::new(ProgressEvent::new_inherited(
+                length_computable,
+                loaded,
+                total,
+            )),
+            global,
+            ProgressEventBinding::Wrap,
+        );
         {
             let event = ev.upcast::<Event>();
             event.init_event(type_, bool::from(can_bubble), bool::from(cancelable));
         }
         ev
     }
-    pub fn Constructor(global: &GlobalScope,
-                       type_: DOMString,
-                       init: &ProgressEventBinding::ProgressEventInit)
-                       -> Fallible<DomRoot<ProgressEvent>> {
+    pub fn Constructor(
+        global: &GlobalScope,
+        type_: DOMString,
+        init: &ProgressEventBinding::ProgressEventInit,
+    ) -> Fallible<DomRoot<ProgressEvent>> {
         let bubbles = EventBubbles::from(init.parent.bubbles);
         let cancelable = EventCancelable::from(init.parent.cancelable);
-        let ev = ProgressEvent::new(global, Atom::from(type_), bubbles, cancelable,
-                                    init.lengthComputable, init.loaded, init.total);
+        let ev = ProgressEvent::new(
+            global,
+            Atom::from(type_),
+            bubbles,
+            cancelable,
+            init.lengthComputable,
+            init.loaded,
+            init.total,
+        );
         Ok(ev)
     }
 }

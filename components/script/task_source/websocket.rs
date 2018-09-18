@@ -19,11 +19,7 @@ impl Clone for WebsocketTaskSource {
 impl TaskSource for WebsocketTaskSource {
     const NAME: TaskSourceName = TaskSourceName::Websocket;
 
-    fn queue_with_canceller<T>(
-        &self,
-        task: T,
-        canceller: &TaskCanceller,
-    ) -> Result<(), ()>
+    fn queue_with_canceller<T>(&self, task: T, canceller: &TaskCanceller) -> Result<(), ()>
     where
         T: TaskOnce + 'static,
     {

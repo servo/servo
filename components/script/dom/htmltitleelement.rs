@@ -21,19 +21,29 @@ pub struct HTMLTitleElement {
 }
 
 impl HTMLTitleElement {
-    fn new_inherited(local_name: LocalName, prefix: Option<Prefix>, document: &Document) -> HTMLTitleElement {
+    fn new_inherited(
+        local_name: LocalName,
+        prefix: Option<Prefix>,
+        document: &Document,
+    ) -> HTMLTitleElement {
         HTMLTitleElement {
-            htmlelement: HTMLElement::new_inherited(local_name, prefix, document)
+            htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(local_name: LocalName,
-               prefix: Option<Prefix>,
-               document: &Document) -> DomRoot<HTMLTitleElement> {
-        Node::reflect_node(Box::new(HTMLTitleElement::new_inherited(local_name, prefix, document)),
-                           document,
-                           HTMLTitleElementBinding::Wrap)
+    pub fn new(
+        local_name: LocalName,
+        prefix: Option<Prefix>,
+        document: &Document,
+    ) -> DomRoot<HTMLTitleElement> {
+        Node::reflect_node(
+            Box::new(HTMLTitleElement::new_inherited(
+                local_name, prefix, document,
+            )),
+            document,
+            HTMLTitleElementBinding::Wrap,
+        )
     }
 }
 

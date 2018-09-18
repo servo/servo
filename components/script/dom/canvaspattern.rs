@@ -23,11 +23,12 @@ pub struct CanvasPattern {
 }
 
 impl CanvasPattern {
-    fn new_inherited(surface_data: Vec<u8>,
-                     surface_size: Size2D<i32>,
-                     repeat: RepetitionStyle,
-                     origin_clean: bool)
-                     -> CanvasPattern {
+    fn new_inherited(
+        surface_data: Vec<u8>,
+        surface_size: Size2D<i32>,
+        repeat: RepetitionStyle,
+        origin_clean: bool,
+    ) -> CanvasPattern {
         let (x, y) = match repeat {
             RepetitionStyle::Repeat => (true, true),
             RepetitionStyle::RepeatX => (true, false),
@@ -44,30 +45,36 @@ impl CanvasPattern {
             origin_clean: origin_clean,
         }
     }
-    pub fn new(global: &GlobalScope,
-               surface_data: Vec<u8>,
-               surface_size: Size2D<i32>,
-               repeat: RepetitionStyle,
-               origin_clean: bool)
-               -> DomRoot<CanvasPattern> {
+    pub fn new(
+        global: &GlobalScope,
+        surface_data: Vec<u8>,
+        surface_size: Size2D<i32>,
+        repeat: RepetitionStyle,
+        origin_clean: bool,
+    ) -> DomRoot<CanvasPattern> {
         reflect_dom_object(
             Box::new(CanvasPattern::new_inherited(
-                surface_data, surface_size, repeat, origin_clean
+                surface_data,
+                surface_size,
+                repeat,
+                origin_clean,
             )),
             global,
-            CanvasPatternBinding::Wrap
+            CanvasPatternBinding::Wrap,
         )
     }
     pub fn origin_is_clean(&self) -> bool {
-      self.origin_clean
+        self.origin_clean
     }
 }
 
 impl<'a> ToFillOrStrokeStyle for &'a CanvasPattern {
     fn to_fill_or_stroke_style(self) -> FillOrStrokeStyle {
-        FillOrStrokeStyle::Surface(SurfaceStyle::new(self.surface_data.clone(),
-                                                     self.surface_size,
-                                                     self.repeat_x,
-                                                     self.repeat_y))
+        FillOrStrokeStyle::Surface(SurfaceStyle::new(
+            self.surface_data.clone(),
+            self.surface_size,
+            self.repeat_x,
+            self.repeat_y,
+        ))
     }
 }

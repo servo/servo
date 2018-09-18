@@ -53,7 +53,7 @@ pub struct CallbackObject {
     ///
     /// ["callback context"]: https://heycam.github.io/webidl/#dfn-callback-context
     /// [sometimes]: https://github.com/whatwg/html/issues/2248
-    incumbent: Option<Dom<GlobalScope>>
+    incumbent: Option<Dom<GlobalScope>>,
 }
 
 impl Default for CallbackObject {
@@ -81,8 +81,11 @@ impl CallbackObject {
     unsafe fn init(&mut self, cx: *mut JSContext, callback: *mut JSObject) {
         self.callback.set(callback);
         self.permanent_js_root.set(ObjectValue(callback));
-        assert!(AddRawValueRoot(cx, self.permanent_js_root.get_unsafe(),
-                                b"CallbackObject::root\n".as_c_char_ptr()));
+        assert!(AddRawValueRoot(
+            cx,
+            self.permanent_js_root.get_unsafe(),
+            b"CallbackObject::root\n".as_c_char_ptr()
+        ));
     }
 }
 
@@ -94,7 +97,6 @@ impl Drop for CallbackObject {
             RemoveRawValueRoot(cx, self.permanent_js_root.get_unsafe());
         }
     }
-
 }
 
 impl PartialEq for CallbackObject {
@@ -102,7 +104,6 @@ impl PartialEq for CallbackObject {
         self.callback.get() == other.callback.get()
     }
 }
-
 
 /// A trait to be implemented by concrete IDL callback function and
 /// callback interface types.
@@ -123,7 +124,6 @@ pub trait CallbackContainer {
         self.callback_holder().incumbent.as_ref().map(Dom::deref)
     }
 }
-
 
 /// A common base class for representing IDL callback function types.
 #[derive(JSTraceable, PartialEq)]
@@ -152,9 +152,6 @@ impl CallbackFunction {
         self.object.init(cx, callback);
     }
 }
-
-
-
 
 /// A common base class for representing IDL callback interface types.
 #[derive(JSTraceable, PartialEq)]
@@ -194,19 +191,22 @@ impl CallbackInterface {
             }
 
             if !callable.is_object() || !IsCallable(callable.to_object()) {
-                return Err(Error::Type(format!("The value of the {} property is not callable",
-                                               name)));
+                return Err(Error::Type(format!(
+                    "The value of the {} property is not callable",
+                    name
+                )));
             }
         }
         Ok(callable.get())
     }
 }
 
-
 /// Wraps the reflector for `p` into the compartment of `cx`.
-pub fn wrap_call_this_object<T: DomObject>(cx: *mut JSContext,
-                                           p: &T,
-                                           mut rval: MutableHandleObject) {
+pub fn wrap_call_this_object<T: DomObject>(
+    cx: *mut JSContext,
+    p: &T,
+    mut rval: MutableHandleObject,
+) {
     rval.set(p.reflector().get_jsobject().get());
     assert!(!rval.get().is_null());
 
@@ -216,7 +216,6 @@ pub fn wrap_call_this_object<T: DomObject>(cx: *mut JSContext,
         }
     }
 }
-
 
 /// A class that performs whatever setup we need to safely make a call while
 /// this class is on the stack. After `new` returns, the call is safe to make.
@@ -241,9 +240,7 @@ pub struct CallSetup {
 impl CallSetup {
     /// Performs the setup needed to make a call.
     #[allow(unrooted_must_root)]
-    pub fn new<T: CallbackContainer>(callback: &T,
-                                     handling: ExceptionHandling)
-                                     -> CallSetup {
+    pub fn new<T: CallbackContainer>(callback: &T, handling: ExceptionHandling) -> CallSetup {
         let global = unsafe { GlobalScope::from_object(callback.callback()) };
         let cx = global.get_cx();
 
@@ -270,8 +267,10 @@ impl Drop for CallSetup {
         unsafe {
             JS_LeaveCompartment(self.cx, self.old_compartment);
             if self.handling == ExceptionHandling::Report {
-                let _ac = JSAutoCompartment::new(self.cx,
-                                                 self.exception_global.reflector().get_jsobject().get());
+                let _ac = JSAutoCompartment::new(
+                    self.cx,
+                    self.exception_global.reflector().get_jsobject().get(),
+                );
                 report_pending_exception(self.cx, true);
             }
             drop(self.incumbent_script.take());

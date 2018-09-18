@@ -22,7 +22,7 @@ use std::default::Default;
 pub struct UIEvent {
     event: Event,
     view: MutNullableDom<Window>,
-    detail: Cell<i32>
+    detail: Cell<i32>,
 }
 
 impl UIEvent {
@@ -35,31 +35,47 @@ impl UIEvent {
     }
 
     pub fn new_uninitialized(window: &Window) -> DomRoot<UIEvent> {
-        reflect_dom_object(Box::new(UIEvent::new_inherited()),
-                           window,
-                           UIEventBinding::Wrap)
+        reflect_dom_object(
+            Box::new(UIEvent::new_inherited()),
+            window,
+            UIEventBinding::Wrap,
+        )
     }
 
-    pub fn new(window: &Window,
-               type_: DOMString,
-               can_bubble: EventBubbles,
-               cancelable: EventCancelable,
-               view: Option<&Window>,
-               detail: i32) -> DomRoot<UIEvent> {
+    pub fn new(
+        window: &Window,
+        type_: DOMString,
+        can_bubble: EventBubbles,
+        cancelable: EventCancelable,
+        view: Option<&Window>,
+        detail: i32,
+    ) -> DomRoot<UIEvent> {
         let ev = UIEvent::new_uninitialized(window);
-        ev.InitUIEvent(type_, bool::from(can_bubble), bool::from(cancelable), view, detail);
+        ev.InitUIEvent(
+            type_,
+            bool::from(can_bubble),
+            bool::from(cancelable),
+            view,
+            detail,
+        );
         ev
     }
 
-    pub fn Constructor(window: &Window,
-                       type_: DOMString,
-                       init: &UIEventBinding::UIEventInit) -> Fallible<DomRoot<UIEvent>> {
+    pub fn Constructor(
+        window: &Window,
+        type_: DOMString,
+        init: &UIEventBinding::UIEventInit,
+    ) -> Fallible<DomRoot<UIEvent>> {
         let bubbles = EventBubbles::from(init.parent.bubbles);
         let cancelable = EventCancelable::from(init.parent.cancelable);
-        let event = UIEvent::new(window,
-                                 type_,
-                                 bubbles, cancelable,
-                                 init.view.r(), init.detail);
+        let event = UIEvent::new(
+            window,
+            type_,
+            bubbles,
+            cancelable,
+            init.view.r(),
+            init.detail,
+        );
         Ok(event)
     }
 }
@@ -76,12 +92,14 @@ impl UIEventMethods for UIEvent {
     }
 
     // https://w3c.github.io/uievents/#widl-UIEvent-initUIEvent
-    fn InitUIEvent(&self,
-                   type_: DOMString,
-                   can_bubble: bool,
-                   cancelable: bool,
-                   view: Option<&Window>,
-                   detail: i32) {
+    fn InitUIEvent(
+        &self,
+        type_: DOMString,
+        can_bubble: bool,
+        cancelable: bool,
+        view: Option<&Window>,
+        detail: i32,
+    ) {
         let event = self.upcast::<Event>();
         if event.dispatching() {
             return;

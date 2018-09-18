@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-
 pub mod dom_manipulation;
 pub mod file_reading;
 pub mod history_traversal;
@@ -42,11 +41,7 @@ impl TaskSourceName {
 pub trait TaskSource {
     const NAME: TaskSourceName;
 
-    fn queue_with_canceller<T>(
-        &self,
-        task: T,
-        canceller: &TaskCanceller,
-    ) -> Result<(), ()>
+    fn queue_with_canceller<T>(&self, task: T, canceller: &TaskCanceller) -> Result<(), ()>
     where
         T: TaskOnce + 'static;
 

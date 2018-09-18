@@ -28,7 +28,7 @@ pub struct VRFrameData {
     right_view: Heap<*mut JSObject>,
     pose: Dom<VRPose>,
     timestamp: Cell<f64>,
-    first_timestamp: Cell<f64>
+    first_timestamp: Cell<f64>,
 }
 
 impl VRFrameData {
@@ -41,21 +41,22 @@ impl VRFrameData {
             right_view: Heap::default(),
             pose: Dom::from_ref(&*pose),
             timestamp: Cell::new(0.0),
-            first_timestamp: Cell::new(0.0)
+            first_timestamp: Cell::new(0.0),
         }
     }
 
     #[allow(unsafe_code)]
     fn new(global: &GlobalScope) -> DomRoot<VRFrameData> {
-        let matrix = [1.0, 0.0, 0.0, 0.0,
-                      0.0, 1.0, 0.0, 0.0,
-                      0.0, 0.0, 1.0, 0.0,
-                      0.0, 0.0, 0.0, 1.0f32];
+        let matrix = [
+            1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0f32,
+        ];
         let pose = VRPose::new(&global, &Default::default());
 
-        let root = reflect_dom_object(Box::new(VRFrameData::new_inherited(&pose)),
-                                      global,
-                                      VRFrameDataBinding::Wrap);
+        let root = reflect_dom_object(
+            Box::new(VRFrameData::new_inherited(&pose)),
+            global,
+            VRFrameDataBinding::Wrap,
+        );
         let cx = global.get_cx();
         create_typed_array(cx, &matrix, &root.left_proj);
         create_typed_array(cx, &matrix, &root.left_view);
@@ -69,7 +70,6 @@ impl VRFrameData {
         Ok(VRFrameData::new(&window.global()))
     }
 }
-
 
 #[allow(unsafe_code)]
 fn create_typed_array(cx: *mut JSContext, src: &[f32], dst: &Heap<*mut JSObject>) {

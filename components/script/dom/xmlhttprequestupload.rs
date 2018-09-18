@@ -11,7 +11,7 @@ use dom_struct::dom_struct;
 
 #[dom_struct]
 pub struct XMLHttpRequestUpload {
-    eventtarget: XMLHttpRequestEventTarget
+    eventtarget: XMLHttpRequestEventTarget,
 }
 
 impl XMLHttpRequestUpload {
@@ -21,8 +21,10 @@ impl XMLHttpRequestUpload {
         }
     }
     pub fn new(global: &GlobalScope) -> DomRoot<XMLHttpRequestUpload> {
-        reflect_dom_object(Box::new(XMLHttpRequestUpload::new_inherited()),
-                           global,
-                           XMLHttpRequestUploadBinding::Wrap)
+        reflect_dom_object(
+            Box::new(XMLHttpRequestUpload::new_inherited()),
+            global,
+            XMLHttpRequestUploadBinding::Wrap,
+        )
     }
 }

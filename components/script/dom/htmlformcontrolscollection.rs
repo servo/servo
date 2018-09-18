@@ -23,18 +23,25 @@ pub struct HTMLFormControlsCollection {
 }
 
 impl HTMLFormControlsCollection {
-    fn new_inherited(root: &Node, filter: Box<CollectionFilter + 'static>) -> HTMLFormControlsCollection {
+    fn new_inherited(
+        root: &Node,
+        filter: Box<CollectionFilter + 'static>,
+    ) -> HTMLFormControlsCollection {
         HTMLFormControlsCollection {
-            collection: HTMLCollection::new_inherited(root, filter)
+            collection: HTMLCollection::new_inherited(root, filter),
         }
     }
 
-    pub fn new(window: &Window, root: &Node, filter: Box<CollectionFilter + 'static>)
-        -> DomRoot<HTMLFormControlsCollection>
-    {
-        reflect_dom_object(Box::new(HTMLFormControlsCollection::new_inherited(root, filter)),
-                           window,
-                           HTMLFormControlsCollectionBinding::Wrap)
+    pub fn new(
+        window: &Window,
+        root: &Node,
+        filter: Box<CollectionFilter + 'static>,
+    ) -> DomRoot<HTMLFormControlsCollection> {
+        reflect_dom_object(
+            Box::new(HTMLFormControlsCollection::new_inherited(root, filter)),
+            window,
+            HTMLFormControlsCollectionBinding::Wrap,
+        )
     }
 
     // FIXME: This shouldn't need to be implemented here since HTMLCollection (the parent of
@@ -48,13 +55,18 @@ impl HTMLFormControlsCollectionMethods for HTMLFormControlsCollection {
     // https://html.spec.whatwg.org/multipage/#dom-htmlformcontrolscollection-nameditem
     fn NamedItem(&self, name: DOMString) -> Option<RadioNodeListOrElement> {
         // Step 1
-        if name.is_empty() { return None; }
+        if name.is_empty() {
+            return None;
+        }
 
         let mut filter_map = self.collection.elements_iter().filter_map(|elem| {
-            if elem.get_string_attribute(&local_name!("name")) == name
-               || elem.get_string_attribute(&local_name!("id")) == name {
+            if elem.get_string_attribute(&local_name!("name")) == name ||
+                elem.get_string_attribute(&local_name!("id")) == name
+            {
                 Some(elem)
-            } else { None }
+            } else {
+                None
+            }
         });
 
         if let Some(elem) = filter_map.next() {
@@ -68,11 +80,14 @@ impl HTMLFormControlsCollectionMethods for HTMLFormControlsCollection {
                 let list = once.chain(peekable.map(DomRoot::upcast));
                 let global = self.global();
                 let window = global.as_window();
-                Some(RadioNodeListOrElement::RadioNodeList(RadioNodeList::new_simple_list(window, list)))
+                Some(RadioNodeListOrElement::RadioNodeList(
+                    RadioNodeList::new_simple_list(window, list),
+                ))
             }
         // Step 3
-        } else { None }
-
+        } else {
+            None
+        }
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-htmlformcontrolscollection-nameditem

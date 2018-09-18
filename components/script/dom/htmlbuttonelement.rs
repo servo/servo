@@ -29,13 +29,12 @@ use std::cell::Cell;
 use std::default::Default;
 use style::element_state::ElementState;
 
-#[derive(Clone, Copy, JSTraceable, PartialEq)]
-#[derive(MallocSizeOf)]
+#[derive(Clone, Copy, JSTraceable, MallocSizeOf, PartialEq )]
 enum ButtonType {
     Submit,
     Reset,
     Button,
-    Menu
+    Menu,
 }
 
 #[dom_struct]
@@ -46,25 +45,36 @@ pub struct HTMLButtonElement {
 }
 
 impl HTMLButtonElement {
-    fn new_inherited(local_name: LocalName,
-                     prefix: Option<Prefix>,
-                     document: &Document) -> HTMLButtonElement {
+    fn new_inherited(
+        local_name: LocalName,
+        prefix: Option<Prefix>,
+        document: &Document,
+    ) -> HTMLButtonElement {
         HTMLButtonElement {
-            htmlelement:
-                HTMLElement::new_inherited_with_state(ElementState::IN_ENABLED_STATE,
-                                                      local_name, prefix, document),
+            htmlelement: HTMLElement::new_inherited_with_state(
+                ElementState::IN_ENABLED_STATE,
+                local_name,
+                prefix,
+                document,
+            ),
             button_type: Cell::new(ButtonType::Submit),
             form_owner: Default::default(),
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(local_name: LocalName,
-               prefix: Option<Prefix>,
-               document: &Document) -> DomRoot<HTMLButtonElement> {
-        Node::reflect_node(Box::new(HTMLButtonElement::new_inherited(local_name, prefix, document)),
-                           document,
-                           HTMLButtonElementBinding::Wrap)
+    pub fn new(
+        local_name: LocalName,
+        prefix: Option<Prefix>,
+        document: &Document,
+    ) -> DomRoot<HTMLButtonElement> {
+        Node::reflect_node(
+            Box::new(HTMLButtonElement::new_inherited(
+                local_name, prefix, document,
+            )),
+            document,
+            HTMLButtonElementBinding::Wrap,
+        )
     }
 }
 
@@ -99,10 +109,12 @@ impl HTMLButtonElementMethods for HTMLButtonElement {
     make_setter!(SetFormAction, "formaction");
 
     // https://html.spec.whatwg.org/multipage/#dom-fs-formenctype
-    make_enumerated_getter!(FormEnctype,
-                            "formenctype",
-                            "application/x-www-form-urlencoded",
-                            "text/plain" | "multipart/form-data");
+    make_enumerated_getter!(
+        FormEnctype,
+        "formenctype",
+        "application/x-www-form-urlencoded",
+        "text/plain" | "multipart/form-data"
+    );
 
     // https://html.spec.whatwg.org/multipage/#dom-fs-formenctype
     make_setter!(SetFormEnctype, "formenctype");
@@ -152,10 +164,10 @@ impl HTMLButtonElement {
         // Step 3.1: only run steps if this is the submitter
         if let Some(FormSubmitter::ButtonElement(submitter)) = submitter {
             if submitter != self {
-                return None
+                return None;
             }
         } else {
-            return None
+            return None;
         }
         // Step 3.2
         let ty = self.Type();
@@ -171,7 +183,7 @@ impl HTMLButtonElement {
         Some(FormDatum {
             ty: ty,
             name: name,
-            value: FormDatumValue::String(self.Value())
+            value: FormDatumValue::String(self.Value()),
         })
     }
 }
@@ -187,7 +199,7 @@ impl VirtualMethods for HTMLButtonElement {
             &local_name!("disabled") => {
                 let el = self.upcast::<Element>();
                 match mutation {
-                    AttributeMutation::Set(Some(_)) => {}
+                    AttributeMutation::Set(Some(_)) => {},
                     AttributeMutation::Set(None) => {
                         el.set_disabled_state(true);
                         el.set_enabled_state(false);
@@ -196,28 +208,26 @@ impl VirtualMethods for HTMLButtonElement {
                         el.set_disabled_state(false);
                         el.set_enabled_state(true);
                         el.check_ancestors_disabled_state_for_form_control();
-                    }
+                    },
                 }
             },
-            &local_name!("type") => {
-                match mutation {
-                    AttributeMutation::Set(_) => {
-                        let value = match &**attr.value() {
-                            "reset" => ButtonType::Reset,
-                            "button" => ButtonType::Button,
-                            "menu" => ButtonType::Menu,
-                            _ => ButtonType::Submit,
-                        };
-                        self.button_type.set(value);
-                    }
-                    AttributeMutation::Removed => {
-                        self.button_type.set(ButtonType::Submit);
-                    }
-                }
+            &local_name!("type") => match mutation {
+                AttributeMutation::Set(_) => {
+                    let value = match &**attr.value() {
+                        "reset" => ButtonType::Reset,
+                        "button" => ButtonType::Button,
+                        "menu" => ButtonType::Menu,
+                        _ => ButtonType::Submit,
+                    };
+                    self.button_type.set(value);
+                },
+                AttributeMutation::Removed => {
+                    self.button_type.set(ButtonType::Submit);
+                },
             },
             &local_name!("form") => {
                 self.form_attribute_mutated(mutation);
-            }
+            },
             _ => {},
         }
     }
@@ -227,7 +237,8 @@ impl VirtualMethods for HTMLButtonElement {
             s.bind_to_tree(tree_in_doc);
         }
 
-        self.upcast::<Element>().check_ancestors_disabled_state_for_form_control();
+        self.upcast::<Element>()
+            .check_ancestors_disabled_state_for_form_control();
     }
 
     fn unbind_from_tree(&self, context: &UnbindContext) {
@@ -235,7 +246,10 @@ impl VirtualMethods for HTMLButtonElement {
 
         let node = self.upcast::<Node>();
         let el = self.upcast::<Element>();
-        if node.ancestors().any(|ancestor| ancestor.is::<HTMLFieldSetElement>()) {
+        if node
+            .ancestors()
+            .any(|ancestor| ancestor.is::<HTMLFieldSetElement>())
+        {
             el.check_ancestors_disabled_state_for_form_control();
         } else {
             el.check_disabled_attribute();
@@ -280,12 +294,10 @@ impl Activatable for HTMLButtonElement {
 
     // https://html.spec.whatwg.org/multipage/#run-pre-click-activation-steps
     // https://html.spec.whatwg.org/multipage/#the-button-element:activation-behavior
-    fn pre_click_activation(&self) {
-    }
+    fn pre_click_activation(&self) {}
 
     // https://html.spec.whatwg.org/multipage/#run-canceled-activation-steps
-    fn canceled_activation(&self) {
-    }
+    fn canceled_activation(&self) {}
 
     // https://html.spec.whatwg.org/multipage/#run-post-click-activation-steps
     fn activation_behavior(&self, _event: &Event, _target: &EventTarget) {
@@ -295,16 +307,18 @@ impl Activatable for HTMLButtonElement {
             ButtonType::Submit => {
                 // TODO: is document owner fully active?
                 if let Some(owner) = self.form_owner() {
-                    owner.submit(SubmittedFrom::NotFromForm,
-                                 FormSubmitter::ButtonElement(self.clone()));
+                    owner.submit(
+                        SubmittedFrom::NotFromForm,
+                        FormSubmitter::ButtonElement(self.clone()),
+                    );
                 }
-            }
+            },
             ButtonType::Reset => {
                 // TODO: is document owner fully active?
                 if let Some(owner) = self.form_owner() {
                     owner.reset(ResetFrom::NotFromForm);
                 }
-            }
+            },
             _ => (),
         }
     }
@@ -318,14 +332,19 @@ impl Activatable for HTMLButtonElement {
         if owner.is_none() || self.upcast::<Element>().click_in_progress() {
             return;
         }
-        node.query_selector_iter(DOMString::from("button[type=submit]")).unwrap()
+        node.query_selector_iter(DOMString::from("button[type=submit]"))
+            .unwrap()
             .filter_map(DomRoot::downcast::<HTMLButtonElement>)
             .find(|r| r.form_owner() == owner)
-            .map(|s| synthetic_click_activation(s.as_element(),
-                                                ctrl_key,
-                                                shift_key,
-                                                alt_key,
-                                                meta_key,
-                                                ActivationSource::NotFromClick));
+            .map(|s| {
+                synthetic_click_activation(
+                    s.as_element(),
+                    ctrl_key,
+                    shift_key,
+                    alt_key,
+                    meta_key,
+                    ActivationSource::NotFromClick,
+                )
+            });
     }
 }

@@ -90,7 +90,7 @@ impl Ord for OneshotTimer {
     fn cmp(&self, other: &OneshotTimer) -> Ordering {
         match self.scheduled_for.cmp(&other.scheduled_for).reverse() {
             Ordering::Equal => self.handle.cmp(&other.handle).reverse(),
-            res => res
+            res => res,
         }
     }
 }
@@ -109,9 +109,10 @@ impl PartialEq for OneshotTimer {
 }
 
 impl OneshotTimers {
-    pub fn new(timer_event_chan: IpcSender<TimerEvent>,
-               scheduler_chan: IpcSender<TimerSchedulerMsg>)
-               -> OneshotTimers {
+    pub fn new(
+        timer_event_chan: IpcSender<TimerEvent>,
+        scheduler_chan: IpcSender<TimerSchedulerMsg>,
+    ) -> OneshotTimers {
         OneshotTimers {
             js_timers: JsTimers::new(),
             timer_event_chan: timer_event_chan,
@@ -124,13 +125,15 @@ impl OneshotTimers {
         }
     }
 
-    pub fn schedule_callback(&self,
-                             callback: OneshotTimerCallback,
-                             duration: MsDuration,
-                             source: TimerSource)
-                             -> OneshotTimerHandle {
+    pub fn schedule_callback(
+        &self,
+        callback: OneshotTimerCallback,
+        duration: MsDuration,
+        source: TimerSource,
+    ) -> OneshotTimerHandle {
         let new_handle = self.next_timer_handle.get();
-        self.next_timer_handle.set(OneshotTimerHandle(new_handle.0 + 1));
+        self.next_timer_handle
+            .set(OneshotTimerHandle(new_handle.0 + 1));
 
         let scheduled_for = self.base_time() + duration;
 
@@ -168,14 +171,17 @@ impl OneshotTimers {
     fn is_next_timer(&self, handle: OneshotTimerHandle) -> bool {
         match self.timers.borrow().last() {
             None => false,
-            Some(ref max_timer) => max_timer.handle == handle
+            Some(ref max_timer) => max_timer.handle == handle,
         }
     }
 
     pub fn fire_timer(&self, id: TimerEventId, global: &GlobalScope) {
         let expected_id = self.expected_event_id.get();
         if expected_id != id {
-            debug!("ignoring timer fire event {:?} (expected {:?})", id, expected_id);
+            debug!(
+                "ignoring timer fire event {:?} (expected {:?})",
+                id, expected_id
+            );
             return;
         }
 
@@ -221,7 +227,10 @@ impl OneshotTimers {
     }
 
     pub fn slow_down(&self) {
-        let duration = PREFS.get("js.timers.minimum_duration").as_u64().unwrap_or(1000);
+        let duration = PREFS
+            .get("js.timers.minimum_duration")
+            .as_u64()
+            .unwrap_or(1000);
         self.js_timers.set_min_duration(MsDuration::new(duration));
     }
 
@@ -248,7 +257,8 @@ impl OneshotTimers {
         };
 
         debug!("Resuming timers.");
-        self.suspension_offset.set(self.suspension_offset.get() + additional_offset);
+        self.suspension_offset
+            .set(self.suspension_offset.get() + additional_offset);
         self.suspended_since.set(None);
 
         self.schedule_timer_call();
@@ -265,35 +275,52 @@ impl OneshotTimers {
         if let Some(timer) = timers.last() {
             let expected_event_id = self.invalidate_expected_event_id();
 
-            let delay = Length::new(timer.scheduled_for.get().saturating_sub(precise_time_ms().get()));
-            let request = TimerEventRequest(self.timer_event_chan.clone(), timer.source,
-                                            expected_event_id, delay);
-            self.scheduler_chan.send(TimerSchedulerMsg::Request(request)).unwrap();
+            let delay = Length::new(
+                timer
+                    .scheduled_for
+                    .get()
+                    .saturating_sub(precise_time_ms().get()),
+            );
+            let request = TimerEventRequest(
+                self.timer_event_chan.clone(),
+                timer.source,
+                expected_event_id,
+                delay,
+            );
+            self.scheduler_chan
+                .send(TimerSchedulerMsg::Request(request))
+                .unwrap();
         }
     }
 
     fn invalidate_expected_event_id(&self) -> TimerEventId {
         let TimerEventId(currently_expected) = self.expected_event_id.get();
         let next_id = TimerEventId(currently_expected + 1);
-        debug!("invalidating expected timer (was {:?}, now {:?}", currently_expected, next_id);
+        debug!(
+            "invalidating expected timer (was {:?}, now {:?}",
+            currently_expected, next_id
+        );
         self.expected_event_id.set(next_id);
         next_id
     }
 
-    pub fn set_timeout_or_interval(&self,
-                               global: &GlobalScope,
-                               callback: TimerCallback,
-                               arguments: Vec<HandleValue>,
-                               timeout: i32,
-                               is_interval: IsInterval,
-                               source: TimerSource)
-                               -> i32 {
-        self.js_timers.set_timeout_or_interval(global,
-                                               callback,
-                                               arguments,
-                                               timeout,
-                                               is_interval,
-                                               source)
+    pub fn set_timeout_or_interval(
+        &self,
+        global: &GlobalScope,
+        callback: TimerCallback,
+        arguments: Vec<HandleValue>,
+        timeout: i32,
+        is_interval: IsInterval,
+        source: TimerSource,
+    ) -> i32 {
+        self.js_timers.set_timeout_or_interval(
+            global,
+            callback,
+            arguments,
+            timeout,
+            is_interval,
+            source,
+        )
     }
 
     pub fn clear_timeout_or_interval(&self, global: &GlobalScope, handle: i32) {
@@ -351,10 +378,9 @@ pub enum TimerCallback {
 enum InternalTimerCallback {
     StringTimerCallback(DOMString),
     FunctionTimerCallback(
-        #[ignore_malloc_size_of = "Rc"]
-        Rc<Function>,
-        #[ignore_malloc_size_of = "Rc"]
-        Rc<Box<[Heap<JSVal>]>>),
+        #[ignore_malloc_size_of = "Rc"] Rc<Function>,
+        #[ignore_malloc_size_of = "Rc"] Rc<Box<[Heap<JSVal>]>>,
+    ),
 }
 
 impl JsTimers {
@@ -368,17 +394,19 @@ impl JsTimers {
     }
 
     // see https://html.spec.whatwg.org/multipage/#timer-initialisation-steps
-    pub fn set_timeout_or_interval(&self,
-                               global: &GlobalScope,
-                               callback: TimerCallback,
-                               arguments: Vec<HandleValue>,
-                               timeout: i32,
-                               is_interval: IsInterval,
-                               source: TimerSource)
-                               -> i32 {
+    pub fn set_timeout_or_interval(
+        &self,
+        global: &GlobalScope,
+        callback: TimerCallback,
+        arguments: Vec<HandleValue>,
+        timeout: i32,
+        is_interval: IsInterval,
+        source: TimerSource,
+    ) -> i32 {
         let callback = match callback {
-            TimerCallback::StringTimerCallback(code_str) =>
-                InternalTimerCallback::StringTimerCallback(code_str),
+            TimerCallback::StringTimerCallback(code_str) => {
+                InternalTimerCallback::StringTimerCallback(code_str)
+            },
             TimerCallback::FunctionTimerCallback(function) => {
                 // This is a bit complicated, but this ensures that the vector's
                 // buffer isn't reallocated (and moved) after setting the Heap values
@@ -389,8 +417,11 @@ impl JsTimers {
                 for (i, item) in arguments.iter().enumerate() {
                     args.get_mut(i).unwrap().set(item.get());
                 }
-                InternalTimerCallback::FunctionTimerCallback(function, Rc::new(args.into_boxed_slice()))
-            }
+                InternalTimerCallback::FunctionTimerCallback(
+                    function,
+                    Rc::new(args.into_boxed_slice()),
+                )
+            },
         };
 
         // step 2
@@ -438,10 +469,8 @@ impl JsTimers {
     // see step 13 of https://html.spec.whatwg.org/multipage/#timer-initialisation-steps
     fn user_agent_pad(&self, current_duration: MsDuration) -> MsDuration {
         match self.min_duration.get() {
-            Some(min_duration) => {
-                cmp::max(min_duration, current_duration)
-            },
-            None => current_duration
+            Some(min_duration) => cmp::max(min_duration, current_duration),
+            None => current_duration,
         }
     }
 
@@ -472,11 +501,7 @@ impl JsTimers {
 
 // see step 7 of https://html.spec.whatwg.org/multipage/#timer-initialisation-steps
 fn clamp_duration(nesting_level: u32, unclamped: MsDuration) -> MsDuration {
-    let lower_bound = if nesting_level > 5 {
-        4
-    } else {
-        0
-    };
+    let lower_bound = if nesting_level > 5 { 4 } else { 0 };
 
     cmp::max(Length::new(lower_bound), unclamped)
 }
@@ -497,8 +522,7 @@ impl JsTimerTask {
                 let cx = global.get_cx();
                 rooted!(in(cx) let mut rval = UndefinedValue());
 
-                global.evaluate_js_on_global_with_result(
-                    code_str, rval.handle_mut());
+                global.evaluate_js_on_global_with_result(code_str, rval.handle_mut());
             },
             InternalTimerCallback::FunctionTimerCallback(ref function, ref arguments) => {
                 let arguments = self.collect_heap_args(arguments);
@@ -513,7 +537,8 @@ impl JsTimerTask {
         // Since we choose proactively prevent execution (see 4.1 above), we must only
         // reschedule repeating timers when they were not canceled as part of step 4.2.
         if self.is_interval == IsInterval::Interval &&
-            timers.active_timers.borrow().contains_key(&self.handle) {
+            timers.active_timers.borrow().contains_key(&self.handle)
+        {
             timers.initialize_and_schedule(&this.global(), self);
         }
     }
@@ -522,6 +547,8 @@ impl JsTimerTask {
     // always done via rooted JsTimers, which is safe.
     #[allow(unsafe_code)]
     fn collect_heap_args<'b>(&self, args: &'b [Heap<JSVal>]) -> Vec<HandleValue<'b>> {
-        args.iter().map(|arg| unsafe { HandleValue::from_raw(arg.handle()) }).collect()
+        args.iter()
+            .map(|arg| unsafe { HandleValue::from_raw(arg.handle()) })
+            .collect()
     }
 }

@@ -84,7 +84,7 @@ unsafe_no_jsmanaged_fields!(WebVRLayer);
 enum VRFrameDataStatus {
     Waiting,
     Synced,
-    Exit
+    Exit,
 }
 
 unsafe_no_jsmanaged_fields!(VRFrameDataStatus);
@@ -93,7 +93,7 @@ impl VRDisplay {
     fn new_inherited(global: &GlobalScope, display: WebVRDisplayData) -> VRDisplay {
         let stage = match display.stage_parameters {
             Some(ref params) => Some(VRStageParameters::new(params.clone(), &global)),
-            None => None
+            None => None,
         };
 
         VRDisplay {
@@ -102,9 +102,18 @@ impl VRDisplay {
             depth_near: Cell::new(0.01),
             depth_far: Cell::new(10000.0),
             presenting: Cell::new(false),
-            left_eye_params: MutDom::new(&*VREyeParameters::new(display.left_eye_parameters.clone(), &global)),
-            right_eye_params: MutDom::new(&*VREyeParameters::new(display.right_eye_parameters.clone(), &global)),
-            capabilities: MutDom::new(&*VRDisplayCapabilities::new(display.capabilities.clone(), &global)),
+            left_eye_params: MutDom::new(&*VREyeParameters::new(
+                display.left_eye_parameters.clone(),
+                &global,
+            )),
+            right_eye_params: MutDom::new(&*VREyeParameters::new(
+                display.right_eye_parameters.clone(),
+                &global,
+            )),
+            capabilities: MutDom::new(&*VRDisplayCapabilities::new(
+                display.capabilities.clone(),
+                &global,
+            )),
             stage_params: MutNullableDom::new(stage.as_ref().map(|v| v.deref())),
             frame_data: DomRefCell::new(Default::default()),
             layer: DomRefCell::new(Default::default()),
@@ -119,14 +128,16 @@ impl VRDisplay {
             paused: Cell::new(false),
             // This flag is set when the Display was presenting when it received a VR Pause event.
             // When the VR Resume event is received and the flag is set, VR presentation automatically restarts.
-            stopped_on_pause: Cell::new(false)
+            stopped_on_pause: Cell::new(false),
         }
     }
 
     pub fn new(global: &GlobalScope, display: WebVRDisplayData) -> DomRoot<VRDisplay> {
-        reflect_dom_object(Box::new(VRDisplay::new_inherited(&global, display)),
-                           global,
-                           VRDisplayBinding::Wrap)
+        reflect_dom_object(
+            Box::new(VRDisplay::new_inherited(&global, display)),
+            global,
+            VRDisplayBinding::Wrap,
+        )
     }
 }
 
@@ -163,7 +174,7 @@ impl VRDisplayMethods for VRDisplay {
     fn GetEyeParameters(&self, eye: VREye) -> DomRoot<VREyeParameters> {
         match eye {
             VREye::Left => DomRoot::from_ref(&*self.left_eye_params.get()),
-            VREye::Right => DomRoot::from_ref(&*self.right_eye_params.get())
+            VREye::Right => DomRoot::from_ref(&*self.right_eye_params.get()),
         }
     }
 
@@ -189,17 +200,20 @@ impl VRDisplayMethods for VRDisplay {
             if self.frame_data_status.get() == VRFrameDataStatus::Waiting {
                 self.sync_frame_data();
             }
-            frameData.update(& self.frame_data.borrow());
+            frameData.update(&self.frame_data.borrow());
             return true;
         }
 
         // If not presenting we fetch inmediante VRFrameData
         let (sender, receiver) = ipc::channel(self.global().time_profiler_chan().clone()).unwrap();
-        self.webvr_thread().send(WebVRMsg::GetFrameData(self.global().pipeline_id(),
-                                                        self.DisplayId(),
-                                                        self.depth_near.get(),
-                                                        self.depth_far.get(),
-                                                        sender)).unwrap();
+        self.webvr_thread()
+            .send(WebVRMsg::GetFrameData(
+                self.global().pipeline_id(),
+                self.DisplayId(),
+                self.depth_near.get(),
+                self.depth_far.get(),
+                sender,
+            )).unwrap();
         return match receiver.recv().unwrap() {
             Ok(data) => {
                 frameData.update(&data);
@@ -208,7 +222,7 @@ impl VRDisplayMethods for VRDisplay {
             Err(e) => {
                 error!("WebVR::GetFrameData: {:?}", e);
                 false
-            }
+            },
         };
     }
 
@@ -220,9 +234,12 @@ impl VRDisplayMethods for VRDisplay {
     // https://w3c.github.io/webvr/#dom-vrdisplay-resetpose
     fn ResetPose(&self) {
         let (sender, receiver) = ipc::channel(self.global().time_profiler_chan().clone()).unwrap();
-        self.webvr_thread().send(WebVRMsg::ResetPose(self.global().pipeline_id(),
-                                                     self.DisplayId(),
-                                                     sender)).unwrap();
+        self.webvr_thread()
+            .send(WebVRMsg::ResetPose(
+                self.global().pipeline_id(),
+                self.DisplayId(),
+                sender,
+            )).unwrap();
         if let Ok(data) = receiver.recv().unwrap() {
             // Some VRDisplay data might change after calling ResetPose()
             *self.display.borrow_mut() = data;
@@ -254,7 +271,9 @@ impl VRDisplayMethods for VRDisplay {
         if self.presenting.get() {
             let raf_id = self.next_raf_id.get();
             self.next_raf_id.set(raf_id + 1);
-            self.raf_callback_list.borrow_mut().push((raf_id, Some(callback)));
+            self.raf_callback_list
+                .borrow_mut()
+                .push((raf_id, Some(callback)));
             raf_id
         } else {
             // WebVR spec: When a VRDisplay is not presenting it should
@@ -315,7 +334,7 @@ impl VRDisplayMethods for VRDisplay {
                 let msg = msg.to_string();
                 promise.reject_native(&msg);
                 return promise;
-            }
+            },
         };
 
         // WebVR spec: Repeat calls while already presenting will update the VRLayers being displayed.
@@ -328,10 +347,12 @@ impl VRDisplayMethods for VRDisplay {
 
         // Request Present
         let (sender, receiver) = ipc::channel(self.global().time_profiler_chan().clone()).unwrap();
-        self.webvr_thread().send(WebVRMsg::RequestPresent(self.global().pipeline_id(),
-                                                          self.display.borrow().display_id,
-                                                          sender))
-                                                          .unwrap();
+        self.webvr_thread()
+            .send(WebVRMsg::RequestPresent(
+                self.global().pipeline_id(),
+                self.display.borrow().display_id,
+                sender,
+            )).unwrap();
         match receiver.recv().unwrap() {
             Ok(()) => {
                 *self.layer.borrow_mut() = layer_bounds;
@@ -341,7 +362,7 @@ impl VRDisplayMethods for VRDisplay {
             },
             Err(e) => {
                 promise.reject_native(&e);
-            }
+            },
         }
 
         promise
@@ -361,10 +382,12 @@ impl VRDisplayMethods for VRDisplay {
 
         // Exit present
         let (sender, receiver) = ipc::channel(self.global().time_profiler_chan().clone()).unwrap();
-        self.webvr_thread().send(WebVRMsg::ExitPresent(self.global().pipeline_id(),
-                                                       self.display.borrow().display_id,
-                                                       Some(sender)))
-                                                       .unwrap();
+        self.webvr_thread()
+            .send(WebVRMsg::ExitPresent(
+                self.global().pipeline_id(),
+                self.display.borrow().display_id,
+                Some(sender),
+            )).unwrap();
         match receiver.recv().unwrap() {
             Ok(()) => {
                 self.stop_present();
@@ -372,7 +395,7 @@ impl VRDisplayMethods for VRDisplay {
             },
             Err(e) => {
                 promise.reject_native(&e);
-            }
+            },
         }
 
         promise
@@ -410,7 +433,10 @@ impl VRDisplayMethods for VRDisplay {
 
 impl VRDisplay {
     fn webvr_thread(&self) -> IpcSender<WebVRMsg> {
-        self.global().as_window().webvr_thread().expect("Shouldn't arrive here with WebVR disabled")
+        self.global()
+            .as_window()
+            .webvr_thread()
+            .expect("Shouldn't arrive here with WebVR disabled")
     }
 
     pub fn update_display(&self, display: &WebVRDisplayData) {
@@ -461,7 +487,6 @@ impl VRDisplay {
                     self.stop_present();
                     self.stopped_on_pause.set(true);
                 }
-
             },
             WebVRDisplayEvent::Resume(_) => {
                 self.paused.set(false);
@@ -475,14 +500,16 @@ impl VRDisplay {
                 if self.presenting.get() {
                     self.stop_present();
                 }
-            }
+            },
         };
     }
 
     fn notify_event(&self, event: &WebVRDisplayEvent) {
         let root = DomRoot::from_ref(&*self);
         let event = VRDisplayEvent::new_from_webvr(&self.global(), &root, &event);
-        event.upcast::<Event>().fire(self.global().upcast::<EventTarget>());
+        event
+            .upcast::<Event>()
+            .fire(self.global().upcast::<EventTarget>());
     }
 
     fn init_present(&self) {
@@ -504,44 +531,49 @@ impl VRDisplay {
         // in the Webrender thread are executed in parallel. This allows to get some JavaScript code executed ahead.
         // while the render thread is syncing the VRFrameData to be used for the current frame.
         // This thread runs until the user calls ExitPresent, the tab is closed or some unexpected error happened.
-        thread::Builder::new().name("WebVR_RAF".into()).spawn(move || {
-            let (raf_sender, raf_receiver) = channel();
-            let mut near = near_init;
-            let mut far = far_init;
+        thread::Builder::new()
+            .name("WebVR_RAF".into())
+            .spawn(move || {
+                let (raf_sender, raf_receiver) = channel();
+                let mut near = near_init;
+                let mut far = far_init;
 
-            // Initialize compositor
-            api_sender.send_vr(WebVRCommand::Create(display_id)).unwrap();
-            loop {
-                // Run RAF callbacks on JavaScript thread
-                let this = address.clone();
-                let sender = raf_sender.clone();
-                let task = Box::new(task!(handle_vrdisplay_raf: move || {
+                // Initialize compositor
+                api_sender
+                    .send_vr(WebVRCommand::Create(display_id))
+                    .unwrap();
+                loop {
+                    // Run RAF callbacks on JavaScript thread
+                    let this = address.clone();
+                    let sender = raf_sender.clone();
+                    let task = Box::new(task!(handle_vrdisplay_raf: move || {
                     this.root().handle_raf(&sender);
                 }));
-                // NOTE: WebVR spec doesn't specify what task source we should use. Is
-                // dom-manipulation a good choice long term?
-                js_sender.send(CommonScriptMsg::Task(
-                    WebVREvent,
-                    task,
-                    Some(pipeline_id),
-                    TaskSourceName::DOMManipulation,
-                )).unwrap();
+                    // NOTE: WebVR spec doesn't specify what task source we should use. Is
+                    // dom-manipulation a good choice long term?
+                    js_sender
+                        .send(CommonScriptMsg::Task(
+                            WebVREvent,
+                            task,
+                            Some(pipeline_id),
+                            TaskSourceName::DOMManipulation,
+                        )).unwrap();
 
-                // Run Sync Poses in parallell on Render thread
-                let msg = WebVRCommand::SyncPoses(display_id, near, far, sync_sender.clone());
-                api_sender.send_vr(msg).unwrap();
+                    // Run Sync Poses in parallell on Render thread
+                    let msg = WebVRCommand::SyncPoses(display_id, near, far, sync_sender.clone());
+                    api_sender.send_vr(msg).unwrap();
 
-                // Wait until both SyncPoses & RAF ends
-                if let Ok(depth) = raf_receiver.recv().unwrap() {
-                    near = depth.0;
-                    far = depth.1;
-                } else {
-                    // Stop thread
-                    // ExitPresent called or some error happened
-                    return;
+                    // Wait until both SyncPoses & RAF ends
+                    if let Ok(depth) = raf_receiver.recv().unwrap() {
+                        near = depth.0;
+                        far = depth.1;
+                    } else {
+                        // Stop thread
+                        // ExitPresent called or some error happened
+                        return;
+                    }
                 }
-            }
-        }).expect("Thread spawning failed");
+            }).expect("Thread spawning failed");
     }
 
     fn stop_present(&self) {
@@ -550,16 +582,20 @@ impl VRDisplay {
 
         let api_sender = self.layer_ctx.get().unwrap().webgl_sender();
         let display_id = self.display.borrow().display_id;
-        api_sender.send_vr(WebVRCommand::Release(display_id)).unwrap();
+        api_sender
+            .send_vr(WebVRCommand::Release(display_id))
+            .unwrap();
     }
 
     // Only called when the JSContext is destroyed while presenting.
     // In this case we don't want to wait for WebVR Thread response.
     fn force_stop_present(&self) {
-        self.webvr_thread().send(WebVRMsg::ExitPresent(self.global().pipeline_id(),
-                                                       self.display.borrow().display_id,
-                                                       None))
-                                                       .unwrap();
+        self.webvr_thread()
+            .send(WebVRMsg::ExitPresent(
+                self.global().pipeline_id(),
+                self.display.borrow().display_id,
+                None,
+            )).unwrap();
         self.stop_present();
     }
 
@@ -570,9 +606,7 @@ impl VRDisplay {
                     *self.frame_data.borrow_mut() = WebVRFrameData::from_bytes(&bytes[..]);
                     VRFrameDataStatus::Synced
                 },
-                Err(()) => {
-                    VRFrameDataStatus::Exit
-                }
+                Err(()) => VRFrameDataStatus::Exit,
             }
         } else {
             VRFrameDataStatus::Exit
@@ -607,13 +641,15 @@ impl VRDisplay {
         match self.frame_data_status.get() {
             VRFrameDataStatus::Synced => {
                 // Sync succeeded. Notify RAF thread.
-                end_sender.send(Ok((self.depth_near.get(), self.depth_far.get()))).unwrap();
+                end_sender
+                    .send(Ok((self.depth_near.get(), self.depth_far.get())))
+                    .unwrap();
             },
             VRFrameDataStatus::Exit | VRFrameDataStatus::Waiting => {
                 // ExitPresent called or some error ocurred.
                 // Notify VRDisplay RAF thread to stop.
                 end_sender.send(Err(())).unwrap();
-            }
+            },
         }
     }
 }
@@ -624,22 +660,30 @@ fn parse_bounds(src: &Option<Vec<Finite<f32>>>, dst: &mut [f32; 4]) -> Result<()
     match *src {
         Some(ref values) => {
             if values.len() == 0 {
-                return Ok(())
+                return Ok(());
             }
             if values.len() != 4 {
-                return Err("The number of values in the leftBounds/rightBounds arrays must be 0 or 4")
+                return Err(
+                    "The number of values in the leftBounds/rightBounds arrays must be 0 or 4",
+                );
             }
             for i in 0..4 {
                 dst[i] = *values[i].deref();
             }
             Ok(())
         },
-        None => Ok(())
+        None => Ok(()),
     }
 }
 
-fn validate_layer(layer: &VRLayer) -> Result<(WebVRLayer, DomRoot<WebGLRenderingContext>), &'static str> {
-    let ctx = layer.source.as_ref().map(|ref s| s.get_base_webgl_context()).unwrap_or(None);
+fn validate_layer(
+    layer: &VRLayer,
+) -> Result<(WebVRLayer, DomRoot<WebGLRenderingContext>), &'static str> {
+    let ctx = layer
+        .source
+        .as_ref()
+        .map(|ref s| s.get_base_webgl_context())
+        .unwrap_or(None);
     if let Some(ctx) = ctx {
         let mut data = WebVRLayer::default();
         parse_bounds(&layer.leftBounds, &mut data.left_bounds)?;
@@ -651,8 +695,10 @@ fn validate_layer(layer: &VRLayer) -> Result<(WebVRLayer, DomRoot<WebGLRendering
 }
 
 fn bounds_to_vec(src: &[f32; 4]) -> Vec<Finite<f32>> {
-    vec![Finite::wrap(src[0]),
-         Finite::wrap(src[1]),
-         Finite::wrap(src[2]),
-         Finite::wrap(src[3])]
+    vec![
+        Finite::wrap(src[0]),
+        Finite::wrap(src[1]),
+        Finite::wrap(src[2]),
+        Finite::wrap(src[3]),
+    ]
 }

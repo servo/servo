@@ -30,8 +30,10 @@ pub struct CSSKeyframesRule {
 }
 
 impl CSSKeyframesRule {
-    fn new_inherited(parent_stylesheet: &CSSStyleSheet, keyframesrule: Arc<Locked<KeyframesRule>>)
-                     -> CSSKeyframesRule {
+    fn new_inherited(
+        parent_stylesheet: &CSSStyleSheet,
+        keyframesrule: Arc<Locked<KeyframesRule>>,
+    ) -> CSSKeyframesRule {
         CSSKeyframesRule {
             cssrule: CSSRule::new_inherited(parent_stylesheet),
             keyframesrule: keyframesrule,
@@ -40,19 +42,29 @@ impl CSSKeyframesRule {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(window: &Window, parent_stylesheet: &CSSStyleSheet,
-               keyframesrule: Arc<Locked<KeyframesRule>>) -> DomRoot<CSSKeyframesRule> {
-        reflect_dom_object(Box::new(CSSKeyframesRule::new_inherited(parent_stylesheet, keyframesrule)),
-                           window,
-                           CSSKeyframesRuleBinding::Wrap)
+    pub fn new(
+        window: &Window,
+        parent_stylesheet: &CSSStyleSheet,
+        keyframesrule: Arc<Locked<KeyframesRule>>,
+    ) -> DomRoot<CSSKeyframesRule> {
+        reflect_dom_object(
+            Box::new(CSSKeyframesRule::new_inherited(
+                parent_stylesheet,
+                keyframesrule,
+            )),
+            window,
+            CSSKeyframesRuleBinding::Wrap,
+        )
     }
 
     fn rulelist(&self) -> DomRoot<CSSRuleList> {
         self.rulelist.or_init(|| {
             let parent_stylesheet = &self.upcast::<CSSRule>().parent_stylesheet();
-            CSSRuleList::new(self.global().as_window(),
-                             parent_stylesheet,
-                             RulesSource::Keyframes(self.keyframesrule.clone()))
+            CSSRuleList::new(
+                self.global().as_window(),
+                parent_stylesheet,
+                RulesSource::Keyframes(self.keyframesrule.clone()),
+            )
         })
     }
 
@@ -64,10 +76,11 @@ impl CSSKeyframesRule {
             let guard = self.cssrule.shared_lock().read();
             // This finds the *last* element matching a selector
             // because that's the rule that applies. Thus, rposition
-            self.keyframesrule.read_with(&guard)
-                .keyframes.iter().rposition(|frame| {
-                    frame.read_with(&guard).selector == sel
-                })
+            self.keyframesrule
+                .read_with(&guard)
+                .keyframes
+                .iter()
+                .rposition(|frame| frame.read_with(&guard).selector == sel)
         } else {
             None
         }
@@ -86,12 +99,15 @@ impl CSSKeyframesRuleMethods for CSSKeyframesRule {
         let rule = Keyframe::parse(
             &rule,
             &style_stylesheet.contents,
-            &style_stylesheet.shared_lock
+            &style_stylesheet.shared_lock,
         );
 
         if let Ok(rule) = rule {
             let mut guard = self.cssrule.shared_lock().write();
-            self.keyframesrule.write_with(&mut guard).keyframes.push(rule);
+            self.keyframesrule
+                .write_with(&mut guard)
+                .keyframes
+                .push(rule);
             self.rulelist().append_lazy_dom_rule();
         }
     }
@@ -105,9 +121,9 @@ impl CSSKeyframesRuleMethods for CSSKeyframesRule {
 
     // https://drafts.csswg.org/css-animations/#dom-csskeyframesrule-findrule
     fn FindRule(&self, selector: DOMString) -> Option<DomRoot<CSSKeyframeRule>> {
-        self.find_rule(&selector).and_then(|idx| {
-            self.rulelist().item(idx as u32)
-        }).and_then(DomRoot::downcast)
+        self.find_rule(&selector)
+            .and_then(|idx| self.rulelist().item(idx as u32))
+            .and_then(DomRoot::downcast)
     }
 
     // https://drafts.csswg.org/css-animations/#dom-csskeyframesrule-name
@@ -136,7 +152,10 @@ impl SpecificCSSRule for CSSKeyframesRule {
 
     fn get_css(&self) -> DOMString {
         let guard = self.cssrule.shared_lock().read();
-        self.keyframesrule.read_with(&guard).to_css_string(&guard).into()
+        self.keyframesrule
+            .read_with(&guard)
+            .to_css_string(&guard)
+            .into()
     }
 
     fn deparent_children(&self) {

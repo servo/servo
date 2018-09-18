@@ -34,45 +34,48 @@ impl CloseEvent {
     }
 
     pub fn new_uninitialized(global: &GlobalScope) -> DomRoot<CloseEvent> {
-        reflect_dom_object(Box::new(CloseEvent::new_inherited(false, 0, DOMString::new())),
-                           global,
-                           CloseEventBinding::Wrap)
+        reflect_dom_object(
+            Box::new(CloseEvent::new_inherited(false, 0, DOMString::new())),
+            global,
+            CloseEventBinding::Wrap,
+        )
     }
 
-    pub fn new(global: &GlobalScope,
-               type_: Atom,
-               bubbles: EventBubbles,
-               cancelable: EventCancelable,
-               wasClean: bool,
-               code: u16,
-               reason: DOMString)
-               -> DomRoot<CloseEvent> {
+    pub fn new(
+        global: &GlobalScope,
+        type_: Atom,
+        bubbles: EventBubbles,
+        cancelable: EventCancelable,
+        wasClean: bool,
+        code: u16,
+        reason: DOMString,
+    ) -> DomRoot<CloseEvent> {
         let event = Box::new(CloseEvent::new_inherited(wasClean, code, reason));
         let ev = reflect_dom_object(event, global, CloseEventBinding::Wrap);
         {
             let event = ev.upcast::<Event>();
-            event.init_event(type_,
-                             bool::from(bubbles),
-                             bool::from(cancelable));
+            event.init_event(type_, bool::from(bubbles), bool::from(cancelable));
         }
         ev
     }
 
-    pub fn Constructor(global: &GlobalScope,
-                       type_: DOMString,
-                       init: &CloseEventBinding::CloseEventInit)
-                       -> Fallible<DomRoot<CloseEvent>> {
+    pub fn Constructor(
+        global: &GlobalScope,
+        type_: DOMString,
+        init: &CloseEventBinding::CloseEventInit,
+    ) -> Fallible<DomRoot<CloseEvent>> {
         let bubbles = EventBubbles::from(init.parent.bubbles);
         let cancelable = EventCancelable::from(init.parent.cancelable);
-        Ok(CloseEvent::new(global,
-                           Atom::from(type_),
-                           bubbles,
-                           cancelable,
-                           init.wasClean,
-                           init.code,
-                           init.reason.clone()))
+        Ok(CloseEvent::new(
+            global,
+            Atom::from(type_),
+            bubbles,
+            cancelable,
+            init.wasClean,
+            init.code,
+            init.reason.clone(),
+        ))
     }
-
 }
 
 impl CloseEventMethods for CloseEvent {

@@ -67,22 +67,32 @@ impl Response {
 
     // https://fetch.spec.whatwg.org/#dom-response
     pub fn new(global: &GlobalScope) -> DomRoot<Response> {
-        reflect_dom_object(Box::new(Response::new_inherited()), global, ResponseBinding::Wrap)
+        reflect_dom_object(
+            Box::new(Response::new_inherited()),
+            global,
+            ResponseBinding::Wrap,
+        )
     }
 
-    pub fn Constructor(global: &GlobalScope, body: Option<BodyInit>, init: &ResponseBinding::ResponseInit)
-                       -> Fallible<DomRoot<Response>> {
+    pub fn Constructor(
+        global: &GlobalScope,
+        body: Option<BodyInit>,
+        init: &ResponseBinding::ResponseInit,
+    ) -> Fallible<DomRoot<Response>> {
         // Step 1
         if init.status < 200 || init.status > 599 {
-            return Err(Error::Range(
-                format!("init's status member should be in the range 200 to 599, inclusive, but is {}"
-                        , init.status)));
+            return Err(Error::Range(format!(
+                "init's status member should be in the range 200 to 599, inclusive, but is {}",
+                init.status
+            )));
         }
 
         // Step 2
         if !is_valid_status_text(&init.statusText) {
-            return Err(Error::Type("init's statusText member does not match the reason-phrase token production"
-                                   .to_string()));
+            return Err(Error::Type(
+                "init's statusText member does not match the reason-phrase token production"
+                    .to_string(),
+            ));
         }
 
         // Step 3
@@ -108,7 +118,8 @@ impl Response {
             // Step 7.1
             if is_null_body_status(init.status) {
                 return Err(Error::Type(
-                    "Body is non-null but init's status member is a null body status".to_string()));
+                    "Body is non-null but init's status member is a null body status".to_string(),
+                ));
             };
 
             // Step 7.3
@@ -117,9 +128,15 @@ impl Response {
 
             // Step 7.4
             if let Some(content_type_contents) = content_type {
-                if !r.Headers().Has(ByteString::new(b"Content-Type".to_vec())).unwrap() {
-                    r.Headers().Append(ByteString::new(b"Content-Type".to_vec()),
-                                            ByteString::new(content_type_contents.as_bytes().to_vec()))?;
+                if !r
+                    .Headers()
+                    .Has(ByteString::new(b"Content-Type".to_vec()))
+                    .unwrap()
+                {
+                    r.Headers().Append(
+                        ByteString::new(b"Content-Type".to_vec()),
+                        ByteString::new(content_type_contents.as_bytes().to_vec()),
+                    )?;
                 }
             };
         }
@@ -147,7 +164,11 @@ impl Response {
     }
 
     // https://fetch.spec.whatwg.org/#dom-response-redirect
-    pub fn Redirect(global: &GlobalScope, url: USVString, status: u16) -> Fallible<DomRoot<Response>> {
+    pub fn Redirect(
+        global: &GlobalScope,
+        url: USVString,
+        status: u16,
+    ) -> Fallible<DomRoot<Response>> {
         // Step 1
         let base_url = global.api_base_url();
         let parsed_url = base_url.join(&url.0);
@@ -172,8 +193,10 @@ impl Response {
         *r.raw_status.borrow_mut() = Some((status, b"".to_vec()));
 
         // Step 6
-        let url_bytestring = ByteString::from_str(url.as_str()).unwrap_or(ByteString::new(b"".to_vec()));
-        r.Headers().Set(ByteString::new(b"Location".to_vec()), url_bytestring)?;
+        let url_bytestring =
+            ByteString::from_str(url.as_str()).unwrap_or(ByteString::new(b"".to_vec()));
+        r.Headers()
+            .Set(ByteString::new(b"Location".to_vec()), url_bytestring)?;
 
         // Step 4 continued
         // Headers Guard is set to Immutable here to prevent error in Step 6
@@ -209,9 +232,7 @@ impl BodyOperations for Response {
     fn take_body(&self) -> Option<Vec<u8>> {
         let body = mem::replace(&mut *self.body.borrow_mut(), NetTraitsResponseBody::Empty);
         match body {
-            NetTraitsResponseBody::Done(bytes) => {
-                Some(bytes)
-            },
+            NetTraitsResponseBody::Done(bytes) => Some(bytes),
             body => {
                 mem::replace(&mut *self.body.borrow_mut(), body);
                 None
@@ -248,12 +269,17 @@ fn is_null_body_status(status: u16) -> bool {
 impl ResponseMethods for Response {
     // https://fetch.spec.whatwg.org/#dom-response-type
     fn Type(&self) -> DOMResponseType {
-        *self.response_type.borrow()//into()
+        *self.response_type.borrow() //into()
     }
 
     // https://fetch.spec.whatwg.org/#dom-response-url
     fn Url(&self) -> USVString {
-        USVString(String::from((*self.url.borrow()).as_ref().map(|u| serialize_without_fragment(u)).unwrap_or("")))
+        USVString(String::from(
+            (*self.url.borrow())
+                .as_ref()
+                .map(|u| serialize_without_fragment(u))
+                .unwrap_or(""),
+        ))
     }
 
     // https://fetch.spec.whatwg.org/#dom-response-redirected
@@ -276,7 +302,7 @@ impl ResponseMethods for Response {
             Some(s) => {
                 let status_num = s.to_u16();
                 return status_num >= 200 && status_num <= 299;
-            }
+            },
             None => false,
         }
     }
@@ -291,7 +317,8 @@ impl ResponseMethods for Response {
 
     // https://fetch.spec.whatwg.org/#dom-response-headers
     fn Headers(&self) -> DomRoot<Headers> {
-        self.headers_reflector.or_init(|| Headers::for_response(&self.global()))
+        self.headers_reflector
+            .or_init(|| Headers::for_response(&self.global()))
     }
 
     // https://fetch.spec.whatwg.org/#dom-response-clone
@@ -304,7 +331,9 @@ impl ResponseMethods for Response {
         // Step 2
         let new_response = Response::new(&self.global());
         new_response.Headers().set_guard(self.Headers().get_guard());
-        new_response.Headers().fill(Some(HeadersInit::Headers(self.Headers())))?;
+        new_response
+            .Headers()
+            .fill(Some(HeadersInit::Headers(self.Headers())))?;
 
         // https://fetch.spec.whatwg.org/#concept-response-clone
         // Instead of storing a net_traits::Response internally, we

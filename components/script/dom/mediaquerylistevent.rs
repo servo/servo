@@ -23,24 +23,31 @@ use std::cell::Cell;
 pub struct MediaQueryListEvent {
     event: Event,
     media: DOMString,
-    matches: Cell<bool>
+    matches: Cell<bool>,
 }
 
 impl MediaQueryListEvent {
-    pub fn new_initialized(global: &GlobalScope,
-                           media: DOMString,
-                           matches: bool) -> DomRoot<MediaQueryListEvent> {
+    pub fn new_initialized(
+        global: &GlobalScope,
+        media: DOMString,
+        matches: bool,
+    ) -> DomRoot<MediaQueryListEvent> {
         let ev = Box::new(MediaQueryListEvent {
             event: Event::new_inherited(),
             media: media,
-            matches: Cell::new(matches)
+            matches: Cell::new(matches),
         });
         reflect_dom_object(ev, global, MediaQueryListEventBinding::Wrap)
     }
 
-    pub fn new(global: &GlobalScope, type_: Atom,
-               bubbles: bool, cancelable: bool,
-               media: DOMString, matches: bool) -> DomRoot<MediaQueryListEvent> {
+    pub fn new(
+        global: &GlobalScope,
+        type_: Atom,
+        bubbles: bool,
+        cancelable: bool,
+        media: DOMString,
+        matches: bool,
+    ) -> DomRoot<MediaQueryListEvent> {
         let ev = MediaQueryListEvent::new_initialized(global, media, matches);
         {
             let event = ev.upcast::<Event>();
@@ -49,13 +56,20 @@ impl MediaQueryListEvent {
         ev
     }
 
-    pub fn Constructor(window: &Window, type_: DOMString,
-                       init: &MediaQueryListEventInit)
-                       -> Fallible<DomRoot<MediaQueryListEvent>> {
+    pub fn Constructor(
+        window: &Window,
+        type_: DOMString,
+        init: &MediaQueryListEventInit,
+    ) -> Fallible<DomRoot<MediaQueryListEvent>> {
         let global = window.upcast::<GlobalScope>();
-        Ok(MediaQueryListEvent::new(global, Atom::from(type_),
-                                    init.parent.bubbles, init.parent.cancelable,
-                                    init.media.clone(), init.matches))
+        Ok(MediaQueryListEvent::new(
+            global,
+            Atom::from(type_),
+            init.parent.bubbles,
+            init.parent.cancelable,
+            init.media.clone(),
+            init.matches,
+        ))
     }
 }
 

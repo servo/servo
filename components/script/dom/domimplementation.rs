@@ -44,57 +44,79 @@ impl DOMImplementation {
 
     pub fn new(document: &Document) -> DomRoot<DOMImplementation> {
         let window = document.window();
-        reflect_dom_object(Box::new(DOMImplementation::new_inherited(document)),
-                           window,
-                           DOMImplementationBinding::Wrap)
+        reflect_dom_object(
+            Box::new(DOMImplementation::new_inherited(document)),
+            window,
+            DOMImplementationBinding::Wrap,
+        )
     }
 }
 
 // https://dom.spec.whatwg.org/#domimplementation
 impl DOMImplementationMethods for DOMImplementation {
     // https://dom.spec.whatwg.org/#dom-domimplementation-createdocumenttype
-    fn CreateDocumentType(&self,
-                          qualified_name: DOMString,
-                          pubid: DOMString,
-                          sysid: DOMString)
-                          -> Fallible<DomRoot<DocumentType>> {
+    fn CreateDocumentType(
+        &self,
+        qualified_name: DOMString,
+        pubid: DOMString,
+        sysid: DOMString,
+    ) -> Fallible<DomRoot<DocumentType>> {
         validate_qualified_name(&qualified_name)?;
-        Ok(DocumentType::new(qualified_name, Some(pubid), Some(sysid), &self.document))
+        Ok(DocumentType::new(
+            qualified_name,
+            Some(pubid),
+            Some(sysid),
+            &self.document,
+        ))
     }
 
     // https://dom.spec.whatwg.org/#dom-domimplementation-createdocument
-    fn CreateDocument(&self,
-                      maybe_namespace: Option<DOMString>,
-                      qname: DOMString,
-                      maybe_doctype: Option<&DocumentType>)
-                      -> Fallible<DomRoot<XMLDocument>> {
+    fn CreateDocument(
+        &self,
+        maybe_namespace: Option<DOMString>,
+        qname: DOMString,
+        maybe_doctype: Option<&DocumentType>,
+    ) -> Fallible<DomRoot<XMLDocument>> {
         let win = self.document.window();
         let loader = DocumentLoader::new(&self.document.loader());
         let namespace = namespace_from_domstring(maybe_namespace.to_owned());
 
         let content_type = match namespace {
-            ns!(html) => Mime(TopLevel::Application, SubLevel::Ext("xhtml+xml".to_string()), vec![]),
-            ns!(svg) => Mime(TopLevel::Image, SubLevel::Ext("svg+xml".to_string()), vec![]),
-            _ => Mime(TopLevel::Application, SubLevel::Xml, vec![])
+            ns!(html) => Mime(
+                TopLevel::Application,
+                SubLevel::Ext("xhtml+xml".to_string()),
+                vec![],
+            ),
+            ns!(svg) => Mime(
+                TopLevel::Image,
+                SubLevel::Ext("svg+xml".to_string()),
+                vec![],
+            ),
+            _ => Mime(TopLevel::Application, SubLevel::Xml, vec![]),
         };
 
         // Step 1.
-        let doc = XMLDocument::new(win,
-                                   HasBrowsingContext::No,
-                                   None,
-                                   self.document.origin().clone(),
-                                   IsHTMLDocument::NonHTMLDocument,
-                                   Some(content_type),
-                                   None,
-                                   DocumentActivity::Inactive,
-                                   DocumentSource::NotFromParser,
-                                   loader);
+        let doc = XMLDocument::new(
+            win,
+            HasBrowsingContext::No,
+            None,
+            self.document.origin().clone(),
+            IsHTMLDocument::NonHTMLDocument,
+            Some(content_type),
+            None,
+            DocumentActivity::Inactive,
+            DocumentSource::NotFromParser,
+            loader,
+        );
         // Step 2-3.
         let maybe_elem = if qname.is_empty() {
             None
         } else {
             let options = ElementCreationOptions { is: None };
-            match doc.upcast::<Document>().CreateElementNS(maybe_namespace, qname, &options) {
+            match doc
+                .upcast::<Document>()
+                .CreateElementNS(maybe_namespace, qname, &options)
+            {
                 Err(error) => return Err(error),
                 Ok(elem) => Some(elem),
             }
@@ -127,19 +149,21 @@ impl DOMImplementationMethods for DOMImplementation {
         let loader = DocumentLoader::new(&self.document.loader());
 
         // Step 1-2.
-        let doc = Document::new(win,
-                                HasBrowsingContext::No,
-                                None,
-                                self.document.origin().clone(),
-                                IsHTMLDocument::HTMLDocument,
-                                None,
-                                None,
-                                DocumentActivity::Inactive,
-                                DocumentSource::NotFromParser,
-                                loader,
-                                None,
-                                None,
-                                Default::default());
+        let doc = Document::new(
+            win,
+            HasBrowsingContext::No,
+            None,
+            self.document.origin().clone(),
+            IsHTMLDocument::HTMLDocument,
+            None,
+            None,
+            DocumentActivity::Inactive,
+            DocumentSource::NotFromParser,
+            loader,
+            None,
+            None,
+            Default::default(),
+        );
 
         {
             // Step 3.
@@ -151,25 +175,24 @@ impl DOMImplementationMethods for DOMImplementation {
         {
             // Step 4.
             let doc_node = doc.upcast::<Node>();
-            let doc_html = DomRoot::upcast::<Node>(HTMLHtmlElement::new(local_name!("html"),
-                                                                     None,
-                                                                     &doc));
+            let doc_html =
+                DomRoot::upcast::<Node>(HTMLHtmlElement::new(local_name!("html"), None, &doc));
             doc_node.AppendChild(&doc_html).expect("Appending failed");
 
             {
                 // Step 5.
-                let doc_head = DomRoot::upcast::<Node>(HTMLHeadElement::new(local_name!("head"),
-                                                                         None,
-                                                                         &doc));
+                let doc_head =
+                    DomRoot::upcast::<Node>(HTMLHeadElement::new(local_name!("head"), None, &doc));
                 doc_html.AppendChild(&doc_head).unwrap();
 
                 // Step 6.
                 if let Some(title_str) = title {
                     // Step 6.1.
-                    let doc_title =
-                        DomRoot::upcast::<Node>(HTMLTitleElement::new(local_name!("title"),
-                                                                   None,
-                                                                   &doc));
+                    let doc_title = DomRoot::upcast::<Node>(HTMLTitleElement::new(
+                        local_name!("title"),
+                        None,
+                        &doc,
+                    ));
                     doc_head.AppendChild(&doc_title).unwrap();
 
                     // Step 6.2.

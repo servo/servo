@@ -28,12 +28,13 @@ impl DOMPoint {
         reflect_dom_object(Box::new(DOMPoint::new_inherited(x, y, z, w)), global, Wrap)
     }
 
-    pub fn Constructor(global: &GlobalScope,
-                       x: f64,
-                       y: f64,
-                       z: f64,
-                       w: f64)
-                       -> Fallible<DomRoot<DOMPoint>> {
+    pub fn Constructor(
+        global: &GlobalScope,
+        x: f64,
+        y: f64,
+        z: f64,
+        w: f64,
+    ) -> Fallible<DomRoot<DOMPoint>> {
         Ok(DOMPoint::new(global, x, y, z, w))
     }
 

@@ -44,14 +44,19 @@ struct TableRowFilter {
 impl CollectionFilter for TableRowFilter {
     fn filter(&self, elem: &Element, root: &Node) -> bool {
         elem.is::<HTMLTableRowElement>() &&
-            (root.is_parent_of(elem.upcast())
-                || self.sections.iter().any(|ref section| section.is_parent_of(elem.upcast())))
+            (root.is_parent_of(elem.upcast()) || self
+                .sections
+                .iter()
+                .any(|ref section| section.is_parent_of(elem.upcast())))
     }
 }
 
 impl HTMLTableElement {
-    fn new_inherited(local_name: LocalName, prefix: Option<Prefix>, document: &Document)
-                     -> HTMLTableElement {
+    fn new_inherited(
+        local_name: LocalName,
+        prefix: Option<Prefix>,
+        document: &Document,
+    ) -> HTMLTableElement {
         HTMLTableElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
             border: Cell::new(None),
@@ -61,11 +66,18 @@ impl HTMLTableElement {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(local_name: LocalName, prefix: Option<Prefix>, document: &Document)
-               -> DomRoot<HTMLTableElement> {
-        Node::reflect_node(Box::new(HTMLTableElement::new_inherited(local_name, prefix, document)),
-                           document,
-                           HTMLTableElementBinding::Wrap)
+    pub fn new(
+        local_name: LocalName,
+        prefix: Option<Prefix>,
+        document: &Document,
+    ) -> DomRoot<HTMLTableElement> {
+        Node::reflect_node(
+            Box::new(HTMLTableElement::new_inherited(
+                local_name, prefix, document,
+            )),
+            document,
+            HTMLTableElementBinding::Wrap,
+        )
     }
 
     pub fn get_border(&self) -> Option<u32> {
@@ -74,7 +86,10 @@ impl HTMLTableElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-table-thead
     // https://html.spec.whatwg.org/multipage/#dom-table-tfoot
-    fn get_first_section_of_type(&self, atom: &LocalName) -> Option<DomRoot<HTMLTableSectionElement>> {
+    fn get_first_section_of_type(
+        &self,
+        atom: &LocalName,
+    ) -> Option<DomRoot<HTMLTableSectionElement>> {
         self.upcast::<Node>()
             .child_elements()
             .find(|n| n.is::<HTMLTableSectionElement>() && n.local_name() == atom)
@@ -83,15 +98,18 @@ impl HTMLTableElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-table-thead
     // https://html.spec.whatwg.org/multipage/#dom-table-tfoot
-    fn set_first_section_of_type<P>(&self,
-                                    atom: &LocalName,
-                                    section: Option<&HTMLTableSectionElement>,
-                                    reference_predicate: P)
-                                    -> ErrorResult
-                                    where P: FnMut(&DomRoot<Element>) -> bool {
+    fn set_first_section_of_type<P>(
+        &self,
+        atom: &LocalName,
+        section: Option<&HTMLTableSectionElement>,
+        reference_predicate: P,
+    ) -> ErrorResult
+    where
+        P: FnMut(&DomRoot<Element>) -> bool,
+    {
         if let Some(e) = section {
             if e.upcast::<Element>().local_name() != atom {
-                return Err(Error::HierarchyRequest)
+                return Err(Error::HierarchyRequest);
             }
         }
 
@@ -113,16 +131,14 @@ impl HTMLTableElement {
     // https://html.spec.whatwg.org/multipage/#dom-table-createtfoot
     fn create_section_of_type(&self, atom: &LocalName) -> DomRoot<HTMLTableSectionElement> {
         if let Some(section) = self.get_first_section_of_type(atom) {
-            return section
+            return section;
         }
 
-        let section = HTMLTableSectionElement::new(atom.clone(),
-                                                   None,
-                                                   &document_from_node(self));
+        let section = HTMLTableSectionElement::new(atom.clone(), None, &document_from_node(self));
         match atom {
             &local_name!("thead") => self.SetTHead(Some(&section)),
             &local_name!("tfoot") => self.SetTFoot(Some(&section)),
-            _ => unreachable!("unexpected section type")
+            _ => unreachable!("unexpected section type"),
         }.expect("unexpected section type");
 
         section
@@ -138,11 +154,13 @@ impl HTMLTableElement {
 
     fn get_rows(&self) -> TableRowFilter {
         TableRowFilter {
-            sections: self.upcast::<Node>()
-                          .children()
-                          .filter_map(|ref node|
-                                node.downcast::<HTMLTableSectionElement>().map(|_| Dom::from_ref(&**node)))
-                          .collect()
+            sections: self
+                .upcast::<Node>()
+                .children()
+                .filter_map(|ref node| {
+                    node.downcast::<HTMLTableSectionElement>()
+                        .map(|_| Dom::from_ref(&**node))
+                }).collect(),
         }
     }
 }
@@ -156,7 +174,10 @@ impl HTMLTableElementMethods for HTMLTableElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-table-caption
     fn GetCaption(&self) -> Option<DomRoot<HTMLTableCaptionElement>> {
-        self.upcast::<Node>().children().filter_map(DomRoot::downcast).next()
+        self.upcast::<Node>()
+            .children()
+            .filter_map(DomRoot::downcast)
+            .next()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-table-caption
@@ -177,12 +198,14 @@ impl HTMLTableElementMethods for HTMLTableElement {
         match self.GetCaption() {
             Some(caption) => caption,
             None => {
-                let caption = HTMLTableCaptionElement::new(local_name!("caption"),
-                                                           None,
-                                                           &document_from_node(self));
+                let caption = HTMLTableCaptionElement::new(
+                    local_name!("caption"),
+                    None,
+                    &document_from_node(self),
+                );
                 self.SetCaption(Some(&caption));
                 caption
-            }
+            },
         }
     }
 
@@ -192,7 +215,6 @@ impl HTMLTableElementMethods for HTMLTableElement {
             caption.upcast::<Node>().remove_self();
         }
     }
-
 
     // https://html.spec.whatwg.org/multipage/#dom-table-thead
     fn GetTHead(&self) -> Option<DomRoot<HTMLTableSectionElement>> {
@@ -233,7 +255,6 @@ impl HTMLTableElementMethods for HTMLTableElement {
                 if name == &local_name!("thead") || name == &local_name!("tbody") {
                     return false;
                 }
-
             }
 
             true
@@ -269,19 +290,16 @@ impl HTMLTableElementMethods for HTMLTableElement {
         })
     }
 
-
     // https://html.spec.whatwg.org/multipage/#dom-table-createtbody
     fn CreateTBody(&self) -> DomRoot<HTMLTableSectionElement> {
-        let tbody = HTMLTableSectionElement::new(local_name!("tbody"),
-                                                 None,
-                                                 &document_from_node(self));
+        let tbody =
+            HTMLTableSectionElement::new(local_name!("tbody"), None, &document_from_node(self));
         let node = self.upcast::<Node>();
-        let last_tbody =
-            node.rev_children()
-                .filter_map(DomRoot::downcast::<Element>)
-                .find(|n| n.is::<HTMLTableSectionElement>() && n.local_name() == &local_name!("tbody"));
-        let reference_element =
-            last_tbody.and_then(|t| t.upcast::<Node>().GetNextSibling());
+        let last_tbody = node
+            .rev_children()
+            .filter_map(DomRoot::downcast::<Element>)
+            .find(|n| n.is::<HTMLTableSectionElement>() && n.local_name() == &local_name!("tbody"));
+        let reference_element = last_tbody.and_then(|t| t.upcast::<Node>().GetNextSibling());
 
         node.InsertBefore(tbody.upcast(), reference_element.r())
             .expect("Insertion failed");
@@ -297,47 +315,61 @@ impl HTMLTableElementMethods for HTMLTableElement {
             return Err(Error::IndexSize);
         }
 
-        let new_row = HTMLTableRowElement::new(local_name!("tr"),
-                                               None,
-                                               &document_from_node(self));
+        let new_row = HTMLTableRowElement::new(local_name!("tr"), None, &document_from_node(self));
         let node = self.upcast::<Node>();
 
         if number_of_row_elements == 0 {
             // append new row to last or new tbody in table
-            if let Some(last_tbody) = node.rev_children()
+            if let Some(last_tbody) = node
+                .rev_children()
                 .filter_map(DomRoot::downcast::<Element>)
-                .find(|n| n.is::<HTMLTableSectionElement>() && n.local_name() == &local_name!("tbody")) {
-                    last_tbody.upcast::<Node>().AppendChild(new_row.upcast::<Node>())
-                                               .expect("InsertRow failed to append first row.");
-                } else {
-                    let tbody = self.CreateTBody();
-                    node.AppendChild(tbody.upcast())
-                        .expect("InsertRow failed to append new tbody.");
+                .find(|n| {
+                    n.is::<HTMLTableSectionElement>() && n.local_name() == &local_name!("tbody")
+                }) {
+                last_tbody
+                    .upcast::<Node>()
+                    .AppendChild(new_row.upcast::<Node>())
+                    .expect("InsertRow failed to append first row.");
+            } else {
+                let tbody = self.CreateTBody();
+                node.AppendChild(tbody.upcast())
+                    .expect("InsertRow failed to append new tbody.");
 
-                    tbody.upcast::<Node>().AppendChild(new_row.upcast::<Node>())
-                                          .expect("InsertRow failed to append first row.");
-                }
+                tbody
+                    .upcast::<Node>()
+                    .AppendChild(new_row.upcast::<Node>())
+                    .expect("InsertRow failed to append first row.");
+            }
         } else if index == number_of_row_elements as i32 || index == -1 {
             // append new row to parent of last row in table
-            let last_row = rows.Item(number_of_row_elements - 1)
-                               .expect("InsertRow failed to find last row in table.");
+            let last_row = rows
+                .Item(number_of_row_elements - 1)
+                .expect("InsertRow failed to find last row in table.");
 
-            let last_row_parent =
-                last_row.upcast::<Node>().GetParentNode()
-                        .expect("InsertRow failed to find parent of last row in table.");
+            let last_row_parent = last_row
+                .upcast::<Node>()
+                .GetParentNode()
+                .expect("InsertRow failed to find parent of last row in table.");
 
-            last_row_parent.upcast::<Node>().AppendChild(new_row.upcast::<Node>())
-                                            .expect("InsertRow failed to append last row.");
+            last_row_parent
+                .upcast::<Node>()
+                .AppendChild(new_row.upcast::<Node>())
+                .expect("InsertRow failed to append last row.");
         } else {
             // insert new row before the index-th row in rows using the same parent
-            let ith_row = rows.Item(index as u32)
-                              .expect("InsertRow failed to find a row in table.");
+            let ith_row = rows
+                .Item(index as u32)
+                .expect("InsertRow failed to find a row in table.");
 
-            let ith_row_parent = ith_row.upcast::<Node>().GetParentNode()
-                                        .expect("InsertRow failed to find parent of a row in table.");
+            let ith_row_parent = ith_row
+                .upcast::<Node>()
+                .GetParentNode()
+                .expect("InsertRow failed to find parent of a row in table.");
 
-            ith_row_parent.upcast::<Node>().InsertBefore(new_row.upcast::<Node>(), Some(ith_row.upcast::<Node>()))
-                                           .expect("InsertRow failed to append row");
+            ith_row_parent
+                .upcast::<Node>()
+                .InsertBefore(new_row.upcast::<Node>(), Some(ith_row.upcast::<Node>()))
+                .expect("InsertRow failed to append row");
         }
 
         Ok(new_row)
@@ -392,16 +424,12 @@ impl HTMLTableElementLayoutHelpers for LayoutDom<HTMLTableElement> {
 
     #[allow(unsafe_code)]
     fn get_border(&self) -> Option<u32> {
-        unsafe {
-            (*self.unsafe_get()).border.get()
-        }
+        unsafe { (*self.unsafe_get()).border.get() }
     }
 
     #[allow(unsafe_code)]
     fn get_cellspacing(&self) -> Option<u32> {
-        unsafe {
-            (*self.unsafe_get()).cellspacing.get()
-        }
+        unsafe { (*self.unsafe_get()).cellspacing.get() }
     }
 
     #[allow(unsafe_code)]
@@ -426,14 +454,18 @@ impl VirtualMethods for HTMLTableElement {
         match *attr.local_name() {
             local_name!("border") => {
                 // According to HTML5 § 14.3.9, invalid values map to 1px.
-                self.border.set(mutation.new_value(attr).map(|value| {
-                    parse_unsigned_integer(value.chars()).unwrap_or(1)
-                }));
-            }
+                self.border.set(
+                    mutation
+                        .new_value(attr)
+                        .map(|value| parse_unsigned_integer(value.chars()).unwrap_or(1)),
+                );
+            },
             local_name!("cellspacing") => {
-                self.cellspacing.set(mutation.new_value(attr).and_then(|value| {
-                    parse_unsigned_integer(value.chars()).ok()
-                }));
+                self.cellspacing.set(
+                    mutation
+                        .new_value(attr)
+                        .and_then(|value| parse_unsigned_integer(value.chars()).ok()),
+                );
             },
             _ => {},
         }
@@ -444,7 +476,10 @@ impl VirtualMethods for HTMLTableElement {
             local_name!("border") => AttrValue::from_u32(value.into(), 1),
             local_name!("width") => AttrValue::from_nonzero_dimension(value.into()),
             local_name!("bgcolor") => AttrValue::from_legacy_color(value.into()),
-            _ => self.super_type().unwrap().parse_plain_attribute(local_name, value),
+            _ => self
+                .super_type()
+                .unwrap()
+                .parse_plain_attribute(local_name, value),
         }
     }
 }

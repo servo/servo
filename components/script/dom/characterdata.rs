@@ -45,7 +45,7 @@ impl CharacterData {
         match self.upcast::<Node>().type_id() {
             NodeTypeId::CharacterData(CharacterDataTypeId::Comment) => {
                 DomRoot::upcast(Comment::new(data, &document))
-            }
+            },
             NodeTypeId::CharacterData(CharacterDataTypeId::ProcessingInstruction) => {
                 let pi = self.downcast::<ProcessingInstruction>().unwrap();
                 DomRoot::upcast(ProcessingInstruction::new(pi.Target(), data, &document))
@@ -107,7 +107,8 @@ impl CharacterDataMethods for CharacterData {
         *self.data.borrow_mut() = data;
         self.content_changed();
         let node = self.upcast::<Node>();
-        node.ranges().replace_code_units(node, 0, old_length, new_length);
+        node.ranges()
+            .replace_code_units(node, 0, old_length, new_length);
     }
 
     // https://dom.spec.whatwg.org/#dom-characterdata-length
@@ -130,7 +131,7 @@ impl CharacterDataMethods for CharacterData {
                     substring = substring + "\u{FFFD}";
                 }
                 remaining = s;
-            }
+            },
             // Step 2.
             Err(()) => return Err(Error::IndexSize),
         }
@@ -146,7 +147,7 @@ impl CharacterDataMethods for CharacterData {
                 if astral.is_some() {
                     substring = substring + "\u{FFFD}";
                 }
-            }
+            },
         };
         Ok(DOMString::from(substring))
     }
@@ -183,7 +184,7 @@ impl CharacterDataMethods for CharacterData {
                     // since our DOMString is currently strict UTF-8.
                     replacement_before = if astral.is_some() { "\u{FFFD}" } else { "" };
                     remaining = r;
-                }
+                },
                 // Step 2.
                 Err(()) => return Err(Error::IndexSize),
             };
@@ -194,14 +195,14 @@ impl CharacterDataMethods for CharacterData {
                 Err(()) => {
                     replacement_after = "";
                     suffix = "";
-                }
+                },
                 Ok((_, astral, s)) => {
                     // As if we had split the UTF-16 surrogate pair in half
                     // and then transcoded that to UTF-8 lossily,
                     // since our DOMString is currently strict UTF-8.
                     replacement_after = if astral.is_some() { "\u{FFFD}" } else { "" };
                     suffix = s;
-                }
+                },
             };
             // Step 4: Mutation observers.
             self.queue_mutation_record();
@@ -209,10 +210,11 @@ impl CharacterDataMethods for CharacterData {
             // Step 5 to 7.
             new_data = String::with_capacity(
                 prefix.len() +
-                replacement_before.len() +
-                arg.len() +
-                replacement_after.len() +
-                suffix.len());
+                    replacement_before.len() +
+                    arg.len() +
+                    replacement_after.len() +
+                    suffix.len(),
+            );
             new_data.push_str(prefix);
             new_data.push_str(replacement_before);
             new_data.push_str(&arg);
@@ -223,8 +225,8 @@ impl CharacterDataMethods for CharacterData {
         self.content_changed();
         // Steps 8-11.
         let node = self.upcast::<Node>();
-        node.ranges().replace_code_units(
-            node, offset, count, arg.encode_utf16().count() as u32);
+        node.ranges()
+            .replace_code_units(node, offset, count, arg.encode_utf16().count() as u32);
         Ok(())
     }
 
@@ -251,12 +253,18 @@ impl CharacterDataMethods for CharacterData {
 
     // https://dom.spec.whatwg.org/#dom-nondocumenttypechildnode-previouselementsibling
     fn GetPreviousElementSibling(&self) -> Option<DomRoot<Element>> {
-        self.upcast::<Node>().preceding_siblings().filter_map(DomRoot::downcast).next()
+        self.upcast::<Node>()
+            .preceding_siblings()
+            .filter_map(DomRoot::downcast)
+            .next()
     }
 
     // https://dom.spec.whatwg.org/#dom-nondocumenttypechildnode-nextelementsibling
     fn GetNextElementSibling(&self) -> Option<DomRoot<Element>> {
-        self.upcast::<Node>().following_siblings().filter_map(DomRoot::downcast).next()
+        self.upcast::<Node>()
+            .following_siblings()
+            .filter_map(DomRoot::downcast)
+            .next()
     }
 }
 
@@ -305,13 +313,15 @@ fn split_at_utf16_code_unit_offset(s: &str, offset: u32) -> Result<(&str, Option
             if code_units == offset {
                 if opts::get().replace_surrogates {
                     debug_assert_eq!(c.len_utf8(), 4);
-                    return Ok((&s[..i], Some(c), &s[i + c.len_utf8()..]))
+                    return Ok((&s[..i], Some(c), &s[i + c.len_utf8()..]));
                 }
-                panic!("\n\n\
-                    Would split a surrogate pair in CharacterData API.\n\
-                    If you see this in real content, please comment with the URL\n\
-                    on https://github.com/servo/servo/issues/6873\n\
-                \n");
+                panic!(
+                    "\n\n\
+                     Would split a surrogate pair in CharacterData API.\n\
+                     If you see this in real content, please comment with the URL\n\
+                     on https://github.com/servo/servo/issues/6873\n\
+                     \n"
+                );
             }
             code_units += 1;
         }

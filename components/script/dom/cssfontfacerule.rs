@@ -22,8 +22,10 @@ pub struct CSSFontFaceRule {
 }
 
 impl CSSFontFaceRule {
-    fn new_inherited(parent_stylesheet: &CSSStyleSheet, fontfacerule: Arc<Locked<FontFaceRule>>)
-                     -> CSSFontFaceRule {
+    fn new_inherited(
+        parent_stylesheet: &CSSStyleSheet,
+        fontfacerule: Arc<Locked<FontFaceRule>>,
+    ) -> CSSFontFaceRule {
         CSSFontFaceRule {
             cssrule: CSSRule::new_inherited(parent_stylesheet),
             fontfacerule: fontfacerule,
@@ -31,11 +33,19 @@ impl CSSFontFaceRule {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(window: &Window, parent_stylesheet: &CSSStyleSheet,
-               fontfacerule: Arc<Locked<FontFaceRule>>) -> DomRoot<CSSFontFaceRule> {
-        reflect_dom_object(Box::new(CSSFontFaceRule::new_inherited(parent_stylesheet, fontfacerule)),
-                           window,
-                           CSSFontFaceRuleBinding::Wrap)
+    pub fn new(
+        window: &Window,
+        parent_stylesheet: &CSSStyleSheet,
+        fontfacerule: Arc<Locked<FontFaceRule>>,
+    ) -> DomRoot<CSSFontFaceRule> {
+        reflect_dom_object(
+            Box::new(CSSFontFaceRule::new_inherited(
+                parent_stylesheet,
+                fontfacerule,
+            )),
+            window,
+            CSSFontFaceRuleBinding::Wrap,
+        )
     }
 }
 
@@ -47,6 +57,9 @@ impl SpecificCSSRule for CSSFontFaceRule {
 
     fn get_css(&self) -> DOMString {
         let guard = self.cssrule.shared_lock().read();
-        self.fontfacerule.read_with(&guard).to_css_string(&guard).into()
+        self.fontfacerule
+            .read_with(&guard)
+            .to_css_string(&guard)
+            .into()
     }
 }

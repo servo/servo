@@ -28,9 +28,11 @@ impl TextEncoder {
     }
 
     pub fn new(global: &GlobalScope) -> DomRoot<TextEncoder> {
-        reflect_dom_object(Box::new(TextEncoder::new_inherited()),
-                           global,
-                           TextEncoderBinding::Wrap)
+        reflect_dom_object(
+            Box::new(TextEncoder::new_inherited()),
+            global,
+            TextEncoderBinding::Wrap,
+        )
     }
 
     // https://encoding.spec.whatwg.org/#dom-textencoder
@@ -51,7 +53,9 @@ impl TextEncoderMethods for TextEncoder {
         let encoded = input.0.as_bytes();
 
         rooted!(in(cx) let mut js_object = ptr::null_mut::<JSObject>());
-        assert!(Uint8Array::create(cx, CreateWith::Slice(&encoded), js_object.handle_mut()).is_ok());
+        assert!(
+            Uint8Array::create(cx, CreateWith::Slice(&encoded), js_object.handle_mut()).is_ok()
+        );
 
         NonNull::new_unchecked(js_object.get())
     }

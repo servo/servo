@@ -37,20 +37,22 @@ pub struct Gamepad {
     pose: Option<Dom<VRPose>>,
     #[ignore_malloc_size_of = "Defined in rust-webvr"]
     hand: WebVRGamepadHand,
-    display_id: u32
+    display_id: u32,
 }
 
 impl Gamepad {
-    fn new_inherited(gamepad_id: u32,
-                     id: String,
-                     index: i32,
-                     connected: bool,
-                     timestamp: f64,
-                     mapping_type: String,
-                     buttons: &GamepadButtonList,
-                     pose: Option<&VRPose>,
-                     hand: WebVRGamepadHand,
-                     display_id: u32) -> Gamepad {
+    fn new_inherited(
+        gamepad_id: u32,
+        id: String,
+        index: i32,
+        connected: bool,
+        timestamp: f64,
+        mapping_type: String,
+        buttons: &GamepadButtonList,
+        pose: Option<&VRPose>,
+        hand: WebVRGamepadHand,
+        display_id: u32,
+    ) -> Gamepad {
         Self {
             reflector_: Reflector::new(),
             gamepad_id: gamepad_id,
@@ -63,15 +65,17 @@ impl Gamepad {
             buttons: Dom::from_ref(buttons),
             pose: pose.map(Dom::from_ref),
             hand: hand,
-            display_id: display_id
+            display_id: display_id,
         }
     }
 
     #[allow(unsafe_code)]
-    pub fn new_from_vr(global: &GlobalScope,
-                       index: i32,
-                       data: &WebVRGamepadData,
-                       state: &WebVRGamepadState) -> DomRoot<Gamepad> {
+    pub fn new_from_vr(
+        global: &GlobalScope,
+        index: i32,
+        data: &WebVRGamepadData,
+        state: &WebVRGamepadState,
+    ) -> DomRoot<Gamepad> {
         let buttons = GamepadButtonList::new_from_vr(&global, &state.buttons);
         let pose = VRPose::new(&global, &state.pose);
 
@@ -86,10 +90,10 @@ impl Gamepad {
                 &buttons,
                 Some(&pose),
                 data.hand.clone(),
-                data.display_id
+                data.display_id,
             )),
             global,
-            GamepadBinding::Wrap
+            GamepadBinding::Wrap,
         );
 
         let cx = global.get_cx();
@@ -145,7 +149,7 @@ impl GamepadMethods for Gamepad {
         let value = match self.hand {
             WebVRGamepadHand::Unknown => "",
             WebVRGamepadHand::Left => "left",
-            WebVRGamepadHand::Right => "right"
+            WebVRGamepadHand::Right => "right",
         };
         value.into()
     }
@@ -204,6 +208,8 @@ impl Gamepad {
 
     pub fn notify_event(&self, event_type: GamepadEventType) {
         let event = GamepadEvent::new_with_type(&self.global(), event_type, &self);
-        event.upcast::<Event>().fire(self.global().as_window().upcast::<EventTarget>());
+        event
+            .upcast::<Event>()
+            .fire(self.global().as_window().upcast::<EventTarget>());
     }
 }

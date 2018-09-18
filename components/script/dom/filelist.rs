@@ -15,7 +15,7 @@ use std::slice::Iter;
 #[dom_struct]
 pub struct FileList {
     reflector_: Reflector,
-    list: Vec<Dom<File>>
+    list: Vec<Dom<File>>,
 }
 
 impl FileList {
@@ -23,15 +23,19 @@ impl FileList {
     fn new_inherited(files: Vec<Dom<File>>) -> FileList {
         FileList {
             reflector_: Reflector::new(),
-            list: files
+            list: files,
         }
     }
 
     #[allow(unrooted_must_root)]
     pub fn new(window: &Window, files: Vec<DomRoot<File>>) -> DomRoot<FileList> {
-        reflect_dom_object(Box::new(FileList::new_inherited(files.iter().map(|r| Dom::from_ref(&**r)).collect())),
-                           window,
-                           FileListBinding::Wrap)
+        reflect_dom_object(
+            Box::new(FileList::new_inherited(
+                files.iter().map(|r| Dom::from_ref(&**r)).collect(),
+            )),
+            window,
+            FileListBinding::Wrap,
+        )
     }
 
     pub fn iter_files(&self) -> Iter<Dom<File>> {

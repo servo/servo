@@ -40,9 +40,11 @@ impl CanvasGradient {
     }
 
     pub fn new(global: &GlobalScope, style: CanvasGradientStyle) -> DomRoot<CanvasGradient> {
-        reflect_dom_object(Box::new(CanvasGradient::new_inherited(style)),
-                           global,
-                           CanvasGradientBinding::Wrap)
+        reflect_dom_object(
+            Box::new(CanvasGradient::new_inherited(style)),
+            global,
+            CanvasGradientBinding::Wrap,
+        )
     }
 }
 
@@ -60,10 +62,10 @@ impl CanvasGradientMethods for CanvasGradient {
             match color {
                 Ok(CSSColor::RGBA(rgba)) => rgba,
                 Ok(CSSColor::CurrentColor) => RGBA::new(0, 0, 0, 255),
-                _ => return Err(Error::Syntax)
+                _ => return Err(Error::Syntax),
             }
         } else {
-            return Err(Error::Syntax)
+            return Err(Error::Syntax);
         };
 
         self.stops.borrow_mut().push(CanvasGradientStop {
@@ -83,21 +85,25 @@ impl<'a> ToFillOrStrokeStyle for &'a CanvasGradient {
         let gradient_stops = self.stops.borrow().clone();
         match self.style {
             CanvasGradientStyle::Linear(ref gradient) => {
-                FillOrStrokeStyle::LinearGradient(LinearGradientStyle::new(gradient.x0,
-                                                                           gradient.y0,
-                                                                           gradient.x1,
-                                                                           gradient.y1,
-                                                                           gradient_stops))
-            }
+                FillOrStrokeStyle::LinearGradient(LinearGradientStyle::new(
+                    gradient.x0,
+                    gradient.y0,
+                    gradient.x1,
+                    gradient.y1,
+                    gradient_stops,
+                ))
+            },
             CanvasGradientStyle::Radial(ref gradient) => {
-                FillOrStrokeStyle::RadialGradient(RadialGradientStyle::new(gradient.x0,
-                                                                           gradient.y0,
-                                                                           gradient.r0,
-                                                                           gradient.x1,
-                                                                           gradient.y1,
-                                                                           gradient.r1,
-                                                                           gradient_stops))
-            }
+                FillOrStrokeStyle::RadialGradient(RadialGradientStyle::new(
+                    gradient.x0,
+                    gradient.y0,
+                    gradient.r0,
+                    gradient.x1,
+                    gradient.y1,
+                    gradient.r1,
+                    gradient_stops,
+                ))
+            },
         }
     }
 }

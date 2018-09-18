@@ -57,9 +57,11 @@ impl History {
     }
 
     pub fn new(window: &Window) -> DomRoot<History> {
-        reflect_dom_object(Box::new(History::new_inherited(window)),
-                           window,
-                           HistoryBinding::Wrap)
+        reflect_dom_object(
+            Box::new(History::new_inherited(window)),
+            window,
+            HistoryBinding::Wrap,
+        )
     }
 }
 
@@ -69,7 +71,11 @@ impl History {
             return Err(Error::Security);
         }
         let msg = ScriptMsg::TraverseHistory(direction);
-        let _ = self.window.upcast::<GlobalScope>().script_to_constellation_chan().send(msg);
+        let _ = self
+            .window
+            .upcast::<GlobalScope>()
+            .script_to_constellation_chan()
+            .send(msg);
         Ok(())
     }
 
@@ -83,7 +89,7 @@ impl History {
         document.set_url(url.clone());
 
         // Step 6
-        let hash_changed =  old_url.fragment() != url.fragment();
+        let hash_changed = old_url.fragment() != url.fragment();
 
         // Step 8
         if let Some(fragment) = url.fragment() {
@@ -96,7 +102,8 @@ impl History {
         let serialized_data = match state_id {
             Some(state_id) => {
                 let (tx, rx) = ipc::channel(self.global().time_profiler_chan().clone()).unwrap();
-                let _ = self.window
+                let _ = self
+                    .window
                     .upcast::<GlobalScope>()
                     .resource_threads()
                     .send(CoreResourceMsg::GetHistoryState(state_id, tx));
@@ -109,12 +116,13 @@ impl History {
             Some(serialized_data) => {
                 let global_scope = self.window.upcast::<GlobalScope>();
                 rooted!(in(global_scope.get_cx()) let mut state = UndefinedValue());
-                StructuredCloneData::Vector(serialized_data).read(&global_scope, state.handle_mut());
+                StructuredCloneData::Vector(serialized_data)
+                    .read(&global_scope, state.handle_mut());
                 self.state.set(state.get());
             },
             None => {
                 self.state.set(NullValue());
-            }
+            },
         }
 
         // TODO: Queue events on DOM Manipulation task source if non-blocking flag is set.
@@ -123,7 +131,7 @@ impl History {
             PopStateEvent::dispatch_jsval(
                 self.window.upcast::<EventTarget>(),
                 &*self.window,
-                unsafe { HandleValue::from_raw(self.state.handle()) }
+                unsafe { HandleValue::from_raw(self.state.handle()) },
             );
         }
 
@@ -135,13 +143,17 @@ impl History {
                 false,
                 false,
                 old_url.into_string(),
-                url.into_string());
-            event.upcast::<Event>().fire(self.window.upcast::<EventTarget>());
+                url.into_string(),
+            );
+            event
+                .upcast::<Event>()
+                .fire(self.window.upcast::<EventTarget>());
         }
     }
 
     pub fn remove_states(&self, states: Vec<HistoryStateId>) {
-        let _ = self.window
+        let _ = self
+            .window
             .upcast::<GlobalScope>()
             .resource_threads()
             .send(CoreResourceMsg::RemoveHistoryStates(states));
@@ -149,12 +161,14 @@ impl History {
 
     // https://html.spec.whatwg.org/multipage/#dom-history-pushstate
     // https://html.spec.whatwg.org/multipage/#dom-history-replacestate
-    fn push_or_replace_state(&self,
-                             cx: *mut JSContext,
-                             data: HandleValue,
-                             _title: DOMString,
-                             url: Option<USVString>,
-                             push_or_replace: PushOrReplace) -> ErrorResult {
+    fn push_or_replace_state(
+        &self,
+        cx: *mut JSContext,
+        data: HandleValue,
+        _title: DOMString,
+        url: Option<USVString>,
+        push_or_replace: PushOrReplace,
+    ) -> ErrorResult {
         // Step 1
         let document = self.window.Document();
 
@@ -186,10 +200,10 @@ impl History {
 
                 // Step 6.4
                 if new_url.scheme() != document_url.scheme() ||
-                   new_url.host() != document_url.host() ||
-                   new_url.port() != document_url.port() ||
-                   new_url.username() != document_url.username() ||
-                   new_url.password() != document_url.password()
+                    new_url.host() != document_url.host() ||
+                    new_url.port() != document_url.port() ||
+                    new_url.username() != document_url.username() ||
+                    new_url.password() != document_url.password()
                 {
                     return Err(Error::Security);
                 }
@@ -202,9 +216,7 @@ impl History {
                 new_url
             },
             // Step 7
-            None => {
-                document.url()
-            }
+            None => document.url(),
         };
 
         // Step 8
@@ -213,7 +225,11 @@ impl History {
                 let state_id = HistoryStateId::new();
                 self.state_id.set(Some(state_id));
                 let msg = ScriptMsg::PushHistoryState(state_id, new_url.clone());
-                let _ = self.window.upcast::<GlobalScope>().script_to_constellation_chan().send(msg);
+                let _ = self
+                    .window
+                    .upcast::<GlobalScope>()
+                    .script_to_constellation_chan()
+                    .send(msg);
                 state_id
             },
             PushOrReplace::Replace => {
@@ -226,16 +242,18 @@ impl History {
                     },
                 };
                 let msg = ScriptMsg::ReplaceHistoryState(state_id, new_url.clone());
-                let _ = self.window.upcast::<GlobalScope>().script_to_constellation_chan().send(msg);
+                let _ = self
+                    .window
+                    .upcast::<GlobalScope>()
+                    .script_to_constellation_chan()
+                    .send(msg);
                 state_id
             },
         };
 
-        let _ = self.window
-            .upcast::<GlobalScope>()
-            .resource_threads()
-            .send(CoreResourceMsg::SetHistoryState(state_id, serialized_data.clone()));
-
+        let _ = self.window.upcast::<GlobalScope>().resource_threads().send(
+            CoreResourceMsg::SetHistoryState(state_id, serialized_data.clone()),
+        );
 
         // TODO: Step 9 Update current entry to represent a GET request
         // https://github.com/servo/servo/issues/19156
@@ -273,10 +291,14 @@ impl HistoryMethods for History {
         if !self.window.Document().is_fully_active() {
             return Err(Error::Security);
         }
-        let (sender, recv) =
-            channel(self.global().time_profiler_chan().clone()).expect("Failed to create channel to send jsh length.");
+        let (sender, recv) = channel(self.global().time_profiler_chan().clone())
+            .expect("Failed to create channel to send jsh length.");
         let msg = ScriptMsg::JointSessionHistoryLength(sender);
-        let _ = self.window.upcast::<GlobalScope>().script_to_constellation_chan().send(msg);
+        let _ = self
+            .window
+            .upcast::<GlobalScope>()
+            .script_to_constellation_chan()
+            .send(msg);
         Ok(recv.recv().unwrap())
     }
 
@@ -305,21 +327,25 @@ impl HistoryMethods for History {
 
     // https://html.spec.whatwg.org/multipage/#dom-history-pushstate
     #[allow(unsafe_code)]
-    unsafe fn PushState(&self,
-                        cx: *mut JSContext,
-                        data: HandleValue,
-                        title: DOMString,
-                        url: Option<USVString>) -> ErrorResult {
+    unsafe fn PushState(
+        &self,
+        cx: *mut JSContext,
+        data: HandleValue,
+        title: DOMString,
+        url: Option<USVString>,
+    ) -> ErrorResult {
         self.push_or_replace_state(cx, data, title, url, PushOrReplace::Push)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-history-replacestate
     #[allow(unsafe_code)]
-    unsafe fn ReplaceState(&self,
-                           cx: *mut JSContext,
-                           data: HandleValue,
-                           title: DOMString,
-                           url: Option<USVString>) -> ErrorResult {
+    unsafe fn ReplaceState(
+        &self,
+        cx: *mut JSContext,
+        data: HandleValue,
+        title: DOMString,
+        url: Option<USVString>,
+    ) -> ErrorResult {
         self.push_or_replace_state(cx, data, title, url, PushOrReplace::Replace)
     }
 }

@@ -53,18 +53,12 @@ impl DOMMatrixReadOnly {
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-dommatrixreadonly-numbersequence
     pub fn Constructor_(global: &GlobalScope, entries: Vec<f64>) -> Fallible<DomRoot<Self>> {
-        entries_to_matrix(&entries[..])
-            .map(|(is2D, matrix)| {
-                Self::new(global, is2D, matrix)
-            })
+        entries_to_matrix(&entries[..]).map(|(is2D, matrix)| Self::new(global, is2D, matrix))
     }
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-frommatrix
     pub fn FromMatrix(global: &GlobalScope, other: &DOMMatrixInit) -> Fallible<DomRoot<Self>> {
-        dommatrixinit_to_matrix(&other)
-            .map(|(is2D, matrix)| {
-                Self::new(global, is2D, matrix)
-            })
+        dommatrixinit_to_matrix(&other).map(|(is2D, matrix)| Self::new(global, is2D, matrix))
     }
 
     pub fn matrix(&self) -> Ref<Transform3D<f64>> {
@@ -155,7 +149,6 @@ impl DOMMatrixReadOnly {
         self.matrix.borrow_mut().m44 = value;
     }
 
-
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrix-multiplyself
     pub fn multiply_self(&self, other: &DOMMatrixInit) -> Fallible<()> {
         // Step 1.
@@ -200,8 +193,15 @@ impl DOMMatrixReadOnly {
     }
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrix-scaleself
-    pub fn scale_self(&self, scaleX: f64, scaleY: Option<f64>, scaleZ: f64,
-                      mut originX: f64, mut originY: f64, mut originZ: f64) {
+    pub fn scale_self(
+        &self,
+        scaleX: f64,
+        scaleY: Option<f64>,
+        scaleZ: f64,
+        mut originX: f64,
+        mut originY: f64,
+        mut originZ: f64,
+    ) {
         // Step 1.
         self.translate_self(originX, originY, originZ);
         // Step 2.
@@ -262,19 +262,22 @@ impl DOMMatrixReadOnly {
         }
         if rotZ != 0.0 {
             // Step 5.
-            let rotation = Transform3D::create_rotation(0.0, 0.0, 1.0, Angle::radians(rotZ.to_radians()));
+            let rotation =
+                Transform3D::create_rotation(0.0, 0.0, 1.0, Angle::radians(rotZ.to_radians()));
             let mut matrix = self.matrix.borrow_mut();
             *matrix = rotation.post_mul(&matrix);
         }
         if rotY != 0.0 {
             // Step 6.
-            let rotation = Transform3D::create_rotation(0.0, 1.0, 0.0, Angle::radians(rotY.to_radians()));
+            let rotation =
+                Transform3D::create_rotation(0.0, 1.0, 0.0, Angle::radians(rotY.to_radians()));
             let mut matrix = self.matrix.borrow_mut();
             *matrix = rotation.post_mul(&matrix);
         }
         if rotX != 0.0 {
             // Step 7.
-            let rotation = Transform3D::create_rotation(1.0, 0.0, 0.0, Angle::radians(rotX.to_radians()));
+            let rotation =
+                Transform3D::create_rotation(1.0, 0.0, 0.0, Angle::radians(rotX.to_radians()));
             let mut matrix = self.matrix.borrow_mut();
             *matrix = rotation.post_mul(&matrix);
         }
@@ -298,7 +301,12 @@ impl DOMMatrixReadOnly {
     pub fn rotate_axis_angle_self(&self, x: f64, y: f64, z: f64, angle: f64) {
         // Step 1.
         let (norm_x, norm_y, norm_z) = normalize_point(x, y, z);
-        let rotation = Transform3D::create_rotation(norm_x, norm_y, norm_z, Angle::radians(angle.to_radians()));
+        let rotation = Transform3D::create_rotation(
+            norm_x,
+            norm_y,
+            norm_z,
+            Angle::radians(angle.to_radians()),
+        );
         let mut matrix = self.matrix.borrow_mut();
         *matrix = rotation.post_mul(&matrix);
         // Step 2.
@@ -333,10 +341,24 @@ impl DOMMatrixReadOnly {
         *matrix = matrix.inverse().unwrap_or_else(|| {
             // Step 2.
             self.is2D.set(false);
-            Transform3D::row_major(f64::NAN, f64::NAN, f64::NAN, f64::NAN,
-                                f64::NAN, f64::NAN, f64::NAN, f64::NAN,
-                                f64::NAN, f64::NAN, f64::NAN, f64::NAN,
-                                f64::NAN, f64::NAN, f64::NAN, f64::NAN)
+            Transform3D::row_major(
+                f64::NAN,
+                f64::NAN,
+                f64::NAN,
+                f64::NAN,
+                f64::NAN,
+                f64::NAN,
+                f64::NAN,
+                f64::NAN,
+                f64::NAN,
+                f64::NAN,
+                f64::NAN,
+                f64::NAN,
+                f64::NAN,
+                f64::NAN,
+                f64::NAN,
+                f64::NAN,
+            )
         })
         // Step 3 in DOMMatrix.InvertSelf
     }
@@ -361,7 +383,6 @@ impl DOMMatrixReadOnly {
         DOMMatrixReadOnly::Constructor_(global, vec)
     }
 }
-
 
 impl DOMMatrixReadOnlyMethods for DOMMatrixReadOnly {
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-m11
@@ -482,10 +503,22 @@ impl DOMMatrixReadOnlyMethods for DOMMatrixReadOnly {
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-isidentity
     fn IsIdentity(&self) -> bool {
         let matrix = self.matrix.borrow();
-        matrix.m12 == 0.0 && matrix.m13 == 0.0 && matrix.m14 == 0.0 && matrix.m21 == 0.0 &&
-            matrix.m23 == 0.0 && matrix.m24 == 0.0 && matrix.m31 == 0.0 && matrix.m32 == 0.0 &&
-            matrix.m34 == 0.0 && matrix.m41 == 0.0 && matrix.m42 == 0.0 && matrix.m43 == 0.0 &&
-            matrix.m11 == 1.0 && matrix.m22 == 1.0 && matrix.m33 == 1.0 && matrix.m44 == 1.0
+        matrix.m12 == 0.0 &&
+            matrix.m13 == 0.0 &&
+            matrix.m14 == 0.0 &&
+            matrix.m21 == 0.0 &&
+            matrix.m23 == 0.0 &&
+            matrix.m24 == 0.0 &&
+            matrix.m31 == 0.0 &&
+            matrix.m32 == 0.0 &&
+            matrix.m34 == 0.0 &&
+            matrix.m41 == 0.0 &&
+            matrix.m42 == 0.0 &&
+            matrix.m43 == 0.0 &&
+            matrix.m11 == 1.0 &&
+            matrix.m22 == 1.0 &&
+            matrix.m33 == 1.0 &&
+            matrix.m44 == 1.0
     }
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-translate
@@ -494,16 +527,22 @@ impl DOMMatrixReadOnlyMethods for DOMMatrixReadOnly {
     }
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-scale
-    fn Scale(&self, scaleX: f64, scaleY: Option<f64>, scaleZ: f64,
-                    originX: f64, originY: f64, originZ: f64) -> DomRoot<DOMMatrix> {
+    fn Scale(
+        &self,
+        scaleX: f64,
+        scaleY: Option<f64>,
+        scaleZ: f64,
+        originX: f64,
+        originY: f64,
+        originZ: f64,
+    ) -> DomRoot<DOMMatrix> {
         DOMMatrix::from_readonly(&self.global(), self)
             .ScaleSelf(scaleX, scaleY, scaleZ, originX, originY, originZ)
     }
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-scale3d
     fn Scale3d(&self, scale: f64, originX: f64, originY: f64, originZ: f64) -> DomRoot<DOMMatrix> {
-        DOMMatrix::from_readonly(&self.global(), self)
-            .Scale3dSelf(scale, originX, originY, originZ)
+        DOMMatrix::from_readonly(&self.global(), self).Scale3dSelf(scale, originX, originY, originZ)
     }
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-rotate
@@ -539,10 +578,9 @@ impl DOMMatrixReadOnlyMethods for DOMMatrixReadOnly {
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-flipx
     fn FlipX(&self) -> DomRoot<DOMMatrix> {
         let is2D = self.is2D.get();
-        let flip = Transform3D::row_major(-1.0, 0.0, 0.0, 0.0,
-                                        0.0, 1.0, 0.0, 0.0,
-                                        0.0, 0.0, 1.0, 0.0,
-                                        0.0, 0.0, 0.0, 1.0);
+        let flip = Transform3D::row_major(
+            -1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0,
+        );
         let matrix = flip.post_mul(&self.matrix.borrow());
         DOMMatrix::new(&self.global(), is2D, matrix)
     }
@@ -550,10 +588,9 @@ impl DOMMatrixReadOnlyMethods for DOMMatrixReadOnly {
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-flipy
     fn FlipY(&self) -> DomRoot<DOMMatrix> {
         let is2D = self.is2D.get();
-        let flip = Transform3D::row_major(1.0,  0.0, 0.0, 0.0,
-                                       0.0, -1.0, 0.0, 0.0,
-                                       0.0,  0.0, 1.0, 0.0,
-                                       0.0,  0.0, 0.0, 1.0);
+        let flip = Transform3D::row_major(
+            1.0, 0.0, 0.0, 0.0, 0.0, -1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0,
+        );
         let matrix = flip.post_mul(&self.matrix.borrow());
         DOMMatrix::new(&self.global(), is2D, matrix)
     }
@@ -583,11 +620,15 @@ impl DOMMatrixReadOnlyMethods for DOMMatrixReadOnly {
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-tofloat32array
     #[allow(unsafe_code)]
     unsafe fn ToFloat32Array(&self, cx: *mut JSContext) -> NonNull<JSObject> {
-        let vec: Vec<f32> = self.matrix
-            .borrow().to_row_major_array().iter().map(|&x| x as f32).collect();
+        let vec: Vec<f32> = self
+            .matrix
+            .borrow()
+            .to_row_major_array()
+            .iter()
+            .map(|&x| x as f32)
+            .collect();
         rooted!(in (cx) let mut array = ptr::null_mut::<JSObject>());
-        let _ = Float32Array::create(cx, CreateWith::Slice(&vec), array.handle_mut())
-            .unwrap();
+        let _ = Float32Array::create(cx, CreateWith::Slice(&vec), array.handle_mut()).unwrap();
         NonNull::new_unchecked(array.get())
     }
 
@@ -596,28 +637,39 @@ impl DOMMatrixReadOnlyMethods for DOMMatrixReadOnly {
     unsafe fn ToFloat64Array(&self, cx: *mut JSContext) -> NonNull<JSObject> {
         let arr = self.matrix.borrow().to_row_major_array();
         rooted!(in (cx) let mut array = ptr::null_mut::<JSObject>());
-        let _ = Float64Array::create(cx, CreateWith::Slice(&arr), array.handle_mut())
-            .unwrap();
+        let _ = Float64Array::create(cx, CreateWith::Slice(&arr), array.handle_mut()).unwrap();
         NonNull::new_unchecked(array.get())
     }
 }
 
-
 // https://drafts.fxtf.org/geometry-1/#create-a-2d-matrix
 fn create_2d_matrix(entries: &[f64]) -> Transform3D<f64> {
-    Transform3D::row_major(entries[0], entries[1], 0.0, 0.0,
-                        entries[2], entries[3], 0.0, 0.0,
-                        0.0,        0.0,        1.0, 0.0,
-                        entries[4], entries[5], 0.0, 1.0)
+    Transform3D::row_major(
+        entries[0], entries[1], 0.0, 0.0, entries[2], entries[3], 0.0, 0.0, 0.0, 0.0, 1.0, 0.0,
+        entries[4], entries[5], 0.0, 1.0,
+    )
 }
-
 
 // https://drafts.fxtf.org/geometry-1/#create-a-3d-matrix
 fn create_3d_matrix(entries: &[f64]) -> Transform3D<f64> {
-    Transform3D::row_major(entries[0],  entries[1],  entries[2],  entries[3],
-                        entries[4],  entries[5],  entries[6],  entries[7],
-                        entries[8],  entries[9],  entries[10], entries[11],
-                        entries[12], entries[13], entries[14], entries[15])
+    Transform3D::row_major(
+        entries[0],
+        entries[1],
+        entries[2],
+        entries[3],
+        entries[4],
+        entries[5],
+        entries[6],
+        entries[7],
+        entries[8],
+        entries[9],
+        entries[10],
+        entries[11],
+        entries[12],
+        entries[13],
+        entries[14],
+        entries[15],
+    )
 }
 
 // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-dommatrixreadonly-numbersequence
@@ -632,21 +684,29 @@ pub fn entries_to_matrix(entries: &[f64]) -> Fallible<(bool, Transform3D<f64>)> 
     }
 }
 
-
 // https://drafts.fxtf.org/geometry-1/#validate-and-fixup
 pub fn dommatrixinit_to_matrix(dict: &DOMMatrixInit) -> Fallible<(bool, Transform3D<f64>)> {
     // Step 1.
     if dict.a.is_some() && dict.m11.is_some() && dict.a.unwrap() != dict.m11.unwrap() ||
-       dict.b.is_some() && dict.m12.is_some() && dict.b.unwrap() != dict.m12.unwrap() ||
-       dict.c.is_some() && dict.m21.is_some() && dict.c.unwrap() != dict.m21.unwrap() ||
-       dict.d.is_some() && dict.m22.is_some() && dict.d.unwrap() != dict.m22.unwrap() ||
-       dict.e.is_some() && dict.m41.is_some() && dict.e.unwrap() != dict.m41.unwrap() ||
-       dict.f.is_some() && dict.m42.is_some() && dict.f.unwrap() != dict.m42.unwrap() ||
-       dict.is2D.is_some() && dict.is2D.unwrap() &&
-       (dict.m31 != 0.0 || dict.m32 != 0.0 || dict.m13 != 0.0 || dict.m23 != 0.0 ||
-        dict.m43 != 0.0 || dict.m14 != 0.0 || dict.m24 != 0.0 || dict.m34 != 0.0 ||
-        dict.m33 != 1.0 || dict.m44 != 1.0) {
-            Err(error::Error::Type("Invalid matrix initializer.".to_owned()))
+        dict.b.is_some() && dict.m12.is_some() && dict.b.unwrap() != dict.m12.unwrap() ||
+        dict.c.is_some() && dict.m21.is_some() && dict.c.unwrap() != dict.m21.unwrap() ||
+        dict.d.is_some() && dict.m22.is_some() && dict.d.unwrap() != dict.m22.unwrap() ||
+        dict.e.is_some() && dict.m41.is_some() && dict.e.unwrap() != dict.m41.unwrap() ||
+        dict.f.is_some() && dict.m42.is_some() && dict.f.unwrap() != dict.m42.unwrap() ||
+        dict.is2D.is_some() &&
+            dict.is2D.unwrap() &&
+            (dict.m31 != 0.0 ||
+                dict.m32 != 0.0 ||
+                dict.m13 != 0.0 ||
+                dict.m23 != 0.0 ||
+                dict.m43 != 0.0 ||
+                dict.m14 != 0.0 ||
+                dict.m24 != 0.0 ||
+                dict.m34 != 0.0 ||
+                dict.m33 != 1.0 ||
+                dict.m44 != 1.0)
+    {
+        Err(error::Error::Type("Invalid matrix initializer.".to_owned()))
     } else {
         let mut is2D = dict.is2D;
         // Step 2.
@@ -663,24 +723,30 @@ pub fn dommatrixinit_to_matrix(dict: &DOMMatrixInit) -> Fallible<(bool, Transfor
         let m42 = dict.m42.unwrap_or(dict.f.unwrap_or(0.0));
         // Step 8.
         if is2D.is_none() &&
-            (dict.m31 != 0.0 || dict.m32 != 0.0 || dict.m13 != 0.0 ||
-             dict.m23 != 0.0 || dict.m43 != 0.0 || dict.m14 != 0.0 ||
-             dict.m24 != 0.0 || dict.m34 != 0.0 ||
-             dict.m33 != 1.0 || dict.m44 != 1.0) {
-                 is2D = Some(false);
+            (dict.m31 != 0.0 ||
+                dict.m32 != 0.0 ||
+                dict.m13 != 0.0 ||
+                dict.m23 != 0.0 ||
+                dict.m43 != 0.0 ||
+                dict.m14 != 0.0 ||
+                dict.m24 != 0.0 ||
+                dict.m34 != 0.0 ||
+                dict.m33 != 1.0 ||
+                dict.m44 != 1.0)
+        {
+            is2D = Some(false);
         }
         // Step 9.
         if is2D.is_none() {
             is2D = Some(true);
         }
-        let matrix = Transform3D::row_major(m11,      m12,      dict.m13, dict.m14,
-                                         m21,      m22,      dict.m23, dict.m24,
-                                         dict.m31, dict.m32, dict.m33, dict.m34,
-                                         m41,      m42,      dict.m43, dict.m44);
+        let matrix = Transform3D::row_major(
+            m11, m12, dict.m13, dict.m14, m21, m22, dict.m23, dict.m24, dict.m31, dict.m32,
+            dict.m33, dict.m34, m41, m42, dict.m43, dict.m44,
+        );
         Ok((is2D.unwrap(), matrix))
     }
 }
-
 
 #[inline]
 fn normalize_point(x: f64, y: f64, z: f64) -> (f64, f64, f64) {

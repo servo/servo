@@ -30,32 +30,34 @@ pub struct ServiceWorker {
     script_url: DomRefCell<String>,
     scope_url: ServoUrl,
     state: Cell<ServiceWorkerState>,
-    skip_waiting: Cell<bool>
+    skip_waiting: Cell<bool>,
 }
 
 impl ServiceWorker {
-    fn new_inherited(script_url: &str,
-                     skip_waiting: bool,
-                     scope_url: ServoUrl) -> ServiceWorker {
+    fn new_inherited(script_url: &str, skip_waiting: bool, scope_url: ServoUrl) -> ServiceWorker {
         ServiceWorker {
             eventtarget: EventTarget::new_inherited(),
             script_url: DomRefCell::new(String::from(script_url)),
             state: Cell::new(ServiceWorkerState::Installing),
             scope_url: scope_url,
-            skip_waiting: Cell::new(skip_waiting)
+            skip_waiting: Cell::new(skip_waiting),
         }
     }
 
-    pub fn install_serviceworker(global: &GlobalScope,
-                                 script_url: ServoUrl,
-                                 scope_url: ServoUrl,
-                                 skip_waiting: bool) -> DomRoot<ServiceWorker> {
+    pub fn install_serviceworker(
+        global: &GlobalScope,
+        script_url: ServoUrl,
+        scope_url: ServoUrl,
+        skip_waiting: bool,
+    ) -> DomRoot<ServiceWorker> {
         reflect_dom_object(
             Box::new(ServiceWorker::new_inherited(
-                script_url.as_str(), skip_waiting, scope_url
+                script_url.as_str(),
+                skip_waiting,
+                scope_url,
             )),
             global,
-            Wrap
+            Wrap,
         )
     }
 
@@ -66,7 +68,8 @@ impl ServiceWorker {
 
     pub fn set_transition_state(&self, state: ServiceWorkerState) {
         self.state.set(state);
-        self.upcast::<EventTarget>().fire_event(atom!("statechange"));
+        self.upcast::<EventTarget>()
+            .fire_event(atom!("statechange"));
     }
 
     pub fn get_script_url(&self) -> ServoUrl {
@@ -95,10 +98,13 @@ impl ServiceWorkerMethods for ServiceWorker {
         // Step 7
         let data = StructuredCloneData::write(cx, message)?;
         let msg_vec = DOMMessage(data.move_to_arraybuffer());
-        let _ =
-            self.global()
-                .script_to_constellation_chan()
-                .send(ScriptMsg::ForwardDOMMessage(msg_vec, self.scope_url.clone()));
+        let _ = self
+            .global()
+            .script_to_constellation_chan()
+            .send(ScriptMsg::ForwardDOMMessage(
+                msg_vec,
+                self.scope_url.clone(),
+            ));
         Ok(())
     }
 

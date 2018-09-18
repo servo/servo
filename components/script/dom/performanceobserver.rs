@@ -22,7 +22,7 @@ use std::rc::Rc;
 
 /// List of allowed performance entry types.
 const VALID_ENTRY_TYPES: &'static [&'static str] = &[
-    "mark", // User Timing API
+    "mark",    // User Timing API
     "measure", // User Timing API
     // "resource", XXX Resource Timing API
     // "server", XXX Server Timing API
@@ -38,9 +38,10 @@ pub struct PerformanceObserver {
 }
 
 impl PerformanceObserver {
-    fn new_inherited(callback: Rc<PerformanceObserverCallback>,
-                     entries: DomRefCell<DOMPerformanceEntryList>)
-        -> PerformanceObserver {
+    fn new_inherited(
+        callback: Rc<PerformanceObserverCallback>,
+        entries: DomRefCell<DOMPerformanceEntryList>,
+    ) -> PerformanceObserver {
         PerformanceObserver {
             reflector_: Reflector::new(),
             callback,
@@ -49,16 +50,19 @@ impl PerformanceObserver {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(global: &GlobalScope,
-               callback: Rc<PerformanceObserverCallback>,
-               entries: DOMPerformanceEntryList)
-        -> DomRoot<PerformanceObserver> {
+    pub fn new(
+        global: &GlobalScope,
+        callback: Rc<PerformanceObserverCallback>,
+        entries: DOMPerformanceEntryList,
+    ) -> DomRoot<PerformanceObserver> {
         let observer = PerformanceObserver::new_inherited(callback, DomRefCell::new(entries));
         reflect_dom_object(Box::new(observer), global, PerformanceObserverBinding::Wrap)
     }
 
-    pub fn Constructor(global: &GlobalScope, callback: Rc<PerformanceObserverCallback>)
-        -> Fallible<DomRoot<PerformanceObserver>> {
+    pub fn Constructor(
+        global: &GlobalScope,
+        callback: Rc<PerformanceObserverCallback>,
+    ) -> Fallible<DomRoot<PerformanceObserver>> {
         Ok(PerformanceObserver::new(global, callback, Vec::new()))
     }
 
@@ -78,7 +82,9 @@ impl PerformanceObserver {
         let global = self.global();
         let entry_list = PerformanceEntryList::new(entries.drain(..).collect());
         let observer_entry_list = PerformanceObserverEntryList::new(&global, entry_list);
-        let _ = self.callback.Call__(&observer_entry_list, self, ExceptionHandling::Report);
+        let _ = self
+            .callback
+            .Call__(&observer_entry_list, self, ExceptionHandling::Report);
     }
 
     pub fn callback(&self) -> Rc<PerformanceObserverCallback> {
@@ -99,10 +105,12 @@ impl PerformanceObserverMethods for PerformanceObserver {
     fn Observe(&self, options: &PerformanceObserverInit) -> Fallible<()> {
         // step 1
         // Make sure the client is asking to observe events from allowed entry types.
-        let entry_types = options.entryTypes.iter()
-                                            .filter(|e| VALID_ENTRY_TYPES.contains(&e.as_ref()))
-                                            .map(|e| e.clone())
-                                            .collect::<Vec<DOMString>>();
+        let entry_types = options
+            .entryTypes
+            .iter()
+            .filter(|e| VALID_ENTRY_TYPES.contains(&e.as_ref()))
+            .map(|e| e.clone())
+            .collect::<Vec<DOMString>>();
         // step 2
         // There must be at least one valid entry type.
         if entry_types.is_empty() {
@@ -110,7 +118,9 @@ impl PerformanceObserverMethods for PerformanceObserver {
         }
 
         // step 3-4-5
-        self.global().performance().add_observer(self, entry_types, options.buffered);
+        self.global()
+            .performance()
+            .add_observer(self, entry_types, options.buffered);
 
         Ok(())
     }

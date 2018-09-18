@@ -51,7 +51,7 @@ struct GenerationId(u32);
 enum ReadyState {
     Connecting = 0,
     Open = 1,
-    Closed = 2
+    Closed = 2,
 }
 
 #[dom_struct]
@@ -72,7 +72,7 @@ enum ParserState {
     Field,
     Comment,
     Value,
-    Eol
+    Eol,
 }
 
 struct EventSourceContext {
@@ -177,12 +177,12 @@ impl EventSourceContext {
             "data" => {
                 self.data.push_str(&self.value);
                 self.data.push('\n');
-            }
+            },
             "id" => mem::swap(&mut self.last_event_id, &mut self.value),
             "retry" => if let Ok(time) = u64::from_str(&self.value) {
                 self.event_source.root().reconnection_time.set(time);
             },
-            _ => ()
+            _ => (),
         }
 
         self.field.clear();
@@ -215,13 +215,24 @@ impl EventSourceContext {
         };
         // Steps 4-5
         let event = {
-            let _ac = JSAutoCompartment::new(event_source.global().get_cx(),
-                                             event_source.reflector().get_jsobject().get());
+            let _ac = JSAutoCompartment::new(
+                event_source.global().get_cx(),
+                event_source.reflector().get_jsobject().get(),
+            );
             rooted!(in(event_source.global().get_cx()) let mut data = UndefinedValue());
-            unsafe { self.data.to_jsval(event_source.global().get_cx(), data.handle_mut()) };
-            MessageEvent::new(&*event_source.global(), type_, false, false, data.handle(),
-                              DOMString::from(self.origin.clone()),
-                              event_source.last_event_id.borrow().clone())
+            unsafe {
+                self.data
+                    .to_jsval(event_source.global().get_cx(), data.handle_mut())
+            };
+            MessageEvent::new(
+                &*event_source.global(),
+                type_,
+                false,
+                false,
+                data.handle(),
+                DOMString::from(self.origin.clone()),
+                event_source.last_event_id.borrow().clone(),
+            )
         };
         // Step 7
         self.event_type.clear();
@@ -255,31 +266,31 @@ impl EventSourceContext {
                     if let Some(&' ') = stream.peek() {
                         stream.next();
                     }
-                }
+                },
 
                 ('\n', &ParserState::Value) => {
                     self.parser_state = ParserState::Eol;
                     self.process_field();
-                }
+                },
                 ('\r', &ParserState::Value) => {
                     if let Some(&'\n') = stream.peek() {
                         continue;
                     }
                     self.parser_state = ParserState::Eol;
                     self.process_field();
-                }
+                },
 
                 ('\n', &ParserState::Field) => {
                     self.parser_state = ParserState::Eol;
                     self.process_field();
-                }
+                },
                 ('\r', &ParserState::Field) => {
                     if let Some(&'\n') = stream.peek() {
                         continue;
                     }
                     self.parser_state = ParserState::Eol;
                     self.process_field();
-                }
+                },
 
                 ('\n', &ParserState::Eol) => self.dispatch_event(),
                 ('\r', &ParserState::Eol) => {
@@ -287,7 +298,7 @@ impl EventSourceContext {
                         continue;
                     }
                     self.dispatch_event();
-                }
+                },
 
                 ('\n', &ParserState::Comment) => self.parser_state = ParserState::Eol,
                 ('\r', &ParserState::Comment) => {
@@ -295,14 +306,14 @@ impl EventSourceContext {
                         continue;
                     }
                     self.parser_state = ParserState::Eol;
-                }
+                },
 
                 (_, &ParserState::Field) => self.field.push(ch),
                 (_, &ParserState::Value) => self.value.push(ch),
                 (_, &ParserState::Eol) => {
                     self.parser_state = ParserState::Field;
                     self.field.push(ch);
-                }
+                },
                 (_, &ParserState::Comment) => (),
             }
         }
@@ -323,7 +334,7 @@ impl FetchResponseListener for EventSourceContext {
             Ok(fm) => {
                 let meta = match fm {
                     FetchMetadata::Unfiltered(m) => m,
-                    FetchMetadata::Filtered { unsafe_, .. } => unsafe_
+                    FetchMetadata::Filtered { unsafe_, .. } => unsafe_,
                 };
                 match meta.content_type {
                     None => self.fail_the_connection(),
@@ -331,14 +342,14 @@ impl FetchResponseListener for EventSourceContext {
                         Mime(TopLevel::Text, SubLevel::EventStream, _) => {
                             self.origin = meta.final_url.origin().unicode_serialization();
                             self.announce_the_connection();
-                        }
-                        _ => self.fail_the_connection()
-                    }
+                        },
+                        _ => self.fail_the_connection(),
+                    },
                 }
-            }
+            },
             Err(_) => {
                 self.reestablish_the_connection();
-            }
+            },
         }
     }
 
@@ -350,7 +361,7 @@ impl FetchResponseListener for EventSourceContext {
                 Some((result, remaining_input)) => {
                     self.parse(result.unwrap_or("\u{FFFD}").chars());
                     input = remaining_input;
-                }
+                },
             }
         }
 
@@ -358,18 +369,25 @@ impl FetchResponseListener for EventSourceContext {
             match utf8::decode(&input) {
                 Ok(s) => {
                     self.parse(s.chars());
-                    return
-                }
-                Err(utf8::DecodeError::Invalid { valid_prefix, remaining_input, .. }) => {
+                    return;
+                },
+                Err(utf8::DecodeError::Invalid {
+                    valid_prefix,
+                    remaining_input,
+                    ..
+                }) => {
                     self.parse(valid_prefix.chars());
                     self.parse("\u{FFFD}".chars());
                     input = remaining_input;
-                }
-                Err(utf8::DecodeError::Incomplete { valid_prefix, incomplete_suffix }) => {
+                },
+                Err(utf8::DecodeError::Incomplete {
+                    valid_prefix,
+                    incomplete_suffix,
+                }) => {
                     self.parse(valid_prefix.chars());
                     self.incomplete_utf8 = Some(incomplete_suffix);
-                    return
-                }
+                    return;
+                },
             }
         }
     }
@@ -400,14 +418,16 @@ impl EventSource {
 
             ready_state: Cell::new(ReadyState::Connecting),
             with_credentials: with_credentials,
-            canceller: DomRefCell::new(Default::default())
+            canceller: DomRefCell::new(Default::default()),
         }
     }
 
     fn new(global: &GlobalScope, url: ServoUrl, with_credentials: bool) -> DomRoot<EventSource> {
-        reflect_dom_object(Box::new(EventSource::new_inherited(url, with_credentials)),
-                           global,
-                           Wrap)
+        reflect_dom_object(
+            Box::new(EventSource::new_inherited(url, with_credentials)),
+            global,
+            Wrap,
+        )
     }
 
     // https://html.spec.whatwg.org/multipage/#sse-processing-model:fail-the-connection-3
@@ -438,19 +458,25 @@ impl EventSource {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-eventsource
-    pub fn Constructor(global: &GlobalScope,
-                       url: DOMString,
-                       event_source_init: &EventSourceInit) -> Fallible<DomRoot<EventSource>> {
+    pub fn Constructor(
+        global: &GlobalScope,
+        url: DOMString,
+        event_source_init: &EventSourceInit,
+    ) -> Fallible<DomRoot<EventSource>> {
         // TODO: Step 2 relevant settings object
         // Step 3
         let base_url = global.api_base_url();
         let url_record = match base_url.join(&*url) {
             Ok(u) => u,
             //  Step 4
-            Err(_) => return Err(Error::Syntax)
+            Err(_) => return Err(Error::Syntax),
         };
         // Step 1, 5
-        let ev = EventSource::new(global, url_record.clone(), event_source_init.withCredentials);
+        let ev = EventSource::new(
+            global,
+            url_record.clone(),
+            event_source_init.withCredentials,
+        );
         global.track_event_source(&ev);
         // Steps 6-7
         let cors_attribute_state = if event_source_init.withCredentials {
@@ -475,7 +501,9 @@ impl EventSource {
             ..RequestInit::default()
         };
         // Step 10
-        request.headers.set(Accept(vec![qitem(mime!(Text / EventStream))]));
+        request
+            .headers
+            .set(Accept(vec![qitem(mime!(Text / EventStream))]));
         // Step 11
         request.cache_mode = CacheMode::NoStore;
         // Step 12
@@ -501,14 +529,21 @@ impl EventSource {
         let listener = NetworkListener {
             context: Arc::new(Mutex::new(context)),
             task_source: global.networking_task_source(),
-            canceller: Some(global.task_canceller(TaskSourceName::Networking))
+            canceller: Some(global.task_canceller(TaskSourceName::Networking)),
         };
-        ROUTER.add_route(action_receiver.to_opaque(), Box::new(move |message| {
-            listener.notify_fetch(message.to().unwrap());
-        }));
+        ROUTER.add_route(
+            action_receiver.to_opaque(),
+            Box::new(move |message| {
+                listener.notify_fetch(message.to().unwrap());
+            }),
+        );
         let cancel_receiver = ev.canceller.borrow_mut().initialize();
-        global.core_resource_thread().send(
-            CoreResourceMsg::Fetch(request, FetchChannels::ResponseMsg(action_sender, Some(cancel_receiver)))).unwrap();
+        global
+            .core_resource_thread()
+            .send(CoreResourceMsg::Fetch(
+                request,
+                FetchChannels::ResponseMsg(action_sender, Some(cancel_receiver)),
+            )).unwrap();
         // Step 13
         Ok(ev)
     }
@@ -578,10 +613,16 @@ impl EventSourceTimeoutCallback {
         let mut request = event_source.request();
         // Step 5.3
         if !event_source.last_event_id.borrow().is_empty() {
-            request.headers.set(LastEventId(String::from(event_source.last_event_id.borrow().clone())));
+            request.headers.set(LastEventId(String::from(
+                event_source.last_event_id.borrow().clone(),
+            )));
         }
         // Step 5.4
-        global.core_resource_thread().send(
-            CoreResourceMsg::Fetch(request, FetchChannels::ResponseMsg(self.action_sender, None))).unwrap();
+        global
+            .core_resource_thread()
+            .send(CoreResourceMsg::Fetch(
+                request,
+                FetchChannels::ResponseMsg(self.action_sender, None),
+            )).unwrap();
     }
 }

@@ -26,16 +26,18 @@ impl ChannelMergerNode {
         context: &BaseAudioContext,
         options: &ChannelMergerOptions,
     ) -> Fallible<ChannelMergerNode> {
-        let node_options = options.parent
-                                  .unwrap_or(1, ChannelCountMode::Explicit,
-                                             ChannelInterpretation::Speakers);
+        let node_options = options.parent.unwrap_or(
+            1,
+            ChannelCountMode::Explicit,
+            ChannelInterpretation::Speakers,
+        );
 
         if node_options.count != 1 || node_options.mode != ChannelCountMode::Explicit {
-            return Err(Error::InvalidState)
+            return Err(Error::InvalidState);
         }
 
         if options.numberOfInputs < 1 || options.numberOfInputs > MAX_CHANNEL_COUNT {
-            return Err(Error::IndexSize)
+            return Err(Error::IndexSize);
         }
 
         let node = AudioNode::new_inherited(
@@ -43,11 +45,9 @@ impl ChannelMergerNode {
             context,
             node_options,
             options.numberOfInputs, // inputs
-            1, // outputs
+            1,                      // outputs
         )?;
-        Ok(ChannelMergerNode {
-            node,
-        })
+        Ok(ChannelMergerNode { node })
     }
 
     #[allow(unrooted_must_root)]
@@ -57,7 +57,11 @@ impl ChannelMergerNode {
         options: &ChannelMergerOptions,
     ) -> Fallible<DomRoot<ChannelMergerNode>> {
         let node = ChannelMergerNode::new_inherited(window, context, options)?;
-        Ok(reflect_dom_object(Box::new(node), window, ChannelMergerNodeBinding::Wrap))
+        Ok(reflect_dom_object(
+            Box::new(node),
+            window,
+            ChannelMergerNodeBinding::Wrap,
+        ))
     }
 
     pub fn Constructor(

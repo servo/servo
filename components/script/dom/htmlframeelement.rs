@@ -12,22 +12,32 @@ use html5ever::{LocalName, Prefix};
 
 #[dom_struct]
 pub struct HTMLFrameElement {
-    htmlelement: HTMLElement
+    htmlelement: HTMLElement,
 }
 
 impl HTMLFrameElement {
-    fn new_inherited(local_name: LocalName, prefix: Option<Prefix>, document: &Document) -> HTMLFrameElement {
+    fn new_inherited(
+        local_name: LocalName,
+        prefix: Option<Prefix>,
+        document: &Document,
+    ) -> HTMLFrameElement {
         HTMLFrameElement {
-            htmlelement: HTMLElement::new_inherited(local_name, prefix, document)
+            htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(local_name: LocalName,
-               prefix: Option<Prefix>,
-               document: &Document) -> DomRoot<HTMLFrameElement> {
-        Node::reflect_node(Box::new(HTMLFrameElement::new_inherited(local_name, prefix, document)),
-                           document,
-                           HTMLFrameElementBinding::Wrap)
+    pub fn new(
+        local_name: LocalName,
+        prefix: Option<Prefix>,
+        document: &Document,
+    ) -> DomRoot<HTMLFrameElement> {
+        Node::reflect_node(
+            Box::new(HTMLFrameElement::new_inherited(
+                local_name, prefix, document,
+            )),
+            document,
+            HTMLFrameElementBinding::Wrap,
+        )
     }
 }

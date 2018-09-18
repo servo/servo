@@ -16,24 +16,28 @@ pub struct HTMLTableDataCellElement {
 }
 
 impl HTMLTableDataCellElement {
-    fn new_inherited(local_name: LocalName,
-                     prefix: Option<Prefix>,
-                     document: &Document) -> HTMLTableDataCellElement {
+    fn new_inherited(
+        local_name: LocalName,
+        prefix: Option<Prefix>,
+        document: &Document,
+    ) -> HTMLTableDataCellElement {
         HTMLTableDataCellElement {
-            htmltablecellelement:
-                HTMLTableCellElement::new_inherited(local_name, prefix, document)
+            htmltablecellelement: HTMLTableCellElement::new_inherited(local_name, prefix, document),
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(local_name: LocalName, prefix: Option<Prefix>, document: &Document)
-               -> DomRoot<HTMLTableDataCellElement> {
+    pub fn new(
+        local_name: LocalName,
+        prefix: Option<Prefix>,
+        document: &Document,
+    ) -> DomRoot<HTMLTableDataCellElement> {
         Node::reflect_node(
             Box::new(HTMLTableDataCellElement::new_inherited(
-                local_name, prefix, document
+                local_name, prefix, document,
             )),
             document,
-            HTMLTableDataCellElementBinding::Wrap
+            HTMLTableDataCellElementBinding::Wrap,
         )
     }
 }

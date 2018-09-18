@@ -81,7 +81,9 @@ pub fn close_the_websocket_connection(
         code: code,
         reason: Some(reason),
     };
-    task_source.queue_with_canceller(close_task, &canceller).unwrap();
+    task_source
+        .queue_with_canceller(close_task, &canceller)
+        .unwrap();
 }
 
 pub fn fail_the_websocket_connection(
@@ -95,7 +97,9 @@ pub fn fail_the_websocket_connection(
         code: Some(close_code::ABNORMAL),
         reason: None,
     };
-    task_source.queue_with_canceller(close_task, &canceller).unwrap();
+    task_source
+        .queue_with_canceller(close_task, &canceller)
+        .unwrap();
 }
 
 #[dom_struct]
@@ -125,16 +129,24 @@ impl WebSocket {
         }
     }
 
-    fn new(global: &GlobalScope, url: ServoUrl, sender: IpcSender<WebSocketDomAction>) -> DomRoot<WebSocket> {
-        reflect_dom_object(Box::new(WebSocket::new_inherited(url, sender)),
-                           global, WebSocketBinding::Wrap)
+    fn new(
+        global: &GlobalScope,
+        url: ServoUrl,
+        sender: IpcSender<WebSocketDomAction>,
+    ) -> DomRoot<WebSocket> {
+        reflect_dom_object(
+            Box::new(WebSocket::new_inherited(url, sender)),
+            global,
+            WebSocketBinding::Wrap,
+        )
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-websocket>
-    pub fn Constructor(global: &GlobalScope,
-                       url: DOMString,
-                       protocols: Option<StringOrStringSequence>)
-                       -> Fallible<DomRoot<WebSocket>> {
+    pub fn Constructor(
+        global: &GlobalScope,
+        url: DOMString,
+        protocols: Option<StringOrStringSequence>,
+    ) -> Fallible<DomRoot<WebSocket>> {
         // Steps 1-2.
         let url_record = ServoUrl::parse(&url).or(Err(Error::Syntax))?;
 
@@ -150,13 +162,11 @@ impl WebSocket {
         }
 
         // Step 5.
-        let protocols = protocols.map_or(vec![], |p| {
-            match p {
-                StringOrStringSequence::String(string) => vec![string.into()],
-                StringOrStringSequence::StringSequence(seq) => {
-                    seq.into_iter().map(String::from).collect()
-                },
-            }
+        let protocols = protocols.map_or(vec![], |p| match p {
+            StringOrStringSequence::String(string) => vec![string.into()],
+            StringOrStringSequence::StringSequence(seq) => {
+                seq.into_iter().map(String::from).collect()
+            },
         });
 
         // Step 6.
@@ -164,7 +174,10 @@ impl WebSocket {
             // https://tools.ietf.org/html/rfc6455#section-4.1
             // Handshake requirements, step 10
 
-            if protocols[i + 1..].iter().any(|p| p.eq_ignore_ascii_case(protocol)) {
+            if protocols[i + 1..]
+                .iter()
+                .any(|p| p.eq_ignore_ascii_case(protocol))
+            {
                 return Err(Error::Syntax);
             }
 
@@ -175,13 +188,14 @@ impl WebSocket {
         }
 
         // Create the interface for communication with the resource thread
-        let (dom_action_sender, resource_action_receiver):
-                (IpcSender<WebSocketDomAction>,
-                IpcReceiver<WebSocketDomAction>) = ipc::channel().unwrap();
-        let (resource_event_sender, dom_event_receiver):
-                (IpcSender<WebSocketNetworkEvent>,
-                 ProfiledIpc::IpcReceiver<WebSocketNetworkEvent>) =
-            ProfiledIpc::channel(global.time_profiler_chan().clone()).unwrap();
+        let (dom_action_sender, resource_action_receiver): (
+            IpcSender<WebSocketDomAction>,
+            IpcReceiver<WebSocketDomAction>,
+        ) = ipc::channel().unwrap();
+        let (resource_event_sender, dom_event_receiver): (
+            IpcSender<WebSocketNetworkEvent>,
+            ProfiledIpc::IpcReceiver<WebSocketNetworkEvent>,
+        ) = ProfiledIpc::channel(global.time_profiler_chan().clone()).unwrap();
 
         let ws = WebSocket::new(global, url_record.clone(), dom_action_sender);
         let address = Trusted::new(&*ws);
@@ -197,7 +211,9 @@ impl WebSocket {
             event_sender: resource_event_sender,
             action_receiver: resource_action_receiver,
         };
-        let _ = global.core_resource_thread().send(CoreResourceMsg::Fetch(request, channels));
+        let _ = global
+            .core_resource_thread()
+            .send(CoreResourceMsg::Fetch(request, channels));
 
         let task_source = global.websocket_task_source();
         let canceller = global.task_canceller(WebsocketTaskSource::NAME);
@@ -209,22 +225,30 @@ impl WebSocket {
                             address: address.clone(),
                             protocol_in_use,
                         };
-                        task_source.queue_with_canceller(open_thread, &canceller).unwrap();
+                        task_source
+                            .queue_with_canceller(open_thread, &canceller)
+                            .unwrap();
                     },
                     WebSocketNetworkEvent::MessageReceived(message) => {
                         let message_thread = MessageReceivedTask {
                             address: address.clone(),
                             message: message,
                         };
-                        task_source.queue_with_canceller(message_thread, &canceller).unwrap();
+                        task_source
+                            .queue_with_canceller(message_thread, &canceller)
+                            .unwrap();
                     },
                     WebSocketNetworkEvent::Fail => {
-                        fail_the_websocket_connection(address.clone(),
-                            &task_source, &canceller);
+                        fail_the_websocket_connection(address.clone(), &task_source, &canceller);
                     },
                     WebSocketNetworkEvent::Close(code, reason) => {
-                        close_the_websocket_connection(address.clone(),
-                            &task_source, &canceller, code, reason);
+                        close_the_websocket_connection(
+                            address.clone(),
+                            &task_source,
+                            &canceller,
+                            code,
+                            reason,
+                        );
                     },
                 }
             }
@@ -248,7 +272,7 @@ impl WebSocket {
 
         match data_byte_len.checked_add(self.buffered_amount.get()) {
             None => panic!(),
-            Some(new_amount) => self.buffered_amount.set(new_amount)
+            Some(new_amount) => self.buffered_amount.set(new_amount),
         };
 
         if return_after_buffer {
@@ -258,9 +282,7 @@ impl WebSocket {
         if !self.clearing_buffer.get() && self.ready_state.get() == WebSocketRequestState::Open {
             self.clearing_buffer.set(true);
 
-            let task = Box::new(BufferedAmountTask {
-                address: address,
-            });
+            let task = Box::new(BufferedAmountTask { address: address });
 
             let pipeline_id = self.global().pipeline_id();
             self.global()
@@ -323,7 +345,7 @@ impl WebSocketMethods for WebSocket {
 
     // https://html.spec.whatwg.org/multipage/#dom-websocket-protocol
     fn Protocol(&self) -> DOMString {
-         DOMString::from(self.protocol.borrow().clone())
+        DOMString::from(self.protocol.borrow().clone())
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-websocket-send
@@ -332,7 +354,9 @@ impl WebSocketMethods for WebSocket {
         let send_data = self.send_impl(data_byte_len)?;
 
         if send_data {
-            let _ = self.sender.send(WebSocketDomAction::SendMessage(MessageData::Text(data.0)));
+            let _ = self
+                .sender
+                .send(WebSocketDomAction::SendMessage(MessageData::Text(data.0)));
         }
 
         Ok(())
@@ -349,7 +373,9 @@ impl WebSocketMethods for WebSocket {
 
         if send_data {
             let bytes = blob.get_bytes().unwrap_or(vec![]);
-            let _ = self.sender.send(WebSocketDomAction::SendMessage(MessageData::Binary(bytes)));
+            let _ = self
+                .sender
+                .send(WebSocketDomAction::SendMessage(MessageData::Binary(bytes)));
         }
 
         Ok(())
@@ -362,7 +388,9 @@ impl WebSocketMethods for WebSocket {
         let send_data = self.send_impl(data_byte_len as u64)?;
 
         if send_data {
-            let _ = self.sender.send(WebSocketDomAction::SendMessage(MessageData::Binary(bytes)));
+            let _ = self
+                .sender
+                .send(WebSocketDomAction::SendMessage(MessageData::Binary(bytes)));
         }
         Ok(())
     }
@@ -374,7 +402,9 @@ impl WebSocketMethods for WebSocket {
         let send_data = self.send_impl(data_byte_len as u64)?;
 
         if send_data {
-            let _ = self.sender.send(WebSocketDomAction::SendMessage(MessageData::Binary(bytes)));
+            let _ = self
+                .sender
+                .send(WebSocketDomAction::SendMessage(MessageData::Binary(bytes)));
         }
         Ok(())
     }
@@ -388,14 +418,16 @@ impl WebSocketMethods for WebSocket {
             }
         }
         if let Some(ref reason) = reason {
-            if reason.0.as_bytes().len() > 123 { //reason cannot be larger than 123 bytes
+            if reason.0.as_bytes().len() > 123 {
+                //reason cannot be larger than 123 bytes
                 return Err(Error::Syntax);
             }
         }
 
         match self.ready_state.get() {
-            WebSocketRequestState::Closing | WebSocketRequestState::Closed  => {} //Do nothing
-            WebSocketRequestState::Connecting => { //Connection is not yet established
+            WebSocketRequestState::Closing | WebSocketRequestState::Closed => {}, //Do nothing
+            WebSocketRequestState::Connecting => {
+                //Connection is not yet established
                 /*By setting the state to closing, the open function
                   will abort connecting the websocket*/
                 self.ready_state.set(WebSocketRequestState::Closing);
@@ -405,10 +437,12 @@ impl WebSocketMethods for WebSocket {
                 // https://html.spec.whatwg.org/multipage/#websocket-task-source
                 // When making the switch, also update the task_canceller call.
                 let task_source = self.global().websocket_task_source();
-                fail_the_websocket_connection(address,
-                                              &task_source,
-                                              &self.global().task_canceller(WebsocketTaskSource::NAME));
-            }
+                fail_the_websocket_connection(
+                    address,
+                    &task_source,
+                    &self.global().task_canceller(WebsocketTaskSource::NAME),
+                );
+            },
             WebSocketRequestState::Open => {
                 self.ready_state.set(WebSocketRequestState::Closing);
 
@@ -416,12 +450,11 @@ impl WebSocketMethods for WebSocket {
                 // https://tools.ietf.org/html/rfc6455#section-7.1.2
                 let reason = reason.map(|reason| reason.0);
                 let _ = self.sender.send(WebSocketDomAction::Close(code, reason));
-            }
+            },
         }
         Ok(()) //Return Ok
     }
 }
-
 
 /// Task queued when *the WebSocket connection is established*.
 /// <https://html.spec.whatwg.org/multipage/#feedback-from-the-protocol:concept-websocket-established>
@@ -500,13 +533,15 @@ impl TaskOnce for CloseTask {
         let clean_close = !self.failed;
         let code = self.code.unwrap_or(close_code::NO_STATUS);
         let reason = DOMString::from(self.reason.unwrap_or("".to_owned()));
-        let close_event = CloseEvent::new(&ws.global(),
-                                          atom!("close"),
-                                          EventBubbles::DoesNotBubble,
-                                          EventCancelable::NotCancelable,
-                                          clean_close,
-                                          code,
-                                          reason);
+        let close_event = CloseEvent::new(
+            &ws.global(),
+            atom!("close"),
+            EventBubbles::DoesNotBubble,
+            EventCancelable::NotCancelable,
+            clean_close,
+            code,
+            reason,
+        );
         close_event.upcast::<Event>().fire(ws.upcast());
     }
 }
@@ -520,8 +555,11 @@ impl TaskOnce for MessageReceivedTask {
     #[allow(unsafe_code)]
     fn run_once(self) {
         let ws = self.address.root();
-        debug!("MessageReceivedTask::handler({:p}): readyState={:?}", &*ws,
-               ws.ready_state.get());
+        debug!(
+            "MessageReceivedTask::handler({:p}): readyState={:?}",
+            &*ws,
+            ws.ready_state.get()
+        );
 
         // Step 1.
         if ws.ready_state.get() != WebSocketRequestState::Open {
@@ -537,30 +575,31 @@ impl TaskOnce for MessageReceivedTask {
             rooted!(in(cx) let mut message = UndefinedValue());
             match self.message {
                 MessageData::Text(text) => text.to_jsval(cx, message.handle_mut()),
-                MessageData::Binary(data) => {
-                    match ws.binary_type.get() {
-                        BinaryType::Blob => {
-                            let blob = Blob::new(&global, BlobImpl::new_from_bytes(data), "".to_owned());
-                            blob.to_jsval(cx, message.handle_mut());
-                        }
-                        BinaryType::Arraybuffer => {
-                            rooted!(in(cx) let mut array_buffer = ptr::null_mut::<JSObject>());
-                            assert!(ArrayBuffer::create(cx,
-                                                        CreateWith::Slice(&data),
-                                                        array_buffer.handle_mut())
-                                    .is_ok());
+                MessageData::Binary(data) => match ws.binary_type.get() {
+                    BinaryType::Blob => {
+                        let blob =
+                            Blob::new(&global, BlobImpl::new_from_bytes(data), "".to_owned());
+                        blob.to_jsval(cx, message.handle_mut());
+                    },
+                    BinaryType::Arraybuffer => {
+                        rooted!(in(cx) let mut array_buffer = ptr::null_mut::<JSObject>());
+                        assert!(
+                            ArrayBuffer::create(
+                                cx,
+                                CreateWith::Slice(&data),
+                                array_buffer.handle_mut()
+                            ).is_ok()
+                        );
 
-                            (*array_buffer).to_jsval(cx, message.handle_mut());
-                        }
-
-                    }
+                        (*array_buffer).to_jsval(cx, message.handle_mut());
+                    },
                 },
             }
             MessageEvent::dispatch_jsval(
                 ws.upcast(),
                 &global,
                 message.handle(),
-                Some(&ws.origin().ascii_serialization())
+                Some(&ws.origin().ascii_serialization()),
             );
         }
     }

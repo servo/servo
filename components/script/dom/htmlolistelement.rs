@@ -16,20 +16,28 @@ pub struct HTMLOListElement {
 }
 
 impl HTMLOListElement {
-    fn new_inherited(local_name: LocalName,
-                     prefix: Option<Prefix>,
-                     document: &Document) -> HTMLOListElement {
+    fn new_inherited(
+        local_name: LocalName,
+        prefix: Option<Prefix>,
+        document: &Document,
+    ) -> HTMLOListElement {
         HTMLOListElement {
-            htmlelement: HTMLElement::new_inherited(local_name, prefix, document)
+            htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(local_name: LocalName,
-               prefix: Option<Prefix>,
-               document: &Document) -> DomRoot<HTMLOListElement> {
-        Node::reflect_node(Box::new(HTMLOListElement::new_inherited(local_name, prefix, document)),
-                           document,
-                           HTMLOListElementBinding::Wrap)
+    pub fn new(
+        local_name: LocalName,
+        prefix: Option<Prefix>,
+        document: &Document,
+    ) -> DomRoot<HTMLOListElement> {
+        Node::reflect_node(
+            Box::new(HTMLOListElement::new_inherited(
+                local_name, prefix, document,
+            )),
+            document,
+            HTMLOListElementBinding::Wrap,
+        )
     }
 }

@@ -49,24 +49,37 @@ impl<T> Deref for MozMap<T> {
 }
 
 impl<T, C> FromJSValConvertible for MozMap<T>
-    where T: FromJSValConvertible<Config=C>,
-          C: Clone,
+where
+    T: FromJSValConvertible<Config = C>,
+    C: Clone,
 {
     type Config = C;
-    unsafe fn from_jsval(cx: *mut JSContext, value: HandleValue, config: C)
-                         -> Result<ConversionResult<Self>, ()> {
+    unsafe fn from_jsval(
+        cx: *mut JSContext,
+        value: HandleValue,
+        config: C,
+    ) -> Result<ConversionResult<Self>, ()> {
         if !value.is_object() {
-            return Ok(ConversionResult::Failure("MozMap value was not an object".into()));
+            return Ok(ConversionResult::Failure(
+                "MozMap value was not an object".into(),
+            ));
         }
 
         rooted!(in(cx) let object = value.to_object());
         let ids = IdVector::new(cx);
-        if !GetPropertyKeys(cx, object.handle(), JSITER_OWNONLY | JSITER_HIDDEN | JSITER_SYMBOLS, ids.get()) {
+        if !GetPropertyKeys(
+            cx,
+            object.handle(),
+            JSITER_OWNONLY | JSITER_HIDDEN | JSITER_SYMBOLS,
+            ids.get(),
+        ) {
             // TODO: can GetPropertyKeys fail?
             // (it does so if the object has duplicate keys)
             // https://github.com/servo/servo/issues/21462
             report_pending_exception(cx, false);
-            return Ok(ConversionResult::Failure("Getting MozMap value property keys failed".into()));
+            return Ok(ConversionResult::Failure(
+                "Getting MozMap value property keys failed".into(),
+            ));
         }
 
         let mut map = HashMap::new();
@@ -90,9 +103,7 @@ impl<T, C> FromJSValConvertible for MozMap<T>
             }
         }
 
-        Ok(ConversionResult::Success(MozMap {
-            map: map,
-        }))
+        Ok(ConversionResult::Success(MozMap { map: map }))
     }
 }
 
@@ -107,12 +118,14 @@ impl<T: ToJSValConvertible> ToJSValConvertible for MozMap<T> {
             let key = key.encode_utf16().collect::<Vec<_>>();
             value.to_jsval(cx, js_value.handle_mut());
 
-            assert!(JS_DefineUCProperty2(cx,
-                                         js_object.handle(),
-                                         key.as_ptr(),
-                                         key.len(),
-                                         js_value.handle(),
-                                         JSPROP_ENUMERATE as u32));
+            assert!(JS_DefineUCProperty2(
+                cx,
+                js_object.handle(),
+                key.as_ptr(),
+                key.len(),
+                js_value.handle(),
+                JSPROP_ENUMERATE as u32
+            ));
         }
 
         rval.set(ObjectValue(js_object.handle().get()));

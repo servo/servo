@@ -35,9 +35,10 @@ impl OscillatorNode {
         context: &BaseAudioContext,
         options: &OscillatorOptions,
     ) -> Fallible<OscillatorNode> {
-        let node_options = options.parent
-                                  .unwrap_or(2, ChannelCountMode::Max,
-                                             ChannelInterpretation::Speakers);
+        let node_options =
+            options
+                .parent
+                .unwrap_or(2, ChannelCountMode::Max, ChannelInterpretation::Speakers);
         let source_node = AudioScheduledSourceNode::new_inherited(
             AudioNodeInit::OscillatorNode(options.into()),
             context,
@@ -82,7 +83,11 @@ impl OscillatorNode {
         options: &OscillatorOptions,
     ) -> Fallible<DomRoot<OscillatorNode>> {
         let node = OscillatorNode::new_inherited(window, context, options)?;
-        Ok(reflect_dom_object(Box::new(node), window, OscillatorNodeBinding::Wrap))
+        Ok(reflect_dom_object(
+            Box::new(node),
+            window,
+            OscillatorNodeBinding::Wrap,
+        ))
     }
 
     pub fn Constructor(

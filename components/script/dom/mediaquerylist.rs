@@ -28,7 +28,7 @@ pub struct MediaQueryList {
     eventtarget: EventTarget,
     document: Dom<Document>,
     media_query_list: MediaList,
-    last_match_state: Cell<Option<bool>>
+    last_match_state: Cell<Option<bool>>,
 }
 
 impl MediaQueryList {
@@ -42,9 +42,11 @@ impl MediaQueryList {
     }
 
     pub fn new(document: &Document, media_query_list: MediaList) -> DomRoot<MediaQueryList> {
-        reflect_dom_object(Box::new(MediaQueryList::new_inherited(document, media_query_list)),
-                           document.window(),
-                           MediaQueryListBinding::Wrap)
+        reflect_dom_object(
+            Box::new(MediaQueryList::new_inherited(document, media_query_list)),
+            document.window(),
+            MediaQueryListBinding::Wrap,
+        )
     }
 }
 
@@ -68,7 +70,8 @@ impl MediaQueryList {
 
     pub fn evaluate(&self) -> bool {
         self.document.device().map_or(false, |device| {
-            self.media_query_list.evaluate(&device, self.document.quirks_mode())
+            self.media_query_list
+                .evaluate(&device, self.document.quirks_mode())
         })
     }
 }
@@ -92,7 +95,9 @@ impl MediaQueryListMethods for MediaQueryList {
         self.upcast::<EventTarget>().add_event_listener(
             DOMString::from_string("change".to_owned()),
             listener,
-            AddEventListenerOptions { parent: EventListenerOptions { capture: false } },
+            AddEventListenerOptions {
+                parent: EventListenerOptions { capture: false },
+            },
         );
     }
 
