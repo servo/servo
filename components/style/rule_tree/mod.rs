@@ -938,8 +938,6 @@ impl MallocSizeOf for RuleNode {
     }
 }
 
-// FIXME: use std::ptr::NonNull when Firefox requires Rust 1.25+
-
 #[derive(Clone)]
 struct WeakRuleNode {
     p: ptr::NonNull<RuleNode>,
@@ -952,6 +950,7 @@ pub struct StrongRuleNode {
 }
 
 unsafe impl Send for StrongRuleNode {}
+unsafe impl Sync for StrongRuleNode {}
 
 #[cfg(feature = "servo")]
 malloc_size_of_is_0!(StrongRuleNode);
