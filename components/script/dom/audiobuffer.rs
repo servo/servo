@@ -117,13 +117,19 @@ impl AudioBuffer {
         for (i, channel) in self.js_channels.borrow_mut().iter().enumerate() {
             if !channel.get().is_null() {
                 // Already have data in JS array.
+                // We may have called GetChannelData, and web content may have modified
+                // js_channels. So make sure that shared_channels contains the same data as
+                // js_channels.
+                typedarray!(in(cx) let array: Float32Array = channel.get());
+                if let Ok(array) = array {
+                    (*self.shared_channels.borrow_mut()).buffers[i] = array.to_vec();
+                }
                 continue;
             }
 
             // Copy the channel data from shared_channels to js_channels.
             rooted!(in (cx) let mut array = ptr::null_mut::<JSObject>());
-            let shared_channel = &(*self.shared_channels.borrow_mut()).buffers[i];
-            if Float32Array::create(cx, CreateWith::Slice(shared_channel), array.handle_mut())
+            if Float32Array::create(cx, CreateWith::Slice(&(*self.shared_channels.borrow_mut()).buffers[i]), array.handle_mut())
                 .is_err()
             {
                 return false;
@@ -289,12 +295,14 @@ impl AudioBufferMethods for AudioBuffer {
             unsafe {
                 let data = &source.as_slice()[0..bytes_to_copy];
                 // Update shared channel.
-                let mut shared_channels = self.shared_channels.borrow_mut();
-                let shared_channel = shared_channels.data_chan_mut(channel_number as u8);
-                let (_, mut shared_channel) = shared_channel.split_at_mut(start_in_channel as usize);
-                shared_channel[0..bytes_to_copy].copy_from_slice(data);
+                {
+                    let mut shared_channels = self.shared_channels.borrow_mut();
+                    let shared_channel = shared_channels.data_chan_mut(channel_number as u8);
+                    let (_, mut shared_channel) = shared_channel.split_at_mut(start_in_channel as usize);
+                    shared_channel[0..bytes_to_copy].copy_from_slice(data);
+                }
                 // Update js channel.
-                js_channel.update(data);
+                js_channel.update(self.shared_channels.borrow().buffers[channel_number as usize].as_slice());
             }
         } else {
             return Err(Error::IndexSize);
