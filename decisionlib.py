@@ -110,21 +110,21 @@ class DecisionTask:
                     routes=None, extra=None, features=None,
                     with_repo=True):
         # Set in .taskcluster.yml
-        commit_sha = os.environ["GITHUB_EVENT_COMMIT_SHA"]
-        clone_url = os.environ["GITHUB_EVENT_CLONE_URL"]
-        source = os.environ["GITHUB_EVENT_SOURCE"]
-        owner = os.environ["GITHUB_EVENT_OWNER"]
+        task_owner = os.environ["TASK_OWNER"]
+        task_source = os.environ["TASK_SOURCE"]
 
         env = env or {}
 
         if with_repo:
-            env["GITHUB_EVENT_COMMIT_SHA"] = commit_sha
-            env["GITHUB_EVENT_CLONE_URL"] = clone_url
+            # Set in .taskcluster.yml
+            for k in ["GIT_URL", "GIT_REF", "GIT_SHA"]:
+                env[k] = os.environ[k]
 
             command = """
-                    git clone --depth 1 $GITHUB_EVENT_CLONE_URL repo
+                    git init repo
                     cd repo
-                    git checkout $GITHUB_EVENT_COMMIT_SHA
+                    git fetch --depth 1 "$GIT_URL" "$GIT_REF"
+                    git reset --hard "$GIT_SHA"
                 """ + command
 
         # https://docs.taskcluster.net/docs/reference/workers/docker-worker/docs/environment
@@ -142,8 +142,8 @@ class DecisionTask:
             "metadata": {
                 "name": "%s: %s" % (self.project_name, task_name),
                 "description": "",
-                "owner": owner,
-                "source": source,
+                "owner": task_owner,
+                "source": task_source,
             },
             "scopes": scopes or [],
             "routes": routes or [],

@@ -34,16 +34,18 @@ tasks:
           features:
             taskclusterProxy: true
           env:
-            GITHUB_EVENT_OWNER: ${event.pusher.name}@users.noreply.github.com
-            GITHUB_EVENT_SOURCE: ${event.compare}
-            GITHUB_EVENT_CLONE_URL: ${event.repository.clone_url}
-            GITHUB_EVENT_COMMIT_SHA: ${event.after}
+            GIT_URL: ${event.repository.clone_url}
+            GIT_REF: ${event.ref}
+            GIT_SHA: ${event.after}
+            TASK_OWNER: ${event.pusher.name}@users.noreply.github.com
+            TASK_SOURCE: ${event.compare}
           command:
             - /bin/bash
             - '--login'
             - '-c'
             - >-
-              git clone --depth 1 $GITHUB_EVENT_CLONE_URL repo &&
+              git init repo &&
               cd repo &&
-              git checkout $GITHUB_EVENT_COMMIT_SHA &&
+              git fetch --depth 1 "$GIT_URL" "$GIT_REF" &&
+              git reset --hard "$GIT_SHA" &&
               python3 decision-task.py
