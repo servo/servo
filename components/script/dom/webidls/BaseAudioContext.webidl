@@ -35,7 +35,7 @@ interface BaseAudioContext : EventTarget {
   // ScriptProcessorNode createScriptProcessor(optional unsigned long bufferSize = 0,
   //                                           optional unsigned long numberOfInputChannels = 2,
   //                                           optional unsigned long numberOfOutputChannels = 2);
-  // AnalyserNode createAnalyser();
+  [Throws] AnalyserNode createAnalyser();
   [Throws]  GainNode createGain();
   // DelayNode createDelay(optional double maxDelayTime = 1);
   // BiquadFilterNode createBiquadFilter();

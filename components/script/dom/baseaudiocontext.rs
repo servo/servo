@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use dom::analysernode::AnalyserNode;
 use dom::audiobuffer::AudioBuffer;
 use dom::audiobuffersourcenode::AudioBufferSourceNode;
 use dom::audiodestinationnode::AudioDestinationNode;
@@ -9,6 +10,7 @@ use dom::audiolistener::AudioListener;
 use dom::audionode::MAX_CHANNEL_COUNT;
 use dom::bindings::callback::ExceptionHandling;
 use dom::bindings::cell::DomRefCell;
+use dom::bindings::codegen::Bindings::AnalyserNodeBinding::AnalyserOptions;
 use dom::bindings::codegen::Bindings::AudioBufferSourceNodeBinding::AudioBufferSourceOptions;
 use dom::bindings::codegen::Bindings::AudioNodeBinding::{ChannelCountMode, ChannelInterpretation};
 use dom::bindings::codegen::Bindings::AudioNodeBinding::AudioNodeOptions;
@@ -335,6 +337,11 @@ impl BaseAudioContextMethods for BaseAudioContext {
     /// https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-createpanner
     fn CreatePanner(&self) -> Fallible<DomRoot<PannerNode>> {
         PannerNode::new(&self.global().as_window(), &self, &PannerOptions::empty())
+    }
+
+    /// https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-createanalyser
+    fn CreateAnalyser(&self) -> Fallible<DomRoot<AnalyserNode>> {
+        AnalyserNode::new(&self.global().as_window(), &self, &AnalyserOptions::empty())
     }
 
     /// https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-createchannelmerger
