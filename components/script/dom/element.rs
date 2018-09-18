@@ -2616,8 +2616,11 @@ impl VirtualMethods for Element {
 impl<'a> SelectorsElement for DomRoot<Element> {
     type Impl = SelectorImpl;
 
+    #[allow(unsafe_code)]
     fn opaque(&self) -> ::selectors::OpaqueElement {
-        ::selectors::OpaqueElement::new(self.reflector().get_jsobject().get())
+        ::selectors::OpaqueElement::new(unsafe {
+            &*self.reflector().get_jsobject().get()
+        })
     }
 
     fn parent_element(&self) -> Option<DomRoot<Element>> {
