@@ -238,18 +238,14 @@ impl AudioBufferMethods for AudioBuffer {
         let mut dest = Vec::with_capacity(destination.len());
 
         // We either copy form js_channels or shared_channels.
-
         let js_channel = self.js_channels.borrow()[channel_number].get();
         if !js_channel.is_null() {
             typedarray!(in(cx) let array: Float32Array = js_channel);
             if let Ok(array) = array {
                 let data = unsafe { array.as_slice() };
                 dest.extend_from_slice(&data[offset..offset + bytes_to_copy]);
-                return Ok(());
             }
-        }
-
-        if let Some(shared_channel) = self.shared_channels.borrow().buffers.get(channel_number) {
+        } else if let Some(shared_channel) = self.shared_channels.borrow().buffers.get(channel_number) {
             dest.extend_from_slice(&shared_channel.as_slice()[offset..offset + bytes_to_copy]);
         }
 
