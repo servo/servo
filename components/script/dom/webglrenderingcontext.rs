@@ -3613,7 +3613,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         height: i32,
         format: u32,
         data_type: u32,
-        mut pixels: CustomAutoRooterGuard<Option<ArrayBufferView>>,
+        pixels: CustomAutoRooterGuard<Option<ArrayBufferView>>,
     ) -> ErrorResult {
         let validator = TexImage2DValidator::new(self, target, level,
                                                  format, width, height,
@@ -3644,10 +3644,11 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
         // If data is null, a buffer of sufficient size
         // initialized to 0 is passed.
-        let buff = match *pixels {
-            None => vec![0u8; expected_byte_length as usize],
-            Some(ref mut data) => data.to_vec(),
-        };
+        let buff = handle_potential_webgl_error!(
+            self,
+            pixels.as_ref().map(|p| p.to_vec()).ok_or(InvalidValue),
+            return Ok(())
+        );
 
         // From the WebGL spec:
         //
