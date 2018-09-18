@@ -19,7 +19,7 @@
 //!
 //! [1]: https://bugzilla.mozilla.org/show_bug.cgi?id=1360883
 
-// The semantics of Arc are alread documented in the Rust docs, so we don't
+// The semantics of `Arc` are alread documented in the Rust docs, so we don't
 // duplicate those here.
 #![allow(missing_docs)]
 
@@ -74,72 +74,41 @@ macro_rules! offset_of {
 /// necessarily) at _exactly_ `MAX_REFCOUNT + 1` references.
 const MAX_REFCOUNT: usize = (isize::MAX) as usize;
 
-/// Wrapper type for pointers to get the non-zero optimization. When
-/// NonZero/Shared/Unique are stabilized, we should just use Shared
-/// here to get the same effect. Gankro is working on this in [1].
+/// An atomically reference counted shared pointer
 ///
-/// It's unfortunate that this needs to infect all the caller types
-/// with 'static. It would be nice to just use a &() and a PhantomData<T>
-/// instead, but then the compiler can't determine whether the &() should
-/// be thin or fat (which depends on whether or not T is sized). Given
-/// that this is all a temporary hack, this restriction is fine for now.
+/// See the documentation for [`Arc`] in the standard library. Unlike the
+/// standard library `Arc`, this `Arc` does not support weak reference counting.
 ///
-/// [1]: https://github.com/rust-lang/rust/issues/27730
-// FIXME: remove this and use std::ptr::NonNull when Firefox requires Rust 1.25+
-pub struct NonZeroPtrMut<T: ?Sized + 'static>(&'static mut T);
-impl<T: ?Sized> NonZeroPtrMut<T> {
-    pub fn new(ptr: *mut T) -> Self {
-        assert!(!(ptr as *mut u8).is_null());
-        NonZeroPtrMut(unsafe { mem::transmute(ptr) })
-    }
-
-    pub fn ptr(&self) -> *mut T {
-        self.0 as *const T as *mut T
-    }
-}
-
-impl<T: ?Sized + 'static> Clone for NonZeroPtrMut<T> {
-    fn clone(&self) -> Self {
-        NonZeroPtrMut::new(self.ptr())
-    }
-}
-
-impl<T: ?Sized + 'static> fmt::Pointer for NonZeroPtrMut<T> {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        fmt::Pointer::fmt(&self.ptr(), f)
-    }
-}
-
-impl<T: ?Sized + 'static> fmt::Debug for NonZeroPtrMut<T> {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        <Self as fmt::Pointer>::fmt(self, f)
-    }
-}
-
-impl<T: ?Sized + 'static> PartialEq for NonZeroPtrMut<T> {
-    fn eq(&self, other: &Self) -> bool {
-        self.ptr() == other.ptr()
-    }
-}
-
-impl<T: ?Sized + 'static> Eq for NonZeroPtrMut<T> {}
-
-impl<T: Sized + 'static> Hash for NonZeroPtrMut<T> {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        self.ptr().hash(state)
-    }
-}
-
+/// [`Arc`]: https://doc.rust-lang.org/stable/std/sync/struct.Arc.html
 #[repr(C)]
-pub struct Arc<T: ?Sized + 'static> {
-    p: NonZeroPtrMut<ArcInner<T>>,
+pub struct Arc<T: ?Sized> {
+    p: ptr::NonNull<ArcInner<T>>,
 }
 
-/// An Arc that is known to be uniquely owned
+/// An `Arc` that is known to be uniquely owned
 ///
-/// This lets us build arcs that we can mutate before
-/// freezing, without needing to change the allocation
-pub struct UniqueArc<T: ?Sized + 'static>(Arc<T>);
+/// When `Arc`s are constructed, they are known to be
+/// uniquely owned. In such a case it is safe to mutate
+/// the contents of the `Arc`. Normally, one would just handle
+/// this by mutating the data on the stack before allocating the
+/// `Arc`, however it's possible the data is large or unsized
+/// and you need to heap-allocate it earlier in such a way
+/// that it can be freely converted into a regular `Arc` once you're
+/// done.
+///
+/// `UniqueArc` exists for this purpose, when constructed it performs
+/// the same allocations necessary for an `Arc`, however it allows mutable access.
+/// Once the mutation is finished, you can call `.shareable()` and get a regular `Arc`
+/// out of it.
+///
+/// ```rust
+/// # use servo_arc::UniqueArc;
+/// let data = [1, 2, 3, 4, 5];
+/// let mut x = UniqueArc::new(data);
+/// x[4] = 7; // mutate!
+/// let y = x.shareable(); // y is an Arc<T>
+/// ```
+pub struct UniqueArc<T: ?Sized>(Arc<T>);
 
 impl<T> UniqueArc<T> {
     #[inline]
@@ -149,7 +118,7 @@ impl<T> UniqueArc<T> {
     }
 
     #[inline]
-    /// Convert to a shareable Arc<T> once we're done using it
+    /// Convert to a shareable Arc<T> once we're done mutating it
     pub fn shareable(self) -> Arc<T> {
         self.0
     }
@@ -172,6 +141,7 @@ impl<T> DerefMut for UniqueArc<T> {
 unsafe impl<T: ?Sized + Sync + Send> Send for Arc<T> {}
 unsafe impl<T: ?Sized + Sync + Send> Sync for Arc<T> {}
 
+/// The object allocated by an Arc<T>
 #[repr(C)]
 struct ArcInner<T: ?Sized> {
     count: atomic::AtomicUsize,
@@ -182,36 +152,52 @@ unsafe impl<T: ?Sized + Sync + Send> Send for ArcInner<T> {}
 unsafe impl<T: ?Sized + Sync + Send> Sync for ArcInner<T> {}
 
 impl<T> Arc<T> {
+    /// Construct an `Arc<T>`
     #[inline]
     pub fn new(data: T) -> Self {
         let x = Box::new(ArcInner {
             count: atomic::AtomicUsize::new(1),
             data: data,
         });
-        Arc {
-            p: NonZeroPtrMut::new(Box::into_raw(x)),
+        unsafe {
+            Arc {
+                p: ptr::NonNull::new_unchecked(Box::into_raw(x)),
+            }
         }
     }
 
+    /// Convert the Arc<T> to a raw pointer, suitable for use across FFI
+    ///
+    /// Note: This returns a pointer to the data T, which is offset in the allocation.
+    ///
+    /// It is recommended to use RawOffsetArc for this.
     #[inline]
-    pub fn into_raw(this: Self) -> *const T {
+    fn into_raw(this: Self) -> *const T {
         let ptr = unsafe { &((*this.ptr()).data) as *const _ };
         mem::forget(this);
         ptr
     }
 
+    /// Reconstruct the Arc<T> from a raw pointer obtained from into_raw()
+    ///
+    /// Note: This raw pointer will be offset in the allocation and must be preceded
+    /// by the atomic count.
+    ///
+    /// It is recommended to use RawOffsetArc for this
     #[inline]
     unsafe fn from_raw(ptr: *const T) -> Self {
         // To find the corresponding pointer to the `ArcInner` we need
         // to subtract the offset of the `data` field from the pointer.
         let ptr = (ptr as *const u8).offset(-offset_of!(ArcInner<T>, data));
         Arc {
-            p: NonZeroPtrMut::new(ptr as *mut ArcInner<T>),
+            p: ptr::NonNull::new_unchecked(ptr as *mut ArcInner<T>),
         }
     }
 
     /// Produce a pointer to the data that can be converted back
-    /// to an arc
+    /// to an Arc. This is basically an `&Arc<T>`, without the extra indirection.
+    /// It has the benefits of an `&T` but also knows about the underlying refcount
+    /// and can be converted into more `Arc<T>`s if necessary.
     #[inline]
     pub fn borrow_arc<'a>(&'a self) -> ArcBorrow<'a, T> {
         ArcBorrow(&**self)
@@ -240,7 +226,7 @@ impl<T> Arc<T> {
     /// Returns the address on the heap of the Arc itself -- not the T within it -- for memory
     /// reporting.
     pub fn heap_ptr(&self) -> *const c_void {
-        self.p.ptr() as *const ArcInner<T> as *const c_void
+        self.p.as_ptr() as *const ArcInner<T> as *const c_void
     }
 }
 
@@ -261,13 +247,15 @@ impl<T: ?Sized> Arc<T> {
         let _ = Box::from_raw(self.ptr());
     }
 
+    /// Test pointer equality between the two Arcs, i.e. they must be the _same_
+    /// allocation
     #[inline]
     pub fn ptr_eq(this: &Self, other: &Self) -> bool {
         this.ptr() == other.ptr()
     }
 
     fn ptr(&self) -> *mut ArcInner<T> {
-        self.p.ptr()
+        self.p.as_ptr()
     }
 }
 
@@ -300,8 +288,10 @@ impl<T: ?Sized> Clone for Arc<T> {
             process::abort();
         }
 
-        Arc {
-            p: NonZeroPtrMut::new(self.ptr()),
+        unsafe {
+            Arc {
+                p: ptr::NonNull::new_unchecked(self.ptr()),
+            }
         }
     }
 }
@@ -316,6 +306,19 @@ impl<T: ?Sized> Deref for Arc<T> {
 }
 
 impl<T: Clone> Arc<T> {
+    /// Makes a mutable reference to the `Arc`, cloning if necessary
+    ///
+    /// This is functionally equivalent to [`Arc::make_mut`][mm] from the standard library.
+    ///
+    /// If this `Arc` is uniquely owned, `make_mut()` will provide a mutable
+    /// reference to the contents. If not, `make_mut()` will create a _new_ `Arc`
+    /// with a copy of the contents, update `this` to point to it, and provide
+    /// a mutable reference to its contents.
+    ///
+    /// This is useful for implementing copy-on-write schemes where you wish to
+    /// avoid copying things if your `Arc` is not shared.
+    ///
+    /// [mm]: https://doc.rust-lang.org/stable/std/sync/struct.Arc.html#method.make_mut
     #[inline]
     pub fn make_mut(this: &mut Self) -> &mut T {
         if !this.is_unique() {
@@ -335,6 +338,7 @@ impl<T: Clone> Arc<T> {
 }
 
 impl<T: ?Sized> Arc<T> {
+    /// Provides mutable access to the contents _if_ the `Arc` is uniquely owned.
     #[inline]
     pub fn get_mut(this: &mut Self) -> Option<&mut T> {
         if this.is_unique() {
@@ -347,6 +351,7 @@ impl<T: ?Sized> Arc<T> {
         }
     }
 
+    /// Whether or not the `Arc` is uniquely owned (is the refcount 1?)
     #[inline]
     pub fn is_unique(&self) -> bool {
         // See the extensive discussion in [1] for why this needs to be Acquire.
@@ -402,6 +407,7 @@ impl<T: ?Sized + PartialEq> PartialEq for Arc<T> {
         !Self::ptr_eq(self, other) && *(*self) != *(*other)
     }
 }
+
 impl<T: ?Sized + PartialOrd> PartialOrd for Arc<T> {
     fn partial_cmp(&self, other: &Arc<T>) -> Option<Ordering> {
         (**self).partial_cmp(&**other)
@@ -615,8 +621,10 @@ impl<H, T> Arc<HeaderSlice<H, [T]>> {
             size_of::<usize>() * 2,
             "The Arc will be fat"
         );
-        Arc {
-            p: NonZeroPtrMut::new(ptr),
+        unsafe {
+            Arc {
+                p: ptr::NonNull::new_unchecked(ptr),
+            }
         }
     }
 
@@ -651,7 +659,22 @@ impl<H> HeaderWithLength<H> {
 }
 
 type HeaderSliceWithLength<H, T> = HeaderSlice<HeaderWithLength<H>, T>;
-pub struct ThinArc<H: 'static, T: 'static> {
+
+/// A "thin" `Arc` containing dynamically sized data
+///
+/// This is functionally equivalent to Arc<(H, [T])>
+///
+/// When you create an `Arc` containing a dynamically sized type
+/// like `HeaderSlice<H, [T]>`, the `Arc` is represented on the stack
+/// as a "fat pointer", where the length of the slice is stored
+/// alongside the `Arc`'s pointer. In some situations you may wish to
+/// have a thin pointer instead, perhaps for FFI compatibility
+/// or space efficiency.
+///
+/// `ThinArc` solves this by storing the length in the allocation itself,
+/// via `HeaderSliceWithLength`.
+#[repr(C)]
+pub struct ThinArc<H, T> {
     ptr: *mut ArcInner<HeaderSliceWithLength<H, [T; 1]>>,
 }
 
@@ -670,7 +693,7 @@ fn thin_to_thick<H, T>(
     fake_slice as *mut ArcInner<HeaderSliceWithLength<H, [T]>>
 }
 
-impl<H: 'static, T: 'static> ThinArc<H, T> {
+impl<H, T> ThinArc<H, T> {
     /// Temporarily converts |self| into a bonafide Arc and exposes it to the
     /// provided callback. The refcount is not modified.
     #[inline]
@@ -679,9 +702,11 @@ impl<H: 'static, T: 'static> ThinArc<H, T> {
         F: FnOnce(&Arc<HeaderSliceWithLength<H, [T]>>) -> U,
     {
         // Synthesize transient Arc, which never touches the refcount of the ArcInner.
-        let transient = NoDrop::new(Arc {
-            p: NonZeroPtrMut::new(thin_to_thick(self.ptr)),
-        });
+        let transient = unsafe {
+            NoDrop::new(Arc {
+                p: ptr::NonNull::new_unchecked(thin_to_thick(self.ptr)),
+            })
+        };
 
         // Expose the transient Arc to the callback, which may clone it if it wants.
         let result = f(&transient);
@@ -693,6 +718,16 @@ impl<H: 'static, T: 'static> ThinArc<H, T> {
 
         // Forward the result.
         result
+    }
+
+    /// Creates a `ThinArc` for a HeaderSlice using the given header struct and
+    /// iterator to generate the slice.
+    pub fn from_header_and_iter<I>(header: H, items: I) -> Self
+    where
+        I: Iterator<Item = T> + ExactSizeIterator,
+    {
+        let header = HeaderWithLength::new(header, items.len());
+        Arc::into_thin(Arc::from_header_and_iter(header, items))
     }
 
     /// Returns the address on the heap of the ThinArc itself -- not the T
@@ -712,22 +747,22 @@ impl<H, T> Deref for ThinArc<H, T> {
     }
 }
 
-impl<H: 'static, T: 'static> Clone for ThinArc<H, T> {
+impl<H, T> Clone for ThinArc<H, T> {
     #[inline]
     fn clone(&self) -> Self {
         ThinArc::with_arc(self, |a| Arc::into_thin(a.clone()))
     }
 }
 
-impl<H: 'static, T: 'static> Drop for ThinArc<H, T> {
+impl<H, T> Drop for ThinArc<H, T> {
     #[inline]
     fn drop(&mut self) {
         let _ = Arc::from_thin(ThinArc { ptr: self.ptr });
     }
 }
 
-impl<H: 'static, T: 'static> Arc<HeaderSliceWithLength<H, [T]>> {
-    /// Converts an Arc into a ThinArc. This consumes the Arc, so the refcount
+impl<H, T> Arc<HeaderSliceWithLength<H, [T]>> {
+    /// Converts an `Arc` into a `ThinArc`. This consumes the `Arc`, so the refcount
     /// is not modified.
     #[inline]
     pub fn into_thin(a: Self) -> ThinArc<H, T> {
@@ -744,29 +779,31 @@ impl<H: 'static, T: 'static> Arc<HeaderSliceWithLength<H, [T]>> {
         }
     }
 
-    /// Converts a ThinArc into an Arc. This consumes the ThinArc, so the refcount
+    /// Converts a `ThinArc` into an `Arc`. This consumes the `ThinArc`, so the refcount
     /// is not modified.
     #[inline]
     pub fn from_thin(a: ThinArc<H, T>) -> Self {
         let ptr = thin_to_thick(a.ptr);
         mem::forget(a);
-        Arc {
-            p: NonZeroPtrMut::new(ptr),
+        unsafe {
+            Arc {
+                p: ptr::NonNull::new_unchecked(ptr),
+            }
         }
     }
 }
 
-impl<H: PartialEq + 'static, T: PartialEq + 'static> PartialEq for ThinArc<H, T> {
+impl<H: PartialEq, T: PartialEq> PartialEq for ThinArc<H, T> {
     #[inline]
     fn eq(&self, other: &ThinArc<H, T>) -> bool {
         ThinArc::with_arc(self, |a| ThinArc::with_arc(other, |b| *a == *b))
     }
 }
 
-impl<H: Eq + 'static, T: Eq + 'static> Eq for ThinArc<H, T> {}
+impl<H: Eq, T: Eq> Eq for ThinArc<H, T> {}
 
-/// An Arc, except it holds a pointer to the T instead of to the
-/// entire ArcInner.
+/// An `Arc`, except it holds a pointer to the T instead of to the
+/// entire ArcInner. This struct is FFI-compatible.
 ///
 /// ```text
 ///  Arc<T>    RawOffsetArc<T>
@@ -779,31 +816,35 @@ impl<H: Eq + 'static, T: Eq + 'static> Eq for ThinArc<H, T> {}
 ///
 /// This means that this is a direct pointer to
 /// its contained data (and can be read from by both C++ and Rust),
-/// but we can also convert it to a "regular" Arc<T> by removing the offset
+/// but we can also convert it to a "regular" Arc<T> by removing the offset.
+///
+/// This is very useful if you have an Arc-containing struct shared between Rust and C++,
+/// and wish for C++ to be able to read the data behind the `Arc` without incurring
+/// an FFI call overhead.
 #[derive(Eq)]
 #[repr(C)]
-pub struct RawOffsetArc<T: 'static> {
-    ptr: NonZeroPtrMut<T>,
+pub struct RawOffsetArc<T> {
+    ptr: ptr::NonNull<T>,
 }
 
-unsafe impl<T: 'static + Sync + Send> Send for RawOffsetArc<T> {}
-unsafe impl<T: 'static + Sync + Send> Sync for RawOffsetArc<T> {}
+unsafe impl<T: Sync + Send> Send for RawOffsetArc<T> {}
+unsafe impl<T: Sync + Send> Sync for RawOffsetArc<T> {}
 
-impl<T: 'static> Deref for RawOffsetArc<T> {
+impl<T> Deref for RawOffsetArc<T> {
     type Target = T;
     fn deref(&self) -> &Self::Target {
-        unsafe { &*self.ptr.ptr() }
+        unsafe { &*self.ptr.as_ptr() }
     }
 }
 
-impl<T: 'static> Clone for RawOffsetArc<T> {
+impl<T> Clone for RawOffsetArc<T> {
     #[inline]
     fn clone(&self) -> Self {
         Arc::into_raw_offset(self.clone_arc())
     }
 }
 
-impl<T: 'static> Drop for RawOffsetArc<T> {
+impl<T> Drop for RawOffsetArc<T> {
     fn drop(&mut self) {
         let _ = Arc::from_raw_offset(RawOffsetArc {
             ptr: self.ptr.clone(),
@@ -811,7 +852,7 @@ impl<T: 'static> Drop for RawOffsetArc<T> {
     }
 }
 
-impl<T: fmt::Debug + 'static> fmt::Debug for RawOffsetArc<T> {
+impl<T: fmt::Debug> fmt::Debug for RawOffsetArc<T> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         fmt::Debug::fmt(&**self, f)
     }
@@ -827,7 +868,7 @@ impl<T: PartialEq> PartialEq for RawOffsetArc<T> {
     }
 }
 
-impl<T: 'static> RawOffsetArc<T> {
+impl<T> RawOffsetArc<T> {
     /// Temporarily converts |self| into a bonafide Arc and exposes it to the
     /// provided callback. The refcount is not modified.
     #[inline]
@@ -836,7 +877,7 @@ impl<T: 'static> RawOffsetArc<T> {
         F: FnOnce(&Arc<T>) -> U,
     {
         // Synthesize transient Arc, which never touches the refcount of the ArcInner.
-        let transient = unsafe { NoDrop::new(Arc::from_raw(self.ptr.ptr())) };
+        let transient = unsafe { NoDrop::new(Arc::from_raw(self.ptr.as_ptr())) };
 
         // Expose the transient Arc to the callback, which may clone it if it wants.
         let result = f(&transient);
@@ -852,6 +893,8 @@ impl<T: 'static> RawOffsetArc<T> {
 
     /// If uniquely owned, provide a mutable reference
     /// Else create a copy, and mutate that
+    ///
+    /// This is functionally the same thing as `Arc::make_mut`
     #[inline]
     pub fn make_mut(&mut self) -> &mut T
     where
@@ -872,54 +915,57 @@ impl<T: 'static> RawOffsetArc<T> {
         }
     }
 
-    /// Clone it as an Arc
+    /// Clone it as an `Arc`
     #[inline]
     pub fn clone_arc(&self) -> Arc<T> {
         RawOffsetArc::with_arc(self, |a| a.clone())
     }
 
     /// Produce a pointer to the data that can be converted back
-    /// to an arc
+    /// to an `Arc`
     #[inline]
     pub fn borrow_arc<'a>(&'a self) -> ArcBorrow<'a, T> {
         ArcBorrow(&**self)
     }
 }
 
-impl<T: 'static> Arc<T> {
-    /// Converts an Arc into a RawOffsetArc. This consumes the Arc, so the refcount
+impl<T> Arc<T> {
+    /// Converts an `Arc` into a `RawOffsetArc`. This consumes the `Arc`, so the refcount
     /// is not modified.
     #[inline]
     pub fn into_raw_offset(a: Self) -> RawOffsetArc<T> {
-        RawOffsetArc {
-            ptr: NonZeroPtrMut::new(Arc::into_raw(a) as *mut T),
+        unsafe {
+            RawOffsetArc {
+                ptr: ptr::NonNull::new_unchecked(Arc::into_raw(a) as *mut T),
+            }
         }
     }
 
-    /// Converts a RawOffsetArc into an Arc. This consumes the RawOffsetArc, so the refcount
+    /// Converts a `RawOffsetArc` into an `Arc`. This consumes the `RawOffsetArc`, so the refcount
     /// is not modified.
     #[inline]
     pub fn from_raw_offset(a: RawOffsetArc<T>) -> Self {
-        let ptr = a.ptr.ptr();
+        let ptr = a.ptr.as_ptr();
         mem::forget(a);
         unsafe { Arc::from_raw(ptr) }
     }
 }
 
-/// A "borrowed Arc". This is a pointer to
+/// A "borrowed `Arc`". This is a pointer to
 /// a T that is known to have been allocated within an
-/// Arc.
+/// `Arc`.
 ///
 /// This is equivalent in guarantees to `&Arc<T>`, however it is
 /// a bit more flexible. To obtain an `&Arc<T>` you must have
-/// an Arc<T> instance somewhere pinned down until we're done with it.
+/// an `Arc<T>` instance somewhere pinned down until we're done with it.
+/// It's also a direct pointer to `T`, so using this involves less pointer-chasing
 ///
-/// However, Gecko hands us refcounted things as pointers to T directly,
-/// so we have to conjure up a temporary Arc on the stack each time. The
-/// same happens for when the object is managed by a RawOffsetArc.
+/// However, C++ code may hand us refcounted things as pointers to T directly,
+/// so we have to conjure up a temporary `Arc` on the stack each time. The
+/// same happens for when the object is managed by a `RawOffsetArc`.
 ///
-/// ArcBorrow lets us deal with borrows of known-refcounted objects
-/// without needing to worry about how they're actually stored.
+/// `ArcBorrow` lets us deal with borrows of known-refcounted objects
+/// without needing to worry about where the `Arc<T>` is.
 #[derive(Debug, Eq, PartialEq)]
 pub struct ArcBorrow<'a, T: 'a>(&'a T);
 
@@ -932,6 +978,7 @@ impl<'a, T> Clone for ArcBorrow<'a, T> {
 }
 
 impl<'a, T> ArcBorrow<'a, T> {
+    /// Clone this as an `Arc<T>`. This bumps the refcount.
     #[inline]
     pub fn clone_arc(&self) -> Arc<T> {
         let arc = unsafe { Arc::from_raw(self.0) };
@@ -947,10 +994,14 @@ impl<'a, T> ArcBorrow<'a, T> {
         ArcBorrow(r)
     }
 
+    /// Compare two `ArcBorrow`s via pointer equality. Will only return
+    /// true if they come from the same allocation
     pub fn ptr_eq(this: &Self, other: &Self) -> bool {
         this.0 as *const T == other.0 as *const T
     }
 
+    /// Temporarily converts |self| into a bonafide Arc and exposes it to the
+    /// provided callback. The refcount is not modified.
     #[inline]
     pub fn with_arc<F, U>(&self, f: F) -> U
     where
@@ -989,18 +1040,25 @@ impl<'a, T> Deref for ArcBorrow<'a, T> {
     }
 }
 
-/// A tagged union that can represent Arc<A> or Arc<B> while only consuming a
-/// single word. The type is also NonZero, and thus can be stored in an Option
+/// A tagged union that can represent `Arc<A>` or `Arc<B>` while only consuming a
+/// single word. The type is also `NonNull`, and thus can be stored in an Option
 /// without increasing size.
 ///
+/// This is functionally equivalent to
+/// `enum ArcUnion<A, B> { First(Arc<A>), Second(Arc<B>)` but only takes up
+/// up a single word of stack space.
+///
 /// This could probably be extended to support four types if necessary.
-pub struct ArcUnion<A: 'static, B: 'static> {
-    p: NonZeroPtrMut<()>,
-    phantom_a: PhantomData<&'static A>,
-    phantom_b: PhantomData<&'static B>,
+pub struct ArcUnion<A, B> {
+    p: ptr::NonNull<()>,
+    phantom_a: PhantomData<A>,
+    phantom_b: PhantomData<B>,
 }
 
-impl<A: PartialEq + 'static, B: PartialEq + 'static> PartialEq for ArcUnion<A, B> {
+unsafe impl<A: Sync + Send, B: Send + Sync> Send for ArcUnion<A, B> {}
+unsafe impl<A: Sync + Send, B: Send + Sync> Sync for ArcUnion<A, B> {}
+
+impl<A: PartialEq, B: PartialEq> PartialEq for ArcUnion<A, B> {
     fn eq(&self, other: &Self) -> bool {
         use ArcUnionBorrow::*;
         match (self.borrow(), other.borrow()) {
@@ -1011,16 +1069,17 @@ impl<A: PartialEq + 'static, B: PartialEq + 'static> PartialEq for ArcUnion<A, B
     }
 }
 
+/// This represents a borrow of an `ArcUnion`.
 #[derive(Debug)]
-pub enum ArcUnionBorrow<'a, A: 'static, B: 'static> {
+pub enum ArcUnionBorrow<'a, A: 'a, B: 'a> {
     First(ArcBorrow<'a, A>),
     Second(ArcBorrow<'a, B>),
 }
 
-impl<A: 'static, B: 'static> ArcUnion<A, B> {
-    fn new(ptr: *mut ()) -> Self {
+impl<A, B> ArcUnion<A, B> {
+    unsafe fn new(ptr: *mut ()) -> Self {
         ArcUnion {
-            p: NonZeroPtrMut::new(ptr),
+            p: ptr::NonNull::new_unchecked(ptr),
             phantom_a: PhantomData,
             phantom_b: PhantomData,
         }
@@ -1034,37 +1093,37 @@ impl<A: 'static, B: 'static> ArcUnion<A, B> {
     /// Returns an enum representing a borrow of either A or B.
     pub fn borrow(&self) -> ArcUnionBorrow<A, B> {
         if self.is_first() {
-            let ptr = self.p.ptr() as *const A;
+            let ptr = self.p.as_ptr() as *const A;
             let borrow = unsafe { ArcBorrow::from_ref(&*ptr) };
             ArcUnionBorrow::First(borrow)
         } else {
-            let ptr = ((self.p.ptr() as usize) & !0x1) as *const B;
+            let ptr = ((self.p.as_ptr() as usize) & !0x1) as *const B;
             let borrow = unsafe { ArcBorrow::from_ref(&*ptr) };
             ArcUnionBorrow::Second(borrow)
         }
     }
 
-    /// Creates an ArcUnion from an instance of the first type.
+    /// Creates an `ArcUnion` from an instance of the first type.
     pub fn from_first(other: Arc<A>) -> Self {
-        Self::new(Arc::into_raw(other) as *mut _)
+        unsafe { Self::new(Arc::into_raw(other) as *mut _) }
     }
 
-    /// Creates an ArcUnion from an instance of the second type.
+    /// Creates an `ArcUnion` from an instance of the second type.
     pub fn from_second(other: Arc<B>) -> Self {
-        Self::new(((Arc::into_raw(other) as usize) | 0x1) as *mut _)
+        unsafe { Self::new(((Arc::into_raw(other) as usize) | 0x1) as *mut _) }
     }
 
-    /// Returns true if this ArcUnion contains the first type.
+    /// Returns true if this `ArcUnion` contains the first type.
     pub fn is_first(&self) -> bool {
-        self.p.ptr() as usize & 0x1 == 0
+        self.p.as_ptr() as usize & 0x1 == 0
     }
 
-    /// Returns true if this ArcUnion contains the second type.
+    /// Returns true if this `ArcUnion` contains the second type.
     pub fn is_second(&self) -> bool {
         !self.is_first()
     }
 
-    /// Returns a borrow of the first type if applicable, otherwise None.
+    /// Returns a borrow of the first type if applicable, otherwise `None`.
     pub fn as_first(&self) -> Option<ArcBorrow<A>> {
         match self.borrow() {
             ArcUnionBorrow::First(x) => Some(x),
@@ -1081,7 +1140,7 @@ impl<A: 'static, B: 'static> ArcUnion<A, B> {
     }
 }
 
-impl<A: 'static, B: 'static> Clone for ArcUnion<A, B> {
+impl<A, B> Clone for ArcUnion<A, B> {
     fn clone(&self) -> Self {
         match self.borrow() {
             ArcUnionBorrow::First(x) => ArcUnion::from_first(x.clone_arc()),
@@ -1090,7 +1149,7 @@ impl<A: 'static, B: 'static> Clone for ArcUnion<A, B> {
     }
 }
 
-impl<A: 'static, B: 'static> Drop for ArcUnion<A, B> {
+impl<A, B> Drop for ArcUnion<A, B> {
     fn drop(&mut self) {
         match self.borrow() {
             ArcUnionBorrow::First(x) => unsafe {

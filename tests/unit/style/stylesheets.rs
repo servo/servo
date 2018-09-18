@@ -18,7 +18,7 @@ use style::context::QuirksMode;
 use style::error_reporting::{ParseErrorReporter, ContextualParseError};
 use style::media_queries::MediaList;
 use style::properties::{CSSWideKeyword, CustomDeclaration};
-use style::properties::{DeclaredValueOwned, Importance};
+use style::properties::{CustomDeclarationValue, Importance};
 use style::properties::{PropertyDeclaration, PropertyDeclarationBlock};
 use style::properties::longhands::{self, animation_timing_function};
 use style::shared_lock::SharedRwLock;
@@ -113,7 +113,7 @@ fn test_parse_stylesheet() {
                         (
                             PropertyDeclaration::Custom(CustomDeclaration {
                                 name: Atom::from("a"),
-                                value: DeclaredValueOwned::CSSWideKeyword(CSSWideKeyword::Inherit),
+                                value: CustomDeclarationValue::CSSWideKeyword(CSSWideKeyword::Inherit),
                             }),
                             Importance::Important,
                         ),

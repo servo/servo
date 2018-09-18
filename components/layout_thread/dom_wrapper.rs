@@ -685,7 +685,9 @@ impl<'le> ::selectors::Element for ServoLayoutElement<'le> {
     type Impl = SelectorImpl;
 
     fn opaque(&self) -> ::selectors::OpaqueElement {
-        ::selectors::OpaqueElement::new(self.as_node().opaque().0 as *const ())
+        ::selectors::OpaqueElement::new(unsafe {
+            &*(self.as_node().opaque().0 as *const ())
+        })
     }
 
     fn parent_element(&self) -> Option<ServoLayoutElement<'le>> {
@@ -1258,7 +1260,9 @@ impl<'le> ::selectors::Element for ServoThreadSafeLayoutElement<'le> {
     type Impl = SelectorImpl;
 
     fn opaque(&self) -> ::selectors::OpaqueElement {
-        ::selectors::OpaqueElement::new(self.as_node().opaque().0 as *const ())
+        ::selectors::OpaqueElement::new(unsafe {
+            &*(self.as_node().opaque().0 as *const ())
+        })
     }
 
     fn parent_element(&self) -> Option<Self> {

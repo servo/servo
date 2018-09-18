@@ -47,8 +47,6 @@ pub enum CalcNode {
 pub enum CalcUnit {
     /// `<number>`
     Number,
-    /// `<integer>`
-    Integer,
     /// `<length>`
     Length,
     /// `<percentage>`
@@ -281,8 +279,7 @@ impl CalcNode {
                     let new_root = CalcNode::Mul(Box::new(root), Box::new(rhs));
                     root = new_root;
                 },
-                // TODO(emilio): Figure out why the `Integer` check.
-                Ok(&Token::Delim('/')) if expected_unit != CalcUnit::Integer => {
+                Ok(&Token::Delim('/')) => {
                     let rhs = Self::parse_one(context, input, expected_unit)?;
                     let new_root = CalcNode::Div(Box::new(root), Box::new(rhs));
                     root = new_root;
@@ -532,10 +529,8 @@ impl CalcNode {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<CSSInteger, ParseError<'i>> {
-        Self::parse(context, input, CalcUnit::Integer)?
-            .to_number()
-            .map(|n| n as CSSInteger)
-            .map_err(|()| input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
+        Self::parse_number(context, input)
+            .map(|n| n.round() as CSSInteger)
     }
 
     /// Convenience parsing function for `<length> | <percentage>`.

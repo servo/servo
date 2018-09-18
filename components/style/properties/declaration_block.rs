@@ -849,7 +849,7 @@ impl PropertyDeclarationBlock {
 
         for declaration in self.normal_declaration_iter() {
             if let PropertyDeclaration::Custom(ref declaration) = *declaration {
-                builder.cascade(&declaration.name, declaration.value.borrow());
+                builder.cascade(&declaration.name, &declaration.value);
             }
         }
 
