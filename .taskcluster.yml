@@ -16,8 +16,8 @@ tasks:
         metadata:
           name: "Taskcluster experiments for Servo: decision task"
           description: ""
-          owner: ${event.pusher.name}@users.noreply.github.com
-          source: ${event.compare}
+          owner: &task_owner ${event.pusher.name}@users.noreply.github.com
+          source: &task_source ${event.compare}
         scopes:
           - "queue:scheduler-id:taskcluster-github"
 
@@ -37,8 +37,8 @@ tasks:
             GIT_URL: ${event.repository.clone_url}
             GIT_REF: ${event.ref}
             GIT_SHA: ${event.after}
-            TASK_OWNER: ${event.pusher.name}@users.noreply.github.com
-            TASK_SOURCE: ${event.compare}
+            TASK_OWNER: *task_owner
+            TASK_SOURCE: *task_source
           command:
             - /bin/bash
             - '--login'
