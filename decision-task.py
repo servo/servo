@@ -9,25 +9,6 @@ import os.path
 from decisionlib import DecisionTask
 
 
-# https://docs.taskcluster.net/docs/reference/workers/docker-worker/docs/caches
-CARGO_CACHE_SCOPES = [
-    "docker-worker:cache:cargo-registry-cache",
-    "docker-worker:cache:cargo-git-cache",
-]
-
-CARGO_CACHE = {
-    "cargo-registry-cache": "/root/.cargo/registry",
-    "cargo-git-cache": "/root/.cargo/git",
-}
-
-BUILD_ENV = {
-    "RUST_BACKTRACE": "1",
-    "RUSTFLAGS": "-Dwarnings",
-    "CARGO_INCREMENTAL": "0",
-    "SCCACHE_IDLE_TIMEOUT": "1200",
-}
-
-
 def main():
     decision = DecisionTask(
         project_name="Servo",  # Used in task names
@@ -43,20 +24,42 @@ def main():
     decision.route_prefix = "project.servo.servo-taskcluster-experiments"
     # ~
 
+
+    # https://docs.taskcluster.net/docs/reference/workers/docker-worker/docs/caches
+    cache_scopes = [
+        "docker-worker:cache:cargo-*",
+    ]
+    build_caches = {
+        "cargo-registry-cache": "/root/.cargo/registry",
+        "cargo-git-cache": "/root/.cargo/git",
+        "cargo-rustup": "/root/.rustup",
+        "cargo-sccache": "/root/.cache/sccache",
+    }
+    build_env = {
+        "RUST_BACKTRACE": "1",
+        "RUSTFLAGS": "-Dwarnings",
+        "CARGO_INCREMENTAL": "0",
+        "SCCACHE_IDLE_TIMEOUT": "1200",
+        "CCACHE": "sccache",
+        "RUSTC_WRAPPER": "sccache",
+    }
+    build_kwargs = {
+        "max_run_time_minutes": 60,
+        "dockerfile": dockerfile("build-x86_64-linux"),
+        "env": build_env,
+        "scopes": cache_scopes,
+        "cache": build_caches,
+    }
+
     decision.create_task_with_in_tree_dockerfile(
         task_name="Linux x86_64: tidy + dev build + unit tests",
         command="""
-            sccache --version
-            ./mach test-tidy --no-progress --all
-            #./mach build --dev
+            #./mach test-tidy --no-progress --all
+            ./mach build --dev
             #./mach test-unit
             #./mach test-tidy --no-progress --self-test
         """,
-        env=BUILD_ENV,
-        dockerfile=dockerfile("build-x86_64-linux"),
-        max_run_time_minutes=60,
-        scopes=CARGO_CACHE_SCOPES,
-        cache=CARGO_CACHE,
+        **build_kwargs
     )
 
 

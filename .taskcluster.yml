@@ -23,8 +23,7 @@ tasks:
 
           # Granted to role "repo:github.com/servo/servo-taskcluster-experiments:branch:master"
           - "queue:create-task:highest:aws-provisioner-v1/servo-*"
-          - "docker-worker:cache:cargo-registry-cache"
-          - "docker-worker:cache:cargo-git-cache"
+          - "docker-worker:cache:cargo-*"
           - "queue:route:index.project.servo.servo-taskcluster-experiments.*"
 
         payload:
