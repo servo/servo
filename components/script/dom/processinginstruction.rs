@@ -19,19 +19,29 @@ pub struct ProcessingInstruction {
 }
 
 impl ProcessingInstruction {
-    fn new_inherited(target: DOMString, data: DOMString, document: &Document) -> ProcessingInstruction {
+    fn new_inherited(
+        target: DOMString,
+        data: DOMString,
+        document: &Document,
+    ) -> ProcessingInstruction {
         ProcessingInstruction {
             characterdata: CharacterData::new_inherited(data, document),
-            target: target
+            target: target,
         }
     }
 
-    pub fn new(target: DOMString, data: DOMString, document: &Document) -> DomRoot<ProcessingInstruction> {
-        Node::reflect_node(Box::new(ProcessingInstruction::new_inherited(target, data, document)),
-                           document, ProcessingInstructionBinding::Wrap)
+    pub fn new(
+        target: DOMString,
+        data: DOMString,
+        document: &Document,
+    ) -> DomRoot<ProcessingInstruction> {
+        Node::reflect_node(
+            Box::new(ProcessingInstruction::new_inherited(target, data, document)),
+            document,
+            ProcessingInstructionBinding::Wrap,
+        )
     }
 }
-
 
 impl ProcessingInstruction {
     pub fn target(&self) -> &DOMString {

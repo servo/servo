@@ -26,13 +26,16 @@ pub struct Text {
 impl Text {
     fn new_inherited(text: DOMString, document: &Document) -> Text {
         Text {
-            characterdata: CharacterData::new_inherited(text, document)
+            characterdata: CharacterData::new_inherited(text, document),
         }
     }
 
     pub fn new(text: DOMString, document: &Document) -> DomRoot<Text> {
-        Node::reflect_node(Box::new(Text::new_inherited(text, document)),
-                           document, TextBinding::Wrap)
+        Node::reflect_node(
+            Box::new(Text::new_inherited(text, document)),
+            document,
+            TextBinding::Wrap,
+        )
     }
 
     pub fn Constructor(window: &Window, text: DOMString) -> Fallible<DomRoot<Text>> {
@@ -64,9 +67,12 @@ impl TextMethods for Text {
         let parent = node.GetParentNode();
         if let Some(ref parent) = parent {
             // Step 7.1.
-            parent.InsertBefore(new_node.upcast(), node.GetNextSibling().r()).unwrap();
+            parent
+                .InsertBefore(new_node.upcast(), node.GetNextSibling().r())
+                .unwrap();
             // Steps 7.2-3.
-            node.ranges().move_to_following_text_sibling_above(node, offset, new_node.upcast());
+            node.ranges()
+                .move_to_following_text_sibling_above(node, offset, new_node.upcast());
             // Steps 7.4-5.
             parent.ranges().increment_at(&parent, node.index() + 1);
         }
@@ -78,11 +84,15 @@ impl TextMethods for Text {
 
     // https://dom.spec.whatwg.org/#dom-text-wholetext
     fn WholeText(&self) -> DOMString {
-        let first = self.upcast::<Node>().inclusively_preceding_siblings()
-                                         .take_while(|node| node.is::<Text>())
-                                         .last().unwrap();
-        let nodes = first.inclusively_following_siblings()
-                         .take_while(|node| node.is::<Text>());
+        let first = self
+            .upcast::<Node>()
+            .inclusively_preceding_siblings()
+            .take_while(|node| node.is::<Text>())
+            .last()
+            .unwrap();
+        let nodes = first
+            .inclusively_following_siblings()
+            .take_while(|node| node.is::<Text>());
         let mut text = String::new();
         for ref node in nodes {
             let cdata = node.downcast::<CharacterData>().unwrap();

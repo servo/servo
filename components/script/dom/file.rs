@@ -26,8 +26,12 @@ pub struct File {
 
 impl File {
     #[allow(unrooted_must_root)]
-    fn new_inherited(blob_impl: BlobImpl, name: DOMString,
-                     modified: Option<i64>, type_string: &str) -> File {
+    fn new_inherited(
+        blob_impl: BlobImpl,
+        name: DOMString,
+        modified: Option<i64>,
+        type_string: &str,
+    ) -> File {
         File {
             blob: Blob::new_inherited(blob_impl, type_string.to_owned()),
             name: name,
@@ -37,33 +41,51 @@ impl File {
                 None => {
                     let time = time::get_time();
                     time.sec * 1000 + (time.nsec / 1000000) as i64
-                }
+                },
             },
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(global: &GlobalScope, blob_impl: BlobImpl,
-               name: DOMString, modified: Option<i64>, typeString: &str) -> DomRoot<File> {
-        reflect_dom_object(Box::new(File::new_inherited(blob_impl, name, modified, typeString)),
-                           global,
-                           FileBinding::Wrap)
+    pub fn new(
+        global: &GlobalScope,
+        blob_impl: BlobImpl,
+        name: DOMString,
+        modified: Option<i64>,
+        typeString: &str,
+    ) -> DomRoot<File> {
+        reflect_dom_object(
+            Box::new(File::new_inherited(blob_impl, name, modified, typeString)),
+            global,
+            FileBinding::Wrap,
+        )
     }
 
     // Construct from selected file message from file manager thread
     pub fn new_from_selected(window: &Window, selected: SelectedFile) -> DomRoot<File> {
-        let name = DOMString::from(selected.filename.to_str().expect("File name encoding error"));
+        let name = DOMString::from(
+            selected
+                .filename
+                .to_str()
+                .expect("File name encoding error"),
+        );
 
-        File::new(window.upcast(), BlobImpl::new_from_file(selected.id, selected.filename, selected.size),
-                  name, Some(selected.modified as i64), &selected.type_string)
+        File::new(
+            window.upcast(),
+            BlobImpl::new_from_file(selected.id, selected.filename, selected.size),
+            name,
+            Some(selected.modified as i64),
+            &selected.type_string,
+        )
     }
 
     // https://w3c.github.io/FileAPI/#file-constructor
-    pub fn Constructor(global: &GlobalScope,
-                       fileBits: Vec<ArrayBufferOrArrayBufferViewOrBlobOrString>,
-                       filename: DOMString,
-                       filePropertyBag: &FileBinding::FilePropertyBag)
-                       -> Fallible<DomRoot<File>> {
+    pub fn Constructor(
+        global: &GlobalScope,
+        fileBits: Vec<ArrayBufferOrArrayBufferViewOrBlobOrString>,
+        filename: DOMString,
+        filePropertyBag: &FileBinding::FilePropertyBag,
+    ) -> Fallible<DomRoot<File>> {
         let bytes: Vec<u8> = match blob_parts_to_bytes(fileBits) {
             Ok(bytes) => bytes,
             Err(_) => return Err(Error::InvalidCharacter),
@@ -76,11 +98,13 @@ impl File {
         // NOTE: Following behaviour might be removed in future,
         // see https://github.com/w3c/FileAPI/issues/41
         let replaced_filename = DOMString::from_string(filename.replace("/", ":"));
-        Ok(File::new(global,
-                     BlobImpl::new_from_bytes(bytes),
-                     replaced_filename,
-                     modified,
-                     typeString))
+        Ok(File::new(
+            global,
+            BlobImpl::new_from_bytes(bytes),
+            replaced_filename,
+            modified,
+            typeString,
+        ))
     }
 
     pub fn name(&self) -> &DOMString {

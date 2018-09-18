@@ -15,10 +15,11 @@ use super::{WebGLExtension, WebGLExtensions, WebGLExtensionSpec};
 /// Trait used internally by WebGLExtensions to store and
 /// handle the different WebGL extensions in a common list.
 pub trait WebGLExtensionWrapper: JSTraceable + MallocSizeOf {
-    fn instance_or_init(&self,
-                        ctx: &WebGLRenderingContext,
-                        ext: &WebGLExtensions)
-                        -> NonNull<JSObject>;
+    fn instance_or_init(
+        &self,
+        ctx: &WebGLRenderingContext,
+        ext: &WebGLExtensions,
+    ) -> NonNull<JSObject>;
     fn spec(&self) -> WebGLExtensionSpec;
     fn is_supported(&self, &WebGLExtensions) -> bool;
     fn is_enabled(&self) -> bool;
@@ -30,7 +31,7 @@ pub trait WebGLExtensionWrapper: JSTraceable + MallocSizeOf {
 #[must_root]
 #[derive(JSTraceable, MallocSizeOf)]
 pub struct TypedWebGLExtensionWrapper<T: WebGLExtension> {
-    extension: MutNullableDom<T::Extension>
+    extension: MutNullableDom<T::Extension>,
 }
 
 /// Typed WebGL Extension implementation.
@@ -38,18 +39,21 @@ pub struct TypedWebGLExtensionWrapper<T: WebGLExtension> {
 impl<T: WebGLExtension> TypedWebGLExtensionWrapper<T> {
     pub fn new() -> TypedWebGLExtensionWrapper<T> {
         TypedWebGLExtensionWrapper {
-            extension: MutNullableDom::new(None)
+            extension: MutNullableDom::new(None),
         }
     }
 }
 
 impl<T> WebGLExtensionWrapper for TypedWebGLExtensionWrapper<T>
-                              where T: WebGLExtension + JSTraceable + MallocSizeOf + 'static {
+where
+    T: WebGLExtension + JSTraceable + MallocSizeOf + 'static,
+{
     #[allow(unsafe_code)]
-    fn instance_or_init(&self,
-                        ctx: &WebGLRenderingContext,
-                        ext: &WebGLExtensions)
-                        -> NonNull<JSObject> {
+    fn instance_or_init(
+        &self,
+        ctx: &WebGLRenderingContext,
+        ext: &WebGLExtensions,
+    ) -> NonNull<JSObject> {
         let mut enabled = true;
         let extension = self.extension.or_init(|| {
             enabled = false;
@@ -58,13 +62,11 @@ impl<T> WebGLExtensionWrapper for TypedWebGLExtensionWrapper<T>
         if !enabled {
             self.enable(ext);
         }
-        unsafe {
-            NonNull::new_unchecked(extension.reflector().get_jsobject().get())
-        }
+        unsafe { NonNull::new_unchecked(extension.reflector().get_jsobject().get()) }
     }
 
     fn spec(&self) -> WebGLExtensionSpec {
-         T::spec()
+        T::spec()
     }
 
     fn is_supported(&self, ext: &WebGLExtensions) -> bool {

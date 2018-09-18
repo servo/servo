@@ -20,37 +20,45 @@ pub struct InputEvent {
 }
 
 impl InputEvent {
-    pub fn new(window: &Window,
-               type_: DOMString,
-               can_bubble: bool,
-               cancelable: bool,
-               view: Option<&Window>,
-               detail: i32,
-               data: Option<DOMString>,
-               is_composing: bool) -> DomRoot<InputEvent> {
-        let ev = reflect_dom_object(Box::new(InputEvent {
-                                        uievent: UIEvent::new_inherited(),
-                                        data: data,
-                                        is_composing: is_composing,
-                                    }),
-                                    window,
-                                    InputEventBinding::Wrap);
-        ev.uievent.InitUIEvent(type_, can_bubble, cancelable, view, detail);
+    pub fn new(
+        window: &Window,
+        type_: DOMString,
+        can_bubble: bool,
+        cancelable: bool,
+        view: Option<&Window>,
+        detail: i32,
+        data: Option<DOMString>,
+        is_composing: bool,
+    ) -> DomRoot<InputEvent> {
+        let ev = reflect_dom_object(
+            Box::new(InputEvent {
+                uievent: UIEvent::new_inherited(),
+                data: data,
+                is_composing: is_composing,
+            }),
+            window,
+            InputEventBinding::Wrap,
+        );
+        ev.uievent
+            .InitUIEvent(type_, can_bubble, cancelable, view, detail);
         ev
     }
 
-    pub fn Constructor(window: &Window,
-                       type_: DOMString,
-                       init: &InputEventBinding::InputEventInit)
-                       -> Fallible<DomRoot<InputEvent>> {
-        let event = InputEvent::new(window,
-                                    type_,
-                                    init.parent.parent.bubbles,
-                                    init.parent.parent.cancelable,
-                                    init.parent.view.r(),
-                                    init.parent.detail,
-                                    init.data.clone(),
-                                    init.isComposing);
+    pub fn Constructor(
+        window: &Window,
+        type_: DOMString,
+        init: &InputEventBinding::InputEventInit,
+    ) -> Fallible<DomRoot<InputEvent>> {
+        let event = InputEvent::new(
+            window,
+            type_,
+            init.parent.parent.bubbles,
+            init.parent.parent.cancelable,
+            init.parent.view.r(),
+            init.parent.detail,
+            init.data.clone(),
+            init.isComposing,
+        );
         Ok(event)
     }
 }

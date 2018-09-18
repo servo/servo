@@ -16,12 +16,14 @@ pub struct SVGElement {
 }
 
 impl SVGElement {
-    pub fn new_inherited_with_state(state: ElementState, tag_name: LocalName,
-                                    prefix: Option<Prefix>, document: &Document)
-                                    -> SVGElement {
+    pub fn new_inherited_with_state(
+        state: ElementState,
+        tag_name: LocalName,
+        prefix: Option<Prefix>,
+        document: &Document,
+    ) -> SVGElement {
         SVGElement {
-            element:
-                Element::new_inherited_with_state(state, tag_name, ns!(svg), prefix, document),
+            element: Element::new_inherited_with_state(state, tag_name, ns!(svg), prefix, document),
         }
     }
 }

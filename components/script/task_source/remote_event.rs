@@ -19,11 +19,7 @@ impl Clone for RemoteEventTaskSource {
 impl TaskSource for RemoteEventTaskSource {
     const NAME: TaskSourceName = TaskSourceName::RemoteEvent;
 
-    fn queue_with_canceller<T>(
-        &self,
-        task: T,
-        canceller: &TaskCanceller,
-    ) -> Result<(), ()>
+    fn queue_with_canceller<T>(&self, task: T, canceller: &TaskCanceller) -> Result<(), ()>
     where
         T: TaskOnce + 'static,
     {

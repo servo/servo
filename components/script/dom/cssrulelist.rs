@@ -39,7 +39,7 @@ pub struct CSSRuleList {
     parent_stylesheet: Dom<CSSStyleSheet>,
     #[ignore_malloc_size_of = "Arc"]
     rules: RulesSource,
-    dom_rules: DomRefCell<Vec<MutNullableDom<CSSRule>>>
+    dom_rules: DomRefCell<Vec<MutNullableDom<CSSRule>>>,
 }
 
 pub enum RulesSource {
@@ -52,12 +52,18 @@ impl CSSRuleList {
     pub fn new_inherited(parent_stylesheet: &CSSStyleSheet, rules: RulesSource) -> CSSRuleList {
         let guard = parent_stylesheet.shared_lock().read();
         let dom_rules = match rules {
-            RulesSource::Rules(ref rules) => {
-                rules.read_with(&guard).0.iter().map(|_| MutNullableDom::new(None)).collect()
-            }
-            RulesSource::Keyframes(ref rules) => {
-                rules.read_with(&guard).keyframes.iter().map(|_| MutNullableDom::new(None)).collect()
-            }
+            RulesSource::Rules(ref rules) => rules
+                .read_with(&guard)
+                .0
+                .iter()
+                .map(|_| MutNullableDom::new(None))
+                .collect(),
+            RulesSource::Keyframes(ref rules) => rules
+                .read_with(&guard)
+                .keyframes
+                .iter()
+                .map(|_| MutNullableDom::new(None))
+                .collect(),
         };
 
         CSSRuleList {
@@ -69,11 +75,16 @@ impl CSSRuleList {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(window: &Window, parent_stylesheet: &CSSStyleSheet,
-               rules: RulesSource) -> DomRoot<CSSRuleList> {
-        reflect_dom_object(Box::new(CSSRuleList::new_inherited(parent_stylesheet, rules)),
-                           window,
-                           CSSRuleListBinding::Wrap)
+    pub fn new(
+        window: &Window,
+        parent_stylesheet: &CSSStyleSheet,
+        rules: RulesSource,
+    ) -> DomRoot<CSSRuleList> {
+        reflect_dom_object(
+            Box::new(CSSRuleList::new_inherited(parent_stylesheet, rules)),
+            window,
+            CSSRuleListBinding::Wrap,
+        )
     }
 
     /// Should only be called for CssRules-backed rules. Use append_lazy_rule
@@ -91,18 +102,21 @@ impl CSSRuleList {
 
         let parent_stylesheet = self.parent_stylesheet.style_stylesheet();
         let new_rule = css_rules.with_raw_offset_arc(|arc| {
-            arc.insert_rule(&parent_stylesheet.shared_lock,
-                            rule,
-                            &parent_stylesheet.contents,
-                            index,
-                            nested,
-                            None)
+            arc.insert_rule(
+                &parent_stylesheet.shared_lock,
+                rule,
+                &parent_stylesheet.contents,
+                index,
+                nested,
+                None,
+            )
         })?;
-
 
         let parent_stylesheet = &*self.parent_stylesheet;
         let dom_rule = CSSRule::new_specific(&window, parent_stylesheet, new_rule);
-        self.dom_rules.borrow_mut().insert(index, MutNullableDom::new(Some(&*dom_rule)));
+        self.dom_rules
+            .borrow_mut()
+            .insert(index, MutNullableDom::new(Some(&*dom_rule)));
         Ok(idx)
     }
 
@@ -118,7 +132,7 @@ impl CSSRuleList {
                 dom_rules[index].get().map(|r| r.detach());
                 dom_rules.remove(index);
                 Ok(())
-            }
+            },
             RulesSource::Keyframes(ref kf) => {
                 // https://drafts.csswg.org/css-animations/#dom-csskeyframesrule-deleterule
                 let mut dom_rules = self.dom_rules.borrow_mut();
@@ -126,7 +140,7 @@ impl CSSRuleList {
                 dom_rules.remove(index);
                 kf.write_with(&mut guard).keyframes.remove(index);
                 Ok(())
-            }
+            },
         }
     }
 
@@ -143,20 +157,17 @@ impl CSSRuleList {
                 let parent_stylesheet = &self.parent_stylesheet;
                 let guard = parent_stylesheet.shared_lock().read();
                 match self.rules {
-                    RulesSource::Rules(ref rules) => {
-                        CSSRule::new_specific(self.global().as_window(),
-                                             parent_stylesheet,
-                                             rules.read_with(&guard).0[idx as usize].clone())
-                    }
-                    RulesSource::Keyframes(ref rules) => {
-                        DomRoot::upcast(CSSKeyframeRule::new(self.global().as_window(),
-                                                          parent_stylesheet,
-                                                          rules.read_with(&guard)
-                                                                .keyframes[idx as usize]
-                                                                .clone()))
-                    }
+                    RulesSource::Rules(ref rules) => CSSRule::new_specific(
+                        self.global().as_window(),
+                        parent_stylesheet,
+                        rules.read_with(&guard).0[idx as usize].clone(),
+                    ),
+                    RulesSource::Keyframes(ref rules) => DomRoot::upcast(CSSKeyframeRule::new(
+                        self.global().as_window(),
+                        parent_stylesheet,
+                        rules.read_with(&guard).keyframes[idx as usize].clone(),
+                    )),
                 }
-
             })
         })
     }
@@ -190,4 +201,3 @@ impl CSSRuleListMethods for CSSRuleList {
         self.Item(index)
     }
 }
-

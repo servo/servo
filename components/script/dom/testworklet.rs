@@ -38,7 +38,11 @@ impl TestWorklet {
 
     fn new(window: &Window) -> DomRoot<TestWorklet> {
         let worklet = Worklet::new(window, WorkletGlobalScopeType::Test);
-        reflect_dom_object(Box::new(TestWorklet::new_inherited(&*worklet)), window, Wrap)
+        reflect_dom_object(
+            Box::new(TestWorklet::new_inherited(&*worklet)),
+            window,
+            Wrap,
+        )
     }
 
     pub fn Constructor(window: &Window) -> Fallible<DomRoot<TestWorklet>> {
@@ -55,6 +59,7 @@ impl TestWorkletMethods for TestWorklet {
     fn Lookup(&self, key: DOMString) -> Option<DOMString> {
         let id = self.worklet.worklet_id();
         let pool = ScriptThread::worklet_thread_pool();
-        pool.test_worklet_lookup(id, String::from(key)).map(DOMString::from)
+        pool.test_worklet_lookup(id, String::from(key))
+            .map(DOMString::from)
     }
 }

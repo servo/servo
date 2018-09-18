@@ -17,26 +17,33 @@ use html5ever::{LocalName, Prefix};
 
 #[dom_struct]
 pub struct HTMLDataListElement {
-    htmlelement: HTMLElement
+    htmlelement: HTMLElement,
 }
 
 impl HTMLDataListElement {
-    fn new_inherited(local_name: LocalName,
-                     prefix: Option<Prefix>,
-                     document: &Document) -> HTMLDataListElement {
+    fn new_inherited(
+        local_name: LocalName,
+        prefix: Option<Prefix>,
+        document: &Document,
+    ) -> HTMLDataListElement {
         HTMLDataListElement {
-            htmlelement:
-                HTMLElement::new_inherited(local_name, prefix, document)
+            htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(local_name: LocalName,
-               prefix: Option<Prefix>,
-               document: &Document) -> DomRoot<HTMLDataListElement> {
-        Node::reflect_node(Box::new(HTMLDataListElement::new_inherited(local_name, prefix, document)),
-                           document,
-                           HTMLDataListElementBinding::Wrap)
+    pub fn new(
+        local_name: LocalName,
+        prefix: Option<Prefix>,
+        document: &Document,
+    ) -> DomRoot<HTMLDataListElement> {
+        Node::reflect_node(
+            Box::new(HTMLDataListElement::new_inherited(
+                local_name, prefix, document,
+            )),
+            document,
+            HTMLDataListElementBinding::Wrap,
+        )
     }
 }
 

@@ -19,14 +19,16 @@ pub struct MimeTypeArray {
 impl MimeTypeArray {
     pub fn new_inherited() -> MimeTypeArray {
         MimeTypeArray {
-            reflector_: Reflector::new()
+            reflector_: Reflector::new(),
         }
     }
 
     pub fn new(global: &GlobalScope) -> DomRoot<MimeTypeArray> {
-        reflect_dom_object(Box::new(MimeTypeArray::new_inherited()),
-                           global,
-                           MimeTypeArrayBinding::Wrap)
+        reflect_dom_object(
+            Box::new(MimeTypeArray::new_inherited()),
+            global,
+            MimeTypeArrayBinding::Wrap,
+        )
     }
 }
 

@@ -30,16 +30,20 @@ impl TransitionEvent {
             event: Event::new_inherited(),
             property_name: Atom::from(init.propertyName.clone()),
             elapsed_time: init.elapsedTime.clone(),
-            pseudo_element: init.pseudoElement.clone()
+            pseudo_element: init.pseudoElement.clone(),
         }
     }
 
-    pub fn new(window: &Window,
-               type_: Atom,
-               init: &TransitionEventInit) -> DomRoot<TransitionEvent> {
-        let ev = reflect_dom_object(Box::new(TransitionEvent::new_inherited(init)),
-                                    window,
-                                    TransitionEventBinding::Wrap);
+    pub fn new(
+        window: &Window,
+        type_: Atom,
+        init: &TransitionEventInit,
+    ) -> DomRoot<TransitionEvent> {
+        let ev = reflect_dom_object(
+            Box::new(TransitionEvent::new_inherited(init)),
+            window,
+            TransitionEventBinding::Wrap,
+        );
         {
             let event = ev.upcast::<Event>();
             event.init_event(type_, init.parent.bubbles, init.parent.cancelable);
@@ -47,9 +51,11 @@ impl TransitionEvent {
         ev
     }
 
-    pub fn Constructor(window: &Window,
-                       type_: DOMString,
-                       init: &TransitionEventInit) -> Fallible<DomRoot<TransitionEvent>> {
+    pub fn Constructor(
+        window: &Window,
+        type_: DOMString,
+        init: &TransitionEventInit,
+    ) -> Fallible<DomRoot<TransitionEvent>> {
         Ok(TransitionEvent::new(window, Atom::from(type_), init))
     }
 }

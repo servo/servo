@@ -32,19 +32,27 @@ pub struct HTMLBodyElement {
 }
 
 impl HTMLBodyElement {
-    fn new_inherited(local_name: LocalName, prefix: Option<Prefix>, document: &Document)
-                     -> HTMLBodyElement {
+    fn new_inherited(
+        local_name: LocalName,
+        prefix: Option<Prefix>,
+        document: &Document,
+    ) -> HTMLBodyElement {
         HTMLBodyElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(local_name: LocalName, prefix: Option<Prefix>, document: &Document)
-               -> DomRoot<HTMLBodyElement> {
-        Node::reflect_node(Box::new(HTMLBodyElement::new_inherited(local_name, prefix, document)),
-                           document,
-                           HTMLBodyElementBinding::Wrap)
+    pub fn new(
+        local_name: LocalName,
+        prefix: Option<Prefix>,
+        document: &Document,
+    ) -> DomRoot<HTMLBodyElement> {
+        Node::reflect_node(
+            Box::new(HTMLBodyElement::new_inherited(local_name, prefix, document)),
+            document,
+            HTMLBodyElementBinding::Wrap,
+        )
     }
 
     /// <https://drafts.csswg.org/cssom-view/#the-html-body-element>
@@ -52,10 +60,10 @@ impl HTMLBodyElement {
         let self_node = self.upcast::<Node>();
         let root_elem = self.upcast::<Element>().root_element();
         let root_node = root_elem.upcast::<Node>();
-        root_node.is_parent_of(self_node) &&
-            self_node.preceding_siblings().all(|n| !n.is::<HTMLBodyElement>())
+        root_node.is_parent_of(self_node) && self_node
+            .preceding_siblings()
+            .all(|n| !n.is::<HTMLBodyElement>())
     }
-
 }
 
 impl HTMLBodyElementMethods for HTMLBodyElement {
@@ -76,11 +84,10 @@ impl HTMLBodyElementMethods for HTMLBodyElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-body-background
     fn SetBackground(&self, input: DOMString) {
-        let value = AttrValue::from_resolved_url(
-            &document_from_node(self).base_url(),
-            input.into(),
-        );
-        self.upcast::<Element>().set_attribute(&local_name!("background"), value);
+        let value =
+            AttrValue::from_resolved_url(&document_from_node(self).base_url(), input.into());
+        self.upcast::<Element>()
+            .set_attribute(&local_name!("background"), value);
     }
 
     // https://html.spec.whatwg.org/multipage/#windoweventhandlers
@@ -135,7 +142,9 @@ impl VirtualMethods for HTMLBodyElement {
             return true;
         }
 
-        self.super_type().unwrap().attribute_affects_presentational_hints(attr)
+        self.super_type()
+            .unwrap()
+            .attribute_affects_presentational_hints(attr)
     }
 
     fn bind_to_tree(&self, tree_in_doc: bool) {
@@ -144,7 +153,7 @@ impl VirtualMethods for HTMLBodyElement {
         }
 
         if !tree_in_doc {
-            return
+            return;
         }
 
         let window = window_from_node(self);
@@ -158,15 +167,16 @@ impl VirtualMethods for HTMLBodyElement {
 
     fn parse_plain_attribute(&self, name: &LocalName, value: DOMString) -> AttrValue {
         match *name {
-            local_name!("bgcolor") |
-            local_name!("text") => AttrValue::from_legacy_color(value.into()),
-            local_name!("background") => {
-                AttrValue::from_resolved_url(
-                    &document_from_node(self).base_url(),
-                    value.into(),
-                )
+            local_name!("bgcolor") | local_name!("text") => {
+                AttrValue::from_legacy_color(value.into())
             },
-            _ => self.super_type().unwrap().parse_plain_attribute(name, value),
+            local_name!("background") => {
+                AttrValue::from_resolved_url(&document_from_node(self).base_url(), value.into())
+            },
+            _ => self
+                .super_type()
+                .unwrap()
+                .parse_plain_attribute(name, value),
         }
     }
 
@@ -177,23 +187,34 @@ impl VirtualMethods for HTMLBodyElement {
                 // https://html.spec.whatwg.org/multipage/
                 // #event-handlers-on-elements,-document-objects,-and-window-objects:event-handlers-3
                 match name {
-                    &local_name!("onfocus") | &local_name!("onload") | &local_name!("onscroll") |
-                    &local_name!("onafterprint") | &local_name!("onbeforeprint") |
-                    &local_name!("onbeforeunload") | &local_name!("onhashchange") |
-                    &local_name!("onlanguagechange") | &local_name!("onmessage") |
-                    &local_name!("onoffline") | &local_name!("ononline") |
-                    &local_name!("onpagehide") | &local_name!("onpageshow") |
-                    &local_name!("onpopstate") | &local_name!("onstorage") |
-                    &local_name!("onresize") | &local_name!("onunload") | &local_name!("onerror")
-                      => {
-                          let evtarget = window.upcast::<EventTarget>(); // forwarded event
-                          let source_line = 1; //TODO(#9604) obtain current JS execution line
-                          evtarget.set_event_handler_uncompiled(window.get_url(),
-                                                                source_line,
-                                                                &name[2..],
-                                                                DOMString::from((**attr.value()).to_owned()));
-                          false
-                    }
+                    &local_name!("onfocus") |
+                    &local_name!("onload") |
+                    &local_name!("onscroll") |
+                    &local_name!("onafterprint") |
+                    &local_name!("onbeforeprint") |
+                    &local_name!("onbeforeunload") |
+                    &local_name!("onhashchange") |
+                    &local_name!("onlanguagechange") |
+                    &local_name!("onmessage") |
+                    &local_name!("onoffline") |
+                    &local_name!("ononline") |
+                    &local_name!("onpagehide") |
+                    &local_name!("onpageshow") |
+                    &local_name!("onpopstate") |
+                    &local_name!("onstorage") |
+                    &local_name!("onresize") |
+                    &local_name!("onunload") |
+                    &local_name!("onerror") => {
+                        let evtarget = window.upcast::<EventTarget>(); // forwarded event
+                        let source_line = 1; //TODO(#9604) obtain current JS execution line
+                        evtarget.set_event_handler_uncompiled(
+                            window.get_url(),
+                            source_line,
+                            &name[2..],
+                            DOMString::from((**attr.value()).to_owned()),
+                        );
+                        false
+                    },
                     _ => true, // HTMLElement::attribute_mutated will take care of this.
                 }
             },

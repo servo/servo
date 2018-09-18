@@ -29,16 +29,24 @@ pub struct TestWorkletGlobalScope {
 
 impl TestWorkletGlobalScope {
     #[allow(unsafe_code)]
-    pub fn new(runtime: &Runtime,
-               pipeline_id: PipelineId,
-               base_url: ServoUrl,
-               executor: WorkletExecutor,
-               init: &WorkletGlobalScopeInit)
-               -> DomRoot<TestWorkletGlobalScope>
-    {
-        debug!("Creating test worklet global scope for pipeline {}.", pipeline_id);
+    pub fn new(
+        runtime: &Runtime,
+        pipeline_id: PipelineId,
+        base_url: ServoUrl,
+        executor: WorkletExecutor,
+        init: &WorkletGlobalScopeInit,
+    ) -> DomRoot<TestWorkletGlobalScope> {
+        debug!(
+            "Creating test worklet global scope for pipeline {}.",
+            pipeline_id
+        );
         let global = Box::new(TestWorkletGlobalScope {
-            worklet_global: WorkletGlobalScope::new_inherited(pipeline_id, base_url, executor, init),
+            worklet_global: WorkletGlobalScope::new_inherited(
+                pipeline_id,
+                base_url,
+                executor,
+                init,
+            ),
             lookup_table: Default::default(),
         });
         unsafe { TestWorkletGlobalScopeBinding::Wrap(runtime.cx(), global) }
@@ -50,7 +58,7 @@ impl TestWorkletGlobalScope {
                 debug!("Looking up key {}.", key);
                 let result = self.lookup_table.borrow().get(&key).cloned();
                 let _ = sender.send(result);
-            }
+            },
         }
     }
 }
@@ -58,7 +66,9 @@ impl TestWorkletGlobalScope {
 impl TestWorkletGlobalScopeMethods for TestWorkletGlobalScope {
     fn RegisterKeyValue(&self, key: DOMString, value: DOMString) {
         debug!("Registering test worklet key/value {}/{}.", key, value);
-        self.lookup_table.borrow_mut().insert(String::from(key), String::from(value));
+        self.lookup_table
+            .borrow_mut()
+            .insert(String::from(key), String::from(value));
     }
 }
 

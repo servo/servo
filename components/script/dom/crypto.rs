@@ -36,17 +36,22 @@ impl Crypto {
     }
 
     pub fn new(global: &GlobalScope) -> DomRoot<Crypto> {
-        reflect_dom_object(Box::new(Crypto::new_inherited()), global, CryptoBinding::Wrap)
+        reflect_dom_object(
+            Box::new(Crypto::new_inherited()),
+            global,
+            CryptoBinding::Wrap,
+        )
     }
 }
 
 impl CryptoMethods for Crypto {
     #[allow(unsafe_code)]
     // https://dvcs.w3.org/hg/webcrypto-api/raw-file/tip/spec/Overview.html#Crypto-method-getRandomValues
-    unsafe fn GetRandomValues(&self,
-                       _cx: *mut JSContext,
-                       mut input: CustomAutoRooterGuard<ArrayBufferView>)
-                       -> Fallible<NonNull<JSObject>> {
+    unsafe fn GetRandomValues(
+        &self,
+        _cx: *mut JSContext,
+        mut input: CustomAutoRooterGuard<ArrayBufferView>,
+    ) -> Fallible<NonNull<JSObject>> {
         let array_type = input.get_array_type();
 
         if !is_integer_buffer(array_type) {

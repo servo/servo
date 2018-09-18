@@ -28,8 +28,10 @@ pub struct CSSSupportsRule {
 }
 
 impl CSSSupportsRule {
-    fn new_inherited(parent_stylesheet: &CSSStyleSheet, supportsrule: Arc<Locked<SupportsRule>>)
-                     -> CSSSupportsRule {
+    fn new_inherited(
+        parent_stylesheet: &CSSStyleSheet,
+        supportsrule: Arc<Locked<SupportsRule>>,
+    ) -> CSSSupportsRule {
         let guard = parent_stylesheet.shared_lock().read();
         let list = supportsrule.read_with(&guard).rules.clone();
         CSSSupportsRule {
@@ -39,11 +41,19 @@ impl CSSSupportsRule {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(window: &Window, parent_stylesheet: &CSSStyleSheet,
-               supportsrule: Arc<Locked<SupportsRule>>) -> DomRoot<CSSSupportsRule> {
-        reflect_dom_object(Box::new(CSSSupportsRule::new_inherited(parent_stylesheet, supportsrule)),
-                           window,
-                           CSSSupportsRuleBinding::Wrap)
+    pub fn new(
+        window: &Window,
+        parent_stylesheet: &CSSStyleSheet,
+        supportsrule: Arc<Locked<SupportsRule>>,
+    ) -> DomRoot<CSSSupportsRule> {
+        reflect_dom_object(
+            Box::new(CSSSupportsRule::new_inherited(
+                parent_stylesheet,
+                supportsrule,
+            )),
+            window,
+            CSSSupportsRuleBinding::Wrap,
+        )
     }
 
     /// <https://drafts.csswg.org/css-conditional-3/#the-csssupportsrule-interface>
@@ -88,6 +98,9 @@ impl SpecificCSSRule for CSSSupportsRule {
 
     fn get_css(&self) -> DOMString {
         let guard = self.cssconditionrule.shared_lock().read();
-        self.supportsrule.read_with(&guard).to_css_string(&guard).into()
+        self.supportsrule
+            .read_with(&guard)
+            .to_css_string(&guard)
+            .into()
     }
 }

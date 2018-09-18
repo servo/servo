@@ -33,20 +33,23 @@ impl BeforeUnloadEvent {
     }
 
     pub fn new_uninitialized(window: &Window) -> DomRoot<BeforeUnloadEvent> {
-        reflect_dom_object(Box::new(BeforeUnloadEvent::new_inherited()),
-                           window,
-                           BeforeUnloadEventBinding::Wrap)
+        reflect_dom_object(
+            Box::new(BeforeUnloadEvent::new_inherited()),
+            window,
+            BeforeUnloadEventBinding::Wrap,
+        )
     }
 
-    pub fn new(window: &Window,
-               type_: Atom,
-               bubbles: EventBubbles,
-               cancelable: EventCancelable) -> DomRoot<BeforeUnloadEvent> {
+    pub fn new(
+        window: &Window,
+        type_: Atom,
+        bubbles: EventBubbles,
+        cancelable: EventCancelable,
+    ) -> DomRoot<BeforeUnloadEvent> {
         let ev = BeforeUnloadEvent::new_uninitialized(window);
         {
             let event = ev.upcast::<Event>();
-            event.init_event(type_, bool::from(bubbles),
-                             bool::from(cancelable));
+            event.init_event(type_, bool::from(bubbles), bool::from(cancelable));
         }
         ev
     }

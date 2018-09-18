@@ -60,33 +60,46 @@ impl KeyboardEvent {
     }
 
     pub fn new_uninitialized(window: &Window) -> DomRoot<KeyboardEvent> {
-        reflect_dom_object(Box::new(KeyboardEvent::new_inherited()),
-                           window,
-                           KeyboardEventBinding::Wrap)
+        reflect_dom_object(
+            Box::new(KeyboardEvent::new_inherited()),
+            window,
+            KeyboardEventBinding::Wrap,
+        )
     }
 
-    pub fn new(window: &Window,
-               type_: DOMString,
-               can_bubble: bool,
-               cancelable: bool,
-               view: Option<&Window>,
-               _detail: i32,
-               ch: Option<char>,
-               key: Option<Key>,
-               key_string: DOMString,
-               code: DOMString,
-               location: u32,
-               repeat: bool,
-               is_composing: bool,
-               ctrl_key: bool,
-               alt_key: bool,
-               shift_key: bool,
-               meta_key: bool,
-               char_code: Option<u32>,
-               key_code: u32) -> DomRoot<KeyboardEvent> {
+    pub fn new(
+        window: &Window,
+        type_: DOMString,
+        can_bubble: bool,
+        cancelable: bool,
+        view: Option<&Window>,
+        _detail: i32,
+        ch: Option<char>,
+        key: Option<Key>,
+        key_string: DOMString,
+        code: DOMString,
+        location: u32,
+        repeat: bool,
+        is_composing: bool,
+        ctrl_key: bool,
+        alt_key: bool,
+        shift_key: bool,
+        meta_key: bool,
+        char_code: Option<u32>,
+        key_code: u32,
+    ) -> DomRoot<KeyboardEvent> {
         let ev = KeyboardEvent::new_uninitialized(window);
-        ev.InitKeyboardEvent(type_, can_bubble, cancelable, view, key_string, location,
-                             DOMString::new(), repeat, DOMString::new());
+        ev.InitKeyboardEvent(
+            type_,
+            can_bubble,
+            cancelable,
+            view,
+            key_string,
+            location,
+            DOMString::new(),
+            repeat,
+            DOMString::new(),
+        );
         ev.key.set(key);
         *ev.code.borrow_mut() = code;
         ev.ctrl.set(ctrl_key);
@@ -100,36 +113,45 @@ impl KeyboardEvent {
         ev
     }
 
-    pub fn Constructor(window: &Window,
-                       type_: DOMString,
-                       init: &KeyboardEventBinding::KeyboardEventInit) -> Fallible<DomRoot<KeyboardEvent>> {
-        let event = KeyboardEvent::new(window,
-                                       type_,
-                                       init.parent.parent.parent.bubbles,
-                                       init.parent.parent.parent.cancelable,
-                                       init.parent.parent.view.r(),
-                                       init.parent.parent.detail,
-                                       None,
-                                       key_from_string(&init.key, init.location),
-                                       init.key.clone(), init.code.clone(), init.location,
-                                       init.repeat, init.isComposing, init.parent.ctrlKey,
-                                       init.parent.altKey, init.parent.shiftKey, init.parent.metaKey,
-                                       None, 0);
+    pub fn Constructor(
+        window: &Window,
+        type_: DOMString,
+        init: &KeyboardEventBinding::KeyboardEventInit,
+    ) -> Fallible<DomRoot<KeyboardEvent>> {
+        let event = KeyboardEvent::new(
+            window,
+            type_,
+            init.parent.parent.parent.bubbles,
+            init.parent.parent.parent.cancelable,
+            init.parent.parent.view.r(),
+            init.parent.parent.detail,
+            None,
+            key_from_string(&init.key, init.location),
+            init.key.clone(),
+            init.code.clone(),
+            init.location,
+            init.repeat,
+            init.isComposing,
+            init.parent.ctrlKey,
+            init.parent.altKey,
+            init.parent.shiftKey,
+            init.parent.metaKey,
+            None,
+            0,
+        );
         Ok(event)
     }
 
-    pub fn key_properties(ch: Option<char>, key: Key, mods: KeyModifiers)
-        -> KeyEventProperties {
-            KeyEventProperties {
-                key_string: key_value(ch, key, mods),
-                code: code_value(key),
-                location: key_location(key),
-                char_code: ch.map(|ch| ch as u32),
-                key_code: key_keycode(key),
-            }
+    pub fn key_properties(ch: Option<char>, key: Key, mods: KeyModifiers) -> KeyEventProperties {
+        KeyEventProperties {
+            key_string: key_value(ch, key, mods),
+            code: code_value(key),
+            location: key_location(key),
+            char_code: ch.map(|ch| ch as u32),
+            key_code: key_keycode(key),
+        }
     }
 }
-
 
 impl KeyboardEvent {
     pub fn printable(&self) -> Option<char> {
@@ -436,7 +458,9 @@ fn key_from_string(key_string: &str, location: u32) -> Option<Key> {
         "}" => Some(Key::RightBracket),
         "]" => Some(Key::RightBracket),
         "Escape" => Some(Key::Escape),
-        "Enter" if location == KeyboardEventConstants::DOM_KEY_LOCATION_STANDARD => Some(Key::Enter),
+        "Enter" if location == KeyboardEventConstants::DOM_KEY_LOCATION_STANDARD => {
+            Some(Key::Enter)
+        },
         "Tab" => Some(Key::Tab),
         "Backspace" => Some(Key::Backspace),
         "Insert" => Some(Key::Insert),
@@ -494,20 +518,34 @@ fn key_from_string(key_string: &str, location: u32) -> Option<Key> {
         "*" if location == KeyboardEventConstants::DOM_KEY_LOCATION_NUMPAD => Some(Key::KpMultiply),
         "-" if location == KeyboardEventConstants::DOM_KEY_LOCATION_NUMPAD => Some(Key::KpSubtract),
         "+" if location == KeyboardEventConstants::DOM_KEY_LOCATION_NUMPAD => Some(Key::KpAdd),
-        "Enter" if location == KeyboardEventConstants::DOM_KEY_LOCATION_NUMPAD => Some(Key::KpEnter),
+        "Enter" if location == KeyboardEventConstants::DOM_KEY_LOCATION_NUMPAD => {
+            Some(Key::KpEnter)
+        },
         "=" if location == KeyboardEventConstants::DOM_KEY_LOCATION_NUMPAD => Some(Key::KpEqual),
-        "Shift" if location == KeyboardEventConstants::DOM_KEY_LOCATION_LEFT => Some(Key::LeftShift),
-        "Control" if location == KeyboardEventConstants::DOM_KEY_LOCATION_LEFT => Some(Key::LeftControl),
+        "Shift" if location == KeyboardEventConstants::DOM_KEY_LOCATION_LEFT => {
+            Some(Key::LeftShift)
+        },
+        "Control" if location == KeyboardEventConstants::DOM_KEY_LOCATION_LEFT => {
+            Some(Key::LeftControl)
+        },
         "Alt" if location == KeyboardEventConstants::DOM_KEY_LOCATION_LEFT => Some(Key::LeftAlt),
-        "Super" if location == KeyboardEventConstants::DOM_KEY_LOCATION_LEFT => Some(Key::LeftSuper),
-        "Shift" if location == KeyboardEventConstants::DOM_KEY_LOCATION_RIGHT => Some(Key::RightShift),
-        "Control" if location == KeyboardEventConstants::DOM_KEY_LOCATION_RIGHT => Some(Key::RightControl),
+        "Super" if location == KeyboardEventConstants::DOM_KEY_LOCATION_LEFT => {
+            Some(Key::LeftSuper)
+        },
+        "Shift" if location == KeyboardEventConstants::DOM_KEY_LOCATION_RIGHT => {
+            Some(Key::RightShift)
+        },
+        "Control" if location == KeyboardEventConstants::DOM_KEY_LOCATION_RIGHT => {
+            Some(Key::RightControl)
+        },
         "Alt" if location == KeyboardEventConstants::DOM_KEY_LOCATION_RIGHT => Some(Key::RightAlt),
-        "Super" if location == KeyboardEventConstants::DOM_KEY_LOCATION_RIGHT => Some(Key::RightSuper),
+        "Super" if location == KeyboardEventConstants::DOM_KEY_LOCATION_RIGHT => {
+            Some(Key::RightSuper)
+        },
         "ContextMenu" => Some(Key::Menu),
         "BrowserForward" => Some(Key::NavigateForward),
         "BrowserBack" => Some(Key::NavigateBackward),
-        _ => None
+        _ => None,
     }
 }
 
@@ -563,8 +601,7 @@ fn code_value(key: Key) -> &'static str {
         Key::Backslash => "Backslash",
         Key::RightBracket => "BracketRight",
 
-        Key::World1 |
-        Key::World2 => panic!("unknown char code for {:?}", key),
+        Key::World1 | Key::World2 => panic!("unknown char code for {:?}", key),
 
         Key::Escape => "Escape",
         Key::Enter => "Enter",
@@ -640,22 +677,31 @@ fn code_value(key: Key) -> &'static str {
 
 fn key_location(key: Key) -> u32 {
     match key {
-        Key::Kp0 | Key::Kp1 | Key::Kp2 |
-        Key::Kp3 | Key::Kp4 | Key::Kp5 |
-        Key::Kp6 | Key::Kp7 | Key::Kp8 |
-        Key::Kp9 | Key::KpDecimal |
-        Key::KpDivide | Key::KpMultiply |
-        Key::KpSubtract | Key::KpAdd |
-        Key::KpEnter | Key::KpEqual =>
-            KeyboardEventConstants::DOM_KEY_LOCATION_NUMPAD,
+        Key::Kp0 |
+        Key::Kp1 |
+        Key::Kp2 |
+        Key::Kp3 |
+        Key::Kp4 |
+        Key::Kp5 |
+        Key::Kp6 |
+        Key::Kp7 |
+        Key::Kp8 |
+        Key::Kp9 |
+        Key::KpDecimal |
+        Key::KpDivide |
+        Key::KpMultiply |
+        Key::KpSubtract |
+        Key::KpAdd |
+        Key::KpEnter |
+        Key::KpEqual => KeyboardEventConstants::DOM_KEY_LOCATION_NUMPAD,
 
-        Key::LeftShift | Key::LeftAlt |
-        Key::LeftControl | Key::LeftSuper =>
-            KeyboardEventConstants::DOM_KEY_LOCATION_LEFT,
+        Key::LeftShift | Key::LeftAlt | Key::LeftControl | Key::LeftSuper => {
+            KeyboardEventConstants::DOM_KEY_LOCATION_LEFT
+        },
 
-        Key::RightShift | Key::RightAlt |
-        Key::RightControl | Key::RightSuper =>
-            KeyboardEventConstants::DOM_KEY_LOCATION_RIGHT,
+        Key::RightShift | Key::RightAlt | Key::RightControl | Key::RightSuper => {
+            KeyboardEventConstants::DOM_KEY_LOCATION_RIGHT
+        },
 
         _ => KeyboardEventConstants::DOM_KEY_LOCATION_STANDARD,
     }
@@ -737,7 +783,7 @@ fn key_keycode(key: Key) -> u32 {
         Key::Z => key as u32 - Key::A as u32 + 'A' as u32,
 
         //§ B.2.1.8
-        _ => 0
+        _ => 0,
     }
 }
 
@@ -758,16 +804,18 @@ impl KeyEventProperties {
 
 impl KeyboardEventMethods for KeyboardEvent {
     // https://w3c.github.io/uievents/#widl-KeyboardEvent-initKeyboardEvent
-    fn InitKeyboardEvent(&self,
-                         type_arg: DOMString,
-                         can_bubble_arg: bool,
-                         cancelable_arg: bool,
-                         view_arg: Option<&Window>,
-                         key_arg: DOMString,
-                         location_arg: u32,
-                         _modifiers_list_arg: DOMString,
-                         repeat: bool,
-                         _locale: DOMString) {
+    fn InitKeyboardEvent(
+        &self,
+        type_arg: DOMString,
+        can_bubble_arg: bool,
+        cancelable_arg: bool,
+        view_arg: Option<&Window>,
+        key_arg: DOMString,
+        location_arg: u32,
+        _modifiers_list_arg: DOMString,
+        repeat: bool,
+        _locale: DOMString,
+    ) {
         if self.upcast::<Event>().dispatching() {
             return;
         }
@@ -831,8 +879,8 @@ impl KeyboardEventMethods for KeyboardEvent {
             "Alt" => self.AltKey(),
             "Shift" => self.ShiftKey(),
             "Meta" => self.MetaKey(),
-            "AltGraph" | "CapsLock" | "NumLock" | "ScrollLock" | "Accel" |
-            "Fn" | "FnLock" | "Hyper" | "OS" | "Symbol" | "SymbolLock" => false, //FIXME
+            "AltGraph" | "CapsLock" | "NumLock" | "ScrollLock" | "Accel" | "Fn" | "FnLock" |
+            "Hyper" | "OS" | "Symbol" | "SymbolLock" => false, //FIXME
             _ => false,
         }
     }

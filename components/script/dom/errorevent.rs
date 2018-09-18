@@ -40,30 +40,33 @@ impl ErrorEvent {
             filename: DomRefCell::new(DOMString::new()),
             lineno: Cell::new(0),
             colno: Cell::new(0),
-            error: Heap::default()
+            error: Heap::default(),
         }
     }
 
     pub fn new_uninitialized(global: &GlobalScope) -> DomRoot<ErrorEvent> {
-        reflect_dom_object(Box::new(ErrorEvent::new_inherited()),
-                           global,
-                           ErrorEventBinding::Wrap)
+        reflect_dom_object(
+            Box::new(ErrorEvent::new_inherited()),
+            global,
+            ErrorEventBinding::Wrap,
+        )
     }
 
-    pub fn new(global: &GlobalScope,
-               type_: Atom,
-               bubbles: EventBubbles,
-               cancelable: EventCancelable,
-               message: DOMString,
-               filename: DOMString,
-               lineno: u32,
-               colno: u32,
-               error: HandleValue) -> DomRoot<ErrorEvent> {
+    pub fn new(
+        global: &GlobalScope,
+        type_: Atom,
+        bubbles: EventBubbles,
+        cancelable: EventCancelable,
+        message: DOMString,
+        filename: DOMString,
+        lineno: u32,
+        colno: u32,
+        error: HandleValue,
+    ) -> DomRoot<ErrorEvent> {
         let ev = ErrorEvent::new_uninitialized(global);
         {
             let event = ev.upcast::<Event>();
-            event.init_event(type_, bool::from(bubbles),
-                             bool::from(cancelable));
+            event.init_event(type_, bool::from(bubbles), bool::from(cancelable));
             *ev.message.borrow_mut() = message;
             *ev.filename.borrow_mut() = filename;
             ev.lineno.set(lineno);
@@ -73,10 +76,11 @@ impl ErrorEvent {
         ev
     }
 
-    pub fn Constructor(global: &GlobalScope,
-                       type_: DOMString,
-                       init: RootedTraceableBox<ErrorEventBinding::ErrorEventInit>)
-                       -> Fallible<DomRoot<ErrorEvent>>{
+    pub fn Constructor(
+        global: &GlobalScope,
+        type_: DOMString,
+        init: RootedTraceableBox<ErrorEventBinding::ErrorEventInit>,
+    ) -> Fallible<DomRoot<ErrorEvent>> {
         let msg = match init.message.as_ref() {
             Some(message) => message.clone(),
             None => DOMString::new(),
@@ -96,18 +100,18 @@ impl ErrorEvent {
         let cancelable = EventCancelable::from(init.parent.cancelable);
 
         let event = ErrorEvent::new(
-                global,
-                Atom::from(type_),
-                bubbles,
-                cancelable,
-                msg,
-                file_name,
-                line_num,
-                col_num,
-                init.error.handle());
+            global,
+            Atom::from(type_),
+            bubbles,
+            cancelable,
+            msg,
+            file_name,
+            line_num,
+            col_num,
+            init.error.handle(),
+        );
         Ok(event)
     }
-
 }
 
 impl ErrorEventMethods for ErrorEvent {

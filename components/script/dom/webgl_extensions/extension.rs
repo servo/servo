@@ -10,7 +10,10 @@ use dom::webglrenderingcontext::WebGLRenderingContext;
 use super::WebGLExtensions;
 
 /// Trait implemented by WebGL extensions.
-pub trait WebGLExtension: Sized where Self::Extension: DomObject + JSTraceable {
+pub trait WebGLExtension: Sized
+where
+    Self::Extension: DomObject + JSTraceable,
+{
     type Extension;
 
     /// Creates the DOM object of the WebGL extension.
@@ -33,5 +36,5 @@ pub enum WebGLExtensionSpec {
     /// Extensions written against both WebGL and WebGL2 specs.
     All,
     /// Extensions writen against a specific WebGL version spec.
-    Specific(WebGLVersion)
+    Specific(WebGLVersion),
 }

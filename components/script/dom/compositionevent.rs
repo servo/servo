@@ -19,34 +19,42 @@ pub struct CompositionEvent {
 }
 
 impl CompositionEvent {
-    pub fn new(window: &Window,
-               type_: DOMString,
-               can_bubble: bool,
-               cancelable: bool,
-               view: Option<&Window>,
-               detail: i32,
-               data: DOMString) -> DomRoot<CompositionEvent> {
-        let ev = reflect_dom_object(Box::new(CompositionEvent {
-                                        uievent: UIEvent::new_inherited(),
-                                        data: data,
-                                    }),
-                                    window,
-                                    CompositionEventBinding::Wrap);
-        ev.uievent.InitUIEvent(type_, can_bubble, cancelable, view, detail);
+    pub fn new(
+        window: &Window,
+        type_: DOMString,
+        can_bubble: bool,
+        cancelable: bool,
+        view: Option<&Window>,
+        detail: i32,
+        data: DOMString,
+    ) -> DomRoot<CompositionEvent> {
+        let ev = reflect_dom_object(
+            Box::new(CompositionEvent {
+                uievent: UIEvent::new_inherited(),
+                data: data,
+            }),
+            window,
+            CompositionEventBinding::Wrap,
+        );
+        ev.uievent
+            .InitUIEvent(type_, can_bubble, cancelable, view, detail);
         ev
     }
 
-    pub fn Constructor(window: &Window,
-                       type_: DOMString,
-                       init: &CompositionEventBinding::CompositionEventInit)
-                       -> Fallible<DomRoot<CompositionEvent>> {
-        let event = CompositionEvent::new(window,
-                                    type_,
-                                    init.parent.parent.bubbles,
-                                    init.parent.parent.cancelable,
-                                    init.parent.view.r(),
-                                    init.parent.detail,
-                                    init.data.clone());
+    pub fn Constructor(
+        window: &Window,
+        type_: DOMString,
+        init: &CompositionEventBinding::CompositionEventInit,
+    ) -> Fallible<DomRoot<CompositionEvent>> {
+        let event = CompositionEvent::new(
+            window,
+            type_,
+            init.parent.parent.bubbles,
+            init.parent.parent.cancelable,
+            init.parent.view.r(),
+            init.parent.detail,
+            init.data.clone(),
+        );
         Ok(event)
     }
 }

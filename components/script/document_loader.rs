@@ -96,8 +96,10 @@ impl DocumentLoader {
         DocumentLoader::new_with_threads(existing.resource_threads.clone(), None)
     }
 
-    pub fn new_with_threads(resource_threads: ResourceThreads,
-                            initial_load: Option<ServoUrl>) -> DocumentLoader {
+    pub fn new_with_threads(
+        resource_threads: ResourceThreads,
+        initial_load: Option<ServoUrl>,
+    ) -> DocumentLoader {
         debug!("Initial blocking load {:?}.", initial_load);
         let initial_loads = initial_load.into_iter().map(LoadType::PageSource).collect();
 
@@ -105,7 +107,7 @@ impl DocumentLoader {
             resource_threads: resource_threads,
             blocking_loads: initial_loads,
             events_inhibited: false,
-            cancellers: Vec::new()
+            cancellers: Vec::new(),
         }
     }
 
@@ -118,35 +120,55 @@ impl DocumentLoader {
 
     /// Add a load to the list of blocking loads.
     fn add_blocking_load(&mut self, load: LoadType) {
-        debug!("Adding blocking load {:?} ({}).", load, self.blocking_loads.len());
+        debug!(
+            "Adding blocking load {:?} ({}).",
+            load,
+            self.blocking_loads.len()
+        );
         self.blocking_loads.push(load);
     }
 
     /// Initiate a new fetch.
-    pub fn fetch_async(&mut self,
-                       load: LoadType,
-                       request: RequestInit,
-                       fetch_target: IpcSender<FetchResponseMsg>) {
+    pub fn fetch_async(
+        &mut self,
+        load: LoadType,
+        request: RequestInit,
+        fetch_target: IpcSender<FetchResponseMsg>,
+    ) {
         self.add_blocking_load(load);
         self.fetch_async_background(request, fetch_target);
     }
 
     /// Initiate a new fetch that does not block the document load event.
-    pub fn fetch_async_background(&mut self,
-                                  request: RequestInit,
-                                  fetch_target: IpcSender<FetchResponseMsg>) {
+    pub fn fetch_async_background(
+        &mut self,
+        request: RequestInit,
+        fetch_target: IpcSender<FetchResponseMsg>,
+    ) {
         let mut canceller = FetchCanceller::new();
         let cancel_receiver = canceller.initialize();
         self.cancellers.push(canceller);
-        self.resource_threads.sender().send(
-            CoreResourceMsg::Fetch(request, FetchChannels::ResponseMsg(fetch_target, Some(cancel_receiver)))).unwrap();
+        self.resource_threads
+            .sender()
+            .send(CoreResourceMsg::Fetch(
+                request,
+                FetchChannels::ResponseMsg(fetch_target, Some(cancel_receiver)),
+            )).unwrap();
     }
 
     /// Mark an in-progress network request complete.
     pub fn finish_load(&mut self, load: &LoadType) {
-        debug!("Removing blocking load {:?} ({}).", load, self.blocking_loads.len());
-        let idx = self.blocking_loads.iter().position(|unfinished| *unfinished == *load);
-        self.blocking_loads.remove(idx.unwrap_or_else(|| panic!("unknown completed load {:?}", load)));
+        debug!(
+            "Removing blocking load {:?} ({}).",
+            load,
+            self.blocking_loads.len()
+        );
+        let idx = self
+            .blocking_loads
+            .iter()
+            .position(|unfinished| *unfinished == *load);
+        self.blocking_loads
+            .remove(idx.unwrap_or_else(|| panic!("unknown completed load {:?}", load)));
     }
 
     pub fn is_blocked(&self) -> bool {
@@ -157,7 +179,7 @@ impl DocumentLoader {
     pub fn is_only_blocked_by_iframes(&self) -> bool {
         self.blocking_loads.iter().all(|load| match *load {
             LoadType::Subframe(_) => true,
-            _ => false
+            _ => false,
         })
     }
 

@@ -20,8 +20,10 @@ pub struct CSSConditionRule {
 }
 
 impl CSSConditionRule {
-    pub fn new_inherited(parent_stylesheet: &CSSStyleSheet,
-                         rules: Arc<Locked<StyleCssRules>>) -> CSSConditionRule {
+    pub fn new_inherited(
+        parent_stylesheet: &CSSStyleSheet,
+        rules: Arc<Locked<StyleCssRules>>,
+    ) -> CSSConditionRule {
         CSSConditionRule {
             cssgroupingrule: CSSGroupingRule::new_inherited(parent_stylesheet, rules),
         }

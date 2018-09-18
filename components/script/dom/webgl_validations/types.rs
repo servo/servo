@@ -67,9 +67,7 @@ impl TexDataType {
         use self::TexDataType::*;
         match *self {
             UnsignedByte => 1,
-            UnsignedShort4444 |
-            UnsignedShort5551 |
-            UnsignedShort565 => 2,
+            UnsignedShort4444 | UnsignedShort5551 | UnsignedShort565 => 2,
             Float => 4,
             HalfFloat => 2,
         }

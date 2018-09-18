@@ -27,24 +27,31 @@ pub struct HTMLHeadingElement {
 }
 
 impl HTMLHeadingElement {
-    fn new_inherited(local_name: LocalName,
-                     prefix: Option<Prefix>,
-                     document: &Document,
-                     level: HeadingLevel) -> HTMLHeadingElement {
+    fn new_inherited(
+        local_name: LocalName,
+        prefix: Option<Prefix>,
+        document: &Document,
+        level: HeadingLevel,
+    ) -> HTMLHeadingElement {
         HTMLHeadingElement {
-            htmlelement:
-                HTMLElement::new_inherited(local_name, prefix, document),
+            htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
             level: level,
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(local_name: LocalName,
-               prefix: Option<Prefix>,
-               document: &Document,
-               level: HeadingLevel) -> DomRoot<HTMLHeadingElement> {
-        Node::reflect_node(Box::new(HTMLHeadingElement::new_inherited(local_name, prefix, document, level)),
-                           document,
-                           HTMLHeadingElementBinding::Wrap)
+    pub fn new(
+        local_name: LocalName,
+        prefix: Option<Prefix>,
+        document: &Document,
+        level: HeadingLevel,
+    ) -> DomRoot<HTMLHeadingElement> {
+        Node::reflect_node(
+            Box::new(HTMLHeadingElement::new_inherited(
+                local_name, prefix, document, level,
+            )),
+            document,
+            HTMLHeadingElementBinding::Wrap,
+        )
     }
 }

@@ -43,39 +43,50 @@ impl URL {
     }
 
     pub fn new(global: &GlobalScope, url: ServoUrl) -> DomRoot<URL> {
-        reflect_dom_object(Box::new(URL::new_inherited(url)),
-                           global, URLBinding::Wrap)
+        reflect_dom_object(Box::new(URL::new_inherited(url)), global, URLBinding::Wrap)
     }
 
     pub fn query_pairs(&self) -> Vec<(String, String)> {
-        self.url.borrow().as_url().query_pairs().into_owned().collect()
+        self.url
+            .borrow()
+            .as_url()
+            .query_pairs()
+            .into_owned()
+            .collect()
     }
 
     pub fn set_query_pairs(&self, pairs: &[(String, String)]) {
         let mut url = self.url.borrow_mut();
-        url.as_mut_url().query_pairs_mut().clear().extend_pairs(pairs);
+        url.as_mut_url()
+            .query_pairs_mut()
+            .clear()
+            .extend_pairs(pairs);
     }
 }
 
 impl URL {
     // https://url.spec.whatwg.org/#constructors
-    pub fn Constructor(global: &GlobalScope, url: USVString,
-                       base: Option<USVString>)
-                       -> Fallible<DomRoot<URL>> {
+    pub fn Constructor(
+        global: &GlobalScope,
+        url: USVString,
+        base: Option<USVString>,
+    ) -> Fallible<DomRoot<URL>> {
         let parsed_base = match base {
             None => {
                 // Step 1.
                 None
             },
             Some(base) =>
-                // Step 2.1.
+            // Step 2.1.
+            {
                 match ServoUrl::parse(&base.0) {
                     Ok(base) => Some(base),
                     Err(error) => {
                         // Step 2.2.
                         return Err(Error::Type(format!("could not parse base: {}", error)));
-                    }
+                    },
                 }
+            },
         };
         // Step 3.
         let parsed_url = match ServoUrl::parse_with_base(parsed_base.as_ref(), &url.0) {
@@ -83,7 +94,7 @@ impl URL {
             Err(error) => {
                 // Step 4.
                 return Err(Error::Type(format!("could not parse URL: {}", error)));
-            }
+            },
         };
         // Step 5: Skip (see step 8 below).
         // Steps 6-7.
@@ -116,7 +127,7 @@ impl URL {
         let origin = get_blob_origin(&global.get_url());
 
         if let Ok(url) = ServoUrl::parse(&url) {
-             if let Ok((id, _)) = parse_blob_url(&url) {
+            if let Ok((id, _)) = parse_blob_url(&url) {
                 let resource_threads = global.resource_threads();
                 let (tx, rx) = ipc::channel(global.time_profiler_chan().clone()).unwrap();
                 let msg = FileManagerThreadMsg::RevokeBlobURL(id, origin, tx);
@@ -186,12 +197,10 @@ impl URLMethods for URL {
         match ServoUrl::parse(&value.0) {
             Ok(url) => {
                 *self.url.borrow_mut() = url;
-                self.search_params.set(None);  // To be re-initialized in the SearchParams getter.
+                self.search_params.set(None); // To be re-initialized in the SearchParams getter.
                 Ok(())
             },
-            Err(error) => {
-                Err(Error::Type(format!("could not parse URL: {}", error)))
-            },
+            Err(error) => Err(Error::Type(format!("could not parse URL: {}", error))),
         }
     }
 
@@ -255,9 +264,8 @@ impl URLMethods for URL {
 
     // https://url.spec.whatwg.org/#dom-url-searchparams
     fn SearchParams(&self) -> DomRoot<URLSearchParams> {
-        self.search_params.or_init(|| {
-            URLSearchParams::new(&self.global(), Some(self))
-        })
+        self.search_params
+            .or_init(|| URLSearchParams::new(&self.global(), Some(self)))
     }
 
     // https://url.spec.whatwg.org/#dom-url-href

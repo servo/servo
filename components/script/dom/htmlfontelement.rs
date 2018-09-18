@@ -25,21 +25,28 @@ pub struct HTMLFontElement {
     htmlelement: HTMLElement,
 }
 
-
 impl HTMLFontElement {
-    fn new_inherited(local_name: LocalName, prefix: Option<Prefix>, document: &Document) -> HTMLFontElement {
+    fn new_inherited(
+        local_name: LocalName,
+        prefix: Option<Prefix>,
+        document: &Document,
+    ) -> HTMLFontElement {
         HTMLFontElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(local_name: LocalName,
-               prefix: Option<Prefix>,
-               document: &Document) -> DomRoot<HTMLFontElement> {
-        Node::reflect_node(Box::new(HTMLFontElement::new_inherited(local_name, prefix, document)),
-                           document,
-                           HTMLFontElementBinding::Wrap)
+    pub fn new(
+        local_name: LocalName,
+        prefix: Option<Prefix>,
+        document: &Document,
+    ) -> DomRoot<HTMLFontElement> {
+        Node::reflect_node(
+            Box::new(HTMLFontElement::new_inherited(local_name, prefix, document)),
+            document,
+            HTMLFontElementBinding::Wrap,
+        )
     }
 }
 
@@ -77,7 +84,9 @@ impl VirtualMethods for HTMLFontElement {
         }
 
         // FIXME: Should also return true for `size` and `face` changes!
-        self.super_type().unwrap().attribute_affects_presentational_hints(attr)
+        self.super_type()
+            .unwrap()
+            .attribute_affects_presentational_hints(attr)
     }
 
     fn parse_plain_attribute(&self, name: &LocalName, value: DOMString) -> AttrValue {
@@ -85,7 +94,10 @@ impl VirtualMethods for HTMLFontElement {
             &local_name!("face") => AttrValue::from_atomic(value.into()),
             &local_name!("color") => AttrValue::from_legacy_color(value.into()),
             &local_name!("size") => parse_size(&value),
-            _ => self.super_type().unwrap().parse_plain_attribute(name, value),
+            _ => self
+                .super_type()
+                .unwrap()
+                .parse_plain_attribute(name, value),
         }
     }
 }
@@ -150,13 +162,13 @@ fn parse_size(mut input: &str) -> AttrValue {
 
         // Step 5
         Some(&'+') => {
-            let _ = input_chars.next();  // consume the '+'
+            let _ = input_chars.next(); // consume the '+'
             ParseMode::RelativePlus
-        }
+        },
         Some(&'-') => {
-            let _ = input_chars.next();  // consume the '-'
+            let _ = input_chars.next(); // consume the '-'
             ParseMode::RelativeMinus
-        }
+        },
         Some(_) => ParseMode::Absolute,
     };
 

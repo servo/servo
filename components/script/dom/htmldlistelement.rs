@@ -12,23 +12,32 @@ use html5ever::{LocalName, Prefix};
 
 #[dom_struct]
 pub struct HTMLDListElement {
-    htmlelement: HTMLElement
+    htmlelement: HTMLElement,
 }
 
 impl HTMLDListElement {
-    fn new_inherited(local_name: LocalName, prefix: Option<Prefix>, document: &Document) -> HTMLDListElement {
+    fn new_inherited(
+        local_name: LocalName,
+        prefix: Option<Prefix>,
+        document: &Document,
+    ) -> HTMLDListElement {
         HTMLDListElement {
-            htmlelement:
-                HTMLElement::new_inherited(local_name, prefix, document)
+            htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(local_name: LocalName,
-               prefix: Option<Prefix>,
-               document: &Document) -> DomRoot<HTMLDListElement> {
-        Node::reflect_node(Box::new(HTMLDListElement::new_inherited(local_name, prefix, document)),
-                           document,
-                           HTMLDListElementBinding::Wrap)
+    pub fn new(
+        local_name: LocalName,
+        prefix: Option<Prefix>,
+        document: &Document,
+    ) -> DomRoot<HTMLDListElement> {
+        Node::reflect_node(
+            Box::new(HTMLDListElement::new_inherited(
+                local_name, prefix, document,
+            )),
+            document,
+            HTMLDListElementBinding::Wrap,
+        )
     }
 }

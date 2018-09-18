@@ -51,20 +51,22 @@ use task_source::websocket::WebsocketTaskSource;
 use time::precise_time_ns;
 use timers::{IsInterval, TimerCallback};
 
-pub fn prepare_workerscope_init(global: &GlobalScope,
-                                devtools_sender: Option<IpcSender<DevtoolScriptControlMsg>>) -> WorkerGlobalScopeInit {
+pub fn prepare_workerscope_init(
+    global: &GlobalScope,
+    devtools_sender: Option<IpcSender<DevtoolScriptControlMsg>>,
+) -> WorkerGlobalScopeInit {
     let init = WorkerGlobalScopeInit {
-            resource_threads: global.resource_threads().clone(),
-            mem_profiler_chan: global.mem_profiler_chan().clone(),
-            to_devtools_sender: global.devtools_chan().cloned(),
-            time_profiler_chan: global.time_profiler_chan().clone(),
-            from_devtools_sender: devtools_sender,
-            script_to_constellation_chan: global.script_to_constellation_chan().clone(),
-            scheduler_chan: global.scheduler_chan().clone(),
-            worker_id: global.get_next_worker_id(),
-            pipeline_id: global.pipeline_id(),
-            origin: global.origin().immutable().clone(),
-        };
+        resource_threads: global.resource_threads().clone(),
+        mem_profiler_chan: global.mem_profiler_chan().clone(),
+        to_devtools_sender: global.devtools_chan().cloned(),
+        time_profiler_chan: global.time_profiler_chan().clone(),
+        from_devtools_sender: devtools_sender,
+        script_to_constellation_chan: global.script_to_constellation_chan().clone(),
+        scheduler_chan: global.scheduler_chan().clone(),
+        worker_id: global.get_next_worker_id(),
+        pipeline_id: global.pipeline_id(),
+        origin: global.origin().immutable().clone(),
+    };
 
     init
 }
@@ -179,9 +181,8 @@ impl WorkerGlobalScopeMethods for WorkerGlobalScope {
 
     // https://html.spec.whatwg.org/multipage/#dom-workerglobalscope-location
     fn Location(&self) -> DomRoot<WorkerLocation> {
-        self.location.or_init(|| {
-            WorkerLocation::new(self, self.worker_url.clone())
-        })
+        self.location
+            .or_init(|| WorkerLocation::new(self, self.worker_url.clone()))
     }
 
     // https://html.spec.whatwg.org/multipage/#handler-workerglobalscope-onerror
@@ -210,18 +211,23 @@ impl WorkerGlobalScopeMethods for WorkerGlobalScope {
                 pipeline_id: Some(self.upcast::<GlobalScope>().pipeline_id()),
                 referrer_url: None,
                 referrer_policy: None,
-                .. NetRequestInit::default()
+                ..NetRequestInit::default()
             };
-            let (url, source) = match load_whole_resource(request,
-                                                          &global_scope.resource_threads().sender()) {
-                Err(_) => return Err(Error::Network),
-                Ok((metadata, bytes)) => {
-                    (metadata.final_url, String::from_utf8(bytes).unwrap())
-                }
-            };
+            let (url, source) =
+                match load_whole_resource(request, &global_scope.resource_threads().sender()) {
+                    Err(_) => return Err(Error::Network),
+                    Ok((metadata, bytes)) => {
+                        (metadata.final_url, String::from_utf8(bytes).unwrap())
+                    },
+                };
 
             let result = self.runtime.evaluate_script(
-                self.reflector().get_jsobject(), &source, url.as_str(), 1, rval.handle_mut());
+                self.reflector().get_jsobject(),
+                &source,
+                url.as_str(),
+                1,
+                rval.handle_mut(),
+            );
 
             maybe_resume_unwind();
 
@@ -230,7 +236,7 @@ impl WorkerGlobalScopeMethods for WorkerGlobalScope {
                 Err(_) => {
                     println!("evaluate_script failed");
                     return Err(Error::JSFailed);
-                }
+                },
             }
         }
 
@@ -259,51 +265,76 @@ impl WorkerGlobalScopeMethods for WorkerGlobalScope {
 
     #[allow(unsafe_code)]
     // https://html.spec.whatwg.org/multipage/#dom-windowtimers-settimeout
-    unsafe fn SetTimeout(&self, _cx: *mut JSContext, callback: Rc<Function>,
-                         timeout: i32, args: Vec<HandleValue>) -> i32 {
+    unsafe fn SetTimeout(
+        &self,
+        _cx: *mut JSContext,
+        callback: Rc<Function>,
+        timeout: i32,
+        args: Vec<HandleValue>,
+    ) -> i32 {
         self.upcast::<GlobalScope>().set_timeout_or_interval(
             TimerCallback::FunctionTimerCallback(callback),
             args,
             timeout,
-            IsInterval::NonInterval)
+            IsInterval::NonInterval,
+        )
     }
 
     #[allow(unsafe_code)]
     // https://html.spec.whatwg.org/multipage/#dom-windowtimers-settimeout
-    unsafe fn SetTimeout_(&self, _cx: *mut JSContext, callback: DOMString,
-                          timeout: i32, args: Vec<HandleValue>) -> i32 {
+    unsafe fn SetTimeout_(
+        &self,
+        _cx: *mut JSContext,
+        callback: DOMString,
+        timeout: i32,
+        args: Vec<HandleValue>,
+    ) -> i32 {
         self.upcast::<GlobalScope>().set_timeout_or_interval(
             TimerCallback::StringTimerCallback(callback),
             args,
             timeout,
-            IsInterval::NonInterval)
+            IsInterval::NonInterval,
+        )
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-windowtimers-cleartimeout
     fn ClearTimeout(&self, handle: i32) {
-        self.upcast::<GlobalScope>().clear_timeout_or_interval(handle);
+        self.upcast::<GlobalScope>()
+            .clear_timeout_or_interval(handle);
     }
 
     #[allow(unsafe_code)]
     // https://html.spec.whatwg.org/multipage/#dom-windowtimers-setinterval
-    unsafe fn SetInterval(&self, _cx: *mut JSContext, callback: Rc<Function>,
-                          timeout: i32, args: Vec<HandleValue>) -> i32 {
+    unsafe fn SetInterval(
+        &self,
+        _cx: *mut JSContext,
+        callback: Rc<Function>,
+        timeout: i32,
+        args: Vec<HandleValue>,
+    ) -> i32 {
         self.upcast::<GlobalScope>().set_timeout_or_interval(
             TimerCallback::FunctionTimerCallback(callback),
             args,
             timeout,
-            IsInterval::Interval)
+            IsInterval::Interval,
+        )
     }
 
     #[allow(unsafe_code)]
     // https://html.spec.whatwg.org/multipage/#dom-windowtimers-setinterval
-    unsafe fn SetInterval_(&self, _cx: *mut JSContext, callback: DOMString,
-                           timeout: i32, args: Vec<HandleValue>) -> i32 {
+    unsafe fn SetInterval_(
+        &self,
+        _cx: *mut JSContext,
+        callback: DOMString,
+        timeout: i32,
+        args: Vec<HandleValue>,
+    ) -> i32 {
         self.upcast::<GlobalScope>().set_timeout_or_interval(
             TimerCallback::StringTimerCallback(callback),
             args,
             timeout,
-            IsInterval::Interval)
+            IsInterval::Interval,
+        )
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-windowtimers-clearinterval
@@ -313,7 +344,11 @@ impl WorkerGlobalScopeMethods for WorkerGlobalScope {
 
     #[allow(unrooted_must_root)]
     // https://fetch.spec.whatwg.org/#fetch-method
-    fn Fetch(&self, input: RequestOrUSVString, init: RootedTraceableBox<RequestInit>) -> Rc<Promise> {
+    fn Fetch(
+        &self,
+        input: RequestOrUSVString,
+        init: RootedTraceableBox<RequestInit>,
+    ) -> Rc<Promise> {
         fetch::Fetch(self.upcast(), input, init)
     }
 
@@ -321,18 +356,24 @@ impl WorkerGlobalScopeMethods for WorkerGlobalScope {
     fn Performance(&self) -> DomRoot<Performance> {
         self.performance.or_init(|| {
             let global_scope = self.upcast::<GlobalScope>();
-            Performance::new(global_scope,
-                             0 /* navigation start is not used in workers */,
-                             self.navigation_start_precise)
+            Performance::new(
+                global_scope,
+                0, /* navigation start is not used in workers */
+                self.navigation_start_precise,
+            )
         })
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-origin
     fn Origin(&self) -> USVString {
-        USVString(self.upcast::<GlobalScope>().origin().immutable().ascii_serialization())
+        USVString(
+            self.upcast::<GlobalScope>()
+                .origin()
+                .immutable()
+                .ascii_serialization(),
+        )
     }
 }
-
 
 impl WorkerGlobalScope {
     #[allow(unsafe_code)]
@@ -340,7 +381,12 @@ impl WorkerGlobalScope {
         let _aes = AutoEntryScript::new(self.upcast());
         rooted!(in(self.runtime.cx()) let mut rval = UndefinedValue());
         match self.runtime.evaluate_script(
-            self.reflector().get_jsobject(), &source, self.worker_url.as_str(), 1, rval.handle_mut()) {
+            self.reflector().get_jsobject(),
+            &source,
+            self.worker_url.as_str(),
+            1,
+            rval.handle_mut(),
+        ) {
             Ok(_) => (),
             Err(_) => {
                 if self.is_closing() {
@@ -350,12 +396,14 @@ impl WorkerGlobalScope {
                     // https://github.com/servo/servo/issues/6422
                     println!("evaluate_script failed");
                     unsafe {
-                        let _ac = JSAutoCompartment::new(self.runtime.cx(),
-                                                         self.reflector().get_jsobject().get());
+                        let _ac = JSAutoCompartment::new(
+                            self.runtime.cx(),
+                            self.reflector().get_jsobject().get(),
+                        );
                         report_pending_exception(self.runtime.cx(), true);
                     }
                 }
-            }
+            },
         }
     }
 
@@ -402,9 +450,7 @@ impl WorkerGlobalScope {
 
     pub fn process_event(&self, msg: CommonScriptMsg) {
         match msg {
-            CommonScriptMsg::Task(_, task, _, _) => {
-                task.run_box()
-            },
+            CommonScriptMsg::Task(_, task, _, _) => task.run_box(),
             CommonScriptMsg::CollectReports(reports_chan) => {
                 let cx = self.get_cx();
                 let path_seg = format!("url({})", self.get_url());

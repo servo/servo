@@ -32,7 +32,6 @@ use std::str;
 use style::properties::longhands::{margin_bottom, margin_left, margin_right, margin_top};
 use uuid::Uuid;
 
-
 #[allow(unsafe_code)]
 pub fn handle_evaluate_js(global: &GlobalScope, eval: String, reply: IpcSender<EvaluateJSReply>) {
     // global.get_cx() returns a valid `JSContext` pointer, so this is safe.
@@ -48,11 +47,14 @@ pub fn handle_evaluate_js(global: &GlobalScope, eval: String, reply: IpcSender<E
         } else if rval.is_boolean() {
             EvaluateJSReply::BooleanValue(rval.to_boolean())
         } else if rval.is_double() || rval.is_int32() {
-            EvaluateJSReply::NumberValue(
-                match FromJSValConvertible::from_jsval(cx, rval.handle(), ()) {
-                    Ok(ConversionResult::Success(v)) => v,
-                    _ => unreachable!(),
-                })
+            EvaluateJSReply::NumberValue(match FromJSValConvertible::from_jsval(
+                cx,
+                rval.handle(),
+                (),
+            ) {
+                Ok(ConversionResult::Success(v)) => v,
+                _ => unreachable!(),
+            })
         } else if rval.is_string() {
             EvaluateJSReply::StringValue(String::from(jsstring_to_str(cx, rval.to_string())))
         } else if rval.is_null() {
@@ -73,85 +75,104 @@ pub fn handle_evaluate_js(global: &GlobalScope, eval: String, reply: IpcSender<E
     reply.send(result).unwrap();
 }
 
-pub fn handle_get_root_node(documents: &Documents, pipeline: PipelineId, reply: IpcSender<Option<NodeInfo>>) {
-    let info = documents.find_document(pipeline)
+pub fn handle_get_root_node(
+    documents: &Documents,
+    pipeline: PipelineId,
+    reply: IpcSender<Option<NodeInfo>>,
+) {
+    let info = documents
+        .find_document(pipeline)
         .map(|document| document.upcast::<Node>().summarize());
     reply.send(info).unwrap();
 }
 
-pub fn handle_get_document_element(documents: &Documents,
-                                   pipeline: PipelineId,
-                                   reply: IpcSender<Option<NodeInfo>>) {
-    let info = documents.find_document(pipeline)
+pub fn handle_get_document_element(
+    documents: &Documents,
+    pipeline: PipelineId,
+    reply: IpcSender<Option<NodeInfo>>,
+) {
+    let info = documents
+        .find_document(pipeline)
         .and_then(|document| document.GetDocumentElement())
         .map(|element| element.upcast::<Node>().summarize());
     reply.send(info).unwrap();
 }
 
-fn find_node_by_unique_id(documents: &Documents,
-                          pipeline: PipelineId,
-                          node_id: &str)
-                          -> Option<DomRoot<Node>> {
-    documents.find_document(pipeline).and_then(|document|
-        document.upcast::<Node>().traverse_preorder().find(|candidate| candidate.unique_id() == node_id)
-    )
+fn find_node_by_unique_id(
+    documents: &Documents,
+    pipeline: PipelineId,
+    node_id: &str,
+) -> Option<DomRoot<Node>> {
+    documents.find_document(pipeline).and_then(|document| {
+        document
+            .upcast::<Node>()
+            .traverse_preorder()
+            .find(|candidate| candidate.unique_id() == node_id)
+    })
 }
 
-pub fn handle_get_children(documents: &Documents,
-                           pipeline: PipelineId,
-                           node_id: String,
-                           reply: IpcSender<Option<Vec<NodeInfo>>>) {
+pub fn handle_get_children(
+    documents: &Documents,
+    pipeline: PipelineId,
+    node_id: String,
+    reply: IpcSender<Option<Vec<NodeInfo>>>,
+) {
     match find_node_by_unique_id(documents, pipeline, &*node_id) {
         None => return reply.send(None).unwrap(),
         Some(parent) => {
-            let children = parent.children()
-                                 .map(|child| child.summarize())
-                                 .collect();
+            let children = parent.children().map(|child| child.summarize()).collect();
 
             reply.send(Some(children)).unwrap();
-        }
+        },
     };
 }
 
-pub fn handle_get_layout(documents: &Documents,
-                         pipeline: PipelineId,
-                         node_id: String,
-                         reply: IpcSender<Option<ComputedNodeLayout>>) {
+pub fn handle_get_layout(
+    documents: &Documents,
+    pipeline: PipelineId,
+    node_id: String,
+    reply: IpcSender<Option<ComputedNodeLayout>>,
+) {
     let node = match find_node_by_unique_id(documents, pipeline, &*node_id) {
         None => return reply.send(None).unwrap(),
-        Some(found_node) => found_node
+        Some(found_node) => found_node,
     };
 
-    let elem = node.downcast::<Element>().expect("should be getting layout of element");
+    let elem = node
+        .downcast::<Element>()
+        .expect("should be getting layout of element");
     let rect = elem.GetBoundingClientRect();
     let width = rect.Width() as f32;
     let height = rect.Height() as f32;
 
     let window = window_from_node(&*node);
-    let elem = node.downcast::<Element>().expect("should be getting layout of element");
+    let elem = node
+        .downcast::<Element>()
+        .expect("should be getting layout of element");
     let computed_style = window.GetComputedStyle(elem, None);
 
-    reply.send(Some(ComputedNodeLayout {
-        display: String::from(computed_style.Display()),
-        position: String::from(computed_style.Position()),
-        zIndex: String::from(computed_style.ZIndex()),
-        boxSizing: String::from(computed_style.BoxSizing()),
-        autoMargins: determine_auto_margins(&window, &*node),
-        marginTop: String::from(computed_style.MarginTop()),
-        marginRight: String::from(computed_style.MarginRight()),
-        marginBottom: String::from(computed_style.MarginBottom()),
-        marginLeft: String::from(computed_style.MarginLeft()),
-        borderTopWidth: String::from(computed_style.BorderTopWidth()),
-        borderRightWidth: String::from(computed_style.BorderRightWidth()),
-        borderBottomWidth: String::from(computed_style.BorderBottomWidth()),
-        borderLeftWidth: String::from(computed_style.BorderLeftWidth()),
-        paddingTop: String::from(computed_style.PaddingTop()),
-        paddingRight: String::from(computed_style.PaddingRight()),
-        paddingBottom: String::from(computed_style.PaddingBottom()),
-        paddingLeft: String::from(computed_style.PaddingLeft()),
-        width: width,
-        height: height,
-    })).unwrap();
+    reply
+        .send(Some(ComputedNodeLayout {
+            display: String::from(computed_style.Display()),
+            position: String::from(computed_style.Position()),
+            zIndex: String::from(computed_style.ZIndex()),
+            boxSizing: String::from(computed_style.BoxSizing()),
+            autoMargins: determine_auto_margins(&window, &*node),
+            marginTop: String::from(computed_style.MarginTop()),
+            marginRight: String::from(computed_style.MarginRight()),
+            marginBottom: String::from(computed_style.MarginBottom()),
+            marginLeft: String::from(computed_style.MarginLeft()),
+            borderTopWidth: String::from(computed_style.BorderTopWidth()),
+            borderRightWidth: String::from(computed_style.BorderRightWidth()),
+            borderBottomWidth: String::from(computed_style.BorderBottomWidth()),
+            borderLeftWidth: String::from(computed_style.BorderLeftWidth()),
+            paddingTop: String::from(computed_style.PaddingTop()),
+            paddingRight: String::from(computed_style.PaddingRight()),
+            paddingBottom: String::from(computed_style.PaddingBottom()),
+            paddingLeft: String::from(computed_style.PaddingLeft()),
+            width: width,
+            height: height,
+        })).unwrap();
 }
 
 fn determine_auto_margins(window: &Window, node: &Node) -> AutoMargins {
@@ -165,9 +186,11 @@ fn determine_auto_margins(window: &Window, node: &Node) -> AutoMargins {
     }
 }
 
-pub fn handle_get_cached_messages(_pipeline_id: PipelineId,
-                                  message_types: CachedConsoleMessageTypes,
-                                  reply: IpcSender<Vec<CachedConsoleMessage>>) {
+pub fn handle_get_cached_messages(
+    _pipeline_id: PipelineId,
+    message_types: CachedConsoleMessageTypes,
+    reply: IpcSender<Vec<CachedConsoleMessage>>,
+) {
     // TODO: check the messageTypes against a global Cache for console messages and page exceptions
     let mut messages = Vec::new();
     if message_types.contains(CachedConsoleMessageTypes::PAGE_ERROR) {
@@ -207,22 +230,33 @@ pub fn handle_get_cached_messages(_pipeline_id: PipelineId,
     reply.send(messages).unwrap();
 }
 
-pub fn handle_modify_attribute(documents: &Documents,
-                               pipeline: PipelineId,
-                               node_id: String,
-                               modifications: Vec<Modification>) {
+pub fn handle_modify_attribute(
+    documents: &Documents,
+    pipeline: PipelineId,
+    node_id: String,
+    modifications: Vec<Modification>,
+) {
     let node = match find_node_by_unique_id(documents, pipeline, &*node_id) {
-        None => return warn!("node id {} for pipeline id {} is not found", &node_id, &pipeline),
-        Some(found_node) => found_node
+        None => {
+            return warn!(
+                "node id {} for pipeline id {} is not found",
+                &node_id, &pipeline
+            )
+        },
+        Some(found_node) => found_node,
     };
 
-    let elem = node.downcast::<Element>().expect("should be getting layout of element");
+    let elem = node
+        .downcast::<Element>()
+        .expect("should be getting layout of element");
 
     for modification in modifications {
         match modification.newValue {
             Some(string) => {
-                let _ = elem.SetAttribute(DOMString::from(modification.attributeName),
-                                          DOMString::from(string));
+                let _ = elem.SetAttribute(
+                    DOMString::from(modification.attributeName),
+                    DOMString::from(string),
+                );
             },
             None => elem.RemoveAttribute(DOMString::from(modification.attributeName)),
         }
@@ -233,34 +267,35 @@ pub fn handle_wants_live_notifications(global: &GlobalScope, send_notifications:
     global.set_devtools_wants_updates(send_notifications);
 }
 
-pub fn handle_set_timeline_markers(documents: &Documents,
-                                   pipeline: PipelineId,
-                                   marker_types: Vec<TimelineMarkerType>,
-                                   reply: IpcSender<Option<TimelineMarker>>) {
+pub fn handle_set_timeline_markers(
+    documents: &Documents,
+    pipeline: PipelineId,
+    marker_types: Vec<TimelineMarkerType>,
+    reply: IpcSender<Option<TimelineMarker>>,
+) {
     match documents.find_window(pipeline) {
         None => reply.send(None).unwrap(),
         Some(window) => window.set_devtools_timeline_markers(marker_types, reply),
     }
 }
 
-pub fn handle_drop_timeline_markers(documents: &Documents,
-                                    pipeline: PipelineId,
-                                    marker_types: Vec<TimelineMarkerType>) {
+pub fn handle_drop_timeline_markers(
+    documents: &Documents,
+    pipeline: PipelineId,
+    marker_types: Vec<TimelineMarkerType>,
+) {
     if let Some(window) = documents.find_window(pipeline) {
         window.drop_devtools_timeline_markers(marker_types);
     }
 }
 
-pub fn handle_request_animation_frame(documents: &Documents,
-                                      id: PipelineId,
-                                      actor_name: String) {
+pub fn handle_request_animation_frame(documents: &Documents, id: PipelineId, actor_name: String) {
     if let Some(doc) = documents.find_document(id) {
         doc.request_animation_frame(AnimationFrameCallback::DevtoolsFramerateTick { actor_name });
     }
 }
 
-pub fn handle_reload(documents: &Documents,
-                     id: PipelineId) {
+pub fn handle_reload(documents: &Documents, id: PipelineId) {
     if let Some(win) = documents.find_window(id) {
         win.Location().reload_without_origin_check();
     }

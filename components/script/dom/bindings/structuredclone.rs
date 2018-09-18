@@ -47,35 +47,39 @@ enum StructuredCloneTags {
 }
 
 #[cfg(target_pointer_width = "64")]
-unsafe fn write_length(w: *mut JSStructuredCloneWriter,
-                       length: usize) {
-  let high: u32 = (length >> 32) as u32;
-  let low: u32 = length as u32;
-  assert!(JS_WriteUint32Pair(w, high, low));
+unsafe fn write_length(w: *mut JSStructuredCloneWriter, length: usize) {
+    let high: u32 = (length >> 32) as u32;
+    let low: u32 = length as u32;
+    assert!(JS_WriteUint32Pair(w, high, low));
 }
 
 #[cfg(target_pointer_width = "32")]
-unsafe fn write_length(w: *mut JSStructuredCloneWriter,
-                       length: usize) {
-  assert!(JS_WriteUint32Pair(w, length as u32, 0));
+unsafe fn write_length(w: *mut JSStructuredCloneWriter, length: usize) {
+    assert!(JS_WriteUint32Pair(w, length as u32, 0));
 }
 
 #[cfg(target_pointer_width = "64")]
-unsafe fn read_length(r: *mut JSStructuredCloneReader)
-                      -> usize {
-  let mut high: u32 = 0;
-  let mut low: u32 = 0;
-  assert!(JS_ReadUint32Pair(r, &mut high as *mut u32, &mut low as *mut u32));
-  return (low << high) as usize;
+unsafe fn read_length(r: *mut JSStructuredCloneReader) -> usize {
+    let mut high: u32 = 0;
+    let mut low: u32 = 0;
+    assert!(JS_ReadUint32Pair(
+        r,
+        &mut high as *mut u32,
+        &mut low as *mut u32
+    ));
+    return (low << high) as usize;
 }
 
 #[cfg(target_pointer_width = "32")]
-unsafe fn read_length(r: *mut JSStructuredCloneReader)
-                      -> usize {
-  let mut length: u32 = 0;
-  let mut zero: u32 = 0;
-  assert!(JS_ReadUint32Pair(r, &mut length as *mut u32, &mut zero as *mut u32));
-  return length as usize;
+unsafe fn read_length(r: *mut JSStructuredCloneReader) -> usize {
+    let mut length: u32 = 0;
+    let mut zero: u32 = 0;
+    assert!(JS_ReadUint32Pair(
+        r,
+        &mut length as *mut u32,
+        &mut zero as *mut u32
+    ));
+    return length as usize;
 }
 
 struct StructuredCloneWriter {
@@ -86,7 +90,11 @@ impl StructuredCloneWriter {
     unsafe fn write_slice(&self, v: &[u8]) {
         let type_length = v.len();
         write_length(self.w, type_length);
-        assert!(JS_WriteBytes(self.w, v.as_ptr() as *const raw::c_void, type_length));
+        assert!(JS_WriteBytes(
+            self.w,
+            v.as_ptr() as *const raw::c_void,
+            type_length
+        ));
     }
     unsafe fn write_str(&self, s: &str) {
         self.write_slice(s.as_bytes());
@@ -101,7 +109,11 @@ impl StructuredCloneReader {
     unsafe fn read_bytes(&self) -> Vec<u8> {
         let mut bytes = vec![0u8; read_length(self.r)];
         let blob_length = bytes.len();
-        assert!(JS_ReadBytes(self.r, bytes.as_mut_ptr() as *mut raw::c_void, blob_length));
+        assert!(JS_ReadBytes(
+            self.r,
+            bytes.as_mut_ptr() as *mut raw::c_void,
+            blob_length
+        ));
         return bytes;
     }
     unsafe fn read_str(&self) -> String {
@@ -110,87 +122,105 @@ impl StructuredCloneReader {
     }
 }
 
-unsafe fn read_blob(cx: *mut JSContext,
-                    r: *mut JSStructuredCloneReader,
-                    sc_holder: &mut StructuredCloneHolder)
-                    -> *mut JSObject {
+unsafe fn read_blob(
+    cx: *mut JSContext,
+    r: *mut JSStructuredCloneReader,
+    sc_holder: &mut StructuredCloneHolder,
+) -> *mut JSObject {
     let structured_reader = StructuredCloneReader { r: r };
     let blob_buffer = structured_reader.read_bytes();
     let type_str = structured_reader.read_str();
     let target_global = GlobalScope::from_context(cx);
-    let blob = Blob::new(&target_global, BlobImpl::new_from_bytes(blob_buffer), type_str);
+    let blob = Blob::new(
+        &target_global,
+        BlobImpl::new_from_bytes(blob_buffer),
+        type_str,
+    );
     let js_object = blob.reflector().get_jsobject().get();
     sc_holder.blob = Some(blob);
     js_object
 }
 
-unsafe fn write_blob(blob: DomRoot<Blob>,
-                     w: *mut JSStructuredCloneWriter)
-                     -> Result<(), ()> {
+unsafe fn write_blob(blob: DomRoot<Blob>, w: *mut JSStructuredCloneWriter) -> Result<(), ()> {
     let structured_writer = StructuredCloneWriter { w: w };
     let blob_vec = blob.get_bytes()?;
-    assert!(JS_WriteUint32Pair(w, StructuredCloneTags::DomBlob as u32, 0));
+    assert!(JS_WriteUint32Pair(
+        w,
+        StructuredCloneTags::DomBlob as u32,
+        0
+    ));
     structured_writer.write_slice(&blob_vec);
     structured_writer.write_str(&blob.type_string());
-    return Ok(())
+    return Ok(());
 }
 
-unsafe extern "C" fn read_callback(cx: *mut JSContext,
-                                   r: *mut JSStructuredCloneReader,
-                                   tag: u32,
-                                   _data: u32,
-                                   closure: *mut raw::c_void)
-                                   -> *mut JSObject {
-    assert!(tag < StructuredCloneTags::Max as u32, "tag should be lower than StructuredCloneTags::Max");
-    assert!(tag > StructuredCloneTags::Min as u32, "tag should be higher than StructuredCloneTags::Min");
+unsafe extern "C" fn read_callback(
+    cx: *mut JSContext,
+    r: *mut JSStructuredCloneReader,
+    tag: u32,
+    _data: u32,
+    closure: *mut raw::c_void,
+) -> *mut JSObject {
+    assert!(
+        tag < StructuredCloneTags::Max as u32,
+        "tag should be lower than StructuredCloneTags::Max"
+    );
+    assert!(
+        tag > StructuredCloneTags::Min as u32,
+        "tag should be higher than StructuredCloneTags::Min"
+    );
     if tag == StructuredCloneTags::DomBlob as u32 {
-        return read_blob(cx, r, &mut *(closure as *mut StructuredCloneHolder))
+        return read_blob(cx, r, &mut *(closure as *mut StructuredCloneHolder));
     }
-    return ptr::null_mut()
+    return ptr::null_mut();
 }
 
-unsafe extern "C" fn write_callback(_cx: *mut JSContext,
-                                    w: *mut JSStructuredCloneWriter,
-                                    obj: RawHandleObject,
-                                    _closure: *mut raw::c_void)
-                                    -> bool {
+unsafe extern "C" fn write_callback(
+    _cx: *mut JSContext,
+    w: *mut JSStructuredCloneWriter,
+    obj: RawHandleObject,
+    _closure: *mut raw::c_void,
+) -> bool {
     if let Ok(blob) = root_from_handleobject::<Blob>(Handle::from_raw(obj)) {
-        return write_blob(blob, w).is_ok()
+        return write_blob(blob, w).is_ok();
     }
-    return false
+    return false;
 }
 
-unsafe extern "C" fn read_transfer_callback(_cx: *mut JSContext,
-                                            _r: *mut JSStructuredCloneReader,
-                                            _tag: u32,
-                                            _content: *mut raw::c_void,
-                                            _extra_data: u64,
-                                            _closure: *mut raw::c_void,
-                                            _return_object: RawMutableHandleObject)
-                                            -> bool {
+unsafe extern "C" fn read_transfer_callback(
+    _cx: *mut JSContext,
+    _r: *mut JSStructuredCloneReader,
+    _tag: u32,
+    _content: *mut raw::c_void,
+    _extra_data: u64,
+    _closure: *mut raw::c_void,
+    _return_object: RawMutableHandleObject,
+) -> bool {
     false
 }
 
-unsafe extern "C" fn write_transfer_callback(_cx: *mut JSContext,
-                                             _obj: RawHandleObject,
-                                             _closure: *mut raw::c_void,
-                                             _tag: *mut u32,
-                                             _ownership: *mut TransferableOwnership,
-                                             _content:  *mut *mut raw::c_void,
-                                             _extra_data: *mut u64)
-                                             -> bool {
+unsafe extern "C" fn write_transfer_callback(
+    _cx: *mut JSContext,
+    _obj: RawHandleObject,
+    _closure: *mut raw::c_void,
+    _tag: *mut u32,
+    _ownership: *mut TransferableOwnership,
+    _content: *mut *mut raw::c_void,
+    _extra_data: *mut u64,
+) -> bool {
     false
 }
 
-unsafe extern "C" fn free_transfer_callback(_tag: u32,
-                                            _ownership: TransferableOwnership,
-                                            _content: *mut raw::c_void,
-                                            _extra_data: u64,
-                                            _closure: *mut raw::c_void) {
+unsafe extern "C" fn free_transfer_callback(
+    _tag: u32,
+    _ownership: TransferableOwnership,
+    _content: *mut raw::c_void,
+    _extra_data: u64,
+    _closure: *mut raw::c_void,
+) {
 }
 
-unsafe extern "C" fn report_error_callback(_cx: *mut JSContext, _errorid: u32) {
-}
+unsafe extern "C" fn report_error_callback(_cx: *mut JSContext, _errorid: u32) {}
 
 static STRUCTURED_CLONE_CALLBACKS: JSStructuredCloneCallbacks = JSStructuredCloneCallbacks {
     read: Some(read_callback),
@@ -202,7 +232,7 @@ static STRUCTURED_CLONE_CALLBACKS: JSStructuredCloneCallbacks = JSStructuredClon
 };
 
 struct StructuredCloneHolder {
-    blob: Option<DomRoot<Blob>>
+    blob: Option<DomRoot<Blob>>,
 }
 
 /// A buffer for a structured clone.
@@ -210,7 +240,7 @@ pub enum StructuredCloneData {
     /// A non-serializable (default) variant
     Struct(*mut u64, size_t),
     /// A variant that can be serialized
-    Vector(Vec<u8>)
+    Vector(Vec<u8>),
 }
 
 impl StructuredCloneData {
@@ -218,21 +248,25 @@ impl StructuredCloneData {
     /// Writes a structured clone. Returns a `DataClone` error if that fails.
     pub fn write(cx: *mut JSContext, message: HandleValue) -> Fallible<StructuredCloneData> {
         unsafe {
-            let scbuf = NewJSAutoStructuredCloneBuffer(StructuredCloneScope::DifferentProcess,
-                                                       &STRUCTURED_CLONE_CALLBACKS);
+            let scbuf = NewJSAutoStructuredCloneBuffer(
+                StructuredCloneScope::DifferentProcess,
+                &STRUCTURED_CLONE_CALLBACKS,
+            );
             let scdata = &mut ((*scbuf).data_);
             let policy = CloneDataPolicy {
                 // TODO: SAB?
                 sharedArrayBuffer_: false,
             };
-            let result = JS_WriteStructuredClone(cx,
-                                                 message,
-                                                 scdata,
-                                                 StructuredCloneScope::DifferentProcess,
-                                                 policy,
-                                                 &STRUCTURED_CLONE_CALLBACKS,
-                                                 ptr::null_mut(),
-                                                 HandleValue::undefined());
+            let result = JS_WriteStructuredClone(
+                cx,
+                message,
+                scdata,
+                StructuredCloneScope::DifferentProcess,
+                policy,
+                &STRUCTURED_CLONE_CALLBACKS,
+                ptr::null_mut(),
+                HandleValue::undefined(),
+            );
             if !result {
                 JS_ClearPendingException(cx);
                 return Err(Error::DataClone);
@@ -252,41 +286,40 @@ impl StructuredCloneData {
     /// Converts a StructuredCloneData to Vec<u8> for inter-thread sharing
     pub fn move_to_arraybuffer(self) -> Vec<u8> {
         match self {
-            StructuredCloneData::Struct(data, nbytes) => {
-                unsafe {
-                    slice::from_raw_parts(data as *mut u8, nbytes).to_vec()
-                }
-            }
-            StructuredCloneData::Vector(msg) => msg
+            StructuredCloneData::Struct(data, nbytes) => unsafe {
+                slice::from_raw_parts(data as *mut u8, nbytes).to_vec()
+            },
+            StructuredCloneData::Vector(msg) => msg,
         }
     }
 
     /// Reads a structured clone.
     ///
     /// Panics if `JS_ReadStructuredClone` fails.
-    fn read_clone(global: &GlobalScope,
-                  data: *mut u64,
-                  nbytes: size_t,
-                  rval: MutableHandleValue) {
+    fn read_clone(global: &GlobalScope, data: *mut u64, nbytes: size_t, rval: MutableHandleValue) {
         let cx = global.get_cx();
         let globalhandle = global.reflector().get_jsobject();
         let _ac = JSAutoCompartment::new(cx, globalhandle.get());
         let mut sc_holder = StructuredCloneHolder { blob: None };
         let sc_holder_ptr = &mut sc_holder as *mut _;
         unsafe {
-            let scbuf = NewJSAutoStructuredCloneBuffer(StructuredCloneScope::DifferentProcess,
-                                                       &STRUCTURED_CLONE_CALLBACKS);
+            let scbuf = NewJSAutoStructuredCloneBuffer(
+                StructuredCloneScope::DifferentProcess,
+                &STRUCTURED_CLONE_CALLBACKS,
+            );
             let scdata = &mut ((*scbuf).data_);
 
             WriteBytesToJSStructuredCloneData(data as *const u8, nbytes, scdata);
 
-            assert!(JS_ReadStructuredClone(cx,
-                                           scdata,
-                                           JS_STRUCTURED_CLONE_VERSION,
-                                           StructuredCloneScope::DifferentProcess,
-                                           rval,
-                                           &STRUCTURED_CLONE_CALLBACKS,
-                                           sc_holder_ptr as *mut raw::c_void));
+            assert!(JS_ReadStructuredClone(
+                cx,
+                scdata,
+                JS_STRUCTURED_CLONE_VERSION,
+                StructuredCloneScope::DifferentProcess,
+                rval,
+                &STRUCTURED_CLONE_CALLBACKS,
+                sc_holder_ptr as *mut raw::c_void
+            ));
 
             DeleteJSAutoStructuredCloneBuffer(scbuf);
         }
@@ -299,8 +332,10 @@ impl StructuredCloneData {
                 let nbytes = vec_msg.len();
                 let data = vec_msg.as_mut_ptr() as *mut u64;
                 StructuredCloneData::read_clone(global, data, nbytes, rval);
-            }
-            StructuredCloneData::Struct(data, nbytes) => StructuredCloneData::read_clone(global, data, nbytes, rval)
+            },
+            StructuredCloneData::Struct(data, nbytes) => {
+                StructuredCloneData::read_clone(global, data, nbytes, rval)
+            },
         }
     }
 }

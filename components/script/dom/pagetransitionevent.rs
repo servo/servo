@@ -32,17 +32,20 @@ impl PageTransitionEvent {
     }
 
     pub fn new_uninitialized(window: &Window) -> DomRoot<PageTransitionEvent> {
-        reflect_dom_object(Box::new(PageTransitionEvent::new_inherited()),
-                           window,
-                           PageTransitionEventBinding::Wrap)
+        reflect_dom_object(
+            Box::new(PageTransitionEvent::new_inherited()),
+            window,
+            PageTransitionEventBinding::Wrap,
+        )
     }
 
-    pub fn new(window: &Window,
-               type_: Atom,
-               bubbles: bool,
-               cancelable: bool,
-               persisted: bool)
-               -> DomRoot<PageTransitionEvent> {
+    pub fn new(
+        window: &Window,
+        type_: Atom,
+        bubbles: bool,
+        cancelable: bool,
+        persisted: bool,
+    ) -> DomRoot<PageTransitionEvent> {
         let ev = PageTransitionEvent::new_uninitialized(window);
         ev.persisted.set(persisted);
         {
@@ -52,15 +55,18 @@ impl PageTransitionEvent {
         ev
     }
 
-    pub fn Constructor(window: &Window,
-                       type_: DOMString,
-                       init: &PageTransitionEventBinding::PageTransitionEventInit)
-                       -> Fallible<DomRoot<PageTransitionEvent>> {
-        Ok(PageTransitionEvent::new(window,
-                              Atom::from(type_),
-                              init.parent.bubbles,
-                              init.parent.cancelable,
-                              init.persisted))
+    pub fn Constructor(
+        window: &Window,
+        type_: DOMString,
+        init: &PageTransitionEventBinding::PageTransitionEventInit,
+    ) -> Fallible<DomRoot<PageTransitionEvent>> {
+        Ok(PageTransitionEvent::new(
+            window,
+            Atom::from(type_),
+            init.parent.bubbles,
+            init.parent.cancelable,
+            init.persisted,
+        ))
     }
 }
 

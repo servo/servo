@@ -59,7 +59,7 @@ pub trait StylesheetOwner {
 
 pub enum StylesheetContextSource {
     // NB: `media` is just an option so we avoid cloning it.
-    LinkElement { media: Option<MediaList>, },
+    LinkElement { media: Option<MediaList> },
     Import(Arc<Stylesheet>),
 }
 
@@ -87,23 +87,19 @@ impl FetchResponseListener for StylesheetContext {
 
     fn process_request_eof(&mut self) {}
 
-    fn process_response(&mut self,
-                        metadata: Result<FetchMetadata, NetworkError>) {
+    fn process_response(&mut self, metadata: Result<FetchMetadata, NetworkError>) {
         if let Ok(FetchMetadata::Filtered { ref filtered, .. }) = metadata {
             match *filtered {
-                FilteredMetadata::Opaque |
-                FilteredMetadata::OpaqueRedirect => {
+                FilteredMetadata::Opaque | FilteredMetadata::OpaqueRedirect => {
                     self.origin_clean = false;
                 },
                 _ => {},
             }
         }
 
-        self.metadata = metadata.ok().map(|m| {
-            match m {
-                FetchMetadata::Unfiltered(m) => m,
-                FetchMetadata::Filtered { unsafe_, .. } => unsafe_
-            }
+        self.metadata = metadata.ok().map(|m| match m {
+            FetchMetadata::Unfiltered(m) => m,
+            FetchMetadata::Filtered { unsafe_, .. } => unsafe_,
         });
     }
 
@@ -121,10 +117,18 @@ impl FetchResponseListener for StylesheetContext {
                 Some(meta) => meta,
                 None => return,
             };
-            let is_css = metadata.content_type.map_or(false, |Serde(ContentType(Mime(top, sub, _)))|
-                top == TopLevel::Text && sub == SubLevel::Css);
+            let is_css =
+                metadata
+                    .content_type
+                    .map_or(false, |Serde(ContentType(Mime(top, sub, _)))| {
+                        top == TopLevel::Text && sub == SubLevel::Css
+                    });
 
-            let data = if is_css { mem::replace(&mut self.data, vec![]) } else { vec![] };
+            let data = if is_css {
+                mem::replace(&mut self.data, vec![])
+            } else {
+                vec![]
+            };
 
             // TODO: Get the actual value. http://dev.w3.org/csswg/css-syntax/#environment-encoding
             let environment_encoding = UTF_8;
@@ -139,20 +143,23 @@ impl FetchResponseListener for StylesheetContext {
                     let link = elem.downcast::<HTMLLinkElement>().unwrap();
                     // We must first check whether the generations of the context and the element match up,
                     // else we risk applying the wrong stylesheet when responses come out-of-order.
-                    let is_stylesheet_load_applicable =
-                        self.request_generation_id.map_or(true, |gen| gen == link.get_request_generation_id());
+                    let is_stylesheet_load_applicable = self
+                        .request_generation_id
+                        .map_or(true, |gen| gen == link.get_request_generation_id());
                     if is_stylesheet_load_applicable {
                         let shared_lock = document.style_shared_lock().clone();
-                        let sheet =
-                            Arc::new(Stylesheet::from_bytes(&data, final_url,
-                                                            protocol_encoding_label,
-                                                            Some(environment_encoding),
-                                                            Origin::Author,
-                                                            media.take().unwrap(),
-                                                            shared_lock,
-                                                            Some(&loader),
-                                                            win.css_error_reporter(),
-                                                            document.quirks_mode()));
+                        let sheet = Arc::new(Stylesheet::from_bytes(
+                            &data,
+                            final_url,
+                            protocol_encoding_label,
+                            Some(environment_encoding),
+                            Origin::Author,
+                            media.take().unwrap(),
+                            shared_lock,
+                            Some(&loader),
+                            win.css_error_reporter(),
+                            document.quirks_mode(),
+                        ));
 
                         if link.is_alternate() {
                             sheet.set_disabled(true);
@@ -160,16 +167,18 @@ impl FetchResponseListener for StylesheetContext {
 
                         link.set_stylesheet(sheet);
                     }
-                }
+                },
                 StylesheetContextSource::Import(ref stylesheet) => {
-                    Stylesheet::update_from_bytes(&stylesheet,
-                                                  &data,
-                                                  protocol_encoding_label,
-                                                  Some(environment_encoding),
-                                                  final_url,
-                                                  Some(&loader),
-                                                  win.css_error_reporter());
-                }
+                    Stylesheet::update_from_bytes(
+                        &stylesheet,
+                        &data,
+                        protocol_encoding_label,
+                        Some(environment_encoding),
+                        final_url,
+                        Some(&loader),
+                        win.css_error_reporter(),
+                    );
+                },
             }
 
             document.invalidate_stylesheets();
@@ -179,7 +188,9 @@ impl FetchResponseListener for StylesheetContext {
             successful = metadata.status.map_or(false, |(code, _)| code == 200);
         }
 
-        let owner = elem.upcast::<Element>().as_stylesheet_owner()
+        let owner = elem
+            .upcast::<Element>()
+            .as_stylesheet_owner()
             .expect("Stylesheet not loaded by <style> or <link> element!");
         owner.set_origin_clean(self.origin_clean);
         if owner.parser_inserted() {
@@ -189,7 +200,11 @@ impl FetchResponseListener for StylesheetContext {
         document.finish_load(LoadType::Stylesheet(self.url.clone()));
 
         if let Some(any_failed) = owner.load_finished(successful) {
-            let event = if any_failed { atom!("error") } else { atom!("load") };
+            let event = if any_failed {
+                atom!("error")
+            } else {
+                atom!("load")
+            };
             elem.upcast::<EventTarget>().fire_event(event);
         }
     }
@@ -201,19 +216,23 @@ pub struct StylesheetLoader<'a> {
 
 impl<'a> StylesheetLoader<'a> {
     pub fn for_element(element: &'a HTMLElement) -> Self {
-        StylesheetLoader {
-            elem: element,
-        }
+        StylesheetLoader { elem: element }
     }
 }
 
 impl<'a> StylesheetLoader<'a> {
-    pub fn load(&self, source: StylesheetContextSource, url: ServoUrl,
-                cors_setting: Option<CorsSettings>,
-                integrity_metadata: String) {
+    pub fn load(
+        &self,
+        source: StylesheetContextSource,
+        url: ServoUrl,
+        cors_setting: Option<CorsSettings>,
+        integrity_metadata: String,
+    ) {
         let document = document_from_node(self.elem);
-        let gen = self.elem.downcast::<HTMLLinkElement>()
-                           .map(HTMLLinkElement::get_request_generation_id);
+        let gen = self
+            .elem
+            .downcast::<HTMLLinkElement>()
+            .map(HTMLLinkElement::get_request_generation_id);
         let context = ::std::sync::Arc::new(Mutex::new(StylesheetContext {
             elem: Trusted::new(&*self.elem),
             source: source,
@@ -229,16 +248,22 @@ impl<'a> StylesheetLoader<'a> {
         let listener = NetworkListener {
             context: context,
             task_source: document.window().networking_task_source(),
-            canceller: Some(document.window().task_canceller(TaskSourceName::Networking))
+            canceller: Some(document.window().task_canceller(TaskSourceName::Networking)),
         };
-        ROUTER.add_route(action_receiver.to_opaque(), Box::new(move |message| {
-            listener.notify_fetch(message.to().unwrap());
-        }));
+        ROUTER.add_route(
+            action_receiver.to_opaque(),
+            Box::new(move |message| {
+                listener.notify_fetch(message.to().unwrap());
+            }),
+        );
 
-
-        let owner = self.elem.upcast::<Element>().as_stylesheet_owner()
+        let owner = self
+            .elem
+            .upcast::<Element>()
+            .as_stylesheet_owner()
             .expect("Stylesheet not loaded by <style> or <link> element!");
-        let referrer_policy = owner.referrer_policy()
+        let referrer_policy = owner
+            .referrer_policy()
             .or_else(|| document.get_referrer_policy());
         owner.increment_pending_loads_count();
         if owner.parser_inserted() {
@@ -265,7 +290,7 @@ impl<'a> StylesheetLoader<'a> {
             referrer_url: Some(document.url()),
             referrer_policy: referrer_policy,
             integrity_metadata: integrity_metadata,
-            .. RequestInit::default()
+            ..RequestInit::default()
         };
 
         document.fetch_async(LoadType::Stylesheet(url), request, action_sender);
@@ -299,7 +324,11 @@ impl<'a> StyleStylesheetLoader for StylesheetLoader<'a> {
         });
 
         let stylesheet = ImportSheet(sheet.clone());
-        let import = ImportRule { url, source_location, stylesheet };
+        let import = ImportRule {
+            url,
+            source_location,
+            stylesheet,
+        };
 
         let url = match import.url.url().cloned() {
             Some(url) => url,

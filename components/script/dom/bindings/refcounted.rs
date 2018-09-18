@@ -39,9 +39,9 @@ use std::rc::Rc;
 use std::sync::{Arc, Weak};
 use task::TaskOnce;
 
-
-#[allow(missing_docs)]  // FIXME
-mod dummy {  // Attributes don’t apply through the macro.
+#[allow(missing_docs)] // FIXME
+mod dummy {
+    // Attributes don’t apply through the macro.
     use std::cell::RefCell;
     use std::rc::Rc;
     use super::LiveDOMReferences;
@@ -49,7 +49,6 @@ mod dummy {  // Attributes don’t apply through the macro.
             Rc::new(RefCell::new(None)));
 }
 pub use self::dummy::LIVE_REFERENCES;
-
 
 /// A pointer to a Rust DOM object that needs to be destroyed.
 pub struct TrustedReference(*const libc::c_void);
@@ -98,19 +97,28 @@ impl TrustedPromise {
         LIVE_REFERENCES.with(|ref r| {
             let r = r.borrow();
             let live_references = r.as_ref().unwrap();
-            assert_eq!(self.owner_thread, (&*live_references) as *const _ as *const libc::c_void);
+            assert_eq!(
+                self.owner_thread,
+                (&*live_references) as *const _ as *const libc::c_void
+            );
             // Borrow-check error requires the redundant `let promise = ...; promise` here.
-            let promise = match live_references.promise_table.borrow_mut().entry(self.dom_object) {
+            let promise = match live_references
+                .promise_table
+                .borrow_mut()
+                .entry(self.dom_object)
+            {
                 Occupied(mut entry) => {
                     let promise = {
                         let promises = entry.get_mut();
-                        promises.pop().expect("rooted promise list unexpectedly empty")
+                        promises
+                            .pop()
+                            .expect("rooted promise list unexpectedly empty")
                     };
                     if entry.get().is_empty() {
                         entry.remove();
                     }
                     promise
-                }
+                },
                 Vacant(_) => unreachable!(),
             };
             promise
@@ -182,9 +190,7 @@ impl<T: DomObject> Trusted<T> {
             let live_references = r.as_ref().unwrap();
             self.owner_thread == (&*live_references) as *const _ as *const libc::c_void
         }));
-        unsafe {
-            DomRoot::from_ref(&*(self.refcount.0 as *const T))
-        }
+        unsafe { DomRoot::from_ref(&*(self.refcount.0 as *const T)) }
     }
 }
 
@@ -246,15 +252,15 @@ impl LiveDOMReferences {
                 let refcount = Arc::new(TrustedReference::new(ptr));
                 entry.insert(Arc::downgrade(&refcount));
                 refcount
-            }
+            },
         }
     }
 }
 
 /// Remove null entries from the live references table
-fn remove_nulls<K: Eq + Hash + Clone, V> (table: &mut HashMap<K, Weak<V>>) {
-    let to_remove: Vec<K> =
-        table.iter()
+fn remove_nulls<K: Eq + Hash + Clone, V>(table: &mut HashMap<K, Weak<V>>) {
+    let to_remove: Vec<K> = table
+        .iter()
         .filter(|&(_, value)| Weak::upgrade(value).is_none())
         .map(|(key, _)| key.clone())
         .collect();

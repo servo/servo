@@ -18,19 +18,27 @@ pub struct HTMLTimeElement {
 }
 
 impl HTMLTimeElement {
-    fn new_inherited(local_name: LocalName, prefix: Option<Prefix>, document: &Document) -> HTMLTimeElement {
+    fn new_inherited(
+        local_name: LocalName,
+        prefix: Option<Prefix>,
+        document: &Document,
+    ) -> HTMLTimeElement {
         HTMLTimeElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(local_name: LocalName,
-               prefix: Option<Prefix>,
-               document: &Document) -> DomRoot<HTMLTimeElement> {
-        Node::reflect_node(Box::new(HTMLTimeElement::new_inherited(local_name, prefix, document)),
-                           document,
-                           HTMLTimeElementBinding::Wrap)
+    pub fn new(
+        local_name: LocalName,
+        prefix: Option<Prefix>,
+        document: &Document,
+    ) -> DomRoot<HTMLTimeElement> {
+        Node::reflect_node(
+            Box::new(HTMLTimeElement::new_inherited(local_name, prefix, document)),
+            document,
+            HTMLTimeElementBinding::Wrap,
+        )
     }
 }
 

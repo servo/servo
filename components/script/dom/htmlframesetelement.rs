@@ -14,26 +14,33 @@ use html5ever::{LocalName, Prefix};
 
 #[dom_struct]
 pub struct HTMLFrameSetElement {
-    htmlelement: HTMLElement
+    htmlelement: HTMLElement,
 }
 
 impl HTMLFrameSetElement {
-    fn new_inherited(local_name: LocalName,
-                     prefix: Option<Prefix>,
-                     document: &Document) -> HTMLFrameSetElement {
+    fn new_inherited(
+        local_name: LocalName,
+        prefix: Option<Prefix>,
+        document: &Document,
+    ) -> HTMLFrameSetElement {
         HTMLFrameSetElement {
-            htmlelement:
-                HTMLElement::new_inherited(local_name, prefix, document)
+            htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(local_name: LocalName,
-               prefix: Option<Prefix>,
-               document: &Document) -> DomRoot<HTMLFrameSetElement> {
-        Node::reflect_node(Box::new(HTMLFrameSetElement::new_inherited(local_name, prefix, document)),
-                           document,
-                           HTMLFrameSetElementBinding::Wrap)
+    pub fn new(
+        local_name: LocalName,
+        prefix: Option<Prefix>,
+        document: &Document,
+    ) -> DomRoot<HTMLFrameSetElement> {
+        Node::reflect_node(
+            Box::new(HTMLFrameSetElement::new_inherited(
+                local_name, prefix, document,
+            )),
+            document,
+            HTMLFrameSetElementBinding::Wrap,
+        )
     }
 }
 

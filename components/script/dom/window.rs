@@ -139,7 +139,7 @@ use webvr_traits::WebVRMsg;
 #[derive(Clone, Copy, Debug, JSTraceable, MallocSizeOf, PartialEq)]
 enum WindowState {
     Alive,
-    Zombie,     // Pipeline is closed, but the window hasn't been GCed yet.
+    Zombie, // Pipeline is closed, but the window hasn't been GCed yet.
 }
 
 /// Extra information concerning the reason for reflowing.
@@ -332,7 +332,9 @@ impl Window {
     fn ignore_all_events(&self) {
         let mut ignore_flags = self.ignore_further_async_events.borrow_mut();
         for task_source_name in TaskSourceName::all() {
-            let flag = ignore_flags.entry(task_source_name).or_insert(Default::default());
+            let flag = ignore_flags
+                .entry(task_source_name)
+                .or_insert(Default::default());
             flag.store(true, Ordering::Relaxed);
         }
     }
@@ -407,12 +409,13 @@ impl Window {
     /// Returns the window proxy if it has not been discarded.
     /// <https://html.spec.whatwg.org/multipage/#a-browsing-context-is-discarded>
     pub fn undiscarded_window_proxy(&self) -> Option<DomRoot<WindowProxy>> {
-        self.window_proxy.get()
-            .and_then(|window_proxy| if window_proxy.is_browsing_context_discarded() {
+        self.window_proxy.get().and_then(|window_proxy| {
+            if window_proxy.is_browsing_context_discarded() {
                 None
             } else {
                 Some(window_proxy)
-            })
+            }
+        })
     }
 
     pub fn bluetooth_thread(&self) -> IpcSender<BluetoothRequest> {
@@ -420,7 +423,7 @@ impl Window {
     }
 
     pub fn bluetooth_extra_permission_data(&self) -> &BluetoothExtraPermissionData {
-         &self.bluetooth_extra_permission_data
+        &self.bluetooth_extra_permission_data
     }
 
     pub fn css_error_reporter(&self) -> Option<&ParseErrorReporter> {
@@ -451,7 +454,9 @@ impl Window {
         Worklet::new(self, WorkletGlobalScopeType::Paint)
     }
 
-    pub fn permission_state_invocation_results(&self) -> &DomRefCell<HashMap<String, PermissionState>> {
+    pub fn permission_state_invocation_results(
+        &self,
+    ) -> &DomRefCell<HashMap<String, PermissionState>> {
         &self.permission_state_invocation_results
     }
 
@@ -469,10 +474,12 @@ impl Window {
             node.dirty(NodeDamage::OtherNodeDamage);
         }
         match response.response {
-            ImageResponse::MetadataLoaded(_) => {}
+            ImageResponse::MetadataLoaded(_) => {},
             ImageResponse::Loaded(_, _) |
             ImageResponse::PlaceholderLoaded(_, _) |
-            ImageResponse::None => { nodes.remove(); }
+            ImageResponse::None => {
+                nodes.remove();
+            },
         }
         self.add_pending_reflow();
     }
@@ -504,7 +511,8 @@ pub fn base64_atob(input: DOMString) -> Fallible<DOMString> {
     fn is_html_space(c: char) -> bool {
         HTML_SPACE_CHARACTERS.iter().any(|&m| m == c)
     }
-    let without_spaces = input.chars()
+    let without_spaces = input
+        .chars()
         .filter(|&c| !is_html_space(c))
         .collect::<String>();
     let mut input = &*without_spaces;
@@ -523,7 +531,7 @@ pub fn base64_atob(input: DOMString) -> Fallible<DOMString> {
     // "If the length of input divides by 4 leaving a remainder of 1,
     //  throw an InvalidCharacterError exception and abort these steps."
     if input.len() % 4 == 1 {
-        return Err(Error::InvalidCharacter)
+        return Err(Error::InvalidCharacter);
     }
 
     // "If input contains a character that is not in the following list of
@@ -533,13 +541,18 @@ pub fn base64_atob(input: DOMString) -> Fallible<DOMString> {
     //  U+002B PLUS SIGN (+)
     //  U+002F SOLIDUS (/)
     //  Alphanumeric ASCII characters"
-    if input.chars().any(|c| c != '+' && c != '/' && !c.is_alphanumeric()) {
-        return Err(Error::InvalidCharacter)
+    if input
+        .chars()
+        .any(|c| c != '+' && c != '/' && !c.is_alphanumeric())
+    {
+        return Err(Error::InvalidCharacter);
     }
 
     match base64::decode(&input) {
-        Ok(data) => Ok(DOMString::from(data.iter().map(|&b| b as char).collect::<String>())),
-        Err(..) => Err(Error::InvalidCharacter)
+        Ok(data) => Ok(DOMString::from(
+            data.iter().map(|&b| b as char).collect::<String>(),
+        )),
+        Err(..) => Err(Error::InvalidCharacter),
     }
 }
 
@@ -563,7 +576,8 @@ impl WindowMethods for Window {
             stdout.flush().unwrap();
             stderr.flush().unwrap();
         }
-        let (sender, receiver) = ProfiledIpc::channel(self.global().time_profiler_chan().clone()).unwrap();
+        let (sender, receiver) =
+            ProfiledIpc::channel(self.global().time_profiler_chan().clone()).unwrap();
         let msg = EmbedderMsg::Alert(s.to_string(), sender);
         self.send_to_embedder(msg);
         receiver.recv().unwrap();
@@ -577,11 +591,12 @@ impl WindowMethods for Window {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-open
-    fn Open(&self,
-            url: DOMString,
-            target: DOMString,
-            features: DOMString)
-            -> Option<DomRoot<WindowProxy>> {
+    fn Open(
+        &self,
+        url: DOMString,
+        target: DOMString,
+        features: DOMString,
+    ) -> Option<DomRoot<WindowProxy>> {
         self.window_proxy().open(url, target, features)
     }
 
@@ -600,16 +615,19 @@ impl WindowMethods for Window {
         }
         // Step 2.
         let obj = self.reflector().get_jsobject();
-        assert!(JS_DefineProperty(cx,
-                                  obj,
-                                  "opener\0".as_ptr() as *const libc::c_char,
-                                  value,
-                                  JSPROP_ENUMERATE as u32));
+        assert!(JS_DefineProperty(
+            cx,
+            obj,
+            "opener\0".as_ptr() as *const libc::c_char,
+            value,
+            JSPROP_ENUMERATE as u32
+        ));
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-window-closed
     fn Closed(&self) -> bool {
-        self.window_proxy.get()
+        self.window_proxy
+            .get()
             .map(|ref proxy| proxy.is_browsing_context_discarded())
             .unwrap_or(true)
     }
@@ -641,7 +659,9 @@ impl WindowMethods for Window {
 
     // https://html.spec.whatwg.org/multipage/#dom-document-2
     fn Document(&self) -> DomRoot<Document> {
-        self.document.get().expect("Document accessed before initialization.")
+        self.document
+            .get()
+            .expect("Document accessed before initialization.")
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-history
@@ -651,7 +671,8 @@ impl WindowMethods for Window {
 
     // https://html.spec.whatwg.org/multipage/#dom-window-customelements
     fn CustomElements(&self) -> DomRoot<CustomElementRegistry> {
-        self.custom_element_registry.or_init(|| CustomElementRegistry::new(self))
+        self.custom_element_registry
+            .or_init(|| CustomElementRegistry::new(self))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-location
@@ -661,12 +682,14 @@ impl WindowMethods for Window {
 
     // https://html.spec.whatwg.org/multipage/#dom-sessionstorage
     fn SessionStorage(&self) -> DomRoot<Storage> {
-        self.session_storage.or_init(|| Storage::new(self, StorageType::Session))
+        self.session_storage
+            .or_init(|| Storage::new(self, StorageType::Session))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-localstorage
     fn LocalStorage(&self) -> DomRoot<Storage> {
-        self.local_storage.or_init(|| Storage::new(self, StorageType::Local))
+        self.local_storage
+            .or_init(|| Storage::new(self, StorageType::Local))
     }
 
     // https://dvcs.w3.org/hg/webcrypto-api/raw-file/tip/spec/Overview.html#dfn-GlobalCrypto
@@ -684,8 +707,14 @@ impl WindowMethods for Window {
 
         // Step 6.
         let container_doc = document_from_node(container);
-        let current_doc = GlobalScope::current().expect("No current global object").as_window().Document();
-        if !current_doc.origin().same_origin_domain(container_doc.origin()) {
+        let current_doc = GlobalScope::current()
+            .expect("No current global object")
+            .as_window()
+            .Document();
+        if !current_doc
+            .origin()
+            .same_origin_domain(container_doc.origin())
+        {
             return None;
         }
         // Step 7.
@@ -699,51 +728,76 @@ impl WindowMethods for Window {
 
     #[allow(unsafe_code)]
     // https://html.spec.whatwg.org/multipage/#dom-windowtimers-settimeout
-    unsafe fn SetTimeout(&self, _cx: *mut JSContext, callback: Rc<Function>, timeout: i32,
-                         args: Vec<HandleValue>) -> i32 {
+    unsafe fn SetTimeout(
+        &self,
+        _cx: *mut JSContext,
+        callback: Rc<Function>,
+        timeout: i32,
+        args: Vec<HandleValue>,
+    ) -> i32 {
         self.upcast::<GlobalScope>().set_timeout_or_interval(
             TimerCallback::FunctionTimerCallback(callback),
             args,
             timeout,
-            IsInterval::NonInterval)
+            IsInterval::NonInterval,
+        )
     }
 
     #[allow(unsafe_code)]
     // https://html.spec.whatwg.org/multipage/#dom-windowtimers-settimeout
-    unsafe fn SetTimeout_(&self, _cx: *mut JSContext, callback: DOMString,
-                          timeout: i32, args: Vec<HandleValue>) -> i32 {
+    unsafe fn SetTimeout_(
+        &self,
+        _cx: *mut JSContext,
+        callback: DOMString,
+        timeout: i32,
+        args: Vec<HandleValue>,
+    ) -> i32 {
         self.upcast::<GlobalScope>().set_timeout_or_interval(
             TimerCallback::StringTimerCallback(callback),
             args,
             timeout,
-            IsInterval::NonInterval)
+            IsInterval::NonInterval,
+        )
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-windowtimers-cleartimeout
     fn ClearTimeout(&self, handle: i32) {
-        self.upcast::<GlobalScope>().clear_timeout_or_interval(handle);
+        self.upcast::<GlobalScope>()
+            .clear_timeout_or_interval(handle);
     }
 
     #[allow(unsafe_code)]
     // https://html.spec.whatwg.org/multipage/#dom-windowtimers-setinterval
-    unsafe fn SetInterval(&self, _cx: *mut JSContext, callback: Rc<Function>,
-                          timeout: i32, args: Vec<HandleValue>) -> i32 {
+    unsafe fn SetInterval(
+        &self,
+        _cx: *mut JSContext,
+        callback: Rc<Function>,
+        timeout: i32,
+        args: Vec<HandleValue>,
+    ) -> i32 {
         self.upcast::<GlobalScope>().set_timeout_or_interval(
             TimerCallback::FunctionTimerCallback(callback),
             args,
             timeout,
-            IsInterval::Interval)
+            IsInterval::Interval,
+        )
     }
 
     #[allow(unsafe_code)]
     // https://html.spec.whatwg.org/multipage/#dom-windowtimers-setinterval
-    unsafe fn SetInterval_(&self, _cx: *mut JSContext, callback: DOMString,
-                           timeout: i32, args: Vec<HandleValue>) -> i32 {
+    unsafe fn SetInterval_(
+        &self,
+        _cx: *mut JSContext,
+        callback: DOMString,
+        timeout: i32,
+        args: Vec<HandleValue>,
+    ) -> i32 {
         self.upcast::<GlobalScope>().set_timeout_or_interval(
             TimerCallback::StringTimerCallback(callback),
             args,
             timeout,
-            IsInterval::Interval)
+            IsInterval::Interval,
+        )
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-windowtimers-clearinterval
@@ -799,8 +853,11 @@ impl WindowMethods for Window {
     fn Performance(&self) -> DomRoot<Performance> {
         self.performance.or_init(|| {
             let global_scope = self.upcast::<GlobalScope>();
-            Performance::new(global_scope, self.navigation_start.get(),
-                             self.navigation_start_precise.get())
+            Performance::new(
+                global_scope,
+                self.navigation_start.get(),
+                self.navigation_start_precise.get(),
+            )
         })
     }
 
@@ -839,11 +896,12 @@ impl WindowMethods for Window {
 
     #[allow(unsafe_code)]
     // https://html.spec.whatwg.org/multipage/#dom-window-postmessage
-    unsafe fn PostMessage(&self,
-                   cx: *mut JSContext,
-                   message: HandleValue,
-                   origin: DOMString)
-                   -> ErrorResult {
+    unsafe fn PostMessage(
+        &self,
+        cx: *mut JSContext,
+        message: HandleValue,
+        origin: DOMString,
+    ) -> ErrorResult {
         // Step 3-5.
         let origin = match &origin[..] {
             "*" => None,
@@ -855,7 +913,7 @@ impl WindowMethods for Window {
             url => match ServoUrl::parse(&url) {
                 Ok(url) => Some(url.origin().clone()),
                 Err(_) => return Err(Error::Syntax),
-            }
+            },
         };
 
         // Step 1-2, 6-8.
@@ -892,7 +950,9 @@ impl WindowMethods for Window {
     #[allow(unsafe_code)]
     fn Trap(&self) {
         #[cfg(feature = "unstable")]
-        unsafe { ::std::intrinsics::breakpoint() }
+        unsafe {
+            ::std::intrinsics::breakpoint()
+        }
     }
 
     #[allow(unsafe_code)]
@@ -912,39 +972,50 @@ impl WindowMethods for Window {
     }
 
     // https://drafts.csswg.org/cssom/#dom-window-getcomputedstyle
-    fn GetComputedStyle(&self,
-                        element: &Element,
-                        pseudo: Option<DOMString>) -> DomRoot<CSSStyleDeclaration> {
+    fn GetComputedStyle(
+        &self,
+        element: &Element,
+        pseudo: Option<DOMString>,
+    ) -> DomRoot<CSSStyleDeclaration> {
         // Steps 1-4.
-        let pseudo = match pseudo.map(|mut s| { s.make_ascii_lowercase(); s }) {
-            Some(ref pseudo) if pseudo == ":before" || pseudo == "::before" =>
-                Some(PseudoElement::Before),
-            Some(ref pseudo) if pseudo == ":after" || pseudo == "::after" =>
-                Some(PseudoElement::After),
-            _ => None
+        let pseudo = match pseudo.map(|mut s| {
+            s.make_ascii_lowercase();
+            s
+        }) {
+            Some(ref pseudo) if pseudo == ":before" || pseudo == "::before" => {
+                Some(PseudoElement::Before)
+            },
+            Some(ref pseudo) if pseudo == ":after" || pseudo == "::after" => {
+                Some(PseudoElement::After)
+            },
+            _ => None,
         };
 
         // Step 5.
-        CSSStyleDeclaration::new(self,
-                                 CSSStyleOwner::Element(Dom::from_ref(element)),
-                                 pseudo,
-                                 CSSModificationAccess::Readonly)
+        CSSStyleDeclaration::new(
+            self,
+            CSSStyleOwner::Element(Dom::from_ref(element)),
+            pseudo,
+            CSSModificationAccess::Readonly,
+        )
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-window-innerheight
     //TODO Include Scrollbar
     fn InnerHeight(&self) -> i32 {
-        self.window_size.get()
-                        .and_then(|e| e.initial_viewport.height.to_i32())
-                        .unwrap_or(0)
+        self.window_size
+            .get()
+            .and_then(|e| e.initial_viewport.height.to_i32())
+            .unwrap_or(0)
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-window-innerwidth
     //TODO Include Scrollbar
     fn InnerWidth(&self) -> i32 {
-        self.window_size.get()
-                        .and_then(|e| e.initial_viewport.width.to_i32())
-                        .unwrap_or(0)
+        self.window_size
+            .get()
+            .and_then(|e| e.initial_viewport.width.to_i32())
+            .unwrap_or(0)
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-window-scrollx
@@ -973,7 +1044,6 @@ impl WindowMethods for Window {
         let left = options.left.unwrap_or(0.0f64);
         let top = options.top.unwrap_or(0.0f64);
         self.scroll(left, top, options.parent.behavior);
-
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-window-scroll
@@ -992,7 +1062,7 @@ impl WindowMethods for Window {
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-window-scrollby
-    fn ScrollBy(&self, options: &ScrollToOptions)  {
+    fn ScrollBy(&self, options: &ScrollToOptions) {
         // Step 1
         let x = options.left.unwrap_or(0.0f64);
         let y = options.top.unwrap_or(0.0f64);
@@ -1001,11 +1071,11 @@ impl WindowMethods for Window {
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-window-scrollby
-    fn ScrollBy_(&self, x: f64, y: f64)  {
+    fn ScrollBy_(&self, x: f64, y: f64) {
         // Step 3
         let left = x + self.ScrollX() as f64;
         // Step 4
-        let top =  y + self.ScrollY() as f64;
+        let top = y + self.ScrollY() as f64;
 
         // Step 5
         self.scroll(left, top, ScrollBehavior::Auto);
@@ -1024,7 +1094,10 @@ impl WindowMethods for Window {
     fn ResizeBy(&self, x: i32, y: i32) {
         let (size, _) = self.client_window();
         // Step 1
-        self.ResizeTo(x + size.width.to_i32().unwrap_or(1), y + size.height.to_i32().unwrap_or(1))
+        self.ResizeTo(
+            x + size.width.to_i32().unwrap_or(1),
+            y + size.height.to_i32().unwrap_or(1),
+        )
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-window-moveto
@@ -1097,8 +1170,7 @@ impl WindowMethods for Window {
             self.css_error_reporter(),
             None,
         );
-        let media_query_list =
-            media_queries::MediaList::parse(&context, &mut parser);
+        let media_query_list = media_queries::MediaList::parse(&context, &mut parser);
         let document = self.Document();
         let mql = MediaQueryList::new(&document, media_query_list);
         self.media_query_lists.track(&*mql);
@@ -1107,7 +1179,11 @@ impl WindowMethods for Window {
 
     #[allow(unrooted_must_root)]
     // https://fetch.spec.whatwg.org/#fetch-method
-    fn Fetch(&self, input: RequestOrUSVString, init: RootedTraceableBox<RequestInit>) -> Rc<Promise> {
+    fn Fetch(
+        &self,
+        input: RequestOrUSVString,
+        init: RootedTraceableBox<RequestInit>,
+    ) -> Rc<Promise> {
         fetch::Fetch(&self.upcast(), input, init)
     }
 
@@ -1160,7 +1236,9 @@ impl Window {
     pub fn cancel_all_tasks(&self) {
         let mut ignore_flags = self.ignore_further_async_events.borrow_mut();
         for task_source_name in TaskSourceName::all() {
-            let flag = ignore_flags.entry(task_source_name).or_insert(Default::default());
+            let flag = ignore_flags
+                .entry(task_source_name)
+                .or_insert(Default::default());
             let cancelled = mem::replace(&mut *flag, Default::default());
             cancelled.store(true, Ordering::Relaxed);
         }
@@ -1171,7 +1249,9 @@ impl Window {
     /// `true` and replaces it with a brand new one for future tasks.
     pub fn cancel_all_tasks_from_source(&self, task_source_name: TaskSourceName) {
         let mut ignore_flags = self.ignore_further_async_events.borrow_mut();
-        let flag = ignore_flags.entry(task_source_name).or_insert(Default::default());
+        let flag = ignore_flags
+            .entry(task_source_name)
+            .or_insert(Default::default());
         let cancelled = mem::replace(&mut *flag, Default::default());
         cancelled.store(true, Ordering::Relaxed);
     }
@@ -1234,12 +1314,12 @@ impl Window {
                 let content_size = e.upcast::<Node>().bounding_content_box_or_zero();
                 let content_height = content_size.size.height.to_f64_px();
                 let content_width = content_size.size.width.to_f64_px();
-                (xfinite.min(content_width - width).max(0.0f64),
-                 yfinite.min(content_height - height).max(0.0f64))
+                (
+                    xfinite.min(content_width - width).max(0.0f64),
+                    yfinite.min(content_height - height).max(0.0f64),
+                )
             },
-            None => {
-                (xfinite.max(0.0f64), yfinite.max(0.0f64))
-            }
+            None => (xfinite.max(0.0f64), yfinite.max(0.0f64)),
         };
 
         // Step 10
@@ -1255,27 +1335,32 @@ impl Window {
         let x = x.to_f32().unwrap_or(0.0f32);
         let y = y.to_f32().unwrap_or(0.0f32);
         self.update_viewport_for_scroll(x, y);
-        self.perform_a_scroll(x,
-                              y,
-                              global_scope.pipeline_id().root_scroll_id(),
-                              behavior,
-                              None);
+        self.perform_a_scroll(
+            x,
+            y,
+            global_scope.pipeline_id().root_scroll_id(),
+            behavior,
+            None,
+        );
     }
 
     /// <https://drafts.csswg.org/cssom-view/#perform-a-scroll>
-    pub fn perform_a_scroll(&self,
-                            x: f32,
-                            y: f32,
-                            scroll_id: ExternalScrollId,
-                            _behavior: ScrollBehavior,
-                            _element: Option<&Element>) {
+    pub fn perform_a_scroll(
+        &self,
+        x: f32,
+        y: f32,
+        scroll_id: ExternalScrollId,
+        _behavior: ScrollBehavior,
+        _element: Option<&Element>,
+    ) {
         // TODO Step 1
         // TODO(mrobinson, #18709): Add smooth scrolling support to WebRender so that we can
         // properly process ScrollBehavior here.
-        self.layout_chan.send(Msg::UpdateScrollStateFromScript(ScrollState {
-            scroll_id,
-            scroll_offset: Vector2D::new(-x, -y),
-        })).unwrap();
+        self.layout_chan
+            .send(Msg::UpdateScrollStateFromScript(ScrollState {
+                scroll_id,
+                scroll_offset: Vector2D::new(-x, -y),
+            })).unwrap();
     }
 
     pub fn update_viewport_for_scroll(&self, x: f32, y: f32) {
@@ -1285,7 +1370,9 @@ impl Window {
     }
 
     pub fn device_pixel_ratio(&self) -> TypedScale<f32, CSSPixel, DevicePixel> {
-        self.window_size.get().map_or(TypedScale::new(1.0), |data| data.device_pixel_ratio)
+        self.window_size
+            .get()
+            .map_or(TypedScale::new(1.0), |data| data.device_pixel_ratio)
     }
 
     fn client_window(&self) -> (TypedSize2D<u32, CSSPixel>, TypedPoint2D<i32, CSSPixel>) {
@@ -1293,15 +1380,22 @@ impl Window {
         let (send, recv) =
             ProfiledIpc::channel::<(DeviceUintSize, DeviceIntPoint)>(timer_profile_chan).unwrap();
         self.send_to_constellation(ScriptMsg::GetClientWindow(send));
-        let (size, point) = recv.recv().unwrap_or((TypedSize2D::zero(), TypedPoint2D::zero()));
+        let (size, point) = recv
+            .recv()
+            .unwrap_or((TypedSize2D::zero(), TypedPoint2D::zero()));
         let dpr = self.device_pixel_ratio();
-        ((size.to_f32() / dpr).to_u32(), (point.to_f32() / dpr).to_i32())
+        (
+            (size.to_f32() / dpr).to_u32(),
+            (point.to_f32() / dpr).to_i32(),
+        )
     }
 
     /// Advances the layout animation clock by `delta` milliseconds, and then
     /// forces a reflow if `tick` is true.
     pub fn advance_animation_clock(&self, delta: i32, tick: bool) {
-        self.layout_chan.send(Msg::AdvanceClockMs(delta, tick)).unwrap();
+        self.layout_chan
+            .send(Msg::AdvanceClockMs(delta, tick))
+            .unwrap();
     }
 
     /// Reflows the page unconditionally if possible and not suppressed. This
@@ -1319,8 +1413,7 @@ impl Window {
         // Check if we need to unsuppress reflow. Note that this needs to be
         // *before* any early bailouts, or reflow might never be unsuppresed!
         match reason {
-            ReflowReason::FirstLoad |
-            ReflowReason::RefreshTick => self.suppress_reflow.set(false),
+            ReflowReason::FirstLoad | ReflowReason::RefreshTick => self.suppress_reflow.set(false),
             _ => (),
         }
 
@@ -1332,8 +1425,11 @@ impl Window {
 
         let for_display = reflow_goal == ReflowGoal::Full;
         if for_display && self.suppress_reflow.get() {
-            debug!("Suppressing reflow pipeline {} for reason {:?} before FirstLoad or RefreshTick",
-                   self.upcast::<GlobalScope>().pipeline_id(), reason);
+            debug!(
+                "Suppressing reflow pipeline {} for reason {:?} before FirstLoad or RefreshTick",
+                self.upcast::<GlobalScope>().pipeline_id(),
+                reason
+            );
             return false;
         }
 
@@ -1350,7 +1446,11 @@ impl Window {
 
         // On debug mode, print the reflow event information.
         if opts::get().relayout_event {
-            debug_reflow_events(self.upcast::<GlobalScope>().pipeline_id(), &reflow_goal, &reason);
+            debug_reflow_events(
+                self.upcast::<GlobalScope>().pipeline_id(),
+                &reflow_goal,
+                &reason,
+            );
         }
 
         let document = self.Document();
@@ -1411,15 +1511,23 @@ impl Window {
 
             let mut images = self.pending_layout_images.borrow_mut();
             let nodes = images.entry(id).or_insert(vec![]);
-            if nodes.iter().find(|n| &***n as *const _ == &*node as *const _).is_none() {
+            if nodes
+                .iter()
+                .find(|n| &***n as *const _ == &*node as *const _)
+                .is_none()
+            {
                 let (responder, responder_listener) =
                     ProfiledIpc::channel(self.global().time_profiler_chan().clone()).unwrap();
                 let pipeline = self.upcast::<GlobalScope>().pipeline_id();
                 let image_cache_chan = self.image_cache_chan.clone();
-                ROUTER.add_route(responder_listener.to_opaque(), Box::new(move |message| {
-                    let _ = image_cache_chan.send((pipeline, message.to().unwrap()));
-                }));
-                self.image_cache.add_listener(id, ImageResponder::new(responder, id));
+                ROUTER.add_route(
+                    responder_listener.to_opaque(),
+                    Box::new(move |message| {
+                        let _ = image_cache_chan.send((pipeline, message.to().unwrap()));
+                    }),
+                );
+                self.image_cache
+                    .add_listener(id, ImageResponder::new(responder, id));
                 nodes.push(Dom::from_ref(&*node));
             }
         }
@@ -1454,12 +1562,17 @@ impl Window {
             // If window_size is `None`, we don't reflow, so the document stays
             // dirty. Otherwise, we shouldn't need a reflow immediately after a
             // reflow, except if we're waiting for a deferred paint.
-            assert!(!self.Document().needs_reflow() ||
+            assert!(
+                !self.Document().needs_reflow() ||
                     (!for_display && self.Document().needs_paint()) ||
                     self.window_size.get().is_none() ||
-                    self.suppress_reflow.get());
+                    self.suppress_reflow.get()
+            );
         } else {
-            debug!("Document doesn't need reflow - skipping it (reason {:?})", reason);
+            debug!(
+                "Document doesn't need reflow - skipping it (reason {:?})",
+                reason
+            );
         }
 
         // If writing a screenshot, check if the script has reached a state
@@ -1472,7 +1585,9 @@ impl Window {
         // perspective at least).
         if (opts::get().output_file.is_some() ||
             opts::get().exit_after_load ||
-            opts::get().webdriver_port.is_some()) && for_display {
+            opts::get().webdriver_port.is_some()) &&
+            for_display
+        {
             let document = self.Document();
 
             // Checks if the html element has reftest-wait attribute present.
@@ -1495,7 +1610,10 @@ impl Window {
     }
 
     pub fn layout_reflow(&self, query_msg: QueryMsg) -> bool {
-        self.reflow(ReflowGoal::LayoutQuery(query_msg, time::precise_time_ns()), ReflowReason::Query)
+        self.reflow(
+            ReflowGoal::LayoutQuery(query_msg, time::precise_time_ns()),
+            ReflowReason::Query,
+        )
     }
 
     pub fn layout(&self) -> &LayoutRPC {
@@ -1533,22 +1651,18 @@ impl Window {
     }
 
     pub fn scroll_offset_query(&self, node: &Node) -> Vector2D<f32> {
-        if let Some(scroll_offset) = self.scroll_offsets
-                                         .borrow()
-                                         .get(&node.to_untrusted_node_address()) {
-            return *scroll_offset
+        if let Some(scroll_offset) = self
+            .scroll_offsets
+            .borrow()
+            .get(&node.to_untrusted_node_address())
+        {
+            return *scroll_offset;
         }
         Vector2D::new(0.0, 0.0)
     }
 
     // https://drafts.csswg.org/cssom-view/#element-scrolling-members
-    pub fn scroll_node(
-        &self,
-        node: &Node,
-        x_: f64,
-        y_: f64,
-        behavior: ScrollBehavior
-    ) {
+    pub fn scroll_node(&self, node: &Node, x_: f64, y_: f64, behavior: ScrollBehavior) {
         if !self.layout_reflow(QueryMsg::NodeScrollIdQuery(node.to_trusted_node_address())) {
             return;
         }
@@ -1556,23 +1670,29 @@ impl Window {
         // The scroll offsets are immediatly updated since later calls
         // to topScroll and others may access the properties before
         // webrender has a chance to update the offsets.
-        self.scroll_offsets.borrow_mut().insert(node.to_untrusted_node_address(),
-                                                Vector2D::new(x_ as f32, y_ as f32));
+        self.scroll_offsets.borrow_mut().insert(
+            node.to_untrusted_node_address(),
+            Vector2D::new(x_ as f32, y_ as f32),
+        );
 
         let NodeScrollIdResponse(scroll_id) = self.layout_rpc.node_scroll_id();
 
         // Step 12
-        self.perform_a_scroll(x_.to_f32().unwrap_or(0.0f32),
-                              y_.to_f32().unwrap_or(0.0f32),
-                              scroll_id,
-                              behavior,
-                              None);
+        self.perform_a_scroll(
+            x_.to_f32().unwrap_or(0.0f32),
+            y_.to_f32().unwrap_or(0.0f32),
+            scroll_id,
+            behavior,
+            None,
+        );
     }
 
-    pub fn resolved_style_query(&self,
-                                element: TrustedNodeAddress,
-                                pseudo: Option<PseudoElement>,
-                                property: PropertyId) -> DOMString {
+    pub fn resolved_style_query(
+        &self,
+        element: TrustedNodeAddress,
+        pseudo: Option<PseudoElement>,
+        property: PropertyId,
+    ) -> DOMString {
         if !self.layout_reflow(QueryMsg::ResolvedStyleQuery(element, pseudo, property)) {
             return DOMString::new();
         }
@@ -1581,7 +1701,10 @@ impl Window {
     }
 
     #[allow(unsafe_code)]
-    pub fn offset_parent_query(&self, node: TrustedNodeAddress) -> (Option<DomRoot<Element>>, Rect<Au>) {
+    pub fn offset_parent_query(
+        &self,
+        node: TrustedNodeAddress,
+    ) -> (Option<DomRoot<Element>>, Rect<Au>) {
         if !self.layout_reflow(QueryMsg::OffsetParentQuery(node)) {
             return (None, Rect::zero());
         }
@@ -1598,7 +1721,7 @@ impl Window {
 
     pub fn style_query(&self, node: TrustedNodeAddress) -> Option<servo_arc::Arc<ComputedValues>> {
         if !self.layout_reflow(QueryMsg::StyleQuery(node)) {
-            return None
+            return None;
         }
         self.layout_rpc.style().0
     }
@@ -1606,7 +1729,7 @@ impl Window {
     pub fn text_index_query(
         &self,
         node: TrustedNodeAddress,
-        point_in_node: Point2D<f32>
+        point_in_node: Point2D<f32>,
     ) -> TextIndexResponse {
         if !self.layout_reflow(QueryMsg::TextIndexQuery(node, point_in_node)) {
             return TextIndexResponse(None);
@@ -1636,8 +1759,13 @@ impl Window {
             let _ = fs::remove_dir_all(&path);
             match fs::create_dir_all(&path) {
                 Ok(_) => {
-                    *self.unminified_js_dir.borrow_mut() = Some(path.into_os_string().into_string().unwrap());
-                    debug!("Created folder for {:?} unminified scripts {:?}", host, self.unminified_js_dir.borrow());
+                    *self.unminified_js_dir.borrow_mut() =
+                        Some(path.into_os_string().into_string().unwrap());
+                    debug!(
+                        "Created folder for {:?} unminified scripts {:?}",
+                        host,
+                        self.unminified_js_dir.borrow()
+                    );
                 },
                 Err(_) => warn!("Could not create unminified dir for {:?}", host),
             }
@@ -1645,21 +1773,27 @@ impl Window {
     }
 
     /// Commence a new URL load which will either replace this window or scroll to a fragment.
-    pub fn load_url(&self, url: ServoUrl, replace: bool, force_reload: bool,
-                    referrer_policy: Option<ReferrerPolicy>) {
+    pub fn load_url(
+        &self,
+        url: ServoUrl,
+        replace: bool,
+        force_reload: bool,
+        referrer_policy: Option<ReferrerPolicy>,
+    ) {
         let doc = self.Document();
         let referrer_policy = referrer_policy.or(doc.get_referrer_policy());
         // https://html.spec.whatwg.org/multipage/#navigating-across-documents
-        if !force_reload && url.as_url()[..Position::AfterQuery] ==
-            doc.url().as_url()[..Position::AfterQuery] {
-                // Step 6
-                if let Some(fragment) = url.fragment() {
-                    self.send_to_constellation(ScriptMsg::NavigatedToFragment(url.clone(), replace));
-                    doc.check_and_scroll_fragment(fragment);
-                    let this = Trusted::new(self);
-                    let old_url = doc.url().into_string();
-                    let new_url = url.clone().into_string();
-                    let task = task!(hashchange_event: move || {
+        if !force_reload &&
+            url.as_url()[..Position::AfterQuery] == doc.url().as_url()[..Position::AfterQuery]
+        {
+            // Step 6
+            if let Some(fragment) = url.fragment() {
+                self.send_to_constellation(ScriptMsg::NavigatedToFragment(url.clone(), replace));
+                doc.check_and_scroll_fragment(fragment);
+                let this = Trusted::new(self);
+                let old_url = doc.url().into_string();
+                let new_url = url.clone().into_string();
+                let task = task!(hashchange_event: move || {
                         let this = this.root();
                         let event = HashChangeEvent::new(
                             &this,
@@ -1670,16 +1804,19 @@ impl Window {
                             new_url);
                         event.upcast::<Event>().fire(this.upcast::<EventTarget>());
                     });
-                    // FIXME(nox): Why are errors silenced here?
-                    let _ = self.script_chan.send(CommonScriptMsg::Task(
-                        ScriptThreadEventCategory::DomEvent,
-                        Box::new(self.task_canceller(TaskSourceName::DOMManipulation).wrap_task(task)),
-                        self.pipeline_id(),
-                        TaskSourceName::DOMManipulation,
-                    ));
-                    doc.set_url(url.clone());
-                    return
-                }
+                // FIXME(nox): Why are errors silenced here?
+                let _ = self.script_chan.send(CommonScriptMsg::Task(
+                    ScriptThreadEventCategory::DomEvent,
+                    Box::new(
+                        self.task_canceller(TaskSourceName::DOMManipulation)
+                            .wrap_task(task),
+                    ),
+                    self.pipeline_id(),
+                    TaskSourceName::DOMManipulation,
+                ));
+                doc.set_url(url.clone());
+                return;
+            }
         }
 
         let pipeline_id = self.upcast::<GlobalScope>().pipeline_id();
@@ -1696,11 +1833,13 @@ impl Window {
 
         // Step 7
         if doc.prompt_to_unload(false) {
-            self.main_thread_script_chan().send(
-                MainThreadScriptMsg::Navigate(pipeline_id,
-                    LoadData::new(url, Some(pipeline_id), referrer_policy, Some(doc.url())), replace)).unwrap();
+            self.main_thread_script_chan()
+                .send(MainThreadScriptMsg::Navigate(
+                    pipeline_id,
+                    LoadData::new(url, Some(pipeline_id), referrer_policy, Some(doc.url())),
+                    replace,
+                )).unwrap();
         };
-
     }
 
     pub fn handle_fire_timer(&self, timer_id: TimerEventId) {
@@ -1733,7 +1872,8 @@ impl Window {
     }
 
     pub fn add_pending_reflow(&self) {
-        self.pending_reflow_count.set(self.pending_reflow_count.get() + 1);
+        self.pending_reflow_count
+            .set(self.pending_reflow_count.get() + 1);
     }
 
     pub fn set_resize_event(&self, event: WindowSizeData, event_type: WindowSizeType) {
@@ -1753,9 +1893,10 @@ impl Window {
         // so that we don't collect display list items for areas too far outside the viewport,
         // but also don't trigger reflows every time the viewport changes.
         static VIEWPORT_EXPANSION: f32 = 2.0; // 2 lengths on each side plus original length is 5 total.
-        let proposed_clip_rect = f32_rect_to_au_rect(
-            viewport.inflate(viewport.size.width * VIEWPORT_EXPANSION,
-            viewport.size.height * VIEWPORT_EXPANSION));
+        let proposed_clip_rect = f32_rect_to_au_rect(viewport.inflate(
+            viewport.size.width * VIEWPORT_EXPANSION,
+            viewport.size.height * VIEWPORT_EXPANSION,
+        ));
         let clip_rect = self.page_clip_rect.get();
         if proposed_clip_rect == clip_rect {
             return false;
@@ -1812,11 +1953,15 @@ impl Window {
         sender.send(Some(marker)).unwrap();
     }
 
-    pub fn set_devtools_timeline_markers(&self,
-                                         markers: Vec<TimelineMarkerType>,
-                                         reply: IpcSender<Option<TimelineMarker>>) {
+    pub fn set_devtools_timeline_markers(
+        &self,
+        markers: Vec<TimelineMarkerType>,
+        reply: IpcSender<Option<TimelineMarker>>,
+    ) {
         *self.devtools_marker_sender.borrow_mut() = Some(reply);
-        self.devtools_markers.borrow_mut().extend(markers.into_iter());
+        self.devtools_markers
+            .borrow_mut()
+            .extend(markers.into_iter());
     }
 
     pub fn drop_devtools_timeline_markers(&self, markers: Vec<TimelineMarkerType>) {
@@ -1854,11 +1999,14 @@ impl Window {
         });
         // Sending change events for all changed Media Queries
         for mql in mql_list.iter() {
-            let event = MediaQueryListEvent::new(&mql.global(),
-                                                 atom!("change"),
-                                                 false, false,
-                                                 mql.Media(),
-                                                 mql.Matches());
+            let event = MediaQueryListEvent::new(
+                &mql.global(),
+                atom!("change"),
+                false,
+                false,
+                mql.Media(),
+                mql.Matches(),
+            );
             event.upcast::<Event>().fire(mql.upcast::<EventTarget>());
         }
         self.Document().react_to_environment_changes();
@@ -2015,9 +2163,7 @@ impl Window {
             exists_mut_observer: Cell::new(false),
         });
 
-        unsafe {
-            WindowBinding::Wrap(runtime.cx(), win)
-        }
+        unsafe { WindowBinding::Wrap(runtime.cx(), win) }
     }
 
     pub fn pipeline_id(&self) -> Option<PipelineId> {
@@ -2026,10 +2172,16 @@ impl Window {
 }
 
 fn should_move_clip_rect(clip_rect: Rect<Au>, new_viewport: Rect<f32>) -> bool {
-    let clip_rect = Rect::new(Point2D::new(clip_rect.origin.x.to_f32_px(),
-                                           clip_rect.origin.y.to_f32_px()),
-                              Size2D::new(clip_rect.size.width.to_f32_px(),
-                                          clip_rect.size.height.to_f32_px()));
+    let clip_rect = Rect::new(
+        Point2D::new(
+            clip_rect.origin.x.to_f32_px(),
+            clip_rect.origin.y.to_f32_px(),
+        ),
+        Size2D::new(
+            clip_rect.size.width.to_f32_px(),
+            clip_rect.size.height.to_f32_px(),
+        ),
+    );
 
     // We only need to move the clip rect if the viewport is getting near the edge of
     // our preexisting clip rect. We use half of the size of the viewport as a heuristic
@@ -2038,9 +2190,9 @@ fn should_move_clip_rect(clip_rect: Rect<Au>, new_viewport: Rect<f32>) -> bool {
     let viewport_scroll_margin = new_viewport.size * VIEWPORT_SCROLL_MARGIN_SIZE;
 
     (clip_rect.origin.x - new_viewport.origin.x).abs() <= viewport_scroll_margin.width ||
-    (clip_rect.max_x() - new_viewport.max_x()).abs() <= viewport_scroll_margin.width ||
-    (clip_rect.origin.y - new_viewport.origin.y).abs() <= viewport_scroll_margin.height ||
-    (clip_rect.max_y() - new_viewport.max_y()).abs() <= viewport_scroll_margin.height
+        (clip_rect.max_x() - new_viewport.max_x()).abs() <= viewport_scroll_margin.width ||
+        (clip_rect.origin.y - new_viewport.origin.y).abs() <= viewport_scroll_margin.height ||
+        (clip_rect.max_y() - new_viewport.max_y()).abs() <= viewport_scroll_margin.height
 }
 
 fn debug_reflow_events(id: PipelineId, reflow_goal: &ReflowGoal, reason: &ReflowReason) {
@@ -2134,7 +2286,10 @@ impl Window {
         // TODO: When switching to the right task source, update the task_canceller call too.
         let _ = self.script_chan.send(CommonScriptMsg::Task(
             ScriptThreadEventCategory::DomEvent,
-            Box::new(self.task_canceller(TaskSourceName::DOMManipulation).wrap_task(task)),
+            Box::new(
+                self.task_canceller(TaskSourceName::DOMManipulation)
+                    .wrap_task(task),
+            ),
             self.pipeline_id(),
             TaskSourceName::DOMManipulation,
         ));

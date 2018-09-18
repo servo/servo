@@ -12,25 +12,32 @@ use html5ever::{LocalName, Prefix};
 
 #[dom_struct]
 pub struct HTMLAudioElement {
-    htmlmediaelement: HTMLMediaElement
+    htmlmediaelement: HTMLMediaElement,
 }
 
 impl HTMLAudioElement {
-    fn new_inherited(local_name: LocalName,
-                     prefix: Option<Prefix>,
-                     document: &Document) -> HTMLAudioElement {
+    fn new_inherited(
+        local_name: LocalName,
+        prefix: Option<Prefix>,
+        document: &Document,
+    ) -> HTMLAudioElement {
         HTMLAudioElement {
-            htmlmediaelement:
-                HTMLMediaElement::new_inherited(local_name, prefix, document)
+            htmlmediaelement: HTMLMediaElement::new_inherited(local_name, prefix, document),
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(local_name: LocalName,
-               prefix: Option<Prefix>,
-               document: &Document) -> DomRoot<HTMLAudioElement> {
-        Node::reflect_node(Box::new(HTMLAudioElement::new_inherited(local_name, prefix, document)),
-                           document,
-                           HTMLAudioElementBinding::Wrap)
+    pub fn new(
+        local_name: LocalName,
+        prefix: Option<Prefix>,
+        document: &Document,
+    ) -> DomRoot<HTMLAudioElement> {
+        Node::reflect_node(
+            Box::new(HTMLAudioElement::new_inherited(
+                local_name, prefix, document,
+            )),
+            document,
+            HTMLAudioElementBinding::Wrap,
+        )
     }
 }

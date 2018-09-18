@@ -76,7 +76,9 @@ impl AudioParam {
     }
 
     fn message_node(&self, message: AudioNodeMessage) {
-        self.context.audio_context_impl().message_node(self.node, message);
+        self.context
+            .audio_context_impl()
+            .message_node(self.node, message);
     }
 
     pub fn context(&self) -> &BaseAudioContext {
@@ -101,25 +103,25 @@ impl AudioParamMethods for AudioParam {
     // https://webaudio.github.io/web-audio-api/#dom-audioparam-automationrate
     fn SetAutomationRate(&self, automation_rate: AutomationRate) {
         self.automation_rate.set(automation_rate);
-        self.message_node(
-            AudioNodeMessage::SetParamRate(self.param, automation_rate.into())
-        );
+        self.message_node(AudioNodeMessage::SetParamRate(
+            self.param,
+            automation_rate.into(),
+        ));
     }
 
     // https://webaudio.github.io/web-audio-api/#dom-audioparam-value
     fn Value(&self) -> Finite<f32> {
         let (tx, rx) = mpsc::channel();
-        self.message_node(
-            AudioNodeMessage::GetParamValue(self.param, tx)
-        );
+        self.message_node(AudioNodeMessage::GetParamValue(self.param, tx));
         Finite::wrap(rx.recv().unwrap())
     }
 
     // https://webaudio.github.io/web-audio-api/#dom-audioparam-value
     fn SetValue(&self, value: Finite<f32>) {
-        self.message_node(
-            AudioNodeMessage::SetParam(self.param, UserAutomationEvent::SetValue(*value)),
-        );
+        self.message_node(AudioNodeMessage::SetParam(
+            self.param,
+            UserAutomationEvent::SetValue(*value),
+        ));
     }
 
     // https://webaudio.github.io/web-audio-api/#dom-audioparam-defaultvalue
@@ -139,12 +141,10 @@ impl AudioParamMethods for AudioParam {
 
     // https://webaudio.github.io/web-audio-api/#dom-audioparam-setvalueattime
     fn SetValueAtTime(&self, value: Finite<f32>, start_time: Finite<f64>) -> DomRoot<AudioParam> {
-        self.message_node(
-            AudioNodeMessage::SetParam(
-                self.param,
-                UserAutomationEvent::SetValueAtTime(*value, *start_time),
-            )
-        );
+        self.message_node(AudioNodeMessage::SetParam(
+            self.param,
+            UserAutomationEvent::SetValueAtTime(*value, *start_time),
+        ));
         DomRoot::from_ref(self)
     }
 
@@ -154,12 +154,10 @@ impl AudioParamMethods for AudioParam {
         value: Finite<f32>,
         end_time: Finite<f64>,
     ) -> DomRoot<AudioParam> {
-        self.message_node(
-            AudioNodeMessage::SetParam(
-                self.param,
-                UserAutomationEvent::RampToValueAtTime(RampKind::Linear, *value, *end_time),
-            ),
-        );
+        self.message_node(AudioNodeMessage::SetParam(
+            self.param,
+            UserAutomationEvent::RampToValueAtTime(RampKind::Linear, *value, *end_time),
+        ));
         DomRoot::from_ref(self)
     }
 
@@ -169,12 +167,10 @@ impl AudioParamMethods for AudioParam {
         value: Finite<f32>,
         end_time: Finite<f64>,
     ) -> DomRoot<AudioParam> {
-        self.message_node(
-            AudioNodeMessage::SetParam(
-                self.param,
-                UserAutomationEvent::RampToValueAtTime(RampKind::Exponential, *value, *end_time),
-            ),
-        );
+        self.message_node(AudioNodeMessage::SetParam(
+            self.param,
+            UserAutomationEvent::RampToValueAtTime(RampKind::Exponential, *value, *end_time),
+        ));
         DomRoot::from_ref(self)
     }
 
@@ -185,34 +181,28 @@ impl AudioParamMethods for AudioParam {
         start_time: Finite<f64>,
         time_constant: Finite<f32>,
     ) -> DomRoot<AudioParam> {
-        self.message_node(
-            AudioNodeMessage::SetParam(
-                self.param,
-                UserAutomationEvent::SetTargetAtTime(*target, *start_time, (*time_constant).into()),
-            ),
-        );
+        self.message_node(AudioNodeMessage::SetParam(
+            self.param,
+            UserAutomationEvent::SetTargetAtTime(*target, *start_time, (*time_constant).into()),
+        ));
         DomRoot::from_ref(self)
     }
 
     // https://webaudio.github.io/web-audio-api/#dom-audioparam-cancelscheduledvalues
     fn CancelScheduledValues(&self, cancel_time: Finite<f64>) -> DomRoot<AudioParam> {
-        self.message_node(
-            AudioNodeMessage::SetParam(
-                self.param,
-                UserAutomationEvent::CancelScheduledValues(*cancel_time),
-            ),
-        );
+        self.message_node(AudioNodeMessage::SetParam(
+            self.param,
+            UserAutomationEvent::CancelScheduledValues(*cancel_time),
+        ));
         DomRoot::from_ref(self)
     }
 
     // https://webaudio.github.io/web-audio-api/#dom-audioparam-cancelandholdattime
     fn CancelAndHoldAtTime(&self, cancel_time: Finite<f64>) -> DomRoot<AudioParam> {
-        self.message_node(
-            AudioNodeMessage::SetParam(
-                self.param,
-                UserAutomationEvent::CancelAndHoldAtTime(*cancel_time),
-            ),
-        );
+        self.message_node(AudioNodeMessage::SetParam(
+            self.param,
+            UserAutomationEvent::CancelAndHoldAtTime(*cancel_time),
+        ));
         DomRoot::from_ref(self)
     }
 }

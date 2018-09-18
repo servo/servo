@@ -14,25 +14,31 @@ use html5ever::{LocalName, Prefix};
 
 #[dom_struct]
 pub struct HTMLDataElement {
-    htmlelement: HTMLElement
+    htmlelement: HTMLElement,
 }
 
 impl HTMLDataElement {
-    fn new_inherited(local_name: LocalName,
-                     prefix: Option<Prefix>,
-                     document: &Document) -> HTMLDataElement {
+    fn new_inherited(
+        local_name: LocalName,
+        prefix: Option<Prefix>,
+        document: &Document,
+    ) -> HTMLDataElement {
         HTMLDataElement {
-            htmlelement: HTMLElement::new_inherited(local_name, prefix, document)
+            htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(local_name: LocalName,
-               prefix: Option<Prefix>,
-               document: &Document) -> DomRoot<HTMLDataElement> {
-        Node::reflect_node(Box::new(HTMLDataElement::new_inherited(local_name, prefix, document)),
-                           document,
-                           HTMLDataElementBinding::Wrap)
+    pub fn new(
+        local_name: LocalName,
+        prefix: Option<Prefix>,
+        document: &Document,
+    ) -> DomRoot<HTMLDataElement> {
+        Node::reflect_node(
+            Box::new(HTMLDataElement::new_inherited(local_name, prefix, document)),
+            document,
+            HTMLDataElementBinding::Wrap,
+        )
     }
 }
 

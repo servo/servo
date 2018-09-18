@@ -28,18 +28,25 @@ pub struct HTMLOptionsCollection {
 }
 
 impl HTMLOptionsCollection {
-    fn new_inherited(select: &HTMLSelectElement, filter: Box<CollectionFilter + 'static>) -> HTMLOptionsCollection {
+    fn new_inherited(
+        select: &HTMLSelectElement,
+        filter: Box<CollectionFilter + 'static>,
+    ) -> HTMLOptionsCollection {
         HTMLOptionsCollection {
             collection: HTMLCollection::new_inherited(select.upcast(), filter),
         }
     }
 
-    pub fn new(window: &Window, select: &HTMLSelectElement, filter: Box<CollectionFilter + 'static>)
-        -> DomRoot<HTMLOptionsCollection>
-    {
-        reflect_dom_object(Box::new(HTMLOptionsCollection::new_inherited(select, filter)),
-                           window,
-                           HTMLOptionsCollectionBinding::Wrap)
+    pub fn new(
+        window: &Window,
+        select: &HTMLSelectElement,
+        filter: Box<CollectionFilter + 'static>,
+    ) -> DomRoot<HTMLOptionsCollection> {
+        reflect_dom_object(
+            Box::new(HTMLOptionsCollection::new_inherited(select, filter)),
+            window,
+            HTMLOptionsCollectionBinding::Wrap,
+        )
     }
 
     fn add_new_elements(&self, count: u32) -> ErrorResult {
@@ -50,7 +57,7 @@ impl HTMLOptionsCollection {
             let element = HTMLOptionElement::new(local_name!("option"), None, &document);
             let node = element.upcast::<Node>();
             root.AppendChild(node)?;
-        };
+        }
         Ok(())
     }
 }
@@ -132,12 +139,20 @@ impl HTMLOptionsCollectionMethods for HTMLOptionsCollection {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-htmloptionscollection-add
-    fn Add(&self, element: HTMLOptionElementOrHTMLOptGroupElement, before: Option<HTMLElementOrLong>) -> ErrorResult {
+    fn Add(
+        &self,
+        element: HTMLOptionElementOrHTMLOptGroupElement,
+        before: Option<HTMLElementOrLong>,
+    ) -> ErrorResult {
         let root = self.upcast().root_node();
 
         let node: &Node = match element {
-            HTMLOptionElementOrHTMLOptGroupElement::HTMLOptionElement(ref element) => element.upcast(),
-            HTMLOptionElementOrHTMLOptGroupElement::HTMLOptGroupElement(ref element) => element.upcast(),
+            HTMLOptionElementOrHTMLOptGroupElement::HTMLOptionElement(ref element) => {
+                element.upcast()
+            },
+            HTMLOptionElementOrHTMLOptGroupElement::HTMLOptGroupElement(ref element) => {
+                element.upcast()
+            },
         };
 
         // Step 1
@@ -159,13 +174,12 @@ impl HTMLOptionsCollectionMethods for HTMLOptionsCollection {
         }
 
         // Step 4
-        let reference_node = before.and_then(|before| {
-            match before {
-                HTMLElementOrLong::HTMLElement(element) => Some(DomRoot::upcast::<Node>(element)),
-                HTMLElementOrLong::Long(index) => {
-                    self.upcast().IndexedGetter(index as u32).map(DomRoot::upcast::<Node>)
-                }
-            }
+        let reference_node = before.and_then(|before| match before {
+            HTMLElementOrLong::HTMLElement(element) => Some(DomRoot::upcast::<Node>(element)),
+            HTMLElementOrLong::Long(index) => self
+                .upcast()
+                .IndexedGetter(index as u32)
+                .map(DomRoot::upcast::<Node>),
         });
 
         // Step 5

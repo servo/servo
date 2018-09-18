@@ -19,21 +19,22 @@ pub struct PluginArray {
 impl PluginArray {
     pub fn new_inherited() -> PluginArray {
         PluginArray {
-            reflector_: Reflector::new()
+            reflector_: Reflector::new(),
         }
     }
 
     pub fn new(global: &GlobalScope) -> DomRoot<PluginArray> {
-        reflect_dom_object(Box::new(PluginArray::new_inherited()),
-                           global,
-                           PluginArrayBinding::Wrap)
+        reflect_dom_object(
+            Box::new(PluginArray::new_inherited()),
+            global,
+            PluginArrayBinding::Wrap,
+        )
     }
 }
 
 impl PluginArrayMethods for PluginArray {
     // https://html.spec.whatwg.org/multipage/#dom-pluginarray-refresh
-    fn Refresh(&self, _reload: bool) {
-    }
+    fn Refresh(&self, _reload: bool) {}
 
     // https://html.spec.whatwg.org/multipage/#dom-pluginarray-length
     fn Length(&self) -> u32 {

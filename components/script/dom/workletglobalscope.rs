@@ -88,24 +88,19 @@ impl WorkletGlobalScope {
     pub fn evaluate_js(&self, script: &str) -> bool {
         debug!("Evaluating Dom.");
         rooted!(in (self.globalscope.get_cx()) let mut rval = UndefinedValue());
-        self.globalscope.evaluate_js_on_global_with_result(&*script, rval.handle_mut())
+        self.globalscope
+            .evaluate_js_on_global_with_result(&*script, rval.handle_mut())
     }
 
     /// Register a paint worklet to the script thread.
-    pub fn register_paint_worklet(
-        &self,
-        name: Atom,
-        properties: Vec<Atom>,
-        painter: Box<Painter>,
-    ) {
+    pub fn register_paint_worklet(&self, name: Atom, properties: Vec<Atom>, painter: Box<Painter>) {
         self.to_script_thread_sender
             .send(MainThreadScriptMsg::RegisterPaintWorklet {
                 pipeline_id: self.globalscope.pipeline_id(),
                 name,
                 properties,
                 painter,
-            })
-            .expect("Worklet thread outlived script thread.");
+            }).expect("Worklet thread outlived script thread.");
     }
 
     /// The base URL of this global.
@@ -165,19 +160,29 @@ pub enum WorkletGlobalScopeType {
 
 impl WorkletGlobalScopeType {
     /// Create a new heap-allocated `WorkletGlobalScope`.
-    pub fn new(&self,
-               runtime: &Runtime,
-               pipeline_id: PipelineId,
-               base_url: ServoUrl,
-               executor: WorkletExecutor,
-               init: &WorkletGlobalScopeInit)
-               -> DomRoot<WorkletGlobalScope>
-    {
+    pub fn new(
+        &self,
+        runtime: &Runtime,
+        pipeline_id: PipelineId,
+        base_url: ServoUrl,
+        executor: WorkletExecutor,
+        init: &WorkletGlobalScopeInit,
+    ) -> DomRoot<WorkletGlobalScope> {
         match *self {
-            WorkletGlobalScopeType::Test =>
-                DomRoot::upcast(TestWorkletGlobalScope::new(runtime, pipeline_id, base_url, executor, init)),
-            WorkletGlobalScopeType::Paint =>
-                DomRoot::upcast(PaintWorkletGlobalScope::new(runtime, pipeline_id, base_url, executor, init)),
+            WorkletGlobalScopeType::Test => DomRoot::upcast(TestWorkletGlobalScope::new(
+                runtime,
+                pipeline_id,
+                base_url,
+                executor,
+                init,
+            )),
+            WorkletGlobalScopeType::Paint => DomRoot::upcast(PaintWorkletGlobalScope::new(
+                runtime,
+                pipeline_id,
+                base_url,
+                executor,
+                init,
+            )),
         }
     }
 }

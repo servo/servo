@@ -44,8 +44,12 @@ impl WebGLExtension for EXTTextureFilterAnisotropic {
     }
 
     fn enable(ext: &WebGLExtensions) {
-        ext.enable_get_tex_parameter_name(EXTTextureFilterAnisotropicConstants::TEXTURE_MAX_ANISOTROPY_EXT);
-        ext.enable_get_parameter_name(EXTTextureFilterAnisotropicConstants::MAX_TEXTURE_MAX_ANISOTROPY_EXT);
+        ext.enable_get_tex_parameter_name(
+            EXTTextureFilterAnisotropicConstants::TEXTURE_MAX_ANISOTROPY_EXT,
+        );
+        ext.enable_get_parameter_name(
+            EXTTextureFilterAnisotropicConstants::MAX_TEXTURE_MAX_ANISOTROPY_EXT,
+        );
     }
 
     fn name() -> &'static str {

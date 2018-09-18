@@ -16,18 +16,26 @@ pub struct HTMLBRElement {
 }
 
 impl HTMLBRElement {
-    fn new_inherited(local_name: LocalName, prefix: Option<Prefix>, document: &Document) -> HTMLBRElement {
+    fn new_inherited(
+        local_name: LocalName,
+        prefix: Option<Prefix>,
+        document: &Document,
+    ) -> HTMLBRElement {
         HTMLBRElement {
-            htmlelement: HTMLElement::new_inherited(local_name, prefix, document)
+            htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(local_name: LocalName,
-               prefix: Option<Prefix>,
-               document: &Document) -> DomRoot<HTMLBRElement> {
-        Node::reflect_node(Box::new(HTMLBRElement::new_inherited(local_name, prefix, document)),
-                           document,
-                           HTMLBRElementBinding::Wrap)
+    pub fn new(
+        local_name: LocalName,
+        prefix: Option<Prefix>,
+        document: &Document,
+    ) -> DomRoot<HTMLBRElement> {
+        Node::reflect_node(
+            Box::new(HTMLBRElement::new_inherited(local_name, prefix, document)),
+            document,
+            HTMLBRElementBinding::Wrap,
+        )
     }
 }

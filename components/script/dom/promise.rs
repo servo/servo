@@ -54,9 +54,11 @@ impl PromiseHelper for Rc<Promise> {
     unsafe fn initialize(&self, cx: *mut JSContext) {
         let obj = self.reflector().get_jsobject();
         self.permanent_js_root.set(ObjectValue(*obj));
-        assert!(AddRawValueRoot(cx,
-                                self.permanent_js_root.get_unsafe(),
-                                b"Promise::root\0".as_c_char_ptr()));
+        assert!(AddRawValueRoot(
+            cx,
+            self.permanent_js_root.get_unsafe(),
+            b"Promise::root\0".as_c_char_ptr()
+        ));
     }
 }
 
@@ -87,9 +89,7 @@ impl Promise {
     #[allow(unsafe_code, unrooted_must_root)]
     pub fn duplicate(&self) -> Rc<Promise> {
         let cx = self.global().get_cx();
-        unsafe {
-            Promise::new_with_js_promise(self.reflector().get_jsobject(), cx)
-        }
+        unsafe { Promise::new_with_js_promise(self.reflector().get_jsobject(), cx) }
     }
 
     #[allow(unsafe_code, unrooted_must_root)]
@@ -106,9 +106,18 @@ impl Promise {
     }
 
     #[allow(unsafe_code)]
-    unsafe fn create_js_promise(cx: *mut JSContext, proto: HandleObject, mut obj: MutableHandleObject) {
-        let do_nothing_func = JS_NewFunction(cx, Some(do_nothing_promise_executor), /* nargs = */ 2,
-                                             /* flags = */ 0, ptr::null());
+    unsafe fn create_js_promise(
+        cx: *mut JSContext,
+        proto: HandleObject,
+        mut obj: MutableHandleObject,
+    ) {
+        let do_nothing_func = JS_NewFunction(
+            cx,
+            Some(do_nothing_promise_executor),
+            /* nargs = */ 2,
+            /* flags = */ 0,
+            ptr::null(),
+        );
         assert!(!do_nothing_func.is_null());
         rooted!(in(cx) let do_nothing_obj = JS_GetFunctionObject(do_nothing_func));
         assert!(!do_nothing_obj.is_null());
@@ -141,7 +150,10 @@ impl Promise {
     }
 
     #[allow(unsafe_code)]
-    pub fn resolve_native<T>(&self, val: &T) where T: ToJSValConvertible {
+    pub fn resolve_native<T>(&self, val: &T)
+    where
+        T: ToJSValConvertible,
+    {
         let cx = self.global().get_cx();
         let _ac = JSAutoCompartment::new(cx, self.reflector().get_jsobject().get());
         rooted!(in(cx) let mut v = UndefinedValue());
@@ -159,7 +171,10 @@ impl Promise {
     }
 
     #[allow(unsafe_code)]
-    pub fn reject_native<T>(&self, val: &T) where T: ToJSValConvertible {
+    pub fn reject_native<T>(&self, val: &T)
+    where
+        T: ToJSValConvertible,
+    {
         let cx = self.global().get_cx();
         let _ac = JSAutoCompartment::new(cx, self.reflector().get_jsobject().get());
         rooted!(in(cx) let mut v = UndefinedValue());
@@ -192,7 +207,7 @@ impl Promise {
         let state = unsafe { GetPromiseState(self.promise_obj()) };
         match state {
             PromiseState::Rejected | PromiseState::Fulfilled => true,
-            _ => false
+            _ => false,
         }
     }
 
@@ -219,17 +234,23 @@ impl Promise {
                                                NativeHandlerTask::Reject));
 
         unsafe {
-            let ok = AddPromiseReactions(cx,
-                                         self.promise_obj(),
-                                         resolve_func.handle(),
-                                         reject_func.handle());
+            let ok = AddPromiseReactions(
+                cx,
+                self.promise_obj(),
+                resolve_func.handle(),
+                reject_func.handle(),
+            );
             assert!(ok);
         }
     }
 }
 
 #[allow(unsafe_code)]
-unsafe extern fn do_nothing_promise_executor(_cx: *mut JSContext, argc: u32, vp: *mut JSVal) -> bool {
+unsafe extern "C" fn do_nothing_promise_executor(
+    _cx: *mut JSContext,
+    argc: u32,
+    vp: *mut JSVal,
+) -> bool {
     let args = CallArgs::from_vp(vp, argc);
     *args.rval() = UndefinedValue();
     true
@@ -245,7 +266,11 @@ enum NativeHandlerTask {
 }
 
 #[allow(unsafe_code)]
-unsafe extern fn native_handler_callback(cx: *mut JSContext, argc: u32, vp: *mut JSVal) -> bool {
+unsafe extern "C" fn native_handler_callback(
+    cx: *mut JSContext,
+    argc: u32,
+    vp: *mut JSVal,
+) -> bool {
     let args = CallArgs::from_vp(vp, argc);
     rooted!(in(cx) let v = *GetFunctionNativeReserved(args.callee(), SLOT_NATIVEHANDLER));
     assert!(v.get().is_object());
@@ -255,10 +280,12 @@ unsafe extern fn native_handler_callback(cx: *mut JSContext, argc: u32, vp: *mut
 
     rooted!(in(cx) let v = *GetFunctionNativeReserved(args.callee(), SLOT_NATIVEHANDLER_TASK));
     match v.to_int32() {
-        v if v == NativeHandlerTask::Resolve as i32 =>
-            handler.resolved_callback(cx, HandleValue::from_raw(args.get(0))),
-        v if v == NativeHandlerTask::Reject as i32 =>
-            handler.rejected_callback(cx, HandleValue::from_raw(args.get(0))),
+        v if v == NativeHandlerTask::Resolve as i32 => {
+            handler.resolved_callback(cx, HandleValue::from_raw(args.get(0)))
+        },
+        v if v == NativeHandlerTask::Reject as i32 => {
+            handler.rejected_callback(cx, HandleValue::from_raw(args.get(0)))
+        },
         _ => panic!("unexpected native handler task value"),
     };
 
@@ -266,21 +293,19 @@ unsafe extern fn native_handler_callback(cx: *mut JSContext, argc: u32, vp: *mut
 }
 
 #[allow(unsafe_code)]
-fn create_native_handler_function(cx: *mut JSContext,
-                                  holder: HandleObject,
-                                  task: NativeHandlerTask) -> *mut JSObject {
+fn create_native_handler_function(
+    cx: *mut JSContext,
+    holder: HandleObject,
+    task: NativeHandlerTask,
+) -> *mut JSObject {
     unsafe {
         let func = NewFunctionWithReserved(cx, Some(native_handler_callback), 1, 0, ptr::null());
         assert!(!func.is_null());
 
         rooted!(in(cx) let obj = JS_GetFunctionObject(func));
         assert!(!obj.is_null());
-        SetFunctionNativeReserved(obj.get(),
-                                  SLOT_NATIVEHANDLER,
-                                  &ObjectValue(*holder));
-        SetFunctionNativeReserved(obj.get(),
-                                  SLOT_NATIVEHANDLER_TASK,
-                                  &Int32Value(task as i32));
+        SetFunctionNativeReserved(obj.get(), SLOT_NATIVEHANDLER, &ObjectValue(*holder));
+        SetFunctionNativeReserved(obj.get(), SLOT_NATIVEHANDLER_TASK, &Int32Value(task as i32));
         obj.get()
     }
 }

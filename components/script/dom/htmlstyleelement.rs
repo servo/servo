@@ -42,10 +42,12 @@ pub struct HTMLStyleElement {
 }
 
 impl HTMLStyleElement {
-    fn new_inherited(local_name: LocalName,
-                     prefix: Option<Prefix>,
-                     document: &Document,
-                     creator: ElementCreator) -> HTMLStyleElement {
+    fn new_inherited(
+        local_name: LocalName,
+        prefix: Option<Prefix>,
+        document: &Document,
+        creator: ElementCreator,
+    ) -> HTMLStyleElement {
         HTMLStyleElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
             stylesheet: DomRefCell::new(None),
@@ -59,13 +61,19 @@ impl HTMLStyleElement {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(local_name: LocalName,
-               prefix: Option<Prefix>,
-               document: &Document,
-               creator: ElementCreator) -> DomRoot<HTMLStyleElement> {
-        Node::reflect_node(Box::new(HTMLStyleElement::new_inherited(local_name, prefix, document, creator)),
-                           document,
-                           HTMLStyleElementBinding::Wrap)
+    pub fn new(
+        local_name: LocalName,
+        prefix: Option<Prefix>,
+        document: &Document,
+        creator: ElementCreator,
+    ) -> DomRoot<HTMLStyleElement> {
+        Node::reflect_node(
+            Box::new(HTMLStyleElement::new_inherited(
+                local_name, prefix, document, creator,
+            )),
+            document,
+            HTMLStyleElementBinding::Wrap,
+        )
     }
 
     pub fn parse_own_css(&self) {
@@ -82,7 +90,9 @@ impl HTMLStyleElement {
             None => String::new(),
         };
 
-        let data = node.GetTextContent().expect("Element.textContent must be a string");
+        let data = node
+            .GetTextContent()
+            .expect("Element.textContent must be a string");
         let url = window.get_url();
         let css_error_reporter = window.css_error_reporter();
         let context = CssParserContext::new_for_cssom(
@@ -95,10 +105,8 @@ impl HTMLStyleElement {
         );
         let shared_lock = node.owner_doc().style_shared_lock().clone();
         let mut input = ParserInput::new(&mq_str);
-        let mq = Arc::new(shared_lock.wrap(MediaList::parse(
-            &context,
-            &mut CssParser::new(&mut input),
-        )));
+        let mq =
+            Arc::new(shared_lock.wrap(MediaList::parse(&context, &mut CssParser::new(&mut input))));
         let loader = StylesheetLoader::for_element(self.upcast());
         let sheet = Stylesheet::from_str(
             &data,
@@ -117,7 +125,11 @@ impl HTMLStyleElement {
         // No subresource loads were triggered, queue load event
         if self.pending_loads.get() == 0 {
             let window = window_from_node(self);
-            window.dom_manipulation_task_source().queue_simple_event(self.upcast(), atom!("load"), &window);
+            window.dom_manipulation_task_source().queue_simple_event(
+                self.upcast(),
+                atom!("load"),
+                &window,
+            );
         }
 
         self.set_stylesheet(sheet);
@@ -141,12 +153,14 @@ impl HTMLStyleElement {
     pub fn get_cssom_stylesheet(&self) -> Option<DomRoot<CSSStyleSheet>> {
         self.get_stylesheet().map(|sheet| {
             self.cssom_stylesheet.or_init(|| {
-                CSSStyleSheet::new(&window_from_node(self),
-                                   self.upcast::<Element>(),
-                                   "text/css".into(),
-                                   None, // todo handle location
-                                   None, // todo handle title
-                                   sheet)
+                CSSStyleSheet::new(
+                    &window_from_node(self),
+                    self.upcast::<Element>(),
+                    "text/css".into(),
+                    None, // todo handle location
+                    None, // todo handle title
+                    sheet,
+                )
             })
         })
     }
@@ -242,7 +256,6 @@ impl StylesheetOwner for HTMLStyleElement {
         }
     }
 }
-
 
 impl HTMLStyleElementMethods for HTMLStyleElement {
     // https://drafts.csswg.org/cssom/#dom-linkstyle-sheet

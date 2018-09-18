@@ -25,23 +25,30 @@ pub struct HTMLOutputElement {
 }
 
 impl HTMLOutputElement {
-    fn new_inherited(local_name: LocalName,
-                     prefix: Option<Prefix>,
-                     document: &Document) -> HTMLOutputElement {
+    fn new_inherited(
+        local_name: LocalName,
+        prefix: Option<Prefix>,
+        document: &Document,
+    ) -> HTMLOutputElement {
         HTMLOutputElement {
-            htmlelement:
-                HTMLElement::new_inherited(local_name, prefix, document),
+            htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
             form_owner: Default::default(),
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(local_name: LocalName,
-               prefix: Option<Prefix>,
-               document: &Document) -> DomRoot<HTMLOutputElement> {
-        Node::reflect_node(Box::new(HTMLOutputElement::new_inherited(local_name, prefix, document)),
-                           document,
-                           HTMLOutputElementBinding::Wrap)
+    pub fn new(
+        local_name: LocalName,
+        prefix: Option<Prefix>,
+        document: &Document,
+    ) -> DomRoot<HTMLOutputElement> {
+        Node::reflect_node(
+            Box::new(HTMLOutputElement::new_inherited(
+                local_name, prefix, document,
+            )),
+            document,
+            HTMLOutputElementBinding::Wrap,
+        )
     }
 }
 

@@ -16,17 +16,27 @@ pub struct SVGGraphicsElement {
 }
 
 impl SVGGraphicsElement {
-    pub fn new_inherited(tag_name: LocalName, prefix: Option<Prefix>,
-                         document: &Document) -> SVGGraphicsElement {
-        SVGGraphicsElement::new_inherited_with_state(ElementState::empty(), tag_name, prefix, document)
+    pub fn new_inherited(
+        tag_name: LocalName,
+        prefix: Option<Prefix>,
+        document: &Document,
+    ) -> SVGGraphicsElement {
+        SVGGraphicsElement::new_inherited_with_state(
+            ElementState::empty(),
+            tag_name,
+            prefix,
+            document,
+        )
     }
 
-    pub fn new_inherited_with_state(state: ElementState, tag_name: LocalName,
-                                    prefix: Option<Prefix>, document: &Document)
-                                    -> SVGGraphicsElement {
+    pub fn new_inherited_with_state(
+        state: ElementState,
+        tag_name: LocalName,
+        prefix: Option<Prefix>,
+        document: &Document,
+    ) -> SVGGraphicsElement {
         SVGGraphicsElement {
-            svgelement:
-                SVGElement::new_inherited_with_state(state, tag_name, prefix, document),
+            svgelement: SVGElement::new_inherited_with_state(state, tag_name, prefix, document),
         }
     }
 }

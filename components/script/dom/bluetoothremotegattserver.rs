@@ -37,10 +37,15 @@ impl BluetoothRemoteGATTServer {
         }
     }
 
-    pub fn new(global: &GlobalScope, device: &BluetoothDevice) -> DomRoot<BluetoothRemoteGATTServer> {
-        reflect_dom_object(Box::new(BluetoothRemoteGATTServer::new_inherited(device)),
-                           global,
-                           BluetoothRemoteGATTServerBinding::Wrap)
+    pub fn new(
+        global: &GlobalScope,
+        device: &BluetoothDevice,
+    ) -> DomRoot<BluetoothRemoteGATTServer> {
+        reflect_dom_object(
+            Box::new(BluetoothRemoteGATTServer::new_inherited(device)),
+            global,
+            BluetoothRemoteGATTServerBinding::Wrap,
+        )
     }
 
     fn get_bluetooth_thread(&self) -> IpcSender<BluetoothRequest> {
@@ -78,8 +83,11 @@ impl BluetoothRemoteGATTServerMethods for BluetoothRemoteGATTServer {
 
         // Note: Steps 2, 5.1.1 and 5.1.3 are in components/bluetooth/lib.rs in the gatt_server_connect function.
         // Steps 5.2.3 - 5.2.5  are in response function.
-        self.get_bluetooth_thread().send(
-            BluetoothRequest::GATTServerConnect(String::from(self.Device().Id()), sender)).unwrap();
+        self.get_bluetooth_thread()
+            .send(BluetoothRequest::GATTServerConnect(
+                String::from(self.Device().Id()),
+                sender,
+            )).unwrap();
         // Step 5: return promise.
         return p;
     }
@@ -90,7 +98,7 @@ impl BluetoothRemoteGATTServerMethods for BluetoothRemoteGATTServer {
 
         // Step 2.
         if !self.Connected() {
-            return Ok(())
+            return Ok(());
         }
 
         // Step 3.
@@ -104,17 +112,30 @@ impl BluetoothRemoteGATTServerMethods for BluetoothRemoteGATTServer {
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattserver-getprimaryservice
     fn GetPrimaryService(&self, service: BluetoothServiceUUID) -> Rc<Promise> {
         // Step 1 - 2.
-        get_gatt_children(self, true, BluetoothUUID::service, Some(service), String::from(self.Device().Id()),
-                          self.Device().get_gatt().Connected(), GATTType::PrimaryService)
+        get_gatt_children(
+            self,
+            true,
+            BluetoothUUID::service,
+            Some(service),
+            String::from(self.Device().Id()),
+            self.Device().get_gatt().Connected(),
+            GATTType::PrimaryService,
+        )
     }
 
     #[allow(unrooted_must_root)]
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattserver-getprimaryservices
     fn GetPrimaryServices(&self, service: Option<BluetoothServiceUUID>) -> Rc<Promise> {
         // Step 1 - 2.
-        get_gatt_children(self, false, BluetoothUUID::service, service, String::from(self.Device().Id()),
-                          self.Connected(), GATTType::PrimaryService)
-
+        get_gatt_children(
+            self,
+            false,
+            BluetoothUUID::service,
+            service,
+            String::from(self.Device().Id()),
+            self.Connected(),
+            GATTType::PrimaryService,
+        )
     }
 }
 
@@ -145,7 +166,7 @@ impl AsyncBluetoothListener for BluetoothRemoteGATTServer {
                     promise.resolve_native(&device.get_or_create_service(&services_vec[0], &self));
                     return;
                 }
-                let mut services = vec!();
+                let mut services = vec![];
                 for service in services_vec {
                     let bt_service = device.get_or_create_service(&service, &self);
                     services.push(bt_service);

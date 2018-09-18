@@ -22,9 +22,11 @@ pub struct StyleSheet {
 
 impl StyleSheet {
     #[allow(unrooted_must_root)]
-    pub fn new_inherited(type_: DOMString,
-                         href: Option<DOMString>,
-                         title: Option<DOMString>) -> StyleSheet {
+    pub fn new_inherited(
+        type_: DOMString,
+        href: Option<DOMString>,
+        title: Option<DOMString>,
+    ) -> StyleSheet {
         StyleSheet {
             reflector_: Reflector::new(),
             type_: type_,
@@ -34,15 +36,19 @@ impl StyleSheet {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(window: &Window, type_: DOMString,
-               href: Option<DOMString>,
-               title: Option<DOMString>) -> DomRoot<StyleSheet> {
-        reflect_dom_object(Box::new(StyleSheet::new_inherited(type_, href, title)),
-                           window,
-                           StyleSheetBinding::Wrap)
+    pub fn new(
+        window: &Window,
+        type_: DOMString,
+        href: Option<DOMString>,
+        title: Option<DOMString>,
+    ) -> DomRoot<StyleSheet> {
+        reflect_dom_object(
+            Box::new(StyleSheet::new_inherited(type_, href, title)),
+            window,
+            StyleSheetBinding::Wrap,
+        )
     }
 }
-
 
 impl StyleSheetMethods for StyleSheet {
     // https://drafts.csswg.org/cssom/#dom-stylesheet-type
@@ -67,6 +73,8 @@ impl StyleSheetMethods for StyleSheet {
 
     // https://drafts.csswg.org/cssom/#dom-stylesheet-disabled
     fn SetDisabled(&self, disabled: bool) {
-        self.downcast::<CSSStyleSheet>().unwrap().set_disabled(disabled)
+        self.downcast::<CSSStyleSheet>()
+            .unwrap()
+            .set_disabled(disabled)
     }
 }

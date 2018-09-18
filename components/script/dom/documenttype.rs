@@ -24,11 +24,12 @@ pub struct DocumentType {
 }
 
 impl DocumentType {
-    fn new_inherited(name: DOMString,
-                     public_id: Option<DOMString>,
-                     system_id: Option<DOMString>,
-                     document: &Document)
-                     -> DocumentType {
+    fn new_inherited(
+        name: DOMString,
+        public_id: Option<DOMString>,
+        system_id: Option<DOMString>,
+        document: &Document,
+    ) -> DocumentType {
         DocumentType {
             node: Node::new_inherited(document),
             name: name,
@@ -37,14 +38,19 @@ impl DocumentType {
         }
     }
     #[allow(unrooted_must_root)]
-    pub fn new(name: DOMString,
-               public_id: Option<DOMString>,
-               system_id: Option<DOMString>,
-               document: &Document)
-               -> DomRoot<DocumentType> {
-        Node::reflect_node(Box::new(DocumentType::new_inherited(name, public_id, system_id, document)),
-                           document,
-                           DocumentTypeBinding::Wrap)
+    pub fn new(
+        name: DOMString,
+        public_id: Option<DOMString>,
+        system_id: Option<DOMString>,
+        document: &Document,
+    ) -> DomRoot<DocumentType> {
+        Node::reflect_node(
+            Box::new(DocumentType::new_inherited(
+                name, public_id, system_id, document,
+            )),
+            document,
+            DocumentTypeBinding::Wrap,
+        )
     }
 
     #[inline]

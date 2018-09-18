@@ -15,7 +15,7 @@ use webvr_traits::WebVRDisplayCapabilities;
 pub struct VRDisplayCapabilities {
     reflector_: Reflector,
     #[ignore_malloc_size_of = "Defined in rust-webvr"]
-    capabilities: DomRefCell<WebVRDisplayCapabilities>
+    capabilities: DomRefCell<WebVRDisplayCapabilities>,
 }
 
 unsafe_no_jsmanaged_fields!(WebVRDisplayCapabilities);
@@ -24,14 +24,19 @@ impl VRDisplayCapabilities {
     fn new_inherited(capabilities: WebVRDisplayCapabilities) -> VRDisplayCapabilities {
         VRDisplayCapabilities {
             reflector_: Reflector::new(),
-            capabilities: DomRefCell::new(capabilities)
+            capabilities: DomRefCell::new(capabilities),
         }
     }
 
-    pub fn new(capabilities: WebVRDisplayCapabilities, global: &GlobalScope) -> DomRoot<VRDisplayCapabilities> {
-        reflect_dom_object(Box::new(VRDisplayCapabilities::new_inherited(capabilities)),
-                           global,
-                           VRDisplayCapabilitiesBinding::Wrap)
+    pub fn new(
+        capabilities: WebVRDisplayCapabilities,
+        global: &GlobalScope,
+    ) -> DomRoot<VRDisplayCapabilities> {
+        reflect_dom_object(
+            Box::new(VRDisplayCapabilities::new_inherited(capabilities)),
+            global,
+            VRDisplayCapabilitiesBinding::Wrap,
+        )
     }
 }
 
@@ -58,6 +63,10 @@ impl VRDisplayCapabilitiesMethods for VRDisplayCapabilities {
 
     // https://w3c.github.io/webvr/#dom-vrdisplaycapabilities-maxlayers
     fn MaxLayers(&self) -> u32 {
-        if self.CanPresent() { 1 } else { 0 }
+        if self.CanPresent() {
+            1
+        } else {
+            0
+        }
     }
 }

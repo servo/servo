@@ -34,7 +34,7 @@ impl WebGLActiveInfo {
         reflect_dom_object(
             Box::new(WebGLActiveInfo::new_inherited(size, ty, name)),
             window,
-            WebGLActiveInfoBinding::Wrap
+            WebGLActiveInfoBinding::Wrap,
         )
     }
 }

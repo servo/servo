@@ -26,9 +26,11 @@ pub struct VRPose {
 }
 
 #[allow(unsafe_code)]
-unsafe fn update_or_create_typed_array(cx: *mut JSContext,
-                      src: Option<&[f32]>,
-                      dst: &Heap<*mut JSObject>) {
+unsafe fn update_or_create_typed_array(
+    cx: *mut JSContext,
+    src: Option<&[f32]>,
+    dst: &Heap<*mut JSObject>,
+) {
     match src {
         Some(data) => {
             if dst.get().is_null() {
@@ -46,7 +48,7 @@ unsafe fn update_or_create_typed_array(cx: *mut JSContext,
             if !dst.get().is_null() {
                 dst.set(ptr::null_mut());
             }
-        }
+        },
     }
 }
 
@@ -57,9 +59,7 @@ fn heap_to_option(heap: &Heap<*mut JSObject>) -> Option<NonNull<JSObject>> {
     if js_object.is_null() {
         None
     } else {
-        unsafe {
-            Some(NonNull::new_unchecked(js_object))
-        }
+        unsafe { Some(NonNull::new_unchecked(js_object)) }
     }
 }
 
@@ -77,9 +77,11 @@ impl VRPose {
     }
 
     pub fn new(global: &GlobalScope, pose: &webvr::VRPose) -> DomRoot<VRPose> {
-        let root = reflect_dom_object(Box::new(VRPose::new_inherited()),
-                                      global,
-                                      VRPoseBinding::Wrap);
+        let root = reflect_dom_object(
+            Box::new(VRPose::new_inherited()),
+            global,
+            VRPoseBinding::Wrap,
+        );
         root.update(&pose);
         root
     }
@@ -88,12 +90,36 @@ impl VRPose {
     pub fn update(&self, pose: &webvr::VRPose) {
         let cx = self.global().get_cx();
         unsafe {
-            update_or_create_typed_array(cx, pose.position.as_ref().map(|v| &v[..]), &self.position);
-            update_or_create_typed_array(cx, pose.orientation.as_ref().map(|v| &v[..]), &self.orientation);
-            update_or_create_typed_array(cx, pose.linear_velocity.as_ref().map(|v| &v[..]), &self.linear_vel);
-            update_or_create_typed_array(cx, pose.angular_velocity.as_ref().map(|v| &v[..]), &self.angular_vel);
-            update_or_create_typed_array(cx, pose.linear_acceleration.as_ref().map(|v| &v[..]), &self.linear_acc);
-            update_or_create_typed_array(cx, pose.angular_acceleration.as_ref().map(|v| &v[..]), &self.angular_acc);
+            update_or_create_typed_array(
+                cx,
+                pose.position.as_ref().map(|v| &v[..]),
+                &self.position,
+            );
+            update_or_create_typed_array(
+                cx,
+                pose.orientation.as_ref().map(|v| &v[..]),
+                &self.orientation,
+            );
+            update_or_create_typed_array(
+                cx,
+                pose.linear_velocity.as_ref().map(|v| &v[..]),
+                &self.linear_vel,
+            );
+            update_or_create_typed_array(
+                cx,
+                pose.angular_velocity.as_ref().map(|v| &v[..]),
+                &self.angular_vel,
+            );
+            update_or_create_typed_array(
+                cx,
+                pose.linear_acceleration.as_ref().map(|v| &v[..]),
+                &self.linear_acc,
+            );
+            update_or_create_typed_array(
+                cx,
+                pose.angular_acceleration.as_ref().map(|v| &v[..]),
+                &self.angular_acc,
+            );
         }
     }
 }

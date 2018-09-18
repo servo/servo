@@ -22,8 +22,8 @@ impl AudioDestinationNode {
         context: &BaseAudioContext,
         options: &AudioNodeOptions,
     ) -> AudioDestinationNode {
-        let node_options = options.unwrap_or(2, ChannelCountMode::Max,
-                                             ChannelInterpretation::Speakers);
+        let node_options =
+            options.unwrap_or(2, ChannelCountMode::Max, ChannelInterpretation::Speakers);
         AudioDestinationNode {
             node: AudioNode::new_inherited_for_id(
                 context.destination_node(),

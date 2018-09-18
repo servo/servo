@@ -67,11 +67,14 @@ pub struct HTMLScriptElement {
 }
 
 impl HTMLScriptElement {
-    fn new_inherited(local_name: LocalName, prefix: Option<Prefix>, document: &Document,
-                     creator: ElementCreator) -> HTMLScriptElement {
+    fn new_inherited(
+        local_name: LocalName,
+        prefix: Option<Prefix>,
+        document: &Document,
+        creator: ElementCreator,
+    ) -> HTMLScriptElement {
         HTMLScriptElement {
-            htmlelement:
-                HTMLElement::new_inherited(local_name, prefix, document),
+            htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
             already_started: Cell::new(false),
             parser_inserted: Cell::new(creator.is_parser_created()),
             non_blocking: Cell::new(!creator.is_parser_created()),
@@ -81,14 +84,21 @@ impl HTMLScriptElement {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(local_name: LocalName, prefix: Option<Prefix>, document: &Document,
-               creator: ElementCreator) -> DomRoot<HTMLScriptElement> {
-        Node::reflect_node(Box::new(HTMLScriptElement::new_inherited(local_name, prefix, document, creator)),
-                           document,
-                           HTMLScriptElementBinding::Wrap)
+    pub fn new(
+        local_name: LocalName,
+        prefix: Option<Prefix>,
+        document: &Document,
+        creator: ElementCreator,
+    ) -> DomRoot<HTMLScriptElement> {
+        Node::reflect_node(
+            Box::new(HTMLScriptElement::new_inherited(
+                local_name, prefix, document, creator,
+            )),
+            document,
+            HTMLScriptElementBinding::Wrap,
+        )
     }
 }
-
 
 /// Supported script types as defined by
 /// <https://html.spec.whatwg.org/multipage/#javascript-mime-type>.
@@ -154,7 +164,7 @@ struct ScriptContext {
     /// The initial URL requested.
     url: ServoUrl,
     /// Indicates whether the request failed, and why
-    status: Result<(), NetworkError>
+    status: Result<(), NetworkError>,
 }
 
 impl FetchResponseListener for ScriptContext {
@@ -162,24 +172,29 @@ impl FetchResponseListener for ScriptContext {
 
     fn process_request_eof(&mut self) {} // TODO(KiChjang): Perhaps add custom steps to perform fetch here?
 
-    fn process_response(&mut self,
-                        metadata: Result<FetchMetadata, NetworkError>) {
+    fn process_response(&mut self, metadata: Result<FetchMetadata, NetworkError>) {
         self.metadata = metadata.ok().map(|meta| match meta {
             FetchMetadata::Unfiltered(m) => m,
-            FetchMetadata::Filtered { unsafe_, .. } => unsafe_
+            FetchMetadata::Filtered { unsafe_, .. } => unsafe_,
         });
 
-        let status_code = self.metadata.as_ref().and_then(|m| {
-            match m.status {
+        let status_code = self
+            .metadata
+            .as_ref()
+            .and_then(|m| match m.status {
                 Some((c, _)) => Some(c),
                 _ => None,
-            }
-        }).unwrap_or(0);
+            }).unwrap_or(0);
 
         self.status = match status_code {
-            0 => Err(NetworkError::Internal("No http status code received".to_owned())),
+            0 => Err(NetworkError::Internal(
+                "No http status code received".to_owned(),
+            )),
             200...299 => Ok(()), // HTTP ok status codes
-            _ => Err(NetworkError::Internal(format!("HTTP error code {}", status_code)))
+            _ => Err(NetworkError::Internal(format!(
+                "HTTP error code {}",
+                status_code
+            ))),
         };
     }
 
@@ -197,7 +212,8 @@ impl FetchResponseListener for ScriptContext {
             let metadata = self.metadata.take().unwrap();
 
             // Step 6.
-            let encoding = metadata.charset
+            let encoding = metadata
+                .charset
                 .and_then(|encoding| Encoding::for_label(encoding.as_bytes()))
                 .unwrap_or(self.character_encoding);
 
@@ -216,7 +232,9 @@ impl FetchResponseListener for ScriptContext {
             ExternalScriptKind::Asap => document.asap_script_loaded(&elem, load),
             ExternalScriptKind::AsapInOrder => document.asap_in_order_script_loaded(&elem, load),
             ExternalScriptKind::Deferred => document.deferred_script_loaded(&elem, load),
-            ExternalScriptKind::ParsingBlocking => document.pending_parsing_blocking_script_loaded(&elem, load),
+            ExternalScriptKind::ParsingBlocking => {
+                document.pending_parsing_blocking_script_loaded(&elem, load)
+            },
         }
 
         document.finish_load(LoadType::Script(self.url.clone()));
@@ -226,12 +244,14 @@ impl FetchResponseListener for ScriptContext {
 impl PreInvoke for ScriptContext {}
 
 /// <https://html.spec.whatwg.org/multipage/#fetch-a-classic-script>
-fn fetch_a_classic_script(script: &HTMLScriptElement,
-                          kind: ExternalScriptKind,
-                          url: ServoUrl,
-                          cors_setting: Option<CorsSettings>,
-                          integrity_metadata: String,
-                          character_encoding: &'static Encoding) {
+fn fetch_a_classic_script(
+    script: &HTMLScriptElement,
+    kind: ExternalScriptKind,
+    url: ServoUrl,
+    cors_setting: Option<CorsSettings>,
+    integrity_metadata: String,
+    character_encoding: &'static Encoding,
+) {
     let doc = document_from_node(script);
 
     // Step 1, 2.
@@ -255,7 +275,7 @@ fn fetch_a_classic_script(script: &HTMLScriptElement,
         referrer_url: Some(doc.url()),
         referrer_policy: doc.get_referrer_policy(),
         integrity_metadata: integrity_metadata,
-        .. RequestInit::default()
+        ..RequestInit::default()
     };
 
     // TODO: Step 3, Add custom steps to perform fetch
@@ -264,22 +284,25 @@ fn fetch_a_classic_script(script: &HTMLScriptElement,
         elem: Trusted::new(script),
         kind: kind,
         character_encoding: character_encoding,
-        data: vec!(),
+        data: vec![],
         metadata: None,
         url: url.clone(),
-        status: Ok(())
+        status: Ok(()),
     }));
 
     let (action_sender, action_receiver) = ipc::channel().unwrap();
     let listener = NetworkListener {
         context: context,
         task_source: doc.window().networking_task_source(),
-        canceller: Some(doc.window().task_canceller(TaskSourceName::Networking))
+        canceller: Some(doc.window().task_canceller(TaskSourceName::Networking)),
     };
 
-    ROUTER.add_route(action_receiver.to_opaque(), Box::new(move |message| {
-        listener.notify_fetch(message.to().unwrap());
-    }));
+    ROUTER.add_route(
+        action_receiver.to_opaque(),
+        Box::new(move |message| {
+            listener.notify_fetch(message.to().unwrap());
+        }),
+    );
     doc.fetch_async(LoadType::Script(url), request, action_sender);
 }
 
@@ -364,9 +387,10 @@ impl HTMLScriptElement {
         }
 
         // Step 14.
-        let encoding = element.get_attribute(&ns!(), &local_name!("charset"))
-                              .and_then(|charset| Encoding::for_label(charset.value().as_bytes()))
-                              .unwrap_or_else(|| doc.encoding());
+        let encoding = element
+            .get_attribute(&ns!(), &local_name!("charset"))
+            .and_then(|charset| Encoding::for_label(charset.value().as_bytes()))
+            .unwrap_or_else(|| doc.encoding());
 
         // Step 15.
         let cors_setting = cors_setting_for_element(element);
@@ -413,27 +437,37 @@ impl HTMLScriptElement {
             };
 
             // Preparation for step 23.
-            let kind = if element.has_attribute(&local_name!("defer")) && was_parser_inserted && !async {
-                // Step 23.a: classic, has src, has defer, was parser-inserted, is not async.
-                ExternalScriptKind::Deferred
-            } else if was_parser_inserted && !async {
-                // Step 23.c: classic, has src, was parser-inserted, is not async.
-                ExternalScriptKind::ParsingBlocking
-            } else if !async && !self.non_blocking.get() {
-                // Step 23.d: classic, has src, is not async, is not non-blocking.
-                ExternalScriptKind::AsapInOrder
-            } else {
-                // Step 23.f: classic, has src.
-                ExternalScriptKind::Asap
-            };
+            let kind =
+                if element.has_attribute(&local_name!("defer")) && was_parser_inserted && !async {
+                    // Step 23.a: classic, has src, has defer, was parser-inserted, is not async.
+                    ExternalScriptKind::Deferred
+                } else if was_parser_inserted && !async {
+                    // Step 23.c: classic, has src, was parser-inserted, is not async.
+                    ExternalScriptKind::ParsingBlocking
+                } else if !async && !self.non_blocking.get() {
+                    // Step 23.d: classic, has src, is not async, is not non-blocking.
+                    ExternalScriptKind::AsapInOrder
+                } else {
+                    // Step 23.f: classic, has src.
+                    ExternalScriptKind::Asap
+                };
 
             // Step 21.6.
-            fetch_a_classic_script(self, kind, url, cors_setting, integrity_metadata.to_owned(), encoding);
+            fetch_a_classic_script(
+                self,
+                kind,
+                url,
+                cors_setting,
+                integrity_metadata.to_owned(),
+                encoding,
+            );
 
             // Step 23.
             match kind {
                 ExternalScriptKind::Deferred => doc.add_deferred_script(self),
-                ExternalScriptKind::ParsingBlocking => doc.set_pending_parsing_blocking_script(self, None),
+                ExternalScriptKind::ParsingBlocking => {
+                    doc.set_pending_parsing_blocking_script(self, None)
+                },
                 ExternalScriptKind::AsapInOrder => doc.push_asap_in_order_script(self),
                 ExternalScriptKind::Asap => doc.add_asap_script(self),
             }
@@ -444,8 +478,10 @@ impl HTMLScriptElement {
 
             // Step 23.
             if was_parser_inserted &&
-               doc.get_current_parser().map_or(false, |parser| parser.script_nesting_level() <= 1) &&
-               doc.get_script_blocking_stylesheets_count() > 0 {
+                doc.get_current_parser()
+                    .map_or(false, |parser| parser.script_nesting_level() <= 1) &&
+                doc.get_script_blocking_stylesheets_count() > 0
+            {
                 // Step 23.h: classic, has no src, was parser-inserted, is blocked on stylesheet.
                 doc.set_pending_parsing_blocking_script(self, Some(result));
             } else {
@@ -461,9 +497,10 @@ impl HTMLScriptElement {
         }
 
         match Command::new("js-beautify")
-                      .stdin(Stdio::piped())
-                      .stdout(Stdio::piped())
-                      .spawn() {
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .spawn()
+        {
             Err(_) => {
                 warn!("Failed to execute js-beautify. Will store unmodified script");
             },
@@ -512,7 +549,7 @@ impl HTMLScriptElement {
                 warn!("error loading script {:?}", e);
                 self.dispatch_error_event();
                 return;
-            }
+            },
 
             Ok(script) => script,
         };
@@ -564,28 +601,44 @@ impl HTMLScriptElement {
 
         // Steps 4-10
         let window = window_from_node(self);
-        let line_number = if script.external { 1 } else { self.line_number as u32 };
+        let line_number = if script.external {
+            1
+        } else {
+            self.line_number as u32
+        };
         rooted!(in(window.get_cx()) let mut rval = UndefinedValue());
         let global = window.upcast::<GlobalScope>();
         global.evaluate_script_on_global_with_result(
-            &script.text, script.url.as_str(), rval.handle_mut(), line_number);
+            &script.text,
+            script.url.as_str(),
+            rval.handle_mut(),
+            line_number,
+        );
     }
 
     pub fn queue_error_event(&self) {
         let window = window_from_node(self);
-        window.dom_manipulation_task_source().queue_simple_event(self.upcast(), atom!("error"), &window);
+        window.dom_manipulation_task_source().queue_simple_event(
+            self.upcast(),
+            atom!("error"),
+            &window,
+        );
     }
 
     pub fn dispatch_load_event(&self) {
-        self.dispatch_event(atom!("load"),
-                            EventBubbles::DoesNotBubble,
-                            EventCancelable::NotCancelable);
+        self.dispatch_event(
+            atom!("load"),
+            EventBubbles::DoesNotBubble,
+            EventCancelable::NotCancelable,
+        );
     }
 
     pub fn dispatch_error_event(&self) {
-        self.dispatch_event(atom!("error"),
-                            EventBubbles::DoesNotBubble,
-                            EventCancelable::NotCancelable);
+        self.dispatch_event(
+            atom!("error"),
+            EventBubbles::DoesNotBubble,
+            EventCancelable::NotCancelable,
+        );
     }
 
     pub fn is_javascript(&self) -> bool {
@@ -599,7 +652,8 @@ impl HTMLScriptElement {
             },
             Some(s) => {
                 debug!("script type={}", &**s);
-                SCRIPT_JS_MIMES.contains(&s.to_ascii_lowercase().trim_matches(HTML_SPACE_CHARACTERS))
+                SCRIPT_JS_MIMES
+                    .contains(&s.to_ascii_lowercase().trim_matches(HTML_SPACE_CHARACTERS))
             },
             None => {
                 debug!("no script type");
@@ -618,11 +672,11 @@ impl HTMLScriptElement {
                     None => {
                         debug!("no script type or language, inferring js");
                         true
-                    }
+                    },
                 };
                 // https://github.com/rust-lang/rust/issues/21114
                 is_js
-            }
+            },
         };
         // https://github.com/rust-lang/rust/issues/21114
         is_js
@@ -636,10 +690,12 @@ impl HTMLScriptElement {
         self.already_started.set(already_started);
     }
 
-    fn dispatch_event(&self,
-                      type_: Atom,
-                      bubbles: EventBubbles,
-                      cancelable: EventCancelable) -> EventStatus {
+    fn dispatch_event(
+        &self,
+        type_: Atom,
+        bubbles: EventBubbles,
+        cancelable: EventCancelable,
+    ) -> EventStatus {
         let window = window_from_node(self);
         let event = Event::new(window.upcast(), type_, bubbles, cancelable);
         event.fire(self.upcast())
@@ -684,15 +740,21 @@ impl VirtualMethods for HTMLScriptElement {
         }
     }
 
-    fn cloning_steps(&self, copy: &Node, maybe_doc: Option<&Document>,
-                     clone_children: CloneChildrenFlag) {
+    fn cloning_steps(
+        &self,
+        copy: &Node,
+        maybe_doc: Option<&Document>,
+        clone_children: CloneChildrenFlag,
+    ) {
         if let Some(ref s) = self.super_type() {
             s.cloning_steps(copy, maybe_doc, clone_children);
         }
 
         // https://html.spec.whatwg.org/multipage/#already-started
         if self.already_started.get() {
-            copy.downcast::<HTMLScriptElement>().unwrap().set_already_started(true);
+            copy.downcast::<HTMLScriptElement>()
+                .unwrap()
+                .set_already_started(true);
         }
     }
 }
@@ -716,13 +778,16 @@ impl HTMLScriptElementMethods for HTMLScriptElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-script-async
     fn Async(&self) -> bool {
-        self.non_blocking.get() || self.upcast::<Element>().has_attribute(&local_name!("async"))
+        self.non_blocking.get() || self
+            .upcast::<Element>()
+            .has_attribute(&local_name!("async"))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-script-async
     fn SetAsync(&self, value: bool) {
         self.non_blocking.set(false);
-        self.upcast::<Element>().set_bool_attribute(&local_name!("async"), value);
+        self.upcast::<Element>()
+            .set_bool_attribute(&local_name!("async"), value);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-script-defer

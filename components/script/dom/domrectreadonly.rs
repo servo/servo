@@ -30,23 +30,27 @@ impl DOMRectReadOnly {
         }
     }
 
-    pub fn new(global: &GlobalScope,
-               x: f64,
-               y: f64,
-               width: f64,
-               height: f64)
-               -> DomRoot<DOMRectReadOnly> {
-        reflect_dom_object(Box::new(DOMRectReadOnly::new_inherited(x, y, width, height)),
-                           global,
-                           Wrap)
+    pub fn new(
+        global: &GlobalScope,
+        x: f64,
+        y: f64,
+        width: f64,
+        height: f64,
+    ) -> DomRoot<DOMRectReadOnly> {
+        reflect_dom_object(
+            Box::new(DOMRectReadOnly::new_inherited(x, y, width, height)),
+            global,
+            Wrap,
+        )
     }
 
-    pub fn Constructor(global: &GlobalScope,
-                       x: f64,
-                       y: f64,
-                       width: f64,
-                       height: f64)
-                       -> Fallible<DomRoot<DOMRectReadOnly>> {
+    pub fn Constructor(
+        global: &GlobalScope,
+        x: f64,
+        y: f64,
+        width: f64,
+        height: f64,
+    ) -> Fallible<DomRoot<DOMRectReadOnly>> {
         Ok(DOMRectReadOnly::new(global, x, y, width, height))
     }
 

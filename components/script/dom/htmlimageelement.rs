@@ -74,7 +74,6 @@ use style::values::specified::length::{Length, NoCalcLength};
 use style_traits::ParsingMode;
 use task_source::{TaskSource, TaskSourceName};
 
-
 enum ParseState {
     InDescriptor,
     InParens,
@@ -119,7 +118,7 @@ enum State {
 #[derive(Clone, Copy, JSTraceable, MallocSizeOf)]
 enum ImageRequestPhase {
     Pending,
-    Current
+    Current,
 }
 #[derive(JSTraceable, MallocSizeOf)]
 #[must_root]
@@ -170,15 +169,12 @@ impl FetchResponseListener for ImageContext {
     fn process_request_eof(&mut self) {}
 
     fn process_response(&mut self, metadata: Result<FetchMetadata, NetworkError>) {
-        self.image_cache.notify_pending_response(
-            self.id,
-            FetchResponseMsg::ProcessResponse(metadata.clone()));
+        self.image_cache
+            .notify_pending_response(self.id, FetchResponseMsg::ProcessResponse(metadata.clone()));
 
-        let metadata = metadata.ok().map(|meta| {
-            match meta {
-                FetchMetadata::Unfiltered(m) => m,
-                FetchMetadata::Filtered { unsafe_, .. } => unsafe_
-            }
+        let metadata = metadata.ok().map(|meta| match meta {
+            FetchMetadata::Unfiltered(m) => m,
+            FetchMetadata::Filtered { unsafe_, .. } => unsafe_,
         });
 
         // Step 14.5 of https://html.spec.whatwg.org/multipage/#img-environment-changes
@@ -190,34 +186,38 @@ impl FetchResponseListener for ImageContext {
                             self.aborted.set(true);
                         }
                     },
-                    _ => ()
+                    _ => (),
                 }
             }
         }
 
-        let status_code = metadata.as_ref().and_then(|m| {
-            m.status.as_ref().map(|&(code, _)| code)
-        }).unwrap_or(0);
+        let status_code = metadata
+            .as_ref()
+            .and_then(|m| m.status.as_ref().map(|&(code, _)| code))
+            .unwrap_or(0);
 
         self.status = match status_code {
-            0 => Err(NetworkError::Internal("No http status code received".to_owned())),
+            0 => Err(NetworkError::Internal(
+                "No http status code received".to_owned(),
+            )),
             200...299 => Ok(()), // HTTP ok status codes
-            _ => Err(NetworkError::Internal(format!("HTTP error code {}", status_code)))
+            _ => Err(NetworkError::Internal(format!(
+                "HTTP error code {}",
+                status_code
+            ))),
         };
     }
 
     fn process_response_chunk(&mut self, payload: Vec<u8>) {
         if self.status.is_ok() {
-            self.image_cache.notify_pending_response(
-                self.id,
-                FetchResponseMsg::ProcessResponseChunk(payload));
+            self.image_cache
+                .notify_pending_response(self.id, FetchResponseMsg::ProcessResponseChunk(payload));
         }
     }
 
     fn process_response_eof(&mut self, response: Result<(), NetworkError>) {
-        self.image_cache.notify_pending_response(
-            self.id,
-            FetchResponseMsg::ProcessResponseEOF(response));
+        self.image_cache
+            .notify_pending_response(self.id, FetchResponseMsg::ProcessResponseEOF(response));
     }
 }
 
@@ -230,9 +230,11 @@ impl PreInvoke for ImageContext {
 impl HTMLImageElement {
     /// Update the current image with a valid URL.
     fn fetch_image(&self, img_url: &ServoUrl) {
-        fn add_cache_listener_for_element(image_cache: Arc<ImageCache>,
-                                          id: PendingImageId,
-                                          elem: &HTMLImageElement) {
+        fn add_cache_listener_for_element(
+            image_cache: Arc<ImageCache>,
+            id: PendingImageId,
+            elem: &HTMLImageElement,
+        ) {
             let trusted_node = Trusted::new(elem);
             let (responder_sender, responder_receiver) = ipc::channel().unwrap();
 
@@ -240,55 +242,59 @@ impl HTMLImageElement {
             let task_source = window.networking_task_source();
             let task_canceller = window.task_canceller(TaskSourceName::Networking);
             let generation = elem.generation.get();
-            ROUTER.add_route(responder_receiver.to_opaque(), Box::new(move |message| {
-                debug!("Got image {:?}", message);
-                // Return the image via a message to the script thread, which marks
-                // the element as dirty and triggers a reflow.
-                let element = trusted_node.clone();
-                let image = message.to().unwrap();
-                // FIXME(nox): Why are errors silenced here?
-                let _ = task_source.queue_with_canceller(
-                    task!(process_image_response: move || {
+            ROUTER.add_route(
+                responder_receiver.to_opaque(),
+                Box::new(move |message| {
+                    debug!("Got image {:?}", message);
+                    // Return the image via a message to the script thread, which marks
+                    // the element as dirty and triggers a reflow.
+                    let element = trusted_node.clone();
+                    let image = message.to().unwrap();
+                    // FIXME(nox): Why are errors silenced here?
+                    let _ = task_source.queue_with_canceller(
+                        task!(process_image_response: move || {
                         let element = element.root();
                         // Ignore any image response for a previous request that has been discarded.
                         if generation == element.generation.get() {
                             element.process_image_response(image);
                         }
                     }),
-                    &task_canceller,
-                );
-            }));
+                        &task_canceller,
+                    );
+                }),
+            );
 
             image_cache.add_listener(id, ImageResponder::new(responder_sender, id));
         }
 
         let window = window_from_node(self);
         let image_cache = window.image_cache();
-        let response =
-            image_cache.find_image_or_metadata(img_url.clone().into(),
-                                               UsePlaceholder::Yes,
-                                               CanRequestImages::Yes);
+        let response = image_cache.find_image_or_metadata(
+            img_url.clone().into(),
+            UsePlaceholder::Yes,
+            CanRequestImages::Yes,
+        );
         match response {
             Ok(ImageOrMetadataAvailable::ImageAvailable(image, url)) => {
                 self.process_image_response(ImageResponse::Loaded(image, url));
-            }
+            },
 
             Ok(ImageOrMetadataAvailable::MetadataAvailable(m)) => {
                 self.process_image_response(ImageResponse::MetadataLoaded(m));
-            }
+            },
 
             Err(ImageState::Pending(id)) => {
                 add_cache_listener_for_element(image_cache.clone(), id, self);
-            }
+            },
 
             Err(ImageState::LoadError) => {
                 self.process_image_response(ImageResponse::None);
-            }
+            },
 
             Err(ImageState::NotRequested(id)) => {
                 add_cache_listener_for_element(image_cache, id, self);
                 self.fetch_request(img_url, id);
-            }
+            },
         }
     }
 
@@ -309,27 +315,32 @@ impl HTMLImageElement {
             task_source: window.networking_task_source(),
             canceller: Some(window.task_canceller(TaskSourceName::Networking)),
         };
-        ROUTER.add_route(action_receiver.to_opaque(), Box::new(move |message| {
-            listener.notify_fetch(message.to().unwrap());
-        }));
+        ROUTER.add_route(
+            action_receiver.to_opaque(),
+            Box::new(move |message| {
+                listener.notify_fetch(message.to().unwrap());
+            }),
+        );
 
         let request = RequestInit {
             url: img_url.clone(),
             origin: document.origin().immutable().clone(),
             pipeline_id: Some(document.global().pipeline_id()),
-            .. RequestInit::default()
+            ..RequestInit::default()
         };
 
         // This is a background load because the load blocker already fulfills the
         // purpose of delaying the document's load event.
-        document.loader_mut().fetch_async_background(request, action_sender);
+        document
+            .loader_mut()
+            .fetch_async_background(request, action_sender);
     }
 
     // Steps common to when an image has been loaded.
     fn handle_loaded_image(&self, image: Arc<Image>, url: ServoUrl) {
         self.current_request.borrow_mut().metadata = Some(ImageMetadata {
             height: image.height,
-            width: image.width
+            width: image.width,
         });
         self.current_request.borrow_mut().final_url = Some(url);
         self.current_request.borrow_mut().image = Some(image);
@@ -402,16 +413,18 @@ impl HTMLImageElement {
         window.add_pending_reflow();
     }
 
-    fn process_image_response_for_environment_change(&self,
-                                                     image: ImageResponse,
-                                                     src: DOMString,
-                                                     generation: u32,
-                                                     selected_pixel_density: f64) {
+    fn process_image_response_for_environment_change(
+        &self,
+        image: ImageResponse,
+        src: DOMString,
+        generation: u32,
+        selected_pixel_density: f64,
+    ) {
         match image {
             ImageResponse::Loaded(image, url) | ImageResponse::PlaceholderLoaded(image, url) => {
                 self.pending_request.borrow_mut().metadata = Some(ImageMetadata {
                     height: image.height,
-                    width: image.width
+                    width: image.width,
                 });
                 self.pending_request.borrow_mut().final_url = Some(url);
                 self.pending_request.borrow_mut().image = Some(image);
@@ -451,29 +464,27 @@ impl HTMLImageElement {
             Some(p) => {
                 if p.is::<HTMLPictureElement>() {
                     nodes = p.upcast::<Node>().children();
-                    nodes.filter_map(DomRoot::downcast::<Element>)
-                        .map(|n| DomRoot::from_ref(&*n)).collect()
+                    nodes
+                        .filter_map(DomRoot::downcast::<Element>)
+                        .map(|n| DomRoot::from_ref(&*n))
+                        .collect()
                 } else {
                     vec![DomRoot::from_ref(&*elem)]
                 }
-            }
-            None => {
-                vec![DomRoot::from_ref(&*elem)]
-            }
+            },
+            None => vec![DomRoot::from_ref(&*elem)],
         };
 
         // Step 3
         let width = match elem.get_attribute(&ns!(), &local_name!("width")) {
-            Some(x) => {
-                match parse_length(&x.value()) {
-                    LengthOrPercentageOrAuto::Length(x) =>{
-                        let abs_length = AbsoluteLength::Px(x.to_f32_px());
-                        Some(Length::NoCalc(NoCalcLength::Absolute(abs_length)))
-                    },
-                    _ => None
-                }
+            Some(x) => match parse_length(&x.value()) {
+                LengthOrPercentageOrAuto::Length(x) => {
+                    let abs_length = AbsoluteLength::Px(x.to_f32_px());
+                    Some(Length::NoCalc(NoCalcLength::Absolute(abs_length)))
+                },
+                _ => None,
             },
-            None => None
+            None => None,
         };
 
         // Step 4
@@ -495,14 +506,21 @@ impl HTMLImageElement {
                 // Step 4.1.3
                 let src_attribute = element.get_string_attribute(&local_name!("src"));
                 let is_src_empty = src_attribute.is_empty();
-                let no_density_source_of_1 = source_set.image_sources.iter()
-                                                .all(|source| source.descriptor.den != Some(1.));
-                let no_width_descriptor = source_set.image_sources.iter()
-                                            .all(|source| source.descriptor.wid.is_none());
+                let no_density_source_of_1 = source_set
+                    .image_sources
+                    .iter()
+                    .all(|source| source.descriptor.den != Some(1.));
+                let no_width_descriptor = source_set
+                    .image_sources
+                    .iter()
+                    .all(|source| source.descriptor.wid.is_none());
                 if !is_src_empty && no_density_source_of_1 && no_width_descriptor {
                     source_set.image_sources.push(ImageSource {
                         url: src_attribute.to_string(),
-                        descriptor: Descriptor { wid: None, den: None }
+                        descriptor: Descriptor {
+                            wid: None,
+                            den: None,
+                        },
                     })
                 }
 
@@ -525,8 +543,8 @@ impl HTMLImageElement {
             match element.get_attribute(&ns!(), &local_name!("srcset")) {
                 Some(x) => {
                     source_set.image_sources = parse_a_srcset_attribute(&x.value());
-                }
-                _ => continue
+                },
+                _ => continue,
             }
 
             // Step 4.5
@@ -552,12 +570,11 @@ impl HTMLImageElement {
                 // TODO Handle unsupported mime type
                 let mime = x.value().parse::<Mime>();
                 match mime {
-                    Ok(m) =>
-                        match m {
-                            Mime(TopLevel::Image, _, _) => (),
-                            _ => continue
-                        },
-                    _ => continue
+                    Ok(m) => match m {
+                        Mime(TopLevel::Image, _, _) => (),
+                        _ => continue,
+                    },
+                    _ => continue,
                 }
             }
 
@@ -570,7 +587,11 @@ impl HTMLImageElement {
         }
     }
 
-    fn evaluate_source_size_list(&self, source_size_list: &mut SourceSizeList, _width: Option<Length>) -> Au {
+    fn evaluate_source_size_list(
+        &self,
+        source_size_list: &mut SourceSizeList,
+        _width: Option<Length>,
+    ) -> Au {
         let document = document_from_node(self);
         let device = document.device();
         if !device.is_some() {
@@ -632,7 +653,7 @@ impl HTMLImageElement {
                 //Step 2.3
                 imgsource.descriptor.den = Some(1 as f64);
             }
-        };
+        }
     }
 
     /// <https://html.spec.whatwg.org/multipage/#select-an-image-source>
@@ -689,13 +710,18 @@ impl HTMLImageElement {
             }
         }
         let selected_source = img_sources.remove(best_candidate.1).clone();
-        Some((DOMString::from_string(selected_source.url), selected_source.descriptor.den.unwrap() as f64))
+        Some((
+            DOMString::from_string(selected_source.url),
+            selected_source.descriptor.den.unwrap() as f64,
+        ))
     }
 
-    fn init_image_request(&self,
-                          request: &mut RefMut<ImageRequest>,
-                          url: &ServoUrl,
-                          src: &DOMString) {
+    fn init_image_request(
+        &self,
+        request: &mut RefMut<ImageRequest>,
+        url: &ServoUrl,
+        src: &DOMString,
+    ) {
         request.parsed_url = Some(url.clone());
         request.source_url = Some(src.clone());
         request.image = None;
@@ -712,7 +738,7 @@ impl HTMLImageElement {
                 if let Some(pending_url) = self.pending_request.borrow().parsed_url.clone() {
                     // Step 13
                     if pending_url == *url {
-                        return
+                        return;
                     }
                 }
             },
@@ -729,7 +755,7 @@ impl HTMLImageElement {
                             pending_request.parsed_url = None;
                             LoadBlocker::terminate(&mut pending_request.blocker);
                             // TODO: queue a task to restart animation, if restart-animation is set
-                            return
+                            return;
                         }
                         pending_request.current_pixel_density = Some(selected_pixel_density);
                         self.image_request.set(ImageRequestPhase::Pending);
@@ -747,7 +773,7 @@ impl HTMLImageElement {
                         self.init_image_request(&mut pending_request, &url, &src);
                     },
                 }
-            }
+            },
         }
         self.fetch_image(&url);
     }
@@ -841,7 +867,7 @@ impl HTMLImageElement {
                     }),
                     window.upcast(),
                 );
-            }
+            },
         }
     }
 
@@ -873,7 +899,9 @@ impl HTMLImageElement {
         let mut selected_source = None;
         let mut pixel_density = None;
         let src_set = elem.get_string_attribute(&local_name!("srcset"));
-        let is_parent_picture = elem.upcast::<Node>().GetParentElement()
+        let is_parent_picture = elem
+            .upcast::<Node>()
+            .GetParentElement()
             .map_or(false, |p| p.is::<HTMLPictureElement>());
         if src_set.is_empty() && !is_parent_picture && !src.is_empty() {
             selected_source = Some(src.clone());
@@ -884,15 +912,23 @@ impl HTMLImageElement {
         *self.last_selected_source.borrow_mut() = selected_source.clone();
 
         // Step 6, check the list of available images
-        if !selected_source.as_ref().map_or(false, |source| source.is_empty()) {
+        if !selected_source
+            .as_ref()
+            .map_or(false, |source| source.is_empty())
+        {
             if let Ok(img_url) = base_url.join(&src) {
                 let image_cache = window.image_cache();
-                let response = image_cache.find_image_or_metadata(img_url.clone().into(),
-                                                                  UsePlaceholder::No,
-                                                                  CanRequestImages::No);
+                let response = image_cache.find_image_or_metadata(
+                    img_url.clone().into(),
+                    UsePlaceholder::No,
+                    CanRequestImages::No,
+                );
                 if let Ok(ImageOrMetadataAvailable::ImageAvailable(image, url)) = response {
                     // Step 6.3
-                    let metadata = ImageMetadata { height: image.height, width: image.width };
+                    let metadata = ImageMetadata {
+                        height: image.height,
+                        width: image.width,
+                    };
                     // Step 6.3.2 abort requests
                     self.abort_request(State::CompletelyAvailable, ImageRequestPhase::Current);
                     self.abort_request(State::CompletelyAvailable, ImageRequestPhase::Pending);
@@ -944,11 +980,13 @@ impl HTMLImageElement {
     /// Step 2-12 of https://html.spec.whatwg.org/multipage/#img-environment-changes
     fn react_to_environment_changes_sync_steps(&self, generation: u32) {
         // TODO reduce duplicacy of this code
-        fn add_cache_listener_for_element(image_cache: Arc<ImageCache>,
-                                          id: PendingImageId,
-                                          elem: &HTMLImageElement,
-                                          selected_source: String,
-                                          selected_pixel_density: f64) {
+        fn add_cache_listener_for_element(
+            image_cache: Arc<ImageCache>,
+            id: PendingImageId,
+            elem: &HTMLImageElement,
+            selected_source: String,
+            selected_pixel_density: f64,
+        ) {
             let trusted_node = Trusted::new(elem);
             let (responder_sender, responder_receiver) = ipc::channel().unwrap();
 
@@ -981,9 +1019,9 @@ impl HTMLImageElement {
 
         let elem = self.upcast::<Element>();
         let document = document_from_node(elem);
-        let has_pending_request =  match self.image_request.get() {
+        let has_pending_request = match self.image_request.get() {
             ImageRequestPhase::Pending => true,
-            _ => false
+            _ => false,
         };
 
         // Step 2
@@ -1003,7 +1041,8 @@ impl HTMLImageElement {
             _ => false,
         };
 
-        let same_selected_pixel_density = match self.current_request.borrow().current_pixel_density {
+        let same_selected_pixel_density = match self.current_request.borrow().current_pixel_density
+        {
             Some(den) => selected_pixel_density == den,
             _ => false,
         };
@@ -1021,46 +1060,78 @@ impl HTMLImageElement {
 
         // Step 12
         self.image_request.set(ImageRequestPhase::Pending);
-        self.init_image_request(&mut self.pending_request.borrow_mut(), &img_url, &selected_source);
+        self.init_image_request(
+            &mut self.pending_request.borrow_mut(),
+            &img_url,
+            &selected_source,
+        );
 
         let window = window_from_node(self);
         let image_cache = window.image_cache();
         // Step 14
-        let response =
-            image_cache.find_image_or_metadata(img_url.clone().into(),
-                                               UsePlaceholder::No,
-                                               CanRequestImages::Yes);
+        let response = image_cache.find_image_or_metadata(
+            img_url.clone().into(),
+            UsePlaceholder::No,
+            CanRequestImages::Yes,
+        );
         match response {
             Ok(ImageOrMetadataAvailable::ImageAvailable(_image, _url)) => {
                 // Step 15
-                self.finish_reacting_to_environment_change(selected_source, generation, selected_pixel_density);
-            }
+                self.finish_reacting_to_environment_change(
+                    selected_source,
+                    generation,
+                    selected_pixel_density,
+                );
+            },
 
             Ok(ImageOrMetadataAvailable::MetadataAvailable(m)) => {
-                self.process_image_response_for_environment_change(ImageResponse::MetadataLoaded(m),
-                                                                   selected_source, generation, selected_pixel_density);
-            }
+                self.process_image_response_for_environment_change(
+                    ImageResponse::MetadataLoaded(m),
+                    selected_source,
+                    generation,
+                    selected_pixel_density,
+                );
+            },
 
             Err(ImageState::Pending(id)) => {
-                add_cache_listener_for_element(image_cache.clone(), id, self,
-                                               selected_source.to_string(), selected_pixel_density);
-            }
+                add_cache_listener_for_element(
+                    image_cache.clone(),
+                    id,
+                    self,
+                    selected_source.to_string(),
+                    selected_pixel_density,
+                );
+            },
 
             Err(ImageState::LoadError) => {
-                self.process_image_response_for_environment_change(ImageResponse::None,
-                                                                   selected_source, generation, selected_pixel_density);
-            }
+                self.process_image_response_for_environment_change(
+                    ImageResponse::None,
+                    selected_source,
+                    generation,
+                    selected_pixel_density,
+                );
+            },
 
             Err(ImageState::NotRequested(id)) => {
-                add_cache_listener_for_element(image_cache, id, self, selected_source.to_string(),
-                                               selected_pixel_density);
+                add_cache_listener_for_element(
+                    image_cache,
+                    id,
+                    self,
+                    selected_source.to_string(),
+                    selected_pixel_density,
+                );
                 self.fetch_request(&img_url, id);
-            }
+            },
         }
     }
 
     /// Step 15 for <https://html.spec.whatwg.org/multipage/#img-environment-changes>
-    fn finish_reacting_to_environment_change(&self, src: DOMString, generation: u32, selected_pixel_density: f64) {
+    fn finish_reacting_to_environment_change(
+        &self,
+        src: DOMString,
+        generation: u32,
+        selected_pixel_density: f64,
+    ) {
         let this = Trusted::new(self);
         let window = window_from_node(self);
         let src = src.to_string();
@@ -1103,12 +1174,18 @@ impl HTMLImageElement {
 
     fn uses_srcset_or_picture(elem: &Element) -> bool {
         let has_src = elem.has_attribute(&local_name!("srcset"));
-        let is_parent_picture = elem.upcast::<Node>().GetParentElement()
+        let is_parent_picture = elem
+            .upcast::<Node>()
+            .GetParentElement()
             .map_or(false, |p| p.is::<HTMLPictureElement>());
         has_src || is_parent_picture
     }
 
-    fn new_inherited(local_name: LocalName, prefix: Option<Prefix>, document: &Document) -> HTMLImageElement {
+    fn new_inherited(
+        local_name: LocalName,
+        prefix: Option<Prefix>,
+        document: &Document,
+    ) -> HTMLImageElement {
         HTMLImageElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
             image_request: Cell::new(ImageRequestPhase::Current),
@@ -1140,17 +1217,25 @@ impl HTMLImageElement {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(local_name: LocalName,
-               prefix: Option<Prefix>,
-               document: &Document) -> DomRoot<HTMLImageElement> {
-        Node::reflect_node(Box::new(HTMLImageElement::new_inherited(local_name, prefix, document)),
-                           document,
-                           HTMLImageElementBinding::Wrap)
+    pub fn new(
+        local_name: LocalName,
+        prefix: Option<Prefix>,
+        document: &Document,
+    ) -> DomRoot<HTMLImageElement> {
+        Node::reflect_node(
+            Box::new(HTMLImageElement::new_inherited(
+                local_name, prefix, document,
+            )),
+            document,
+            HTMLImageElementBinding::Wrap,
+        )
     }
 
-    pub fn Image(window: &Window,
-                 width: Option<u32>,
-                 height: Option<u32>) -> Fallible<DomRoot<HTMLImageElement>> {
+    pub fn Image(
+        window: &Window,
+        width: Option<u32>,
+        height: Option<u32>,
+    ) -> Fallible<DomRoot<HTMLImageElement>> {
         let document = window.Document();
         let image = HTMLImageElement::new(local_name!("img"), None, &document);
         if let Some(w) = width {
@@ -1169,19 +1254,24 @@ impl HTMLImageElement {
         let value = usemap_attr.value();
 
         if value.len() == 0 || !value.is_char_boundary(1) {
-            return None
+            return None;
         }
 
         let (first, last) = value.split_at(1);
 
         if first != "#" || last.len() == 0 {
-            return None
+            return None;
         }
 
-        let useMapElements = document_from_node(self).upcast::<Node>()
-                                .traverse_preorder()
-                                .filter_map(DomRoot::downcast::<HTMLMapElement>)
-                                .find(|n| n.upcast::<Element>().get_string_attribute(&LocalName::from("name")) == last);
+        let useMapElements = document_from_node(self)
+            .upcast::<Node>()
+            .traverse_preorder()
+            .filter_map(DomRoot::downcast::<HTMLMapElement>)
+            .find(|n| {
+                n.upcast::<Element>()
+                    .get_string_attribute(&LocalName::from("name")) ==
+                    last
+            });
 
         useMapElements.map(|mapElem| mapElem.get_area_elements())
     }
@@ -1189,10 +1279,9 @@ impl HTMLImageElement {
     pub fn get_origin(&self) -> Option<ImmutableOrigin> {
         match self.current_request.borrow_mut().final_url {
             Some(ref url) => Some(url.origin()),
-            None => None
+            None => None,
         }
     }
-
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
@@ -1204,20 +1293,26 @@ pub enum ImageElementMicrotask {
     EnvironmentChangesTask {
         elem: DomRoot<HTMLImageElement>,
         generation: u32,
-    }
+    },
 }
 
 impl MicrotaskRunnable for ImageElementMicrotask {
     fn handler(&self) {
         match self {
-            &ImageElementMicrotask::StableStateUpdateImageDataTask { ref elem, ref generation } => {
+            &ImageElementMicrotask::StableStateUpdateImageDataTask {
+                ref elem,
+                ref generation,
+            } => {
                 // Step 7 of https://html.spec.whatwg.org/multipage/#update-the-image-data,
                 // stop here if other instances of this algorithm have been scheduled
                 if elem.generation.get() == *generation {
                     elem.update_the_image_data_sync_steps();
                 }
             },
-            &ImageElementMicrotask::EnvironmentChangesTask { ref elem, ref generation } => {
+            &ImageElementMicrotask::EnvironmentChangesTask {
+                ref elem,
+                ref generation,
+            } => {
                 elem.react_to_environment_changes_sync_steps(*generation);
             },
         }
@@ -1241,17 +1336,29 @@ pub trait LayoutHTMLImageElementHelpers {
 impl LayoutHTMLImageElementHelpers for LayoutDom<HTMLImageElement> {
     #[allow(unsafe_code)]
     unsafe fn image(&self) -> Option<Arc<Image>> {
-        (*self.unsafe_get()).current_request.borrow_for_layout().image.clone()
+        (*self.unsafe_get())
+            .current_request
+            .borrow_for_layout()
+            .image
+            .clone()
     }
 
     #[allow(unsafe_code)]
     unsafe fn image_url(&self) -> Option<ServoUrl> {
-        (*self.unsafe_get()).current_request.borrow_for_layout().parsed_url.clone()
+        (*self.unsafe_get())
+            .current_request
+            .borrow_for_layout()
+            .parsed_url
+            .clone()
     }
 
     #[allow(unsafe_code)]
     unsafe fn image_density(&self) -> Option<f64> {
-        (*self.unsafe_get()).current_request.borrow_for_layout().current_pixel_density.clone()
+        (*self.unsafe_get())
+            .current_request
+            .borrow_for_layout()
+            .current_pixel_density
+            .clone()
     }
 
     #[allow(unsafe_code)]
@@ -1383,11 +1490,11 @@ impl HTMLImageElementMethods for HTMLImageElement {
         let elem = self.upcast::<Element>();
         // TODO: take srcset into account
         if !elem.has_attribute(&local_name!("src")) {
-            return true
+            return true;
         }
         let src = elem.get_string_attribute(&local_name!("src"));
         if src.is_empty() {
-            return true
+            return true;
         }
         let request = self.current_request.borrow();
         let request_state = request.state;
@@ -1407,7 +1514,7 @@ impl HTMLImageElementMethods for HTMLImageElement {
                 let ref unparsed_url = current_request.source_url;
                 match *unparsed_url {
                     Some(ref url) => url.clone(),
-                    None => DOMString::from("")
+                    None => DOMString::from(""),
                 }
             },
         }
@@ -1477,46 +1584,53 @@ impl VirtualMethods for HTMLImageElement {
     fn parse_plain_attribute(&self, name: &LocalName, value: DOMString) -> AttrValue {
         match name {
             &local_name!("name") => AttrValue::from_atomic(value.into()),
-            &local_name!("width") | &local_name!("height") => AttrValue::from_dimension(value.into()),
+            &local_name!("width") | &local_name!("height") => {
+                AttrValue::from_dimension(value.into())
+            },
             &local_name!("hspace") | &local_name!("vspace") => AttrValue::from_u32(value.into(), 0),
-            _ => self.super_type().unwrap().parse_plain_attribute(name, value),
+            _ => self
+                .super_type()
+                .unwrap()
+                .parse_plain_attribute(name, value),
         }
     }
 
     fn handle_event(&self, event: &Event) {
         if event.type_() != atom!("click") {
-            return
+            return;
         }
 
-       let area_elements = self.areas();
-       let elements = match area_elements {
-           Some(x) => x,
-           None => return,
-       };
+        let area_elements = self.areas();
+        let elements = match area_elements {
+            Some(x) => x,
+            None => return,
+        };
 
-       // Fetch click coordinates
-       let mouse_event = match event.downcast::<MouseEvent>() {
-           Some(x) => x,
-           None => return,
-       };
+        // Fetch click coordinates
+        let mouse_event = match event.downcast::<MouseEvent>() {
+            Some(x) => x,
+            None => return,
+        };
 
-       let point = Point2D::new(mouse_event.ClientX().to_f32().unwrap(),
-                                mouse_event.ClientY().to_f32().unwrap());
-       let bcr = self.upcast::<Element>().GetBoundingClientRect();
-       let bcr_p = Point2D::new(bcr.X() as f32, bcr.Y() as f32);
+        let point = Point2D::new(
+            mouse_event.ClientX().to_f32().unwrap(),
+            mouse_event.ClientY().to_f32().unwrap(),
+        );
+        let bcr = self.upcast::<Element>().GetBoundingClientRect();
+        let bcr_p = Point2D::new(bcr.X() as f32, bcr.Y() as f32);
 
-       // Walk HTMLAreaElements
-       for element in elements {
-           let shape = element.get_shape_from_coords();
-           let shp = match shape {
-               Some(x) => x.absolute_coords(bcr_p),
-               None => return,
-           };
-           if shp.hit_test(&point) {
-               element.activation_behavior(event, self.upcast());
-               return
-           }
-       }
+        // Walk HTMLAreaElements
+        for element in elements {
+            let shape = element.get_shape_from_coords();
+            let shp = match shape {
+                Some(x) => x.absolute_coords(bcr_p),
+                None => return,
+            };
+            if shp.hit_test(&point) {
+                element.activation_behavior(event, self.upcast());
+                return;
+            }
+        }
     }
 
     fn bind_to_tree(&self, tree_in_doc: bool) {
@@ -1562,11 +1676,7 @@ impl FormControl for HTMLImageElement {
 fn image_dimension_setter(element: &Element, attr: LocalName, value: u32) {
     // This setter is a bit weird: the IDL type is unsigned long, but it's parsed as
     // a dimension for rendering.
-    let value = if value > UNSIGNED_LONG_MAX {
-        0
-    } else {
-        value
-    };
+    let value = if value > UNSIGNED_LONG_MAX { 0 } else { value };
 
     // FIXME: There are probably quite a few more cases of this. This is the
     // only overflow that was hitting on automation, but we should consider what
@@ -1586,11 +1696,12 @@ fn image_dimension_setter(element: &Element, attr: LocalName, value: u32) {
 
 /// Collect sequence of code points
 pub fn collect_sequence_characters<F>(s: &str, predicate: F) -> (&str, &str)
-    where F: Fn(&char) -> bool
+where
+    F: Fn(&char) -> bool,
 {
     for (i, ch) in s.chars().enumerate() {
         if !predicate(&ch) {
-            return (&s[0..i], &s[i..])
+            return (&s[0..i], &s[i..]);
         }
     }
 
@@ -1603,7 +1714,8 @@ pub fn parse_a_srcset_attribute(input: &str) -> Vec<ImageSource> {
     let mut candidates: Vec<ImageSource> = vec![];
     while url_len < input.len() {
         let position = &input[url_len..];
-        let (spaces, position) = collect_sequence_characters(position, |c| *c == ',' || char::is_whitespace(*c));
+        let (spaces, position) =
+            collect_sequence_characters(position, |c| *c == ',' || char::is_whitespace(*c));
         // add the length of the url that we parse to advance the start index
         let space_len = spaces.char_indices().count();
         url_len += space_len;
@@ -1614,7 +1726,10 @@ pub fn parse_a_srcset_attribute(input: &str) -> Vec<ImageSource> {
         // add the counts of urls that we parse to advance the start index
         url_len += url.chars().count();
         let comma_count = url.chars().rev().take_while(|c| *c == ',').count();
-        let url: String = url.chars().take(url.chars().count() - comma_count).collect();
+        let url: String = url
+            .chars()
+            .take(url.chars().count() - comma_count)
+            .collect();
         // add 1 to start index, for the comma
         url_len += comma_count + 1;
         let (space, position) = collect_sequence_characters(spaces, |c| char::is_whitespace(*c));
@@ -1631,76 +1746,70 @@ pub fn parse_a_srcset_attribute(input: &str) -> Vec<ImageSource> {
                 url_len += 1;
             }
             match state {
-                ParseState::InDescriptor => {
-                    match next_char {
-                        Some((_, ' ')) => {
-                            if !current_descriptor.is_empty() {
-                                descriptors.push(current_descriptor.clone());
-                                current_descriptor = String::new();
-                                state = ParseState::AfterDescriptor;
-                            }
-                            continue;
-                        }
-                        Some((_, ',')) => {
-                            if !current_descriptor.is_empty() {
-                                descriptors.push(current_descriptor.clone());
-                            }
-                            break;
-                        }
-                        Some((_, c @ '(')) => {
-                            current_descriptor.push(c);
-                            state = ParseState::InParens;
-                            continue;
-                        }
-                        Some((_, c)) => {
-                            current_descriptor.push(c);
-                        }
-                        None => {
-                            if !current_descriptor.is_empty() {
-                                descriptors.push(current_descriptor.clone());
-                            }
-                            break;
-                        }
-                    }
-                }
-                ParseState::InParens => {
-                    match next_char {
-                        Some((_, c @ ')')) => {
-                            current_descriptor.push(c);
-                            state = ParseState::InDescriptor;
-                            continue;
-                        }
-                        Some((_, c)) => {
-                            current_descriptor.push(c);
-                            continue;
-                        }
-                        None => {
-                            if !current_descriptor.is_empty() {
-                                descriptors.push(current_descriptor.clone());
-                            }
-                            break;
-                        }
-                    }
-                }
-                ParseState::AfterDescriptor => {
-                    match next_char {
-                        Some((_, ' ')) => {
+                ParseState::InDescriptor => match next_char {
+                    Some((_, ' ')) => {
+                        if !current_descriptor.is_empty() {
+                            descriptors.push(current_descriptor.clone());
+                            current_descriptor = String::new();
                             state = ParseState::AfterDescriptor;
-                            continue;
                         }
-                        Some((idx, c)) => {
-                            state = ParseState::InDescriptor;
-                            buffered = Some((idx, c));
-                            continue;
+                        continue;
+                    },
+                    Some((_, ',')) => {
+                        if !current_descriptor.is_empty() {
+                            descriptors.push(current_descriptor.clone());
                         }
-                        None => {
-                            if !current_descriptor.is_empty() {
-                                descriptors.push(current_descriptor.clone());
-                            }
-                            break;
+                        break;
+                    },
+                    Some((_, c @ '(')) => {
+                        current_descriptor.push(c);
+                        state = ParseState::InParens;
+                        continue;
+                    },
+                    Some((_, c)) => {
+                        current_descriptor.push(c);
+                    },
+                    None => {
+                        if !current_descriptor.is_empty() {
+                            descriptors.push(current_descriptor.clone());
                         }
-                    }
-                }
+                        break;
+                    },
+                },
+                ParseState::InParens => match next_char {
+                    Some((_, c @ ')')) => {
+                        current_descriptor.push(c);
+                        state = ParseState::InDescriptor;
+                        continue;
+                    },
+                    Some((_, c)) => {
+                        current_descriptor.push(c);
+                        continue;
+                    },
+                    None => {
+                        if !current_descriptor.is_empty() {
+                            descriptors.push(current_descriptor.clone());
+                        }
+                        break;
+                    },
+                },
+                ParseState::AfterDescriptor => match next_char {
+                    Some((_, ' ')) => {
+                        state = ParseState::AfterDescriptor;
+                        continue;
+                    },
+                    Some((idx, c)) => {
+                        state = ParseState::InDescriptor;
+                        buffered = Some((idx, c));
+                        continue;
+                    },
+                    None => {
+                        if !current_descriptor.is_empty() {
+                            descriptors.push(current_descriptor.clone());
+                        }
+                        break;
+                    },
+                },
             }
         }
 
@@ -1709,7 +1818,8 @@ pub fn parse_a_srcset_attribute(input: &str) -> Vec<ImageSource> {
         let mut density: Option<f64> = None;
         let mut future_compat_h: Option<u32> = None;
         for descriptor in descriptors {
-            let (digits, remaining) = collect_sequence_characters(&descriptor, |c| is_ascii_digit(c) || *c == '.');
+            let (digits, remaining) =
+                collect_sequence_characters(&descriptor, |c| is_ascii_digit(c) || *c == '.');
             let valid_non_negative_integer = parse_unsigned_integer(digits.chars());
             let has_w = remaining == "w";
             let valid_floating_point = parse_double(digits);
@@ -1750,8 +1860,14 @@ pub fn parse_a_srcset_attribute(input: &str) -> Vec<ImageSource> {
             error = true;
         }
         if !error {
-            let descriptor = Descriptor { wid: width, den: density };
-            let image_source = ImageSource { url: url, descriptor: descriptor };
+            let descriptor = Descriptor {
+                wid: width,
+                den: density,
+            };
+            let image_source = ImageSource {
+                url: url,
+                descriptor: descriptor,
+            };
             candidates.push(image_source);
         }
     }

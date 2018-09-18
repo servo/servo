@@ -23,8 +23,10 @@ pub struct CSSNamespaceRule {
 }
 
 impl CSSNamespaceRule {
-    fn new_inherited(parent_stylesheet: &CSSStyleSheet, namespacerule: Arc<Locked<NamespaceRule>>)
-                     -> CSSNamespaceRule {
+    fn new_inherited(
+        parent_stylesheet: &CSSStyleSheet,
+        namespacerule: Arc<Locked<NamespaceRule>>,
+    ) -> CSSNamespaceRule {
         CSSNamespaceRule {
             cssrule: CSSRule::new_inherited(parent_stylesheet),
             namespacerule: namespacerule,
@@ -32,11 +34,19 @@ impl CSSNamespaceRule {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(window: &Window, parent_stylesheet: &CSSStyleSheet,
-               namespacerule: Arc<Locked<NamespaceRule>>) -> DomRoot<CSSNamespaceRule> {
-        reflect_dom_object(Box::new(CSSNamespaceRule::new_inherited(parent_stylesheet, namespacerule)),
-                           window,
-                           CSSNamespaceRuleBinding::Wrap)
+    pub fn new(
+        window: &Window,
+        parent_stylesheet: &CSSStyleSheet,
+        namespacerule: Arc<Locked<NamespaceRule>>,
+    ) -> DomRoot<CSSNamespaceRule> {
+        reflect_dom_object(
+            Box::new(CSSNamespaceRule::new_inherited(
+                parent_stylesheet,
+                namespacerule,
+            )),
+            window,
+            CSSNamespaceRuleBinding::Wrap,
+        )
     }
 }
 
@@ -44,8 +54,11 @@ impl CSSNamespaceRuleMethods for CSSNamespaceRule {
     // https://drafts.csswg.org/cssom/#dom-cssnamespacerule-prefix
     fn Prefix(&self) -> DOMString {
         let guard = self.cssrule.shared_lock().read();
-        self.namespacerule.read_with(&guard).prefix
-            .as_ref().map(|s| s.to_string().into())
+        self.namespacerule
+            .read_with(&guard)
+            .prefix
+            .as_ref()
+            .map(|s| s.to_string().into())
             .unwrap_or(DOMString::new())
     }
 
@@ -64,6 +77,9 @@ impl SpecificCSSRule for CSSNamespaceRule {
 
     fn get_css(&self) -> DOMString {
         let guard = self.cssrule.shared_lock().read();
-        self.namespacerule.read_with(&guard).to_css_string(&guard).into()
+        self.namespacerule
+            .read_with(&guard)
+            .to_css_string(&guard)
+            .into()
     }
 }

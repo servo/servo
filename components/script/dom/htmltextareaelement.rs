@@ -64,9 +64,13 @@ impl LayoutHTMLTextAreaElementHelpers for LayoutDom<HTMLTextAreaElement> {
     #[allow(unrooted_must_root)]
     #[allow(unsafe_code)]
     unsafe fn value_for_layout(self) -> String {
-        let text = (*self.unsafe_get()).textinput.borrow_for_layout().get_content();
+        let text = (*self.unsafe_get())
+            .textinput
+            .borrow_for_layout()
+            .get_content();
         if text.is_empty() {
-            (*self.unsafe_get()).placeholder
+            (*self.unsafe_get())
+                .placeholder
                 .borrow_for_layout()
                 .replace("\r\n", "\n")
                 .replace("\r", "\n")
@@ -114,30 +118,50 @@ const DEFAULT_MAX_LENGTH: i32 = -1;
 const DEFAULT_MIN_LENGTH: i32 = -1;
 
 impl HTMLTextAreaElement {
-    fn new_inherited(local_name: LocalName,
-                     prefix: Option<Prefix>,
-                     document: &Document) -> HTMLTextAreaElement {
-        let chan = document.window().upcast::<GlobalScope>().script_to_constellation_chan().clone();
+    fn new_inherited(
+        local_name: LocalName,
+        prefix: Option<Prefix>,
+        document: &Document,
+    ) -> HTMLTextAreaElement {
+        let chan = document
+            .window()
+            .upcast::<GlobalScope>()
+            .script_to_constellation_chan()
+            .clone();
         HTMLTextAreaElement {
-            htmlelement:
-                HTMLElement::new_inherited_with_state(ElementState::IN_ENABLED_STATE |
-                                                      ElementState::IN_READ_WRITE_STATE,
-                                                      local_name, prefix, document),
+            htmlelement: HTMLElement::new_inherited_with_state(
+                ElementState::IN_ENABLED_STATE | ElementState::IN_READ_WRITE_STATE,
+                local_name,
+                prefix,
+                document,
+            ),
             placeholder: DomRefCell::new(DOMString::new()),
             textinput: DomRefCell::new(TextInput::new(
-                    Lines::Multiple, DOMString::new(), chan, None, None, SelectionDirection::None)),
+                Lines::Multiple,
+                DOMString::new(),
+                chan,
+                None,
+                None,
+                SelectionDirection::None,
+            )),
             value_dirty: Cell::new(false),
             form_owner: Default::default(),
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(local_name: LocalName,
-               prefix: Option<Prefix>,
-               document: &Document) -> DomRoot<HTMLTextAreaElement> {
-        Node::reflect_node(Box::new(HTMLTextAreaElement::new_inherited(local_name, prefix, document)),
-                           document,
-                           HTMLTextAreaElementBinding::Wrap)
+    pub fn new(
+        local_name: LocalName,
+        prefix: Option<Prefix>,
+        document: &Document,
+    ) -> DomRoot<HTMLTextAreaElement> {
+        Node::reflect_node(
+            Box::new(HTMLTextAreaElement::new_inherited(
+                local_name, prefix, document,
+            )),
+            document,
+            HTMLTextAreaElementBinding::Wrap,
+        )
     }
 
     fn update_placeholder_shown_state(&self) {
@@ -280,7 +304,7 @@ impl HTMLTextAreaElementMethods for HTMLTextAreaElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea-textlength
     fn TextLength(&self) -> u32 {
-       self.textinput.borrow().utf16_len() as u32
+        self.textinput.borrow().utf16_len() as u32
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-lfe-labels
@@ -330,16 +354,22 @@ impl HTMLTextAreaElementMethods for HTMLTextAreaElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea/input-setrangetext
     fn SetRangeText(&self, replacement: DOMString) -> ErrorResult {
-        self.selection().set_dom_range_text(replacement, None, None, Default::default())
+        self.selection()
+            .set_dom_range_text(replacement, None, None, Default::default())
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea/input-setrangetext
-    fn SetRangeText_(&self, replacement: DOMString, start: u32, end: u32,
-                     selection_mode: SelectionMode) -> ErrorResult {
-        self.selection().set_dom_range_text(replacement, Some(start), Some(end), selection_mode)
+    fn SetRangeText_(
+        &self,
+        replacement: DOMString,
+        start: u32,
+        end: u32,
+        selection_mode: SelectionMode,
+    ) -> ErrorResult {
+        self.selection()
+            .set_dom_range_text(replacement, Some(start), Some(end), selection_mode)
     }
 }
-
 
 impl HTMLTextAreaElement {
     pub fn reset(&self) {
@@ -354,7 +384,6 @@ impl HTMLTextAreaElement {
         TextControlSelection::new(&self, &self.textinput)
     }
 }
-
 
 impl VirtualMethods for HTMLTextAreaElement {
     fn super_type(&self) -> Option<&VirtualMethods> {
@@ -381,36 +410,32 @@ impl VirtualMethods for HTMLTextAreaElement {
                         if !el.disabled_state() && !el.read_write_state() {
                             el.set_read_write_state(true);
                         }
+                    },
+                }
+            },
+            local_name!("maxlength") => match *attr.value() {
+                AttrValue::Int(_, value) => {
+                    let mut textinput = self.textinput.borrow_mut();
+
+                    if value < 0 {
+                        textinput.set_max_length(None);
+                    } else {
+                        textinput.set_max_length(Some(value as usize))
                     }
-                }
+                },
+                _ => panic!("Expected an AttrValue::Int"),
             },
-            local_name!("maxlength") => {
-                match *attr.value() {
-                    AttrValue::Int(_, value) => {
-                        let mut textinput = self.textinput.borrow_mut();
+            local_name!("minlength") => match *attr.value() {
+                AttrValue::Int(_, value) => {
+                    let mut textinput = self.textinput.borrow_mut();
 
-                        if value < 0 {
-                            textinput.set_max_length(None);
-                        } else {
-                            textinput.set_max_length(Some(value as usize))
-                        }
-                    },
-                    _ => panic!("Expected an AttrValue::Int"),
-                }
-            },
-            local_name!("minlength") => {
-                match *attr.value() {
-                    AttrValue::Int(_, value) => {
-                        let mut textinput = self.textinput.borrow_mut();
-
-                        if value < 0 {
-                            textinput.set_min_length(None);
-                        } else {
-                            textinput.set_min_length(Some(value as usize))
-                        }
-                    },
-                    _ => panic!("Expected an AttrValue::Int"),
-                }
+                    if value < 0 {
+                        textinput.set_min_length(None);
+                    } else {
+                        textinput.set_min_length(Some(value as usize))
+                    }
+                },
+                _ => panic!("Expected an AttrValue::Int"),
             },
             local_name!("placeholder") => {
                 {
@@ -430,7 +455,7 @@ impl VirtualMethods for HTMLTextAreaElement {
                     },
                     AttributeMutation::Removed => {
                         el.set_read_write_state(!el.disabled_state());
-                    }
+                    },
                 }
             },
             local_name!("form") => {
@@ -445,16 +470,24 @@ impl VirtualMethods for HTMLTextAreaElement {
             s.bind_to_tree(tree_in_doc);
         }
 
-        self.upcast::<Element>().check_ancestors_disabled_state_for_form_control();
+        self.upcast::<Element>()
+            .check_ancestors_disabled_state_for_form_control();
     }
 
     fn parse_plain_attribute(&self, name: &LocalName, value: DOMString) -> AttrValue {
         match *name {
             local_name!("cols") => AttrValue::from_limited_u32(value.into(), DEFAULT_COLS),
             local_name!("rows") => AttrValue::from_limited_u32(value.into(), DEFAULT_ROWS),
-            local_name!("maxlength") => AttrValue::from_limited_i32(value.into(), DEFAULT_MAX_LENGTH),
-            local_name!("minlength") => AttrValue::from_limited_i32(value.into(), DEFAULT_MIN_LENGTH),
-            _ => self.super_type().unwrap().parse_plain_attribute(name, value),
+            local_name!("maxlength") => {
+                AttrValue::from_limited_i32(value.into(), DEFAULT_MAX_LENGTH)
+            },
+            local_name!("minlength") => {
+                AttrValue::from_limited_i32(value.into(), DEFAULT_MIN_LENGTH)
+            },
+            _ => self
+                .super_type()
+                .unwrap()
+                .parse_plain_attribute(name, value),
         }
     }
 
@@ -463,7 +496,10 @@ impl VirtualMethods for HTMLTextAreaElement {
 
         let node = self.upcast::<Node>();
         let el = self.upcast::<Element>();
-        if node.ancestors().any(|ancestor| ancestor.is::<HTMLFieldSetElement>()) {
+        if node
+            .ancestors()
+            .any(|ancestor| ancestor.is::<HTMLFieldSetElement>())
+        {
             el.check_ancestors_disabled_state_for_form_control();
         } else {
             el.check_disabled_attribute();
@@ -472,8 +508,12 @@ impl VirtualMethods for HTMLTextAreaElement {
 
     // The cloning steps for textarea elements must propagate the raw value
     // and dirty value flag from the node being cloned to the copy.
-    fn cloning_steps(&self, copy: &Node, maybe_doc: Option<&Document>,
-                     clone_children: CloneChildrenFlag) {
+    fn cloning_steps(
+        &self,
+        copy: &Node,
+        maybe_doc: Option<&Document>,
+        clone_children: CloneChildrenFlag,
+    ) {
         if let Some(ref s) = self.super_type() {
             s.cloning_steps(copy, maybe_doc, clone_children);
         }
@@ -514,23 +554,24 @@ impl VirtualMethods for HTMLTextAreaElement {
                         self.update_placeholder_shown_state();
                         self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
                         event.mark_as_handled();
-                    }
+                    },
                     KeyReaction::RedrawSelection => {
                         self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
                         event.mark_as_handled();
-                    }
+                    },
                     KeyReaction::Nothing => (),
                 }
             }
         } else if event.type_() == atom!("keypress") && !event.DefaultPrevented() {
             if event.IsTrusted() {
                 let window = window_from_node(self);
-                let _ = window.user_interaction_task_source()
-                              .queue_event(&self.upcast(),
-                                           atom!("input"),
-                                           EventBubbles::Bubbles,
-                                           EventCancelable::NotCancelable,
-                                           &window);
+                let _ = window.user_interaction_task_source().queue_event(
+                    &self.upcast(),
+                    atom!("input"),
+                    EventBubbles::Bubbles,
+                    EventCancelable::NotCancelable,
+                    &window,
+                );
             }
         }
     }
@@ -556,6 +597,5 @@ impl FormControl for HTMLTextAreaElement {
         self.upcast::<Element>()
     }
 }
-
 
 impl Validatable for HTMLTextAreaElement {}

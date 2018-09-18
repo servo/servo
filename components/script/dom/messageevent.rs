@@ -30,16 +30,20 @@ pub struct MessageEvent {
 
 impl MessageEvent {
     pub fn new_uninitialized(global: &GlobalScope) -> DomRoot<MessageEvent> {
-        MessageEvent::new_initialized(global,
-                                      HandleValue::undefined(),
-                                      DOMString::new(),
-                                      DOMString::new())
+        MessageEvent::new_initialized(
+            global,
+            HandleValue::undefined(),
+            DOMString::new(),
+            DOMString::new(),
+        )
     }
 
-    pub fn new_initialized(global: &GlobalScope,
-                           data: HandleValue,
-                           origin: DOMString,
-                           lastEventId: DOMString) -> DomRoot<MessageEvent> {
+    pub fn new_initialized(
+        global: &GlobalScope,
+        data: HandleValue,
+        origin: DOMString,
+        lastEventId: DOMString,
+    ) -> DomRoot<MessageEvent> {
         let ev = Box::new(MessageEvent {
             event: Event::new_inherited(),
             data: Heap::default(),
@@ -52,10 +56,15 @@ impl MessageEvent {
         ev
     }
 
-    pub fn new(global: &GlobalScope, type_: Atom,
-               bubbles: bool, cancelable: bool,
-               data: HandleValue, origin: DOMString, lastEventId: DOMString)
-               -> DomRoot<MessageEvent> {
+    pub fn new(
+        global: &GlobalScope,
+        type_: Atom,
+        bubbles: bool,
+        cancelable: bool,
+        data: HandleValue,
+        origin: DOMString,
+        lastEventId: DOMString,
+    ) -> DomRoot<MessageEvent> {
         let ev = MessageEvent::new_initialized(global, data, origin, lastEventId);
         {
             let event = ev.upcast::<Event>();
@@ -64,26 +73,31 @@ impl MessageEvent {
         ev
     }
 
-    pub fn Constructor(global: &GlobalScope,
-                       type_: DOMString,
-                       init: RootedTraceableBox<MessageEventBinding::MessageEventInit>)
-                       -> Fallible<DomRoot<MessageEvent>> {
-        let ev = MessageEvent::new(global,
-                                   Atom::from(type_),
-                                   init.parent.bubbles,
-                                   init.parent.cancelable,
-                                   init.data.handle(),
-                                   init.origin.clone(),
-                                   init.lastEventId.clone());
+    pub fn Constructor(
+        global: &GlobalScope,
+        type_: DOMString,
+        init: RootedTraceableBox<MessageEventBinding::MessageEventInit>,
+    ) -> Fallible<DomRoot<MessageEvent>> {
+        let ev = MessageEvent::new(
+            global,
+            Atom::from(type_),
+            init.parent.bubbles,
+            init.parent.cancelable,
+            init.data.handle(),
+            init.origin.clone(),
+            init.lastEventId.clone(),
+        );
         Ok(ev)
     }
 }
 
 impl MessageEvent {
-    pub fn dispatch_jsval(target: &EventTarget,
-                          scope: &GlobalScope,
-                          message: HandleValue,
-                          origin: Option<&str>) {
+    pub fn dispatch_jsval(
+        target: &EventTarget,
+        scope: &GlobalScope,
+        message: HandleValue,
+        origin: Option<&str>,
+    ) {
         let messageevent = MessageEvent::new(
             scope,
             atom!("message"),
@@ -91,7 +105,8 @@ impl MessageEvent {
             false,
             message,
             DOMString::from(origin.unwrap_or("")),
-            DOMString::new());
+            DOMString::new(),
+        );
         messageevent.upcast::<Event>().fire(target);
     }
 }

@@ -20,25 +20,26 @@ use servo_atoms::Atom;
 #[dom_struct]
 pub struct ExtendableEvent {
     event: Event,
-    extensions_allowed: bool
+    extensions_allowed: bool,
 }
 
 impl ExtendableEvent {
     pub fn new_inherited() -> ExtendableEvent {
         ExtendableEvent {
             event: Event::new_inherited(),
-            extensions_allowed: true
+            extensions_allowed: true,
         }
     }
-    pub fn new(worker: &ServiceWorkerGlobalScope,
-               type_: Atom,
-               bubbles: bool,
-               cancelable: bool)
-               -> DomRoot<ExtendableEvent> {
+    pub fn new(
+        worker: &ServiceWorkerGlobalScope,
+        type_: Atom,
+        bubbles: bool,
+        cancelable: bool,
+    ) -> DomRoot<ExtendableEvent> {
         let ev = reflect_dom_object(
             Box::new(ExtendableEvent::new_inherited()),
             worker,
-            ExtendableEventBinding::Wrap
+            ExtendableEventBinding::Wrap,
         );
         {
             let event = ev.upcast::<Event>();
@@ -47,13 +48,17 @@ impl ExtendableEvent {
         ev
     }
 
-    pub fn Constructor(worker: &ServiceWorkerGlobalScope,
-                       type_: DOMString,
-                       init: &ExtendableEventBinding::ExtendableEventInit) -> Fallible<DomRoot<ExtendableEvent>> {
-        Ok(ExtendableEvent::new(worker,
-                                Atom::from(type_),
-                                init.parent.bubbles,
-                                init.parent.cancelable))
+    pub fn Constructor(
+        worker: &ServiceWorkerGlobalScope,
+        type_: DOMString,
+        init: &ExtendableEventBinding::ExtendableEventInit,
+    ) -> Fallible<DomRoot<ExtendableEvent>> {
+        Ok(ExtendableEvent::new(
+            worker,
+            Atom::from(type_),
+            init.parent.bubbles,
+            init.parent.cancelable,
+        ))
     }
 
     // https://w3c.github.io/ServiceWorker/#wait-until-method

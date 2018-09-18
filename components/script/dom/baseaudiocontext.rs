@@ -96,14 +96,16 @@ impl BaseAudioContext {
     pub fn new_inherited(options: BaseAudioContextOptions) -> BaseAudioContext {
         let (sample_rate, channel_count) = match options {
             BaseAudioContextOptions::AudioContext(ref opt) => (opt.sample_rate, 2),
-            BaseAudioContextOptions::OfflineAudioContext(ref opt) => (opt.sample_rate, opt.channels),
+            BaseAudioContextOptions::OfflineAudioContext(ref opt) => {
+                (opt.sample_rate, opt.channels)
+            },
         };
 
         let context = BaseAudioContext {
             eventtarget: EventTarget::new_inherited(),
             audio_context_impl: ServoMedia::get()
-                                    .unwrap()
-                                    .create_audio_context(options.into()),
+                .unwrap()
+                .create_audio_context(options.into()),
             destination: Default::default(),
             listener: Default::default(),
             in_flight_resume_promises_queue: Default::default(),
@@ -310,9 +312,7 @@ impl BaseAudioContextMethods for BaseAudioContext {
     fn Listener(&self) -> DomRoot<AudioListener> {
         let global = self.global();
         let window = global.as_window();
-        self.listener.or_init(|| {
-            AudioListener::new(&window, self)
-        })
+        self.listener.or_init(|| AudioListener::new(&window, self))
     }
 
     /// https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-onstatechange
@@ -418,12 +418,10 @@ impl BaseAudioContextMethods for BaseAudioContext {
                         .lock()
                         .unwrap()
                         .resize(channel_count as usize, Vec::new());
-                })
-                .progress(move |buffer, channel| {
+                }).progress(move |buffer, channel| {
                     let mut decoded_audio = decoded_audio_.lock().unwrap();
                     decoded_audio[(channel - 1) as usize].extend_from_slice((*buffer).as_ref());
-                })
-                .eos(move || {
+                }).eos(move || {
                     let _ = task_source.queue_with_canceller(
                         task!(audio_decode_eos: move || {
                             let this = this.root();
@@ -449,8 +447,7 @@ impl BaseAudioContextMethods for BaseAudioContext {
                         }),
                         &canceller,
                     );
-                })
-                .error(move || {
+                }).error(move || {
                     let _ = task_source_.queue_with_canceller(
                         task!(audio_decode_eos: move || {
                         let this = this_.root();
@@ -466,8 +463,7 @@ impl BaseAudioContextMethods for BaseAudioContext {
                     }),
                         &canceller_,
                     );
-                })
-                .build();
+                }).build();
             self.audio_context_impl
                 .decode_audio_data(audio_data, callbacks);
         } else {
@@ -484,10 +480,12 @@ impl BaseAudioContextMethods for BaseAudioContext {
 impl From<BaseAudioContextOptions> for AudioContextOptions {
     fn from(options: BaseAudioContextOptions) -> Self {
         match options {
-            BaseAudioContextOptions::AudioContext(options) =>
-                AudioContextOptions::RealTimeAudioContext(options),
-            BaseAudioContextOptions::OfflineAudioContext(options) =>
-                AudioContextOptions::OfflineAudioContext(options),
+            BaseAudioContextOptions::AudioContext(options) => {
+                AudioContextOptions::RealTimeAudioContext(options)
+            },
+            BaseAudioContextOptions::OfflineAudioContext(options) => {
+                AudioContextOptions::OfflineAudioContext(options)
+            },
         }
     }
 }

@@ -46,11 +46,7 @@ pub struct WebGLShader {
 static GLSLANG_INITIALIZATION: Once = ONCE_INIT;
 
 impl WebGLShader {
-    fn new_inherited(
-        context: &WebGLRenderingContext,
-        id: WebGLShaderId,
-        shader_type: u32,
-    ) -> Self {
+    fn new_inherited(context: &WebGLRenderingContext, id: WebGLShaderId, shader_type: u32) -> Self {
         GLSLANG_INITIALIZATION.call_once(|| ::mozangle::shaders::initialize().unwrap());
         Self {
             webgl_object: WebGLObject::new_inherited(context),
@@ -67,7 +63,10 @@ impl WebGLShader {
     pub fn maybe_new(context: &WebGLRenderingContext, shader_type: u32) -> Option<DomRoot<Self>> {
         let (sender, receiver) = webgl_channel().unwrap();
         context.send_command(WebGLCommand::CreateShader(shader_type, sender));
-        receiver.recv().unwrap().map(|id| WebGLShader::new(context, id, shader_type))
+        receiver
+            .recv()
+            .unwrap()
+            .map(|id| WebGLShader::new(context, id, shader_type))
     }
 
     pub fn new(
@@ -82,7 +81,6 @@ impl WebGLShader {
         )
     }
 }
-
 
 impl WebGLShader {
     pub fn id(&self) -> WebGLShaderId {
@@ -130,9 +128,7 @@ impl WebGLShader {
                 } else {
                     Output::Glsl
                 };
-                ShaderValidator::for_webgl(self.gl_type,
-                                            output_format,
-                                            &params).unwrap()
+                ShaderValidator::for_webgl(self.gl_type, output_format, &params).unwrap()
             },
             WebGLVersion::WebGL2 => {
                 let output_format = if cfg!(any(target_os = "android", target_os = "ios")) {
@@ -149,12 +145,10 @@ impl WebGLShader {
                         (4, 30) => Output::Glsl430Core,
                         (4, 40) => Output::Glsl440Core,
                         (4, _) => Output::Glsl450Core,
-                        _ => Output::Glsl140
+                        _ => Output::Glsl140,
                     }
                 };
-                ShaderValidator::for_webgl2(self.gl_type,
-                                            output_format,
-                                            &params).unwrap()
+                ShaderValidator::for_webgl2(self.gl_type, output_format, &params).unwrap()
             },
         };
 
@@ -167,7 +161,8 @@ impl WebGLShader {
                 self.upcast::<WebGLObject>()
                     .context()
                     .send_command(WebGLCommand::CompileShader(self.id, translated_source));
-                self.compilation_status.set(ShaderCompilationStatus::Succeeded);
+                self.compilation_status
+                    .set(ShaderCompilationStatus::Succeeded);
             },
             Err(error) => {
                 self.compilation_status.set(ShaderCompilationStatus::Failed);

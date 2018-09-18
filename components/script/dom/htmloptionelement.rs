@@ -40,25 +40,36 @@ pub struct HTMLOptionElement {
 }
 
 impl HTMLOptionElement {
-    fn new_inherited(local_name: LocalName,
-                     prefix: Option<Prefix>,
-                     document: &Document) -> HTMLOptionElement {
+    fn new_inherited(
+        local_name: LocalName,
+        prefix: Option<Prefix>,
+        document: &Document,
+    ) -> HTMLOptionElement {
         HTMLOptionElement {
-            htmlelement:
-                HTMLElement::new_inherited_with_state(ElementState::IN_ENABLED_STATE,
-                                                      local_name, prefix, document),
+            htmlelement: HTMLElement::new_inherited_with_state(
+                ElementState::IN_ENABLED_STATE,
+                local_name,
+                prefix,
+                document,
+            ),
             selectedness: Cell::new(false),
             dirtiness: Cell::new(false),
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(local_name: LocalName,
-               prefix: Option<Prefix>,
-               document: &Document) -> DomRoot<HTMLOptionElement> {
-        Node::reflect_node(Box::new(HTMLOptionElement::new_inherited(local_name, prefix, document)),
-                           document,
-                           HTMLOptionElementBinding::Wrap)
+    pub fn new(
+        local_name: LocalName,
+        prefix: Option<Prefix>,
+        document: &Document,
+    ) -> DomRoot<HTMLOptionElement> {
+        Node::reflect_node(
+            Box::new(HTMLOptionElement::new_inherited(
+                local_name, prefix, document,
+            )),
+            document,
+            HTMLOptionElementBinding::Wrap,
+        )
     }
 
     pub fn set_selectedness(&self, selected: bool) {
@@ -70,9 +81,12 @@ impl HTMLOptionElement {
     }
 
     fn pick_if_selected_and_reset(&self) {
-        if let Some(select) = self.upcast::<Node>().ancestors()
-                .filter_map(DomRoot::downcast::<HTMLSelectElement>)
-                .next() {
+        if let Some(select) = self
+            .upcast::<Node>()
+            .ancestors()
+            .filter_map(DomRoot::downcast::<HTMLSelectElement>)
+            .next()
+        {
             if self.Selected() {
                 select.pick_option(self);
             }
@@ -83,7 +97,8 @@ impl HTMLOptionElement {
 
 // FIXME(ajeffrey): Provide a way of buffering DOMStrings other than using Strings
 fn collect_text(element: &Element, value: &mut String) {
-    let svg_script = *element.namespace() == ns!(svg) && element.local_name() == &local_name!("script");
+    let svg_script =
+        *element.namespace() == ns!(svg) && element.local_name() == &local_name!("script");
     let html_script = element.is::<HTMLScriptElement>();
     if svg_script || html_script {
         return;
@@ -120,13 +135,13 @@ impl HTMLOptionElementMethods for HTMLOptionElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-option-form
     fn GetForm(&self) -> Option<DomRoot<HTMLFormElement>> {
-        let parent = self.upcast::<Node>().GetParentNode().and_then(|p|
+        let parent = self.upcast::<Node>().GetParentNode().and_then(|p| {
             if p.is::<HTMLOptGroupElement>() {
                 p.upcast::<Node>().GetParentNode()
             } else {
                 Some(p)
             }
-        );
+        });
 
         parent.and_then(|p| p.downcast::<HTMLSelectElement>().and_then(|s| s.GetForm()))
     }
@@ -197,7 +212,7 @@ impl VirtualMethods for HTMLOptionElement {
                         el.set_disabled_state(false);
                         el.set_enabled_state(true);
                         el.check_parent_disabled_state_for_option();
-                    }
+                    },
                 }
             },
             &local_name!("selected") => {
@@ -225,7 +240,8 @@ impl VirtualMethods for HTMLOptionElement {
             s.bind_to_tree(tree_in_doc);
         }
 
-        self.upcast::<Element>().check_parent_disabled_state_for_option();
+        self.upcast::<Element>()
+            .check_parent_disabled_state_for_option();
 
         self.pick_if_selected_and_reset();
     }
@@ -233,9 +249,12 @@ impl VirtualMethods for HTMLOptionElement {
     fn unbind_from_tree(&self, context: &UnbindContext) {
         self.super_type().unwrap().unbind_from_tree(context);
 
-        if let Some(select) = context.parent.inclusive_ancestors()
-                .filter_map(DomRoot::downcast::<HTMLSelectElement>)
-                .next() {
+        if let Some(select) = context
+            .parent
+            .inclusive_ancestors()
+            .filter_map(DomRoot::downcast::<HTMLSelectElement>)
+            .next()
+        {
             select.ask_for_reset();
         }
 

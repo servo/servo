@@ -16,7 +16,6 @@ use script_traits::{WorkerScriptLoadOrigin, ScopeThings};
 use servo_url::ServoUrl;
 use std::cell::Cell;
 
-
 #[dom_struct]
 pub struct ServiceWorkerRegistration {
     eventtarget: EventTarget,
@@ -24,7 +23,7 @@ pub struct ServiceWorkerRegistration {
     installing: Option<Dom<ServiceWorker>>,
     waiting: Option<Dom<ServiceWorker>>,
     scope: ServoUrl,
-    uninstalling: Cell<bool>
+    uninstalling: Cell<bool>,
 }
 
 impl ServiceWorkerRegistration {
@@ -35,16 +34,26 @@ impl ServiceWorkerRegistration {
             installing: None,
             waiting: None,
             scope: scope,
-            uninstalling: Cell::new(false)
+            uninstalling: Cell::new(false),
         }
     }
     #[allow(unrooted_must_root)]
-    pub fn new(global: &GlobalScope,
-               script_url: &ServoUrl,
-               scope: ServoUrl) -> DomRoot<ServiceWorkerRegistration> {
-        let active_worker = ServiceWorker::install_serviceworker(global, script_url.clone(), scope.clone(), true);
+    pub fn new(
+        global: &GlobalScope,
+        script_url: &ServoUrl,
+        scope: ServoUrl,
+    ) -> DomRoot<ServiceWorkerRegistration> {
+        let active_worker =
+            ServiceWorker::install_serviceworker(global, script_url.clone(), scope.clone(), true);
         active_worker.set_transition_state(ServiceWorkerState::Installed);
-        reflect_dom_object(Box::new(ServiceWorkerRegistration::new_inherited(&*active_worker, scope)), global, Wrap)
+        reflect_dom_object(
+            Box::new(ServiceWorkerRegistration::new_inherited(
+                &*active_worker,
+                scope,
+            )),
+            global,
+            Wrap,
+        )
     }
 
     pub fn get_installed(&self) -> &ServiceWorker {
@@ -63,7 +72,7 @@ impl ServiceWorkerRegistration {
         let worker_load_origin = WorkerScriptLoadOrigin {
             referrer_url: None,
             referrer_policy: None,
-            pipeline_id: Some(global.pipeline_id())
+            pipeline_id: Some(global.pipeline_id()),
         };
 
         let worker_id = global.get_next_worker_id();
@@ -74,7 +83,7 @@ impl ServiceWorkerRegistration {
             init: init,
             worker_load_origin: worker_load_origin,
             devtools_chan: devtools_chan,
-            worker_id: worker_id
+            worker_id: worker_id,
         }
     }
 
@@ -100,7 +109,11 @@ pub fn longest_prefix_match(stored_scope: &ServoUrl, potential_match: &ServoUrl)
         return false;
     }
 
-    stored_scope.path().chars().zip(potential_match.path().chars()).all(|(scope, matched)| scope == matched)
+    stored_scope
+        .path()
+        .chars()
+        .zip(potential_match.path().chars())
+        .all(|(scope, matched)| scope == matched)
 }
 
 impl ServiceWorkerRegistrationMethods for ServiceWorkerRegistration {

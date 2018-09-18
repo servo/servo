@@ -77,7 +77,7 @@ impl WebGLVertexArrayObjectOES {
     }
 
     pub fn ever_bound(&self) -> bool {
-        return self.ever_bound.get()
+        return self.ever_bound.get();
     }
 
     pub fn set_ever_bound(&self) {
@@ -89,7 +89,9 @@ impl WebGLVertexArrayObjectOES {
     }
 
     pub fn get_vertex_attrib(&self, index: u32) -> Option<Ref<VertexAttribData>> {
-        ref_filter_map(self.vertex_attribs.borrow(), |attribs| attribs.get(index as usize))
+        ref_filter_map(self.vertex_attribs.borrow(), |attribs| {
+            attribs.get(index as usize)
+        })
     }
 
     pub fn vertex_attrib_pointer(
@@ -102,7 +104,9 @@ impl WebGLVertexArrayObjectOES {
         offset: i64,
     ) -> WebGLResult<()> {
         let mut attribs = self.vertex_attribs.borrow_mut();
-        let data = attribs.get_mut(index as usize).ok_or(WebGLError::InvalidValue)?;
+        let data = attribs
+            .get_mut(index as usize)
+            .ok_or(WebGLError::InvalidValue)?;
 
         if size < 1 || size > 4 {
             return Err(WebGLError::InvalidValue);
@@ -129,7 +133,7 @@ impl WebGLVertexArrayObjectOES {
             Some(ref buffer) => buffer.increment_attached_counter(),
             None if offset != 0 => {
                 // https://github.com/KhronosGroup/WebGL/pull/2228
-                return Err(WebGLError::InvalidOperation)
+                return Err(WebGLError::InvalidOperation);
             },
             _ => {},
         }
@@ -178,7 +182,11 @@ impl WebGLVertexArrayObjectOES {
             }
             attrib.buffer = None;
         }
-        if self.element_array_buffer.get().map_or(false, |b| buffer == &*b) {
+        if self
+            .element_array_buffer
+            .get()
+            .map_or(false, |b| buffer == &*b)
+        {
             buffer.decrement_attached_counter();
             self.element_array_buffer.set(None);
         }
@@ -193,7 +201,10 @@ impl WebGLVertexArrayObjectOES {
         // TODO(nox): Cache limits per VAO.
         let attribs = self.vertex_attribs.borrow();
         // https://www.khronos.org/registry/webgl/specs/latest/1.0/#6.2
-        if attribs.iter().any(|data| data.enabled_as_array && data.buffer.is_none()) {
+        if attribs
+            .iter()
+            .any(|data| data.enabled_as_array && data.buffer.is_none())
+        {
             return Err(WebGLError::InvalidOperation);
         }
         let mut has_active_attrib = false;
@@ -217,7 +228,10 @@ impl WebGLVertexArrayObjectOES {
                     if max_vertices < required_len {
                         return Err(WebGLError::InvalidOperation);
                     }
-                } else if max_vertices.checked_mul(attrib.divisor).map_or(false, |v| v < instance_count) {
+                } else if max_vertices
+                    .checked_mul(attrib.divisor)
+                    .map_or(false, |v| v < instance_count)
+                {
                     return Err(WebGLError::InvalidOperation);
                 }
             }

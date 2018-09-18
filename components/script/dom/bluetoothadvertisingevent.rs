@@ -29,12 +29,13 @@ pub struct BluetoothAdvertisingEvent {
 }
 
 impl BluetoothAdvertisingEvent {
-    pub fn new_inherited(device: &BluetoothDevice,
-                         name: Option<DOMString>,
-                         appearance: Option<u16>,
-                         tx_power: Option<i8>,
-                         rssi: Option<i8>)
-                         -> BluetoothAdvertisingEvent {
+    pub fn new_inherited(
+        device: &BluetoothDevice,
+        name: Option<DOMString>,
+        appearance: Option<u16>,
+        tx_power: Option<i8>,
+        rssi: Option<i8>,
+    ) -> BluetoothAdvertisingEvent {
         BluetoothAdvertisingEvent {
             event: Event::new_inherited(),
             device: Dom::from_ref(device),
@@ -45,26 +46,23 @@ impl BluetoothAdvertisingEvent {
         }
     }
 
-    pub fn new(global: &GlobalScope,
-               type_: Atom,
-               bubbles: EventBubbles,
-               cancelable: EventCancelable,
-               device: &BluetoothDevice,
-               name: Option<DOMString>,
-               appearance: Option<u16>,
-               txPower: Option<i8>,
-               rssi: Option<i8>)
-               -> DomRoot<BluetoothAdvertisingEvent> {
+    pub fn new(
+        global: &GlobalScope,
+        type_: Atom,
+        bubbles: EventBubbles,
+        cancelable: EventCancelable,
+        device: &BluetoothDevice,
+        name: Option<DOMString>,
+        appearance: Option<u16>,
+        txPower: Option<i8>,
+        rssi: Option<i8>,
+    ) -> DomRoot<BluetoothAdvertisingEvent> {
         let ev = reflect_dom_object(
             Box::new(BluetoothAdvertisingEvent::new_inherited(
-                device,
-                name,
-                appearance,
-                txPower,
-                rssi
+                device, name, appearance, txPower, rssi,
             )),
             global,
-            BluetoothAdvertisingEventBinding::Wrap
+            BluetoothAdvertisingEventBinding::Wrap,
         );
         {
             let event = ev.upcast::<Event>();
@@ -74,10 +72,11 @@ impl BluetoothAdvertisingEvent {
     }
 
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothadvertisingevent-bluetoothadvertisingevent
-    pub fn Constructor(window: &Window,
-                       type_: DOMString,
-                       init: &BluetoothAdvertisingEventInit)
-                       -> Fallible<DomRoot<BluetoothAdvertisingEvent>> {
+    pub fn Constructor(
+        window: &Window,
+        type_: DOMString,
+        init: &BluetoothAdvertisingEventInit,
+    ) -> Fallible<DomRoot<BluetoothAdvertisingEvent>> {
         let global = window.upcast::<GlobalScope>();
         let device = init.device.r();
         let name = init.name.clone();
@@ -86,15 +85,17 @@ impl BluetoothAdvertisingEvent {
         let rssi = init.rssi.clone();
         let bubbles = EventBubbles::from(init.parent.bubbles);
         let cancelable = EventCancelable::from(init.parent.cancelable);
-        Ok(BluetoothAdvertisingEvent::new(global,
-                                          Atom::from(type_),
-                                          bubbles,
-                                          cancelable,
-                                          device,
-                                          name,
-                                          appearance,
-                                          txPower,
-                                          rssi))
+        Ok(BluetoothAdvertisingEvent::new(
+            global,
+            Atom::from(type_),
+            bubbles,
+            cancelable,
+            device,
+            name,
+            appearance,
+            txPower,
+            rssi,
+        ))
     }
 }
 

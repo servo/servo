@@ -65,8 +65,12 @@ pub struct HTMLLinkElement {
 }
 
 impl HTMLLinkElement {
-    fn new_inherited(local_name: LocalName, prefix: Option<Prefix>, document: &Document,
-                     creator: ElementCreator) -> HTMLLinkElement {
+    fn new_inherited(
+        local_name: LocalName,
+        prefix: Option<Prefix>,
+        document: &Document,
+        creator: ElementCreator,
+    ) -> HTMLLinkElement {
         HTMLLinkElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
             rel_list: Default::default(),
@@ -80,13 +84,19 @@ impl HTMLLinkElement {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(local_name: LocalName,
-               prefix: Option<Prefix>,
-               document: &Document,
-               creator: ElementCreator) -> DomRoot<HTMLLinkElement> {
-        Node::reflect_node(Box::new(HTMLLinkElement::new_inherited(local_name, prefix, document, creator)),
-                           document,
-                           HTMLLinkElementBinding::Wrap)
+    pub fn new(
+        local_name: LocalName,
+        prefix: Option<Prefix>,
+        document: &Document,
+        creator: ElementCreator,
+    ) -> DomRoot<HTMLLinkElement> {
+        Node::reflect_node(
+            Box::new(HTMLLinkElement::new_inherited(
+                local_name, prefix, document, creator,
+            )),
+            document,
+            HTMLLinkElementBinding::Wrap,
+        )
     }
 
     pub fn get_request_generation_id(&self) -> RequestGenerationId {
@@ -112,12 +122,14 @@ impl HTMLLinkElement {
     pub fn get_cssom_stylesheet(&self) -> Option<DomRoot<CSSStyleSheet>> {
         self.get_stylesheet().map(|sheet| {
             self.cssom_stylesheet.or_init(|| {
-                CSSStyleSheet::new(&window_from_node(self),
-                                   self.upcast::<Element>(),
-                                   "text/css".into(),
-                                   None, // todo handle location
-                                   None, // todo handle title
-                                   sheet)
+                CSSStyleSheet::new(
+                    &window_from_node(self),
+                    self.upcast::<Element>(),
+                    "text/css".into(),
+                    None, // todo handle location
+                    None, // todo handle title
+                    sheet,
+                )
             })
         })
     }
@@ -125,10 +137,9 @@ impl HTMLLinkElement {
     pub fn is_alternate(&self) -> bool {
         let rel = get_attr(self.upcast(), &local_name!("rel"));
         match rel {
-            Some(ref value) => {
-                value.split(HTML_SPACE_CHARACTERS)
-                    .any(|s| s.eq_ignore_ascii_case("alternate"))
-            },
+            Some(ref value) => value
+                .split(HTML_SPACE_CHARACTERS)
+                .any(|s| s.eq_ignore_ascii_case("alternate")),
             None => false,
         }
     }
@@ -144,10 +155,9 @@ fn get_attr(element: &Element, local_name: &LocalName) -> Option<String> {
 
 fn string_is_stylesheet(value: &Option<String>) -> bool {
     match *value {
-        Some(ref value) => {
-            value.split(HTML_SPACE_CHARACTERS)
-                .any(|s| s.eq_ignore_ascii_case("stylesheet"))
-        },
+        Some(ref value) => value
+            .split(HTML_SPACE_CHARACTERS)
+            .any(|s| s.eq_ignore_ascii_case("stylesheet")),
         None => false,
     }
 }
@@ -157,10 +167,9 @@ fn string_is_stylesheet(value: &Option<String>) -> bool {
 /// <https://html.spec.whatwg.org/multipage/#rel-icon>
 fn is_favicon(value: &Option<String>) -> bool {
     match *value {
-        Some(ref value) => {
-            value.split(HTML_SPACE_CHARACTERS)
-                .any(|s| s.eq_ignore_ascii_case("icon") || s.eq_ignore_ascii_case("apple-touch-icon"))
-        },
+        Some(ref value) => value
+            .split(HTML_SPACE_CHARACTERS)
+            .any(|s| s.eq_ignore_ascii_case("icon") || s.eq_ignore_ascii_case("apple-touch-icon")),
         None => false,
     }
 }
@@ -189,7 +198,11 @@ impl VirtualMethods for HTMLLinkElement {
             &local_name!("sizes") => {
                 if is_favicon(&rel) {
                     if let Some(ref href) = get_attr(self.upcast(), &local_name!("href")) {
-                        self.handle_favicon_url(rel.as_ref().unwrap(), href, &Some(attr.value().to_string()));
+                        self.handle_favicon_url(
+                            rel.as_ref().unwrap(),
+                            href,
+                            &Some(attr.value().to_string()),
+                        );
                     }
                 }
             },
@@ -200,7 +213,10 @@ impl VirtualMethods for HTMLLinkElement {
     fn parse_plain_attribute(&self, name: &LocalName, value: DOMString) -> AttrValue {
         match name {
             &local_name!("rel") => AttrValue::from_serialized_tokenlist(value.into()),
-            _ => self.super_type().unwrap().parse_plain_attribute(name, value),
+            _ => self
+                .super_type()
+                .unwrap()
+                .parse_plain_attribute(name, value),
         }
     }
 
@@ -219,11 +235,11 @@ impl VirtualMethods for HTMLLinkElement {
             match href {
                 Some(ref href) if string_is_stylesheet(&rel) => {
                     self.handle_stylesheet_url(href);
-                }
+                },
                 Some(ref href) if is_favicon(&rel) => {
                     self.handle_favicon_url(rel.as_ref().unwrap(), href, &sizes);
-                }
-                _ => {}
+                },
+                _ => {},
             }
         }
     }
@@ -238,7 +254,6 @@ impl VirtualMethods for HTMLLinkElement {
         }
     }
 }
-
 
 impl HTMLLinkElement {
     /// <https://html.spec.whatwg.org/multipage/#concept-link-obtain>
@@ -259,7 +274,7 @@ impl HTMLLinkElement {
             Err(e) => {
                 debug!("Parsing url {} failed: {}", href, e);
                 return;
-            }
+            },
         };
 
         let element = self.upcast::<Element>();
@@ -298,14 +313,18 @@ impl HTMLLinkElement {
             None => "",
         };
 
-        self.request_generation_id.set(self.request_generation_id.get().increment());
+        self.request_generation_id
+            .set(self.request_generation_id.get().increment());
 
         // TODO: #8085 - Don't load external stylesheets if the node's mq
         // doesn't match.
         let loader = StylesheetLoader::for_element(self.upcast());
-        loader.load(StylesheetContextSource::LinkElement {
-            media: Some(media),
-        }, link_url, cors_setting, integrity_metadata.to_owned());
+        loader.load(
+            StylesheetContextSource::LinkElement { media: Some(media) },
+            link_url,
+            cors_setting,
+            integrity_metadata.to_owned(),
+        );
     }
 
     fn handle_favicon_url(&self, _rel: &str, href: &str, _sizes: &Option<String>) {
@@ -317,9 +336,8 @@ impl HTMLLinkElement {
                     let msg = EmbedderMsg::NewFavicon(url.clone());
                     window.send_to_embedder(msg);
                 }
-
-            }
-            Err(e) => debug!("Parsing url {} failed: {}", href, e)
+            },
+            Err(e) => debug!("Parsing url {} failed: {}", href, e),
         }
     }
 }
@@ -351,7 +369,7 @@ impl StylesheetOwner for HTMLLinkElement {
 
     fn referrer_policy(&self) -> Option<ReferrerPolicy> {
         if self.RelList().Contains("noreferrer".into()) {
-            return Some(ReferrerPolicy::NoReferrer)
+            return Some(ReferrerPolicy::NoReferrer);
         }
 
         None
@@ -376,7 +394,8 @@ impl HTMLLinkElementMethods for HTMLLinkElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-link-rel
     fn SetRel(&self, rel: DOMString) {
-        self.upcast::<Element>().set_tokenlist_attribute(&local_name!("rel"), rel);
+        self.upcast::<Element>()
+            .set_tokenlist_attribute(&local_name!("rel"), rel);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-link-media
@@ -405,7 +424,8 @@ impl HTMLLinkElementMethods for HTMLLinkElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-link-rellist
     fn RelList(&self) -> DomRoot<DOMTokenList> {
-        self.rel_list.or_init(|| DOMTokenList::new(self.upcast(), &local_name!("rel")))
+        self.rel_list
+            .or_init(|| DOMTokenList::new(self.upcast(), &local_name!("rel")))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-link-charset

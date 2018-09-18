@@ -41,8 +41,11 @@ pub struct HTMLTableRowElement {
 }
 
 impl HTMLTableRowElement {
-    fn new_inherited(local_name: LocalName, prefix: Option<Prefix>, document: &Document)
-                     -> HTMLTableRowElement {
+    fn new_inherited(
+        local_name: LocalName,
+        prefix: Option<Prefix>,
+        document: &Document,
+    ) -> HTMLTableRowElement {
         HTMLTableRowElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
             cells: Default::default(),
@@ -50,19 +53,27 @@ impl HTMLTableRowElement {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(local_name: LocalName, prefix: Option<Prefix>, document: &Document)
-               -> DomRoot<HTMLTableRowElement> {
-        Node::reflect_node(Box::new(HTMLTableRowElement::new_inherited(local_name, prefix, document)),
-                           document,
-                           HTMLTableRowElementBinding::Wrap)
+    pub fn new(
+        local_name: LocalName,
+        prefix: Option<Prefix>,
+        document: &Document,
+    ) -> DomRoot<HTMLTableRowElement> {
+        Node::reflect_node(
+            Box::new(HTMLTableRowElement::new_inherited(
+                local_name, prefix, document,
+            )),
+            document,
+            HTMLTableRowElementBinding::Wrap,
+        )
     }
 
     /// Determine the index for this `HTMLTableRowElement` within the given
     /// `HTMLCollection`. Returns `-1` if not found within collection.
     fn row_index(&self, collection: DomRoot<HTMLCollection>) -> i32 {
-        collection.elements_iter()
-                  .position(|elem| (&elem as &Element) == self.upcast())
-                  .map_or(-1, |i| i as i32)
+        collection
+            .elements_iter()
+            .position(|elem| (&elem as &Element) == self.upcast())
+            .map_or(-1, |i| i as i32)
     }
 }
 
@@ -88,7 +99,8 @@ impl HTMLTableRowElementMethods for HTMLTableRowElement {
         node.insert_cell_or_row(
             index,
             || self.Cells(),
-            || HTMLTableDataCellElement::new(local_name!("td"), None, &node.owner_doc()))
+            || HTMLTableDataCellElement::new(local_name!("td"), None, &node.owner_doc()),
+        )
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-tr-deletecell
@@ -97,7 +109,8 @@ impl HTMLTableRowElementMethods for HTMLTableRowElement {
         node.delete_cell_or_row(
             index,
             || self.Cells(),
-            |n| n.is::<HTMLTableDataCellElement>())
+            |n| n.is::<HTMLTableDataCellElement>(),
+        )
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-tr-rowindex
@@ -116,8 +129,9 @@ impl HTMLTableRowElementMethods for HTMLTableRowElement {
             Some(parent) => parent,
             None => return -1,
         };
-        grandparent.downcast::<HTMLTableElement>()
-                   .map_or(-1, |table| self.row_index(table.Rows()))
+        grandparent
+            .downcast::<HTMLTableElement>()
+            .map_or(-1, |table| self.row_index(table.Rows()))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-tr-sectionrowindex
@@ -161,7 +175,10 @@ impl VirtualMethods for HTMLTableRowElement {
     fn parse_plain_attribute(&self, local_name: &LocalName, value: DOMString) -> AttrValue {
         match *local_name {
             local_name!("bgcolor") => AttrValue::from_legacy_color(value.into()),
-            _ => self.super_type().unwrap().parse_plain_attribute(local_name, value),
+            _ => self
+                .super_type()
+                .unwrap()
+                .parse_plain_attribute(local_name, value),
         }
     }
 }

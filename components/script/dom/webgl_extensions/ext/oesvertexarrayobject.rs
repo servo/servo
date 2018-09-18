@@ -52,9 +52,11 @@ impl OESVertexArrayObjectMethods for OESVertexArrayObject {
 impl WebGLExtension for OESVertexArrayObject {
     type Extension = OESVertexArrayObject;
     fn new(ctx: &WebGLRenderingContext) -> DomRoot<OESVertexArrayObject> {
-        reflect_dom_object(Box::new(OESVertexArrayObject::new_inherited(ctx)),
-                           &*ctx.global(),
-                           OESVertexArrayObjectBinding::Wrap)
+        reflect_dom_object(
+            Box::new(OESVertexArrayObject::new_inherited(ctx)),
+            &*ctx.global(),
+            OESVertexArrayObjectBinding::Wrap,
+        )
     }
 
     fn spec() -> WebGLExtensionSpec {
@@ -62,9 +64,11 @@ impl WebGLExtension for OESVertexArrayObject {
     }
 
     fn is_supported(ext: &WebGLExtensions) -> bool {
-        ext.supports_any_gl_extension(&["GL_OES_vertex_array_object",
-                                        "GL_ARB_vertex_array_object",
-                                        "GL_APPLE_vertex_array_object"])
+        ext.supports_any_gl_extension(&[
+            "GL_OES_vertex_array_object",
+            "GL_ARB_vertex_array_object",
+            "GL_APPLE_vertex_array_object",
+        ])
     }
 
     fn enable(ext: &WebGLExtensions) {

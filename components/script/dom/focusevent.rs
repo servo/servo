@@ -32,39 +32,50 @@ impl FocusEvent {
     }
 
     pub fn new_uninitialized(window: &Window) -> DomRoot<FocusEvent> {
-        reflect_dom_object(Box::new(FocusEvent::new_inherited()),
-                           window,
-                           FocusEventBinding::Wrap)
+        reflect_dom_object(
+            Box::new(FocusEvent::new_inherited()),
+            window,
+            FocusEventBinding::Wrap,
+        )
     }
 
-    pub fn new(window: &Window,
-               type_: DOMString,
-               can_bubble: EventBubbles,
-               cancelable: EventCancelable,
-               view: Option<&Window>,
-               detail: i32,
-               related_target: Option<&EventTarget>) -> DomRoot<FocusEvent> {
+    pub fn new(
+        window: &Window,
+        type_: DOMString,
+        can_bubble: EventBubbles,
+        cancelable: EventCancelable,
+        view: Option<&Window>,
+        detail: i32,
+        related_target: Option<&EventTarget>,
+    ) -> DomRoot<FocusEvent> {
         let ev = FocusEvent::new_uninitialized(window);
-        ev.upcast::<UIEvent>().InitUIEvent(type_,
-                                           bool::from(can_bubble),
-                                           bool::from(cancelable),
-                                           view, detail);
+        ev.upcast::<UIEvent>().InitUIEvent(
+            type_,
+            bool::from(can_bubble),
+            bool::from(cancelable),
+            view,
+            detail,
+        );
         ev.related_target.set(related_target);
         ev
     }
 
-    pub fn Constructor(window: &Window,
-                       type_: DOMString,
-                       init: &FocusEventBinding::FocusEventInit) -> Fallible<DomRoot<FocusEvent>> {
+    pub fn Constructor(
+        window: &Window,
+        type_: DOMString,
+        init: &FocusEventBinding::FocusEventInit,
+    ) -> Fallible<DomRoot<FocusEvent>> {
         let bubbles = EventBubbles::from(init.parent.parent.bubbles);
         let cancelable = EventCancelable::from(init.parent.parent.cancelable);
-        let event = FocusEvent::new(window,
-                                    type_,
-                                    bubbles,
-                                    cancelable,
-                                    init.parent.view.r(),
-                                    init.parent.detail,
-                                    init.relatedTarget.r());
+        let event = FocusEvent::new(
+            window,
+            type_,
+            bubbles,
+            cancelable,
+            init.parent.view.r(),
+            init.parent.detail,
+            init.relatedTarget.r(),
+        );
         Ok(event)
     }
 }

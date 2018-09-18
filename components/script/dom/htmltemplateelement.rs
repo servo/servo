@@ -25,23 +25,30 @@ pub struct HTMLTemplateElement {
 }
 
 impl HTMLTemplateElement {
-    fn new_inherited(local_name: LocalName,
-                     prefix: Option<Prefix>,
-                     document: &Document) -> HTMLTemplateElement {
+    fn new_inherited(
+        local_name: LocalName,
+        prefix: Option<Prefix>,
+        document: &Document,
+    ) -> HTMLTemplateElement {
         HTMLTemplateElement {
-            htmlelement:
-                HTMLElement::new_inherited(local_name, prefix, document),
+            htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
             contents: MutNullableDom::new(None),
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(local_name: LocalName,
-               prefix: Option<Prefix>,
-               document: &Document) -> DomRoot<HTMLTemplateElement> {
-        Node::reflect_node(Box::new(HTMLTemplateElement::new_inherited(local_name, prefix, document)),
-                           document,
-                           HTMLTemplateElementBinding::Wrap)
+    pub fn new(
+        local_name: LocalName,
+        prefix: Option<Prefix>,
+        document: &Document,
+    ) -> DomRoot<HTMLTemplateElement> {
+        Node::reflect_node(
+            Box::new(HTMLTemplateElement::new_inherited(
+                local_name, prefix, document,
+            )),
+            document,
+            HTMLTemplateElementBinding::Wrap,
+        )
     }
 }
 
@@ -50,7 +57,8 @@ impl HTMLTemplateElementMethods for HTMLTemplateElement {
     fn Content(&self) -> DomRoot<DocumentFragment> {
         self.contents.or_init(|| {
             let doc = document_from_node(self);
-            doc.appropriate_template_contents_owner_document().CreateDocumentFragment()
+            doc.appropriate_template_contents_owner_document()
+                .CreateDocumentFragment()
         })
     }
 }
@@ -70,9 +78,15 @@ impl VirtualMethods for HTMLTemplateElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#the-template-element:concept-node-clone-ext>
-    fn cloning_steps(&self, copy: &Node, maybe_doc: Option<&Document>,
-                     clone_children: CloneChildrenFlag) {
-        self.super_type().unwrap().cloning_steps(copy, maybe_doc, clone_children);
+    fn cloning_steps(
+        &self,
+        copy: &Node,
+        maybe_doc: Option<&Document>,
+        clone_children: CloneChildrenFlag,
+    ) {
+        self.super_type()
+            .unwrap()
+            .cloning_steps(copy, maybe_doc, clone_children);
         if clone_children == CloneChildrenFlag::DoNotCloneChildren {
             // Step 1.
             return;
@@ -83,7 +97,10 @@ impl VirtualMethods for HTMLTemplateElement {
         let copy_contents_doc = copy_contents.owner_doc();
         for child in self.Content().upcast::<Node>().children() {
             let copy_child = Node::clone(
-                &child, Some(&copy_contents_doc), CloneChildrenFlag::CloneChildren);
+                &child,
+                Some(&copy_contents_doc),
+                CloneChildrenFlag::CloneChildren,
+            );
             copy_contents.AppendChild(&copy_child).unwrap();
         }
     }

@@ -36,9 +36,8 @@ impl AudioContext {
     // https://webaudio.github.io/web-audio-api/#AudioContext-constructors
     fn new_inherited(options: &AudioContextOptions) -> AudioContext {
         // Steps 1-3.
-        let context = BaseAudioContext::new_inherited(
-            BaseAudioContextOptions::AudioContext(options.into()),
-        );
+        let context =
+            BaseAudioContext::new_inherited(BaseAudioContextOptions::AudioContext(options.into()));
 
         // Step 4.1.
         let latency_hint = options.latencyHint;

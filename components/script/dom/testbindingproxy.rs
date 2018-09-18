@@ -11,22 +11,35 @@ use dom_struct::dom_struct;
 
 #[dom_struct]
 pub struct TestBindingProxy {
-    reflector_: Reflector
+    reflector_: Reflector,
 }
 
 impl TestBindingProxyMethods for TestBindingProxy {
-    fn Length(&self) -> u32 { 0 }
-    fn SupportedPropertyNames(&self) -> Vec<DOMString> { vec![] }
-    fn GetNamedItem(&self, _: DOMString) -> DOMString { DOMString::new() }
+    fn Length(&self) -> u32 {
+        0
+    }
+    fn SupportedPropertyNames(&self) -> Vec<DOMString> {
+        vec![]
+    }
+    fn GetNamedItem(&self, _: DOMString) -> DOMString {
+        DOMString::new()
+    }
     fn SetNamedItem(&self, _: DOMString, _: DOMString) {}
-    fn GetItem(&self, _: u32) -> DOMString { DOMString::new() }
+    fn GetItem(&self, _: u32) -> DOMString {
+        DOMString::new()
+    }
     fn SetItem(&self, _: u32, _: DOMString) {}
     fn RemoveItem(&self, _: DOMString) {}
-    fn Stringifier(&self) -> DOMString { DOMString::new() }
-    fn IndexedGetter(&self, _: u32) -> Option<DOMString> { None }
+    fn Stringifier(&self) -> DOMString {
+        DOMString::new()
+    }
+    fn IndexedGetter(&self, _: u32) -> Option<DOMString> {
+        None
+    }
     fn NamedDeleter(&self, _: DOMString) {}
     fn IndexedSetter(&self, _: u32, _: DOMString) {}
     fn NamedSetter(&self, _: DOMString, _: DOMString) {}
-    fn NamedGetter(&self, _: DOMString) -> Option<DOMString> { None }
-
+    fn NamedGetter(&self, _: DOMString) -> Option<DOMString> {
+        None
+    }
 }

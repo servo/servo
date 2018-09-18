@@ -34,7 +34,7 @@ impl VREyeParameters {
             reflector_: Reflector::new(),
             parameters: DomRefCell::new(parameters),
             offset: Heap::default(),
-            fov: Dom::from_ref(&*fov)
+            fov: Dom::from_ref(&*fov),
         }
     }
 
@@ -45,12 +45,18 @@ impl VREyeParameters {
         let cx = global.get_cx();
         rooted!(in (cx) let mut array = ptr::null_mut::<JSObject>());
         unsafe {
-            let _ = Float32Array::create(cx, CreateWith::Slice(&parameters.offset), array.handle_mut());
+            let _ = Float32Array::create(
+                cx,
+                CreateWith::Slice(&parameters.offset),
+                array.handle_mut(),
+            );
         }
 
-        let eye_parameters = reflect_dom_object(Box::new(VREyeParameters::new_inherited(parameters, &fov)),
-                                                global,
-                                                VREyeParametersBinding::Wrap);
+        let eye_parameters = reflect_dom_object(
+            Box::new(VREyeParameters::new_inherited(parameters, &fov)),
+            global,
+            VREyeParametersBinding::Wrap,
+        );
         eye_parameters.offset.set(array.get());
 
         eye_parameters

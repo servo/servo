@@ -33,9 +33,13 @@ pub trait TaskOnce: Send {
     #[allow(unsafe_code)]
     fn name(&self) -> &'static str {
         #[cfg(feature = "unstable")]
-        unsafe { ::std::intrinsics::type_name::<Self>() }
+        unsafe {
+            ::std::intrinsics::type_name::<Self>()
+        }
         #[cfg(not(feature = "unstable"))]
-        { "(task name unknown)" }
+        {
+            "(task name unknown)"
+        }
     }
 
     fn run_once(self);
@@ -63,7 +67,9 @@ where
 
 impl fmt::Debug for TaskBox {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        fmt.debug_tuple(self.name()).field(&format_args!("...")).finish()
+        fmt.debug_tuple(self.name())
+            .field(&format_args!("..."))
+            .finish()
     }
 }
 
@@ -97,9 +103,9 @@ where
     T: TaskOnce,
 {
     fn is_cancelled(&self) -> bool {
-        self.cancelled.as_ref().map_or(false, |cancelled| {
-            cancelled.load(Ordering::SeqCst)
-        })
+        self.cancelled
+            .as_ref()
+            .map_or(false, |cancelled| cancelled.load(Ordering::SeqCst))
     }
 }
 

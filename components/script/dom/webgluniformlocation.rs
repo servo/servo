@@ -47,7 +47,13 @@ impl WebGLUniformLocation {
         type_: u32,
     ) -> DomRoot<Self> {
         reflect_dom_object(
-            Box::new(Self::new_inherited(id, program_id, link_generation, size, type_)),
+            Box::new(Self::new_inherited(
+                id,
+                program_id,
+                link_generation,
+                size,
+                type_,
+            )),
             window,
             WebGLUniformLocationBinding::Wrap,
         )

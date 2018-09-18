@@ -32,24 +32,31 @@ pub struct HTMLObjectElement {
 }
 
 impl HTMLObjectElement {
-    fn new_inherited(local_name: LocalName,
-                     prefix: Option<Prefix>,
-                     document: &Document) -> HTMLObjectElement {
+    fn new_inherited(
+        local_name: LocalName,
+        prefix: Option<Prefix>,
+        document: &Document,
+    ) -> HTMLObjectElement {
         HTMLObjectElement {
-            htmlelement:
-                HTMLElement::new_inherited(local_name, prefix, document),
+            htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
             image: DomRefCell::new(None),
             form_owner: Default::default(),
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(local_name: LocalName,
-               prefix: Option<Prefix>,
-               document: &Document) -> DomRoot<HTMLObjectElement> {
-        Node::reflect_node(Box::new(HTMLObjectElement::new_inherited(local_name, prefix, document)),
-                           document,
-                           HTMLObjectElementBinding::Wrap)
+    pub fn new(
+        local_name: LocalName,
+        prefix: Option<Prefix>,
+        document: &Document,
+    ) -> DomRoot<HTMLObjectElement> {
+        Node::reflect_node(
+            Box::new(HTMLObjectElement::new_inherited(
+                local_name, prefix, document,
+            )),
+            document,
+            HTMLObjectElementBinding::Wrap,
+        )
     }
 }
 
@@ -64,12 +71,14 @@ impl<'a> ProcessDataURL for &'a HTMLObjectElement {
         let elem = self.upcast::<Element>();
 
         // TODO: support other values
-        match (elem.get_attribute(&ns!(), &local_name!("type")),
-               elem.get_attribute(&ns!(), &local_name!("data"))) {
+        match (
+            elem.get_attribute(&ns!(), &local_name!("type")),
+            elem.get_attribute(&ns!(), &local_name!("data")),
+        ) {
             (None, Some(_uri)) => {
                 // TODO(gw): Prefetch the image here.
-            }
-            _ => { }
+            },
+            _ => {},
         }
     }
 }

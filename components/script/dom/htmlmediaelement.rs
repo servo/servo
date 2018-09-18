@@ -106,11 +106,7 @@ enum ReadyState {
 }
 
 impl HTMLMediaElement {
-    pub fn new_inherited(
-        tag_name: LocalName,
-        prefix: Option<Prefix>,
-        document: &Document,
-    ) -> Self {
+    pub fn new_inherited(tag_name: LocalName, prefix: Option<Prefix>, document: &Document) -> Self {
         Self {
             htmlelement: HTMLElement::new_inherited(tag_name, prefix, document),
             network_state: Cell::new(NetworkState::Empty),
@@ -133,9 +129,7 @@ impl HTMLMediaElement {
         match self.upcast::<Node>().type_id() {
             NodeTypeId::Element(ElementTypeId::HTMLElement(
                 HTMLElementTypeId::HTMLMediaElement(media_type_id),
-            )) => {
-                media_type_id
-            },
+            )) => media_type_id,
             _ => unreachable!(),
         }
     }
@@ -163,7 +157,11 @@ impl HTMLMediaElement {
         // FIXME(nox): Reject promise if not allowed to play.
 
         // Step 2.
-        if self.error.get().map_or(false, |e| e.Code() == MEDIA_ERR_SRC_NOT_SUPPORTED) {
+        if self
+            .error
+            .get()
+            .map_or(false, |e| e.Code() == MEDIA_ERR_SRC_NOT_SUPPORTED)
+        {
             promise.reject_error(Error::NotSupported);
             return;
         }
@@ -200,24 +198,20 @@ impl HTMLMediaElement {
                 ReadyState::HaveNothing |
                 ReadyState::HaveMetadata |
                 ReadyState::HaveCurrentData => {
-                    task_source.queue_simple_event(
-                        self.upcast(),
-                        atom!("waiting"),
-                        &window,
-                    );
+                    task_source.queue_simple_event(self.upcast(), atom!("waiting"), &window);
                 },
-                ReadyState::HaveFutureData |
-                ReadyState::HaveEnoughData => {
+                ReadyState::HaveFutureData | ReadyState::HaveEnoughData => {
                     self.notify_about_playing();
-                }
+                },
             }
         } else if state == ReadyState::HaveFutureData || state == ReadyState::HaveEnoughData {
             // Step 7.
             self.take_pending_play_promises(Ok(()));
             let this = Trusted::new(self);
             let generation_id = self.generation_id.get();
-            task_source.queue(
-                task!(resolve_pending_play_promises: move || {
+            task_source
+                .queue(
+                    task!(resolve_pending_play_promises: move || {
                     let this = this.root();
                     if generation_id != this.generation_id.get() {
                         return;
@@ -225,8 +219,8 @@ impl HTMLMediaElement {
 
                     this.fulfill_in_flight_play_promises(|| ());
                 }),
-                window.upcast(),
-            ).unwrap();
+                    window.upcast(),
+                ).unwrap();
         }
 
         // Step 8.
@@ -330,11 +324,7 @@ impl HTMLMediaElement {
         // Step 1.
         match (old_ready_state, ready_state) {
             (ReadyState::HaveNothing, ReadyState::HaveMetadata) => {
-                task_source.queue_simple_event(
-                    self.upcast(),
-                    atom!("loadedmetadata"),
-                    &window,
-                );
+                task_source.queue_simple_event(self.upcast(), atom!("loadedmetadata"), &window);
 
                 // No other steps are applicable in this case.
                 return;
@@ -369,12 +359,10 @@ impl HTMLMediaElement {
             _ => (),
         }
 
-        if old_ready_state <= ReadyState::HaveCurrentData && ready_state >= ReadyState::HaveFutureData {
-            task_source.queue_simple_event(
-                self.upcast(),
-                atom!("canplay"),
-                &window,
-            );
+        if old_ready_state <= ReadyState::HaveCurrentData &&
+            ready_state >= ReadyState::HaveFutureData
+        {
+            task_source.queue_simple_event(self.upcast(), atom!("canplay"), &window);
 
             if !self.Paused() {
                 self.notify_about_playing();
@@ -386,18 +374,12 @@ impl HTMLMediaElement {
             // FIXME(nox): I have no idea what this TODO is about.
 
             // FIXME(nox): Review this block.
-            if self.autoplaying.get() &&
-                self.Paused() &&
-                self.Autoplay() {
+            if self.autoplaying.get() && self.Paused() && self.Autoplay() {
                 // Step 1
                 self.paused.set(false);
                 // TODO step 2: show poster
                 // Step 3
-                task_source.queue_simple_event(
-                    self.upcast(),
-                    atom!("play"),
-                    &window,
-                );
+                task_source.queue_simple_event(self.upcast(), atom!("play"), &window);
                 // Step 4
                 self.notify_about_playing();
                 // Step 5
@@ -406,11 +388,7 @@ impl HTMLMediaElement {
 
             // FIXME(nox): According to the spec, this should come *before* the
             // "play" event.
-            task_source.queue_simple_event(
-                self.upcast(),
-                atom!("canplaythrough"),
-                &window,
-            );
+            task_source.queue_simple_event(self.upcast(), atom!("canplaythrough"), &window);
         }
     }
 
@@ -435,7 +413,7 @@ impl HTMLMediaElement {
         let task = MediaElementMicrotask::ResourceSelectionTask {
             elem: DomRoot::from_ref(self),
             generation_id: self.generation_id.get(),
-            base_url: doc.base_url()
+            base_url: doc.base_url(),
         };
 
         // FIXME(nox): This will later call the resource_selection_algorith_sync
@@ -460,10 +438,14 @@ impl HTMLMediaElement {
             if media.src_object.get().is_some() {
                 return Some(Mode::Object);
             }
-            if let Some(attr) = media.upcast::<Element>().get_attribute(&ns!(), &local_name!("src")) {
+            if let Some(attr) = media
+                .upcast::<Element>()
+                .get_attribute(&ns!(), &local_name!("src"))
+            {
                 return Some(Mode::Attribute(attr.Value().into()));
             }
-            let source_child_element = media.upcast::<Node>()
+            let source_child_element = media
+                .upcast::<Node>()
                 .children()
                 .filter_map(DomRoot::downcast::<HTMLSourceElement>)
                 .next();
@@ -520,7 +502,7 @@ impl HTMLMediaElement {
                     Err(_) => {
                         self.queue_dedicated_media_source_failure_steps();
                         return;
-                    }
+                    },
                 };
 
                 // Step 9.attr.3.
@@ -565,12 +547,14 @@ impl HTMLMediaElement {
 
                     // Step 4.remote.1.3.
                     let this = Trusted::new(self);
-                    window.dom_manipulation_task_source().queue(
-                        task!(set_media_delay_load_event_flag_to_false: move || {
+                    window
+                        .dom_manipulation_task_source()
+                        .queue(
+                            task!(set_media_delay_load_event_flag_to_false: move || {
                             this.root().delay_load_event(false);
                         }),
-                        window.upcast(),
-                    ).unwrap();
+                            window.upcast(),
+                        ).unwrap();
 
                     // Steps 4.remote.1.4.
                     // FIXME(nox): Somehow we should wait for the task from previous
@@ -599,7 +583,7 @@ impl HTMLMediaElement {
                     pipeline_id: Some(self.global().pipeline_id()),
                     referrer_url: Some(document.url()),
                     referrer_policy: document.get_referrer_policy(),
-                    .. RequestInit::default()
+                    ..RequestInit::default()
                 };
 
                 let context = Arc::new(Mutex::new(HTMLMediaElementContext::new(self)));
@@ -608,12 +592,17 @@ impl HTMLMediaElement {
                 let listener = NetworkListener {
                     context: context,
                     task_source: window.networking_task_source(),
-                    canceller: Some(window.task_canceller(TaskSourceName::Networking))
+                    canceller: Some(window.task_canceller(TaskSourceName::Networking)),
                 };
-                ROUTER.add_route(action_receiver.to_opaque(), Box::new(move |message| {
-                    listener.notify_fetch(message.to().unwrap());
-                }));
-                document.loader_mut().fetch_async_background(request, action_sender);
+                ROUTER.add_route(
+                    action_receiver.to_opaque(),
+                    Box::new(move |message| {
+                        listener.notify_fetch(message.to().unwrap());
+                    }),
+                );
+                document
+                    .loader_mut()
+                    .fetch_async_background(request, action_sender);
             },
             Resource::Object => {
                 // FIXME(nox): Actually do something with the object.
@@ -753,7 +742,9 @@ impl HTMLMediaElement {
     /// Appends a promise to the list of pending play promises.
     #[allow(unrooted_must_root)]
     fn push_pending_play_promise(&self, promise: &Rc<Promise>) {
-        self.pending_play_promises.borrow_mut().push(promise.clone());
+        self.pending_play_promises
+            .borrow_mut()
+            .push(promise.clone());
     }
 
     /// Takes the pending play promises.
@@ -768,14 +759,11 @@ impl HTMLMediaElement {
     /// which were taken and moved to the in-flight queue.
     #[allow(unrooted_must_root)]
     fn take_pending_play_promises(&self, result: ErrorResult) {
-        let pending_play_promises = mem::replace(
-            &mut *self.pending_play_promises.borrow_mut(),
-            vec![],
-        );
-        self.in_flight_play_promises_queue.borrow_mut().push_back((
-            pending_play_promises.into(),
-            result,
-        ));
+        let pending_play_promises =
+            mem::replace(&mut *self.pending_play_promises.borrow_mut(), vec![]);
+        self.in_flight_play_promises_queue
+            .borrow_mut()
+            .push_back((pending_play_promises.into(), result));
     }
 
     /// Fulfills the next in-flight play promises queue after running a closure.
@@ -791,7 +779,8 @@ impl HTMLMediaElement {
     where
         F: FnOnce(),
     {
-        let (promises, result) = self.in_flight_play_promises_queue
+        let (promises, result) = self
+            .in_flight_play_promises_queue
             .borrow_mut()
             .pop_front()
             .expect("there should be at least one list of in flight play promises");
@@ -870,11 +859,10 @@ impl HTMLMediaElementMethods for HTMLMediaElement {
     // https://html.spec.whatwg.org/multipage/#dom-navigator-canplaytype
     fn CanPlayType(&self, type_: DOMString) -> CanPlayTypeResult {
         match type_.parse::<Mime>() {
-            Ok(Mime(TopLevel::Application, SubLevel::OctetStream, _)) |
-            Err(_) => {
+            Ok(Mime(TopLevel::Application, SubLevel::OctetStream, _)) | Err(_) => {
                 CanPlayTypeResult::_empty
             },
-            _ => CanPlayTypeResult::Maybe
+            _ => CanPlayTypeResult::Maybe,
         }
     }
 
@@ -921,7 +909,7 @@ impl VirtualMethods for HTMLMediaElement {
                 if mutation.new_value(attr).is_some() {
                     self.media_element_load_algorithm();
                 }
-            }
+            },
             _ => (),
         };
     }
@@ -932,7 +920,7 @@ impl VirtualMethods for HTMLMediaElement {
 
         if context.tree_in_doc {
             let task = MediaElementMicrotask::PauseIfNotInDocumentTask {
-                elem: DomRoot::from_ref(self)
+                elem: DomRoot::from_ref(self),
             };
             ScriptThread::await_stable_state(Microtask::MediaElement(task));
         }
@@ -948,13 +936,17 @@ pub enum MediaElementMicrotask {
     },
     PauseIfNotInDocumentTask {
         elem: DomRoot<HTMLMediaElement>,
-    }
+    },
 }
 
 impl MicrotaskRunnable for MediaElementMicrotask {
     fn handler(&self) {
         match self {
-            &MediaElementMicrotask::ResourceSelectionTask { ref elem, generation_id, ref base_url } => {
+            &MediaElementMicrotask::ResourceSelectionTask {
+                ref elem,
+                generation_id,
+                ref base_url,
+            } => {
                 if generation_id == elem.generation_id.get() {
                     elem.resource_selection_algorithm_sync(base_url.clone());
                 }
@@ -997,14 +989,14 @@ impl FetchResponseListener for HTMLMediaElementContext {
     fn process_request_eof(&mut self) {}
 
     fn process_response(&mut self, metadata: Result<FetchMetadata, NetworkError>) {
-        self.metadata = metadata.ok().map(|m| {
-            match m {
-                FetchMetadata::Unfiltered(m) => m,
-                FetchMetadata::Filtered { unsafe_, .. } => unsafe_
-            }
+        self.metadata = metadata.ok().map(|m| match m {
+            FetchMetadata::Unfiltered(m) => m,
+            FetchMetadata::Filtered { unsafe_, .. } => unsafe_,
         });
 
-        let status_is_ok = self.metadata.as_ref()
+        let status_is_ok = self
+            .metadata
+            .as_ref()
             .and_then(|m| m.status.as_ref())
             .map_or(true, |s| s.0 >= 200 && s.0 < 300);
 
@@ -1013,7 +1005,9 @@ impl FetchResponseListener for HTMLMediaElementContext {
             // Ensure that the element doesn't receive any further notifications
             // of the aborted fetch.
             self.ignore_response = true;
-            self.elem.root().queue_dedicated_media_source_failure_steps();
+            self.elem
+                .root()
+                .queue_dedicated_media_source_failure_steps();
         }
     }
 
@@ -1074,8 +1068,10 @@ impl FetchResponseListener for HTMLMediaElementContext {
         // => "If the connection is interrupted after some media data has been received..."
         else if elem.ready_state.get() != ReadyState::HaveNothing {
             // Step 2
-            elem.error.set(Some(&*MediaError::new(&*window_from_node(&*elem),
-                                                  MEDIA_ERR_NETWORK)));
+            elem.error.set(Some(&*MediaError::new(
+                &*window_from_node(&*elem),
+                MEDIA_ERR_NETWORK,
+            )));
 
             // Step 3
             elem.network_state.set(NetworkState::Idle);

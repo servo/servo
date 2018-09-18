@@ -96,9 +96,7 @@ where
                 trace_reflector(tracer, "on stack", &self.0);
             }
         }
-        unsafe {
-            &*(self.reflector() as *const Reflector as *const ReflectorStackRoot)
-        }
+        unsafe { &*(self.reflector() as *const Reflector as *const ReflectorStackRoot) }
     }
 }
 
@@ -131,15 +129,17 @@ pub type DomRoot<T> = Root<Dom<T>>;
 impl<T: Castable> DomRoot<T> {
     /// Cast a DOM object root upwards to one of the interfaces it derives from.
     pub fn upcast<U>(root: DomRoot<T>) -> DomRoot<U>
-        where U: Castable,
-              T: DerivedFrom<U>
+    where
+        U: Castable,
+        T: DerivedFrom<U>,
     {
         unsafe { mem::transmute(root) }
     }
 
     /// Cast a DOM object root downwards to one of the interfaces it might implement.
     pub fn downcast<U>(root: DomRoot<T>) -> Option<DomRoot<U>>
-        where U: DerivedFrom<T>
+    where
+        U: DerivedFrom<T>,
     {
         if root.is::<U>() {
             Some(unsafe { mem::transmute(root) })
@@ -207,9 +207,7 @@ pub struct ThreadLocalStackRoots<'a>(PhantomData<&'a u32>);
 
 impl<'a> ThreadLocalStackRoots<'a> {
     pub fn new(roots: &'a RootCollection) -> Self {
-        STACK_ROOTS.with(|ref r| {
-            r.set(Some(roots))
-        });
+        STACK_ROOTS.with(|ref r| r.set(Some(roots)));
         ThreadLocalStackRoots(PhantomData)
     }
 }
@@ -363,9 +361,7 @@ unsafe impl<T: DomObject> JSTraceable for Dom<T> {
         #[cfg(not(all(feature = "unstable", debug_assertions)))]
         let trace_info = "for DOM object on heap";
 
-        trace_reflector(trc,
-                        trace_info,
-                        (*self.ptr.as_ptr()).reflector());
+        trace_reflector(trc, trace_info, (*self.ptr.as_ptr()).reflector());
     }
 }
 
@@ -379,8 +375,9 @@ pub struct LayoutDom<T> {
 impl<T: Castable> LayoutDom<T> {
     /// Cast a DOM object root upwards to one of the interfaces it derives from.
     pub fn upcast<U>(&self) -> LayoutDom<U>
-        where U: Castable,
-              T: DerivedFrom<U>
+    where
+        U: Castable,
+        T: DerivedFrom<U>,
     {
         debug_assert!(thread_state::get().is_layout());
         let ptr: *mut T = self.ptr.as_ptr();
@@ -391,7 +388,8 @@ impl<T: Castable> LayoutDom<T> {
 
     /// Cast a DOM object downwards to one of the interfaces it might implement.
     pub fn downcast<U>(&self) -> Option<LayoutDom<U>>
-        where U: DerivedFrom<T>
+    where
+        U: DerivedFrom<T>,
     {
         debug_assert!(thread_state::get().is_layout());
         unsafe {
@@ -429,7 +427,6 @@ impl<'a, T: DomObject> PartialEq<&'a T> for Dom<T> {
     }
 }
 
-
 impl<T> Eq for Dom<T> {}
 
 impl<T> PartialEq for LayoutDom<T> {
@@ -452,7 +449,7 @@ impl<T> Hash for LayoutDom<T> {
     }
 }
 
-impl <T> Clone for Dom<T> {
+impl<T> Clone for Dom<T> {
     #[inline]
     #[allow(unrooted_must_root)]
     fn clone(&self) -> Dom<T> {
@@ -463,7 +460,7 @@ impl <T> Clone for Dom<T> {
     }
 }
 
-impl <T> Clone for LayoutDom<T> {
+impl<T> Clone for LayoutDom<T> {
     #[inline]
     fn clone(&self) -> LayoutDom<T> {
         debug_assert!(thread_state::get().is_layout());
@@ -516,9 +513,7 @@ impl<T: DomObject> MutDom<T> {
     /// Get the value in this `MutDom`.
     pub fn get(&self) -> DomRoot<T> {
         debug_assert!(thread_state::get().is_script());
-        unsafe {
-            DomRoot::from_ref(&*ptr::read(self.val.get()))
-        }
+        unsafe { DomRoot::from_ref(&*ptr::read(self.val.get())) }
     }
 }
 
@@ -530,18 +525,14 @@ impl<T: DomObject> MallocSizeOf for MutDom<T> {
 }
 
 impl<T: DomObject> PartialEq for MutDom<T> {
-   fn eq(&self, other: &Self) -> bool {
-        unsafe {
-            *self.val.get() == *other.val.get()
-        }
+    fn eq(&self, other: &Self) -> bool {
+        unsafe { *self.val.get() == *other.val.get() }
     }
 }
 
 impl<T: DomObject + PartialEq> PartialEq<T> for MutDom<T> {
     fn eq(&self, other: &T) -> bool {
-        unsafe {
-            **self.val.get() == *other
-        }
+        unsafe { **self.val.get() == *other }
     }
 }
 
@@ -569,7 +560,8 @@ impl<T: DomObject> MutNullableDom<T> {
     /// Retrieve a copy of the current inner value. If it is `None`, it is
     /// initialized with the result of `cb` first.
     pub fn or_init<F>(&self, cb: F) -> DomRoot<T>
-        where F: FnOnce() -> DomRoot<T>
+    where
+        F: FnOnce() -> DomRoot<T>,
     {
         debug_assert!(thread_state::get().is_script());
         match self.get() {
@@ -594,9 +586,7 @@ impl<T: DomObject> MutNullableDom<T> {
     #[allow(unrooted_must_root)]
     pub fn get(&self) -> Option<DomRoot<T>> {
         debug_assert!(thread_state::get().is_script());
-        unsafe {
-            ptr::read(self.ptr.get()).map(|o| DomRoot::from_ref(&*o))
-        }
+        unsafe { ptr::read(self.ptr.get()).map(|o| DomRoot::from_ref(&*o)) }
     }
 
     /// Set this `MutNullableDom` to the given value.
@@ -617,17 +607,13 @@ impl<T: DomObject> MutNullableDom<T> {
 
 impl<T: DomObject> PartialEq for MutNullableDom<T> {
     fn eq(&self, other: &Self) -> bool {
-        unsafe {
-            *self.ptr.get() == *other.ptr.get()
-        }
+        unsafe { *self.ptr.get() == *other.ptr.get() }
     }
 }
 
 impl<'a, T: DomObject> PartialEq<Option<&'a T>> for MutNullableDom<T> {
     fn eq(&self, other: &Option<&T>) -> bool {
-        unsafe {
-            *self.ptr.get() == other.map(Dom::from_ref)
-        }
+        unsafe { *self.ptr.get() == other.map(Dom::from_ref) }
     }
 }
 
@@ -661,13 +647,14 @@ pub struct DomOnceCell<T: DomObject> {
 
 impl<T> DomOnceCell<T>
 where
-    T: DomObject
+    T: DomObject,
 {
     /// Retrieve a copy of the current inner value. If it is `None`, it is
     /// initialized with the result of `cb` first.
     #[allow(unrooted_must_root)]
     pub fn init_once<F>(&self, cb: F) -> &T
-        where F: FnOnce() -> DomRoot<T>
+    where
+        F: FnOnce() -> DomRoot<T>,
     {
         debug_assert!(thread_state::get().is_script());
         &self.ptr.init_once(|| Dom::from_ref(&cb()))
@@ -725,14 +712,17 @@ pub trait OptionalHeapSetter {
     fn set(&mut self, v: Option<Self::Value>);
 }
 
-impl<T: GCMethods + Copy> OptionalHeapSetter for Option<Heap<T>> where Heap<T>: Default {
+impl<T: GCMethods + Copy> OptionalHeapSetter for Option<Heap<T>>
+where
+    Heap<T>: Default,
+{
     type Value = T;
     fn set(&mut self, v: Option<T>) {
         let v = match v {
             None => {
                 *self = None;
                 return;
-            }
+            },
             Some(v) => v,
         };
 

@@ -26,14 +26,16 @@ use super::wrapper::{WebGLExtensionWrapper, TypedWebGLExtensionWrapper};
 // but must trigger a InvalidValue error until the related WebGL Extensions are enabled.
 // Example: https://www.khronos.org/registry/webgl/extensions/OES_texture_float/
 const DEFAULT_DISABLED_TEX_TYPES_WEBGL1: [GLenum; 2] = [
-    constants::FLOAT, OESTextureHalfFloatConstants::HALF_FLOAT_OES
+    constants::FLOAT,
+    OESTextureHalfFloatConstants::HALF_FLOAT_OES,
 ];
 
 // Data types that are implemented for textures in WebGLRenderingContext
 // but not allowed to use with linear filtering until the related WebGL Extensions are enabled.
 // Example: https://www.khronos.org/registry/webgl/extensions/OES_texture_float_linear/
 const DEFAULT_NOT_FILTERABLE_TEX_TYPES: [GLenum; 2] = [
-    constants::FLOAT, OESTextureHalfFloatConstants::HALF_FLOAT_OES
+    constants::FLOAT,
+    OESTextureHalfFloatConstants::HALF_FLOAT_OES,
 ];
 
 // Param names that are implemented for glGetParameter in a WebGL 1.0 context
@@ -48,16 +50,14 @@ const DEFAULT_DISABLED_GET_PARAMETER_NAMES_WEBGL1: [GLenum; 3] = [
 // Param names that are implemented for glGetTexParameter in a WebGL 1.0 context
 // but must trigger a InvalidEnum error until the related WebGL Extensions are enabled.
 // Example: https://www.khronos.org/registry/webgl/extensions/OES_standard_derivatives/
-const DEFAULT_DISABLED_GET_TEX_PARAMETER_NAMES_WEBGL1: [GLenum; 1] = [
-    EXTTextureFilterAnisotropicConstants::TEXTURE_MAX_ANISOTROPY_EXT,
-];
+const DEFAULT_DISABLED_GET_TEX_PARAMETER_NAMES_WEBGL1: [GLenum; 1] =
+    [EXTTextureFilterAnisotropicConstants::TEXTURE_MAX_ANISOTROPY_EXT];
 
 // Param names that are implemented for glGetVertexAttrib in a WebGL 1.0 context
 // but must trigger a InvalidEnum error until the related WebGL Extensions are enabled.
 // Example: https://www.khronos.org/registry/webgl/extensions/ANGLE_instanced_arrays/
-const DEFAULT_DISABLED_GET_VERTEX_ATTRIB_NAMES_WEBGL1: [GLenum; 1] = [
-    ANGLEInstancedArraysConstants::VERTEX_ATTRIB_ARRAY_DIVISOR_ANGLE,
-];
+const DEFAULT_DISABLED_GET_VERTEX_ATTRIB_NAMES_WEBGL1: [GLenum; 1] =
+    [ANGLEInstancedArraysConstants::VERTEX_ATTRIB_ARRAY_DIVISOR_ANGLE];
 
 /// WebGL features that are enabled/disabled by WebGL Extensions.
 #[derive(JSTraceable, MallocSizeOf)]
@@ -90,26 +90,31 @@ impl WebGLExtensionFeatures {
             element_index_uint_enabled,
             blend_minmax_enabled,
         ) = match webgl_version {
-            WebGLVersion::WebGL1 => {
-                (
-                    DEFAULT_DISABLED_TEX_TYPES_WEBGL1.iter().cloned().collect(),
-                    DEFAULT_DISABLED_GET_PARAMETER_NAMES_WEBGL1.iter().cloned().collect(),
-                    DEFAULT_DISABLED_GET_TEX_PARAMETER_NAMES_WEBGL1.iter().cloned().collect(),
-                    DEFAULT_DISABLED_GET_VERTEX_ATTRIB_NAMES_WEBGL1.iter().cloned().collect(),
-                    false,
-                    false,
-                )
-            },
-            WebGLVersion::WebGL2 => {
-                (
-                    Default::default(),
-                    Default::default(),
-                    Default::default(),
-                    Default::default(),
-                    true,
-                    true,
-                )
-            }
+            WebGLVersion::WebGL1 => (
+                DEFAULT_DISABLED_TEX_TYPES_WEBGL1.iter().cloned().collect(),
+                DEFAULT_DISABLED_GET_PARAMETER_NAMES_WEBGL1
+                    .iter()
+                    .cloned()
+                    .collect(),
+                DEFAULT_DISABLED_GET_TEX_PARAMETER_NAMES_WEBGL1
+                    .iter()
+                    .cloned()
+                    .collect(),
+                DEFAULT_DISABLED_GET_VERTEX_ATTRIB_NAMES_WEBGL1
+                    .iter()
+                    .cloned()
+                    .collect(),
+                false,
+                false,
+            ),
+            WebGLVersion::WebGL2 => (
+                Default::default(),
+                Default::default(),
+                Default::default(),
+                Default::default(),
+                true,
+                true,
+            ),
         };
         Self {
             gl_extensions: Default::default(),
@@ -144,35 +149,45 @@ impl WebGLExtensions {
         }
     }
 
-    pub fn init_once<F>(&self, cb: F) where F: FnOnce() -> String {
+    pub fn init_once<F>(&self, cb: F)
+    where
+        F: FnOnce() -> String,
+    {
         if self.extensions.borrow().len() == 0 {
             let gl_str = cb();
-            self.features.borrow_mut().gl_extensions = FnvHashSet::from_iter(gl_str.split(&[',', ' '][..])
-                                                                                   .map(|s| s.into()));
+            self.features.borrow_mut().gl_extensions =
+                FnvHashSet::from_iter(gl_str.split(&[',', ' '][..]).map(|s| s.into()));
             self.register_all_extensions();
         }
     }
 
-    pub fn register<T:'static + WebGLExtension + JSTraceable + MallocSizeOf>(&self) {
+    pub fn register<T: 'static + WebGLExtension + JSTraceable + MallocSizeOf>(&self) {
         let name = T::name().to_uppercase();
-        self.extensions.borrow_mut().insert(name, Box::new(TypedWebGLExtensionWrapper::<T>::new()));
+        self.extensions
+            .borrow_mut()
+            .insert(name, Box::new(TypedWebGLExtensionWrapper::<T>::new()));
     }
 
     pub fn get_suported_extensions(&self) -> Vec<&'static str> {
-        self.extensions.borrow().iter()
-                                .filter(|ref v| {
-                                    if let WebGLExtensionSpec::Specific(version) = v.1.spec() {
-                                        if self.webgl_version != version {
-                                            return false;
-                                        }
-                                    }
-                                    v.1.is_supported(&self)
-                                })
-                                .map(|ref v| v.1.name())
-                                .collect()
+        self.extensions
+            .borrow()
+            .iter()
+            .filter(|ref v| {
+                if let WebGLExtensionSpec::Specific(version) = v.1.spec() {
+                    if self.webgl_version != version {
+                        return false;
+                    }
+                }
+                v.1.is_supported(&self)
+            }).map(|ref v| v.1.name())
+            .collect()
     }
 
-    pub fn get_or_init_extension(&self, name: &str, ctx: &WebGLRenderingContext) -> Option<NonNull<JSObject>> {
+    pub fn get_or_init_extension(
+        &self,
+        name: &str,
+        ctx: &WebGLRenderingContext,
+    ) -> Option<NonNull<JSObject>> {
         let name = name.to_uppercase();
         self.extensions.borrow().get(&name).and_then(|extension| {
             if extension.is_supported(self) {
@@ -185,10 +200,13 @@ impl WebGLExtensions {
 
     pub fn is_enabled<T>(&self) -> bool
     where
-        T: 'static + WebGLExtension + JSTraceable + MallocSizeOf
+        T: 'static + WebGLExtension + JSTraceable + MallocSizeOf,
     {
         let name = T::name().to_uppercase();
-        self.extensions.borrow().get(&name).map_or(false, |ext| { ext.is_enabled() })
+        self.extensions
+            .borrow()
+            .get(&name)
+            .map_or(false, |ext| ext.is_enabled())
     }
 
     pub fn supports_gl_extension(&self, name: &str) -> bool {
@@ -197,42 +215,66 @@ impl WebGLExtensions {
 
     pub fn supports_any_gl_extension(&self, names: &[&str]) -> bool {
         let features = self.features.borrow();
-        names.iter().any(|name| features.gl_extensions.contains(*name))
+        names
+            .iter()
+            .any(|name| features.gl_extensions.contains(*name))
     }
 
     pub fn enable_tex_type(&self, data_type: GLenum) {
-        self.features.borrow_mut().disabled_tex_types.remove(&data_type);
+        self.features
+            .borrow_mut()
+            .disabled_tex_types
+            .remove(&data_type);
     }
 
     pub fn is_tex_type_enabled(&self, data_type: GLenum) -> bool {
-        self.features.borrow().disabled_tex_types.get(&data_type).is_none()
+        self.features
+            .borrow()
+            .disabled_tex_types
+            .get(&data_type)
+            .is_none()
     }
 
-    pub fn add_effective_tex_internal_format(&self,
-                                             source_internal_format: u32,
-                                             source_data_type: u32,
-                                             effective_internal_format: u32)
-    {
+    pub fn add_effective_tex_internal_format(
+        &self,
+        source_internal_format: u32,
+        source_data_type: u32,
+        effective_internal_format: u32,
+    ) {
         let format = TexFormatType(source_internal_format, source_data_type);
-        self.features.borrow_mut().effective_tex_internal_formats.insert(format,
-                                                                         effective_internal_format);
-
+        self.features
+            .borrow_mut()
+            .effective_tex_internal_formats
+            .insert(format, effective_internal_format);
     }
 
-    pub fn get_effective_tex_internal_format(&self,
-                                             source_internal_format: u32,
-                                             source_data_type: u32) -> u32 {
+    pub fn get_effective_tex_internal_format(
+        &self,
+        source_internal_format: u32,
+        source_data_type: u32,
+    ) -> u32 {
         let format = TexFormatType(source_internal_format, source_data_type);
-        *(self.features.borrow().effective_tex_internal_formats.get(&format)
-                                                               .unwrap_or(&source_internal_format))
+        *(self
+            .features
+            .borrow()
+            .effective_tex_internal_formats
+            .get(&format)
+            .unwrap_or(&source_internal_format))
     }
 
     pub fn enable_filterable_tex_type(&self, text_data_type: GLenum) {
-        self.features.borrow_mut().not_filterable_tex_types.remove(&text_data_type);
+        self.features
+            .borrow_mut()
+            .not_filterable_tex_types
+            .remove(&text_data_type);
     }
 
     pub fn is_filterable(&self, text_data_type: u32) -> bool {
-        self.features.borrow().not_filterable_tex_types.get(&text_data_type).is_none()
+        self.features
+            .borrow()
+            .not_filterable_tex_types
+            .get(&text_data_type)
+            .is_none()
     }
 
     pub fn enable_hint_target(&self, name: GLenum) {
@@ -244,27 +286,48 @@ impl WebGLExtensions {
     }
 
     pub fn enable_get_parameter_name(&self, name: GLenum) {
-        self.features.borrow_mut().disabled_get_parameter_names.remove(&name);
+        self.features
+            .borrow_mut()
+            .disabled_get_parameter_names
+            .remove(&name);
     }
 
     pub fn is_get_parameter_name_enabled(&self, name: GLenum) -> bool {
-        !self.features.borrow().disabled_get_parameter_names.contains(&name)
+        !self
+            .features
+            .borrow()
+            .disabled_get_parameter_names
+            .contains(&name)
     }
 
     pub fn enable_get_tex_parameter_name(&self, name: GLenum) {
-        self.features.borrow_mut().disabled_get_tex_parameter_names.remove(&name);
+        self.features
+            .borrow_mut()
+            .disabled_get_tex_parameter_names
+            .remove(&name);
     }
 
     pub fn is_get_tex_parameter_name_enabled(&self, name: GLenum) -> bool {
-        !self.features.borrow().disabled_get_tex_parameter_names.contains(&name)
+        !self
+            .features
+            .borrow()
+            .disabled_get_tex_parameter_names
+            .contains(&name)
     }
 
     pub fn enable_get_vertex_attrib_name(&self, name: GLenum) {
-        self.features.borrow_mut().disabled_get_vertex_attrib_names.remove(&name);
+        self.features
+            .borrow_mut()
+            .disabled_get_vertex_attrib_names
+            .remove(&name);
     }
 
     pub fn is_get_vertex_attrib_name_enabled(&self, name: GLenum) -> bool {
-        !self.features.borrow().disabled_get_vertex_attrib_names.contains(&name)
+        !self
+            .features
+            .borrow()
+            .disabled_get_vertex_attrib_names
+            .contains(&name)
     }
 
     fn register_all_extensions(&self) {

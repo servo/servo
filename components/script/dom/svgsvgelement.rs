@@ -22,26 +22,31 @@ const DEFAULT_HEIGHT: u32 = 150;
 
 #[dom_struct]
 pub struct SVGSVGElement {
-    svggraphicselement: SVGGraphicsElement
+    svggraphicselement: SVGGraphicsElement,
 }
 
 impl SVGSVGElement {
-    fn new_inherited(local_name: LocalName,
-                     prefix: Option<Prefix>,
-                     document: &Document) -> SVGSVGElement {
+    fn new_inherited(
+        local_name: LocalName,
+        prefix: Option<Prefix>,
+        document: &Document,
+    ) -> SVGSVGElement {
         SVGSVGElement {
-            svggraphicselement:
-                SVGGraphicsElement::new_inherited(local_name, prefix, document)
+            svggraphicselement: SVGGraphicsElement::new_inherited(local_name, prefix, document),
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(local_name: LocalName,
-               prefix: Option<Prefix>,
-               document: &Document) -> DomRoot<SVGSVGElement> {
-        Node::reflect_node(Box::new(SVGSVGElement::new_inherited(local_name, prefix, document)),
-                           document,
-                           SVGSVGElementBinding::Wrap)
+    pub fn new(
+        local_name: LocalName,
+        prefix: Option<Prefix>,
+        document: &Document,
+    ) -> DomRoot<SVGSVGElement> {
+        Node::reflect_node(
+            Box::new(SVGSVGElement::new_inherited(local_name, prefix, document)),
+            document,
+            SVGSVGElementBinding::Wrap,
+        )
     }
 }
 
@@ -55,8 +60,12 @@ impl LayoutSVGSVGElementHelpers for LayoutDom<SVGSVGElement> {
         unsafe {
             let SVG = &*self.unsafe_get();
 
-            let width_attr = SVG.upcast::<Element>().get_attr_for_layout(&ns!(), &local_name!("width"));
-            let height_attr = SVG.upcast::<Element>().get_attr_for_layout(&ns!(), &local_name!("height"));
+            let width_attr = SVG
+                .upcast::<Element>()
+                .get_attr_for_layout(&ns!(), &local_name!("width"));
+            let height_attr = SVG
+                .upcast::<Element>()
+                .get_attr_for_layout(&ns!(), &local_name!("height"));
             SVGSVGData {
                 width: width_attr.map_or(DEFAULT_WIDTH, |val| val.as_uint()),
                 height: height_attr.map_or(DEFAULT_HEIGHT, |val| val.as_uint()),
@@ -78,7 +87,10 @@ impl VirtualMethods for SVGSVGElement {
         match name {
             &local_name!("width") => AttrValue::from_u32(value.into(), DEFAULT_WIDTH),
             &local_name!("height") => AttrValue::from_u32(value.into(), DEFAULT_HEIGHT),
-            _ => self.super_type().unwrap().parse_plain_attribute(name, value),
+            _ => self
+                .super_type()
+                .unwrap()
+                .parse_plain_attribute(name, value),
         }
     }
 }

@@ -30,11 +30,13 @@ pub struct CSSStyleSheet {
 }
 
 impl CSSStyleSheet {
-    fn new_inherited(owner: &Element,
-                     type_: DOMString,
-                     href: Option<DOMString>,
-                     title: Option<DOMString>,
-                     stylesheet: Arc<StyleStyleSheet>) -> CSSStyleSheet {
+    fn new_inherited(
+        owner: &Element,
+        type_: DOMString,
+        href: Option<DOMString>,
+        title: Option<DOMString>,
+        stylesheet: Arc<StyleStyleSheet>,
+    ) -> CSSStyleSheet {
         CSSStyleSheet {
             stylesheet: StyleSheet::new_inherited(type_, href, title),
             owner: Dom::from_ref(owner),
@@ -45,25 +47,27 @@ impl CSSStyleSheet {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(window: &Window,
-               owner: &Element,
-               type_: DOMString,
-               href: Option<DOMString>,
-               title: Option<DOMString>,
-               stylesheet: Arc<StyleStyleSheet>) -> DomRoot<CSSStyleSheet> {
-        reflect_dom_object(Box::new(CSSStyleSheet::new_inherited(owner, type_, href, title, stylesheet)),
-                           window,
-                           CSSStyleSheetBinding::Wrap)
+    pub fn new(
+        window: &Window,
+        owner: &Element,
+        type_: DOMString,
+        href: Option<DOMString>,
+        title: Option<DOMString>,
+        stylesheet: Arc<StyleStyleSheet>,
+    ) -> DomRoot<CSSStyleSheet> {
+        reflect_dom_object(
+            Box::new(CSSStyleSheet::new_inherited(
+                owner, type_, href, title, stylesheet,
+            )),
+            window,
+            CSSStyleSheetBinding::Wrap,
+        )
     }
 
     fn rulelist(&self) -> DomRoot<CSSRuleList> {
         self.rulelist.or_init(|| {
             let rules = self.style_stylesheet.contents.rules.clone();
-            CSSRuleList::new(
-                self.global().as_window(),
-                self,
-                RulesSource::Rules(rules)
-            )
+            CSSRuleList::new(self.global().as_window(), self, RulesSource::Rules(rules))
         })
     }
 
@@ -73,7 +77,10 @@ impl CSSStyleSheet {
 
     pub fn set_disabled(&self, disabled: bool) {
         if self.style_stylesheet.set_disabled(disabled) {
-            self.global().as_window().Document().invalidate_stylesheets();
+            self.global()
+                .as_window()
+                .Document()
+                .invalidate_stylesheets();
         }
     }
 
@@ -104,7 +111,8 @@ impl CSSStyleSheetMethods for CSSStyleSheet {
         if !self.origin_clean.get() {
             return Err(Error::Security);
         }
-        self.rulelist().insert_rule(&rule, index, /* nested */ false)
+        self.rulelist()
+            .insert_rule(&rule, index, /* nested */ false)
     }
 
     // https://drafts.csswg.org/cssom/#dom-cssstylesheet-deleterule
@@ -115,4 +123,3 @@ impl CSSStyleSheetMethods for CSSStyleSheet {
         self.rulelist().remove_rule(index)
     }
 }
-

@@ -14,30 +14,37 @@ use html5ever::{LocalName, Prefix};
 
 #[dom_struct]
 pub struct HTMLMapElement {
-    htmlelement: HTMLElement
+    htmlelement: HTMLElement,
 }
 
 impl HTMLMapElement {
-    fn new_inherited(local_name: LocalName,
-                     prefix: Option<Prefix>,
-                     document: &Document) -> HTMLMapElement {
+    fn new_inherited(
+        local_name: LocalName,
+        prefix: Option<Prefix>,
+        document: &Document,
+    ) -> HTMLMapElement {
         HTMLMapElement {
-            htmlelement: HTMLElement::new_inherited(local_name, prefix, document)
+            htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(local_name: LocalName,
-               prefix: Option<Prefix>,
-               document: &Document) -> DomRoot<HTMLMapElement> {
-        Node::reflect_node(Box::new(HTMLMapElement::new_inherited(local_name, prefix, document)),
-                           document,
-                           HTMLMapElementBinding::Wrap)
+    pub fn new(
+        local_name: LocalName,
+        prefix: Option<Prefix>,
+        document: &Document,
+    ) -> DomRoot<HTMLMapElement> {
+        Node::reflect_node(
+            Box::new(HTMLMapElement::new_inherited(local_name, prefix, document)),
+            document,
+            HTMLMapElementBinding::Wrap,
+        )
     }
 
     pub fn get_area_elements(&self) -> Vec<DomRoot<HTMLAreaElement>> {
         self.upcast::<Node>()
             .traverse_preorder()
-            .filter_map(DomRoot::downcast::<HTMLAreaElement>).collect()
+            .filter_map(DomRoot::downcast::<HTMLAreaElement>)
+            .collect()
     }
 }

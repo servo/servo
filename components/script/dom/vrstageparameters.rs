@@ -31,22 +31,30 @@ impl VRStageParameters {
         VRStageParameters {
             reflector_: Reflector::new(),
             parameters: DomRefCell::new(parameters),
-            transform: Heap::default()
+            transform: Heap::default(),
         }
     }
 
     #[allow(unsafe_code)]
-    pub fn new(parameters: WebVRStageParameters, global: &GlobalScope) -> DomRoot<VRStageParameters> {
+    pub fn new(
+        parameters: WebVRStageParameters,
+        global: &GlobalScope,
+    ) -> DomRoot<VRStageParameters> {
         let cx = global.get_cx();
         rooted!(in (cx) let mut array = ptr::null_mut::<JSObject>());
         unsafe {
-            let _ = Float32Array::create(cx, CreateWith::Slice(&parameters.sitting_to_standing_transform),
-                                                               array.handle_mut());
+            let _ = Float32Array::create(
+                cx,
+                CreateWith::Slice(&parameters.sitting_to_standing_transform),
+                array.handle_mut(),
+            );
         }
 
-        let stage_parameters  = reflect_dom_object(Box::new(VRStageParameters::new_inherited(parameters)),
-                                                   global,
-                                                   VRStageParametersBinding::Wrap);
+        let stage_parameters = reflect_dom_object(
+            Box::new(VRStageParameters::new_inherited(parameters)),
+            global,
+            VRStageParametersBinding::Wrap,
+        );
 
         stage_parameters.transform.set(array.get());
 

@@ -40,9 +40,16 @@ impl MutationRecord {
             Some(DOMString::from(&**attribute_name)),
             attribute_namespace.map(|n| DOMString::from(&**n)),
             old_value,
-            None, None, None, None
+            None,
+            None,
+            None,
+            None,
         ));
-        reflect_dom_object(record, &*window_from_node(target), MutationRecordBinding::Wrap)
+        reflect_dom_object(
+            record,
+            &*window_from_node(target),
+            MutationRecordBinding::Wrap,
+        )
     }
 
     pub fn character_data_mutated(
@@ -53,12 +60,16 @@ impl MutationRecord {
             Box::new(MutationRecord::new_inherited(
                 "characterData",
                 target,
-                None, None,
+                None,
+                None,
                 old_value,
-                None, None, None, None
+                None,
+                None,
+                None,
+                None,
             )),
             &*window_from_node(target),
-            MutationRecordBinding::Wrap
+            MutationRecordBinding::Wrap,
         )
     }
 
@@ -71,20 +82,23 @@ impl MutationRecord {
     ) -> DomRoot<MutationRecord> {
         let window = window_from_node(target);
         let added_nodes = added_nodes.map(|list| NodeList::new_simple_list_slice(&window, list));
-        let removed_nodes = removed_nodes.map(|list| NodeList::new_simple_list_slice(&window, list));
+        let removed_nodes =
+            removed_nodes.map(|list| NodeList::new_simple_list_slice(&window, list));
 
         reflect_dom_object(
             Box::new(MutationRecord::new_inherited(
                 "childList",
                 target,
-                None, None, None,
+                None,
+                None,
+                None,
                 added_nodes.as_ref().map(|list| &**list),
                 removed_nodes.as_ref().map(|list| &**list),
                 next_sibling,
-                prev_sibling
+                prev_sibling,
             )),
             &*window,
-            MutationRecordBinding::Wrap
+            MutationRecordBinding::Wrap,
         )
     }
 
@@ -158,12 +172,15 @@ impl MutationRecordMethods for MutationRecord {
 
     // https://dom.spec.whatwg.org/#dom-mutationrecord-previoussibling
     fn GetPreviousSibling(&self) -> Option<DomRoot<Node>> {
-        self.prev_sibling.as_ref().map(|node| DomRoot::from_ref(&**node))
+        self.prev_sibling
+            .as_ref()
+            .map(|node| DomRoot::from_ref(&**node))
     }
 
     // https://dom.spec.whatwg.org/#dom-mutationrecord-previoussibling
     fn GetNextSibling(&self) -> Option<DomRoot<Node>> {
-        self.next_sibling.as_ref().map(|node| DomRoot::from_ref(&**node))
+        self.next_sibling
+            .as_ref()
+            .map(|node| DomRoot::from_ref(&**node))
     }
-
 }

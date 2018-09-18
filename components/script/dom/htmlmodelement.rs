@@ -12,25 +12,30 @@ use html5ever::{LocalName, Prefix};
 
 #[dom_struct]
 pub struct HTMLModElement {
-    htmlelement: HTMLElement
+    htmlelement: HTMLElement,
 }
 
 impl HTMLModElement {
-    fn new_inherited(local_name: LocalName,
-                     prefix: Option<Prefix>,
-                     document: &Document) -> HTMLModElement {
+    fn new_inherited(
+        local_name: LocalName,
+        prefix: Option<Prefix>,
+        document: &Document,
+    ) -> HTMLModElement {
         HTMLModElement {
-            htmlelement:
-                HTMLElement::new_inherited(local_name, prefix, document)
+            htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(local_name: LocalName,
-               prefix: Option<Prefix>,
-               document: &Document) -> DomRoot<HTMLModElement> {
-        Node::reflect_node(Box::new(HTMLModElement::new_inherited(local_name, prefix, document)),
-                           document,
-                           HTMLModElementBinding::Wrap)
+    pub fn new(
+        local_name: LocalName,
+        prefix: Option<Prefix>,
+        document: &Document,
+    ) -> DomRoot<HTMLModElement> {
+        Node::reflect_node(
+            Box::new(HTMLModElement::new_inherited(local_name, prefix, document)),
+            document,
+            HTMLModElementBinding::Wrap,
+        )
     }
 }

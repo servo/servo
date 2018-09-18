@@ -31,9 +31,11 @@ impl PermissionStatus {
     }
 
     pub fn new(global: &GlobalScope, query: &PermissionDescriptor) -> DomRoot<PermissionStatus> {
-        reflect_dom_object(Box::new(PermissionStatus::new_inherited(query.name)),
-                           global,
-                           PermissionStatusBinding::Wrap)
+        reflect_dom_object(
+            Box::new(PermissionStatus::new_inherited(query.name)),
+            global,
+            PermissionStatusBinding::Wrap,
+        )
     }
 
     pub fn set_state(&self, state: PermissionState) {

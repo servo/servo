@@ -34,9 +34,11 @@ impl DocumentFragment {
     }
 
     pub fn new(document: &Document) -> DomRoot<DocumentFragment> {
-        Node::reflect_node(Box::new(DocumentFragment::new_inherited(document)),
-                           document,
-                           DocumentFragmentBinding::Wrap)
+        Node::reflect_node(
+            Box::new(DocumentFragment::new_inherited(document)),
+            document,
+            DocumentFragmentBinding::Wrap,
+        )
     }
 
     pub fn Constructor(window: &Window) -> Fallible<DomRoot<DocumentFragment>> {
@@ -57,12 +59,14 @@ impl DocumentFragmentMethods for DocumentFragment {
     fn GetElementById(&self, id: DOMString) -> Option<DomRoot<Element>> {
         let node = self.upcast::<Node>();
         let id = Atom::from(id);
-        node.traverse_preorder().filter_map(DomRoot::downcast::<Element>).find(|descendant| {
-            match descendant.get_attribute(&ns!(), &local_name!("id")) {
-                None => false,
-                Some(attr) => *attr.value().as_atom() == id,
-            }
-        })
+        node.traverse_preorder()
+            .filter_map(DomRoot::downcast::<Element>)
+            .find(
+                |descendant| match descendant.get_attribute(&ns!(), &local_name!("id")) {
+                    None => false,
+                    Some(attr) => *attr.value().as_atom() == id,
+                },
+            )
     }
 
     // https://dom.spec.whatwg.org/#dom-parentnode-firstelementchild
@@ -72,7 +76,10 @@ impl DocumentFragmentMethods for DocumentFragment {
 
     // https://dom.spec.whatwg.org/#dom-parentnode-lastelementchild
     fn GetLastElementChild(&self) -> Option<DomRoot<Element>> {
-        self.upcast::<Node>().rev_children().filter_map(DomRoot::downcast::<Element>).next()
+        self.upcast::<Node>()
+            .rev_children()
+            .filter_map(DomRoot::downcast::<Element>)
+            .next()
     }
 
     // https://dom.spec.whatwg.org/#dom-parentnode-childelementcount

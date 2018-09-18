@@ -12,22 +12,32 @@ use html5ever::{LocalName, Prefix};
 
 #[dom_struct]
 pub struct HTMLEmbedElement {
-    htmlelement: HTMLElement
+    htmlelement: HTMLElement,
 }
 
 impl HTMLEmbedElement {
-    fn new_inherited(local_name: LocalName, prefix: Option<Prefix>, document: &Document) -> HTMLEmbedElement {
+    fn new_inherited(
+        local_name: LocalName,
+        prefix: Option<Prefix>,
+        document: &Document,
+    ) -> HTMLEmbedElement {
         HTMLEmbedElement {
-            htmlelement: HTMLElement::new_inherited(local_name, prefix, document)
+            htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(local_name: LocalName,
-               prefix: Option<Prefix>,
-               document: &Document) -> DomRoot<HTMLEmbedElement> {
-        Node::reflect_node(Box::new(HTMLEmbedElement::new_inherited(local_name, prefix, document)),
-                           document,
-                           HTMLEmbedElementBinding::Wrap)
+    pub fn new(
+        local_name: LocalName,
+        prefix: Option<Prefix>,
+        document: &Document,
+    ) -> DomRoot<HTMLEmbedElement> {
+        Node::reflect_node(
+            Box::new(HTMLEmbedElement::new_inherited(
+                local_name, prefix, document,
+            )),
+            document,
+            HTMLEmbedElementBinding::Wrap,
+        )
     }
 }

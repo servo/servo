@@ -60,7 +60,8 @@ impl MicrotaskQueue {
     /// <https://html.spec.whatwg.org/multipage/#perform-a-microtask-checkpoint>
     /// Perform a microtask checkpoint, executing all queued microtasks until the queue is empty.
     pub fn checkpoint<F>(&self, target_provider: F)
-        where F: Fn(PipelineId) -> Option<DomRoot<GlobalScope>>
+    where
+        F: Fn(PipelineId) -> Option<DomRoot<GlobalScope>>,
     {
         if self.performing_a_microtask_checkpoint.get() {
             return;
@@ -72,9 +73,7 @@ impl MicrotaskQueue {
         // Steps 2-7
         while !self.microtask_queue.borrow().is_empty() {
             rooted_vec!(let mut pending_queue);
-            mem::swap(
-                &mut *pending_queue,
-                &mut *self.microtask_queue.borrow_mut());
+            mem::swap(&mut *pending_queue, &mut *self.microtask_queue.borrow_mut());
 
             for job in pending_queue.iter() {
                 match *job {
@@ -94,7 +93,7 @@ impl MicrotaskQueue {
                     },
                     Microtask::NotifyMutationObservers => {
                         MutationObserver::notify_mutation_observers();
-                    }
+                    },
                 }
             }
         }

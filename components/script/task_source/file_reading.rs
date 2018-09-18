@@ -22,11 +22,7 @@ impl Clone for FileReadingTaskSource {
 impl TaskSource for FileReadingTaskSource {
     const NAME: TaskSourceName = TaskSourceName::FileReading;
 
-    fn queue_with_canceller<T>(
-        &self,
-        task: T,
-        canceller: &TaskCanceller,
-    ) -> Result<(), ()>
+    fn queue_with_canceller<T>(&self, task: T, canceller: &TaskCanceller) -> Result<(), ()>
     where
         T: TaskOnce + 'static,
     {
@@ -58,14 +54,14 @@ impl FileReadingTask {
         use self::FileReadingTask::*;
 
         match self {
-            ProcessRead(reader, gen_id) =>
-                FileReader::process_read(reader, gen_id),
-            ProcessReadData(reader, gen_id) =>
-                FileReader::process_read_data(reader, gen_id),
-            ProcessReadError(reader, gen_id, error) =>
-                FileReader::process_read_error(reader, gen_id, error),
-            ProcessReadEOF(reader, gen_id, metadata, blob_contents) =>
-                FileReader::process_read_eof(reader, gen_id, metadata, blob_contents),
+            ProcessRead(reader, gen_id) => FileReader::process_read(reader, gen_id),
+            ProcessReadData(reader, gen_id) => FileReader::process_read_data(reader, gen_id),
+            ProcessReadError(reader, gen_id, error) => {
+                FileReader::process_read_error(reader, gen_id, error)
+            },
+            ProcessReadEOF(reader, gen_id, metadata, blob_contents) => {
+                FileReader::process_read_eof(reader, gen_id, metadata, blob_contents)
+            },
         }
     }
 }

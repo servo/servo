@@ -24,15 +24,20 @@ pub struct PromiseNativeHandler {
 }
 
 impl PromiseNativeHandler {
-    pub fn new(global: &GlobalScope,
-               resolve: Option<Box<Callback>>,
-               reject: Option<Box<Callback>>)
-               -> DomRoot<PromiseNativeHandler> {
-        reflect_dom_object(Box::new(PromiseNativeHandler {
-            reflector: Reflector::new(),
-            resolve: resolve,
-            reject: reject,
-        }), global, PromiseNativeHandlerBinding::Wrap)
+    pub fn new(
+        global: &GlobalScope,
+        resolve: Option<Box<Callback>>,
+        reject: Option<Box<Callback>>,
+    ) -> DomRoot<PromiseNativeHandler> {
+        reflect_dom_object(
+            Box::new(PromiseNativeHandler {
+                reflector: Reflector::new(),
+                resolve: resolve,
+                reject: reject,
+            }),
+            global,
+            PromiseNativeHandlerBinding::Wrap,
+        )
     }
 
     fn callback(callback: &Option<Box<Callback>>, cx: *mut JSContext, v: HandleValue) {

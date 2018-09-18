@@ -85,7 +85,6 @@ pub const DOM_PROTOTYPE_SLOT: u32 = js::JSCLASS_GLOBAL_SLOT_COUNT;
 // changes.
 pub const JSCLASS_DOM_GLOBAL: u32 = js::JSCLASS_USERBIT1;
 
-
 /// The struct that holds inheritance information for DOM object reflectors.
 #[derive(Clone, Copy)]
 pub struct DOMClass {
@@ -137,13 +136,14 @@ pub type ProtoOrIfaceArray = [*mut JSObject; PROTO_OR_IFACE_LENGTH];
 /// set to true and `*vp` to the value, otherwise `*found` is set to false.
 ///
 /// Returns false on JSAPI failure.
-pub unsafe fn get_property_on_prototype(cx: *mut JSContext,
-                                        proxy: HandleObject,
-                                        receiver: HandleValue,
-                                        id: HandleId,
-                                        found: *mut bool,
-                                        vp: MutableHandleValue)
-                                        -> bool {
+pub unsafe fn get_property_on_prototype(
+    cx: *mut JSContext,
+    proxy: HandleObject,
+    receiver: HandleValue,
+    id: HandleId,
+    found: *mut bool,
+    vp: MutableHandleValue,
+) -> bool {
     rooted!(in(cx) let mut proto = ptr::null_mut::<JSObject>());
     if !JS_GetPrototype(cx, proxy, proto.handle_mut()) || proto.is_null() {
         *found = false;
@@ -184,23 +184,29 @@ pub fn get_array_index_from_id(_cx: *mut JSContext, id: HandleId) -> Option<u32>
         return if StringIsArray(str, &mut i) != 0 { i } else { -1 }
     } else {
         IdToInt32(cx, id);
-    }*/
-}
+    }*/}
 
 /// Find the enum equivelent of a string given by `v` in `pairs`.
 /// Returns `Err(())` on JSAPI failure (there is a pending exception), and
 /// `Ok((None, value))` if there was no matching string.
-pub unsafe fn find_enum_value<'a, T>(cx: *mut JSContext,
-                                     v: HandleValue,
-                                     pairs: &'a [(&'static str, T)])
-                                     -> Result<(Option<&'a T>, DOMString), ()> {
+pub unsafe fn find_enum_value<'a, T>(
+    cx: *mut JSContext,
+    v: HandleValue,
+    pairs: &'a [(&'static str, T)],
+) -> Result<(Option<&'a T>, DOMString), ()> {
     let jsstr = ToString(cx, v);
     if jsstr.is_null() {
         return Err(());
     }
 
     let search = jsstring_to_str(cx, jsstr);
-    Ok((pairs.iter().find(|&&(key, _)| search == *key).map(|&(_, ref ev)| ev), search))
+    Ok((
+        pairs
+            .iter()
+            .find(|&&(key, _)| search == *key)
+            .map(|&(_, ref ev)| ev),
+        search,
+    ))
 }
 
 /// Returns wether `obj` is a platform object
@@ -228,23 +234,26 @@ pub fn is_platform_object(obj: *mut JSObject) -> bool {
 /// Get the property with name `property` from `object`.
 /// Returns `Err(())` on JSAPI failure (there is a pending exception), and
 /// `Ok(false)` if there was no property with the given name.
-pub fn get_dictionary_property(cx: *mut JSContext,
-                               object: HandleObject,
-                               property: &str,
-                               rval: MutableHandleValue)
-                               -> Result<bool, ()> {
-    fn has_property(cx: *mut JSContext,
-                    object: HandleObject,
-                    property: &CString,
-                    found: &mut bool)
-                    -> bool {
+pub fn get_dictionary_property(
+    cx: *mut JSContext,
+    object: HandleObject,
+    property: &str,
+    rval: MutableHandleValue,
+) -> Result<bool, ()> {
+    fn has_property(
+        cx: *mut JSContext,
+        object: HandleObject,
+        property: &CString,
+        found: &mut bool,
+    ) -> bool {
         unsafe { JS_HasProperty(cx, object, property.as_ptr(), found) }
     }
-    fn get_property(cx: *mut JSContext,
-                    object: HandleObject,
-                    property: &CString,
-                    value: MutableHandleValue)
-                    -> bool {
+    fn get_property(
+        cx: *mut JSContext,
+        object: HandleObject,
+        property: &CString,
+        value: MutableHandleValue,
+    ) -> bool {
         unsafe { JS_GetProperty(cx, object, property.as_ptr(), value) }
     }
 
@@ -272,11 +281,12 @@ pub fn get_dictionary_property(cx: *mut JSContext,
 /// Set the property with name `property` from `object`.
 /// Returns `Err(())` on JSAPI failure, or null object,
 /// and Ok(()) otherwise
-pub fn set_dictionary_property(cx: *mut JSContext,
-                               object: HandleObject,
-                               property: &str,
-                               value: HandleValue)
-                               -> Result<(), ()> {
+pub fn set_dictionary_property(
+    cx: *mut JSContext,
+    object: HandleObject,
+    property: &str,
+    value: HandleValue,
+) -> Result<(), ()> {
     if object.get().is_null() {
         return Err(());
     }
@@ -292,11 +302,12 @@ pub fn set_dictionary_property(cx: *mut JSContext,
 }
 
 /// Returns whether `proxy` has a property `id` on its prototype.
-pub unsafe fn has_property_on_prototype(cx: *mut JSContext,
-                                        proxy: HandleObject,
-                                        id: HandleId,
-                                        found: &mut bool)
-                                        -> bool {
+pub unsafe fn has_property_on_prototype(
+    cx: *mut JSContext,
+    proxy: HandleObject,
+    id: HandleId,
+    found: &mut bool,
+) -> bool {
     rooted!(in(cx) let mut proto = ptr::null_mut::<JSObject>());
     if !JS_GetPrototype(cx, proxy, proto.handle_mut()) {
         return false;
@@ -322,9 +333,11 @@ pub unsafe fn trace_global(tracer: *mut JSTracer, obj: *mut JSObject) {
     let array = get_proto_or_iface_array(obj);
     for proto in (*array).iter() {
         if !proto.is_null() {
-            trace_object(tracer,
-                         "prototype",
-                         &*(proto as *const *mut JSObject as *const Heap<*mut JSObject>));
+            trace_object(
+                tracer,
+                "prototype",
+                &*(proto as *const *mut JSObject as *const Heap<*mut JSObject>),
+            );
         }
     }
 }
@@ -343,11 +356,11 @@ pub unsafe extern "C" fn enumerate_global(cx: *mut JSContext, obj: RawHandleObje
 
 /// Resolve a lazy global property, for interface objects and named constructors.
 pub unsafe extern "C" fn resolve_global(
-        cx: *mut JSContext,
-        obj: RawHandleObject,
-        id: RawHandleId,
-        rval: *mut bool)
-        -> bool {
+    cx: *mut JSContext,
+    obj: RawHandleObject,
+    id: RawHandleId,
+    rval: *mut bool,
+) -> bool {
     assert!(JS_IsGlobalObject(obj.get()));
     if !JS_ResolveStandardClass(cx, obj, id, rval) {
         return false;
@@ -379,20 +392,23 @@ pub unsafe extern "C" fn resolve_global(
     true
 }
 
-unsafe extern "C" fn wrap(cx: *mut JSContext,
-                          _existing: RawHandleObject,
-                          obj: RawHandleObject)
-                          -> *mut JSObject {
+unsafe extern "C" fn wrap(
+    cx: *mut JSContext,
+    _existing: RawHandleObject,
+    obj: RawHandleObject,
+) -> *mut JSObject {
     // FIXME terrible idea. need security wrappers
     // https://github.com/servo/servo/issues/2382
     WrapperNew(cx, obj, GetCrossCompartmentWrapper(), ptr::null(), false)
 }
 
-unsafe extern "C" fn pre_wrap(cx: *mut JSContext,
-                              _scope: RawHandleObject,
-                              obj: RawHandleObject,
-                              _object_passed_to_wrap: RawHandleObject,
-                              rval: RawMutableHandleObject) {
+unsafe extern "C" fn pre_wrap(
+    cx: *mut JSContext,
+    _scope: RawHandleObject,
+    obj: RawHandleObject,
+    _object_passed_to_wrap: RawHandleObject,
+    rval: RawMutableHandleObject,
+) {
     let _ac = JSAutoCompartment::new(cx, obj.get());
     let obj = ToWindowProxyIfWindow(obj.get());
     assert!(!obj.is_null());
@@ -406,23 +422,29 @@ pub static WRAP_CALLBACKS: JSWrapObjectCallbacks = JSWrapObjectCallbacks {
 };
 
 /// Deletes the property `id` from `object`.
-pub unsafe fn delete_property_by_id(cx: *mut JSContext,
-                                    object: HandleObject,
-                                    id: HandleId,
-                                    bp: *mut ObjectOpResult)
-                                    -> bool {
+pub unsafe fn delete_property_by_id(
+    cx: *mut JSContext,
+    object: HandleObject,
+    id: HandleId,
+    bp: *mut ObjectOpResult,
+) -> bool {
     JS_DeletePropertyById(cx, object, id, bp)
 }
 
-unsafe fn generic_call(cx: *mut JSContext,
-                       argc: libc::c_uint,
-                       vp: *mut JSVal,
-                       is_lenient: bool,
-                       call: unsafe extern fn(*const JSJitInfo, *mut JSContext,
-                                              RawHandleObject, *mut libc::c_void, u32,
-                                              *mut JSVal)
-                                              -> bool)
-                       -> bool {
+unsafe fn generic_call(
+    cx: *mut JSContext,
+    argc: libc::c_uint,
+    vp: *mut JSVal,
+    is_lenient: bool,
+    call: unsafe extern "C" fn(
+        *const JSJitInfo,
+        *mut JSContext,
+        RawHandleObject,
+        *mut libc::c_void,
+        u32,
+        *mut JSVal,
+    ) -> bool,
+) -> bool {
     let args = CallArgs::from_vp(vp, argc);
 
     let info = RUST_FUNCTION_VALUE_TO_JITINFO(JS_CALLEE(cx, vp));
@@ -441,9 +463,8 @@ unsafe fn generic_call(cx: *mut JSContext,
     };
     rooted!(in(cx) let obj = obj);
     let depth = (*info).depth;
-    let proto_check = |class: &'static DOMClass| {
-        class.interface_chain[depth as usize] as u16 == proto_id
-    };
+    let proto_check =
+        |class: &'static DOMClass| class.interface_chain[depth as usize] as u16 == proto_id;
     let this = match private_from_proto_check(obj.get(), proto_check) {
         Ok(val) => val,
         Err(()) => {
@@ -455,42 +476,53 @@ unsafe fn generic_call(cx: *mut JSContext,
                 throw_invalid_this(cx, proto_id);
                 return false;
             }
-        }
+        },
     };
-    call(info, cx, obj.handle().into(), this as *mut libc::c_void, argc, vp)
+    call(
+        info,
+        cx,
+        obj.handle().into(),
+        this as *mut libc::c_void,
+        argc,
+        vp,
+    )
 }
 
 /// Generic method of IDL interface.
-pub unsafe extern "C" fn generic_method(cx: *mut JSContext,
-                                        argc: libc::c_uint,
-                                        vp: *mut JSVal)
-                                        -> bool {
+pub unsafe extern "C" fn generic_method(
+    cx: *mut JSContext,
+    argc: libc::c_uint,
+    vp: *mut JSVal,
+) -> bool {
     generic_call(cx, argc, vp, false, CallJitMethodOp)
 }
 
 /// Generic getter of IDL interface.
-pub unsafe extern "C" fn generic_getter(cx: *mut JSContext,
-                                        argc: libc::c_uint,
-                                        vp: *mut JSVal)
-                                        -> bool {
+pub unsafe extern "C" fn generic_getter(
+    cx: *mut JSContext,
+    argc: libc::c_uint,
+    vp: *mut JSVal,
+) -> bool {
     generic_call(cx, argc, vp, false, CallJitGetterOp)
 }
 
 /// Generic lenient getter of IDL interface.
-pub unsafe extern "C" fn generic_lenient_getter(cx: *mut JSContext,
-                                                argc: libc::c_uint,
-                                                vp: *mut JSVal)
-                                                -> bool {
+pub unsafe extern "C" fn generic_lenient_getter(
+    cx: *mut JSContext,
+    argc: libc::c_uint,
+    vp: *mut JSVal,
+) -> bool {
     generic_call(cx, argc, vp, true, CallJitGetterOp)
 }
 
-unsafe extern "C" fn call_setter(info: *const JSJitInfo,
-                                 cx: *mut JSContext,
-                                 handle: RawHandleObject,
-                                 this: *mut libc::c_void,
-                                 argc: u32,
-                                 vp: *mut JSVal)
-                                 -> bool {
+unsafe extern "C" fn call_setter(
+    info: *const JSJitInfo,
+    cx: *mut JSContext,
+    handle: RawHandleObject,
+    this: *mut libc::c_void,
+    argc: u32,
+    vp: *mut JSVal,
+) -> bool {
     if !CallJitSetterOp(info, cx, handle, this, argc, vp) {
         return false;
     }
@@ -499,31 +531,34 @@ unsafe extern "C" fn call_setter(info: *const JSJitInfo,
 }
 
 /// Generic setter of IDL interface.
-pub unsafe extern "C" fn generic_setter(cx: *mut JSContext,
-                                        argc: libc::c_uint,
-                                        vp: *mut JSVal)
-                                        -> bool {
+pub unsafe extern "C" fn generic_setter(
+    cx: *mut JSContext,
+    argc: libc::c_uint,
+    vp: *mut JSVal,
+) -> bool {
     generic_call(cx, argc, vp, false, call_setter)
 }
 
 /// Generic lenient setter of IDL interface.
-pub unsafe extern "C" fn generic_lenient_setter(cx: *mut JSContext,
-                                                argc: libc::c_uint,
-                                                vp: *mut JSVal)
-                                                -> bool {
+pub unsafe extern "C" fn generic_lenient_setter(
+    cx: *mut JSContext,
+    argc: libc::c_uint,
+    vp: *mut JSVal,
+) -> bool {
     generic_call(cx, argc, vp, true, call_setter)
 }
 
-unsafe extern "C" fn instance_class_has_proto_at_depth(clasp: *const js::jsapi::Class,
-                                                       proto_id: u32,
-                                                       depth: u32)
-                                                       -> bool {
+unsafe extern "C" fn instance_class_has_proto_at_depth(
+    clasp: *const js::jsapi::Class,
+    proto_id: u32,
+    depth: u32,
+) -> bool {
     let domclass: *const DOMJSClass = clasp as *const _;
     let domclass = &*domclass;
     domclass.dom_class.interface_chain[depth as usize] as u32 == proto_id
 }
 
-#[allow(missing_docs)]  // FIXME
+#[allow(missing_docs)] // FIXME
 pub const DOM_CALLBACKS: DOMCallbacks = DOMCallbacks {
     instanceClassMatchesProto: Some(instance_class_has_proto_at_depth),
 };

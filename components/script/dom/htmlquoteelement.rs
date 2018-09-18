@@ -16,21 +16,28 @@ pub struct HTMLQuoteElement {
 }
 
 impl HTMLQuoteElement {
-    fn new_inherited(local_name: LocalName,
-                     prefix: Option<Prefix>,
-                     document: &Document) -> HTMLQuoteElement {
+    fn new_inherited(
+        local_name: LocalName,
+        prefix: Option<Prefix>,
+        document: &Document,
+    ) -> HTMLQuoteElement {
         HTMLQuoteElement {
-            htmlelement:
-                HTMLElement::new_inherited(local_name, prefix, document)
+            htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(local_name: LocalName,
-               prefix: Option<Prefix>,
-               document: &Document) -> DomRoot<HTMLQuoteElement> {
-        Node::reflect_node(Box::new(HTMLQuoteElement::new_inherited(local_name, prefix, document)),
-                           document,
-                           HTMLQuoteElementBinding::Wrap)
+    pub fn new(
+        local_name: LocalName,
+        prefix: Option<Prefix>,
+        document: &Document,
+    ) -> DomRoot<HTMLQuoteElement> {
+        Node::reflect_node(
+            Box::new(HTMLQuoteElement::new_inherited(
+                local_name, prefix, document,
+            )),
+            document,
+            HTMLQuoteElementBinding::Wrap,
+        )
     }
 }

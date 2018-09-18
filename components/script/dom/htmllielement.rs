@@ -21,19 +21,27 @@ pub struct HTMLLIElement {
 }
 
 impl HTMLLIElement {
-    fn new_inherited(local_name: LocalName, prefix: Option<Prefix>, document: &Document) -> HTMLLIElement {
+    fn new_inherited(
+        local_name: LocalName,
+        prefix: Option<Prefix>,
+        document: &Document,
+    ) -> HTMLLIElement {
         HTMLLIElement {
-            htmlelement: HTMLElement::new_inherited(local_name, prefix, document)
+            htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(local_name: LocalName,
-               prefix: Option<Prefix>,
-               document: &Document) -> DomRoot<HTMLLIElement> {
-        Node::reflect_node(Box::new(HTMLLIElement::new_inherited(local_name, prefix, document)),
-                           document,
-                           HTMLLIElementBinding::Wrap)
+    pub fn new(
+        local_name: LocalName,
+        prefix: Option<Prefix>,
+        document: &Document,
+    ) -> DomRoot<HTMLLIElement> {
+        Node::reflect_node(
+            Box::new(HTMLLIElement::new_inherited(local_name, prefix, document)),
+            document,
+            HTMLLIElementBinding::Wrap,
+        )
     }
 }
 
@@ -53,7 +61,10 @@ impl VirtualMethods for HTMLLIElement {
     fn parse_plain_attribute(&self, name: &LocalName, value: DOMString) -> AttrValue {
         match name {
             &local_name!("value") => AttrValue::from_i32(value.into(), 0),
-            _ => self.super_type().unwrap().parse_plain_attribute(name, value),
+            _ => self
+                .super_type()
+                .unwrap()
+                .parse_plain_attribute(name, value),
         }
     }
 }

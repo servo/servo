@@ -30,8 +30,10 @@ pub struct MediaList {
 
 impl MediaList {
     #[allow(unrooted_must_root)]
-    pub fn new_inherited(parent_stylesheet: &CSSStyleSheet,
-                         media_queries: Arc<Locked<StyleMediaList>>) -> MediaList {
+    pub fn new_inherited(
+        parent_stylesheet: &CSSStyleSheet,
+        media_queries: Arc<Locked<StyleMediaList>>,
+    ) -> MediaList {
         MediaList {
             parent_stylesheet: Dom::from_ref(parent_stylesheet),
             reflector_: Reflector::new(),
@@ -40,12 +42,16 @@ impl MediaList {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(window: &Window, parent_stylesheet: &CSSStyleSheet,
-               media_queries: Arc<Locked<StyleMediaList>>)
-        -> DomRoot<MediaList> {
-        reflect_dom_object(Box::new(MediaList::new_inherited(parent_stylesheet, media_queries)),
-                           window,
-                           MediaListBinding::Wrap)
+    pub fn new(
+        window: &Window,
+        parent_stylesheet: &CSSStyleSheet,
+        media_queries: Arc<Locked<StyleMediaList>>,
+    ) -> DomRoot<MediaList> {
+        reflect_dom_object(
+            Box::new(MediaList::new_inherited(parent_stylesheet, media_queries)),
+            window,
+            MediaListBinding::Wrap,
+        )
     }
 
     fn shared_lock(&self) -> &SharedRwLock {
@@ -135,7 +141,10 @@ impl MediaListMethods for MediaList {
         let m_serialized = m.clone().unwrap().to_css_string();
         let mut guard = self.shared_lock().write();
         let mq = self.media_queries.write_with(&mut guard);
-        let any = mq.media_queries.iter().any(|q| m_serialized == q.to_css_string());
+        let any = mq
+            .media_queries
+            .iter()
+            .any(|q| m_serialized == q.to_css_string());
         if any {
             return;
         }
@@ -169,9 +178,11 @@ impl MediaListMethods for MediaList {
         let m_serialized = m.unwrap().to_css_string();
         let mut guard = self.shared_lock().write();
         let media_list = self.media_queries.write_with(&mut guard);
-        let new_vec = media_list.media_queries.drain(..)
-                                .filter(|q| m_serialized != q.to_css_string())
-                                .collect();
+        let new_vec = media_list
+            .media_queries
+            .drain(..)
+            .filter(|q| m_serialized != q.to_css_string())
+            .collect();
         media_list.media_queries = new_vec;
     }
 }

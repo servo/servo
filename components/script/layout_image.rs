@@ -28,29 +28,29 @@ impl FetchResponseListener for LayoutImageContext {
     fn process_request_body(&mut self) {}
     fn process_request_eof(&mut self) {}
     fn process_response(&mut self, metadata: Result<FetchMetadata, NetworkError>) {
-        self.cache.notify_pending_response(
-            self.id,
-            FetchResponseMsg::ProcessResponse(metadata));
+        self.cache
+            .notify_pending_response(self.id, FetchResponseMsg::ProcessResponse(metadata));
     }
 
     fn process_response_chunk(&mut self, payload: Vec<u8>) {
-        self.cache.notify_pending_response(
-            self.id,
-            FetchResponseMsg::ProcessResponseChunk(payload));
+        self.cache
+            .notify_pending_response(self.id, FetchResponseMsg::ProcessResponseChunk(payload));
     }
 
     fn process_response_eof(&mut self, response: Result<(), NetworkError>) {
-        self.cache.notify_pending_response(self.id,
-                                           FetchResponseMsg::ProcessResponseEOF(response));
+        self.cache
+            .notify_pending_response(self.id, FetchResponseMsg::ProcessResponseEOF(response));
     }
 }
 
 impl PreInvoke for LayoutImageContext {}
 
-pub fn fetch_image_for_layout(url: ServoUrl,
-                              node: &Node,
-                              id: PendingImageId,
-                              cache: Arc<ImageCache>) {
+pub fn fetch_image_for_layout(
+    url: ServoUrl,
+    node: &Node,
+    id: PendingImageId,
+    cache: Arc<ImageCache>,
+) {
     let context = Arc::new(Mutex::new(LayoutImageContext {
         id: id,
         cache: cache,
@@ -65,18 +65,23 @@ pub fn fetch_image_for_layout(url: ServoUrl,
         task_source: window.networking_task_source(),
         canceller: Some(window.task_canceller(TaskSourceName::Networking)),
     };
-    ROUTER.add_route(action_receiver.to_opaque(), Box::new(move |message| {
-        listener.notify_fetch(message.to().unwrap());
-    }));
+    ROUTER.add_route(
+        action_receiver.to_opaque(),
+        Box::new(move |message| {
+            listener.notify_fetch(message.to().unwrap());
+        }),
+    );
 
     let request = FetchRequestInit {
         url: url,
         origin: document.origin().immutable().clone(),
         destination: Destination::Image,
         pipeline_id: Some(document.global().pipeline_id()),
-        .. FetchRequestInit::default()
+        ..FetchRequestInit::default()
     };
 
     // Layout image loads do not delay the document load event.
-    document.loader_mut().fetch_async_background(request, action_sender);
+    document
+        .loader_mut()
+        .fetch_async_background(request, action_sender);
 }

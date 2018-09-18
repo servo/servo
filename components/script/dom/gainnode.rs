@@ -31,9 +31,10 @@ impl GainNode {
         context: &BaseAudioContext,
         options: &GainOptions,
     ) -> Fallible<GainNode> {
-        let node_options = options.parent
-                                  .unwrap_or(2, ChannelCountMode::Max,
-                                             ChannelInterpretation::Speakers);
+        let node_options =
+            options
+                .parent
+                .unwrap_or(2, ChannelCountMode::Max, ChannelInterpretation::Speakers);
         let node = AudioNode::new_inherited(
             AudioNodeInit::GainNode(options.into()),
             context,
@@ -64,7 +65,11 @@ impl GainNode {
         options: &GainOptions,
     ) -> Fallible<DomRoot<GainNode>> {
         let node = GainNode::new_inherited(window, context, options)?;
-        Ok(reflect_dom_object(Box::new(node), window, GainNodeBinding::Wrap))
+        Ok(reflect_dom_object(
+            Box::new(node),
+            window,
+            GainNodeBinding::Wrap,
+        ))
     }
 
     pub fn Constructor(

@@ -25,17 +25,20 @@ impl DOMRect {
     }
 
     pub fn new(global: &GlobalScope, x: f64, y: f64, width: f64, height: f64) -> DomRoot<DOMRect> {
-        reflect_dom_object(Box::new(DOMRect::new_inherited(x, y, width, height)),
-                           global,
-                           DOMRectBinding::Wrap)
+        reflect_dom_object(
+            Box::new(DOMRect::new_inherited(x, y, width, height)),
+            global,
+            DOMRectBinding::Wrap,
+        )
     }
 
-    pub fn Constructor(global: &GlobalScope,
-                       x: f64,
-                       y: f64,
-                       width: f64,
-                       height: f64)
-                       -> Fallible<DomRoot<DOMRect>> {
+    pub fn Constructor(
+        global: &GlobalScope,
+        x: f64,
+        y: f64,
+        width: f64,
+        height: f64,
+    ) -> Fallible<DomRoot<DOMRect>> {
         Ok(DOMRect::new(global, x, y, width, height))
     }
 }

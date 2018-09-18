@@ -36,13 +36,14 @@ pub struct Attr {
 }
 
 impl Attr {
-    fn new_inherited(local_name: LocalName,
-                     value: AttrValue,
-                     name: LocalName,
-                     namespace: Namespace,
-                     prefix: Option<Prefix>,
-                     owner: Option<&Element>)
-                     -> Attr {
+    fn new_inherited(
+        local_name: LocalName,
+        value: AttrValue,
+        name: LocalName,
+        namespace: Namespace,
+        prefix: Option<Prefix>,
+        owner: Option<&Element>,
+    ) -> Attr {
         Attr {
             reflector_: Reflector::new(),
             identifier: AttrIdentifier {
@@ -56,25 +57,21 @@ impl Attr {
         }
     }
 
-    pub fn new(window: &Window,
-               local_name: LocalName,
-               value: AttrValue,
-               name: LocalName,
-               namespace: Namespace,
-               prefix: Option<Prefix>,
-               owner: Option<&Element>)
-               -> DomRoot<Attr> {
+    pub fn new(
+        window: &Window,
+        local_name: LocalName,
+        value: AttrValue,
+        name: LocalName,
+        namespace: Namespace,
+        prefix: Option<Prefix>,
+        owner: Option<&Element>,
+    ) -> DomRoot<Attr> {
         reflect_dom_object(
             Box::new(Attr::new_inherited(
-                local_name,
-                value,
-                name,
-                namespace,
-                prefix,
-                owner
+                local_name, value, name, namespace, prefix, owner,
             )),
             window,
-            AttrBinding::Wrap
+            AttrBinding::Wrap,
         )
     }
 
@@ -110,9 +107,7 @@ impl AttrMethods for Attr {
     // https://dom.spec.whatwg.org/#dom-attr-value
     fn SetValue(&self, value: DOMString) {
         if let Some(owner) = self.owner() {
-            let value = owner.parse_attribute(&self.identifier.namespace,
-                                              self.local_name(),
-                                              value);
+            let value = owner.parse_attribute(&self.identifier.namespace, self.local_name(), value);
             self.set_value(value, &owner);
         } else {
             *self.value.borrow_mut() = AttrValue::String(value.into());
@@ -175,7 +170,6 @@ impl AttrMethods for Attr {
     }
 }
 
-
 impl Attr {
     pub fn set_value(&self, mut value: AttrValue, owner: &Element) {
         let name = self.local_name().clone();
@@ -191,7 +185,12 @@ impl Attr {
         MutationObserver::queue_a_mutation_record(owner.upcast::<Node>(), mutation);
 
         if owner.get_custom_element_definition().is_some() {
-            let reaction = CallbackReaction::AttributeChanged(name, Some(old_value), Some(new_value), namespace);
+            let reaction = CallbackReaction::AttributeChanged(
+                name,
+                Some(old_value),
+                Some(new_value),
+                namespace,
+            );
             ScriptThread::enqueue_callback_reaction(owner, reaction, None);
         }
 
@@ -229,7 +228,7 @@ impl Attr {
             (Some(old), None) => {
                 // Already gone from the list of attributes of old owner.
                 assert!(old.get_attribute(&ns, &self.identifier.local_name).r() != Some(self))
-            }
+            },
             (Some(old), Some(new)) => assert_eq!(&*old, new),
             _ => {},
         }

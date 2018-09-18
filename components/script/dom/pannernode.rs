@@ -51,26 +51,28 @@ impl PannerNode {
         context: &BaseAudioContext,
         options: &PannerOptions,
     ) -> Fallible<PannerNode> {
-        let node_options = options.parent
-                                  .unwrap_or(2, ChannelCountMode::Clamped_max,
-                                             ChannelInterpretation::Speakers);
+        let node_options = options.parent.unwrap_or(
+            2,
+            ChannelCountMode::Clamped_max,
+            ChannelInterpretation::Speakers,
+        );
         if node_options.mode == ChannelCountMode::Max {
-            return Err(Error::NotSupported)
+            return Err(Error::NotSupported);
         }
         if node_options.count > 2 || node_options.count == 0 {
-            return Err(Error::NotSupported)
+            return Err(Error::NotSupported);
         }
         if *options.maxDistance <= 0. {
-            return Err(Error::Range("maxDistance should be positive".into()))
+            return Err(Error::Range("maxDistance should be positive".into()));
         }
         if *options.refDistance < 0. {
-            return Err(Error::Range("refDistance should be non-negative".into()))
+            return Err(Error::Range("refDistance should be non-negative".into()));
         }
         if *options.rolloffFactor < 0. {
-            return Err(Error::Range("rolloffFactor should be non-negative".into()))
+            return Err(Error::Range("rolloffFactor should be non-negative".into()));
         }
         if *options.coneOuterGain < 0. || *options.coneOuterGain > 1. {
-            return Err(Error::InvalidState)
+            return Err(Error::InvalidState);
         }
         let options = options.into();
         let node = AudioNode::new_inherited(
@@ -87,9 +89,9 @@ impl PannerNode {
             id,
             ParamType::Position(ParamDir::X),
             AutomationRate::A_rate,
-            options.position_x,       // default value
-            f32::MIN, // min value
-            f32::MAX, // max value
+            options.position_x, // default value
+            f32::MIN,           // min value
+            f32::MAX,           // max value
         );
         let position_y = AudioParam::new(
             window,
@@ -97,9 +99,9 @@ impl PannerNode {
             id,
             ParamType::Position(ParamDir::Y),
             AutomationRate::A_rate,
-            options.position_y,       // default value
-            f32::MIN, // min value
-            f32::MAX, // max value
+            options.position_y, // default value
+            f32::MIN,           // min value
+            f32::MAX,           // max value
         );
         let position_z = AudioParam::new(
             window,
@@ -107,9 +109,9 @@ impl PannerNode {
             id,
             ParamType::Position(ParamDir::Z),
             AutomationRate::A_rate,
-            options.position_z,       // default value
-            f32::MIN, // min value
-            f32::MAX, // max value
+            options.position_z, // default value
+            f32::MIN,           // min value
+            f32::MAX,           // max value
         );
         let orientation_x = AudioParam::new(
             window,
@@ -117,9 +119,9 @@ impl PannerNode {
             id,
             ParamType::Orientation(ParamDir::X),
             AutomationRate::A_rate,
-            options.orientation_x,       // default value
-            f32::MIN, // min value
-            f32::MAX, // max value
+            options.orientation_x, // default value
+            f32::MIN,              // min value
+            f32::MAX,              // max value
         );
         let orientation_y = AudioParam::new(
             window,
@@ -127,9 +129,9 @@ impl PannerNode {
             id,
             ParamType::Orientation(ParamDir::Y),
             AutomationRate::A_rate,
-            options.orientation_y,       // default value
-            f32::MIN, // min value
-            f32::MAX, // max value
+            options.orientation_y, // default value
+            f32::MIN,              // min value
+            f32::MAX,              // max value
         );
         let orientation_z = AudioParam::new(
             window,
@@ -137,9 +139,9 @@ impl PannerNode {
             id,
             ParamType::Orientation(ParamDir::Z),
             AutomationRate::A_rate,
-            options.orientation_z,       // default value
-            f32::MIN, // min value
-            f32::MAX, // max value
+            options.orientation_z, // default value
+            f32::MIN,              // min value
+            f32::MAX,              // max value
         );
         Ok(PannerNode {
             node,
@@ -167,7 +169,11 @@ impl PannerNode {
         options: &PannerOptions,
     ) -> Fallible<DomRoot<PannerNode>> {
         let node = PannerNode::new_inherited(window, context, options)?;
-        Ok(reflect_dom_object(Box::new(node), window, PannerNodeBinding::Wrap))
+        Ok(reflect_dom_object(
+            Box::new(node),
+            window,
+            PannerNodeBinding::Wrap,
+        ))
     }
 
     pub fn Constructor(
@@ -218,7 +224,8 @@ impl PannerNodeMethods for PannerNode {
     fn SetDistanceModel(&self, model: DistanceModelType) {
         self.distance_model.set(model.into());
         let msg = PannerNodeMessage::SetDistanceModel(self.distance_model.get());
-        self.upcast::<AudioNode>().message(AudioNodeMessage::PannerNode(msg));
+        self.upcast::<AudioNode>()
+            .message(AudioNodeMessage::PannerNode(msg));
     }
     // https://webaudio.github.io/web-audio-api/#dom-pannernode-panningmodel
     fn PanningModel(&self) -> PanningModelType {
@@ -231,7 +238,8 @@ impl PannerNodeMethods for PannerNode {
     fn SetPanningModel(&self, model: PanningModelType) {
         self.panning_model.set(model.into());
         let msg = PannerNodeMessage::SetPanningModel(self.panning_model.get());
-        self.upcast::<AudioNode>().message(AudioNodeMessage::PannerNode(msg));
+        self.upcast::<AudioNode>()
+            .message(AudioNodeMessage::PannerNode(msg));
     }
     // https://webaudio.github.io/web-audio-api/#dom-pannernode-refdistance
     fn RefDistance(&self) -> Finite<f64> {
@@ -240,11 +248,12 @@ impl PannerNodeMethods for PannerNode {
     // https://webaudio.github.io/web-audio-api/#dom-pannernode-refdistance
     fn SetRefDistance(&self, val: Finite<f64>) -> Fallible<()> {
         if *val < 0. {
-            return Err(Error::Range("value should be non-negative".into()))
+            return Err(Error::Range("value should be non-negative".into()));
         }
         self.ref_distance.set(*val);
         let msg = PannerNodeMessage::SetRefDistance(self.ref_distance.get());
-        self.upcast::<AudioNode>().message(AudioNodeMessage::PannerNode(msg));
+        self.upcast::<AudioNode>()
+            .message(AudioNodeMessage::PannerNode(msg));
         Ok(())
     }
     // https://webaudio.github.io/web-audio-api/#dom-pannernode-maxdistance
@@ -254,11 +263,12 @@ impl PannerNodeMethods for PannerNode {
     // https://webaudio.github.io/web-audio-api/#dom-pannernode-maxdistance
     fn SetMaxDistance(&self, val: Finite<f64>) -> Fallible<()> {
         if *val <= 0. {
-            return Err(Error::Range("value should be positive".into()))
+            return Err(Error::Range("value should be positive".into()));
         }
         self.max_distance.set(*val);
         let msg = PannerNodeMessage::SetMaxDistance(self.max_distance.get());
-        self.upcast::<AudioNode>().message(AudioNodeMessage::PannerNode(msg));
+        self.upcast::<AudioNode>()
+            .message(AudioNodeMessage::PannerNode(msg));
         Ok(())
     }
     // https://webaudio.github.io/web-audio-api/#dom-pannernode-rollofffactor
@@ -268,11 +278,12 @@ impl PannerNodeMethods for PannerNode {
     // https://webaudio.github.io/web-audio-api/#dom-pannernode-rollofffactor
     fn SetRolloffFactor(&self, val: Finite<f64>) -> Fallible<()> {
         if *val < 0. {
-            return Err(Error::Range("value should be non-negative".into()))
+            return Err(Error::Range("value should be non-negative".into()));
         }
         self.rolloff_factor.set(*val);
         let msg = PannerNodeMessage::SetRolloff(self.rolloff_factor.get());
-        self.upcast::<AudioNode>().message(AudioNodeMessage::PannerNode(msg));
+        self.upcast::<AudioNode>()
+            .message(AudioNodeMessage::PannerNode(msg));
         Ok(())
     }
     // https://webaudio.github.io/web-audio-api/#dom-pannernode-coneinnerangle
@@ -283,7 +294,8 @@ impl PannerNodeMethods for PannerNode {
     fn SetConeInnerAngle(&self, val: Finite<f64>) {
         self.cone_inner_angle.set(*val);
         let msg = PannerNodeMessage::SetConeInner(self.cone_inner_angle.get());
-        self.upcast::<AudioNode>().message(AudioNodeMessage::PannerNode(msg));
+        self.upcast::<AudioNode>()
+            .message(AudioNodeMessage::PannerNode(msg));
     }
     // https://webaudio.github.io/web-audio-api/#dom-pannernode-coneouterangle
     fn ConeOuterAngle(&self) -> Finite<f64> {
@@ -293,7 +305,8 @@ impl PannerNodeMethods for PannerNode {
     fn SetConeOuterAngle(&self, val: Finite<f64>) {
         self.cone_outer_angle.set(*val);
         let msg = PannerNodeMessage::SetConeOuter(self.cone_outer_angle.get());
-        self.upcast::<AudioNode>().message(AudioNodeMessage::PannerNode(msg));
+        self.upcast::<AudioNode>()
+            .message(AudioNodeMessage::PannerNode(msg));
     }
     // https://webaudio.github.io/web-audio-api/#dom-pannernode-coneoutergain
     fn ConeOuterGain(&self) -> Finite<f64> {
@@ -302,11 +315,12 @@ impl PannerNodeMethods for PannerNode {
     // https://webaudio.github.io/web-audio-api/#dom-pannernode-coneoutergain
     fn SetConeOuterGain(&self, val: Finite<f64>) -> Fallible<()> {
         if *val < 0. || *val > 1. {
-            return Err(Error::InvalidState)
+            return Err(Error::InvalidState);
         }
         self.cone_outer_gain.set(*val);
         let msg = PannerNodeMessage::SetConeGain(self.cone_outer_gain.get());
-        self.upcast::<AudioNode>().message(AudioNodeMessage::PannerNode(msg));
+        self.upcast::<AudioNode>()
+            .message(AudioNodeMessage::PannerNode(msg));
         Ok(())
     }
 
