@@ -129,8 +129,11 @@ impl AudioBuffer {
 
             // Copy the channel data from shared_channels to js_channels.
             rooted!(in (cx) let mut array = ptr::null_mut::<JSObject>());
-            if Float32Array::create(cx, CreateWith::Slice(&(*self.shared_channels.borrow_mut()).buffers[i]), array.handle_mut())
-                .is_err()
+            if Float32Array::create(
+                cx,
+                CreateWith::Slice(&(*self.shared_channels.borrow_mut()).buffers[i]),
+                array.handle_mut(),
+            ).is_err()
             {
                 return false;
             }
@@ -251,7 +254,9 @@ impl AudioBufferMethods for AudioBuffer {
                 let data = unsafe { array.as_slice() };
                 dest.extend_from_slice(&data[offset..offset + bytes_to_copy]);
             }
-        } else if let Some(shared_channel) = self.shared_channels.borrow().buffers.get(channel_number) {
+        } else if let Some(shared_channel) =
+            self.shared_channels.borrow().buffers.get(channel_number)
+        {
             dest.extend_from_slice(&shared_channel.as_slice()[offset..offset + bytes_to_copy]);
         }
 
@@ -298,11 +303,14 @@ impl AudioBufferMethods for AudioBuffer {
                 {
                     let mut shared_channels = self.shared_channels.borrow_mut();
                     let shared_channel = shared_channels.data_chan_mut(channel_number as u8);
-                    let (_, mut shared_channel) = shared_channel.split_at_mut(start_in_channel as usize);
+                    let (_, mut shared_channel) =
+                        shared_channel.split_at_mut(start_in_channel as usize);
                     shared_channel[0..bytes_to_copy].copy_from_slice(data);
                 }
                 // Update js channel.
-                js_channel.update(self.shared_channels.borrow().buffers[channel_number as usize].as_slice());
+                js_channel.update(
+                    self.shared_channels.borrow().buffers[channel_number as usize].as_slice(),
+                );
             }
         } else {
             return Err(Error::IndexSize);
