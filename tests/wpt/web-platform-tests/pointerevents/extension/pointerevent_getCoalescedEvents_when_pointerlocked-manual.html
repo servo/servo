@@ -1,0 +1,62 @@
+<!doctype html>
+<html>
+    <head>
+        <title>Pointer Events pointer lock tests</title>
+        <meta name="viewport" content="width=device-width">
+        <link rel="stylesheet" type="text/css" href="../pointerevent_styles.css">
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script type="text/javascript" src="../pointerevent_support.js"></script>
+        <style>
+          #testContainer {
+            touch-action: none;
+            user-select: none;
+            position: relative;
+          }
+        </style>
+        <script>
+            var lock_change_count = 0;
+            var mouseeventMovements = []
+            var pointereventMovements = []
+
+            function resetTestState() {
+            }
+
+            function run() {
+                var test_pointerEvent = setup_pointerevent_test("pointermove getCoalescedEvents when lock test", ['mouse']);
+                var div1 = document.getElementById("target");
+
+                on_event(div1, 'pointerdown', function(event) {
+                    div1.requestPointerLock();
+                });
+                on_event(div1, 'pointermove', function(event) {
+                    if (document.pointerLockElement == div1) {
+                        test_pointerEvent.step(function() {
+                            assert_greater_than(event.getCoalescedEvents().length, 0, "document.pointerLockElement should have coalesced events.");
+                            document.exitPointerLock();
+                            test_pointerEvent.done();
+                        });
+                    }
+                });
+            }
+        </script>
+    </head>
+    <body onload="run()">
+        <h1>PointerMove getCoalescedEvent in locked state test</h1>
+        <h2 id="pointerTypeDescription"></h2>
+        <h4>
+            Test Description: This test checks if pointerevent.getCoalescedEvent work correctly when pointer is locked.
+            <ol>
+                 <li>Press left button down on the green rectangle to lock pointer.</li>
+                 <li>Move the mouse</li>
+            </ol>
+            </ol>
+
+            Test passes if the proper behavior of the events is observed.
+        </h4>
+        <div id="testContainer">
+            <div id="target" style="width:800px;height:250px;background:green"></div>
+        </div>
+        <div class="spacer"></div>
+    </body>
+</html>
