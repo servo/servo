@@ -128,17 +128,17 @@ impl BiquadFilterNodeMethods for BiquadFilterNode {
 
     // https://webaudio.github.io/web-audio-api/#dom-biquadfilternode-q
     fn Q(&self) -> DomRoot<AudioParam> {
-        DomRoot::from_ref(&self.gain)
+        DomRoot::from_ref(&self.q)
     }
 
     // https://webaudio.github.io/web-audio-api/#dom-biquadfilternode-detune
     fn Detune(&self) -> DomRoot<AudioParam> {
-        DomRoot::from_ref(&self.gain)
+        DomRoot::from_ref(&self.detune)
     }
 
     // https://webaudio.github.io/web-audio-api/#dom-biquadfilternode-frequency
     fn Frequency(&self) -> DomRoot<AudioParam> {
-        DomRoot::from_ref(&self.gain)
+        DomRoot::from_ref(&self.frequency)
     }
 
     // https://webaudio.github.io/web-audio-api/#dom-biquadfilternode-type

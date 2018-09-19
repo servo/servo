@@ -348,7 +348,7 @@ impl BaseAudioContextMethods for BaseAudioContext {
 
     /// https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-createbiquadfilter
     fn CreateBiquadFilter(&self) -> Fallible<DomRoot<BiquadFilterNode>> {
-        BiquadFilterNode::new(&self.global().as_window(), &self, &BiquadFilter::empty())
+        BiquadFilterNode::new(&self.global().as_window(), &self, &BiquadFilterOptions::empty())
     }
 
     /// https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-createchannelmerger
