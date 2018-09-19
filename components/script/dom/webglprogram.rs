@@ -414,7 +414,7 @@ impl WebGLProgram {
     /// glGetProgramInfoLog
     pub fn get_info_log(&self) -> WebGLResult<String> {
         if self.is_deleted() {
-            return Err(WebGLError::InvalidOperation);
+            return Err(WebGLError::InvalidValue);
         }
         if self.link_called.get() {
             let shaders_compiled = match (self.fragment_shader.get(), self.vertex_shader.get()) {
