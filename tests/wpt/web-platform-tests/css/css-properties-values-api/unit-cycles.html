@@ -18,14 +18,29 @@
     register_length('--font-size-ex');
     register_length('--font-size-ch');
     register_length('--font-size-px');
+    register_length('--font-size-em-via-var');
+    register_length('--font-size-rem-via-var');
+    register_length('--font-size-ex-via-var');
+    register_length('--font-size-ch-via-var');
 </script>
 <style>
+    :root {
+        --unregistered-em: 10em;
+        --unregistered-rem: 10rem;
+        --unregistered-ex: 10ex;
+        --unregistered-ch: 10ch;
+    }
+
     :root, #target {
         --font-size-em: 2em;
         --font-size-rem: 2rem;
         --font-size-ex: 2ex;
         --font-size-ch: 2ch;
         --font-size-px: 42px;
+        --font-size-em-via-var: var(--unregistered-em);
+        --font-size-rem-via-var: var(--unregistered-rem);
+        --font-size-ex-via-var: var(--unregistered-ex);
+        --font-size-ch-via-var: var(--unregistered-ch);
     }
 
     #target {
@@ -40,8 +55,13 @@
 
     // Compute a dimension (e.g. 1em) given a certain fontSize.
     function compute_dimension(dimension, fontSize, element = ref) {
-        element.style = `font-size: ${fontSize}; margin-bottom: ${dimension};`;
-        return getComputedStyle(element).marginBottom;
+        try {
+            element.attributeStyleMap.set('font-size', fontSize);
+            element.attributeStyleMap.set('margin-bottom', dimension);
+            return getComputedStyle(element).marginBottom;
+        } finally {
+            element.attributeStyleMap.clear();
+        }
     }
 
     function assert_property_equals(name, value, element = target) {
@@ -50,6 +70,11 @@
     }
 
     let unsetFontSize = compute_dimension('1em', 'unset');
+
+    add_result_callback(function(){
+        target.attributeStyleMap.clear();
+        document.documentElement.attributeStyleMap.clear();
+    });
 
     test(function() {
         target.style = 'font-size: var(--font-size-px);';
@@ -84,10 +109,9 @@
 
     test(function() {
         let root = document.documentElement;
-        root.style = 'font-size: var(--font-size-rem);';
         let expected1rem = compute_dimension('1rem', 'unset', root);
         let expected2rem = compute_dimension('2rem', 'unset', root);
-        root.style = 'font-size: unset;';
+        root.style = 'font-size: var(--font-size-rem);';
         assert_property_equals('font-size', expected1rem, root);
         assert_property_equals('--font-size-rem', expected2rem, root);
     }, 'Lengths with rem units may not be referenced from font-size on root element');
@@ -118,5 +142,32 @@
         assert_property_equals('font-size', '42px', root);
         root.style = 'font-size: unset;';
     }, 'Fallback triggered when rem unit cycle is detected on root element');
+
+    test(function() {
+        target.style = 'font-size: var(--font-size-em-via-var);';
+        assert_property_equals('font-size', unsetFontSize);
+        assert_property_equals('--font-size-em-via-var', compute_dimension('10em', 'unset'));
+    }, 'Lengths with em units are detected via var references');
+
+    test(function() {
+        target.style = 'font-size: var(--font-size-ex-via-var);';
+        assert_property_equals('font-size', unsetFontSize);
+        assert_property_equals('--font-size-ex-via-var', compute_dimension('10ex', 'unset'));
+    }, 'Lengths with ex units are detected via var references');
+
+    test(function() {
+        target.style = 'font-size: var(--font-size-ch-via-var);';
+        assert_property_equals('font-size', unsetFontSize);
+        assert_property_equals('--font-size-ch-via-var', compute_dimension('10ch', 'unset'));
+    }, 'Lengths with ch units are detected via var references');
+
+    test(function() {
+        let root = document.documentElement;
+        let expected1rem = compute_dimension('1rem', 'unset', root);
+        let expected10rem = compute_dimension('10rem', 'unset', root);
+        root.style = 'font-size: var(--font-size-rem-via-var);';
+        assert_property_equals('font-size', expected1rem, root);
+        assert_property_equals('--font-size-rem-via-var', expected10rem, root);
+    }, 'Lengths with rem units are detected via var references');
 
 </script>

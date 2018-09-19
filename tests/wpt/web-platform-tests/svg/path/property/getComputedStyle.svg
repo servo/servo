@@ -10,7 +10,7 @@
       d: path('M 10 3 H 30');
     }
     .g5 {
-      d: path('M 10 5 H 50');
+      d: path('m 10 5 h 40');
     }
     .p6 {
       d: inherit;

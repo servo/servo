@@ -43,7 +43,7 @@ var makePromiseTest = function(getConstraint) {
 
 const constraintGenerators = [
   capabilities => ({ whiteBalanceMode: 'manual' }),
-  capabilities => ({ exposureMode: 'manual' }),
+  capabilities => ({ exposureMode: 'none' }),
   capabilities => ({ focusMode: 'continuous' }),
   capabilities => ({
     exposureCompensation: capabilities.exposureCompensation.max + 1

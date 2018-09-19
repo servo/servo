@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<title>Reference for tall legend</title>
+<style>
+body, p { margin: 0; }
+.legend { position: absolute; height: 160px; margin-left: 20px; inline-size: fit-content; background: lime }
+.fieldset {
+  position: absolute;
+  z-index: -1;
+  margin-top: calc((/* half legend height */ 160px / 2) - (/* half top border */ 20px / 2));
+  background: green;
+  height: 40px;
+  left: 0;
+  right: 0;
+}
+.hello { margin-top: 160px; margin-left: 20px; }
+</style>
+<p>There should be no red.</p>
+<div class=legend>X</div>
+<div class=fieldset></div>
+<div class=hello>HELLO</div>

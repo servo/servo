@@ -7,7 +7,7 @@
     <title>connect-src-eventsource-blocked</title>
     <script src="/resources/testharness.js"></script>
     <script src="/resources/testharnessreport.js"></script>
-    <script src='../support/logTest.sub.js?logs=["Pass","violated-directive=connect-src"]'></script>
+    <script src='../support/logTest.sub.js?logs=["blocked","violated-directive=connect-src"]'></script>
     <script src="../support/alertAssert.sub.js?alerts=[]"></script>
 </head>
 
@@ -16,21 +16,21 @@
         window.addEventListener('securitypolicyviolation', function(e) {
             log("violated-directive=" + e.violatedDirective);
         });
-    
+
         try {
-            var es = new EventSource("http://www1.{{host}}:{{ports[http][0]}}/content-security-policy/connect-src/resources/simple-event-stream");
-            // Firefox doesn't throw an exception and takes some time to close async
+            var es = new EventSource("http://{{domains[www1]}}:{{ports[http][0]}}/content-security-policy/connect-src/resources/simple-event-stream");
+            // Firefox and Chrome don't throw an exception and takes some time to close async
             if (es.readyState == EventSource.CONNECTING) {
                 setTimeout( function() {
-                    es.readyState != EventSource.CLOSED ? log("Fail") : log("Pass");
-                }, 2);
+                    es.readyState != EventSource.CLOSED ? log("allowed") : log("blocked");
+                }, 1000);
             } else if (es.readyState == EventSource.CLOSED) {
-                log("Pass");
+                log("blocked");
             } else {
-                log("Fail");
+                log("allowed");
             }
         } catch (e) {
-            log("Pass");
+            log("blocked");
         }
     </script>
     <div id="log"></div>
