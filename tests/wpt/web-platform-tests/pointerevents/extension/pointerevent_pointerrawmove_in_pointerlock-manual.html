@@ -11,9 +11,14 @@
     </head>
     <body onload="run()">
         <h2>pointerrawmove</h2>
-        <h4>Test Description: This test checks if pointerrawmove is dispatched correctly while in pointerlock mode. </h4>
-        <p>Click in the box (and accept the pointerlock permission if asked).</p>
-        <p>Move your mouse.</p>
+        <h4>Test Description: This test checks if pointerrawmove is dispatched correctly while in pointerlock mode.
+            <ol>
+                <li>Click in the black box (and accept the pointerlock permission if asked).</li>
+                <li>Move your mouse.</li>
+                <li>Click in the purple box inside the iframe</li>
+                <li>Move your mouse.</li>
+            </ol>
+        </h4>
         <div id="target0"></div>
         <iframe id="innerframe" src="../resources/pointerevent_pointerrawmove_in_pointerlock-iframe.html"></iframe>
         <script>

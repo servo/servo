@@ -541,7 +541,22 @@ policies and contribution forms [3].
         var test_name = name ? name : test_environment.next_default_test_name();
         properties = properties ? properties : {};
         var test_obj = new Test(test_name, properties);
-        test_obj.step(func, test_obj, test_obj);
+        var value = test_obj.step(func, test_obj, test_obj);
+
+        if (value !== undefined) {
+            var msg = "test named \"" + test_name +
+                "\" inappropriately returned a value";
+
+            try {
+                if (value && value.hasOwnProperty("then")) {
+                    msg += ", consider using `promise_test` instead";
+                }
+            } catch (err) {}
+
+            tests.status.status = tests.status.ERROR;
+            tests.status.message = msg;
+        }
+
         if (test_obj.phase === test_obj.phases.STARTED) {
             test_obj.done();
         }

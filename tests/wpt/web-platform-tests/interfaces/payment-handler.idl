@@ -59,6 +59,13 @@ partial interface ServiceWorkerGlobalScope {
   attribute EventHandler onpaymentrequest;
 };
 
+dictionary PaymentMethodChangeResponse {
+  DOMString error;
+  PaymentCurrencyAmount total;
+  FrozenArray<PaymentDetailsModifier> modifiers;
+  object paymentMethodErrors;
+};
+
 [Constructor(DOMString type, PaymentRequestEventInit eventInitDict), Exposed=ServiceWorker]
 interface PaymentRequestEvent : ExtendableEvent {
   readonly attribute USVString topOrigin;
@@ -68,7 +75,9 @@ interface PaymentRequestEvent : ExtendableEvent {
   readonly attribute object total;
   readonly attribute FrozenArray<PaymentDetailsModifier> modifiers;
   readonly attribute DOMString instrumentKey;
+  readonly attribute boolean requestBillingAddress;
   Promise<WindowClient?> openWindow(USVString url);
+  Promise<PaymentMethodChangeResponse?> changePaymentMethod(DOMString methodName, optional object? methodDetails = null);
   void respondWith(Promise<PaymentHandlerResponse> handlerResponsePromise);
 };
 

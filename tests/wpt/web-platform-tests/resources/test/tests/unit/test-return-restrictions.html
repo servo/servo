@@ -1,0 +1,155 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="/resources/testharness.js"></script>
+  <title>Restrictions on return value from `test`</title>
+</head>
+<body>
+<script>
+function makeTest(...bodies) {
+  const closeScript = '<' + '/script>';
+  let src = `
+<!DOCTYPE HTML>
+<html>
+<head>
+<title>Document title</title>
+<script src="/resources/testharness.js?${Math.random()}">${closeScript}
+</head>
+
+<body>
+<div id="log"></div>`;
+  bodies.forEach((body) => {
+    src += '<script>(' + body + ')();' + closeScript;
+  });
+
+  const iframe = document.createElement('iframe');
+
+  document.body.appendChild(iframe);
+  iframe.contentDocument.write(src);
+
+  return new Promise((resolve) => {
+    window.addEventListener('message', function onMessage(e) {
+      if (e.source !== iframe.contentWindow) {
+        return;
+      }
+      if (!e.data || e.data.type !=='complete') {
+        return;
+      }
+      window.removeEventListener('message', onMessage);
+      resolve(e.data);
+    });
+
+    iframe.contentDocument.close();
+  }).then(({ tests, status }) => {
+    const summary = {
+      harness: {
+        status: getEnumProp(status, status.status),
+        message: status.message
+      },
+      tests: {}
+    };
+
+    tests.forEach((test) => {
+      summary.tests[test.name] = getEnumProp(test, test.status);
+    });
+
+    return summary;
+  });
+}
+
+function getEnumProp(object, value) {
+  for (let property in object) {
+    if (!/^[A-Z]+$/.test(property)) {
+      continue;
+    }
+
+    if (object[property] === value) {
+      return property;
+    }
+  }
+}
+
+promise_test(() => {
+  return makeTest(
+      () => {
+        test(() => undefined, 'before');
+        test(() => null, 'null');
+        test(() => undefined, 'after');
+      }
+    ).then(({harness, tests}) => {
+      assert_equals(harness.status, 'ERROR');
+      assert_equals(
+        harness.message,
+        'test named "null" inappropriately returned a value'
+      );
+      assert_equals(tests.before, 'PASS');
+      assert_equals(tests.null, 'PASS');
+      assert_equals(tests.after, 'PASS');
+    });
+}, 'test returning `null`');
+
+promise_test(() => {
+  return makeTest(
+      () => {
+        test(() => undefined, 'before');
+        test(() => ({}), 'object');
+        test(() => undefined, 'after');
+      }
+    ).then(({harness, tests}) => {
+      assert_equals(harness.status, 'ERROR');
+      assert_equals(
+        harness.message,
+        'test named "object" inappropriately returned a value'
+      );
+      assert_equals(tests.before, 'PASS');
+      assert_equals(tests.object, 'PASS');
+      assert_equals(tests.after, 'PASS');
+    });
+}, 'test returning an ordinary object');
+
+promise_test(() => {
+  return makeTest(
+      () => {
+        test(() => undefined, 'before');
+        test(() => ({ then() {} }), 'thenable');
+        test(() => undefined, 'after');
+      }
+    ).then(({harness, tests}) => {
+      assert_equals(harness.status, 'ERROR');
+      assert_equals(
+        harness.message,
+        'test named "thenable" inappropriately returned a value, consider using `promise_test` instead'
+      );
+      assert_equals(tests.before, 'PASS');
+      assert_equals(tests.thenable, 'PASS');
+      assert_equals(tests.after, 'PASS');
+    });
+}, 'test returning a thenable object');
+
+promise_test(() => {
+  return makeTest(
+      () => {
+        test(() => undefined, 'before');
+        test(() => {
+          const iframe = document.createElement('iframe');
+          iframe.setAttribute('sandbox', '');
+          document.body.appendChild(iframe);
+          return iframe.contentWindow;
+        }, 'restricted');
+        test(() => undefined, 'after');
+      }
+    ).then(({harness, tests}) => {
+      assert_equals(harness.status, 'ERROR');
+      assert_equals(
+        harness.message,
+        'test named "restricted" inappropriately returned a value'
+      );
+      assert_equals(tests.before, 'PASS');
+      assert_equals(tests.restricted, 'PASS');
+      assert_equals(tests.after, 'PASS');
+    });
+}, 'test returning a restricted object');
+</script>
+</body>
+</html>
