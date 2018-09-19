@@ -12,25 +12,32 @@ use html5ever::{LocalName, Prefix};
 
 #[dom_struct]
 pub struct HTMLTableCaptionElement {
-    htmlelement: HTMLElement
+    htmlelement: HTMLElement,
 }
 
 impl HTMLTableCaptionElement {
-    fn new_inherited(local_name: LocalName,
-                     prefix: Option<Prefix>,
-                     document: &Document) -> HTMLTableCaptionElement {
+    fn new_inherited(
+        local_name: LocalName,
+        prefix: Option<Prefix>,
+        document: &Document,
+    ) -> HTMLTableCaptionElement {
         HTMLTableCaptionElement {
-            htmlelement:
-                HTMLElement::new_inherited(local_name, prefix, document)
+            htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(local_name: LocalName,
-               prefix: Option<Prefix>,
-               document: &Document) -> DomRoot<HTMLTableCaptionElement> {
-        Node::reflect_node(Box::new(HTMLTableCaptionElement::new_inherited(local_name, prefix, document)),
-                           document,
-                           HTMLTableCaptionElementBinding::Wrap)
+    pub fn new(
+        local_name: LocalName,
+        prefix: Option<Prefix>,
+        document: &Document,
+    ) -> DomRoot<HTMLTableCaptionElement> {
+        Node::reflect_node(
+            Box::new(HTMLTableCaptionElement::new_inherited(
+                local_name, prefix, document,
+            )),
+            document,
+            HTMLTableCaptionElementBinding::Wrap,
+        )
     }
 }

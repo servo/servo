@@ -35,7 +35,7 @@ pub enum BodyType {
     FormData,
     Json,
     Text,
-    ArrayBuffer
+    ArrayBuffer,
 }
 
 pub enum FetchedData {
@@ -44,7 +44,7 @@ pub enum FetchedData {
     BlobData(DomRoot<Blob>),
     FormData(DomRoot<FormData>),
     ArrayBuffer(RootedTraceableBox<Heap<*mut JSObject>>),
-    JSException(RootedTraceableBox<Heap<JSVal>>)
+    JSException(RootedTraceableBox<Heap<JSVal>>),
 }
 
 // https://fetch.spec.whatwg.org/#concept-body-consume-body
@@ -72,19 +72,19 @@ pub fn consume_body<T: BodyOperations + DomObject>(object: &T, body_type: BodyTy
 
 // https://fetch.spec.whatwg.org/#concept-body-consume-body
 #[allow(unrooted_must_root)]
-pub fn consume_body_with_promise<T: BodyOperations + DomObject>(object: &T,
-                                                                body_type: BodyType,
-                                                                promise: &Promise) {
+pub fn consume_body_with_promise<T: BodyOperations + DomObject>(
+    object: &T,
+    body_type: BodyType,
+    promise: &Promise,
+) {
     // Step 5
     let body = match object.take_body() {
         Some(body) => body,
         None => return,
     };
 
-    let pkg_data_results = run_package_data_algorithm(object,
-                                                      body,
-                                                      body_type,
-                                                      object.get_mime_type());
+    let pkg_data_results =
+        run_package_data_algorithm(object, body, body_type, object.get_mime_type());
 
     match pkg_data_results {
         Ok(results) => {
@@ -103,11 +103,12 @@ pub fn consume_body_with_promise<T: BodyOperations + DomObject>(object: &T,
 
 // https://fetch.spec.whatwg.org/#concept-body-package-data
 #[allow(unsafe_code)]
-fn run_package_data_algorithm<T: BodyOperations + DomObject>(object: &T,
-                                                             bytes: Vec<u8>,
-                                                             body_type: BodyType,
-                                                             mime_type: Ref<Vec<u8>>)
-                                                             -> Fallible<FetchedData> {
+fn run_package_data_algorithm<T: BodyOperations + DomObject>(
+    object: &T,
+    bytes: Vec<u8>,
+    body_type: BodyType,
+    mime_type: Ref<Vec<u8>>,
+) -> Fallible<FetchedData> {
     let global = object.global();
     let cx = global.get_cx();
     let mime = &*mime_type;
@@ -116,40 +117,45 @@ fn run_package_data_algorithm<T: BodyOperations + DomObject>(object: &T,
         BodyType::Json => run_json_data_algorithm(cx, bytes),
         BodyType::Blob => run_blob_data_algorithm(&global, bytes, mime),
         BodyType::FormData => run_form_data_algorithm(&global, bytes, mime),
-        BodyType::ArrayBuffer => unsafe {
-            run_array_buffer_data_algorithm(cx, bytes)
-        }
+        BodyType::ArrayBuffer => unsafe { run_array_buffer_data_algorithm(cx, bytes) },
     }
 }
 
 fn run_text_data_algorithm(bytes: Vec<u8>) -> Fallible<FetchedData> {
-    Ok(FetchedData::Text(String::from_utf8_lossy(&bytes).into_owned()))
+    Ok(FetchedData::Text(
+        String::from_utf8_lossy(&bytes).into_owned(),
+    ))
 }
 
 #[allow(unsafe_code)]
-fn run_json_data_algorithm(cx: *mut JSContext,
-                           bytes: Vec<u8>) -> Fallible<FetchedData> {
+fn run_json_data_algorithm(cx: *mut JSContext, bytes: Vec<u8>) -> Fallible<FetchedData> {
     let json_text = String::from_utf8_lossy(&bytes);
     let json_text: Vec<u16> = json_text.encode_utf16().collect();
     rooted!(in(cx) let mut rval = UndefinedValue());
     unsafe {
-        if !JS_ParseJSON(cx,
-                         json_text.as_ptr(),
-                         json_text.len() as u32,
-                         rval.handle_mut()) {
+        if !JS_ParseJSON(
+            cx,
+            json_text.as_ptr(),
+            json_text.len() as u32,
+            rval.handle_mut(),
+        ) {
             rooted!(in(cx) let mut exception = UndefinedValue());
             assert!(JS_GetPendingException(cx, exception.handle_mut()));
             JS_ClearPendingException(cx);
-            return Ok(FetchedData::JSException(RootedTraceableBox::from_box(Heap::boxed(exception.get()))));
+            return Ok(FetchedData::JSException(RootedTraceableBox::from_box(
+                Heap::boxed(exception.get()),
+            )));
         }
         let rooted_heap = RootedTraceableBox::from_box(Heap::boxed(rval.get()));
         Ok(FetchedData::Json(rooted_heap))
     }
 }
 
-fn run_blob_data_algorithm(root: &GlobalScope,
-                           bytes: Vec<u8>,
-                           mime: &[u8]) -> Fallible<FetchedData> {
+fn run_blob_data_algorithm(
+    root: &GlobalScope,
+    bytes: Vec<u8>,
+    mime: &[u8],
+) -> Fallible<FetchedData> {
     let mime_string = if let Ok(s) = String::from_utf8(mime.to_vec()) {
         s
     } else {
@@ -159,14 +165,19 @@ fn run_blob_data_algorithm(root: &GlobalScope,
     Ok(FetchedData::BlobData(blob))
 }
 
-fn run_form_data_algorithm(root: &GlobalScope, bytes: Vec<u8>, mime: &[u8]) -> Fallible<FetchedData> {
+fn run_form_data_algorithm(
+    root: &GlobalScope,
+    bytes: Vec<u8>,
+    mime: &[u8],
+) -> Fallible<FetchedData> {
     let mime_str = if let Ok(s) = str::from_utf8(mime) {
         s
     } else {
         ""
     };
-    let mime: Mime = mime_str.parse().map_err(
-        |_| Error::Type("Inappropriate MIME-type for Body".to_string()))?;
+    let mime: Mime = mime_str
+        .parse()
+        .map_err(|_| Error::Type("Inappropriate MIME-type for Body".to_string()))?;
     match mime {
         // TODO
         // ... Parser for Mime(TopLevel::Multipart, SubLevel::FormData, _)
@@ -184,9 +195,13 @@ fn run_form_data_algorithm(root: &GlobalScope, bytes: Vec<u8>, mime: &[u8]) -> F
 }
 
 #[allow(unsafe_code)]
-unsafe fn run_array_buffer_data_algorithm(cx: *mut JSContext, bytes: Vec<u8>) -> Fallible<FetchedData> {
+unsafe fn run_array_buffer_data_algorithm(
+    cx: *mut JSContext,
+    bytes: Vec<u8>,
+) -> Fallible<FetchedData> {
     rooted!(in(cx) let mut array_buffer_ptr = ptr::null_mut::<JSObject>());
-    let arraybuffer = ArrayBuffer::create(cx, CreateWith::Slice(&bytes), array_buffer_ptr.handle_mut());
+    let arraybuffer =
+        ArrayBuffer::create(cx, CreateWith::Slice(&bytes), array_buffer_ptr.handle_mut());
     if arraybuffer.is_err() {
         return Err(Error::JSFailed);
     }

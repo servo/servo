@@ -115,7 +115,7 @@ impl XHRProgress {
             XHRProgress::HeadersReceived(id, _, _) |
             XHRProgress::Loading(id, _) |
             XHRProgress::Done(id) |
-            XHRProgress::Errored(id, _) => id
+            XHRProgress::Errored(id, _) => id,
         }
     }
 }
@@ -181,8 +181,8 @@ impl XMLHttpRequest {
             upload: Dom::from_ref(&*XMLHttpRequestUpload::new(global)),
             response_url: DomRefCell::new(String::new()),
             status: Cell::new(0),
-            status_text: DomRefCell::new(ByteString::new(vec!())),
-            response: DomRefCell::new(ByteString::new(vec!())),
+            status_text: DomRefCell::new(ByteString::new(vec![])),
+            response: DomRefCell::new(ByteString::new(vec![])),
             response_type: Cell::new(XMLHttpRequestResponseType::_empty),
             response_xml: Default::default(),
             response_blob: Default::default(),
@@ -210,9 +210,11 @@ impl XMLHttpRequest {
         }
     }
     pub fn new(global: &GlobalScope) -> DomRoot<XMLHttpRequest> {
-        reflect_dom_object(Box::new(XMLHttpRequest::new_inherited(global)),
-                           global,
-                           XMLHttpRequestBinding::Wrap)
+        reflect_dom_object(
+            Box::new(XMLHttpRequest::new_inherited(global)),
+            global,
+            XMLHttpRequestBinding::Wrap,
+        )
     }
 
     // https://xhr.spec.whatwg.org/#constructors
@@ -224,11 +226,13 @@ impl XMLHttpRequest {
         self.sync.get() && self.global().is::<Window>()
     }
 
-    fn initiate_async_xhr(context: Arc<Mutex<XHRContext>>,
-                          task_source: NetworkingTaskSource,
-                          global: &GlobalScope,
-                          init: RequestInit,
-                          cancellation_chan: ipc::IpcReceiver<()>) {
+    fn initiate_async_xhr(
+        context: Arc<Mutex<XHRContext>>,
+        task_source: NetworkingTaskSource,
+        global: &GlobalScope,
+        init: RequestInit,
+        cancellation_chan: ipc::IpcReceiver<()>,
+    ) {
         impl FetchResponseListener for XHRContext {
             fn process_request_body(&mut self) {
                 // todo
@@ -238,8 +242,7 @@ impl XMLHttpRequest {
                 // todo
             }
 
-            fn process_response(&mut self,
-                                metadata: Result<FetchMetadata, NetworkError>) {
+            fn process_response(&mut self, metadata: Result<FetchMetadata, NetworkError>) {
                 let xhr = self.xhr.root();
                 let rv = xhr.process_headers_available(self.gen_id, metadata);
                 if rv.is_err() {
@@ -249,11 +252,16 @@ impl XMLHttpRequest {
 
             fn process_response_chunk(&mut self, mut chunk: Vec<u8>) {
                 self.buf.borrow_mut().append(&mut chunk);
-                self.xhr.root().process_data_available(self.gen_id, self.buf.borrow().clone());
+                self.xhr
+                    .root()
+                    .process_data_available(self.gen_id, self.buf.borrow().clone());
             }
 
             fn process_response_eof(&mut self, response: Result<(), NetworkError>) {
-                let rv = self.xhr.root().process_response_complete(self.gen_id, response);
+                let rv = self
+                    .xhr
+                    .root()
+                    .process_response_complete(self.gen_id, response);
                 *self.sync_status.borrow_mut() = Some(rv);
             }
         }
@@ -269,19 +277,30 @@ impl XMLHttpRequest {
         let listener = NetworkListener {
             context: context,
             task_source: task_source,
-            canceller: Some(global.task_canceller(TaskSourceName::Networking))
+            canceller: Some(global.task_canceller(TaskSourceName::Networking)),
         };
-        ROUTER.add_route(action_receiver.to_opaque(), Box::new(move |message| {
-            listener.notify_fetch(message.to().unwrap());
-        }));
-        global.core_resource_thread().send(
-            Fetch(init, FetchChannels::ResponseMsg(action_sender, Some(cancellation_chan)))).unwrap();
+        ROUTER.add_route(
+            action_receiver.to_opaque(),
+            Box::new(move |message| {
+                listener.notify_fetch(message.to().unwrap());
+            }),
+        );
+        global
+            .core_resource_thread()
+            .send(Fetch(
+                init,
+                FetchChannels::ResponseMsg(action_sender, Some(cancellation_chan)),
+            )).unwrap();
     }
 }
 
 impl XMLHttpRequestMethods for XMLHttpRequest {
     // https://xhr.spec.whatwg.org/#handler-xhr-onreadystatechange
-    event_handler!(readystatechange, GetOnreadystatechange, SetOnreadystatechange);
+    event_handler!(
+        readystatechange,
+        GetOnreadystatechange,
+        SetOnreadystatechange
+    );
 
     // https://xhr.spec.whatwg.org/#dom-xmlhttprequest-readystate
     fn ReadyState(&self) -> u16 {
@@ -295,8 +314,14 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
     }
 
     // https://xhr.spec.whatwg.org/#the-open()-method
-    fn Open_(&self, method: ByteString, url: USVString, async: bool,
-             username: Option<USVString>, password: Option<USVString>) -> ErrorResult {
+    fn Open_(
+        &self,
+        method: ByteString,
+        url: USVString,
+        async: bool,
+        username: Option<USVString>,
+        password: Option<USVString>,
+    ) -> ErrorResult {
         // Step 1
         if let Some(window) = DomRoot::downcast::<Window>(self.global()) {
             if !window.Document().is_fully_active() {
@@ -314,10 +339,9 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
             // despite the there being a rust-http method variant for them
             let upper = s.to_ascii_uppercase();
             match &*upper {
-                "DELETE" | "GET" | "HEAD" | "OPTIONS" |
-                "POST" | "PUT" | "CONNECT" | "TRACE" |
+                "DELETE" | "GET" | "HEAD" | "OPTIONS" | "POST" | "PUT" | "CONNECT" | "TRACE" |
                 "TRACK" => upper.parse().ok(),
-                _ => s.parse().ok()
+                _ => s.parse().ok(),
             }
         });
 
@@ -328,7 +352,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
             Some(parsed_method) => {
                 // Step 3
                 if !is_token(&method) {
-                    return Err(Error::Syntax)
+                    return Err(Error::Syntax);
                 }
 
                 // Step 2
@@ -337,7 +361,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
                 let mut parsed_url = match base.join(&url.0) {
                     Ok(parsed) => parsed,
                     // Step 7
-                    Err(_) => return Err(Error::Syntax)
+                    Err(_) => return Err(Error::Syntax),
                 };
 
                 // Step 9
@@ -352,8 +376,10 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
                 // Step 10
                 if !async {
                     // FIXME: This should only happen if the global environment is a document environment
-                    if self.timeout.get() != 0 || self.response_type.get() != XMLHttpRequestResponseType::_empty {
-                        return Err(Error::InvalidAccess)
+                    if self.timeout.get() != 0 ||
+                        self.response_type.get() != XMLHttpRequestResponseType::_empty
+                    {
+                        return Err(Error::InvalidAccess);
                     }
                 }
                 // Step 11 - abort existing requests
@@ -371,7 +397,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
                 self.sync.set(!async);
                 *self.request_headers.borrow_mut() = Headers::new();
                 self.send_flag.set(false);
-                *self.status_text.borrow_mut() = ByteString::new(vec!());
+                *self.status_text.borrow_mut() = ByteString::new(vec![]);
                 self.status.set(0);
 
                 // Step 13
@@ -383,7 +409,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
             // Step 3
             // This includes cases where as_str() returns None, and when is_token() returns false,
             // both of which indicate invalid extension method names
-            _ => Err(Error::Syntax)
+            _ => Err(Error::Syntax),
         }
     }
 
@@ -413,12 +439,15 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
                     s
                 }
             },
-            None => unreachable!()
+            None => unreachable!(),
         };
 
-        debug!("SetRequestHeader: name={:?}, value={:?}", name.as_str(), str::from_utf8(value).ok());
+        debug!(
+            "SetRequestHeader: name={:?}, value={:?}",
+            name.as_str(),
+            str::from_utf8(value).ok()
+        );
         let mut headers = self.request_headers.borrow_mut();
-
 
         // Step 6
         let value = match headers.get_raw(name_str) {
@@ -485,7 +514,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
             _ => {
                 self.with_credentials.set(with_credentials);
                 Ok(())
-            }
+            },
         }
     }
 
@@ -504,7 +533,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
         // Step 3
         let data = match *self.request_method.borrow() {
             Method::Get | Method::Head => None,
-            _ => data
+            _ => data,
         };
         // Step 4 (first half)
         let extracted_or_serialized = match data {
@@ -521,12 +550,17 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
             Some(DocumentOrBodyInit::FormData(ref formdata)) => Some(formdata.extract()),
             Some(DocumentOrBodyInit::String(ref str)) => Some(str.extract()),
             Some(DocumentOrBodyInit::URLSearchParams(ref urlsp)) => Some(urlsp.extract()),
-            Some(DocumentOrBodyInit::ArrayBuffer(ref typedarray)) => Some((typedarray.to_vec(), None)),
-            Some(DocumentOrBodyInit::ArrayBufferView(ref typedarray)) => Some((typedarray.to_vec(), None)),
+            Some(DocumentOrBodyInit::ArrayBuffer(ref typedarray)) => {
+                Some((typedarray.to_vec(), None))
+            },
+            Some(DocumentOrBodyInit::ArrayBufferView(ref typedarray)) => {
+                Some((typedarray.to_vec(), None))
+            },
             None => None,
         };
 
-        self.request_body_len.set(extracted_or_serialized.as_ref().map_or(0, |e| e.0.len()));
+        self.request_body_len
+            .set(extracted_or_serialized.as_ref().map_or(0, |e| e.0.len()));
 
         // todo preserved headers?
 
@@ -536,7 +570,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
         self.upload_complete.set(match extracted_or_serialized {
             None => true,
             Some(ref e) if e.0.is_empty() => true,
-            _ => false
+            _ => false,
         });
         // Step 8
         self.send_flag.set(true);
@@ -558,7 +592,6 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
                     return Ok(());
                 }
             }
-
         }
 
         // Step 5
@@ -594,7 +627,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
             referrer_url: self.referrer_url.clone(),
             referrer_policy: self.referrer_policy.clone(),
             pipeline_id: Some(self.global().pipeline_id()),
-            .. RequestInit::default()
+            ..RequestInit::default()
         };
 
         // step 4 (second half)
@@ -605,14 +638,18 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
                     // XHR spec differs from http, and says UTF-8 should be in capitals,
                     // instead of "utf-8", which is what Hyper defaults to. So not
                     // using content types provided by Hyper.
-                    Some(MimeValue::Ext("UTF-8".to_string())),
+                    {
+                        Some(MimeValue::Ext("UTF-8".to_string()))
+                    },
                     _ => None,
                 };
 
                 let mut content_type_set = false;
                 if let Some(ref ct) = *content_type {
                     if !request.headers.has::<ContentType>() {
-                        request.headers.set_raw("content-type", vec![ct.bytes().collect()]);
+                        request
+                            .headers
+                            .set_raw("content-type", vec![ct.bytes().collect()]);
                         content_type_set = true;
                     }
                 }
@@ -631,8 +668,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
                         }
                     }
                 }
-
-            }
+            },
             _ => (),
         }
 
@@ -660,14 +696,15 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
         // Step 2
         let state = self.ready_state.get();
         if (state == XMLHttpRequestState::Opened && self.send_flag.get()) ||
-           state == XMLHttpRequestState::HeadersReceived ||
-           state == XMLHttpRequestState::Loading {
+            state == XMLHttpRequestState::HeadersReceived ||
+            state == XMLHttpRequestState::Loading
+        {
             let gen_id = self.generation_id.get();
             self.process_partial_response(XHRProgress::Errored(gen_id, Error::Abort));
             // If open was called in one of the handlers invoked by the
             // above call then we should terminate the abort sequence
             if self.generation_id.get() != gen_id {
-                return
+                return;
             }
         }
         // Step 3
@@ -691,11 +728,10 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
 
     // https://xhr.spec.whatwg.org/#the-getresponseheader()-method
     fn GetResponseHeader(&self, name: ByteString) -> Option<ByteString> {
-        self.filter_response_headers().iter().find(|h| {
-            name.eq_ignore_case(&h.name().parse().unwrap())
-        }).map(|h| {
-            ByteString::new(h.value_string().into_bytes())
-        })
+        self.filter_response_headers()
+            .iter()
+            .find(|h| name.eq_ignore_case(&h.name().parse().unwrap()))
+            .map(|h| ByteString::new(h.value_string().into_bytes()))
     }
 
     // https://xhr.spec.whatwg.org/#the-getallresponseheaders()-method
@@ -707,7 +743,9 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
     fn OverrideMimeType(&self, mime: DOMString) -> ErrorResult {
         // Step 1
         match self.ready_state.get() {
-            XMLHttpRequestState::Loading | XMLHttpRequestState::Done => return Err(Error::InvalidState),
+            XMLHttpRequestState::Loading | XMLHttpRequestState::Done => {
+                return Err(Error::InvalidState)
+            },
             _ => {},
         }
         // Step 2
@@ -717,9 +755,8 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
         *self.override_mime_type.borrow_mut() = Some(mime_no_params);
         // Step 4
         let value = override_mime.get_param(mime::Attr::Charset);
-        *self.override_charset.borrow_mut() = value.and_then(|value| {
-            Encoding::for_label(value.as_bytes())
-        });
+        *self.override_charset.borrow_mut() =
+            value.and_then(|value| Encoding::for_label(value.as_bytes()));
         Ok(())
     }
 
@@ -731,7 +768,9 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
     // https://xhr.spec.whatwg.org/#the-responsetype-attribute
     fn SetResponseType(&self, response_type: XMLHttpRequestResponseType) -> ErrorResult {
         // Step 1
-        if self.global().is::<WorkerGlobalScope>() && response_type == XMLHttpRequestResponseType::Document {
+        if self.global().is::<WorkerGlobalScope>() &&
+            response_type == XMLHttpRequestResponseType::Document
+        {
             return Ok(());
         }
         match self.ready_state.get() {
@@ -746,7 +785,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
                     self.response_type.set(response_type);
                     Ok(())
                 }
-            }
+            },
         }
     }
 
@@ -758,10 +797,12 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
             XMLHttpRequestResponseType::_empty | XMLHttpRequestResponseType::Text => {
                 let ready_state = self.ready_state.get();
                 // Step 2
-                if ready_state == XMLHttpRequestState::Done || ready_state == XMLHttpRequestState::Loading {
+                if ready_state == XMLHttpRequestState::Done ||
+                    ready_state == XMLHttpRequestState::Loading
+                {
                     self.text_response().to_jsval(cx, rval.handle_mut());
                 } else {
-                // Step 1
+                    // Step 1
                     "".to_jsval(cx, rval.handle_mut());
                 }
             },
@@ -779,12 +820,10 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
             XMLHttpRequestResponseType::Blob => {
                 self.blob_response().to_jsval(cx, rval.handle_mut());
             },
-            XMLHttpRequestResponseType::Arraybuffer => {
-                match self.arraybuffer_response(cx) {
-                    Some(js_object) => js_object.to_jsval(cx, rval.handle_mut()),
-                    None => return NullValue(),
-                }
-            }
+            XMLHttpRequestResponseType::Arraybuffer => match self.arraybuffer_response(cx) {
+                Some(js_object) => js_object.to_jsval(cx, rval.handle_mut()),
+                None => return NullValue(),
+            },
         }
         rval.get()
     }
@@ -795,13 +834,15 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
             XMLHttpRequestResponseType::_empty | XMLHttpRequestResponseType::Text => {
                 Ok(USVString(String::from(match self.ready_state.get() {
                     // Step 3
-                    XMLHttpRequestState::Loading | XMLHttpRequestState::Done => self.text_response(),
+                    XMLHttpRequestState::Loading | XMLHttpRequestState::Done => {
+                        self.text_response()
+                    },
                     // Step 2
-                    _ => "".to_owned()
+                    _ => "".to_owned(),
                 })))
             },
             // Step 1
-            _ => Err(Error::InvalidState)
+            _ => Err(Error::InvalidState),
         }
     }
 
@@ -819,34 +860,36 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
                 if let XMLHttpRequestState::Done = self.ready_state.get() {
                     Ok(self.document_response())
                 } else {
-                // Step 2
+                    // Step 2
                     Ok(None)
                 }
-            }
+            },
             // Step 1
-            _ => { Err(Error::InvalidState) }
+            _ => Err(Error::InvalidState),
         }
     }
 }
 
 pub type TrustedXHRAddress = Trusted<XMLHttpRequest>;
 
-
 impl XMLHttpRequest {
     fn change_ready_state(&self, rs: XMLHttpRequestState) {
         assert_ne!(self.ready_state.get(), rs);
         self.ready_state.set(rs);
-        let event = Event::new(&self.global(),
-                               atom!("readystatechange"),
-                               EventBubbles::DoesNotBubble,
-                               EventCancelable::Cancelable);
+        let event = Event::new(
+            &self.global(),
+            atom!("readystatechange"),
+            EventBubbles::DoesNotBubble,
+            EventCancelable::Cancelable,
+        );
         event.fire(self.upcast());
     }
 
-    fn process_headers_available(&self,
-                                 gen_id: GenerationId,
-                                 metadata: Result<FetchMetadata, NetworkError>)
-                                 -> Result<(), Error> {
+    fn process_headers_available(
+        &self,
+        gen_id: GenerationId,
+        metadata: Result<FetchMetadata, NetworkError>,
+    ) -> Result<(), Error> {
         let metadata = match metadata {
             Ok(meta) => match meta {
                 FetchMetadata::Unfiltered(m) => m,
@@ -854,8 +897,8 @@ impl XMLHttpRequest {
                     FilteredMetadata::Basic(m) => m,
                     FilteredMetadata::Cors(m) => m,
                     FilteredMetadata::Opaque => return Err(Error::Network),
-                    FilteredMetadata::OpaqueRedirect => return Err(Error::Network)
-                }
+                    FilteredMetadata::OpaqueRedirect => return Err(Error::Network),
+                },
             },
             Err(_) => {
                 self.process_partial_response(XHRProgress::Errored(gen_id, Error::Network));
@@ -869,7 +912,8 @@ impl XMLHttpRequest {
         self.process_partial_response(XHRProgress::HeadersReceived(
             gen_id,
             metadata.headers.map(Serde::into_inner),
-            metadata.status));
+            metadata.status,
+        ));
         Ok(())
     }
 
@@ -877,8 +921,11 @@ impl XMLHttpRequest {
         self.process_partial_response(XHRProgress::Loading(gen_id, ByteString::new(payload)));
     }
 
-    fn process_response_complete(&self, gen_id: GenerationId, status: Result<(), NetworkError>)
-                                 -> ErrorResult {
+    fn process_response_complete(
+        &self,
+        gen_id: GenerationId,
+        status: Result<(), NetworkError>,
+    ) -> ErrorResult {
         match status {
             Ok(()) => {
                 self.process_partial_response(XHRProgress::Done(gen_id));
@@ -887,7 +934,7 @@ impl XMLHttpRequest {
             Err(_) => {
                 self.process_partial_response(XHRProgress::Errored(gen_id, Error::Network));
                 Err(Error::Network)
-            }
+            },
         }
     }
 
@@ -937,7 +984,9 @@ impl XMLHttpRequest {
                     self.status.set(code);
                     *self.status_text.borrow_mut() = ByteString::new(reason);
                 });
-                headers.as_ref().map(|h| *self.response_headers.borrow_mut() = h.clone());
+                headers
+                    .as_ref()
+                    .map(|h| *self.response_headers.borrow_mut() = h.clone());
 
                 // Substep 3
                 if !self.sync.get() {
@@ -958,16 +1007,19 @@ impl XMLHttpRequest {
                         &self.global(),
                         atom!("readystatechange"),
                         EventBubbles::DoesNotBubble,
-                        EventCancelable::Cancelable);
+                        EventCancelable::Cancelable,
+                    );
                     event.fire(self.upcast());
                     return_if_fetch_was_terminated!();
                     self.dispatch_response_progress_event(atom!("progress"));
                 }
             },
             XHRProgress::Done(_) => {
-                assert!(self.ready_state.get() == XMLHttpRequestState::HeadersReceived ||
+                assert!(
+                    self.ready_state.get() == XMLHttpRequestState::HeadersReceived ||
                         self.ready_state.get() == XMLHttpRequestState::Loading ||
-                        self.sync.get());
+                        self.sync.get()
+                );
 
                 self.cancel_timeout();
                 self.canceller.borrow_mut().ignore();
@@ -1012,7 +1064,7 @@ impl XMLHttpRequest {
                 self.dispatch_response_progress_event(Atom::from(errormsg));
                 return_if_fetch_was_terminated!();
                 self.dispatch_response_progress_event(atom!("loadend"));
-            }
+            },
         }
     }
 
@@ -1024,17 +1076,21 @@ impl XMLHttpRequest {
     }
 
     fn dispatch_progress_event(&self, upload: bool, type_: Atom, loaded: u64, total: Option<u64>) {
-        let (total_length, length_computable) = if self.response_headers.borrow().has::<ContentEncoding>() {
-            (0, false)
-        } else {
-            (total.unwrap_or(0), total.is_some())
-        };
-        let progressevent = ProgressEvent::new(&self.global(),
-                                               type_,
-                                               EventBubbles::DoesNotBubble,
-                                               EventCancelable::NotCancelable,
-                                               length_computable, loaded,
-                                               total_length);
+        let (total_length, length_computable) =
+            if self.response_headers.borrow().has::<ContentEncoding>() {
+                (0, false)
+            } else {
+                (total.unwrap_or(0), total.is_some())
+            };
+        let progressevent = ProgressEvent::new(
+            &self.global(),
+            type_,
+            EventBubbles::DoesNotBubble,
+            EventCancelable::NotCancelable,
+            length_computable,
+            loaded,
+            total_length,
+        );
         let target = if upload {
             self.upload.upcast()
         } else {
@@ -1052,7 +1108,11 @@ impl XMLHttpRequest {
 
     fn dispatch_response_progress_event(&self, type_: Atom) {
         let len = self.response.borrow().len() as u64;
-        let total = self.response_headers.borrow().get::<ContentLength>().map(|x| { **x as u64 });
+        let total = self
+            .response_headers
+            .borrow()
+            .get::<ContentLength>()
+            .map(|x| **x as u64);
         self.dispatch_progress_event(false, type_, len, total);
     }
     fn set_timeout(&self, duration_ms: u32) {
@@ -1094,7 +1154,11 @@ impl XMLHttpRequest {
             return response;
         }
         // Step 2
-        let mime = self.final_mime_type().as_ref().map(Mime::to_string).unwrap_or("".to_owned());
+        let mime = self
+            .final_mime_type()
+            .as_ref()
+            .map(Mime::to_string)
+            .unwrap_or("".to_owned());
 
         // Step 3, 4
         let bytes = self.response.borrow().to_vec();
@@ -1109,16 +1173,18 @@ impl XMLHttpRequest {
         // Step 1
         let created = self.response_arraybuffer.get();
         if let Some(nonnull) = NonNull::new(created) {
-            return Some(nonnull)
+            return Some(nonnull);
         }
 
         // Step 2
         let bytes = self.response.borrow();
         rooted!(in(cx) let mut array_buffer = ptr::null_mut::<JSObject>());
-        ArrayBuffer::create(cx, CreateWith::Slice(&bytes), array_buffer.handle_mut()).ok().and_then(|()| {
-            self.response_arraybuffer.set(array_buffer.get());
-            Some(NonNull::new_unchecked(array_buffer.get()))
-        })
+        ArrayBuffer::create(cx, CreateWith::Slice(&bytes), array_buffer.handle_mut())
+            .ok()
+            .and_then(|()| {
+                self.response_arraybuffer.set(array_buffer.get());
+                Some(NonNull::new_unchecked(array_buffer.get()))
+            })
     }
 
     // https://xhr.spec.whatwg.org/#document-response
@@ -1157,7 +1223,9 @@ impl XMLHttpRequest {
                 }
             },
             // Step 4
-            _ => { return None; }
+            _ => {
+                return None;
+            },
         }
         // Step 9
         temp_doc.set_encoding(charset);
@@ -1183,17 +1251,15 @@ impl XMLHttpRequest {
         // Step 4
         fn decode_to_utf16_with_bom_removal(bytes: &[u8], encoding: &'static Encoding) -> Vec<u16> {
             let mut decoder = encoding.new_decoder_with_bom_removal();
-            let capacity = decoder.max_utf16_buffer_length(bytes.len()).expect("Overflow");
+            let capacity = decoder
+                .max_utf16_buffer_length(bytes.len())
+                .expect("Overflow");
             let mut utf16 = Vec::with_capacity(capacity);
-            let extra = unsafe {
-                slice::from_raw_parts_mut(utf16.as_mut_ptr(), capacity)
-            };
+            let extra = unsafe { slice::from_raw_parts_mut(utf16.as_mut_ptr(), capacity) };
             let last = true;
             let (_, read, written, _) = decoder.decode_to_utf16(bytes, extra, last);
             assert_eq!(read, bytes.len());
-            unsafe {
-                utf16.set_len(written)
-            }
+            unsafe { utf16.set_len(written) }
             utf16
         }
         // https://xhr.spec.whatwg.org/#json-response refers to
@@ -1205,10 +1271,12 @@ impl XMLHttpRequest {
         // Step 5
         rooted!(in(cx) let mut rval = UndefinedValue());
         unsafe {
-            if !JS_ParseJSON(cx,
-                             json_text.as_ptr(),
-                             json_text.len() as u32,
-                             rval.handle_mut()) {
+            if !JS_ParseJSON(
+                cx,
+                json_text.as_ptr(),
+                json_text.len() as u32,
+                rval.handle_mut(),
+            ) {
                 JS_ClearPendingException(cx);
                 return NullValue();
             }
@@ -1225,10 +1293,7 @@ impl XMLHttpRequest {
         let (decoded, _, _) = charset.decode(&response);
         let document = self.new_doc(IsHTMLDocument::HTMLDocument);
         // TODO: Disable scripting while parsing
-        ServoParser::parse_html_document(
-            &document,
-            DOMString::from(decoded),
-            wr.get_url());
+        ServoParser::parse_html_document(&document, DOMString::from(decoded), wr.get_url());
         document
     }
 
@@ -1239,10 +1304,7 @@ impl XMLHttpRequest {
         let (decoded, _, _) = charset.decode(&response);
         let document = self.new_doc(IsHTMLDocument::NonHTMLDocument);
         // TODO: Disable scripting while parsing
-        ServoParser::parse_xml_document(
-            &document,
-            DOMString::from(decoded),
-            wr.get_url());
+        ServoParser::parse_xml_document(&document, DOMString::from(decoded), wr.get_url());
         document
     }
 
@@ -1254,22 +1316,24 @@ impl XMLHttpRequest {
         let base = wr.get_url();
         let parsed_url = match base.join(&self.ResponseURL().0) {
             Ok(parsed) => Some(parsed),
-            Err(_) => None // Step 7
+            Err(_) => None, // Step 7
         };
         let content_type = self.final_mime_type();
-        Document::new(win,
-                      HasBrowsingContext::No,
-                      parsed_url,
-                      doc.origin().clone(),
-                      is_html_document,
-                      content_type,
-                      None,
-                      DocumentActivity::Inactive,
-                      DocumentSource::FromParser,
-                      docloader,
-                      None,
-                      None,
-                      Default::default())
+        Document::new(
+            win,
+            HasBrowsingContext::No,
+            parsed_url,
+            doc.origin().clone(),
+            is_html_document,
+            content_type,
+            None,
+            DocumentActivity::Inactive,
+            DocumentSource::FromParser,
+            docloader,
+            None,
+            None,
+            Default::default(),
+        )
     }
 
     fn filter_response_headers(&self) -> Headers {
@@ -1308,15 +1372,13 @@ impl XMLHttpRequest {
         self.response_status.set(Err(()));
     }
 
-    fn fetch(&self,
-              init: RequestInit,
-              global: &GlobalScope) -> ErrorResult {
+    fn fetch(&self, init: RequestInit, global: &GlobalScope) -> ErrorResult {
         let xhr = Trusted::new(self);
 
         let context = Arc::new(Mutex::new(XHRContext {
             xhr: xhr,
             gen_id: self.generation_id.get(),
-            buf: DomRefCell::new(vec!()),
+            buf: DomRefCell::new(vec![]),
             sync_status: DomRefCell::new(None),
         }));
 
@@ -1329,8 +1391,13 @@ impl XMLHttpRequest {
 
         let cancel_receiver = self.canceller.borrow_mut().initialize();
 
-        XMLHttpRequest::initiate_async_xhr(context.clone(), task_source,
-                                           global, init, cancel_receiver);
+        XMLHttpRequest::initiate_async_xhr(
+            context.clone(),
+            task_source,
+            global,
+            init,
+            cancel_receiver,
+        );
 
         if let Some(script_port) = script_port {
             loop {
@@ -1352,11 +1419,9 @@ impl XMLHttpRequest {
             match self.response_headers.borrow().get() {
                 Some(&ContentType(ref mime)) => {
                     let value = mime.get_param(mime::Attr::Charset);
-                    value.and_then(|value|{
-                        Encoding::for_label(value.as_bytes())
-                    })
-                }
-                None => { None }
+                    value.and_then(|value| Encoding::for_label(value.as_bytes()))
+                },
+                None => None,
             }
         }
     }
@@ -1366,8 +1431,8 @@ impl XMLHttpRequest {
             self.override_mime_type.borrow().clone()
         } else {
             match self.response_headers.borrow().get() {
-                Some(&ContentType(ref mime)) => { Some(mime.clone()) },
-                None => { None }
+                Some(&ContentType(ref mime)) => Some(mime.clone()),
+                None => None,
             }
         }
     }
@@ -1405,11 +1470,12 @@ impl Extractable for Blob {
     }
 }
 
-
 impl Extractable for DOMString {
     fn extract(&self) -> (Vec<u8>, Option<DOMString>) {
-        (self.as_bytes().to_owned(),
-            Some(DOMString::from("text/plain;charset=UTF-8")))
+        (
+            self.as_bytes().to_owned(),
+            Some(DOMString::from("text/plain;charset=UTF-8")),
+        )
     }
 }
 
@@ -1417,14 +1483,24 @@ impl Extractable for FormData {
     fn extract(&self) -> (Vec<u8>, Option<DOMString>) {
         let boundary = generate_boundary();
         let bytes = encode_multipart_form_data(&mut self.datums(), boundary.clone(), UTF_8);
-        (bytes, Some(DOMString::from(format!("multipart/form-data;boundary={}", boundary))))
+        (
+            bytes,
+            Some(DOMString::from(format!(
+                "multipart/form-data;boundary={}",
+                boundary
+            ))),
+        )
     }
 }
 
 impl Extractable for URLSearchParams {
     fn extract(&self) -> (Vec<u8>, Option<DOMString>) {
-        (self.serialize_utf8().into_bytes(),
-            Some(DOMString::from("application/x-www-form-urlencoded;charset=UTF-8")))
+        (
+            self.serialize_utf8().into_bytes(),
+            Some(DOMString::from(
+                "application/x-www-form-urlencoded;charset=UTF-8",
+            )),
+        )
     }
 }
 
@@ -1465,7 +1541,8 @@ pub fn is_field_value(slice: &[u8]) -> bool {
     slice.iter().all(|&x| {
         // http://tools.ietf.org/html/rfc2616#section-2.2
         match x {
-            13  => { // CR
+            13 => {
+                // CR
                 if prev == PreviousCharacter::Other || prev == PreviousCharacter::SPHT {
                     prev = PreviousCharacter::CR;
                     true
@@ -1473,7 +1550,8 @@ pub fn is_field_value(slice: &[u8]) -> bool {
                     false
                 }
             },
-            10 => { // LF
+            10 => {
+                // LF
                 if prev == PreviousCharacter::CR {
                     prev = PreviousCharacter::LF;
                     true
@@ -1481,7 +1559,8 @@ pub fn is_field_value(slice: &[u8]) -> bool {
                     false
                 }
             },
-            32 => { // SP
+            32 => {
+                // SP
                 if prev == PreviousCharacter::LF || prev == PreviousCharacter::SPHT {
                     prev = PreviousCharacter::SPHT;
                     true
@@ -1495,7 +1574,8 @@ pub fn is_field_value(slice: &[u8]) -> bool {
                     false
                 }
             },
-            9 => { // HT
+            9 => {
+                // HT
                 if prev == PreviousCharacter::LF || prev == PreviousCharacter::SPHT {
                     prev = PreviousCharacter::SPHT;
                     true
@@ -1509,7 +1589,7 @@ pub fn is_field_value(slice: &[u8]) -> bool {
                 prev = PreviousCharacter::Other;
                 true
             },
-            _ => false // Previous character was a CR/LF but not part of the [CRLF] (SP|HT) rule
+            _ => false, // Previous character was a CR/LF but not part of the [CRLF] (SP|HT) rule
         }
     })
 }

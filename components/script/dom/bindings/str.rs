@@ -82,7 +82,6 @@ impl ops::Deref for ByteString {
 #[derive(Clone, Default, MallocSizeOf)]
 pub struct USVString(pub String);
 
-
 /// Returns whether `s` is a `token`, as defined by
 /// [RFC 2616](http://tools.ietf.org/html/rfc2616#page-17).
 pub fn is_token(s: &[u8]) -> bool {
@@ -93,30 +92,13 @@ pub fn is_token(s: &[u8]) -> bool {
         // http://tools.ietf.org/html/rfc2616#section-2.2
         match x {
             0...31 | 127 => false, // CTLs
-            40 |
-            41 |
-            60 |
-            62 |
-            64 |
-            44 |
-            59 |
-            58 |
-            92 |
-            34 |
-            47 |
-            91 |
-            93 |
-            63 |
-            61 |
-            123 |
-            125 |
-            32 => false, // separators
+            40 | 41 | 60 | 62 | 64 | 44 | 59 | 58 | 92 | 34 | 47 | 91 | 93 | 63 | 61 | 123 |
+            125 | 32 => false, // separators
             x if x > 127 => false, // non-CHARs
             _ => true,
         }
     })
 }
-
 
 /// A DOMString.
 ///
@@ -196,14 +178,16 @@ impl DOMString {
     /// Removes leading and trailing ASCII whitespaces according to
     /// <https://infra.spec.whatwg.org/#strip-leading-and-trailing-ascii-whitespace>.
     pub fn strip_leading_and_trailing_ascii_whitespace(&mut self) {
-        if self.0.len() == 0 { return; }
+        if self.0.len() == 0 {
+            return;
+        }
 
         let last_non_whitespace = match self.0.rfind(|ref c| !char::is_ascii_whitespace(c)) {
             Some(idx) => idx + 1,
             None => {
                 self.0.clear();
                 return;
-            }
+            },
         };
         let first_non_whitespace = self.0.find(|ref c| !char::is_ascii_whitespace(c)).unwrap();
 
@@ -231,17 +215,21 @@ impl DOMString {
             Done,
             Error,
         }
-        let next_state = |valid: bool, next: State| -> State { if valid { next } else { State::Error } };
+        let next_state = |valid: bool, next: State| -> State {
+            if valid {
+                next
+            } else {
+                State::Error
+            }
+        };
 
         let state = self.chars().fold(State::HourHigh, |state, c| {
             match state {
                 // Step 1 "HH"
-                State::HourHigh => {
-                    match c {
-                        '0' | '1' => State::HourLow09,
-                        '2' => State::HourLow03,
-                        _ => State::Error,
-                    }
+                State::HourHigh => match c {
+                    '0' | '1' => State::HourLow09,
+                    '2' => State::HourLow03,
+                    _ => State::Error,
                 },
                 State::HourLow09 => next_state(c.is_digit(10), State::MinuteColon),
                 State::HourLow03 => next_state(c.is_digit(4), State::MinuteColon),
@@ -323,15 +311,21 @@ impl DOMString {
     /// where date and time are both valid, and the time string must be as short as possible
     /// https://html.spec.whatwg.org/multipage/#valid-normalised-local-date-and-time-string
     pub fn convert_valid_normalized_local_date_and_time_string(&mut self) -> Result<(), ()> {
-        let ((year, month, day), (hour, minute, second)) = parse_local_date_and_time_string(&*self.0)?;
+        let ((year, month, day), (hour, minute, second)) =
+            parse_local_date_and_time_string(&*self.0)?;
         if second == 0.0 {
-            self.0 = format!("{:04}-{:02}-{:02}T{:02}:{:02}", year, month, day, hour, minute);
+            self.0 = format!(
+                "{:04}-{:02}-{:02}T{:02}:{:02}",
+                year, month, day, hour, minute
+            );
         } else {
-            self.0 = format!("{:04}-{:02}-{:02}T{:02}:{:02}:{}", year, month, day, hour, minute, second);
+            self.0 = format!(
+                "{:04}-{:02}-{:02}T{:02}:{:02}:{}",
+                year, month, day, hour, minute, second
+            );
         }
         Ok(())
     }
-
 }
 
 impl Borrow<str> for DOMString {
@@ -452,7 +446,10 @@ impl<'a> Into<CowRcStr<'a>> for DOMString {
 }
 
 impl Extend<char> for DOMString {
-    fn extend<I>(&mut self, iterable: I) where I: IntoIterator<Item=char> {
+    fn extend<I>(&mut self, iterable: I)
+    where
+        I: IntoIterator<Item = char>,
+    {
         self.0.extend(iterable)
     }
 }
@@ -541,7 +538,7 @@ fn parse_month_component(value: &str) -> Result<(u32, u32), ()> {
 
     // Step 4, 5
     let month_int = month.parse::<u32>().map_err(|_| ())?;
-    if month.len() != 2 ||  month_int > 12 || month_int < 1 {
+    if month.len() != 2 || month_int > 12 || month_int < 1 {
         return Err(());
     }
 
@@ -611,12 +608,12 @@ fn parse_time_component(value: &str) -> Result<(u32, u32, f32), ()> {
                         return Err(());
                     }
                 },
-                None => {}
+                None => {},
             }
 
             second.parse::<f32>().map_err(|_| ())?
         },
-        None => 0.0
+        None => 0.0,
     };
 
     // Step 8
@@ -624,7 +621,7 @@ fn parse_time_component(value: &str) -> Result<(u32, u32, f32), ()> {
 }
 
 /// https://html.spec.whatwg.org/multipage/#parse-a-local-date-and-time-string
-fn parse_local_date_and_time_string(value: &str) ->  Result<((u32, u32, u32), (u32, u32, f32)), ()> {
+fn parse_local_date_and_time_string(value: &str) -> Result<((u32, u32, u32), (u32, u32, f32)), ()> {
     // Step 1, 2, 4
     let mut iterator = if value.contains('T') {
         value.split('T')
@@ -651,8 +648,8 @@ fn parse_local_date_and_time_string(value: &str) ->  Result<((u32, u32, u32), (u
 
 fn max_day_in_month(year_num: u32, month_num: u32) -> Result<u32, ()> {
     match month_num {
-        1|3|5|7|8|10|12 => Ok(31),
-        4|6|9|11 => Ok(30),
+        1 | 3 | 5 | 7 | 8 | 10 | 12 => Ok(31),
+        4 | 6 | 9 | 11 => Ok(30),
         2 => {
             if is_leap_year(year_num) {
                 Ok(29)
@@ -660,7 +657,7 @@ fn max_day_in_month(year_num: u32, month_num: u32) -> Result<u32, ()> {
                 Ok(28)
             }
         },
-        _ => Err(())
+        _ => Err(()),
     }
 }
 
@@ -669,7 +666,7 @@ fn max_week_in_year(year: u32) -> u32 {
     match Utc.ymd(year as i32, 1, 1).weekday() {
         Weekday::Thu => 53,
         Weekday::Wed if is_leap_year(year) => 53,
-        _ => 52
+        _ => 52,
     }
 }
 
@@ -681,14 +678,16 @@ fn is_leap_year(year: u32) -> bool {
 /// https://html.spec.whatwg.org/multipage/#rules-for-parsing-floating-point-number-values
 fn parse_floating_point_number(input: &str) -> Result<f64, ()> {
     match input.trim().parse::<f64>() {
-        Ok(val) if !(
+        Ok(val)
+            if !(
             // A valid number is the same as what rust considers to be valid,
             // except for +1., NaN, and Infinity.
             val.is_infinite() || val.is_nan() || input.ends_with(".") || input.starts_with("+")
-        ) => {
+        ) =>
+        {
             // TODO(#19773): need consider `min`, `max`, `step`, when they are implemented
             Ok(val.round())
-        },
-        _ => Err(())
+        }
+        _ => Err(()),
     }
 }

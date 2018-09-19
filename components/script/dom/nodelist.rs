@@ -37,18 +37,28 @@ impl NodeList {
 
     #[allow(unrooted_must_root)]
     pub fn new(window: &Window, list_type: NodeListType) -> DomRoot<NodeList> {
-        reflect_dom_object(Box::new(NodeList::new_inherited(list_type)),
-                           window,
-                           NodeListBinding::Wrap)
+        reflect_dom_object(
+            Box::new(NodeList::new_inherited(list_type)),
+            window,
+            NodeListBinding::Wrap,
+        )
     }
 
     pub fn new_simple_list<T>(window: &Window, iter: T) -> DomRoot<NodeList>
-                              where T: Iterator<Item=DomRoot<Node>> {
-        NodeList::new(window, NodeListType::Simple(iter.map(|r| Dom::from_ref(&*r)).collect()))
+    where
+        T: Iterator<Item = DomRoot<Node>>,
+    {
+        NodeList::new(
+            window,
+            NodeListType::Simple(iter.map(|r| Dom::from_ref(&*r)).collect()),
+        )
     }
 
     pub fn new_simple_list_slice(window: &Window, slice: &[&Node]) -> DomRoot<NodeList> {
-        NodeList::new(window, NodeListType::Simple(slice.iter().map(|r| Dom::from_ref(*r)).collect()))
+        NodeList::new(
+            window,
+            NodeListType::Simple(slice.iter().map(|r| Dom::from_ref(*r)).collect()),
+        )
     }
 
     pub fn new_child_list(window: &Window, node: &Node) -> DomRoot<NodeList> {
@@ -72,9 +82,9 @@ impl NodeListMethods for NodeList {
     // https://dom.spec.whatwg.org/#dom-nodelist-item
     fn Item(&self, index: u32) -> Option<DomRoot<Node>> {
         match self.list_type {
-            NodeListType::Simple(ref elems) => {
-                elems.get(index as usize).map(|node| DomRoot::from_ref(&**node))
-            },
+            NodeListType::Simple(ref elems) => elems
+                .get(index as usize)
+                .map(|node| DomRoot::from_ref(&**node)),
             NodeListType::Children(ref list) => list.item(index),
         }
     }
@@ -84,7 +94,6 @@ impl NodeListMethods for NodeList {
         self.Item(index)
     }
 }
-
 
 impl NodeList {
     pub fn as_children_list(&self) -> &ChildrenList {
@@ -103,7 +112,7 @@ impl NodeList {
         }
     }
 
-    pub fn iter<'a>(&'a self) -> impl Iterator<Item=DomRoot<Node>> + 'a {
+    pub fn iter<'a>(&'a self) -> impl Iterator<Item = DomRoot<Node>> + 'a {
         let len = self.Length();
         (0..len).flat_map(move |i| self.Item(i))
     }
@@ -153,7 +162,11 @@ impl ChildrenList {
             self.last_visited.get().unwrap().GetNextSibling().unwrap()
         } else if last_index > 0 && index == last_index - 1u32 {
             // Item is last visited's previous sibling.
-            self.last_visited.get().unwrap().GetPreviousSibling().unwrap()
+            self.last_visited
+                .get()
+                .unwrap()
+                .GetPreviousSibling()
+                .unwrap()
         } else if index > last_index {
             if index == len - 1u32 {
                 // Item is parent's last child, not worth updating last visited.
@@ -161,28 +174,39 @@ impl ChildrenList {
             }
             if index <= last_index + (len - last_index) / 2u32 {
                 // Item is closer to the last visited child and follows it.
-                self.last_visited.get().unwrap()
-                                 .inclusively_following_siblings()
-                                 .nth((index - last_index) as usize).unwrap()
+                self.last_visited
+                    .get()
+                    .unwrap()
+                    .inclusively_following_siblings()
+                    .nth((index - last_index) as usize)
+                    .unwrap()
             } else {
                 // Item is closer to parent's last child and obviously
                 // precedes it.
-                self.node.GetLastChild().unwrap()
+                self.node
+                    .GetLastChild()
+                    .unwrap()
                     .inclusively_preceding_siblings()
-                    .nth((len - index - 1u32) as usize).unwrap()
+                    .nth((len - index - 1u32) as usize)
+                    .unwrap()
             }
         } else if index >= last_index / 2u32 {
             // Item is closer to the last visited child and precedes it.
-            self.last_visited.get().unwrap()
-                             .inclusively_preceding_siblings()
-                             .nth((last_index - index) as usize).unwrap()
+            self.last_visited
+                .get()
+                .unwrap()
+                .inclusively_preceding_siblings()
+                .nth((last_index - index) as usize)
+                .unwrap()
         } else {
             // Item is closer to parent's first child and obviously follows it.
             debug_assert!(index < last_index / 2u32);
-            self.node.GetFirstChild().unwrap()
-                     .inclusively_following_siblings()
-                     .nth(index as usize)
-                     .unwrap()
+            self.node
+                .GetFirstChild()
+                .unwrap()
+                .inclusively_following_siblings()
+                .nth(index as usize)
+                .unwrap()
         };
         self.last_visited.set(Some(&last_visited));
         self.last_index.set(index);
@@ -211,11 +235,13 @@ impl ChildrenList {
             }
         }
 
-        fn replace(list: &ChildrenList,
-                   prev: Option<&Node>,
-                   removed: &Node,
-                   added: &[&Node],
-                   next: Option<&Node>) {
+        fn replace(
+            list: &ChildrenList,
+            prev: Option<&Node>,
+            removed: &Node,
+            added: &[&Node],
+            next: Option<&Node>,
+        ) {
             let index = list.last_index.get();
             if removed == &*list.last_visited.get().unwrap() {
                 let visited = match (prev, added, next) {
@@ -259,7 +285,12 @@ impl ChildrenList {
             ChildrenMutation::Prepend { added, next } => {
                 prepend(self, added, next);
             },
-            ChildrenMutation::Replace { prev, removed, added, next } => {
+            ChildrenMutation::Replace {
+                prev,
+                removed,
+                added,
+                next,
+            } => {
                 replace(self, prev, removed, added, next);
             },
             ChildrenMutation::ReplaceAll { added, .. } => {

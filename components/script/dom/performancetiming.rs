@@ -20,10 +20,11 @@ pub struct PerformanceTiming {
 }
 
 impl PerformanceTiming {
-    fn new_inherited(nav_start: u64,
-                     nav_start_precise: u64,
-                     document: &Document)
-                         -> PerformanceTiming {
+    fn new_inherited(
+        nav_start: u64,
+        nav_start_precise: u64,
+        document: &Document,
+    ) -> PerformanceTiming {
         PerformanceTiming {
             reflector_: Reflector::new(),
             navigation_start: nav_start,
@@ -33,16 +34,17 @@ impl PerformanceTiming {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(window: &Window,
-               navigation_start: u64,
-               navigation_start_precise: u64)
-               -> DomRoot<PerformanceTiming> {
-        let timing = PerformanceTiming::new_inherited(navigation_start,
-                                                      navigation_start_precise,
-                                                      &window.Document());
-        reflect_dom_object(Box::new(timing),
-                           window,
-                           PerformanceTimingBinding::Wrap)
+    pub fn new(
+        window: &Window,
+        navigation_start: u64,
+        navigation_start_precise: u64,
+    ) -> DomRoot<PerformanceTiming> {
+        let timing = PerformanceTiming::new_inherited(
+            navigation_start,
+            navigation_start_precise,
+            &window.Document(),
+        );
+        reflect_dom_object(Box::new(timing), window, PerformanceTimingBinding::Wrap)
     }
 }
 
@@ -93,7 +95,6 @@ impl PerformanceTimingMethods for PerformanceTiming {
         self.document.get_top_level_dom_complete()
     }
 }
-
 
 impl PerformanceTiming {
     pub fn navigation_start_precise(&self) -> u64 {

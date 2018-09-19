@@ -30,7 +30,6 @@ pub struct FileBlob {
     size: u64,
 }
 
-
 /// Different backends of Blob
 #[must_root]
 #[derive(JSTraceable)]
@@ -43,7 +42,7 @@ pub enum BlobImpl {
     /// relative positions of current slicing range,
     /// IMPORTANT: The depth of tree is only two, i.e. the parent Blob must be
     /// either File-based or Memory-based
-    Sliced(Dom<Blob>, RelativePos)
+    Sliced(Dom<Blob>, RelativePos),
 }
 
 impl BlobImpl {
@@ -76,9 +75,7 @@ pub struct Blob {
 
 impl Blob {
     #[allow(unrooted_must_root)]
-    pub fn new(
-            global: &GlobalScope, blob_impl: BlobImpl, typeString: String)
-            -> DomRoot<Blob> {
+    pub fn new(global: &GlobalScope, blob_impl: BlobImpl, typeString: String) -> DomRoot<Blob> {
         let boxed_blob = Box::new(Blob::new_inherited(blob_impl, typeString));
         reflect_dom_object(boxed_blob, global, BlobBinding::Wrap)
     }
@@ -95,41 +92,49 @@ impl Blob {
     }
 
     #[allow(unrooted_must_root)]
-    fn new_sliced(parent: &Blob, rel_pos: RelativePos,
-                  relative_content_type: DOMString) -> DomRoot<Blob> {
+    fn new_sliced(
+        parent: &Blob,
+        rel_pos: RelativePos,
+        relative_content_type: DOMString,
+    ) -> DomRoot<Blob> {
         let blob_impl = match *parent.blob_impl.borrow() {
             BlobImpl::File(_) => {
                 // Create new parent node
                 BlobImpl::Sliced(Dom::from_ref(parent), rel_pos)
-            }
+            },
             BlobImpl::Memory(_) => {
                 // Create new parent node
                 BlobImpl::Sliced(Dom::from_ref(parent), rel_pos)
-            }
+            },
             BlobImpl::Sliced(ref grandparent, ref old_rel_pos) => {
                 // Adjust the slicing position, using same parent
                 BlobImpl::Sliced(grandparent.clone(), old_rel_pos.slice_inner(&rel_pos))
-            }
+            },
         };
 
         Blob::new(&parent.global(), blob_impl, relative_content_type.into())
     }
 
     // https://w3c.github.io/FileAPI/#constructorBlob
-    pub fn Constructor(global: &GlobalScope,
-                       blobParts: Option<Vec<ArrayBufferOrArrayBufferViewOrBlobOrString>>,
-                       blobPropertyBag: &BlobBinding::BlobPropertyBag)
-                       -> Fallible<DomRoot<Blob>> {
+    pub fn Constructor(
+        global: &GlobalScope,
+        blobParts: Option<Vec<ArrayBufferOrArrayBufferViewOrBlobOrString>>,
+        blobPropertyBag: &BlobBinding::BlobPropertyBag,
+    ) -> Fallible<DomRoot<Blob>> {
         // TODO: accept other blobParts types - ArrayBuffer or ArrayBufferView
         let bytes: Vec<u8> = match blobParts {
             None => Vec::new(),
             Some(blobparts) => match blob_parts_to_bytes(blobparts) {
                 Ok(bytes) => bytes,
                 Err(_) => return Err(Error::InvalidCharacter),
-            }
+            },
         };
 
-        Ok(Blob::new(global, BlobImpl::new_from_bytes(bytes), blobPropertyBag.type_.to_string()))
+        Ok(Blob::new(
+            global,
+            BlobImpl::new_from_bytes(bytes),
+            blobPropertyBag.type_.to_string(),
+        ))
     }
 
     /// Get a slice to inner data, this might incur synchronous read and caching
@@ -141,7 +146,7 @@ impl Blob {
                     None => {
                         let bytes = read_file(&self.global(), f.id.clone())?;
                         (bytes, true)
-                    }
+                    },
                 };
 
                 // Cache
@@ -150,14 +155,12 @@ impl Blob {
                 }
 
                 Ok(buffer)
-            }
+            },
             BlobImpl::Memory(ref s) => Ok(s.clone()),
-            BlobImpl::Sliced(ref parent, ref rel_pos) => {
-                parent.get_bytes().map(|v| {
-                    let range = rel_pos.to_abs_range(v.len());
-                    v.index(range).to_vec()
-                })
-            }
+            BlobImpl::Sliced(ref parent, ref rel_pos) => parent.get_bytes().map(|v| {
+                let range = rel_pos.to_abs_range(v.len());
+                v.index(range).to_vec()
+            }),
         }
     }
 
@@ -171,13 +174,19 @@ impl Blob {
     pub fn get_blob_url_id(&self) -> Uuid {
         let opt_sliced_parent = match *self.blob_impl.borrow() {
             BlobImpl::Sliced(ref parent, ref rel_pos) => {
-                Some((parent.promote(/* set_valid is */ false), rel_pos.clone(), parent.Size()))
-            }
-            _ => None
+                Some((
+                    parent.promote(/* set_valid is */ false),
+                    rel_pos.clone(),
+                    parent.Size(),
+                ))
+            },
+            _ => None,
         };
 
         match opt_sliced_parent {
-            Some((parent_id, rel_pos, size)) => self.create_sliced_url_id(&parent_id, &rel_pos, size),
+            Some((parent_id, rel_pos, size)) => {
+                self.create_sliced_url_id(&parent_id, &rel_pos, size)
+            },
             None => self.promote(/* set_valid is */ true),
         }
     }
@@ -196,13 +205,15 @@ impl Blob {
                 debug!("Sliced can't have a sliced parent");
                 // Return dummy id
                 return Uuid::new_v4();
-            }
+            },
             BlobImpl::File(ref f) => {
                 if set_valid {
                     let origin = get_blob_origin(&global_url);
-                    let (tx, rx) = ipc::channel(self.global().time_profiler_chan().clone()).unwrap();
+                    let (tx, rx) =
+                        ipc::channel(self.global().time_profiler_chan().clone()).unwrap();
 
-                    let msg = FileManagerThreadMsg::ActivateBlobURL(f.id.clone(), tx, origin.clone());
+                    let msg =
+                        FileManagerThreadMsg::ActivateBlobURL(f.id.clone(), tx, origin.clone());
                     self.send_to_file_manager(msg);
 
                     match rx.recv().unwrap() {
@@ -214,7 +225,7 @@ impl Blob {
                     // no need to activate
                     return f.id.clone();
                 }
-            }
+            },
             BlobImpl::Memory(ref mut bytes_in) => mem::swap(bytes_in, &mut bytes),
         };
 
@@ -240,21 +251,28 @@ impl Blob {
                     size: bytes.len() as u64,
                 });
                 id
-            }
+            },
             // Dummy id
             Err(_) => Uuid::new_v4(),
         }
     }
 
     /// Get a FileID representing sliced parent-blob content
-    fn create_sliced_url_id(&self, parent_id: &Uuid,
-                            rel_pos: &RelativePos, parent_len: u64) -> Uuid {
+    fn create_sliced_url_id(
+        &self,
+        parent_id: &Uuid,
+        rel_pos: &RelativePos,
+        parent_len: u64,
+    ) -> Uuid {
         let origin = get_blob_origin(&self.global().get_url());
 
         let (tx, rx) = ipc::channel(self.global().time_profiler_chan().clone()).unwrap();
-        let msg = FileManagerThreadMsg::AddSlicedURLEntry(parent_id.clone(),
-                                                          rel_pos.clone(),
-                                                          tx, origin.clone());
+        let msg = FileManagerThreadMsg::AddSlicedURLEntry(
+            parent_id.clone(),
+            rel_pos.clone(),
+            tx,
+            origin.clone(),
+        );
         self.send_to_file_manager(msg);
         match rx.recv().expect("File manager thread is down") {
             Ok(new_id) => {
@@ -267,11 +285,11 @@ impl Blob {
 
                 // Return the indirect id reference
                 new_id
-            }
+            },
             Err(_) => {
                 // Return dummy id
                 Uuid::new_v4()
-            }
+            },
         }
     }
 
@@ -303,7 +321,7 @@ impl Drop for Blob {
 
 fn read_file(global: &GlobalScope, id: Uuid) -> Result<Vec<u8>, ()> {
     let resource_threads = global.resource_threads();
-    let (chan, recv) = ipc::channel(global.time_profiler_chan().clone()).map_err(|_|())?;
+    let (chan, recv) = ipc::channel(global.time_profiler_chan().clone()).map_err(|_| ())?;
     let origin = get_blob_origin(&global.get_url());
     let check_url_validity = false;
     let msg = FileManagerThreadMsg::ReadFile(chan, id, check_url_validity, origin);
@@ -315,13 +333,13 @@ fn read_file(global: &GlobalScope, id: Uuid) -> Result<Vec<u8>, ()> {
         match recv.recv().unwrap() {
             Ok(ReadFileProgress::Meta(mut blob_buf)) => {
                 bytes.append(&mut blob_buf.bytes);
-            }
+            },
             Ok(ReadFileProgress::Partial(mut bytes_in)) => {
                 bytes.append(&mut bytes_in);
-            }
+            },
             Ok(ReadFileProgress::EOF) => {
                 return Ok(bytes);
-            }
+            },
             Err(_) => return Err(()),
         }
     }
@@ -330,7 +348,9 @@ fn read_file(global: &GlobalScope, id: Uuid) -> Result<Vec<u8>, ()> {
 /// Extract bytes from BlobParts, used by Blob and File constructor
 /// <https://w3c.github.io/FileAPI/#constructorBlob>
 #[allow(unsafe_code)]
-pub fn blob_parts_to_bytes(mut blobparts: Vec<ArrayBufferOrArrayBufferViewOrBlobOrString>) -> Result<Vec<u8>, ()> {
+pub fn blob_parts_to_bytes(
+    mut blobparts: Vec<ArrayBufferOrArrayBufferViewOrBlobOrString>,
+) -> Result<Vec<u8>, ()> {
     let mut ret = vec![];
     for blobpart in &mut blobparts {
         match blobpart {
@@ -348,7 +368,7 @@ pub fn blob_parts_to_bytes(mut blobparts: Vec<ArrayBufferOrArrayBufferViewOrBlob
             &mut ArrayBufferOrArrayBufferViewOrBlobOrString::ArrayBufferView(ref mut a) => unsafe {
                 let bytes = a.as_slice();
                 ret.extend(bytes);
-            }
+            },
         }
     }
 
@@ -359,10 +379,11 @@ impl BlobMethods for Blob {
     // https://w3c.github.io/FileAPI/#dfn-size
     fn Size(&self) -> u64 {
         match *self.blob_impl.borrow() {
-           BlobImpl::File(ref f) => f.size,
-           BlobImpl::Memory(ref v) => v.len() as u64,
-           BlobImpl::Sliced(ref parent, ref rel_pos) =>
-               rel_pos.to_abs_range(parent.Size() as usize).len() as u64,
+            BlobImpl::File(ref f) => f.size,
+            BlobImpl::Memory(ref v) => v.len() as u64,
+            BlobImpl::Sliced(ref parent, ref rel_pos) => {
+                rel_pos.to_abs_range(parent.Size() as usize).len() as u64
+            },
         }
     }
 
@@ -372,11 +393,12 @@ impl BlobMethods for Blob {
     }
 
     // https://w3c.github.io/FileAPI/#slice-method-algo
-    fn Slice(&self,
-             start: Option<i64>,
-             end: Option<i64>,
-             content_type: Option<DOMString>)
-             -> DomRoot<Blob> {
+    fn Slice(
+        &self,
+        start: Option<i64>,
+        end: Option<i64>,
+        content_type: Option<DOMString>,
+    ) -> DomRoot<Blob> {
         let rel_pos = RelativePos::from_opts(start, end);
         Blob::new_sliced(self, rel_pos, content_type.unwrap_or(DOMString::from("")))
     }
@@ -391,8 +413,8 @@ fn normalize_type_string(s: &str) -> String {
     if is_ascii_printable(s) {
         let s_lower = s.to_ascii_lowercase();
         // match s_lower.parse() as Result<Mime, ()> {
-            // Ok(_) => s_lower,
-            // Err(_) => "".to_string()
+        // Ok(_) => s_lower,
+        // Err(_) => "".to_string()
         s_lower
     } else {
         "".to_string()

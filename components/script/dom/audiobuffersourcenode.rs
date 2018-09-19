@@ -98,7 +98,11 @@ impl AudioBufferSourceNode {
         options: &AudioBufferSourceOptions,
     ) -> Fallible<DomRoot<AudioBufferSourceNode>> {
         let node = AudioBufferSourceNode::new_inherited(window, context, options)?;
-        Ok(reflect_dom_object(Box::new(node), window, AudioBufferSourceNodeBinding::Wrap))
+        Ok(reflect_dom_object(
+            Box::new(node),
+            window,
+            AudioBufferSourceNodeBinding::Wrap,
+        ))
     }
 
     pub fn Constructor(

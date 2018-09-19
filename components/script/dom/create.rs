@@ -84,10 +84,11 @@ use js::jsapi::JSAutoCompartment;
 use script_thread::ScriptThread;
 use servo_config::prefs::PREFS;
 
-fn create_svg_element(name: QualName,
-                      prefix: Option<Prefix>,
-                      document: &Document)
-                      -> DomRoot<Element> {
+fn create_svg_element(
+    name: QualName,
+    prefix: Option<Prefix>,
+    document: &Document,
+) -> DomRoot<Element> {
     assert_eq!(name.ns, ns!(svg));
 
     macro_rules! make(
@@ -106,20 +107,21 @@ fn create_svg_element(name: QualName,
     }
 
     match name.local {
-        local_name!("svg")        => make!(SVGSVGElement),
-        _                   => Element::new(name.local, name.ns, prefix, document),
+        local_name!("svg") => make!(SVGSVGElement),
+        _ => Element::new(name.local, name.ns, prefix, document),
     }
 }
 
 // https://dom.spec.whatwg.org/#concept-create-element
 #[allow(unsafe_code)]
-fn create_html_element(name: QualName,
-                       prefix: Option<Prefix>,
-                       is: Option<LocalName>,
-                       document: &Document,
-                       creator: ElementCreator,
-                       mode: CustomElementCreationMode)
-                       -> DomRoot<Element> {
+fn create_html_element(
+    name: QualName,
+    prefix: Option<Prefix>,
+    is: Option<LocalName>,
+    document: &Document,
+    creator: ElementCreator,
+    mode: CustomElementCreationMode,
+) -> DomRoot<Element> {
     assert_eq!(name.ns, ns!(html));
 
     // Step 4
@@ -129,8 +131,11 @@ fn create_html_element(name: QualName,
         if definition.is_autonomous() {
             match mode {
                 CustomElementCreationMode::Asynchronous => {
-                    let result = DomRoot::upcast::<Element>(
-                        HTMLElement::new(name.local.clone(), prefix.clone(), document));
+                    let result = DomRoot::upcast::<Element>(HTMLElement::new(
+                        name.local.clone(),
+                        prefix.clone(),
+                        document,
+                    ));
                     result.set_custom_element_state(CustomElementState::Undefined);
                     ScriptThread::enqueue_upgrade_reaction(&*result, definition);
                     return result;
@@ -144,19 +149,24 @@ fn create_html_element(name: QualName,
                         },
                         Err(error) => {
                             // Step 6. Recovering from exception.
-                            let global = GlobalScope::current().unwrap_or_else(|| document.global());
+                            let global =
+                                GlobalScope::current().unwrap_or_else(|| document.global());
                             let cx = global.get_cx();
 
                             // Step 6.1.1
                             unsafe {
-                                let _ac = JSAutoCompartment::new(cx, global.reflector().get_jsobject().get());
+                                let _ac = JSAutoCompartment::new(
+                                    cx,
+                                    global.reflector().get_jsobject().get(),
+                                );
                                 throw_dom_exception(cx, &global, error);
                                 report_pending_exception(cx, true);
                             }
 
                             // Step 6.1.2
-                            let element = DomRoot::upcast::<Element>(
-                                HTMLUnknownElement::new(local_name, prefix, document));
+                            let element = DomRoot::upcast::<Element>(HTMLUnknownElement::new(
+                                local_name, prefix, document,
+                            ));
                             element.set_custom_element_state(CustomElementState::Failed);
                             element
                         },
@@ -170,11 +180,11 @@ fn create_html_element(name: QualName,
             element.set_custom_element_state(CustomElementState::Undefined);
             match mode {
                 // Step 5.3
-                CustomElementCreationMode::Synchronous =>
-                    upgrade_element(definition, &*element),
+                CustomElementCreationMode::Synchronous => upgrade_element(definition, &*element),
                 // Step 5.4
-                CustomElementCreationMode::Asynchronous =>
-                    ScriptThread::enqueue_upgrade_reaction(&*element, definition),
+                CustomElementCreationMode::Asynchronous => {
+                    ScriptThread::enqueue_upgrade_reaction(&*element, definition)
+                },
             }
             return element;
         }
@@ -214,162 +224,163 @@ pub fn create_native_html_element(
     // Perhaps we should build a perfect hash from those IDs instead.
     // https://html.spec.whatwg.org/multipage/#elements-in-the-dom
     match name.local {
-        local_name!("a")          => make!(HTMLAnchorElement),
-        local_name!("abbr")       => make!(HTMLElement),
-        local_name!("acronym")    => make!(HTMLElement),
-        local_name!("address")    => make!(HTMLElement),
-        local_name!("area")       => make!(HTMLAreaElement),
-        local_name!("article")    => make!(HTMLElement),
-        local_name!("aside")      => make!(HTMLElement),
-        local_name!("audio")      => make!(HTMLAudioElement),
-        local_name!("b")          => make!(HTMLElement),
-        local_name!("base")       => make!(HTMLBaseElement),
-        local_name!("bdi")        => make!(HTMLElement),
-        local_name!("bdo")        => make!(HTMLElement),
+        local_name!("a") => make!(HTMLAnchorElement),
+        local_name!("abbr") => make!(HTMLElement),
+        local_name!("acronym") => make!(HTMLElement),
+        local_name!("address") => make!(HTMLElement),
+        local_name!("area") => make!(HTMLAreaElement),
+        local_name!("article") => make!(HTMLElement),
+        local_name!("aside") => make!(HTMLElement),
+        local_name!("audio") => make!(HTMLAudioElement),
+        local_name!("b") => make!(HTMLElement),
+        local_name!("base") => make!(HTMLBaseElement),
+        local_name!("bdi") => make!(HTMLElement),
+        local_name!("bdo") => make!(HTMLElement),
         // https://html.spec.whatwg.org/multipage/#other-elements,-attributes-and-apis:bgsound
-        local_name!("bgsound")    => make!(HTMLUnknownElement),
-        local_name!("big")        => make!(HTMLElement),
+        local_name!("bgsound") => make!(HTMLUnknownElement),
+        local_name!("big") => make!(HTMLElement),
         // https://html.spec.whatwg.org/multipage/#other-elements,-attributes-and-apis:blink
-        local_name!("blink")      => make!(HTMLUnknownElement),
+        local_name!("blink") => make!(HTMLUnknownElement),
         // https://html.spec.whatwg.org/multipage/#the-blockquote-element
         local_name!("blockquote") => make!(HTMLQuoteElement),
-        local_name!("body")       => make!(HTMLBodyElement),
-        local_name!("br")         => make!(HTMLBRElement),
-        local_name!("button")     => make!(HTMLButtonElement),
-        local_name!("canvas")     => make!(HTMLCanvasElement),
-        local_name!("caption")    => make!(HTMLTableCaptionElement),
-        local_name!("center")     => make!(HTMLElement),
-        local_name!("cite")       => make!(HTMLElement),
-        local_name!("code")       => make!(HTMLElement),
-        local_name!("col")        => make!(HTMLTableColElement),
-        local_name!("colgroup")   => make!(HTMLTableColElement),
-        local_name!("data")       => make!(HTMLDataElement),
-        local_name!("datalist")   => make!(HTMLDataListElement),
-        local_name!("dd")         => make!(HTMLElement),
-        local_name!("del")        => make!(HTMLModElement),
-        local_name!("details")    => make!(HTMLDetailsElement),
-        local_name!("dfn")        => make!(HTMLElement),
-        local_name!("dialog")     => make!(HTMLDialogElement),
-        local_name!("dir")        => make!(HTMLDirectoryElement),
-        local_name!("div")        => make!(HTMLDivElement),
-        local_name!("dl")         => make!(HTMLDListElement),
-        local_name!("dt")         => make!(HTMLElement),
-        local_name!("em")         => make!(HTMLElement),
-        local_name!("embed")      => make!(HTMLEmbedElement),
-        local_name!("fieldset")   => make!(HTMLFieldSetElement),
+        local_name!("body") => make!(HTMLBodyElement),
+        local_name!("br") => make!(HTMLBRElement),
+        local_name!("button") => make!(HTMLButtonElement),
+        local_name!("canvas") => make!(HTMLCanvasElement),
+        local_name!("caption") => make!(HTMLTableCaptionElement),
+        local_name!("center") => make!(HTMLElement),
+        local_name!("cite") => make!(HTMLElement),
+        local_name!("code") => make!(HTMLElement),
+        local_name!("col") => make!(HTMLTableColElement),
+        local_name!("colgroup") => make!(HTMLTableColElement),
+        local_name!("data") => make!(HTMLDataElement),
+        local_name!("datalist") => make!(HTMLDataListElement),
+        local_name!("dd") => make!(HTMLElement),
+        local_name!("del") => make!(HTMLModElement),
+        local_name!("details") => make!(HTMLDetailsElement),
+        local_name!("dfn") => make!(HTMLElement),
+        local_name!("dialog") => make!(HTMLDialogElement),
+        local_name!("dir") => make!(HTMLDirectoryElement),
+        local_name!("div") => make!(HTMLDivElement),
+        local_name!("dl") => make!(HTMLDListElement),
+        local_name!("dt") => make!(HTMLElement),
+        local_name!("em") => make!(HTMLElement),
+        local_name!("embed") => make!(HTMLEmbedElement),
+        local_name!("fieldset") => make!(HTMLFieldSetElement),
         local_name!("figcaption") => make!(HTMLElement),
-        local_name!("figure")     => make!(HTMLElement),
-        local_name!("font")       => make!(HTMLFontElement),
-        local_name!("footer")     => make!(HTMLElement),
-        local_name!("form")       => make!(HTMLFormElement),
-        local_name!("frame")      => make!(HTMLFrameElement),
-        local_name!("frameset")   => make!(HTMLFrameSetElement),
-        local_name!("h1")         => make!(HTMLHeadingElement, HeadingLevel::Heading1),
-        local_name!("h2")         => make!(HTMLHeadingElement, HeadingLevel::Heading2),
-        local_name!("h3")         => make!(HTMLHeadingElement, HeadingLevel::Heading3),
-        local_name!("h4")         => make!(HTMLHeadingElement, HeadingLevel::Heading4),
-        local_name!("h5")         => make!(HTMLHeadingElement, HeadingLevel::Heading5),
-        local_name!("h6")         => make!(HTMLHeadingElement, HeadingLevel::Heading6),
-        local_name!("head")       => make!(HTMLHeadElement),
-        local_name!("header")     => make!(HTMLElement),
-        local_name!("hgroup")     => make!(HTMLElement),
-        local_name!("hr")         => make!(HTMLHRElement),
-        local_name!("html")       => make!(HTMLHtmlElement),
-        local_name!("i")          => make!(HTMLElement),
-        local_name!("iframe")     => make!(HTMLIFrameElement),
-        local_name!("img")        => make!(HTMLImageElement),
-        local_name!("input")      => make!(HTMLInputElement),
-        local_name!("ins")        => make!(HTMLModElement),
+        local_name!("figure") => make!(HTMLElement),
+        local_name!("font") => make!(HTMLFontElement),
+        local_name!("footer") => make!(HTMLElement),
+        local_name!("form") => make!(HTMLFormElement),
+        local_name!("frame") => make!(HTMLFrameElement),
+        local_name!("frameset") => make!(HTMLFrameSetElement),
+        local_name!("h1") => make!(HTMLHeadingElement, HeadingLevel::Heading1),
+        local_name!("h2") => make!(HTMLHeadingElement, HeadingLevel::Heading2),
+        local_name!("h3") => make!(HTMLHeadingElement, HeadingLevel::Heading3),
+        local_name!("h4") => make!(HTMLHeadingElement, HeadingLevel::Heading4),
+        local_name!("h5") => make!(HTMLHeadingElement, HeadingLevel::Heading5),
+        local_name!("h6") => make!(HTMLHeadingElement, HeadingLevel::Heading6),
+        local_name!("head") => make!(HTMLHeadElement),
+        local_name!("header") => make!(HTMLElement),
+        local_name!("hgroup") => make!(HTMLElement),
+        local_name!("hr") => make!(HTMLHRElement),
+        local_name!("html") => make!(HTMLHtmlElement),
+        local_name!("i") => make!(HTMLElement),
+        local_name!("iframe") => make!(HTMLIFrameElement),
+        local_name!("img") => make!(HTMLImageElement),
+        local_name!("input") => make!(HTMLInputElement),
+        local_name!("ins") => make!(HTMLModElement),
         // https://html.spec.whatwg.org/multipage/#other-elements,-attributes-and-apis:isindex-2
-        local_name!("isindex")    => make!(HTMLUnknownElement),
-        local_name!("kbd")        => make!(HTMLElement),
-        local_name!("label")      => make!(HTMLLabelElement),
-        local_name!("legend")     => make!(HTMLLegendElement),
-        local_name!("li")         => make!(HTMLLIElement),
-        local_name!("link")       => make!(HTMLLinkElement, creator),
+        local_name!("isindex") => make!(HTMLUnknownElement),
+        local_name!("kbd") => make!(HTMLElement),
+        local_name!("label") => make!(HTMLLabelElement),
+        local_name!("legend") => make!(HTMLLegendElement),
+        local_name!("li") => make!(HTMLLIElement),
+        local_name!("link") => make!(HTMLLinkElement, creator),
         // https://html.spec.whatwg.org/multipage/#other-elements,-attributes-and-apis:listing
-        local_name!("listing")    => make!(HTMLPreElement),
-        local_name!("main")       => make!(HTMLElement),
-        local_name!("map")        => make!(HTMLMapElement),
-        local_name!("mark")       => make!(HTMLElement),
-        local_name!("marquee")    => make!(HTMLElement),
-        local_name!("meta")       => make!(HTMLMetaElement),
-        local_name!("meter")      => make!(HTMLMeterElement),
+        local_name!("listing") => make!(HTMLPreElement),
+        local_name!("main") => make!(HTMLElement),
+        local_name!("map") => make!(HTMLMapElement),
+        local_name!("mark") => make!(HTMLElement),
+        local_name!("marquee") => make!(HTMLElement),
+        local_name!("meta") => make!(HTMLMetaElement),
+        local_name!("meter") => make!(HTMLMeterElement),
         // https://html.spec.whatwg.org/multipage/#other-elements,-attributes-and-apis:multicol
-        local_name!("multicol")   => make!(HTMLUnknownElement),
-        local_name!("nav")        => make!(HTMLElement),
+        local_name!("multicol") => make!(HTMLUnknownElement),
+        local_name!("nav") => make!(HTMLElement),
         // https://html.spec.whatwg.org/multipage/#other-elements,-attributes-and-apis:nextid
-        local_name!("nextid")     => make!(HTMLUnknownElement),
-        local_name!("nobr")       => make!(HTMLElement),
-        local_name!("noframes")   => make!(HTMLElement),
-        local_name!("noscript")   => make!(HTMLElement),
-        local_name!("object")     => make!(HTMLObjectElement),
-        local_name!("ol")         => make!(HTMLOListElement),
-        local_name!("optgroup")   => make!(HTMLOptGroupElement),
-        local_name!("option")     => make!(HTMLOptionElement),
-        local_name!("output")     => make!(HTMLOutputElement),
-        local_name!("p")          => make!(HTMLParagraphElement),
-        local_name!("param")      => make!(HTMLParamElement),
-        local_name!("picture")    => make!(HTMLPictureElement),
-        local_name!("plaintext")  => make!(HTMLPreElement),
-        local_name!("pre")        => make!(HTMLPreElement),
-        local_name!("progress")   => make!(HTMLProgressElement),
-        local_name!("q")          => make!(HTMLQuoteElement),
-        local_name!("rp")         => make!(HTMLElement),
-        local_name!("rt")         => make!(HTMLElement),
-        local_name!("ruby")       => make!(HTMLElement),
-        local_name!("s")          => make!(HTMLElement),
-        local_name!("samp")       => make!(HTMLElement),
-        local_name!("script")     => make!(HTMLScriptElement, creator),
-        local_name!("section")    => make!(HTMLElement),
-        local_name!("select")     => make!(HTMLSelectElement),
-        local_name!("small")      => make!(HTMLElement),
-        local_name!("source")     => make!(HTMLSourceElement),
+        local_name!("nextid") => make!(HTMLUnknownElement),
+        local_name!("nobr") => make!(HTMLElement),
+        local_name!("noframes") => make!(HTMLElement),
+        local_name!("noscript") => make!(HTMLElement),
+        local_name!("object") => make!(HTMLObjectElement),
+        local_name!("ol") => make!(HTMLOListElement),
+        local_name!("optgroup") => make!(HTMLOptGroupElement),
+        local_name!("option") => make!(HTMLOptionElement),
+        local_name!("output") => make!(HTMLOutputElement),
+        local_name!("p") => make!(HTMLParagraphElement),
+        local_name!("param") => make!(HTMLParamElement),
+        local_name!("picture") => make!(HTMLPictureElement),
+        local_name!("plaintext") => make!(HTMLPreElement),
+        local_name!("pre") => make!(HTMLPreElement),
+        local_name!("progress") => make!(HTMLProgressElement),
+        local_name!("q") => make!(HTMLQuoteElement),
+        local_name!("rp") => make!(HTMLElement),
+        local_name!("rt") => make!(HTMLElement),
+        local_name!("ruby") => make!(HTMLElement),
+        local_name!("s") => make!(HTMLElement),
+        local_name!("samp") => make!(HTMLElement),
+        local_name!("script") => make!(HTMLScriptElement, creator),
+        local_name!("section") => make!(HTMLElement),
+        local_name!("select") => make!(HTMLSelectElement),
+        local_name!("small") => make!(HTMLElement),
+        local_name!("source") => make!(HTMLSourceElement),
         // https://html.spec.whatwg.org/multipage/#other-elements,-attributes-and-apis:spacer
-        local_name!("spacer")     => make!(HTMLUnknownElement),
-        local_name!("span")       => make!(HTMLSpanElement),
-        local_name!("strike")     => make!(HTMLElement),
-        local_name!("strong")     => make!(HTMLElement),
-        local_name!("style")      => make!(HTMLStyleElement, creator),
-        local_name!("sub")        => make!(HTMLElement),
-        local_name!("summary")    => make!(HTMLElement),
-        local_name!("sup")        => make!(HTMLElement),
-        local_name!("table")      => make!(HTMLTableElement),
-        local_name!("tbody")      => make!(HTMLTableSectionElement),
-        local_name!("td")         => make!(HTMLTableDataCellElement),
-        local_name!("template")   => make!(HTMLTemplateElement),
-        local_name!("textarea")   => make!(HTMLTextAreaElement),
+        local_name!("spacer") => make!(HTMLUnknownElement),
+        local_name!("span") => make!(HTMLSpanElement),
+        local_name!("strike") => make!(HTMLElement),
+        local_name!("strong") => make!(HTMLElement),
+        local_name!("style") => make!(HTMLStyleElement, creator),
+        local_name!("sub") => make!(HTMLElement),
+        local_name!("summary") => make!(HTMLElement),
+        local_name!("sup") => make!(HTMLElement),
+        local_name!("table") => make!(HTMLTableElement),
+        local_name!("tbody") => make!(HTMLTableSectionElement),
+        local_name!("td") => make!(HTMLTableDataCellElement),
+        local_name!("template") => make!(HTMLTemplateElement),
+        local_name!("textarea") => make!(HTMLTextAreaElement),
         // https://html.spec.whatwg.org/multipage/#the-tfoot-element:concept-element-dom
-        local_name!("tfoot")      => make!(HTMLTableSectionElement),
-        local_name!("th")         => make!(HTMLTableHeaderCellElement),
+        local_name!("tfoot") => make!(HTMLTableSectionElement),
+        local_name!("th") => make!(HTMLTableHeaderCellElement),
         // https://html.spec.whatwg.org/multipage/#the-thead-element:concept-element-dom
-        local_name!("thead")      => make!(HTMLTableSectionElement),
-        local_name!("time")       => make!(HTMLTimeElement),
-        local_name!("title")      => make!(HTMLTitleElement),
-        local_name!("tr")         => make!(HTMLTableRowElement),
-        local_name!("tt")         => make!(HTMLElement),
-        local_name!("track")      => make!(HTMLTrackElement),
-        local_name!("u")          => make!(HTMLElement),
-        local_name!("ul")         => make!(HTMLUListElement),
-        local_name!("var")        => make!(HTMLElement),
-        local_name!("video")      => make!(HTMLVideoElement),
-        local_name!("wbr")        => make!(HTMLElement),
-        local_name!("xmp")        => make!(HTMLPreElement),
+        local_name!("thead") => make!(HTMLTableSectionElement),
+        local_name!("time") => make!(HTMLTimeElement),
+        local_name!("title") => make!(HTMLTitleElement),
+        local_name!("tr") => make!(HTMLTableRowElement),
+        local_name!("tt") => make!(HTMLElement),
+        local_name!("track") => make!(HTMLTrackElement),
+        local_name!("u") => make!(HTMLElement),
+        local_name!("ul") => make!(HTMLUListElement),
+        local_name!("var") => make!(HTMLElement),
+        local_name!("video") => make!(HTMLVideoElement),
+        local_name!("wbr") => make!(HTMLElement),
+        local_name!("xmp") => make!(HTMLPreElement),
         _ if is_valid_custom_element_name(&*name.local) => make!(HTMLElement),
-        _                         => make!(HTMLUnknownElement),
+        _ => make!(HTMLUnknownElement),
     }
 }
 
-pub fn create_element(name: QualName,
-                      is: Option<LocalName>,
-                      document: &Document,
-                      creator: ElementCreator,
-                      mode: CustomElementCreationMode)
-                      -> DomRoot<Element> {
+pub fn create_element(
+    name: QualName,
+    is: Option<LocalName>,
+    document: &Document,
+    creator: ElementCreator,
+    mode: CustomElementCreationMode,
+) -> DomRoot<Element> {
     let prefix = name.prefix.clone();
     match name.ns {
-        ns!(html)   => create_html_element(name, prefix, is, document, creator, mode),
-        ns!(svg)    => create_svg_element(name, prefix, document),
-        _           => Element::new(name.local, name.ns, prefix, document)
+        ns!(html) => create_html_element(name, prefix, is, document, creator, mode),
+        ns!(svg) => create_svg_element(name, prefix, document),
+        _ => Element::new(name.local, name.ns, prefix, document),
     }
 }

@@ -21,10 +21,14 @@ pub struct TestBindingIterable {
 
 impl TestBindingIterable {
     fn new(global: &GlobalScope) -> DomRoot<TestBindingIterable> {
-        reflect_dom_object(Box::new(TestBindingIterable {
-            reflector: Reflector::new(),
-            vals: DomRefCell::new(vec![]),
-        }), global, TestBindingIterableBinding::Wrap)
+        reflect_dom_object(
+            Box::new(TestBindingIterable {
+                reflector: Reflector::new(),
+                vals: DomRefCell::new(vec![]),
+            }),
+            global,
+            TestBindingIterableBinding::Wrap,
+        )
     }
 
     pub fn Constructor(global: &GlobalScope) -> Fallible<DomRoot<TestBindingIterable>> {
@@ -33,9 +37,15 @@ impl TestBindingIterable {
 }
 
 impl TestBindingIterableMethods for TestBindingIterable {
-    fn Add(&self, v: DOMString) { self.vals.borrow_mut().push(v); }
-    fn Length(&self) -> u32 { self.vals.borrow().len() as u32 }
-    fn GetItem(&self, n: u32) -> DOMString { self.IndexedGetter(n).unwrap_or_default() }
+    fn Add(&self, v: DOMString) {
+        self.vals.borrow_mut().push(v);
+    }
+    fn Length(&self) -> u32 {
+        self.vals.borrow().len() as u32
+    }
+    fn GetItem(&self, n: u32) -> DOMString {
+        self.IndexedGetter(n).unwrap_or_default()
+    }
     fn IndexedGetter(&self, n: u32) -> Option<DOMString> {
         self.vals.borrow().get(n as usize).cloned()
     }

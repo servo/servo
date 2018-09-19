@@ -37,9 +37,11 @@ pub struct HTMLMetaElement {
 }
 
 impl HTMLMetaElement {
-    fn new_inherited(local_name: LocalName,
-                     prefix: Option<Prefix>,
-                     document: &Document) -> HTMLMetaElement {
+    fn new_inherited(
+        local_name: LocalName,
+        prefix: Option<Prefix>,
+        document: &Document,
+    ) -> HTMLMetaElement {
         HTMLMetaElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
             stylesheet: DomRefCell::new(None),
@@ -48,12 +50,16 @@ impl HTMLMetaElement {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(local_name: LocalName,
-               prefix: Option<Prefix>,
-               document: &Document) -> DomRoot<HTMLMetaElement> {
-        Node::reflect_node(Box::new(HTMLMetaElement::new_inherited(local_name, prefix, document)),
-                           document,
-                           HTMLMetaElementBinding::Wrap)
+    pub fn new(
+        local_name: LocalName,
+        prefix: Option<Prefix>,
+        document: &Document,
+    ) -> DomRoot<HTMLMetaElement> {
+        Node::reflect_node(
+            Box::new(HTMLMetaElement::new_inherited(local_name, prefix, document)),
+            document,
+            HTMLMetaElementBinding::Wrap,
+        )
     }
 
     pub fn get_stylesheet(&self) -> Option<Arc<Stylesheet>> {
@@ -63,12 +69,14 @@ impl HTMLMetaElement {
     pub fn get_cssom_stylesheet(&self) -> Option<DomRoot<CSSStyleSheet>> {
         self.get_stylesheet().map(|sheet| {
             self.cssom_stylesheet.or_init(|| {
-                CSSStyleSheet::new(&window_from_node(self),
-                                   self.upcast::<Element>(),
-                                   "text/css".into(),
-                                   None, // todo handle location
-                                   None, // todo handle title
-                                   sheet)
+                CSSStyleSheet::new(
+                    &window_from_node(self),
+                    self.upcast::<Element>(),
+                    "text/css".into(),
+                    None, // todo handle location
+                    None, // todo handle title
+                    sheet,
+                )
             })
         })
     }
@@ -90,7 +98,11 @@ impl HTMLMetaElement {
     }
 
     fn apply_viewport(&self) {
-        if !PREFS.get("layout.viewport.enabled").as_boolean().unwrap_or(false) {
+        if !PREFS
+            .get("layout.viewport.enabled")
+            .as_boolean()
+            .unwrap_or(false)
+        {
             return;
         }
         let element = self.upcast::<Element>();
@@ -176,7 +188,10 @@ impl VirtualMethods for HTMLMetaElement {
     fn parse_plain_attribute(&self, name: &LocalName, value: DOMString) -> AttrValue {
         match name {
             &local_name!("name") => AttrValue::from_atomic(value.into()),
-            _ => self.super_type().unwrap().parse_plain_attribute(name, value),
+            _ => self
+                .super_type()
+                .unwrap()
+                .parse_plain_attribute(name, value),
         }
     }
 

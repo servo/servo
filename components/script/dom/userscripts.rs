@@ -12,7 +12,6 @@ use std::fs::{File, read_dir};
 use std::io::Read;
 use std::path::PathBuf;
 
-
 pub fn load_script(head: &HTMLHeadElement) {
     if let Some(ref path_str) = opts::get().userscripts {
         let node = head.upcast::<Node>();
@@ -22,9 +21,11 @@ pub fn load_script(head: &HTMLHeadElement) {
         rooted!(in(cx) let mut rval = UndefinedValue());
 
         let path = PathBuf::from(path_str);
-        let mut files = read_dir(&path).expect("Bad path passed to --userscripts")
-                                       .filter_map(|e| e.ok())
-                                       .map(|e| e.path()).collect::<Vec<_>>();
+        let mut files = read_dir(&path)
+            .expect("Bad path passed to --userscripts")
+            .filter_map(|e| e.ok())
+            .map(|e| e.path())
+            .collect::<Vec<_>>();
 
         files.sort();
 
@@ -33,7 +34,8 @@ pub fn load_script(head: &HTMLHeadElement) {
             let mut contents = vec![];
             f.read_to_end(&mut contents).unwrap();
             let script_text = String::from_utf8_lossy(&contents);
-            win.upcast::<GlobalScope>().evaluate_js_on_global_with_result(&script_text, rval.handle_mut());
+            win.upcast::<GlobalScope>()
+                .evaluate_js_on_global_with_result(&script_text, rval.handle_mut());
         }
     }
 }

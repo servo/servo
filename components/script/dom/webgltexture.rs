@@ -69,7 +69,10 @@ impl WebGLTexture {
     pub fn maybe_new(context: &WebGLRenderingContext) -> Option<DomRoot<Self>> {
         let (sender, receiver) = webgl_channel().unwrap();
         context.send_command(WebGLCommand::CreateTexture(sender));
-        receiver.recv().unwrap().map(|id| WebGLTexture::new(context, id))
+        receiver
+            .recv()
+            .unwrap()
+            .map(|id| WebGLTexture::new(context, id))
     }
 
     pub fn new(context: &WebGLRenderingContext, id: WebGLTextureId) -> DomRoot<Self> {
@@ -80,7 +83,6 @@ impl WebGLTexture {
         )
     }
 }
-
 
 impl WebGLTexture {
     pub fn id(&self) -> WebGLTextureId {
@@ -102,7 +104,7 @@ impl WebGLTexture {
             let face_count = match target {
                 constants::TEXTURE_2D => 1,
                 constants::TEXTURE_CUBE_MAP => 6,
-                _ => return Err(WebGLError::InvalidEnum)
+                _ => return Err(WebGLError::InvalidEnum),
             };
             self.face_count.set(face_count);
             self.target.set(Some(target));
@@ -115,14 +117,16 @@ impl WebGLTexture {
         Ok(())
     }
 
-    pub fn initialize(&self,
-                      target: TexImageTarget,
-                      width: u32,
-                      height: u32,
-                      depth: u32,
-                      internal_format: TexFormat,
-                      level: u32,
-                      data_type: Option<TexDataType>) -> WebGLResult<()> {
+    pub fn initialize(
+        &self,
+        target: TexImageTarget,
+        width: u32,
+        height: u32,
+        depth: u32,
+        internal_format: TexFormat,
+        level: u32,
+        data_type: Option<TexDataType>,
+    ) -> WebGLResult<()> {
         let image_info = ImageInfo {
             width: width,
             height: height,
@@ -143,7 +147,7 @@ impl WebGLTexture {
             None => {
                 error!("Cannot generate mipmap on texture that has no target!");
                 return Err(WebGLError::InvalidOperation);
-            }
+            },
         };
 
         let base_image_info = self.base_image_info();
@@ -182,9 +186,9 @@ impl WebGLTexture {
             let context = self.upcast::<WebGLObject>().context();
             // Notify WR to release the frame output when using DOMToTexture feature
             if self.attached_to_dom.get() {
-                let _ = context.webgl_sender().send_dom_to_texture(
-                    DOMToTextureCommand::Detach(self.id),
-                );
+                let _ = context
+                    .webgl_sender()
+                    .send_dom_to_texture(DOMToTextureCommand::Detach(self.id));
             }
 
             /*
@@ -195,9 +199,7 @@ impl WebGLTexture {
             - GLES 2.0, 4.4.3, "Attaching Texture Images to a Framebuffer"
              */
             let currently_bound_framebuffer =
-                self.upcast::<WebGLObject>()
-                    .context()
-                    .bound_framebuffer();
+                self.upcast::<WebGLObject>().context().bound_framebuffer();
             if let Some(fb) = currently_bound_framebuffer {
                 fb.detach_texture(self);
             }
@@ -217,11 +219,7 @@ impl WebGLTexture {
     /// We have to follow the conversion rules for GLES 2.0. See:
     ///   https://www.khronos.org/webgl/public-mailing-list/archives/1008/msg00014.html
     ///
-    pub fn tex_parameter(
-        &self,
-        param: u32,
-        value: TexParameterValue,
-    ) -> WebGLResult<()> {
+    pub fn tex_parameter(&self, param: u32, value: TexParameterValue) -> WebGLResult<()> {
         let target = self.target().unwrap();
 
         let (int_value, float_value) = match value {
@@ -240,36 +238,28 @@ impl WebGLTexture {
             Ok(())
         };
         match param {
-            constants::TEXTURE_MIN_FILTER => {
-                match int_value as u32 {
-                    constants::NEAREST |
-                    constants::LINEAR |
-                    constants::NEAREST_MIPMAP_NEAREST |
-                    constants::LINEAR_MIPMAP_NEAREST |
-                    constants::NEAREST_MIPMAP_LINEAR |
-                    constants::LINEAR_MIPMAP_LINEAR => update_filter(&self.min_filter),
-                    _ => Err(WebGLError::InvalidEnum),
-                }
-            }
-            constants::TEXTURE_MAG_FILTER => {
-                match int_value as u32 {
-                    constants::NEAREST | constants::LINEAR => update_filter(&self.mag_filter),
-                    _ => return Err(WebGLError::InvalidEnum),
-                }
-            }
-            constants::TEXTURE_WRAP_S | constants::TEXTURE_WRAP_T => {
-                match int_value as u32 {
-                    constants::CLAMP_TO_EDGE |
-                    constants::MIRRORED_REPEAT |
-                    constants::REPEAT => {
-                        self.upcast::<WebGLObject>()
-                            .context()
-                            .send_command(WebGLCommand::TexParameteri(target, param, int_value));
-                        Ok(())
-                    }
-                    _ => Err(WebGLError::InvalidEnum),
-                }
-            }
+            constants::TEXTURE_MIN_FILTER => match int_value as u32 {
+                constants::NEAREST |
+                constants::LINEAR |
+                constants::NEAREST_MIPMAP_NEAREST |
+                constants::LINEAR_MIPMAP_NEAREST |
+                constants::NEAREST_MIPMAP_LINEAR |
+                constants::LINEAR_MIPMAP_LINEAR => update_filter(&self.min_filter),
+                _ => Err(WebGLError::InvalidEnum),
+            },
+            constants::TEXTURE_MAG_FILTER => match int_value as u32 {
+                constants::NEAREST | constants::LINEAR => update_filter(&self.mag_filter),
+                _ => return Err(WebGLError::InvalidEnum),
+            },
+            constants::TEXTURE_WRAP_S | constants::TEXTURE_WRAP_T => match int_value as u32 {
+                constants::CLAMP_TO_EDGE | constants::MIRRORED_REPEAT | constants::REPEAT => {
+                    self.upcast::<WebGLObject>()
+                        .context()
+                        .send_command(WebGLCommand::TexParameteri(target, param, int_value));
+                    Ok(())
+                },
+                _ => Err(WebGLError::InvalidEnum),
+            },
             EXTTextureFilterAnisotropicConstants::TEXTURE_MAX_ANISOTROPY_EXT => {
                 // NaN is not less than 1., what a time to be alive.
                 if !(float_value >= 1.) {
@@ -279,7 +269,7 @@ impl WebGLTexture {
                     .context()
                     .send_command(WebGLCommand::TexParameterf(target, param, float_value));
                 Ok(())
-            }
+            },
             _ => Err(WebGLError::InvalidEnum),
         }
     }
@@ -294,14 +284,12 @@ impl WebGLTexture {
 
     pub fn is_using_linear_filtering(&self) -> bool {
         let filters = [self.min_filter.get(), self.mag_filter.get()];
-        filters.iter().any(|filter| {
-            match *filter {
-                constants::LINEAR |
-                constants::NEAREST_MIPMAP_LINEAR |
-                constants::LINEAR_MIPMAP_NEAREST |
-                constants::LINEAR_MIPMAP_LINEAR => true,
-                _=> false
-            }
+        filters.iter().any(|filter| match *filter {
+            constants::LINEAR |
+            constants::NEAREST_MIPMAP_LINEAR |
+            constants::LINEAR_MIPMAP_NEAREST |
+            constants::LINEAR_MIPMAP_LINEAR => true,
+            _ => false,
         })
     }
 
@@ -359,8 +347,9 @@ impl WebGLTexture {
 
             // Compares height with width to enforce square dimensions
             if current_image_info.internal_format != ref_format ||
-               current_image_info.width != ref_width ||
-               current_image_info.height != ref_width {
+                current_image_info.width != ref_width ||
+                current_image_info.height != ref_width
+            {
                 return false;
             }
         }
@@ -368,8 +357,7 @@ impl WebGLTexture {
         true
     }
 
-    fn face_index_for_target(&self,
-                             target: &TexImageTarget) -> u8 {
+    fn face_index_for_target(&self, target: &TexImageTarget) -> u8 {
         match *target {
             TexImageTarget::Texture2D => 0,
             TexImageTarget::CubeMapPositiveX => 0,
@@ -381,9 +369,7 @@ impl WebGLTexture {
         }
     }
 
-    pub fn image_info_for_target(&self,
-                                 target: &TexImageTarget,
-                                 level: u32) -> ImageInfo {
+    pub fn image_info_for_target(&self, target: &TexImageTarget, level: u32) -> ImageInfo {
         let face_index = self.face_index_for_target(&target);
         self.image_info_at_face(face_index, level)
     }
@@ -462,8 +448,8 @@ impl ImageInfo {
 
     fn is_power_of_two(&self) -> bool {
         self.width.is_power_of_two() &&
-        self.height.is_power_of_two() &&
-        self.depth.is_power_of_two()
+            self.height.is_power_of_two() &&
+            self.depth.is_power_of_two()
     }
 
     pub fn is_initialized(&self) -> bool {

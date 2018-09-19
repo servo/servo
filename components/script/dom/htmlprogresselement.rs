@@ -18,22 +18,29 @@ pub struct HTMLProgressElement {
 }
 
 impl HTMLProgressElement {
-    fn new_inherited(local_name: LocalName,
-                     prefix: Option<Prefix>,
-                     document: &Document) -> HTMLProgressElement {
+    fn new_inherited(
+        local_name: LocalName,
+        prefix: Option<Prefix>,
+        document: &Document,
+    ) -> HTMLProgressElement {
         HTMLProgressElement {
-            htmlelement:
-                HTMLElement::new_inherited(local_name, prefix, document)
+            htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(local_name: LocalName,
-               prefix: Option<Prefix>,
-               document: &Document) -> DomRoot<HTMLProgressElement> {
-        Node::reflect_node(Box::new(HTMLProgressElement::new_inherited(local_name, prefix, document)),
-                           document,
-                           HTMLProgressElementBinding::Wrap)
+    pub fn new(
+        local_name: LocalName,
+        prefix: Option<Prefix>,
+        document: &Document,
+    ) -> DomRoot<HTMLProgressElement> {
+        Node::reflect_node(
+            Box::new(HTMLProgressElement::new_inherited(
+                local_name, prefix, document,
+            )),
+            document,
+            HTMLProgressElementBinding::Wrap,
+        )
     }
 }
 

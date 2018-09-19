@@ -14,25 +14,33 @@ use html5ever::{LocalName, Prefix};
 
 #[dom_struct]
 pub struct HTMLMeterElement {
-    htmlelement: HTMLElement
+    htmlelement: HTMLElement,
 }
 
 impl HTMLMeterElement {
-    fn new_inherited(local_name: LocalName,
-                     prefix: Option<Prefix>,
-                     document: &Document) -> HTMLMeterElement {
+    fn new_inherited(
+        local_name: LocalName,
+        prefix: Option<Prefix>,
+        document: &Document,
+    ) -> HTMLMeterElement {
         HTMLMeterElement {
-            htmlelement: HTMLElement::new_inherited(local_name, prefix, document)
+            htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(local_name: LocalName,
-               prefix: Option<Prefix>,
-               document: &Document) -> DomRoot<HTMLMeterElement> {
-        Node::reflect_node(Box::new(HTMLMeterElement::new_inherited(local_name, prefix, document)),
-                           document,
-                           HTMLMeterElementBinding::Wrap)
+    pub fn new(
+        local_name: LocalName,
+        prefix: Option<Prefix>,
+        document: &Document,
+    ) -> DomRoot<HTMLMeterElement> {
+        Node::reflect_node(
+            Box::new(HTMLMeterElement::new_inherited(
+                local_name, prefix, document,
+            )),
+            document,
+            HTMLMeterElementBinding::Wrap,
+        )
     }
 }
 

@@ -24,11 +24,7 @@ pub struct DOMQuad {
 }
 
 impl DOMQuad {
-    fn new_inherited(p1: &DOMPoint,
-                     p2: &DOMPoint,
-                     p3: &DOMPoint,
-                     p4: &DOMPoint)
-                     -> DOMQuad {
+    fn new_inherited(p1: &DOMPoint, p2: &DOMPoint, p3: &DOMPoint, p4: &DOMPoint) -> DOMQuad {
         DOMQuad {
             reflector_: Reflector::new(),
             p1: Dom::from_ref(p1),
@@ -38,45 +34,62 @@ impl DOMQuad {
         }
     }
 
-    pub fn new(global: &GlobalScope,
-               p1: &DOMPoint,
-               p2: &DOMPoint,
-               p3: &DOMPoint,
-               p4: &DOMPoint) -> DomRoot<DOMQuad> {
-        reflect_dom_object(Box::new(DOMQuad::new_inherited(p1, p2, p3, p4)),
-                           global,
-                           Wrap)
+    pub fn new(
+        global: &GlobalScope,
+        p1: &DOMPoint,
+        p2: &DOMPoint,
+        p3: &DOMPoint,
+        p4: &DOMPoint,
+    ) -> DomRoot<DOMQuad> {
+        reflect_dom_object(
+            Box::new(DOMQuad::new_inherited(p1, p2, p3, p4)),
+            global,
+            Wrap,
+        )
     }
 
-    pub fn Constructor(global: &GlobalScope,
-                       p1: &DOMPointInit,
-                       p2: &DOMPointInit,
-                       p3: &DOMPointInit,
-                       p4: &DOMPointInit)
-                       -> Fallible<DomRoot<DOMQuad>> {
-        Ok(DOMQuad::new(global,
-                        &*DOMPoint::new_from_init(global, p1),
-                        &*DOMPoint::new_from_init(global, p2),
-                        &*DOMPoint::new_from_init(global, p3),
-                        &*DOMPoint::new_from_init(global, p4)))
+    pub fn Constructor(
+        global: &GlobalScope,
+        p1: &DOMPointInit,
+        p2: &DOMPointInit,
+        p3: &DOMPointInit,
+        p4: &DOMPointInit,
+    ) -> Fallible<DomRoot<DOMQuad>> {
+        Ok(DOMQuad::new(
+            global,
+            &*DOMPoint::new_from_init(global, p1),
+            &*DOMPoint::new_from_init(global, p2),
+            &*DOMPoint::new_from_init(global, p3),
+            &*DOMPoint::new_from_init(global, p4),
+        ))
     }
 
     // https://drafts.fxtf.org/geometry/#dom-domquad-fromrect
     pub fn FromRect(global: &GlobalScope, other: &DOMRectInit) -> DomRoot<DOMQuad> {
-        DOMQuad::new(global,
-                     &*DOMPoint::new(global, other.x, other.y, 0f64, 1f64),
-                     &*DOMPoint::new(global, other.x + other.width, other.y, 0f64, 1f64),
-                     &*DOMPoint::new(global, other.x + other.width, other.y + other.height, 0f64, 1f64),
-                     &*DOMPoint::new(global, other.x, other.y + other.height, 0f64, 1f64))
+        DOMQuad::new(
+            global,
+            &*DOMPoint::new(global, other.x, other.y, 0f64, 1f64),
+            &*DOMPoint::new(global, other.x + other.width, other.y, 0f64, 1f64),
+            &*DOMPoint::new(
+                global,
+                other.x + other.width,
+                other.y + other.height,
+                0f64,
+                1f64,
+            ),
+            &*DOMPoint::new(global, other.x, other.y + other.height, 0f64, 1f64),
+        )
     }
 
     // https://drafts.fxtf.org/geometry/#dom-domquad-fromquad
     pub fn FromQuad(global: &GlobalScope, other: &DOMQuadInit) -> DomRoot<DOMQuad> {
-        DOMQuad::new(global,
-                     &DOMPoint::new_from_init(global, &other.p1),
-                     &DOMPoint::new_from_init(global, &other.p2),
-                     &DOMPoint::new_from_init(global, &other.p3),
-                     &DOMPoint::new_from_init(global, &other.p4))
+        DOMQuad::new(
+            global,
+            &DOMPoint::new_from_init(global, &other.p1),
+            &DOMPoint::new_from_init(global, &other.p2),
+            &DOMPoint::new_from_init(global, &other.p3),
+            &DOMPoint::new_from_init(global, &other.p4),
+        )
     }
 }
 
@@ -103,15 +116,31 @@ impl DOMQuadMethods for DOMQuad {
 
     // https://drafts.fxtf.org/geometry/#dom-domquad-getbounds
     fn GetBounds(&self) -> DomRoot<DOMRect> {
-        let left = self.p1.X().min(self.p2.X()).min(self.p3.X()).min(self.p4.X());
-        let top = self.p1.Y().min(self.p2.Y()).min(self.p3.Y()).min(self.p4.Y());
-        let right = self.p1.X().max(self.p2.X()).max(self.p3.X()).max(self.p4.X());
-        let bottom = self.p1.Y().max(self.p2.Y()).max(self.p3.Y()).max(self.p4.Y());
+        let left = self
+            .p1
+            .X()
+            .min(self.p2.X())
+            .min(self.p3.X())
+            .min(self.p4.X());
+        let top = self
+            .p1
+            .Y()
+            .min(self.p2.Y())
+            .min(self.p3.Y())
+            .min(self.p4.Y());
+        let right = self
+            .p1
+            .X()
+            .max(self.p2.X())
+            .max(self.p3.X())
+            .max(self.p4.X());
+        let bottom = self
+            .p1
+            .Y()
+            .max(self.p2.Y())
+            .max(self.p3.Y())
+            .max(self.p4.Y());
 
-        DOMRect::new(&self.global(),
-                     left,
-                     top,
-                     right - left,
-                     bottom - top)
+        DOMRect::new(&self.global(), left, top, right - left, bottom - top)
     }
 }

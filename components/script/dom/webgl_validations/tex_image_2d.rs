@@ -46,39 +46,32 @@ impl std::error::Error for TexImageValidationError {
     fn description(&self) -> &str {
         use self::TexImageValidationError::*;
         match *self {
-            InvalidTextureTarget(_)
-                => "Invalid texture target",
-            TextureTargetNotBound(_)
-                => "Texture was not bound",
-            InvalidCubicTextureDimensions
-                => "Invalid dimensions were given for a cubic texture target",
-            NegativeLevel
-                => "A negative level was passed",
-            LevelTooHigh
-                => "Level too high",
-            NegativeDimension
-                => "Negative dimensions were passed",
-            TextureTooBig
-                => "Dimensions given are too big",
-            InvalidDataType
-                => "Invalid data type",
-            InvalidTextureFormat
-                => "Invalid texture format",
-            TextureFormatMismatch
-                => "Texture format mismatch",
-            InvalidTypeForFormat
-                => "Invalid type for the given format",
-            InvalidBorder
-                => "Invalid border",
-            NonPotTexture
-                => "Expected a power of two texture",
+            InvalidTextureTarget(_) => "Invalid texture target",
+            TextureTargetNotBound(_) => "Texture was not bound",
+            InvalidCubicTextureDimensions => {
+                "Invalid dimensions were given for a cubic texture target"
+            },
+            NegativeLevel => "A negative level was passed",
+            LevelTooHigh => "Level too high",
+            NegativeDimension => "Negative dimensions were passed",
+            TextureTooBig => "Dimensions given are too big",
+            InvalidDataType => "Invalid data type",
+            InvalidTextureFormat => "Invalid texture format",
+            TextureFormatMismatch => "Texture format mismatch",
+            InvalidTypeForFormat => "Invalid type for the given format",
+            InvalidBorder => "Invalid border",
+            NonPotTexture => "Expected a power of two texture",
         }
     }
 }
 
 impl fmt::Display for TexImageValidationError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "TexImageValidationError({})", std::error::Error::description(self))
+        write!(
+            f,
+            "TexImageValidationError({})",
+            std::error::Error::description(self)
+        )
     }
 }
 
@@ -119,16 +112,19 @@ impl<'a> WebGLValidator for CommonTexImage2DValidator<'a> {
             None => {
                 self.context.webgl_error(InvalidEnum);
                 return Err(TexImageValidationError::InvalidTextureTarget(self.target));
-            }
+            },
         };
 
-        let texture = self.context.textures().active_texture_for_image_target(target);
+        let texture = self
+            .context
+            .textures()
+            .active_texture_for_image_target(target);
         let limits = self.context.limits();
 
         let max_size = if target.is_cubic() {
-             limits.max_cube_map_tex_size
+            limits.max_cube_map_tex_size
         } else {
-             limits.max_tex_size
+            limits.max_tex_size
         };
 
         //  If an attempt is made to call this function with no WebGLTexture
@@ -138,7 +134,7 @@ impl<'a> WebGLValidator for CommonTexImage2DValidator<'a> {
             None => {
                 self.context.webgl_error(InvalidOperation);
                 return Err(TexImageValidationError::TextureTargetNotBound(self.target));
-            }
+            },
         };
 
         // GL_INVALID_ENUM is generated if internal_format is not an accepted
@@ -148,7 +144,7 @@ impl<'a> WebGLValidator for CommonTexImage2DValidator<'a> {
             None => {
                 self.context.webgl_error(InvalidEnum);
                 return Err(TexImageValidationError::InvalidTextureFormat);
-            }
+            },
         };
 
         // GL_INVALID_VALUE is generated if target is one of the six cube map 2D
@@ -217,11 +213,15 @@ impl<'a> WebGLValidator for CommonTexImage2DValidator<'a> {
 }
 
 impl<'a> CommonTexImage2DValidator<'a> {
-    pub fn new(context: &'a WebGLRenderingContext,
-               target: u32, level: i32,
-               internal_format: u32,
-               width: i32, height: i32,
-               border: i32) -> Self {
+    pub fn new(
+        context: &'a WebGLRenderingContext,
+        target: u32,
+        level: i32,
+        internal_format: u32,
+        width: i32,
+        height: i32,
+        border: i32,
+    ) -> Self {
         CommonTexImage2DValidator {
             context: context,
             target: target,
@@ -229,7 +229,7 @@ impl<'a> CommonTexImage2DValidator<'a> {
             internal_format: internal_format,
             width: width,
             height: height,
-            border: border
+            border: border,
         }
     }
 }
@@ -242,21 +242,27 @@ pub struct TexImage2DValidator<'a> {
 
 impl<'a> TexImage2DValidator<'a> {
     // TODO: Move data validation logic here.
-    pub fn new(context: &'a WebGLRenderingContext,
-               target: u32,
-               level: i32,
-               internal_format: u32,
-               width: i32,
-               height: i32,
-               border: i32,
-               format: u32,
-               data_type: u32) -> Self {
+    pub fn new(
+        context: &'a WebGLRenderingContext,
+        target: u32,
+        level: i32,
+        internal_format: u32,
+        width: i32,
+        height: i32,
+        border: i32,
+        format: u32,
+        data_type: u32,
+    ) -> Self {
         TexImage2DValidator {
-            common_validator: CommonTexImage2DValidator::new(context, target,
-                                                             level,
-                                                             internal_format,
-                                                             width, height,
-                                                             border),
+            common_validator: CommonTexImage2DValidator::new(
+                context,
+                target,
+                level,
+                internal_format,
+                width,
+                height,
+                border,
+            ),
             format: format,
             data_type: data_type,
         }
@@ -309,7 +315,7 @@ impl<'a> WebGLValidator for TexImage2DValidator<'a> {
             None => {
                 context.webgl_error(InvalidEnum);
                 return Err(TexImageValidationError::InvalidTextureFormat);
-            }
+            },
         };
 
         // GL_INVALID_OPERATION is generated if format does not match
@@ -319,7 +325,6 @@ impl<'a> WebGLValidator for TexImage2DValidator<'a> {
             return Err(TexImageValidationError::TextureFormatMismatch);
         }
 
-
         // GL_INVALID_OPERATION is generated if type is
         // GL_UNSIGNED_SHORT_4_4_4_4 or GL_UNSIGNED_SHORT_5_5_5_1 and format is
         // not GL_RGBA.
@@ -327,11 +332,12 @@ impl<'a> WebGLValidator for TexImage2DValidator<'a> {
         // GL_INVALID_OPERATION is generated if type is GL_UNSIGNED_SHORT_5_6_5
         // and format is not GL_RGB.
         match data_type {
-            TexDataType::UnsignedShort4444 |
-            TexDataType::UnsignedShort5551 if format != TexFormat::RGBA => {
+            TexDataType::UnsignedShort4444 | TexDataType::UnsignedShort5551
+                if format != TexFormat::RGBA =>
+            {
                 context.webgl_error(InvalidOperation);
                 return Err(TexImageValidationError::InvalidTypeForFormat);
-            },
+            }
             TexDataType::UnsignedShort565 if format != TexFormat::RGB => {
                 context.webgl_error(InvalidOperation);
                 return Err(TexImageValidationError::InvalidTypeForFormat);

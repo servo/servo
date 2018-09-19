@@ -30,10 +30,15 @@ pub struct ExtendableMessageEvent {
 }
 
 impl ExtendableMessageEvent {
-    pub fn new(global: &GlobalScope, type_: Atom,
-               bubbles: bool, cancelable: bool,
-               data: HandleValue, origin: DOMString, lastEventId: DOMString)
-               -> DomRoot<ExtendableMessageEvent> {
+    pub fn new(
+        global: &GlobalScope,
+        type_: Atom,
+        bubbles: bool,
+        cancelable: bool,
+        data: HandleValue,
+        origin: DOMString,
+        lastEventId: DOMString,
+    ) -> DomRoot<ExtendableMessageEvent> {
         let ev = Box::new(ExtendableMessageEvent {
             event: ExtendableEvent::new_inherited(),
             data: Heap::default(),
@@ -50,29 +55,36 @@ impl ExtendableMessageEvent {
         ev
     }
 
-    pub fn Constructor(worker: &ServiceWorkerGlobalScope,
-                       type_: DOMString,
-                       init: RootedTraceableBox<ExtendableMessageEventBinding::ExtendableMessageEventInit>)
-                       -> Fallible<DomRoot<ExtendableMessageEvent>> {
+    pub fn Constructor(
+        worker: &ServiceWorkerGlobalScope,
+        type_: DOMString,
+        init: RootedTraceableBox<ExtendableMessageEventBinding::ExtendableMessageEventInit>,
+    ) -> Fallible<DomRoot<ExtendableMessageEvent>> {
         let global = worker.upcast::<GlobalScope>();
-        let ev = ExtendableMessageEvent::new(global,
-                                             Atom::from(type_),
-                                             init.parent.parent.bubbles,
-                                             init.parent.parent.cancelable,
-                                             init.data.handle(),
-                                             init.origin.clone().unwrap(),
-                                             init.lastEventId.clone().unwrap());
+        let ev = ExtendableMessageEvent::new(
+            global,
+            Atom::from(type_),
+            init.parent.parent.bubbles,
+            init.parent.parent.cancelable,
+            init.data.handle(),
+            init.origin.clone().unwrap(),
+            init.lastEventId.clone().unwrap(),
+        );
         Ok(ev)
     }
 }
 
 impl ExtendableMessageEvent {
-    pub fn dispatch_jsval(target: &EventTarget,
-                          scope: &GlobalScope,
-                          message: HandleValue) {
+    pub fn dispatch_jsval(target: &EventTarget, scope: &GlobalScope, message: HandleValue) {
         let Extendablemessageevent = ExtendableMessageEvent::new(
-            scope, atom!("message"), false, false, message,
-            DOMString::new(), DOMString::new());
+            scope,
+            atom!("message"),
+            false,
+            false,
+            message,
+            DOMString::new(),
+            DOMString::new(),
+        );
         Extendablemessageevent.upcast::<Event>().fire(target);
     }
 }

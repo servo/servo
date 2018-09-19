@@ -22,7 +22,7 @@ pub struct Headers {
     reflector_: Reflector,
     guard: Cell<Guard>,
     #[ignore_malloc_size_of = "Defined in hyper"]
-    header_list: DomRefCell<HyperHeaders>
+    header_list: DomRefCell<HyperHeaders>,
 }
 
 // https://fetch.spec.whatwg.org/#concept-headers-guard
@@ -49,8 +49,10 @@ impl Headers {
     }
 
     // https://fetch.spec.whatwg.org/#dom-headers
-    pub fn Constructor(global: &GlobalScope, init: Option<HeadersInit>)
-                       -> Fallible<DomRoot<Headers>> {
+    pub fn Constructor(
+        global: &GlobalScope,
+        init: Option<HeadersInit>,
+    ) -> Fallible<DomRoot<Headers>> {
         let dom_headers_new = Headers::new(global);
         dom_headers_new.fill(init)?;
         Ok(dom_headers_new)
@@ -74,7 +76,9 @@ impl HeadersMethods for Headers {
             return Ok(());
         }
         // Step 5
-        if self.guard.get() == Guard::RequestNoCors && !is_cors_safelisted_request_header(&valid_name, &valid_value) {
+        if self.guard.get() == Guard::RequestNoCors &&
+            !is_cors_safelisted_request_header(&valid_name, &valid_value)
+        {
             return Ok(());
         }
         // Step 6
@@ -88,7 +92,9 @@ impl HeadersMethods for Headers {
             combined_value.push(b',');
         }
         combined_value.extend(valid_value.iter().cloned());
-        self.header_list.borrow_mut().set_raw(valid_name, vec![combined_value]);
+        self.header_list
+            .borrow_mut()
+            .set_raw(valid_name, vec![combined_value]);
         Ok(())
     }
 
@@ -106,9 +112,10 @@ impl HeadersMethods for Headers {
         }
         // Step 4
         if self.guard.get() == Guard::RequestNoCors &&
-            !is_cors_safelisted_request_header(&valid_name, &b"invalid".to_vec()) {
-                return Ok(());
-            }
+            !is_cors_safelisted_request_header(&valid_name, &b"invalid".to_vec())
+        {
+            return Ok(());
+        }
         // Step 5
         if self.guard.get() == Guard::Response && is_forbidden_response_header(&valid_name) {
             return Ok(());
@@ -122,9 +129,11 @@ impl HeadersMethods for Headers {
     fn Get(&self, name: ByteString) -> Fallible<Option<ByteString>> {
         // Step 1
         let valid_name = &validate_name(name)?;
-        Ok(self.header_list.borrow().get_raw(&valid_name).map(|v| {
-            ByteString::new(v[0].clone())
-        }))
+        Ok(self
+            .header_list
+            .borrow()
+            .get_raw(&valid_name)
+            .map(|v| ByteString::new(v[0].clone())))
     }
 
     // https://fetch.spec.whatwg.org/#dom-headers-has
@@ -151,7 +160,9 @@ impl HeadersMethods for Headers {
             return Ok(());
         }
         // Step 5
-        if self.guard.get() == Guard::RequestNoCors && !is_cors_safelisted_request_header(&valid_name, &valid_value) {
+        if self.guard.get() == Guard::RequestNoCors &&
+            !is_cors_safelisted_request_header(&valid_name, &valid_value)
+        {
             return Ok(());
         }
         // Step 6
@@ -160,7 +171,9 @@ impl HeadersMethods for Headers {
         }
         // Step 7
         // https://fetch.spec.whatwg.org/#concept-header-list-set
-        self.header_list.borrow_mut().set_raw(valid_name, vec![valid_value]);
+        self.header_list
+            .borrow_mut()
+            .set_raw(valid_name, vec![valid_value]);
         Ok(())
     }
 }
@@ -174,7 +187,7 @@ impl Headers {
                 for header in h.header_list.borrow().iter() {
                     self.Append(
                         ByteString::new(Vec::from(header.name())),
-                        ByteString::new(Vec::from(header.value_string().into_bytes()))
+                        ByteString::new(Vec::from(header.value_string().into_bytes())),
                     )?;
                 }
                 Ok(())
@@ -242,7 +255,10 @@ impl Headers {
 
     // https://fetch.spec.whatwg.org/#concept-header-extract-mime-type
     pub fn extract_mime_type(&self) -> Vec<u8> {
-        self.header_list.borrow().get_raw("content-type").map_or(vec![], |v| v[0].clone())
+        self.header_list
+            .borrow()
+            .get_raw("content-type")
+            .map_or(vec![], |v| v[0].clone())
     }
 
     pub fn sort_header_list(&self) -> Vec<(String, String)> {
@@ -290,14 +306,12 @@ fn is_cors_safelisted_request_content_type(value: &[u8]) -> bool {
     let value_mime_result: Result<Mime, _> = value_string.parse();
     match value_mime_result {
         Err(_) => false,
-        Ok(value_mime) => {
-            match value_mime {
-                Mime(TopLevel::Application, SubLevel::WwwFormUrlEncoded, _) |
-                Mime(TopLevel::Multipart, SubLevel::FormData, _) |
-                Mime(TopLevel::Text, SubLevel::Plain, _) => true,
-                _ => false,
-            }
-        }
+        Ok(value_mime) => match value_mime {
+            Mime(TopLevel::Application, SubLevel::WwwFormUrlEncoded, _) |
+            Mime(TopLevel::Multipart, SubLevel::FormData, _) |
+            Mime(TopLevel::Text, SubLevel::Plain, _) => true,
+            _ => false,
+        },
     }
 }
 
@@ -306,9 +320,7 @@ fn is_cors_safelisted_request_content_type(value: &[u8]) -> bool {
 // https://fetch.spec.whatwg.org/#cors-safelisted-request-header
 fn is_cors_safelisted_request_header(name: &str, value: &[u8]) -> bool {
     match name {
-        "accept" |
-        "accept-language" |
-        "content-language" => true,
+        "accept" | "accept-language" | "content-language" => true,
         "content-type" => is_cors_safelisted_request_content_type(value),
         _ => false,
     }
@@ -317,28 +329,41 @@ fn is_cors_safelisted_request_header(name: &str, value: &[u8]) -> bool {
 // https://fetch.spec.whatwg.org/#forbidden-response-header-name
 fn is_forbidden_response_header(name: &str) -> bool {
     match name {
-        "set-cookie" |
-        "set-cookie2"  => true,
+        "set-cookie" | "set-cookie2" => true,
         _ => false,
     }
 }
 
 // https://fetch.spec.whatwg.org/#forbidden-header-name
 pub fn is_forbidden_header_name(name: &str) -> bool {
-    let disallowed_headers =
-        ["accept-charset", "accept-encoding",
-         "access-control-request-headers",
-         "access-control-request-method",
-         "connection", "content-length",
-         "cookie", "cookie2", "date", "dnt",
-         "expect", "host", "keep-alive", "origin",
-         "referer", "te", "trailer", "transfer-encoding",
-         "upgrade", "via"];
+    let disallowed_headers = [
+        "accept-charset",
+        "accept-encoding",
+        "access-control-request-headers",
+        "access-control-request-method",
+        "connection",
+        "content-length",
+        "cookie",
+        "cookie2",
+        "date",
+        "dnt",
+        "expect",
+        "host",
+        "keep-alive",
+        "origin",
+        "referer",
+        "te",
+        "trailer",
+        "transfer-encoding",
+        "upgrade",
+        "via",
+    ];
 
     let disallowed_header_prefixes = ["sec-", "proxy-"];
 
-    disallowed_headers.iter().any(|header| *header == name) ||
-        disallowed_header_prefixes.iter().any(|prefix| name.starts_with(prefix))
+    disallowed_headers.iter().any(|header| *header == name) || disallowed_header_prefixes
+        .iter()
+        .any(|prefix| name.starts_with(prefix))
 }
 
 // There is some unresolved confusion over the definition of a name and a value.
@@ -364,8 +389,7 @@ pub fn is_forbidden_header_name(name: &str) -> bool {
 // [2] https://tools.ietf.org/html/rfc7230#section-3.2
 // [3] https://tools.ietf.org/html/rfc7230#section-3.2.6
 // [4] https://www.rfc-editor.org/errata_search.php?rfc=7230
-fn validate_name_and_value(name: ByteString, value: ByteString)
-                           -> Fallible<(String, Vec<u8>)> {
+fn validate_name_and_value(name: ByteString, value: ByteString) -> Fallible<(String, Vec<u8>)> {
     let valid_name = validate_name(name)?;
     if !is_field_content(&value) {
         return Err(Error::Type("Value is not valid".to_string()));
@@ -386,7 +410,10 @@ fn validate_name(name: ByteString) -> Fallible<String> {
 // Removes trailing and leading HTTP whitespace bytes.
 // https://fetch.spec.whatwg.org/#concept-header-value-normalize
 pub fn normalize_value(value: ByteString) -> ByteString {
-    match (index_of_first_non_whitespace(&value), index_of_last_non_whitespace(&value)) {
+    match (
+        index_of_first_non_whitespace(&value),
+        index_of_last_non_whitespace(&value),
+    ) {
         (Some(begin), Some(end)) => ByteString::new(value[begin..end + 1].to_owned()),
         _ => ByteString::new(vec![]),
     }

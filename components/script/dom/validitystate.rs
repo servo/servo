@@ -24,7 +24,7 @@ pub enum ValidityStatus {
     StepMismatch,
     BadInput,
     CustomError,
-    Valid
+    Valid,
 }
 
 bitflags!{
@@ -47,23 +47,24 @@ bitflags!{
 pub struct ValidityState {
     reflector_: Reflector,
     element: Dom<Element>,
-    state: ValidityStatus
+    state: ValidityStatus,
 }
-
 
 impl ValidityState {
     fn new_inherited(element: &Element) -> ValidityState {
         ValidityState {
             reflector_: Reflector::new(),
             element: Dom::from_ref(element),
-            state: ValidityStatus::Valid
+            state: ValidityStatus::Valid,
         }
     }
 
     pub fn new(window: &Window, element: &Element) -> DomRoot<ValidityState> {
-        reflect_dom_object(Box::new(ValidityState::new_inherited(element)),
-                           window,
-                           ValidityStateBinding::Wrap)
+        reflect_dom_object(
+            Box::new(ValidityState::new_inherited(element)),
+            window,
+            ValidityStateBinding::Wrap,
+        )
     }
 }
 

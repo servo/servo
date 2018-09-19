@@ -53,9 +53,11 @@ impl DOMException {
     }
 
     pub fn new(global: &GlobalScope, code: DOMErrorName) -> DomRoot<DOMException> {
-        reflect_dom_object(Box::new(DOMException::new_inherited(code)),
-                           global,
-                           DOMExceptionBinding::Wrap)
+        reflect_dom_object(
+            Box::new(DOMException::new_inherited(code)),
+            global,
+            DOMExceptionBinding::Wrap,
+        )
     }
 }
 
@@ -74,7 +76,9 @@ impl DOMExceptionMethods for DOMException {
     fn Message(&self) -> DOMString {
         let message = match self.code {
             DOMErrorName::IndexSizeError => "The index is not in the allowed range.",
-            DOMErrorName::HierarchyRequestError => "The operation would yield an incorrect node tree.",
+            DOMErrorName::HierarchyRequestError => {
+                "The operation would yield an incorrect node tree."
+            },
             DOMErrorName::WrongDocumentError => "The object is in the wrong document.",
             DOMErrorName::InvalidCharacterError => "The string contains invalid characters.",
             DOMErrorName::NoModificationAllowedError => "The object can not be modified.",
@@ -85,17 +89,20 @@ impl DOMExceptionMethods for DOMException {
             DOMErrorName::SyntaxError => "The string did not match the expected pattern.",
             DOMErrorName::InvalidModificationError => "The object can not be modified in this way.",
             DOMErrorName::NamespaceError => "The operation is not allowed by Namespaces in XML.",
-            DOMErrorName::InvalidAccessError => "The object does not support the operation or argument.",
+            DOMErrorName::InvalidAccessError => {
+                "The object does not support the operation or argument."
+            },
             DOMErrorName::SecurityError => "The operation is insecure.",
             DOMErrorName::NetworkError => "A network error occurred.",
             DOMErrorName::AbortError => "The operation was aborted.",
             DOMErrorName::TypeMismatchError => "The given type does not match any expected type.",
             DOMErrorName::QuotaExceededError => "The quota has been exceeded.",
             DOMErrorName::TimeoutError => "The operation timed out.",
-            DOMErrorName::InvalidNodeTypeError =>
-                "The supplied node is incorrect or has an incorrect ancestor for this operation.",
+            DOMErrorName::InvalidNodeTypeError => {
+                "The supplied node is incorrect or has an incorrect ancestor for this operation."
+            },
             DOMErrorName::DataCloneError => "The object can not be cloned.",
-            DOMErrorName::NotReadableError => "The I/O read operation failed."
+            DOMErrorName::NotReadableError => "The I/O read operation failed.",
         };
 
         DOMString::from(message)

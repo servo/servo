@@ -16,13 +16,14 @@ impl Console {
     fn send_to_devtools(global: &GlobalScope, level: LogLevel, message: DOMString) {
         if let Some(chan) = global.devtools_chan() {
             let console_message = prepare_message(level, message);
-            let worker_id = global.downcast::<WorkerGlobalScope>().map(|worker| {
-                worker.get_worker_id()
-            });
+            let worker_id = global
+                .downcast::<WorkerGlobalScope>()
+                .map(|worker| worker.get_worker_id());
             let devtools_message = ScriptToDevtoolsControlMsg::ConsoleAPI(
                 global.pipeline_id(),
                 console_message,
-                worker_id);
+                worker_id,
+            );
             chan.send(devtools_message).unwrap();
         }
     }
@@ -33,7 +34,10 @@ impl Console {
 // we're finished with stdout. Since the stderr lock is reentrant, there is
 // no risk of deadlock if the callback ends up trying to write to stderr for
 // any reason.
-fn with_stderr_lock<F>(f: F) where F: FnOnce() {
+fn with_stderr_lock<F>(f: F)
+where
+    F: FnOnce(),
+{
     let stderr = io::stderr();
     let _handle = stderr.lock();
     f()
@@ -116,9 +120,7 @@ impl Console {
     pub fn TimeEnd(global: &GlobalScope, label: DOMString) {
         with_stderr_lock(move || {
             if let Ok(delta) = global.time_end(&label) {
-                let message = DOMString::from(
-                    format!("{}: {}ms", label, delta)
-                );
+                let message = DOMString::from(format!("{}: {}ms", label, delta));
                 println!("{}", message);
                 Self::send_to_devtools(global, LogLevel::Log, message);
             };

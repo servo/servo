@@ -69,8 +69,10 @@ pub trait IDLInterface {
 }
 
 /// A trait to mark an IDL interface as deriving from another one.
-#[cfg_attr(feature = "unstable",
-           rustc_on_unimplemented = "The IDL interface `{Self}` is not derived from `{T}`.")]
+#[cfg_attr(
+    feature = "unstable",
+    rustc_on_unimplemented = "The IDL interface `{Self}` is not derived from `{T}`."
+)]
 pub trait DerivedFrom<T: Castable>: Castable {}
 
 impl<T: Float + ToJSValConvertible> ToJSValConvertible for Finite<T> {
@@ -81,20 +83,21 @@ impl<T: Float + ToJSValConvertible> ToJSValConvertible for Finite<T> {
     }
 }
 
-impl<T: Float + FromJSValConvertible<Config=()>> FromJSValConvertible for Finite<T> {
+impl<T: Float + FromJSValConvertible<Config = ()>> FromJSValConvertible for Finite<T> {
     type Config = ();
 
-    unsafe fn from_jsval(cx: *mut JSContext,
-                         value: HandleValue,
-                         option: ())
-                         -> Result<ConversionResult<Finite<T>>, ()> {
+    unsafe fn from_jsval(
+        cx: *mut JSContext,
+        value: HandleValue,
+        option: (),
+    ) -> Result<ConversionResult<Finite<T>>, ()> {
         let result = match FromJSValConvertible::from_jsval(cx, value, option)? {
             ConversionResult::Success(v) => v,
             ConversionResult::Failure(error) => {
                 // FIXME(emilio): Why throwing instead of propagating the error?
                 throw_type_error(cx, &error);
                 return Err(());
-            }
+            },
         };
         match Finite::new(result) {
             Some(v) => Ok(ConversionResult::Success(v)),
@@ -106,13 +109,14 @@ impl<T: Float + FromJSValConvertible<Config=()>> FromJSValConvertible for Finite
     }
 }
 
-impl <T: DomObject + IDLInterface> FromJSValConvertible for DomRoot<T> {
+impl<T: DomObject + IDLInterface> FromJSValConvertible for DomRoot<T> {
     type Config = ();
 
-    unsafe fn from_jsval(_cx: *mut JSContext,
-                         value: HandleValue,
-                         _config: Self::Config)
-                         -> Result<ConversionResult<DomRoot<T>>, ()> {
+    unsafe fn from_jsval(
+        _cx: *mut JSContext,
+        value: HandleValue,
+        _config: Self::Config,
+    ) -> Result<ConversionResult<DomRoot<T>>, ()> {
         Ok(match root_from_handlevalue(value) {
             Ok(result) => ConversionResult::Success(result),
             Err(()) => ConversionResult::Failure("value is not an object".into()),
@@ -129,19 +133,21 @@ impl<T: ToJSValConvertible + JSTraceable> ToJSValConvertible for RootedTraceable
 }
 
 impl<T> FromJSValConvertible for RootedTraceableBox<Heap<T>>
-    where
-        T: FromJSValConvertible + js::rust::GCMethods + Copy,
-        Heap<T>: JSTraceable + Default
+where
+    T: FromJSValConvertible + js::rust::GCMethods + Copy,
+    Heap<T>: JSTraceable + Default,
 {
     type Config = T::Config;
 
-    unsafe fn from_jsval(cx: *mut JSContext,
-                         value: HandleValue,
-                         config: Self::Config)
-                         -> Result<ConversionResult<Self>, ()> {
+    unsafe fn from_jsval(
+        cx: *mut JSContext,
+        value: HandleValue,
+        config: Self::Config,
+    ) -> Result<ConversionResult<Self>, ()> {
         T::from_jsval(cx, value, config).map(|result| match result {
-            ConversionResult::Success(inner) =>
-                ConversionResult::Success(RootedTraceableBox::from_box(Heap::boxed(inner))),
+            ConversionResult::Success(inner) => {
+                ConversionResult::Success(RootedTraceableBox::from_box(Heap::boxed(inner)))
+            },
             ConversionResult::Failure(msg) => ConversionResult::Failure(msg),
         })
     }
@@ -190,12 +196,12 @@ impl ToJSValConvertible for DOMString {
 // https://heycam.github.io/webidl/#es-DOMString
 impl FromJSValConvertible for DOMString {
     type Config = StringificationBehavior;
-    unsafe fn from_jsval(cx: *mut JSContext,
-                         value: HandleValue,
-                         null_behavior: StringificationBehavior)
-                         -> Result<ConversionResult<DOMString>, ()> {
-        if null_behavior == StringificationBehavior::Empty &&
-           value.get().is_null() {
+    unsafe fn from_jsval(
+        cx: *mut JSContext,
+        value: HandleValue,
+        null_behavior: StringificationBehavior,
+    ) -> Result<ConversionResult<DOMString>, ()> {
+        if null_behavior == StringificationBehavior::Empty && value.get().is_null() {
             Ok(ConversionResult::Success(DOMString::new()))
         } else {
             let jsstr = ToString(cx, value);
@@ -231,16 +237,19 @@ pub unsafe fn jsstring_to_str(cx: *mut JSContext, s: *mut JSString) -> DOMString
                             "Found an unpaired surrogate in a DOM string. \
                              If you see this in real web content, \
                              please comment on https://github.com/servo/servo/issues/6564"
-                        }
+                        };
                     }
                     if opts::get().replace_surrogates {
                         error!(message!());
                         s.push('\u{FFFD}');
                     } else {
-                        panic!(concat!(message!(), " Use `-Z replace-surrogates` \
-                            on the command line to make this non-fatal."));
+                        panic!(concat!(
+                            message!(),
+                            " Use `-Z replace-surrogates` \
+                             on the command line to make this non-fatal."
+                        ));
                     }
-                }
+                },
             }
         }
         s
@@ -250,8 +259,11 @@ pub unsafe fn jsstring_to_str(cx: *mut JSContext, s: *mut JSString) -> DOMString
 // http://heycam.github.io/webidl/#es-USVString
 impl FromJSValConvertible for USVString {
     type Config = ();
-    unsafe fn from_jsval(cx: *mut JSContext, value: HandleValue, _: ())
-                         -> Result<ConversionResult<USVString>, ()> {
+    unsafe fn from_jsval(
+        cx: *mut JSContext,
+        value: HandleValue,
+        _: (),
+    ) -> Result<ConversionResult<USVString>, ()> {
         let jsstr = ToString(cx, value);
         if jsstr.is_null() {
             debug!("ToString failed");
@@ -260,23 +272,28 @@ impl FromJSValConvertible for USVString {
         let latin1 = JS_StringHasLatin1Chars(jsstr);
         if latin1 {
             // FIXME(ajeffrey): Convert directly from DOMString to USVString
-            return Ok(ConversionResult::Success(
-                USVString(String::from(jsstring_to_str(cx, jsstr)))));
+            return Ok(ConversionResult::Success(USVString(String::from(
+                jsstring_to_str(cx, jsstr),
+            ))));
         }
         let mut length = 0;
         let chars = JS_GetTwoByteStringCharsAndLength(cx, ptr::null(), jsstr, &mut length);
         assert!(!chars.is_null());
         let char_vec = slice::from_raw_parts(chars as *const u16, length as usize);
-        Ok(ConversionResult::Success(USVString(String::from_utf16_lossy(char_vec))))
+        Ok(ConversionResult::Success(USVString(
+            String::from_utf16_lossy(char_vec),
+        )))
     }
 }
 
 // http://heycam.github.io/webidl/#es-ByteString
 impl ToJSValConvertible for ByteString {
     unsafe fn to_jsval(&self, cx: *mut JSContext, mut rval: MutableHandleValue) {
-        let jsstr = JS_NewStringCopyN(cx,
-                                      self.as_ptr() as *const libc::c_char,
-                                      self.len() as libc::size_t);
+        let jsstr = JS_NewStringCopyN(
+            cx,
+            self.as_ptr() as *const libc::c_char,
+            self.len() as libc::size_t,
+        );
         if jsstr.is_null() {
             panic!("JS_NewStringCopyN failed");
         }
@@ -287,10 +304,11 @@ impl ToJSValConvertible for ByteString {
 // http://heycam.github.io/webidl/#es-ByteString
 impl FromJSValConvertible for ByteString {
     type Config = ();
-    unsafe fn from_jsval(cx: *mut JSContext,
-                         value: HandleValue,
-                         _option: ())
-                         -> Result<ConversionResult<ByteString>, ()> {
+    unsafe fn from_jsval(
+        cx: *mut JSContext,
+        value: HandleValue,
+        _option: (),
+    ) -> Result<ConversionResult<ByteString>, ()> {
         let string = ToString(cx, value);
         if string.is_null() {
             debug!("ToString failed");
@@ -304,7 +322,9 @@ impl FromJSValConvertible for ByteString {
             assert!(!chars.is_null());
 
             let char_slice = slice::from_raw_parts(chars as *mut u8, length as usize);
-            return Ok(ConversionResult::Success(ByteString::new(char_slice.to_vec())));
+            return Ok(ConversionResult::Success(ByteString::new(
+                char_slice.to_vec(),
+            )));
         }
 
         let mut length = 0;
@@ -315,12 +335,12 @@ impl FromJSValConvertible for ByteString {
             throw_type_error(cx, "Invalid ByteString");
             Err(())
         } else {
-            Ok(ConversionResult::Success(
-                ByteString::new(char_vec.iter().map(|&c| c as u8).collect())))
+            Ok(ConversionResult::Success(ByteString::new(
+                char_vec.iter().map(|&c| c as u8).collect(),
+            )))
         }
     }
 }
-
 
 impl ToJSValConvertible for Reflector {
     unsafe fn to_jsval(&self, cx: *mut JSContext, mut rval: MutableHandleValue) {
@@ -389,10 +409,12 @@ pub unsafe fn get_dom_class(obj: *mut JSObject) -> Result<&'static DOMClass, ()>
 /// not an object for a DOM object of the given type (as defined by the
 /// proto_id and proto_depth).
 #[inline]
-pub unsafe fn private_from_proto_check<F>(mut obj: *mut JSObject,
-                                          proto_check: F)
-                                          -> Result<*const libc::c_void, ()>
-    where F: Fn(&'static DOMClass) -> bool
+pub unsafe fn private_from_proto_check<F>(
+    mut obj: *mut JSObject,
+    proto_check: F,
+) -> Result<*const libc::c_void, ()>
+where
+    F: Fn(&'static DOMClass) -> bool,
 {
     let dom_class = get_dom_class(obj).or_else(|_| {
         if IsWrapper(obj) {
@@ -423,11 +445,10 @@ pub unsafe fn private_from_proto_check<F>(mut obj: *mut JSObject,
 
 /// Get a `*const T` for a DOM object accessible from a `JSObject`.
 pub fn native_from_object<T>(obj: *mut JSObject) -> Result<*const T, ()>
-    where T: DomObject + IDLInterface
+where
+    T: DomObject + IDLInterface,
 {
-    unsafe {
-        private_from_proto_check(obj, T::derives).map(|ptr| ptr as *const T)
-    }
+    unsafe { private_from_proto_check(obj, T::derives).map(|ptr| ptr as *const T) }
 }
 
 /// Get a `DomRoot<T>` for the given DOM object, unwrapping any wrapper
@@ -437,7 +458,8 @@ pub fn native_from_object<T>(obj: *mut JSObject) -> Result<*const T, ()>
 /// not a reflector for a DOM object of the given type (as defined by the
 /// proto_id and proto_depth).
 pub fn root_from_object<T>(obj: *mut JSObject) -> Result<DomRoot<T>, ()>
-    where T: DomObject + IDLInterface
+where
+    T: DomObject + IDLInterface,
 {
     native_from_object(obj).map(|ptr| unsafe { DomRoot::from_ref(&*ptr) })
 }
@@ -445,7 +467,8 @@ pub fn root_from_object<T>(obj: *mut JSObject) -> Result<DomRoot<T>, ()>
 /// Get a `*const T` for a DOM object accessible from a `HandleValue`.
 /// Caller is responsible for throwing a JS exception if needed in case of error.
 pub fn native_from_handlevalue<T>(v: HandleValue) -> Result<*const T, ()>
-    where T: DomObject + IDLInterface
+where
+    T: DomObject + IDLInterface,
 {
     if !v.get().is_object() {
         return Err(());
@@ -456,7 +479,8 @@ pub fn native_from_handlevalue<T>(v: HandleValue) -> Result<*const T, ()>
 /// Get a `DomRoot<T>` for a DOM object accessible from a `HandleValue`.
 /// Caller is responsible for throwing a JS exception if needed in case of error.
 pub fn root_from_handlevalue<T>(v: HandleValue) -> Result<DomRoot<T>, ()>
-    where T: DomObject + IDLInterface
+where
+    T: DomObject + IDLInterface,
 {
     if !v.get().is_object() {
         return Err(());
@@ -466,7 +490,8 @@ pub fn root_from_handlevalue<T>(v: HandleValue) -> Result<DomRoot<T>, ()>
 
 /// Get a `DomRoot<T>` for a DOM object accessible from a `HandleObject`.
 pub fn root_from_handleobject<T>(obj: HandleObject) -> Result<DomRoot<T>, ()>
-    where T: DomObject + IDLInterface
+where
+    T: DomObject + IDLInterface,
 {
     root_from_object(obj.get())
 }
@@ -487,12 +512,12 @@ pub unsafe fn is_array_like(cx: *mut JSContext, value: HandleValue) -> bool {
 }
 
 /// Get a property from a JS object.
-pub unsafe fn get_property_jsval(cx: *mut JSContext,
-                                 object: HandleObject,
-                                 name: &str,
-                                 mut rval: MutableHandleValue)
-                                 -> Fallible<()>
-{
+pub unsafe fn get_property_jsval(
+    cx: *mut JSContext,
+    object: HandleObject,
+    name: &str,
+    mut rval: MutableHandleValue,
+) -> Fallible<()> {
     rval.set(UndefinedValue());
     let cname = match ffi::CString::new(name) {
         Ok(cname) => cname,
@@ -506,12 +531,14 @@ pub unsafe fn get_property_jsval(cx: *mut JSContext,
 }
 
 /// Get a property from a JS object, and convert it to a Rust value.
-pub unsafe fn get_property<T>(cx: *mut JSContext,
-                              object: HandleObject,
-                              name: &str,
-                              option: T::Config)
-                              -> Fallible<Option<T>> where
-    T: FromJSValConvertible
+pub unsafe fn get_property<T>(
+    cx: *mut JSContext,
+    object: HandleObject,
+    name: &str,
+    option: T::Config,
+) -> Fallible<Option<T>>
+where
+    T: FromJSValConvertible,
 {
     debug!("Getting property {}.", name);
     rooted!(in(cx) let mut result = UndefinedValue());

@@ -97,15 +97,22 @@ impl InputType {
     // than the underlying value.
     fn is_textual(&self) -> bool {
         match *self {
-            InputType::Color | InputType::Date | InputType::DatetimeLocal
-            | InputType::Email | InputType::Hidden | InputType::Month
-            | InputType::Number | InputType::Range | InputType::Search
-            | InputType::Tel | InputType::Text | InputType::Time
-            | InputType::Url | InputType::Week => {
-                true
-            }
+            InputType::Color |
+            InputType::Date |
+            InputType::DatetimeLocal |
+            InputType::Email |
+            InputType::Hidden |
+            InputType::Month |
+            InputType::Number |
+            InputType::Range |
+            InputType::Search |
+            InputType::Tel |
+            InputType::Text |
+            InputType::Time |
+            InputType::Url |
+            InputType::Week => true,
 
-            _ => false
+            _ => false,
         }
     }
 
@@ -185,7 +192,7 @@ impl<'a> From<&'a Atom> for InputType {
             atom!("time") => InputType::Time,
             atom!("url") => InputType::Url,
             atom!("week") => InputType::Week,
-            _ => Self::default()
+            _ => Self::default(),
         }
     }
 }
@@ -245,7 +252,7 @@ impl InputActivationState {
             checked_changed: false,
             checked_radio: None,
             was_mutable: false,
-            old_type: Default::default()
+            old_type: Default::default(),
         }
     }
 }
@@ -255,25 +262,37 @@ static DEFAULT_MAX_LENGTH: i32 = -1;
 static DEFAULT_MIN_LENGTH: i32 = -1;
 
 impl HTMLInputElement {
-    fn new_inherited(local_name: LocalName, prefix: Option<Prefix>, document: &Document) -> HTMLInputElement {
-        let chan = document.window().upcast::<GlobalScope>().script_to_constellation_chan().clone();
+    fn new_inherited(
+        local_name: LocalName,
+        prefix: Option<Prefix>,
+        document: &Document,
+    ) -> HTMLInputElement {
+        let chan = document
+            .window()
+            .upcast::<GlobalScope>()
+            .script_to_constellation_chan()
+            .clone();
         HTMLInputElement {
-            htmlelement:
-                HTMLElement::new_inherited_with_state(ElementState::IN_ENABLED_STATE |
-                                                      ElementState::IN_READ_WRITE_STATE,
-                                                      local_name, prefix, document),
+            htmlelement: HTMLElement::new_inherited_with_state(
+                ElementState::IN_ENABLED_STATE | ElementState::IN_READ_WRITE_STATE,
+                local_name,
+                prefix,
+                document,
+            ),
             input_type: Cell::new(Default::default()),
             placeholder: DomRefCell::new(DOMString::new()),
             checked_changed: Cell::new(false),
             maxlength: Cell::new(DEFAULT_MAX_LENGTH),
             minlength: Cell::new(DEFAULT_MIN_LENGTH),
             size: Cell::new(DEFAULT_INPUT_SIZE),
-            textinput: DomRefCell::new(TextInput::new(Single,
-                                                      DOMString::new(),
-                                                      chan,
-                                                      None,
-                                                      None,
-                                                      SelectionDirection::None)),
+            textinput: DomRefCell::new(TextInput::new(
+                Single,
+                DOMString::new(),
+                chan,
+                None,
+                None,
+                SelectionDirection::None,
+            )),
             activation_state: DomRefCell::new(InputActivationState::new()),
             value_dirty: Cell::new(false),
             filelist: MutNullableDom::new(None),
@@ -282,34 +301,46 @@ impl HTMLInputElement {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(local_name: LocalName,
-               prefix: Option<Prefix>,
-               document: &Document) -> DomRoot<HTMLInputElement> {
-        Node::reflect_node(Box::new(HTMLInputElement::new_inherited(local_name, prefix, document)),
-                           document,
-                           HTMLInputElementBinding::Wrap)
+    pub fn new(
+        local_name: LocalName,
+        prefix: Option<Prefix>,
+        document: &Document,
+    ) -> DomRoot<HTMLInputElement> {
+        Node::reflect_node(
+            Box::new(HTMLInputElement::new_inherited(
+                local_name, prefix, document,
+            )),
+            document,
+            HTMLInputElementBinding::Wrap,
+        )
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-input-value
     // https://html.spec.whatwg.org/multipage/#concept-input-apply
     fn value_mode(&self) -> ValueMode {
         match self.input_type() {
-            InputType::Submit | InputType::Reset | InputType::Button
-            | InputType::Image | InputType::Hidden => {
-                ValueMode::Default
-            },
+            InputType::Submit |
+            InputType::Reset |
+            InputType::Button |
+            InputType::Image |
+            InputType::Hidden => ValueMode::Default,
 
-            InputType::Checkbox | InputType::Radio => {
-                ValueMode::DefaultOn
-            },
+            InputType::Checkbox | InputType::Radio => ValueMode::DefaultOn,
 
-            InputType::Color | InputType::Date | InputType::DatetimeLocal
-            | InputType::Email | InputType::Month | InputType::Number
-            | InputType::Password | InputType::Range | InputType::Search
-            | InputType::Tel | InputType::Text | InputType::Time
-            | InputType::Url | InputType::Week => {
-                ValueMode::Value
-            }
+            InputType::Color |
+            InputType::Date |
+            InputType::DatetimeLocal |
+            InputType::Email |
+            InputType::Month |
+            InputType::Number |
+            InputType::Password |
+            InputType::Range |
+            InputType::Search |
+            InputType::Tel |
+            InputType::Text |
+            InputType::Time |
+            InputType::Url |
+            InputType::Week => ValueMode::Value,
 
             InputType::File => ValueMode::Filename,
         }
@@ -336,7 +367,10 @@ pub trait LayoutHTMLInputElementHelpers {
 
 #[allow(unsafe_code)]
 unsafe fn get_raw_textinput_value(input: LayoutDom<HTMLInputElement>) -> DOMString {
-    (*input.unsafe_get()).textinput.borrow_for_layout().get_content()
+    (*input.unsafe_get())
+        .textinput
+        .borrow_for_layout()
+        .get_content()
 }
 
 impl LayoutHTMLInputElementHelpers for LayoutDom<HTMLInputElement> {
@@ -397,27 +431,33 @@ impl LayoutHTMLInputElementHelpers for LayoutDom<HTMLInputElement> {
                 let sel = textinput.sorted_selection_offsets_range();
 
                 // Translate indices from the raw value to indices in the replacement value.
-                let char_start = text[.. sel.start].chars().count();
+                let char_start = text[..sel.start].chars().count();
                 let char_end = char_start + text[sel].chars().count();
 
                 let bytes_per_char = PASSWORD_REPLACEMENT_CHAR.len_utf8();
-                Some(char_start * bytes_per_char .. char_end * bytes_per_char)
-            }
-            input_type if input_type.is_textual() => Some(textinput.sorted_selection_offsets_range()),
-            _ => None
+                Some(char_start * bytes_per_char..char_end * bytes_per_char)
+            },
+            input_type if input_type.is_textual() => {
+                Some(textinput.sorted_selection_offsets_range())
+            },
+            _ => None,
         }
     }
 
     #[allow(unrooted_must_root)]
     #[allow(unsafe_code)]
     unsafe fn checked_state_for_layout(self) -> bool {
-        self.upcast::<Element>().get_state_for_layout().contains(ElementState::IN_CHECKED_STATE)
+        self.upcast::<Element>()
+            .get_state_for_layout()
+            .contains(ElementState::IN_CHECKED_STATE)
     }
 
     #[allow(unrooted_must_root)]
     #[allow(unsafe_code)]
     unsafe fn indeterminate_state_for_layout(self) -> bool {
-        self.upcast::<Element>().get_state_for_layout().contains(ElementState::IN_INDETERMINATE_STATE)
+        self.upcast::<Element>()
+            .get_state_for_layout()
+            .contains(ElementState::IN_INDETERMINATE_STATE)
     }
 }
 
@@ -425,12 +465,13 @@ impl TextControlElement for HTMLInputElement {
     // https://html.spec.whatwg.org/multipage/#concept-input-apply
     fn selection_api_applies(&self) -> bool {
         match self.input_type() {
-            InputType::Text | InputType::Search | InputType::Url
-            | InputType::Tel | InputType::Password => {
-                true
-            },
+            InputType::Text |
+            InputType::Search |
+            InputType::Url |
+            InputType::Tel |
+            InputType::Password => true,
 
-            _ => false
+            _ => false,
         }
     }
 
@@ -443,19 +484,29 @@ impl TextControlElement for HTMLInputElement {
     // rendered as a text control: file
     fn has_selectable_text(&self) -> bool {
         match self.input_type() {
-            InputType::Text | InputType::Search | InputType::Url
-            | InputType::Tel | InputType::Password | InputType::Email
-            | InputType::Date | InputType::Month | InputType::Week
-            | InputType::Time | InputType::DatetimeLocal | InputType::Number
-            | InputType::Color => {
-                true
-            }
+            InputType::Text |
+            InputType::Search |
+            InputType::Url |
+            InputType::Tel |
+            InputType::Password |
+            InputType::Email |
+            InputType::Date |
+            InputType::Month |
+            InputType::Week |
+            InputType::Time |
+            InputType::DatetimeLocal |
+            InputType::Number |
+            InputType::Color => true,
 
-            InputType::Button | InputType::Checkbox | InputType::File
-            | InputType::Hidden | InputType::Image | InputType::Radio
-            | InputType::Range | InputType::Reset | InputType::Submit => {
-                false
-            }
+            InputType::Button |
+            InputType::Checkbox |
+            InputType::File |
+            InputType::Hidden |
+            InputType::Image |
+            InputType::Radio |
+            InputType::Range |
+            InputType::Reset |
+            InputType::Submit => false,
         }
     }
 
@@ -510,7 +561,9 @@ impl HTMLInputElementMethods for HTMLInputElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-input-checked
     fn Checked(&self) -> bool {
-        self.upcast::<Element>().state().contains(ElementState::IN_CHECKED_STATE)
+        self.upcast::<Element>()
+            .state()
+            .contains(ElementState::IN_CHECKED_STATE)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-input-checked
@@ -542,18 +595,18 @@ impl HTMLInputElementMethods for HTMLInputElement {
     fn Value(&self) -> DOMString {
         match self.value_mode() {
             ValueMode::Value => self.textinput.borrow().get_content(),
-            ValueMode::Default => {
-                self.upcast::<Element>()
-                    .get_attribute(&ns!(), &local_name!("value"))
-                    .map_or(DOMString::from(""),
-                            |a| DOMString::from(a.summarize().value))
-            }
-            ValueMode::DefaultOn => {
-                self.upcast::<Element>()
-                    .get_attribute(&ns!(), &local_name!("value"))
-                    .map_or(DOMString::from("on"),
-                            |a| DOMString::from(a.summarize().value))
-            }
+            ValueMode::Default => self
+                .upcast::<Element>()
+                .get_attribute(&ns!(), &local_name!("value"))
+                .map_or(DOMString::from(""), |a| {
+                    DOMString::from(a.summarize().value)
+                }),
+            ValueMode::DefaultOn => self
+                .upcast::<Element>()
+                .get_attribute(&ns!(), &local_name!("value"))
+                .map_or(DOMString::from("on"), |a| {
+                    DOMString::from(a.summarize().value)
+                }),
             ValueMode::Filename => {
                 let mut path = DOMString::from("");
                 match self.filelist.get() {
@@ -562,12 +615,12 @@ impl HTMLInputElementMethods for HTMLInputElement {
                             path.push_str("C:\\fakepath\\");
                             path.push_str(f.name());
                             path
-                        }
+                        },
                         None => path,
                     },
                     None => path,
                 }
-            }
+            },
         }
     }
 
@@ -579,7 +632,7 @@ impl HTMLInputElementMethods for HTMLInputElement {
                 self.value_dirty.set(true);
 
                 // Step 4.
-                 self.sanitize_value(&mut value);
+                self.sanitize_value(&mut value);
 
                 let mut textinput = self.textinput.borrow_mut();
 
@@ -591,11 +644,11 @@ impl HTMLInputElementMethods for HTMLInputElement {
                     // Step 5.
                     textinput.clear_selection_to_limit(Direction::Forward);
                 }
-            }
-            ValueMode::Default |
-            ValueMode::DefaultOn => {
-                self.upcast::<Element>().set_string_attribute(&local_name!("value"), value);
-            }
+            },
+            ValueMode::Default | ValueMode::DefaultOn => {
+                self.upcast::<Element>()
+                    .set_string_attribute(&local_name!("value"), value);
+            },
             ValueMode::Filename => {
                 if value.is_empty() {
                     let window = window_from_node(self);
@@ -604,7 +657,7 @@ impl HTMLInputElementMethods for HTMLInputElement {
                 } else {
                     return Err(Error::InvalidState);
                 }
-            }
+            },
         }
 
         self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
@@ -636,10 +689,12 @@ impl HTMLInputElementMethods for HTMLInputElement {
     make_setter!(SetFormAction, "formaction");
 
     // https://html.spec.whatwg.org/multipage/#dom-input-formenctype
-    make_enumerated_getter!(FormEnctype,
-                            "formenctype",
-                            "application/x-www-form-urlencoded",
-                            "text/plain" | "multipart/form-data");
+    make_enumerated_getter!(
+        FormEnctype,
+        "formenctype",
+        "application/x-www-form-urlencoded",
+        "text/plain" | "multipart/form-data"
+    );
 
     // https://html.spec.whatwg.org/multipage/#dom-input-formenctype
     make_setter!(SetFormEnctype, "formenctype");
@@ -718,12 +773,15 @@ impl HTMLInputElementMethods for HTMLInputElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-input-indeterminate
     fn Indeterminate(&self) -> bool {
-        self.upcast::<Element>().state().contains(ElementState::IN_INDETERMINATE_STATE)
+        self.upcast::<Element>()
+            .state()
+            .contains(ElementState::IN_INDETERMINATE_STATE)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-input-indeterminate
     fn SetIndeterminate(&self, val: bool) {
-        self.upcast::<Element>().set_state(ElementState::IN_INDETERMINATE_STATE, val)
+        self.upcast::<Element>()
+            .set_state(ElementState::IN_INDETERMINATE_STATE, val)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-lfe-labels
@@ -778,13 +836,20 @@ impl HTMLInputElementMethods for HTMLInputElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea/input-setrangetext
     fn SetRangeText(&self, replacement: DOMString) -> ErrorResult {
-        self.selection().set_dom_range_text(replacement, None, None, Default::default())
+        self.selection()
+            .set_dom_range_text(replacement, None, None, Default::default())
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea/input-setrangetext
-    fn SetRangeText_(&self, replacement: DOMString, start: u32, end: u32,
-                     selection_mode: SelectionMode) -> ErrorResult {
-        self.selection().set_dom_range_text(replacement, Some(start), Some(end), selection_mode)
+    fn SetRangeText_(
+        &self,
+        replacement: DOMString,
+        start: u32,
+        end: u32,
+        selection_mode: SelectionMode,
+    ) -> ErrorResult {
+        self.selection()
+            .set_dom_range_text(replacement, Some(start), Some(end), selection_mode)
     }
 
     // Select the files based on filepaths passed in,
@@ -797,7 +862,6 @@ impl HTMLInputElementMethods for HTMLInputElement {
         }
     }
 }
-
 
 #[allow(unsafe_code)]
 fn broadcast_radio_checked(broadcaster: &HTMLInputElement, group: Option<&Atom>) {
@@ -815,11 +879,17 @@ fn broadcast_radio_checked(broadcaster: &HTMLInputElement, group: Option<&Atom>)
     let doc = document_from_node(broadcaster);
 
     // This function is a workaround for lifetime constraint difficulties.
-    fn do_broadcast(doc_node: &Node, broadcaster: &HTMLInputElement,
-                        owner: Option<&HTMLFormElement>, group: Option<&Atom>) {
-        let iter = doc_node.query_selector_iter(DOMString::from("input[type=radio]")).unwrap()
-                .filter_map(DomRoot::downcast::<HTMLInputElement>)
-                .filter(|r| in_same_group(&r, owner, group) && broadcaster != &**r);
+    fn do_broadcast(
+        doc_node: &Node,
+        broadcaster: &HTMLInputElement,
+        owner: Option<&HTMLFormElement>,
+        group: Option<&Atom>,
+    ) {
+        let iter = doc_node
+            .query_selector_iter(DOMString::from("input[type=radio]"))
+            .unwrap()
+            .filter_map(DomRoot::downcast::<HTMLInputElement>)
+            .filter(|r| in_same_group(&r, owner, group) && broadcaster != &**r);
         for ref r in iter {
             if r.Checked() {
                 r.SetChecked(false);
@@ -831,8 +901,11 @@ fn broadcast_radio_checked(broadcaster: &HTMLInputElement, group: Option<&Atom>)
 }
 
 // https://html.spec.whatwg.org/multipage/#radio-button-group
-fn in_same_group(other: &HTMLInputElement, owner: Option<&HTMLFormElement>,
-                 group: Option<&Atom>) -> bool {
+fn in_same_group(
+    other: &HTMLInputElement,
+    owner: Option<&HTMLFormElement>,
+    group: Option<&Atom>,
+) -> bool {
     other.input_type() == InputType::Radio &&
     // TODO Both a and b are in the same home subtree.
     other.form_owner().r() == owner &&
@@ -860,15 +933,15 @@ impl HTMLInputElement {
         // Step 3.4
         let name = self.Name();
         let is_submitter = match submitter {
-            Some(FormSubmitter::InputElement(s)) => {
-                self == s
-            },
-            _ => false
+            Some(FormSubmitter::InputElement(s)) => self == s,
+            _ => false,
         };
 
         match self.input_type() {
             // Step 3.1: it's a button but it is not submitter.
-            InputType::Submit | InputType::Button | InputType::Reset if !is_submitter => return vec![],
+            InputType::Submit | InputType::Button | InputType::Reset if !is_submitter => {
+                return vec![]
+            },
 
             // Step 3.1: it's the "Checkbox" or "Radio Button" and whose checkedness is false.
             InputType::Radio | InputType::Checkbox => if !self.Checked() || name.is_empty() {
@@ -890,7 +963,7 @@ impl HTMLInputElement {
                                 value: FormDatumValue::File(DomRoot::from_ref(&f)),
                             });
                         }
-                    }
+                    },
                     None => {
                         datums.push(FormDatum {
                             // XXX(izgzhen): Spec says 'application/octet-stream' as the type,
@@ -899,26 +972,25 @@ impl HTMLInputElement {
                             name: name.clone(),
                             value: FormDatumValue::String(DOMString::from("")),
                         })
-                    }
+                    },
                 }
 
                 return datums;
-            }
+            },
 
             InputType::Image => return vec![], // Unimplemented
 
             // Step 3.1: it's not the "Image Button" and doesn't have a name attribute.
             _ => if name.is_empty() {
                 return vec![];
-            }
-
+            },
         }
 
         // Step 3.9
         vec![FormDatum {
             ty: ty.clone(),
             name: name,
-            value: FormDatumValue::String(self.Value())
+            value: FormDatumValue::String(self.Value()),
         }]
     }
 
@@ -931,15 +1003,15 @@ impl HTMLInputElement {
     }
 
     fn update_checked_state(&self, checked: bool, dirty: bool) {
-        self.upcast::<Element>().set_state(ElementState::IN_CHECKED_STATE, checked);
+        self.upcast::<Element>()
+            .set_state(ElementState::IN_CHECKED_STATE, checked);
 
         if dirty {
             self.checked_changed.set(true);
         }
 
         if self.input_type() == InputType::Radio && checked {
-            broadcast_radio_checked(self,
-                                    self.radio_group_name().as_ref());
+            broadcast_radio_checked(self, self.radio_group_name().as_ref());
         }
 
         self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
@@ -961,7 +1033,7 @@ impl HTMLInputElement {
                 self.checked_changed.set(false);
             },
             InputType::Image => (),
-            _ => ()
+            _ => (),
         }
         self.textinput.borrow_mut().set_content(self.DefaultValue());
         self.value_dirty.set(false);
@@ -970,7 +1042,7 @@ impl HTMLInputElement {
 
     fn update_placeholder_shown_state(&self) {
         if !self.input_type().is_textual_or_password() {
-            return
+            return;
         }
 
         let has_placeholder = !self.placeholder.borrow().is_empty();
@@ -994,12 +1066,15 @@ impl HTMLInputElement {
         let target = self.upcast::<EventTarget>();
 
         if self.Multiple() {
-            let opt_test_paths = opt_test_paths.map(|paths| paths.iter().map(|p| p.to_string()).collect());
+            let opt_test_paths =
+                opt_test_paths.map(|paths| paths.iter().map(|p| p.to_string()).collect());
 
-            let (chan, recv) =
-                ipc::channel(self.global().time_profiler_chan().clone()).expect("Error initializing channel");
+            let (chan, recv) = ipc::channel(self.global().time_profiler_chan().clone())
+                .expect("Error initializing channel");
             let msg = FileManagerThreadMsg::SelectFiles(filter, chan, origin, opt_test_paths);
-            let _ = resource_threads.send(CoreResourceMsg::ToFileManager(msg)).unwrap();
+            let _ = resource_threads
+                .send(CoreResourceMsg::ToFileManager(msg))
+                .unwrap();
 
             match recv.recv().expect("IpcSender side error") {
                 Ok(selected_files) => {
@@ -1017,14 +1092,16 @@ impl HTMLInputElement {
                     } else {
                         Some(paths[0].to_string()) // neglect other paths
                     }
-                }
+                },
                 None => None,
             };
 
-            let (chan, recv) =
-                ipc::channel(self.global().time_profiler_chan().clone()).expect("Error initializing channel");
+            let (chan, recv) = ipc::channel(self.global().time_profiler_chan().clone())
+                .expect("Error initializing channel");
             let msg = FileManagerThreadMsg::SelectFile(filter, chan, origin, opt_test_path);
-            let _ = resource_threads.send(CoreResourceMsg::ToFileManager(msg)).unwrap();
+            let _ = resource_threads
+                .send(CoreResourceMsg::ToFileManager(msg))
+                .unwrap();
 
             match recv.recv().expect("IpcSender side error") {
                 Ok(selected) => {
@@ -1050,26 +1127,26 @@ impl HTMLInputElement {
         match self.input_type() {
             InputType::Text | InputType::Search | InputType::Tel | InputType::Password => {
                 value.strip_newlines();
-            }
+            },
             InputType::Url => {
                 value.strip_newlines();
                 value.strip_leading_and_trailing_ascii_whitespace();
-            }
+            },
             InputType::Date => {
                 if !value.is_valid_date_string() {
                     value.clear();
                 }
-            }
+            },
             InputType::Month => {
                 if !value.is_valid_month_string() {
                     value.clear();
                 }
-            }
+            },
             InputType::Week => {
                 if !value.is_valid_week_string() {
                     value.clear();
                 }
-            }
+            },
             InputType::Color => {
                 let is_valid = {
                     let mut chars = value.chars();
@@ -1085,27 +1162,30 @@ impl HTMLInputElement {
                 } else {
                     *value = "#000000".into();
                 }
-            }
+            },
             InputType::Time => {
                 if !value.is_valid_time_string() {
                     value.clear();
                 }
-            }
+            },
             InputType::DatetimeLocal => {
-                if value.convert_valid_normalized_local_date_and_time_string().is_err() {
+                if value
+                    .convert_valid_normalized_local_date_and_time_string()
+                    .is_err()
+                {
                     value.clear();
                 }
-            }
+            },
             InputType::Number => {
                 if !value.is_valid_floating_point_number_string() {
                     value.clear();
                 }
-            }
+            },
             // https://html.spec.whatwg.org/multipage/#range-state-(type=range):value-sanitization-algorithm
             InputType::Range => {
                 value.set_best_representation_of_the_floating_point_number();
-            }
-            _ => ()
+            },
+            _ => (),
         }
     }
 
@@ -1127,8 +1207,8 @@ impl VirtualMethods for HTMLInputElement {
                 let disabled_state = match mutation {
                     AttributeMutation::Set(None) => true,
                     AttributeMutation::Set(Some(_)) => {
-                       // Input was already disabled before.
-                       return;
+                        // Input was already disabled before.
+                        return;
                     },
                     AttributeMutation::Removed => false,
                 };
@@ -1146,19 +1226,17 @@ impl VirtualMethods for HTMLInputElement {
                 let checked_state = match mutation {
                     AttributeMutation::Set(None) => true,
                     AttributeMutation::Set(Some(_)) => {
-                       // Input was already checked before.
-                       return;
+                        // Input was already checked before.
+                        return;
                     },
                     AttributeMutation::Removed => false,
                 };
                 self.update_checked_state(checked_state, false);
             },
             &local_name!("size") => {
-                let size = mutation.new_value(attr).map(|value| {
-                    value.as_uint()
-                });
+                let size = mutation.new_value(attr).map(|value| value.as_uint());
                 self.size.set(size.unwrap_or(DEFAULT_INPUT_SIZE));
-            }
+            },
             &local_name!("type") => {
                 let el = self.upcast::<Element>();
                 match mutation {
@@ -1192,30 +1270,35 @@ impl VirtualMethods for HTMLInputElement {
                             (&ValueMode::Value, false, ValueMode::DefaultOn) => {
                                 self.SetValue(old_idl_value)
                                     .expect("Failed to set input value on type change to a default ValueMode.");
-                            }
+                            },
 
                             // Step 2
                             (_, _, ValueMode::Value) if old_value_mode != ValueMode::Value => {
-                                self.SetValue(self.upcast::<Element>()
-                                                  .get_attribute(&ns!(), &local_name!("value"))
-                                                  .map_or(DOMString::from(""),
-                                                          |a| DOMString::from(a.summarize().value)))
-                                    .expect("Failed to set input value on type change to ValueMode::Value.");
+                                self.SetValue(
+                                    self.upcast::<Element>()
+                                        .get_attribute(&ns!(), &local_name!("value"))
+                                        .map_or(DOMString::from(""), |a| {
+                                            DOMString::from(a.summarize().value)
+                                        }),
+                                ).expect(
+                                    "Failed to set input value on type change to ValueMode::Value.",
+                                );
                                 self.value_dirty.set(false);
-                            }
+                            },
 
                             // Step 3
-                            (_, _, ValueMode::Filename) if old_value_mode != ValueMode::Filename => {
+                            (_, _, ValueMode::Filename)
+                                if old_value_mode != ValueMode::Filename =>
+                            {
                                 self.SetValue(DOMString::from(""))
                                     .expect("Failed to set input value on type change to ValueMode::Filename.");
                             }
-                            _ => {}
+                            _ => {},
                         }
 
                         // Step 5
                         if new_type == InputType::Radio {
-                            self.radio_group_updated(
-                                self.radio_group_name().as_ref());
+                            self.radio_group_updated(self.radio_group_name().as_ref());
                         }
 
                         // Step 6
@@ -1231,16 +1314,14 @@ impl VirtualMethods for HTMLInputElement {
                     },
                     AttributeMutation::Removed => {
                         if self.input_type() == InputType::Radio {
-                            broadcast_radio_checked(
-                                self,
-                                self.radio_group_name().as_ref());
+                            broadcast_radio_checked(self, self.radio_group_name().as_ref());
                         }
                         self.input_type.set(InputType::default());
                         let el = self.upcast::<Element>();
 
                         let read_write = !(self.ReadOnly() || el.disabled_state());
                         el.set_read_write_state(read_write);
-                    }
+                    },
                 }
 
                 self.update_placeholder_shown_state();
@@ -1255,43 +1336,40 @@ impl VirtualMethods for HTMLInputElement {
             },
             &local_name!("name") if self.input_type() == InputType::Radio => {
                 self.radio_group_updated(
-                    mutation.new_value(attr).as_ref().map(|name| name.as_atom()));
+                    mutation.new_value(attr).as_ref().map(|name| name.as_atom()),
+                );
             },
-            &local_name!("maxlength") => {
-                match *attr.value() {
-                    AttrValue::Int(_, value) => {
-                        let mut textinput = self.textinput.borrow_mut();
+            &local_name!("maxlength") => match *attr.value() {
+                AttrValue::Int(_, value) => {
+                    let mut textinput = self.textinput.borrow_mut();
 
-                        if value < 0 {
-                            textinput.set_max_length(None);
-                        } else {
-                            textinput.set_max_length(Some(value as usize))
-                        }
-                    },
-                    _ => panic!("Expected an AttrValue::Int"),
-                }
+                    if value < 0 {
+                        textinput.set_max_length(None);
+                    } else {
+                        textinput.set_max_length(Some(value as usize))
+                    }
+                },
+                _ => panic!("Expected an AttrValue::Int"),
             },
-            &local_name!("minlength") => {
-                match *attr.value() {
-                    AttrValue::Int(_, value) => {
-                        let mut textinput = self.textinput.borrow_mut();
+            &local_name!("minlength") => match *attr.value() {
+                AttrValue::Int(_, value) => {
+                    let mut textinput = self.textinput.borrow_mut();
 
-                        if value < 0 {
-                            textinput.set_min_length(None);
-                        } else {
-                            textinput.set_min_length(Some(value as usize))
-                        }
-                    },
-                    _ => panic!("Expected an AttrValue::Int"),
-                }
+                    if value < 0 {
+                        textinput.set_min_length(None);
+                    } else {
+                        textinput.set_min_length(Some(value as usize))
+                    }
+                },
+                _ => panic!("Expected an AttrValue::Int"),
             },
             &local_name!("placeholder") => {
                 {
                     let mut placeholder = self.placeholder.borrow_mut();
                     placeholder.clear();
                     if let AttributeMutation::Set(_) = mutation {
-                        placeholder.extend(
-                            attr.value().chars().filter(|&c| c != '\n' && c != '\r'));
+                        placeholder
+                            .extend(attr.value().chars().filter(|&c| c != '\n' && c != '\r'));
                     }
                 }
                 self.update_placeholder_shown_state();
@@ -1304,7 +1382,7 @@ impl VirtualMethods for HTMLInputElement {
                     },
                     AttributeMutation::Removed => {
                         el.set_read_write_state(!el.disabled_state());
-                    }
+                    },
                 }
             },
             &local_name!("form") => {
@@ -1320,9 +1398,16 @@ impl VirtualMethods for HTMLInputElement {
             &local_name!("name") => AttrValue::from_atomic(value.into()),
             &local_name!("size") => AttrValue::from_limited_u32(value.into(), DEFAULT_INPUT_SIZE),
             &local_name!("type") => AttrValue::from_atomic(value.into()),
-            &local_name!("maxlength") => AttrValue::from_limited_i32(value.into(), DEFAULT_MAX_LENGTH),
-            &local_name!("minlength") => AttrValue::from_limited_i32(value.into(), DEFAULT_MIN_LENGTH),
-            _ => self.super_type().unwrap().parse_plain_attribute(name, value),
+            &local_name!("maxlength") => {
+                AttrValue::from_limited_i32(value.into(), DEFAULT_MAX_LENGTH)
+            },
+            &local_name!("minlength") => {
+                AttrValue::from_limited_i32(value.into(), DEFAULT_MIN_LENGTH)
+            },
+            _ => self
+                .super_type()
+                .unwrap()
+                .parse_plain_attribute(name, value),
         }
     }
 
@@ -1330,7 +1415,8 @@ impl VirtualMethods for HTMLInputElement {
         if let Some(ref s) = self.super_type() {
             s.bind_to_tree(tree_in_doc);
         }
-        self.upcast::<Element>().check_ancestors_disabled_state_for_form_control();
+        self.upcast::<Element>()
+            .check_ancestors_disabled_state_for_form_control();
     }
 
     fn unbind_from_tree(&self, context: &UnbindContext) {
@@ -1338,7 +1424,10 @@ impl VirtualMethods for HTMLInputElement {
 
         let node = self.upcast::<Node>();
         let el = self.upcast::<Element>();
-        if node.ancestors().any(|ancestor| ancestor.is::<HTMLFieldSetElement>()) {
+        if node
+            .ancestors()
+            .any(|ancestor| ancestor.is::<HTMLFieldSetElement>())
+        {
             el.check_ancestors_disabled_state_for_form_control();
         } else {
             el.check_disabled_attribute();
@@ -1359,64 +1448,72 @@ impl VirtualMethods for HTMLInputElement {
             document_from_node(self).request_focus(self.upcast());
             if self.input_type().is_textual_or_password() &&
                 // Check if we display a placeholder. Layout doesn't know about this.
-                !self.textinput.borrow().is_empty() {
-                    if let Some(mouse_event) = event.downcast::<MouseEvent>() {
-                        // dispatch_key_event (document.rs) triggers a click event when releasing
-                        // the space key. There's no nice way to catch this so let's use this for
-                        // now.
-                        if let Some(point_in_target) = mouse_event.point_in_target() {
-                            let window = window_from_node(self);
-                            let TextIndexResponse(index) = window.text_index_query(
-                                self.upcast::<Node>().to_trusted_node_address(),
-                                point_in_target
-                            );
-                            if let Some(i) = index {
-                                self.textinput.borrow_mut().set_edit_point_index(i as usize);
-                                // trigger redraw
-                                self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
-                                event.PreventDefault();
-                            }
+                !self.textinput.borrow().is_empty()
+            {
+                if let Some(mouse_event) = event.downcast::<MouseEvent>() {
+                    // dispatch_key_event (document.rs) triggers a click event when releasing
+                    // the space key. There's no nice way to catch this so let's use this for
+                    // now.
+                    if let Some(point_in_target) = mouse_event.point_in_target() {
+                        let window = window_from_node(self);
+                        let TextIndexResponse(index) = window.text_index_query(
+                            self.upcast::<Node>().to_trusted_node_address(),
+                            point_in_target,
+                        );
+                        if let Some(i) = index {
+                            self.textinput.borrow_mut().set_edit_point_index(i as usize);
+                            // trigger redraw
+                            self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
+                            event.PreventDefault();
                         }
                     }
-                }
-        } else if event.type_() == atom!("keydown") && !event.DefaultPrevented() &&
-            self.input_type().is_textual_or_password() {
-                if let Some(keyevent) = event.downcast::<KeyboardEvent>() {
-                    // This can't be inlined, as holding on to textinput.borrow_mut()
-                    // during self.implicit_submission will cause a panic.
-                    let action = self.textinput.borrow_mut().handle_keydown(keyevent);
-                    match action {
-                        TriggerDefaultAction => {
-                            self.implicit_submission(keyevent.CtrlKey(),
-                                                     keyevent.ShiftKey(),
-                                                     keyevent.AltKey(),
-                                                     keyevent.MetaKey());
-                        },
-                        DispatchInput => {
-                            self.value_dirty.set(true);
-                            self.update_placeholder_shown_state();
-                            self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
-                            event.mark_as_handled();
-                        }
-                        RedrawSelection => {
-                            self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
-                            event.mark_as_handled();
-                        }
-                        Nothing => (),
-                    }
-                }
-        } else if event.type_() == atom!("keypress") && !event.DefaultPrevented() &&
-            self.input_type().is_textual_or_password() {
-                if event.IsTrusted() {
-                    let window = window_from_node(self);
-                    let _ = window.user_interaction_task_source()
-                                  .queue_event(&self.upcast(),
-                                               atom!("input"),
-                                               EventBubbles::Bubbles,
-                                               EventCancelable::NotCancelable,
-                                               &window);
                 }
             }
+        } else if event.type_() == atom!("keydown") &&
+            !event.DefaultPrevented() &&
+            self.input_type().is_textual_or_password()
+        {
+            if let Some(keyevent) = event.downcast::<KeyboardEvent>() {
+                // This can't be inlined, as holding on to textinput.borrow_mut()
+                // during self.implicit_submission will cause a panic.
+                let action = self.textinput.borrow_mut().handle_keydown(keyevent);
+                match action {
+                    TriggerDefaultAction => {
+                        self.implicit_submission(
+                            keyevent.CtrlKey(),
+                            keyevent.ShiftKey(),
+                            keyevent.AltKey(),
+                            keyevent.MetaKey(),
+                        );
+                    },
+                    DispatchInput => {
+                        self.value_dirty.set(true);
+                        self.update_placeholder_shown_state();
+                        self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
+                        event.mark_as_handled();
+                    },
+                    RedrawSelection => {
+                        self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
+                        event.mark_as_handled();
+                    },
+                    Nothing => (),
+                }
+            }
+        } else if event.type_() == atom!("keypress") &&
+            !event.DefaultPrevented() &&
+            self.input_type().is_textual_or_password()
+        {
+            if event.IsTrusted() {
+                let window = window_from_node(self);
+                let _ = window.user_interaction_task_source().queue_event(
+                    &self.upcast(),
+                    atom!("input"),
+                    EventBubbles::Bubbles,
+                    EventCancelable::NotCancelable,
+                    &window,
+                );
+            }
+        }
     }
 }
 
@@ -1456,9 +1553,12 @@ impl Activatable for HTMLInputElement {
             // https://html.spec.whatwg.org/multipage/#reset-button-state-%28type=reset%29:activation-behaviour-2
             // https://html.spec.whatwg.org/multipage/#checkbox-state-%28type=checkbox%29:activation-behaviour-2
             // https://html.spec.whatwg.org/multipage/#radio-button-state-%28type=radio%29:activation-behaviour-2
-            InputType::Submit | InputType::Reset | InputType::File
-            | InputType::Checkbox | InputType::Radio => self.is_mutable(),
-            _ => false
+            InputType::Submit |
+            InputType::Reset |
+            InputType::File |
+            InputType::Checkbox |
+            InputType::Radio => self.is_mutable(),
+            _ => false,
         }
     }
 
@@ -1496,18 +1596,16 @@ impl Activatable for HTMLInputElement {
                     let group = self.radio_group_name();;
 
                     // Safe since we only manipulate the DOM tree after finding an element
-                    let checked_member = doc_node.query_selector_iter(DOMString::from("input[type=radio]"))
-                            .unwrap()
-                            .filter_map(DomRoot::downcast::<HTMLInputElement>)
-                            .find(|r| {
-                                in_same_group(&*r, owner.r(), group.as_ref()) &&
-                                r.Checked()
-                            });
+                    let checked_member = doc_node
+                        .query_selector_iter(DOMString::from("input[type=radio]"))
+                        .unwrap()
+                        .filter_map(DomRoot::downcast::<HTMLInputElement>)
+                        .find(|r| in_same_group(&*r, owner.r(), group.as_ref()) && r.Checked());
                     cache.checked_radio = checked_member.r().map(Dom::from_ref);
                     cache.checked_changed = self.checked_changed.get();
                     self.SetChecked(true);
-                }
-                _ => ()
+                },
+                _ => (),
             }
         }
     }
@@ -1516,7 +1614,7 @@ impl Activatable for HTMLInputElement {
     fn canceled_activation(&self) {
         let cache = self.activation_state.borrow();
         let ty = self.input_type();
-        if cache.old_type != ty  {
+        if cache.old_type != ty {
             // Type changed, abandon ship
             // https://www.w3.org/Bugs/Public/show_bug.cgi?id=27414
             return;
@@ -1543,18 +1641,22 @@ impl Activatable for HTMLInputElement {
                         Some(o) => {
                             // Avoiding iterating through the whole tree here, instead
                             // we can check if the conditions for radio group siblings apply
-                            if in_same_group(&o, self.form_owner().r(), self.radio_group_name().as_ref()) {
+                            if in_same_group(
+                                &o,
+                                self.form_owner().r(),
+                                self.radio_group_name().as_ref(),
+                            ) {
                                 o.SetChecked(true);
                             } else {
                                 self.SetChecked(false);
                             }
                         },
-                        None => self.SetChecked(false)
+                        None => self.SetChecked(false),
                     };
                     self.checked_changed.set(cache.checked_changed);
                 }
-            }
-            _ => ()
+            },
+            _ => (),
         }
     }
 
@@ -1572,17 +1674,17 @@ impl Activatable for HTMLInputElement {
                 // FIXME (Manishearth): support document owners (needs ability to get parent browsing context)
                 // Check if document owner is fully active
                 self.form_owner().map(|o| {
-                    o.submit(SubmittedFrom::NotFromForm,
-                             FormSubmitter::InputElement(self.clone()))
+                    o.submit(
+                        SubmittedFrom::NotFromForm,
+                        FormSubmitter::InputElement(self.clone()),
+                    )
                 });
             },
             InputType::Reset => {
                 // https://html.spec.whatwg.org/multipage/#reset-button-state-(type=reset):activation-behavior
                 // FIXME (Manishearth): support document owners (needs ability to get parent browsing context)
                 // Check if document owner is fully active
-                self.form_owner().map(|o| {
-                    o.reset(ResetFrom::NotFromForm)
-                });
+                self.form_owner().map(|o| o.reset(ResetFrom::NotFromForm));
             },
             InputType::Checkbox | InputType::Radio => {
                 // https://html.spec.whatwg.org/multipage/#checkbox-state-(type=checkbox):activation-behavior
@@ -1593,7 +1695,7 @@ impl Activatable for HTMLInputElement {
                 target.fire_bubbling_event(atom!("change"));
             },
             InputType::File => self.select_files(None),
-            _ => ()
+            _ => (),
         }
     }
 
@@ -1605,38 +1707,51 @@ impl Activatable for HTMLInputElement {
         let owner = self.form_owner();
         let form = match owner {
             None => return,
-            Some(ref f) => f
+            Some(ref f) => f,
         };
 
         if self.upcast::<Element>().click_in_progress() {
             return;
         }
         let submit_button;
-        submit_button = node.query_selector_iter(DOMString::from("input[type=submit]")).unwrap()
+        submit_button = node
+            .query_selector_iter(DOMString::from("input[type=submit]"))
+            .unwrap()
             .filter_map(DomRoot::downcast::<HTMLInputElement>)
             .find(|r| r.form_owner() == owner);
         match submit_button {
             Some(ref button) => {
                 if button.is_instance_activatable() {
-                    synthetic_click_activation(button.as_element(),
-                                               ctrl_key,
-                                               shift_key,
-                                               alt_key,
-                                               meta_key,
-                                               ActivationSource::NotFromClick)
+                    synthetic_click_activation(
+                        button.as_element(),
+                        ctrl_key,
+                        shift_key,
+                        alt_key,
+                        meta_key,
+                        ActivationSource::NotFromClick,
+                    )
                 }
-            }
+            },
             None => {
-                let inputs = node.query_selector_iter(DOMString::from("input")).unwrap()
+                let inputs = node
+                    .query_selector_iter(DOMString::from("input"))
+                    .unwrap()
                     .filter_map(DomRoot::downcast::<HTMLInputElement>)
                     .filter(|input| {
                         input.form_owner() == owner && match input.input_type() {
-                            InputType::Text | InputType::Search | InputType::Url | InputType::Tel
-                            | InputType::Email | InputType::Password | InputType::Date
-                            | InputType::Month | InputType::Week | InputType::Time
-                            | InputType::DatetimeLocal | InputType::Number
-                              => true,
-                            _ => false
+                            InputType::Text |
+                            InputType::Search |
+                            InputType::Url |
+                            InputType::Tel |
+                            InputType::Email |
+                            InputType::Password |
+                            InputType::Date |
+                            InputType::Month |
+                            InputType::Week |
+                            InputType::Time |
+                            InputType::DatetimeLocal |
+                            InputType::Number => true,
+                            _ => false,
                         }
                     });
 
@@ -1644,9 +1759,11 @@ impl Activatable for HTMLInputElement {
                     // lazily test for > 1 submission-blocking inputs
                     return;
                 }
-                form.submit(SubmittedFrom::NotFromForm,
-                            FormSubmitter::FormElement(&form));
-            }
+                form.submit(
+                    SubmittedFrom::NotFromForm,
+                    FormSubmitter::FormElement(&form),
+                );
+            },
         }
     }
 }

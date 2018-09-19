@@ -59,10 +59,11 @@ pub struct IterableIterator<T: DomObject + JSTraceable + Iterable> {
 
 impl<T: DomObject + JSTraceable + Iterable> IterableIterator<T> {
     /// Create a new iterator instance for the provided iterable DOM interface.
-    pub fn new(iterable: &T,
-               type_: IteratorType,
-               wrap: unsafe fn(*mut JSContext, &GlobalScope, Box<IterableIterator<T>>)
-                     -> DomRoot<Self>) -> DomRoot<Self> {
+    pub fn new(
+        iterable: &T,
+        type_: IteratorType,
+        wrap: unsafe fn(*mut JSContext, &GlobalScope, Box<IterableIterator<T>>) -> DomRoot<Self>,
+    ) -> DomRoot<Self> {
         let iterator = Box::new(IterableIterator {
             reflector: Reflector::new(),
             type_: type_,
@@ -84,37 +85,45 @@ impl<T: DomObject + JSTraceable + Iterable> IterableIterator<T> {
             match self.type_ {
                 IteratorType::Keys => {
                     unsafe {
-                        self.iterable.get_key_at_index(index).to_jsval(cx, value.handle_mut());
+                        self.iterable
+                            .get_key_at_index(index)
+                            .to_jsval(cx, value.handle_mut());
                     }
                     dict_return(cx, rval.handle_mut(), false, value.handle())
-                }
+                },
                 IteratorType::Values => {
                     unsafe {
-                        self.iterable.get_value_at_index(index).to_jsval(cx, value.handle_mut());
+                        self.iterable
+                            .get_value_at_index(index)
+                            .to_jsval(cx, value.handle_mut());
                     }
                     dict_return(cx, rval.handle_mut(), false, value.handle())
-                }
+                },
                 IteratorType::Entries => {
                     rooted!(in(cx) let mut key = UndefinedValue());
                     unsafe {
-                        self.iterable.get_key_at_index(index).to_jsval(cx, key.handle_mut());
-                        self.iterable.get_value_at_index(index).to_jsval(cx, value.handle_mut());
+                        self.iterable
+                            .get_key_at_index(index)
+                            .to_jsval(cx, key.handle_mut());
+                        self.iterable
+                            .get_value_at_index(index)
+                            .to_jsval(cx, value.handle_mut());
                     }
                     key_and_value_return(cx, rval.handle_mut(), key.handle(), value.handle())
-                }
+                },
             }
         };
         self.index.set(index + 1);
-        result.map(|_| {
-            NonNull::new(rval.get()).expect("got a null pointer")
-        })
+        result.map(|_| NonNull::new(rval.get()).expect("got a null pointer"))
     }
 }
 
-fn dict_return(cx: *mut JSContext,
-               mut result: MutableHandleObject,
-               done: bool,
-               value: HandleValue) -> Fallible<()> {
+fn dict_return(
+    cx: *mut JSContext,
+    mut result: MutableHandleObject,
+    done: bool,
+    value: HandleValue,
+) -> Fallible<()> {
     let mut dict = IterableKeyOrValueResult::empty();
     dict.done = done;
     dict.value.set(value.get());
@@ -126,16 +135,20 @@ fn dict_return(cx: *mut JSContext,
     Ok(())
 }
 
-fn key_and_value_return(cx: *mut JSContext,
-                        mut result: MutableHandleObject,
-                        key: HandleValue,
-                        value: HandleValue) -> Fallible<()> {
+fn key_and_value_return(
+    cx: *mut JSContext,
+    mut result: MutableHandleObject,
+    key: HandleValue,
+    value: HandleValue,
+) -> Fallible<()> {
     let mut dict = IterableKeyAndValueResult::empty();
     dict.done = false;
-    dict.value = Some(vec![key, value]
-        .into_iter()
-        .map(|handle| RootedTraceableBox::from_box(Heap::boxed(handle.get())))
-        .collect());
+    dict.value = Some(
+        vec![key, value]
+            .into_iter()
+            .map(|handle| RootedTraceableBox::from_box(Heap::boxed(handle.get())))
+            .collect(),
+    );
     rooted!(in(cx) let mut dict_value = UndefinedValue());
     unsafe {
         dict.to_jsval(cx, dict_value.handle_mut());

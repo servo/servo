@@ -33,24 +33,34 @@ impl Screen {
     }
 
     pub fn new(window: &Window) -> DomRoot<Screen> {
-        reflect_dom_object(Box::new(Screen::new_inherited(window)),
-                           window,
-                           ScreenBinding::Wrap)
+        reflect_dom_object(
+            Box::new(Screen::new_inherited(window)),
+            window,
+            ScreenBinding::Wrap,
+        )
     }
 
     fn screen_size(&self) -> TypedSize2D<u32, CSSPixel> {
-        let (send, recv) = ipc::channel::<DeviceUintSize>(self.global().time_profiler_chan().clone()).unwrap();
-        self.window.upcast::<GlobalScope>()
-            .script_to_constellation_chan().send(ScriptMsg::GetScreenSize(send)).unwrap();
+        let (send, recv) =
+            ipc::channel::<DeviceUintSize>(self.global().time_profiler_chan().clone()).unwrap();
+        self.window
+            .upcast::<GlobalScope>()
+            .script_to_constellation_chan()
+            .send(ScriptMsg::GetScreenSize(send))
+            .unwrap();
         let dpr = self.window.device_pixel_ratio();
         let screen = recv.recv().unwrap_or(TypedSize2D::zero());
         (screen.to_f32() / dpr).to_u32()
     }
 
     fn screen_avail_size(&self) -> TypedSize2D<u32, CSSPixel> {
-        let (send, recv) = ipc::channel::<DeviceUintSize>(self.global().time_profiler_chan().clone()).unwrap();
-        self.window.upcast::<GlobalScope>()
-            .script_to_constellation_chan().send(ScriptMsg::GetScreenAvailSize(send)).unwrap();
+        let (send, recv) =
+            ipc::channel::<DeviceUintSize>(self.global().time_profiler_chan().clone()).unwrap();
+        self.window
+            .upcast::<GlobalScope>()
+            .script_to_constellation_chan()
+            .send(ScriptMsg::GetScreenAvailSize(send))
+            .unwrap();
         let dpr = self.window.device_pixel_ratio();
         let screen = recv.recv().unwrap_or(TypedSize2D::zero());
         (screen.to_f32() / dpr).to_u32()

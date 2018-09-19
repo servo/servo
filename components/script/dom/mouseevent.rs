@@ -33,7 +33,7 @@ pub struct MouseEvent {
     meta_key: Cell<bool>,
     button: Cell<i16>,
     related_target: MutNullableDom<EventTarget>,
-    point_in_target: Cell<Option<Point2D<f32>>>
+    point_in_target: Cell<Option<Point2D<f32>>>,
 }
 
 impl MouseEvent {
@@ -55,9 +55,11 @@ impl MouseEvent {
     }
 
     pub fn new_uninitialized(window: &Window) -> DomRoot<MouseEvent> {
-        reflect_dom_object(Box::new(MouseEvent::new_inherited()),
-                           window,
-                           MouseEventBinding::Wrap)
+        reflect_dom_object(
+            Box::new(MouseEvent::new_inherited()),
+            window,
+            MouseEventBinding::Wrap,
+        )
     }
 
     pub fn new(
@@ -77,23 +79,35 @@ impl MouseEvent {
         meta_key: bool,
         button: i16,
         related_target: Option<&EventTarget>,
-        point_in_target: Option<Point2D<f32>>
+        point_in_target: Option<Point2D<f32>>,
     ) -> DomRoot<MouseEvent> {
         let ev = MouseEvent::new_uninitialized(window);
         ev.InitMouseEvent(
-            type_, bool::from(can_bubble), bool::from(cancelable),
-            view, detail,
-            screen_x, screen_y, client_x, client_y,
-            ctrl_key, alt_key, shift_key, meta_key,
-            button, related_target,
+            type_,
+            bool::from(can_bubble),
+            bool::from(cancelable),
+            view,
+            detail,
+            screen_x,
+            screen_y,
+            client_x,
+            client_y,
+            ctrl_key,
+            alt_key,
+            shift_key,
+            meta_key,
+            button,
+            related_target,
         );
         ev.point_in_target.set(point_in_target);
         ev
     }
 
-    pub fn Constructor(window: &Window,
-                       type_: DOMString,
-                       init: &MouseEventBinding::MouseEventInit) -> Fallible<DomRoot<MouseEvent>> {
+    pub fn Constructor(
+        window: &Window,
+        type_: DOMString,
+        init: &MouseEventBinding::MouseEventInit,
+    ) -> Fallible<DomRoot<MouseEvent>> {
         let bubbles = EventBubbles::from(init.parent.parent.parent.bubbles);
         let cancelable = EventCancelable::from(init.parent.parent.parent.cancelable);
         let event = MouseEvent::new(
@@ -103,10 +117,17 @@ impl MouseEvent {
             cancelable,
             init.parent.parent.view.r(),
             init.parent.parent.detail,
-            init.screenX, init.screenY,
-            init.clientX, init.clientY, init.parent.ctrlKey,
-            init.parent.altKey, init.parent.shiftKey, init.parent.metaKey,
-            init.button, init.relatedTarget.r(), None
+            init.screenX,
+            init.screenY,
+            init.clientX,
+            init.clientY,
+            init.parent.ctrlKey,
+            init.parent.altKey,
+            init.parent.shiftKey,
+            init.parent.metaKey,
+            init.button,
+            init.relatedTarget.r(),
+            None,
         );
         Ok(event)
     }
@@ -173,7 +194,11 @@ impl MouseEventMethods for MouseEvent {
     // This returns the same result as current gecko.
     // https://developer.mozilla.org/en-US/docs/Web/API/MouseEvent/which
     fn Which(&self) -> i32 {
-        if PREFS.get("dom.mouseevent.which.enabled").as_boolean().unwrap_or(false) {
+        if PREFS
+            .get("dom.mouseevent.which.enabled")
+            .as_boolean()
+            .unwrap_or(false)
+        {
             (self.button.get() + 1) as i32
         } else {
             0
@@ -203,8 +228,13 @@ impl MouseEventMethods for MouseEvent {
             return;
         }
 
-        self.upcast::<UIEvent>()
-            .InitUIEvent(type_arg, can_bubble_arg, cancelable_arg, view_arg, detail_arg);
+        self.upcast::<UIEvent>().InitUIEvent(
+            type_arg,
+            can_bubble_arg,
+            cancelable_arg,
+            view_arg,
+            detail_arg,
+        );
         self.screen_x.set(screen_x_arg);
         self.screen_y.set(screen_y_arg);
         self.client_x.set(client_x_arg);

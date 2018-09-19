@@ -23,46 +23,56 @@ pub struct StorageEvent {
     old_value: Option<DOMString>,
     new_value: Option<DOMString>,
     url: DOMString,
-    storage_area: MutNullableDom<Storage>
+    storage_area: MutNullableDom<Storage>,
 }
 
-
 impl StorageEvent {
-    pub fn new_inherited(key: Option<DOMString>,
-                         old_value: Option<DOMString>,
-                         new_value: Option<DOMString>,
-                         url: DOMString,
-                         storage_area: Option<&Storage>) -> StorageEvent {
+    pub fn new_inherited(
+        key: Option<DOMString>,
+        old_value: Option<DOMString>,
+        new_value: Option<DOMString>,
+        url: DOMString,
+        storage_area: Option<&Storage>,
+    ) -> StorageEvent {
         StorageEvent {
             event: Event::new_inherited(),
             key: key,
             old_value: old_value,
             new_value: new_value,
             url: url,
-            storage_area: MutNullableDom::new(storage_area)
+            storage_area: MutNullableDom::new(storage_area),
         }
     }
 
-    pub fn new_uninitialized(window: &Window,
-                             url: DOMString) -> DomRoot<StorageEvent> {
-        reflect_dom_object(Box::new(StorageEvent::new_inherited(None, None, None, url, None)),
-                           window,
-                           StorageEventBinding::Wrap)
+    pub fn new_uninitialized(window: &Window, url: DOMString) -> DomRoot<StorageEvent> {
+        reflect_dom_object(
+            Box::new(StorageEvent::new_inherited(None, None, None, url, None)),
+            window,
+            StorageEventBinding::Wrap,
+        )
     }
 
-    pub fn new(global: &Window,
-               type_: Atom,
-               bubbles: EventBubbles,
-               cancelable: EventCancelable,
-               key: Option<DOMString>,
-               oldValue: Option<DOMString>,
-               newValue: Option<DOMString>,
-               url: DOMString,
-               storageArea: Option<&Storage>) -> DomRoot<StorageEvent> {
+    pub fn new(
+        global: &Window,
+        type_: Atom,
+        bubbles: EventBubbles,
+        cancelable: EventCancelable,
+        key: Option<DOMString>,
+        oldValue: Option<DOMString>,
+        newValue: Option<DOMString>,
+        url: DOMString,
+        storageArea: Option<&Storage>,
+    ) -> DomRoot<StorageEvent> {
         let ev = reflect_dom_object(
-            Box::new(StorageEvent::new_inherited(key, oldValue, newValue, url, storageArea)),
+            Box::new(StorageEvent::new_inherited(
+                key,
+                oldValue,
+                newValue,
+                url,
+                storageArea,
+            )),
             global,
-            StorageEventBinding::Wrap
+            StorageEventBinding::Wrap,
         );
         {
             let event = ev.upcast::<Event>();
@@ -71,9 +81,11 @@ impl StorageEvent {
         ev
     }
 
-    pub fn Constructor(global: &Window,
-                       type_: DOMString,
-                       init: &StorageEventBinding::StorageEventInit) -> Fallible<DomRoot<StorageEvent>> {
+    pub fn Constructor(
+        global: &Window,
+        type_: DOMString,
+        init: &StorageEventBinding::StorageEventInit,
+    ) -> Fallible<DomRoot<StorageEvent>> {
         let key = init.key.clone();
         let oldValue = init.oldValue.clone();
         let newValue = init.newValue.clone();
@@ -81,10 +93,17 @@ impl StorageEvent {
         let storageArea = init.storageArea.r();
         let bubbles = EventBubbles::from(init.parent.bubbles);
         let cancelable = EventCancelable::from(init.parent.cancelable);
-        let event = StorageEvent::new(global, Atom::from(type_),
-                                      bubbles, cancelable,
-                                      key, oldValue, newValue,
-                                      url, storageArea);
+        let event = StorageEvent::new(
+            global,
+            Atom::from(type_),
+            bubbles,
+            cancelable,
+            key,
+            oldValue,
+            newValue,
+            url,
+            storageArea,
+        );
         Ok(event)
     }
 }

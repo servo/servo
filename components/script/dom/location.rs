@@ -25,22 +25,23 @@ impl Location {
     fn new_inherited(window: &Window) -> Location {
         Location {
             reflector_: Reflector::new(),
-            window: Dom::from_ref(window)
+            window: Dom::from_ref(window),
         }
     }
 
     pub fn new(window: &Window) -> DomRoot<Location> {
-        reflect_dom_object(Box::new(Location::new_inherited(window)),
-                           window,
-                           LocationBinding::Wrap)
+        reflect_dom_object(
+            Box::new(Location::new_inherited(window)),
+            window,
+            LocationBinding::Wrap,
+        )
     }
 
     fn get_url(&self) -> ServoUrl {
         self.window.get_url()
     }
 
-    fn set_url_component(&self, value: USVString,
-                         setter: fn(&mut ServoUrl, USVString)) {
+    fn set_url_component(&self, value: USVString, setter: fn(&mut ServoUrl, USVString)) {
         let mut url = self.window.get_url();
         setter(&mut url, value);
         self.window.load_url(url, false, false, None);
@@ -49,7 +50,10 @@ impl Location {
     fn check_same_origin_domain(&self) -> ErrorResult {
         let entry_document = GlobalScope::entry().as_window().Document();
         let this_document = self.window.Document();
-        if entry_document.origin().same_origin_domain(this_document.origin()) {
+        if entry_document
+            .origin()
+            .same_origin_domain(this_document.origin())
+        {
             Ok(())
         } else {
             Err(Error::Security)

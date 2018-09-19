@@ -17,7 +17,9 @@ pub struct OESElementIndexUint {
 
 impl OESElementIndexUint {
     fn new_inherited() -> Self {
-        Self { reflector_: Reflector::new() }
+        Self {
+            reflector_: Reflector::new(),
+        }
     }
 }
 

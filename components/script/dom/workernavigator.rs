@@ -28,9 +28,11 @@ impl WorkerNavigator {
     }
 
     pub fn new(global: &WorkerGlobalScope) -> DomRoot<WorkerNavigator> {
-        reflect_dom_object(Box::new(WorkerNavigator::new_inherited()),
-                           global,
-                           WorkerNavigatorBinding::Wrap)
+        reflect_dom_object(
+            Box::new(WorkerNavigator::new_inherited()),
+            global,
+            WorkerNavigatorBinding::Wrap,
+        )
     }
 }
 
@@ -77,6 +79,7 @@ impl WorkerNavigatorMethods for WorkerNavigator {
 
     // https://w3c.github.io/permissions/#navigator-and-workernavigator-extension
     fn Permissions(&self) -> DomRoot<Permissions> {
-        self.permissions.or_init(|| Permissions::new(&self.global()))
+        self.permissions
+            .or_init(|| Permissions::new(&self.global()))
     }
 }

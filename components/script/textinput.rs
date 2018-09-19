@@ -18,7 +18,7 @@ use unicode_segmentation::UnicodeSegmentation;
 #[derive(Clone, Copy, PartialEq)]
 pub enum Selection {
     Selected,
-    NotSelected
+    NotSelected,
 }
 
 #[derive(Clone, Copy, Debug, JSTraceable, MallocSizeOf, PartialEq)]
@@ -112,10 +112,7 @@ pub enum KeyReaction {
 
 impl Default for TextPoint {
     fn default() -> TextPoint {
-        TextPoint {
-            line: 0,
-            index: 0,
-        }
+        TextPoint { line: 0, index: 0 }
     }
 }
 
@@ -130,9 +127,8 @@ pub enum Lines {
 #[derive(Clone, Copy, Eq, PartialEq)]
 pub enum Direction {
     Forward,
-    Backward
+    Backward,
 }
-
 
 /// Was the keyboard event accompanied by the standard control modifier,
 /// i.e. cmd on Mac OS or ctrl on other platforms.
@@ -152,7 +148,7 @@ fn is_control_key(mods: KeyModifiers) -> bool {
 fn len_of_first_n_chars(text: &str, n: usize) -> usize {
     match text.char_indices().take(n).last() {
         Some((index, ch)) => index + ch.len_utf8(),
-        None => 0
+        None => 0,
     }
 }
 
@@ -174,12 +170,16 @@ fn len_of_first_n_code_units(text: &str, n: usize) -> usize {
 
 impl<T: ClipboardProvider> TextInput<T> {
     /// Instantiate a new text input control
-    pub fn new(lines: Lines, initial: DOMString,
-               clipboard_provider: T, max_length: Option<usize>,
-               min_length: Option<usize>,
-               selection_direction: SelectionDirection) -> TextInput<T> {
+    pub fn new(
+        lines: Lines,
+        initial: DOMString,
+        clipboard_provider: T,
+        max_length: Option<usize>,
+        min_length: Option<usize>,
+        selection_direction: SelectionDirection,
+    ) -> TextInput<T> {
         let mut i = TextInput {
-            lines: vec!(),
+            lines: vec![],
             edit_point: Default::default(),
             selection_origin: None,
             multiline: lines == Lines::Multiple,
@@ -243,7 +243,9 @@ impl<T: ClipboardProvider> TextInput<T> {
     /// or equal to selection_end(), regardless of the selection direction.
     pub fn selection_start(&self) -> TextPoint {
         match self.selection_direction {
-            SelectionDirection::None | SelectionDirection::Forward => self.selection_origin_or_edit_point(),
+            SelectionDirection::None | SelectionDirection::Forward => {
+                self.selection_origin_or_edit_point()
+            },
             SelectionDirection::Backward => self.edit_point,
         }
     }
@@ -283,7 +285,7 @@ impl<T: ClipboardProvider> TextInput<T> {
     ///
     /// If there is no selection, returns an empty range at the edit point.
     pub fn sorted_selection_offsets_range(&self) -> Range<usize> {
-        self.selection_start_offset() .. self.selection_end_offset()
+        self.selection_start_offset()..self.selection_end_offset()
     }
 
     /// The state of the current selection. Can be used to compare whether selection state has changed.
@@ -306,9 +308,7 @@ impl<T: ClipboardProvider> TextInput<T> {
                     debug_assert!(begin <= self.edit_point)
                 },
 
-                SelectionDirection::Backward => {
-                    debug_assert!(self.edit_point <= begin)
-                },
+                SelectionDirection::Backward => debug_assert!(self.edit_point <= begin),
             }
         }
 
@@ -319,15 +319,16 @@ impl<T: ClipboardProvider> TextInput<T> {
     pub fn get_selection_text(&self) -> Option<String> {
         let text = self.fold_selection_slices(String::new(), |s, slice| s.push_str(slice));
         if text.is_empty() {
-            return None
+            return None;
         }
         Some(text)
     }
 
     /// The length of the selected text in UTF-16 code units.
     fn selection_utf16_len(&self) -> usize {
-        self.fold_selection_slices(0usize,
-            |len, slice| *len += slice.chars().map(char::len_utf16).sum::<usize>())
+        self.fold_selection_slices(0usize, |len, slice| {
+            *len += slice.chars().map(char::len_utf16).sum::<usize>()
+        })
     }
 
     /// Run the callback on a series of slices that, concatenated, make up the selected text.
@@ -341,7 +342,7 @@ impl<T: ClipboardProvider> TextInput<T> {
                 f(&mut acc, &self.lines[start.line][start.index..end.index])
             } else {
                 f(&mut acc, &self.lines[start.line][start.index..]);
-                for line in &self.lines[start.line + 1 .. end.line] {
+                for line in &self.lines[start.line + 1..end.line] {
                     f(&mut acc, "\n");
                     f(&mut acc, line);
                 }
@@ -355,7 +356,7 @@ impl<T: ClipboardProvider> TextInput<T> {
 
     pub fn replace_selection(&mut self, insert: DOMString) {
         if !self.has_selection() {
-            return
+            return;
         }
 
         let (start, end) = self.sorted_selection_bounds();
@@ -365,7 +366,7 @@ impl<T: ClipboardProvider> TextInput<T> {
             if len_after_selection_replaced >= max_length {
                 // If, after deleting the selection, the len is still greater than the max
                 // length, then don't delete/insert anything
-                return
+                return;
             }
 
             max_length - len_after_selection_replaced
@@ -385,9 +386,12 @@ impl<T: ClipboardProvider> TextInput<T> {
             let lines_suffix = &self.lines[end.line + 1..];
 
             let mut insert_lines = if self.multiline {
-                chars_to_insert.split('\n').map(|s| DOMString::from(s)).collect()
+                chars_to_insert
+                    .split('\n')
+                    .map(|s| DOMString::from(s))
+                    .collect()
             } else {
-                vec!(DOMString::from(chars_to_insert))
+                vec![DOMString::from(chars_to_insert)]
             };
 
             // FIXME(ajeffrey): effecient append for DOMStrings
@@ -403,7 +407,7 @@ impl<T: ClipboardProvider> TextInput<T> {
             // FIXME(ajeffrey): effecient append for DOMStrings
             insert_lines[last_insert_lines_index].push_str(suffix);
 
-            let mut new_lines = vec!();
+            let mut new_lines = vec![];
             new_lines.extend_from_slice(lines_prefix);
             new_lines.extend_from_slice(&insert_lines);
             new_lines.extend_from_slice(lines_suffix);
@@ -448,7 +452,9 @@ impl<T: ClipboardProvider> TextInput<T> {
             return;
         }
 
-        let col = self.lines[self.edit_point.line][..self.edit_point.index].chars().count();
+        let col = self.lines[self.edit_point.line][..self.edit_point.index]
+            .chars()
+            .count();
         self.edit_point.line = target_line as usize;
         self.edit_point.index = len_of_first_n_chars(&self.lines[self.edit_point.line], col);
         self.assert_ok_selection();
@@ -458,16 +464,20 @@ impl<T: ClipboardProvider> TextInput<T> {
     /// requested is larger than is available in the current line, the editing point is
     /// adjusted vertically and the process repeats with the remaining adjustment requested.
     pub fn adjust_horizontal(&mut self, adjust: isize, select: Selection) {
-        let direction = if adjust >= 0 { Direction::Forward } else { Direction::Backward };
+        let direction = if adjust >= 0 {
+            Direction::Forward
+        } else {
+            Direction::Backward
+        };
         if self.adjust_selection_for_horizontal_change(direction, select) {
-            return
+            return;
         }
         self.perform_horizontal_adjustment(adjust, select);
     }
 
     pub fn adjust_horizontal_by_one(&mut self, direction: Direction, select: Selection) {
         if self.adjust_selection_for_horizontal_change(direction, select) {
-            return
+            return;
         }
         let adjust = {
             let current_line = &self.lines[self.edit_point.line];
@@ -475,23 +485,29 @@ impl<T: ClipboardProvider> TextInput<T> {
                 Direction::Forward => {
                     match current_line[self.edit_point.index..].graphemes(true).next() {
                         Some(c) => c.len() as isize,
-                        None => 1,  // Going to the next line is a "one byte" offset
+                        None => 1, // Going to the next line is a "one byte" offset
                     }
-                }
+                },
                 Direction::Backward => {
-                    match current_line[..self.edit_point.index].graphemes(true).next_back() {
+                    match current_line[..self.edit_point.index]
+                        .graphemes(true)
+                        .next_back()
+                    {
                         Some(c) => -(c.len() as isize),
-                        None => -1,  // Going to the previous line is a "one byte" offset
+                        None => -1, // Going to the previous line is a "one byte" offset
                     }
-                }
+                },
             }
         };
         self.perform_horizontal_adjustment(adjust, select);
     }
 
     /// Return whether to cancel the caret move
-    fn adjust_selection_for_horizontal_change(&mut self, adjust: Direction, select: Selection)
-                                              -> bool {
+    fn adjust_selection_for_horizontal_change(
+        &mut self,
+        adjust: Direction,
+        select: Selection,
+    ) -> bool {
         if select == Selection::Selected {
             if self.selection_origin.is_none() {
                 self.selection_origin = Some(self.edit_point);
@@ -508,7 +524,7 @@ impl<T: ClipboardProvider> TextInput<T> {
                     Direction::Forward => self.selection_end(),
                 };
                 self.clear_selection();
-                return true
+                return true;
             }
         }
         false
@@ -532,8 +548,10 @@ impl<T: ClipboardProvider> TextInput<T> {
                 // one shift is consumed by the change of line, hence the -1
                 self.adjust_horizontal(adjust - remaining as isize - 1, select);
             } else {
-                self.edit_point.index = min(self.current_line_length(),
-                                            self.edit_point.index + adjust as usize);
+                self.edit_point.index = min(
+                    self.current_line_length(),
+                    self.edit_point.index + adjust as usize,
+                );
             }
         }
         self.assert_ok_selection();
@@ -551,10 +569,7 @@ impl<T: ClipboardProvider> TextInput<T> {
 
     /// Select all text in the input control.
     pub fn select_all(&mut self) {
-        self.selection_origin = Some(TextPoint {
-            line: 0,
-            index: 0,
-        });
+        self.selection_origin = Some(TextPoint { line: 0, index: 0 });
         let last_line = self.lines.len() - 1;
         self.edit_point.line = last_line;
         self.edit_point.index = self.lines[last_line].len();
@@ -575,9 +590,9 @@ impl<T: ClipboardProvider> TextInput<T> {
 
     pub fn adjust_horizontal_by_word(&mut self, direction: Direction, select: Selection) {
         if self.adjust_selection_for_horizontal_change(direction, select) {
-            return
+            return;
         }
-        let shift_increment: isize =  {
+        let shift_increment: isize = {
             let input: &str;
             match direction {
                 Direction::Backward => {
@@ -585,13 +600,10 @@ impl<T: ClipboardProvider> TextInput<T> {
                     let current_line = self.edit_point.line;
                     let mut newline_adjustment = 0;
                     if remaining == 0 && current_line > 0 {
-                        input = &self
-                            .lines[current_line-1];
+                        input = &self.lines[current_line - 1];
                         newline_adjustment = 1;
                     } else {
-                        input = &self
-                            .lines[current_line]
-                            [..remaining];
+                        input = &self.lines[current_line][..remaining];
                     }
 
                     let mut iter = input.split_word_bounds().rev();
@@ -600,27 +612,24 @@ impl<T: ClipboardProvider> TextInput<T> {
                         match iter.next() {
                             None => break,
                             Some(x) => {
-                                shift_temp += - (x.len() as isize);
+                                shift_temp += -(x.len() as isize);
                                 if x.chars().any(|x| x.is_alphabetic() || x.is_numeric()) {
                                     break;
                                 }
-                            }
+                            },
                         }
                     }
                     shift_temp - newline_adjustment
-                }
+                },
                 Direction::Forward => {
                     let remaining = self.current_line_length() - self.edit_point.index;
                     let current_line = self.edit_point.line;
                     let mut newline_adjustment = 0;
                     if remaining == 0 && self.lines.len() > self.edit_point.line + 1 {
-                        input = &self
-                            .lines[current_line + 1];
+                        input = &self.lines[current_line + 1];
                         newline_adjustment = 1;
                     } else {
-                        input = &self
-                            .lines[current_line]
-                            [self.edit_point.index..];
+                        input = &self.lines[current_line][self.edit_point.index..];
                     }
 
                     let mut iter = input.split_word_bounds();
@@ -633,11 +642,11 @@ impl<T: ClipboardProvider> TextInput<T> {
                                 if x.chars().any(|x| x.is_alphabetic() || x.is_numeric()) {
                                     break;
                                 }
-                            }
+                            },
                         }
                     }
                     shift_temp + newline_adjustment
-                }
+                },
             }
         };
 
@@ -646,17 +655,13 @@ impl<T: ClipboardProvider> TextInput<T> {
 
     pub fn adjust_horizontal_to_line_end(&mut self, direction: Direction, select: Selection) {
         if self.adjust_selection_for_horizontal_change(direction, select) {
-            return
+            return;
         }
         let shift: isize = {
             let current_line = &self.lines[self.edit_point.line];
             match direction {
-                Direction::Backward => {
-                    - (current_line[..self.edit_point.index].len() as isize)
-                },
-                Direction::Forward => {
-                    current_line[self.edit_point.index..].len() as isize
-                }
+                Direction::Backward => -(current_line[..self.edit_point.index].len() as isize),
+                Direction::Forward => current_line[self.edit_point.index..].len() as isize,
             }
         };
         self.perform_horizontal_adjustment(shift, select);
@@ -664,7 +669,7 @@ impl<T: ClipboardProvider> TextInput<T> {
 
     pub fn adjust_horizontal_to_limit(&mut self, direction: Direction, select: Selection) {
         if self.adjust_selection_for_horizontal_change(direction, select) {
-            return
+            return;
         }
         match direction {
             Direction::Backward => {
@@ -674,7 +679,7 @@ impl<T: ClipboardProvider> TextInput<T> {
             Direction::Forward => {
                 self.edit_point.line = &self.lines.len() - 1;
                 self.edit_point.index = (&self.lines[&self.lines.len() - 1]).len();
-            }
+            },
         }
     }
 
@@ -687,14 +692,16 @@ impl<T: ClipboardProvider> TextInput<T> {
         }
     }
 
-    pub fn handle_keydown_aux(&mut self,
-                              printable: Option<char>,
-                              key: Key,
-                              mods: KeyModifiers) -> KeyReaction {
+    pub fn handle_keydown_aux(
+        &mut self,
+        printable: Option<char>,
+        key: Key,
+        mods: KeyModifiers,
+    ) -> KeyReaction {
         let maybe_select = if mods.contains(KeyModifiers::SHIFT) {
-                Selection::Selected
-            } else {
-                Selection::NotSelected
+            Selection::Selected
+        } else {
+            Selection::NotSelected
         };
 
         match (printable, key) {
@@ -715,15 +722,17 @@ impl<T: ClipboardProvider> TextInput<T> {
                 KeyReaction::RedrawSelection
             },
             #[cfg(target_os = "macos")]
-            (None, Key::A) if mods == KeyModifiers::CONTROL => {
+            (None, Key::A) if mods == KeyModifiers::CONTROL =>
+            {
                 self.adjust_horizontal_to_line_end(Direction::Backward, maybe_select);
                 KeyReaction::RedrawSelection
-            },
+            }
             #[cfg(target_os = "macos")]
-            (None, Key::E) if mods == KeyModifiers::CONTROL => {
+            (None, Key::E) if mods == KeyModifiers::CONTROL =>
+            {
                 self.adjust_horizontal_to_line_end(Direction::Forward, maybe_select);
                 KeyReaction::RedrawSelection
-            },
+            }
             (_, Key::A) if is_control_key(mods) => {
                 self.select_all();
                 KeyReaction::RedrawSelection
@@ -752,25 +761,29 @@ impl<T: ClipboardProvider> TextInput<T> {
                 KeyReaction::DispatchInput
             },
             #[cfg(target_os = "macos")]
-            (None, Key::Left) if mods.contains(KeyModifiers::SUPER) => {
+            (None, Key::Left) if mods.contains(KeyModifiers::SUPER) =>
+            {
                 self.adjust_horizontal_to_line_end(Direction::Backward, maybe_select);
                 KeyReaction::RedrawSelection
-            },
+            }
             #[cfg(target_os = "macos")]
-            (None, Key::Right) if mods.contains(KeyModifiers::SUPER) => {
+            (None, Key::Right) if mods.contains(KeyModifiers::SUPER) =>
+            {
                 self.adjust_horizontal_to_line_end(Direction::Forward, maybe_select);
                 KeyReaction::RedrawSelection
-            },
+            }
             #[cfg(target_os = "macos")]
-            (None, Key::Up) if mods.contains(KeyModifiers::SUPER) => {
+            (None, Key::Up) if mods.contains(KeyModifiers::SUPER) =>
+            {
                 self.adjust_horizontal_to_limit(Direction::Backward, maybe_select);
                 KeyReaction::RedrawSelection
-            },
+            }
             #[cfg(target_os = "macos")]
-            (None, Key::Down) if mods.contains(KeyModifiers::SUPER) => {
+            (None, Key::Down) if mods.contains(KeyModifiers::SUPER) =>
+            {
                 self.adjust_horizontal_to_limit(Direction::Forward, maybe_select);
                 KeyReaction::RedrawSelection
-            },
+            }
             (None, Key::Left) if mods.contains(KeyModifiers::ALT) => {
                 self.adjust_horizontal_by_word(Direction::Backward, maybe_select);
                 KeyReaction::RedrawSelection
@@ -872,12 +885,13 @@ impl<T: ClipboardProvider> TextInput<T> {
     pub fn set_content(&mut self, content: DOMString) {
         self.lines = if self.multiline {
             // https://html.spec.whatwg.org/multipage/#textarea-line-break-normalisation-transformation
-            content.replace("\r\n", "\n")
-                   .split(|c| c == '\n' || c == '\r')
-                   .map(DOMString::from)
-                   .collect()
+            content
+                .replace("\r\n", "\n")
+                .split(|c| c == '\n' || c == '\r')
+                .map(DOMString::from)
+                .collect()
         } else {
-            vec!(content)
+            vec![content]
         };
 
         self.edit_point = self.edit_point.constrain_to(&self.lines);
@@ -919,7 +933,8 @@ impl<T: ClipboardProvider> TextInput<T> {
         });
 
         TextPoint {
-            line: line, index: index
+            line: line,
+            index: index,
         }
     }
 
@@ -938,15 +953,14 @@ impl<T: ClipboardProvider> TextInput<T> {
         self.selection_direction = direction;
 
         match direction {
-            SelectionDirection::None |
-            SelectionDirection::Forward => {
+            SelectionDirection::None | SelectionDirection::Forward => {
                 self.selection_origin = Some(self.offset_to_text_point(start));
                 self.edit_point = self.offset_to_text_point(end);
             },
             SelectionDirection::Backward => {
                 self.selection_origin = Some(self.offset_to_text_point(end));
                 self.edit_point = self.offset_to_text_point(start);
-            }
+            },
         }
         self.assert_ok_selection();
     }

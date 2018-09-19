@@ -12,25 +12,32 @@ use html5ever::{LocalName, Prefix};
 
 #[dom_struct]
 pub struct HTMLParagraphElement {
-    htmlelement: HTMLElement
+    htmlelement: HTMLElement,
 }
 
 impl HTMLParagraphElement {
-    fn new_inherited(local_name: LocalName,
-                     prefix: Option<Prefix>,
-                     document: &Document) -> HTMLParagraphElement {
+    fn new_inherited(
+        local_name: LocalName,
+        prefix: Option<Prefix>,
+        document: &Document,
+    ) -> HTMLParagraphElement {
         HTMLParagraphElement {
-            htmlelement:
-                HTMLElement::new_inherited(local_name, prefix, document)
+            htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(local_name: LocalName,
-               prefix: Option<Prefix>,
-               document: &Document) -> DomRoot<HTMLParagraphElement> {
-        Node::reflect_node(Box::new(HTMLParagraphElement::new_inherited(local_name, prefix, document)),
-                           document,
-                           HTMLParagraphElementBinding::Wrap)
+    pub fn new(
+        local_name: LocalName,
+        prefix: Option<Prefix>,
+        document: &Document,
+    ) -> DomRoot<HTMLParagraphElement> {
+        Node::reflect_node(
+            Box::new(HTMLParagraphElement::new_inherited(
+                local_name, prefix, document,
+            )),
+            document,
+            HTMLParagraphElementBinding::Wrap,
+        )
     }
 }

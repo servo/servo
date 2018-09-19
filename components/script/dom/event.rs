@@ -65,23 +65,25 @@ impl Event {
     }
 
     pub fn new_uninitialized(global: &GlobalScope) -> DomRoot<Event> {
-        reflect_dom_object(Box::new(Event::new_inherited()),
-                           global,
-                           EventBinding::Wrap)
+        reflect_dom_object(Box::new(Event::new_inherited()), global, EventBinding::Wrap)
     }
 
-    pub fn new(global: &GlobalScope,
-               type_: Atom,
-               bubbles: EventBubbles,
-               cancelable: EventCancelable) -> DomRoot<Event> {
+    pub fn new(
+        global: &GlobalScope,
+        type_: Atom,
+        bubbles: EventBubbles,
+        cancelable: EventCancelable,
+    ) -> DomRoot<Event> {
         let event = Event::new_uninitialized(global);
         event.init_event(type_, bool::from(bubbles), bool::from(cancelable));
         event
     }
 
-    pub fn Constructor(global: &GlobalScope,
-                       type_: DOMString,
-                       init: &EventBinding::EventInit) -> Fallible<DomRoot<Event>> {
+    pub fn Constructor(
+        global: &GlobalScope,
+        type_: DOMString,
+        init: &EventBinding::EventInit,
+    ) -> Fallible<DomRoot<Event>> {
         let bubbles = EventBubbles::from(init.bubbles);
         let cancelable = EventCancelable::from(init.cancelable);
         Ok(Event::new(global, Atom::from(type_), bubbles, cancelable))
@@ -110,7 +112,9 @@ impl Event {
         // https://dom.spec.whatwg.org/#event-listener-removed
         let mut event_path = self.construct_event_path(&target);
         event_path.push(DomRoot::from_ref(target));
-        event_path.iter().any(|target| target.has_listeners_for(type_))
+        event_path
+            .iter()
+            .any(|target| target.has_listeners_for(type_))
     }
 
     // https://dom.spec.whatwg.org/#event-path
@@ -122,8 +126,10 @@ impl Event {
             for ancestor in target_node.ancestors() {
                 event_path.push(DomRoot::from_ref(ancestor.upcast::<EventTarget>()));
             }
-            let top_most_ancestor_or_target =
-                event_path.last().cloned().unwrap_or(DomRoot::from_ref(target));
+            let top_most_ancestor_or_target = event_path
+                .last()
+                .cloned()
+                .unwrap_or(DomRoot::from_ref(target));
             if let Some(document) = DomRoot::downcast::<Document>(top_most_ancestor_or_target) {
                 if self.type_() != atom!("load") && document.browsing_context().is_some() {
                     event_path.push(DomRoot::from_ref(document.window().upcast()));
@@ -134,10 +140,11 @@ impl Event {
     }
 
     // https://dom.spec.whatwg.org/#concept-event-dispatch
-    pub fn dispatch(&self,
-                    target: &EventTarget,
-                    target_override: Option<&EventTarget>)
-                    -> EventStatus {
+    pub fn dispatch(
+        &self,
+        target: &EventTarget,
+        target_override: Option<&EventTarget>,
+    ) -> EventStatus {
         assert!(!self.dispatching());
         assert!(self.initialized());
         assert_eq!(self.phase.get(), EventPhase::None);
@@ -184,7 +191,7 @@ impl Event {
     pub fn status(&self) -> EventStatus {
         match self.DefaultPrevented() {
             true => EventStatus::Canceled,
-            false => EventStatus::NotCanceled
+            false => EventStatus::NotCanceled,
         }
     }
 
@@ -296,11 +303,8 @@ impl EventMethods for Event {
     }
 
     // https://dom.spec.whatwg.org/#dom-event-initevent
-    fn InitEvent(&self,
-                 type_: DOMString,
-                 bubbles: bool,
-                 cancelable: bool) {
-         self.init_event(Atom::from(type_), bubbles, cancelable)
+    fn InitEvent(&self, type_: DOMString, bubbles: bool, cancelable: bool) {
+        self.init_event(Atom::from(type_), bubbles, cancelable)
     }
 
     // https://dom.spec.whatwg.org/#dom-event-istrusted
@@ -312,14 +316,14 @@ impl EventMethods for Event {
 #[derive(Clone, Copy, MallocSizeOf, PartialEq)]
 pub enum EventBubbles {
     Bubbles,
-    DoesNotBubble
+    DoesNotBubble,
 }
 
 impl From<bool> for EventBubbles {
     fn from(boolean: bool) -> Self {
         match boolean {
             true => EventBubbles::Bubbles,
-            false => EventBubbles::DoesNotBubble
+            false => EventBubbles::DoesNotBubble,
         }
     }
 }
@@ -328,7 +332,7 @@ impl From<EventBubbles> for bool {
     fn from(bubbles: EventBubbles) -> Self {
         match bubbles {
             EventBubbles::Bubbles => true,
-            EventBubbles::DoesNotBubble => false
+            EventBubbles::DoesNotBubble => false,
         }
     }
 }
@@ -336,14 +340,14 @@ impl From<EventBubbles> for bool {
 #[derive(Clone, Copy, MallocSizeOf, PartialEq)]
 pub enum EventCancelable {
     Cancelable,
-    NotCancelable
+    NotCancelable,
 }
 
 impl From<bool> for EventCancelable {
     fn from(boolean: bool) -> Self {
         match boolean {
             true => EventCancelable::Cancelable,
-            false => EventCancelable::NotCancelable
+            false => EventCancelable::NotCancelable,
         }
     }
 }
@@ -352,7 +356,7 @@ impl From<EventCancelable> for bool {
     fn from(bubbles: EventCancelable) -> Self {
         match bubbles {
             EventCancelable::Cancelable => true,
-            EventCancelable::NotCancelable => false
+            EventCancelable::NotCancelable => false,
         }
     }
 }
@@ -361,10 +365,10 @@ impl From<EventCancelable> for bool {
 #[repr(u16)]
 #[derive(MallocSizeOf)]
 pub enum EventPhase {
-    None      = EventConstants::NONE,
+    None = EventConstants::NONE,
     Capturing = EventConstants::CAPTURING_PHASE,
-    AtTarget  = EventConstants::AT_TARGET,
-    Bubbling  = EventConstants::BUBBLING_PHASE,
+    AtTarget = EventConstants::AT_TARGET,
+    Bubbling = EventConstants::BUBBLING_PHASE,
 }
 
 /// An enum to indicate whether the default action of an event is allowed.
@@ -392,7 +396,7 @@ pub enum EventDefault {
 #[derive(PartialEq)]
 pub enum EventStatus {
     Canceled,
-    NotCanceled
+    NotCanceled,
 }
 
 // https://dom.spec.whatwg.org/#concept-event-fire
@@ -483,10 +487,12 @@ fn dispatch_to_listeners(event: &Event, target: &EventTarget, event_path: &[&Eve
 }
 
 // https://dom.spec.whatwg.org/#concept-event-listener-invoke
-fn invoke(window: Option<&Window>,
-          object: &EventTarget,
-          event: &Event,
-          specific_listener_phase: Option<ListenerPhase>) {
+fn invoke(
+    window: Option<&Window>,
+    object: &EventTarget,
+    event: &Event,
+    specific_listener_phase: Option<ListenerPhase>,
+) {
     // Step 1.
     assert!(!event.stop_propagation.get());
 
@@ -503,11 +509,12 @@ fn invoke(window: Option<&Window>,
 }
 
 // https://dom.spec.whatwg.org/#concept-event-listener-inner-invoke
-fn inner_invoke(window: Option<&Window>,
-                object: &EventTarget,
-                event: &Event,
-                listeners: &[CompiledEventListener])
-                -> bool {
+fn inner_invoke(
+    window: Option<&Window>,
+    object: &EventTarget,
+    event: &Event,
+    listeners: &[CompiledEventListener],
+) -> bool {
     // Step 1.
     let mut found = false;
 

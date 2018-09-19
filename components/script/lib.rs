@@ -8,14 +8,14 @@
 #![feature(drain_filter)]
 #![feature(plugin)]
 #![feature(try_from)]
-
 #![deny(unsafe_code)]
 #![allow(non_snake_case)]
-
 #![doc = "The script crate contains all matters DOM."]
-
 #![plugin(script_plugins)]
-#![cfg_attr(not(feature = "unrooted_must_root_lint"), allow(unknown_lints))]
+#![cfg_attr(
+    not(feature = "unrooted_must_root_lint"),
+    allow(unknown_lints)
+)]
 
 extern crate app_units;
 extern crate audio_video_metadata;
@@ -28,20 +28,24 @@ extern crate canvas_traits;
 extern crate caseless;
 extern crate chrono;
 extern crate cookie as cookie_rs;
-#[macro_use] extern crate cssparser;
-#[macro_use] extern crate deny_public_fields;
+#[macro_use]
+extern crate cssparser;
+#[macro_use]
+extern crate deny_public_fields;
 extern crate devtools_traits;
 extern crate dom_struct;
 #[macro_use]
 extern crate domobject_derive;
 extern crate embedder_traits;
 extern crate encoding_rs;
-#[macro_use] extern crate enum_iterator;
+#[macro_use]
+extern crate enum_iterator;
 extern crate euclid;
 extern crate fnv;
 extern crate gleam;
 extern crate half;
-#[macro_use] extern crate html5ever;
+#[macro_use]
+extern crate html5ever;
 #[macro_use]
 extern crate hyper;
 extern crate hyper_serde;
@@ -54,8 +58,10 @@ extern crate lazy_static;
 extern crate libc;
 #[macro_use]
 extern crate log;
-#[macro_use] extern crate malloc_size_of;
-#[macro_use] extern crate malloc_size_of_derive;
+#[macro_use]
+extern crate malloc_size_of;
+#[macro_use]
+extern crate malloc_size_of_derive;
 extern crate metrics;
 #[macro_use]
 extern crate mime;
@@ -82,8 +88,10 @@ extern crate serde;
 extern crate serde_bytes;
 extern crate servo_allocator;
 extern crate servo_arc;
-#[macro_use] extern crate servo_atoms;
-#[macro_use] extern crate servo_channel;
+#[macro_use]
+extern crate servo_atoms;
+#[macro_use]
+extern crate servo_channel;
 extern crate servo_config;
 extern crate servo_geometry;
 extern crate servo_media;
@@ -180,7 +188,7 @@ fn perform_platform_specific_initialization() {
                         } else {
                             MAX_FILE_LIMIT
                         }
-                    }
+                    },
                 };
                 match libc::setrlimit(libc::RLIMIT_NOFILE, &rlim) {
                     0 => (),

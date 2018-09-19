@@ -29,11 +29,7 @@ impl fmt::Debug for DOMManipulationTaskSource {
 impl TaskSource for DOMManipulationTaskSource {
     const NAME: TaskSourceName = TaskSourceName::DOMManipulation;
 
-    fn queue_with_canceller<T>(
-        &self,
-        task: T,
-        canceller: &TaskCanceller,
-    ) -> Result<(), ()>
+    fn queue_with_canceller<T>(&self, task: T, canceller: &TaskCanceller) -> Result<(), ()>
     where
         T: TaskOnce + 'static,
     {
@@ -48,12 +44,14 @@ impl TaskSource for DOMManipulationTaskSource {
 }
 
 impl DOMManipulationTaskSource {
-    pub fn queue_event(&self,
-                       target: &EventTarget,
-                       name: Atom,
-                       bubbles: EventBubbles,
-                       cancelable: EventCancelable,
-                       window: &Window) {
+    pub fn queue_event(
+        &self,
+        target: &EventTarget,
+        name: Atom,
+        bubbles: EventBubbles,
+        cancelable: EventCancelable,
+        window: &Window,
+    ) {
         let target = Trusted::new(target);
         let task = EventTask {
             target: target,

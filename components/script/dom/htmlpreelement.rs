@@ -16,21 +16,26 @@ pub struct HTMLPreElement {
 }
 
 impl HTMLPreElement {
-    fn new_inherited(local_name: LocalName,
-                     prefix: Option<Prefix>,
-                     document: &Document) -> HTMLPreElement {
+    fn new_inherited(
+        local_name: LocalName,
+        prefix: Option<Prefix>,
+        document: &Document,
+    ) -> HTMLPreElement {
         HTMLPreElement {
-            htmlelement:
-                HTMLElement::new_inherited(local_name, prefix, document)
+            htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(local_name: LocalName,
-               prefix: Option<Prefix>,
-               document: &Document) -> DomRoot<HTMLPreElement> {
-        Node::reflect_node(Box::new(HTMLPreElement::new_inherited(local_name, prefix, document)),
-                           document,
-                           HTMLPreElementBinding::Wrap)
+    pub fn new(
+        local_name: LocalName,
+        prefix: Option<Prefix>,
+        document: &Document,
+    ) -> DomRoot<HTMLPreElement> {
+        Node::reflect_node(
+            Box::new(HTMLPreElement::new_inherited(local_name, prefix, document)),
+            document,
+            HTMLPreElementBinding::Wrap,
+        )
     }
 }

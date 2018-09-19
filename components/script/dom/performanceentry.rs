@@ -21,10 +21,12 @@ pub struct PerformanceEntry {
 }
 
 impl PerformanceEntry {
-    pub fn new_inherited(name: DOMString,
-                         entry_type: DOMString,
-                         start_time: f64,
-                         duration: f64) -> PerformanceEntry {
+    pub fn new_inherited(
+        name: DOMString,
+        entry_type: DOMString,
+        start_time: f64,
+        duration: f64,
+    ) -> PerformanceEntry {
         PerformanceEntry {
             reflector_: Reflector::new(),
             name,
@@ -35,11 +37,13 @@ impl PerformanceEntry {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(global: &GlobalScope,
-               name: DOMString,
-               entry_type: DOMString,
-               start_time: f64,
-               duration: f64) -> DomRoot<PerformanceEntry> {
+    pub fn new(
+        global: &GlobalScope,
+        name: DOMString,
+        entry_type: DOMString,
+        start_time: f64,
+        duration: f64,
+    ) -> DomRoot<PerformanceEntry> {
         let entry = PerformanceEntry::new_inherited(name, entry_type, start_time, duration);
         reflect_dom_object(Box::new(entry), global, PerformanceEntryBinding::Wrap)
     }

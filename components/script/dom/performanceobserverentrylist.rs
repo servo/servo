@@ -28,27 +28,42 @@ impl PerformanceObserverEntryList {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(global: &GlobalScope, entries: PerformanceEntryList)
-        -> DomRoot<PerformanceObserverEntryList> {
+    pub fn new(
+        global: &GlobalScope,
+        entries: PerformanceEntryList,
+    ) -> DomRoot<PerformanceObserverEntryList> {
         let observer_entry_list = PerformanceObserverEntryList::new_inherited(entries);
-        reflect_dom_object(Box::new(observer_entry_list), global, PerformanceObserverEntryListBinding::Wrap)
+        reflect_dom_object(
+            Box::new(observer_entry_list),
+            global,
+            PerformanceObserverEntryListBinding::Wrap,
+        )
     }
 }
 
 impl PerformanceObserverEntryListMethods for PerformanceObserverEntryList {
     // https://w3c.github.io/performance-timeline/#dom-performanceobserver
     fn GetEntries(&self) -> Vec<DomRoot<PerformanceEntry>> {
-        self.entries.borrow().get_entries_by_name_and_type(None, None)
+        self.entries
+            .borrow()
+            .get_entries_by_name_and_type(None, None)
     }
 
     // https://w3c.github.io/performance-timeline/#dom-performanceobserver
     fn GetEntriesByType(&self, entry_type: DOMString) -> Vec<DomRoot<PerformanceEntry>> {
-        self.entries.borrow().get_entries_by_name_and_type(None, Some(entry_type))
+        self.entries
+            .borrow()
+            .get_entries_by_name_and_type(None, Some(entry_type))
     }
 
     // https://w3c.github.io/performance-timeline/#dom-performanceobserver
-    fn GetEntriesByName(&self, name: DOMString, entry_type: Option<DOMString>)
-        -> Vec<DomRoot<PerformanceEntry>> {
-        self.entries.borrow().get_entries_by_name_and_type(Some(name), entry_type)
+    fn GetEntriesByName(
+        &self,
+        name: DOMString,
+        entry_type: Option<DOMString>,
+    ) -> Vec<DomRoot<PerformanceEntry>> {
+        self.entries
+            .borrow()
+            .get_entries_by_name_and_type(Some(name), entry_type)
     }
 }

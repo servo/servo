@@ -36,16 +36,18 @@ pub struct CSSStyleDeclaration {
 #[must_root]
 pub enum CSSStyleOwner {
     Element(Dom<Element>),
-    CSSRule(Dom<CSSRule>,
-            #[ignore_malloc_size_of = "Arc"]
-            Arc<Locked<PropertyDeclarationBlock>>),
+    CSSRule(
+        Dom<CSSRule>,
+        #[ignore_malloc_size_of = "Arc"] Arc<Locked<PropertyDeclarationBlock>>,
+    ),
 }
 
 impl CSSStyleOwner {
     // Mutate the declaration block associated to this style owner, and
     // optionally indicate if it has changed (assumed to be true).
     fn mutate_associated_block<F, R>(&self, f: F) -> R
-        where F: FnOnce(&mut PropertyDeclarationBlock, &mut bool) -> R,
+    where
+        F: FnOnce(&mut PropertyDeclarationBlock, &mut bool) -> R,
     {
         // TODO(emilio): This has some duplication just to avoid dummy clones.
         //
@@ -87,9 +89,10 @@ impl CSSStyleOwner {
                         let guard = shared_lock.read();
                         let mut serialization = String::new();
                         pdb.read_with(&guard).to_css(&mut serialization).unwrap();
-                        el.set_attribute(&local_name!("style"),
-                                         AttrValue::Declaration(serialization,
-                                                                pdb));
+                        el.set_attribute(
+                            &local_name!("style"),
+                            AttrValue::Declaration(serialization, pdb),
+                        );
                     }
                 } else {
                     // Remember to put it back.
@@ -97,7 +100,7 @@ impl CSSStyleOwner {
                 }
 
                 result
-            }
+            },
             CSSStyleOwner::CSSRule(ref rule, ref pdb) => {
                 let result = {
                     let mut guard = rule.shared_lock().write();
@@ -106,34 +109,36 @@ impl CSSStyleOwner {
                 if changed {
                     // If this is changed, see also
                     // CSSStyleRule::SetSelectorText, which does the same thing.
-                    rule.global().as_window().Document().invalidate_stylesheets();
+                    rule.global()
+                        .as_window()
+                        .Document()
+                        .invalidate_stylesheets();
                 }
                 result
-            }
+            },
         }
     }
 
     fn with_block<F, R>(&self, f: F) -> R
-        where F: FnOnce(&PropertyDeclarationBlock) -> R,
+    where
+        F: FnOnce(&PropertyDeclarationBlock) -> R,
     {
         match *self {
-            CSSStyleOwner::Element(ref el) => {
-                match *el.style_attribute().borrow() {
-                    Some(ref pdb) => {
-                        let document = document_from_node(&**el);
-                        let guard = document.style_shared_lock().read();
-                        f(pdb.read_with(&guard))
-                    }
-                    None => {
-                        let pdb = PropertyDeclarationBlock::new();
-                        f(&pdb)
-                    }
-                }
-            }
+            CSSStyleOwner::Element(ref el) => match *el.style_attribute().borrow() {
+                Some(ref pdb) => {
+                    let document = document_from_node(&**el);
+                    let guard = document.style_shared_lock().read();
+                    f(pdb.read_with(&guard))
+                },
+                None => {
+                    let pdb = PropertyDeclarationBlock::new();
+                    f(&pdb)
+                },
+            },
             CSSStyleOwner::CSSRule(ref rule, ref pdb) => {
                 let guard = rule.shared_lock().read();
                 f(pdb.read_with(&guard))
-            }
+            },
         }
     }
 
@@ -147,9 +152,12 @@ impl CSSStyleOwner {
     fn base_url(&self) -> ServoUrl {
         match *self {
             CSSStyleOwner::Element(ref el) => window_from_node(&**el).Document().base_url(),
-            CSSStyleOwner::CSSRule(ref rule, _) => {
-                (*rule.parent_stylesheet().style_stylesheet().contents.url_data.read()).clone()
-            }
+            CSSStyleOwner::CSSRule(ref rule, _) => (*rule
+                .parent_stylesheet()
+                .style_stylesheet()
+                .contents
+                .url_data
+                .read()).clone(),
         }
     }
 }
@@ -181,10 +189,7 @@ macro_rules! css_properties(
     );
 );
 
-fn remove_property(
-    decls: &mut PropertyDeclarationBlock,
-    id: &PropertyId,
-) -> bool {
+fn remove_property(decls: &mut PropertyDeclarationBlock, id: &PropertyId) -> bool {
     let first_declaration = decls.first_declaration_to_remove(id);
     let first_declaration = match first_declaration {
         Some(i) => i,
@@ -196,10 +201,11 @@ fn remove_property(
 
 impl CSSStyleDeclaration {
     #[allow(unrooted_must_root)]
-    pub fn new_inherited(owner: CSSStyleOwner,
-                         pseudo: Option<PseudoElement>,
-                         modification_access: CSSModificationAccess)
-                         -> CSSStyleDeclaration {
+    pub fn new_inherited(
+        owner: CSSStyleOwner,
+        pseudo: Option<PseudoElement>,
+        modification_access: CSSModificationAccess,
+    ) -> CSSStyleDeclaration {
         CSSStyleDeclaration {
             reflector_: Reflector::new(),
             owner: owner,
@@ -209,22 +215,28 @@ impl CSSStyleDeclaration {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(global: &Window,
-               owner: CSSStyleOwner,
-               pseudo: Option<PseudoElement>,
-               modification_access: CSSModificationAccess)
-               -> DomRoot<CSSStyleDeclaration> {
+    pub fn new(
+        global: &Window,
+        owner: CSSStyleOwner,
+        pseudo: Option<PseudoElement>,
+        modification_access: CSSModificationAccess,
+    ) -> DomRoot<CSSStyleDeclaration> {
         reflect_dom_object(
-            Box::new(CSSStyleDeclaration::new_inherited(owner, pseudo, modification_access)),
+            Box::new(CSSStyleDeclaration::new_inherited(
+                owner,
+                pseudo,
+                modification_access,
+            )),
             global,
-            CSSStyleDeclarationBinding::Wrap
+            CSSStyleDeclarationBinding::Wrap,
         )
     }
 
     fn get_computed_style(&self, property: PropertyId) -> DOMString {
         match self.owner {
-            CSSStyleOwner::CSSRule(..) =>
-                panic!("get_computed_style called on CSSStyleDeclaration with a CSSRule owner"),
+            CSSStyleOwner::CSSRule(..) => {
+                panic!("get_computed_style called on CSSStyleDeclaration with a CSSRule owner")
+            },
             CSSStyleOwner::Element(ref el) => {
                 let node = el.upcast::<Node>();
                 if !node.is_in_doc() {
@@ -234,7 +246,7 @@ impl CSSStyleDeclaration {
                 }
                 let addr = node.to_trusted_node_address();
                 window_from_node(node).resolved_style_query(addr, self.pseudo.clone(), property)
-            }
+            },
         }
     }
 
@@ -277,7 +289,7 @@ impl CSSStyleDeclaration {
                 _ => {
                     *changed = false;
                     return Ok(());
-                }
+                },
             };
 
             // Step 5
@@ -300,12 +312,11 @@ impl CSSStyleDeclaration {
                 Err(_) => {
                     *changed = false;
                     return Ok(());
-                }
+                },
             }
 
             let mut updates = Default::default();
-            *changed =
-                pdb.prepare_for_update(&declarations, importance, &mut updates);
+            *changed = pdb.prepare_for_update(&declarations, importance, &mut updates);
 
             if !*changed {
                 return Ok(());
@@ -323,9 +334,7 @@ impl CSSStyleDeclaration {
 impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
     // https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-length
     fn Length(&self) -> u32 {
-        self.owner.with_block(|pdb| {
-            pdb.declarations().len() as u32
-        })
+        self.owner.with_block(|pdb| pdb.declarations().len() as u32)
     }
 
     // https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-item
@@ -360,11 +369,12 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
     }
 
     // https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-setproperty
-    fn SetProperty(&self,
-                   property: DOMString,
-                   value: DOMString,
-                   priority: DOMString)
-                   -> ErrorResult {
+    fn SetProperty(
+        &self,
+        property: DOMString,
+        value: DOMString,
+        priority: DOMString,
+    ) -> ErrorResult {
         // Step 3
         let id = match PropertyId::parse_enabled_for_all_content(&property) {
             Ok(id) => id,
@@ -444,10 +454,12 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
         let quirks_mode = window.Document().quirks_mode();
         self.owner.mutate_associated_block(|pdb, _changed| {
             // Step 3
-            *pdb = parse_style_attribute(&value,
-                                         &self.owner.base_url(),
-                                         window.css_error_reporter(),
-                                         quirks_mode);
+            *pdb = parse_style_attribute(
+                &value,
+                &self.owner.base_url(),
+                window.css_error_reporter(),
+                quirks_mode,
+            );
         });
 
         Ok(())

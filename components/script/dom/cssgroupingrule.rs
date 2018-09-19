@@ -25,8 +25,10 @@ pub struct CSSGroupingRule {
 }
 
 impl CSSGroupingRule {
-    pub fn new_inherited(parent_stylesheet: &CSSStyleSheet,
-                         rules: Arc<Locked<StyleCssRules>>) -> CSSGroupingRule {
+    pub fn new_inherited(
+        parent_stylesheet: &CSSStyleSheet,
+        rules: Arc<Locked<StyleCssRules>>,
+    ) -> CSSGroupingRule {
         CSSGroupingRule {
             cssrule: CSSRule::new_inherited(parent_stylesheet),
             rules: rules,
@@ -36,9 +38,13 @@ impl CSSGroupingRule {
 
     fn rulelist(&self) -> DomRoot<CSSRuleList> {
         let parent_stylesheet = self.upcast::<CSSRule>().parent_stylesheet();
-        self.rulelist.or_init(|| CSSRuleList::new(self.global().as_window(),
-                                                  parent_stylesheet,
-                                                  RulesSource::Rules(self.rules.clone())))
+        self.rulelist.or_init(|| {
+            CSSRuleList::new(
+                self.global().as_window(),
+                parent_stylesheet,
+                RulesSource::Rules(self.rules.clone()),
+            )
+        })
     }
 
     pub fn parent_stylesheet(&self) -> &CSSStyleSheet {

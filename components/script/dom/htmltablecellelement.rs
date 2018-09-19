@@ -28,10 +28,11 @@ pub struct HTMLTableCellElement {
 }
 
 impl HTMLTableCellElement {
-    pub fn new_inherited(tag_name: LocalName,
-                         prefix: Option<Prefix>,
-                         document: &Document)
-                         -> HTMLTableCellElement {
+    pub fn new_inherited(
+        tag_name: LocalName,
+        prefix: Option<Prefix>,
+        document: &Document,
+    ) -> HTMLTableCellElement {
         HTMLTableCellElement {
             htmlelement: HTMLElement::new_inherited(tag_name, prefix, document),
         }
@@ -74,12 +75,12 @@ impl HTMLTableCellElementMethods for HTMLTableCellElement {
             _ => return -1,
         };
 
-        parent_children.filter(|c| c.is::<HTMLTableCellElement>())
-                       .position(|c| &*c == self_node)
-                       .map_or(-1, |p| p as i32)
+        parent_children
+            .filter(|c| c.is::<HTMLTableCellElement>())
+            .position(|c| &*c == self_node)
+            .map_or(-1, |p| p as i32)
     }
 }
-
 
 pub trait HTMLTableCellElementLayoutHelpers {
     fn get_background_color(&self) -> Option<RGBA>;
@@ -142,7 +143,7 @@ impl VirtualMethods for HTMLTableCellElement {
                     }
                 }
                 attr
-            }
+            },
             local_name!("rowspan") => {
                 let mut attr = AttrValue::from_u32(value.into(), DEFAULT_ROWSPAN);
                 if let AttrValue::UInt(ref mut s, ref mut val) = attr {
@@ -157,10 +158,13 @@ impl VirtualMethods for HTMLTableCellElement {
                     }
                 }
                 attr
-            }
+            },
             local_name!("bgcolor") => AttrValue::from_legacy_color(value.into()),
             local_name!("width") => AttrValue::from_nonzero_dimension(value.into()),
-            _ => self.super_type().unwrap().parse_plain_attribute(local_name, value),
+            _ => self
+                .super_type()
+                .unwrap()
+                .parse_plain_attribute(local_name, value),
         }
     }
 }

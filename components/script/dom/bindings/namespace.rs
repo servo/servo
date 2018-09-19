@@ -30,13 +30,14 @@ impl NamespaceObjectClass {
 
 /// Create a new namespace object.
 pub unsafe fn create_namespace_object(
-        cx: *mut JSContext,
-        global: HandleObject,
-        proto: HandleObject,
-        class: &'static NamespaceObjectClass,
-        methods: &[Guard<&'static [JSFunctionSpec]>],
-        name: &[u8],
-        rval: MutableHandleObject) {
+    cx: *mut JSContext,
+    global: HandleObject,
+    proto: HandleObject,
+    class: &'static NamespaceObjectClass,
+    methods: &[Guard<&'static [JSFunctionSpec]>],
+    name: &[u8],
+    rval: MutableHandleObject,
+) {
     create_object(cx, proto, &class.0, methods, &[], &[], rval);
     define_on_global_object(cx, global, name, rval.handle());
 }

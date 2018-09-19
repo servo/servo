@@ -58,35 +58,54 @@ pub struct PerformanceEntryList {
 
 impl PerformanceEntryList {
     pub fn new(entries: DOMPerformanceEntryList) -> Self {
-        PerformanceEntryList {
-            entries,
-        }
+        PerformanceEntryList { entries }
     }
 
-    pub fn get_entries_by_name_and_type(&self, name: Option<DOMString>, entry_type: Option<DOMString>)
-        -> Vec<DomRoot<PerformanceEntry>> {
-        let mut res = self.entries.iter().filter(|e|
-            name.as_ref().map_or(true, |name_| *e.name() == *name_) &&
-            entry_type.as_ref().map_or(true, |type_| *e.entry_type() == *type_)
-        ).map(|e| e.clone()).collect::<Vec<DomRoot<PerformanceEntry>>>();
-        res.sort_by(|a, b| a.start_time().partial_cmp(&b.start_time()).unwrap_or(Ordering::Equal));
+    pub fn get_entries_by_name_and_type(
+        &self,
+        name: Option<DOMString>,
+        entry_type: Option<DOMString>,
+    ) -> Vec<DomRoot<PerformanceEntry>> {
+        let mut res = self
+            .entries
+            .iter()
+            .filter(|e| {
+                name.as_ref().map_or(true, |name_| *e.name() == *name_) && entry_type
+                    .as_ref()
+                    .map_or(true, |type_| *e.entry_type() == *type_)
+            }).map(|e| e.clone())
+            .collect::<Vec<DomRoot<PerformanceEntry>>>();
+        res.sort_by(|a, b| {
+            a.start_time()
+                .partial_cmp(&b.start_time())
+                .unwrap_or(Ordering::Equal)
+        });
         res
     }
 
-    pub fn clear_entries_by_name_and_type(&mut self, name: Option<DOMString>,
-                                          entry_type: Option<DOMString>) {
-        self.entries.retain(|e|
-            name.as_ref().map_or(true, |name_| *e.name() == *name_) &&
-            entry_type.as_ref().map_or(true, |type_| *e.entry_type() == *type_)
-        );
+    pub fn clear_entries_by_name_and_type(
+        &mut self,
+        name: Option<DOMString>,
+        entry_type: Option<DOMString>,
+    ) {
+        self.entries.retain(|e| {
+            name.as_ref().map_or(true, |name_| *e.name() == *name_) && entry_type
+                .as_ref()
+                .map_or(true, |type_| *e.entry_type() == *type_)
+        });
     }
 
-    fn get_last_entry_start_time_with_name_and_type(&self, name: DOMString,
-                                                    entry_type: DOMString) -> f64 {
-        match self.entries.iter()
-                          .rev()
-                          .find(|e| *e.entry_type() == *entry_type &&
-                                    *e.name() == *name) {
+    fn get_last_entry_start_time_with_name_and_type(
+        &self,
+        name: DOMString,
+        entry_type: DOMString,
+    ) -> f64 {
+        match self
+            .entries
+            .iter()
+            .rev()
+            .find(|e| *e.entry_type() == *entry_type && *e.name() == *name)
+        {
             Some(entry) => entry.start_time(),
             None => 0.,
         }
@@ -119,15 +138,19 @@ pub struct Performance {
 }
 
 impl Performance {
-    fn new_inherited(global: &GlobalScope,
-                     navigation_start: u64,
-                     navigation_start_precise: u64) -> Performance {
+    fn new_inherited(
+        global: &GlobalScope,
+        navigation_start: u64,
+        navigation_start_precise: u64,
+    ) -> Performance {
         Performance {
             reflector_: Reflector::new(),
             timing: if global.is::<Window>() {
-                Some(Dom::from_ref(&*PerformanceTiming::new(global.as_window(),
-                                                           navigation_start,
-                                                           navigation_start_precise)))
+                Some(Dom::from_ref(&*PerformanceTiming::new(
+                    global.as_window(),
+                    navigation_start,
+                    navigation_start_precise,
+                )))
             } else {
                 None
             },
@@ -138,27 +161,36 @@ impl Performance {
         }
     }
 
-    pub fn new(global: &GlobalScope,
-               navigation_start: u64,
-               navigation_start_precise: u64) -> DomRoot<Performance> {
+    pub fn new(
+        global: &GlobalScope,
+        navigation_start: u64,
+        navigation_start_precise: u64,
+    ) -> DomRoot<Performance> {
         reflect_dom_object(
-            Box::new(Performance::new_inherited(global, navigation_start, navigation_start_precise)),
+            Box::new(Performance::new_inherited(
+                global,
+                navigation_start,
+                navigation_start_precise,
+            )),
             global,
-            PerformanceBinding::Wrap
+            PerformanceBinding::Wrap,
         )
     }
 
     /// Add a PerformanceObserver to the list of observers with a set of
     /// observed entry types.
-    pub fn add_observer(&self,
-                        observer: &DOMPerformanceObserver,
-                        entry_types: Vec<DOMString>,
-                        buffered: bool) {
+    pub fn add_observer(
+        &self,
+        observer: &DOMPerformanceObserver,
+        entry_types: Vec<DOMString>,
+        buffered: bool,
+    ) {
         if buffered {
             let entries = self.entries.borrow();
-            let mut new_entries = entry_types.iter()
-                            .flat_map(|e| entries.get_entries_by_name_and_type(None, Some(e.clone())))
-                            .collect::<DOMPerformanceEntryList>();
+            let mut new_entries = entry_types
+                .iter()
+                .flat_map(|e| entries.get_entries_by_name_and_type(None, Some(e.clone())))
+                .collect::<DOMPerformanceEntryList>();
             let mut obs_entries = observer.entries();
             obs_entries.append(&mut new_entries);
             observer.set_entries(obs_entries);
@@ -171,8 +203,8 @@ impl Performance {
             // Otherwise, we create and insert the new PerformanceObserver.
             None => observers.push(PerformanceObserver {
                 observer: DomRoot::from_ref(observer),
-                entry_types
-            })
+                entry_types,
+            }),
         };
     }
 
@@ -193,13 +225,17 @@ impl Performance {
     ///
     /// Algorithm spec:
     /// <https://w3c.github.io/performance-timeline/#queue-a-performanceentry>
-    pub fn queue_entry(&self, entry: &PerformanceEntry,
-                       add_to_performance_entries_buffer: bool) {
+    pub fn queue_entry(&self, entry: &PerformanceEntry, add_to_performance_entries_buffer: bool) {
         // Steps 1-3.
         // Add the performance entry to the list of performance entries that have not
         // been notified to each performance observer owner, filtering the ones it's
         // interested in.
-        for o in self.observers.borrow().iter().filter(|o| o.entry_types.contains(entry.entry_type())) {
+        for o in self
+            .observers
+            .borrow()
+            .iter()
+            .filter(|o| o.entry_types.contains(entry.entry_type()))
+        {
             o.observer.queue_entry(entry);
         }
 
@@ -207,7 +243,10 @@ impl Performance {
         // If the "add to performance entry buffer flag" is set, add the
         // new entry to the buffer.
         if add_to_performance_entries_buffer {
-            self.entries.borrow_mut().entries.push(DomRoot::from_ref(entry));
+            self.entries
+                .borrow_mut()
+                .entries
+                .push(DomRoot::from_ref(entry));
         }
 
         // Step 5.
@@ -235,12 +274,17 @@ impl Performance {
         // We have to operate over a copy of the performance observers to avoid
         // the risk of an observer's callback modifying the list of registered
         // observers.
-        let observers: Vec<DomRoot<DOMPerformanceObserver>> =
-            self.observers.borrow().iter()
-                                   .map(|o| DOMPerformanceObserver::new(&self.global(),
-                                                                        o.observer.callback(),
-                                                                        o.observer.entries()))
-                                   .collect();
+        let observers: Vec<DomRoot<DOMPerformanceObserver>> = self
+            .observers
+            .borrow()
+            .iter()
+            .map(|o| {
+                DOMPerformanceObserver::new(
+                    &self.global(),
+                    o.observer.callback(),
+                    o.observer.entries(),
+                )
+            }).collect();
 
         // Step 7.3.
         for o in observers.iter() {
@@ -273,18 +317,27 @@ impl PerformanceMethods for Performance {
 
     // https://www.w3.org/TR/performance-timeline-2/#dom-performance-getentries
     fn GetEntries(&self) -> Vec<DomRoot<PerformanceEntry>> {
-        self.entries.borrow().get_entries_by_name_and_type(None, None)
+        self.entries
+            .borrow()
+            .get_entries_by_name_and_type(None, None)
     }
 
     // https://www.w3.org/TR/performance-timeline-2/#dom-performance-getentriesbytype
     fn GetEntriesByType(&self, entry_type: DOMString) -> Vec<DomRoot<PerformanceEntry>> {
-        self.entries.borrow().get_entries_by_name_and_type(None, Some(entry_type))
+        self.entries
+            .borrow()
+            .get_entries_by_name_and_type(None, Some(entry_type))
     }
 
     // https://www.w3.org/TR/performance-timeline-2/#dom-performance-getentriesbyname
-    fn GetEntriesByName(&self, name: DOMString, entry_type: Option<DOMString>)
-        -> Vec<DomRoot<PerformanceEntry>> {
-        self.entries.borrow().get_entries_by_name_and_type(Some(name), entry_type)
+    fn GetEntriesByName(
+        &self,
+        name: DOMString,
+        entry_type: Option<DOMString>,
+    ) -> Vec<DomRoot<PerformanceEntry>> {
+        self.entries
+            .borrow()
+            .get_entries_by_name_and_type(Some(name), entry_type)
     }
 
     // https://w3c.github.io/user-timing/#dom-performance-mark
@@ -296,13 +349,12 @@ impl PerformanceMethods for Performance {
         }
 
         // Steps 2 to 6.
-        let entry = PerformanceMark::new(&global,
-                                         mark_name,
-                                         self.now(),
-                                         0.);
+        let entry = PerformanceMark::new(&global, mark_name, self.now(), 0.);
         // Steps 7 and 8.
-        self.queue_entry(&entry.upcast::<PerformanceEntry>(),
-                         true /* buffer performance entry */);
+        self.queue_entry(
+            &entry.upcast::<PerformanceEntry>(),
+            true, /* buffer performance entry */
+        );
 
         // Step 9.
         Ok(())
@@ -310,40 +362,49 @@ impl PerformanceMethods for Performance {
 
     // https://w3c.github.io/user-timing/#dom-performance-clearmarks
     fn ClearMarks(&self, mark_name: Option<DOMString>) {
-        self.entries.borrow_mut().clear_entries_by_name_and_type(mark_name,
-                                                                 Some(DOMString::from("mark")));
+        self.entries
+            .borrow_mut()
+            .clear_entries_by_name_and_type(mark_name, Some(DOMString::from("mark")));
     }
 
     // https://w3c.github.io/user-timing/#dom-performance-measure
-    fn Measure(&self,
-               measure_name: DOMString,
-               start_mark: Option<DOMString>,
-               end_mark: Option<DOMString>) -> Fallible<()> {
+    fn Measure(
+        &self,
+        measure_name: DOMString,
+        start_mark: Option<DOMString>,
+        end_mark: Option<DOMString>,
+    ) -> Fallible<()> {
         // Steps 1 and 2.
         let end_time = match end_mark {
-            Some(name) =>
-                self.entries.borrow().get_last_entry_start_time_with_name_and_type(
-                    DOMString::from("mark"), name),
+            Some(name) => self
+                .entries
+                .borrow()
+                .get_last_entry_start_time_with_name_and_type(DOMString::from("mark"), name),
             None => self.now(),
         };
 
         // Step 3.
         let start_time = match start_mark {
-            Some(name) =>
-                self.entries.borrow().get_last_entry_start_time_with_name_and_type(
-                    DOMString::from("mark"), name),
+            Some(name) => self
+                .entries
+                .borrow()
+                .get_last_entry_start_time_with_name_and_type(DOMString::from("mark"), name),
             None => 0.,
         };
 
         // Steps 4 to 8.
-        let entry = PerformanceMeasure::new(&self.global(),
-                                            measure_name,
-                                            start_time,
-                                            end_time - start_time);
+        let entry = PerformanceMeasure::new(
+            &self.global(),
+            measure_name,
+            start_time,
+            end_time - start_time,
+        );
 
         // Step 9 and 10.
-        self.queue_entry(&entry.upcast::<PerformanceEntry>(),
-                         true /* buffer performance entry */);
+        self.queue_entry(
+            &entry.upcast::<PerformanceEntry>(),
+            true, /* buffer performance entry */
+        );
 
         // Step 11.
         Ok(())
@@ -351,7 +412,8 @@ impl PerformanceMethods for Performance {
 
     // https://w3c.github.io/user-timing/#dom-performance-clearmeasures
     fn ClearMeasures(&self, measure_name: Option<DOMString>) {
-        self.entries.borrow_mut().clear_entries_by_name_and_type(measure_name,
-                                                                 Some(DOMString::from("measure")));
+        self.entries
+            .borrow_mut()
+            .clear_entries_by_name_and_type(measure_name, Some(DOMString::from("measure")));
     }
 }

@@ -28,10 +28,7 @@ pub struct AudioListener {
 }
 
 impl AudioListener {
-    fn new_inherited(
-        window: &Window,
-        context: &BaseAudioContext,
-    ) -> AudioListener {
+    fn new_inherited(window: &Window, context: &BaseAudioContext) -> AudioListener {
         let node = context.listener();
 
         let position_x = AudioParam::new(
@@ -90,7 +87,7 @@ impl AudioListener {
             node,
             ParamType::Forward(ParamDir::Z),
             AutomationRate::A_rate,
-            -1.,       // default value
+            -1.,      // default value
             f32::MIN, // min value
             f32::MAX, // max value
         );
@@ -139,10 +136,7 @@ impl AudioListener {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(
-        window: &Window,
-        context: &BaseAudioContext,
-    ) -> DomRoot<AudioListener> {
+    pub fn new(window: &Window, context: &BaseAudioContext) -> DomRoot<AudioListener> {
         let node = AudioListener::new_inherited(window, context);
         reflect_dom_object(Box::new(node), window, AudioListenerBinding::Wrap)
     }

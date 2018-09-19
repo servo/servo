@@ -34,9 +34,11 @@ impl DOMTokenList {
 
     pub fn new(element: &Element, local_name: &LocalName) -> DomRoot<DOMTokenList> {
         let window = window_from_node(element);
-        reflect_dom_object(Box::new(DOMTokenList::new_inherited(element, local_name.clone())),
-                           &*window,
-                           DOMTokenListBinding::Wrap)
+        reflect_dom_object(
+            Box::new(DOMTokenList::new_inherited(element, local_name.clone())),
+            &*window,
+            DOMTokenListBinding::Wrap,
+        )
     }
 
     fn attribute(&self) -> Option<DomRoot<Attr>> {
@@ -56,16 +58,18 @@ impl DOMTokenList {
 impl DOMTokenListMethods for DOMTokenList {
     // https://dom.spec.whatwg.org/#dom-domtokenlist-length
     fn Length(&self) -> u32 {
-        self.attribute().map_or(0, |attr| {
-            attr.value().as_tokens().len()
-        }) as u32
+        self.attribute()
+            .map_or(0, |attr| attr.value().as_tokens().len()) as u32
     }
 
     // https://dom.spec.whatwg.org/#dom-domtokenlist-item
     fn Item(&self, index: u32) -> Option<DOMString> {
         self.attribute().and_then(|attr| {
             // FIXME(ajeffrey): Convert directly from Atom to DOMString
-            attr.value().as_tokens().get(index as usize).map(|token| DOMString::from(&**token))
+            attr.value()
+                .as_tokens()
+                .get(index as usize)
+                .map(|token| DOMString::from(&**token))
         })
     }
 
@@ -89,7 +93,8 @@ impl DOMTokenListMethods for DOMTokenList {
                 atoms.push(token);
             }
         }
-        self.element.set_atomic_tokenlist_attribute(&self.local_name, atoms);
+        self.element
+            .set_atomic_tokenlist_attribute(&self.local_name, atoms);
         Ok(())
     }
 
@@ -98,9 +103,13 @@ impl DOMTokenListMethods for DOMTokenList {
         let mut atoms = self.element.get_tokenlist_attribute(&self.local_name);
         for token in &tokens {
             let token = self.check_token_exceptions(&token)?;
-            atoms.iter().position(|atom| *atom == token).map(|index| atoms.remove(index));
+            atoms
+                .iter()
+                .position(|atom| *atom == token)
+                .map(|index| atoms.remove(index));
         }
-        self.element.set_atomic_tokenlist_attribute(&self.local_name, atoms);
+        self.element
+            .set_atomic_tokenlist_attribute(&self.local_name, atoms);
         Ok(())
     }
 
@@ -113,17 +122,19 @@ impl DOMTokenListMethods for DOMTokenList {
                 Some(true) => Ok(true),
                 _ => {
                     atoms.remove(index);
-                    self.element.set_atomic_tokenlist_attribute(&self.local_name, atoms);
+                    self.element
+                        .set_atomic_tokenlist_attribute(&self.local_name, atoms);
                     Ok(false)
-                }
+                },
             },
             None => match force {
                 Some(false) => Ok(false),
                 _ => {
                     atoms.push(token);
-                    self.element.set_atomic_tokenlist_attribute(&self.local_name, atoms);
+                    self.element
+                        .set_atomic_tokenlist_attribute(&self.local_name, atoms);
                     Ok(true)
-                }
+                },
             },
         }
     }
@@ -135,7 +146,8 @@ impl DOMTokenListMethods for DOMTokenList {
 
     // https://dom.spec.whatwg.org/#dom-domtokenlist-value
     fn SetValue(&self, value: DOMString) {
-        self.element.set_tokenlist_attribute(&self.local_name, value);
+        self.element
+            .set_tokenlist_attribute(&self.local_name, value);
     }
 
     // https://dom.spec.whatwg.org/#dom-domtokenlist-replace
@@ -159,7 +171,8 @@ impl DOMTokenListMethods for DOMTokenList {
                 atoms.remove(pos);
             }
             // Step 5.
-            self.element.set_atomic_tokenlist_attribute(&self.local_name, atoms);
+            self.element
+                .set_atomic_tokenlist_attribute(&self.local_name, atoms);
         }
         Ok(())
     }

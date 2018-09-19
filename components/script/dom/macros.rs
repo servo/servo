@@ -573,7 +573,7 @@ macro_rules! rooted_vec {
     (let mut $name:ident <- $iter:expr) => {
         let mut root = $crate::dom::bindings::trace::RootableVec::new_unrooted();
         let mut $name = $crate::dom::bindings::trace::RootedVec::from_iter(&mut root, $iter);
-    }
+    };
 }
 
 /// DOM struct implementation for simple interfaces inheriting from PerformanceEntry.
@@ -622,11 +622,10 @@ macro_rules! handle_potential_webgl_error {
             Err(error) => {
                 $context.webgl_error(error);
                 $return_on_error
-            }
+            },
         }
     };
     ($context:expr, $call:expr) => {
         handle_potential_webgl_error!($context, $call, ());
     };
 }
-

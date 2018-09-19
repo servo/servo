@@ -25,9 +25,11 @@ impl OESTextureFloatLinear {
 impl WebGLExtension for OESTextureFloatLinear {
     type Extension = OESTextureFloatLinear;
     fn new(ctx: &WebGLRenderingContext) -> DomRoot<OESTextureFloatLinear> {
-        reflect_dom_object(Box::new(OESTextureFloatLinear::new_inherited()),
-                           &*ctx.global(),
-                           OESTextureFloatLinearBinding::Wrap)
+        reflect_dom_object(
+            Box::new(OESTextureFloatLinear::new_inherited()),
+            &*ctx.global(),
+            OESTextureFloatLinearBinding::Wrap,
+        )
     }
 
     fn spec() -> WebGLExtensionSpec {
@@ -35,8 +37,7 @@ impl WebGLExtension for OESTextureFloatLinear {
     }
 
     fn is_supported(ext: &WebGLExtensions) -> bool {
-        ext.supports_any_gl_extension(&["GL_OES_texture_float_linear",
-                                        "GL_ARB_texture_float"])
+        ext.supports_any_gl_extension(&["GL_OES_texture_float_linear", "GL_ARB_texture_float"])
     }
 
     fn enable(ext: &WebGLExtensions) {

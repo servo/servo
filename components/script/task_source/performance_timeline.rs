@@ -33,11 +33,7 @@ impl fmt::Debug for PerformanceTimelineTaskSource {
 impl TaskSource for PerformanceTimelineTaskSource {
     const NAME: TaskSourceName = TaskSourceName::PerformanceTimeline;
 
-    fn queue_with_canceller<T>(
-        &self,
-        task: T,
-        canceller: &TaskCanceller,
-    ) -> Result<(), ()>
+    fn queue_with_canceller<T>(&self, task: T, canceller: &TaskCanceller) -> Result<(), ()>
     where
         T: TaskOnce + 'static,
     {

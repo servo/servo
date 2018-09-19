@@ -28,24 +28,35 @@ pub struct HTMLFieldSetElement {
 }
 
 impl HTMLFieldSetElement {
-    fn new_inherited(local_name: LocalName,
-                     prefix: Option<Prefix>,
-                     document: &Document) -> HTMLFieldSetElement {
+    fn new_inherited(
+        local_name: LocalName,
+        prefix: Option<Prefix>,
+        document: &Document,
+    ) -> HTMLFieldSetElement {
         HTMLFieldSetElement {
-            htmlelement:
-                HTMLElement::new_inherited_with_state(ElementState::IN_ENABLED_STATE,
-                                                      local_name, prefix, document),
+            htmlelement: HTMLElement::new_inherited_with_state(
+                ElementState::IN_ENABLED_STATE,
+                local_name,
+                prefix,
+                document,
+            ),
             form_owner: Default::default(),
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(local_name: LocalName,
-               prefix: Option<Prefix>,
-               document: &Document) -> DomRoot<HTMLFieldSetElement> {
-        Node::reflect_node(Box::new(HTMLFieldSetElement::new_inherited(local_name, prefix, document)),
-                           document,
-                           HTMLFieldSetElementBinding::Wrap)
+    pub fn new(
+        local_name: LocalName,
+        prefix: Option<Prefix>,
+        document: &Document,
+    ) -> DomRoot<HTMLFieldSetElement> {
+        Node::reflect_node(
+            Box::new(HTMLFieldSetElement::new_inherited(
+                local_name, prefix, document,
+            )),
+            document,
+            HTMLFieldSetElementBinding::Wrap,
+        )
     }
 }
 
@@ -116,25 +127,23 @@ impl VirtualMethods for HTMLFieldSetElement {
                     }
                 });
                 let fields = children.flat_map(|child| {
-                    child.traverse_preorder().filter(|descendant| {
-                        match descendant.type_id() {
-                            NodeTypeId::Element(
-                                    ElementTypeId::HTMLElement(
-                                        HTMLElementTypeId::HTMLButtonElement)) |
-                            NodeTypeId::Element(
-                                    ElementTypeId::HTMLElement(
-                                        HTMLElementTypeId::HTMLInputElement)) |
-                            NodeTypeId::Element(
-                                    ElementTypeId::HTMLElement(
-                                        HTMLElementTypeId::HTMLSelectElement)) |
-                            NodeTypeId::Element(
-                                    ElementTypeId::HTMLElement(
-                                        HTMLElementTypeId::HTMLTextAreaElement)) => {
-                                true
-                            },
+                    child
+                        .traverse_preorder()
+                        .filter(|descendant| match descendant.type_id() {
+                            NodeTypeId::Element(ElementTypeId::HTMLElement(
+                                HTMLElementTypeId::HTMLButtonElement,
+                            )) |
+                            NodeTypeId::Element(ElementTypeId::HTMLElement(
+                                HTMLElementTypeId::HTMLInputElement,
+                            )) |
+                            NodeTypeId::Element(ElementTypeId::HTMLElement(
+                                HTMLElementTypeId::HTMLSelectElement,
+                            )) |
+                            NodeTypeId::Element(ElementTypeId::HTMLElement(
+                                HTMLElementTypeId::HTMLTextAreaElement,
+                            )) => true,
                             _ => false,
-                        }
-                    })
+                        })
                 });
                 if disabled_state {
                     for field in fields {

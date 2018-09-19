@@ -22,7 +22,10 @@ pub struct CSSViewportRule {
 }
 
 impl CSSViewportRule {
-    fn new_inherited(parent_stylesheet: &CSSStyleSheet, viewportrule: Arc<Locked<ViewportRule>>) -> CSSViewportRule {
+    fn new_inherited(
+        parent_stylesheet: &CSSStyleSheet,
+        viewportrule: Arc<Locked<ViewportRule>>,
+    ) -> CSSViewportRule {
         CSSViewportRule {
             cssrule: CSSRule::new_inherited(parent_stylesheet),
             viewportrule: viewportrule,
@@ -30,11 +33,19 @@ impl CSSViewportRule {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(window: &Window, parent_stylesheet: &CSSStyleSheet,
-               viewportrule: Arc<Locked<ViewportRule>>) -> DomRoot<CSSViewportRule> {
-        reflect_dom_object(Box::new(CSSViewportRule::new_inherited(parent_stylesheet, viewportrule)),
-                           window,
-                           CSSViewportRuleBinding::Wrap)
+    pub fn new(
+        window: &Window,
+        parent_stylesheet: &CSSStyleSheet,
+        viewportrule: Arc<Locked<ViewportRule>>,
+    ) -> DomRoot<CSSViewportRule> {
+        reflect_dom_object(
+            Box::new(CSSViewportRule::new_inherited(
+                parent_stylesheet,
+                viewportrule,
+            )),
+            window,
+            CSSViewportRuleBinding::Wrap,
+        )
     }
 }
 
@@ -46,6 +57,9 @@ impl SpecificCSSRule for CSSViewportRule {
 
     fn get_css(&self) -> DOMString {
         let guard = self.cssrule.shared_lock().read();
-        self.viewportrule.read_with(&guard).to_css_string(&guard).into()
+        self.viewportrule
+            .read_with(&guard)
+            .to_css_string(&guard)
+            .into()
     }
 }

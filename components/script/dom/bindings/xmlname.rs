@@ -25,9 +25,10 @@ pub fn validate_qualified_name(qualified_name: &str) -> ErrorResult {
 
 /// Validate a namespace and qualified name and extract their parts.
 /// See https://dom.spec.whatwg.org/#validate-and-extract for details.
-pub fn validate_and_extract(namespace: Option<DOMString>,
-                            qualified_name: &str)
-                            -> Fallible<(Namespace, Option<Prefix>, LocalName)> {
+pub fn validate_and_extract(
+    namespace: Option<DOMString>,
+    qualified_name: &str,
+) -> Fallible<(Namespace, Option<Prefix>, LocalName)> {
     // Step 1.
     let namespace = namespace_from_domstring(namespace);
 
@@ -76,7 +77,7 @@ pub fn validate_and_extract(namespace: Option<DOMString>,
         (ns, p) => {
             // Step 10.
             Ok((ns, p.map(Prefix::from), LocalName::from(local_name)))
-        }
+        },
     }
 }
 
@@ -115,14 +116,10 @@ pub fn xml_name_type(name: &str) -> XMLName {
     }
 
     fn is_valid_continuation(c: char) -> bool {
-        is_valid_start(c) ||
-        match c {
-            '-' |
-            '.' |
-            '0'...'9' |
-            '\u{B7}' |
-            '\u{300}'...'\u{36F}' |
-            '\u{203F}'...'\u{2040}' => true,
+        is_valid_start(c) || match c {
+            '-' | '.' | '0'...'9' | '\u{B7}' | '\u{300}'...'\u{36F}' | '\u{203F}'...'\u{2040}' => {
+                true
+            },
             _ => false,
         }
     }
@@ -140,7 +137,7 @@ pub fn xml_name_type(name: &str) -> XMLName {
                 non_qname_colons = true;
             }
             c
-        }
+        },
     };
 
     for c in iter {

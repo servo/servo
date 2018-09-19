@@ -12,22 +12,30 @@ use html5ever::{LocalName, Prefix};
 
 #[dom_struct]
 pub struct HTMLSpanElement {
-    htmlelement: HTMLElement
+    htmlelement: HTMLElement,
 }
 
 impl HTMLSpanElement {
-    fn new_inherited(local_name: LocalName, prefix: Option<Prefix>, document: &Document) -> HTMLSpanElement {
+    fn new_inherited(
+        local_name: LocalName,
+        prefix: Option<Prefix>,
+        document: &Document,
+    ) -> HTMLSpanElement {
         HTMLSpanElement {
-            htmlelement: HTMLElement::new_inherited(local_name, prefix, document)
+            htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(local_name: LocalName,
-               prefix: Option<Prefix>,
-               document: &Document) -> DomRoot<HTMLSpanElement> {
-        Node::reflect_node(Box::new(HTMLSpanElement::new_inherited(local_name, prefix, document)),
-                           document,
-                           HTMLSpanElementBinding::Wrap)
+    pub fn new(
+        local_name: LocalName,
+        prefix: Option<Prefix>,
+        document: &Document,
+    ) -> DomRoot<HTMLSpanElement> {
+        Node::reflect_node(
+            Box::new(HTMLSpanElement::new_inherited(local_name, prefix, document)),
+            document,
+            HTMLSpanElementBinding::Wrap,
+        )
     }
 }

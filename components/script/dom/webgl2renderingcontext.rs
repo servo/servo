@@ -50,7 +50,7 @@ impl WebGL2RenderingContext {
         window: &Window,
         canvas: &HTMLCanvasElement,
         size: Size2D<i32>,
-        attrs: GLContextAttributes
+        attrs: GLContextAttributes,
     ) -> Option<WebGL2RenderingContext> {
         let base = WebGLRenderingContext::new(window, canvas, WebGLVersion::WebGL2, size, attrs)?;
         Some(WebGL2RenderingContext {
@@ -64,7 +64,7 @@ impl WebGL2RenderingContext {
         window: &Window,
         canvas: &HTMLCanvasElement,
         size: Size2D<i32>,
-        attrs: GLContextAttributes
+        attrs: GLContextAttributes,
     ) -> Option<DomRoot<WebGL2RenderingContext>> {
         WebGL2RenderingContext::new_inherited(window, canvas, size, attrs).map(|ctx| {
             reflect_dom_object(Box::new(ctx), window, WebGL2RenderingContextBinding::Wrap)
@@ -143,7 +143,11 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
 
     #[allow(unsafe_code)]
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.14
-    unsafe fn GetExtension(&self, cx: *mut JSContext, name: DOMString) -> Option<NonNull<JSObject>> {
+    unsafe fn GetExtension(
+        &self,
+        cx: *mut JSContext,
+        name: DOMString,
+    ) -> Option<NonNull<JSObject>> {
         self.base.GetExtension(cx, name)
     }
 
@@ -154,9 +158,10 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         cx: *mut JSContext,
         target: u32,
         attachment: u32,
-        pname: u32
+        pname: u32,
     ) -> JSVal {
-        self.base.GetFramebufferAttachmentParameter(cx, target, attachment, pname)
+        self.base
+            .GetFramebufferAttachmentParameter(cx, target, attachment, pname)
     }
 
     #[allow(unsafe_code)]
@@ -165,7 +170,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         &self,
         cx: *mut JSContext,
         target: u32,
-        pname: u32
+        pname: u32,
     ) -> JSVal {
         self.base.GetRenderbufferParameter(cx, target, pname)
     }
@@ -197,7 +202,8 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
 
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
     fn BlendFuncSeparate(&self, src_rgb: u32, dest_rgb: u32, src_alpha: u32, dest_alpha: u32) {
-        self.base.BlendFuncSeparate(src_rgb, dest_rgb, src_alpha, dest_alpha)
+        self.base
+            .BlendFuncSeparate(src_rgb, dest_rgb, src_alpha, dest_alpha)
     }
 
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
@@ -241,12 +247,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
     }
 
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
-    fn BufferData(
-        &self,
-        target: u32,
-        data: Option<ArrayBufferViewOrArrayBuffer>,
-        usage: u32,
-    ) {
+    fn BufferData(&self, target: u32, data: Option<ArrayBufferViewOrArrayBuffer>, usage: u32) {
         self.base.BufferData(target, data, usage)
     }
 
@@ -261,29 +262,74 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
     }
 
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
-    fn CompressedTexImage2D(&self, target: u32, level: i32, internal_format: u32,
-                            width: i32, height: i32, border: i32,
-                            pixels: CustomAutoRooterGuard<ArrayBufferView>) {
-        self.base.CompressedTexImage2D(target, level, internal_format, width, height, border, pixels)
+    fn CompressedTexImage2D(
+        &self,
+        target: u32,
+        level: i32,
+        internal_format: u32,
+        width: i32,
+        height: i32,
+        border: i32,
+        pixels: CustomAutoRooterGuard<ArrayBufferView>,
+    ) {
+        self.base.CompressedTexImage2D(
+            target,
+            level,
+            internal_format,
+            width,
+            height,
+            border,
+            pixels,
+        )
     }
 
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
-    fn CompressedTexSubImage2D(&self, target: u32, level: i32, xoffset: i32,
-                               yoffset: i32, width: i32, height: i32, format: u32,
-                               pixels: CustomAutoRooterGuard<ArrayBufferView>) {
-        self.base.CompressedTexSubImage2D(target, level, xoffset, yoffset, width, height, format, pixels)
+    fn CompressedTexSubImage2D(
+        &self,
+        target: u32,
+        level: i32,
+        xoffset: i32,
+        yoffset: i32,
+        width: i32,
+        height: i32,
+        format: u32,
+        pixels: CustomAutoRooterGuard<ArrayBufferView>,
+    ) {
+        self.base.CompressedTexSubImage2D(
+            target, level, xoffset, yoffset, width, height, format, pixels,
+        )
     }
 
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
-    fn CopyTexImage2D(&self, target: u32, level: i32, internal_format: u32,
-                      x: i32, y: i32, width: i32, height: i32, border: i32) {
-        self.base.CopyTexImage2D(target, level, internal_format, x, y, width, height, border)
+    fn CopyTexImage2D(
+        &self,
+        target: u32,
+        level: i32,
+        internal_format: u32,
+        x: i32,
+        y: i32,
+        width: i32,
+        height: i32,
+        border: i32,
+    ) {
+        self.base
+            .CopyTexImage2D(target, level, internal_format, x, y, width, height, border)
     }
 
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
-    fn CopyTexSubImage2D(&self, target: u32, level: i32, xoffset: i32, yoffset: i32,
-                         x: i32, y: i32, width: i32, height: i32) {
-        self.base.CopyTexSubImage2D(target, level, xoffset, yoffset, x, y, width, height)
+    fn CopyTexSubImage2D(
+        &self,
+        target: u32,
+        level: i32,
+        xoffset: i32,
+        yoffset: i32,
+        x: i32,
+        y: i32,
+        width: i32,
+        height: i32,
+    ) {
+        self.base
+            .CopyTexSubImage2D(target, level, xoffset, yoffset, x, y, width, height)
     }
 
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.11
@@ -431,12 +477,20 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
     }
 
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
-    fn GetActiveUniform(&self, program: &WebGLProgram, index: u32) -> Option<DomRoot<WebGLActiveInfo>> {
+    fn GetActiveUniform(
+        &self,
+        program: &WebGLProgram,
+        index: u32,
+    ) -> Option<DomRoot<WebGLActiveInfo>> {
         self.base.GetActiveUniform(program, index)
     }
 
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
-    fn GetActiveAttrib(&self, program: &WebGLProgram, index: u32) -> Option<DomRoot<WebGLActiveInfo>> {
+    fn GetActiveAttrib(
+        &self,
+        program: &WebGLProgram,
+        index: u32,
+    ) -> Option<DomRoot<WebGLActiveInfo>> {
         self.base.GetActiveAttrib(program, index)
     }
 
@@ -452,7 +506,12 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
 
     #[allow(unsafe_code)]
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
-    unsafe fn GetProgramParameter(&self, cx: *mut JSContext, program: &WebGLProgram, param_id: u32) -> JSVal {
+    unsafe fn GetProgramParameter(
+        &self,
+        cx: *mut JSContext,
+        program: &WebGLProgram,
+        param_id: u32,
+    ) -> JSVal {
         self.base.GetProgramParameter(cx, program, param_id)
     }
 
@@ -463,16 +522,23 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
 
     #[allow(unsafe_code)]
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
-    unsafe fn GetShaderParameter(&self, cx: *mut JSContext, shader: &WebGLShader, param_id: u32) -> JSVal {
+    unsafe fn GetShaderParameter(
+        &self,
+        cx: *mut JSContext,
+        shader: &WebGLShader,
+        param_id: u32,
+    ) -> JSVal {
         self.base.GetShaderParameter(cx, shader, param_id)
     }
 
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
-    fn GetShaderPrecisionFormat(&self,
-                                shader_type: u32,
-                                precision_type: u32)
-                                -> Option<DomRoot<WebGLShaderPrecisionFormat>> {
-        self.base.GetShaderPrecisionFormat(shader_type, precision_type)
+    fn GetShaderPrecisionFormat(
+        &self,
+        shader_type: u32,
+        precision_type: u32,
+    ) -> Option<DomRoot<WebGLShaderPrecisionFormat>> {
+        self.base
+            .GetShaderPrecisionFormat(shader_type, precision_type)
     }
 
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
@@ -552,9 +618,18 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
     }
 
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.12
-    fn ReadPixels(&self, x: i32, y: i32, width: i32, height: i32, format: u32, pixel_type: u32,
-                  pixels: CustomAutoRooterGuard<Option<ArrayBufferView>>) {
-        self.base.ReadPixels(x, y, width, height, format, pixel_type, pixels)
+    fn ReadPixels(
+        &self,
+        x: i32,
+        y: i32,
+        width: i32,
+        height: i32,
+        format: u32,
+        pixel_type: u32,
+        pixels: CustomAutoRooterGuard<Option<ArrayBufferView>>,
+    ) {
+        self.base
+            .ReadPixels(x, y, width, height, format, pixel_type, pixels)
     }
 
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
@@ -613,25 +688,17 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
     }
 
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
-    fn Uniform1f(&self,
-                  location: Option<&WebGLUniformLocation>,
-                  val: f32) {
+    fn Uniform1f(&self, location: Option<&WebGLUniformLocation>, val: f32) {
         self.base.Uniform1f(location, val)
     }
 
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
-    fn Uniform1i(&self,
-                  location: Option<&WebGLUniformLocation>,
-                  val: i32) {
+    fn Uniform1i(&self, location: Option<&WebGLUniformLocation>, val: i32) {
         self.base.Uniform1i(location, val)
     }
 
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
-    fn Uniform1iv(
-        &self,
-        location: Option<&WebGLUniformLocation>,
-        v: Int32ArrayOrLongSequence,
-    ) {
+    fn Uniform1iv(&self, location: Option<&WebGLUniformLocation>, v: Int32ArrayOrLongSequence) {
         self.base.Uniform1iv(location, v)
     }
 
@@ -645,9 +712,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
     }
 
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
-    fn Uniform2f(&self,
-                  location: Option<&WebGLUniformLocation>,
-                  x: f32, y: f32) {
+    fn Uniform2f(&self, location: Option<&WebGLUniformLocation>, x: f32, y: f32) {
         self.base.Uniform2f(location, x, y)
     }
 
@@ -661,25 +726,17 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
     }
 
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
-    fn Uniform2i(&self,
-                  location: Option<&WebGLUniformLocation>,
-                  x: i32, y: i32) {
+    fn Uniform2i(&self, location: Option<&WebGLUniformLocation>, x: i32, y: i32) {
         self.base.Uniform2i(location, x, y)
     }
 
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
-    fn Uniform2iv(
-        &self,
-        location: Option<&WebGLUniformLocation>,
-        v: Int32ArrayOrLongSequence,
-    ) {
+    fn Uniform2iv(&self, location: Option<&WebGLUniformLocation>, v: Int32ArrayOrLongSequence) {
         self.base.Uniform2iv(location, v)
     }
 
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
-    fn Uniform3f(&self,
-                  location: Option<&WebGLUniformLocation>,
-                  x: f32, y: f32, z: f32) {
+    fn Uniform3f(&self, location: Option<&WebGLUniformLocation>, x: f32, y: f32, z: f32) {
         self.base.Uniform3f(location, x, y, z)
     }
 
@@ -693,41 +750,27 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
     }
 
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
-    fn Uniform3i(&self,
-                  location: Option<&WebGLUniformLocation>,
-                  x: i32, y: i32, z: i32) {
+    fn Uniform3i(&self, location: Option<&WebGLUniformLocation>, x: i32, y: i32, z: i32) {
         self.base.Uniform3i(location, x, y, z)
     }
 
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
-    fn Uniform3iv(
-        &self,
-        location: Option<&WebGLUniformLocation>,
-        v: Int32ArrayOrLongSequence,
-    ) {
+    fn Uniform3iv(&self, location: Option<&WebGLUniformLocation>, v: Int32ArrayOrLongSequence) {
         self.base.Uniform3iv(location, v)
     }
 
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
-    fn Uniform4i(&self,
-                  location: Option<&WebGLUniformLocation>,
-                  x: i32, y: i32, z: i32, w: i32) {
+    fn Uniform4i(&self, location: Option<&WebGLUniformLocation>, x: i32, y: i32, z: i32, w: i32) {
         self.base.Uniform4i(location, x, y, z, w)
     }
 
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
-    fn Uniform4iv(
-        &self,
-        location: Option<&WebGLUniformLocation>,
-        v: Int32ArrayOrLongSequence,
-    ) {
+    fn Uniform4iv(&self, location: Option<&WebGLUniformLocation>, v: Int32ArrayOrLongSequence) {
         self.base.Uniform4iv(location, v)
     }
 
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
-    fn Uniform4f(&self,
-                  location: Option<&WebGLUniformLocation>,
-                  x: f32, y: f32, z: f32, w: f32) {
+    fn Uniform4f(&self, location: Option<&WebGLUniformLocation>, x: f32, y: f32, z: f32, w: f32) {
         self.base.Uniform4f(location, x, y, z, w)
     }
 
@@ -832,9 +875,17 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
     }
 
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
-    fn VertexAttribPointer(&self, attrib_id: u32, size: i32, data_type: u32,
-                           normalized: bool, stride: i32, offset: i64) {
-        self.base.VertexAttribPointer(attrib_id, size, data_type, normalized, stride, offset)
+    fn VertexAttribPointer(
+        &self,
+        attrib_id: u32,
+        size: i32,
+        data_type: u32,
+        normalized: bool,
+        stride: i32,
+        offset: i64,
+    ) {
+        self.base
+            .VertexAttribPointer(attrib_id, size, data_type, normalized, stride, offset)
     }
 
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.4
@@ -843,17 +894,29 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
     }
 
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
-    fn TexImage2D(&self,
-                  target: u32,
-                  level: i32,
-                  internal_format: u32,
-                  width: i32,
-                  height: i32,
-                  border: i32,
-                  format: u32,
-                  data_type: u32,
-                  pixels: CustomAutoRooterGuard<Option<ArrayBufferView>>) -> Fallible<()> {
-        self.base.TexImage2D(target, level, internal_format, width, height, border, format, data_type, pixels)
+    fn TexImage2D(
+        &self,
+        target: u32,
+        level: i32,
+        internal_format: u32,
+        width: i32,
+        height: i32,
+        border: i32,
+        format: u32,
+        data_type: u32,
+        pixels: CustomAutoRooterGuard<Option<ArrayBufferView>>,
+    ) -> Fallible<()> {
+        self.base.TexImage2D(
+            target,
+            level,
+            internal_format,
+            width,
+            height,
+            border,
+            format,
+            data_type,
+            pixels,
+        )
     }
 
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
@@ -866,34 +929,50 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         data_type: u32,
         source: ImageDataOrHTMLImageElementOrHTMLCanvasElementOrHTMLVideoElement,
     ) -> ErrorResult {
-        self.base.TexImage2D_(target, level, internal_format, format, data_type, source)
+        self.base
+            .TexImage2D_(target, level, internal_format, format, data_type, source)
     }
 
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
-    fn TexImageDOM(&self,
-                   target: u32,
-                   level: i32,
-                   internal_format: u32,
-                   width: i32,
-                   height: i32,
-                   format: u32,
-                   data_type: u32,
-                   source: &HTMLIFrameElement) -> Fallible<()> {
-        self.base.TexImageDOM(target, level, internal_format, width, height, format, data_type, source)
+    fn TexImageDOM(
+        &self,
+        target: u32,
+        level: i32,
+        internal_format: u32,
+        width: i32,
+        height: i32,
+        format: u32,
+        data_type: u32,
+        source: &HTMLIFrameElement,
+    ) -> Fallible<()> {
+        self.base.TexImageDOM(
+            target,
+            level,
+            internal_format,
+            width,
+            height,
+            format,
+            data_type,
+            source,
+        )
     }
 
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
-    fn TexSubImage2D(&self,
-                     target: u32,
-                     level: i32,
-                     xoffset: i32,
-                     yoffset: i32,
-                     width: i32,
-                     height: i32,
-                     format: u32,
-                     data_type: u32,
-                     pixels: CustomAutoRooterGuard<Option<ArrayBufferView>>) -> Fallible<()> {
-        self.base.TexSubImage2D(target, level, xoffset, yoffset, width, height, format, data_type, pixels)
+    fn TexSubImage2D(
+        &self,
+        target: u32,
+        level: i32,
+        xoffset: i32,
+        yoffset: i32,
+        width: i32,
+        height: i32,
+        format: u32,
+        data_type: u32,
+        pixels: CustomAutoRooterGuard<Option<ArrayBufferView>>,
+    ) -> Fallible<()> {
+        self.base.TexSubImage2D(
+            target, level, xoffset, yoffset, width, height, format, data_type, pixels,
+        )
     }
 
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
@@ -907,7 +986,8 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         data_type: u32,
         source: ImageDataOrHTMLImageElementOrHTMLCanvasElementOrHTMLVideoElement,
     ) -> ErrorResult {
-        self.base.TexSubImage2D_(target, level, xoffset, yoffset, format, data_type, source)
+        self.base
+            .TexSubImage2D_(target, level, xoffset, yoffset, format, data_type, source)
     }
 
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
@@ -926,44 +1006,47 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
     }
 
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.7
-    fn RenderbufferStorage(&self, target: u32, internal_format: u32,
-                           width: i32, height: i32) {
-        self.base.RenderbufferStorage(target, internal_format, width, height)
+    fn RenderbufferStorage(&self, target: u32, internal_format: u32, width: i32, height: i32) {
+        self.base
+            .RenderbufferStorage(target, internal_format, width, height)
     }
 
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.6
-    fn FramebufferRenderbuffer(&self, target: u32, attachment: u32,
-                               renderbuffertarget: u32,
-                               rb: Option<&WebGLRenderbuffer>) {
-        self.base.FramebufferRenderbuffer(target, attachment, renderbuffertarget, rb)
+    fn FramebufferRenderbuffer(
+        &self,
+        target: u32,
+        attachment: u32,
+        renderbuffertarget: u32,
+        rb: Option<&WebGLRenderbuffer>,
+    ) {
+        self.base
+            .FramebufferRenderbuffer(target, attachment, renderbuffertarget, rb)
     }
 
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.6
-    fn FramebufferTexture2D(&self, target: u32, attachment: u32,
-                            textarget: u32, texture: Option<&WebGLTexture>,
-                            level: i32) {
-        self.base.FramebufferTexture2D(target, attachment, textarget, texture, level)
+    fn FramebufferTexture2D(
+        &self,
+        target: u32,
+        attachment: u32,
+        textarget: u32,
+        texture: Option<&WebGLTexture>,
+        level: i32,
+    ) {
+        self.base
+            .FramebufferTexture2D(target, attachment, textarget, texture, level)
     }
 
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
-    fn GetAttachedShaders(
-        &self,
-        program: &WebGLProgram,
-    ) -> Option<Vec<DomRoot<WebGLShader>>> {
+    fn GetAttachedShaders(&self, program: &WebGLProgram) -> Option<Vec<DomRoot<WebGLShader>>> {
         self.base.GetAttachedShaders(program)
     }
 
     /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.9
-    fn DrawArraysInstanced(
-        &self,
-        mode: u32,
-        first: i32,
-        count: i32,
-        primcount: i32,
-    ) {
+    fn DrawArraysInstanced(&self, mode: u32, first: i32, count: i32, primcount: i32) {
         handle_potential_webgl_error!(
             self.base,
-            self.base.draw_arrays_instanced(mode, first, count, primcount)
+            self.base
+                .draw_arrays_instanced(mode, first, count, primcount)
         )
     }
 
@@ -978,7 +1061,8 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
     ) {
         handle_potential_webgl_error!(
             self.base,
-            self.base.draw_elements_instanced(mode, count, type_, offset, primcount)
+            self.base
+                .draw_elements_instanced(mode, count, type_, offset, primcount)
         )
     }
 
@@ -987,7 +1071,6 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         self.base.vertex_attrib_divisor(index, divisor);
     }
 }
-
 
 impl LayoutCanvasWebGLRenderingContextHelpers for LayoutDom<WebGL2RenderingContext> {
     #[allow(unsafe_code)]

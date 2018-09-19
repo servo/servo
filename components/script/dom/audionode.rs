@@ -36,7 +36,6 @@ pub struct AudioNode {
     channel_interpretation: Cell<ChannelInterpretation>,
 }
 
-
 impl AudioNode {
     pub fn new_inherited(
         node_type: AudioNodeInit,
@@ -54,7 +53,13 @@ impl AudioNode {
             interpretation: options.interpretation.into(),
         };
         let node_id = context.audio_context_impl().create_node(node_type, ch);
-        Ok(AudioNode::new_inherited_for_id(node_id, context, options, number_of_inputs, number_of_outputs))
+        Ok(AudioNode::new_inherited_for_id(
+            node_id,
+            context,
+            options,
+            number_of_inputs,
+            number_of_outputs,
+        ))
     }
 
     pub fn new_inherited_for_id(
@@ -177,8 +182,7 @@ impl AudioNodeMethods for AudioNode {
     fn Disconnect_____(&self, param: &AudioParam) -> ErrorResult {
         self.context
             .audio_context_impl()
-            .disconnect_to(self.node_id(),
-                           param.node_id().param(param.param_type()));
+            .disconnect_to(self.node_id(), param.node_id().param(param.param_type()));
         Ok(())
     }
 
@@ -186,8 +190,10 @@ impl AudioNodeMethods for AudioNode {
     fn Disconnect______(&self, param: &AudioParam, out: u32) -> ErrorResult {
         self.context
             .audio_context_impl()
-            .disconnect_output_between_to(self.node_id().output(out),
-                                          param.node_id().param(param.param_type()));
+            .disconnect_output_between_to(
+                self.node_id().output(out),
+                param.node_id().param(param.param_type()),
+            );
         Ok(())
     }
 
@@ -223,14 +229,14 @@ impl AudioNodeMethods for AudioNode {
             },
             EventTargetTypeId::AudioNode(AudioNodeTypeId::PannerNode) => {
                 if value > 2 {
-                    return Err(Error::NotSupported)
+                    return Err(Error::NotSupported);
                 }
-            }
+            },
             EventTargetTypeId::AudioNode(AudioNodeTypeId::ChannelMergerNode) => {
                 if value != 1 {
-                    return Err(Error::InvalidState)
+                    return Err(Error::InvalidState);
                 }
-            }
+            },
             // XXX We do not support any of the other AudioNodes with
             // constraints yet. Add more cases here as we add support
             // for new AudioNodes.
@@ -266,14 +272,14 @@ impl AudioNodeMethods for AudioNode {
             },
             EventTargetTypeId::AudioNode(AudioNodeTypeId::PannerNode) => {
                 if value == ChannelCountMode::Max {
-                    return Err(Error::NotSupported)
+                    return Err(Error::NotSupported);
                 }
-            }
+            },
             EventTargetTypeId::AudioNode(AudioNodeTypeId::ChannelMergerNode) => {
                 if value != ChannelCountMode::Explicit {
-                    return Err(Error::InvalidState)
+                    return Err(Error::InvalidState);
                 }
-            }
+            },
             // XXX We do not support any of the other AudioNodes with
             // constraints yet. Add more cases here as we add support
             // for new AudioNodes.
@@ -321,14 +327,17 @@ impl From<ChannelInterpretation> for ServoMediaChannelInterpretation {
     }
 }
 
-
 impl AudioNodeOptions {
-    pub fn unwrap_or(&self, count: u32, mode: ChannelCountMode,
-                     interpretation: ChannelInterpretation) -> UnwrappedAudioNodeOptions {
+    pub fn unwrap_or(
+        &self,
+        count: u32,
+        mode: ChannelCountMode,
+        interpretation: ChannelInterpretation,
+    ) -> UnwrappedAudioNodeOptions {
         UnwrappedAudioNodeOptions {
             count: self.channelCount.unwrap_or(count),
             mode: self.channelCountMode.unwrap_or(mode),
-            interpretation: self.channelInterpretation.unwrap_or(interpretation)
+            interpretation: self.channelInterpretation.unwrap_or(interpretation),
         }
     }
 }

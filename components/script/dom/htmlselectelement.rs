@@ -51,8 +51,7 @@ impl CollectionFilter for OptionsFilter {
         }
 
         match node.GetParentNode() {
-            Some(optgroup) =>
-                optgroup.is::<HTMLOptGroupElement>() && root.is_parent_of(&optgroup),
+            Some(optgroup) => optgroup.is::<HTMLOptGroupElement>() && root.is_parent_of(&optgroup),
             None => false,
         }
     }
@@ -68,41 +67,50 @@ pub struct HTMLSelectElement {
 static DEFAULT_SELECT_SIZE: u32 = 0;
 
 impl HTMLSelectElement {
-    fn new_inherited(local_name: LocalName,
-                     prefix: Option<Prefix>,
-                     document: &Document) -> HTMLSelectElement {
+    fn new_inherited(
+        local_name: LocalName,
+        prefix: Option<Prefix>,
+        document: &Document,
+    ) -> HTMLSelectElement {
         HTMLSelectElement {
-            htmlelement:
-                HTMLElement::new_inherited_with_state(ElementState::IN_ENABLED_STATE,
-                                                      local_name, prefix, document),
-                options: Default::default(),
-                form_owner: Default::default(),
+            htmlelement: HTMLElement::new_inherited_with_state(
+                ElementState::IN_ENABLED_STATE,
+                local_name,
+                prefix,
+                document,
+            ),
+            options: Default::default(),
+            form_owner: Default::default(),
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(local_name: LocalName,
-               prefix: Option<Prefix>,
-               document: &Document) -> DomRoot<HTMLSelectElement> {
-        Node::reflect_node(Box::new(HTMLSelectElement::new_inherited(local_name, prefix, document)),
-                           document,
-                           HTMLSelectElementBinding::Wrap)
+    pub fn new(
+        local_name: LocalName,
+        prefix: Option<Prefix>,
+        document: &Document,
+    ) -> DomRoot<HTMLSelectElement> {
+        Node::reflect_node(
+            Box::new(HTMLSelectElement::new_inherited(
+                local_name, prefix, document,
+            )),
+            document,
+            HTMLSelectElementBinding::Wrap,
+        )
     }
 
     // https://html.spec.whatwg.org/multipage/#concept-select-option-list
-    fn list_of_options(&self) -> impl Iterator<Item=DomRoot<HTMLOptionElement>> {
-        self.upcast::<Node>()
-            .children()
-            .flat_map(|node| {
-                if node.is::<HTMLOptionElement>() {
-                    let node = DomRoot::downcast::<HTMLOptionElement>(node).unwrap();
-                    Choice3::First(iter::once(node))
-                } else if node.is::<HTMLOptGroupElement>() {
-                    Choice3::Second(node.children().filter_map(DomRoot::downcast))
-                } else {
-                    Choice3::Third(iter::empty())
-                }
-            })
+    fn list_of_options(&self) -> impl Iterator<Item = DomRoot<HTMLOptionElement>> {
+        self.upcast::<Node>().children().flat_map(|node| {
+            if node.is::<HTMLOptionElement>() {
+                let node = DomRoot::downcast::<HTMLOptionElement>(node).unwrap();
+                Choice3::First(iter::once(node))
+            } else if node.is::<HTMLOptGroupElement>() {
+                Choice3::Second(node.children().filter_map(DomRoot::downcast))
+            } else {
+                Choice3::Third(iter::empty())
+            }
+        })
     }
 
     // https://html.spec.whatwg.org/multipage/#the-select-element:concept-form-reset-control
@@ -155,7 +163,7 @@ impl HTMLSelectElement {
                 data_set.push(FormDatum {
                     ty: self.Type(),
                     name: self.Name(),
-                    value:  FormDatumValue::String(opt.Value())
+                    value: FormDatumValue::String(opt.Value()),
                 });
             }
         }
@@ -175,16 +183,16 @@ impl HTMLSelectElement {
 
     // https://html.spec.whatwg.org/multipage/#concept-select-size
     fn display_size(&self) -> u32 {
-         if self.Size() == 0 {
-             if self.Multiple() {
-                 4
-             } else {
-                 1
-             }
-         } else {
-             self.Size()
-         }
-     }
+        if self.Size() == 0 {
+            if self.Multiple() {
+                4
+            } else {
+                1
+            }
+        } else {
+            self.Size()
+        }
+    }
 }
 
 impl HTMLSelectElementMethods for HTMLSelectElement {
@@ -196,7 +204,11 @@ impl HTMLSelectElementMethods for HTMLSelectElement {
 
     // Note: this function currently only exists for union.html.
     // https://html.spec.whatwg.org/multipage/#dom-select-add
-    fn Add(&self, _element: HTMLOptionElementOrHTMLOptGroupElement, _before: Option<HTMLElementOrLong>) {
+    fn Add(
+        &self,
+        _element: HTMLOptionElementOrHTMLOptGroupElement,
+        _before: Option<HTMLElementOrLong>,
+    ) {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-fe-disabled
@@ -246,8 +258,7 @@ impl HTMLSelectElementMethods for HTMLSelectElement {
     fn Options(&self) -> DomRoot<HTMLOptionsCollection> {
         self.options.or_init(|| {
             let window = window_from_node(self);
-            HTMLOptionsCollection::new(
-                &window, self, Box::new(OptionsFilter))
+            HTMLOptionsCollection::new(&window, self, Box::new(OptionsFilter))
         })
     }
 
@@ -273,7 +284,9 @@ impl HTMLSelectElementMethods for HTMLSelectElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-select-nameditem
     fn NamedItem(&self, name: DOMString) -> Option<DomRoot<HTMLOptionElement>> {
-        self.Options().NamedGetter(name).map_or(None, |e| DomRoot::downcast::<HTMLOptionElement>(e))
+        self.Options()
+            .NamedGetter(name)
+            .map_or(None, |e| DomRoot::downcast::<HTMLOptionElement>(e))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-select-remove
@@ -359,7 +372,7 @@ impl VirtualMethods for HTMLSelectElement {
                         el.set_disabled_state(false);
                         el.set_enabled_state(true);
                         el.check_ancestors_disabled_state_for_form_control();
-                    }
+                    },
                 }
             },
             &local_name!("form") => {
@@ -374,7 +387,8 @@ impl VirtualMethods for HTMLSelectElement {
             s.bind_to_tree(tree_in_doc);
         }
 
-        self.upcast::<Element>().check_ancestors_disabled_state_for_form_control();
+        self.upcast::<Element>()
+            .check_ancestors_disabled_state_for_form_control();
     }
 
     fn unbind_from_tree(&self, context: &UnbindContext) {
@@ -382,7 +396,10 @@ impl VirtualMethods for HTMLSelectElement {
 
         let node = self.upcast::<Node>();
         let el = self.upcast::<Element>();
-        if node.ancestors().any(|ancestor| ancestor.is::<HTMLFieldSetElement>()) {
+        if node
+            .ancestors()
+            .any(|ancestor| ancestor.is::<HTMLFieldSetElement>())
+        {
             el.check_ancestors_disabled_state_for_form_control();
         } else {
             el.check_disabled_attribute();
@@ -392,7 +409,10 @@ impl VirtualMethods for HTMLSelectElement {
     fn parse_plain_attribute(&self, local_name: &LocalName, value: DOMString) -> AttrValue {
         match *local_name {
             local_name!("size") => AttrValue::from_u32(value.into(), DEFAULT_SELECT_SIZE),
-            _ => self.super_type().unwrap().parse_plain_attribute(local_name, value),
+            _ => self
+                .super_type()
+                .unwrap()
+                .parse_plain_attribute(local_name, value),
         }
     }
 }
@@ -429,7 +449,10 @@ enum Choice3<I, J, K> {
 }
 
 impl<I, J, K, T> Iterator for Choice3<I, J, K>
-    where I: Iterator<Item=T>, J: Iterator<Item=T>, K: Iterator<Item=T>
+where
+    I: Iterator<Item = T>,
+    J: Iterator<Item = T>,
+    K: Iterator<Item = T>,
 {
     type Item = T;
 

@@ -25,8 +25,11 @@ impl TouchList {
     }
 
     pub fn new(window: &Window, touches: &[&Touch]) -> DomRoot<TouchList> {
-        reflect_dom_object(Box::new(TouchList::new_inherited(touches)),
-                           window, TouchListBinding::Wrap)
+        reflect_dom_object(
+            Box::new(TouchList::new_inherited(touches)),
+            window,
+            TouchListBinding::Wrap,
+        )
     }
 }
 
@@ -38,7 +41,9 @@ impl TouchListMethods for TouchList {
 
     /// <https://w3c.github.io/touch-events/#widl-TouchList-item-getter-Touch-unsigned-long-index>
     fn Item(&self, index: u32) -> Option<DomRoot<Touch>> {
-        self.touches.get(index as usize).map(|js| DomRoot::from_ref(&**js))
+        self.touches
+            .get(index as usize)
+            .map(|js| DomRoot::from_ref(&**js))
     }
 
     /// <https://w3c.github.io/touch-events/#widl-TouchList-item-getter-Touch-unsigned-long-index>

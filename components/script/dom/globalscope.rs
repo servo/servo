@@ -65,9 +65,7 @@ use timers::{IsInterval, OneshotTimerCallback, OneshotTimerHandle};
 use timers::{OneshotTimers, TimerCallback};
 
 #[derive(JSTraceable)]
-pub struct AutoCloseWorker(
-    Arc<AtomicBool>,
-);
+pub struct AutoCloseWorker(Arc<AtomicBool>);
 
 impl Drop for AutoCloseWorker {
     fn drop(&mut self) {
@@ -175,7 +173,9 @@ impl GlobalScope {
     }
 
     pub fn track_worker(&self, closing_worker: Arc<AtomicBool>) {
-       self.list_auto_close_worker.borrow_mut().push(AutoCloseWorker(closing_worker));
+        self.list_auto_close_worker
+            .borrow_mut()
+            .push(AutoCloseWorker(closing_worker));
     }
 
     pub fn track_event_source(&self, event_source: &EventSource) {
@@ -184,15 +184,16 @@ impl GlobalScope {
 
     pub fn close_event_sources(&self) -> bool {
         let mut canceled_any_fetch = false;
-        self.event_source_tracker.for_each(|event_source: DomRoot<EventSource>| {
-            match event_source.ReadyState() {
-                2 => {},
-                _ => {
-                    event_source.cancel();
-                    canceled_any_fetch = true;
-                }
-            }
-        });
+        self.event_source_tracker
+            .for_each(
+                |event_source: DomRoot<EventSource>| match event_source.ReadyState() {
+                    2 => {},
+                    _ => {
+                        event_source.cancel();
+                        canceled_any_fetch = true;
+                    },
+                },
+            );
         canceled_any_fetch
     }
 
@@ -268,9 +269,11 @@ impl GlobalScope {
     }
 
     pub fn time_end(&self, label: &str) -> Result<u64, ()> {
-        self.console_timers.borrow_mut().remove(label).ok_or(()).map(|start| {
-            timestamp_in_ms(get_time()) - start
-        })
+        self.console_timers
+            .borrow_mut()
+            .remove(label)
+            .ok_or(())
+            .map(|start| timestamp_in_ms(get_time()) - start)
     }
 
     /// Get an `&IpcSender<ScriptToDevtoolsControlMsg>` to send messages
@@ -383,7 +386,6 @@ impl GlobalScope {
                 dedicated.forward_error_to_worker_object(error_info);
             }
         }
-
     }
 
     /// Get the `&ResourceThreads` for this global scope.
@@ -444,15 +446,19 @@ impl GlobalScope {
     }
 
     /// Evaluate JS code on this global scope.
-    pub fn evaluate_js_on_global_with_result(
-            &self, code: &str, rval: MutableHandleValue) -> bool {
+    pub fn evaluate_js_on_global_with_result(&self, code: &str, rval: MutableHandleValue) -> bool {
         self.evaluate_script_on_global_with_result(code, "", rval, 1)
     }
 
     /// Evaluate a JS script on this global scope.
     #[allow(unsafe_code)]
     pub fn evaluate_script_on_global_with_result(
-            &self, code: &str, filename: &str, rval: MutableHandleValue, line_number: u32) -> bool {
+        &self,
+        code: &str,
+        filename: &str,
+        rval: MutableHandleValue,
+        line_number: u32,
+    ) -> bool {
         let metadata = time::TimerMetadata {
             url: if filename.is_empty() {
                 self.get_url().as_str().into()
@@ -478,9 +484,13 @@ impl GlobalScope {
 
                 debug!("evaluating Dom string");
                 let result = unsafe {
-                    Evaluate2(cx, options.ptr, code.as_ptr(),
-                              code.len() as libc::size_t,
-                              rval)
+                    Evaluate2(
+                        cx,
+                        options.ptr,
+                        code.as_ptr(),
+                        code.len() as libc::size_t,
+                        rval,
+                    )
                 };
 
                 if !result {
@@ -490,14 +500,17 @@ impl GlobalScope {
 
                 maybe_resume_unwind();
                 result
-            }
+            },
         )
     }
 
     pub fn schedule_callback(
-            &self, callback: OneshotTimerCallback, duration: MsDuration)
-            -> OneshotTimerHandle {
-        self.timers.schedule_callback(callback, duration, self.timer_source())
+        &self,
+        callback: OneshotTimerCallback,
+        duration: MsDuration,
+    ) -> OneshotTimerHandle {
+        self.timers
+            .schedule_callback(callback, duration, self.timer_source())
     }
 
     pub fn unschedule_callback(&self, handle: OneshotTimerHandle) {
@@ -505,14 +518,20 @@ impl GlobalScope {
     }
 
     pub fn set_timeout_or_interval(
-            &self,
-            callback: TimerCallback,
-            arguments: Vec<HandleValue>,
-            timeout: i32,
-            is_interval: IsInterval)
-            -> i32 {
+        &self,
+        callback: TimerCallback,
+        arguments: Vec<HandleValue>,
+        timeout: i32,
+        is_interval: IsInterval,
+    ) -> i32 {
         self.timers.set_timeout_or_interval(
-            self, callback, arguments, timeout, is_interval, self.timer_source())
+            self,
+            callback,
+            arguments,
+            timeout,
+            is_interval,
+            self.timer_source(),
+        )
     }
 
     pub fn clear_timeout_or_interval(&self, handle: i32) {
@@ -566,7 +585,8 @@ impl GlobalScope {
 
     /// Perform a microtask checkpoint.
     pub fn perform_a_microtask_checkpoint(&self) {
-        self.microtask_queue.checkpoint(|_| Some(DomRoot::from_ref(self)));
+        self.microtask_queue
+            .checkpoint(|_| Some(DomRoot::from_ref(self)));
     }
 
     /// Enqueue a microtask for subsequent execution.
@@ -668,7 +688,6 @@ impl GlobalScope {
         }
         unreachable!();
     }
-
 }
 
 fn timestamp_in_ms(time: Timespec) -> u64 {
@@ -680,6 +699,9 @@ fn timestamp_in_ms(time: Timespec) -> u64 {
 unsafe fn global_scope_from_global(global: *mut JSObject) -> DomRoot<GlobalScope> {
     assert!(!global.is_null());
     let clasp = get_object_class(global);
-    assert_ne!(((*clasp).flags & (JSCLASS_IS_DOMJSCLASS | JSCLASS_IS_GLOBAL)), 0);
+    assert_ne!(
+        ((*clasp).flags & (JSCLASS_IS_DOMJSCLASS | JSCLASS_IS_GLOBAL)),
+        0
+    );
     root_from_object(global).unwrap()
 }

@@ -17,7 +17,9 @@ pub struct EXTShaderTextureLod {
 
 impl EXTShaderTextureLod {
     fn new_inherited() -> Self {
-        Self { reflector_: Reflector::new() }
+        Self {
+            reflector_: Reflector::new(),
+        }
     }
 }
 

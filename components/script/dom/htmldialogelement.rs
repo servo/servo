@@ -23,23 +23,30 @@ pub struct HTMLDialogElement {
 }
 
 impl HTMLDialogElement {
-    fn new_inherited(local_name: LocalName,
-                     prefix: Option<Prefix>,
-                     document: &Document) -> HTMLDialogElement {
+    fn new_inherited(
+        local_name: LocalName,
+        prefix: Option<Prefix>,
+        document: &Document,
+    ) -> HTMLDialogElement {
         HTMLDialogElement {
-            htmlelement:
-                HTMLElement::new_inherited(local_name, prefix, document),
+            htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
             return_value: DomRefCell::new(DOMString::new()),
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(local_name: LocalName,
-               prefix: Option<Prefix>,
-               document: &Document) -> DomRoot<HTMLDialogElement> {
-        Node::reflect_node(Box::new(HTMLDialogElement::new_inherited(local_name, prefix, document)),
-                           document,
-                           HTMLDialogElementBinding::Wrap)
+    pub fn new(
+        local_name: LocalName,
+        prefix: Option<Prefix>,
+        document: &Document,
+    ) -> DomRoot<HTMLDialogElement> {
+        Node::reflect_node(
+            Box::new(HTMLDialogElement::new_inherited(
+                local_name, prefix, document,
+            )),
+            document,
+            HTMLDialogElementBinding::Wrap,
+        )
     }
 }
 
@@ -68,7 +75,10 @@ impl HTMLDialogElementMethods for HTMLDialogElement {
         let win = window_from_node(self);
 
         // Step 1 & 2
-        if element.remove_attribute(&ns!(), &local_name!("open")).is_none() {
+        if element
+            .remove_attribute(&ns!(), &local_name!("open"))
+            .is_none()
+        {
             return;
         }
 
@@ -80,6 +90,7 @@ impl HTMLDialogElementMethods for HTMLDialogElement {
         // TODO: Step 4 implement pending dialog stack removal
 
         // Step 5
-        win.dom_manipulation_task_source().queue_simple_event(target, atom!("close"), &win);
+        win.dom_manipulation_task_source()
+            .queue_simple_event(target, atom!("close"), &win);
     }
 }

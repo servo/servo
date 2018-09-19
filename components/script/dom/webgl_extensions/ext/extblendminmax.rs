@@ -17,7 +17,9 @@ pub struct EXTBlendMinmax {
 
 impl EXTBlendMinmax {
     fn new_inherited() -> Self {
-        Self { reflector_: Reflector::new() }
+        Self {
+            reflector_: Reflector::new(),
+        }
     }
 }
 

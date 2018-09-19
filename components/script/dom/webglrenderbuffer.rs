@@ -42,7 +42,10 @@ impl WebGLRenderbuffer {
     pub fn maybe_new(context: &WebGLRenderingContext) -> Option<DomRoot<Self>> {
         let (sender, receiver) = webgl_channel().unwrap();
         context.send_command(WebGLCommand::CreateRenderbuffer(sender));
-        receiver.recv().unwrap().map(|id| WebGLRenderbuffer::new(context, id))
+        receiver
+            .recv()
+            .unwrap()
+            .map(|id| WebGLRenderbuffer::new(context, id))
     }
 
     pub fn new(context: &WebGLRenderingContext, id: WebGLRenderbufferId) -> DomRoot<Self> {
@@ -53,7 +56,6 @@ impl WebGLRenderbuffer {
         )
     }
 }
-
 
 impl WebGLRenderbuffer {
     pub fn id(&self) -> WebGLRenderbufferId {
@@ -95,9 +97,7 @@ impl WebGLRenderbuffer {
             - GLES 2.0, 4.4.3, "Attaching Renderbuffer Images to a Framebuffer"
              */
             let currently_bound_framebuffer =
-                self.upcast::<WebGLObject>()
-                    .context()
-                    .bound_framebuffer();
+                self.upcast::<WebGLObject>().context().bound_framebuffer();
             if let Some(fb) = currently_bound_framebuffer {
                 fb.detach_renderbuffer(self);
             }
@@ -149,14 +149,14 @@ impl WebGLRenderbuffer {
 
         // FIXME: Invalidate completeness after the call
 
-        self.upcast::<WebGLObject>().context().send_command(
-            WebGLCommand::RenderbufferStorage(
+        self.upcast::<WebGLObject>()
+            .context()
+            .send_command(WebGLCommand::RenderbufferStorage(
                 constants::RENDERBUFFER,
                 actual_format,
                 width,
                 height,
-            )
-        );
+            ));
 
         self.size.set(Some((width, height)));
 

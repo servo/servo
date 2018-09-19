@@ -71,9 +71,11 @@ impl CustomElementRegistry {
     }
 
     pub fn new(window: &Window) -> DomRoot<CustomElementRegistry> {
-        reflect_dom_object(Box::new(CustomElementRegistry::new_inherited(window)),
-                           window,
-                           CustomElementRegistryBinding::Wrap)
+        reflect_dom_object(
+            Box::new(CustomElementRegistry::new_inherited(window)),
+            window,
+            CustomElementRegistryBinding::Wrap,
+        )
     }
 
     /// Cleans up any active promises
@@ -83,40 +85,57 @@ impl CustomElementRegistry {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#look-up-a-custom-element-definition>
-    pub fn lookup_definition(&self,
-                             local_name: &LocalName,
-                             is: Option<&LocalName>)
-                             -> Option<Rc<CustomElementDefinition>> {
-        self.definitions.borrow().values().find(|definition| {
-            // Step 4-5
-            definition.local_name == *local_name &&
-                (definition.name == *local_name || Some(&definition.name) == is)
-        }).cloned()
+    pub fn lookup_definition(
+        &self,
+        local_name: &LocalName,
+        is: Option<&LocalName>,
+    ) -> Option<Rc<CustomElementDefinition>> {
+        self.definitions
+            .borrow()
+            .values()
+            .find(|definition| {
+                // Step 4-5
+                definition.local_name == *local_name &&
+                    (definition.name == *local_name || Some(&definition.name) == is)
+            }).cloned()
     }
 
-    pub fn lookup_definition_by_constructor(&self, constructor: HandleObject) -> Option<Rc<CustomElementDefinition>> {
-        self.definitions.borrow().values().find(|definition| {
-            definition.constructor.callback() == constructor.get()
-        }).cloned()
+    pub fn lookup_definition_by_constructor(
+        &self,
+        constructor: HandleObject,
+    ) -> Option<Rc<CustomElementDefinition>> {
+        self.definitions
+            .borrow()
+            .values()
+            .find(|definition| definition.constructor.callback() == constructor.get())
+            .cloned()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-customelementregistry-define>
     /// Steps 10.1, 10.2
     #[allow(unsafe_code)]
-    fn check_prototype(&self, constructor: HandleObject, prototype: MutableHandleValue) -> ErrorResult {
+    fn check_prototype(
+        &self,
+        constructor: HandleObject,
+        prototype: MutableHandleValue,
+    ) -> ErrorResult {
         let global_scope = self.window.upcast::<GlobalScope>();
         unsafe {
             // Step 10.1
-            if !JS_GetProperty(global_scope.get_cx(),
-                               constructor,
-                               b"prototype\0".as_ptr() as *const _,
-                               prototype) {
+            if !JS_GetProperty(
+                global_scope.get_cx(),
+                constructor,
+                b"prototype\0".as_ptr() as *const _,
+                prototype,
+            ) {
                 return Err(Error::JSFailed);
             }
 
             // Step 10.2
             if !prototype.is_object() {
-                return Err(Error::Type("constructor.prototype is not an object".to_owned()));
+                return Err(Error::Type(
+                    "constructor.prototype is not an object".to_owned(),
+                ));
             }
         }
         Ok(())
@@ -143,10 +162,14 @@ impl CustomElementRegistry {
     fn get_observed_attributes(&self, constructor: HandleObject) -> Fallible<Vec<DOMString>> {
         let cx = self.window.get_cx();
         rooted!(in(cx) let mut observed_attributes = UndefinedValue());
-        if unsafe { !JS_GetProperty(cx,
-                                    constructor,
-                                    b"observedAttributes\0".as_ptr() as *const _,
-                                    observed_attributes.handle_mut()) } {
+        if unsafe {
+            !JS_GetProperty(
+                cx,
+                constructor,
+                b"observedAttributes\0".as_ptr() as *const _,
+                observed_attributes.handle_mut(),
+            )
+        } {
             return Err(Error::JSFailed);
         }
 
@@ -155,7 +178,11 @@ impl CustomElementRegistry {
         }
 
         let conversion = unsafe {
-            FromJSValConvertible::from_jsval(cx, observed_attributes.handle(), StringificationBehavior::Default)
+            FromJSValConvertible::from_jsval(
+                cx,
+                observed_attributes.handle(),
+                StringificationBehavior::Default,
+            )
         };
         match conversion {
             Ok(ConversionResult::Success(attributes)) => Ok(attributes),
@@ -176,7 +203,12 @@ unsafe fn get_callback(
     rooted!(in(cx) let mut callback = UndefinedValue());
 
     // Step 10.4.1
-    if !JS_GetProperty(cx, prototype, name.as_ptr() as *const _, callback.handle_mut()) {
+    if !JS_GetProperty(
+        cx,
+        prototype,
+        name.as_ptr() as *const _,
+        callback.handle_mut(),
+    ) {
         return Err(Error::JSFailed);
     }
 
@@ -195,9 +227,10 @@ impl CustomElementRegistryMethods for CustomElementRegistry {
     #[allow(unsafe_code, unrooted_must_root)]
     /// <https://html.spec.whatwg.org/multipage/#dom-customelementregistry-define>
     fn Define(
-        &self, name: DOMString,
+        &self,
+        name: DOMString,
         constructor_: Rc<CustomElementConstructor>,
-        options: &ElementDefinitionOptions
+        options: &ElementDefinitionOptions,
     ) -> ErrorResult {
         let cx = self.window.get_cx();
         rooted!(in(cx) let constructor = constructor_.callback());
@@ -213,12 +246,14 @@ impl CustomElementRegistryMethods for CustomElementRegistry {
         }
 
         if unsafe { !IsConstructor(unwrapped_constructor.get()) } {
-            return Err(Error::Type("Second argument of CustomElementRegistry.define is not a constructor".to_owned()));
+            return Err(Error::Type(
+                "Second argument of CustomElementRegistry.define is not a constructor".to_owned(),
+            ));
         }
 
         // Step 2
         if !is_valid_custom_element_name(&name) {
-            return Err(Error::Syntax)
+            return Err(Error::Syntax);
         }
 
         // Step 3
@@ -227,7 +262,12 @@ impl CustomElementRegistryMethods for CustomElementRegistry {
         }
 
         // Step 4
-        if self.definitions.borrow().iter().any(|(_, ref def)| def.constructor == constructor_) {
+        if self
+            .definitions
+            .borrow()
+            .iter()
+            .any(|(_, ref def)| def.constructor == constructor_)
+        {
             return Err(Error::NotSupported);
         }
 
@@ -238,12 +278,12 @@ impl CustomElementRegistryMethods for CustomElementRegistry {
         let local_name = if let Some(ref extended_name) = *extends {
             // Step 7.1
             if is_valid_custom_element_name(extended_name) {
-                return Err(Error::NotSupported)
+                return Err(Error::NotSupported);
             }
 
             // Step 7.2
             if !is_extendable_element_interface(extended_name) {
-                return Err(Error::NotSupported)
+                return Err(Error::NotSupported);
             }
 
             LocalName::from(&**extended_name)
@@ -300,20 +340,28 @@ impl CustomElementRegistryMethods for CustomElementRegistry {
         self.element_definition_is_running.set(false);
 
         // Step 11
-        let definition = Rc::new(CustomElementDefinition::new(name.clone(),
-                                                              local_name.clone(),
-                                                              constructor_,
-                                                              observed_attributes,
-                                                              callbacks));
+        let definition = Rc::new(CustomElementDefinition::new(
+            name.clone(),
+            local_name.clone(),
+            constructor_,
+            observed_attributes,
+            callbacks,
+        ));
 
         // Step 12
-        self.definitions.borrow_mut().insert(name.clone(), definition.clone());
+        self.definitions
+            .borrow_mut()
+            .insert(name.clone(), definition.clone());
 
         // Step 13
         let document = self.window.Document();
 
         // Steps 14-15
-        for candidate in document.upcast::<Node>().traverse_preorder().filter_map(DomRoot::downcast::<Element>) {
+        for candidate in document
+            .upcast::<Node>()
+            .traverse_preorder()
+            .filter_map(DomRoot::downcast::<Element>)
+        {
             let is = candidate.get_is();
             if *candidate.local_name() == local_name &&
                 *candidate.namespace() == ns!(html) &&
@@ -336,7 +384,9 @@ impl CustomElementRegistryMethods for CustomElementRegistry {
         match self.definitions.borrow().get(&LocalName::from(&*name)) {
             Some(definition) => {
                 rooted!(in(cx) let mut constructor = UndefinedValue());
-                definition.constructor.to_jsval(cx, constructor.handle_mut());
+                definition
+                    .constructor
+                    .to_jsval(cx, constructor.handle_mut());
                 constructor.get()
             },
             None => UndefinedValue(),
@@ -353,14 +403,14 @@ impl CustomElementRegistryMethods for CustomElementRegistry {
         if !is_valid_custom_element_name(&name) {
             let promise = Promise::new(global_scope);
             promise.reject_native(&DOMException::new(global_scope, DOMErrorName::SyntaxError));
-            return promise
+            return promise;
         }
 
         // Step 2
         if self.definitions.borrow().contains_key(&name) {
             let promise = Promise::new(global_scope);
             promise.resolve_native(&UndefinedValue());
-            return promise
+            return promise;
         }
 
         // Step 3
@@ -417,12 +467,13 @@ pub struct CustomElementDefinition {
 }
 
 impl CustomElementDefinition {
-    fn new(name: LocalName,
-           local_name: LocalName,
-           constructor: Rc<CustomElementConstructor>,
-           observed_attributes: Vec<DOMString>,
-           callbacks: LifecycleCallbacks)
-           -> CustomElementDefinition {
+    fn new(
+        name: LocalName,
+        local_name: LocalName,
+        constructor: Rc<CustomElementConstructor>,
+        observed_attributes: Vec<DOMString>,
+        callbacks: LifecycleCallbacks,
+    ) -> CustomElementDefinition {
         CustomElementDefinition {
             name: name,
             local_name: local_name,
@@ -440,7 +491,11 @@ impl CustomElementDefinition {
 
     /// https://dom.spec.whatwg.org/#concept-create-element Step 6.1
     #[allow(unsafe_code)]
-    pub fn create_element(&self, document: &Document, prefix: Option<Prefix>) -> Fallible<DomRoot<Element>> {
+    pub fn create_element(
+        &self,
+        document: &Document,
+        prefix: Option<Prefix>,
+    ) -> Fallible<DomRoot<Element>> {
         let window = document.window();
         let cx = window.get_cx();
         // Step 2
@@ -456,16 +511,22 @@ impl CustomElementDefinition {
         }
 
         rooted!(in(cx) let element_val = ObjectValue(element.get()));
-        let element: DomRoot<Element> = match unsafe { DomRoot::from_jsval(cx, element_val.handle(), ()) } {
-            Ok(ConversionResult::Success(element)) => element,
-            Ok(ConversionResult::Failure(..)) =>
-                return Err(Error::Type("Constructor did not return a DOM node".to_owned())),
-            _ => return Err(Error::JSFailed),
-        };
+        let element: DomRoot<Element> =
+            match unsafe { DomRoot::from_jsval(cx, element_val.handle(), ()) } {
+                Ok(ConversionResult::Success(element)) => element,
+                Ok(ConversionResult::Failure(..)) => {
+                    return Err(Error::Type(
+                        "Constructor did not return a DOM node".to_owned(),
+                    ))
+                },
+                _ => return Err(Error::JSFailed),
+            };
 
         // Step 3
         if !element.is::<HTMLElement>() {
-            return Err(Error::Type("Constructor did not return a DOM node".to_owned()));
+            return Err(Error::Type(
+                "Constructor did not return a DOM node".to_owned(),
+            ));
         }
 
         // Steps 4-9
@@ -503,17 +564,27 @@ pub fn upgrade_element(definition: Rc<CustomElementDefinition>, element: &Elemen
         let local_name = attr.local_name().clone();
         let value = DOMString::from(&**attr.value());
         let namespace = attr.namespace().clone();
-        ScriptThread::enqueue_callback_reaction(element,
-            CallbackReaction::AttributeChanged(local_name, None, Some(value), namespace), Some(definition.clone()));
+        ScriptThread::enqueue_callback_reaction(
+            element,
+            CallbackReaction::AttributeChanged(local_name, None, Some(value), namespace),
+            Some(definition.clone()),
+        );
     }
 
     // Step 4
     if element.is_connected() {
-        ScriptThread::enqueue_callback_reaction(element, CallbackReaction::Connected, Some(definition.clone()));
+        ScriptThread::enqueue_callback_reaction(
+            element,
+            CallbackReaction::Connected,
+            Some(definition.clone()),
+        );
     }
 
     // Step 5
-    definition.construction_stack.borrow_mut().push(ConstructionStackEntry::Element(DomRoot::from_ref(element)));
+    definition
+        .construction_stack
+        .borrow_mut()
+        .push(ConstructionStackEntry::Element(DomRoot::from_ref(element)));
 
     // Step 7
     let result = run_upgrade_constructor(&definition.constructor, element);
@@ -548,25 +619,44 @@ pub fn upgrade_element(definition: Rc<CustomElementDefinition>, element: &Elemen
 /// <https://html.spec.whatwg.org/multipage/#concept-upgrade-an-element>
 /// Steps 7.1-7.2
 #[allow(unsafe_code)]
-fn run_upgrade_constructor(constructor: &Rc<CustomElementConstructor>, element: &Element) -> ErrorResult {
+fn run_upgrade_constructor(
+    constructor: &Rc<CustomElementConstructor>,
+    element: &Element,
+) -> ErrorResult {
     let window = window_from_node(element);
     let cx = window.get_cx();
     rooted!(in(cx) let constructor_val = ObjectValue(constructor.callback()));
     rooted!(in(cx) let mut element_val = UndefinedValue());
-    unsafe { element.to_jsval(cx, element_val.handle_mut()); }
+    unsafe {
+        element.to_jsval(cx, element_val.handle_mut());
+    }
     rooted!(in(cx) let mut construct_result = ptr::null_mut::<JSObject>());
     {
         // Go into the constructor's compartment
         let _ac = JSAutoCompartment::new(cx, constructor.callback());
         let args = HandleValueArray::new();
         // Step 7.1
-        if unsafe { !Construct1(cx, constructor_val.handle(), &args, construct_result.handle_mut()) } {
+        if unsafe {
+            !Construct1(
+                cx,
+                constructor_val.handle(),
+                &args,
+                construct_result.handle_mut(),
+            )
+        } {
             return Err(Error::JSFailed);
         }
         // Step 7.2
         let mut same = false;
         rooted!(in(cx) let construct_result_val = ObjectValue(construct_result.get()));
-        if unsafe { !JS_SameValue(cx, construct_result_val.handle(), element_val.handle(), &mut same) } {
+        if unsafe {
+            !JS_SameValue(
+                cx,
+                construct_result_val.handle(),
+                element_val.handle(),
+                &mut same,
+            )
+        } {
             return Err(Error::JSFailed);
         }
         if !same {
@@ -583,7 +673,9 @@ pub fn try_upgrade_element(element: &Element) {
     let namespace = element.namespace();
     let local_name = element.local_name();
     let is = element.get_is();
-    if let Some(definition) = document.lookup_custom_element_definition(namespace, local_name, is.as_ref()) {
+    if let Some(definition) =
+        document.lookup_custom_element_definition(namespace, local_name, is.as_ref())
+    {
         // Step 2
         ScriptThread::enqueue_upgrade_reaction(element, definition);
     }
@@ -592,14 +684,10 @@ pub fn try_upgrade_element(element: &Element) {
 #[derive(JSTraceable, MallocSizeOf)]
 #[must_root]
 pub enum CustomElementReaction {
-    Upgrade(
-        #[ignore_malloc_size_of = "Rc"]
-        Rc<CustomElementDefinition>
-    ),
+    Upgrade(#[ignore_malloc_size_of = "Rc"] Rc<CustomElementDefinition>),
     Callback(
-        #[ignore_malloc_size_of = "Rc"]
-        Rc<Function>,
-        Box<[Heap<JSVal>]>
+        #[ignore_malloc_size_of = "Rc"] Rc<Function>,
+        Box<[Heap<JSVal>]>,
     ),
 }
 
@@ -609,12 +697,17 @@ impl CustomElementReaction {
     pub fn invoke(&self, element: &Element) {
         // Step 2.1
         match *self {
-            CustomElementReaction::Upgrade(ref definition) => upgrade_element(definition.clone(), element),
+            CustomElementReaction::Upgrade(ref definition) => {
+                upgrade_element(definition.clone(), element)
+            },
             CustomElementReaction::Callback(ref callback, ref arguments) => {
                 // We're rooted, so it's safe to hand out a handle to objects in Heap
-                let arguments = arguments.iter().map(|arg| unsafe { HandleValue::from_raw(arg.handle()) }).collect();
+                let arguments = arguments
+                    .iter()
+                    .map(|arg| unsafe { HandleValue::from_raw(arg.handle()) })
+                    .collect();
                 let _ = callback.Call_(&*element, arguments, ExceptionHandling::Report);
-            }
+            },
         }
     }
 }
@@ -675,7 +768,8 @@ impl CustomElementReactionStack {
         self.backup_queue.invoke_reactions();
 
         // Step 4.2
-        self.processing_backup_element_queue.set(BackupElementQueueFlag::NotProcessing);
+        self.processing_backup_element_queue
+            .set(BackupElementQueueFlag::NotProcessing);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#enqueue-an-element-on-the-appropriate-element-queue>
@@ -693,7 +787,8 @@ impl CustomElementReactionStack {
             }
 
             // Step 1.3
-            self.processing_backup_element_queue.set(BackupElementQueueFlag::Processing);
+            self.processing_backup_element_queue
+                .set(BackupElementQueueFlag::Processing);
 
             // Step 4
             ScriptThread::enqueue_microtask(Microtask::CustomElementReaction);
@@ -702,10 +797,12 @@ impl CustomElementReactionStack {
 
     /// <https://html.spec.whatwg.org/multipage/#enqueue-a-custom-element-callback-reaction>
     #[allow(unsafe_code)]
-    pub fn enqueue_callback_reaction(&self,
-                                     element: &Element,
-                                     reaction: CallbackReaction,
-                                     definition: Option<Rc<CustomElementDefinition>>) {
+    pub fn enqueue_callback_reaction(
+        &self,
+        element: &Element,
+        reaction: CallbackReaction,
+        definition: Option<Rc<CustomElementDefinition>>,
+    ) {
         // Step 1
         let definition = match definition.or_else(|| element.get_custom_element_definition()) {
             Some(definition) => definition,
@@ -714,8 +811,13 @@ impl CustomElementReactionStack {
 
         // Step 2
         let (callback, args) = match reaction {
-            CallbackReaction::Connected => (definition.callbacks.connected_callback.clone(), Vec::new()),
-            CallbackReaction::Disconnected => (definition.callbacks.disconnected_callback.clone(), Vec::new()),
+            CallbackReaction::Connected => {
+                (definition.callbacks.connected_callback.clone(), Vec::new())
+            },
+            CallbackReaction::Disconnected => (
+                definition.callbacks.disconnected_callback.clone(),
+                Vec::new(),
+            ),
             CallbackReaction::Adopted(ref old_doc, ref new_doc) => {
                 let args = vec![Heap::default(), Heap::default()];
                 args[0].set(ObjectValue(old_doc.reflector().get_jsobject().get()));
@@ -724,7 +826,11 @@ impl CustomElementReactionStack {
             },
             CallbackReaction::AttributeChanged(local_name, old_val, val, namespace) => {
                 // Step 4
-                if !definition.observed_attributes.iter().any(|attr| *attr == *local_name) {
+                if !definition
+                    .observed_attributes
+                    .iter()
+                    .any(|attr| *attr == *local_name)
+                {
                     return;
                 }
 
@@ -732,31 +838,47 @@ impl CustomElementReactionStack {
 
                 let local_name = DOMString::from(&*local_name);
                 rooted!(in(cx) let mut name_value = UndefinedValue());
-                unsafe { local_name.to_jsval(cx, name_value.handle_mut()); }
+                unsafe {
+                    local_name.to_jsval(cx, name_value.handle_mut());
+                }
 
                 rooted!(in(cx) let mut old_value = NullValue());
                 if let Some(old_val) = old_val {
-                    unsafe { old_val.to_jsval(cx, old_value.handle_mut()); }
+                    unsafe {
+                        old_val.to_jsval(cx, old_value.handle_mut());
+                    }
                 }
 
                 rooted!(in(cx) let mut value = NullValue());
                 if let Some(val) = val {
-                    unsafe { val.to_jsval(cx, value.handle_mut()); }
+                    unsafe {
+                        val.to_jsval(cx, value.handle_mut());
+                    }
                 }
 
                 rooted!(in(cx) let mut namespace_value = NullValue());
                 if namespace != ns!() {
                     let namespace = DOMString::from(&*namespace);
-                    unsafe { namespace.to_jsval(cx, namespace_value.handle_mut()); }
+                    unsafe {
+                        namespace.to_jsval(cx, namespace_value.handle_mut());
+                    }
                 }
 
-                let args = vec![Heap::default(), Heap::default(), Heap::default(), Heap::default()];
+                let args = vec![
+                    Heap::default(),
+                    Heap::default(),
+                    Heap::default(),
+                    Heap::default(),
+                ];
                 args[0].set(name_value.get());
                 args[1].set(old_value.get());
                 args[2].set(value.get());
                 args[3].set(namespace_value.get());
 
-                (definition.callbacks.attribute_changed_callback.clone(), args)
+                (
+                    definition.callbacks.attribute_changed_callback.clone(),
+                    args,
+                )
             },
         };
 
@@ -774,7 +896,11 @@ impl CustomElementReactionStack {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#enqueue-a-custom-element-upgrade-reaction>
-    pub fn enqueue_upgrade_reaction(&self, element: &Element, definition: Rc<CustomElementDefinition>) {
+    pub fn enqueue_upgrade_reaction(
+        &self,
+        element: &Element,
+        definition: Rc<CustomElementDefinition>,
+    ) {
         // Step 1
         element.push_upgrade_reaction(definition);
         // Step 2
@@ -806,7 +932,12 @@ impl ElementQueue {
     }
 
     fn next_element(&self) -> Option<DomRoot<Element>> {
-        self.queue.borrow_mut().pop_front().as_ref().map(Dom::deref).map(DomRoot::from_ref)
+        self.queue
+            .borrow_mut()
+            .pop_front()
+            .as_ref()
+            .map(Dom::deref)
+            .map(DomRoot::from_ref)
     }
 
     fn append_element(&self, element: &Element) {
@@ -859,145 +990,148 @@ pub fn is_valid_custom_element_name(name: &str) -> bool {
 /// Check if this character is a PCENChar
 /// <https://html.spec.whatwg.org/multipage/#prod-pcenchar>
 fn is_potential_custom_element_char(c: char) -> bool {
-    c == '-' || c == '.' || c == '_' || c == '\u{B7}' ||
-    (c >= '0' && c <= '9') ||
-    (c >= 'a' && c <= 'z') ||
-    (c >= '\u{C0}' && c <= '\u{D6}') ||
-    (c >= '\u{D8}' && c <= '\u{F6}') ||
-    (c >= '\u{F8}' && c <= '\u{37D}') ||
-    (c >= '\u{37F}' && c <= '\u{1FFF}') ||
-    (c >= '\u{200C}' && c <= '\u{200D}') ||
-    (c >= '\u{203F}' && c <= '\u{2040}') ||
-    (c >= '\u{2070}' && c <= '\u{2FEF}') ||
-    (c >= '\u{3001}' && c <= '\u{D7FF}') ||
-    (c >= '\u{F900}' && c <= '\u{FDCF}') ||
-    (c >= '\u{FDF0}' && c <= '\u{FFFD}') ||
-    (c >= '\u{10000}' && c <= '\u{EFFFF}')
+    c == '-' ||
+        c == '.' ||
+        c == '_' ||
+        c == '\u{B7}' ||
+        (c >= '0' && c <= '9') ||
+        (c >= 'a' && c <= 'z') ||
+        (c >= '\u{C0}' && c <= '\u{D6}') ||
+        (c >= '\u{D8}' && c <= '\u{F6}') ||
+        (c >= '\u{F8}' && c <= '\u{37D}') ||
+        (c >= '\u{37F}' && c <= '\u{1FFF}') ||
+        (c >= '\u{200C}' && c <= '\u{200D}') ||
+        (c >= '\u{203F}' && c <= '\u{2040}') ||
+        (c >= '\u{2070}' && c <= '\u{2FEF}') ||
+        (c >= '\u{3001}' && c <= '\u{D7FF}') ||
+        (c >= '\u{F900}' && c <= '\u{FDCF}') ||
+        (c >= '\u{FDF0}' && c <= '\u{FFFD}') ||
+        (c >= '\u{10000}' && c <= '\u{EFFFF}')
 }
 
 fn is_extendable_element_interface(element: &str) -> bool {
     element == "a" ||
-    element == "abbr" ||
-    element == "acronym" ||
-    element == "address" ||
-    element == "area" ||
-    element == "article" ||
-    element == "aside" ||
-    element == "audio" ||
-    element == "b" ||
-    element == "base" ||
-    element == "bdi" ||
-    element == "bdo" ||
-    element == "big" ||
-    element == "blockquote" ||
-    element == "body" ||
-    element == "br" ||
-    element == "button" ||
-    element == "canvas" ||
-    element == "caption" ||
-    element == "center" ||
-    element == "cite" ||
-    element == "code" ||
-    element == "col" ||
-    element == "colgroup" ||
-    element == "data" ||
-    element == "datalist" ||
-    element == "dd" ||
-    element == "del" ||
-    element == "details" ||
-    element == "dfn" ||
-    element == "dialog" ||
-    element == "dir" ||
-    element == "div" ||
-    element == "dl" ||
-    element == "dt" ||
-    element == "em" ||
-    element == "embed" ||
-    element == "fieldset" ||
-    element == "figcaption" ||
-    element == "figure" ||
-    element == "font" ||
-    element == "footer" ||
-    element == "form" ||
-    element == "frame" ||
-    element == "frameset" ||
-    element == "h1" ||
-    element == "h2" ||
-    element == "h3" ||
-    element == "h4" ||
-    element == "h5" ||
-    element == "h6" ||
-    element == "head" ||
-    element == "header" ||
-    element == "hgroup" ||
-    element == "hr" ||
-    element == "html" ||
-    element == "i" ||
-    element == "iframe" ||
-    element == "img" ||
-    element == "input" ||
-    element == "ins" ||
-    element == "kbd" ||
-    element == "label" ||
-    element == "legend" ||
-    element == "li" ||
-    element == "link" ||
-    element == "listing" ||
-    element == "main" ||
-    element == "map" ||
-    element == "mark" ||
-    element == "marquee" ||
-    element == "meta" ||
-    element == "meter" ||
-    element == "nav" ||
-    element == "nobr" ||
-    element == "noframes" ||
-    element == "noscript" ||
-    element == "object" ||
-    element == "ol" ||
-    element == "optgroup" ||
-    element == "option" ||
-    element == "output" ||
-    element == "p" ||
-    element == "param" ||
-    element == "plaintext" ||
-    element == "pre" ||
-    element == "progress" ||
-    element == "q" ||
-    element == "rp" ||
-    element == "rt" ||
-    element == "ruby" ||
-    element == "s" ||
-    element == "samp" ||
-    element == "script" ||
-    element == "section" ||
-    element == "select" ||
-    element == "small" ||
-    element == "source" ||
-    element == "span" ||
-    element == "strike" ||
-    element == "strong" ||
-    element == "style" ||
-    element == "sub" ||
-    element == "summary" ||
-    element == "sup" ||
-    element == "table" ||
-    element == "tbody" ||
-    element == "td" ||
-    element == "template" ||
-    element == "textarea" ||
-    element == "tfoot" ||
-    element == "th" ||
-    element == "thead" ||
-    element == "time" ||
-    element == "title" ||
-    element == "tr" ||
-    element == "tt" ||
-    element == "track" ||
-    element == "u" ||
-    element == "ul" ||
-    element == "var" ||
-    element == "video" ||
-    element == "wbr" ||
-    element == "xmp"
+        element == "abbr" ||
+        element == "acronym" ||
+        element == "address" ||
+        element == "area" ||
+        element == "article" ||
+        element == "aside" ||
+        element == "audio" ||
+        element == "b" ||
+        element == "base" ||
+        element == "bdi" ||
+        element == "bdo" ||
+        element == "big" ||
+        element == "blockquote" ||
+        element == "body" ||
+        element == "br" ||
+        element == "button" ||
+        element == "canvas" ||
+        element == "caption" ||
+        element == "center" ||
+        element == "cite" ||
+        element == "code" ||
+        element == "col" ||
+        element == "colgroup" ||
+        element == "data" ||
+        element == "datalist" ||
+        element == "dd" ||
+        element == "del" ||
+        element == "details" ||
+        element == "dfn" ||
+        element == "dialog" ||
+        element == "dir" ||
+        element == "div" ||
+        element == "dl" ||
+        element == "dt" ||
+        element == "em" ||
+        element == "embed" ||
+        element == "fieldset" ||
+        element == "figcaption" ||
+        element == "figure" ||
+        element == "font" ||
+        element == "footer" ||
+        element == "form" ||
+        element == "frame" ||
+        element == "frameset" ||
+        element == "h1" ||
+        element == "h2" ||
+        element == "h3" ||
+        element == "h4" ||
+        element == "h5" ||
+        element == "h6" ||
+        element == "head" ||
+        element == "header" ||
+        element == "hgroup" ||
+        element == "hr" ||
+        element == "html" ||
+        element == "i" ||
+        element == "iframe" ||
+        element == "img" ||
+        element == "input" ||
+        element == "ins" ||
+        element == "kbd" ||
+        element == "label" ||
+        element == "legend" ||
+        element == "li" ||
+        element == "link" ||
+        element == "listing" ||
+        element == "main" ||
+        element == "map" ||
+        element == "mark" ||
+        element == "marquee" ||
+        element == "meta" ||
+        element == "meter" ||
+        element == "nav" ||
+        element == "nobr" ||
+        element == "noframes" ||
+        element == "noscript" ||
+        element == "object" ||
+        element == "ol" ||
+        element == "optgroup" ||
+        element == "option" ||
+        element == "output" ||
+        element == "p" ||
+        element == "param" ||
+        element == "plaintext" ||
+        element == "pre" ||
+        element == "progress" ||
+        element == "q" ||
+        element == "rp" ||
+        element == "rt" ||
+        element == "ruby" ||
+        element == "s" ||
+        element == "samp" ||
+        element == "script" ||
+        element == "section" ||
+        element == "select" ||
+        element == "small" ||
+        element == "source" ||
+        element == "span" ||
+        element == "strike" ||
+        element == "strong" ||
+        element == "style" ||
+        element == "sub" ||
+        element == "summary" ||
+        element == "sup" ||
+        element == "table" ||
+        element == "tbody" ||
+        element == "td" ||
+        element == "template" ||
+        element == "textarea" ||
+        element == "tfoot" ||
+        element == "th" ||
+        element == "thead" ||
+        element == "time" ||
+        element == "title" ||
+        element == "tr" ||
+        element == "tt" ||
+        element == "track" ||
+        element == "u" ||
+        element == "ul" ||
+        element == "var" ||
+        element == "video" ||
+        element == "wbr" ||
+        element == "xmp"
 }

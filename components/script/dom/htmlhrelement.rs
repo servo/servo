@@ -22,19 +22,27 @@ pub struct HTMLHRElement {
 }
 
 impl HTMLHRElement {
-    fn new_inherited(local_name: LocalName, prefix: Option<Prefix>, document: &Document) -> HTMLHRElement {
+    fn new_inherited(
+        local_name: LocalName,
+        prefix: Option<Prefix>,
+        document: &Document,
+    ) -> HTMLHRElement {
         HTMLHRElement {
-            htmlelement: HTMLElement::new_inherited(local_name, prefix, document)
+            htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(local_name: LocalName,
-               prefix: Option<Prefix>,
-               document: &Document) -> DomRoot<HTMLHRElement> {
-        Node::reflect_node(Box::new(HTMLHRElement::new_inherited(local_name, prefix, document)),
-                           document,
-                           HTMLHRElementBinding::Wrap)
+    pub fn new(
+        local_name: LocalName,
+        prefix: Option<Prefix>,
+        document: &Document,
+    ) -> DomRoot<HTMLHRElement> {
+        Node::reflect_node(
+            Box::new(HTMLHRElement::new_inherited(local_name, prefix, document)),
+            document,
+            HTMLHRElementBinding::Wrap,
+        )
     }
 }
 
@@ -86,7 +94,6 @@ impl HTMLHRLayoutHelpers for LayoutDom<HTMLHRElement> {
     }
 }
 
-
 impl VirtualMethods for HTMLHRElement {
     fn super_type(&self) -> Option<&VirtualMethods> {
         Some(self.upcast::<HTMLElement>() as &VirtualMethods)
@@ -97,7 +104,10 @@ impl VirtualMethods for HTMLHRElement {
             &local_name!("align") => AttrValue::from_dimension(value.into()),
             &local_name!("color") => AttrValue::from_legacy_color(value.into()),
             &local_name!("width") => AttrValue::from_dimension(value.into()),
-            _ => self.super_type().unwrap().parse_plain_attribute(name, value),
+            _ => self
+                .super_type()
+                .unwrap()
+                .parse_plain_attribute(name, value),
         }
     }
 }

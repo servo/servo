@@ -12,7 +12,7 @@ pub enum WorkerScriptMsg {
     /// Common variants associated with the script messages
     Common(CommonScriptMsg),
     /// Message sent through Worker.postMessage
-    DOMMessage(StructuredCloneData)
+    DOMMessage(StructuredCloneData),
 }
 
 pub struct SimpleWorkerErrorHandler<T: DomObject> {
@@ -21,8 +21,6 @@ pub struct SimpleWorkerErrorHandler<T: DomObject> {
 
 impl<T: DomObject> SimpleWorkerErrorHandler<T> {
     pub fn new(addr: Trusted<T>) -> SimpleWorkerErrorHandler<T> {
-        SimpleWorkerErrorHandler {
-            addr: addr
-        }
+        SimpleWorkerErrorHandler { addr: addr }
     }
 }

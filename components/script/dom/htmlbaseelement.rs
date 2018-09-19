@@ -19,30 +19,42 @@ use servo_url::ServoUrl;
 
 #[dom_struct]
 pub struct HTMLBaseElement {
-    htmlelement: HTMLElement
+    htmlelement: HTMLElement,
 }
 
 impl HTMLBaseElement {
-    fn new_inherited(local_name: LocalName, prefix: Option<Prefix>, document: &Document) -> HTMLBaseElement {
+    fn new_inherited(
+        local_name: LocalName,
+        prefix: Option<Prefix>,
+        document: &Document,
+    ) -> HTMLBaseElement {
         HTMLBaseElement {
-            htmlelement: HTMLElement::new_inherited(local_name, prefix, document)
+            htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(local_name: LocalName,
-               prefix: Option<Prefix>,
-               document: &Document) -> DomRoot<HTMLBaseElement> {
-        Node::reflect_node(Box::new(HTMLBaseElement::new_inherited(local_name, prefix, document)),
-                           document,
-                           HTMLBaseElementBinding::Wrap)
+    pub fn new(
+        local_name: LocalName,
+        prefix: Option<Prefix>,
+        document: &Document,
+    ) -> DomRoot<HTMLBaseElement> {
+        Node::reflect_node(
+            Box::new(HTMLBaseElement::new_inherited(local_name, prefix, document)),
+            document,
+            HTMLBaseElementBinding::Wrap,
+        )
     }
 
     /// <https://html.spec.whatwg.org/multipage/#frozen-base-url>
     pub fn frozen_base_url(&self) -> ServoUrl {
-        let href = self.upcast::<Element>().get_attribute(&ns!(), &local_name!("href"))
-            .expect("The frozen base url is only defined for base elements \
-                     that have a base url.");
+        let href = self
+            .upcast::<Element>()
+            .get_attribute(&ns!(), &local_name!("href"))
+            .expect(
+                "The frozen base url is only defined for base elements \
+                 that have a base url.",
+            );
         let document = document_from_node(self);
         let base = document.fallback_base_url();
         let parsed = base.join(&href.value());
@@ -70,7 +82,9 @@ impl HTMLBaseElementMethods for HTMLBaseElement {
         let document = document_from_node(self);
 
         // Step 2.
-        let attr = self.upcast::<Element>().get_attribute(&ns!(), &local_name!("href"));
+        let attr = self
+            .upcast::<Element>()
+            .get_attribute(&ns!(), &local_name!("href"));
         let value = attr.as_ref().map(|attr| attr.value());
         let url = value.as_ref().map_or("", |value| &**value);
 
@@ -81,7 +95,7 @@ impl HTMLBaseElementMethods for HTMLBaseElement {
             Err(_) => {
                 // Step 4.
                 url.into()
-            }
+            },
             Ok(url_record) => {
                 // Step 5.
                 url_record.into_string().into()

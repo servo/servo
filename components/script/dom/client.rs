@@ -21,7 +21,7 @@ pub struct Client {
     url: ServoUrl,
     frame_type: FrameType,
     #[ignore_malloc_size_of = "Defined in uuid"]
-    id: Uuid
+    id: Uuid,
 }
 
 impl Client {
@@ -31,14 +31,16 @@ impl Client {
             active_worker: Default::default(),
             url: url,
             frame_type: FrameType::None,
-            id: Uuid::new_v4()
+            id: Uuid::new_v4(),
         }
     }
 
     pub fn new(window: &Window) -> DomRoot<Client> {
-        reflect_dom_object(Box::new(Client::new_inherited(window.get_url())),
-                           window,
-                           Wrap)
+        reflect_dom_object(
+            Box::new(Client::new_inherited(window.get_url())),
+            window,
+            Wrap,
+        )
     }
 
     pub fn creation_url(&self) -> ServoUrl {

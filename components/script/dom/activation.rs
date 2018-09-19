@@ -56,12 +56,14 @@ pub enum ActivationSource {
 }
 
 // https://html.spec.whatwg.org/multipage/#run-synthetic-click-activation-steps
-pub fn synthetic_click_activation(element: &Element,
-                                  ctrl_key: bool,
-                                  shift_key: bool,
-                                  alt_key: bool,
-                                  meta_key: bool,
-                                  source: ActivationSource) {
+pub fn synthetic_click_activation(
+    element: &Element,
+    ctrl_key: bool,
+    shift_key: bool,
+    alt_key: bool,
+    meta_key: bool,
+    source: ActivationSource,
+) {
     // Step 1
     if element.click_in_progress() {
         return;
@@ -78,23 +80,25 @@ pub fn synthetic_click_activation(element: &Element,
     // https://html.spec.whatwg.org/multipage/#fire-a-synthetic-mouse-event
     let win = window_from_node(element);
     let target = element.upcast::<EventTarget>();
-    let mouse = MouseEvent::new(&win,
-                                DOMString::from("click"),
-                                EventBubbles::DoesNotBubble,
-                                EventCancelable::NotCancelable,
-                                Some(&win),
-                                1,
-                                0,
-                                0,
-                                0,
-                                0,
-                                ctrl_key,
-                                shift_key,
-                                alt_key,
-                                meta_key,
-                                0,
-                                None,
-                                None);
+    let mouse = MouseEvent::new(
+        &win,
+        DOMString::from("click"),
+        EventBubbles::DoesNotBubble,
+        EventCancelable::NotCancelable,
+        Some(&win),
+        1,
+        0,
+        0,
+        0,
+        0,
+        ctrl_key,
+        shift_key,
+        alt_key,
+        meta_key,
+        0,
+        None,
+        None,
+    );
     let event = mouse.upcast::<Event>();
     if source == ActivationSource::FromClick {
         event.set_trusted(false);

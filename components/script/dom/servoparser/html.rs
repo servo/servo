@@ -37,11 +37,11 @@ pub struct Tokenizer {
 
 impl Tokenizer {
     pub fn new(
-            document: &Document,
-            url: ServoUrl,
-            fragment_context: Option<super::FragmentContext>,
-            parsing_algorithm: ParsingAlgorithm)
-            -> Self {
+        document: &Document,
+        url: ServoUrl,
+        fragment_context: Option<super::FragmentContext>,
+        parsing_algorithm: ParsingAlgorithm,
+    ) -> Self {
         let sink = Sink {
             base_url: url,
             document: Dom::from_ref(document),
@@ -52,7 +52,7 @@ impl Tokenizer {
 
         let options = TreeBuilderOpts {
             ignore_missing_rules: true,
-            .. Default::default()
+            ..Default::default()
         };
 
         let inner = if let Some(fc) = fragment_context {
@@ -60,11 +60,12 @@ impl Tokenizer {
                 sink,
                 Dom::from_ref(fc.context_elem),
                 fc.form_elem.map(|n| Dom::from_ref(n)),
-                options);
+                options,
+            );
 
             let tok_options = TokenizerOpts {
                 initial_state: Some(tb.tokenizer_state_for_context_elem()),
-                .. Default::default()
+                ..Default::default()
             };
 
             HtmlTokenizer::new(tb, tok_options)
@@ -72,9 +73,7 @@ impl Tokenizer {
             HtmlTokenizer::new(TreeBuilder::new(sink, options), Default::default())
         };
 
-        Tokenizer {
-            inner: inner,
-        }
+        Tokenizer { inner: inner }
     }
 
     pub fn feed(&mut self, input: &mut BufferQueue) -> Result<(), DomRoot<HTMLScriptElement>> {
@@ -107,7 +106,9 @@ unsafe impl JSTraceable for HtmlTokenizer<TreeBuilder<Dom<Node>, Sink>> {
             type Handle = Dom<Node>;
             #[allow(unrooted_must_root)]
             fn trace_handle(&self, node: &Dom<Node>) {
-                unsafe { node.trace(self.0); }
+                unsafe {
+                    node.trace(self.0);
+                }
             }
         }
 
@@ -118,14 +119,15 @@ unsafe impl JSTraceable for HtmlTokenizer<TreeBuilder<Dom<Node>, Sink>> {
 }
 
 fn start_element<S: Serializer>(node: &Element, serializer: &mut S) -> io::Result<()> {
-    let name = QualName::new(None, node.namespace().clone(),
-                             node.local_name().clone());
-    let attrs = node.attrs().iter().map(|attr| {
-        let qname = QualName::new(None, attr.namespace().clone(),
-                                  attr.local_name().clone());
-        let value = attr.value().clone();
-        (qname, value)
-    }).collect::<Vec<_>>();
+    let name = QualName::new(None, node.namespace().clone(), node.local_name().clone());
+    let attrs = node
+        .attrs()
+        .iter()
+        .map(|attr| {
+            let qname = QualName::new(None, attr.namespace().clone(), attr.local_name().clone());
+            let value = attr.value().clone();
+            (qname, value)
+        }).collect::<Vec<_>>();
     let attr_refs = attrs.iter().map(|&(ref qname, ref value)| {
         let ar: AttrRef = (&qname, &**value);
         ar
@@ -135,11 +137,9 @@ fn start_element<S: Serializer>(node: &Element, serializer: &mut S) -> io::Resul
 }
 
 fn end_element<S: Serializer>(node: &Element, serializer: &mut S) -> io::Result<()> {
-    let name = QualName::new(None, node.namespace().clone(),
-                             node.local_name().clone());
+    let name = QualName::new(None, node.namespace().clone(), node.local_name().clone());
     serializer.end_elem(name)
 }
-
 
 enum SerializationCommand {
     OpenElement(DomRoot<Element>),
@@ -151,7 +151,7 @@ struct SerializationIterator {
     stack: Vec<SerializationCommand>,
 }
 
-fn rev_children_iter(n: &Node) -> impl Iterator<Item=DomRoot<Node>>{
+fn rev_children_iter(n: &Node) -> impl Iterator<Item = DomRoot<Node>> {
     match n.downcast::<HTMLTemplateElement>() {
         Some(t) => t.Content().upcast::<Node>().rev_children(),
         None => n.rev_children(),
@@ -160,9 +160,7 @@ fn rev_children_iter(n: &Node) -> impl Iterator<Item=DomRoot<Node>>{
 
 impl SerializationIterator {
     fn new(node: &Node, skip_first: bool) -> SerializationIterator {
-        let mut ret = SerializationIterator {
-            stack: vec![],
-        };
+        let mut ret = SerializationIterator { stack: vec![] };
         if skip_first {
             for c in rev_children_iter(node) {
                 ret.push_node(&*c);
@@ -175,8 +173,12 @@ impl SerializationIterator {
 
     fn push_node(&mut self, n: &Node) {
         match n.downcast::<Element>() {
-            Some(e) => self.stack.push(SerializationCommand::OpenElement(DomRoot::from_ref(e))),
-            None => self.stack.push(SerializationCommand::SerializeNonelement(DomRoot::from_ref(n))),
+            Some(e) => self
+                .stack
+                .push(SerializationCommand::OpenElement(DomRoot::from_ref(e))),
+            None => self.stack.push(SerializationCommand::SerializeNonelement(
+                DomRoot::from_ref(n),
+            )),
         }
     }
 }
@@ -188,7 +190,8 @@ impl Iterator for SerializationIterator {
         let res = self.stack.pop();
 
         if let Some(SerializationCommand::OpenElement(ref e)) = res {
-            self.stack.push(SerializationCommand::CloseElement(e.clone()));
+            self.stack
+                .push(SerializationCommand::CloseElement(e.clone()));
             for c in rev_children_iter(&*e.upcast::<Node>()) {
                 self.push_node(&c);
             }
@@ -199,10 +202,12 @@ impl Iterator for SerializationIterator {
 }
 
 impl<'a> Serialize for &'a Node {
-    fn serialize<S: Serializer>(&self, serializer: &mut S,
-                                traversal_scope: TraversalScope) -> io::Result<()> {
+    fn serialize<S: Serializer>(
+        &self,
+        serializer: &mut S,
+        traversal_scope: TraversalScope,
+    ) -> io::Result<()> {
         let node = *self;
-
 
         let iter = SerializationIterator::new(node, traversal_scope != IncludeNode);
 
@@ -210,41 +215,39 @@ impl<'a> Serialize for &'a Node {
             match cmd {
                 SerializationCommand::OpenElement(n) => {
                     start_element(&n, serializer)?;
-                }
+                },
 
                 SerializationCommand::CloseElement(n) => {
                     end_element(&&n, serializer)?;
-                }
+                },
 
-                SerializationCommand::SerializeNonelement(n) => {
-                    match n.type_id() {
-                        NodeTypeId::DocumentType => {
-                            let doctype = n.downcast::<DocumentType>().unwrap();
-                            serializer.write_doctype(&doctype.name())?;
-                        },
+                SerializationCommand::SerializeNonelement(n) => match n.type_id() {
+                    NodeTypeId::DocumentType => {
+                        let doctype = n.downcast::<DocumentType>().unwrap();
+                        serializer.write_doctype(&doctype.name())?;
+                    },
 
-                        NodeTypeId::CharacterData(CharacterDataTypeId::Text) => {
-                            let cdata = n.downcast::<CharacterData>().unwrap();
-                            serializer.write_text(&cdata.data())?;
-                        },
+                    NodeTypeId::CharacterData(CharacterDataTypeId::Text) => {
+                        let cdata = n.downcast::<CharacterData>().unwrap();
+                        serializer.write_text(&cdata.data())?;
+                    },
 
-                        NodeTypeId::CharacterData(CharacterDataTypeId::Comment) => {
-                            let cdata = n.downcast::<CharacterData>().unwrap();
-                            serializer.write_comment(&cdata.data())?;
-                        },
+                    NodeTypeId::CharacterData(CharacterDataTypeId::Comment) => {
+                        let cdata = n.downcast::<CharacterData>().unwrap();
+                        serializer.write_comment(&cdata.data())?;
+                    },
 
-                        NodeTypeId::CharacterData(CharacterDataTypeId::ProcessingInstruction) => {
-                            let pi = n.downcast::<ProcessingInstruction>().unwrap();
-                            let data = pi.upcast::<CharacterData>().data();
-                            serializer.write_processing_instruction(&pi.target(), &data)?;
-                        },
+                    NodeTypeId::CharacterData(CharacterDataTypeId::ProcessingInstruction) => {
+                        let pi = n.downcast::<ProcessingInstruction>().unwrap();
+                        let data = pi.upcast::<CharacterData>().data();
+                        serializer.write_processing_instruction(&pi.target(), &data)?;
+                    },
 
-                        NodeTypeId::DocumentFragment => {}
+                    NodeTypeId::DocumentFragment => {},
 
-                        NodeTypeId::Document(_) => panic!("Can't serialize Document node itself"),
-                        NodeTypeId::Element(_) => panic!("Element shouldn't appear here"),
-                    }
-                }
+                    NodeTypeId::Document(_) => panic!("Can't serialize Document node itself"),
+                    NodeTypeId::Element(_) => panic!("Element shouldn't appear here"),
+                },
             }
         }
 

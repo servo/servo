@@ -23,26 +23,33 @@ use style::attr::AttrValue;
 
 #[dom_struct]
 pub struct HTMLLabelElement {
-    htmlelement: HTMLElement
+    htmlelement: HTMLElement,
 }
 
 impl HTMLLabelElement {
-    fn new_inherited(local_name: LocalName,
-                     prefix: Option<Prefix>,
-                     document: &Document) -> HTMLLabelElement {
+    fn new_inherited(
+        local_name: LocalName,
+        prefix: Option<Prefix>,
+        document: &Document,
+    ) -> HTMLLabelElement {
         HTMLLabelElement {
-            htmlelement:
-                HTMLElement::new_inherited(local_name, prefix, document),
+            htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(local_name: LocalName,
-               prefix: Option<Prefix>,
-               document: &Document) -> DomRoot<HTMLLabelElement> {
-        Node::reflect_node(Box::new(HTMLLabelElement::new_inherited(local_name, prefix, document)),
-                           document,
-                           HTMLLabelElementBinding::Wrap)
+    pub fn new(
+        local_name: LocalName,
+        prefix: Option<Prefix>,
+        document: &Document,
+    ) -> DomRoot<HTMLLabelElement> {
+        Node::reflect_node(
+            Box::new(HTMLLabelElement::new_inherited(
+                local_name, prefix, document,
+            )),
+            document,
+            HTMLLabelElementBinding::Wrap,
+        )
     }
 }
 
@@ -57,33 +64,37 @@ impl Activatable for HTMLLabelElement {
 
     // https://html.spec.whatwg.org/multipage/#run-pre-click-activation-steps
     // https://html.spec.whatwg.org/multipage/#the-button-element:activation-behavior
-    fn pre_click_activation(&self) {
-    }
+    fn pre_click_activation(&self) {}
 
     // https://html.spec.whatwg.org/multipage/#run-canceled-activation-steps
-    fn canceled_activation(&self) {
-    }
+    fn canceled_activation(&self) {}
 
     // https://html.spec.whatwg.org/multipage/#run-post-click-activation-steps
     fn activation_behavior(&self, _event: &Event, _target: &EventTarget) {
         if let Some(e) = self.GetControl() {
             let elem = e.upcast::<Element>();
-            synthetic_click_activation(elem,
-                                       false,
-                                       false,
-                                       false,
-                                       false,
-                                       ActivationSource::NotFromClick);
+            synthetic_click_activation(
+                elem,
+                false,
+                false,
+                false,
+                false,
+                ActivationSource::NotFromClick,
+            );
         }
     }
 
     // https://html.spec.whatwg.org/multipage/#implicit-submission
-    fn implicit_submission(&self, _ctrl_key: bool, _shift_key: bool, _alt_key: bool, _meta_key: bool) {
+    fn implicit_submission(
+        &self,
+        _ctrl_key: bool,
+        _shift_key: bool,
+        _alt_key: bool,
+        _meta_key: bool,
+    ) {
         //FIXME: Investigate and implement implicit submission for label elements
         // Issue filed at https://github.com/servo/servo/issues/8263
     }
-
-
 }
 
 impl HTMLLabelElementMethods for HTMLLabelElement {
@@ -104,17 +115,21 @@ impl HTMLLabelElementMethods for HTMLLabelElement {
             return None;
         }
 
-        let for_attr = match self.upcast::<Element>().get_attribute(&ns!(), &local_name!("for")) {
+        let for_attr = match self
+            .upcast::<Element>()
+            .get_attribute(&ns!(), &local_name!("for"))
+        {
             Some(for_attr) => for_attr,
             None => return self.first_labelable_descendant(),
         };
 
         let for_value = for_attr.value();
-        document_from_node(self).get_element_by_id(for_value.as_atom())
-                                .and_then(DomRoot::downcast::<HTMLElement>)
-                                .into_iter()
-                                .filter(|e| e.is_labelable_element())
-                                .next()
+        document_from_node(self)
+            .get_element_by_id(for_value.as_atom())
+            .and_then(DomRoot::downcast::<HTMLElement>)
+            .into_iter()
+            .filter(|e| e.is_labelable_element())
+            .next()
     }
 }
 
@@ -126,7 +141,10 @@ impl VirtualMethods for HTMLLabelElement {
     fn parse_plain_attribute(&self, name: &LocalName, value: DOMString) -> AttrValue {
         match name {
             &local_name!("for") => AttrValue::from_atomic(value.into()),
-            _ => self.super_type().unwrap().parse_plain_attribute(name, value),
+            _ => self
+                .super_type()
+                .unwrap()
+                .parse_plain_attribute(name, value),
         }
     }
 
@@ -153,9 +171,12 @@ impl HTMLLabelElement {
 
 impl FormControl for HTMLLabelElement {
     fn form_owner(&self) -> Option<DomRoot<HTMLFormElement>> {
-        self.GetControl().map(DomRoot::upcast::<Element>).and_then(|elem| {
-            elem.as_maybe_form_control().and_then(|control| control.form_owner())
-        })
+        self.GetControl()
+            .map(DomRoot::upcast::<Element>)
+            .and_then(|elem| {
+                elem.as_maybe_form_control()
+                    .and_then(|control| control.form_owner())
+            })
     }
 
     fn set_form_owner(&self, _: Option<&HTMLFormElement>) {

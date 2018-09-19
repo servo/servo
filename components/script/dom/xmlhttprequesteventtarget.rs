@@ -14,7 +14,7 @@ pub struct XMLHttpRequestEventTarget {
 impl XMLHttpRequestEventTarget {
     pub fn new_inherited() -> XMLHttpRequestEventTarget {
         XMLHttpRequestEventTarget {
-            eventtarget: EventTarget::new_inherited()
+            eventtarget: EventTarget::new_inherited(),
         }
     }
 }

@@ -23,7 +23,6 @@ use std::cell::Cell;
 use style::shared_lock::SharedRwLock;
 use style::stylesheets::CssRule as StyleCssRule;
 
-
 #[dom_struct]
 pub struct CSSRule {
     reflector_: Reflector,
@@ -71,20 +70,39 @@ impl CSSRule {
 
     // Given a StyleCssRule, create a new instance of a derived class of
     // CSSRule based on which rule it is
-    pub fn new_specific(window: &Window, parent_stylesheet: &CSSStyleSheet,
-                        rule: StyleCssRule) -> DomRoot<CSSRule> {
+    pub fn new_specific(
+        window: &Window,
+        parent_stylesheet: &CSSStyleSheet,
+        rule: StyleCssRule,
+    ) -> DomRoot<CSSRule> {
         // be sure to update the match in as_specific when this is updated
         match rule {
-            StyleCssRule::Import(s) => DomRoot::upcast(CSSImportRule::new(window, parent_stylesheet, s)),
-            StyleCssRule::Style(s) => DomRoot::upcast(CSSStyleRule::new(window, parent_stylesheet, s)),
-            StyleCssRule::FontFace(s) => DomRoot::upcast(CSSFontFaceRule::new(window, parent_stylesheet, s)),
+            StyleCssRule::Import(s) => {
+                DomRoot::upcast(CSSImportRule::new(window, parent_stylesheet, s))
+            },
+            StyleCssRule::Style(s) => {
+                DomRoot::upcast(CSSStyleRule::new(window, parent_stylesheet, s))
+            },
+            StyleCssRule::FontFace(s) => {
+                DomRoot::upcast(CSSFontFaceRule::new(window, parent_stylesheet, s))
+            },
             StyleCssRule::FontFeatureValues(_) => unimplemented!(),
             StyleCssRule::CounterStyle(_) => unimplemented!(),
-            StyleCssRule::Keyframes(s) => DomRoot::upcast(CSSKeyframesRule::new(window, parent_stylesheet, s)),
-            StyleCssRule::Media(s) => DomRoot::upcast(CSSMediaRule::new(window, parent_stylesheet, s)),
-            StyleCssRule::Namespace(s) => DomRoot::upcast(CSSNamespaceRule::new(window, parent_stylesheet, s)),
-            StyleCssRule::Viewport(s) => DomRoot::upcast(CSSViewportRule::new(window, parent_stylesheet, s)),
-            StyleCssRule::Supports(s) => DomRoot::upcast(CSSSupportsRule::new(window, parent_stylesheet, s)),
+            StyleCssRule::Keyframes(s) => {
+                DomRoot::upcast(CSSKeyframesRule::new(window, parent_stylesheet, s))
+            },
+            StyleCssRule::Media(s) => {
+                DomRoot::upcast(CSSMediaRule::new(window, parent_stylesheet, s))
+            },
+            StyleCssRule::Namespace(s) => {
+                DomRoot::upcast(CSSNamespaceRule::new(window, parent_stylesheet, s))
+            },
+            StyleCssRule::Viewport(s) => {
+                DomRoot::upcast(CSSViewportRule::new(window, parent_stylesheet, s))
+            },
+            StyleCssRule::Supports(s) => {
+                DomRoot::upcast(CSSSupportsRule::new(window, parent_stylesheet, s))
+            },
             StyleCssRule::Page(_) => unreachable!(),
             StyleCssRule::Document(_) => unimplemented!(), // TODO
         }

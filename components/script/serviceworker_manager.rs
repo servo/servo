@@ -23,7 +23,7 @@ use std::thread;
 
 enum Message {
     FromResource(CustomResponseMediator),
-    FromConstellation(ServiceWorkerMsg)
+    FromConstellation(ServiceWorkerMsg),
 }
 
 pub struct ServiceWorkerManager {
@@ -36,34 +36,42 @@ pub struct ServiceWorkerManager {
     // receiver to receive messages from constellation
     own_port: Receiver<ServiceWorkerMsg>,
     // to receive resource messages
-    resource_receiver: Receiver<CustomResponseMediator>
+    resource_receiver: Receiver<CustomResponseMediator>,
 }
 
 impl ServiceWorkerManager {
-    fn new(own_sender: IpcSender<ServiceWorkerMsg>,
-           from_constellation_receiver: Receiver<ServiceWorkerMsg>,
-           resource_port: Receiver<CustomResponseMediator>) -> ServiceWorkerManager {
+    fn new(
+        own_sender: IpcSender<ServiceWorkerMsg>,
+        from_constellation_receiver: Receiver<ServiceWorkerMsg>,
+        resource_port: Receiver<CustomResponseMediator>,
+    ) -> ServiceWorkerManager {
         ServiceWorkerManager {
             registered_workers: HashMap::new(),
             active_workers: HashMap::new(),
             own_sender: own_sender,
             own_port: from_constellation_receiver,
-            resource_receiver: resource_port
+            resource_receiver: resource_port,
         }
     }
 
     pub fn spawn_manager(sw_senders: SWManagerSenders) {
         let (own_sender, from_constellation_receiver) = ipc::channel().unwrap();
         let (resource_chan, resource_port) = ipc::channel().unwrap();
-        let from_constellation = route_ipc_receiver_to_new_servo_receiver(from_constellation_receiver);
+        let from_constellation =
+            route_ipc_receiver_to_new_servo_receiver(from_constellation_receiver);
         let resource_port = route_ipc_receiver_to_new_servo_receiver(resource_port);
-        let _ = sw_senders.resource_sender.send(CoreResourceMsg::NetworkMediator(resource_chan));
-        let _ = sw_senders.swmanager_sender.send(SWManagerMsg::OwnSender(own_sender.clone()));
-        thread::Builder::new().name("ServiceWorkerManager".to_owned()).spawn(move || {
-            ServiceWorkerManager::new(own_sender,
-                                      from_constellation,
-                                      resource_port).handle_message();
-        }).expect("Thread spawning failed");
+        let _ = sw_senders
+            .resource_sender
+            .send(CoreResourceMsg::NetworkMediator(resource_chan));
+        let _ = sw_senders
+            .swmanager_sender
+            .send(SWManagerMsg::OwnSender(own_sender.clone()));
+        thread::Builder::new()
+            .name("ServiceWorkerManager".to_owned())
+            .spawn(move || {
+                ServiceWorkerManager::new(own_sender, from_constellation, resource_port)
+                    .handle_message();
+            }).expect("Thread spawning failed");
     }
 
     pub fn get_matching_scope(&self, load_url: &ServoUrl) -> Option<ServoUrl> {
@@ -75,7 +83,10 @@ impl ServiceWorkerManager {
         None
     }
 
-    pub fn wakeup_serviceworker(&mut self, scope_url: ServoUrl) -> Option<Sender<ServiceWorkerScriptMsg>> {
+    pub fn wakeup_serviceworker(
+        &mut self,
+        scope_url: ServoUrl,
+    ) -> Option<Sender<ServiceWorkerScriptMsg>> {
         let scope_things = self.registered_workers.get(&scope_url);
         if let Some(scope_things) = scope_things {
             let (sender, receiver) = channel();
@@ -86,17 +97,20 @@ impl ServiceWorkerManager {
                     title: title,
                     url: scope_things.script_url.clone(),
                 };
-                let _ = chan.send(ScriptToDevtoolsControlMsg::NewGlobal((scope_things.init.pipeline_id,
-                                                                         Some(scope_things.worker_id)),
-                                                                         devtools_sender,
-                                                                         page_info));
+                let _ = chan.send(ScriptToDevtoolsControlMsg::NewGlobal(
+                    (scope_things.init.pipeline_id, Some(scope_things.worker_id)),
+                    devtools_sender,
+                    page_info,
+                ));
             };
-            ServiceWorkerGlobalScope::run_serviceworker_scope(scope_things.clone(),
-                                                              sender.clone(),
-                                                              receiver,
-                                                              devtools_receiver,
-                                                              self.own_sender.clone(),
-                                                              scope_url.clone());
+            ServiceWorkerGlobalScope::run_serviceworker_scope(
+                scope_things.clone(),
+                sender.clone(),
+                receiver,
+                devtools_receiver,
+                self.own_sender.clone(),
+                scope_url.clone(),
+            );
             // We store the activated worker
             self.active_workers.insert(scope_url, sender.clone());
             return Some(sender);
@@ -109,12 +123,8 @@ impl ServiceWorkerManager {
     fn handle_message(&mut self) {
         while let Some(message) = self.receive_message() {
             let should_continue = match message {
-                Message::FromConstellation(msg) => {
-                    self.handle_message_from_constellation(msg)
-                },
-                Message::FromResource(msg) => {
-                    self.handle_message_from_resource(msg)
-                }
+                Message::FromConstellation(msg) => self.handle_message_from_constellation(msg),
+                Message::FromResource(msg) => self.handle_message_from_resource(msg),
             };
             if !should_continue {
                 break;
@@ -125,7 +135,9 @@ impl ServiceWorkerManager {
     fn forward_message(&self, msg: DOMMessage, sender: &Sender<ServiceWorkerScriptMsg>) {
         let DOMMessage(data) = msg;
         let data = StructuredCloneData::Vector(data);
-        let _ = sender.send(ServiceWorkerScriptMsg::CommonWorker(WorkerScriptMsg::DOMMessage(data)));
+        let _ = sender.send(ServiceWorkerScriptMsg::CommonWorker(
+            WorkerScriptMsg::DOMMessage(data),
+        ));
     }
 
     fn handle_message_from_constellation(&mut self, msg: ServiceWorkerMsg) -> bool {
@@ -137,7 +149,7 @@ impl ServiceWorkerManager {
                     self.registered_workers.insert(scope, scope_things);
                 }
                 true
-            }
+            },
             ServiceWorkerMsg::Timeout(scope) => {
                 if self.active_workers.contains_key(&scope) {
                     let _ = self.active_workers.remove(&scope);
@@ -157,8 +169,8 @@ impl ServiceWorkerManager {
                     }
                 }
                 true
-            }
-            ServiceWorkerMsg::Exit => false
+            },
+            ServiceWorkerMsg::Exit => false,
         }
     }
 
@@ -192,5 +204,8 @@ impl ServiceWorkerManager {
 }
 
 pub fn serviceworker_enabled() -> bool {
-    PREFS.get("dom.serviceworker.enabled").as_boolean().unwrap_or(false)
+    PREFS
+        .get("dom.serviceworker.enabled")
+        .as_boolean()
+        .unwrap_or(false)
 }

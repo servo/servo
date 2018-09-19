@@ -18,25 +18,31 @@ use html5ever::{LocalName, Prefix};
 
 #[dom_struct]
 pub struct HTMLHeadElement {
-    htmlelement: HTMLElement
+    htmlelement: HTMLElement,
 }
 
 impl HTMLHeadElement {
-    fn new_inherited(local_name: LocalName,
-                     prefix: Option<Prefix>,
-                     document: &Document) -> HTMLHeadElement {
+    fn new_inherited(
+        local_name: LocalName,
+        prefix: Option<Prefix>,
+        document: &Document,
+    ) -> HTMLHeadElement {
         HTMLHeadElement {
-            htmlelement: HTMLElement::new_inherited(local_name, prefix, document)
+            htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(local_name: LocalName,
-               prefix: Option<Prefix>,
-               document: &Document) -> DomRoot<HTMLHeadElement> {
-        Node::reflect_node(Box::new(HTMLHeadElement::new_inherited(local_name, prefix, document)),
-                           document,
-                           HTMLHeadElementBinding::Wrap)
+    pub fn new(
+        local_name: LocalName,
+        prefix: Option<Prefix>,
+        document: &Document,
+    ) -> DomRoot<HTMLHeadElement> {
+        Node::reflect_node(
+            Box::new(HTMLHeadElement::new_inherited(local_name, prefix, document)),
+            document,
+            HTMLHeadElementBinding::Wrap,
+        )
     }
 
     /// <https://html.spec.whatwg.org/multipage/#meta-referrer>
@@ -48,11 +54,15 @@ impl HTMLHeadElement {
         }
 
         let node = self.upcast::<Node>();
-        let candidates = node.traverse_preorder()
-                             .filter_map(DomRoot::downcast::<Element>)
-                             .filter(|elem| elem.is::<HTMLMetaElement>())
-                             .filter(|elem| elem.get_string_attribute(&local_name!("name")) == "referrer")
-                             .filter(|elem| elem.get_attribute(&ns!(), &local_name!("content")).is_some());
+        let candidates = node
+            .traverse_preorder()
+            .filter_map(DomRoot::downcast::<Element>)
+            .filter(|elem| elem.is::<HTMLMetaElement>())
+            .filter(|elem| elem.get_string_attribute(&local_name!("name")) == "referrer")
+            .filter(|elem| {
+                elem.get_attribute(&ns!(), &local_name!("content"))
+                    .is_some()
+            });
 
         for meta in candidates {
             if let Some(content) = meta.get_attribute(&ns!(), &local_name!("content")).r() {

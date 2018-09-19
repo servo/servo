@@ -30,14 +30,19 @@ impl WebGLShaderPrecisionFormat {
         }
     }
 
-    pub fn new(window: &Window,
-               range_min: i32,
-               range_max: i32,
-               precision: i32) -> DomRoot<WebGLShaderPrecisionFormat> {
+    pub fn new(
+        window: &Window,
+        range_min: i32,
+        range_max: i32,
+        precision: i32,
+    ) -> DomRoot<WebGLShaderPrecisionFormat> {
         reflect_dom_object(
-            Box::new(WebGLShaderPrecisionFormat::new_inherited(range_min, range_max, precision)),
+            Box::new(WebGLShaderPrecisionFormat::new_inherited(
+                range_min, range_max, precision,
+            )),
             window,
-            WebGLShaderPrecisionFormatBinding::Wrap)
+            WebGLShaderPrecisionFormatBinding::Wrap,
+        )
     }
 }
 
