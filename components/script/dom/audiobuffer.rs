@@ -77,7 +77,9 @@ impl AudioBuffer {
         window: &Window,
         options: &AudioBufferOptions,
     ) -> Fallible<DomRoot<AudioBuffer>> {
-        if options.numberOfChannels > MAX_CHANNEL_COUNT ||
+        if options.length <= 0 ||
+            options.numberOfChannels <= 0 ||
+            options.numberOfChannels > MAX_CHANNEL_COUNT ||
             *options.sampleRate < MIN_SAMPLE_RATE ||
             *options.sampleRate > MAX_SAMPLE_RATE
         {
@@ -92,51 +94,46 @@ impl AudioBuffer {
         ))
     }
 
+    // Initialize the underlying channels data with initial data provided by
+    // the user or silence otherwise.
     #[allow(unsafe_code)]
     pub fn set_channels(&self, initial_data: Option<&[Vec<f32>]>) {
-        let global = self.global();
-        let cx = global.get_cx();
-        let _ac = JSAutoCompartment::new(cx, global.reflector().get_jsobject().get());
-        let chans = self.js_channels.borrow_mut();
         for channel in 0..self.number_of_channels {
-            rooted!(in (cx) let mut array = ptr::null_mut::<JSObject>());
-            match initial_data {
-                Some(data) => {
-                    let _ = unsafe {
-                        Float32Array::create(
-                            cx,
-                            CreateWith::Slice(data[channel as usize].as_slice()),
-                            array.handle_mut(),
-                        )
-                    };
-                },
-                None => {
-                    let _ = unsafe {
-                        Float32Array::create(
-                            cx,
-                            CreateWith::Slice(&vec![0.; self.length as usize]),
-                            array.handle_mut(),
-                        )
-                    };
-                },
-            }
-            chans[channel as usize].set(array.get());
+            (*self.shared_channels.borrow_mut()).buffers[channel as usize] = match initial_data {
+                Some(data) => data[channel as usize].clone(),
+                None => vec![0.; self.length as usize],
+            };
         }
+    }
+
+    pub fn get_channels(&self) -> ServoMediaAudioBuffer {
+        self.shared_channels.borrow().clone()
     }
 
     #[allow(unsafe_code)]
     unsafe fn restore_js_channel_data(&self, cx: *mut JSContext) -> bool {
+        let global = self.global();
+        let _ac = JSAutoCompartment::new(cx, global.reflector().get_jsobject().get());
         for (i, channel) in self.js_channels.borrow_mut().iter().enumerate() {
             if !channel.get().is_null() {
                 // Already have data in JS array.
+                // We may have called GetChannelData, and web content may have modified
+                // js_channels. So make sure that shared_channels contains the same data as
+                // js_channels.
+                typedarray!(in(cx) let array: Float32Array = channel.get());
+                if let Ok(array) = array {
+                    (*self.shared_channels.borrow_mut()).buffers[i] = array.to_vec();
+                }
                 continue;
             }
 
-            // Move the channel data from shared_channels to js_channels.
+            // Copy the channel data from shared_channels to js_channels.
             rooted!(in (cx) let mut array = ptr::null_mut::<JSObject>());
-            let shared_channel = (*self.shared_channels.borrow_mut()).buffers.remove(i);
-            if Float32Array::create(cx, CreateWith::Slice(&shared_channel), array.handle_mut())
-                .is_err()
+            if Float32Array::create(
+                cx,
+                CreateWith::Slice(&(*self.shared_channels.borrow_mut()).buffers[i]),
+                array.handle_mut(),
+            ).is_err()
             {
                 return false;
             }
@@ -181,8 +178,6 @@ impl AudioBuffer {
             // Step 4 will complete turning shared_channels
             // data into js_channels ArrayBuffers in restore_js_channel_data.
         }
-
-        self.js_channels.borrow_mut().clear();
 
         Some((*self.shared_channels.borrow()).clone())
     }
@@ -237,7 +232,11 @@ impl AudioBufferMethods for AudioBuffer {
         channel_number: u32,
         start_in_channel: u32,
     ) -> Fallible<()> {
-        if channel_number >= self.number_of_channels || start_in_channel > self.length {
+        if destination.is_shared() {
+            return Err(Error::Type("Cannot copy to shared buffer".to_owned()));
+        }
+
+        if channel_number >= self.number_of_channels || start_in_channel >= self.length {
             return Err(Error::IndexSize);
         }
 
@@ -248,18 +247,16 @@ impl AudioBufferMethods for AudioBuffer {
         let mut dest = Vec::with_capacity(destination.len());
 
         // We either copy form js_channels or shared_channels.
-
         let js_channel = self.js_channels.borrow()[channel_number].get();
         if !js_channel.is_null() {
             typedarray!(in(cx) let array: Float32Array = js_channel);
             if let Ok(array) = array {
                 let data = unsafe { array.as_slice() };
                 dest.extend_from_slice(&data[offset..offset + bytes_to_copy]);
-                return Ok(());
             }
-        }
-
-        if let Some(shared_channel) = self.shared_channels.borrow().buffers.get(channel_number) {
+        } else if let Some(shared_channel) =
+            self.shared_channels.borrow().buffers.get(channel_number)
+        {
             dest.extend_from_slice(&shared_channel.as_slice()[offset..offset + bytes_to_copy]);
         }
 
@@ -278,6 +275,10 @@ impl AudioBufferMethods for AudioBuffer {
         channel_number: u32,
         start_in_channel: u32,
     ) -> Fallible<()> {
+        if source.is_shared() {
+            return Err(Error::Type("Cannot copy from shared buffer".to_owned()));
+        }
+
         if channel_number >= self.number_of_channels || start_in_channel > (source.len() as u32) {
             return Err(Error::IndexSize);
         }
@@ -293,12 +294,23 @@ impl AudioBufferMethods for AudioBuffer {
             return Err(Error::IndexSize);
         }
 
-        typedarray!(in(cx) let array: Float32Array = js_channel);
-        if let Ok(mut array) = array {
+        typedarray!(in(cx) let js_channel: Float32Array = js_channel);
+        if let Ok(mut js_channel) = js_channel {
             let bytes_to_copy = min(self.length - start_in_channel, source.len() as u32) as usize;
-            let offset = start_in_channel as usize;
             unsafe {
-                array.update(&source.as_slice()[offset..offset + bytes_to_copy]);
+                let data = &source.as_slice()[0..bytes_to_copy];
+                // Update shared channel.
+                {
+                    let mut shared_channels = self.shared_channels.borrow_mut();
+                    let shared_channel = shared_channels.data_chan_mut(channel_number as u8);
+                    let (_, mut shared_channel) =
+                        shared_channel.split_at_mut(start_in_channel as usize);
+                    shared_channel[0..bytes_to_copy].copy_from_slice(data);
+                }
+                // Update js channel.
+                js_channel.update(
+                    self.shared_channels.borrow().buffers[channel_number as usize].as_slice(),
+                );
             }
         } else {
             return Err(Error::IndexSize);
