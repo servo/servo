@@ -122,3 +122,21 @@ impl From<MozForceBrokenImageIcon> for u8 {
         }
     }
 }
+
+/// A specified value for `scrollbar-color` property
+pub type ScrollbarColor = generics::ScrollbarColor<Color>;
+
+impl Parse for ScrollbarColor {
+    fn parse<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
+        if input.try(|i| i.expect_ident_matching("auto")).is_ok() {
+            return Ok(generics::ScrollbarColor::Auto);
+        }
+        Ok(generics::ScrollbarColor::Colors {
+            thumb: Color::parse(context, input)?,
+            track: Color::parse(context, input)?,
+        })
+    }
+}

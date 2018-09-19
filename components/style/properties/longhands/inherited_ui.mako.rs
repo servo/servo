@@ -67,24 +67,15 @@ ${helpers.predefined_type(
     products="gecko",
 )}
 
-// Only scrollbar-face-color and scrollbar-track-color are added here.
-// These two are the only common parts of scrollbar among Windows and
-// macOS. We may or may not want to provide other properties to allow
-// finer-grain control.
-//
-// NOTE The syntax in spec is currently `normal | <color>`, but I think
-//      reusing `auto | <color>` as `caret-color` makes more sense. See
-//      https://github.com/w3c/csswg-drafts/issues/2660
-% for part in ["face", "track"]:
 ${helpers.predefined_type(
-    "scrollbar-%s-color" % part,
-    "ColorOrAuto",
-    "Either::Second(Auto)",
-    spec="https://drafts.csswg.org/css-scrollbars-1/#scrollbar-color-properties",
+    "scrollbar-color",
+    "ui::ScrollbarColor",
+    "Default::default()",
+    spec="https://drafts.csswg.org/css-scrollbars-1/#scrollbar-color",
     gecko_pref="layout.css.scrollbar-colors.enabled",
-    animation_value_type="ColorOrAuto",
+    animation_value_type="ScrollbarColor",
+    boxed=True,
     ignored_when_colors_disabled=True,
     enabled_in="chrome",
     products="gecko",
 )}
-% endfor
