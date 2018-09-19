@@ -91,7 +91,7 @@ servo_geometry = {path = "../geometry" }
 servo-media = {git = "https://github.com/servo/media"}
 servo_rand = {path = "../rand"}
 servo_url = {path = "../url"}
-smallvec = "0.6.2"
+smallvec = { version = "0.6", features = ["std", "union"] }
 style = {path = "../style", features = ["servo"]}
 style_traits = {path = "../style_traits"}
 swapper = "0.1"
