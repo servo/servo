@@ -10,7 +10,7 @@ setuptools == 18.5
 toml == 0.9.2
 
 # For pycparser 2.19 release bustage
-pycparser == 2.18
+pycparser != 2.19
 
 # For Python linting
 flake8 == 2.4.1
