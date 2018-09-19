@@ -92,10 +92,9 @@ macro_rules! handle_object_deletion {
         if let Some(bound_object) = $binding.get() {
             if bound_object.id() == $object.id() {
                 $binding.set(None);
-            }
-
-            if let Some(command) = $unbind_command {
-                $self_.send_command(command);
+                if let Some(command) = $unbind_command {
+                    $self_.send_command(command);
+                }
             }
         }
     };
