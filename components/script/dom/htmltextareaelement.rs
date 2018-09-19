@@ -195,6 +195,12 @@ impl HTMLTextAreaElementMethods for HTMLTextAreaElement {
     // https://html.spec.whatwg.org/multipage/#dom-textarea-placeholder
     make_setter!(SetPlaceholder, "placeholder");
 
+    // https://html.spec.whatwg.org/multipage/#submitting-element-directionality:-the-dirname-attribute
+    make_getter!(DirName, "dirname");
+
+    // https://html.spec.whatwg.org/multipage/#submitting-element-directionality:-the-dirname-attribute
+    make_setter!(SetDirName, "dirname");
+
     // https://html.spec.whatwg.org/multipage/#attr-textarea-maxlength
     make_int_getter!(MaxLength, "maxlength", DEFAULT_MAX_LENGTH);
 

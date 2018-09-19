@@ -97,6 +97,7 @@ extern crate swapper;
 extern crate time;
 #[cfg(target_os = "linux")]
 extern crate tinyfiledialogs;
+extern crate unicode_bidi;
 extern crate unicode_segmentation;
 extern crate url;
 extern crate utf8;
