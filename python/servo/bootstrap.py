@@ -99,6 +99,12 @@ def gstreamer(context, force=False):
     return False
 
 
+def bootstrap_gstreamer(context, force=False):
+    if not gstreamer(context, force):
+        print("gstreamer is already set up")
+    return 0
+
+
 def linux(context, force=False):
     # Please keep these in sync with the packages in README.md
     pkgs_apt = ['git', 'curl', 'autoconf', 'libx11-dev', 'libfreetype6-dev',
@@ -145,6 +151,8 @@ def linux(context, force=False):
 
     if not installed_something:
         print("Dependencies were already installed!")
+
+    return 0
 
 
 def salt(context, force=False):
@@ -329,7 +337,7 @@ def windows_msvc(context, force=False):
 
 LINUX_SPECIFIC_BOOTSTRAPPERS = {
     "salt": salt,
-    "gstreamer": gstreamer,
+    "gstreamer": bootstrap_gstreamer,
 }
 
 
