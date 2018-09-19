@@ -228,6 +228,7 @@ pub mod audioscheduledsourcenode;
 pub mod baseaudiocontext;
 pub mod beforeunloadevent;
 pub mod bindings;
+pub mod biquadfilternode;
 pub mod blob;
 pub mod bluetooth;
 pub mod bluetoothadvertisingevent;
