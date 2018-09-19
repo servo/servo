@@ -15010,6 +15010,12 @@
      {}
     ]
    ],
+   "conformance/textures/misc/canvas-teximage-after-multiple-drawimages.html": [
+    [
+     "/_webgl/conformance/textures/misc/canvas-teximage-after-multiple-drawimages.html",
+     {}
+    ]
+   ],
    "conformance/textures/misc/compressed-tex-image.html": [
     [
      "/_webgl/conformance/textures/misc/compressed-tex-image.html",
@@ -36878,8 +36884,12 @@
    "testharness"
   ],
   "conformance/textures/misc/00_test_list.txt": [
-   "3c7636158223c16d24707ee209016b4c715d88c9",
+   "8a561de6f6f5b5ca80f11c7e5c353468225e4a67",
    "support"
+  ],
+  "conformance/textures/misc/canvas-teximage-after-multiple-drawimages.html": [
+   "aac3306a7d4c3c08201e7d55e7ef549f3d8ad8e6",
+   "testharness"
   ],
   "conformance/textures/misc/compressed-tex-image.html": [
    "af234ab29614fc3e566b27fe11df1854db333aa3",
