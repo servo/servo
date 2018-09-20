@@ -67,7 +67,11 @@ def main():
         **build_kwargs
     )
 
-    release_build_task = decision.create_task(
+    release_build_task = decision.find_or_create_task(
+        route_bucket="build.linux_x86-64_release",
+        route_key=os.environ["GIT_SHA"],
+        route_expiry=build_artifacts_expiry,
+
         task_name="Linux x86_64: release build",
         script="""
             ./mach build --release --with-debug-assertions -p servo
