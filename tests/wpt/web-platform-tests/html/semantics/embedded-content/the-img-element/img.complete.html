@@ -11,6 +11,7 @@
 <img src="" id="imgTestTag2">
 <img id="imgTestTag3" style="width: 80px; height:auto;">
 <img id="imgTestTag4">
+<img id="imgTestTag5">
 
 <script>
   var imageInstance = document.createElement('img');
@@ -23,11 +24,11 @@
 <script>
   test(function() {
     assert_true(document.getElementById("imgTestTag").complete);
-  }, "img src omitted");
+  }, "img src and srcset omitted");
 
   test(function() {
     assert_true(document.getElementById("imgTestTag2").complete);
-  }, "img src empty");
+  }, "img src empty and srset omitted");
 
   // test if set to true after img is completely available
   var t = async_test("async src complete test");
@@ -50,6 +51,22 @@
     document.getElementById("imgTestTag3").src = '3.jpg?nocache=' + Math.random();
   });
 
+  var t1 = async_test("async srcset complete test");
+  t1.step(function(){
+    var loaded = false;
+    document.getElementById("imgTestTag5").onload = t1.step_func_done(function(){
+      assert_false(loaded);
+      loaded = true;
+      assert_true(document.getElementById("imgTestTag5").complete);
+    }, "Only one onload, despite setting the srcset twice");
+    //Test if src, srcset is omitted
+    assert_true(document.getElementById("imgTestTag5").complete)
+    document.getElementById("imgTestTag5").srcset = "/images/green-256x256.png 1x";
+    //test if img.complete is set to false if srcset is present
+    assert_false(document.getElementById("imgTestTag5").complete, "srcset present, should be set to false");
+    //change src again, should make only one request as per 'await stable state'
+    document.getElementById("imgTestTag5").srcset="/images/green-256x256.png 1.6x"
+  });
 
   // https://html.spec.whatwg.org/multipage/multipage/embedded-content-1.html#update-the-image-data
   // says to "await a stable state" before fetching so we use a separate <script>

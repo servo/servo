@@ -1414,6 +1414,11 @@ impl HTMLImageElementMethods for HTMLImageElement {
     // https://html.spec.whatwg.org/multipage/#dom-img-src
     make_setter!(SetSrc, "src");
 
+    // https://html.spec.whatwg.org/multipage/#dom-img-srcset
+    make_getter!(Srcset, "srcset");
+    // https://html.spec.whatwg.org/multipage/#dom-img-src
+    make_setter!(SetSrcset, "srcset");
+
     // https://html.spec.whatwg.org/multipage/#dom-img-crossOrigin
     fn GetCrossOrigin(&self) -> Option<DOMString> {
         reflect_cross_origin_attribute(self.upcast::<Element>())
@@ -1487,13 +1492,13 @@ impl HTMLImageElementMethods for HTMLImageElement {
     // https://html.spec.whatwg.org/multipage/#dom-img-complete
     fn Complete(&self) -> bool {
         let elem = self.upcast::<Element>();
-        // TODO: take srcset into account
-        if !elem.has_attribute(&local_name!("src")) {
-            return true;
+        let srcset_absent = !elem.has_attribute(&local_name!("srcset"));
+        if !elem.has_attribute(&local_name!("src")) && srcset_absent {
+            return true
         }
         let src = elem.get_string_attribute(&local_name!("src"));
-        if src.is_empty() {
-            return true;
+        if srcset_absent && src.is_empty() {
+            return true
         }
         let request = self.current_request.borrow();
         let request_state = request.state;
