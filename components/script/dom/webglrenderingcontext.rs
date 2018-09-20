@@ -1303,19 +1303,9 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             // GL_OES_read_format support (assuming an underlying GLES
             // driver. Desktop is happy to format convert for us).
             constants::IMPLEMENTATION_COLOR_READ_FORMAT => {
-                handle_potential_webgl_error!(
-                    self,
-                    self.validate_framebuffer(),
-                    return NullValue()
-                );
                 return Int32Value(constants::RGBA as i32);
             },
             constants::IMPLEMENTATION_COLOR_READ_TYPE => {
-                handle_potential_webgl_error!(
-                    self,
-                    self.validate_framebuffer(),
-                    return NullValue()
-                );
                 return Int32Value(constants::UNSIGNED_BYTE as i32);
             },
             constants::COMPRESSED_TEXTURE_FORMATS => {

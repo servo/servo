@@ -1,3 +1,4 @@
+--min-version 1.0.4 canvas-teximage-after-multiple-drawimages.html
 --max-version 1.9.9 compressed-tex-image.html
 copy-tex-image-and-sub-image-2d.html
 --min-version 1.0.2 copy-tex-image-2d-formats.html
