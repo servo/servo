@@ -15,6 +15,7 @@ def main():
         route_prefix="project.servo.servo",
         worker_type="servo-docker-worker",
     )
+    create_task = decision.create_task_with_in_tree_dockerfile
 
     # FIXME: remove this before merging in servo/servo
     os.environ["GIT_URL"] = "https://github.com/SimonSapin/servo"
@@ -35,6 +36,7 @@ def main():
         "cargo-rustup": "/root/.rustup",
         "cargo-sccache": "/root/.cache/sccache",
     }
+    build_artifacts_expiry = "1 week"
     build_env = {
         "RUST_BACKTRACE": "1",
         "RUSTFLAGS": "-Dwarnings",
@@ -45,13 +47,17 @@ def main():
     }
     build_kwargs = {
         "max_run_time_minutes": 60,
-        "dockerfile": dockerfile("build-x86_64-linux"),
+        "dockerfile": "build-x86_64-linux.dockerfile",
         "env": build_env,
         "scopes": cache_scopes,
         "cache": build_caches,
     }
+    run_kwargs = {
+        "max_run_time_minutes": 60,
+        "dockerfile": "run-x86_64-linux.dockerfile",
+    }
 
-    decision.create_task_with_in_tree_dockerfile(
+    create_task(
         task_name="Linux x86_64: tidy + dev build + unit tests",
         script="""
             ./mach test-tidy --no-progress --all
@@ -66,9 +72,83 @@ def main():
         **build_kwargs
     )
 
-def dockerfile(name):
-    return os.path.join(os.path.dirname(__file__), name + ".dockerfile")
+    release_build_task = create_task(
+        task_name="Linux x86_64: release build",
+        script="""
+            ./mach build --release --with-debug-assertions -p servo
+            ./etc/ci/lockfile_changed.sh
+            gzip target/release/servo
+        """,
+        artifacts=[
+            ("/repo/target/release/servo.gz", build_artifacts_expiry),
+        ],
+        **build_kwargs
+    )
+
+    fetch_build = """
+        mkdir -p target/release
+        curl \
+            "https://queue.taskcluster.net/v1/task/${BUILD_TASK_ID}/artifacts/public/servo.gz" \
+            --retry 5 \
+            --connect-timeout 10 \
+            --location \
+            | gunzip > target/release/servo
+    """
+
+    total_chunks = 4
+    for i in range(total_chunks):
+        chunk = i + 1
+        create_task(
+            task_name="Linux x86_64: WPT chunk %s / %s" % (chunk, total_chunks),
+            script=fetch_build + """
+                mkdir -p target/release
+                curl \
+                    "https://queue.taskcluster.net/v1/task/${BUILD_TASK_ID}/artifacts/public/servo.gz" \
+                    --retry 5 \
+                    --connect-timeout 10 \
+                    --location \
+                    | gunzip > target/release/servo
+
+                ./mach test-wpt-failure
+                ./mach test-wpt \
+                    --release \
+                    --processes 24 \
+                    --total-chunks "$TOTAL_CHUNKS" \
+                    --this-chunk "$THIS_CHUNK" \
+                    --log-raw test-wpt.log \
+                    --log-errorsummary wpt-errorsummary.log \
+                    --always-succeed
+                ./mach filter-intermittents\
+                    wpt-errorsummary.log \
+                    --log-intermittents intermittents.log \
+                    --log-filteredsummary filtered-wpt-errorsummary.log \
+                    --tracker-api default \
+                    --reporter-api default
+            """,
+            env={
+                "TOTAL_CHUNKS": total_chunks,
+                "THIS_CHUNK": chunk,
+                "BUILD_TASK_ID": release_build_task,
+            },
+            **run_kwargs
+        )
+
+    create_task(
+        task_name="Linux x86_64: WPT extra",
+        script=fetch_build + """
+            ./mach test-wpt-failure
+            ./mach test-wpt --release --binary-arg=--multiprocess --processes 24 \
+                --log-raw test-wpt-mp.log \
+                --log-errorsummary wpt-mp-errorsummary.log \
+                eventsource
+        """,
+        env={
+            "BUILD_TASK_ID": release_build_task,
+        },
+        **run_kwargs
+    )
 
 
 if __name__ == "__main__":
+    os.chdir(os.path.join(".", os.path.dirname(__file__)))
     main()
