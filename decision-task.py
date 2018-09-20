@@ -25,6 +25,9 @@ def main():
     # ~
 
 
+    build_artifacts_expiry = "1 week"
+    log_artifacts_expiry = "1 year"
+
     # https://docs.taskcluster.net/docs/reference/workers/docker-worker/docs/caches
     cache_scopes = [
         "docker-worker:cache:cargo-*",
@@ -35,7 +38,6 @@ def main():
         "cargo-rustup": "/root/.rustup",
         "cargo-sccache": "/root/.cache/sccache",
     }
-    build_artifacts_expiry = "1 week"
     build_env = {
         "RUST_BACKTRACE": "1",
         "RUSTFLAGS": "-Dwarnings",
@@ -97,6 +99,10 @@ def main():
                 --fail \
                 | tar -xz
         """
+        kwargs.setdefault("artifacts", []).extend(
+            ("/repo/" + word, log_artifacts_expiry)
+            for word in script.split() if word.endswith(".log")
+        )
         decision.create_task(
             script=fetch_build + script,
             env=dict(**env or {}, BUILD_TASK_ID=release_build_task),
