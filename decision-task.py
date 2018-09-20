@@ -124,9 +124,12 @@ def main():
                     wpt-errorsummary.log \
                     --log-intermittents intermittents.log \
                     --log-filteredsummary filtered-wpt-errorsummary.log \
-                    --tracker-api default \
-                    --reporter-api default
+                    --tracker-api default
             """,
+            # FIXME: --reporter-api default
+            # IndexError: list index out of range
+            # File "/repo/python/servo/testing_commands.py", line 533, in filter_intermittents
+            #   pull_request = int(last_merge.split(' ')[4][1:])
             env={
                 "TOTAL_CHUNKS": total_chunks,
                 "THIS_CHUNK": chunk,
