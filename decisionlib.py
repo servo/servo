@@ -67,7 +67,7 @@ class DecisionTask:
                 raise
 
         return self.create_task(
-            task_name="docker image build task for image: " + self.image_name(dockerfile),
+            task_name="docker image build task for image: " + image_name(dockerfile),
             script="""
                 echo "$DOCKERFILE" | docker build -t taskcluster-built -
                 docker save taskcluster-built | lz4 > /%s
@@ -93,16 +93,6 @@ class DecisionTask:
                 },
             },
         )
-
-    def image_name(self, dockerfile):
-        basename = os.path.basename(dockerfile)
-        suffix = ".dockerfile"
-        if basename == "Dockerfile":
-            return os.path.basename(os.path.dirname(os.path.abspath(dockerfile)))
-        elif basename.endswith(suffix):
-            return basename[:-len(suffix)]
-        else:
-            return basename
 
     def create_task(self, *, task_name, script, max_run_time_minutes,
                     docker_image=None, dockerfile=None,  # One of these is required
@@ -193,6 +183,17 @@ class DecisionTask:
         self.queue_service.createTask(task_id, payload)
         print("Scheduled %s: %s" % (task_name, task_id))
         return task_id
+
+
+def image_name(dockerfile):
+    basename = os.path.basename(dockerfile)
+    suffix = ".dockerfile"
+    if basename == "Dockerfile":
+        return os.path.basename(os.path.dirname(os.path.abspath(dockerfile)))
+    elif basename.endswith(suffix):
+        return basename[:-len(suffix)]
+    else:
+        return basename
 
 
 def deindent(string):
