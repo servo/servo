@@ -41,33 +41,51 @@ class DecisionTask:
         self.index_service = taskcluster.Index(options={"baseUrl": "http://taskcluster/index/v1/"})
 
         self.now = datetime.datetime.utcnow()
-        self.built_images = {}
+        self.found_or_created_routes = {}
 
     def from_now_json(self, offset):
         return taskcluster.stringDate(taskcluster.fromNow(offset, dateObj=self.now))
 
-    def find_or_build_image(self, dockerfile):
-        image_build_task = self.built_images.get(dockerfile)
-        if image_build_task is None:
-            image_build_task = self._find_or_build_image(dockerfile)
-            self.built_images[dockerfile] = image_build_task
-        return image_build_task
+    def find_or_create_task(self, *, route_bucket, route_key, route_expiry, **kwargs):
+        route = "%s.%s.%s" % (self.route_prefix, route_bucket, route_key)
 
-    def _find_or_build_image(self, dockerfile):
-        with open(dockerfile, "rb") as f:
-            dockerfile_contents = f.read()
-        digest = hashlib.sha256(dockerfile_contents).hexdigest()
-        route = "%s.docker-image.%s" % (self.route_prefix, digest)
+        task_id = self.found_or_created_routes.get(route)
+        if task_id is not None:
+            return task_id
 
         try:
             result = self.index_service.findTask(route)
-            return result["taskId"]
+            task_id = result["taskId"]
         except taskcluster.TaskclusterRestFailure as e:
-            if e.status_code != 404:
+            if e.status_code == 404:
+                task_id = self.create_task(
+                    routes=[
+                        "index." + route,
+                    ],
+                    extra={
+                        "index": {
+                            "expires": self.from_now_json(self.docker_image_cache_expiry),
+                        },
+                    },
+                    **kwargs
+                )
+            else:
                 raise
 
-        return self.create_task(
-            task_name="docker image build task for image: " + image_name(dockerfile),
+        self.found_or_created_routes[route] = task_id
+        return task_id
+
+    def find_or_build_docker_image(self, dockerfile):
+        with open(dockerfile, "rb") as f:
+            dockerfile_contents = f.read()
+        digest = hashlib.sha256(dockerfile_contents).hexdigest()
+
+        return self.find_or_create_task(
+            route_bucket="docker-image",
+            route_key=digest,
+            route_expiry=self.docker_image_cache_expiry,
+
+            task_name="Docker image build task for image: " + image_name(dockerfile),
             script="""
                 echo "$DOCKERFILE" | docker build -t taskcluster-built -
                 docker save taskcluster-built | lz4 > /%s
@@ -84,14 +102,6 @@ class DecisionTask:
                 "dind": True,  # docker-in-docker
             },
             with_repo=False,
-            routes=[
-                "index." + route,
-            ],
-            extra={
-                "index": {
-                    "expires": self.from_now_json(self.docker_image_cache_expiry),
-                },
-            },
         )
 
     def create_task(self, *, task_name, script, max_run_time_minutes,
@@ -110,7 +120,7 @@ class DecisionTask:
         dependencies = [decision_task_id] + (dependencies or [])
 
         if dockerfile:
-            image_build_task = self.find_or_build_image(dockerfile)
+            image_build_task = self.find_or_build_docker_image(dockerfile)
             dependencies.append(image_build_task)
             docker_image = {
                 "type": "task-image",
