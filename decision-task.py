@@ -52,10 +52,6 @@ def main():
         "scopes": cache_scopes,
         "cache": build_caches,
     }
-    run_kwargs = {
-        "max_run_time_minutes": 60,
-        "dockerfile": "run-x86_64-linux.dockerfile",
-    }
 
     create_task(
         task_name="Linux x86_64: tidy + dev build + unit tests",
@@ -85,22 +81,31 @@ def main():
         **build_kwargs
     )
 
-    fetch_build = """
-        mkdir -p target/release
-        curl \
-            "https://queue.taskcluster.net/v1/task/${BUILD_TASK_ID}/artifacts/public/servo.gz" \
-            --retry 5 \
-            --connect-timeout 10 \
-            --location \
-            | gunzip > target/release/servo
-    """
+    def create_run_task(*, script, env=None, **kwargs):
+        fetch_build = """
+            mkdir -p target/release
+            curl \
+                "https://queue.taskcluster.net/v1/task/${BUILD_TASK_ID}/artifacts/public/servo.gz" \
+                --retry 5 \
+                --connect-timeout 10 \
+                --location \
+                | gunzip > target/release/servo
+        """
+        create_task(
+            script=fetch_build + script,
+            env=dict(**env or {}, BUILD_TASK_ID=release_build_task),
+            dependencies=[release_build_task],
+            max_run_time_minutes=60,
+            dockerfile="run-x86_64-linux.dockerfile",
+            **kwargs
+        )
 
     total_chunks = 4
     for i in range(total_chunks):
         chunk = i + 1
-        create_task(
+        create_run_task(
             task_name="Linux x86_64: WPT chunk %s / %s" % (chunk, total_chunks),
-            script=fetch_build + """
+            script="""
                 mkdir -p target/release
                 curl \
                     "https://queue.taskcluster.net/v1/task/${BUILD_TASK_ID}/artifacts/public/servo.gz" \
@@ -128,24 +133,18 @@ def main():
             env={
                 "TOTAL_CHUNKS": total_chunks,
                 "THIS_CHUNK": chunk,
-                "BUILD_TASK_ID": release_build_task,
             },
-            **run_kwargs
         )
 
-    create_task(
+    create_run_task(
         task_name="Linux x86_64: WPT extra",
-        script=fetch_build + """
+        script="""
             ./mach test-wpt-failure
             ./mach test-wpt --release --binary-arg=--multiprocess --processes 24 \
                 --log-raw test-wpt-mp.log \
                 --log-errorsummary wpt-mp-errorsummary.log \
                 eventsource
         """,
-        env={
-            "BUILD_TASK_ID": release_build_task,
-        },
-        **run_kwargs
     )
 
 
