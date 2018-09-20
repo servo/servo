@@ -872,7 +872,7 @@ impl HTMLImageElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#update-the-image-data>
-    fn update_the_image_data(&self) {
+    pub fn update_the_image_data(&self) {
         let document = document_from_node(self);
         let window = document.window();
         let elem = self.upcast::<Element>();
@@ -1574,14 +1574,10 @@ impl VirtualMethods for HTMLImageElement {
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
         self.super_type().unwrap().attribute_mutated(attr, mutation);
         match attr.local_name() {
-            &local_name!("src") => self.update_the_image_data(),
-            &local_name!("srcset") => self.update_the_image_data(),
+            &local_name!("src") | &local_name!("srcset")  |
+            &local_name!("width") | &local_name!("crossorigin") |
+            &local_name!("sizes") => self.update_the_image_data(),
             _ => {},
-        }
-        if let Some(parent) = self.upcast::<Node>().GetParentElement() {
-            if parent.is::<HTMLPictureElement>() {
-                self.update_the_image_data();
-            }
         }
     }
 
@@ -1645,6 +1641,9 @@ impl VirtualMethods for HTMLImageElement {
         if tree_in_doc {
             document.register_responsive_image(self);
         }
+
+        // The element is inserted into a picture parent element
+        // https://html.spec.whatwg.org/multipage/#relevant-mutations
         if let Some(parent) = self.upcast::<Node>().GetParentElement() {
             if parent.is::<HTMLPictureElement>() {
                 self.update_the_image_data();
@@ -1656,6 +1655,12 @@ impl VirtualMethods for HTMLImageElement {
         self.super_type().unwrap().unbind_from_tree(context);
         let document = document_from_node(self);
         document.unregister_responsive_image(self);
+
+        // The element is removed from a picture parent element
+        // https://html.spec.whatwg.org/multipage/#relevant-mutations
+        if context.parent.is::<HTMLPictureElement>() {
+            self.update_the_image_data();
+        }
     }
 }
 

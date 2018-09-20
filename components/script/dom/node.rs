@@ -293,7 +293,7 @@ impl Node {
             },
         }
 
-        let context = UnbindContext::new(self, prev_sibling.r(), cached_index);
+        let context = UnbindContext::new(self, prev_sibling.r(), next_sibling.r(), cached_index);
 
         child.prev_sibling.set(None);
         child.next_sibling.set(None);
@@ -2812,17 +2812,23 @@ pub struct UnbindContext<'a> {
     pub parent: &'a Node,
     /// The previous sibling of the inclusive ancestor that was removed.
     prev_sibling: Option<&'a Node>,
+    /// The next sibling of the inclusive ancestor that was removed.
+    pub next_sibling: Option<&'a Node>,
     /// Whether the tree is in a document.
     pub tree_in_doc: bool,
 }
 
 impl<'a> UnbindContext<'a> {
     /// Create a new `UnbindContext` value.
-    fn new(parent: &'a Node, prev_sibling: Option<&'a Node>, cached_index: Option<u32>) -> Self {
+    fn new(parent: &'a Node,
+           prev_sibling: Option<&'a Node>,
+           next_sibling: Option<&'a Node>,
+           cached_index: Option<u32>) -> Self {
         UnbindContext {
             index: Cell::new(cached_index),
             parent: parent,
             prev_sibling: prev_sibling,
+            next_sibling: next_sibling,
             tree_in_doc: parent.is_in_doc(),
         }
     }
