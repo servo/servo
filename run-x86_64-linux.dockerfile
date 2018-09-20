@@ -16,12 +16,14 @@ RUN \
         #
         # Running mach
         python2.7 \
-        python-virtualenv \
         virtualenv \
         #
         # Fetching build artifacts
         curl \
         #
         # Servo’s runtime dependencies
-        libgstreamer-plugins-bad1.0 \
-        libssl1.0.0
+        libgl1 \
+        libssl1.0.0 \
+        libdbus-1-3 \
+        libgstreamer-plugins-bad1.0-0 \
+        gstreamer1.0-plugins-good

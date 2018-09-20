@@ -25,7 +25,6 @@ RUN \
         #
         # Running mach
         python2.7 \
-        python-virtualenv \
         virtualenv \
         #
         # Multiple C/C++ dependencies built from source
