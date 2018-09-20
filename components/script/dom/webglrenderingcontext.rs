@@ -77,8 +77,6 @@ pub fn is_gles() -> bool {
     cfg!(any(target_os = "android", target_os = "ios"))
 }
 
-pub const MAX_UNIFORM_AND_ATTRIBUTE_LEN: usize = 256;
-
 // From the GLES 2.0.25 spec, page 85:
 //
 //     "If a texture that is currently bound to one of the targets
