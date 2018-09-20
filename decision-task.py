@@ -62,7 +62,7 @@ def main():
             ./mach test-unit
             ./mach package --dev
             ./mach test-tidy --no-progress --self-test
-            python ./etc/memory_reports_over_time.py --test
+            python2.7 ./etc/memory_reports_over_time.py --test
             ./etc/ci/lockfile_changed.sh
             ./etc/ci/check_no_panic.sh
         """,
