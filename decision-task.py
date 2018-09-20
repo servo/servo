@@ -82,7 +82,7 @@ def main():
                 target/release/build/osmesa-src-*/out/lib/gallium
         """,
         artifacts=[
-            ("/target.tar.gz", build_artifacts_expiry),
+            "/target.tar.gz",
         ],
         **build_kwargs
     )

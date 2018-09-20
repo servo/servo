@@ -46,7 +46,7 @@ class DecisionTask:
     def from_now_json(self, offset):
         return taskcluster.stringDate(taskcluster.fromNow(offset, dateObj=self.now))
 
-    def find_or_create_task(self, *, route_bucket, route_key, route_expiry, **kwargs):
+    def find_or_create_task(self, *, route_bucket, route_key, route_expiry, artifacts, **kwargs):
         route = "%s.%s.%s" % (self.route_prefix, route_bucket, route_key)
 
         task_id = self.found_or_created_routes.get(route)
@@ -67,6 +67,10 @@ class DecisionTask:
                             "expires": self.from_now_json(self.docker_image_cache_expiry),
                         },
                     },
+                    artifacts=[
+                        (artifact, route_expiry)
+                        for artifact in artifacts
+                    ],
                     **kwargs
                 )
             else:
@@ -94,7 +98,7 @@ class DecisionTask:
                 "DOCKERFILE": dockerfile_contents,
             },
             artifacts=[
-                ("/" + self.DOCKER_IMAGE_ARTIFACT_FILENAME, self.docker_image_cache_expiry),
+                "/" + self.DOCKER_IMAGE_ARTIFACT_FILENAME,
             ],
             max_run_time_minutes=20,
             docker_image=self.DOCKER_IMAGE_BUILDER_IMAGE,
