@@ -61,7 +61,7 @@ def main():
             ./mach test-unit
             ./mach package --dev
             ./mach test-tidy --no-progress --self-test
-            ./etc/memory_reports_over_time.py --test
+            python ./etc/memory_reports_over_time.py --test
             ./etc/ci/lockfile_changed.sh
             ./etc/ci/check_no_panic.sh
         """,
@@ -117,7 +117,6 @@ def main():
                     --location \
                     | gunzip > target/release/servo
 
-                ./mach test-wpt-failure
                 ./mach test-wpt \
                     --release \
                     --processes 24 \
