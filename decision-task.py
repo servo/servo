@@ -112,7 +112,7 @@ def main():
             **kwargs
         )
 
-    total_chunks = 4
+    total_chunks = 2
     for i in range(total_chunks):
         chunk = i + 1
         create_run_task(
