@@ -15,7 +15,6 @@ def main():
         route_prefix="project.servo.servo",
         worker_type="servo-docker-worker",
     )
-    create_task = decision.create_task_with_in_tree_dockerfile
 
     # FIXME: remove this before merging in servo/servo
     os.environ["GIT_URL"] = "https://github.com/SimonSapin/servo"
@@ -53,7 +52,7 @@ def main():
         "cache": build_caches,
     }
 
-    create_task(
+    decision.create_task(
         task_name="Linux x86_64: tidy + dev build + unit tests",
         script="""
             ./mach test-tidy --no-progress --all
@@ -68,7 +67,7 @@ def main():
         **build_kwargs
     )
 
-    release_build_task = create_task(
+    release_build_task = decision.create_task(
         task_name="Linux x86_64: release build",
         script="""
             ./mach build --release --with-debug-assertions -p servo
@@ -94,7 +93,7 @@ def main():
                 --location \
                 | tar -xz
         """
-        create_task(
+        decision.create_task(
             script=fetch_build + script,
             env=dict(**env or {}, BUILD_TASK_ID=release_build_task),
             dependencies=[release_build_task],

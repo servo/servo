@@ -46,16 +46,6 @@ class DecisionTask:
     def from_now_json(self, offset):
         return taskcluster.stringDate(taskcluster.fromNow(offset, dateObj=self.now))
 
-    def create_task_with_in_tree_dockerfile(self, *, dockerfile, **kwargs):
-        image_build_task = self.find_or_build_image(dockerfile)
-        kwargs.setdefault("dependencies", []).append(image_build_task)
-        image = {
-            "type": "task-image",
-            "taskId": image_build_task,
-            "path": "public/" + self.DOCKER_IMAGE_ARTIFACT_FILENAME,
-        }
-        return self.create_task(image=image, **kwargs)
-
     def find_or_build_image(self, dockerfile):
         image_build_task = self.built_images.get(dockerfile)
         if image_build_task is None:
@@ -89,7 +79,7 @@ class DecisionTask:
                 ("/" + self.DOCKER_IMAGE_ARTIFACT_FILENAME, self.docker_image_cache_expiry),
             ],
             max_run_time_minutes=20,
-            image=self.DOCKER_IMAGE_BUILDER_IMAGE,
+            docker_image=self.DOCKER_IMAGE_BUILDER_IMAGE,
             features={
                 "dind": True,  # docker-in-docker
             },
@@ -114,10 +104,30 @@ class DecisionTask:
         else:
             return basename
 
-    def create_task(self, *, task_name, script, image, max_run_time_minutes,
+    def create_task(self, *, task_name, script, max_run_time_minutes,
+                    docker_image=None, dockerfile=None,  # One of these is required
                     artifacts=None, dependencies=None, env=None, cache=None, scopes=None,
                     routes=None, extra=None, features=None,
                     with_repo=True):
+        if docker_image and dockerfile:
+            raise TypeError("cannot use both `docker_image` or `dockerfile`")
+        if not docker_image and not dockerfile:
+            raise TypeError("need one of `docker_image` or `dockerfile`")
+
+        # https://docs.taskcluster.net/docs/reference/workers/docker-worker/docs/environment
+        decision_task_id = os.environ["TASK_ID"]
+
+        dependencies = [decision_task_id] + (dependencies or [])
+
+        if dockerfile:
+            image_build_task = self.find_or_build_image(dockerfile)
+            dependencies.append(image_build_task)
+            docker_image = {
+                "type": "task-image",
+                "taskId": image_build_task,
+                "path": "public/" + self.DOCKER_IMAGE_ARTIFACT_FILENAME,
+            }
+
         # Set in .taskcluster.yml
         task_owner = os.environ["TASK_OWNER"]
         task_source = os.environ["TASK_SOURCE"]
@@ -136,12 +146,9 @@ class DecisionTask:
                     git reset --hard "$GIT_SHA"
                 """ + script
 
-        # https://docs.taskcluster.net/docs/reference/workers/docker-worker/docs/environment
-        decision_task_id = os.environ["TASK_ID"]
-
         payload = {
             "taskGroupId": decision_task_id,
-            "dependencies": [decision_task_id] + (dependencies or []),
+            "dependencies": dependencies or [],
             "schedulerId": "taskcluster-github",
             "provisionerId": "aws-provisioner-v1",
             "workerType": self.worker_type,
@@ -160,7 +167,7 @@ class DecisionTask:
             "payload": {
                 "cache": cache or {},
                 "maxRunTime": max_run_time_minutes * 60,
-                "image": image,
+                "image": docker_image,
                 "command": [
                     "/bin/bash",
                     "--login",
