@@ -5,7 +5,7 @@
 
 idl_test(
   ['uievents'],
-  ['dom'],
+  ['dom'],awefawefawef
   idl_array => {
     idl_array.add_objects({
       FocusEvent: ['new FocusEvent("event")'],
