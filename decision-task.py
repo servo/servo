@@ -73,10 +73,10 @@ def main():
         script="""
             ./mach build --release --with-debug-assertions -p servo
             ./etc/ci/lockfile_changed.sh
-            gzip target/release/servo
+            gzip target/release/servo --stdout > /servo.gz
         """,
         artifacts=[
-            ("/repo/target/release/servo.gz", build_artifacts_expiry),
+            ("/servo.gz", build_artifacts_expiry),
         ],
         **build_kwargs
     )
