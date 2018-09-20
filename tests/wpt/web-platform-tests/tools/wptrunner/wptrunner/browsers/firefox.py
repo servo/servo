@@ -220,13 +220,15 @@ class FirefoxBrowser(Browser):
         preferences = self.load_prefs()
 
         self.profile = FirefoxProfile(preferences=preferences)
-        self.profile.set_preferences({"marionette.port": self.marionette_port,
-                                      "dom.disable_open_during_load": False,
-                                      "network.dns.localDomains": ",".join(self.config.domains_set),
-                                      "network.proxy.type": 0,
-                                      "places.history.enabled": False,
-                                      "dom.send_after_paint_to_content": True,
-                                      "network.preload": True})
+        self.profile.set_preferences({
+            "marionette.port": self.marionette_port,
+            "network.dns.localDomains": ",".join(self.config.domains_set),
+
+            # TODO: Remove preferences once Firefox 64 is stable (Bug 905404)
+            "network.proxy.type": 0,
+            "places.history.enabled": False,
+            "network.preload": True,
+        })
         if self.e10s:
             self.profile.set_preferences({"browser.tabs.remote.autostart": True})
 

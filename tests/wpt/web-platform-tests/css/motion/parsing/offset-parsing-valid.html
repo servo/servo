@@ -30,11 +30,11 @@ test_valid_value("offset", "path('M 0 0 H 1') 50px", "path(\"M 0 0 H 1\") 50px")
 test_valid_value("offset", "path(\"M 0 0 H 1\") auto");
 test_valid_value("offset", "path('M 0 0 H 1') reverse 30deg 50px", "path(\"M 0 0 H 1\") 50px reverse 30deg");
 test_valid_value("offset", "path(\"M 0 0 H 1\")");
-test_valid_value("offset", "path('m 0 0 h 100') -7rad 8px / auto", "path(\"m 0 0 h 100\") 8px -7rad / auto");
-test_valid_value("offset", "path('m 0 0 h 100') -7rad 8px / left top", "path(\"m 0 0 h 100\") 8px -7rad / left top");
+test_valid_value("offset", "path('m 20 0 h 100') -7rad 8px / auto", "path(\"m 20 0 h 100\") 8px -7rad / auto");
+test_valid_value("offset", "path('m 0 30 v 100') -7rad 8px / left top", "path(\"m 0 30 v 100\") 8px -7rad / left top");
 test_valid_value("offset", "path('m 0 0 h 100') -7rad 8px", "path(\"m 0 0 h 100\") 8px -7rad");
-test_valid_value("offset", "path(\"m 0 0 h 100\") 100px 0deg");
-test_valid_value("offset", "path('m 1 2 v 3 Z')", "path(\"m 1 2 v 3 Z\")");
+test_valid_value("offset", "path(\"M 0 0 H 100\") 100px 0deg");
+test_valid_value("offset", "path(  'm 1 2   v 3.00 z')", "path(\"m 1 2 v 3 Z\")");
 test_valid_value("offset", "ray(farthest-corner 90deg) 1%", "ray(90deg farthest-corner) 1%");
 test_valid_value("offset", "ray(sides 0deg) 50% 90deg auto", "ray(0deg sides) 50% auto 90deg");
 test_valid_value("offset", "right bottom / left top");

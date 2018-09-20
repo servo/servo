@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<title>Testing scrollOptions' behavior for Element.scroll* and scroll-behavior on the root of a subframe</title>
+<meta name="timeout" content="long"/>
+<link rel="author" title="Frédéric Wang" href="mailto:fwang@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#propdef-scroll-behavior">
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#scrolling-box">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/scroll-behavior.js"></script>
+<div id="log">
+</div>
+<iframe id="iframeNode" width="400px" height="200px" srcdoc="<!DOCTYPE>
+<html>
+  <style>
+    body {
+      margin: 0;
+    }
+    .autoBehavior {
+      scroll-behavior: auto;
+    }
+    .smoothBehavior {
+      scroll-behavior: smooth;
+    }
+  </style>
+  <body>
+    <div style='width: 2000px; height: 1000px; background: linear-gradient(135deg, red, green);'>
+      <span style='display: inline-block; width: 500px; height: 250px;'></span><span id='elementToReveal' style='display: inline-block; vertical-align: -15px; width: 10px; height: 15px; background: black;'></span>
+    </div>
+  </body>
+</html>">
+</iframe>
+<script>
+  var iframeLoadTest = async_test("iframe loaded");
+  var scrollingElement, styledElement, elementToReveal;
+  var elementToRevealLeft = 500;
+  var elementToRevealTop = 250;
+  iframeNode.addEventListener("load", iframeLoadTest.step_func_done(() => {
+    scrollingElement = iframeNode.contentDocument.scrollingElement;
+    styledElement = iframeNode.contentDocument.documentElement;
+    elementToReveal = iframeNode.contentDocument.getElementById("elementToReveal");
+
+    ["scroll", "scrollTo", "scrollBy", "scrollIntoView"].forEach((scrollFunction) => {
+      promise_test(() => {
+        resetScroll(scrollingElement);
+        setScrollBehavior(styledElement, "autoBehavior");
+        assert_equals(scrollingElement.scrollLeft, 0);
+        assert_equals(scrollingElement.scrollTop, 0);
+        scrollNode(scrollingElement, scrollFunction, null, elementToRevealLeft, elementToRevealTop);
+        assert_equals(scrollingElement.scrollLeft, elementToRevealLeft, "Should set scrollLeft immediately");
+        assert_equals(scrollingElement.scrollTop, elementToRevealTop, "Should set scrollTop immediately");
+        return new Promise((resolve) => { resolve(); });
+      }, `Subframe with auto scroll-behavior ; ${scrollFunction}() with default behavior`);
+
+      promise_test(() => {
+        resetScroll(scrollingElement);
+        setScrollBehavior(styledElement, "autoBehavior");
+        assert_equals(scrollingElement.scrollLeft, 0);
+        assert_equals(scrollingElement.scrollTop, 0);
+        scrollNode(scrollingElement, scrollFunction, "auto", elementToRevealLeft, elementToRevealTop);
+        assert_equals(scrollingElement.scrollLeft, elementToRevealLeft, "Should set scrollLeft immediately");
+        assert_equals(scrollingElement.scrollTop, elementToRevealTop, "Should set scrollTop immediately");
+        return new Promise((resolve) => { resolve(); });
+      }, `Subframe with auto scroll-behavior ; ${scrollFunction}() with auto behavior`);
+
+      promise_test(() => {
+        resetScroll(scrollingElement);
+        setScrollBehavior(styledElement, "autoBehavior");
+        assert_equals(scrollingElement.scrollLeft, 0);
+        assert_equals(scrollingElement.scrollTop, 0);
+        scrollNode(scrollingElement, scrollFunction, "instant", elementToRevealLeft, elementToRevealTop);
+        assert_equals(scrollingElement.scrollLeft, elementToRevealLeft, "Should set scrollLeft immediately");
+        assert_equals(scrollingElement.scrollTop, elementToRevealTop, "Should set scrollTop immediately");
+        return new Promise((resolve) => { resolve(); });
+      }, `Subframe with auto scroll-behavior ; ${scrollFunction}() with instant behavior`);
+
+      promise_test(() => {
+        resetScroll(scrollingElement);
+        setScrollBehavior(styledElement, "autoBehavior");
+        assert_equals(scrollingElement.scrollLeft, 0);
+        assert_equals(scrollingElement.scrollTop, 0);
+        scrollNode(scrollingElement, scrollFunction, "smooth", elementToRevealLeft, elementToRevealTop);
+        assert_less_than(scrollingElement.scrollLeft, elementToRevealLeft, "Should not set scrollLeft immediately");
+        assert_less_than(scrollingElement.scrollTop, elementToRevealTop, "Should not set scrollTop immediately");
+        return waitForScrollEnd(scrollingElement).then(() => {
+          assert_equals(scrollingElement.scrollLeft, elementToRevealLeft, "Final value of scrollLeft");
+          assert_equals(scrollingElement.scrollTop, elementToRevealTop, "Final value of scrollTop");
+        });
+      }, `Subframe with auto scroll-behavior ; ${scrollFunction}() with smooth behavior`);
+
+      promise_test(() => {
+        resetScroll(scrollingElement);
+        setScrollBehavior(styledElement, "smoothBehavior");
+        assert_equals(scrollingElement.scrollLeft, 0);
+        assert_equals(scrollingElement.scrollTop, 0);
+        scrollNode(scrollingElement, scrollFunction, null, elementToRevealLeft, elementToRevealTop);
+        assert_less_than(scrollingElement.scrollLeft, elementToRevealLeft, "Should not set scrollLeft immediately");
+        assert_less_than(scrollingElement.scrollTop, elementToRevealTop, "Should not set scrollTop immediately");
+        return waitForScrollEnd(scrollingElement).then(() => {
+          assert_equals(scrollingElement.scrollLeft, elementToRevealLeft, "Final value of scrollLeft");
+          assert_equals(scrollingElement.scrollTop, elementToRevealTop, "Final value of scrollTop");
+        });
+      }, `Subframe with smooth scroll-behavior ; ${scrollFunction}() with default behavior`);
+
+      promise_test(() => {
+        resetScroll(scrollingElement);
+        setScrollBehavior(styledElement, "smoothBehavior");
+        assert_equals(scrollingElement.scrollLeft, 0);
+        assert_equals(scrollingElement.scrollTop, 0);
+        scrollNode(scrollingElement, scrollFunction, "auto", elementToRevealLeft, elementToRevealTop);
+        assert_less_than(scrollingElement.scrollLeft, elementToRevealLeft, "Should not set scrollLeft immediately");
+        assert_less_than(scrollingElement.scrollTop, elementToRevealTop, "Should not set scrollTop immediately");
+        return waitForScrollEnd(scrollingElement).then(() => {
+          assert_equals(scrollingElement.scrollLeft, elementToRevealLeft, "Final value of scrollLeft");
+          assert_equals(scrollingElement.scrollTop, elementToRevealTop, "Final value of scrollTop");
+        });
+      }, `Subframe with smooth scroll-behavior ; ${scrollFunction}() with auto behavior`);
+
+      promise_test(() => {
+        resetScroll(scrollingElement);
+        setScrollBehavior(styledElement, "smoothBehavior");
+        assert_equals(scrollingElement.scrollLeft, 0);
+        assert_equals(scrollingElement.scrollTop, 0);
+        scrollNode(scrollingElement, scrollFunction, "instant", elementToRevealLeft, elementToRevealTop);
+        assert_equals(scrollingElement.scrollLeft, elementToRevealLeft, "Should set scrollLeft immediately");
+        assert_equals(scrollingElement.scrollTop, elementToRevealTop, "Should set scrollTop immediately");
+        return new Promise((resolve) => { resolve(); });
+      }, `Subframe with smooth scroll-behavior ; ${scrollFunction}() with instant behavior`);
+
+      promise_test(() => {
+        resetScroll(scrollingElement);
+        setScrollBehavior(styledElement, "smoothBehavior");
+        assert_equals(scrollingElement.scrollLeft, 0);
+        assert_equals(scrollingElement.scrollTop, 0);
+        scrollNode(scrollingElement, scrollFunction, "smooth", elementToRevealLeft, elementToRevealTop);
+        assert_less_than(scrollingElement.scrollLeft, elementToRevealLeft, "Should not set scrollLeft immediately");
+        assert_less_than(scrollingElement.scrollTop, elementToRevealTop, "Should not set scrollTop immediately");
+        return waitForScrollEnd(scrollingElement).then(() => {
+          assert_equals(scrollingElement.scrollLeft, elementToRevealLeft, "Final value of scrollLeft");
+          assert_equals(scrollingElement.scrollTop, elementToRevealTop, "Final value of scrollTop");
+        });
+     }, `Subframe with smooth scroll-behavior ; ${scrollFunction}() with smooth behavior`);
+    });
+
+    promise_test(() => {
+      resetScroll(scrollingElement);
+      setScrollBehavior(styledElement, "smoothBehavior");
+      assert_equals(scrollingElement.scrollLeft, 0);
+      assert_equals(scrollingElement.scrollTop, 0);
+      scrollNode(scrollingElement, "scroll", "smooth", elementToRevealLeft, elementToRevealTop);
+      scrollNode(scrollingElement, "scroll", "smooth", elementToRevealLeft / 2, elementToRevealTop / 2);
+      return waitForScrollEnd(scrollingElement).then(() => {
+        assert_equals(scrollingElement.scrollLeft, elementToRevealLeft / 2, "Final value of scrollLeft");
+        assert_equals(scrollingElement.scrollTop, elementToRevealTop / 2, "Final value of scrollTop");
+      });
+    }, "Aborting an ongoing smooth scrolling on a subframe with another smooth scrolling");
+
+    promise_test(() => {
+      resetScroll(scrollingElement);
+      setScrollBehavior(styledElement, "smoothBehavior");
+      assert_equals(scrollingElement.scrollLeft, 0);
+      assert_equals(scrollingElement.scrollTop, 0);
+      scrollNode(scrollingElement, "scroll", "smooth", elementToRevealLeft, elementToRevealTop);
+      scrollNode(scrollingElement, "scroll", "instant", 0, 0);
+      return waitForScrollEnd(scrollingElement).then(() => {
+        assert_equals(scrollingElement.scrollLeft, 0, "Final value of scrollLeft");
+        assert_equals(scrollingElement.scrollTop, 0, "Final value of scrollTop");
+    });
+  }, "Aborting an ongoing smooth scrolling on a subframe with an instant scrolling");
+  }));
+</script>
