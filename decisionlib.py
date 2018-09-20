@@ -78,7 +78,7 @@ class DecisionTask:
 
         return self.create_task(
             task_name="docker image build task for image: " + self.image_name(dockerfile),
-            command="""
+            script="""
                 echo "$DOCKERFILE" | docker build -t taskcluster-built -
                 docker save taskcluster-built | lz4 > /%s
             """ % self.DOCKER_IMAGE_ARTIFACT_FILENAME,
@@ -114,7 +114,7 @@ class DecisionTask:
         else:
             return basename
 
-    def create_task(self, *, task_name, command, image, max_run_time_minutes,
+    def create_task(self, *, task_name, script, image, max_run_time_minutes,
                     artifacts=None, dependencies=None, env=None, cache=None, scopes=None,
                     routes=None, extra=None, features=None,
                     with_repo=True):
@@ -129,12 +129,12 @@ class DecisionTask:
             for k in ["GIT_URL", "GIT_REF", "GIT_SHA"]:
                 env[k] = os.environ[k]
 
-            command = """
+            script = """
                     git init repo
                     cd repo
                     git fetch --depth 1 "$GIT_URL" "$GIT_REF"
                     git reset --hard "$GIT_SHA"
-                """ + command
+                """ + script
 
         # https://docs.taskcluster.net/docs/reference/workers/docker-worker/docs/environment
         decision_task_id = os.environ["TASK_ID"]
@@ -167,7 +167,7 @@ class DecisionTask:
                     "-x",
                     "-e",
                     "-c",
-                    deindent(command)
+                    deindent(script)
                 ],
                 "env": env,
                 "artifacts": {

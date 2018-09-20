@@ -53,7 +53,7 @@ def main():
 
     decision.create_task_with_in_tree_dockerfile(
         task_name="Linux x86_64: tidy + dev build + unit tests",
-        command="""
+        script="""
             #./mach test-tidy --no-progress --all
             ./mach build --dev
             #./mach test-unit
