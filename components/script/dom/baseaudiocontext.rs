@@ -18,6 +18,7 @@ use dom::bindings::codegen::Bindings::BaseAudioContextBinding::AudioContextState
 use dom::bindings::codegen::Bindings::BaseAudioContextBinding::BaseAudioContextMethods;
 use dom::bindings::codegen::Bindings::BaseAudioContextBinding::DecodeErrorCallback;
 use dom::bindings::codegen::Bindings::BaseAudioContextBinding::DecodeSuccessCallback;
+use dom::bindings::codegen::Bindings::BiquadFilterNodeBinding::BiquadFilterOptions;
 use dom::bindings::codegen::Bindings::ChannelMergerNodeBinding::ChannelMergerOptions;
 use dom::bindings::codegen::Bindings::GainNodeBinding::GainOptions;
 use dom::bindings::codegen::Bindings::OscillatorNodeBinding::OscillatorOptions;
@@ -28,6 +29,7 @@ use dom::bindings::num::Finite;
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::DomObject;
 use dom::bindings::root::{DomRoot, MutNullableDom};
+use dom::biquadfilternode::BiquadFilterNode;
 use dom::channelmergernode::ChannelMergerNode;
 use dom::domexception::{DOMErrorName, DOMException};
 use dom::eventtarget::EventTarget;
@@ -342,6 +344,11 @@ impl BaseAudioContextMethods for BaseAudioContext {
     /// https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-createanalyser
     fn CreateAnalyser(&self) -> Fallible<DomRoot<AnalyserNode>> {
         AnalyserNode::new(&self.global().as_window(), &self, &AnalyserOptions::empty())
+    }
+
+    /// https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-createbiquadfilter
+    fn CreateBiquadFilter(&self) -> Fallible<DomRoot<BiquadFilterNode>> {
+        BiquadFilterNode::new(&self.global().as_window(), &self, &BiquadFilterOptions::empty())
     }
 
     /// https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-createchannelmerger
