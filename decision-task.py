@@ -115,43 +115,45 @@ def main():
     total_chunks = 2
     for i in range(total_chunks):
         chunk = i + 1
+        if chunk == 1:
+            name_extra = " + extra"
+            script_extra = """
+                ./mach test-wpt-failure
+                ./mach test-wpt --release --binary-arg=--multiprocess --processes 24 \
+                    --log-raw test-wpt-mp.log \
+                    --log-errorsummary wpt-mp-errorsummary.log \
+                    eventsource
+            """
+        else:
+            name_extra = ""
+            script_extra = ""
+        script = """
+            ./mach test-wpt \
+                --release \
+                --processes 24 \
+                --total-chunks "$TOTAL_CHUNKS" \
+                --this-chunk "$THIS_CHUNK" \
+                --log-raw test-wpt.log \
+                --log-errorsummary wpt-errorsummary.log \
+                --always-succeed
+            ./mach filter-intermittents\
+                wpt-errorsummary.log \
+                --log-intermittents intermittents.log \
+                --log-filteredsummary filtered-wpt-errorsummary.log \
+                --tracker-api default
+        """
+        # FIXME: --reporter-api default
+        # IndexError: list index out of range
+        # File "/repo/python/servo/testing_commands.py", line 533, in filter_intermittents
+        #   pull_request = int(last_merge.split(' ')[4][1:])
         create_run_task(
-            task_name="Linux x86_64: WPT chunk %s / %s" % (chunk, total_chunks),
-            script="""
-                ./mach test-wpt \
-                    --release \
-                    --processes 24 \
-                    --total-chunks "$TOTAL_CHUNKS" \
-                    --this-chunk "$THIS_CHUNK" \
-                    --log-raw test-wpt.log \
-                    --log-errorsummary wpt-errorsummary.log \
-                    --always-succeed
-                ./mach filter-intermittents\
-                    wpt-errorsummary.log \
-                    --log-intermittents intermittents.log \
-                    --log-filteredsummary filtered-wpt-errorsummary.log \
-                    --tracker-api default
-            """,
-            # FIXME: --reporter-api default
-            # IndexError: list index out of range
-            # File "/repo/python/servo/testing_commands.py", line 533, in filter_intermittents
-            #   pull_request = int(last_merge.split(' ')[4][1:])
+            task_name="Linux x86_64: WPT chunk %s / %s%s" % (chunk, total_chunks, name_extra),
+            script=script_extra + script,
             env={
                 "TOTAL_CHUNKS": total_chunks,
                 "THIS_CHUNK": chunk,
             },
         )
-
-    create_run_task(
-        task_name="Linux x86_64: WPT extra",
-        script="""
-            ./mach test-wpt-failure
-            ./mach test-wpt --release --binary-arg=--multiprocess --processes 24 \
-                --log-raw test-wpt-mp.log \
-                --log-errorsummary wpt-mp-errorsummary.log \
-                eventsource
-        """,
-    )
 
 
 if __name__ == "__main__":
