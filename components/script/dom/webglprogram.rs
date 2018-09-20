@@ -14,7 +14,7 @@ use dom::bindings::root::{DomRoot, MutNullableDom};
 use dom::bindings::str::DOMString;
 use dom::webglactiveinfo::WebGLActiveInfo;
 use dom::webglobject::WebGLObject;
-use dom::webglrenderingcontext::{MAX_UNIFORM_AND_ATTRIBUTE_LEN, WebGLRenderingContext};
+use dom::webglrenderingcontext::WebGLRenderingContext;
 use dom::webglshader::WebGLShader;
 use dom::webgluniformlocation::WebGLUniformLocation;
 use dom_struct::dom_struct;
@@ -268,12 +268,11 @@ impl WebGLProgram {
         if self.is_deleted() {
             return Err(WebGLError::InvalidOperation);
         }
-        if name.len() > MAX_UNIFORM_AND_ATTRIBUTE_LEN {
-            return Err(WebGLError::InvalidValue);
-        }
 
-        // Check if the name is reserved
-        if name.starts_with("gl_") || name.starts_with("webgl") || name.starts_with("_webgl_") {
+        if !validate_glsl_name(&name)? {
+            return Ok(());
+        }
+        if name.starts_with("gl_") {
             return Err(WebGLError::InvalidOperation);
         }
 
@@ -325,17 +324,11 @@ impl WebGLProgram {
         if !self.is_linked() || self.is_deleted() {
             return Err(WebGLError::InvalidOperation);
         }
-        if name.len() > MAX_UNIFORM_AND_ATTRIBUTE_LEN {
-            return Err(WebGLError::InvalidValue);
-        }
 
-        // Check if the name is reserved
-        if name.starts_with("gl_") {
+        if !validate_glsl_name(&name)? {
             return Ok(-1);
         }
-
-        // https://www.khronos.org/registry/webgl/specs/latest/1.0/#GLSL_CONSTRUCTS
-        if name.starts_with("webgl_") || name.starts_with("_webgl_") {
+        if name.starts_with("gl_") {
             return Ok(-1);
         }
 
@@ -356,17 +349,11 @@ impl WebGLProgram {
         if !self.is_linked() || self.is_deleted() {
             return Err(WebGLError::InvalidOperation);
         }
-        if name.len() > MAX_UNIFORM_AND_ATTRIBUTE_LEN {
-            return Err(WebGLError::InvalidValue);
-        }
 
-        // Check if the name is reserved
-        if name.starts_with("gl_") {
+        if !validate_glsl_name(&name)? {
             return Ok(None);
         }
-
-        // https://www.khronos.org/registry/webgl/specs/latest/1.0/#GLSL_CONSTRUCTS
-        if name.starts_with("webgl_") || name.starts_with("_webgl_") {
+        if name.starts_with("gl_") {
             return Ok(None);
         }
 
@@ -459,6 +446,62 @@ impl Drop for WebGLProgram {
     }
 }
 
+fn validate_glsl_name(name: &str) -> WebGLResult<bool> {
+    if name.is_empty() {
+        return Ok(false);
+    }
+    if name.len() > MAX_UNIFORM_AND_ATTRIBUTE_LEN {
+        return Err(WebGLError::InvalidValue);
+    }
+    for c in name.chars() {
+        validate_glsl_char(c)?;
+    }
+    if name.starts_with("webgl_") || name.starts_with("_webgl_") {
+        return Err(WebGLError::InvalidOperation);
+    }
+    Ok(true)
+}
+
+fn validate_glsl_char(c: char) -> WebGLResult<()> {
+    match c {
+        'a'..='z' |
+        'A'..='Z' |
+        '0'..='9' |
+        ' ' |
+        '\t' |
+        '\u{11}' |
+        '\u{12}' |
+        '\r' |
+        '\n' |
+        '_' |
+        '.' |
+        '+' |
+        '-' |
+        '/' |
+        '*' |
+        '%' |
+        '<' |
+        '>' |
+        '[' |
+        ']' |
+        '(' |
+        ')' |
+        '{' |
+        '}' |
+        '^' |
+        '|' |
+        '&' |
+        '~' |
+        '=' |
+        '!' |
+        ':' |
+        ';' |
+        ',' |
+        '?' => Ok(()),
+        _ => Err(WebGLError::InvalidValue),
+    }
+}
+
 fn parse_uniform_name(name: &str) -> Option<(&str, Option<i32>)> {
     if !name.ends_with(']') {
         return Some((name, None));
@@ -469,3 +512,5 @@ fn parse_uniform_name(name: &str) -> Option<(&str, Option<i32>)> {
         .ok()?;
     Some((&name[..bracket_pos], Some(index)))
 }
+
+pub const MAX_UNIFORM_AND_ATTRIBUTE_LEN: usize = 256;
