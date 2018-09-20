@@ -8,10 +8,12 @@
 # except according to those terms.
 
 from __future__ import print_function, unicode_literals
-from os import path, listdir
+from os import path, listdir, getcwd
 from time import time
 
+import signal
 import sys
+import tempfile
 import urllib2
 import json
 import subprocess
@@ -265,3 +267,57 @@ class MachCommands(CommandBase):
             "local",
             self.config["android"]["lib"])
         print(subprocess.check_output([ndk_stack, "-sym", sym_path, "-dump", logfile]))
+
+    @Command('ndk-gdb',
+             description='Invoke ndk-gdb tool with the expected symbol paths',
+             category='devenv')
+    @CommandArgument('--release', action='store_true', help="Use release build symbols")
+    @CommandArgument('--target', action='store', default="armv7-linux-androideabi",
+                     help="Build target")
+    def ndk_gdb(self, release, target):
+        env = self.build_env(target)
+        self.handle_android_target(target)
+        ndk_gdb = path.join(env["ANDROID_NDK"], "ndk-gdb")
+        adb_path = path.join(env["ANDROID_SDK"], "platform-tools", "adb")
+        sym_paths = [
+            path.join(
+                getcwd(),
+                "target",
+                target,
+                "release" if release else "debug",
+                "apk",
+                "obj",
+                "local",
+                self.config["android"]["lib"]
+            ),
+            path.join(
+                getcwd(),
+                "target",
+                target,
+                "release" if release else "debug",
+                "apk",
+                "libs",
+                self.config["android"]["lib"]
+            ),
+        ]
+        env["NDK_PROJECT_PATH"] = path.join(getcwd(), "support", "android", "apk")
+        signal.signal(signal.SIGINT, signal.SIG_IGN)
+
+        with tempfile.NamedTemporaryFile(delete=False) as f:
+            f.write('\n'.join([
+                "python",
+                "param = gdb.parameter('solib-search-path')",
+                "param += ':{}'".format(':'.join(sym_paths)),
+                "gdb.execute('set solib-search-path ' + param)",
+                "end",
+            ]))
+
+        p = subprocess.Popen([
+            ndk_gdb,
+            "--adb", adb_path,
+            "--project", "support/android/apk/servoapp/src/main/",
+            "--launch", "com.mozilla.servo.MainActivity",
+            "-x", f.name,
+            "--verbose",
+        ], env=env)
+        return p.wait()
