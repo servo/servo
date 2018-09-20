@@ -1193,9 +1193,9 @@ impl FetchResponseListener for HTMLMediaElementContext {
             // Ensure that the element doesn't receive any further notifications
             // of the aborted fetch.
             self.ignore_response = true;
-            self.elem
-                .root()
-                .queue_dedicated_media_source_failure_steps();
+            let elem = self.elem.root();
+            elem.fetch_canceller.borrow_mut().cancel();
+            elem.queue_dedicated_media_source_failure_steps();
         }
     }
 
@@ -1264,6 +1264,9 @@ impl FetchResponseListener for HTMLMediaElementContext {
         }
         // => "If the connection is interrupted after some media data has been received..."
         else if elem.ready_state.get() != ReadyState::HaveNothing {
+            // Step 1
+            elem.fetch_canceller.borrow_mut().cancel();
+
             // Step 2
             elem.error.set(Some(&*MediaError::new(
                 &*window_from_node(&*elem),
