@@ -406,8 +406,10 @@ class MachCommands(CommandBase):
         # Do some additional things if the build succeeded
         if status == 0:
             if android and not no_package:
-                Registrar.dispatch("package", context=self.context,
-                                   release=release, dev=dev, target=target)
+                rv = Registrar.dispatch("package", context=self.context,
+                                        release=release, dev=dev, target=target)
+                if rv:
+                    return rv
 
             if sys.platform == "win32":
                 servo_exe_dir = path.join(base_path, "debug" if dev else "release")
