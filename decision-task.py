@@ -54,14 +54,17 @@ def main():
     decision.create_task_with_in_tree_dockerfile(
         task_name="Linux x86_64: tidy + dev build + unit tests",
         script="""
-            #./mach test-tidy --no-progress --all
+            ./mach test-tidy --no-progress --all
             ./mach build --dev
-            #./mach test-unit
-            #./mach test-tidy --no-progress --self-test
+            ./mach test-unit
+            ./mach package --dev
+            ./mach test-tidy --no-progress --self-test
+            ./etc/memory_reports_over_time.py --test
+            ./etc/ci/lockfile_changed.sh
+            ./etc/ci/check_no_panic.sh
         """,
         **build_kwargs
     )
-
 
 def dockerfile(name):
     return os.path.join(os.path.dirname(__file__), name + ".dockerfile")
