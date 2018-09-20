@@ -151,6 +151,13 @@ impl WorkletMethods for Worklet {
     }
 }
 
+impl Drop for Worklet {
+    fn drop(&mut self) {
+        let script_thread = ScriptThread::worklet_thread_pool();
+        script_thread.exit_worklet(self.worklet_id);
+    }
+}
+
 /// A guid for worklets.
 #[derive(Clone, Copy, Debug, Eq, Hash, JSTraceable, PartialEq)]
 pub struct WorkletId(Uuid);
@@ -312,10 +319,14 @@ impl WorkletThreadPool {
                 promise: TrustedPromise::new(promise.clone()),
             });
         }
-        // If any of the threads are blocked waiting on data, wake them up.
-        let _ = self.cold_backup_sender.send(WorkletData::WakeUp);
-        let _ = self.hot_backup_sender.send(WorkletData::WakeUp);
-        let _ = self.primary_sender.send(WorkletData::WakeUp);
+        self.wake_threads();
+    }
+
+    pub(crate) fn exit_worklet(&self, worklet_id: WorkletId) {
+        for sender in &[&self.control_sender_0, &self.control_sender_1, &self.control_sender_2] {
+            let _ = sender.send(WorkletControl::ExitWorklet(worklet_id));
+        }
+        self.wake_threads();
     }
 
     /// For testing.
@@ -324,6 +335,13 @@ impl WorkletThreadPool {
         let msg = WorkletData::Task(id, WorkletTask::Test(TestWorkletTask::Lookup(key, sender)));
         let _ = self.primary_sender.send(msg);
         receiver.recv().expect("Test worklet has died?")
+    }
+
+    fn wake_threads(&self) {
+        // If any of the threads are blocked waiting on data, wake them up.
+        let _ = self.cold_backup_sender.send(WorkletData::WakeUp);
+        let _ = self.hot_backup_sender.send(WorkletData::WakeUp);
+        let _ = self.primary_sender.send(WorkletData::WakeUp);
     }
 }
 
@@ -338,6 +356,7 @@ enum WorkletData {
 
 /// The control message sent to worklet threads
 enum WorkletControl {
+    ExitWorklet(WorkletId),
     FetchAndInvokeAWorkletScript {
         pipeline_id: PipelineId,
         worklet_id: WorkletId,
@@ -654,6 +673,9 @@ impl WorkletThread {
     /// Process a control message.
     fn process_control(&mut self, control: WorkletControl) {
         match control {
+            WorkletControl::ExitWorklet(worklet_id) => {
+                self.global_scopes.remove(&worklet_id);
+            },
             WorkletControl::FetchAndInvokeAWorkletScript {
                 pipeline_id,
                 worklet_id,
