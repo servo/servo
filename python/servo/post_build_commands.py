@@ -99,6 +99,9 @@ class PostBuildCommands(CommandBase):
             ]
             json_params = shell_quote(json.dumps(params))
             extra = "-e servoargs " + json_params
+            rust_log = env.get("RUST_LOG", None)
+            if rust_log:
+                extra += " -e servolog " + rust_log
             script += [
                 "am start " + extra + " com.mozilla.servo/com.mozilla.servo.MainActivity",
                 "sleep 0.5",

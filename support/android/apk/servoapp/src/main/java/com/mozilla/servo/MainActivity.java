@@ -71,7 +71,8 @@ public class MainActivity extends Activity implements Servo.Client {
         }
 
         String args = getIntent().getStringExtra("servoargs");
-        mServoView.setServoArgs(args);
+        String log = getIntent().getStringExtra("servolog");
+        mServoView.setServoArgs(args, log);
 
         setupUrlField();
     }

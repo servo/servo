@@ -38,6 +38,7 @@ public class ServoSurface {
     private Servo mServo;
     private Client mClient = null;
     private String mServoArgs = "";
+    private String mServoLog = "";
     private String mInitialUri = null;
     private Activity mActivity;
 
@@ -53,8 +54,9 @@ public class ServoSurface {
         mClient = client;
     }
 
-    public void setServoArgs(String args) {
+    public void setServoArgs(String args, String log) {
         mServoArgs = args != null ? args : "";
+        mServoLog = log != null ? log : "";
     }
 
     public void setActivity(Activity activity) {
@@ -204,7 +206,7 @@ public class ServoSurface {
             inUIThread(() -> {
               final boolean showLogs = true;
               String uri = mInitialUri == null ? null : mInitialUri;
-              mServo = new Servo(this, surface, mClient, mActivity, mServoArgs, uri, mWidth, mHeight, showLogs);
+              mServo = new Servo(this, surface, mClient, mActivity, mServoArgs, uri, mServoLog, mWidth, mHeight, showLogs);
             });
 
             Looper.loop();
