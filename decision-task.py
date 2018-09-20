@@ -73,10 +73,13 @@ def main():
         script="""
             ./mach build --release --with-debug-assertions -p servo
             ./etc/ci/lockfile_changed.sh
-            gzip target/release/servo --stdout > /servo.gz
+            tar -czf /target.tar.gz \
+                target/release/servo \
+                target/release/build/osmesa-src-*/output \
+                target/release/build/osmesa-src-*/out/lib/gallium
         """,
         artifacts=[
-            ("/servo.gz", build_artifacts_expiry),
+            ("/target.tar.gz", build_artifacts_expiry),
         ],
         **build_kwargs
     )
@@ -89,7 +92,7 @@ def main():
                 --retry 5 \
                 --connect-timeout 10 \
                 --location \
-                | gunzip > target/release/servo
+                | tar -xz
         """
         create_task(
             script=fetch_build + script,
