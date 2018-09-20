@@ -8,5 +8,6 @@ curl \
     --retry 5 \
     --connect-timeout 10 \
     --location \
+    --fail \
     "$url" \
     "$@"

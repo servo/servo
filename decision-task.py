@@ -89,12 +89,12 @@ def main():
 
     def create_run_task(*, script, env=None, **kwargs):
         fetch_build = """
-            mkdir -p target/release
             curl \
-                "https://queue.taskcluster.net/v1/task/${BUILD_TASK_ID}/artifacts/public/servo.gz" \
+                "https://queue.taskcluster.net/v1/task/${BUILD_TASK_ID}/artifacts/public/servo.tar.gz" \
                 --retry 5 \
                 --connect-timeout 10 \
                 --location \
+                --fail \
                 | tar -xz
         """
         decision.create_task(
@@ -112,14 +112,6 @@ def main():
         create_run_task(
             task_name="Linux x86_64: WPT chunk %s / %s" % (chunk, total_chunks),
             script="""
-                mkdir -p target/release
-                curl \
-                    "https://queue.taskcluster.net/v1/task/${BUILD_TASK_ID}/artifacts/public/servo.gz" \
-                    --retry 5 \
-                    --connect-timeout 10 \
-                    --location \
-                    | gunzip > target/release/servo
-
                 ./mach test-wpt \
                     --release \
                     --processes 24 \
