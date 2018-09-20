@@ -1,0 +1,63 @@
+<svg id="svg-root"
+  width="480" height="360" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg"
+  xmlns:xlink="http://www.w3.org/1999/xlink"
+  xmlns:html="http://www.w3.org/1999/xhtml">
+  <g id="testmeta">
+    <title>Mesh gradient: Single 1x1 patch (objectBoundingBox)</title>
+    <html:link rel="author"
+          title="Tavmjong Bah"
+          href="http://tavmjong.free.fr"/>
+    <html:link rel="help"
+          href="https://www.w3.org/TR/SVG2/pservers.html#MeshGradients"/>
+    <html:link rel="match"  href="meshgradient-basic-002-ref.png" />
+  </g>
+
+  <style id="test-font" type="text/css">
+    /* Standard Font (if needed). */
+    @font-face {
+      font-family: FreeSans;
+      src: url("../fonts/FreeSans.woff") format("woff");
+    }
+    text {
+      font-family: FreeSans, sans-serif;
+      text-anchor: middle;
+      fill: black;
+    }
+    #title {
+      font-size: 24px;
+    }
+    .label {
+      font-size: 18px;
+    }
+  </style>
+
+  <defs>
+    <meshgradient id="LinearMesh" x="0" y="0" gradientUnits="objectBoundingBox">
+      <meshrow>
+        <meshpatch>
+          <stop style="stop-color:#0000ff" path="l 1,0" />
+          <stop style="stop-color:#00ff00" path="l 0,1" />
+          <stop style="stop-color:#ffff00" path="l -1,0" />
+          <stop style="stop-color:#00ff00" path="l 0,-1" />
+        </meshpatch>
+      </meshrow>
+    </meshgradient>
+    <meshgradient id="BezierMesh" x="0" y="0" gradientUnits="objectBoundingBox">
+      <meshrow>
+        <meshpatch>
+          <stop style="stop-color:#0000ff" path="c 0.3333,0  0.6667,0  1,0" />
+          <stop style="stop-color:#00ff00" path="c 0,0.3333  0,0.6667  0,1" />
+          <stop style="stop-color:#ffff00" path="c -0.3333,0  -0.6667,0  -1,0" />
+          <stop style="stop-color:#00ff00" path="c 0,-0.3333  0,-0.6667  0,-1" />
+        </meshpatch>
+      </meshrow>
+    </meshgradient>
+  </defs>
+
+  <g id="test-body-content">
+    <rect x="20"  y="140" width="200" height="200" style="fill:url(#LinearMesh)" />
+    <rect x="260" y="140" width="200" height="200" style="fill:url(#BezierMesh)" />
+  </g>
+
+</svg>

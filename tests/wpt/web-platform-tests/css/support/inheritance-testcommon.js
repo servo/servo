@@ -24,10 +24,10 @@ function assert_inherited(property, initial, other) {
     assert_equals(getComputedStyle(container)[property], other);
     assert_equals(getComputedStyle(target)[property], other);
     target.style[property] = 'initial';
-    assert_not_equals(getComputedStyle(container)[property], other);
+    assert_equals(getComputedStyle(container)[property], other);
     assert_not_equals(getComputedStyle(target)[property], other);
     target.style[property] = 'inherit';
-    assert_equals(getComputedStyle(container)[property], other);
+    assert_equals(getComputedStyle(target)[property], other);
     container.style[property] = '';
     target.style[property] = '';
   }, 'Property ' + property + ' inherits');
