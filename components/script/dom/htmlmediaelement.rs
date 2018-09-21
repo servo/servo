@@ -969,7 +969,7 @@ impl HTMLMediaElement {
     fn handle_player_event(&self, event: &PlayerEvent) {
         match *event {
             PlayerEvent::MetadataUpdated(ref metadata) => {
-                if !self.have_metadata.get() {
+                if !self.have_metadata.get() && metadata.duration.is_some() {
                     // https://html.spec.whatwg.org/multipage/#media-data-processing-steps-list
                     // => "Once enough of the media data has been fetched to determine the duration..."
                     // Step 1.
