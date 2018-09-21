@@ -18,6 +18,7 @@ cursive
 date
 datetime-local
 dir
+durationchange
 email
 emptied
 ended

@@ -15,7 +15,9 @@ use std::cell::Cell;
 #[dom_struct]
 pub struct HTMLVideoElement {
     htmlmediaelement: HTMLMediaElement,
+    /// https://html.spec.whatwg.org/multipage/media.html#dom-video-videowidth
     video_width: Cell<u32>,
+    /// https://html.spec.whatwg.org/multipage/media.html#dom-video-videoheight
     video_height: Cell<u32>,
 }
 

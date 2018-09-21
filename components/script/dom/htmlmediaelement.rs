@@ -49,6 +49,7 @@ use servo_media::ServoMedia;
 use servo_url::ServoUrl;
 use std::cell::Cell;
 use std::collections::VecDeque;
+use std::f64;
 use std::mem;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
@@ -165,6 +166,8 @@ pub struct HTMLMediaElement {
     fetch_canceller: DomRefCell<FetchCanceller>,
     /// https://html.spec.whatwg.org/multipage/media.html#show-poster-flag
     show_poster: Cell<bool>,
+    /// https://html.spec.whatwg.org/multipage/media.html#dom-media-duration
+    duration: Cell<f64>,
 }
 
 /// <https://html.spec.whatwg.org/multipage/#dom-media-networkstate>
@@ -211,6 +214,7 @@ impl HTMLMediaElement {
                 Arc::new(Mutex::new(MediaFrameRenderer::new(document.window().get_webrender_api_sender()))),
             fetch_canceller: DomRefCell::new(Default::default()),
             show_poster: Cell::new(true),
+            duration: Cell::new(f64::NAN),
         }
     }
 
@@ -838,7 +842,7 @@ impl HTMLMediaElement {
             // FIXME(nox): Set timeline offset to NaN.
 
             // Step 6.10.
-            // FIXME(nox): Set duration to NaN.
+            self.duration.set(f64::NAN);
         }
 
         // Step 7.
@@ -968,7 +972,18 @@ impl HTMLMediaElement {
                     //            to the earliest possible position.
 
                     // Step 4.
-                    // XXX(ferjm) Update duration.
+                    if let Some(duration) = metadata.duration {
+                        self.duration.set(duration.as_secs() as f64);
+                    } else {
+                        self.duration.set(f64::INFINITY);
+                    }
+                    let window = window_from_node(self);
+                    let task_source = window.dom_manipulation_task_source();
+                    task_source.queue_simple_event(
+                        self.upcast(),
+                        atom!("durationchange"),
+                        &window,
+                    );
 
                     // Step 5.
                     if self.is::<HTMLVideoElement>() {
@@ -976,19 +991,16 @@ impl HTMLMediaElement {
                         let video_elem = self.downcast::<HTMLVideoElement>().unwrap();
                         video_elem.set_video_width(metadata.width);
                         video_elem.set_video_height(metadata.height);
-                        let window = window_from_node(self);
-                        window.dom_manipulation_task_source().queue_simple_event(
+                        task_source.queue_simple_event(
                             self.upcast(),
                             atom!("resize"),
                             &window,
                         );
                     }
 
-                    if let Some(_dur) = metadata.duration {
-                        // Step 6.
-                        self.change_ready_state(ReadyState::HaveMetadata);
-                        self.have_metadata.set(true);
-                    }
+                    // Step 6.
+                    self.change_ready_state(ReadyState::HaveMetadata);
+                    self.have_metadata.set(true);
                 } else {
                     // => set the element's delaying-the-load-event flag to false
                     self.change_ready_state(ReadyState::HaveCurrentData);
@@ -1103,6 +1115,11 @@ impl HTMLMediaElementMethods for HTMLMediaElement {
     // https://html.spec.whatwg.org/multipage/#dom-media-paused
     fn Paused(&self) -> bool {
         self.paused.get()
+    }
+
+    // https://html.spec.whatwg.org/multipage/media.html#dom-media-duration
+    fn Duration(&self) -> f64 {
+        self.duration.get()
     }
 }
 
