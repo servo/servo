@@ -53,3 +53,33 @@ where
     };
     Ok((ipc_sender, profiled_ipc_receiver))
 }
+
+pub struct IpcBytesReceiver
+{
+    ipc_bytes_receiver: ipc::IpcBytesReceiver,
+    time_profile_chan: ProfilerChan,
+}
+
+impl IpcBytesReceiver
+{
+    pub fn recv(&self) -> Result<Vec<u8>, bincode::Error> {
+        time::profile(
+            ProfilerCategory::IpcBytesReceiver,
+            None,
+            self.time_profile_chan.clone(),
+            move || self.ipc_bytes_receiver.recv(),
+        )
+    }
+}
+
+pub fn bytes_channel(
+    time_profile_chan: ProfilerChan,
+) -> Result<(ipc::IpcBytesSender, IpcBytesReceiver), Error>
+{
+    let (ipc_bytes_sender, ipc_bytes_receiver) = ipc::bytes_channel()?;
+    let profiled_ipc_bytes_receiver = IpcBytesReceiver {
+        ipc_bytes_receiver,
+        time_profile_chan,
+    };
+    Ok((ipc_bytes_sender, profiled_ipc_bytes_receiver))
+}
