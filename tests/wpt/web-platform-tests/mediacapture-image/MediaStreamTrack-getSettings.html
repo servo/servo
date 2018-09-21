@@ -49,6 +49,8 @@ image_capture_test(async (t, imageCaptureTest) => {
 
   assert_equals(settings.exposureCompensation,
                 mockSettings.exposureCompensation.current);
+  assert_equals(settings.exposureTime,
+                mockSettings.exposureTime.current);
   assert_equals(settings.colorTemperature,
                 mockSettings.colorTemperature.current);
   assert_equals(settings.iso, mockSettings.iso.current);

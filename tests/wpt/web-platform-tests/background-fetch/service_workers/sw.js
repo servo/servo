@@ -13,12 +13,19 @@ async function getFetchResult(record) {
   };
 }
 
-self.addEventListener('backgroundfetchsuccess', event => {
+function handleBackgroundFetchUpdateEvent(event) {
   event.waitUntil(
     event.registration.matchAll()
-      .then(records => Promise.all(records.map(record => getFetchResult(record))))
+      .then(records =>
+            Promise.all(records.map(record => getFetchResult(record))))
       .then(results => {
         const registrationCopy = cloneRegistration(event.registration);
-        sendMessageToDocument({ type: event.type, eventRegistration: registrationCopy, results })
+        sendMessageToDocument(
+          { type: event.type, eventRegistration: registrationCopy, results })
       }));
-});
+}
+
+self.addEventListener('backgroundfetchsuccess', handleBackgroundFetchUpdateEvent);
+self.addEventListener('backgroundfetchfail', handleBackgroundFetchUpdateEvent);
+
+

@@ -44,4 +44,17 @@ test(function() {
     assert_equals(innerComputedStyle.getPropertyValue('--non-inherited-length-2'), '90px');
     assert_equals(innerComputedStyle.getPropertyValue('--non-inherited-length-3'), '6px');
 }, "Registered properties are correctly inherited (or not) depending on the inherits flag.");
+
+test(function(){
+    CSS.registerProperty({name: '--initial-length-1', syntax: '<length>', initialValue: '0px', inherits: false});
+    outer.style = '--initial-length-1: notalength';
+    inner.style = '--initial-length-1: inherit';
+    assert_equals(getComputedStyle(inner).getPropertyValue('--initial-length-1'), '0px');
+}, "Explicitly inheriting from a parent with an invalid value results in initial value.");
+
+test(function(){
+    CSS.registerProperty({name: '--initial-length-2', syntax: '<length>', initialValue: '0px', inherits: false});
+    inner.style = '--initial-length-2: inherit';
+    assert_equals(getComputedStyle(inner).getPropertyValue('--initial-length-2'), '0px');
+}, "Explicitly inheriting from a parent with no value results in initial value.");
 </script>

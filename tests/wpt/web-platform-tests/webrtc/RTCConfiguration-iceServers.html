@@ -54,6 +54,10 @@
   }, 'new RTCPeerConnection() should have default configuration.iceServers of undefined');
 
   config_test(makePc => {
+    makePc({});
+  }, '{} should succeed');
+
+  config_test(makePc => {
     assert_throws(new TypeError(), () =>
       makePc({ iceServers: null }));
   }, '{ iceServers: null } should throw TypeError');
@@ -126,7 +130,7 @@
   }, `with 2 stun servers should succeed`);
 
   config_test(makePc => {
-    const pc = new RTCPeerConnection({ iceServers: [{
+    const pc = makePc({ iceServers: [{
       urls: 'turn:turn.example.org',
       username: 'user',
       credential: 'cred'
@@ -281,35 +285,49 @@
       transport-ext = 1*unreserved
    */
   config_test(makePc => {
-    assert_throws('SyntaxError', () =>
+    assert_throws(new SyntaxError(), () =>
+      makePc({ iceServers: [{
+        urls: ''
+      }] }));
+  }, 'with "" url should throw SyntaxError');
+
+  config_test(makePc => {
+    assert_throws(new SyntaxError(), () =>
+      makePc({ iceServers: [{
+        urls: ['stun:stun1.example.net', '']
+      }] }));
+  }, 'with ["stun:stun1.example.net", ""] url should throw SyntaxError');
+
+  config_test(makePc => {
+    assert_throws(new SyntaxError(), () =>
       makePc({ iceServers: [{
         urls: 'relative-url'
       }] }));
   }, 'with relative url should throw SyntaxError');
 
   config_test(makePc => {
-    assert_throws('SyntaxError', () =>
+    assert_throws(new SyntaxError(), () =>
       makePc({ iceServers: [{
         urls: 'http://example.com'
       }] }));
   }, 'with http url should throw SyntaxError');
 
   config_test(makePc => {
-    assert_throws('SyntaxError', () =>
+    assert_throws(new SyntaxError(), () =>
       makePc({ iceServers: [{
         urls: 'turn://example.org/foo?x=y'
       }] }));
   }, 'with invalid turn url should throw SyntaxError');
 
   config_test(makePc => {
-    assert_throws('SyntaxError', () =>
+    assert_throws(new SyntaxError(), () =>
       makePc({ iceServers: [{
         urls: 'stun://example.org/foo?x=y'
       }] }));
   }, 'with invalid stun url should throw SyntaxError');
 
   config_test(makePc => {
-    assert_throws('SyntaxError', () =>
+    assert_throws(new SyntaxError(), () =>
       makePc({ iceServers: [{
         urls: []
       }] }));
@@ -470,52 +488,6 @@
     assert_equals(credential.accessToken, '');
 
   }, 'with stun server, credentialType password, and RTCOAuthCredential credential should succeed');
-
-  // credential type validation is ignored when urls is empty and there is no scheme name
-  config_test(makePc => {
-    const pc = makePc({ iceServers: [{
-      urls: [],
-      credentialType: 'oauth',
-      username: 'user',
-      credential: 'cred'
-    }] });
-
-    const { iceServers } = pc.getConfiguration();
-    assert_equals(iceServers.length, 1);
-    const server = iceServers[0];
-
-    assert_array_equals(server.urls, []);
-    assert_equals(server.credentialType, 'oauth');
-    assert_equals(server.username, 'user');
-    assert_equals(server.credential, 'cred');
-
-  }, 'with empty urls list, credentialType oauth, and string credential should succeed');
-
-  // credential type validation is ignored when urls is empty and there is no scheme name
-  config_test(makePc => {
-    const pc = makePc({ iceServers: [{
-      urls: [],
-      credentialType: 'password',
-      username: 'user',
-      credential: {
-        macKey: '',
-        accessToken: ''
-      }
-    }] });
-
-    const { iceServers } = pc.getConfiguration();
-    assert_equals(iceServers.length, 1);
-
-    const server = iceServers[0];
-    assert_array_equals(server.urls, []);
-    assert_equals(server.credentialType, 'password');
-    assert_equals(server.username, 'user');
-
-    const { credential } = server;
-    assert_equals(credential.macKey, '');
-    assert_equals(credential.accessToken, '');
-
-  }, 'with empty urls list, credentialType password, and RTCOAuthCredential credential should succeed');
 
   /*
     Tested

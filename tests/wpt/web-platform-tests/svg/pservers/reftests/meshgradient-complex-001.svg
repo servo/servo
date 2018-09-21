@@ -1,0 +1,89 @@
+<svg id="svg-root"
+  width="480" height="360" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg"
+  xmlns:xlink="http://www.w3.org/1999/xlink"
+  xmlns:html="http://www.w3.org/1999/xhtml">
+  <g id="testmeta">
+    <title>Mesh gradient: Patch paint order.</title>
+    <html:link rel="author"
+          title="Tavmjong Bah"
+          href="http://tavmjong.free.fr"/>
+    <html:link rel="help"
+          href="https://www.w3.org/TR/SVG2/pservers.html#MeshGradients"/>
+    <html:link rel="match"  href="meshgradient-complex-001-ref.png" />
+  </g>
+
+  <style id="test-font" type="text/css">
+    /* Standard Font (if needed). */
+    @font-face {
+      font-family: FreeSans;
+      src: url("../fonts/FreeSans.woff") format("woff");
+    }
+    text {
+      font-family: FreeSans, sans-serif;
+      text-anchor: middle;
+      fill: black;
+    }
+    #title {
+      font-size: 24px;
+    }
+    .label {
+      font-size: 18px;
+    }
+  </style>
+
+  <defs>
+    <meshgradient id="PatchPaintOrder" x="120" y="110" gradientUnits="userSpaceOnUse">
+      <meshrow>
+        <meshpatch>
+          <stop
+             style="stop-color:#0000ff"
+             path="c 53.3333,0  250,0  250,20" />
+          <stop
+             style="stop-color:#00ff00"
+             path="c 0,40  0,60  0,100" />
+          <stop
+             style="stop-color:#ffff00"
+             path="c 0,-20  -196.667,-20  -250,-20" />
+          <stop
+             style="stop-color:#00ff00"
+             path="c 0,-40  0,-60  0,-100" />
+        </meshpatch>
+        <meshpatch>
+          <stop
+             path="c 0,20  -210,0  -140,20" />
+          <stop
+             style="stop-color:#ffff00"
+             path="c 0,40  0,60  0,100" />
+          <stop
+             style="stop-color:#0000ff"
+             path="c -70,-20  140,0  140,-20" />
+        </meshpatch>
+      </meshrow>
+      <meshrow>
+        <meshpatch>
+          <stop
+             path="c 0,40  0,60  0,100" />
+          <stop
+             style="stop-color:#0000ff"
+             path="c 0,-20  -196.667,-20  -250,-20" />
+          <stop
+             style="stop-color:#ffff00"
+             path="c 0,-40  0,-60  0,-100" />
+        </meshpatch>
+        <meshpatch>
+          <stop
+             path="c 0,40  0,60  0,100" />
+          <stop
+             style="stop-color:#00ff00"
+             path="c -70,-20  140,0  140,-20" />
+        </meshpatch>
+      </meshrow>
+    </meshgradient>
+  </defs>
+
+  <g id="test-body-content">
+    <rect x="80" y="110" width="320" height="240" style="fill:url(#PatchPaintOrder)" />
+  </g>
+
+</svg>

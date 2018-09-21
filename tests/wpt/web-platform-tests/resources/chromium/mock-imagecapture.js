@@ -19,10 +19,11 @@ var ImageCaptureTest = (() => {
           ],
           currentWhiteBalanceMode: media.mojom.MeteringMode.CONTINUOUS,
           supportedExposureModes: [
+            media.mojom.MeteringMode.MANUAL,
             media.mojom.MeteringMode.SINGLE_SHOT,
             media.mojom.MeteringMode.CONTINUOUS
           ],
-          currentExposureMode: media.mojom.MeteringMode.SINGLE_SHOT,
+          currentExposureMode: media.mojom.MeteringMode.MANUAL,
           supportedFocusModes: [
             media.mojom.MeteringMode.MANUAL,
             media.mojom.MeteringMode.SINGLE_SHOT
@@ -38,6 +39,12 @@ var ImageCaptureTest = (() => {
             max: 200.0,
             current: 33.0,
             step: 33.0
+          },
+          exposureTime: {
+            min: 100.0,
+            max: 100000.0,
+            current: 1000.0,
+            step: 100.0
           },
           colorTemperature: {
             min: 2500.0,
@@ -151,6 +158,10 @@ var ImageCaptureTest = (() => {
       if (settings.hasExposureCompensation) {
         this.state_.state.exposureCompensation.current =
           settings.exposureCompensation;
+      }
+      if (settings.hasExposureTime) {
+        this.state_.state.exposureTime.current =
+          settings.exposureTime;
       }
       if (settings.hasWhiteBalanceMode) {
         this.state_.state.currentWhiteBalanceMode =

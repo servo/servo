@@ -26,13 +26,12 @@ t.step(function() {
       var testOncePlaying = function() {
          assert_equals(vid.played.length, 1, "A MediaStream's timeline always consists of a single range");
          assert_equals(vid.played.start(0), 0, "A MediaStream's timeline always consists of a single range");
-         assert_equals(vid.played.end(0), vid.currentTime, "A MediaStream's timeline always consists of a single range");
+         assert_approx_equals(vid.played.end(0), vid.currentTime, 0.0001, "A MediaStream's timeline always consists of a single range");
          assert_equals(vid.readyState, vid.HAVE_ENOUGH_DATA, "Upon selecting a media stream, the UA sets readyState to HAVE_ENOUGH_DATA");
+         assert_equals(vid.duration, Infinity, " A MediaStream does not have a pre-defined duration. ");
          var time = vid.currentTime;
-         assert_throws("INVALID_STATE_ERR", function() {
-            vid.currentTime = 0;
-         });
-         assert_equals(vid.currentTime, time, "The UA MUST ignore attempts to set the currentTime attribute");
+
+         assert_approx_equals(vid.currentTime, time, 0.0001, "The UA MUST ignore attempts to set the currentTime attribute");
          // TODO add test that duration must be set to currentTime
          // when mediastream is destroyed
          vid.removeEventListener("timeupdate", testOncePlaying, false);
@@ -46,8 +45,7 @@ t.step(function() {
       assert_equals(vid.defaultPlaybackRate, 1, "playback rate is always 1");
       assert_equals(vid.playbackRate, 1, "playback rate is always 1");
       assert_equals(vid.buffered.length, 0, "A MediaStream cannot be preloaded.  Therefore, there is no buffered timeranges");
-      assert_equals(vid.duration, Infinity, " A MediaStream does not have a pre-defined duration. ");
-      assert_equals(vid.startDate, NaN, " A MediaStream does not specify a timeline offset");
+      assert_equals(vid.duration, vid.readyState == vid.HAVE_NOTHING ? NaN : Infinity, " A MediaStream does not have a pre-defined duration. ");
     }), function(error) {});
 });
 </script>

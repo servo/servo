@@ -89,9 +89,9 @@ function runTestsWithWM(data, testWM, cbWM) {
 
   function checkStyle(declarations, expected, msg) {
     test(function() {
-      testEl.style.cssText = style + "; " + serialize({...declarations, ...testWM.style});
+      testEl.style.cssText = style + "; " + serialize(Object.assign({}, declarations, testWM.style));
       if (containingBlockElement) {
-        containingBlockElement.style.cssText = serialize({...cbWM.style});
+        containingBlockElement.style.cssText = serialize(Object.assign({}, cbWM.style));
       }
       const cs = getComputedStyle(testEl);
       for (let [prop, value] of Object.entries(expected)) {

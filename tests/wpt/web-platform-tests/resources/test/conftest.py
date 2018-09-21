@@ -29,6 +29,8 @@ def pytest_collect_file(path, parent):
 
 def pytest_configure(config):
     config.driver = webdriver.Firefox(firefox_binary=config.getoption("--binary"))
+    config.add_cleanup(config.driver.quit)
+
     config.server = WPTServer(WPT_ROOT)
     config.server.start()
     # Although the name of the `_create_unverified_context` method suggests
@@ -42,7 +44,6 @@ def pytest_configure(config):
     # https://docs.python.org/2/library/httplib.html#httplib.HTTPSConnection
     config.ssl_context = ssl._create_unverified_context()
     config.add_cleanup(config.server.stop)
-    config.add_cleanup(config.driver.quit)
 
 def resolve_uri(context, uri):
     if uri.startswith('/'):
@@ -107,7 +108,14 @@ class HTMLItem(pytest.Item, pytest.Collector):
         elif self.type == 'unit' and self.expected:
             raise ValueError('Unit tests must not specify expected report data')
 
-        super(HTMLItem, self).__init__(name, parent)
+        # Ensure that distinct items have distinct fspath attributes.
+        # This is necessary because pytest has an internal cache keyed on it,
+        # and only the first test with any given fspath will be run.
+        #
+        # This cannot use super(HTMLItem, self).__init__(..) because only the
+        # Collector constructor takes the fspath argument.
+        pytest.Item.__init__(self, name, parent)
+        pytest.Collector.__init__(self, name, parent, fspath=filename)
 
 
     def reportinfo(self):

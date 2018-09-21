@@ -69,25 +69,11 @@ promise_test(function(t) {
           return wait_for_state(t, r.installing, 'activated');
         })
       .then(function() {
-          return new Promise(function(resolve, reject) {
-              var w = new Worker(worker_url);
-              w.onmessage = function(e) {
-                resolve(e.data);
-              }
-
-              w.onerror = function(e) {
-                reject(e.message);
-              }
-            });
+          var w = new Worker(worker_url);
+          var watcher = new EventWatcher(t, w, ['message', 'error']);
+          return watcher.wait_for('error');
         })
-      .then(function(data) {
-          assert_unreached('intercepted cors response to a same-origin mode ' +
-                           'worker load should fail');
-          service_worker_unregister_and_done(t, scope);
-        })
-      .catch(function(e) {
-          assert_true(true, 'intercepted cors response to a same-origin mode ' +
-                            'worker load should fail');
+      .then(function() {
           service_worker_unregister_and_done(t, scope);
        });
   }, 'Verify worker script intercepted by cors response fails');
@@ -102,24 +88,11 @@ promise_test(function(t) {
           return wait_for_state(t, r.installing, 'activated');
         })
       .then(function() {
-          return new Promise(function(resolve, reject) {
-              var w = new Worker(worker_url);
-              w.onmessage = function(e) {
-                resolve(e.data);
-              }
-
-              w.onerror = function(e) {
-                reject(e);
-                return true;
-              }
-            });
+          var w = new Worker(worker_url);
+          var watcher = new EventWatcher(t, w, ['message', 'error']);
+          return watcher.wait_for('error');
         })
-      .then(function(data) {
-          assert_unreached('intercepted no-cors worker load should fail');
-          service_worker_unregister_and_done(t, scope);
-        })
-      .catch(function(e) {
-          assert_true(true, 'intercepted no-cors worker load should fail');
+      .then(function() {
           service_worker_unregister_and_done(t, scope);
        });
   }, 'Verify worker script intercepted by no-cors cross-origin response fails');
