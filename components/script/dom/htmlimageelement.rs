@@ -47,7 +47,7 @@ use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use microtask::{Microtask, MicrotaskRunnable};
 use mime::{Mime, TopLevel, SubLevel};
-use net_traits::{FetchResponseListener, FetchMetadata, NetworkError, FetchResponseMsg, ResourceFetchTiming};
+use net_traits::{FetchResponseListener, FetchMetadata, NetworkError, FetchResponseMsg};
 use net_traits::{ResourceFetchTiming, ResourceTimingType};
 use net_traits::image::base::{Image, ImageMetadata};
 use net_traits::image_cache::{CanRequestImages, ImageCache, ImageOrMetadataAvailable};
@@ -224,7 +224,7 @@ impl FetchResponseListener for ImageContext {
     }
 
     // FIXME
-    fn process_response_eof(&mut self, response: Result<(), NetworkError>) {
+    fn process_response_eof(&mut self, response: Result<ResourceFetchTiming, NetworkError>) {
         // notify_pending_response doesn't use the resource timing
         self.image_cache.notify_pending_response(
             self.id,
@@ -252,7 +252,6 @@ impl ResourceTimingListener for ImageContext {
 
     fn resource_timing_global(&self) -> DomRoot<GlobalScope> {
         self.doc.root().global()
->>>>>>> refactored performance timing to align with updated spec
     }
 }
 

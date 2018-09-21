@@ -102,17 +102,9 @@ impl FetchResponseListener for StylesheetContext {
             }
         }
 
-<<<<<<< d60b14bed5085598a25f016c96c4789a5b01f6e1
         self.metadata = metadata.ok().map(|m| match m {
             FetchMetadata::Unfiltered(m) => m,
             FetchMetadata::Filtered { unsafe_, .. } => unsafe_,
-=======
-        self.metadata = metadata.ok().map(|m| {
-            match m {
-                FetchMetadata::Unfiltered(m) => m,
-                FetchMetadata::Filtered { unsafe_, .. } => unsafe_,
-            }
->>>>>>> refactored performance timing to align with updated spec
         });
     }
 

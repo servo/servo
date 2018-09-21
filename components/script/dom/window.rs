@@ -869,7 +869,6 @@ impl WindowMethods for Window {
             let global_scope = self.upcast::<GlobalScope>();
             Performance::new(
                 global_scope,
-                self.navigation_start.get(),
                 self.navigation_start_precise.get(),
             )
         })

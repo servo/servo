@@ -3087,7 +3087,7 @@ impl ScriptThread {
         }
     }
 
-    fn handle_fetch_eof(&self, id: PipelineId, eof: Result<(), NetworkError>) {
+    fn handle_fetch_eof(&self, id: PipelineId, eof: Result<ResourceFetchTiming, NetworkError>) {
         let idx = self
             .incomplete_parser_contexts
             .borrow()
