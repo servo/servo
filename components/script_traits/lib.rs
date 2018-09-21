@@ -722,6 +722,8 @@ pub enum WebDriverCommandMsg {
 pub enum ConstellationMsg {
     /// Exit the constellation.
     Exit,
+    /// FIXME
+    AttachCompositor(DocumentId, webrender_api::RenderApiSender, WindowSizeData),
     /// Request that the constellation send the BrowsingContextId corresponding to the document
     /// with the provided pipeline id
     GetBrowsingContext(PipelineId, IpcSender<Option<BrowsingContextId>>),
@@ -774,6 +776,7 @@ impl fmt::Debug for ConstellationMsg {
         use self::ConstellationMsg::*;
         let variant = match *self {
             Exit => "Exit",
+            AttachCompositor(..) => "AttachCompositor",
             GetBrowsingContext(..) => "GetBrowsingContext",
             GetPipeline(..) => "GetPipeline",
             GetFocusTopLevelBrowsingContext(..) => "GetFocusTopLevelBrowsingContext",

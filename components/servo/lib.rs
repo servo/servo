@@ -82,7 +82,7 @@ use constellation::{FromCompositorLogger, FromScriptLogger};
 use constellation::content_process_sandbox_profile;
 use embedder_traits::{EmbedderMsg, EmbedderProxy, EmbedderReceiver, EventLoopWaker};
 use env_logger::Builder as EnvLoggerBuilder;
-use euclid::Length;
+use euclid::{Length, TypedScale};
 #[cfg(all(not(target_os = "windows"), not(target_os = "ios")))]
 use gaol::sandbox::{ChildSandbox, ChildSandboxMethods};
 use gfx::font_cache_thread::FontCacheThread;
@@ -95,7 +95,7 @@ use profile::mem as profile_mem;
 use profile::time as profile_time;
 use profile_traits::mem;
 use profile_traits::time;
-use script_traits::{ConstellationMsg, SWManagerSenders, ScriptToConstellationChan};
+use script_traits::{ConstellationMsg, SWManagerSenders, ScriptToConstellationChan, WindowSizeData};
 use servo_channel::{Sender, channel};
 use servo_config::opts;
 use servo_config::prefs::PREFS;
@@ -105,6 +105,7 @@ use std::path::PathBuf;
 use std::rc::Rc;
 use webrender::RendererKind;
 use webvr::{WebVRThread, WebVRCompositorHandler};
+use std::cell::Cell;
 
 pub use gleam::gl;
 pub use servo_config as config;
@@ -126,7 +127,11 @@ pub struct Servo {
     compositor: Option<IOCompositor>,
     constellation_chan: Sender<ConstellationMsg>,
     embedder_receiver: EmbedderReceiver,
+    compositor_receiver: Cell<Option<CompositorReceiver>>, // FIXME: ugly
+    compositor_proxy: CompositorProxy,
     embedder_events: Vec<(Option<BrowserId>, EmbedderMsg)>,
+    time_profiler_chan: time::ProfilerChan,
+    mem_profiler_chan: mem::ProfilerChan,
 }
 
 //FIXME: figure out the dynamic dispatch overhead
@@ -135,18 +140,20 @@ impl Servo {
         // Global configuration options, parsed from the command line.
         let opts = opts::get();
 
-        // // Make sure the gl context is made current.
-        // window.prepare_for_composite(Length::new(0), Length::new(0));
-
         // Reserving a namespace to create TopLevelBrowserContextId.
         PipelineNamespace::install(PipelineNamespaceId(0));
 
-        // Get both endpoints of a special channel for communication between
-        // the client window and the compositor. This channel is unique because
-        // messages to client may need to pump a platform-specific event loop
-        // to deliver the message.
-        // let (compositor_proxy, compositor_receiver) =
-        //     create_compositor_channel(window.create_event_loop_waker());
+        // FIXME: embedder and compositor might not want to share the waker mechanism.
+        // Creating the compositor_proxy should happen in attach_compositor, not that
+        // early, but I don't know how to send the compositor_proxy to the constellation
+        let (compositor_proxy, compositor_receiver) = create_compositor_channel(waker.clone());
+
+        // Fix comment:
+        // // Get both endpoints of a special channel for communication between
+        // // the client window and the compositor. This channel is unique because
+        // // messages to client may need to pump a platform-specific event loop
+        // // to deliver the message.
+
         let (embedder_proxy, embedder_receiver) =
             create_embedder_channel(waker);
         let time_profiler_chan = profile_time::Profiler::create(
@@ -156,51 +163,6 @@ impl Servo {
         let mem_profiler_chan = profile_mem::Profiler::create(opts.mem_profiler_period);
         let debugger_chan = opts.debugger_port.map(|port| debugger::start_server(port));
         let devtools_chan = opts.devtools_port.map(|port| devtools::start_server(port));
-
-        // let coordinates = window.get_coordinates();
-
-        // let (mut webrender, webrender_api_sender) = {
-        //     let renderer_kind = if opts::get().should_use_osmesa() {
-        //         RendererKind::OSMesa
-        //     } else {
-        //         RendererKind::Native
-        //     };
-
-        //     let recorder = if opts.webrender_record {
-        //         let record_path = PathBuf::from("wr-record.bin");
-        //         let recorder = Box::new(webrender::BinaryRecorder::new(&record_path));
-        //         Some(recorder as Box<webrender::ApiRecordingReceiver>)
-        //     } else {
-        //         None
-        //     };
-
-        //     let mut debug_flags = webrender::DebugFlags::empty();
-        //     debug_flags.set(webrender::DebugFlags::PROFILER_DBG, opts.webrender_stats);
-
-        //     let render_notifier = Box::new(RenderNotifier::new(compositor_proxy.clone()));
-
-        //     webrender::Renderer::new(
-        //         window.gl(),
-        //         render_notifier,
-        //         webrender::RendererOptions {
-        //             device_pixel_ratio: coordinates.hidpi_factor.get(),
-        //             resource_override_path: opts.shaders_dir.clone(),
-        //             enable_aa: opts.enable_text_antialiasing,
-        //             debug_flags: debug_flags,
-        //             recorder: recorder,
-        //             precache_shaders: opts.precache_shaders,
-        //             enable_scrollbars: opts.output_file.is_none(),
-        //             renderer_kind: renderer_kind,
-        //             enable_subpixel_aa: opts.enable_subpixel_text_antialiasing,
-        //             ..Default::default()
-        //         },
-        //     ).expect("Unable to initialize webrender!")
-        // };
-
-        // let webrender_api = webrender_api_sender.create_api();
-        // let wr_document_layer = 0; //TODO
-        // let webrender_document =
-        //     webrender_api.add_document(coordinates.framebuffer, wr_document_layer);
 
         // Important that this call is done in a single-threaded fashion, we
         // can't defer it after `create_constellation` has started.
@@ -213,6 +175,7 @@ impl Servo {
             opts.user_agent.clone(),
             opts.config_dir.clone(),
             embedder_proxy.clone(),
+            compositor_proxy.clone(),
             time_profiler_chan.clone(),
             mem_profiler_chan.clone(),
             debugger_chan,
@@ -232,8 +195,128 @@ impl Servo {
             compositor: None,
             constellation_chan: constellation_chan,
             embedder_receiver: embedder_receiver,
+            compositor_proxy: compositor_proxy,
+            compositor_receiver: Cell::new(Some(compositor_receiver)),
             embedder_events: Vec::new(),
+            time_profiler_chan,
+            mem_profiler_chan,
         }
+    }
+
+    pub fn attach_window(&mut self, window: Rc<WindowMethods>) {
+        // Make sure the gl context is made current.
+        window.prepare_for_composite(Length::new(0), Length::new(0));
+
+        let coordinates = window.get_coordinates();
+
+        let opts = opts::get();
+
+        let (mut webrender, webrender_api_sender) = {
+            let renderer_kind = if opts.should_use_osmesa() {
+                RendererKind::OSMesa
+            } else {
+                RendererKind::Native
+            };
+
+            let recorder = if opts.webrender_record {
+                let record_path = PathBuf::from("wr-record.bin");
+                let recorder = Box::new(webrender::BinaryRecorder::new(&record_path));
+                Some(recorder as Box<webrender::ApiRecordingReceiver>)
+            } else {
+                None
+            };
+
+            let mut debug_flags = webrender::DebugFlags::empty();
+            debug_flags.set(webrender::DebugFlags::PROFILER_DBG, opts.webrender_stats);
+
+            let render_notifier = Box::new(RenderNotifier::new(self.compositor_proxy.clone()));
+
+            webrender::Renderer::new(
+                window.gl(),
+                render_notifier,
+                webrender::RendererOptions {
+                    device_pixel_ratio: coordinates.hidpi_factor.get(),
+                    resource_override_path: opts.shaders_dir.clone(),
+                    enable_aa: opts.enable_text_antialiasing,
+                    debug_flags: debug_flags,
+                    recorder: recorder,
+                    precache_shaders: opts.precache_shaders,
+                    enable_scrollbars: opts.output_file.is_none(),
+                    renderer_kind: renderer_kind,
+                    enable_subpixel_aa: opts.enable_subpixel_text_antialiasing,
+                    ..Default::default()
+                },
+            ).expect("Unable to initialize webrender!")
+        };
+
+        let webrender_api = webrender_api_sender.create_api();
+        let wr_document_layer = 0; //TODO
+        let webrender_document =
+            webrender_api.add_document(coordinates.framebuffer, wr_document_layer);
+
+	// GLContext factory used to create WebGL Contexts
+	let gl_factory = if opts::get().should_use_osmesa() {
+	    GLContextFactory::current_osmesa_handle()
+	} else {
+	    GLContextFactory::current_native_handle(&self.compositor_proxy)
+	};
+
+        let gl = window.gl();
+
+
+        // FIXME: send it to constellation
+
+// 	// Initialize WebGL Thread entry point.
+// 	let webgl_threads = gl_factory.map(|factory| {
+// 	    let (webgl_threads, image_handler, output_handler) = WebGLThreads::new(
+// 		factory,
+// 		gl,
+// 		webrender_api_sender.clone(),
+// 		webvr_compositor.map(|c| c as Box<_>),
+// 		);
+
+// 	    // Set webrender external image handler for WebGL textures
+// 	    webrender.set_external_image_handler(image_handler);
+
+// 	    // Set DOM to texture handler, if enabled.
+// 	    if let Some(output_handler) = output_handler {
+// 		webrender.set_output_image_handler(output_handler);
+// 	    }
+
+// 	    webgl_threads
+// 	});
+
+	let window_size = WindowSizeData {
+	    initial_viewport: opts.initial_window_size.to_f32() *
+		TypedScale::new(1.0),
+		device_pixel_ratio: TypedScale::new(opts.device_pixels_per_px.unwrap_or(1.0)),
+	};
+
+        // FIXME: Pass WebGLPipeline instead, and exit somewhere else: webgl_thread,
+        let msg = ConstellationMsg::AttachCompositor(webrender_document, webrender_api_sender, window_size);
+
+        if let Err(e) = self.constellation_chan.send(msg) {
+            warn!("Sending AttachCompositor to constellation failed ({:?}).", e);
+        }
+
+        // The compositor coordinates with the client window to create the final
+        // rendered page and display it somewhere.
+        let compositor_receiver = self.compositor_receiver.replace(None).unwrap();
+        let compositor = IOCompositor::create(
+            window,
+            InitialCompositorState {
+                sender: self.compositor_proxy.clone(),
+                receiver: compositor_receiver,
+                constellation_chan: self.constellation_chan.clone(),
+                time_profiler_chan: self.time_profiler_chan.clone(),
+                mem_profiler_chan: self.mem_profiler_chan.clone(),
+                webrender,
+                webrender_document,
+                webrender_api,
+            },
+        );
+
+        self.compositor = Some(compositor);
     }
 
     fn handle_window_event(&mut self, event: WindowEvent) {
@@ -461,10 +544,12 @@ fn create_compositor_channel(
     )
 }
 
+// FIXME: make that a method of Servo and do not pass all these chans. Use self.*
 fn create_constellation(
     user_agent: Cow<'static, str>,
     config_dir: Option<PathBuf>,
     embedder_proxy: EmbedderProxy,
+    compositor_proxy: CompositorProxy,
     time_profiler_chan: time::ProfilerChan,
     mem_profiler_chan: mem::ProfilerChan,
     debugger_chan: Option<debugger::Sender>,
@@ -500,6 +585,7 @@ fn create_constellation(
 
     let initial_state = InitialConstellationState {
         embedder_proxy,
+        compositor_proxy,
         debugger_chan,
         devtools_chan,
         bluetooth_thread,

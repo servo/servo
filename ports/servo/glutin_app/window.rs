@@ -42,6 +42,8 @@ use winit::dpi::{LogicalPosition, LogicalSize, PhysicalSize};
 #[cfg(target_os = "macos")]
 use winit::os::macos::{ActivationPolicy, WindowBuilderExt};
 
+pub use glutin::WindowId;
+
 // This should vary by zoom level and maybe actual text size (focused or under cursor)
 pub const LINE_HEIGHT: f32 = 38.0;
 
@@ -143,7 +145,6 @@ pub enum WindowKind {
 
 /// The type of a window.
 pub struct Window {
-    pub event_queue: RefCell<Vec<WindowEvent>>,
     pub kind: WindowKind,
     screen_size: TypedSize2D<u32, DeviceIndependentPixel>,
     inner_size: Cell<TypedSize2D<u32, DeviceIndependentPixel>>,
@@ -155,6 +156,7 @@ pub struct Window {
     animation_state: Cell<AnimationState>,
     fullscreen: Cell<bool>,
     gl: Rc<gl::Gl>,
+    // FIXME: move to app level
     pub suspended: Cell<bool>,
     waker: winit::EventsLoopProxy,
 }
@@ -176,7 +178,7 @@ impl Window {
         events_loop: &winit::EventsLoop,
         is_foreground: bool,
         window_size: TypedSize2D<u32, DeviceIndependentPixel>,
-    ) -> Rc<Window> {
+    ) -> Window {
         let win_size: DeviceUintSize =
             (window_size.to_f32() * window_creation_scale_factor()).to_u32();
         let width = win_size.to_untyped().width;
@@ -276,7 +278,6 @@ impl Window {
 
         let window = Window {
             kind: window_kind,
-            event_queue: RefCell::new(vec![]),
             mouse_down_button: Cell::new(None),
             mouse_down_point: Cell::new(TypedPoint2D::new(0, 0)),
 
@@ -295,11 +296,7 @@ impl Window {
 
         window.present();
 
-        Rc::new(window)
-    }
-
-    pub fn get_events(&self) -> Vec<WindowEvent> {
-        mem::replace(&mut *self.event_queue.borrow_mut(), Vec::new())
+        window
     }
 
     pub fn page_height(&self) -> f32 {
@@ -361,7 +358,7 @@ impl Window {
         GlRequest::Specific(Api::OpenGlEs, (3, 0))
     }
 
-    fn handle_received_character(&self, ch: char) {
+    fn handle_received_character(&self, event_queue: &mut Vec<WindowEvent>, ch: char) {
         let last_key = if let Some(key) = self.last_pressed_key.get() {
             key
         } else {
@@ -378,7 +375,7 @@ impl Window {
 
         let modifiers = self.key_modifiers.get();
         let event = WindowEvent::KeyEvent(ch, key, KeyState::Pressed, modifiers);
-        self.event_queue.borrow_mut().push(event);
+        event_queue.push(event);
     }
 
     fn toggle_keyboard_modifiers(&self, mods: ModifiersState) {
@@ -390,6 +387,7 @@ impl Window {
 
     fn handle_keyboard_input(
         &self,
+        event_queue: &mut Vec<WindowEvent>,
         element_state: ElementState,
         code: VirtualKeyCode,
         mods: ModifiersState,
@@ -407,19 +405,17 @@ impl Window {
             } else {
                 self.last_pressed_key.set(None);
                 let modifiers = self.key_modifiers.get();
-                self.event_queue
-                    .borrow_mut()
-                    .push(WindowEvent::KeyEvent(None, key, state, modifiers));
+                event_queue.push(WindowEvent::KeyEvent(None, key, state, modifiers));
             }
         }
     }
 
-    pub fn winit_event_to_servo_event(&self, event: winit::Event) {
+    pub fn winit_event_to_servo_event(&self, event_queue: &mut Vec<WindowEvent>, event: winit::Event) {
         match event {
             Event::WindowEvent {
                 event: winit::WindowEvent::ReceivedCharacter(ch),
                 ..
-            } => self.handle_received_character(ch),
+            } => self.handle_received_character(event_queue, ch),
             Event::WindowEvent {
                 event:
                     winit::WindowEvent::KeyboardInput {
@@ -433,13 +429,13 @@ impl Window {
                         ..
                     },
                 ..
-            } => self.handle_keyboard_input(state, virtual_keycode, modifiers),
+            } => self.handle_keyboard_input(event_queue, state, virtual_keycode, modifiers),
             Event::WindowEvent {
                 event: winit::WindowEvent::MouseInput { state, button, .. },
                 ..
             } => {
                 if button == MouseButton::Left || button == MouseButton::Right {
-                    self.handle_mouse(button, state, self.mouse_pos.get());
+                    self.handle_mouse(event_queue, button, state, self.mouse_pos.get());
                 }
             },
             Event::WindowEvent {
@@ -449,11 +445,9 @@ impl Window {
                 let pos = position.to_physical(self.device_hidpi_factor().get() as f64);
                 let (x, y): (i32, i32) = pos.into();
                 self.mouse_pos.set(TypedPoint2D::new(x, y));
-                self.event_queue
-                    .borrow_mut()
-                    .push(WindowEvent::MouseWindowMoveEventClass(TypedPoint2D::new(
-                        x as f32, y as f32,
-                    )));
+                event_queue.push(WindowEvent::MouseWindowMoveEventClass(TypedPoint2D::new(
+                    x as f32, y as f32,
+                )));
             },
             Event::WindowEvent {
                 event: winit::WindowEvent::MouseWheel { delta, phase, .. },
@@ -478,7 +472,7 @@ impl Window {
                 let scroll_location = ScrollLocation::Delta(TypedVector2D::new(dx, dy));
                 let phase = winit_phase_to_touch_event_type(phase);
                 let event = WindowEvent::Scroll(scroll_location, self.mouse_pos.get(), phase);
-                self.event_queue.borrow_mut().push(event);
+                event_queue.push(event);
             },
             Event::WindowEvent {
                 event: winit::WindowEvent::Touch(touch),
@@ -492,19 +486,17 @@ impl Window {
                     .location
                     .to_physical(self.device_hidpi_factor().get() as f64);
                 let point = TypedPoint2D::new(position.x as f32, position.y as f32);
-                self.event_queue
-                    .borrow_mut()
-                    .push(WindowEvent::Touch(phase, id, point));
+                event_queue.push(WindowEvent::Touch(phase, id, point));
             },
             Event::WindowEvent {
                 event: winit::WindowEvent::Refresh,
                 ..
-            } => self.event_queue.borrow_mut().push(WindowEvent::Refresh),
+            } => event_queue.push(WindowEvent::Refresh),
             Event::WindowEvent {
                 event: winit::WindowEvent::CloseRequested,
                 ..
             } => {
-                self.event_queue.borrow_mut().push(WindowEvent::Quit);
+                event_queue.push(WindowEvent::Quit);
             },
             Event::WindowEvent {
                 event: winit::WindowEvent::Resized(size),
@@ -521,7 +513,7 @@ impl Window {
                 let new_size = TypedSize2D::new(width, height);
                 if self.inner_size.get() != new_size {
                     self.inner_size.set(new_size);
-                    self.event_queue.borrow_mut().push(WindowEvent::Resize);
+                    event_queue.push(WindowEvent::Resize);
                 }
             },
             // FIXME: This should move to app
@@ -529,11 +521,11 @@ impl Window {
             Event::Suspended(suspended) => {
                 self.suspended.set(suspended);
                 if !suspended {
-                    self.event_queue.borrow_mut().push(WindowEvent::Idle);
+                    event_queue.push(WindowEvent::Idle);
                 }
             },
             Event::Awakened => {
-                self.event_queue.borrow_mut().push(WindowEvent::Idle);
+                event_queue.push(WindowEvent::Idle);
             },
             _ => {},
         }
@@ -552,6 +544,7 @@ impl Window {
     /// Helper function to handle a click
     fn handle_mouse(
         &self,
+        event_queue: &mut Vec<WindowEvent>,
         button: winit::MouseButton,
         action: winit::ElementState,
         coords: TypedPoint2D<i32, DevicePixel>,
@@ -575,9 +568,7 @@ impl Window {
                             ((pixel_dist.x * pixel_dist.x + pixel_dist.y * pixel_dist.y) as f32)
                                 .sqrt();
                         if pixel_dist < max_pixel_dist {
-                            self.event_queue
-                                .borrow_mut()
-                                .push(WindowEvent::MouseWindowEventClass(mouse_up_event));
+                            event_queue.push(WindowEvent::MouseWindowEventClass(mouse_up_event));
                             MouseWindowEvent::Click(MouseButton::Left, coords.to_f32())
                         } else {
                             mouse_up_event
@@ -587,9 +578,7 @@ impl Window {
                 }
             },
         };
-        self.event_queue
-            .borrow_mut()
-            .push(WindowEvent::MouseWindowEventClass(event));
+        event_queue.push(WindowEvent::MouseWindowEventClass(event));
     }
 
     fn device_hidpi_factor(&self) -> TypedScale<f32, DeviceIndependentPixel, DevicePixel> {

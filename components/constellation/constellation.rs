@@ -313,14 +313,16 @@ pub struct Constellation<Message, LTF, STF> {
     /// A channel through which messages can be sent to the canvas paint thread.
     canvas_chan: IpcSender<CanvasMsg>,
 
+    /// FIXME
     compositor: Option<CompositorInfo>,
-}
 
-pub struct CompositorInfo {
+    /// FIXME: This should be under CompositorInfo
     /// A channel (the implementation of which is port-specific) for the
     /// constellation to send messages to the compositor thread.
     compositor_proxy: CompositorProxy,
+}
 
+pub struct CompositorInfo {
     /// The last frame tree sent to WebRender.
     active_browser_id: Option<TopLevelBrowsingContextId>,
 
@@ -347,6 +349,9 @@ pub struct CompositorInfo {
 pub struct InitialConstellationState {
     /// A channel through which messages can be sent to the embedder.
     pub embedder_proxy: EmbedderProxy,
+
+    /// FIXME: doc
+    pub compositor_proxy: CompositorProxy,
 
     /// A channel to the debugger, if applicable.
     pub debugger_chan: Option<debugger::Sender>,
@@ -582,6 +587,7 @@ where
                     layout_receiver: layout_receiver,
                     network_listener_sender: network_listener_sender,
                     network_listener_receiver: network_listener_receiver,
+                    compositor_proxy: state.compositor_proxy,
                     embedder_proxy: state.embedder_proxy,
                     debugger_chan: state.debugger_chan,
                     devtools_chan: state.devtools_chan,
@@ -731,7 +737,7 @@ where
              webrender_document,
              font_cache_thread,
              webgl_chan) = self.compositor.as_ref().map(|compositor| (
-                         compositor.compositor_proxy.clone(),
+                         self.compositor_proxy.clone(),
                          compositor.window_size.device_pixel_ratio,
                          compositor.webrender_api_sender.clone(),
                          compositor.webrender_document,
@@ -955,6 +961,22 @@ where
             FromCompositorMsg::Exit => {
                 self.handle_exit();
             },
+            FromCompositorMsg::AttachCompositor(webrender_document, webrender_api_sender, window_size) => {
+                // One per compositor
+                let font_cache_thread = FontCacheThread::new(
+                    // FIXME: public?
+                    self.public_resource_threads.sender(),
+                    webrender_api_sender.create_api(),
+                );
+                self.compositor = Some(CompositorInfo {
+                    active_browser_id: None,
+                    webrender_document,
+                    webrender_api_sender,
+                    window_size,
+                    webgl_threads: None, // FIXME
+                    font_cache_thread,
+                });
+            },
             FromCompositorMsg::GetBrowsingContext(pipeline_id, resp_chan) => {
                 self.handle_get_browsing_context(pipeline_id, resp_chan);
             },
@@ -1005,7 +1027,8 @@ where
                     println!("got ready to save image query, result is {:?}", is_ready);
                 }
                 let is_ready = is_ready == ReadyToSave::Ready;
-                self.compositor.as_ref().unwrap().compositor_proxy.send(ToCompositorMsg::IsReadyToSaveImageReply(is_ready));
+                // FIXME: make sure compositor exists
+                self.compositor_proxy.send(ToCompositorMsg::IsReadyToSaveImageReply(is_ready));
                 if opts::get().is_running_problem_test {
                     println!("sent response");
                 }
@@ -1201,24 +1224,24 @@ where
                 self.document_states.insert(source_pipeline_id, state);
             },
             FromScriptMsg::GetClientWindow(send) => {
-                self.compositor.as_ref().unwrap().compositor_proxy
-                    .send(ToCompositorMsg::GetClientWindow(send));
+                // FIXME: make sure compositor exists
+                self.compositor_proxy.send(ToCompositorMsg::GetClientWindow(send));
             },
             FromScriptMsg::GetScreenSize(send) => {
-                self.compositor.as_ref().unwrap().compositor_proxy
-                    .send(ToCompositorMsg::GetScreenSize(send));
+                // FIXME: make sure compositor exists
+                self.compositor_proxy.send(ToCompositorMsg::GetScreenSize(send));
             },
             FromScriptMsg::GetScreenAvailSize(send) => {
-                self.compositor.as_ref().unwrap().compositor_proxy
-                    .send(ToCompositorMsg::GetScreenAvailSize(send));
+                // FIXME: make sure compositor exists
+                self.compositor_proxy.send(ToCompositorMsg::GetScreenAvailSize(send));
             },
             FromScriptMsg::LogEntry(thread_name, entry) => {
                 self.handle_log_entry(Some(source_top_ctx_id), thread_name, entry);
             },
-            FromScriptMsg::TouchEventProcessed(result) => self
-                .compositor.as_ref().unwrap()
-                .compositor_proxy
-                .send(ToCompositorMsg::TouchEventProcessed(result)),
+            FromScriptMsg::TouchEventProcessed(result) => {
+                // FIXME: make sure compositor exists
+                self.compositor_proxy.send(ToCompositorMsg::TouchEventProcessed(result))
+            },
             FromScriptMsg::GetBrowsingContextInfo(pipeline_id, sender) => {
                 let result = self
                     .pipelines
@@ -1475,8 +1498,9 @@ where
         debug!("Asking compositor to complete shutdown.");
         if let Some(ref compositor) = self.compositor {
             compositor.font_cache_thread.exit();
-            compositor.compositor_proxy.send(ToCompositorMsg::ShutdownComplete);
         }
+        // FIXME: make sure compositor exists
+        self.compositor_proxy.send(ToCompositorMsg::ShutdownComplete);
     }
 
     fn handle_pipeline_exited(&mut self, pipeline_id: PipelineId) {
@@ -1888,7 +1912,8 @@ where
                 None,
                 script_sender,
                 layout_sender,
-                self.compositor.as_ref().unwrap().compositor_proxy.clone(),
+                // FIXME: make sure compositor exists
+                self.compositor_proxy.clone(),
                 url,
                 is_parent_visible,
                 load_data,
@@ -1955,7 +1980,8 @@ where
                 Some(opener_browsing_context_id),
                 script_sender,
                 layout_sender,
-                self.compositor.as_ref().unwrap().compositor_proxy.clone(),
+                // FIXME: make sure compositor exists
+                self.compositor_proxy.clone(),
                 url,
                 is_opener_visible,
                 load_data
@@ -1984,8 +2010,8 @@ where
     fn handle_pending_paint_metric(&self, pipeline_id: PipelineId, epoch: Epoch) {
         // COMP2
         // Only possible if compositor
-        self.compositor.as_ref().unwrap().compositor_proxy
-            .send(ToCompositorMsg::PendingPaintMetric(pipeline_id, epoch))
+        // FIXME: make sure compositor exists
+        self.compositor_proxy.send(ToCompositorMsg::PendingPaintMetric(pipeline_id, epoch))
     }
 
     fn handle_set_cursor_msg(&mut self, cursor: CursorKind) {
@@ -2000,8 +2026,7 @@ where
     ) {
         // COMP2
         // Only possible if compositor
-        self.compositor.as_ref().unwrap().compositor_proxy
-            .send(ToCompositorMsg::ChangeRunningAnimationsState(
+        self.compositor_proxy.send(ToCompositorMsg::ChangeRunningAnimationsState(
                 pipeline_id,
                 animation_state,
             ))
@@ -2246,8 +2271,7 @@ where
                 // Notify embedder and compositor top level document finished loading.
                 // COMP2
                 // FIXME: Why?
-                self.compositor.as_ref().unwrap().compositor_proxy
-                    .send(ToCompositorMsg::LoadComplete(top_level_browsing_context_id));
+                self.compositor_proxy.send(ToCompositorMsg::LoadComplete(top_level_browsing_context_id));
                 self.embedder_proxy.send((
                     Some(top_level_browsing_context_id),
                     EmbedderMsg::LoadComplete,
@@ -2951,7 +2975,7 @@ where
             WebDriverCommandMsg::TakeScreenshot(_, reply) => {
                 // COMP2
                 // Only possible if compositor
-                self.compositor.as_ref().unwrap().compositor_proxy
+                self.compositor_proxy
                     .send(ToCompositorMsg::CreatePng(reply));
             },
         }
@@ -3396,7 +3420,7 @@ where
     ) {
         // COMP2
         // Only possible if compositor
-        self.compositor.as_ref().unwrap().compositor_proxy
+        self.compositor_proxy
             .send(ToCompositorMsg::ViewportConstrained(
                 pipeline_id,
                 constraints,
@@ -3900,7 +3924,7 @@ where
             browsing_context_id
         );
         if let Some(frame_tree) = self.browsing_context_to_sendable(browsing_context_id) {
-            self.compositor.as_ref().unwrap().compositor_proxy
+            self.compositor_proxy
                 .send(ToCompositorMsg::SetFrameTree(frame_tree));
         }
     }

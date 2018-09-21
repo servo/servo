@@ -35,6 +35,8 @@ mod resources;
 
 mod browser;
 
+mod window;
+
 use backtrace::Backtrace;
 use servo::{Servo, BrowserId};
 use servo::compositing::windowing::WindowEvent;
@@ -47,6 +49,9 @@ use std::panic;
 use std::process;
 use std::thread;
 use std::sync::{Arc, RwLock};
+use window::ServoWindow;
+
+use std::rc::Rc;
 
 pub mod platform {
     #[cfg(target_os = "macos")]
@@ -144,34 +149,8 @@ pub fn main() {
         process::exit(0);
     }
 
-    // let window = glutin_app::create_window();
-    // FIXME: maybe move app.rs content to lib.rs
     let mut app = glutin_app::app::App::new();
-
-    // let mut browser = browser::Browser::new(window.clone());
-
-    println!("PAUL:1");
-
-    // // If the url is not provided, we fallback to the homepage in PREFS,
-    // // or a blank page in case the homepage is not set either.
-    // let cwd = env::current_dir().unwrap();
-    // let cmdline_url = opts::get().url.clone();
-    // let pref_url = PREFS
-    //     .get("shell.homepage")
-    //     .as_string()
-    //     .and_then(|str| parse_url_or_filename(&cwd, str).ok());
-    // let blank_url = ServoUrl::parse("about:blank").ok();
-
-    // let target_url = cmdline_url.or(pref_url).or(blank_url).unwrap();
-
-    println!("PAUL:2");
-
     let mut servo = Servo::new(app.create_event_loop_waker());
-    println!("PAUL:3");
-    let browser_id = BrowserId::new();
-    // servo.handle_events(vec![WindowEvent::NewBrowser(target_url, browser_id)]);
-
-    println!("PAUL:4");
 
     servo.setup_logging();
 
@@ -188,43 +167,101 @@ pub fn main() {
         });
     }
 
+    // If the url is not provided, we fallback to the homepage in PREFS,
+    // or a blank page in case the homepage is not set either.
+    let cwd = env::current_dir().unwrap();
+    let cmdline_url = opts::get().url.clone();
+    let pref_url = PREFS.get("shell.homepage").as_string().and_then(|str| parse_url_or_filename(&cwd, str).ok());
+    let blank_url = ServoUrl::parse("about:blank").ok();
 
-    app.run(|| {
-        println!("PAUL:loop");
+    let target_url = cmdline_url.or(pref_url).or(blank_url).unwrap();
+
+    let mut window = None;
+
+    app.run(|app_events| {
+
         if *create_window.read().unwrap() {
             *create_window.write().unwrap() = false;
-            let _ = app.new_window();
+            let awindow = Rc::new(app.create_window());
+
+            let browser_id = BrowserId::new();
+            servo.handle_events(vec![WindowEvent::NewBrowser(target_url, browser_id)]);
+
+            let compositor_callbacks = awindow.clone();
+            servo.attach_window(awindow.clone());
+            window = Some(ServoWindow::new(awindow));
         }
-        println!("create_window: {}", create_window.read().unwrap());
-        // let win_events = window.get_events();
 
         // FIXME: this could be handled by Servo. We don't need
         // a repaint_synchronously function exposed.
-        // let need_resize = win_events.iter().any(|e| match *e {
-        //     WindowEvent::Resize => true,
-        //     _ => false,
-        // });
+        let need_resize = app_events.iter().any(|e| match *e {
+            WindowEvent::Resize => true,
+            _ => false,
+        });
 
-        // browser.handle_window_events(win_events);
+        if let Some(window) = window {
+            window.handle_window_events(app_events);
 
-        let mut servo_events = servo.get_events();
-        loop {
-            // browser.handle_servo_events(servo_events);
-            // // servo.handle_events(browser.get_events());
-            // if browser.shutdown_requested() {
-            //     return true;
-            // }
-            // servo_events = servo.get_events();
-            // if servo_events.is_empty() {
-            //     break;
-            // }
+            let mut servo_events = servo.get_events();
+
+            loop {
+                window.handle_servo_events(servo_events);
+                servo.handle_events(window.get_events_for_servo());
+                // FIXME
+                // if browser.shutdown_requested() {
+                //     // FIXME
+                //     // return true;
+                // }
+                servo_events = servo.get_events();
+                if servo_events.is_empty() {
+                    break;
+                }
+            }
         }
 
-        // if need_resize {
-        //     // servo.repaint_synchronously();
-        // }
+        if need_resize {
+            servo.repaint_synchronously();
+        }
+
         false
+
     });
+
+//     app.run(|win_events| {
+//         println!("PAUL:loop");
+//         if *create_window.read().unwrap() {
+//             *create_window.write().unwrap() = false;
+//             let _ = app.new_window();
+//         }
+//         // let app_events = app.get_events();
+
+//         // // // FIXME: this could be handled by Servo. We don't need
+//         // // // a repaint_synchronously function exposed.
+//         // // let need_resize = win_events.iter().any(|e| match *e {
+//         // //     WindowEvent::Resize => true,
+//         // //     _ => false,
+//         // // });
+
+//         // browser.handle_window_events(win_events);
+
+//         // let mut servo_events = servo.get_events();
+//         // loop {
+//         //     browser.handle_servo_events(servo_events);
+//         //     // servo.handle_events(browser.get_events());
+//         //     if browser.shutdown_requested() {
+//         //         return true;
+//         //     }
+//         //     servo_events = servo.get_events();
+//         //     if servo_events.is_empty() {
+//         //         break;
+//         //     }
+//         // }
+
+//         // if need_resize {
+//         //     servo.repaint_synchronously();
+//         // }
+//         false
+//     });
 
     servo.deinit();
 
