@@ -494,7 +494,6 @@ fn scheme_fetch(request: &mut Request,
                                 let mime = guess_mime_type(file_path);
 
                                 let mut response = Response::new(url, ResourceFetchTiming::new(request.timing_type()));
-                                *response.body.lock().unwrap() = ResponseBody::Done(bytes);
                                 response.headers.set(ContentType(mime));
 
                                 let (done_sender, done_receiver) = channel();
