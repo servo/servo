@@ -169,7 +169,7 @@ fi
 
 # For the Android SYSROOT. Can be used on the command line with --sysroot
 # https://android.googlesource.com/platform/ndk/+/ics-mr0/docs/STANDALONE-TOOLCHAIN.html
-export ANDROID_SYSROOT="$ANDROID_NDK_ROOT/platforms/$_ANDROID_API/$_ANDROID_ARCH"
+export ANDROID_SYSROOT="$ANDROID_NDK_ROOT/sysroot"
 export SYSROOT="$ANDROID_SYSROOT"
 export NDK_SYSROOT="$ANDROID_SYSROOT"
 
@@ -193,7 +193,6 @@ export ARCH=$_OPENSSL_ARCH
 
 # For the Android toolchain
 # https://android.googlesource.com/platform/ndk/+/ics-mr0/docs/STANDALONE-TOOLCHAIN.html
-export ANDROID_SYSROOT="$ANDROID_NDK_ROOT/platforms/$_ANDROID_API/$_ANDROID_ARCH"
 export SYSROOT="$ANDROID_SYSROOT"
 #export CROSS_SYSROOT="$ANDROID_SYSROOT"
 export NDK_SYSROOT="$ANDROID_SYSROOT"
@@ -216,6 +215,7 @@ xCFLAGS="-DSHARED_EXTENSION=.so -DOPENSSL_PIC -DDSO_DLFCN -DHAVE_DLFCN_H \
   -fPIC -fomit-frame-pointer \
   -Wall -Wno-error=macro-redefined \
   -O3 \
+  -I$ANDROID_SYSROOT/usr/include/$_ANDROID_TARGET \
   -I$ANDROID_DEV/include \
   -B$ANDROID_DEV/lib -B$ANDROID_NDK_ROOT/platforms/$_ANDROID_API/$_ANDROID_ARCH/usr/lib \
   -L$ANDROID_NDK_ROOT/platforms/$_ANDROID_API/$_ANDROID_ARCH/usr/lib -L$ANDROID_NDK_ROOT/toolchains/$_ANDROID_GCC-4.9/prebuilt/$host/lib/gcc/$_ANDROID_TARGET/4.9.x/ \
