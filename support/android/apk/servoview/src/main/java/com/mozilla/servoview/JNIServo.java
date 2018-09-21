@@ -22,6 +22,7 @@ public class JNIServo {
     public native void init(Activity activity,
                             String args,
                             String url,
+                            String logstr,
                             Callbacks callbacks,
                             int width, int height, boolean log);
 

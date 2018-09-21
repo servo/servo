@@ -24,7 +24,9 @@ public class Servo {
             GfxCallbacks gfxcb,
             Client client,
             Activity activity,
-            String args, String url,
+            String args,
+            String url,
+            String logstr,
             int width, int height, boolean log) {
 
         mRunCallback = runCallback;
@@ -34,7 +36,7 @@ public class Servo {
         Callbacks cbs = new Callbacks(client, gfxcb);
 
         mRunCallback.inGLThread(() -> {
-            mJNI.init(activity, args, url, cbs, width, height, log);
+            mJNI.init(activity, args, url, logstr, cbs, width, height, log);
         });
     }
 

@@ -41,6 +41,7 @@ public class ServoView extends GLSurfaceView
     private Uri mInitialUri = null;
     private boolean mAnimating;
     private String mServoArgs = "";
+    private String mServoLog = "";
     private GestureDetector mGestureDetector;
     private ScaleGestureDetector mScaleGestureDetector;
 
@@ -72,8 +73,9 @@ public class ServoView extends GLSurfaceView
         initGestures(context);
     }
 
-    public void setServoArgs(String args) {
+    public void setServoArgs(String args, String log) {
         mServoArgs = args != null ? args : "";
+        mServoLog = log != null ? log : "";
     }
 
     public void reload() {
@@ -139,7 +141,7 @@ public class ServoView extends GLSurfaceView
         int height = getHeight();
         inGLThread(() -> {
             String uri = mInitialUri == null ? null : mInitialUri.toString();
-            mServo = new Servo(this, this, mClient, mActivity, mServoArgs, uri, width, height, showLogs);
+            mServo = new Servo(this, this, mClient, mActivity, mServoArgs, uri, mServoLog, width, height, showLogs);
         });
     }
 

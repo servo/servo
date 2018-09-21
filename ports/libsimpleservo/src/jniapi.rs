@@ -12,6 +12,7 @@ use jni::objects::{GlobalRef, JClass, JObject, JString, JValue};
 use jni::sys::{jboolean, jfloat, jint, jstring, JNI_TRUE};
 use log::Level;
 use std;
+use std::borrow::Cow;
 use std::os::raw::c_void;
 use std::sync::{Arc, Mutex};
 
@@ -49,6 +50,7 @@ pub fn Java_com_mozilla_servoview_JNIServo_init(
     activity: JObject,
     args: JString,
     url: JString,
+    log_str: JString,
     callbacks_obj: JObject,
     width: jint,
     height: jint,
@@ -58,14 +60,17 @@ pub fn Java_com_mozilla_servoview_JNIServo_init(
         // Note: Android debug logs are stripped from a release build.
         // debug!() will only show in a debug build. Use info!() if logs
         // should show up in adb logcat with a release build.
-        android_logger::init_once(
-            Filter::default()
-                .with_min_level(Level::Debug)
-                .with_allowed_module_path("simpleservo::api")
-                .with_allowed_module_path("simpleservo::jniapi")
-                .with_allowed_module_path("simpleservo::gl_glue::egl"),
-            Some("simpleservo")
-        );
+        let mut filter = Filter::default()
+            .with_min_level(Level::Debug)
+            .with_allowed_module_path("simpleservo::api")
+            .with_allowed_module_path("simpleservo::jniapi")
+            .with_allowed_module_path("simpleservo::gl_glue::egl");
+        let log_str = env.get_string(log_str).ok();
+        let log_str = log_str.as_ref().map_or(Cow::Borrowed(""), |s| s.to_string_lossy());
+        for module in log_str.split(',') {
+            filter = filter.with_allowed_module_path(module);
+        }
+        android_logger::init_once(filter, Some("simpleservo"));
     }
 
     info!("init");
