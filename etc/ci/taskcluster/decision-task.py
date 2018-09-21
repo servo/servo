@@ -16,15 +16,6 @@ def main():
         worker_type="servo-docker-worker",
     )
 
-    # FIXME: remove this before merging in servo/servo
-    os.environ["GIT_URL"] = "https://github.com/SimonSapin/servo"
-    os.environ["GIT_REF"] = "refs/heads/taskcluster-experiments-20180920"
-    os.environ["GIT_SHA"] = "a6dbfdd29f9b3f0ce0c13adc79fad99538a9a44b"
-    decision.docker_image_cache_expiry = "1 week"
-    decision.route_prefix = "project.servo.servo-taskcluster-experiments"
-    # ~
-
-
     build_artifacts_expiry = "1 week"
     log_artifacts_expiry = "1 year"
 
