@@ -136,7 +136,7 @@ It can grant those scopes (and at most only thoses) to sub-tasks that it schedul
 
 [Roles] represent each a set of scopes.
 They can be granted to… things,
-and then configured separately to modify what scopes they expand to.
+and then configured separately to modify what scopes they [expand] to.
 
 For example, when Taskcluster-GitHub schedules tasks based on the `.taskcluster.yml` file
 in a push to the `auto` branch of this repository,
@@ -153,6 +153,7 @@ to edit that role in the web UI and grant more scopes to these tasks
 [web UI]: https://tools.taskcluster.net/
 [credentials]: https://tools.taskcluster.net/credentials
 [Roles]: https://docs.taskcluster.net/docs/manual/design/apis/hawk/roles
+[expand]: https://docs.taskcluster.net/docs/reference/platform/taskcluster-auth/docs/roles
 [branches]: https://tools.taskcluster.net/auth/roles/repo%3Agithub.com%2Fservo%2Fservo%3Abranch%3A*
 
 
