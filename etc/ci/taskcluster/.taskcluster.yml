@@ -1,0 +1,50 @@
+version: 1
+policy:
+  # https://docs.taskcluster.net/docs/reference/integrations/taskcluster-github/docs/taskcluster-yml-v1#pull-requests
+  pullRequests: collaborators
+tasks:
+  - $if: 'tasks_for == "github-push"'
+    then:
+      $if: 'event.ref == "refs/heads/master"'
+      then:
+        taskGroupId: {$eval: as_slugid("decision_task")}
+        taskId: {$eval: as_slugid("decision_task")}
+        provisionerId: aws-provisioner-v1
+        workerType: servo-docker-worker
+        created: {$fromNow: ''}
+        deadline: {$fromNow: '1 day'}
+        metadata:
+          name: "Taskcluster experiments for Servo: decision task"
+          description: ""
+          owner: &task_owner ${event.pusher.name}@users.noreply.github.com
+          source: &task_source ${event.compare}
+        scopes:
+          - "queue:scheduler-id:taskcluster-github"
+
+          # Granted to role "repo:github.com/servo/servo-taskcluster-experiments:branch:master"
+          - "queue:create-task:highest:aws-provisioner-v1/servo-*"
+          - "docker-worker:cache:cargo-*"
+          - "queue:route:index.project.servo.servo-taskcluster-experiments.*"
+
+        payload:
+          maxRunTime: {$eval: '20 * 60'}
+          # https://github.com/servo/taskcluster-bootstrap-docker-images#decision-task
+          image: "servobrowser/taskcluster-bootstrap:decision-task@sha256:28045b7ec0485ef363f8cb14f194008b47e9ede99f2ea40a1e945e921fce976e"
+          features:
+            taskclusterProxy: true
+          env:
+            GIT_URL: ${event.repository.clone_url}
+            GIT_REF: ${event.ref}
+            GIT_SHA: ${event.after}
+            TASK_OWNER: *task_owner
+            TASK_SOURCE: *task_source
+          command:
+            - /bin/bash
+            - '--login'
+            - '-c'
+            - >-
+              git init repo &&
+              cd repo &&
+              git fetch --depth 1 "$GIT_URL" "$GIT_REF" &&
+              git reset --hard "$GIT_SHA" &&
+              python3 decision-task.py
