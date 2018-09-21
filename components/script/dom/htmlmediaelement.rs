@@ -33,6 +33,7 @@ use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
 use fetch::FetchCanceller;
 use html5ever::{LocalName, Prefix};
+use hyper::header::ContentLength;
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use microtask::{Microtask, MicrotaskRunnable};
@@ -993,7 +994,6 @@ impl HTMLMediaElement {
 
                     // Step 5.
                     if self.is::<HTMLVideoElement>() {
-                        assert_ne!(self.ready_state.get(), ReadyState::HaveNothing);
                         let video_elem = self.downcast::<HTMLVideoElement>().unwrap();
                         video_elem.set_video_width(metadata.width);
                         video_elem.set_video_height(metadata.height);
@@ -1234,6 +1234,14 @@ impl FetchResponseListener for HTMLMediaElementContext {
             FetchMetadata::Unfiltered(m) => m,
             FetchMetadata::Filtered { unsafe_, .. } => unsafe_,
         });
+
+        if let Some(metadata) = self.metadata.as_ref() {
+            if let Some(headers) = metadata.headers.as_ref() {
+                if let Some(content_length) = headers.get::<ContentLength>() {
+                    self.elem.root().player.set_input_size(**content_length);
+                }
+            }
+        }
 
         let status_is_ok = self
             .metadata
