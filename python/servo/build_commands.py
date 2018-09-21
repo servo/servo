@@ -13,7 +13,6 @@ import datetime
 import os
 import os.path as path
 import platform
-import re
 import shutil
 import subprocess
 import sys
@@ -403,18 +402,7 @@ class MachCommands(CommandBase):
             env["PKG_CONFIG_ALLOW_CROSS"] = '1'
             # Build the name of the package containing all GStreamer dependencies
             # according to the build target.
-            gst_lib = None
-            if re.match("arm-([a-z])*-androideabi", target):
-                gst_lib = "gst-build-armeabi"
-            elif re.match("armv7-([a-z])*-androideabi", target):
-                gst_lib = "gst-build-armeabi-v7a"
-            elif re.match("x86_64-([a-z])*-android", target):
-                gst_lib = "gst-build-x86_64"
-            elif re.match("i686-([a-z])*-android", target):
-                gst_lib = "gst-build-x86"
-            else:
-                raise Exception("Invalid target architecture '%s'" % target)
-
+            gst_lib = "gst-build-{}".format(self.config["android"]["lib"])
             gst_lib_zip = "%s.zip" % gst_lib
             gst_dir = os.path.join(base_path, "gstreamer")
             gst_lib_path = os.path.join(base_path, gst_dir, gst_lib)
