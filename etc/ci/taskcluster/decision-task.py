@@ -82,13 +82,7 @@ def main():
 
     def create_run_task(*, script, env=None, **kwargs):
         fetch_build = """
-            curl \
-                "https://queue.taskcluster.net/v1/task/${BUILD_TASK_ID}/artifacts/public/target.tar.gz" \
-                --retry 5 \
-                --connect-timeout 10 \
-                --location \
-                --fail \
-                | tar -xz
+            ./etc/ci/taskcluster/curl-artifact.sh ${BUILD_TASK_ID} target.tar.gz | tar -xz
         """
         kwargs.setdefault("artifacts", []).extend(
             ("/repo/" + word, log_artifacts_expiry)
