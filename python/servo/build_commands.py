@@ -383,7 +383,6 @@ class MachCommands(CommandBase):
                 "-I" + cxx_include,
                 "-isystem", sysroot_include,
                 "-L" + gcc_libs,
-                "-D__STDC_CONSTANT_MACROS",
                 "-D__NDK_FPABI__="])
             env["NDK_ANDROID_VERSION"] = android_platform.replace("android-", "")
             env['CPPFLAGS'] = ' '.join(["--sysroot", env['ANDROID_SYSROOT']])
