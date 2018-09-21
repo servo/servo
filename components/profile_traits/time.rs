@@ -110,6 +110,7 @@ pub enum ProfilerCategory {
     TimeToFirstContentfulPaint = 0x81,
     TimeToInteractive = 0x82,
     IpcReceiver = 0x83,
+    IpcBytesReceiver = 0x84,
     ApplicationHeartbeat = 0x90,
 }
 

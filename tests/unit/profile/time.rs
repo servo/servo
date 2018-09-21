@@ -64,6 +64,29 @@ fn channel_profiler_test() {
 
 }
 
+#[test]
+fn bytes_channel_profiler_test() {
+    let chan = time::Profiler::create(&Some(OutputOptions::Stdout(5.0)), None);
+    let (profiled_sender, profiled_receiver) = ProfiledIpc::bytes_channel(chan.clone()).unwrap();
+    thread::spawn(move || {
+        thread::sleep(Duration::from_secs(2));
+        profiled_sender.send(&[1, 2, 3]).unwrap();
+    });
+
+    let val_profile_receiver = profiled_receiver.recv().unwrap();
+    assert_eq!(val_profile_receiver, [1, 2, 3]);
+
+    let (sender, receiver) = ipc::channel().unwrap();
+    chan.send(ProfilerMsg::Get((ProfilerCategory::IpcBytesReceiver, None), sender.clone()));
+
+    match receiver.recv().unwrap() {
+        // asserts that the time spent in the sleeping thread is more than 1500 milliseconds
+        ProfilerData::Record(time_data) => assert!(time_data[0] > 1.5e3),
+        ProfilerData::NoRecords => assert!(false),
+    };
+
+}
+
 #[cfg(debug_assertions)]
 #[test]
 #[should_panic]
