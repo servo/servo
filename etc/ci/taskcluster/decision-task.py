@@ -11,7 +11,7 @@ from decisionlib import DecisionTask
 
 def main():
     linux_tidy_unit()
-    linux_wpt()
+#    linux_wpt()
 
 
 build_artifacts_expiry = "1 week"
