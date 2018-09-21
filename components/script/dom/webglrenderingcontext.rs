@@ -435,9 +435,14 @@ impl WebGLRenderingContext {
     }
 
     fn mark_as_dirty(&self) {
-        self.canvas
-            .upcast::<Node>()
-            .dirty(NodeDamage::OtherNodeDamage);
+        // If we don't have a bound framebuffer, then don't mark the canvas
+        // as dirty.
+        match self.bound_framebuffer.get() {
+            Some(_fb) => self.canvas
+                             .upcast::<Node>()
+                             .dirty(NodeDamage::OtherNodeDamage),
+            None => ()
+        }
     }
 
     fn vertex_attrib(&self, indx: u32, x: f32, y: f32, z: f32, w: f32) {
