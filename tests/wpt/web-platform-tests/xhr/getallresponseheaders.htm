@@ -30,4 +30,14 @@ test(() => {
   client.send()
   assert_equals(client.getAllResponseHeaders(), "content-length: 0\r\n")
 })
+
+async_test(t => {
+  const client = new XMLHttpRequest();
+  client.onload = t.step_func_done(() => {
+    assert_equals(client.getAllResponseHeaders(), "www-authenticate: 1, 2, 3, 4\r\n");
+  });
+  client.onerror = t.unreached_func("unexpected error");
+  client.open("GET", "resources/headers-www-authenticate.asis");
+  client.send();
+});
 </script>

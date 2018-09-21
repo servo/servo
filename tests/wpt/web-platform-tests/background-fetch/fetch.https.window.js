@@ -139,14 +139,12 @@ backgroundFetchTest(async (test, backgroundFetch) => {
   assert_equals(results.length, 1);
 
   assert_equals(eventRegistration.id, registration.id);
-  assert_equals(eventRegistration.state, 'success');
   assert_equals(eventRegistration.failureReason, '');
 
-  for (const result of results) {
-    assert_true(result.url.includes('resources/feature-name.txt'));
-    assert_equals(result.status, 200);
-    assert_equals(result.text, 'Background Fetch');
-  }
+  assert_true(results[0].url.includes('resources/feature-name.txt'));
+  assert_equals(results[0].status, 200);
+  assert_equals(results[0].text, 'Background Fetch');
+
 
 }, 'Fetches can have requests with a body');
 
@@ -171,3 +169,25 @@ backgroundFetchTest(async (test, backgroundFetch) => {
 
   assert_false(registration.recordsAvailable);
 }, 'recordsAvailable is false after onbackgroundfetchsuccess finishes execution.');
+
+backgroundFetchTest(async (test, backgroundFetch) => {
+  const registrationId = uniqueId();
+  const registration =
+    await backgroundFetch.fetch(registrationId, 'resources/missing-cat.txt');
+
+  assert_equals(registration.id, registrationId);
+  assert_equals(registration.result, '');
+  assert_equals(registration.failureReason, '');
+
+  const {type, eventRegistration, results} = await getMessageFromServiceWorker();
+  assert_equals(type, 'backgroundfetchfail');
+  assert_equals(results.length, 1);
+  assert_true(results[0].url.includes('resources/missing-cat.txt'));
+  assert_equals(results[0].status, 404);
+  assert_equals(results[0].text, '');
+
+  assert_equals(eventRegistration.id, registration.id);
+  assert_equals(eventRegistration.result, 'failure');
+  assert_equals(eventRegistration.failureReason, 'bad-status');
+
+}, 'Using Background Fetch to fetch a non-existent resource should fail.');

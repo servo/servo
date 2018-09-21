@@ -22,7 +22,6 @@ from localpaths import repo_root
 from six.moves import reload_module
 
 from manifest.sourcefile import read_script_metadata, js_meta_re, parse_variants
-from mozlog.structuredlog import StructuredLogger
 from wptserve import server as wptserve, handlers
 from wptserve import stash
 from wptserve import config
@@ -630,14 +629,22 @@ class WebSocketDaemon(object):
         self.server = None
 
 
+def release_mozlog_lock():
+    try:
+        from mozlog.structuredlog import StructuredLogger
+        try:
+            StructuredLogger._lock.release()
+        except threading.ThreadError:
+            pass
+    except ImportError:
+        pass
+
+
 def start_ws_server(host, port, paths, routes, bind_address, config, **kwargs):
     # Ensure that when we start this in a new process we have the global lock
     # in the logging module unlocked
     reload_module(logging)
-    try:
-        StructuredLogger._lock.release()
-    except threading.ThreadError:
-        pass
+    release_mozlog_lock()
     return WebSocketDaemon(host,
                            str(port),
                            repo_root,
@@ -651,10 +658,7 @@ def start_wss_server(host, port, paths, routes, bind_address, config, **kwargs):
     # Ensure that when we start this in a new process we have the global lock
     # in the logging module unlocked
     reload_module(logging)
-    try:
-        StructuredLogger._lock.release()
-    except threading.ThreadError:
-        pass
+    release_mozlog_lock()
     return WebSocketDaemon(host,
                            str(port),
                            repo_root,

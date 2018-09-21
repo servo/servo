@@ -46,25 +46,6 @@
           this[field] = fields[field];
     }
   };
-  WebUsbService_GetDevices_Params.generate = function(generator_) {
-    var generated = new WebUsbService_GetDevices_Params;
-    return generated;
-  };
-
-  WebUsbService_GetDevices_Params.prototype.mutate = function(mutator_) {
-    return this;
-  };
-  WebUsbService_GetDevices_Params.prototype.getHandleDeps = function() {
-    var handles = [];
-    return handles;
-  };
-
-  WebUsbService_GetDevices_Params.prototype.setHandles = function() {
-    this.setHandlesInternal_(arguments, 0);
-  };
-  WebUsbService_GetDevices_Params.prototype.setHandlesInternal_ = function(handles, idx) {
-    return idx;
-  };
 
   WebUsbService_GetDevices_Params.validate = function(messageValidator, offset) {
     var err;
@@ -111,33 +92,6 @@
         if (this.hasOwnProperty(field))
           this[field] = fields[field];
     }
-  };
-  WebUsbService_GetDevices_ResponseParams.generate = function(generator_) {
-    var generated = new WebUsbService_GetDevices_ResponseParams;
-    generated.results = generator_.generateArray(function() {
-      return generator_.generateStruct(device.mojom.UsbDeviceInfo, false);
-    });
-    return generated;
-  };
-
-  WebUsbService_GetDevices_ResponseParams.prototype.mutate = function(mutator_) {
-    if (mutator_.chooseMutateField()) {
-      this.results = mutator_.mutateArray(this.results, function(val) {
-        return mutator_.mutateStruct(val, device.mojom.UsbDeviceInfo, false);
-      });
-    }
-    return this;
-  };
-  WebUsbService_GetDevices_ResponseParams.prototype.getHandleDeps = function() {
-    var handles = [];
-    return handles;
-  };
-
-  WebUsbService_GetDevices_ResponseParams.prototype.setHandles = function() {
-    this.setHandlesInternal_(arguments, 0);
-  };
-  WebUsbService_GetDevices_ResponseParams.prototype.setHandlesInternal_ = function(handles, idx) {
-    return idx;
   };
 
   WebUsbService_GetDevices_ResponseParams.validate = function(messageValidator, offset) {
@@ -194,37 +148,6 @@
         if (this.hasOwnProperty(field))
           this[field] = fields[field];
     }
-  };
-  WebUsbService_GetDevice_Params.generate = function(generator_) {
-    var generated = new WebUsbService_GetDevice_Params;
-    generated.guid = generator_.generateString(false);
-    generated.deviceRequestd = generator_.generateInterfaceRequest("device.mojom.UsbDevice", false);
-    return generated;
-  };
-
-  WebUsbService_GetDevice_Params.prototype.mutate = function(mutator_) {
-    if (mutator_.chooseMutateField()) {
-      this.guid = mutator_.mutateString(this.guid, false);
-    }
-    if (mutator_.chooseMutateField()) {
-      this.deviceRequestd = mutator_.mutateInterfaceRequest(this.deviceRequestd, "device.mojom.UsbDevice", false);
-    }
-    return this;
-  };
-  WebUsbService_GetDevice_Params.prototype.getHandleDeps = function() {
-    var handles = [];
-    if (this.deviceRequestd !== null) {
-      Array.prototype.push.apply(handles, ["device.mojom.UsbDeviceRequest"]);
-    }
-    return handles;
-  };
-
-  WebUsbService_GetDevice_Params.prototype.setHandles = function() {
-    this.setHandlesInternal_(arguments, 0);
-  };
-  WebUsbService_GetDevice_Params.prototype.setHandlesInternal_ = function(handles, idx) {
-    this.deviceRequestd = handles[idx++];;
-    return idx;
   };
 
   WebUsbService_GetDevice_Params.validate = function(messageValidator, offset) {
@@ -297,33 +220,6 @@
           this[field] = fields[field];
     }
   };
-  WebUsbService_GetPermission_Params.generate = function(generator_) {
-    var generated = new WebUsbService_GetPermission_Params;
-    generated.deviceFilters = generator_.generateArray(function() {
-      return generator_.generateStruct(device.mojom.UsbDeviceFilter, false);
-    });
-    return generated;
-  };
-
-  WebUsbService_GetPermission_Params.prototype.mutate = function(mutator_) {
-    if (mutator_.chooseMutateField()) {
-      this.deviceFilters = mutator_.mutateArray(this.deviceFilters, function(val) {
-        return mutator_.mutateStruct(val, device.mojom.UsbDeviceFilter, false);
-      });
-    }
-    return this;
-  };
-  WebUsbService_GetPermission_Params.prototype.getHandleDeps = function() {
-    var handles = [];
-    return handles;
-  };
-
-  WebUsbService_GetPermission_Params.prototype.setHandles = function() {
-    this.setHandlesInternal_(arguments, 0);
-  };
-  WebUsbService_GetPermission_Params.prototype.setHandlesInternal_ = function(handles, idx) {
-    return idx;
-  };
 
   WebUsbService_GetPermission_Params.validate = function(messageValidator, offset) {
     var err;
@@ -379,29 +275,6 @@
           this[field] = fields[field];
     }
   };
-  WebUsbService_GetPermission_ResponseParams.generate = function(generator_) {
-    var generated = new WebUsbService_GetPermission_ResponseParams;
-    generated.result = generator_.generateStruct(device.mojom.UsbDeviceInfo, true);
-    return generated;
-  };
-
-  WebUsbService_GetPermission_ResponseParams.prototype.mutate = function(mutator_) {
-    if (mutator_.chooseMutateField()) {
-      this.result = mutator_.mutateStruct(this.result, device.mojom.UsbDeviceInfo, true);
-    }
-    return this;
-  };
-  WebUsbService_GetPermission_ResponseParams.prototype.getHandleDeps = function() {
-    var handles = [];
-    return handles;
-  };
-
-  WebUsbService_GetPermission_ResponseParams.prototype.setHandles = function() {
-    this.setHandlesInternal_(arguments, 0);
-  };
-  WebUsbService_GetPermission_ResponseParams.prototype.setHandlesInternal_ = function(handles, idx) {
-    return idx;
-  };
 
   WebUsbService_GetPermission_ResponseParams.validate = function(messageValidator, offset) {
     var err;
@@ -449,40 +322,13 @@
 
 
   WebUsbService_SetClient_Params.prototype.initDefaults_ = function() {
-    this.client = new device_manager$.UsbDeviceManagerClientPtr();
+    this.client = new associatedBindings.AssociatedInterfacePtrInfo();
   };
   WebUsbService_SetClient_Params.prototype.initFields_ = function(fields) {
     for(var field in fields) {
         if (this.hasOwnProperty(field))
           this[field] = fields[field];
     }
-  };
-  WebUsbService_SetClient_Params.generate = function(generator_) {
-    var generated = new WebUsbService_SetClient_Params;
-    generated.client = generator_.generateInterface("device.mojom.UsbDeviceManagerClient", false);
-    return generated;
-  };
-
-  WebUsbService_SetClient_Params.prototype.mutate = function(mutator_) {
-    if (mutator_.chooseMutateField()) {
-      this.client = mutator_.mutateInterface(this.client, "device.mojom.UsbDeviceManagerClient", false);
-    }
-    return this;
-  };
-  WebUsbService_SetClient_Params.prototype.getHandleDeps = function() {
-    var handles = [];
-    if (this.client !== null) {
-      Array.prototype.push.apply(handles, ["device.mojom.UsbDeviceManagerClientPtr"]);
-    }
-    return handles;
-  };
-
-  WebUsbService_SetClient_Params.prototype.setHandles = function() {
-    this.setHandlesInternal_(arguments, 0);
-  };
-  WebUsbService_SetClient_Params.prototype.setHandlesInternal_ = function(handles, idx) {
-    this.client = handles[idx++];;
-    return idx;
   };
 
   WebUsbService_SetClient_Params.validate = function(messageValidator, offset) {
@@ -500,7 +346,7 @@
 
 
     // validate WebUsbService_SetClient_Params.client
-    err = messageValidator.validateInterface(offset + codec.kStructHeaderSize + 0, false);
+    err = messageValidator.validateAssociatedInterface(offset + codec.kStructHeaderSize + 0, false);
     if (err !== validator.validationError.NONE)
         return err;
 
@@ -514,7 +360,7 @@
     var val = new WebUsbService_SetClient_Params();
     var numberOfBytes = decoder.readUint32();
     var version = decoder.readUint32();
-    val.client = decoder.decodeStruct(new codec.Interface(device_manager$.UsbDeviceManagerClientPtr));
+    val.client = decoder.decodeStruct(codec.AssociatedInterfacePtrInfo);
     return val;
   };
 
@@ -522,7 +368,7 @@
     var packed;
     encoder.writeUint32(WebUsbService_SetClient_Params.encodedSize);
     encoder.writeUint32(0);
-    encoder.encodeStruct(new codec.Interface(device_manager$.UsbDeviceManagerClientPtr), val.client);
+    encoder.encodeStruct(codec.AssociatedInterfacePtrInfo, val.client);
   };
   var kWebUsbService_GetDevices_Name = 0;
   var kWebUsbService_GetDevice_Name = 1;
@@ -620,10 +466,10 @@
   WebUsbServiceProxy.prototype.setClient = function(client) {
     var params_ = new WebUsbService_SetClient_Params();
     params_.client = client;
-    var builder = new codec.MessageV0Builder(
+    var builder = new codec.MessageV2Builder(
         kWebUsbService_SetClient_Name,
         codec.align(WebUsbService_SetClient_Params.encodedSize));
-    builder.encodeStruct(WebUsbService_SetClient_Params, params_);
+    builder.setPayload(WebUsbService_SetClient_Params, params_);
     var message = builder.finish();
     this.receiver_.accept(message);
   };
@@ -753,21 +599,6 @@
     stubClass: WebUsbServiceStub,
     validateRequest: validateWebUsbServiceRequest,
     validateResponse: validateWebUsbServiceResponse,
-    mojomId: 'third_party/blink/public/mojom/usb/web_usb_service.mojom',
-    fuzzMethods: {
-      getDevices: {
-        params: WebUsbService_GetDevices_Params,
-      },
-      getDevice: {
-        params: WebUsbService_GetDevice_Params,
-      },
-      getPermission: {
-        params: WebUsbService_GetPermission_Params,
-      },
-      setClient: {
-        params: WebUsbService_SetClient_Params,
-      },
-    },
   };
   WebUsbServiceStub.prototype.validator = validateWebUsbServiceRequest;
   WebUsbServiceProxy.prototype.validator = validateWebUsbServiceResponse;

@@ -78,6 +78,15 @@ image_capture_test(async (t, imageCaptureTest) => {
   assert_equals(capabilities.exposureCompensation.step,
                 mockCapabilities.exposureCompensation.step);
 
+  assert_true(capabilities.exposureTime instanceof
+              MediaSettingsRange);
+  assert_equals(capabilities.exposureTime.max,
+                mockCapabilities.exposureTime.max);
+  assert_equals(capabilities.exposureTime.min,
+                mockCapabilities.exposureTime.min);
+  assert_equals(capabilities.exposureTime.step,
+                mockCapabilities.exposureTime.step);
+
   assert_true(capabilities.colorTemperature instanceof
               MediaSettingsRange);
   assert_equals(capabilities.colorTemperature.max,

@@ -167,20 +167,6 @@ promise_test(() => {
 
 promise_test(() => {
   return makeTest(
-      () => { async_test((t) => setTimeout(t.done.bind(t), 0), 'before'); },
-      () => { async_test('pending'); },
-      () => { throw new Error('this error is expected'); },
-      () => { async_test((t) => setTimeout(t.done.bind(t), 0), 'after'); }
-    ).then(({harness, tests}) => {
-      assert_equals(harness, 'ERROR');
-      assert_equals(tests.before, 'PASS');
-      assert_equals(tests.pending, 'NOTRUN');
-      assert_equals(tests.after, 'PASS');
-    });
-}, 'uncaught exception between async_tests');
-
-promise_test(() => {
-  return makeTest(
       () => { promise_test(() => Promise.resolve(), 'before'); },
       () => { throw new Error('this error is expected'); },
       () => { promise_test(() => Promise.resolve(), 'after'); }

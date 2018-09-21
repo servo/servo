@@ -10,7 +10,6 @@ partial interface ServiceWorkerRegistration {
 [SecureContext, Exposed=(Window,Worker)]
 interface PaymentManager {
   [SameObject] readonly attribute PaymentInstruments instruments;
-  [Exposed=Window] static Promise<PermissionState> requestPermission();
   attribute DOMString userHint;
 };
 

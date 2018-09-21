@@ -21,7 +21,7 @@ self.addEventListener('message', function(event) {
 
           if (self.registration.active.state !== 'activating') {
             port.postMessage(
-                'FAITL: Promise should be resolved before ServiceWorker#state is set to activated');
+                'FAIL: Promise should be resolved before ServiceWorker#state is set to activated');
             return;
           }
 

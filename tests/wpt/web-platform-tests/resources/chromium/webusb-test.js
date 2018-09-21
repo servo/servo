@@ -397,8 +397,8 @@ class FakeWebUsbService {
     });
   }
 
-  setClient(client) {
-    this.client_ = client;
+  setClient(clientInfo) {
+    this.client_ = new device.mojom.UsbDeviceManagerClientAssociatedPtr(clientInfo);
   }
 }
 

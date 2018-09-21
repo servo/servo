@@ -22,7 +22,7 @@
             const link = frame.contentDocument.querySelector("#blob-url");
             link.href.baseVal = URL.createObjectURL(blob);
 
-            link.click();
+            link.dispatchEvent(new Event('click'));
 
             t.step_timeout(() => t.done(), 1000);
         }));
