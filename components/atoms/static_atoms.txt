@@ -65,6 +65,7 @@ range
 readystatechange
 reftest-wait
 reset
+resize
 right
 rtl
 sans-serif
