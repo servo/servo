@@ -24,6 +24,7 @@ build_env = {
     "SCCACHE_IDLE_TIMEOUT": "1200",
     "CCACHE": "sccache",
     "RUSTC_WRAPPER": "sccache",
+    "SHELL": "/bin/dash",  # For SpiderMonkey’s build system
 }
 
 
