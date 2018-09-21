@@ -138,36 +138,22 @@ pub struct Performance {
 }
 
 impl Performance {
-    fn new_inherited(
-        global: &GlobalScope,
-        navigation_start: u64,
-        navigation_start_precise: u64,
-    ) -> Performance {
+    fn new_inherited(navigation_start_precise: u64) -> Performance {
         Performance {
-            reflector_: Reflector::new(),
-            timing: if global.is::<Window>() {
-                Some(Dom::from_ref(&*PerformanceTiming::new(
-                    global.as_window(),
-                    navigation_start,
-                    navigation_start_precise,
-                )))
-            } else {
-                None
-            },
+            eventtarget: EventTarget::new_inherited(),
+            entries: DomRefCell::new(PerformanceEntryList::new(Vec::new())),
+            observers: DomRefCell::new(Vec::new()),
+            pending_notification_observers_task: Cell::new(false),
+            navigation_start_precise,
         }
     }
 
-    pub fn new(
-        global: &GlobalScope,
-        navigation_start: u64,
-        navigation_start_precise: u64,
-    ) -> DomRoot<Performance> {
+    pub fn new(global: &GlobalScope,
+               navigation_start_precise: u64) -> DomRoot<Performance> {
         reflect_dom_object(
-            Box::new(Performance::new_inherited(
-                global,
-                navigation_start,
-                navigation_start_precise,
-            )),
+            Box::new(Performance::new_inherited(navigation_start_precise)),
+            global,
+            PerformanceBinding::Wrap
         )
     }
 
