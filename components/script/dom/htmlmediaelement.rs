@@ -25,6 +25,7 @@ use dom::element::{Element, AttributeMutation};
 use dom::eventtarget::EventTarget;
 use dom::htmlelement::HTMLElement;
 use dom::htmlsourceelement::HTMLSourceElement;
+use dom::htmlvideoelement::HTMLVideoElement;
 use dom::mediaerror::MediaError;
 use dom::node::{document_from_node, window_from_node, Node, NodeDamage, UnbindContext};
 use dom::promise::Promise;
@@ -177,9 +178,9 @@ pub enum NetworkState {
 }
 
 /// <https://html.spec.whatwg.org/multipage/#dom-media-readystate>
-#[derive(Clone, Copy, JSTraceable, MallocSizeOf, PartialEq, PartialOrd)]
+#[derive(Clone, Copy, Debug, JSTraceable, MallocSizeOf, PartialEq, PartialOrd)]
 #[repr(u8)]
-enum ReadyState {
+pub enum ReadyState {
     HaveNothing = HTMLMediaElementConstants::HAVE_NOTHING as u8,
     HaveMetadata = HTMLMediaElementConstants::HAVE_METADATA as u8,
     HaveCurrentData = HTMLMediaElementConstants::HAVE_CURRENT_DATA as u8,
@@ -211,6 +212,10 @@ impl HTMLMediaElement {
             fetch_canceller: DomRefCell::new(Default::default()),
             show_poster: Cell::new(true),
         }
+    }
+
+    pub fn get_ready_state(&self) -> ReadyState {
+        self.ready_state.get()
     }
 
     fn media_type_id(&self) -> HTMLMediaElementTypeId {
@@ -952,8 +957,35 @@ impl HTMLMediaElement {
                 if !self.have_metadata.get() {
                     // https://html.spec.whatwg.org/multipage/#media-data-processing-steps-list
                     // => "Once enough of the media data has been fetched to determine the duration..."
+                    // Step 1.
+                    // servo-media owns the media timeline.
+
+                    // Step 2.
+                    // XXX(ferjm) Update the timeline offset.
+
+                    // Step 3.
+                    // XXX(ferjm) Set the current and official playback positions
+                    //            to the earliest possible position.
+
+                    // Step 4.
+                    // XXX(ferjm) Update duration.
+
+                    // Step 5.
+                    if self.is::<HTMLVideoElement>() {
+                        assert_ne!(self.ready_state.get(), ReadyState::HaveNothing);
+                        let video_elem = self.downcast::<HTMLVideoElement>().unwrap();
+                        video_elem.set_video_width(metadata.width);
+                        video_elem.set_video_height(metadata.height);
+                        let window = window_from_node(self);
+                        window.dom_manipulation_task_source().queue_simple_event(
+                            self.upcast(),
+                            atom!("resize"),
+                            &window,
+                        );
+                    }
+
                     if let Some(_dur) = metadata.duration {
-                        // Setp 6.
+                        // Step 6.
                         self.change_ready_state(ReadyState::HaveMetadata);
                         self.have_metadata.set(true);
                     }
