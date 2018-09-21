@@ -774,7 +774,7 @@ install them, let us know by filing a bug!")
 
     def handle_android_target(self, target):
         if target == "armv7-linux-androideabi":
-            self.config["android"]["platform"] = "android-18"
+            self.config["android"]["platform"] = "android-21"
             self.config["android"]["target"] = target
             self.config["android"]["toolchain_prefix"] = "arm-linux-androideabi"
             self.config["android"]["arch"] = "arm"

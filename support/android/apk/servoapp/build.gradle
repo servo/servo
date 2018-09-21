@@ -11,7 +11,7 @@ android {
 
     defaultConfig {
         applicationId "org.mozilla.servo"
-        minSdkVersion 18
+        minSdkVersion 21
         targetSdkVersion 27
         versionCode 1
         versionName "1.0.0"
@@ -29,10 +29,8 @@ android {
         main {
         }
         googlevr {
-            minSdkVersion 21
         }
         oculusvr {
-            minSdkVersion 21
         }
     }
 

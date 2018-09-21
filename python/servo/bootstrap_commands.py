@@ -92,7 +92,7 @@ class MachCommands(CommandBase):
         if not (build or emulator_x86):
             print("Must specify `--build` or `--emulator-x86` or both.")
 
-        ndk = "android-ndk-r12b-{system}-{arch}"
+        ndk = "android-ndk-r15c-{system}-{arch}"
         tools = "sdk-tools-{system}-4333796"
 
         emulator_platform = "android-28"
@@ -105,10 +105,10 @@ class MachCommands(CommandBase):
             "sdk-tools-windows-4333796.zip": "aa298b5346ee0d63940d13609fe6bec621384510",
 
             # https://developer.android.com/ndk/downloads/older_releases
-            "android-ndk-r12b-windows-x86.zip": "8e6eef0091dac2f3c7a1ecbb7070d4fa22212c04",
-            "android-ndk-r12b-windows-x86_64.zip": "337746d8579a1c65e8a69bf9cbdc9849bcacf7f5",
-            "android-ndk-r12b-darwin-x86_64.zip": "e257fe12f8947be9f79c10c3fffe87fb9406118a",
-            "android-ndk-r12b-linux-x86_64.zip": "170a119bfa0f0ce5dc932405eaa3a7cc61b27694",
+            "android-ndk-r15c-windows-x86.zip": "f2e47121feb73ec34ced5e947cbf1adc6b56246e",
+            "android-ndk-r15c-windows-x86_64.zip": "970bb2496de0eada74674bb1b06d79165f725696",
+            "android-ndk-r15c-darwin-x86_64.zip": "ea4b5d76475db84745aa8828000d009625fc1f98",
+            "android-ndk-r15c-linux-x86_64.zip": "0bf02d4e8b85fd770fd7b9b2cdec57f9441f27a2",
         }
 
         toolchains = path.join(self.context.topdir, "android-toolchains")

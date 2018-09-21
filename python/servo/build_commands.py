@@ -339,15 +339,15 @@ class MachCommands(CommandBase):
             shutil.copy(path.join(self.android_support_dir(), "openssl.makefile"), openssl_dir)
             shutil.copy(path.join(self.android_support_dir(), "openssl.sh"), openssl_dir)
 
-            # Check if the NDK version is 12
+            # Check if the NDK version is 15
             if not os.path.isfile(path.join(env["ANDROID_NDK"], 'source.properties')):
                 print("ANDROID_NDK should have file `source.properties`.")
                 print("The environment variable ANDROID_NDK may be set at a wrong path.")
                 sys.exit(1)
             with open(path.join(env["ANDROID_NDK"], 'source.properties')) as ndk_properties:
                 lines = ndk_properties.readlines()
-                if lines[1].split(' = ')[1].split('.')[0] != '12':
-                    print("Currently only support NDK 12.")
+                if lines[1].split(' = ')[1].split('.')[0] != '15':
+                    print("Currently only support NDK 15.")
                     sys.exit(1)
 
             env["RUST_TARGET"] = target
@@ -388,13 +388,20 @@ class MachCommands(CommandBase):
             env['PATH'] = (path.join(llvm_toolchain, "bin") + ':'
                            + path.join(gcc_toolchain, "bin") + ':'
                            + env['PATH'])
-            env['ANDROID_SYSROOT'] = path.join(env['ANDROID_NDK'], "platforms",
-                                               android_platform, "arch-" + android_arch)
+            env['ANDROID_SYSROOT'] = path.join(env['ANDROID_NDK'], "sysroot")
             support_include = path.join(env['ANDROID_NDK'], "sources", "android", "support", "include")
+            cpufeatures_include = path.join(env['ANDROID_NDK'], "sources", "android", "cpufeatures")
             cxx_include = path.join(env['ANDROID_NDK'], "sources", "cxx-stl",
-                                    "llvm-libc++", "libcxx", "include")
+                                    "llvm-libc++", "include")
             clang_include = path.join(llvm_toolchain, "lib64", "clang", "3.8", "include")
+            cxxabi_include = path.join(env['ANDROID_NDK'], "sources", "cxx-stl",
+                                       "llvm-libc++abi", "include")
             sysroot_include = path.join(env['ANDROID_SYSROOT'], "usr", "include")
+            arch_include = path.join(sysroot_include, android_toolchain_name)
+            android_platform_dir = path.join(env['ANDROID_NDK'], "platforms", android_platform, "arch-" + android_arch)
+            arch_libs = path.join(android_platform_dir, "usr", "lib")
+            clang_include = path.join(llvm_toolchain, "lib64", "clang", "5.0", "include")
+            android_api = android_platform.replace('android-', '')
             env['HOST_CC'] = host_cc
             env['HOST_CXX'] = host_cxx
             env['HOST_CFLAGS'] = ''
@@ -403,6 +410,9 @@ class MachCommands(CommandBase):
             env['CPP'] = path.join(llvm_toolchain, "bin", "clang") + " -E"
             env['CXX'] = path.join(llvm_toolchain, "bin", "clang++")
             env['ANDROID_TOOLCHAIN'] = gcc_toolchain
+            env['ANDROID_TOOLCHAIN_DIR'] = gcc_toolchain
+            env['ANDROID_VERSION'] = android_api
+            env['ANDROID_PLATFORM_DIR'] = android_platform_dir
             env['GCC_TOOLCHAIN'] = gcc_toolchain
             gcc_toolchain_bin = path.join(gcc_toolchain, android_toolchain_name, "bin")
             env['AR'] = path.join(gcc_toolchain_bin, "ar")
@@ -425,21 +435,40 @@ class MachCommands(CommandBase):
                 "--sysroot=" + env['ANDROID_SYSROOT'],
                 "--gcc-toolchain=" + gcc_toolchain,
                 "-isystem", sysroot_include,
-                "-L" + gcc_libs])
+                "-I" + arch_include,
+                "-B" + arch_libs,
+                "-L" + arch_libs,
+                "-D__ANDROID_API__=" + android_api,
+            ])
             env['CXXFLAGS'] = ' '.join([
                 "--target=" + target,
                 "--sysroot=" + env['ANDROID_SYSROOT'],
                 "--gcc-toolchain=" + gcc_toolchain,
-                "-I" + support_include,
+                "-I" + cpufeatures_include,
                 "-I" + cxx_include,
                 "-I" + clang_include,
                 "-isystem", sysroot_include,
+                "-I" + cxxabi_include,
+                "-I" + clang_include,
+                "-I" + arch_include,
+                "-I" + support_include,
                 "-L" + gcc_libs,
+                "-B" + arch_libs,
+                "-L" + arch_libs,
+                "-D__ANDROID_API__=" + android_api,
                 "-D__STDC_CONSTANT_MACROS",
-                "-D__NDK_FPABI__="])
-            env["NDK_ANDROID_VERSION"] = android_platform.replace("android-", "")
-            env['CPPFLAGS'] = ' '.join(["--sysroot", env['ANDROID_SYSROOT']])
-            env["CMAKE_ANDROID_ARCH_ABI"] = android_lib
+                "-D__NDK_FPABI__=",
+            ])
+            env['CPPFLAGS'] = ' '.join([
+                "--target=" + target,
+                "--sysroot=" + env['ANDROID_SYSROOT'],
+                "-I" + arch_include,
+            ])
+            env["NDK_ANDROID_VERSION"] = android_api
+            env["ANDROID_ABI"] = android_lib
+            env["ANDROID_PLATFORM"] = android_platform
+            env["ANDROID_TOOLCHAIN_NAME"] = "clang"
+            env["NDK_CMAKE_TOOLCHAIN_FILE"] = path.join(env['ANDROID_NDK'], "build", "cmake", "android.toolchain.cmake")
             env["CMAKE_TOOLCHAIN_FILE"] = path.join(self.android_support_dir(), "toolchain.cmake")
             # Set output dir for gradle aar files
             aar_out_dir = self.android_aar_dir()
