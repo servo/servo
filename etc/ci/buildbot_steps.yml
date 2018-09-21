@@ -184,6 +184,16 @@ android:
   - bash ./etc/ci/lockfile_changed.sh
   - python ./etc/ci/check_dynamic_symbols.py
   - ./etc/ci/clean_build_artifacts.sh
+  
+android-mac:
+ commands:
+  - ./mach clean-nightlies --keep 3 --force
+  - ./mach clean-cargo-cache --keep 3 --force
+  - ./etc/ci/bootstrap-android-and-accept-licences.sh
+  - env --unset ANDROID_NDK --unset ANDROID_SDK ./mach build --android --dev
+  - env --unset ANDROID_NDK --unset ANDROID_SDK ./mach package --android --dev
+  - bash ./etc/ci/lockfile_changed.sh
+  - ./etc/ci/clean_build_artifacts.sh
 
 android-x86:
  env:
