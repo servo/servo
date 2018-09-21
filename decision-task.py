@@ -48,7 +48,7 @@ def main():
     }
     build_kwargs = {
         "max_run_time_minutes": 60,
-        "dockerfile": "build-x86_64-linux.dockerfile",
+        "dockerfile": dockerfile_path("build"),
         "env": build_env,
         "scopes": cache_scopes,
         "cache": build_caches,
@@ -108,7 +108,7 @@ def main():
             env=dict(**env or {}, BUILD_TASK_ID=release_build_task),
             dependencies=[release_build_task],
             max_run_time_minutes=60,
-            dockerfile="run-x86_64-linux.dockerfile",
+            dockerfile=dockerfile_path("run"),
             **kwargs
         )
 
@@ -156,6 +156,9 @@ def main():
         )
 
 
+def dockerfile_path(name):
+    return os.path.join(os.path.dirname(__file__), "docker", name + ".dockerfile")
+
+
 if __name__ == "__main__":
-    os.chdir(os.path.join(".", os.path.dirname(__file__)))
     main()

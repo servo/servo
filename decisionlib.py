@@ -80,8 +80,7 @@ class DecisionTask:
         return task_id
 
     def find_or_build_docker_image(self, dockerfile):
-        with open(dockerfile, "rb") as f:
-            dockerfile_contents = f.read()
+        dockerfile_contents = expand_dockerfile(dockerfile)
         digest = hashlib.sha256(dockerfile_contents).hexdigest()
 
         return self.find_or_create_task(
@@ -208,6 +207,20 @@ def image_name(dockerfile):
         return basename[:-len(suffix)]
     else:
         return basename
+
+
+def expand_dockerfile(dockerfile):
+    with open(dockerfile, "rb") as f:
+        dockerfile_contents = f.read()
+
+    include_marker = b"% include"
+    if not dockerfile_contents.startswith(include_marker):
+        return dockerfile_contents
+
+    include_line, _, rest = dockerfile_contents.partition(b"\n")
+    included = include_line[len(include_marker):].strip().decode("utf8")
+    path = os.path.join(os.path.dirname(dockerfile), included)
+    return b"\n".join([expand_dockerfile(path), rest])
 
 
 def deindent(string):

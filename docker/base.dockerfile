@@ -2,7 +2,7 @@ FROM ubuntu:bionic-20180821
 
 ENV \
     #
-    # The 'tzdata' APT package waits for user input on install by default
+    # Some APT packages like 'tzdata' wait for user input on install by default.
     # https://stackoverflow.com/questions/44331836/apt-get-install-tzdata-noninteractive
     DEBIAN_FRONTEND=noninteractive
 
@@ -18,12 +18,6 @@ RUN \
         python2.7 \
         virtualenv \
         #
-        # Fetching build artifacts
-        curl \
-        #
-        # Servo’s runtime dependencies
-        libgl1 \
-        libssl1.0.0 \
-        libdbus-1-3 \
-        libgstreamer-plugins-bad1.0-0 \
-        gstreamer1.0-plugins-good
+        # Installing rustup and sccache (build dockerfile) or fetching build artifacts (run tasks)
+        curl
+
