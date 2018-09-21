@@ -72,9 +72,7 @@ use style_traits::CSSPixel;
 use style_traits::SpeculativePainter;
 use style_traits::cursor::CursorKind;
 use webdriver_msg::{LoadStatus, WebDriverScriptCommand};
-use webrender_api::{
-    DevicePixel, DeviceUintSize, DocumentId, ExternalScrollId, ImageKey, RenderApiSender,
-};
+use webrender_api::{DevicePixel, DeviceUintSize, DocumentId, ExternalScrollId, ImageKey, RenderApiSender};
 use webvr_traits::{WebVREvent, WebVRMsg};
 
 pub use script_msg::{LayoutMsg, ScriptMsg, EventResult, LogEntry};
