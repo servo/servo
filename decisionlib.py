@@ -88,7 +88,7 @@ class DecisionTask:
             route_key=digest,
             route_expiry=self.docker_image_cache_expiry,
 
-            task_name="Docker image build task for image: " + image_name(dockerfile),
+            task_name="Docker image: " + image_name(dockerfile),
             script="""
                 echo "$DOCKERFILE" | docker build -t taskcluster-built -
                 docker save taskcluster-built | lz4 > /%s
