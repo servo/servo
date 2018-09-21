@@ -194,7 +194,7 @@ class DecisionTask:
 
         task_id = taskcluster.slugId().decode("utf8")
         self.queue_service.createTask(task_id, payload)
-        print("Scheduled %s: %s" % (task_name, task_id))
+        print("Scheduled %s" % task_name)
         return task_id
 
 
