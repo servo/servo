@@ -15,9 +15,9 @@ use std::cell::Cell;
 #[dom_struct]
 pub struct HTMLVideoElement {
     htmlmediaelement: HTMLMediaElement,
-    /// https://html.spec.whatwg.org/multipage/media.html#dom-video-videowidth
+    /// https://html.spec.whatwg.org/multipage/#dom-video-videowidth
     video_width: Cell<u32>,
-    /// https://html.spec.whatwg.org/multipage/media.html#dom-video-videoheight
+    /// https://html.spec.whatwg.org/multipage/#dom-video-videoheight
     video_height: Cell<u32>,
 }
 
@@ -59,6 +59,7 @@ impl HTMLVideoElement {
 }
 
 impl HTMLVideoElementMethods for HTMLVideoElement {
+    // https://html.spec.whatwg.org/multipage/#dom-video-videowidth
     fn VideoWidth(&self) -> u32 {
         if self.htmlmediaelement.get_ready_state() == ReadyState::HaveNothing {
             return 0;
@@ -66,6 +67,7 @@ impl HTMLVideoElementMethods for HTMLVideoElement {
         self.video_width.get()
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-video-videoheight
     fn VideoHeight(&self) -> u32 {
         if self.htmlmediaelement.get_ready_state() == ReadyState::HaveNothing {
             return 0;

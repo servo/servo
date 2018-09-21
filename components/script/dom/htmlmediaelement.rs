@@ -43,9 +43,9 @@ use net_traits::request::{CredentialsMode, Destination, RequestInit};
 use network_listener::{NetworkListener, PreInvoke};
 use script_layout_interface::HTMLMediaData;
 use script_thread::ScriptThread;
+use servo_media::ServoMedia;
 use servo_media::player::{PlaybackState, Player, PlayerEvent};
 use servo_media::player::frame::{Frame, FrameRenderer};
-use servo_media::ServoMedia;
 use servo_url::ServoUrl;
 use std::cell::Cell;
 use std::collections::VecDeque;
@@ -112,12 +112,12 @@ impl FrameRenderer for MediaFrameRenderer {
                 *image_key = new_image_key;
                 *width = frame.get_width();
                 *height = frame.get_height();
-            }
+            },
             None => {
                 let image_key = self.api.generate_image_key();
                 txn.add_image(image_key, descriptor, image_data, None);
                 self.current_frame = Some((image_key, frame.get_width(), frame.get_height()));
-            }
+            },
         }
 
         self.api.update_resources(txn.resource_updates);
@@ -164,9 +164,9 @@ pub struct HTMLMediaElement {
     #[ignore_malloc_size_of = "Arc"]
     frame_renderer: Arc<Mutex<MediaFrameRenderer>>,
     fetch_canceller: DomRefCell<FetchCanceller>,
-    /// https://html.spec.whatwg.org/multipage/media.html#show-poster-flag
+    /// https://html.spec.whatwg.org/multipage/#show-poster-flag
     show_poster: Cell<bool>,
-    /// https://html.spec.whatwg.org/multipage/media.html#dom-media-duration
+    /// https://html.spec.whatwg.org/multipage/#dom-media-duration
     duration: Cell<f64>,
 }
 
@@ -210,8 +210,9 @@ impl HTMLMediaElement {
             in_flight_play_promises_queue: Default::default(),
             have_metadata: Cell::new(false),
             player: ServoMedia::get().unwrap().create_player().unwrap(),
-            frame_renderer:
-                Arc::new(Mutex::new(MediaFrameRenderer::new(document.window().get_webrender_api_sender()))),
+            frame_renderer: Arc::new(Mutex::new(MediaFrameRenderer::new(
+                document.window().get_webrender_api_sender(),
+            ))),
             fetch_canceller: DomRefCell::new(Default::default()),
             show_poster: Cell::new(true),
             duration: Cell::new(f64::NAN),
@@ -321,7 +322,8 @@ impl HTMLMediaElement {
                     });
                 }),
                     window.upcast(),
-                ).unwrap();
+                )
+                .unwrap();
         }
 
         // Step 8.
@@ -331,7 +333,7 @@ impl HTMLMediaElement {
         // Not applicable here, the promise is returned from Play.
     }
 
-    /// https://html.spec.whatwg.org/multipage/media.html#time-marches-on
+    /// https://html.spec.whatwg.org/multipage/#time-marches-on
     fn time_marches_on(&self) {
         // TODO: implement this.
     }
@@ -540,7 +542,7 @@ impl HTMLMediaElement {
     fn resource_selection_algorithm_sync(&self, base_url: ServoUrl) {
         // Step 5.
         // FIXME(ferjm): Implement blocked_on_parser logic
-        // https://html.spec.whatwg.org/multipage/media.html#blocked-on-parser
+        // https://html.spec.whatwg.org/multipage/#blocked-on-parser
         // FIXME(nox): Maybe populate the list of pending text tracks.
 
         // Step 6.
@@ -670,7 +672,8 @@ impl HTMLMediaElement {
                             this.root().delay_load_event(false);
                         }),
                             window.upcast(),
-                        ).unwrap();
+                        )
+                        .unwrap();
 
                     // Steps 4.remote.1.4.
                     // FIXME(nox): Somehow we should wait for the task from previous
@@ -719,8 +722,13 @@ impl HTMLMediaElement {
                 );
                 let cancel_receiver = self.fetch_canceller.borrow_mut().initialize();
                 let global = self.global();
-                global.core_resource_thread().send(
-                    CoreResourceMsg::Fetch(request, FetchChannels::ResponseMsg(action_sender, Some(cancel_receiver)))).unwrap();
+                global
+                    .core_resource_thread()
+                    .send(CoreResourceMsg::Fetch(
+                        request,
+                        FetchChannels::ResponseMsg(action_sender, Some(cancel_receiver)),
+                    ))
+                    .unwrap();
             },
             Resource::Object => {
                 // FIXME(nox): Actually do something with the object.
@@ -931,7 +939,8 @@ impl HTMLMediaElement {
         let (action_sender, action_receiver) = ipc::channel().unwrap();
 
         self.player.register_event_handler(action_sender);
-        self.player.register_frame_renderer(self.frame_renderer.clone());
+        self.player
+            .register_frame_renderer(self.frame_renderer.clone());
         // XXXferjm this can fail.
         self.player.setup().unwrap();
 
@@ -950,7 +959,8 @@ impl HTMLMediaElement {
                             this.root().handle_player_event(&event);
                         }),
                         &task_canceller,
-                    ).unwrap();
+                    )
+                    .unwrap();
             }),
         );
     }
@@ -979,11 +989,7 @@ impl HTMLMediaElement {
                     }
                     let window = window_from_node(self);
                     let task_source = window.dom_manipulation_task_source();
-                    task_source.queue_simple_event(
-                        self.upcast(),
-                        atom!("durationchange"),
-                        &window,
-                    );
+                    task_source.queue_simple_event(self.upcast(), atom!("durationchange"), &window);
 
                     // Step 5.
                     if self.is::<HTMLVideoElement>() {
@@ -991,40 +997,38 @@ impl HTMLMediaElement {
                         let video_elem = self.downcast::<HTMLVideoElement>().unwrap();
                         video_elem.set_video_width(metadata.width);
                         video_elem.set_video_height(metadata.height);
-                        task_source.queue_simple_event(
-                            self.upcast(),
-                            atom!("resize"),
-                            &window,
-                        );
+                        task_source.queue_simple_event(self.upcast(), atom!("resize"), &window);
                     }
 
                     // Step 6.
                     self.change_ready_state(ReadyState::HaveMetadata);
                     self.have_metadata.set(true);
+
+                // XXX(ferjm) Steps 7 to 13.
                 } else {
                     // => set the element's delaying-the-load-event flag to false
                     self.change_ready_state(ReadyState::HaveCurrentData);
                 }
-            }
+            },
             PlayerEvent::StateChanged(ref state) => match *state {
                 PlaybackState::Paused => {
                     if self.ready_state.get() == ReadyState::HaveMetadata {
                         self.change_ready_state(ReadyState::HaveEnoughData);
                     }
-                }
-                _ => {}
+                },
+                _ => {},
             },
-            PlayerEvent::EndOfStream => {}
+            PlayerEvent::EndOfStream => {},
             PlayerEvent::FrameUpdated => {
                 self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
-            }
+            },
             PlayerEvent::Error => {
                 self.error.set(Some(&*MediaError::new(
                     &*window_from_node(self),
                     MEDIA_ERR_DECODE,
                 )));
                 self.upcast::<EventTarget>().fire_event(atom!("error"));
-            }
+            },
         }
     }
 }
@@ -1117,7 +1121,7 @@ impl HTMLMediaElementMethods for HTMLMediaElement {
         self.paused.get()
     }
 
-    // https://html.spec.whatwg.org/multipage/media.html#dom-media-duration
+    // https://html.spec.whatwg.org/multipage/#dom-media-duration
     fn Duration(&self) -> f64 {
         self.duration.get()
     }
@@ -1301,7 +1305,7 @@ impl FetchResponseListener for HTMLMediaElementContext {
             // Until then, we comment out the failure steps.
             //
             //elem.queue_dedicated_media_source_failure_steps();
-        // => "Once the entire media resource has been fetched..."
+            // => "Once the entire media resource has been fetched..."
         } else if status.is_ok() {
             elem.change_ready_state(ReadyState::HaveEnoughData);
 
