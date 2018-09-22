@@ -2221,7 +2221,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             }
 
             // Restore bound texture unit if it has been changed.
-            if active_unit_enum == self.textures.active_unit_enum() {
+            if active_unit_enum != self.textures.active_unit_enum() {
                 self.send_command(WebGLCommand::ActiveTexture(
                     self.textures.active_unit_enum(),
                 ));
