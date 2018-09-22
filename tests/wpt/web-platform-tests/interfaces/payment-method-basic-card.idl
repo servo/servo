@@ -4,17 +4,30 @@
 // Source: Payment Method: Basic Card (https://w3c.github.io/payment-method-basic-card/)
 
 dictionary BasicCardRequest {
-        sequence<DOMString> supportedNetworks;
-        sequence<BasicCardType> supportedTypes;
-      };
+  sequence<DOMString> supportedNetworks;
+  sequence<BasicCardType> supportedTypes;
+};
+
+dictionary BasicCardChangeDetails {
+  PaymentAddress? billingAddress;
+};
 
 enum BasicCardType { "credit", "debit", "prepaid" };
 
 dictionary BasicCardResponse {
-          required DOMString cardNumber;
-          DOMString cardholderName;
-          DOMString cardSecurityCode;
-          DOMString expiryMonth;
-          DOMString expiryYear;
-          PaymentAddress? billingAddress;
-        };
+  required DOMString cardNumber;
+  DOMString cardholderName;
+  DOMString cardSecurityCode;
+  DOMString expiryMonth;
+  DOMString expiryYear;
+  PaymentAddress? billingAddress;
+};
+
+dictionary BasicCardErrors {
+  DOMString cardNumber;
+  DOMString cardholderName;
+  DOMString cardSecurityCode;
+  DOMString expiryMonth;
+  DOMString expiryYear;
+  AddressErrors billingAddress;
+};

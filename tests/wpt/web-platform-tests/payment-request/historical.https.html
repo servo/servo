@@ -19,6 +19,8 @@
   ["paymentRequestId", "PaymentRequest"],
   ["paymentRequestId", "PaymentResponse"],
 
+  // https://github.com/w3c/payment-request/pull/765
+  ["languageCode", "PaymentAddress"],
 ].forEach(([member, interf]) => {
   test(() => {
     assert_false(member in window[interf].prototype);

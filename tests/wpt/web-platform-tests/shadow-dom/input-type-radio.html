@@ -1,0 +1,73 @@
+<!doctype html>
+<meta charset=utf-8>
+<title></title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<input type="radio" name="group" id="lightRadio1">
+<input type="radio" name="group" id="lightRadio2">
+<div id="host"></div>
+<script>
+
+test(() => {
+    var lightRadio1 = document.getElementById("lightRadio1");
+    var lightRadio2 = document.getElementById("lightRadio2");
+
+    var host = document.getElementById("host");
+    var sr = host.attachShadow({mode: "closed"});
+    var shadowRadio1 = document.createElement("input");
+    shadowRadio1.name = "group";
+    shadowRadio1.id = "shadowRadio1";
+    shadowRadio1.type = "radio";
+    sr.appendChild(shadowRadio1);
+    var shadowRadio2 = document.createElement("input");
+    shadowRadio2.name = "group";
+    shadowRadio2.id = "shadowRadio2";
+    shadowRadio2.type = "radio";
+    sr.appendChild(shadowRadio2);
+
+    assert_false(lightRadio1.checked);
+    assert_false(lightRadio2.checked);
+    assert_false(shadowRadio1.checked);
+    assert_false(shadowRadio2.checked);
+
+    lightRadio1.click();
+    assert_true(lightRadio1.checked);
+    assert_false(lightRadio2.checked);
+    assert_false(shadowRadio1.checked);
+    assert_false(shadowRadio2.checked);
+
+    lightRadio2.click();
+    assert_false(lightRadio1.checked);
+    assert_true(lightRadio2.checked);
+    assert_false(shadowRadio1.checked);
+    assert_false(shadowRadio2.checked);
+
+    shadowRadio1.click();
+    assert_false(lightRadio1.checked);
+    assert_true(lightRadio2.checked);
+    assert_true(shadowRadio1.checked);
+    assert_false(shadowRadio2.checked);
+
+    shadowRadio2.click();
+    assert_false(lightRadio1.checked);
+    assert_true(lightRadio2.checked);
+    assert_false(shadowRadio1.checked);
+    assert_true(shadowRadio2.checked);
+
+    // Ensure radio groups work even when modifying shadow DOM.
+    shadowRadio2.remove();
+    sr.appendChild(shadowRadio2);
+    shadowRadio2.click();
+    assert_false(lightRadio1.checked);
+    assert_true(lightRadio2.checked);
+    assert_false(shadowRadio1.checked);
+    assert_true(shadowRadio2.checked);
+
+    shadowRadio1.click();
+    assert_false(lightRadio1.checked);
+    assert_true(lightRadio2.checked);
+    assert_true(shadowRadio1.checked);
+    assert_false(shadowRadio2.checked);
+}, "input type=radio elements should form a group inside shadow DOM.");
+
+</script>

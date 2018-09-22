@@ -1,6 +1,5 @@
 import json
 import os
-import socket
 import threading
 import traceback
 import urlparse
@@ -85,7 +84,7 @@ class MarionetteBaseProtocolPart(BaseProtocolPart):
         if socket_timeout:
             try:
                 self.marionette.timeout.script = socket_timeout / 2
-            except (socket.error, IOError):
+            except IOError:
                 self.logger.debug("Socket closed")
                 return
 
@@ -98,7 +97,7 @@ class MarionetteBaseProtocolPart(BaseProtocolPart):
             except errors.ScriptTimeoutException:
                 self.logger.debug("Script timed out")
                 pass
-            except (socket.timeout, IOError):
+            except IOError:
                 self.logger.debug("Socket closed")
                 break
             except Exception as e:
@@ -316,7 +315,7 @@ class MarionetteAssertsProtocolPart(AssertsProtocolPart):
             except errors.NoSuchWindowException:
                 # If the window was already closed
                 self.parent.logger.warning("Failed to get assertion count; window was closed")
-            except (errors.MarionetteException, socket.error):
+            except (errors.MarionetteException, IOError):
                 # This usually happens if the process crashed
                 pass
 
@@ -399,7 +398,7 @@ class MarionetteCoverageProtocolPart(CoverageProtocolPart):
                 error = self.marionette.execute_async_script(script)
                 if error is not None:
                     raise Exception('Failure while resetting counters: %s' % json.dumps(error))
-            except (errors.MarionetteException, socket.error):
+            except (errors.MarionetteException, IOError):
                 # This usually happens if the process crashed
                 pass
 
@@ -419,7 +418,7 @@ class MarionetteCoverageProtocolPart(CoverageProtocolPart):
                 error = self.marionette.execute_async_script(script)
                 if error is not None:
                     raise Exception('Failure while dumping counters: %s' % json.dumps(error))
-            except (errors.MarionetteException, socket.error):
+            except (errors.MarionetteException, IOError):
                 # This usually happens if the process crashed
                 pass
 
@@ -567,7 +566,7 @@ class ExecuteAsyncScriptRun(object):
         except errors.ScriptTimeoutException:
             self.logger.debug("Got a marionette timeout")
             self.result = False, ("EXTERNAL-TIMEOUT", None)
-        except (socket.timeout, IOError):
+        except IOError:
             # This can happen on a crash
             # Also, should check after the test if the firefox process is still running
             # and otherwise ignore any other result and set it to crash

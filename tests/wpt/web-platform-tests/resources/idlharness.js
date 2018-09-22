@@ -3251,7 +3251,11 @@ function idl_test(srcs, deps, idl_setup_func) {
  * fetch_spec is a shorthand for a Promise that fetches the spec's content.
  */
 function fetch_spec(spec) {
-    return fetch('/interfaces/' + spec + '.idl').then(function (r) {
+    var url = '/interfaces/' + spec + '.idl';
+    return fetch(url).then(function (r) {
+        if (!r.ok) {
+            throw new IdlHarnessError("Error fetching " + url + ".");
+        }
         return r.text();
     });
 }
