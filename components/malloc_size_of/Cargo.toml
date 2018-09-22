@@ -37,7 +37,7 @@ serde_bytes = { version = "0.10", optional = true }
 servo_arc = { path = "../servo_arc" }
 servo_channel = { path = "../channel", optional = true }
 smallbitvec = "2.1.0"
-smallvec = { version = "0.6", features = ["std", "union"] }
+smallvec = "0.6"
 string_cache = { version = "0.7", optional = true }
 thin-slice = "0.1.0"
 time = { version = "0.1.17", optional = true }

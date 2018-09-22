@@ -28,7 +28,7 @@ fxhash = "0.2"
 phf = "0.7.18"
 precomputed-hash = "0.1"
 servo_arc = { version = "0.1", path = "../servo_arc" }
-smallvec = { version = "0.6", features = ["std", "union"] }
+smallvec = "0.6"
 thin-slice = "0.1.0"
 
 [build-dependencies]
