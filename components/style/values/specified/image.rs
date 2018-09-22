@@ -33,6 +33,20 @@ use values::specified::url::SpecifiedImageUrl;
 /// A specified image layer.
 pub type ImageLayer = Either<None_, Image>;
 
+impl ImageLayer {
+    /// This is a specialization of Either with an alternative parse
+    /// method to provide anonymous CORS headers for the Image url fetch.
+    pub fn parse_with_cors_anonymous<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
+        if let Ok(v) = input.try(|i| None_::parse(context, i)) {
+            return Ok(Either::First(v));
+        }
+        Image::parse_with_cors_anonymous(context, input).map(Either::Second)
+    }
+}
+
 /// Specified values for an image according to CSS-IMAGES.
 /// <https://drafts.csswg.org/css-images/#image-values>
 pub type Image = generic::Image<Gradient, MozImageRect, SpecifiedImageUrl>;

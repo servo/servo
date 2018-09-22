@@ -183,6 +183,7 @@ ${helpers.predefined_type(
     "ImageLayer",
     "Either::First(None_)",
     initial_specified_value="Either::First(None_)",
+    parse_method="parse_with_cors_anonymous",
     spec="https://drafts.fxtf.org/css-masking/#propdef-mask-image",
     vector=True,
     products="gecko",
