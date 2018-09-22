@@ -437,7 +437,7 @@ impl WebGLRenderingContext {
     fn mark_as_dirty(&self) {
         // If we don't have a bound framebuffer, then don't mark the canvas
         // as dirty.
-        if !self.bound_framebuffer.get().is_none() {
+        if self.bound_framebuffer.get().is_some() {
             self.canvas
                 .upcast::<Node>()
                 .dirty(NodeDamage::OtherNodeDamage);
