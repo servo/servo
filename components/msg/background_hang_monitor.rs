@@ -2,41 +2,40 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use atomic::{Atomic, Ordering};
 use backtrace::Backtrace;
 use constellation_msg::{HangAlert, HangAnnotation};
 use constellation_msg::{MonitoredComponentId, MonitoredComponentMsg};
 use ipc_channel::ipc::IpcSender;
 use libc;
-use servo_channel::{Receiver, Sender, base_channel, channel};
+use servo_channel::{Receiver, base_channel};
 use std::collections::HashMap;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::thread;
 use std::time::{Duration, Instant};
 
 
+/// The means of communication between monitored and monitor, inside of a "trace transaction".
+pub static mut BACKTRACE: Option<(libc::pthread_t, Backtrace)> = None;
+
 lazy_static! {
-    /// The means of communication between monitored and monitoree.
-    pub static ref BACKTRACE: Atomic<Option<(libc::pthread_t, [u8; 400])>> = Atomic::new(None);
+    /// A flag used to create a "trace transaction" around the workflow of accessing the backtrace,
+    /// from a monitored thread inside a SIGPROF handler, and the background hang monitor.
+    pub static ref BACKTRACE_READY: AtomicBool = AtomicBool::new(false);
 }
 
 #[allow(unsafe_code)]
-unsafe fn get_backtrace_from_monitored_component(monitored: &MonitoredComponent) -> String {
-    //assert!(Atomic::<Option<(libc::pthread_t, [char; 200])>>::is_lock_free());
+unsafe fn get_backtrace_from_monitored_component(monitored: &MonitoredComponent) -> Backtrace {
     libc::pthread_kill(monitored.thread_id, libc::SIGPROF);
     loop {
-        if BACKTRACE.load(Ordering::SeqCst).is_some() {
+        if BACKTRACE_READY.load(Ordering::SeqCst) {
             break;
         }
         thread::yield_now();
     }
-    let (thread_id, trace) = BACKTRACE.load(Ordering::SeqCst).unwrap();
+    let (thread_id, trace) = BACKTRACE.take().unwrap();
     assert_eq!(thread_id, monitored.thread_id);
-    let mut trace_vec = Vec::new();
-    for x in trace.iter() {
-        trace_vec.push(*x);
-    }
-    BACKTRACE.store(None, Ordering::SeqCst);
-    String::from_utf8(trace_vec).unwrap()
+    BACKTRACE_READY.store(false, Ordering::SeqCst);
+    trace
 }
 
 struct MonitoredComponent {
@@ -160,7 +159,7 @@ impl BackgroundHangMonitor {
                         HangAlert::Permanent(
                             component_id.clone(),
                             last_annotation,
-                            trace
+                            format!("{:?}", trace)
                         )
                     );
                 monitored.sent_permanent_alert = true;

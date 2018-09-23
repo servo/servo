@@ -10,7 +10,6 @@ use msg::constellation_msg::{HangAnnotation, HangAlert, ScriptHangAnnotation};
 use msg::constellation_msg::{init_background_hang_monitor, start_monitoring_component};
 use msg::constellation_msg::{MonitoredComponentType, MonitoredComponentMsg, MonitoredComponentId};
 use msg::constellation_msg::TEST_PIPELINE_ID;
-use std::sync::{Arc, Barrier};
 use std::thread;
 use std::time::Duration;
 

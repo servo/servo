@@ -4,7 +4,6 @@
 
 #![deny(unsafe_code)]
 
-extern crate atomic;
 extern crate backtrace;
 #[macro_use]
 extern crate bitflags;
