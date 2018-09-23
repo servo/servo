@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use atomic::{Atomic, Ordering};
 use backtrace::Backtrace;
 use constellation_msg::{HangAlert, HangAnnotation};
 use constellation_msg::{MonitoredComponentId, MonitoredComponentMsg};
@@ -9,41 +10,33 @@ use ipc_channel::ipc::IpcSender;
 use libc;
 use servo_channel::{Receiver, Sender, base_channel, channel};
 use std::collections::HashMap;
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::thread;
 use std::time::{Duration, Instant};
 
-/// The means of communication between monitored and monitor, inside of a "trace transaction".
-pub static mut TRACE_SENDER: Option<Sender<(libc::pthread_t, Backtrace)>> = None;
 
 lazy_static! {
-    /// A flag used to create a "trace transaction" around the workflow of accessing the backtrace,
-    /// from a monitored thread inside a SIGPROF handler, and the background hang monitor.
-    static ref CURRENTLY_TRACING: AtomicBool = AtomicBool::new(false);
+    /// The means of communication between monitored and monitoree.
+    pub static ref BACKTRACE: Atomic<Option<(libc::pthread_t, [u8; 400])>> = Atomic::new(None);
 }
 
 #[allow(unsafe_code)]
-unsafe fn get_backtrace_from_monitored_component(monitored: &MonitoredComponent) -> Backtrace {
+unsafe fn get_backtrace_from_monitored_component(monitored: &MonitoredComponent) -> String {
+    //assert!(Atomic::<Option<(libc::pthread_t, [char; 200])>>::is_lock_free());
+    libc::pthread_kill(monitored.thread_id, libc::SIGPROF);
     loop {
-        // Start a new "trace transaction", if none is currently ongoing.
-        let currently_tracing = CURRENTLY_TRACING.compare_and_swap(
-            false,
-            true,
-            Ordering::SeqCst,
-        );
-        if !currently_tracing  {
+        if BACKTRACE.load(Ordering::SeqCst).is_some() {
             break;
         }
+        thread::yield_now();
     }
-    // Begining of the current "trace transaction".
-    let (sender, receiver) = channel();
-    TRACE_SENDER = Some(sender);
-    libc::pthread_kill(monitored.thread_id, libc::SIGPROF);
-    let (thread_id, trace) = receiver.recv().unwrap();
+    let (thread_id, trace) = BACKTRACE.load(Ordering::SeqCst).unwrap();
     assert_eq!(thread_id, monitored.thread_id);
-    TRACE_SENDER = None;
-    CURRENTLY_TRACING.store(false, Ordering::SeqCst);
-    // End of the current "trace transaction".
-    trace
+    let mut trace_vec = Vec::new();
+    for x in trace.iter() {
+        trace_vec.push(*x);
+    }
+    BACKTRACE.store(None, Ordering::SeqCst);
+    String::from_utf8(trace_vec).unwrap()
 }
 
 struct MonitoredComponent {
@@ -65,36 +58,14 @@ pub struct BackgroundHangMonitor {
 
 impl BackgroundHangMonitor {
     pub fn new(
-        thread_id: libc::pthread_t,
-        port: Receiver<(MonitoredComponentId, MonitoredComponentMsg)>,
         constellation_chan: IpcSender<HangAlert>,
-        component_id: MonitoredComponentId,
-        transient_hang_timeout: Duration,
-        permanent_hang_timeout: Duration,
+        port: Receiver<(MonitoredComponentId, MonitoredComponentMsg)>,
     ) -> Self {
-        let mut monitor = BackgroundHangMonitor {
+        BackgroundHangMonitor {
             monitored_components: Default::default(),
             constellation_chan,
             port,
-        };
-        let component = MonitoredComponent {
-            thread_id,
-            last_activity: Instant::now(),
-            last_annotation: None,
-            transient_hang_timeout,
-            permanent_hang_timeout,
-            sent_transient_alert: false,
-            sent_permanent_alert: false,
-            is_waiting: true,
-        };
-        assert!(
-            monitor
-                .monitored_components
-                .insert(component_id, component)
-                .is_none(),
-            "This component was already registered for monitoring."
-        );
-        monitor
+        }
     }
 
     pub fn run(&mut self) -> bool {
@@ -122,11 +93,33 @@ impl BackgroundHangMonitor {
 
     fn handle_msg(&mut self, msg: (MonitoredComponentId, MonitoredComponentMsg)) {
         match msg {
+            (component_id, MonitoredComponentMsg::Register(
+                    thread_id,
+                    transient_hang_timeout,
+                    permanent_hang_timeout)) => {
+                let component = MonitoredComponent {
+                    thread_id,
+                    last_activity: Instant::now(),
+                    last_annotation: None,
+                    transient_hang_timeout,
+                    permanent_hang_timeout,
+                    sent_transient_alert: false,
+                    sent_permanent_alert: false,
+                    is_waiting: true,
+                };
+                assert!(
+                    self
+                        .monitored_components
+                        .insert(component_id, component)
+                        .is_none(),
+                    "This component was already registered for monitoring."
+                );
+            },
             (component_id, MonitoredComponentMsg::NotifyActivity(annotation)) => {
                 let mut component = self
                     .monitored_components
                     .get_mut(&component_id)
-                    .expect("Receiced NotifyActivity for an unknown component");
+                    .expect("Received NotifyActivity for an unknown component");
                 component.last_activity = Instant::now();
                 component.last_annotation = Some(annotation);
                 component.sent_transient_alert = false;
@@ -137,7 +130,7 @@ impl BackgroundHangMonitor {
                 let mut component = self
                     .monitored_components
                     .get_mut(&component_id)
-                    .expect("Receiced NotifyWait for an unknown component");
+                    .expect("Received NotifyWait for an unknown component");
                 component.last_activity = Instant::now();
                 component.sent_transient_alert = false;
                 component.sent_permanent_alert = false;
@@ -154,37 +147,33 @@ impl BackgroundHangMonitor {
             }
             let last_annotation = monitored.last_annotation.unwrap();
             if monitored.last_activity.elapsed() > monitored.permanent_hang_timeout {
-                match monitored.sent_permanent_alert {
-                    true => continue,
-                    false => {
-                        let trace = unsafe {
-                            get_backtrace_from_monitored_component(&monitored)
-                        };
-                        let _ = self
-                            .constellation_chan
-                            .send(
-                                HangAlert::Permanent(
-                                    component_id.clone(),
-                                    last_annotation,
-                                    format!("{:?}", trace)
-                                )
-                            );
-                        monitored.sent_permanent_alert = true;
-                        continue;
-                    },
+                if monitored.sent_permanent_alert {
+                    continue;
                 }
+                let trace = unsafe {
+                    get_backtrace_from_monitored_component(&monitored)
+                };
+                println!("Trace: {:?}", trace);
+                let _ = self
+                    .constellation_chan
+                    .send(
+                        HangAlert::Permanent(
+                            component_id.clone(),
+                            last_annotation,
+                            trace
+                        )
+                    );
+                monitored.sent_permanent_alert = true;
+                continue;
             }
             if monitored.last_activity.elapsed() > monitored.transient_hang_timeout {
-                match monitored.sent_transient_alert {
-                    true => continue,
-                    false => {
-                        let _ = self
-                            .constellation_chan
-                            .send(HangAlert::Transient(component_id.clone(), last_annotation));
-                        monitored.sent_transient_alert = true;
-                    },
+                if monitored.sent_transient_alert {
+                    continue;
                 }
-                continue;
+                let _ = self
+                    .constellation_chan
+                    .send(HangAlert::Transient(component_id.clone(), last_annotation));
+                monitored.sent_transient_alert = true;
             }
         }
     }

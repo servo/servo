@@ -88,7 +88,7 @@ use gaol::sandbox::{ChildSandbox, ChildSandboxMethods};
 use gfx::font_cache_thread::FontCacheThread;
 use ipc_channel::ipc::{self, IpcSender};
 use log::{Log, Metadata, Record};
-use msg::constellation_msg::{PipelineNamespace, PipelineNamespaceId};
+use msg::constellation_msg::{self, PipelineNamespace, PipelineNamespaceId};
 use net::resource_thread::new_resource_threads;
 use net_traits::IpcSend;
 use profile::mem as profile_mem;
@@ -649,6 +649,12 @@ pub fn run_content_process(token: String) {
         create_sandbox();
     }
 
+    let monitor_chan = constellation_msg::init_background_hang_monitor(
+        unprivileged_content
+            .background_hang_monitor_to_constellation_chan()
+            .clone()
+    );
+
     // send the required channels to the service worker manager
     let sw_senders = unprivileged_content.swmanager_senders();
     script::init();
@@ -656,7 +662,7 @@ pub fn run_content_process(token: String) {
 
     unprivileged_content.start_all::<script_layout_interface::message::Msg,
                                      layout_thread::LayoutThread,
-                                     script::script_thread::ScriptThread>(true);
+                                     script::script_thread::ScriptThread>(true, monitor_chan);
 }
 
 #[cfg(all(not(target_os = "windows"), not(target_os = "ios")))]

@@ -113,8 +113,9 @@ use ipc_channel::ipc::{self, IpcSender, IpcReceiver};
 use ipc_channel::router::ROUTER;
 use layout_traits::LayoutThreadFactory;
 use log::{Log, Level, LevelFilter, Metadata, Record};
-use msg::constellation_msg::{BrowsingContextId, PipelineId, HistoryStateId, TopLevelBrowsingContextId};
+use msg::constellation_msg::{self, BrowsingContextId, PipelineId, HistoryStateId, TopLevelBrowsingContextId};
 use msg::constellation_msg::{HangAlert, Key, KeyModifiers, KeyState};
+use msg::constellation_msg::{MonitoredComponentId, MonitoredComponentMsg};
 use msg::constellation_msg::{PipelineNamespace, PipelineNamespaceId, TraversalDirection};
 use net_traits::{self, IpcSend, FetchResponseMsg, ResourceThreads};
 use net_traits::pub_domains::reg_host;
@@ -176,6 +177,11 @@ pub struct Constellation<Message, LTF, STF> {
     /// A channel for the constellation to receive messages from script threads.
     /// This is the constellation's view of `script_sender`.
     script_receiver: Receiver<Result<(PipelineId, FromScriptMsg), IpcError>>,
+
+    /// A channel for monitored threads to send messages to the
+    /// backgroung hand monitor.
+    /// None when in multiprocess mode.
+    background_monitor_chan: Option<Sender<(MonitoredComponentId, MonitoredComponentMsg)>>,
 
     /// A channel for the background hang monitor to send messages
     /// to the constellation.
@@ -578,6 +584,11 @@ where
                 let background_hang_monitor_receiver =
                     route_ipc_receiver_to_new_mpsc_receiver_preserving_errors(ipc_bhm_receiver);
 
+                let background_monitor_chan = match opts::multiprocess() {
+                    true => None,
+                    false => Some(constellation_msg::init_background_hang_monitor(background_hang_monitor_sender.clone())),
+                };
+
                 let (ipc_layout_sender, ipc_layout_receiver) =
                     ipc::channel().expect("ipc channel failure");
                 let layout_receiver =
@@ -595,6 +606,7 @@ where
                     script_sender: ipc_script_sender,
                     background_hang_monitor_sender,
                     background_hang_monitor_receiver,
+                    background_monitor_chan,
                     layout_sender: ipc_layout_sender,
                     script_receiver: script_receiver,
                     compositor_receiver: compositor_receiver,
@@ -763,6 +775,7 @@ where
                 sender: self.script_sender.clone(),
                 pipeline_id: pipeline_id,
             },
+            background_monitor_chan: self.background_monitor_chan.clone(),
             background_hang_monitor_to_constellation_chan: self.background_hang_monitor_sender.clone(),
             layout_to_constellation_chan: self.layout_sender.clone(),
             scheduler_chan: self.scheduler_chan.clone(),

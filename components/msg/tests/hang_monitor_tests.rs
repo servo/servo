@@ -6,7 +6,8 @@ extern crate ipc_channel;
 extern crate msg;
 
 use ipc_channel::ipc;
-use msg::constellation_msg::{HangAnnotation, HangAlert, ScriptHangAnnotation, init_background_hang_monitor};
+use msg::constellation_msg::{HangAnnotation, HangAlert, ScriptHangAnnotation};
+use msg::constellation_msg::{init_background_hang_monitor, start_monitoring_component};
 use msg::constellation_msg::{MonitoredComponentType, MonitoredComponentMsg, MonitoredComponentId};
 use msg::constellation_msg::TEST_PIPELINE_ID;
 use std::sync::{Arc, Barrier};
@@ -15,41 +16,21 @@ use std::time::Duration;
 
 #[test]
 fn test_hang_monitoring() {
-    let (background_hang_monitor_sender, background_hang_monitor_receiver) =
+    let (background_hang_monitor_ipc_sender, background_hang_monitor_receiver) =
         ipc::channel().expect("ipc channel failure");
-    let background_hang_monitor_chan = init_background_hang_monitor(
-        TEST_PIPELINE_ID,
-        MonitoredComponentType::Script,
-        background_hang_monitor_sender.clone(),
-        Duration::from_millis(10),
-        Duration::from_millis(1000),
+
+    let background_hang_monitor_sender = init_background_hang_monitor(
+        background_hang_monitor_ipc_sender.clone(),
     );
 
-    // Start several monitors in several threads that will hang,
-    // to check there is no crash
-    // when two monitor try to do a "trace transaction" at (approx) the same time.
-    let barrier = Arc::new(Barrier::new(5));
-    for _ in 0..5 {
-        let c = barrier.clone();
-        let (background_hang_monitor_sender, _background_hang_monitor_receiver) =
-            ipc::channel().expect("ipc channel failure");
-        let _ = thread::Builder::new().spawn(move || {
-            let sender = init_background_hang_monitor(
-                TEST_PIPELINE_ID,
-                MonitoredComponentType::Script,
-                background_hang_monitor_sender,
-                Duration::from_millis(10),
-                Duration::from_millis(1000),
-            );
-            c.wait();
-            let hang_annotation = ScriptHangAnnotation::AttachLayout;
-            let msg = MonitoredComponentMsg::NotifyActivity(
-                HangAnnotation::Script(hang_annotation),
-            );
-            sender.send(msg);
-            thread::sleep(Duration::from_millis(1500));
-        });
-    }
+    let background_hang_monitor_chan = start_monitoring_component(
+        TEST_PIPELINE_ID,
+        MonitoredComponentType::Script,
+        Duration::from_millis(10),
+        Duration::from_millis(1000),
+        background_hang_monitor_sender.clone(),
+    );
+
 
     // Start a first activity.
     let hang_annotation = ScriptHangAnnotation::AttachLayout;

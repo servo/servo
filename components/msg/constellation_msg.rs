@@ -5,7 +5,8 @@
 //! The high-level interface from script to constellation. Using this abstract interface helps
 //! reduce coupling between these two components.
 
-use background_hang_monitor::{BackgroundHangMonitor, TRACE_SENDER};
+use atomic::Ordering;
+use background_hang_monitor::{BackgroundHangMonitor, BACKTRACE};
 use backtrace::Backtrace;
 use ipc_channel::ipc::IpcSender;
 use libc;
@@ -13,6 +14,7 @@ use servo_channel::{Sender, channel};
 use sig::ffi::Sig;
 use std::cell::Cell;
 use std::fmt;
+use std::mem;
 use std::num::NonZeroU32;
 use std::thread;
 use std::time::Duration;
@@ -517,6 +519,8 @@ pub enum MonitoredComponentType {
 }
 
 pub enum MonitoredComponentMsg {
+    /// Register component for monitoring,
+    Register(libc::pthread_t, Duration, Duration),
     /// Notify start of new activity for a given component,
     NotifyActivity(HangAnnotation),
     /// Notify start of waiting for a new task to come-in for processing.
@@ -528,66 +532,90 @@ pub struct MonitoredComponentId(pub PipelineId, pub MonitoredComponentType);
 
 pub struct BackgroundHangMonitorChan {
     sender: Sender<(MonitoredComponentId, MonitoredComponentMsg)>,
-    component_id: MonitoredComponentId
+    component_id: MonitoredComponentId,
+    disconnected: Cell<bool>
 }
 
 impl BackgroundHangMonitorChan {
     pub fn new(
         sender: Sender<(MonitoredComponentId, MonitoredComponentMsg)>,
-        component_id: MonitoredComponentId,
-        ) -> Self {
+        component_id: MonitoredComponentId
+    ) -> Self {
         BackgroundHangMonitorChan {
             sender,
-            component_id
+            component_id,
+            disconnected: Default::default()
         }
     }
 
     pub fn send(&self, msg: MonitoredComponentMsg) {
+        if self.disconnected.get() {
+            return;
+        }
         if let Err(_) = self.sender.send((self.component_id.clone(), msg)) {
             warn!("BackgroundHangMonitor has gone away");
+            self.disconnected.set(true);
         }
+    }
+
+    pub fn sender(&self) -> &Sender<(MonitoredComponentId, MonitoredComponentMsg)> {
+        &self.sender
     }
 }
 
-#[allow(unsafe_code)]
-pub fn init_background_hang_monitor(
-    pipeline: PipelineId,
-    component_type: MonitoredComponentType,
-    constellation_chan: IpcSender<HangAlert>,
-    transient_hang_timeout: Duration,
-    permanent_hang_timeout: Duration,
-) -> BackgroundHangMonitorChan {
-    let (sender, port) = channel();
-    let component_id = MonitoredComponentId(pipeline, component_type);
-    let bhm_chan = BackgroundHangMonitorChan::new(sender, component_id.clone());
-    install_sigprof_handler();
+pub fn init_background_hang_monitor(constellation_chan: IpcSender<HangAlert>)
+    -> Sender<(MonitoredComponentId, MonitoredComponentMsg)> {
+    let (chan, port) = channel();
     let _ = thread::Builder::new().spawn(move || {
-        let mut monitor = unsafe {
+        let mut monitor = {
             BackgroundHangMonitor::new(
-                libc::pthread_self(),
-                port,
                 constellation_chan,
-                component_id,
-                transient_hang_timeout,
-                permanent_hang_timeout,
+                port
             )
         };
         while monitor.run() {
             // Monitoring until all senders have been dropped...
         }
     });
+    chan
+}
+
+#[allow(unsafe_code)]
+pub fn start_monitoring_component(
+    pipeline: PipelineId,
+    component_type: MonitoredComponentType,
+    transient_hang_timeout: Duration,
+    permanent_hang_timeout: Duration,
+    sender: Sender<(MonitoredComponentId, MonitoredComponentMsg)>,
+) -> BackgroundHangMonitorChan {
+    let component_id = MonitoredComponentId(pipeline, component_type);
+    let bhm_chan = BackgroundHangMonitorChan::new(sender, component_id.clone());
+    let thread_id = unsafe {
+        install_sigprof_handler();
+        libc::pthread_self()
+    };
+    bhm_chan.send(
+        MonitoredComponentMsg::Register(
+            thread_id,
+            transient_hang_timeout,
+            permanent_hang_timeout
+        )
+    );
     bhm_chan
 }
 
 #[allow(unsafe_code)]
 fn install_sigprof_handler() {
     fn handler(_sig: i32) {
+        let trace = Backtrace::new();
+        let trace_string = format!("{:?}", trace);
+        let trace_vec = trace_string.into_bytes();
+        let trace_slice = trace_vec.as_slice();
+        let mut trace_array: [u8; 400] = unsafe { mem::uninitialized() };
+        let bytes = &trace_slice[..trace_array.len()];
+        trace_array.copy_from_slice(bytes);
         unsafe {
-            // Note: this is safe due to the "trace transaction" concept,
-            // see background_hang_monitor::CURRENTLY_TRACING.
-            if let Some(ref sender) = TRACE_SENDER {
-                let _ = sender.send((libc::pthread_self(), Backtrace::new()));
-            }
+            BACKTRACE.store(Some((libc::pthread_self(), trace_array)), Ordering::SeqCst);
         }
     }
     signal!(Sig::PROF, handler);
