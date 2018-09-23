@@ -23,7 +23,7 @@ extern crate webrender_api;
 use gfx::font_cache_thread::FontCacheThread;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use metrics::PaintTimeMetrics;
-use msg::constellation_msg::{ MonitoredComponentId, MonitoredComponentMsg, PipelineId};
+use msg::constellation_msg::{MonitoredComponentId, MonitoredComponentMsg, PipelineId};
 use msg::constellation_msg::TopLevelBrowsingContextId;
 use net_traits::image_cache::ImageCache;
 use profile_traits::{mem, time};

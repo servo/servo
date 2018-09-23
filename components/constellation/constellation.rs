@@ -115,8 +115,7 @@ use keyboard_types::KeyboardEvent;
 use layout_traits::LayoutThreadFactory;
 use log::{Log, Level, LevelFilter, Metadata, Record};
 use msg::constellation_msg::{self, BrowsingContextId, PipelineId, HistoryStateId, TopLevelBrowsingContextId};
-use msg::constellation_msg::{HangAlert, Key, KeyModifiers, KeyState};
-use msg::constellation_msg::{MonitoredComponentId, MonitoredComponentMsg};
+use msg::constellation_msg::{HangAlert, MonitoredComponentId, MonitoredComponentMsg};
 use msg::constellation_msg::{PipelineNamespace, PipelineNamespaceId, TraversalDirection};
 use net_traits::{self, IpcSend, FetchResponseMsg, ResourceThreads};
 use net_traits::pub_domains::reg_host;
@@ -589,7 +588,11 @@ where
 
                 let background_monitor_chan = match opts::multiprocess() {
                     true => None,
-                    false => Some(constellation_msg::init_background_hang_monitor(background_hang_monitor_sender.clone())),
+                    false => Some(
+                        constellation_msg::init_background_hang_monitor(
+                            background_hang_monitor_sender.clone()
+                        )
+                    ),
                 };
 
                 let (ipc_layout_sender, ipc_layout_receiver) =
@@ -896,7 +899,7 @@ where
     fn handle_request(&mut self) {
         enum Request {
             Script((PipelineId, FromScriptMsg)),
-            BackGroundHangMonitor(HangAlert),
+            BackgroundHangMonitor(HangAlert),
             Compositor(FromCompositorMsg),
             Layout(FromLayoutMsg),
             NetworkListener((PipelineId, FetchResponseMsg)),
@@ -919,7 +922,7 @@ where
                 msg.expect("Unexpected script channel panic in constellation").map(Request::Script)
             }
             recv(self.background_hang_monitor_receiver.select(), msg) => {
-                msg.expect("Unexpected BHM channel panic in constellation").map(Request::BackGroundHangMonitor)
+                msg.expect("Unexpected BHM channel panic in constellation").map(Request::BackgroundHangMonitor)
             }
             recv(self.compositor_receiver.select(), msg) => {
                 Ok(Request::Compositor(msg.expect("Unexpected compositor channel panic in constellation")))
@@ -947,7 +950,7 @@ where
             Request::Script(message) => {
                 self.handle_request_from_script(message);
             },
-            Request::BackGroundHangMonitor(message) => {
+            Request::BackgroundHangMonitor(message) => {
                 self.handle_request_from_background_hang_monitor(message);
             },
             Request::Layout(message) => {

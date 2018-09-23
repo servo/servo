@@ -653,7 +653,7 @@ pub fn run_content_process(token: String) {
         create_sandbox();
     }
 
-    let monitor_chan = constellation_msg::init_background_hang_monitor(
+    let background_hang_monitor_sender = constellation_msg::init_background_hang_monitor(
         unprivileged_content
             .background_hang_monitor_to_constellation_chan()
             .clone()
@@ -666,7 +666,10 @@ pub fn run_content_process(token: String) {
 
     unprivileged_content.start_all::<script_layout_interface::message::Msg,
                                      layout_thread::LayoutThread,
-                                     script::script_thread::ScriptThread>(true, monitor_chan);
+                                     script::script_thread::ScriptThread>(
+                                         true,
+                                         background_hang_monitor_sender
+                                     );
 }
 
 #[cfg(all(not(target_os = "windows"), not(target_os = "ios")))]

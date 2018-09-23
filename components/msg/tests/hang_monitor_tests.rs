@@ -6,9 +6,9 @@ extern crate ipc_channel;
 extern crate msg;
 
 use ipc_channel::ipc;
-use msg::constellation_msg::{HangAnnotation, HangAlert, ScriptHangAnnotation};
-use msg::constellation_msg::{init_background_hang_monitor, start_monitoring_component};
+use msg::constellation_msg::{HangAnnotation, HangAlert, init_background_hang_monitor};
 use msg::constellation_msg::{MonitoredComponentType, MonitoredComponentMsg, MonitoredComponentId};
+use msg::constellation_msg::{start_monitoring_component, ScriptHangAnnotation};
 use msg::constellation_msg::TEST_PIPELINE_ID;
 use std::thread;
 use std::time::Duration;
@@ -29,7 +29,6 @@ fn test_hang_monitoring() {
         Duration::from_millis(1000),
         background_hang_monitor_sender.clone(),
     );
-
 
     // Start a first activity.
     let hang_annotation = ScriptHangAnnotation::AttachLayout;
@@ -113,6 +112,7 @@ fn test_hang_monitoring() {
     assert!(background_hang_monitor_receiver.try_recv().is_err());
 
     // Shut-down the hang monitor
+    drop(background_hang_monitor_sender);
     drop(background_hang_monitor_chan);
 
     // Sleep until the "max-timeout" has been reached.

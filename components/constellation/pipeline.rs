@@ -307,8 +307,12 @@ impl Pipeline {
                     let _ = unprivileged_pipeline_content.spawn_multiprocess()?;
                 } else {
                     // Should not be None unless in multiprocess mode.
-                    let background_monitor_chan = state.background_monitor_chan.unwrap();
-                    unprivileged_pipeline_content.start_all::<Message, LTF, STF>(false, background_monitor_chan);
+                    match state.background_monitor_chan {
+                        Some(chan) => {
+                            unprivileged_pipeline_content.start_all::<Message, LTF, STF>(false, chan);
+                        },
+                        None => warn!("Couldn't start content, no background monitor has been initiated"),
+                    }
                 }
 
                 EventLoop::new(script_chan)

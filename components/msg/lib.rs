@@ -5,7 +5,6 @@
 #![deny(unsafe_code)]
 
 extern crate backtrace;
-extern crate bitflags;
 extern crate ipc_channel;
 #[macro_use] extern crate lazy_static;
 extern crate libc;

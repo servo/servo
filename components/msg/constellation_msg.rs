@@ -5,9 +5,12 @@
 //! The high-level interface from script to constellation. Using this abstract interface helps
 //! reduce coupling between these two components.
 
-use background_hang_monitor::{BackgroundHangMonitor, BACKTRACE, BACKTRACE_READY};
+use background_hang_monitor::{BackgroundHangMonitor, BACKTRACE_READY};
+#[cfg(not(windows))]
+use background_hang_monitor::BACKTRACE;
 use backtrace::Backtrace;
 use ipc_channel::ipc::IpcSender;
+#[cfg(not(windows))]
 use libc;
 use servo_channel::{Sender, channel};
 use sig::ffi::Sig;
@@ -356,6 +359,7 @@ pub enum HangAnnotation {
     Script(ScriptHangAnnotation),
 }
 
+/// Hang-alerts are sent by the monitor to the constellation.
 #[derive(Debug, Deserialize, Serialize)]
 pub enum HangAlert {
     /// Report a transient hang.
@@ -370,6 +374,7 @@ pub enum MonitoredComponentType {
     Script,
 }
 
+/// Messages sent from monitored components to the monitor.
 pub enum MonitoredComponentMsg {
     /// Register component for monitoring,
     Register(libc::pthread_t, Duration, Duration),
@@ -382,6 +387,8 @@ pub enum MonitoredComponentMsg {
 #[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 pub struct MonitoredComponentId(pub PipelineId, pub MonitoredComponentType);
 
+/// A wrapper around a sender to the monitor,
+/// which will send the Id of the monitored component along with each message.
 pub struct BackgroundHangMonitorChan {
     sender: Sender<(MonitoredComponentId, MonitoredComponentMsg)>,
     component_id: MonitoredComponentId,
@@ -410,11 +417,17 @@ impl BackgroundHangMonitorChan {
         }
     }
 
+    /// Accessing the sender via this method
+    /// and then cloning it can be useful for another component to register itself with the same sender,
+    /// and get a new background-monitor-chan in return.
     pub fn sender(&self) -> &Sender<(MonitoredComponentId, MonitoredComponentMsg)> {
         &self.sender
     }
 }
 
+
+/// Start a background monitor thread,
+/// needs to be called from the same process as the monitored threads.
 pub fn init_background_hang_monitor(constellation_chan: IpcSender<HangAlert>)
     -> Sender<(MonitoredComponentId, MonitoredComponentMsg)> {
     let (chan, port) = channel();
@@ -432,6 +445,8 @@ pub fn init_background_hang_monitor(constellation_chan: IpcSender<HangAlert>)
     chan
 }
 
+/// Register a component for monitoring,
+/// needs to be called from within the thread being registered.
 #[allow(unsafe_code)]
 pub fn start_monitoring_component(
     pipeline: PipelineId,
@@ -457,6 +472,7 @@ pub fn start_monitoring_component(
 }
 
 #[allow(unsafe_code)]
+#[cfg(not(windows))]
 fn install_sigprof_handler() {
     fn handler(_sig: i32) {
         unsafe {

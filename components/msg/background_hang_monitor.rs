@@ -14,17 +14,18 @@ use std::thread;
 use std::time::{Duration, Instant};
 
 
-/// The means of communication between monitored and monitor, inside of a "trace transaction".
+/// The means of communication between monitored and monitor.
+#[cfg(not(windows))]
 pub static mut BACKTRACE: Option<(libc::pthread_t, Backtrace)> = None;
 
 lazy_static! {
-    /// A flag used to create a "trace transaction" around the workflow of accessing the backtrace,
-    /// from a monitored thread inside a SIGPROF handler, and the background hang monitor.
+    /// A flag used to coordinate access to BACKTRACE.
     pub static ref BACKTRACE_READY: AtomicBool = AtomicBool::new(false);
 }
 
 #[allow(unsafe_code)]
-unsafe fn get_backtrace_from_monitored_component(monitored: &MonitoredComponent) -> Backtrace {
+#[cfg(not(windows))]
+unsafe fn get_backtrace_from_monitored_component(monitored: &MonitoredComponent) -> Option<Backtrace> {
     libc::pthread_kill(monitored.thread_id, libc::SIGPROF);
     loop {
         if BACKTRACE_READY.load(Ordering::SeqCst) {
@@ -35,7 +36,12 @@ unsafe fn get_backtrace_from_monitored_component(monitored: &MonitoredComponent)
     let (thread_id, trace) = BACKTRACE.take().unwrap();
     assert_eq!(thread_id, monitored.thread_id);
     BACKTRACE_READY.store(false, Ordering::SeqCst);
-    trace
+    Some(trace)
+}
+
+#[cfg(target_os = "windows")]
+unsafe fn get_backtrace_from_monitored_component(monitored: &MonitoredComponent) -> Option<Backtrace> {
+    None
 }
 
 struct MonitoredComponent {
@@ -152,7 +158,6 @@ impl BackgroundHangMonitor {
                 let trace = unsafe {
                     get_backtrace_from_monitored_component(&monitored)
                 };
-                println!("Trace: {:?}", trace);
                 let _ = self
                     .constellation_chan
                     .send(
