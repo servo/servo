@@ -8,6 +8,7 @@
 use background_hang_monitor::{BackgroundHangMonitor, BACKTRACE, BACKTRACE_READY};
 use backtrace::Backtrace;
 use ipc_channel::ipc::IpcSender;
+#[cfg(not(windows))]
 use libc;
 use servo_channel::{Sender, channel};
 use sig::ffi::Sig;
@@ -604,6 +605,7 @@ pub fn start_monitoring_component(
 }
 
 #[allow(unsafe_code)]
+#[cfg(not(windows))]
 fn install_sigprof_handler() {
     fn handler(_sig: i32) {
         unsafe {

@@ -24,7 +24,8 @@ lazy_static! {
 }
 
 #[allow(unsafe_code)]
-unsafe fn get_backtrace_from_monitored_component(monitored: &MonitoredComponent) -> Backtrace {
+#[cfg(not(windows))]
+unsafe fn get_backtrace_from_monitored_component(monitored: &MonitoredComponent) -> Option<Backtrace> {
     libc::pthread_kill(monitored.thread_id, libc::SIGPROF);
     loop {
         if BACKTRACE_READY.load(Ordering::SeqCst) {
@@ -35,7 +36,12 @@ unsafe fn get_backtrace_from_monitored_component(monitored: &MonitoredComponent)
     let (thread_id, trace) = BACKTRACE.take().unwrap();
     assert_eq!(thread_id, monitored.thread_id);
     BACKTRACE_READY.store(false, Ordering::SeqCst);
-    trace
+    Some(trace)
+}
+
+#[cfg(target_os = "windows")]
+unsafe fn get_backtrace_from_monitored_component(monitored: &MonitoredComponent) -> Option<Backtrace> {
+    None
 }
 
 struct MonitoredComponent {
@@ -152,7 +158,6 @@ impl BackgroundHangMonitor {
                 let trace = unsafe {
                     get_backtrace_from_monitored_component(&monitored)
                 };
-                println!("Trace: {:?}", trace);
                 let _ = self
                     .constellation_chan
                     .send(
