@@ -5,8 +5,7 @@
 //! The high-level interface from script to constellation. Using this abstract interface helps
 //! reduce coupling between these two components.
 
-use atomic::Ordering;
-use background_hang_monitor::{BackgroundHangMonitor, BACKTRACE};
+use background_hang_monitor::{BackgroundHangMonitor, BACKTRACE, BACKTRACE_READY};
 use backtrace::Backtrace;
 use ipc_channel::ipc::IpcSender;
 use libc;
@@ -14,8 +13,8 @@ use servo_channel::{Sender, channel};
 use sig::ffi::Sig;
 use std::cell::Cell;
 use std::fmt;
-use std::mem;
 use std::num::NonZeroU32;
+use std::sync::atomic::Ordering;
 use std::thread;
 use std::time::Duration;
 use webrender_api;
@@ -460,16 +459,10 @@ pub fn start_monitoring_component(
 #[allow(unsafe_code)]
 fn install_sigprof_handler() {
     fn handler(_sig: i32) {
-        let trace = Backtrace::new();
-        let trace_string = format!("{:?}", trace);
-        let trace_vec = trace_string.into_bytes();
-        let trace_slice = trace_vec.as_slice();
-        let mut trace_array: [u8; 400] = unsafe { mem::uninitialized() };
-        let bytes = &trace_slice[..trace_array.len()];
-        trace_array.copy_from_slice(bytes);
         unsafe {
-            BACKTRACE.store(Some((libc::pthread_self(), trace_array)), Ordering::SeqCst);
+            BACKTRACE = Some((libc::pthread_self(), Backtrace::new()));
         }
+        BACKTRACE_READY.store(true, Ordering::SeqCst);
     }
     signal!(Sig::PROF, handler);
 }

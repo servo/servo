@@ -4,7 +4,6 @@
 
 #![deny(unsafe_code)]
 
-extern crate atomic;
 extern crate backtrace;
 extern crate bitflags;
 extern crate ipc_channel;
