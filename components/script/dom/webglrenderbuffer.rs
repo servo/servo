@@ -122,9 +122,9 @@ impl WebGLRenderbuffer {
         let actual_format = match internal_format {
             constants::RGBA4 |
             constants::DEPTH_COMPONENT16 |
-            constants::STENCIL_INDEX8 |
-            // https://www.khronos.org/registry/webgl/specs/latest/1.0/#6.7
-            constants::DEPTH_STENCIL => internal_format,
+            constants::STENCIL_INDEX8 => internal_format,
+            // https://www.khronos.org/registry/webgl/specs/latest/1.0/#6.8
+            constants::DEPTH_STENCIL => WebGl2Constants::DEPTH24_STENCIL8,
             constants::RGB5_A1 => {
                 // 16-bit RGBA formats are not supported on desktop GL.
                 if is_gles() {
