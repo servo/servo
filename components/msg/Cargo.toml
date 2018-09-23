@@ -12,6 +12,7 @@ test = false
 doctest = false
 
 [dependencies]
+atomic = {version = "0.4", features = ["nightly"]}
 backtrace = "0.3"
 bitflags = "1.0"
 ipc-channel = "0.11"

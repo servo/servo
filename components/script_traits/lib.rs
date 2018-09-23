@@ -53,7 +53,8 @@ use ipc_channel::{Error as IpcError};
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use keyboard_types::KeyboardEvent;
 use libc::c_void;
-use msg::constellation_msg::{BrowsingContextId, HangAlert, HistoryStateId};
+use msg::constellation_msg::{MonitoredComponentId, MonitoredComponentMsg};
+use msg::constellation_msg::{BrowsingContextId, HistoryStateId};
 use msg::constellation_msg::{Key, KeyModifiers, KeyState, PipelineId};
 use msg::constellation_msg::{PipelineNamespaceId, TraversalDirection, TopLevelBrowsingContextId};
 use net_traits::{FetchResponseMsg, ReferrerPolicy, ResourceThreads};
@@ -563,8 +564,8 @@ pub struct InitialScriptState {
     pub control_port: IpcReceiver<ConstellationControlMsg>,
     /// A channel on which messages can be sent to the constellation from script.
     pub script_to_constellation_chan: ScriptToConstellationChan,
-    /// A channel on which hang alerts can be sent to the constellation.
-    pub background_hang_monitor_to_constellation_chan: IpcSender<HangAlert>,
+    /// A channel to communicate with the background hang monitor.
+    pub background_hang_monitor_sender: Sender<(MonitoredComponentId, MonitoredComponentMsg)>,
     /// A sender for the layout thread to communicate to the constellation.
     pub layout_to_constellation_chan: IpcSender<LayoutMsg>,
     /// A channel to schedule timer events.

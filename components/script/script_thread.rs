@@ -77,9 +77,9 @@ use js::jsval::UndefinedValue;
 use metrics::{MAX_TASK_NS, PaintTimeMetrics};
 use microtask::{MicrotaskQueue, Microtask};
 use msg::constellation_msg::{BackgroundHangMonitorChan, BrowsingContextId, HistoryStateId, PipelineId};
-use msg::constellation_msg::{HangAlert, HangAnnotation};
+use msg::constellation_msg::HangAnnotation;
 use msg::constellation_msg::{MonitoredComponentMsg, MonitoredComponentType, ScriptHangAnnotation};
-use msg::constellation_msg::{PipelineNamespace, TopLevelBrowsingContextId, init_background_hang_monitor};
+use msg::constellation_msg::{PipelineNamespace, TopLevelBrowsingContextId, start_monitoring_component};
 use net_traits::{FetchMetadata, FetchResponseListener, FetchResponseMsg};
 use net_traits::{Metadata, NetworkError, ReferrerPolicy, ResourceThreads};
 use net_traits::image_cache::{ImageCache, PendingImageResponse};
@@ -502,10 +502,6 @@ pub struct ScriptThread {
     /// A queue of tasks to be executed in this script-thread.
     task_queue: TaskQueue<MainThreadScriptMsg>,
 
-    /// A channel on which hang alerts can be sent to the constellation.
-    /// Stored here for use in the AttachLayout workflow.
-    background_hang_monitor_to_constellation_chan: IpcSender<HangAlert>,
-
     /// A channel to send messages to the background hang monitor.
     background_hang_monitor_chan: BackgroundHangMonitorChan,
 
@@ -666,7 +662,19 @@ impl ScriptThreadFactory for ScriptThread {
                 let opener = state.opener;
                 let mem_profiler_chan = state.mem_profiler_chan.clone();
                 let window_size = state.window_size;
-                let script_thread = ScriptThread::new(state, script_port, script_chan.clone());
+                let background_hang_monitor_chan = start_monitoring_component(
+                    state.id,
+                    MonitoredComponentType::Script,
+                    Duration::from_millis(100),
+                    Duration::from_millis(5000),
+                    state.background_hang_monitor_sender.clone()
+                );
+                let script_thread = ScriptThread::new(
+                    state,
+                    script_port,
+                    script_chan.clone(),
+                    background_hang_monitor_chan)
+                ;
 
                 SCRIPT_THREAD_ROOT.with(|root| {
                     root.set(Some(&script_thread as *const _));
@@ -990,6 +998,7 @@ impl ScriptThread {
         state: InitialScriptState,
         port: Receiver<MainThreadScriptMsg>,
         chan: Sender<MainThreadScriptMsg>,
+        background_hang_monitor_chan: BackgroundHangMonitorChan,
     ) -> ScriptThread {
         let runtime = unsafe { new_rt_and_cx() };
         let cx = runtime.cx();
@@ -1014,14 +1023,6 @@ impl ScriptThread {
 
         let task_queue = TaskQueue::new(port, chan.clone());
 
-        let background_hang_monitor_chan = init_background_hang_monitor(
-            state.id,
-            MonitoredComponentType::Script,
-            state.background_hang_monitor_to_constellation_chan.clone(),
-            Duration::from_millis(100),
-            Duration::from_millis(5000)
-        );
-
         ScriptThread {
             documents: DomRefCell::new(Documents::new()),
             window_proxies: DomRefCell::new(HashMap::new()),
@@ -1040,8 +1041,6 @@ impl ScriptThread {
             task_queue,
 
             background_hang_monitor_chan,
-            background_hang_monitor_to_constellation_chan: state
-                .background_hang_monitor_to_constellation_chan,
 
             chan: MainThreadScriptChan(chan.clone()),
             dom_manipulation_task_sender: chan.clone(),
@@ -1897,9 +1896,7 @@ impl ScriptThread {
             is_parent: false,
             layout_pair: layout_pair,
             pipeline_port: pipeline_port,
-            background_hang_monitor_to_constellation_chan: self
-                .background_hang_monitor_to_constellation_chan
-                .clone(),
+            background_hang_monitor_sender: self.background_hang_monitor_chan.sender().clone(),
             constellation_chan: self.layout_to_constellation_chan.clone(),
             script_chan: self.control_chan.clone(),
             image_cache: self.image_cache.clone(),

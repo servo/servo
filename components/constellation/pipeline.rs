@@ -17,6 +17,7 @@ use ipc_channel::router::ROUTER;
 use layout_traits::LayoutThreadFactory;
 use metrics::PaintTimeMetrics;
 use msg::constellation_msg::{BrowsingContextId, HangAlert, HistoryStateId};
+use msg::constellation_msg::{MonitoredComponentId, MonitoredComponentMsg};
 use msg::constellation_msg::{TopLevelBrowsingContextId, PipelineId, PipelineNamespaceId};
 use net::image_cache::ImageCacheImpl;
 use net_traits::{IpcSend, ResourceThreads};
@@ -113,6 +114,11 @@ pub struct InitialPipelineState {
 
     /// A channel to the associated constellation.
     pub script_to_constellation_chan: ScriptToConstellationChan,
+
+    /// A channel for monitored threads to send messages to the
+    /// backgroung hand monitor.
+    /// None when in multiprocess mode.
+    pub background_monitor_chan: Option<Sender<(MonitoredComponentId, MonitoredComponentMsg)>>,
 
     /// A channel for the background hang monitor to send messages to the constellation.
     pub background_hang_monitor_to_constellation_chan: IpcSender<HangAlert>,
@@ -300,7 +306,9 @@ impl Pipeline {
                 if opts::multiprocess() {
                     let _ = unprivileged_pipeline_content.spawn_multiprocess()?;
                 } else {
-                    unprivileged_pipeline_content.start_all::<Message, LTF, STF>(false);
+                    // Should not be None unless in multiprocess mode.
+                    let background_monitor_chan = state.background_monitor_chan.unwrap();
+                    unprivileged_pipeline_content.start_all::<Message, LTF, STF>(false, background_monitor_chan);
                 }
 
                 EventLoop::new(script_chan)
@@ -487,7 +495,11 @@ pub struct UnprivilegedPipelineContent {
 }
 
 impl UnprivilegedPipelineContent {
-    pub fn start_all<Message, LTF, STF>(self, wait_for_completion: bool)
+    pub fn start_all<Message, LTF, STF>(
+        self,
+        wait_for_completion: bool,
+        background_hang_monitor_sender: Sender<(MonitoredComponentId, MonitoredComponentMsg)>
+    )
     where
         LTF: LayoutThreadFactory<Message = Message>,
         STF: ScriptThreadFactory<Message = Message>,
@@ -500,6 +512,7 @@ impl UnprivilegedPipelineContent {
             self.script_chan.clone(),
             self.load_data.url.clone(),
         );
+
         let layout_pair = STF::create(
             InitialScriptState {
                 id: self.id,
@@ -510,9 +523,7 @@ impl UnprivilegedPipelineContent {
                 control_chan: self.script_chan.clone(),
                 control_port: self.script_port,
                 script_to_constellation_chan: self.script_to_constellation_chan.clone(),
-                background_hang_monitor_to_constellation_chan: self
-                    .background_hang_monitor_to_constellation_chan
-                    .clone(),
+                background_hang_monitor_sender: background_hang_monitor_sender.clone(),
                 layout_to_constellation_chan: self.layout_to_constellation_chan.clone(),
                 scheduler_chan: self.scheduler_chan,
                 bluetooth_thread: self.bluetooth_thread,
@@ -539,7 +550,7 @@ impl UnprivilegedPipelineContent {
             self.parent_pipeline_id.is_some(),
             layout_pair,
             self.pipeline_port,
-            self.background_hang_monitor_to_constellation_chan.clone(),
+            background_hang_monitor_sender,
             self.layout_to_constellation_chan,
             self.script_chan,
             image_cache.clone(),
@@ -635,6 +646,10 @@ impl UnprivilegedPipelineContent {
         if let Ok(value) = env::var("RUST_LOG") {
             C::env(command, "RUST_LOG", value);
         }
+    }
+
+    pub fn background_hang_monitor_to_constellation_chan(&self) -> &IpcSender<HangAlert> {
+        &self.background_hang_monitor_to_constellation_chan
     }
 
     pub fn script_to_constellation_chan(&self) -> &ScriptToConstellationChan {

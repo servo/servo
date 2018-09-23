@@ -91,9 +91,9 @@ use layout_traits::LayoutThreadFactory;
 use libc::c_void;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use metrics::{PaintTimeMetrics, ProfilerMetadataFactory, ProgressiveWebMetric};
-use msg::constellation_msg::{BackgroundHangMonitorChan, HangAlert, HangAnnotation, MonitoredComponentMsg};
+use msg::constellation_msg::{BackgroundHangMonitorChan, HangAnnotation, MonitoredComponentMsg};
 use msg::constellation_msg::{LayoutHangAnnotation, MonitoredComponentType, PipelineId};
-use msg::constellation_msg::{TopLevelBrowsingContextId, init_background_hang_monitor};
+use msg::constellation_msg::{TopLevelBrowsingContextId, MonitoredComponentId, start_monitoring_component};
 use net_traits::image_cache::{ImageCache, UsePlaceholder};
 use parking_lot::RwLock;
 use profile_traits::mem::{self, Report, ReportKind, ReportsChan};
@@ -284,7 +284,7 @@ impl LayoutThreadFactory for LayoutThread {
         is_iframe: bool,
         chan: (Sender<Msg>, Receiver<Msg>),
         pipeline_port: IpcReceiver<LayoutControlMsg>,
-        background_hang_monitor_to_constellation_chan: IpcSender<HangAlert>,
+        background_hang_monitor_sender: Sender<(MonitoredComponentId, MonitoredComponentMsg)>,
         constellation_chan: IpcSender<ConstellationMsg>,
         script_chan: IpcSender<ConstellationControlMsg>,
         image_cache: Arc<ImageCache>,
@@ -308,6 +308,15 @@ impl LayoutThreadFactory for LayoutThread {
                 {
                     // Ensures layout thread is destroyed before we send shutdown message
                     let sender = chan.0;
+
+                    let background_hang_monitor_chan = start_monitoring_component(
+                        id,
+                        MonitoredComponentType::Layout,
+                        Duration::from_millis(100),
+                        Duration::from_millis(5000),
+                        background_hang_monitor_sender
+                    );
+
                     let layout = LayoutThread::new(
                         id,
                         top_level_browsing_context_id,
@@ -315,7 +324,7 @@ impl LayoutThreadFactory for LayoutThread {
                         is_iframe,
                         chan.1,
                         pipeline_port,
-                        background_hang_monitor_to_constellation_chan,
+                        background_hang_monitor_chan,
                         constellation_chan,
                         script_chan,
                         image_cache.clone(),
@@ -476,7 +485,7 @@ impl LayoutThread {
         is_iframe: bool,
         port: Receiver<Msg>,
         pipeline_port: IpcReceiver<LayoutControlMsg>,
-        background_hang_monitor_to_constellation_chan: IpcSender<HangAlert>,
+        background_hang_monitor_chan: BackgroundHangMonitorChan,
         constellation_chan: IpcSender<ConstellationMsg>,
         script_chan: IpcSender<ConstellationControlMsg>,
         image_cache: Arc<ImageCache>,
@@ -512,14 +521,6 @@ impl LayoutThread {
 
         // Proxy IPC messages from the pipeline to the layout thread.
         let pipeline_receiver = route_ipc_receiver_to_new_servo_receiver(pipeline_port);
-
-        let background_hang_monitor_chan = init_background_hang_monitor(
-            id,
-            MonitoredComponentType::Layout,
-            background_hang_monitor_to_constellation_chan.clone(),
-            Duration::from_millis(100),
-            Duration::from_millis(5000)
-        );
 
         // Ask the router to proxy IPC messages from the font cache thread to the layout thread.
         let (ipc_font_cache_sender, ipc_font_cache_receiver) = ipc::channel().unwrap();
@@ -888,7 +889,7 @@ impl LayoutThread {
             info.is_parent,
             info.layout_pair,
             info.pipeline_port,
-            info.background_hang_monitor_to_constellation_chan,
+            info.background_hang_monitor_sender,
             info.constellation_chan,
             info.script_chan.clone(),
             info.image_cache.clone(),
