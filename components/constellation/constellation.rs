@@ -586,7 +586,11 @@ where
 
                 let background_monitor_chan = match opts::multiprocess() {
                     true => None,
-                    false => Some(constellation_msg::init_background_hang_monitor(background_hang_monitor_sender.clone())),
+                    false => Some(
+                        constellation_msg::init_background_hang_monitor(
+                            background_hang_monitor_sender.clone()
+                        )
+                    ),
                 };
 
                 let (ipc_layout_sender, ipc_layout_receiver) =
@@ -893,7 +897,7 @@ where
     fn handle_request(&mut self) {
         enum Request {
             Script((PipelineId, FromScriptMsg)),
-            BackGroundHangMonitor(HangAlert),
+            BackgroundHangMonitor(HangAlert),
             Compositor(FromCompositorMsg),
             Layout(FromLayoutMsg),
             NetworkListener((PipelineId, FetchResponseMsg)),

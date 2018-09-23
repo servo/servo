@@ -6,9 +6,9 @@ extern crate ipc_channel;
 extern crate msg;
 
 use ipc_channel::ipc;
-use msg::constellation_msg::{HangAnnotation, HangAlert, ScriptHangAnnotation};
-use msg::constellation_msg::{init_background_hang_monitor, start_monitoring_component};
+use msg::constellation_msg::{HangAnnotation, HangAlert, init_background_hang_monitor};
 use msg::constellation_msg::{MonitoredComponentType, MonitoredComponentMsg, MonitoredComponentId};
+use msg::constellation_msg::{start_monitoring_component, ScriptHangAnnotation};
 use msg::constellation_msg::TEST_PIPELINE_ID;
 use std::thread;
 use std::time::Duration;

@@ -14,12 +14,11 @@ use std::thread;
 use std::time::{Duration, Instant};
 
 
-/// The means of communication between monitored and monitor, inside of a "trace transaction".
+/// The means of communication between monitored and monitor.
 pub static mut BACKTRACE: Option<(libc::pthread_t, Backtrace)> = None;
 
 lazy_static! {
-    /// A flag used to create a "trace transaction" around the workflow of accessing the backtrace,
-    /// from a monitored thread inside a SIGPROF handler, and the background hang monitor.
+    /// A flag used to coordinate access to BACKTRACE.
     pub static ref BACKTRACE_READY: AtomicBool = AtomicBool::new(false);
 }
 
