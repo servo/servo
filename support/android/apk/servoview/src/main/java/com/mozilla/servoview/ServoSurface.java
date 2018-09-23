@@ -206,7 +206,7 @@ public class ServoSurface {
             inUIThread(() -> {
               final boolean showLogs = true;
               String uri = mInitialUri == null ? null : mInitialUri;
-              mServo = new Servo(this, surface, mClient, mActivity, mServoArgs, uri, mServoLog, mWidth, mHeight, showLogs);
+              mServo = new Servo(this, surface, mClient, mActivity, mServoArgs, uri, mServoLog, mWidth, mHeight, 1, showLogs);
             });
 
             Looper.loop();

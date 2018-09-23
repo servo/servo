@@ -55,7 +55,8 @@ fn init(
     readfile: extern fn(*const c_char) -> *const c_char,
     callbacks: CHostCallbacks,
     width: u32,
-    height: u32) {
+    height: u32,
+    density: f32) {
     let args = unsafe { CStr::from_ptr(args) };
     let args = args.to_str().expect("Can't read string").to_string();
 
@@ -75,6 +76,7 @@ fn init(
         callbacks,
         width,
         height,
+        density,
     ).unwrap();
 }
 
@@ -87,9 +89,10 @@ pub extern "C" fn init_with_egl(
     readfile: extern fn(*const c_char) -> *const c_char,
     callbacks: CHostCallbacks,
     width: u32,
-    height: u32) {
+    height: u32,
+    density: f32) {
     let gl = gl_glue::egl::init().unwrap();
-    init(gl, args, url, wakeup, readfile, callbacks, width, height)
+    init(gl, args, url, wakeup, readfile, callbacks, width, height, density)
 }
 
 #[cfg(any(target_os = "linux", target_os = "windows", target_os = "macos"))]
@@ -101,9 +104,10 @@ pub extern "C" fn init_with_gl(
     readfile: extern fn(*const c_char) -> *const c_char,
     callbacks: CHostCallbacks,
     width: u32,
-    height: u32) {
+    height: u32,
+    density: f32) {
     let gl = gl_glue::gl::init().unwrap();
-    init(gl, args, url, wakeup, readfile, callbacks, width, height)
+    init(gl, args, url, wakeup, readfile, callbacks, width, height, density)
 }
 
 #[no_mangle]
