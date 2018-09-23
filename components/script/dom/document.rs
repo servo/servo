@@ -4196,149 +4196,133 @@ impl DocumentMethods for Document {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-document-open
-    fn Open(&self, _type: Option<DOMString>, replace: DOMString) -> Fallible<DomRoot<Document>> {
+    fn Open(&self, _unused1: Option<DOMString>, _unused2: Option<DOMString>) -> Fallible<DomRoot<Document>> {
+        // Step 1. Throw InvalidStateError if the document is an XML document.
         if !self.is_html_document() {
-            // Step 1.
             return Err(Error::InvalidState);
         }
 
-        // Step 2.
+        // Step 2. Throw InvalidStateError if throw-on-dynamic-markup-insertion counter > 0.
         if self.throw_on_dynamic_markup_insertion_counter.get() > 0 {
             return Err(Error::InvalidState);
         }
 
-        if !self.is_active() {
-            // Step 3.
-            return Ok(DomRoot::from_ref(self));
-        }
-
+        // Step 3. Fetch entryDocument from the entry settings object.
         let entry_responsible_document = GlobalScope::entry().as_window().Document();
 
+        // Step 4. Throw SecurityError if document's origin is not same
+        // origin to entryDocument's origin.
         // This check is same-origin not same-origin-domain.
         // https://github.com/whatwg/html/issues/2282
         // https://github.com/whatwg/html/pull/2288
         if !self.origin.same_origin(&entry_responsible_document.origin) {
-            // Step 4.
             return Err(Error::Security);
         }
 
+        // Step 5. Return document if document has an active parser with
+        // script nesting level > 0
         if self
             .get_current_parser()
             .map_or(false, |parser| parser.is_active())
         {
-            // Step 5.
             return Ok(DomRoot::from_ref(self));
         }
 
-        // Step 6.
-        // TODO: ignore-opens-during-unload counter check.
-
-        // Step 7, 8.
-        // TODO: check session history's state.
-        let replace = replace.eq_ignore_ascii_case("replace");
-
-        // Step 9.
-        // TODO: salvageable flag.
-
-        // Step 10.
-        // TODO: prompt to unload.
+        // Step 6. If document's ignore-opens-during-unload counter is greater
+        // than 0, then return document.
+        if self.is_prompting_or_unloading()
+        {
+            return Ok(DomRoot::from_ref(self));
+        }
 
         window_from_node(self).set_navigation_start();
 
-        // Step 11.
-        // TODO: unload.
+        // Step 7. If document has a browsing context and there is an existing
+        // attempt to navigate document's browsing context, then stop document
+        // loading given document.
+        // TODO: Check if there is an existing attempt to navigate browsing context
+        if self.has_browsing_context() {
+            self.abort();
+        }
 
-        // Step 12.
-        self.abort();
-
-        // Step 13.
+        // Step 8. For each shadow-including inclusive descendant node of
+        // document, erase all event listeners and handlers given node.
         for node in self.upcast::<Node>().traverse_preorder() {
             node.upcast::<EventTarget>().remove_all_listeners();
         }
 
-        // Step 14.
-        // TODO: remove any tasks associated with the Document in any task source.
+        // Step 9. If document is the associated Document of document's relevant global object,
+        // then erase all event listeners and handlers given document's relevant global object.
+        match self.global().downcast::<Window>() {
+            Some(window) => {
+                if window.Document() == DomRoot::from_ref(self) {
+                    self.global().upcast::<EventTarget>().remove_all_listeners()
+                }
+            },
+            None => {},
+        }
 
-        // Step 15.
+        // Step 10. Replace all with null within document,
+        // without firing any mutation events.
         Node::replace_all(None, self.upcast::<Node>());
 
-        // Steps 16, 17.
-        // Let's not?
-        // TODO: https://github.com/whatwg/html/issues/1698
+        // Step 11. If document is fully active, then:
+        if self.is_fully_active() {
+            // Let newURL be a copy of entryDocument's URL.
+            let mut new_url = entry_responsible_document.url();
+            // If entryDocument is not document, then set newURL's fragment to null.
+            if entry_responsible_document != DomRoot::from_ref(self) {
+                new_url.set_fragment(None);
+            }
+            // Run the URL and history update steps with document and newURL.
+            // TODO: Implement URL and history update steps
+            self.set_url(new_url);
+        }
 
-        // Step 18.
-        self.implementation.set(None);
-        self.images.set(None);
-        self.embeds.set(None);
-        self.links.set(None);
-        self.forms.set(None);
-        self.scripts.set(None);
-        self.anchors.set(None);
-        self.applets.set(None);
-        *self.stylesheets.borrow_mut() = DocumentStylesheetSet::new();
-        self.animation_frame_ident.set(0);
-        self.animation_frame_list.borrow_mut().clear();
-        self.pending_restyles.borrow_mut().clear();
-        self.target_element.set(None);
-        *self.last_click_info.borrow_mut() = None;
-
-        // Step 19.
-        // TODO: Set the active document of document's browsing context to document with window.
-
-        // Step 20.
-        // TODO: Replace document's singleton objects with new instances of those objects, created in window's Realm.
-
-        // Step 21.
-        self.set_encoding(UTF_8);
-
-        // Step 22.
-        // TODO: reload override buffer.
-
-        // Step 23.
-        // TODO: salvageable flag.
-
-        let url = entry_responsible_document.url();
-
-        // Step 24.
-        self.set_url(url.clone());
-
-        // Step 25.
+        // Step 12.
         // TODO: mute iframe load.
 
-        // Step 26.
+        // Step 13. Set document to no-quirks mode.
+        self.set_quirks_mode(QuirksMode::NoQuirks);
+
+        // Step 14. Create a new HTML parser and associate it with document.
+        // This is a script-created parser (meaning that it can be closed by the
+        // document.open() and document.close() methods, and that the tokenizer will
+        // wait for an explicit call to document.close() before emitting an end-of-file
+        // token). The encoding confidence is irrelevant.
         let resource_threads = self
             .window
             .upcast::<GlobalScope>()
             .resource_threads()
             .clone();
         *self.loader.borrow_mut() =
-            DocumentLoader::new_with_threads(resource_threads, Some(url.clone()));
-        ServoParser::parse_html_script_input(self, url, "text/html");
+            DocumentLoader::new_with_threads(resource_threads, Some(self.url()));
+        ServoParser::parse_html_script_input(self, self.url(), "text/html");
 
-        // Step 27.
-        self.ready_state.set(DocumentReadyState::Interactive);
+        // Step 15. Set the current document readiness of document to "loading".
+        self.ready_state.set(DocumentReadyState::Loading);
 
-        // Step 28.
-        // TODO: remove history traversal tasks.
+        // Step 16. Set the insertion point
+        // Handled when creating the parser in step 14
 
-        // Step 29.
-        // TODO: truncate session history.
-
-        // Step 30.
-        // TODO: remove earlier entries.
-
-        if !replace {
-            // Step 31.
-            // TODO: add history entry.
-        }
-
-        // Step 32.
-        // TODO: clear fired unload flag.
-
-        // Step 33 is handled when creating the parser in step 26.
-
-        // Step 34.
+        // Step 17. Return document.
         Ok(DomRoot::from_ref(self))
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-document-open-window
+    fn Open_(&self, url: DOMString, target: DOMString, features: DOMString) -> Fallible<DomRoot<WindowProxy>> {
+        // TODO: WhatWG spec states this should throw an InvalidState err, but web platform tests expect
+        // an InvalidAccess error
+        let wo = match self.browsing_context() {
+            Some(w) => w.open(url, target, features),
+            None => return Err(Error::InvalidState),
+        };
+        // WhatWG spec states this should always return a WindowProxy, but the spec for WindowProxy.open states
+        // it optionally returns a WindowProxy. Assume an error if window.open returns none.
+        match wo {
+            Some(w) => Ok(w),
+            None => Err(Error::InvalidState),
+        }
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-document-write
@@ -4370,7 +4354,7 @@ impl DocumentMethods for Document {
                     return Ok(());
                 }
                 // Step 5.
-                self.Open(None, "".into())?;
+                self.Open(None, None)?;
                 self.get_current_parser().unwrap()
             },
         };
