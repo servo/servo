@@ -35,6 +35,7 @@ function onload_test() {
     var context = new PerformanceContext(iframe.contentWindow.performance);
     var entries = context.getEntriesByType('resource');
 
+    assert_greater_than(entries.length, 0, "The iframe should have at least one resource timing entry.");
     if(entries.length > 0) {
         entry = entries[0];
 

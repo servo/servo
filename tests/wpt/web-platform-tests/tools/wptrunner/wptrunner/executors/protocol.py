@@ -1,4 +1,5 @@
 import traceback
+
 from abc import ABCMeta, abstractmethod
 
 
@@ -53,6 +54,10 @@ class Protocol(object):
 
             msg = "Post-connection steps failed"
             self.after_connect()
+        except IOError:
+            self.logger.warning("Timed out waiting for browser to start")
+            self.executor.runner.send_message("init_failed")
+            return
         except Exception:
             if msg is not None:
                 self.logger.warning(msg)

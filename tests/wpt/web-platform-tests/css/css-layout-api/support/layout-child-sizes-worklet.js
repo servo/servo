@@ -13,6 +13,8 @@ registerLayout('test', class {
       '--available-block-size',
       '--fixed-inline-size',
       '--fixed-block-size',
+      '--percentage-inline-size',
+      '--percentage-block-size',
       '--inline-size-expected',
       '--block-size-expected'
     ];
@@ -26,11 +28,15 @@ registerLayout('test', class {
       const availableBlockSize = parseNumber(child.styleMap.get('--available-block-size'));
       const fixedInlineSize = parseNumber(child.styleMap.get('--fixed-inline-size'));
       const fixedBlockSize = parseNumber(child.styleMap.get('--fixed-block-size'));
+      const percentageInlineSize = parseNumber(child.styleMap.get('--percentage-inline-size'));
+      const percentageBlockSize = parseNumber(child.styleMap.get('--percentage-block-size'));
       return child.layoutNextFragment({
         availableInlineSize,
         availableBlockSize,
         fixedInlineSize,
-        fixedBlockSize
+        fixedBlockSize,
+        percentageInlineSize,
+        percentageBlockSize,
       });
     });
 

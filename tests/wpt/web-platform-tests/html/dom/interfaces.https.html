@@ -37,7 +37,7 @@ const waitForLoad = new Promise(resolve => { addEventListener('load', resolve); 
 
 idl_test(
   ['html'],
-  ['SVG', 'cssom', 'touchevents', 'uievents', 'dom'],
+  ['SVG', 'cssom', 'touch-events', 'uievents', 'dom'],
   async idlArray => {
     idlArray.add_objects({
       NodeList: ['document.getElementsByName("name")'],

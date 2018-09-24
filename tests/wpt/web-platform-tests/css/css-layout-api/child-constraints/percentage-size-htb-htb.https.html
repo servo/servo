@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<link rel="help" href="https://drafts.css-houdini.org/css-layout-api/#dom-layoutconstraintsoptions-percentageblocksize">
+<link rel="match" href="../green-square-ref.html">
+<meta name="assert" content="This test checks that setting the percentage block-size of children works as expected." />
+
+<style>
+.test {
+  writing-mode: horizontal-tb;
+  background: red;
+  width: 100px;
+}
+
+.child {
+  writing-mode: horizontal-tb;
+  visibility: hidden;
+  width: 10px;
+
+  --percentage-block-size: 20;
+
+  --inline-size-expected: 10px;
+  --block-size-expected: 10px;
+}
+
+@supports (display: layout(test)) {
+  .test {
+    background: green;
+    display: layout(test);
+  }
+}
+</style>
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/worklet-reftest.js"></script>
+
+<div class="test">
+  <!-- A fixed height shouldn't be affected by the percentage size. -->
+  <div class="child" style="height: 10px;"></div>
+
+  <!-- A percentage height should resolve itself against the percentageBlockSize. -->
+  <div class="child" style="height: 50%;"></div>
+
+  <!-- A percentage max-height should resolve itself against the percentageBlockSize. -->
+  <div class="child" style="height: 15px; max-height: 50%;"></div>
+
+  <!-- A percentage min-height should resolve itself against the percentageBlockSize. -->
+  <div class="child" style="height: 5px; min-height: 50%;"></div>
+
+  <!-- A replaced percentage height should resolve itself against the percentageBlockSize. -->
+  <img class="child" style="height: 50%;" />
+
+  <!-- A replaced percentage max-height should resolve itself against the percentageBlockSize. -->
+  <img class="child" style="height: 15px; max-height: 50%;" />
+
+  <!-- A replaced percentage min-height should resolve itself against the percentageBlockSize. -->
+  <img class="child" style="height: 5px; min-height: 50%;" />
+<script>
+importWorkletAndTerminateTestAfterAsyncPaint(CSS.layoutWorklet, {url: '../support/layout-child-sizes-worklet.js'});
+</script>

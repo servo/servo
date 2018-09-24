@@ -1,18 +1,18 @@
 <!DOCTYPE html>
 <html class=reftest-wait>
 <link rel="help" href="https://drafts.css-houdini.org/css-layout-api/#dom-layoutconstraintsoptions-availableinlinesize">
-<link rel="match" href="green-square-ref.html">
-<meta name="assert" content="This test checks that setting the available inline size of children works as expected." />
+<link rel="match" href="../green-square-ref.html">
+<meta name="assert" content="This test checks that setting the available inline-size of children works as expected." />
 
 <style>
 .test {
-  writing-mode: vertical-rl;
+  writing-mode: horizontal-tb;
   background: red;
-  height: 100px;
+  width: 100px;
 }
 
 .child {
-  writing-mode: vertical-rl;
+  writing-mode: horizontal-tb;
   visibility: hidden;
   line-height: 0;
 
@@ -21,11 +21,11 @@
 
 .inline {
   display: inline-block;
-  width: 8px;
+  height: 8px;
 }
 
-.inline-size-10 { height: 10px; }
-.inline-size-30 { height: 30px; }
+.inline-size-10 { width: 10px; }
+.inline-size-30 { width: 30px; }
 
 @supports (display: layout(test)) {
   .test {
@@ -49,17 +49,17 @@
     <span class="inline inline-size-10"></span>
   </div>
 
-  <!-- Make sure the max-height property clamps the size. -->
-  <div class="child" style="max-height: 25px; --inline-size-expected: 25; --block-size-expected: 8;">
+  <!-- Make sure the max-width property clamps the size. -->
+  <div class="child" style="max-width: 25px; --inline-size-expected: 25; --block-size-expected: 8;">
     <span class="inline inline-size-30"></span>
   </div>
 
-  <!-- Make sure the min-height property clamps the size. -->
-  <div class="child" style="min-height: 25px; --inline-size-expected: 25; --block-size-expected: 8;">
+  <!-- Make sure the min-width property clamps the size. -->
+  <div class="child" style="min-width: 25px; --inline-size-expected: 25; --block-size-expected: 8;">
     <span class="inline inline-size-10"></span>
   </div>
 </div>
 
 <script>
-importWorkletAndTerminateTestAfterAsyncPaint(CSS.layoutWorklet, {url: 'support/layout-child-sizes-worklet.js'});
+importWorkletAndTerminateTestAfterAsyncPaint(CSS.layoutWorklet, {url: '../support/layout-child-sizes-worklet.js'});
 </script>

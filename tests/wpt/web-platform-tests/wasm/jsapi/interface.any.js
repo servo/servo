@@ -9,7 +9,7 @@ function test_operations(object, object_name, operations) {
       assert_true(propdesc.writable, "writable");
       assert_true(propdesc.enumerable, "enumerable");
       assert_true(propdesc.configurable, "configurable");
-      assert_equals(propdesc.value, WebAssembly[name]);
+      assert_equals(propdesc.value, object[name]);
     }, `${object_name}.${name}`);
 
     test(() => {

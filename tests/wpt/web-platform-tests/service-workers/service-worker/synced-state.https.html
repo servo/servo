@@ -33,7 +33,7 @@ promise_test(function(t) {
           worker = registration.installing;
 
           t.add_cleanup(function() {
-              r.unregister();
+              return r.unregister();
             });
 
           return nextChange(worker);

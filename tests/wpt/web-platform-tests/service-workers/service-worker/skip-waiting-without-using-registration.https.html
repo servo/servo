@@ -27,7 +27,7 @@ promise_test(function(t) {
       .then(function(registration) {
           sw_registration = registration;
           t.add_cleanup(function() {
-              registration.unregister();
+              return registration.unregister();
             });
           return wait_for_state(t, registration.installing, 'activated');
         })

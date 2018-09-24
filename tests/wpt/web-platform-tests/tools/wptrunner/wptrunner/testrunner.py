@@ -496,6 +496,8 @@ class TestRunnerManager(threading.Thread):
 
     def init_failed(self):
         assert isinstance(self.state, RunnerManagerState.initializing)
+        if self.browser.check_for_crashes():
+            self.browser.log_crash(None)
         self.browser.after_init()
         self.stop_runner(force=True)
         return RunnerManagerState.initializing(self.state.test,

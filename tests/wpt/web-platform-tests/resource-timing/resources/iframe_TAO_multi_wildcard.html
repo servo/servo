@@ -1,0 +1,21 @@
+<body>
+<script>
+function dirname(path) {
+    return path.replace(/\/[^\/]*$/, '/');
+}
+
+function request() {
+  var dirName = dirname(location.href);
+  // create a cross-origin request
+  var url = dirName.replace('://', '://www.') + 'TAOResponse.py?tao=multi_wildcard';
+  var img = new Image();
+  img.crossOrigin = "anonymous";
+  img.src = url;
+}
+
+if(window.parent.setup_iframe) {
+  window.parent.setup_iframe();
+  request();
+}
+</script>
+</body>
