@@ -20,6 +20,7 @@ use selector_parser::PseudoElement;
 use servo_arc::Arc;
 use shared_lock::StylesheetGuards;
 use smallbitvec::SmallBitVec;
+use smallvec::SmallVec;
 use std::borrow::Cow;
 use std::cell::RefCell;
 use style_adjuster::StyleAdjuster;
@@ -240,10 +241,12 @@ where
 
     let inherited_style = parent_style.unwrap_or(device.default_computed_values());
 
+    let mut declarations = SmallVec::<[(&_, CascadeLevel); 32]>::new();
     let custom_properties = {
         let mut builder = CustomPropertiesBuilder::new(inherited_style.custom_properties());
 
-        for (declaration, _cascade_level) in iter_declarations() {
+        for (declaration, cascade_level) in iter_declarations() {
+            declarations.push((declaration, cascade_level));
             if let PropertyDeclaration::Custom(ref declaration) = *declaration {
                 builder.cascade(&declaration.name, &declaration.value);
             }
@@ -278,7 +281,7 @@ where
         let mut cascade = Cascade::new(&mut context, cascade_mode);
 
         cascade
-            .apply_properties::<EarlyProperties, I>(ApplyResetProperties::Yes, iter_declarations());
+            .apply_properties::<EarlyProperties, _>(ApplyResetProperties::Yes, declarations.iter().cloned());
 
         cascade.compute_visited_style_if_needed(
             element,
@@ -297,7 +300,7 @@ where
             ApplyResetProperties::Yes
         };
 
-        cascade.apply_properties::<LateProperties, I>(apply_reset, iter_declarations());
+        cascade.apply_properties::<LateProperties, _>(apply_reset, declarations.iter().cloned());
 
         using_cached_reset_properties
     };
