@@ -119,7 +119,7 @@ use style::str::HTML_SPACE_CHARACTERS;
 use style::stylesheets::CssRuleType;
 use style_traits::{CSSPixel, DevicePixel, ParsingMode};
 use task::TaskCanceller;
-use task_source::TaskSourceName;
+use task_source::{TaskSource, TaskSourceName};
 use task_source::dom_manipulation::DOMManipulationTaskSource;
 use task_source::file_reading::FileReadingTaskSource;
 use task_source::history_traversal::HistoryTraversalTaskSource;
@@ -352,36 +352,43 @@ impl Window {
         self.js_runtime.borrow().as_ref().unwrap().cx()
     }
 
-    pub fn dom_manipulation_task_source(&self) -> DOMManipulationTaskSource {
-        self.dom_manipulation_task_source.clone()
+    pub fn dom_manipulation_task_source(&self) -> TaskManagement<DOMManipulationTaskSource> {
+        let canceller = self.task_canceller(TaskSourceName::DOMManipulation);
+        TaskManagement(self.dom_manipulation_task_source.clone(), canceller)
     }
 
-    pub fn user_interaction_task_source(&self) -> UserInteractionTaskSource {
-        self.user_interaction_task_source.clone()
+    pub fn user_interaction_task_source(&self) -> TaskManagement<UserInteractionTaskSource> {
+        let canceller = self.task_canceller(TaskSourceName::UserInteraction);
+        TaskManagement(self.user_interaction_task_source.clone(), canceller)
     }
 
-    pub fn networking_task_source(&self) -> NetworkingTaskSource {
-        self.networking_task_source.clone()
+    pub fn networking_task_source(&self) -> TaskManagement<NetworkingTaskSource> {
+        let canceller = self.task_canceller(TaskSourceName::Networking);
+        TaskManagement(self.networking_task_source.clone(), canceller)
     }
 
     pub fn history_traversal_task_source(&self) -> Box<ScriptChan + Send> {
         self.history_traversal_task_source.clone()
     }
 
-    pub fn file_reading_task_source(&self) -> FileReadingTaskSource {
-        self.file_reading_task_source.clone()
+    pub fn file_reading_task_source(&self) -> TaskManagement<FileReadingTaskSource> {
+        let canceller = self.task_canceller(TaskSourceName::FileReading);
+        TaskManagement(self.file_reading_task_source.clone(), canceller)
     }
 
-    pub fn performance_timeline_task_source(&self) -> PerformanceTimelineTaskSource {
-        self.performance_timeline_task_source.clone()
+    pub fn performance_timeline_task_source(&self) -> TaskManagement<PerformanceTimelineTaskSource> {
+        let canceller = self.task_canceller(TaskSourceName::PerformanceTimeline);
+        TaskManagement(self.performance_timeline_task_source.clone(), canceller)
     }
 
-    pub fn remote_event_task_source(&self) -> RemoteEventTaskSource {
-        self.remote_event_task_source.clone()
+    pub fn remote_event_task_source(&self) -> TaskManagement<RemoteEventTaskSource> {
+        let canceller = self.task_canceller(TaskSourceName::RemoteEvent);
+        TaskManagement(self.remote_event_task_source.clone(), canceller)
     }
 
-    pub fn websocket_task_source(&self) -> WebsocketTaskSource {
-        self.websocket_task_source.clone()
+    pub fn websocket_task_source(&self) -> TaskManagement<WebsocketTaskSource> {
+        let canceller = self.task_canceller(TaskSourceName::Websocket);
+        TaskManagement(self.websocket_task_source.clone(), canceller)
     }
 
     pub fn main_thread_script_chan(&self) -> &Sender<MainThreadScriptMsg> {
@@ -1206,6 +1213,8 @@ impl WindowMethods for Window {
         USVString(self.origin().immutable().ascii_serialization())
     }
 }
+
+pub struct TaskManagement<T: TaskSource>(pub T, pub TaskCanceller);
 
 impl Window {
     // https://drafts.css-houdini.org/css-paint-api-1/#paint-worklet

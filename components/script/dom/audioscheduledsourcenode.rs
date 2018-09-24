@@ -9,11 +9,12 @@ use dom::bindings::inheritance::Castable;
 use dom::bindings::num::Finite;
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::DomObject;
+use dom::window::TaskManagement;
 use dom_struct::dom_struct;
 use servo_media::audio::node::{AudioNodeMessage, AudioNodeInit, AudioScheduledSourceNodeMessage};
 use servo_media::audio::node::OnEndedCallback;
 use std::cell::Cell;
-use task_source::{TaskSource, TaskSourceName};
+use task_source::TaskSource;
 
 #[dom_struct]
 pub struct AudioScheduledSourceNode {
@@ -66,15 +67,14 @@ impl AudioScheduledSourceNodeMethods for AudioScheduledSourceNode {
         let this = Trusted::new(self);
         let global = self.global();
         let window = global.as_window();
-        let task_source = window.dom_manipulation_task_source();
-        let canceller = window.task_canceller(TaskSourceName::DOMManipulation);
+        let TaskManagement(task_source, canceller) = window.dom_manipulation_task_source();
         let callback = OnEndedCallback::new(move || {
             let _ = task_source.queue_with_canceller(
                 task!(ended: move || {
                     let this = this.root();
                     let global = this.global();
                     let window = global.as_window();
-                    window.dom_manipulation_task_source().queue_simple_event(
+                    window.dom_manipulation_task_source().0.queue_simple_event(
                         this.upcast(),
                         atom!("ended"),
                         &window

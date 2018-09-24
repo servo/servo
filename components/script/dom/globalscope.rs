@@ -413,7 +413,7 @@ impl GlobalScope {
     /// this global scope.
     pub fn networking_task_source(&self) -> NetworkingTaskSource {
         if let Some(window) = self.downcast::<Window>() {
-            return window.networking_task_source();
+            return window.networking_task_source().0;
         }
         if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
             return worker.networking_task_source();
@@ -425,7 +425,7 @@ impl GlobalScope {
     /// this global scope.
     pub fn remote_event_task_source(&self) -> RemoteEventTaskSource {
         if let Some(window) = self.downcast::<Window>() {
-            return window.remote_event_task_source();
+            return window.remote_event_task_source().0;
         }
         if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
             return worker.remote_event_task_source();
@@ -437,7 +437,7 @@ impl GlobalScope {
     /// this global scope.
     pub fn websocket_task_source(&self) -> WebsocketTaskSource {
         if let Some(window) = self.downcast::<Window>() {
-            return window.websocket_task_source();
+            return window.websocket_task_source().0;
         }
         if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
             return worker.websocket_task_source();
@@ -628,7 +628,7 @@ impl GlobalScope {
     /// this of this global scope.
     pub fn file_reading_task_source(&self) -> FileReadingTaskSource {
         if let Some(window) = self.downcast::<Window>() {
-            return window.file_reading_task_source();
+            return window.file_reading_task_source().0;
         }
         if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
             return worker.file_reading_task_source();
@@ -681,7 +681,7 @@ impl GlobalScope {
     /// of this global scope.
     pub fn performance_timeline_task_source(&self) -> PerformanceTimelineTaskSource {
         if let Some(window) = self.downcast::<Window>() {
-            return window.performance_timeline_task_source();
+            return window.performance_timeline_task_source().0;
         }
         if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
             return worker.performance_timeline_task_source();

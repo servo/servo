@@ -12,7 +12,7 @@ use dom::bindings::num::Finite;
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::reflect_dom_object;
 use dom::bindings::root::DomRoot;
-use dom::window::Window;
+use dom::window::{TaskManagement, Window};
 use dom_struct::dom_struct;
 use ipc_channel::ipc::{self, IpcReceiver};
 use ipc_channel::router::ROUTER;
@@ -21,7 +21,7 @@ use js::typedarray::{Float32Array, Uint8Array};
 use servo_media::audio::analyser_node::AnalysisEngine;
 use servo_media::audio::block::Block;
 use servo_media::audio::node::AudioNodeInit;
-use task_source::{TaskSource, TaskSourceName};
+use task_source::TaskSource;
 
 #[dom_struct]
 pub struct AnalyserNode {
@@ -85,8 +85,7 @@ impl AnalyserNode {
     ) -> Fallible<DomRoot<AnalyserNode>> {
         let (node, recv) = AnalyserNode::new_inherited(window, context, options)?;
         let object = reflect_dom_object(Box::new(node), window, AnalyserNodeBinding::Wrap);
-        let source = window.dom_manipulation_task_source();
-        let canceller = window.task_canceller(TaskSourceName::DOMManipulation);
+        let TaskManagement(source, canceller) = window.dom_manipulation_task_source();
         let this = Trusted::new(&*object);
 
         ROUTER.add_route(recv.to_opaque(), Box::new(move |block| {

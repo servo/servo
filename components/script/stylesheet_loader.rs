@@ -13,6 +13,7 @@ use dom::eventtarget::EventTarget;
 use dom::htmlelement::HTMLElement;
 use dom::htmllinkelement::{RequestGenerationId, HTMLLinkElement};
 use dom::node::{document_from_node, window_from_node};
+use dom::window::TaskManagement;
 use encoding_rs::UTF_8;
 use hyper::header::ContentType;
 use hyper::mime::{Mime, TopLevel, SubLevel};
@@ -35,7 +36,6 @@ use style::stylesheets::{CssRules, ImportRule, Namespaces, Stylesheet, Styleshee
 use style::stylesheets::StylesheetLoader as StyleStylesheetLoader;
 use style::stylesheets::import_rule::ImportSheet;
 use style::values::CssUrl;
-use task_source::TaskSourceName;
 
 pub trait StylesheetOwner {
     /// Returns whether this element was inserted by the parser (i.e., it should
@@ -245,10 +245,11 @@ impl<'a> StylesheetLoader<'a> {
         }));
 
         let (action_sender, action_receiver) = ipc::channel().unwrap();
+        let TaskManagement(task_source, canceller) = document.window().networking_task_source();
         let listener = NetworkListener {
-            context: context,
-            task_source: document.window().networking_task_source(),
-            canceller: Some(document.window().task_canceller(TaskSourceName::Networking)),
+            context,
+            task_source,
+            canceller: Some(canceller),
         };
         ROUTER.add_route(
             action_receiver.to_opaque(),

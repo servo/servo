@@ -1505,7 +1505,7 @@ impl VirtualMethods for HTMLInputElement {
         {
             if event.IsTrusted() {
                 let window = window_from_node(self);
-                let _ = window.user_interaction_task_source().queue_event(
+                let _ = window.user_interaction_task_source().0.queue_event(
                     &self.upcast(),
                     atom!("input"),
                     EventBubbles::Bubbles,

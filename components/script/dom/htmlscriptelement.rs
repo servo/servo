@@ -22,6 +22,7 @@ use dom::htmlelement::HTMLElement;
 use dom::node::{ChildrenMutation, CloneChildrenFlag, Node};
 use dom::node::{document_from_node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
+use dom::window::TaskManagement;
 use dom_struct::dom_struct;
 use encoding_rs::Encoding;
 use html5ever::{LocalName, Prefix};
@@ -41,7 +42,6 @@ use std::path::PathBuf;
 use std::process::{Command, Stdio};
 use std::sync::{Arc, Mutex};
 use style::str::{HTML_SPACE_CHARACTERS, StaticStringVec};
-use task_source::TaskSourceName;
 use uuid::Uuid;
 
 #[dom_struct]
@@ -291,10 +291,11 @@ fn fetch_a_classic_script(
     }));
 
     let (action_sender, action_receiver) = ipc::channel().unwrap();
+    let TaskManagement(task_source, canceller) = doc.window().networking_task_source();
     let listener = NetworkListener {
-        context: context,
-        task_source: doc.window().networking_task_source(),
-        canceller: Some(doc.window().task_canceller(TaskSourceName::Networking)),
+        context,
+        task_source,
+        canceller: Some(canceller),
     };
 
     ROUTER.add_route(
@@ -618,7 +619,7 @@ impl HTMLScriptElement {
 
     pub fn queue_error_event(&self) {
         let window = window_from_node(self);
-        window.dom_manipulation_task_source().queue_simple_event(
+        window.dom_manipulation_task_source().0.queue_simple_event(
             self.upcast(),
             atom!("error"),
             &window,

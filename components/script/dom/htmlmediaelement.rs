@@ -30,6 +30,7 @@ use dom::mediaerror::MediaError;
 use dom::node::{window_from_node, document_from_node, Node, UnbindContext};
 use dom::promise::Promise;
 use dom::virtualmethods::VirtualMethods;
+use dom::window::TaskManagement;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
 use ipc_channel::ipc;
@@ -46,7 +47,7 @@ use std::collections::VecDeque;
 use std::mem;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
-use task_source::{TaskSource, TaskSourceName};
+use task_source::TaskSource;
 use time::{self, Timespec, Duration};
 
 #[dom_struct]
@@ -181,7 +182,7 @@ impl HTMLMediaElement {
         let state = self.ready_state.get();
 
         let window = window_from_node(self);
-        let task_source = window.dom_manipulation_task_source();
+        let task_source = window.dom_manipulation_task_source().0;
         if self.Paused() {
             // Step 6.1.
             self.paused.set(false);
@@ -249,7 +250,7 @@ impl HTMLMediaElement {
             let generation_id = self.generation_id.get();
             // FIXME(nox): Why are errors silenced here?
             // FIXME(nox): Media element event task source should be used here.
-            let _ = window.dom_manipulation_task_source().queue(
+            let _ = window.dom_manipulation_task_source().0.queue(
                 task!(internal_pause_steps: move || {
                     let this = this.root();
                     if generation_id != this.generation_id.get() {
@@ -288,7 +289,7 @@ impl HTMLMediaElement {
         let generation_id = self.generation_id.get();
         // FIXME(nox): Why are errors silenced here?
         // FIXME(nox): Media element event task source should be used here.
-        let _ = window.dom_manipulation_task_source().queue(
+        let _ = window.dom_manipulation_task_source().0.queue(
             task!(notify_about_playing: move || {
                 let this = this.root();
                 if generation_id != this.generation_id.get() {
@@ -319,7 +320,7 @@ impl HTMLMediaElement {
         }
 
         let window = window_from_node(self);
-        let task_source = window.dom_manipulation_task_source();
+        let task_source = window.dom_manipulation_task_source().0;
 
         // Step 1.
         match (old_ready_state, ready_state) {
@@ -468,7 +469,7 @@ impl HTMLMediaElement {
 
         // Step 8.
         let window = window_from_node(self);
-        window.dom_manipulation_task_source().queue_simple_event(
+        window.dom_manipulation_task_source().0.queue_simple_event(
             self.upcast(),
             atom!("loadstart"),
             &window,
@@ -539,7 +540,7 @@ impl HTMLMediaElement {
 
                     // Step 4.remote.1.2.
                     let window = window_from_node(self);
-                    window.dom_manipulation_task_source().queue_simple_event(
+                    window.dom_manipulation_task_source().0.queue_simple_event(
                         self.upcast(),
                         atom!("suspend"),
                         &window,
@@ -548,7 +549,7 @@ impl HTMLMediaElement {
                     // Step 4.remote.1.3.
                     let this = Trusted::new(self);
                     window
-                        .dom_manipulation_task_source()
+                        .dom_manipulation_task_source().0
                         .queue(
                             task!(set_media_delay_load_event_flag_to_false: move || {
                             this.root().delay_load_event(false);
@@ -588,11 +589,11 @@ impl HTMLMediaElement {
 
                 let context = Arc::new(Mutex::new(HTMLMediaElementContext::new(self)));
                 let (action_sender, action_receiver) = ipc::channel().unwrap();
-                let window = window_from_node(self);
+                let TaskManagement(task_source, canceller) = document.window().networking_task_source();
                 let listener = NetworkListener {
-                    context: context,
-                    task_source: window.networking_task_source(),
-                    canceller: Some(window.task_canceller(TaskSourceName::Networking)),
+                    context,
+                    task_source,
+                    canceller: Some(canceller),
                 };
                 ROUTER.add_route(
                     action_receiver.to_opaque(),
@@ -621,7 +622,7 @@ impl HTMLMediaElement {
         self.take_pending_play_promises(Err(Error::NotSupported));
         // FIXME(nox): Why are errors silenced here?
         // FIXME(nox): Media element event task source should be used here.
-        let _ = window.dom_manipulation_task_source().queue(
+        let _ = window.dom_manipulation_task_source().0.queue(
             task!(dedicated_media_source_failure_steps: move || {
                 let this = this.root();
                 if generation_id != this.generation_id.get() {
@@ -674,7 +675,7 @@ impl HTMLMediaElement {
         }
 
         let window = window_from_node(self);
-        let task_source = window.dom_manipulation_task_source();
+        let task_source = window.dom_manipulation_task_source().0;
 
         // Step 5.
         let network_state = self.network_state.get();
@@ -1033,7 +1034,7 @@ impl FetchResponseListener for HTMLMediaElementContext {
         // => "If mode is remote" step 2
         if time::get_time() > self.next_progress_event {
             let window = window_from_node(&*elem);
-            window.dom_manipulation_task_source().queue_simple_event(
+            window.dom_manipulation_task_source().0.queue_simple_event(
                 elem.upcast(),
                 atom!("progress"),
                 &window,

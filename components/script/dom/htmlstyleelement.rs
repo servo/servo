@@ -125,7 +125,7 @@ impl HTMLStyleElement {
         // No subresource loads were triggered, queue load event
         if self.pending_loads.get() == 0 {
             let window = window_from_node(self);
-            window.dom_manipulation_task_source().queue_simple_event(
+            window.dom_manipulation_task_source().0.queue_simple_event(
                 self.upcast(),
                 atom!("load"),
                 &window,

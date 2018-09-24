@@ -37,7 +37,7 @@ use dom::node::{Node, NodeDamage, document_from_node, window_from_node, UnbindCo
 use dom::progressevent::ProgressEvent;
 use dom::values::UNSIGNED_LONG_MAX;
 use dom::virtualmethods::VirtualMethods;
-use dom::window::Window;
+use dom::window::{TaskManagement, Window};
 use dom_struct::dom_struct;
 use euclid::Point2D;
 use html5ever::{LocalName, Prefix};
@@ -72,7 +72,7 @@ use style::stylesheets::{CssRuleType, Origin};
 use style::values::specified::{AbsoluteLength, source_size_list::SourceSizeList};
 use style::values::specified::length::{Length, NoCalcLength};
 use style_traits::ParsingMode;
-use task_source::{TaskSource, TaskSourceName};
+use task_source::TaskSource;
 
 enum ParseState {
     InDescriptor,
@@ -239,8 +239,7 @@ impl HTMLImageElement {
             let (responder_sender, responder_receiver) = ipc::channel().unwrap();
 
             let window = window_from_node(elem);
-            let task_source = window.networking_task_source();
-            let task_canceller = window.task_canceller(TaskSourceName::Networking);
+            let TaskManagement(task_source, task_canceller) = window.networking_task_source();
             let generation = elem.generation.get();
             ROUTER.add_route(
                 responder_receiver.to_opaque(),
@@ -310,10 +309,11 @@ impl HTMLImageElement {
         }));
 
         let (action_sender, action_receiver) = ipc::channel().unwrap();
+        let TaskManagement(task_source, canceller) = document.window().networking_task_source();
         let listener = NetworkListener {
-            context: context,
-            task_source: window.networking_task_source(),
-            canceller: Some(window.task_canceller(TaskSourceName::Networking)),
+            context,
+            task_source,
+            canceller: Some(canceller),
         };
         ROUTER.add_route(
             action_receiver.to_opaque(),
@@ -782,7 +782,7 @@ impl HTMLImageElement {
     fn update_the_image_data_sync_steps(&self) {
         let document = document_from_node(self);
         let window = document.window();
-        let task_source = window.dom_manipulation_task_source();
+        let task_source = window.dom_manipulation_task_source().0;
         let this = Trusted::new(self);
         let (src, pixel_density) = match self.select_image_source() {
             // Step 8
@@ -940,7 +940,7 @@ impl HTMLImageElement {
                     current_request.current_pixel_density = pixel_density;
                     let this = Trusted::new(self);
                     let src = String::from(src);
-                    let _ = window.dom_manipulation_task_source().queue(
+                    let _ = window.dom_manipulation_task_source().0.queue(
                         task!(image_load_event: move || {
                             let this = this.root();
                             {
@@ -991,8 +991,7 @@ impl HTMLImageElement {
             let (responder_sender, responder_receiver) = ipc::channel().unwrap();
 
             let window = window_from_node(elem);
-            let task_source = window.networking_task_source();
-            let task_canceller = window.task_canceller(TaskSourceName::Networking);
+            let TaskManagement(task_source, task_canceller) = window.networking_task_source();
             let generation = elem.generation.get();
             ROUTER.add_route(responder_receiver.to_opaque(), Box::new(move |message| {
                 debug!("Got image {:?}", message);
@@ -1135,7 +1134,7 @@ impl HTMLImageElement {
         let this = Trusted::new(self);
         let window = window_from_node(self);
         let src = src.to_string();
-        let _ = window.dom_manipulation_task_source().queue(
+        let _ = window.dom_manipulation_task_source().0.queue(
             task!(image_load_event: move || {
                 let this = this.root();
                 let relevant_mutation = this.generation.get() != generation;

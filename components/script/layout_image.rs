@@ -9,6 +9,7 @@
 
 use dom::bindings::reflector::DomObject;
 use dom::node::{Node, document_from_node};
+use dom::window::TaskManagement;
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use net_traits::{FetchResponseMsg, FetchResponseListener, FetchMetadata, NetworkError};
@@ -17,7 +18,6 @@ use net_traits::request::{Destination, RequestInit as FetchRequestInit};
 use network_listener::{NetworkListener, PreInvoke};
 use servo_url::ServoUrl;
 use std::sync::{Arc, Mutex};
-use task_source::TaskSourceName;
 
 struct LayoutImageContext {
     id: PendingImageId,
@@ -57,13 +57,13 @@ pub fn fetch_image_for_layout(
     }));
 
     let document = document_from_node(node);
-    let window = document.window();
 
     let (action_sender, action_receiver) = ipc::channel().unwrap();
+    let TaskManagement(task_source, canceller) = document.window().networking_task_source();
     let listener = NetworkListener {
-        context: context,
-        task_source: window.networking_task_source(),
-        canceller: Some(window.task_canceller(TaskSourceName::Networking)),
+        context,
+        task_source,
+        canceller: Some(canceller),
     };
     ROUTER.add_route(
         action_receiver.to_opaque(),

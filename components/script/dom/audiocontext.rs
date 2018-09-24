@@ -122,7 +122,7 @@ impl AudioContextMethods for AudioContext {
 
         // Steps 4 and 5.
         let window = DomRoot::downcast::<Window>(self.global()).unwrap();
-        let task_source = window.dom_manipulation_task_source();
+        let task_source = window.dom_manipulation_task_source().0;
         let trusted_promise = TrustedPromise::new(promise.clone());
         match self.context.audio_context_impl().suspend() {
             Ok(_) => {
@@ -137,7 +137,7 @@ impl AudioContextMethods for AudioContext {
                     if base_context.State() != AudioContextState::Suspended {
                         base_context.set_state_attribute(AudioContextState::Suspended);
                         let window = DomRoot::downcast::<Window>(context.global()).unwrap();
-                        window.dom_manipulation_task_source().queue_simple_event(
+                        window.dom_manipulation_task_source().0.queue_simple_event(
                             context.upcast(),
                             atom!("statechange"),
                             &window
@@ -184,7 +184,7 @@ impl AudioContextMethods for AudioContext {
 
         // Steps 4 and 5.
         let window = DomRoot::downcast::<Window>(self.global()).unwrap();
-        let task_source = window.dom_manipulation_task_source();
+        let task_source = window.dom_manipulation_task_source().0;
         let trusted_promise = TrustedPromise::new(promise.clone());
         match self.context.audio_context_impl().close() {
             Ok(_) => {
@@ -199,7 +199,7 @@ impl AudioContextMethods for AudioContext {
                     if base_context.State() != AudioContextState::Closed {
                         base_context.set_state_attribute(AudioContextState::Closed);
                         let window = DomRoot::downcast::<Window>(context.global()).unwrap();
-                        window.dom_manipulation_task_source().queue_simple_event(
+                        window.dom_manipulation_task_source().0.queue_simple_event(
                             context.upcast(),
                             atom!("statechange"),
                             &window
