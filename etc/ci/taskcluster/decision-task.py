@@ -26,6 +26,19 @@ def main():
 
 
 def daily_tasks_setup():
+    # ':' is not accepted in an index namepspace:
+    # https://docs.taskcluster.net/docs/reference/core/taskcluster-index/references/api
+    now = decision.now.strftime("%Y-%m-%d_%H-%M-%S")
+    index_path = "%s.daily.%s" % (decision.index_prefix, now)
+    # Index this task manually rather than with a route,
+    # so that it is indexed even if it fails.
+    decision.index_service.insertTask(index_path, {
+        "taskId": os.environ["TASK_ID"],
+        "rank": 0,
+        "data": {},
+        "expires": decision.from_now_json(log_artifacts_expiry),
+    })
+
     # Unlike when reacting to a GitHub event,
     # the commit hash is not known until we clone the repository.
     os.environ["GIT_SHA"] = \
