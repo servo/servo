@@ -25,7 +25,6 @@ use crate::dom::node::{document_from_node, window_from_node};
 use crate::dom::node::{ChildrenMutation, CloneChildrenFlag, Node};
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::network_listener::{NetworkListener, PreInvoke};
-use crate::task_source::TaskSourceName;
 use dom_struct::dom_struct;
 use encoding_rs::Encoding;
 use html5ever::{LocalName, Prefix};
@@ -294,10 +293,11 @@ fn fetch_a_classic_script(
     }));
 
     let (action_sender, action_receiver) = ipc::channel().unwrap();
+    let (task_source, canceller) = doc.window().task_manager().networking_task_source_with_canceller();
     let listener = NetworkListener {
-        context: context,
-        task_source: doc.window().networking_task_source(),
-        canceller: Some(doc.window().task_canceller(TaskSourceName::Networking)),
+        context,
+        task_source,
+        canceller: Some(canceller),
     };
 
     ROUTER.add_route(
@@ -623,7 +623,7 @@ impl HTMLScriptElement {
 
     pub fn queue_error_event(&self) {
         let window = window_from_node(self);
-        window.dom_manipulation_task_source().queue_simple_event(
+        window.task_manager().dom_manipulation_task_source().queue_simple_event(
             self.upcast(),
             atom!("error"),
             &window,

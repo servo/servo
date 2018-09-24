@@ -476,7 +476,7 @@ impl GlobalScope {
     /// this global scope.
     pub fn networking_task_source(&self) -> NetworkingTaskSource {
         if let Some(window) = self.downcast::<Window>() {
-            return window.networking_task_source();
+            return window.task_manager().networking_task_source();
         }
         if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
             return worker.networking_task_source();
@@ -488,7 +488,7 @@ impl GlobalScope {
     /// this global scope.
     pub fn remote_event_task_source(&self) -> RemoteEventTaskSource {
         if let Some(window) = self.downcast::<Window>() {
-            return window.remote_event_task_source();
+            return window.task_manager().remote_event_task_source();
         }
         if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
             return worker.remote_event_task_source();
@@ -500,7 +500,7 @@ impl GlobalScope {
     /// this global scope.
     pub fn websocket_task_source(&self) -> WebsocketTaskSource {
         if let Some(window) = self.downcast::<Window>() {
-            return window.websocket_task_source();
+            return window.task_manager().websocket_task_source();
         }
         if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
             return worker.websocket_task_source();
@@ -635,7 +635,7 @@ impl GlobalScope {
     /// properly cancelled when the global scope is destroyed.
     pub fn task_canceller(&self, name: TaskSourceName) -> TaskCanceller {
         if let Some(window) = self.downcast::<Window>() {
-            return window.task_canceller(name);
+            return window.task_manager().task_canceller(name);
         }
         if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
             // Note: the "name" is not passed to the worker,
@@ -691,7 +691,7 @@ impl GlobalScope {
 
     pub fn dom_manipulation_task_source(&self) -> DOMManipulationTaskSource {
         if let Some(window) = self.downcast::<Window>() {
-            return window.dom_manipulation_task_source();
+            return window.task_manager().dom_manipulation_task_source();
         }
         if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
             return worker.dom_manipulation_task_source();
@@ -703,7 +703,7 @@ impl GlobalScope {
     /// this of this global scope.
     pub fn file_reading_task_source(&self) -> FileReadingTaskSource {
         if let Some(window) = self.downcast::<Window>() {
-            return window.file_reading_task_source();
+            return window.task_manager().file_reading_task_source();
         }
         if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
             return worker.file_reading_task_source();
@@ -756,7 +756,7 @@ impl GlobalScope {
     /// of this global scope.
     pub fn performance_timeline_task_source(&self) -> PerformanceTimelineTaskSource {
         if let Some(window) = self.downcast::<Window>() {
-            return window.performance_timeline_task_source();
+            return window.task_manager().performance_timeline_task_source();
         }
         if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
             return worker.performance_timeline_task_source();
