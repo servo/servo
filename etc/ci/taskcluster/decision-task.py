@@ -32,9 +32,11 @@ def daily_tasks_setup():
         subprocess.check_output(["git", "rev-parse", "HEAD"]).decode("utf8").strip()
 
     # On failure, notify a few people on IRC
+    # https://docs.taskcluster.net/docs/reference/core/taskcluster-notify/docs/usage
+    notify_route = "notify.irc-channel.#servo.on-failed"
+    decision.routes_for_all_subtasks.append(notify_route)
+    decision.scopes_for_all_subtasks.append("queue:route:" + notify_route)
     decision.task_name_template = "Servo daily: %s. On failure, ping: SimonSapin, nox, emilio"
-    decision.routes_for_all_subtasks.append("notify.irc-channel.#servo.on-failed")
-    decision.scopes_for_all_subtasks.append("queue:route:notify.irc-channel.#servo.on-failed")
 
 
 build_artifacts_expiry = "1 week"
