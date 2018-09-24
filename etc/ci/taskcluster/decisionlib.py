@@ -226,4 +226,4 @@ def expand_dockerfile(dockerfile):
 
 
 def deindent(string):
-    return re.sub("\n +", " \n ", string)
+    return re.sub("\n +", " \n ", string).strip()
