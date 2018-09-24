@@ -4,14 +4,28 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-
 import os.path
+import subprocess
 from decisionlib import DecisionTask
 
 
 def main():
-    linux_tidy_unit()
-#    linux_wpt()
+    task_for = os.environ["TASK_FOR"]
+
+    if task_for == "github-push":
+        linux_tidy_unit()
+        #linux_wpt()
+
+    # https://tools.taskcluster.net/hooks/project-servo/daily
+    elif task_for == "daily":
+        # Unlike when reacting to a GitHub event,
+        # the commit hash is not known until we clone the repository.
+        os.environ["GIT_SHA"] = \
+            subprocess.check_output(["git", "rev-parse", "HEAD"]).decode("utf8").strip()
+        with_rust_nightly()
+
+    else:
+        raise ValueError("Unrecognized $TASK_FOR value: %r", task_for)
 
 
 build_artifacts_expiry = "1 week"
@@ -40,6 +54,18 @@ def linux_tidy_unit():
             python2.7 ./etc/memory_reports_over_time.py --test
             ./etc/ci/lockfile_changed.sh
             ./etc/ci/check_no_panic.sh
+        """,
+        **build_kwargs
+    )
+
+
+def with_rust_nightly():
+    return decision.create_task(
+        task_name="Linux x86_64: with Rust Nightly",
+        script="""
+            echo "nightly" > rust-toolchain
+            ./mach build --dev
+            ./mach test-unit
         """,
         **build_kwargs
     )

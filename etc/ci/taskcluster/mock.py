@@ -15,6 +15,7 @@ Run the decision task with fake Taskcluster APIs, to catch Python errors before 
 
 import os
 import sys
+import collections
 from unittest.mock import MagicMock
 
 
@@ -30,7 +31,8 @@ class Index:
         raise TaskclusterRestFailure
 
 
-Queue = stringDate = fromNow = slugId = os.environ = MagicMock()
+Queue = stringDate = fromNow = slugId = MagicMock()
+os.environ = collections.defaultdict(str, TASK_FOR="github-push")
 sys.modules["taskcluster"] = sys.modules[__name__]
 sys.dont_write_bytecode = True
-exec(open("decision-task.py").read())
+exec(open(os.path.join(os.path.dirname(__file__), "decision-task.py")).read())
