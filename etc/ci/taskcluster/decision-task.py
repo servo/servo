@@ -25,33 +25,7 @@ def main():
         raise ValueError("Unrecognized $TASK_FOR value: %r", task_for)
 
 
-def daily_tasks_setup():
-    # ':' is not accepted in an index namepspace:
-    # https://docs.taskcluster.net/docs/reference/core/taskcluster-index/references/api
-    now = decision.now.strftime("%Y-%m-%d_%H-%M-%S")
-    index_path = "%s.daily.%s" % (decision.index_prefix, now)
-    # Index this task manually rather than with a route,
-    # so that it is indexed even if it fails.
-    decision.index_service.insertTask(index_path, {
-        "taskId": os.environ["TASK_ID"],
-        "rank": 0,
-        "data": {},
-        "expires": decision.from_now_json(log_artifacts_expiry),
-    })
-
-    # Unlike when reacting to a GitHub event,
-    # the commit hash is not known until we clone the repository.
-    os.environ["GIT_SHA"] = \
-        subprocess.check_output(["git", "rev-parse", "HEAD"]).decode("utf8").strip()
-
-    # On failure, notify a few people on IRC
-    # https://docs.taskcluster.net/docs/reference/core/taskcluster-notify/docs/usage
-    notify_route = "notify.irc-channel.#servo.on-failed"
-    decision.routes_for_all_subtasks.append(notify_route)
-    decision.scopes_for_all_subtasks.append("queue:route:" + notify_route)
-    decision.task_name_template = "Servo daily: %s. On failure, ping: SimonSapin, nox, emilio"
-
-
+ping_on_daily_task_failure = "SimonSapin, nox, emilio"
 build_artifacts_expiry = "1 week"
 log_artifacts_expiry = "1 year"
 
@@ -185,6 +159,33 @@ def create_run_task(*, build_task, script, **kwargs):
         dockerfile=dockerfile_path("run"),
         **kwargs
     )
+
+
+def daily_tasks_setup():
+    # ':' is not accepted in an index namepspace:
+    # https://docs.taskcluster.net/docs/reference/core/taskcluster-index/references/api
+    now = decision.now.strftime("%Y-%m-%d_%H-%M-%S")
+    index_path = "%s.daily.%s" % (decision.index_prefix, now)
+    # Index this task manually rather than with a route,
+    # so that it is indexed even if it fails.
+    decision.index_service.insertTask(index_path, {
+        "taskId": os.environ["TASK_ID"],
+        "rank": 0,
+        "data": {},
+        "expires": decision.from_now_json(log_artifacts_expiry),
+    })
+
+    # Unlike when reacting to a GitHub event,
+    # the commit hash is not known until we clone the repository.
+    os.environ["GIT_SHA"] = \
+        subprocess.check_output(["git", "rev-parse", "HEAD"]).decode("utf8").strip()
+
+    # On failure, notify a few people on IRC
+    # https://docs.taskcluster.net/docs/reference/core/taskcluster-notify/docs/usage
+    notify_route = "notify.irc-channel.#servo.on-failed"
+    decision.routes_for_all_subtasks.append(notify_route)
+    decision.scopes_for_all_subtasks.append("queue:route:" + notify_route)
+    decision.task_name_template = "Servo daily: %s. On failure, ping: " + ping_on_daily_task_failure
 
 
 def dockerfile_path(name):
