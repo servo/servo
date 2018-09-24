@@ -13,11 +13,7 @@ promise_test(t => {
 
     return service_worker_unregister_and_register(t, script, scope)
       .then(r => {
-          // TODO: return the Promise created by `r.unregister`once
-          // `testharness.js` has been updated to honor thenables returned by
-          // cleanup functions.
-          // See https://github.com/web-platform-tests/wpt/pull/8748
-          t.add_cleanup(() => { r.unregister(); });
+          t.add_cleanup(() => r.unregister());
           registration = r;
           worker = registration.installing;
 
@@ -66,11 +62,7 @@ promise_test(t => {
 
     return service_worker_unregister_and_register(t, script, scope)
       .then(r => {
-          // TODO: return the Promise created by `r.unregister`once
-          // `testharness.js` has been updated to honor thenables returned by
-          // cleanup functions.
-          // See https://github.com/web-platform-tests/wpt/pull/8748
-          t.add_cleanup(() => { r.unregister(); });
+          t.add_cleanup(() => r.unregister());
 
           var ab = text_encoder.encode(message);
           assert_equals(ab.byteLength, message.length);
@@ -110,11 +102,7 @@ promise_test(t => {
 
     return service_worker_unregister_and_register(t, script, scope)
       .then(r => {
-          // TODO: return the Promise created by `r.unregister`once
-          // `testharness.js` has been updated to honor thenables returned by
-          // cleanup functions.
-          // See https://github.com/web-platform-tests/wpt/pull/8748
-          t.add_cleanup(() => { r.unregister(); });
+          t.add_cleanup(() => r.unregister());
 
           var channel = new MessageChannel;
           port = channel.port1;

@@ -40,7 +40,7 @@ promise_test(async (t) => {
       t, 'resources/empty-worker.js', scope)
     .then(function(registration) {
         t.add_cleanup(function() {
-            registration.unregister();
+            return registration.unregister();
           });
 
         window.registrationInstance = registration;

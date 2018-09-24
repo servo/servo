@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<link rel="help" href="https://drafts.css-houdini.org/css-layout-api/#dom-layoutconstraintsoptions-availableinlinesize">
+<link rel="match" href="../green-square-ref.html">
+<meta name="assert" content="This test checks that setting an invalid available inline-size works as expected." />
+
+<style>
+.test {
+  writing-mode: horizontal-tb;
+  background: red;
+  width: 100px;
+}
+
+.child {
+  writing-mode: horizontal-tb;
+  visibility: hidden;
+  line-height: 0;
+
+  --available-inline-size: -20;
+}
+
+.inline {
+  display: inline-block;
+  height: 8px;
+}
+
+.inline-size-10 { width: 10px; }
+
+@supports (display: layout(test)) {
+  .test {
+    background: green;
+    display: layout(test);
+  }
+}
+</style>
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/worklet-reftest.js"></script>
+
+<div class="test">
+  <!-- The invalid available inline-size should be clamped to zero. -->
+  <div class="child" style="--inline-size-expected: 10; --block-size-expected: 16;">
+    <span class="inline inline-size-10"></span>
+    <span class="inline inline-size-10"></span>
+  </div>
+</div>
+
+<script>
+importWorkletAndTerminateTestAfterAsyncPaint(CSS.layoutWorklet, {url: '../support/layout-child-sizes-worklet.js'});
+</script>

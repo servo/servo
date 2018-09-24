@@ -49,3 +49,16 @@ def test_pause_invalid_types(session, action_type):
         }]
         response = perform_actions(session, actions)
         assert_error(response, "invalid argument")
+
+
+@pytest.mark.parametrize("action_type", ["none", "key", "pointer"])
+def test_pause_without_duration(session, action_type):
+    actions = [{
+        "type": action_type,
+        "id": "foobar",
+        "actions": [{
+            "type": "pause",
+        }]
+    }]
+    response = perform_actions(session, actions)
+    assert_success(response)

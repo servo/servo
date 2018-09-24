@@ -99,7 +99,6 @@ self.addEventListener('paymentrequest', event => {
         city: 'Reston',
         country: 'US',
         dependentLocality: '',
-        languageCode: '',
         organization: 'Google',
         phone: '+15555555555',
         postalCode: '20190',

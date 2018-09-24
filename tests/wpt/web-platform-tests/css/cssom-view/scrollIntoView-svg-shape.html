@@ -1,0 +1,32 @@
+<!DOCTYPE HTML>
+<title>scrollIntoView on an SVG shape element</title>
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#dom-element-scrollintoview">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<svg width="8000" height="8000">
+  <rect width="100" height="100" fill="blue" y="1950" id="geometry"/>
+  <rect width="100" height="100" fill="blue" transform="translate(0, 2950)"
+        id="translated"/>
+  <rect width="100" height="100" fill="blue" transform="rotate(45, 50, 3950)"
+        id="rotated"/>
+</svg>
+<script>
+add_completion_callback(() => {
+  document.querySelector("svg").remove();
+  window.scrollTo(0, 0);
+});
+
+for (let id of [ "geometry", "translated", "rotated" ]) {
+  test(t => {
+    let target = document.getElementById(id);
+    window.scrollTo(0, 0);
+    let bounds = target.getBoundingClientRect();
+    let expected = { x: bounds.left, y: bounds.top };
+    assert_not_equals(window.scrollX, expected.x, "x before scroll");
+    assert_not_equals(window.scrollY, expected.y, "y before scroll");
+    target.scrollIntoView({ block: "start", inline: "start" });
+    assert_approx_equals(window.scrollX, expected.x, 1, "x after scroll");
+    assert_approx_equals(window.scrollY, expected.y, 1, "y after scroll");
+  }, document.title + ", " + id);
+}
+</script>

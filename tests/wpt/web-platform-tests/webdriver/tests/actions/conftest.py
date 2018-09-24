@@ -14,6 +14,11 @@ def mouse_chain(session):
         {"pointerType": "mouse"})
 
 
+@pytest.fixture
+def none_chain(session):
+    return session.actions.sequence("none", "none_id")
+
+
 @pytest.fixture(autouse=True)
 def release_actions(session, request):
     # release all actions after each test

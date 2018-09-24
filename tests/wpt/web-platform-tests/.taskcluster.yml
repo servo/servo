@@ -9,8 +9,8 @@ tasks:
           $flatten:
             $match: {
               event.ref == "refs/heads/master": [{name: firefox, channel: nightly}, {name: chrome, channel: dev}],
-              event.ref == "refs/heads/epochs/daily": [{name: firefox, channel: beta}, {name: chrome, channel: beta}],
-              event.ref == "refs/heads/epochs/weekly": [{name: firefox, channel: stable}, {name: chrome, channel: stable}]
+              event.ref == "refs/heads/epochs/daily": [{name: firefox, channel: stable}, {name: chrome, channel: stable}],
+              event.ref == "refs/heads/epochs/weekly": [{name: firefox, channel: beta}, {name: chrome, channel: beta}]
               }
         each(browser):
           $map:
