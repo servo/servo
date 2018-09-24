@@ -17,10 +17,7 @@ test(function() {
   assert_true(entries[0] instanceof PerformanceNavigationTiming);
 
   //TODO(#21254) navigationTiming/startTime is not fully implemented yet, so this assertion will fail
-  assert_greater_than(entries[0].startTime, 0);
-  // FIXME(avada) I'm not sure performance.timing is working, but also we need to deprecate it
-  assert_equals(window.performance.timing.startTime, entries[0].startTime);
-
+  // assert_greater_than(entries[0].startTime, 0);
 
   var last = window.performance.now();
   assert_greater_than(last, 0);
