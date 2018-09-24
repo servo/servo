@@ -207,3 +207,26 @@ For those, file requests on Bugzilla under [Taskcluster :: Service Request][req]
 For asking for help less formally, try the `#servo` or `#taskcluster` channels on Mozilla IRC.
 
 [req]: https://bugzilla.mozilla.org/enter_bug.cgi?product=Taskcluster&component=Service%20Request
+
+
+## Configuration recap
+
+We try to keep as much as possible of our Taskcluster configuration in this repository.
+To modify those, submit a pull request.
+
+* The [`.taskcluster.yml`][tc.yml] file,
+  for starting decision tasks in reaction to GitHub events
+* The [`etc/ci/decision-task.py`](decision-task.py) file,
+  defining what other tasks to schedule
+
+However some configuration needs to be handled separately.
+Modifying those requires Servo-project-level administrative access.
+
+* The [`aws-provisioner/servo-docker-worker`][worker type definition] worker type definition,
+  for EC2 instances configuration
+* The [`project-servo/daily`] hook definition,
+  for starting daily decision tasks
+* The [`hook-id:project-servo/daily`] role,
+  for scopes granted to those tasks
+* The [`repo:github.com/servo/servo:branch:*`][branches] role,
+  for scopes granted to tasks responding to a GitHub push to the repository (includin by Homu)
