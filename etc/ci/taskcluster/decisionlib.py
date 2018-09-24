@@ -29,10 +29,10 @@ class DecisionTask:
     DOCKER_IMAGE_BUILDER_IMAGE = "servobrowser/taskcluster-bootstrap:image-builder@sha256:" \
         "0a7d012ce444d62ffb9e7f06f0c52fedc24b68c2060711b313263367f7272d9d"
 
-    def __init__(self, *, route_prefix, task_name_template="%s",
+    def __init__(self, *, index_prefix, task_name_template="%s",
                  worker_type="github-worker", docker_image_cache_expiry="1 year"):
         self.task_name_template = task_name_template
-        self.route_prefix = route_prefix
+        self.index_prefix = index_prefix
         self.worker_type = worker_type
         self.docker_image_cache_expiry = docker_image_cache_expiry
         self.routes_for_all_subtasks = []
@@ -43,26 +43,26 @@ class DecisionTask:
         self.index_service = taskcluster.Index(options={"baseUrl": "http://taskcluster/index/v1/"})
 
         self.now = datetime.datetime.utcnow()
-        self.found_or_created_routes = {}
+        self.found_or_created_indices = {}
 
     def from_now_json(self, offset):
         return taskcluster.stringDate(taskcluster.fromNow(offset, dateObj=self.now))
 
-    def find_or_create_task(self, *, route_bucket, route_key, route_expiry, artifacts, **kwargs):
-        route = "%s.%s.%s" % (self.route_prefix, route_bucket, route_key)
+    def find_or_create_task(self, *, index_bucket, index_key, index_expiry, artifacts, **kwargs):
+        index_path = "%s.%s.%s" % (self.index_prefix, index_bucket, index_key)
 
-        task_id = self.found_or_created_routes.get(route)
+        task_id = self.found_or_created_indices.get(index_path)
         if task_id is not None:
             return task_id
 
         try:
-            result = self.index_service.findTask(route)
+            result = self.index_service.findTask(index_path)
             task_id = result["taskId"]
         except taskcluster.TaskclusterRestFailure as e:
             if e.status_code == 404:
                 task_id = self.create_task(
                     routes=[
-                        "index." + route,
+                        "index." + index_path,
                     ],
                     extra={
                         "index": {
@@ -70,7 +70,7 @@ class DecisionTask:
                         },
                     },
                     artifacts=[
-                        (artifact, route_expiry)
+                        (artifact, index_expiry)
                         for artifact in artifacts
                     ],
                     **kwargs
@@ -78,7 +78,7 @@ class DecisionTask:
             else:
                 raise
 
-        self.found_or_created_routes[route] = task_id
+        self.found_or_created_indices[index_path] = task_id
         return task_id
 
     def find_or_build_docker_image(self, dockerfile):
@@ -86,9 +86,9 @@ class DecisionTask:
         digest = hashlib.sha256(dockerfile_contents).hexdigest()
 
         return self.find_or_create_task(
-            route_bucket="docker-image",
-            route_key=digest,
-            route_expiry=self.docker_image_cache_expiry,
+            index_bucket="docker-image",
+            index_key=digest,
+            index_expiry=self.docker_image_cache_expiry,
 
             task_name="Docker image: " + image_name(dockerfile),
             script="""

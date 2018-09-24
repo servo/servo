@@ -92,9 +92,9 @@ def linux_wpt():
 
 def linux_release_build():
     return decision.find_or_create_task(
-        route_bucket="build.linux_x86-64_release",
-        route_key=os.environ["GIT_SHA"],  # Set in .taskcluster.yml
-        route_expiry=build_artifacts_expiry,
+        index_bucket="build.linux_x86-64_release",
+        index_key=os.environ["GIT_SHA"],  # Set in .taskcluster.yml
+        index_expiry=build_artifacts_expiry,
 
         task_name="Linux x86_64: release build",
         script="""
@@ -179,7 +179,7 @@ def dockerfile_path(name):
 
 decision = DecisionTask(
     task_name_template="Servo: %s",
-    route_prefix="project.servo.servo",
+    index_prefix="project.servo.servo",
     worker_type="servo-docker-worker",
 )
 
