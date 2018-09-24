@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::blob_loader::load_blob_sync;
+use crate::blob_loader::load_blob_async;
 use crate::data_loader::decode;
 use crate::fetch::cors_cache::CorsCache;
 use crate::filemanager_thread::FileManager;
@@ -657,19 +657,11 @@ fn scheme_fetch(
                 ));
             }
 
-            match load_blob_sync(url.clone(), context.filemanager.clone()) {
-                Ok((headers, bytes)) => {
-                    let mut response =
-                        Response::new(url, ResourceFetchTiming::new(request.timing_type()));
-                    response.headers = headers;
-                    *response.body.lock().unwrap() = ResponseBody::Done(bytes);
-                    response
-                },
-                Err(e) => {
-                    debug!("Failed to load {}: {:?}", url, e);
-                    Response::network_error(e)
-                },
-            }
+            let mut response = Response::new(url, ResourceFetchTiming::new(request.timing_type()));
+
+            load_blob_async(url.clone(), context.filemanager.clone(), &response, done_chan);
+
+            response
         },
 
         "ftp" => {
