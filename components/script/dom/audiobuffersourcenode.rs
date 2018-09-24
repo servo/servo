@@ -200,10 +200,6 @@ impl AudioBufferSourceNodeMethods for AudioBufferSourceNode {
         offset: Option<Finite<f64>>,
         duration: Option<Finite<f64>>,
     ) -> Fallible<()> {
-        if *when < 0. {
-            return Err(Error::Range("'when' must be a positive value".to_owned()));
-        }
-
         if let Some(offset) = offset {
             if *offset < 0. {
                 return Err(Error::Range("'offset' must be a positive value".to_owned()));

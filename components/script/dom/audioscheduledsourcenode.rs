@@ -59,6 +59,10 @@ impl AudioScheduledSourceNodeMethods for AudioScheduledSourceNode {
 
     // https://webaudio.github.io/web-audio-api/#dom-audioscheduledsourcenode-start
     fn Start(&self, when: Finite<f64>) -> Fallible<()> {
+        if *when < 0. {
+            return Err(Error::Range("'when' must be a positive value".to_owned()));
+        }
+
         if self.started.get() || self.stopped.get() {
             return Err(Error::InvalidState);
         }
@@ -99,6 +103,10 @@ impl AudioScheduledSourceNodeMethods for AudioScheduledSourceNode {
 
     // https://webaudio.github.io/web-audio-api/#dom-audioscheduledsourcenode-stop
     fn Stop(&self, when: Finite<f64>) -> Fallible<()> {
+        if *when < 0. {
+            return Err(Error::Range("'when' must be a positive value".to_owned()));
+        }
+
         if !self.started.get() {
             return Err(Error::InvalidState);
         }
