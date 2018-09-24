@@ -29,12 +29,14 @@ class DecisionTask:
     DOCKER_IMAGE_BUILDER_IMAGE = "servobrowser/taskcluster-bootstrap:image-builder@sha256:" \
         "0a7d012ce444d62ffb9e7f06f0c52fedc24b68c2060711b313263367f7272d9d"
 
-    def __init__(self, project_name, *, route_prefix,
+    def __init__(self, *, route_prefix, task_name_template="%s",
                  worker_type="github-worker", docker_image_cache_expiry="1 year"):
-        self.project_name = project_name
+        self.task_name_template = task_name_template
         self.route_prefix = route_prefix
         self.worker_type = worker_type
         self.docker_image_cache_expiry = docker_image_cache_expiry
+        self.routes_for_all_subtasks = []
+        self.scopes_for_all_subtasks = []
 
         # https://docs.taskcluster.net/docs/reference/workers/docker-worker/docs/features#feature-taskclusterproxy
         self.queue_service = taskcluster.Queue(options={"baseUrl": "http://taskcluster/queue/v1/"})
@@ -159,13 +161,13 @@ class DecisionTask:
             "created": self.from_now_json(""),
             "deadline": self.from_now_json("1 day"),
             "metadata": {
-                "name": "%s: %s" % (self.project_name, task_name),
+                "name": self.task_name_template % task_name,
                 "description": "",
                 "owner": task_owner,
                 "source": task_source,
             },
-            "scopes": scopes or [],
-            "routes": routes or [],
+            "scopes": (scopes or []) + self.scopes_for_all_subtasks,
+            "routes": (routes or []) + self.routes_for_all_subtasks,
             "extra": extra or {},
             "payload": {
                 "cache": cache or {},

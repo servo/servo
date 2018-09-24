@@ -18,14 +18,23 @@ def main():
 
     # https://tools.taskcluster.net/hooks/project-servo/daily
     elif task_for == "daily":
-        # Unlike when reacting to a GitHub event,
-        # the commit hash is not known until we clone the repository.
-        os.environ["GIT_SHA"] = \
-            subprocess.check_output(["git", "rev-parse", "HEAD"]).decode("utf8").strip()
+        daily_tasks_setup()
         with_rust_nightly()
 
     else:
         raise ValueError("Unrecognized $TASK_FOR value: %r", task_for)
+
+
+def daily_tasks_setup():
+    # Unlike when reacting to a GitHub event,
+    # the commit hash is not known until we clone the repository.
+    os.environ["GIT_SHA"] = \
+        subprocess.check_output(["git", "rev-parse", "HEAD"]).decode("utf8").strip()
+
+    # On failure, notify a few people on IRC
+    decision.task_name_template = "Servo daily: %s. On failure, ping: SimonSapin, nox, emilio"
+    decision.routes_for_all_subtasks.append("notify.irc-channel.#servo.on-failed")
+    decision.scopes_for_all_subtasks.append("queue:route:notify.irc-channel.#servo.on-failed")
 
 
 build_artifacts_expiry = "1 week"
@@ -167,7 +176,7 @@ def dockerfile_path(name):
 
 
 decision = DecisionTask(
-    project_name="Servo",  # Used in task names
+    task_name_template="Servo: %s",
     route_prefix="project.servo.servo",
     worker_type="servo-docker-worker",
 )
