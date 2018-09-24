@@ -54,6 +54,7 @@ pub fn Java_com_mozilla_servoview_JNIServo_init(
     callbacks_obj: JObject,
     width: jint,
     height: jint,
+    density: jfloat,
     log: jboolean,
 ) {
     if log == JNI_TRUE {
@@ -102,7 +103,8 @@ pub fn Java_com_mozilla_servoview_JNIServo_init(
             readfile,
             callbacks,
             width as u32,
-            height as u32)
+            height as u32,
+            density as f32)
     }).or_else(|err| {
         env.throw(("java/lang/Exception", err))
     }).unwrap();

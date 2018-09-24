@@ -24,7 +24,8 @@ public class JNIServo {
                             String url,
                             String logstr,
                             Callbacks callbacks,
-                            int width, int height, boolean log);
+                            int width, int height, float density,
+                            boolean log);
 
     public native void setBatchMode(boolean mode);
 

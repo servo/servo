@@ -101,6 +101,7 @@ pub fn init(
     callbacks: Box<HostTrait>,
     width: u32,
     height: u32,
+    density: f32,
 ) -> Result<(), &'static str> {
     resources::set(Box::new(ResourceReader(readfile)));
 
@@ -136,6 +137,7 @@ pub fn init(
         host_callbacks: callbacks,
         width: Cell::new(width),
         height: Cell::new(height),
+        density,
         waker,
     });
 
@@ -419,6 +421,7 @@ struct ServoCallbacks {
     host_callbacks: Box<HostTrait>,
     width: Cell<u32>,
     height: Cell<u32>,
+    density: f32,
 }
 
 impl WindowMethods for ServoCallbacks {
@@ -460,7 +463,7 @@ impl WindowMethods for ServoCallbacks {
             window: (size, TypedPoint2D::new(0, 0)),
             screen: size,
             screen_avail: size,
-            hidpi_factor: TypedScale::new(2.0),
+            hidpi_factor: TypedScale::new(self.density),
         }
     }
 }
