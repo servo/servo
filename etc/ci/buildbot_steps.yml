@@ -184,7 +184,7 @@ android:
   - bash ./etc/ci/lockfile_changed.sh
   - python ./etc/ci/check_dynamic_symbols.py
   - ./etc/ci/clean_build_artifacts.sh
-  
+
 android-mac:
  commands:
   - ./mach clean-nightlies --keep 3 --force
