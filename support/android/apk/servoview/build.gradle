@@ -157,9 +157,9 @@ android {
             }
 
             def taskName = "ndkbuild" + compileTask.name
-            def debug = compileTask.name.contains("Debug")
-            def arch = matcher.group(1)
             tasks.create(name: taskName, type: Exec) {
+                def debug = compileTask.name.contains("Debug")
+                def arch = matcher.group(1)
                 commandLine getNdkDir(),
                         'APP_BUILD_SCRIPT=../jni/Android.mk',
                         'NDK_APPLICATION_MK=../jni/Application.mk',
@@ -170,23 +170,7 @@ android {
                         'SERVO_TARGET_DIR=' + getTargetDir(debug, arch)
             }
 
-            def src = getTargetDir(debug, arch) +
-                      '/../../gstreamer/gst-build-' +
-                      getNDKAbi(arch) +
-                      '/libgstreamer_android.so'
-            Task copyGStreamerTask = project.task("copyGStreamerTask${compileTask.name}", type: Copy) {
-                from src
-                into getJniLibsPath(debug, arch) + '/' + getNDKAbi(arch) + '/'
-            }
-
-            Task copyGStreamerObjTask = project.task("copyGStreamerTask${compileTask.name}Obj", type: Copy) {
-                from src
-                into getTargetDir(debug, arch) + '/apk/obj/local/' + getNDKAbi(arch) + '/'
-            }
-
-            copyGStreamerObjTask.dependsOn taskName
-            copyGStreamerTask.dependsOn copyGStreamerObjTask
-            compileTask.dependsOn copyGStreamerTask
+            compileTask.dependsOn taskName
     }
 
 
