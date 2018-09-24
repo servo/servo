@@ -1208,11 +1208,6 @@ impl Stylist {
         let mut shadow_cascade_order = 0;
 
         // XBL / Shadow DOM rules, which are author rules too.
-        //
-        // TODO(emilio): Cascade order here is wrong for Shadow DOM. In
-        // particular, normally document rules override ::slotted() rules, but
-        // for !important it should be the other way around. So probably we need
-        // to add some sort of AuthorScoped cascade level or something.
         if let Some(shadow) = rule_hash_target.shadow_root() {
             if let Some(map) = shadow
                 .style_data()
