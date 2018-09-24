@@ -297,13 +297,16 @@ impl<'a, E: TextControlElement> TextControlSelection<'a, E> {
         // Step 6
         if textinput.selection_state() != original_selection_state {
             let window = window_from_node(self.element);
-            window.user_interaction_task_source().queue_event(
-                &self.element.upcast::<EventTarget>(),
-                atom!("select"),
-                EventBubbles::Bubbles,
-                EventCancelable::NotCancelable,
-                &window,
-            );
+            window
+                .task_manager()
+                .user_interaction_task_source()
+                .queue_event(
+                    &self.element.upcast::<EventTarget>(),
+                    atom!("select"),
+                    EventBubbles::Bubbles,
+                    EventCancelable::NotCancelable,
+                    &window,
+                );
         }
 
         self.element

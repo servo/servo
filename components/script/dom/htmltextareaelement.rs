@@ -565,13 +565,16 @@ impl VirtualMethods for HTMLTextAreaElement {
         } else if event.type_() == atom!("keypress") && !event.DefaultPrevented() {
             if event.IsTrusted() {
                 let window = window_from_node(self);
-                let _ = window.user_interaction_task_source().queue_event(
-                    &self.upcast(),
-                    atom!("input"),
-                    EventBubbles::Bubbles,
-                    EventCancelable::NotCancelable,
-                    &window,
-                );
+                let _ = window
+                    .task_manager()
+                    .user_interaction_task_source()
+                    .queue_event(
+                        &self.upcast(),
+                        atom!("input"),
+                        EventBubbles::Bubbles,
+                        EventCancelable::NotCancelable,
+                        &window,
+                    );
             }
         }
     }

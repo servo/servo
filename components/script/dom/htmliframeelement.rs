@@ -237,7 +237,7 @@ impl HTMLIFrameElement {
             let this = Trusted::new(self);
             let pipeline_id = self.pipeline_id().unwrap();
             // FIXME(nox): Why are errors silenced here?
-            let _ = window.dom_manipulation_task_source().queue(
+            let _ = window.task_manager().dom_manipulation_task_source().queue(
                 task!(iframe_load_event_steps: move || {
                     this.root().iframe_load_event_steps(pipeline_id);
                 }),

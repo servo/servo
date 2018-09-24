@@ -70,6 +70,7 @@ use crate::microtask::{Microtask, MicrotaskQueue};
 use crate::script_runtime::{get_reports, new_rt_and_cx, Runtime, ScriptPort};
 use crate::script_runtime::{CommonScriptMsg, ScriptChan, ScriptThreadEventCategory};
 use crate::serviceworkerjob::{Job, JobQueue};
+use crate::task_manager::TaskManager;
 use crate::task_queue::{QueuedTask, QueuedTaskConversion, TaskQueue};
 use crate::task_source::dom_manipulation::DOMManipulationTaskSource;
 use crate::task_source::file_reading::FileReadingTaskSource;
@@ -2583,20 +2584,23 @@ impl ScriptThread {
             pipeline_id: incomplete.pipeline_id,
         };
 
+        let task_manager = TaskManager::new(
+            self.dom_manipulation_task_source(incomplete.pipeline_id),
+            self.file_reading_task_source(incomplete.pipeline_id),
+            self.history_traversal_task_source(incomplete.pipeline_id),
+            self.media_element_task_source(incomplete.pipeline_id),
+            self.networking_task_source(incomplete.pipeline_id),
+            self.performance_timeline_task_source(incomplete.pipeline_id)
+                .clone(),
+            self.user_interaction_task_source(incomplete.pipeline_id),
+            self.remote_event_task_source(incomplete.pipeline_id),
+            self.websocket_task_source(incomplete.pipeline_id),
+        );
         // Create the window and document objects.
         let window = Window::new(
             self.js_runtime.clone(),
             MainThreadScriptChan(sender.clone()),
-            self.dom_manipulation_task_source(incomplete.pipeline_id),
-            self.media_element_task_source(incomplete.pipeline_id),
-            self.user_interaction_task_source(incomplete.pipeline_id),
-            self.networking_task_source(incomplete.pipeline_id),
-            self.history_traversal_task_source(incomplete.pipeline_id),
-            self.file_reading_task_source(incomplete.pipeline_id),
-            self.performance_timeline_task_source(incomplete.pipeline_id)
-                .clone(),
-            self.remote_event_task_source(incomplete.pipeline_id),
-            self.websocket_task_source(incomplete.pipeline_id),
+            task_manager,
             self.image_cache_channel.clone(),
             self.image_cache.clone(),
             self.resource_threads.clone(),

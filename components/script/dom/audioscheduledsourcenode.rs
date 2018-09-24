@@ -10,7 +10,7 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomObject;
-use crate::task_source::{TaskSource, TaskSourceName};
+use crate::task_source::TaskSource;
 use dom_struct::dom_struct;
 use servo_media::audio::node::OnEndedCallback;
 use servo_media::audio::node::{AudioNodeInit, AudioNodeMessage, AudioScheduledSourceNodeMessage};
@@ -71,15 +71,16 @@ impl AudioScheduledSourceNodeMethods for AudioScheduledSourceNode {
         let this = Trusted::new(self);
         let global = self.global();
         let window = global.as_window();
-        let task_source = window.dom_manipulation_task_source();
-        let canceller = window.task_canceller(TaskSourceName::DOMManipulation);
+        let (task_source, canceller) = window
+            .task_manager()
+            .dom_manipulation_task_source_with_canceller();
         let callback = OnEndedCallback::new(move || {
             let _ = task_source.queue_with_canceller(
                 task!(ended: move || {
                     let this = this.root();
                     let global = this.global();
                     let window = global.as_window();
-                    window.dom_manipulation_task_source().queue_simple_event(
+                    window.task_manager().dom_manipulation_task_source().queue_simple_event(
                         this.upcast(),
                         atom!("ended"),
                         &window
