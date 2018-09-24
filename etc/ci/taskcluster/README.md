@@ -169,6 +169,11 @@ Daily tasks can also be triggered manually.
 Scopes available to the daily decision task need to be both requested in the hook definition
 and granted through the [`hook-id:project-servo/daily`] role.
 
+Because they do not have something similar to GitHub statuses that link to them,
+daily tasks are indexed under the [`project.servo.servo.daily`] namespace.
+
+[`project.servo.servo.daily`]: https://tools.taskcluster.net/index/project.servo.servo.daily
+
 [`project-servo/daily`]: https://tools.taskcluster.net/hooks/project-servo/daily
 [Hooks service]: https://docs.taskcluster.net/docs/manual/using/scheduled-tasks
 [`hook-id:project-servo/daily`]: https://tools.taskcluster.net/auth/roles/hook-id%3Aproject-servo%2Fdaily
