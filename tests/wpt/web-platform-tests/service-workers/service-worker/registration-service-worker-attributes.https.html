@@ -14,7 +14,7 @@ promise_test(function(t) {
     return service_worker_unregister_and_register(t, worker_url, scope)
       .then(function(r) {
           t.add_cleanup(function() {
-              r.unregister();
+              return r.unregister();
             });
           registration = r;
           newest_worker = registration.installing;

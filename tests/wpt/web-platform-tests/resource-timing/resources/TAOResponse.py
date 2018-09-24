@@ -23,6 +23,10 @@ def main(request, response):
     # more than one TAO values, seperated by comma, pass
         response.headers.set('Timing-Allow-Origin', origin)
         response.headers.append('Timing-Allow-Origin', '*')
+    elif tao == 'multi_wildcard':
+    # multiple wildcards, seperated by comma, pass
+        response.headers.set('Timing-Allow-Origin', '*')
+        response.headers.append('Timing-Allow-Origin', '*')
     elif tao == 'match_origin':
     # contains a match of origin, seperated by comma, pass
         response.headers.set('Timing-Allow-Origin', origin)

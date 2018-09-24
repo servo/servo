@@ -20,7 +20,7 @@ importScripts('/resources/testharness.js');
     var cache_name = self.location.pathname + '/' + uniquifier;
 
     test.add_cleanup(function() {
-        self.caches.delete(cache_name);
+        return self.caches.delete(cache_name);
       });
 
     return self.caches.delete(cache_name)

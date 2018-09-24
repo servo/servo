@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<link rel="help" href="https://drafts.css-houdini.org/css-layout-api/#dom-layoutconstraintsoptions-availableinlinesize">
+<link rel="help" href="https://drafts.css-houdini.org/css-layout-api/#dom-layoutconstraintsoptions-availableblocksize">
+<link rel="match" href="../green-square-ref.html">
+<meta name="assert" content="This test checks that resolving percentages against the available size works as expected." />
+
+<style>
+.test {
+  writing-mode: horizontal-tb;
+  background: red;
+  width: 100px;
+}
+
+.child {
+  writing-mode: horizontal-tb;
+  visibility: hidden;
+
+  --available-inline-size: 50;
+  --available-block-size: 20;
+
+  --inline-size-expected: 10px;
+  --block-size-expected: 10px;
+}
+
+@supports (display: layout(test)) {
+  .test {
+    background: green;
+    display: layout(test);
+  }
+}
+</style>
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/worklet-reftest.js"></script>
+
+<div class="test">
+  <!-- A fixed width/height shouldn't be affected by the available size. -->
+  <div class="child" style="width: 10px; height: 10px;"></div>
+
+  <!-- A percentage width/height should resolve itself against the available size. -->
+  <div class="child" style="width: 20%; height: 50%;"></div>
+
+  <!-- A percentage max-width/max-height should resolve itself against the available size. -->
+  <div class="child" style="width: 15px; max-width: 20%; height: 15px; max-height: 50%;"></div>
+
+  <!-- A percentage min-width/min-height should resolve itself against the available size. -->
+  <div class="child" style="width: 5px; min-width: 20%; height: 5px; min-height: 50%;"></div>
+
+  <!-- A replaced percentage width/height should resolve itself against the available size. -->
+  <img class="child" style="width: 20%; height: 50%;" />
+
+  <!-- A replaced percentage max-width/max-height should resolve itself against the available size. -->
+  <img class="child" style="width: 15px; max-width: 20%; height: 15px; max-height: 50%;" />
+
+  <!-- A replaced percentage min-width/min-height should resolve itself against the available size. -->
+  <img class="child" style="width: 5px; min-width: 20%; height: 5px; min-height: 50%;" />
+<script>
+importWorkletAndTerminateTestAfterAsyncPaint(CSS.layoutWorklet, {url: '../support/layout-child-sizes-worklet.js'});
+</script>

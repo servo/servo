@@ -35,7 +35,7 @@ function make_test(name, script) {
             registration = r;
 
             t.add_cleanup(function() {
-                r.unregister();
+                return r.unregister();
               });
 
             return wait_for_install(registration.installing);

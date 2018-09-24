@@ -2,6 +2,7 @@
 // META: script=/wasm/jsapi/wasm-constants.js
 // META: script=/wasm/jsapi/wasm-module-builder.js
 // META: script=/wasm/jsapi/assertions.js
+// META: script=/wasm/jsapi/instanceTestFactory.js
 
 function assert_WebAssemblyInstantiatedSource(actual, expected_exports={}) {
   assert_equals(Object.getPrototypeOf(actual), Object.prototype,
@@ -77,110 +78,24 @@ test(() => {
   assert_true(Object.isExtensible(promise), "extensibility");
 }, "Promise type");
 
-const createModule = () => {
-  const builder = new WasmModuleBuilder();
+for (const [name, fn] of instanceTestFactory) {
+  promise_test(() => {
+    const { buffer, args, exports, verify } = fn();
+    return WebAssembly.instantiate(buffer, ...args).then(result => {
+      assert_WebAssemblyInstantiatedSource(result, exports);
+      verify(result.instance);
+    });
+  }, `${name}: BufferSource argument`);
 
-  builder
-    .addFunction("fn", kSig_v_d)
-    .addBody([
-        kExprEnd
-    ])
-    .exportFunc();
-  builder
-    .addFunction("fn2", kSig_v_v)
-    .addBody([
-        kExprEnd
-    ])
-    .exportFunc();
-
-  builder.setFunctionTableLength(1);
-  builder.addExportOfKind("table", kExternalTable, 0);
-
-  builder.addGlobal(kWasmI32, true)
-    .exportAs("global")
-    .init = 7;
-  builder.addGlobal(kWasmF64, true)
-    .exportAs("global2")
-    .init = 1.2;
-
-  builder.addMemory(4, 8, true);
-
-  const buffer = builder.toBuffer();
-
-  const exports = {
-    "fn": { "kind": "function", "name": "0", "length": 1 },
-    "fn2": { "kind": "function", "name": "1", "length": 0 },
-    "table": { "kind": "table", "length": 1 },
-    "global": { "kind": "global", "value": 7 },
-    "global2": { "kind": "global", "value": 1.2 },
-    "memory": { "kind": "memory", "size": 4 },
-  };
-
-  return [buffer, exports];
+  promise_test(() => {
+    const { buffer, args, exports, verify } = fn();
+    const module = new WebAssembly.Module(buffer);
+    return WebAssembly.instantiate(module, ...args).then(instance => {
+      assert_Instance(instance, exports);
+      verify(instance);
+    });
+  }, `${name}: Module argument`);
 }
-
-promise_test(() => {
-  const [buffer, expected] = createModule();
-  return WebAssembly.instantiate(buffer).then(result => assert_WebAssemblyInstantiatedSource(result, expected));
-}, "BufferSource argument");
-
-promise_test(() => {
-  const [buffer, expected] = createModule();
-  const module = new WebAssembly.Module(buffer);
-  return WebAssembly.instantiate(module).then(instance => assert_Instance(instance, expected));
-}, "Module argument");
-
-const createModuleWithImports = () => {
-  const builder = new WasmModuleBuilder();
-
-  const index = builder.addImportedGlobal("module", "global", kWasmI32);
-  builder
-    .addFunction("fn", kSig_i_v)
-    .addBody([
-        kExprGetGlobal,
-        index,
-        kExprReturn,
-        kExprEnd,
-    ])
-    .exportFunc();
-
-  const buffer = builder.toBuffer();
-
-  const expected = {
-    "fn": { "kind": "function", "name": "0", "length": 0 },
-  };
-
-  return [buffer, expected];
-};
-
-promise_test(() => {
-  const [buffer, expected] = createModuleWithImports();
-
-  const value = 102;
-  return WebAssembly.instantiate(buffer, {
-    "module": {
-      "global": value,
-    },
-  }).then(result => {
-    assert_WebAssemblyInstantiatedSource(result, expected)
-    assert_equals(result.instance.exports.fn(), value);
-  });
-}, "exports and imports: buffer argument");
-
-promise_test(() => {
-  const [buffer, expected] = createModuleWithImports();
-  const module = new WebAssembly.Module(buffer);
-
-  const value = 102;
-  return WebAssembly.instantiate(module, {
-    "module": {
-      "global": value,
-    },
-  }).then(instance => {
-    assert_Instance(instance, expected)
-    assert_equals(instance.exports.fn(), value);
-  });
-}, "exports and imports: Module argument");
 
 promise_test(t => {
   const buffer = new Uint8Array();
