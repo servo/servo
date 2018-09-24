@@ -157,6 +157,23 @@ to edit that role in the web UI and grant more scopes to these tasks
 [branches]: https://tools.taskcluster.net/auth/roles/repo%3Agithub.com%2Fservo%2Fservo%3Abranch%3A*
 
 
+## Daily tasks
+
+The [`project-servo/daily`] hook in Taskcluster’s [Hooks service]
+is used to run some tasks automatically ever 24 hours.
+In this case as well we use a decision task.
+The `decision-task.py` script can differenciate this from a GitHub push
+based on the `$TASK_FOR` environment variable.
+Daily tasks can also be triggered manually.
+
+Scopes available to the daily decision task need to be both requested in the hook definition
+and granted through the [`hook-id:project-servo/daily`] role.
+
+[`project-servo/daily`]: https://tools.taskcluster.net/hooks/project-servo/daily
+[Hooks service]: https://docs.taskcluster.net/docs/manual/using/scheduled-tasks
+[`hook-id:project-servo/daily`]: https://tools.taskcluster.net/auth/roles/hook-id%3Aproject-servo%2Fdaily
+
+
 ## AWS EC2 workers
 
 As of this writing, Servo on Taskcluster can only use the `servo-docker-worker` worker type.
