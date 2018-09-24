@@ -343,6 +343,7 @@ class MachCommands(CommandBase):
             support_include = path.join(env['ANDROID_NDK'], "sources", "android", "support", "include")
             cxx_include = path.join(env['ANDROID_NDK'], "sources", "cxx-stl",
                                     "llvm-libc++", "libcxx", "include")
+            clang_include = path.join(llvm_toolchain, "lib64", "clang", "3.8", "include")
             sysroot_include = path.join(env['ANDROID_SYSROOT'], "usr", "include")
             env['HOST_CC'] = host_cc
             env['HOST_CXX'] = host_cxx
@@ -381,6 +382,7 @@ class MachCommands(CommandBase):
                 "--gcc-toolchain=" + gcc_toolchain,
                 "-I" + support_include,
                 "-I" + cxx_include,
+                "-I" + clang_include,
                 "-isystem", sysroot_include,
                 "-L" + gcc_libs,
                 "-D__STDC_CONSTANT_MACROS",
