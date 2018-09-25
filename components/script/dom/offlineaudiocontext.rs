@@ -64,21 +64,33 @@ impl OfflineAudioContext {
         channel_count: u32,
         length: u32,
         sample_rate: f32,
-    ) -> DomRoot<OfflineAudioContext> {
+    ) -> Fallible<DomRoot<OfflineAudioContext>> {
+        if channel_count > MAX_CHANNEL_COUNT ||
+            channel_count <= 0 ||
+            length <= 0 ||
+            sample_rate < MIN_SAMPLE_RATE ||
+            sample_rate > MAX_SAMPLE_RATE
+        {
+            return Err(Error::NotSupported);
+        }
         let context = OfflineAudioContext::new_inherited(channel_count, length, sample_rate);
-        reflect_dom_object(Box::new(context), window, OfflineAudioContextBinding::Wrap)
+        Ok(reflect_dom_object(
+            Box::new(context),
+            window,
+            OfflineAudioContextBinding::Wrap,
+        ))
     }
 
     pub fn Constructor(
         window: &Window,
         options: &OfflineAudioContextOptions,
     ) -> Fallible<DomRoot<OfflineAudioContext>> {
-        Ok(OfflineAudioContext::new(
+        OfflineAudioContext::new(
             window,
             options.numberOfChannels,
             options.length,
             *options.sampleRate,
-        ))
+        )
     }
 
     pub fn Constructor_(
@@ -87,21 +99,7 @@ impl OfflineAudioContext {
         length: u32,
         sample_rate: Finite<f32>,
     ) -> Fallible<DomRoot<OfflineAudioContext>> {
-        if number_of_channels > MAX_CHANNEL_COUNT ||
-            number_of_channels <= 0 ||
-            length <= 0 ||
-            *sample_rate < MIN_SAMPLE_RATE ||
-            *sample_rate > MAX_SAMPLE_RATE
-        {
-            return Err(Error::NotSupported);
-        }
-
-        Ok(OfflineAudioContext::new(
-            window,
-            number_of_channels,
-            length,
-            *sample_rate,
-        ))
+        OfflineAudioContext::new(window, number_of_channels, length, *sample_rate)
     }
 }
 
