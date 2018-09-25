@@ -969,46 +969,41 @@ impl HTMLMediaElement {
     fn handle_player_event(&self, event: &PlayerEvent) {
         match *event {
             PlayerEvent::MetadataUpdated(ref metadata) => {
-                if !self.have_metadata.get() && metadata.duration.is_some() {
-                    // https://html.spec.whatwg.org/multipage/#media-data-processing-steps-list
-                    // => "Once enough of the media data has been fetched to determine the duration..."
-                    // Step 1.
-                    // servo-media owns the media timeline.
+                // https://html.spec.whatwg.org/multipage/#media-data-processing-steps-list
+                // => "Once enough of the media data has been fetched to determine the duration..."
+                // Step 1.
+                // servo-media owns the media timeline.
 
-                    // Step 2.
-                    // XXX(ferjm) Update the timeline offset.
+                // Step 2.
+                // XXX(ferjm) Update the timeline offset.
 
-                    // Step 3.
-                    // XXX(ferjm) Set the current and official playback positions
-                    //            to the earliest possible position.
+                // Step 3.
+                // XXX(ferjm) Set the current and official playback positions
+                //            to the earliest possible position.
 
-                    // Step 4.
-                    if let Some(duration) = metadata.duration {
-                        self.duration.set(duration.as_secs() as f64);
-                    } else {
-                        self.duration.set(f64::INFINITY);
-                    }
-                    let window = window_from_node(self);
-                    let task_source = window.dom_manipulation_task_source();
-                    task_source.queue_simple_event(self.upcast(), atom!("durationchange"), &window);
+                // Step 4.
+                if let Some(duration) = metadata.duration {
+                    self.duration.set(duration.as_secs() as f64);
+                } else {
+                    self.duration.set(f64::INFINITY);
+                }
+                let window = window_from_node(self);
+                let task_source = window.dom_manipulation_task_source();
+                task_source.queue_simple_event(self.upcast(), atom!("durationchange"), &window);
 
-                    // Step 5.
-                    if self.is::<HTMLVideoElement>() {
-                        let video_elem = self.downcast::<HTMLVideoElement>().unwrap();
-                        video_elem.set_video_width(metadata.width);
-                        video_elem.set_video_height(metadata.height);
-                        task_source.queue_simple_event(self.upcast(), atom!("resize"), &window);
-                    }
+                // Step 5.
+                if self.is::<HTMLVideoElement>() {
+                    let video_elem = self.downcast::<HTMLVideoElement>().unwrap();
+                    video_elem.set_video_width(metadata.width);
+                    video_elem.set_video_height(metadata.height);
+                    task_source.queue_simple_event(self.upcast(), atom!("resize"), &window);
+                }
 
-                    // Step 6.
-                    self.change_ready_state(ReadyState::HaveMetadata);
-                    self.have_metadata.set(true);
+                // Step 6.
+                self.change_ready_state(ReadyState::HaveMetadata);
+                self.have_metadata.set(true);
 
                 // XXX(ferjm) Steps 7 to 13.
-                } else {
-                    // => set the element's delaying-the-load-event flag to false
-                    self.change_ready_state(ReadyState::HaveCurrentData);
-                }
             },
             PlayerEvent::StateChanged(ref state) => match *state {
                 PlaybackState::Paused => {
@@ -1272,6 +1267,13 @@ impl FetchResponseListener for HTMLMediaElementContext {
         if let Err(_) = elem.player.push_data(payload) {
             eprintln!("Couldn't push input data to player");
             return;
+        }
+
+        // Make sure we don't skip the HaveMetadata state.
+        if elem.have_metadata.get() {
+            // https://html.spec.whatwg.org/multipage/#media-data-processing-steps-list
+            // => set the element's delaying-the-load-event flag to false
+            elem.change_ready_state(ReadyState::HaveCurrentData);
         }
 
         // https://html.spec.whatwg.org/multipage/#concept-media-load-resource step 4,
