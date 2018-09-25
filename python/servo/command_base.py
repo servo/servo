@@ -670,11 +670,14 @@ install them, let us know by filing a bug!")
     def ports_servo_crate(self):
         return path.join(self.context.topdir, "ports", "servo")
 
-    def manifest_path(self, android=False, libsimpleservo=False):
-        if libsimpleservo or android:
-            return self.ports_libsimpleservo_manifest()
-        else:
-            return self.ports_servo_manifest()
+    def add_manifest_path(self, args, android=False, libsimpleservo=False):
+        if "--manifest-path" not in args:
+            if libsimpleservo or android:
+                manifest = self.ports_libsimpleservo_manifest()
+            else:
+                manifest = self.ports_servo_manifest()
+            args.append("--manifest-path")
+            args.append(manifest)
 
     def ports_servo_manifest(self):
         return path.join(self.context.topdir, "ports", "servo", "Cargo.toml")

@@ -256,7 +256,7 @@ class MachCommands(CommandBase):
         self.ensure_bootstrapped(target=target)
         self.ensure_clobbered()
 
-        opts += ["--manifest-path", self.manifest_path(android, libsimpleservo)]
+        self.add_manifest_path(opts, android, libsimpleservo)
 
         if debug_mozjs:
             features += ["debugmozjs"]
