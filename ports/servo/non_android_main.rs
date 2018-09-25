@@ -58,6 +58,9 @@ pub mod platform {
     pub fn deinit() {}
 }
 
+#[cfg(not(feature = "unstable"))]
+fn install_crash_handler() {}
+
 #[cfg(feature = "unstable")]
 fn install_crash_handler() {
     use backtrace::Backtrace;
