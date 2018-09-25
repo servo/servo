@@ -43,7 +43,7 @@
       <p>
         The third test validates a simple values-animation on a path's d attribute
         made of M, C and Z commands where the values attribute is specified and
-        specifies three seperate values.
+        specifies three separate values.
         The attribute is compatible with the path element's d attribute.
       </p>
       <p>

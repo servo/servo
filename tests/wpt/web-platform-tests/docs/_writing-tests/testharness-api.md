@@ -793,14 +793,6 @@ asserts that one `assert_func(actual, expected_array_N, extra_arg1, ..., extra_a
   allows multiple behaviours. Test authors should not use this method simply to hide
   UA bugs.
 
-### `assert_exists(object, property_name, description)`
-**deprecated**
-asserts that object has an own property `property_name`
-
-### `assert_not_exists(object, property_name, description)`
-**deprecated**
-assert that object does not have own property `property_name`
-
 ## Metadata ##
 
 It is possible to add optional metadata to tests; this can be done in

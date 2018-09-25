@@ -97,6 +97,12 @@ test(() => {
 }, "Basic (non-zero)");
 
 test(() => {
+  const argument = { "element": "anyfunc", "initial": 0 };
+  const table = new WebAssembly.Table(argument, {});
+  assert_Table(table, { "length": 0 });
+}, "Stray argument");
+
+test(() => {
   const proxy = new Proxy({}, {
     has(o, x) {
       assert_unreached(`Should not call [[HasProperty]] with ${x}`);
