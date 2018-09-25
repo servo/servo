@@ -14,13 +14,14 @@ use net_traits::blob_url_store::{BlobBuf, BlobURLStoreError};
 use net_traits::filemanager_thread::{FileManagerResult, FileManagerThreadMsg, FileOrigin};
 use net_traits::filemanager_thread::{FileManagerThreadError, ReadFileProgress, RelativePos, SelectedFile};
 use net_traits::response::{Response, ResponseBody};
+use servo_channel;
 use servo_config::prefs::PREFS;
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::{Read, Seek, SeekFrom};
 use std::ops::Index;
 use std::path::{Path, PathBuf};
-use std::sync::{Arc, RwLock, Mutex, mpsc};
+use std::sync::{Arc, RwLock};
 use std::sync::atomic::{self, AtomicBool, AtomicUsize, Ordering};
 use std::thread;
 use url::Url;
@@ -92,15 +93,15 @@ impl FileManager {
     }
 
     pub fn fetch_file(&self,
-                     sender: mpsc::Sender<Data>,
+                     sender: servo_channel::Sender<Data>,
                      id: Uuid,
                      check_url_validity: bool,
                      origin: FileOrigin,
-                     response: &Response) {
+                     response: &mut Response) {
         let store = self.store.clone();
-        let mut res_body = response.body.clone();
+        let mut r2 = response.clone();
         thread::Builder::new().name("read file".to_owned()).spawn(move || {
-            store.try_fetch_file(&sender, id, check_url_validity, origin, response, res_body)
+            store.try_fetch_file(&sender, id, check_url_validity, origin, &mut r2)
         }).expect("Thread spawning failed");
     }
 
@@ -433,9 +434,9 @@ impl FileManagerStore {
         self.get_blob_buf(sender, &id, &origin_in, RelativePos::full_range(), check_url_validity)
     }
 
-    fn fetch_blob_buf(&self, sender: &mpsc::Sender<Data>,
+    fn fetch_blob_buf(&self, sender: &servo_channel::Sender<Data>,
                     id: &Uuid, origin_in: &FileOrigin, rel_pos: RelativePos,
-                    check_url_validity: bool, response: &Response, res_body: Arc<Mutex<ResponseBody>>) -> Result<(), BlobURLStoreError> {
+                    check_url_validity: bool, response: &mut Response) -> Result<(), BlobURLStoreError> {
         let mut bytes = vec![];
         let file_impl = self.get_impl(id, origin_in, check_url_validity)?;
         match file_impl {
@@ -469,7 +470,7 @@ impl FileManagerStore {
                 bytes.extend_from_slice(&blob_buf.bytes);
 
                 response.headers = headers;
-                *res_body.lock().unwrap() = ResponseBody::Done(bytes);
+                *response.body.lock().unwrap() = ResponseBody::Done(bytes);
                 let _ = sender.send(Data::Done);
                 Ok(())
             }
@@ -499,7 +500,7 @@ impl FileManagerStore {
                     };
 
                     chunked_fetch(sender, &mut file, range.len(), opt_filename,
-                                 type_string, response, res_body, &mut bytes);
+                                 type_string, response, &mut bytes);
                     Ok(())
                 } else {
                     Err(BlobURLStoreError::InvalidEntry)
@@ -509,16 +510,15 @@ impl FileManagerStore {
                 // Next time we don't need to check validity since
                 // we have already done that for requesting URL if necessary
                 self.fetch_blob_buf(sender, &parent_id, origin_in,
-                                  rel_pos.slice_inner(&inner_rel_pos), false, response, res_body)
+                                  rel_pos.slice_inner(&inner_rel_pos), false, response)
             }
         }
     }
 
-    fn try_fetch_file(&self, sender: &mpsc::Sender<Data>, id: Uuid, check_url_validity: bool,
-                      origin_in: FileOrigin, response: &Response, res_body: Arc<Mutex<ResponseBody>>)
+    fn try_fetch_file(&self, sender: &servo_channel::Sender<Data>, id: Uuid, check_url_validity: bool,
+                      origin_in: FileOrigin, response: &mut Response)
                      -> Result<(), BlobURLStoreError> {
-        self.fetch_blob_buf(sender, &id, &origin_in, RelativePos::full_range(), check_url_validity,
-            response, res_body)
+        self.fetch_blob_buf(sender, &id, &origin_in, RelativePos::full_range(), check_url_validity, response)
     }
 
     fn dec_ref(&self, id: &Uuid, origin_in: &FileOrigin) -> Result<(), BlobURLStoreError> {
@@ -670,9 +670,9 @@ fn chunked_read(sender: &IpcSender<FileManagerResult<ReadFileProgress>>,
     }
 }
 
-fn chunked_fetch(sender: &mpsc::Sender<Data>,
+fn chunked_fetch(sender: &servo_channel::Sender<Data>,
                 file: &mut File, size: usize, opt_filename: Option<String>,
-                type_string: String, response: &Response, res_body: Arc<Mutex<ResponseBody>>, bytes: &mut Vec<u8>) {
+                type_string: String, response: &mut Response, bytes: &mut Vec<u8>) {
     // First chunk
     let mut buf = vec![0; CHUNK_SIZE];
     match file.read(&mut buf) {
@@ -684,7 +684,9 @@ fn chunked_fetch(sender: &mpsc::Sender<Data>,
                 size: size as u64,
                 bytes: buf,
             };
+
             bytes.extend_from_slice(&blob_buf.bytes);
+
             let _ = sender.send(Data::Payload(blob_buf.bytes));
         }
         Err(_) => {
@@ -698,7 +700,7 @@ fn chunked_fetch(sender: &mpsc::Sender<Data>,
         let mut buf = vec![0; CHUNK_SIZE];
         match file.read(&mut buf) {
             Ok(0) => {
-                *res_body.lock().unwrap() = ResponseBody::Done(bytes.to_vec());
+                *response.body.lock().unwrap() = ResponseBody::Done(bytes.to_vec());
                 let _ = sender.send(Data::Done);
                 return;
             }
@@ -707,7 +709,7 @@ fn chunked_fetch(sender: &mpsc::Sender<Data>,
                 bytes.extend_from_slice(&buf);
                 let _ = sender.send(Data::Payload(buf));
             }
-            Err(e) => {
+            Err(_) => {
                 *response = Response::network_error(NetworkError::Internal("Opening file failed".into()));
                 return;
             }

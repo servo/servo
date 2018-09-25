@@ -552,12 +552,8 @@ fn scheme_fetch(request: &mut Request,
             if request.method != Method::Get {
                 return Response::network_error(NetworkError::Internal("Unexpected method for blob".into()));
             }
-
-            let mut response = Response::new(url);
-
-            load_blob_async(url.clone(), context.filemanager.clone(), &response, done_chan);
-
-            response
+            
+            load_blob_async(url.clone(), context.filemanager.clone(), done_chan)
         },
 
         "ftp" => {
