@@ -40,6 +40,9 @@ class MachCommands(CommandBase):
         if check:
             params = ['check'] + params
 
+        if "--manifest-path" not in params:
+            params += ["--manifest-path", self.ports_servo_manifest()]
+
         build_start = time()
         status = self.call_rustup_run(["cargo"] + params, env=env)
         elapsed = time() - build_start
