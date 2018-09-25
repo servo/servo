@@ -657,11 +657,7 @@ fn scheme_fetch(
                 ));
             }
 
-            let mut response = Response::new(url, ResourceFetchTiming::new(request.timing_type()));
-
-            load_blob_async(url.clone(), context.filemanager.clone(), &response, done_chan);
-
-            response
+            load_blob_async(url.clone(), context.filemanager.clone(), done_chan);
         },
 
         "ftp" => {
