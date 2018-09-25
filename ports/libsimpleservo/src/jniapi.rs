@@ -13,7 +13,10 @@ use jni::sys::{jboolean, jfloat, jint, jstring, JNI_TRUE};
 use log::Level;
 use std;
 use std::borrow::Cow;
-use std::os::raw::c_void;
+use std::ffi::CString;
+use std::mem;
+use std::os::raw::{c_char, c_int, c_long, c_void};
+use std::ptr;
 use std::sync::{Arc, Mutex};
 
 struct HostCallbacks {
@@ -77,6 +80,7 @@ pub fn Java_com_mozilla_servoview_JNIServo_init(
     info!("init");
 
     initialize_android_glue(&env, activity);
+    redirect_stdout_to_logcat();
 
     let args = env.get_string(args)
         .expect("Couldn't get java string")
@@ -432,5 +436,94 @@ fn initialize_android_glue(env: &JNIEnv, activity: JObject) {
 
     unsafe {
         ANDROID_APP = Box::into_raw(Box::new(app));
+    }
+}
+
+
+#[allow(non_camel_case_types)]
+type pthread_t = c_long;
+#[allow(non_camel_case_types)]
+type pthread_mutexattr_t = c_long;
+#[allow(non_camel_case_types)]
+type pthread_attr_t = c_void; // FIXME: wrong
+
+extern {
+    fn pipe(_: *mut c_int) -> c_int;
+    fn dup2(fildes: c_int, fildes2: c_int) -> c_int;
+    fn read(fd: c_int, buf: *mut c_void, count: usize) -> isize;
+    fn pthread_create(_: *mut pthread_t, _: *const pthread_attr_t,
+                      _: extern fn(*mut c_void) -> *mut c_void, _: *mut c_void) -> c_int;
+    fn pthread_detach(thread: pthread_t) -> c_int;
+
+    pub fn __android_log_write(prio: c_int, tag: *const c_char, text: *const c_char) -> c_int;
+}
+fn redirect_stdout_to_logcat() {
+    // The first step is to redirect stdout and stderr to the logs.
+    unsafe {
+        // We redirect stdout and stderr to a custom descriptor.
+        let mut pfd: [c_int; 2] = [0, 0];
+        pipe(pfd.as_mut_ptr());
+        dup2(pfd[1], 1);
+        dup2(pfd[1], 2);
+
+        // Then we spawn a thread whose only job is to read from the other side of the
+        // pipe and redirect to the logs.
+        extern fn logging_thread(descriptor: *mut c_void) -> *mut c_void {
+            unsafe {
+                let descriptor = descriptor as usize as c_int;
+                let mut buf: Vec<c_char> = Vec::with_capacity(512);
+                let mut cursor = 0_usize;
+
+                // TODO: shouldn't use Rust stdlib
+                let tag = CString::new("simpleservo").unwrap();
+                let tag = tag.as_ptr();
+
+                loop {
+                    let result = read(descriptor, buf.as_mut_ptr().offset(cursor as isize) as *mut _,
+                                      buf.capacity() - 1 - cursor);
+
+                    let len = if result == 0 {
+                        return ptr::null_mut();
+                    } else if result < 0 {
+                        return ptr::null_mut(); /* TODO: report problem */
+                    } else {
+                        result as usize + cursor
+                    };
+
+                    buf.set_len(len);
+
+                    if let Some(last_newline_pos) = buf.iter().rposition(|&c| c == b'\n' as c_char) {
+                        buf[last_newline_pos] = b'\0' as c_char;
+                        __android_log_write(3, tag, buf.as_ptr());
+                        if last_newline_pos < buf.len() - 1 {
+                            let last_newline_pos = last_newline_pos + 1;
+                            cursor = buf.len() - last_newline_pos;
+                            debug_assert!(cursor < buf.capacity());
+                            for j in 0..cursor as usize {
+                                buf[j] = buf[last_newline_pos + j];
+                            }
+                            buf[cursor] = b'\0' as c_char;
+                            buf.set_len(cursor + 1);
+                        } else {
+                            cursor = 0;
+                        }
+                    } else {
+                        cursor = buf.len();
+                    }
+                    if cursor == buf.capacity() - 1 {
+                        __android_log_write(3, tag, buf.as_ptr());
+                        buf.set_len(0);
+                        cursor = 0;
+                    }
+                }
+            }
+        }
+
+        let mut thread = mem::uninitialized();
+        let result = pthread_create(&mut thread, ptr::null(), logging_thread,
+                                    pfd[0] as usize as *mut c_void);
+        assert_eq!(result, 0);
+        let result = pthread_detach(thread);
+        assert_eq!(result, 0);
     }
 }
