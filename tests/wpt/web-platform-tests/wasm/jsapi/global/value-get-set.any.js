@@ -92,3 +92,20 @@ test(() => {
 
   assert_throws(new TypeError(), () => setter.call(global));
 }, "Calling setter without argument");
+
+test(() => {
+  const argument = { "value": "i32", "mutable": true };
+  const global = new WebAssembly.Global(argument);
+  const desc = Object.getOwnPropertyDescriptor(WebAssembly.Global.prototype, "value");
+  assert_equals(typeof desc, "object");
+
+  const getter = desc.get;
+  assert_equals(typeof getter, "function");
+
+  const setter = desc.set;
+  assert_equals(typeof setter, "function");
+
+  assert_equals(getter.call(global, {}), 0);
+  assert_equals(setter.call(global, 1, {}), undefined);
+  assert_equals(global.value, 1);
+}, "Stray argument");
