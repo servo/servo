@@ -146,8 +146,7 @@ public class ServoView extends GLSurfaceView
 
         inGLThread(() -> {
             String uri = mInitialUri == null ? null : mInitialUri.toString();
-            mServo = new Servo(this, this, mClient, mActivity, mServoArgs, uri,
-                               mServoLog, width, height, density, showLogs, (Context) mActivity);
+            mServo = new Servo(this, this, mClient, mActivity, mServoArgs, uri, mServoLog, width, height, density, showLogs);
         });
     }
 

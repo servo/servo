@@ -31,8 +31,7 @@ public class Servo {
             String url,
             String logstr,
             int width, int height,
-            float density, boolean log,
-            Context context) {
+            float density, boolean log) {
 
         mRunCallback = runCallback;
 
@@ -45,7 +44,7 @@ public class Servo {
         });
 
         try {
-          GStreamer.init(context);
+          GStreamer.init((Context) activity);
         } catch (Exception e) {
           e.printStackTrace();
         }

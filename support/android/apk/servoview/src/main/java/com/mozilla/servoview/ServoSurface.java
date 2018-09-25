@@ -7,7 +7,6 @@ package com.mozilla.servoview;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
-import android.content.Context;
 import android.net.Uri;
 import android.opengl.EGL14;
 import android.opengl.EGLConfig;
@@ -207,8 +206,7 @@ public class ServoSurface {
             inUIThread(() -> {
               final boolean showLogs = true;
               String uri = mInitialUri == null ? null : mInitialUri;
-              mServo = new Servo(this, surface, mClient, mActivity, mServoArgs, uri, mServoLog,
-                                 mWidth, mHeight, 1 /* density */, showLogs, (Context) mActivity);
+              mServo = new Servo(this, surface, mClient, mActivity, mServoArgs, uri, mServoLog, mWidth, mHeight, 1, showLogs);
             });
 
             Looper.loop();
