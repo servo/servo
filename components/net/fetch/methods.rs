@@ -653,12 +653,8 @@ fn scheme_fetch(
                     "Unexpected method for blob".into(),
                 ));
             }
-
-            let mut response = Response::new(url);
-
-            load_blob_async(url.clone(), context.filemanager.clone(), &response, done_chan);
-
-            response
+            
+            load_blob_async(url.clone(), context.filemanager.clone(), done_chan)
         },
 
         "ftp" => {
