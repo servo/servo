@@ -158,8 +158,6 @@ pub struct HTMLMediaElement {
     /// Play promises which are soon to be fulfilled by a queued task.
     #[ignore_malloc_size_of = "promises are hard"]
     in_flight_play_promises_queue: DomRefCell<VecDeque<(Box<[Rc<Promise>]>, ErrorResult)>>,
-    /// Whether the media metadata has been completely received.
-    have_metadata: Cell<bool>,
     #[ignore_malloc_size_of = "servo_media"]
     player: Box<Player>,
     #[ignore_malloc_size_of = "Arc"]
@@ -209,7 +207,6 @@ impl HTMLMediaElement {
             delaying_the_load_event_flag: Default::default(),
             pending_play_promises: Default::default(),
             in_flight_play_promises_queue: Default::default(),
-            have_metadata: Cell::new(false),
             player: ServoMedia::get().unwrap().create_player().unwrap(),
             frame_renderer: Arc::new(Mutex::new(MediaFrameRenderer::new(
                 document.window().get_webrender_api_sender(),
@@ -1008,7 +1005,6 @@ impl HTMLMediaElement {
 
                 // Step 6.
                 self.change_ready_state(ReadyState::HaveMetadata);
-                self.have_metadata.set(true);
 
                 // XXX(ferjm) Steps 7 to 13.
             },
@@ -1020,7 +1016,15 @@ impl HTMLMediaElement {
                 },
                 _ => {},
             },
-            PlayerEvent::EndOfStream => {},
+            PlayerEvent::EndOfStream => {
+                println!("PlayerEvent::EndOfStream");
+                // https://html.spec.whatwg.org/multipage/#media-data-processing-steps-list
+                // => "If the media data can be fetched but is found by inspection to be in
+                //    an unsupported format, or can otherwise not be rendered at all"
+                if self.ready_state.get() < ReadyState::HaveMetadata {
+                    self.queue_dedicated_media_source_failure_steps();
+                }
+            },
             PlayerEvent::FrameUpdated => {
                 self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
             },
@@ -1276,13 +1280,6 @@ impl FetchResponseListener for HTMLMediaElementContext {
             return;
         }
 
-        // Make sure we don't skip the HaveMetadata state.
-        if elem.have_metadata.get() {
-            // https://html.spec.whatwg.org/multipage/#media-data-processing-steps-list
-            // => set the element's delaying-the-load-event flag to false
-            elem.change_ready_state(ReadyState::HaveCurrentData);
-        }
-
         // https://html.spec.whatwg.org/multipage/#concept-media-load-resource step 4,
         // => "If mode is remote" step 2
         if time::get_time() > self.next_progress_event {
@@ -1309,21 +1306,7 @@ impl FetchResponseListener for HTMLMediaElementContext {
             eprintln!("Couldn't signal EOS to player");
         }
 
-        // => "If the media data can be fetched but is found by inspection to be in an unsupported
-        //     format, or can otherwise not be rendered at all"
-        if !elem.have_metadata.get() {
-            // FIXME(victor): adjust player's max-size (or buffering).
-            //
-            // In short streams the EOS might arrive before extracting the stream
-            // metadata. This is because the internal queue in the GStreamer appsrc element,
-            // has a size of 200K and it pushes the data until it is reached. It would be nice
-            // to add a property to set the max-data in appsrc according to reported size of
-            // the stream.
-            // Until then, we comment out the failure steps.
-            //
-            //elem.queue_dedicated_media_source_failure_steps();
-            // => "Once the entire media resource has been fetched..."
-        } else if status.is_ok() {
+        if status.is_ok() {
             elem.change_ready_state(ReadyState::HaveEnoughData);
 
             elem.upcast::<EventTarget>().fire_event(atom!("progress"));
