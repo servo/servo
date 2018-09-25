@@ -64,11 +64,19 @@ pub fn Java_com_mozilla_servoview_JNIServo_init(
         // Note: Android debug logs are stripped from a release build.
         // debug!() will only show in a debug build. Use info!() if logs
         // should show up in adb logcat with a release build.
-        let mut filter = Filter::default()
-            .with_min_level(Level::Debug)
-            .with_allowed_module_path("simpleservo::api")
-            .with_allowed_module_path("simpleservo::jniapi")
-            .with_allowed_module_path("simpleservo::gl_glue::egl");
+        let filters = [
+            "simpleservo::api",
+            "simpleservo::jniapi",
+            "simpleservo::gl_glue::egl",
+            // Show JS errors by default.
+            "script::dom::bindings::error",
+            // Show GL errors by default.
+            "canvas::webgl_thread",
+        ];
+        let mut filter = Filter::default().with_min_level(Level::Debug);
+        for &module in &filters {
+            filter = filter.with_allowed_module_path(module);
+        }
         let log_str = env.get_string(log_str).ok();
         let log_str = log_str.as_ref().map_or(Cow::Borrowed(""), |s| s.to_string_lossy());
         for module in log_str.split(',') {
