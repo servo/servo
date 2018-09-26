@@ -4447,7 +4447,7 @@ fn static_assert() {
                 Some(Au(self.gecko.mClip.x + self.gecko.mClip.width).into())
             };
 
-            Either::First(ClipRect { top: top, right: right, bottom: bottom, left: left, })
+            Either::First(ClipRect { top, right, bottom, left })
         }
     }
 
