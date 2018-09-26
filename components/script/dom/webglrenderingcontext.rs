@@ -163,6 +163,8 @@ pub struct WebGLRenderingContext {
     default_vao: DomOnceCell<WebGLVertexArrayObjectOES>,
     current_vao: MutNullableDom<WebGLVertexArrayObjectOES>,
     textures: Textures,
+    #[ignore_malloc_size_of = "Defined in offscreen_gl_context"]
+    attrs: WebGLContextAttributes,
 }
 
 impl WebGLRenderingContext {
@@ -218,6 +220,16 @@ impl WebGLRenderingContext {
                 default_vao: Default::default(),
                 current_vao: Default::default(),
                 textures: Textures::new(max_combined_texture_image_units),
+                attrs: WebGLContextAttributes {
+                        alpha: attrs.alpha,
+                        antialias: attrs.antialias,
+                        depth: attrs.depth,
+                        failIfMajorPerformanceCaveat: false,
+                        preferLowPowerToHighPerformance: false,
+                        premultipliedAlpha: attrs.premultiplied_alpha,
+                        preserveDrawingBuffer: attrs.preserve_drawing_buffer,
+                        stencil: attrs.stencil,
+                } 
             }
         })
     }
@@ -1518,29 +1530,25 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.2
     fn GetContextAttributes(&self) -> Option<WebGLContextAttributes> {
-        let (sender, receiver) = webgl_channel().unwrap();
-
-        // If the send does not succeed, assume context lost
-        if self
-            .webgl_sender
-            .send(WebGLCommand::GetContextAttributes(sender))
-            .is_err()
-        {
-            return None;
-        }
-
-        let attrs = receiver.recv().unwrap();
-
-        Some(WebGLContextAttributes {
-            alpha: attrs.alpha,
-            antialias: attrs.antialias,
-            depth: attrs.depth,
-            failIfMajorPerformanceCaveat: false,
-            preferLowPowerToHighPerformance: false,
-            premultipliedAlpha: attrs.premultiplied_alpha,
-            preserveDrawingBuffer: attrs.preserve_drawing_buffer,
-            stencil: attrs.stencil,
-        })
+    // Currently, user-specified attributes can only differ from the
+    // attributes of the generated context in depth, stencil and antialias.
+    // As of now though, antialias is simply ignored, and depth and
+    // stencil, when set to true, are assumed to always succeed, i.e.,
+    // there is no way the user-specified values will ever conflict
+    // with the ones we finally ended up with.
+    // Therefore, the values we had cached away when we instantiated
+    // the context stay the same, and can be safely returned back
+    // to the user.
+    return Some(WebGLContextAttributes {
+                alpha: self.attrs.alpha,
+                antialias: self.attrs.antialias,
+                depth: self.attrs.depth,
+                failIfMajorPerformanceCaveat: false,
+                preferLowPowerToHighPerformance: false,
+                premultipliedAlpha: self.attrs.premultipliedAlpha,
+                preserveDrawingBuffer: self.attrs.preserveDrawingBuffer,
+                stencil: self.attrs.stencil,
+            }) 
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.14
