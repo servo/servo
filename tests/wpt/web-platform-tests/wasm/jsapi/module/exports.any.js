@@ -128,3 +128,9 @@ test(() => {
   ];
   assert_exports(exports, expected);
 }, "exports");
+
+test(() => {
+  const module = new WebAssembly.Module(emptyModuleBinary);
+  const exports = WebAssembly.Module.exports(module, {});
+  assert_exports(exports, []);
+}, "Stray argument");

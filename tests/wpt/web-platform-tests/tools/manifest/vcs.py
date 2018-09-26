@@ -1,5 +1,6 @@
 import os
 import subprocess
+import platform
 
 from .sourcefile import SourceFile
 
@@ -16,9 +17,12 @@ class Git(object):
             full_cmd = ["git", cmd] + list(args)
             try:
                 return subprocess.check_output(full_cmd, cwd=repo_path, stderr=subprocess.STDOUT)
-            except WindowsError:
-                full_cmd[0] = "git.bat"
-                return subprocess.check_output(full_cmd, cwd=repo_path, stderr=subprocess.STDOUT)
+            except Exception as e:
+                if platform.uname()[0] == "Windows" and isinstance(e, WindowsError):
+                        full_cmd[0] = "git.bat"
+                        return subprocess.check_output(full_cmd, cwd=repo_path, stderr=subprocess.STDOUT)
+                else:
+                    raise
         return git
 
     @classmethod

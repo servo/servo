@@ -44,7 +44,7 @@ function reportload() {
         test(function () {
             assert_equals( history.length, histlength + 1, 'make sure that you loaded the test in a new tab/window' );
         }, 'history.length should update when setting location.hash');
-        test(function () { assert_true( !!history.pushState, 'critical test; ignore any failures after this' ); }, 'history.pushState must exist'); //assert_exists does not allow prototype inheritance
+        test(function () { assert_true( !!history.pushState, 'critical test; ignore any failures after this' ); }, 'history.pushState must exist'); //assert_own_property does not allow prototype inheritance
         test(function () { assert_true( !!iframe.contentWindow.history.pushState, 'critical test; ignore any failures after this' ); }, 'history.pushState must exist within iframes');
         test(function () {
             assert_equals( iframe.contentWindow.history.state, null );
@@ -250,7 +250,7 @@ function reportload() {
             assert_equals( ev.state.numdata, 1, 'state numeric data was not correct' );
             assert_equals( ev.state.strdata, 'string data', 'state string data was not correct' );
             assert_true( !!ev.state.datedata.getTime, 'state date data was not correct' );
-            assert_exists( ev.state, 'regdata', 'state regex data was not correct' );
+            assert_own_property( ev.state, 'regdata', 'state regex data was not correct' );
             assert_equals( ev.state.regdata.source, 'a', 'state regex pattern data was not correct' );
             assert_true( ev.state.regdata.global, 'state regex flag data was not correct' );
             assert_equals( ev.state.regdata.lastIndex, 0, 'state regex lastIndex data was not correct' );

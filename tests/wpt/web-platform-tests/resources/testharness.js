@@ -1255,24 +1255,12 @@ policies and contribution forms [3].
     expose(assert_class_string, "assert_class_string");
 
 
-    function _assert_own_property(name) {
-        return function(object, property_name, description)
-        {
-            assert(object.hasOwnProperty(property_name),
-                   name, description,
-                   "expected property ${p} missing", {p:property_name});
-        };
+    function assert_own_property(object, property_name, description) {
+        assert(object.hasOwnProperty(property_name),
+               "assert_own_property", description,
+               "expected property ${p} missing", {p:property_name});
     }
-    expose(_assert_own_property("assert_exists"), "assert_exists");
-    expose(_assert_own_property("assert_own_property"), "assert_own_property");
-
-    function assert_not_exists(object, property_name, description)
-    {
-        assert(!object.hasOwnProperty(property_name),
-               "assert_not_exists", description,
-               "unexpected property ${p} found", {p:property_name});
-    }
-    expose(assert_not_exists, "assert_not_exists");
+    expose(assert_own_property, "assert_own_property");
 
     function _assert_inherits(name) {
         return function (object, property_name, description)
@@ -2559,27 +2547,24 @@ policies and contribution forms [3].
             if (output_document.body) {
                 output_document.body.appendChild(node);
             } else {
-                var is_html = false;
-                var is_svg = false;
-                var output_window = output_document.defaultView;
-                if (output_window && "SVGSVGElement" in output_window) {
-                    is_svg = output_document.documentElement instanceof output_window.SVGSVGElement;
-                } else if (output_window) {
-                    is_html = (output_document.namespaceURI == "http://www.w3.org/1999/xhtml" &&
-                               output_document.localName == "html");
-                }
+                var root = output_document.documentElement;
+                var is_html = (root &&
+                               root.namespaceURI == "http://www.w3.org/1999/xhtml" &&
+                               root.localName == "html");
+                var is_svg = (output_document.defaultView &&
+                              "SVGSVGElement" in output_document.defaultView &&
+                              root instanceof output_document.defaultView.SVGSVGElement);
                 if (is_svg) {
                     var foreignObject = output_document.createElementNS("http://www.w3.org/2000/svg", "foreignObject");
                     foreignObject.setAttribute("width", "100%");
                     foreignObject.setAttribute("height", "100%");
-                    output_document.documentElement.appendChild(foreignObject);
+                    root.appendChild(foreignObject);
                     foreignObject.appendChild(node);
                 } else if (is_html) {
-                    var body = output_document.createElementNS("http://www.w3.org/1999/xhtml", "body");
-                    output_document.documentElement.appendChild(body);
-                    body.appendChild(node);
+                    root.appendChild(output_document.createElementNS("http://www.w3.org/1999/xhtml", "body"))
+                        .appendChild(node);
                 } else {
-                    output_document.documentElement.appendChild(node);
+                    root.appendChild(node);
                 }
             }
         }

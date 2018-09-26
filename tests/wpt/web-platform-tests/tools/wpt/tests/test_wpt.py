@@ -169,23 +169,25 @@ def test_run_firefox(manifest_dir):
     if is_port_8000_in_use():
         pytest.skip("port 8000 already in use")
 
-    os.environ["MOZ_HEADLESS"] = "1"
-    try:
-        if sys.platform == "darwin":
-            fx_path = os.path.join(wpt.localpaths.repo_root, "_venv", "browsers", "nightly", "Firefox Nightly.app")
-        else:
-            fx_path = os.path.join(wpt.localpaths.repo_root, "_venv", "browsers", "nightly", "firefox")
-        if os.path.exists(fx_path):
-            shutil.rmtree(fx_path)
-        with pytest.raises(SystemExit) as excinfo:
-            wpt.main(argv=["run", "--no-pause", "--install-browser", "--yes",
-                           "--metadata", manifest_dir,
-                           "firefox", "/dom/nodes/Element-tagName.html"])
-        assert os.path.exists(fx_path)
+    if sys.platform == "darwin":
+        fx_path = os.path.join(wpt.localpaths.repo_root, "_venv", "browsers", "nightly", "Firefox Nightly.app")
+    else:
+        fx_path = os.path.join(wpt.localpaths.repo_root, "_venv", "browsers", "nightly", "firefox")
+    if os.path.exists(fx_path):
         shutil.rmtree(fx_path)
-        assert excinfo.value.code == 0
-    finally:
-        del os.environ["MOZ_HEADLESS"]
+    with pytest.raises(SystemExit) as excinfo:
+        wpt.main(argv=["run", "--no-pause", "--install-browser", "--yes",
+                       # The use of `--binary-args` is intentional: it
+                       # demonstrates that internally-managed command-line
+                       # arguments are properly merged with those specified by
+                       # the user. See
+                       # https://github.com/web-platform-tests/wpt/pull/13154
+                       "--binary-arg=-headless",
+                       "--metadata", manifest_dir,
+                       "firefox", "/dom/nodes/Element-tagName.html"])
+    assert os.path.exists(fx_path)
+    shutil.rmtree(fx_path)
+    assert excinfo.value.code == 0
 
 
 @pytest.mark.slow
