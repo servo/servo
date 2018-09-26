@@ -58,3 +58,8 @@ test(() => {
   const module = new WebAssembly.Module(emptyModuleBinary);
   assert_true(Object.isExtensible(module));
 }, "Extensibility");
+
+test(() => {
+  const module = new WebAssembly.Module(emptyModuleBinary, {});
+  assert_equals(Object.getPrototypeOf(module), WebAssembly.Module.prototype);
+}, "Stray argument");

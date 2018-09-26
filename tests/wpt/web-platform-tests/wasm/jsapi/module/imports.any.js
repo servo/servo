@@ -118,3 +118,9 @@ test(() => {
   ];
   assert_imports(imports, expected);
 }, "imports");
+
+test(() => {
+  const module = new WebAssembly.Module(emptyModuleBinary);
+  const imports = WebAssembly.Module.imports(module, {});
+  assert_imports(imports, []);
+}, "Stray argument");

@@ -177,6 +177,9 @@ class Firefox(BrowserSetup):
 
     def setup_kwargs(self, kwargs):
         if kwargs["binary"] is None:
+            if kwargs["browser_channel"] is None:
+                logger.info("No browser channel specified. Running nightly instead.")
+
             binary = self.browser.find_binary(self.venv.path,
                                               kwargs["browser_channel"])
             if binary is None:
@@ -220,6 +223,10 @@ Consider installing certutil via your OS package manager or directly.""")
                                                     self.venv.path,
                                                     channel=kwargs["browser_channel"])
             kwargs["prefs_root"] = prefs_root
+
+        if kwargs["headless"] is None:
+            kwargs["headless"] = True
+            logger.info("Running in headless mode, pass --no-headless to disable")
 
         # Allow WebRTC tests to call getUserMedia.
         kwargs["extra_prefs"].append("media.navigator.streams.fake=true")
@@ -283,11 +290,6 @@ class ChromeAndroid(BrowserSetup):
                 kwargs["webdriver_binary"] = webdriver_binary
             else:
                 raise WptrunError("Unable to locate or install chromedriver binary")
-
-
-class ChromeWebDriver(Chrome):
-    name = "chrome_webdriver"
-    browser_cls = browser.ChromeWebDriver
 
 
 class Opera(BrowserSetup):
@@ -428,7 +430,6 @@ product_setup = {
     "firefox": Firefox,
     "chrome": Chrome,
     "chrome_android": ChromeAndroid,
-    "chrome_webdriver": ChromeWebDriver,
     "edge": Edge,
     "edge_webdriver": EdgeWebDriver,
     "ie": InternetExplorer,

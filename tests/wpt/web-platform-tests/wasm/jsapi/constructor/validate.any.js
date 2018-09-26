@@ -94,3 +94,7 @@ for (const [module, expected] of modules) {
     }
   }
 }
+
+test(() => {
+  assert_true(WebAssembly.validate(emptyModuleBinary, {}));
+}, "Stray argument");
