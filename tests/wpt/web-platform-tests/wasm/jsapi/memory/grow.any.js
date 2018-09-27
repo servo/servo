@@ -168,3 +168,18 @@ for (const value of outOfRangeValues) {
     assert_throws(new TypeError(), () => memory.grow(value));
   }, `Out-of-range argument: ${format_value(value)}`);
 }
+
+test(() => {
+  const argument = { "initial": 0 };
+  const memory = new WebAssembly.Memory(argument);
+  const oldMemory = memory.buffer;
+  assert_ArrayBuffer(oldMemory, { "size": 0 }, "Buffer before growing");
+
+  const result = memory.grow(2, {});
+  assert_equals(result, 0);
+
+  const newMemory = memory.buffer;
+  assert_not_equals(oldMemory, newMemory);
+  assert_ArrayBuffer(oldMemory, { "detached": true }, "Old buffer after growing");
+  assert_ArrayBuffer(newMemory, { "size": 2 }, "New buffer after growing");
+}, "Stray argument");

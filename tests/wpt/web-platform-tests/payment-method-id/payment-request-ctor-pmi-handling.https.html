@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<!-- Copyright © 2017 Mozilla and World Wide Web Consortium, (Massachusetts Institute of Technology, ERCIM, Keio University, Beihang). -->
+<meta charset="utf-8">
+<title>Test for validity of payment method identifiers during construction</title>
+<link rel="help" href="https://w3c.github.io/browser-payment-api/#constructor">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+"use strict";
+const validAmount = Object.freeze({
+  currency: "USD",
+  value: "1.0",
+});
+const validTotal = Object.freeze({
+  label: "Default Total",
+  amount: validAmount,
+});
+const defaultDetails = Object.freeze({
+  total: validTotal,
+});
+
+test(() => {
+  const validMethods = [
+    "https://wpt",
+    "https://wpt.fyi/",
+    "https://wpt.fyi/payment",
+    "https://wpt.fyi/payment-request",
+    "https://wpt.fyi/payment-request?",
+    "https://wpt.fyi/payment-request?this=is",
+    "https://wpt.fyi/payment-request?this=is&totally",
+    "https://wpt.fyi:443/payment-request?this=is&totally",
+    "https://wpt.fyi:443/payment-request?this=is&totally#fine",
+    "https://:@wpt.fyi:443/payment-request?this=is&totally#👍",
+    " \thttps://wpt\n ",
+    "https://xn--c1yn36f",
+    "https://點看",
+  ];
+  for (const validMethod of validMethods) {
+    try {
+      const methods = [{ supportedMethods: validMethod }];
+      new PaymentRequest(methods, defaultDetails);
+    } catch (err) {
+      assert_unreached(
+        `Unexpected exception with valid standardized PMI: ${validMethod}. ${err}`
+      );
+    }
+  }
+}, "Must support valid standard URL PMIs");
+
+test(() => {
+  const validMethods = [
+    "e",
+    "n6jzof05mk2g4lhxr-u-q-w1-c-i-pa-ty-bdvs9-ho-ae7-p-md8-s-wq3-h-qd-e-q-sa",
+    "a-b-q-n-s-pw0",
+    "m-u",
+    "s-l5",
+    "k9-f",
+    "m-l",
+    "u4-n-t",
+    "i488jh6-g18-fck-yb-v7-i",
+    "x-x-t-t-c34-o",
+    "basic-card",
+    // gets coerced to "basic-card", for compat with old version of spec
+    ["basic-card"],
+  ];
+  for (const validMethod of validMethods) {
+    try {
+      const methods = [{ supportedMethods: validMethod }];
+      new PaymentRequest(methods, defaultDetails);
+    } catch (err) {
+      assert_unreached(
+        `Unexpected exception with valid standardized PMI: ${validMethod}. ${err}`
+      );
+    }
+  }
+}, "Must not throw on syntactically valid standardized payment method identifiers, even if they are not supported");
+
+test(() => {
+  const invalidMethods = [
+    "basic-💳",
+    "¡basic-*-card!",
+    "Basic-Card",
+    "0",
+    "-",
+    "--",
+    "a--b",
+    "-a--b",
+    "a-b-",
+    "0-",
+    "0-a",
+    "a0--",
+    "A-",
+    "A-B",
+    "A-b",
+    "a-0",
+    "a-0b",
+    " a-b",
+    "\t\na-b",
+    "a-b ",
+    "a-b\n\t",
+    "basic-card?not-really",
+    "basic-card://not-ok",
+    "basic card",
+    "/basic card/",
+    "BaSicCarD",
+    "BASIC-CARD",
+    " basic-card ",
+    "this is not supported",
+    " ",
+    "foo,var",
+    ["visa","mastercard"], // stringifies to "visa,mastercard"
+  ];
+  for (const invalidMethod of invalidMethods) {
+    assert_throws(
+      new RangeError(),
+      () => {
+        const methods = [{ supportedMethods: invalidMethod }];
+        new PaymentRequest(methods, defaultDetails);
+      },
+      `expected RangeError processing invalid standardized PMI "${invalidMethod}"`
+    );
+  }
+}, "Must throw on syntactically invalid standardized payment method identifiers");
+
+test(() => {
+  const invalidMethods = [
+    "https://username@example.com/pay",
+    "https://:password@example.com/pay",
+    "https://username:password@example.com/pay",
+    "http://username:password@example.com/pay",
+    "http://foo.com:100000000/pay",
+    "not-https://wpt.fyi/payment-request",
+    "../realitive/url",
+    "/absolute/../path?",
+    "https://",
+  ];
+  for (const invalidMethod of invalidMethods) {
+    assert_throws(
+      new RangeError(),
+      () => {
+        const methods = [{ supportedMethods: invalidMethod }];
+        new PaymentRequest(methods, defaultDetails);
+      },
+      `expected RangeError processing invalid URL PMI "${invalidMethod}"`
+    );
+  }
+}, "Constructor MUST throw if given an invalid URL-based payment method identifier");
+
+</script>

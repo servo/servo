@@ -3,7 +3,7 @@ import os
 import subprocess
 import time
 import sys
-import urllib2
+from six.moves import urllib
 
 
 class WPTServer(object):
@@ -38,9 +38,9 @@ class WPTServer(object):
                 logging.warn('Command "%s" exited with %s', ' '.join(wptserve_cmd), exit_code)
                 break
             try:
-                urllib2.urlopen(self.base_url, timeout=1)
+                urllib.request.urlopen(self.base_url, timeout=1)
                 return
-            except urllib2.URLError:
+            except urllib.error.URLError:
                 pass
 
         raise Exception('Could not start wptserve on %s' % self.base_url)
