@@ -72,7 +72,7 @@ ${helpers.predefined_type(
     "ui::ScrollbarColor",
     "Default::default()",
     spec="https://drafts.csswg.org/css-scrollbars-1/#scrollbar-color",
-    gecko_pref="layout.css.scrollbar-colors.enabled",
+    gecko_pref="layout.css.scrollbar-color.enabled",
     animation_value_type="ScrollbarColor",
     boxed=True,
     ignored_when_colors_disabled=True,
