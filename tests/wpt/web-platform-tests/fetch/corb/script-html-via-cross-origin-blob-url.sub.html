@@ -19,7 +19,7 @@ async_test(function(t) {
   }
 
   function step2_processSubframeMsg(msg) {
-    assert_not_exists(msg, 'error');
+    assert_false(msg.hasOwnProperty('error'), 'unexpected property found: "error"');
     assert_equals(msg.blob_type, 'text/html');
     assert_equals(msg.blob_size, 147);
 

@@ -147,8 +147,8 @@
         var A = function(){this.a = "a"}
         A.prototype = {b:"b"}
         var a = new A();
-        assert_exists(a, "a");
-        assert_not_exists(a, "b");
+        assert_own_property(a, "a");
+        assert_false(a.hasOwnProperty("b"), "unexpected property found: \"b\"");
         assert_inherits(a, "b");
     }
     test(testAssertInherits, "test for assert[_not]_exists and insert_inherits")

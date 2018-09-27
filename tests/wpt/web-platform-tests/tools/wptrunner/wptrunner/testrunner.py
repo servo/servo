@@ -210,7 +210,7 @@ class BrowserManager(object):
         self.command_queue.put((command, args))
 
     def init_timeout(self):
-        # This is called from a seperate thread, so we send a message to the
+        # This is called from a separate thread, so we send a message to the
         # main loop so we get back onto the manager thread
         self.logger.debug("init_failed called from timer")
         self.send_message("init_failed")

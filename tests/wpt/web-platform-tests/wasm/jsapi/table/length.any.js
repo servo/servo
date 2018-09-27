@@ -30,6 +30,20 @@ test(() => {
   const argument = { "element": "anyfunc", "initial": 2 };
   const table = new WebAssembly.Table(argument);
   assert_equals(table.length, 2, "Initial length");
+
+  const desc = Object.getOwnPropertyDescriptor(WebAssembly.Table.prototype, "length");
+  assert_equals(typeof desc, "object");
+
+  const getter = desc.get;
+  assert_equals(typeof getter, "function");
+
+  assert_equals(getter.call(table, {}), 2);
+}, "Stray argument");
+
+test(() => {
+  const argument = { "element": "anyfunc", "initial": 2 };
+  const table = new WebAssembly.Table(argument);
+  assert_equals(table.length, 2, "Initial length");
   table.length = 4;
   assert_equals(table.length, 2, "Should not change the length");
 }, "Setting (sloppy mode)");

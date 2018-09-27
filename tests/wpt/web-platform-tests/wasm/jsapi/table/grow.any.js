@@ -84,3 +84,13 @@ for (const value of outOfRangeValues) {
     assert_throws(new TypeError(), () => table.grow(value));
   }, `Out-of-range argument: ${format_value(value)}`);
 }
+
+test(() => {
+  const argument = { "element": "anyfunc", "initial": 5 };
+  const table = new WebAssembly.Table(argument);
+  assert_equal_to_array(table, nulls(5), "before");
+
+  const result = table.grow(3, {});
+  assert_equals(result, 5);
+  assert_equal_to_array(table, nulls(8), "after");
+}, "Stray argument");
