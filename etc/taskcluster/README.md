@@ -40,7 +40,7 @@ to build an arbitrary [task graph].
 ## Servo’s decision task
 
 This repository’s [`.taskcluster.yml`][tc.yml] schedules a single task
-that runs the Python 3 script [`etc/ci/taskcluster/decision-task.py`](decision-task.py).
+that runs the Python 3 script [`etc/taskcluster/decision-task.py`](decision-task.py).
 It is called a *decision task* as it is responsible for deciding what other tasks to schedule.
 
 The Docker image that runs the decision task
@@ -73,7 +73,7 @@ when a `Dockerfile` first line is `% include` followed by a filename,
 that line is replaced with the content of that file.
 
 For example,
-[`etc/ci/taskcluster/docker/build.dockerfile`](docker/build.dockerfile) starts like so:
+[`etc/taskcluster/docker/build.dockerfile`](docker/build.dockerfile) starts like so:
 
 ```Dockerfile
 % include base.dockerfile

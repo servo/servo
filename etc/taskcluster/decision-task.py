@@ -50,7 +50,7 @@ def linux_tidy_unit():
             ./mach package --dev
             ./mach test-tidy --no-progress --self-test
             python2.7 ./etc/memory_reports_over_time.py --test
-            python3 ./etc/ci/taskcluster/mock.py
+            python3 ./etc/taskcluster/mock.py
             ./etc/ci/lockfile_changed.sh
             ./etc/ci/check_no_panic.sh
         """,
@@ -145,7 +145,7 @@ def wpt_chunk(release_build_task, total_chunks, this_chunk, extra):
 
 def create_run_task(*, build_task, script, **kwargs):
     fetch_build = """
-        ./etc/ci/taskcluster/curl-artifact.sh ${BUILD_TASK_ID} target.tar.gz | tar -xz
+        ./etc/taskcluster/curl-artifact.sh ${BUILD_TASK_ID} target.tar.gz | tar -xz
     """
     kwargs.setdefault("env", {})["BUILD_TASK_ID"] = build_task
     kwargs.setdefault("dependencies", []).append(build_task)
