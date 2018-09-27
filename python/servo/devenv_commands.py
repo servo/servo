@@ -42,6 +42,8 @@ class MachCommands(CommandBase):
         if check:
             params = ['check'] + params
 
+        self.add_manifest_path(params)
+
         build_start = time()
         status = self.call_rustup_run(["cargo"] + params, env=env)
         elapsed = time() - build_start

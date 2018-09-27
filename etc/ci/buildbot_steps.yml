@@ -115,6 +115,7 @@ linux-dev:
     - ./mach test-unit
     - python ./etc/memory_reports_over_time.py --test
     - ./mach package --dev
+    - ./mach build --libsimpleservo
     - ./mach build --dev --no-default-features --features default-except-unstable -p servo
     - bash ./etc/ci/lockfile_changed.sh
     - bash ./etc/ci/check_no_panic.sh

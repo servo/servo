@@ -4,11 +4,6 @@ members = [
     "ports/libsimpleservo/",
     "tests/unit/*",
 ]
-default-members = [
-    "ports/servo",
-    "ports/libsimpleservo/",
-    "tests/unit/*",
-]
 exclude = [".cargo"]
 
 [profile.release]
