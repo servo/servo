@@ -506,7 +506,7 @@ pub struct ScriptThread {
 
     networking_task_sender: Box<ScriptChan>,
 
-    history_traversal_task_source: HistoryTraversalTaskSource,
+    history_traversal_task_sender: Sender<MainThreadScriptMsg>,
 
     file_reading_task_sender: Box<ScriptChan>,
 
@@ -1021,7 +1021,7 @@ impl ScriptThread {
             performance_timeline_task_sender: boxed_script_sender.clone(),
             remote_event_task_sender: boxed_script_sender.clone(),
 
-            history_traversal_task_source: HistoryTraversalTaskSource(chan),
+            history_traversal_task_sender: chan.clone(),
 
             control_chan: state.control_chan,
             control_port: control_port,
@@ -2154,6 +2154,13 @@ impl ScriptThread {
         PerformanceTimelineTaskSource(self.performance_timeline_task_sender.clone(), pipeline_id)
     }
 
+    pub fn history_traversal_task_source(
+        &self,
+        pipeline_id: PipelineId,
+    ) -> HistoryTraversalTaskSource {
+        HistoryTraversalTaskSource(self.history_traversal_task_sender.clone(), pipeline_id)
+    }
+
     pub fn user_interaction_task_source(
         &self,
         pipeline_id: PipelineId,
@@ -2533,7 +2540,6 @@ impl ScriptThread {
         );
 
         let MainThreadScriptChan(ref sender) = self.chan;
-        let HistoryTraversalTaskSource(ref history_sender) = self.history_traversal_task_source;
 
         let (ipc_timer_event_chan, ipc_timer_event_port) = ipc::channel().unwrap();
         route_ipc_receiver_to_new_servo_sender(ipc_timer_event_port, self.timer_event_chan.clone());
@@ -2556,7 +2562,7 @@ impl ScriptThread {
             self.dom_manipulation_task_source(incomplete.pipeline_id),
             self.user_interaction_task_source(incomplete.pipeline_id),
             self.networking_task_source(incomplete.pipeline_id),
-            HistoryTraversalTaskSource(history_sender.clone()),
+            self.history_traversal_task_source(incomplete.pipeline_id),
             self.file_reading_task_source(incomplete.pipeline_id),
             self.performance_timeline_task_source(incomplete.pipeline_id)
                 .clone(),
