@@ -88,6 +88,7 @@ pub enum ScriptThreadEventCategory {
     DomEvent,
     FileRead,
     FormPlannedNavigation,
+    HistoryEvent,
     ImageCacheMsg,
     InputEvent,
     NetworkEvent,
