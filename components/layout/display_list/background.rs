@@ -37,8 +37,8 @@ use style::values::generics::image::GradientItem as GenericGradientItem;
 use style::values::specified::background::BackgroundRepeatKeyword;
 use style::values::specified::position::{X, Y};
 use webrender_api::{BorderRadius, BorderSide, BorderStyle, BorderWidths, ColorF};
-use webrender_api::{ExtendMode, Gradient, GradientStop, LayoutSize, NinePatchBorder};
-use webrender_api::{NinePatchBorderSource, NormalBorder, RadialGradient};
+use webrender_api::{ExtendMode, Gradient, GradientStop, LayoutSize};
+use webrender_api::{NormalBorder, RadialGradient};
 
 /// A helper data structure for gradients.
 #[derive(Clone, Copy)]
@@ -70,7 +70,7 @@ pub struct BackgroundPlacement {
     pub fixed: bool,
 }
 
-trait ResolvePercentage {
+pub trait ResolvePercentage {
     fn resolve(&self, length: u32) -> u32;
 }
 
@@ -801,65 +801,6 @@ pub fn calculate_inner_border_radii(
     radii
 }
 
-/// Create the image border details.
-///
-/// For a fragment with a given with a given "bounds" that has a "border_width"
-/// for all four sides calculate the outset for the image border. Call the
-/// "build_source" function to get the image which is either a gradient
-/// or an image. The supplied "fallback_size" is used to size gradients
-/// and other images without an intrinsic size. The actual size of the image
-/// is also returned. Apply all other attributes for border images and return
-/// the "NinePatchBorder".
-pub fn build_border_image_details<F>(
-    bounds: Rect<Au>,
-    border_width: SideOffsets2D<Au>,
-    border_style_struct: &style_structs::Border,
-    build_source: F,
-) -> Option<(NinePatchBorder, BorderWidths)>
-where
-    F: FnOnce(Size2D<Au>) -> Option<(NinePatchBorderSource, Size2D<u32>)>,
-{
-    let border_image_outset =
-        calculate_border_image_outset(border_style_struct.border_image_outset, border_width);
-    let border_image_area = bounds.outer_rect(border_image_outset).size;
-    let border_image_width = calculate_border_image_width(
-        &border_style_struct.border_image_width,
-        border_width.to_layout(),
-        border_image_area,
-    );
-    let border_image_repeat = &border_style_struct.border_image_repeat;
-    let border_image_fill = border_style_struct.border_image_slice.fill;
-    let border_image_slice = &border_style_struct.border_image_slice.offsets;
-
-    if let Some((source, size)) = build_source(border_image_area) {
-        Some((
-            NinePatchBorder {
-                source: source,
-                width: size.width,
-                height: size.height,
-                slice: SideOffsets2D::new(
-                    border_image_slice.0.resolve(size.height),
-                    border_image_slice.1.resolve(size.width),
-                    border_image_slice.2.resolve(size.height),
-                    border_image_slice.3.resolve(size.width),
-                ),
-                fill: border_image_fill,
-                repeat_horizontal: border_image_repeat.0.to_layout(),
-                repeat_vertical: border_image_repeat.1.to_layout(),
-                outset: SideOffsets2D::new(
-                    border_image_outset.top.to_f32_px(),
-                    border_image_outset.right.to_f32_px(),
-                    border_image_outset.bottom.to_f32_px(),
-                    border_image_outset.left.to_f32_px(),
-                ),
-            },
-            border_image_width,
-        ))
-    } else {
-        None
-    }
-}
-
 fn calculate_border_image_outset_side(outset: LengthOrNumber, border_width: Au) -> Au {
     match outset {
         Either::First(length) => length.into(),
@@ -867,7 +808,7 @@ fn calculate_border_image_outset_side(outset: LengthOrNumber, border_width: Au) 
     }
 }
 
-fn calculate_border_image_outset(
+pub fn calculate_border_image_outset(
     outset: BorderImageOutset,
     border: SideOffsets2D<Au>,
 ) -> SideOffsets2D<Au> {
@@ -891,7 +832,7 @@ fn calculate_border_image_width_side(
     }
 }
 
-fn calculate_border_image_width(
+pub fn calculate_border_image_width(
     width: &BorderImageWidth,
     border: BorderWidths,
     border_area: Size2D<Au>,
