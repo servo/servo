@@ -381,12 +381,9 @@ impl Window {
         self.networking_task_source.clone()
     }
 
-    pub fn history_traversal_task_source(&self) -> Box<dyn ScriptChan + Send> {
-        self.history_traversal_task_source.clone()
-    }
-
-    pub fn file_reading_task_source(&self) -> FileReadingTaskSource {
-        self.file_reading_task_source.clone()
+    pub fn file_reading_task_source(&self) -> TaskManagement<FileReadingTaskSource> {
+        let canceller = self.task_canceller(TaskSourceName::FileReading);
+        TaskManagement(self.file_reading_task_source.clone(), canceller)
     }
 
     pub fn performance_timeline_task_source(&self) -> PerformanceTimelineTaskSource {

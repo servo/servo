@@ -129,6 +129,7 @@ impl Formattable for ProfilerCategory {
             ProfilerCategory::ScriptDomEvent => "Script Dom Event",
             ProfilerCategory::ScriptEvaluate => "Script JS Evaluate",
             ProfilerCategory::ScriptFileRead => "Script File Read",
+            ProfilerCategory::ScriptHistoryEvent => "Script History Event",
             ProfilerCategory::ScriptImageCacheMsg => "Script Image Cache Msg",
             ProfilerCategory::ScriptInputEvent => "Script Input Event",
             ProfilerCategory::ScriptNetworkEvent => "Script Network Event",
