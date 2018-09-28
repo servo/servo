@@ -73,7 +73,8 @@ def main(product, commit_range, wpt_args):
         "-y",
         "--no-pause",
         "--no-restart-on-unexpected",
-        "--install-fonts"
+        "--install-fonts",
+        "--no-headless"
     ]
     wpt_args += browser_specific_args.get(product, [])
 

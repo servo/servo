@@ -9,8 +9,8 @@
 <script>
 promise_test(async t => {
   const video = await loadVideo();
-  return requestPictureInPictureWithTrustedClick(video);
-}, 'request Picture-in-Picture resolves on user click');
+  return promise_rejects(t, 'NotAllowedError', video.requestPictureInPicture());
+}, 'request Picture-in-Picture requires a user gesture');
 
 promise_test(t => {
   const video = document.createElement('video');
@@ -31,6 +31,6 @@ promise_test(async t => {
 
 promise_test(async t => {
   const video = await loadVideo();
-  return promise_rejects(t, 'NotAllowedError', video.requestPictureInPicture());
-}, 'request Picture-in-Picture requires a user gesture');
+  return requestPictureInPictureWithTrustedClick(video);
+}, 'request Picture-in-Picture resolves on user click');
 </script>

@@ -4,6 +4,7 @@
 <link rel="help" href="https://html.spec.whatwg.org/multipage/#the-link-element">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src=/common/get-host-info.sub.js></script>
 <div id="log"></div>
 <div id="test">
 <script>
@@ -31,18 +32,6 @@ tUnsupported.step(function() {
   elt.rel = "stylesheet";
   elt.href = "nonexistent:stylesheet.css";
   document.getElementsByTagName("head")[0].appendChild(elt);
-})
-
-var tText = async_test("Should get an error event for a text/plain response.")
-tText.step(function() {
-  var elt = document.createElement("link");
-  elt.onerror = tText.step_func(function() {
-    assert_true(true, "Got error event for 404 error.")
-    tText.done()
-  })
-  elt.onload = tText.unreached_func("load event should not be fired");
-  elt.rel = "stylesheet";
-  elt.href = "../../../../../common/css-red.txt";
-  document.getElementsByTagName("head")[0].appendChild(elt);
-})
+});
 </script>
+<script src=resources/link-style-error.js></script>

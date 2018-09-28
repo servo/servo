@@ -655,6 +655,8 @@ CSS-COLLIDING-REF-NAME: css/vendor-imports/mozilla/mozilla-central-reftests/cont
 CSS-COLLIDING-REF-NAME: css/css-contain/reference/contain-size-grid-001-ref.html
 CSS-COLLIDING-REF-NAME: css/vendor-imports/mozilla/mozilla-central-reftests/contain/contain-size-grid-001-ref.html
 CSS-COLLIDING-SUPPORT-NAME: css/css-backgrounds/support/red.png
+CSS-COLLIDING-REF-NAME: css/css-contain/reference/contain-size-fieldset-001-ref.html
+CSS-COLLIDING-REF-NAME: css/vendor-imports/mozilla/mozilla-central-reftests/contain/contain-size-fieldset-001-ref.html
 CSS-COLLIDING-SUPPORT-NAME: css/compositing/mix-blend-mode/support/red.png
 CSS-COLLIDING-SUPPORT-NAME: css/compositing/background-blending/support/red.png
 CSS-COLLIDING-SUPPORT-NAME: css/CSS2/normal-flow/support/replaced-min-max-3.png

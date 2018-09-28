@@ -272,6 +272,7 @@ def run(venv, wpt_args, **kwargs):
         wpt_kwargs["verify_log_full"] = False
         if wpt_kwargs["repeat"] == 1:
             wpt_kwargs["repeat"] = 10
+        wpt_kwargs["headless"] = False
 
         wpt_kwargs = setup_wptrunner(venv, **wpt_kwargs)
 

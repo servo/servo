@@ -71,7 +71,7 @@ This test uses data only, and thus does not require fake media devices.
       assert_not_equals(report, null, 'No report');
       let sessionStat = getStatsRecordByType(report, 'peer-connection');
       assert_not_equals(sessionStat, null, 'Did not find peer-connection stats');
-      assert_exists(sessionStat, 'dataChannelsOpened', 'no dataChannelsOpened stat');
+      assert_own_property(sessionStat, 'dataChannelsOpened', 'no dataChannelsOpened stat');
       // Once every 4000 or so tests, the datachannel won't be opened when the getStats
       // function is done, so allow both 0 and 1 datachannels.
       assert_true(sessionStat.dataChannelsOpened == 1 || sessionStat.dataChannelsOpened == 0,
