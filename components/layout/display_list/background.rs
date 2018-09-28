@@ -9,11 +9,11 @@
 
 #![deny(unsafe_code)]
 
-// FIXME(rust-lang/rust#26264): Remove GenericEndingShape and GenericGradientItem.
+// FIXME(rust-lang/rust#26264): Remove GenericEndingShape, GenericGradientItem,
+// GenericBackgroundSize and GenericBorderImageSideWidth.
 
 use app_units::Au;
 use display_list::ToLayout;
-use display_list::items::WebRenderImageInfo;
 use euclid::{Point2D, Rect, SideOffsets2D, Size2D, Vector2D};
 use model::{self, MaybeAuto};
 use style::computed_values::background_attachment::single_value::T as BackgroundAttachment;
@@ -23,19 +23,21 @@ use style::computed_values::border_image_outset::T as BorderImageOutset;
 use style::properties::ComputedValues;
 use style::properties::style_structs::{self, Background};
 use style::values::Either;
-use style::values::computed::{Angle, GradientItem, BackgroundSize as ComputedBackgroundSize};
+use style::values::computed::{Angle, GradientItem, BackgroundSize};
+use style::values::computed::{BorderImageWidth, BorderImageSideWidth};
 use style::values::computed::{LengthOrNumber, LengthOrPercentage, LengthOrPercentageOrAuto};
 use style::values::computed::{NumberOrPercentage, Percentage, Position};
 use style::values::computed::image::{EndingShape, LineDirection};
 use style::values::generics::NonNegative;
-use style::values::generics::background::BackgroundSize;
+use style::values::generics::background::BackgroundSize as GenericBackgroundSize;
+use style::values::generics::border::{BorderImageSideWidth as GenericBorderImageSideWidth};
 use style::values::generics::image::{Circle, Ellipse, ShapeExtent};
 use style::values::generics::image::EndingShape as GenericEndingShape;
 use style::values::generics::image::GradientItem as GenericGradientItem;
 use style::values::specified::background::BackgroundRepeatKeyword;
 use style::values::specified::position::{X, Y};
-use webrender_api::{BorderDetails, BorderRadius, BorderSide, BorderStyle, ColorF, ExtendMode};
-use webrender_api::{Gradient, GradientStop, LayoutSize, NinePatchBorder, NinePatchBorderSource};
+use webrender_api::{BorderRadius, BorderSide, BorderStyle, BorderWidths, ColorF};
+use webrender_api::{ExtendMode, Gradient, GradientStop, LayoutSize};
 use webrender_api::{NormalBorder, RadialGradient};
 
 /// A helper data structure for gradients.
@@ -68,7 +70,7 @@ pub struct BackgroundPlacement {
     pub fixed: bool,
 }
 
-trait ResolvePercentage {
+pub trait ResolvePercentage {
     fn resolve(&self, length: u32) -> u32;
 }
 
@@ -94,14 +96,14 @@ pub fn get_cyclic<T>(arr: &[T], index: usize) -> &T {
 /// For a given area and an image compute how big the
 /// image should be displayed on the background.
 fn compute_background_image_size(
-    bg_size: ComputedBackgroundSize,
+    bg_size: BackgroundSize,
     bounds_size: Size2D<Au>,
     intrinsic_size: Option<Size2D<Au>>,
 ) -> Size2D<Au> {
     match intrinsic_size {
         None => match bg_size {
-            BackgroundSize::Cover | BackgroundSize::Contain => bounds_size,
-            BackgroundSize::Explicit { width, height } => Size2D::new(
+            GenericBackgroundSize::Cover | GenericBackgroundSize::Contain => bounds_size,
+            GenericBackgroundSize::Explicit { width, height } => Size2D::new(
                 MaybeAuto::from_style(width.0, bounds_size.width)
                     .specified_or_default(bounds_size.width),
                 MaybeAuto::from_style(height.0, bounds_size.height)
@@ -115,16 +117,20 @@ fn compute_background_image_size(
             let bounds_aspect_ratio =
                 bounds_size.width.to_f32_px() / bounds_size.height.to_f32_px();
             match (bg_size, image_aspect_ratio < bounds_aspect_ratio) {
-                (BackgroundSize::Contain, false) | (BackgroundSize::Cover, true) => Size2D::new(
-                    bounds_size.width,
-                    bounds_size.width.scale_by(image_aspect_ratio.recip()),
-                ),
-                (BackgroundSize::Contain, true) | (BackgroundSize::Cover, false) => Size2D::new(
-                    bounds_size.height.scale_by(image_aspect_ratio),
-                    bounds_size.height,
-                ),
+                (GenericBackgroundSize::Contain, false) | (GenericBackgroundSize::Cover, true) => {
+                    Size2D::new(
+                        bounds_size.width,
+                        bounds_size.width.scale_by(image_aspect_ratio.recip()),
+                    )
+                },
+                (GenericBackgroundSize::Contain, true) | (GenericBackgroundSize::Cover, false) => {
+                    Size2D::new(
+                        bounds_size.height.scale_by(image_aspect_ratio),
+                        bounds_size.height,
+                    )
+                },
                 (
-                    BackgroundSize::Explicit {
+                    GenericBackgroundSize::Explicit {
                         width,
                         height: NonNegative(LengthOrPercentageOrAuto::Auto),
                     },
@@ -135,7 +141,7 @@ fn compute_background_image_size(
                     Size2D::new(width, width.scale_by(image_aspect_ratio.recip()))
                 },
                 (
-                    BackgroundSize::Explicit {
+                    GenericBackgroundSize::Explicit {
                         width: NonNegative(LengthOrPercentageOrAuto::Auto),
                         height,
                     },
@@ -145,7 +151,7 @@ fn compute_background_image_size(
                         .specified_or_default(own_size.height);
                     Size2D::new(height.scale_by(image_aspect_ratio), height)
                 },
-                (BackgroundSize::Explicit { width, height }, _) => Size2D::new(
+                (GenericBackgroundSize::Explicit { width, height }, _) => Size2D::new(
                     MaybeAuto::from_style(width.0, bounds_size.width)
                         .specified_or_default(own_size.width),
                     MaybeAuto::from_style(height.0, bounds_size.height)
@@ -795,37 +801,6 @@ pub fn calculate_inner_border_radii(
     radii
 }
 
-/// Given an image and a border style constructs a border image.
-///
-/// See: https://drafts.csswg.org/css-backgrounds-3/#border-images
-pub fn build_image_border_details(
-    webrender_image: WebRenderImageInfo,
-    border_style_struct: &style_structs::Border,
-    outset: SideOffsets2D<f32>,
-) -> Option<BorderDetails> {
-    let corners = &border_style_struct.border_image_slice.offsets;
-    let border_image_repeat = &border_style_struct.border_image_repeat;
-    if let Some(image_key) = webrender_image.key {
-        Some(BorderDetails::NinePatch(NinePatchBorder {
-            source: NinePatchBorderSource::Image(image_key),
-            width: webrender_image.width,
-            height: webrender_image.height,
-            slice: SideOffsets2D::new(
-                corners.0.resolve(webrender_image.height),
-                corners.1.resolve(webrender_image.width),
-                corners.2.resolve(webrender_image.height),
-                corners.3.resolve(webrender_image.width),
-            ),
-            fill: border_style_struct.border_image_slice.fill,
-            repeat_horizontal: border_image_repeat.0.to_layout(),
-            repeat_vertical: border_image_repeat.1.to_layout(),
-            outset: outset,
-        }))
-    } else {
-        None
-    }
-}
-
 fn calculate_border_image_outset_side(outset: LengthOrNumber, border_width: Au) -> Au {
     match outset {
         Either::First(length) => length.into(),
@@ -843,4 +818,29 @@ pub fn calculate_border_image_outset(
         calculate_border_image_outset_side(outset.2, border.bottom),
         calculate_border_image_outset_side(outset.3, border.left),
     )
+}
+
+fn calculate_border_image_width_side(
+    border_image_width: BorderImageSideWidth,
+    border_width: f32,
+    total_length: Au,
+) -> f32 {
+    match border_image_width {
+        GenericBorderImageSideWidth::Length(v) => v.to_used_value(total_length).to_f32_px(),
+        GenericBorderImageSideWidth::Number(x) => border_width * x,
+        GenericBorderImageSideWidth::Auto => border_width,
+    }
+}
+
+pub fn calculate_border_image_width(
+    width: &BorderImageWidth,
+    border: BorderWidths,
+    border_area: Size2D<Au>,
+) -> BorderWidths {
+    BorderWidths {
+        left: calculate_border_image_width_side(width.3, border.left, border_area.width),
+        top: calculate_border_image_width_side(width.0, border.top, border_area.height),
+        right: calculate_border_image_width_side(width.1, border.right, border_area.width),
+        bottom: calculate_border_image_width_side(width.2, border.bottom, border_area.height),
+    }
 }
