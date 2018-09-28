@@ -118,16 +118,8 @@ use style::selector_parser::PseudoElement;
 use style::str::HTML_SPACE_CHARACTERS;
 use style::stylesheets::CssRuleType;
 use style_traits::{CSSPixel, DevicePixel, ParsingMode};
-use task::TaskCanceller;
-use task_source::{TaskSource, TaskSourceName};
-use task_source::dom_manipulation::DOMManipulationTaskSource;
-use task_source::file_reading::FileReadingTaskSource;
-use task_source::history_traversal::HistoryTraversalTaskSource;
-use task_source::networking::NetworkingTaskSource;
-use task_source::performance_timeline::PerformanceTimelineTaskSource;
-use task_source::remote_event::RemoteEventTaskSource;
-use task_source::user_interaction::UserInteractionTaskSource;
-use task_source::websocket::WebsocketTaskSource;
+use task_manager::TaskManager;
+use task_source::TaskSourceName;
 use time;
 use timers::{IsInterval, TimerCallback};
 use url::Position;
@@ -173,21 +165,7 @@ pub struct Window {
     #[ignore_malloc_size_of = "trait objects are hard"]
     script_chan: MainThreadScriptChan,
     #[ignore_malloc_size_of = "task sources are hard"]
-    dom_manipulation_task_source: DOMManipulationTaskSource,
-    #[ignore_malloc_size_of = "task sources are hard"]
-    user_interaction_task_source: UserInteractionTaskSource,
-    #[ignore_malloc_size_of = "task sources are hard"]
-    networking_task_source: NetworkingTaskSource,
-    #[ignore_malloc_size_of = "task sources are hard"]
-    history_traversal_task_source: HistoryTraversalTaskSource,
-    #[ignore_malloc_size_of = "task sources are hard"]
-    file_reading_task_source: FileReadingTaskSource,
-    #[ignore_malloc_size_of = "task sources are hard"]
-    performance_timeline_task_source: PerformanceTimelineTaskSource,
-    #[ignore_malloc_size_of = "task sources are hard"]
-    remote_event_task_source: RemoteEventTaskSource,
-    #[ignore_malloc_size_of = "task sources are hard"]
-    websocket_task_source: WebsocketTaskSource,
+    task_manager: TaskManager,
     navigator: MutNullableDom<Navigator>,
     #[ignore_malloc_size_of = "Arc"]
     image_cache: Arc<ImageCache>,
@@ -311,6 +289,10 @@ pub struct Window {
 }
 
 impl Window {
+    pub fn task_manager(&self) -> &TaskManager {
+        &self.task_manager
+    }
+
     pub fn get_exists_mut_observer(&self) -> bool {
         self.exists_mut_observer.get()
     }
@@ -350,41 +332,6 @@ impl Window {
 
     pub fn get_cx(&self) -> *mut JSContext {
         self.js_runtime.borrow().as_ref().unwrap().cx()
-    }
-
-    pub fn dom_manipulation_task_source(&self) -> TaskManagement<DOMManipulationTaskSource> {
-        let canceller = self.task_canceller(TaskSourceName::DOMManipulation);
-        TaskManagement(self.dom_manipulation_task_source.clone(), canceller)
-    }
-
-    pub fn user_interaction_task_source(&self) -> TaskManagement<UserInteractionTaskSource> {
-        let canceller = self.task_canceller(TaskSourceName::UserInteraction);
-        TaskManagement(self.user_interaction_task_source.clone(), canceller)
-    }
-
-    pub fn networking_task_source(&self) -> TaskManagement<NetworkingTaskSource> {
-        let canceller = self.task_canceller(TaskSourceName::Networking);
-        TaskManagement(self.networking_task_source.clone(), canceller)
-    }
-
-    pub fn file_reading_task_source(&self) -> TaskManagement<FileReadingTaskSource> {
-        let canceller = self.task_canceller(TaskSourceName::FileReading);
-        TaskManagement(self.file_reading_task_source.clone(), canceller)
-    }
-
-    pub fn performance_timeline_task_source(&self) -> TaskManagement<PerformanceTimelineTaskSource> {
-        let canceller = self.task_canceller(TaskSourceName::PerformanceTimeline);
-        TaskManagement(self.performance_timeline_task_source.clone(), canceller)
-    }
-
-    pub fn remote_event_task_source(&self) -> TaskManagement<RemoteEventTaskSource> {
-        let canceller = self.task_canceller(TaskSourceName::RemoteEvent);
-        TaskManagement(self.remote_event_task_source.clone(), canceller)
-    }
-
-    pub fn websocket_task_source(&self) -> TaskManagement<WebsocketTaskSource> {
-        let canceller = self.task_canceller(TaskSourceName::Websocket);
-        TaskManagement(self.websocket_task_source.clone(), canceller)
     }
 
     pub fn main_thread_script_chan(&self) -> &Sender<MainThreadScriptMsg> {
@@ -1210,20 +1157,10 @@ impl WindowMethods for Window {
     }
 }
 
-pub struct TaskManagement<T: TaskSource>(pub T, pub TaskCanceller);
-
 impl Window {
     // https://drafts.css-houdini.org/css-paint-api-1/#paint-worklet
     pub fn paint_worklet(&self) -> DomRoot<Worklet> {
         self.paint_worklet.or_init(|| self.new_paint_worklet())
-    }
-
-    pub fn task_canceller(&self, name: TaskSourceName) -> TaskCanceller {
-        let mut flags = self.ignore_further_async_events.borrow_mut();
-        let cancel_flag = flags.entry(name).or_insert(Default::default());
-        TaskCanceller {
-            cancelled: Some(cancel_flag.clone()),
-        }
     }
 
     pub fn get_navigation_start(&self) -> u64 {
@@ -1813,8 +1750,8 @@ impl Window {
                 let _ = self.script_chan.send(CommonScriptMsg::Task(
                     ScriptThreadEventCategory::DomEvent,
                     Box::new(
-                        self.task_canceller(TaskSourceName::DOMManipulation)
-                            .wrap_task(task),
+                        self.task_manager.task_canceller(TaskSourceName::DOMManipulation)
+                                         .wrap_task(task),
                     ),
                     self.pipeline_id(),
                     TaskSourceName::DOMManipulation,
@@ -2058,14 +1995,7 @@ impl Window {
     pub fn new(
         runtime: Rc<Runtime>,
         script_chan: MainThreadScriptChan,
-        dom_manipulation_task_source: DOMManipulationTaskSource,
-        user_interaction_task_source: UserInteractionTaskSource,
-        networking_task_source: NetworkingTaskSource,
-        history_traversal_task_source: HistoryTraversalTaskSource,
-        file_reading_task_source: FileReadingTaskSource,
-        performance_timeline_task_source: PerformanceTimelineTaskSource,
-        remote_event_task_source: RemoteEventTaskSource,
-        websocket_task_source: WebsocketTaskSource,
+        task_manager: TaskManager,
         image_cache_chan: Sender<ImageCacheMsg>,
         image_cache: Arc<ImageCache>,
         resource_threads: ResourceThreads,
@@ -2112,14 +2042,7 @@ impl Window {
                 microtask_queue,
             ),
             script_chan,
-            dom_manipulation_task_source,
-            user_interaction_task_source,
-            networking_task_source,
-            history_traversal_task_source,
-            file_reading_task_source,
-            performance_timeline_task_source,
-            remote_event_task_source,
-            websocket_task_source,
+            task_manager,
             image_cache_chan,
             image_cache,
             navigator: Default::default(),
@@ -2292,8 +2215,8 @@ impl Window {
         let _ = self.script_chan.send(CommonScriptMsg::Task(
             ScriptThreadEventCategory::DomEvent,
             Box::new(
-                self.task_canceller(TaskSourceName::DOMManipulation)
-                    .wrap_task(task),
+                self.task_manager.task_canceller(TaskSourceName::DOMManipulation)
+                                 .wrap_task(task),
             ),
             self.pipeline_id(),
             TaskSourceName::DOMManipulation,

@@ -9,7 +9,6 @@ use dom::bindings::inheritance::Castable;
 use dom::bindings::num::Finite;
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::DomObject;
-use dom::window::TaskManagement;
 use dom_struct::dom_struct;
 use servo_media::audio::node::{AudioNodeMessage, AudioNodeInit, AudioScheduledSourceNodeMessage};
 use servo_media::audio::node::OnEndedCallback;
@@ -67,14 +66,14 @@ impl AudioScheduledSourceNodeMethods for AudioScheduledSourceNode {
         let this = Trusted::new(self);
         let global = self.global();
         let window = global.as_window();
-        let TaskManagement(task_source, canceller) = window.dom_manipulation_task_source();
+        let (task_source, canceller) = window.task_manager().dom_manipulation_task_source_with_canceller();
         let callback = OnEndedCallback::new(move || {
             let _ = task_source.queue_with_canceller(
                 task!(ended: move || {
                     let this = this.root();
                     let global = this.global();
                     let window = global.as_window();
-                    window.dom_manipulation_task_source().0.queue_simple_event(
+                    window.task_manager().dom_manipulation_task_source().queue_simple_event(
                         this.upcast(),
                         atom!("ended"),
                         &window

@@ -205,7 +205,8 @@ impl Storage {
         let this = Trusted::new(self);
         global
             .as_window()
-            .dom_manipulation_task_source().0
+            .task_manager()
+            .dom_manipulation_task_source()
             .queue(
                 task!(send_storage_notification: move || {
                 let this = this.root();

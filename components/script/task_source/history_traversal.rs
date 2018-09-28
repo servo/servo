@@ -3,26 +3,14 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use msg::constellation_msg::PipelineId;
-use script_runtime::{CommonScriptMsg, ScriptChan, ScriptThreadEventCategory};
+use script_runtime::{CommonScriptMsg, ScriptThreadEventCategory};
 use script_thread::MainThreadScriptMsg;
 use servo_channel::Sender;
 use task::{TaskCanceller, TaskOnce};
 use task_source::{TaskSource, TaskSourceName};
 
-#[derive(JSTraceable)]
+#[derive(Clone, JSTraceable)]
 pub struct HistoryTraversalTaskSource(pub Sender<MainThreadScriptMsg>, pub PipelineId);
-
-impl ScriptChan for HistoryTraversalTaskSource {
-    fn send(&self, msg: CommonScriptMsg) -> Result<(), ()> {
-        self.0
-            .send(MainThreadScriptMsg::Common(msg))
-            .map_err(|_| ())
-    }
-
-    fn clone(&self) -> Box<ScriptChan + Send> {
-        Box::new(HistoryTraversalTaskSource((&self.0).clone(), (&self.1).clone()))
-    }
-}
 
 impl TaskSource for HistoryTraversalTaskSource {
     const NAME: TaskSourceName = TaskSourceName::HistoryTraversal;

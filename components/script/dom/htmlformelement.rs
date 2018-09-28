@@ -512,7 +512,8 @@ impl HTMLFormElement {
 
         // Step 3.
         target
-            .dom_manipulation_task_source().0
+            .task_manager()
+            .dom_manipulation_task_source()
             .queue(task, target.upcast())
             .unwrap();
     }

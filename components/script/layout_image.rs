@@ -9,7 +9,6 @@
 
 use dom::bindings::reflector::DomObject;
 use dom::node::{Node, document_from_node};
-use dom::window::TaskManagement;
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use net_traits::{FetchResponseMsg, FetchResponseListener, FetchMetadata, NetworkError};
@@ -59,7 +58,7 @@ pub fn fetch_image_for_layout(
     let document = document_from_node(node);
 
     let (action_sender, action_receiver) = ipc::channel().unwrap();
-    let TaskManagement(task_source, canceller) = document.window().networking_task_source();
+    let (task_source, canceller) = document.window().task_manager().networking_task_source_with_canceller();
     let listener = NetworkListener {
         context,
         task_source,

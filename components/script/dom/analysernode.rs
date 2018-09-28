@@ -12,7 +12,7 @@ use dom::bindings::num::Finite;
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::reflect_dom_object;
 use dom::bindings::root::DomRoot;
-use dom::window::{TaskManagement, Window};
+use dom::window::Window;
 use dom_struct::dom_struct;
 use ipc_channel::ipc::{self, IpcReceiver};
 use ipc_channel::router::ROUTER;
@@ -85,7 +85,7 @@ impl AnalyserNode {
     ) -> Fallible<DomRoot<AnalyserNode>> {
         let (node, recv) = AnalyserNode::new_inherited(window, context, options)?;
         let object = reflect_dom_object(Box::new(node), window, AnalyserNodeBinding::Wrap);
-        let TaskManagement(source, canceller) = window.dom_manipulation_task_source();
+        let (source, canceller) = window.task_manager().dom_manipulation_task_source_with_canceller();
         let this = Trusted::new(&*object);
 
         ROUTER.add_route(recv.to_opaque(), Box::new(move |block| {

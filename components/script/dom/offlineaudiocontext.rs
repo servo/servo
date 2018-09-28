@@ -19,7 +19,7 @@ use dom::bindings::root::DomRoot;
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::offlineaudiocompletionevent::OfflineAudioCompletionEvent;
 use dom::promise::Promise;
-use dom::window::{TaskManagement, Window};
+use dom::window::Window;
 use dom_struct::dom_struct;
 use servo_media::audio::context::OfflineAudioContextOptions as ServoMediaOfflineAudioContextOptions;
 use std::cell::Cell;
@@ -143,7 +143,7 @@ impl OfflineAudioContextMethods for OfflineAudioContext {
         let this = Trusted::new(self);
         let global = self.global();
         let window = global.as_window();
-        let TaskManagement(task_source, canceller) = window.dom_manipulation_task_source();
+        let (task_source, canceller) = window.task_manager().dom_manipulation_task_source_with_canceller();
         Builder::new()
             .name("OfflineAudioContextResolver".to_owned())
             .spawn(move || {
