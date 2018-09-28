@@ -1048,9 +1048,9 @@ impl<'ln> ThreadSafeLayoutNode for ServoThreadSafeLayoutNode<'ln> {
         this.image_density()
     }
 
-    fn canvas_data(&self) -> Option<HTMLCanvasData> {
+    fn canvas_data(&self, for_display: bool) -> Option<HTMLCanvasData> {
         let this = unsafe { self.get_jsmanaged() };
-        this.canvas_data()
+        this.canvas_data(for_display)
     }
 
     fn svg_data(&self) -> Option<SVGSVGData> {

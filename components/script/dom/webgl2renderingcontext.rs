@@ -1074,8 +1074,11 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
 
 impl LayoutCanvasWebGLRenderingContextHelpers for LayoutDom<WebGL2RenderingContext> {
     #[allow(unsafe_code)]
-    unsafe fn canvas_data_source(&self) -> HTMLCanvasDataSource {
+    unsafe fn canvas_data_source(&self, for_display: bool) -> HTMLCanvasDataSource {
         let this = &*self.unsafe_get();
-        HTMLCanvasDataSource::WebGL((*this.base.to_layout().unsafe_get()).layout_handle())
+        HTMLCanvasDataSource::WebGL(
+            (*this.base.to_layout().unsafe_get())
+                .layout_handle(for_display)
+        )
     }
 }

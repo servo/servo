@@ -9,6 +9,7 @@ use fnv::FnvHashMap;
 use gleam::gl;
 use ipc_channel::ipc::IpcBytesSender;
 use offscreen_gl_context::{GLContext, GLContextAttributes, GLLimits, NativeGLContextMethods};
+use std::collections::hash_map::Entry;
 use std::thread;
 use super::gl_context::{GLContextFactory, GLContextWrapper};
 use webrender;
@@ -64,6 +65,9 @@ pub struct WebGLThread<VR: WebVRRenderHandler + 'static> {
     webvr_compositor: Option<VR>,
     /// Texture ids and sizes used in DOM to texture outputs.
     dom_outputs: FnvHashMap<webrender_api::PipelineId, DOMToTextureData>,
+    /// Tracking GL contexts that must not be modified but can still be
+    /// targeted by WebGL commands.
+    buffered_contexts: FnvHashMap<WebGLContextId, Vec<WebGLMsg>>,
 }
 
 impl<VR: WebVRRenderHandler + 'static> WebGLThread<VR> {
@@ -81,6 +85,7 @@ impl<VR: WebVRRenderHandler + 'static> WebGLThread<VR> {
             next_webgl_id: 0,
             webvr_compositor,
             dom_outputs: Default::default(),
+            buffered_contexts: Default::default(),
         }
     }
 
@@ -115,6 +120,27 @@ impl<VR: WebVRRenderHandler + 'static> WebGLThread<VR> {
     /// Handles a generic WebGLMsg message
     #[inline]
     fn handle_msg(&mut self, msg: WebGLMsg, webgl_chan: &WebGLChan) -> bool {
+        let target_id = match msg {
+            WebGLMsg::CreateContext(..) |
+            WebGLMsg::Lock(..) |
+            WebGLMsg::Unlock(..) |
+            WebGLMsg::PreventModification(..) |
+            WebGLMsg::UpdateWebRenderImage(..) |
+            WebGLMsg::DOMToTextureCommand(..) |
+            WebGLMsg::Exit => None,
+
+            WebGLMsg::ResizeContext(ref ctx_id, ..) |
+            WebGLMsg::RemoveContext(ref ctx_id, ..) |
+            WebGLMsg::WebGLCommand(ref ctx_id, ..) |
+            WebGLMsg::WebVRCommand(ref ctx_id, ..) => Some(*ctx_id),
+        };
+        if let Some(ctx_id) = target_id {
+            if let Entry::Occupied(ref mut entry) = self.buffered_contexts.entry(ctx_id) {
+                entry.get_mut().push(msg);
+                return false;
+            }
+        }
+
         match msg {
             WebGLMsg::CreateContext(version, size, attributes, result_sender) => {
                 let result = self.create_webgl_context(version, size, attributes);
@@ -147,8 +173,11 @@ impl<VR: WebVRRenderHandler + 'static> WebGLThread<VR> {
                 self.handle_lock(ctx_id, sender);
             },
             WebGLMsg::Unlock(ctx_id) => {
-                self.handle_unlock(ctx_id);
+                self.handle_unlock(ctx_id, webgl_chan);
             },
+            WebGLMsg::PreventModification(ctx_id) => {
+                self.handle_prevent_modification(ctx_id);
+            }
             WebGLMsg::UpdateWebRenderImage(ctx_id, sender) => {
                 self.handle_update_wr_image(ctx_id, sender);
             },
@@ -183,6 +212,13 @@ impl<VR: WebVRRenderHandler + 'static> WebGLThread<VR> {
         self.webvr_compositor.as_mut().unwrap().handle(command, texture.map(|t| (t.texture_id, t.size)));
     }
 
+    /// Handles a request to prevent a GL context from being modified until further notice.
+    fn handle_prevent_modification(&mut self, context_id: WebGLContextId) {
+        if !self.buffered_contexts.contains_key(&context_id) {
+            self.buffered_contexts.insert(context_id, vec![]);
+        }
+    }
+
     /// Handles a lock external callback received from webrender::ExternalImageHandler
     fn handle_lock(&mut self, context_id: WebGLContextId, sender: WebGLSender<(u32, Size2D<i32>, usize)>) {
         let data = Self::make_current_if_needed(context_id, &self.contexts, &mut self.bound_context_id)
@@ -200,13 +236,23 @@ impl<VR: WebVRRenderHandler + 'static> WebGLThread<VR> {
     }
 
     /// Handles an unlock external callback received from webrender::ExternalImageHandler
-    fn handle_unlock(&mut self, context_id: WebGLContextId) {
-        let data = Self::make_current_if_needed(context_id, &self.contexts, &mut self.bound_context_id)
-                        .expect("WebGLContext not found in a WebGLMsg::Unlock message");
-        let info = self.cached_context_info.get_mut(&context_id).unwrap();
-        if let Some(gl_sync) = info.gl_sync.take() {
-            // Release the GLSync object.
-            data.ctx.gl().delete_sync(gl_sync);
+    fn handle_unlock(&mut self, context_id: WebGLContextId, webgl_chan: &WebGLChan) {
+        {
+            let data = Self::make_current_if_needed(context_id, &self.contexts, &mut self.bound_context_id)
+                            .expect("WebGLContext not found in a WebGLMsg::Unlock message");
+            let info = self.cached_context_info.get_mut(&context_id).unwrap();
+            if let Some(gl_sync) = info.gl_sync.take() {
+                // Release the GLSync object.
+                data.ctx.gl().delete_sync(gl_sync);
+            }
+        }
+        let buffered = match self.buffered_contexts.entry(context_id) {
+            Entry::Occupied(entry) => entry.remove(),
+            Entry::Vacant(_) => vec![],
+        };
+        debug!("Replaying {} buffered messages for {:?}", buffered.len(), context_id);
+        for msg in buffered {
+            self.handle_msg(msg, webgl_chan);
         }
     }
 

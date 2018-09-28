@@ -111,7 +111,7 @@ impl HTMLCanvasElement {
 }
 
 pub trait LayoutHTMLCanvasElementHelpers {
-    fn data(&self) -> HTMLCanvasData;
+    fn data(&self, for_display: bool) -> HTMLCanvasData;
     fn get_width(&self) -> LengthOrPercentageOrAuto;
     fn get_height(&self) -> LengthOrPercentageOrAuto;
     fn get_canvas_id_for_layout(&self) -> CanvasId;
@@ -119,7 +119,7 @@ pub trait LayoutHTMLCanvasElementHelpers {
 
 impl LayoutHTMLCanvasElementHelpers for LayoutDom<HTMLCanvasElement> {
     #[allow(unsafe_code)]
-    fn data(&self) -> HTMLCanvasData {
+    fn data(&self, for_display: bool) -> HTMLCanvasData {
         unsafe {
             let canvas = &*self.unsafe_get();
             let source = match canvas.context.borrow_for_layout().as_ref() {
@@ -127,10 +127,10 @@ impl LayoutHTMLCanvasElementHelpers for LayoutDom<HTMLCanvasElement> {
                     HTMLCanvasDataSource::Image(Some(context.to_layout().get_ipc_renderer()))
                 },
                 Some(&CanvasContext::WebGL(ref context)) => {
-                    context.to_layout().canvas_data_source()
+                    context.to_layout().canvas_data_source(for_display)
                 },
                 Some(&CanvasContext::WebGL2(ref context)) => {
-                    context.to_layout().canvas_data_source()
+                    context.to_layout().canvas_data_source(for_display)
                 },
                 None => HTMLCanvasDataSource::Image(None),
             };

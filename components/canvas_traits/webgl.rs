@@ -49,6 +49,10 @@ pub enum WebGLMsg {
     /// The WR unlocks a context when it finished reading the shared texture contents.
     /// Unlock messages are always sent after a Lock message.
     Unlock(WebGLContextId),
+    /// Prevent any further modification of the given GL context until an Unlock message
+    /// for the same context is received. Any commands received targetting that context
+    /// in the interim will be buffered and replayed when the context is unlocked.
+    PreventModification(WebGLContextId),
     /// Creates or updates the image keys required for WebRender.
     UpdateWebRenderImage(WebGLContextId, WebGLSender<ImageKey>),
     /// Commands used for the DOMToTexture feature.
@@ -152,6 +156,10 @@ impl WebGLMsgSender {
 
     pub fn send_dom_to_texture(&self, command: DOMToTextureCommand) -> WebGLSendResult {
         self.sender.send(WebGLMsg::DOMToTextureCommand(command))
+    }
+
+    pub fn prevent_modification(&self) -> WebGLSendResult {
+        self.sender.send(WebGLMsg::PreventModification(self.ctx_id))
     }
 }
 

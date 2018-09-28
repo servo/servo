@@ -1085,7 +1085,7 @@ pub trait LayoutNodeHelpers {
     fn selection(&self) -> Option<Range<usize>>;
     fn image_url(&self) -> Option<ServoUrl>;
     fn image_density(&self) -> Option<f64>;
-    fn canvas_data(&self) -> Option<HTMLCanvasData>;
+    fn canvas_data(&self, for_display: bool) -> Option<HTMLCanvasData>;
     fn svg_data(&self) -> Option<SVGSVGData>;
     fn iframe_browsing_context_id(&self) -> Option<BrowsingContextId>;
     fn iframe_pipeline_id(&self) -> Option<PipelineId>;
@@ -1240,9 +1240,9 @@ impl LayoutNodeHelpers for LayoutDom<Node> {
         }
     }
 
-    fn canvas_data(&self) -> Option<HTMLCanvasData> {
+    fn canvas_data(&self, for_display: bool) -> Option<HTMLCanvasData> {
         self.downcast::<HTMLCanvasElement>()
-            .map(|canvas| canvas.data())
+            .map(|canvas| canvas.data(for_display))
     }
 
     fn svg_data(&self) -> Option<SVGSVGData> {

@@ -593,6 +593,7 @@ impl LayoutThread {
         &'a self,
         guards: StylesheetGuards<'a>,
         script_initiated_layout: bool,
+        for_display: bool,
         snapshot_map: &'a SnapshotMap,
     ) -> LayoutContext<'a> {
         let thread_local_style_context_creation_data =
@@ -627,6 +628,7 @@ impl LayoutThread {
                 None
             },
             registered_painters: &self.registered_painters,
+            for_display,
         }
     }
 
@@ -1336,7 +1338,11 @@ impl LayoutThread {
         self.stylist.flush(&guards, Some(element), Some(&map));
 
         // Create a layout context for use throughout the following passes.
-        let mut layout_context = self.build_layout_context(guards.clone(), true, &map);
+        let mut layout_context = self.build_layout_context(
+            guards.clone(),
+            true,
+            data.reflow_goal.needs_display(),
+            &map);
 
         let thread_pool = if self.parallel_flag {
             self.parallel_traversal.as_ref()
@@ -1592,7 +1598,13 @@ impl LayoutThread {
                 ua_or_user: &ua_or_user_guard,
             };
             let snapshots = SnapshotMap::new();
-            let mut layout_context = self.build_layout_context(guards, false, &snapshots);
+            let goal = ReflowGoal::TickAnimations;
+            let mut layout_context = self.build_layout_context(
+                guards,
+                false,
+                goal.needs_display(),
+                &snapshots
+            );
 
             {
                 // Perform an abbreviated style recalc that operates without access to the DOM.
@@ -1613,7 +1625,7 @@ impl LayoutThread {
             self.perform_post_style_recalc_layout_passes(
                 &mut root_flow,
                 &reflow_info,
-                &ReflowGoal::TickAnimations,
+                &goal,
                 None,
                 &mut *rw_data,
                 &mut layout_context,

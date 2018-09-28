@@ -429,7 +429,7 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
                 SpecificFragmentInfo::TableRow
             },
             Some(LayoutNodeType::Element(LayoutElementType::HTMLCanvasElement)) => {
-                let data = node.canvas_data().unwrap();
+                let data = node.canvas_data(self.layout_context.for_display).unwrap();
                 SpecificFragmentInfo::Canvas(Box::new(CanvasFragmentInfo::new(data)))
             },
             Some(LayoutNodeType::Element(LayoutElementType::SVGSVGElement)) => {

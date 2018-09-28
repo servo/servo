@@ -890,10 +890,18 @@ impl WebGLRenderingContext {
         receiver.recv().unwrap()
     }
 
-    pub fn layout_handle(&self) -> webrender_api::ImageKey {
+    pub fn layout_handle(&self, for_display: bool) -> webrender_api::ImageKey {
         match self.share_mode {
             WebGLContextShareMode::SharedTexture => {
-                // WR using ExternalTexture requires a single update message.
+                // WR using ExternalTexture requires a single update message. However,
+                // we must now prevent any further changes to the GL context's contents
+                // until WR has finished processing the display list. The WebGL thread
+                // needs to know to buffer any subsequent commands for this canvas.
+
+                if for_display {
+                    self.webgl_sender.prevent_modification().unwrap();
+                }
+
                 self.webrender_image.get().unwrap_or_else(|| {
                     let (sender, receiver) = webgl_channel().unwrap();
                     self.webgl_sender.send_update_wr_image(sender).unwrap();
@@ -4130,13 +4138,13 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
 pub trait LayoutCanvasWebGLRenderingContextHelpers {
     #[allow(unsafe_code)]
-    unsafe fn canvas_data_source(&self) -> HTMLCanvasDataSource;
+    unsafe fn canvas_data_source(&self, for_display: bool) -> HTMLCanvasDataSource;
 }
 
 impl LayoutCanvasWebGLRenderingContextHelpers for LayoutDom<WebGLRenderingContext> {
     #[allow(unsafe_code)]
-    unsafe fn canvas_data_source(&self) -> HTMLCanvasDataSource {
-        HTMLCanvasDataSource::WebGL((*self.unsafe_get()).layout_handle())
+    unsafe fn canvas_data_source(&self, for_display: bool) -> HTMLCanvasDataSource {
+        HTMLCanvasDataSource::WebGL((*self.unsafe_get()).layout_handle(for_display))
     }
 }
 

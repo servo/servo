@@ -275,7 +275,7 @@ pub trait ThreadSafeLayoutNode:
     /// If this is an image element, returns its current-pixel-density. If this is not an image element, fails.
     fn image_density(&self) -> Option<f64>;
 
-    fn canvas_data(&self) -> Option<HTMLCanvasData>;
+    fn canvas_data(&self, for_display: bool) -> Option<HTMLCanvasData>;
 
     fn svg_data(&self) -> Option<SVGSVGData>;
 
