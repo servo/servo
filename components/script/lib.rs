@@ -132,6 +132,7 @@ pub mod script_thread;
 mod serviceworker_manager;
 mod serviceworkerjob;
 mod stylesheet_loader;
+mod task_manager;
 mod task_queue;
 mod task_source;
 pub mod test;

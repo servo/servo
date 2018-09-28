@@ -510,7 +510,8 @@ impl Document {
                 if self.ready_state.get() == DocumentReadyState::Complete {
                     let document = Trusted::new(self);
                     self.window
-                        .dom_manipulation_task_source().0
+                        .task_manager()
+                        .dom_manipulation_task_source()
                         .queue(
                             task!(fire_pageshow_event: move || {
                             let document = document.root();
@@ -1880,7 +1881,8 @@ impl Document {
         debug!("Document loads are complete.");
         let document = Trusted::new(self);
         self.window
-            .dom_manipulation_task_source().0
+            .task_manager()
+            .dom_manipulation_task_source()
             .queue(
                 task!(fire_load_event: move || {
                 let document = document.root();
@@ -1932,7 +1934,8 @@ impl Document {
         let document = Trusted::new(self);
         if document.root().browsing_context().is_some() {
             self.window
-                .dom_manipulation_task_source().0
+                .task_manager()
+                .dom_manipulation_task_source()
                 .queue(
                     task!(fire_pageshow_event: move || {
                     let document = document.root();
@@ -2113,7 +2116,7 @@ impl Document {
 
         // Step 4.1.
         let window = self.window();
-        window.dom_manipulation_task_source().0.queue_event(
+        window.task_manager().dom_manipulation_task_source().queue_event(
             self.upcast(),
             atom!("DOMContentLoaded"),
             EventBubbles::Bubbles,

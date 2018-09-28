@@ -13,7 +13,6 @@ use dom::eventtarget::EventTarget;
 use dom::htmlelement::HTMLElement;
 use dom::htmllinkelement::{RequestGenerationId, HTMLLinkElement};
 use dom::node::{document_from_node, window_from_node};
-use dom::window::TaskManagement;
 use encoding_rs::UTF_8;
 use hyper::header::ContentType;
 use hyper::mime::{Mime, TopLevel, SubLevel};
@@ -245,7 +244,7 @@ impl<'a> StylesheetLoader<'a> {
         }));
 
         let (action_sender, action_receiver) = ipc::channel().unwrap();
-        let TaskManagement(task_source, canceller) = document.window().networking_task_source();
+        let (task_source, canceller) = document.window().task_manager().networking_task_source_with_canceller();
         let listener = NetworkListener {
             context,
             task_source,

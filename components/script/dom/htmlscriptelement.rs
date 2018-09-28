@@ -22,7 +22,6 @@ use dom::htmlelement::HTMLElement;
 use dom::node::{ChildrenMutation, CloneChildrenFlag, Node};
 use dom::node::{document_from_node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
-use dom::window::TaskManagement;
 use dom_struct::dom_struct;
 use encoding_rs::Encoding;
 use html5ever::{LocalName, Prefix};
@@ -291,7 +290,7 @@ fn fetch_a_classic_script(
     }));
 
     let (action_sender, action_receiver) = ipc::channel().unwrap();
-    let TaskManagement(task_source, canceller) = doc.window().networking_task_source();
+    let (task_source, canceller) = doc.window().task_manager().networking_task_source_with_canceller();
     let listener = NetworkListener {
         context,
         task_source,
@@ -619,7 +618,7 @@ impl HTMLScriptElement {
 
     pub fn queue_error_event(&self) {
         let window = window_from_node(self);
-        window.dom_manipulation_task_source().0.queue_simple_event(
+        window.task_manager().dom_manipulation_task_source().queue_simple_event(
             self.upcast(),
             atom!("error"),
             &window,

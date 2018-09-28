@@ -116,6 +116,7 @@ use std::result::Result;
 use std::sync::Arc;
 use std::thread;
 use style::thread_state::{self, ThreadState};
+use task_manager::TaskManager;
 use task_queue::{QueuedTask, QueuedTaskConversion, TaskQueue};
 use task_source::TaskSourceName;
 use task_source::dom_manipulation::DOMManipulationTaskSource;
@@ -2556,19 +2557,21 @@ impl ScriptThread {
             pipeline_id: incomplete.pipeline_id,
         };
 
+        let task_manager = TaskManager::new(
+            self.dom_manipulation_task_source(incomplete.pipeline_id),
+            self.file_reading_task_source(incomplete.pipeline_id),
+            self.history_traversal_task_source(incomplete.pipeline_id),
+            self.networking_task_source(incomplete.pipeline_id),
+            self.performance_timeline_task_source(incomplete.pipeline_id)
+                .clone(),
+            self.user_interaction_task_source(incomplete.pipeline_id),
+            self.remote_event_task_source(incomplete.pipeline_id),
+            self.websocket_task_source(incomplete.pipeline_id));
         // Create the window and document objects.
         let window = Window::new(
             self.js_runtime.clone(),
             MainThreadScriptChan(sender.clone()),
-            self.dom_manipulation_task_source(incomplete.pipeline_id),
-            self.user_interaction_task_source(incomplete.pipeline_id),
-            self.networking_task_source(incomplete.pipeline_id),
-            self.history_traversal_task_source(incomplete.pipeline_id),
-            self.file_reading_task_source(incomplete.pipeline_id),
-            self.performance_timeline_task_source(incomplete.pipeline_id)
-                .clone(),
-            self.remote_event_task_source(incomplete.pipeline_id),
-            self.websocket_task_source(incomplete.pipeline_id),
+            task_manager,
             self.image_cache_channel.clone(),
             self.image_cache.clone(),
             self.resource_threads.clone(),
