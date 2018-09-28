@@ -3,7 +3,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-package com.mozilla.servoview;
+package org.mozilla.servoview;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
@@ -20,9 +20,9 @@ import android.os.Message;
 import android.util.Log;
 import android.view.Surface;
 
-import com.mozilla.servoview.Servo.Client;
-import com.mozilla.servoview.Servo.GfxCallbacks;
-import com.mozilla.servoview.Servo.RunCallback;
+import org.mozilla.servoview.Servo.Client;
+import org.mozilla.servoview.Servo.GfxCallbacks;
+import org.mozilla.servoview.Servo.RunCallback;
 
 import static android.opengl.EGL14.EGL_CONTEXT_CLIENT_VERSION;
 import static android.opengl.EGL14.EGL_OPENGL_ES2_BIT;
