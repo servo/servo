@@ -15,11 +15,13 @@ def main():
     if task_for == "github-push":
         linux_tidy_unit()
         #linux_wpt()
+        android_arm32()
 
     # https://tools.taskcluster.net/hooks/project-servo/daily
     elif task_for == "daily":
         daily_tasks_setup()
         with_rust_nightly()
+        android_arm32()
 
     else:
         raise ValueError("Unrecognized $TASK_FOR value: %r", task_for)
@@ -66,6 +68,27 @@ def with_rust_nightly():
             ./mach build --dev
             ./mach test-unit
         """,
+        **build_kwargs
+    )
+
+
+def android_arm32():
+    return decision.find_or_create_task(
+        index_bucket="build.android_armv7_release",
+        index_key=os.environ["GIT_SHA"],  # Set in .taskcluster.yml
+        index_expiry=build_artifacts_expiry,
+
+        task_name="Android ARMv7: build",
+        # file: NDK parses $(file $SHELL) to tell x86_64 from x86
+        # wget: servo-media-gstreamer’s build script
+        script="""
+            apt-get install -y --no-install-recommends openjdk-8-jdk-headless file wget
+            ./etc/ci/bootstrap-android-and-accept-licences.sh
+            ./mach build --android --release
+        """,
+        artifacts=[
+            "/repo/target/armv7-linux-androideabi/release/servoapp.apk",
+        ],
         **build_kwargs
     )
 
