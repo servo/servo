@@ -20,7 +20,7 @@ async_test(t => {
     const events = [];
     const callback = t.step_func(event => {
       // fullscreenElement should have changed before either event is fired.
-      assert_equals(document.fullscreenElement, null, `fullscreenElement in {event.type} event`);
+      assert_equals(document.fullscreenElement, null, `fullscreenElement in ${event.type} event`);
       events.push(event.type);
       if (event.type == 'fullscreenchange') {
         step_timeout(t.unreached_func('timer callback'));

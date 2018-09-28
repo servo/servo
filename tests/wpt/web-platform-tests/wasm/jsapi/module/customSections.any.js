@@ -160,3 +160,8 @@ test(() => {
     bytes,
   ]);
 }, "Custom sections with U+FFFD");
+
+test(() => {
+  const module = new WebAssembly.Module(emptyModuleBinary);
+  assert_sections(WebAssembly.Module.customSections(module, "", {}), []);
+}, "Stray argument");

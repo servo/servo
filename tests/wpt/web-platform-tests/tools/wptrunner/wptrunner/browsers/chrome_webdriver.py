@@ -41,6 +41,12 @@ def executor_kwargs(test_type, server_config, cache_manager, run_info_data,
         if kwargs[kwarg] is not None:
             capabilities["goog:chromeOptions"][capability] = kwargs[kwarg]
 
+    if kwargs["headless"]:
+        if "args" not in capabilities["goog:chromeOptions"]:
+            capabilities["goog:chromeOptions"]["args"] = []
+        if "--headless" not in capabilities["goog:chromeOptions"]["args"]:
+            capabilities["goog:chromeOptions"]["args"].append("--headless")
+
     if test_type == "testharness":
         capabilities["goog:chromeOptions"]["useAutomationExtension"] = False
         capabilities["goog:chromeOptions"]["excludeSwitches"] = ["enable-automation"]

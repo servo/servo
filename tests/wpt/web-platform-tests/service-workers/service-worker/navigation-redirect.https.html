@@ -92,10 +92,6 @@ function redirect_test(url,
                        expected_request_infos,
                        test_name) {
   promise_test(async t => {
-    const message_promise = new Promise(resolve => {
-        // A message with ID 'last_url' will be sent from the iframe.
-        message_resolvers['last_url'] = resolve;
-    });
     const frame = await with_iframe(url);
     t.add_cleanup(() => { frame.remove(); });
 
@@ -105,7 +101,7 @@ function redirect_test(url,
       });
     });
     await check_all_intercepted_urls(expected_intercepted_urls);
-    const last_url = await message_promise;
+    const last_url = await send_to_iframe(frame, 'getLocation');
     assert_equals(last_url, expected_last_url, 'Last URL should match.');
   }, test_name);
 }
@@ -129,7 +125,7 @@ function send_to_iframe(frame, message) {
     message_resolvers[message_id] = resolve;
     frame.contentWindow.postMessage(
         {id: message_id, message},
-        host_info['HTTPS_REMOTE_ORIGIN']);
+        '*');
   });
 }
 

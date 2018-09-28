@@ -4,12 +4,12 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script>
-    function register_length(name) {
+    function register_length(name, inherits=true) {
         CSS.registerProperty({
             name: name,
             syntax: '<length>',
             initialValue: '0px',
-            inherits: false
+            inherits: inherits
         });
     }
 
@@ -22,6 +22,9 @@
     register_length('--font-size-rem-via-var');
     register_length('--font-size-ex-via-var');
     register_length('--font-size-ch-via-var');
+    register_length('--font-size-em-inherited', true);
+    register_length('--font-size-ex-inherited', true);
+    register_length('--font-size-ch-inherited', true);
 </script>
 <style>
     :root {
@@ -43,12 +46,20 @@
         --font-size-ch-via-var: var(--unregistered-ch);
     }
 
+    #parent {
+        --font-size-em-inherited: 4em;
+        --font-size-ex-inherited: 4ex;
+        --font-size-ch-inherited: 4ch;
+    }
+
     #target {
         font-size: 11px;
     }
 </style>
 
-<div id=target></div>
+<div id=parent>
+    <div id=target></div>
+</div>
 <div id=ref></div>
 
 <script>
@@ -169,5 +180,26 @@
         assert_property_equals('font-size', expected1rem, root);
         assert_property_equals('--font-size-rem-via-var', expected10rem, root);
     }, 'Lengths with rem units are detected via var references');
+
+    test(function() {
+        let expected4em = compute_dimension('4em', 'unset');
+        target.style = 'font-size: var(--font-size-em-inherited);';
+        assert_property_equals('font-size', expected4em);
+        assert_property_equals('--font-size-em-inherited', expected4em);
+    }, 'Inherited lengths with em units may be used');
+
+    test(function() {
+        let expected4ex = compute_dimension('4ex', 'unset');
+        target.style = 'font-size: var(--font-size-ex-inherited);';
+        assert_property_equals('font-size', expected4ex);
+        assert_property_equals('--font-size-ex-inherited', expected4ex);
+    }, 'Inherited lengths with ex units may be used');
+
+    test(function() {
+        let expected4ch = compute_dimension('4ch', 'unset');
+        target.style = 'font-size: var(--font-size-ch-inherited);';
+        assert_property_equals('font-size', expected4ch);
+        assert_property_equals('--font-size-ch-inherited', expected4ch);
+    }, 'Inherited lengths with ch units may be used');
 
 </script>

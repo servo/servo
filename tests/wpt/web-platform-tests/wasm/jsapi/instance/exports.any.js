@@ -37,6 +37,20 @@ test(() => {
   const module = new WebAssembly.Module(emptyModuleBinary);
   const instance = new WebAssembly.Instance(module);
   const exports = instance.exports;
+
+  const desc = Object.getOwnPropertyDescriptor(WebAssembly.Instance.prototype, "exports");
+  assert_equals(typeof desc, "object");
+
+  const getter = desc.get;
+  assert_equals(typeof getter, "function");
+
+  assert_equals(getter.call(instance, {}), exports);
+}, "Stray argument");
+
+test(() => {
+  const module = new WebAssembly.Module(emptyModuleBinary);
+  const instance = new WebAssembly.Instance(module);
+  const exports = instance.exports;
   instance.exports = {};
   assert_equals(instance.exports, exports, "Should not change the exports");
 }, "Setting (sloppy mode)");

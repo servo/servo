@@ -1,0 +1,67 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+    <script src='/resources/testharness.js'></script>
+    <script src='/resources/testharnessreport.js'></script>
+</head>
+<body>
+  <script>
+    var tests = [
+      // Make sure that csp works properly in normal situations
+      { "csp": "", "expected": true, "name": "Should load image without any CSP" },
+      { "csp": "img-src 'none';", "expected": false, "name": "Should not load image with 'none' CSP" },
+      // Ensure ASCII whitespaces are properly parsed
+      // ASCII whitespace is U+0009 TAB, U+000A LF, U+000C FF, U+000D CR, or U+0020 SPACE.
+
+      // between directive name and value
+      { "csp": "img-src\u0009'none';", "expected": false, "name": "U+0009 TAB   should be properly parsed between directive name and value" },
+      { "csp": "img-src\u000C'none';", "expected": false, "name": "U+000C FF    should be properly parsed between directive name and value" },
+      { "csp": "img-src\u000A'none';", "expected": false, "name": "U+000A LF    should be properly parsed between directive name and value" },
+      { "csp": "img-src\u000D'none';", "expected": false, "name": "U+000D CR    should be properly parsed between directive name and value" },
+      { "csp": "img-src\u0020'none';", "expected": false, "name": "U+0020 SPACE should be properly parsed between directive name and value" },
+
+      // inside directive value
+      { "csp": "img-src http://example.com\u0009http://example2.com;", "expected": false, "name": "U+0009 TAB   should be properly parsed inside directive value" },
+      { "csp": "img-src http://example.com\u000Chttp://example2.com;", "expected": false, "name": "U+000C FF    should be properly parsed inside directive value" },
+      { "csp": "img-src http://example.com\u000Ahttp://example2.com;", "expected": false, "name": "U+000A LF    should be properly parsed inside directive value" },
+      { "csp": "img-src http://example.com\u000Dhttp://example2.com;", "expected": false, "name": "U+000D CR    should be properly parsed inside directive value" },
+      { "csp": "img-src http://example.com\u0020http://example2.com;", "expected": false, "name": "U+0020 SPACE should be properly parsed inside directive value" },
+
+      // Ensure nbsp (U+00A0) is not considered a valid whitespace
+      // https://github.com/webcompat/web-bugs/issues/18902 has more details about why this particularly relevant
+      { "csp": "img-src\u00A0'none';", "expected": true, "name": "U+00A0 NBSP  should not be parsed between directive name and value" },
+      { "csp": "img-src http://example.com\u00A0http://example2.com;", "expected": true, "name": "U+00A0 NBSP  should not be parsed inside directive value" },
+    ];
+
+    tests.forEach(test => {
+      async_test(t => {
+        var url = "support/load_img_and_post_result_meta.sub.html?csp=" + encodeURIComponent(test.csp);
+        test_image_loads_as_expected(test, t, url);
+      }, test.name + " - meta tag");
+
+      // We can't test csp delivered in an HTTP header if we're testing CR/LF characters
+      if (test.csp.indexOf("\u000A") == -1 && test.csp.indexOf("\u000D") == -1) {
+        async_test(t => {
+          var url = "support/load_img_and_post_result_meta.sub.html?csp=" + encodeURIComponent(test.csp);
+          test_image_loads_as_expected(test, t, url);
+        }, test.name + " - HTTP header");
+      }
+    });
+
+    function test_image_loads_as_expected(test, t, url) {
+      var i = document.createElement('iframe');
+      i.src = url;
+      window.addEventListener('message', t.step_func(function(e) {
+        if (e.source != i.contentWindow) return;
+        if (test.expected) {
+          assert_equals(e.data, "img loaded");
+        } else {
+          assert_equals(e.data, "img not loaded");
+        }
+        t.done();
+      }));
+      document.body.appendChild(i);
+    }
+  </script>
+</body>
+</html>

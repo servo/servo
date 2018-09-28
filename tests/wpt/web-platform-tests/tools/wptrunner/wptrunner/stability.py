@@ -115,8 +115,9 @@ def find_slow_status(test):
     """Check if a single test almost times out.
 
     We are interested in tests that almost time out (i.e. likely to be flaky).
-    Therefore, timeout statuses are ignored, including (EXTERNAL-)TIMEOUT &
-    CRASH (tests that time out may be marked as CRASH if crashes are detected).
+    Therefore, timeout statuses are ignored, including (EXTERNAL-)TIMEOUT.
+    CRASH & ERROR are also ignored because the they override TIMEOUT; a test
+    that both crashes and times out is marked as CRASH, so it won't be flaky.
 
     Returns:
         A result status produced by a run that almost times out; None, if no
@@ -125,7 +126,7 @@ def find_slow_status(test):
     if "timeout" not in test:
         return None
     threshold = test["timeout"] * FLAKY_THRESHOLD
-    for status in ['PASS', 'FAIL', 'OK', 'ERROR']:
+    for status in ['PASS', 'FAIL', 'OK']:
         if (status in test["longest_duration"] and
             test["longest_duration"][status] > threshold):
             return status

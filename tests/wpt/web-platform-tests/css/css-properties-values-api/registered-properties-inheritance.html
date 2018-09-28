@@ -72,4 +72,18 @@ test(function(){
     assert_equals(getComputedStyle(inner).getPropertyValue('--inherited-length-5'), '42px');
 }, "Reference to syntax-incompatible variable results in inherited value");
 
+test(function(){
+    CSS.registerProperty({name: '--inherited-em', syntax: '<length>', initialValue: '0px', inherits: true});
+    outer.style = 'font-size: 11px; --inherited-em: 10em;';
+    inner.style = 'font-size: 22px; --unregistered:var(--inherited-em);';
+    assert_equals(getComputedStyle(inner).getPropertyValue('--unregistered'), '110px');
+}, "Font-relative units are absolutized before before inheritance");
+
+test(function(){
+    CSS.registerProperty({name: '--calc-length', syntax: '<length>', initialValue: '0px', inherits: true});
+    outer.style = '--calc-length: calc(10px + 10px);';
+    inner.style = '--unregistered:var(--calc-length);';
+    assert_equals(getComputedStyle(inner).getPropertyValue('--unregistered'), '20px');
+}, "Calc expressions are resolved before inheritance");
+
 </script>

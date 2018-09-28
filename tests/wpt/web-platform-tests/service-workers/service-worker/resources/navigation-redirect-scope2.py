@@ -11,10 +11,12 @@ def main(request, response):
     return status, [("content-type", "text/html")], '''
 <!DOCTYPE html>
 <script>
+onmessage = event => {
   window.parent.postMessage(
       {
-        id: 'last_url',
+        id: event.data.id,
         result: location.href
       }, '*');
+};
 </script>
 '''
