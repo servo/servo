@@ -35,7 +35,7 @@ class DecisionTask:
         "0a7d012ce444d62ffb9e7f06f0c52fedc24b68c2060711b313263367f7272d9d"
 
     def __init__(self, *, index_prefix="garbage.servo-decisionlib", task_name_template="%s",
-                 worker_type="github-worker", docker_image_cache_expiry="1 year",
+                 worker_type="github-worker", docker_image_cache_expiry="1 month",
                  routes_for_all_subtasks=None, scopes_for_all_subtasks=None):
         self.task_name_template = task_name_template
         self.index_prefix = index_prefix
