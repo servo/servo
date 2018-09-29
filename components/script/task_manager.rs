@@ -17,6 +17,18 @@ use task_source::remote_event::RemoteEventTaskSource;
 use task_source::user_interaction::UserInteractionTaskSource;
 use task_source::websocket::WebsocketTaskSource;
 
+macro_rules! task_source_functions {
+    ($self:ident,$with_canceller:ident,$task_source:ident,$task_source_type:ident,$task_source_name:ident) => {
+        pub fn $with_canceller(&$self) -> ($task_source_type, TaskCanceller) {
+            ($self.$task_source.clone(), $self.task_canceller(TaskSourceName::$task_source_name))
+        }
+
+        pub fn $task_source(&$self) -> $task_source_type {
+            $self.$task_source.clone()
+        }
+    }
+}
+
 #[derive(JSTraceable)]
 pub struct TaskManager {
     task_cancellers: DomRefCell<HashMap<TaskSourceName, Arc<AtomicBool>>>,
@@ -52,69 +64,61 @@ impl TaskManager {
         }
     }
 
-    pub fn dom_manipulation_task_source_with_canceller(&self) -> (DOMManipulationTaskSource, TaskCanceller) {
-        (self.dom_manipulation_task_source.clone(), self.task_canceller(TaskSourceName::DOMManipulation))
-    }
+    task_source_functions!(
+        self,
+        dom_manipulation_task_source_with_canceller,
+        dom_manipulation_task_source,
+        DOMManipulationTaskSource,
+        DOMManipulation);
 
-    pub fn user_interaction_task_source_with_canceller(&self) -> (UserInteractionTaskSource, TaskCanceller) {
-        (self.user_interaction_task_source.clone(), self.task_canceller(TaskSourceName::UserInteraction))
-    }
+    task_source_functions!(
+        self,
+        user_interaction_task_source_with_canceller,
+        user_interaction_task_source,
+        UserInteractionTaskSource,
+        UserInteraction);
 
-    pub fn networking_task_source_with_canceller(&self) -> (NetworkingTaskSource, TaskCanceller) {
-        (self.networking_task_source.clone(), self.task_canceller(TaskSourceName::Networking))
-    }
+    task_source_functions!(
+        self,
+        networking_task_source_with_canceller,
+        networking_task_source,
+        NetworkingTaskSource,
+        Networking);
 
-    pub fn file_reading_task_source_with_canceller(&self) -> (FileReadingTaskSource, TaskCanceller) {
-        (self.file_reading_task_source.clone(), self.task_canceller(TaskSourceName::FileReading))
-    }
+    task_source_functions!(
+        self,
+        file_reading_task_source_with_canceller,
+        file_reading_task_source,
+        FileReadingTaskSource,
+        FileReading);
 
-    pub fn history_traversal_task_source_with_canceller(&self) -> (HistoryTraversalTaskSource, TaskCanceller) {
-        (self.history_traversal_task_source.clone(), self.task_canceller(TaskSourceName::HistoryTraversal))
-    }
+    task_source_functions!(
+        self,
+        history_traversal_task_source_with_canceller,
+        history_traversal_task_source,
+        HistoryTraversalTaskSource,
+        HistoryTraversal);
 
-    pub fn performance_timeline_task_source_with_canceller(&self) -> (PerformanceTimelineTaskSource, TaskCanceller) {
-        (self.performance_timeline_task_source.clone(), self.task_canceller(TaskSourceName::PerformanceTimeline))
-    }
+    task_source_functions!(
+        self,
+        performance_timeline_task_source_with_canceller,
+        performance_timeline_task_source,
+        PerformanceTimelineTaskSource,
+        PerformanceTimeline);
 
-    pub fn remote_event_task_source_with_canceller(&self) -> (RemoteEventTaskSource, TaskCanceller) {
-        (self.remote_event_task_source.clone(), self.task_canceller(TaskSourceName::RemoteEvent))
-    }
+    task_source_functions!(
+        self,
+        remote_event_task_source_with_canceller,
+        remote_event_task_source,
+        RemoteEventTaskSource,
+        RemoteEvent);
 
-    pub fn websocket_task_source_with_canceller(&self) -> (WebsocketTaskSource, TaskCanceller) {
-        (self.websocket_task_source.clone(), self.task_canceller(TaskSourceName::Websocket))
-    }
-
-    pub fn dom_manipulation_task_source(&self) -> DOMManipulationTaskSource {
-        self.dom_manipulation_task_source.clone()
-    }
-
-    pub fn user_interaction_task_source(&self) -> UserInteractionTaskSource {
-        self.user_interaction_task_source.clone()
-    }
-
-    pub fn networking_task_source(&self) -> NetworkingTaskSource {
-        self.networking_task_source.clone()
-    }
-
-    pub fn file_reading_task_source(&self) -> FileReadingTaskSource {
-        self.file_reading_task_source.clone()
-    }
-
-    pub fn history_traversal_task_source(&self) -> HistoryTraversalTaskSource {
-        self.history_traversal_task_source.clone()
-    }
-
-    pub fn performance_timeline_task_source(&self) -> PerformanceTimelineTaskSource {
-        self.performance_timeline_task_source.clone()
-    }
-
-    pub fn remote_event_task_source(&self) -> RemoteEventTaskSource {
-        self.remote_event_task_source.clone()
-    }
-
-    pub fn websocket_task_source(&self) -> WebsocketTaskSource {
-        self.websocket_task_source.clone()
-    }
+    task_source_functions!(
+        self,
+        websocket_task_source_with_canceller,
+        websocket_task_source,
+        WebsocketTaskSource,
+        Websocket);
 
     pub fn task_canceller(&self, name: TaskSourceName) -> TaskCanceller {
         let mut flags = self.task_cancellers.borrow_mut();
