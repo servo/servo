@@ -3,11 +3,17 @@
 <title>RTCIceTransport-extensions.https.html</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="RTCIceTransport-extension-helper.js"></script>
 <script>
 'use strict';
 
 // These tests are based on the following extension specification:
 // https://w3c.github.io/webrtc-ice/
+
+// The following helper functions are called from
+// RTCIceTransport-extension-helper.js:
+//   makeIceTransport
+//   makeGatherAndStartTwoIceTransports
 
 function makeIceTransport(t) {
   const iceTransport = new RTCIceTransport();
@@ -240,22 +246,8 @@ test(t => {
    'later called with different remote parameters');
 
 promise_test(async t => {
-  const localTransport = makeIceTransport(t);
-  const remoteTransport = makeIceTransport(t);
-  localTransport.onicecandidate = e => {
-    if (e.candidate) {
-      remoteTransport.addRemoteCandidate(e.candidate);
-    }
-  };
-  remoteTransport.onicecandidate = e => {
-    if (e.candidate) {
-      localTransport.addRemoteCandidate(e.candidate);
-    }
-  };
-  localTransport.gather({});
-  remoteTransport.gather({});
-  localTransport.start(remoteTransport.getLocalParameters(), 'controlling');
-  remoteTransport.start(localTransport.getLocalParameters(), 'controlled');
+  const [ localTransport, remoteTransport ] =
+      makeGatherAndStartTwoIceTransports(t);
   const localWatcher = new EventWatcher(t, localTransport, 'statechange');
   const remoteWatcher = new EventWatcher(t, remoteTransport, 'statechange');
   await Promise.all([

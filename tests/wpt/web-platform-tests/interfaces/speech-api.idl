@@ -137,12 +137,20 @@ interface SpeechSynthesisUtterance : EventTarget {
     attribute EventHandler onboundary;
 };
 
-[Exposed=Window]
+[Exposed=Window,
+  Constructor(DOMString type, SpeechSynthesisEventInit eventInitDict)]
 interface SpeechSynthesisEvent : Event {
     readonly attribute SpeechSynthesisUtterance utterance;
     readonly attribute unsigned long charIndex;
     readonly attribute float elapsedTime;
     readonly attribute DOMString name;
+};
+
+dictionary SpeechSynthesisEventInit : EventInit {
+    required SpeechSynthesisUtterance utterance;
+    unsigned long charIndex = 0;
+    float elapsedTime = 0;
+    DOMString name = "";
 };
 
 enum SpeechSynthesisErrorCode {
@@ -160,9 +168,14 @@ enum SpeechSynthesisErrorCode {
     "not-allowed",
 };
 
-[Exposed=Window]
+[Exposed=Window,
+  Constructor(DOMString type, SpeechSynthesisErrorEventInit eventInitDict)]
 interface SpeechSynthesisErrorEvent : SpeechSynthesisEvent {
     readonly attribute SpeechSynthesisErrorCode error;
+};
+
+dictionary SpeechSynthesisErrorEventInit : SpeechSynthesisEventInit {
+    required SpeechSynthesisErrorCode error;
 };
 
 [Exposed=Window]

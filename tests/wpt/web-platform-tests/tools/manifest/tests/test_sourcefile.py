@@ -36,6 +36,7 @@ def items(s):
     "foo/resources/test.html",
     "foo/support/test.html",
     "foo/test-support.html",
+    "foo/foo-manual.html.headers",
     "css/common/test.html",
     "css/CSS2/archive/test.html",
 ])
@@ -64,6 +65,7 @@ def test_not_name_is_non_test(rel_path):
 
 
 @pytest.mark.parametrize("rel_path", [
+    "foo/foo-manual.html",
     "html/test-manual.html",
     "html/test-manual.xhtml",
     "html/test-manual.https.html",

@@ -32,34 +32,6 @@ backgroundFetchTest((t, bgFetch) => {
 
 backgroundFetchTest((t, bgFetch) => {
   return promise_rejects(t, new TypeError(),
-                         bgFetch.fetch(uniqueId(), 'http://example.com'));
-}, 'non-loopback http: fetch should reject');
-
-backgroundFetchTest((t, bgFetch) => {
-  return promise_rejects(t, new TypeError(),
-                         bgFetch.fetch(uniqueId(), 'http://192.0.2.0'));
-}, 'non-loopback IPv4 http: fetch should reject');
-
-backgroundFetchTest((t, bgFetch) => {
-  return promise_rejects(t, new TypeError(),
-                         bgFetch.fetch(uniqueId(), 'http://[2001:db8::1]'));
-}, 'non-loopback IPv6 http: fetch should reject');
-
-backgroundFetchTest((t, bgFetch) => {
-  return promise_rejects(t, new TypeError(),
-                         bgFetch.fetch(uniqueId(), ['https://example.com',
-                                                    'http://example.com']));
-}, 'https: and non-loopback http: fetch should reject');
-
-backgroundFetchTest((t, bgFetch) => {
-  return promise_rejects(t, new TypeError(),
-                         bgFetch.fetch(uniqueId(), ['http://example.com',
-                                                    'https://example.com']));
-}, 'non-loopback http: and https: fetch should reject');
-
-
-backgroundFetchTest((t, bgFetch) => {
-  return promise_rejects(t, new TypeError(),
                          bgFetch.fetch(uniqueId(), 'wss:127.0.0.1'));
 }, 'wss: fetch should reject');
 
