@@ -35,11 +35,11 @@ class DecisionTask:
         "0a7d012ce444d62ffb9e7f06f0c52fedc24b68c2060711b313263367f7272d9d"
 
     def __init__(self, *, index_prefix="garbage.servo-decisionlib", task_name_template="%s",
-                 worker_type="github-worker", docker_image_cache_expiry="1 month",
+                 default_worker_type="github-worker", docker_image_cache_expiry="1 month",
                  routes_for_all_subtasks=None, scopes_for_all_subtasks=None):
         self.task_name_template = task_name_template
         self.index_prefix = index_prefix
-        self.worker_type = worker_type
+        self.default_worker_type = default_worker_type
         self.docker_image_cache_expiry = docker_image_cache_expiry
         self.routes_for_all_subtasks = routes_for_all_subtasks or []
         self.scopes_for_all_subtasks = scopes_for_all_subtasks or []
@@ -133,36 +133,20 @@ class DecisionTask:
     def create_task(self, *, task_name, script, max_run_time_minutes,
                     docker_image=None, dockerfile=None,  # One of these is required
                     artifacts=None, dependencies=None, env=None, cache=None, scopes=None,
-                    routes=None, extra=None, features=None,
-                    with_repo=True):
+                    routes=None, extra=None, features=None, mounts=None, homedir_path=None,
+                    worker_type=None, with_repo=True):
         """
-        Schedule a new task. Only supports `docker-worker` for now.
-
-        Returns the new task ID.
+        Schedule a new task. Returns the new task ID.
 
         One of `docker_image` or `dockerfile` (but not both) must be given.
         If `dockerfile` is given, the corresponding Docker image is built as needed and cached.
 
         `with_repo` indicates whether `script` should start in a clone of the git repository.
         """
-        if docker_image and dockerfile:
-            raise TypeError("cannot use both `docker_image` or `dockerfile`")
-        if not docker_image and not dockerfile:
-            raise TypeError("need one of `docker_image` or `dockerfile`")
-
         # https://docs.taskcluster.net/docs/reference/workers/docker-worker/docs/environment
         decision_task_id = os.environ["TASK_ID"]
 
         dependencies = [decision_task_id] + (dependencies or [])
-
-        if dockerfile:
-            image_build_task = self.find_or_build_docker_image(dockerfile)
-            dependencies.append(image_build_task)
-            docker_image = {
-                "type": "task-image",
-                "taskId": image_build_task,
-                "path": "public/" + self.DOCKER_IMAGE_ARTIFACT_FILENAME,
-            }
 
         # Set in .taskcluster.yml
         task_owner = os.environ["TASK_OWNER"]
@@ -175,19 +159,72 @@ class DecisionTask:
             for k in ["GIT_URL", "GIT_REF", "GIT_SHA"]:
                 env[k] = os.environ[k]
 
-            script = """
+        worker_type = worker_type or self.default_worker_type
+        if "docker" in worker_type:
+            if docker_image and dockerfile:
+                raise TypeError("cannot use both `docker_image` or `dockerfile`")
+            if not docker_image and not dockerfile:
+                raise TypeError("need one of `docker_image` or `dockerfile`")
+
+            if dockerfile:
+                image_build_task = self.find_or_build_docker_image(dockerfile)
+                dependencies.append(image_build_task)
+                docker_image = {
+                    "type": "task-image",
+                    "taskId": image_build_task,
+                    "path": "public/" + self.DOCKER_IMAGE_ARTIFACT_FILENAME,
+                }
+
+            if with_repo:
+                script = """
                     git init repo
                     cd repo
                     git fetch --depth 1 "$GIT_URL" "$GIT_REF"
                     git reset --hard "$GIT_SHA"
                 """ + script
+            command = ["/bin/bash", "--login", "-x", "-e", "-c", deindent(script)]
+        else:
+            command = [
+                "set PATH=%CD%\\{};%PATH%".format(p)
+                for p in reversed(homedir_path or [])
+            ]
+            if with_repo:
+                command.append(deindent("""
+                    git init repo
+                    cd repo
+                    git fetch --depth 1 %GIT_URL% %GIT_REF%
+                    git reset --hard %GIT_SHA%
+                """))
+            command.append(deindent(script))
 
+        worker_payload = {
+            "maxRunTime": max_run_time_minutes * 60,
+            "command": command,
+            "env": env,
+        }
+        if docker_image:
+            worker_payload["image"] = docker_image
+        if cache:
+            worker_payload["cache"] = cache
+        if features:
+            worker_payload["features"] = features
+        if mounts:
+            worker_payload["mounts"] = mounts
+        if artifacts:
+            worker_payload["artifacts"] = {
+                "public/" + os.path.basename(path): {
+                    "type": "file",
+                    "path": path,
+                    "expires": self.from_now_json(expires),
+                }
+                for path, expires in artifacts
+            }
         payload = {
             "taskGroupId": decision_task_id,
             "dependencies": dependencies or [],
             "schedulerId": "taskcluster-github",
             "provisionerId": "aws-provisioner-v1",
-            "workerType": self.worker_type,
+            "workerType": worker_type,
 
             "created": self.from_now_json(""),
             "deadline": self.from_now_json("1 day"),
@@ -200,29 +237,7 @@ class DecisionTask:
             "scopes": (scopes or []) + self.scopes_for_all_subtasks,
             "routes": (routes or []) + self.routes_for_all_subtasks,
             "extra": extra or {},
-            "payload": {
-                "cache": cache or {},
-                "maxRunTime": max_run_time_minutes * 60,
-                "image": docker_image,
-                "command": [
-                    "/bin/bash",
-                    "--login",
-                    "-x",
-                    "-e",
-                    "-c",
-                    deindent(script)
-                ],
-                "env": env,
-                "artifacts": {
-                    "public/" + os.path.basename(path): {
-                        "type": "file",
-                        "path": path,
-                        "expires": self.from_now_json(expires),
-                    }
-                    for path, expires in artifacts or []
-                },
-                "features": features or {},
-            },
+            "payload": worker_payload,
         }
 
         task_id = taskcluster.slugId().decode("utf8")
