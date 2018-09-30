@@ -46,5 +46,17 @@ Start-Process C:\generic-worker\generic-worker.exe -ArgumentList (
     -RedirectStandardOutput C:\generic-worker\install.log `
     -RedirectStandardError C:\generic-worker\install.err
 
+# # For debugging, let us know the worker’s IP address through:
+# # ssh servo-master.servo.org tail -f /var/log/nginx/access.log | grep ping
+# Start-Process C:\nssm-2.24\win64\nssm.exe -ArgumentList `
+#     "install", "servo-ping", "powershell", "-Command", @"
+#     (New-Object system.net.WebClient).DownloadData(
+#         'http://servo-master.servo.org/ping/generic-worker')
+# "@
+
+# # This "service" isn’t a long-running service: it runs once on boot and then terminates.
+# Start-Process C:\nssm-2.24\win64\nssm.exe -ArgumentList `
+#     "set", "servo-ping", "AppExit", "Default", "Exit"
+
 # Now shutdown, in preparation for creating an image
 shutdown -s
