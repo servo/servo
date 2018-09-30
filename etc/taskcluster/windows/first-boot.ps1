@@ -34,6 +34,11 @@ $client.DownloadFile("https://github.com/taskcluster/livelog/releases/download" 
     "/v1.1.0/livelog-windows-amd64.exe", "C:\generic-worker\livelog.exe")
 Expand-ZIPFile -File "C:\nssm-2.24.zip" -Destination "C:\" `
     -Url "http://www.nssm.cc/release/nssm-2.24.zip"
+Start-Process C:\generic-worker\generic-worker.exe -ArgumentList `
+    "new-openpgp-keypair --file C:\generic-worker\generic-worker-gpg-signing-key.key" `
+    -Wait -NoNewWindow -PassThru `
+    -RedirectStandardOutput C:\generic-worker\generate-signing-key.log `
+    -RedirectStandardError C:\generic-worker\generate-signing-key.err
 Start-Process C:\generic-worker\generic-worker.exe -ArgumentList (
         "install service --nssm C:\nssm-2.24\win64\nssm.exe " +
         "--config C:\generic-worker\generic-worker.config"
