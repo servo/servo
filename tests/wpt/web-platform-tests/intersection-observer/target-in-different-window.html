@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="./resources/intersection-observer-test-utils.js"></script>
+
+<script>
+var entries = [];
+var popup, target;
+
+function waitForPopupNotification(f) {
+  popup.requestAnimationFrame(function() {
+    popup.requestAnimationFrame(function() { popup.setTimeout(f); });
+  });
+}
+
+async_test((t) => {
+  var observer = new IntersectionObserver(function(changes) {
+    entries = entries.concat(changes);
+  });
+  popup = window.open();
+  t.add_cleanup(() => popup.close());
+  target = popup.document.createElement('div');
+  target.style.width = "100px";
+  target.style.height = "100px";
+  observer.observe(target);
+  waitForPopupNotification(t.step_func(() => {
+    assert_equals(entries.length, 1, "Initial notification for detached target.");
+    assert_equals(entries[0].isIntersecting, false, "not intersecting");
+    popup.document.body.appendChild(target);
+    waitForPopupNotification(t.step_func_done(() => {
+      assert_equals(entries.length, 2, "Notification after insertion into popup.");
+      assert_equals(entries[1].isIntersecting, true, "intersecting");
+    }));
+  }));
+}, "IntersectionObserver with target in a different window.");
+</script>
