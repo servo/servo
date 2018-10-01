@@ -267,6 +267,7 @@ class SourceFile(object):
                 self.name_prefix("MANIFEST") or
                 self.filename == "META.yml" or
                 self.filename.startswith(".") or
+                self.filename.endswith(".headers") or
                 self.type_flag == "support" or
                 self.in_non_test_dir())
 

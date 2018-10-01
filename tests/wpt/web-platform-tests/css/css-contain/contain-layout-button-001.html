@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Containment Test: Layout containment on button</title>
+<link rel="author" title="Manuel Rego Casasnovas" href="mailto:rego@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-contain-1/#containment-layout">
+<link rel="match" href="reference/contain-layout-button-001-ref.html">
+<meta name=assert content="Layout containment does apply to buttons, thus their baseline is the same than if they don't have contents.">
+<style>
+button {
+  border: 5px solid green;
+  padding: 0;
+  contain: layout;
+  color: transparent;
+  width: 0;
+  height: 0;
+}
+</style>
+
+<p>This test passes if it has the same output as the reference. You see the word "before", a 10px green square at the bottom, and then the word "after".</p>
+before<button>b</button>after
