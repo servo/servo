@@ -1,7 +1,7 @@
 import base64
 import cgi
 from six.moves.http_cookies import BaseCookie
-from six import BytesIO, binary_type, text_type
+from six import BytesIO
 import tempfile
 
 from six.moves.urllib.parse import parse_qsl, urlsplit
@@ -318,8 +318,8 @@ class Request(object):
     def cookies(self):
         if self._cookies is None:
             parser = BaseCookie()
-            cookie_headers = self.headers.get("cookie", u"")
-            parser.load(cookie_headers.encode("utf-8"))
+            cookie_headers = self.headers.get("cookie", "")
+            parser.load(cookie_headers)
             cookies = Cookies()
             for key, value in parser.iteritems():
                 cookies[key] = CookieValue(value)
@@ -355,16 +355,6 @@ class H2Request(Request):
         super(H2Request, self).__init__(request_handler)
 
 
-def maybedecode(s):
-    if isinstance(s, text_type):
-        return s
-
-    if isinstance(s, binary_type):
-        return s.decode("ascii")
-
-    raise TypeError("Unexpected value in RequestHeaders: %r" % s)
-
-
 class RequestHeaders(dict):
     """Dictionary-like API for accessing request headers."""
     def __init__(self, items):
@@ -379,17 +369,15 @@ class RequestHeaders(dict):
                 for value in values:
                     # getallmatchingheaders returns raw header lines, so
                     # split to get name, value
-                    multiples.append(maybedecode(value).split(':', 1)[1].strip())
-                headers = multiples
+                    multiples.append(value.split(':', 1)[1].strip())
+                dict.__setitem__(self, key, multiples)
             else:
-                headers = [maybedecode(items[header])]
-            dict.__setitem__(self, maybedecode(key), headers)
+                dict.__setitem__(self, key, [items[header]])
 
 
     def __getitem__(self, key):
         """Get all headers of a certain (case-insensitive) name. If there is
         more than one, the values are returned comma separated"""
-        key = maybedecode(key)
         values = dict.__getitem__(self, key.lower())
         if len(values) == 1:
             return values[0]
@@ -415,7 +403,6 @@ class RequestHeaders(dict):
     def get_list(self, key, default=missing):
         """Get all the header values for a particular field name as
         a list"""
-        key = maybedecode(key)
         try:
             return dict.__getitem__(self, key.lower())
         except KeyError:
@@ -425,7 +412,6 @@ class RequestHeaders(dict):
                 raise
 
     def __contains__(self, key):
-        key = maybedecode(key)
         return dict.__contains__(self, key.lower())
 
     def iteritems(self):
@@ -613,7 +599,6 @@ class Authentication(object):
 
         if "authorization" in headers:
             header = headers.get("authorization")
-            assert isinstance(header, text_type)
             auth_type, data = header.split(" ", 1)
             if auth_type in auth_schemes:
                 self.username, self.password = auth_schemes[auth_type](data)
@@ -621,6 +606,5 @@ class Authentication(object):
                 raise HTTPException(400, "Unsupported authentication scheme %s" % auth_type)
 
     def decode_basic(self, data):
-        assert isinstance(data, text_type)
-        decoded_data = base64.decodestring(data.encode("utf-8"))
-        return decoded_data.decode("utf-8").split(":", 1)
+        decoded_data = base64.decodestring(data)
+        return decoded_data.split(":", 1)

@@ -6,8 +6,12 @@
 div {
   display: inline-grid;
   border: 5px solid green;
+  color: transparent;
+  width: 0;
+  height: 0;
+  font-size: 2em;
 }
 </style>
 
-<p>This test passes if it has the same output as the reference. You see the word "before", a 10px green square, and then the word "after".</p>
-before<div></div>after
+<p>This test passes if it has the same output as the reference. You see the word "before", a 10px green square at the top, and then the word "after".</p>
+before<div>g</div>after

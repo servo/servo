@@ -88,16 +88,19 @@ class TestFileHandler(TestUsingServer):
             self.request("/document.txt", headers={"Range":"bytes=%i-%i" % (len(expected), len(expected) + 10)})
         self.assertEqual(cm.exception.code, 416)
 
+    @pytest.mark.xfail(sys.version_info >= (3,), reason="wptserve only works on Py2")
     def test_sub_config(self):
         resp = self.request("/sub.sub.txt")
         expected = b"localhost localhost %i" % self.server.port
         assert resp.read().rstrip() == expected
 
+    @pytest.mark.xfail(sys.version_info >= (3,), reason="wptserve only works on Py2")
     def test_sub_headers(self):
         resp = self.request("/sub_headers.sub.txt", headers={"X-Test": "PASS"})
         expected = b"PASS"
         assert resp.read().rstrip() == expected
 
+    @pytest.mark.xfail(sys.version_info >= (3,), reason="wptserve only works on Py2")
     def test_sub_params(self):
         resp = self.request("/sub_params.sub.txt", query="test=PASS")
         expected = b"PASS"
