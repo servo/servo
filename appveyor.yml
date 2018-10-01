@@ -55,8 +55,8 @@ install:
   - set PATH=%PATH%;C:\Users\appveyor\.cargo\bin
   - set PKG_CONFIG_PATH=%PKG_CONFIG_PATH%;C:\gstreamer\1.0\x86_64\lib\pkgconfig
   - rustup -V
-  - mach rustc --version
-  - mach cargo --version
+  - rustc --version
+  - cargo --version
 
 # Uncomment these lines to expose RDP access information to the build machine in the build log.
 #init:
