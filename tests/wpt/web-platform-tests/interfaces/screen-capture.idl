@@ -7,10 +7,22 @@ partial interface Navigator {
     Promise<MediaStream> getDisplayMedia(optional MediaStreamConstraints constraints);
 };
 
+partial dictionary MediaTrackSupportedConstraints {
+             boolean displaySurface = true;
+             boolean logicalSurface = true;
+             boolean cursor = true;
+};
+
 partial dictionary MediaTrackConstraintSet {
              ConstrainDOMString displaySurface;
              ConstrainBoolean logicalSurface;
              ConstrainDOMString cursor;
+};
+
+partial dictionary MediaTrackSettings {
+             DOMString displaySurface;
+             boolean logicalSurface;
+             DOMString cursor;
 };
 
 enum DisplayCaptureSurfaceType {
