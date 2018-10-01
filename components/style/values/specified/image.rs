@@ -8,7 +8,7 @@
 //! [image]: https://drafts.csswg.org/css-images/#image-values
 
 use Atom;
-use cssparser::{Parser, Token};
+use cssparser::{Parser, Token, Delimiter};
 use custom_properties::SpecifiedValue;
 use parser::{Parse, ParserContext};
 use selectors::parser::SelectorParseErrorKind;
@@ -956,17 +956,43 @@ impl GradientItem {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Vec<Self>, ParseError<'i>> {
+        let mut items = Vec::new();
         let mut seen_stop = false;
-        let items = input.parse_comma_separated(|input| {
-            if seen_stop {
-                if let Ok(hint) = input.try(|i| LengthOrPercentage::parse(context, i)) {
-                    seen_stop = false;
-                    return Ok(generic::GradientItem::InterpolationHint(hint));
+
+        loop {
+            input.parse_until_before(Delimiter::Comma, |input| {
+                if seen_stop {
+                    if let Ok(hint) = input.try(|i| LengthOrPercentage::parse(context, i)) {
+                        seen_stop = false;
+                        items.push(generic::GradientItem::InterpolationHint(hint));
+                        return Ok(());
+                    }
                 }
+
+                let stop = ColorStop::parse(context, input)?;
+
+                if let Ok(multi_position) = input.try(|i| LengthOrPercentage::parse(context, i)) {
+                    let stop_color = stop.color.clone();
+                    items.push(generic::GradientItem::ColorStop(stop));
+                    items.push(generic::GradientItem::ColorStop(ColorStop {
+                        color: stop_color,
+                        position: Some(multi_position),
+                    }));
+                } else {
+                    items.push(generic::GradientItem::ColorStop(stop));
+                }
+
+                seen_stop = true;
+                Ok(())
+            })?;
+
+            match input.next() {
+                Err(_) => break,
+                Ok(&Token::Comma) => continue,
+                Ok(_) => unreachable!(),
             }
-            seen_stop = true;
-            ColorStop::parse(context, input).map(generic::GradientItem::ColorStop)
-        })?;
+        }
+
         if !seen_stop || items.len() < 2 {
             return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
         }
