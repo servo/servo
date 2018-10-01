@@ -13,6 +13,7 @@
 Project-independent library for Taskcluster decision tasks
 """
 
+import base64
 import datetime
 import hashlib
 import json
@@ -134,7 +135,7 @@ class DecisionTask:
                     docker_image=None, dockerfile=None,  # One of these is required
                     artifacts=None, dependencies=None, env=None, cache=None, scopes=None,
                     routes=None, extra=None, features=None, mounts=None, homedir_path=None,
-                    worker_type=None, with_repo=True):
+                    worker_type=None, with_repo=True, sparse_checkout_exclude=None):
         """
         Schedule a new task. Returns the new task ID.
 
@@ -176,12 +177,13 @@ class DecisionTask:
                 }
 
             if with_repo:
-                script = """
+                git = """
                     git init repo
                     cd repo
                     git fetch --depth 1 "$GIT_URL" "$GIT_REF"
                     git reset --hard "$GIT_SHA"
-                """ + script
+                """
+                script = git + script
             command = ["/bin/bash", "--login", "-x", "-e", "-c", deindent(script)]
         else:
             command = [
@@ -189,9 +191,23 @@ class DecisionTask:
                 for p in reversed(homedir_path or [])
             ]
             if with_repo:
-                command.append(deindent("""
-                    git init repo
-                    cd repo
+                if with_repo:
+                    git = """
+                        git init repo
+                        cd repo
+                    """
+                    if sparse_checkout_exclude:
+                        git += """
+                            git config core.sparsecheckout true
+                            echo %SPARSE_CHECKOUT_BASE64% > .git\\info\\sparse.b64
+                            certutil -decode .git\\info\\sparse.b64 .git\\info\\sparse-checkout
+                            type .git\\info\\sparse-checkout
+                        """
+                        env["SPARSE_CHECKOUT_BASE64"] = base64.b64encode(
+                            b"/*" +
+                            "".join("\n!" + p for p in sparse_checkout_exclude).encode("utf-8")
+                        )
+                command.append(deindent(git + """
                     git fetch --depth 1 %GIT_URL% %GIT_REF%
                     git reset --hard %GIT_SHA%
                 """))
