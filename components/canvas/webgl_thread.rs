@@ -222,7 +222,7 @@ impl<VR: WebVRRenderHandler + 'static> WebGLThread<VR> {
                                     .map(|r| (r, WebGLContextShareMode::SharedTexture))
                                     .or_else(|err| {
                                         warn!("Couldn't create shared GL context ({}), using slow \
-                                               readback context instead.", err); 
+                                               readback context instead.", err);
                                         let ctx = self.gl_factory.new_context(version, size, attributes);
                                         ctx.map(|r| (r, WebGLContextShareMode::Readback))
                                     });
