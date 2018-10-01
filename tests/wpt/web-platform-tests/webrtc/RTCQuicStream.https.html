@@ -3,6 +3,7 @@
 <title>RTCQuicStream.https.html</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="RTCIceTransport-extension-helper.js"></script>
 <script src="RTCQuicTransport-helper.js"></script>
 <script>
 'use strict';
@@ -11,10 +12,10 @@
 // https://w3c.github.io/webrtc-quic/
 
 // The following helper functions are called from RTCQuicTransport-helper.js:
-//   makeQuicTransport
+//   makeStandaloneQuicTransport
 
-test(t => {
-  const quicTransport = makeQuicTransport(t, []);
+promise_test(async t => {
+  const quicTransport = await makeStandaloneQuicTransport(t);
   const quicStream = quicTransport.createStream();
   assert_equals(quicStream.transport, quicTransport,
       'Expect transport to be set to the creating RTCQuicTransport.');
@@ -25,14 +26,14 @@ test(t => {
       'Expect write buffered amount to be 0.');
 }, 'createStream() returns an RTCQuicStream with initial properties set.');
 
-test(t => {
-  const quicTransport = makeQuicTransport(t, []);
+promise_test(async t => {
+  const quicTransport = await makeStandaloneQuicTransport(t);
   quicTransport.stop();
   assert_throws('InvalidStateError', () => quicTransport.createStream());
 }, 'createStream() throws if the transport is closed.');
 
-test(t => {
-  const quicTransport = makeQuicTransport(t, []);
+promise_test(async t => {
+  const quicTransport = await makeStandaloneQuicTransport(t);
   const firstQuicStream = quicTransport.createStream();
   const secondQuicStream = quicTransport.createStream();
   quicTransport.stop();

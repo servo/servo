@@ -108,6 +108,9 @@
 == flexbox-column-row-gap-003.html flexbox-column-row-gap-003-ref.html
 == flexbox-column-row-gap-004.html flexbox-column-row-gap-004-ref.html
 
+# Tests with dynamic changes that impact sizing:
+== flexbox-dyn-resize-001.html flexbox-dyn-resize-001-ref.html
+
 # Tests for "flex-basis: content"
 == flexbox-flex-basis-content-001a.html flexbox-flex-basis-content-001-ref.html
 == flexbox-flex-basis-content-001b.html flexbox-flex-basis-content-001-ref.html

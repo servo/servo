@@ -43,10 +43,16 @@ enum SpeechRecognitionErrorCode {
     "language-not-supported"
 };
 
-[Exposed=Window]
+[Exposed=Window,
+ Constructor(DOMString type, SpeechRecognitionErrorEventInit eventInitDict)]
 interface SpeechRecognitionErrorEvent : Event {
     readonly attribute SpeechRecognitionErrorCode error;
     readonly attribute DOMString message;
+};
+
+dictionary SpeechRecognitionErrorEventInit : EventInit {
+    required SpeechRecognitionErrorCode error;
+    DOMString message = "";
 };
 
 // Item in N-best list
@@ -72,12 +78,20 @@ interface SpeechRecognitionResultList {
 };
 
 // A full response, which could be interim or final, part of a continuous response or not
-[Exposed=Window]
+[Exposed=Window,
+ Constructor(DOMString type, SpeechRecognitionEventInit eventInitDict)]
 interface SpeechRecognitionEvent : Event {
     readonly attribute unsigned long resultIndex;
     readonly attribute SpeechRecognitionResultList results;
     readonly attribute any interpretation;
     readonly attribute Document? emma;
+};
+
+dictionary SpeechRecognitionEventInit : EventInit {
+    unsigned long resultIndex = 0;
+    required SpeechRecognitionResultList results;
+    any interpretation = null;
+    Document? emma = null;
 };
 
 // The object representing a speech grammar
@@ -137,12 +151,20 @@ interface SpeechSynthesisUtterance : EventTarget {
     attribute EventHandler onboundary;
 };
 
-[Exposed=Window]
+[Exposed=Window,
+ Constructor(DOMString type, SpeechSynthesisEventInit eventInitDict)]
 interface SpeechSynthesisEvent : Event {
     readonly attribute SpeechSynthesisUtterance utterance;
     readonly attribute unsigned long charIndex;
     readonly attribute float elapsedTime;
     readonly attribute DOMString name;
+};
+
+dictionary SpeechSynthesisEventInit : EventInit {
+    required SpeechSynthesisUtterance utterance;
+    unsigned long charIndex = 0;
+    float elapsedTime = 0;
+    DOMString name = "";
 };
 
 enum SpeechSynthesisErrorCode {
@@ -160,9 +182,14 @@ enum SpeechSynthesisErrorCode {
     "not-allowed",
 };
 
-[Exposed=Window]
+[Exposed=Window,
+ Constructor(DOMString type, SpeechSynthesisErrorEventInit eventInitDict)]
 interface SpeechSynthesisErrorEvent : SpeechSynthesisEvent {
     readonly attribute SpeechSynthesisErrorCode error;
+};
+
+dictionary SpeechSynthesisErrorEventInit : SpeechSynthesisEventInit {
+    required SpeechSynthesisErrorCode error;
 };
 
 [Exposed=Window]
