@@ -97,20 +97,19 @@ def android_arm32():
 
 
 def windows_dev():
-    python27_task = extract_msi(
-        "https://www.python.org/ftp/python/2.7.15/python-2.7.15.amd64.msi",
-        sha256="5e85f3c4c209de98480acbf2ba2e71a907fd5567a838ad4b6748c76deb286ad7",
-    )
+    def extract_msi(*names):
+        return "".join(
+            "lessmsi x %HOMEDRIVE%%HOMEPATH%\\{name}.msi %HOMEDRIVE%%HOMEPATH%\\{name}\\\n"
+            .format(name=name)
+            for name in names
+        )
+
     return decision.create_task(
         task_name="Windows x86_64: clone only (for now)",
         worker_type="servo-win2016",
-        # script="""
-        #     python mach --help
-        # """,
-        script="""
-            python -c "import sys; print(sys.path)"
+        script=extract_msi("python2") + """
+            python -c "import os; print(os.listdir('.'))"
         """,
-        with_repo=False,
         mounts=[
             {
                 "directory": "git",
@@ -122,19 +121,27 @@ def windows_dev():
                 }
             },
             {
-                "directory": "python2",
-                "format": "tar.gz",
+                "file": "python2.msi",
                 "content": {
-                    "artifact": "public/extracted.tar.gz",
-                    "taskId": python27_task,
+                    "url": "https://www.python.org/ftp/python/2.7.15/python-2.7.15.amd64.msi",
+                    "sha256": "5e85f3c4c209de98480acbf2ba2e71a907fd5567a838ad4b6748c76deb286ad7",
+                }
+            },
+            {
+                "directory": "lessmsi",
+                "format": "zip",
+                "content": {
+                    "url": "https://github.com/activescott/lessmsi/releases/download/" +
+                           "v1.6.1/lessmsi-v1.6.1.zip",
+                    "sha256": "540b8801e08ec39ba26a100c855898f455410cecbae4991afae7bb2b4df026c7",
                 }
             },
         ],
         homedir_path=[
             "git\\cmd",
-            "python2",
+            "lessmsi",
+            "python2\\SourceDir",
         ],
-        dependencies=[python27_task],
         sparse_checkout_exclude=["tests/wpt"],
         **build_kwargs
     )
@@ -256,38 +263,6 @@ def daily_tasks_setup():
     decision.routes_for_all_subtasks.append(notify_route)
     decision.scopes_for_all_subtasks.append("queue:route:" + notify_route)
     decision.task_name_template = "Servo daily: %s. On failure, ping: " + ping_on_daily_task_failure
-
-
-def extract_msi(url, sha256):
-    return decision.find_or_create_task(
-        index_bucket="extract-msi.v4",
-        index_key=sha256,
-        index_expiry=build_dependencies_artifacts_expiry,
-
-        task_name="Extracting MSI file " + url,
-        dockerfile=dockerfile_path("msiextract"),
-        script="""
-            curl --retry 5 --connect-timeout 10 --location --fail "$MSI_URL" -o input.msi
-            echo "$EXPECTED_SHA256 input.msi" | sha256sum --check
-            msiextract input.msi -C output
-
-            # May contains directories with names too long for Windows to even create:
-            # https://gitlab.gnome.org/GNOME/msitools/issues/5
-            rm -rf output/Windows/winsxs
-
-            ls output/
-            tar -czf /extracted.tar.gz -C output .
-        """,
-        env={
-            "MSI_URL": url,
-            "EXPECTED_SHA256": sha256,
-        },
-        artifacts=[
-            "/extracted.tar.gz"
-        ],
-        max_run_time_minutes=20,
-        with_repo=False,
-    )
 
 
 def dockerfile_path(name):
