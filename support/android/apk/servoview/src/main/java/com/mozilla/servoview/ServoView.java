@@ -198,6 +198,10 @@ public class ServoView extends GLSurfaceView
             mZoomFactor = 1;
         }
 
+        if (!zoomNecessary && !scrollNecessary && mAnimating) {
+            mServo.performUpdate();
+        }
+
         if (mZooming || mScrolling || mAnimating) {
             Choreographer.getInstance().postFrameCallback(this);
         } else {
