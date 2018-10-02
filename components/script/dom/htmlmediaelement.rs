@@ -507,7 +507,6 @@ impl HTMLMediaElement {
 
     // https://html.spec.whatwg.org/multipage/#concept-media-load-algorithm
     fn invoke_resource_selection_algorithm(&self) {
-        println!("invoke_resource_selection_algorithm");
         // Step 1.
         self.network_state.set(NetworkState::NoSource);
 
@@ -539,7 +538,6 @@ impl HTMLMediaElement {
 
     // https://html.spec.whatwg.org/multipage/#concept-media-load-algorithm
     fn resource_selection_algorithm_sync(&self, base_url: ServoUrl) {
-        println!("resource_selection_algorithm_sync");
         // Step 5.
         // FIXME(ferjm): Implement blocked_on_parser logic
         // https://html.spec.whatwg.org/multipage/#blocked-on-parser
@@ -640,7 +638,10 @@ impl HTMLMediaElement {
 
     // https://html.spec.whatwg.org/multipage/#concept-media-load-resource
     fn resource_fetch_algorithm(&self, resource: Resource) {
-        println!("resource_fetch_algorithm");
+        if self.setup_media_player().is_err() {
+            self.queue_dedicated_media_source_failure_steps();
+            return;
+        }
         // Steps 1-2.
         // Unapplicable, the `resource` variable already conveys which mode
         // is in use.
@@ -706,9 +707,6 @@ impl HTMLMediaElement {
                     ..RequestInit::default()
                 };
 
-                println!("Setting up media player");
-                self.setup_media_player();
-                println!("Media player setup");
                 let context = Arc::new(Mutex::new(HTMLMediaElementContext::new(self)));
                 let (action_sender, action_receiver) = ipc::channel().unwrap();
                 let window = window_from_node(self);
@@ -792,7 +790,6 @@ impl HTMLMediaElement {
 
     // https://html.spec.whatwg.org/multipage/#media-element-load-algorithm
     fn media_element_load_algorithm(&self) {
-        println!("media_element_load_algorithm");
         // Reset the flag that signals whether loadeddata was ever fired for
         // this invokation of the load algorithm.
         self.fired_loadeddata_event.set(false);
@@ -939,14 +936,15 @@ impl HTMLMediaElement {
     }
 
     // servo media player
-    fn setup_media_player(&self) {
+    fn setup_media_player(&self) -> Result<(), ()>{
         let (action_sender, action_receiver) = ipc::channel().unwrap();
 
         self.player.register_event_handler(action_sender);
         self.player
             .register_frame_renderer(self.frame_renderer.clone());
-        // XXXferjm this can fail.
-        self.player.setup().unwrap();
+        if self.player.setup().is_err() {
+            return Err(());
+        }
 
         let trusted_node = Trusted::new(self);
         let window = window_from_node(self);
@@ -967,12 +965,13 @@ impl HTMLMediaElement {
                     .unwrap();
             }),
         );
+
+        Ok(())
     }
 
     fn handle_player_event(&self, event: &PlayerEvent) {
         match *event {
             PlayerEvent::MetadataUpdated(ref metadata) => {
-                println!("PlayerEvent::MetadataUpdated");
                 // https://html.spec.whatwg.org/multipage/#media-data-processing-steps-list
                 // => "Once enough of the media data has been fetched to determine the duration..."
                 // Step 1.
@@ -1017,7 +1016,6 @@ impl HTMLMediaElement {
                 _ => {},
             },
             PlayerEvent::EndOfStream => {
-                println!("PlayerEvent::EndOfStream");
                 // https://html.spec.whatwg.org/multipage/#media-data-processing-steps-list
                 // => "If the media data can be fetched but is found by inspection to be in
                 //    an unsupported format, or can otherwise not be rendered at all"
