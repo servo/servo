@@ -39,14 +39,14 @@ where
 }
 
 #[no_mangle]
-pub fn Java_com_mozilla_servoview_JNIServo_version(env: JNIEnv, _class: JClass) -> jstring {
+pub fn Java_org_mozilla_servoview_JNIServo_version(env: JNIEnv, _class: JClass) -> jstring {
     let v = api::servo_version();
     let output = env.new_string(v).expect("Couldn't create java string");
     output.into_inner()
 }
 
 #[no_mangle]
-pub fn Java_com_mozilla_servoview_JNIServo_init(
+pub fn Java_org_mozilla_servoview_JNIServo_init(
     env: JNIEnv,
     _: JClass,
     activity: JObject,
@@ -122,7 +122,7 @@ pub fn Java_com_mozilla_servoview_JNIServo_init(
 }
 
 #[no_mangle]
-pub fn Java_com_mozilla_servoview_JNIServo_setBatchMode(
+pub fn Java_org_mozilla_servoview_JNIServo_setBatchMode(
     env: JNIEnv,
     _: JClass,
     batch: jboolean,
@@ -132,7 +132,7 @@ pub fn Java_com_mozilla_servoview_JNIServo_setBatchMode(
 }
 
 #[no_mangle]
-pub fn Java_com_mozilla_servoview_JNIServo_resize(
+pub fn Java_org_mozilla_servoview_JNIServo_resize(
     env: JNIEnv,
     _: JClass,
     width: jint,
@@ -143,50 +143,50 @@ pub fn Java_com_mozilla_servoview_JNIServo_resize(
 }
 
 #[no_mangle]
-pub fn Java_com_mozilla_servoview_JNIServo_performUpdates(env: JNIEnv, _class: JClass) {
+pub fn Java_org_mozilla_servoview_JNIServo_performUpdates(env: JNIEnv, _class: JClass) {
     debug!("performUpdates");
     call(env, |s| s.perform_updates());
 }
 
 #[no_mangle]
-pub fn Java_com_mozilla_servoview_JNIServo_loadUri(env: JNIEnv, _class: JClass, url: JString) {
+pub fn Java_org_mozilla_servoview_JNIServo_loadUri(env: JNIEnv, _class: JClass, url: JString) {
     debug!("loadUri");
     let url: String = env.get_string(url).unwrap().into();
     call(env, |s| s.load_uri(&url));
 }
 
 #[no_mangle]
-pub fn Java_com_mozilla_servoview_JNIServo_reload(env: JNIEnv, _class: JClass) {
+pub fn Java_org_mozilla_servoview_JNIServo_reload(env: JNIEnv, _class: JClass) {
     debug!("reload");
     call(env, |s| s.reload());
 }
 
 #[no_mangle]
-pub fn Java_com_mozilla_servoview_JNIServo_stop(env: JNIEnv, _class: JClass) {
+pub fn Java_org_mozilla_servoview_JNIServo_stop(env: JNIEnv, _class: JClass) {
     debug!("stop");
     call(env, |s| s.stop());
 }
 
 #[no_mangle]
-pub fn Java_com_mozilla_servoview_JNIServo_refresh(env: JNIEnv, _class: JClass) {
+pub fn Java_org_mozilla_servoview_JNIServo_refresh(env: JNIEnv, _class: JClass) {
     debug!("refresh");
     call(env, |s| s.refresh());
 }
 
 #[no_mangle]
-pub fn Java_com_mozilla_servoview_JNIServo_goBack(env: JNIEnv, _class: JClass) {
+pub fn Java_org_mozilla_servoview_JNIServo_goBack(env: JNIEnv, _class: JClass) {
     debug!("goBack");
     call(env, |s| s.go_back());
 }
 
 #[no_mangle]
-pub fn Java_com_mozilla_servoview_JNIServo_goForward(env: JNIEnv, _class: JClass) {
+pub fn Java_org_mozilla_servoview_JNIServo_goForward(env: JNIEnv, _class: JClass) {
     debug!("goForward");
     call(env, |s| s.go_forward());
 }
 
 #[no_mangle]
-pub fn Java_com_mozilla_servoview_JNIServo_scrollStart(
+pub fn Java_org_mozilla_servoview_JNIServo_scrollStart(
     env: JNIEnv,
     _: JClass,
     dx: jint,
@@ -199,7 +199,7 @@ pub fn Java_com_mozilla_servoview_JNIServo_scrollStart(
 }
 
 #[no_mangle]
-pub fn Java_com_mozilla_servoview_JNIServo_scrollEnd(
+pub fn Java_org_mozilla_servoview_JNIServo_scrollEnd(
     env: JNIEnv,
     _: JClass,
     dx: jint,
@@ -213,7 +213,7 @@ pub fn Java_com_mozilla_servoview_JNIServo_scrollEnd(
 
 
 #[no_mangle]
-pub fn Java_com_mozilla_servoview_JNIServo_scroll(
+pub fn Java_org_mozilla_servoview_JNIServo_scroll(
     env: JNIEnv,
     _: JClass,
     dx: jint,
@@ -226,7 +226,7 @@ pub fn Java_com_mozilla_servoview_JNIServo_scroll(
 }
 
 #[no_mangle]
-pub fn Java_com_mozilla_servoview_JNIServo_pinchZoomStart(
+pub fn Java_org_mozilla_servoview_JNIServo_pinchZoomStart(
     env: JNIEnv,
     _: JClass,
     factor: jfloat,
@@ -238,7 +238,7 @@ pub fn Java_com_mozilla_servoview_JNIServo_pinchZoomStart(
 }
 
 #[no_mangle]
-pub fn Java_com_mozilla_servoview_JNIServo_pinchZoom(
+pub fn Java_org_mozilla_servoview_JNIServo_pinchZoom(
     env: JNIEnv,
     _: JClass,
     factor: jfloat,
@@ -250,7 +250,7 @@ pub fn Java_com_mozilla_servoview_JNIServo_pinchZoom(
 }
 
 #[no_mangle]
-pub fn Java_com_mozilla_servoview_JNIServo_pinchZoomEnd(
+pub fn Java_org_mozilla_servoview_JNIServo_pinchZoomEnd(
     env: JNIEnv,
     _: JClass,
     factor: jfloat,
@@ -263,7 +263,7 @@ pub fn Java_com_mozilla_servoview_JNIServo_pinchZoomEnd(
 
 
 #[no_mangle]
-pub fn Java_com_mozilla_servoview_JNIServo_click(env: JNIEnv, _: JClass, x: jint, y: jint) {
+pub fn Java_org_mozilla_servoview_JNIServo_click(env: JNIEnv, _: JClass, x: jint, y: jint) {
     debug!("click");
     call(env, |s| s.click(x as u32, y as u32));
 }

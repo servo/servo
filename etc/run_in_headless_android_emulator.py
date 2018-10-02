@@ -59,7 +59,7 @@ def main(avd_name, apk_path, *args):
 
         json_params = shell_quote(json.dumps(args))
         extra = "-e servoargs " + json_params
-        cmd = "am start " + extra + " com.mozilla.servo/com.mozilla.servo.MainActivity"
+        cmd = "am start " + extra + " org.mozilla.servo/org.mozilla.servo.MainActivity"
         check_call(adb + ["shell", cmd], stdout=sys.stderr)
 
         # Start showing logs as soon as the application starts,
@@ -128,7 +128,7 @@ def check_call(*args, **kwargs):
 
 
 def write_user_stylesheets(adb, args):
-    data_dir = "/sdcard/Android/data/com.mozilla.servo/files"
+    data_dir = "/sdcard/Android/data/org.mozilla.servo/files"
     check_call(adb + ["shell", "mkdir -p %s" % data_dir])
     for i, (pos, path) in enumerate(extract_args("--user-stylesheet", args)):
         remote_path = "%s/user%s.css" % (data_dir, i)
@@ -139,7 +139,7 @@ def write_user_stylesheets(adb, args):
 def write_hosts_file(adb):
     hosts_file = os.environ.get("HOST_FILE")
     if hosts_file:
-        data_dir = "/sdcard/Android/data/com.mozilla.servo/files"
+        data_dir = "/sdcard/Android/data/org.mozilla.servo/files"
         check_call(adb + ["shell", "mkdir -p %s" % data_dir])
         remote_path = data_dir + "/android_hosts"
         check_call(adb + ["push", hosts_file, remote_path], stdout=sys.stderr)

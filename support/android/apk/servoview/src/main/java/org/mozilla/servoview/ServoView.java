@@ -3,7 +3,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-package com.mozilla.servoview;
+package org.mozilla.servoview;
 
 import android.app.Activity;
 import android.content.Context;
@@ -19,9 +19,9 @@ import android.view.MotionEvent;
 import android.view.ScaleGestureDetector;
 import android.widget.OverScroller;
 
-import com.mozilla.servoview.Servo.Client;
-import com.mozilla.servoview.Servo.GfxCallbacks;
-import com.mozilla.servoview.Servo.RunCallback;
+import org.mozilla.servoview.Servo.Client;
+import org.mozilla.servoview.Servo.GfxCallbacks;
+import org.mozilla.servoview.Servo.RunCallback;
 
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
