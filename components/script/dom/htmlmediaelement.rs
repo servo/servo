@@ -207,7 +207,7 @@ impl HTMLMediaElement {
             delaying_the_load_event_flag: Default::default(),
             pending_play_promises: Default::default(),
             in_flight_play_promises_queue: Default::default(),
-            player: ServoMedia::get().unwrap().create_player().unwrap(),
+            player: ServoMedia::get().unwrap().create_player(),
             frame_renderer: Arc::new(Mutex::new(MediaFrameRenderer::new(
                 document.window().get_webrender_api_sender(),
             ))),
@@ -942,9 +942,6 @@ impl HTMLMediaElement {
         self.player.register_event_handler(action_sender);
         self.player
             .register_frame_renderer(self.frame_renderer.clone());
-        if self.player.setup().is_err() {
-            return Err(());
-        }
 
         let trusted_node = Trusted::new(self);
         let window = window_from_node(self);

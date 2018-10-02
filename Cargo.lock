@@ -3224,7 +3224,7 @@ dependencies = [
 [[package]]
 name = "servo-media"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#e700a0834c3f38d49890d846591fd699e7405a48"
+source = "git+https://github.com/servo/media#d1524d451cb0493f40000daf4f2a58f59b535ffa"
 dependencies = [
  "servo-media-audio 0.1.0 (git+https://github.com/servo/media)",
  "servo-media-gstreamer 0.1.0 (git+https://github.com/servo/media)",
@@ -3234,11 +3234,12 @@ dependencies = [
 [[package]]
 name = "servo-media-audio"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#e700a0834c3f38d49890d846591fd699e7405a48"
+source = "git+https://github.com/servo/media#d1524d451cb0493f40000daf4f2a58f59b535ffa"
 dependencies = [
  "boxfnonce 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "byte-slice-cast 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "euclid 0.19.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "log 0.4.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "num-traits 0.2.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "petgraph 0.4.13 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 1.0.66 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -3250,7 +3251,7 @@ dependencies = [
 [[package]]
 name = "servo-media-gstreamer"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#e700a0834c3f38d49890d846591fd699e7405a48"
+source = "git+https://github.com/servo/media#d1524d451cb0493f40000daf4f2a58f59b535ffa"
 dependencies = [
  "byte-slice-cast 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "glib 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -3268,7 +3269,7 @@ dependencies = [
 [[package]]
 name = "servo-media-player"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#e700a0834c3f38d49890d846591fd699e7405a48"
+source = "git+https://github.com/servo/media#d1524d451cb0493f40000daf4f2a58f59b535ffa"
 dependencies = [
  "ipc-channel 0.11.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 1.0.66 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -3364,7 +3365,7 @@ dependencies = [
 [[package]]
 name = "servo_media_derive"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#e700a0834c3f38d49890d846591fd699e7405a48"
+source = "git+https://github.com/servo/media#d1524d451cb0493f40000daf4f2a58f59b535ffa"
 dependencies = [
  "quote 0.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "syn 0.13.1 (registry+https://github.com/rust-lang/crates.io-index)",

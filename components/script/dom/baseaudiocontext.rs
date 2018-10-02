@@ -461,7 +461,7 @@ impl BaseAudioContextMethods for BaseAudioContext {
                         }),
                         &canceller,
                     );
-                }).error(move || {
+                }).error(move |error| {
                     let _ = task_source_.queue_with_canceller(
                         task!(audio_decode_eos: move || {
                         let this = this_.root();
@@ -473,7 +473,8 @@ impl BaseAudioContextMethods for BaseAudioContext {
                                 &DOMException::new(&this.global(), DOMErrorName::DataCloneError),
                                 ExceptionHandling::Report);
                         }
-                        resolver.promise.reject_error(Error::Type("Audio decode error".to_owned()));
+                        let error = format!("Audio decode error {:?}", error);
+                        resolver.promise.reject_error(Error::Type(error));
                     }),
                         &canceller_,
                     );
