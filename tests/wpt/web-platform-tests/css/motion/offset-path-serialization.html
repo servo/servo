@@ -36,6 +36,10 @@ test(function() {
   target.style.offsetPath = '  path(  "m 10 20 a 10 20 30 1 0 40 50 a 110 120 30 1 1 140 50"  )  ';
   assert_equals(target.style.offsetPath, 'path("m 10 20 a 10 20 30 1 0 40 50 a 110 120 30 1 1 140 50")');
   assert_equals(getComputedStyle(target).offsetPath, 'path("M 10 20 A 10 20 30 1 0 50 70 A 110 120 30 1 1 190 120")');
+
+  target.style.offsetPath = 'path("M 1 2 H 3 v 4 h 5 V 6 h 7 v 8")';
+  assert_equals(target.style.offsetPath, 'path("M 1 2 H 3 v 4 h 5 V 6 h 7 v 8")');
+  assert_equals(getComputedStyle(target).offsetPath, 'path("M 1 2 H 3 V 6 H 8 V 6 H 15 V 14")');
 });
 </script>
 </body>

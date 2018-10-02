@@ -9,6 +9,8 @@ from multiprocessing import Process, current_process, Queue
 
 from mozlog import structuredlog
 
+import wptlogging
+
 # Special value used as a sentinal in various commands
 Stop = object()
 
@@ -40,12 +42,13 @@ for level_name in structuredlog.log_levels:
 
 
 class TestRunner(object):
-    def __init__(self, command_queue, result_queue, executor):
+    def __init__(self, logger, command_queue, result_queue, executor):
         """Class implementing the main loop for running tests.
 
         This class delegates the job of actually running a test to the executor
         that is passed in.
 
+        :param logger: Structured logger
         :param command_queue: subprocess.Queue used to send commands to the
                               process
         :param result_queue: subprocess.Queue used to send results to the
@@ -57,7 +60,7 @@ class TestRunner(object):
 
         self.executor = executor
         self.name = current_process().name
-        self.logger = MessageLogger(self.send_message)
+        self.logger = logger
 
     def __enter__(self):
         return self
@@ -117,30 +120,31 @@ class TestRunner(object):
 def start_runner(runner_command_queue, runner_result_queue,
                  executor_cls, executor_kwargs,
                  executor_browser_cls, executor_browser_kwargs,
-                 stop_flag):
+                 capture_stdio, stop_flag):
     """Launch a TestRunner in a new process"""
-    def log(level, msg):
-        runner_result_queue.put(("log", (level, {"message": msg})))
+
+    def send_message(command, *args):
+        runner_result_queue.put((command, args))
 
     def handle_error(e):
-        log("critical", traceback.format_exc())
+        logger.critical(traceback.format_exc())
         stop_flag.set()
 
-    try:
-        browser = executor_browser_cls(**executor_browser_kwargs)
-        executor = executor_cls(browser, **executor_kwargs)
-        with TestRunner(runner_command_queue, runner_result_queue, executor) as runner:
-            try:
-                runner.run()
-            except KeyboardInterrupt:
-                stop_flag.set()
-            except Exception as e:
-                handle_error(e)
-    except Exception as e:
-        handle_error(e)
-    finally:
-        runner_command_queue = None
-        runner_result_queue = None
+    logger = MessageLogger(send_message)
+
+    with wptlogging.CaptureIO(logger, capture_stdio):
+        try:
+            browser = executor_browser_cls(**executor_browser_kwargs)
+            executor = executor_cls(browser, **executor_kwargs)
+            with TestRunner(logger, runner_command_queue, runner_result_queue, executor) as runner:
+                try:
+                    runner.run()
+                except KeyboardInterrupt:
+                    stop_flag.set()
+                except Exception as e:
+                    handle_error(e)
+        except Exception as e:
+            handle_error(e)
 
 
 manager_count = 0
@@ -255,7 +259,8 @@ RunnerManagerState = _RunnerManagerState()
 class TestRunnerManager(threading.Thread):
     def __init__(self, suite_name, test_queue, test_source_cls, browser_cls, browser_kwargs,
                  executor_cls, executor_kwargs, stop_flag, rerun=1, pause_after_test=False,
-                 pause_on_unexpected=False, restart_on_unexpected=True, debug_info=None):
+                 pause_on_unexpected=False, restart_on_unexpected=True, debug_info=None,
+                 capture_stdio=True):
         """Thread that owns a single TestRunner process and any processes required
         by the TestRunner (e.g. the Firefox binary).
 
@@ -312,6 +317,8 @@ class TestRunnerManager(threading.Thread):
         self.max_restarts = 5
 
         self.browser = None
+
+        self.capture_stdio = capture_stdio
 
     def run(self):
         """Main loop for the TestManager.
@@ -479,6 +486,7 @@ class TestRunnerManager(threading.Thread):
                 self.executor_kwargs,
                 executor_browser_cls,
                 executor_browser_kwargs,
+                self.capture_stdio,
                 self.child_stop_flag)
         self.test_runner_proc = Process(target=start_runner,
                                         args=args,
@@ -737,7 +745,8 @@ class ManagerGroup(object):
                  pause_after_test=False,
                  pause_on_unexpected=False,
                  restart_on_unexpected=True,
-                 debug_info=None):
+                 debug_info=None,
+                 capture_stdio=True):
         """Main thread object that owns all the TestManager threads."""
         self.suite_name = suite_name
         self.size = size
@@ -752,6 +761,7 @@ class ManagerGroup(object):
         self.restart_on_unexpected = restart_on_unexpected
         self.debug_info = debug_info
         self.rerun = rerun
+        self.capture_stdio = capture_stdio
 
         self.pool = set()
         # Event that is polled by threads so that they can gracefully exit in the face
@@ -788,7 +798,8 @@ class ManagerGroup(object):
                                         self.pause_after_test,
                                         self.pause_on_unexpected,
                                         self.restart_on_unexpected,
-                                        self.debug_info)
+                                        self.debug_info,
+                                        self.capture_stdio)
             manager.start()
             self.pool.add(manager)
         self.wait()

@@ -70,6 +70,7 @@ class RunInfo(dict):
     def __init__(self, metadata_root, product, debug,
                  browser_version=None,
                  browser_channel=None,
+                 verify=None,
                  extras=None):
         import mozinfo
         self._update_mozinfo(metadata_root)
@@ -94,6 +95,10 @@ class RunInfo(dict):
             self["browser_version"] = browser_version
         if browser_channel:
             self["browser_channel"] = browser_channel
+
+        self["verify"] = verify
+        if "wasm" not in self:
+            self["wasm"] = False
         if extras is not None:
             self.update(extras)
 
