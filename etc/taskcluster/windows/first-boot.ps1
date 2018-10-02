@@ -58,5 +58,17 @@ Start-Process C:\generic-worker\generic-worker.exe -ArgumentList (
 # Start-Process C:\nssm-2.24\win64\nssm.exe -ArgumentList `
 #     "set", "servo-ping", "AppExit", "Default", "Exit"
 
+
+# Visual C++ Build Tools
+# https://blogs.msdn.microsoft.com/vcblog/2016/11/16/introducing-the-visual-studio-build-tools/
+$client.DownloadFile("https://aka.ms/vs/15/release/vs_buildtools.exe", "C:\vs_buildtools.exe")
+Start-Process C:\vs_buildtools.exe -ArgumentList (`
+        "--passive --norestart --includeRecommended " +
+        "--add Microsoft.VisualStudio.Workload.VCTools " +
+        "--add Microsoft.VisualStudio.Component.VC.ATL " +
+        "--add Microsoft.VisualStudio.Component.VC.ATLMFC"
+    ) -Wait
+
+
 # Now shutdown, in preparation for creating an image
 shutdown -s

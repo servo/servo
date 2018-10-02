@@ -40,10 +40,12 @@ build_env = {
     "RUSTFLAGS": "-Dwarnings",
     "CARGO_INCREMENTAL": "0",
     "SCCACHE_IDLE_TIMEOUT": "1200",
+}
+linux_build_env = dict(**build_env, **{
     "CCACHE": "sccache",
     "RUSTC_WRAPPER": "sccache",
     "SHELL": "/bin/dash",  # For SpiderMonkey’s build system
-}
+})
 
 
 def linux_tidy_unit():
@@ -109,16 +111,17 @@ def windows_dev():
         sha256="b13ea68c1365098c66871f0acab7fd3daa2f2795b5e893fcbb5cd7253f2c08fa",
     )
     return decision.create_task(
-        task_name="Windows x86_64: clone only (for now)",
-        worker_type="servo-win2016",
+        task_name="Windows x86_64: dev build + unit tests",
         script="""
             python -m ensurepip
             pip install virtualenv==16.0.0
-            python mach --help
+
             ..\\rustup-init.exe --default-toolchain none -y
 
             set LIB=%HOMEDRIVE%%HOMEPATH%\\gst\\gstreamer\\1.0\\x86_64\\lib;%LIB%
 
+            call mach.bat build --dev
+            call mach.bat test-unit
         """,
         mounts=[
             {
@@ -173,7 +176,7 @@ def windows_dev():
             "!/tests/wpt/web-platform-tests",
             "/tests/wpt/web-platform-tests/tools",
         ],
-        **build_kwargs
+        **windows_build_kwargs
     )
 
 
@@ -362,6 +365,7 @@ decision = DecisionTask(
 
 # https://docs.taskcluster.net/docs/reference/workers/docker-worker/docs/caches
 cache_scopes = [
+    # FIMXE: move to servo-* cache names
     "docker-worker:cache:cargo-*",
 ]
 build_caches = {
@@ -372,13 +376,17 @@ build_caches = {
 }
 build_kwargs = {
     "max_run_time_minutes": 60,
-    "env": build_env,
 }
 linux_build_kwargs = dict(**build_kwargs, **{
     "worker_type": "servo-docker-worker",
     "dockerfile": dockerfile_path("build"),
     "scopes": cache_scopes,
     "cache": build_caches,
+    "env": linux_build_env,
+})
+windows_build_kwargs = dict(**build_kwargs, **{
+    "worker_type": "servo-win2016",
+    "env": build_env,
 })
 
 
