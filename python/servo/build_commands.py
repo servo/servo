@@ -417,7 +417,7 @@ class MachCommands(CommandBase):
             # Build the name of the package containing all GStreamer dependencies
             # according to the build target.
             gst_lib = "gst-build-{}".format(self.config["android"]["lib"])
-            gst_lib_zip = "%s.zip" % gst_lib
+            gst_lib_zip = "gstreamer-{}-1.14.3-20181004-142930.zip".format(self.config["android"]["lib"])
             gst_dir = os.path.join(base_path, "gstreamer")
             gst_lib_path = os.path.join(base_path, gst_dir, gst_lib)
             pkg_config_path = os.path.join(gst_lib_path, "pkgconfig")
@@ -425,8 +425,7 @@ class MachCommands(CommandBase):
             if not os.path.exists(gst_lib_path):
                 # Download GStreamer dependencies if they have not already been downloaded
                 print("Downloading GStreamer dependencies")
-                gst_url = "https://github.com/servo/libgstreamer_android_gen/blob/" \
-                    "ebb0f0097fec985e0cef988c54a28c2ba06761aa/out/%s?raw=true" % gst_lib_zip
+                gst_url = "http://servo-deps.s3.amazonaws.com/gstreamer/%s" % gst_lib_zip
                 print(gst_url)
                 urllib.urlretrieve(gst_url, gst_lib_zip)
                 zip_ref = zipfile.ZipFile(gst_lib_zip, "r")
