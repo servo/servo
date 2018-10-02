@@ -261,7 +261,13 @@ unsafe impl<T: JSTraceable> JSTraceable for VecDeque<T> {
     }
 }
 
-unsafe impl<T: JSTraceable> JSTraceable for (T, T, T, T) {
+unsafe impl<A, B, C, D> JSTraceable for (A, B, C, D)
+where
+    A: JSTraceable,
+    B: JSTraceable,
+    C: JSTraceable,
+    D: JSTraceable,
+{
     unsafe fn trace(&self, trc: *mut JSTracer) {
         self.0.trace(trc);
         self.1.trace(trc);
