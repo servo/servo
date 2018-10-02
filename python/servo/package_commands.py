@@ -198,7 +198,12 @@ class PackageCommands(CommandBase):
     @CommandArgument('--flavor', '-f',
                      default=None,
                      help='Package using the given Gradle flavor')
-    def package(self, release=False, dev=False, android=None, debug=False, debugger=None, target=None, flavor=None):
+    @CommandArgument('--maven',
+                     default=None,
+                     action='store_true',
+                     help='Create a local Maven repository')
+    def package(self, release=False, dev=False, android=None, debug=False,
+                debugger=None, target=None, flavor=None, maven=False):
         if android is None:
             android = self.config["build"]["android"]
         if target and android:
@@ -235,9 +240,13 @@ class PackageCommands(CommandBase):
             variant = ":assemble" + flavor_name + build_type + build_mode
             apk_task_name = ":servoapp" + variant
             aar_task_name = ":servoview" + variant
+            maven_task_name = ":servoview:uploadArchive"
+            argv = ["./gradlew", "--no-daemon", apk_task_name, aar_task_name]
+            if maven:
+                argv.append(maven_task_name)
             try:
                 with cd(path.join("support", "android", "apk")):
-                    subprocess.check_call(["./gradlew", "--no-daemon", apk_task_name, aar_task_name], env=env)
+                    subprocess.check_call(argv, env=env)
             except subprocess.CalledProcessError as e:
                 print("Packaging Android exited with return value %d" % e.returncode)
                 return e.returncode
