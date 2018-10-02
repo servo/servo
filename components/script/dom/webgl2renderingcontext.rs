@@ -49,7 +49,7 @@ impl WebGL2RenderingContext {
     fn new_inherited(
         window: &Window,
         canvas: &HTMLCanvasElement,
-        size: Size2D<i32>,
+        size: Size2D<u32>,
         attrs: GLContextAttributes,
     ) -> Option<WebGL2RenderingContext> {
         let base = WebGLRenderingContext::new(window, canvas, WebGLVersion::WebGL2, size, attrs)?;
@@ -63,7 +63,7 @@ impl WebGL2RenderingContext {
     pub fn new(
         window: &Window,
         canvas: &HTMLCanvasElement,
-        size: Size2D<i32>,
+        size: Size2D<u32>,
         attrs: GLContextAttributes,
     ) -> Option<DomRoot<WebGL2RenderingContext>> {
         WebGL2RenderingContext::new_inherited(window, canvas, size, attrs).map(|ctx| {
@@ -73,7 +73,7 @@ impl WebGL2RenderingContext {
 }
 
 impl WebGL2RenderingContext {
-    pub fn recreate(&self, size: Size2D<i32>) {
+    pub fn recreate(&self, size: Size2D<u32>) {
         self.base.recreate(size)
     }
 

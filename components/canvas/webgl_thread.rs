@@ -219,7 +219,7 @@ impl<VR: WebVRRenderHandler + 'static> WebGLThread<VR> {
     fn create_webgl_context(
         &mut self,
         version: WebGLVersion,
-        size: Size2D<i32>,
+        size: Size2D<u32>,
         attributes: GLContextAttributes,
     ) -> Result<(WebGLContextId, GLLimits, WebGLContextShareMode), String> {
         // Creating a new GLContext may make the current bound context_id dirty.
@@ -239,7 +239,7 @@ impl<VR: WebVRRenderHandler + 'static> WebGLThread<VR> {
                 let ctx = self.gl_factory.new_context(version, size, attributes)?;
                 Ok((ctx, WebGLContextShareMode::Readback))
             })
-            .map_err(|msg| msg.to_owned())?;
+            .map_err(|msg: &str| msg.to_owned())?;
 
         let id = WebGLContextId(self.next_webgl_id);
         let (size, texture_id, limits) = ctx.get_info();
@@ -261,10 +261,12 @@ impl<VR: WebVRRenderHandler + 'static> WebGLThread<VR> {
     }
 
     /// Resizes a WebGLContext
-    fn resize_webgl_context(&mut self,
-                            context_id: WebGLContextId,
-                            size: Size2D<i32>,
-                            sender: WebGLSender<Result<(), String>>) {
+    fn resize_webgl_context(
+        &mut self,
+        context_id: WebGLContextId,
+        size: Size2D<u32>,
+        sender: WebGLSender<Result<(), String>>,
+    ) {
         let data = Self::make_current_if_needed_mut(
             context_id,
             &mut self.contexts,
@@ -796,8 +798,12 @@ impl WebGLImpl {
                 ctx.gl().renderbuffer_storage(target, format, width, height),
             WebGLCommand::SampleCoverage(value, invert) =>
                 ctx.gl().sample_coverage(value, invert),
-            WebGLCommand::Scissor(x, y, width, height) =>
-                ctx.gl().scissor(x, y, width, height),
+            WebGLCommand::Scissor(x, y, width, height) => {
+                // FIXME(nox): Kinda unfortunate that some u32 values could
+                // end up as negative numbers here, but I don't even think
+                // that can happen in the real world.
+                ctx.gl().scissor(x, y, width as i32, height as i32);
+            },
             WebGLCommand::StencilFunc(func, ref_, mask) =>
                 ctx.gl().stencil_func(func, ref_, mask),
             WebGLCommand::StencilFuncSeparate(face, func, ref_, mask) =>

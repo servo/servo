@@ -98,8 +98,8 @@ impl HTMLCanvasElement {
         }
     }
 
-    pub fn get_size(&self) -> Size2D<i32> {
-        Size2D::new(self.Width() as i32, self.Height() as i32)
+    pub fn get_size(&self) -> Size2D<u32> {
+        Size2D::new(self.Width(), self.Height())
     }
 
     pub fn origin_is_clean(&self) -> bool {
@@ -277,7 +277,7 @@ impl HTMLCanvasElement {
         self.Height() != 0 && self.Width() != 0
     }
 
-    pub fn fetch_all_data(&self) -> Option<(Vec<u8>, Size2D<i32>)> {
+    pub fn fetch_all_data(&self) -> Option<(Vec<u8>, Size2D<u32>)> {
         let size = self.get_size();
 
         if size.width == 0 || size.height == 0 {

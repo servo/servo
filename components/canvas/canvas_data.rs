@@ -35,7 +35,7 @@ pub struct CanvasData<'a> {
 
 impl<'a> CanvasData<'a> {
     pub fn new(
-        size: Size2D<i32>,
+        size: Size2D<u32>,
         webrender_api_sender: webrender_api::RenderApiSender,
         antialias: AntialiasMode,
         canvas_id: CanvasId
@@ -369,11 +369,12 @@ impl<'a> CanvasData<'a> {
         self.state.draw_options.set_composition_op(op.to_azure_style());
     }
 
-    pub fn create(size: Size2D<i32>) -> DrawTarget {
-        DrawTarget::new(BackendType::Skia, size, SurfaceFormat::B8G8R8A8)
+    pub fn create(size: Size2D<u32>) -> DrawTarget {
+        // FIXME(nox): Why is the size made of i32 values?
+        DrawTarget::new(BackendType::Skia, size.to_i32(), SurfaceFormat::B8G8R8A8)
     }
 
-    pub fn recreate(&mut self, size: Size2D<i32>) {
+    pub fn recreate(&mut self, size: Size2D<u32>) {
         self.drawtarget = CanvasData::create(size);
         self.state = CanvasPaintState::new(self.state.draw_options.antialias);
         self.saved_states.clear();
@@ -939,8 +940,9 @@ impl ToAzurePattern for FillOrStrokeStyle {
             FillOrStrokeStyle::Surface(ref surface_style) => {
                 let source_surface = drawtarget.create_source_surface_from_data(
                     &surface_style.surface_data,
-                    surface_style.surface_size,
-                    surface_style.surface_size.width * 4,
+                    // FIXME(nox): Why are those i32 values?
+                    surface_style.surface_size.to_i32(),
+                    surface_style.surface_size.width as i32 * 4,
                     SurfaceFormat::B8G8R8A8,
                 )?;
                 Pattern::Surface(SurfacePattern::new(

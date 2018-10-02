@@ -157,7 +157,7 @@ pub struct WebGLRenderingContext {
     #[ignore_malloc_size_of = "Because it's small"]
     current_vertex_attrib_0: Cell<(f32, f32, f32, f32)>,
     #[ignore_malloc_size_of = "Because it's small"]
-    current_scissor: Cell<(i32, i32, i32, i32)>,
+    current_scissor: Cell<(i32, i32, u32, u32)>,
     #[ignore_malloc_size_of = "Because it's small"]
     current_clear_color: Cell<(f32, f32, f32, f32)>,
     extension_manager: WebGLExtensions,
@@ -172,7 +172,7 @@ impl WebGLRenderingContext {
         window: &Window,
         canvas: &HTMLCanvasElement,
         webgl_version: WebGLVersion,
-        size: Size2D<i32>,
+        size: Size2D<u32>,
         attrs: GLContextAttributes,
     ) -> Result<WebGLRenderingContext, String> {
         if let Some(true) = PREFS
@@ -229,7 +229,7 @@ impl WebGLRenderingContext {
         window: &Window,
         canvas: &HTMLCanvasElement,
         webgl_version: WebGLVersion,
-        size: Size2D<i32>,
+        size: Size2D<u32>,
         attrs: GLContextAttributes,
     ) -> Option<DomRoot<WebGLRenderingContext>> {
         match WebGLRenderingContext::new_inherited(window, canvas, webgl_version, size, attrs) {
@@ -266,7 +266,7 @@ impl WebGLRenderingContext {
         })
     }
 
-    pub fn recreate(&self, size: Size2D<i32>) {
+    pub fn recreate(&self, size: Size2D<u32>) {
         let (sender, receiver) = webgl_channel().unwrap();
         self.webgl_sender.send_resize(size, sender).unwrap();
 
@@ -517,7 +517,7 @@ impl WebGLRenderingContext {
     fn get_image_pixels(
         &self,
         source: TexImageSource,
-    ) -> Fallible<Option<(Vec<u8>, Size2D<i32>, bool)>> {
+    ) -> Fallible<Option<(Vec<u8>, Size2D<u32>, bool)>> {
         Ok(Some(match source {
             TexImageSource::ImageData(image_data) => {
                 (image_data.get_data_array(), image_data.get_size(), false)
@@ -542,7 +542,7 @@ impl WebGLRenderingContext {
                     ImageResponse::MetadataLoaded(_) => return Ok(None),
                 };
 
-                let size = Size2D::new(img.width as i32, img.height as i32);
+                let size = Size2D::new(img.width, img.height);
 
                 // For now Servo's images are all stored as BGRA8 internally.
                 let mut data = match img.format {
@@ -2940,6 +2940,9 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             return self.webgl_error(InvalidValue);
         }
 
+        let width = width as u32;
+        let height = height as u32;
+
         self.current_scissor.set((x, y, width, height));
         self.send_command(WebGLCommand::Scissor(x, y, width, height));
     }
@@ -3791,8 +3794,8 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             target,
             level,
             internal_format,
-            size.width,
-            size.height,
+            size.width as i32,
+            size.height as i32,
             0,
             format,
             data_type,
@@ -4003,8 +4006,8 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             target,
             level,
             format,
-            size.width,
-            size.height,
+            size.width as i32,
+            size.height as i32,
             0,
             format,
             data_type,
