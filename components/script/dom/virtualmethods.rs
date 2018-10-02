@@ -242,7 +242,7 @@ pub fn vtable_for(node: &Node) -> &VirtualMethods {
             node.downcast::<HTMLTableElement>().unwrap() as &VirtualMethods
         },
         NodeTypeId::Element(ElementTypeId::HTMLElement(
-            HTMLElementTypeId::HTMLTableCellElement(_),
+            HTMLElementTypeId::HTMLTableCellElement,
         )) => node.downcast::<HTMLTableCellElement>().unwrap() as &VirtualMethods,
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTableRowElement)) => {
             node.downcast::<HTMLTableRowElement>().unwrap() as &VirtualMethods

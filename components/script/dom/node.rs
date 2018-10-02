@@ -2920,7 +2920,7 @@ impl Into<LayoutElementType> for ElementTypeId {
             ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLParagraphElement) => {
                 LayoutElementType::HTMLParagraphElement
             },
-            ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTableCellElement(_)) => {
+            ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTableCellElement) => {
                 LayoutElementType::HTMLTableCellElement
             },
             ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTableColElement) => {

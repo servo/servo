@@ -64,10 +64,9 @@ use dom::htmlsourceelement::HTMLSourceElement;
 use dom::htmlspanelement::HTMLSpanElement;
 use dom::htmlstyleelement::HTMLStyleElement;
 use dom::htmltablecaptionelement::HTMLTableCaptionElement;
+use dom::htmltablecellelement::HTMLTableCellElement;
 use dom::htmltablecolelement::HTMLTableColElement;
-use dom::htmltabledatacellelement::HTMLTableDataCellElement;
 use dom::htmltableelement::HTMLTableElement;
-use dom::htmltableheadercellelement::HTMLTableHeaderCellElement;
 use dom::htmltablerowelement::HTMLTableRowElement;
 use dom::htmltablesectionelement::HTMLTableSectionElement;
 use dom::htmltemplateelement::HTMLTemplateElement;
@@ -346,12 +345,12 @@ pub fn create_native_html_element(
         local_name!("sup") => make!(HTMLElement),
         local_name!("table") => make!(HTMLTableElement),
         local_name!("tbody") => make!(HTMLTableSectionElement),
-        local_name!("td") => make!(HTMLTableDataCellElement),
+        local_name!("td") => make!(HTMLTableCellElement),
         local_name!("template") => make!(HTMLTemplateElement),
         local_name!("textarea") => make!(HTMLTextAreaElement),
         // https://html.spec.whatwg.org/multipage/#the-tfoot-element:concept-element-dom
         local_name!("tfoot") => make!(HTMLTableSectionElement),
-        local_name!("th") => make!(HTMLTableHeaderCellElement),
+        local_name!("th") => make!(HTMLTableCellElement),
         // https://html.spec.whatwg.org/multipage/#the-thead-element:concept-element-dom
         local_name!("thead") => make!(HTMLTableSectionElement),
         local_name!("time") => make!(HTMLTimeElement),

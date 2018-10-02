@@ -55,10 +55,9 @@ use dom::bindings::codegen::Bindings::HTMLSourceElementBinding;
 use dom::bindings::codegen::Bindings::HTMLSpanElementBinding;
 use dom::bindings::codegen::Bindings::HTMLStyleElementBinding;
 use dom::bindings::codegen::Bindings::HTMLTableCaptionElementBinding;
+use dom::bindings::codegen::Bindings::HTMLTableCellElementBinding;
 use dom::bindings::codegen::Bindings::HTMLTableColElementBinding;
-use dom::bindings::codegen::Bindings::HTMLTableDataCellElementBinding;
 use dom::bindings::codegen::Bindings::HTMLTableElementBinding;
-use dom::bindings::codegen::Bindings::HTMLTableHeaderCellElementBinding;
 use dom::bindings::codegen::Bindings::HTMLTableRowElementBinding;
 use dom::bindings::codegen::Bindings::HTMLTableSectionElementBinding;
 use dom::bindings::codegen::Bindings::HTMLTemplateElementBinding;
@@ -310,11 +309,11 @@ pub fn get_constructor_object_from_local_name(
         local_name!("sup") => get_constructor!(HTMLElementBinding),
         local_name!("table") => get_constructor!(HTMLTableElementBinding),
         local_name!("tbody") => get_constructor!(HTMLTableSectionElementBinding),
-        local_name!("td") => get_constructor!(HTMLTableDataCellElementBinding),
+        local_name!("td") => get_constructor!(HTMLTableCellElementBinding),
         local_name!("template") => get_constructor!(HTMLTemplateElementBinding),
         local_name!("textarea") => get_constructor!(HTMLTextAreaElementBinding),
         local_name!("tfoot") => get_constructor!(HTMLTableSectionElementBinding),
-        local_name!("th") => get_constructor!(HTMLTableHeaderCellElementBinding),
+        local_name!("th") => get_constructor!(HTMLTableCellElementBinding),
         local_name!("thead") => get_constructor!(HTMLTableSectionElementBinding),
         local_name!("time") => get_constructor!(HTMLTimeElementBinding),
         local_name!("title") => get_constructor!(HTMLTitleElementBinding),

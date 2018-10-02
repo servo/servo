@@ -15,9 +15,8 @@ use dom::document::Document;
 use dom::element::{Element, RawLayoutElementHelpers};
 use dom::htmlcollection::{CollectionFilter, HTMLCollection};
 use dom::htmlelement::HTMLElement;
-use dom::htmltabledatacellelement::HTMLTableDataCellElement;
+use dom::htmltablecellelement::HTMLTableCellElement;
 use dom::htmltableelement::HTMLTableElement;
-use dom::htmltableheadercellelement::HTMLTableHeaderCellElement;
 use dom::htmltablesectionelement::HTMLTableSectionElement;
 use dom::node::{Node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
@@ -29,7 +28,7 @@ use style::attr::AttrValue;
 struct CellsFilter;
 impl CollectionFilter for CellsFilter {
     fn filter(&self, elem: &Element, root: &Node) -> bool {
-        (elem.is::<HTMLTableHeaderCellElement>() || elem.is::<HTMLTableDataCellElement>()) &&
+        (elem.is::<HTMLTableCellElement>()) &&
             elem.upcast::<Node>().GetParentNode().r() == Some(root)
     }
 }
@@ -99,7 +98,7 @@ impl HTMLTableRowElementMethods for HTMLTableRowElement {
         node.insert_cell_or_row(
             index,
             || self.Cells(),
-            || HTMLTableDataCellElement::new(local_name!("td"), None, &node.owner_doc()),
+            || HTMLTableCellElement::new(local_name!("td"), None, &node.owner_doc()),
         )
     }
 
@@ -109,7 +108,7 @@ impl HTMLTableRowElementMethods for HTMLTableRowElement {
         node.delete_cell_or_row(
             index,
             || self.Cells(),
-            |n| n.is::<HTMLTableDataCellElement>(),
+            |n| n.is::<HTMLTableCellElement>(),
         )
     }
 
