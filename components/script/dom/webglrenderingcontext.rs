@@ -2,9 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#[cfg(feature = "webgl_backtrace")]
+use backtrace::Backtrace;
 use byteorder::{ByteOrder, NativeEndian, WriteBytesExt};
 use canvas_traits::canvas::{byte_swap, multiply_u8_pixel};
-use canvas_traits::webgl::{DOMToTextureCommand, Parameter};
+use canvas_traits::webgl::{DOMToTextureCommand, Parameter, WebGLCommandBacktrace};
 use canvas_traits::webgl::{TexParameter, WebGLCommand, WebGLContextShareMode, WebGLError};
 use canvas_traits::webgl::{WebGLFramebufferBindingRequest, WebGLMsg, WebGLMsgSender};
 use canvas_traits::webgl::{WebGLProgramId, WebGLResult, WebGLSLVersion, WebGLSender};
@@ -316,7 +318,7 @@ impl WebGLRenderingContext {
 
     #[inline]
     pub fn send_command(&self, command: WebGLCommand) {
-        self.webgl_sender.send(command).unwrap();
+        self.webgl_sender.send(command, capture_webgl_backtrace(self)).unwrap();
     }
 
     #[inline]
@@ -1189,6 +1191,25 @@ impl WebGLRenderingContext {
     }
 }
 
+#[cfg(not(feature = "webgl_backtrace"))]
+#[inline]
+pub fn capture_webgl_backtrace<T: DomObject>(_: &T) -> WebGLCommandBacktrace {
+    WebGLCommandBacktrace {}
+}
+
+#[cfg(feature = "webgl_backtrace")]
+#[cfg_attr(feature = "webgl_backtrace", allow(unsafe_code))]
+pub fn capture_webgl_backtrace<T: DomObject>(obj: &T) -> WebGLCommandBacktrace {
+    let bt = Backtrace::new();
+    unsafe {
+        capture_stack!(in(obj.global().get_cx()) let stack);
+        WebGLCommandBacktrace {
+            backtrace: format!("{:?}", bt),
+            js_backtrace: stack.and_then(|s| s.as_string(None)),
+        }
+    }
+}
+
 impl Drop for WebGLRenderingContext {
     fn drop(&mut self) {
         let _ = self.webgl_sender.send_remove();
@@ -1521,9 +1542,10 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         let (sender, receiver) = webgl_channel().unwrap();
 
         // If the send does not succeed, assume context lost
+        let backtrace = capture_webgl_backtrace(self);
         if self
             .webgl_sender
-            .send(WebGLCommand::GetContextAttributes(sender))
+            .send(WebGLCommand::GetContextAttributes(sender), backtrace)
             .is_err()
         {
             return None;

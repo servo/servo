@@ -264,6 +264,11 @@ class MachCommands(CommandBase):
         if debug_mozjs:
             features += ["debugmozjs"]
 
+        if self.config["build"]["webgl-backtrace"]:
+            features += ["webgl-backtrace"]
+        if self.config["build"]["dom-backtrace"]:
+            features += ["dom-backtrace"]
+
         if features:
             opts += ["--features", "%s" % ' '.join(features)]
 

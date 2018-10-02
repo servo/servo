@@ -9,6 +9,9 @@ publish = false
 name = "canvas"
 path = "lib.rs"
 
+[features]
+webgl_backtrace = ["canvas_traits/webgl_backtrace"]
+
 [dependencies]
 azure = {git = "https://github.com/servo/rust-azure"}
 canvas_traits = {path = "../canvas_traits"}

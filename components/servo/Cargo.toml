@@ -17,12 +17,18 @@ webdriver = ["webdriver_server"]
 energy-profiling = ["profile_traits/energy-profiling"]
 debugmozjs = ["script/debugmozjs"]
 googlevr = ["webvr/googlevr"]
+js_backtrace = ["script/js_backtrace"]
 webrender_debugger = ["webrender/debugger"]
 oculusvr = ["webvr/oculusvr"]
 unstable = [
     "euclid/unstable",
     "profile/unstable",
     "script/unstable",
+]
+webgl_backtrace = [
+    "script/webgl_backtrace",
+    "canvas/webgl_backtrace",
+    "canvas_traits/webgl_backtrace",
 ]
 
 [dependencies]

@@ -137,8 +137,8 @@ impl<VR: WebVRRenderHandler + 'static> WebGLThread<VR> {
             WebGLMsg::RemoveContext(ctx_id) => {
                 self.remove_webgl_context(ctx_id);
             },
-            WebGLMsg::WebGLCommand(ctx_id, command) => {
-                self.handle_webgl_command(ctx_id, command);
+            WebGLMsg::WebGLCommand(ctx_id, command, backtrace) => {
+                self.handle_webgl_command(ctx_id, command, backtrace);
             },
             WebGLMsg::WebVRCommand(ctx_id, command) => {
                 self.handle_webvr_command(ctx_id, command);
@@ -164,10 +164,15 @@ impl<VR: WebVRRenderHandler + 'static> WebGLThread<VR> {
     }
 
     /// Handles a WebGLCommand for a specific WebGLContext
-    fn handle_webgl_command(&mut self, context_id: WebGLContextId, command: WebGLCommand) {
+    fn handle_webgl_command(
+        &mut self,
+        context_id: WebGLContextId,
+        command: WebGLCommand,
+        backtrace: WebGLCommandBacktrace,
+    ) {
         let data = Self::make_current_if_needed_mut(context_id, &mut self.contexts, &mut self.bound_context_id);
         if let Some(data) = data {
-            data.ctx.apply_command(command, &mut data.state);
+            data.ctx.apply_command(command, backtrace, &mut data.state);
         }
     }
 
@@ -672,7 +677,8 @@ impl WebGLImpl {
     pub fn apply<Native: NativeGLContextMethods>(
         ctx: &GLContext<Native>,
         state: &mut GLState,
-        command: WebGLCommand
+        command: WebGLCommand,
+        _backtrace: WebGLCommandBacktrace,
     ) {
         match command {
             WebGLCommand::GetContextAttributes(ref sender) =>
@@ -1193,7 +1199,14 @@ impl WebGLImpl {
         // TODO: update test expectations in order to enable debug assertions
         let error = ctx.gl().get_error();
         if error != gl::NO_ERROR {
-            error!("Last GL operation failed: {:?}", command)
+            error!("Last GL operation failed: {:?}", command);
+            #[cfg(feature = "webgl_backtrace")]
+            {
+                error!("Backtrace from failed WebGL API:\n{}", _backtrace.backtrace);
+                if let Some(backtrace) = _backtrace.js_backtrace {
+                    error!("JS backtrace from failed WebGL API:\n{}", backtrace);
+                }
+            }
         }
         assert_eq!(error, gl::NO_ERROR, "Unexpected WebGL error: 0x{:x} ({})", error, error);
     }

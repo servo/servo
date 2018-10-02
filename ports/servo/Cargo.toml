@@ -30,6 +30,8 @@ webdriver = ["libservo/webdriver"]
 energy-profiling = ["libservo/energy-profiling"]
 debugmozjs = ["libservo/debugmozjs"]
 unstable = ["libservo/unstable"]
+webgl_backtrace = ["libservo/webgl_backtrace"]
+js_backtrace = ["libservo/js_backtrace"]
 
 [target.'cfg(not(target_os = "android"))'.dependencies]
 backtrace = "0.3"

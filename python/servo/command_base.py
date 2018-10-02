@@ -288,6 +288,8 @@ class CommandBase(object):
         self.config["build"].setdefault("rustflags", "")
         self.config["build"].setdefault("incremental", None)
         self.config["build"].setdefault("thinlto", False)
+        self.config["build"].setdefault("webgl-backtrace", False)
+        self.config["build"].setdefault("dom-backtrace", False)
 
         self.config.setdefault("android", {})
         self.config["android"].setdefault("sdk", "")

@@ -2981,6 +2981,7 @@ version = "0.0.1"
 dependencies = [
  "app_units 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "audio-video-metadata 0.1.7 (registry+https://github.com/rust-lang/crates.io-index)",
+ "backtrace 0.3.9 (registry+https://github.com/rust-lang/crates.io-index)",
  "base64 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "bitflags 1.0.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "bluetooth_traits 0.0.1",
