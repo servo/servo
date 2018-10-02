@@ -135,7 +135,7 @@ class DecisionTask:
                     docker_image=None, dockerfile=None,  # One of these is required
                     artifacts=None, dependencies=None, env=None, cache=None, scopes=None,
                     routes=None, extra=None, features=None, mounts=None, homedir_path=None,
-                    worker_type=None, with_repo=True, sparse_checkout_exclude=None):
+                    worker_type=None, with_repo=True, sparse_checkout=None):
         """
         Schedule a new task. Returns the new task ID.
 
@@ -196,7 +196,7 @@ class DecisionTask:
                         git init repo
                         cd repo
                     """
-                    if sparse_checkout_exclude:
+                    if sparse_checkout:
                         git += """
                             git config core.sparsecheckout true
                             echo %SPARSE_CHECKOUT_BASE64% > .git\\info\\sparse.b64
@@ -204,9 +204,7 @@ class DecisionTask:
                             type .git\\info\\sparse-checkout
                         """
                         env["SPARSE_CHECKOUT_BASE64"] = base64.b64encode(
-                            b"/*" +
-                            "".join("\n!" + p for p in sparse_checkout_exclude).encode("utf-8")
-                        )
+                            "\n".join(sparse_checkout).encode("utf-8"))
                 command.append(deindent(git + """
                     git fetch --depth 1 %GIT_URL% %GIT_REF%
                     git reset --hard %GIT_SHA%
@@ -227,14 +225,25 @@ class DecisionTask:
         if mounts:
             worker_payload["mounts"] = mounts
         if artifacts:
-            worker_payload["artifacts"] = {
-                "public/" + os.path.basename(path): {
-                    "type": "file",
-                    "path": path,
-                    "expires": self.from_now_json(expires),
+            if "docker" in worker_type:
+                worker_payload["artifacts"] = {
+                    "public/" + os.path.basename(path): {
+                        "type": "file",
+                        "path": path,
+                        "expires": self.from_now_json(expires),
+                    }
+                    for path, expires in artifacts
                 }
-                for path, expires in artifacts
-            }
+            else:
+                worker_payload["artifacts"] = [
+                    {
+                        "type": "file",
+                        "name": "public/" + os.path.basename(path),
+                        "path": path,
+                        "expires": self.from_now_json(expires),
+                    }
+                    for path, expires in artifacts
+                ]
         payload = {
             "taskGroupId": decision_task_id,
             "dependencies": dependencies or [],

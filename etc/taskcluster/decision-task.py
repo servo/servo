@@ -4,6 +4,8 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+import hashlib
+import json
 import os.path
 import subprocess
 from decisionlib import DecisionTask
@@ -97,29 +99,16 @@ def android_arm32():
 
 
 def windows_dev():
-    def extract_msi(*names):
-        return "".join(
-            "lessmsi x %HOMEDRIVE%%HOMEPATH%\\{name}.msi %HOMEDRIVE%%HOMEPATH%\\{name}\\\n"
-            .format(name=name)
-            for name in names
-        )
-
-    return decision.create_task(
-        task_name="Windows x86_64: clone only (for now)",
+    python2_task_definition = dict(
+        task_name="Windows x86_64: repackage Python 2",
         worker_type="servo-win2016",
-        script=extract_msi("python2") + """
-            python -c "import os; print(os.listdir('.'))"
+        with_repo=False,
+        script="""
+            lessmsi x python2.msi python2\\
+            cd python2\\SourceDir
+            7za a python2.zip *
         """,
         mounts=[
-            {
-                "directory": "git",
-                "format": "zip",
-                "content": {
-                    "url": "https://github.com/git-for-windows/git/releases/download/" +
-                           "v2.19.0.windows.1/MinGit-2.19.0-64-bit.zip",
-                    "sha256": "424d24b5fc185a9c5488d7872262464f2facab4f1d4693ea8008196f14a3c19b",
-                }
-            },
             {
                 "file": "python2.msi",
                 "content": {
@@ -136,13 +125,73 @@ def windows_dev():
                     "sha256": "540b8801e08ec39ba26a100c855898f455410cecbae4991afae7bb2b4df026c7",
                 }
             },
+            {
+                "directory": "7zip",
+                "format": "zip",
+                "content": {
+                    "url": "https://www.7-zip.org/a/7za920.zip",
+                    "sha256": "2a3afe19c180f8373fa02ff00254d5394fec0349f5804e0ad2f6067854ff28ac",
+                }
+            }
+        ],
+        homedir_path=[
+            "lessmsi",
+            "7zip",
+        ],
+        artifacts=[
+            "python2/SourceDir/python2.zip",
+        ],
+        max_run_time_minutes=20,
+    )
+    index_by = json.dumps(python2_task_definition).encode("utf-8")
+    python2_task = decision.find_or_create_task(
+        index_bucket="by-task-definition",
+        index_key=hashlib.sha256(index_by).hexdigest(),
+        index_expiry=build_artifacts_expiry,
+        **python2_task_definition
+    )
+
+    return decision.create_task(
+        task_name="Windows x86_64: clone only (for now)",
+        worker_type="servo-win2016",
+        script="""
+            python -m ensurepip
+            pip install virtualenv==16.0.0
+            python mach --help
+        """,
+        mounts=[
+            {
+                "directory": "git",
+                "format": "zip",
+                "content": {
+                    "url": "https://github.com/git-for-windows/git/releases/download/" +
+                           "v2.19.0.windows.1/MinGit-2.19.0-64-bit.zip",
+                    "sha256": "424d24b5fc185a9c5488d7872262464f2facab4f1d4693ea8008196f14a3c19b",
+                }
+            },
+            {
+                "directory": "python2",
+                "format": "zip",
+                "content": {
+                    "taskId": python2_task,
+                    "artifact": "public/python2.zip",
+                }
+            },
         ],
         homedir_path=[
             "git\\cmd",
-            "lessmsi",
-            "python2\\SourceDir",
+            "python2",
+            "python2\\Scripts",
         ],
-        sparse_checkout_exclude=["tests/wpt"],
+        dependencies=[python2_task],
+        sparse_checkout=[
+            "/*",
+            "!/tests/wpt/metadata",
+            "!/tests/wpt/mozilla",
+            "!/tests/wpt/webgl",
+            "!/tests/wpt/web-platform-tests",
+            "/tests/wpt/web-platform-tests/tools",
+        ],
         **build_kwargs
     )
 
