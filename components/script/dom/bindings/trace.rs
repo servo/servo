@@ -622,6 +622,13 @@ unsafe impl<U> JSTraceable for TypedSize2D<f32, U> {
     }
 }
 
+unsafe impl<U> JSTraceable for TypedSize2D<u32, U> {
+    #[inline]
+    unsafe fn trace(&self, _trc: *mut JSTracer) {
+        // Do nothing
+    }
+}
+
 unsafe impl JSTraceable for StyleLocked<FontFaceRule> {
     unsafe fn trace(&self, _trc: *mut JSTracer) {
         // Do nothing.
