@@ -155,6 +155,7 @@ def windows_dev():
         task_name="Windows x86_64: clone only (for now)",
         worker_type="servo-win2016",
         script="""
+            ..\\rustup-init.exe --default-toolchain none -y
             python -m ensurepip
             pip install virtualenv==16.0.0
             python mach --help
@@ -177,11 +178,20 @@ def windows_dev():
                     "artifact": "public/python2.zip",
                 }
             },
+            {
+                "file": "rustup-init.exe",
+                "content": {
+                    "url": "https://static.rust-lang.org/rustup/archive/" +
+                           "1.13.0/i686-pc-windows-gnu/rustup-init.exe",
+                    "sha256": "43072fbe6b38ab38cd872fa51a33ebd781f83a2d5e83013857fab31fc06e4bf0",
+                }
+            }
         ],
         homedir_path=[
             "git\\cmd",
             "python2",
             "python2\\Scripts",
+            ".cargo\\bin",
         ],
         dependencies=[python2_task],
         sparse_checkout=[
