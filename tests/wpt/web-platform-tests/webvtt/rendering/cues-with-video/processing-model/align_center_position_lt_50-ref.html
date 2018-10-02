@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<title>Reference for WebVTT rendering, align:center, position less than 50%</title>
+<style>
+html { overflow:hidden }
+body { margin:0 }
+.video {
+    display: inline-block;
+    width: 320px;
+    height: 180px;
+    position: relative;
+    font-size: 9px;
+}
+.cue {
+    position: absolute;
+    bottom: 0;
+    left: 23px;
+    right: 0;
+    width: 64px;
+    text-align: center
+}
+.cue > span {
+    font-family: Ahem, sans-serif;
+    background: rgba(0,0,0,0.8);
+    color: green;
+}
+</style>
+<div class=video><span class=cue><span>Awesome<br>!!!</span></span></div>

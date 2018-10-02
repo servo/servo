@@ -13,6 +13,7 @@ function import_data_url_test(testCase) {
     const dataURL = `data:text/javascript,import "${importURL}";`;
 
     const worker = new Worker(dataURL, { type: 'module'});
+    worker.postMessage('Send message for tests from main script.');
     const msgEvent = await new Promise(resolve => worker.onmessage = resolve);
     assert_array_equals(msgEvent.data, testCase.expectation);
   }, testCase.description);
