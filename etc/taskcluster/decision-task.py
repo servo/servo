@@ -99,21 +99,100 @@ def android_arm32():
 
 
 def windows_dev():
-    python2_task_definition = dict(
-        task_name="Windows x86_64: repackage Python 2",
+    python2_task = repack_msi(
+        url="https://www.python.org/ftp/python/2.7.15/python-2.7.15.amd64.msi",
+        sha256="5e85f3c4c209de98480acbf2ba2e71a907fd5567a838ad4b6748c76deb286ad7",
+    )
+    gstreamer_task = repack_msi(
+        url="https://gstreamer.freedesktop.org/data/pkg/windows/" +
+            "1.14.3/gstreamer-1.0-devel-x86_64-1.14.3.msi",
+        sha256="b13ea68c1365098c66871f0acab7fd3daa2f2795b5e893fcbb5cd7253f2c08fa",
+    )
+    return decision.create_task(
+        task_name="Windows x86_64: clone only (for now)",
         worker_type="servo-win2016",
-        with_repo=False,
         script="""
-            lessmsi x python2.msi python2\\
-            cd python2\\SourceDir
-            7za a python2.zip *
+            python -m ensurepip
+            pip install virtualenv==16.0.0
+            python mach --help
+            ..\\rustup-init.exe --default-toolchain none -y
+
+            set LIB=%HOMEDRIVE%%HOMEPATH%\\gst\\gstreamer\\1.0\\x86_64\\lib;%LIB%
+
         """,
         mounts=[
             {
-                "file": "python2.msi",
+                "directory": "git",
+                "format": "zip",
                 "content": {
-                    "url": "https://www.python.org/ftp/python/2.7.15/python-2.7.15.amd64.msi",
-                    "sha256": "5e85f3c4c209de98480acbf2ba2e71a907fd5567a838ad4b6748c76deb286ad7",
+                    "url": "https://github.com/git-for-windows/git/releases/download/" +
+                           "v2.19.0.windows.1/MinGit-2.19.0-64-bit.zip",
+                    "sha256": "424d24b5fc185a9c5488d7872262464f2facab4f1d4693ea8008196f14a3c19b",
+                }
+            },
+            {
+                "directory": "python2",
+                "format": "zip",
+                "content": {
+                    "taskId": python2_task,
+                    "artifact": "public/repacked.zip",
+                }
+            },
+            {
+                "directory": "gst",
+                "format": "zip",
+                "content": {
+                    "taskId": gstreamer_task,
+                    "artifact": "public/repacked.zip",
+                }
+            },
+            {
+                "file": "rustup-init.exe",
+                "content": {
+                    "url": "https://static.rust-lang.org/rustup/archive/" +
+                           "1.13.0/i686-pc-windows-gnu/rustup-init.exe",
+                    "sha256": "43072fbe6b38ab38cd872fa51a33ebd781f83a2d5e83013857fab31fc06e4bf0",
+                }
+            }
+        ],
+        homedir_path=[
+            "git\\cmd",
+            "python2",
+            "python2\\Scripts",
+            ".cargo\\bin",
+        ],
+        dependencies=[
+            python2_task,
+            gstreamer_task,
+        ],
+        sparse_checkout=[
+            "/*",
+            "!/tests/wpt/metadata",
+            "!/tests/wpt/mozilla",
+            "!/tests/wpt/webgl",
+            "!/tests/wpt/web-platform-tests",
+            "/tests/wpt/web-platform-tests/tools",
+        ],
+        **build_kwargs
+    )
+
+
+def repack_msi(url, sha256):
+    task_definition = dict(
+        task_name="Windows x86_64: repackage " + url.rpartition("/")[-1],
+        worker_type="servo-win2016",
+        with_repo=False,
+        script="""
+            lessmsi x input.msi extracted\\
+            cd extracted\\SourceDir
+            7za a repacked.zip *
+        """,
+        mounts=[
+            {
+                "file": "input.msi",
+                "content": {
+                    "url": url,
+                    "sha256": sha256,
                 }
             },
             {
@@ -139,70 +218,16 @@ def windows_dev():
             "7zip",
         ],
         artifacts=[
-            "python2/SourceDir/python2.zip",
+            "extracted/SourceDir/repacked.zip",
         ],
         max_run_time_minutes=20,
     )
-    index_by = json.dumps(python2_task_definition).encode("utf-8")
-    python2_task = decision.find_or_create_task(
+    index_by = json.dumps(task_definition).encode("utf-8")
+    return decision.find_or_create_task(
         index_bucket="by-task-definition",
         index_key=hashlib.sha256(index_by).hexdigest(),
         index_expiry=build_artifacts_expiry,
-        **python2_task_definition
-    )
-
-    return decision.create_task(
-        task_name="Windows x86_64: clone only (for now)",
-        worker_type="servo-win2016",
-        script="""
-            ..\\rustup-init.exe --default-toolchain none -y
-            python -m ensurepip
-            pip install virtualenv==16.0.0
-            python mach --help
-        """,
-        mounts=[
-            {
-                "directory": "git",
-                "format": "zip",
-                "content": {
-                    "url": "https://github.com/git-for-windows/git/releases/download/" +
-                           "v2.19.0.windows.1/MinGit-2.19.0-64-bit.zip",
-                    "sha256": "424d24b5fc185a9c5488d7872262464f2facab4f1d4693ea8008196f14a3c19b",
-                }
-            },
-            {
-                "directory": "python2",
-                "format": "zip",
-                "content": {
-                    "taskId": python2_task,
-                    "artifact": "public/python2.zip",
-                }
-            },
-            {
-                "file": "rustup-init.exe",
-                "content": {
-                    "url": "https://static.rust-lang.org/rustup/archive/" +
-                           "1.13.0/i686-pc-windows-gnu/rustup-init.exe",
-                    "sha256": "43072fbe6b38ab38cd872fa51a33ebd781f83a2d5e83013857fab31fc06e4bf0",
-                }
-            }
-        ],
-        homedir_path=[
-            "git\\cmd",
-            "python2",
-            "python2\\Scripts",
-            ".cargo\\bin",
-        ],
-        dependencies=[python2_task],
-        sparse_checkout=[
-            "/*",
-            "!/tests/wpt/metadata",
-            "!/tests/wpt/mozilla",
-            "!/tests/wpt/webgl",
-            "!/tests/wpt/web-platform-tests",
-            "/tests/wpt/web-platform-tests/tools",
-        ],
-        **build_kwargs
+        **task_definition
     )
 
 

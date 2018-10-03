@@ -46,7 +46,7 @@ but that will make any running task fail.
 ## FIXME: possible improvement
 
 * Have a separate staging worker type to try new AMIs without affecting the production CI
-* Automate cleaning up old, unused AMIs
+* Automate cleaning up old, unused AMIs and their backing EBS snapshots
 * Use multiple AWS regions
 * Use the Taskcluster API to automate updating worker type definitions?
 
