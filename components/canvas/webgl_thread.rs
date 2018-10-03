@@ -216,57 +216,57 @@ impl<VR: WebVRRenderHandler + 'static> WebGLThread<VR> {
     }
 
     /// Creates a new WebGLContext
-    fn create_webgl_context(&mut self,
-                            version: WebGLVersion,
-                            size: Size2D<i32>,
-                            attributes: GLContextAttributes)
-                            -> Result<(WebGLContextId, GLLimits, WebGLContextShareMode), String> {
-        // First try to create a shared context for the best performance.
-        // Fallback to readback mode if the shared context creation fails.
-        let result = self.gl_factory.new_shared_context(version, size, attributes)
-                                    .map(|r| (r, WebGLContextShareMode::SharedTexture))
-                                    .or_else(|err| {
-                                        warn!("Couldn't create shared GL context ({}), using slow \
-                                               readback context instead.", err);
-                                        let ctx = self.gl_factory.new_context(version, size, attributes);
-                                        ctx.map(|r| (r, WebGLContextShareMode::Readback))
-                                    });
-
+    fn create_webgl_context(
+        &mut self,
+        version: WebGLVersion,
+        size: Size2D<u32>,
+        attributes: GLContextAttributes,
+    ) -> Result<(WebGLContextId, GLLimits, WebGLContextShareMode), String> {
         // Creating a new GLContext may make the current bound context_id dirty.
         // Clear it to ensure that  make_current() is called in subsequent commands.
         self.bound_context_id = None;
 
-        match result {
-            Ok((ctx, share_mode)) => {
-                let id = WebGLContextId(self.next_webgl_id);
-                let (size, texture_id, limits) = ctx.get_info();
-                self.next_webgl_id += 1;
-                self.contexts.insert(id, GLContextData {
-                    ctx,
-                    state: Default::default(),
-                });
-                self.cached_context_info.insert(id, WebGLContextInfo {
-                    texture_id,
-                    size,
-                    alpha: attributes.alpha,
-                    image_key: None,
-                    share_mode,
-                    gl_sync: None,
-                });
+        // First try to create a shared context for the best performance.
+        // Fallback to readback mode if the shared context creation fails.
+        let (ctx, share_mode) = self.gl_factory
+            .new_shared_context(version, size, attributes)
+            .map(|r| (r, WebGLContextShareMode::SharedTexture))
+            .or_else(|err| {
+                warn!(
+                    "Couldn't create shared GL context ({}), using slow readback context instead.",
+                    err
+                );
+                let ctx = self.gl_factory.new_context(version, size, attributes)?;
+                Ok((ctx, WebGLContextShareMode::Readback))
+            })
+            .map_err(|msg: &str| msg.to_owned())?;
 
-                Ok((id, limits, share_mode))
-            },
-            Err(msg) => {
-                Err(msg.to_owned())
-            }
-        }
+        let id = WebGLContextId(self.next_webgl_id);
+        let (size, texture_id, limits) = ctx.get_info();
+        self.next_webgl_id += 1;
+        self.contexts.insert(id, GLContextData {
+            ctx,
+            state: Default::default(),
+        });
+        self.cached_context_info.insert(id, WebGLContextInfo {
+            texture_id,
+            size,
+            alpha: attributes.alpha,
+            image_key: None,
+            share_mode,
+            gl_sync: None,
+        });
+
+        Ok((id, limits, share_mode))
     }
 
     /// Resizes a WebGLContext
-    fn resize_webgl_context(&mut self,
-                            context_id: WebGLContextId,
-                            size: Size2D<i32>,
-                            sender: WebGLSender<Result<(), String>>) {
+    fn resize_webgl_context(
+        &mut self,
+        context_id: WebGLContextId,
+        size: Size2D<u32>,
+        sender: WebGLSender<Result<(), String>>,
+    ) {
         let data = Self::make_current_if_needed_mut(
             context_id,
             &mut self.contexts,
@@ -798,8 +798,12 @@ impl WebGLImpl {
                 ctx.gl().renderbuffer_storage(target, format, width, height),
             WebGLCommand::SampleCoverage(value, invert) =>
                 ctx.gl().sample_coverage(value, invert),
-            WebGLCommand::Scissor(x, y, width, height) =>
-                ctx.gl().scissor(x, y, width, height),
+            WebGLCommand::Scissor(x, y, width, height) => {
+                // FIXME(nox): Kinda unfortunate that some u32 values could
+                // end up as negative numbers here, but I don't even think
+                // that can happen in the real world.
+                ctx.gl().scissor(x, y, width as i32, height as i32);
+            },
             WebGLCommand::StencilFunc(func, ref_, mask) =>
                 ctx.gl().stencil_func(func, ref_, mask),
             WebGLCommand::StencilFuncSeparate(face, func, ref_, mask) =>

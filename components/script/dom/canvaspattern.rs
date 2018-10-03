@@ -16,7 +16,7 @@ use euclid::Size2D;
 pub struct CanvasPattern {
     reflector_: Reflector,
     surface_data: Vec<u8>,
-    surface_size: Size2D<i32>,
+    surface_size: Size2D<u32>,
     repeat_x: bool,
     repeat_y: bool,
     origin_clean: bool,
@@ -25,7 +25,7 @@ pub struct CanvasPattern {
 impl CanvasPattern {
     fn new_inherited(
         surface_data: Vec<u8>,
-        surface_size: Size2D<i32>,
+        surface_size: Size2D<u32>,
         repeat: RepetitionStyle,
         origin_clean: bool,
     ) -> CanvasPattern {
@@ -39,7 +39,7 @@ impl CanvasPattern {
         CanvasPattern {
             reflector_: Reflector::new(),
             surface_data: surface_data,
-            surface_size: surface_size,
+            surface_size,
             repeat_x: x,
             repeat_y: y,
             origin_clean: origin_clean,
@@ -48,7 +48,7 @@ impl CanvasPattern {
     pub fn new(
         global: &GlobalScope,
         surface_data: Vec<u8>,
-        surface_size: Size2D<i32>,
+        surface_size: Size2D<u32>,
         repeat: RepetitionStyle,
         origin_clean: bool,
     ) -> DomRoot<CanvasPattern> {

@@ -35,7 +35,7 @@ pub struct CanvasData<'a> {
 
 impl<'a> CanvasData<'a> {
     pub fn new(
-        size: Size2D<i32>,
+        size: Size2D<u32>,
         webrender_api_sender: webrender_api::RenderApiSender,
         antialias: AntialiasMode,
         canvas_id: CanvasId
@@ -369,11 +369,12 @@ impl<'a> CanvasData<'a> {
         self.state.draw_options.set_composition_op(op.to_azure_style());
     }
 
-    pub fn create(size: Size2D<i32>) -> DrawTarget {
-        DrawTarget::new(BackendType::Skia, size, SurfaceFormat::B8G8R8A8)
+    pub fn create(size: Size2D<u32>) -> DrawTarget {
+        // FIXME(nox): Why is the size made of i32 values?
+        DrawTarget::new(BackendType::Skia, size.to_i32(), SurfaceFormat::B8G8R8A8)
     }
 
-    pub fn recreate(&mut self, size: Size2D<i32>) {
+    pub fn recreate(&mut self, size: Size2D<u32>) {
         self.drawtarget = CanvasData::create(size);
         self.state = CanvasPaintState::new(self.state.draw_options.antialias);
         self.saved_states.clear();
@@ -901,9 +902,9 @@ pub trait ToAzurePattern {
 
 impl ToAzurePattern for FillOrStrokeStyle {
     fn to_azure_pattern(&self, drawtarget: &DrawTarget) -> Option<Pattern> {
-        match *self {
+        Some(match *self {
             FillOrStrokeStyle::Color(ref color) => {
-                Some(Pattern::Color(ColorPattern::new(color.to_azure_style())))
+                Pattern::Color(ColorPattern::new(color.to_azure_style()))
             },
             FillOrStrokeStyle::LinearGradient(ref linear_gradient_style) => {
                 let gradient_stops: Vec<GradientStop> = linear_gradient_style.stops.iter().map(|s| {
@@ -913,11 +914,12 @@ impl ToAzurePattern for FillOrStrokeStyle {
                     }
                 }).collect();
 
-                Some(Pattern::LinearGradient(LinearGradientPattern::new(
+                Pattern::LinearGradient(LinearGradientPattern::new(
                     &Point2D::new(linear_gradient_style.x0 as AzFloat, linear_gradient_style.y0 as AzFloat),
                     &Point2D::new(linear_gradient_style.x1 as AzFloat, linear_gradient_style.y1 as AzFloat),
                     drawtarget.create_gradient_stops(&gradient_stops, ExtendMode::Clamp),
-                    &Transform2D::identity())))
+                    &Transform2D::identity(),
+                ))
             },
             FillOrStrokeStyle::RadialGradient(ref radial_gradient_style) => {
                 let gradient_stops: Vec<GradientStop> = radial_gradient_style.stops.iter().map(|s| {
@@ -927,27 +929,30 @@ impl ToAzurePattern for FillOrStrokeStyle {
                     }
                 }).collect();
 
-                Some(Pattern::RadialGradient(RadialGradientPattern::new(
+                Pattern::RadialGradient(RadialGradientPattern::new(
                     &Point2D::new(radial_gradient_style.x0 as AzFloat, radial_gradient_style.y0 as AzFloat),
                     &Point2D::new(radial_gradient_style.x1 as AzFloat, radial_gradient_style.y1 as AzFloat),
                     radial_gradient_style.r0 as AzFloat, radial_gradient_style.r1 as AzFloat,
                     drawtarget.create_gradient_stops(&gradient_stops, ExtendMode::Clamp),
-                    &Transform2D::identity())))
+                    &Transform2D::identity(),
+                ))
             },
             FillOrStrokeStyle::Surface(ref surface_style) => {
-                drawtarget.create_source_surface_from_data(&surface_style.surface_data,
-                                                           surface_style.surface_size,
-                                                           surface_style.surface_size.width * 4,
-                                                           SurfaceFormat::B8G8R8A8)
-                          .map(|source_surface| {
-                    Pattern::Surface(SurfacePattern::new(
-                        source_surface.azure_source_surface,
-                        surface_style.repeat_x,
-                        surface_style.repeat_y,
-                        &Transform2D::identity()))
-                    })
+                let source_surface = drawtarget.create_source_surface_from_data(
+                    &surface_style.surface_data,
+                    // FIXME(nox): Why are those i32 values?
+                    surface_style.surface_size.to_i32(),
+                    surface_style.surface_size.width as i32 * 4,
+                    SurfaceFormat::B8G8R8A8,
+                )?;
+                Pattern::Surface(SurfacePattern::new(
+                    source_surface.azure_source_surface,
+                    surface_style.repeat_x,
+                    surface_style.repeat_y,
+                    &Transform2D::identity(),
+                ))
             }
-        }
+        })
     }
 }
 

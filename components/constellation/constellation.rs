@@ -1195,7 +1195,7 @@ where
                 }
             },
             FromScriptMsg::CreateCanvasPaintThread(size, sender) => {
-                self.handle_create_canvas_paint_thread_msg(&size, sender)
+                self.handle_create_canvas_paint_thread_msg(size, sender)
             },
             FromScriptMsg::SetDocumentState(state) => {
                 self.document_states.insert(source_pipeline_id, state);
@@ -2850,7 +2850,7 @@ where
 
     fn handle_create_canvas_paint_thread_msg(
         &mut self,
-        size: &Size2D<i32>,
+        size: Size2D<u32>,
         response_sender: IpcSender<(IpcSender<CanvasMsg>, CanvasId)>,
     ) {
         let webrender_api = self.webrender_api_sender.clone();
@@ -2860,7 +2860,7 @@ where
 
         if let Err(e) = sender.send(CanvasMsg::Create(
             canvas_id_sender,
-            *size,
+            size,
             webrender_api,
             opts::get().enable_canvas_antialiasing,
         )) {

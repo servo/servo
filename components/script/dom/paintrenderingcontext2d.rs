@@ -85,8 +85,7 @@ impl PaintRenderingContext2D {
     ) {
         let size = size * device_pixel_ratio;
         self.device_pixel_ratio.set(device_pixel_ratio);
-        self.context
-            .set_bitmap_dimensions(size.to_untyped().to_i32());
+        self.context.set_bitmap_dimensions(size.to_untyped().to_u32());
         self.scale_by_device_pixel_ratio();
     }
 

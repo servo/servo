@@ -128,7 +128,7 @@ impl CanvasRenderingContext2D {
         canvas: Option<&HTMLCanvasElement>,
         image_cache: Arc<ImageCache>,
         base_url: ServoUrl,
-        size: Size2D<i32>,
+        size: Size2D<u32>,
     ) -> CanvasRenderingContext2D {
         debug!("Creating new canvas rendering context.");
         let (sender, receiver) =
@@ -157,7 +157,7 @@ impl CanvasRenderingContext2D {
     pub fn new(
         global: &GlobalScope,
         canvas: &HTMLCanvasElement,
-        size: Size2D<i32>,
+        size: Size2D<u32>,
     ) -> DomRoot<CanvasRenderingContext2D> {
         let window = window_from_node(canvas);
         let image_cache = window.image_cache();
@@ -173,7 +173,7 @@ impl CanvasRenderingContext2D {
     }
 
     // https://html.spec.whatwg.org/multipage/#concept-canvas-set-bitmap-dimensions
-    pub fn set_bitmap_dimensions(&self, size: Size2D<i32>) {
+    pub fn set_bitmap_dimensions(&self, size: Size2D<u32>) {
         self.reset_to_initial_state();
         self.ipc_renderer
             .send(CanvasMsg::Recreate(size, self.get_canvas_id()))
@@ -456,7 +456,7 @@ impl CanvasRenderingContext2D {
         Ok(())
     }
 
-    fn fetch_image_data(&self, url: ServoUrl) -> Option<(Vec<u8>, Size2D<i32>)> {
+    fn fetch_image_data(&self, url: ServoUrl) -> Option<(Vec<u8>, Size2D<u32>)> {
         let img = match self.request_image_from_cache(url) {
             ImageResponse::Loaded(img, _) => img,
             ImageResponse::PlaceholderLoaded(_, _) |
@@ -466,7 +466,7 @@ impl CanvasRenderingContext2D {
             },
         };
 
-        let image_size = Size2D::new(img.width as i32, img.height as i32);
+        let image_size = Size2D::new(img.width, img.height);
         let image_data = match img.format {
             PixelFormat::BGRA8 => img.bytes.to_vec(),
             PixelFormat::K8 => panic!("K8 color type not supported"),

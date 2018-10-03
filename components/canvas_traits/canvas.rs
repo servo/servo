@@ -22,10 +22,10 @@ pub struct CanvasId(pub u64);
 #[derive(Clone, Deserialize, Serialize)]
 pub enum CanvasMsg {
     Canvas2d(Canvas2dMsg, CanvasId),
-    Create(IpcSender<CanvasId>, Size2D<i32>, webrender_api::RenderApiSender, bool),
+    Create(IpcSender<CanvasId>, Size2D<u32>, webrender_api::RenderApiSender, bool),
     FromLayout(FromLayoutMsg, CanvasId),
     FromScript(FromScriptMsg, CanvasId),
-    Recreate(Size2D<i32>, CanvasId),
+    Recreate(Size2D<u32>, CanvasId),
     Close(CanvasId),
 }
 
@@ -143,7 +143,7 @@ impl RadialGradientStyle {
 #[derive(Clone, Deserialize, Serialize)]
 pub struct SurfaceStyle {
     pub surface_data: ByteBuf,
-    pub surface_size: Size2D<i32>,
+    pub surface_size: Size2D<u32>,
     pub repeat_x: bool,
     pub repeat_y: bool,
 }
@@ -151,7 +151,7 @@ pub struct SurfaceStyle {
 impl SurfaceStyle {
     pub fn new(
         surface_data: Vec<u8>,
-        surface_size: Size2D<i32>,
+        surface_size: Size2D<u32>,
         repeat_x: bool,
         repeat_y: bool,
     ) -> Self {

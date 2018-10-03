@@ -80,7 +80,7 @@ impl<'a> CanvasPaintThread <'a> {
 
     pub fn create_canvas(
         &mut self,
-        size: Size2D<i32>,
+        size: Size2D<u32>,
         webrender_api_sender: webrender_api::RenderApiSender,
         antialias: bool
     ) -> CanvasId {
