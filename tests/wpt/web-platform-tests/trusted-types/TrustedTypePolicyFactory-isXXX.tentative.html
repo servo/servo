@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/helper.sub.js"></script>
+
+<meta http-equiv="Content-Security-Policy" content="trusted-types">
+<body>
+<script>
+  // Policy settings for all tests
+  const noopPolicy = {
+    'createHTML': (s) => s,
+    'createScriptURL': (s) => s,
+    'createURL': (s) => s,
+    'createScript': (s) => s,
+  };
+
+  // isHTML tests
+  test(t => {
+    const p = TrustedTypes.createPolicy('html', noopPolicy);
+    let html = p.createHTML(INPUTS.HTML);
+
+    assert_true(TrustedTypes.isHTML(html));
+    let html2 = Object.create(html);
+
+    // instanceof can pass, but we rely on isHTML
+    assert_true(html2 instanceof TrustedHTML);
+    assert_false(TrustedTypes.isHTML(html2));
+
+    let html3 = Object.assign({}, html, {toString: () => 'fake'});
+
+    assert_false(TrustedTypes.isHTML(html3));
+  }, 'TrustedTypePolicyFactory.isHTML requires the object to be created via policy.');
+
+  // isScript tests
+  test(t => {
+    const p = TrustedTypes.createPolicy('script', noopPolicy);
+    let script = p.createScript(INPUTS.SCRIPT);
+
+    assert_true(TrustedTypes.isScript(script));
+    let script2 = Object.create(script);
+
+    // instanceof can pass, but we rely on isScript
+    assert_true(script2 instanceof TrustedScript);
+    assert_false(TrustedTypes.isScript(script2));
+
+    let script3 = Object.assign({}, script, {toString: () => 'fake'});
+
+    assert_false(TrustedTypes.isScript(script3));
+  }, 'TrustedTypePolicyFactory.isScript requires the object to be created via policy.');
+
+  // isScriptURL tests
+  test(t => {
+    const p = TrustedTypes.createPolicy('script_url', noopPolicy);
+    let script = p.createScriptURL(INPUTS.SCRIPTURL);
+
+    assert_true(TrustedTypes.isScriptURL(script));
+    let script2 = Object.create(script);
+
+    // instanceof can pass, but we rely on isScript
+    assert_true(script2 instanceof TrustedScriptURL);
+    assert_false(TrustedTypes.isScriptURL(script2));
+
+    let script3 = Object.assign({}, script, {toString: () => 'fake'});
+
+    assert_false(TrustedTypes.isScriptURL(script3));
+  }, 'TrustedTypePolicyFactory.isScriptURL requires the object to be created via policy.');
+
+  // isURL tests
+  test(t => {
+    const p = TrustedTypes.createPolicy('url', noopPolicy);
+    let url = p.createURL(INPUTS.URL);
+
+    assert_true(TrustedTypes.isURL(url));
+    let url2 = Object.create(url);
+
+    // instanceof can pass, but we rely on isScript
+    assert_true(url2 instanceof TrustedURL);
+    assert_false(TrustedTypes.isURL(url2));
+
+    let url3 = Object.assign({}, url, {toString: () => 'fake'});
+
+    assert_false(TrustedTypes.isURL(url3));
+  }, 'TrustedTypePolicyFactory.isURL requires the object to be created via policy.');
+
+  // Redefinition tests
+  // TODO(vogelheim): Implement TrustedTypes (& policy objects) as 'frozen'.
+/*  test(t => {
+    assert_throws(new TypeError(), _ => {
+      TrustedTypes.isHTML = () => true;
+    });
+
+    assert_false(TrustedTypes.isHTML({}));
+  }, 'TrustedTypePolicyFactory.IsHTML cannot be redefined.');
+
+  test(t => {
+    assert_throws(new TypeError(), _ => {
+      TrustedTypes.isScript = () => true;
+    });
+
+    assert_false(TrustedTypes.isScript({}));
+  }, 'TrustedTypePolicyFactory.isScript cannot be redefined.');
+
+  test(t => {
+    assert_throws(new TypeError(), _ => {
+      TrustedTypes.isScriptURL = () => true;
+    });
+
+    assert_false(TrustedTypes.isScriptURL({}));
+  }, 'TrustedTypePolicyFactory.isScriptURL cannot be redefined.');
+
+  test(t => {
+    assert_throws(new TypeError(), _ => {
+      TrustedTypes.isURL = () => true;
+    });
+
+    assert_false(TrustedTypes.isURL({}));
+  }, 'TrustedTypePolicyFactory.isURL cannot be redefined.');*/
+</script>

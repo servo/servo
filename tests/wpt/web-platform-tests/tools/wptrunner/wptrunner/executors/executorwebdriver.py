@@ -228,8 +228,12 @@ class WebDriverRun(object):
 
         flag = self.result_flag.wait(timeout + 2 * extra_timeout)
         if self.result is None:
-            assert not flag
-            self.result = False, ("EXTERNAL-TIMEOUT", None)
+            if flag:
+                # flag is True unless we timeout; this *shouldn't* happen, but
+                # it can if self._run fails to set self.result due to raising
+                self.result = False, ("INTERNAL-ERROR", "self._run didn't set a result")
+            else:
+                self.result = False, ("EXTERNAL-TIMEOUT", None)
 
         return self.result
 
@@ -247,11 +251,11 @@ class WebDriverRun(object):
                 # workaround for https://bugs.chromium.org/p/chromedriver/issues/detail?id=2001
                 self.result = False, ("EXTERNAL-TIMEOUT", None)
             else:
-                message = getattr(e, "message", "")
+                message = str(getattr(e, "message", ""))
                 if message:
                     message += "\n"
                 message += traceback.format_exc(e)
-                self.result = False, ("ERROR", message)
+                self.result = False, ("INTERNAL-ERROR", message)
         finally:
             self.result_flag.set()
 

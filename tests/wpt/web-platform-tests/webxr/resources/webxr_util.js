@@ -112,7 +112,6 @@ function forEachWebxrObject(callback) {
   callback(window.XRCoordinateSystem, 'XRCoordinateSystem');
   callback(window.XRFrameOfReference, 'XRFrameOfReference');
   callback(window.XRStageBounds, 'XRStageBounds');
-  callback(window.XRStageBoundsPoint, 'XRStageBoundsPoint');
   callback(window.XRSessionEvent, 'XRSessionEvent');
   callback(window.XRCoordinateSystemEvent, 'XRCoordinateSystemEvent');
 }

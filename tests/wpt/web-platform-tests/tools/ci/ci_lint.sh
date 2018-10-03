@@ -6,4 +6,4 @@ cd $WPT_ROOT
 
 mkdir -p ~/meta
 ./wpt manifest -p ~/meta/MANIFEST.json
-./wpt lint
+./wpt lint --all

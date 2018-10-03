@@ -20,7 +20,8 @@ install:
 matrix:
   fast_finish: true
   include:
-    - os: linux
+    - name: "tag master + upload manifest"
+      os: linux
       python: "2.7"
       env:
         - JOB=manifest_upload SCRIPT=tools/ci/ci_manifest.sh
@@ -31,16 +32,20 @@ matrix:
           secure: "EljDx50oNpDLs7rzwIv+z1PxIgB5KMnx1W0OQkpNvltR0rBW9g/aQaE+Z/c8M/sPqN1bkvKPybKzGKjb6j9Dw3/EJhah4SskH78r3yMAe2DU/ngxqqjjfXcCc2t5MKxzHAILTAxqScPj2z+lG1jeK1Z+K5hTbSP9lk+AvS0D16w="
         file: $WPT_MANIFEST_FILE.gz
         skip_cleanup: true
-    - os: linux
+    - name: "lint"
+      os: linux
       python: "2.7"
       env: JOB=lint SCRIPT=tools/ci/ci_lint.sh
-    - os: linux
+    - name: "update-built-tests.sh"
+      os: linux
       python: "2.7"
       env: JOB=update_built SCRIPT=tools/ci/ci_built_diff.sh
-    - os: linux
+    - name: "build-css-testsuites.sh"
+      os: linux
       python: "2.7"
       env: JOB=build_css SCRIPT=css/build-css-testsuites.sh
-    - os: linux
+    - name: "stability (Firefox Nightly)"
+      os: linux
       python: "2.7"
       addons:
         apt:
@@ -48,7 +53,8 @@ matrix:
             - libnss3-tools
       env:
         - JOB=stability SCRIPT=tools/ci/ci_stability.sh PRODUCT=firefox:nightly
-    - os: linux
+    - name: "stability (Chrome Dev)"
+      os: linux
       sudo: required
       python: "2.7"
       addons:
@@ -58,19 +64,28 @@ matrix:
             - fonts-liberation
       env:
         - JOB=stability SCRIPT=tools/ci/ci_stability.sh PRODUCT=chrome:dev
-    - python: 2.7
+    - name: "tools/ unittests (Python 2)"
+      os: linux
+      python: "2.7"
       env: JOB=tools_unittest TOXENV=py27 HYPOTHESIS_PROFILE=ci SCRIPT=tools/ci/ci_tools_unittest.sh
-    - python: 3.6
+    - name: "tools/ unittests (Python 3)"
+      os: linux
+      python: "3.6"
       env: JOB=tools_unittest TOXENV=py36 HYPOTHESIS_PROFILE=ci SCRIPT=tools/ci/ci_tools_unittest.sh
-    - python: 2.7
-      env: JOB=resources_unittest TOXENV=py27 SCRIPT=tools/ci/ci_resources_unittest.sh
-    - python: 2.7
+    - name: "tools/wpt/ unittests"
+      os: linux
+      python: "2.7"
       addons:
         apt:
           packages:
             - libnss3-tools
       env: JOB=wpt_integration TOXENV=py27,py27-flake8 SCRIPT=tools/ci/ci_wpt.sh
-    - os: linux
+    - name: "resources/ tests"
+      os: linux
+      python: "2.7"
+      env: JOB=resources_unittest TOXENV=py27 SCRIPT=tools/ci/ci_resources_unittest.sh
+    - name: "infrastructure/ tests"
+      os: linux
       python: "2.7"
       env: JOB=wptrunner_infrastructure SCRIPT=tools/ci/ci_wptrunner_infrastructure.sh
       addons:

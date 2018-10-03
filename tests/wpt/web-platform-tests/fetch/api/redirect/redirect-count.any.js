@@ -1,5 +1,6 @@
 // META: script=../resources/utils.js
 // META: script=/common/utils.js
+// META: timeout=long
 
 function redirectCount(desc, redirectUrl, redirectLocation, redirectStatus, maxCount, shouldPass) {
   var uuid_token = token();

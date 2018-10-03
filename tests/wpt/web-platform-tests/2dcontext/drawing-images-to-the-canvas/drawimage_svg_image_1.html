@@ -1,46 +1,31 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Load a 100x100 image to a SVG image and draw it to a 100x100 canvas.</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/common/canvas-tests.js"></script>
+<div id="log"></div>
 <canvas id="dest" height="100" width="100"></canvas>
-
 <script>
-var sourceWidth = 100;
-var sourceHeight = 100;
-var smoothingEnabled = false;
-var destCanvas = document.getElementById('dest');
-var sourceImg = document.createElementNS('http://www.w3.org/2000/svg', 'image');
-sourceImg.setAttributeNS('http://www.w3.org/1999/xlink', 'href', '../2x2.png');
-sourceImg.width = sourceWidth;
-sourceImg.height = sourceHeight;
-var destCtx = destCanvas.getContext('2d');
+async_test(t => {
+  var sourceImg = document.createElementNS('http://www.w3.org/2000/svg', 'image');
+  sourceImg.setAttributeNS('http://www.w3.org/1999/xlink', 'href', '../2x2.png');
+  sourceImg.width = 100;
+  sourceImg.height = 100;
 
-function checkPixel(x, y, expected, epsilon) {
-    var actual = destCtx.getImageData(x, y, 1, 1).data;
-    assert_true(actual.length === expected.length);
-    for (var i=0; i < actual.length; i++)
-        assert_approx_equals(actual[i], expected[i], epsilon);
-}
-
-var pixelTests = [
-    ['Pixel Top Left Image', 0, 0, [253, 140, 245, 255], 1],
-    ['Pixel Top Right Image', 0, 99, [253, 140, 245, 255], 1],
-    ['Pixel Bottom Left Image', 99, 0, [253, 140, 245, 255], 1],
-    ['Pixel Bottom Right Image', 99, 99, [253, 140, 245, 255], 1],
-];
-
-function runTest() {
+  window.onload = t.step_func_done(() => {
+    var destCanvas = document.getElementById('dest');
+    var destCtx = destCanvas.getContext('2d');
     destCtx.fillStyle = "#FF0000";
     destCtx.fillRect(0, 0,  destCanvas.width, destCanvas.height);
-    destCtx.imageSmoothingEnabled = smoothingEnabled;
+    destCtx.imageSmoothingEnabled = false;
     // 2 arguments, the dest origin is 0,0
     // The source canvas will copied to the 0,0 position of the destination canvas
     destCtx.drawImage(sourceImg, 0, 0);
-    generate_tests(checkPixel, pixelTests);
-}
-
-async_test(t => {
-        window.onload = function() {
-            t.step(runTest);
-            t.done();
-        }
-}, 'Load a 100x100 image to a SVG image and draw it to a 100x100 canvas.');
+    _assertPixel(destCanvas, 0, 0, 253, 140, 245, 255);
+    _assertPixel(destCanvas, 0, 99, 253, 140, 245, 255);
+    _assertPixel(destCanvas, 99, 0, 253, 140, 245, 255);
+    _assertPixel(destCanvas, 99, 99, 253, 140, 245, 255);
+  });
+});
 </script>

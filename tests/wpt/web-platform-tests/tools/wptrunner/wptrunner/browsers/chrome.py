@@ -1,16 +1,16 @@
 from .base import Browser, ExecutorBrowser, require_arg
 from ..webdriver_server import ChromeDriverServer
 from ..executors import executor_kwargs as base_executor_kwargs
-from ..executors.executorselenium import (SeleniumTestharnessExecutor,  # noqa: F401
-                                          SeleniumRefTestExecutor)  # noqa: F401
+from ..executors.executorwebdriver import (WebDriverTestharnessExecutor,  # noqa: F401
+                                           WebDriverRefTestExecutor)  # noqa: F401
 from ..executors.executorchrome import ChromeDriverWdspecExecutor  # noqa: F401
 
 
 __wptrunner__ = {"product": "chrome",
                  "check_args": "check_args",
                  "browser": "ChromeBrowser",
-                 "executor": {"testharness": "SeleniumTestharnessExecutor",
-                              "reftest": "SeleniumRefTestExecutor",
+                 "executor": {"testharness": "WebDriverTestharnessExecutor",
+                              "reftest": "WebDriverRefTestExecutor",
                               "wdspec": "ChromeDriverWdspecExecutor"},
                  "browser_kwargs": "browser_kwargs",
                  "executor_kwargs": "executor_kwargs",
@@ -30,34 +30,43 @@ def browser_kwargs(test_type, run_info_data, config, **kwargs):
 
 def executor_kwargs(test_type, server_config, cache_manager, run_info_data,
                     **kwargs):
-    from selenium.webdriver import DesiredCapabilities
-
     executor_kwargs = base_executor_kwargs(test_type, server_config,
                                            cache_manager, run_info_data,
                                            **kwargs)
     executor_kwargs["close_after_done"] = True
-    capabilities = dict(DesiredCapabilities.CHROME.items())
-    capabilities.setdefault("goog:chromeOptions", {})["prefs"] = {
-        "profile": {
-            "default_content_setting_values": {
-                "popups": 1
-            }
+
+    capabilities = {
+        "browserName": "chrome",
+        "platform": "ANY",
+        "version": "",
+        "goog:chromeOptions": {
+            "prefs": {
+                "profile": {
+                    "default_content_setting_values": {
+                        "popups": 1
+                    }
+                }
+            },
+            "w3c": True
         }
     }
+
     for (kwarg, capability) in [("binary", "binary"), ("binary_args", "args")]:
         if kwargs[kwarg] is not None:
             capabilities["goog:chromeOptions"][capability] = kwargs[kwarg]
+
     if kwargs["headless"]:
         if "args" not in capabilities["goog:chromeOptions"]:
             capabilities["goog:chromeOptions"]["args"] = []
         if "--headless" not in capabilities["goog:chromeOptions"]["args"]:
             capabilities["goog:chromeOptions"]["args"].append("--headless")
+
     if test_type == "testharness":
         capabilities["goog:chromeOptions"]["useAutomationExtension"] = False
         capabilities["goog:chromeOptions"]["excludeSwitches"] = ["enable-automation"]
-    if test_type == "wdspec":
-        capabilities["goog:chromeOptions"]["w3c"] = True
+
     executor_kwargs["capabilities"] = capabilities
+
     return executor_kwargs
 
 

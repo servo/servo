@@ -2,6 +2,16 @@ const testURL = "resources/status.py?type=" + encodeURIComponent("text/plain;cha
 
 async_test(t => {
   const client = new XMLHttpRequest();
+  client.onload = t.step_func_done(() => {
+    assert_equals(client.responseText, "\uFFFD\uFFFD");
+  });
+  client.overrideMimeType("text/plain;charset=UTF-8");
+  client.open("GET", testURL);
+  client.send();
+}, "overrideMimeType() is not reset by open(), basic");
+
+async_test(t => {
+  const client = new XMLHttpRequest();
   let secondTime = false;
   client.onload = t.step_func(() => {
     if(!secondTime) {
@@ -10,14 +20,14 @@ async_test(t => {
       client.open("GET", testURL);
       client.send();
     } else {
-      assert_equals(client.responseText, "Âð");
+      assert_equals(client.responseText, "\uFFFD\uFFFD");
       t.done();
     }
   });
   client.open("GET", testURL);
   client.overrideMimeType("text/plain;charset=UTF-8")
   client.send();
-}, "overrideMimeType() state needs to be reset across requests");
+}, "overrideMimeType() is not reset by open()");
 
 async_test(t => {
   const client = new XMLHttpRequest();

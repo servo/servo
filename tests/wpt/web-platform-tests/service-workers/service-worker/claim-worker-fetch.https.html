@@ -15,20 +15,22 @@ promise_test(function(t) {
   return runTest(t, 'resources/claim-nested-worker-fetch-iframe.html');
 }, 'fetch() in nested Worker should be intercepted after the client is claimed.');
 
-var frame;
-var registration;
-
 function runTest(t, iframe_url) {
   var resource = 'simple.txt';
 
+  var frame;
+  var registration;
   var worker;
   var scope = 'resources/';
   var script = 'resources/claim-worker.js';
 
-  const test_result = Promise.resolve()
+  return Promise.resolve()
     // Create the test iframe with a dedicated worker.
     .then(() => with_iframe(iframe_url))
-    .then(f => frame = f)
+    .then(f => {
+      t.add_cleanup(() => f.remove());
+      frame = f;
+    })
 
     // Check the controller and test with fetch in the worker.
     .then(() => assert_equals(frame.contentWindow.navigator.controller,
@@ -40,7 +42,10 @@ function runTest(t, iframe_url) {
                                          'fetch() should not be intercepted.'))
     // Register a service worker.
     .then(() => service_worker_unregister_and_register(t, script, scope))
-    .then(r => worker = r.installing)
+    .then(r => {
+      t.add_cleanup(() => r.unregister());
+      worker = r.installing;
+    })
     .then(() => wait_for_state(t, worker, 'activated'))
 
     // Let the service worker claim the iframe and the worker.
@@ -69,18 +74,6 @@ function runTest(t, iframe_url) {
           assert_equals(response_text,
                         'Intercepted!',
                         'fetch() in the worker should be intercepted.'));
-
-    // Cleanup this testcase.
-    return Promise.resolve()
-        .then(cleanup, cleanup)
-        .then(() => { return test_result; });
-}
-
-const cleanup = async () => {
-  if (registration)
-    await registration.unregister();
-  if (frame)
-    frame.remove();
 }
 
 </script>

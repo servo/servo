@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>User agents must also provide an event handler IDL attribute named ondeviceorientationabsolute on the window object</title>
+    <meta name=viewport content="width=device-width, maximum-scale=1.0">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+  <body>
+    <p>Rotate the device to run the tests.</p>
+    <div id="log"></div>
+    <script>
+      var t1 = async_test("Provide an event handler IDL attribute named ondeviceorientationabsolute");
+      var t2 = async_test("The type of this event handler must be 'DeviceOrientationEvent'");
+      var t3 = async_test("The absolute property must be set to true.");
+      var run = false;
+      if (window.ondeviceorientationabsolute === undefined) {
+        t1.step(t1.unreached_func("ondeviceorientationabsolute not supported"));
+        t2.step(t2.unreached_func("ondeviceorientationabsolute not supported"));
+        t3.step(t3.unreached_func("ondeviceorientationabsolute not supported"));
+      } else {
+        window.ondeviceorientationabsolute = function(e) {
+          if (!run) {
+            run = true;
+            t1.step(function() {
+              assert_equals(e.type, "deviceorientationabsolute");
+            });
+            t1.done();
+            t2.step(function() {
+              assert_true(e instanceof DeviceOrientationEvent);
+           });
+            t2.done();
+            t3.step(function() {
+              assert_true(e.absolute);
+            });
+            t3.done();
+          }
+        };
+      }
+    </script>
+  </body>
+</html>
+
