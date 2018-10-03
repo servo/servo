@@ -197,7 +197,7 @@ public class ServoView extends GLSurfaceView
         }
 
         if (!zoomNecessary && !scrollNecessary && mAnimating) {
-            requestRender();
+            mServo.performUpdates();
         }
 
         if (mZooming || mScrolling || mAnimating) {

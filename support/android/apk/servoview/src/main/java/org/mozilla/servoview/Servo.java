@@ -54,6 +54,10 @@ public class Servo {
         return mJNI.version();
     }
 
+    public void performUpdates() {
+        mRunCallback.inGLThread(() -> mJNI.performUpdates());
+    }
+
     public void setBatchMode(boolean mode) {
         mRunCallback.inGLThread(() -> mJNI.setBatchMode(mode));
     }
