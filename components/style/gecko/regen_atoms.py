@@ -20,21 +20,6 @@ import build
 PATTERN = re.compile('^GK_ATOM\(([^,]*),[^"]*"([^"]*)",\s*(0x[0-9a-f]+),\s*([^,]*),\s*([^)]*)\)',
                      re.MULTILINE)
 FILE = "include/nsGkAtomList.h"
-CLASS = "nsGkAtoms"
-
-
-def gnu_symbolify(ident):
-    return "_ZN{}{}{}{}E".format(len(CLASS), CLASS, len(ident), ident)
-
-
-def msvc64_symbolify(ident, ty):
-    return "?{}@{}@@2PEAV{}@@EA".format(ident, CLASS, ty)
-
-
-def msvc32_symbolify(ident, ty):
-    # Prepend "\x01" to avoid LLVM prefixing the mangled name with "_".
-    # See https://github.com/rust-lang/rust/issues/36097
-    return "\\x01?{}@{}@@2PAV{}@@A".format(ident, CLASS, ty)
 
 
 def map_atom(ident):
@@ -46,7 +31,7 @@ def map_atom(ident):
 
 class Atom:
     def __init__(self, ident, value, hash, ty, atom_type):
-        self.ident = "{}_{}".format(CLASS, ident)
+        self.ident = "nsGkAtoms_{}".format(ident)
         self.original_ident = ident
         self.value = value
         self.hash = hash
@@ -59,15 +44,6 @@ class Atom:
             self.pseudo_ident = (ident.split("_", 1))[1]
         if self.is_anon_box():
             assert self.is_inheriting_anon_box() or self.is_non_inheriting_anon_box()
-
-    def gnu_symbol(self):
-        return gnu_symbolify(self.original_ident)
-
-    def msvc32_symbol(self):
-        return msvc32_symbolify(self.original_ident, self.ty)
-
-    def msvc64_symbol(self):
-        return msvc64_symbolify(self.original_ident, self.ty)
 
     def type(self):
         return self.ty
@@ -148,19 +124,18 @@ PRELUDE = '''
 IMPORTS = '''
 use gecko_bindings::structs::nsStaticAtom;
 use string_cache::Atom;
-
 '''
 
 UNSAFE_STATIC = '''
 #[inline(always)]
-pub unsafe fn atom_from_static(ptr: *mut nsStaticAtom) -> Atom {
+pub unsafe fn atom_from_static(ptr: *const nsStaticAtom) -> Atom {
     Atom::from_static(ptr)
 }
 '''
 
-ATOM_TEMPLATE = '''
+SATOMS_TEMPLATE = '''
             #[link_name = \"{link_name}\"]
-            pub static {name}: *mut {type};
+            pub static nsGkAtoms_sAtoms: *const nsStaticAtom;
 '''[1:]
 
 CFG_IF_TEMPLATE = '''
@@ -178,14 +153,19 @@ cfg_if! {{
 {msvc32}\
         }}
     }}
-}}
+}}\n
 '''
+
+CONST_TEMPLATE = '''
+pub const k_{name}: isize = {index};
+'''[1:]
 
 RULE_TEMPLATE = '''
 ("{atom}") =>
     {{{{
+        use $crate::string_cache::atom_macro;
         #[allow(unsafe_code)] #[allow(unused_unsafe)]
-        unsafe {{ $crate::string_cache::atom_macro::atom_from_static ($crate::string_cache::atom_macro::{name} as *mut _) }}
+        unsafe {{ atom_macro::atom_from_static(atom_macro::nsGkAtoms_sAtoms.offset(atom_macro::k_{name})) }}
     }}}};
 '''[1:]
 
@@ -196,27 +176,27 @@ macro_rules! atom {{
 }}
 '''
 
-
 def write_atom_macro(atoms, file_name):
-    def get_symbols(func):
-        return ''.join([ATOM_TEMPLATE.format(name=atom.ident,
-                                             link_name=func(atom),
-                                             type=atom.type()) for atom in atoms])
-
     with FileAvoidWrite(file_name) as f:
         f.write(PRELUDE)
         f.write(IMPORTS)
-
-        for ty in sorted(set([atom.type() for atom in atoms])):
-            if ty != "nsStaticAtom":
-                f.write("pub enum {} {{}}\n".format(ty))
-
         f.write(UNSAFE_STATIC)
 
-        gnu_symbols = get_symbols(Atom.gnu_symbol)
-        msvc32_symbols = get_symbols(Atom.msvc32_symbol)
-        msvc64_symbols = get_symbols(Atom.msvc64_symbol)
+        gnu_name='_ZN9nsGkAtoms6sAtomsE'
+        gnu_symbols = SATOMS_TEMPLATE.format(link_name=gnu_name)
+
+        # Prepend "\x01" to avoid LLVM prefixing the mangled name with "_".
+        # See https://github.com/rust-lang/rust/issues/36097
+        msvc32_name = '\\x01?sAtoms@nsGkAtoms@@0QBVnsStaticAtom@@B'
+        msvc32_symbols = SATOMS_TEMPLATE.format(link_name=msvc32_name)
+
+        msvc64_name = '?sAtoms@nsGkAtoms@@0QEBVnsStaticAtom@@EB'
+        msvc64_symbols = SATOMS_TEMPLATE.format(link_name=msvc64_name)
+
         f.write(CFG_IF_TEMPLATE.format(gnu=gnu_symbols, msvc32=msvc32_symbols, msvc64=msvc64_symbols))
+
+        consts = [CONST_TEMPLATE.format(name=atom.ident, index=i) for (i, atom) in enumerate(atoms)]
+        f.write('{}'.format(''.join(consts)))
 
         macro_rules = [RULE_TEMPLATE.format(atom=atom.value, name=atom.ident) for atom in atoms]
         f.write(MACRO_TEMPLATE.format(body=''.join(macro_rules)))
