@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Tests for module import: ServiceWorker</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/test-helpers.sub.js"></script>
+<script src="/workers/modules/resources/import-test-cases.js"></script>
+<body>
+<script>
+function import_test(testCase) {
+  promise_test(async t => {
+    const msgPromise = new Promise(resolve => {
+      navigator.serviceWorker.onmessage = resolve;
+    });
+    await service_worker_unregister(t, testCase.scriptURL);
+    const registration = await navigator.serviceWorker.register(
+      testCase.scriptURL,
+      { scope: testCase.scriptURL, type: 'module' });
+    registration.installing.postMessage(
+      'Send message for tests from main script.');
+    const msgEvent = await msgPromise;
+    assert_array_equals(msgEvent.data, testCase.expectation);
+  }, testCase.description);
+}
+
+testCases.forEach(import_test);
+</script>
+</body>

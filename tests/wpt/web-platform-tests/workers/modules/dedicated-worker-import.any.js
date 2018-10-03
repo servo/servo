@@ -6,6 +6,7 @@
 function import_test(testCase) {
   promise_test(async () => {
     const worker = new Worker(testCase.scriptURL, { type: 'module' });
+    worker.postMessage('Send message for tests from main script.');
     const msgEvent = await new Promise((resolve, reject) => {
       worker.onmessage = resolve;
       worker.onerror = (error) => reject(error && error.message);

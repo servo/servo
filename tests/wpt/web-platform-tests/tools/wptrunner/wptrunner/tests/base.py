@@ -17,7 +17,7 @@ if "CURRENT_TOX_ENV" in os.environ:
     current_tox_env_split = os.environ["CURRENT_TOX_ENV"].split("-")
 
     tox_env_extra_browsers = {
-        "chrome": {"chrome_android", "chrome_webdriver"},
+        "chrome": {"chrome_android"},
         "edge": {"edge_webdriver"},
         "safari": {"safari_webdriver"},
         "servo": {"servodriver"},

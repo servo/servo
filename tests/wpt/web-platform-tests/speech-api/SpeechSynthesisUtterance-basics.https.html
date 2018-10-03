@@ -31,6 +31,17 @@ test(function() {
 }, 'new SpeechSynthesisUtterance("hello") text and defaults');
 
 test(function() {
+  const utt = new SpeechSynthesisUtterance(null);
+  assert_equals(utt.text, 'null');
+}, 'new SpeechSynthesisUtterance(null)');
+
+test(function() {
+  const utt = new SpeechSynthesisUtterance(undefined);
+  // See https://github.com/w3c/speech-api/pull/48.
+  assert_equals(utt.text, '');
+}, 'new SpeechSynthesisUtterance(undefined)');
+
+test(function() {
   const utt = new SpeechSynthesisUtterance();
   utt.text = 'word';
   assert_equals(utt.text, 'word');

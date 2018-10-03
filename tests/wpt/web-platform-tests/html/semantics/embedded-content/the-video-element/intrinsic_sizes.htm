@@ -1,0 +1,75 @@
+<!doctype html>
+<html>
+<head>
+<title>video element - intrinsic sizes</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/media.js"></script>
+</head>
+<body>
+<p><a href="https://html.spec.whatwg.org/multipage/#the-video-element">spec reference</a></p>
+<video id="v1"></video>
+<video id="v2" width="400"></video>
+<video id="v3" height="100"></video>
+<video id="v4"></video>
+<video id="v5" poster="/media/poster.png"></video>
+<div id="log"></div>
+<script>
+test(function() {
+  var s = getComputedStyle(document.getElementById("v1"));
+  assert_equals(s.width, "300px");
+  assert_equals(s.height, "150px");
+}, "default object size is 300x150");
+
+test(function() {
+  var s = getComputedStyle(document.getElementById("v2"));
+  assert_equals(s.width, "400px");
+  assert_equals(s.height, "200px");
+}, "default height is half the width");
+
+test(function() {
+  var s = getComputedStyle(document.getElementById("v3"));
+  assert_equals(s.width, "200px");
+  assert_equals(s.height, "100px");
+}, "default width is twice the height");
+
+async_test(function(t) {
+  var v = document.getElementById("v4");
+  var s = getComputedStyle(v);
+  v.src = getVideoURI("/media/movie_5") + "?" + new Date() + Math.random();
+  v.onerror = t.unreached_func();
+  v.onloadedmetadata = t.step_func(function() {
+    assert_equals(s.width, '320px');
+    assert_equals(s.height, '240px');
+    v.removeAttribute("src");
+    v.load();
+    // Dimensions should be updated only on next layout.
+    assert_equals(s.width, '320px');
+    assert_equals(s.height, '240px');
+    requestAnimationFrame(t.step_func_done(function() {
+      assert_equals(s.width, "300px");
+      assert_equals(s.height, "150px");
+    }));
+  });
+}, "default object size after src is removed");
+
+async_test(function(t) {
+  var v = document.getElementById("v5");
+  var s = getComputedStyle(v);
+  v.onerror = t.unreached_func();
+  onload = t.step_func(function() {
+    assert_equals(s.width, '102px');
+    assert_equals(s.height, '77px');
+    v.removeAttribute("poster");
+    // Dimensions should be updated only on next layout.
+    assert_equals(s.width, '102px');
+    assert_equals(s.height, '77px');
+    requestAnimationFrame(t.step_func_done(function() {
+      assert_equals(s.width, "300px");
+      assert_equals(s.height, "150px");
+    }));
+  });
+}, "default object size after poster is removed");
+</script>
+</body>
+</html>

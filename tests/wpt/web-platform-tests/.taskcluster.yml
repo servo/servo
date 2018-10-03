@@ -1,6 +1,6 @@
 version: 1
 policy:
-  pullRequests: collaborators
+  pullRequests: public
 tasks:
   $flattenDeep:
     - $if: tasks_for == "github-push"

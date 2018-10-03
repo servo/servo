@@ -292,11 +292,6 @@ class ChromeAndroid(BrowserSetup):
                 raise WptrunError("Unable to locate or install chromedriver binary")
 
 
-class ChromeWebDriver(Chrome):
-    name = "chrome_webdriver"
-    browser_cls = browser.ChromeWebDriver
-
-
 class Opera(BrowserSetup):
     name = "opera"
     browser_cls = browser.Opera
@@ -435,7 +430,6 @@ product_setup = {
     "firefox": Firefox,
     "chrome": Chrome,
     "chrome_android": ChromeAndroid,
-    "chrome_webdriver": ChromeWebDriver,
     "edge": Edge,
     "edge_webdriver": EdgeWebDriver,
     "ie": InternetExplorer,

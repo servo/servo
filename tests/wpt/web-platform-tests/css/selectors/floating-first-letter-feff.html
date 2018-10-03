@@ -1,0 +1,17 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Drop cap with U+FEFF in the document</title>
+<meta name="assert" content="The text placement within :first-line should not be affected by later presence of U+FEFF.">
+<link rel=help href=https://drafts.csswg.org/css-pseudo-4/#first-line-styling>
+<link rel=match href=/css/selectors/floating-first-letter-ref.html>
+<style>
+  p:first-line {
+    background: lightblue;
+  }
+
+  p::first-letter {
+    float: left;
+    font-size: 4rem;
+  }
+</style>
+<p>Ab</p>&#xFEFF;
