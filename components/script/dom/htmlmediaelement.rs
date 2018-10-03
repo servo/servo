@@ -44,6 +44,7 @@ use net_traits::request::{CredentialsMode, Destination, RequestInit};
 use network_listener::{NetworkListener, PreInvoke};
 use script_layout_interface::HTMLMediaData;
 use script_thread::ScriptThread;
+use servo_media::Error as ServoMediaError;
 use servo_media::ServoMedia;
 use servo_media::player::{PlaybackState, Player, PlayerEvent};
 use servo_media::player::frame::{Frame, FrameRenderer};
@@ -159,7 +160,7 @@ pub struct HTMLMediaElement {
     #[ignore_malloc_size_of = "promises are hard"]
     in_flight_play_promises_queue: DomRefCell<VecDeque<(Box<[Rc<Promise>]>, ErrorResult)>>,
     #[ignore_malloc_size_of = "servo_media"]
-    player: Box<Player>,
+    player: Box<Player<Error=ServoMediaError>>,
     #[ignore_malloc_size_of = "Arc"]
     frame_renderer: Arc<Mutex<MediaFrameRenderer>>,
     fetch_canceller: DomRefCell<FetchCanceller>,
@@ -316,7 +317,9 @@ impl HTMLMediaElement {
                     }
 
                     this.fulfill_in_flight_play_promises(|| {
-                        this.player.play();
+                        if let Err(e) = this.player.play() {
+                            eprintln!("Could not play media {:?}", e);
+                        }
                     });
                 }),
                     window.upcast(),
@@ -369,7 +372,9 @@ impl HTMLMediaElement {
                         // Step 2.3.2.
                         this.upcast::<EventTarget>().fire_event(atom!("pause"));
 
-                        this.player.pause();
+                        if let Err(e) = this.player.pause() {
+                            eprintln!("Could not pause player {:?}", e);
+                        }
 
                         // Step 2.3.3.
                         // Done after running this closure in
@@ -406,7 +411,9 @@ impl HTMLMediaElement {
                 this.fulfill_in_flight_play_promises(|| {
                     // Step 2.1.
                     this.upcast::<EventTarget>().fire_event(atom!("playing"));
-                    this.player.play();
+                    if let Err(e) = this.player.play() {
+                        eprintln!("Could not play media {:?}", e);
+                    }
 
                     // Step 2.2.
                     // Done after running this closure in
@@ -638,7 +645,8 @@ impl HTMLMediaElement {
 
     // https://html.spec.whatwg.org/multipage/#concept-media-load-resource
     fn resource_fetch_algorithm(&self, resource: Resource) {
-        if self.setup_media_player().is_err() {
+        if let Err(e) = self.setup_media_player() {
+            eprintln!("Setup media player error {:?}", e);
             self.queue_dedicated_media_source_failure_steps();
             return;
         }
@@ -774,7 +782,9 @@ impl HTMLMediaElement {
                     // Step 5.
                     this.upcast::<EventTarget>().fire_event(atom!("error"));
 
-                    this.player.stop();
+                    if let Err(e) = this.player.stop() {
+                        eprintln!("Could not stop player {:?}", e);
+                    }
 
                     // Step 6.
                     // Done after running this closure in
@@ -936,12 +946,12 @@ impl HTMLMediaElement {
     }
 
     // servo media player
-    fn setup_media_player(&self) -> Result<(), ()>{
+    fn setup_media_player(&self) -> Result<(), ServoMediaError>{
         let (action_sender, action_receiver) = ipc::channel().unwrap();
 
-        self.player.register_event_handler(action_sender);
+        self.player.register_event_handler(action_sender)?;
         self.player
-            .register_frame_renderer(self.frame_renderer.clone());
+            .register_frame_renderer(self.frame_renderer.clone())?;
 
         let trusted_node = Trusted::new(self);
         let window = window_from_node(self);
@@ -1239,7 +1249,9 @@ impl FetchResponseListener for HTMLMediaElementContext {
         if let Some(metadata) = self.metadata.as_ref() {
             if let Some(headers) = metadata.headers.as_ref() {
                 if let Some(content_length) = headers.get::<ContentLength>() {
-                    self.elem.root().player.set_input_size(**content_length);
+                    if let Err(e) = self.elem.root().player.set_input_size(**content_length) {
+                        eprintln!("Could not set player input size {:?}", e);
+                    }
                 }
             }
         }
@@ -1270,8 +1282,8 @@ impl FetchResponseListener for HTMLMediaElementContext {
         let elem = self.elem.root();
 
         // Push input data into the player.
-        if let Err(_) = elem.player.push_data(payload) {
-            eprintln!("Couldn't push input data to player");
+        if let Err(e) = elem.player.push_data(payload) {
+            eprintln!("Could not push input data to player {:?}", e);
             return;
         }
 
@@ -1297,8 +1309,8 @@ impl FetchResponseListener for HTMLMediaElementContext {
         let elem = self.elem.root();
 
         // Signal the eos to player.
-        if let Err(_) = elem.player.end_of_stream() {
-            eprintln!("Couldn't signal EOS to player");
+        if let Err(e) = elem.player.end_of_stream() {
+            eprintln!("Could not signal EOS to player {:?}", e);
         }
 
         if status.is_ok() {

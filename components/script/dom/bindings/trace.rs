@@ -91,6 +91,7 @@ use servo_arc::Arc as ServoArc;
 use servo_atoms::Atom;
 use servo_channel::{Receiver, Sender};
 use servo_media::Backend;
+use servo_media::Error as ServoMediaError;
 use servo_media::audio::analyser_node::AnalysisEngine;
 use servo_media::audio::buffer_source_node::AudioBuffer;
 use servo_media::audio::context::AudioContext;
@@ -456,7 +457,7 @@ unsafe_no_jsmanaged_fields!(AudioBuffer);
 unsafe_no_jsmanaged_fields!(AudioContext<Backend>);
 unsafe_no_jsmanaged_fields!(NodeId);
 unsafe_no_jsmanaged_fields!(AnalysisEngine, DistanceModel, PanningModel, ParamType);
-unsafe_no_jsmanaged_fields!(Player);
+unsafe_no_jsmanaged_fields!(Player<Error=ServoMediaError>);
 unsafe_no_jsmanaged_fields!(Mutex<MediaFrameRenderer>);
 unsafe_no_jsmanaged_fields!(RenderApiSender);
 
