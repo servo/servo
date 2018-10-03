@@ -425,7 +425,9 @@ class MachCommands(CommandBase):
             if not os.path.exists(gst_lib_path):
                 # Download GStreamer dependencies if they have not already been downloaded
                 print("Downloading GStreamer dependencies")
-                gst_url = "https://github.com/servo/libgstreamer_android_gen/blob/master/out/%s?raw=true" % gst_lib_zip
+                gst_url = "https://github.com/servo/libgstreamer_android_gen/blob/" \
+                    "ebb0f0097fec985e0cef988c54a28c2ba06761aa/out/%s?raw=true" % gst_lib_zip
+                print(gst_url)
                 urllib.urlretrieve(gst_url, gst_lib_zip)
                 zip_ref = zipfile.ZipFile(gst_lib_zip, "r")
                 zip_ref.extractall(gst_dir)
