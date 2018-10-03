@@ -2,6 +2,13 @@ Start-Transcript -Path "C:\first_boot.txt"
 
 Get-ChildItem Env: | Out-File "C:\install_env.txt"
 
+# DisableIndexing: Disable indexing on all disk volumes (for performance)
+Get-WmiObject Win32_Volume -Filter "IndexingEnabled=$true" | Set-WmiInstance -Arguments @{IndexingEnabled=$false}
+
+# Disable Windows Defender
+# https://docs.microsoft.com/en-us/windows/security/threat-protection/windows-defender-antivirus/windows-defender-antivirus-on-windows-server-2016#install-or-uninstall-windows-defender-av-on-windows-server-2016
+Uninstall-WindowsFeature -Name Windows-Defender
+
 # use TLS 1.2 (see bug 1443595)
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
