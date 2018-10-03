@@ -1214,19 +1214,68 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
         dirty_width: Finite<f64>,
         dirty_height: Finite<f64>,
     ) {
-        let data = imagedata.get_data_array();
-        let offset = Vector2D::new(*dx, *dy);
-        let image_data_size = Size2D::new(imagedata.Width() as f64, imagedata.Height() as f64);
+        let imagedata_size = Size2D::new(imagedata.Width() as f64, imagedata.Height() as f64);
+        if imagedata_size.width <= 0. || imagedata_size.height <= 0. {
+            return;
+        }
 
-        let dirty_rect = Rect::new(
-            Point2D::new(*dirty_x, *dirty_y),
-            Size2D::new(*dirty_width, *dirty_height),
-        );
+        let mut dirty_x = *dirty_x;
+        let mut dirty_y = *dirty_y;
+        let mut dirty_width = *dirty_width;
+        let mut dirty_height = *dirty_height;
+
+        // Step 1.
+        // Done later.
+
+        // Step 2.
+        // TODO: throw InvalidState if buffer is detached.
+
+        // Step 3.
+        if dirty_width < 0. {
+            dirty_x += dirty_width;
+            dirty_width = -dirty_width;
+        }
+        if dirty_height < 0. {
+            dirty_y += dirty_height;
+            dirty_height = -dirty_height;
+        }
+
+        // Step 4.
+        if dirty_x < 0. {
+            dirty_width += dirty_x;
+            dirty_x = 0.;
+        }
+        if dirty_y < 0. {
+            dirty_height += dirty_y;
+            dirty_y = 0.;
+        }
+
+        // Step 5.
+        if dirty_x + dirty_width > imagedata_size.width {
+            dirty_width = imagedata_size.width - dirty_x;
+        }
+        if dirty_y + dirty_height > imagedata_size.height {
+            dirty_height = imagedata_size.height - dirty_y;
+        }
+
+        // Step 6.
+        if dirty_width <= 0. || dirty_height <= 0. {
+            return;
+        }
+
+        // FIXME(nox): There is no need to make a Vec<u8> of all the pixels
+        // if we didn't want to put the entire image.
+        let buffer = imagedata.get_data_array();
+
+        // Step 7.
         self.send_canvas_2d_msg(Canvas2dMsg::PutImageData(
-            data.into(),
-            offset,
-            image_data_size,
-            dirty_rect,
+            buffer.into(),
+            Vector2D::new(*dx, *dy),
+            imagedata_size,
+            Rect::new(
+                Point2D::new(dirty_x, dirty_y),
+                Size2D::new(dirty_width, dirty_height),
+            ),
         ));
         self.mark_as_dirty();
     }

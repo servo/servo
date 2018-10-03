@@ -454,57 +454,12 @@ impl<'a> CanvasData<'a> {
         imagedata: Vec<u8>,
         offset: Vector2D<f64>,
         image_data_size: Size2D<f64>,
-        mut dirty_rect: Rect<f64>
+        dirty_rect: Rect<f64>
     ) {
-        if image_data_size.width <= 0.0 || image_data_size.height <= 0.0 {
-            return
-        }
-
         assert_eq!(image_data_size.width * image_data_size.height * 4.0, imagedata.len() as f64);
 
-        // Step 1. TODO (neutered data)
-
-        // Step 2.
-        if dirty_rect.size.width < 0.0f64 {
-            dirty_rect.origin.x += dirty_rect.size.width;
-            dirty_rect.size.width = -dirty_rect.size.width;
-        }
-
-        if dirty_rect.size.height < 0.0f64 {
-            dirty_rect.origin.y += dirty_rect.size.height;
-            dirty_rect.size.height = -dirty_rect.size.height;
-        }
-
-        // Step 3.
-        if dirty_rect.origin.x < 0.0f64 {
-            dirty_rect.size.width += dirty_rect.origin.x;
-            dirty_rect.origin.x = 0.0f64;
-        }
-
-        if dirty_rect.origin.y < 0.0f64 {
-            dirty_rect.size.height += dirty_rect.origin.y;
-            dirty_rect.origin.y = 0.0f64;
-        }
-
-        // Step 4.
-        if dirty_rect.max_x() > image_data_size.width {
-            dirty_rect.size.width = image_data_size.width - dirty_rect.origin.x;
-        }
-
-        if dirty_rect.max_y() > image_data_size.height {
-            dirty_rect.size.height = image_data_size.height - dirty_rect.origin.y;
-        }
-
-        // 5) If either dirtyWidth or dirtyHeight is negative or zero,
-        // stop without affecting any bitmaps
-        if dirty_rect.size.width <= 0.0 || dirty_rect.size.height <= 0.0 {
-            return
-        }
-
-        // Step 6.
         let dest_rect = dirty_rect.translate(&offset).to_i32();
 
-        // azure_hl operates with integers. We need to cast the image size
         let image_size = image_data_size.to_i32();
 
         let first_pixel = dest_rect.origin - offset.to_i32();
