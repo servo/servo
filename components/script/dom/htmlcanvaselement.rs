@@ -383,12 +383,11 @@ impl HTMLCanvasElementMethods for HTMLCanvasElement {
                     None => return Ok(USVString("data:,".into())),
                 }
             },
-            Some(CanvasContext::WebGL2(ref context)) => match context
-                .base_context()
-                .get_image_data(self.Width(), self.Height())
-            {
-                Some(data) => data,
-                None => return Ok(USVString("data:,".into())),
+            Some(CanvasContext::WebGL2(ref context)) => {
+                match context.base_context().get_image_data(self.Width(), self.Height()) {
+                    Some(data) => data,
+                    None => return Ok(USVString("data:,".into())),
+                }
             },
             None => {
                 // Each pixel is fully-transparent black.
