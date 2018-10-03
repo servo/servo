@@ -292,14 +292,16 @@ pub const FONT_STYLE_OBLIQUE_MAX_ANGLE_DEGREES: f32 = 90.;
 pub const FONT_STYLE_OBLIQUE_MIN_ANGLE_DEGREES: f32 = -90.;
 
 impl SpecifiedFontStyle {
-    /// Gets a clamped angle from a specified Angle.
-    pub fn compute_angle(angle: &Angle) -> ComputedAngle {
-        ComputedAngle::Deg(
-            angle
-                .degrees()
-                .max(FONT_STYLE_OBLIQUE_MIN_ANGLE_DEGREES)
-                .min(FONT_STYLE_OBLIQUE_MAX_ANGLE_DEGREES),
-        )
+    /// Gets a clamped angle in degrees from a specified Angle.
+    pub fn compute_angle_degrees(angle: &Angle) -> f32 {
+        angle
+            .degrees()
+            .max(FONT_STYLE_OBLIQUE_MIN_ANGLE_DEGREES)
+            .min(FONT_STYLE_OBLIQUE_MAX_ANGLE_DEGREES)
+    }
+
+    fn compute_angle(angle: &Angle) -> ComputedAngle {
+        ComputedAngle::Deg(Self::compute_angle_degrees(angle))
     }
 
     /// Parse a suitable angle for font-style: oblique.
@@ -380,6 +382,7 @@ impl Parse for FontStyle {
 /// https://drafts.csswg.org/css-fonts-4/#font-stretch-prop
 #[allow(missing_docs)]
 #[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss)]
+#[repr(u8)]
 pub enum FontStretch {
     Stretch(Percentage),
     Keyword(FontStretchKeyword),
@@ -2057,6 +2060,29 @@ impl FontLanguageOverride {
         FontLanguageOverride::Normal
     }
 
+    /// The ToComputedValue implementation for non-system-font
+    /// FontLanguageOverride, used for @font-face descriptors.
+    #[inline]
+    pub fn compute_non_system(&self) -> computed::FontLanguageOverride {
+        match *self {
+            FontLanguageOverride::Normal => computed::FontLanguageOverride(0),
+            FontLanguageOverride::Override(ref lang) => {
+                if lang.is_empty() || lang.len() > 4 {
+                    return computed::FontLanguageOverride(0);
+                }
+                let mut bytes = [b' '; 4];
+                for (byte, lang_byte) in bytes.iter_mut().zip(lang.as_bytes()) {
+                    if !lang_byte.is_ascii() {
+                        return computed::FontLanguageOverride(0);
+                    }
+                    *byte = *lang_byte;
+                }
+                computed::FontLanguageOverride(BigEndian::read_u32(&bytes))
+            },
+            FontLanguageOverride::System(..) => unreachable!(),
+        }
+    }
+
     system_font_methods!(FontLanguageOverride, font_language_override);
 }
 
@@ -2066,19 +2092,8 @@ impl ToComputedValue for FontLanguageOverride {
     #[inline]
     fn to_computed_value(&self, context: &Context) -> computed::FontLanguageOverride {
         match *self {
-            FontLanguageOverride::Normal => computed::FontLanguageOverride(0),
-            FontLanguageOverride::Override(ref lang) => {
-                if lang.is_empty() || lang.len() > 4 || !lang.is_ascii() {
-                    return computed::FontLanguageOverride(0);
-                }
-                let mut computed_lang = lang.to_string();
-                while computed_lang.len() < 4 {
-                    computed_lang.push(' ');
-                }
-                let bytes = computed_lang.into_bytes();
-                computed::FontLanguageOverride(BigEndian::read_u32(&bytes))
-            },
             FontLanguageOverride::System(_) => self.compute_system(context),
+            _ => self.compute_non_system(),
         }
     }
     #[inline]

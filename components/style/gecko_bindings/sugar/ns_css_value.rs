@@ -177,21 +177,6 @@ impl nsCSSValue {
         self.set_string_from_atom_internal(s, nsCSSUnit::eCSSUnit_Local_Font);
     }
 
-    /// Set to a font stretch.
-    pub fn set_font_stretch(&mut self, s: f32) {
-        unsafe { bindings::Gecko_CSSValue_SetFontStretch(self, s) }
-    }
-
-    /// Set to a font style
-    pub fn set_font_style(&mut self, s: f32) {
-        unsafe { bindings::Gecko_CSSValue_SetFontSlantStyle(self, s) }
-    }
-
-    /// Set to a font weight
-    pub fn set_font_weight(&mut self, w: f32) {
-        unsafe { bindings::Gecko_CSSValue_SetFontWeight(self, w) }
-    }
-
     fn set_int_internal(&mut self, value: i32, unit: nsCSSUnit) {
         unsafe { bindings::Gecko_CSSValue_SetInt(self, value, unit) }
     }
