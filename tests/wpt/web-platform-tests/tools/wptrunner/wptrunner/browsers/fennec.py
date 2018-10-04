@@ -93,7 +93,7 @@ def browser_kwargs(test_type, run_info_data, config, **kwargs):
             "symbols_path": kwargs["symbols_path"],
             "stackwalk_binary": kwargs["stackwalk_binary"],
             "certutil_binary": kwargs["certutil_binary"],
-            "ca_certificate_path": kwargs["ssl_env"].ca_cert_path(),
+            "ca_certificate_path": config.ssl_config["ca_cert_path"],
             "stackfix_dir": kwargs["stackfix_dir"],
             "binary_args": kwargs["binary_args"],
             "timeout_multiplier": get_timeout_multiplier(test_type,

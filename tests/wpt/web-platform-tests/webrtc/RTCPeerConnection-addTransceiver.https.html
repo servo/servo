@@ -354,56 +354,6 @@
     });
   }, `addTransceiver() with valid rid value should succeed`);
 
-  /*
-    5.1.  addTransceiver
-      7.  If any RTCRtpEncodingParameters dictionary in sendEncodings contains a
-          read-only parameter other than rid, throw an InvalidAccessError.
-
-      - The sendEncodings argument can be used to specify the number of offered
-        simulcast encodings, and optionally their RIDs and encoding parameters.
-        Aside from rid , all read-only parameters in the RTCRtpEncodingParameters
-        dictionaries, such as ssrc, must be left unset, or an error will be thrown.
-   */
-  test(t => {
-    const pc = new RTCPeerConnection();
-    t.add_cleanup(() => pc.close());
-
-    assert_throws('InvalidAccessError', () =>
-      pc.addTransceiver('audio', {
-        sendEncodings: [{
-          ssrc: 2
-        }]
-      }));
-  }, `addTransceiver() with readonly ssrc set should throw InvalidAccessError`);
-
-  test(t => {
-    const pc = new RTCPeerConnection();
-    t.add_cleanup(() => pc.close());
-
-    assert_throws('InvalidAccessError', () =>
-      pc.addTransceiver('audio', {
-        sendEncodings: [{
-          rtx: {
-            ssrc: 2
-          }
-        }]
-      }));
-  }, `addTransceiver() with readonly rtx set should throw InvalidAccessError`);
-
-  test(t => {
-    const pc = new RTCPeerConnection();
-    t.add_cleanup(() => pc.close());
-
-    assert_throws('InvalidAccessError', () =>
-      pc.addTransceiver('audio', {
-        sendEncodings: [{
-          fec: {
-            ssrc: 2
-          }
-        }]
-      }));
-  }, `addTransceiver() with readonly fec set should throw InvalidAccessError`);
-
   test(t => {
     const pc = new RTCPeerConnection();
     t.add_cleanup(() => pc.close());

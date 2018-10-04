@@ -138,33 +138,23 @@ function initSession(testCases) {
 // Schedules async_test's for each of the test cases, treating them as a single session,
 // and wires up the continueAfterSendingBeacon() and waitForResults() calls.
 // The method looks for several "extension" functions in the global scope:
-//   - self.buildId: if present, can change the display name of a test.
 //   - self.buildBaseUrl: if present, can change the base URL of a beacon target URL (this
 //     is the scheme, hostname, and port).
 //   - self.buildTargetUrl: if present, can modify a beacon target URL (for example wrap it).
 // Parameters:
 //     testCases: An array of test cases.
-function runTests(testCases) {
-    var session = initSession(testCases);
+//     sendData [optional]: A function that sends the beacon.
+function runTests(testCases, sendData = self.sendData) {
+    const session = initSession(testCases);
 
     testCases.forEach(function(testCase, testIndex) {
         // Make a copy of the test case as we'll be storing some metadata on it,
         // such as which session it belongs to.
-        var testCaseCopy = Object.assign({ session: session }, testCase);
+        const testCaseCopy = Object.assign({ session: session }, testCase);
 
-        // Extension point: generate the test id.
-        var testId = testCase.id;
-        if (self.buildId) {
-            testId = self.buildId(testId);
-        }
-        testCaseCopy.origId = testCaseCopy.id;
-        testCaseCopy.id = testId;
         testCaseCopy.index = testIndex;
 
-        session.add(testCaseCopy);
-
-        // Schedule the sendbeacon in an async test.
-        async_test(function(test) {
+        async_test((test) => {
             // Save the testharness.js 'test' object, so that we only have one object
             // to pass around.
             testCaseCopy.test = test;
@@ -174,22 +164,15 @@ function runTests(testCases) {
             if (self.buildBaseUrl) {
                 baseUrl = self.buildBaseUrl(baseUrl);
             }
-            var targetUrl = `${baseUrl}/beacon/resources/beacon.py?cmd=store&sid=${session.id}&tid=${testId}&tidx=${testIndex}`;
+            var targetUrl = `${baseUrl}/beacon/resources/beacon.py?cmd=store&sid=${session.id}&tid=${testCaseCopy.id}&tidx=${testIndex}`;
             if (self.buildTargetUrl) {
                 targetUrl = self.buildTargetUrl(targetUrl);
             }
             // Attach the URL to the test object for debugging purposes.
             testCaseCopy.url = targetUrl;
 
-            // Extension point: send the beacon immediately, or defer.
-            var sendFunc = test.step_func(function sendImmediately(testCase) {
-                var sendResult = sendData(testCase);
-                continueAfterSendingBeacon(sendResult, testCase);
-            });
-            if (self.sendFunc) {
-                sendFunc = test.step_func(self.sendFunc);
-            }
-            sendFunc(testCaseCopy);
+            assert_true(sendData(testCaseCopy), 'sendBeacon should succeed');
+            waitForResult(testCaseCopy).then(() => test.done(), test.step_func((e) => {throw e;}));
         }, `Verify 'navigator.sendbeacon()' successfully sends for variant: ${testCaseCopy.id}`);
     });
 }
@@ -201,161 +184,54 @@ function runTests(testCases) {
 // the test.
 // Returns the result of the 'sendbeacon()' function call, true or false.
 function sendData(testCase) {
-    var sent = false;
-    if (testCase.data) {
-        sent = self.navigator.sendBeacon(testCase.url, testCase.data);
-    } else {
-        sent = self.navigator.sendBeacon(testCase.url)
-    }
-    return sent;
+    return self.navigator.sendBeacon(testCase.url, testCase.data);
 }
 
-// Continues a single test after the beacon has been sent for that test.
-// Will trigger waitForResults() for the session if this is the last test
-// in the session to send its beacon.
-// Assumption: will be called on the test's step_func so that assert's do
-// not have to be wrapped.
-function continueAfterSendingBeacon(sendResult, testCase) {
-    var session = testCase.session;
+// Poll the server for the test result.
+async function waitForResult(testCase) {
+    const session = testCase.session;
+    const index = testCase.index;
+    const url = `resources/beacon.py?cmd=stat&sid=${session.id}&tidx_min=${index}&tidx_max=${index}`;
+    for (let i = 0; i < 30; ++i) {
+        const response = await fetch(url);
+        const text = await response.text();
+        const results = JSON.parse(text);
 
-    // Recaclulate the sent vs. total counts.
-    if (sendResult) {
-        session.sentCount++;
-    } else {
-        session.totalCount--;
-    }
-
-    // If this was the last test in the session to send its beacon, start polling for results.
-    // Note that we start polling even if just one test in the session sends successfully,
-    // so that if any of the others fail, we still get results from the tests that did send.
-    if (session.sentCount == session.totalCount) {
-        // Exit the current test's execution context in order to run the poll
-        // loop from the harness context.
-        step_timeout(waitForResults.bind(this, session), 0);
-    }
-
-    // Now fail this test if the beacon did not send. It will be excluded from the poll
-    // loop because of the calculation adjustment above.
-    assert_true(sendResult, "'sendbeacon' function call must succeed");
-}
-
-// Kicks off an asynchronous monitor to poll the server for test results. As we
-// verify that the server has received and validated a beacon, we will complete
-// its testharness test.
-function waitForResults(session) {
-    // Poll for status until all of the results come in.
-    fetch(`resources/beacon.py?cmd=stat&sid=${session.id}&tidx_min=0&tidx_max=${session.totalCount-1}`).then(
-        function(response) {
-            // Parse as text(), not json(), so that we can log the raw response if
-            // it's invalid.
-            response.text().then(function(rawResponse) {
-                // Check that we got a response we expect and know how to handle.
-                var results;
-                var failure;
-                try {
-                    results = JSON.parse(rawResponse);
-
-                    if (results.length === undefined) {
-                        failure = `bad validation response schema: rawResponse='${rawResponse}'`;
-                    }
-                } catch (e) {
-                    failure = `bad validation response: rawResponse='${rawResponse}', got parse error '${e}'`;
-                }
-
-                if (failure) {
-                    // At this point we can't deterministically get results for all of the
-                    // tests in the session, so fail the entire session.
-                    failSession(session, failure);
-                    return;
-                }
-
-                // The 'stat' call will return an array of zero or more results
-                // of sendbeacon() calls that the server has received and validated.
-                results.forEach(function(result) {
-                    var testCase = session.testCaseLookup[result.id];
-
-                    // While stash.take on the server is supposed to honor read-once, since we're
-                    // polling so frequently it is possible that we will receive the same test result
-                    // more than once.
-                    if (!testCase.done) {
-                        testCase.done = true;
-                        session.doneCount++;
-                    }
-
-                    // Validate that the sendbeacon() was actually sent to the server.
-                    var test = testCase.test;
-                    test.step(function() {
-                        // null JSON values parse as null, not undefined
-                        assert_equals(result.error, null, "'sendbeacon' data must not fail validation");
-                    });
-
-                    test.done();
-                });
-
-                // Continue polling until all of the results come in.
-                if (session.doneCount < session.sentCount) {
-                    // testharness.js frowns upon the use of explicit timeouts, but there is no way
-                    // around the need to poll for these tests, and there is no use spamming the server
-                    // with requestAnimationFrame() just to avoid the use of step_timeout.
-                    step_timeout(waitForResults.bind(this, session), 100);
-                }
-            }).catch(function(error) {
-                failSession(session, `unexpected error reading response, error='${error}'`);
-            });
+        if (results.length === 0) {
+          await new Promise(resolve => step_timeout(resolve, 100));
+          continue;
         }
-    );
-}
-
-// Fails all of the tests in the session, meant to be called when an infrastructural
-// issue prevents us from deterministically completing the individual tests.
-function failSession(session, reason) {
-    session.testCases.forEach(function(testCase) {
-        var test = testCase.test;
-        test.unreached_func(reason)();
-    });
+        assert_equals(results.length, 1, `bad response: '${text}'`);;
+        // null JSON values parse as null, not undefined
+        assert_equals(results[0].error, null, "'sendbeacon' data must not fail validation");
+        return;
+    }
+    assert_true(false, 'timeout');
 }
 
 // Creates an iframe on the document's body and runs the sample tests from the iframe.
 // The iframe is navigated immediately after it sends the data, and the window verifies
 // that the data is still successfully sent.
-//    funcName: "beacon" to send the data via navigator.sendBeacon(),
-//              "fetch" to send the data via fetch() with the keepalive flag.
-function runSendInIframeAndNavigateTests(funcName) {
+function runSendInIframeAndNavigateTests() {
     var iframe = document.createElement("iframe");
     iframe.id = "iframe";
     iframe.onload = function() {
-        var tests = Array();
-
         // Clear our onload handler to prevent re-running the tests as we navigate away.
-        this.onload = null;
-
-        // Implement the self.buildId extension to identify the parameterized
-        // test in the report.
-        self.buildId = function(baseId) {
-            return `${baseId}-${funcName}-NAVIGATE`;
-        };
-
-        window.onmessage = function(e) {
-            // The iframe will execute sendData() for us and return the result.
-            var testCase = tests[e.data];
-            continueAfterSendingBeacon(true /* sendResult */, testCase);
-        };
-
-        // Implement the self.sendFunc extension to send the beacon indirectly,
-        // from an iFrame that we can then navigate.
-        self.sendFunc = function(testCase) {
-            var iframeWindow = document.getElementById("iframe").contentWindow;
-            // We run into problems passing the testCase over the document boundary,
-            // because of structured cloning constraints. Instead we'll send over the
-            // test case id, and the iFrame can load the static test case by including
-            // beacon-common.js.
-            tests[testCase.origId] = testCase;
-            iframeWindow.postMessage([testCase.origId, testCase.url, funcName], "*");
-        };
-
-        runTests(sampleTests);
+        iframe.onload = null;
+        function sendData(testCase) {
+            return iframe.contentWindow.navigator.sendBeacon(testCase.url, testCase.data);
+        }
+        const tests = [];
+        for (const test of sampleTests) {
+            const copy = Object.assign({}, test);
+            copy.id = `${test.id}-NAVIGATE`;
+            tests.push(copy);
+        }
+        runTests(tests, sendData);
+        // Now navigate ourselves.
+        iframe.contentWindow.location = "http://{{host}}:{{ports[http][0]}}/";
     };
 
-    iframe.src = "navigate.iFrame.sub.html";
+    iframe.srcdoc = '<html></html>';
     document.body.appendChild(iframe);
 }

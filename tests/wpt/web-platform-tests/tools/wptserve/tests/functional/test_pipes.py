@@ -144,12 +144,10 @@ class TestTrickle(TestUsingServer):
         self.assertEqual(resp.info()["Expires"], "0")
 
 class TestPipesWithVariousHandlers(TestUsingServer):
-    @pytest.mark.xfail(sys.version_info >= (3,), reason="wptserve only works on Py2")
     def test_with_python_file_handler(self):
         resp = self.request("/test_string.py", query="pipe=slice(null,2)")
-        self.assertEqual(resp.read(), "PA")
+        self.assertEqual(resp.read(), b"PA")
 
-    @pytest.mark.xfail(sys.version_info >= (3,), reason="wptserve only works on Py2")
     def test_with_python_func_handler(self):
         @wptserve.handlers.handler
         def handler(request, response):
@@ -157,9 +155,8 @@ class TestPipesWithVariousHandlers(TestUsingServer):
         route = ("GET", "/test/test_pipes_1/", handler)
         self.server.router.register(*route)
         resp = self.request(route[1], query="pipe=slice(null,2)")
-        self.assertEqual(resp.read(), "PA")
+        self.assertEqual(resp.read(), b"PA")
 
-    @pytest.mark.xfail(sys.version_info >= (3,), reason="wptserve only works on Py2")
     def test_with_python_func_handler_using_response_writer(self):
         @wptserve.handlers.handler
         def handler(request, response):
@@ -168,9 +165,8 @@ class TestPipesWithVariousHandlers(TestUsingServer):
         self.server.router.register(*route)
         resp = self.request(route[1], query="pipe=slice(null,2)")
         # slice has not been applied to the response, because response.writer was used.
-        self.assertEqual(resp.read(), "PASS")
+        self.assertEqual(resp.read(), b"PASS")
 
-    @pytest.mark.xfail(sys.version_info >= (3,), reason="wptserve only works on Py2")
     def test_header_pipe_with_python_func_using_response_writer(self):
         @wptserve.handlers.handler
         def handler(request, response):
@@ -180,7 +176,7 @@ class TestPipesWithVariousHandlers(TestUsingServer):
         resp = self.request(route[1], query="pipe=header(X-TEST,FAIL)")
         # header pipe was ignored, because response.writer was used.
         self.assertFalse(resp.info().get("X-TEST"))
-        self.assertEqual(resp.read(), "CONTENT")
+        self.assertEqual(resp.read(), b"CONTENT")
 
     @pytest.mark.xfail(sys.version_info >= (3,), reason="wptserve only works on Py2")
     def test_with_json_handler(self):
@@ -192,30 +188,27 @@ class TestPipesWithVariousHandlers(TestUsingServer):
         resp = self.request(route[1], query="pipe=slice(null,2)")
         self.assertEqual(resp.read(), '"{')
 
-    @pytest.mark.xfail(sys.version_info >= (3,), reason="wptserve only works on Py2")
     def test_slice_with_as_is_handler(self):
         resp = self.request("/test.asis", query="pipe=slice(null,2)")
         self.assertEqual(202, resp.getcode())
         self.assertEqual("Giraffe", resp.msg)
         self.assertEqual("PASS", resp.info()["X-Test"])
         # slice has not been applied to the response, because response.writer was used.
-        self.assertEqual("Content", resp.read())
+        self.assertEqual(b"Content", resp.read())
 
-    @pytest.mark.xfail(sys.version_info >= (3,), reason="wptserve only works on Py2")
     def test_headers_with_as_is_handler(self):
         resp = self.request("/test.asis", query="pipe=header(X-TEST,FAIL)")
         self.assertEqual(202, resp.getcode())
         self.assertEqual("Giraffe", resp.msg)
         # header pipe was ignored.
         self.assertEqual("PASS", resp.info()["X-TEST"])
-        self.assertEqual("Content", resp.read())
+        self.assertEqual(b"Content", resp.read())
 
-    @pytest.mark.xfail(sys.version_info >= (3,), reason="wptserve only works on Py2")
     def test_trickle_with_as_is_handler(self):
         t0 = time.time()
         resp = self.request("/test.asis", query="pipe=trickle(1:d2:5:d1:r2)")
         t1 = time.time()
-        self.assertTrue('Content' in resp.read())
+        self.assertTrue(b'Content' in resp.read())
         self.assertGreater(6, t1-t0)
 
 if __name__ == '__main__':

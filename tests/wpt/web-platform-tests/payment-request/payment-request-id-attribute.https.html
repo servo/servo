@@ -20,7 +20,7 @@ test(() => {
 
 // Test for https://github.com/w3c/payment-request/pull/665
 test(() => {
-  const uuidRegExp = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-4][0-9a-f]{3}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  const uuidRegExp = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   const request1 = new PaymentRequest(methods, {
     total,
   });

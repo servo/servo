@@ -69,11 +69,6 @@ function validateSenderRtpParameters(param) {
       When getParameters is called, the RTCRtpParameters dictionary is constructed
       as follows:
 
-      - encodings is populated based on SSRCs and RIDs present in the current remote
-        description, including SSRCs used for RTX and FEC, if signaled. Every member
-        of the RTCRtpEncodingParameters dictionaries other than the SSRC and RID fields
-        is left undefined.
-
       - The headerExtensions sequence is populated based on the header extensions that
         the receiver is currently prepared to receive.
 
@@ -144,15 +139,6 @@ function validateRtpParameters(param) {
 
 /*
   dictionary RTCRtpEncodingParameters {
-    [readonly]
-    unsigned long       ssrc;
-
-    [readonly]
-    RTCRtpRtxParameters rtx;
-
-    [readonly]
-    RTCRtpFecParameters fec;
-
     RTCDtxStatus        dtx;
     boolean             active;
     RTCPriorityType     priority;
@@ -164,16 +150,6 @@ function validateRtpParameters(param) {
     DOMString           rid;
 
     double              scaleResolutionDownBy;
-  };
-
-  dictionary RTCRtpRtxParameters {
-    [readonly]
-    unsigned long ssrc;
-  };
-
-  dictionary RTCRtpFecParameters {
-    [readonly]
-    unsigned long ssrc;
   };
 
   enum RTCDtxStatus {
@@ -189,18 +165,6 @@ function validateRtpParameters(param) {
   };
  */
 function validateEncodingParameters(encoding) {
-  assert_optional_unsigned_int_field(encoding, 'ssrc');
-
-  assert_optional_dict_field(encoding, 'rtx');
-  if(encoding.rtx) {
-    assert_unsigned_int_field(encoding.rtx, 'ssrc');
-  }
-
-  assert_optional_dict_field(encoding, 'fec');
-  if(encoding.fec) {
-    assert_unsigned_int_field(encoding.fec, 'ssrc');
-  }
-
   assert_optional_enum_field(encoding, 'dtx',
     ['disabled', 'enabled']);
 
