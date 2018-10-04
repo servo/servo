@@ -31,7 +31,7 @@ use dom::htmlcanvaselement::{CanvasContext, HTMLCanvasElement};
 use dom::imagedata::ImageData;
 use dom::node::{Node, NodeDamage, window_from_node};
 use dom_struct::dom_struct;
-use euclid::{Transform2D, Point2D, Vector2D, Rect, Size2D, vec2};
+use euclid::{Transform2D, Point2D, Rect, Size2D, vec2};
 use ipc_channel::ipc::{self, IpcSender};
 use net_traits::image::base::PixelFormat;
 use net_traits::image_cache::CanRequestImages;
@@ -1206,6 +1206,9 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
         mut dirty_width: i32,
         mut dirty_height: i32,
     ) {
+        // FIXME(nox): There are many arithmetic operations here that can
+        // overflow or underflow, this should probably be audited.
+
         let imagedata_size = Size2D::new(imagedata.Width() as i32, imagedata.Height() as i32);
         if imagedata_size.width <= 0 || imagedata_size.height <= 0 {
             return;
@@ -1227,6 +1230,21 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
             dirty_height = -dirty_height;
         }
 
+        // Ignore any pixel that would be drawn before the beginning of the
+        // canvas surface.
+        let mut dest_x = dx + dirty_x;
+        let mut dest_y = dy + dirty_y;
+        if dest_x < 0 {
+            dirty_x -= dest_x;
+            dirty_width += dest_x;
+            dest_x = 0;
+        }
+        if dest_y < 0 {
+            dirty_y -= dest_y;
+            dirty_height += dest_y;
+            dest_y = 0;
+        }
+
         // Step 4.
         if dirty_x < 0 {
             dirty_width += dirty_x;
@@ -1245,6 +1263,14 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
             dirty_height = imagedata_size.height - dirty_y;
         }
 
+        // We take care of ignoring any pixel that would be drawn after the end
+        // of the canvas surface.
+        let canvas_size = self.canvas.as_ref().map_or(Size2D::zero(), |c| c.get_size()).to_i32();
+        let origin = Point2D::new(dest_x, dest_y);
+        let drawable_size = (origin - canvas_size.to_vector().to_point()).to_size().abs();
+        dirty_width = dirty_width.min(drawable_size.width);
+        dirty_height = dirty_height.min(drawable_size.height);
+
         // Step 6.
         if dirty_width <= 0 || dirty_height <= 0 {
             return;
@@ -1257,7 +1283,7 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
         // Step 7.
         self.send_canvas_2d_msg(Canvas2dMsg::PutImageData(
             buffer.into(),
-            Vector2D::new(dx, dy),
+            origin.to_vector(),
             imagedata_size,
             Rect::new(
                 Point2D::new(dirty_x, dirty_y),

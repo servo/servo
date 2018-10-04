@@ -454,14 +454,13 @@ impl<'a> CanvasData<'a> {
         imagedata: Vec<u8>,
         offset: Vector2D<i32>,
         image_data_size: Size2D<i32>,
-        dirty_rect: Rect<i32>,
+        dest_rect: Rect<i32>,
     ) {
         assert_eq!(image_data_size.width * image_data_size.height * 4, imagedata.len() as i32);
 
-        let dest_rect = dirty_rect.translate(&offset);
         let image_size = image_data_size;
 
-        let first_pixel = dest_rect.origin - offset;
+        let first_pixel = dest_rect.origin;
         let mut src_line = (first_pixel.y * (image_size.width * 4) + first_pixel.x * 4) as usize;
 
         let mut dest =
@@ -487,9 +486,7 @@ impl<'a> CanvasData<'a> {
                 dest_rect.size,
                 dest_rect.size.width * 4,
                 SurfaceFormat::B8G8R8A8) {
-            self.drawtarget.copy_surface(source_surface,
-                                         Rect::new(Point2D::new(0, 0), dest_rect.size),
-                                         dest_rect.origin);
+            self.drawtarget.copy_surface(source_surface, Rect::from_size(dest_rect.size), offset.to_point());
         }
     }
 
