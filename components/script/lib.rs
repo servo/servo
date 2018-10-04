@@ -68,6 +68,7 @@ extern crate mime;
 extern crate mime_guess;
 extern crate mitochondria;
 extern crate mozangle;
+extern crate mozjs_sys as js_sys;
 #[macro_use]
 extern crate mozjs as js;
 extern crate msg;
@@ -139,6 +140,7 @@ pub mod textinput;
 mod timers;
 mod unpremultiplytable;
 mod webdriver_handlers;
+mod window_named_properties;
 
 /// A module with everything layout can use from script.
 ///

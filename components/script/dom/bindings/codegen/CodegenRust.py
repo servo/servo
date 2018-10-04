@@ -2920,6 +2920,14 @@ rooted!(in(cx) let mut prototype_proto = ptr::null_mut::<JSObject>());
 %s;
 assert!(!prototype_proto.is_null());""" % getPrototypeProto)]
 
+        if self.descriptor.hasNamedPropertiesObject():
+            assert self.descriptor.isGlobal()
+            assert not self.haveUnscopables
+            code.append(CGGeneric("""\
+rooted!(in(cx) let mut prototype_proto_proto = prototype_proto.get());
+dom::types::%s::create_named_properties_object(cx, prototype_proto_proto.handle(), prototype_proto.handle_mut());
+assert!(!prototype_proto.is_null());""" % name))
+
         properties = {
             "id": name,
             "unscopables": "unscopable_names" if self.haveUnscopables else "&[]"
@@ -2948,14 +2956,7 @@ assert!(!prototype_proto.is_null());""" % getPrototypeProto)]
 rooted!(in(cx) let mut prototype = ptr::null_mut::<JSObject>());
 """))
 
-        if self.descriptor.hasNamedPropertiesObject():
-            assert self.descriptor.isGlobal()
-            assert not self.haveUnscopables
-            code.append(CGGeneric("""
-dom::types::%s::CreateNamedPropertiesObject(cx, prototype.handle_mut());
-""" % name))
-        else:
-            code.append(CGGeneric("""
+        code.append(CGGeneric("""
 create_interface_prototype_object(cx,
                                   prototype_proto.handle().into(),
                                   &PrototypeClass,
@@ -5012,9 +5013,7 @@ class CGDOMJSProxyHandler_getOwnPropertyDescriptor(CGAbstractExternMethod):
             attrs = "JSPROP_ENUMERATE"
             if self.descriptor.operations['IndexedSetter'] is None:
                 attrs += " | JSPROP_READONLY"
-            # FIXME(#11868) Should assign to desc.value, desc.get() is a copy.
-            fillDescriptor = ("desc.get().value = result_root.get();\n"
-                              "fill_property_descriptor(MutableHandle::from_raw(desc), proxy.get(), (%s) as u32);\n"
+            fillDescriptor = ("fill_property_descriptor(MutableHandle::from_raw(desc), proxy.get(), result_root.get(), (%s) as u32);\n"
                               "return true;" % attrs)
             templateValues = {
                 'jsvalRef': 'result_root.handle_mut()',
@@ -5037,9 +5036,7 @@ class CGDOMJSProxyHandler_getOwnPropertyDescriptor(CGAbstractExternMethod):
                 attrs = " | ".join(attrs)
             else:
                 attrs = "0"
-            # FIXME(#11868) Should assign to desc.value, desc.get() is a copy.
-            fillDescriptor = ("desc.get().value = result_root.get();\n"
-                              "fill_property_descriptor(MutableHandle::from_raw(desc), proxy.get(), (%s) as u32);\n"
+            fillDescriptor = ("fill_property_descriptor(MutableHandle::from_raw(desc), proxy.get(), result_root.get(), (%s) as u32);\n"
                               "return true;" % attrs)
             templateValues = {
                 'jsvalRef': 'result_root.handle_mut()',
@@ -5660,7 +5657,7 @@ class CGInterfaceTrait(CGThing):
                             rettype = "ErrorResult"
                         yield name, attribute_arguments(typeNeedsCx(m.type, False), m.type), rettype
 
-            if descriptor.proxy or descriptor.hasNamedPropertiesObject():
+            if descriptor.proxy:
                 for name, operation in descriptor.operations.iteritems():
                     if not operation or operation.isStringifier():
                         continue
@@ -5695,11 +5692,6 @@ class CGInterfaceTrait(CGThing):
             return reduce((lambda x, y: x or y[1] == '*mut JSContext'), arguments, False)
 
         methods = []
-
-        if descriptor.hasNamedPropertiesObject():
-            methods.append(CGGeneric("""
-unsafe fn CreateNamedPropertiesObject(cx: *mut JSContext, proto: MutableHandleObject);
-"""))
 
         for name, arguments, rettype in members():
             arguments = list(arguments)

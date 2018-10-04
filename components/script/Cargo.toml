@@ -65,6 +65,7 @@ metrics = {path = "../metrics"}
 mitochondria = "1.1.2"
 mime = "0.2.1"
 mime_guess = "1.8.0"
+mozjs_sys = "*"
 mozjs = "0.9.0"
 msg = {path = "../msg"}
 net_traits = {path = "../net_traits"}

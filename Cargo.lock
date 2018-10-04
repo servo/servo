@@ -3020,6 +3020,7 @@ dependencies = [
  "mitochondria 1.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "mozangle 0.1.7 (registry+https://github.com/rust-lang/crates.io-index)",
  "mozjs 0.9.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "mozjs_sys 0.61.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "msg 0.0.1",
  "net_traits 0.0.1",
  "num-traits 0.2.4 (registry+https://github.com/rust-lang/crates.io-index)",

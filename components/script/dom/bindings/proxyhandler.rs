@@ -8,6 +8,7 @@
 
 use dom::bindings::conversions::is_dom_proxy;
 use dom::bindings::utils::delete_property_by_id;
+use js_sys::jsgc::{IntoHandle, IntoMutableHandle};
 use js::glue::{GetProxyHandler, GetProxyHandlerFamily};
 use js::glue::{GetProxyPrivate, SetProxyPrivate};
 use js::glue::InvokeGetOwnPropertyDescriptor;
@@ -20,9 +21,11 @@ use js::jsapi::HandleId as RawHandleId;
 use js::jsapi::HandleObject as RawHandleObject;
 use js::jsapi::JS_DefinePropertyById;
 use js::jsapi::JS_GetPropertyDescriptorById;
+use js::jsapi::JS_HasPropertyById;
 use js::jsapi::MutableHandle as RawMutableHandle;
 use js::jsapi::MutableHandleObject as RawMutableHandleObject;
 use js::jsapi::ObjectOpResult;
+use js::jsval::JSVal;
 use js::jsval::ObjectValue;
 use js::jsval::UndefinedValue;
 use js::rust::{Handle, HandleObject, MutableHandle, MutableHandleObject};
@@ -198,10 +201,32 @@ pub unsafe fn ensure_expando_object(
 pub fn fill_property_descriptor(
     mut desc: MutableHandle<PropertyDescriptor>,
     obj: *mut JSObject,
+    v: JSVal,
     attrs: u32,
 ) {
     desc.obj = obj;
+    desc.value = v;
     desc.attrs = attrs;
     desc.getter = None;
     desc.setter = None;
+}
+
+pub unsafe fn has_property_on_prototype(
+    cx: *mut JSContext,
+    proxy: HandleObject,
+    id: RawHandleId,
+) -> Result<bool, ()> {
+    rooted!(in(cx) let mut proto = ptr::null_mut());
+    if !GetObjectProto(cx, proxy.into_handle(), proto.handle_mut().into_handle_mut()) {
+        return Err(());
+    }
+    if proto.is_null() {
+        return Ok(false);
+    }
+    let mut has = false;
+    if JS_HasPropertyById(cx, proto.handle().into_handle(), id, &mut has) {
+        Ok(has)
+    } else {
+        Err(())
+    }
 }
