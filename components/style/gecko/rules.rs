@@ -5,46 +5,8 @@
 //! Bindings for CSS Rule objects
 
 use counter_style::{self, CounterBound};
-use font_face::Source;
 use gecko_bindings::structs::{self, nsCSSValue};
 use gecko_bindings::sugar::ns_css_value::ToNsCssValue;
-
-impl<'a> ToNsCssValue for &'a Vec<Source> {
-    fn convert(self, nscssvalue: &mut nsCSSValue) {
-        let src_len = self.iter().fold(0, |acc, src| {
-            acc + match *src {
-                // Each format hint takes one position in the array of mSrc.
-                Source::Url(ref url) => url.format_hints.len() + 1,
-                Source::Local(_) => 1,
-            }
-        });
-        let mut target_srcs = nscssvalue
-            .set_array(src_len as i32)
-            .as_mut_slice()
-            .iter_mut();
-        macro_rules! next {
-            () => {
-                target_srcs
-                    .next()
-                    .expect("Length of target_srcs should be enough")
-            };
-        }
-        for src in self.iter() {
-            match *src {
-                Source::Url(ref url) => {
-                    next!().set_url(&url.url);
-                    for hint in url.format_hints.iter() {
-                        next!().set_font_format(&hint);
-                    }
-                },
-                Source::Local(ref family) => {
-                    next!().set_local_font(&family.name);
-                },
-            }
-        }
-        debug_assert!(target_srcs.next().is_none(), "Should have filled all slots");
-    }
-}
 
 impl<'a> ToNsCssValue for &'a counter_style::System {
     fn convert(self, nscssvalue: &mut nsCSSValue) {
