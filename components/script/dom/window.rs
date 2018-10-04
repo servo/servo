@@ -67,6 +67,7 @@ use crate::task_manager::TaskManager;
 use crate::task_source::{TaskSource, TaskSourceName};
 use crate::timers::{IsInterval, TimerCallback};
 use crate::webdriver_handlers::jsval_to_webdriver;
+use crate::window_named_properties;
 use app_units::Au;
 use base64;
 use bluetooth_traits::BluetoothRequest;
@@ -88,7 +89,7 @@ use js::jsapi::{GCReason, JS_GC};
 use js::jsval::UndefinedValue;
 use js::jsval::{JSVal, NullValue};
 use js::rust::wrappers::JS_DefineProperty;
-use js::rust::{CustomAutoRooter, CustomAutoRooterGuard, HandleValue, MutableHandleObject};
+use js::rust::{CustomAutoRooter, CustomAutoRooterGuard, HandleObject, HandleValue, MutableHandleObject};
 use media::WindowGLContext;
 use msg::constellation_msg::{BrowsingContextId, PipelineId};
 use net_traits::image_cache::{ImageCache, ImageResponder, ImageResponse};
@@ -1076,63 +1077,6 @@ impl WindowMethods for Window {
         )
     }
 
-    // https://heycam.github.io/webidl/#named-properties-object
-    // https://html.spec.whatwg.org/multipage/#named-access-on-the-window-object
-    #[allow(unsafe_code)]
-    fn CreateNamedPropertiesObject(_cx: JSContext, _proto: MutableHandleObject) {
-        unimplemented!("Wow!")
-    }
-
-    // https://html.spec.whatwg.org/multipage/#named-access-on-the-window-object
-    fn SupportedPropertyNames(&self) -> Vec<DOMString> {
-        // FIXME: unimplemented (https://github.com/servo/servo/issues/7273).
-        //
-        // See also Document::SupportedPropertyNames.
-        vec![]
-    }
-
-    #[allow(unsafe_code)]
-    // https://html.spec.whatwg.org/multipage/#named-access-on-the-window-object
-    fn NamedGetter(
-        &self,
-        _cx: JSContext,
-        name: DOMString,
-    ) -> Option<NonNull<JSObject>> {
-        // TODO: Return child windows, like iframes and such. When this is
-        // fixed, please implement IndexedGetter properly too.
-        let document = self.Document();
-        if !document.is_html_document() {
-            return None;
-        }
-
-        // TODO(emilio): There is a missing fast-path here for when we know
-        // there aren't any named items with a given `name`. In that case, we
-        // can return `document.get_element_by_id(name)` (unless there are many
-        // of those elements), which is much faster.
-        let name = Atom::from(name);
-
-        let filter = WindowNamedGetterFilter { name };
-
-        let root = document.upcast();
-        {
-            let mut named_elements = document.upcast::<Node>()
-                .traverse_preorder(ShadowIncluding::No)
-                .filter_map(DomRoot::downcast::<Element>)
-                .filter(|element| filter.filter(&element, &root));
-
-            let first_element = named_elements.next()?;
-            if named_elements.next().is_none() {
-                return Some(NonNull::new(
-                    first_element.reflector().get_jsobject().get()
-                ).unwrap());
-            }
-        }
-
-        let collection =
-            HTMLCollection::create(self, root, Box::new(filter));
-        Some(NonNull::new(collection.reflector().get_jsobject().get()).unwrap())
-    }
-
     // https://drafts.csswg.org/cssom-view/#dom-window-innerheight
     //TODO Include Scrollbar
     fn InnerHeight(&self) -> i32 {
@@ -1382,6 +1326,67 @@ impl Window {
         // Step 9.
         self.post_message(target_origin, source_origin, &*source.window_proxy(), data);
         Ok(())
+    }
+
+    // https://html.spec.whatwg.org/multipage/#named-access-on-the-window-object
+    fn SupportedPropertyNames(&self) -> Vec<DOMString> {
+        // FIXME: unimplemented (https://github.com/servo/servo/issues/7273).
+        //
+        // See also Document::SupportedPropertyNames.
+        vec![]
+    }
+
+    #[allow(unsafe_code)]
+    // https://html.spec.whatwg.org/multipage/#named-access-on-the-window-object
+    pub fn NamedGetter(
+        &self,
+        _cx: JSContext,
+        name: DOMString,
+    ) -> Option<NonNull<JSObject>> {
+        // TODO: Return child windows, like iframes and such. When this is
+        // fixed, please implement IndexedGetter properly too.
+        let document = self.Document();
+        if !document.is_html_document() {
+            return None;
+        }
+
+        // TODO(emilio): There is a missing fast-path here for when we know
+        // there aren't any named items with a given `name`. In that case, we
+        // can return `document.get_element_by_id(name)` (unless there are many
+        // of those elements), which is much faster.
+        let name = Atom::from(name);
+
+        let filter = WindowNamedGetterFilter { name };
+
+        let root = document.upcast();
+        {
+            let mut named_elements = document.upcast::<Node>()
+                .traverse_preorder(ShadowIncluding::No)
+                .filter_map(DomRoot::downcast::<Element>)
+                .filter(|element| filter.filter(&element, &root));
+
+            let first_element = named_elements.next()?;
+            if named_elements.next().is_none() {
+                return NonNull::new(
+                    first_element.reflector().get_jsobject().get()
+                );
+            }
+        }
+
+        let collection =
+            HTMLCollection::create(self, root, Box::new(filter));
+        NonNull::new(collection.reflector().get_jsobject().get())
+    }
+
+    // https://heycam.github.io/webidl/#named-properties-object
+    // https://html.spec.whatwg.org/multipage/#named-access-on-the-window-object
+    #[allow(unsafe_code)]
+    pub fn create_named_properties_object(
+        cx: JSContext,
+        proto: HandleObject,
+        object: MutableHandleObject
+    ) {
+        window_named_properties::create(cx, proto, object)
     }
 
     // https://drafts.css-houdini.org/css-paint-api-1/#paint-worklet

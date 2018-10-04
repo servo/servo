@@ -8,6 +8,7 @@
 
 use crate::dom::bindings::conversions::is_dom_proxy;
 use crate::dom::bindings::utils::delete_property_by_id;
+use crate::script_runtime::JSContext as SafeJSContext;
 use js::glue::GetProxyHandlerFamily;
 use js::glue::{GetProxyPrivate, SetProxyPrivate};
 use js::jsapi::GetStaticPrototype;
@@ -15,15 +16,18 @@ use js::jsapi::Handle as RawHandle;
 use js::jsapi::HandleId as RawHandleId;
 use js::jsapi::HandleObject as RawHandleObject;
 use js::jsapi::JS_DefinePropertyById;
+use js::jsapi::JS_HasPropertyById;
 use js::jsapi::MutableHandleObject as RawMutableHandleObject;
 use js::jsapi::ObjectOpResult;
 use js::jsapi::{DOMProxyShadowsResult, JSContext, JSObject, PropertyDescriptor};
 use js::jsapi::{JSErrNum, SetDOMProxyInformation};
+use js::jsval::JSVal;
 use js::jsval::ObjectValue;
 use js::jsval::UndefinedValue;
 use js::rust::wrappers::JS_AlreadyHasOwnPropertyById;
 use js::rust::wrappers::JS_NewObjectWithGivenProto;
-use js::rust::{Handle, HandleObject, MutableHandle, MutableHandleObject};
+use js::rust::wrappers::GetObjectProto;
+use js::rust::{Handle, HandleObject, IntoHandle, MutableHandle, MutableHandleObject};
 use std::ptr;
 
 /// Determine if this id shadows any existing properties for this proxy.
@@ -163,13 +167,37 @@ pub unsafe fn ensure_expando_object(
 
 /// Set the property descriptor's object to `obj` and set it to enumerable,
 /// and writable if `readonly` is true.
-pub fn fill_property_descriptor(
+pub unsafe fn fill_property_descriptor(
     mut desc: MutableHandle<PropertyDescriptor>,
     obj: *mut JSObject,
+    v: JSVal,
     attrs: u32,
 ) {
     desc.obj = obj;
+    desc.value = v;
     desc.attrs = attrs;
     desc.getter = None;
     desc.setter = None;
+}
+
+pub fn has_property_on_prototype(
+    cx: SafeJSContext,
+    proxy: HandleObject,
+    id: RawHandleId,
+) -> Result<bool, ()> {
+    unsafe {
+        rooted!(in(*cx) let mut proto = ptr::null_mut::<JSObject>());
+        if !GetObjectProto(*cx, proxy, proto.handle_mut()) {
+            return Err(());
+        }
+        if proto.is_null() {
+            return Ok(false);
+        }
+        let mut has = false;
+        if JS_HasPropertyById(*cx, proto.handle().into_handle(), id, &mut has) {
+            Ok(has)
+        } else {
+            Err(())
+        }
+    }
 }
