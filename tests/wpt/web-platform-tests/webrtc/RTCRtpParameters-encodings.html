@@ -45,15 +45,6 @@
       };
 
       dictionary RTCRtpEncodingParameters {
-        [readonly]
-        unsigned long       ssrc;
-
-        [readonly]
-        RTCRtpRtxParameters rtx;
-
-        [readonly]
-        RTCRtpFecParameters fec;
-
         RTCDtxStatus        dtx;
         boolean             active;
         RTCPriorityType     priority;
@@ -65,16 +56,6 @@
         DOMString           rid;
 
         double              scaleResolutionDownBy;
-      };
-
-      dictionary RTCRtpRtxParameters {
-        [readonly]
-        unsigned long ssrc;
-      };
-
-      dictionary RTCRtpFecParameters {
-        [readonly]
-        unsigned long ssrc;
       };
 
       enum RTCDtxStatus {
@@ -229,32 +210,9 @@
 
     param.encodings = undefined;
 
-    return promise_rejects(t, 'InvalidModificationError',
+    return promise_rejects(t, new TypeError(),
       sender.setParameters(param));
-  }, `sender.setParameters() with encodings unset should reject with InvalidModificationError`);
-
-  promise_test(async t => {
-    const pc = new RTCPeerConnection();
-    t.add_cleanup(() => pc.close());
-    const { sender } = pc.addTransceiver('audio');
-    await doOfferAnswerExchange(t, pc);
-
-    const param = sender.getParameters();
-    validateSenderRtpParameters(param);
-    const encoding = getFirstEncoding(param);
-    const { rtx } = encoding;
-
-    if(rtx === undefined) {
-      encoding.rtx = { ssrc: 2 };
-    } else if(rtx.ssrc === undefined) {
-      rtx.ssrc = 2;
-    } else {
-      rtx.ssrc += 1;
-    }
-
-    return promise_rejects(t, 'InvalidModificationError',
-      sender.setParameters(param));
-  }, `setParameters() with modified encoding.rtx field should reject with InvalidModificationError`);
+  }, `sender.setParameters() with encodings unset should reject with TypeError`);
 
   promise_test(async t => {
     const pc = new RTCPeerConnection();

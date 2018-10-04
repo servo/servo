@@ -49,7 +49,7 @@ dictionary PaymentDetailsUpdate : PaymentDetailsBase {
   DOMString error;
   PaymentItem total;
   AddressErrors shippingAddressErrors;
-  PayerErrorFields payerErrors;
+  PayerErrors payerErrors;
   object paymentMethodErrors;
 };
 
@@ -169,13 +169,13 @@ interface PaymentResponse : EventTarget {
 };
 
 dictionary PaymentValidationErrors {
-  PayerErrorFields payer;
+  PayerErrors payer;
   AddressErrors shippingAddress;
   DOMString error;
   object paymentMethod;
 };
 
-dictionary PayerErrorFields {
+dictionary PayerErrors {
   DOMString email;
   DOMString name;
   DOMString phone;

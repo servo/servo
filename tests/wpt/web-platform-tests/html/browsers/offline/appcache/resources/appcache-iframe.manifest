@@ -1,0 +1,8 @@
+CACHE MANIFEST
+
+appcache-iframe.py?type=cached
+appcache-data.py?type=cached
+
+FALLBACK:
+appcache-iframe.py?type=fallingback appcache-iframe.py?type=fallbacked
+appcache-data.py?type=fallingback appcache-data.py?type=fallbacked

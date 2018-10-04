@@ -8,7 +8,7 @@ import uuid
 
 from mozprocess import ProcessHandler
 
-from serve.serve import make_hosts_file
+from tools.serve.serve import make_hosts_file
 
 from .base import (ConnectionlessProtocol,
                    RefTestImplementation,

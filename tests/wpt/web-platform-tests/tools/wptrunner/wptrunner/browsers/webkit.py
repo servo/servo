@@ -1,7 +1,7 @@
 from .base import Browser, ExecutorBrowser, require_arg
 from ..executors import executor_kwargs as base_executor_kwargs
-from ..executors.executorselenium import (SeleniumTestharnessExecutor,  # noqa: F401
-                                          SeleniumRefTestExecutor)  # noqa: F401
+from ..executors.executorwebdriver import (WebDriverTestharnessExecutor,  # noqa: F401
+                                           WebDriverRefTestExecutor)  # noqa: F401
 from ..executors.executorwebkit import WebKitDriverWdspecExecutor  # noqa: F401
 from ..webdriver_server import WebKitDriverServer
 
@@ -10,8 +10,8 @@ __wptrunner__ = {"product": "webkit",
                  "check_args": "check_args",
                  "browser": "WebKitBrowser",
                  "browser_kwargs": "browser_kwargs",
-                 "executor": {"testharness": "SeleniumTestharnessExecutor",
-                              "reftest": "SeleniumRefTestExecutor",
+                 "executor": {"testharness": "WebDriverTestharnessExecutor",
+                              "reftest": "WebDriverRefTestExecutor",
                               "wdspec": "WebKitDriverWdspecExecutor"},
                  "executor_kwargs": "executor_kwargs",
                  "env_extras": "env_extras",
@@ -31,18 +31,21 @@ def browser_kwargs(test_type, run_info_data, config, **kwargs):
 
 
 def capabilities_for_port(server_config, **kwargs):
-    from selenium.webdriver import DesiredCapabilities
-
     if kwargs["webkit_port"] == "gtk":
-        capabilities = dict(DesiredCapabilities.WEBKITGTK.copy())
-        capabilities["webkitgtk:browserOptions"] = {
-            "binary": kwargs["binary"],
-            "args": kwargs.get("binary_args", []),
-            "certificates": [
-                {"host": server_config["browser_host"],
-                 "certificateFile": kwargs["host_cert_path"]}
-            ]
+        capabilities = {
+            "browserName": "MiniBrowser",
+            "browserVersion": "2.20",
+            "platformName": "ANY",
+            "webkitgtk:browserOptions": {
+                "binary": kwargs["binary"],
+                "args": kwargs.get("binary_args", []),
+                "certificates": [
+                    {"host": server_config["browser_host"],
+                     "certificateFile": kwargs["host_cert_path"]}
+                ]
+            }
         }
+
         return capabilities
 
     return {}

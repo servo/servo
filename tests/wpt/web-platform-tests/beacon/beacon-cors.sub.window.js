@@ -7,12 +7,6 @@
 // the beacon handler will return CORS headers. This test ensures that the
 // sendBeacon() succeeds in either case.
 [true, false].forEach(function(allowCors) {
-    // Implement the self.buildId extension to identify the parameterized
-    // test in the report.
-    self.buildId = function(baseId) {
-        return `${baseId}-${allowCors ? "CORS-ALLOW" : "CORS-FORBID"}`;
-    };
-
     // Implement the self.buildBaseUrl and self.buildTargetUrl extensions
     // to change the target URL to use a cross-origin domain name.
     self.buildBaseUrl = function(baseUrl) {
@@ -35,7 +29,13 @@
         return allowCors ? `${targetUrl}&origin=http://{{host}}:{{ports[http][0]}}&credentials=true` : targetUrl;
     }
 
-    runTests(sampleTests);
+    const tests = [];
+    for (const test of sampleTests) {
+        const copy = Object.assign({}, test);
+        copy.id = `${test.id}-${allowCors ? "CORS-ALLOW" : "CORS-FORBID"}`;
+        tests.push(copy);
+    }
+    runTests(tests);
 });
 
 // Now test a cross-origin request that doesn't use a safelisted Content-Type and ensure
@@ -43,12 +43,6 @@
 // header is used there should be a preflight/options request and we should only succeed
 // send the payload if the proper CORS headers are used.
 {
-    // Implement the self.buildId extension to identify the parameterized
-    // test in the report.
-    self.buildId = function (baseId) {
-        return `${baseId}-PREFLIGHT-ALLOW`;
-    };
-
     // Implement the self.buildBaseUrl and self.buildTargetUrl extensions
     // to change the target URL to use a cross-origin domain name.
     self.buildBaseUrl = function (baseUrl) {
@@ -60,8 +54,13 @@
     self.buildTargetUrl = function (targetUrl) {
         return `${targetUrl}&origin=http://{{host}}:{{ports[http][0]}}&credentials=true&preflightExpected=true`;
     }
-
-    runTests(preflightTests);
+    const tests = [];
+    for (const test of preflightTests) {
+        const copy = Object.assign({}, test);
+        copy.id = `${test.id}-PREFLIGHT-ALLOW`;
+        tests.push(copy);
+    }
+    runTests(tests);
 }
 
 done();

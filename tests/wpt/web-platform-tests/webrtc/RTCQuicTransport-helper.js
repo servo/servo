@@ -79,4 +79,3 @@ async function makeTwoConnectedQuicTransports(t) {
   ]);
   return [ localQuicTransport, remoteQuicTransport ];
 }
-

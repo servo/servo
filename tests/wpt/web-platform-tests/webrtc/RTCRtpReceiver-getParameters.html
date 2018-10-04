@@ -22,11 +22,6 @@
         When getParameters is called, the RTCRtpParameters dictionary is constructed
         as follows:
 
-        - encodings is populated based on SSRCs and RIDs present in the current remote
-          description, including SSRCs used for RTX and FEC, if signaled. Every member
-          of the RTCRtpEncodingParameters dictionaries other than the SSRC and RID fields
-          is left undefined.
-
         - The headerExtensions sequence is populated based on the header extensions that
           the receiver is currently prepared to receive.
 
