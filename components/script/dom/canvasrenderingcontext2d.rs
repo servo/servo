@@ -1191,38 +1191,25 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-putimagedata
-    fn PutImageData(&self, imagedata: &ImageData, dx: Finite<f64>, dy: Finite<f64>) {
-        self.PutImageData_(
-            imagedata,
-            dx,
-            dy,
-            Finite::wrap(0f64),
-            Finite::wrap(0f64),
-            Finite::wrap(imagedata.Width() as f64),
-            Finite::wrap(imagedata.Height() as f64),
-        )
+    fn PutImageData(&self, imagedata: &ImageData, dx: i32, dy: i32) {
+        self.PutImageData_(imagedata, dx, dy, 0, 0, imagedata.Width() as i32, imagedata.Height() as i32)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-putimagedata
     fn PutImageData_(
         &self,
         imagedata: &ImageData,
-        dx: Finite<f64>,
-        dy: Finite<f64>,
-        dirty_x: Finite<f64>,
-        dirty_y: Finite<f64>,
-        dirty_width: Finite<f64>,
-        dirty_height: Finite<f64>,
+        dx: i32,
+        dy: i32,
+        mut dirty_x: i32,
+        mut dirty_y: i32,
+        mut dirty_width: i32,
+        mut dirty_height: i32,
     ) {
-        let imagedata_size = Size2D::new(imagedata.Width() as f64, imagedata.Height() as f64);
-        if imagedata_size.width <= 0. || imagedata_size.height <= 0. {
+        let imagedata_size = Size2D::new(imagedata.Width() as i32, imagedata.Height() as i32);
+        if imagedata_size.width <= 0 || imagedata_size.height <= 0 {
             return;
         }
-
-        let mut dirty_x = *dirty_x;
-        let mut dirty_y = *dirty_y;
-        let mut dirty_width = *dirty_width;
-        let mut dirty_height = *dirty_height;
 
         // Step 1.
         // Done later.
@@ -1231,23 +1218,23 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
         // TODO: throw InvalidState if buffer is detached.
 
         // Step 3.
-        if dirty_width < 0. {
+        if dirty_width < 0 {
             dirty_x += dirty_width;
             dirty_width = -dirty_width;
         }
-        if dirty_height < 0. {
+        if dirty_height < 0 {
             dirty_y += dirty_height;
             dirty_height = -dirty_height;
         }
 
         // Step 4.
-        if dirty_x < 0. {
+        if dirty_x < 0 {
             dirty_width += dirty_x;
-            dirty_x = 0.;
+            dirty_x = 0;
         }
-        if dirty_y < 0. {
+        if dirty_y < 0 {
             dirty_height += dirty_y;
-            dirty_y = 0.;
+            dirty_y = 0;
         }
 
         // Step 5.
@@ -1259,7 +1246,7 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
         }
 
         // Step 6.
-        if dirty_width <= 0. || dirty_height <= 0. {
+        if dirty_width <= 0 || dirty_height <= 0 {
             return;
         }
 
@@ -1270,7 +1257,7 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
         // Step 7.
         self.send_canvas_2d_msg(Canvas2dMsg::PutImageData(
             buffer.into(),
-            Vector2D::new(*dx, *dy),
+            Vector2D::new(dx, dy),
             imagedata_size,
             Rect::new(
                 Point2D::new(dirty_x, dirty_y),

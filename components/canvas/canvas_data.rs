@@ -452,17 +452,16 @@ impl<'a> CanvasData<'a> {
     pub fn put_image_data(
         &mut self,
         imagedata: Vec<u8>,
-        offset: Vector2D<f64>,
-        image_data_size: Size2D<f64>,
-        dirty_rect: Rect<f64>
+        offset: Vector2D<i32>,
+        image_data_size: Size2D<i32>,
+        dirty_rect: Rect<i32>,
     ) {
-        assert_eq!(image_data_size.width * image_data_size.height * 4.0, imagedata.len() as f64);
+        assert_eq!(image_data_size.width * image_data_size.height * 4, imagedata.len() as i32);
 
-        let dest_rect = dirty_rect.translate(&offset).to_i32();
+        let dest_rect = dirty_rect.translate(&offset);
+        let image_size = image_data_size;
 
-        let image_size = image_data_size.to_i32();
-
-        let first_pixel = dest_rect.origin - offset.to_i32();
+        let first_pixel = dest_rect.origin - offset;
         let mut src_line = (first_pixel.y * (image_size.width * 4) + first_pixel.x * 4) as usize;
 
         let mut dest =
