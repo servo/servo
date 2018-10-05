@@ -17,7 +17,7 @@ use gecko_bindings::sugar::ns_style_coord::{CoordData, CoordDataMut, CoordDataVa
 use std::f32::consts::PI;
 use stylesheets::{Origin, RulesMutateError};
 use values::computed::{Angle, CalcLengthOrPercentage, Gradient, Image};
-use values::computed::{Integer, LengthOrPercentage, LengthOrPercentageOrAuto};
+use values::computed::{Integer, LengthOrPercentage, LengthOrPercentageOrAuto, NonNegativeLengthOrPercentageOrAuto};
 use values::computed::{Percentage, TextAlign};
 use values::computed::image::LineDirection;
 use values::computed::url::ComputedImageUrl;
@@ -103,6 +103,26 @@ impl From<nsStyleCoord_CalcValue> for LengthOrPercentageOrAuto {
             (true, 0) => LengthOrPercentageOrAuto::Percentage(Percentage(other.mPercent)),
             _ => LengthOrPercentageOrAuto::Calc(other.into()),
         }
+    }
+}
+
+// FIXME(emilio): A lot of these impl From should probably become explicit or
+// disappear as we move more stuff to cbindgen.
+impl From<nsStyleCoord_CalcValue> for NonNegativeLengthOrPercentageOrAuto {
+    fn from(other: nsStyleCoord_CalcValue) -> Self {
+        use values::generics::NonNegative;
+        use style_traits::values::specified::AllowedNumericType;
+        NonNegative(if other.mLength < 0 || other.mPercent < 0. {
+            LengthOrPercentageOrAuto::Calc(
+                CalcLengthOrPercentage::with_clamping_mode(
+                    Au(other.mLength).into(),
+                    if other.mHasPercent { Some(Percentage(other.mPercent)) } else { None },
+                    AllowedNumericType::NonNegative,
+                )
+            )
+        } else {
+            other.into()
+        })
     }
 }
 

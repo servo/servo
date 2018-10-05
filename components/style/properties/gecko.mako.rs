@@ -4005,7 +4005,6 @@ fn static_assert() {
     pub fn clone_${shorthand}_size(&self) -> longhands::${shorthand}_size::computed_value::T {
         use gecko_bindings::structs::nsStyleCoord_CalcValue as CalcValue;
         use gecko_bindings::structs::nsStyleImageLayers_Size_DimensionType as DimensionType;
-        use values::generics::NonNegative;
         use values::computed::NonNegativeLengthOrPercentageOrAuto;
         use values::generics::background::BackgroundSize;
 
@@ -4014,7 +4013,7 @@ fn static_assert() {
                 NonNegativeLengthOrPercentageOrAuto::auto()
             } else {
                 debug_assert_eq!(ty, DimensionType::eLengthPercentage as u8);
-                NonNegative(value.into())
+                value.into()
             }
         }
 
