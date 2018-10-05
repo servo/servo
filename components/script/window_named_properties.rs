@@ -25,43 +25,43 @@ struct SyncWrapper(*const libc::c_void);
 #[allow(unsafe_code)]
 unsafe impl Sync for SyncWrapper {}
 
+static NAMED_PROPERTY_TRAPS: ProxyTraps = ProxyTraps {
+    enter: None,
+    getOwnPropertyDescriptor: Some(get_own_property_descriptor),
+    defineProperty: Some(define_property),
+    ownPropertyKeys: Some(own_property_keys),
+    delete_: Some(delete),
+    enumerate: None,
+    getPrototypeIfOrdinary: None,
+    preventExtensions: Some(prevent_extensions),
+    isExtensible: Some(is_extensible),
+    has: None,
+    get: None,
+    set: None,
+    call: None,
+    construct: None,
+    getPropertyDescriptor: None,
+    hasOwn: None,
+    getOwnEnumerablePropertyKeys: None,
+    nativeCall: None,
+    hasInstance: None,
+    objectClassIs: None,
+    className: Some(class_name),
+    fun_toString: None,
+    boxedValue_unbox: None,
+    defaultValue: None,
+    trace: None,
+    finalize: None,
+    objectMoved: None,
+    isCallable: None,
+    isConstructor: None,
+};
+
 lazy_static! {
     static ref HANDLER: SyncWrapper = {
-        let traps = ProxyTraps {
-            enter: None,
-            getOwnPropertyDescriptor: Some(get_own_property_descriptor),
-            defineProperty: Some(define_property),
-            ownPropertyKeys: Some(own_property_keys),
-            delete_: Some(delete),
-            enumerate: None,
-            getPrototypeIfOrdinary: None,
-            preventExtensions: Some(prevent_extensions),
-            isExtensible: Some(is_extensible),
-            has: None,
-            get: None,
-            set: None,
-            call: None,
-            construct: None,
-            getPropertyDescriptor: None,
-            hasOwn: None,
-            getOwnEnumerablePropertyKeys: None,
-            nativeCall: None,
-            hasInstance: None,
-            objectClassIs: None,
-            className: Some(class_name),
-            fun_toString: None,
-            boxedValue_unbox: None,
-            defaultValue: None,
-            trace: None,
-            finalize: None,
-            objectMoved: None,
-            isCallable: None,
-            isConstructor: None,
-        };
-
         // FIXME: proxies with non-null class pointers expected
         #[allow(unsafe_code)]
-        unsafe { SyncWrapper(CreateProxyHandler(&traps, ptr::null())) }
+        unsafe { SyncWrapper(CreateProxyHandler(&NAMED_PROPERTY_TRAPS, ptr::null())) }
     };
 }
 
@@ -157,7 +157,7 @@ unsafe extern "C" fn class_name(
     cx: *mut JSContext,
     proxy: HandleObject
 ) -> *const i8 {
-    &b"WindowProperties" as *const _ as *const i8
+    b"WindowProperties\0" as *const _ as *const i8
 }
 
 #[allow(unsafe_code)]
