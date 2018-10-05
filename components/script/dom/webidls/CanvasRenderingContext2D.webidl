@@ -180,11 +180,11 @@ interface CanvasImageData {
   ImageData createImageData(ImageData imagedata);
   [Throws]
   ImageData getImageData(double sx, double sy, double sw, double sh);
-  void putImageData(ImageData imagedata, double dx, double dy);
+  void putImageData(ImageData imagedata, long dx, long dy);
   void putImageData(ImageData imagedata,
-                    double dx, double dy,
-                    double dirtyX, double dirtyY,
-                    double dirtyWidth, double dirtyHeight);
+                    long dx, long dy,
+                    long dirtyX, long dirtyY,
+                    long dirtyWidth, long dirtyHeight);
 };
 
 enum CanvasLineCap { "butt", "round", "square" };

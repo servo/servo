@@ -54,7 +54,7 @@ pub enum Canvas2dMsg {
     IsPointInPath(f64, f64, FillRule, IpcSender<bool>),
     LineTo(Point2D<f32>),
     MoveTo(Point2D<f32>),
-    PutImageData(ByteBuf, Vector2D<f64>, Size2D<f64>, Rect<f64>),
+    PutImageData(ByteBuf, Vector2D<i32>, Size2D<i32>, Rect<i32>),
     QuadraticCurveTo(Point2D<f32>, Point2D<f32>),
     Rect(Rect<f32>),
     RestoreContext,

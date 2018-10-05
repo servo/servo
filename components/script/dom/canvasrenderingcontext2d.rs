@@ -31,7 +31,7 @@ use dom::htmlcanvaselement::{CanvasContext, HTMLCanvasElement};
 use dom::imagedata::ImageData;
 use dom::node::{Node, NodeDamage, window_from_node};
 use dom_struct::dom_struct;
-use euclid::{Transform2D, Point2D, Vector2D, Rect, Size2D, vec2};
+use euclid::{Transform2D, Point2D, Rect, Size2D, vec2};
 use ipc_channel::ipc::{self, IpcSender};
 use net_traits::image::base::PixelFormat;
 use net_traits::image_cache::CanRequestImages;
@@ -1191,42 +1191,104 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-putimagedata
-    fn PutImageData(&self, imagedata: &ImageData, dx: Finite<f64>, dy: Finite<f64>) {
-        self.PutImageData_(
-            imagedata,
-            dx,
-            dy,
-            Finite::wrap(0f64),
-            Finite::wrap(0f64),
-            Finite::wrap(imagedata.Width() as f64),
-            Finite::wrap(imagedata.Height() as f64),
-        )
+    fn PutImageData(&self, imagedata: &ImageData, dx: i32, dy: i32) {
+        self.PutImageData_(imagedata, dx, dy, 0, 0, imagedata.Width() as i32, imagedata.Height() as i32)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-putimagedata
     fn PutImageData_(
         &self,
         imagedata: &ImageData,
-        dx: Finite<f64>,
-        dy: Finite<f64>,
-        dirty_x: Finite<f64>,
-        dirty_y: Finite<f64>,
-        dirty_width: Finite<f64>,
-        dirty_height: Finite<f64>,
+        dx: i32,
+        dy: i32,
+        mut dirty_x: i32,
+        mut dirty_y: i32,
+        mut dirty_width: i32,
+        mut dirty_height: i32,
     ) {
-        let data = imagedata.get_data_array();
-        let offset = Vector2D::new(*dx, *dy);
-        let image_data_size = Size2D::new(imagedata.Width() as f64, imagedata.Height() as f64);
+        // FIXME(nox): There are many arithmetic operations here that can
+        // overflow or underflow, this should probably be audited.
 
-        let dirty_rect = Rect::new(
-            Point2D::new(*dirty_x, *dirty_y),
-            Size2D::new(*dirty_width, *dirty_height),
-        );
+        let imagedata_size = Size2D::new(imagedata.Width() as i32, imagedata.Height() as i32);
+        if imagedata_size.width <= 0 || imagedata_size.height <= 0 {
+            return;
+        }
+
+        // Step 1.
+        // Done later.
+
+        // Step 2.
+        // TODO: throw InvalidState if buffer is detached.
+
+        // Step 3.
+        if dirty_width < 0 {
+            dirty_x += dirty_width;
+            dirty_width = -dirty_width;
+        }
+        if dirty_height < 0 {
+            dirty_y += dirty_height;
+            dirty_height = -dirty_height;
+        }
+
+        // Ignore any pixel that would be drawn before the beginning of the
+        // canvas surface.
+        let mut dest_x = dx + dirty_x;
+        let mut dest_y = dy + dirty_y;
+        if dest_x < 0 {
+            dirty_x -= dest_x;
+            dirty_width += dest_x;
+            dest_x = 0;
+        }
+        if dest_y < 0 {
+            dirty_y -= dest_y;
+            dirty_height += dest_y;
+            dest_y = 0;
+        }
+
+        // Step 4.
+        if dirty_x < 0 {
+            dirty_width += dirty_x;
+            dirty_x = 0;
+        }
+        if dirty_y < 0 {
+            dirty_height += dirty_y;
+            dirty_y = 0;
+        }
+
+        // Step 5.
+        if dirty_x + dirty_width > imagedata_size.width {
+            dirty_width = imagedata_size.width - dirty_x;
+        }
+        if dirty_y + dirty_height > imagedata_size.height {
+            dirty_height = imagedata_size.height - dirty_y;
+        }
+
+        // We take care of ignoring any pixel that would be drawn after the end
+        // of the canvas surface.
+        let canvas_size = self.canvas.as_ref().map_or(Size2D::zero(), |c| c.get_size()).to_i32();
+        let origin = Point2D::new(dest_x, dest_y);
+        let drawable_size = (origin - canvas_size.to_vector().to_point()).to_size().abs();
+        dirty_width = dirty_width.min(drawable_size.width);
+        dirty_height = dirty_height.min(drawable_size.height);
+
+        // Step 6.
+        if dirty_width <= 0 || dirty_height <= 0 {
+            return;
+        }
+
+        // FIXME(nox): There is no need to make a Vec<u8> of all the pixels
+        // if we didn't want to put the entire image.
+        let buffer = imagedata.get_data_array();
+
+        // Step 7.
         self.send_canvas_2d_msg(Canvas2dMsg::PutImageData(
-            data.into(),
-            offset,
-            image_data_size,
-            dirty_rect,
+            buffer.into(),
+            origin.to_vector(),
+            imagedata_size,
+            Rect::new(
+                Point2D::new(dirty_x, dirty_y),
+                Size2D::new(dirty_width, dirty_height),
+            ),
         ));
         self.mark_as_dirty();
     }

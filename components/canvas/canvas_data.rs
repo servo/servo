@@ -452,62 +452,15 @@ impl<'a> CanvasData<'a> {
     pub fn put_image_data(
         &mut self,
         imagedata: Vec<u8>,
-        offset: Vector2D<f64>,
-        image_data_size: Size2D<f64>,
-        mut dirty_rect: Rect<f64>
+        offset: Vector2D<i32>,
+        image_data_size: Size2D<i32>,
+        dest_rect: Rect<i32>,
     ) {
-        if image_data_size.width <= 0.0 || image_data_size.height <= 0.0 {
-            return
-        }
+        assert_eq!(image_data_size.width * image_data_size.height * 4, imagedata.len() as i32);
 
-        assert_eq!(image_data_size.width * image_data_size.height * 4.0, imagedata.len() as f64);
+        let image_size = image_data_size;
 
-        // Step 1. TODO (neutered data)
-
-        // Step 2.
-        if dirty_rect.size.width < 0.0f64 {
-            dirty_rect.origin.x += dirty_rect.size.width;
-            dirty_rect.size.width = -dirty_rect.size.width;
-        }
-
-        if dirty_rect.size.height < 0.0f64 {
-            dirty_rect.origin.y += dirty_rect.size.height;
-            dirty_rect.size.height = -dirty_rect.size.height;
-        }
-
-        // Step 3.
-        if dirty_rect.origin.x < 0.0f64 {
-            dirty_rect.size.width += dirty_rect.origin.x;
-            dirty_rect.origin.x = 0.0f64;
-        }
-
-        if dirty_rect.origin.y < 0.0f64 {
-            dirty_rect.size.height += dirty_rect.origin.y;
-            dirty_rect.origin.y = 0.0f64;
-        }
-
-        // Step 4.
-        if dirty_rect.max_x() > image_data_size.width {
-            dirty_rect.size.width = image_data_size.width - dirty_rect.origin.x;
-        }
-
-        if dirty_rect.max_y() > image_data_size.height {
-            dirty_rect.size.height = image_data_size.height - dirty_rect.origin.y;
-        }
-
-        // 5) If either dirtyWidth or dirtyHeight is negative or zero,
-        // stop without affecting any bitmaps
-        if dirty_rect.size.width <= 0.0 || dirty_rect.size.height <= 0.0 {
-            return
-        }
-
-        // Step 6.
-        let dest_rect = dirty_rect.translate(&offset).to_i32();
-
-        // azure_hl operates with integers. We need to cast the image size
-        let image_size = image_data_size.to_i32();
-
-        let first_pixel = dest_rect.origin - offset.to_i32();
+        let first_pixel = dest_rect.origin;
         let mut src_line = (first_pixel.y * (image_size.width * 4) + first_pixel.x * 4) as usize;
 
         let mut dest =
@@ -533,9 +486,7 @@ impl<'a> CanvasData<'a> {
                 dest_rect.size,
                 dest_rect.size.width * 4,
                 SurfaceFormat::B8G8R8A8) {
-            self.drawtarget.copy_surface(source_surface,
-                                         Rect::new(Point2D::new(0, 0), dest_rect.size),
-                                         dest_rect.origin);
+            self.drawtarget.copy_surface(source_surface, Rect::from_size(dest_rect.size), offset.to_point());
         }
     }
 
