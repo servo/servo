@@ -221,8 +221,11 @@ android-nightly:
   - ./etc/ci/clean_build_artifacts.sh
   - ./etc/ci/bootstrap-android-and-accept-licences.sh
   - env --unset ANDROID_NDK --unset ANDROID_SDK ./mach build --android --release
-  - env --unset ANDROID_NDK --unset ANDROID_SDK ./mach package --android --release
+  - env --unset ANDROID_NDK --unset ANDROID_SDK ./mach package --android --release --maven
+  - env --unset ANDROID_NDK --unset ANDROID_SDK ./mach build --target=i686-linux-android --release
+  - env --unset ANDROID_NDK --unset ANDROID_SDK ./mach package --target=i686-linux-android --release --maven
   - ./mach upload-nightly android
+  - ./mach upload-nightly maven
   - ./etc/ci/clean_build_artifacts.sh
 
 arm32:

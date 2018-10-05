@@ -55,6 +55,10 @@ PACKAGES = {
     'macbrew': [
         'target/release/brew/servo.tar.gz',
     ],
+    'maven': [
+        'target/gradle/servoview/maven/org/mozilla/servoview/servoview-armv7/',
+        'target/gradle/servoview/maven/org/mozilla/servoview/servoview-x86/',
+    ],
     'windows-msvc': [
         r'target\release\msi\Servo.exe',
         r'target\release\msi\Servo.zip',
@@ -534,6 +538,27 @@ class PackageCommands(CommandBase):
             }
             s3.copy(copy_source, BUCKET, latest_upload_key)
 
+        def update_maven(directory):
+            s3 = boto3.client('s3')
+            BUCKET = 'servo-builds'
+
+            nightly_dir = 'nightly/maven'
+            dest_key_base = directory.replace("target/gradle/servoview/maven", nightly_dir)
+            if dest_key_base[-1] == '/':
+                dest_key_base = dest_key_base[:-1]
+
+            # Given a directory with subdirectories like 0.0.1.20181005.caa4d190af...
+            for artifact_dir in os.listdir(directory):
+                base_dir = os.path.join(directory, artifact_dir)
+                if not os.path.isdir(base_dir):
+                    continue
+                package_upload_base = "{}/{}".format(dest_key_base, artifact_dir[:-1])
+                # Upload all of the files inside the subdirectory.
+                for f in os.listdir(base_dir):
+                    file_upload_key = "{}/{}".format(package_upload_base, f)
+                    print("Uploading %s to %s" % (os.path.join(base_dir, f), file_upload_key))
+                    s3.upload_file(os.path.join(base_dir, f), BUCKET, file_upload_key)
+
         def update_brew(package, timestamp):
             print("Updating brew formula")
 
@@ -587,6 +612,8 @@ class PackageCommands(CommandBase):
 
         timestamp = datetime.utcnow().replace(microsecond=0)
         for package in PACKAGES[platform]:
+            if path.isdir(package):
+                continue
             if not path.isfile(package):
                 print("Could not find package for {} at {}".format(
                     platform,
@@ -594,6 +621,10 @@ class PackageCommands(CommandBase):
                 ), file=sys.stderr)
                 return 1
             upload_to_s3(platform, package, timestamp)
+
+        if platform == 'maven':
+            for package in PACKAGES[platform]:
+                update_maven(package)
 
         if platform == 'macbrew':
             packages = PACKAGES[platform]
