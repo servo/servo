@@ -408,7 +408,9 @@ fn filter_by_name(name: &Atom, element: &Element) -> bool {
     }
 
     if element.is::<HTMLImageElement>() &&
-        element.get_id().as_ref().map_or(false, |id| id == name)
+        element.get_id().as_ref().map_or(false, |id| id == name) &&
+        element.get_attribute(&ns!(), &local_name!("name"))
+            .map_or(false, |n| !n.value().is_empty())
     {
         return true;
     }
