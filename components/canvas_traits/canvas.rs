@@ -382,38 +382,3 @@ impl FromStr for CompositionOrBlending {
         Err(())
     }
 }
-
-// TODO(pcwalton): Speed up with SIMD, or better yet, find some way to not do this.
-pub fn byte_swap(data: &mut [u8]) {
-    let length = data.len();
-    // FIXME(rust #27741): Range::step_by is not stable yet as of this writing.
-    let mut i = 0;
-    while i < length {
-        let r = data[i + 2];
-        data[i + 2] = data[i + 0];
-        data[i + 0] = r;
-        i += 4;
-    }
-}
-
-pub fn multiply_u8_pixel(a: u8, b: u8) -> u8 {
-    return (a as u32 * b as u32 / 255) as u8;
-}
-
-pub fn byte_swap_and_premultiply(data: &mut [u8]) {
-    let length = data.len();
-
-    let mut i = 0;
-    while i < length {
-        let r = data[i + 2];
-        let g = data[i + 1];
-        let b = data[i + 0];
-        let a = data[i + 3];
-
-        data[i + 0] = multiply_u8_pixel(r, a);
-        data[i + 1] = multiply_u8_pixel(g, a);
-        data[i + 2] = multiply_u8_pixel(b, a);
-
-        i += 4;
-    }
-}

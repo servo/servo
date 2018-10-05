@@ -5,7 +5,6 @@
 #[cfg(feature = "webgl_backtrace")]
 use backtrace::Backtrace;
 use byteorder::{ByteOrder, NativeEndian, WriteBytesExt};
-use canvas_traits::canvas::{byte_swap, multiply_u8_pixel};
 use canvas_traits::webgl::{DOMToTextureCommand, Parameter, WebGLCommandBacktrace};
 use canvas_traits::webgl::{TexParameter, WebGLCommand, WebGLContextShareMode, WebGLError};
 use canvas_traits::webgl::{WebGLFramebufferBindingRequest, WebGLMsg, WebGLMsgSender};
@@ -65,6 +64,7 @@ use js::typedarray::{TypedArray, TypedArrayElementCreator};
 use net_traits::image::base::PixelFormat;
 use net_traits::image_cache::ImageResponse;
 use offscreen_gl_context::{GLContextAttributes, GLLimits};
+use pixels;
 use script_layout_interface::HTMLCanvasDataSource;
 use serde::{Deserialize, Serialize};
 use servo_config::prefs::PREFS;
@@ -550,7 +550,7 @@ impl WebGLRenderingContext {
                     _ => unimplemented!(),
                 };
 
-                byte_swap(&mut data);
+                pixels::byte_swap_colors_inplace(&mut data);
 
                 (data, size, false)
             },
@@ -563,7 +563,7 @@ impl WebGLRenderingContext {
                 }
                 if let Some((mut data, size)) = canvas.fetch_all_data() {
                     // Pixels got from Canvas have already alpha premultiplied
-                    byte_swap(&mut data);
+                    pixels::byte_swap_colors_inplace(&mut data);
                     (data, size, true)
                 } else {
                     return Ok(None);
@@ -679,15 +679,11 @@ impl WebGLRenderingContext {
 
         match (format, data_type) {
             (TexFormat::RGBA, TexDataType::UnsignedByte) => {
-                for rgba in pixels.chunks_mut(4) {
-                    rgba[0] = multiply_u8_pixel(rgba[0], rgba[3]);
-                    rgba[1] = multiply_u8_pixel(rgba[1], rgba[3]);
-                    rgba[2] = multiply_u8_pixel(rgba[2], rgba[3]);
-                }
+                pixels::premultiply_inplace(pixels);
             },
             (TexFormat::LuminanceAlpha, TexDataType::UnsignedByte) => {
                 for la in pixels.chunks_mut(2) {
-                    la[0] = multiply_u8_pixel(la[0], la[1]);
+                    la[0] = pixels::multiply_u8_color(la[0], la[1]);
                 }
             },
             (TexFormat::RGBA, TexDataType::UnsignedShort5551) => {
@@ -707,9 +703,9 @@ impl WebGLRenderingContext {
                     let a = extend_to_8_bits(pix & 0x0f);
                     NativeEndian::write_u16(
                         rgba,
-                        ((multiply_u8_pixel(r, a) & 0xf0) as u16) << 8 |
-                            ((multiply_u8_pixel(g, a) & 0xf0) as u16) << 4 |
-                            ((multiply_u8_pixel(b, a) & 0xf0) as u16) |
+                        ((pixels::multiply_u8_color(r, a) & 0xf0) as u16) << 8 |
+                            ((pixels::multiply_u8_color(g, a) & 0xf0) as u16) << 4 |
+                            ((pixels::multiply_u8_color(b, a) & 0xf0) as u16) |
                             ((a & 0x0f) as u16),
                     );
                 }

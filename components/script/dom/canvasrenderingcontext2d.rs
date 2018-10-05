@@ -5,7 +5,7 @@
 use canvas_traits::canvas::{Canvas2dMsg, CanvasMsg, CanvasId};
 use canvas_traits::canvas::{CompositionOrBlending, FillOrStrokeStyle, FillRule};
 use canvas_traits::canvas::{LineCapStyle, LineJoinStyle, LinearGradientStyle};
-use canvas_traits::canvas::{RadialGradientStyle, RepetitionStyle, byte_swap_and_premultiply};
+use canvas_traits::canvas::{RadialGradientStyle, RepetitionStyle};
 use cssparser::{Parser, ParserInput, RGBA};
 use cssparser::Color as CSSColor;
 use dom::bindings::cell::DomRefCell;
@@ -41,6 +41,7 @@ use net_traits::image_cache::ImageResponse;
 use net_traits::image_cache::ImageState;
 use net_traits::image_cache::UsePlaceholder;
 use num_traits::ToPrimitive;
+use pixels;
 use profile_traits::ipc as profiled_ipc;
 use script_traits::ScriptMsg;
 use servo_url::ServoUrl;
@@ -410,7 +411,7 @@ impl CanvasRenderingContext2D {
             Some((mut data, size)) => {
                 // Pixels come from cache in BGRA order and drawImage expects RGBA so we
                 // have to swap the color values
-                byte_swap_and_premultiply(&mut data);
+                pixels::byte_swap_and_premultiply_inplace(&mut data);
                 let size = Size2D::new(size.width as f64, size.height as f64);
                 (data, size)
             },

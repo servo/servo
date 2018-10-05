@@ -2,13 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use canvas_traits::canvas::byte_swap;
 use canvas_traits::webgl::*;
 use euclid::Size2D;
 use fnv::FnvHashMap;
 use gleam::gl;
 use ipc_channel::ipc::IpcBytesSender;
 use offscreen_gl_context::{GLContext, GLContextAttributes, GLLimits, NativeGLContextMethods};
+use pixels;
 use std::thread;
 use super::gl_context::{GLContextFactory, GLContextWrapper};
 use webrender;
@@ -562,7 +562,7 @@ impl<VR: WebVRRenderHandler + 'static> WebGLThread<VR> {
             let src_slice = &orig_pixels[src_start .. src_start + stride];
             (&mut pixels[dst_start .. dst_start + stride]).clone_from_slice(&src_slice[..stride]);
         }
-        byte_swap(&mut pixels);
+        pixels::byte_swap_colors_inplace(&mut pixels);
         pixels
     }
 

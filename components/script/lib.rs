@@ -78,6 +78,7 @@ extern crate num_traits;
 extern crate offscreen_gl_context;
 extern crate parking_lot;
 extern crate phf;
+extern crate pixels;
 #[macro_use]
 extern crate profile_traits;
 extern crate ref_filter_map;

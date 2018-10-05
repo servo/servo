@@ -7,6 +7,7 @@ use canvas_data::*;
 use canvas_traits::canvas::*;
 use euclid::Size2D;
 use ipc_channel::ipc::{self, IpcSender};
+use pixels;
 use std::borrow::ToOwned;
 use std::collections::HashMap;
 use std::thread;
@@ -141,7 +142,7 @@ impl<'a> CanvasPaintThread <'a> {
                 let data = match imagedata {
                     None => vec![0; image_size.width as usize * image_size.height as usize * 4],
                     Some(mut data) => {
-                        byte_swap(&mut data);
+                        pixels::byte_swap_colors_inplace(&mut data);
                         data.into()
                     },
                 };
