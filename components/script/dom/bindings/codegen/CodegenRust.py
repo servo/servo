@@ -2278,7 +2278,10 @@ static NAMESPACE_OBJECT_CLASS: NamespaceObjectClass = unsafe {
         return """\
 static INTERFACE_OBJECT_CLASS: NonCallbackInterfaceObjectClass =
     NonCallbackInterfaceObjectClass::new(
-        &%(constructorBehavior)s,
+        {
+            const BEHAVIOR: InterfaceConstructorBehavior = %(constructorBehavior)s;
+            &BEHAVIOR
+        },
         %(representation)s,
         PrototypeList::ID::%(id)s,
         %(depth)s);
