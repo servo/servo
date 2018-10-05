@@ -97,11 +97,18 @@ void main()
 }
 </script>
 <script>
-"use strict";
+  "use strict";
+  console.log("hi");
+try {
 description();
+} catch (x) {
+console.error(x);
+}
+  console.log("hi2");
 debug("");
 var wtu = WebGLTestUtils;
 var gl = wtu.create3DContext("example");
+  console.log("hi3");
 
 var uniformTypes = [
   { type: "bool",        componentsPerRow: 1, rows: 1, fType: "float", uniToF: "float(u_uniform$(id)$(index))", fToVec4: "vec4($(f), 0, 0, 0)"},
@@ -131,6 +138,7 @@ var vArrayTestSource = wtu.getScript("vshaderArrayTest");
 var fArrayTestSource = wtu.getScript("fshaderArrayTest");
 var vUniformTestSource = wtu.getScript("vshaderUniformTest");
 var fUniformTestSource = wtu.getScript("fshaderUniformTest");
+  console.log("hi");
 
 var tests = [];
 var shaderTypes = [
@@ -160,7 +168,9 @@ var shaderTypes = [
 for (var ss = 0; ss < shaderTypes.length; ++ss) {
   var shaderType = shaderTypes[ss];
   debug("max " + shaderType.type + ": " + shaderType.maxVectors);
+  console.log("stuff " + ss);
   for (var ii = 0; ii < uniformTypes.length; ++ii) {
+  console.log("stuff " + ii);
     var info = uniformTypes[ii];
     wtu.log("checking: " + info.type);
     // Compute the maximum amount of this type allowed in a single array.

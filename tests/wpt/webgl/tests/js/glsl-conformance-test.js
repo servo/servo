@@ -299,23 +299,29 @@ function runOneTest(gl, info) {
   }
 }
 
-function runTests(shaderInfos, opt_contextVersion) {
+    function runTests(shaderInfos, opt_contextVersion) {
+        console.log("hi");
   var wtu = WebGLTestUtils;
   var canvas = document.createElement('canvas');
   canvas.width = 32;
   canvas.height = 32;
+        console.log("hi2");
   var gl = wtu.create3DContext(canvas, undefined, opt_contextVersion);
   if (!gl) {
     testFailed("context does not exist");
     finishTest();
     return;
   }
+        console.log("hi3");
 
   for (var i = 0; i < shaderInfos.length; i++) {
+        console.log("hi4 " + i);
     runOneTest(gl, shaderInfos[i]);
   }
+        console.log("hi5");
 
   finishTest();
+        console.log("hi6");
 };
 
 function getSource(elem) {

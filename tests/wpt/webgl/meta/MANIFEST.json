@@ -24812,7 +24812,7 @@
    "testharness"
   ],
   "conformance/glsl/misc/shader-uniform-packing-restrictions.html": [
-   "4d6f691246209793ec7fabfcfe1d143641135220",
+   "42fc0649bd3d2c1ecc3a33b2def4cce504da3e12",
    "testharness"
   ],
   "conformance/glsl/misc/shader-varying-packing-restrictions.html": [
@@ -42580,7 +42580,7 @@
    "support"
   ],
   "js/glsl-conformance-test.js": [
-   "f09fc255c924f6cab7fa1fff25cd55671440d501",
+   "dd550550f524dc3696e3f9a5ceeaa9a752f2ff71",
    "support"
   ],
   "js/glsl-constructor-tests-generator.js": [

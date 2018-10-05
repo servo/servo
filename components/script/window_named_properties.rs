@@ -168,12 +168,14 @@ pub fn create(
     mut properties_obj: RustMutableHandleObject
 ) {
     unsafe {
-        // TODO: mark proxy as singleton
+        // TODO: pass real class pointer
         properties_obj.set(NewProxyObject(
             *cx,
             HANDLER.0,
             UndefinedHandleValue,
             proto.get(),
+            ptr::null(),
+            true,
         ));
         assert!(!properties_obj.get().is_null());
         let mut succeeded = false;

@@ -2641,7 +2641,7 @@ let handler = RegisterBindings::PROXY_HANDLERS[PrototypeList::Proxies::%s as usi
 rooted!(in(*cx) let private = PrivateValue(raw as *const libc::c_void));
 let obj = NewProxyObject(*cx, handler,
                          Handle::from_raw(UndefinedHandleValue),
-                         proto.get());
+                         proto.get(), ptr::null(), false);
 assert!(!obj.is_null());
 SetProxyReservedSlot(obj, 0, &private.get());
 rooted!(in(*cx) let obj = obj);\
