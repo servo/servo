@@ -2278,7 +2278,14 @@ static NAMESPACE_OBJECT_CLASS: NamespaceObjectClass = unsafe {
         return """\
 static INTERFACE_OBJECT_CLASS: NonCallbackInterfaceObjectClass =
     NonCallbackInterfaceObjectClass::new(
-        &%(constructorBehavior)s,
+        {
+            // Intermediate `const` because as of nightly-2018-10-05,
+            // rustc is conservative in promotion to `'static` of the return values of `const fn`s:
+            // https://github.com/rust-lang/rust/issues/54846
+            // https://github.com/rust-lang/rust/pull/53851
+            const BEHAVIOR: InterfaceConstructorBehavior = %(constructorBehavior)s;
+            &BEHAVIOR
+        },
         %(representation)s,
         PrototypeList::ID::%(id)s,
         %(depth)s);
