@@ -28,6 +28,14 @@ thread_local! {
 /// and that perform_updates need to be called
 pub use servo::embedder_traits::EventLoopWaker;
 
+pub struct InitOptions {
+    pub args: Option<String>,
+    pub url: Option<String>,
+    pub width: u32,
+    pub height: u32,
+    pub density: f32,
+}
+
 /// Delegate resource file reading to the embedder.
 pub trait ReadFileTrait {
     fn readfile(&self, file: &str) -> Vec<u8>;
@@ -93,20 +101,16 @@ pub fn servo_version() -> String {
 /// Initialize Servo. At that point, we need a valid GL context.
 /// In the future, this will be done in multiple steps.
 pub fn init(
+    init_opts: InitOptions,
     gl: Rc<gl::Gl>,
-    argsline: String,
-    embedder_url: Option<String>,
     waker: Box<EventLoopWaker>,
     readfile: Box<ReadFileTrait + Send + Sync>,
     callbacks: Box<HostTrait>,
-    width: u32,
-    height: u32,
-    density: f32,
 ) -> Result<(), &'static str> {
     resources::set(Box::new(ResourceReader(readfile)));
 
-    if !argsline.is_empty() {
-        let mut args: Vec<String> = serde_json::from_str(&argsline).map_err(|_| {
+    if let Some(args) = init_opts.args {
+        let mut args: Vec<String> = serde_json::from_str(&args).map_err(|_| {
             "Invalid arguments. Servo arguments must be formatted as a JSON array"
         })?;
         // opts::from_cmdline_args expects the first argument to be the binary name.
@@ -114,7 +118,7 @@ pub fn init(
         opts::from_cmdline_args(&args);
     }
 
-    let embedder_url = embedder_url.as_ref().and_then(|s| {
+    let embedder_url = init_opts.url.as_ref().and_then(|s| {
         ServoUrl::parse(s).ok()
     });
     let cmdline_url = opts::get().url.clone();
@@ -135,9 +139,9 @@ pub fn init(
     let callbacks = Rc::new(ServoCallbacks {
         gl: gl.clone(),
         host_callbacks: callbacks,
-        width: Cell::new(width),
-        height: Cell::new(height),
-        density,
+        width: Cell::new(init_opts.width),
+        height: Cell::new(init_opts.height),
+        density: init_opts.density,
         waker,
     });
 

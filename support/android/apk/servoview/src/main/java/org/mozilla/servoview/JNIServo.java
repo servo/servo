@@ -20,13 +20,7 @@ public class JNIServo {
 
     public native String version();
 
-    public native void init(Activity activity,
-                            String args,
-                            String url,
-                            String logstr,
-                            Callbacks callbacks,
-                            int width, int height, float density,
-                            boolean log);
+    public native void init(Activity activity, ServoOptions options, Callbacks callbacks);
 
     public native void setBatchMode(boolean mode);
 
@@ -59,6 +53,16 @@ public class JNIServo {
     public native void pinchZoomEnd(float factor, int x, int y);
 
     public native void click(int x, int y);
+
+    public static class ServoOptions {
+      public String args;
+      public String url;
+      public int width = 0;
+      public int height = 0;
+      public float density = 1;
+      public String logStr;
+      public boolean enableLogs = false;
+    }
 
     public interface Callbacks {
         void wakeup();

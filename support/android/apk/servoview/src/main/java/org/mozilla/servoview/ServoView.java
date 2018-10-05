@@ -19,6 +19,7 @@ import android.view.MotionEvent;
 import android.view.ScaleGestureDetector;
 import android.widget.OverScroller;
 
+import org.mozilla.servoview.JNIServo.ServoOptions;
 import org.mozilla.servoview.Servo.Client;
 import org.mozilla.servoview.Servo.GfxCallbacks;
 import org.mozilla.servoview.Servo.RunCallback;
@@ -41,8 +42,8 @@ public class ServoView extends GLSurfaceView
     private Client mClient = null;
     private Uri mInitialUri = null;
     private boolean mAnimating;
-    private String mServoArgs = "";
-    private String mServoLog = "";
+    private String mServoArgs;
+    private String mServoLog;
     private GestureDetector mGestureDetector;
     private ScaleGestureDetector mScaleGestureDetector;
 
@@ -75,8 +76,8 @@ public class ServoView extends GLSurfaceView
     }
 
     public void setServoArgs(String args, String log) {
-        mServoArgs = args != null ? args : "";
-        mServoLog = log != null ? log : "";
+        mServoArgs = args;
+        mServoLog = log;
     }
 
     public void reload() {
@@ -135,16 +136,19 @@ public class ServoView extends GLSurfaceView
     }
 
     public void onGLReady() {
-        final boolean showLogs = true;
-        int width = getWidth();
-        int height = getHeight();
+        ServoOptions options = new ServoOptions();
+        options.args = mServoArgs;
+        options.width = getWidth();
+        options.height = getHeight();
+        options.enableLogs = true;
         DisplayMetrics metrics = new DisplayMetrics();
         mActivity.getWindowManager().getDefaultDisplay().getMetrics(metrics);
-        float density = metrics.density;
-
+        options.density = metrics.density;
         inGLThread(() -> {
             String uri = mInitialUri == null ? null : mInitialUri.toString();
-            mServo = new Servo(this, this, mClient, mActivity, mServoArgs, uri, mServoLog, width, height, density, showLogs);
+            options.url = uri;
+            options.logStr = mServoLog;
+            mServo = new Servo(options, this, this, mClient, mActivity);
         });
     }
 
