@@ -47,7 +47,7 @@ pub struct ImageMetadata {
 // reference count them.
 
 // TODO(pcwalton): Speed up with SIMD, or better yet, find some way to not do this.
-fn byte_swap_and_premultiply(data: &mut [u8]) {
+fn byte_swap_colors_inplace(data: &mut [u8]) {
     let length = data.len();
 
     let mut i = 0;
@@ -82,7 +82,7 @@ pub fn load_from_memory(buffer: &[u8]) -> Option<Image> {
                         DynamicImage::ImageRgba8(rgba) => rgba,
                         image => image.to_rgba(),
                     };
-                    byte_swap_and_premultiply(&mut *rgba);
+                    byte_swap_colors_inplace(&mut *rgba);
                     Some(Image {
                         width: rgba.width(),
                         height: rgba.height(),
