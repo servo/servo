@@ -1277,19 +1277,14 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
             return;
         }
 
-        // FIXME(nox): There is no need to make a Vec<u8> of all the pixels
-        // if we didn't want to put the entire image.
-        let buffer = imagedata.get_data_array();
+        let dirty_size = Size2D::new(dirty_width, dirty_height);
+        let dirty_rect = Rect::new(Point2D::new(dirty_x, dirty_y), dirty_size);
 
         // Step 7.
         self.send_canvas_2d_msg(Canvas2dMsg::PutImageData(
-            buffer.into(),
+            imagedata.get_rect(dirty_rect.try_cast().unwrap()).into(),
             origin.to_vector(),
-            imagedata_size,
-            Rect::new(
-                Point2D::new(dirty_x, dirty_y),
-                Size2D::new(dirty_width, dirty_height),
-            ),
+            dirty_size,
         ));
         self.mark_as_dirty();
     }

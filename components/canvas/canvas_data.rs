@@ -13,6 +13,7 @@ use cssparser::RGBA;
 use euclid::{Transform2D, Point2D, Vector2D, Rect, Size2D};
 use ipc_channel::ipc::{IpcBytesSender, IpcSender};
 use num_traits::ToPrimitive;
+use pixels;
 use serde_bytes::ByteBuf;
 use std::mem;
 use std::sync::Arc;
@@ -451,42 +452,22 @@ impl<'a> CanvasData<'a> {
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-putimagedata
     pub fn put_image_data(
         &mut self,
-        imagedata: Vec<u8>,
+        mut imagedata: Vec<u8>,
         offset: Vector2D<i32>,
-        image_data_size: Size2D<i32>,
-        dest_rect: Rect<i32>,
+        imagedata_size: Size2D<i32>,
     ) {
-        assert_eq!(image_data_size.width * image_data_size.height * 4, imagedata.len() as i32);
-
-        let image_size = image_data_size;
-
-        let first_pixel = dest_rect.origin;
-        let mut src_line = (first_pixel.y * (image_size.width * 4) + first_pixel.x * 4) as usize;
-
-        let mut dest =
-            Vec::with_capacity((dest_rect.size.width * dest_rect.size.height * 4) as usize);
-
-        for _ in 0 .. dest_rect.size.height {
-            let mut src_offset = src_line;
-            for _ in 0 .. dest_rect.size.width {
-                let alpha = imagedata[src_offset + 3] as u16;
-                // add 127 before dividing for more accurate rounding
-                let premultiply_channel = |channel: u8| (((channel as u16 * alpha) + 127) / 255) as u8;
-                dest.push(premultiply_channel(imagedata[src_offset + 2]));
-                dest.push(premultiply_channel(imagedata[src_offset + 1]));
-                dest.push(premultiply_channel(imagedata[src_offset + 0]));
-                dest.push(imagedata[src_offset + 3]);
-                src_offset += 4;
-            }
-            src_line += (image_size.width * 4) as usize;
-        }
-
+        assert_eq!(imagedata_size.area() * 4, imagedata.len() as i32);
+        pixels::byte_swap_and_premultiply_inplace(&mut imagedata);
         if let Some(source_surface) = self.drawtarget.create_source_surface_from_data(
-                &dest,
-                dest_rect.size,
-                dest_rect.size.width * 4,
+                &imagedata,
+                imagedata_size,
+                imagedata_size.width * 4,
                 SurfaceFormat::B8G8R8A8) {
-            self.drawtarget.copy_surface(source_surface, Rect::from_size(dest_rect.size), offset.to_point());
+            self.drawtarget.copy_surface(
+                source_surface,
+                Rect::from_size(imagedata_size),
+                offset.to_point(),
+            );
         }
     }
 
