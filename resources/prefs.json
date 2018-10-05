@@ -19,6 +19,7 @@
   "dom.webgl2.enabled": false,
   "dom.webvr.enabled": false,
   "dom.webvr.event_polling_interval": 500,
+  "gfx.subpixel-text-antialiasing": true,
   "js.asmjs.enabled": true,
   "js.asyncstack.enabled": false,
   "js.baseline.enabled": true,

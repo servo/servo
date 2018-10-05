@@ -596,12 +596,17 @@ fn get_options(env: &JNIEnv, opts: JObject) -> Result<(InitOptions, bool, Option
     let log = get_non_null_field(env, opts, "enableLogs", "Z")?
         .z()
         .map_err(|_| "enableLogs not a boolean")?;
+    let enable_subpixel_text_antialiasing =
+        get_non_null_field(env, opts, "enableSubpixelTextAntialiasing", "Z")?
+            .z()
+            .map_err(|_| "enableSubpixelTextAntialiasing not a boolean")?;
     let opts = InitOptions {
         args,
         url,
         width,
         height,
         density,
+        enable_subpixel_text_antialiasing,
     };
     Ok((opts, log, log_str))
 }

@@ -968,6 +968,11 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
         .as_boolean()
         .unwrap();
 
+    let enable_subpixel_text_antialiasing = !debug_options.disable_subpixel_aa && PREFS
+        .get("gfx.subpixel-text-antialiasing.enabled")
+        .as_boolean()
+        .unwrap();
+
     let is_printing_version = opt_match.opt_present("v") || opt_match.opt_present("version");
 
     let opts = Opts {
@@ -1003,7 +1008,7 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
         show_debug_fragment_borders: debug_options.show_fragment_borders,
         show_debug_parallel_layout: debug_options.show_parallel_layout,
         enable_text_antialiasing: !debug_options.disable_text_aa,
-        enable_subpixel_text_antialiasing: !debug_options.disable_subpixel_aa,
+        enable_subpixel_text_antialiasing: enable_subpixel_text_antialiasing,
         enable_canvas_antialiasing: !debug_options.disable_canvas_aa,
         dump_style_tree: debug_options.dump_style_tree,
         dump_rule_tree: debug_options.dump_rule_tree,

@@ -141,6 +141,7 @@ public class ServoView extends GLSurfaceView
         options.width = getWidth();
         options.height = getHeight();
         options.enableLogs = true;
+        options.enableSubpixelTextAntialiasing = true;
         DisplayMetrics metrics = new DisplayMetrics();
         mActivity.getWindowManager().getDefaultDisplay().getMetrics(metrics);
         options.density = metrics.density;
