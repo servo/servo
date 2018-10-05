@@ -60,6 +60,7 @@ public class JNIServo {
       public int width = 0;
       public int height = 0;
       public float density = 1;
+      public boolean enableSubpixelTextAntialiasing = true;
       public String logStr;
       public boolean enableLogs = false;
     }

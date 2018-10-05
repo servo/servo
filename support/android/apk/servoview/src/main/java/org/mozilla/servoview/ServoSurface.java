@@ -213,6 +213,7 @@ public class ServoSurface {
               options.url = mInitialUri == null ? null : mInitialUri;
               options.logStr = mServoLog;
               options.enableLogs = true;
+              options.enableSubpixelTextAntialiasing = false;
 
               mServo = new Servo(options, this, surface, mClient, mActivity);
             });

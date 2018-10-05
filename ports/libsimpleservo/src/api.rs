@@ -11,7 +11,7 @@ use servo::euclid::{Length, TypedPoint2D, TypedScale, TypedSize2D, TypedVector2D
 use servo::msg::constellation_msg::TraversalDirection;
 use servo::script_traits::{MouseButton, TouchEventType};
 use servo::servo_config::opts;
-use servo::servo_config::prefs::PREFS;
+use servo::servo_config::prefs::{PrefValue, PREFS};
 use servo::servo_url::ServoUrl;
 use servo::style_traits::DevicePixel;
 use std::cell::{Cell, RefCell};
@@ -34,6 +34,7 @@ pub struct InitOptions {
     pub width: u32,
     pub height: u32,
     pub density: f32,
+    pub enable_subpixel_text_antialiasing: bool,
 }
 
 /// Delegate resource file reading to the embedder.
@@ -115,6 +116,9 @@ pub fn init(
         })?;
         // opts::from_cmdline_args expects the first argument to be the binary name.
         args.insert(0, "servo".to_string());
+
+        let pref = PrefValue::Boolean(init_opts.enable_subpixel_text_antialiasing);
+        PREFS.set("gfx.subpixel-text-antialiasing.enabled", pref);
         opts::from_cmdline_args(&args);
     }
 

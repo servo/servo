@@ -45,6 +45,7 @@ pub struct CInitOptions {
     pub width: u32,
     pub height: u32,
     pub density: f32,
+    pub enable_subpixel_text_antialiasing: bool,
 }
 
 /// The returned string is not freed. This will leak.
@@ -75,6 +76,7 @@ fn init(
         width: opts.width,
         height: opts.height,
         density: opts.density,
+        enable_subpixel_text_antialiasing: opts.enable_subpixel_text_antialiasing,
     };
 
     let wakeup = Box::new(WakeupCallback::new(wakeup));
