@@ -520,7 +520,7 @@ impl WebGLRenderingContext {
     ) -> Fallible<Option<(Vec<u8>, Size2D<u32>, bool)>> {
         Ok(Some(match source {
             TexImageSource::ImageData(image_data) => {
-                (image_data.get_data_array(), image_data.get_size(), false)
+                (image_data.to_vec(), image_data.get_size(), false)
             },
             TexImageSource::HTMLImageElement(image) => {
                 let document = document_from_node(&*self.canvas);

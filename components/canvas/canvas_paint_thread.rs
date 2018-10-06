@@ -241,8 +241,12 @@ impl<'a> CanvasPaintThread <'a> {
             Canvas2dMsg::GetImageData(dest_rect, canvas_size, chan) => {
                 self.canvas(canvas_id).image_data(dest_rect, canvas_size, chan)
             },
-            Canvas2dMsg::PutImageData(imagedata, offset, imagedata_size) => {
-                self.canvas(canvas_id).put_image_data(imagedata.into(), offset, imagedata_size)
+            Canvas2dMsg::PutImageData(receiver, offset, imagedata_size) => {
+                self.canvas(canvas_id).put_image_data(
+                    receiver.recv().unwrap(),
+                    offset,
+                    imagedata_size,
+                )
             },
             Canvas2dMsg::SetShadowOffsetX(value) => {
                 self.canvas(canvas_id).set_shadow_offset_x(value)

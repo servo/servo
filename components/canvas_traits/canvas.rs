@@ -4,7 +4,7 @@
 
 use cssparser::RGBA;
 use euclid::{Transform2D, Point2D, Vector2D, Rect, Size2D};
-use ipc_channel::ipc::{IpcBytesSender, IpcSender};
+use ipc_channel::ipc::{IpcBytesReceiver, IpcBytesSender, IpcSender};
 use serde_bytes::ByteBuf;
 use std::default::Default;
 use std::str::FromStr;
@@ -19,7 +19,7 @@ pub enum FillRule {
 #[derive(Clone, Copy, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize)]
 pub struct CanvasId(pub u64);
 
-#[derive(Clone, Deserialize, Serialize)]
+#[derive(Deserialize, Serialize)]
 pub enum CanvasMsg {
     Canvas2d(Canvas2dMsg, CanvasId),
     Create(IpcSender<CanvasId>, Size2D<u32>, webrender_api::RenderApiSender, bool),
@@ -34,7 +34,7 @@ pub struct CanvasImageData {
     pub image_key: webrender_api::ImageKey,
 }
 
-#[derive(Clone, Deserialize, Serialize)]
+#[derive(Deserialize, Serialize)]
 pub enum Canvas2dMsg {
     Arc(Point2D<f32>, f32, f32, f32, bool),
     ArcTo(Point2D<f32>, Point2D<f32>, f32),
@@ -54,7 +54,7 @@ pub enum Canvas2dMsg {
     IsPointInPath(f64, f64, FillRule, IpcSender<bool>),
     LineTo(Point2D<f32>),
     MoveTo(Point2D<f32>),
-    PutImageData(ByteBuf, Vector2D<i32>, Size2D<i32>),
+    PutImageData(IpcBytesReceiver, Vector2D<i32>, Size2D<i32>),
     QuadraticCurveTo(Point2D<f32>, Point2D<f32>),
     Rect(Rect<f32>),
     RestoreContext,

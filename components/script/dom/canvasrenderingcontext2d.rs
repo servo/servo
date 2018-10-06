@@ -1197,6 +1197,7 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-putimagedata
+    #[allow(unsafe_code)]
     fn PutImageData_(
         &self,
         imagedata: &ImageData,
@@ -1281,11 +1282,13 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
         let dirty_rect = Rect::new(Point2D::new(dirty_x, dirty_y), dirty_size);
 
         // Step 7.
+        let (sender, receiver) = ipc::bytes_channel().unwrap();
         self.send_canvas_2d_msg(Canvas2dMsg::PutImageData(
-            imagedata.get_rect(dirty_rect.try_cast().unwrap()).into(),
+            receiver,
             origin.to_vector(),
             dirty_size,
         ));
+        sender.send(unsafe { &imagedata.get_rect(dirty_rect.try_cast().unwrap()) }).unwrap();
         self.mark_as_dirty();
     }
 

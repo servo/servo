@@ -13,6 +13,7 @@ use euclid::{Rect, Size2D};
 use js::jsapi::{Heap, JSContext, JSObject};
 use js::rust::Runtime;
 use js::typedarray::{Uint8ClampedArray, CreateWith};
+use std::borrow::Cow;
 use std::default::Default;
 use std::ptr;
 use std::ptr::NonNull;
@@ -137,43 +138,46 @@ impl ImageData {
         Self::new_with_jsobject(global, width, opt_height, Some(jsobject))
     }
 
+    /// Nothing must change the array on the JS side while the slice is live.
     #[allow(unsafe_code)]
-    pub fn get_data_array(&self) -> Vec<u8> {
-        unsafe {
-            assert!(!self.data.get().is_null());
-            let cx = Runtime::get();
-            assert!(!cx.is_null());
-            typedarray!(in(cx) let array: Uint8ClampedArray = self.data.get());
-            let vec = array.unwrap().as_slice().to_vec();
-            vec
-        }
+    pub unsafe fn as_slice(&self) -> &[u8] {
+        assert!(!self.data.get().is_null());
+        let cx = Runtime::get();
+        assert!(!cx.is_null());
+        typedarray!(in(cx) let array: Uint8ClampedArray = self.data.get());
+        let array = array.as_ref().unwrap();
+        // NOTE(nox): This is just as unsafe as `as_slice` itself even though we
+        // are extending the lifetime of the slice, because the data in
+        // this ImageData instance will never change. The method is thus unsafe
+        // because the array may be manipulated from JS while the reference
+        // is live.
+        let ptr = array.as_slice() as *const _;
+        &*ptr
     }
 
     #[allow(unsafe_code)]
-    pub fn get_rect(&self, rect: Rect<u32>) -> Vec<u8> {
-        unsafe {
-            assert!(!rect.is_empty());
-            assert!(self.rect().contains_rect(&rect));
-            assert!(!self.data.get().is_null());
-            let cx = Runtime::get();
-            assert!(!cx.is_null());
-            typedarray!(in(cx) let array: Uint8ClampedArray = self.data.get());
-            let slice = array.as_ref().unwrap().as_slice();
-            let area = rect.size.area() as usize;
-            let first_column_start = rect.origin.x as usize * 4;
-            let row_length = self.width as usize * 4;
-            let first_row_start = rect.origin.y as usize * row_length;
-            if rect.origin.x == 0 && rect.size.width == self.width || rect.size.height == 1 {
-                let start = first_column_start + first_row_start;
-                // FIXME(nox): This should be a borrow.
-                return slice[start..start + area * 4].into();
-            }
-            let mut data = Vec::with_capacity(area * 4);
-            for row in slice[first_row_start..].chunks(row_length).take(rect.size.height as usize) {
-                data.extend_from_slice(&row[first_column_start..][..rect.size.width as usize * 4]);
-            }
-            data
+    pub fn to_vec(&self) -> Vec<u8> {
+        unsafe { self.as_slice().into() }
+    }
+
+    #[allow(unsafe_code)]
+    pub unsafe fn get_rect(&self, rect: Rect<u32>) -> Cow<[u8]> {
+        assert!(!rect.is_empty());
+        assert!(self.rect().contains_rect(&rect));
+        let slice = self.as_slice();
+        let area = rect.size.area() as usize;
+        let first_column_start = rect.origin.x as usize * 4;
+        let row_length = self.width as usize * 4;
+        let first_row_start = rect.origin.y as usize * row_length;
+        if rect.origin.x == 0 && rect.size.width == self.width || rect.size.height == 1 {
+            let start = first_column_start + first_row_start;
+            return Cow::Borrowed(&slice[start..start + area * 4]);
         }
+        let mut data = Vec::with_capacity(area * 4);
+        for row in slice[first_row_start..].chunks(row_length).take(rect.size.height as usize) {
+            data.extend_from_slice(&row[first_column_start..][..rect.size.width as usize * 4]);
+        }
+        data.into()
     }
 
     pub fn get_size(&self) -> Size2D<u32> {
