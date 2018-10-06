@@ -5,15 +5,14 @@
 #![allow(non_snake_case)]
 
 use android_logger::{self, Filter};
-use api::{self, EventLoopWaker, ServoGlue, SERVO, HostTrait, ReadFileTrait};
+use api::{self, EventLoopWaker, InitOptions, ServoGlue, SERVO, HostTrait, ReadFileTrait};
 use gl_glue;
-use jni::{JNIEnv, JavaVM};
+use jni::{errors, JNIEnv, JavaVM};
 use jni::objects::{GlobalRef, JClass, JObject, JString, JValue};
 use jni::sys::{jboolean, jfloat, jint, jstring, JNI_TRUE};
 use libc::{pipe, dup2, read};
 use log::Level;
 use std;
-use std::borrow::Cow;
 use std::os::raw::{c_char, c_int, c_void};
 use std::sync::{Arc, Mutex};
 use std::thread;
@@ -23,17 +22,16 @@ struct HostCallbacks {
     jvm: JavaVM,
 }
 
-fn call<F>(env: JNIEnv, f: F)
+fn call<F>(env: &JNIEnv, f: F)
 where
-    F: Fn(&mut ServoGlue) -> Result<(), &'static str>,
+    F: Fn(&mut ServoGlue) -> Result<(), &str>,
 {
     SERVO.with(|s| {
         if let Err(error) = match s.borrow_mut().as_mut() {
             Some(ref mut s) => (f)(s),
             None => Err("Servo not available in this thread"),
         } {
-            env.throw(("java/lang/Exception", error))
-                .expect("Error while throwing");
+            throw(env, error);
         }
     });
 }
@@ -41,8 +39,7 @@ where
 #[no_mangle]
 pub fn Java_org_mozilla_servoview_JNIServo_version(env: JNIEnv, _class: JClass) -> jstring {
     let v = api::servo_version();
-    let output = env.new_string(v).expect("Couldn't create java string");
-    output.into_inner()
+    new_string(&env, &v).unwrap_or_else(|null| null)
 }
 
 #[no_mangle]
@@ -50,16 +47,18 @@ pub fn Java_org_mozilla_servoview_JNIServo_init(
     env: JNIEnv,
     _: JClass,
     activity: JObject,
-    args: JString,
-    url: JString,
-    log_str: JString,
+    opts: JObject,
     callbacks_obj: JObject,
-    width: jint,
-    height: jint,
-    density: jfloat,
-    log: jboolean,
 ) {
-    if log == JNI_TRUE {
+    let (opts, log, log_str) = match get_options(&env, opts) {
+        Ok((opts, log, log_str)) => (opts, log, log_str),
+        Err(err) => {
+            throw(&env, &err);
+            return;
+        }
+    };
+
+    if log {
         // Note: Android debug logs are stripped from a release build.
         // debug!() will only show in a debug build. Use info!() if logs
         // should show up in adb logcat with a release build.
@@ -76,10 +75,10 @@ pub fn Java_org_mozilla_servoview_JNIServo_init(
         for &module in &filters {
             filter = filter.with_allowed_module_path(module);
         }
-        let log_str = env.get_string(log_str).ok();
-        let log_str = log_str.as_ref().map_or(Cow::Borrowed(""), |s| s.to_string_lossy());
-        for module in log_str.split(',') {
-            filter = filter.with_allowed_module_path(module);
+        if let Some(log_str) = log_str {
+            for module in log_str.split(',') {
+                filter = filter.with_allowed_module_path(module);
+            }
         }
         android_logger::init_once(filter, Some("simpleservo"));
     }
@@ -89,36 +88,23 @@ pub fn Java_org_mozilla_servoview_JNIServo_init(
     initialize_android_glue(&env, activity);
     redirect_stdout_to_logcat();
 
-    let args = env.get_string(args)
-        .expect("Couldn't get java string")
-        .into();
-
-    let url = if url.is_null() {
-        None
-    } else {
-        Some(env.get_string(url).expect("Couldn't get java string").into())
+    let callbacks_ref = match env.new_global_ref(callbacks_obj) {
+        Ok(r) => r,
+        Err(_) => {
+            throw(&env, "Failed to get global reference of callback argument");
+            return;
+        }
     };
-
-    let callbacks_ref = env.new_global_ref(callbacks_obj).unwrap();
 
     let wakeup = Box::new(WakeupCallback::new(callbacks_ref.clone(), &env));
     let readfile = Box::new(ReadFileCallback::new(callbacks_ref.clone(), &env));
     let callbacks = Box::new(HostCallbacks::new(callbacks_ref, &env));
 
-    gl_glue::egl::init().and_then(|gl| {
-        api::init(
-            gl,
-            args,
-            url,
-            wakeup,
-            readfile,
-            callbacks,
-            width as u32,
-            height as u32,
-            density as f32)
-    }).or_else(|err| {
-        env.throw(("java/lang/Exception", err))
-    }).unwrap();
+    if let Err(err) =
+        gl_glue::egl::init().and_then(|gl| api::init(opts, gl, wakeup, readfile, callbacks))
+    {
+        throw(&env, err)
+    };
 }
 
 #[no_mangle]
@@ -128,7 +114,7 @@ pub fn Java_org_mozilla_servoview_JNIServo_setBatchMode(
     batch: jboolean,
 ) {
     debug!("setBatchMode");
-    call(env, |s| s.set_batch_mode(batch == JNI_TRUE));
+    call(&env, |s| s.set_batch_mode(batch == JNI_TRUE));
 }
 
 #[no_mangle]
@@ -139,50 +125,57 @@ pub fn Java_org_mozilla_servoview_JNIServo_resize(
     height: jint,
 ) {
     debug!("resize {}/{}", width, height);
-    call(env, |s| s.resize(width as u32, height as u32));
+    call(&env, |s| s.resize(width as u32, height as u32));
 }
 
 #[no_mangle]
 pub fn Java_org_mozilla_servoview_JNIServo_performUpdates(env: JNIEnv, _class: JClass) {
     debug!("performUpdates");
-    call(env, |s| s.perform_updates());
+    call(&env, |s| s.perform_updates());
 }
 
 #[no_mangle]
 pub fn Java_org_mozilla_servoview_JNIServo_loadUri(env: JNIEnv, _class: JClass, url: JString) {
     debug!("loadUri");
-    let url: String = env.get_string(url).unwrap().into();
-    call(env, |s| s.load_uri(&url));
+    match env.get_string(url) {
+        Ok(url) => {
+            let url: String = url.into();
+            call(&env, |s| s.load_uri(&url));
+        },
+        Err(_) => {
+            throw(&env, "Failed to convert Java string");
+        }
+    };
 }
 
 #[no_mangle]
 pub fn Java_org_mozilla_servoview_JNIServo_reload(env: JNIEnv, _class: JClass) {
     debug!("reload");
-    call(env, |s| s.reload());
+    call(&env, |s| s.reload());
 }
 
 #[no_mangle]
 pub fn Java_org_mozilla_servoview_JNIServo_stop(env: JNIEnv, _class: JClass) {
     debug!("stop");
-    call(env, |s| s.stop());
+    call(&env, |s| s.stop());
 }
 
 #[no_mangle]
 pub fn Java_org_mozilla_servoview_JNIServo_refresh(env: JNIEnv, _class: JClass) {
     debug!("refresh");
-    call(env, |s| s.refresh());
+    call(&env, |s| s.refresh());
 }
 
 #[no_mangle]
 pub fn Java_org_mozilla_servoview_JNIServo_goBack(env: JNIEnv, _class: JClass) {
     debug!("goBack");
-    call(env, |s| s.go_back());
+    call(&env, |s| s.go_back());
 }
 
 #[no_mangle]
 pub fn Java_org_mozilla_servoview_JNIServo_goForward(env: JNIEnv, _class: JClass) {
     debug!("goForward");
-    call(env, |s| s.go_forward());
+    call(&env, |s| s.go_forward());
 }
 
 #[no_mangle]
@@ -195,7 +188,7 @@ pub fn Java_org_mozilla_servoview_JNIServo_scrollStart(
     y: jint,
 ) {
     debug!("scrollStart");
-    call(env, |s| s.scroll_start(dx as i32, dy as i32, x as u32, y as u32));
+    call(&env, |s| s.scroll_start(dx as i32, dy as i32, x as u32, y as u32));
 }
 
 #[no_mangle]
@@ -208,7 +201,7 @@ pub fn Java_org_mozilla_servoview_JNIServo_scrollEnd(
     y: jint,
 ) {
     debug!("scrollEnd");
-    call(env, |s| s.scroll_end(dx as i32, dy as i32, x as u32, y as u32));
+    call(&env, |s| s.scroll_end(dx as i32, dy as i32, x as u32, y as u32));
 }
 
 
@@ -222,7 +215,7 @@ pub fn Java_org_mozilla_servoview_JNIServo_scroll(
     y: jint,
 ) {
     debug!("scroll");
-    call(env, |s| s.scroll(dx as i32, dy as i32, x as u32, y as u32));
+    call(&env, |s| s.scroll(dx as i32, dy as i32, x as u32, y as u32));
 }
 
 #[no_mangle]
@@ -234,7 +227,7 @@ pub fn Java_org_mozilla_servoview_JNIServo_pinchZoomStart(
     y: jint,
 ) {
     debug!("pinchZoomStart");
-    call(env, |s| s.pinchzoom_start(factor as f32, x as u32, y as u32));
+    call(&env, |s| s.pinchzoom_start(factor as f32, x as u32, y as u32));
 }
 
 #[no_mangle]
@@ -246,7 +239,7 @@ pub fn Java_org_mozilla_servoview_JNIServo_pinchZoom(
     y: jint,
 ) {
     debug!("pinchZoom");
-    call(env, |s| s.pinchzoom(factor as f32, x as u32, y as u32));
+    call(&env, |s| s.pinchzoom(factor as f32, x as u32, y as u32));
 }
 
 #[no_mangle]
@@ -258,14 +251,14 @@ pub fn Java_org_mozilla_servoview_JNIServo_pinchZoomEnd(
     y: jint,
 ) {
     debug!("pinchZoomEnd");
-    call(env, |s| s.pinchzoom_end(factor as f32, x as u32, y as u32));
+    call(&env, |s| s.pinchzoom_end(factor as f32, x as u32, y as u32));
 }
 
 
 #[no_mangle]
 pub fn Java_org_mozilla_servoview_JNIServo_click(env: JNIEnv, _: JClass, x: jint, y: jint) {
     debug!("click");
-    call(env, |s| s.click(x as u32, y as u32));
+    call(&env, |s| s.click(x as u32, y as u32));
 }
 
 pub struct WakeupCallback {
@@ -312,9 +305,10 @@ impl ReadFileTrait for ReadFileCallback {
     fn readfile(&self, file: &str) -> Vec<u8> {
         // FIXME: we'd rather use attach_current_thread but it detaches the VM too early.
         let env = self.jvm.attach_current_thread_as_daemon().unwrap();
-        let s = env.new_string(&file)
-            .expect("Couldn't create java string")
-            .into_inner();
+        let s = match new_string(&env, &file) {
+            Ok(s) => s,
+            Err(_) => return vec![],
+        };
         let s = JValue::from(JObject::from(s));
         let array = env.call_method(
             self.callback.lock().unwrap().as_obj(),
@@ -366,9 +360,10 @@ impl HostTrait for HostCallbacks {
     fn on_title_changed(&self, title: String) {
         debug!("on_title_changed");
         let env = self.jvm.get_env().unwrap();
-        let s = env.new_string(&title)
-            .expect("Couldn't create java string")
-            .into_inner();
+        let s = match new_string(&env, &title) {
+            Ok(s) => s,
+            Err(_) => return,
+        };
         let s = JValue::from(JObject::from(s));
         env.call_method(
             self.callbacks.as_obj(),
@@ -381,9 +376,10 @@ impl HostTrait for HostCallbacks {
     fn on_url_changed(&self, url: String) {
         debug!("on_url_changed");
         let env = self.jvm.get_env().unwrap();
-        let s = env.new_string(&url)
-            .expect("Couldn't create java string")
-            .into_inner();
+        let s = match new_string(&env, &url) {
+            Ok(s) => s,
+            Err(_) => return,
+        };
         let s = JValue::Object(JObject::from(s));
         env.call_method(
             self.callbacks.as_obj(),
@@ -519,4 +515,98 @@ fn redirect_stdout_to_logcat() {
             }
         }
     });
+}
+
+fn throw(env: &JNIEnv, err: &str) {
+    if let Err(e) = env.throw(("java/lang/Exception", err)) {
+        warn!("Failed to throw Java exception: `{}`. Exception was: `{}`", e, err);
+    }
+}
+
+fn new_string(env: &JNIEnv, s: &str) -> Result<jstring, jstring> {
+    match env.new_string(s) {
+        Ok(s) => Ok(s.into_inner()),
+        Err(_) => {
+            throw(&env, "Couldn't create java string");
+            Err(JObject::null().into_inner())
+        },
+    }
+}
+
+fn get_field<'a>(
+    env: &'a JNIEnv,
+    obj: JObject,
+    field: &str,
+    type_: &str,
+) -> Result<Option<JValue<'a>>, String> {
+    if env.get_field_id(obj, field, type_).is_err() {
+        return Err(format!("Can't find `{}` field", &field));
+    }
+    env.get_field(obj, field, type_)
+        .map(|value| Some(value))
+        .or_else(|e| match *e.kind() {
+            errors::ErrorKind::NullPtr(_) => Ok(None),
+            _ => Err(format!(
+                "Can't find `{}` field: {}",
+                &field,
+                e.description()
+            )),
+        })
+}
+
+fn get_non_null_field<'a>(
+    env: &'a JNIEnv,
+    obj: JObject,
+    field: &str,
+    type_: &str,
+) -> Result<JValue<'a>, String> {
+    match get_field(env, obj, field, type_)? {
+        None => Err(format!("Field {} is null", field)),
+        Some(f) => Ok(f),
+    }
+}
+
+fn get_string(env: &JNIEnv, obj: JObject, field: &str) -> Result<Option<String>, String> {
+    let value = get_field(env, obj, field, "Ljava/lang/String;")?;
+    match value {
+        Some(value) => {
+            let string = value
+                .l()
+                .map_err(|_| format!("field `{}` is not an Object", field))?
+                .into();
+            Ok(env.get_string(string).map(|s| s.into()).ok())
+        },
+        None => Ok(None),
+    }
+}
+
+fn get_options(env: &JNIEnv, opts: JObject) -> Result<(InitOptions, bool, Option<String>), String> {
+    let args = get_string(env, opts, "args")?;
+    let url = get_string(env, opts, "url")?;
+    let log_str = get_string(env, opts, "logStr")?;
+    let width = get_non_null_field(env, opts, "width", "I")?
+        .i()
+        .map_err(|_| "width not an int")? as u32;
+    let height = get_non_null_field(env, opts, "height", "I")?
+        .i()
+        .map_err(|_| "height not an int")? as u32;
+    let density = get_non_null_field(env, opts, "density", "F")?
+        .f()
+        .map_err(|_| "densitiy not a float")? as f32;
+    let log = get_non_null_field(env, opts, "enableLogs", "Z")?
+        .z()
+        .map_err(|_| "enableLogs not a boolean")?;
+    let enable_subpixel_text_antialiasing =
+        get_non_null_field(env, opts, "enableSubpixelTextAntialiasing", "Z")?
+            .z()
+            .map_err(|_| "enableSubpixelTextAntialiasing not a boolean")?;
+    let opts = InitOptions {
+        args,
+        url,
+        width,
+        height,
+        density,
+        enable_subpixel_text_antialiasing,
+    };
+    Ok((opts, log, log_str))
 }

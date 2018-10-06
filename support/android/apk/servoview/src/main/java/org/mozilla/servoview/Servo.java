@@ -14,6 +14,7 @@ import java.io.IOException;
 import java.io.InputStream;
 
 import org.freedesktop.gstreamer.GStreamer;
+import org.mozilla.servoview.JNIServo.ServoOptions;
 
 public class Servo {
     private static final String LOGTAG = "Servo";
@@ -23,15 +24,11 @@ public class Servo {
     private boolean mSuspended;
 
     public Servo(
+            ServoOptions options,
             RunCallback runCallback,
             GfxCallbacks gfxcb,
             Client client,
-            Activity activity,
-            String args,
-            String url,
-            String logstr,
-            int width, int height,
-            float density, boolean log) {
+            Activity activity) {
 
         mRunCallback = runCallback;
 
@@ -40,7 +37,7 @@ public class Servo {
         Callbacks cbs = new Callbacks(client, gfxcb);
 
         mRunCallback.inGLThread(() -> {
-            mJNI.init(activity, args, url, logstr, cbs, width, height, density, log);
+            mJNI.init(activity, options, cbs);
         });
 
         try {

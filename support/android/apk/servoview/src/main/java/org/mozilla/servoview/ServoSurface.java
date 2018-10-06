@@ -20,6 +20,7 @@ import android.os.Message;
 import android.util.Log;
 import android.view.Surface;
 
+import org.mozilla.servoview.JNIServo.ServoOptions;
 import org.mozilla.servoview.Servo.Client;
 import org.mozilla.servoview.Servo.GfxCallbacks;
 import org.mozilla.servoview.Servo.RunCallback;
@@ -37,9 +38,9 @@ public class ServoSurface {
     private int mHeight;
     private Servo mServo;
     private Client mClient = null;
-    private String mServoArgs = "";
-    private String mServoLog = "";
-    private String mInitialUri = null;
+    private String mServoArgs;
+    private String mServoLog;
+    private String mInitialUri;
     private Activity mActivity;
 
     public ServoSurface(Surface surface, int width, int height) {
@@ -55,8 +56,8 @@ public class ServoSurface {
     }
 
     public void setServoArgs(String args, String log) {
-        mServoArgs = args != null ? args : "";
-        mServoLog = log != null ? log : "";
+        mServoArgs = args;
+        mServoLog = log;
     }
 
     public void setActivity(Activity activity) {
@@ -204,9 +205,17 @@ public class ServoSurface {
             };
 
             inUIThread(() -> {
-              final boolean showLogs = true;
-              String uri = mInitialUri == null ? null : mInitialUri;
-              mServo = new Servo(this, surface, mClient, mActivity, mServoArgs, uri, mServoLog, mWidth, mHeight, 1, showLogs);
+              ServoOptions options = new ServoOptions();
+              options.args = mServoArgs;
+              options.width = mWidth;
+              options.height = mHeight;
+              options.density = 1;
+              options.url = mInitialUri == null ? null : mInitialUri;
+              options.logStr = mServoLog;
+              options.enableLogs = true;
+              options.enableSubpixelTextAntialiasing = false;
+
+              mServo = new Servo(options, this, surface, mClient, mActivity);
             });
 
             Looper.loop();

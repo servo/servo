@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use api::{self, EventLoopWaker, ServoGlue, SERVO, HostTrait, ReadFileTrait};
+use api::{self, EventLoopWaker, InitOptions, ServoGlue, SERVO, HostTrait, ReadFileTrait};
 use gl_glue;
 use servo::gl;
 use std::ffi::{CStr, CString};
@@ -37,6 +37,17 @@ pub struct CHostCallbacks {
     pub on_animating_changed: extern fn(animating: bool),
 }
 
+/// Servo options
+#[repr(C)]
+pub struct CInitOptions {
+    pub args: *const c_char,
+    pub url: *const c_char,
+    pub width: u32,
+    pub height: u32,
+    pub density: f32,
+    pub enable_subpixel_text_antialiasing: bool,
+}
+
 /// The returned string is not freed. This will leak.
 #[no_mangle]
 pub extern "C" fn servo_version() -> *const c_char {
@@ -48,66 +59,53 @@ pub extern "C" fn servo_version() -> *const c_char {
 }
 
 fn init(
+    opts: CInitOptions,
     gl: Rc<gl::Gl>,
-    args: *const c_char,
-    url: *const c_char,
     wakeup: extern fn(),
     readfile: extern fn(*const c_char) -> *const c_char,
-    callbacks: CHostCallbacks,
-    width: u32,
-    height: u32,
-    density: f32) {
-    let args = unsafe { CStr::from_ptr(args) };
-    let args = args.to_str().expect("Can't read string").to_string();
+    callbacks: CHostCallbacks) {
+    let args = unsafe { CStr::from_ptr(opts.args) };
+    let args = args.to_str().map(|s| s.to_string()).ok();
 
-    let url = unsafe { CStr::from_ptr(url) };
-    let url = url.to_str().map(|s| s.to_string());
+    let url = unsafe { CStr::from_ptr(opts.url) };
+    let url = url.to_str().map(|s| s.to_string()).ok();
+
+    let opts = InitOptions {
+        args,
+        url,
+        width: opts.width,
+        height: opts.height,
+        density: opts.density,
+        enable_subpixel_text_antialiasing: opts.enable_subpixel_text_antialiasing,
+    };
 
     let wakeup = Box::new(WakeupCallback::new(wakeup));
     let readfile = Box::new(ReadFileCallback::new(readfile));
     let callbacks = Box::new(HostCallbacks::new(callbacks));
 
-    api::init(
-        gl,
-        args,
-        url.ok(),
-        wakeup,
-        readfile,
-        callbacks,
-        width,
-        height,
-        density,
-    ).unwrap();
+    api::init(opts, gl, wakeup, readfile, callbacks).unwrap();
 }
 
 #[cfg(target_os = "windows")]
 #[no_mangle]
 pub extern "C" fn init_with_egl(
-    args: *const c_char,
-    url: *const c_char,
+    opts: CInitOptions,
     wakeup: extern fn(),
     readfile: extern fn(*const c_char) -> *const c_char,
-    callbacks: CHostCallbacks,
-    width: u32,
-    height: u32,
-    density: f32) {
+    callbacks: CHostCallbacks) {
     let gl = gl_glue::egl::init().unwrap();
-    init(gl, args, url, wakeup, readfile, callbacks, width, height, density)
+    init(opts, gl, wakeup, readfile, callbacks)
 }
 
 #[cfg(any(target_os = "linux", target_os = "windows", target_os = "macos"))]
 #[no_mangle]
 pub extern "C" fn init_with_gl(
-    args: *const c_char,
-    url: *const c_char,
+    opts: CInitOptions,
     wakeup: extern fn(),
     readfile: extern fn(*const c_char) -> *const c_char,
-    callbacks: CHostCallbacks,
-    width: u32,
-    height: u32,
-    density: f32) {
+    callbacks: CHostCallbacks) {
     let gl = gl_glue::gl::init().unwrap();
-    init(gl, args, url, wakeup, readfile, callbacks, width, height, density)
+    init(opts, gl, wakeup, readfile, callbacks)
 }
 
 #[no_mangle]
