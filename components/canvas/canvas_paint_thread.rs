@@ -163,7 +163,7 @@ impl<'a> CanvasPaintThread <'a> {
             ) => {
                 let image_data = self.canvas(canvas_id).read_pixels(
                     source_rect.to_i32(),
-                    image_size,
+                    image_size.to_i32(),
                 );
                 self.canvas(other_canvas_id).draw_image(
                     image_data.into(),
@@ -238,8 +238,9 @@ impl<'a> CanvasPaintThread <'a> {
             Canvas2dMsg::SetGlobalComposition(op) => {
                 self.canvas(canvas_id).set_global_composition(op)
             },
-            Canvas2dMsg::GetImageData(dest_rect, canvas_size, chan) => {
-                self.canvas(canvas_id).image_data(dest_rect, canvas_size, chan)
+            Canvas2dMsg::GetImageData(dest_rect, canvas_size, sender) => {
+                let pixels = self.canvas(canvas_id).read_pixels(dest_rect, canvas_size);
+                sender.send(&pixels).unwrap();
             },
             Canvas2dMsg::PutImageData(receiver, offset, imagedata_size) => {
                 self.canvas(canvas_id).put_image_data(

@@ -40,12 +40,11 @@ use net_traits::image_cache::ImageOrMetadataAvailable;
 use net_traits::image_cache::ImageResponse;
 use net_traits::image_cache::ImageState;
 use net_traits::image_cache::UsePlaceholder;
-use num_traits::ToPrimitive;
 use pixels;
 use profile_traits::ipc as profiled_ipc;
 use script_traits::ScriptMsg;
 use servo_url::ServoUrl;
-use std::{cmp, fmt, mem};
+use std::{fmt, mem};
 use std::cell::Cell;
 use std::str::FromStr;
 use std::sync::Arc;
@@ -1118,14 +1117,11 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-createimagedata
-    fn CreateImageData(&self, sw: Finite<f64>, sh: Finite<f64>) -> Fallible<DomRoot<ImageData>> {
-        if *sw == 0.0 || *sh == 0.0 {
+    fn CreateImageData(&self, sw: i32, sh: i32) -> Fallible<DomRoot<ImageData>> {
+        if sw == 0 || sh == 0 {
             return Err(Error::IndexSize);
         }
-
-        let sw = cmp::max(1, sw.abs().to_u32().unwrap());
-        let sh = cmp::max(1, sh.abs().to_u32().unwrap());
-        ImageData::new(&self.global(), sw, sh, None)
+        ImageData::new(&self.global(), sw.abs() as u32, sh.abs() as u32, None)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-createimagedata
@@ -1136,59 +1132,49 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-getimagedata
     fn GetImageData(
         &self,
-        sx: Finite<f64>,
-        sy: Finite<f64>,
-        sw: Finite<f64>,
-        sh: Finite<f64>,
+        mut sx: i32,
+        mut sy: i32,
+        mut sw: i32,
+        mut sh: i32,
     ) -> Fallible<DomRoot<ImageData>> {
+        if sw == 0 || sh == 0 {
+            return Err(Error::IndexSize);
+        }
+
         if !self.origin_is_clean() {
             return Err(Error::Security);
         }
 
-        let mut sx = *sx;
-        let mut sy = *sy;
-        let mut sw = *sw;
-        let mut sh = *sh;
-
-        if sw == 0.0 || sh == 0.0 {
-            return Err(Error::IndexSize);
-        }
-
-        if sw < 0.0 {
+        if sw < 0 {
             sw = -sw;
             sx -= sw;
         }
-        if sh < 0.0 {
+        if sh < 0 {
             sh = -sh;
             sy -= sh;
         }
 
-        let sh = cmp::max(1, sh.to_u32().unwrap());
-        let sw = cmp::max(1, sw.to_u32().unwrap());
-
         let (sender, receiver) = ipc::bytes_channel().unwrap();
-        let dest_rect = Rect::new(
-            Point2D::new(sx.to_i32().unwrap(), sy.to_i32().unwrap()),
-            Size2D::new(sw as i32, sh as i32),
-        );
-        let canvas_size = self
-            .canvas
-            .as_ref()
-            .map(|c| c.get_size())
-            .unwrap_or(Size2D::zero());
-        let canvas_size = Size2D::new(canvas_size.width as f64, canvas_size.height as f64);
-        self.send_canvas_2d_msg(Canvas2dMsg::GetImageData(dest_rect, canvas_size, sender));
+        let dest_rect = Rect::new(Point2D::new(sx, sy), Size2D::new(sw, sh));
+        // FIXME(nox): This is probably wrong when this is a context for an
+        // offscreen canvas.
+        let canvas_size = self.canvas.as_ref().map_or(Size2D::zero(), |c| c.get_size());
+        self.send_canvas_2d_msg(Canvas2dMsg::GetImageData(
+            dest_rect,
+            canvas_size.to_i32(),
+            sender,
+        ));
         let mut data = receiver.recv().unwrap();
 
         // Byte swap and unmultiply alpha.
         for chunk in data.chunks_mut(4) {
-            let (b, g, r, a) = (chunk[0], chunk[1], chunk[2], chunk[3]);
-            chunk[0] = UNPREMULTIPLY_TABLE[256 * (a as usize) + r as usize];
-            chunk[1] = UNPREMULTIPLY_TABLE[256 * (a as usize) + g as usize];
-            chunk[2] = UNPREMULTIPLY_TABLE[256 * (a as usize) + b as usize];
+            let b = chunk[0];
+            chunk[0] = UNPREMULTIPLY_TABLE[256 * (chunk[3] as usize) + chunk[2] as usize];
+            chunk[1] = UNPREMULTIPLY_TABLE[256 * (chunk[3] as usize) + chunk[1] as usize];
+            chunk[2] = UNPREMULTIPLY_TABLE[256 * (chunk[3] as usize) + b as usize];
         }
 
-        ImageData::new(&self.global(), sw, sh, Some(data.to_vec()))
+        ImageData::new(&self.global(), sw as u32, sh as u32, Some(data.to_vec()))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-putimagedata
@@ -1265,11 +1251,14 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
             dirty_height = imagedata_size.height - dirty_y;
         }
 
-        // We take care of ignoring any pixel that would be drawn after the end
-        // of the canvas surface.
+        // FIXME(nox): This is probably wrong when this is a context for an
+        // offscreen canvas.
         let canvas_size = self.canvas.as_ref().map_or(Size2D::zero(), |c| c.get_size()).to_i32();
         let origin = Point2D::new(dest_x, dest_y);
         let drawable_size = (origin - canvas_size.to_vector().to_point()).to_size().abs();
+
+        // We take care of ignoring any pixel that would be drawn after the end
+        // of the canvas surface.
         dirty_width = dirty_width.min(drawable_size.width);
         dirty_height = dirty_height.min(drawable_size.height);
 

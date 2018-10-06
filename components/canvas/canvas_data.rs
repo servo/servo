@@ -11,7 +11,7 @@ use azure::azure_hl::SurfacePattern;
 use canvas_traits::canvas::*;
 use cssparser::RGBA;
 use euclid::{Transform2D, Point2D, Vector2D, Rect, Size2D};
-use ipc_channel::ipc::{IpcBytesSender, IpcSender};
+use ipc_channel::ipc::IpcSender;
 use num_traits::ToPrimitive;
 use pixels;
 use serde_bytes::ByteBuf;
@@ -440,15 +440,6 @@ impl<'a> CanvasData<'a> {
         chan.send(data).unwrap();
     }
 
-    pub fn image_data(
-        &self,
-        dest_rect: Rect<i32>,
-        canvas_size: Size2D<f64>,
-        sender: IpcBytesSender,
-    ) {
-        sender.send(&self.read_pixels(dest_rect, canvas_size)).unwrap();
-    }
-
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-putimagedata
     pub fn put_image_data(
         &mut self,
@@ -526,9 +517,8 @@ impl<'a> CanvasData<'a> {
     /// canvas_size: The size of the canvas we're reading from
     /// read_rect: The area of the canvas we want to read from
     #[allow(unsafe_code)]
-    pub fn read_pixels(&self, read_rect: Rect<i32>, canvas_size: Size2D<f64>) -> Vec<u8> {
-        let canvas_size = canvas_size.to_i32();
-        let canvas_rect = Rect::new(Point2D::new(0i32, 0i32), canvas_size);
+    pub fn read_pixels(&self, read_rect: Rect<i32>, canvas_size: Size2D<i32>) -> Vec<u8> {
+        let canvas_rect = Rect::from_size(canvas_size);
         let src_read_rect = canvas_rect.intersection(&read_rect).unwrap_or(Rect::zero());
 
         if src_read_rect.is_empty() || canvas_size.width <= 0 && canvas_size.height <= 0 {

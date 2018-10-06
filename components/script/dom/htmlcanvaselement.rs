@@ -14,7 +14,6 @@ use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLContext
 use dom::bindings::conversions::ConversionResult;
 use dom::bindings::error::{Error, Fallible};
 use dom::bindings::inheritance::Castable;
-use dom::bindings::num::Finite;
 use dom::bindings::reflector::DomObject;
 use dom::bindings::root::{Dom, DomRoot, LayoutDom};
 use dom::bindings::str::{DOMString, USVString};
@@ -370,13 +369,7 @@ impl HTMLCanvasElementMethods for HTMLCanvasElement {
         let raw_data = match *self.context.borrow() {
             Some(CanvasContext::Context2d(ref context)) => {
                 // FIXME(nox): This shouldn't go through ImageData etc.
-                let image_data = context.GetImageData(
-                    Finite::wrap(0f64),
-                    Finite::wrap(0f64),
-                    Finite::wrap(self.Width() as f64),
-                    Finite::wrap(self.Height() as f64),
-                )?;
-                image_data.to_vec()
+                context.GetImageData(0, 0, self.Width() as i32, self.Height() as i32)?.to_vec()
             },
             Some(CanvasContext::WebGL(ref context)) => {
                 match context.get_image_data(self.Width(), self.Height()) {
