@@ -388,6 +388,7 @@ windows_build_kwargs = dict(**build_kwargs, **{
     "worker_type": "servo-win2016",
     "env": build_env,
 })
+        .with_index_and_artifacts_expire_in(build_artifacts_expire_in)
 
 
 if __name__ == "__main__":
