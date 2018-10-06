@@ -53,4 +53,4 @@ tasks:
               cd repo &&
               git fetch --depth 1 "$GIT_URL" "$GIT_REF" &&
               git reset --hard "$GIT_SHA" &&
-              python3 etc/taskcluster/decision-task.py
+              python3 etc/taskcluster/decision_task.py
