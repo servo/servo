@@ -32,14 +32,15 @@ class Index:
 Queue = stringDate = fromNow = slugId = MagicMock()
 sys.modules["taskcluster"] = sys.modules[__name__]
 sys.dont_write_bytecode = True
-code = open(os.path.join(os.path.dirname(__file__), "decision-task.py"), "rb").read()
-for k in "TASK_ID TASK_OWNER TASK_SOURCE GIT_URL GIT_REF GIT_SHA".split():
-    os.environ[k] = k
+os.environ.update(**{k: k for k in "TASK_ID TASK_OWNER TASK_SOURCE GIT_URL GIT_SHA".split()})
+os.environ["GIT_REF"] = "refs/heads/auto"
+import decision_task
 
-print("Push:")
-os.environ["TASK_FOR"] = "github-push"
-exec(code)
+print("\n# Push:")
+decision_task.main("github-push", mock=True)
 
-print("Daily:")
-os.environ["TASK_FOR"] = "daily"
-exec(code)
+print("\n# Push with hot caches:")
+decision_task.main("github-push", mock=True)
+
+print("\n# Daily:")
+decision_task.main("daily", mock=True)
