@@ -85,6 +85,41 @@ backgroundFetchTest(async (test, backgroundFetch) => {
 backgroundFetchTest(async (test, backgroundFetch) => {
   const registrationId = uniqueId();
   const registration =
+    await backgroundFetch.fetch(registrationId,
+        new Request('https://example/com', {
+        method: 'PUT',
+      }));
+
+  assert_equals(registration.id, registrationId);
+
+  const {type, eventRegistration, results} = await getMessageFromServiceWorker();
+
+  assert_equals(type, 'backgroundfetchsuccess');
+  assert_equals(eventRegistration.result, 'success');
+  assert_equals(eventRegistration.failureReason, '');
+}, 'Requests with PUT method require CORS Preflight and succeed.');
+
+backgroundFetchTest(async (test, backgroundFetch) => {
+  const registrationId = uniqueId();
+  const registration =
+    await backgroundFetch.fetch(registrationId,
+        new Request('https://example/com', {
+        method: 'POST',
+        headers: {'Content-Type': 'text/json'}
+      }));
+
+  assert_equals(registration.id, registrationId);
+
+  const {type, eventRegistration, results} = await getMessageFromServiceWorker();
+
+  assert_equals(type, 'backgroundfetchsuccess');
+  assert_equals(eventRegistration.result, 'success');
+  assert_equals(eventRegistration.failureReason, '');
+}, 'Requests with text/json content type require CORS Preflight and succeed.');
+
+backgroundFetchTest(async (test, backgroundFetch) => {
+  const registrationId = uniqueId();
+  const registration =
     await backgroundFetch.fetch(registrationId, 'resources/feature-name.txt');
 
   assert_equals(registration.id, registrationId);

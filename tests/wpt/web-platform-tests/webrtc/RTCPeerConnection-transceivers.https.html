@@ -8,59 +8,14 @@
 'use strict';
 
 // The following helper functions are called from RTCPeerConnection-helper.js:
+//   exchangeOffer
+//   exchangeOfferAndListenToOntrack
+//   exchangeAnswer
+//   exchangeAnswerAndListenToOntrack
 //   addEventListenerPromise
-
-function createPeerConnectionWithCleanup(t) {
-  const pc = new RTCPeerConnection();
-  t.add_cleanup(() => pc.close());
-  return pc;
-}
-
-async function createTrackAndStreamWithCleanup(t, kind = 'audio') {
-  let constraints = {};
-  constraints[kind] = true;
-  const stream = await navigator.mediaDevices.getUserMedia(constraints);
-  const [track] = stream.getTracks();
-  t.add_cleanup(() => track.stop());
-  return [track, stream];
-}
-
-function findTransceiverForSender(pc, sender) {
-  const transceivers = pc.getTransceivers();
-  for (let i = 0; i < transceivers.length; ++i) {
-    if (transceivers[i].sender == sender)
-      return transceivers[i];
-  }
-  return null;
-}
-
-// Performs an offer exchange pc1 -> pc2.
-async function exchangeOffer(pc1, pc2) {
-  const offer = await pc1.createOffer();
-  await pc1.setLocalDescription(offer);
-  await pc2.setRemoteDescription(offer);
-}
-
-// The returned promise is resolved with pc2's ontrack event.
-async function exchangeOfferAndListenToOntrack(t, pc1, pc2) {
-  const ontrackPromise = addEventListenerPromise(t, pc2, 'track');
-  await exchangeOffer(pc1, pc2);
-  return ontrackPromise;
-}
-
-// Performs an answer exchange pc2 -> pc1.
-async function exchangeAnswer(pc1, pc2) {
-  const answer = await pc2.createAnswer();
-  await pc2.setLocalDescription(answer);
-  await pc1.setRemoteDescription(answer);
-}
-
-// The returned promise is resolved with pc1's ontrack event.
-async function exchangeAnswerAndListenToOntrack(t, pc1, pc2) {
-  const ontrackPromise = addEventListenerPromise(t, pc1, 'track');
-  await exchangeAnswer(pc1, pc2);
-  return ontrackPromise;
-}
+//   createPeerConnectionWithCleanup
+//   createTrackAndStreamWithCleanup
+//   findTransceiverForSender
 
 promise_test(async t => {
   const pc = createPeerConnectionWithCleanup(t);
@@ -492,5 +447,21 @@ promise_test(async t => {
   assert_equals(transceiver.currentDirection, null);
   assert_true(transceiver.stopped);
 }, 'Closing the PC stops the transceivers');
+
+promise_test(async t => {
+  const pc1 = createPeerConnectionWithCleanup(t);
+  const pc1Sender = pc1.addTrack(... await createTrackAndStreamWithCleanup(t));
+  const localTransceiver = findTransceiverForSender(pc1, pc1Sender);
+  const pc2 = createPeerConnectionWithCleanup(t);
+  exchangeIceCandidates(pc1, pc2);
+
+  const e = await exchangeOfferAndListenToOntrack(t, pc1, pc2);
+  await exchangeAnswer(pc1, pc2);
+  localTransceiver.direction = 'inactive';
+  await exchangeOfferAnswer(pc1, pc2);
+
+  localTransceiver.direction = 'sendrecv';
+  await exchangeOfferAndListenToOntrack(t, pc1, pc2);
+}, 'Changing transceiver direction to \'sendrecv\' makes ontrack fire');
 
 </script>

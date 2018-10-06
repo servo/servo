@@ -15,6 +15,10 @@
     "/cookies/resources/set-cookie.py?name=cspViolationReportCookie2&path=" + encodeURIComponent("/"),
     {mode: 'no-cors', credentials: 'include'})
   .then(() => {
+    test.add_cleanup(() => {
+      document.cookie = "cspViolationReportCookie2=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT";
+    });
+
     // This image will generate a CSP violation report.
     const img = new Image();
     img.onerror = test.step_func_done();

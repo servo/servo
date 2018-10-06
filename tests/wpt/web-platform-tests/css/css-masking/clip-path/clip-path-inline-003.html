@@ -5,23 +5,27 @@
 <link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
 <meta content="ahem" name="flags">
 <style>
+  body {
+    overflow: hidden;
+  }
   .container {
     writing-mode: vertical-lr;
+    padding: 70px 30px;
+    margin: -270px -130px;
     font: 100px/1 Ahem;
     line-height: 100px;
-    color: red;
-  }
-  .container::first-letter {
-    color:green;
+    color: transparent;
   }
   .container > span {
     clip-path: polygon(0% 0%, 100% 0%, 100% 50%, 0% 50%);
+    color: red;
+  }
+  .container > span > span {
+    color: green;
   }
 </style>
 <p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
 <div class="container">
-  <span>
-    XX<br>
-    XXX
-  </span>
+  <br>
+  XX<span><span>X</span>X<br>XXXXX</span>
 </div>

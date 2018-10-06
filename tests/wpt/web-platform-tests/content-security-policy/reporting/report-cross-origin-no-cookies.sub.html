@@ -10,19 +10,25 @@
 </head>
 <body>
 <script>
-  var test = async_test("Image should not load");
-  fetch(
-    "/cookies/resources/set-cookie.py?name=cspViolationReportCookie1&path=" + encodeURIComponent("{{domains[www1]}}:{{ports[http][0]}}/"),
-    {mode: 'no-cors', credentials: 'include'})
-  .then(() => {
-    // This image will generate a CSP violation report.
-    const img = new Image();
-    img.onerror = test.step_func_done();
-    img.onload = test.unreached_func("Should not have loaded the image");
+  promise_test(function(test) {
+	const path = encodeURIComponent("{{domains[www1]}}:{{ports[http][0]}}/");
+    return fetch(
+      "/cookies/resources/set-cookie.py?name=cspViolationReportCookie1&path=" + path,
+      {mode: 'no-cors', credentials: 'include'})
+    .then(() => {
+      test.add_cleanup(() => {
+        return fetch("/cookies/resources/set.py?cspViolationReportCookie1=; path=" + path + "; expires=Thu, 01 Jan 1970 00:00:01 GMT");
+      });
 
-    img.src = "../support/fail.png";
-    document.body.appendChild(img);
-  });
+      // This image will generate a CSP violation report.
+      const img = new Image();
+      img.onerror = test.step_func_done();
+      img.onload = test.unreached_func("Should not have loaded the image");
+
+      img.src = "../support/fail.png";
+      document.body.appendChild(img);
+    });
+  }, "Image should not load");
 </script>
 <script async defer src='../support/checkReport.sub.js?reportField=violated-directive&reportValue=img-src%20%27none%27&noCookies=true'></script>
 

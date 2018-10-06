@@ -1,0 +1,2 @@
+Set-Cookie: object-src-url-redirect-allowed={{$id:uuid()}}; Path=/content-security-policy/object-src/
+Content-Security-Policy: object-src 'self'; script-src 'self' 'unsafe-inline'; report-uri ../support/report.py?op=put&reportID={{$id}}

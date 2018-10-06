@@ -7,7 +7,7 @@ EXPAND=expand
 EXPANDFLAGS=
 GIT=git
 GITFLAGS=
-PYTHON=python3
+PYTHON=python
 PYTHONFLAGS=
 VNU_TEST_REPO=git@github.com:validator/tests.git
 ITS_REPO=git@github.com:w3c/its-2.0-testsuite-inputdata.git
@@ -24,7 +24,7 @@ README.md: index.html
 	    | $(EXPAND) $(EXPANDFLAGS) > $@
 
 messages.json: .FORCE
-	$(PYTHON) $(PYTHONFLAGS) -mjson.tool --sort-keys $@ > $@.tmp
+	$(PYTHON) $(PYTHONFLAGS) -mjson.tool $@ > $@.tmp
 	mv $@.tmp $@
 
 push:

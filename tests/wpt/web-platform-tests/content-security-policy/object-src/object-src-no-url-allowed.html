@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <!-- Content-Security-Policy: object-src 'self'; script-src 'self' 'unsafe-inline'; report-uri ../support/report.py?op=put&reportID={{$id}} -->
+</head>
+
+<body>
+    <object type="application/x-webkit-test-netscape"></object>
+
+    <!-- we rely on the report because we can't rely on the onload event for
+         "allowed" tests as it is not fired for object and embed -->
+    <script async defer src='../support/checkReport.sub.js?reportExists=false'></script>
+</body>
+
+</html>

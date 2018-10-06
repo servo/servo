@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta http-equiv="Content-Security-Policy" content="object-src 'self'; script-src 'self' 'unsafe-inline';">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+</head>
+
+<body>
+    <script>
+      var t = async_test("Should block the object and fire a spv");
+      window.addEventListener('securitypolicyviolation', t.step_func_done(function(e) {
+        assert_equals(e.violatedDirective, "object-src");
+      }));
+    </script>
+
+    <object type="image/png" data="/common/redirect.py?location=http://{{domains[www1]}}/content-security-policy/support/pass.png"></object>
+</body>
+
+</html>

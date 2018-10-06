@@ -115,6 +115,16 @@ def assert_files_uploaded(session, element, files):
         assert get_file_contents(index) == f.read()
 
 
+def assert_is_active_element(session, element):
+    """Verify that element reference is the active element."""
+    from_js = session.execute_script("return document.activeElement")
+
+    if element is None:
+        assert from_js is None
+    else:
+        assert_same_element(session, element, from_js)
+
+
 def assert_same_element(session, a, b):
     """Verify that two element references describe the same element."""
     if isinstance(a, dict):
