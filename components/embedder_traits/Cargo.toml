@@ -14,6 +14,7 @@ tests = []
 
 [dependencies]
 ipc-channel = "0.11"
+keyboard-types = {version = "0.4.0-serde", features = ["serde"]}
 lazy_static = "1"
 log = "0.4"
 msg = {path = "../msg"}

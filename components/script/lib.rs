@@ -55,6 +55,7 @@ extern crate image;
 extern crate ipc_channel;
 #[macro_use]
 extern crate jstraceable_derive;
+extern crate keyboard_types;
 #[macro_use]
 extern crate lazy_static;
 extern crate libc;

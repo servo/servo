@@ -8,7 +8,8 @@ use embedder_traits::EventLoopWaker;
 use euclid::TypedScale;
 #[cfg(feature = "gleam")]
 use gleam::gl;
-use msg::constellation_msg::{Key, KeyModifiers, KeyState, TopLevelBrowsingContextId, TraversalDirection};
+use keyboard_types::KeyboardEvent;
+use msg::constellation_msg::{TopLevelBrowsingContextId, TraversalDirection};
 use script_traits::{MouseButton, TouchEventType, TouchId};
 use servo_geometry::{DeviceIndependentPixel, DeviceUintLength};
 use servo_url::ServoUrl;
@@ -70,7 +71,7 @@ pub enum WindowEvent {
     /// Sent when the user quits the application
     Quit,
     /// Sent when a key input state changes
-    KeyEvent(Option<char>, Key, KeyState, KeyModifiers),
+    Keyboard(KeyboardEvent),
     /// Sent when Ctr+R/Apple+R is called to reload the current page.
     Reload(TopLevelBrowsingContextId),
     /// Create a new top level browsing context
@@ -94,7 +95,7 @@ impl Debug for WindowEvent {
             WindowEvent::Idle => write!(f, "Idle"),
             WindowEvent::Refresh => write!(f, "Refresh"),
             WindowEvent::Resize => write!(f, "Resize"),
-            WindowEvent::KeyEvent(..) => write!(f, "Key"),
+            WindowEvent::Keyboard(..) => write!(f, "Keyboard"),
             WindowEvent::LoadUrl(..) => write!(f, "LoadUrl"),
             WindowEvent::MouseWindowEventClass(..) => write!(f, "Mouse"),
             WindowEvent::MouseWindowMoveEventClass(..) => write!(f, "MouseMove"),
