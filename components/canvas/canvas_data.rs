@@ -458,17 +458,17 @@ impl<'a> CanvasData<'a> {
     ) {
         assert_eq!(imagedata_size.area() * 4, imagedata.len() as i32);
         pixels::byte_swap_and_premultiply_inplace(&mut imagedata);
-        if let Some(source_surface) = self.drawtarget.create_source_surface_from_data(
-                &imagedata,
-                imagedata_size,
-                imagedata_size.width * 4,
-                SurfaceFormat::B8G8R8A8) {
-            self.drawtarget.copy_surface(
-                source_surface,
-                Rect::from_size(imagedata_size),
-                offset.to_point(),
-            );
-        }
+        let source_surface = self.drawtarget.create_source_surface_from_data(
+            &imagedata,
+            imagedata_size,
+            imagedata_size.width * 4,
+            SurfaceFormat::B8G8R8A8,
+        ).unwrap();
+        self.drawtarget.copy_surface(
+            source_surface,
+            Rect::from_size(imagedata_size),
+            offset.to_point(),
+        );
     }
 
     pub fn set_shadow_offset_x(&mut self, value: f64) {
