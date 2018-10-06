@@ -96,7 +96,7 @@ use script_traits::{ProgressiveWebMetricType, Painter, ScriptMsg, ScriptThreadFa
 use script_traits::{ScriptToConstellationChan, TimerEvent, TimerSchedulerMsg};
 use script_traits::{TimerSource, TouchEventType, TouchId, UntrustedNodeAddress};
 use script_traits::{UpdatePipelineIdReason, WindowSizeData, WindowSizeType};
-use script_traits::CompositorEvent::{KeyEvent, MouseButtonEvent, MouseMoveEvent, ResizeEvent, TouchEvent};
+use script_traits::CompositorEvent::{KeyboardEvent, MouseButtonEvent, MouseMoveEvent, ResizeEvent, TouchEvent};
 use script_traits::webdriver_msg::WebDriverScriptCommand;
 use serviceworkerjob::{Job, JobQueue};
 use servo_atoms::Atom;
@@ -2834,13 +2834,13 @@ impl ScriptThread {
                 }
             },
 
-            KeyEvent(ch, key, state, modifiers) => {
+            KeyboardEvent(key_event) => {
                 let document = match { self.documents.borrow().find_document(pipeline_id) } {
                     Some(document) => document,
                     None => return warn!("Message sent to closed pipeline {}.", pipeline_id),
                 };
-                document.dispatch_key_event(ch, key, state, modifiers);
-            },
+                document.dispatch_key_event(key_event);
+            }
         }
     }
 

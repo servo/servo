@@ -12,6 +12,7 @@ extern crate euclid;
 extern crate hyper;
 extern crate image;
 extern crate ipc_channel;
+extern crate keyboard_types;
 #[macro_use]
 extern crate log;
 extern crate msg;
@@ -995,12 +996,7 @@ impl Handler {
             ))
         })?;
 
-        let keys = keycodes_to_keys(&keys.text).or_else(|_| {
-            Err(WebDriverError::new(
-                ErrorStatus::UnsupportedOperation,
-                "Failed to convert keycodes",
-            ))
-        })?;
+        let keys = keycodes_to_keys(&keys.text);
 
         // TODO: there's a race condition caused by the focus command and the
         // send keys command being two separate messages,

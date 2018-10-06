@@ -52,6 +52,8 @@ extern crate hyper;
 #[cfg(feature = "servo")]
 extern crate hyper_serde;
 #[cfg(feature = "servo")]
+extern crate keyboard_types;
+#[cfg(feature = "servo")]
 extern crate mozjs as js;
 extern crate selectors;
 #[cfg(feature = "servo")]
@@ -956,6 +958,19 @@ malloc_size_of_is_0!(webrender_api::ScrollSensitivity);
 malloc_size_of_is_0!(webrender_api::StickyOffsetBounds);
 #[cfg(feature = "webrender_api")]
 malloc_size_of_is_0!(webrender_api::TransformStyle);
+
+#[cfg(feature = "servo")]
+impl MallocSizeOf for keyboard_types::Key {
+    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        match self {
+            keyboard_types::Key::Character(ref s) => s.size_of(ops),
+            _ => 0,
+        }
+    }
+}
+
+#[cfg(feature = "servo")]
+malloc_size_of_is_0!(keyboard_types::Modifiers);
 
 #[cfg(feature = "servo")]
 impl MallocSizeOf for xml5ever::QualName {

@@ -61,7 +61,7 @@ use dom::htmlimageelement::HTMLImageElement;
 use dom::htmlmetaelement::HTMLMetaElement;
 use dom::htmlscriptelement::{HTMLScriptElement, ScriptResult};
 use dom::htmltitleelement::HTMLTitleElement;
-use dom::keyboardevent::KeyboardEvent;
+use dom::keyboardevent::{KeyboardEvent, key_keycode};
 use dom::location::Location;
 use dom::messageevent::MessageEvent;
 use dom::mouseevent::MouseEvent;
@@ -100,9 +100,10 @@ use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcSender};
 use js::jsapi::{JSContext, JSObject, JSRuntime};
 use js::jsapi::JS_GetRuntime;
+use keyboard_types::{Key, KeyState, Modifiers};
 use metrics::{InteractiveFlag, InteractiveMetrics, InteractiveWindow, ProfilerMetadataFactory, ProgressiveWebMetric};
 use mime::{Mime, TopLevel, SubLevel};
-use msg::constellation_msg::{BrowsingContextId, Key, KeyModifiers, KeyState};
+use msg::constellation_msg::BrowsingContextId;
 use net_traits::{FetchResponseMsg, IpcSend, ReferrerPolicy};
 use net_traits::CookieSource::NonHTTP;
 use net_traits::CoreResourceMsg::{GetCookiesForUrl, SetCookiesForUrl};
@@ -1348,15 +1349,15 @@ impl Document {
     }
 
     /// The entry point for all key processing for web content
-    pub fn dispatch_key_event(
-        &self,
-        ch: Option<char>,
-        key: Key,
-        state: KeyState,
-        modifiers: KeyModifiers,
-    ) {
+    pub fn dispatch_key_event(&self,
+                              keyboard_event: ::keyboard_types::KeyboardEvent) {
         let focused = self.get_focused_element();
         let body = self.GetBody();
+
+        let printable = match keyboard_event.key {
+            Key::Character(_) => true,
+            _ => false,
+        };
 
         let target = match (&focused, &body) {
             (&Some(ref focused), _) => focused.upcast(),
@@ -1364,22 +1365,23 @@ impl Document {
             (&None, &None) => self.window.upcast(),
         };
 
-        let ctrl = modifiers.contains(KeyModifiers::CONTROL);
-        let alt = modifiers.contains(KeyModifiers::ALT);
-        let shift = modifiers.contains(KeyModifiers::SHIFT);
-        let meta = modifiers.contains(KeyModifiers::SUPER);
-
-        let is_composing = false;
-        let is_repeating = state == KeyState::Repeated;
         let ev_type = DOMString::from(
-            match state {
-                KeyState::Pressed | KeyState::Repeated => "keydown",
-                KeyState::Released => "keyup",
-            }.to_owned(),
-        );
+            match keyboard_event.state {
+                KeyState::Down => "keydown",
+                KeyState::Up => "keyup",
+            }.to_owned());
 
-        let props = KeyboardEvent::key_properties(ch, key, modifiers);
-
+        let char_code = if let Key::Character(ref c) = keyboard_event.key {
+            let mut chars = c.chars();
+            let n = chars.next().map(|c| c as u32);
+            if chars.next().is_some() {
+                None
+            } else {
+                n
+            }
+        } else {
+            None
+        };
         let keyevent = KeyboardEvent::new(
             &self.window,
             ev_type,
@@ -1387,29 +1389,21 @@ impl Document {
             true,
             Some(&self.window),
             0,
-            ch,
-            Some(key),
-            DOMString::from(props.key_string.clone()),
-            DOMString::from(props.code),
-            props.location,
-            is_repeating,
-            is_composing,
-            ctrl,
-            alt,
-            shift,
-            meta,
-            None,
-            props.key_code,
+            keyboard_event.key.clone(),
+            DOMString::from(keyboard_event.code.to_string()),
+            keyboard_event.location as u32,
+            keyboard_event.repeat,
+            keyboard_event.is_composing,
+            keyboard_event.modifiers,
+            char_code,
+            key_keycode(&keyboard_event.key),
         );
         let event = keyevent.upcast::<Event>();
         event.fire(target);
         let mut cancel_state = event.get_cancel_state();
 
         // https://w3c.github.io/uievents/#keys-cancelable-keys
-        if state != KeyState::Released &&
-            props.is_printable() &&
-            cancel_state != EventDefault::Prevented
-        {
+        if keyboard_event.state != KeyState::Up && printable && cancel_state != EventDefault::Prevented {
             // https://w3c.github.io/uievents/#keypress-event-order
             let event = KeyboardEvent::new(
                 &self.window,
@@ -1418,18 +1412,13 @@ impl Document {
                 true,
                 Some(&self.window),
                 0,
-                ch,
-                Some(key),
-                DOMString::from(props.key_string),
-                DOMString::from(props.code),
-                props.location,
-                is_repeating,
-                is_composing,
-                ctrl,
-                alt,
-                shift,
-                meta,
-                props.char_code,
+                keyboard_event.key.clone(),
+                DOMString::from(keyboard_event.code.to_string()),
+                keyboard_event.location as u32,
+                keyboard_event.repeat,
+                keyboard_event.is_composing,
+                keyboard_event.modifiers,
+                None,
                 0,
             );
             let ev = event.upcast::<Event>();
@@ -1438,7 +1427,7 @@ impl Document {
         }
 
         if cancel_state == EventDefault::Allowed {
-            let msg = EmbedderMsg::KeyEvent(ch, key, state, modifiers);
+            let msg = EmbedderMsg::Keyboard(keyboard_event.clone());
             self.send_to_embedder(msg);
 
             // This behavior is unspecced
@@ -1446,8 +1435,8 @@ impl Document {
             // however *when* we do it is up to us.
             // Here, we're dispatching it after the key event so the script has a chance to cancel it
             // https://www.w3.org/Bugs/Public/show_bug.cgi?id=27337
-            match key {
-                Key::Space if state == KeyState::Released => {
+            match keyboard_event.key {
+                Key::Character(ref letter) if letter == " " && keyboard_event.state == KeyState::Up => {
                     let maybe_elem = target.downcast::<Element>();
                     if let Some(el) = maybe_elem {
                         synthetic_click_activation(
@@ -1459,11 +1448,15 @@ impl Document {
                             ActivationSource::NotFromClick,
                         )
                     }
-                },
-                Key::Enter if state == KeyState::Released => {
+                }
+                Key::Enter if keyboard_event.state == KeyState::Up => {
                     let maybe_elem = target.downcast::<Element>();
                     if let Some(el) = maybe_elem {
                         if let Some(a) = el.as_maybe_activatable() {
+                            let ctrl = keyboard_event.modifiers.contains(Modifiers::CONTROL);
+                            let alt = keyboard_event.modifiers.contains(Modifiers::ALT);
+                            let shift = keyboard_event.modifiers.contains(Modifiers::SHIFT);
+                            let meta = keyboard_event.modifiers.contains(Modifiers::META);
                             a.implicit_submission(ctrl, alt, shift, meta);
                         }
                     }

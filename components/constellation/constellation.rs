@@ -111,10 +111,10 @@ use gfx_traits::Epoch;
 use ipc_channel::{Error as IpcError};
 use ipc_channel::ipc::{self, IpcSender, IpcReceiver};
 use ipc_channel::router::ROUTER;
+use keyboard_types::KeyboardEvent;
 use layout_traits::LayoutThreadFactory;
 use log::{Log, Level, LevelFilter, Metadata, Record};
 use msg::constellation_msg::{BrowsingContextId, PipelineId, HistoryStateId, TopLevelBrowsingContextId};
-use msg::constellation_msg::{Key, KeyModifiers, KeyState};
 use msg::constellation_msg::{PipelineNamespace, PipelineNamespaceId, TraversalDirection};
 use net_traits::{self, IpcSend, FetchResponseMsg, ResourceThreads};
 use net_traits::pub_domains::reg_host;
@@ -972,8 +972,8 @@ where
                     });
                 let _ = resp_chan.send(focus_browsing_context);
             },
-            FromCompositorMsg::KeyEvent(ch, key, state, modifiers) => {
-                self.handle_key_msg(ch, key, state, modifiers);
+            FromCompositorMsg::Keyboard(key_event) => {
+                self.handle_key_msg(key_event);
             },
             // Load a new page from a typed url
             // If there is already a pending page (self.pending_changes), it will not be overridden;
@@ -2622,12 +2622,12 @@ where
         session_history.replace_history_state(pipeline_id, history_state_id, url);
     }
 
-    fn handle_key_msg(&mut self, ch: Option<char>, key: Key, state: KeyState, mods: KeyModifiers) {
+    fn handle_key_msg(&mut self, event: KeyboardEvent) {
         // Send to the focused browsing contexts' current pipeline.  If it
         // doesn't exist, fall back to sending to the compositor.
         match self.focused_browsing_context_id {
             Some(browsing_context_id) => {
-                let event = CompositorEvent::KeyEvent(ch, key, state, mods);
+                let event = CompositorEvent::KeyboardEvent(event);
                 let pipeline_id = match self.browsing_contexts.get(&browsing_context_id) {
                     Some(ctx) => ctx.pipeline_id,
                     None => return warn!(
@@ -2647,7 +2647,7 @@ where
                 }
             },
             None => {
-                let event = (None, EmbedderMsg::KeyEvent(ch, key, state, mods));
+                let event = (None, EmbedderMsg::Keyboard(event));
                 self.embedder_proxy.clone().send(event);
             },
         }
@@ -2942,8 +2942,8 @@ where
                     Some(pipeline) => pipeline.event_loop.clone(),
                     None => return warn!("Pipeline {} SendKeys after closure.", pipeline_id),
                 };
-                for (key, mods, state) in cmd {
-                    let event = CompositorEvent::KeyEvent(None, key, state, mods);
+                for event in cmd {
+                    let event = CompositorEvent::KeyboardEvent(event);
                     let control_msg = ConstellationControlMsg::SendEvent(pipeline_id, event);
                     if let Err(e) = event_loop.send(control_msg) {
                         return self.handle_send_error(pipeline_id, e);

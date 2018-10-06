@@ -12,6 +12,7 @@ extern crate gleam;
 #[cfg(feature = "gleam")]
 extern crate image;
 extern crate ipc_channel;
+extern crate keyboard_types;
 extern crate libc;
 #[macro_use]
 extern crate log;

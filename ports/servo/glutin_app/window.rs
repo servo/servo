@@ -9,12 +9,12 @@ use euclid::{Length, TypedPoint2D, TypedVector2D, TypedScale, TypedSize2D};
 use gdi32;
 use gleam::gl;
 use glutin::{Api, ContextBuilder, GlContext, GlRequest, GlWindow};
+use keyboard_types::{Key, KeyboardEvent, Modifiers as KeyModifiers, KeyState};
 #[cfg(any(target_os = "linux", target_os = "macos"))]
 use osmesa_sys;
 use servo::compositing::windowing::{AnimationState, MouseWindowEvent, WindowEvent};
 use servo::compositing::windowing::{EmbedderCoordinates, WindowMethods};
 use servo::embedder_traits::EventLoopWaker;
-use servo::msg::constellation_msg::{Key, KeyState, KeyModifiers};
 use servo::script_traits::TouchEventType;
 use servo::servo_config::opts;
 use servo::servo_geometry::DeviceIndependentPixel;
@@ -151,7 +151,7 @@ pub struct Window {
     event_queue: RefCell<Vec<WindowEvent>>,
     mouse_pos: Cell<TypedPoint2D<i32, DevicePixel>>,
     key_modifiers: Cell<KeyModifiers>,
-    last_pressed_key: Cell<Option<Key>>,
+    last_pressed: Cell<Option<KeyboardEvent>>,
     animation_state: Cell<AnimationState>,
     fullscreen: Cell<bool>,
     gl: Rc<gl::Gl>,
@@ -280,7 +280,7 @@ impl Window {
             mouse_pos: Cell::new(TypedPoint2D::new(0, 0)),
             key_modifiers: Cell::new(KeyModifiers::empty()),
 
-            last_pressed_key: Cell::new(None),
+            last_pressed: Cell::new(None),
             gl: gl.clone(),
             animation_state: Cell::new(AnimationState::Idle),
             fullscreen: Cell::new(false),
@@ -408,56 +408,68 @@ impl Window {
         GlRequest::Specific(Api::OpenGlEs, (3, 0))
     }
 
-    fn handle_received_character(&self, ch: char) {
-        let last_key = if let Some(key) = self.last_pressed_key.get() {
-            key
+    fn handle_received_character(&self, mut ch: char) {
+        info!("winit received character: {:?}", ch);
+        if ch.is_control() {
+            if ch as u8 >= 32 {
+                return;
+            }
+            // shift ASCII control characters to lowercase
+            ch = (ch as u8 + 96) as char;
+        }
+        let mut event = if let Some(event) = self.last_pressed.replace(None) {
+            event
         } else {
             return;
         };
-
-        self.last_pressed_key.set(None);
-
-        let (key, ch) = if let Some(key) = keyutils::char_to_script_key(ch) {
-            (key, Some(ch))
-        } else {
-            (last_key, None)
-        };
-
-        let modifiers = self.key_modifiers.get();
-        let event = WindowEvent::KeyEvent(ch, key, KeyState::Pressed, modifiers);
-        self.event_queue.borrow_mut().push(event);
+        event.key = Key::Character(ch.to_string());
+        self.event_queue
+            .borrow_mut()
+            .push(WindowEvent::Keyboard(event));
     }
 
     fn toggle_keyboard_modifiers(&self, mods: ModifiersState) {
         self.toggle_modifier(KeyModifiers::CONTROL, mods.ctrl);
         self.toggle_modifier(KeyModifiers::SHIFT, mods.shift);
         self.toggle_modifier(KeyModifiers::ALT, mods.alt);
-        self.toggle_modifier(KeyModifiers::SUPER, mods.logo);
+        self.toggle_modifier(KeyModifiers::META, mods.logo);
     }
 
     fn handle_keyboard_input(
         &self,
+        scancode: u32,
         element_state: ElementState,
-        code: VirtualKeyCode,
+        code: Option<VirtualKeyCode>,
         mods: ModifiersState,
     ) {
+        info!(
+            "winit keyboard input: {}, {:?}, {:?}, {:?}",
+            scancode, element_state, code, mods
+        );
         self.toggle_keyboard_modifiers(mods);
-
-        if let Ok(key) = keyutils::winit_key_to_script_key(code) {
-            let state = match element_state {
-                ElementState::Pressed => KeyState::Pressed,
-                ElementState::Released => KeyState::Released,
-            };
-            if element_state == ElementState::Pressed && keyutils::is_printable(code) {
-                // If pressed and printable, we expect a ReceivedCharacter event.
-                self.last_pressed_key.set(Some(key));
-            } else {
-                self.last_pressed_key.set(None);
-                let modifiers = self.key_modifiers.get();
-                self.event_queue
-                    .borrow_mut()
-                    .push(WindowEvent::KeyEvent(None, key, state, modifiers));
-            }
+        let key = keyutils::get_servo_key_from_winit_key(code);
+        let location = keyutils::get_servo_location_from_winit_key(code);
+        let state = match element_state {
+            ElementState::Pressed => KeyState::Down,
+            ElementState::Released => KeyState::Up,
+        };
+        let event = KeyboardEvent {
+            state,
+            key: key.clone(),
+            code: keyutils::get_servo_code_from_scancode(scancode),
+            location,
+            modifiers: self.key_modifiers.get(),
+            repeat: false,
+            is_composing: false,
+        };
+        if element_state == ElementState::Pressed && key == Key::Unidentified {
+            // If pressed and probably printable, we expect a ReceivedCharacter event.
+            self.last_pressed.set(Some(event));
+        } else if key != Key::Unidentified {
+            self.last_pressed.set(None);
+            self.event_queue
+                .borrow_mut()
+                .push(WindowEvent::Keyboard(event));
         }
     }
 
@@ -472,15 +484,15 @@ impl Window {
                     winit::WindowEvent::KeyboardInput {
                         input:
                             winit::KeyboardInput {
+                                scancode,
                                 state,
-                                virtual_keycode: Some(virtual_keycode),
+                                virtual_keycode,
                                 modifiers,
-                                ..
                             },
                         ..
                     },
                 ..
-            } => self.handle_keyboard_input(state, virtual_keycode, modifiers),
+            } => self.handle_keyboard_input(scancode, state, virtual_keycode, modifiers),
             Event::WindowEvent {
                 event: winit::WindowEvent::MouseInput { state, button, .. },
                 ..
