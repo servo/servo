@@ -273,8 +273,9 @@ def slice(request, response, start, end=None):
                 (spelled "null" in a query string) to indicate the end of
                 the file.
     """
-    content = resolve_content(response)
-    response.content = content[start:end]
+    content = resolve_content(response)[start:end]
+    response.content = content
+    response.headers.set("Content-Length", len(content))
     return response
 
 
@@ -425,11 +426,12 @@ def template(request, content, escape_type="html"):
         tokens = deque(tokens)
 
         token_type, field = tokens.popleft()
-        field = field.decode("ascii")
+        assert isinstance(field, text_type)
 
         if token_type == "var":
             variable = field
             token_type, field = tokens.popleft()
+            assert isinstance(field, text_type)
         else:
             variable = None
 

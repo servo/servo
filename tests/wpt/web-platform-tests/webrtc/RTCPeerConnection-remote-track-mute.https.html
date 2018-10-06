@@ -1,0 +1,98 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>RTCPeerConnection-transceivers.https.html</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="RTCPeerConnection-helper.js"></script>
+<script>
+'use strict';
+
+// The following helper functions are called from RTCPeerConnection-helper.js:
+//   exchangeOffer
+//   exchangeOfferAndListenToOntrack
+//   exchangeAnswer
+//   exchangeAnswerAndListenToOntrack
+//   addEventListenerPromise
+//   createPeerConnectionWithCleanup
+//   createTrackAndStreamWithCleanup
+//   findTransceiverForSender
+
+promise_test(async t => {
+  const pc1 = createPeerConnectionWithCleanup(t);
+  pc1.addTrack(... await createTrackAndStreamWithCleanup(t));
+  const pc2 = createPeerConnectionWithCleanup(t);
+  exchangeIceCandidates(pc1, pc2);
+
+  const unmuteResolver = new Resolver();
+  let remoteTrack = null;
+  // The unmuting it timing sensitive so we hook up to the event directly
+  // instead of wrapping it in an EventWatcher which uses promises.
+  pc2.ontrack = t.step_func(e => {
+    remoteTrack = e.track;
+    assert_true(remoteTrack.muted, 'track is muted in ontrack');
+    remoteTrack.onunmute = t.step_func(e => {
+      assert_false(remoteTrack.muted, 'track is unmuted in onunmute');
+      unmuteResolver.resolve();
+    });
+    pc2.ontrack = t.step_func(e => {
+      assert_unreached('ontrack fired unexpectedly');
+    });
+  });
+  await exchangeOfferAnswer(pc1, pc2);
+  await unmuteResolver.promise;
+}, 'ontrack: track goes from muted to unmuted');
+
+promise_test(async t => {
+  const pc1 = createPeerConnectionWithCleanup(t);
+  const pc1Sender = pc1.addTrack(... await createTrackAndStreamWithCleanup(t));
+  const localTransceiver = findTransceiverForSender(pc1, pc1Sender);
+  const pc2 = createPeerConnectionWithCleanup(t);
+  exchangeIceCandidates(pc1, pc2);
+
+  const e = await exchangeOfferAndListenToOntrack(t, pc1, pc2);
+  await exchangeAnswer(pc1, pc2);
+
+  const muteWatcher = new EventWatcher(t, e.track, ['mute']);
+  const mutePromise = muteWatcher.wait_for('mute');
+  localTransceiver.direction = 'inactive';
+  await exchangeOfferAnswer(pc1, pc2);
+
+  await mutePromise;
+}, 'Changing transceiver direction to \'inactive\' mutes the remote track');
+
+promise_test(async t => {
+  const pc1 = createPeerConnectionWithCleanup(t);
+  const pc1Sender = pc1.addTrack(... await createTrackAndStreamWithCleanup(t));
+  const localTransceiver = findTransceiverForSender(pc1, pc1Sender);
+  const pc2 = createPeerConnectionWithCleanup(t);
+  exchangeIceCandidates(pc1, pc2);
+
+  const e = await exchangeOfferAndListenToOntrack(t, pc1, pc2);
+  await exchangeAnswer(pc1, pc2);
+  localTransceiver.direction = 'inactive';
+  await exchangeOfferAnswer(pc1, pc2);
+
+  const unmuteWatcher = new EventWatcher(t, e.track, ['unmute']);
+  const unmutePromise = unmuteWatcher.wait_for('unmute');
+  localTransceiver.direction = 'sendrecv';
+  await exchangeOfferAnswer(pc1, pc2);
+
+  await unmutePromise;
+}, 'Changing transceiver direction to \'sendrecv\' unmutes the remote track');
+
+promise_test(async t => {
+  const pc1 = createPeerConnectionWithCleanup(t);
+  const pc1Sender = pc1.addTrack(... await createTrackAndStreamWithCleanup(t));
+  const localTransceiver = findTransceiverForSender(pc1, pc1Sender);
+  const pc2 = createPeerConnectionWithCleanup(t);
+  exchangeIceCandidates(pc1, pc2);
+
+  const e = await exchangeOfferAndListenToOntrack(t, pc1, pc2);
+  await exchangeAnswer(pc1, pc2);
+  const muteWatcher = new EventWatcher(t, e.track, ['mute']);
+  const mutePromise = muteWatcher.wait_for('mute');
+  pc2.close();
+  await mutePromise;
+}, 'pc.close() mutes remote tracks');
+
+</script>

@@ -2,7 +2,7 @@ marionette_driver==2.7.0
 mozprofile==2.0.0
 mozprocess == 0.26
 mozcrash == 1.0
-mozrunner==7.0.2
+mozrunner==7.1.0
 mozleak == 0.1
 mozinstall==1.16.0
 mozdownload==1.24

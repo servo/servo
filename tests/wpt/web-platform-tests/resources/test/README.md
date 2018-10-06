@@ -27,7 +27,7 @@ the correct arguments.
 ## Authoring Tests
 
 Test cases are expressed as `.html` files located within the `tests/unit/` and
-`tests/funtional/` sub-directories. Each test should include the
+`tests/functional/` sub-directories. Each test should include the
 `testharness.js` library with the following markup:
 
     <script src="/resources/testharness.js"></script>

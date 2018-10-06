@@ -50,10 +50,10 @@
   color: orange;
   /*
   In this test, the glyphs "or" are painted into 1st column box.
-  "Content in the normal flow that extends into column
-  gaps (e.g., long words or images) is clipped in the
-  middle of the column gap."
-  Therefore, the glyphs "ang" are clipped and not painted.
+  Per spec, content in the normal flow that extends into column
+  gaps (e.g., long words or images) is not clipped to the column
+  box. However, the glyphs "ang" are overwritten by <span>s, so
+  they're not visible.
   */
   }
 

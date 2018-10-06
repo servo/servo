@@ -754,7 +754,7 @@ policies and contribution forms [3].
         }
         if (tests.file_is_test) {
             // file is test files never have asynchronous cleanup logic,
-            // meaning the fully-sycnronous `done` funtion can be used here.
+            // meaning the fully-sycnronous `done` function can be used here.
             tests.tests[0].done();
         }
         tests.end_wait();

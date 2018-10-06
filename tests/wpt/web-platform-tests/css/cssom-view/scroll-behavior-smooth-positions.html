@@ -109,7 +109,7 @@
   }, "Scroll positions when aborting a smooth scrolling with another smooth scrolling");
 
   promise_test(() => {
-    return new Promise(function(resolve) {
+    return new Promise(function(resolve, reject) {
       resetScroll(overflowNode);
       var initialScrollAborted = false;
       var oldLeft = overflowNode.scrollLeft;

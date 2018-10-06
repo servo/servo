@@ -178,7 +178,6 @@ class TestPipesWithVariousHandlers(TestUsingServer):
         self.assertFalse(resp.info().get("X-TEST"))
         self.assertEqual(resp.read(), b"CONTENT")
 
-    @pytest.mark.xfail(sys.version_info >= (3,), reason="wptserve only works on Py2")
     def test_with_json_handler(self):
         @wptserve.handlers.json_handler
         def handler(request, response):
@@ -186,7 +185,7 @@ class TestPipesWithVariousHandlers(TestUsingServer):
         route = ("GET", "/test/test_pipes_2/", handler)
         self.server.router.register(*route)
         resp = self.request(route[1], query="pipe=slice(null,2)")
-        self.assertEqual(resp.read(), '"{')
+        self.assertEqual(resp.read(), b'"{')
 
     def test_slice_with_as_is_handler(self):
         resp = self.request("/test.asis", query="pipe=slice(null,2)")
