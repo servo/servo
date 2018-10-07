@@ -2,6 +2,31 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+extern crate euclid;
+
+use euclid::{Rect, Size2D};
+use std::borrow::Cow;
+
+pub fn get_rect(pixels: &[u8], size: Size2D<u32>, rect: Rect<u32>) -> Cow<[u8]> {
+    assert!(!rect.is_empty());
+    assert!(Rect::from_size(size).contains_rect(&rect));
+    assert_eq!(pixels.len() % 4, 0);
+    assert_eq!(size.area() as usize, pixels.len() / 4);
+    let area = rect.size.area() as usize;
+    let first_column_start = rect.origin.x as usize * 4;
+    let row_length = size.width as usize * 4;
+    let first_row_start = rect.origin.y as usize * row_length;
+    if rect.origin.x == 0 && rect.size.width == size.width || rect.size.height == 1 {
+        let start = first_column_start + first_row_start;
+        return Cow::Borrowed(&pixels[start..start + area * 4]);
+    }
+    let mut data = Vec::with_capacity(area * 4);
+    for row in pixels[first_row_start..].chunks(row_length).take(rect.size.height as usize) {
+        data.extend_from_slice(&row[first_column_start..][..rect.size.width as usize * 4]);
+    }
+    data.into()
+}
+
 // TODO(pcwalton): Speed up with SIMD, or better yet, find some way to not do this.
 pub fn byte_swap_colors_inplace(pixels: &mut [u8]) {
     assert!(pixels.len() % 4 == 0);

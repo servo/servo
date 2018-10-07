@@ -8,3 +8,6 @@ publish = false
 [lib]
 name = "pixels"
 path = "lib.rs"
+
+[dependencies]
+euclid = "0.19"

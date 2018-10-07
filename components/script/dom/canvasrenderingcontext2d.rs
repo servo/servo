@@ -1137,6 +1137,9 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
         mut sw: i32,
         mut sh: i32,
     ) -> Fallible<DomRoot<ImageData>> {
+        // FIXME(nox): There are many arithmetic operations here that can
+        // overflow or underflow, this should probably be audited.
+
         if sw == 0 || sh == 0 {
             return Err(Error::IndexSize);
         }
@@ -1154,27 +1157,48 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
             sy -= sh;
         }
 
+        let data_width = sw;
+        let data_height = sh;
+
+        if sx < 0 {
+            sw += sx;
+            sx = 0;
+        }
+        if sy < 0 {
+            sh += sy;
+            sy = 0;
+        }
+
+        if sw <= 0 || sh <= 0 {
+            // All the pixels are before the start of the canvas surface.
+            return ImageData::new(&self.global(), data_width as u32, data_height as u32, None);
+        }
+
         let (sender, receiver) = ipc::bytes_channel().unwrap();
-        let dest_rect = Rect::new(Point2D::new(sx, sy), Size2D::new(sw, sh));
+        let src_rect = Rect::new(Point2D::new(sx, sy), Size2D::new(sw, sh));
         // FIXME(nox): This is probably wrong when this is a context for an
         // offscreen canvas.
-        let canvas_size = self.canvas.as_ref().map_or(Size2D::zero(), |c| c.get_size());
-        self.send_canvas_2d_msg(Canvas2dMsg::GetImageData(
-            dest_rect,
-            canvas_size.to_i32(),
-            sender,
-        ));
-        let mut data = receiver.recv().unwrap();
-
-        // Byte swap and unmultiply alpha.
-        for chunk in data.chunks_mut(4) {
+        let canvas_size = self.canvas
+            .as_ref()
+            .map_or(Size2D::zero(), |c| c.get_size())
+            .try_cast().unwrap();
+        let canvas_rect = Rect::from_size(canvas_size);
+        let read_rect = match src_rect.intersection(&canvas_rect) {
+            Some(rect) if !rect.is_empty() => rect,
+            _ => {
+                // All the pixels are past the end of the canvas surface.
+                return ImageData::new(&self.global(), data_width as u32, data_height as u32, None);
+            }
+        };
+        self.send_canvas_2d_msg(Canvas2dMsg::GetImageData(read_rect, canvas_size, sender));
+        let mut pixels = receiver.recv().unwrap();
+        for chunk in pixels.chunks_mut(4) {
             let b = chunk[0];
             chunk[0] = UNPREMULTIPLY_TABLE[256 * (chunk[3] as usize) + chunk[2] as usize];
             chunk[1] = UNPREMULTIPLY_TABLE[256 * (chunk[3] as usize) + chunk[1] as usize];
             chunk[2] = UNPREMULTIPLY_TABLE[256 * (chunk[3] as usize) + b as usize];
         }
-
-        ImageData::new(&self.global(), sw as u32, sh as u32, Some(data.to_vec()))
+        ImageData::new(&self.global(), sw as u32, sh as u32, Some(pixels.to_vec()))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-putimagedata
@@ -1196,6 +1220,7 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
     ) {
         // FIXME(nox): There are many arithmetic operations here that can
         // overflow or underflow, this should probably be audited.
+
 
         let imagedata_size = Size2D::new(imagedata.Width() as i32, imagedata.Height() as i32);
         if imagedata_size.width <= 0 || imagedata_size.height <= 0 {

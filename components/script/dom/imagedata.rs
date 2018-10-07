@@ -13,6 +13,7 @@ use euclid::{Rect, Size2D};
 use js::jsapi::{Heap, JSContext, JSObject};
 use js::rust::Runtime;
 use js::typedarray::{Uint8ClampedArray, CreateWith};
+use pixels;
 use std::borrow::Cow;
 use std::default::Default;
 use std::ptr;
@@ -162,30 +163,11 @@ impl ImageData {
 
     #[allow(unsafe_code)]
     pub unsafe fn get_rect(&self, rect: Rect<u32>) -> Cow<[u8]> {
-        assert!(!rect.is_empty());
-        assert!(self.rect().contains_rect(&rect));
-        let slice = self.as_slice();
-        let area = rect.size.area() as usize;
-        let first_column_start = rect.origin.x as usize * 4;
-        let row_length = self.width as usize * 4;
-        let first_row_start = rect.origin.y as usize * row_length;
-        if rect.origin.x == 0 && rect.size.width == self.width || rect.size.height == 1 {
-            let start = first_column_start + first_row_start;
-            return Cow::Borrowed(&slice[start..start + area * 4]);
-        }
-        let mut data = Vec::with_capacity(area * 4);
-        for row in slice[first_row_start..].chunks(row_length).take(rect.size.height as usize) {
-            data.extend_from_slice(&row[first_column_start..][..rect.size.width as usize * 4]);
-        }
-        data.into()
+        pixels::get_rect(self.as_slice(), self.get_size(), rect)
     }
 
     pub fn get_size(&self) -> Size2D<u32> {
         Size2D::new(self.Width(), self.Height())
-    }
-
-    pub fn rect(&self) -> Rect<u32> {
-        Rect::from_size(self.get_size())
     }
 }
 

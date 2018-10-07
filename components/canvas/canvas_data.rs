@@ -526,22 +526,7 @@ impl<'a> CanvasData<'a> {
         }
 
         let data_surface = self.drawtarget.snapshot().get_data_surface();
-        let src_data = unsafe { data_surface.data() };
-        let stride = data_surface.stride();
-
-        //start offset of the copyable rectangle
-        let mut src = (src_read_rect.origin.y * stride + src_read_rect.origin.x * 4) as usize;
-        let mut image_data = Vec::with_capacity(
-            (src_read_rect.size.width * src_read_rect.size.height * 4) as usize,
-        );
-        //copy the data to the destination vector
-        for _ in 0..src_read_rect.size.height {
-            let row = &src_data[src .. src + (4 * src_read_rect.size.width) as usize];
-            image_data.extend_from_slice(row);
-            src += stride as usize;
-        }
-
-        image_data
+        pixels::get_rect(unsafe { data_surface.data() }, canvas_size.to_u32(), read_rect.to_u32()).into_owned()
     }
 }
 
