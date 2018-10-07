@@ -4252,13 +4252,10 @@ impl DocumentMethods for Document {
 
         // Step 9. If document is the associated Document of document's relevant global object,
         // then erase all event listeners and handlers given document's relevant global object.
-        match self.global().downcast::<Window>() {
-            Some(window) => {
-                if window.Document() == DomRoot::from_ref(self) {
-                    self.global().upcast::<EventTarget>().remove_all_listeners()
-                }
-            },
-            None => {},
+        if let Some(window) = self.global().downcast::<Window>() {
+            if window.Document() == DomRoot::from_ref(self) {
+                self.global().upcast::<EventTarget>().remove_all_listeners()
+            }
         }
 
         // Step 10. Replace all with null within document,
@@ -4310,17 +4307,15 @@ impl DocumentMethods for Document {
 
     // https://html.spec.whatwg.org/multipage/#dom-document-open-window
     fn Open_(&self, url: DOMString, target: DOMString, features: DOMString) -> Fallible<DomRoot<WindowProxy>> {
-        // TODO: WhatWG spec states this should throw an InvalidState err, but web platform tests expect
-        // an InvalidAccess error
         let wo = match self.browsing_context() {
             Some(w) => w.open(url, target, features),
-            None => return Err(Error::InvalidState),
+            None => return Err(Error::InvalidAccess),
         };
         // WhatWG spec states this should always return a WindowProxy, but the spec for WindowProxy.open states
         // it optionally returns a WindowProxy. Assume an error if window.open returns none.
         match wo {
             Some(w) => Ok(w),
-            None => Err(Error::InvalidState),
+            None => Err(Error::InvalidAccess),
         }
     }
 
