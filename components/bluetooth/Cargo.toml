@@ -19,6 +19,3 @@ log = "0.4"
 servo_config = {path = "../config"}
 servo_rand = {path = "../rand"}
 uuid = {version = "0.6", features = ["v4"]}
-
-[dev-dependencies]
-embedder_traits = { path = "../embedder_traits", features = ["tests"]}

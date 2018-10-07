@@ -36,6 +36,3 @@ time = "0.1.12"
 url = "1.2"
 webrender_api = {git = "https://github.com/servo/webrender", features = ["ipc"]}
 webvr_traits = {path = "../webvr_traits"}
-
-[dev-dependencies]
-embedder_traits = { path = "../embedder_traits", features = ["tests"]}

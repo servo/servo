@@ -2316,6 +2316,7 @@ dependencies = [
  "servo_channel 0.0.1",
  "servo_config 0.0.1",
  "servo_url 0.0.1",
+ "std_test_override 0.0.1",
  "threadpool 1.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "time 0.1.37 (registry+https://github.com/rust-lang/crates.io-index)",
  "unicase 1.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -2355,6 +2356,7 @@ dependencies = [
  "servo_arc 0.1.1",
  "servo_config 0.0.1",
  "servo_url 0.0.1",
+ "std_test_override 0.0.1",
  "url 1.6.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "uuid 0.6.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "webrender_api 0.57.2 (git+https://github.com/servo/webrender)",
@@ -3392,6 +3394,7 @@ dependencies = [
  "serde 1.0.66 (registry+https://github.com/rust-lang/crates.io-index)",
  "servo_geometry 0.0.1",
  "servo_url 0.0.1",
+ "std_test_override 0.0.1",
  "url 1.6.1 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -3526,6 +3529,13 @@ version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
+name = "std_test_override"
+version = "0.0.1"
+dependencies = [
+ "embedder_traits 0.0.1",
+]
+
+[[package]]
 name = "string_cache"
 version = "0.7.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3647,6 +3657,7 @@ dependencies = [
  "servo_config 0.0.1",
  "servo_url 0.0.1",
  "size_of_test 0.0.1",
+ "std_test_override 0.0.1",
  "style 0.0.1",
  "style_traits 0.0.1",
 ]

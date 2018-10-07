@@ -33,4 +33,4 @@ uuid = {version = "0.6", features = ["v4", "serde"]}
 webrender_api = {git = "https://github.com/servo/webrender", features = ["ipc"]}
 
 [dev-dependencies]
-embedder_traits = { path = "../embedder_traits", features = ["tests"] }
+std_test_override = { path = "../std_test_override" }

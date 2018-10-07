@@ -51,7 +51,7 @@ webrender_api = {git = "https://github.com/servo/webrender", features = ["ipc"]}
 ws = { version = "0.7", features = ["ssl"] }
 
 [dev-dependencies]
-embedder_traits = { path = "../embedder_traits", features = ["tests"] }
+std_test_override = { path = "../std_test_override" }
 
 [[test]]
 name = "main"
