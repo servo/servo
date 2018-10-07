@@ -15,6 +15,7 @@ def main(task_for, mock=False):
             android_arm32()
             windows_dev()
             if mock:
+                windows_release()
                 linux_wpt()
 
     # https://tools.taskcluster.net/hooks/project-servo/daily
@@ -43,7 +44,9 @@ linux_build_env = {
     "SCCACHE_IDLE_TIMEOUT": "1200",
     "SHELL": "/bin/dash",  # For SpiderMonkey’s build system
 }
-windows_build_env = {}
+windows_build_env = {
+    "LIB": "%HOMEDRIVE%%HOMEPATH%\\gst\\gstreamer\\1.0\\x86_64\\lib;%LIB%",
+}
 windows_sparse_checkout = [
     "/*",
     "!/tests/wpt/metadata",
@@ -97,15 +100,6 @@ def android_arm32():
 def windows_dev():
     return (
         windows_build_task("Windows x86_64: dev build + unit tests")
-        .with_python2()
-        .with_rustup()
-        .with_repacked_msi(
-            url="https://gstreamer.freedesktop.org/data/pkg/windows/" +
-                "1.14.3/gstreamer-1.0-devel-x86_64-1.14.3.msi",
-            sha256="b13ea68c1365098c66871f0acab7fd3daa2f2795b5e893fcbb5cd7253f2c08fa",
-            path="gst",
-        )
-        .with_env(LIB="%HOMEDRIVE%%HOMEPATH%\\gst\\gstreamer\\1.0\\x86_64\\lib;%LIB%")
         .with_script(
             # Not necessary as this would be done at the start of `build`,
             # but this allows timing it separately.
@@ -113,16 +107,21 @@ def windows_dev():
 
             "mach build --dev",
             "mach test-unit",
+            "mach package --dev",
         )
-        .with_directory_mount(
-            "https://github.com/wixtoolset/wix3/releases/download/wix3111rtm/wix311-binaries.zip",
-            sha256="37f0a533b0978a454efb5dc3bd3598becf9660aaf4287e55bf68ca6b527d051d",
-            path="wix",
-        )
-        .with_path_from_homedir("wix")
-        .with_script("mach package --dev")
         .with_artifacts("repo/target/debug/msi/Servo.exe",
                         "repo/target/debug/msi/Servo.zip")
+        .create()
+    )
+
+
+def windows_release():
+    return (
+        windows_build_task("Windows x86_64: release build")
+        .with_script("mach build --release",
+                     "mach package --release")
+        .with_artifacts("repo/target/release/msi/Servo.exe",
+                        "repo/target/release/msi/Servo.zip")
         .create()
     )
 
@@ -272,6 +271,20 @@ def windows_build_task(name):
         .with_max_run_time_minutes(60)
         .with_env(**build_env, **windows_build_env)
         .with_repo(sparse_checkout=windows_sparse_checkout)
+        .with_python2()
+        .with_rustup()
+        .with_repacked_msi(
+            url="https://gstreamer.freedesktop.org/data/pkg/windows/" +
+                "1.14.3/gstreamer-1.0-devel-x86_64-1.14.3.msi",
+            sha256="b13ea68c1365098c66871f0acab7fd3daa2f2795b5e893fcbb5cd7253f2c08fa",
+            path="gst",
+        )
+        .with_directory_mount(
+            "https://github.com/wixtoolset/wix3/releases/download/wix3111rtm/wix311-binaries.zip",
+            sha256="37f0a533b0978a454efb5dc3bd3598becf9660aaf4287e55bf68ca6b527d051d",
+            path="wix",
+        )
+        .with_path_from_homedir("wix")
     )
 
 
