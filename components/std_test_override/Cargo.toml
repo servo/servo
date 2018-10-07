@@ -1,16 +1,13 @@
 [package]
-name = "bluetooth_traits"
+name = "std_test_override"
 version = "0.0.1"
 authors = ["The Servo Project Developers"]
 license = "MPL-2.0"
 publish = false
 
 [lib]
-name = "bluetooth_traits"
+name = "test"
 path = "lib.rs"
 
 [dependencies]
-ipc-channel = "0.11"
-regex = "1.0"
-serde = "1.0"
 embedder_traits = { path = "../embedder_traits" }

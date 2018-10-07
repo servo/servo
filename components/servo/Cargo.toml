@@ -72,6 +72,3 @@ webvr_traits = {path = "../webvr_traits"}
 
 [target.'cfg(all(not(target_os = "windows"), not(target_os = "ios")))'.dependencies]
 gaol = {git = "https://github.com/servo/gaol"}
-
-[dev-dependencies]
-embedder_traits = { path = "../embedder_traits", features = ["tests"] }

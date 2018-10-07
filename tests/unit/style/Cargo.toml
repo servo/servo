@@ -26,3 +26,4 @@ servo_url = {path = "../../../components/url"}
 size_of_test = {path = "../../../components/size_of_test"}
 style = {path = "../../../components/style"}
 style_traits = {path = "../../../components/style_traits"}
+std_test_override = { path = "../../../components/std_test_override" }

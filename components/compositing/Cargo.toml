@@ -37,6 +37,3 @@ webrender_api = {git = "https://github.com/servo/webrender", features = ["ipc"]}
 
 [build-dependencies]
 toml = "0.4.5"
-
-[dev-dependencies]
-embedder_traits = { path = "../embedder_traits", features = ["tests"]}

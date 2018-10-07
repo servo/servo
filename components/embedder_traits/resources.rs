@@ -3,23 +3,19 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use std::path::PathBuf;
-use std::sync::RwLock;
+use std::sync::{Once, RwLock};
 
 lazy_static! {
-    static ref RES: RwLock<Option<Box<ResourceReaderMethods + Sync + Send>>> = RwLock::new({
-        #[cfg(not(feature = "tests"))]
-        {
-            None
-        }
-        #[cfg(feature = "tests")]
-        {
-            Some(resources_for_tests())
-        }
-    });
+    static ref RES: RwLock<Option<Box<ResourceReaderMethods + Sync + Send>>> = RwLock::new(None);
 }
 
 pub fn set(reader: Box<ResourceReaderMethods + Sync + Send>) {
     *RES.write().unwrap() = Some(reader);
+}
+
+pub fn set_for_tests() {
+    static ONCE: Once = Once::new();
+    ONCE.call_once(|| set(resources_for_tests()));
 }
 
 pub fn read_bytes(res: Resource) -> Vec<u8> {
@@ -71,7 +67,6 @@ pub trait ResourceReaderMethods {
     fn sandbox_access_files_dirs(&self) -> Vec<PathBuf>;
 }
 
-#[cfg(feature = "tests")]
 fn resources_for_tests() -> Box<ResourceReaderMethods + Sync + Send> {
     use std::env;
     use std::fs::File;
