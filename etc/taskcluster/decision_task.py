@@ -105,10 +105,14 @@ def windows_dev():
             sha256="b13ea68c1365098c66871f0acab7fd3daa2f2795b5e893fcbb5cd7253f2c08fa",
             path="gst",
         )
+        .with_env(LIB="%HOMEDRIVE%%HOMEPATH%\\gst\\gstreamer\\1.0\\x86_64\\lib;%LIB%")
         .with_script(
-            "set LIB=%HOMEDRIVE%%HOMEPATH%\\gst\\gstreamer\\1.0\\x86_64\\lib;%LIB%",
-            "call mach.bat build --dev",
-            "call mach.bat test-unit",
+            # Not necessary as this would be done at the start of `build`,
+            # but this allows timing it separately.
+            "mach fetch",
+
+            "mach build --dev",
+            "mach test-unit",
         )
         .create()
     )
