@@ -18,16 +18,26 @@ promise_test(() => {
 // activation concerns the interaction between iframe elements and their parent
 // browsing contexts [1]. Because testdriver.js currently cannot operate within
 // an iframe, the standard requirement cannot be used to verify the correctness
-// of the `bless` method. Instead, rely on the non-standard restriction on
-// unattended media playback. Browsers which do not implement such a
-// restriction will pass this test spuriously.
+// of the `bless` method. Instead, rely on the optional behavior of early exit
+// and rejecting in `video.play()` if the media is not "allowed to play". [2]
+// Browsers which don't implement this will pass this test spuriously.
 //
 // [1] https://html.spec.whatwg.org/multipage/origin.html#attr-iframe-sandbox-allow-top-navigation-by-user-activation
-promise_test(() => {
+// [2] https://html.spec.whatwg.org/multipage/media.html#allowed-to-play
+promise_test(t => {
   const video = document.createElement('video');
-  video.setAttribute('src', '/media/counting.ogv');
   document.body.appendChild(video);
-  return test_driver.bless('start video playback', () => video.play())
+  t.add_cleanup(() => video.remove());
+  return test_driver.bless('start video playback', () => {
+    // `paused` changes before `play()` returns when "allowed to play", so the
+    // promise, if any, is ignored.
+    assert_true(video.paused);
+    const playPromise = video.play();
+    assert_false(video.paused);
+    if (playPromise) {
+      playPromise.catch(() => {});
+    }
+  });
 }, 'user activation');
 
 promise_test(() => {
