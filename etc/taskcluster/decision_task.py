@@ -111,7 +111,7 @@ def windows_dev():
         )
         .with_artifacts("repo/target/debug/msi/Servo.exe",
                         "repo/target/debug/msi/Servo.zip")
-        .create()
+        .find_or_create("build.windows_x64_dev." + CONFIG.git_sha)
     )
 
 
@@ -122,7 +122,7 @@ def windows_release():
                      "mach package --release")
         .with_artifacts("repo/target/release/msi/Servo.exe",
                         "repo/target/release/msi/Servo.zip")
-        .create()
+        .find_or_create("build.windows_x64_release." + CONFIG.git_sha)
     )
 
 
