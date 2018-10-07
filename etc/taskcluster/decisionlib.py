@@ -205,7 +205,6 @@ class GenericWorkerTask(Task):
         self.artifacts = []
 
     with_max_run_time_minutes = chaining(setattr, "max_run_time_minutes")
-    with_artifacts = chaining(append_to_attr, "artifacts")
     with_mounts = chaining(append_to_attr, "mounts")
     with_env = chaining(update_attr, "env")
 
@@ -223,14 +222,18 @@ class GenericWorkerTask(Task):
             mounts=self.mounts,
             artifacts=[
                 {
-                    "type": "file",
+                    "type": type_,
                     "path": path,
                     "name": "public/" + url_basename(path),
                     "expires": SHARED.from_now_json(self.index_and_artifacts_expire_in),
                 }
-                for path in self.artifacts
+                for type_, path in self.artifacts
             ],
         )
+
+    def with_artifacts(self, *paths, type="file"):
+        self.artifacts.extend((type, path) for path in paths)
+        return self
 
     def _mount_content(self, url_or_artifact_name, task_id, sha256):
         if task_id:

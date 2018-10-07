@@ -114,6 +114,15 @@ def windows_dev():
             "mach build --dev",
             "mach test-unit",
         )
+        .with_directory_mount(
+            "https://github.com/wixtoolset/wix3/releases/download/wix3111rtm/wix311-binaries.zip",
+            sha256="37f0a533b0978a454efb5dc3bd3598becf9660aaf4287e55bf68ca6b527d051d",
+            path="wix",
+        )
+        .with_path_from_homedir("wix")
+        .with_script("mach package --dev")
+        .with_artifacts("repo/target/debug/msi/Servo.exe",
+                        "repo/target/debug/msi/Servo.zip")
         .create()
     )
 
