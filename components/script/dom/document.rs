@@ -4230,8 +4230,7 @@ impl DocumentMethods for Document {
 
         // Step 6. If document's ignore-opens-during-unload counter is greater
         // than 0, then return document.
-        if self.is_prompting_or_unloading()
-        {
+        if self.is_prompting_or_unloading() {
             return Ok(DomRoot::from_ref(self));
         }
 
@@ -4348,9 +4347,8 @@ impl DocumentMethods for Document {
                 // Either there is no parser, which means the parsing ended;
                 // or script nesting level is 0, which means the method was
                 // called from outside a parser-executed script.
-                if self.ignore_destructive_writes_counter.get() > 0 {
+                if self.is_prompting_or_unloading() || self.ignore_destructive_writes_counter.get() > 0 {
                     // Step 4.
-                    // TODO: handle ignore-opens-during-unload counter.
                     return Ok(());
                 }
                 // Step 5.
