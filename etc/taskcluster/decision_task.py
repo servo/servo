@@ -58,7 +58,7 @@ windows_sparse_checkout = [
 
 
 def linux_tidy_unit():
-    return linux_build_task("Linux x86_64: tidy + dev build + unit tests").with_script("""
+    return linux_build_task("Linux x64: tidy + dev build + unit tests").with_script("""
         ./mach test-tidy --no-progress --all
         ./mach build --dev
         ./mach test-unit
@@ -72,7 +72,7 @@ def linux_tidy_unit():
 
 
 def with_rust_nightly():
-    return linux_build_task("Linux x86_64: with Rust Nightly").with_script("""
+    return linux_build_task("Linux x64: with Rust Nightly").with_script("""
         echo "nightly" > rust-toolchain
         ./mach build --dev
         ./mach test-unit
@@ -82,7 +82,7 @@ def with_rust_nightly():
 def android_arm32():
     return (
         linux_build_task("Android ARMv7: build")
-        # file: NDK parses $(file $SHELL) to tell x86_64 from x86
+        # file: NDK parses $(file $SHELL) to tell x64 host from x86
         # wget: servo-media-gstreamer’s build script
         .with_script("""
             apt-get install -y --no-install-recommends openjdk-8-jdk-headless file wget
@@ -99,7 +99,7 @@ def android_arm32():
 
 def windows_dev():
     return (
-        windows_build_task("Windows x86_64: dev build + unit tests")
+        windows_build_task("Windows x64: dev build + unit tests")
         .with_script(
             # Not necessary as this would be done at the start of `build`,
             # but this allows timing it separately.
@@ -117,7 +117,7 @@ def windows_dev():
 
 def windows_release():
     return (
-        windows_build_task("Windows x86_64: release build")
+        windows_build_task("Windows x64: release build")
         .with_script("mach build --release",
                      "mach package --release")
         .with_artifacts("repo/target/release/msi/Servo.exe",
@@ -136,7 +136,7 @@ def linux_wpt():
 
 def linux_release_build():
     return (
-        linux_build_task("Linux x86_64: release build")
+        linux_build_task("Linux x64: release build")
         .with_script("""
             ./mach build --release --with-debug-assertions -p servo
             ./etc/ci/lockfile_changed.sh
@@ -146,12 +146,12 @@ def linux_release_build():
                 target/release/build/osmesa-src-*/out/lib/gallium
         """)
         .with_artifacts("/target.tar.gz")
-        .find_or_create("build.linux_x86-64_release." + CONFIG.git_sha)
+        .find_or_create("build.linux_x64_release." + CONFIG.git_sha)
     )
 
 
 def wpt_chunk(release_build_task, total_chunks, this_chunk, extra):
-    name = "Linux x86_64: WPT chunk %s / %s" % (this_chunk, total_chunks)
+    name = "Linux x64: WPT chunk %s / %s" % (this_chunk, total_chunks)
     script = """
         ./mach test-wpt \
             --release \
