@@ -52,7 +52,7 @@ class WebDriverBaseProtocolPart(BaseProtocolPart):
         while True:
             try:
                 self.webdriver.execute_async_script("")
-            except client.TimeoutException:
+            except (client.TimeoutException, client.ScriptTimeoutException):
                 pass
             except (socket.timeout, client.NoSuchWindowException,
                     client.UnknownErrorException, IOError):
@@ -65,6 +65,8 @@ class WebDriverBaseProtocolPart(BaseProtocolPart):
 class WebDriverTestharnessProtocolPart(TestharnessProtocolPart):
     def setup(self):
         self.webdriver = self.parent.webdriver
+        with open(os.path.join(here, "runner.js")) as f:
+            self.runner_script = f.read()
 
     def load_runner(self, url_protocol):
         url = urlparse.urljoin(self.parent.executor.server_url(url_protocol),
@@ -72,8 +74,8 @@ class WebDriverTestharnessProtocolPart(TestharnessProtocolPart):
         self.logger.debug("Loading %s" % url)
 
         self.webdriver.url = url
-        self.webdriver.execute_script("document.title = '%s'" %
-                                      threading.current_thread().name.replace("'", '"'))
+        format_map = {"title": threading.current_thread().name.replace("'", '"')}
+        self.parent.base.execute_script(self.runner_script % format_map)
 
     def close_old_windows(self):
         exclude = self.webdriver.window_handle
@@ -125,6 +127,7 @@ class WebDriverClickProtocolPart(ClickProtocolPart):
         self.webdriver = self.parent.webdriver
 
     def element(self, element):
+        self.logger.info("click " + repr(element))
         return element.click()
 
 

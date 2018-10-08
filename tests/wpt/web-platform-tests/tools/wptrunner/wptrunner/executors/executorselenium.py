@@ -72,14 +72,16 @@ class SeleniumBaseProtocolPart(BaseProtocolPart):
 class SeleniumTestharnessProtocolPart(TestharnessProtocolPart):
     def setup(self):
         self.webdriver = self.parent.webdriver
+        with open(os.path.join(here, "runner.js")) as f:
+            self.runner_script = f.read()
 
     def load_runner(self, url_protocol):
         url = urlparse.urljoin(self.parent.executor.server_url(url_protocol),
                                "/testharness_runner.html")
         self.logger.debug("Loading %s" % url)
         self.webdriver.get(url)
-        self.webdriver.execute_script("document.title = '%s'" %
-                                      threading.current_thread().name.replace("'", '"'))
+        format_map = {"title": threading.current_thread().name.replace("'", '"')}
+        self.parent.base.execute_script(self.runner_script % format_map)
 
     def close_old_windows(self):
         exclude = self.webdriver.current_window_handle
