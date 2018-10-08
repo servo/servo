@@ -575,6 +575,28 @@ impl CanvasRenderingContext2D {
     fn set_origin_unclean(&self) {
         self.origin_clean.set(false)
     }
+
+    pub fn get_rect(&self, rect: Rect<u32>) -> Vec<u8> {
+        assert!(self.origin_is_clean());
+
+        // FIXME(nox): This is probably wrong when this is a context for an
+        // offscreen canvas.
+        let canvas_size = self.canvas.as_ref().map_or(Size2D::zero(), |c| c.get_size());
+        assert!(Rect::from_size(canvas_size).contains_rect(&rect));
+
+        let (sender, receiver) = ipc::bytes_channel().unwrap();
+        self.send_canvas_2d_msg(Canvas2dMsg::GetImageData(rect, canvas_size, sender));
+        let mut pixels = receiver.recv().unwrap().to_vec();
+
+        for chunk in pixels.chunks_mut(4) {
+            let b = chunk[0];
+            chunk[0] = UNPREMULTIPLY_TABLE[256 * (chunk[3] as usize) + chunk[2] as usize];
+            chunk[1] = UNPREMULTIPLY_TABLE[256 * (chunk[3] as usize) + chunk[1] as usize];
+            chunk[2] = UNPREMULTIPLY_TABLE[256 * (chunk[3] as usize) + b as usize];
+        }
+
+        pixels
+    }
 }
 
 pub trait LayoutCanvasRenderingContext2DHelpers {
@@ -1154,18 +1176,7 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
             },
         };
 
-        let (sender, receiver) = ipc::bytes_channel().unwrap();
-        self.send_canvas_2d_msg(Canvas2dMsg::GetImageData(read_rect, canvas_size, sender));
-        let mut pixels = receiver.recv().unwrap().to_vec();
-
-        for chunk in pixels.chunks_mut(4) {
-            let b = chunk[0];
-            chunk[0] = UNPREMULTIPLY_TABLE[256 * (chunk[3] as usize) + chunk[2] as usize];
-            chunk[1] = UNPREMULTIPLY_TABLE[256 * (chunk[3] as usize) + chunk[1] as usize];
-            chunk[2] = UNPREMULTIPLY_TABLE[256 * (chunk[3] as usize) + b as usize];
-        }
-
-        ImageData::new(&self.global(), size.width, size.height, Some(pixels))
+        ImageData::new(&self.global(), size.width, size.height, Some(self.get_rect(read_rect)))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-putimagedata

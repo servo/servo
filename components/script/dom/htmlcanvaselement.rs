@@ -7,7 +7,6 @@ use canvas_traits::canvas::{CanvasMsg, CanvasId, FromScriptMsg};
 use canvas_traits::webgl::WebGLVersion;
 use dom::attr::Attr;
 use dom::bindings::cell::DomRefCell;
-use dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasRenderingContext2DMethods;
 use dom::bindings::codegen::Bindings::HTMLCanvasElementBinding;
 use dom::bindings::codegen::Bindings::HTMLCanvasElementBinding::{HTMLCanvasElementMethods, RenderingContext};
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLContextAttributes;
@@ -27,7 +26,7 @@ use dom::virtualmethods::VirtualMethods;
 use dom::webgl2renderingcontext::WebGL2RenderingContext;
 use dom::webglrenderingcontext::{LayoutCanvasWebGLRenderingContextHelpers, WebGLRenderingContext};
 use dom_struct::dom_struct;
-use euclid::Size2D;
+use euclid::{Rect, Size2D};
 use html5ever::{LocalName, Prefix};
 use image::ColorType;
 use image::png::PNGEncoder;
@@ -354,10 +353,8 @@ impl HTMLCanvasElementMethods for HTMLCanvasElement {
         _quality: HandleValue,
     ) -> Fallible<USVString> {
         // Step 1.
-        if let Some(CanvasContext::Context2d(ref context)) = *self.context.borrow() {
-            if !context.origin_is_clean() {
-                return Err(Error::Security);
-            }
+        if !self.origin_is_clean() {
+            return Err(Error::Security);
         }
 
         // Step 2.
@@ -366,10 +363,9 @@ impl HTMLCanvasElementMethods for HTMLCanvasElement {
         }
 
         // Step 3.
-        let raw_data = match *self.context.borrow() {
+        let file = match *self.context.borrow() {
             Some(CanvasContext::Context2d(ref context)) => {
-                // FIXME(nox): This shouldn't go through ImageData etc.
-                context.GetImageData(0, 0, self.Width() as i32, self.Height() as i32)?.to_vec()
+                context.get_rect(Rect::from_size(self.get_size()))
             },
             Some(CanvasContext::WebGL(ref context)) => {
                 match context.get_image_data(self.Width(), self.Height()) {
@@ -392,7 +388,7 @@ impl HTMLCanvasElementMethods for HTMLCanvasElement {
         // FIXME: Only handle image/png for now.
         let mut png = Vec::new();
         PNGEncoder::new(&mut png)
-            .encode(&raw_data, self.Width(), self.Height(), ColorType::RGBA(8))
+            .encode(&file, self.Width(), self.Height(), ColorType::RGBA(8))
             .unwrap();
         let mut url = "data:image/png;base64,".to_owned();
         // FIXME(nox): Should this use base64::URL_SAFE?
