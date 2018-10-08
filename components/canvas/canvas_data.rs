@@ -441,24 +441,20 @@ impl<'a> CanvasData<'a> {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-putimagedata
-    pub fn put_image_data(
-        &mut self,
-        mut imagedata: Vec<u8>,
-        offset: Vector2D<i32>,
-        imagedata_size: Size2D<i32>,
-    ) {
-        assert_eq!(imagedata_size.area() * 4, imagedata.len() as i32);
+    pub fn put_image_data(&mut self, mut imagedata: Vec<u8>, rect: Rect<u32>) {
+        assert_eq!(imagedata.len() % 4, 0);
+        assert_eq!(rect.size.area() as usize, imagedata.len() / 4);
         pixels::byte_swap_and_premultiply_inplace(&mut imagedata);
         let source_surface = self.drawtarget.create_source_surface_from_data(
             &imagedata,
-            imagedata_size,
-            imagedata_size.width * 4,
+            rect.size.to_i32(),
+            rect.size.width as i32 * 4,
             SurfaceFormat::B8G8R8A8,
         ).unwrap();
         self.drawtarget.copy_surface(
             source_surface,
-            Rect::from_size(imagedata_size),
-            offset.to_point(),
+            Rect::from_size(rect.size.to_i32()),
+            rect.origin.to_i32(),
         );
     }
 
@@ -517,14 +513,11 @@ impl<'a> CanvasData<'a> {
     /// canvas_size: The size of the canvas we're reading from
     /// read_rect: The area of the canvas we want to read from
     #[allow(unsafe_code)]
-    pub fn read_pixels(&self, read_rect: Rect<i32>, canvas_size: Size2D<i32>) -> Vec<u8> {
+    pub fn read_pixels(&self, read_rect: Rect<u32>, canvas_size: Size2D<u32>) -> Vec<u8> {
         let canvas_rect = Rect::from_size(canvas_size);
-        let src_read_rect = canvas_rect.intersection(&read_rect).unwrap_or(Rect::zero());
-
-        if src_read_rect.is_empty() || canvas_size.width <= 0 && canvas_size.height <= 0 {
-          return vec![];
+        if canvas_rect.intersection(&read_rect).map_or(true, |rect| rect.is_empty()) {
+            return vec![];
         }
-
         let data_surface = self.drawtarget.snapshot().get_data_surface();
         pixels::get_rect(unsafe { data_surface.data() }, canvas_size.to_u32(), read_rect.to_u32()).into_owned()
     }

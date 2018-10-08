@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use cssparser::RGBA;
-use euclid::{Transform2D, Point2D, Vector2D, Rect, Size2D};
+use euclid::{Transform2D, Point2D, Rect, Size2D};
 use ipc_channel::ipc::{IpcBytesReceiver, IpcBytesSender, IpcSender};
 use serde_bytes::ByteBuf;
 use std::default::Default;
@@ -50,11 +50,11 @@ pub enum Canvas2dMsg {
     Fill,
     FillText(String, f64, f64, Option<f64>),
     FillRect(Rect<f32>),
-    GetImageData(Rect<i32>, Size2D<i32>, IpcBytesSender),
+    GetImageData(Rect<u32>, Size2D<u32>, IpcBytesSender),
     IsPointInPath(f64, f64, FillRule, IpcSender<bool>),
     LineTo(Point2D<f32>),
     MoveTo(Point2D<f32>),
-    PutImageData(IpcBytesReceiver, Vector2D<i32>, Size2D<i32>),
+    PutImageData(Rect<u32>, IpcBytesReceiver),
     QuadraticCurveTo(Point2D<f32>, Point2D<f32>),
     Rect(Rect<f32>),
     RestoreContext,

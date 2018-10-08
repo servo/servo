@@ -162,8 +162,8 @@ impl<'a> CanvasPaintThread <'a> {
                 smoothing
             ) => {
                 let image_data = self.canvas(canvas_id).read_pixels(
-                    source_rect.to_i32(),
-                    image_size.to_i32(),
+                    source_rect.to_u32(),
+                    image_size.to_u32(),
                 );
                 self.canvas(other_canvas_id).draw_image(
                     image_data.into(),
@@ -242,12 +242,8 @@ impl<'a> CanvasPaintThread <'a> {
                 let pixels = self.canvas(canvas_id).read_pixels(dest_rect, canvas_size);
                 sender.send(&pixels).unwrap();
             },
-            Canvas2dMsg::PutImageData(receiver, offset, imagedata_size) => {
-                self.canvas(canvas_id).put_image_data(
-                    receiver.recv().unwrap(),
-                    offset,
-                    imagedata_size,
-                )
+            Canvas2dMsg::PutImageData(rect, receiver) => {
+                self.canvas(canvas_id).put_image_data(receiver.recv().unwrap(), rect);
             },
             Canvas2dMsg::SetShadowOffsetX(value) => {
                 self.canvas(canvas_id).set_shadow_offset_x(value)
