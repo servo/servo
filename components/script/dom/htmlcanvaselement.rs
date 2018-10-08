@@ -387,6 +387,8 @@ impl HTMLCanvasElementMethods for HTMLCanvasElement {
 
         // FIXME: Only handle image/png for now.
         let mut png = Vec::new();
+        // FIXME(nox): https://github.com/PistonDevelopers/image-png/issues/86
+        // FIXME(nox): https://github.com/PistonDevelopers/image-png/issues/87
         PNGEncoder::new(&mut png)
             .encode(&file, self.Width(), self.Height(), ColorType::RGBA(8))
             .unwrap();
