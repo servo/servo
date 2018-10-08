@@ -52,7 +52,7 @@ use dom::webgluniformlocation::WebGLUniformLocation;
 use dom::webglvertexarrayobjectoes::WebGLVertexArrayObjectOES;
 use dom::window::Window;
 use dom_struct::dom_struct;
-use euclid::Size2D;
+use euclid::{Point2D, Rect, Size2D};
 use half::f16;
 use ipc_channel::ipc;
 use js::jsapi::{JSContext, JSObject, Type};
@@ -1070,7 +1070,7 @@ impl WebGLRenderingContext {
     // can fail and that it is UB what happens in that case.
     //
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#2.2
-    pub fn get_image_data(&self, width: u32, height: u32) -> Option<Vec<u8>> {
+    pub fn get_image_data(&self, mut size: Size2D<u32>) -> Option<Vec<u8>> {
         handle_potential_webgl_error!(self, self.validate_framebuffer(), return None);
 
         let (fb_width, fb_height) = handle_potential_webgl_error!(
@@ -1078,15 +1078,12 @@ impl WebGLRenderingContext {
             self.get_current_framebuffer_size().ok_or(InvalidOperation),
             return None
         );
-        let width = cmp::min(width, fb_width as u32);
-        let height = cmp::min(height, fb_height as u32);
+        size.width = cmp::min(size.width, fb_width as u32);
+        size.height = cmp::min(size.height, fb_height as u32);
 
         let (sender, receiver) = ipc::bytes_channel().unwrap();
         self.send_command(WebGLCommand::ReadPixels(
-            0,
-            0,
-            width as i32,
-            height as i32,
+            Rect::from_size(size),
             constants::RGBA,
             constants::UNSIGNED_BYTE,
             sender,
@@ -2879,45 +2876,29 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             return self.webgl_error(InvalidOperation);
         }
 
-        let mut src_x = x;
-        let mut src_y = y;
-        let mut src_width = width;
-        let mut src_height = height;
+        let src_origin = Point2D::new(x, y);
+        let src_size = Size2D::new(width as u32, height as u32);
+        let fb_size = Size2D::new(fb_width as u32, fb_height as u32);
+        let src_rect = match pixels::clip(src_origin, src_size, fb_size) {
+            Some(rect) => rect,
+            None => return,
+        };
+
         let mut dest_offset = 0;
-
-        if src_x < 0 {
-            if src_width <= -src_x {
-                return;
-            }
-            dest_offset += bytes_per_pixel * -src_x;
-            src_width += src_x;
-            src_x = 0;
+        if x < 0 {
+            dest_offset += -x * bytes_per_pixel;
         }
-        if src_y < 0 {
-            if src_height <= -src_y {
-                return;
-            }
-            dest_offset += row_len * -src_y;
-            src_height += src_y;
-            src_y = 0;
-        }
-
-        if src_x + src_width > fb_width {
-            src_width = fb_width - src_x;
-        }
-        if src_y + src_height > fb_height {
-            src_height = fb_height - src_y;
+        if y < 0 {
+            dest_offset += -y * row_len;
         }
 
         let (sender, receiver) = ipc::bytes_channel().unwrap();
-        self.send_command(WebGLCommand::ReadPixels(
-            src_x, src_y, src_width, src_height, format, pixel_type, sender,
-        ));
-
+        self.send_command(WebGLCommand::ReadPixels(src_rect, format, pixel_type, sender));
         let src = receiver.recv().unwrap();
-        let src_row_len = (src_width * bytes_per_pixel) as usize;
-        for i in 0..src_height {
-            let dest_start = (dest_offset + i * dest_stride) as usize;
+
+        let src_row_len = src_rect.size.width as usize * bytes_per_pixel as usize;
+        for i in 0..src_rect.size.height {
+            let dest_start = dest_offset as usize + i as usize * dest_stride as usize;
             let dest_end = dest_start + src_row_len;
             let src_start = i as usize * src_row_len;
             let src_end = src_start + src_row_len;

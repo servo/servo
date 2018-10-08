@@ -368,13 +368,13 @@ impl HTMLCanvasElementMethods for HTMLCanvasElement {
                 context.get_rect(Rect::from_size(self.get_size()))
             },
             Some(CanvasContext::WebGL(ref context)) => {
-                match context.get_image_data(self.Width(), self.Height()) {
+                match context.get_image_data(self.get_size()) {
                     Some(data) => data,
                     None => return Ok(USVString("data:,".into())),
                 }
             },
             Some(CanvasContext::WebGL2(ref context)) => {
-                match context.base_context().get_image_data(self.Width(), self.Height()) {
+                match context.base_context().get_image_data(self.get_size()) {
                     Some(data) => data,
                     None => return Ok(USVString("data:,".into())),
                 }

@@ -4,7 +4,7 @@
 
 extern crate euclid;
 
-use euclid::{Rect, Size2D};
+use euclid::{Point2D, Rect, Size2D};
 use std::borrow::Cow;
 
 pub fn get_rect(pixels: &[u8], size: Size2D<u32>, rect: Rect<u32>) -> Cow<[u8]> {
@@ -62,4 +62,22 @@ pub fn premultiply_inplace(pixels: &mut [u8]) -> bool {
 
 pub fn multiply_u8_color(a: u8, b: u8) -> u8 {
     return (a as u32 * b as u32 / 255) as u8;
+}
+
+pub fn clip(
+    mut origin: Point2D<i32>,
+    mut size: Size2D<u32>,
+    surface: Size2D<u32>,
+) -> Option<Rect<u32>> {
+    if origin.x < 0 {
+        size.width = size.width.saturating_sub(-origin.x as u32);
+        origin.x = 0;
+    }
+    if origin.y < 0 {
+        size.height = size.height.saturating_sub(-origin.y as u32);
+        origin.y = 0;
+    }
+    Rect::new(origin.to_u32(), size)
+        .intersection(&Rect::from_size(surface))
+        .filter(|rect| !rect.is_empty())
 }

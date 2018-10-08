@@ -1168,7 +1168,7 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
         // FIXME(nox): This is probably wrong when this is a context for an
         // offscreen canvas.
         let canvas_size = self.canvas.as_ref().map_or(Size2D::zero(), |c| c.get_size());
-        let read_rect = match clip(origin, size, canvas_size) {
+        let read_rect = match pixels::clip(origin, size, canvas_size) {
             Some(rect) => rect,
             None => {
                 // All the pixels are outside the canvas surface.
@@ -1220,7 +1220,7 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
             Point2D::new(dirty_x, dirty_y),
             Size2D::new(dirty_width, dirty_height),
         );
-        let src_rect = match clip(src_origin, src_size, imagedata_size) {
+        let src_rect = match pixels::clip(src_origin, src_size, imagedata_size) {
             Some(rect) => rect,
             None => return,
         };
@@ -1230,7 +1230,7 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
         );
         // By clipping to the canvas surface, we avoid sending any pixel
         // that would fall outside it.
-        let dst_rect = match clip(dst_origin, src_rect.size, canvas_size) {
+        let dst_rect = match pixels::clip(dst_origin, src_rect.size, canvas_size) {
             Some(rect) => rect,
             None => return,
         };
@@ -1536,22 +1536,4 @@ fn adjust_size_sign(
         origin.y = origin.y.saturating_sub(size.height);
     }
     (origin, size.to_u32())
-}
-
-fn clip(
-    mut origin: Point2D<i32>,
-    mut size: Size2D<u32>,
-    surface: Size2D<u32>,
-) -> Option<Rect<u32>> {
-    if origin.x < 0 {
-        size.width = size.width.saturating_sub(-origin.x as u32);
-        origin.x = 0;
-    }
-    if origin.y < 0 {
-        size.height = size.height.saturating_sub(-origin.y as u32);
-        origin.y = 0;
-    }
-    Rect::new(origin.to_u32(), size)
-        .intersection(&Rect::from_size(surface))
-        .filter(|rect| !rect.is_empty())
 }
