@@ -15,7 +15,7 @@ requirements:
    of an ``iframe`` test container.
 
  * It must be possible to deal with all kinds of behaviour of the
-   browser runder test, for example, crashing, hanging, etc.
+   browser under test, for example, crashing, hanging, etc.
 
  * It should be possible to add support for new platforms and browsers
    with minimal code changes.
