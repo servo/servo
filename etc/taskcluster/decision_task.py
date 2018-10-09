@@ -131,7 +131,7 @@ def linux_wpt():
     total_chunks = 2
     for i in range(total_chunks):
         this_chunk = i + 1
-        wpt_chunk(release_build_task, total_chunks, this_chunk, extra=(this_chunk == 1))
+        wpt_chunk(release_build_task, total_chunks, this_chunk)
 
 
 def linux_release_build():
@@ -150,7 +150,7 @@ def linux_release_build():
     )
 
 
-def wpt_chunk(release_build_task, total_chunks, this_chunk, extra):
+def wpt_chunk(release_build_task, total_chunks, this_chunk):
     name = "Linux x64: WPT chunk %s / %s" % (this_chunk, total_chunks)
     script = """
         ./mach test-wpt \
@@ -171,7 +171,7 @@ def wpt_chunk(release_build_task, total_chunks, this_chunk, extra):
     # IndexError: list index out of range
     # File "/repo/python/servo/testing_commands.py", line 533, in filter_intermittents
     #   pull_request = int(last_merge.split(' ')[4][1:])
-    if extra:
+    if this_chunk == 1:
         name += " + extra"
         script += """
             ./mach test-wpt-failure
