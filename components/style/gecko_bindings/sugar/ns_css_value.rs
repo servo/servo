@@ -14,7 +14,6 @@ use std::mem;
 use std::ops::{Index, IndexMut};
 use std::slice;
 use values::computed::{Angle, Length, LengthOrPercentage, Percentage};
-use values::specified::url::SpecifiedUrl;
 
 impl nsCSSValue {
     /// Create a CSSValue with null unit, useful to be used as a return value.
@@ -167,31 +166,6 @@ impl nsCSSValue {
         unsafe { bindings::Gecko_CSSValue_SetAtomIdent(self, s.into_addrefed()) }
     }
 
-    /// Set to a font format.
-    pub fn set_font_format(&mut self, s: &str) {
-        self.set_string_internal(s, nsCSSUnit::eCSSUnit_Font_Format);
-    }
-
-    /// Set to a local font value.
-    pub fn set_local_font(&mut self, s: &Atom) {
-        self.set_string_from_atom_internal(s, nsCSSUnit::eCSSUnit_Local_Font);
-    }
-
-    /// Set to a font stretch.
-    pub fn set_font_stretch(&mut self, s: f32) {
-        unsafe { bindings::Gecko_CSSValue_SetFontStretch(self, s) }
-    }
-
-    /// Set to a font style
-    pub fn set_font_style(&mut self, s: f32) {
-        unsafe { bindings::Gecko_CSSValue_SetFontSlantStyle(self, s) }
-    }
-
-    /// Set to a font weight
-    pub fn set_font_weight(&mut self, w: f32) {
-        unsafe { bindings::Gecko_CSSValue_SetFontWeight(self, w) }
-    }
-
     fn set_int_internal(&mut self, value: i32, unit: nsCSSUnit) {
         unsafe { bindings::Gecko_CSSValue_SetInt(self, value, unit) }
     }
@@ -209,11 +183,6 @@ impl nsCSSValue {
     /// Set to a number value
     pub fn set_number(&mut self, number: f32) {
         unsafe { bindings::Gecko_CSSValue_SetFloat(self, number, nsCSSUnit::eCSSUnit_Number) }
-    }
-
-    /// Set to a url value
-    pub fn set_url(&mut self, url: &SpecifiedUrl) {
-        unsafe { bindings::Gecko_CSSValue_SetURL(self, url.url_value.get()) }
     }
 
     /// Set to an array of given length

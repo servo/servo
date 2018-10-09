@@ -1134,7 +1134,7 @@ impl Stylist {
 
         let rule_hash_target = element.rule_hash_target();
 
-        let matches_user_rules = rule_hash_target.matches_user_and_author_rules();
+        let matches_user_and_author_rules = rule_hash_target.matches_user_and_author_rules();
 
         // Normal user-agent rules.
         if let Some(map) = self
@@ -1162,7 +1162,7 @@ impl Stylist {
         //      rule_hash_target.matches_user_and_author_rules())
         //
         // Which may be more what you would probably expect.
-        if matches_user_rules {
+        if matches_user_and_author_rules {
             // User normal rules.
             if let Some(map) = self.cascade_data.user.normal_rules(pseudo_element) {
                 map.get_all_matching_rules(
@@ -1204,16 +1204,15 @@ impl Stylist {
             return;
         }
 
-        let mut match_document_author_rules = matches_user_rules;
+        let mut match_document_author_rules = matches_user_and_author_rules;
         let mut shadow_cascade_order = 0;
 
         // XBL / Shadow DOM rules, which are author rules too.
-        //
-        // TODO(emilio): Cascade order here is wrong for Shadow DOM. In
-        // particular, normally document rules override ::slotted() rules, but
-        // for !important it should be the other way around. So probably we need
-        // to add some sort of AuthorScoped cascade level or something.
         if let Some(shadow) = rule_hash_target.shadow_root() {
+            debug_assert!(
+                matches_user_and_author_rules,
+                "NAC should not be a shadow host"
+            );
             if let Some(map) = shadow
                 .style_data()
                 .and_then(|data| data.host_rules(pseudo_element))
@@ -1238,6 +1237,10 @@ impl Stylist {
         let mut slots = SmallVec::<[_; 3]>::new();
         let mut current = rule_hash_target.assigned_slot();
         while let Some(slot) = current {
+            debug_assert!(
+                matches_user_and_author_rules,
+                "We should not slot NAC anywhere"
+            );
             slots.push(slot);
             current = slot.assigned_slot();
         }
@@ -1263,55 +1266,57 @@ impl Stylist {
             }
         }
 
-        let mut current_containing_shadow = rule_hash_target.containing_shadow();
-        while let Some(containing_shadow) = current_containing_shadow {
-            let cascade_data = containing_shadow.style_data();
-            let host = containing_shadow.host();
-            if let Some(map) = cascade_data.and_then(|data| data.normal_rules(pseudo_element)) {
-                context.with_shadow_host(Some(host), |context| {
-                    map.get_all_matching_rules(
-                        element,
-                        rule_hash_target,
-                        applicable_declarations,
-                        context,
-                        flags_setter,
-                        CascadeLevel::SameTreeAuthorNormal,
-                        shadow_cascade_order,
-                    );
-                });
-                shadow_cascade_order += 1;
+        if matches_user_and_author_rules {
+            let mut current_containing_shadow = rule_hash_target.containing_shadow();
+            while let Some(containing_shadow) = current_containing_shadow {
+                let cascade_data = containing_shadow.style_data();
+                let host = containing_shadow.host();
+                if let Some(map) = cascade_data.and_then(|data| data.normal_rules(pseudo_element)) {
+                    context.with_shadow_host(Some(host), |context| {
+                        map.get_all_matching_rules(
+                            element,
+                            rule_hash_target,
+                            applicable_declarations,
+                            context,
+                            flags_setter,
+                            CascadeLevel::SameTreeAuthorNormal,
+                            shadow_cascade_order,
+                        );
+                    });
+                    shadow_cascade_order += 1;
+                }
+
+                let host_is_svg_use_element =
+                    host.is_svg_element() && host.local_name() == &*local_name!("use");
+
+                if !host_is_svg_use_element {
+                    match_document_author_rules = false;
+                    break;
+                }
+
+                debug_assert!(
+                    cascade_data.is_none(),
+                    "We allow no stylesheets in <svg:use> subtrees"
+                );
+
+                // NOTE(emilio): Hack so <svg:use> matches the rules of the
+                // enclosing tree.
+                //
+                // This is not a problem for invalidation and that kind of stuff
+                // because they still don't match rules based on elements
+                // outside of the shadow tree, and because the <svg:use>
+                // subtrees are immutable and recreated each time the source
+                // tree changes.
+                //
+                // We historically allow cross-document <svg:use> to have these
+                // rules applied, but I think that's not great. Gecko is the
+                // only engine supporting that.
+                //
+                // See https://github.com/w3c/svgwg/issues/504 for the relevant
+                // spec discussion.
+                current_containing_shadow = host.containing_shadow();
+                match_document_author_rules = current_containing_shadow.is_none();
             }
-
-            let host_is_svg_use_element =
-                host.is_svg_element() && host.local_name() == &*local_name!("use");
-
-            if !host_is_svg_use_element {
-                match_document_author_rules = false;
-                break;
-            }
-
-            debug_assert!(
-                cascade_data.is_none(),
-                "We allow no stylesheets in <svg:use> subtrees"
-            );
-
-            // NOTE(emilio): Hack so <svg:use> matches the rules of the
-            // enclosing tree.
-            //
-            // This is not a problem for invalidation and that kind of stuff
-            // because they still don't match rules based on elements
-            // outside of the shadow tree, and because the <svg:use>
-            // subtrees are immutable and recreated each time the source
-            // tree changes.
-            //
-            // We historically allow cross-document <svg:use> to have these
-            // rules applied, but I think that's not great. Gecko is the
-            // only engine supporting that.
-            //
-            // See https://github.com/w3c/svgwg/issues/504 for the relevant
-            // spec discussion.
-            current_containing_shadow = host.containing_shadow();
-            match_document_author_rules = current_containing_shadow.is_none();
         }
 
         let cut_xbl_binding_inheritance =

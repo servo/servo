@@ -27,6 +27,7 @@ use values::generics::NonNegative;
     ToAnimatedZero,
     ToComputedValue,
 )]
+#[repr(C)]
 pub struct Percentage(pub CSSFloat);
 
 impl Percentage {

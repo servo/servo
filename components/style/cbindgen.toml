@@ -6,7 +6,17 @@ autogen_warning = """/* DO NOT MODIFY THIS MANUALLY! This file was generated usi
  *   1. Get the latest cbindgen using `cargo install --force cbindgen`
  *      a. Alternatively, you can clone `https://github.com/eqrion/cbindgen` and use a tagged release
  *   2. Run `rustup run nightly cbindgen toolkit/library/rust/ --lockfile Cargo.lock --crate style -o layout/style/ServoStyleConsts.h`
- */"""
+ */
+class nsAtom;
+namespace mozilla {
+  namespace css {
+    struct URLValue;
+  }
+  // Work-around weird cbindgen renaming.
+  typedef css::URLValue StyleURLValue;
+  typedef nsAtom StylensAtom;
+}
+"""
 include_guard = "mozilla_ServoStyleConsts_h"
 include_version = true
 braces = "SameLine"
@@ -14,6 +24,10 @@ line_length = 80
 tab_width = 2
 language = "C++"
 namespaces = ["mozilla"]
+
+[parse]
+parse_deps = true
+include = ["cssparser"]
 
 [struct]
 derive_eq = true
@@ -25,9 +39,16 @@ derive_helper_methods = true
 prefix = "Style"
 include = [
   "StyleAppearance",
+  "StyleComputedFontStretchRange",
+  "StyleComputedFontStyleDescriptor",
+  "StyleComputedFontWeightRange",
   "StyleDisplay",
   "StyleDisplayMode",
   "StyleFillRule",
-  "StylePathCommand"
+  "StyleFontDisplay",
+  "StyleFontFaceSourceListComponent",
+  "StyleFontLanguageOverride",
+  "StylePathCommand",
+  "StyleUnicodeRange",
 ]
 item_types = ["enums", "structs", "typedefs"]

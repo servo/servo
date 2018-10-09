@@ -479,7 +479,7 @@ lazy_static! {
     /// to support new types in these entries and (2) ensuring that either
     /// nsPresContext::MediaFeatureValuesChanged is called when the value that
     /// would be returned by the evaluator function could change.
-    pub static ref MEDIA_FEATURES: [MediaFeatureDescription; 47] = [
+    pub static ref MEDIA_FEATURES: [MediaFeatureDescription; 48] = [
         feature!(
             atom!("width"),
             AllowsRanges::Yes,
@@ -660,6 +660,7 @@ lazy_static! {
         system_metric_feature!(atom!("-moz-menubar-drag")),
         system_metric_feature!(atom!("-moz-swipe-animation-enabled")),
         system_metric_feature!(atom!("-moz-gtk-csd-available")),
+        system_metric_feature!(atom!("-moz-gtk-csd-transparent-background")),
         system_metric_feature!(atom!("-moz-gtk-csd-minimize-button")),
         system_metric_feature!(atom!("-moz-gtk-csd-maximize-button")),
         system_metric_feature!(atom!("-moz-gtk-csd-close-button")),
