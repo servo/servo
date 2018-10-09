@@ -276,7 +276,7 @@ impl ToComputedValue for SpecifiedImageUrl {
 fn serialize_computed_url<W>(
     url_value_data: &URLValueData,
     dest: &mut CssWriter<W>,
-    get_url: unsafe extern "C" fn(*const URLValueData, *mut nsCString) -> (),
+    get_url: unsafe extern "C" fn(*const URLValueData, *mut nsCString),
 ) -> fmt::Result
 where
     W: Write,

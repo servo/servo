@@ -110,8 +110,8 @@ impl From<nsStyleCoord_CalcValue> for LengthOrPercentageOrAuto {
 // disappear as we move more stuff to cbindgen.
 impl From<nsStyleCoord_CalcValue> for NonNegativeLengthOrPercentageOrAuto {
     fn from(other: nsStyleCoord_CalcValue) -> Self {
-        use values::generics::NonNegative;
         use style_traits::values::specified::AllowedNumericType;
+        use values::generics::NonNegative;
         NonNegative(if other.mLength < 0 || other.mPercent < 0. {
             LengthOrPercentageOrAuto::Calc(
                 CalcLengthOrPercentage::with_clamping_mode(
