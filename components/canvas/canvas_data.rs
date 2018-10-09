@@ -590,6 +590,9 @@ fn crop_image(
     // We're going to iterate over a pixel values array so we need integers
     let crop_rect = crop_rect.to_i32();
     let image_size = image_size.to_i32();
+    if crop_rect == Rect::from_size(image_size) {
+        return image_data;
+    }
     // Assuming 4 bytes per pixel and row-major order for storage
     // (consecutive elements in a pixel row of the image are contiguous in memory)
     let stride = image_size.width * 4;
