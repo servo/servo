@@ -639,23 +639,23 @@ fn write_image(
     } else {
         Filter::Point
     };
-    // azure_hl operates with integers. We need to cast the image size
     let image_size = image_size.to_i32();
 
-    if let Some(source_surface) =
-            draw_target.create_source_surface_from_data(&image_data,
-                                                        image_size,
-                                                        image_size.width * 4,
-                                                        SurfaceFormat::B8G8R8A8) {
-        let draw_surface_options = DrawSurfaceOptions::new(filter, true);
-        let draw_options = DrawOptions::new(global_alpha, composition_op, AntialiasMode::None);
-
-        draw_target.draw_surface(source_surface,
-                                 dest_rect.to_azure_style(),
-                                 image_rect.to_azure_style(),
-                                 draw_surface_options,
-                                 draw_options);
-    }
+    let source_surface = draw_target.create_source_surface_from_data(
+        &image_data,
+        image_size,
+        image_size.width * 4,
+        SurfaceFormat::B8G8R8A8,
+    ).unwrap();
+    let draw_surface_options = DrawSurfaceOptions::new(filter, true);
+    let draw_options = DrawOptions::new(global_alpha, composition_op, AntialiasMode::None);
+    draw_target.draw_surface(
+        source_surface,
+        dest_rect.to_azure_style(),
+        image_rect.to_azure_style(),
+        draw_surface_options,
+        draw_options,
+    );
 }
 
 pub trait PointToi32 {
