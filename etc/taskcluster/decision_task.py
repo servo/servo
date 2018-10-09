@@ -13,6 +13,7 @@ def main(task_for, mock=False):
         if CONFIG.git_ref in ["refs/heads/auto", "refs/heads/try", "refs/heads/try-taskcluster"]:
             linux_tidy_unit()
             android_arm32()
+            android_x86()
             windows_dev()
             if mock:
                 windows_release()
@@ -82,19 +83,25 @@ def with_rust_nightly():
 
 def android_arm32():
     return (
-        linux_build_task("Android ARMv7: build")
-        # file: NDK parses $(file $SHELL) to tell x64 host from x86
-        # wget: servo-media-gstreamer’s build script
-        .with_script("""
-            apt-get install -y --no-install-recommends openjdk-8-jdk-headless file wget
-            ./mach bootstrap-android --accept-all-licences --build
-            ./mach build --android --release
-        """)
+        android_build_task("Android ARMv7: release build")
+        .with_script("./mach build --android --release")
         .with_artifacts(
             "/repo/target/armv7-linux-androideabi/release/servoapp.apk",
             "/repo/target/armv7-linux-androideabi/release/servoview.aar",
         )
         .find_or_create("build.android_armv7_release." + CONFIG.git_sha)
+    )
+
+
+def android_x86():
+    return (
+        android_build_task("Android x86: release build")
+        .with_script("./mach build --target i686-linux-android --release")
+        .with_artifacts(
+            "/repo/target/i686-linux-android/release/servoapp.apk",
+            "/repo/target/i686-linux-android/release/servoview.aar",
+        )
+        .find_or_create("build.android_x86_release." + CONFIG.git_sha)
     )
 
 
@@ -263,6 +270,18 @@ def linux_build_task(name):
         .with_env(**build_env, **linux_build_env)
         .with_repo()
         .with_index_and_artifacts_expire_in(build_artifacts_expire_in)
+    )
+
+
+def android_build_task(name):
+    return (
+        linux_build_task(name)
+        # file: NDK parses $(file $SHELL) to tell x64 host from x86
+        # wget: servo-media-gstreamer’s build script
+        .with_script("""
+            apt-get install -y --no-install-recommends openjdk-8-jdk-headless file wget
+            ./mach bootstrap-android --accept-all-licences --build
+        """)
     )
 
 
