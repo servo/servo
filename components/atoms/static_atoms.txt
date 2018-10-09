@@ -18,6 +18,7 @@ cursive
 date
 datetime-local
 dir
+durationchange
 email
 emptied
 ended
@@ -65,6 +66,7 @@ range
 readystatechange
 reftest-wait
 reset
+resize
 right
 rtl
 sans-serif

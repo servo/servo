@@ -23,11 +23,10 @@ use floats::FloatKind;
 use flow::{AbsoluteDescendants, Flow, FlowClass, GetBaseFlow, ImmutableFlowUtils};
 use flow::{FlowFlags, MutableFlowUtils, MutableOwnedFlowUtils};
 use flow_ref::FlowRef;
-use fragment::{CanvasFragmentInfo, ImageFragmentInfo, InlineAbsoluteFragmentInfo, SvgFragmentInfo};
-use fragment::{Fragment, GeneratedContentInfo, IframeFragmentInfo, FragmentFlags};
-use fragment::{InlineAbsoluteHypotheticalFragmentInfo, TableColumnFragmentInfo};
-use fragment::{InlineBlockFragmentInfo, SpecificFragmentInfo, UnscannedTextFragmentInfo};
-use fragment::WhitespaceStrippingResult;
+use fragment::{CanvasFragmentInfo, Fragment, FragmentFlags, GeneratedContentInfo, IframeFragmentInfo};
+use fragment::{ImageFragmentInfo, InlineAbsoluteFragmentInfo, InlineAbsoluteHypotheticalFragmentInfo};
+use fragment::{InlineBlockFragmentInfo, MediaFragmentInfo, SpecificFragmentInfo, SvgFragmentInfo};
+use fragment::{TableColumnFragmentInfo, UnscannedTextFragmentInfo, WhitespaceStrippingResult};
 use inline::{InlineFlow, InlineFragmentNodeInfo, InlineFragmentNodeFlags};
 use linked_list::prepend_from;
 use list_item::{ListItemFlow, ListStyleTypeContent};
@@ -405,6 +404,10 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
                     &self.layout_context,
                 ));
                 SpecificFragmentInfo::Image(image_info)
+            }
+            Some(LayoutNodeType::Element(LayoutElementType::HTMLMediaElement)) => {
+                let data = node.media_data().unwrap();
+                SpecificFragmentInfo::Media(Box::new(MediaFragmentInfo::new(data)))
             },
             Some(LayoutNodeType::Element(LayoutElementType::HTMLObjectElement)) => {
                 let image_info = Box::new(ImageFragmentInfo::new(
@@ -1956,6 +1959,7 @@ where
         match self.type_id() {
             Some(LayoutNodeType::Text) |
             Some(LayoutNodeType::Element(LayoutElementType::HTMLImageElement)) |
+            Some(LayoutNodeType::Element(LayoutElementType::HTMLMediaElement)) |
             Some(LayoutNodeType::Element(LayoutElementType::HTMLIFrameElement)) |
             Some(LayoutNodeType::Element(LayoutElementType::HTMLCanvasElement)) |
             Some(LayoutNodeType::Element(LayoutElementType::SVGSVGElement)) => true,

@@ -132,7 +132,7 @@ use time;
 use timers::{IsInterval, TimerCallback};
 use url::Position;
 use webdriver_handlers::jsval_to_webdriver;
-use webrender_api::{ExternalScrollId, DeviceIntPoint, DeviceUintSize, DocumentId};
+use webrender_api::{DeviceIntPoint, DeviceUintSize, DocumentId, ExternalScrollId, RenderApiSender};
 use webvr_traits::WebVRMsg;
 
 /// Current state of the window object
@@ -308,6 +308,9 @@ pub struct Window {
 
     /// Flag to identify whether mutation observers are present(true)/absent(false)
     exists_mut_observer: Cell<bool>,
+    /// Webrender API Sender
+    #[ignore_malloc_size_of = "defined in webrender_api"]
+    webrender_api_sender: RenderApiSender,
 }
 
 impl Window {
@@ -482,6 +485,10 @@ impl Window {
             },
         }
         self.add_pending_reflow();
+    }
+
+    pub fn get_webrender_api_sender(&self) -> RenderApiSender {
+        self.webrender_api_sender.clone()
     }
 }
 
@@ -2083,6 +2090,7 @@ impl Window {
         webvr_chan: Option<IpcSender<WebVRMsg>>,
         microtask_queue: Rc<MicrotaskQueue>,
         webrender_document: DocumentId,
+        webrender_api_sender: RenderApiSender,
     ) -> DomRoot<Self> {
         let layout_rpc: Box<LayoutRPC + Send> = {
             let (rpc_send, rpc_recv) = channel();
@@ -2161,6 +2169,7 @@ impl Window {
             paint_worklet: Default::default(),
             webrender_document,
             exists_mut_observer: Cell::new(false),
+            webrender_api_sender,
         });
 
         unsafe { WindowBinding::Wrap(runtime.cx(), win) }

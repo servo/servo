@@ -115,6 +115,7 @@ pub enum LayoutElementType {
     HTMLIFrameElement,
     HTMLImageElement,
     HTMLInputElement,
+    HTMLMediaElement,
     HTMLObjectElement,
     HTMLParagraphElement,
     HTMLTableCellElement,
@@ -169,4 +170,8 @@ pub struct PendingImage {
     pub state: PendingImageState,
     pub node: UntrustedNodeAddress,
     pub id: PendingImageId,
+}
+
+pub struct HTMLMediaData {
+    pub current_frame: Option<(webrender_api::ImageKey, i32, i32)>,
 }

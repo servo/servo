@@ -1999,6 +1999,22 @@ impl FragmentDisplayListBuilding for Fragment {
                     }
                 }
             },
+            SpecificFragmentInfo::Media(ref fragment_info) => {
+                if let Some((ref image_key, _, _)) = fragment_info.current_frame
+                {
+                    let base = create_base_display_item(state);
+                    state.add_image_item(
+                        base,
+                        webrender_api::ImageDisplayItem {
+                            image_key: *image_key,
+                            stretch_size: stacking_relative_border_box.size.to_layout(),
+                            tile_spacing: LayoutSize::zero(),
+                            image_rendering: ImageRendering::Auto,
+                            alpha_type: webrender_api::AlphaType::PremultipliedAlpha,
+                        },
+                    );
+                }
+            }
             SpecificFragmentInfo::Canvas(ref canvas_fragment_info) => {
                 let image_key = match canvas_fragment_info.source {
                     CanvasFragmentSource::WebGL(image_key) => image_key,

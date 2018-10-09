@@ -72,7 +72,7 @@ use style_traits::CSSPixel;
 use style_traits::SpeculativePainter;
 use style_traits::cursor::CursorKind;
 use webdriver_msg::{LoadStatus, WebDriverScriptCommand};
-use webrender_api::{ExternalScrollId, DevicePixel, DeviceUintSize, DocumentId, ImageKey};
+use webrender_api::{DevicePixel, DeviceUintSize, DocumentId, ExternalScrollId, ImageKey, RenderApiSender};
 use webvr_traits::{WebVREvent, WebVRMsg};
 
 pub use script_msg::{LayoutMsg, ScriptMsg, EventResult, LogEntry};
@@ -588,6 +588,8 @@ pub struct InitialScriptState {
     pub webvr_chan: Option<IpcSender<WebVRMsg>>,
     /// The Webrender document ID associated with this thread.
     pub webrender_document: DocumentId,
+    /// FIXME(victor): The Webrender API sender in this constellation's pipeline
+    pub webrender_api_sender: RenderApiSender,
 }
 
 /// This trait allows creating a `ScriptThread` without depending on the `script`

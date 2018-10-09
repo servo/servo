@@ -18,7 +18,6 @@
 )]
 
 extern crate app_units;
-extern crate audio_video_metadata;
 #[cfg(any(feature = "webgl_backtrace", feature = "js_backtrace"))]
 extern crate backtrace;
 extern crate base64;
