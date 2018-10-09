@@ -19,6 +19,7 @@
 *.csv
 *.rej
 *.orig
+.coverage
 .DS_Store
 Servo.app
 .config.mk.last

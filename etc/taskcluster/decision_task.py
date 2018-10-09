@@ -17,6 +17,7 @@ def main(task_for, mock=False):
             if mock:
                 windows_release()
                 linux_wpt()
+                linux_build_task("Indexed by task definition").find_or_create()
 
     # https://tools.taskcluster.net/hooks/project-servo/daily
     elif task_for == "daily":
@@ -24,7 +25,7 @@ def main(task_for, mock=False):
         with_rust_nightly()
         android_arm32()
 
-    else:
+    else:  # pragma: no cover
         raise ValueError("Unrecognized $TASK_FOR value: %r", task_for)
 
 
@@ -64,8 +65,8 @@ def linux_tidy_unit():
         ./mach test-unit
         ./mach package --dev
         ./mach test-tidy --no-progress --self-test
-        python2.7 ./etc/memory_reports_over_time.py --test
-        python3 ./etc/taskcluster/mock.py
+        ./etc/memory_reports_over_time.py --test
+        ./etc/taskcluster/mock.py
         ./etc/ci/lockfile_changed.sh
         ./etc/ci/check_no_panic.sh
     """).create()
@@ -294,5 +295,5 @@ CONFIG.docker_images_expire_in = build_dependencies_artifacts_expire_in
 CONFIG.repacked_msi_files_expire_in = build_dependencies_artifacts_expire_in
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover
     main(task_for=os.environ["TASK_FOR"])

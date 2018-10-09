@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/bin/bash
 
 # Copyright 2018 The Servo Project Developers. See the COPYRIGHT
 # file at the top-level directory of this distribution.
@@ -8,6 +8,12 @@
 # <LICENSE-MIT or http://opensource.org/licenses/MIT>, at your
 # option. This file may not be copied, modified, or distributed
 # except according to those terms.
+
+''''set -e
+python3 -m coverage run $0
+python3 -m coverage report -m --fail-under 100
+exit
+'''
 
 """
 Run the decision task with fake Taskcluster APIs, to catch Python errors before pushing.
@@ -29,7 +35,9 @@ class Index:
         raise TaskclusterRestFailure
 
 
-Queue = stringDate = fromNow = slugId = MagicMock()
+stringDate = str
+slugId = b"id".lower
+Queue = fromNow = MagicMock()
 sys.modules["taskcluster"] = sys.modules[__name__]
 sys.dont_write_bytecode = True
 os.environ.update(**{k: k for k in "TASK_ID TASK_OWNER TASK_SOURCE GIT_URL GIT_SHA".split()})

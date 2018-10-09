@@ -15,7 +15,7 @@ RUN \
         ca-certificates \
         #
         # Running mach
-        python2.7 \
+        python \
         virtualenv \
         #
         # Installing rustup and sccache (build dockerfile) or fetching build artifacts (run tasks)

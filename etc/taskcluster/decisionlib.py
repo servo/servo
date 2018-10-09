@@ -82,8 +82,6 @@ class Shared:
 
 CONFIG = Config()
 SHARED = Shared()
-from_now_json = SHARED.from_now_json
-now = SHARED.now
 
 
 def chaining(op, attr):
@@ -127,7 +125,7 @@ class Task:
 
     with_extra = chaining(update_attr, "extra")
 
-    def build_worker_payload(self):
+    def build_worker_payload(self):  # pragma: no cover
         raise NotImplementedError
 
     def create(self):
@@ -184,10 +182,9 @@ class Task:
             return task_id
 
         try:
-            result = SHARED.index_service.findTask(index_path)
-            task_id = result["taskId"]
+            task_id = SHARED.index_service.findTask(index_path)["taskId"]
         except taskcluster.TaskclusterRestFailure as e:
-            if e.status_code != 404:
+            if e.status_code != 404:  # pragma: no cover
                 raise
             self.routes.append("index." + index_path)
             task_id = self.create()
@@ -208,7 +205,7 @@ class GenericWorkerTask(Task):
     with_mounts = chaining(append_to_attr, "mounts")
     with_env = chaining(update_attr, "env")
 
-    def build_command(self):
+    def build_command(self):  # pragma: no cover
         raise NotImplementedError
 
     def build_worker_payload(self):
@@ -263,7 +260,7 @@ class GenericWorkerTask(Task):
         raise ValueError(
             "%r does not appear to be in one of the supported formats: %r"
             % (url_or_artifact_name, ", ".join(supported_formats))
-        )
+        )  # pragma: no cover
 
 
 class WindowsGenericWorkerTask(GenericWorkerTask):
