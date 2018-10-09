@@ -82,9 +82,9 @@ impl<T> nsTArray<T> {
 
     /// Resize and set the length of the array to `len`.
     ///
-    /// unsafe because the array may contain uninitialized members.
+    /// unsafe because this may leave the array with uninitialized elements.
     ///
-    /// This will not call constructors, if you need that, either manually add
+    /// This will not call constructors.  If you need that, either manually add
     /// bindings or run the typed `EnsureCapacity` call on the gecko side.
     pub unsafe fn set_len(&mut self, len: u32) {
         // this can leak
@@ -96,6 +96,8 @@ impl<T> nsTArray<T> {
 
     /// Resizes an array containing only POD elements
     ///
+    /// unsafe because this may leave the array with uninitialized elements.
+    ///
     /// This will not leak since it only works on POD types (and thus doesn't assert)
     pub unsafe fn set_len_pod(&mut self, len: u32)
     where
@@ -104,5 +106,18 @@ impl<T> nsTArray<T> {
         self.ensure_capacity(len as usize);
         let header = self.header_mut();
         header.mLength = len;
+    }
+
+    /// Collects the given iterator into this array.
+    ///
+    /// Not unsafe because we won't leave uninitialized elements in the array.
+    pub fn assign_from_iter_pod<I>(&mut self, iter: I)
+    where
+        T: Copy,
+        I: ExactSizeIterator + Iterator<Item = T>,
+    {
+        debug_assert!(iter.len() <= 0xFFFFFFFF);
+        unsafe { self.set_len_pod(iter.len() as u32); }
+        self.iter_mut().zip(iter).for_each(|(r, v)| *r = v);
     }
 }

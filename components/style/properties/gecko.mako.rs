@@ -1373,35 +1373,22 @@ impl Clone for ${style_struct.gecko_struct_name} {
     }
 </%def>
 
-<%def name="impl_font_settings(ident, tag_type, value_type, gecko_value_type)">
+<%def name="impl_font_settings(ident, gecko_type, tag_type, value_type, gecko_value_type)">
     <%
     gecko_ffi_name = to_camel_case_lower(ident)
     %>
 
     pub fn set_${ident}(&mut self, v: longhands::${ident}::computed_value::T) {
-        let current_settings = &mut self.gecko.mFont.${gecko_ffi_name};
-        current_settings.clear_pod();
-
-        unsafe { current_settings.set_len_pod(v.0.len() as u32) };
-
-        for (current, other) in current_settings.iter_mut().zip(v.0.iter()) {
-            current.mTag = other.tag.0;
-            current.mValue = other.value as ${gecko_value_type};
-        }
+        let iter = v.0.iter().map(|other| structs::${gecko_type} {
+            mTag: other.tag.0,
+            mValue: other.value as ${gecko_value_type},
+        });
+        self.gecko.mFont.${gecko_ffi_name}.assign_from_iter_pod(iter);
     }
 
     pub fn copy_${ident}_from(&mut self, other: &Self) {
-        let current_settings = &mut self.gecko.mFont.${gecko_ffi_name};
-        let other_settings = &other.gecko.mFont.${gecko_ffi_name};
-        let settings_length = other_settings.len() as u32;
-
-        current_settings.clear_pod();
-        unsafe { current_settings.set_len_pod(settings_length) };
-
-        for (current, other) in current_settings.iter_mut().zip(other_settings.iter()) {
-            current.mTag = other.mTag;
-            current.mValue = other.mValue;
-        }
+        let iter = other.gecko.mFont.${gecko_ffi_name}.iter().map(|s| *s);
+        self.gecko.mFont.${gecko_ffi_name}.assign_from_iter_pod(iter);
     }
 
     pub fn reset_${ident}(&mut self, other: &Self) {
@@ -2274,8 +2261,8 @@ fn static_assert() {
 
     // Negative numbers are invalid at parse time, but <integer> is still an
     // i32.
-    <% impl_font_settings("font_feature_settings", "FeatureTagValue", "i32", "u32") %>
-    <% impl_font_settings("font_variation_settings", "VariationValue", "f32", "f32") %>
+    <% impl_font_settings("font_feature_settings", "gfxFontFeature", "FeatureTagValue", "i32", "u32") %>
+    <% impl_font_settings("font_variation_settings", "gfxFontVariation", "VariationValue", "f32", "f32") %>
 
     pub fn fixup_none_generic(&mut self, device: &Device) {
         self.gecko.mFont.systemFont = false;
@@ -3213,28 +3200,16 @@ fn static_assert() {
         where I: IntoIterator<Item = longhands::scroll_snap_coordinate::computed_value::single_value::T>,
               I::IntoIter: ExactSizeIterator
     {
-        let v = v.into_iter();
-
-        unsafe { self.gecko.mScrollSnapCoordinate.set_len_pod(v.len() as u32); }
-        for (gecko, servo) in self.gecko.mScrollSnapCoordinate
-                               .iter_mut()
-                               .zip(v) {
-            gecko.mXPosition = servo.horizontal.into();
-            gecko.mYPosition = servo.vertical.into();
-        }
+        let iter = v.into_iter().map(|c| structs::mozilla::Position {
+            mXPosition: c.horizontal.into(),
+            mYPosition: c.vertical.into(),
+        });
+        self.gecko.mScrollSnapCoordinate.assign_from_iter_pod(iter);
     }
 
     pub fn copy_scroll_snap_coordinate_from(&mut self, other: &Self) {
-        unsafe {
-            self.gecko.mScrollSnapCoordinate
-                .set_len_pod(other.gecko.mScrollSnapCoordinate.len() as u32);
-        }
-
-        for (this, that) in self.gecko.mScrollSnapCoordinate
-                               .iter_mut()
-                               .zip(other.gecko.mScrollSnapCoordinate.iter()) {
-            *this = *that;
-        }
+        let iter = other.gecko.mScrollSnapCoordinate.iter().map(|c| *c);
+        self.gecko.mScrollSnapCoordinate.assign_from_iter_pod(iter);
     }
 
     pub fn reset_scroll_snap_coordinate(&mut self, other: &Self) {
@@ -4995,12 +4970,12 @@ fn set_style_svg_path(
         Gecko_NewStyleSVGPath(shape_source);
         &mut shape_source.__bindgen_anon_1.mSVGPath.as_mut().mPtr.as_mut().unwrap()
     };
-    unsafe { gecko_path.mPath.set_len(servo_path.commands().len() as u32) };
-    debug_assert_eq!(gecko_path.mPath.len(), servo_path.commands().len());
-    for (servo, gecko) in servo_path.commands().iter().zip(gecko_path.mPath.iter_mut()) {
+
+    let iter = servo_path.commands().iter().map(|command| {
         // unsafe: cbindgen ensures the representation is the same.
-        *gecko = unsafe { transmute(*servo) };
-    }
+        unsafe { transmute(*command) }
+    });
+    gecko_path.mPath.assign_from_iter_pod(iter);
 
     // Setup fill-rule.
     // unsafe: cbindgen ensures the representation is the same.

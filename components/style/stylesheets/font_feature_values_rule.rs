@@ -179,12 +179,7 @@ impl Parse for VectorValues {
 #[cfg(feature = "gecko")]
 impl ToGeckoFontFeatureValues for VectorValues {
     fn to_gecko_font_feature_values(&self, array: &mut nsTArray<u32>) {
-        unsafe {
-            array.set_len_pod(self.0.len() as u32);
-        }
-        for (dest, value) in array.iter_mut().zip(self.0.iter()) {
-            *dest = *value;
-        }
+        array.assign_from_iter_pod(self.0.iter().map(|v| *v));
     }
 }
 
