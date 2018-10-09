@@ -209,21 +209,7 @@ impl FontInfo {
             FontStyle::Oblique => GenericFontStyle::Oblique(StyleFontStyle::default_angle()),
             FontStyle::Italic => GenericFontStyle::Italic,
         };
-        let weight = StyleFontWeight(match font.weight() {
-            FontWeight::Thin => 100.,
-            FontWeight::ExtraLight => 200.,
-            FontWeight::Light => 300.,
-            // slightly grayer gray
-            FontWeight::SemiLight => 300.,
-            FontWeight::Regular => 400.,
-            FontWeight::Medium => 500.,
-            FontWeight::SemiBold => 600.,
-            FontWeight::Bold => 700.,
-            FontWeight::ExtraBold => 800.,
-            FontWeight::Black => 900.,
-            // slightly blacker black
-            FontWeight::ExtraBlack => 1000.,
-        });
+        let weight = StyleFontWeight(font.weight().to_u32() as f32);
         let stretch = StyleFontStretch(NonNegative(
             match font.stretch() {
                 FontStretch::Undefined => FontStretchKeyword::Normal,
