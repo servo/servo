@@ -68,6 +68,12 @@
   grid-row: 3;
 }
 
+.thirdRowThirdColumn {
+  background-color: salmon;
+  grid-column: 3;
+  grid-row: 3;
+}
+
 .firstRowThirdColumn {
   background-color: magenta;
   grid-column: 3;

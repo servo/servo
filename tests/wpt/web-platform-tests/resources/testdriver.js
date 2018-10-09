@@ -171,6 +171,29 @@
          */
         freeze: function() {
             return window.test_driver_internal.freeze();
+        },
+
+        /**
+         * Send a sequence of actions
+         *
+         * This function sends a sequence of actions to the top level window
+         * to perform. It is modeled after the behaviour of {@link
+         * https://w3c.github.io/webdriver/#actions|WebDriver Actions Command}
+         *
+         * @param {Array} actions - an array of actions. The format is the same as the actions
+                                    property of the WebDriver command {@link
+                                    https://w3c.github.io/webdriver/#perform-actions|Perform
+                                    Actions} command. Each element is an object representing an
+                                    input source and each input source itself has an actions
+                                    property detailing the behaviour of that source at each timestep
+                                    (or tick). Authors are not expected to construct the actions
+                                    sequence by hand, but to use the builder api provided in
+                                    testdriver-actions.js
+         * @returns {Promise} fufiled after the actions are performed, or rejected in
+         *                    the cases the WebDriver command errors
+         */
+        action_sequence(actions) {
+            return window.test_driver_internal.action_sequence(actions);
         }
     };
 
@@ -204,6 +227,16 @@
          * it gets rejected
          */
         freeze: function() {
+            return Promise.reject(new Error("unimplemented"));
+        },
+
+        /**
+         * Send a sequence of pointer actions
+         *
+         * @returns {Promise} fufilled after actions are sent, rejected if any actions
+         *                    fail
+         */
+        action_sequence: function(actions) {
             return Promise.reject(new Error("unimplemented"));
         }
     };
