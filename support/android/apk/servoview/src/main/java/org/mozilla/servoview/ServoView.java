@@ -60,8 +60,17 @@ public class ServoView extends GLSurfaceView
 
     private boolean mRedrawing;
 
+    public ServoView(Context context) {
+        super(context);
+        init(context);
+    }
+
     public ServoView(Context context, AttributeSet attrs) {
         super(context, attrs);
+        init(context);
+    }
+
+    private void init(Context context) {
         mActivity = (Activity) context;
         setFocusable(true);
         setFocusableInTouchMode(true);
