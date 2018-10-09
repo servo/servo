@@ -97,6 +97,14 @@ def update_attr(self, attr, **kwargs): getattr(self, attr).update(kwargs)
 
 
 class Task:
+    """
+    A task definition, waiting to be created.
+
+    Typical is to use chain the `with_*` methods to set or extend this object’s attributes,
+    then call the `crate` or `find_or_create` method to schedule a task.
+
+    This is an abstract class that needs to be specialized for different worker implementations.
+    """
     def __init__(self, name):
         self.name = name
         self.description = ""
@@ -111,6 +119,7 @@ class Task:
         self.routes = []
         self.extra = {}
 
+    # All `with_*` methods return `self`, so multiple method calls can be chained.
     with_description = chaining(setattr, "description")
     with_scheduler_id = chaining(setattr, "scheduler_id")
     with_provisioner_id = chaining(setattr, "provisioner_id")
@@ -126,9 +135,21 @@ class Task:
     with_extra = chaining(update_attr, "extra")
 
     def build_worker_payload(self):  # pragma: no cover
+        """
+        Overridden by sub-classes to return a dictionary in a worker-specific format,
+        which is used as the `payload` property in a task definition request
+        passed to the Queue’s `createTask` API.
+
+        <https://docs.taskcluster.net/docs/reference/platform/taskcluster-queue/references/api#createTask>
+        """
         raise NotImplementedError
 
     def create(self):
+        """
+        Call the Queue’s `createTask` API to schedule a new task, and return its ID.
+
+        <https://docs.taskcluster.net/docs/reference/platform/taskcluster-queue/references/api#createTask>
+        """
         worker_payload = self.build_worker_payload()
 
         assert CONFIG.decision_task_id
@@ -171,6 +192,18 @@ class Task:
         return task_id
 
     def find_or_create(self, index_path=None):
+        """
+        Try to find a task in the Index and return its ID.
+
+        The index path used is `{CONFIG.index_prefix}.{index_path}`.
+        `index_path` defaults to `by-task-definition.{sha256}`
+        with a hash of the worker payload and worker type.
+
+        If no task is found in the index,
+        it is created with a route to add it to the index at that same path if it succeeds.
+
+        <https://docs.taskcluster.net/docs/reference/core/taskcluster-index/references/api#findTask>
+        """
         if not index_path:
             worker_type = self.worker_type
             index_by = json.dumps([worker_type, self.build_worker_payload()]).encode("utf-8")
@@ -194,6 +227,13 @@ class Task:
 
 
 class GenericWorkerTask(Task):
+    """
+    Task definition for a worker type that runs the `generic-worker` implementation.
+
+    This is an abstract class that needs to be specialized for different operating systems.
+
+    <https://github.com/taskcluster/generic-worker>
+    """
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.max_run_time_minutes = 30
@@ -206,9 +246,18 @@ class GenericWorkerTask(Task):
     with_env = chaining(update_attr, "env")
 
     def build_command(self):  # pragma: no cover
+        """
+        Overridden by sub-classes to return the `command` property of the worker payload,
+        in the format appropriate for the operating system.
+        """
         raise NotImplementedError
 
     def build_worker_payload(self):
+        """
+        Return a `generic-worker` worker payload.
+
+        <https://docs.taskcluster.net/docs/reference/workers/generic-worker/docs/payload>
+        """
         worker_payload = {
             "command": self.build_command(),
             "maxRunTime": self.max_run_time_minutes * 60
@@ -229,6 +278,14 @@ class GenericWorkerTask(Task):
         )
 
     def with_artifacts(self, *paths, type="file"):
+        """
+        Add each path in `paths` as a task artifact
+        that expires in `self.index_and_artifacts_expire_in`.
+
+        `type` can be `"file"` or `"directory"`.
+
+        Paths are relative to the task’s home directory.
+        """
         self.artifacts.extend((type, path) for path in paths)
         return self
 
@@ -242,12 +299,35 @@ class GenericWorkerTask(Task):
         return content
 
     def with_file_mount(self, url_or_artifact_name, task_id=None, sha256=None, path=None):
+        """
+        Make `generic-worker` download a file before the task starts
+        and make it available at `path` (which is relative to the task’s home directory).
+
+        If `sha256` is provided, `generic-worker` will hash the downloaded file
+        and check it against the provided signature.
+
+        If `task_id` is provided, this task will depend on that task
+        and `url_or_artifact_name` is the name of an artifact of that task.
+        """
         return self.with_mounts({
             "file": path or url_basename(url_or_artifact_name),
             "content": self._mount_content(url_or_artifact_name, task_id, sha256),
         })
 
     def with_directory_mount(self, url_or_artifact_name, task_id=None, sha256=None, path=None):
+        """
+        Make `generic-worker` download an archive before the task starts,
+        and uncompress it at `path` (which is relative to the task’s home directory).
+
+        `url_or_artifact_name` must end in one of `.rar`, `.tar.bz2`, `.tar.gz`, or `.zip`.
+        The archive must be in the corresponding format.
+
+        If `sha256` is provided, `generic-worker` will hash the downloaded archive
+        and check it against the provided signature.
+
+        If `task_id` is provided, this task will depend on that task
+        and `url_or_artifact_name` is the name of an artifact of that task.
+        """
         supported_formats = ["rar", "tar.bz2", "tar.gz", "zip"]
         for fmt in supported_formats:
             suffix = "." + fmt
@@ -264,6 +344,11 @@ class GenericWorkerTask(Task):
 
 
 class WindowsGenericWorkerTask(GenericWorkerTask):
+    """
+    Task definition for a `generic-worker` task running on Windows.
+
+    Scripts are written as `.bat` files executed with `cmd.exe`.
+    """
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.scripts = []
@@ -275,11 +360,24 @@ class WindowsGenericWorkerTask(GenericWorkerTask):
         return [deindent(s) for s in self.scripts]
 
     def with_path_from_homedir(self, *paths):
+        """
+        Interpret each path in `paths` as relative to the task’s home directory,
+        and add it to the `PATH` environment variable.
+        """
         for p in paths:
             self.with_early_script("set PATH=%HOMEDRIVE%%HOMEPATH%\\{};%PATH%".format(p))
         return self
 
     def with_repo(self, sparse_checkout=None):
+        """
+        Make a shallow clone the git repository at the start of the task.
+        This uses `CONFIG.git_url`, `CONFIG.git_ref`, and `CONFIG.git_sha`,
+        and creates the clone in a `repo` directory in the task’s home directory.
+
+        If `sparse_checkout` is given, it must be a list of path patterns
+        to be used in `.git/info/sparse-checkout`.
+        See <https://git-scm.com/docs/git-read-tree#_sparse_checkout>.
+        """
         git = """
             git init repo
             cd repo
@@ -303,6 +401,11 @@ class WindowsGenericWorkerTask(GenericWorkerTask):
         .with_env(**git_env())
 
     def with_git(self):
+        """
+        Make the task download `git-for-windows` and make it available for `git` commands.
+
+        This is implied by `with_repo`.
+        """
         return self \
         .with_path_from_homedir("git\\cmd") \
         .with_directory_mount(
@@ -313,6 +416,10 @@ class WindowsGenericWorkerTask(GenericWorkerTask):
         )
 
     def with_rustup(self):
+        """
+        Download rustup.rs and make it available to task commands,
+        but does not download any default toolchain.
+        """
         return self \
         .with_path_from_homedir(".cargo\\bin") \
         .with_early_script(
@@ -325,6 +432,17 @@ class WindowsGenericWorkerTask(GenericWorkerTask):
         )
 
     def with_repacked_msi(self, url, sha256, path):
+        """
+        Download an MSI file from `url`, extract the files in it with `lessmsi`,
+        and make them available in the directory at `path` (relative to the task’s home directory).
+
+        `sha256` is required and the MSI file must have that hash.
+
+        The file extraction (and recompression in a ZIP file) is done in a separate task,
+        wich is indexed based on `sha256` and cached for `CONFIG.repacked_msi_files_expire_in`.
+
+        <https://github.com/activescott/lessmsi>
+        """
         repack_task = (
             WindowsGenericWorkerTask("MSI repack: " + url)
             .with_worker_type(self.worker_type)
@@ -356,6 +474,14 @@ class WindowsGenericWorkerTask(GenericWorkerTask):
         .with_directory_mount("public/repacked.zip", task_id=repack_task, path=path)
 
     def with_python2(self):
+        """
+        Make Python 2, pip, and virtualenv accessible to the task’s commands.
+
+        For Python 3, use `with_directory_mount` and the "embeddable zip file" distribution
+        from python.org.
+        You may need to remove `python37._pth` from the ZIP in order to work around
+        <https://bugs.python.org/issue34841>.
+        """
         return self \
         .with_repacked_msi(
             "https://www.python.org/ftp/python/2.7.15/python-2.7.15.amd64.msi",
@@ -371,6 +497,13 @@ class WindowsGenericWorkerTask(GenericWorkerTask):
 
 
 class DockerWorkerTask(Task):
+    """
+    Task definition for a worker type that runs the `generic-worker` implementation.
+
+    Scripts are interpreted with `bash`.
+
+    <https://github.com/taskcluster/docker-worker>
+    """
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.docker_image = "ubuntu:bionic-20180821"
@@ -390,6 +523,11 @@ class DockerWorkerTask(Task):
     with_env = chaining(update_attr, "env")
 
     def build_worker_payload(self):
+        """
+        Return a `docker-worker` worker payload.
+
+        <https://docs.taskcluster.net/docs/reference/workers/docker-worker/docs/payload>
+        """
         worker_payload = {
             "image": self.docker_image,
             "maxRunTime": self.max_run_time_minutes * 60,
@@ -414,10 +552,23 @@ class DockerWorkerTask(Task):
         )
 
     def with_features(self, *names):
+        """
+        Enable the give `docker-worker` features.
+
+        <https://docs.taskcluster.net/docs/reference/workers/docker-worker/docs/features>
+        """
         self.features.update({name: True for name in names})
         return self
 
     def with_repo(self):
+        """
+        Make a shallow clone the git repository at the start of the task.
+        This uses `CONFIG.git_url`, `CONFIG.git_ref`, and `CONFIG.git_sha`,
+        and creates the clone in a `/repo` directory
+        at the root of the Docker container’s filesystem.
+
+        `git` and `ca-certificate` need to be installed in the Docker image.
+        """
         return self \
         .with_env(**git_env()) \
         .with_early_script("""
@@ -428,6 +579,18 @@ class DockerWorkerTask(Task):
         """)
 
     def with_dockerfile(self, dockerfile):
+        """
+        Build a Docker image based on the given `Dockerfile`, and use it for this task.
+
+        `dockerfile` is a path in the filesystem where this code is running.
+        Some non-standard syntax is supported, see `expand_dockerfile`.
+
+        The image is indexed based on a hash of the expanded `Dockerfile`,
+        and cached for `CONFIG.docker_images_expire_in`.
+
+        Images are built without any *context*.
+        <https://docs.docker.com/develop/develop-images/dockerfile_best-practices/#understand-build-context>
+        """
         basename = os.path.basename(dockerfile)
         suffix = ".dockerfile"
         assert basename.endswith(suffix)
