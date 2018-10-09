@@ -1367,6 +1367,7 @@ impl FragmentDisplayListBuilding for Fragment {
                 style: border_style.bottom.to_layout(),
             },
             radius: border_radius,
+            do_aa: true,
         });
         state.add_display_item(DisplayItem::Border(CommonDisplayItem::with_data(
             base,

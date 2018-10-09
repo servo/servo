@@ -33,6 +33,7 @@ rand = [
 # Ignored packages with duplicated versions
 packages = [
   "bitflags",
+  "core-graphics",
   "crossbeam-epoch",
   "crossbeam-utils",
   "log",

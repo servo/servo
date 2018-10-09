@@ -129,14 +129,14 @@ impl ToLayout for Rect<Au> {
 }
 
 impl ToLayout for SideOffsets2D<Au> {
-    type Type = wr::BorderWidths;
+    type Type = wr::LayoutSideOffsets;
     fn to_layout(&self) -> Self::Type {
-        wr::BorderWidths {
-            left: self.left.to_f32_px(),
-            top: self.top.to_f32_px(),
-            right: self.right.to_f32_px(),
-            bottom: self.bottom.to_f32_px(),
-        }
+        wr::LayoutSideOffsets::new(
+            self.top.to_f32_px(),
+            self.right.to_f32_px(),
+            self.bottom.to_f32_px(),
+            self.left.to_f32_px(),
+        )
     }
 }
 

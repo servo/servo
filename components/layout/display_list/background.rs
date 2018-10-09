@@ -36,8 +36,8 @@ use style::values::generics::image::EndingShape as GenericEndingShape;
 use style::values::generics::image::GradientItem as GenericGradientItem;
 use style::values::specified::background::BackgroundRepeatKeyword;
 use style::values::specified::position::{X, Y};
-use webrender_api::{BorderRadius, BorderSide, BorderStyle, BorderWidths, ColorF};
-use webrender_api::{ExtendMode, Gradient, GradientStop, LayoutSize};
+use webrender_api::{BorderRadius, BorderSide, BorderStyle, ColorF};
+use webrender_api::{ExtendMode, Gradient, GradientStop, LayoutSize, LayoutSideOffsets};
 use webrender_api::{NormalBorder, RadialGradient};
 
 /// A helper data structure for gradients.
@@ -771,6 +771,7 @@ pub fn simple_normal_border(color: ColorF, style: BorderStyle) -> NormalBorder {
         top: side,
         bottom: side,
         radius: BorderRadius::zero(),
+        do_aa: true,
     }
 }
 
@@ -834,13 +835,13 @@ fn calculate_border_image_width_side(
 
 pub fn calculate_border_image_width(
     width: &BorderImageWidth,
-    border: BorderWidths,
+    border: LayoutSideOffsets,
     border_area: Size2D<Au>,
-) -> BorderWidths {
-    BorderWidths {
-        left: calculate_border_image_width_side(width.3, border.left, border_area.width),
-        top: calculate_border_image_width_side(width.0, border.top, border_area.height),
-        right: calculate_border_image_width_side(width.1, border.right, border_area.width),
-        bottom: calculate_border_image_width_side(width.2, border.bottom, border_area.height),
-    }
+) -> LayoutSideOffsets {
+    LayoutSideOffsets::new(
+        calculate_border_image_width_side(width.0, border.top, border_area.height),
+        calculate_border_image_width_side(width.1, border.right, border_area.width),
+        calculate_border_image_width_side(width.2, border.bottom, border_area.height),
+        calculate_border_image_width_side(width.3, border.left, border_area.width),
+    )
 }
