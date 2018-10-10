@@ -149,6 +149,15 @@ impl WebGLRenderbuffer {
 
         // FIXME: Invalidate completeness after the call
 
+        let max_size = self.upcast::<WebGLObject>()
+                           .context()
+                           .limits()
+                           .max_renderbuffer_size as i32;
+
+        if width > max_size || height > max_size {
+            return Err(WebGLError::InvalidValue);
+        }
+
         self.upcast::<WebGLObject>()
             .context()
             .send_command(WebGLCommand::RenderbufferStorage(
