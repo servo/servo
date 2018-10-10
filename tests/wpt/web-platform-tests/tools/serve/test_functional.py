@@ -55,7 +55,7 @@ def test_subprocess_exit(server_subprocesses, tempfile_name):
         # which are relevant to this functionality. Disable the check so that
         # the constructor is only used to create relevant processes.
         with open(tempfile_name, 'w') as handle:
-            json.dump({"check_subdomains": False}, handle)
+            json.dump({"check_subdomains": False, "bind_address": False}, handle)
 
         # The `logger` module from the wptserver package uses a singleton
         # pattern which resists testing. In order to avoid conflicting with

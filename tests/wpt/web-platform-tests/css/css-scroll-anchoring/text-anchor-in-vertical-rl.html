@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mstensho@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-scroll-anchoring/">
+
+<p>There should be no red below.</p>
+<div id="container" style="writing-mode:vertical-rl; overflow:auto; width:300px; height:300px;">
+  <div style="width:300px; background:red;"></div>
+  <div style="width:400px; font-size:16px; line-height:25px;">
+    <span id="displayMe" style="color:red; display:none;">
+      FAIL<br>FAIL<br>FAIL<br>FAIL<br>
+    </span>
+    line<br>
+  </div>
+  <div id="displayMeToo" style="display:none; width:300px; background:red;"></div>
+</div>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  test(()=> {
+      var container = document.getElementById("container");
+      var displayMe = document.getElementById("displayMe");
+      var displayMeToo = document.getElementById("displayMeToo");
+      // Scroll the text container into view.
+      container.scrollLeft = 100;
+      displayMe.style.display = "inline";
+      displayMeToo.style.display = "block";
+      assert_equals(container.scrollLeft, 300);
+  }, "Line at edge of scrollport shouldn't jump visually when content is inserted before");
+</script>

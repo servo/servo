@@ -80,5 +80,13 @@ between the function being called and the promise settling.
 To send special keys, one must send the respective key's codepoint. Since this uses the WebDriver protocol, you can find a [list for code points to special keys in the spec](https://w3c.github.io/webdriver/webdriver-spec.html#keyboard-actions).
 For example, to send the tab key you would send "\uE004".
 
+### `test_driver.action_sequence(actions)`
+ - `actions` <[Array]<[Object]>> an array of Action objects`
+  - `action` <[Object]> A single action. See [spec](https://www.w3.org/TR/webdriver/#actions) for format
+
+This function causes a sequence of actions to be sent to the browser. It is based of the [WebDriver API](https://www.w3.org/TR/webdriver/#actions).
+The action can be a keyboard action, a pointer action or a pause. It returns a `Promise` that
+resolves after the actions have been sent or rejects if an error was thrown.
+
 [activation]: https://html.spec.whatwg.org/multipage/interaction.html#activation
 [testharness]: {{ site.baseurl }}{% link _writing-tests/testharness.md %}
