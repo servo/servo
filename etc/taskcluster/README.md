@@ -40,7 +40,7 @@ to build an arbitrary [task graph].
 ## Servo’s decision task
 
 This repository’s [`.taskcluster.yml`][tc.yml] schedules a single task
-that runs the Python 3 script [`etc/taskcluster/decision-task.py`](decision-task.py).
+that runs the Python 3 script [`etc/taskcluster/decision_task.py`](decision_task.py).
 It is called a *decision task* as it is responsible for deciding what other tasks to schedule.
 
 The Docker image that runs the decision task
@@ -101,7 +101,7 @@ together with multiple testing tasks that each depend on the build task
 (wait until it successfully finishes before they can start)
 and start by downloading the artifact that was saved earlier.
 
-The logic for all this is in [`decision-task.py`](decision-task.py)
+The logic for all this is in [`decision_task.py`](decision_task.py)
 and can be modified in any pull request.
 
 [web-platform-tests]: https://github.com/web-platform-tests/wpt
@@ -162,7 +162,7 @@ to edit that role in the web UI and grant more scopes to these tasks
 The [`project-servo/daily`] hook in Taskcluster’s [Hooks service]
 is used to run some tasks automatically ever 24 hours.
 In this case as well we use a decision task.
-The `decision-task.py` script can differenciate this from a GitHub push
+The `decision_task.py` script can differenciate this from a GitHub push
 based on the `$TASK_FOR` environment variable.
 Daily tasks can also be triggered manually.
 
@@ -221,7 +221,7 @@ To modify those, submit a pull request.
 
 * The [`.taskcluster.yml`][tc.yml] file,
   for starting decision tasks in reaction to GitHub events
-* The [`etc/ci/decision-task.py`](decision-task.py) file,
+* The [`etc/ci/decision_task.py`](decision_task.py) file,
   defining what other tasks to schedule
 
 However some configuration needs to be handled separately.

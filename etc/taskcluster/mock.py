@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/bin/bash
 
 # Copyright 2018 The Servo Project Developers. See the COPYRIGHT
 # file at the top-level directory of this distribution.
@@ -8,6 +8,12 @@
 # <LICENSE-MIT or http://opensource.org/licenses/MIT>, at your
 # option. This file may not be copied, modified, or distributed
 # except according to those terms.
+
+''''set -e
+python3 -m coverage run $0
+python3 -m coverage report -m --fail-under 100
+exit
+'''
 
 """
 Run the decision task with fake Taskcluster APIs, to catch Python errors before pushing.
@@ -29,17 +35,20 @@ class Index:
         raise TaskclusterRestFailure
 
 
-Queue = stringDate = fromNow = slugId = MagicMock()
+stringDate = str
+slugId = b"id".lower
+Queue = fromNow = MagicMock()
 sys.modules["taskcluster"] = sys.modules[__name__]
 sys.dont_write_bytecode = True
-code = open(os.path.join(os.path.dirname(__file__), "decision-task.py"), "rb").read()
-for k in "TASK_ID TASK_OWNER TASK_SOURCE GIT_URL GIT_REF GIT_SHA".split():
-    os.environ[k] = k
+os.environ.update(**{k: k for k in "TASK_ID TASK_OWNER TASK_SOURCE GIT_URL GIT_SHA".split()})
+os.environ["GIT_REF"] = "refs/heads/auto"
+import decision_task
 
-print("Push:")
-os.environ["TASK_FOR"] = "github-push"
-exec(code)
+print("\n# Push:")
+decision_task.main("github-push", mock=True)
 
-print("Daily:")
-os.environ["TASK_FOR"] = "daily"
-exec(code)
+print("\n# Push with hot caches:")
+decision_task.main("github-push", mock=True)
+
+print("\n# Daily:")
+decision_task.main("daily", mock=True)

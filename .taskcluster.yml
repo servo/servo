@@ -5,7 +5,7 @@ policy:
 tasks:
   - $if: 'tasks_for == "github-push"'
     then:
-      $if: 'event.ref in ["refs/heads/auto", "refs/heads/try"]'
+      $if: 'event.ref in ["refs/heads/auto", "refs/heads/try", "refs/heads/try-taskcluster"]'
       then:
 
         # NOTE: when updating this consider whether the daily hook needs similar changes:
@@ -53,4 +53,4 @@ tasks:
               cd repo &&
               git fetch --depth 1 "$GIT_URL" "$GIT_REF" &&
               git reset --hard "$GIT_SHA" &&
-              python3 etc/taskcluster/decision-task.py
+              python3 etc/taskcluster/decision_task.py
