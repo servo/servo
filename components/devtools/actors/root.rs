@@ -5,10 +5,10 @@
 /// Liberally derived from the [Firefox JS implementation]
 /// (http://mxr.mozilla.org/mozilla-central/source/toolkit/devtools/server/actors/root.js).
 /// Connection point for all new remote devtools interactions, providing lists of know actors
-/// that perform more specific actions (tabs, addons, browser chrome, etc.)
+/// that perform more specific actions (targets, addons, browser chrome, etc.)
 use actor::{Actor, ActorMessageStatus, ActorRegistry};
+use actors::browsing_context::{BrowsingContextActor, BrowsingContextActorMsg};
 use actors::performance::PerformanceActor;
-use actors::tab::{TabActor, TabActorMsg};
 use protocol::{ActorDescription, JsonPacketStream};
 use serde_json::{Map, Value};
 use std::net::TcpStream;
@@ -34,7 +34,7 @@ enum AddonMsg {}
 struct ListTabsReply {
     from: String,
     selected: u32,
-    tabs: Vec<TabActorMsg>,
+    tabs: Vec<BrowsingContextActorMsg>,
 }
 
 #[derive(Serialize)]
@@ -81,7 +81,7 @@ impl Actor for RootActor {
                 ActorMessageStatus::Processed
             },
 
-            //https://wiki.mozilla.org/Remote_Debugging_Protocol#Listing_Browser_Tabs
+            // https://docs.firefox-dev.tools/backend/protocol.html#listing-browser-tabs
             "listTabs" => {
                 let actor = ListTabsReply {
                     from: "root".to_owned(),
@@ -89,7 +89,7 @@ impl Actor for RootActor {
                     tabs: self
                         .tabs
                         .iter()
-                        .map(|tab| registry.find::<TabActor>(tab).encodable())
+                        .map(|target| registry.find::<BrowsingContextActor>(target).encodable())
                         .collect(),
                 };
                 stream.write_json_packet(&actor);

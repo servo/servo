@@ -4,7 +4,7 @@
 
 //! Liberally derived from the [Firefox JS implementation]
 //! (http://mxr.mozilla.org/mozilla-central/source/toolkit/devtools/server/actors/webbrowser.js).
-//! Connection point for remote devtools that wish to investigate a particular tab's contents.
+//! Connection point for remote devtools that wish to investigate a particular Browsing Context's contents.
 //! Supports dynamic attaching and detaching which control notifications of navigation, etc.
 
 use actor::{Actor, ActorMessageStatus, ActorRegistry};
@@ -15,21 +15,21 @@ use serde_json::{Map, Value};
 use std::net::TcpStream;
 
 #[derive(Serialize)]
-struct TabTraits;
+struct BrowsingContextTraits;
 
 #[derive(Serialize)]
-struct TabAttachedReply {
+struct BrowsingContextAttachedReply {
     from: String,
     #[serde(rename = "type")]
     type_: String,
     threadActor: String,
     cacheDisabled: bool,
     javascriptEnabled: bool,
-    traits: TabTraits,
+    traits: BrowsingContextTraits,
 }
 
 #[derive(Serialize)]
-struct TabDetachedReply {
+struct BrowsingContextDetachedReply {
     from: String,
     #[serde(rename = "type")]
     type_: String,
@@ -55,7 +55,7 @@ struct FrameMsg {
 }
 
 #[derive(Serialize)]
-pub struct TabActorMsg {
+pub struct BrowsingContextActorMsg {
     actor: String,
     title: String,
     url: String,
@@ -67,7 +67,7 @@ pub struct TabActorMsg {
     performanceActor: String,
 }
 
-pub struct TabActor {
+pub struct BrowsingContextActor {
     pub name: String,
     pub title: String,
     pub url: String,
@@ -79,7 +79,7 @@ pub struct TabActor {
     pub thread: String,
 }
 
-impl Actor for TabActor {
+impl Actor for BrowsingContextActor {
     fn name(&self) -> String {
         self.name.clone()
     }
@@ -107,16 +107,16 @@ impl Actor for TabActor {
                 ActorMessageStatus::Processed
             },
 
-            // https://wiki.mozilla.org/Remote_Debugging_Protocol#Listing_Browser_Tabs
-            // (see "To attach to a _tabActor_")
+            // https://docs.firefox-dev.tools/backend/protocol.html#listing-browser-tabs
+            // (see "To attach to a _targetActor_")
             "attach" => {
-                let msg = TabAttachedReply {
+                let msg = BrowsingContextAttachedReply {
                     from: self.name(),
-                    type_: "tabAttached".to_owned(),
+                    type_: "targetAttached".to_owned(),
                     threadActor: self.thread.clone(),
                     cacheDisabled: false,
                     javascriptEnabled: true,
-                    traits: TabTraits,
+                    traits: BrowsingContextTraits,
                 };
                 let console_actor = registry.find::<ConsoleActor>(&self.console);
                 console_actor
@@ -134,7 +134,7 @@ impl Actor for TabActor {
             //FIXME: The current implementation won't work for multiple connections. Need to ensure 105
             //       that the correct stream is removed.
             "detach" => {
-                let msg = TabDetachedReply {
+                let msg = BrowsingContextDetachedReply {
                     from: self.name(),
                     type_: "detached".to_owned(),
                 };
@@ -162,9 +162,9 @@ impl Actor for TabActor {
     }
 }
 
-impl TabActor {
-    pub fn encodable(&self) -> TabActorMsg {
-        TabActorMsg {
+impl BrowsingContextActor {
+    pub fn encodable(&self) -> BrowsingContextActorMsg {
+        BrowsingContextActorMsg {
             actor: self.name(),
             title: self.title.clone(),
             url: self.url.clone(),
