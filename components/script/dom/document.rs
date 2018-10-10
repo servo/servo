@@ -4197,21 +4197,20 @@ impl DocumentMethods for Document {
 
     // https://html.spec.whatwg.org/multipage/#dom-document-open
     fn Open(&self, _unused1: Option<DOMString>, _unused2: Option<DOMString>) -> Fallible<DomRoot<Document>> {
-        // Step 1. Throw InvalidStateError if the document is an XML document.
+        // Step 1
         if !self.is_html_document() {
             return Err(Error::InvalidState);
         }
 
-        // Step 2. Throw InvalidStateError if throw-on-dynamic-markup-insertion counter > 0.
+        // Step 2
         if self.throw_on_dynamic_markup_insertion_counter.get() > 0 {
             return Err(Error::InvalidState);
         }
 
-        // Step 3. Fetch entryDocument from the entry settings object.
+        // Step 3
         let entry_responsible_document = GlobalScope::entry().as_window().Document();
 
-        // Step 4. Throw SecurityError if document's origin is not same
-        // origin to entryDocument's origin.
+        // Step 4
         // This check is same-origin not same-origin-domain.
         // https://github.com/whatwg/html/issues/2282
         // https://github.com/whatwg/html/pull/2288
@@ -4219,8 +4218,7 @@ impl DocumentMethods for Document {
             return Err(Error::Security);
         }
 
-        // Step 5. Return document if document has an active parser with
-        // script nesting level > 0
+        // Step 5
         if self
             .get_current_parser()
             .map_or(false, |parser| parser.is_active())
@@ -4228,64 +4226,51 @@ impl DocumentMethods for Document {
             return Ok(DomRoot::from_ref(self));
         }
 
-        // Step 6. If document's ignore-opens-during-unload counter is greater
-        // than 0, then return document.
+        // Step 6
         if self.is_prompting_or_unloading() {
             return Ok(DomRoot::from_ref(self));
         }
 
         window_from_node(self).set_navigation_start();
 
-        // Step 7. If document has a browsing context and there is an existing
-        // attempt to navigate document's browsing context, then stop document
-        // loading given document.
+        // Step 7
         // TODO: Check if there is an existing attempt to navigate browsing context
         if self.has_browsing_context() {
             self.abort();
         }
 
-        // Step 8. For each shadow-including inclusive descendant node of
-        // document, erase all event listeners and handlers given node.
+        // Step 8
         for node in self.upcast::<Node>().traverse_preorder() {
             node.upcast::<EventTarget>().remove_all_listeners();
         }
 
-        // Step 9. If document is the associated Document of document's relevant global object,
-        // then erase all event listeners and handlers given document's relevant global object.
+        // Step 9
         if let Some(window) = self.global().downcast::<Window>() {
             if window.Document() == DomRoot::from_ref(self) {
                 self.global().upcast::<EventTarget>().remove_all_listeners()
             }
         }
 
-        // Step 10. Replace all with null within document,
-        // without firing any mutation events.
+        // Step 10.
         Node::replace_all(None, self.upcast::<Node>());
 
-        // Step 11. If document is fully active, then:
+        // Step 11
         if self.is_fully_active() {
-            // Let newURL be a copy of entryDocument's URL.
             let mut new_url = entry_responsible_document.url();
-            // If entryDocument is not document, then set newURL's fragment to null.
             if entry_responsible_document != DomRoot::from_ref(self) {
                 new_url.set_fragment(None);
             }
-            // Run the URL and history update steps with document and newURL.
             // TODO: Implement URL and history update steps
             self.set_url(new_url);
         }
 
-        // Step 12.
+        // Step 12
         // TODO: mute iframe load.
 
-        // Step 13. Set document to no-quirks mode.
+        // Step 13
         self.set_quirks_mode(QuirksMode::NoQuirks);
 
-        // Step 14. Create a new HTML parser and associate it with document.
-        // This is a script-created parser (meaning that it can be closed by the
-        // document.open() and document.close() methods, and that the tokenizer will
-        // wait for an explicit call to document.close() before emitting an end-of-file
-        // token). The encoding confidence is irrelevant.
+        // Step 14
         let resource_threads = self
             .window
             .upcast::<GlobalScope>()
@@ -4295,13 +4280,13 @@ impl DocumentMethods for Document {
             DocumentLoader::new_with_threads(resource_threads, Some(self.url()));
         ServoParser::parse_html_script_input(self, self.url(), "text/html");
 
-        // Step 15. Set the current document readiness of document to "loading".
+        // Step 15
         self.ready_state.set(DocumentReadyState::Loading);
 
-        // Step 16. Set the insertion point
+        // Step 16
         // Handled when creating the parser in step 14
 
-        // Step 17. Return document.
+        // Step 17
         Ok(DomRoot::from_ref(self))
     }
 
