@@ -5,7 +5,7 @@
 use canvas_traits::canvas::{Canvas2dMsg, CanvasMsg, CanvasId};
 use canvas_traits::canvas::{CompositionOrBlending, FillOrStrokeStyle, FillRule};
 use canvas_traits::canvas::{LineCapStyle, LineJoinStyle, LinearGradientStyle};
-use canvas_traits::canvas::{RadialGradientStyle, RepetitionStyle, byte_swap_and_premultiply};
+use canvas_traits::canvas::{RadialGradientStyle, RepetitionStyle};
 use cssparser::{Parser, ParserInput, RGBA};
 use cssparser::Color as CSSColor;
 use dom::bindings::cell::DomRefCell;
@@ -40,11 +40,11 @@ use net_traits::image_cache::ImageOrMetadataAvailable;
 use net_traits::image_cache::ImageResponse;
 use net_traits::image_cache::ImageState;
 use net_traits::image_cache::UsePlaceholder;
-use num_traits::ToPrimitive;
+use pixels;
 use profile_traits::ipc as profiled_ipc;
 use script_traits::ScriptMsg;
 use servo_url::ServoUrl;
-use std::{cmp, fmt, mem};
+use std::{fmt, mem};
 use std::cell::Cell;
 use std::str::FromStr;
 use std::sync::Arc;
@@ -410,7 +410,7 @@ impl CanvasRenderingContext2D {
             Some((mut data, size)) => {
                 // Pixels come from cache in BGRA order and drawImage expects RGBA so we
                 // have to swap the color values
-                byte_swap_and_premultiply(&mut data);
+                pixels::byte_swap_and_premultiply_inplace(&mut data);
                 let size = Size2D::new(size.width as f64, size.height as f64);
                 (data, size)
             },
@@ -574,6 +574,28 @@ impl CanvasRenderingContext2D {
 
     fn set_origin_unclean(&self) {
         self.origin_clean.set(false)
+    }
+
+    pub fn get_rect(&self, rect: Rect<u32>) -> Vec<u8> {
+        assert!(self.origin_is_clean());
+
+        // FIXME(nox): This is probably wrong when this is a context for an
+        // offscreen canvas.
+        let canvas_size = self.canvas.as_ref().map_or(Size2D::zero(), |c| c.get_size());
+        assert!(Rect::from_size(canvas_size).contains_rect(&rect));
+
+        let (sender, receiver) = ipc::bytes_channel().unwrap();
+        self.send_canvas_2d_msg(Canvas2dMsg::GetImageData(rect, canvas_size, sender));
+        let mut pixels = receiver.recv().unwrap().to_vec();
+
+        for chunk in pixels.chunks_mut(4) {
+            let b = chunk[0];
+            chunk[0] = UNPREMULTIPLY_TABLE[256 * (chunk[3] as usize) + chunk[2] as usize];
+            chunk[1] = UNPREMULTIPLY_TABLE[256 * (chunk[3] as usize) + chunk[1] as usize];
+            chunk[2] = UNPREMULTIPLY_TABLE[256 * (chunk[3] as usize) + b as usize];
+        }
+
+        pixels
     }
 }
 
@@ -1117,14 +1139,11 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-createimagedata
-    fn CreateImageData(&self, sw: Finite<f64>, sh: Finite<f64>) -> Fallible<DomRoot<ImageData>> {
-        if *sw == 0.0 || *sh == 0.0 {
+    fn CreateImageData(&self, sw: i32, sh: i32) -> Fallible<DomRoot<ImageData>> {
+        if sw == 0 || sh == 0 {
             return Err(Error::IndexSize);
         }
-
-        let sw = cmp::max(1, sw.abs().to_u32().unwrap());
-        let sh = cmp::max(1, sh.abs().to_u32().unwrap());
-        ImageData::new(&self.global(), sw, sh, None)
+        ImageData::new(&self.global(), sw.abs() as u32, sh.abs() as u32, None)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-createimagedata
@@ -1133,61 +1152,31 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-getimagedata
-    fn GetImageData(
-        &self,
-        sx: Finite<f64>,
-        sy: Finite<f64>,
-        sw: Finite<f64>,
-        sh: Finite<f64>,
-    ) -> Fallible<DomRoot<ImageData>> {
+    fn GetImageData(&self, sx: i32, sy: i32, sw: i32, sh: i32) -> Fallible<DomRoot<ImageData>> {
+        // FIXME(nox): There are many arithmetic operations here that can
+        // overflow or underflow, this should probably be audited.
+
+        if sw == 0 || sh == 0 {
+            return Err(Error::IndexSize);
+        }
+
         if !self.origin_is_clean() {
             return Err(Error::Security);
         }
 
-        let mut sx = *sx;
-        let mut sy = *sy;
-        let mut sw = *sw;
-        let mut sh = *sh;
+        let (origin, size) = adjust_size_sign(Point2D::new(sx, sy), Size2D::new(sw, sh));
+        // FIXME(nox): This is probably wrong when this is a context for an
+        // offscreen canvas.
+        let canvas_size = self.canvas.as_ref().map_or(Size2D::zero(), |c| c.get_size());
+        let read_rect = match pixels::clip(origin, size, canvas_size) {
+            Some(rect) => rect,
+            None => {
+                // All the pixels are outside the canvas surface.
+                return ImageData::new(&self.global(), size.width, size.height, None);
+            },
+        };
 
-        if sw == 0.0 || sh == 0.0 {
-            return Err(Error::IndexSize);
-        }
-
-        if sw < 0.0 {
-            sw = -sw;
-            sx -= sw;
-        }
-        if sh < 0.0 {
-            sh = -sh;
-            sy -= sh;
-        }
-
-        let sh = cmp::max(1, sh.to_u32().unwrap());
-        let sw = cmp::max(1, sw.to_u32().unwrap());
-
-        let (sender, receiver) = ipc::bytes_channel().unwrap();
-        let dest_rect = Rect::new(
-            Point2D::new(sx.to_i32().unwrap(), sy.to_i32().unwrap()),
-            Size2D::new(sw as i32, sh as i32),
-        );
-        let canvas_size = self
-            .canvas
-            .as_ref()
-            .map(|c| c.get_size())
-            .unwrap_or(Size2D::zero());
-        let canvas_size = Size2D::new(canvas_size.width as f64, canvas_size.height as f64);
-        self.send_canvas_2d_msg(Canvas2dMsg::GetImageData(dest_rect, canvas_size, sender));
-        let mut data = receiver.recv().unwrap();
-
-        // Byte swap and unmultiply alpha.
-        for chunk in data.chunks_mut(4) {
-            let (b, g, r, a) = (chunk[0], chunk[1], chunk[2], chunk[3]);
-            chunk[0] = UNPREMULTIPLY_TABLE[256 * (a as usize) + r as usize];
-            chunk[1] = UNPREMULTIPLY_TABLE[256 * (a as usize) + g as usize];
-            chunk[2] = UNPREMULTIPLY_TABLE[256 * (a as usize) + b as usize];
-        }
-
-        ImageData::new(&self.global(), sw, sh, Some(data.to_vec()))
+        ImageData::new(&self.global(), size.width, size.height, Some(self.get_rect(read_rect)))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-putimagedata
@@ -1196,21 +1185,23 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-putimagedata
+    #[allow(unsafe_code)]
     fn PutImageData_(
         &self,
         imagedata: &ImageData,
         dx: i32,
         dy: i32,
-        mut dirty_x: i32,
-        mut dirty_y: i32,
-        mut dirty_width: i32,
-        mut dirty_height: i32,
+        dirty_x: i32,
+        dirty_y: i32,
+        dirty_width: i32,
+        dirty_height: i32,
     ) {
         // FIXME(nox): There are many arithmetic operations here that can
         // overflow or underflow, this should probably be audited.
 
-        let imagedata_size = Size2D::new(imagedata.Width() as i32, imagedata.Height() as i32);
-        if imagedata_size.width <= 0 || imagedata_size.height <= 0 {
+
+        let imagedata_size = Size2D::new(imagedata.Width(), imagedata.Height());
+        if imagedata_size.area() == 0 {
             return;
         }
 
@@ -1220,76 +1211,37 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
         // Step 2.
         // TODO: throw InvalidState if buffer is detached.
 
-        // Step 3.
-        if dirty_width < 0 {
-            dirty_x += dirty_width;
-            dirty_width = -dirty_width;
-        }
-        if dirty_height < 0 {
-            dirty_y += dirty_height;
-            dirty_height = -dirty_height;
-        }
+        // FIXME(nox): This is probably wrong when this is a context for an
+        // offscreen canvas.
+        let canvas_size = self.canvas.as_ref().map_or(Size2D::zero(), |c| c.get_size());
 
-        // Ignore any pixel that would be drawn before the beginning of the
-        // canvas surface.
-        let mut dest_x = dx + dirty_x;
-        let mut dest_y = dy + dirty_y;
-        if dest_x < 0 {
-            dirty_x -= dest_x;
-            dirty_width += dest_x;
-            dest_x = 0;
-        }
-        if dest_y < 0 {
-            dirty_y -= dest_y;
-            dirty_height += dest_y;
-            dest_y = 0;
-        }
-
-        // Step 4.
-        if dirty_x < 0 {
-            dirty_width += dirty_x;
-            dirty_x = 0;
-        }
-        if dirty_y < 0 {
-            dirty_height += dirty_y;
-            dirty_y = 0;
-        }
-
-        // Step 5.
-        if dirty_x + dirty_width > imagedata_size.width {
-            dirty_width = imagedata_size.width - dirty_x;
-        }
-        if dirty_y + dirty_height > imagedata_size.height {
-            dirty_height = imagedata_size.height - dirty_y;
-        }
-
-        // We take care of ignoring any pixel that would be drawn after the end
-        // of the canvas surface.
-        let canvas_size = self.canvas.as_ref().map_or(Size2D::zero(), |c| c.get_size()).to_i32();
-        let origin = Point2D::new(dest_x, dest_y);
-        let drawable_size = (origin - canvas_size.to_vector().to_point()).to_size().abs();
-        dirty_width = dirty_width.min(drawable_size.width);
-        dirty_height = dirty_height.min(drawable_size.height);
-
-        // Step 6.
-        if dirty_width <= 0 || dirty_height <= 0 {
-            return;
-        }
-
-        // FIXME(nox): There is no need to make a Vec<u8> of all the pixels
-        // if we didn't want to put the entire image.
-        let buffer = imagedata.get_data_array();
+        // Steps 3-6.
+        let (src_origin, src_size) = adjust_size_sign(
+            Point2D::new(dirty_x, dirty_y),
+            Size2D::new(dirty_width, dirty_height),
+        );
+        let src_rect = match pixels::clip(src_origin, src_size, imagedata_size) {
+            Some(rect) => rect,
+            None => return,
+        };
+        let (dst_origin, _) = adjust_size_sign(
+            Point2D::new(dirty_x.saturating_add(dx), dirty_y.saturating_add(dy)),
+            Size2D::new(dirty_width, dirty_height),
+        );
+        // By clipping to the canvas surface, we avoid sending any pixel
+        // that would fall outside it.
+        let dst_rect = match pixels::clip(dst_origin, src_rect.size, canvas_size) {
+            Some(rect) => rect,
+            None => return,
+        };
 
         // Step 7.
-        self.send_canvas_2d_msg(Canvas2dMsg::PutImageData(
-            buffer.into(),
-            origin.to_vector(),
-            imagedata_size,
-            Rect::new(
-                Point2D::new(dirty_x, dirty_y),
-                Size2D::new(dirty_width, dirty_height),
-            ),
-        ));
+        let (sender, receiver) = ipc::bytes_channel().unwrap();
+        let pixels = unsafe {
+            &imagedata.get_rect(Rect::new(src_rect.origin, dst_rect.size))
+        };
+        self.send_canvas_2d_msg(Canvas2dMsg::PutImageData(dst_rect, receiver));
+        sender.send(pixels).unwrap();
         self.mark_as_dirty();
     }
 
@@ -1539,7 +1491,7 @@ fn is_rect_valid(rect: Rect<f64>) -> bool {
     rect.size.width > 0.0 && rect.size.height > 0.0
 }
 
-// https://html.spec.whatwg.org/multipage/#serialisation-of-a-colour
+// https://html.spec.whatwg.org/multipage/#serialisation-of-a-color
 fn serialize<W>(color: &RGBA, dest: &mut W) -> fmt::Result
 where
     W: fmt::Write,
@@ -1569,4 +1521,19 @@ where
             color.alpha_f32()
         )
     }
+}
+
+fn adjust_size_sign(
+    mut origin: Point2D<i32>,
+    mut size: Size2D<i32>,
+) -> (Point2D<i32>, Size2D<u32>) {
+    if size.width < 0 {
+        size.width = -size.width;
+        origin.x = origin.x.saturating_sub(size.width);
+    }
+    if size.height < 0 {
+        size.height = -size.height;
+        origin.y = origin.y.saturating_sub(size.height);
+    }
+    (origin, size.to_u32())
 }

@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use euclid::Size2D;
+use euclid::{Rect, Size2D};
 use gleam::gl;
 use ipc_channel::ipc::{IpcBytesReceiver, IpcBytesSender};
 use offscreen_gl_context::{GLContextAttributes, GLLimits};
@@ -227,7 +227,7 @@ pub enum WebGLCommand {
     GetRenderbufferParameter(u32, u32, WebGLSender<i32>),
     PolygonOffset(f32, f32),
     RenderbufferStorage(u32, u32, i32, i32),
-    ReadPixels(i32, i32, i32, i32, u32, u32, IpcBytesSender),
+    ReadPixels(Rect<u32>, u32, u32, IpcBytesSender),
     SampleCoverage(f32, bool),
     Scissor(i32, i32, u32, u32),
     StencilFunc(u32, i32, u32),

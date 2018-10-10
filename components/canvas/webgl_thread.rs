@@ -2,13 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use canvas_traits::canvas::byte_swap;
 use canvas_traits::webgl::*;
 use euclid::Size2D;
 use fnv::FnvHashMap;
 use gleam::gl;
-use ipc_channel::ipc::IpcBytesSender;
 use offscreen_gl_context::{GLContext, GLContextAttributes, GLLimits, NativeGLContextMethods};
+use pixels;
 use std::thread;
 use super::gl_context::{GLContextFactory, GLContextWrapper};
 use webrender;
@@ -562,7 +561,7 @@ impl<VR: WebVRRenderHandler + 'static> WebGLThread<VR> {
             let src_slice = &orig_pixels[src_start .. src_start + stride];
             (&mut pixels[dst_start .. dst_start + stride]).clone_from_slice(&src_slice[..stride]);
         }
-        byte_swap(&mut pixels);
+        pixels::byte_swap_colors_inplace(&mut pixels);
         pixels
     }
 
@@ -791,8 +790,16 @@ impl WebGLImpl {
                 ctx.gl().pixel_store_i(name, val),
             WebGLCommand::PolygonOffset(factor, units) =>
                 ctx.gl().polygon_offset(factor, units),
-            WebGLCommand::ReadPixels(x, y, width, height, format, pixel_type, ref chan) => {
-                Self::read_pixels(ctx.gl(), x, y, width, height, format, pixel_type, chan)
+            WebGLCommand::ReadPixels(rect, format, pixel_type, ref sender) => {
+                let pixels = ctx.gl().read_pixels(
+                    rect.origin.x as i32,
+                    rect.origin.y as i32,
+                    rect.size.width as i32,
+                    rect.size.height as i32,
+                    format,
+                    pixel_type,
+                );
+                sender.send(&pixels).unwrap();
             }
             WebGLCommand::RenderbufferStorage(target, format, width, height) =>
                 ctx.gl().renderbuffer_storage(target, format, width, height),
@@ -1333,20 +1340,6 @@ impl WebGLImpl {
             active_attribs,
             active_uniforms,
         }
-    }
-
-    fn read_pixels(
-        gl: &gl::Gl,
-        x: i32,
-        y: i32,
-        width: i32,
-        height: i32,
-        format: u32,
-        pixel_type: u32,
-        chan: &IpcBytesSender,
-    ) {
-      let result = gl.read_pixels(x, y, width, height, format, pixel_type);
-      chan.send(&result).unwrap()
     }
 
     fn finish(gl: &gl::Gl, chan: &WebGLSender<()>) {

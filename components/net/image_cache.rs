@@ -9,6 +9,7 @@ use net_traits::image::base::{Image, ImageMetadata, PixelFormat, load_from_memor
 use net_traits::image_cache::{CanRequestImages, ImageCache, ImageResponder};
 use net_traits::image_cache::{ImageOrMetadataAvailable, ImageResponse, ImageState};
 use net_traits::image_cache::{PendingImageId, UsePlaceholder};
+use pixels;
 use servo_url::ServoUrl;
 use std::collections::HashMap;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
@@ -52,7 +53,7 @@ fn set_webrender_image_key(webrender_api: &webrender_api::RenderApi, image: &mut
     let is_opaque = match image.format {
         PixelFormat::BGRA8 => {
             bytes.extend_from_slice(&*image.bytes);
-            premultiply(bytes.as_mut_slice())
+            pixels::premultiply_inplace(bytes.as_mut_slice())
         }
         PixelFormat::RGB8 => {
             for bgr in image.bytes.chunks(3) {
@@ -84,30 +85,6 @@ fn set_webrender_image_key(webrender_api: &webrender_api::RenderApi, image: &mut
     txn.add_image(image_key, descriptor, data, None);
     webrender_api.update_resources(txn.resource_updates);
     image.id = Some(image_key);
-}
-
-// Returns true if the image was found to be
-// completely opaque.
-fn premultiply(data: &mut [u8]) -> bool {
-    let mut is_opaque = true;
-    let length = data.len();
-
-    let mut i = 0;
-    while i < length {
-        let b = data[i + 0] as u32;
-        let g = data[i + 1] as u32;
-        let r = data[i + 2] as u32;
-        let a = data[i + 3] as u32;
-
-        data[i + 0] = (b * a / 255) as u8;
-        data[i + 1] = (g * a / 255) as u8;
-        data[i + 2] = (r * a / 255) as u8;
-
-        i += 4;
-        is_opaque = is_opaque && a == 255;
-    }
-
-    is_opaque
 }
 
 // ======================================================================

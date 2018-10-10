@@ -1,0 +1,13 @@
+[package]
+name = "pixels"
+version = "0.0.1"
+authors = ["The Servo Project Developers"]
+license = "MPL-2.0"
+publish = false
+
+[lib]
+name = "pixels"
+path = "lib.rs"
+
+[dependencies]
+euclid = "0.19"

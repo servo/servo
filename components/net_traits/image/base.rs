@@ -4,6 +4,7 @@
 
 use ipc_channel::ipc::IpcSharedMemory;
 use piston_image::{self, DynamicImage, ImageFormat};
+use pixels;
 use std::fmt;
 use webrender_api;
 
@@ -46,24 +47,6 @@ pub struct ImageMetadata {
 // FIXME: Images must not be copied every frame. Instead we should atomically
 // reference count them.
 
-// TODO(pcwalton): Speed up with SIMD, or better yet, find some way to not do this.
-fn byte_swap_and_premultiply(data: &mut [u8]) {
-    let length = data.len();
-
-    let mut i = 0;
-    while i < length {
-        let r = data[i + 2];
-        let g = data[i + 1];
-        let b = data[i + 0];
-
-        data[i + 0] = r;
-        data[i + 1] = g;
-        data[i + 2] = b;
-
-        i += 4;
-    }
-}
-
 pub fn load_from_memory(buffer: &[u8]) -> Option<Image> {
     if buffer.is_empty() {
         return None;
@@ -82,7 +65,7 @@ pub fn load_from_memory(buffer: &[u8]) -> Option<Image> {
                         DynamicImage::ImageRgba8(rgba) => rgba,
                         image => image.to_rgba(),
                     };
-                    byte_swap_and_premultiply(&mut *rgba);
+                    pixels::byte_swap_colors_inplace(&mut *rgba);
                     Some(Image {
                         width: rgba.width(),
                         height: rgba.height(),

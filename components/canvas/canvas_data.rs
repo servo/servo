@@ -11,8 +11,9 @@ use azure::azure_hl::SurfacePattern;
 use canvas_traits::canvas::*;
 use cssparser::RGBA;
 use euclid::{Transform2D, Point2D, Vector2D, Rect, Size2D};
-use ipc_channel::ipc::{IpcBytesSender, IpcSender};
+use ipc_channel::ipc::IpcSender;
 use num_traits::ToPrimitive;
+use pixels;
 use serde_bytes::ByteBuf;
 use std::mem;
 use std::sync::Arc;
@@ -439,55 +440,22 @@ impl<'a> CanvasData<'a> {
         chan.send(data).unwrap();
     }
 
-    pub fn image_data(
-        &self,
-        dest_rect: Rect<i32>,
-        canvas_size: Size2D<f64>,
-        sender: IpcBytesSender,
-    ) {
-        sender.send(&self.read_pixels(dest_rect, canvas_size)).unwrap();
-    }
-
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-putimagedata
-    pub fn put_image_data(
-        &mut self,
-        imagedata: Vec<u8>,
-        offset: Vector2D<i32>,
-        image_data_size: Size2D<i32>,
-        dest_rect: Rect<i32>,
-    ) {
-        assert_eq!(image_data_size.width * image_data_size.height * 4, imagedata.len() as i32);
-
-        let image_size = image_data_size;
-
-        let first_pixel = dest_rect.origin;
-        let mut src_line = (first_pixel.y * (image_size.width * 4) + first_pixel.x * 4) as usize;
-
-        let mut dest =
-            Vec::with_capacity((dest_rect.size.width * dest_rect.size.height * 4) as usize);
-
-        for _ in 0 .. dest_rect.size.height {
-            let mut src_offset = src_line;
-            for _ in 0 .. dest_rect.size.width {
-                let alpha = imagedata[src_offset + 3] as u16;
-                // add 127 before dividing for more accurate rounding
-                let premultiply_channel = |channel: u8| (((channel as u16 * alpha) + 127) / 255) as u8;
-                dest.push(premultiply_channel(imagedata[src_offset + 2]));
-                dest.push(premultiply_channel(imagedata[src_offset + 1]));
-                dest.push(premultiply_channel(imagedata[src_offset + 0]));
-                dest.push(imagedata[src_offset + 3]);
-                src_offset += 4;
-            }
-            src_line += (image_size.width * 4) as usize;
-        }
-
-        if let Some(source_surface) = self.drawtarget.create_source_surface_from_data(
-                &dest,
-                dest_rect.size,
-                dest_rect.size.width * 4,
-                SurfaceFormat::B8G8R8A8) {
-            self.drawtarget.copy_surface(source_surface, Rect::from_size(dest_rect.size), offset.to_point());
-        }
+    pub fn put_image_data(&mut self, mut imagedata: Vec<u8>, rect: Rect<u32>) {
+        assert_eq!(imagedata.len() % 4, 0);
+        assert_eq!(rect.size.area() as usize, imagedata.len() / 4);
+        pixels::byte_swap_and_premultiply_inplace(&mut imagedata);
+        let source_surface = self.drawtarget.create_source_surface_from_data(
+            &imagedata,
+            rect.size.to_i32(),
+            rect.size.width as i32 * 4,
+            SurfaceFormat::B8G8R8A8,
+        ).unwrap();
+        self.drawtarget.copy_surface(
+            source_surface,
+            Rect::from_size(rect.size.to_i32()),
+            rect.origin.to_i32(),
+        );
     }
 
     pub fn set_shadow_offset_x(&mut self, value: f64) {
@@ -545,32 +513,13 @@ impl<'a> CanvasData<'a> {
     /// canvas_size: The size of the canvas we're reading from
     /// read_rect: The area of the canvas we want to read from
     #[allow(unsafe_code)]
-    pub fn read_pixels(&self, read_rect: Rect<i32>, canvas_size: Size2D<f64>) -> Vec<u8> {
-        let canvas_size = canvas_size.to_i32();
-        let canvas_rect = Rect::new(Point2D::new(0i32, 0i32), canvas_size);
-        let src_read_rect = canvas_rect.intersection(&read_rect).unwrap_or(Rect::zero());
-
-        if src_read_rect.is_empty() || canvas_size.width <= 0 && canvas_size.height <= 0 {
-          return vec![];
+    pub fn read_pixels(&self, read_rect: Rect<u32>, canvas_size: Size2D<u32>) -> Vec<u8> {
+        let canvas_rect = Rect::from_size(canvas_size);
+        if canvas_rect.intersection(&read_rect).map_or(true, |rect| rect.is_empty()) {
+            return vec![];
         }
-
         let data_surface = self.drawtarget.snapshot().get_data_surface();
-        let src_data = unsafe { data_surface.data() };
-        let stride = data_surface.stride();
-
-        //start offset of the copyable rectangle
-        let mut src = (src_read_rect.origin.y * stride + src_read_rect.origin.x * 4) as usize;
-        let mut image_data = Vec::with_capacity(
-            (src_read_rect.size.width * src_read_rect.size.height * 4) as usize,
-        );
-        //copy the data to the destination vector
-        for _ in 0..src_read_rect.size.height {
-            let row = &src_data[src .. src + (4 * src_read_rect.size.width) as usize];
-            image_data.extend_from_slice(row);
-            src += stride as usize;
-        }
-
-        image_data
+        pixels::get_rect(unsafe { data_surface.data() }, canvas_size.to_u32(), read_rect.to_u32()).into_owned()
     }
 }
 
@@ -641,6 +590,9 @@ fn crop_image(
     // We're going to iterate over a pixel values array so we need integers
     let crop_rect = crop_rect.to_i32();
     let image_size = image_size.to_i32();
+    if crop_rect == Rect::from_size(image_size) {
+        return image_data;
+    }
     // Assuming 4 bytes per pixel and row-major order for storage
     // (consecutive elements in a pixel row of the image are contiguous in memory)
     let stride = image_size.width * 4;
@@ -690,23 +642,23 @@ fn write_image(
     } else {
         Filter::Point
     };
-    // azure_hl operates with integers. We need to cast the image size
     let image_size = image_size.to_i32();
 
-    if let Some(source_surface) =
-            draw_target.create_source_surface_from_data(&image_data,
-                                                        image_size,
-                                                        image_size.width * 4,
-                                                        SurfaceFormat::B8G8R8A8) {
-        let draw_surface_options = DrawSurfaceOptions::new(filter, true);
-        let draw_options = DrawOptions::new(global_alpha, composition_op, AntialiasMode::None);
-
-        draw_target.draw_surface(source_surface,
-                                 dest_rect.to_azure_style(),
-                                 image_rect.to_azure_style(),
-                                 draw_surface_options,
-                                 draw_options);
-    }
+    let source_surface = draw_target.create_source_surface_from_data(
+        &image_data,
+        image_size,
+        image_size.width * 4,
+        SurfaceFormat::B8G8R8A8,
+    ).unwrap();
+    let draw_surface_options = DrawSurfaceOptions::new(filter, true);
+    let draw_options = DrawOptions::new(global_alpha, composition_op, AntialiasMode::None);
+    draw_target.draw_surface(
+        source_surface,
+        dest_rect.to_azure_style(),
+        image_rect.to_azure_style(),
+        draw_surface_options,
+        draw_options,
+    );
 }
 
 pub trait PointToi32 {

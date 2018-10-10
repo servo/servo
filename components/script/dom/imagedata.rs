@@ -9,10 +9,12 @@ use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::bindings::root::DomRoot;
 use dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
-use euclid::Size2D;
+use euclid::{Rect, Size2D};
 use js::jsapi::{Heap, JSContext, JSObject};
 use js::rust::Runtime;
 use js::typedarray::{Uint8ClampedArray, CreateWith};
+use pixels;
+use std::borrow::Cow;
 use std::default::Default;
 use std::ptr;
 use std::ptr::NonNull;
@@ -137,16 +139,31 @@ impl ImageData {
         Self::new_with_jsobject(global, width, opt_height, Some(jsobject))
     }
 
+    /// Nothing must change the array on the JS side while the slice is live.
     #[allow(unsafe_code)]
-    pub fn get_data_array(&self) -> Vec<u8> {
-        unsafe {
-            assert!(!self.data.get().is_null());
-            let cx = Runtime::get();
-            assert!(!cx.is_null());
-            typedarray!(in(cx) let array: Uint8ClampedArray = self.data.get());
-            let vec = array.unwrap().as_slice().to_vec();
-            vec
-        }
+    pub unsafe fn as_slice(&self) -> &[u8] {
+        assert!(!self.data.get().is_null());
+        let cx = Runtime::get();
+        assert!(!cx.is_null());
+        typedarray!(in(cx) let array: Uint8ClampedArray = self.data.get());
+        let array = array.as_ref().unwrap();
+        // NOTE(nox): This is just as unsafe as `as_slice` itself even though we
+        // are extending the lifetime of the slice, because the data in
+        // this ImageData instance will never change. The method is thus unsafe
+        // because the array may be manipulated from JS while the reference
+        // is live.
+        let ptr = array.as_slice() as *const _;
+        &*ptr
+    }
+
+    #[allow(unsafe_code)]
+    pub fn to_vec(&self) -> Vec<u8> {
+        unsafe { self.as_slice().into() }
+    }
+
+    #[allow(unsafe_code)]
+    pub unsafe fn get_rect(&self, rect: Rect<u32>) -> Cow<[u8]> {
+        pixels::get_rect(self.as_slice(), self.get_size(), rect)
     }
 
     pub fn get_size(&self) -> Size2D<u32> {

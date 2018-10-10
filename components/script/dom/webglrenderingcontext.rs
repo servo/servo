@@ -5,7 +5,6 @@
 #[cfg(feature = "webgl_backtrace")]
 use backtrace::Backtrace;
 use byteorder::{ByteOrder, NativeEndian, WriteBytesExt};
-use canvas_traits::canvas::{byte_swap, multiply_u8_pixel};
 use canvas_traits::webgl::{DOMToTextureCommand, Parameter, WebGLCommandBacktrace};
 use canvas_traits::webgl::{TexParameter, WebGLCommand, WebGLContextShareMode, WebGLError};
 use canvas_traits::webgl::{WebGLFramebufferBindingRequest, WebGLMsg, WebGLMsgSender};
@@ -53,7 +52,7 @@ use dom::webgluniformlocation::WebGLUniformLocation;
 use dom::webglvertexarrayobjectoes::WebGLVertexArrayObjectOES;
 use dom::window::Window;
 use dom_struct::dom_struct;
-use euclid::Size2D;
+use euclid::{Point2D, Rect, Size2D};
 use half::f16;
 use ipc_channel::ipc;
 use js::jsapi::{JSContext, JSObject, Type};
@@ -65,6 +64,7 @@ use js::typedarray::{TypedArray, TypedArrayElementCreator};
 use net_traits::image::base::PixelFormat;
 use net_traits::image_cache::ImageResponse;
 use offscreen_gl_context::{GLContextAttributes, GLLimits};
+use pixels;
 use script_layout_interface::HTMLCanvasDataSource;
 use serde::{Deserialize, Serialize};
 use servo_config::prefs::PREFS;
@@ -524,7 +524,7 @@ impl WebGLRenderingContext {
     ) -> Fallible<Option<(Vec<u8>, Size2D<u32>, bool)>> {
         Ok(Some(match source {
             TexImageSource::ImageData(image_data) => {
-                (image_data.get_data_array(), image_data.get_size(), false)
+                (image_data.to_vec(), image_data.get_size(), false)
             },
             TexImageSource::HTMLImageElement(image) => {
                 let document = document_from_node(&*self.canvas);
@@ -554,7 +554,7 @@ impl WebGLRenderingContext {
                     _ => unimplemented!(),
                 };
 
-                byte_swap(&mut data);
+                pixels::byte_swap_colors_inplace(&mut data);
 
                 (data, size, false)
             },
@@ -567,7 +567,7 @@ impl WebGLRenderingContext {
                 }
                 if let Some((mut data, size)) = canvas.fetch_all_data() {
                     // Pixels got from Canvas have already alpha premultiplied
-                    byte_swap(&mut data);
+                    pixels::byte_swap_colors_inplace(&mut data);
                     (data, size, true)
                 } else {
                     return Ok(None);
@@ -683,15 +683,11 @@ impl WebGLRenderingContext {
 
         match (format, data_type) {
             (TexFormat::RGBA, TexDataType::UnsignedByte) => {
-                for rgba in pixels.chunks_mut(4) {
-                    rgba[0] = multiply_u8_pixel(rgba[0], rgba[3]);
-                    rgba[1] = multiply_u8_pixel(rgba[1], rgba[3]);
-                    rgba[2] = multiply_u8_pixel(rgba[2], rgba[3]);
-                }
+                pixels::premultiply_inplace(pixels);
             },
             (TexFormat::LuminanceAlpha, TexDataType::UnsignedByte) => {
                 for la in pixels.chunks_mut(2) {
-                    la[0] = multiply_u8_pixel(la[0], la[1]);
+                    la[0] = pixels::multiply_u8_color(la[0], la[1]);
                 }
             },
             (TexFormat::RGBA, TexDataType::UnsignedShort5551) => {
@@ -711,9 +707,9 @@ impl WebGLRenderingContext {
                     let a = extend_to_8_bits(pix & 0x0f);
                     NativeEndian::write_u16(
                         rgba,
-                        ((multiply_u8_pixel(r, a) & 0xf0) as u16) << 8 |
-                            ((multiply_u8_pixel(g, a) & 0xf0) as u16) << 4 |
-                            ((multiply_u8_pixel(b, a) & 0xf0) as u16) |
+                        ((pixels::multiply_u8_color(r, a) & 0xf0) as u16) << 8 |
+                            ((pixels::multiply_u8_color(g, a) & 0xf0) as u16) << 4 |
+                            ((pixels::multiply_u8_color(b, a) & 0xf0) as u16) |
                             ((a & 0x0f) as u16),
                     );
                 }
@@ -1078,7 +1074,7 @@ impl WebGLRenderingContext {
     // can fail and that it is UB what happens in that case.
     //
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#2.2
-    pub fn get_image_data(&self, width: u32, height: u32) -> Option<Vec<u8>> {
+    pub fn get_image_data(&self, mut size: Size2D<u32>) -> Option<Vec<u8>> {
         handle_potential_webgl_error!(self, self.validate_framebuffer(), return None);
 
         let (fb_width, fb_height) = handle_potential_webgl_error!(
@@ -1086,15 +1082,12 @@ impl WebGLRenderingContext {
             self.get_current_framebuffer_size().ok_or(InvalidOperation),
             return None
         );
-        let width = cmp::min(width, fb_width as u32);
-        let height = cmp::min(height, fb_height as u32);
+        size.width = cmp::min(size.width, fb_width as u32);
+        size.height = cmp::min(size.height, fb_height as u32);
 
         let (sender, receiver) = ipc::bytes_channel().unwrap();
         self.send_command(WebGLCommand::ReadPixels(
-            0,
-            0,
-            width as i32,
-            height as i32,
+            Rect::from_size(size),
             constants::RGBA,
             constants::UNSIGNED_BYTE,
             sender,
@@ -2887,45 +2880,29 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             return self.webgl_error(InvalidOperation);
         }
 
-        let mut src_x = x;
-        let mut src_y = y;
-        let mut src_width = width;
-        let mut src_height = height;
+        let src_origin = Point2D::new(x, y);
+        let src_size = Size2D::new(width as u32, height as u32);
+        let fb_size = Size2D::new(fb_width as u32, fb_height as u32);
+        let src_rect = match pixels::clip(src_origin, src_size, fb_size) {
+            Some(rect) => rect,
+            None => return,
+        };
+
         let mut dest_offset = 0;
-
-        if src_x < 0 {
-            if src_width <= -src_x {
-                return;
-            }
-            dest_offset += bytes_per_pixel * -src_x;
-            src_width += src_x;
-            src_x = 0;
+        if x < 0 {
+            dest_offset += -x * bytes_per_pixel;
         }
-        if src_y < 0 {
-            if src_height <= -src_y {
-                return;
-            }
-            dest_offset += row_len * -src_y;
-            src_height += src_y;
-            src_y = 0;
-        }
-
-        if src_x + src_width > fb_width {
-            src_width = fb_width - src_x;
-        }
-        if src_y + src_height > fb_height {
-            src_height = fb_height - src_y;
+        if y < 0 {
+            dest_offset += -y * row_len;
         }
 
         let (sender, receiver) = ipc::bytes_channel().unwrap();
-        self.send_command(WebGLCommand::ReadPixels(
-            src_x, src_y, src_width, src_height, format, pixel_type, sender,
-        ));
-
+        self.send_command(WebGLCommand::ReadPixels(src_rect, format, pixel_type, sender));
         let src = receiver.recv().unwrap();
-        let src_row_len = (src_width * bytes_per_pixel) as usize;
-        for i in 0..src_height {
-            let dest_start = (dest_offset + i * dest_stride) as usize;
+
+        let src_row_len = src_rect.size.width as usize * bytes_per_pixel as usize;
+        for i in 0..src_rect.size.height {
+            let dest_start = dest_offset as usize + i as usize * dest_stride as usize;
             let dest_end = dest_start + src_row_len;
             let src_start = i as usize * src_row_len;
             let src_end = src_start + src_row_len;

@@ -3,8 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use cssparser::RGBA;
-use euclid::{Transform2D, Point2D, Vector2D, Rect, Size2D};
-use ipc_channel::ipc::{IpcBytesSender, IpcSender};
+use euclid::{Transform2D, Point2D, Rect, Size2D};
+use ipc_channel::ipc::{IpcBytesReceiver, IpcBytesSender, IpcSender};
 use serde_bytes::ByteBuf;
 use std::default::Default;
 use std::str::FromStr;
@@ -19,7 +19,7 @@ pub enum FillRule {
 #[derive(Clone, Copy, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize)]
 pub struct CanvasId(pub u64);
 
-#[derive(Clone, Deserialize, Serialize)]
+#[derive(Deserialize, Serialize)]
 pub enum CanvasMsg {
     Canvas2d(Canvas2dMsg, CanvasId),
     Create(IpcSender<CanvasId>, Size2D<u32>, webrender_api::RenderApiSender, bool),
@@ -34,7 +34,7 @@ pub struct CanvasImageData {
     pub image_key: webrender_api::ImageKey,
 }
 
-#[derive(Clone, Deserialize, Serialize)]
+#[derive(Deserialize, Serialize)]
 pub enum Canvas2dMsg {
     Arc(Point2D<f32>, f32, f32, f32, bool),
     ArcTo(Point2D<f32>, Point2D<f32>, f32),
@@ -50,11 +50,11 @@ pub enum Canvas2dMsg {
     Fill,
     FillText(String, f64, f64, Option<f64>),
     FillRect(Rect<f32>),
-    GetImageData(Rect<i32>, Size2D<f64>, IpcBytesSender),
+    GetImageData(Rect<u32>, Size2D<u32>, IpcBytesSender),
     IsPointInPath(f64, f64, FillRule, IpcSender<bool>),
     LineTo(Point2D<f32>),
     MoveTo(Point2D<f32>),
-    PutImageData(ByteBuf, Vector2D<i32>, Size2D<i32>, Rect<i32>),
+    PutImageData(Rect<u32>, IpcBytesReceiver),
     QuadraticCurveTo(Point2D<f32>, Point2D<f32>),
     Rect(Rect<f32>),
     RestoreContext,
@@ -380,40 +380,5 @@ impl FromStr for CompositionOrBlending {
         }
 
         Err(())
-    }
-}
-
-// TODO(pcwalton): Speed up with SIMD, or better yet, find some way to not do this.
-pub fn byte_swap(data: &mut [u8]) {
-    let length = data.len();
-    // FIXME(rust #27741): Range::step_by is not stable yet as of this writing.
-    let mut i = 0;
-    while i < length {
-        let r = data[i + 2];
-        data[i + 2] = data[i + 0];
-        data[i + 0] = r;
-        i += 4;
-    }
-}
-
-pub fn multiply_u8_pixel(a: u8, b: u8) -> u8 {
-    return (a as u32 * b as u32 / 255) as u8;
-}
-
-pub fn byte_swap_and_premultiply(data: &mut [u8]) {
-    let length = data.len();
-
-    let mut i = 0;
-    while i < length {
-        let r = data[i + 2];
-        let g = data[i + 1];
-        let b = data[i + 0];
-        let a = data[i + 3];
-
-        data[i + 0] = multiply_u8_pixel(r, a);
-        data[i + 1] = multiply_u8_pixel(g, a);
-        data[i + 2] = multiply_u8_pixel(b, a);
-
-        i += 4;
     }
 }
