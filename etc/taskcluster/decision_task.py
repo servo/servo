@@ -94,7 +94,7 @@ def android_arm32():
 
 
 def android_x86():
-    return (
+    build_task = (
         android_build_task("Android x86: release build")
         .with_script("./mach build --target i686-linux-android --release")
         .with_artifacts(
@@ -103,6 +103,30 @@ def android_x86():
         )
         .find_or_create("build.android_x86_release." + CONFIG.git_sha)
     )
+    return (
+        DockerWorkerTask("Android x86: tests in emulator")
+        .with_provisioner_id("proj-servo")
+        .with_worker_type("docker-worker-kvm")
+        .with_capabilities(privileged=True)
+        .with_scopes("project:servo:docker-worker-kvm:capability:privileged")
+        .with_dockerfile(dockerfile_path("run-android-emulator"))
+        .with_dependencies(build_task)
+        .with_env(BUILD_TASK_ID=build_task)
+        .with_repo()
+        .with_script("""
+            mkdir -p target/i686-linux-android/release/
+            ./etc/taskcluster/curl-artifact.sh ${BUILD_TASK_ID} servoapp.apk \
+                -o target/i686-linux-android/release/servoapp.apk
+
+            ./mach bootstrap-android --accept-all-licences --emulator-x86
+            ./mach test-android-startup --release
+            ./mach test-wpt-android --release \
+                /_mozilla/mozilla/DOMParser.html \
+                /_mozilla/mozilla/webgl/context_creation_error.html
+        """)
+        .create()
+    )
+
 
 
 def windows_dev():
@@ -199,6 +223,7 @@ def linux_run_task(name, build_task, script):
     return (
         linux_task(name)
         .with_dockerfile(dockerfile_path("run"))
+        .with_repo()
         .with_early_script("""
             ./etc/taskcluster/curl-artifact.sh ${BUILD_TASK_ID} target.tar.gz | tar -xz
         """)

@@ -27,8 +27,10 @@ tasks:
 
           # Granted to role "repo:github.com/servo/servo:branch:*"
           - "queue:create-task:highest:aws-provisioner-v1/servo-*"
+          - "queue:create-task:highest:proj-servo/*"
           - "queue:route:index.project.servo.servo.*"
           - "docker-worker:cache:servo-*"
+          - "docker-worker:capability:privileged"
 
         payload:
           maxRunTime: {$eval: '20 * 60'}

@@ -512,6 +512,7 @@ class DockerWorkerTask(Task):
         self.env = {}
         self.caches = {}
         self.features = {}
+        self.capabilities = {}
         self.artifacts = []
 
     with_docker_image = chaining(setattr, "docker_image")
@@ -521,6 +522,7 @@ class DockerWorkerTask(Task):
     with_early_script = chaining(prepend_to_attr, "scripts")
     with_caches = chaining(update_attr, "caches")
     with_env = chaining(update_attr, "env")
+    with_capabilities = chaining(update_attr, "capabilities")
 
     def build_worker_payload(self):
         """
@@ -541,6 +543,7 @@ class DockerWorkerTask(Task):
             env=self.env,
             cache=self.caches,
             features=self.features,
+            capabilities=self.capabilities,
             artifacts={
                 "public/" + url_basename(path): {
                     "type": "file",
