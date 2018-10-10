@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use blob_loader::load_blob_sync;
+use blob_loader::load_blob_async;
 use data_loader::decode;
 use devtools_traits::DevtoolsControlMsg;
 use fetch::cors_cache::CorsCache;
@@ -552,19 +552,8 @@ fn scheme_fetch(request: &mut Request,
             if request.method != Method::Get {
                 return Response::network_error(NetworkError::Internal("Unexpected method for blob".into()));
             }
-
-            match load_blob_sync(url.clone(), context.filemanager.clone()) {
-                Ok((headers, bytes)) => {
-                    let mut response = Response::new(url);
-                    response.headers = headers;
-                    *response.body.lock().unwrap() = ResponseBody::Done(bytes);
-                    response
-                },
-                Err(e) => {
-                    debug!("Failed to load {}: {:?}", url, e);
-                    Response::network_error(e)
-                },
-            }
+            
+            load_blob_async(url.clone(), context.filemanager.clone(), done_chan)
         },
 
         "ftp" => {
