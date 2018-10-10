@@ -52,3 +52,6 @@ mkdir -p output # Test result will be saved to output/perf-<timestamp>.json
 
 ./test_all.sh --servo ${*}
 SERVO_DIR="../../.." ${WARC_DIR}/run-warc-tests.sh
+
+# Exit the virtualenv
+deactivate
