@@ -60,7 +60,7 @@ impl nsCSSValue {
     pub unsafe fn array_unchecked(&self) -> &nsCSSValue_Array {
         debug_assert!(
             nsCSSUnit::eCSSUnit_Array as u32 <= self.mUnit as u32 &&
-                self.mUnit as u32 <= nsCSSUnit::eCSSUnit_Calc_Divided as u32
+                self.mUnit as u32 <= nsCSSUnit::eCSSUnit_Calc_Plus as u32
         );
         let array = *self.mValue.mArray.as_ref();
         debug_assert!(!array.is_null());
