@@ -35,10 +35,11 @@ class Atom:
         self.original_ident = ident
         self.value = value
         self.hash = hash
-        # The Gecko type: "nsStaticAtom", "nsICSSPseudoElement", or "nsIAnonBoxPseudo"
+        # The Gecko type: "nsStaticAtom", "nsCSSPseudoElementStaticAtom", or
+        # "nsAnonBoxPseudoStaticAtom".
         self.ty = ty
         # The type of atom: "Atom", "PseudoElement", "NonInheritingAnonBox",
-        # or "InheritingAnonBox"
+        # or "InheritingAnonBox".
         self.atom_type = atom_type
         if self.is_pseudo() or self.is_anon_box():
             self.pseudo_ident = (ident.split("_", 1))[1]
@@ -205,7 +206,7 @@ def write_atom_macro(atoms, file_name):
 def write_pseudo_elements(atoms, target_filename):
     pseudos = []
     for atom in atoms:
-        if atom.type() == "nsICSSPseudoElement" or atom.type() == "nsICSSAnonBoxPseudo":
+        if atom.type() == "nsCSSPseudoElementStaticAtom" or atom.type() == "nsCSSAnonBoxPseudoStaticAtom":
             pseudos.append(atom)
 
     pseudo_definition_template = os.path.join(GECKO_DIR, "pseudo_element_definition.mako.rs")
