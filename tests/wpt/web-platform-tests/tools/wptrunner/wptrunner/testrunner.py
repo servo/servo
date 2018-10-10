@@ -52,7 +52,7 @@ class TestRunner(object):
         :param command_queue: subprocess.Queue used to send commands to the
                               process
         :param result_queue: subprocess.Queue used to send results to the
-                             parent TestManager process
+                             parent TestRunnerManager process
         :param executor: TestExecutor object that will actually run a test.
         """
         self.command_queue = command_queue
@@ -304,7 +304,7 @@ class TestRunnerManager(threading.Thread):
 
         self.test_runner_proc = None
 
-        threading.Thread.__init__(self, name="Thread-TestrunnerManager-%i" % self.manager_number)
+        threading.Thread.__init__(self, name="TestRunnerManager-%i" % self.manager_number)
         # This is started in the actual new thread
         self.logger = None
 
@@ -321,9 +321,9 @@ class TestRunnerManager(threading.Thread):
         self.capture_stdio = capture_stdio
 
     def run(self):
-        """Main loop for the TestManager.
+        """Main loop for the TestRunnerManager.
 
-        TestManagers generally receive commands from their
+        TestRunnerManagers generally receive commands from their
         TestRunner updating them on the status of a test. They
         may also have a stop flag set by the main thread indicating
         that the manager should shut down the next time the event loop
@@ -490,7 +490,7 @@ class TestRunnerManager(threading.Thread):
                 self.child_stop_flag)
         self.test_runner_proc = Process(target=start_runner,
                                         args=args,
-                                        name="Thread-TestRunner-%i" % self.manager_number)
+                                        name="TestRunner-%i" % self.manager_number)
         self.test_runner_proc.start()
         self.logger.debug("Test runner started")
         # Now we wait for either an init_succeeded event or an init_failed event
@@ -623,10 +623,10 @@ class TestRunnerManager(threading.Thread):
 
     def wait_finished(self):
         assert isinstance(self.state, RunnerManagerState.running)
-        # The browser should be stopped already, but this ensures we do any post-stop
-        # processing
         self.logger.debug("Wait finished")
 
+        # The browser should be stopped already, but this ensures we do any
+        # post-stop processing
         return self.after_test_end(self.state.test, True)
 
     def after_test_end(self, test, restart):
@@ -674,7 +674,7 @@ class TestRunnerManager(threading.Thread):
             self.cleanup()
 
     def teardown(self):
-        self.logger.debug("teardown in testrunnermanager")
+        self.logger.debug("TestRunnerManager teardown")
         self.test_runner_proc = None
         self.command_queue.close()
         self.remote_queue.close()
@@ -695,7 +695,7 @@ class TestRunnerManager(threading.Thread):
             self.test_runner_proc.terminate()
             self.test_runner_proc.join(10)
         else:
-            self.logger.debug("Testrunner exited with code %i" % self.test_runner_proc.exitcode)
+            self.logger.debug("Runner process exited with code %i" % self.test_runner_proc.exitcode)
 
     def runner_teardown(self):
         self.ensure_runner_stopped()
@@ -705,7 +705,7 @@ class TestRunnerManager(threading.Thread):
         self.remote_queue.put((command, args))
 
     def cleanup(self):
-        self.logger.debug("TestManager cleanup")
+        self.logger.debug("TestRunnerManager cleanup")
         if self.browser:
             self.browser.cleanup()
         while True:
@@ -716,12 +716,17 @@ class TestRunnerManager(threading.Thread):
             else:
                 if cmd == "log":
                     self.log(*data)
+                elif cmd == "runner_teardown":
+                    # It's OK for the "runner_teardown" message to be left in
+                    # the queue during cleanup, as we will already have tried
+                    # to stop the TestRunner in `stop_runner`.
+                    pass
                 else:
-                    self.logger.warning("%r: %r" % (cmd, data))
+                    self.logger.warning("Command left in command_queue during cleanup: %r, %r" % (cmd, data))
         while True:
             try:
                 cmd, data = self.remote_queue.get_nowait()
-                self.logger.warning("%r: %r" % (cmd, data))
+                self.logger.warning("Command left in remote_queue during cleanup: %r, %r" % (cmd, data))
             except Empty:
                 break
 
@@ -747,7 +752,7 @@ class ManagerGroup(object):
                  restart_on_unexpected=True,
                  debug_info=None,
                  capture_stdio=True):
-        """Main thread object that owns all the TestManager threads."""
+        """Main thread object that owns all the TestRunnerManager threads."""
         self.suite_name = suite_name
         self.size = size
         self.test_source_cls = test_source_cls
