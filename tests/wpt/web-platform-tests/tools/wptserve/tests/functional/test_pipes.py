@@ -57,40 +57,35 @@ class TestSlice(TestUsingServer):
         self.assertEqual(resp.read(), expected[:10])
 
 class TestSub(TestUsingServer):
-    @pytest.mark.xfail(sys.version_info >= (3,), reason="wptserve only works on Py2")
     def test_sub_config(self):
         resp = self.request("/sub.txt", query="pipe=sub")
-        expected = "localhost localhost %i" % self.server.port
+        expected = b"localhost localhost %i" % self.server.port
         self.assertEqual(resp.read().rstrip(), expected)
 
     @pytest.mark.xfail(sys.platform == "win32",
                        reason="https://github.com/web-platform-tests/wpt/issues/12949")
-    @pytest.mark.xfail(sys.version_info >= (3,), reason="wptserve only works on Py2")
     def test_sub_file_hash(self):
         resp = self.request("/sub_file_hash.sub.txt")
-        expected = """
+        expected = b"""
 md5: JmI1W8fMHfSfCarYOSxJcw==
 sha1: nqpWqEw4IW8NjD6R375gtrQvtTo=
 sha224: RqQ6fMmta6n9TuA/vgTZK2EqmidqnrwBAmQLRQ==
 sha256: G6Ljg1uPejQxqFmvFOcV/loqnjPTW5GSOePOfM/u0jw=
 sha384: lkXHChh1BXHN5nT5BYhi1x67E1CyYbPKRKoF2LTm5GivuEFpVVYtvEBHtPr74N9E
-sha512: r8eLGRTc7ZznZkFjeVLyo6/FyQdra9qmlYCwKKxm3kfQAswRS9+3HsYk3thLUhcFmmWhK4dXaICz
-JwGFonfXwg=="""
+sha512: r8eLGRTc7ZznZkFjeVLyo6/FyQdra9qmlYCwKKxm3kfQAswRS9+3HsYk3thLUhcFmmWhK4dXaICzJwGFonfXwg=="""
         self.assertEqual(resp.read().rstrip(), expected.strip())
 
     def test_sub_file_hash_unrecognized(self):
         with self.assertRaises(urllib.error.HTTPError):
             self.request("/sub_file_hash_unrecognized.sub.txt")
 
-    @pytest.mark.xfail(sys.version_info >= (3,), reason="wptserve only works on Py2")
     def test_sub_headers(self):
         resp = self.request("/sub_headers.txt", query="pipe=sub", headers={"X-Test": "PASS"})
-        expected = "PASS"
+        expected = b"PASS"
         self.assertEqual(resp.read().rstrip(), expected)
 
     @pytest.mark.xfail(sys.platform == "win32",
                        reason="https://github.com/web-platform-tests/wpt/issues/12949")
-    @pytest.mark.xfail(sys.version_info >= (3,), reason="wptserve only works on Py2")
     def test_sub_location(self):
         resp = self.request("/sub_location.sub.txt?query_string")
         expected = """
@@ -101,30 +96,26 @@ pathname: /sub_location.sub.txt
 port: {0}
 query: ?query_string
 scheme: http
-server: http://localhost:{0}""".format(self.server.port)
+server: http://localhost:{0}""".format(self.server.port).encode("ascii")
         self.assertEqual(resp.read().rstrip(), expected.strip())
 
-    @pytest.mark.xfail(sys.version_info >= (3,), reason="wptserve only works on Py2")
     def test_sub_params(self):
         resp = self.request("/sub_params.txt", query="test=PASS&pipe=sub")
-        expected = "PASS"
+        expected = b"PASS"
         self.assertEqual(resp.read().rstrip(), expected)
 
-    @pytest.mark.xfail(sys.version_info >= (3,), reason="wptserve only works on Py2")
     def test_sub_url_base(self):
         resp = self.request("/sub_url_base.sub.txt")
-        self.assertEqual(resp.read().rstrip(), "Before / After")
+        self.assertEqual(resp.read().rstrip(), b"Before / After")
 
-    @pytest.mark.xfail(sys.version_info >= (3,), reason="wptserve only works on Py2")
     def test_sub_uuid(self):
         resp = self.request("/sub_uuid.sub.txt")
-        self.assertRegexpMatches(resp.read().rstrip(), r"Before [a-f0-9-]+ After")
+        self.assertRegexpMatches(resp.read().rstrip(), b"Before [a-f0-9-]+ After")
 
-    @pytest.mark.xfail(sys.version_info >= (3,), reason="wptserve only works on Py2")
     def test_sub_var(self):
         resp = self.request("/sub_var.sub.txt")
         port = self.server.port
-        expected = "localhost %s A %s B localhost C" % (port, port)
+        expected = b"localhost %d A %d B localhost C" % (port, port)
         self.assertEqual(resp.read().rstrip(), expected)
 
 class TestTrickle(TestUsingServer):

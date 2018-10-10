@@ -537,4 +537,61 @@ test(function(){
     assert_parsed_type(gen_prop('<length># | fail', 'fail'), '10px, 20px', CSSUnitValue);
 }, 'CSSStyleValue.parse[All] returns list of CSSUnitValues for <length>#');
 
+// Direct CSSStyleValue objects:
+
+function gen_all_props() {
+    return [
+        gen_prop('*', 'foo'),
+        gen_prop('foo', 'foo'),
+        gen_prop('<angle>', '0deg'),
+        gen_prop('<color>', 'rgb(1, 2, 3)'),
+        gen_prop('<custom-ident>', 'thing'),
+        gen_prop('<image>', 'url(a)'),
+        gen_prop('<integer>', '0'),
+        gen_prop('<length-percentage>', 'calc(10px + 10%)'),
+        gen_prop('<length>', '0px'),
+        gen_prop('<number>', '0.5'),
+        gen_prop('<percentage>', '0%'),
+        gen_prop('<resolution>', '0dpi'),
+        gen_prop('<time>', '0s'),
+        gen_prop('<transform-function>', 'rotateX(0deg)'),
+        gen_prop('<transform-list>', 'rotateX(0deg)'),
+        gen_prop('<url>', 'url(a)')
+    ];
+}
+
+test(function(){
+    let props0 = gen_all_props();
+    let props1 = gen_all_props();
+
+    for (let i = 0; i < props0.length; i++) {
+        let prop0 = props0[i];
+        let prop1 = props1[i];
+
+        // Abuse computedStyleMap to get the initialValue (just to get some
+        // value that will parse for prop0/1's syntax).
+        let initialValue = target.computedStyleMap().get(prop0);
+
+        // We only care about direct CSSStyleValue instances in this test.
+        // Ultimately, in some future version of CSS TypedOM, we may have no
+        // direct CSSStyleValue instances at all, which is fine.
+        if (initialValue.constructor !== CSSStyleValue) {
+            continue;
+        }
+
+        let value = CSSStyleValue.parse(prop0, initialValue.toString());
+
+        // A value parsed for prop0 must be assignable to prop0.
+        target.attributeStyleMap.clear();
+        target.attributeStyleMap.set(prop0, value); // Don't throw.
+
+        // A value parsed for prop0 must not be assignable to prop1, even if
+        // the properties have compatible syntaxes.
+        assert_throws(new TypeError(), () => {
+            target.attributeStyleMap.clear();
+            target.attributeStyleMap.set(prop1, value);
+        });
+    }
+}, 'Direct CSSStyleValue instances are tied to their associated property');
+
 </script>

@@ -1,7 +1,7 @@
 import base64
 import cgi
 from six.moves.http_cookies import BaseCookie
-from six import BytesIO
+from six import BytesIO, binary_type, text_type
 import tempfile
 
 from six.moves.urllib.parse import parse_qsl, urlsplit
@@ -308,7 +308,7 @@ class Request(object):
             self.raw_input.seek(0)
             fs = cgi.FieldStorage(fp=self.raw_input,
                                   environ={"REQUEST_METHOD": self.method},
-                                  headers=self.headers,
+                                  headers=self.raw_headers,
                                   keep_blank_values=True)
             self._POST = MultiDict.from_field_storage(fs)
             self.raw_input.seek(pos)
@@ -318,7 +318,7 @@ class Request(object):
     def cookies(self):
         if self._cookies is None:
             parser = BaseCookie()
-            cookie_headers = self.headers.get("cookie", "")
+            cookie_headers = self.headers.get("cookie", b"")
             parser.load(cookie_headers)
             cookies = Cookies()
             for key, value in parser.iteritems():
@@ -355,11 +355,34 @@ class H2Request(Request):
         super(H2Request, self).__init__(request_handler)
 
 
+def _maybe_encode(s):
+    """Encodes a text-type string into binary data using iso-8859-1.
+
+    Returns `str` in Python 2 and `bytes` in Python 3. The function is a no-op
+    if the argument already has a binary type.
+    """
+    if isinstance(s, binary_type):
+        return s
+
+    # Python 3 assumes iso-8859-1 when parsing headers, which will garble text
+    # with non ASCII characters. We try to encode the text back to binary.
+    # https://github.com/python/cpython/blob/273fc220b25933e443c82af6888eb1871d032fb8/Lib/http/client.py#L213
+    if isinstance(s, text_type):
+        return s.encode("iso-8859-1")
+
+    raise TypeError("Unexpected value in RequestHeaders: %r" % s)
+
+
 class RequestHeaders(dict):
-    """Dictionary-like API for accessing request headers."""
+    """Read-only dictionary-like API for accessing request headers.
+
+    Unlike BaseHTTPRequestHandler.headers, this class always returns all
+    headers with the same name (separated by commas). And it ensures all keys
+    (i.e. names of headers) and values have binary type.
+    """
     def __init__(self, items):
         for header in items.keys():
-            key = header.lower()
+            key = _maybe_encode(header).lower()
             # get all headers with the same name
             values = items.getallmatchingheaders(header)
             if len(values) > 1:
@@ -369,15 +392,17 @@ class RequestHeaders(dict):
                 for value in values:
                     # getallmatchingheaders returns raw header lines, so
                     # split to get name, value
-                    multiples.append(value.split(':', 1)[1].strip())
-                dict.__setitem__(self, key, multiples)
+                    multiples.append(_maybe_encode(value).split(b':', 1)[1].strip())
+                headers = multiples
             else:
-                dict.__setitem__(self, key, [items[header]])
+                headers = [_maybe_encode(items[header])]
+            dict.__setitem__(self, key, headers)
 
 
     def __getitem__(self, key):
         """Get all headers of a certain (case-insensitive) name. If there is
         more than one, the values are returned comma separated"""
+        key = _maybe_encode(key)
         values = dict.__getitem__(self, key.lower())
         if len(values) == 1:
             return values[0]
@@ -403,6 +428,7 @@ class RequestHeaders(dict):
     def get_list(self, key, default=missing):
         """Get all the header values for a particular field name as
         a list"""
+        key = _maybe_encode(key)
         try:
             return dict.__getitem__(self, key.lower())
         except KeyError:
@@ -412,6 +438,7 @@ class RequestHeaders(dict):
                 raise
 
     def __contains__(self, key):
+        key = _maybe_encode(key)
         return dict.__contains__(self, key.lower())
 
     def iteritems(self):
@@ -590,21 +617,28 @@ class Authentication(object):
 
     The password supplied in the HTTP Authorization
     header, or None
+
+    Both attributes are binary strings (`str` in Py2, `bytes` in Py3), since
+    RFC7617 Section 2.1 does not specify the encoding for username & passsword
+    (as long it's compatible with ASCII). UTF-8 should be a relatively safe
+    choice if callers need to decode them as most browsers use it.
     """
     def __init__(self, headers):
         self.username = None
         self.password = None
 
-        auth_schemes = {"Basic": self.decode_basic}
+        auth_schemes = {b"Basic": self.decode_basic}
 
         if "authorization" in headers:
             header = headers.get("authorization")
-            auth_type, data = header.split(" ", 1)
+            assert isinstance(header, binary_type)
+            auth_type, data = header.split(b" ", 1)
             if auth_type in auth_schemes:
                 self.username, self.password = auth_schemes[auth_type](data)
             else:
                 raise HTTPException(400, "Unsupported authentication scheme %s" % auth_type)
 
     def decode_basic(self, data):
-        decoded_data = base64.decodestring(data)
-        return decoded_data.split(":", 1)
+        assert isinstance(data, binary_type)
+        decoded_data = base64.b64decode(data)
+        return decoded_data.split(b":", 1)

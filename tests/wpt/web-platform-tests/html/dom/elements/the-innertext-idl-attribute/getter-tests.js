@@ -56,6 +56,8 @@ testText("<div><span>abc </span><span style='white-space:pre'></span> def", "abc
 testText("<div>abc <input> def", "abc  def", "Whitespace around <input> should not be collapsed");
 testText("<div>abc <span style='display:inline-block'></span> def", "abc  def", "Whitespace around inline-block should not be collapsed");
 testText("<div>abc <span style='display:inline-block'> def </span> ghi", "abc def ghi", "Trailing space at end of inline-block should be collapsed");
+testText("<div><input> <div>abc</div>", "abc", "Whitespace between <input> and block should be collapsed");
+testText("<div><span style='inline-block'></span> <div>abc</div>", "abc", "Whitespace between inline-block and block should be collapsed");
 
 /**** Soft line breaks ****/
 

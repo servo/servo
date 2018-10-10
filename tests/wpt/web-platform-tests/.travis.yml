@@ -4,23 +4,19 @@ language: python
 branches:
   only:
     - master
-addons:
-  hosts:
-    - web-platform.test
-    - www.web-platform.test
-    - www1.web-platform.test
-    - www2.web-platform.test
-    - xn--n8j6ds53lwwkrqhv28a.web-platform.test
-    - xn--lve-6lad.web-platform.test
 before_install:
   # This needs be sourced as it sets various env vars
   - . ./tools/ci/before_install.sh
 install:
   - ./tools/ci/install.sh
 matrix:
+  # The use of `if` conditionals to exclude jobs from master should align with
+  # jobs unconditionally listed by `./wpt test-jobs`, regardless of affected
+  # paths. (The reverse is not true, as the manifest job could run on PRs too.)
   fast_finish: true
   include:
     - name: "tag master + upload manifest"
+      if: type = push AND branch = master
       os: linux
       python: "2.7"
       env:
@@ -33,18 +29,22 @@ matrix:
         file: $WPT_MANIFEST_FILE.gz
         skip_cleanup: true
     - name: "lint"
+      # lint is run both on master and on PRs
       os: linux
       python: "2.7"
       env: JOB=lint SCRIPT=tools/ci/ci_lint.sh
     - name: "update-built-tests.sh"
+      if: type = pull_request
       os: linux
       python: "2.7"
       env: JOB=update_built SCRIPT=tools/ci/ci_built_diff.sh
     - name: "build-css-testsuites.sh"
+      if: type = pull_request
       os: linux
       python: "2.7"
       env: JOB=build_css SCRIPT=css/build-css-testsuites.sh
     - name: "stability (Firefox Nightly)"
+      if: type = pull_request
       os: linux
       python: "2.7"
       addons:
@@ -54,8 +54,8 @@ matrix:
       env:
         - JOB=stability SCRIPT=tools/ci/ci_stability.sh PRODUCT=firefox:nightly
     - name: "stability (Chrome Dev)"
+      if: type = pull_request
       os: linux
-      sudo: required
       python: "2.7"
       addons:
         apt:
@@ -65,14 +65,17 @@ matrix:
       env:
         - JOB=stability SCRIPT=tools/ci/ci_stability.sh PRODUCT=chrome:dev
     - name: "tools/ unittests (Python 2)"
+      if: type = pull_request
       os: linux
       python: "2.7"
       env: JOB=tools_unittest TOXENV=py27 HYPOTHESIS_PROFILE=ci SCRIPT=tools/ci/ci_tools_unittest.sh
     - name: "tools/ unittests (Python 3)"
+      if: type = pull_request
       os: linux
       python: "3.6"
       env: JOB=tools_unittest TOXENV=py36 HYPOTHESIS_PROFILE=ci SCRIPT=tools/ci/ci_tools_unittest.sh
     - name: "tools/wpt/ unittests"
+      if: type = pull_request
       os: linux
       python: "2.7"
       addons:
@@ -81,10 +84,12 @@ matrix:
             - libnss3-tools
       env: JOB=wpt_integration TOXENV=py27,py27-flake8 SCRIPT=tools/ci/ci_wpt.sh
     - name: "resources/ tests"
+      if: type = pull_request
       os: linux
       python: "2.7"
       env: JOB=resources_unittest TOXENV=py27 SCRIPT=tools/ci/ci_resources_unittest.sh
     - name: "infrastructure/ tests"
+      if: type = pull_request
       os: linux
       python: "2.7"
       env: JOB=wptrunner_infrastructure SCRIPT=tools/ci/ci_wptrunner_infrastructure.sh

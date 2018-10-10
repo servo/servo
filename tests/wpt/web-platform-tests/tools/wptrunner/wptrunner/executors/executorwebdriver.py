@@ -18,12 +18,14 @@ from .protocol import (BaseProtocolPart,
                        SelectorProtocolPart,
                        ClickProtocolPart,
                        SendKeysProtocolPart,
+                       ActionSequenceProtocolPart,
                        TestDriverProtocolPart)
 from ..testrunner import Stop
 
 import webdriver as client
 
 here = os.path.join(os.path.split(__file__)[0])
+
 
 class WebDriverBaseProtocolPart(BaseProtocolPart):
     def setup(self):
@@ -146,6 +148,14 @@ class WebDriverSendKeysProtocolPart(SendKeysProtocolPart):
             return element.send_element_command("POST", "value", {"value": list(keys)})
 
 
+class WebDriverActionSequenceProtocolPart(ActionSequenceProtocolPart):
+    def setup(self):
+        self.webdriver = self.parent.webdriver
+
+    def send_actions(self, actions):
+        self.webdriver.actions.perform(actions)
+
+
 class WebDriverTestDriverProtocolPart(TestDriverProtocolPart):
     def setup(self):
         self.webdriver = self.parent.webdriver
@@ -166,6 +176,7 @@ class WebDriverProtocol(Protocol):
                   WebDriverSelectorProtocolPart,
                   WebDriverClickProtocolPart,
                   WebDriverSendKeysProtocolPart,
+                  WebDriverActionSequenceProtocolPart,
                   WebDriverTestDriverProtocolPart]
 
     def __init__(self, executor, browser, capabilities, **kwargs):

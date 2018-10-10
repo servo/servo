@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>TestDriver actions: multiple devices</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<input type="text" id="text"></input>
+
+<script>
+async_test(t => {
+  let text_box = document.getElementById("text");
+  let actions = new test_driver.Actions()
+    .pointerMove(0, 0, {origin: text_box})
+    .pointerDown()
+    .pointerUp()
+    .addTick()
+    .keyDown("p")
+    .keyUp("p")
+    .keyDown("a")
+    .keyUp("a")
+    .keyDown("s")
+    .keyUp("s")
+    .keyDown("s")
+    .keyUp("s");
+
+  actions.send()
+    .then(() => {
+      assert_true(text_box.value == "pass");
+      t.done();
+    })
+    .catch(t.unreached_func("Actions sequence failed"));
+});
+</script>
