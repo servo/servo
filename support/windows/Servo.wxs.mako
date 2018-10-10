@@ -20,6 +20,12 @@
     <Media Id="1"
            Cabinet="Servo.cab"
            EmbedCab="yes"/>
+    <Property Id="GSTINSTALLDIR">
+	    <RegistrySearch Id="GStreamerRegistry" Type="raw" Root="HKLM" Key="SOFTWARE\WOW6432Node\GStreamer1.0\x86" Name="InstallDir"/>
+    </Property>
+    <Property Id="GSTINSTALLDIR64">
+	    <RegistrySearch Id="GStreamerRegistry64" Type="raw" Root="HKLM" Key="SOFTWARE\WOW6432Node\GStreamer1.0\x86_64" Name="InstallDir"/>
+    </Property>
     <Directory Id="TARGETDIR" Name="SourceDir">
       <Directory Id="ProgramFiles64Folder" Name="PFiles">
         <Directory Id="MozResearch" Name="Mozilla Research">
@@ -39,8 +45,8 @@
                           Icon="servo.exe"
                           Advertise="yes"/>
               </File>
-              ${include_dependencies()}
-              <Environment Id="PATH" Name="PATH" Value="C:\gstreamer\1.0\x86\bin;C:\gstreamer\1.0\x86_64\bin" Permanent="yes" Part="last" Action="set" System="yes" />
+	      ${include_dependencies()}
+              <Environment Id="PATH" Name="PATH" Value="[GSTINSTALLDIR]\1.0\x86\bin;[GSTINSTALLDIR64]\1.0\x86_64\bin" Permanent="yes" Part="last" Action="set" System="yes" />
             </Component>
 
             ${include_directory(resources_path, "resources")}
