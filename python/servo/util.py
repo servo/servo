@@ -18,6 +18,7 @@ from socket import error as socket_error
 import stat
 import StringIO
 import sys
+import time
 import zipfile
 import urllib2
 
@@ -102,8 +103,10 @@ def download(desc, src, writer, start_byte=0):
             fsize = int(resp.info().getheader('Content-Length').strip()) + start_byte
 
         recved = start_byte
-        chunk_size = 8192
+        chunk_size = 64 * 1024
 
+        previous_progress_line = None
+        previous_progress_line_time = 0
         while True:
             chunk = resp.read(chunk_size)
             if not chunk:
@@ -112,7 +115,13 @@ def download(desc, src, writer, start_byte=0):
             if not dumb:
                 if fsize is not None:
                     pct = recved * 100.0 / fsize
-                    print("\rDownloading %s: %5.1f%%" % (desc, pct), end="")
+                    progress_line = "\rDownloading %s: %5.1f%%" % (desc, pct)
+                    now = time.time()
+                    duration = now - previous_progress_line_time
+                    if progress_line != previous_progress_line and duration > .1:
+                        print(progress_line, end="")
+                        previous_progress_line = progress_line
+                        previous_progress_line_time = now
 
                 sys.stdout.flush()
             writer.write(chunk)
