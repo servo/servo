@@ -20,10 +20,10 @@ use servo_media::audio::buffer_source_node::AudioBuffer as ServoMediaAudioBuffer
 use std::cmp::min;
 use std::ptr::{self, NonNull};
 
-// This range is defined by the spec.
+// Spec mandates at least [8000, 96000], we use [8000, 192000] to match Firefox
 // https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-createbuffer
 pub const MIN_SAMPLE_RATE: f32 = 8000.;
-pub const MAX_SAMPLE_RATE: f32 = 96000.;
+pub const MAX_SAMPLE_RATE: f32 = 192000.;
 
 type JSAudioChannel = Heap<*mut JSObject>;
 
