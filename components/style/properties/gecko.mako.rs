@@ -689,7 +689,10 @@ def set_gecko_property(ffi_name, expr):
             }
             SVGPaintKind::PaintServer(url) => {
                 unsafe {
-                    bindings::Gecko_nsStyleSVGPaint_SetURLValue(paint, url.0.url_value.get());
+                    bindings::Gecko_nsStyleSVGPaint_SetURLValue(
+                        paint,
+                        url.url_value_ptr(),
+                    )
                 }
             }
             SVGPaintKind::Color(color) => {
@@ -4153,7 +4156,10 @@ fn static_assert() {
             }
             UrlOrNone::Url(ref url) => {
                 unsafe {
-                    Gecko_SetListStyleImageImageValue(&mut self.gecko, url.0.image_value.get());
+                    Gecko_SetListStyleImageImageValue(
+                        &mut self.gecko,
+                        url.url_value_ptr(),
+                    );
                 }
             }
         }
@@ -5358,7 +5364,7 @@ clip-path
             unsafe {
                 Gecko_SetCursorImageValue(
                     &mut self.gecko.mCursorImages[i],
-                    v.images[i].url.0.image_value.get(),
+                    v.images[i].url.url_value_ptr(),
                 );
             }
 
@@ -5659,7 +5665,7 @@ clip-path
                             unsafe {
                                 bindings::Gecko_SetContentDataImageValue(
                                     &mut self.gecko.mContents[i],
-                                    url.0.image_value.get(),
+                                    url.url_value_ptr(),
                                 )
                             }
                         }

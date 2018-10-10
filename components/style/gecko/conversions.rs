@@ -225,13 +225,13 @@ impl nsStyleImage {
         match image {
             GenericImage::Gradient(boxed_gradient) => self.set_gradient(*boxed_gradient),
             GenericImage::Url(ref url) => unsafe {
-                bindings::Gecko_SetLayerImageImageValue(self, url.0.image_value.get());
+                bindings::Gecko_SetLayerImageImageValue(self, (url.0).0.url_value.get());
             },
             GenericImage::Rect(ref image_rect) => {
                 unsafe {
                     bindings::Gecko_SetLayerImageImageValue(
                         self,
-                        image_rect.url.0.image_value.get(),
+                        (image_rect.url.0).0.url_value.get(),
                     );
                     bindings::Gecko_InitializeImageCropRect(self);
 

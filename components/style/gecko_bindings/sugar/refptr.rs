@@ -298,11 +298,6 @@ impl_threadsafe_refcount!(
     bindings::Gecko_ReleaseGridTemplateAreasValueArbitraryThread
 );
 impl_threadsafe_refcount!(
-    structs::ImageValue,
-    bindings::Gecko_AddRefImageValueArbitraryThread,
-    bindings::Gecko_ReleaseImageValueArbitraryThread
-);
-impl_threadsafe_refcount!(
     structs::SharedFontList,
     bindings::Gecko_AddRefSharedFontListArbitraryThread,
     bindings::Gecko_ReleaseSharedFontListArbitraryThread
