@@ -403,39 +403,16 @@ impl CanvasRenderingContext2D {
         dh: Option<f64>,
     ) -> ErrorResult {
         debug!("Fetching image {}.", url);
-        // https://html.spec.whatwg.org/multipage/#img-error
-        // If the image argument is an HTMLImageElement object that is in the broken state,
-        // then throw an InvalidStateError exception
-        let (image_data, image_size) = match self.fetch_image_data(url) {
-            Some((mut data, size)) => {
-                // Pixels come from cache in BGRA order and drawImage expects RGBA so we
-                // have to swap the color values
-                pixels::byte_swap_and_premultiply_inplace(&mut data);
-                let size = Size2D::new(size.width as f64, size.height as f64);
-                (data, size)
-            },
-            None => return Err(Error::InvalidState),
-        };
+        let (mut image_data, image_size) =
+            self.fetch_image_data(url).ok_or(Error::InvalidState)?;
+        pixels::premultiply_inplace(&mut image_data);
+        let image_size = image_size.to_f64();
+
         let dw = dw.unwrap_or(image_size.width);
         let dh = dh.unwrap_or(image_size.height);
         let sw = sw.unwrap_or(image_size.width);
         let sh = sh.unwrap_or(image_size.height);
-        self.draw_image_data(image_data, image_size, sx, sy, sw, sh, dx, dy, dw, dh)
-    }
 
-    fn draw_image_data(
-        &self,
-        image_data: Vec<u8>,
-        image_size: Size2D<f64>,
-        sx: f64,
-        sy: f64,
-        sw: f64,
-        sh: f64,
-        dx: f64,
-        dy: f64,
-        dw: f64,
-        dh: f64,
-    ) -> ErrorResult {
         // Establish the source and destination rectangles
         let (source_rect, dest_rect) =
             self.adjust_source_dest_rects(image_size, sx, sy, sw, sh, dx, dy, dw, dh);
