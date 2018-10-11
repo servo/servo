@@ -55,7 +55,7 @@ Please select your operating system:
 
 ``` sh
 brew install automake autoconf@2.13 pkg-config python cmake yasm llvm
-brew install gstreamer gst-plugins-base gst-plugins-good       gst-plugins-bad gst-plugins-ugly gst-libav gst-rtsp-server       --with-orc -with-libogg --with-opus --with-pango --with-theora       --with-libvorbis
+brew install gstreamer gst-plugins-base gst-plugins-good gst-plugins-bad gst-libav gst-rtsp-server --with-orc --with-libogg --with-opus --with-pango --with-theora --with-libvorbis
 pip install virtualenv
 ```
 #### On macOS (MacPorts)
