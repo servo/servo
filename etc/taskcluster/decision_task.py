@@ -249,13 +249,13 @@ def linux_build_task(name):
     return (
         linux_task(name)
         # https://docs.taskcluster.net/docs/reference/workers/docker-worker/docs/caches
-        # FIMXE: move to servo-* cache names
-        .with_scopes("docker-worker:cache:cargo-*")
+        .with_scopes("docker-worker:cache:servo-*")
         .with_caches(**{
-            "cargo-registry-cache": "/root/.cargo/registry",
-            "cargo-git-cache": "/root/.cargo/git",
-            "cargo-rustup": "/root/.rustup",
-            "cargo-sccache": "/root/.cache/sccache",
+            "servo-cargo-registry": "/root/.cargo/registry",
+            "servo-cargo-git": "/root/.cargo/git",
+            "servo-rustup": "/root/.rustup",
+            "servo-sccache": "/root/.cache/sccache",
+            "servo-gradle": "/root/.gradle",
         })
         .with_index_and_artifacts_expire_in(build_artifacts_expire_in)
         .with_max_run_time_minutes(60)
