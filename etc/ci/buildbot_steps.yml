@@ -180,7 +180,7 @@ android:
   - ./mach clean-nightlies --keep 3 --force
   - ./mach clean-cargo-cache --keep 3 --force
   - ./etc/ci/clean_build_artifacts.sh
-  - ./etc/ci/bootstrap-android-and-accept-licences.sh
+  - ./etc/ci/bootstrap-android-and-accept-licences.sh --build
   - env --unset ANDROID_NDK --unset ANDROID_SDK ./mach build --android --dev
   - env --unset ANDROID_NDK --unset ANDROID_SDK ./mach package --android --dev
   - bash ./etc/ci/lockfile_changed.sh
@@ -191,7 +191,7 @@ android-mac:
  commands:
   - ./mach clean-nightlies --keep 3 --force
   - ./mach clean-cargo-cache --keep 3 --force
-  - ./etc/ci/bootstrap-android-and-accept-licences.sh
+  - ./etc/ci/bootstrap-android-and-accept-licences.sh --build
   - ./mach build --android --dev
   - ./mach package --android --dev
   - bash ./etc/ci/lockfile_changed.sh
@@ -205,7 +205,7 @@ android-x86:
   - ./mach clean-nightlies --keep 3 --force
   - ./mach clean-cargo-cache --keep 3 --force
   - ./etc/ci/clean_build_artifacts.sh
-  - ./etc/ci/bootstrap-android-and-accept-licences.sh
+  - ./etc/ci/bootstrap-android-and-accept-licences.sh --build --emulator-x86
   - env --unset ANDROID_NDK --unset ANDROID_SDK ./mach build --target i686-linux-android --release
   - env --unset ANDROID_NDK --unset ANDROID_SDK ./mach test-android-startup --release
   - env --unset ANDROID_NDK --unset ANDROID_SDK ./mach test-wpt-android --release /_mozilla/mozilla/DOMParser.html /_mozilla/mozilla/webgl/context_creation_error.html
@@ -220,7 +220,7 @@ android-nightly:
   - ./mach clean-nightlies --keep 3 --force
   - ./mach clean-cargo-cache --keep 3 --force
   - ./etc/ci/clean_build_artifacts.sh
-  - ./etc/ci/bootstrap-android-and-accept-licences.sh
+  - ./etc/ci/bootstrap-android-and-accept-licences.sh --build
   - env --unset ANDROID_NDK --unset ANDROID_SDK ./mach build --android --release
   - env --unset ANDROID_NDK --unset ANDROID_SDK ./mach package --android --release --maven
   - env --unset ANDROID_NDK --unset ANDROID_SDK ./mach build --target=i686-linux-android --release

@@ -79,16 +79,21 @@ class MachCommands(CommandBase):
     @Command('bootstrap-android',
              description='Install the Android SDK and NDK.',
              category='bootstrap')
-    def bootstrap_android(self):
+    @CommandArgument('--build',
+                     action='store_true',
+                     help='Install Android-specific dependencies for building')
+    @CommandArgument('--emulator-x86',
+                     action='store_true',
+                     help='Install Android x86 emulator and system image')
+    def bootstrap_android(self, build=False, emulator_x86=False):
+        if not (build or emulator_x86):
+            print("Must specify `--build` or `--emulator-x86` or both.")
 
         ndk = "android-ndk-r12b-{system}-{arch}"
         tools = "sdk-tools-{system}-4333796"
 
-        sdk_build_tools = "27.0.3"
-        emulator_images = [
-            ("servo-arm", "25", "google_apis;armeabi-v7a"),
-            ("servo-x86", "28", "google_apis;x86"),
-        ]
+        emulator_platform = "android-28"
+        emulator_image = "system-images;%s;google_apis;x86" % emulator_platform
 
         known_sha1 = {
             # https://dl.google.com/android/repository/repository2-1.xml
@@ -135,29 +140,34 @@ class MachCommands(CommandBase):
         system = platform.system().lower()
         machine = platform.machine().lower()
         arch = {"i386": "x86"}.get(machine, machine)
-        download("ndk", ndk.format(system=system, arch=arch), flatten=True)
+        if build:
+            download("ndk", ndk.format(system=system, arch=arch), flatten=True)
         download("sdk", tools.format(system=system))
 
-        subprocess.check_call([
-            path.join(toolchains, "sdk", "tools", "bin", "sdkmanager"),
-            "platform-tools",
-            "build-tools;" + sdk_build_tools,
-            "emulator",
-        ] + [
-            arg
-            for avd_name, api_level, system_image in emulator_images
-            for arg in [
-                "platforms;android-" + api_level,
-                "system-images;android-%s;%s" % (api_level, system_image),
+        components = []
+        if emulator_x86:
+            components += [
+                "platform-tools",
+                "emulator",
+                "platforms;" + emulator_platform,
+                emulator_image,
             ]
-        ])
-        for avd_name, api_level, system_image in emulator_images:
+        if build:
+            components += [
+                "platforms;android-18",
+            ]
+        subprocess.check_call(
+            [path.join(toolchains, "sdk", "tools", "bin", "sdkmanager")] + components
+        )
+
+        if emulator_x86:
+            avd_path = path.join(toolchains, "avd", "servo-x86")
             process = subprocess.Popen(stdin=subprocess.PIPE, stdout=subprocess.PIPE, args=[
                 path.join(toolchains, "sdk", "tools", "bin", "avdmanager"),
                 "create", "avd",
-                "--path", path.join(toolchains, "avd", avd_name),
-                "--name", avd_name,
-                "--package", "system-images;android-%s;%s" % (api_level, system_image),
+                "--path", avd_path,
+                "--name", "servo-x86",
+                "--package", emulator_image,
                 "--force",
             ])
             output = b""
@@ -175,7 +185,7 @@ class MachCommands(CommandBase):
                 if output.endswith(b"Do you wish to create a custom hardware profile? [no]"):
                     process.stdin.write("no\n")
             assert process.wait() == 0
-            with open(path.join(toolchains, "avd", avd_name, "config.ini"), "a") as f:
+            with open(path.join(avd_path, "config.ini"), "a") as f:
                 f.write("disk.dataPartition.size=2G\n")
 
     @Command('update-hsts-preload',

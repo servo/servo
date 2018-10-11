@@ -14,4 +14,4 @@ set -o pipefail
 set +o pipefail
 
 cd $(dirname ${0})/../..
-yes | ./mach bootstrap-android
+yes | ./mach bootstrap-android "${@}"

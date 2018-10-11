@@ -249,7 +249,7 @@ linker = "lld-link.exe"
 
 #### Cross-compilation for Android
 
-Run `./mach bootstrap-android` to get Android-specific tools. See wiki for
+Run `./mach bootstrap-android --build` to get Android-specific tools. See wiki for
 [details](https://github.com/servo/servo/wiki/Building-for-Android).
 
 ## The Rust compiler
