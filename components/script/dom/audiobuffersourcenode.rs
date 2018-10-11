@@ -137,14 +137,14 @@ impl AudioBufferSourceNodeMethods for AudioBufferSourceNode {
         self.buffer.set(new_buffer);
 
         // Step 5.
-        if self.source_node.started() {
+        if self.source_node.has_start() {
             if let Some(buffer) = self.buffer.get() {
-                let buffer = buffer.acquire_contents();
+                let buffer = buffer.get_channels();
                 if buffer.is_some() {
                     self.source_node
                         .node()
                         .message(AudioNodeMessage::AudioBufferSourceNode(
-                            AudioBufferSourceNodeMessage::SetBuffer(buffer),
+                            AudioBufferSourceNodeMessage::SetBuffer((*buffer).clone()),
                         ));
                 }
             }
@@ -215,12 +215,12 @@ impl AudioBufferSourceNodeMethods for AudioBufferSourceNode {
         }
 
         if let Some(buffer) = self.buffer.get() {
-            let buffer = buffer.acquire_contents();
+            let buffer = buffer.get_channels();
             if buffer.is_some() {
                 self.source_node
                     .node()
                     .message(AudioNodeMessage::AudioBufferSourceNode(
-                        AudioBufferSourceNodeMessage::SetBuffer(buffer),
+                        AudioBufferSourceNodeMessage::SetBuffer((*buffer).clone()),
                     ));
             }
         }
@@ -235,7 +235,7 @@ impl<'a> From<&'a AudioBufferSourceOptions> for AudioBufferSourceNodeOptions {
         Self {
             buffer: if let Some(ref buffer) = options.buffer {
                 if let Some(ref buffer) = buffer {
-                    Some(buffer.get_channels())
+                    (*buffer.get_channels()).clone()
                 } else {
                     None
                 }
