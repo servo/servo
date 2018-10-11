@@ -380,16 +380,15 @@ class PackageCommands(CommandBase):
             except subprocess.CalledProcessError as e:
                 print("WiX light exited with return value %d" % e.returncode)
                 return e.returncode
-            print("Packaged Servo into " + path.join(dir_to_msi, "Installer.msi"))
+            dir_to_installer = path.join(dir_to_msi, "Installer.msi")
+            print("Packaged Servo into " + dir_to_installer)
 
             # Download GStreamer installer. Only once.
-            dir_to_gst_deps = path.join(dir_to_msi, 'Gstreamer.msi')
-            gstreamer_msi_path = path.join(target_dir, 'Gstreamer.msi')
+            gstreamer_msi_path = path.join(dir_to_msi, 'Gstreamer.msi')
             if not os.path.exists(gstreamer_msi_path):
                 print('Fetching GStreamer installer. This may take a while...')
                 gstreamer_url = 'https://gstreamer.freedesktop.org/data/pkg/windows/1.14.2/gstreamer-1.0-x86-1.14.2.msi'
                 urllib.urlretrieve(gstreamer_url, gstreamer_msi_path)
-            shutil.copy(gstreamer_msi_path, dir_to_gst_deps)
 
             # Generate bundle with GStreamer and Servo installers.
             print("Creating bundle")
@@ -412,6 +411,7 @@ class PackageCommands(CommandBase):
 
             print("Cleaning up")
             delete(dir_to_temp)
+            delete(dir_to_installer)
         else:
             dir_to_temp = path.join(target_dir, 'packaging-temp')
             if path.exists(dir_to_temp):
