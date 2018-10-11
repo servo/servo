@@ -255,6 +255,7 @@ def linux_build_task(name):
             "servo-cargo-git": "/root/.cargo/git",
             "servo-rustup": "/root/.rustup",
             "servo-sccache": "/root/.cache/sccache",
+            "servo-gradle": "/root/.gradle",
         })
         .with_index_and_artifacts_expire_in(build_artifacts_expire_in)
         .with_max_run_time_minutes(60)
