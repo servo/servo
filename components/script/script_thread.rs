@@ -121,6 +121,7 @@ use task_source::TaskSourceName;
 use task_source::dom_manipulation::DOMManipulationTaskSource;
 use task_source::file_reading::FileReadingTaskSource;
 use task_source::history_traversal::HistoryTraversalTaskSource;
+use task_source::media_element::MediaElementTaskSource;
 use task_source::networking::NetworkingTaskSource;
 use task_source::performance_timeline::PerformanceTimelineTaskSource;
 use task_source::remote_event::RemoteEventTaskSource;
@@ -501,6 +502,8 @@ pub struct ScriptThread {
     chan: MainThreadScriptChan,
 
     dom_manipulation_task_sender: Sender<MainThreadScriptMsg>,
+
+    media_element_task_sender: Sender<MainThreadScriptMsg>,
 
     user_interaction_task_sender: Sender<MainThreadScriptMsg>,
 
@@ -1018,6 +1021,7 @@ impl ScriptThread {
 
             chan: MainThreadScriptChan(chan.clone()),
             dom_manipulation_task_sender: chan.clone(),
+            media_element_task_sender: chan.clone(),
             user_interaction_task_sender: chan.clone(),
             networking_task_sender: boxed_script_sender.clone(),
             file_reading_task_sender: boxed_script_sender.clone(),
@@ -2151,6 +2155,10 @@ impl ScriptThread {
         DOMManipulationTaskSource(self.dom_manipulation_task_sender.clone(), pipeline_id)
     }
 
+    pub fn media_element_task_source(&self, pipeline_id: PipelineId) -> MediaElementTaskSource {
+        MediaElementTaskSource(self.media_element_task_sender.clone(), pipeline_id)
+    }
+
     pub fn performance_timeline_task_source(
         &self,
         pipeline_id: PipelineId,
@@ -2558,6 +2566,7 @@ impl ScriptThread {
             self.js_runtime.clone(),
             MainThreadScriptChan(sender.clone()),
             self.dom_manipulation_task_source(incomplete.pipeline_id),
+            self.media_element_task_source(incomplete.pipeline_id),
             self.user_interaction_task_source(incomplete.pipeline_id),
             self.networking_task_source(incomplete.pipeline_id),
             HistoryTraversalTaskSource(history_sender.clone()),
