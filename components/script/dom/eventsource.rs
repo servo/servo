@@ -340,7 +340,7 @@ impl FetchResponseListener for EventSourceContext {
                     None => self.fail_the_connection(),
                     Some(ct) => match ct.into_inner().0 {
                         Mime(TopLevel::Text, SubLevel::EventStream, _) => {
-                            self.origin = meta.final_url.origin().unicode_serialization();
+                            self.origin = meta.final_url.origin().ascii_serialization();
                             self.announce_the_connection();
                         },
                         _ => self.fail_the_connection(),

@@ -57,6 +57,6 @@ pub fn get_blob_origin(url: &ServoUrl) -> FileOrigin {
         // NOTE: by default this is "null" (Opaque), which is not ideal
         "file://".to_string()
     } else {
-        url.origin().unicode_serialization()
+        url.origin().ascii_serialization()
     }
 }
