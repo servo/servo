@@ -24,11 +24,23 @@
     display: flex;
     align-items: baseline;
   }
+  fieldset {
+    border: none;
+    color: transparent;
+  }
+  legend, .innerContents {
+    width: 0;
+    height: 0;
+    padding: 0;
+  }
   </style>
 </head>
 <body>
   <div class="flexBaselineCheck">
-  outside before<fieldset class="basic"></fieldset>outside after
+  outside before<fieldset class="basc">
+    <legend>l</legend>
+    <div class="innerContents">i</div>
+  </fieldset>outside after
   </div>
 </body>
 </html>

@@ -6,6 +6,10 @@
 
 <body>
 <script>
+  window.addEventListener('securitypolicyviolation', function(e) {
+    opener.postMessage({result: 'fail', violatedDirective: e.violatedDirective}, '*');
+  });
+
   try {
     location.href = "{{GET[target]}}";
   } catch(ex) {}

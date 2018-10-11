@@ -7,6 +7,10 @@
 <body>
 <a href="{{GET[target]}}" id="link">dummy link</a>
 <script>
+  window.addEventListener('securitypolicyviolation', function(e) {
+    top.postMessage({result: 'fail', violatedDirective: e.violatedDirective}, '*');
+  });
+
   document.getElementById('link').click();
 </script>
 </body>

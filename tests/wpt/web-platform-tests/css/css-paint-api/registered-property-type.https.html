@@ -27,16 +27,42 @@
     paint(ctx, geom, styleMap) {
       ctx.strokeStyle = 'green';
       for (let prop of props) {
-        let first = styleMap.get(prop.name);
-        let all = styleMap.getAll(prop.name);
+        // Read values using get, getAll and iterator:
+        let valueFromGet = styleMap.get(prop.name);
+        let valueFromGetAll = styleMap.getAll(prop.name);
+        let valueFromIterator = Array.from(styleMap).filter(e => e[0] == prop.name)[0][1];
+
+        // Serialize 'actual'-values for all three cases:
         let serialize = v => v.constructor.name + '=' + v.toString()
-        let actual = all.map(serialize).join(',');
-        let expected = prop.expected.join(',');
-        let pass = actual === expected
-            && serialize(first) === prop.expected[0];
+        let actualFromGet = serialize(valueFromGet);
+        let actualFromGetAll = valueFromGetAll.map(serialize).join(',');
+        let actualFromIterator = valueFromIterator.map(serialize).join(',');
+
+        // Create 'expected'-values for all three cases:
+        let expectedForGet = prop.expected[0];
+        let expectedForGetAll = prop.expected.join(',');
+        let expectedForIterator = expectedForGetAll;
+
+        let pass = true;
+
+        // Assertions:
+        if (actualFromGet !== expectedForGet) {
+          debugLog(`FAIL: StylePropertyMap.get: actual: ${actualFromGet}  expected: ${expectedForGet}`);
+          pass = false;
+        }
+        if (actualFromGetAll !== expectedForGetAll) {
+          debugLog(`FAIL: StylePropertyMap.getAll: actual: ${actualFromGetAll}  expected: ${expectedForGetAll}`);
+          pass = false;
+        }
+        if (actualFromIterator !== expectedForIterator) {
+          debugLog(`FAIL: StylePropertyMap iterator: actual: ${actualFromIterator}  expected: ${expectedForIterator}`);
+          pass = false;
+        }
+
         if (!pass)
           ctx.strokeStyle = 'red';
-        debugLog(pass ? 'PASS' : 'FAIL', prop.syntax, actual, expected);
+        else
+          debugLog('PASS', prop.syntax, actualFromGetAll, expectedForGetAll);
       }
       ctx.lineWidth = 4;
       ctx.strokeRect(0, 0, geom.width, geom.height);

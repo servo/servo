@@ -26,6 +26,11 @@
     display: flex;
     align-items: baseline;
   }
+  .innerContents {
+    color: transparent;
+    width: 0;
+    height: 0;
+  }
   </style>
 </head>
 <body>
@@ -51,7 +56,7 @@
   <br>
 
   <div class="flexBaselineCheck">
-  outside before<div class="basic"></div>outside after
+  outside before<div class="basic innerContents">i</div>outside after
   </div>
 </body>
 </html>

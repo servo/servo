@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <title>Test request Picture-in-Picture</title>
+<script src="/common/media.js"></script>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/resources/testdriver.js"></script>
@@ -21,7 +22,7 @@ promise_test(t => {
 promise_test(async t => {
   const video = document.createElement('video');
   await new Promise(resolve => {
-    video.src = '/media/sound_5.oga';
+    video.src = getAudioURI('/media/sound_5');
     video.onloadeddata = resolve;
   }).then(() => {
     return promise_rejects(t, 'InvalidStateError',
