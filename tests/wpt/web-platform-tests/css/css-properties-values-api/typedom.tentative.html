@@ -33,6 +33,13 @@ function gen_prop(syntax, initialValue) {
     return name;
 }
 
+// Cleans style rules used for testing between every test.
+add_result_callback(function(){
+    target.attributeStyleMap.clear();
+    // Clears 'div' rule in #style:
+    style.sheet.rules[0].styleMap.clear();
+});
+
 // On the target element, verify that computed value of 'name' is an instance
 // of 'expected' and not an instance of CSSUnparsedValue.
 //
@@ -593,5 +600,125 @@ test(function(){
         });
     }
 }, 'Direct CSSStyleValue instances are tied to their associated property');
+
+// StylePropertyMapReadOnly iteration
+
+test(function(){
+    let name = gen_prop('<length>', '10px');
+    let result = Array.from(target.computedStyleMap()).filter(e => e[0] == name)[0];
+    assert_true(typeof(result) !== 'undefined');
+}, 'Registered property with initial value show up on iteration of computedStyleMap');
+
+// Verifies that iterating a StylePropertyMap[ReadOnly] yields correctly
+// typed objects for a given syntax/value.
+function test_iteration_type_for_property_map(propertyMapName, propertyMap, options) {
+    test(function(){
+        let name = gen_prop(options.syntax, options.initialValue);
+        if (propertyMap instanceof StylePropertyMap) {
+            // Only set the value if the propertyMap is mutable.
+            propertyMap.set(name, options.value);
+        }
+        let result = Array.from(propertyMap).filter(e => e[0] == name)[0];
+        let value = result[1];
+        assert_true(options.expect(value));
+    }, `Iteration on ${propertyMapName} produces correct type for ${options.syntax}`);
+}
+
+function test_iteration_type(options) {
+    test_iteration_type_for_property_map('computedStyleMap', target.computedStyleMap(), options);
+    test_iteration_type_for_property_map('attributeStyleMap', target.attributeStyleMap, options);
+    test_iteration_type_for_property_map('styleMap', style.sheet.rules[0].styleMap, options);
+}
+
+test_iteration_type({
+    syntax: '*',
+    initialValue: 'none',
+    value: 'thing',
+    expect: v => v.length == 1 && v[0] instanceof CSSUnparsedValue,
+});
+
+test_iteration_type({
+    syntax: '<angle>',
+    initialValue: '0deg',
+    value: '42deg',
+    expect: v => v.length == 1 && v[0] instanceof CSSUnitValue,
+});
+
+test_iteration_type({
+    syntax: '<custom-ident>',
+    initialValue: 'none',
+    value: 'thing',
+    expect: v => v.length == 1 && v[0] instanceof CSSKeywordValue,
+});
+
+test_iteration_type({
+    syntax: '<image>',
+    initialValue: 'url(a)',
+    value: 'url(b)',
+    expect: v => v.length == 1 && v[0] instanceof CSSImageValue,
+});
+
+test_iteration_type({
+    syntax: '<integer>',
+    initialValue: '0',
+    value: '100',
+    expect: v => v.length == 1 && v[0] instanceof CSSUnitValue,
+});
+
+test_iteration_type({
+    syntax: '<length>',
+    initialValue: '0px',
+    value: '10px',
+    expect: v => v.length == 1 && v[0] instanceof CSSUnitValue,
+});
+
+test_iteration_type({
+    syntax: '<number>',
+    initialValue: '0',
+    value: '42',
+    expect: v => v.length == 1 && v[0] instanceof CSSUnitValue,
+});
+
+test_iteration_type({
+    syntax: '<percentage>',
+    initialValue: '0%',
+    value: '10%',
+    expect: v => v.length == 1 && v[0] instanceof CSSUnitValue,
+});
+
+test_iteration_type({
+    syntax: '<resolution>',
+    initialValue: '0dpi',
+    value: '300dpi',
+    expect: v => v.length == 1 && v[0] instanceof CSSUnitValue,
+});
+
+test_iteration_type({
+    syntax: '<time>',
+    initialValue: '0s',
+    value: '10s',
+    expect: v => v.length == 1 && v[0] instanceof CSSUnitValue,
+});
+
+test_iteration_type({
+    syntax: '<url>',
+    initialValue: 'url(a)',
+    value: 'url(b)',
+    expect: v => v.length == 1 && v[0].constructor === CSSStyleValue,
+});
+
+test_iteration_type({
+    syntax: 'none | thing | THING',
+    initialValue: 'none',
+    value: 'THING',
+    expect: v => v.length == 1 && v[0] instanceof CSSKeywordValue,
+});
+
+test_iteration_type({
+    syntax: '<angle> | <length>',
+    initialValue: '0deg',
+    value: '10px',
+    expect: v => v.length == 1 && v[0] instanceof CSSUnitValue,
+});
 
 </script>

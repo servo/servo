@@ -12,12 +12,17 @@
   .width-ref {
     width: 50px;
   }
+  .innerContents {
+    color: transparent;
+    width: 0;
+    height: 0;
+  }
   </style>
 </head>
 <body>
-  aa<div class="basic"></div>bb
+  aa<div class="basic"><div class="innerContents">i</div></div>bb
   <br>
 
-  aa<div class="basic width-ref"></div>bb
+  aa<div class="basic width-ref"><div class="innerContents">i</div></div>bb
 </body>
 </html>

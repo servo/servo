@@ -1,11 +1,12 @@
 <!DOCTYPE html>
 <title>Test for pictureInPictureElement adjustment for Shadow DOM</title>
-<script src='/resources/testharness.js'></script>
-<script src='/resources/testharnessreport.js'></script>
+<script src="/common/media.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
 <script src="/resources/testdriver.js"></script>
 <script src="/resources/testdriver-vendor.js"></script>
 <script src="resources/picture-in-picture-helpers.js"></script>
-<script src='../shadow-dom/resources/shadow-dom.js'></script>
+<script src="../shadow-dom/resources/shadow-dom.js"></script>
 <body>
 <div id='host'>
   <template data-mode='open' id='root'>
@@ -45,7 +46,7 @@ promise_test(async t => {
   assert_equals(ids.root5.pictureInPictureElement, null);
 
   await new Promise(resolve => {
-    ids.video.src = '/media/movie_5.ogv';
+    ids.video.src = getVideoURI('/media/movie_5');
     ids.video.onloadeddata = resolve;
   })
   .then(() => requestPictureInPictureWithTrustedClick(ids.video))

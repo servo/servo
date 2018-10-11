@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <title>CSS Test: 'contain: size' on inline-block elements should cause them to be sized and baseline-aligned as if they had no contents.</title>
+  <title>CSS Test: 'contain: size' on inline-block elements should cause them to be sized as if they had no contents and baseline-aligned regularly.</title>
   <link rel="author" title="Morgan Rae Reschenberg" href="mailto:mreschenberg@berkeley.edu">
   <link rel="help" href="https://drafts.csswg.org/css-contain/#containment-size">
   <link rel="match" href="contain-size-inline-block-001-ref.html">
@@ -37,7 +37,7 @@
   <div class="contain"><div class="innerContents">inner</div></div>
   <br>
 
-  <!--CSS Test: A size-contained inline-block element should perform baseline alignment as if the container were empty.-->
+  <!--CSS Test: A size-contained inline-block element should perform baseline alignment regularly.-->
   outside before<div class="contain"><div class="innerContents">inner</div></div>outside after
   <br>
 

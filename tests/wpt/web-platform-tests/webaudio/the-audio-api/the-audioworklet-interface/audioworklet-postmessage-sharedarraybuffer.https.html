@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>
+      Test passing SharedArrayBuffer to an AudioWorklet
+    </title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/webaudio/resources/audit.js"></script>
+  </head>
+  <body>
+    <script id="layout-test-code">
+      let audit = Audit.createTaskRunner();
+
+      let context = new AudioContext();
+
+      let filePath = 'processors/sharedarraybuffer-processor.js';
+
+      if (window.SharedArrayBuffer) {
+        audit.define(
+            'Test postMessage from AudioWorkletProcessor to AudioWorkletNode',
+            (task, should) => {
+              let workletNode =
+                  new AudioWorkletNode(context, 'sharedarraybuffer-processor');
+
+              // After it is created, the worklet will send a new
+              // SharedArrayBuffer to the main thread.
+              //
+              // The worklet will then wait to receive a message from the main
+              // thread.
+              //
+              // When it receives the message, it will check whether it is a
+              // SharedArrayBuffer, and send this information back to the main
+              // thread.
+
+              workletNode.port.onmessage = (event) => {
+                let data = event.data;
+                switch (data.state) {
+                  case 'created':
+                    should(
+                        data.sab instanceof SharedArrayBuffer,
+                        'event.data.sab from worklet is an instance of SharedArrayBuffer')
+                        .beTrue();
+
+                    // Send a SharedArrayBuffer back to the worklet.
+                    let sab = new SharedArrayBuffer(8);
+                    workletNode.port.postMessage(sab);
+                    break;
+
+                  case 'received message':
+                    should(data.isSab, 'event.data from main thread is an instance of SharedArrayBuffer')
+                        .beTrue();
+                    task.done();
+                    break;
+
+                  default:
+                    should(false,
+                           `Got unexpected message from worklet: ${data.state}`)
+                        .beTrue();
+                    task.done();
+                    break;
+                }
+              };
+
+              workletNode.port.onmessageerror = (event) => {
+                should(false, 'Got messageerror from worklet').beTrue();
+                task.done();
+              };
+            });
+      } else {
+        // NOTE(binji): SharedArrayBuffer is only enabled where we have site
+        // isolation.
+        audit.define('Skipping test because SharedArrayBuffer is not defined',
+          (task, should) => {
+            task.done();
+          });
+      }
+
+      context.audioWorklet.addModule(filePath).then(() => {
+        audit.run();
+      });
+    </script>
+  </body>
+</html>
+

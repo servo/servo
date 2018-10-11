@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <title>Test disable Picture-in-Picture</title>
+<script src="/common/media.js"></script>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/resources/testdriver.js"></script>
@@ -33,12 +34,11 @@ promise_test(async t => {
 
 promise_test(async t => {
   const video = await loadVideo();
-  return test_driver.bless('request Picture-in-Picture', async () => {
-    const promise = video.requestPictureInPicture();
-    video.disablePictureInPicture = true;
-    await promise_rejects(t, 'InvalidStateError', promise);
-    assert_equals(document.pictureInPictureElement, null);
-  });
+  await test_driver.bless('request Picture-in-Picture');
+  const promise = video.requestPictureInPicture();
+  video.disablePictureInPicture = true;
+  await promise_rejects(t, 'InvalidStateError', promise);
+  assert_equals(document.pictureInPictureElement, null);
 }, 'Request Picture-in-Picture rejects if disablePictureInPicture becomes ' +
    'true before promise resolves.');
 

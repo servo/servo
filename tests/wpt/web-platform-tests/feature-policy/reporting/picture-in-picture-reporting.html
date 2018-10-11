@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html>
   <head>
+    <script src='/common/media.js'></script>
     <script src='/resources/testharness.js'></script>
     <script src='/resources/testharnessreport.js'></script>
     <script src="/resources/testdriver.js"></script>
@@ -21,7 +22,7 @@ const check_report_format = (reports, observer) => {
 
 const loadVideo = () => new Promise(resolve => {
     const video = document.createElement('video');
-    video.src = '/media/movie_5.ogv';
+    video.src = getVideoURI('/media/movie_5');
     video.addEventListener('loadedmetadata', () => {
       resolve(video);
     }, { once: true });

@@ -28,15 +28,26 @@ promise_test(async t => {
 
   const stream = await timeout(navigator.mediaDevices.getUserMedia({video: true}), 10000, "getUserMedia timeout");
   t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
+  vid.defaultPlaybackRate = 0.4;
+  vid.playbackRate = 0.4;
+  vid.preload = "metadata";
   vid.srcObject = stream;
+  vid.onratechange = t.unreached_func('ratechange event must not be fired');
   vid.play();
   assert_true(!vid.seeking, "A MediaStream is not seekable");
   assert_equals(vid.seekable.length, 0, "A MediaStream is not seekable");
   assert_equals(vid.defaultPlaybackRate, 1, "playback rate is always 1");
+  vid.defaultPlaybackRate = 0.5;
+  assert_equals(vid.defaultPlaybackRate, 1, "Setting defaultPlaybackRate must be ignored");
   assert_equals(vid.playbackRate, 1, "playback rate is always 1");
+  vid.playbackRate = 0.5;
+  assert_equals(vid.playbackRate, 1, "Setting playbackRate must be ignored");
   assert_equals(vid.buffered.length, 0, "A MediaStream cannot be preloaded.  Therefore, there is no buffered timeranges");
   assert_equals(vid.readyState, vid.HAVE_NOTHING, "readyState is HAVE_NOTHING initially");
   assert_equals(vid.duration, NaN, "A MediaStream does not have any duration initially.");
+  assert_equals(vid.preload, "none", "preload must always be none");
+  vid.preload = "metadata";
+  assert_equals(vid.preload, "none", "Setting preload must be ignored");
 
   const haveLoadedData = new Promise(r => vid.addEventListener("loadeddata", r, {once: true}));
 
