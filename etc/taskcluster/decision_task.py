@@ -110,14 +110,9 @@ def android_x86():
         .with_capabilities(privileged=True)
         .with_scopes("project:servo:docker-worker-kvm:capability:privileged")
         .with_dockerfile(dockerfile_path("run-android-emulator"))
-        .with_dependencies(build_task)
-        .with_env(BUILD_TASK_ID=build_task)
         .with_repo()
+        .with_curl_artifact_script(build_task, "servoapp.apk", "target/i686-linux-android/release")
         .with_script("""
-            mkdir -p target/i686-linux-android/release/
-            ./etc/taskcluster/curl-artifact.sh ${BUILD_TASK_ID} servoapp.apk \
-                -o target/i686-linux-android/release/servoapp.apk
-
             ./mach bootstrap-android --accept-all-licences --emulator-x86
             ./mach test-android-startup --release
             ./mach test-wpt-android --release \
@@ -126,7 +121,6 @@ def android_x86():
         """)
         .create()
     )
-
 
 
 def windows_dev():
@@ -224,11 +218,8 @@ def linux_run_task(name, build_task, script):
         linux_task(name)
         .with_dockerfile(dockerfile_path("run"))
         .with_repo()
-        .with_early_script("""
-            ./etc/taskcluster/curl-artifact.sh ${BUILD_TASK_ID} target.tar.gz | tar -xz
-        """)
-        .with_env(BUILD_TASK_ID=build_task)
-        .with_dependencies(build_task)
+        .with_curl_artifact_script(build_task, "target.tar.gz")
+        .with_script("tar -xzf target.tar.gz")
         .with_script(script)
         .with_index_and_artifacts_expire_in(log_artifacts_expire_in)
         .with_artifacts(*[
