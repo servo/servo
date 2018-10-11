@@ -61,7 +61,6 @@ PACKAGES = {
     ],
     'windows-msvc': [
         r'target\release\msi\Servo.exe',
-        r'target\release\msi\Servo.zip',
     ],
 }
 
@@ -410,10 +409,6 @@ class PackageCommands(CommandBase):
                 print("WiX light exited with return value %d" % e.returncode)
                 return e.returncode
             print("Packaged Servo into " + path.join(dir_to_msi, "Servo.msi"))
-
-            print("Creating ZIP")
-            shutil.make_archive(path.join(dir_to_msi, "Servo"), "zip", dir_to_temp)
-            print("Packaged Servo into " + path.join(dir_to_msi, "Servo.zip"))
 
             print("Cleaning up")
             delete(dir_to_temp)
