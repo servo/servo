@@ -147,7 +147,7 @@ impl<'a> CanvasPaintThread <'a> {
                     },
                 };
                 self.canvas(canvas_id).draw_image(
-                    data,
+                    std::borrow::Cow::Borrowed(&data),
                     image_size,
                     dest_rect,
                     source_rect,
