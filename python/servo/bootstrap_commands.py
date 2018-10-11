@@ -163,8 +163,35 @@ class MachCommands(CommandBase):
         sdkmanager = [path.join(toolchains, "sdk", "tools", "bin", "sdkmanager")] + components
         if accept_all_licences:
             yes = subprocess.Popen(["yes"], stdout=subprocess.PIPE)
-            subprocess.check_call(sdkmanager, stdin=yes.stdout)
+            process = subprocess.Popen(
+                sdkmanager, stdin=yes.stdout, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+            )
+            # Reduce progress bar spam by removing duplicate lines.
+            # Printing the same line again with \r is a no-op in a real terminal,
+            # but each line is shown individually in Taskcluster's log viewer.
+            previous_line = None
+            line = b""
+            while 1:
+                # Read one byte at a time because in Python:
+                # * readline() blocks until "\n", which doesn't come before the prompt
+                # * read() blocks until EOF, which doesn't come before the prompt
+                # * read(n) keeps reading until it gets n bytes or EOF,
+                #   but we don't know reliably how many bytes to read until the prompt
+                byte = process.stdout.read(1)
+                if len(byte) == 0:
+                    print(line)
+                    break
+                line += byte
+                if byte == b'\n' or byte == b'\r':
+                    if line != previous_line:
+                        print(line.decode("utf-8", "replace"), end="")
+                        sys.stdout.flush()
+                    previous_line = line
+                    line = b""
+            exit_code = process.wait()
             yes.terminate()
+            if exit_code:
+                return exit_code
         else:
             subprocess.check_call(sdkmanager)
 
@@ -180,11 +207,7 @@ class MachCommands(CommandBase):
             ])
             output = b""
             while 1:
-                # Read one byte at a time because in Python:
-                # * readline() blocks until "\n", which doesn't come before the prompt
-                # * read() blocks until EOF, which doesn't come before the prompt
-                # * read(n) keeps reading until it gets n bytes or EOF,
-                #   but we don't know reliably how many bytes to read until the prompt
+                # Read one byte at a time, see comment above.
                 byte = process.stdout.read(1)
                 if len(byte) == 0:
                     break
