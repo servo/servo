@@ -164,7 +164,8 @@ impl LocationMethods for Location {
     // https://html.spec.whatwg.org/multipage/#dom-location-href
     fn SetHref(&self, value: USVString) -> ErrorResult {
         // Note: no call to self.check_same_origin_domain()
-        let url = match self.window.get_url().join(&value.0) {
+        let entry_url = GlobalScope::entry().get_url();
+        let url = match entry_url.join(&value.0) {
             Ok(url) => url,
             Err(e) => return Err(Error::Type(format!("Couldn't parse URL: {}", e))),
         };
