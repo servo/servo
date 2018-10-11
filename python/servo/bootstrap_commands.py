@@ -85,7 +85,10 @@ class MachCommands(CommandBase):
     @CommandArgument('--emulator-x86',
                      action='store_true',
                      help='Install Android x86 emulator and system image')
-    def bootstrap_android(self, build=False, emulator_x86=False):
+    @CommandArgument('--accept-all-licences',
+                     action='store_true',
+                     help='For non-interactive use')
+    def bootstrap_android(self, build=False, emulator_x86=False, accept_all_licences=False):
         if not (build or emulator_x86):
             print("Must specify `--build` or `--emulator-x86` or both.")
 
@@ -156,9 +159,14 @@ class MachCommands(CommandBase):
             components += [
                 "platforms;android-18",
             ]
-        subprocess.check_call(
-            [path.join(toolchains, "sdk", "tools", "bin", "sdkmanager")] + components
-        )
+
+        sdkmanager = [path.join(toolchains, "sdk", "tools", "bin", "sdkmanager")] + components
+        if accept_all_licences:
+            yes = subprocess.Popen(["yes"], stdout=subprocess.PIPE)
+            subprocess.check_call(sdkmanager, stdin=yes.stdout)
+            yes.terminate()
+        else:
+            subprocess.check_call(sdkmanager)
 
         if emulator_x86:
             avd_path = path.join(toolchains, "avd", "servo-x86")
