@@ -137,7 +137,7 @@ impl AudioBufferSourceNodeMethods for AudioBufferSourceNode {
         self.buffer.set(new_buffer);
 
         // Step 5.
-        if self.source_node.started() {
+        if self.source_node.has_start() {
             if let Some(buffer) = self.buffer.get() {
                 let buffer = buffer.get_channels();
                 if buffer.is_some() {
