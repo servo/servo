@@ -147,6 +147,24 @@ backgroundFetchTest(async (test, backgroundFetch) => {
 
 backgroundFetchTest(async (test, backgroundFetch) => {
   const registrationId = uniqueId();
+  const registration =
+    await backgroundFetch.fetch(registrationId, 'resources/feature-name.txt');
+
+  assert_equals(registration.result, '');
+  assert_equals(registration.failureReason, '');
+
+  const {type, eventRegistration, results} =
+    await getMessageFromServiceWorker();
+  assert_equals('backgroundfetchsuccess', type);
+
+  assert_equals(eventRegistration.id, registration.id);
+  assert_equals(registration.result, 'success');
+  assert_equals(registration.failureReason, '');
+
+}, 'Registration object gets updated values when a background fetch completes.');
+
+backgroundFetchTest(async (test, backgroundFetch) => {
+  const registrationId = uniqueId();
 
   // Very large download total that will definitely exceed the quota.
   const options = {downloadTotal: Number.MAX_SAFE_INTEGER};
@@ -239,6 +257,9 @@ backgroundFetchTest(async (test, backgroundFetch) => {
   assert_equals(eventRegistration.id, registration.id);
   assert_equals(eventRegistration.result, 'failure');
   assert_equals(eventRegistration.failureReason, 'bad-status');
+
+  assert_equals(registration.result, 'failure');
+  assert_equals(registration.failureReason, 'bad-status');
 
 }, 'Using Background Fetch to fetch a non-existent resource should fail.');
 
