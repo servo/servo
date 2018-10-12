@@ -3,9 +3,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use cssparser::RGBA;
+use dom::bindings::codegen::Bindings::HTMLTableCellElementBinding;
 use dom::bindings::codegen::Bindings::HTMLTableCellElementBinding::HTMLTableCellElementMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::inheritance::Castable;
+use dom::bindings::root::DomRoot;
 use dom::bindings::root::LayoutDom;
 use dom::bindings::str::DOMString;
 use dom::document::Document;
@@ -28,14 +30,29 @@ pub struct HTMLTableCellElement {
 }
 
 impl HTMLTableCellElement {
-    pub fn new_inherited(
-        tag_name: LocalName,
+    fn new_inherited(
+        local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
     ) -> HTMLTableCellElement {
         HTMLTableCellElement {
-            htmlelement: HTMLElement::new_inherited(tag_name, prefix, document),
+            htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
         }
+    }
+
+    #[allow(unrooted_must_root)]
+    pub fn new(
+        local_name: LocalName,
+        prefix: Option<Prefix>,
+        document: &Document,
+    ) -> DomRoot<HTMLTableCellElement> {
+        Node::reflect_node(
+            Box::new(HTMLTableCellElement::new_inherited(
+                local_name, prefix, document,
+            )),
+            document,
+            HTMLTableCellElementBinding::Wrap,
+        )
     }
 }
 
