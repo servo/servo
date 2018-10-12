@@ -87,7 +87,7 @@ def android_arm32():
         # wget: servo-media-gstreamer’s build script
         .with_script("""
             apt-get install -y --no-install-recommends openjdk-8-jdk-headless file wget
-            ./etc/ci/bootstrap-android-and-accept-licences.sh
+            ./mach bootstrap-android --accept-all-licences --build
             ./mach build --android --release
         """)
         .with_artifacts(
