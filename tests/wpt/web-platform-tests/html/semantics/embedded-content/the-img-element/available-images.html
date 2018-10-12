@@ -1,0 +1,18 @@
+<!doctype html>
+<html class="reftest-wait">
+<title>Ensure images from available images list are rendered</title>
+<meta content="text/html; charset=UTF-8" http-equiv="Content-Type">
+<link rel="match" href="available-images-ref.html">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#the-img-element">
+<body>
+<div id="log"></div>
+<script>
+  var i = new Image();
+  i.onload = function() {
+    var i2 = new Image();
+    i2.src = "3.jpg";
+    document.body.appendChild(i2);
+    document.documentElement.classList.remove("reftest-wait");
+  };
+  i.src = "3.jpg";
+</script>

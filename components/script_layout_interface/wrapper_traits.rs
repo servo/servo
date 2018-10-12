@@ -13,10 +13,12 @@ use atomic_refcell::AtomicRef;
 use gfx_traits::{ByteIndex, FragmentType, combine_id_with_fragment_type};
 use html5ever::{Namespace, LocalName};
 use msg::constellation_msg::{BrowsingContextId, PipelineId};
+use net_traits::image::base::{Image, ImageMetadata};
 use range::Range;
 use servo_arc::Arc;
 use servo_url::ServoUrl;
 use std::fmt::Debug;
+use std::sync::Arc as StdArc;
 use style::attr::AttrValue;
 use style::context::SharedStyleContext;
 use style::data::ElementData;
@@ -275,6 +277,9 @@ pub trait ThreadSafeLayoutNode:
 
     /// If this is an image element, returns its current-pixel-density. If this is not an image element, fails.
     fn image_density(&self) -> Option<f64>;
+
+    /// If this is an image element, returns its image data. Otherwise, returns `None`.
+    fn image_data(&self) -> Option<(Option<StdArc<Image>>, Option<ImageMetadata>)>;
 
     fn canvas_data(&self) -> Option<HTMLCanvasData>;
 
