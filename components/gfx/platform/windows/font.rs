@@ -9,13 +9,15 @@
 use app_units::Au;
 use dwrote;
 use dwrote::{Font, FontFace, FontFile};
-use dwrote::{FontWeight, FontStretch, FontStyle};
+use dwrote::{FontStretch, FontStyle};
 use font::{FontHandleMethods, FontMetrics, FontTableMethods};
 use font::{FontTableTag, FractionalPixel};
 use platform::font_template::FontTemplateData;
 use platform::windows::font_context::FontContextHandle;
 use platform::windows::font_list::font_from_atom;
 use servo_atoms::Atom;
+use std::fmt;
+use std::ops::Deref;
 use std::sync::Arc;
 use style::computed_values::font_stretch::T as StyleFontStretch;
 use style::computed_values::font_weight::T as StyleFontWeight;
@@ -209,21 +211,7 @@ impl FontInfo {
             FontStyle::Oblique => GenericFontStyle::Oblique(StyleFontStyle::default_angle()),
             FontStyle::Italic => GenericFontStyle::Italic,
         };
-        let weight = StyleFontWeight(match font.weight() {
-            FontWeight::Thin => 100.,
-            FontWeight::ExtraLight => 200.,
-            FontWeight::Light => 300.,
-            // slightly grayer gray
-            FontWeight::SemiLight => 300.,
-            FontWeight::Regular => 400.,
-            FontWeight::Medium => 500.,
-            FontWeight::SemiBold => 600.,
-            FontWeight::Bold => 700.,
-            FontWeight::ExtraBold => 800.,
-            FontWeight::Black => 900.,
-            // slightly blacker black
-            FontWeight::ExtraBlack => 1000.,
-        });
+        let weight = StyleFontWeight(font.weight().to_u32() as f32);
         let stretch = StyleFontStretch(NonNegative(
             match font.stretch() {
                 FontStretch::Undefined => FontStretchKeyword::Normal,
@@ -252,12 +240,27 @@ impl FontInfo {
 #[derive(Debug)]
 pub struct FontHandle {
     font_data: Arc<FontTemplateData>,
-    face: FontFace,
+    face: Nondebug<FontFace>,
     info: FontInfo,
     em_size: f32,
     du_per_em: f32,
     du_to_px: f32,
     scaled_du_to_px: f32,
+}
+
+struct Nondebug<T>(T);
+
+impl<T> fmt::Debug for Nondebug<T> {
+    fn fmt(&self, _f: &mut fmt::Formatter) -> fmt::Result {
+        Ok(())
+    }
+}
+
+impl<T> Deref for Nondebug<T> {
+    type Target = T;
+    fn deref(&self) -> &T {
+        &self.0
+    }
 }
 
 impl FontHandle {}
@@ -298,7 +301,7 @@ impl FontHandleMethods for FontHandle {
 
         Ok(FontHandle {
             font_data: template.clone(),
-            face: face,
+            face: Nondebug(face),
             info: info,
             em_size: em_size,
             du_per_em: du_per_em,

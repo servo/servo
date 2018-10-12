@@ -10,7 +10,7 @@
 use display_list::items::{ClipScrollNode, ClipScrollNodeIndex, ClipScrollNodeType};
 use display_list::items::{DisplayItem, DisplayList, StackingContextType};
 use msg::constellation_msg::PipelineId;
-use webrender_api::{self, ClipAndScrollInfo, ClipId, DisplayListBuilder, GlyphRasterSpace};
+use webrender_api::{self, ClipAndScrollInfo, ClipId, DisplayListBuilder, RasterSpace};
 use webrender_api::LayoutPoint;
 
 pub trait WebRenderDisplayListConverter {
@@ -123,6 +123,7 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                     item.item.image_rendering,
                     item.item.alpha_type,
                     item.item.image_key,
+                    item.item.color,
                 );
             },
             DisplayItem::Border(ref item) => {
@@ -252,7 +253,7 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                     stacking_context.transform_style,
                     stacking_context.mix_blend_mode,
                     stacking_context.filters.clone(),
-                    GlyphRasterSpace::Screen,
+                    RasterSpace::Screen,
                 );
 
                 if stacking_context.established_reference_frame.is_some() {

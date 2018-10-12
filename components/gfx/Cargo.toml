@@ -48,8 +48,8 @@ ucd = "0.1.1"
 [target.'cfg(target_os = "macos")'.dependencies]
 byteorder = "1.0"
 core-foundation = "0.6"
-core-graphics = "0.16"
-core-text = "11.0"
+core-graphics = "0.17"
+core-text = "13.0"
 
 [target.'cfg(any(target_os = "linux", target_os = "android"))'.dependencies]
 freetype = "0.4"
@@ -62,5 +62,5 @@ servo-fontconfig = "0.2.1"
 xml5ever = {version = "0.12"}
 
 [target.'cfg(target_os = "windows")'.dependencies]
-dwrote = "0.4"
+dwrote = "0.5"
 truetype = "0.26"

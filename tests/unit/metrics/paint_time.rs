@@ -10,7 +10,7 @@ use msg::constellation_msg::TEST_PIPELINE_ID;
 use profile_traits::time::{ProfilerChan, TimerMetadata};
 use servo_url::ServoUrl;
 use time;
-use webrender_api::{AlphaType, ImageDisplayItem, ImageKey, ImageRendering, LayoutSize};
+use webrender_api::{AlphaType, ImageDisplayItem, ImageKey, ImageRendering, LayoutSize, ColorF};
 
 struct DummyProfilerMetadataFactory {}
 impl ProfilerMetadataFactory for DummyProfilerMetadataFactory {
@@ -124,6 +124,7 @@ fn test_first_contentful_paint_setter() {
             tile_spacing: LayoutSize::zero(),
             image_rendering: ImageRendering::Auto,
             alpha_type: AlphaType::PremultipliedAlpha,
+            color: ColorF::WHITE,
         }
     ));
     let display_list = DisplayList {
