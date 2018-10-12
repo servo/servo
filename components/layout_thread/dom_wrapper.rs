@@ -36,6 +36,7 @@ use html5ever::{LocalName, Namespace};
 use layout::data::StyleAndLayoutData;
 use layout::wrapper::GetRawData;
 use msg::constellation_msg::{BrowsingContextId, PipelineId};
+use net_traits::image::base::{Image, ImageMetadata};
 use range::Range;
 use script::layout_exports::{CharacterDataTypeId, ElementTypeId, HTMLElementTypeId, NodeTypeId};
 use script::layout_exports::{Document, Element, Node, Text};
@@ -59,6 +60,7 @@ use std::fmt::Debug;
 use std::hash::{Hash, Hasher};
 use std::marker::PhantomData;
 use std::ptr::NonNull;
+use std::sync::Arc as StdArc;
 use std::sync::atomic::Ordering;
 use style::CaseSensitivityExt;
 use style::applicable_declarations::ApplicableDeclarationBlock;
@@ -1046,6 +1048,11 @@ impl<'ln> ThreadSafeLayoutNode for ServoThreadSafeLayoutNode<'ln> {
     fn image_density(&self) -> Option<f64> {
         let this = unsafe { self.get_jsmanaged() };
         this.image_density()
+    }
+
+    fn image_data(&self) -> Option<(Option<StdArc<Image>>, Option<ImageMetadata>)> {
+        let this = unsafe { self.get_jsmanaged() };
+        this.image_data()
     }
 
     fn canvas_data(&self) -> Option<HTMLCanvasData> {

@@ -401,6 +401,11 @@ pub struct ImageFragmentInfo {
     pub metadata: Option<ImageMetadata>,
 }
 
+enum ImageOrMetadata {
+    Image(Arc<Image>),
+    Metadata(ImageMetadata),
+}
+
 impl ImageFragmentInfo {
     /// Creates a new image fragment from the given URL and local image cache.
     ///
@@ -412,14 +417,29 @@ impl ImageFragmentInfo {
         node: &N,
         layout_context: &LayoutContext,
     ) -> ImageFragmentInfo {
-        let image_or_metadata = url.and_then(|url| {
-            layout_context.get_or_request_image_or_meta(node.opaque(), url, UsePlaceholder::Yes)
-        });
+        // First use any image data present in the element...
+        let image_or_metadata = node.image_data().and_then(|(image, metadata)| {
+            match (image, metadata) {
+                (Some(image), _) => Some(ImageOrMetadata::Image(image)),
+                (None, Some(metadata)) => Some(ImageOrMetadata::Metadata(metadata)),
+                _ => None,
+            }
+        }).or_else(|| url.and_then(|url| {
+            // Otherwise query the image cache for anything known about the associated source URL.
+            layout_context.get_or_request_image_or_meta(
+                node.opaque(),
+                url,
+                UsePlaceholder::Yes
+            ).map(|result| match result {
+                ImageOrMetadataAvailable::ImageAvailable(i, _) => ImageOrMetadata::Image(i),
+                ImageOrMetadataAvailable::MetadataAvailable(m) => ImageOrMetadata::Metadata(m),
+            })
+        }));
 
         let current_pixel_density = density.unwrap_or(1f64);
 
         let (image, metadata) = match image_or_metadata {
-            Some(ImageOrMetadataAvailable::ImageAvailable(i, _)) => {
+            Some(ImageOrMetadata::Image(i)) => {
                 let height = (i.height as f64 / current_pixel_density) as u32;
                 let width = (i.width as f64 / current_pixel_density) as u32;
                 (
@@ -434,7 +454,7 @@ impl ImageFragmentInfo {
                     }),
                 )
             },
-            Some(ImageOrMetadataAvailable::MetadataAvailable(m)) => {
+            Some(ImageOrMetadata::Metadata(m)) => {
                 (
                     None,
                     Some(ImageMetadata {

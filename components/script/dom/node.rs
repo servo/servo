@@ -62,6 +62,7 @@ use js::jsapi::{JSContext, JSObject, JSRuntime};
 use libc::{self, c_void, uintptr_t};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use msg::constellation_msg::{BrowsingContextId, PipelineId};
+use net_traits::image::base::{Image, ImageMetadata};
 use ref_slice::ref_slice;
 use script_layout_interface::{HTMLCanvasData, HTMLMediaData, LayoutElementType, LayoutNodeType};
 use script_layout_interface::{OpaqueStyleAndLayoutData, SVGSVGData, TrustedNodeAddress};
@@ -81,6 +82,7 @@ use std::default::Default;
 use std::iter;
 use std::mem;
 use std::ops::Range;
+use std::sync::Arc as StdArc;
 use style::context::QuirksMode;
 use style::dom::OpaqueNode;
 use style::selector_parser::{SelectorImpl, SelectorParser};
@@ -1086,6 +1088,7 @@ pub trait LayoutNodeHelpers {
     fn selection(&self) -> Option<Range<usize>>;
     fn image_url(&self) -> Option<ServoUrl>;
     fn image_density(&self) -> Option<f64>;
+    fn image_data(&self) -> Option<(Option<StdArc<Image>>, Option<ImageMetadata>)>;
     fn canvas_data(&self) -> Option<HTMLCanvasData>;
     fn media_data(&self) -> Option<HTMLMediaData>;
     fn svg_data(&self) -> Option<SVGSVGData>;
@@ -1230,6 +1233,13 @@ impl LayoutNodeHelpers for LayoutDom<Node> {
             self.downcast::<HTMLImageElement>()
                 .expect("not an image!")
                 .image_url()
+        }
+    }
+
+    #[allow(unsafe_code)]
+    fn image_data(&self) -> Option<(Option<StdArc<Image>>, Option<ImageMetadata>)> {
+        unsafe {
+            self.downcast::<HTMLImageElement>().map(|e| e.image_data())
         }
     }
 

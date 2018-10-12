@@ -1328,6 +1328,9 @@ pub trait LayoutHTMLImageElementHelpers {
     #[allow(unsafe_code)]
     unsafe fn image_density(&self) -> Option<f64>;
 
+    #[allow(unsafe_code)]
+    unsafe fn image_data(&self) -> (Option<Arc<Image>>, Option<ImageMetadata>);
+
     fn get_width(&self) -> LengthOrPercentageOrAuto;
     fn get_height(&self) -> LengthOrPercentageOrAuto;
 }
@@ -1349,6 +1352,14 @@ impl LayoutHTMLImageElementHelpers for LayoutDom<HTMLImageElement> {
             .borrow_for_layout()
             .parsed_url
             .clone()
+    }
+
+    #[allow(unsafe_code)]
+    unsafe fn image_data(&self) -> (Option<Arc<Image>>, Option<ImageMetadata>) {
+        let current_request = (*self.unsafe_get())
+            .current_request
+            .borrow_for_layout();
+        (current_request.image.clone(), current_request.metadata.clone())
     }
 
     #[allow(unsafe_code)]
