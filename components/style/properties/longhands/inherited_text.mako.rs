@@ -23,7 +23,7 @@ ${helpers.predefined_type(
 ${helpers.single_keyword(
     "text-transform",
     "none capitalize uppercase lowercase",
-    extra_gecko_values="full-width",
+    extra_gecko_values="full-width full-size-kana",
     animation_value_type="discrete",
     flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
     spec="https://drafts.csswg.org/css-text/#propdef-text-transform",
