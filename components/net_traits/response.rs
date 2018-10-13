@@ -82,6 +82,7 @@ pub struct ResponseInit {
             serialize_with = "::hyper_serde::serialize")]
     #[ignore_malloc_size_of = "Defined in hyper"]
     pub headers: Headers,
+    pub status_code: u16,
     pub referrer: Option<ServoUrl>,
     pub location_url: Option<Result<ServoUrl, String>>,
 }
@@ -147,6 +148,7 @@ impl Response {
         res.location_url = init.location_url;
         res.headers = init.headers;
         res.referrer = init.referrer;
+        res.status = Some(StatusCode::from_u16(init.status_code));
         res
     }
 
