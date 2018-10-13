@@ -56,7 +56,7 @@ impl Angle {
     /// quarter-turn for 225 degrees, for example.
     #[inline]
     pub fn radians64(&self) -> f64 {
-        self.0 as f64 * RAD_PER_DEG as f64
+        self.0 as f64 * RAD_PER_DEG
     }
 
     /// Return the value in degrees.
