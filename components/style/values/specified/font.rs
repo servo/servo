@@ -301,7 +301,7 @@ impl SpecifiedFontStyle {
     }
 
     fn compute_angle(angle: &Angle) -> ComputedAngle {
-        ComputedAngle::Deg(Self::compute_angle_degrees(angle))
+        ComputedAngle::from_degrees(Self::compute_angle_degrees(angle))
     }
 
     /// Parse a suitable angle for font-style: oblique.

@@ -325,10 +325,7 @@ impl GeckoStyleCoordConvertible for Angle {
 
     fn from_gecko_style_coord<T: CoordData>(coord: &T) -> Option<Self> {
         match coord.as_value() {
-            CoordDataValue::Degree(val) => Some(Angle::Deg(val)),
-            CoordDataValue::Grad(val) => Some(Angle::Grad(val)),
-            CoordDataValue::Radian(val) => Some(Angle::Rad(val)),
-            CoordDataValue::Turn(val) => Some(Angle::Turn(val)),
+            CoordDataValue::Degree(val) => Some(Angle::from_degrees(val)),
             _ => None,
         }
     }

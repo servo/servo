@@ -469,22 +469,22 @@ impl CalcNode {
             CalcNode::Sub(ref a, ref b) => {
                 let lhs = a.to_angle()?;
                 let rhs = b.to_angle()?;
-                Angle::from_calc(lhs.radians() - rhs.radians())
+                Angle::from_calc(lhs.degrees() - rhs.degrees())
             },
             CalcNode::Sum(ref a, ref b) => {
                 let lhs = a.to_angle()?;
                 let rhs = b.to_angle()?;
-                Angle::from_calc(lhs.radians() + rhs.radians())
+                Angle::from_calc(lhs.degrees() + rhs.degrees())
             },
             CalcNode::Mul(ref a, ref b) => match a.to_angle() {
                 Ok(lhs) => {
                     let rhs = b.to_number()?;
-                    Angle::from_calc(lhs.radians() * rhs)
+                    Angle::from_calc(lhs.degrees() * rhs)
                 },
                 Err(..) => {
                     let lhs = a.to_number()?;
                     let rhs = b.to_angle()?;
-                    Angle::from_calc(lhs * rhs.radians())
+                    Angle::from_calc(lhs * rhs.degrees())
                 },
             },
             CalcNode::Div(ref a, ref b) => {
@@ -493,7 +493,7 @@ impl CalcNode {
                 if rhs == 0. {
                     return Err(());
                 }
-                Angle::from_calc(lhs.radians() / rhs)
+                Angle::from_calc(lhs.degrees() / rhs)
             },
             CalcNode::Number(..) |
             CalcNode::Length(..) |

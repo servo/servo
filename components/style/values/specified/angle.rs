@@ -7,21 +7,53 @@
 use cssparser::{Parser, Token};
 use parser::{Parse, ParserContext};
 use std::fmt::{self, Write};
+use std::f32::consts::PI;
 use style_traits::{CssWriter, ParseError, SpecifiedValueInfo, ToCss};
 use values::CSSFloat;
 use values::computed::{Context, ToComputedValue};
 use values::computed::angle::Angle as ComputedAngle;
 use values::specified::calc::CalcNode;
 
-/// A specified angle.
-///
-/// Computed angles are essentially same as specified ones except for `calc()`
-/// value serialization. Therefore we are storing a computed angle inside
-/// to hold the actual value and its unit.
+/// A specified angle dimension.
+#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, PartialOrd, ToCss)]
+pub enum AngleDimension {
+    /// An angle with degree unit.
+    #[css(dimension)]
+    Deg(CSSFloat),
+    /// An angle with gradian unit.
+    #[css(dimension)]
+    Grad(CSSFloat),
+    /// An angle with radian unit.
+    #[css(dimension)]
+    Rad(CSSFloat),
+    /// An angle with turn unit.
+    #[css(dimension)]
+    Turn(CSSFloat),
+}
+
+impl AngleDimension {
+    /// Returns the amount of degrees this angle represents.
+    #[inline]
+    fn degrees(&self) -> CSSFloat {
+        const DEG_PER_RAD: f32 = 180.0 / PI;
+        const DEG_PER_TURN: f32 = 360.0;
+        const DEG_PER_GRAD: f32 = 180.0 / 200.0;
+
+        match *self {
+            AngleDimension::Deg(d) => d,
+            AngleDimension::Rad(rad) => rad * DEG_PER_RAD,
+            AngleDimension::Turn(turns) => turns * DEG_PER_TURN,
+            AngleDimension::Grad(gradians) => gradians * DEG_PER_GRAD,
+        }
+    }
+}
+
+/// A specified Angle value, which is just the angle dimension, plus whether it
+/// was specified as `calc()` or not.
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
 #[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq)]
 pub struct Angle {
-    value: ComputedAngle,
+    value: AngleDimension,
     was_calc: bool,
 }
 
@@ -41,22 +73,18 @@ impl ToCss for Angle {
     }
 }
 
-// FIXME(emilio): Probably computed angles shouldn't preserve the unit and
-// should serialize to degrees per:
-//
-// https://drafts.csswg.org/css-values/#compat
 impl ToComputedValue for Angle {
     type ComputedValue = ComputedAngle;
 
     #[inline]
     fn to_computed_value(&self, _context: &Context) -> Self::ComputedValue {
-        self.value
+        ComputedAngle::from_degrees(self.degrees())
     }
 
     #[inline]
     fn from_computed_value(computed: &Self::ComputedValue) -> Self {
         Angle {
-            value: *computed,
+            value: AngleDimension::Deg(computed.degrees()),
             was_calc: false,
         }
     }
@@ -64,35 +92,18 @@ impl ToComputedValue for Angle {
 
 impl Angle {
     /// Creates an angle with the given value in degrees.
+    #[inline]
     pub fn from_degrees(value: CSSFloat, was_calc: bool) -> Self {
         Angle {
-            value: ComputedAngle::Deg(value),
+            value: AngleDimension::Deg(value),
             was_calc,
         }
     }
 
-    /// Creates an angle with the given value in gradians.
-    pub fn from_gradians(value: CSSFloat, was_calc: bool) -> Self {
-        Angle {
-            value: ComputedAngle::Grad(value),
-            was_calc,
-        }
-    }
-
-    /// Creates an angle with the given value in turns.
-    pub fn from_turns(value: CSSFloat, was_calc: bool) -> Self {
-        Angle {
-            value: ComputedAngle::Turn(value),
-            was_calc,
-        }
-    }
-
-    /// Creates an angle with the given value in radians.
-    pub fn from_radians(value: CSSFloat, was_calc: bool) -> Self {
-        Angle {
-            value: ComputedAngle::Rad(value),
-            was_calc,
-        }
+    /// Returns the value of the angle in degrees, mostly for `calc()`.
+    #[inline]
+    pub fn degrees(&self) -> CSSFloat {
+        self.value.degrees()
     }
 
     /// Whether this specified angle came from a `calc()` expression.
@@ -101,36 +112,18 @@ impl Angle {
         self.was_calc
     }
 
-    /// Returns the amount of radians this angle represents.
-    #[inline]
-    pub fn radians(self) -> f32 {
-        self.value.radians()
-    }
-
-    /// Returns the amount of degrees this angle represents.
-    #[inline]
-    pub fn degrees(self) -> f32 {
-        self.value.degrees()
-    }
-
     /// Returns `0deg`.
+    #[inline]
     pub fn zero() -> Self {
         Self::from_degrees(0.0, false)
     }
 
     /// Returns an `Angle` parsed from a `calc()` expression.
-    pub fn from_calc(radians: CSSFloat) -> Self {
+    pub fn from_calc(degrees: CSSFloat) -> Self {
         Angle {
-            value: ComputedAngle::Rad(radians),
+            value: AngleDimension::Deg(degrees),
             was_calc: true,
         }
-    }
-}
-
-impl AsRef<ComputedAngle> for Angle {
-    #[inline]
-    fn as_ref(&self) -> &ComputedAngle {
-        &self.value
     }
 }
 
@@ -158,20 +151,26 @@ impl Parse for Angle {
 
 impl Angle {
     /// Parse an `<angle>` value given a value and an unit.
-    pub fn parse_dimension(value: CSSFloat, unit: &str, from_calc: bool) -> Result<Angle, ()> {
-        let angle = match_ignore_ascii_case! { unit,
-            "deg" => Angle::from_degrees(value, from_calc),
-            "grad" => Angle::from_gradians(value, from_calc),
-            "turn" => Angle::from_turns(value, from_calc),
-            "rad" => Angle::from_radians(value, from_calc),
+    pub fn parse_dimension(
+        value: CSSFloat,
+        unit: &str,
+        was_calc: bool,
+    ) -> Result<Angle, ()> {
+        let value = match_ignore_ascii_case! { unit,
+            "deg" => AngleDimension::Deg(value),
+            "grad" => AngleDimension::Grad(value),
+            "turn" => AngleDimension::Turn(value),
+            "rad" => AngleDimension::Rad(value),
              _ => return Err(())
         };
-        Ok(angle)
+
+        Ok(Self { value, was_calc })
     }
 
     /// Parse an `<angle>` allowing unitless zero to represent a zero angle.
     ///
     /// See the comment in `AllowUnitlessZeroAngle` for why.
+    #[inline]
     pub fn parse_with_unitless<'i, 't>(
         context: &ParserContext,
         input: &mut Parser<'i, 't>,

@@ -866,7 +866,7 @@ impl ToAnimatedValue for FontStyleAngle {
 
     #[inline]
     fn from_animated_value(animated: Self::AnimatedValue) -> Self {
-        FontStyleAngle(Angle::Deg(
+        FontStyleAngle(Angle::from_degrees(
             animated
                 .degrees()
                 .min(specified::FONT_STYLE_OBLIQUE_MAX_ANGLE_DEGREES)
@@ -899,7 +899,7 @@ impl FontStyle {
     /// https://drafts.csswg.org/css-fonts-4/#valdef-font-style-oblique-angle
     #[inline]
     pub fn default_angle() -> FontStyleAngle {
-        FontStyleAngle(Angle::Deg(
+        FontStyleAngle(Angle::from_degrees(
             specified::DEFAULT_FONT_STYLE_OBLIQUE_ANGLE_DEGREES,
         ))
     }
@@ -919,7 +919,7 @@ impl FontStyle {
         if italic {
             return generics::FontStyle::Italic;
         }
-        generics::FontStyle::Oblique(FontStyleAngle(Angle::Deg(angle)))
+        generics::FontStyle::Oblique(FontStyleAngle(Angle::from_degrees(angle)))
     }
 }
 

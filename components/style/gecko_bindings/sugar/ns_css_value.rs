@@ -198,19 +198,19 @@ impl nsCSSValue {
 
     /// Returns an `Angle` value from this `nsCSSValue`.
     ///
-    /// Panics if the unit is not `eCSSUnit_Degree` `eCSSUnit_Grad`, `eCSSUnit_Turn`
-    /// or `eCSSUnit_Radian`.
+    /// Panics if the unit is not `eCSSUnit_Degree`.
+    #[inline]
     pub fn get_angle(&self) -> Angle {
-        Angle::from_gecko_values(self.float_unchecked(), self.mUnit)
+        debug_assert_eq!(self.mUnit, nsCSSUnit::eCSSUnit_Degree);
+        Angle::from_degrees(self.float_unchecked())
     }
 
     /// Sets Angle value to this nsCSSValue.
     pub fn set_angle(&mut self, angle: Angle) {
         debug_assert_eq!(self.mUnit, nsCSSUnit::eCSSUnit_Null);
-        let (value, unit) = angle.to_gecko_values();
-        self.mUnit = unit;
+        self.mUnit = nsCSSUnit::eCSSUnit_Degree;
         unsafe {
-            *self.mValue.mFloat.as_mut() = value;
+            *self.mValue.mFloat.as_mut() = angle.degrees();
         }
     }
 

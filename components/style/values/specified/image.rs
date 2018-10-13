@@ -15,7 +15,6 @@ use selectors::parser::SelectorParseErrorKind;
 #[cfg(feature = "servo")]
 use servo_url::ServoUrl;
 use std::cmp::Ordering;
-use std::f32::consts::PI;
 use std::fmt::{self, Write};
 use style_traits::{CssType, CssWriter, KeywordsCollectFn, ParseError};
 use style_traits::{StyleParseErrorKind, SpecifiedValueInfo, ToCss};
@@ -679,7 +678,7 @@ impl GradientKind {
 impl generic::LineDirection for LineDirection {
     fn points_downwards(&self, compat_mode: CompatMode) -> bool {
         match *self {
-            LineDirection::Angle(ref angle) => angle.radians() == PI,
+            LineDirection::Angle(ref angle) => angle.degrees() == 180.0,
             LineDirection::Vertical(Y::Bottom) if compat_mode == CompatMode::Modern => true,
             LineDirection::Vertical(Y::Top) if compat_mode != CompatMode::Modern => true,
             #[cfg(feature = "gecko")]
