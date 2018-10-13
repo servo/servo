@@ -22,7 +22,7 @@ Now, run the tests using the `safari` product:
 ```
 
 This will use the `safaridriver` found on the path, which will be stable Safari.
-To run Safari Technology Preview instead, use the `--webdriver-binary` argument:
+To run Safari Technology Preview instead, use the `--channel=preview` argument:
 ```
-./wpt run --webdriver-binary "/Applications/Safari Technology Preview.app/Contents/MacOS/safaridriver" safari [test_list]
+./wpt run --channel=preview safari [test_list]
 ```

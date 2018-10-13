@@ -21,7 +21,8 @@
   }
 
   promise_test(async t => {
-    const scope = SCOPE + "?q=aborted-not-intercepted";
+    const suffix = "?q=aborted-not-intercepted";
+    const scope = SCOPE + suffix;
     await setupRegistration(t, scope);
     const iframe = await with_iframe(scope);
     add_completion_callback(_ => iframe.remove());
@@ -33,8 +34,13 @@
 
     const nextData = new Promise(resolve => {
       w.navigator.serviceWorker.addEventListener('message', function once(event) {
-        w.navigator.serviceWorker.removeEventListener('message', once);
-        resolve(event.data);
+        // The message triggered by the iframe's document's fetch
+        // request cannot get dispatched by the time we add the event
+        // listener, so we have to guard against it.
+        if (!event.data.endsWith(suffix)) {
+          w.navigator.serviceWorker.removeEventListener('message', once);
+          resolve(event.data);
+        }
       })
     });
 

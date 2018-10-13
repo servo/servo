@@ -16,15 +16,23 @@
         function() {
             // Scripts appended in JS to ensure setResourceTimingBufferSize is called before.
             let counter = performance.getEntriesByType("resource").length;
-            function appendScript() {
-                const src = "resources/empty.js?" + counter;
-                const script = document.createElement('script');
-                script.type = 'text/javascript';
-                script.onload = function() { ++counter; appendScript()};
-                script.src = src;
-                document.body.appendChild(script);
+            function appendScripts() {
+                const documentFragment = document.createDocumentFragment();
+                // Add 100 elements at a time to avoid page reflow every time.
+                let numScriptsAccumulated = 0;
+                while (numScriptsAccumulated < 100) {
+                    const src = "resources/empty.js?" + counter;
+                    const script = document.createElement('script');
+                    script.type = 'text/javascript';
+                    script.src = src;
+                    documentFragment.appendChild(script);
+                    ++counter;
+                    ++numScriptsAccumulated;
+                }
+                document.body.appendChild(documentFragment);
+                t.step_timeout(appendScripts, 20);
             }
-            appendScript();
+            appendScripts();
         });
 </script>
 </body>

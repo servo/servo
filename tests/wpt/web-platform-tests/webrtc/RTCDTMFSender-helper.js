@@ -109,12 +109,16 @@ function test_tone_change_events(testFunc, toneChanges, desc) {
         const now = Date.now();
         const duration = now - lastEventTime;
 
-        assert_approx_equals(duration, expectedDuration, 400,
+        // We check that the delay is at least the expected one, but
+        // system load may cause random delay, so we do not put any
+        // realistic upper bound on the timing of the event.
+        assert_between_inclusive(duration, expectedDuration,
+                                 expectedDuration + 4000,
           `Expect tonechange event for "${tone}" to be fired approximately after ${expectedDuration} milliseconds`);
 
         lastEventTime = now;
 
-        if(toneChanges.length === 0) {
+        if (toneChanges.length === 0) {
           // Wait for same duration as last expected duration + 100ms
           // before passing test in case there are new tone events fired,
           // in which case the test should fail.

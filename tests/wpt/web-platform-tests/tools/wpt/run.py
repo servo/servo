@@ -371,7 +371,7 @@ class Safari(BrowserSetup):
 
     def setup_kwargs(self, kwargs):
         if kwargs["webdriver_binary"] is None:
-            webdriver_binary = self.browser.find_webdriver()
+            webdriver_binary = self.browser.find_webdriver(channel=kwargs["browser_channel"])
 
             if webdriver_binary is None:
                 raise WptrunError("Unable to locate safaridriver binary")
