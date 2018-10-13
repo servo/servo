@@ -371,7 +371,7 @@ class Safari(BrowserSetup):
 
     def setup_kwargs(self, kwargs):
         if kwargs["webdriver_binary"] is None:
-            webdriver_binary = self.browser.find_webdriver()
+            webdriver_binary = self.browser.find_webdriver(channel=kwargs["browser_channel"])
 
             if webdriver_binary is None:
                 raise WptrunError("Unable to locate safaridriver binary")
@@ -444,6 +444,7 @@ product_setup = {
 
 def setup_wptrunner(venv, prompt=True, install_browser=False, **kwargs):
     from wptrunner import wptrunner, wptcommandline
+    import mozlog
 
     global logger
 
@@ -453,7 +454,12 @@ def setup_wptrunner(venv, prompt=True, install_browser=False, **kwargs):
     kwargs["product"] = product_parts[0]
     sub_product = product_parts[1:]
 
-    wptrunner.setup_logging(kwargs, {"mach": sys.stdout})
+    # Use the grouped formatter by default where mozlog 3.9+ is installed
+    if hasattr(mozlog.formatters, "GroupingFormatter"):
+        default_formatter = "grouped"
+    else:
+        default_formatter = "mach"
+    wptrunner.setup_logging(kwargs, {default_formatter: sys.stdout})
     logger = wptrunner.logger
 
     check_environ(kwargs["product"])

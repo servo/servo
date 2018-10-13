@@ -41,6 +41,7 @@ if (win.location.href !== 'about:blank') {
       });
     }
   });
+  win.navigator.serviceWorker.startMessages();
 }
 </script>
 </body>

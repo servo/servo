@@ -9,7 +9,7 @@ import unittest
 from six.moves.urllib.parse import urlencode, urlunsplit
 from six.moves.urllib.request import Request as BaseRequest
 from six.moves.urllib.request import urlopen
-from six import binary_type, iteritems
+from six import binary_type, iteritems, PY3
 
 from hyper import HTTP20Connection, tls
 import ssl
@@ -79,6 +79,11 @@ class TestUsingServer(unittest.TestCase):
 
         return urlopen(req)
 
+    def assert_multiple_headers(self, resp, name, values):
+        if PY3:
+            assert resp.info().get_all(name) == values
+        else:
+            assert resp.info()[name] == ", ".join(values)
 
 @pytest.mark.skipif(not wptserve.utils.http2_compatible(), reason="h2 server only works in python 2.7.15")
 class TestUsingH2Server:

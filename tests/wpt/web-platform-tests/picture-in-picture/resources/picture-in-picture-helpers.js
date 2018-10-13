@@ -1,9 +1,3 @@
-if (!('pictureInPictureEnabled' in document)) {
-  HTMLVideoElement.prototype.requestPictureInPicture = function() {
-    return Promise.reject('Picture-in-Picture API is not available');
-  }
-}
-
 function loadVideo(activeDocument, sourceUrl) {
   return new Promise((resolve, reject) => {
     const document = activeDocument || window.document;

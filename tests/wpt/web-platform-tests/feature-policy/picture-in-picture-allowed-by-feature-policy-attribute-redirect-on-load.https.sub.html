@@ -16,13 +16,13 @@
     relative_path;
   const header = 'Feature-Policy allow="picture-in-picture"';
 
-  async_test(t => {
+  async_pip_test(t => {
     test_feature_availability(
         'picture-in-picture', t, same_origin_src,
         expect_feature_available_default, 'picture-in-picture');
   }, header + ' allows same-origin navigation in an iframe.');
 
-  async_test(t => {
+  async_pip_test(t => {
     test_feature_availability(
         'picture-in-picture', t, cross_origin_src,
         expect_feature_unavailable_default, 'picture-in-picture');

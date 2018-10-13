@@ -1,36 +1,12 @@
-<!DOCTYPE HTML>
+<!DOCTYPE html>
 <link rel="help" href="https://drafts.css-houdini.org/css-properties-values-api/#calculation-of-computed-values" />
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="./resources/utils.js"></script>
 
 <style>
 #divWithFontSizeSet, #parentDiv {
     font-size: 10px;
-}
-#divWithFontSizeSet, #divWithFontSizeInherited {
-    --length-1: 12px;
-    --length-2: 13vw;
-    --length-3: 14em;
-    --length-4: 15vmin;
-    --length-5: calc(16px - 7em + 10vh);
-    --length-6: var(--length-3);
-    --length-percentage-1: 17em;
-    --length-percentage-2: 18%;
-    --length-percentage-3: calc(19em - 2%);
-    --csv-1: 10px, 3em;
-    --csv-2: 4em ,9px;
-    --csv-3: 8em;
-    --csv-4: 3% , 10vmax  , 22px;
-    --csv-5: calc(50% + 1em), 4px;
-    --csv-6: calc(13% + 37px);
-    --list-1: 10px 3em;
-    --list-2: 4em 9px;
-    --list-3: 3% 10vmax 22px;
-    --list-4: calc(50% + 1em) 4px;
-    --transform-function-1: translateX(2px);
-    --transform-function-2: translateX(10em);
-    --transform-function-3: translateX(calc(11em + 10%));
-    --transform-function-4: translateX(10%) scale(2);
 }
 </style>
 
@@ -38,80 +14,102 @@
 <div id=parentDiv>
     <div id=divWithFontSizeInherited></div>
 </div>
+<div id="ref"></div>
 
 <script>
-test(() => {
-    CSS.registerProperty({name: '--length-1', syntax: '<length>', initialValue: '0px', inherits: false});
-    CSS.registerProperty({name: '--length-2', syntax: '<length>', initialValue: '0px', inherits: false});
-    CSS.registerProperty({name: '--length-3', syntax: '<length>', initialValue: '0px', inherits: false});
-    CSS.registerProperty({name: '--length-4', syntax: '<length>', initialValue: '0px', inherits: false});
-    CSS.registerProperty({name: '--length-5', syntax: '<length>', initialValue: '0px', inherits: false});
-    CSS.registerProperty({name: '--length-6', syntax: '<length>', initialValue: '0px', inherits: false});
-    CSS.registerProperty({name: '--length-percentage-1', syntax: '<length-percentage>', initialValue: '0px', inherits: false});
-    CSS.registerProperty({name: '--length-percentage-2', syntax: '<length-percentage>', initialValue: '0px', inherits: false});
-    CSS.registerProperty({name: '--length-percentage-3', syntax: '<length-percentage>', initialValue: '0px', inherits: false});
-    CSS.registerProperty({name: '--csv-1', syntax: '<length>#', initialValue: '0px', inherits: false});
-    CSS.registerProperty({name: '--csv-2', syntax: '<length>#', initialValue: '0px', inherits: false});
-    CSS.registerProperty({name: '--csv-3', syntax: '<length>#', initialValue: '0px', inherits: false});
-    CSS.registerProperty({name: '--csv-4', syntax: '<length-percentage>#', initialValue: '0px', inherits: false});
-    CSS.registerProperty({name: '--csv-5', syntax: '<length-percentage>#', initialValue: '0px', inherits: false});
-    CSS.registerProperty({name: '--csv-6', syntax: '<length-percentage>#', initialValue: '0px', inherits: false});
-    CSS.registerProperty({name: '--list-1', syntax: '<length>+', initialValue: '0px', inherits: false});
-    CSS.registerProperty({name: '--list-2', syntax: '<length>+', initialValue: '0px', inherits: false});
-    CSS.registerProperty({name: '--list-3', syntax: '<length-percentage>+', initialValue: '0px', inherits: false});
-    CSS.registerProperty({name: '--list-4', syntax: '<length-percentage>+', initialValue: '0px', inherits: false});
-    CSS.registerProperty({name: '--transform-function-1', syntax: '<transform-function>', initialValue: 'translateX(0px)', inherits: false});
-    CSS.registerProperty({name: '--transform-function-2', syntax: '<transform-function>', initialValue: 'translateX(0px)', inherits: false});
-    CSS.registerProperty({name: '--transform-function-3', syntax: '<transform-function>', initialValue: 'translateX(0px)', inherits: false});
-    CSS.registerProperty({name: '--transform-function-4', syntax: '<transform-function>+', initialValue: 'translateX(0px)', inherits: false});
-}, "CSS.registerProperty");
 
-for (var element of [divWithFontSizeSet, divWithFontSizeInherited]) {
-    var id = element.id;
-    var computedStyle = getComputedStyle(element);
+for (let element of [divWithFontSizeSet, divWithFontSizeInherited]) {
+    let id = element.id;
+
+    // Generate a property and temporarily set its value. Then call 'fn' with
+    // the name of the generated property.
+    function with_custom_property(reg, value, fn) {
+        let name = generate_property(reg);
+
+        // Because we want to include the parsing step, insert a stylesheet
+        // node with textContent.
+        let node = document.createElement('style');
+        node.textContent = `#${id} { ${name}: ${value}; }`;
+        document.body.append(node);
+
+        try {
+            fn(name);
+        } finally {
+            node.remove();
+        }
+    }
+
+    function assert_computed_value(syntax, value, expected) {
+        with_custom_property(syntax, value, (name) => {
+            let actual = getComputedStyle(element).getPropertyValue(name);
+            assert_equals(actual, expected);
+        });
+    }
+
+    // Computes an absolute reference value for some length.
+    //
+    // E.g. to figure out how many pixels '10vh' is, do length_ref('10vh').
+    function length_ref(value, refnode = ref) {
+        try {
+            // The reference property 'min-height' is chosen arbitrarily, but
+            // avoid properties with "resolved value is used value"-behavior
+            // [1], as it may affect rounding, and custom properties do not
+            // have this behavior.
+            //
+            // [1] https://drafts.csswg.org/cssom/#resolved-values
+            const ref_property = 'min-height';
+            refnode.style = `${ref_property}: ${value}`;
+            return getComputedStyle(refnode).getPropertyValue(ref_property);
+        } finally {
+            refnode.style = '';
+        }
+    }
 
     test(function() {
-        assert_equals(computedStyle.getPropertyValue('--length-1'), '12px');
-        assert_equals(computedStyle.getPropertyValue('--length-2'), '104px');
-        assert_equals(computedStyle.getPropertyValue('--length-3'), '140px');
-        assert_equals(computedStyle.getPropertyValue('--length-4'), '90px');
-        assert_equals(computedStyle.getPropertyValue('--length-5'), '6px');
-        assert_equals(computedStyle.getPropertyValue('--length-6'), '140px');
+        assert_computed_value('<length>', '12px', '12px');
+        assert_computed_value('<length>', '13vw', length_ref('13vw'));
+        assert_computed_value('<length>', '14em', '140px');
+        assert_computed_value('<length>', '15vmin', length_ref('15vmin'));
+        assert_computed_value('<length>', 'calc(16px - 7em + 10vh)', length_ref('calc(10vh - 54px)'));
+        with_custom_property('<length>', '14em', (name) => {
+            assert_computed_value('<length>', `var(${name})`, '140px');
+        });
     }, "<length> values are computed correctly for " + id);
 
     test(function() {
-        assert_equals(computedStyle.getPropertyValue('--length-percentage-1'), '170px');
-        assert_equals(computedStyle.getPropertyValue('--length-percentage-2'), '18%');
-        assert_equals(computedStyle.getPropertyValue('--length-percentage-3'), 'calc(190px + -2%)');
+        assert_computed_value('<length-percentage>', '17em', '170px');
+        assert_computed_value('<length-percentage>', '18%', '18%');
+        assert_computed_value('<length-percentage>', 'calc(19em - 2%)', 'calc(190px + -2%)');
     }, "<length-percentage> values are computed correctly for " + id);
 
     test(function() {
-        assert_equals(computedStyle.getPropertyValue('--csv-1'), '10px, 30px');
-        assert_equals(computedStyle.getPropertyValue('--csv-2'), '40px, 9px');
-        assert_equals(computedStyle.getPropertyValue('--csv-3'), '80px');
+        assert_computed_value('<length>#', '10px, 3em', '10px, 30px');
+        assert_computed_value('<length>#', '10px, 3em', '10px, 30px');
+        assert_computed_value('<length>#', '4em ,9px', '40px, 9px');
+        assert_computed_value('<length>#', '8em', '80px');
     }, "<length># values are computed correctly for " + id);
 
     test(function() {
-        assert_equals(computedStyle.getPropertyValue('--csv-4'), '3%, 80px, 22px');
-        assert_equals(computedStyle.getPropertyValue('--csv-5'), 'calc(10px + 50%), 4px');
-        assert_equals(computedStyle.getPropertyValue('--csv-6'), 'calc(37px + 13%)');
+        assert_computed_value('<length-percentage>#', '3% , 10vmax  , 22px', ['3%', length_ref('10vmax'), '22px'].join(', '));
+        assert_computed_value('<length-percentage>#', 'calc(50% + 1em), 4px', 'calc(10px + 50%), 4px');
+        assert_computed_value('<length-percentage>#', 'calc(13% + 37px)', 'calc(37px + 13%)');
     }, "<length-percentage># values are computed correctly for " + id);
 
     test(function() {
-        assert_equals(computedStyle.getPropertyValue('--list-1'), '10px 30px');
-        assert_equals(computedStyle.getPropertyValue('--list-2'), '40px 9px');
+        assert_computed_value('<length>+', '10px 3em', '10px 30px');
+        assert_computed_value('<length>+', '4em 9px', '40px 9px');
     }, "<length>+ values are computed correctly for " + id);
 
     test(function() {
-        assert_equals(computedStyle.getPropertyValue('--list-3'), '3% 80px 22px');
-        assert_equals(computedStyle.getPropertyValue('--list-4'), 'calc(10px + 50%) 4px');
+        assert_computed_value('<length-percentage>+', '3% 10vmax 22px', ['3%', length_ref('10vmax'), '22px'].join(' '));
+        assert_computed_value('<length-percentage>+', 'calc(50% + 1em) 4px', 'calc(10px + 50%) 4px');
     }, "<length-percentage>+ values are computed correctly for " + id);
 
     test(function() {
-        assert_equals(computedStyle.getPropertyValue('--transform-function-1'), 'translateX(2px)');
-        assert_equals(computedStyle.getPropertyValue('--transform-function-2'), 'translateX(100px)');
-        assert_equals(computedStyle.getPropertyValue('--transform-function-3'), 'translateX(calc(110px + 10%))');
-        assert_equals(computedStyle.getPropertyValue('--transform-function-4'), 'translateX(10%) scale(2)');
+        assert_computed_value('<transform-function>', 'translateX(2px)', 'translateX(2px)');
+        assert_computed_value('<transform-function>', 'translateX(10em)', 'translateX(100px)');
+        assert_computed_value('<transform-function>', 'translateX(calc(11em + 10%))', 'translateX(calc(110px + 10%))');
+        assert_computed_value('<transform-function>+', 'translateX(10%) scale(2)', 'translateX(10%) scale(2)');
     }, "<transform-function> values are computed correctly for " + id);
 }
 </script>
