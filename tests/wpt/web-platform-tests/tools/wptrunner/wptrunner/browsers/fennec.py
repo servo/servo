@@ -217,16 +217,6 @@ class FennecBrowser(FirefoxBrowser):
 
         self.runner.start(debug_args=debug_args, interactive=self.debug_info and self.debug_info.interactive)
 
-        # gecko_log comes from logcat when running with device/emulator
-        logcat_args = {
-            "filterspec": "Gecko",
-            "serial": self.runner.device.app_ctx.device_serial
-        }
-        # TODO setting logcat_args["logfile"] yields an almost empty file
-        # even without filterspec
-        logcat_args["stream"] = sys.stdout
-        self.runner.device.start_logcat(**logcat_args)
-
         self.runner.device.device.forward(
             local="tcp:{}".format(self.marionette_port),
             remote="tcp:{}".format(self.marionette_port))

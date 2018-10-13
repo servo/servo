@@ -161,13 +161,7 @@
   test_tone_change_events((t, dtmfSender) => {
     dtmfSender.addEventListener('tonechange', ev => {
       if(ev.tone === 'B') {
-        // Set a timeout to make sure the toneBuffer
-        // is changed after the tonechange event listener
-        // by test_tone_change_events is called.
-        // This is to correctly test the expected toneBuffer.
-        t.step_timeout(() => {
-          dtmfSender.insertDTMF('12', 100, 70);
-        }, 10);
+        dtmfSender.insertDTMF('12', 100, 70);
       }
     });
 
@@ -189,10 +183,8 @@
   test_tone_change_events((t, dtmfSender) => {
     dtmfSender.addEventListener('tonechange', ev => {
       if(ev.tone === 'B') {
-        t.step_timeout(() => {
-          dtmfSender.insertDTMF('12', 100, 70);
-          dtmfSender.insertDTMF('34', 100, 70);
-        }, 10);
+        dtmfSender.insertDTMF('12', 100, 70);
+        dtmfSender.insertDTMF('34', 100, 70);
       }
     });
 
@@ -213,9 +205,7 @@
   test_tone_change_events((t, dtmfSender) => {
     dtmfSender.addEventListener('tonechange', ev => {
       if(ev.tone === 'B') {
-        t.step_timeout(() => {
-          dtmfSender.insertDTMF('');
-        }, 10);
+        dtmfSender.insertDTMF('');
       }
     });
 

@@ -40,8 +40,10 @@ test (t => {
     'noOpenER',
     '  NOopener',
     '=NOOPENER',
-    'noopener=NOOPENER', // => ('noopener', 'noopener')
-    'NOOPENER=noopener' // => ('noopener', 'noopener')
+    'noopener=1',
+    'NOOPENER=1',
+    'NOOPENER=yes',
+    'noopener=YES',
   ];
   featureVariants.forEach(feature => {
     var win = window.open(windowURL, '', feature);
@@ -82,9 +84,9 @@ test (t => {
     'noopener==,',
     'noopener=\n ,',
     'noopener = \t ,',
-    'noopener\n=\r noopener,', // => ('noopener', 'noopener')
+    'noopener\n=\r 1,', // => ('noopener', '1')
     'noopener=,yes', // => ('noopener'), ('yes')
-    'noopener= foo=,', // => ('noopener', 'foo')
+    'noopener= yes=,', // => ('noopener', 'yes')
     'noopener = \u000Cyes' // => ('noopener', 'yes')
   ];
   featureVariants.forEach(feature => {
@@ -96,14 +98,14 @@ test (t => {
 test (t => {
   // Tokenizing `value` should collect any non-separator code points until first separator
   var featureVariants = [
-    'noopener=noopener', // => ('noopener', 'noopener')
+    'noopener=1', // => ('noopener', 'noopener')
     'noopener=yes', // => ('noopener', 'yes')
     'noopener = yes ,', // => ('noopener', 'yes')
     'noopener=\nyes  ,', // => ('noopener', 'yes')
     'noopener=yes yes', // => ('noopener', 'yes'), ('yes', '')
     'noopener=yes\ts', // => ('noopener', 'yes'), ('s', '')
     'noopener==', // => ('noopener', '')
-    'noopener=0\n,', // => ('noopener', '0')
+    'noopener=1\n,', // => ('noopener', '1')
     '==noopener===', // => ('noopener', '')
     'noopener==\u000C' // => ('noopener', '')
   ];
@@ -114,20 +116,30 @@ test (t => {
 }, 'Tokenizing should read characters until first window feature separator as `value`');
 
 test (t => {
-  // If tokenizedFeatures contains an entry with the key "noopener"...disown opener
-  // i.e. `value` should be irrelevant
   var featureVariants = [
-    'noopener=false',
-    ',noopener=0, ',
-    'foo=bar,noopener=noopener,',
-    'noopener=true',
-    'noopener=foo\nbar\t'
+    'noopener=1',
+    'noopener=2',
+    'noopener=12345',
+    'noopener=1.5',
+    'noopener=-1',
   ];
   featureVariants.forEach(feature => {
     var win = window.open(windowURL, '', feature);
     assert_equals(win, null, `"${feature}" should activate feature "noopener"`);
   });
-}, '"noopener" should be based on name (key), not value');
+}, 'Integer values other than 0 should activate the feature');
+
+test (t => {
+  var featureVariants = [
+    'noopener=0',
+    'noopener=0.5',
+    'noopener=error',
+  ];
+  featureVariants.forEach(feature => {
+    var win = window.open(windowURL, '', feature);
+    assert_not_equals(win, null, `"${feature}" should NOT activate feature "noopener"`);
+  });
+}, 'Integer value of 0 should not activate the feature');
 
 test (t => {
   var invalidFeatureVariants = [

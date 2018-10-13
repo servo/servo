@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<head>
+  <title>iframe_history_go_0</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<iframe></iframe>
+<script>
+promise_test(async (t) => {
+  let iframe = null;
+  const OLD_URL = 'blank-old.html';
+  const NEW_URL = 'blank-new.html';
+
+  await new Promise(resolve => {
+    iframe = document.createElement('iframe');
+    iframe.onload = () => resolve();
+    iframe.src = OLD_URL;
+    document.body.appendChild(iframe);
+    t.add_cleanup(() => iframe.remove());
+  });
+
+  assert_equals(iframe.contentDocument.body.textContent, 'This is an old page.\n');
+
+  await new Promise(resolve => {
+    iframe.onload = () => resolve();
+    iframe.src = NEW_URL;
+  });
+
+  assert_equals(iframe.contentDocument.body.textContent, 'This is a new page.\n');
+
+  await new Promise(resolve => {
+    iframe.onload = () => resolve();
+    iframe.contentWindow.history.go(0);
+  });
+
+  assert_equals(iframe.contentDocument.body.textContent, 'This is a new page.\n');
+}, 'iframe\'s history.go(0) performs a location.reload()');
+</script>
+</body>

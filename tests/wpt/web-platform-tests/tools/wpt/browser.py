@@ -41,7 +41,7 @@ class Browser(object):
         return NotImplemented
 
     @abstractmethod
-    def find_webdriver(self):
+    def find_webdriver(self, channel=None):
         """Find the binary of the WebDriver."""
         return NotImplemented
 
@@ -211,7 +211,7 @@ class Firefox(Browser):
             return None
         return path
 
-    def find_webdriver(self):
+    def find_webdriver(self, channel=None):
         return find_executable("geckodriver")
 
     def get_version_and_channel(self, binary):
@@ -387,7 +387,7 @@ class Fennec(Browser):
     def find_binary(self, venv_path=None, channel=None):
         raise NotImplementedError
 
-    def find_webdriver(self):
+    def find_webdriver(self, channel=None):
         raise NotImplementedError
 
     def install_webdriver(self, dest=None, channel=None):
@@ -441,7 +441,7 @@ class Chrome(Browser):
     def find_binary(self, venv_path=None, channel=None):
         raise NotImplementedError
 
-    def find_webdriver(self):
+    def find_webdriver(self, channel=None):
         return find_executable("chromedriver")
 
     def install_webdriver(self, dest=None, channel=None):
@@ -489,7 +489,7 @@ class ChromeAndroid(Browser):
     def find_binary(self, venv_path=None, channel=None):
         raise NotImplementedError
 
-    def find_webdriver(self):
+    def find_webdriver(self, channel=None):
         return find_executable("chromedriver")
 
     def install_webdriver(self, dest=None, channel=None):
@@ -541,7 +541,7 @@ class Opera(Browser):
     def find_binary(self, venv_path=None, channel=None):
         raise NotImplementedError
 
-    def find_webdriver(self):
+    def find_webdriver(self, channel=None):
         return find_executable("operadriver")
 
     def install_webdriver(self, dest=None, channel=None):
@@ -584,7 +584,7 @@ class Edge(Browser):
     def find_binary(self, venv_path=None, channel=None):
         raise NotImplementedError
 
-    def find_webdriver(self):
+    def find_webdriver(self, channel=None):
         return find_executable("MicrosoftWebDriver")
 
     def install_webdriver(self, dest=None, channel=None):
@@ -610,7 +610,7 @@ class InternetExplorer(Browser):
     def find_binary(self, venv_path=None, channel=None):
         raise NotImplementedError
 
-    def find_webdriver(self):
+    def find_webdriver(self, channel=None):
         return find_executable("IEDriverServer.exe")
 
     def install_webdriver(self, dest=None, channel=None):
@@ -635,8 +635,11 @@ class Safari(Browser):
     def find_binary(self, venv_path=None, channel=None):
         raise NotImplementedError
 
-    def find_webdriver(self):
-        return find_executable("safaridriver")
+    def find_webdriver(self, channel=None):
+        path = None
+        if channel == "preview":
+            path = "/Applications/Safari Technology Preview.app/Contents/MacOS"
+        return find_executable("safaridriver", path)
 
     def install_webdriver(self, dest=None, channel=None):
         raise NotImplementedError
@@ -695,7 +698,7 @@ class Servo(Browser):
             path = find_executable("servo")
         return path
 
-    def find_webdriver(self):
+    def find_webdriver(self, channel=None):
         return None
 
     def install_webdriver(self, dest=None, channel=None):
@@ -719,7 +722,7 @@ class Sauce(Browser):
     def find_binary(self, venev_path=None, channel=None):
         raise NotImplementedError
 
-    def find_webdriver(self):
+    def find_webdriver(self, channel=None):
         raise NotImplementedError
 
     def install_webdriver(self, dest=None, channel=None):
@@ -741,7 +744,7 @@ class WebKit(Browser):
     def find_binary(self, venv_path=None, channel=None):
         return None
 
-    def find_webdriver(self):
+    def find_webdriver(self, channel=None):
         return None
 
     def install_webdriver(self, dest=None, channel=None):
