@@ -9,7 +9,7 @@ use euclid::{Length, TypedPoint2D, TypedVector2D, TypedScale, TypedSize2D};
 use gdi32;
 use gleam::gl;
 use glutin::{Api, ContextBuilder, GlContext, GlRequest, GlWindow};
-use keyboard_types::{Key, KeyboardEvent, Modifiers as KeyModifiers, KeyState};
+use keyboard_types::{Key, KeyboardEvent, KeyState};
 #[cfg(any(target_os = "linux", target_os = "macos"))]
 use osmesa_sys;
 use servo::compositing::windowing::{AnimationState, MouseWindowEvent, WindowEvent};
@@ -31,13 +31,13 @@ use std::rc::Rc;
 use std::sync::Arc;
 use std::thread;
 use std::time;
-use super::keyutils;
+use super::keyutils::keyboard_event_from_winit;
 #[cfg(target_os = "windows")]
 use user32;
 #[cfg(target_os = "windows")]
 use winapi;
 use winit;
-use winit::{ElementState, Event, ModifiersState, MouseButton, MouseScrollDelta, TouchPhase, VirtualKeyCode};
+use winit::{ElementState, Event, MouseButton, MouseScrollDelta, TouchPhase, KeyboardInput};
 use winit::dpi::{LogicalPosition, LogicalSize, PhysicalSize};
 #[cfg(target_os = "macos")]
 use winit::os::macos::{ActivationPolicy, WindowBuilderExt};
@@ -150,7 +150,6 @@ pub struct Window {
     mouse_down_point: Cell<TypedPoint2D<i32, DevicePixel>>,
     event_queue: RefCell<Vec<WindowEvent>>,
     mouse_pos: Cell<TypedPoint2D<i32, DevicePixel>>,
-    key_modifiers: Cell<KeyModifiers>,
     last_pressed: Cell<Option<KeyboardEvent>>,
     animation_state: Cell<AnimationState>,
     fullscreen: Cell<bool>,
@@ -276,10 +275,7 @@ impl Window {
             event_queue: RefCell::new(vec![]),
             mouse_down_button: Cell::new(None),
             mouse_down_point: Cell::new(TypedPoint2D::new(0, 0)),
-
             mouse_pos: Cell::new(TypedPoint2D::new(0, 0)),
-            key_modifiers: Cell::new(KeyModifiers::empty()),
-
             last_pressed: Cell::new(None),
             gl: gl.clone(),
             animation_state: Cell::new(AnimationState::Idle),
@@ -419,8 +415,15 @@ impl Window {
         }
         let mut event = if let Some(event) = self.last_pressed.replace(None) {
             event
+        } else if ch.is_ascii() {
+            // Some keys like Backspace emit a control character in winit
+            // but they are already dealt with in handle_keyboard_input
+            // so just ignore the character.
+            return
         } else {
-            return;
+            // For combined characters like the letter e with an acute accent
+            // no keyboard event is emitted. A dummy event is created in this case.
+            KeyboardEvent::default()
         };
         event.key = Key::Character(ch.to_string());
         self.event_queue
@@ -428,44 +431,15 @@ impl Window {
             .push(WindowEvent::Keyboard(event));
     }
 
-    fn toggle_keyboard_modifiers(&self, mods: ModifiersState) {
-        self.toggle_modifier(KeyModifiers::CONTROL, mods.ctrl);
-        self.toggle_modifier(KeyModifiers::SHIFT, mods.shift);
-        self.toggle_modifier(KeyModifiers::ALT, mods.alt);
-        self.toggle_modifier(KeyModifiers::META, mods.logo);
-    }
-
     fn handle_keyboard_input(
         &self,
-        scancode: u32,
-        element_state: ElementState,
-        code: Option<VirtualKeyCode>,
-        mods: ModifiersState,
+        input: KeyboardInput,
     ) {
-        info!(
-            "winit keyboard input: {}, {:?}, {:?}, {:?}",
-            scancode, element_state, code, mods
-        );
-        self.toggle_keyboard_modifiers(mods);
-        let key = keyutils::get_servo_key_from_winit_key(code);
-        let location = keyutils::get_servo_location_from_winit_key(code);
-        let state = match element_state {
-            ElementState::Pressed => KeyState::Down,
-            ElementState::Released => KeyState::Up,
-        };
-        let event = KeyboardEvent {
-            state,
-            key: key.clone(),
-            code: keyutils::get_servo_code_from_scancode(scancode),
-            location,
-            modifiers: self.key_modifiers.get(),
-            repeat: false,
-            is_composing: false,
-        };
-        if element_state == ElementState::Pressed && key == Key::Unidentified {
+        let event = keyboard_event_from_winit(input);
+        if event.state == KeyState::Down && event.key == Key::Unidentified {
             // If pressed and probably printable, we expect a ReceivedCharacter event.
             self.last_pressed.set(Some(event));
-        } else if key != Key::Unidentified {
+        } else if event.key != Key::Unidentified {
             self.last_pressed.set(None);
             self.event_queue
                 .borrow_mut()
@@ -482,17 +456,11 @@ impl Window {
             Event::WindowEvent {
                 event:
                     winit::WindowEvent::KeyboardInput {
-                        input:
-                            winit::KeyboardInput {
-                                scancode,
-                                state,
-                                virtual_keycode,
-                                modifiers,
-                            },
+                        input,
                         ..
                     },
                 ..
-            } => self.handle_keyboard_input(scancode, state, virtual_keycode, modifiers),
+            } => self.handle_keyboard_input(input),
             Event::WindowEvent {
                 event: winit::WindowEvent::MouseInput { state, button, .. },
                 ..
@@ -594,16 +562,6 @@ impl Window {
             },
             _ => {},
         }
-    }
-
-    fn toggle_modifier(&self, modifier: KeyModifiers, pressed: bool) {
-        let mut modifiers = self.key_modifiers.get();
-        if pressed {
-            modifiers.insert(modifier);
-        } else {
-            modifiers.remove(modifier);
-        }
-        self.key_modifiers.set(modifiers);
     }
 
     /// Helper function to handle a click

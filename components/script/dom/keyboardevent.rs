@@ -31,9 +31,8 @@ pub struct KeyboardEvent {
     modifiers: Cell<Modifiers>,
     repeat: Cell<bool>,
     is_composing: Cell<bool>,
-    char_code: Cell<Option<u32>>,
+    char_code: Cell<u32>,
     key_code: Cell<u32>,
-    printable: Cell<Option<char>>,
 }
 
 impl KeyboardEvent {
@@ -47,9 +46,8 @@ impl KeyboardEvent {
             modifiers: Cell::new(Modifiers::empty()),
             repeat: Cell::new(false),
             is_composing: Cell::new(false),
-            char_code: Cell::new(None),
+            char_code: Cell::new(0),
             key_code: Cell::new(0),
-            printable: Cell::new(None),
         }
     }
 
@@ -74,7 +72,7 @@ impl KeyboardEvent {
         repeat: bool,
         is_composing: bool,
         modifiers: Modifiers,
-        char_code: Option<u32>,
+        char_code: u32,
         key_code: u32,
     ) -> DomRoot<KeyboardEvent> {
         let ev = KeyboardEvent::new_uninitialized(window);
@@ -121,7 +119,7 @@ impl KeyboardEvent {
             init.repeat,
             init.isComposing,
             modifiers,
-            None,
+            0,
             0,
         );
         *event.key.borrow_mut() = init.key.clone();
@@ -130,64 +128,12 @@ impl KeyboardEvent {
 }
 
 impl KeyboardEvent {
-    pub fn printable(&self) -> Option<char> {
-        self.printable.get()
-    }
-
     pub fn key(&self) -> Key {
         self.typed_key.borrow().clone()
     }
 
     pub fn modifiers(&self) -> Modifiers {
         self.modifiers.get()
-    }
-}
-
-// https://w3c.github.io/uievents/#legacy-key-models
-pub fn key_keycode(key: &Key) -> u32 {
-    match key {
-        // https://w3c.github.io/uievents/#legacy-key-models
-        Key::Backspace => 8,
-        Key::Tab => 9,
-        Key::Enter => 13,
-        Key::Shift => 16,
-        Key::Control => 17,
-        Key::Alt => 18,
-        Key::CapsLock => 20,
-        Key::Escape => 27,
-        Key::PageUp => 33,
-        Key::PageDown => 34,
-        Key::End => 35,
-        Key::Home => 36,
-        Key::ArrowLeft => 37,
-        Key::ArrowUp => 38,
-        Key::ArrowRight => 39,
-        Key::ArrowDown => 40,
-        Key::Delete => 46,
-        Key::Character(ref c) if c.len() == 1 => match c.chars().next().unwrap() {
-            ' ' => 32,
-            //§ B.2.1.3
-            '0'...'9' => c.as_bytes()[0] as u32,
-            //§ B.2.1.4
-            'a'...'z' => c.to_ascii_uppercase().as_bytes()[0] as u32,
-            'A'...'Z' => c.as_bytes()[0] as u32,
-            // https://w3c.github.io/uievents/#optionally-fixed-virtual-key-codes
-            ';' | ':' => 186,
-            '=' | '+' => 187,
-            ',' | '<' => 188,
-            '-' | '_' => 189,
-            '.' | '>' => 190,
-            '/' | '?' => 191,
-            '`' | '~' => 192,
-            '[' | '{' => 219,
-            '\\' | '|' => 220,
-            ']' | '}' => 221,
-            '\'' | '\"' => 222,
-            _ => 0,
-        },
-
-        //§ B.2.1.8
-        _ => 0,
     }
 }
 
@@ -282,7 +228,7 @@ impl KeyboardEventMethods for KeyboardEvent {
 
     // https://w3c.github.io/uievents/#widl-KeyboardEvent-charCode
     fn CharCode(&self) -> u32 {
-        self.char_code.get().unwrap_or(0)
+        self.char_code.get()
     }
 
     // https://w3c.github.io/uievents/#widl-KeyboardEvent-keyCode
@@ -292,7 +238,11 @@ impl KeyboardEventMethods for KeyboardEvent {
 
     // https://w3c.github.io/uievents/#widl-KeyboardEvent-which
     fn Which(&self) -> u32 {
-        self.char_code.get().unwrap_or(self.KeyCode())
+        if self.char_code.get() != 0 {
+            self.char_code.get()
+        } else {
+            self.key_code.get()
+        }
     }
 
     // https://dom.spec.whatwg.org/#dom-event-istrusted

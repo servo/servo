@@ -61,7 +61,7 @@ use dom::htmlimageelement::HTMLImageElement;
 use dom::htmlmetaelement::HTMLMetaElement;
 use dom::htmlscriptelement::{HTMLScriptElement, ScriptResult};
 use dom::htmltitleelement::HTMLTitleElement;
-use dom::keyboardevent::{KeyboardEvent, key_keycode};
+use dom::keyboardevent::KeyboardEvent;
 use dom::location::Location;
 use dom::messageevent::MessageEvent;
 use dom::mouseevent::MouseEvent;
@@ -770,10 +770,12 @@ impl Document {
         // Step 1 is not handled here; the fragid is already obtained by the calling function
         // Step 2: Simply use None to indicate the top of the document.
         // Step 3 & 4
-        percent_decode(fragid.as_bytes()).decode_utf8().ok()
-        // Step 5
+        percent_decode(fragid.as_bytes())
+            .decode_utf8()
+            .ok()
+            // Step 5
             .and_then(|decoded_fragid| self.get_element_by_id(&Atom::from(decoded_fragid)))
-        // Step 6
+            // Step 6
             .or_else(|| self.get_anchor_by_name(fragid))
         // Step 7 & 8
     }
@@ -806,7 +808,8 @@ impl Document {
                     rect.origin.x.to_nearest_px() as f32,
                     rect.origin.y.to_nearest_px() as f32,
                 )
-            }).or_else(|| {
+            })
+            .or_else(|| {
                 if fragment.is_empty() || fragment.eq_ignore_ascii_case("top") {
                     // FIXME(stshine): this should be the origin of the stacking context space,
                     // which may differ under the influence of writing mode.
@@ -1349,17 +1352,9 @@ impl Document {
     }
 
     /// The entry point for all key processing for web content
-    pub fn dispatch_key_event(
-        &self,
-        keyboard_event: ::keyboard_types::KeyboardEvent,
-    ) {
+    pub fn dispatch_key_event(&self, keyboard_event: ::keyboard_types::KeyboardEvent) {
         let focused = self.get_focused_element();
         let body = self.GetBody();
-
-        let printable = match keyboard_event.key {
-            Key::Character(_) => true,
-            _ => false,
-        };
 
         let target = match (&focused, &body) {
             (&Some(ref focused), _) => focused.upcast(),
@@ -1367,26 +1362,9 @@ impl Document {
             (&None, &None) => self.window.upcast(),
         };
 
-        let ev_type = DOMString::from(
-            match keyboard_event.state {
-                KeyState::Down => "keydown",
-                KeyState::Up => "keyup",
-            }.to_owned());
-
-        let char_code = if let Key::Character(ref c) = keyboard_event.key {
-            let mut chars = c.chars();
-            let n = chars.next().map(|c| c as u32);
-            if chars.next().is_some() {
-                None
-            } else {
-                n
-            }
-        } else {
-            None
-        };
         let keyevent = KeyboardEvent::new(
             &self.window,
-            ev_type,
+            DOMString::from(keyboard_event.state.to_string()),
             true,
             true,
             Some(&self.window),
@@ -1397,15 +1375,18 @@ impl Document {
             keyboard_event.repeat,
             keyboard_event.is_composing,
             keyboard_event.modifiers,
-            char_code,
-            key_keycode(&keyboard_event.key),
+            0,
+            keyboard_event.key.legacy_keycode(),
         );
         let event = keyevent.upcast::<Event>();
         event.fire(target);
         let mut cancel_state = event.get_cancel_state();
 
         // https://w3c.github.io/uievents/#keys-cancelable-keys
-        if keyboard_event.state != KeyState::Up && printable && cancel_state != EventDefault::Prevented {
+        if keyboard_event.state == KeyState::Down &&
+            keyboard_event.key.legacy_charcode() != 0 &&
+            cancel_state != EventDefault::Prevented
+        {
             // https://w3c.github.io/uievents/#keypress-event-order
             let event = KeyboardEvent::new(
                 &self.window,
@@ -1420,7 +1401,7 @@ impl Document {
                 keyboard_event.repeat,
                 keyboard_event.is_composing,
                 keyboard_event.modifiers,
-                None,
+                keyboard_event.key.legacy_charcode(),
                 0,
             );
             let ev = event.upcast::<Event>();
@@ -1438,7 +1419,9 @@ impl Document {
             // Here, we're dispatching it after the key event so the script has a chance to cancel it
             // https://www.w3.org/Bugs/Public/show_bug.cgi?id=27337
             match keyboard_event.key {
-                Key::Character(ref letter) if letter == " " && keyboard_event.state == KeyState::Up => {
+                Key::Character(ref letter)
+                    if letter == " " && keyboard_event.state == KeyState::Up =>
+                {
                     let maybe_elem = target.downcast::<Element>();
                     if let Some(el) = maybe_elem {
                         synthetic_click_activation(

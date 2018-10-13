@@ -2,8 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use keyboard_types::{Code, Key, Modifiers, Location};
-use winit::VirtualKeyCode;
+use keyboard_types::{Code, Key, KeyboardEvent, KeyState, Modifiers, Location};
+use winit::{ElementState, KeyboardInput, ModifiersState, VirtualKeyCode};
 
 // Some shortcuts use Cmd on Mac and Control on other systems.
 #[cfg(target_os = "macos")]
@@ -17,7 +17,7 @@ pub const CMD_OR_ALT: Modifiers = Modifiers::META;
 #[cfg(not(target_os = "macos"))]
 pub const CMD_OR_ALT: Modifiers = Modifiers::ALT;
 
-pub fn get_servo_key_from_winit_key(key: Option<VirtualKeyCode>) -> Key {
+fn get_servo_key_from_winit_key(key: Option<VirtualKeyCode>) -> Key {
     use winit::VirtualKeyCode::*;
     // TODO: figure out how to map NavigateForward, NavigateBackward
     // TODO: map the remaining keys if possible
@@ -126,7 +126,7 @@ pub fn get_servo_key_from_winit_key(key: Option<VirtualKeyCode>) -> Key {
     }
 }
 
-pub fn get_servo_location_from_winit_key(key: Option<VirtualKeyCode>) -> Location {
+fn get_servo_location_from_winit_key(key: Option<VirtualKeyCode>) -> Location {
     use winit::VirtualKeyCode::*;
     // TODO: add more numpad keys
     let key = if let Some(key) = key {
@@ -145,7 +145,7 @@ pub fn get_servo_location_from_winit_key(key: Option<VirtualKeyCode>) -> Locatio
 }
 
 #[cfg(target_os = "linux")]
-pub fn get_servo_code_from_scancode(scancode: u32) -> Code {
+fn get_servo_code_from_scancode(scancode: u32) -> Code {
     // TODO: Map more codes
     use keyboard_types::Code::*;
     match scancode {
@@ -236,7 +236,32 @@ pub fn get_servo_code_from_scancode(scancode: u32) -> Code {
 }
 
 #[cfg(not(target_os = "linux"))]
-pub fn get_servo_code_from_scancode(_scancode: u32) -> Code {
+fn get_servo_code_from_scancode(_scancode: u32) -> Code {
     // TODO: Implement for Windows and Mac OS
     Code::Unidentified
+}
+
+fn get_modifiers(mods: ModifiersState) -> Modifiers {
+    let mut modifiers = Modifiers::empty();
+    modifiers.set(Modifiers::CONTROL, mods.ctrl);
+    modifiers.set(Modifiers::SHIFT, mods.shift);
+    modifiers.set(Modifiers::ALT, mods.alt);
+    modifiers.set(Modifiers::META, mods.logo);
+    modifiers
+}
+
+pub fn keyboard_event_from_winit(input: KeyboardInput) -> KeyboardEvent {
+    info!("winit keyboard input: {:?}", input);
+    KeyboardEvent {
+        state: match input.state {
+            ElementState::Pressed => KeyState::Down,
+            ElementState::Released => KeyState::Up,
+        },
+        key: get_servo_key_from_winit_key(input.virtual_keycode),
+        code: get_servo_code_from_scancode(input.scancode),
+        location: get_servo_location_from_winit_key(input.virtual_keycode),
+        modifiers: get_modifiers(input.modifiers),
+        repeat: false,
+        is_composing: false,
+    }
 }
