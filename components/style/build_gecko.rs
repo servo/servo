@@ -300,7 +300,7 @@ mod bindings {
             .expect("Unable to write output");
     }
 
-    fn get_types(filename: &str, macro_name: &str) -> Vec<String> {
+    fn get_types(filename: &str, macro_pat: &str) -> Vec<(String, String)> {
         // Read the file
         let path = DISTDIR_PATH.join("include/mozilla/").join(filename);
         let mut list_file = File::open(path)
@@ -315,31 +315,46 @@ mod bindings {
         let content = block_comment_re.replace_all(&content, "");
         let content = line_comment_re.replace_all(&content, "");
         // Extract the list
-        let re_string = format!(r#"^{}\(\w+,\s*(\w+)\)$"#, macro_name);
+        let re_string = format!(r#"^({})\(.+,\s*(\w+)\)$"#, macro_pat);
         let re = Regex::new(&re_string).unwrap();
         content
             .lines()
             .map(|line| line.trim())
             .filter(|line| !line.is_empty())
             .map(|line| {
-                re.captures(&line)
+                let captures = re.captures(&line)
                     .expect(&format!(
                         "Unrecognized line in {}: '{}'",
                         filename,
                         line
-                    )).get(1)
-                    .unwrap()
-                    .as_str()
-                    .to_string()
+                    ));
+                let macro_name = captures.get(1).unwrap().as_str().to_string();
+                let type_name = captures.get(2).unwrap().as_str().to_string();
+                (macro_name, type_name)
             }).collect()
+    }
+
+    fn get_borrowed_types() -> Vec<(bool, String)> {
+        get_types("BorrowedTypeList.h", "GECKO_BORROWED_TYPE(?:_MUT)?")
+            .into_iter()
+            .map(|(macro_name, type_name)| {
+                (macro_name.ends_with("MUT"), type_name)
+            })
+            .collect()
     }
 
     fn get_arc_types() -> Vec<String> {
         get_types("ServoArcTypeList.h", "SERVO_ARC_TYPE")
+            .into_iter()
+            .map(|(_, type_name)| type_name)
+            .collect()
     }
 
     fn get_boxed_types() -> Vec<String> {
         get_types("ServoBoxedTypeList.h", "SERVO_BOXED_TYPE")
+            .into_iter()
+            .map(|(_, type_name)| type_name)
+            .collect()
     }
 
     struct BuilderWithConfig<'a> {
@@ -544,6 +559,13 @@ mod bindings {
             // which _do_ need to be opaque, we'll need a separate mode.
             .handle_str_items("servo-borrow-types", |b, ty| b.mutable_borrowed_type(ty))
             .get_builder();
+        for (is_mut, ty) in get_borrowed_types().iter() {
+            if *is_mut {
+                builder = builder.mutable_borrowed_type(ty);
+            } else {
+                builder = builder.borrowed_type(ty);
+            }
+        }
         for ty in get_arc_types().iter() {
             builder = builder
                 .blacklist_type(format!("{}Strong", ty))

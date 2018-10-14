@@ -8,7 +8,7 @@ use atomic_refcell::{AtomicRef, AtomicRefCell, AtomicRefMut};
 use context::QuirksMode;
 use dom::TElement;
 use gecko_bindings::bindings::{self, RawServoStyleSet};
-use gecko_bindings::structs::{RawGeckoPresContextOwned, ServoStyleSetSizes, StyleSheet as DomStyleSheet};
+use gecko_bindings::structs::{RawGeckoPresContextBorrowed, ServoStyleSetSizes, StyleSheet as DomStyleSheet};
 use gecko_bindings::structs::{StyleSheetInfo, nsIDocument};
 use gecko_bindings::sugar::ownership::{HasArcFFI, HasBoxFFI, HasFFI, HasSimpleFFI};
 use invalidation::media_queries::{MediaListKey, ToMediaListKey};
@@ -143,7 +143,7 @@ pub struct PerDocumentStyleData(AtomicRefCell<PerDocumentStyleDataImpl>);
 
 impl PerDocumentStyleData {
     /// Create a dummy `PerDocumentStyleData`.
-    pub fn new(pres_context: RawGeckoPresContextOwned) -> Self {
+    pub fn new(pres_context: RawGeckoPresContextBorrowed) -> Self {
         let device = Device::new(pres_context);
 
         // FIXME(emilio, tlin): How is this supposed to work with XBL? This is

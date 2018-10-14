@@ -12,7 +12,7 @@ use euclid::TypedScale;
 use gecko::values::{convert_nscolor_to_rgba, convert_rgba_to_nscolor};
 use gecko_bindings::bindings;
 use gecko_bindings::structs;
-use gecko_bindings::structs::{nsPresContext, RawGeckoPresContextOwned};
+use gecko_bindings::structs::{nsPresContext, RawGeckoPresContextBorrowed};
 use media_queries::MediaType;
 use properties::ComputedValues;
 use servo_arc::Arc;
@@ -30,7 +30,7 @@ pub struct Device {
     /// NB: The pres context lifetime is tied to the styleset, who owns the
     /// stylist, and thus the `Device`, so having a raw pres context pointer
     /// here is fine.
-    pres_context: RawGeckoPresContextOwned,
+    pres_context: RawGeckoPresContextBorrowed,
     default_values: Arc<ComputedValues>,
     /// The font size of the root element
     /// This is set when computing the style of the root
@@ -77,7 +77,7 @@ unsafe impl Send for Device {}
 
 impl Device {
     /// Trivially constructs a new `Device`.
-    pub fn new(pres_context: RawGeckoPresContextOwned) -> Self {
+    pub fn new(pres_context: RawGeckoPresContextBorrowed) -> Self {
         assert!(!pres_context.is_null());
         Device {
             pres_context,
