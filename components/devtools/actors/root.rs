@@ -8,6 +8,7 @@
 /// that perform more specific actions (targets, addons, browser chrome, etc.)
 use actor::{Actor, ActorMessageStatus, ActorRegistry};
 use actors::browsing_context::{BrowsingContextActor, BrowsingContextActorMsg};
+use actors::device::DeviceActor;
 use actors::performance::PerformanceActor;
 use protocol::{ActorDescription, JsonPacketStream};
 use serde_json::{Map, Value};
@@ -29,6 +30,14 @@ struct ListAddonsReply {
 
 #[derive(Serialize)]
 enum AddonMsg {}
+
+#[derive(Serialize)]
+struct GetRootReply {
+    from: String,
+    selected: u32,
+    performanceActor: String,
+    deviceActor: String,
+}
 
 #[derive(Serialize)]
 struct ListTabsReply {
@@ -53,10 +62,13 @@ pub struct ProtocolDescriptionReply {
 #[derive(Serialize)]
 pub struct Types {
     performance: ActorDescription,
+    device: ActorDescription,
 }
 
 pub struct RootActor {
     pub tabs: Vec<String>,
+    pub performance: String,
+    pub device: String,
 }
 
 impl Actor for RootActor {
@@ -76,6 +88,17 @@ impl Actor for RootActor {
                 let actor = ListAddonsReply {
                     from: "root".to_owned(),
                     addons: vec![],
+                };
+                stream.write_json_packet(&actor);
+                ActorMessageStatus::Processed
+            },
+
+            "getRoot" => {
+                let actor = GetRootReply {
+                    from: "root".to_owned(),
+                    selected: 0,
+                    performanceActor: self.performance.clone(),
+                    deviceActor: self.device.clone(),
                 };
                 stream.write_json_packet(&actor);
                 ActorMessageStatus::Processed
@@ -101,6 +124,7 @@ impl Actor for RootActor {
                     from: self.name(),
                     types: Types {
                         performance: PerformanceActor::description(),
+                        device: DeviceActor::description(),
                     },
                 };
                 stream.write_json_packet(&msg);

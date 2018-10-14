@@ -27,6 +27,7 @@ extern crate time;
 use actor::{Actor, ActorRegistry};
 use actors::browsing_context::BrowsingContextActor;
 use actors::console::ConsoleActor;
+use actors::device::DeviceActor;
 use actors::framerate::FramerateActor;
 use actors::inspector::InspectorActor;
 use actors::network_event::{EventActor, NetworkEventActor, ResponseStartMsg};
@@ -57,6 +58,7 @@ mod actor;
 mod actors {
     pub mod browsing_context;
     pub mod console;
+    pub mod device;
     pub mod framerate;
     pub mod inspector;
     pub mod memory;
@@ -146,9 +148,19 @@ fn run_server(
 
     let mut registry = ActorRegistry::new();
 
-    let root = Box::new(RootActor { tabs: vec![] });
+    let performance = PerformanceActor::new(registry.new_name("performance"));
+
+    let device = DeviceActor::new(registry.new_name("device"));
+
+    let root = Box::new(RootActor {
+        tabs: vec![],
+        device: device.name(),
+        performance: performance.name(),
+    });
 
     registry.register(root);
+    registry.register(Box::new(performance));
+    registry.register(Box::new(device));
     registry.find::<RootActor>("root");
 
     let actors = registry.create_shareable();
