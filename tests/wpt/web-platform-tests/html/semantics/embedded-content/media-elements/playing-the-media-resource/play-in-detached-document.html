@@ -12,7 +12,8 @@ async_test(function(t)
   var v = doc.createElement("video");
   doc.body.appendChild(v);
   v.src = getVideoURI("/media/movie_5");
-  v.play();
+  v.play().catch(() => {});
+
   v.addEventListener("timeupdate", t.step_func(function() {
     assert_false(v.paused);
     if (v.currentTime > 0) {
