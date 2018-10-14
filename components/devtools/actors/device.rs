@@ -3,10 +3,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use actor::{Actor, ActorMessageStatus, ActorRegistry};
-use serde_json::{Map, Value};
-use std::net::TcpStream;
 use protocol::{ActorDescription,  Method};
 use protocol::JsonPacketStream;
+use serde_json::{Map, Value};
+use std::net::TcpStream;
 
 #[derive(Serialize)]
 struct GetDescriptionReply {
@@ -35,10 +35,8 @@ impl Actor for DeviceActor {
         _msg: &Map<String, Value>,
         stream: &mut TcpStream,
     ) -> Result<ActorMessageStatus, ()> {
-
         Ok(match msg_type {
             "getDescription" => {
-
                 let msg = GetDescriptionReply {
                     from: self.name(),
                     value: SystemInfo {
