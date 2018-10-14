@@ -63,9 +63,6 @@ struct ListWorkersReply {
 #[derive(Serialize)]
 struct WorkerMsg {
     id: u32,
-    url: String,
-    title: String,
-    parentID: u32,
 }
 
 #[derive(Serialize)]
