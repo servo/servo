@@ -55,6 +55,20 @@ struct FrameMsg {
 }
 
 #[derive(Serialize)]
+struct ListWorkersReply {
+    from: String,
+    workers: Vec<WorkerMsg>,
+}
+
+#[derive(Serialize)]
+struct WorkerMsg {
+    id: u32,
+    url: String,
+    title: String,
+    parentID: u32,
+}
+
+#[derive(Serialize)]
 pub struct BrowsingContextActorMsg {
     actor: String,
     title: String,
@@ -152,6 +166,15 @@ impl Actor for BrowsingContextActor {
                 let msg = ListFramesReply {
                     from: self.name(),
                     frames: vec![],
+                };
+                stream.write_json_packet(&msg);
+                ActorMessageStatus::Processed
+            },
+
+            "listWorkers" => {
+                let msg = ListWorkersReply {
+                    from: self.name(),
+                    workers: vec![],
                 };
                 stream.write_json_packet(&msg);
                 ActorMessageStatus::Processed
