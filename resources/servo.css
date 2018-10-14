@@ -197,14 +197,8 @@ svg > * {
 
 /* style for text node. */
 *|*::-servo-text {
-    margin: 0;
     text-overflow: inherit;
     overflow: inherit;
-}
-
-/* style for text in input elements. */
-*|*::-servo-input-text {
-    margin: 0;
 }
 
 *|*::-servo-table-wrapper {
