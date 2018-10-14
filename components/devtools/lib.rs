@@ -34,6 +34,7 @@ use actors::network_event::{EventActor, NetworkEventActor, ResponseStartMsg};
 use actors::performance::PerformanceActor;
 use actors::profiler::ProfilerActor;
 use actors::root::RootActor;
+use actors::stylesheets::StyleSheetsActor;
 use actors::thread::ThreadActor;
 use actors::timeline::TimelineActor;
 use actors::worker::WorkerActor;
@@ -67,6 +68,7 @@ mod actors {
     pub mod performance;
     pub mod profiler;
     pub mod root;
+    pub mod stylesheets;
     pub mod thread;
     pub mod timeline;
     pub mod worker;
@@ -218,7 +220,7 @@ fn run_server(
         let (pipeline, worker_id) = ids;
 
         //TODO: move all this actor creation into a constructor method on BrowsingContextActor
-        let (target, console, emulation, inspector, timeline, profiler, performance, thread) = {
+        let (target, console, emulation, inspector, timeline, profiler, performance, styleSheets, thread) = {
             let console = ConsoleActor {
                 name: actors.new_name("console"),
                 script_chan: script_sender.clone(),
@@ -242,6 +244,9 @@ fn run_server(
             let profiler = ProfilerActor::new(actors.new_name("profiler"));
             let performance = PerformanceActor::new(actors.new_name("performance"));
 
+            // the strange switch between styleSheets and stylesheets is due
+            // to an inconsistency in devtools. See Bug #1498893 in bugzilla
+            let styleSheets = StyleSheetsActor::new(actors.new_name("stylesheets"));
             let thread = ThreadActor::new(actors.new_name("context"));
 
             let DevtoolsPageInfo { title, url } = page_info;
@@ -255,6 +260,7 @@ fn run_server(
                 timeline: timeline.name(),
                 profiler: profiler.name(),
                 performance: performance.name(),
+                styleSheets: styleSheets.name(),
                 thread: thread.name(),
             };
 
@@ -269,6 +275,7 @@ fn run_server(
                 timeline,
                 profiler,
                 performance,
+                styleSheets,
                 thread,
             )
         };
@@ -291,6 +298,7 @@ fn run_server(
         actors.register(Box::new(timeline));
         actors.register(Box::new(profiler));
         actors.register(Box::new(performance));
+        actors.register(Box::new(styleSheets));
         actors.register(Box::new(thread));
     }
 

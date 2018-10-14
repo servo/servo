@@ -66,6 +66,7 @@ pub struct BrowsingContextActorMsg {
     timelineActor: String,
     profilerActor: String,
     performanceActor: String,
+    styleSheetsActor: String,
 }
 
 pub struct BrowsingContextActor {
@@ -78,6 +79,7 @@ pub struct BrowsingContextActor {
     pub timeline: String,
     pub profiler: String,
     pub performance: String,
+    pub styleSheets: String,
     pub thread: String,
 }
 
@@ -177,6 +179,7 @@ impl BrowsingContextActor {
             timelineActor: self.timeline.clone(),
             profilerActor: self.profiler.clone(),
             performanceActor: self.performance.clone(),
+            styleSheetsActor: self.styleSheets.clone(),
         }
     }
 }
