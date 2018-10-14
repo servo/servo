@@ -217,16 +217,6 @@ class FennecBrowser(FirefoxBrowser):
 
         self.runner.start(debug_args=debug_args, interactive=self.debug_info and self.debug_info.interactive)
 
-        # gecko_log comes from logcat when running with device/emulator
-        logcat_args = {
-            "filterspec": "Gecko",
-            "serial": self.runner.device.app_ctx.device_serial
-        }
-        # TODO setting logcat_args["logfile"] yields an almost empty file
-        # even without filterspec
-        logcat_args["stream"] = sys.stdout
-        self.runner.device.start_logcat(**logcat_args)
-
         self.runner.device.device.forward(
             local="tcp:{}".format(self.marionette_port),
             remote="tcp:{}".format(self.marionette_port))
@@ -243,6 +233,7 @@ class FennecBrowser(FirefoxBrowser):
                 traceback.print_exception(*sys.exc_info())
             # We assume that stopping the runner prompts the
             # browser to shut down. This allows the leak log to be written
+            self.runner.stop()
             for clean, stop_f in [(True, lambda: self.runner.wait(self.shutdown_timeout)),
                                   (False, lambda: self.runner.stop(signal.SIGTERM)),
                                   (False, lambda: self.runner.stop(signal.SIGKILL))]:

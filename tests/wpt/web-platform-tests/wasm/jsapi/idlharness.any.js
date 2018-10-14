@@ -1,6 +1,6 @@
 // META: script=/resources/WebIDLParser.js
 // META: script=/resources/idlharness.js
-// META: script=resources/load_wasm.js
+// META: script=../resources/load_wasm.js
 
 'use strict';
 
@@ -12,15 +12,22 @@ promise_test(async () => {
     srcs.map(i => fetch(`/interfaces/${i}.idl`).then(r => r.text())));
 
   const idl_array = new IdlArray();
-  idl_array.add_idls(wasm);
+  idl_array.add_idls(wasm, {
+    // Note the prose requirements in the specification.
+    except: ['CompileError', 'LinkError', 'RuntimeError']
+  });
+
+  // https://github.com/web-platform-tests/wpt/issues/12850
+  idl_array.add_untested_idls('[Exposed=(Window,Worker)] interface ArrayBuffer {};');
+
   // Ignored errors are surfaced in idlharness.js's test_object below.
   try {
-    self.memory = new Memory({initial: 1024});
+    self.memory = new WebAssembly.Memory({initial: 1024});
   } catch (e) { }
 
   try {
     self.mod = await createWasmModule();
-    self.instance = new Instance(self.mod);
+    self.instance = new WebAssembly.Instance(self.mod);
   } catch (e) { }
 
   idl_array.add_objects({

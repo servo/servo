@@ -1,0 +1,142 @@
+<!DOCTYPE HTML>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<html><head>
+  <meta charset="utf-8">
+  <title>Reference for legend block-axis margins</title>
+<style>
+.fieldset {
+  display: block;
+  position: relative;
+  width: 40px;
+  border: 2px solid blue;
+  padding: 4px;
+}
+.legend {
+  display: block;
+  position: absolute;
+  width: 10px;
+  height: 20px;
+  padding: 0;
+  margin: 0;
+  background: grey;
+}
+
+.t2 .fieldset { border-top-width: 12px; }
+.t3 .fieldset { border-top-width: 12px; }
+.t3 .legend { height: 12px; background:white; }
+.legend > x { display:block; position:relative; height:6px; background:grey; margin-top:3px; }
+
+div { border: 1px solid;  margin: 0 2px 10px 0; }
+c { display:block; height:10px; background: lightgrey; }
+f { float: left; }
+</style>
+</head>
+<body>
+
+<f>
+<div>
+  <span class="fieldset" style="margin-top:9px"><span class="legend" style="top:-11px"></span><c style="margin-top:9px"></c></span>
+</div>
+
+<div>
+  <span class="fieldset" style="margin-top:19px"><span class="legend" style="top:-11px"></span><c style="margin-top:9px"></c></span>
+</div>
+
+<div>
+  <span class="fieldset"><span class="legend" style="top:-12px"></span><c style="margin-top:8px"></c></span>
+</div>
+
+<div>
+  <span class="fieldset"><span class="legend" style="top:-20px"></span><c></c></span>
+</div>
+
+<div>
+  <span class="fieldset"><span class="legend" style="top:-20px"></span><c></c></span>
+</div>
+
+<div>
+  <span class="fieldset" style="margin-top:9px"><span class="legend" style="top:-11px"></span><c style="margin-top:19px"></c></span>
+</div>
+
+<div>
+  <span class="fieldset" style="margin-top:9px"><span class="legend" style="top:-11px"></span><c style="margin-top:29px"></c></span>
+</div>
+
+<div>
+  <span class="fieldset"><span class="legend" style="top:-2px; z-index:1"></span><c style="position:relative; z-index:1"></c></span>
+</div>
+</f>
+
+<f class=t2>
+<div>
+  <span class="fieldset" style="margin-top:4px"><span class="legend" style="top:-16px"></span><c style="margin-top:4px"></c></span>
+</div>
+
+<div>
+  <span class="fieldset" style="margin-top:14px"><span class="legend" style="top:-16px"></span><c style="margin-top:4px"></c></span>
+</div>
+
+<div>
+  <span class="fieldset"><span class="legend" style="top:-20px"></span><c></c></span>
+</div>
+
+<div>
+  <span class="fieldset"><span class="legend" style="top:-20px"></span><c></c></span>
+</div>
+
+<div>
+  <span class="fieldset"><span class="legend" style="top:-20px"></span><c></c></span>
+</div>
+
+<div>
+  <span class="fieldset" style="margin-top:4px"><span class="legend" style="top:-16px"></span><c style="margin-top:14px"></c></span>
+</div>
+
+<div>
+  <span class="fieldset" style="margin-top:4px"><span class="legend" style="top:-16px"></span><c style="margin-top:24px"></c></span>
+</div>
+
+<div>
+  <span class="fieldset"><span class="legend" style="top:-12px; height:16px"></span><c></c></span>
+</div>
+</f>
+
+<f class=t3>
+<div>
+  <span class="fieldset"><span class="legend" style="margin-top: -16px"><x></x></span><c></c></span>
+</div>
+
+<div>
+  <span class="fieldset" style="margin-top: 4px"><span class="legend" style="margin-top: -16px"><x style="top:3px"></x></span><c></c></span>
+</div>
+
+<div>
+  <span class="fieldset"><span class="legend" style="margin-top: -16px"><x></x></span><c></c></span>
+</div>
+
+<div>
+  <span class="fieldset"><span class="legend" style="margin-top: -16px"><x></x></span><c></c></span>
+</div>
+
+<div>
+  <span class="fieldset"><span class="legend" style="margin-top: -16px"><x></x></span><c></c></span>
+</div>
+
+<div>
+  <span class="fieldset"><span class="legend" style="margin-top: -16px"><x style="top:-3px"></x></span><c style="margin-top:4px"></c></span>
+</div>
+
+<div>
+  <span class="fieldset"><span class="legend" style="margin-top: -16px"><x style="top:-3px"></x></span><c style="margin-top:14px"></c></span>
+</div>
+
+<div>
+  <span class="fieldset"><span class="legend" style="margin-top: -16px"><x></x></span><c></c></span>
+</div>
+</f>
+
+</body>
+</html>

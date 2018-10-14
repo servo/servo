@@ -221,86 +221,86 @@ test_style_property_map_get(function(styleDecl, propertyMap){
     let name2 = gen_prop('<length>', '0px');
     styleDecl.setProperty(name2, `var(${name1})`);
     assert_true(propertyMap.get(name2) instanceof CSSUnparsedValue);
-}, name => `${name}.get returns CSSUnparsedValue for value with var references`);
+}, name => `StylePropertyMap.get returns CSSUnparsedValue for value with var references (${name})`);
 
 test_style_property_map_get(function(styleDecl, propertyMap){
     let name1 = gen_prop('<length>', '100px');
     let name2 = gen_prop('<length>#', '0px');
     styleDecl.setProperty(name2, `1px, var(${name1}), 3px`);
     assert_true(propertyMap.get(name2) instanceof CSSUnparsedValue);
-}, name => `${name}.get returns CSSUnparsedValue for value with var references in list`);
+}, name => `StylePropertyMap.get returns CSSUnparsedValue for value with var references in list (${name})`);
 
 test_style_property_map_get(function(styleDecl, propertyMap){
     assert_attribute_get_type(styleDecl, propertyMap, '*', 'if(){}', CSSUnparsedValue);
-}, name => `${name}.get returns CSSUnparsedValue for *`);
+}, name => `StylePropertyMap.get returns CSSUnparsedValue for * (${name})`);
 
 test_style_property_map_get(function(styleDecl, propertyMap){
     assert_attribute_get_type(styleDecl, propertyMap, '<angle>', '42deg', CSSUnitValue);
-}, name => `${name}.get returns CSSUnitValue for <angle>`);
+}, name => `StylePropertyMap.get returns CSSUnitValue for <angle> (${name})`);
 
 test_style_property_map_get(function(styleDecl, propertyMap){
     assert_attribute_get_type(styleDecl, propertyMap, '<color>', '#fefefe', CSSStyleValue);
-}, name => `${name}.get returns CSSStyleValue for <color>`);
+}, name => `StylePropertyMap.get returns CSSStyleValue for <color> (${name})`);
 
 test_style_property_map_get(function(styleDecl, propertyMap){
     assert_attribute_get_type(styleDecl, propertyMap, '<custom-ident>', 'none', CSSKeywordValue);
-}, name => `${name}.get returns CSSKeywordValue for <custom-ident>`);
+}, name => `StylePropertyMap.get returns CSSKeywordValue for <custom-ident> (${name})`);
 
 test_style_property_map_get(function(styleDecl, propertyMap){
     assert_attribute_get_type(styleDecl, propertyMap, '<image>', 'url(thing.png)', CSSImageValue);
-}, name => `${name}.get returns CSSImageValue for <image>`);
+}, name => `StylePropertyMap.get returns CSSImageValue for <image> (${name})`);
 
 test_style_property_map_get(function(styleDecl, propertyMap){
     assert_attribute_get_type(styleDecl, propertyMap, '<integer>', '100', CSSUnitValue);
-}, name => `${name}.get returns CSSUnitValue for <integer>`);
+}, name => `StylePropertyMap.get returns CSSUnitValue for <integer> (${name})`);
 
 test_style_property_map_get(function(styleDecl, propertyMap){
     assert_attribute_get_type(styleDecl, propertyMap, '<length-percentage>', '10%', CSSUnitValue);
-}, name => `${name}.get returns CSSUnitValue for <length-percentage> [10%]`);
+}, name => `StylePropertyMap.get returns CSSUnitValue for <length-percentage> [10%] (${name})`);
 
 test_style_property_map_get(function(styleDecl, propertyMap){
     assert_attribute_get_type(styleDecl, propertyMap, '<length-percentage>', '10px', CSSUnitValue);
-}, name => `${name}.get returns CSSUnitValue for <length-percentage> [10px]`);
+}, name => `StylePropertyMap.get returns CSSUnitValue for <length-percentage> [10px] (${name})`);
 
 test_style_property_map_get(function(styleDecl, propertyMap){
     assert_attribute_get_type(styleDecl, propertyMap, '<length-percentage>', 'calc(10px + 10%)', CSSMathSum);
-}, name => `${name}.get returns CSSMathSum for <length-percentage> [calc(10px + 10%)]`);
+}, name => `StylePropertyMap.get returns CSSMathSum for <length-percentage> [calc(10px + 10%)] (${name})`);
 
 test_style_property_map_get(function(styleDecl, propertyMap){
     assert_attribute_get_type(styleDecl, propertyMap, '<length>', '10px', CSSUnitValue);
-}, name => `${name}.get returns CSSUnitValue for <length>`);
+}, name => `StylePropertyMap.get returns CSSUnitValue for <length> (${name})`);
 
 test_style_property_map_get(function(styleDecl, propertyMap){
     assert_attribute_get_type(styleDecl, propertyMap, '<number>', '42', CSSUnitValue);
-}, name => `${name}.get returns CSSUnitValue for <number>`);
+}, name => `StylePropertyMap.get returns CSSUnitValue for <number> (${name})`);
 
 test_style_property_map_get(function(styleDecl, propertyMap){
     assert_attribute_get_type(styleDecl, propertyMap, '<percentage>', '10%', CSSUnitValue);
-}, name => `${name}.get returns CSSUnitValue for <percentage>`);
+}, name => `StylePropertyMap.get returns CSSUnitValue for <percentage> (${name})`);
 
 test_style_property_map_get(function(styleDecl, propertyMap){
     assert_attribute_get_type(styleDecl, propertyMap, '<resolution>', '300dpi', CSSUnitValue);
-}, name => `${name}.get returns CSSUnitValue for <resolution>`);
+}, name => `StylePropertyMap.get returns CSSUnitValue for <resolution> (${name})`);
 
 test_style_property_map_get(function(styleDecl, propertyMap){
     assert_attribute_get_type(styleDecl, propertyMap, '<time>', '42s', CSSUnitValue);
-}, name => `${name}.get returns CSSUnitValue for <time>`);
+}, name => `StylePropertyMap.get returns CSSUnitValue for <time> (${name})`);
 
 test_style_property_map_get(function(styleDecl, propertyMap){
     assert_attribute_get_type(styleDecl, propertyMap, '<url>', 'url(a)', CSSStyleValue);
-}, name => `${name}.get returns CSSStyleValue for <url>`);
+}, name => `StylePropertyMap.get returns CSSStyleValue for <url> (${name})`);
 
 test_style_property_map_get(function(styleDecl, propertyMap){
     assert_attribute_get_type(styleDecl, propertyMap, 'thing1 | THING2', 'thing1', CSSKeywordValue);
-}, name => `${name}.get returns CSSKeywordValue for thing1 | THING2`);
+}, name => `StylePropertyMap.get returns CSSKeywordValue for thing1 | THING2 (${name})`);
 
 test_style_property_map_get(function(styleDecl, propertyMap){
     assert_attribute_get_type(styleDecl, propertyMap, '<length>+', '10px 20px', CSSUnitValue);
-}, name => `${name}.get returns CSSUnitValue for <length>+`);
+}, name => `StylePropertyMap.get returns CSSUnitValue for <length>+ (${name})`);
 
 test_style_property_map_get(function(styleDecl, propertyMap){
     assert_attribute_get_type(styleDecl, propertyMap, '<length>#', '10px 20px', CSSUnitValue);
-}, name => `${name}.get returns CSSUnitValue for <length>#`);
+}, name => `StylePropertyMap.get returns CSSUnitValue for <length># (${name})`);
 
 // attributeStyleMap.getAll
 
@@ -309,14 +309,14 @@ test_style_property_map_get(function(styleDecl, propertyMap){
     styleDecl.setProperty(name, '10px 20px 30px');
     assert_equals(propertyMap.getAll(name).length, 3);
     assert_true(propertyMap.getAll(name).every(x => x instanceof CSSUnitValue));
-}, name => `${name}.getAll returns a list of CSSUnitValues for <length>+`);
+}, name => `StylePropertyMap.getAll returns a list of CSSUnitValues for <length>+ (${name})`);
 
 test_style_property_map_get(function(styleDecl, propertyMap){
     let name = gen_prop('<length>#', '0px');
     styleDecl.setProperty(name, '10px, 20px, 30px');
     assert_equals(propertyMap.getAll(name).length, 3);
     assert_true(propertyMap.getAll(name).every(x => x instanceof CSSUnitValue));
-}, name => `${name}.getAll returns a list of CSSUnitValues for <length>#`);
+}, name => `StylePropertyMap.getAll returns a list of CSSUnitValues for <length># (${name})`);
 
 // StylePropertyMap.set
 
@@ -325,13 +325,15 @@ function test_style_property_map_set_using_property_map(propertyMapName, propert
         let name = gen_prop(options.syntax, options.initialValue);
         propertyMap.clear();
 
+        let ensureArray = v => v.constructor === Array ? v : [v];
+
         for (let value of options.shouldAccept)
-            propertyMap.set(name, value);
+            propertyMap.set(name, ...ensureArray(value));
 
         for (let value of options.shouldReject) {
-            assert_throws(new TypeError(), () => propertyMap.set(name, value));
+            assert_throws(new TypeError(), () => propertyMap.set(name, ...ensureArray(value)));
         }
-    }, `${propertyMapName}.set accepts correct CSSUnitValues for ${options.syntax}`);
+    }, `StylePropertyMap.set accepts correct CSSStyleValues for ${options.syntax} (${propertyMapName})`);
 }
 
 // Verify that the correct CSSStyleValues are accepted/rejected for a registered
@@ -360,77 +362,77 @@ test_style_property_map_set({
     syntax: '<angle>',
     initialValue: '0deg',
     shouldAccept: [CSS.deg(42), CSS.turn(2), '42deg'],
-    shouldReject: [unparsed('42deg'), CSS.px(15), '50px'],
+    shouldReject: [unparsed('42deg'), CSS.px(15), '50px', [CSS.deg(15), '10deg']],
 });
 
 test_style_property_map_set({
     syntax: '<custom-ident>',
     initialValue: 'none',
     shouldAccept: [keyword('foo'), 'foo'],
-    shouldReject: [unparsed('foo'), CSS.px(15), '15px'],
+    shouldReject: [unparsed('foo'), CSS.px(15), '15px', [keyword('foo'), 'foo']],
 });
 
 test_style_property_map_set({
     syntax: '<image>',
     initialValue: 'url(a)',
     shouldAccept: [url_image('url(b)'), 'url(b)'],
-    shouldReject: [unparsed('url(b)'), CSS.px(100), '50px'],
+    shouldReject: [unparsed('url(b)'), CSS.px(100), '50px', [url_image('url(1)'), 'url(2)']],
 });
 
 test_style_property_map_set({
     syntax: '<integer>',
     initialValue: '0',
     shouldAccept: [CSS.number(1), CSS.number(-42), '1', '-42'],
-    shouldReject: [unparsed('42'), CSS.px(100), '50px'],
+    shouldReject: [unparsed('42'), CSS.px(100), '50px', [CSS.number(42), '42']],
 });
 
 test_style_property_map_set({
     syntax: '<length-percentage>',
     initialValue: '0px',
     shouldAccept: [CSS.percent(10), CSS.px(1), CSS.em(1), '10px', '10%'],
-    shouldReject: [unparsed('10%'), unparsed('10px'), CSS.dpi(1), 'url(b)'],
+    shouldReject: [unparsed('10%'), unparsed('10px'), CSS.dpi(1), 'url(b)', [CSS.percent(10), '10%']],
 });
 
 test_style_property_map_set({
     syntax: '<length>',
     initialValue: '0px',
     shouldAccept: [CSS.px(10), CSS.em(10), CSS.vh(200), sum(CSS.px(10), CSS.em(20)), '10em', 'calc(10px + 10em)'],
-    shouldReject: [unparsed('10px'), CSS.percent(1), 'url(b)'],
+    shouldReject: [unparsed('10px'), CSS.percent(1), 'url(b)', [CSS.em(10), '10px']],
 });
 
 test_style_property_map_set({
     syntax: '<number>',
     initialValue: '0',
     shouldAccept: [CSS.number(1337), CSS.number(-42.5), '1337', '-42.5'],
-    shouldReject: [unparsed('42'), CSS.px(15), '#fef'],
+    shouldReject: [unparsed('42'), CSS.px(15), '#fef', [CSS.number(-42.5), '42.5']],
 });
 
 test_style_property_map_set({
     syntax: '<percentage>',
     initialValue: '0%',
     shouldAccept: [CSS.percent(10), '10%'],
-    shouldReject: [unparsed('10%'), CSS.px(1), '#fef'],
+    shouldReject: [unparsed('10%'), CSS.px(1), '#fef', [CSS.percent(10), '1%']],
 });
 
 test_style_property_map_set({
     syntax: '<resolution>',
     initialValue: '0dpi',
     shouldAccept: [CSS.dpi(100), CSS.dpcm(10), CSS.dppx(50), '100dpi'],
-    shouldReject: [unparsed('42'), CSS.px(15), '#fef'],
+    shouldReject: [unparsed('42'), CSS.px(15), '#fef', [CSS.dpi(1), '2dpi']],
 });
 
 test_style_property_map_set({
     syntax: '<time>',
     initialValue: '0s',
     shouldAccept: [CSS.s(42), CSS.ms(16), '16ms'],
-    shouldReject: [unparsed('42s'), CSS.px(15), '#fef'],
+    shouldReject: [unparsed('42s'), CSS.px(15), '#fef', [CSS.s(5), '6s']],
 });
 
 test_style_property_map_set({
     syntax: '<url>',
     initialValue: 'url(a)',
     shouldAccept: [url_image('url(b)')],
-    shouldReject: [unparsed('url(b)'), CSS.px(100), '#fef'],
+    shouldReject: [unparsed('url(b)'), CSS.px(100), '#fef', [url_image('url(1)'), 'url(2)']],
 });
 
 test_style_property_map_set({
@@ -444,14 +446,308 @@ test_style_property_map_set({
     syntax: 'none | thing | THING',
     initialValue: 'none',
     shouldAccept: [keyword('thing'), keyword('THING'), 'thing'],
-    shouldReject: [unparsed('thing'), CSS.px(15), keyword('notathing'), 'notathing'],
+    shouldReject: [unparsed('thing'), CSS.px(15), keyword('notathing'), 'notathing', [keyword('thing'), keyword('thing')]],
 });
 
 test_style_property_map_set({
     syntax: '<angle> | <length>',
     initialValue: '0deg',
     shouldAccept: [CSS.deg(42), CSS.turn(2), CSS.px(10), CSS.em(10), '10deg', '10px'],
-    shouldReject: [unparsed('42deg'), unparsed('20px'), CSS.s(1), '#fef'],
+    shouldReject: [unparsed('42deg'), unparsed('20px'), CSS.s(1), '#fef', [CSS.deg(42), '21deg']],
+});
+
+// StylePropertyMap.set for list-valued properties:
+
+test_style_property_map_set({
+    syntax: '<angle>+',
+    initialValue: '0deg',
+    shouldAccept: [CSS.deg(15), [CSS.deg(15), '10deg'], '15deg 10deg'],
+    shouldReject: [[CSS.deg(15), CSS.px(10)], '15deg 10px'],
+});
+
+test_style_property_map_set({
+    syntax: '<custom-ident>+',
+    initialValue: 'none',
+    shouldAccept: [keyword('foo'), [keyword('foo'), 'bar'], 'foo bar'],
+    shouldReject: [[keyword('foo'), CSS.px(10)], 'foo 10px'],
+});
+
+test_style_property_map_set({
+    syntax: '<image>+',
+    initialValue: 'url(a)',
+    shouldAccept: [url_image('url(1)'), [url_image('url(1)'), 'url(2)'], 'url(1) url(2)'],
+    shouldReject: [[url_image('url(1)'), CSS.px(10)], 'url(1) 10px'],
+});
+
+test_style_property_map_set({
+    syntax: '<integer>+',
+    initialValue: '0',
+    shouldAccept: [CSS.number(42), [CSS.number(42), '42'], '42 42'],
+    shouldReject: [[CSS.number(42), keyword('noint')], '42 noint'],
+});
+
+test_style_property_map_set({
+    syntax: '<length-percentage>+',
+    initialValue: '0px',
+    shouldAccept: [CSS.percent(10), [CSS.percent(10), '10%']],
+    shouldReject: [[CSS.percent(10), keyword('nolength')], '10% nolength'],
+});
+
+test_style_property_map_set({
+    syntax: '<length>+',
+    initialValue: '0px',
+    shouldAccept: [CSS.em(10), [CSS.em(10), '10px']],
+    shouldReject: [[CSS.em(10), keyword('nolength'), '10em nolength']],
+});
+
+test_style_property_map_set({
+    syntax: '<number>+',
+    initialValue: '0',
+    shouldAccept: [CSS.number(-42.5), [CSS.number(-42.5), '42.5'], '-42.5 42.5'],
+    shouldReject: [[CSS.number(-42.5), CSS.px(10)], '-42.5 10px'],
+});
+
+test_style_property_map_set({
+    syntax: '<percentage>+',
+    initialValue: '0%',
+    shouldAccept: [CSS.percent(10), [CSS.percent(10), '1%'], '10% 1%'],
+    shouldReject: [[CSS.percent(10), keyword('foo')], '10% foo'],
+});
+
+test_style_property_map_set({
+    syntax: '<resolution>+',
+    initialValue: '0dpi',
+    shouldAccept: [CSS.dpi(1), [CSS.dpi(1), '2dpi'], '1dpi 2dpi'],
+    shouldReject: [[CSS.dpi(1), keyword('foo')], '1dpi foo'],
+});
+
+test_style_property_map_set({
+    syntax: '<time>+',
+    initialValue: '0s',
+    shouldAccept: [CSS.s(5), [CSS.s(5), '6s'], '5s 6s'],
+    shouldReject: [[CSS.s(5), keyword('foo')], '5s foo'],
+});
+
+test_style_property_map_set({
+    syntax: '<url>+',
+    initialValue: 'url(a)',
+    shouldAccept: [url_image('url(1)'), [url_image('url(1)'), 'url(2)'], 'url(1) url(2)'],
+    shouldReject: [[url_image('url(1)'), CSS.px(10)], 'url(1) 10px'],
+});
+
+test_style_property_map_set({
+    syntax: 'thing+',
+    initialValue: 'thing',
+    shouldAccept: [keyword('thing'), [keyword('thing'), 'thing'], 'thing thing'],
+    shouldReject: [[keyword('thing'), CSS.px(10)], 'thing 10px'],
+});
+
+test_style_property_map_set({
+    syntax: '<length>#',
+    initialValue: '0px',
+    shouldAccept: [CSS.em(10), [CSS.em(10), '10px']],
+    shouldReject: [[CSS.em(10), keyword('nolength'), '10em nolength']],
+});
+
+function test_append_for_property_map(propertyMapName, propertyMap, options) {
+    test(function(){
+        let name = gen_prop(options.syntax, options.initialValue);
+
+        let ensureArray = v => v.constructor === Array ? v : [v];
+
+        for (let value of options.values) {
+            propertyMap.clear();
+
+            if (value.base !== null)
+                propertyMap.set(name, ...ensureArray(value.base));
+
+            // If 'null' is expected, it means we expect the append to fail.
+            if (value.expect !== null) {
+                propertyMap.append(name, ...ensureArray(value.append));
+                let actual = Array.from(propertyMap.getAll(name)).join(' ');
+                assert_equals(actual, value.expect);
+            } else {
+                assert_throws(new TypeError(), () => propertyMap.append(name, ...ensureArray(value.append)));
+            }
+        }
+    }, `StylePropertyMap.append accepts correct CSSStyleValues for ${options.syntax} (${propertyMapName})`);
+}
+
+// Verify that the correct CSSStyleValues are accepted/rejected when
+// appending values to list-valued properties.
+//
+// The same test is performed twice: once for attributeStyleMap, and once
+// for styleMap.
+function test_append(options) {
+    test_append_for_property_map('attributeStyleMap', target.attributeStyleMap, options);
+    test_append_for_property_map('styleMap', style.sheet.rules[0].styleMap, options);
+}
+
+test_append({
+    syntax: '<angle>+',
+    initialValue: '0deg',
+    values: [
+        { base: [CSS.deg(1)], append: [CSS.px(1)], expect: null },
+        { base: [CSS.deg(1)], append: [CSS.deg(2), CSS.px(1)], expect: null },
+        { base: [CSS.deg(1)], append: [CSS.deg(2), '1px'], expect: null },
+        { base: [CSS.deg(1)], append: [CSS.turn(2), CSS.deg(3)], expect: '1deg 2turn 3deg' },
+        { base: [CSS.deg(1), CSS.deg(2)], append: [CSS.deg(3)], expect: '1deg 2deg 3deg' },
+        { base: [CSS.deg(1)], append: [CSS.deg(2), '3deg'], expect: '1deg 2deg 3deg' },
+        { base: [CSS.deg(1)], append: [CSS.deg(2), '3turn 4deg'], expect: '1deg 2deg 3turn 4deg' },
+        { base: null, append: [CSS.deg(1), '2deg'], expect: '1deg 2deg' },
+    ],
+});
+
+test_append({
+    syntax: '<custom-ident>+',
+    initialValue: 'none',
+    values: [
+        { base: [keyword('foo')], append: [CSS.px(1)], expect: null },
+        { base: [keyword('foo')], append: [keyword('bar'), CSS.px(1)], expect: null },
+        { base: [keyword('foo')], append: [keyword('bar'), '1px'], expect: null },
+        { base: [keyword('foo')], append: [keyword('bar'), keyword('baz')], expect: 'foo bar baz' },
+        { base: [keyword('foo'), keyword('bar')], append: [keyword('baz')], expect: 'foo bar baz' },
+        { base: [keyword('foo')], append: [keyword('bar'), 'baz'], expect: 'foo bar baz' },
+        { base: [keyword('foo')], append: [keyword('bar'), 'baz zim'], expect: 'foo bar baz zim' },
+        { base: null, append: [keyword('foo'), 'bar'], expect: 'foo bar' },
+    ],
+});
+
+['<image>+', '<url>+'].forEach((syntax) => {
+    test_append({
+        syntax: syntax,
+        initialValue: 'url(0)',
+        values: [
+            { base: [url_image('url("1")')], append: [CSS.px(1)], expect: null },
+            { base: [url_image('url("1")')], append: [url_image('url("2")'), CSS.px(1)], expect: null },
+            { base: [url_image('url("1")')], append: [url_image('url("2")'), '1px'], expect: null },
+            { base: [url_image('url("1")')], append: [url_image('url("2")'), url_image('url("3")')], expect: 'url("1") url("2") url("3")' },
+            { base: [url_image('url("1")'), url_image('url("2")')], append: [url_image('url("3")')], expect: 'url("1") url("2") url("3")' },
+            { base: [url_image('url("1")')], append: [url_image('url("2")'), 'url("3")'], expect: 'url("1") url("2") url("3")' },
+            { base: [url_image('url("1")')], append: [url_image('url("2")'), 'url("3") url("4")'], expect: 'url("1") url("2") url("3") url("4")' },
+            { base: null, append: [url_image('url("1")'), 'url("2")'], expect: 'url("1") url("2")' },
+        ],
+    });
+});
+
+test_append({
+    syntax: '<integer>+',
+    initialValue: '0',
+    values: [
+        { base: [CSS.number(1)], append: [CSS.px(1)], expect: null },
+        { base: [CSS.number(1)], append: [CSS.number(2), CSS.px(1)], expect: null },
+        { base: [CSS.number(1)], append: [CSS.number(2), 'noint'], expect: null },
+        { base: [CSS.number(1)], append: [CSS.number(2), CSS.number(3)], expect: '1 2 3' },
+        { base: [CSS.number(1), CSS.number(2)], append: [CSS.number(3)], expect: '1 2 3' },
+        { base: [CSS.number(1)], append: [CSS.number(2), '3'], expect: '1 2 3' },
+        { base: [CSS.number(1)], append: [CSS.number(2), '3 4'], expect: '1 2 3 4' },
+        { base: null, append: [CSS.number(1), '2'], expect: '1 2' },
+    ],
+});
+
+test_append({
+    syntax: '<length-percentage>+',
+    initialValue: '0px',
+    values: [
+        { base: [CSS.px(1)], append: [keyword('nolength')], expect: null },
+        { base: [CSS.px(1)], append: [CSS.px(2), keyword('nolength')], expect: null },
+        { base: [CSS.px(1)], append: [CSS.px(2), 'nolength'], expect: null },
+        { base: [CSS.px(1)], append: [CSS.px(2), CSS.percent(3)], expect: '1px 2px 3%' },
+        { base: [CSS.px(1), CSS.px(2)], append: [CSS.percent(3)], expect: '1px 2px 3%' },
+        { base: [CSS.px(1)], append: [CSS.percent(2), '3px'], expect: '1px 2% 3px' },
+        { base: [CSS.px(1)], append: [CSS.px(2), '3% 4px'], expect: '1px 2px 3% 4px' },
+        { base: null, append: [CSS.px(1), '2%'], expect: '1px 2%' },
+    ],
+});
+
+test_append({
+    syntax: '<length>+',
+    initialValue: '0',
+    values: [
+        { base: [CSS.px(1)], append: [keyword('nolength')], expect: null },
+        { base: [CSS.px(1)], append: [CSS.px(2), keyword('nolength')], expect: null },
+        { base: [CSS.px(1)], append: [CSS.px(2), 'nolength'], expect: null },
+        { base: [CSS.px(1)], append: [CSS.em(2), CSS.px(3)], expect: '1px 2em 3px' },
+        { base: [CSS.px(1), CSS.em(2)], append: [CSS.vh(3)], expect: '1px 2em 3vh' },
+        { base: [CSS.px(1)], append: [CSS.em(2), '3px'], expect: '1px 2em 3px' },
+        { base: [CSS.px(1)], append: [CSS.px(2), '3em 4cm'], expect: '1px 2px 3em 4cm' },
+        { base: null, append: [CSS.vh(1), '2px'], expect: '1vh 2px' },
+    ],
+});
+
+test_append({
+    syntax: '<number>+',
+    initialValue: '0',
+    values: [
+        { base: [CSS.number(-1)], append: [keyword('NaN')], expect: null },
+        { base: [CSS.number(-1)], append: [CSS.number(2.5), keyword('NaN')], expect: null },
+        { base: [CSS.number(-1)], append: [CSS.number(2.5), '1px'], expect: null },
+        { base: [CSS.number(-1)], append: [CSS.number(2.5), CSS.number(3.2)], expect: '-1 2.5 3.2' },
+        { base: [CSS.number(-1), CSS.number(2.5)], append: [CSS.number(3.2)], expect: '-1 2.5 3.2' },
+        { base: [CSS.number(-1)], append: [CSS.number(2.5), '3.2'], expect: '-1 2.5 3.2' },
+        { base: [CSS.number(-1)], append: [CSS.number(2.5), '3.2 4'], expect: '-1 2.5 3.2 4' },
+        { base: null, append: [CSS.number(-1), '2.5'], expect: '-1 2.5' },
+    ],
+});
+
+test_append({
+    syntax: '<percentage>+',
+    initialValue: '0%',
+    values: [
+        { base: [CSS.percent(1)], append: [CSS.px(1)], expect: null },
+        { base: [CSS.percent(1)], append: [CSS.percent(2), CSS.px(1)], expect: null },
+        { base: [CSS.percent(1)], append: [CSS.percent(2), '1px'], expect: null },
+        { base: [CSS.percent(1)], append: [CSS.percent(2), CSS.percent(3)], expect: '1% 2% 3%' },
+        { base: [CSS.percent(1), CSS.percent(2)], append: [CSS.percent(3)], expect: '1% 2% 3%' },
+        { base: [CSS.percent(1)], append: [CSS.percent(2), '3%'], expect: '1% 2% 3%' },
+        { base: [CSS.percent(1)], append: [CSS.percent(2), '3% 4%'], expect: '1% 2% 3% 4%' },
+        { base: null, append: [CSS.percent(1), '2%'], expect: '1% 2%' },
+    ],
+});
+
+test_append({
+    syntax: '<resolution>+',
+    initialValue: '0dpi',
+    values: [
+        { base: [CSS.dpi(1)], append: [CSS.px(1)], expect: null },
+        { base: [CSS.dpi(1)], append: [CSS.dpi(2), CSS.px(1)], expect: null },
+        { base: [CSS.dpi(1)], append: [CSS.dpi(2), '1px'], expect: null },
+        { base: [CSS.dpi(1)], append: [CSS.dpi(2), CSS.dpi(3)], expect: '1dpi 2dpi 3dpi' },
+        { base: [CSS.dpi(1), CSS.dpi(2)], append: [CSS.dpi(3)], expect: '1dpi 2dpi 3dpi' },
+        { base: [CSS.dpi(1)], append: [CSS.dpi(2), '3dpi'], expect: '1dpi 2dpi 3dpi' },
+        { base: [CSS.dpi(1)], append: [CSS.dpi(2), '3dpi 4dpi'], expect: '1dpi 2dpi 3dpi 4dpi' },
+        { base: null, append: [CSS.dpi(1), '2dpi'], expect: '1dpi 2dpi' },
+    ],
+});
+
+test_append({
+    syntax: '<time>+',
+    initialValue: '0s',
+    values: [
+        { base: [CSS.s(1)], append: [CSS.px(1)], expect: null },
+        { base: [CSS.s(1)], append: [CSS.s(2), CSS.px(1)], expect: null },
+        { base: [CSS.s(1)], append: [CSS.ms(2), '1px'], expect: null },
+        { base: [CSS.s(1)], append: [CSS.ms(2), CSS.s(3)], expect: '1s 2ms 3s' },
+        { base: [CSS.s(1), CSS.s(2)], append: [CSS.s(3)], expect: '1s 2s 3s' },
+        { base: [CSS.s(1)], append: [CSS.s(2), '3s'], expect: '1s 2s 3s' },
+        { base: [CSS.s(1)], append: [CSS.s(2), '3ms 4s'], expect: '1s 2s 3ms 4s' },
+        { base: null, append: [CSS.s(1), '2s'], expect: '1s 2s' },
+    ],
+});
+
+test_append({
+    syntax: 'foo+',
+    initialValue: 'foo',
+    values: [
+        { base: [keyword('foo')], append: [CSS.px(1)], expect: null },
+        { base: [keyword('foo')], append: [keyword('foo'), CSS.px(1)], expect: null },
+        { base: [keyword('foo')], append: [keyword('foo'), '1px'], expect: null },
+        { base: [keyword('foo')], append: [keyword('foo'), keyword('foo')], expect: 'foo foo foo' },
+        { base: [keyword('foo'), keyword('foo')], append: [keyword('foo')], expect: 'foo foo foo' },
+        { base: [keyword('foo')], append: [keyword('foo'), 'foo'], expect: 'foo foo foo' },
+        { base: [keyword('foo')], append: [keyword('foo'), 'foo foo'], expect: 'foo foo foo foo' },
+        { base: null, append: [keyword('foo'), keyword('foo')], expect: 'foo foo' },
+    ],
 });
 
 // CSSStyleValue.parse/parseAll

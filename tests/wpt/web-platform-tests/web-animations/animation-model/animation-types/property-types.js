@@ -2104,7 +2104,7 @@ const filterListType = {
 
       // 10deg = 0.1745rad.
       testAnimationSamples(animation, idlName,
-        [{ time: 500,    expected: 'hue-rotate(50.0873rad)' }]);
+        [{ time: 500,    expected: 'hue-rotate(2869.79deg)' }]);
     }, `${property}: hue-rotate function with different unit(deg -> rad)`);
 
     test(t => {

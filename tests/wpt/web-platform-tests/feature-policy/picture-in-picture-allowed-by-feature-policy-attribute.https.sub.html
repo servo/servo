@@ -15,13 +15,13 @@
   const feature_name = 'Feature policy "picture-in-picture"';
   const header = 'allow="picture-in-picture" attribute';
 
-  async_test(t => {
+  async_pip_test(t => {
     test_feature_availability(
         'picture-in-picture', t, same_origin_src,
         expect_feature_available_default, 'picture-in-picture');
   }, feature_name + ' can be enabled in same-origin iframe using ' + header);
 
-  async_test(t => {
+  async_pip_test(t => {
     test_feature_availability(
         'picture-in-picture', t, cross_origin_src,
         expect_feature_available_default, 'picture-in-picture');
