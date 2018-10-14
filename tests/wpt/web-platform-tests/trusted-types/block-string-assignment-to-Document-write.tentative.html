@@ -9,14 +9,6 @@
 </head>
 <body>
 <script>
-  // TrustedURL assignments do not throw.
-  test(t => {
-    let p = createHTML_policy(window, 1);
-    let html = p.createHTML(INPUTS.HTML);
-    document.write(html);
-    assert_equals(document.body.innerText, RESULTS.HTML);
-  }, "document.write with html assigned via policy (successful URL transformation).");
-
   // String assignments throw.
   test(t => {
     assert_throws(new TypeError(), _ => {

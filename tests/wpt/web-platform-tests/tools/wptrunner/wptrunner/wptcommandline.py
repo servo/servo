@@ -502,6 +502,9 @@ def check_args(kwargs):
         kwargs["certutil_binary"] = path
 
     if kwargs['extra_prefs']:
+        # If a single pref is passed in as a string, make it a list
+        if type(kwargs['extra_prefs']) in (str, unicode):
+            kwargs['extra_prefs'] = [kwargs['extra_prefs']]
         missing = any('=' not in prefarg for prefarg in kwargs['extra_prefs'])
         if missing:
             print >> sys.stderr, "Preferences via --setpref must be in key=value format"

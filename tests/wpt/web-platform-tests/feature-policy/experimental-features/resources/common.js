@@ -58,3 +58,10 @@ function createIframe(container, attributes) {
   container.appendChild(new_iframe);
   return new_iframe;
 }
+
+// Returns a promise which is resolved when |load| event is dispatched for |e|.
+function wait_for_load(e) {
+  return new Promise((resolve) => {
+    e.addEventListener("load", resolve);
+  });
+}

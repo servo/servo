@@ -14,7 +14,7 @@ test_infrastructure() {
     else
         ARGS=$1
     fi
-    ./wpt run --yes --manifest ~/meta/MANIFEST.json --metadata infrastructure/metadata/ --install-fonts $ARGS $PRODUCT infrastructure/
+    ./wpt run --log-tbpl - --yes --manifest ~/meta/MANIFEST.json --metadata infrastructure/metadata/ --install-fonts $ARGS $PRODUCT infrastructure/
 }
 
 main() {
