@@ -300,21 +300,23 @@ mod bindings {
             .expect("Unable to write output");
     }
 
-    fn get_arc_types() -> Vec<String> {
+    fn get_types(filename: &str, macro_name: &str) -> Vec<String> {
         // Read the file
-        let mut list_file = File::open(DISTDIR_PATH.join("include/mozilla/ServoArcTypeList.h"))
-            .expect("Unable to open ServoArcTypeList.h");
+        let path = DISTDIR_PATH.join("include/mozilla/").join(filename);
+        let mut list_file = File::open(path)
+            .expect(&format!("Unable to open {}", filename));
         let mut content = String::new();
         list_file
             .read_to_string(&mut content)
-            .expect("Fail to read ServoArcTypeList.h");
+            .expect(&format!("Failed to read {}", filename));
         // Remove comments
         let block_comment_re = Regex::new(r#"(?s)/\*.*?\*/"#).unwrap();
         let line_comment_re = Regex::new(r#"//.*"#).unwrap();
         let content = block_comment_re.replace_all(&content, "");
         let content = line_comment_re.replace_all(&content, "");
         // Extract the list
-        let re = Regex::new(r#"^SERVO_ARC_TYPE\(\w+,\s*(\w+)\)$"#).unwrap();
+        let re_string = format!(r#"^{}\(\w+,\s*(\w+)\)$"#, macro_name);
+        let re = Regex::new(&re_string).unwrap();
         content
             .lines()
             .map(|line| line.trim())
@@ -322,13 +324,22 @@ mod bindings {
             .map(|line| {
                 re.captures(&line)
                     .expect(&format!(
-                        "Unrecognized line in ServoArcTypeList.h: '{}'",
+                        "Unrecognized line in {}: '{}'",
+                        filename,
                         line
                     )).get(1)
                     .unwrap()
                     .as_str()
                     .to_string()
             }).collect()
+    }
+
+    fn get_arc_types() -> Vec<String> {
+        get_types("ServoArcTypeList.h", "SERVO_ARC_TYPE")
+    }
+
+    fn get_boxed_types() -> Vec<String> {
+        get_types("ServoBoxedTypeList.h", "SERVO_BOXED_TYPE")
     }
 
     struct BuilderWithConfig<'a> {
@@ -526,19 +537,6 @@ mod bindings {
                                               "&'a mut ::gecko_bindings::structs::nsTArray<{}>;"),
                                       cpp_type, rust_type))
             })
-            .handle_table_items("servo-owned-types", |mut builder, item| {
-                let name = item["name"].as_str().unwrap();
-                builder = builder.blacklist_type(format!("{}Owned", name))
-                    .raw_line(format!("pub type {0}Owned = ::gecko_bindings::sugar::ownership::Owned<{0}>;", name))
-                    .blacklist_type(format!("{}OwnedOrNull", name))
-                    .raw_line(format!(concat!("pub type {0}OwnedOrNull = ",
-                                              "::gecko_bindings::sugar::ownership::OwnedOrNull<{0}>;"), name))
-                    .mutable_borrowed_type(name);
-                if item["opaque"].as_bool().unwrap() {
-                    builder = builder.zero_size_type(name, &structs_types);
-                }
-                builder
-            })
             .handle_str_items("servo-immutable-borrow-types", |b, ty| b.borrowed_type(ty))
             // Right now the only immutable borrow types are ones which we import
             // from the |structs| module. As such, we don't need to create an opaque
@@ -553,6 +551,16 @@ mod bindings {
                     "pub type {0}Strong = ::gecko_bindings::sugar::ownership::Strong<{0}>;",
                     ty
                 )).borrowed_type(ty)
+                .zero_size_type(ty, &structs_types);
+        }
+        for ty in get_boxed_types().iter() {
+            builder = builder
+                .blacklist_type(format!("{}Owned", ty))
+                .raw_line(format!("pub type {0}Owned = ::gecko_bindings::sugar::ownership::Owned<{0}>;", ty))
+                .blacklist_type(format!("{}OwnedOrNull", ty))
+                .raw_line(format!(concat!("pub type {0}OwnedOrNull = ",
+                                          "::gecko_bindings::sugar::ownership::OwnedOrNull<{0}>;"), ty))
+                .mutable_borrowed_type(ty)
                 .zero_size_type(ty, &structs_types);
         }
         write_binding_file(builder, BINDINGS_FILE, &fixups);

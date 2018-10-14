@@ -9,7 +9,7 @@
     from itertools import groupby
 %>
 
-#[cfg(feature = "gecko")] use gecko_bindings::bindings::RawServoAnimationValueMap;
+#[cfg(feature = "gecko")] use gecko_bindings::structs::RawServoAnimationValueMap;
 #[cfg(feature = "gecko")] use gecko_bindings::structs::RawGeckoGfxMatrix4x4;
 #[cfg(feature = "gecko")] use gecko_bindings::structs::nsCSSPropertyID;
 #[cfg(feature = "gecko")] use gecko_bindings::sugar::ownership::{HasFFI, HasSimpleFFI};
