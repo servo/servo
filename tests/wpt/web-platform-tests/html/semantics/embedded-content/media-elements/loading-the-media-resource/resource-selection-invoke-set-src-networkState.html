@@ -6,7 +6,13 @@
 <script>
 test(function(t) {
   var v = document.createElement('video');
-  v.play(); // invokes resource selection and sets .paused to false
+  v.play() // invokes resource selection and sets .paused to false
+    .then(t.step_func(function() {
+      assert_unreached("Set src will trigger internal pause steps so it will reject all pending play promises.");
+    }))
+    .catch(t.step_func(function() {
+      assert_true(true, "Set src will trigger internal pause steps so it will reject all pending play promises.");
+    }));
   assert_equals(v.networkState, v.NETWORK_NO_SOURCE, 'networkState');
   assert_false(v.paused, 'paused');
   v.setAttribute('src', ''); // invokes media load which sets .paused to true
