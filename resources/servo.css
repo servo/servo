@@ -168,6 +168,33 @@ svg > * {
   display: none;
 }
 
+/*
+ * For most (but not all) anon-boxes, we inherit all values from the
+ * parent.
+ *
+ * Anonymous table flows shouldn't inherit their parents properties in order
+ * to avoid doubling up styles such as transformations. Same for text and such.
+ *
+ * For tables, we do want style to inherit, because TableWrapper is
+ * responsible for handling clipping and scrolling, while Table is
+ * responsible for creating stacking contexts.
+ *
+ * StackingContextCollectionFlags makes sure this is processed
+ * properly.
+ *
+ * FIXME(emilio): inheriting all is a very strong hammer, and it's likely
+ * broken for stuff like table backgrounds and such. Gecko explicitly inherits
+ * what it wants, which seems a bit better off-hand.
+ */
+*|*::-servo-anonymous-table,
+*|*::-servo-anonymous-table-wrapper,
+*|*::-servo-table-wrapper,
+*|*::-servo-anonymous-block,
+*|*::-servo-inline-block-wrapper,
+*|*::-servo-inline-absolute {
+    all: inherit;
+}
+
 /* style for text node. */
 *|*::-servo-text {
     margin: 0;
@@ -239,10 +266,16 @@ svg > * {
     margin: 0;
 }
 
-/* The outer fragment wrapper of an inline absolute hypothetical fragment. */
+/* The outer fragment wrapper of an inline absolute hypothetical fragment.
+ *
+ * FIXME(emilio): This was disabled because of a typo in the CSS parser,
+ * re-enable or figure out why it's not needed.
+
 *|*::-servo-inline-absolute {
     clip: auto;
     border: none;
     padding: 0;
     margin: 0;
 }
+
+*/
