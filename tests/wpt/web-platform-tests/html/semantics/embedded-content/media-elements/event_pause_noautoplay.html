@@ -18,10 +18,12 @@ test(function() {
   var t = async_test("calling play() then pause() on non-autoplay audio should trigger pause event", {timeout:5000});
   var a = document.getElementById("a");
   a.addEventListener("pause", function() {
-    t.done();
+    play_promise.then(function () {
+      assert_unreached("pause() will reject all pending play promises.");
+    }, t.step_func_done());
   }, false);
   a.src = getAudioURI("/media/sound_5") + "?" + new Date() + Math.random();
-  a.play();
+  var play_promise = a.play();
   a.pause();
 }, "audio events - pause");
 
@@ -29,10 +31,12 @@ test(function() {
   var t = async_test("calling play() then pause() on non-autoplay video should trigger pause event", {timeout:5000});
   var v = document.getElementById("v");
   v.addEventListener("pause", function() {
-    t.done();
+    play_promise.then(function () {
+      assert_unreached("pause() will reject all pending play promises.");
+    }, t.step_func_done());
   }, false);
   v.src = getVideoURI("/media/movie_5") + "?" + new Date() + Math.random();
-  v.play();
+  var play_promise = v.play();
   v.pause();
 }, "video events - pause");
   </script>
