@@ -21,10 +21,17 @@ test(function() {
     t.step(function() {
      assert_true(a.paused);
     });
+
     t.done();
   }, false);
   a.src = getAudioURI("/media/sound_5") + "?" + new Date() + Math.random();
-  a.play();
+  a.play()
+    .then(t.step_func(function() {
+      assert_unreached("pause() should reject all pending play Promises");
+    }))
+    .catch(t.step_func(function() {
+      assert_true(true, "pause() should reject all pending play Promises");
+    }));
   a.pause();
 }, "audio events - paused property");
 
@@ -35,10 +42,17 @@ test(function() {
     t.step(function() {
      assert_true(v.paused);
     });
+
     t.done();
   }, false);
   v.src = getVideoURI("/media/movie_5") + "?" + new Date() + Math.random();
-  v.play();
+  v.play()
+    .then(t.step_func(function() {
+      assert_unreached("pause() should reject all pending play Promises");
+    }))
+    .catch(t.step_func(function() {
+      assert_true(true, "pause() should reject all pending play Promises");
+    }));
   v.pause();
 }, "video events - paused property");
   </script>

@@ -17,23 +17,35 @@
 test(function() {
   var t = async_test("calling play() on audio should trigger play event", {timeout:5000});
   var a = document.getElementById("a");
-  a.addEventListener("play", function() {
-    t.done();
+  a.addEventListener("play", t.step_func(function() {
     a.pause();
-  }, false);
+    t.done();
+  }), false);
   a.src = getAudioURI("/media/sound_5") + "?" + new Date() + Math.random();
-  a.play();
+  a.play()
+    .then(t.step_func(function() {
+      assert_unreached("pause() should reject all pending play Promises");
+    }))
+    .catch(t.step_func(function() {
+      assert_true(true, "pause() should reject all pending play Promises");
+    }));
 }, "audio events - play");
 
 test(function() {
   var t = async_test("calling play() on video should trigger play event", {timeout:5000});
   var v = document.getElementById("v");
-  v.addEventListener("play", function() {
-    t.done();
+  v.addEventListener("play", t.step_func(function() {
     v.pause();
-  }, false);
+    t.done();
+  }), false);
   v.src = getVideoURI("/media/movie_5") + "?" + new Date() + Math.random();
-  v.play();
+  v.play()
+    .then(t.step_func(function() {
+      assert_unreached("pause() should reject all pending play Promises");
+    }))
+    .catch(t.step_func(function() {
+      assert_true(true, "pause() should reject all pending play Promises");
+    }));
 }, "video events - play");
   </script>
  </body>
