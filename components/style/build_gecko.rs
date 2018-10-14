@@ -310,7 +310,9 @@ mod bindings {
             .expect("Fail to read ServoArcTypeList.h");
         // Remove comments
         let block_comment_re = Regex::new(r#"(?s)/\*.*?\*/"#).unwrap();
+        let line_comment_re = Regex::new(r#"//.*"#).unwrap();
         let content = block_comment_re.replace_all(&content, "");
+        let content = line_comment_re.replace_all(&content, "");
         // Extract the list
         let re = Regex::new(r#"^SERVO_ARC_TYPE\(\w+,\s*(\w+)\)$"#).unwrap();
         content
