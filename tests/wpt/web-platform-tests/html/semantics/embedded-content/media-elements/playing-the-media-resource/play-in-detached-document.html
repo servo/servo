@@ -12,7 +12,14 @@ async_test(function(t)
   var v = doc.createElement("video");
   doc.body.appendChild(v);
   v.src = getVideoURI("/media/movie_5");
-  v.play();
+  v.play()
+    .then(t.step_func(function() {
+      assert_unreached("cannot play in a detached document");
+    }))
+    .catch(t.step_func(function() {
+      assert_true(true, "cannot play in a detached document");
+    }));
+
   v.addEventListener("timeupdate", t.step_func(function() {
     assert_false(v.paused);
     if (v.currentTime > 0) {
