@@ -483,7 +483,10 @@ fn redirect_stdout_to_logcat() {
             let end = if result == 0 {
                 return;
             } else if result < 0 {
-                return; /* TODO: report problem */
+                unsafe {
+                    __android_log_write(3, tag, b"error in log thread; closing\0".as_ptr() as *const _);
+                }
+                return;
             } else {
                 result as usize + cursor
             };
