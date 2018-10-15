@@ -483,10 +483,16 @@ fn redirect_stdout_to_logcat() {
             let end = if result == 0 {
                 return;
             } else if result < 0 {
-                return; /* TODO: report problem */
+                unsafe {
+                    __android_log_write(3, tag, b"error in log thread; closing\0".as_ptr() as *const _);
+                }
+                return;
             } else {
                 result as usize + cursor
             };
+
+            // Only modify the portion of the buffer that contains real data.
+            let buf = &mut buf[0..end];
 
             if let Some(last_newline_pos) = buf.iter().rposition(|&c| c == b'\n' as c_char) {
                 buf[last_newline_pos] = b'\0' as c_char;
@@ -503,7 +509,7 @@ fn redirect_stdout_to_logcat() {
                 } else {
                     cursor = 0;
                 }
-            } else if cursor == BUF_AVAILABLE {
+            } else if end == BUF_AVAILABLE {
                 // No newline found but the buffer is full, flush it anyway.
                 // `buf.as_ptr()` is null-terminated by BUF_LENGTH being 1 less than BUF_AVAILABLE.
                 unsafe {
