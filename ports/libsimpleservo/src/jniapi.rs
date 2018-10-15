@@ -491,6 +491,9 @@ fn redirect_stdout_to_logcat() {
                 result as usize + cursor
             };
 
+            // Only modify the portion of the buffer that contains real data.
+            let buf = &mut buf[0..end];
+
             if let Some(last_newline_pos) = buf.iter().rposition(|&c| c == b'\n' as c_char) {
                 buf[last_newline_pos] = b'\0' as c_char;
                 unsafe {
