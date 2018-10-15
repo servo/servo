@@ -509,7 +509,7 @@ fn redirect_stdout_to_logcat() {
                 } else {
                     cursor = 0;
                 }
-            } else if cursor == BUF_AVAILABLE {
+            } else if end == BUF_AVAILABLE {
                 // No newline found but the buffer is full, flush it anyway.
                 // `buf.as_ptr()` is null-terminated by BUF_LENGTH being 1 less than BUF_AVAILABLE.
                 unsafe {
