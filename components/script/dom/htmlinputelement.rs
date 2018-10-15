@@ -1193,7 +1193,47 @@ impl HTMLInputElement {
             },
             // https://html.spec.whatwg.org/multipage/#range-state-(type=range):value-sanitization-algorithm
             InputType::Range => {
-                value.set_best_representation_of_the_floating_point_number();
+                let minimum = self.Min().parse().unwrap_or(0f64);
+                let maximum = self.Max().parse().unwrap_or(100f64);
+
+                let new_v = if let Ok(value) = value.trim().parse::<f64>() {
+                    if value < minimum || maximum < minimum {
+                        minimum
+                    } else if value > maximum {
+                        maximum
+                    } else {
+                        value
+                    }
+                } else {
+                    if maximum <= minimum {
+                        minimum
+                    } else {
+                        minimum + (maximum - minimum) / 2f64
+                    }
+                };
+
+                let step = self.Step().parse::<f64>().unwrap_or(1f64);
+                let delta = (new_v - minimum) - step * ((new_v - minimum) / step).floor();
+                let new_v = if delta != 0f64 {
+                    let step_below = new_v - delta;
+                    let step_above = new_v - delta + step;
+                    let half_step = step / 2f64;
+                    let step_above_is_closest = (step_above - new_v) <= half_step;
+                    let step_above_in_range = step_above >= minimum && step_above <= maximum;
+                    let step_below_in_range = step_below >= minimum && step_below <= maximum;
+
+                    if (step_above_is_closest || !step_below_in_range) && step_above_in_range {
+                        step_above
+                    } else if (!step_above_is_closest || !step_above_in_range) && step_below_in_range {
+                        step_below
+                    } else {
+                        new_v
+                    }
+                } else {
+                    new_v
+                };
+
+                *value = DOMString::from_string(new_v.to_string());
             },
             _ => (),
         }
@@ -1343,6 +1383,12 @@ impl VirtualMethods for HTMLInputElement {
                 self.sanitize_value(&mut value);
                 self.textinput.borrow_mut().set_content(value);
                 self.update_placeholder_shown_state();
+            },
+            &local_name!("max") | &local_name!("min") | &local_name!("step") => {
+                let mut textinput = self.textinput.borrow_mut();
+                let mut value = textinput.single_line_content().clone();
+                self.sanitize_value(&mut value);
+                textinput.set_content(value);
             },
             &local_name!("name") if self.input_type() == InputType::Radio => {
                 self.radio_group_updated(
