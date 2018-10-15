@@ -3137,7 +3137,8 @@ pub enum StyleStructRef<'a, T: 'static> {
 }
 
 impl<'a, T: 'a> StyleStructRef<'a, T>
-    where T: Clone,
+where
+    T: Clone,
 {
     /// Ensure a mutable reference of this value exists, either cloning the
     /// borrowed value, or returning the owned one.
@@ -3149,6 +3150,22 @@ impl<'a, T: 'a> StyleStructRef<'a, T>
         match *self {
             StyleStructRef::Owned(ref mut v) => v,
             StyleStructRef::Borrowed(..) => unreachable!(),
+            StyleStructRef::Vacated => panic!("Accessed vacated style struct")
+        }
+    }
+
+    /// Whether this is pointer-equal to the struct we're going to copy the
+    /// value from.
+    ///
+    /// This is used to avoid allocations when people write stuff like `font:
+    /// inherit` or such `all: initial`.
+    #[inline]
+    pub fn ptr_eq(&self, struct_to_copy_from: &T) -> bool {
+        match *self {
+            StyleStructRef::Owned(..) => false,
+            StyleStructRef::Borrowed(arc) => {
+                &**arc as *const T == struct_to_copy_from as *const T
+            }
             StyleStructRef::Vacated => panic!("Accessed vacated style struct")
         }
     }
@@ -3388,6 +3405,10 @@ impl<'a> StyleBuilder<'a> {
         self.flags.insert(ComputedValueFlags::INHERITS_DISPLAY);
         % endif
 
+        if self.${property.style_struct.ident}.ptr_eq(inherited_struct) {
+            return;
+        }
+
         self.${property.style_struct.ident}.mutate()
             .copy_${property.ident}_from(
                 inherited_struct,
@@ -3407,10 +3428,10 @@ impl<'a> StyleBuilder<'a> {
         self.modified_reset = true;
         % endif
 
-        // TODO(emilio): There's a maybe-worth it optimization here: We should
-        // avoid allocating a new reset struct if `reset_struct` and our struct
-        // is the same pointer. Would remove a bunch of stupid allocations if
-        // you did something like `* { all: initial }` or what not.
+        if self.${property.style_struct.ident}.ptr_eq(reset_struct) {
+            return;
+        }
+
         self.${property.style_struct.ident}.mutate()
             .reset_${property.ident}(
                 reset_struct,
