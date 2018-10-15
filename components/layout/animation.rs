@@ -79,7 +79,7 @@ pub fn update_animation_state<E>(
         let mut animations_still_running = vec![];
         for mut running_animation in running_animations.drain(..) {
             let still_running = !running_animation.is_expired() && match running_animation {
-                Animation::Transition(_, started_at, ref frame, _expired) => {
+                Animation::Transition(_, started_at, ref frame) => {
                     now < started_at + frame.duration
                 },
                 Animation::Keyframes(_, _, _, ref mut state) => {
@@ -89,18 +89,19 @@ pub fn update_animation_state<E>(
                 },
             };
 
+            debug!("update_animation_state({:?}): {:?}", still_running, running_animation);
+
             if still_running {
                 animations_still_running.push(running_animation);
                 continue;
             }
 
-            if let Animation::Transition(node, _, ref frame, _) = running_animation {
-                script_chan
-                    .send(ConstellationControlMsg::TransitionEnd(
-                        node.to_untrusted_node_address(),
-                        frame.property_animation.property_name().into(),
-                        frame.duration,
-                    )).unwrap();
+            if let Animation::Transition(node, _, ref frame) = running_animation {
+                script_chan.send(ConstellationControlMsg::TransitionEnd(
+                    node.to_untrusted_node_address(),
+                    frame.property_animation.property_name().into(),
+                    frame.duration,
+                )).unwrap();
             }
 
             expired_animations

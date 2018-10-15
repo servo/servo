@@ -331,7 +331,7 @@ trait PrivateMatchMethods: TElement {
     fn process_animations(
         &self,
         context: &mut StyleContext<Self>,
-        old_values: &mut Option<Arc<ComputedValues>>,
+        old_values: Option<&Arc<ComputedValues>>,
         new_values: &mut Arc<ComputedValues>,
         restyle_hint: RestyleHint,
         important_rules_changed: bool,
@@ -413,7 +413,7 @@ trait PrivateMatchMethods: TElement {
     fn process_animations(
         &self,
         context: &mut StyleContext<Self>,
-        old_values: &mut Option<Arc<ComputedValues>>,
+        old_values: Option<&Arc<ComputedValues>>,
         new_values: &mut Arc<ComputedValues>,
         _restyle_hint: RestyleHint,
         _important_rules_changed: bool,
@@ -423,11 +423,10 @@ trait PrivateMatchMethods: TElement {
 
         let mut possibly_expired_animations = vec![];
         let shared_context = context.shared;
-        if let Some(ref mut old) = *old_values {
-            // FIXME(emilio, #20116): This makes no sense.
+        if old_values.is_some() {
             self.update_animations_for_cascade(
                 shared_context,
-                old,
+                new_values,
                 &mut possibly_expired_animations,
                 &context.thread_local.font_metrics_provider,
             );
@@ -446,7 +445,10 @@ trait PrivateMatchMethods: TElement {
 
         // Trigger transitions if necessary. This will reset `new_values` back
         // to its old value if it did trigger a transition.
-        if let Some(ref values) = *old_values {
+        //
+        // FIXME(emilio): We need logic to also stop the old transitions
+        // from running if transition-property / transition-duration changed.
+        if let Some(ref values) = old_values {
             animation::start_transitions_if_applicable(
                 new_animations_sender,
                 this_opaque,
@@ -573,10 +575,6 @@ trait PrivateMatchMethods: TElement {
 
     // FIXME(emilio, #20116): It's not clear to me that the name of this method
     // represents anything of what it does.
-    //
-    // Also, this function gets the old style, for some reason I don't really
-    // get, but the functions called (mainly update_style_for_animation) expects
-    // the new style, wtf?
     #[cfg(feature = "servo")]
     fn update_animations_for_cascade(
         &self,
@@ -585,7 +583,7 @@ trait PrivateMatchMethods: TElement {
         possibly_expired_animations: &mut Vec<::animation::PropertyAnimation>,
         font_metrics: &::font_metrics::FontMetricsProvider,
     ) {
-        use animation::{self, Animation};
+        use animation::{self, Animation, AnimationUpdate};
         use dom::TNode;
 
         // Finish any expired transitions.
@@ -603,30 +601,29 @@ trait PrivateMatchMethods: TElement {
         }
 
         let mut all_running_animations = context.running_animations.write();
-        for running_animation in all_running_animations.get_mut(&this_opaque).unwrap() {
-            // This shouldn't happen frequently, but under some circumstances
-            // mainly huge load or debug builds, the constellation might be
-            // delayed in sending the `TickAllAnimations` message to layout.
-            //
-            // Thus, we can't assume all the animations have been already
-            // updated by layout, because other restyle due to script might be
-            // triggered by layout before the animation tick.
-            //
-            // See #12171 and the associated PR for an example where this
-            // happened while debugging other release panic.
-            if running_animation.is_expired() {
+        for mut running_animation in all_running_animations.get_mut(&this_opaque).unwrap() {
+            if let Animation::Transition(_, _, ref frame) = *running_animation {
+                possibly_expired_animations.push(frame.property_animation.clone());
                 continue;
             }
 
-            animation::update_style_for_animation::<Self>(
+            let update = animation::update_style_for_animation::<Self>(
                 context,
-                running_animation,
+                &mut running_animation,
                 style,
                 font_metrics,
             );
 
-            if let Animation::Transition(_, _, ref frame, _) = *running_animation {
-                possibly_expired_animations.push(frame.property_animation.clone())
+            match *running_animation {
+                Animation::Transition(..) => unreachable!(),
+                Animation::Keyframes(_, _, _, ref mut state) => {
+                    match update {
+                        AnimationUpdate::Regular => {},
+                        AnimationUpdate::AnimationCanceled => {
+                            state.expired = true;
+                        }
+                    }
+                }
             }
         }
     }
@@ -680,7 +677,7 @@ pub trait MatchMethods: TElement {
 
         self.process_animations(
             context,
-            &mut data.styles.primary,
+            data.styles.primary.as_ref(),
             &mut new_styles.primary.style.0,
             data.hint,
             important_rules_changed,
