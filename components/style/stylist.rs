@@ -614,14 +614,6 @@ impl Stylist {
 
     /// Computes the style for a given "precomputed" pseudo-element, taking the
     /// universal rules and applying them.
-    ///
-    /// If `inherit_all` is true, then all properties are inherited from the
-    /// parent; otherwise, non-inherited properties are reset to their initial
-    /// values. The flow constructor uses this flag when constructing anonymous
-    /// flows.
-    ///
-    /// TODO(emilio): The type parameter could go away with a void type
-    /// implementing TElement.
     pub fn precomputed_values_for_pseudo<E>(
         &self,
         guards: &StylesheetGuards,

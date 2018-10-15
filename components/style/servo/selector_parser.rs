@@ -221,11 +221,6 @@ impl PseudoElement {
         }
     }
 
-    /// To be removed.
-    pub fn inherits_all(&self) -> bool {
-        false
-    }
-
     /// Covert non-canonical pseudo-element to canonical one, and keep a
     /// canonical one as it is.
     pub fn canonical(&self) -> PseudoElement {
