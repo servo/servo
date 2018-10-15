@@ -28,6 +28,7 @@ use actor::{Actor, ActorRegistry};
 use actors::browsing_context::BrowsingContextActor;
 use actors::console::ConsoleActor;
 use actors::device::DeviceActor;
+use actors::emulation::EmulationActor;
 use actors::framerate::FramerateActor;
 use actors::inspector::InspectorActor;
 use actors::network_event::{EventActor, NetworkEventActor, ResponseStartMsg};
@@ -60,6 +61,7 @@ mod actors {
     pub mod browsing_context;
     pub mod console;
     pub mod device;
+    pub mod emulation;
     pub mod framerate;
     pub mod inspector;
     pub mod memory;
@@ -230,13 +232,16 @@ fn run_server(
         let (pipeline, worker_id) = ids;
 
         //TODO: move all this actor creation into a constructor method on BrowsingContextActor
-        let (target, console, inspector, timeline, profiler, performance, styleSheets, thread) = {
+        let (target, console, emulation, inspector, timeline, profiler, performance, styleSheets, thread) = {
             let console = ConsoleActor {
                 name: actors.new_name("console"),
                 script_chan: script_sender.clone(),
                 pipeline: pipeline,
                 streams: RefCell::new(Vec::new()),
             };
+
+            let emulation = EmulationActor::new(actors.new_name("emulation"));
+
             let inspector = InspectorActor {
                 name: actors.new_name("inspector"),
                 walker: RefCell::new(None),
@@ -262,6 +267,7 @@ fn run_server(
                 title: String::from(title),
                 url: url.into_string(),
                 console: console.name(),
+                emulation: emulation.name(),
                 inspector: inspector.name(),
                 timeline: timeline.name(),
                 profiler: profiler.name(),
@@ -276,6 +282,7 @@ fn run_server(
             (
                 target,
                 console,
+                emulation,
                 inspector,
                 timeline,
                 profiler,
@@ -298,6 +305,7 @@ fn run_server(
         actor_pipelines.insert(pipeline, target.name.clone());
         actors.register(Box::new(target));
         actors.register(Box::new(console));
+        actors.register(Box::new(emulation));
         actors.register(Box::new(inspector));
         actors.register(Box::new(timeline));
         actors.register(Box::new(profiler));

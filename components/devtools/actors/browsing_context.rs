@@ -72,6 +72,7 @@ pub struct BrowsingContextActorMsg {
     url: String,
     outerWindowID: u32,
     consoleActor: String,
+    emulationActor: String,
     inspectorActor: String,
     timelineActor: String,
     profilerActor: String,
@@ -84,6 +85,7 @@ pub struct BrowsingContextActor {
     pub title: String,
     pub url: String,
     pub console: String,
+    pub emulation: String,
     pub inspector: String,
     pub timeline: String,
     pub profiler: String,
@@ -192,6 +194,7 @@ impl BrowsingContextActor {
             url: self.url.clone(),
             outerWindowID: 0, //FIXME: this should probably be the pipeline id
             consoleActor: self.console.clone(),
+            emulationActor: self.emulation.clone(),
             inspectorActor: self.inspector.clone(),
             timelineActor: self.timeline.clone(),
             profilerActor: self.profiler.clone(),
