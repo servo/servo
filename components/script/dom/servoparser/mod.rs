@@ -1120,12 +1120,14 @@ fn create_element_for_token(
     } else {
         CustomElementCreationMode::Asynchronous
     };
-    let element = Element::create(name, is, document, creator, creation_mode);
+    let element = Element::create_unfinished(name, is, document, creator, creation_mode);
 
     // Step 8.
     for attr in attrs {
         element.set_attribute_from_parser(attr.name, attr.value, None);
     }
+
+    element.done_creating();
 
     // Step 9.
     if will_execute_script {

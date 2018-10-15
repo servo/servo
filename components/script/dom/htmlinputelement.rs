@@ -1122,8 +1122,18 @@ impl HTMLInputElement {
         }
     }
 
+    pub fn refresh_value(&self, mut value: DOMString) {
+        let mut textinput = self.textinput.borrow_mut();
+        self.sanitize_value(&mut value);
+        textinput.set_content(value);
+    }
+
     // https://html.spec.whatwg.org/multipage/#value-sanitization-algorithm
     fn sanitize_value(&self, value: &mut DOMString) {
+        let el = self.upcast::<Element>();
+        if !el.is_done_creating() {
+            return
+        }
         match self.input_type() {
             InputType::Text | InputType::Search | InputType::Tel | InputType::Password => {
                 value.strip_newlines();

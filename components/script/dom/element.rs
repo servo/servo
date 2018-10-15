@@ -14,6 +14,7 @@ use dom::bindings::codegen::Bindings::ElementBinding;
 use dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
 use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::Bindings::FunctionBinding::Function;
+use dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputElementBinding::HTMLInputElementMethods;
 use dom::bindings::codegen::Bindings::HTMLTemplateElementBinding::HTMLTemplateElementMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::{ScrollBehavior, ScrollToOptions};
@@ -159,6 +160,7 @@ pub struct Element {
     custom_element_definition: DomRefCell<Option<Rc<CustomElementDefinition>>>,
     /// <https://dom.spec.whatwg.org/#concept-element-custom-element-state>
     custom_element_state: Cell<CustomElementState>,
+    done_creating: Cell<bool>,
 }
 
 impl fmt::Debug for Element {
@@ -244,6 +246,18 @@ impl Element {
         creator: ElementCreator,
         mode: CustomElementCreationMode,
     ) -> DomRoot<Element> {
+        let el = Element::create_unfinished(name, is, document, creator, mode);
+        el.done_creating();
+        el
+    }
+
+    pub fn create_unfinished(
+        name: QualName,
+        is: Option<LocalName>,
+        document: &Document,
+        creator: ElementCreator,
+        mode: CustomElementCreationMode,
+    ) -> DomRoot<Element> {
         create_element(name, is, document, creator, mode)
     }
 
@@ -286,7 +300,19 @@ impl Element {
             custom_element_reaction_queue: Default::default(),
             custom_element_definition: Default::default(),
             custom_element_state: Cell::new(CustomElementState::Uncustomized),
+            done_creating: Cell::new(false),
         }
+    }
+
+    pub fn done_creating(&self) {
+        self.done_creating.set(true);
+        if let Some(el) = self.downcast::<HTMLInputElement>() {
+            el.refresh_value(el.Value());
+        }
+    }
+
+    pub fn is_done_creating(&self) -> bool {
+        self.done_creating.get()
     }
 
     pub fn new(

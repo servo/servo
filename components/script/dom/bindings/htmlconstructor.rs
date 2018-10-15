@@ -166,6 +166,8 @@ where
             // Step 8.4
             element.set_custom_element_definition(definition.clone());
 
+            element.done_creating();
+
             // Step 8.5
             DomRoot::downcast(element).ok_or(Error::InvalidState)
         },
