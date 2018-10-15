@@ -304,6 +304,12 @@ class MachCommands(CommandBase):
               "tests/wpt/mozilla/.")
         return 0
 
+    def install_rustfmt(self):
+        if self.call_rustup_run(["cargo", "fmt", "--version", "-q"],
+                                stderr=open(os.devnull, "w")) != 0:
+            # Rustfmt is not installed. Install:
+            self.call_rustup_run(["rustup", "component", "add", "rustfmt-preview"])
+
     @Command('test-tidy',
              description='Run the source code tidiness check',
              category='testing')
@@ -322,7 +328,9 @@ class MachCommands(CommandBase):
         else:
             manifest_dirty = run_update(self.context.topdir, check_clean=True)
             tidy_failed = tidy.scan(not all_files, not no_progress, stylo=stylo)
-            return tidy_failed or manifest_dirty
+            self.install_rustfmt()
+            rustfmt_failed = self.call_rustup_run(["cargo", "fmt", "--", "--check"])
+            return tidy_failed or manifest_dirty or rustfmt_failed
 
     @Command('test-webidl',
              description='Run the WebIDL parser tests',
@@ -442,6 +450,13 @@ class MachCommands(CommandBase):
              parser=create_parser_manifest_update)
     def update_manifest(self, **kwargs):
         return run_update(self.context.topdir, **kwargs)
+
+    @Command('fmt',
+             description='Format the Rust source files with rustfmt',
+             category='testing')
+    def format_code(self, **kwargs):
+        self.install_rustfmt()
+        return self.call_rustup_run(["cargo", "fmt"])
 
     @Command('update-wpt',
              description='Update the web platform tests',
