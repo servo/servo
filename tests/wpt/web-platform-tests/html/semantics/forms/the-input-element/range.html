@@ -34,7 +34,7 @@
       <input type="range" id="stepdown_beyond_min" min=3 max=11 value=6 step=3 />
       <input type="range" id="illegal_min_and_max" min="ab" max="f" />
       <input type="range" id="illegal_value_and_step" min=0 max=5 value="ppp" step="xyz" />
-      <input type="range" id="should_skip_whitespace" value=" 123"/>
+      <input type="range" id="should_skip_whitespace" value=" 98"/>
       <input type="range" id="exponent_value1" value=""/>
       <input type="range" id="exponent_value2" value=""/>
     </div>
@@ -286,7 +286,7 @@
       test(
         function() {
           var e = document.getElementById('should_skip_whitespace');
-          assert_equals(e.value, "123")
+          assert_equals(e.value, "98")
         }, "Skip ASCII whitespace within input", {
           "help" : "https://html.spec.whatwg.org/multipage/#best-representation-of-the-number-as-a-floating-point-number"
         }
