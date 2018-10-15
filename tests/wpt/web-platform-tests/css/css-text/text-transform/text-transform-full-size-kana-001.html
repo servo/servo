@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>CSS3 Text, text transform: full-size-kana, small kanas</title>
+<meta name="assert" content="For small kanas, text-transform: full-size-kana puts all kanas in full-size kanas.">
+<link rel='author' title='Diego Pino Garcia' href='mailto:dpino@igalia.com'>
+<link rel='help' href='https://drafts.csswg.org/css-text-3/#text-transform'>
+<link rel="match" href="reference/text-transform-full-size-kana-001-ref.html">
+<style type='text/css'>
+.test, .ref { font-size: 200%; line-height: 2.5em; }
+.test span, .ref span { margin-right: 1em; white-space: nowrap; }
+/* the CSS above is not part of the test */
+.test { text-transform: full-size-kana; }
+</style>
+</head>
+<body>
+<p class="instructions">Test passes if both characters in each pair match. If you are missing a font glyph for a character, ignore that pair, but report which characters were ignored.</p>
+<div class="test">
+  <span title="U+3041">&#x3041; &#x3042;</span>
+  <span title="U+3043">&#x3043; &#x3044;</span>
+  <span title="U+3045">&#x3045; &#x3046;</span>
+  <span title="U+3047">&#x3047; &#x3048;</span>
+  <span title="U+3049">&#x3049; &#x304A;</span>
+  <span title="U+3095">&#x3095; &#x304B;</span>
+  <span title="U+3096">&#x3096; &#x3051;</span>
+  <span title="U+3063">&#x3063; &#x3064;</span>
+  <span title="U+3083">&#x3083; &#x3084;</span>
+  <span title="U+3085">&#x3085; &#x3086;</span>
+  <span title="U+3087">&#x3087; &#x3088;</span>
+  <span title="U+308E">&#x308E; &#x308F;</span>
+  <span title="U+30A1">&#x30A1; &#x30A2;</span>
+  <span title="U+30A3">&#x30A3; &#x30A4;</span>
+  <span title="U+30A5">&#x30A5; &#x30A6;</span>
+  <span title="U+30A7">&#x30A7; &#x30A8;</span>
+  <span title="U+30A9">&#x30A9; &#x30AA;</span>
+  <span title="U+30F5">&#x30F5; &#x30AB;</span>
+  <span title="U+31F0">&#x31F0; &#x30AF;</span>
+  <span title="U+30F6">&#x30F6; &#x30B1;</span>
+  <span title="U+31F1">&#x31F1; &#x30B7;</span>
+  <span title="U+31F2">&#x31F2; &#x30B9;</span>
+  <span title="U+30C3">&#x30C3; &#x30C4;</span>
+  <span title="U+31F3">&#x31F3; &#x30C8;</span>
+  <span title="U+31F4">&#x31F4; &#x30CC;</span>
+  <span title="U+31F5">&#x31F5; &#x30CF;</span>
+  <span title="U+31F6">&#x31F6; &#x30D2;</span>
+  <span title="U+31F7">&#x31F7; &#x30D5;</span>
+  <span title="U+31F8">&#x31F8; &#x30D8;</span>
+  <span title="U+31F9">&#x31F9; &#x30DB;</span>
+  <span title="U+31FA">&#x31FA; &#x30E0;</span>
+  <span title="U+30E3">&#x30E3; &#x30E4;</span>
+  <span title="U+30E5">&#x30E5; &#x30E6;</span>
+  <span title="U+30E7">&#x30E7; &#x30E8;</span>
+  <span title="U+31FB">&#x31FB; &#x30E9;</span>
+  <span title="U+31FC">&#x31FC; &#x30EA;</span>
+  <span title="U+31FD">&#x31FD; &#x30EB;</span>
+  <span title="U+31FE">&#x31FE; &#x30EC;</span>
+  <span title="U+31FF">&#x31FF; &#x30ED;</span>
+  <span title="U+30EE">&#x30EE; &#x30EF;</span>
+  <span title="U+FF67">&#xFF67; &#xFF71;</span>
+  <span title="U+FF68">&#xFF68; &#xFF72;</span>
+  <span title="U+FF69">&#xFF69; &#xFF73;</span>
+  <span title="U+FF6A">&#xFF6A; &#xFF74;</span>
+  <span title="U+FF6B">&#xFF6B; &#xFF75;</span>
+  <span title="U+FF6F">&#xFF6F; &#xFF82;</span>
+  <span title="U+FF6C">&#xFF6C; &#xFF94;</span>
+  <span title="U+FF6D">&#xFF6D; &#xFF95;</span>
+  <span title="U+FF6E">&#xFF6E; &#xFF96;</span>
+</div>
+<!--Notes:
+Tip: To identify the characters where differences occur, in order to report problem characters, either mouse over to reveal a tooltip, or copy and paste the sequence into a tool such as <a href='http://r12a.github.io/uniview/' target='_blank'>UniView</a> or the <a href='http://r12a.github.io/apps/conversion/' target='_blank'>Unicode Conversion Tool</a>.
+-->
+</body>
+</html>
