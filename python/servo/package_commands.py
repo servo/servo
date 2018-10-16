@@ -552,7 +552,7 @@ class PackageCommands(CommandBase):
                 base_dir = os.path.join(directory, artifact_dir)
                 if not os.path.isdir(base_dir):
                     continue
-                package_upload_base = "{}/{}".format(dest_key_base, artifact_dir[:-1])
+                package_upload_base = "{}/{}".format(dest_key_base, artifact_dir)
                 # Upload all of the files inside the subdirectory.
                 for f in os.listdir(base_dir):
                     file_upload_key = "{}/{}".format(package_upload_base, f)
