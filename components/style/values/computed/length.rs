@@ -5,9 +5,7 @@
 //! `<length>` computed values, and related ones.
 
 use app_units::Au;
-use logical_geometry::WritingMode;
 use ordered_float::NotNan;
-use properties::LonghandId;
 use std::fmt::{self, Write};
 use std::ops::{Add, Neg};
 use style_traits::{CssWriter, ToCss};
@@ -959,39 +957,6 @@ pub enum ExtremumLength {
     MozAvailable,
 }
 
-impl ExtremumLength {
-    /// Returns whether this size keyword can be used for the given writing-mode
-    /// and property.
-    ///
-    /// TODO: After these values are supported for both axes (and maybe
-    /// unprefixed, see bug 1322780) all this complexity can go away, and
-    /// everything can be derived (no need for uncacheable stuff).
-    fn valid_for(wm: WritingMode, longhand: LonghandId) -> bool {
-        // We only make sense on the inline axis.
-        match longhand {
-            // FIXME(emilio): The flex-basis thing is not quite clear...
-            LonghandId::FlexBasis |
-            LonghandId::MinWidth |
-            LonghandId::MaxWidth |
-            LonghandId::Width => !wm.is_vertical(),
-
-            LonghandId::MinHeight | LonghandId::MaxHeight | LonghandId::Height => wm.is_vertical(),
-
-            LonghandId::MinInlineSize | LonghandId::MaxInlineSize | LonghandId::InlineSize => true,
-            // The block-* properties are rejected at parse-time, so they're
-            // unexpected here.
-            _ => {
-                debug_assert!(
-                    false,
-                    "Unexpected property using ExtremumLength: {:?}",
-                    longhand,
-                );
-                false
-            },
-        }
-    }
-}
-
 /// A value suitable for a `min-width`, `min-height`, `width` or `height`
 /// property.
 ///
@@ -1018,28 +983,11 @@ impl ToComputedValue for specified::MozLength {
 
     #[inline]
     fn to_computed_value(&self, context: &Context) -> MozLength {
-        debug_assert!(
-            context.for_non_inherited_property.is_some(),
-            "Someone added a MozLength to an inherited property? Evil!"
-        );
         match *self {
             specified::MozLength::LengthOrPercentageOrAuto(ref lopoa) => {
                 MozLength::LengthOrPercentageOrAuto(lopoa.to_computed_value(context))
             },
-            specified::MozLength::ExtremumLength(ext) => {
-                context
-                    .rule_cache_conditions
-                    .borrow_mut()
-                    .set_writing_mode_dependency(context.builder.writing_mode);
-                if !ExtremumLength::valid_for(
-                    context.builder.writing_mode,
-                    context.for_non_inherited_property.unwrap(),
-                ) {
-                    MozLength::auto()
-                } else {
-                    MozLength::ExtremumLength(ext)
-                }
-            },
+            specified::MozLength::ExtremumLength(ext) => MozLength::ExtremumLength(ext),
         }
     }
 
@@ -1080,28 +1028,11 @@ impl ToComputedValue for specified::MaxLength {
 
     #[inline]
     fn to_computed_value(&self, context: &Context) -> MaxLength {
-        debug_assert!(
-            context.for_non_inherited_property.is_some(),
-            "Someone added a MaxLength to an inherited property? Evil!"
-        );
         match *self {
             specified::MaxLength::LengthOrPercentageOrNone(ref lopon) => {
                 MaxLength::LengthOrPercentageOrNone(lopon.to_computed_value(context))
             },
-            specified::MaxLength::ExtremumLength(ext) => {
-                context
-                    .rule_cache_conditions
-                    .borrow_mut()
-                    .set_writing_mode_dependency(context.builder.writing_mode);
-                if !ExtremumLength::valid_for(
-                    context.builder.writing_mode,
-                    context.for_non_inherited_property.unwrap(),
-                ) {
-                    MaxLength::none()
-                } else {
-                    MaxLength::ExtremumLength(ext)
-                }
-            },
+            specified::MaxLength::ExtremumLength(ext) => MaxLength::ExtremumLength(ext),
         }
     }
 
@@ -1113,7 +1044,7 @@ impl ToComputedValue for specified::MaxLength {
                     specified::LengthOrPercentageOrNone::from_computed_value(&lopon),
                 )
             },
-            MaxLength::ExtremumLength(ref ext) => specified::MaxLength::ExtremumLength(ext.clone()),
+            MaxLength::ExtremumLength(ext) => specified::MaxLength::ExtremumLength(ext),
         }
     }
 }
