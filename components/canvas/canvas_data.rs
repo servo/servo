@@ -99,7 +99,7 @@ impl<'a> CanvasData<'a> {
     }
 
     pub fn fill_text(&self, text: String, x: f64, y: f64, max_width: Option<f64>) {
-        error!("Unimplemented canvas2d.fillText. Values received: {}, {}, {}, {:?}.", text, x, y, max_width);
+        // error!("Unimplemented canvas2d.fillText. Values received: {}, {}, {}, {:?}.", text, x, y, max_width);
     }
 
     pub fn fill_rect(&self, rect: &Rect<f32>) {

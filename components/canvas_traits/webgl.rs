@@ -605,3 +605,9 @@ parameters! {
         }),
     }
 }
+
+pub fn is_gles() -> bool {
+    // TODO: align this with the actual kind of graphics context in use, rather than
+    // making assumptions based on platform
+    cfg!(any(target_os = "android", target_os = "ios"))
+}
