@@ -70,18 +70,6 @@ index 5552a4f82e..539cb33214 100644
  <title>WebGL GLSL conformance test: log2_001_to_008.html</title>
  <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
  <link rel="stylesheet" href="../../../resources/ogles-tests.css" />
-diff --git i/conformance/uniforms/out-of-bounds-uniform-array-access.html w/conformance/uniforms/out-of-bounds-uniform-array-access.html
-index 2758b320ff..4d85c3a53a 100644
---- i/conformance/uniforms/out-of-bounds-uniform-array-access.html
-+++ w/conformance/uniforms/out-of-bounds-uniform-array-access.html
-@@ -29,6 +29,7 @@
- <html>
- <head>
- <meta charset="utf-8">
-+<meta name="timeout" content="long">
- <title>WebGL out of bounds uniform array access.</title>
- <link rel="stylesheet" href="../../resources/js-test-style.css"/>
- <script src=/resources/testharness.js></script>
 diff --git i/conformance/rendering/many-draw-calls.html w/conformance/rendering/many-draw-calls.html
 index c1542f4fa9..b3ee786e0b 100644
 --- i/conformance/rendering/many-draw-calls.html

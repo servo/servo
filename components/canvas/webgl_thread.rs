@@ -122,6 +122,14 @@ impl<VR: WebVRRenderHandler + 'static> WebGLThread<VR> {
                                     .expect("WebGLContext not found");
                     let glsl_version = Self::get_glsl_version(&data.ctx);
 
+                    // FIXME(nox): Should probably be done by offscreen_gl_context.
+                    if (glsl_version.major, glsl_version.minor) < (3, 1) {
+                        data.ctx.gl().enable(gl::POINT_SPRITE);
+                    }
+                    if !is_gles() {
+                        data.ctx.gl().enable(gl::PROGRAM_POINT_SIZE);
+                    }
+
                     WebGLCreateContextResult {
                         sender: WebGLMsgSender::new(id, webgl_chan.clone()),
                         limits,

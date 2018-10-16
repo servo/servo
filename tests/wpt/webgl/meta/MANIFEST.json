@@ -15637,9 +15637,7 @@
    "conformance/uniforms/out-of-bounds-uniform-array-access.html": [
     [
      "/_webgl/conformance/uniforms/out-of-bounds-uniform-array-access.html",
-     {
-      "timeout": "long"
-     }
+     {}
     ]
    ],
    "conformance/uniforms/uniform-default-values.html": [
@@ -37324,7 +37322,7 @@
    "testharness"
   ],
   "conformance/uniforms/out-of-bounds-uniform-array-access.html": [
-   "a096b5ac7f771ab9b4aa1e5f046de301d22d9c93",
+   "6963b053b79d9e45507f6af10ab50a21240723b0",
    "testharness"
   ],
   "conformance/uniforms/uniform-default-values.html": [
