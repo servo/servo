@@ -9,6 +9,7 @@ use dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
 use dom::bindings::codegen::Bindings::HTMLMediaElementBinding::CanPlayTypeResult;
 use dom::bindings::codegen::Bindings::HTMLMediaElementBinding::HTMLMediaElementConstants;
 use dom::bindings::codegen::Bindings::HTMLMediaElementBinding::HTMLMediaElementMethods;
+use dom::bindings::codegen::Bindings::HTMLSourceElementBinding::HTMLSourceElementMethods;
 use dom::bindings::codegen::Bindings::MediaErrorBinding::MediaErrorConstants::*;
 use dom::bindings::codegen::Bindings::MediaErrorBinding::MediaErrorMethods;
 use dom::bindings::codegen::InheritTypes::{ElementTypeId, HTMLElementTypeId};
@@ -633,10 +634,28 @@ impl HTMLMediaElement {
                 // of the cleanup in case of failure itself.
                 self.resource_fetch_algorithm(Resource::Url(url_record));
             },
-            Mode::Children(_source) => {
-                // Step 9.children.
+            // Step 9.children.
+            Mode::Children(source) => {
+                // This is only a partial implementation
                 // FIXME: https://github.com/servo/servo/issues/21481
-                self.queue_dedicated_media_source_failure_steps()
+                let src = source.Src();
+                // Step 9.attr.2.
+                if src.is_empty() {
+                    source.upcast::<EventTarget>().fire_event(atom!("error"));
+                    self.queue_dedicated_media_source_failure_steps();
+                    return;
+                }
+                // Step 9.attr.3.
+                let url_record = match base_url.join(&src) {
+                    Ok(url) => url,
+                    Err(_) => {
+                        source.upcast::<EventTarget>().fire_event(atom!("error"));
+                        self.queue_dedicated_media_source_failure_steps();
+                        return;
+                    },
+                };
+                // Step 9.attr.8.
+                self.resource_fetch_algorithm(Resource::Url(url_record));
             },
         }
     }
