@@ -147,26 +147,9 @@ def copy_dependencies(binary_path, lib_path):
 
 
 def copy_windows_dependencies(binary_path, destination):
-    deps = [
-        "libcryptoMD.dll",
-        "libsslMD.dll",
-    ]
-    for d in deps:
-        shutil.copy(path.join(binary_path, d), destination)
-
-    # Search for the generated nspr4.dll
-    build_path = path.join(binary_path, "build")
-    nspr4 = "nspr4.dll"
-    nspr4_path = None
-    for root, dirs, files in os.walk(build_path):
-        if nspr4 in files:
-            nspr4_path = path.join(root, nspr4)
-            break
-
-    if nspr4_path is None:
-        print("WARNING: could not find nspr4.dll")
-    else:
-        shutil.copy(nspr4_path, destination)
+    for f in os.listdir(binary_path):
+        if os.path.isfile(path.join(binary_path, f)) and f.endswith(".dll"):
+            shutil.copy(path.join(binary_path, f), destination)
 
 
 def change_prefs(resources_path, platform, vr=False):
@@ -397,11 +380,10 @@ class PackageCommands(CommandBase):
 
             print("Copying files")
             dir_to_temp = path.join(dir_to_msi, 'temp')
-            dir_to_temp_servo = path.join(dir_to_temp, 'servo')
-            dir_to_resources = path.join(dir_to_temp_servo, 'resources')
+            dir_to_resources = path.join(dir_to_temp, 'resources')
             shutil.copytree(path.join(dir_to_root, 'resources'), dir_to_resources)
-            shutil.copy(binary_path, dir_to_temp_servo)
-            copy_windows_dependencies(target_dir, dir_to_temp_servo)
+            shutil.copy(binary_path, dir_to_temp)
+            copy_windows_dependencies(target_dir, dir_to_temp)
 
             change_prefs(dir_to_resources, "windows")
 
@@ -412,7 +394,7 @@ class PackageCommands(CommandBase):
             wxs_path = path.join(dir_to_msi, "Installer.wxs")
             open(wxs_path, "w").write(template.render(
                 exe_path=target_dir,
-                dir_to_temp=dir_to_temp_servo,
+                dir_to_temp=dir_to_temp,
                 resources_path=dir_to_resources))
 
             # run candle and light
@@ -460,8 +442,9 @@ class PackageCommands(CommandBase):
             print("Packaged Servo into " + path.join(dir_to_msi, "Servo.msi"))
 
             print("Creating ZIP")
-            shutil.make_archive(path.join(dir_to_msi, "Servo"), "zip", dir_to_temp)
-            print("Packaged Servo into " + path.join(dir_to_msi, "Servo.zip"))
+            zip_path = path.join(dir_to_msi, "Servo.zip")
+            archive_deterministically(dir_to_temp, zip_path, prepend_path='servo/')
+            print("Packaged Servo into " + zip_path)
 
             print("Cleaning up")
             delete(dir_to_temp)
