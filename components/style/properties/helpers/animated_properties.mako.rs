@@ -35,7 +35,7 @@ use values::animated::effects::Filter as AnimatedFilter;
 use values::computed::{Angle, CalcLengthOrPercentage};
 use values::computed::{ClipRect, Context};
 use values::computed::{Length, LengthOrPercentage, LengthOrPercentageOrAuto};
-use values::computed::{LengthOrPercentageOrNone, MaxLength};
+use values::computed::LengthOrPercentageOrNone;
 use values::computed::{NonNegativeNumber, Number, NumberOrPercentage, Percentage};
 use values::computed::length::NonNegativeLengthOrPercentage;
 use values::computed::ToComputedValue;
@@ -891,11 +891,6 @@ impl ToAnimatedZero for LengthOrPercentageOrNone {
             LengthOrPercentageOrNone::None => Err(()),
         }
     }
-}
-
-impl ToAnimatedZero for MaxLength {
-    #[inline]
-    fn to_animated_zero(&self) -> Result<Self, ()> { Err(()) }
 }
 
 impl ToAnimatedZero for FontWeight {

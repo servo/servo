@@ -19,7 +19,7 @@ use std::cmp::max;
 use values::{Auto, Either, None_, Normal};
 use values::computed::{Angle, ExtremumLength, Length, LengthOrPercentage, LengthOrPercentageOrAuto};
 use values::computed::{LengthOrPercentageOrNone, Number, NumberOrPercentage};
-use values::computed::{MaxLength, MozLength, Percentage};
+use values::computed::{MaxLength as ComputedMaxLength, MozLength as ComputedMozLength, Percentage};
 use values::computed::{NonNegativeLength, NonNegativeLengthOrPercentage, NonNegativeNumber};
 use values::computed::FlexBasis as ComputedFlexBasis;
 use values::computed::basic_shape::ShapeRadius as ComputedShapeRadius;
@@ -27,6 +27,7 @@ use values::generics::{CounterStyleOrNone, NonNegative};
 use values::generics::basic_shape::ShapeRadius;
 use values::generics::box_::Perspective;
 use values::generics::flex::FlexBasis;
+use values::generics::length::{MaxLength, MozLength};
 use values::generics::gecko::ScrollSnapPoint;
 use values::generics::grid::{TrackBreadth, TrackKeyword};
 
@@ -74,7 +75,7 @@ impl GeckoStyleCoordConvertible for ComputedFlexBasis {
     }
 
     fn from_gecko_style_coord<T: CoordData>(coord: &T) -> Option<Self> {
-        if let Some(width) = MozLength::from_gecko_style_coord(coord) {
+        if let Some(width) = ComputedMozLength::from_gecko_style_coord(coord) {
             return Some(FlexBasis::Width(width));
         }
 
@@ -406,7 +407,7 @@ impl GeckoStyleCoordConvertible for ExtremumLength {
     }
 }
 
-impl GeckoStyleCoordConvertible for MozLength {
+impl GeckoStyleCoordConvertible for ComputedMozLength {
     fn to_gecko_style_coord<T: CoordDataMut>(&self, coord: &mut T) {
         match *self {
             MozLength::LengthOrPercentageOrAuto(ref lopoa) => lopoa.to_gecko_style_coord(coord),
@@ -423,7 +424,7 @@ impl GeckoStyleCoordConvertible for MozLength {
     }
 }
 
-impl GeckoStyleCoordConvertible for MaxLength {
+impl GeckoStyleCoordConvertible for ComputedMaxLength {
     fn to_gecko_style_coord<T: CoordDataMut>(&self, coord: &mut T) {
         match *self {
             MaxLength::LengthOrPercentageOrNone(ref lopon) => lopon.to_gecko_style_coord(coord),
