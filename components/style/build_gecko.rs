@@ -260,8 +260,7 @@ mod bindings {
     fn get_types(filename: &str, macro_pat: &str) -> Vec<(String, String)> {
         // Read the file
         let path = DISTDIR_PATH.join("include/mozilla/").join(filename);
-        let mut list_file = File::open(path)
-            .expect(&format!("Unable to open {}", filename));
+        let mut list_file = File::open(path).expect(&format!("Unable to open {}", filename));
         let mut content = String::new();
         list_file
             .read_to_string(&mut content)
@@ -279,12 +278,9 @@ mod bindings {
             .map(|line| line.trim())
             .filter(|line| !line.is_empty())
             .map(|line| {
-                let captures = re.captures(&line)
-                    .expect(&format!(
-                        "Unrecognized line in {}: '{}'",
-                        filename,
-                        line
-                    ));
+                let captures = re
+                    .captures(&line)
+                    .expect(&format!("Unrecognized line in {}: '{}'", filename, line));
                 let macro_name = captures.get(1).unwrap().as_str().to_string();
                 let type_name = captures.get(2).unwrap().as_str().to_string();
                 (macro_name, type_name)
@@ -294,9 +290,7 @@ mod bindings {
     fn get_borrowed_types() -> Vec<(bool, String)> {
         get_types("BorrowedTypeList.h", "GECKO_BORROWED_TYPE(?:_MUT)?")
             .into_iter()
-            .map(|(macro_name, type_name)| {
-                (macro_name.ends_with("MUT"), type_name)
-            })
+            .map(|(macro_name, type_name)| (macro_name.ends_with("MUT"), type_name))
             .collect()
     }
 
@@ -535,11 +529,17 @@ mod bindings {
         for ty in get_boxed_types().iter() {
             builder = builder
                 .blacklist_type(format!("{}Owned", ty))
-                .raw_line(format!("pub type {0}Owned = ::gecko_bindings::sugar::ownership::Owned<{0}>;", ty))
-                .blacklist_type(format!("{}OwnedOrNull", ty))
-                .raw_line(format!(concat!("pub type {0}OwnedOrNull = ",
-                                          "::gecko_bindings::sugar::ownership::OwnedOrNull<{0}>;"), ty))
-                .mutable_borrowed_type(ty)
+                .raw_line(format!(
+                    "pub type {0}Owned = ::gecko_bindings::sugar::ownership::Owned<{0}>;",
+                    ty
+                )).blacklist_type(format!("{}OwnedOrNull", ty))
+                .raw_line(format!(
+                    concat!(
+                        "pub type {0}OwnedOrNull = ",
+                        "::gecko_bindings::sugar::ownership::OwnedOrNull<{0}>;"
+                    ),
+                    ty
+                )).mutable_borrowed_type(ty)
                 .zero_size_type(ty, &structs_types);
         }
         write_binding_file(builder, BINDINGS_FILE, &fixups);
