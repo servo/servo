@@ -27,17 +27,17 @@ Test AudioBufferSourceNode supports 5.1 channel.
               6, sampleRate * toneLengthSeconds, sampleRate);
         }, 'Creating context for testing').notThrow();
         should(
-            Audit
-                .loadFileFromUrl(
-                    'audiobuffersource-multi-channels-expected.wav')
-                .then(arrayBuffer => {
-                  context.decodeAudioData(arrayBuffer).then(audioBuffer => {
-                    expectedAudio = audioBuffer;
-                    task.done();
-                  });
-                }),
-            'Fetching expected audio')
-            .beResolved();
+          Audit
+            .loadFileFromUrl('audiobuffersource-multi-channels-expected.wav')
+            .then(arrayBuffer => {
+              context.decodeAudioData(arrayBuffer).then(audioBuffer => {
+                expectedAudio = audioBuffer;
+                task.done();
+              }).catch(() => {
+                assert_unreached("arrayBuffer should be triggered correctly");
+              })
+            })
+          , 'Fetching expected audio').beResolved();
       });
 
       audit.define(
