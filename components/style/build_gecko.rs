@@ -17,7 +17,7 @@ mod bindings {
     use bindgen::{Builder, CodegenConfig};
     use regex::Regex;
     use std::cmp;
-    use std::collections::{HashMap, HashSet};
+    use std::collections::HashSet;
     use std::env;
     use std::fs::{self, File};
     use std::io::{Read, Write};
@@ -43,7 +43,7 @@ mod bindings {
             .expect("Failed to open config file")
             .read_to_string(&mut contents)
             .expect("Failed to read config file");
-        match toml::from_str::<toml::value::Table>(&contents) {
+        match toml::from_str::<Table>(&contents) {
             Ok(result) => result,
             Err(e) => panic!("Failed to parse config file: {}", e),
         }
