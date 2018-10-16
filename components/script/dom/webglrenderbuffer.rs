@@ -163,3 +163,9 @@ impl WebGLRenderbuffer {
         Ok(())
     }
 }
+
+impl Drop for WebGLRenderbuffer {
+    fn drop(&mut self) {
+        self.delete();
+    }
+}
