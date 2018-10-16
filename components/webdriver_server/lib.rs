@@ -368,7 +368,7 @@ impl Handler {
 
     fn handle_delete_session(&mut self) -> WebDriverResult<WebDriverResponse> {
         self.session = None;
-        Ok(WebDriverResponse::Void)
+        Ok(WebDriverResponse::DeleteSession)
     }
 
     fn browsing_context_script_command(
