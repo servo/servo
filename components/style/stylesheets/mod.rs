@@ -277,7 +277,6 @@ impl CssRule {
 
         // nested rules are in the body state
         let mut rule_parser = TopLevelRuleParser {
-            stylesheet_origin: parent_stylesheet_contents.origin,
             context,
             shared_lock: &shared_lock,
             loader,

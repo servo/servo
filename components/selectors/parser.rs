@@ -259,8 +259,13 @@ where
     Impl: SelectorImpl,
 {
     let location = input.current_source_location();
-    let selector = Selector::parse(parser, input)?;
-    // Ensure they're actually all compound selectors.
+    let selector = parse_selector(parser, input)?;
+
+    // Ensure they're actually all compound selectors without pseudo-elements.
+    if selector.has_pseudo_element() {
+        return Err(location.new_custom_error(SelectorParseErrorKind::PseudoElementInComplexSelector));
+    }
+
     if selector.iter_raw_match_order().any(|s| s.is_combinator()) {
         return Err(location.new_custom_error(SelectorParseErrorKind::NonCompoundSelector));
     }
@@ -1397,6 +1402,7 @@ where
 
 impl<Impl: SelectorImpl> Selector<Impl> {
     /// Parse a selector, without any pseudo-element.
+    #[inline]
     pub fn parse<'i, 't, P>(
         parser: &P,
         input: &mut CssParser<'i, 't>,
@@ -1404,12 +1410,7 @@ impl<Impl: SelectorImpl> Selector<Impl> {
     where
         P: Parser<'i, Impl = Impl>,
     {
-        let selector = parse_selector(parser, input)?;
-        if selector.has_pseudo_element() {
-            let e = SelectorParseErrorKind::PseudoElementInComplexSelector;
-            return Err(input.new_custom_error(e));
-        }
-        Ok(selector)
+        parse_selector(parser, input)
     }
 }
 
