@@ -111,7 +111,6 @@ ${helpers.predefined_type(
     vector=False,
     animation_value_type="discrete",
     flags="APPLIES_TO_FIRST_LETTER",
-    boxed=True,
 )}
 
 ${helpers.predefined_type(
