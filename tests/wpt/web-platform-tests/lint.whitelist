@@ -798,3 +798,7 @@ LAYOUTTESTS APIS: resources/chromium/generic_sensor_mocks.js
 # Gecko additons to remove
 CSS-COLLIDING-REF-NAME: css/css-contain/reference/contain-size-fieldset-001-ref.html
 CSS-COLLIDING-REF-NAME: css/vendor-imports/mozilla/mozilla-central-reftests/contain/contain-size-fieldset-001-ref.html
+
+# Signed Exchange files have hard-coded URLs in the certUrl field
+WEB-PLATFORM.TEST:signed-exchange/resources/*.sxg
+WEB-PLATFORM.TEST:signed-exchange/resources/generate-test-sxgs.sh

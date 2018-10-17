@@ -9,7 +9,7 @@ import webdriver
 from tests.support import defaults
 from tests.support.helpers import cleanup_session
 from tests.support.http_request import HTTPRequest
-from tests.support.wait import wait
+from tests.support.sync import Poll
 
 
 _current_session = None
@@ -208,11 +208,12 @@ def create_dialog(session):
             }, 0);
             """, args=(dialog_type, text))
 
-        wait(session,
-             lambda s: s.alert.text == text,
-             "No user prompt with text '{}' detected".format(text),
-             timeout=15,
-             ignored_exceptions=webdriver.NoSuchAlertException)
+        wait = Poll(
+            session,
+            timeout=15,
+            ignored_exceptions=webdriver.NoSuchAlertException,
+            message="No user prompt with text '{}' detected".format(text))
+        wait.until(lambda s: s.alert.text == text)
 
     return create_dialog
 

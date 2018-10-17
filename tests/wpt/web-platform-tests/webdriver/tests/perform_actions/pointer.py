@@ -6,7 +6,7 @@ from tests.perform_actions.support.mouse import get_inview_center, get_viewport_
 from tests.perform_actions.support.refine import filter_dict, get_events
 from tests.support.asserts import assert_move_to_coordinates
 from tests.support.inline import inline
-from tests.support.wait import wait
+from tests.support.sync import Poll
 
 
 def link_doc(dest):
@@ -101,11 +101,11 @@ def test_click_navigation(session, url):
     error_message = "Did not navigate to %s" % destination
 
     click(session.find.css("#link", all=False))
-    wait(session, lambda s: s.url == destination, error_message)
+    Poll(session, message=error_message).until(lambda s: s.url == destination)
     # repeat steps to check behaviour after document unload
     session.url = start
     click(session.find.css("#link", all=False))
-    wait(session, lambda s: s.url == destination, error_message)
+    Poll(session, message=error_message).until(lambda s: s.url == destination)
 
 
 @pytest.mark.parametrize("drag_duration", [0, 300, 800])

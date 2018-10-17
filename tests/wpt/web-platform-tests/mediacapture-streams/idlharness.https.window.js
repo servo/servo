@@ -34,9 +34,9 @@ promise_test(async () => {
     }
   } catch (e) {}
 
-  let track, trackEvent;
+  let stream, track, trackEvent;
   try {
-    const stream = await navigator.mediaDevices.getUserMedia({audio: true});
+    stream = await navigator.mediaDevices.getUserMedia({audio: true});
     track = stream.getTracks()[0];
     trackEvent = new MediaStreamTrackEvent("type", {
       track: track,
@@ -49,7 +49,7 @@ promise_test(async () => {
     idl_array.add_objects({ MediaDeviceInfo: [media] });
   }
   idl_array.add_objects({
-    MediaStream: ['new MediaStream()'],
+    MediaStream: [stream, 'new MediaStream()'],
     Navigator: ['navigator'],
     MediaDevices: ['navigator.mediaDevices'],
     MediaStreamTrack: [track],

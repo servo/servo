@@ -10,6 +10,10 @@
   test(t => {
     let p = createHTML_policy(window, 1);
     let html = p.createHTML(INPUTS.HTML);
+    let before = 'before';
+    let after = 'after';
+    let htmlBefore = p.createHTML(before);
+    let htmlAfter = p.createHTML(after);
 
     var d = document.createElement('div');
     container.appendChild(d);
@@ -18,13 +22,9 @@
     assert_equals(d.previousSibling.nodeType, Node.TEXT_NODE);
     assert_equals(d.previousSibling.data, RESULTS.HTML);
 
-    d.insertAdjacentHTML('afterbegin', html);
-    assert_equals(d.firstChild.nodeType, Node.TEXT_NODE);
-    assert_equals(d.firstChild.data, RESULTS.HTML);
-
-    d.insertAdjacentHTML('beforeend', html);
-    assert_equals(d.lastChild.nodeType, Node.TEXT_NODE);
-    assert_equals(d.lastChild.data, RESULTS.HTML);
+    d.insertAdjacentHTML('afterbegin', htmlBefore);
+    d.insertAdjacentHTML('beforeend', htmlAfter);
+    assert_equals(d.innerHTML, before + after);
 
     d.insertAdjacentHTML('afterend', html);
     assert_equals(d.nextSibling.nodeType, Node.TEXT_NODE);

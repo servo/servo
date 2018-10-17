@@ -19,12 +19,15 @@
             on_event(target0, "pointermove", this.step_func(function(event) {
                 generate_tests(assert_equals, [
                     ["getCoalescedEvents().length", event.getCoalescedEvents().length, 2],
+                    ["getPredictedEvents().length", event.getPredictedEvents().length, 2],
                     ["event.target", event.target, target0],
                     ["event.currentTarget", event.currentTarget, target0],
                     ["event.eventPhase", event.eventPhase, Event.AT_TARGET],
                     ["event.clientX", event.clientX, 310],
                     ["getCoalescedEvents()[0].clientX", event.getCoalescedEvents()[0].clientX, 300],
                     ["getCoalescedEvents()[1].clientX", event.getCoalescedEvents()[1].clientX, 310],
+                    ["getPredictedEvents()[0].clientX", event.getPredictedEvents()[0].clientX, 320],
+                    ["getPredictedEvents()[1].clientX", event.getPredictedEvents()[1].clientX, 330],
                 ]);
                 for (var i=0; i<event.getCoalescedEvents().length; i++) {
                     var coalescedEvent = event.getCoalescedEvents()[i];
@@ -33,6 +36,7 @@
                         ["getCoalescedEvents()[" + i + "].pointerType", coalescedEvent.pointerType, event.pointerType],
                         ["getCoalescedEvents()[" + i + "].isPrimary", coalescedEvent.isPrimary, event.isPrimary],
                         ["getCoalescedEvents()[" + i + "].getCoalescedEvents().length", coalescedEvent.getCoalescedEvents().length, 0],
+                        ["getCoalescedEvents()[" + i + "].getPredictedEvents().length", coalescedEvent.getPredictedEvents().length, 0],
                         ["getCoalescedEvents()[" + i + "].target", coalescedEvent.target, target0],
                         ["getCoalescedEvents()[" + i + "].currentTarget", coalescedEvent.currentTarget, null],
                         ["getCoalescedEvents()[" + i + "].eventPhase", coalescedEvent.eventPhase, Event.NONE],
@@ -42,10 +46,28 @@
                         ["getCoalescedEvents()[" + i + "].offsetY", coalescedEvent.offsetY, event.offsetY],
                     ]);
                 }
+                for (var i=0; i<event.getPredictedEvents().length; i++) {
+                    var predictedEvent = event.getPredictedEvents()[i];
+                    generate_tests(assert_equals, [
+                        ["getPredictedEvents()[" + i + "].pointerId", predictedEvent.pointerId, event.pointerId],
+                        ["getPredictedEvents()[" + i + "].pointerType", predictedEvent.pointerType, event.pointerType],
+                        ["getPredictedEvents()[" + i + "].isPrimary", predictedEvent.isPrimary, event.isPrimary],
+                        ["getPredictedEvents()[" + i + "].getCoalescedEvents().length", predictedEvent.getCoalescedEvents().length, 0],
+                        ["getPredictedEvents()[" + i + "].getPredictedEvents().length", predictedEvent.getPredictedEvents().length, 0],
+                        ["getPredictedEvents()[" + i + "].target", predictedEvent.target, target0],
+                        ["getPredictedEvents()[" + i + "].currentTarget", predictedEvent.currentTarget, null],
+                        ["getPredictedEvents()[" + i + "].eventPhase", predictedEvent.eventPhase, Event.NONE],
+                        ["getPredictedEvents()[" + i + "].cancelable", predictedEvent.cancelable, false],
+                        ["getPredictedEvents()[" + i + "].bubbles", predictedEvent.bubbles, false],
+                        ["getPredictedEvents()[" + i + "].offsetX", predictedEvent.offsetX, event.offsetX + (i==0?10:20)],
+                        ["getPredictedEvents()[" + i + "].offsetY", predictedEvent.offsetY, event.offsetY],
+                    ]);
+                }
             }));
             on_event(target0, "pointerout", this.step_func(function(event) {
                 generate_tests(assert_equals, [
                     ["default getCoalescedEvents().length", event.getCoalescedEvents().length, 0],
+                    ["default getPredictedEvents().length", event.getPredictedEvents().length, 0],
                 ]);
             }));
 
@@ -63,7 +85,13 @@
                 var p1 = new PointerEvent("pointermove", pointerEventInitDict);
                 pointerEventInitDict.clientX += 10;
                 var p2 = new PointerEvent("pointermove", pointerEventInitDict);
+                pointerEventInitDict.clientX += 10;
+                var p3 = new PointerEvent("pointermove", pointerEventInitDict);
+                pointerEventInitDict.clientX += 10;
+                var p4 = new PointerEvent("pointermove", pointerEventInitDict);
                 pointerEventInitDict.coalescedEvents = [p1, p2];
+                pointerEventInitDict.predictedEvents = [p3, p4];
+                pointerEventInitDict.clientX = 310;
                 var event = new PointerEvent("pointermove", pointerEventInitDict);
                 target0.dispatchEvent(event);
 

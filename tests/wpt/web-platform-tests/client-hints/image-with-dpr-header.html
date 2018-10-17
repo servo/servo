@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<img id="int_dpr" src="resources/dpr.py?name=square.png&mimeType=image/png&dpr=4.0">
+<img id="fractional_dpr" src="resources/dpr.py?name=square.png&mimeType=image/png&dpr=2.5">
+<img id="smaller_than_one" src="resources/dpr.py?name=square.png&mimeType=image/png&dpr=0.5">
+<img id="srcset" srcset="resources/square.png 4x">
+<img id="invalid" src="resources/dpr.py?name=square.png&mimeType=image/png&dpr=xx">
+<img id="header_and_srcset_invalid" srcset="resources/dpr.py?name=square.png&mimeType=image/png&dpr=xx 4x">
+<img id="header_and_srcset_valid" srcset="resources/dpr.py?name=square.png&mimeType=image/png&dpr=4.0 2x">
+<img id="explicit_width" src="resources/dpr.py?name=square.png&mimeType=image/png&dpr=4.0" width="100" height="100">
+<img id="double_dpr" src="resources/dpr.py?name=square.png&mimeType=image/png&dpr=4.0&double=4.0">
+<img id="double_dpr_different_values" src="resources/dpr.py?name=square.png&mimeType=image/png&dpr=4.0&double=2.5">
+
+<script>
+    let run_test = () => {
+        test(() => {
+            assert_equals(document.getElementById("int_dpr").naturalWidth, 25, "Integer Content-DPR header value")
+            assert_equals(document.getElementById("fractional_dpr").naturalWidth, 40, "Fractional Content-DPR header value")
+            assert_equals(document.getElementById("smaller_than_one").naturalWidth, 200, "Smaller than one Content-DPR header value")
+            assert_equals(document.getElementById("srcset").naturalWidth, 25, "srcset")
+            assert_equals(document.getElementById("invalid").naturalWidth, 100, "Invalid Content-DPR header value")
+            assert_equals(document.getElementById("header_and_srcset_invalid").naturalWidth, 25, "Invalid Content-DPR header value with valid srcset")
+            assert_equals(document.getElementById("header_and_srcset_valid").naturalWidth, 25, "Value Content-DPR header value and srcset")
+            assert_equals(document.getElementById("explicit_width").naturalWidth, 25, "Explicit width attribute")
+            assert_equals(document.getElementById("double_dpr").naturalWidth, 25, "Double Content-DPR header")
+            assert_equals(document.getElementById("double_dpr_different_values").naturalWidth, 40, "Double Content-DPR header different values")
+
+        }, "Test the image dimensions of different DPR sizes");
+    }
+    window.addEventListener("load", run_test);
+</script>
+
+</body>
+</html>

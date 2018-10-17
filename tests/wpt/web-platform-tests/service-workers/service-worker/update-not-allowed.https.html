@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/test-helpers.sub.js"></script>
+<script>
+'use strict';
+
+async function spin_up_service_worker(test) {
+    const script = 'resources/update-during-installation-worker.js';
+    const scope = 'resources/blank.html';
+
+    let registration = await service_worker_unregister_and_register(test, script, scope);
+    test.add_cleanup(() => {
+        if (registration.installing) {
+            registration.installing.postMessage('finishInstall');
+        }
+        registration.unregister();
+    });
+
+    return registration;
+}
+
+promise_test(async t => {
+    const registration = await spin_up_service_worker(t);
+    const worker = registration.installing;
+
+    // spin_up_service_worker installs a cleanup hook that ensures the
+    // worker finished its installation by sending it a
+    // 'finishInstall' message, thus making sure that the registration
+    // will be cleanly removed at the end of the test.
+    assert_equals(worker.state, 'installing');
+    promise_rejects(t, 'InvalidStateError', registration.update());
+}, 'ServiceWorkerRegistration.update() from client throws while installing service worker.')
+
+promise_test(async t => {
+    const registration = await spin_up_service_worker(t);
+    const worker = registration.installing;
+    worker.postMessage('finishInstall');
+
+    // By waiting for both states at the same time, the test fails
+    // quickly if the installation fails, avoiding a timeout.
+    await Promise.race([wait_for_state(t, worker, 'activated'),
+                        wait_for_state(t, worker, 'redundant')]);
+    assert_equals(worker.state, 'activated', 'Service worker should be activated.');
+
+    const response = await new Promise(resolve => {
+        navigator.serviceWorker.onmessage = event => { resolve(event.data); };
+        worker.postMessage('PING');
+    });
+
+    // We check that the service worker instance that replied to the
+    // message is the same one that received the 'install' event since
+    // it's possible for them to be two distinct execution
+    // environments.
+    assert_true(response.installEventFired, 'Service worker should have been installed.');
+    assert_equals(response.exception, 'InvalidStateError', 'update() should have thrown.');
+}, 'ServiceWorkerRegistration.update() from installing service worker throws.');
+</script>

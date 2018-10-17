@@ -1,6 +1,7 @@
 # META: timeout=long
 
 import pytest
+import time
 
 from webdriver import Element
 
@@ -47,7 +48,7 @@ def test_null_response_value(session):
 
 
 def test_no_browsing_context(session, closed_window):
-    element = Element("foo", session)
+    element = Element("foo" + str(time.time()), session)
 
     response = element_clear(session, element)
     assert_error(response, "no such window")
