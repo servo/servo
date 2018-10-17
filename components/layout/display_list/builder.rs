@@ -15,11 +15,9 @@ use block::BlockFlow;
 use canvas_traits::canvas::{CanvasMsg, FromLayoutMsg};
 use context::LayoutContext;
 use display_list::ToLayout;
-use display_list::background::{build_border_radius, calculate_inner_border_radii};
-use display_list::background::{calculate_border_image_outset, calculate_border_image_width};
-use display_list::background::{compute_background_clip, compute_background_placement};
-use display_list::background::{convert_linear_gradient, convert_radial_gradient, get_cyclic};
-use display_list::background::{simple_normal_border, ResolvePercentage};
+use display_list::background::{self, get_cyclic};
+use display_list::border;
+use display_list::gradient;
 use display_list::items::{BaseDisplayItem, BLUR_INFLATION_FACTOR, ClipScrollNode};
 use display_list::items::{ClipScrollNodeIndex, ClipScrollNodeType, ClippingAndScrolling};
 use display_list::items::{ClippingRegion, DisplayItem, DisplayItemMetadata, DisplayList};
@@ -810,7 +808,7 @@ fn build_border_radius_for_inner_rect(
     outer_rect: Rect<Au>,
     style: &ComputedValues,
 ) -> BorderRadius {
-    let radii = build_border_radius(outer_rect, style.get_border());
+    let radii = border::radii(outer_rect, style.get_border());
     if radii.is_zero() {
         return radii;
     }
@@ -819,7 +817,7 @@ fn build_border_radius_for_inner_rect(
     // border width), we need to adjust to border radius so that we are smaller
     // rectangle with the same border curve.
     let border_widths = style.logical_border_width().to_physical(style.writing_mode);
-    calculate_inner_border_radii(radii, border_widths)
+    border::inner_radii(radii, border_widths)
 }
 
 impl FragmentDisplayListBuilding for Fragment {
@@ -921,12 +919,12 @@ impl FragmentDisplayListBuilding for Fragment {
         // > with the bottom-most background image layer.
         let last_background_image_index = background.background_image.0.len() - 1;
         let color_clip = *get_cyclic(&background.background_clip.0, last_background_image_index);
-        let (bounds, border_radii) = compute_background_clip(
+        let (bounds, border_radii) = background::clip(
             color_clip,
             absolute_bounds,
             style.logical_border_width().to_physical(style.writing_mode),
             self.border_padding.to_physical(self.style.writing_mode),
-            build_border_radius(absolute_bounds, style.get_border()),
+            border::radii(absolute_bounds, style.get_border()),
         );
 
         state.clipping_and_scrolling_scope(|state| {
@@ -1045,14 +1043,14 @@ impl FragmentDisplayListBuilding for Fragment {
             Au::from_px(webrender_image.width as i32),
             Au::from_px(webrender_image.height as i32),
         );
-        let placement = compute_background_placement(
+        let placement = background::placement(
             style.get_background(),
             state.layout_context.shared_context().viewport_size(),
             absolute_bounds,
             Some(image),
             style.logical_border_width().to_physical(style.writing_mode),
             self.border_padding.to_physical(self.style.writing_mode),
-            build_border_radius(absolute_bounds, style.get_border()),
+            border::radii(absolute_bounds, style.get_border()),
             index,
         );
 
@@ -1156,14 +1154,14 @@ impl FragmentDisplayListBuilding for Fragment {
         style: &ComputedValues,
         index: usize,
     ) {
-        let placement = compute_background_placement(
+        let placement = background::placement(
             style.get_background(),
             state.layout_context.shared_context().viewport_size(),
             absolute_bounds,
             None,
             style.logical_border_width().to_physical(style.writing_mode),
             self.border_padding.to_physical(self.style.writing_mode),
-            build_border_radius(absolute_bounds, style.get_border()),
+            border::radii(absolute_bounds, style.get_border()),
             index,
         );
 
@@ -1184,7 +1182,7 @@ impl FragmentDisplayListBuilding for Fragment {
 
             let display_item = match gradient.kind {
                 GradientKind::Linear(angle_or_corner) => {
-                    let (gradient, stops) = convert_linear_gradient(
+                    let (gradient, stops) = gradient::linear(
                         style,
                         placement.tile_size,
                         &gradient.items[..],
@@ -1199,7 +1197,7 @@ impl FragmentDisplayListBuilding for Fragment {
                     DisplayItem::Gradient(CommonDisplayItem::with_data(base, item, stops))
                 },
                 GradientKind::Radial(shape, center, _angle) => {
-                    let (gradient, stops) = convert_radial_gradient(
+                    let (gradient, stops) = gradient::radial(
                         style,
                         placement.tile_size,
                         &gradient.items[..],
@@ -1245,7 +1243,7 @@ impl FragmentDisplayListBuilding for Fragment {
                 style.get_cursor(CursorKind::Default),
                 display_list_section,
             );
-            let border_radius = build_border_radius(absolute_bounds, style.get_border());
+            let border_radius = border::radii(absolute_bounds, style.get_border());
             state.add_display_item(DisplayItem::BoxShadow(CommonDisplayItem::new(
                 base,
                 webrender_api::BoxShadowDisplayItem {
@@ -1328,7 +1326,7 @@ impl FragmentDisplayListBuilding for Fragment {
             display_list_section,
         );
 
-        let border_radius = build_border_radius(bounds, border_style_struct);
+        let border_radius = border::radii(bounds, border_style_struct);
         let border_widths = border.to_physical(style.writing_mode);
 
         if let Either::Second(ref image) = border_style_struct.border_image_source {
@@ -1390,9 +1388,9 @@ impl FragmentDisplayListBuilding for Fragment {
     ) -> Option<()> {
         let border_style_struct = style.get_border();
         let border_image_outset =
-            calculate_border_image_outset(border_style_struct.border_image_outset, border_width);
+            border::image_outset(border_style_struct.border_image_outset, border_width);
         let border_image_area = bounds.outer_rect(border_image_outset).size;
-        let border_image_width = calculate_border_image_width(
+        let border_image_width = border::image_width(
             &border_style_struct.border_image_width,
             border_width.to_layout(),
             border_image_area,
@@ -1429,7 +1427,7 @@ impl FragmentDisplayListBuilding for Fragment {
             },
             Image::Gradient(ref gradient) => match gradient.kind {
                 GradientKind::Linear(angle_or_corner) => {
-                    let (wr_gradient, linear_stops) = convert_linear_gradient(
+                    let (wr_gradient, linear_stops) = gradient::linear(
                         style,
                         border_image_area,
                         &gradient.items[..],
@@ -1440,7 +1438,7 @@ impl FragmentDisplayListBuilding for Fragment {
                     NinePatchBorderSource::Gradient(wr_gradient)
                 },
                 GradientKind::Radial(shape, center, _angle) => {
-                    let (wr_gradient, radial_stops) = convert_radial_gradient(
+                    let (wr_gradient, radial_stops) = gradient::radial(
                         style,
                         border_image_area,
                         &gradient.items[..],
@@ -1459,12 +1457,7 @@ impl FragmentDisplayListBuilding for Fragment {
             source,
             width,
             height,
-            slice: SideOffsets2D::new(
-                border_image_slice.0.resolve(height),
-                border_image_slice.1.resolve(width),
-                border_image_slice.2.resolve(height),
-                border_image_slice.3.resolve(width),
-            ),
+            slice: border::image_slice(border_image_slice, width, height),
             fill: border_image_fill,
             repeat_horizontal: border_image_repeat.0.to_layout(),
             repeat_vertical: border_image_repeat.1.to_layout(),
@@ -1526,7 +1519,7 @@ impl FragmentDisplayListBuilding for Fragment {
             base,
             webrender_api::BorderDisplayItem {
                 widths: SideOffsets2D::new_all_same(width).to_layout(),
-                details: BorderDetails::Normal(simple_normal_border(
+                details: BorderDetails::Normal(border::simple(
                     color,
                     outline_style.to_layout(),
                 )),
@@ -1559,7 +1552,7 @@ impl FragmentDisplayListBuilding for Fragment {
             base,
             webrender_api::BorderDisplayItem {
                 widths: SideOffsets2D::new_all_same(Au::from_px(1)).to_layout(),
-                details: BorderDetails::Normal(simple_normal_border(
+                details: BorderDetails::Normal(border::simple(
                     ColorF::rgb(0, 0, 200),
                     webrender_api::BorderStyle::Solid,
                 )),
@@ -1609,7 +1602,7 @@ impl FragmentDisplayListBuilding for Fragment {
             base,
             webrender_api::BorderDisplayItem {
                 widths: SideOffsets2D::new_all_same(Au::from_px(1)).to_layout(),
-                details: BorderDetails::Normal(simple_normal_border(
+                details: BorderDetails::Normal(border::simple(
                     ColorF::rgb(0, 0, 200),
                     webrender_api::BorderStyle::Solid,
                 )),
@@ -3212,7 +3205,7 @@ impl BaseFlowDisplayListBuilding for BaseFlow {
             base,
             webrender_api::BorderDisplayItem {
                 widths: SideOffsets2D::new_all_same(Au::from_px(2)).to_layout(),
-                details: BorderDetails::Normal(simple_normal_border(
+                details: BorderDetails::Normal(border::simple(
                     color,
                     webrender_api::BorderStyle::Solid,
                 )),
