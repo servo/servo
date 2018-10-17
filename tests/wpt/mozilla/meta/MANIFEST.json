@@ -14006,6 +14006,12 @@
      {}
     ]
    ],
+   "mozilla/input_value.html": [
+    [
+     "/_mozilla/mozilla/input_value.html",
+     {}
+    ]
+   ],
    "mozilla/interface_member_exposed.html": [
     [
      "/_mozilla/mozilla/interface_member_exposed.html",
@@ -27047,6 +27053,10 @@
   ],
   "mozilla/innerHTML.html": [
    "031e67e0c3bfd25bb32a8c1727864cdcf8bd641b",
+   "testharness"
+  ],
+  "mozilla/input_value.html": [
+   "a2a12d44d0331164651816710eeb2ddcb1738735",
    "testharness"
   ],
   "mozilla/interface_member_exposed.html": [
