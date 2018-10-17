@@ -37,7 +37,7 @@ interface HTMLMediaElement : HTMLElement {
   // readonly attribute boolean seeking;
 
   // playback state
-  // attribute double currentTime;
+  attribute double currentTime;
   // void fastSeek(double time);
   readonly attribute unrestricted double duration;
   // Date getStartDate();
