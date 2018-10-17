@@ -1671,53 +1671,30 @@ impl PropertyId {
     ///
     /// Returns Err(()) for unknown non-custom properties.
     fn parse_unchecked(property_name: &str) -> Result<Self, ()> {
-        // FIXME(https://github.com/rust-lang/rust/issues/33156): remove this
-        // enum and use PropertyId when stable Rust allows destructors in
-        // statics.
-        //
-        // ShorthandAlias is not used in the Servo build.
-        // That's why we need to allow dead_code.
-        #[allow(dead_code)]
-        pub enum StaticId {
-            Longhand(LonghandId),
-            Shorthand(ShorthandId),
-            LonghandAlias(LonghandId, AliasId),
-            ShorthandAlias(ShorthandId, AliasId),
-        }
         ascii_case_insensitive_phf_map! {
-            static_id -> StaticId = {
+            property_id -> PropertyId = {
                 % for (kind, properties) in [("Longhand", data.longhands), ("Shorthand", data.shorthands)]:
-                    % for property in properties:
-                        "${property.name}" => StaticId::${kind}(${kind}Id::${property.camel_case}),
-                        % for alias in property.alias:
-                            "${alias.name}" => {
-                                StaticId::${kind}Alias(${kind}Id::${property.camel_case},
-                                                       AliasId::${alias.camel_case})
-                            },
-                        % endfor
-                    % endfor
+                % for property in properties:
+                "${property.name}" => PropertyId::${kind}(${kind}Id::${property.camel_case}),
+                % for alias in property.alias:
+                "${alias.name}" => {
+                    PropertyId::${kind}Alias(
+                        ${kind}Id::${property.camel_case},
+                        AliasId::${alias.camel_case},
+                    )
+                },
+                % endfor
+                % endfor
                 % endfor
             }
         }
 
-        Ok(match static_id(property_name) {
-            Some(&StaticId::Longhand(id)) => {
-                PropertyId::Longhand(id)
-            },
-            Some(&StaticId::Shorthand(id)) => {
-                PropertyId::Shorthand(id)
-            },
-            Some(&StaticId::LonghandAlias(id, alias)) => {
-                PropertyId::LonghandAlias(id, alias)
-            },
-            Some(&StaticId::ShorthandAlias(id, alias)) => {
-                PropertyId::ShorthandAlias(id, alias)
-            },
-            None => {
-                let name = ::custom_properties::parse_name(property_name)?;
-                PropertyId::Custom(::custom_properties::Name::from(name))
-            },
-        })
+        if let Some(id) = property_id(property_name) {
+            return Ok(id.clone())
+        }
+
+        let name = ::custom_properties::parse_name(property_name)?;
+        Ok(PropertyId::Custom(::custom_properties::Name::from(name)))
     }
 
     /// Parses a property name, and returns an error if it's unknown or isn't
