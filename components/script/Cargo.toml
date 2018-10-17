@@ -68,7 +68,7 @@ metrics = {path = "../metrics"}
 mitochondria = "1.1.2"
 mime = "0.2.1"
 mime_guess = "1.8.0"
-mozjs = "0.9.0"
+mozjs = { git = "https://github.com/CYBAI/rust-mozjs.git", branch = "getpromiseishandled" }
 msg = {path = "../msg"}
 net_traits = {path = "../net_traits"}
 num-traits = "0.2"
