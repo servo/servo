@@ -35,7 +35,7 @@ use js::jsapi::ContextOptionsRef;
 use js::panic::wrap_panic;
 use js::rust::Handle;
 use js::rust::Runtime as RustRuntime;
-use js::rust::wrappers::GetPromiseResult;
+use js::rust::wrappers::{GetPromiseIsHandled, GetPromiseResult};
 use malloc_size_of::MallocSizeOfOps;
 use microtask::{EnqueuedPromiseCallback, Microtask};
 use msg::constellation_msg::PipelineId;
@@ -223,9 +223,13 @@ pub fn notify_about_rejected_promises(global: &GlobalScope) {
                     let cx = target.global().get_cx();
 
                     for promise in uncaught_rejections {
-                        // TODO: Step 4-1 - if [[GetPromiseIsHandled]] is true, return
-
                         let promise = promise.root();
+
+                        // Step 4-1.
+                        let promise_is_handled = GetPromiseIsHandled(promise.reflector().get_jsobject());
+                        if promise_is_handled {
+                            continue;
+                        }
 
                         // Step 4-2.
                         rooted!(in(cx) let reason = GetPromiseResult(promise.reflector().get_jsobject()));

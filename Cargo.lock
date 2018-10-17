@@ -2013,7 +2013,7 @@ dependencies = [
  "hashglobe 0.1.0",
  "hyper 0.10.13 (registry+https://github.com/rust-lang/crates.io-index)",
  "hyper_serde 0.8.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "mozjs 0.9.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "mozjs 0.9.2 (git+https://github.com/CYBAI/rust-mozjs.git?branch=getpromiseishandled)",
  "selectors 0.20.0",
  "serde 1.0.66 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_bytes 0.10.4 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -2215,19 +2215,19 @@ dependencies = [
 [[package]]
 name = "mozjs"
 version = "0.9.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
+source = "git+https://github.com/CYBAI/rust-mozjs.git?branch=getpromiseishandled#6958d8a5c8e311a08c43e35099c1e3c2a8bb7e91"
 dependencies = [
  "cc 1.0.18 (registry+https://github.com/rust-lang/crates.io-index)",
  "lazy_static 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.42 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.4.5 (registry+https://github.com/rust-lang/crates.io-index)",
- "mozjs_sys 0.61.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "mozjs_sys 0.61.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "num-traits 0.2.4 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
 name = "mozjs_sys"
-version = "0.61.0"
+version = "0.61.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "bindgen 0.39.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -2991,7 +2991,7 @@ dependencies = [
  "mime_guess 1.8.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "mitochondria 1.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "mozangle 0.1.7 (registry+https://github.com/rust-lang/crates.io-index)",
- "mozjs 0.9.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "mozjs 0.9.2 (git+https://github.com/CYBAI/rust-mozjs.git?branch=getpromiseishandled)",
  "msg 0.0.1",
  "net_traits 0.0.1",
  "num-traits 0.2.4 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -4488,8 +4488,8 @@ dependencies = [
 "checksum miow 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)" = "8c1f2f3b1cf331de6896aabf6e9d55dca90356cc9960cca7eaaf408a355ae919"
 "checksum mitochondria 1.1.2 (registry+https://github.com/rust-lang/crates.io-index)" = "9de3eca27871df31c33b807f834b94ef7d000956f57aa25c5aed9c5f0aae8f6f"
 "checksum mozangle 0.1.7 (registry+https://github.com/rust-lang/crates.io-index)" = "45a8a18a41cfab0fde25cc2f43ea89064d211a0fbb33225b8ff93ab20406e0e7"
-"checksum mozjs 0.9.2 (registry+https://github.com/rust-lang/crates.io-index)" = "b9f85c1120b07d7a2acc9d1d62df1fe16f64162399448fb5307bf2bc3bd066c9"
-"checksum mozjs_sys 0.61.0 (registry+https://github.com/rust-lang/crates.io-index)" = "1ff07b0f0a2371dc08d75d55371ca311be67e1fdfa6c146fc8ad154c340f70c9"
+"checksum mozjs 0.9.2 (git+https://github.com/CYBAI/rust-mozjs.git?branch=getpromiseishandled)" = "<none>"
+"checksum mozjs_sys 0.61.1 (registry+https://github.com/rust-lang/crates.io-index)" = "070dd9dcd0be8b524fe4f6fcc791d56d630518652f98c2b152fdebe28eb71a5b"
 "checksum msdos_time 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)" = "aad9dfe950c057b1bfe9c1f2aa51583a8468ef2a5baba2ebbe06d775efeb7729"
 "checksum muldiv 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)" = "451a9a05d2a32c566c897835e0ea95cf79ed2fdfe957924045a1721a36c9980f"
 "checksum net2 0.2.33 (registry+https://github.com/rust-lang/crates.io-index)" = "42550d9fb7b6684a6d404d9fa7250c2eb2646df731d1c06afc06dcee9e1bcf88"
