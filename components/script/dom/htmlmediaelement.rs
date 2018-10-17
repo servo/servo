@@ -16,6 +16,7 @@ use dom::bindings::codegen::InheritTypes::{ElementTypeId, HTMLElementTypeId};
 use dom::bindings::codegen::InheritTypes::{HTMLMediaElementTypeId, NodeTypeId};
 use dom::bindings::error::{Error, ErrorResult};
 use dom::bindings::inheritance::Castable;
+use dom::bindings::num::Finite;
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::DomObject;
 use dom::bindings::root::{DomRoot, LayoutDom, MutNullableDom};
@@ -161,7 +162,7 @@ pub struct HTMLMediaElement {
     #[ignore_malloc_size_of = "promises are hard"]
     in_flight_play_promises_queue: DomRefCell<VecDeque<(Box<[Rc<Promise>]>, ErrorResult)>>,
     #[ignore_malloc_size_of = "servo_media"]
-    player: Box<Player<Error=ServoMediaError>>,
+    player: Box<Player<Error = ServoMediaError>>,
     #[ignore_malloc_size_of = "Arc"]
     frame_renderer: Arc<Mutex<MediaFrameRenderer>>,
     fetch_canceller: DomRefCell<FetchCanceller>,
@@ -169,6 +170,10 @@ pub struct HTMLMediaElement {
     show_poster: Cell<bool>,
     /// https://html.spec.whatwg.org/multipage/#dom-media-duration
     duration: Cell<f64>,
+    /// https://html.spec.whatwg.org/multipage/media.html#official-playback-position
+    playback_position: Cell<f64>,
+    /// https://html.spec.whatwg.org/multipage/media.html#default-playback-start-position
+    default_playback_start_position: Cell<f64>,
 }
 
 /// <https://html.spec.whatwg.org/multipage/#dom-media-networkstate>
@@ -216,6 +221,8 @@ impl HTMLMediaElement {
             fetch_canceller: DomRefCell::new(Default::default()),
             show_poster: Cell::new(true),
             duration: Cell::new(f64::NAN),
+            playback_position: Cell::new(0.),
+            default_playback_start_position: Cell::new(0.),
         }
     }
 
@@ -961,8 +968,12 @@ impl HTMLMediaElement {
         self.media_element_load_algorithm();
     }
 
-    // servo media player
-    fn setup_media_player(&self) -> Result<(), ServoMediaError>{
+    // https://html.spec.whatwg.org/multipage/#dom-media-seek
+    fn seek(&self, _time: f64, _approximate_for_speed: bool) {
+        // XXX
+    }
+
+    fn setup_media_player(&self) -> Result<(), ServoMediaError> {
         let (action_sender, action_receiver) = ipc::channel().unwrap();
 
         self.player.register_event_handler(action_sender)?;
@@ -1004,8 +1015,7 @@ impl HTMLMediaElement {
                 // XXX(ferjm) Update the timeline offset.
 
                 // Step 3.
-                // XXX(ferjm) Set the current and official playback positions
-                //            to the earliest possible position.
+                self.playback_position.set(0.);
 
                 // Step 4.
                 if let Some(duration) = metadata.duration {
@@ -1028,7 +1038,27 @@ impl HTMLMediaElement {
                 // Step 6.
                 self.change_ready_state(ReadyState::HaveMetadata);
 
-                // XXX(ferjm) Steps 7 to 13.
+                // Step 7.
+                let mut _jumped = false;
+
+                // Step 8.
+                if self.default_playback_start_position.get() > 0. {
+                    self.seek(self.default_playback_start_position.get(), /* approximate_for_speed*/ false);
+                    _jumped = true;
+                }
+
+                // Step 9.
+                self.default_playback_start_position.set(0.);
+
+                // Steps 10 and 11.
+                // XXX(ferjm) Implement parser for
+                //            https://www.w3.org/TR/media-frags/#media-fragment-syntax
+                //            https://github.com/servo/media/issues/156
+
+                // XXX Steps 12 and 13 require audio and video tracks support.
+            },
+            PlayerEvent::PositionChanged(position) => {
+                self.playback_position.set(position as f64);
             },
             PlayerEvent::StateChanged(ref state) => match *state {
                 PlaybackState::Paused => {
@@ -1154,6 +1184,25 @@ impl HTMLMediaElementMethods for HTMLMediaElement {
     // https://html.spec.whatwg.org/multipage/#dom-media-duration
     fn Duration(&self) -> f64 {
         self.duration.get()
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-media-currenttime
+    fn CurrentTime(&self) -> Finite<f64> {
+        Finite::wrap(if self.default_playback_start_position.get() != 0. {
+            self.default_playback_start_position.get()
+        } else {
+            self.playback_position.get()
+        })
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-media-currenttime
+    fn SetCurrentTime(&self, time: Finite<f64>) {
+        if self.ready_state.get() == ReadyState::HaveNothing {
+            self.default_playback_start_position.set(*time);
+        } else {
+            self.playback_position.set(*time);
+            self.seek(*time, /* approximate_for_speed */ false);
+        }
     }
 }
 
