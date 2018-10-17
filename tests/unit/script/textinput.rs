@@ -7,7 +7,7 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-use msg::constellation_msg::{Key, KeyModifiers};
+use keyboard_types::{Key, Modifiers};
 use script::clipboard_provider::DummyClipboardContext;
 use script::test::DOMString;
 use script::textinput::{TextInput, TextPoint, Selection, Lines, Direction, SelectionDirection};
@@ -420,34 +420,33 @@ fn test_textinput_adjust_horizontal_to_line_end() {
 }
 
 #[test]
-#[cfg(target_os = "macos")]
 fn test_navigation_keyboard_shortcuts() {
     let mut textinput = text_input(Lines::Multiple, "hello áéc");
 
     // Test that CMD + Right moves to the end of the current line.
-    textinput.handle_keydown_aux(None, Key::Right, KeyModifiers::SUPER);
+    textinput.handle_keydown_aux(Key::ArrowRight, Modifiers::META, true);
     assert_eq!(textinput.edit_point().index, 11);
     // Test that CMD + Right moves to the beginning of the current line.
-    textinput.handle_keydown_aux(None, Key::Left, KeyModifiers::SUPER);
+    textinput.handle_keydown_aux(Key::ArrowLeft, Modifiers::META, true);
     assert_eq!(textinput.edit_point().index, 0);
     // Test that CTRL + ALT + E moves to the end of the current line also.
-    textinput.handle_keydown_aux(None, Key::E, KeyModifiers::CONTROL | KeyModifiers::ALT);
+    textinput.handle_keydown_aux(Key::Character("e".to_owned()), Modifiers::CONTROL | Modifiers::ALT, true);
     assert_eq!(textinput.edit_point().index, 11);
     // Test that CTRL + ALT + A moves to the beginning of the current line also.
-    textinput.handle_keydown_aux(None, Key::A, KeyModifiers::CONTROL | KeyModifiers::ALT);
+    textinput.handle_keydown_aux(Key::Character("a".to_owned()), Modifiers::CONTROL | Modifiers::ALT, true);
     assert_eq!(textinput.edit_point().index, 0);
 
     // Test that ALT + Right moves to the end of the word.
-    textinput.handle_keydown_aux(None, Key::Right, KeyModifiers::ALT);
+    textinput.handle_keydown_aux(Key::ArrowRight, Modifiers::ALT, true);
     assert_eq!(textinput.edit_point().index, 5);
     // Test that CTRL + ALT + F moves to the end of the word also.
-    textinput.handle_keydown_aux(None, Key::F, KeyModifiers::CONTROL | KeyModifiers::ALT);
+    textinput.handle_keydown_aux(Key::Character("f".to_owned()), Modifiers::CONTROL | Modifiers::ALT, true);
     assert_eq!(textinput.edit_point().index, 11);
     // Test that ALT + Left moves to the end of the word.
-    textinput.handle_keydown_aux(None, Key::Left, KeyModifiers::ALT);
+    textinput.handle_keydown_aux(Key::ArrowLeft, Modifiers::ALT, true);
     assert_eq!(textinput.edit_point().index, 6);
     // Test that CTRL + ALT + B moves to the end of the word also.
-    textinput.handle_keydown_aux(None, Key::B, KeyModifiers::CONTROL | KeyModifiers::ALT);
+    textinput.handle_keydown_aux(Key::Character("b".to_owned()), Modifiers::CONTROL | Modifiers::ALT, true);
     assert_eq!(textinput.edit_point().index, 0);
 }
 
@@ -507,9 +506,9 @@ fn test_textinput_set_content() {
 #[test]
 fn test_clipboard_paste() {
     #[cfg(target_os = "macos")]
-    const MODIFIERS: KeyModifiers = KeyModifiers::SUPER;
+    const MODIFIERS: Modifiers = Modifiers::META;
     #[cfg(not(target_os = "macos"))]
-    const MODIFIERS: KeyModifiers = KeyModifiers::CONTROL;
+    const MODIFIERS: Modifiers = Modifiers::CONTROL;
 
     let mut textinput = TextInput::new(Lines::Single,
                                        DOMString::from("defg"),
@@ -519,7 +518,7 @@ fn test_clipboard_paste() {
                                        SelectionDirection::None);
     assert_eq!(textinput.get_content(), "defg");
     assert_eq!(textinput.edit_point().index, 0);
-    textinput.handle_keydown_aux(Some('v'), Key::V, MODIFIERS);
+    textinput.handle_keydown_aux(Key::Character("v".to_owned()), MODIFIERS, false);
     assert_eq!(textinput.get_content(), "abcdefg");
 }
 

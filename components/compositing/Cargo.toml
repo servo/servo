@@ -21,6 +21,7 @@ gleam = {version = "0.6", optional = true}
 image = "0.19"
 ipc-channel = "0.11"
 libc = "0.2"
+keyboard-types = {version = "0.4.2-servo", features = ["serde"]}
 log = "0.4"
 msg = {path = "../msg"}
 net_traits = {path = "../net_traits"}

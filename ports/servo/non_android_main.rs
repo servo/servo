@@ -8,6 +8,7 @@ extern crate euclid;
 extern crate gdi32;
 extern crate gleam;
 extern crate glutin;
+extern crate keyboard_types;
 #[macro_use]
 extern crate lazy_static;
 #[cfg(any(target_os = "linux", target_os = "macos"))]

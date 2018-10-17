@@ -19,6 +19,7 @@ extern crate gfx_traits;
 extern crate hyper;
 extern crate hyper_serde;
 extern crate ipc_channel;
+extern crate keyboard_types;
 extern crate libc;
 #[macro_use]
 extern crate malloc_size_of;
@@ -50,8 +51,9 @@ use hyper::header::Headers;
 use hyper::method::Method;
 use ipc_channel::{Error as IpcError};
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
+use keyboard_types::KeyboardEvent;
 use libc::c_void;
-use msg::constellation_msg::{BrowsingContextId, HistoryStateId, Key, KeyModifiers, KeyState, PipelineId};
+use msg::constellation_msg::{BrowsingContextId, HistoryStateId, PipelineId};
 use msg::constellation_msg::{PipelineNamespaceId, TraversalDirection, TopLevelBrowsingContextId};
 use net_traits::{FetchResponseMsg, ReferrerPolicy, ResourceThreads};
 use net_traits::image::base::Image;
@@ -477,7 +479,7 @@ pub enum CompositorEvent {
         Option<UntrustedNodeAddress>,
     ),
     /// A key was pressed.
-    KeyEvent(Option<char>, Key, KeyState, KeyModifiers),
+    KeyboardEvent(KeyboardEvent),
 }
 
 /// Requests a TimerEvent-Message be sent after the given duration.
@@ -708,7 +710,7 @@ pub enum WebDriverCommandMsg {
     /// of a browsing context.
     ScriptCommand(BrowsingContextId, WebDriverScriptCommand),
     /// Act as if keys were pressed in the browsing context with the given ID.
-    SendKeys(BrowsingContextId, Vec<(Key, KeyModifiers, KeyState)>),
+    SendKeys(BrowsingContextId, Vec<KeyboardEvent>),
     /// Set the window size.
     SetWindowSize(
         TopLevelBrowsingContextId,
@@ -736,7 +738,7 @@ pub enum ConstellationMsg {
     /// Query the constellation to see if the current compositor output is stable
     IsReadyToSaveImage(HashMap<PipelineId, Epoch>),
     /// Inform the constellation of a key event.
-    KeyEvent(Option<char>, Key, KeyState, KeyModifiers),
+    Keyboard(KeyboardEvent),
     /// Request to load a page.
     LoadUrl(TopLevelBrowsingContextId, ServoUrl),
     /// Request to traverse the joint session history of the provided browsing context.
@@ -780,7 +782,7 @@ impl fmt::Debug for ConstellationMsg {
             GetPipeline(..) => "GetPipeline",
             GetFocusTopLevelBrowsingContext(..) => "GetFocusTopLevelBrowsingContext",
             IsReadyToSaveImage(..) => "IsReadyToSaveImage",
-            KeyEvent(..) => "KeyEvent",
+            Keyboard(..) => "Keyboard",
             LoadUrl(..) => "LoadUrl",
             TraverseHistory(..) => "TraverseHistory",
             WindowSize(..) => "WindowSize",

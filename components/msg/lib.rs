@@ -5,8 +5,6 @@
 #![deny(unsafe_code)]
 
 #[macro_use]
-extern crate bitflags;
-#[macro_use]
 extern crate malloc_size_of;
 #[macro_use]
 extern crate malloc_size_of_derive;

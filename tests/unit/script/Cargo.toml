@@ -10,6 +10,6 @@ path = "lib.rs"
 
 [dependencies]
 euclid = "0.19"
-msg = {path = "../../../components/msg"}
+keyboard-types = "0.4.2-servo"
 script = {path = "../../../components/script"}
 servo_url = {path = "../../../components/url"}

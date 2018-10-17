@@ -109,7 +109,7 @@ use webvr::{WebVRThread, WebVRCompositorHandler};
 pub use gleam::gl;
 pub use servo_config as config;
 pub use servo_url as url;
-pub use msg::constellation_msg::{KeyState, TopLevelBrowsingContextId as BrowserId};
+pub use msg::constellation_msg::{TopLevelBrowsingContextId as BrowserId};
 
 /// The in-process interface to Servo.
 ///
@@ -320,10 +320,10 @@ where
                 }
             },
 
-            WindowEvent::KeyEvent(ch, key, state, modifiers) => {
-                let msg = ConstellationMsg::KeyEvent(ch, key, state, modifiers);
+            WindowEvent::Keyboard(key_event) => {
+                let msg = ConstellationMsg::Keyboard(key_event);
                 if let Err(e) = self.constellation_chan.send(msg) {
-                    warn!("Sending key event to constellation failed ({:?}).", e);
+                    warn!("Sending keyboard event to constellation failed ({:?}).", e);
                 }
             },
 
@@ -399,12 +399,12 @@ where
                 (_, ShutdownState::ShuttingDown) => {},
 
                 (
-                    EmbedderMsg::KeyEvent(ch, key, state, modified),
+                    EmbedderMsg::Keyboard(key_event),
                     ShutdownState::NotShuttingDown,
                 ) => {
                     let event = (
                         top_level_browsing_context,
-                        EmbedderMsg::KeyEvent(ch, key, state, modified),
+                        EmbedderMsg::Keyboard(key_event),
                     );
                     self.embedder_events.push(event);
                 },
