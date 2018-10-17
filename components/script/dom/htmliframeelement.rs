@@ -217,6 +217,16 @@ impl HTMLIFrameElement {
 
         let window = window_from_node(self);
 
+        // https://html.spec.whatwg.org/multipage/#attr-iframe-name
+        // Note: the spec says to set the name 'when the nested browsing context is created'.
+        // The current implementation sets the name on the window,
+        // when the iframe attributes are first processed.
+        if mode == ProcessingMode::FirstTime {
+            if let Some(window) = self.GetContentWindow() {
+                window.set_name(self.name.borrow().clone())
+            }
+        }
+
         // https://github.com/whatwg/html/issues/490
         if mode == ProcessingMode::FirstTime &&
             !self.upcast::<Element>().has_attribute(&local_name!("src"))
@@ -231,16 +241,6 @@ impl HTMLIFrameElement {
                 window.upcast(),
             );
             return;
-        }
-
-        // https://html.spec.whatwg.org/multipage/#attr-iframe-name
-        // Note: the spec says to set the name 'when the nested browsing context is created'.
-        // The current implementation sets the name on the window,
-        // when the iframe attributes are first processed.
-        if mode == ProcessingMode::FirstTime {
-            if let Some(window) = self.GetContentWindow() {
-                window.set_name(self.name.borrow().clone())
-            }
         }
 
         let url = self.get_url();
