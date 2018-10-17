@@ -293,6 +293,12 @@ impl<T: ClipboardProvider> TextInput<T> {
 
     // Check that the selection is valid.
     fn assert_ok_selection(&self) {
+        debug!(
+            "edit_point: {:?}, selection_origin: {:?}, direction: {:?}",
+            self.edit_point,
+            self.selection_origin,
+            self.selection_direction
+        );
         if let Some(begin) = self.selection_origin {
             debug_assert!(begin.line < self.lines.len());
             debug_assert!(begin.index <= self.lines[begin.line].len());
@@ -506,11 +512,6 @@ impl<T: ClipboardProvider> TextInput<T> {
             if self.selection_origin.is_none() {
                 self.selection_origin = Some(self.edit_point);
             }
-
-            self.selection_direction = match adjust {
-                Direction::Backward => SelectionDirection::Backward,
-                Direction::Forward => SelectionDirection::Forward,
-            };
         } else {
             if self.has_selection() {
                 self.edit_point = match adjust {
@@ -522,6 +523,23 @@ impl<T: ClipboardProvider> TextInput<T> {
             }
         }
         false
+    }
+
+    /// Update the field selection_direction.
+    ///
+    /// When the edit_point (or focus) is before the selection_origin (or anchor)
+    /// you have a backward selection. Otherwise you have a forward selection.
+    fn update_selection_direction(&mut self) {
+        debug!(
+            "edit_point: {:?}, selection_origin: {:?}",
+            self.edit_point,
+            self.selection_origin
+        );
+        self.selection_direction = if Some(self.edit_point) < self.selection_origin {
+            SelectionDirection::Backward
+        } else {
+            SelectionDirection::Forward
+        }
     }
 
     fn perform_horizontal_adjustment(&mut self, adjust: isize, select: Selection) {
@@ -548,6 +566,7 @@ impl<T: ClipboardProvider> TextInput<T> {
                 );
             }
         }
+        self.update_selection_direction();
         self.assert_ok_selection();
     }
 
