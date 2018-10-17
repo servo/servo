@@ -425,7 +425,7 @@ impl NetworkEventActor {
         let mut headers_byte_count = 0;
         if let Some(ref headers) = self.response.headers {
             headers_size = headers.len();
-            for (name, value) in headers.iter()  {
+            for (name, value) in headers.iter() {
                 headers_byte_count += name.as_str().len() + value.len();
             }
         }
