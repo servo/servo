@@ -90,4 +90,3 @@ pub fn load_blob_sync
         }
     }
 }
-
