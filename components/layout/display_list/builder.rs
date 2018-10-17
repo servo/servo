@@ -8,8 +8,6 @@
 //! list building, as the actual painting does not happen here—only deciding *what* we're going to
 //! paint.
 
-#![deny(unsafe_code)]
-
 use app_units::{Au, AU_PER_PX};
 use block::BlockFlow;
 use canvas_traits::canvas::{CanvasMsg, FromLayoutMsg};
@@ -1338,7 +1336,8 @@ impl FragmentDisplayListBuilding for Fragment {
                     bounds,
                     image,
                     border_widths,
-                ).is_some()
+                )
+                .is_some()
             {
                 return;
             }
@@ -1519,10 +1518,7 @@ impl FragmentDisplayListBuilding for Fragment {
             base,
             webrender_api::BorderDisplayItem {
                 widths: SideOffsets2D::new_all_same(width).to_layout(),
-                details: BorderDetails::Normal(border::simple(
-                    color,
-                    outline_style.to_layout(),
-                )),
+                details: BorderDetails::Normal(border::simple(color, outline_style.to_layout())),
             },
             Vec::new(),
         )));
@@ -1996,8 +1992,7 @@ impl FragmentDisplayListBuilding for Fragment {
                 }
             },
             SpecificFragmentInfo::Media(ref fragment_info) => {
-                if let Some((ref image_key, _, _)) = fragment_info.current_frame
-                {
+                if let Some((ref image_key, _, _)) = fragment_info.current_frame {
                     let base = create_base_display_item(state);
                     state.add_image_item(
                         base,
@@ -2011,7 +2006,7 @@ impl FragmentDisplayListBuilding for Fragment {
                         },
                     );
                 }
-            }
+            },
             SpecificFragmentInfo::Canvas(ref canvas_fragment_info) => {
                 let image_key = match canvas_fragment_info.source {
                     CanvasFragmentSource::WebGL(image_key) => image_key,
@@ -2023,7 +2018,8 @@ impl FragmentDisplayListBuilding for Fragment {
                                 .send(CanvasMsg::FromLayout(
                                     FromLayoutMsg::SendData(sender),
                                     canvas_fragment_info.canvas_id.clone(),
-                                )).unwrap();
+                                ))
+                                .unwrap();
                             receiver.recv().unwrap().image_key
                         },
                         None => return,
@@ -2140,7 +2136,8 @@ impl FragmentDisplayListBuilding for Fragment {
             self.style.writing_mode,
             Au(0),
             metrics.ascent,
-        ).to_physical(self.style.writing_mode, container_size)
+        )
+        .to_physical(self.style.writing_mode, container_size)
         .to_vector();
 
         // Base item for all text/shadows

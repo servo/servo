@@ -1,3 +1,7 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
 // FIXME(rust-lang/rust#26264): Remove GenericBorderImageSideWidth.
 
 use app_units::Au;
@@ -22,10 +26,7 @@ use webrender_api::{LayoutSize, LayoutSideOffsets, NormalBorder};
 /// > Percentages: Refer to corresponding dimension of the border box.
 ///
 /// [1]: https://drafts.csswg.org/css-backgrounds-3/#border-radius
-fn corner_radius(
-    radius: BorderCornerRadius,
-    containing_size: Size2D<Au>,
-) -> Size2D<Au> {
+fn corner_radius(radius: BorderCornerRadius, containing_size: Size2D<Au>) -> Size2D<Au> {
     let w = radius.0.width().to_used_value(containing_size.width);
     let h = radius.0.height().to_used_value(containing_size.height);
     Size2D::new(w, h)
@@ -76,11 +77,12 @@ fn overlapping_radii(size: LayoutSize, radii: BorderRadius) -> BorderRadius {
     }
 }
 
-
-pub fn radii(
-    abs_bounds: Rect<Au>,
-    border_style: &Border,
-) -> BorderRadius {
+/// Determine the four corner radii of a border.
+///
+/// Radii may either be absolute or relative to the absolute bounds.
+/// Each corner radius has a width and a height which may differ.
+/// Lastly overlapping radii are shrank so they don't collide anymore.
+pub fn radii(abs_bounds: Rect<Au>, border_style: &Border) -> BorderRadius {
     // TODO(cgaebel): Support border radii even in the case of multiple border widths.
     // This is an extension of supporting elliptical radii. For now, all percentage
     // radii will be relative to the width.
@@ -88,22 +90,14 @@ pub fn radii(
     overlapping_radii(
         abs_bounds.size.to_layout(),
         BorderRadius {
-            top_left: corner_radius(
-                border_style.border_top_left_radius,
-                abs_bounds.size,
-            ).to_layout(),
-            top_right: corner_radius(
-                border_style.border_top_right_radius,
-                abs_bounds.size,
-            ).to_layout(),
-            bottom_right: corner_radius(
-                border_style.border_bottom_right_radius,
-                abs_bounds.size,
-            ).to_layout(),
-            bottom_left: corner_radius(
-                border_style.border_bottom_left_radius,
-                abs_bounds.size,
-            ).to_layout(),
+            top_left: corner_radius(border_style.border_top_left_radius, abs_bounds.size)
+                .to_layout(),
+            top_right: corner_radius(border_style.border_top_right_radius, abs_bounds.size)
+                .to_layout(),
+            bottom_right: corner_radius(border_style.border_bottom_right_radius, abs_bounds.size)
+                .to_layout(),
+            bottom_left: corner_radius(border_style.border_bottom_left_radius, abs_bounds.size)
+                .to_layout(),
         },
     )
 }
@@ -114,10 +108,7 @@ pub fn radii(
 /// the inner radii need to be smaller depending on the line width.
 ///
 /// This is used to determine clipping areas.
-pub fn inner_radii(
-    mut radii: BorderRadius,
-    offsets: SideOffsets2D<Au>,
-) -> BorderRadius {
+pub fn inner_radii(mut radii: BorderRadius, offsets: SideOffsets2D<Au>) -> BorderRadius {
     fn inner_length(x: f32, offset: Au) -> f32 {
         0.0_f32.max(x - offset.to_f32_px())
     }
@@ -135,7 +126,7 @@ pub fn inner_radii(
     radii
 }
 
-/// Creates a four-sided border with uniform color, width and corner radius.
+/// Creates a four-sided border with square corners and uniform color and width.
 pub fn simple(color: ColorF, style: BorderStyle) -> NormalBorder {
     let side = BorderSide { color, style };
     NormalBorder {
@@ -155,10 +146,8 @@ fn side_image_outset(outset: LengthOrNumber, border_width: Au) -> Au {
     }
 }
 
-pub fn image_outset(
-    outset: BorderImageOutset,
-    border: SideOffsets2D<Au>,
-) -> SideOffsets2D<Au> {
+/// Compute the additional border-image area.
+pub fn image_outset(outset: BorderImageOutset, border: SideOffsets2D<Au>) -> SideOffsets2D<Au> {
     SideOffsets2D::new(
         side_image_outset(outset.0, border.top),
         side_image_outset(outset.1, border.right),
@@ -199,7 +188,11 @@ fn resolve_percentage(value: NumberOrPercentage, length: u32) -> u32 {
     }
 }
 
-pub fn image_slice(border_image_slice: &StyleRect<NumberOrPercentage>, width: u32, height: u32) -> SideOffsets2D<u32> {
+pub fn image_slice(
+    border_image_slice: &StyleRect<NumberOrPercentage>,
+    width: u32,
+    height: u32,
+) -> SideOffsets2D<u32> {
     SideOffsets2D::new(
         resolve_percentage(border_image_slice.0, height),
         resolve_percentage(border_image_slice.1, width),

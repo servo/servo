@@ -115,17 +115,20 @@ impl WebRenderDisplayItemConverter for DisplayItem {
             },
             DisplayItem::Border(ref item) => {
                 if !item.data.is_empty() {
-                    builder.push_iter(item.data.iter());
+                    builder.push_stops(item.data.as_ref());
                 }
                 builder.push_item(SpecificDisplayItem::Border(item.item), &self.prim_info());
             },
             DisplayItem::Gradient(ref item) => {
-                builder.push_iter(item.data.iter());
+                builder.push_stops(item.data.as_ref());
                 builder.push_item(SpecificDisplayItem::Gradient(item.item), &self.prim_info());
             },
             DisplayItem::RadialGradient(ref item) => {
-                builder.push_iter(item.data.iter());
-                builder.push_item(SpecificDisplayItem::RadialGradient(item.item), &self.prim_info());
+                builder.push_stops(item.data.as_ref());
+                builder.push_item(
+                    SpecificDisplayItem::RadialGradient(item.item),
+                    &self.prim_info(),
+                );
             },
             DisplayItem::Line(ref item) => {
                 builder.push_line(

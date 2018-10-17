@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#![deny(unsafe_code)]
-
 // FIXME(rust-lang/rust#26264): Remove GenericBackgroundSize.
 
 use app_units::Au;
@@ -120,6 +118,7 @@ fn compute_background_image_size(
     }
 }
 
+/// Compute a rounded clip rect for the background.
 pub fn clip(
     bg_clip: BackgroundClip,
     absolute_bounds: Rect<Au>,

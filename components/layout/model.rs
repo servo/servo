@@ -4,8 +4,6 @@
 
 //! Borders, padding, and margins.
 
-#![deny(unsafe_code)]
-
 use app_units::Au;
 use euclid::SideOffsets2D;
 use fragment::Fragment;

@@ -1,3 +1,7 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
 // FIXME(rust-lang/rust#26264): Remove GenericEndingShape and GenericGradientItem.
 
 use app_units::Au;
@@ -90,7 +94,8 @@ fn convert_gradient_stops(
         .filter_map(|item| match *item {
             GenericGradientItem::ColorStop(ref stop) => Some(*stop),
             _ => None,
-        }).collect::<Vec<_>>();
+        })
+        .collect::<Vec<_>>();
 
     assert!(stop_items.len() >= 2);
 
@@ -273,8 +278,12 @@ pub fn linear(
     let center = Point2D::new(size.width / 2, size.height / 2);
 
     (
-        builder.gradient((center - delta).to_layout(), (center + delta).to_layout(), extend_mode(repeating)),
-        builder.stops().to_vec()
+        builder.gradient(
+            (center - delta).to_layout(),
+            (center + delta).to_layout(),
+            extend_mode(repeating),
+        ),
+        builder.stops().to_vec(),
     )
 }
 
@@ -308,7 +317,11 @@ pub fn radial(
 
     let mut builder = convert_gradient_stops(style, stops, radius.width);
     (
-        builder.radial_gradient(center.to_layout(), radius.to_layout(), extend_mode(repeating)),
+        builder.radial_gradient(
+            center.to_layout(),
+            radius.to_layout(),
+            extend_mode(repeating),
+        ),
         builder.stops().to_vec(),
     )
 }

@@ -4,8 +4,6 @@
 
 //! Layout for elements with a CSS `display` property of `flex`.
 
-#![deny(unsafe_code)]
-
 use app_units::{Au, MAX_AU};
 use block::{AbsoluteAssignBSizesTraversal, BlockFlow, MarginsMayCollapseFlag};
 use context::LayoutContext;

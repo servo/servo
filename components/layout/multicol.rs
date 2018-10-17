@@ -4,8 +4,6 @@
 
 //! CSS Multi-column layout http://dev.w3.org/csswg/css-multicol/
 
-#![deny(unsafe_code)]
-
 use ServoArc;
 use app_units::Au;
 use block::BlockFlow;
