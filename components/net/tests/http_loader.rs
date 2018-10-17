@@ -696,7 +696,7 @@ fn test_load_uses_explicit_accept_from_headers_in_load_data() {
 fn test_load_sets_default_accept_to_html_xhtml_xml_and_then_anything_else() {
     let handler = move |request: HyperRequest<Body>, response: &mut HyperResponse<Body>| {
         assert_eq!(request.headers().get(header::ACCEPT).unwrap().to_str().unwrap(),
-        "text/html, application/xhtml+xml, application/xml; q=0.9, */*; q=0.8");
+                   "text/html, application/xhtml+xml, application/xml; q=0.9, */*; q=0.8");
         *response.body_mut() = b"Yay!".to_vec().into();
     };
     let (server, url) = make_server(handler);
