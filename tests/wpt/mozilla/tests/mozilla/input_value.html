@@ -1,0 +1,18 @@
+<!doctype html>
+<head>
+    <meta charset="utf-8">
+    <title></title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+    <input type="url" value="#β">
+    <script>
+        // Testing that unicode values are correctly handled in
+        // DOMString::strip_leading_and_trailing_ascii_whitespace
+        test(function() {
+            var input = window.document.getElementsByTagName("input")[0];
+            assert_equals(input.value, "#β")
+        });
+    </script>
+</body>

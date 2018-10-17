@@ -182,16 +182,20 @@ impl DOMString {
             return;
         }
 
-        let last_non_whitespace = match self.0.rfind(|ref c| !char::is_ascii_whitespace(c)) {
-            Some(idx) => idx + 1,
+        match self.0.rfind(|ref c| !char::is_ascii_whitespace(c)) {
+            Some(idx) => {
+                let last_non_whitespace = self.0.char_indices().find(|pair| pair.0 > idx);
+                if last_non_whitespace.is_some() {
+                    self.0.truncate(last_non_whitespace.unwrap().0);
+                };
+            },
             None => {
                 self.0.clear();
                 return;
             },
         };
-        let first_non_whitespace = self.0.find(|ref c| !char::is_ascii_whitespace(c)).unwrap();
 
-        self.0.truncate(last_non_whitespace);
+        let first_non_whitespace = self.0.find(|ref c| !char::is_ascii_whitespace(c)).unwrap();
         let _ = self.0.replace_range(0..first_non_whitespace, "");
     }
 

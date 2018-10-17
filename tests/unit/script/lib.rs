@@ -7,6 +7,7 @@
 #[cfg(test)] extern crate script;
 #[cfg(test)] extern crate servo_url;
 
+#[cfg(test)] mod dom;
 #[cfg(test)] mod origin;
 #[cfg(all(test, target_pointer_width = "64"))] mod size_of;
 #[cfg(test)] mod textinput;
