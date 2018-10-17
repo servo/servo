@@ -524,7 +524,6 @@ pub enum NetworkError {
     SslValidation(ServoUrl, String),
 }
 
-
 impl NetworkError {
     pub fn from_hyper_error(error: &HyperError) -> Self {
         NetworkError::Internal(error.description().to_owned())
