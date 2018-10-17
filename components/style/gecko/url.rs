@@ -6,17 +6,16 @@
 
 use cssparser::Parser;
 use gecko_bindings::bindings;
-use gecko_bindings::structs::ServoBundledURI;
-use gecko_bindings::structs::root::{RustString, nsStyleImageRequest};
+use gecko_bindings::structs::root::nsStyleImageRequest;
 use gecko_bindings::structs::root::mozilla::CORSMode;
 use gecko_bindings::structs::root::mozilla::css::URLValue;
+use gecko_bindings::sugar::ownership::{HasArcFFI, FFIArcHelpers};
 use gecko_bindings::sugar::refptr::RefPtr;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use nsstring::nsCString;
 use parser::{Parse, ParserContext};
-use servo_arc::{Arc, RawOffsetArc};
+use servo_arc::Arc;
 use std::fmt::{self, Write};
-use std::mem;
 use style_traits::{CssWriter, ParseError, ToCss};
 use stylesheets::UrlExtraData;
 use values::computed::{Context, ToComputedValue};
@@ -24,12 +23,13 @@ use values::computed::{Context, ToComputedValue};
 /// A CSS url() value for gecko.
 #[css(function = "url")]
 #[derive(Clone, Debug, PartialEq, SpecifiedValueInfo, ToCss)]
-pub struct CssUrl {
+pub struct CssUrl(pub Arc<CssUrlData>);
+
+/// Data shared between CssUrls.
+#[derive(Clone, Debug, PartialEq, SpecifiedValueInfo, ToCss)]
+pub struct CssUrlData {
     /// The URL in unresolved string form.
-    ///
-    /// Refcounted since cloning this should be cheap and data: uris can be
-    /// really large.
-    serialization: Arc<String>,
+    serialization: String,
 
     /// The URL extra data.
     #[css(skip)]
@@ -39,10 +39,10 @@ pub struct CssUrl {
 impl CssUrl {
     /// Parse a URL from a string value that is a valid CSS token for a URL.
     pub fn parse_from_string(url: String, context: &ParserContext) -> Self {
-        CssUrl {
-            serialization: Arc::new(url),
+        CssUrl(Arc::new(CssUrlData {
+            serialization: url,
             extra_data: context.url_data.clone(),
-        }
+        }))
     }
 
     /// Returns true if the URL is definitely invalid. We don't eagerly resolve
@@ -50,15 +50,6 @@ impl CssUrl {
     /// use its |resolved| status.
     pub fn is_invalid(&self) -> bool {
         false
-    }
-
-    /// Convert from URLValue to CssUrl.
-    unsafe fn from_url_value(url: &URLValue) -> Self {
-        let arc_type = &url.mString as *const _ as *const RawOffsetArc<String>;
-        CssUrl {
-            serialization: Arc::from_raw_offset((*arc_type).clone()),
-            extra_data: UrlExtraData(url.mExtraData.to_safe()),
-        }
     }
 
     /// Returns true if this URL looks like a fragment.
@@ -69,26 +60,17 @@ impl CssUrl {
 
     /// Return the unresolved url as string, or the empty string if it's
     /// invalid.
+    #[inline]
+    pub fn as_str(&self) -> &str {
+        self.0.as_str()
+    }
+}
+
+impl CssUrlData {
+    /// Return the unresolved url as string, or the empty string if it's
+    /// invalid.
     pub fn as_str(&self) -> &str {
         &*self.serialization
-    }
-
-    /// Little helper for Gecko's ffi.
-    pub fn as_slice_components(&self) -> (*const u8, usize) {
-        (
-            self.serialization.as_str().as_ptr(),
-            self.serialization.as_str().len(),
-        )
-    }
-
-    /// Create a bundled URI suitable for sending to Gecko
-    /// to be constructed into a css::URLValue
-    pub fn for_ffi(&self) -> ServoBundledURI {
-        let arc_offset = Arc::into_raw_offset(self.serialization.clone());
-        ServoBundledURI {
-            mURLString: unsafe { mem::transmute::<_, RawOffsetArc<RustString>>(arc_offset) },
-            mExtraData: self.extra_data.0.get(),
-        }
     }
 }
 
@@ -134,7 +116,11 @@ impl SpecifiedUrl {
 
     fn from_css_url_with_cors(url: CssUrl, cors: CORSMode) -> Self {
         let url_value = unsafe {
-            let ptr = bindings::Gecko_URLValue_Create(url.for_ffi(), cors);
+            let ptr = bindings::Gecko_URLValue_Create(
+                url.0.clone().into_strong(),
+                url.0.extra_data.0.get(),
+                cors,
+            );
             // We do not expect Gecko_URLValue_Create returns null.
             debug_assert!(!ptr.is_null());
             RefPtr::from_addrefed(ptr)
@@ -280,7 +266,8 @@ impl ToCss for ComputedUrl {
 impl ComputedUrl {
     /// Convert from RefPtr<URLValue> to ComputedUrl.
     pub unsafe fn from_url_value(url_value: RefPtr<URLValue>) -> Self {
-        let url = CssUrl::from_url_value(&*url_value);
+        let css_url = &*url_value.mCssUrl.mRawPtr;
+        let url = CssUrl(CssUrlData::as_arc(&css_url).clone_arc());
         ComputedUrl(SpecifiedUrl { url, url_value })
     }
 
@@ -311,7 +298,8 @@ impl ComputedImageUrl {
     /// Convert from nsStyleImageReques to ComputedImageUrl.
     pub unsafe fn from_image_request(image_request: &nsStyleImageRequest) -> Self {
         let url_value = image_request.mImageValue.to_safe();
-        let url = CssUrl::from_url_value(&*url_value);
+        let css_url = &*url_value.mCssUrl.mRawPtr;
+        let url = CssUrl(CssUrlData::as_arc(&css_url).clone_arc());
         ComputedImageUrl(SpecifiedImageUrl(SpecifiedUrl { url, url_value }))
     }
 
