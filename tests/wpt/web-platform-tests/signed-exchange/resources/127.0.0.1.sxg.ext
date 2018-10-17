@@ -1,0 +1,7 @@
+basicConstraints = CA:FALSE
+keyUsage = nonRepudiation, digitalSignature, keyEncipherment
+subjectAltName = DNS:127.0.0.1
+
+# CanSignHttpExchanges extension
+# https://wicg.github.io/webpackage/draft-yasskin-http-origin-signed-responses.html#cross-origin-cert-req
+1.3.6.1.4.1.11129.2.1.22 = ASN1:NULL

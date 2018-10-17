@@ -4,7 +4,7 @@ import types
 
 from tests.support.inline import inline
 from tests.support.asserts import assert_error, assert_success
-from tests.support.wait import wait
+from tests.support.sync import Poll
 
 alert_doc = inline("<script>window.alert()</script>")
 frame_doc = inline("<p>frame")
@@ -69,9 +69,8 @@ def test_set_malformed_url(session):
 def test_get_current_url_after_modified_location(session):
     start = get_current_url(session)
     session.execute_script("window.location.href = 'about:blank#wd_test_modification'")
-    wait(session,
-         lambda _: get_current_url(session).body["value"] != start.body["value"],
-         "URL did not change")
+    Poll(session, message="URL did not change").until(
+         lambda s: get_current_url(s).body["value"] != start.body["value"])
 
     result = get_current_url(session)
     assert_success(result, "about:blank#wd_test_modification")

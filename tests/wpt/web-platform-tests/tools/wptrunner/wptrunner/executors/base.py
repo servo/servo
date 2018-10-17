@@ -526,27 +526,22 @@ class CallbackHandler(object):
         return True, rv
 
     def process_action(self, url, payload):
-        parent = self.protocol.base.current_window
+        action = payload["action"]
+        self.logger.debug("Got action: %s" % action)
         try:
-            self.protocol.base.set_window(self.test_window)
-            action = payload["action"]
-            self.logger.debug("Got action: %s" % action)
-            try:
-                action_handler = self.actions[action]
-            except KeyError:
-                raise ValueError("Unknown action %s" % action)
-            try:
-                action_handler(payload)
-            except Exception:
-                self.logger.warning("Action %s failed" % action)
-                self.logger.warning(traceback.format_exc())
-                self._send_message("complete", "error")
-                raise
-            else:
-                self.logger.debug("Action %s completed" % action)
-                self._send_message("complete", "success")
-        finally:
-            self.protocol.base.set_window(parent)
+            action_handler = self.actions[action]
+        except KeyError:
+            raise ValueError("Unknown action %s" % action)
+        try:
+            action_handler(payload)
+        except Exception:
+            self.logger.warning("Action %s failed" % action)
+            self.logger.warning(traceback.format_exc())
+            self._send_message("complete", "error")
+            raise
+        else:
+            self.logger.debug("Action %s completed" % action)
+            self._send_message("complete", "success")
 
         return False, None
 

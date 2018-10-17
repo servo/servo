@@ -235,6 +235,14 @@ class Test(object):
         return lsan_allowed
 
     @property
+    def lsan_max_stack_depth(self):
+        for meta in self.itermeta(None):
+            depth = meta.lsan_max_stack_depth
+            if depth is not None:
+                return depth
+        return None
+
+    @property
     def tags(self):
         tags = set()
         for meta in self.itermeta():
