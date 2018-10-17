@@ -331,7 +331,7 @@ trait PrivateMatchMethods: TElement {
     fn process_animations(
         &self,
         context: &mut StyleContext<Self>,
-        old_values: Option<&Arc<ComputedValues>>,
+        old_values: &mut Option<Arc<ComputedValues>>,
         new_values: &mut Arc<ComputedValues>,
         restyle_hint: RestyleHint,
         important_rules_changed: bool,
@@ -413,7 +413,7 @@ trait PrivateMatchMethods: TElement {
     fn process_animations(
         &self,
         context: &mut StyleContext<Self>,
-        old_values: Option<&Arc<ComputedValues>>,
+        old_values: &mut Option<Arc<ComputedValues>>,
         new_values: &mut Arc<ComputedValues>,
         _restyle_hint: RestyleHint,
         _important_rules_changed: bool,
@@ -423,10 +423,11 @@ trait PrivateMatchMethods: TElement {
 
         let mut possibly_expired_animations = vec![];
         let shared_context = context.shared;
-        if old_values.is_some() {
+        if let Some(ref mut old) = *old_values {
+            // FIXME(emilio, #20116): This makes no sense.
             self.update_animations_for_cascade(
                 shared_context,
-                new_values,
+                old,
                 &mut possibly_expired_animations,
                 &context.thread_local.font_metrics_provider,
             );
@@ -445,10 +446,7 @@ trait PrivateMatchMethods: TElement {
 
         // Trigger transitions if necessary. This will reset `new_values` back
         // to its old value if it did trigger a transition.
-        //
-        // FIXME(emilio): We need logic to also stop the old transitions
-        // from running if transition-property / transition-duration changed.
-        if let Some(ref values) = old_values {
+        if let Some(ref values) = *old_values {
             animation::start_transitions_if_applicable(
                 new_animations_sender,
                 this_opaque,
@@ -575,6 +573,10 @@ trait PrivateMatchMethods: TElement {
 
     // FIXME(emilio, #20116): It's not clear to me that the name of this method
     // represents anything of what it does.
+    //
+    // Also, this function gets the old style, for some reason I don't really
+    // get, but the functions called (mainly update_style_for_animation) expects
+    // the new style, wtf?
     #[cfg(feature = "servo")]
     fn update_animations_for_cascade(
         &self,
@@ -677,7 +679,7 @@ pub trait MatchMethods: TElement {
 
         self.process_animations(
             context,
-            data.styles.primary.as_ref(),
+            &mut data.styles.primary,
             &mut new_styles.primary.style.0,
             data.hint,
             important_rules_changed,
