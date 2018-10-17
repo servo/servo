@@ -263,7 +263,6 @@ impl Actor for NetworkEventActor {
                     }
                 }
 
-
                 let msg = GetResponseCookiesReply {
                     from: self.name(),
                     cookies: cookies,
