@@ -414,6 +414,11 @@ class Servo(BrowserSetup):
             kwargs["binary"] = binary
 
 
+class ServoWebDriver(Servo):
+    name = "servodriver"
+    browser_cls = browser.ServoWebDriver
+
+
 class WebKit(BrowserSetup):
     name = "webkit"
     browser_cls = browser.WebKit
@@ -436,7 +441,7 @@ product_setup = {
     "safari": Safari,
     "safari_webdriver": SafariWebDriver,
     "servo": Servo,
-    "servodriver": Servo,
+    "servodriver": ServoWebDriver,
     "sauce": Sauce,
     "opera": Opera,
     "webkit": WebKit,
@@ -482,7 +487,7 @@ def setup_wptrunner(venv, prompt=True, install_browser=False, **kwargs):
             if channel != kwargs["channel"]:
                 logger.info("Interpreting channel '%s' as '%s'" % (kwargs["channel"],
                                                                    channel))
-                kwargs["browser_channel"] = channel
+            kwargs["browser_channel"] = channel
         else:
             logger.info("Valid channels for %s not known; using argument unmodified" % kwargs["product"])
     del kwargs["channel"]

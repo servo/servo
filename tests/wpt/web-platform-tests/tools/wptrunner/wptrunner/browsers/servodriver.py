@@ -4,7 +4,7 @@ import tempfile
 
 from mozprocess import ProcessHandler
 
-from serve.serve import make_hosts_file
+from tools.serve.serve import make_hosts_file
 
 from .base import Browser, require_arg, get_free_port, browser_command, ExecutorBrowser
 from ..executors import executor_kwargs as base_executor_kwargs

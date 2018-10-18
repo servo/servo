@@ -73,10 +73,3 @@ partial interface GlobalEventHandlers {
                     attribute EventHandler ontouchmove;
                     attribute EventHandler ontouchcancel;
 };
-
-partial interface Document {
-  // Deprecated in this specification
-  Touch createTouch(WindowProxy view, EventTarget target, long identifier, double pageX, double pageY, double screenX, double screenY);
-  // Deprecated in this specification
-  TouchList createTouchList(Touch... touches);
-};

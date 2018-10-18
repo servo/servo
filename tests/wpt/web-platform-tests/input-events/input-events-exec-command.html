@@ -35,9 +35,9 @@ test(function() {
     testExecCommandInputType('insertText', 'bc', 'insertText');
     assert_equals(txt.innerHTML, 'abc');
     testExecCommandInputType('insertOrderedList', null, 'insertOrderedList');
-    assert_equals(txt.innerHTML, '<ol><li>abc<br></li></ol>');
+    assert_equals(txt.innerHTML, '<ol><li>abc</li></ol>');
     testExecCommandInputType('insertUnorderedList', null, 'insertUnorderedList');
-    assert_equals(txt.innerHTML, '<ul><li>abc<br></li></ul>');
+    assert_equals(txt.innerHTML, '<ul><li>abc</li></ul>');
     testExecCommandInputType('insertLineBreak', null, 'insertLineBreak');
     testExecCommandInputType('insertParagraph', null, 'insertParagraph');
 

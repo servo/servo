@@ -35,4 +35,12 @@
         assert_equals(CSS.supports("width", "blah"), false, "CSS.supports: two argument form fails for invalid value");
         assert_equals(CSS.supports("--foo", "blah"), true, "CSS.supports: two argument form succeeds for custom property");
     }, "CSS.supports, two argument form");
+    test(function () {
+        assert_equals(CSS.supports("selector(div)"), true, "CSS.supports: selector() function accepts a selector");
+        assert_equals(CSS.supports("selector(div, div)"), false, "CSS.supports: selector() function doesn't accept a selector list");
+        assert_equals(CSS.supports("selector(::-webkit-unknown-pseudo-element)"), false, "CSS.supports: selector() function rejects unknown webkit pseudo-elements.");
+        assert_equals(CSS.supports("selector(::before)"), true, "CSS.supports: selector() function accepts known pseudo-elements");
+        assert_equals(CSS.supports("selector(div + .c)"), true, "CSS.supports: selector() with simple combinators");
+        assert_equals(CSS.supports("selector(div | .c)"), false, "CSS.supports: selector() with unknown combinators");
+    }, "CSS.supports, selector function");
 </script>
