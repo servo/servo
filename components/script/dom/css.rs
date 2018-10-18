@@ -53,21 +53,21 @@ impl CSS {
     pub fn Supports_(win: &Window, condition: DOMString) -> bool {
         let mut input = ParserInput::new(&condition);
         let mut input = Parser::new(&mut input);
-        let cond = parse_condition_or_declaration(&mut input);
-        if let Ok(cond) = cond {
-            let url = win.Document().url();
-            let context = ParserContext::new_for_cssom(
-                &url,
-                Some(CssRuleType::Style),
-                ParsingMode::DEFAULT,
-                QuirksMode::NoQuirks,
-                None,
-                None,
-            );
-            cond.eval(&context)
-        } else {
-            false
-        }
+        let cond = match parse_condition_or_declaration(&mut input) {
+            Ok(c) => c,
+            Err(..) => return false,
+        };
+
+        let url = win.Document().url();
+        let context = ParserContext::new_for_cssom(
+            &url,
+            Some(CssRuleType::Style),
+            ParsingMode::DEFAULT,
+            QuirksMode::NoQuirks,
+            None,
+            None,
+        );
+        cond.eval(&context, &Default::default())
     }
 
     /// <https://drafts.css-houdini.org/css-paint-api-1/#paint-worklet>
