@@ -52,5 +52,5 @@ interface CrashReportBody : ReportBody {
 
 dictionary GenerateTestReportParameters {
   required DOMString message;
-  DOMString group;
+  DOMString group = "default";
 };

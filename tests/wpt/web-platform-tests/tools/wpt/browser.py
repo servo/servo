@@ -264,7 +264,7 @@ class Firefox(Browser):
 
         dest = os.path.join(dest, "profiles", channel)
         if version:
-            dest = dest.join(version)
+            dest = os.path.join(dest, version)
         have_cache = False
         if os.path.exists(dest):
             if channel != "nightly":
@@ -711,9 +711,13 @@ class Servo(Browser):
     def version(self, binary):
         """Retrieve the release version of the installed browser."""
         output = call(binary, "--version")
-        m = re.search(r"[0-9\.]+( [a-z]+)?$", output.strip())
+        m = re.search(r"Servo ([0-9\.]+-[a-f0-9]+)?(-dirty)?$", output.strip())
         if m:
             return m.group(0)
+
+
+class ServoWebDriver(Servo):
+    product = "servodriver"
 
 
 class Sauce(Browser):

@@ -6,19 +6,6 @@
 <script>
   'use strict';
 
-// Constraint parameter has a default value of {audio:false, video: false}.
-promise_test(function() {
-  assert_idl_attribute(navigator, 'getDisplayMedia');
-
-  return navigator.getDisplayMedia()
-      .then(function(s) {
-        fail('getDisplayMedia should have failed');
-      })
-      .catch(function(e) {
-        assert_equals(e.name, 'TypeError');
-      });
-}, 'getDisplayMedia() with no constraints');
-
 promise_test(function() {
   assert_idl_attribute(navigator, 'getDisplayMedia');
 
@@ -28,17 +15,34 @@ promise_test(function() {
   });
 }, 'getDisplayMedia() with video true');
 
+// Empty constraint parameter and boolean values of false defaults to
+// {video: true}.
 promise_test(function() {
   assert_idl_attribute(navigator, 'getDisplayMedia');
 
-  return navigator.getDisplayMedia({video: false})
-      .then(function(s) {
-        fail('getDisplayMedia should have failed');
-      })
-      .catch(function(e) {
-        assert_equals(e.name, 'TypeError');
-      });
+  return navigator.getDisplayMedia().then(function(s) {
+    assert_equals(s.getVideoTracks().length, 1);
+    assert_equals(s.getAudioTracks().length, 0);
+  });
+}, 'getDisplayMedia() with no constraints');
+
+promise_test(function() {
+  assert_idl_attribute(navigator, 'getDisplayMedia');
+
+  return navigator.getDisplayMedia({video: false}).then(function(s) {
+    assert_equals(s.getVideoTracks().length, 1);
+    assert_equals(s.getAudioTracks().length, 0);
+  });
 }, 'getDisplayMedia() with video false');
+
+promise_test(function() {
+  assert_idl_attribute(navigator, 'getDisplayMedia');
+
+  return navigator.getDisplayMedia({audio: false}).then(function(s) {
+    assert_equals(s.getVideoTracks().length, 1);
+    assert_equals(s.getAudioTracks().length, 0);
+  });
+}, 'getDisplayMedia() with audio false');
 
 promise_test(function() {
   assert_idl_attribute(navigator, 'getDisplayMedia');
@@ -52,27 +56,52 @@ promise_test(function() {
 promise_test(function() {
   assert_idl_attribute(navigator, 'getDisplayMedia');
 
-  return navigator.getDisplayMedia({audio: false})
+  return navigator
+      .getDisplayMedia({video: {advanced: [{zoom: 1}]}})
       .then(function(s) {
         fail('getDisplayMedia should have failed');
       })
       .catch(function(e) {
         assert_equals(e.name, 'TypeError');
       });
-}, 'getDisplayMedia() with audio false');
+}, 'getDisplayMedia() call with advanced constraint');
 
 promise_test(function() {
   assert_idl_attribute(navigator, 'getDisplayMedia');
 
   return navigator
-      .getDisplayMedia({audio: false, video: {width: 1280, height: 720}})
+      .getDisplayMedia({video: {width: {min: 360}}})
       .then(function(s) {
         fail('getDisplayMedia should have failed');
       })
       .catch(function(e) {
-        assert_equals(e.name, 'InvalidAccessError');
+        assert_equals(e.name, 'TypeError');
       });
-}, 'getDisplayMedia() call with non-bool constraint');
+}, 'getDisplayMedia() call with min constraint');
+
+promise_test(function() {
+  assert_idl_attribute(navigator, 'getDisplayMedia');
+
+  return navigator
+      .getDisplayMedia({video: {width: {exact: 360}}})
+      .then(function(s) {
+        fail('getDisplayMedia should have failed');
+      })
+      .catch(function(e) {
+        assert_equals(e.name, 'TypeError');
+      });
+}, 'getDisplayMedia() call with exact constraint');
+
+promise_test(function() {
+  assert_idl_attribute(navigator, 'getDisplayMedia');
+
+  return navigator
+      .getDisplayMedia({video: {width: {max: 360}}})
+      .then(function(s) {
+        assert_equals(s.getVideoTracks().length, 1);
+        assert_equals(s.getAudioTracks().length, 0);
+      });
+}, 'getDisplayMedia() call with max constraint');
 
 // Content shell picks a fake desktop device by default.
 promise_test(function() {
