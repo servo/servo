@@ -111,6 +111,7 @@ ${helpers.predefined_type(
     vector=False,
     animation_value_type="discrete",
     flags="APPLIES_TO_FIRST_LETTER",
+    boxed=product == "servo",
 )}
 
 ${helpers.predefined_type(

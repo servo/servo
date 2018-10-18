@@ -23,6 +23,9 @@ use values::computed::{Context, ToComputedValue};
 ///
 /// However, this approach is still not necessarily optimal: See
 /// <https://bugzilla.mozilla.org/show_bug.cgi?id=1347435#c6>
+///
+/// TODO(emilio): This should be shrunk by making CssUrl a wrapper type of an
+/// arc, and keep the serialization in that Arc. See gecko/url.rs for example.
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize, SpecifiedValueInfo)]
 pub struct CssUrl {
     /// The original URI. This might be optional since we may insert computed
