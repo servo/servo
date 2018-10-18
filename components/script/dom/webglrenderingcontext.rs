@@ -73,12 +73,6 @@ use std::cmp;
 use std::ptr::{self, NonNull};
 use webrender_api;
 
-pub fn is_gles() -> bool {
-    // TODO: align this with the actual kind of graphics context in use, rather than
-    // making assumptions based on platform
-    cfg!(any(target_os = "android", target_os = "ios"))
-}
-
 // From the GLES 2.0.25 spec, page 85:
 //
 //     "If a texture that is currently bound to one of the targets
