@@ -18,8 +18,8 @@ use style_traits::values::specified::AllowedNumericType;
 use super::{AllowQuirks, Number, Percentage, ToComputedValue};
 use values::{Auto, CSSFloat, Either, Normal};
 use values::computed::{self, CSSPixelLength, Context, ExtremumLength};
-use values::generics::length::{MaxLength as GenericMaxLength, MozLength as GenericMozLength};
 use values::generics::NonNegative;
+use values::generics::length::{MaxLength as GenericMaxLength, MozLength as GenericMozLength};
 use values::specified::calc::CalcNode;
 
 pub use values::specified::calc::CalcLengthOrPercentage;

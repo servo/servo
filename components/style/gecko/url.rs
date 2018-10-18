@@ -6,9 +6,9 @@
 
 use cssparser::Parser;
 use gecko_bindings::bindings;
-use gecko_bindings::structs::root::nsStyleImageRequest;
 use gecko_bindings::structs::root::mozilla::CORSMode;
 use gecko_bindings::structs::root::mozilla::css::URLValue;
+use gecko_bindings::structs::root::nsStyleImageRequest;
 use gecko_bindings::sugar::ownership::{HasArcFFI, FFIArcHelpers};
 use gecko_bindings::sugar::refptr::RefPtr;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
@@ -235,7 +235,7 @@ impl ToComputedValue for SpecifiedImageUrl {
 fn serialize_computed_url<W>(
     url_value: &URLValue,
     dest: &mut CssWriter<W>,
-    get_url: unsafe extern "C" fn(*const URLValue, *mut nsCString) -> (),
+    get_url: unsafe extern "C" fn(*const URLValue, *mut nsCString),
 ) -> fmt::Result
 where
     W: Write,

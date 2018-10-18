@@ -14,8 +14,8 @@ use super::{Context, Number, Percentage, ToComputedValue};
 use values::{specified, Auto, CSSFloat, Either, Normal};
 use values::animated::{Animate, Procedure, ToAnimatedValue, ToAnimatedZero};
 use values::distance::{ComputeSquaredDistance, SquaredDistance};
-use values::generics::length::{MaxLength as GenericMaxLength, MozLength as GenericMozLength};
 use values::generics::NonNegative;
+use values::generics::length::{MaxLength as GenericMaxLength, MozLength as GenericMozLength};
 use values::specified::length::{AbsoluteLength, FontBaseSize, FontRelativeLength};
 use values::specified::length::ViewportPercentageLength;
 

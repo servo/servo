@@ -11,9 +11,8 @@ use cssparser::parse_important;
 use malloc_size_of::{MallocSizeOfOps, MallocUnconditionalShallowSizeOf};
 use parser::ParserContext;
 use properties::{PropertyDeclaration, PropertyId, SourcePropertyDeclaration};
-use selectors::parser::SelectorParseErrorKind;
 use selector_parser::{SelectorImpl, SelectorParser};
-use selectors::parser::Selector;
+use selectors::parser::{Selector, SelectorParseErrorKind};
 use servo_arc::Arc;
 use shared_lock::{DeepCloneParams, DeepCloneWithLock, Locked};
 use shared_lock::{SharedRwLock, SharedRwLockReadGuard, ToCssWithGuard};
@@ -350,13 +349,14 @@ impl RawSelector {
                 url_data: Some(context.url_data),
             };
 
+            #[allow(unused_variables)]
             let selector = Selector::<SelectorImpl>::parse(&parser, input)
                 .map_err(|_| input.new_custom_error(()))?;
 
             #[cfg(feature = "gecko")]
             {
-                use selectors::parser::Component;
                 use selector_parser::PseudoElement;
+                use selectors::parser::Component;
 
                 let has_any_unknown_webkit_pseudo =
                     selector.has_pseudo_element() &&

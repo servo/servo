@@ -6,8 +6,8 @@
 
 use cssparser::{Parser, Token};
 use parser::{Parse, ParserContext};
-use std::fmt::{self, Write};
 use std::f32::consts::PI;
+use std::fmt::{self, Write};
 use style_traits::{CssWriter, ParseError, SpecifiedValueInfo, ToCss};
 use values::CSSFloat;
 use values::computed::{Context, ToComputedValue};
@@ -15,6 +15,7 @@ use values::computed::angle::Angle as ComputedAngle;
 use values::specified::calc::CalcNode;
 
 /// A specified angle dimension.
+#[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
 #[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, PartialOrd, ToCss)]
 pub enum AngleDimension {
     /// An angle with degree unit.

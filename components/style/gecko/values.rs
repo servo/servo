@@ -27,9 +27,9 @@ use values::generics::{CounterStyleOrNone, NonNegative};
 use values::generics::basic_shape::ShapeRadius;
 use values::generics::box_::Perspective;
 use values::generics::flex::FlexBasis;
-use values::generics::length::{MaxLength, MozLength};
 use values::generics::gecko::ScrollSnapPoint;
 use values::generics::grid::{TrackBreadth, TrackKeyword};
+use values::generics::length::{MaxLength, MozLength};
 
 /// A trait that defines an interface to convert from and to `nsStyleCoord`s.
 pub trait GeckoStyleCoordConvertible: Sized {
