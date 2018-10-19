@@ -11,10 +11,14 @@
   var host_info = get_host_info();
   var frame;
 
-  async_test(function(t) {
+  promise_test(function(t) {
     var scope = 'resources/fetch-header-visibility-iframe.html';
-    service_worker_unregister_and_register(t, worker, scope)
+    return service_worker_unregister_and_register(t, worker, scope)
       .then(function(reg) {
+        t.add_cleanup(function() {
+            return service_worker_unregister(t, scope);
+          });
+
         return wait_for_state(t, reg.installing, 'activated');
       })
       .then(function() {
@@ -44,9 +48,7 @@
       })
       .then(function(result) {
         frame.remove();
-        return service_worker_unregister_and_done(t, scope);
-      })
-      .catch(unreached_rejection(t));
+      });
   }, 'Visibility of defaulted headers during interception');
 </script>
 </body>

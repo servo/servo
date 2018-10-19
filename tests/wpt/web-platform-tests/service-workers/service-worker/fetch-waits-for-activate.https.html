@@ -13,11 +13,15 @@ var worker = 'resources/fetch-waits-for-activate-worker.js';
 var expected_url = normalizeURL(worker);
 var scope = 'resources/fetch-waits-for-activate/';
 
-async_test(function(t) {
+promise_test(function(t) {
   var registration;
   var frameLoadPromise;
   var frame;
-  service_worker_unregister_and_register(t, worker, scope).then(function(reg) {
+  return service_worker_unregister_and_register(t, worker, scope).then(function(reg) {
+    t.add_cleanup(function() {
+      return service_worker_unregister(t, scope);
+    });
+
     registration = reg;
     return wait_for_state(t, reg.installing, 'activating');
   }).then(function() {
@@ -55,8 +59,7 @@ async_test(function(t) {
     assert_equals(registration.active.state, 'activated',
                   'active worker should be in activated state');
     frame.remove();
-    return service_worker_unregister_and_done(t, scope);
-  }).catch(unreached_rejection(t));
+  });
 }, 'Fetch events should wait for the activate event to complete.');
 
 </script>

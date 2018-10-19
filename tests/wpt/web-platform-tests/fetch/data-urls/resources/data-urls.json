@@ -116,7 +116,7 @@
    "unknown/unknown",
    [88, 32, 88]],
   ["data:text/plain;a=\",\",X",
-   "text/plain",
+   "text/plain;a=\"\"",
    [34, 44, 88]],
   ["data:text/plain;a=%2C,X",
    "text/plain;a=%2C",

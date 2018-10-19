@@ -141,10 +141,18 @@ def env_options():
 
 
 def run_info_extras(**kwargs):
+
+    def get_bool_pref(pref):
+        for key, value in kwargs.get('extra_prefs', []):
+            if pref == key:
+                return value.lower() in ('true', '1')
+        return False
+
     return {"e10s": kwargs["gecko_e10s"],
             "wasm": kwargs.get("wasm", True),
             "verify": kwargs["verify"],
-            "headless": "MOZ_HEADLESS" in os.environ}
+            "headless": "MOZ_HEADLESS" in os.environ,
+            "sw-e10s": get_bool_pref("dom.serviceWorkers.parent_intercept"),}
 
 
 def update_properties():

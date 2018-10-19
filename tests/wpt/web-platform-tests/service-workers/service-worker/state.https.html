@@ -4,21 +4,24 @@
 <script src="resources/test-helpers.sub.js"></script>
 <body>
 <script>
-(function () {
-    var t = async_test('Service Worker state property and "statechange" event');
+promise_test(function (t) {
     var currentState = 'test-is-starting';
     var scope = 'resources/state/';
 
-    service_worker_unregister_and_register(
+    return service_worker_unregister_and_register(
         t, 'resources/empty-worker.js', scope)
-      .then(t.step_func(function(registration) {
+      .then(function(registration) {
+          t.add_cleanup(function() {
+              return service_worker_unregister(t, scope);
+            });
+
           var sw = registration.installing;
-          sw.addEventListener('statechange', t.step_func(onStateChange(sw)));
+
           assert_equals(sw.state, 'installing',
                         'the service worker should be in "installing" state.');
           checkStateTransition(sw.state);
-        }))
-      .catch(unreached_rejection(t));
+          return onStateChange(sw);
+        });
 
     function checkStateTransition(newState) {
         switch (currentState) {
@@ -49,7 +52,9 @@
     }
 
     function onStateChange(expectedTarget) {
-        return function(event) {
+      return new Promise(function(resolve) {
+            expectedTarget.addEventListener('statechange', resolve);
+          }).then(function(event) {
             assert_true(event.target instanceof ServiceWorker,
                         'the target of the statechange event should be a ' +
                         'ServiceWorker.');
@@ -61,9 +66,9 @@
 
             checkStateTransition(event.target.state);
 
-            if (event.target.state == 'activated')
-                service_worker_unregister_and_done(t, scope);
-        };
+            if (event.target.state != 'activated')
+                return onStateChange(expectedTarget);
+          });
     }
-}());
+}, 'Service Worker state property and "statechange" event');
 </script>

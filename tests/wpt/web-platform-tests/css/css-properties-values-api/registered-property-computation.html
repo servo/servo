@@ -111,5 +111,17 @@ for (let element of [divWithFontSizeSet, divWithFontSizeInherited]) {
         assert_computed_value('<transform-function>', 'translateX(calc(11em + 10%))', 'translateX(calc(110px + 10%))');
         assert_computed_value('<transform-function>+', 'translateX(10%) scale(2)', 'translateX(10%) scale(2)');
     }, "<transform-function> values are computed correctly for " + id);
+
+    test(function() {
+        assert_computed_value('<integer>', '15', '15');
+        assert_computed_value('<integer>', 'calc(15 + 15)', '30');
+        assert_computed_value('<integer>', 'calc(2.4)', '2');
+        assert_computed_value('<integer>', 'calc(2.6)', '3');
+        assert_computed_value('<integer>', 'calc(2.6 + 3.1)', '6');
+    }, "<integer> values are computed correctly for " + id);
+
+    test(function() {
+        assert_computed_value('<integer>+', '15 calc(2.4) calc(2.6)', '15 2 3');
+    }, "<integer>+ values are computed correctly for " + id);
 }
 </script>

@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>Values of &lt;length-percentage&gt;-properties reach worklet</title>
+<link rel="help" href="https://www.w3.org/TR/css-paint-api-1/#examples">
+<link rel="match" href="parse-input-arguments-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/worklet-reftest.js"></script>
+<script src="./resources/utils.js"></script>
+<body>
+<div id="target"></div>
+<script>
+    try {
+      CSS.registerProperty({
+        name: '--prop-1',
+        syntax: '<length-percentage>',
+        initialValue: '0',
+        inherits: false
+      });
+
+      CSS.registerProperty({
+        name: '--prop-2',
+        syntax: '<length-percentage>',
+        initialValue: '0',
+        inherits: false
+      });
+
+      CSS.registerProperty({
+        name: '--prop-3',
+        syntax: '<length-percentage>',
+        initialValue: '0',
+        inherits: false
+      });
+
+      target.style.setProperty('--prop-1', '10%');
+      target.style.setProperty('--prop-2', '10px');
+      target.style.setProperty('--prop-3', 'calc(10px + 10%)');
+
+      expectWorkletValues(target, {
+        '--prop-1': ['[CSSUnitValue 10%]'],
+        '--prop-2': ['[CSSUnitValue 10px]'],
+        '--prop-3': ['[CSSMathSum calc(10px + 10%)]'],
+      });
+    } catch(e) {
+      document.body.textContent = e;
+      takeScreenshot();
+    }
+</script>
+</body>
+</html>

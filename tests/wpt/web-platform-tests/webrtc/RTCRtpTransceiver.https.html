@@ -506,6 +506,40 @@
     hasProps(pc.getTransceivers(), []);
   };
 
+  const checkNoMidOffer = async t => {
+    const pc1 = new RTCPeerConnection();
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    t.add_cleanup(() => pc2.close());
+
+    const stream = await navigator.mediaDevices.getUserMedia({audio: true});
+    t.add_cleanup(() => stopTracks(stream));
+    const track = stream.getAudioTracks()[0];
+    pc1.addTrack(track, stream);
+
+    const offer = await pc1.createOffer();
+    await pc1.setLocalDescription(offer);
+
+    // Remove mid attr
+    offer.sdp = offer.sdp.replace("a=mid:", "a=unknownattr:");
+    await pc2.setRemoteDescription(offer);
+
+    hasPropsAndUniqueMids(pc2.getTransceivers(),
+      [
+        {
+          receiver: {track: {kind: "audio"}},
+          sender: {track: null},
+          direction: "recvonly",
+          currentDirection: null,
+          stopped: false
+        }
+      ]);
+
+    const answer = await pc2.createAnswer();
+    await pc2.setLocalDescription(answer);
+    await pc1.setRemoteDescription(answer);
+  };
+
   const checkAddTransceiverNoTrackDoesntPair = async t => {
     const pc1 = new RTCPeerConnection();
     const pc2 = new RTCPeerConnection();
@@ -2212,6 +2246,7 @@ const tests = [
   checkAddTransceiverWithSetRemoteOfferSending,
   checkAddTransceiverWithSetRemoteOfferNoSend,
   checkAddTransceiverBadKind,
+  checkNoMidOffer,
   checkSetDirection,
   checkCurrentDirection,
   checkSendrecvWithNoSendTrack,

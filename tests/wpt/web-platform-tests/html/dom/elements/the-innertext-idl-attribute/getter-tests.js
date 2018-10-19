@@ -58,6 +58,15 @@ testText("<div>abc <span style='display:inline-block'></span> def", "abc  def", 
 testText("<div>abc <span style='display:inline-block'> def </span> ghi", "abc def ghi", "Trailing space at end of inline-block should be collapsed");
 testText("<div><input> <div>abc</div>", "abc", "Whitespace between <input> and block should be collapsed");
 testText("<div><span style='inline-block'></span> <div>abc</div>", "abc", "Whitespace between inline-block and block should be collapsed");
+testText("<div>abc <img> def", "abc  def", "Whitespace around <img> should not be collapsed");
+testText("<div>abc <img width=1 height=1> def", "abc  def", "Whitespace around <img> should not be collapsed");
+testText("<div><img> abc", " abc", "Leading whitesapce should not be collapsed");
+testText("<div>abc <img>", "abc ", "Trailing whitesapce should not be collapsed");
+testText("<div>abc <b></b> def", "abc def", "Whitespace around empty span should be collapsed");
+testText("<div>abc <b><i></i></b> def", "abc def", "Whitespace around empty spans should be collapsed");
+testText("<div><canvas></canvas> abc", " abc", "<canvas> should not collapse following space");
+testText("<div>abc <img style='display:block'> def", "abc\ndef", "Replaced element <img> with display:block should be treated as block-level");
+testText("<div>abc <canvas style='display:block'></canvas> def", "abc\ndef", "Replaced element <canvas> with display:block should be treated as block-level");
 
 /**** Soft line breaks ****/
 

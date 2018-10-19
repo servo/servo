@@ -5,7 +5,7 @@
 <script src="resources/testharness-helpers.js"></script>
 <script src="resources/test-helpers.sub.js"></script>
 <script>
-async_test(function(t) {
+promise_test(function(t) {
     var scope = 'resources/simple.txt';
     var worker_url = 'resources/update-recovery-worker.py';
     var expected_url = normalizeURL(worker_url);
@@ -46,8 +46,12 @@ async_test(function(t) {
       });
     }
 
-    service_worker_unregister_and_register(t, worker_url, scope)
+    return service_worker_unregister_and_register(t, worker_url, scope)
       .then(function(r) {
+          t.add_cleanup(function() {
+              return service_worker_unregister(t, scope);
+            });
+
           registration = r;
           return wait_for_state(t, registration.installing, 'activated');
         })
@@ -64,8 +68,6 @@ async_test(function(t) {
           assert_equals(frame.contentWindow.navigator.serviceWorker.controller.scriptURL,
                         expected_url);
           frame.remove();
-          return service_worker_unregister_and_done(t, scope);
-        })
-      .catch(unreached_rejection(t));
+        });
   }, 'Recover from a bad service worker by updating after a failed navigation.');
 </script>

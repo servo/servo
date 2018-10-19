@@ -60,8 +60,8 @@ function is_appcached() {
   });
 }
 
-async_test(function(t) {
-    service_worker_unregister(t, SERVICE_WORKER_SCOPE)
+promise_test(function(t) {
+    return service_worker_unregister(t, SERVICE_WORKER_SCOPE)
       .then(function() {
           return install_appcache();
         })
@@ -74,6 +74,10 @@ async_test(function(t) {
               t, SERVICE_WORKER_SCRIPT, SERVICE_WORKER_SCOPE);
         })
       .then(function(r) {
+          t.add_cleanup(function() {
+              return service_worker_unregister(t, SERVICE_WORKER_SCOPE);
+            });
+
           return wait_for_state(t, r.installing, 'activated');
         })
       .then(function() {
@@ -82,9 +86,7 @@ async_test(function(t) {
       .then(function(result) {
           assert_false(result, 'but serviceworkers should take priority');
           frames.forEach(function(f) { f.remove(); });
-          service_worker_unregister_and_done(t, SERVICE_WORKER_SCOPE);
-        })
-      .catch(unreached_rejection(t));
+        });
   }, 'serviceworkers take priority over appcaches');
 
 </script>

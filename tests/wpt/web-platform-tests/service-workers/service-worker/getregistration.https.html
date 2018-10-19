@@ -14,12 +14,16 @@ async_test(function(t) {
       .catch(unreached_rejection(t));
   }, 'getRegistration');
 
-async_test(function(t) {
+promise_test(function(t) {
     var scope = 'resources/scope/getregistration/normal';
     var registration;
-    service_worker_unregister_and_register(t, 'resources/empty-worker.js',
-                                           scope)
+    return service_worker_unregister_and_register(t, 'resources/empty-worker.js',
+                                                  scope)
       .then(function(r) {
+          t.add_cleanup(function() {
+              return service_worker_unregister(t, scope);
+            });
+
           registration = r;
           return navigator.serviceWorker.getRegistration(scope);
         })
@@ -27,18 +31,20 @@ async_test(function(t) {
           assert_equals(
               value, registration,
               'getRegistration should resolve to the same registration object');
-          service_worker_unregister_and_done(t, scope);
-        })
-      .catch(unreached_rejection(t));
+        });
   }, 'Register then getRegistration');
 
-async_test(function(t) {
+promise_test(function(t) {
     var scope = 'resources/scope/getregistration/url-with-fragment';
     var documentURL = scope + '#ref';
     var registration;
-    service_worker_unregister_and_register(t, 'resources/empty-worker.js',
-                                           scope)
+    return service_worker_unregister_and_register(t, 'resources/empty-worker.js',
+                                                  scope)
       .then(function(r) {
+          t.add_cleanup(function() {
+              return service_worker_unregister(t, scope);
+            });
+
           registration = r;
           return navigator.serviceWorker.getRegistration(documentURL);
         })
@@ -46,9 +52,7 @@ async_test(function(t) {
           assert_equals(
               value, registration,
               'getRegistration should resolve to the same registration object');
-          service_worker_unregister_and_done(t, scope);
-        })
-      .catch(unreached_rejection(t));
+        });
   }, 'Register then getRegistration with a URL having a fragment');
 
 async_test(function(t) {
