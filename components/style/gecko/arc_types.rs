@@ -8,6 +8,7 @@
 
 #![allow(non_snake_case, missing_docs)]
 
+use gecko::url::CssUrlData;
 use gecko_bindings::bindings::RawServoCounterStyleRule;
 use gecko_bindings::bindings::RawServoFontFeatureValuesRule;
 use gecko_bindings::bindings::RawServoImportRule;
@@ -22,6 +23,7 @@ use gecko_bindings::bindings::RawServoRuleNodeStrong;
 use gecko_bindings::bindings::RawServoSupportsRule;
 use gecko_bindings::bindings::ServoCssRules;
 use gecko_bindings::structs::RawServoAnimationValue;
+use gecko_bindings::structs::RawServoCssUrlData;
 use gecko_bindings::structs::RawServoDeclarationBlock;
 use gecko_bindings::structs::RawServoFontFaceRule;
 use gecko_bindings::structs::RawServoMediaList;
@@ -109,6 +111,9 @@ impl_arc_ffi!(Locked<FontFaceRule> => RawServoFontFaceRule
 
 impl_arc_ffi!(Locked<CounterStyleRule> => RawServoCounterStyleRule
               [Servo_CounterStyleRule_AddRef, Servo_CounterStyleRule_Release]);
+
+impl_arc_ffi!(CssUrlData => RawServoCssUrlData
+              [Servo_CssUrlData_AddRef, Servo_CssUrlData_Release]);
 
 // RuleNode is a Arc-like type but it does not use Arc.
 

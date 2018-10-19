@@ -1671,53 +1671,30 @@ impl PropertyId {
     ///
     /// Returns Err(()) for unknown non-custom properties.
     fn parse_unchecked(property_name: &str) -> Result<Self, ()> {
-        // FIXME(https://github.com/rust-lang/rust/issues/33156): remove this
-        // enum and use PropertyId when stable Rust allows destructors in
-        // statics.
-        //
-        // ShorthandAlias is not used in the Servo build.
-        // That's why we need to allow dead_code.
-        #[allow(dead_code)]
-        pub enum StaticId {
-            Longhand(LonghandId),
-            Shorthand(ShorthandId),
-            LonghandAlias(LonghandId, AliasId),
-            ShorthandAlias(ShorthandId, AliasId),
-        }
         ascii_case_insensitive_phf_map! {
-            static_id -> StaticId = {
+            property_id -> PropertyId = {
                 % for (kind, properties) in [("Longhand", data.longhands), ("Shorthand", data.shorthands)]:
-                    % for property in properties:
-                        "${property.name}" => StaticId::${kind}(${kind}Id::${property.camel_case}),
-                        % for alias in property.alias:
-                            "${alias.name}" => {
-                                StaticId::${kind}Alias(${kind}Id::${property.camel_case},
-                                                       AliasId::${alias.camel_case})
-                            },
-                        % endfor
-                    % endfor
+                % for property in properties:
+                "${property.name}" => PropertyId::${kind}(${kind}Id::${property.camel_case}),
+                % for alias in property.alias:
+                "${alias.name}" => {
+                    PropertyId::${kind}Alias(
+                        ${kind}Id::${property.camel_case},
+                        AliasId::${alias.camel_case},
+                    )
+                },
+                % endfor
+                % endfor
                 % endfor
             }
         }
 
-        Ok(match static_id(property_name) {
-            Some(&StaticId::Longhand(id)) => {
-                PropertyId::Longhand(id)
-            },
-            Some(&StaticId::Shorthand(id)) => {
-                PropertyId::Shorthand(id)
-            },
-            Some(&StaticId::LonghandAlias(id, alias)) => {
-                PropertyId::LonghandAlias(id, alias)
-            },
-            Some(&StaticId::ShorthandAlias(id, alias)) => {
-                PropertyId::ShorthandAlias(id, alias)
-            },
-            None => {
-                let name = ::custom_properties::parse_name(property_name)?;
-                PropertyId::Custom(::custom_properties::Name::from(name))
-            },
-        })
+        if let Some(id) = property_id(property_name) {
+            return Ok(id.clone())
+        }
+
+        let name = ::custom_properties::parse_name(property_name)?;
+        Ok(PropertyId::Custom(::custom_properties::Name::from(name)))
     }
 
     /// Parses a property name, and returns an error if it's unknown or isn't
@@ -3137,7 +3114,8 @@ pub enum StyleStructRef<'a, T: 'static> {
 }
 
 impl<'a, T: 'a> StyleStructRef<'a, T>
-    where T: Clone,
+where
+    T: Clone,
 {
     /// Ensure a mutable reference of this value exists, either cloning the
     /// borrowed value, or returning the owned one.
@@ -3149,6 +3127,22 @@ impl<'a, T: 'a> StyleStructRef<'a, T>
         match *self {
             StyleStructRef::Owned(ref mut v) => v,
             StyleStructRef::Borrowed(..) => unreachable!(),
+            StyleStructRef::Vacated => panic!("Accessed vacated style struct")
+        }
+    }
+
+    /// Whether this is pointer-equal to the struct we're going to copy the
+    /// value from.
+    ///
+    /// This is used to avoid allocations when people write stuff like `font:
+    /// inherit` or such `all: initial`.
+    #[inline]
+    pub fn ptr_eq(&self, struct_to_copy_from: &T) -> bool {
+        match *self {
+            StyleStructRef::Owned(..) => false,
+            StyleStructRef::Borrowed(arc) => {
+                &**arc as *const T == struct_to_copy_from as *const T
+            }
             StyleStructRef::Vacated => panic!("Accessed vacated style struct")
         }
     }
@@ -3281,15 +3275,6 @@ impl<'a> StyleBuilder<'a> {
         let reset_style = device.default_computed_values();
         let inherited_style = parent_style.unwrap_or(reset_style);
         let inherited_style_ignoring_first_line = parent_style_ignoring_first_line.unwrap_or(reset_style);
-        // FIXME(bz): inherits_all seems like a fundamentally broken idea.  I'm
-        // 99% sure it should give incorrect behavior for table anonymous box
-        // backgrounds, for example.  This code doesn't attempt to make it play
-        // nice with inherited_style_ignoring_first_line.
-        let reset_style = if pseudo.map_or(false, |p| p.inherits_all()) {
-            inherited_style
-        } else {
-            reset_style
-        };
 
         let flags = inherited_style.flags.inherited();
 
@@ -3388,6 +3373,10 @@ impl<'a> StyleBuilder<'a> {
         self.flags.insert(ComputedValueFlags::INHERITS_DISPLAY);
         % endif
 
+        if self.${property.style_struct.ident}.ptr_eq(inherited_struct) {
+            return;
+        }
+
         self.${property.style_struct.ident}.mutate()
             .copy_${property.ident}_from(
                 inherited_struct,
@@ -3407,10 +3396,10 @@ impl<'a> StyleBuilder<'a> {
         self.modified_reset = true;
         % endif
 
-        // TODO(emilio): There's a maybe-worth it optimization here: We should
-        // avoid allocating a new reset struct if `reset_struct` and our struct
-        // is the same pointer. Would remove a bunch of stupid allocations if
-        // you did something like `* { all: initial }` or what not.
+        if self.${property.style_struct.ident}.ptr_eq(reset_struct) {
+            return;
+        }
+
         self.${property.style_struct.ident}.mutate()
             .reset_${property.ident}(
                 reset_struct,

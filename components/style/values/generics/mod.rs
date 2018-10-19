@@ -27,6 +27,7 @@ pub mod font;
 pub mod gecko;
 pub mod grid;
 pub mod image;
+pub mod length;
 pub mod position;
 pub mod rect;
 pub mod size;

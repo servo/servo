@@ -57,15 +57,6 @@ impl PseudoElement {
         PseudoElementCascadeType::Lazy
     }
 
-    /// Whether cascading this pseudo-element makes it inherit all properties,
-    /// even reset ones.
-    ///
-    /// This is used in Servo for anonymous boxes, though it's likely broken.
-    #[inline]
-    pub fn inherits_all(&self) -> bool {
-        false
-    }
-
     /// Whether the pseudo-element should inherit from the default computed
     /// values instead of from the parent element.
     ///

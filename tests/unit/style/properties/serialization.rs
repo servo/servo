@@ -611,60 +611,6 @@ mod shorthand_serialization {
         }
     }
 
-    mod transform {
-        pub use super::*;
-        use style::values::generics::transform::TransformOperation;
-        use style::values::specified::{Angle, Number};
-        use style::values::specified::transform::TransformOperation as SpecifiedOperation;
-
-        #[test]
-        fn should_serialize_none_correctly() {
-            use style::properties::longhands::transform;
-
-            assert_roundtrip_with_context!(transform::parse, "none");
-        }
-
-        #[inline(always)]
-        fn validate_serialization(op: &SpecifiedOperation, expected_string: &'static str) {
-            let css_string = op.to_css_string();
-            assert_eq!(css_string, expected_string);
-        }
-
-        #[test]
-        fn transform_scale() {
-            validate_serialization(&TransformOperation::Scale(Number::new(1.3), None), "scale(1.3)");
-            validate_serialization(
-                &TransformOperation::Scale(Number::new(2.0), Some(Number::new(2.0))),
-                "scale(2, 2)");
-            validate_serialization(&TransformOperation::ScaleX(Number::new(42.0)), "scaleX(42)");
-            validate_serialization(&TransformOperation::ScaleY(Number::new(0.3)), "scaleY(0.3)");
-            validate_serialization(&TransformOperation::ScaleZ(Number::new(1.0)), "scaleZ(1)");
-            validate_serialization(
-                &TransformOperation::Scale3D(Number::new(4.0), Number::new(5.0), Number::new(6.0)),
-                "scale3d(4, 5, 6)");
-        }
-
-        #[test]
-        fn transform_skew() {
-            validate_serialization(
-                &TransformOperation::Skew(Angle::from_degrees(42.3, false), None),
-                "skew(42.3deg)");
-            validate_serialization(
-                &TransformOperation::Skew(Angle::from_gradians(-50.0, false), Some(Angle::from_turns(0.73, false))),
-                "skew(-50grad, 0.73turn)");
-            validate_serialization(
-                &TransformOperation::SkewX(Angle::from_radians(0.31, false)), "skewX(0.31rad)");
-        }
-
-        #[test]
-        fn transform_rotate() {
-            validate_serialization(
-                &TransformOperation::Rotate(Angle::from_turns(35.0, false)),
-                "rotate(35turn)"
-            )
-        }
-    }
-
     mod quotes {
         pub use super::*;
 

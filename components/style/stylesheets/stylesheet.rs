@@ -374,7 +374,6 @@ impl Stylesheet {
         );
 
         let rule_parser = TopLevelRuleParser {
-            stylesheet_origin: origin,
             shared_lock,
             loader: stylesheet_loader,
             context,

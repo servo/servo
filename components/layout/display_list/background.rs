@@ -553,12 +553,12 @@ pub fn convert_linear_gradient(
     let angle = match direction {
         LineDirection::Angle(angle) => angle.radians(),
         LineDirection::Horizontal(x) => match x {
-            X::Left => Angle::Deg(270.).radians(),
-            X::Right => Angle::Deg(90.).radians(),
+            X::Left => Angle::from_degrees(270.).radians(),
+            X::Right => Angle::from_degrees(90.).radians(),
         },
         LineDirection::Vertical(y) => match y {
-            Y::Top => Angle::Deg(0.).radians(),
-            Y::Bottom => Angle::Deg(180.).radians(),
+            Y::Top => Angle::from_degrees(0.).radians(),
+            Y::Bottom => Angle::from_degrees(180.).radians(),
         },
         LineDirection::Corner(horizontal, vertical) => {
             // This the angle for one of the diagonals of the box. Our angle
