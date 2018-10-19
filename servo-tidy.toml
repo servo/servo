@@ -44,7 +44,6 @@ packages = [
   "quote",
   "rand",
   "syn",
-  "proc-macro2",
   "unicase",
   "winapi",
 ]

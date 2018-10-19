@@ -3,7 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use cookie_rs;
-//use hyper::header::{Header, SetCookie};
 use net::cookie::Cookie;
 use net::cookie_storage::CookieStorage;
 use net_traits::CookieSource;

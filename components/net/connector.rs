@@ -17,6 +17,8 @@ use std::io::{Cursor, Read};
 use tokio::prelude::{Async, Stream};
 use tokio::prelude::future::Executor;
 
+pub const BUF_SIZE: usize = 32768;
+
 pub struct HttpConnector {
     inner: HyperHttpConnector
 }
@@ -82,7 +84,7 @@ impl Stream for WrappedBody {
                     match self.decoder {
                         Decoder::Plain => chunk,
                         Decoder::Gzip(Some(ref mut decoder)) => {
-                            let mut buf = vec![0; 32768];
+                            let mut buf = vec![0; BUF_SIZE];
                             *decoder.get_mut() = Cursor::new(chunk.into_bytes());
                             if let Ok(len) = decoder.read(&mut buf) {
                                 buf.truncate(len);
@@ -90,7 +92,7 @@ impl Stream for WrappedBody {
                             buf.into()
                         }
                         Decoder::Gzip(None) => {
-                            let mut buf = vec![0; 32768];
+                            let mut buf = vec![0; BUF_SIZE];
                             let mut decoder = GzDecoder::new(Cursor::new(chunk.into_bytes()));
                             if let Ok(len) = decoder.read(&mut buf) {
                                 buf.truncate(len);
@@ -99,7 +101,7 @@ impl Stream for WrappedBody {
                             buf.into()
                         }
                         Decoder::Deflate(ref mut decoder) => {
-                            let mut buf = vec![0; 32768];
+                            let mut buf = vec![0; BUF_SIZE];
                             *decoder.get_mut() = Cursor::new(chunk.into_bytes());
                             if let Ok(len) = decoder.read(&mut buf) {
                                 buf.truncate(len);
@@ -107,7 +109,7 @@ impl Stream for WrappedBody {
                             buf.into()
                         }
                         Decoder::Brotli(ref mut decoder) => {
-                            let mut buf = vec![0; 32768];
+                            let mut buf = vec![0; BUF_SIZE];
                             decoder.get_mut().get_mut().extend(&chunk.into_bytes());
                             if let Ok(len) = decoder.read(&mut buf) {
                                 buf.truncate(len);

@@ -261,8 +261,7 @@ impl Response {
                         header => {
                             let access = old_headers.typed_get::<AccessControlExposeHeaders>();
                             let result = access
-                                .map(|v| v.iter().find(|h| *header == h.as_str().to_ascii_lowercase()))
-                                .unwrap_or(None);
+                                .and_then(|v| v.iter().find(|h| *header == h.as_str().to_ascii_lowercase()));
                             result.is_some()
                         }
                     }

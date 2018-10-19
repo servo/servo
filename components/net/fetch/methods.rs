@@ -624,7 +624,7 @@ fn scheme_fetch(request: &mut Request,
 /// <https://fetch.spec.whatwg.org/#cors-safelisted-request-header>
 pub fn is_cors_safelisted_request_header(name: &HeaderName, value: &HeaderValue) -> bool {
     if name == header::CONTENT_TYPE {
-        if let Ok(m) = value.to_str().unwrap_or("").parse::<Mime>() { // XXX: Might be wrong
+        if let Some(m) = value.to_str().ok().and_then(|s| s.parse::<Mime>().ok()) {
             m.type_() == mime::TEXT && m.subtype() == mime::PLAIN ||
             m.type_() == mime::APPLICATION && m.subtype() == mime::WWW_FORM_URLENCODED ||
             m.type_() == mime::MULTIPART && m.subtype() == mime::FORM_DATA
@@ -659,8 +659,8 @@ fn is_null_body_status(status: &Option<(StatusCode, String)>) -> bool {
 pub fn should_be_blocked_due_to_nosniff(destination: Destination, response_headers: &HeaderMap) -> bool {
     // Steps 1-3.
     // TODO(eijebong): Replace this once typed headers allow custom ones...
-    if response_headers.get("x-content-type-options").map(|val| val.to_str().unwrap_or("").to_lowercase() != "nosniff")
-        .unwrap_or(true)
+    if response_headers.get("x-content-type-options")
+		.map_or(true, |val| val.to_str().unwrap_or("").to_lowercase() != "nosniff")
     {
         return false;
     }

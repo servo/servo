@@ -4,7 +4,7 @@
 
 use brotli::Decompressor;
 use bytes::Bytes;
-use connector::{Connector, create_http_client, WrappedBody};
+use connector::{BUF_SIZE, Connector, create_http_client, WrappedBody};
 use cookie;
 use cookie_storage::CookieStorage;
 use devtools_traits::{ChromeToDevtoolsControlMsg, DevtoolsControlMsg, HttpRequest as DevtoolsHttpRequest};
@@ -54,9 +54,9 @@ use tokio::runtime::Runtime;
 use uuid;
 
 lazy_static! {
-        pub static ref HANDLE: Mutex<Runtime> = {
-            Mutex::new(Runtime::new().unwrap())
-        };
+    pub static ref HANDLE: Mutex<Runtime> = {
+        Mutex::new(Runtime::new().unwrap())
+    };
 }
 
 pub struct HttpState {
@@ -251,7 +251,7 @@ impl Decoder {
                 Decoder::Deflate(DeflateDecoder::new(Cursor::new(Bytes::new())))
             }
             else if encoding.contains("br") {
-                Decoder::Brotli(Decompressor::new(Cursor::new(Bytes::new()), 1024))
+                Decoder::Brotli(Decompressor::new(Cursor::new(Bytes::new()), BUF_SIZE))
             } else {
                 Decoder::Plain
             }
@@ -518,7 +518,7 @@ pub fn http_fetch(request: &mut Request,
         // Substep 2-3.
         let location = response.actual_response().headers.get(header::LOCATION)
             .and_then(|v| HeaderValue::to_str(v).map(|l| {
-                    ServoUrl::parse_with_base(response.actual_response().url(), &l)
+                ServoUrl::parse_with_base(response.actual_response().url(), &l)
                     .map_err(|err| err.description().into())
                 }).ok()
             );
@@ -608,9 +608,9 @@ pub fn http_redirect_fetch(request: &mut Request,
     }
 
     // Step 11
-    if response.actual_response().status.clone().map_or(false, |(code, _)|
-        ((code == StatusCode::MOVED_PERMANENTLY || code == StatusCode::FOUND) && request.method == Method::POST) ||
-        (code == StatusCode::SEE_OTHER && request.method != Method::HEAD)) {
+    if response.actual_response().status.as_ref().map_or(false, |(code, _)|
+        ((*code == StatusCode::MOVED_PERMANENTLY || *code == StatusCode::FOUND) && request.method == Method::POST) ||
+        (*code == StatusCode::SEE_OTHER && request.method != Method::HEAD)) {
         request.method = Method::GET;
         request.body = None;
     }
@@ -631,7 +631,6 @@ pub fn http_redirect_fetch(request: &mut Request,
 
     main_fetch(request, cache, cors_flag, recursive_flag, target, done_chan, context)
 }
-
 
 fn try_immutable_origin_to_hyper_origin(url_origin: &ImmutableOrigin) -> Option<HyperOrigin> {
     match *url_origin {
@@ -785,9 +784,9 @@ fn http_network_or_cache_fetch(request: &mut Request,
             if authentication_fetch_flag && authorization_value.is_none() {
                 if has_credentials(&current_url) {
                     authorization_value = Some(Authorization::basic(
-                            current_url.username(),
-                            current_url.password().unwrap_or("")
-                        ));
+                        current_url.username(),
+                        current_url.password().unwrap_or("")
+                    ));
                 }
             }
 
@@ -1008,11 +1007,12 @@ fn http_network_fetch(request: &Request,
         Err(error) => return Response::network_error(error),
     };
 
+    if log_enabled!(log::Level::Info) {
         info!("response for {}", url);
         for header in res.headers().iter() {
             info!(" - {:?}", header);
         }
-
+    }
 
     let mut response = Response::new(url.clone());
     response.status = Some((res.status(), res.status().canonical_reason().unwrap_or("").into()));

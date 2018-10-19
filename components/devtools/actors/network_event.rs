@@ -376,8 +376,8 @@ impl NetworkEventActor {
         // TODO: Send the correct values for all these fields.
         let hSizeOption = self.response.headers.as_ref().map(|headers| headers.len());
         let hSize = hSizeOption.unwrap_or(0);
-        let (status_code, status_message) = self.response.status.as_ref().
-                map_or((0, "".to_owned()), |(code, text)| (code.as_u16(), text.clone()));
+        let (status_code, status_message) = self.response.status.as_ref()
+            .map_or((0, "".to_owned()), |(code, text)| (code.as_u16(), text.clone()));
         // TODO: Send the correct values for remoteAddress and remotePort and http_version.
         ResponseStartMsg {
             httpVersion: "HTTP/1.1".to_owned(),

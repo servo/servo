@@ -69,7 +69,6 @@ use tokio::net::TcpListener;
 use tokio::runtime::Runtime;
 use tokio_openssl::SslAcceptorExt;
 
-
 lazy_static! {
         pub static ref HANDLE: Mutex<Runtime> = {
             Mutex::new(Runtime::new().unwrap())

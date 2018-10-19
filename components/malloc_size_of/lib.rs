@@ -1006,7 +1006,7 @@ impl<T> MallocSizeOf for servo_channel::Sender<T> {
 #[cfg(feature = "servo")]
 impl MallocSizeOf for hyper::StatusCode {
     fn size_of(&self, _ops: &mut MallocSizeOfOps) -> usize {
-        2
+        0
     }
 }
 

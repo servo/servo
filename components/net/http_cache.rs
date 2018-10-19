@@ -439,19 +439,13 @@ fn handle_range_request(request: &Request,
             for partial_resource in partial_cached_resources {
                 let headers = partial_resource.data.metadata.headers.lock().unwrap();
                 let content_range = headers.typed_get::<ContentRange>();
-                let (res_beginning, res_end, total) = match content_range {
-                    Some(range) => {
-                        if let Some(bytes_range) = range.bytes_range() {
-                            if let Some(total) = range.bytes_len() {
-                                (bytes_range.0, bytes_range.1, total)
-                            } else {
-                                continue
-                            }
-                        } else {
-                            continue
-                        }
-                    },
-                    _ => continue,
+                let (res_beginning, res_end, total) = if let Some(range) = content_range {
+                    match (range.bytes_range(), range.bytes_len()) {
+                        (Some(bytes_range), Some(total)) => (bytes_range.0, bytes_range.1, total),
+                        _ => continue,
+                    }
+                } else {
+                    continue;
                 };
                 if res_beginning < beginning && res_end == total - 1 {
                     let resource_body = &*partial_resource.body.lock().unwrap();
@@ -486,19 +480,13 @@ fn handle_range_request(request: &Request,
             for partial_resource in partial_cached_resources {
                 let headers = partial_resource.data.metadata.headers.lock().unwrap();
                 let content_range = headers.typed_get::<ContentRange>();
-                let (res_beginning, res_end, total) = match content_range {
-                    Some(range) => {
-                        if let Some(bytes_range) = range.bytes_range() {
-                            if let Some(total) = range.bytes_len() {
-                                (bytes_range.0, bytes_range.1, total)
-                            } else {
-                                continue
-                            }
-                        } else {
-                            continue
-                        }
-                    },
-                    _ => continue,
+                let (res_beginning, res_end, total) = if let Some(range) = content_range {
+                    match (range.bytes_range(), range.bytes_len()) {
+                        (Some(bytes_range), Some(total)) => (bytes_range.0, bytes_range.1, total),
+                        _ => continue,
+                    }
+                } else {
+                    continue;
                 };
                 if (total - res_beginning) > (offset - 1 ) && (total - res_end) < offset + 1 {
                     let resource_body = &*partial_resource.body.lock().unwrap();

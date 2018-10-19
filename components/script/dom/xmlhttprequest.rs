@@ -1383,7 +1383,7 @@ impl XMLHttpRequest {
         use http::header::{self, HeaderName};
 
         let mut headers = self.response_headers.borrow().clone();
-        let _ = headers.remove(header::SET_COOKIE);
+        headers.remove(header::SET_COOKIE);
         headers.remove(HeaderName::from_static("set-cookie2"));
         // XXXManishearth additional CORS filtering goes here
         headers
