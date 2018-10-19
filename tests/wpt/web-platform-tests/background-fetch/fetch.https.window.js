@@ -265,8 +265,8 @@ backgroundFetchTest(async (test, backgroundFetch) => {
 
 backgroundFetchTest(async (test, backgroundFetch) => {
   const registration = await backgroundFetch.fetch(
-                         'my-id',
-                         ['https://example.com', 'http://example.com']);
+      'my-id',
+      [location.origin, location.origin.replace('https', 'http')]);
 
   const {type, eventRegistration, results} = await getMessageFromServiceWorker();
 
@@ -274,7 +274,11 @@ backgroundFetchTest(async (test, backgroundFetch) => {
   assert_equals(eventRegistration.failureReason, 'fetch-error');
 
   assert_equals(results.length, 2);
-  assert_true(results[0].url.includes('https://example.com'));
-  assert_equals(results[1].url, '');
+
+  const validResponse = results[0] ? results[0] : results[1];
+  const nullResponse = !results[0] ? results[0] : results[1];
+
+  assert_true(validResponse.url.includes(location.origin));
+  assert_equals(nullResponse, null);
 
 }, 'Fetches with mixed content should fail.');

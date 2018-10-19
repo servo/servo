@@ -150,7 +150,7 @@ def run_tests(config, test_paths, product, **kwargs):
         if kwargs["install_fonts"]:
             env_extras.append(FontInstaller(
                 font_dir=kwargs["font_dir"],
-                ahem=os.path.join(kwargs["tests_root"], "fonts/Ahem.ttf")
+                ahem=os.path.join(test_paths["/"]["tests_path"], "fonts/Ahem.ttf")
             ))
 
         run_info, test_loader = get_loader(test_paths,

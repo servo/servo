@@ -73,11 +73,15 @@ function getLoadedWindowAsObject(win) {
     });
 }
 
-async_test(function(t) {
+promise_test(function(t) {
     var scope = 'resources/fetch-frame-resource/frame-basic';
     var frame;
-    service_worker_unregister_and_register(t, worker, scope)
+    return service_worker_unregister_and_register(t, worker, scope)
       .then(function(reg) {
+          t.add_cleanup(function() {
+              return service_worker_unregister(t, scope);
+            });
+
           return wait_for_state(t, reg.installing, 'activated');
         })
       .then(function() {
@@ -94,16 +98,18 @@ async_test(function(t) {
             'success',
             'Basic type response could be loaded in the iframe.');
           frame.remove();
-          return service_worker_unregister_and_done(t, scope);
-        })
-      .catch(unreached_rejection(t));
+        });
   }, 'Basic type response could be loaded in the iframe.');
 
-async_test(function(t) {
+promise_test(function(t) {
     var scope = 'resources/fetch-frame-resource/frame-cors';
     var frame;
-    service_worker_unregister_and_register(t, worker, scope)
+    return service_worker_unregister_and_register(t, worker, scope)
       .then(function(reg) {
+          t.add_cleanup(function() {
+              return service_worker_unregister(t, scope);
+            });
+
           return wait_for_state(t, reg.installing, 'activated');
         })
       .then(function() {
@@ -122,16 +128,18 @@ async_test(function(t) {
             'success',
             'CORS type response could be loaded in the iframe.');
           frame.remove();
-          return service_worker_unregister_and_done(t, scope);
-        })
-      .catch(unreached_rejection(t));
+        });
   }, 'CORS type response could be loaded in the iframe.');
 
-async_test(function(t) {
+promise_test(function(t) {
     var scope = 'resources/fetch-frame-resource/frame-opaque';
     var frame;
-    service_worker_unregister_and_register(t, worker, scope)
+    return service_worker_unregister_and_register(t, worker, scope)
       .then(function(reg) {
+          t.add_cleanup(function() {
+              return service_worker_unregister(t, scope);
+            });
+
           return wait_for_state(t, reg.installing, 'activated');
         })
       .then(function() {
@@ -148,15 +156,17 @@ async_test(function(t) {
             null,
             'Opaque type response could not be loaded in the iframe.');
           frame.remove();
-          return service_worker_unregister_and_done(t, scope);
-        })
-      .catch(unreached_rejection(t));
+        });
   }, 'Opaque type response could not be loaded in the iframe.');
 
-async_test(function(t) {
+promise_test(function(t) {
     var scope = 'resources/fetch-frame-resource/window-basic';
-    service_worker_unregister_and_register(t, worker, scope)
+    return service_worker_unregister_and_register(t, worker, scope)
       .then(function(reg) {
+          t.add_cleanup(function() {
+              return service_worker_unregister(t, scope);
+            });
+
           return wait_for_state(t, reg.installing, 'activated');
         })
       .then(function() {
@@ -170,15 +180,17 @@ async_test(function(t) {
             result.jsonpResult,
             'success',
             'Basic type response could be loaded in the new window.');
-          return service_worker_unregister_and_done(t, scope);
-        })
-      .catch(unreached_rejection(t));
+        });
   }, 'Basic type response could be loaded in the new window.');
 
-async_test(function(t) {
+promise_test(function(t) {
     var scope = 'resources/fetch-frame-resource/window-cors';
-    service_worker_unregister_and_register(t, worker, scope)
+    return service_worker_unregister_and_register(t, worker, scope)
       .then(function(reg) {
+          t.add_cleanup(function() {
+              return service_worker_unregister(t, scope);
+            });
+
           return wait_for_state(t, reg.installing, 'activated');
         })
       .then(function() {
@@ -194,15 +206,17 @@ async_test(function(t) {
             result.jsonpResult,
             'success',
             'CORS type response could be loaded in the new window.');
-          return service_worker_unregister_and_done(t, scope);
-        })
-      .catch(unreached_rejection(t));
+        });
   }, 'CORS type response could be loaded in the new window.');
 
-async_test(function(t) {
+promise_test(function(t) {
     var scope = 'resources/fetch-frame-resource/window-opaque';
-    service_worker_unregister_and_register(t, worker, scope)
+    return service_worker_unregister_and_register(t, worker, scope)
       .then(function(reg) {
+          t.add_cleanup(function() {
+              return service_worker_unregister(t, scope);
+            });
+
           return wait_for_state(t, reg.installing, 'activated');
         })
       .then(function() {
@@ -216,9 +230,7 @@ async_test(function(t) {
             result,
             null,
             'Opaque type response could not be loaded in the new window.');
-          return service_worker_unregister_and_done(t, scope);
-        })
-      .catch(unreached_rejection(t));
+        });
   }, 'Opaque type response could not be loaded in the new window.');
 </script>
 </body>

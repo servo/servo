@@ -55,6 +55,10 @@ assert_valid("<number>", "-109");
 assert_valid("<number>", "2.3e4");
 assert_valid("<integer>", "-109");
 assert_valid("<integer>", "19");
+assert_valid("<integer>", "calc(1)");
+assert_valid("<integer>", "calc(1 + 2)");
+assert_valid("<integer>", "calc(3.1415)");
+assert_valid("<integer>", "calc(3.1415 + 3.1415)");
 
 assert_valid("<angle>", "10deg");
 assert_valid("<angle>", "20.5rad");

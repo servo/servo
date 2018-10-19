@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>Interpolated &lt;number&gt; values reach worklet</title>
+<link rel="help" href="https://www.w3.org/TR/css-paint-api-1/#examples">
+<link rel="match" href="parse-input-arguments-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/worklet-reftest.js"></script>
+<script src="./resources/utils.js"></script>
+<body>
+<div id="target"></div>
+<script>
+    try {
+      registerAndInterpolateProperty({
+        on: target, from: '8.5', to: '16.5',
+        name: '--prop', syntax: '<number>'
+      });
+
+      expectWorkletValue(target, '--prop', '[CSSUnitValue 12.5]');
+    } catch(e) {
+      document.body.textContent = e;
+      takeScreenshot();
+    }
+</script>
+</body>
+</html>

@@ -376,7 +376,6 @@ class Session(object):
         self.timeouts = None
         self.window = None
         self.find = None
-        self._element_cache = {}
         self.extension = None
         self.extension_cls = extension
 
@@ -669,10 +668,6 @@ class Element(object):
         self.id = id
         self.session = session
 
-        if id in self.session._element_cache:
-            raise ValueError("Element already in cache: %s" % id)
-        self.session._element_cache[self.id] = self
-
     def __repr__(self):
         return "<%s %s>" % (self.__class__.__name__, self.id)
 
@@ -683,8 +678,6 @@ class Element(object):
     @classmethod
     def from_json(cls, json, session):
         uuid = json[Element.identifier]
-        if uuid in session._element_cache:
-            return session._element_cache[uuid]
         return cls(uuid, session)
 
     def send_element_command(self, method, uri, body=None):

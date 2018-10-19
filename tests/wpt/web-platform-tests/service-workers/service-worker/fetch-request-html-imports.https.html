@@ -5,12 +5,16 @@
 <script src="/common/get-host-info.sub.js"></script>
 <script src="resources/test-helpers.sub.js"></script>
 <script>
-async_test(function(t) {
+promise_test(function(t) {
     var SCOPE = 'resources/fetch-request-html-imports-iframe.html';
     var SCRIPT = 'resources/fetch-request-html-imports-worker.js';
     var host_info = get_host_info();
-    service_worker_unregister_and_register(t, SCRIPT, SCOPE)
+    return service_worker_unregister_and_register(t, SCRIPT, SCOPE)
       .then(function(registration) {
+          t.add_cleanup(function() {
+              return service_worker_unregister(t, SCOPE);
+            });
+
           return wait_for_state(t, registration.installing, 'activated');
         })
       .then(function() { return with_iframe(SCOPE); })
@@ -56,9 +60,6 @@ async_test(function(t) {
               'mode=cors credentials=same-origin',
               'The request mode and credentials for other origin HTMLImport ' +
               'from other origin HTMLImport must be set correctly.');
-
-          service_worker_unregister_and_done(t, SCOPE);
-        })
-      .catch(unreached_rejection(t));
+        });
   }, 'Verify the FetchEvent for HTMLImports');
 </script>

@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>Values of lists reach worklet</title>
+<link rel="help" href="https://www.w3.org/TR/css-paint-api-1/#examples">
+<link rel="match" href="parse-input-arguments-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/worklet-reftest.js"></script>
+<script src="./resources/utils.js"></script>
+<body>
+<div id="target"></div>
+<script>
+    try {
+      CSS.registerProperty({
+        name: '--prop-1',
+        syntax: '<length>+ | none',
+        initialValue: 'none',
+        inherits: false
+      });
+
+      CSS.registerProperty({
+        name: '--prop-2',
+        syntax: '<length># | none',
+        initialValue: 'none',
+        inherits: false
+      });
+
+      CSS.registerProperty({
+        name: '--prop-3',
+        syntax: '<length># | none',
+        initialValue: 'none',
+        inherits: false
+      });
+
+      target.style.setProperty('--prop-1', '8px 16px');
+      target.style.setProperty('--prop-2', '8px, 16px');
+      target.style.setProperty('--prop-3', '8px');
+
+      expectWorkletValues(target, {
+        '--prop-1': ['[CSSUnitValue 8px]', '[CSSUnitValue 16px]'],
+        '--prop-2': ['[CSSUnitValue 8px]', '[CSSUnitValue 16px]'],
+        '--prop-3': ['[CSSUnitValue 8px]'],
+      });
+    } catch(e) {
+      document.body.textContent = e;
+      takeScreenshot();
+    }
+</script>
+</body>
+</html>

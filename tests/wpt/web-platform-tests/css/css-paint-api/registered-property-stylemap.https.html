@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>Test styleMap functions</title>
+<link rel="help" href="https://www.w3.org/TR/css-paint-api-1/#examples">
+<link rel="match" href="parse-input-arguments-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/worklet-reftest.js"></script>
+<script src="./resources/utils.js"></script>
+<body>
+<style>
+  #target {
+    width: 100px;
+    height: 100px;
+    background: paint(style-map);
+  }
+</style>
+<div id="target"></div>
+<script>
+    try {
+      CSS.registerProperty({
+        name: '--prop',
+        syntax: '<length>+',
+        initialValue: '10px 10px 10px 10px',
+        inherits: false
+      });
+
+      const worklet = `
+        registerPaint('style-map', class {
+          static get inputProperties() { return ['--prop']; }
+          paint(ctx, geom, styleMap) {
+            let serialize = (v) => '[' + v.constructor.name + ' ' + v.toString() + ']';
+            let expected = '[CSSUnitValue 10px]';
+            let isExpected = x => serialize(x) === expected;
+
+            let pass = true;
+
+            pass &= styleMap.has('--prop');
+            pass &= isExpected(styleMap.get('--prop'));
+            pass &= styleMap.getAll('--prop').length == 4;
+            pass &= styleMap.getAll('--prop').every(isExpected);
+            pass &= Array.from(styleMap).filter(e => e[0] == '--prop')[0][1].length == 4;
+            pass &= Array.from(styleMap).filter(e => e[0] == '--prop')[0][1].every(isExpected);
+
+            ctx.strokeStyle = pass ? 'green' : 'red';
+            ctx.lineWidth = 4;
+            ctx.strokeRect(0, 0, geom.width, geom.height);
+          }
+        });`
+
+        importWorkletAndTerminateTestAfterAsyncPaint(CSS.paintWorklet, worklet);
+    } catch(e) {
+      document.body.textContent = e;
+      takeScreenshot();
+    }
+</script>
+</body>
+</html>

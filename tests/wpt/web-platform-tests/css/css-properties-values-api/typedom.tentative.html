@@ -382,8 +382,8 @@ test_style_property_map_set({
 test_style_property_map_set({
     syntax: '<integer>',
     initialValue: '0',
-    shouldAccept: [CSS.number(1), CSS.number(-42), '1', '-42'],
-    shouldReject: [unparsed('42'), CSS.px(100), '50px', [CSS.number(42), '42']],
+    shouldAccept: [CSS.number(1), CSS.number(-42), '1', '-42', 'calc(2.4)'],
+    shouldReject: [unparsed('42'), CSS.px(100), '50px', [CSS.number(42), '42'], 'calc(2px + 1px)'],
 });
 
 test_style_property_map_set({
@@ -482,8 +482,8 @@ test_style_property_map_set({
 test_style_property_map_set({
     syntax: '<integer>+',
     initialValue: '0',
-    shouldAccept: [CSS.number(42), [CSS.number(42), '42'], '42 42'],
-    shouldReject: [[CSS.number(42), keyword('noint')], '42 noint'],
+    shouldAccept: [CSS.number(42), [CSS.number(42), '42'], '42 42', 'calc(2.4) calc(2.6)'],
+    shouldReject: [[CSS.number(42), keyword('noint')], '42 noint', 'calc(2px + 2px)'],
 });
 
 test_style_property_map_set({

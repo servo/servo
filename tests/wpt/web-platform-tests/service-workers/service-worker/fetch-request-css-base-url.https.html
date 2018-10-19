@@ -5,7 +5,7 @@
 <script src="/common/get-host-info.sub.js"></script>
 <script src="resources/test-helpers.sub.js?pipe=sub"></script>
 <script>
-async_test(function(t) {
+promise_test(function(t) {
     var SCOPE = 'resources/fetch-request-css-base-url-iframe.html';
     var SCRIPT = 'resources/fetch-request-css-base-url-worker.js';
     var worker;
@@ -13,6 +13,10 @@ async_test(function(t) {
 
     return service_worker_unregister_and_register(t, SCRIPT, SCOPE)
       .then(function(registration) {
+          t.add_cleanup(function() {
+              return service_worker_unregister(t, SCOPE);
+            });
+
           worker = registration.installing;
           return wait_for_state(t, worker, 'activated');
         })
@@ -48,9 +52,7 @@ async_test(function(t) {
       .then(function(f) {
           return testDonePromise.then(function() {
             f.remove();
-            return service_worker_unregister_and_done(t, SCOPE);
           });
-        })
-      .catch(unreached_rejection(t));
+        });
   }, 'CSS\'s base URL must be the request URL even when fetched from other URL.');
 </script>

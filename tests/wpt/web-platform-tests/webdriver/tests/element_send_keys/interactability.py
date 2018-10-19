@@ -21,11 +21,11 @@ def test_body_is_interactable(session):
     result = session.find.css("input", all=False)
 
     # By default body is the active element
-    assert session.active_element is element
+    assert session.active_element == element
 
     response = element_send_keys(session, element, "foo")
     assert_success(response)
-    assert session.active_element is element
+    assert session.active_element == element
     assert result.property("value") == "foo"
 
 
@@ -41,11 +41,11 @@ def test_document_element_is_interactable(session):
     result = session.find.css("input", all=False)
 
     # By default body is the active element
-    assert session.active_element is body
+    assert session.active_element == body
 
     response = element_send_keys(session, element, "foo")
     assert_success(response)
-    assert session.active_element is element
+    assert session.active_element == element
     assert result.property("value") == "foo"
 
 
@@ -60,11 +60,11 @@ def test_iframe_is_interactable(session):
     frame = session.find.css("iframe", all=False)
 
     # By default the body has the focus
-    assert session.active_element is body
+    assert session.active_element == body
 
     response = element_send_keys(session, frame, "foo")
     assert_success(response)
-    assert session.active_element is frame
+    assert session.active_element == frame
 
     # Any key events are immediately routed to the nested
     # browsing context's active document.
