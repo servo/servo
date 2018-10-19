@@ -1356,11 +1356,11 @@ fn is_matched_operation(first: &ComputedTransformOperation, second: &ComputedTra
          &TransformOperation::RotateZ(..)) |
         (&TransformOperation::Perspective(..),
          &TransformOperation::Perspective(..)) => true,
-        // we animate scale and translate operations against each other
+        // Match functions that have the same primitive transform function
         (a, b) if a.is_translate() && b.is_translate() => true,
         (a, b) if a.is_scale() && b.is_scale() => true,
         (a, b) if a.is_rotate() && b.is_rotate() => true,
-        // InterpolateMatrix and AccumulateMatrix are for mismatched transform.
+        // InterpolateMatrix and AccumulateMatrix are for mismatched transforms
         _ => false
     }
 }
@@ -2468,79 +2468,112 @@ impl Animate for ComputedTransform {
             return Ok(Transform(result));
         }
 
-        // https://drafts.csswg.org/css-transforms-1/#transform-transform-neutral-extend-animation
-        fn match_operations_if_possible<'a>(
-            this: &mut Cow<'a, Vec<ComputedTransformOperation>>,
-            other: &mut Cow<'a, Vec<ComputedTransformOperation>>,
-        ) -> bool {
-            if !this.iter().zip(other.iter()).all(|(this, other)| is_matched_operation(this, other)) {
-                return false;
-            }
+        let this = Cow::Borrowed(&self.0);
+        let other = Cow::Borrowed(&other.0);
 
-            if this.len() == other.len() {
-                return true;
-            }
+        // Interpolate the common prefix
+        let mut result = this
+            .iter()
+            .zip(other.iter())
+            .take_while(|(this, other)| is_matched_operation(this, other))
+            .map(|(this, other)| this.animate(other, procedure))
+            .collect::<Result<Vec<_>, _>>()?;
 
-            let (shorter, longer) =
-                if this.len() < other.len() {
-                    (this.to_mut(), other)
-                } else {
-                    (other.to_mut(), this)
-                };
+        // Deal with the remainders
+        let this_remainder = if this.len() > result.len() {
+            Some(&this[result.len()..])
+        } else {
+            None
+        };
+        let other_remainder = if other.len() > result.len() {
+            Some(&other[result.len()..])
+        } else {
+            None
+        };
 
-            shorter.reserve(longer.len());
-            for op in longer.iter().skip(shorter.len()) {
-                shorter.push(op.to_animated_zero().unwrap());
-            }
-
-            // The resulting operations won't be matched regardless if the
-            // extended component is already InterpolateMatrix /
-            // AccumulateMatrix.
-            //
-            // Otherwise they should be matching operations all the time.
-            let already_mismatched = matches!(
-                longer[0],
-                TransformOperation::InterpolateMatrix { .. } |
-                TransformOperation::AccumulateMatrix { .. }
-            );
-
-            debug_assert_eq!(
-                !already_mismatched,
-                longer.iter().zip(shorter.iter()).all(|(this, other)| is_matched_operation(this, other)),
-                "ToAnimatedZero should generate matched operations"
-            );
-
-            !already_mismatched
-        }
-
-        let mut this = Cow::Borrowed(&self.0);
-        let mut other = Cow::Borrowed(&other.0);
-
-        if match_operations_if_possible(&mut this, &mut other) {
-            return Ok(Transform(
-                this.iter().zip(other.iter())
-                    .map(|(this, other)| this.animate(other, procedure))
-                    .collect::<Result<Vec<_>, _>>()?
-            ));
-        }
-
-        match procedure {
-            Procedure::Add => Err(()),
-            Procedure::Interpolate { progress } => {
-                Ok(Transform(vec![TransformOperation::InterpolateMatrix {
-                    from_list: Transform(this.into_owned()),
-                    to_list: Transform(other.into_owned()),
-                    progress: Percentage(progress as f32),
-                }]))
+        match (this_remainder, other_remainder) {
+            // If there is a remainder from *both* lists we must have had mismatched functions.
+            // => Add the remainders to a suitable ___Matrix function.
+            (Some(this_remainder), Some(other_remainder)) => match procedure {
+                Procedure::Add => {
+                    debug_assert!(false, "Should have already dealt with add by the point");
+                    return Err(());
+                }
+                Procedure::Interpolate { progress } => {
+                    result.push(TransformOperation::InterpolateMatrix {
+                        from_list: Transform(this_remainder.to_vec()),
+                        to_list: Transform(other_remainder.to_vec()),
+                        progress: Percentage(progress as f32),
+                    });
+                }
+                Procedure::Accumulate { count } => {
+                    result.push(TransformOperation::AccumulateMatrix {
+                        from_list: Transform(this_remainder.to_vec()),
+                        to_list: Transform(other_remainder.to_vec()),
+                        count: cmp::min(count, i32::max_value() as u64) as i32,
+                    });
+                }
             },
-            Procedure::Accumulate { count } => {
-                Ok(Transform(vec![TransformOperation::AccumulateMatrix {
-                    from_list: Transform(this.into_owned()),
-                    to_list: Transform(other.into_owned()),
-                    count: cmp::min(count, i32::max_value() as u64) as i32,
-                }]))
-            },
+            // If there is a remainder from just one list, then one list must be shorter but
+            // completely match the type of the corresponding functions in the longer list.
+            // => Interpolate the remainder with identity transforms.
+            (Some(remainder), None) | (None, Some(remainder)) => {
+                let fill_right = this_remainder.is_some();
+                result.append(
+                    &mut remainder
+                        .iter()
+                        .map(|transform| {
+                            let identity = transform.to_animated_zero().unwrap();
+
+                            match transform {
+                                // We can't interpolate/accumulate ___Matrix types directly with a
+                                // matrix. Instead we need to wrap it in another ___Matrix type.
+                                TransformOperation::AccumulateMatrix { .. }
+                                | TransformOperation::InterpolateMatrix { .. } => {
+                                    let transform_list = Transform(vec![transform.clone()]);
+                                    let identity_list = Transform(vec![identity]);
+                                    let (from_list, to_list) = if fill_right {
+                                        (transform_list, identity_list)
+                                    } else {
+                                        (identity_list, transform_list)
+                                    };
+
+                                    match procedure {
+                                        Procedure::Add => Err(()),
+                                        Procedure::Interpolate { progress } => {
+                                            Ok(TransformOperation::InterpolateMatrix {
+                                                from_list,
+                                                to_list,
+                                                progress: Percentage(progress as f32),
+                                            })
+                                        }
+                                        Procedure::Accumulate { count } => {
+                                            Ok(TransformOperation::AccumulateMatrix {
+                                                from_list,
+                                                to_list,
+                                                count: cmp::min(count, i32::max_value() as u64)
+                                                    as i32,
+                                            })
+                                        }
+                                    }
+                                }
+                                _ => {
+                                    let (lhs, rhs) = if fill_right {
+                                        (transform, &identity)
+                                    } else {
+                                        (&identity, transform)
+                                    };
+                                    lhs.animate(rhs, procedure)
+                                }
+                            }
+                        })
+                        .collect::<Result<Vec<_>, _>>()?,
+                );
+            }
+            (None, None) => {}
         }
+
+        Ok(Transform(result))
     }
 }
 
