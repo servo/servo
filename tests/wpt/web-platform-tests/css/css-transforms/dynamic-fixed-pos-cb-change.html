@@ -1,0 +1,65 @@
+<!doctype html>
+<html class="reftest-wait">
+<title>CSS Test: Checks that dynamic changes to whether we're a fixed-pos containing block are handled correctly</title>
+<meta charset="utf-8">
+<link rel="help" href="https://drafts.csswg.org/css-transforms-1/#containing-block-for-all-descendants">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1498873">
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="author" title="Mozilla" href="https://mozilla.org">
+<link rel="match" href="dynamic-fixed-pos-cb-change-ref.html">
+<style>
+html,
+body {
+  height: 100%;
+  overflow: hidden;
+  margin: 0;
+  padding: 0;
+  background-color: #222;
+}
+
+body {
+  display: flex;
+}
+
+#fixed {
+  position: fixed;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  z-index: 1;
+  background: black;
+}
+
+#popup {
+  position: absolute;
+  width: 200px;
+  height: 200px;
+  left: 0;
+  top: 0;
+  z-index: 2;
+  background: red;
+  transform: scale( 1.1111 );
+}
+
+body, #popup {
+  transform-origin: 50% 50%;
+}
+</style>
+<div id="popup">
+  <!-- Seeing this box change color should not move me or change my size. -->
+</div>
+<div id="fixed"></div>
+<script>
+onload = function() {
+  requestAnimationFrame(() => {
+    document.body.style.transform = "scale(0.9)";
+    requestAnimationFrame(() => {
+      popup.style.backgroundColor = "green";
+      requestAnimationFrame(() => {
+        document.documentElement.className = "";
+      });
+    });
+  });
+}
+</script>
