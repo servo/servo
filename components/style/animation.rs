@@ -345,8 +345,8 @@ impl PropertyAnimation {
 
         let property_animation = PropertyAnimation {
             property: animated_property,
-            timing_function,
-            duration,
+            timing_function: timing_function,
+            duration: duration,
         };
 
         if property_animation.does_animate() {
