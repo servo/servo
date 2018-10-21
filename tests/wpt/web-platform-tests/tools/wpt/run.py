@@ -265,6 +265,9 @@ class Chrome(BrowserSetup):
             logger.info("Automatically turning on experimental features for Chrome Dev")
             kwargs["binary_args"].append("--enable-experimental-web-platform-features")
 
+        # Allow audio autoplay without a user gesture.
+        kwargs["binary_args"].append("--autoplay-policy=no-user-gesture-required")
+
         # Allow WebRTC tests to call getUserMedia.
         kwargs["binary_args"] += ["--use-fake-ui-for-media-stream", "--use-fake-device-for-media-stream"]
 

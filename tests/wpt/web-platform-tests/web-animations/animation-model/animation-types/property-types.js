@@ -1473,7 +1473,7 @@ const transformListType = {
                                    Math.cos(Math.PI / 2),
                                    100 * Math.cos(Math.PI / 2),
                                    100 * Math.sin(Math.PI / 2) ] }]);
-    }, `${property}: rotate on roate and translate`);
+    }, `${property}: rotate on rotate and translate`);
 
     test(t => {
       const idlName = propertyToIDL(property);
