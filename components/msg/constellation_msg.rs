@@ -5,18 +5,23 @@
 //! The high-level interface from script to constellation. Using this abstract interface helps
 //! reduce coupling between these two components.
 
-use background_hang_monitor::{BackgroundHangMonitor, BACKTRACE_READY};
-#[cfg(not(windows))]
-use background_hang_monitor::BACKTRACE;
-use backtrace::Backtrace;
+use background_hang_monitor::{BackgroundHangMonitor, MonitoredThreadId};
+#[cfg(not(target_os = "macos"))]
+use background_hang_monitor::{SAMPLEE_CONTEXT_READY, SAMPLEE_MAY_RESUME};
+#[cfg(not(target_os = "macos"))]
+use background_hang_monitor::SAMPLEE_CONTEXT;
 use ipc_channel::ipc::IpcSender;
-#[cfg(not(windows))]
+#[cfg(any(target_os = "android", target_os = "linux"))]
 use libc;
 use servo_channel::{Sender, channel};
-use sig::ffi::Sig;
 use std::cell::Cell;
 use std::fmt;
+#[cfg(any(target_os = "android", target_os = "linux"))]
+use std::mem;
 use std::num::NonZeroU32;
+#[cfg(any(target_os = "android", target_os = "linux"))]
+use std::ptr;
+#[cfg(any(target_os = "android", target_os = "linux"))]
 use std::sync::atomic::Ordering;
 use std::thread;
 use std::time::Duration;
@@ -365,7 +370,13 @@ pub enum HangAlert {
     /// Report a transient hang.
     Transient(MonitoredComponentId, HangAnnotation),
     /// Report a permanent hang.
-    Permanent(MonitoredComponentId, HangAnnotation, String),
+    Permanent(MonitoredComponentId, HangAnnotation, Option<HangProfile>),
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+/// To contain backtrace and other info from the hanging component, as necessary.
+pub struct HangProfile {
+    pub backtrace: Vec<String>
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
@@ -377,7 +388,7 @@ pub enum MonitoredComponentType {
 /// Messages sent from monitored components to the monitor.
 pub enum MonitoredComponentMsg {
     /// Register component for monitoring,
-    Register(libc::pthread_t, Duration, Duration),
+    Register(MonitoredThreadId, Duration, Duration),
     /// Notify start of new activity for a given component,
     NotifyActivity(HangAnnotation),
     /// Notify start of waiting for a new task to come-in for processing.
@@ -458,8 +469,9 @@ pub fn start_monitoring_component(
     let component_id = MonitoredComponentId(pipeline, component_type);
     let bhm_chan = BackgroundHangMonitorChan::new(sender, component_id.clone());
     let thread_id = unsafe {
+        #[cfg(any(target_os = "android", target_os = "linux"))]
         install_sigprof_handler();
-        libc::pthread_self()
+        get_thread_id()
     };
     bhm_chan.send(
         MonitoredComponentMsg::Register(
@@ -471,14 +483,54 @@ pub fn start_monitoring_component(
     bhm_chan
 }
 
+#[cfg(target_os = "macos")]
 #[allow(unsafe_code)]
-#[cfg(not(windows))]
-fn install_sigprof_handler() {
-    fn handler(_sig: i32) {
+unsafe fn get_thread_id() -> MonitoredThreadId {
+    mach::mach_init::mach_thread_self()
+}
+
+#[cfg(target_os = "windows")]
+#[allow(unsafe_code)]
+unsafe fn get_thread_id() -> MonitoredThreadId {
+   0 // TODO: use winapi::um::processthreadsapi::GetThreadId
+}
+
+#[cfg(any(target_os = "android", target_os = "linux"))]
+#[allow(unsafe_code)]
+unsafe fn get_thread_id() -> MonitoredThreadId {
+    libc::pthread_self()
+}
+
+#[cfg(any(target_os = "android", target_os = "linux"))]
+#[allow(unsafe_code)]
+unsafe fn install_sigprof_handler() {
+    fn handler(_sig: i32, _info: libc::siginfo_t, context: libc::ucontext_t) {
         unsafe {
-            BACKTRACE = Some((libc::pthread_self(), Backtrace::new()));
+            SAMPLEE_CONTEXT = Some((libc::pthread_self(), context));
         }
-        BACKTRACE_READY.store(true, Ordering::SeqCst);
+        SAMPLEE_CONTEXT_READY.store(true, Ordering::SeqCst);
+        loop {
+            if SAMPLEE_MAY_RESUME.load(Ordering::SeqCst) {
+                break;
+            }
+            thread::yield_now();
+        }
+        // Reset flag to false for subsequent usage.
+        SAMPLEE_MAY_RESUME.store(false, Ordering::SeqCst)
     }
-    signal!(Sig::PROF, handler);
+
+    // Note: this is equivalent to the "signal" macro from the "sig" crate,
+    // with the addition of the SA_SIGINFO flag,
+    // which gives us the ucontext_t in the handler.
+    let mut sigset = mem::uninitialized();
+
+    if libc::sigfillset(&mut sigset) != -1 {
+        let mut action: libc::sigaction = mem::zeroed();
+
+        action.sa_flags = libc::SA_SIGINFO;
+        action.sa_mask = sigset;
+        action.sa_sigaction = handler as libc::sighandler_t;
+
+        libc::sigaction(libc::SIGPROF, &action, ptr::null_mut());
+    }
 }

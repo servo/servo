@@ -673,8 +673,8 @@ impl ScriptThreadFactory for ScriptThread {
                     state,
                     script_port,
                     script_chan.clone(),
-                    background_hang_monitor_chan)
-                ;
+                    background_hang_monitor_chan
+                );
 
                 SCRIPT_THREAD_ROOT.with(|root| {
                     root.set(Some(&script_thread as *const _));

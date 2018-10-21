@@ -54,7 +54,7 @@ fn test_hang_monitoring() {
 
     // Check for a permanent hang alert.
     match background_hang_monitor_receiver.recv().unwrap() {
-        HangAlert::Permanent(component_id, _annotation, _trace) => {
+        HangAlert::Permanent(component_id, _annotation, _profile) => {
             let expected = MonitoredComponentId(TEST_PIPELINE_ID, MonitoredComponentType::Script);
             assert_eq!(expected, component_id);
         },
