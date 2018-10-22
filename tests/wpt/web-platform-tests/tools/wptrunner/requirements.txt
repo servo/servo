@@ -2,4 +2,4 @@ html5lib == 1.0.1
 mozinfo == 0.10
 mozlog==3.9
 mozdebug == 0.1
-urllib3[secure]==1.23
+urllib3[secure]==1.24

@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/motion/animation/resources/interpolation-testcommon.js"></script>
+<title> 'layout-animations' Policy : Correct behavior for affected and unaffected properties when
+         feature is enabled.
+</title>
+<body>
+<script>
+  // The expectation for all the following properties could be the same (they are all of type length).
+  let length_expectations_100_to_200 = [
+      {at: 0.00, expect: "100px"},
+      {at: 0.1,  expect: "110px"},
+      {at: 0.2,  expect: "120px"},
+      {at: 0.4,  expect: "140px"},
+      {at: 0.6,  expect: "160px"},
+      {at: 0.8,  expect: "180px"},
+      {at: 0.9,  expect: "190px"},
+  ];
+  // Ensure all the affected animations run normally.
+  ["bottom", "height", "left", "right", "top", "width"].forEach(
+    (p) => test_interpolation({
+                                property: p,
+                                from: "100px",
+                                to: "200px",
+                                test_prefix: `Testing property "${p}".`
+                              },
+                              length_expectations_100_to_200));
+</script>
+</body>

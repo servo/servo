@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>CSS Test: feature property settings are resolved in the correct order for 'liga'.</title>
+<link rel="author" title="Ben Wagner" href="bungeman@chromium.org" />
+<link rel="help" href="https://www.w3.org/TR/css-fonts-3/#feature-precedence" />
+<link rel="match" href="font-feature-resolution-001-ref.html" />
+<meta name="assert" content="default < @font-face < font-variant < letter-spacing < font-feature-settings" />
+<style>
+  @font-face {
+    font-family: lato-ffs-;
+    src: url(support/fonts/Lato-Medium.ttf);
+  }
+  @font-face {
+    font-family: lato-ffs-0;
+    src: url(support/fonts/Lato-Medium.ttf);
+    font-feature-settings: 'liga' off;
+  }
+  @font-face {
+    font-family: lato-ffs-1;
+    src: url(support/fonts/Lato-Medium.ttf);
+    font-feature-settings: 'liga' on;
+  }
+  .test, .ref {
+    font-family: lato-ffs-;
+    font-size: 2em;
+    position: absolute;
+  }
+  .test { color: green; }
+  .ref { color: red; }
+
+  .align { width: 1em; }
+
+  .ff-  { font-family: lato-ffs- ; }
+  .ff-0 { font-family: lato-ffs-0; }
+  .ff-1 { font-family: lato-ffs-1; }
+
+  .fvl-  { }
+  .fvl-n { font-variant-ligatures: normal; }
+  .fvl-0 { font-variant-ligatures: no-common-ligatures; }
+  .fvl-1 { font-variant-ligatures: common-ligatures; }
+
+  .ls-  { }
+  .ls-0 { letter-spacing: 0em; }
+  .ls-1 { letter-spacing: 0.1em; }
+
+  .ffs-  { }
+  .ffs-n { font-feature-settings: normal; }
+  .ffs-0 { font-feature-settings: 'liga' off; }
+  .ffs-1 { font-feature-settings: 'liga' on; }
+</style>
+</head>
+<body>
+<p>Test passes if there is no red visible.</p>
+<table class="ref"><tr>
+
+  <td class="align ff-  fvl-  ls-  ffs- ">&#xfb01;</td>
+  <td class="align ff-  fvl-  ls-  ffs-n">&#xfb01;</td>
+  <td class="align ff-  fvl-  ls-  ffs-0">f&zwnj;i</td>
+  <td class="align ff-  fvl-  ls-  ffs-1">&#xfb01;</td>
+  <td class="align ff-  fvl-  ls-0 ffs- ">&#xfb01;</td>
+  <td class="align ff-  fvl-  ls-0 ffs-n">&#xfb01;</td>
+  <td class="align ff-  fvl-  ls-0 ffs-0">f&zwnj;i</td>
+  <td class="align ff-  fvl-  ls-0 ffs-1">&#xfb01;</td>
+  <td class="align ff-  fvl-  ls-1 ffs- ">f&zwnj;i</td>
+  <td class="align ff-  fvl-  ls-1 ffs-n">f&zwnj;i</td>
+  <td class="align ff-  fvl-  ls-1 ffs-0">f&zwnj;i</td>
+  <td class="align ff-  fvl-  ls-1 ffs-1">&#xfb01;</td>
+</tr><tr>
+  <td class="align ff-  fvl-n ls-  ffs- ">&#xfb01;</td>
+  <td class="align ff-  fvl-n ls-  ffs-n">&#xfb01;</td>
+  <td class="align ff-  fvl-n ls-  ffs-0">f&zwnj;i</td>
+  <td class="align ff-  fvl-n ls-  ffs-1">&#xfb01;</td>
+  <td class="align ff-  fvl-n ls-0 ffs- ">&#xfb01;</td>
+  <td class="align ff-  fvl-n ls-0 ffs-n">&#xfb01;</td>
+  <td class="align ff-  fvl-n ls-0 ffs-0">f&zwnj;i</td>
+  <td class="align ff-  fvl-n ls-0 ffs-1">&#xfb01;</td>
+  <td class="align ff-  fvl-n ls-1 ffs- ">f&zwnj;i</td>
+  <td class="align ff-  fvl-n ls-1 ffs-n">f&zwnj;i</td>
+  <td class="align ff-  fvl-n ls-1 ffs-0">f&zwnj;i</td>
+  <td class="align ff-  fvl-n ls-1 ffs-1">&#xfb01;</td>
+</tr><tr>
+  <td class="align ff-  fvl-0 ls-  ffs- ">f&zwnj;i</td>
+  <td class="align ff-  fvl-0 ls-  ffs-n">f&zwnj;i</td>
+  <td class="align ff-  fvl-0 ls-  ffs-0">f&zwnj;i</td>
+  <td class="align ff-  fvl-0 ls-  ffs-1">&#xfb01;</td>
+  <td class="align ff-  fvl-0 ls-0 ffs- ">f&zwnj;i</td>
+  <td class="align ff-  fvl-0 ls-0 ffs-n">f&zwnj;i</td>
+  <td class="align ff-  fvl-0 ls-0 ffs-0">f&zwnj;i</td>
+  <td class="align ff-  fvl-0 ls-0 ffs-1">&#xfb01;</td>
+  <td class="align ff-  fvl-0 ls-1 ffs- ">f&zwnj;i</td>
+  <td class="align ff-  fvl-0 ls-1 ffs-n">f&zwnj;i</td>
+  <td class="align ff-  fvl-0 ls-1 ffs-0">f&zwnj;i</td>
+  <td class="align ff-  fvl-0 ls-1 ffs-1">&#xfb01;</td>
+</tr><tr>
+  <td class="align ff-  fvl-1 ls-  ffs- ">&#xfb01;</td>
+  <td class="align ff-  fvl-1 ls-  ffs-n">&#xfb01;</td>
+  <td class="align ff-  fvl-1 ls-  ffs-0">f&zwnj;i</td>
+  <td class="align ff-  fvl-1 ls-  ffs-1">&#xfb01;</td>
+  <td class="align ff-  fvl-1 ls-0 ffs- ">&#xfb01;</td>
+  <td class="align ff-  fvl-1 ls-0 ffs-n">&#xfb01;</td>
+  <td class="align ff-  fvl-1 ls-0 ffs-0">f&zwnj;i</td>
+  <td class="align ff-  fvl-1 ls-0 ffs-1">&#xfb01;</td>
+  <td class="align ff-  fvl-1 ls-1 ffs- ">f&zwnj;i</td>
+  <td class="align ff-  fvl-1 ls-1 ffs-n">f&zwnj;i</td>
+  <td class="align ff-  fvl-1 ls-1 ffs-0">f&zwnj;i</td>
+  <td class="align ff-  fvl-1 ls-1 ffs-1">&#xfb01;</td>
+
+</tr><tr>
+
+  <td class="align ff-0 fvl-  ls-  ffs- ">f&zwnj;i</td>
+  <td class="align ff-0 fvl-  ls-  ffs-n">f&zwnj;i</td>
+  <td class="align ff-0 fvl-  ls-  ffs-0">f&zwnj;i</td>
+  <td class="align ff-0 fvl-  ls-  ffs-1">&#xfb01;</td>
+  <td class="align ff-0 fvl-  ls-0 ffs- ">f&zwnj;i</td>
+  <td class="align ff-0 fvl-  ls-0 ffs-n">f&zwnj;i</td>
+  <td class="align ff-0 fvl-  ls-0 ffs-0">f&zwnj;i</td>
+  <td class="align ff-0 fvl-  ls-0 ffs-1">&#xfb01;</td>
+  <td class="align ff-0 fvl-  ls-1 ffs- ">f&zwnj;i</td>
+  <td class="align ff-0 fvl-  ls-1 ffs-n">f&zwnj;i</td>
+  <td class="align ff-0 fvl-  ls-1 ffs-0">f&zwnj;i</td>
+  <td class="align ff-0 fvl-  ls-1 ffs-1">&#xfb01;</td>
+</tr><tr>
+  <td class="align ff-0 fvl-n ls-  ffs- ">f&zwnj;i</td>
+  <td class="align ff-0 fvl-n ls-  ffs-n">f&zwnj;i</td>
+  <td class="align ff-0 fvl-n ls-  ffs-0">f&zwnj;i</td>
+  <td class="align ff-0 fvl-n ls-  ffs-1">&#xfb01;</td>
+  <td class="align ff-0 fvl-n ls-0 ffs- ">f&zwnj;i</td>
+  <td class="align ff-0 fvl-n ls-0 ffs-n">f&zwnj;i</td>
+  <td class="align ff-0 fvl-n ls-0 ffs-0">f&zwnj;i</td>
+  <td class="align ff-0 fvl-n ls-0 ffs-1">&#xfb01;</td>
+  <td class="align ff-0 fvl-n ls-1 ffs- ">f&zwnj;i</td>
+  <td class="align ff-0 fvl-n ls-1 ffs-n">f&zwnj;i</td>
+  <td class="align ff-0 fvl-n ls-1 ffs-0">f&zwnj;i</td>
+  <td class="align ff-0 fvl-n ls-1 ffs-1">&#xfb01;</td>
+</tr><tr>
+  <td class="align ff-0 fvl-0 ls-  ffs- ">f&zwnj;i</td>
+  <td class="align ff-0 fvl-0 ls-  ffs-n">f&zwnj;i</td>
+  <td class="align ff-0 fvl-0 ls-  ffs-0">f&zwnj;i</td>
+  <td class="align ff-0 fvl-0 ls-  ffs-1">&#xfb01;</td>
+  <td class="align ff-0 fvl-0 ls-0 ffs- ">f&zwnj;i</td>
+  <td class="align ff-0 fvl-0 ls-0 ffs-n">f&zwnj;i</td>
+  <td class="align ff-0 fvl-0 ls-0 ffs-0">f&zwnj;i</td>
+  <td class="align ff-0 fvl-0 ls-0 ffs-1">&#xfb01;</td>
+  <td class="align ff-0 fvl-0 ls-1 ffs- ">f&zwnj;i</td>
+  <td class="align ff-0 fvl-0 ls-1 ffs-n">f&zwnj;i</td>
+  <td class="align ff-0 fvl-0 ls-1 ffs-0">f&zwnj;i</td>
+  <td class="align ff-0 fvl-0 ls-1 ffs-1">&#xfb01;</td>
+</tr><tr>
+  <td class="align ff-0 fvl-1 ls-  ffs- ">&#xfb01;</td>
+  <td class="align ff-0 fvl-1 ls-  ffs-n">&#xfb01;</td>
+  <td class="align ff-0 fvl-1 ls-  ffs-0">f&zwnj;i</td>
+  <td class="align ff-0 fvl-1 ls-  ffs-1">&#xfb01;</td>
+  <td class="align ff-0 fvl-1 ls-0 ffs- ">&#xfb01;</td>
+  <td class="align ff-0 fvl-1 ls-0 ffs-n">&#xfb01;</td>
+  <td class="align ff-0 fvl-1 ls-0 ffs-0">f&zwnj;i</td>
+  <td class="align ff-0 fvl-1 ls-0 ffs-1">&#xfb01;</td>
+  <td class="align ff-0 fvl-1 ls-1 ffs- ">f&zwnj;i</td>
+  <td class="align ff-0 fvl-1 ls-1 ffs-n">f&zwnj;i</td>
+  <td class="align ff-0 fvl-1 ls-1 ffs-0">f&zwnj;i</td>
+  <td class="align ff-0 fvl-1 ls-1 ffs-1">&#xfb01;</td>
+
+</tr><tr>
+
+  <td class="align ff-1 fvl-  ls-  ffs- ">&#xfb01;</td>
+  <td class="align ff-1 fvl-  ls-  ffs-n">&#xfb01;</td>
+  <td class="align ff-1 fvl-  ls-  ffs-0">f&zwnj;i</td>
+  <td class="align ff-1 fvl-  ls-  ffs-1">&#xfb01;</td>
+  <td class="align ff-1 fvl-  ls-0 ffs- ">&#xfb01;</td>
+  <td class="align ff-1 fvl-  ls-0 ffs-n">&#xfb01;</td>
+  <td class="align ff-1 fvl-  ls-0 ffs-0">f&zwnj;i</td>
+  <td class="align ff-1 fvl-  ls-0 ffs-1">&#xfb01;</td>
+  <td class="align ff-1 fvl-  ls-1 ffs- ">f&zwnj;i</td>
+  <td class="align ff-1 fvl-  ls-1 ffs-n">f&zwnj;i</td>
+  <td class="align ff-1 fvl-  ls-1 ffs-0">f&zwnj;i</td>
+  <td class="align ff-1 fvl-  ls-1 ffs-1">&#xfb01;</td>
+</tr><tr>
+  <td class="align ff-1 fvl-n ls-  ffs- ">&#xfb01;</td>
+  <td class="align ff-1 fvl-n ls-  ffs-n">&#xfb01;</td>
+  <td class="align ff-1 fvl-n ls-  ffs-0">f&zwnj;i</td>
+  <td class="align ff-1 fvl-n ls-  ffs-1">&#xfb01;</td>
+  <td class="align ff-1 fvl-n ls-0 ffs- ">&#xfb01;</td>
+  <td class="align ff-1 fvl-n ls-0 ffs-n">&#xfb01;</td>
+  <td class="align ff-1 fvl-n ls-0 ffs-0">f&zwnj;i</td>
+  <td class="align ff-1 fvl-n ls-0 ffs-1">&#xfb01;</td>
+  <td class="align ff-1 fvl-n ls-1 ffs- ">f&zwnj;i</td>
+  <td class="align ff-1 fvl-n ls-1 ffs-n">f&zwnj;i</td>
+  <td class="align ff-1 fvl-n ls-1 ffs-0">f&zwnj;i</td>
+  <td class="align ff-1 fvl-n ls-1 ffs-1">&#xfb01;</td>
+</tr><tr>
+  <td class="align ff-1 fvl-0 ls-  ffs- ">f&zwnj;i</td>
+  <td class="align ff-1 fvl-0 ls-  ffs-n">f&zwnj;i</td>
+  <td class="align ff-1 fvl-0 ls-  ffs-0">f&zwnj;i</td>
+  <td class="align ff-1 fvl-0 ls-  ffs-1">&#xfb01;</td>
+  <td class="align ff-1 fvl-0 ls-0 ffs- ">f&zwnj;i</td>
+  <td class="align ff-1 fvl-0 ls-0 ffs-n">f&zwnj;i</td>
+  <td class="align ff-1 fvl-0 ls-0 ffs-0">f&zwnj;i</td>
+  <td class="align ff-1 fvl-0 ls-0 ffs-1">&#xfb01;</td>
+  <td class="align ff-1 fvl-0 ls-1 ffs- ">f&zwnj;i</td>
+  <td class="align ff-1 fvl-0 ls-1 ffs-n">f&zwnj;i</td>
+  <td class="align ff-1 fvl-0 ls-1 ffs-0">f&zwnj;i</td>
+  <td class="align ff-1 fvl-0 ls-1 ffs-1">&#xfb01;</td>
+</tr><tr>
+  <td class="align ff-1 fvl-1 ls-  ffs- ">&#xfb01;</td>
+  <td class="align ff-1 fvl-1 ls-  ffs-n">&#xfb01;</td>
+  <td class="align ff-1 fvl-1 ls-  ffs-0">f&zwnj;i</td>
+  <td class="align ff-1 fvl-1 ls-  ffs-1">&#xfb01;</td>
+  <td class="align ff-1 fvl-1 ls-0 ffs- ">&#xfb01;</td>
+  <td class="align ff-1 fvl-1 ls-0 ffs-n">&#xfb01;</td>
+  <td class="align ff-1 fvl-1 ls-0 ffs-0">f&zwnj;i</td>
+  <td class="align ff-1 fvl-1 ls-0 ffs-1">&#xfb01;</td>
+  <td class="align ff-1 fvl-1 ls-1 ffs- ">f&zwnj;i</td>
+  <td class="align ff-1 fvl-1 ls-1 ffs-n">f&zwnj;i</td>
+  <td class="align ff-1 fvl-1 ls-1 ffs-0">f&zwnj;i</td>
+  <td class="align ff-1 fvl-1 ls-1 ffs-1">&#xfb01;</td>
+
+</tr></table>
+<table class="test"><tr>
+
+  <td class="align ff-  fvl-  ls-  ffs- ">fi</td>
+  <td class="align ff-  fvl-  ls-  ffs-n">fi</td>
+  <td class="align ff-  fvl-  ls-  ffs-0">fi</td>
+  <td class="align ff-  fvl-  ls-  ffs-1">fi</td>
+  <td class="align ff-  fvl-  ls-0 ffs- ">fi</td>
+  <td class="align ff-  fvl-  ls-0 ffs-n">fi</td>
+  <td class="align ff-  fvl-  ls-0 ffs-0">fi</td>
+  <td class="align ff-  fvl-  ls-0 ffs-1">fi</td>
+  <td class="align ff-  fvl-  ls-1 ffs- ">fi</td>
+  <td class="align ff-  fvl-  ls-1 ffs-n">fi</td>
+  <td class="align ff-  fvl-  ls-1 ffs-0">fi</td>
+  <td class="align ff-  fvl-  ls-1 ffs-1">fi</td>
+</tr><tr>
+  <td class="align ff-  fvl-n ls-  ffs- ">fi</td>
+  <td class="align ff-  fvl-n ls-  ffs-n">fi</td>
+  <td class="align ff-  fvl-n ls-  ffs-0">fi</td>
+  <td class="align ff-  fvl-n ls-  ffs-1">fi</td>
+  <td class="align ff-  fvl-n ls-0 ffs- ">fi</td>
+  <td class="align ff-  fvl-n ls-0 ffs-n">fi</td>
+  <td class="align ff-  fvl-n ls-0 ffs-0">fi</td>
+  <td class="align ff-  fvl-n ls-0 ffs-1">fi</td>
+  <td class="align ff-  fvl-n ls-1 ffs- ">fi</td>
+  <td class="align ff-  fvl-n ls-1 ffs-n">fi</td>
+  <td class="align ff-  fvl-n ls-1 ffs-0">fi</td>
+  <td class="align ff-  fvl-n ls-1 ffs-1">fi</td>
+</tr><tr>
+  <td class="align ff-  fvl-0 ls-  ffs- ">fi</td>
+  <td class="align ff-  fvl-0 ls-  ffs-n">fi</td>
+  <td class="align ff-  fvl-0 ls-  ffs-0">fi</td>
+  <td class="align ff-  fvl-0 ls-  ffs-1">fi</td>
+  <td class="align ff-  fvl-0 ls-0 ffs- ">fi</td>
+  <td class="align ff-  fvl-0 ls-0 ffs-n">fi</td>
+  <td class="align ff-  fvl-0 ls-0 ffs-0">fi</td>
+  <td class="align ff-  fvl-0 ls-0 ffs-1">fi</td>
+  <td class="align ff-  fvl-0 ls-1 ffs- ">fi</td>
+  <td class="align ff-  fvl-0 ls-1 ffs-n">fi</td>
+  <td class="align ff-  fvl-0 ls-1 ffs-0">fi</td>
+  <td class="align ff-  fvl-0 ls-1 ffs-1">fi</td>
+</tr><tr>
+  <td class="align ff-  fvl-1 ls-  ffs- ">fi</td>
+  <td class="align ff-  fvl-1 ls-  ffs-n">fi</td>
+  <td class="align ff-  fvl-1 ls-  ffs-0">fi</td>
+  <td class="align ff-  fvl-1 ls-  ffs-1">fi</td>
+  <td class="align ff-  fvl-1 ls-0 ffs- ">fi</td>
+  <td class="align ff-  fvl-1 ls-0 ffs-n">fi</td>
+  <td class="align ff-  fvl-1 ls-0 ffs-0">fi</td>
+  <td class="align ff-  fvl-1 ls-0 ffs-1">fi</td>
+  <td class="align ff-  fvl-1 ls-1 ffs- ">fi</td>
+  <td class="align ff-  fvl-1 ls-1 ffs-n">fi</td>
+  <td class="align ff-  fvl-1 ls-1 ffs-0">fi</td>
+  <td class="align ff-  fvl-1 ls-1 ffs-1">fi</td>
+
+</tr><tr>
+
+  <td class="align ff-0 fvl-  ls-  ffs- ">fi</td>
+  <td class="align ff-0 fvl-  ls-  ffs-n">fi</td>
+  <td class="align ff-0 fvl-  ls-  ffs-0">fi</td>
+  <td class="align ff-0 fvl-  ls-  ffs-1">fi</td>
+  <td class="align ff-0 fvl-  ls-0 ffs- ">fi</td>
+  <td class="align ff-0 fvl-  ls-0 ffs-n">fi</td>
+  <td class="align ff-0 fvl-  ls-0 ffs-0">fi</td>
+  <td class="align ff-0 fvl-  ls-0 ffs-1">fi</td>
+  <td class="align ff-0 fvl-  ls-1 ffs- ">fi</td>
+  <td class="align ff-0 fvl-  ls-1 ffs-n">fi</td>
+  <td class="align ff-0 fvl-  ls-1 ffs-0">fi</td>
+  <td class="align ff-0 fvl-  ls-1 ffs-1">fi</td>
+</tr><tr>
+  <td class="align ff-0 fvl-n ls-  ffs- ">fi</td>
+  <td class="align ff-0 fvl-n ls-  ffs-n">fi</td>
+  <td class="align ff-0 fvl-n ls-  ffs-0">fi</td>
+  <td class="align ff-0 fvl-n ls-  ffs-1">fi</td>
+  <td class="align ff-0 fvl-n ls-0 ffs- ">fi</td>
+  <td class="align ff-0 fvl-n ls-0 ffs-n">fi</td>
+  <td class="align ff-0 fvl-n ls-0 ffs-0">fi</td>
+  <td class="align ff-0 fvl-n ls-0 ffs-1">fi</td>
+  <td class="align ff-0 fvl-n ls-1 ffs- ">fi</td>
+  <td class="align ff-0 fvl-n ls-1 ffs-n">fi</td>
+  <td class="align ff-0 fvl-n ls-1 ffs-0">fi</td>
+  <td class="align ff-0 fvl-n ls-1 ffs-1">fi</td>
+</tr><tr>
+  <td class="align ff-0 fvl-0 ls-  ffs- ">fi</td>
+  <td class="align ff-0 fvl-0 ls-  ffs-n">fi</td>
+  <td class="align ff-0 fvl-0 ls-  ffs-0">fi</td>
+  <td class="align ff-0 fvl-0 ls-  ffs-1">fi</td>
+  <td class="align ff-0 fvl-0 ls-0 ffs- ">fi</td>
+  <td class="align ff-0 fvl-0 ls-0 ffs-n">fi</td>
+  <td class="align ff-0 fvl-0 ls-0 ffs-0">fi</td>
+  <td class="align ff-0 fvl-0 ls-0 ffs-1">fi</td>
+  <td class="align ff-0 fvl-0 ls-1 ffs- ">fi</td>
+  <td class="align ff-0 fvl-0 ls-1 ffs-n">fi</td>
+  <td class="align ff-0 fvl-0 ls-1 ffs-0">fi</td>
+  <td class="align ff-0 fvl-0 ls-1 ffs-1">fi</td>
+</tr><tr>
+  <td class="align ff-0 fvl-1 ls-  ffs- ">fi</td>
+  <td class="align ff-0 fvl-1 ls-  ffs-n">fi</td>
+  <td class="align ff-0 fvl-1 ls-  ffs-0">fi</td>
+  <td class="align ff-0 fvl-1 ls-  ffs-1">fi</td>
+  <td class="align ff-0 fvl-1 ls-0 ffs- ">fi</td>
+  <td class="align ff-0 fvl-1 ls-0 ffs-n">fi</td>
+  <td class="align ff-0 fvl-1 ls-0 ffs-0">fi</td>
+  <td class="align ff-0 fvl-1 ls-0 ffs-1">fi</td>
+  <td class="align ff-0 fvl-1 ls-1 ffs- ">fi</td>
+  <td class="align ff-0 fvl-1 ls-1 ffs-n">fi</td>
+  <td class="align ff-0 fvl-1 ls-1 ffs-0">fi</td>
+  <td class="align ff-0 fvl-1 ls-1 ffs-1">fi</td>
+
+</tr><tr>
+
+  <td class="align ff-1 fvl-  ls-  ffs- ">fi</td>
+  <td class="align ff-1 fvl-  ls-  ffs-n">fi</td>
+  <td class="align ff-1 fvl-  ls-  ffs-0">fi</td>
+  <td class="align ff-1 fvl-  ls-  ffs-1">fi</td>
+  <td class="align ff-1 fvl-  ls-0 ffs- ">fi</td>
+  <td class="align ff-1 fvl-  ls-0 ffs-n">fi</td>
+  <td class="align ff-1 fvl-  ls-0 ffs-0">fi</td>
+  <td class="align ff-1 fvl-  ls-0 ffs-1">fi</td>
+  <td class="align ff-1 fvl-  ls-1 ffs- ">fi</td>
+  <td class="align ff-1 fvl-  ls-1 ffs-n">fi</td>
+  <td class="align ff-1 fvl-  ls-1 ffs-0">fi</td>
+  <td class="align ff-1 fvl-  ls-1 ffs-1">fi</td>
+</tr><tr>
+  <td class="align ff-1 fvl-n ls-  ffs- ">fi</td>
+  <td class="align ff-1 fvl-n ls-  ffs-n">fi</td>
+  <td class="align ff-1 fvl-n ls-  ffs-0">fi</td>
+  <td class="align ff-1 fvl-n ls-  ffs-1">fi</td>
+  <td class="align ff-1 fvl-n ls-0 ffs- ">fi</td>
+  <td class="align ff-1 fvl-n ls-0 ffs-n">fi</td>
+  <td class="align ff-1 fvl-n ls-0 ffs-0">fi</td>
+  <td class="align ff-1 fvl-n ls-0 ffs-1">fi</td>
+  <td class="align ff-1 fvl-n ls-1 ffs- ">fi</td>
+  <td class="align ff-1 fvl-n ls-1 ffs-n">fi</td>
+  <td class="align ff-1 fvl-n ls-1 ffs-0">fi</td>
+  <td class="align ff-1 fvl-n ls-1 ffs-1">fi</td>
+</tr><tr>
+  <td class="align ff-1 fvl-0 ls-  ffs- ">fi</td>
+  <td class="align ff-1 fvl-0 ls-  ffs-n">fi</td>
+  <td class="align ff-1 fvl-0 ls-  ffs-0">fi</td>
+  <td class="align ff-1 fvl-0 ls-  ffs-1">fi</td>
+  <td class="align ff-1 fvl-0 ls-0 ffs- ">fi</td>
+  <td class="align ff-1 fvl-0 ls-0 ffs-n">fi</td>
+  <td class="align ff-1 fvl-0 ls-0 ffs-0">fi</td>
+  <td class="align ff-1 fvl-0 ls-0 ffs-1">fi</td>
+  <td class="align ff-1 fvl-0 ls-1 ffs- ">fi</td>
+  <td class="align ff-1 fvl-0 ls-1 ffs-n">fi</td>
+  <td class="align ff-1 fvl-0 ls-1 ffs-0">fi</td>
+  <td class="align ff-1 fvl-0 ls-1 ffs-1">fi</td>
+</tr><tr>
+  <td class="align ff-1 fvl-1 ls-  ffs- ">fi</td>
+  <td class="align ff-1 fvl-1 ls-  ffs-n">fi</td>
+  <td class="align ff-1 fvl-1 ls-  ffs-0">fi</td>
+  <td class="align ff-1 fvl-1 ls-  ffs-1">fi</td>
+  <td class="align ff-1 fvl-1 ls-0 ffs- ">fi</td>
+  <td class="align ff-1 fvl-1 ls-0 ffs-n">fi</td>
+  <td class="align ff-1 fvl-1 ls-0 ffs-0">fi</td>
+  <td class="align ff-1 fvl-1 ls-0 ffs-1">fi</td>
+  <td class="align ff-1 fvl-1 ls-1 ffs- ">fi</td>
+  <td class="align ff-1 fvl-1 ls-1 ffs-n">fi</td>
+  <td class="align ff-1 fvl-1 ls-1 ffs-0">fi</td>
+  <td class="align ff-1 fvl-1 ls-1 ffs-1">fi</td>
+
+</tr></table>
+</body>
+</html>
