@@ -789,7 +789,8 @@ impl FetchResponseListener for ParserContext {
         parser.parse_bytes_chunk(payload);
     }
 
-    // This method is called via script_thread::handle_fetch_eof, so we must call submit_resource_timing in this function
+    // This method is called via script_thread::handle_fetch_eof, so we must call
+    // submit_resource_timing in this function
     // Resource listeners are called via net_traits::Action::process, which handles submission for them
     fn process_response_eof(&mut self, status: Result<ResourceFetchTiming, NetworkError>) {
         let parser = match self.parser.as_ref() {

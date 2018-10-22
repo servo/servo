@@ -1450,11 +1450,11 @@ impl ScriptThread {
             ConstellationControlMsg::NavigationResponse(id, fetch_data) => {
                 match fetch_data {
                     FetchResponseMsg::ProcessResponse(metadata) => {
-                        self.handle_fetch_metadata(id, metadata)},
+                        self.handle_fetch_metadata(id, metadata) },
                     FetchResponseMsg::ProcessResponseChunk(chunk) => {
-                        self.handle_fetch_chunk(id, chunk)},
+                        self.handle_fetch_chunk(id, chunk) },
                     FetchResponseMsg::ProcessResponseEOF(eof) => {
-                        self.handle_fetch_eof(id, eof)},
+                        self.handle_fetch_eof(id, eof) },
                     _ => unreachable!(),
                 };
             },
@@ -3062,7 +3062,7 @@ impl ScriptThread {
         fetch_metadata: Result<FetchMetadata, NetworkError>,
     ) {
         match fetch_metadata {
-            Ok(_) => (), 
+            Ok(_) => (),
             Err(ref e) => {
                 warn!("Network error: {:?}", e);
             },

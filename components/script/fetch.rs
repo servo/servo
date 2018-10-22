@@ -147,7 +147,7 @@ pub fn Fetch(
         Ok(r) => r.get_request(),
     };
     let timing_type = request.timing_type();
-    
+
     let mut request_init = request_init_from_request(request);
 
     // Step 3
@@ -284,8 +284,8 @@ impl FetchResponseListener for FetchContext {
                     // &global, 0, 0, &document);
                 // global.performance().queue_entry(
                     // performance_entry.upcast::<PerformanceEntry>(), false);
-           }
-           _ => {},
+            }
+            _ => {},
         };
     }
 }

@@ -402,7 +402,6 @@ impl CoreResourceManager {
              mut sender: IpcSender<FetchResponseMsg>,
              http_state: &Arc<HttpState>,
              cancel_chan: Option<IpcReceiver<()>>) {
-
         let http_state = http_state.clone();
         let ua = self.user_agent.clone();
         let dc = self.devtools_chan.clone();
