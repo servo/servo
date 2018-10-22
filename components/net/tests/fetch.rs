@@ -31,6 +31,7 @@ use net::test::HttpState;
 use net_traits::IncludeSubdomains;
 use net_traits::NetworkError;
 use net_traits::ReferrerPolicy;
+use net_traits::{ResourceFetchTiming, ResourceTimingType};
 use net_traits::request::{Destination, Origin, RedirectMode, Referrer, Request, RequestMode};
 use net_traits::response::{CacheState, Response, ResponseBody, ResponseType};
 use servo_channel::{channel, Sender};
@@ -540,6 +541,7 @@ fn test_fetch_with_hsts() {
         devtools_chan: None,
         filemanager: FileManager::new(create_embedder_proxy()),
         cancellation_listener: Arc::new(Mutex::new(CancellationListener::new(None))),
+        timing: Arc::new(Mutex::new(ResourceFetchTiming::new(ResourceTimingType::Navigation)))
     };
 
     {
