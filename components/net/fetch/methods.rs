@@ -137,7 +137,6 @@ pub fn main_fetch(request: &mut Request,
                   done_chan: &mut DoneChannel,
                   context: &mut FetchContext)
                   -> Response {
-
     // Step 1.
     let mut response = None;
 
