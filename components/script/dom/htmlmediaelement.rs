@@ -170,10 +170,12 @@ pub struct HTMLMediaElement {
     show_poster: Cell<bool>,
     /// https://html.spec.whatwg.org/multipage/#dom-media-duration
     duration: Cell<f64>,
-    /// https://html.spec.whatwg.org/multipage/media.html#official-playback-position
+    /// https://html.spec.whatwg.org/multipage/#official-playback-position
     playback_position: Cell<f64>,
-    /// https://html.spec.whatwg.org/multipage/media.html#default-playback-start-position
+    /// https://html.spec.whatwg.org/multipage/#default-playback-start-position
     default_playback_start_position: Cell<f64>,
+    /// https://html.spec.whatwg.org/multipage/#dom-media-seeking
+    seeking: Cell<bool>,
 }
 
 /// <https://html.spec.whatwg.org/multipage/#dom-media-networkstate>
@@ -223,6 +225,7 @@ impl HTMLMediaElement {
             duration: Cell::new(f64::NAN),
             playback_position: Cell::new(0.),
             default_playback_start_position: Cell::new(0.),
+            seeking: Cell::new(false),
         }
     }
 
@@ -969,8 +972,69 @@ impl HTMLMediaElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-media-seek
-    fn seek(&self, _time: f64, _approximate_for_speed: bool) {
-        // XXX
+    fn seek(&self, time: f64, approximate_for_speed: bool) {
+        // Step 1.
+        self.show_poster.set(false);
+
+        // Step 2.
+        if self.ready_state.get() == ReadyState::HaveNothing {
+            return;
+        }
+
+        // Step 3.
+        if self.seeking.get() {
+            // This will cancel only the sync part of the seek algorithm.
+            self.generation_id.set(self.generation_id.get() + 1);
+        }
+
+        // Step 4.
+        // The flag will be cleared when the media engine tells us the seek was done.
+        self.seeking.set(true);
+
+        // Step 5.
+        // XXX(ferjm) The rest of the steps should be run in parallel, so seeking cancelation
+        //            can be done properly. No other browser does it yet anyway.
+
+        // Step 6.
+        let time = f64::min(time, self.Duration());
+
+        // Step 7.
+        let time = f64::max(time, 0.);
+
+        // Step 8.
+        // XXX(ferjm) seekable attribute.
+
+        // Step 9.
+        let accurate = !approximate_for_speed;
+
+        // Step 10.
+        let window = window_from_node(self);
+        let task_source = window.media_element_task_source();
+        task_source.queue_simple_event(self.upcast(), atom!("seeking"), &window);
+
+        // Step 11.
+        // XXX self.player.seek(time, accurate);
+
+        // The rest of the steps are handled when the media engine signals a
+        // ready state change or otherwise satisfies seek completion and signals
+        // a position change.
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-media-seek
+    fn seek_sync(&self) {
+        // Step 14.
+        self.seeking.set(false);
+
+        // Step 15.
+        self.time_marches_on();
+
+        // Step 16.
+        let window = window_from_node(self);
+        let task_source = window.media_element_task_source();
+        task_source.queue_simple_event(self.upcast(), atom!("timeupdate"), &window);
+
+        // Step 17.
+        task_source.queue_simple_event(self.upcast(), atom!("seeked"), &window);
     }
 
     fn setup_media_player(&self) -> Result<(), ServoMediaError> {
@@ -1043,7 +1107,10 @@ impl HTMLMediaElement {
 
                 // Step 8.
                 if self.default_playback_start_position.get() > 0. {
-                    self.seek(self.default_playback_start_position.get(), /* approximate_for_speed*/ false);
+                    self.seek(
+                        self.default_playback_start_position.get(),
+                        /* approximate_for_speed*/ false,
+                    );
                     _jumped = true;
                 }
 
@@ -1083,6 +1150,20 @@ impl HTMLMediaElement {
             },
             PlayerEvent::FrameUpdated => {
                 self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
+            },
+            PlayerEvent::SeekData(_) => {
+                // XXX byte-range request
+            },
+            PlayerEvent::SeekDone(_) => {
+                // Continuation of
+                // https://html.spec.whatwg.org/multipage/#dom-media-seek
+
+                // Step 13.
+                let task = MediaElementMicrotask::SeekedTask {
+                    elem: DomRoot::from_ref(self),
+                    generation_id: self.generation_id.get(),
+                };
+                ScriptThread::await_stable_state(Microtask::MediaElement(task));
             },
             PlayerEvent::Error => {
                 self.error.set(Some(&*MediaError::new(
@@ -1206,6 +1287,14 @@ impl HTMLMediaElementMethods for HTMLMediaElement {
             self.seek(*time, /* approximate_for_speed */ false);
         }
     }
+
+    fn Seeking(&self) -> bool {
+        self.seeking.get()
+    }
+
+    fn FastSeek(&self, time: Finite<f64>) {
+        self.seek(*time, /* approximat_for_speed */ true);
+    }
 }
 
 impl VirtualMethods for HTMLMediaElement {
@@ -1263,6 +1352,10 @@ pub enum MediaElementMicrotask {
     PauseIfNotInDocumentTask {
         elem: DomRoot<HTMLMediaElement>,
     },
+    SeekedTask {
+        elem: DomRoot<HTMLMediaElement>,
+        generation_id: u32,
+    },
 }
 
 impl MicrotaskRunnable for MediaElementMicrotask {
@@ -1280,6 +1373,14 @@ impl MicrotaskRunnable for MediaElementMicrotask {
             &MediaElementMicrotask::PauseIfNotInDocumentTask { ref elem } => {
                 if !elem.upcast::<Node>().is_in_doc() {
                     elem.internal_pause_steps();
+                }
+            },
+            &MediaElementMicrotask::SeekedTask {
+                ref elem,
+                generation_id,
+            } => {
+                if generation_id == elem.generation_id.get() {
+                    elem.seek_sync();
                 }
             },
         }
