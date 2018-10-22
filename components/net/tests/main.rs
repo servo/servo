@@ -44,7 +44,7 @@ use net::fetch::cors_cache::CorsCache;
 use net::fetch::methods::{self, CancellationListener, FetchContext};
 use net::filemanager_thread::FileManager;
 use net::test::HttpState;
-use net_traits::FetchTaskTarget;
+use net_traits::{FetchTaskTarget, ResourceFetchTiming, ResourceTimingType};
 use net_traits::request::Request;
 use net_traits::response::Response;
 use servo_channel::{channel, Sender};
@@ -92,6 +92,7 @@ fn new_fetch_context(dc: Option<Sender<DevtoolsControlMsg>>, fc: Option<Embedder
         devtools_chan: dc,
         filemanager: FileManager::new(sender),
         cancellation_listener: Arc::new(Mutex::new(CancellationListener::new(None))),
+        timing: Arc::new(Mutex::new(ResourceFetchTiming::new(ResourceTimingType::Navigation)))
     }
 }
 impl FetchTaskTarget for FetchResponseCollector {
