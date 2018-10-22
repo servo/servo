@@ -258,6 +258,7 @@ ${helpers.single_keyword(
     animation_value_type="none",
     vector=True,
     extra_prefixes=animation_extra_prefixes,
+    gecko_enum_prefix="StyleAnimationPlayState",
     spec="https://drafts.csswg.org/css-animations/#propdef-animation-play-state",
     allowed_in_keyframe_block=False,
 )}
