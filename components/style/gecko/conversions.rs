@@ -1032,13 +1032,13 @@ impl TrackSize<LengthOrPercentage> {
         match *self {
             TrackSize::FitContent(ref lop) => {
                 // Gecko sets min value to None and max value to the actual value in fit-content
-                // https://dxr.mozilla.org/mozilla-central/rev/0eef1d5/layout/style/nsRuleNode.cpp#8221
+                // https://searchfox.org/mozilla-central/rev/c05d9d61188d32b8209dfe4295944c0f1e0ce621/layout/style/nsRuleNode.cpp#7910
                 gecko_min.set_value(CoordDataValue::None);
                 lop.to_gecko_style_coord(gecko_max);
             },
             TrackSize::Breadth(ref breadth) => {
                 // Set the value to both fields if there's one breadth value
-                // https://dxr.mozilla.org/mozilla-central/rev/0eef1d5/layout/style/nsRuleNode.cpp#8230
+                // https://searchfox.org/mozilla-central/rev/c05d9d61188d32b8209dfe4295944c0f1e0ce621/layout/style/nsRuleNode.cpp#7919
                 breadth.to_gecko_style_coord(gecko_min);
                 breadth.to_gecko_style_coord(gecko_max);
             },

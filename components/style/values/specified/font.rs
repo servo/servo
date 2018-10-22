@@ -753,8 +753,8 @@ impl ToComputedValue for KeywordSize {
         // The tables in this function are originally from
         // nsRuleNode::CalcFontPointSize in Gecko:
         //
-        // https://dxr.mozilla.org/mozilla-central/rev/35fbf14b9/layout/style/nsRuleNode.cpp#3262-3336
-
+        // https://searchfox.org/mozilla-central/rev/c05d9d61188d32b8209dfe4295944c0f1e0ce621/layout/style/nsRuleNode.cpp#3150
+        //
         // Mapping from base size and HTML size to pixels
         // The first index is (base_size - 9), the second is the
         // HTML size. "0" is CSS keyword xx-small, not HTML size 0,

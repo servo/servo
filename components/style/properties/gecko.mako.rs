@@ -2394,7 +2394,7 @@ fn static_assert() {
     /// from the parent.
     ///
     /// This is a port of Gecko's old ComputeScriptLevelSize function:
-    /// https://dxr.mozilla.org/mozilla-central/rev/35fbf14b9/layout/style/nsRuleNode.cpp#3197-3254
+    /// https://searchfox.org/mozilla-central/rev/c05d9d61188d32b8209dfe4295944c0f1e0ce621/layout/style/nsRuleNode.cpp#3103
     ///
     /// scriptlevel is a property that affects how font-size is inherited. If scriptlevel is
     /// +1, for example, it will inherit as the script size multiplier times
