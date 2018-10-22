@@ -1038,6 +1038,9 @@ impl HTMLMediaElement {
                 },
                 _ => {},
             },
+            PlayerEvent::PositionChanged(_) => {
+                // TODO: Support for HTMLMediaElement seeking and related API properties #21998
+            },
             PlayerEvent::EndOfStream => {
                 // https://html.spec.whatwg.org/multipage/#media-data-processing-steps-list
                 // => "If the media data can be fetched but is found by inspection to be in
