@@ -74,6 +74,8 @@ scan
 screen
 scroll-position
 search
+seeked
+seeking
 select
 serif
 statechange
