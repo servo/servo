@@ -4198,7 +4198,7 @@ impl DocumentMethods for Document {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-document-open
-    fn Open(&self, _unused1: Option<DOMString>, _unused2: Option<DOMString>) -> Fallible<DomRoot<Document>> {
+    fn Open(&self, _type: Option<DOMString>, replace: DOMString) -> Fallible<DomRoot<Document>> {
         // Step 1
         if !self.is_html_document() {
             return Err(Error::InvalidState);
@@ -4246,70 +4246,101 @@ impl DocumentMethods for Document {
 
         window_from_node(self).set_navigation_start();
 
-        // Step 7
-        // TODO: https://github.com/servo/servo/issues/21937
-        if self.has_browsing_context() {
-            self.abort();
-        }
+        // Step 11.
+        // TODO: unload.
 
-        // Step 8
+        // Step 12.
+        self.abort();
+
+        // Step 13.
         for node in self.upcast::<Node>().traverse_preorder() {
             node.upcast::<EventTarget>().remove_all_listeners();
         }
 
-        // Step 9
-        if self.window.Document() == DomRoot::from_ref(self) {
-            self.window.upcast::<EventTarget>().remove_all_listeners();
-        }
+        // Step 14.
+        // TODO: remove any tasks associated with the Document in any task source.
 
-        // Step 10
-        // TODO: https://github.com/servo/servo/issues/21936
+        // Step 15.
         Node::replace_all(None, self.upcast::<Node>());
 
-        // Step 11
-        if self.is_fully_active() {
-            let mut new_url = entry_responsible_document.url();
-            if entry_responsible_document != DomRoot::from_ref(self) {
-                new_url.set_fragment(None);
-            }
-            // TODO: https://github.com/servo/servo/issues/21939
-            self.set_url(new_url);
-        }
+        // Steps 16, 17.
+        // Let's not?
+        // TODO: https://github.com/whatwg/html/issues/1698
 
-        // Step 12
-        // TODO: https://github.com/servo/servo/issues/21938
+        // Step 18.
+        self.implementation.set(None);
+        self.images.set(None);
+        self.embeds.set(None);
+        self.links.set(None);
+        self.forms.set(None);
+        self.scripts.set(None);
+        self.anchors.set(None);
+        self.applets.set(None);
+        *self.stylesheets.borrow_mut() = DocumentStylesheetSet::new();
+        self.animation_frame_ident.set(0);
+        self.animation_frame_list.borrow_mut().clear();
+        self.pending_restyles.borrow_mut().clear();
+        self.target_element.set(None);
+        *self.last_click_info.borrow_mut() = None;
 
-        // Step 13
-        self.set_quirks_mode(QuirksMode::NoQuirks);
+        // Step 19.
+        // TODO: Set the active document of document's browsing context to document with window.
 
-        // Step 14
+        // Step 20.
+        // TODO: Replace document's singleton objects with new instances of those objects, created in window's Realm.
+
+        // Step 21.
+        self.set_encoding(UTF_8);
+
+        // Step 22.
+        // TODO: reload override buffer.
+
+        // Step 23.
+        // TODO: salvageable flag.
+
+        let url = entry_responsible_document.url();
+
+        // Step 24.
+        self.set_url(url.clone());
+
+        // Step 25.
+        // TODO: mute iframe load.
+
+        // Step 26.
         let resource_threads = self
             .window
             .upcast::<GlobalScope>()
             .resource_threads()
             .clone();
         *self.loader.borrow_mut() =
-            DocumentLoader::new_with_threads(resource_threads, Some(self.url()));
-        ServoParser::parse_html_script_input(self, self.url(), "text/html");
+            DocumentLoader::new_with_threads(resource_threads, Some(url.clone()));
+        ServoParser::parse_html_script_input(self, url, "text/html");
 
-        // Step 15
-        self.ready_state.set(DocumentReadyState::Loading);
+        // Step 27.
+        self.ready_state.set(DocumentReadyState::Interactive);
 
-        // Step 16
-        // Handled when creating the parser in step 14
+        // Step 28.
+        // TODO: remove history traversal tasks.
 
-        // Step 17
+        // Step 29.
+        // TODO: truncate session history.
+
+        // Step 30.
+        // TODO: remove earlier entries.
+
+        if !replace {
+            // Step 31.
+            // TODO: add history entry.
+        }
+
+        // Step 32.
+        // TODO: clear fired unload flag.
+
+        // Step 33 is handled when creating the parser in step 26.
+
+        // Step 34.
         Ok(DomRoot::from_ref(self))
-    }
-
-    // https://html.spec.whatwg.org/multipage/#dom-document-open-window
-    fn Open_(&self, url: DOMString, target: DOMString, features: DOMString) -> Fallible<DomRoot<WindowProxy>> {
-        // WhatWG spec states this should always return a WindowProxy, but the spec for WindowProxy.open states
-        // it optionally returns a WindowProxy. Assume an error if window.open returns none.
-        // See https://github.com/whatwg/html/issues/4091
-        let context = self.browsing_context().ok_or(Error::InvalidAccess)?;
-        context.open(url, target, features).ok_or(Error::InvalidAccess)
-    }
+}
 
     // https://html.spec.whatwg.org/multipage/#dom-document-write
     fn Write(&self, text: Vec<DOMString>) -> ErrorResult {
@@ -4334,12 +4365,13 @@ impl DocumentMethods for Document {
                 // Either there is no parser, which means the parsing ended;
                 // or script nesting level is 0, which means the method was
                 // called from outside a parser-executed script.
-                if self.is_prompting_or_unloading() || self.ignore_destructive_writes_counter.get() > 0 {
+                if self.ignore_destructive_writes_counter.get() > 0 {
                     // Step 4.
+                    // TODO: handle ignore-opens-during-unload counter.
                     return Ok(());
                 }
                 // Step 5.
-                self.Open(None, None)?;
+                self.Open(None, "".into())?;
                 self.get_current_parser().unwrap()
             },
         };

@@ -461,7 +461,6 @@ unsafe_no_jsmanaged_fields!(AnalysisEngine, DistanceModel, PanningModel, ParamTy
 unsafe_no_jsmanaged_fields!(Player<Error=ServoMediaError>);
 unsafe_no_jsmanaged_fields!(Mutex<MediaFrameRenderer>);
 unsafe_no_jsmanaged_fields!(RenderApiSender);
-unsafe_no_jsmanaged_fields!(ParamType);
 unsafe_no_jsmanaged_fields!(ResourceFetchTiming);
 unsafe_no_jsmanaged_fields!(InitiatorType);
 
