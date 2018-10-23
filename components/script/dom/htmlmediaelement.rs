@@ -35,7 +35,7 @@ use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
 use fetch::FetchCanceller;
 use html5ever::{LocalName, Prefix};
-use hyper::header::ContentLength;
+use hyper::header::{AcceptRanges, ByteRangeSpec, ContentLength, Headers, Range as HyperRange, RangeUnit};
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use microtask::{Microtask, MicrotaskRunnable};
@@ -48,7 +48,7 @@ use script_layout_interface::HTMLMediaData;
 use script_thread::ScriptThread;
 use servo_media::Error as ServoMediaError;
 use servo_media::ServoMedia;
-use servo_media::player::{PlaybackState, Player, PlayerEvent};
+use servo_media::player::{PlaybackState, Player, PlayerEvent, StreamType};
 use servo_media::player::frame::{Frame, FrameRenderer};
 use servo_url::ServoUrl;
 use std::cell::Cell;
@@ -176,6 +176,15 @@ pub struct HTMLMediaElement {
     default_playback_start_position: Cell<f64>,
     /// https://html.spec.whatwg.org/multipage/#dom-media-seeking
     seeking: Cell<bool>,
+    /// Tells wether the current stream is seekable or not.
+    /// XXX(ferjm) This will eventually be changed by a TimeRange.
+    ///            For now, we only consider a stream seekable if the server
+    ///            supports byte-range requests. This should eventually change to
+    ///            allow seeking to buffered content as well, even if the server
+    ///            does not support byte-range requests.
+    seekable: Cell<bool>,
+    /// URL of the media resource, if any.
+    resource_url: DomRefCell<Option<ServoUrl>>,
 }
 
 /// <https://html.spec.whatwg.org/multipage/#dom-media-networkstate>
@@ -226,6 +235,8 @@ impl HTMLMediaElement {
             playback_position: Cell::new(0.),
             default_playback_start_position: Cell::new(0.),
             seeking: Cell::new(false),
+            seekable: Cell::new(false),
+            resource_url: DomRefCell::new(None),
         }
     }
 
@@ -670,6 +681,65 @@ impl HTMLMediaElement {
         }
     }
 
+    fn fetch_request(&self, offset: Option<u64>) {
+        if self.resource_url.borrow().is_none() {
+            eprintln!("Missing request url");
+            self.queue_dedicated_media_source_failure_steps();
+            return;
+        }
+
+        // FIXME(nox): Handle CORS setting from crossorigin attribute.
+        let document = document_from_node(self);
+        let destination = match self.media_type_id() {
+            HTMLMediaElementTypeId::HTMLAudioElement => Destination::Audio,
+            HTMLMediaElementTypeId::HTMLVideoElement => Destination::Video,
+        };
+        let mut headers = Headers::new();
+        headers.set(HyperRange::Bytes(vec![ByteRangeSpec::AllFrom(
+            offset.unwrap_or(0),
+        )]));
+        let request = RequestInit {
+            url: self.resource_url.borrow().as_ref().unwrap().clone(),
+            headers,
+            destination,
+            credentials_mode: CredentialsMode::Include,
+            use_url_credentials: true,
+            origin: document.origin().immutable().clone(),
+            pipeline_id: Some(self.global().pipeline_id()),
+            referrer_url: Some(document.url()),
+            referrer_policy: document.get_referrer_policy(),
+            ..RequestInit::default()
+        };
+
+        let context = Arc::new(Mutex::new(HTMLMediaElementContext::new(self)));
+        let (action_sender, action_receiver) = ipc::channel().unwrap();
+        let window = window_from_node(self);
+        let listener = NetworkListener {
+            context,
+            task_source: window.networking_task_source(),
+            canceller: Some(window.task_canceller(TaskSourceName::Networking)),
+        };
+        ROUTER.add_route(
+            action_receiver.to_opaque(),
+            Box::new(move |message| {
+                listener.notify_fetch(message.to().unwrap());
+            }),
+        );
+        // This method may be called the first time we try to fetch the media
+        // resource or after a seek is requested. In the latter case, we need to
+        // cancel any previous on-going request. initialize() takes care of
+        // cancelling previous fetches if any exist.
+        let cancel_receiver = self.fetch_canceller.borrow_mut().initialize();
+        let global = self.global();
+        global
+            .core_resource_thread()
+            .send(CoreResourceMsg::Fetch(
+                request,
+                FetchChannels::ResponseMsg(action_sender, Some(cancel_receiver)),
+            ))
+            .unwrap();
+    }
+
     // https://html.spec.whatwg.org/multipage/#concept-media-load-resource
     fn resource_fetch_algorithm(&self, resource: Resource) {
         if let Err(e) = self.setup_media_player() {
@@ -677,6 +747,14 @@ impl HTMLMediaElement {
             self.queue_dedicated_media_source_failure_steps();
             return;
         }
+
+        // XXX(ferjm) Since we only support Blob for now it is fine to always set
+        //            the stream type to StreamType::Seekable. Once we support MediaStream,
+        //            this should be changed to also consider StreamType::Stream.
+        if let Err(e) = self.player.set_stream_type(StreamType::Seekable) {
+            eprintln!("Could not set stream type to Seekable. {:?}", e);
+        }
+
         // Steps 1-2.
         // Unapplicable, the `resource` variable already conveys which mode
         // is in use.
@@ -724,47 +802,8 @@ impl HTMLMediaElement {
                 }
 
                 // Step 4.remote.2.
-                // FIXME(nox): Handle CORS setting from crossorigin attribute.
-                let document = document_from_node(self);
-                let destination = match self.media_type_id() {
-                    HTMLMediaElementTypeId::HTMLAudioElement => Destination::Audio,
-                    HTMLMediaElementTypeId::HTMLVideoElement => Destination::Video,
-                };
-                let request = RequestInit {
-                    url,
-                    destination,
-                    credentials_mode: CredentialsMode::Include,
-                    use_url_credentials: true,
-                    origin: document.origin().immutable().clone(),
-                    pipeline_id: Some(self.global().pipeline_id()),
-                    referrer_url: Some(document.url()),
-                    referrer_policy: document.get_referrer_policy(),
-                    ..RequestInit::default()
-                };
-
-                let context = Arc::new(Mutex::new(HTMLMediaElementContext::new(self)));
-                let (action_sender, action_receiver) = ipc::channel().unwrap();
-                let window = window_from_node(self);
-                let listener = NetworkListener {
-                    context: context,
-                    task_source: window.networking_task_source(),
-                    canceller: Some(window.task_canceller(TaskSourceName::Networking)),
-                };
-                ROUTER.add_route(
-                    action_receiver.to_opaque(),
-                    Box::new(move |message| {
-                        listener.notify_fetch(message.to().unwrap());
-                    }),
-                );
-                let cancel_receiver = self.fetch_canceller.borrow_mut().initialize();
-                let global = self.global();
-                global
-                    .core_resource_thread()
-                    .send(CoreResourceMsg::Fetch(
-                        request,
-                        FetchChannels::ResponseMsg(action_sender, Some(cancel_receiver)),
-                    ))
-                    .unwrap();
+                *self.resource_url.borrow_mut() = Some(url);
+                self.fetch_request(None);
             },
             Resource::Object => {
                 // FIXME(nox): Actually do something with the object.
@@ -877,11 +916,16 @@ impl HTMLMediaElement {
             }
 
             // Step 6.7.
-            // FIXME(nox): If seeking is true, set it to false.
+            if !self.seeking.get() {
+                self.seeking.set(false);
+            }
 
             // Step 6.8.
-            // FIXME(nox): Set current and official playback position to 0 and
-            // maybe queue a task to fire a timeupdate event.
+            let queue_timeupdate_event = self.playback_position.get() != 0.;
+            self.playback_position.set(0.);
+            if queue_timeupdate_event {
+                task_source.queue_simple_event(self.upcast(), atom!("timeupdate"), &window);
+            }
 
             // Step 6.9.
             // FIXME(nox): Set timeline offset to NaN.
@@ -972,7 +1016,7 @@ impl HTMLMediaElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-media-seek
-    fn seek(&self, time: f64, approximate_for_speed: bool) {
+    fn seek(&self, time: f64, _approximate_for_speed: bool) {
         // Step 1.
         self.show_poster.set(false);
 
@@ -1002,10 +1046,18 @@ impl HTMLMediaElement {
         let time = f64::max(time, 0.);
 
         // Step 8.
-        // XXX(ferjm) seekable attribute.
+        // XXX(ferjm) seekable attribute: we need to get the information about
+        //            what's been decoded and buffered so far from servo-media
+        //            and turn the seekable attribute into a TimeRange.
+        //            For now we use a boolean flag that is true iff the server
+        //            supports byte-range requests.
+        if !self.seekable.get() {
+            self.seeking.set(false);
+            return;
+        }
 
         // Step 9.
-        let accurate = !approximate_for_speed;
+        // servo-media with gstreamer does not support inaccurate seeking for now.
 
         // Step 10.
         let window = window_from_node(self);
@@ -1013,7 +1065,9 @@ impl HTMLMediaElement {
         task_source.queue_simple_event(self.upcast(), atom!("seeking"), &window);
 
         // Step 11.
-        // XXX self.player.seek(time, accurate);
+        if let Err(e) = self.player.seek(time) {
+            eprintln!("Seek error {:?}", e);
+        }
 
         // The rest of the steps are handled when the media engine signals a
         // ready state change or otherwise satisfies seek completion and signals
@@ -1149,8 +1203,8 @@ impl HTMLMediaElement {
             PlayerEvent::FrameUpdated => {
                 self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
             },
-            PlayerEvent::SeekData(_) => {
-                // XXX byte-range request
+            PlayerEvent::SeekData(p) => {
+                self.fetch_request(Some(p));
             },
             PlayerEvent::SeekDone(_) => {
                 // Continuation of
@@ -1286,10 +1340,12 @@ impl HTMLMediaElementMethods for HTMLMediaElement {
         }
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-media-seeking
     fn Seeking(&self) -> bool {
         self.seeking.get()
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-media-fastseek
     fn FastSeek(&self, time: Finite<f64>) {
         self.seek(*time, /* approximat_for_speed */ true);
     }
@@ -1422,6 +1478,14 @@ impl FetchResponseListener for HTMLMediaElementContext {
                         eprintln!("Could not set player input size {:?}", e);
                     }
                 }
+                if let Some(accept_ranges) = headers.get::<AcceptRanges>() {
+                    self.elem
+                        .root()
+                        .seekable
+                        .set(accept_ranges.contains(&RangeUnit::Bytes));
+                } else {
+                    self.elem.root().seekable.set(false);
+                }
             }
         }
 
@@ -1495,6 +1559,8 @@ impl FetchResponseListener for HTMLMediaElementContext {
             elem.network_state.set(NetworkState::Idle);
 
             elem.upcast::<EventTarget>().fire_event(atom!("suspend"));
+
+            elem.delay_load_event(false);
         }
         // => "If the connection is interrupted after some media data has been received..."
         else if elem.ready_state.get() != ReadyState::HaveNothing {
