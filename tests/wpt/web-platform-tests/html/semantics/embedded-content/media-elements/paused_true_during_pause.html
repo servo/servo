@@ -21,10 +21,11 @@ test(function() {
     t.step(function() {
      assert_true(a.paused);
     });
+
     t.done();
   }, false);
   a.src = getAudioURI("/media/sound_5") + "?" + new Date() + Math.random();
-  a.play();
+  a.play().catch(() => {});
   a.pause();
 }, "audio events - paused property");
 
@@ -35,10 +36,11 @@ test(function() {
     t.step(function() {
      assert_true(v.paused);
     });
+
     t.done();
   }, false);
   v.src = getVideoURI("/media/movie_5") + "?" + new Date() + Math.random();
-  v.play();
+  v.play().catch(() => {});
   v.pause();
 }, "video events - paused property");
   </script>

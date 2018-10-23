@@ -86,6 +86,7 @@ time
 timeupdate
 toggle
 transitionend
+unhandledrejection
 unload
 url
 waiting

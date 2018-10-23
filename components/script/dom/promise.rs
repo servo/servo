@@ -93,7 +93,7 @@ impl Promise {
     }
 
     #[allow(unsafe_code, unrooted_must_root)]
-    unsafe fn new_with_js_promise(obj: HandleObject, cx: *mut JSContext) -> Rc<Promise> {
+    pub unsafe fn new_with_js_promise(obj: HandleObject, cx: *mut JSContext) -> Rc<Promise> {
         assert!(IsPromiseObject(obj));
         let promise = Promise {
             reflector: Reflector::new(),

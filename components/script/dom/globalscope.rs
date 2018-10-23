@@ -30,6 +30,7 @@ use ipc_channel::ipc::IpcSender;
 use js::{JSCLASS_IS_DOMJSCLASS, JSCLASS_IS_GLOBAL};
 use js::glue::{IsWrapper, UnwrapObject};
 use js::jsapi::{CurrentGlobalOrNull, GetGlobalForObjectCrossCompartment};
+use js::jsapi::{Heap, HandleObject};
 use js::jsapi::{JSAutoCompartment, JSContext};
 use js::jsapi::JSObject;
 use js::panic::maybe_resume_unwind;
@@ -55,6 +56,7 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use task::TaskCanceller;
 use task_source::TaskSourceName;
+use task_source::dom_manipulation::DOMManipulationTaskSource;
 use task_source::file_reading::FileReadingTaskSource;
 use task_source::networking::NetworkingTaskSource;
 use task_source::performance_timeline::PerformanceTimelineTaskSource;
@@ -135,6 +137,23 @@ pub struct GlobalScope {
 
     /// Vector storing references of all eventsources.
     event_source_tracker: DOMTracker<EventSource>,
+
+    /// Storage for watching rejected promises waiting for some client to
+    /// consume their rejection.
+    /// Promises in this list have been rejected in the last turn of the
+    /// event loop without the rejection being handled.
+    /// Note that this can contain nullptrs in place of promises removed because
+    /// they're consumed before it'd be reported.
+    ///
+    /// <https://html.spec.whatwg.org/multipage/#about-to-be-notified-rejected-promises-list>
+    uncaught_rejections: DomRefCell<Vec<Box<Heap<*mut JSObject>>>>,
+
+    /// Promises in this list have previously been reported as rejected
+    /// (because they were in the above list), but the rejection was handled
+    /// in the last turn of the event loop.
+    ///
+    /// <https://html.spec.whatwg.org/multipage/#outstanding-rejected-promises-weak-set>
+    consumed_rejections: DomRefCell<Vec<Box<Heap<*mut JSObject>>>>,
 }
 
 impl GlobalScope {
@@ -169,6 +188,8 @@ impl GlobalScope {
             microtask_queue,
             list_auto_close_worker: Default::default(),
             event_source_tracker: DOMTracker::new(),
+            uncaught_rejections: Default::default(),
+            consumed_rejections: Default::default(),
         }
     }
 
@@ -230,6 +251,39 @@ impl GlobalScope {
         GlobalScope::from_object(obj)
     }
 
+    pub fn add_uncaught_rejection(&self, rejection: HandleObject) {
+        self.uncaught_rejections.borrow_mut().push(Heap::boxed(rejection.get()));
+    }
+
+    pub fn remove_uncaught_rejection(&self, rejection: HandleObject) {
+        let mut uncaught_rejections = self.uncaught_rejections.borrow_mut();
+
+        if let Some(index) = uncaught_rejections.iter().position(|promise| *promise == Heap::boxed(rejection.get())) {
+            uncaught_rejections.remove(index);
+        }
+    }
+
+    pub fn get_uncaught_rejections(&self) -> &DomRefCell<Vec<Box<Heap<*mut JSObject>>>> {
+        &self.uncaught_rejections
+    }
+
+    pub fn add_consumed_rejection(&self, rejection: HandleObject) {
+        self.consumed_rejections.borrow_mut().push(Heap::boxed(rejection.get()));
+    }
+
+    pub fn remove_consumed_rejection(&self, rejection: HandleObject) {
+        let mut consumed_rejections = self.consumed_rejections.borrow_mut();
+
+        if let Some(index) = consumed_rejections.iter().position(|promise| *promise == Heap::boxed(rejection.get())) {
+            consumed_rejections.remove(index);
+        }
+    }
+
+    pub fn get_consumed_rejections(&self) -> &DomRefCell<Vec<Box<Heap<*mut JSObject>>>> {
+        &self.consumed_rejections
+    }
+
+    #[allow(unsafe_code)]
     pub fn get_cx(&self) -> *mut JSContext {
         Runtime::get()
     }
@@ -586,7 +640,10 @@ impl GlobalScope {
     /// Perform a microtask checkpoint.
     pub fn perform_a_microtask_checkpoint(&self) {
         self.microtask_queue
-            .checkpoint(|_| Some(DomRoot::from_ref(self)));
+            .checkpoint(
+                |_| Some(DomRoot::from_ref(self)),
+                vec![DomRoot::from_ref(self)]
+            );
     }
 
     /// Enqueue a microtask for subsequent execution.
@@ -620,6 +677,16 @@ impl GlobalScope {
         }
         if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
             return worker.process_event(msg);
+        }
+        unreachable!();
+    }
+
+    pub fn dom_manipulation_task_source(&self) -> DOMManipulationTaskSource {
+        if let Some(window) = self.downcast::<Window>() {
+            return window.dom_manipulation_task_source();
+        }
+        if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
+            return worker.dom_manipulation_task_source();
         }
         unreachable!();
     }
