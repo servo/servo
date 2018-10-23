@@ -25,8 +25,6 @@
 //!
 //!   http://dev.w3.org/csswg/css-sizing/
 
-#![deny(unsafe_code)]
-
 use app_units::{Au, MAX_AU};
 use context::LayoutContext;
 use display_list::{BlockFlowDisplayListBuilding, BorderPaintingMode};

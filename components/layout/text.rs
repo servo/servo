@@ -4,8 +4,6 @@
 
 //! Text layout.
 
-#![deny(unsafe_code)]
-
 use app_units::Au;
 use context::LayoutFontContext;
 use fragment::{Fragment, ScannedTextFlags};

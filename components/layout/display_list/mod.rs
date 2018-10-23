@@ -15,7 +15,9 @@ pub use self::conversions::ToLayout;
 pub use self::webrender_helpers::WebRenderDisplayListConverter;
 
 mod background;
+mod border;
 mod builder;
 mod conversions;
+mod gradient;
 pub mod items;
 mod webrender_helpers;

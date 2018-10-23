@@ -4,8 +4,6 @@
 
 //! The `Fragment` type, which represents the leaves of the layout tree.
 
-#![deny(unsafe_code)]
-
 use ServoArc;
 use app_units::Au;
 use canvas_traits::canvas::{CanvasMsg, CanvasId};

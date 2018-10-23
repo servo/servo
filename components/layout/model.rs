@@ -4,17 +4,15 @@
 
 //! Borders, padding, and margins.
 
-#![deny(unsafe_code)]
-
 use app_units::Au;
-use euclid::{SideOffsets2D, Size2D};
+use euclid::SideOffsets2D;
 use fragment::Fragment;
 use std::cmp::{max, min};
 use std::fmt;
 use style::logical_geometry::{LogicalMargin, WritingMode};
 use style::properties::ComputedValues;
-use style::values::computed::{BorderCornerRadius, LengthOrPercentageOrAuto};
-use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrNone};
+use style::values::computed::{LengthOrPercentageOrAuto, LengthOrPercentage};
+use style::values::computed::LengthOrPercentageOrNone;
 
 /// A collapsible margin. See CSS 2.1 § 8.3.1.
 #[derive(Clone, Copy, Debug)]
@@ -513,23 +511,6 @@ pub fn style_length(
             MaybeAuto::Auto
         },
     }
-}
-
-/// Computes a border radius size against the containing size.
-///
-/// Note that percentages in `border-radius` are resolved against the relevant
-/// box dimension instead of only against the width per [1]:
-///
-/// > Percentages: Refer to corresponding dimension of the border box.
-///
-/// [1]: https://drafts.csswg.org/css-backgrounds-3/#border-radius
-pub fn specified_border_radius(
-    radius: BorderCornerRadius,
-    containing_size: Size2D<Au>,
-) -> Size2D<Au> {
-    let w = radius.0.width().to_used_value(containing_size.width);
-    let h = radius.0.height().to_used_value(containing_size.height);
-    Size2D::new(w, h)
 }
 
 #[inline]

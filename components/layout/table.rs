@@ -4,8 +4,6 @@
 
 //! CSS table formatting contexts.
 
-#![deny(unsafe_code)]
-
 use app_units::Au;
 use block::{BlockFlow, CandidateBSizeIterator, ISizeAndMarginsComputer};
 use block::{ISizeConstraintInput, ISizeConstraintSolution};

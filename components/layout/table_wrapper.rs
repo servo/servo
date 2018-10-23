@@ -11,8 +11,6 @@
 //!
 //! Hereafter this document is referred to as INTRINSIC.
 
-#![deny(unsafe_code)]
-
 use app_units::Au;
 use block::{AbsoluteNonReplaced, BlockFlow, FloatNonReplaced, ISizeAndMarginsComputer, ISizeConstraintInput};
 use block::{ISizeConstraintSolution, MarginsMayCollapseFlag};
