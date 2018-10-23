@@ -79,9 +79,10 @@ struct Bytes<'a>(&'a str);
 
 impl<'a> fmt::Debug for Bytes<'a> {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-        formatter.write_str("b\"")?;
-        formatter.write_str(self.0)?;
-        formatter.write_str("\" as &'static [u8]")
+        // https://github.com/rust-lang/rust/issues/55223
+        // should technically be just `write!(formatter, "b\"{}\"", self.0)
+        // but the referenced issue breaks promotion in the surrounding code
+        write!(formatter, "{{ const FOO: &[u8] = b\"{}\"; FOO }}", self.0)
     }
 }
 
