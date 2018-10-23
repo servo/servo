@@ -17,7 +17,7 @@ use hyper::mime::{Mime, SubLevel, TopLevel};
 use hyper::status::StatusCode;
 use ipc_channel::ipc::IpcReceiver;
 use mime_guess::guess_mime_type;
-use net_traits::{FetchTaskTarget, NetworkError, ReferrerPolicy, ResourceFetchTiming, ResourceTimingType};
+use net_traits::{FetchTaskTarget, NetworkError, ReferrerPolicy, ResourceFetchTiming};
 use net_traits::request::{CredentialsMode, Destination, Referrer, Request, RequestMode};
 use net_traits::request::{ResponseTainting, Origin, Window};
 use net_traits::response::{Response, ResponseBody, ResponseType};
