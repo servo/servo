@@ -39,7 +39,7 @@ def call(*args):
 
     Returns a bytestring of the subprocess output if no error.
     """
-    logger.debug("%s" % " ".join(args))
+    logger.debug(" ".join(args))
     try:
         return subprocess.check_output(args)
     except subprocess.CalledProcessError as e:
