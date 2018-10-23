@@ -78,12 +78,6 @@ dictionary PaymentItem {
   required DOMString label;
   required PaymentCurrencyAmount amount;
   boolean pending = false;
-  // Note: type member is "at risk" of being removed!
-  PaymentItemType type;
-};
-
-enum PaymentItemType {
-  "tax"
 };
 
 [SecureContext, Exposed=(Window)]
@@ -92,8 +86,6 @@ interface PaymentAddress {
   readonly attribute DOMString city;
   readonly attribute DOMString country;
   readonly attribute DOMString dependentLocality;
-  // "languageCode" is a feature at risk
-  readonly attribute DOMString languageCode;
   readonly attribute DOMString organization;
   readonly attribute DOMString phone;
   readonly attribute DOMString postalCode;
@@ -113,7 +105,6 @@ dictionary AddressInit {
   DOMString dependentLocality;
   DOMString postalCode;
   DOMString sortingCode;
-  DOMString languageCode;
   DOMString organization;
   DOMString recipient;
   DOMString phone;
@@ -124,7 +115,6 @@ dictionary AddressErrors {
   DOMString city;
   DOMString country;
   DOMString dependentLocality;
-  DOMString languageCode;
   DOMString organization;
   DOMString phone;
   DOMString postalCode;

@@ -58,7 +58,7 @@ def tag(repo, owner, sha, tag):
         url = "https://api.github.com/repos/%s/%s/git/refs" % (repo, owner)
         req = urllib2.Request(url, data=data)
 
-        base64string = base64.b64encode('%s' % (os.environ["GH_TOKEN"]))
+        base64string = base64.b64encode(os.environ["GH_TOKEN"])
         req.add_header("Authorization", "Basic %s" % base64string)
 
         opener = urllib2.build_opener(urllib2.HTTPSHandler())

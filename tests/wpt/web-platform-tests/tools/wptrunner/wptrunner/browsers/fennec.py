@@ -227,8 +227,9 @@ class FennecBrowser(FirefoxBrowser):
         if self.runner is not None:
             try:
                 if self.runner.device.connected:
-                    self.runner.device.device.remove_forwards(
-                        "tcp:{}".format(self.marionette_port))
+                    if len(self.runner.device.device.list_forwards()) > 0:
+                        self.runner.device.device.remove_forwards(
+                            "tcp:{}".format(self.marionette_port))
             except Exception:
                 traceback.print_exception(*sys.exc_info())
             # We assume that stopping the runner prompts the

@@ -7,6 +7,7 @@
 <link rel="help" href="http://www.w3.org/TR/css3-multicol/#column-gaps-and-rules"/>
 <link rel="match" href="multicol-rule-stacking-ref.xht"/>
 <meta name="flags" content="ahem"/>
+<meta name="assert" content="The test checks that the span element, which has a higher 'z-index' stacks on top of the other elements in the multicol container." />
 <style type="text/css"><![CDATA[
 body {
 	margin: 0;
@@ -20,8 +21,6 @@ body>div {
 	margin: 1em;
 	border: 1em solid gray;
 	width: 14em;
-	orphans: 1;
-	widows: 1;
 
 	column-count: 4;
 	column-gap: 1em;

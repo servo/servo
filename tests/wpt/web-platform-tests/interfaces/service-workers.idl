@@ -95,6 +95,7 @@ interface ServiceWorkerGlobalScope : WorkerGlobalScope {
 [Exposed=ServiceWorker]
 interface Client {
   readonly attribute USVString url;
+  readonly attribute FrameType frameType;
   readonly attribute DOMString id;
   readonly attribute ClientType type;
   void postMessage(any message, optional sequence<object> transfer = []);
@@ -107,6 +108,13 @@ interface WindowClient : Client {
   [SameObject] readonly attribute FrozenArray<USVString> ancestorOrigins;
   [NewObject] Promise<WindowClient> focus();
   [NewObject] Promise<WindowClient?> navigate(USVString url);
+};
+
+enum FrameType {
+  "auxiliary",
+  "top-level",
+  "nested",
+  "none"
 };
 
 [Exposed=ServiceWorker]

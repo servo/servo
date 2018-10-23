@@ -13,10 +13,33 @@ async function getFetchResult(record) {
 }
 
 function handleBackgroundFetchEvent(event) {
+  let matchFunction = null;
+  switch (event.registration.id) {
+    case 'matchexistingrequest':
+      matchFunction = event.registration.match.bind(
+          event.registration, '/background-fetch/resources/feature-name.txt');
+      break;
+    case 'matchmissingrequest':
+      matchFunction = event.registration.match.bind(
+          event.registration, '/background-fetch/resources/missing.txt');
+      break;
+    default:
+      matchFunction = event.registration.matchAll.bind(event.registration);
+      break;
+  }
+
   event.waitUntil(
-    event.registration.matchAll()
+    matchFunction()
+      // Format `match(All)?` function results.
+      .then(records => {
+        if (!records) return [];  // Nothing was matched.
+        if (!records.map) return [records];  // One entry was returned.
+        return records;  // Already in a list.
+      })
+      // Extract responses.
       .then(records =>
             Promise.all(records.map(record => getFetchResult(record))))
+      // Clone registration and send message.
       .then(results => {
         const registrationCopy = cloneRegistration(event.registration);
         sendMessageToDocument(

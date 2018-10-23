@@ -10,9 +10,9 @@
 
       const hostInfo = get_host_info()
       const urls = {
-        'same-origin': `${hostInfo.HTTP_ORIGIN}/server-timing/resources/blue.png`,
-        'cross-origin': `${hostInfo.HTTP_REMOTE_ORIGIN}/server-timing/resources/blue.png`,
-        'cross-origin-tao': `${hostInfo.HTTP_REMOTE_ORIGIN}/server-timing/resources/blue_tao.png`
+        'same-origin': `${hostInfo.HTTPS_ORIGIN}/server-timing/resources/blue.png`,
+        'cross-origin': `${hostInfo.HTTPS_REMOTE_ORIGIN}/server-timing/resources/blue.png`,
+        'cross-origin-tao': `${hostInfo.HTTPS_REMOTE_ORIGIN}/server-timing/resources/blue_tao.png`
       }
       Object.keys(urls).forEach(function(key) {
         const img = document.createElement('img')

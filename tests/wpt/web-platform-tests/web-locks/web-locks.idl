@@ -16,7 +16,7 @@ interface LockManager {
   Promise<LockManagerSnapshot> query();
 };
 
-callback LockGrantedCallback = Promise<any> (Lock lock);
+callback LockGrantedCallback = Promise<any> (Lock? lock);
 
 enum LockMode { "shared", "exclusive" };
 

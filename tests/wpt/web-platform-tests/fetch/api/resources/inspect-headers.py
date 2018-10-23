@@ -1,6 +1,5 @@
 def main(request, response):
     headers = []
-    request_headers = []
     if "headers" in request.GET:
         checked_headers = request.GET.first("headers").split("|")
         for header in checked_headers:
