@@ -55,24 +55,29 @@ pub enum MLLogLevel {
 #[repr(transparent)]
 pub struct MLLogger(extern "C" fn (MLLogLevel, *const c_char));
 
+const LOG_LEVEL: log::LevelFilter = log::LevelFilter::Info;
+
 #[no_mangle]
 pub unsafe extern "C" fn init_servo(_ctxt: EGLContext,
                                     _surf: EGLSurface,
                                     _disp: EGLDisplay,
                                     logger: MLLogger,
-                                    url: *const c_char) -> ServoInstance
+                                    url: *const c_char,
+                                    width: u32,
+                                    height: u32,
+                                    hidpi: f32) -> ServoInstance
 {
     // Servo initialization goes here!
     servo::embedder_traits::resources::set(Box::new(ResourceReaderInstance::new()));
     let _ = log::set_boxed_logger(Box::new(logger));
-    log::set_max_level(log::LevelFilter::Info);
+    log::set_max_level(LOG_LEVEL);
     let gl = GlesFns::load_with(|symbol| {
         let cstr = CString::new(symbol).expect("Failed to convert GL symbol to a char*");
         eglGetProcAddress(cstr.as_ptr() as _) as _
     });
 
     info!("OpenGL version {}", gl.get_string(gl::VERSION));
-    let window = Rc::new(WindowInstance::new(gl));
+    let window = Rc::new(WindowInstance::new(gl, width, height, hidpi));
 
     info!("Starting servo");
     let mut servo = Box::new(Servo::new(window));
@@ -106,12 +111,18 @@ pub unsafe extern "C" fn discard_servo(servo: ServoInstance) {
 
 struct WindowInstance {
     gl: Rc<Gl>,
+    width: u32,
+    height: u32,
+    hidpi: f32,
 }
 
 impl WindowInstance {
-    fn new(gl: Rc<Gl>) -> WindowInstance {
+    fn new(gl: Rc<Gl>, width: u32, height: u32, hidpi: f32) -> WindowInstance {
         WindowInstance {
             gl: gl,
+            width: width,
+            height: height,
+            hidpi: hidpi,
         }
     }
 }
@@ -134,12 +145,12 @@ impl WindowMethods for WindowInstance {
 
     fn get_coordinates(&self) -> EmbedderCoordinates {
         EmbedderCoordinates {
-            hidpi_factor: TypedScale::new(1.0),
-                   screen: TypedSize2D::new(500, 500),
-            screen_avail: TypedSize2D::new(500, 500),
-            window: (TypedSize2D::new(500, 500), TypedPoint2D::new(0, 0)),
-                framebuffer: TypedSize2D::new(500, 500),
-                viewport: TypedRect::new(TypedPoint2D::new(0, 0), TypedSize2D::new(500, 500)),
+            hidpi_factor: TypedScale::new(self.hidpi),
+            screen: TypedSize2D::new(self.width, self.height),
+            screen_avail: TypedSize2D::new(self.width, self.height),
+            window: (TypedSize2D::new(self.width, self.height), TypedPoint2D::new(0, 0)),
+            framebuffer: TypedSize2D::new(self.width, self.height),
+            viewport: TypedRect::new(TypedPoint2D::new(0, 0), TypedSize2D::new(self.width, self.height)),
         }
     }
 
@@ -201,7 +212,7 @@ impl ResourceReaderMethods for ResourceReaderInstance {
 
 impl log::Log for MLLogger {
     fn enabled(&self, metadata: &log::Metadata) -> bool {
-        metadata.level() <= log::Level::Info
+        metadata.level() <= LOG_LEVEL
     }
 
     fn log(&self, record: &log::Record) {

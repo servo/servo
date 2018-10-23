@@ -13,6 +13,18 @@
 #include <GLES/gl.h>
 #include <string.h>
 
+// The viewport dimensions (in px).
+const unsigned int VIEWPORT_W = 500;
+const unsigned int VIEWPORT_H = 500;
+
+// The hidpi factor.
+const float HIDPI = 1.0;
+
+// The prism dimensions (in m).
+const float PRISM_W = 0.5;
+const float PRISM_H = 0.5;
+const float PRISM_D = 0.5;
+
 // A function which calls the ML logger, suitable for passing into Servo
 typedef void (*MLLogger)(MLLogLevel lvl, char* msg);
 void logger(MLLogLevel lvl, char* msg) {
@@ -41,7 +53,7 @@ Servo2D::~Servo2D() {
 
 // The prism dimensions
 const glm::vec3 Servo2D::getInitialPrismExtents() const {
-  return glm::vec3(0.5f, 0.5f, 0.5f);
+  return glm::vec3(PRISM_W, PRISM_H, PRISM_D);
 }
 
 // Create the prism for Servo
@@ -64,7 +76,7 @@ int Servo2D::init() {
   lumin::ui::Cursor::SetScale(prism_, 0.03f);
   instanceInitialScenes();
 
-  // Get the panar resource that holds the EGL context
+  // Get the planar resource that holds the EGL context
   lumin::RootNode* root_node = prism_->getRootNode();
   if (!root_node) {
     ML_LOG(Error, "Servo2D Failed to get root node");
@@ -101,7 +113,7 @@ int Servo2D::init() {
   EGLSurface surf = plane_->getEGLSurface();
   EGLDisplay dpy = eglGetDisplay(EGL_DEFAULT_DISPLAY);
   eglMakeCurrent(dpy, surf, surf, ctx);
-  glViewport(0, 0, 500, 500);
+  glViewport(0, 0, VIEWPORT_W, VIEWPORT_H);
 
   // Hook into servo
   servo_ = init_servo(ctx, surf, dpy, logger, "https://servo.org");
@@ -165,7 +177,7 @@ bool Servo2D::updateLoop(float fDelta) {
   EGLSurface surf = plane_->getEGLSurface();
   EGLDisplay dpy = eglGetDisplay(EGL_DEFAULT_DISPLAY);
   eglMakeCurrent(dpy, surf, surf, ctx);
-  glViewport(0, 0, 500, 500);
+  glViewport(0, 0, VIEWPORT_W, VIEWPORT_H);
 
   // Hook into servo
   heartbeat_servo(servo_);
