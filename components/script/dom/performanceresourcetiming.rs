@@ -21,23 +21,19 @@ use servo_url::ServoUrl;
 // TODO Cross origin resources MUST BE INCLUDED as PerformanceResourceTiming objects
 // https://w3c.github.io/resource-timing/#sec-cross-origin-resources
 
-// TODO remove this allow statement when CSS and Beacon are used
-#[allow(dead_code)]
-#[derive(Debug, PartialEq)]
+// TODO CSS, Beacon
+#[derive(Debug, MallocSizeOf, PartialEq)]
 pub enum InitiatorType {
     LocalName(String),
-    CSS,
     Navigation,
     XMLHttpRequest,
     Fetch,
-    Beacon,
     Other,
 }
 
 #[dom_struct]
 pub struct PerformanceResourceTiming {
     entry: PerformanceEntry,
-    #[ignore_malloc_size_of = ""]
     initiator_type: InitiatorType,
     next_hop: Option<DOMString>,
     worker_start: f64,
@@ -148,11 +144,9 @@ impl PerformanceResourceTimingMethods for PerformanceResourceTiming {
     fn InitiatorType(&self) -> DOMString {
         match self.initiator_type {
             InitiatorType::LocalName(ref n) => DOMString::from(n.clone()),
-            InitiatorType::CSS => DOMString::from("css"),
             InitiatorType::Navigation => DOMString::from("navigation"),
             InitiatorType::XMLHttpRequest => DOMString::from("xmlhttprequest"),
             InitiatorType::Fetch => DOMString::from("fetch"),
-            InitiatorType::Beacon => DOMString::from("beacon"),
             InitiatorType::Other => DOMString::from("other"),
         }
     }
