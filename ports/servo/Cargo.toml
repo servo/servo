@@ -59,8 +59,5 @@ winapi = "0.2"
 user32-sys = "0.2"
 gdi32-sys = "0.2"
 
-[target.'cfg(target_os = "macos")'.dependencies]
-osmesa-src = {git = "https://github.com/servo/osmesa-src"}
-
-[target.x86_64-unknown-linux-gnu.dependencies]
+[target.'cfg(any(target_os = "macos", all(target_arch = "x86_64", target_os = "linux")))'.dependencies]
 osmesa-src = {git = "https://github.com/servo/osmesa-src"}
