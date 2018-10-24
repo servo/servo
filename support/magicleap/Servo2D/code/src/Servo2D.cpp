@@ -35,7 +35,8 @@ void logger(MLLogLevel lvl, char* msg) {
 
 // The functions Servo provides for hooking up to the ML.
 // For the moment, this doesn't handle input events.
-extern "C" ServoInstance init_servo(EGLContext, EGLSurface, EGLDisplay, MLLogger, const char*, int width, int height, float hidpi);
+extern "C" ServoInstance init_servo(EGLContext, EGLSurface, EGLDisplay, MLLogger,
+                                    const char* url, int width, int height, float hidpi);
 extern "C" void heartbeat_servo(ServoInstance);
 extern "C" void discard_servo(ServoInstance);
 
