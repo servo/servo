@@ -9,8 +9,8 @@
 	<desc class="assert">Style properties on content elements of clipPath
 	must be ignored. A green square should be visible.</desc>
 </g>
-<clipPath id="clip1" clip-path="url(#clip1)">
-	<rect x="50" y="50" width="100" height="100" stroke="black" stroke-wdith="10" stroke-dasharray="10 10" fill="none"/>
+<clipPath id="clip1">
+	<rect x="50" y="50" width="100" height="100" stroke="black" stroke-width="10" stroke-dasharray="10 10" fill="none"/>
 </clipPath>
 <rect width="200" height="200" fill="green" clip-path="url(#clip1)"/>
 </svg>

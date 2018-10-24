@@ -49,7 +49,7 @@ function makeAvailableButBrokenImage(path) {
 
 testCases = [
   {
-    description: 'createImageBitmap with a <sourceType> source and sw set to 0',
+    description: 'createImageBitmap with <sourceType> source and sw set to 0',
     promiseTestFunction:
       (source, t) => {
         return promise_rejects(t, new RangeError(),
@@ -57,7 +57,7 @@ testCases = [
       }
   },
   {
-    description: 'createImageBitmap with a <sourceType> source and sh set to 0',
+    description: 'createImageBitmap with <sourceType> source and sh set to 0',
     promiseTestFunction:
       (source, t) => {
         return promise_rejects(t, new RangeError(),
@@ -70,7 +70,7 @@ testCases = [
     // InvalidStateError.
     //
     // Note: https://bugs.chromium.org/p/chromium/issues/detail?id=799025
-    description: 'createImageBitmap with a <sourceType> source and oversized ' +
+    description: 'createImageBitmap with <sourceType> source and oversized ' +
         '(unallocatable) crop region',
     promiseTestFunction:
       (source, t) => {
