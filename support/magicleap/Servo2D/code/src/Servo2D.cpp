@@ -35,7 +35,7 @@ void logger(MLLogLevel lvl, char* msg) {
 
 // The functions Servo provides for hooking up to the ML.
 // For the moment, this doesn't handle input events.
-extern "C" ServoInstance init_servo(EGLContext, EGLSurface, EGLDisplay, MLLogger, const char*);
+extern "C" ServoInstance init_servo(EGLContext, EGLSurface, EGLDisplay, MLLogger, const char*, int width, int height, float hidpi);
 extern "C" void heartbeat_servo(ServoInstance);
 extern "C" void discard_servo(ServoInstance);
 
@@ -116,7 +116,7 @@ int Servo2D::init() {
   glViewport(0, 0, VIEWPORT_W, VIEWPORT_H);
 
   // Hook into servo
-  servo_ = init_servo(ctx, surf, dpy, logger, "https://servo.org");
+  servo_ = init_servo(ctx, surf, dpy, logger, "https://servo.org", VIEWPORT_H, VIEWPORT_W, HIDPI);
   if (!servo_) {
     ML_LOG(Error, "Servo2D Failed to init servo instance");
     abort();
