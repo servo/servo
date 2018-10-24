@@ -35,7 +35,7 @@ use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
 use fetch::FetchCanceller;
 use html5ever::{LocalName, Prefix};
-use hyper::header::{ByteRangeSpec, ContentLength, Headers, Range as HyperRange, RangeUnit};
+use hyper::header::{ByteRangeSpec, ContentLength, Headers, Range as HyperRange};
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use microtask::{Microtask, MicrotaskRunnable};
@@ -1040,9 +1040,7 @@ impl HTMLMediaElement {
         // Step 8.
         // XXX(ferjm) seekable attribute: we need to get the information about
         //            what's been decoded and buffered so far from servo-media
-        //            and turn the seekable attribute into a TimeRange.
-        //            For now we use a boolean flag that is true iff the server
-        //            supports byte-range requests.
+        //            and add the seekable attribute as a TimeRange.
 
         // Step 9.
         // servo-media with gstreamer does not support inaccurate seeking for now.
@@ -1176,11 +1174,6 @@ impl HTMLMediaElement {
                     }
                 },
                 _ => {},
-            },
-            PlayerEvent::PositionChanged(_) |
-            PlayerEvent::SeekData(_) |
-            PlayerEvent::SeekDone(_) => {
-                // TODO: Support for HTMLMediaElement seeking and related API properties #21998
             },
             PlayerEvent::EndOfStream => {
                 // https://html.spec.whatwg.org/multipage/#media-data-processing-steps-list
