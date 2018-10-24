@@ -1829,7 +1829,7 @@ impl Animate for Quaternion {
              self.3 * other.3)
             .min(1.0).max(-1.0);
 
-        if dot == 1.0 {
+        if dot.abs() == 1.0 {
             return Ok(*self);
         }
 
