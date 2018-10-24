@@ -1038,7 +1038,9 @@ impl HTMLMediaElement {
                 },
                 _ => {},
             },
-            PlayerEvent::PositionChanged(_) => {
+            PlayerEvent::PositionChanged(_) |
+            PlayerEvent::SeekData(_) |
+            PlayerEvent::SeekDone(_) => {
                 // TODO: Support for HTMLMediaElement seeking and related API properties #21998
             },
             PlayerEvent::EndOfStream => {
