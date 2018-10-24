@@ -7,6 +7,7 @@ package org.mozilla.servo;
 
 import android.app.Activity;
 import android.content.Context;
+import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
 import android.system.ErrnoException;
@@ -70,10 +71,14 @@ public class MainActivity extends Activity implements Servo.Client {
           }
         }
 
-        String args = getIntent().getStringExtra("servoargs");
-        String log = getIntent().getStringExtra("servolog");
+        Intent intent = getIntent();
+        String args = intent.getStringExtra("servoargs");
+        String log = intent.getStringExtra("servolog");
         mServoView.setServoArgs(args, log);
 
+        if (Intent.ACTION_VIEW.equals(intent.getAction())) {
+          mServoView.loadUri(intent.getData());
+        }
         setupUrlField();
     }
 
