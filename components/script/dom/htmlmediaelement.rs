@@ -35,7 +35,7 @@ use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
 use fetch::FetchCanceller;
 use html5ever::{LocalName, Prefix};
-use hyper::header::{AcceptRanges, ByteRangeSpec, ContentLength, Headers, Range as HyperRange, RangeUnit};
+use hyper::header::{ByteRangeSpec, ContentLength, Headers, Range as HyperRange, RangeUnit};
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use microtask::{Microtask, MicrotaskRunnable};
@@ -176,13 +176,6 @@ pub struct HTMLMediaElement {
     default_playback_start_position: Cell<f64>,
     /// https://html.spec.whatwg.org/multipage/#dom-media-seeking
     seeking: Cell<bool>,
-    /// Tells wether the current stream is seekable or not.
-    /// XXX(ferjm) This will eventually be changed by a TimeRange.
-    ///            For now, we only consider a stream seekable if the server
-    ///            supports byte-range requests. This should eventually change to
-    ///            allow seeking to buffered content as well, even if the server
-    ///            does not support byte-range requests.
-    seekable: Cell<bool>,
     /// URL of the media resource, if any.
     resource_url: DomRefCell<Option<ServoUrl>>,
 }
@@ -235,7 +228,6 @@ impl HTMLMediaElement {
             playback_position: Cell::new(0.),
             default_playback_start_position: Cell::new(0.),
             seeking: Cell::new(false),
-            seekable: Cell::new(false),
             resource_url: DomRefCell::new(None),
         }
     }
@@ -1051,10 +1043,6 @@ impl HTMLMediaElement {
         //            and turn the seekable attribute into a TimeRange.
         //            For now we use a boolean flag that is true iff the server
         //            supports byte-range requests.
-        if !self.seekable.get() {
-            self.seeking.set(false);
-            return;
-        }
 
         // Step 9.
         // servo-media with gstreamer does not support inaccurate seeking for now.
@@ -1479,14 +1467,6 @@ impl FetchResponseListener for HTMLMediaElementContext {
                     if let Err(e) = self.elem.root().player.set_input_size(**content_length) {
                         eprintln!("Could not set player input size {:?}", e);
                     }
-                }
-                if let Some(accept_ranges) = headers.get::<AcceptRanges>() {
-                    self.elem
-                        .root()
-                        .seekable
-                        .set(accept_ranges.contains(&RangeUnit::Bytes));
-                } else {
-                    self.elem.root().seekable.set(false);
                 }
             }
         }
