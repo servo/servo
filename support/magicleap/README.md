@@ -26,6 +26,6 @@ mabu Servo2D.package -t device -s *signing key*
 ```
 This builds the application `.out/Servo2D/Servo2D.mpk`.
 
-Alternatively, in Visual Studio code, open the `ports/magicleap/Servo2D` directory,
+Alternatively, in Visual Studio code, open the `support/magicleap/Servo2D` directory,
 and use the `Terminal/Run Build Task...` menu option to build the
 Servo2D application.
