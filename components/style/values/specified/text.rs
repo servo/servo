@@ -488,12 +488,7 @@ impl TextAlign {
     /// Convert an enumerated value coming from Gecko to a `TextAlign`.
     #[cfg(feature = "gecko")]
     pub fn from_gecko_keyword(kw: u32) -> Self {
-        use gecko_bindings::structs::NS_STYLE_TEXT_ALIGN_MATCH_PARENT;
-        if kw == NS_STYLE_TEXT_ALIGN_MATCH_PARENT {
-            TextAlign::MatchParent
-        } else {
-            TextAlign::Keyword(TextAlignKeyword::from_gecko_keyword(kw))
-        }
+        TextAlign::Keyword(TextAlignKeyword::from_gecko_keyword(kw))
     }
 }
 
