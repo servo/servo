@@ -3259,7 +3259,7 @@ dependencies = [
 [[package]]
 name = "servo-media"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#a9cfeabf1616ef680473836098784884388156ee"
+source = "git+https://github.com/servo/media#3b347d7b0431c58611e2bd7b22d34062b64cda26"
 dependencies = [
  "servo-media-audio 0.1.0 (git+https://github.com/servo/media)",
  "servo-media-gstreamer 0.1.0 (git+https://github.com/servo/media)",
@@ -3269,7 +3269,7 @@ dependencies = [
 [[package]]
 name = "servo-media-audio"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#a9cfeabf1616ef680473836098784884388156ee"
+source = "git+https://github.com/servo/media#3b347d7b0431c58611e2bd7b22d34062b64cda26"
 dependencies = [
  "boxfnonce 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "byte-slice-cast 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -3286,7 +3286,7 @@ dependencies = [
 [[package]]
 name = "servo-media-gstreamer"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#a9cfeabf1616ef680473836098784884388156ee"
+source = "git+https://github.com/servo/media#3b347d7b0431c58611e2bd7b22d34062b64cda26"
 dependencies = [
  "byte-slice-cast 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "glib 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -3304,7 +3304,7 @@ dependencies = [
 [[package]]
 name = "servo-media-player"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#a9cfeabf1616ef680473836098784884388156ee"
+source = "git+https://github.com/servo/media#3b347d7b0431c58611e2bd7b22d34062b64cda26"
 dependencies = [
  "ipc-channel 0.11.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 1.0.66 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -3400,7 +3400,7 @@ dependencies = [
 [[package]]
 name = "servo_media_derive"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#a9cfeabf1616ef680473836098784884388156ee"
+source = "git+https://github.com/servo/media#3b347d7b0431c58611e2bd7b22d34062b64cda26"
 dependencies = [
  "quote 0.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "syn 0.13.1 (registry+https://github.com/rust-lang/crates.io-index)",
