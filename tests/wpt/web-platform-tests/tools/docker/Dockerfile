@@ -1,4 +1,4 @@
-FROM ubuntu:16.04
+FROM ubuntu:18.04
 
 # No interactive frontend during docker build
 ENV DEBIAN_FRONTEND=noninteractive \

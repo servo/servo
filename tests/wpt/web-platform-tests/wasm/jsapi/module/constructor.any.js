@@ -50,6 +50,11 @@ test(() => {
 }, "Empty buffer");
 
 test(() => {
+  const buffer = new Uint8Array(Array.from(emptyModuleBinary).concat([0, 0]));
+  assert_throws(new WebAssembly.CompileError(), () => new WebAssembly.Module(buffer));
+}, "Invalid code");
+
+test(() => {
   const module = new WebAssembly.Module(emptyModuleBinary);
   assert_equals(Object.getPrototypeOf(module), WebAssembly.Module.prototype);
 }, "Prototype");

@@ -5,5 +5,5 @@ mozcrash == 1.0
 mozrunner==7.1.0
 mozleak == 0.1
 mozinstall==1.16.0
-mozdownload==1.24
+mozdownload==1.25
 

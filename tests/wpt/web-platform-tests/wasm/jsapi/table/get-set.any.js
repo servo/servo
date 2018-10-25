@@ -9,15 +9,11 @@ setup(() => {
 
   builder
     .addFunction("fn", kSig_v_d)
-    .addBody([
-        kExprEnd
-    ])
+    .addBody([])
     .exportFunc();
   builder
     .addFunction("fn2", kSig_v_v)
-    .addBody([
-        kExprEnd
-    ])
+    .addBody([])
     .exportFunc();
 
   const buffer = builder.toBuffer()

@@ -3,6 +3,12 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <div id="log"></div>
+<!-- First test shared pre-insertion checks that work similarly for replaceChild
+     and insertBefore -->
+<script>
+  var insertFunc = Node.prototype.insertBefore;
+</script>
+<script src="pre-insertion-checks.js"></script>
 <script>
 function testLeafNode(nodeName, createNodeFunction) {
   test(function() {

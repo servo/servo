@@ -367,9 +367,8 @@ class Firefox(Browser):
 
         return path
 
-    def version(self, binary=None, channel=None):
+    def version(self, binary=None):
         """Retrieve the release version of the installed browser."""
-        binary = binary or self.find_binary(channel)
         version_string = call(binary, "--version").strip()
         m = re.match(r"Mozilla Firefox (.*)", version_string)
         if not m:
