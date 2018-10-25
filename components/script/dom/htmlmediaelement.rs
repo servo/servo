@@ -1061,7 +1061,7 @@ impl HTMLMediaElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-media-seek
-    fn seek_sync(&self) {
+    fn seek_end(&self) {
         // Step 14.
         self.seeking.set(false);
 
@@ -1417,7 +1417,7 @@ impl MicrotaskRunnable for MediaElementMicrotask {
                 generation_id,
             } => {
                 if generation_id == elem.generation_id.get() {
-                    elem.seek_sync();
+                    elem.seek_end();
                 }
             },
         }
