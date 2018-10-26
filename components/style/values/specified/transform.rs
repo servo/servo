@@ -350,19 +350,6 @@ impl<S> OriginComponent<S> {
     }
 }
 
-#[cfg(feature = "gecko")]
-#[inline]
-fn allow_frames_timing() -> bool {
-    use gecko_bindings::structs::mozilla;
-    unsafe { mozilla::StaticPrefs_sVarCache_layout_css_frames_timing_enabled }
-}
-
-#[cfg(feature = "servo")]
-#[inline]
-fn allow_frames_timing() -> bool {
-    true
-}
-
 impl Parse for TimingFunction {
     fn parse<'i, 't>(
         context: &ParserContext,
@@ -406,14 +393,6 @@ impl Parse for TimingFunction {
                     }).unwrap_or(StepPosition::End);
                     Ok(generic::TimingFunction::Steps(steps, position))
                 },
-                "frames" => {
-                    if allow_frames_timing() {
-                        let frames = Integer::parse_with_minimum(context, i, 2)?;
-                        Ok(generic::TimingFunction::Frames(frames))
-                    } else {
-                        Err(())
-                    }
-                },
                 _ => Err(()),
             }).map_err(|()| {
                 location.new_custom_error(StyleParseErrorKind::UnexpectedFunction(function.clone()))
@@ -440,9 +419,6 @@ impl ToComputedValue for TimingFunction {
             generic::TimingFunction::Steps(steps, position) => {
                 generic::TimingFunction::Steps(steps.to_computed_value(context) as u32, position)
             },
-            generic::TimingFunction::Frames(frames) => {
-                generic::TimingFunction::Frames(frames.to_computed_value(context) as u32)
-            },
         }
     }
 
@@ -465,9 +441,6 @@ impl ToComputedValue for TimingFunction {
                 Integer::from_computed_value(&(steps as i32)),
                 position,
             ),
-            generic::TimingFunction::Frames(frames) => {
-                generic::TimingFunction::Frames(Integer::from_computed_value(&(frames as i32)))
-            },
         }
     }
 }

@@ -92,7 +92,7 @@ pub struct TransformOrigin<H, V, Depth> {
 
 /// A generic timing function.
 ///
-/// <https://drafts.csswg.org/css-timing-1/#single-timing-function-production>
+/// https://drafts.csswg.org/css-easing-1/#timing-functions
 #[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss)]
 #[value_info(ty = "TIMING_FUNCTION")]
 pub enum TimingFunction<Integer, Number> {
@@ -111,9 +111,6 @@ pub enum TimingFunction<Integer, Number> {
     #[css(comma, function)]
     #[value_info(other_values = "step-start,step-end")]
     Steps(Integer, #[css(skip_if = "is_end")] StepPosition),
-    /// `frames(<integer>)`
-    #[css(comma, function)]
-    Frames(Integer),
 }
 
 #[allow(missing_docs)]

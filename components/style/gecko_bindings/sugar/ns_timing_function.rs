@@ -22,17 +22,7 @@ impl nsTimingFunction {
             self.__bindgen_anon_1
                 .__bindgen_anon_1
                 .as_mut()
-                .mStepsOrFrames = steps;
-        }
-    }
-
-    fn set_as_frames(&mut self, frames: u32) {
-        self.mType = nsTimingFunction_Type::Frames;
-        unsafe {
-            self.__bindgen_anon_1
-                .__bindgen_anon_1
-                .as_mut()
-                .mStepsOrFrames = frames;
+                .mSteps = steps;
         }
     }
 
@@ -74,10 +64,6 @@ impl From<TimingFunction> for nsTimingFunction {
                 debug_assert!(steps.value() >= 0);
                 tf.set_as_step(nsTimingFunction_Type::StepEnd, steps.value() as u32);
             },
-            GenericTimingFunction::Frames(frames) => {
-                debug_assert!(frames.value() >= 2);
-                tf.set_as_frames(frames.value() as u32);
-            },
             GenericTimingFunction::CubicBezier { x1, y1, x2, y2 } => {
                 tf.set_as_bezier(
                     nsTimingFunction_Type::CubicBezier,
@@ -105,7 +91,7 @@ impl From<nsTimingFunction> for ComputedTimingFunction {
                         .__bindgen_anon_1
                         .__bindgen_anon_1
                         .as_ref()
-                        .mStepsOrFrames
+                        .mSteps
                 },
                 StepPosition::Start,
             ),
@@ -115,17 +101,10 @@ impl From<nsTimingFunction> for ComputedTimingFunction {
                         .__bindgen_anon_1
                         .__bindgen_anon_1
                         .as_ref()
-                        .mStepsOrFrames
+                        .mSteps
                 },
                 StepPosition::End,
             ),
-            nsTimingFunction_Type::Frames => GenericTimingFunction::Frames(unsafe {
-                function
-                    .__bindgen_anon_1
-                    .__bindgen_anon_1
-                    .as_ref()
-                    .mStepsOrFrames
-            }),
             nsTimingFunction_Type::Ease => GenericTimingFunction::Keyword(TimingKeyword::Ease),
             nsTimingFunction_Type::Linear => GenericTimingFunction::Keyword(TimingKeyword::Linear),
             nsTimingFunction_Type::EaseIn => GenericTimingFunction::Keyword(TimingKeyword::EaseIn),
