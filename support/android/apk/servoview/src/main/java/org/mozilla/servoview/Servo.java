@@ -47,6 +47,14 @@ public class Servo {
         }
     }
 
+    public void requestShutdown() {
+        mRunCallback.inGLThread(() -> mJNI.requestShutdown());
+    }
+
+    public void deinit() {
+        mRunCallback.inGLThread(() -> mJNI.deinit());
+    }
+
     public String version() {
         return mJNI.version();
     }
@@ -137,6 +145,8 @@ public class Servo {
         void inGLThread(Runnable f);
 
         void inUIThread(Runnable f);
+
+        void finalizeShutdown();
     }
 
     public interface GfxCallbacks {
@@ -171,6 +181,10 @@ public class Servo {
         public void makeCurrent() {
             // Up to the callback to execute this in the right thread
             mGfxCb.makeCurrent();
+        }
+
+        public void onShutdownComplete() {
+            mRunCallback.finalizeShutdown();
         }
 
         public void onAnimatingChanged(boolean animating) {

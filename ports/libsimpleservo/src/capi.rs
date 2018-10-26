@@ -35,6 +35,7 @@ pub struct CHostCallbacks {
     pub on_url_changed: extern fn(url: *const c_char),
     pub on_history_changed: extern fn(can_go_back: bool, can_go_forward: bool),
     pub on_animating_changed: extern fn(animating: bool),
+    pub on_shutdown_complete: extern fn(),
 }
 
 /// Servo options
@@ -106,6 +107,18 @@ pub extern "C" fn init_with_gl(
     callbacks: CHostCallbacks) {
     let gl = gl_glue::gl::init().unwrap();
     init(opts, gl, wakeup, readfile, callbacks)
+}
+
+#[no_mangle]
+pub extern "C" fn deinit() {
+    debug!("deinit");
+    api::deinit();
+}
+
+#[no_mangle]
+pub extern "C" fn request_shutdown() {
+    debug!("request_shutdown");
+    call(|s| s.request_shutdown());
 }
 
 #[no_mangle]
@@ -295,5 +308,10 @@ impl HostTrait for HostCallbacks {
     fn on_animating_changed(&self, animating: bool) {
         debug!("on_animating_changed");
         (self.0.on_animating_changed)(animating);
+    }
+
+    fn on_shutdown_complete(&self) {
+        debug!("on_shutdown_complete");
+        (self.0.on_shutdown_complete)();
     }
 }

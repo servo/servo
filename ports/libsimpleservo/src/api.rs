@@ -77,6 +77,8 @@ pub trait HostTrait {
     /// has events for Servo, or Servo has woken up the embedder event loop via
     /// EventLoopWaker).
     fn on_animating_changed(&self, animating: bool);
+    /// Servo finished shutting down.
+    fn on_shutdown_complete(&self);
 }
 
 pub struct ServoGlue {
@@ -169,6 +171,12 @@ pub fn init(
     Ok(())
 }
 
+pub fn deinit() {
+    SERVO.with(|s| {
+        s.replace(None).unwrap().deinit()
+    });
+}
+
 impl ServoGlue {
     fn get_browser_id(&self) -> Result<BrowserId, &'static str> {
         let browser_id = match self.browser_id {
@@ -177,6 +185,17 @@ impl ServoGlue {
         };
         Ok(browser_id)
     }
+
+    /// Request shutdown. Will call on_shutdown_complete.
+    pub fn request_shutdown(&mut self) -> Result<(), &'static str> {
+        self.process_event(WindowEvent::Quit)
+    }
+
+    /// Call after on_shutdown_complete
+    pub fn deinit(self) {
+        self.servo.deinit();
+    }
+
     /// This is the Servo heartbeat. This needs to be called
     /// everytime wakeup is called or when embedder wants Servo
     /// to act on its pending events.
@@ -404,6 +423,9 @@ impl ServoGlue {
                         self.events.push(WindowEvent::Quit);
                     }
                 },
+                EmbedderMsg::Shutdown => {
+                    self.callbacks.host_callbacks.on_shutdown_complete();
+                },
                 EmbedderMsg::Status(..) |
                 EmbedderMsg::SelectFiles(..) |
                 EmbedderMsg::MoveTo(..) |
@@ -415,7 +437,6 @@ impl ServoGlue {
                 EmbedderMsg::SetFullscreenState(..) |
                 EmbedderMsg::ShowIME(..) |
                 EmbedderMsg::HideIME |
-                EmbedderMsg::Shutdown |
                 EmbedderMsg::Panic(..) => {},
             }
         }

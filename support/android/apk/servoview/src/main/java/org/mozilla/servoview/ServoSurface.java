@@ -5,7 +5,6 @@
 
 package org.mozilla.servoview;
 
-import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.net.Uri;
 import android.opengl.EGL14;
@@ -16,7 +15,6 @@ import android.opengl.EGLSurface;
 import android.opengl.GLUtils;
 import android.os.Handler;
 import android.os.Looper;
-import android.os.Message;
 import android.util.Log;
 import android.view.Surface;
 
@@ -26,6 +24,8 @@ import org.mozilla.servoview.Servo.GfxCallbacks;
 import org.mozilla.servoview.Servo.RunCallback;
 
 import static android.opengl.EGL14.EGL_CONTEXT_CLIENT_VERSION;
+import static android.opengl.EGL14.EGL_NO_CONTEXT;
+import static android.opengl.EGL14.EGL_NO_SURFACE;
 import static android.opengl.EGL14.EGL_OPENGL_ES2_BIT;
 
 public class ServoSurface {
@@ -66,6 +66,17 @@ public class ServoSurface {
 
     public void runLoop() {
         mGLThread.start();
+    }
+
+    public void shutdown() {
+        Log.d(LOGTAG, "shutdown");
+        mServo.requestShutdown();
+        try {
+            Log.d(LOGTAG, "Waiting for GL thread to shutdown");
+            mGLThread.join();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
     }
 
     public void reload() {
@@ -121,12 +132,20 @@ public class ServoSurface {
         private EGLDisplay mEglDisplay;
         private EGLContext mEglContext;
         private EGLSurface mEglSurface;
+        
+        void throwGLError(String function) {
+            throwGLError(function, EGL14.eglGetError());
+        }
+
+        void throwGLError(String function, int error) {
+            throw new RuntimeException("Error: " + function + "() Failed " + GLUtils.getEGLErrorString(error));
+        }
 
         GLSurface(Surface surface) {
             mEglDisplay = EGL14.eglGetDisplay(EGL14.EGL_DEFAULT_DISPLAY);
             int[] version = new int[2];
             if (!EGL14.eglInitialize(mEglDisplay, version, 0, version, 1)) {
-                throw new RuntimeException("Error: eglInitialize() Failed " + GLUtils.getEGLErrorString(EGL14.eglGetError()));
+                throwGLError("eglInitialize");
             }
             mEGLConfigs = new EGLConfig[1];
             int[] configsCount = new int[1];
@@ -141,7 +160,7 @@ public class ServoSurface {
                     EGL14.EGL_NONE
             };
             if ((!EGL14.eglChooseConfig(mEglDisplay, configSpec, 0, mEGLConfigs, 0, 1, configsCount, 0)) || (configsCount[0] == 0)) {
-                throw new IllegalArgumentException("Error: eglChooseConfig() Failed " + GLUtils.getEGLErrorString(EGL14.eglGetError()));
+                throwGLError("eglChooseConfig");
             }
             if (mEGLConfigs[0] == null) {
                 throw new RuntimeException("Error: eglConfig() not Initialized");
@@ -150,7 +169,7 @@ public class ServoSurface {
             mEglContext = EGL14.eglCreateContext(mEglDisplay, mEGLConfigs[0], EGL14.EGL_NO_CONTEXT, attrib_list, 0);
             int glError = EGL14.eglGetError();
             if (glError != EGL14.EGL_SUCCESS) {
-                throw new RuntimeException("Error: eglCreateContext() Failed " + GLUtils.getEGLErrorString(glError));
+                throwGLError("eglCreateContext", glError);
             }
             mEglSurface = EGL14.eglCreateWindowSurface(mEglDisplay, mEGLConfigs[0], surface, new int[]{EGL14.EGL_NONE}, 0);
             if (mEglSurface == null || mEglSurface == EGL14.EGL_NO_SURFACE) {
@@ -159,7 +178,7 @@ public class ServoSurface {
                     Log.e(LOGTAG, "Error: createWindowSurface() Returned EGL_BAD_NATIVE_WINDOW.");
                     return;
                 }
-                throw new RuntimeException("Error: createWindowSurface() Failed " + GLUtils.getEGLErrorString(glError));
+                throwGLError("createWindowSurface", glError);
             }
 
             makeCurrent();
@@ -168,7 +187,7 @@ public class ServoSurface {
 
         public void makeCurrent() {
             if (!EGL14.eglMakeCurrent(mEglDisplay, mEglSurface, mEglSurface, mEglContext)) {
-                throw new RuntimeException("Error: eglMakeCurrent() Failed " + GLUtils.getEGLErrorString(EGL14.eglGetError()));
+                throwGLError("eglMakeCurrent");
             }
         }
 
@@ -180,9 +199,26 @@ public class ServoSurface {
             // FIXME
         }
 
+        void destroy() {
+            Log.d(LOGTAG, "Destroying surface");
+            if (!EGL14.eglMakeCurrent(mEglDisplay, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT)) {
+                throwGLError("eglMakeCurrent");
+            }
+            if (!EGL14.eglDestroyContext(mEglDisplay, mEglContext)) {
+                throwGLError("eglDestroyContext");
+            }
+            if (!EGL14.eglDestroySurface(mEglDisplay, mEglSurface)) {
+                throwGLError("eglDestroySurface");
+            }
+            if (!EGL14.eglTerminate(mEglDisplay)) {
+                throwGLError("eglTerminate");
+            }
+        }
+
     }
 
     class GLThread extends Thread implements RunCallback {
+        private GLSurface mSurface;
 
         public void inGLThread(Runnable r) {
             mGLLooperHandler.post(r);
@@ -192,17 +228,19 @@ public class ServoSurface {
             mMainLooperHandler.post(r);
         }
 
-        // FIXME: HandlerLeak
-        @SuppressLint("HandlerLeak")
+        public void finalizeShutdown() {
+            Log.d(LOGTAG, "finalizeShutdown");
+            mServo.deinit();
+            mSurface.destroy();
+            mGLLooperHandler.getLooper().quitSafely();
+        }
+
         public void run() {
             Looper.prepare();
 
-            GLSurface surface = new GLSurface(mASurface);
+            mSurface = new GLSurface(mASurface);
 
-            mGLLooperHandler = new Handler() {
-                public void handleMessage(Message msg) {
-                }
-            };
+            mGLLooperHandler = new Handler();
 
             inUIThread(() -> {
               ServoOptions options = new ServoOptions();
@@ -210,12 +248,12 @@ public class ServoSurface {
               options.width = mWidth;
               options.height = mHeight;
               options.density = 1;
-              options.url = mInitialUri == null ? null : mInitialUri;
+              options.url = mInitialUri;
               options.logStr = mServoLog;
               options.enableLogs = true;
               options.enableSubpixelTextAntialiasing = false;
 
-              mServo = new Servo(options, this, surface, mClient, mActivity);
+              mServo = new Servo(options, this, mSurface, mClient, mActivity);
             });
 
             Looper.loop();

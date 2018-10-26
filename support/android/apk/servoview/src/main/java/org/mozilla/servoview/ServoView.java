@@ -70,6 +70,11 @@ public class ServoView extends GLSurfaceView
         init(context);
     }
 
+    protected void onDetachedFromWindow() {
+        mServo.requestShutdown();
+        super.onDetachedFromWindow();
+    }
+
     private void init(Context context) {
         mActivity = (Activity) context;
         setFocusable(true);
@@ -134,6 +139,11 @@ public class ServoView extends GLSurfaceView
     }
 
     public void makeCurrent() {
+    }
+
+    public void finalizeShutdown() {
+        // shutdown has been requested and completed.
+        mServo.deinit();
     }
 
     public void inGLThread(Runnable f) {
