@@ -2855,7 +2855,7 @@ fn static_assert() {
     ${impl_simple_copy('_moz_min_font_size_ratio', 'mMinFontSizeRatio')}
 </%self:impl_trait>
 
-<%def name="impl_copy_animation_or_transition_value(type, ident, gecko_ffi_name)">
+<%def name="impl_copy_animation_or_transition_value(type, ident, gecko_ffi_name, member=None)">
     #[allow(non_snake_case)]
     pub fn copy_${type}_${ident}_from(&mut self, other: &Self) {
         self.gecko.m${type.capitalize()}s.ensure_len(other.gecko.m${type.capitalize()}s.len());
@@ -2868,7 +2868,11 @@ fn static_assert() {
         );
 
         for (ours, others) in iter {
+            % if member:
+            ours.m${gecko_ffi_name}.${member} = others.m${gecko_ffi_name}.${member};
+            % else:
             ours.m${gecko_ffi_name} = others.m${gecko_ffi_name};
+            % endif
         }
     }
 
@@ -2923,14 +2927,14 @@ fn static_assert() {
 
         self.gecko.m${type.capitalize()}TimingFunctionCount = input_len as u32;
         for (gecko, servo) in self.gecko.m${type.capitalize()}s.iter_mut().take(input_len as usize).zip(v) {
-            gecko.mTimingFunction = servo.into();
+            gecko.mTimingFunction.mTiming = servo;
         }
     }
     ${impl_animation_or_transition_count(type, 'timing_function', 'TimingFunction')}
-    ${impl_copy_animation_or_transition_value(type, 'timing_function', 'TimingFunction')}
+    ${impl_copy_animation_or_transition_value(type, 'timing_function', "TimingFunction", "mTiming")}
     pub fn ${type}_timing_function_at(&self, index: usize)
         -> longhands::${type}_timing_function::computed_value::SingleComputedValue {
-        self.gecko.m${type.capitalize()}s[index].mTimingFunction.into()
+        self.gecko.m${type.capitalize()}s[index].mTimingFunction.mTiming
     }
 </%def>
 

@@ -10,6 +10,7 @@ use values::CSSFloat;
 /// A generic easing function.
 #[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue, ToCss)]
 #[value_info(ty = "TIMING_FUNCTION")]
+#[repr(u8, C)]
 pub enum TimingFunction<Integer, Number> {
     /// `linear | ease | ease-in | ease-out | ease-in-out`
     Keyword(TimingKeyword),
@@ -42,6 +43,7 @@ pub enum TimingFunction<Integer, Number> {
     ToComputedValue,
     ToCss,
 )]
+#[repr(u8)]
 pub enum TimingKeyword {
     Linear,
     Ease,
@@ -53,6 +55,7 @@ pub enum TimingKeyword {
 #[allow(missing_docs)]
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
 #[derive(Clone, Copy, Debug, Eq, MallocSizeOf, Parse, PartialEq, ToComputedValue, ToCss)]
+#[repr(u8)]
 pub enum StepPosition {
     Start,
     End,

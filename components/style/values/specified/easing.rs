@@ -8,6 +8,7 @@ use cssparser::Parser;
 use parser::{Parse, ParserContext};
 use selectors::parser::SelectorParseErrorKind;
 use style_traits::{ParseError, StyleParseErrorKind};
+use values::computed::easing::TimingFunction as ComputedTimingFunction;
 use values::generics::easing::{StepPosition, TimingKeyword};
 use values::generics::easing::TimingFunction as GenericTimingFunction;
 use values::specified::{Integer, Number};
@@ -69,5 +70,28 @@ impl Parse for TimingFunction {
                 )
             })
         })
+    }
+}
+
+// We need this for converting the specified TimingFunction into computed TimingFunction without
+// Context (for some FFIs in glue.rs). In fact, we don't really need Context to get the computed
+// value of TimingFunction.
+impl TimingFunction {
+    /// Generate the ComputedTimingFunction without Context.
+    pub fn to_computed_value_without_context(&self) -> ComputedTimingFunction {
+        match *self {
+            GenericTimingFunction::Steps(steps, pos) => {
+                GenericTimingFunction::Steps(steps.value(), pos)
+            },
+            GenericTimingFunction::CubicBezier { x1, y1, x2, y2 } => {
+                GenericTimingFunction::CubicBezier {
+                    x1: x1.get(),
+                    y1: y1.get(),
+                    x2: x2.get(),
+                    y2: y2.get(),
+                }
+            },
+            GenericTimingFunction::Keyword(keyword) => GenericTimingFunction::Keyword(keyword),
+        }
     }
 }
