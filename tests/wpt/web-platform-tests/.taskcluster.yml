@@ -61,7 +61,7 @@ tasks:
               owner: ${event.pusher.email}
               source: ${event.repository.url}
             payload:
-              image: jugglinmike/web-platform-tests:0.21
+              image: harjgam/web-platform-tests:0.22
               maxRunTime: 7200
               artifacts:
                 public/results:

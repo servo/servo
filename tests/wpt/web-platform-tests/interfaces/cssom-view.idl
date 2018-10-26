@@ -41,7 +41,9 @@ partial interface Window {
 
     // client
     [Replaceable] readonly attribute long screenX;
+    [Replaceable] readonly attribute long screenLeft;
     [Replaceable] readonly attribute long screenY;
+    [Replaceable] readonly attribute long screenTop;
     [Replaceable] readonly attribute long outerWidth;
     [Replaceable] readonly attribute long outerHeight;
     [Replaceable] readonly attribute double devicePixelRatio;

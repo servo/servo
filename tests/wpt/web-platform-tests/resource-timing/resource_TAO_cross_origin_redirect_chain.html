@@ -7,14 +7,13 @@
 <link rel="help" href="http://www.w3.org/TR/resource-timing/#performanceresourcetiming"/>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src=/common/get-host-info.sub.js></script>
 <script src="resources/webperftestharness.js"></script>
 <script src="resources/webperftestharnessextension.js"></script>
 
 <script>
     setup({explicit_done: true});
     test_namespace('getEntriesByName');
-    const pageOrigin = document.location.host;
-    const crossOrigin = 'www.' + pageOrigin;
 
     function onload_test()
     {
@@ -35,9 +34,9 @@
 <body>
 <iframe id="frameContext" src="" style="width: 250px; height: 250px;"></iframe>
 <script>
-    let destUrl = 'http://' + crossOrigin + '/resource-timing/resources/multi_redirect.py?';
-    destUrl += 'page_origin=' + 'http://' + pageOrigin;
-    destUrl += '&cross_origin=' + 'http://' + crossOrigin;
+    let destUrl = get_host_info().HTTP_REMOTE_ORIGIN + '/resource-timing/resources/multi_redirect.py?';
+    destUrl += 'page_origin=' + 'http://' + document.location.host;
+    destUrl += '&cross_origin=' + get_host_info().HTTP_REMOTE_ORIGIN;
     destUrl += '&timing_allow=1';
     const frameContext = document.getElementById('frameContext');
     frameContext.onload = onload_test;

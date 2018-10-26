@@ -34,3 +34,7 @@ function loadScript(url) {
     document.head.appendChild(scriptTag);
   });
 }
+
+function innerURLOrigin() {
+  return 'https://127.0.0.1:8444';
+}

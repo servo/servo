@@ -12,6 +12,8 @@ var expected = [
   "WorkerLocation",
   "ImageData",
   "ImageBitmap",
+  "CanvasGradient",
+  "CanvasPattern",
   "CanvasPath",
   "Path2D",
   "PromiseRejectionEvent",

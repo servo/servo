@@ -120,6 +120,36 @@
           }
         ]
       },
+      {
+        name: "Content-* header",
+        requests: [
+          {
+            response_headers: [
+              ["Expires", -5000],
+              ["ETag", "GHI"],
+              ["Content-Test-Header", "A"]
+            ]
+          },
+          {
+            response_headers: [
+              ["Expires", 3000],
+              ["ETag", "GHI"],
+              ["Content-Test-Header", "B"]
+            ],
+            expected_type: "etag_validated",
+            expected_response_headers: [
+              ["Content-Test-Header", "B"]
+            ],
+            pause_after: true
+          },
+          {
+            expected_type: "cached",
+            expected_response_headers: [
+              ["Content-Test-Header", "B"]
+            ]
+          }
+        ]
+      },
     ];
     run_tests(tests);
     </script>

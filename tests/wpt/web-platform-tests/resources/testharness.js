@@ -145,9 +145,9 @@ policies and contribution forms [3].
     };
 
     WindowTestEnvironment.prototype._forEach_windows = function(callback) {
-        // Iterate of the the windows [self ... top, opener]. The callback is passed
-        // two objects, the first one is the windows object itself, the second one
-        // is a boolean indicating whether or not its on the same origin as the
+        // Iterate over the windows [self ... top, opener]. The callback is passed
+        // two objects, the first one is the window object itself, the second one
+        // is a boolean indicating whether or not it's on the same origin as the
         // current window.
         var cache = this.window_cache;
         if (!cache) {
@@ -754,7 +754,7 @@ policies and contribution forms [3].
         }
         if (tests.file_is_test) {
             // file is test files never have asynchronous cleanup logic,
-            // meaning the fully-sycnronous `done` function can be used here.
+            // meaning the fully-synchronous `done` function can be used here.
             tests.tests[0].done();
         }
         tests.end_wait();
@@ -1541,7 +1541,7 @@ policies and contribution forms [3].
             return;
         }
         this.phase = this.phases.STARTED;
-        //If we don't get a result before the harness times out that will be a test timout
+        //If we don't get a result before the harness times out that will be a test timeout
         this.set_status(this.TIMEOUT, "Test timed out");
 
         tests.started = true;
@@ -2787,7 +2787,7 @@ policies and contribution forms [3].
     /*
      * Template code
      *
-     * A template is just a javascript structure. An element is represented as:
+     * A template is just a JavaScript structure. An element is represented as:
      *
      * [tag_name, {attr_name:attr_value}, child1, child2]
      *
@@ -2949,7 +2949,7 @@ policies and contribution forms [3].
     }
 
     /*
-     * Utility funcions
+     * Utility functions
      */
     function assert(expected_true, function_name, description, error, substitutions)
     {
@@ -3212,7 +3212,7 @@ policies and contribution forms [3].
         // Touching the postMessage prop on a window can throw if the window is
         // not from the same origin AND post message is not supported in that
         // browser. So just doing an existence test here won't do, you also need
-        // to wrap it in a try..cacth block.
+        // to wrap it in a try..catch block.
         try {
             type = typeof w.postMessage;
             if (type === "function") {

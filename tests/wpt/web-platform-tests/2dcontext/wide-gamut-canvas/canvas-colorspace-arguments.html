@@ -1,0 +1,48 @@
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+
+var testScenarios = [
+    {testDescription: "Test default context creation parameters: srgb/uint8",
+        canvasColorSettings: {},
+        expectedColorSettings: {colorSpace: "srgb", pixelFormat: "uint8"}},
+    {testDescription: "Test CanvasColorSpace value srgb",
+        canvasColorSettings: {colorSpace: "srgb"},
+        expectedColorSettings: {colorSpace: "srgb", pixelFormat: "uint8"}},
+
+    {testDescription: "Test CanvasPixelFormat value uint8",
+        canvasColorSettings: {pixelFormat: "uint8"},
+        expectedColorSettings: {colorSpace: "srgb", pixelFormat: "uint8"}},
+    {testDescription: "Test CanvasPixelFormat value float16",
+        canvasColorSettings: {pixelFormat: "float16"},
+        expectedColorSettings: {colorSpace: "srgb", pixelFormat: "float16"}},
+
+    {testDescription: "Test supported color settings srgb/uint8",
+        canvasColorSettings: {colorSpace: "srgb", pixelFormat: "uint8"},
+        expectedColorSettings: {colorSpace: "srgb", pixelFormat: "uint8"}},
+    {testDescription: "Test supported color settings srgb/float16",
+        canvasColorSettings: {colorSpace: "srgb", pixelFormat: "float16"},
+        expectedColorSettings: {colorSpace: "srgb", pixelFormat: "float16"}},
+];
+
+function runTestScenario(testScenario) {
+    var t = test(function() {
+        var canvas = document. createElement('canvas');
+        var ctx = canvas.getContext('2d', testScenario.canvasColorSettings);
+        var contextAttributes = ctx.getContextAttributes();
+        assert_equals(contextAttributes.colorSpace,
+            testScenario.expectedColorSettings.colorSpace);
+        assert_equals(contextAttributes.pixelFormat,
+            testScenario.expectedColorSettings.pixelFormat);
+    }, testScenario.testDescription);
+}
+
+function runAllTests() {
+    for (var i = 0; i < testScenarios.length; i++)
+        runTestScenario(testScenarios[i]);
+}
+
+runAllTests();
+</script>
+
