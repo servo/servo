@@ -8,7 +8,6 @@ use cssparser::Parser;
 use parser::{Parse, ParserContext};
 use selectors::parser::SelectorParseErrorKind;
 use style_traits::{ParseError, StyleParseErrorKind};
-use values::computed::{Context, TimingFunction as ComputedTimingFunction, ToComputedValue};
 use values::generics::easing::{StepPosition, TimingKeyword};
 use values::generics::easing::TimingFunction as GenericTimingFunction;
 use values::specified::{Integer, Number};
@@ -70,49 +69,5 @@ impl Parse for TimingFunction {
                 )
             })
         })
-    }
-}
-
-impl ToComputedValue for TimingFunction {
-    type ComputedValue = ComputedTimingFunction;
-
-    #[inline]
-    fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
-        match *self {
-            GenericTimingFunction::Keyword(keyword) => GenericTimingFunction::Keyword(keyword),
-            GenericTimingFunction::CubicBezier { x1, y1, x2, y2 } => {
-                GenericTimingFunction::CubicBezier {
-                    x1: x1.to_computed_value(context),
-                    y1: y1.to_computed_value(context),
-                    x2: x2.to_computed_value(context),
-                    y2: y2.to_computed_value(context),
-                }
-            },
-            GenericTimingFunction::Steps(steps, position) => {
-                GenericTimingFunction::Steps(steps.to_computed_value(context) as u32, position)
-            },
-        }
-    }
-
-    #[inline]
-    fn from_computed_value(computed: &Self::ComputedValue) -> Self {
-        match *computed {
-            GenericTimingFunction::Keyword(keyword) => GenericTimingFunction::Keyword(keyword),
-            GenericTimingFunction::CubicBezier {
-                ref x1,
-                ref y1,
-                ref x2,
-                ref y2,
-            } => GenericTimingFunction::CubicBezier {
-                x1: Number::from_computed_value(x1),
-                y1: Number::from_computed_value(y1),
-                x2: Number::from_computed_value(x2),
-                y2: Number::from_computed_value(y2),
-            },
-            GenericTimingFunction::Steps(steps, position) => GenericTimingFunction::Steps(
-                Integer::from_computed_value(&(steps as i32)),
-                position,
-            ),
-        }
     }
 }

@@ -11,7 +11,7 @@ use values::generics::easing::TimingFunction as GenericTimingFunction;
 use values::specified::easing::TimingFunction;
 
 impl nsTimingFunction {
-    fn set_as_step(&mut self, function_type: nsTimingFunction_Type, steps: u32) {
+    fn set_as_step(&mut self, function_type: nsTimingFunction_Type, steps: i32) {
         debug_assert!(
             function_type == nsTimingFunction_Type::StepStart ||
                 function_type == nsTimingFunction_Type::StepEnd,
@@ -22,7 +22,7 @@ impl nsTimingFunction {
             self.__bindgen_anon_1
                 .__bindgen_anon_1
                 .as_mut()
-                .mSteps = steps;
+                .mSteps = steps as u32;
         }
     }
 
@@ -58,11 +58,11 @@ impl From<TimingFunction> for nsTimingFunction {
         match function {
             GenericTimingFunction::Steps(steps, StepPosition::Start) => {
                 debug_assert!(steps.value() >= 0);
-                tf.set_as_step(nsTimingFunction_Type::StepStart, steps.value() as u32);
+                tf.set_as_step(nsTimingFunction_Type::StepStart, steps.value());
             },
             GenericTimingFunction::Steps(steps, StepPosition::End) => {
                 debug_assert!(steps.value() >= 0);
-                tf.set_as_step(nsTimingFunction_Type::StepEnd, steps.value() as u32);
+                tf.set_as_step(nsTimingFunction_Type::StepEnd, steps.value());
             },
             GenericTimingFunction::CubicBezier { x1, y1, x2, y2 } => {
                 tf.set_as_bezier(
@@ -91,7 +91,7 @@ impl From<nsTimingFunction> for ComputedTimingFunction {
                         .__bindgen_anon_1
                         .__bindgen_anon_1
                         .as_ref()
-                        .mSteps
+                        .mSteps as i32
                 },
                 StepPosition::Start,
             ),
@@ -101,7 +101,7 @@ impl From<nsTimingFunction> for ComputedTimingFunction {
                         .__bindgen_anon_1
                         .__bindgen_anon_1
                         .as_ref()
-                        .mSteps
+                        .mSteps as i32
                 },
                 StepPosition::End,
             ),

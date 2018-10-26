@@ -4,8 +4,8 @@
 
 //! Computed types for CSS Easing functions.
 
-use values::computed::Number;
+use values::computed::{Integer, Number};
 use values::generics::easing::TimingFunction as GenericTimingFunction;
 
 /// A computed timing function.
-pub type TimingFunction = GenericTimingFunction<u32, Number>;
+pub type TimingFunction = GenericTimingFunction<Integer, Number>;
