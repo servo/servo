@@ -24,7 +24,7 @@ pub use ::webgl_channel::WebGLPipeline;
 /// Entry point channel type used for sending WebGLMsg messages to the WebGL renderer.
 pub use ::webgl_channel::WebGLChan;
 
-#[derive(Clone, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct WebGLCommandBacktrace {
     #[cfg(feature = "webgl_backtrace")]
     pub backtrace: String,
@@ -33,7 +33,7 @@ pub struct WebGLCommandBacktrace {
 }
 
 /// WebGL Message API
-#[derive(Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub enum WebGLMsg {
     /// Creates a new WebGLContext.
     CreateContext(
@@ -70,7 +70,7 @@ pub enum WebGLMsg {
 }
 
 /// Contains the WebGLCommand sender and information about a WebGLContext
-#[derive(Clone, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct WebGLCreateContextResult {
     /// Sender instance to send commands to the specific WebGLContext
     pub sender: WebGLMsgSender,
@@ -82,7 +82,7 @@ pub struct WebGLCreateContextResult {
     pub glsl_version: WebGLSLVersion,
 }
 
-#[derive(Clone, Copy, Deserialize, MallocSizeOf, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub enum WebGLContextShareMode {
     /// Fast: a shared texture_id is used in WebRender.
     SharedTexture,
@@ -91,7 +91,7 @@ pub enum WebGLContextShareMode {
 }
 
 /// Defines the WebGL version
-#[derive(Clone, Copy, Deserialize, Eq, MallocSizeOf, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, MallocSizeOf, PartialEq, Serialize)]
 pub enum WebGLVersion {
     /// https://www.khronos.org/registry/webgl/specs/1.0.2/
     /// Conforms closely to the OpenGL ES 2.0 API
@@ -102,7 +102,7 @@ pub enum WebGLVersion {
 }
 
 /// Defines the GLSL version supported by the WebGL backend contexts.
-#[derive(Clone, Copy, Deserialize, Eq, MallocSizeOf, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, MallocSizeOf, PartialEq, Serialize)]
 pub struct WebGLSLVersion {
     /// Major GLSL version
     pub major: u32,
@@ -111,7 +111,7 @@ pub struct WebGLSLVersion {
 }
 
 /// Helper struct to send WebGLCommands to a specific WebGLContext.
-#[derive(Clone, Deserialize, MallocSizeOf, Serialize)]
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub struct WebGLMsgSender {
     ctx_id: WebGLContextId,
     #[ignore_malloc_size_of = "channels are hard"]
@@ -414,7 +414,7 @@ pub type WebGLResult<T> = Result<T, WebGLError>;
 pub type WebVRDeviceId = u32;
 
 // WebVR commands that must be called in the WebGL render thread.
-#[derive(Clone, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum WebVRCommand {
     /// Start presenting to a VR device.
     Create(WebVRDeviceId),
@@ -433,7 +433,7 @@ pub trait WebVRRenderHandler: Send {
 }
 
 /// WebGL commands required to implement DOMToTexture feature.
-#[derive(Clone, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum DOMToTextureCommand {
     /// Attaches a HTMLIFrameElement to a WebGLTexture.
     Attach(WebGLContextId, WebGLTextureId, DocumentId, PipelineId, Size2D<i32>),
@@ -444,7 +444,7 @@ pub enum DOMToTextureCommand {
 }
 
 /// Information about a WebGL program linking operation.
-#[derive(Clone, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct ProgramLinkInfo {
     /// Whether the program was linked successfully.
     pub linked: bool,
@@ -455,7 +455,7 @@ pub struct ProgramLinkInfo {
 }
 
 /// Description of a single active attribute.
-#[derive(Clone, Deserialize, MallocSizeOf, Serialize)]
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub struct ActiveAttribInfo {
     /// The name of the attribute.
     pub name: String,
@@ -468,7 +468,7 @@ pub struct ActiveAttribInfo {
 }
 
 /// Description of a single active uniform.
-#[derive(Clone, Deserialize, MallocSizeOf, Serialize)]
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub struct ActiveUniformInfo {
     /// The base name of the uniform.
     pub base_name: Box<str>,

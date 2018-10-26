@@ -61,7 +61,7 @@ impl fmt::Debug for LayoutMsg {
 }
 
 /// Whether a DOM event was prevented by web content
-#[derive(Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub enum EventResult {
     /// Allowed by web content
     DefaultAllowed,
@@ -241,7 +241,7 @@ impl fmt::Debug for ScriptMsg {
 }
 
 /// Entities required to spawn service workers
-#[derive(Clone, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct ScopeThings {
     /// script resource url
     pub script_url: ServoUrl,
@@ -268,7 +268,7 @@ pub struct SWManagerSenders {
 }
 
 /// Messages sent to Service Worker Manager thread
-#[derive(Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub enum ServiceWorkerMsg {
     /// Message to register the service worker
     RegisterServiceWorker(ScopeThings, ServoUrl),
@@ -281,7 +281,7 @@ pub enum ServiceWorkerMsg {
 }
 
 /// Messages outgoing from the Service Worker Manager thread to constellation
-#[derive(Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub enum SWManagerMsg {
     /// Provide the constellation with a means of communicating with the Service Worker Manager
     OwnSender(IpcSender<ServiceWorkerMsg>),

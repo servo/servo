@@ -5,14 +5,14 @@
 use ipc_channel::ipc::IpcSender;
 use servo_url::ServoUrl;
 
-#[derive(Clone, Copy, Deserialize, MallocSizeOf, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub enum StorageType {
     Session,
     Local,
 }
 
 /// Request operations on the storage data associated with a particular url
-#[derive(Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub enum StorageThreadMsg {
     /// gets the number of key/value pairs present in the associated storage data
     Length(IpcSender<usize>, ServoUrl, StorageType),

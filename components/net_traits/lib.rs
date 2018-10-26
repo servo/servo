@@ -62,7 +62,7 @@ pub mod image {
 
 /// A loading context, for context-specific sniffing, as defined in
 /// <https://mimesniff.spec.whatwg.org/#context-specific-sniffing>
-#[derive(Clone, Deserialize, MallocSizeOf, Serialize)]
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub enum LoadContext {
     Browsing,
     Image,
@@ -98,7 +98,7 @@ impl CustomResponse {
     }
 }
 
-#[derive(Clone, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct CustomResponseMediator {
     pub response_chan: IpcSender<Option<CustomResponse>>,
     pub load_url: ServoUrl,
@@ -149,7 +149,7 @@ impl<'a> From<&'a ReferrerPolicyHeader> for ReferrerPolicy {
     }
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub enum FetchResponseMsg {
     // todo: should have fields for transmitted/total bytes
     ProcessRequestBody,
@@ -185,7 +185,7 @@ pub trait FetchTaskTarget {
     fn process_response_eof(&mut self, response: &Response);
 }
 
-#[derive(Clone, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum FilteredMetadata {
     Basic(Metadata),
     Cors(Metadata),
@@ -193,7 +193,7 @@ pub enum FilteredMetadata {
     OpaqueRedirect
 }
 
-#[derive(Clone, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum FetchMetadata {
     Unfiltered(Metadata),
     Filtered {
@@ -276,7 +276,7 @@ pub trait IpcSend<T>
 // the "Arc" hack implicitly in future.
 // See discussion: http://logs.glob.uno/?c=mozilla%23servo&s=16+May+2016&e=16+May+2016#c430412
 // See also: https://github.com/servo/servo/blob/735480/components/script/script_thread.rs#L313
-#[derive(Clone, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct ResourceThreads {
     core_thread: CoreResourceThread,
     storage_thread: IpcSender<StorageThreadMsg>,
@@ -314,25 +314,25 @@ impl IpcSend<StorageThreadMsg> for ResourceThreads {
 // Ignore the sub-fields
 malloc_size_of_is_0!(ResourceThreads);
 
-#[derive(Clone, Copy, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
 pub enum IncludeSubdomains {
     Included,
     NotIncluded,
 }
 
-#[derive(Deserialize, MallocSizeOf, Serialize)]
+#[derive(Debug, Deserialize, MallocSizeOf, Serialize)]
 pub enum MessageData {
     Text(String),
     Binary(Vec<u8>),
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub enum WebSocketDomAction {
     SendMessage(MessageData),
     Close(Option<u16>, Option<String>),
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub enum WebSocketNetworkEvent {
     ConnectionEstablished {
         protocol_in_use: Option<String>,
@@ -342,7 +342,7 @@ pub enum WebSocketNetworkEvent {
     Fail,
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 /// IPC channels to communicate with the script thread about network or DOM events.
 pub enum FetchChannels {
     ResponseMsg(IpcSender<FetchResponseMsg>, /* cancel_chan */ Option<IpcReceiver<()>>),
@@ -352,7 +352,7 @@ pub enum FetchChannels {
     }
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub enum CoreResourceMsg {
     Fetch(RequestInit, FetchChannels),
     /// Initiate a fetch in response to processing a redirection
@@ -393,7 +393,7 @@ pub fn fetch_async<F>(request: RequestInit, core_resource_thread: &CoreResourceT
         CoreResourceMsg::Fetch(request, FetchChannels::ResponseMsg(action_sender, None))).unwrap();
 }
 
-#[derive(Clone, Deserialize, MallocSizeOf, Serialize)]
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub struct ResourceCorsData {
     /// CORS Preflight flag
     pub preflight: bool,
@@ -402,7 +402,7 @@ pub struct ResourceCorsData {
 }
 
 /// Metadata about a loaded resource, such as is obtained from HTTP headers.
-#[derive(Clone, Deserialize, MallocSizeOf, Serialize)]
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub struct Metadata {
     /// Final URL after redirects.
     pub final_url: ServoUrl,
@@ -471,7 +471,7 @@ impl Metadata {
 }
 
 /// The creator of a given cookie
-#[derive(Clone, Copy, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
 pub enum CookieSource {
     /// An HTTP API
     HTTP,

@@ -17,7 +17,7 @@ pub struct TimerMetadata {
     pub incremental: TimerMetadataReflowType,
 }
 
-#[derive(Clone, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct ProfilerChan(pub IpcSender<ProfilerMsg>);
 
 impl ProfilerChan {
@@ -28,13 +28,13 @@ impl ProfilerChan {
     }
 }
 
-#[derive(Clone, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum ProfilerData {
     NoRecords,
     Record(Vec<f64>),
 }
 
-#[derive(Clone, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum ProfilerMsg {
     /// Normal message used for reporting time
     Time(

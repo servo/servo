@@ -16,14 +16,14 @@ use webrender_api;
 /// Whether a consumer is in a position to request images or not. This can occur
 /// when animations are being processed by the layout thread while the script
 /// thread is executing in parallel.
-#[derive(Clone, Copy, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
 pub enum CanRequestImages {
     No,
     Yes,
 }
 
 /// Indicating either entire image or just metadata availability
-#[derive(Clone, Deserialize, MallocSizeOf, Serialize)]
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub enum ImageOrMetadataAvailable {
     ImageAvailable(#[ignore_malloc_size_of = "Arc"] Arc<Image>, ServoUrl),
     MetadataAvailable(ImageMetadata),
@@ -33,7 +33,7 @@ pub enum ImageOrMetadataAvailable {
 /// and image, and returned to the specified event loop when the
 /// image load completes. It is typically used to trigger a reflow
 /// and/or repaint.
-#[derive(Clone, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct ImageResponder {
     id: PendingImageId,
     sender: IpcSender<PendingImageResponse>,
@@ -73,7 +73,7 @@ pub enum ImageResponse {
 }
 
 /// The current state of an image in the cache.
-#[derive(Clone, Copy, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
 pub enum ImageState {
     Pending(PendingImageId),
     LoadError,
@@ -90,7 +90,7 @@ pub struct PendingImageResponse {
     pub id: PendingImageId,
 }
 
-#[derive(Clone, Copy, Deserialize, Eq, Hash, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 pub enum UsePlaceholder {
     No,
     Yes,

@@ -864,6 +864,7 @@ where
 
     /// Handles loading pages, navigation, and granting access to the compositor
     fn handle_request(&mut self) {
+        #[derive(Debug)]
         enum Request {
             Script((PipelineId, FromScriptMsg)),
             Compositor(FromCompositorMsg),

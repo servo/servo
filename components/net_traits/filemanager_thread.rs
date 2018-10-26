@@ -19,7 +19,7 @@ pub type FileOrigin = String;
 /// Relative slice positions of a sequence,
 /// whose semantic should be consistent with (start, end) parameters in
 /// <https://w3c.github.io/FileAPI/#dfn-slice>
-#[derive(Clone, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct RelativePos {
     /// Relative to first byte if non-negative,
     /// relative to one past last byte if negative,
@@ -111,7 +111,7 @@ pub struct SelectedFile {
     pub type_string: String,
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub enum FileManagerThreadMsg {
     /// Select a single file. Last field is pre-selected file path for testing
     SelectFile(Vec<FilterPattern>, IpcSender<FileManagerResult<SelectedFile>>, FileOrigin, Option<String>),

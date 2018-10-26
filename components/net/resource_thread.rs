@@ -345,7 +345,7 @@ pub fn write_json_to_file<T>(data: &T, config_dir: &Path, filename: &str)
     }
 }
 
-#[derive(Clone, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct AuthCacheEntry {
     pub user_name: String,
     pub password: String,
@@ -360,7 +360,7 @@ impl AuthCache {
     }
 }
 
-#[derive(Clone, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct AuthCache {
     pub version: u32,
     pub entries: HashMap<String, AuthCacheEntry>,

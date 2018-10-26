@@ -112,7 +112,7 @@ impl UntrustedNodeAddress {
 }
 
 /// Messages sent to the layout thread from the constellation and/or compositor.
-#[derive(Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub enum LayoutControlMsg {
     /// Requests that this layout thread exit.
     ExitNow,
@@ -191,7 +191,7 @@ impl LoadData {
 }
 
 /// The initial data required to create a new layout attached to an existing script thread.
-#[derive(Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct NewLayoutInfo {
     /// The ID of the parent pipeline and frame type, if any.
     /// If `None`, this is a root pipeline.
@@ -217,7 +217,7 @@ pub struct NewLayoutInfo {
 }
 
 /// When a pipeline is closed, should its browsing context be discarded too?
-#[derive(Clone, Copy, Deserialize, Eq, Hash, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 pub enum DiscardBrowsingContext {
     /// Discard the browsing context
     Yes,
@@ -446,7 +446,7 @@ pub enum MouseButton {
 }
 
 /// The types of mouse events
-#[derive(Deserialize, MallocSizeOf, Serialize)]
+#[derive(Debug, Deserialize, MallocSizeOf, Serialize)]
 pub enum MouseEventType {
     /// Mouse button clicked
     Click,
@@ -457,7 +457,7 @@ pub enum MouseEventType {
 }
 
 /// Events from the compositor that the script thread needs to know about
-#[derive(Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub enum CompositorEvent {
     /// The window was resized.
     ResizeEvent(WindowSizeData, WindowSizeType),
@@ -483,7 +483,7 @@ pub enum CompositorEvent {
 }
 
 /// Requests a TimerEvent-Message be sent after the given duration.
-#[derive(Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct TimerEventRequest(
     pub IpcSender<TimerEvent>,
     pub TimerSource,
@@ -492,7 +492,7 @@ pub struct TimerEventRequest(
 );
 
 /// Type of messages that can be sent to the timer scheduler.
-#[derive(Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub enum TimerSchedulerMsg {
     /// Message to schedule a new timer event.
     Request(TimerEventRequest),
@@ -616,7 +616,7 @@ pub enum IFrameSandboxState {
 }
 
 /// Specifies the information required to load an auxiliary browsing context.
-#[derive(Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct AuxiliaryBrowsingContextLoadInfo {
     /// The pipeline opener browsing context.
     pub opener_pipeline_id: PipelineId,
@@ -629,7 +629,7 @@ pub struct AuxiliaryBrowsingContextLoadInfo {
 }
 
 /// Specifies the information required to load an iframe.
-#[derive(Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct IFrameLoadInfo {
     /// Pipeline ID of the parent of this iframe
     pub parent_pipeline_id: PipelineId,
@@ -647,7 +647,7 @@ pub struct IFrameLoadInfo {
 }
 
 /// Specifies the information required to load a URL in an iframe.
-#[derive(Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct IFrameLoadInfoWithData {
     /// The information required to load an iframe.
     pub info: IFrameLoadInfo,
@@ -660,7 +660,7 @@ pub struct IFrameLoadInfoWithData {
 }
 
 /// Specifies whether the script or layout thread needs to be ticked for animation.
-#[derive(Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub enum AnimationTickType {
     /// The script thread.
     Script,
@@ -678,7 +678,7 @@ pub struct ScrollState {
 }
 
 /// Data about the window size.
-#[derive(Clone, Copy, Deserialize, MallocSizeOf, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub struct WindowSizeData {
     /// The size of the initial layout viewport, before parsing an
     /// <http://www.w3.org/TR/css-device-adapt/#initial-viewport>
@@ -689,7 +689,7 @@ pub struct WindowSizeData {
 }
 
 /// The type of window size change.
-#[derive(Clone, Copy, Deserialize, Eq, MallocSizeOf, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, MallocSizeOf, PartialEq, Serialize)]
 pub enum WindowSizeType {
     /// Initial load.
     Initial,
@@ -698,7 +698,7 @@ pub enum WindowSizeType {
 }
 
 /// Messages to the constellation originating from the WebDriver server.
-#[derive(Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub enum WebDriverCommandMsg {
     /// Get the window size.
     GetWindowSize(TopLevelBrowsingContextId, IpcSender<WindowSizeData>),
@@ -803,7 +803,7 @@ impl fmt::Debug for ConstellationMsg {
 }
 
 /// Resources required by workerglobalscopes
-#[derive(Clone, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct WorkerGlobalScopeInit {
     /// Chan to a resource thread
     pub resource_threads: ResourceThreads,
@@ -828,7 +828,7 @@ pub struct WorkerGlobalScopeInit {
 }
 
 /// Common entities representing a network load origin
-#[derive(Clone, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct WorkerScriptLoadOrigin {
     /// referrer url
     pub referrer_url: Option<ServoUrl>,
@@ -885,7 +885,7 @@ pub struct DrawAPaintImageResult {
 }
 
 /// A Script to Constellation channel.
-#[derive(Clone, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct ScriptToConstellationChan {
     /// Sender for communicating with constellation thread.
     pub sender: IpcSender<(PipelineId, ScriptMsg)>,

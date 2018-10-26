@@ -10,13 +10,13 @@ use std::default::Default;
 use std::str::FromStr;
 use webrender_api;
 
-#[derive(Clone, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum FillRule {
     Nonzero,
     Evenodd,
 }
 
-#[derive(Clone, Copy, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize)]
 pub struct CanvasId(pub u64);
 
 #[derive(Deserialize, Serialize)]
@@ -30,12 +30,12 @@ pub enum CanvasMsg {
     Exit,
 }
 
-#[derive(Clone, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct CanvasImageData {
     pub image_key: webrender_api::ImageKey,
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub enum Canvas2dMsg {
     Arc(Point2D<f32>, f32, f32, f32, bool),
     ArcTo(Point2D<f32>, Point2D<f32>, f32),
@@ -77,23 +77,23 @@ pub enum Canvas2dMsg {
     SetShadowColor(RGBA),
 }
 
-#[derive(Clone, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum FromLayoutMsg {
     SendData(IpcSender<CanvasImageData>),
 }
 
-#[derive(Clone, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum FromScriptMsg {
     SendPixels(IpcSender<Option<ByteBuf>>),
 }
 
-#[derive(Clone, Deserialize, MallocSizeOf, Serialize)]
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub struct CanvasGradientStop {
     pub offset: f64,
     pub color: RGBA,
 }
 
-#[derive(Clone, Deserialize, MallocSizeOf, Serialize)]
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub struct LinearGradientStyle {
     pub x0: f64,
     pub y0: f64,
@@ -115,7 +115,7 @@ impl LinearGradientStyle {
     }
 }
 
-#[derive(Clone, Deserialize, MallocSizeOf, Serialize)]
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub struct RadialGradientStyle {
     pub x0: f64,
     pub y0: f64,
@@ -141,7 +141,7 @@ impl RadialGradientStyle {
     }
 }
 
-#[derive(Clone, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct SurfaceStyle {
     pub surface_data: ByteBuf,
     pub surface_size: Size2D<u32>,
@@ -166,7 +166,7 @@ impl SurfaceStyle {
 }
 
 
-#[derive(Clone, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum FillOrStrokeStyle {
     Color(RGBA),
     LinearGradient(LinearGradientStyle),
@@ -174,7 +174,7 @@ pub enum FillOrStrokeStyle {
     Surface(SurfaceStyle),
 }
 
-#[derive(Clone, Copy, Deserialize, MallocSizeOf, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]
 pub enum LineCapStyle {
     Butt = 0,
     Round = 1,
@@ -194,7 +194,7 @@ impl FromStr for LineCapStyle {
     }
 }
 
-#[derive(Clone, Copy, Deserialize, MallocSizeOf, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]
 pub enum LineJoinStyle {
     Round = 0,
     Bevel = 1,
@@ -214,7 +214,7 @@ impl FromStr for LineJoinStyle {
     }
 }
 
-#[derive(Clone, Copy, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
 pub enum RepetitionStyle {
     Repeat,
     RepeatX,
@@ -236,7 +236,7 @@ impl FromStr for RepetitionStyle {
     }
 }
 
-#[derive(Clone, Copy, Deserialize, MallocSizeOf, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]
 pub enum CompositionStyle {
     SrcIn,
     SrcOut,
@@ -290,7 +290,7 @@ impl CompositionStyle {
     }
 }
 
-#[derive(Clone, Copy, Deserialize, MallocSizeOf, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]
 pub enum BlendingStyle {
     Multiply,
     Screen,
@@ -356,7 +356,7 @@ impl BlendingStyle {
     }
 }
 
-#[derive(Clone, Copy, Deserialize, MallocSizeOf, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]
 pub enum CompositionOrBlending {
     Composition(CompositionStyle),
     Blending(BlendingStyle),

@@ -75,7 +75,7 @@ pub enum ResponseMsg {
     Errored,
 }
 
-#[derive(Clone, Deserialize, MallocSizeOf, Serialize)]
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub struct ResponseInit {
     pub url: ServoUrl,
     #[serde(deserialize_with = "::hyper_serde::deserialize",

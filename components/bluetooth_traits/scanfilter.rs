@@ -10,7 +10,7 @@ use std::slice::Iter;
 // That leaves 29 bytes for the name.
 const MAX_NAME_LENGTH: usize = 29;
 
-#[derive(Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct ServiceUUIDSequence(Vec<String>);
 
 impl ServiceUUIDSequence {
@@ -26,7 +26,7 @@ impl ServiceUUIDSequence {
 type ManufacturerData = HashMap<u16, (Vec<u8>, Vec<u8>)>;
 type ServiceData = HashMap<String, (Vec<u8>, Vec<u8>)>;
 
-#[derive(Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct BluetoothScanfilter {
     name: Option<String>,
     name_prefix: String,
@@ -83,7 +83,7 @@ impl BluetoothScanfilter {
     }
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct BluetoothScanfilterSequence(Vec<BluetoothScanfilter>);
 
 impl BluetoothScanfilterSequence {
@@ -110,7 +110,7 @@ impl BluetoothScanfilterSequence {
     }
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct RequestDeviceoptions {
     filters: BluetoothScanfilterSequence,
     optional_services: ServiceUUIDSequence,
