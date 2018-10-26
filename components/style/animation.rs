@@ -363,11 +363,39 @@ impl PropertyAnimation {
             GenericTimingFunction::CubicBezier { x1, y1, x2, y2 } => {
                 Bezier::new(x1, y1, x2, y2).solve(time, epsilon)
             },
-            GenericTimingFunction::Steps(steps, StepPosition::Start) => {
-                (time * (steps as f64)).ceil() / (steps as f64)
-            },
-            GenericTimingFunction::Steps(steps, StepPosition::End) => {
-                (time * (steps as f64)).floor() / (steps as f64)
+            GenericTimingFunction::Steps(steps, pos) => {
+                let mut current_step = (time * (steps as f64)).floor() as i32;
+
+                if pos == StepPosition::Start ||
+                   pos == StepPosition::JumpStart ||
+                   pos == StepPosition::JumpBoth {
+                    current_step = current_step + 1;
+                }
+
+                // FIXME: We should update current_step according to the "before flag".
+                // In order to get the before flag, we have to know the current animation phase
+                // and whether the iteration is reversed. For now, we skip this calculation.
+                // (i.e. Treat before_flag is unset,)
+                // https://drafts.csswg.org/css-easing/#step-timing-function-algo
+
+                if time >= 0.0 && current_step < 0 {
+                    current_step = 0;
+                }
+
+                let jumps = match pos {
+                    StepPosition::JumpBoth => steps + 1,
+                    StepPosition::JumpNone => steps - 1,
+                    StepPosition::JumpStart |
+                    StepPosition::JumpEnd |
+                    StepPosition::Start |
+                    StepPosition::End => steps,
+                };
+
+                if time <= 1.0 && current_step > jumps {
+                    current_step = jumps;
+                }
+
+                (current_step as f64) / (jumps as f64)
             },
             GenericTimingFunction::Keyword(keyword) => {
                 let (x1, x2, y1, y2) = keyword.to_bezier();

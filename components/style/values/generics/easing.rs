@@ -6,6 +6,7 @@
 //! https://drafts.csswg.org/css-easing/#timing-functions
 
 use values::CSSFloat;
+use parser::ParserContext;
 
 /// A generic easing function.
 #[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue, ToCss)]
@@ -23,7 +24,8 @@ pub enum TimingFunction<Integer, Number> {
         x2: Number,
         y2: Number,
     },
-    /// `step-start | step-end | steps(<integer>, [ start | end ]?)`
+    /// `step-start | step-end | steps(<integer>, [ <step-position> ]?)`
+    /// `<step-position> = jump-start | jump-end | jump-none | jump-both | start | end`
     #[css(comma, function)]
     #[value_info(other_values = "step-start,step-end")]
     Steps(Integer, #[css(skip_if = "is_end")] StepPosition),
@@ -52,18 +54,37 @@ pub enum TimingKeyword {
     EaseInOut,
 }
 
+#[cfg(feature = "gecko")]
+fn step_position_jump_enabled(_context: &ParserContext) -> bool {
+    use gecko_bindings::structs;
+    unsafe { structs::StaticPrefs_sVarCache_layout_css_step_position_jump_enabled }
+}
+
+#[cfg(feature = "servo")]
+fn step_position_jump_enabled(_context: &ParserContext) -> bool {
+    false
+}
+
 #[allow(missing_docs)]
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
 #[derive(Clone, Copy, Debug, Eq, MallocSizeOf, Parse, PartialEq, ToComputedValue, ToCss)]
 #[repr(u8)]
 pub enum StepPosition {
+    #[parse(condition = "step_position_jump_enabled")]
+    JumpStart,
+    #[parse(condition = "step_position_jump_enabled")]
+    JumpEnd,
+    #[parse(condition = "step_position_jump_enabled")]
+    JumpNone,
+    #[parse(condition = "step_position_jump_enabled")]
+    JumpBoth,
     Start,
     End,
 }
 
 #[inline]
 fn is_end(position: &StepPosition) -> bool {
-    *position == StepPosition::End
+    *position == StepPosition::JumpEnd || *position == StepPosition::End
 }
 
 impl<Integer, Number> TimingFunction<Integer, Number> {

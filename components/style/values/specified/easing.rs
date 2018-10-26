@@ -59,8 +59,18 @@ impl Parse for TimingFunction {
                     let steps = Integer::parse_positive(context, i)?;
                     let position = i.try(|i| {
                         i.expect_comma()?;
-                        StepPosition::parse(i)
+                        StepPosition::parse(context, i)
                     }).unwrap_or(StepPosition::End);
+
+                    // jump-none accepts a positive integer greater than 1.
+                    // FIXME(emilio): The spec asks us to avoid rejecting it at parse
+                    // time except until computed value time.
+                    //
+                    // It's not totally clear it's worth it though, and no other browser
+                    // does this.
+                    if position == StepPosition::JumpNone && 2 > steps.value() {
+                        return Err(i.new_custom_error(StyleParseErrorKind::UnspecifiedError));
+                    }
                     Ok(GenericTimingFunction::Steps(steps, position))
                 },
                 _ => Err(()),
