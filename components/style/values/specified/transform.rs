@@ -6,13 +6,11 @@
 
 use cssparser::Parser;
 use parser::{Parse, ParserContext};
-use selectors::parser::SelectorParseErrorKind;
 use style_traits::{ParseError, StyleParseErrorKind};
 use values::computed::{Context, LengthOrPercentage as ComputedLengthOrPercentage};
 use values::computed::{Percentage as ComputedPercentage, ToComputedValue};
-use values::computed::transform::TimingFunction as ComputedTimingFunction;
 use values::generics::transform as generic;
-use values::generics::transform::{Matrix, Matrix3D, StepPosition, TimingKeyword};
+use values::generics::transform::{Matrix, Matrix3D};
 use values::specified::{self, Angle, Integer, Length, LengthOrPercentage, Number};
 use values::specified::position::{Side, X, Y};
 
@@ -243,9 +241,6 @@ pub enum OriginComponent<S> {
     Side(S),
 }
 
-/// A specified timing function.
-pub type TimingFunction = generic::TimingFunction<Integer, Number>;
-
 impl Parse for TransformOrigin {
     fn parse<'i, 't>(
         context: &ParserContext,
@@ -347,101 +342,6 @@ impl<S> OriginComponent<S> {
     /// `0%`
     pub fn zero() -> Self {
         OriginComponent::Length(LengthOrPercentage::Percentage(ComputedPercentage::zero()))
-    }
-}
-
-impl Parse for TimingFunction {
-    fn parse<'i, 't>(
-        context: &ParserContext,
-        input: &mut Parser<'i, 't>,
-    ) -> Result<Self, ParseError<'i>> {
-        if let Ok(keyword) = input.try(TimingKeyword::parse) {
-            return Ok(generic::TimingFunction::Keyword(keyword));
-        }
-        if let Ok(ident) = input.try(|i| i.expect_ident_cloned()) {
-            let position = match_ignore_ascii_case! { &ident,
-                "step-start" => StepPosition::Start,
-                "step-end" => StepPosition::End,
-                _ => return Err(input.new_custom_error(SelectorParseErrorKind::UnexpectedIdent(ident.clone()))),
-            };
-            return Ok(generic::TimingFunction::Steps(Integer::new(1), position));
-        }
-        let location = input.current_source_location();
-        let function = input.expect_function()?.clone();
-        input.parse_nested_block(move |i| {
-            (match_ignore_ascii_case! { &function,
-                "cubic-bezier" => {
-                    let x1 = Number::parse(context, i)?;
-                    i.expect_comma()?;
-                    let y1 = Number::parse(context, i)?;
-                    i.expect_comma()?;
-                    let x2 = Number::parse(context, i)?;
-                    i.expect_comma()?;
-                    let y2 = Number::parse(context, i)?;
-
-                    if x1.get() < 0.0 || x1.get() > 1.0 || x2.get() < 0.0 || x2.get() > 1.0 {
-                        return Err(i.new_custom_error(StyleParseErrorKind::UnspecifiedError));
-                    }
-
-                    Ok(generic::TimingFunction::CubicBezier { x1, y1, x2, y2 })
-                },
-                "steps" => {
-                    let steps = Integer::parse_positive(context, i)?;
-                    let position = i.try(|i| {
-                        i.expect_comma()?;
-                        StepPosition::parse(i)
-                    }).unwrap_or(StepPosition::End);
-                    Ok(generic::TimingFunction::Steps(steps, position))
-                },
-                _ => Err(()),
-            }).map_err(|()| {
-                location.new_custom_error(StyleParseErrorKind::UnexpectedFunction(function.clone()))
-            })
-        })
-    }
-}
-
-impl ToComputedValue for TimingFunction {
-    type ComputedValue = ComputedTimingFunction;
-
-    #[inline]
-    fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
-        match *self {
-            generic::TimingFunction::Keyword(keyword) => generic::TimingFunction::Keyword(keyword),
-            generic::TimingFunction::CubicBezier { x1, y1, x2, y2 } => {
-                generic::TimingFunction::CubicBezier {
-                    x1: x1.to_computed_value(context),
-                    y1: y1.to_computed_value(context),
-                    x2: x2.to_computed_value(context),
-                    y2: y2.to_computed_value(context),
-                }
-            },
-            generic::TimingFunction::Steps(steps, position) => {
-                generic::TimingFunction::Steps(steps.to_computed_value(context) as u32, position)
-            },
-        }
-    }
-
-    #[inline]
-    fn from_computed_value(computed: &Self::ComputedValue) -> Self {
-        match *computed {
-            generic::TimingFunction::Keyword(keyword) => generic::TimingFunction::Keyword(keyword),
-            generic::TimingFunction::CubicBezier {
-                ref x1,
-                ref y1,
-                ref x2,
-                ref y2,
-            } => generic::TimingFunction::CubicBezier {
-                x1: Number::from_computed_value(x1),
-                y1: Number::from_computed_value(y1),
-                x2: Number::from_computed_value(x2),
-                y2: Number::from_computed_value(y2),
-            },
-            generic::TimingFunction::Steps(steps, position) => generic::TimingFunction::Steps(
-                Integer::from_computed_value(&(steps as i32)),
-                position,
-            ),
-        }
     }
 }
 

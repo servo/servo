@@ -28,9 +28,9 @@ use stylesheets::keyframes_rule::{KeyframesAnimation, KeyframesStep, KeyframesSt
 use timer::Timer;
 use values::computed::Time;
 use values::computed::box_::TransitionProperty;
-use values::computed::transform::TimingFunction;
+use values::computed::TimingFunction;
 use values::generics::box_::AnimationIterationCount;
-use values::generics::transform::{StepPosition, TimingFunction as GenericTimingFunction};
+use values::generics::easing::{StepPosition, TimingFunction as GenericTimingFunction};
 
 
 /// This structure represents a keyframes animation current iteration state.

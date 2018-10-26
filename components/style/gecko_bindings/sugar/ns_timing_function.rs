@@ -5,10 +5,10 @@
 use gecko_bindings::structs::{nsTimingFunction, nsTimingFunction_Type};
 use std::mem;
 use values::computed::ToComputedValue;
-use values::computed::transform::TimingFunction as ComputedTimingFunction;
-use values::generics::transform::{StepPosition, TimingKeyword};
-use values::generics::transform::TimingFunction as GenericTimingFunction;
-use values::specified::transform::TimingFunction;
+use values::computed::easing::TimingFunction as ComputedTimingFunction;
+use values::generics::easing::{StepPosition, TimingKeyword};
+use values::generics::easing::TimingFunction as GenericTimingFunction;
+use values::specified::easing::TimingFunction;
 
 impl nsTimingFunction {
     fn set_as_step(&mut self, function_type: nsTimingFunction_Type, steps: u32) {
