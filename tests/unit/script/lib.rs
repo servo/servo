@@ -13,6 +13,8 @@
 #[cfg(test)] mod headers;
 #[cfg(test)] mod htmlareaelement;
 #[cfg(test)] mod htmlimageelement;
+#[cfg(test)] mod timeranges;
+
 
 /**
 ```compile_fail,E0277

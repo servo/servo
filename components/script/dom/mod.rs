@@ -458,6 +458,7 @@ pub mod text;
 pub mod textcontrol;
 pub mod textdecoder;
 pub mod textencoder;
+pub mod timeranges;
 pub mod touch;
 pub mod touchevent;
 pub mod touchlist;
