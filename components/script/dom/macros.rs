@@ -451,7 +451,7 @@ macro_rules! global_event_handlers(
         event_handler!(keypress, GetOnkeypress, SetOnkeypress);
         event_handler!(keyup, GetOnkeyup, SetOnkeyup);
         event_handler!(loadeddata, GetOnloadeddata, SetOnloadeddata);
-        event_handler!(loadedmetata, GetOnloadedmetadata, SetOnloadedmetadata);
+        event_handler!(loadedmetadata, GetOnloadedmetadata, SetOnloadedmetadata);
         event_handler!(loadstart, GetOnloadstart, SetOnloadstart);
         event_handler!(mousedown, GetOnmousedown, SetOnmousedown);
         event_handler!(mouseenter, GetOnmouseenter, SetOnmouseenter);

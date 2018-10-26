@@ -16,6 +16,7 @@ use dom::bindings::codegen::InheritTypes::{ElementTypeId, HTMLElementTypeId};
 use dom::bindings::codegen::InheritTypes::{HTMLMediaElementTypeId, NodeTypeId};
 use dom::bindings::error::{Error, ErrorResult};
 use dom::bindings::inheritance::Castable;
+use dom::bindings::num::Finite;
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::DomObject;
 use dom::bindings::root::{DomRoot, LayoutDom, MutNullableDom};
@@ -34,7 +35,7 @@ use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
 use fetch::FetchCanceller;
 use html5ever::{LocalName, Prefix};
-use hyper::header::ContentLength;
+use hyper::header::{ByteRangeSpec, ContentLength, Headers, Range as HyperRange};
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use microtask::{Microtask, MicrotaskRunnable};
@@ -47,7 +48,7 @@ use script_layout_interface::HTMLMediaData;
 use script_thread::ScriptThread;
 use servo_media::Error as ServoMediaError;
 use servo_media::ServoMedia;
-use servo_media::player::{PlaybackState, Player, PlayerEvent};
+use servo_media::player::{PlaybackState, Player, PlayerEvent, StreamType};
 use servo_media::player::frame::{Frame, FrameRenderer};
 use servo_url::ServoUrl;
 use std::cell::Cell;
@@ -161,7 +162,7 @@ pub struct HTMLMediaElement {
     #[ignore_malloc_size_of = "promises are hard"]
     in_flight_play_promises_queue: DomRefCell<VecDeque<(Box<[Rc<Promise>]>, ErrorResult)>>,
     #[ignore_malloc_size_of = "servo_media"]
-    player: Box<Player<Error=ServoMediaError>>,
+    player: Box<Player<Error = ServoMediaError>>,
     #[ignore_malloc_size_of = "Arc"]
     frame_renderer: Arc<Mutex<MediaFrameRenderer>>,
     fetch_canceller: DomRefCell<FetchCanceller>,
@@ -169,6 +170,14 @@ pub struct HTMLMediaElement {
     show_poster: Cell<bool>,
     /// https://html.spec.whatwg.org/multipage/#dom-media-duration
     duration: Cell<f64>,
+    /// https://html.spec.whatwg.org/multipage/#official-playback-position
+    playback_position: Cell<f64>,
+    /// https://html.spec.whatwg.org/multipage/#default-playback-start-position
+    default_playback_start_position: Cell<f64>,
+    /// https://html.spec.whatwg.org/multipage/#dom-media-seeking
+    seeking: Cell<bool>,
+    /// URL of the media resource, if any.
+    resource_url: DomRefCell<Option<ServoUrl>>,
 }
 
 /// <https://html.spec.whatwg.org/multipage/#dom-media-networkstate>
@@ -216,6 +225,10 @@ impl HTMLMediaElement {
             fetch_canceller: DomRefCell::new(Default::default()),
             show_poster: Cell::new(true),
             duration: Cell::new(f64::NAN),
+            playback_position: Cell::new(0.),
+            default_playback_start_position: Cell::new(0.),
+            seeking: Cell::new(false),
+            resource_url: DomRefCell::new(None),
         }
     }
 
@@ -660,6 +673,65 @@ impl HTMLMediaElement {
         }
     }
 
+    fn fetch_request(&self, offset: Option<u64>) {
+        if self.resource_url.borrow().is_none() {
+            eprintln!("Missing request url");
+            self.queue_dedicated_media_source_failure_steps();
+            return;
+        }
+
+        // FIXME(nox): Handle CORS setting from crossorigin attribute.
+        let document = document_from_node(self);
+        let destination = match self.media_type_id() {
+            HTMLMediaElementTypeId::HTMLAudioElement => Destination::Audio,
+            HTMLMediaElementTypeId::HTMLVideoElement => Destination::Video,
+        };
+        let mut headers = Headers::new();
+        headers.set(HyperRange::Bytes(vec![ByteRangeSpec::AllFrom(
+            offset.unwrap_or(0),
+        )]));
+        let request = RequestInit {
+            url: self.resource_url.borrow().as_ref().unwrap().clone(),
+            headers,
+            destination,
+            credentials_mode: CredentialsMode::Include,
+            use_url_credentials: true,
+            origin: document.origin().immutable().clone(),
+            pipeline_id: Some(self.global().pipeline_id()),
+            referrer_url: Some(document.url()),
+            referrer_policy: document.get_referrer_policy(),
+            ..RequestInit::default()
+        };
+
+        let context = Arc::new(Mutex::new(HTMLMediaElementContext::new(self)));
+        let (action_sender, action_receiver) = ipc::channel().unwrap();
+        let window = window_from_node(self);
+        let listener = NetworkListener {
+            context,
+            task_source: window.networking_task_source(),
+            canceller: Some(window.task_canceller(TaskSourceName::Networking)),
+        };
+        ROUTER.add_route(
+            action_receiver.to_opaque(),
+            Box::new(move |message| {
+                listener.notify_fetch(message.to().unwrap());
+            }),
+        );
+        // This method may be called the first time we try to fetch the media
+        // resource or after a seek is requested. In the latter case, we need to
+        // cancel any previous on-going request. initialize() takes care of
+        // cancelling previous fetches if any exist.
+        let cancel_receiver = self.fetch_canceller.borrow_mut().initialize();
+        let global = self.global();
+        global
+            .core_resource_thread()
+            .send(CoreResourceMsg::Fetch(
+                request,
+                FetchChannels::ResponseMsg(action_sender, Some(cancel_receiver)),
+            ))
+            .unwrap();
+    }
+
     // https://html.spec.whatwg.org/multipage/#concept-media-load-resource
     fn resource_fetch_algorithm(&self, resource: Resource) {
         if let Err(e) = self.setup_media_player() {
@@ -667,6 +739,14 @@ impl HTMLMediaElement {
             self.queue_dedicated_media_source_failure_steps();
             return;
         }
+
+        // XXX(ferjm) Since we only support Blob for now it is fine to always set
+        //            the stream type to StreamType::Seekable. Once we support MediaStream,
+        //            this should be changed to also consider StreamType::Stream.
+        if let Err(e) = self.player.set_stream_type(StreamType::Seekable) {
+            eprintln!("Could not set stream type to Seekable. {:?}", e);
+        }
+
         // Steps 1-2.
         // Unapplicable, the `resource` variable already conveys which mode
         // is in use.
@@ -714,47 +794,8 @@ impl HTMLMediaElement {
                 }
 
                 // Step 4.remote.2.
-                // FIXME(nox): Handle CORS setting from crossorigin attribute.
-                let document = document_from_node(self);
-                let destination = match self.media_type_id() {
-                    HTMLMediaElementTypeId::HTMLAudioElement => Destination::Audio,
-                    HTMLMediaElementTypeId::HTMLVideoElement => Destination::Video,
-                };
-                let request = RequestInit {
-                    url,
-                    destination,
-                    credentials_mode: CredentialsMode::Include,
-                    use_url_credentials: true,
-                    origin: document.origin().immutable().clone(),
-                    pipeline_id: Some(self.global().pipeline_id()),
-                    referrer_url: Some(document.url()),
-                    referrer_policy: document.get_referrer_policy(),
-                    ..RequestInit::default()
-                };
-
-                let context = Arc::new(Mutex::new(HTMLMediaElementContext::new(self)));
-                let (action_sender, action_receiver) = ipc::channel().unwrap();
-                let window = window_from_node(self);
-                let listener = NetworkListener {
-                    context: context,
-                    task_source: window.networking_task_source(),
-                    canceller: Some(window.task_canceller(TaskSourceName::Networking)),
-                };
-                ROUTER.add_route(
-                    action_receiver.to_opaque(),
-                    Box::new(move |message| {
-                        listener.notify_fetch(message.to().unwrap());
-                    }),
-                );
-                let cancel_receiver = self.fetch_canceller.borrow_mut().initialize();
-                let global = self.global();
-                global
-                    .core_resource_thread()
-                    .send(CoreResourceMsg::Fetch(
-                        request,
-                        FetchChannels::ResponseMsg(action_sender, Some(cancel_receiver)),
-                    ))
-                    .unwrap();
+                *self.resource_url.borrow_mut() = Some(url);
+                self.fetch_request(None);
             },
             Resource::Object => {
                 // FIXME(nox): Actually do something with the object.
@@ -867,11 +908,16 @@ impl HTMLMediaElement {
             }
 
             // Step 6.7.
-            // FIXME(nox): If seeking is true, set it to false.
+            if !self.seeking.get() {
+                self.seeking.set(false);
+            }
 
             // Step 6.8.
-            // FIXME(nox): Set current and official playback position to 0 and
-            // maybe queue a task to fire a timeupdate event.
+            let queue_timeupdate_event = self.playback_position.get() != 0.;
+            self.playback_position.set(0.);
+            if queue_timeupdate_event {
+                task_source.queue_simple_event(self.upcast(), atom!("timeupdate"), &window);
+            }
 
             // Step 6.9.
             // FIXME(nox): Set timeline offset to NaN.
@@ -961,8 +1007,77 @@ impl HTMLMediaElement {
         self.media_element_load_algorithm();
     }
 
-    // servo media player
-    fn setup_media_player(&self) -> Result<(), ServoMediaError>{
+    // https://html.spec.whatwg.org/multipage/#dom-media-seek
+    fn seek(&self, time: f64, _approximate_for_speed: bool) {
+        // Step 1.
+        self.show_poster.set(false);
+
+        // Step 2.
+        if self.ready_state.get() == ReadyState::HaveNothing {
+            return;
+        }
+
+        // Step 3.
+        if self.seeking.get() {
+            // This will cancel only the sync part of the seek algorithm.
+            self.generation_id.set(self.generation_id.get() + 1);
+        }
+
+        // Step 4.
+        // The flag will be cleared when the media engine tells us the seek was done.
+        self.seeking.set(true);
+
+        // Step 5.
+        // XXX(ferjm) The rest of the steps should be run in parallel, so seeking cancelation
+        //            can be done properly. No other browser does it yet anyway.
+
+        // Step 6.
+        let time = f64::min(time, self.Duration());
+
+        // Step 7.
+        let time = f64::max(time, 0.);
+
+        // Step 8.
+        // XXX(ferjm) seekable attribute: we need to get the information about
+        //            what's been decoded and buffered so far from servo-media
+        //            and add the seekable attribute as a TimeRange.
+
+        // Step 9.
+        // servo-media with gstreamer does not support inaccurate seeking for now.
+
+        // Step 10.
+        let window = window_from_node(self);
+        let task_source = window.media_element_task_source();
+        task_source.queue_simple_event(self.upcast(), atom!("seeking"), &window);
+
+        // Step 11.
+        if let Err(e) = self.player.seek(time) {
+            eprintln!("Seek error {:?}", e);
+        }
+
+        // The rest of the steps are handled when the media engine signals a
+        // ready state change or otherwise satisfies seek completion and signals
+        // a position change.
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-media-seek
+    fn seek_end(&self) {
+        // Step 14.
+        self.seeking.set(false);
+
+        // Step 15.
+        self.time_marches_on();
+
+        // Step 16.
+        let window = window_from_node(self);
+        let task_source = window.media_element_task_source();
+        task_source.queue_simple_event(self.upcast(), atom!("timeupdate"), &window);
+
+        // Step 17.
+        task_source.queue_simple_event(self.upcast(), atom!("seeked"), &window);
+    }
+
+    fn setup_media_player(&self) -> Result<(), ServoMediaError> {
         let (action_sender, action_receiver) = ipc::channel().unwrap();
 
         self.player.register_event_handler(action_sender)?;
@@ -1004,8 +1119,7 @@ impl HTMLMediaElement {
                 // XXX(ferjm) Update the timeline offset.
 
                 // Step 3.
-                // XXX(ferjm) Set the current and official playback positions
-                //            to the earliest possible position.
+                self.playback_position.set(0.);
 
                 // Step 4.
                 if let Some(duration) = metadata.duration {
@@ -1028,7 +1142,30 @@ impl HTMLMediaElement {
                 // Step 6.
                 self.change_ready_state(ReadyState::HaveMetadata);
 
-                // XXX(ferjm) Steps 7 to 13.
+                // Step 7.
+                let mut _jumped = false;
+
+                // Step 8.
+                if self.default_playback_start_position.get() > 0. {
+                    self.seek(
+                        self.default_playback_start_position.get(),
+                        /* approximate_for_speed*/ false,
+                    );
+                    _jumped = true;
+                }
+
+                // Step 9.
+                self.default_playback_start_position.set(0.);
+
+                // Steps 10 and 11.
+                // XXX(ferjm) Implement parser for
+                //            https://www.w3.org/TR/media-frags/#media-fragment-syntax
+                //            https://github.com/servo/media/issues/156
+
+                // XXX Steps 12 and 13 require audio and video tracks support.
+            },
+            PlayerEvent::PositionChanged(position) => {
+                self.playback_position.set(position as f64);
             },
             PlayerEvent::StateChanged(ref state) => match *state {
                 PlaybackState::Paused => {
@@ -1037,11 +1174,6 @@ impl HTMLMediaElement {
                     }
                 },
                 _ => {},
-            },
-            PlayerEvent::PositionChanged(_) |
-            PlayerEvent::SeekData(_) |
-            PlayerEvent::SeekDone(_) => {
-                // TODO: Support for HTMLMediaElement seeking and related API properties #21998
             },
             PlayerEvent::EndOfStream => {
                 // https://html.spec.whatwg.org/multipage/#media-data-processing-steps-list
@@ -1053,6 +1185,20 @@ impl HTMLMediaElement {
             },
             PlayerEvent::FrameUpdated => {
                 self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
+            },
+            PlayerEvent::SeekData(p) => {
+                self.fetch_request(Some(p));
+            },
+            PlayerEvent::SeekDone(_) => {
+                // Continuation of
+                // https://html.spec.whatwg.org/multipage/#dom-media-seek
+
+                // Step 13.
+                let task = MediaElementMicrotask::SeekedTask {
+                    elem: DomRoot::from_ref(self),
+                    generation_id: self.generation_id.get(),
+                };
+                ScriptThread::await_stable_state(Microtask::MediaElement(task));
             },
             PlayerEvent::Error => {
                 self.error.set(Some(&*MediaError::new(
@@ -1157,6 +1303,35 @@ impl HTMLMediaElementMethods for HTMLMediaElement {
     fn Duration(&self) -> f64 {
         self.duration.get()
     }
+
+    // https://html.spec.whatwg.org/multipage/#dom-media-currenttime
+    fn CurrentTime(&self) -> Finite<f64> {
+        Finite::wrap(if self.default_playback_start_position.get() != 0. {
+            self.default_playback_start_position.get()
+        } else {
+            self.playback_position.get()
+        })
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-media-currenttime
+    fn SetCurrentTime(&self, time: Finite<f64>) {
+        if self.ready_state.get() == ReadyState::HaveNothing {
+            self.default_playback_start_position.set(*time);
+        } else {
+            self.playback_position.set(*time);
+            self.seek(*time, /* approximate_for_speed */ false);
+        }
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-media-seeking
+    fn Seeking(&self) -> bool {
+        self.seeking.get()
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-media-fastseek
+    fn FastSeek(&self, time: Finite<f64>) {
+        self.seek(*time, /* approximat_for_speed */ true);
+    }
 }
 
 impl VirtualMethods for HTMLMediaElement {
@@ -1214,6 +1389,10 @@ pub enum MediaElementMicrotask {
     PauseIfNotInDocumentTask {
         elem: DomRoot<HTMLMediaElement>,
     },
+    SeekedTask {
+        elem: DomRoot<HTMLMediaElement>,
+        generation_id: u32,
+    },
 }
 
 impl MicrotaskRunnable for MediaElementMicrotask {
@@ -1231,6 +1410,14 @@ impl MicrotaskRunnable for MediaElementMicrotask {
             &MediaElementMicrotask::PauseIfNotInDocumentTask { ref elem } => {
                 if !elem.upcast::<Node>().is_in_doc() {
                     elem.internal_pause_steps();
+                }
+            },
+            &MediaElementMicrotask::SeekedTask {
+                ref elem,
+                generation_id,
+            } => {
+                if generation_id == elem.generation_id.get() {
+                    elem.seek_end();
                 }
             },
         }
@@ -1347,6 +1534,8 @@ impl FetchResponseListener for HTMLMediaElementContext {
             elem.network_state.set(NetworkState::Idle);
 
             elem.upcast::<EventTarget>().fire_event(atom!("suspend"));
+
+            elem.delay_load_event(false);
         }
         // => "If the connection is interrupted after some media data has been received..."
         else if elem.ready_state.get() != ReadyState::HaveNothing {

@@ -34,11 +34,11 @@ interface HTMLMediaElement : HTMLElement {
   const unsigned short HAVE_FUTURE_DATA = 3;
   const unsigned short HAVE_ENOUGH_DATA = 4;
   readonly attribute unsigned short readyState;
-  // readonly attribute boolean seeking;
+  readonly attribute boolean seeking;
 
   // playback state
-  // attribute double currentTime;
-  // void fastSeek(double time);
+  attribute double currentTime;
+  void fastSeek(double time);
   readonly attribute unrestricted double duration;
   // Date getStartDate();
   readonly attribute boolean paused;
