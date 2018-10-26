@@ -1,0 +1,109 @@
+<!DOCTYPE HTML>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+
+var testImagesPath = "resources/png-16bit/";
+
+// Source of pixel comparison error in these tests:
+// - color conversion from different color profiles (sRGB, Adobe RGB, Display P3,
+//   ProPhoto and Rec 2020) to target canvas color space (sRGB, e-sRGB).
+// - comparing the result of drawing 8 bit and 16 bit PNGs with each other.
+var defaultColorConversionTolerance = 8;
+var wideGamutColorConversionTolerance = 0.05;
+
+function runTest(testScenario) {
+    var _8bitImageSrc = testImagesPath + testScenario._8bitImagePath;
+    var _16bitImageSrc = testImagesPath + testScenario._16bitImagePath;
+    var tolerance = defaultColorConversionTolerance;
+    if (testScenario.canvasColorParams.pixelFormat == 'float16')
+        tolerance = wideGamutColorConversionTolerance;
+
+    var _8bitImage = new Image();
+    var _16bitImage = new Image();
+    var t_image = async_test(testScenarioToString(testScenario));
+    _8bitImage.onload = t_image.step_func(function() {
+        _16bitImage.onload = function() {
+            var refCanvas = document.createElement("canvas");
+            refCanvas.width = refCanvas.height = 2;
+            var refCtx = refCanvas.getContext(
+                '2d', testScenario.canvasColorParams);
+            refCtx.drawImage(_8bitImage, 0, 0);
+            var refPixels = refCtx.getImageData(0, 0, 2, 2).dataUnion;
+
+            var testCanvas = document.createElement("canvas");
+            testCanvas.width = testCanvas.height = 2;
+            var testCtx = testCanvas.getContext(
+                '2d', testScenario.canvasColorParams);
+            testCtx.drawImage(_16bitImage, 0, 0);
+            var testPixels = testCtx.getImageData(0, 0, 2, 2).dataUnion;
+
+            assert_array_approx_equals(refPixels, testPixels, tolerance);
+
+            t_image.done();
+            };
+        _16bitImage.src = _16bitImageSrc;
+    });
+    _8bitImage.src = _8bitImageSrc;
+}
+
+function runAllTests() {
+    var pngColorSpaces = [
+        "_sRGB",
+        "_AdobeRGB",
+        "_DisplayP3",
+        "_ProPhoto",
+        "_Rec2020",
+    ];
+    var pngTransparencyStatus = [
+        "_opaque",
+        "_transparent",
+    ];
+    var pngInterlaceStatus = [
+        "",  // non-interlaced
+        "_interlaced",
+    ];
+
+
+    var _8bitPngPrefix = "2x2_8bit";
+    var _16bitPngPrefix = "2x2_16bit";
+
+    var canvasColorParams = [
+        {colorSpace: 'srgb', pixelFormat: 'uint8'},
+        {colorSpace: 'srgb', pixelFormat: 'float16'},
+    ];
+
+    var testScenarioSet = [];
+    var id = 1;
+    for (var i = 0; i < canvasColorParams.length; i++) {
+        for (var j = 0; j < pngColorSpaces.length; j++) {
+            for (var k = 0; k < pngTransparencyStatus.length; k++) {
+                for (var m = 0; m < pngInterlaceStatus.length; m++) {
+                    var testScenario = {};
+                    testScenario.canvasColorParams = canvasColorParams[i];
+                    testScenario._8bitImagePath = _8bitPngPrefix +
+                        pngColorSpaces[j] + pngTransparencyStatus[k] + ".png";
+                    testScenario._16bitImagePath = _16bitPngPrefix +
+                        pngInterlaceStatus[m] + pngColorSpaces[j] +
+                        pngTransparencyStatus[k] + ".png";
+                    testScenarioSet.push(testScenario);
+                }
+            }
+        }
+    }
+
+    for (var i = 0; i < testScenarioSet.length; i++)
+        runTest(testScenarioSet[i]);
+}
+
+function testScenarioToString(testScenario) {
+    var str = "Canvas color params: " +
+        testScenario.canvasColorParams.colorSpace + ", " +
+        testScenario.canvasColorParams.pixelFormat + ". Testing " +
+        testScenario._8bitImagePath + " vs " + testScenario._16bitImagePath;
+    return str;
+}
+
+runAllTests();
+
+</script>

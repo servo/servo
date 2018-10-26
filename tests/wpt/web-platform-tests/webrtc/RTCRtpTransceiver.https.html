@@ -1798,6 +1798,85 @@
     hasProps(pc.getTransceivers(), [{ stopped: true }]);
   };
 
+  const checkRollbackAndSetRemoteOfferWithDifferentType = async t => {
+    const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+
+    const audioStream = await navigator.mediaDevices.getUserMedia({audio: true});
+    t.add_cleanup(() => stopTracks(audioStream));
+    const audioTrack = audioStream.getAudioTracks()[0];
+    pc1.addTrack(audioTrack, audioStream);
+
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc2.close());
+
+    const videoStream = await navigator.mediaDevices.getUserMedia({video: true});
+    t.add_cleanup(() => stopTracks(videoStream));
+    const videoTrack = videoStream.getVideoTracks()[0];
+    pc2.addTrack(videoTrack, videoStream);
+
+    await pc1.setLocalDescription(await pc1.createOffer());
+    await pc1.setLocalDescription({type: "rollback"});
+
+    hasProps(pc1.getTransceivers(),
+      [
+        {
+          receiver: {track: {kind: "audio"}},
+          sender: {track: audioTrack},
+          direction: "sendrecv",
+          mid: null,
+          currentDirection: null,
+          stopped: false
+        }
+      ]);
+
+    hasProps(pc2.getTransceivers(),
+      [
+        {
+          receiver: {track: {kind: "video"}},
+          sender: {track: videoTrack},
+          direction: "sendrecv",
+          mid: null,
+          currentDirection: null,
+          stopped: false
+        }
+      ]);
+
+    await offerAnswer(pc2, pc1);
+
+    hasPropsAndUniqueMids(pc1.getTransceivers(),
+      [
+        {
+          receiver: {track: {kind: "audio"}},
+          sender: {track: audioTrack},
+          direction: "sendrecv",
+          mid: null,
+          currentDirection: null,
+          stopped: false
+        },
+        {
+          receiver: {track: {kind: "video"}},
+          sender: {track: null},
+          direction: "recvonly",
+          currentDirection: "recvonly",
+          stopped: false
+        }
+      ]);
+
+    hasPropsAndUniqueMids(pc2.getTransceivers(),
+      [
+        {
+          receiver: {track: {kind: "video"}},
+          sender: {track: videoTrack},
+          direction: "sendrecv",
+          currentDirection: "sendonly",
+          stopped: false
+        }
+      ]);
+
+    await offerAnswer(pc1, pc2);
+  };
+
   const checkRemoteRollback = async t => {
     const pc1 = new RTCPeerConnection();
     t.add_cleanup(() => pc1.close());
@@ -2270,6 +2349,7 @@ const tests = [
   checkStopAfterSetLocalAnswer,
   checkStopAfterClose,
   checkLocalRollback,
+  checkRollbackAndSetRemoteOfferWithDifferentType,
   checkRemoteRollback,
   checkMsectionReuse
 ].forEach(test => promise_test(test, test.name));

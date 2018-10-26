@@ -71,3 +71,24 @@ function assert_Instance(instance, expected_exports) {
     }
   }
 }
+
+function assert_WebAssemblyInstantiatedSource(actual, expected_exports={}) {
+  assert_equals(Object.getPrototypeOf(actual), Object.prototype,
+                "Prototype");
+  assert_true(Object.isExtensible(actual), "Extensibility");
+
+  const module = Object.getOwnPropertyDescriptor(actual, "module");
+  assert_equals(typeof module, "object", "module: type of descriptor");
+  assert_true(module.writable, "module: writable");
+  assert_true(module.enumerable, "module: enumerable");
+  assert_true(module.configurable, "module: configurable");
+  assert_equals(Object.getPrototypeOf(module.value), WebAssembly.Module.prototype,
+                "module: prototype");
+
+  const instance = Object.getOwnPropertyDescriptor(actual, "instance");
+  assert_equals(typeof instance, "object", "instance: type of descriptor");
+  assert_true(instance.writable, "instance: writable");
+  assert_true(instance.enumerable, "instance: enumerable");
+  assert_true(instance.configurable, "instance: configurable");
+  assert_Instance(instance.value, expected_exports);
+}

@@ -9,7 +9,7 @@
 promise_test(async (t) => {
   const sxgUrl = get_host_info().HTTPS_ORIGIN + '/signed-exchange/resources/sxg-location.sxg';
   const message = await openSXGInIframeAndWaitForMessage(t, sxgUrl);
-  assert_equals(message.location, 'https://127.0.0.1/signed-exchange/resources/inner-url.html');
+  assert_equals(message.location, innerURLOrigin() + '/signed-exchange/resources/inner-url.html');
   assert_false(message.is_fallback);
 }, 'Location of SignedHTTPExchange');
 

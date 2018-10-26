@@ -1,0 +1,579 @@
+<!DOCTYPE HTML>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+
+var transparentBlack = [0, 0, 0, 0];
+
+var e_sRGB_Red =   [1, 0, 0, 1]; // sRGB(255,0,0,255)
+var e_sRGB_Green = [0, 1, 0, 1]; // sRGB(0,255,0,255)
+var e_sRGB_Blue =  [0, 0, 1, 1]; // sRGB(0,0,255,255)
+var e_sRGB_Black = [0, 0, 0, 1]; // sRGB(0,0,0,255)
+
+// sRGB(155,27,27,255)
+var e_sRGB_OpaqueRed = [0.607422, 0.105835, 0.105835, 1];
+// sRGB(27,155,27,255)
+var e_sRGB_OpaqueGreen = [0.105835, 0.607422, 0.105835, 1];
+// sRGB(27,27,155,255)
+var e_sRGB_OpaqueBlue = [0.105835, 0.105835, 0.607422, 1];
+// sRGB(27,27,27,255)
+var e_sRGB_OpaqueBlack = [0.105835, 0.105835, 0.105835, 1];
+
+// sRGB(155,27,27,128)
+var e_sRGB_TransparentRed = [0.607422, 0.105835, 0.105835, 0.501953];
+// sRGB(27, 155, 27, 128)
+var e_sRGB_TransparentGreen = [0.105835, 0.607422, 0.105835, 0.501953];
+// sRGB(27, 27, 155, 128)
+var e_sRGB_TransparentBlue = [0.105835, 0.105835, 0.607422, 0.501953];
+// sRGB(27, 27, 27, 128)
+var e_sRGB_TransparentBlack = [0.105835, 0.105835, 0.105835, 0.501953];
+
+// sRGB(226,31,31,128)
+var e_sRGB_TransparentRedImage = [0.886230, 0.121521, 0.121521, 0.501953];
+// sRGB(226,31,31,128)
+var e_sRGB_TransparentGreenImage = [0.121521, 0.886230, 0.121521, 0.501953];
+// sRGB(226,31,31,128)
+var e_sRGB_TransparentBlueImage = [0.121521, 0.121521, 0.886230, 0.501953];
+// sRGB(226,31,31,128)
+var e_sRGB_TransparentBlackImage = [0.121521, 0.121521, 0.121521, 0.501953];
+
+function testPixels(ctx, tests, sourceType)
+{
+    var actual, expected, tolerance = 0.025;
+    if (sourceType === 'video')
+        tolerance = 0.03;
+    for (var i = 0; i < tests.length; i++) {
+        actual = ctx.getImageData(tests[i][0], tests[i][1], 1, 1).dataUnion;
+        expected = tests[i][2];
+        assert_true(actual.length === expected.length);
+        for (var j = 0; j < actual.length; j++)
+           assert_approx_equals(actual[j], expected[j], tolerance, tests[i][3]);
+    }
+}
+
+function checkNoCrop(imageBitmap, colorInfo, sourceType)
+{
+    var canvas = document.createElement('canvas');
+    canvas.width = 50;
+    canvas.height = 50;
+    var ctx = canvas.getContext('2d',
+        {colorSpace: 'srgb', pixelFormat:'float16'});
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(imageBitmap, 0, 0);
+    var tests;
+    if (colorInfo == 'fullColor')
+        tests = [[0, 0, e_sRGB_Red, "This pixel should be e-sRGB red."],
+                 [39, 0, e_sRGB_Green, "This pixel should be e-sRGB green."],
+                 [0, 39, e_sRGB_Blue, "This pixel should be e-sRGB blue."],
+                 [39, 39, e_sRGB_Black, "This pixel should be e-sRGB black."],
+                 [41, 41, transparentBlack, "This pixel should be transparent black."]];
+    else if (colorInfo == 'opaque')
+        tests = [[0, 0, e_sRGB_OpaqueRed,
+                     "This pixel should be e-sRGB like red."],
+                 [39, 0, e_sRGB_OpaqueGreen,
+                     "This pixel should be e-sRGB like green."],
+                 [0, 39, e_sRGB_OpaqueBlue,
+                     "This pixel should be e-sRGB like blue."],
+                 [39, 39, e_sRGB_OpaqueBlack,
+                     "This pixel should be e-sRGB like black."],
+                 [41, 41, transparentBlack, "This pixel should be transparent black."]];
+    else if (colorInfo == 'transparent')
+        tests = [[0, 0, e_sRGB_TransparentRed,
+                     "This pixel should be e-sRGB transparent red."],
+                 [39, 0, e_sRGB_TransparentGreen,
+                     "This pixel should be e-sRGB transparent green."],
+                 [0, 39, e_sRGB_TransparentBlue,
+                     "This pixel should be e-sRGB transparent blue."],
+                 [39, 39, e_sRGB_TransparentBlack,
+                     "This pixel should be e-sRGB transparent black."],
+                 [41, 41, transparentBlack,
+                     "This pixel should be transparent black."]];
+    else if (colorInfo === 'transparent-image')
+        tests = [[0, 0, e_sRGB_TransparentRedImage,
+                     "This pixel should be e-sRGB transparent red."],
+                 [39, 0, e_sRGB_TransparentGreenImage,
+                     "This pixel should be e-sRGB transparent green."],
+                 [0, 39, e_sRGB_TransparentBlueImage,
+                     "This pixel should be e-sRGB transparent blue."],
+                 [39, 39, e_sRGB_TransparentBlackImage,
+                     "This pixel should be e-sRGB transparent black."],
+                 [41, 41, transparentBlack,
+                     "This pixel should be transparent black."]];
+    testPixels(ctx, tests, sourceType);
+}
+
+function checkCrop(imageBitmap, colorInfo, sourceType)
+{
+    var canvas = document.createElement('canvas');
+    canvas.width = 50;
+    canvas.height = 50;
+    var ctx = canvas.getContext('2d',
+        {colorSpace: 'srgb', pixelFormat:'float16'});
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(imageBitmap, 0, 0);
+    var tests;
+    if (colorInfo === 'fullColor')
+        tests = [[0, 0, e_sRGB_Red, "This pixel should be e-sRGB red."],
+                 [19, 0, e_sRGB_Green, "This pixel should be e-sRGB green."],
+                 [0, 19, e_sRGB_Blue, "This pixel should be e-sRGB blue."],
+                 [19, 19, e_sRGB_Black, "This pixel should be e-sRGB black."],
+                 [21, 21, transparentBlack, "This pixel should be transparent black."]];
+    else if (colorInfo === 'opaque')
+        tests = [[0, 0, e_sRGB_OpaqueRed,
+                     "This pixel should be e-sRGB like red."],
+                 [19, 0, e_sRGB_OpaqueGreen,
+                     "This pixel should be e-sRGB like green."],
+                 [0, 19, e_sRGB_OpaqueBlue,
+                     "This pixel should be e-sRGB like blue."],
+                 [19, 19, e_sRGB_OpaqueBlack,
+                     "This pixel should be e-sRGB like black."],
+                 [21, 21, transparentBlack, "This pixel should be transparent black."]];
+    else if (colorInfo === 'transparent')
+        tests = [[0, 0, e_sRGB_TransparentRed,
+                     "This pixel should be e-sRGB transparent red."],
+                 [19, 0, e_sRGB_TransparentGreen,
+                     "This pixel should be e-sRGB transparent green."],
+                 [0, 19, e_sRGB_TransparentBlue,
+                     "This pixel should be e-sRGB transparent blue."],
+                 [19, 19, e_sRGB_TransparentBlack,
+                     "This pixel should be e-sRGB transparent black."],
+                 [21, 21, transparentBlack,
+                     "This pixel should be transparent black."]];
+    else if (colorInfo === 'transparent-image')
+        tests = [[0, 0, e_sRGB_TransparentRedImage,
+                     "This pixel should be e-sRGB transparent red."],
+                 [19, 0, e_sRGB_TransparentGreenImage,
+                     "This pixel should be e-sRGB transparent green."],
+                 [0, 19, e_sRGB_TransparentBlueImage,
+                     "This pixel should be e-sRGB transparent blue."],
+                 [19, 19, e_sRGB_TransparentBlackImage,
+                     "This pixel should be e-sRGB transparent black."],
+                 [21, 21, transparentBlack,
+                     "This pixel should be transparent black."]];
+    testPixels(ctx, tests, sourceType);
+}
+
+
+function compareBitmaps(bitmap1, bitmap2)
+{
+    var canvas1 = document.createElement('canvas');
+    var canvas2 = document.createElement('canvas');
+    canvas1.width = 50;
+    canvas1.height = 50;
+    canvas2.width = 50;
+    canvas2.height = 50;
+    var ctx1 = canvas1.getContext('2d',
+        {colorSpace: 'srgb', pixelFormat:'float16'});
+    var ctx2 = canvas2.getContext('2d',
+        {colorSpace: 'srgb', pixelFormat:'float16'});
+    ctx1.clearRect(0, 0, canvas1.width, canvas1.height);
+    ctx2.clearRect(0, 0, canvas2.width, canvas2.height);
+    ctx1.drawImage(bitmap1, 0, 0);
+    ctx2.drawImage(bitmap2, 0, 0);
+    var data1 = ctx1.getImageData(0, 0, 50, 50).dataUnion;
+    var data2 = ctx2.getImageData(0, 0, 50, 50).dataUnion;
+    var dataMatched = true;
+    for (var i = 0; i < data1.length; i++) {
+        if (data1[i] != data2[i]) {
+            dataMatched = false;
+            break;
+        }
+    }
+    assert_false(dataMatched);
+}
+
+function testImageBitmap(source, colorInfo, sourceType)
+{
+    return Promise.all([
+        createImageBitmap(source, {colorSpaceConversion: "srgb",
+            resizeWidth: 40, resizeHeight: 40, resizeQuality: "high"}),
+        createImageBitmap(source, {colorSpaceConversion: "srgb",
+            resizeWidth: 40, resizeHeight: 40, resizeQuality: "medium"}),
+        createImageBitmap(source, {colorSpaceConversion: "srgb",
+            resizeWidth: 40, resizeHeight: 40, resizeQuality: "low"}),
+        createImageBitmap(source, {colorSpaceConversion: "srgb",
+            resizeWidth: 40, resizeHeight: 40, resizeQuality: "pixelated"}),
+        createImageBitmap(source, 5, 5, 10, 10, {
+            colorSpaceConversion: "srgb",
+            resizeWidth: 20, resizeHeight: 20, resizeQuality: "high"}),
+        createImageBitmap(source, 5, 5, 10, 10, {
+            colorSpaceConversion: "srgb",
+            resizeWidth: 20, resizeHeight: 20, resizeQuality: "medium"}),
+        createImageBitmap(source, 5, 5, 10, 10, {
+            colorSpaceConversion: "srgb",
+            resizeWidth: 20, resizeHeight: 20, resizeQuality: "low"}),
+        createImageBitmap(source, 5, 5, 10, 10, {
+            colorSpaceConversion: "srgb",
+            resizeWidth: 20, resizeHeight: 20, resizeQuality: "pixelated"}),
+    ]).then(([noCropHigh, noCropMedium, noCropLow, noCropPixelated, cropHigh,
+              cropMedium, cropLow, cropPixelated]) => {
+        checkNoCrop(noCropHigh, colorInfo, sourceType);
+        checkNoCrop(noCropMedium, colorInfo, sourceType);
+        checkNoCrop(noCropLow, colorInfo, sourceType);
+        checkNoCrop(noCropPixelated, colorInfo, sourceType);
+        checkCrop(cropHigh, colorInfo, sourceType);
+        checkCrop(cropMedium, colorInfo, sourceType);
+        checkCrop(cropLow, colorInfo, sourceType);
+        checkCrop(cropPixelated, colorInfo, sourceType);
+        // Brute-force comparison among all bitmaps is too expensive.
+        // In case of SVG, resize quality does not affect the images, so all
+        // of them are the same and the tests fail. Since, we ignore this test
+        // set for SVG.
+        if (sourceType != 'svg') {
+            compareBitmaps(noCropHigh, noCropMedium);
+            compareBitmaps(noCropLow, noCropPixelated);
+            compareBitmaps(cropHigh, cropMedium);
+            compareBitmaps(cropLow, cropPixelated);
+        }
+    });
+}
+
+function testImageBitmapTransparent(source)
+{
+    return testImageBitmap(source, 'transparent', 'general');
+}
+
+function testImageBitmapFromTransparentImage(source)
+{
+    return testImageBitmap(source, 'transparent-image', 'general');
+}
+
+function testImageBitmapVideoSource(source)
+{
+    return testImageBitmap(source, 'fullColor', 'video');
+}
+
+function testImageBitmapOpaque(source)
+{
+    return testImageBitmap(source, 'opaque', 'general');
+}
+
+function testImageBitmapFromSVG(source)
+{
+    return testImageBitmap(source, 'opaque', 'svg');
+}
+
+function initializeTestCanvas(canvasColorSpace, canvasPixelFormat)
+{
+    var testCanvas = document.createElement("canvas");
+    testCanvas.width = 20;
+    testCanvas.height = 20;
+    var testCtx = testCanvas.getContext('2d',
+        {colorSpace: canvasColorSpace, pixelFormat:canvasPixelFormat});
+    testCtx.fillStyle = "rgba(155, 27, 27, 1)";
+    testCtx.fillRect(0, 0, 10, 10);
+    testCtx.fillStyle = "rgba(27, 155, 27, 1)";
+    testCtx.fillRect(10, 0, 10, 10);
+    testCtx.fillStyle = "rgba(27, 27, 155, 1)";
+    testCtx.fillRect(0, 10, 10, 10);
+    testCtx.fillStyle = "rgba(27, 27, 27, 1)";
+    testCtx.fillRect(10, 10, 10, 10);
+    return testCanvas;
+}
+
+function initializeTestCanvasTransparent(canvasColorSpace, canvasPixelFormat)
+{
+    var testCanvas = document.createElement("canvas");
+    testCanvas.width = 20;
+    testCanvas.height = 20;
+    var testCtx = testCanvas.getContext('2d',
+        {colorSpace: canvasColorSpace, pixelFormat:canvasPixelFormat});
+    testCtx.fillStyle = "rgba(155, 27, 27, 0.5)";
+    testCtx.fillRect(0, 0, 10, 10);
+    testCtx.fillStyle = "rgba(27, 155, 27, 0.5)";
+    testCtx.fillRect(10, 0, 10, 10);
+    testCtx.fillStyle = "rgba(27, 27, 155, 0.5)";
+    testCtx.fillRect(0, 10, 10, 10);
+    testCtx.fillStyle = "rgba(27, 27, 27, 0.5)";
+    testCtx.fillRect(10, 10, 10, 10);
+    return testCanvas;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+// HTMLImageElement - Opaque sRGB
+// File formats: Bitmap, GIF, ICO, JPEG, PNG, WEBP
+promise_test(function() {
+    return Promise.all(['bmp', 'gif', 'ico', 'jpg', 'png', 'webp'].map(
+        ext => new Promise((resolve,reject) => {
+            var image = new Image();
+            image.onload = function() {
+                resolve(image);
+            }
+            image.src = 'resources/pattern-srgb.' + ext;
+        }).then(testImageBitmapOpaque)));
+}, 'createImageBitmap in e-sRGB from an opaque sRGB HTMLImageElement (BMP, \
+GIF, ICO, JPG, PNG, WEBP) with resize.');
+
+// HTMLImageElement - Transparent sRGB
+// File formats: Bitmap, GIF, ICO, PNG, WEBP
+promise_test(function() {
+    return Promise.all(['bmp', 'ico', 'png', 'webp'].map(
+        ext => new Promise((resolve,reject) => {
+            var image = new Image();
+            image.onload = function() {
+                resolve(image);
+            }
+            image.src = 'resources/pattern-srgb-transparent.' + ext;
+        }).then(testImageBitmapFromTransparentImage)));
+}, 'createImageBitmap in e-sRGB from a transparent sRGB HTMLImageElement \
+(BMP, ICO, PNG, WEBP) with resize.');
+
+////////////////////////////////////////////////////////////////////////////////
+
+// SVG Image - sRGB
+promise_test(function() {
+    return new Promise((resolve, reject) => {
+        var image = new Image();
+        image.onload = function() {
+            resolve(image);
+        }
+        image.src = 'resources/pattern-srgb.svg'
+    }).then(testImageBitmapFromSVG);
+}, 'createImageBitmap in e-sRGB from a sRGB SVG image with resize.');
+
+////////////////////////////////////////////////////////////////////////////////
+
+// HTMLVideoElement - sRGB
+promise_test(function() {
+    return new Promise((resolve, reject) => {
+        var video = document.createElement("video");
+        video.oncanplaythrough = function() {
+            resolve(video);
+        }
+        video.src = 'resources/pattern-srgb-fullcolor.ogv'
+    }).then(testImageBitmapVideoSource);
+}, 'createImageBitmap in e-sRGB from a sRGB HTMLVideoElement with resize.');
+
+////////////////////////////////////////////////////////////////////////////////
+
+// HTMLCanvasElement - Opaque sRGB
+promise_test(function() {
+    var testCanvas = initializeTestCanvas('srgb', 'uint8');
+    return testImageBitmapOpaque(testCanvas);
+}, 'createImageBitmap in e-sRGB from an opaque sRGB HTMLCanvasElement with resize.');
+
+// HTMLCanvasElement - Opaque e-sRGB
+promise_test(function() {
+    var testCanvas = initializeTestCanvas('srgb', 'float16');
+    return testImageBitmapOpaque(testCanvas);
+}, 'createImageBitmap in e-sRGB from an opaque e-sRGB HTMLCanvasElement with resize.');
+
+////////////////////////////////////////////////////////////////////////////////
+
+// HTMLCanvasElement - Transparent sRGB
+promise_test(function() {
+    var testCanvas = initializeTestCanvasTransparent('srgb', 'uint8');
+    return testImageBitmapTransparent(testCanvas);
+}, 'createImageBitmap in e-sRGB from a transparent sRGB HTMLCanvasElement with resize.');
+
+// HTMLCanvasElement - Transparent e-sRGB
+promise_test(function() {
+    var testCanvas = initializeTestCanvasTransparent('srgb', 'float16');
+    return testImageBitmapTransparent(testCanvas);
+}, 'createImageBitmap in e-sRGB from a transparent e-sRGB HTMLCanvasElement with resize.');
+
+//////////////////////////////////////////////////////////////////////////////
+
+// Blob from file - Opaque sRGB
+promise_test(function() {
+    return new Promise((resolve, reject) => {
+        var xhr = new XMLHttpRequest();
+        xhr.open("GET", 'resources/pattern-srgb.png');
+        xhr.responseType = 'blob';
+        xhr.send();
+        xhr.onload = function() {
+            resolve(xhr.response);
+        };
+    }).then(testImageBitmapOpaque);
+}, 'createImageBitmap in e-sRGB from an opaque sRGB Blob with resize.');
+
+// Blob form file - Transparent sRGB
+promise_test(function() {
+    return new Promise((resolve, reject) => {
+        var xhr = new XMLHttpRequest();
+        xhr.open("GET", 'resources/pattern-srgb-transparent.png');
+        xhr.responseType = 'blob';
+        xhr.send();
+        xhr.onload = function() {
+            resolve(xhr.response);
+        };
+    }).then(testImageBitmapFromTransparentImage);
+}, 'createImageBitmap in e-sRGB from a transparent sRGB Blob with resize.');
+
+// Color managed blob from canvas
+function testCreateImageBitmapFromColorManagedBlob(pixelFormat, isTransparent) {
+    let canvasPixelFormat = 'uint8';
+    if (pixelFormat == 'uint16')
+        canvasPixelFormat = 'float16';
+    var testCanvas;
+    if (isTransparent)
+      testCanvas = initializeTestCanvasTransparent('srgb', canvasPixelFormat);
+    else
+      testCanvas = initializeTestCanvas('srgb', canvasPixelFormat);
+    var encodeOptions = {};
+    encodeOptions.quality = 1;
+    encodeOptions.type = 'image/png';
+    encodeOptions.pixelFormat = pixelFormat;
+
+    var t = async_test('createImageBitmap in e-sRGB from color managed Blob' +
+        ' with resize. blobPixelFormat: ' + pixelFormat +
+        ', transparency: ' + isTransparent);
+    testCanvas.convertToBlob(encodeOptions).then(
+        t.step_func_done(function(blob) {
+            if (isTransparent)
+                testImageBitmapTransparent(blob);
+            else
+                testImageBitmapOpaque(blob);
+        }));
+}
+
+function runAllCreateImageBitmapFromColorManagedBlobTests() {
+    var blobPixelFormats = ['uint8', 'uint16'];
+    var transparencies = [false, true];
+    for (var j = 0; j < blobPixelFormats.length; j++)
+        for (var k = 0; k < transparencies.length; k++) {
+            testCreateImageBitmapFromColorManagedBlob(
+                blobPixelFormats[j], transparencies[k]);
+        }
+}
+
+runAllCreateImageBitmapFromColorManagedBlobTests();
+
+////////////////////////////////////////////////////////////////////////////////
+
+// ImageData - Opaque sRGB
+promise_test(function() {
+    var canvas = initializeTestCanvas('srgb', 'uint8');
+    var ctx = canvas.getContext('2d');
+    var data = ctx.getImageData(0, 0, 20, 20);
+    return testImageBitmapOpaque(data);
+}, 'createImageBitmap in e-sRGB from an opaque sRGB ImageData with resize.');
+
+// ImageData - Opaque e-sRGB
+promise_test(function() {
+    var canvas = initializeTestCanvas('srgb', 'float16');
+    var ctx = canvas.getContext('2d',
+        {colorSpace: 'srgb', pixelFormat:'float16'});
+    var data = ctx.getImageData(0, 0, 20, 20);
+    return testImageBitmapOpaque(data);
+}, 'createImageBitmap in e-sRGB from an opaque e-sRGB ImageData with resize.');
+
+////////////////////////////////////////////////////////////////////////////////
+
+// ImageData - Transparent sRGB
+promise_test(function() {
+    var canvas = initializeTestCanvasTransparent('srgb', 'uint8');
+    var ctx = canvas.getContext('2d');
+    var data = ctx.getImageData(0, 0, 20, 20);
+    return testImageBitmapTransparent(data);
+}, 'createImageBitmap in e-sRGB from a transparent sRGB ImageData with resize.');
+
+// ImageData - Transparent e-sRGB
+promise_test(function() {
+    var canvas = initializeTestCanvasTransparent('srgb', 'float16');
+    var ctx = canvas.getContext('2d',
+        {colorSpace: 'srgb', pixelFormat:'float16'});
+    var data = ctx.getImageData(0, 0, 20, 20);
+    return testImageBitmapTransparent(data);
+}, 'createImageBitmap in e-sRGB from a transparent e-sRGB ImageData with resize.');
+
+////////////////////////////////////////////////////////////////////////////////
+
+// ImageBitmap - Opaque sRGB
+promise_test(function() {
+    var testCanvas = initializeTestCanvas('srgb', 'uint8');
+    return createImageBitmap(testCanvas).then(testImageBitmapOpaque);
+}, 'createImageBitmap in e-sRGB from an opaque sRGB ImageBitmap with resize.');
+
+// ImageBitmap - Opaque e-sRGB
+promise_test(function() {
+    var testCanvas = initializeTestCanvas('srgb', 'float16');
+    return createImageBitmap(testCanvas, {colorSpaceConversion: "srgb"}
+        ).then(testImageBitmapOpaque);
+}, 'createImageBitmap in e-sRGB from an opaque e-sRGB ImageBitmap with resize.');
+
+////////////////////////////////////////////////////////////////////////////////
+
+// ImageBitmap - Transparent sRGB
+promise_test(function() {
+    var testCanvas = initializeTestCanvasTransparent('srgb', 'uint8');
+    return createImageBitmap(testCanvas).then(testImageBitmapTransparent);
+}, 'createImageBitmap in e-sRGB from a transparent sRGB ImageBitmap with resize.');
+
+// ImageBitmap - Transparent e-sRGB
+promise_test(function() {
+    var testCanvas = initializeTestCanvasTransparent('srgb', 'float16');
+    return createImageBitmap(testCanvas, {colorSpaceConversion: "srgb"}
+        ).then(testImageBitmapTransparent);
+}, 'createImageBitmap in e-sRGB from a transparent e-sRGB ImageBitmap with resize.');
+
+////////////////////////////////////////////////////////////////////////////////
+
+function initializeOffscreenCanvas(canvasColorSpace, canvasPixelFormat)
+{
+    var canvas = document.createElement("canvas");
+    canvas.width = 20;
+    canvas.height = 20;
+    var offscreen = canvas.transferControlToOffscreen();
+    var ctx = offscreen.getContext('2d',
+        {colorSpace: canvasColorSpace, pixelFormat:canvasPixelFormat});
+    ctx.fillStyle = "rgba(155, 27, 27, 1)";
+    ctx.fillRect(0, 0, 10, 10);
+    ctx.fillStyle = "rgba(27, 155, 27, 1)";
+    ctx.fillRect(10, 0, 10, 10);
+    ctx.fillStyle = "rgba(27, 27, 155, 1)";
+    ctx.fillRect(0, 10, 10, 10);
+    ctx.fillStyle = "rgba(27, 27, 27, 1)";
+    ctx.fillRect(10, 10, 10, 10);
+    return offscreen;
+}
+
+//OffscreenCanvas - Opaque sRGB
+promise_test(function() {
+    var offscreen = initializeOffscreenCanvas('srgb', 'uint8');
+    return testImageBitmapOpaque(offscreen);
+}, 'createImageBitmap in e-sRGB from an opaque sRGB OffscreenCanvas with resize.');
+
+//OffscreenCanvas - Opaque e-sRGB
+promise_test(function() {
+    var offscreen = initializeOffscreenCanvas('srgb', 'float16');
+    return testImageBitmapOpaque(offscreen);
+}, 'createImageBitmap in e-sRGB from an opaque e-sRGB OffscreenCanvas with resize.');
+
+////////////////////////////////////////////////////////////////////////////////
+
+function initializeOffscreenCanvasTransparent(canvasColorSpace, canvasPixelFormat)
+{
+    var canvas = document.createElement("canvas");
+    canvas.width = 20;
+    canvas.height = 20;
+    var offscreen = canvas.transferControlToOffscreen();
+    var ctx = offscreen.getContext('2d',
+        {colorSpace: canvasColorSpace, pixelFormat:canvasPixelFormat});
+    ctx.fillStyle = "rgba(155, 27, 27, 0.5)";
+    ctx.fillRect(0, 0, 10, 10);
+    ctx.fillStyle = "rgba(27, 155, 27, 0.5)";
+    ctx.fillRect(10, 0, 10, 10);
+    ctx.fillStyle = "rgba(27, 27, 155, 0.5)";
+    ctx.fillRect(0, 10, 10, 10);
+    ctx.fillStyle = "rgba(27, 27, 27, 0.5)";
+    ctx.fillRect(10, 10, 10, 10);
+    return offscreen;
+}
+
+//OffscreenCanvas - Transparent sRGB
+promise_test(function() {
+    var offscreen = initializeOffscreenCanvasTransparent('srgb', 'uint8');
+    return testImageBitmapTransparent(offscreen);
+}, 'createImageBitmap in e-sRGB from a transparent sRGB OffscreenCanvas with resize.');
+
+//OffscreenCanvas - Transparent e-sRGB
+promise_test(function() {
+    var offscreen = initializeOffscreenCanvasTransparent('srgb', 'float16');
+    return testImageBitmapTransparent(offscreen);
+}, 'createImageBitmap in e-sRGB from a transparent e-sRGB OffscreenCanvas with resize.');
+
+////////////////////////////////////////////////////////////////////////////////
+
+</script>

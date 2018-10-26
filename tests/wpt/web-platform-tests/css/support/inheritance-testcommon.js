@@ -10,6 +10,14 @@ function assert_initial(property, initial) {
   }, 'Property ' + property + ' has initial value ' + initial);
 }
 
+/**
+ * Create tests that a CSS property inherits and has the given initial value.
+ *
+ * @param {string} property  The name of the CSS property being tested.
+ * @param {string} initial   The computed value for 'initial'.
+ * @param {string} other     An arbitrary value for the property that round
+ *                           trips and is distinct from the initial value.
+ */
 function assert_inherited(property, initial, other) {
   assert_initial(property, initial);
 
@@ -33,6 +41,15 @@ function assert_inherited(property, initial, other) {
   }, 'Property ' + property + ' inherits');
 }
 
+/**
+ * Create tests that a CSS property does not inherit, and that it has the
+ * given initial value.
+ *
+ * @param {string} property  The name of the CSS property being tested.
+ * @param {string} initial   The computed value for 'initial'.
+ * @param {string} other     An arbitrary value for the property that round
+ *                           trips and is distinct from the initial value.
+ */
 function assert_not_inherited(property, initial, other) {
   assert_initial(property, initial);
 

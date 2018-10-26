@@ -20,10 +20,9 @@ context (and not therefore in any frame or window opened from it).
 
 ### action_sequence
 Usage: `test_driver.action_sequence(actions)`
- * `actions`: <[Array]<[Object]>> an array of Action objects`
- * `action`: <[Object]> A single action. See [spec](https://www.w3.org/TR/webdriver/#actions) for format
+ * `actions`: an array of `Action` objects
 
-This function causes a sequence of actions to be sent to the browser. It is based of the [WebDriver API](https://www.w3.org/TR/webdriver/#actions).
+This function causes a sequence of actions to be sent to the browser. It is based of the [WebDriver API](https://w3c.github.io/webdriver/#actions).
 The action can be a keyboard action, a pointer action or a pause. It returns a `Promise` that
 resolves after the actions have been sent or rejects if an error was thrown.
 

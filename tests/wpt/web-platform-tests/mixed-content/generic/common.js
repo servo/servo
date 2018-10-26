@@ -86,6 +86,9 @@ function bindEvents(element, resolveEventName, rejectEventName) {
       resolve(e);
     });
     element.addEventListener(rejectEventName || "error", function(e) {
+      // Chromium starts propagating errors from worker.onerror to
+      // window.onerror. This handles the uncaught exceptions in tests.
+      e.preventDefault();
       reject(e);
     });
   });

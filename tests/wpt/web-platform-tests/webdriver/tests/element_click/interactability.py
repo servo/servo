@@ -32,6 +32,15 @@ def test_element_not_interactable_out_of_view(session):
     assert_error(response, "element not interactable")
 
 
+@pytest.mark.parametrize("tag_name", ["div", "span"])
+def test_zero_sized_element(session, tag_name):
+    session.url = inline("<{0}></{0}>".format(tag_name))
+    element = session.find.css(tag_name, all=False)
+
+    response = element_click(session, element)
+    assert_error(response, "element not interactable")
+
+
 def test_element_intercepted(session):
     session.url = inline("""
         <input type=button value=Roger style="position: absolute; left: 10px; top: 10px">

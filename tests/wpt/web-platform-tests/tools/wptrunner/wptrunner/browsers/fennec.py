@@ -111,7 +111,8 @@ def env_extras(**kwargs):
 
 def run_info_extras(**kwargs):
     return {"e10s": False,
-            "headless": False}
+            "headless": False,
+            "sw-e10s": False}
 
 
 def env_options():
