@@ -54,6 +54,7 @@ var replaceableAttributes = [
   "parent",
   "external",
   "length",
+  "origin",
 
   // CSSOM-View
   "screen",
@@ -63,6 +64,8 @@ var replaceableAttributes = [
   "pageYOffset",
   "innerWidth",
   "innerHeight",
+  "screenLeft",
+  "screenTop",
   "screenX",
   "screenY",
   "outerWidth",
@@ -92,6 +95,12 @@ var methods = [
   "setInterval",
   "clearInterval",
 
+  // Microtask queuing
+  "queueMicrotask",
+
+  // ImageBitmap
+  "createImageBitmap",
+
   // HTML Editing APIs
   "getSelection",
 
@@ -100,6 +109,10 @@ var methods = [
 
   // CSSOM-View
   "matchMedia",
+  "moveBy",
+  "moveTo",
+  "resizeBy",
+  "resizeTo",
   "scroll",
   "scrollTo",
   "scrollBy"
