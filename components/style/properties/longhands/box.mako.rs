@@ -247,6 +247,7 @@ ${helpers.single_keyword(
     gecko_enum_prefix="PlaybackDirection",
     custom_consts=animation_direction_custom_consts,
     extra_prefixes=animation_extra_prefixes,
+    gecko_inexhaustive=True,
     spec="https://drafts.csswg.org/css-animations/#propdef-animation-direction",
     allowed_in_keyframe_block=False,
 )}
@@ -271,6 +272,7 @@ ${helpers.single_keyword(
     vector=True,
     gecko_enum_prefix="FillMode",
     extra_prefixes=animation_extra_prefixes,
+    gecko_inexhaustive=True,
     spec="https://drafts.csswg.org/css-animations/#propdef-animation-fill-mode",
     allowed_in_keyframe_block=False,
 )}

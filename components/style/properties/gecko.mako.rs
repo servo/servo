@@ -3000,7 +3000,9 @@ fn static_assert() {
             % for value in keyword.gecko_values():
                 structs::${keyword.gecko_constant(value)} => Keyword::${to_camel_case(value)},
             % endfor
+            % if keyword.gecko_inexhaustive:
             _ => panic!("Found unexpected value for animation-${ident}"),
+            % endif
         }
     }
     ${impl_animation_count(ident, gecko_ffi_name)}
