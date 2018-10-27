@@ -204,6 +204,20 @@ pub struct Constellation<Message, LTF, STF> {
     /// The last frame tree sent to WebRender.
     active_browser_id: Option<TopLevelBrowsingContextId>,
 
+    /// All the browsers in constellation. Since the active browser
+    /// (`active_browser_id`) may change with the `SelectBrowser` message (e.g.
+    /// when user switches to another tab), we must keep track of each browser's
+    /// focused browsing context so that we can restore the
+    /// `focused_browsing_context_id` to point to the active browser's focused
+    /// browsing context.
+    browser_ids: HashMap<TopLevelBrowsingContextId, BrowsingContextId>,
+
+    /// The currently focused browsing context for key events. The focused
+    /// pipeline is the current entry of the focused browsing context. This
+    /// field is always updated to be the focused browsing context of the
+    /// current active browser.
+    focused_browsing_context_id: Option<BrowsingContextId>,
+
     /// Channels for the constellation to send messages to the public
     /// resource-related threads.  There are two groups of resource
     /// threads: one for public browsing, and one for private
@@ -288,11 +302,6 @@ pub struct Constellation<Message, LTF, STF> {
     /// document is active. Between starting the load and it activating,
     /// we store a `SessionHistoryChange` object for the navigation in progress.
     pending_changes: Vec<SessionHistoryChange>,
-
-    /// The currently focused browsing context for key events. The focused
-    /// pipeline is the current entry of the focused browsing
-    /// context.
-    focused_browsing_context_id: Option<BrowsingContextId>,
 
     /// Pipeline IDs are namespaced in order to avoid name collisions,
     /// and the namespaces are allocated by the constellation.
@@ -591,6 +600,8 @@ where
                     embedder_proxy: state.embedder_proxy,
                     compositor_proxy: state.compositor_proxy,
                     active_browser_id: None,
+                    browser_ids: HashMap::new(),
+                    focused_browsing_context_id: None,
                     debugger_chan: state.debugger_chan,
                     devtools_chan: state.devtools_chan,
                     bluetooth_thread: state.bluetooth_thread,
@@ -608,7 +619,6 @@ where
                     // We initialize the namespace at 2, since we reserved
                     // namespace 0 for the embedder, and 0 for the constellation
                     next_pipeline_namespace_id: PipelineNamespaceId(2),
-                    focused_browsing_context_id: None,
                     time_profiler_chan: state.time_profiler_chan,
                     mem_profiler_chan: state.mem_profiler_chan,
                     window_size: WindowSizeData {
@@ -964,14 +974,9 @@ where
                 self.handle_get_pipeline(browsing_context_id, resp_chan);
             },
             FromCompositorMsg::GetFocusTopLevelBrowsingContext(resp_chan) => {
-                let focus_browsing_context = self.focused_browsing_context_id
-                    .and_then(|ctx_id| self.browsing_contexts.get(&ctx_id))
-                    .map(|ctx| ctx.top_level_id)
-                    .filter(|&top_level_ctx_id| {
-                        let ctx_id = BrowsingContextId::from(top_level_ctx_id);
-                        self.browsing_contexts.contains_key(&ctx_id)
-                    });
-                let _ = resp_chan.send(focus_browsing_context);
+                // The focused browsing context's top-level browsing context is
+                // the active browser's id itself.
+                let _ = resp_chan.send(self.active_browser_id);
             },
             FromCompositorMsg::Keyboard(key_event) => {
                 self.handle_key_msg(key_event);
@@ -1650,6 +1655,9 @@ where
         let is_private = false;
         let is_visible = true;
 
+        // Register this new top-level browsing context id as a browser and set
+        // its focused browsing context to be itself.
+        self.browser_ids.insert(top_level_browsing_context_id, browsing_context_id);
         if self.focused_browsing_context_id.is_none() {
             self.focused_browsing_context_id = Some(browsing_context_id);
         }
@@ -1687,6 +1695,11 @@ where
     ) {
         let browsing_context_id = BrowsingContextId::from(top_level_browsing_context_id);
         self.close_browsing_context(browsing_context_id, ExitPipelineMode::Normal);
+        self.browser_ids.remove(&top_level_browsing_context_id);
+        if self.active_browser_id == Some(top_level_browsing_context_id) {
+            self.focused_browsing_context_id = None;
+            self.active_browser_id = None;
+        }
     }
 
     fn handle_iframe_size_msg(
@@ -2741,11 +2754,28 @@ where
     }
 
     fn handle_focus_msg(&mut self, pipeline_id: PipelineId) {
-        let browsing_context_id = match self.pipelines.get(&pipeline_id) {
-            Some(pipeline) => pipeline.browsing_context_id,
-            None => return warn!("Pipeline {:?} focus parent after closure.", pipeline_id),
-        };
-        self.focused_browsing_context_id = Some(browsing_context_id);
+        let (browsing_context_id, top_level_browsing_context_id) =
+            match self.pipelines.get(&pipeline_id) {
+                Some(pipeline) => (
+                    pipeline.browsing_context_id,
+                    pipeline.top_level_browsing_context_id,
+                ),
+                None => return warn!("Pipeline {:?} focus parent after closure.", pipeline_id),
+            };
+
+        // Only update `focused_browsing_context_id` if the browsing context for
+        // which the focus was requested is in the current active browser.
+        if Some(top_level_browsing_context_id) == self.active_browser_id {
+            self.focused_browsing_context_id = Some(browsing_context_id);
+        }
+
+        // But we always need to update the focused browsing context in its
+        // browser in `browser_ids`. However, there is an opportunity to avoid
+        // the look up if the focus request targets an already focused browsing
+        // context.
+        if Some(browsing_context_id) != self.focused_browsing_context_id {
+            self.browser_ids.insert(top_level_browsing_context_id, browsing_context_id);
+        }
 
         // Focus parent iframes recursively
         self.focus_parent_pipeline(browsing_context_id);
@@ -3120,7 +3150,7 @@ where
 
         // If the currently focused browsing context is a child of the browsing
         // context in which the page is being loaded, then update the focused
-        // browsing context to that one.
+        // browsing context to be the one where the page is being loaded.
         if self.focused_browsing_context_is_descendant_of(change.browsing_context_id) {
             self.focused_browsing_context_id = Some(change.browsing_context_id);
         }
@@ -3899,8 +3929,19 @@ where
 
     /// Send the current frame tree to compositor
     fn send_frame_tree(&mut self, top_level_browsing_context_id: TopLevelBrowsingContextId) {
-        self.active_browser_id = Some(top_level_browsing_context_id);
         let browsing_context_id = BrowsingContextId::from(top_level_browsing_context_id);
+
+        // Update the active browser and focused browsing context ids if we're
+        // sending a frame tree of a different browser than the currently active
+        // one (i.e. another browser was selected since the last call to
+        // `send_frame_tree`).
+        if Some(top_level_browsing_context_id) != self.active_browser_id {
+            self.active_browser_id = Some(top_level_browsing_context_id);
+            self.focused_browsing_context_id = self.browser_ids
+                .get(&top_level_browsing_context_id)
+                .map(|focus_id| *focus_id)
+                .or(Some(browsing_context_id));
+        }
 
         // Note that this function can panic, due to ipc-channel creation failure.
         // avoiding this panic would require a mechanism for dealing
