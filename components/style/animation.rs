@@ -27,8 +27,8 @@ use std::sync::mpsc::Sender;
 use stylesheets::keyframes_rule::{KeyframesAnimation, KeyframesStep, KeyframesStepValue};
 use timer::Timer;
 use values::computed::Time;
-use values::computed::box_::TransitionProperty;
 use values::computed::TimingFunction;
+use values::computed::box_::TransitionProperty;
 use values::generics::box_::AnimationIterationCount;
 use values::generics::easing::{StepPosition, TimingFunction as GenericTimingFunction};
 
