@@ -90,67 +90,6 @@ pub struct TransformOrigin<H, V, Depth> {
     pub depth: Depth,
 }
 
-/// A generic timing function.
-///
-/// <https://drafts.csswg.org/css-timing-1/#single-timing-function-production>
-#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss)]
-#[value_info(ty = "TIMING_FUNCTION")]
-pub enum TimingFunction<Integer, Number> {
-    /// `linear | ease | ease-in | ease-out | ease-in-out`
-    Keyword(TimingKeyword),
-    /// `cubic-bezier(<number>, <number>, <number>, <number>)`
-    #[allow(missing_docs)]
-    #[css(comma, function)]
-    CubicBezier {
-        x1: Number,
-        y1: Number,
-        x2: Number,
-        y2: Number,
-    },
-    /// `step-start | step-end | steps(<integer>, [ start | end ]?)`
-    #[css(comma, function)]
-    #[value_info(other_values = "step-start,step-end")]
-    Steps(Integer, #[css(skip_if = "is_end")] StepPosition),
-    /// `frames(<integer>)`
-    #[css(comma, function)]
-    Frames(Integer),
-}
-
-#[allow(missing_docs)]
-#[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
-#[derive(
-    Clone,
-    Copy,
-    Debug,
-    Eq,
-    MallocSizeOf,
-    Parse,
-    PartialEq,
-    SpecifiedValueInfo,
-    ToComputedValue,
-    ToCss,
-)]
-pub enum TimingKeyword {
-    Linear,
-    Ease,
-    EaseIn,
-    EaseOut,
-    EaseInOut,
-}
-
-#[allow(missing_docs)]
-#[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
-#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, Parse, PartialEq, ToComputedValue, ToCss)]
-pub enum StepPosition {
-    Start,
-    End,
-}
-
-#[inline]
-fn is_end(position: &StepPosition) -> bool {
-    *position == StepPosition::End
-}
-
 impl<H, V, D> TransformOrigin<H, V, D> {
     /// Returns a new transform origin.
     pub fn new(horizontal: H, vertical: V, depth: D) -> Self {
@@ -158,29 +97,6 @@ impl<H, V, D> TransformOrigin<H, V, D> {
             horizontal: horizontal,
             vertical: vertical,
             depth: depth,
-        }
-    }
-}
-
-impl<Integer, Number> TimingFunction<Integer, Number> {
-    /// `ease`
-    #[inline]
-    pub fn ease() -> Self {
-        TimingFunction::Keyword(TimingKeyword::Ease)
-    }
-}
-
-impl TimingKeyword {
-    /// Returns the keyword as a quadruplet of Bezier point coordinates
-    /// `(x1, y1, x2, y2)`.
-    #[inline]
-    pub fn to_bezier(self) -> (CSSFloat, CSSFloat, CSSFloat, CSSFloat) {
-        match self {
-            TimingKeyword::Linear => (0., 0., 1., 1.),
-            TimingKeyword::Ease => (0.25, 0.1, 0.25, 1.),
-            TimingKeyword::EaseIn => (0.42, 0., 1., 1.),
-            TimingKeyword::EaseOut => (0., 0., 0.58, 1.),
-            TimingKeyword::EaseInOut => (0.42, 0., 0.58, 1.),
         }
     }
 }

@@ -27,10 +27,10 @@ use std::sync::mpsc::Sender;
 use stylesheets::keyframes_rule::{KeyframesAnimation, KeyframesStep, KeyframesStepValue};
 use timer::Timer;
 use values::computed::Time;
+use values::computed::TimingFunction;
 use values::computed::box_::TransitionProperty;
-use values::computed::transform::TimingFunction;
 use values::generics::box_::AnimationIterationCount;
-use values::generics::transform::{StepPosition, TimingFunction as GenericTimingFunction};
+use values::generics::easing::{StepPosition, TimingFunction as GenericTimingFunction};
 
 
 /// This structure represents a keyframes animation current iteration state.
@@ -363,27 +363,39 @@ impl PropertyAnimation {
             GenericTimingFunction::CubicBezier { x1, y1, x2, y2 } => {
                 Bezier::new(x1, y1, x2, y2).solve(time, epsilon)
             },
-            GenericTimingFunction::Steps(steps, StepPosition::Start) => {
-                (time * (steps as f64)).ceil() / (steps as f64)
-            },
-            GenericTimingFunction::Steps(steps, StepPosition::End) => {
-                (time * (steps as f64)).floor() / (steps as f64)
-            },
-            GenericTimingFunction::Frames(frames) => {
-                // https://drafts.csswg.org/css-timing/#frames-timing-functions
-                let mut out = (time * (frames as f64)).floor() / ((frames - 1) as f64);
-                if out > 1.0 {
-                    // FIXME: Basically, during the animation sampling process, the input progress
-                    // should be in the range of [0, 1]. However, |time| is not accurate enough
-                    // here, which means |time| could be larger than 1.0 in the last animation
-                    // frame. (It should be equal to 1.0 exactly.) This makes the output of frames
-                    // timing function jumps to the next frame/level.
-                    // However, this solution is still not correct because |time| is possible
-                    // outside the range of [0, 1] after introducing Web Animations. We should fix
-                    // this problem when implementing web animations.
-                    out = 1.0;
+            GenericTimingFunction::Steps(steps, pos) => {
+                let mut current_step = (time * (steps as f64)).floor() as i32;
+
+                if pos == StepPosition::Start ||
+                   pos == StepPosition::JumpStart ||
+                   pos == StepPosition::JumpBoth {
+                    current_step = current_step + 1;
                 }
-                out
+
+                // FIXME: We should update current_step according to the "before flag".
+                // In order to get the before flag, we have to know the current animation phase
+                // and whether the iteration is reversed. For now, we skip this calculation.
+                // (i.e. Treat before_flag is unset,)
+                // https://drafts.csswg.org/css-easing/#step-timing-function-algo
+
+                if time >= 0.0 && current_step < 0 {
+                    current_step = 0;
+                }
+
+                let jumps = match pos {
+                    StepPosition::JumpBoth => steps + 1,
+                    StepPosition::JumpNone => steps - 1,
+                    StepPosition::JumpStart |
+                    StepPosition::JumpEnd |
+                    StepPosition::Start |
+                    StepPosition::End => steps,
+                };
+
+                if time <= 1.0 && current_step > jumps {
+                    current_step = jumps;
+                }
+
+                (current_step as f64) / (jumps as f64)
             },
             GenericTimingFunction::Keyword(keyword) => {
                 let (x1, x2, y1, y2) = keyword.to_bezier();

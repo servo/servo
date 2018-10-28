@@ -72,7 +72,7 @@ impl<Impl: SelectorImpl> SelectorBuilder<Impl> {
     /// Pushes a simple selector onto the current compound selector.
     #[inline(always)]
     pub fn push_simple_selector(&mut self, ss: Component<Impl>) {
-        debug_assert!(!ss.is_combinator());
+        assert!(!ss.is_combinator());
         self.simple_selectors.push(ss);
         self.current_len += 1;
     }
@@ -105,7 +105,7 @@ impl<Impl: SelectorImpl> SelectorBuilder<Impl> {
         parsed_slotted: bool,
     ) -> ThinArc<SpecificityAndFlags, Component<Impl>> {
         // Compute the specificity and flags.
-        let mut spec = SpecificityAndFlags(specificity(&*self, self.simple_selectors.iter()));
+        let mut spec = SpecificityAndFlags(specificity(self.simple_selectors.iter()));
         if parsed_pseudo {
             spec.0 |= HAS_PSEUDO_BIT;
         }
@@ -281,33 +281,26 @@ impl From<Specificity> for u32 {
     }
 }
 
-fn specificity<Impl>(builder: &SelectorBuilder<Impl>, iter: slice::Iter<Component<Impl>>) -> u32
+fn specificity<Impl>(iter: slice::Iter<Component<Impl>>) -> u32
 where
     Impl: SelectorImpl,
 {
-    complex_selector_specificity(builder, iter).into()
+    complex_selector_specificity(iter).into()
 }
 
-fn complex_selector_specificity<Impl>(
-    builder: &SelectorBuilder<Impl>,
-    mut iter: slice::Iter<Component<Impl>>,
-) -> Specificity
+fn complex_selector_specificity<Impl>(iter: slice::Iter<Component<Impl>>) -> Specificity
 where
     Impl: SelectorImpl,
 {
     fn simple_selector_specificity<Impl>(
-        builder: &SelectorBuilder<Impl>,
         simple_selector: &Component<Impl>,
         specificity: &mut Specificity,
     ) where
         Impl: SelectorImpl,
     {
         match *simple_selector {
-            Component::Combinator(ref combinator) => {
-                unreachable!(
-                    "Found combinator {:?} in simple selectors vector? {:?}",
-                    combinator, builder,
-                );
+            Component::Combinator(..) => {
+                unreachable!("Found combinator in simple selectors vector?");
             },
             Component::PseudoElement(..) | Component::LocalName(..) => {
                 specificity.element_selectors += 1
@@ -361,15 +354,15 @@ where
             },
             Component::Negation(ref negated) => {
                 for ss in negated.iter() {
-                    simple_selector_specificity(builder, &ss, specificity);
+                    simple_selector_specificity(&ss, specificity);
                 }
             },
         }
     }
 
     let mut specificity = Default::default();
-    for simple_selector in &mut iter {
-        simple_selector_specificity(builder, &simple_selector, &mut specificity);
+    for simple_selector in iter {
+        simple_selector_specificity(&simple_selector, &mut specificity);
     }
     specificity
 }

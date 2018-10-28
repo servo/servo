@@ -35,19 +35,3 @@ fn test_steps() {
     assert!(parse(transition_timing_function::parse, "steps(-1)").is_err());
     assert!(parse(transition_timing_function::parse, "steps(1, middle)").is_err());
 }
-
-#[test]
-fn test_frames() {
-    assert_roundtrip_with_context!(transition_timing_function::parse, "frames(  2 )", "frames(2)");
-    assert_roundtrip_with_context!(transition_timing_function::parse, "frames(10000)");
-
-    // Frames number must be an integer greater than 1
-    assert!(parse(transition_timing_function::parse, "frames(1)").is_err());
-    assert!(parse(transition_timing_function::parse, "frames(-2)").is_err());
-    assert!(parse(transition_timing_function::parse, "frames()").is_err());
-    assert!(parse(transition_timing_function::parse, "frames(,)").is_err());
-    assert!(parse(transition_timing_function::parse, "frames(a)").is_err());
-    assert!(parse(transition_timing_function::parse, "frames(2.0)").is_err());
-    assert!(parse(transition_timing_function::parse, "frames(2.5)").is_err());
-    assert!(parse(transition_timing_function::parse, "frames(2 3)").is_err());
-}

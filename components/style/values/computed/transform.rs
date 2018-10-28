@@ -22,9 +22,6 @@ pub type Transform = generic::Transform<TransformOperation>;
 /// The computed value of a CSS `<transform-origin>`
 pub type TransformOrigin = generic::TransformOrigin<LengthOrPercentage, LengthOrPercentage, Length>;
 
-/// A computed timing function.
-pub type TimingFunction = generic::TimingFunction<u32, Number>;
-
 /// A vector to represent the direction vector (rotate axis) for Rotate3D.
 pub type DirectionVector = Vector3D<CSSFloat>;
 

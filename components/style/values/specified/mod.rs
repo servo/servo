@@ -43,6 +43,7 @@ pub use self::box_::{OverflowClipBox, OverscrollBehavior, Perspective, Resize};
 pub use self::box_::{ScrollSnapType, TouchAction, TransitionProperty, VerticalAlign, WillChange};
 pub use self::color::{Color, ColorPropertyValue, RGBAColor};
 pub use self::counters::{Content, ContentItem, CounterIncrement, CounterReset};
+pub use self::easing::TimingFunction;
 pub use self::effects::{BoxShadow, Filter, SimpleShadow};
 pub use self::flex::FlexBasis;
 #[cfg(feature = "gecko")]
@@ -74,7 +75,7 @@ pub use self::text::{InitialLetter, LetterSpacing, LineHeight, MozTabSize, TextA
 pub use self::text::{TextEmphasisPosition, TextEmphasisStyle};
 pub use self::text::{TextAlignKeyword, TextDecorationLine, TextOverflow, WordSpacing};
 pub use self::time::Time;
-pub use self::transform::{Rotate, Scale, TimingFunction, Transform};
+pub use self::transform::{Rotate, Scale, Transform};
 pub use self::transform::{TransformOrigin, TransformStyle, Translate};
 pub use self::ui::{ColorOrAuto, Cursor, MozForceBrokenImageIcon};
 #[cfg(feature = "gecko")]
@@ -93,6 +94,7 @@ pub mod calc;
 pub mod color;
 pub mod column;
 pub mod counters;
+pub mod easing;
 pub mod effects;
 pub mod flex;
 pub mod font;

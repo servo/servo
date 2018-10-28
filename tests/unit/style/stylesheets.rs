@@ -28,7 +28,7 @@ use style::stylesheets::keyframes_rule::{Keyframe, KeyframeSelector, KeyframePer
 use style::values::{KeyframesName, CustomIdent};
 use style::values::computed::Percentage;
 use style::values::specified::{LengthOrPercentageOrAuto, PositionComponent};
-use style::values::specified::transform::TimingFunction;
+use style::values::specified::TimingFunction;
 
 pub fn block_from<I>(iterable: I) -> PropertyDeclarationBlock
 where I: IntoIterator<Item=(PropertyDeclaration, Importance)> {
