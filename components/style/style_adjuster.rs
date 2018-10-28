@@ -9,8 +9,10 @@ use app_units::Au;
 use dom::TElement;
 use properties::{self, ComputedValues, StyleBuilder};
 use properties::computed_value_flags::ComputedValueFlags;
+use properties::longhands::_moz_appearance::computed_value::T as Appearance;
 use properties::longhands::display::computed_value::T as Display;
 use properties::longhands::float::computed_value::T as Float;
+use properties::longhands::line_height::computed_value::T as LineHeight;
 use properties::longhands::overflow_x::computed_value::T as Overflow;
 use properties::longhands::position::computed_value::T as Position;
 
@@ -694,6 +696,28 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
             .set_computed_justify_items(parent_justify_items.computed);
     }
 
+    /// If '-webkit-appearance' is 'menulist' on a <select> element then
+    /// the computed value of 'line-height' is 'normal'.
+    ///
+    /// https://github.com/w3c/csswg-drafts/issues/3257
+    fn adjust_for_appearance<E>(&mut self, element: Option<E>)
+    where
+        E: TElement,
+    {
+        if self.style.get_box().clone__moz_appearance() == Appearance::Menulist &&
+            self.style.get_inherited_text().clone_line_height() != LineHeight::normal() {
+                if self.style.pseudo.is_some() {
+                    return;
+                }
+                let is_html_select_element =
+                    element.map_or(false, |e| e.is_html_element() && e.local_name() == &*local_name!("select"));
+                if !is_html_select_element {
+                    return;
+                }
+                self.style.mutate_inherited_text().set_line_height(LineHeight::normal());
+            }
+    }
+
     /// Adjusts the style to account for various fixups that don't fit naturally
     /// into the cascade.
     ///
@@ -755,6 +779,7 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
         {
             self.adjust_for_text_decorations_in_effect();
         }
+        self.adjust_for_appearance(element);
         self.set_bits();
     }
 }
