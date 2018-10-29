@@ -5,20 +5,21 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 import json
-import os
 import sys
 import urllib.request
 
+import tc
+
 
 SERVO_PROJECT_ID = "e3d0d8be-9e4c-4d39-90af-38660eb70544"
+PACKET_AUTH_TOKEN = None
 
 
 def main():
-    auth_token = os.environ.get("PACKET_AUTH_TOKEN")
-    if not auth_token:
-        sys.exit("$PACKET_AUTH_TOKEN is not set. See:\n"
-                 "https://app.packet.net/projects/%s/settings/api-keys" % SERVO_PROJECT_ID)
-    response = api_request(auth_token, "/projects/%s/devices?per_page=1000" % SERVO_PROJECT_ID)
+    tc.check()
+    global PACKET_AUTH_TOKEN
+    PACKET_AUTH_TOKEN = tc.packet_auth_token()
+    response = api_request("/projects/%s/devices?per_page=1000" % SERVO_PROJECT_ID)
     for device in response["devices"]:
         print(device["id"])
         print("  Host:\t" + device["hostname"])
@@ -30,9 +31,9 @@ def main():
     assert response["meta"]["next"] is None
 
 
-def api_request(auth_token, path, json_data=None, method=None):
+def api_request(path, json_data=None, method=None):
     request = urllib.request.Request("https://api.packet.net" + path, method=method)
-    request.add_header("X-Auth-Token", auth_token)
+    request.add_header("X-Auth-Token", PACKET_AUTH_TOKEN)
     if json_data is not None:
         request.add_header("Content-Type", "application/json")
         request.data = json.dumps(json_data)
