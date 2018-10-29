@@ -70,7 +70,6 @@ def main(avd_name, apk_path, *args):
         logcat_args = [
             "--format=raw",  # Print no metadata, only log messages
             "simpleservo:D",  # Show (debug level) Rust stdio
-            "*:S",  # Hide everything else
         ]
         with terminate_on_exit(adb + ["logcat"] + logcat_args) as logcat:
 
