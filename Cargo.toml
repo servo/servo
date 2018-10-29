@@ -2,6 +2,7 @@
 members = [
     "ports/servo",
     "ports/libsimpleservo/",
+    "ports/libmlservo/",
     "tests/unit/*",
 ]
 exclude = [".cargo"]

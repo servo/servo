@@ -1,0 +1,223 @@
+{
+	"version": "2.0.0",
+    "tasks": [
+		{
+			"label": "Build (Lumin OS Debug)",
+			"type": "shell",
+			"command": "${config:lumin_sdk}/mabu",
+			"windows": {
+				"command": "${config:lumin_sdk}/mabu.cmd",
+			},
+			"args": [
+				"${workspaceFolder}/${config:lumin_mabu_file}",
+				"-t",
+				"device_debug",
+				"-s",
+				"${config:lumin_cert}"
+			],
+			"group": "build",
+			"problemMatcher": [
+				"$msCompile",
+				"$gcc"
+			]
+		},
+		{
+			"label": "Clean (Lumin OS Debug)",
+			"type": "shell",
+			"command": "${config:lumin_sdk}/mabu",
+			"windows": {
+				"command": "${config:lumin_sdk}/mabu.cmd",
+			},
+			"args": [
+				"${workspaceFolder}/${config:lumin_mabu_file}",
+				"-t",
+				"device_debug",
+				"-c"
+			],
+			"group": "build",
+			"problemMatcher": [
+				"$msCompile",
+				"$gcc"
+			]
+		},
+		{
+			"label": "Run (Lumin OS Debug)",
+			"type": "shell",
+			"command": "${config:lumin_sdk}/mabu",
+			"windows": {
+				"command": "${config:lumin_sdk}/mabu.cmd",
+			},
+			"args": [
+				"${workspaceFolder}/${config:lumin_mabu_file}",
+				"-t",
+				"device_debug",
+				"-s",
+				"${config:lumin_cert}",
+				"--invoke"
+			],
+			"problemMatcher": [
+				"$msCompile",
+				"$gcc"
+			]
+		},
+		{
+			"label": "Build (Lumin OS Release)",
+			"type": "shell",
+			"command": "${config:lumin_sdk}/mabu",
+			"windows": {
+				"command": "${config:lumin_sdk}/mabu.cmd",
+			},
+			"args": [
+				"${workspaceFolder}/${config:lumin_mabu_file}",
+				"-t",
+				"device_release",
+				"-s",
+				"${config:lumin_cert}"
+			],
+			"group": "build",
+			"problemMatcher": [
+				"$msCompile",
+				"$gcc"
+			]
+		},
+		{
+			"label": "Clean (Lumin OS Release)",
+			"type": "shell",
+			"command": "${config:lumin_sdk}/mabu",
+			"windows": {
+				"command": "${config:lumin_sdk}/mabu.cmd",
+			},
+			"args": [
+				"${workspaceFolder}/${config:lumin_mabu_file}",
+				"-t",
+				"device_release",
+				"-c"
+			],
+			"group": "build",
+			"problemMatcher": [
+				"$msCompile",
+				"$gcc"
+			]
+		},
+		{
+			"label": "Run (Lumin OS Release)",
+			"type": "shell",
+			"command": "${config:lumin_sdk}/mabu",
+			"windows": {
+				"command": "${config:lumin_sdk}/mabu.cmd",
+			},
+			"args": [
+				"${workspaceFolder}/${config:lumin_mabu_file}",
+				"-t",
+				"device_release",
+				"-s",
+				"${config:lumin_cert}",
+				"--invoke"
+			],
+			"problemMatcher": [
+				"$msCompile",
+				"$gcc"
+			]
+		},
+		{
+			"label": "Build (Host OS Debug)",
+			"type": "shell",
+			"command": "${config:lumin_sdk}/mabu",
+			"windows": {
+				"command": "${config:lumin_sdk}/mabu.cmd",
+				"options": {
+					"env": {
+						"VisualStudioVersion": "15.0"
+					}
+				}
+			},
+			"args": [
+				"${workspaceFolder}/${config:lumin_mabu_file}",
+				"-t",
+				"host_debug"
+			],
+			"group": "build",
+			"problemMatcher": [
+				"$msCompile",
+				"$gcc"
+			]
+		},
+		{
+			"label": "Clean (Host OS Debug)",
+			"type": "shell",
+			"command": "${config:lumin_sdk}/mabu",
+			"windows": {
+				"command": "${config:lumin_sdk}/mabu.cmd",
+			},
+			"args": [
+				"${workspaceFolder}/${config:lumin_mabu_file}",
+				"-t",
+				"host_debug",
+				"-c"
+			],
+			"group": "build",
+			"problemMatcher": [
+				"$msCompile",
+				"$gcc"
+			]
+		},
+		{
+			"label": "Run (Host OS Debug)",
+			"type": "shell",
+			"command": "${config:lumin_sdk}/mabu",
+			"windows": {
+				"command": "${config:lumin_sdk}/mabu.cmd",
+				"options": {
+					"env": {
+						"VisualStudioVersion": "15.0",
+						"PATH": "${config:lumin_sdk}/VirtualDevice/bin;${config:lumin_sdk}/VirtualDevice/lib;${config:lumin_sdk}/lib/win64;${env.PATH}"
+					}
+				}
+			},
+			"osx": {
+				"options": {
+					"env": {
+						"ML_LIBRARY_PATH": "${config:lumin_sdk}/VirtualDevice/bin:${config:lumin_sdk}/VirtualDevice/lib:${config:lumin_sdk}/lib/osx"
+					}
+				}
+			},
+			"linux": {
+				"options": {
+					"env": {
+						"LD_LIBRARY_PATH": "${config:lumin_sdk}/VirtualDevice/bin:${config:lumin_sdk}/VirtualDevice/lib:${config:lumin_sdk}/lib/linux64:${env.LD_LIBRARY_PATH}"
+					}
+				}
+			},
+			"args": [
+				"${workspaceFolder}/${config:lumin_mabu_file}",
+				"-t",
+				"host_debug",
+				"--invoke"
+			],
+			"problemMatcher": [
+				"$msCompile",
+				"$gcc"
+			]
+		},
+		{
+			"label": "Lumin: Setup for remote debugging",
+			"type": "shell",
+			"command": "${config:lumin_sdk}/debug",
+			"windows": {
+				"command": "${config:lumin_sdk}/debug.cmd",
+			},
+			"args": [
+				"--setup-only",
+				"-v",
+				"--sopaths",
+				"${workspaceFolder}/.out/debug_lumin_${config:lumin_device_toolchain}/",
+				"--deploy-mpk",
+				"${workspaceFolder}/.out/${config:lumin_package_name}/${config:lumin_exe_name}.mpk",
+				"${workspaceFolder}/.out/debug_lumin_${config:lumin_device_toolchain}/${config:lumin_exe_name}"
+			],
+			"dependsOn": [
+				"Build (Lumin OS Debug)"
+			]
+		}
+	]
+}

@@ -1,0 +1,177 @@
+<?xml version="1.0" encoding="ASCII"?>
+<design:rootNode xmlns:design="http://www.magicleap.com/uidesigner/rcp/document/design" name="root" nodeTypeId="lumin.root" modelId="lumin" version="1.7.2">
+  <property id="name" value="root"/>
+  <node name="content" nodeTypeId="lumin.quad">
+    <property id="color">
+      <property id="rgb" value="1 1 1"/>
+      <property id="alpha" value="1.0"/>
+    </property>
+    <property id="externalName" value="content"/>
+    <property id="name" value="content"/>
+    <property id="position">
+      <property id="x" value="-0.25"/>
+      <property id="y" value="-0.19"/>
+    </property>
+    <property id="rotation"/>
+    <property id="scale">
+      <property id="x" value="1.0"/>
+      <property id="y" value="1.0"/>
+      <property id="z" value="1.0"/>
+    </property>
+    <property id="size">
+      <property id="x" value="0.5"/>
+      <property id="y" value="0.44"/>
+    </property>
+    <property id="texCoords">
+      <property id="x">
+        <property id="y" value="1.0"/>
+      </property>
+      <property id="y">
+        <property id="x" value="1.0"/>
+        <property id="y" value="1.0"/>
+      </property>
+      <property id="z">
+        <property id="x" value="1.0"/>
+      </property>
+      <property id="w"/>
+    </property>
+  </node>
+  <node name="uiLinearLayout1" nodeTypeId="lumin.ui.linearLayout">
+    <property id="alignment">
+      <property id="horizontalAlignment" value="Center"/>
+    </property>
+    <property id="defaultItemAlignment">
+      <property id="verticalAlignment" value="Center"/>
+    </property>
+    <property id="defaultItemPadding">
+      <property id="right" value="0.01"/>
+      <property id="left" value="0.01"/>
+    </property>
+    <property id="gravityWellProperties">
+      <property id="boundaryShape">
+        <property id="size"/>
+        <property id="offset"/>
+      </property>
+    </property>
+    <property id="itemAlignment"/>
+    <property id="itemPadding"/>
+    <property id="name" value="uiLinearLayout1"/>
+    <property id="orientation" value="Horizontal"/>
+    <property id="position">
+      <property id="y" value="-0.2"/>
+    </property>
+    <property id="rotation"/>
+    <property id="scale">
+      <property id="x" value="1.0"/>
+      <property id="y" value="1.0"/>
+      <property id="z" value="1.0"/>
+    </property>
+    <property id="size">
+      <property id="x" value="0.5"/>
+      <property id="y" value="0.05"/>
+    </property>
+    <node name="backButton" nodeTypeId="lumin.ui.button">
+      <property id="externalName" value="backButton"/>
+      <property id="gravityWellProperties">
+        <property id="boundaryShape">
+          <property id="size"/>
+          <property id="offset"/>
+        </property>
+      </property>
+      <property id="height" value="0.1"/>
+      <property id="iconColor">
+        <property id="rgb" value="1 1 1"/>
+        <property id="alpha" value="1.0"/>
+      </property>
+      <property id="iconSize"/>
+      <property id="name" value="backButton"/>
+      <property id="position">
+        <property id="y" value="-0.6"/>
+      </property>
+      <property id="rotation"/>
+      <property id="scale">
+        <property id="x" value="1.0"/>
+        <property id="y" value="1.0"/>
+        <property id="z" value="1.0"/>
+      </property>
+      <property id="text" value="Back"/>
+      <property id="textColor">
+        <property id="rgb" value="1 1 1"/>
+        <property id="alpha" value="1.0"/>
+      </property>
+      <property id="textSize" value="0.05"/>
+      <property id="textSizeChanged" value="true"/>
+      <property id="width" value="0.1"/>
+    </node>
+    <node name="fwdButton" nodeTypeId="lumin.ui.button">
+      <property id="externalName" value="fwdButton"/>
+      <property id="gravityWellProperties">
+        <property id="boundaryShape">
+          <property id="size"/>
+          <property id="offset"/>
+        </property>
+      </property>
+      <property id="height" value="0.1"/>
+      <property id="iconColor">
+        <property id="rgb" value="1 1 1"/>
+        <property id="alpha" value="1.0"/>
+      </property>
+      <property id="iconSize"/>
+      <property id="name" value="fwdButton"/>
+      <property id="position"/>
+      <property id="rotation"/>
+      <property id="scale">
+        <property id="x" value="1.0"/>
+        <property id="y" value="1.0"/>
+        <property id="z" value="1.0"/>
+      </property>
+      <property id="text" value="Fwd"/>
+      <property id="textColor">
+        <property id="rgb" value="1 1 1"/>
+        <property id="alpha" value="1.0"/>
+      </property>
+      <property id="textSize" value="0.05"/>
+      <property id="textSizeChanged" value="true"/>
+      <property id="width" value="0.1"/>
+    </node>
+    <node name="urlBar" nodeTypeId="lumin.ui.textEdit">
+      <property id="alignment">
+        <property id="verticalAlignment" value="Center"/>
+      </property>
+      <property id="externalName" value="urlBar"/>
+      <property id="gravityWellProperties">
+        <property id="boundaryShape">
+          <property id="size"/>
+          <property id="offset"/>
+        </property>
+      </property>
+      <property id="height" value="0.05"/>
+      <property id="hintTextColor">
+        <property id="rgb" value="1 1 1"/>
+        <property id="alpha" value="1.0"/>
+      </property>
+      <property id="name" value="urlBar"/>
+      <property id="position"/>
+      <property id="rotation"/>
+      <property id="scale">
+        <property id="x" value="1.0"/>
+        <property id="y" value="1.0"/>
+        <property id="z" value="1.0"/>
+      </property>
+      <property id="scrollBarVisibilityMode" value="Off"/>
+      <property id="text" value="https://servo.org/"/>
+      <property id="textColor">
+        <property id="rgb" value="1 1 1"/>
+        <property id="alpha" value="1.0"/>
+      </property>
+      <property id="textPadding">
+        <property id="top" value="0.003"/>
+        <property id="right" value="0.003"/>
+        <property id="bottom" value="0.003"/>
+        <property id="left" value="0.003"/>
+      </property>
+      <property id="textSize" value="0.05"/>
+      <property id="width" value="0.6"/>
+    </node>
+  </node>
+</design:rootNode>
