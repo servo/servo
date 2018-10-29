@@ -11,11 +11,12 @@
 #include <SceneDescriptor.h>
 #include <EGL/egl.h>
 #include <GLES/gl.h>
+#include <glm/gtc/matrix_transform.hpp>
 #include <string.h>
 
 // The viewport dimensions (in px).
-const unsigned int VIEWPORT_W = 500;
-const unsigned int VIEWPORT_H = 500;
+const int VIEWPORT_W = 500;
+const int VIEWPORT_H = 500;
 
 // The hidpi factor.
 const float HIDPI = 1.0;
@@ -38,6 +39,7 @@ void logger(MLLogLevel lvl, char* msg) {
 extern "C" ServoInstance init_servo(EGLContext, EGLSurface, EGLDisplay, MLLogger,
                                     const char* url, int width, int height, float hidpi);
 extern "C" void heartbeat_servo(ServoInstance);
+extern "C" void cursor_servo(ServoInstance, float x, float y, bool triggered);
 extern "C" void discard_servo(ServoInstance);
 
 // Create a Servo2D instance
@@ -86,12 +88,13 @@ int Servo2D::init() {
   }
 
   std::string content_node_id = Servo2D_exportedNodes::content;
-  lumin::QuadNode* content_node = lumin::QuadNode::CastFrom(prism_->findNode(content_node_id, root_node));
-  if (!content_node) {
+  content_node_ = lumin::QuadNode::CastFrom(prism_->findNode(content_node_id, root_node));
+  if (!content_node_) {
     ML_LOG(Error, "Servo2D Failed to get content node");
     abort();
     return 1;
   }
+  content_node_->setTriggerable(true);
 
   lumin::ResourceIDType plane_id = prism_->createPlanarEGLResourceId();
   if (!plane_id) {
@@ -107,7 +110,7 @@ int Servo2D::init() {
     return 1;
   }
 
-  content_node->setRenderResource(plane_id);
+  content_node_->setRenderResource(plane_id);
 
   // Get the EGL context, surface and display.
   EGLContext ctx = plane_->getEGLContext();
@@ -117,7 +120,7 @@ int Servo2D::init() {
   glViewport(0, 0, VIEWPORT_W, VIEWPORT_H);
 
   // Hook into servo
-  servo_ = init_servo(ctx, surf, dpy, logger, "https://servo.org", VIEWPORT_H, VIEWPORT_W, HIDPI);
+  servo_ = init_servo(ctx, surf, dpy, logger, "https://servo.org/", VIEWPORT_H, VIEWPORT_W, HIDPI);
   if (!servo_) {
     ML_LOG(Error, "Servo2D Failed to init servo instance");
     abort();
@@ -192,9 +195,70 @@ bool Servo2D::updateLoop(float fDelta) {
 }
 
 bool Servo2D::eventListener(lumin::ServerEvent* event) {
+  // Dispatch based on event type
+  switch (event->getServerEventType()) {
+    case lumin::ServerEventType::kControlTouchPadInputEvent:
+      return touchpadEventListener(static_cast<lumin::ControlTouchPadInputEventData*>(event));
+    case lumin::ServerEventType::kKeyInputEvent:
+      return keyEventListener(static_cast<lumin::KeyInputEventData*>(event));
+    default:
+      return false;
+  }
+}
 
-  // Place your event handling here.
+glm::vec2 Servo2D::viewportCursorPosition() {
+  // Get the cursor position relative to the origin of the content node (in m)
+  glm::vec3 pos = lumin::ui::Cursor::GetPosition(prism_) - content_node_->getPrismPosition();
 
-  // Return true if the event is consumed.
-  return false;
+  // Get the size of the content node (in m)
+  glm::vec2 sz = content_node_->getSize();
+
+  // Convert to a position in viewport px
+  float x = (pos.x / sz.x) * (float)VIEWPORT_W;
+  float y = (1 - pos.y / sz.y) * (float)VIEWPORT_H; // Sigh, invert the y coordinate
+
+  return glm::vec2(x, y);
+}
+
+bool Servo2D::pointInsideViewport(glm::vec2 pt) {
+   return (0 <= pt.x && 0 <= pt.y && pt.x <= VIEWPORT_W && pt.y <= VIEWPORT_H);
+}
+
+bool Servo2D::touchpadEventListener(lumin::ControlTouchPadInputEventData* event) {
+  // Only respond when the cursor is enabled
+  if (!lumin::ui::Cursor::IsEnabled(prism_)) {
+    return false;
+  }
+
+  // Only respond when the cursor is inside the viewport
+  glm::vec2 pos = viewportCursorPosition();
+  if (!pointInsideViewport(pos)) {
+    return false;
+  }
+
+  // Inform Servo of the trigger
+  cursor_servo(servo_, pos.x, pos.y, false);
+  return true;
+}
+
+bool Servo2D::keyEventListener(lumin::KeyInputEventData* event) {
+  // Only respond to trigger keys
+  if (event->keyCode() != lumin::input::KeyCodes::AKEYCODE_EX_TRIGGER) {
+    return false;
+  }
+
+  // Only respond when the cursor is enabled
+  if (!lumin::ui::Cursor::IsEnabled(prism_)) {
+    return false;
+  }
+
+  // Only respond when the cursor is inside the viewport
+  glm::vec2 pos = viewportCursorPosition();
+  if (!pointInsideViewport(pos)) {
+    return false;
+  }
+
+  // Inform Servo of the trigger
+  cursor_servo(servo_, pos.x, pos.y, true);
+  return true;
 }

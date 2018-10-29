@@ -5,6 +5,7 @@
     "C_Cpp.default.includePath": [
         "${workspaceFolder}/code/**",
         "${config.lumin_sdk}/lumin/usr/include/",
+        "${config.lumin_sdk}/lumin/stl/libc++-lumin/include",
         "${config.lumin_sdk}/include/runtime/app",
         "${config.lumin_sdk}/include/runtime/core",
         "${config.lumin_sdk}/include/runtime/external",
