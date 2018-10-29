@@ -1289,10 +1289,11 @@ impl StrongRuleNode {
         }
 
         // If author colors are not allowed, only claim to have author-specified
-        // rules if we're looking at a non-color property or if we're looking at
-        // the background color and it's set to transparent.
+        // rules if we're looking at a non-color property, a border image, or if
+        // we're looking at the background color and it's set to transparent.
         const IGNORED_WHEN_COLORS_DISABLED: &'static [LonghandId] = &[
             LonghandId::BackgroundImage,
+            LonghandId::BorderImageSource,
             LonghandId::BorderTopColor,
             LonghandId::BorderRightColor,
             LonghandId::BorderBottomColor,
