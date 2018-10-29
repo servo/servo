@@ -23,7 +23,7 @@ use std::sync::atomic::{AtomicBool, ATOMIC_BOOL_INIT, Ordering};
 use url::{self, Url};
 
 /// Global flags for Servo, currently set on the command line.
-#[derive(Clone, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Opts {
     pub is_running_problem_test: bool,
 
@@ -474,7 +474,7 @@ fn print_debug_usage(app: &str) -> ! {
     process::exit(0)
 }
 
-#[derive(Clone, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum OutputOptions {
     /// Database connection config (hostname, name, user, pass)
     DB(ServoUrl, Option<String>, Option<String>, Option<String>),

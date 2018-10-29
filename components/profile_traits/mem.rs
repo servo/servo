@@ -45,7 +45,7 @@ where
 
 /// Front-end representation of the profiler used to communicate with the
 /// profiler.
-#[derive(Clone, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct ProfilerChan(pub IpcSender<ProfilerMsg>);
 
 impl ProfilerChan {
@@ -102,7 +102,7 @@ impl ProfilerChan {
 /// and thread stacks. "explicit" is not guaranteed to cover every explicit allocation, but it does
 /// cover most (including the entire heap), and therefore it is the single best number to focus on
 /// when trying to reduce memory usage.
-#[derive(Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub enum ReportKind {
     /// A size measurement for an explicit allocation on the jemalloc heap. This should be used
     /// for any measurements done via the `MallocSizeOf` trait.
@@ -126,7 +126,7 @@ pub enum ReportKind {
 }
 
 /// A single memory-related measurement.
-#[derive(Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct Report {
     /// The identifying path for this report.
     pub path: Vec<String>,
@@ -139,7 +139,7 @@ pub struct Report {
 }
 
 /// A channel through which memory reports can be sent.
-#[derive(Clone, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct ReportsChan(pub IpcSender<Vec<Report>>);
 
 impl ReportsChan {
@@ -152,7 +152,7 @@ impl ReportsChan {
 }
 
 /// The protocol used to send reporter requests.
-#[derive(Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct ReporterRequest {
     /// The channel on which reports are to be sent.
     pub reports_channel: ReportsChan,
@@ -165,7 +165,7 @@ pub struct ReporterRequest {
 /// In many cases, clients construct `Reporter` objects by creating an IPC sender/receiver pair and
 /// registering the receiving end with the router so that messages from the memory profiler end up
 /// injected into the client's event loop.
-#[derive(Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct Reporter(pub IpcSender<ReporterRequest>);
 
 impl Reporter {
@@ -188,7 +188,7 @@ macro_rules! path {
 }
 
 /// Messages that can be sent to the memory profiler thread.
-#[derive(Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub enum ProfilerMsg {
     /// Register a Reporter with the memory profiler. The String is only used to identify the
     /// reporter so it can be unregistered later. The String must be distinct from that used by any

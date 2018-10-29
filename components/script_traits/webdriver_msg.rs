@@ -12,7 +12,7 @@ use msg::constellation_msg::BrowsingContextId;
 use rustc_serialize::json::{Json, ToJson};
 use servo_url::ServoUrl;
 
-#[derive(Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub enum WebDriverScriptCommand {
     AddCookie(
         #[serde(
@@ -42,13 +42,13 @@ pub enum WebDriverScriptCommand {
     GetTitle(IpcSender<String>),
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub enum WebDriverCookieError {
     InvalidDomain,
     UnableToSetCookie,
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub enum WebDriverJSValue {
     Undefined,
     Null,
@@ -57,7 +57,7 @@ pub enum WebDriverJSValue {
     String(String), // TODO: Object and WebElement
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub enum WebDriverJSError {
     Timeout,
     UnknownType,
@@ -68,7 +68,7 @@ pub enum WebDriverJSError {
 
 pub type WebDriverJSResult = Result<WebDriverJSValue, WebDriverJSError>;
 
-#[derive(Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub enum WebDriverFrameId {
     Short(u16),
     Element(String),
@@ -87,7 +87,7 @@ impl ToJson for WebDriverJSValue {
     }
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub enum LoadStatus {
     LoadComplete,
     LoadTimeout,

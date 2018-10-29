@@ -85,7 +85,7 @@ where
     }
 }
 
-#[derive(Clone, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct WebGLChan(pub WebGLSender<WebGLMsg>);
 
 impl WebGLChan {
@@ -95,7 +95,7 @@ impl WebGLChan {
     }
 }
 
-#[derive(Clone, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct WebGLPipeline(pub WebGLChan);
 
 impl WebGLPipeline {

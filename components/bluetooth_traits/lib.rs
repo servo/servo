@@ -14,7 +14,7 @@ pub mod scanfilter;
 use ipc_channel::ipc::IpcSender;
 use scanfilter::{BluetoothScanfilterSequence, RequestDeviceoptions};
 
-#[derive(Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub enum BluetoothError {
     Type(String),
     Network,
@@ -24,7 +24,7 @@ pub enum BluetoothError {
     InvalidState,
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub enum GATTType {
     PrimaryService,
     Characteristic,
@@ -32,21 +32,21 @@ pub enum GATTType {
     Descriptor,
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct BluetoothDeviceMsg {
     // Bluetooth Device properties
     pub id: String,
     pub name: Option<String>,
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct BluetoothServiceMsg {
     pub uuid: String,
     pub is_primary: bool,
     pub instance_id: String,
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct BluetoothCharacteristicMsg {
     // Characteristic
     pub uuid: String,
@@ -63,7 +63,7 @@ pub struct BluetoothCharacteristicMsg {
     pub writable_auxiliaries: bool,
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct BluetoothDescriptorMsg {
     pub uuid: String,
     pub instance_id: String,
@@ -79,7 +79,7 @@ pub type BluetoothResult<T> = Result<T, BluetoothError>;
 
 pub type BluetoothResponseResult = Result<BluetoothResponse, BluetoothError>;
 
-#[derive(Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub enum BluetoothRequest {
     RequestDevice(RequestDeviceoptions, IpcSender<BluetoothResponseResult>),
     GATTServerConnect(String, IpcSender<BluetoothResponseResult>),
@@ -107,7 +107,7 @@ pub enum BluetoothRequest {
     Exit,
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub enum BluetoothResponse {
     RequestDevice(BluetoothDeviceMsg),
     GATTServerConnect(bool),

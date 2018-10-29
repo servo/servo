@@ -9,7 +9,7 @@ use webvr::*;
 pub type WebVRResult<T> = Result<T, String>;
 
 // Messages from Script thread to WebVR thread.
-#[derive(Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub enum WebVRMsg {
     RegisterContext(PipelineId),
     UnregisterContext(PipelineId),

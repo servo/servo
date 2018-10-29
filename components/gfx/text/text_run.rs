@@ -23,7 +23,7 @@ thread_local! {
 }
 
 /// A single "paragraph" of text in one font size and style.
-#[derive(Clone, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct TextRun {
     /// The UTF-8 string represented by this text run.
     pub text: Arc<String>,
@@ -51,7 +51,7 @@ impl Drop for TextRun {
 }
 
 /// A single series of glyphs within a text run.
-#[derive(Clone, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct GlyphRun {
     /// The glyphs.
     pub glyph_store: Arc<GlyphStore>,

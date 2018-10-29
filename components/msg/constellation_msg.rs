@@ -270,7 +270,7 @@ pub const TEST_BROWSING_CONTEXT_ID: BrowsingContextId = BrowsingContextId {
 // Used to specify the kind of input method editor appropriate to edit a field.
 // This is a subset of htmlinputelement::InputType because some variants of InputType
 // don't make sense in this context.
-#[derive(Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub enum InputMethodType {
     Color,
     Date,
