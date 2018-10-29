@@ -271,7 +271,10 @@ pub struct Runtime(RustRuntime);
 
 impl Drop for Runtime {
     fn drop(&mut self) {
-        THREAD_ACTIVE.with(|t| t.set(false));
+        THREAD_ACTIVE.with(|t| {
+            LiveDOMReferences::destruct();
+            t.set(false);
+        });
     }
 }
 

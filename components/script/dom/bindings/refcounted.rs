@@ -224,6 +224,12 @@ impl LiveDOMReferences {
         });
     }
 
+    pub fn destruct() {
+        LIVE_REFERENCES.with(|ref r| {
+            *r.borrow_mut() = None;
+        });
+    }
+
     #[allow(unrooted_must_root)]
     fn addref_promise(&self, promise: Rc<Promise>) {
         let mut table = self.promise_table.borrow_mut();
