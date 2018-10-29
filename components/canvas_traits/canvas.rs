@@ -27,6 +27,7 @@ pub enum CanvasMsg {
     FromScript(FromScriptMsg, CanvasId),
     Recreate(Size2D<u32>, CanvasId),
     Close(CanvasId),
+    Exit,
 }
 
 #[derive(Clone, Deserialize, Serialize)]
