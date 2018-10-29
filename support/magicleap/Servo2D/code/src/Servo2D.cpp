@@ -113,8 +113,6 @@ int Servo2D::init() {
   EGLContext ctx = plane_->getEGLContext();
   EGLSurface surf = plane_->getEGLSurface();
   EGLDisplay dpy = eglGetDisplay(EGL_DEFAULT_DISPLAY);
-  eglMakeCurrent(dpy, surf, surf, ctx);
-  glViewport(0, 0, VIEWPORT_W, VIEWPORT_H);
 
   // Hook into servo
   servo_ = init_servo(ctx, surf, dpy, logger, "https://servo.org", VIEWPORT_H, VIEWPORT_W, HIDPI);
@@ -124,9 +122,6 @@ int Servo2D::init() {
     return 1;
   }
 
-  // Flush GL
-  glFlush();
-  eglSwapBuffers(dpy, surf);
   return 0;
 }
 
@@ -173,19 +168,8 @@ void Servo2D::instanceInitialScenes() {
 }
 
 bool Servo2D::updateLoop(float fDelta) {
-  // Get the EGL context, surface and display.
-  EGLContext ctx = plane_->getEGLContext();
-  EGLSurface surf = plane_->getEGLSurface();
-  EGLDisplay dpy = eglGetDisplay(EGL_DEFAULT_DISPLAY);
-  eglMakeCurrent(dpy, surf, surf, ctx);
-  glViewport(0, 0, VIEWPORT_W, VIEWPORT_H);
-
   // Hook into servo
   heartbeat_servo(servo_);
-
-  // Flush GL
-  glFlush();
-  eglSwapBuffers(dpy, surf);
 
   // Return true for your app to continue running, false to terminate the app.
   return true;
