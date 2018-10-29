@@ -23,10 +23,10 @@ use std::collections::HashMap;
 use std::f32;
 use std::fmt;
 use webrender_api as wr;
-use webrender_api::{BorderRadius, ClipMode, ColorF};
+use webrender_api::{BorderRadius, ClipMode};
 use webrender_api::{ComplexClipRegion, ExternalScrollId, FilterOp};
 use webrender_api::{GlyphInstance, GradientStop, ImageKey, LayoutPoint};
-use webrender_api::{LayoutRect, LayoutSize, LayoutTransform, LayoutVector2D, LineStyle};
+use webrender_api::{LayoutRect, LayoutSize, LayoutTransform, LayoutVector2D};
 use webrender_api::{MixBlendMode, ScrollSensitivity, Shadow};
 use webrender_api::{StickyOffsetBounds, TransformStyle};
 
@@ -380,7 +380,7 @@ pub enum DisplayItem {
     Border(Box<CommonDisplayItem<wr::BorderDisplayItem, Vec<GradientStop>>>),
     Gradient(Box<CommonDisplayItem<wr::GradientDisplayItem, Vec<GradientStop>>>),
     RadialGradient(Box<CommonDisplayItem<wr::RadialGradientDisplayItem, Vec<GradientStop>>>),
-    Line(Box<LineDisplayItem>),
+    Line(Box<CommonDisplayItem<wr::LineDisplayItem>>),
     BoxShadow(Box<CommonDisplayItem<wr::BoxShadowDisplayItem>>),
     PushTextShadow(Box<PushTextShadowDisplayItem>),
     PopAllTextShadows(Box<PopAllTextShadowsDisplayItem>),
@@ -678,18 +678,6 @@ pub struct IframeDisplayItem {
     pub iframe: PipelineId,
 }
 
-/// Paints a line segment.
-#[derive(Clone, Serialize)]
-pub struct LineDisplayItem {
-    pub base: BaseDisplayItem,
-
-    /// The line segment color.
-    pub color: ColorF,
-
-    /// The line segment style.
-    pub style: LineStyle,
-}
-
 #[derive(Clone, Serialize)]
 pub struct CommonDisplayItem<T, U = ()> {
     pub base: BaseDisplayItem,
@@ -865,27 +853,3 @@ impl WebRenderImageInfo {
 
 /// The type of the scroll offset list. This is only populated if WebRender is in use.
 pub type ScrollOffsetMap = HashMap<ExternalScrollId, Vector2D<f32>>;
-
-pub trait SimpleMatrixDetection {
-    fn is_identity_or_simple_translation(&self) -> bool;
-}
-
-impl SimpleMatrixDetection for LayoutTransform {
-    #[inline]
-    fn is_identity_or_simple_translation(&self) -> bool {
-        let (_0, _1) = (0.0, 1.0);
-        self.m11 == _1 &&
-            self.m12 == _0 &&
-            self.m13 == _0 &&
-            self.m14 == _0 &&
-            self.m21 == _0 &&
-            self.m22 == _1 &&
-            self.m23 == _0 &&
-            self.m24 == _0 &&
-            self.m31 == _0 &&
-            self.m32 == _0 &&
-            self.m33 == _1 &&
-            self.m34 == _0 &&
-            self.m44 == _1
-    }
-}

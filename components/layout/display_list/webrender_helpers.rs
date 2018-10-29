@@ -131,14 +131,7 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                 );
             },
             DisplayItem::Line(ref item) => {
-                builder.push_line(
-                    &self.prim_info(),
-                    // TODO(gw): Use a better estimate for wavy line thickness.
-                    (0.33 * item.base.bounds.size.height).ceil(),
-                    webrender_api::LineOrientation::Horizontal,
-                    &item.color,
-                    item.style,
-                );
+                builder.push_item(SpecificDisplayItem::Line(item.item), &self.prim_info());
             },
             DisplayItem::BoxShadow(ref item) => {
                 builder.push_item(SpecificDisplayItem::BoxShadow(item.item), &self.prim_info());

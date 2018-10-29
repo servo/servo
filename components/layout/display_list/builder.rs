@@ -20,7 +20,7 @@ use display_list::items::{BaseDisplayItem, BLUR_INFLATION_FACTOR, ClipScrollNode
 use display_list::items::{ClipScrollNodeIndex, ClipScrollNodeType, ClippingAndScrolling};
 use display_list::items::{ClippingRegion, DisplayItem, DisplayItemMetadata, DisplayList};
 use display_list::items::{DisplayListSection, CommonDisplayItem};
-use display_list::items::{IframeDisplayItem, LineDisplayItem, OpaqueNode};
+use display_list::items::{IframeDisplayItem, OpaqueNode};
 use display_list::items::{PopAllTextShadowsDisplayItem, PushTextShadowDisplayItem};
 use display_list::items::{StackingContext, StackingContextType, StickyFrameData};
 use display_list::items::{TextOrientation, WebRenderImageInfo};
@@ -1573,11 +1573,17 @@ impl FragmentDisplayListBuilding for Fragment {
             style.get_cursor(CursorKind::Default),
             DisplayListSection::Content,
         );
-        state.add_display_item(DisplayItem::Line(Box::new(LineDisplayItem {
-            base: base,
-            color: ColorF::rgb(0, 200, 0),
-            style: LineStyle::Dashed,
-        })));
+        // TODO(gw): Use a better estimate for wavy line thickness.
+        let wavy_line_thickness = (0.33 * base.bounds.size.height).ceil();
+        state.add_display_item(DisplayItem::Line(CommonDisplayItem::new(
+            base,
+            webrender_api::LineDisplayItem {
+                orientation: webrender_api::LineOrientation::Horizontal,
+                wavy_line_thickness,
+                color: ColorF::rgb(0, 200, 0),
+                style: LineStyle::Dashed,
+            },
+        )));
     }
 
     fn build_debug_borders_around_fragment(
@@ -2272,11 +2278,17 @@ impl FragmentDisplayListBuilding for Fragment {
             DisplayListSection::Content,
         );
 
-        state.add_display_item(DisplayItem::Line(Box::new(LineDisplayItem {
-            base: base,
-            color: color.to_layout(),
-            style: LineStyle::Solid,
-        })));
+        // TODO(gw): Use a better estimate for wavy line thickness.
+        let wavy_line_thickness = (0.33 * base.bounds.size.height).ceil();
+        state.add_display_item(DisplayItem::Line(CommonDisplayItem::new(
+            base,
+            webrender_api::LineDisplayItem {
+                orientation: webrender_api::LineOrientation::Horizontal,
+                wavy_line_thickness,
+                color: color.to_layout(),
+                style: LineStyle::Solid,
+            },
+        )));
     }
 
     fn unique_id(&self) -> u64 {
