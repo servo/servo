@@ -61,7 +61,7 @@ def main(avd_name, apk_path, *args):
         extra = "-e servoargs " + json_params
         rust_log = os.environ.get("RUST_LOG", None)
         if rust_log:
-            extra += "-e servolog " + rust_log
+            extra += " -e servolog " + rust_log
         cmd = "am start " + extra + " org.mozilla.servo/org.mozilla.servo.MainActivity"
         check_call(adb + ["shell", cmd], stdout=sys.stderr)
 
