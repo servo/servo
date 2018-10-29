@@ -4,7 +4,7 @@
 <script src="/resources/testharnessreport.js"></script>
 <script>
 async_test(function(t) {
-  window.addEventListener("load", function() {
+  window.addEventListener("load", t.step_func(function() {
     var frame = document.createElement("iframe");
     frame.name = "frame";
     document.documentElement.appendChild(frame);
@@ -17,13 +17,13 @@ async_test(function(t) {
     form.appendChild(input);
     document.documentElement.appendChild(form);
     form.submit();
-    frame.addEventListener("load", function() {
-      if (frame.contentWindow.location.href != "about:blank") {
+    frame.addEventListener("load", t.step_func(function() {
+      if (frame.contentWindow.location.href.includes("form-target-iframe-helper.py")) {
         assert_equals(frame.contentWindow.document.body.textContent, "OK");
         t.done();
       }
-    });
-  });
+    }));
+  }));
 }, "Form targetted at iframe");
 </script>
 <body>
