@@ -1441,6 +1441,11 @@ where
             }
         }
 
+        debug!("Exiting Canvas Paint thread.");
+        if let Err(e) = self.canvas_chan.send(CanvasMsg::Exit) {
+            warn!("Exit Canvas Paint thread failed ({})", e);
+        }
+
         if let Some(webgl_threads) = self.webgl_threads.as_ref() {
             debug!("Exiting WebGL thread.");
             if let Err(e) = webgl_threads.exit() {

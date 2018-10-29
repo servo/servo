@@ -66,6 +66,7 @@ impl<'a> CanvasPaintThread <'a> {
                                     }
                                 }
                             },
+                            CanvasMsg::Exit => break,
                         }
                     },
                     Err(e) => {
