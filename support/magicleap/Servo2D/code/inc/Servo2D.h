@@ -11,7 +11,7 @@
 #include <lumin/resource/PlanarResource.h>
 #include <SceneDescriptor.h>
 
-typedef void* ServoInstance;
+typedef struct Opaque ServoInstance;
 
 /**
  * Servo2D Landscape Application
@@ -104,5 +104,5 @@ private:
   lumin::Prism* prism_ = nullptr;  // represents the bounded space where the App renders.
   lumin::PlanarResource* plane_ = nullptr; // the plane we're rendering into
   lumin::QuadNode* content_node_ = nullptr; // the node containing the plane
-  ServoInstance servo_ = nullptr; // the servo instance we're embedding
+  ServoInstance* servo_ = nullptr; // the servo instance we're embedding
 };

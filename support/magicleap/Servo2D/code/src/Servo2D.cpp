@@ -6,6 +6,7 @@
 #include <lumin/node/RootNode.h>
 #include <lumin/node/QuadNode.h>
 #include <lumin/ui/Cursor.h>
+#include <lumin/ui/node/UiButton.h>
 #include <ml_logging.h>
 #include <scenesGen.h>
 #include <SceneDescriptor.h>
@@ -36,11 +37,12 @@ void logger(MLLogLevel lvl, char* msg) {
 
 // The functions Servo provides for hooking up to the ML.
 // For the moment, this doesn't handle input events.
-extern "C" ServoInstance init_servo(EGLContext, EGLSurface, EGLDisplay, MLLogger,
+extern "C" ServoInstance* init_servo(EGLContext, EGLSurface, EGLDisplay, MLLogger,
                                     const char* url, int width, int height, float hidpi);
-extern "C" void heartbeat_servo(ServoInstance);
-extern "C" void cursor_servo(ServoInstance, float x, float y, bool triggered);
-extern "C" void discard_servo(ServoInstance);
+extern "C" void heartbeat_servo(ServoInstance*);
+extern "C" void cursor_servo(ServoInstance*, float x, float y, bool triggered);
+extern "C" void traverse_servo(ServoInstance*, int delta);
+extern "C" void discard_servo(ServoInstance*);
 
 // Create a Servo2D instance
 Servo2D::Servo2D() {
@@ -124,6 +126,26 @@ int Servo2D::init() {
     abort();
     return 1;
   }
+
+  // Add a callback to the back button
+  std::string back_button_id = Servo2D_exportedNodes::backButton;
+  lumin::ui::UiButton* back_button = lumin::ui::UiButton::CastFrom(prism_->findNode(back_button_id, root_node));
+  if (!back_button) {
+    ML_LOG(Error, "Servo2D Failed to get back button");
+    abort();
+    return 1;
+  }
+  back_button->onActivateSub(std::bind(traverse_servo, servo_, -1));
+
+  // Add a callback to the forward button
+  std::string fwd_button_id = Servo2D_exportedNodes::fwdButton;
+  lumin::ui::UiButton* fwd_button = lumin::ui::UiButton::CastFrom(prism_->findNode(fwd_button_id, root_node));
+  if (!fwd_button) {
+    ML_LOG(Error, "Servo2D Failed to get forward button");
+    abort();
+    return 1;
+  }
+  fwd_button->onActivateSub(std::bind(traverse_servo, servo_, +1));
 
   return 0;
 }
