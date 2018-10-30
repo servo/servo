@@ -9,6 +9,9 @@
 #include <lumin/event/ControlTouchPadInputEventData.h>
 #include <lumin/node/QuadNode.h>
 #include <lumin/resource/PlanarResource.h>
+#include <lumin/ui/KeyboardDefines.h>
+#include <lumin/ui/node/UiButton.h>
+#include <lumin/ui/node/UiTextEdit.h>
 #include <SceneDescriptor.h>
 
 typedef struct Opaque ServoInstance;
@@ -47,6 +50,11 @@ public:
    * Disallows the move assignment operator.
    */
   Servo2D& operator=(Servo2D&&) = delete;
+
+  /**
+   * Update the browser history UI
+   */
+  void updateHistory(bool canGoBack, const char* url, bool canGoForward);
 
 protected:
   /**
@@ -93,6 +101,7 @@ protected:
   virtual bool eventListener(lumin::ServerEvent* event) override;
   bool touchpadEventListener(lumin::ControlTouchPadInputEventData* event);
   bool keyEventListener(lumin::KeyInputEventData* event);
+  void urlBarEventListener();
 
   /**
    * Get the current cursor position, with respect to the viewport.
@@ -104,5 +113,8 @@ private:
   lumin::Prism* prism_ = nullptr;  // represents the bounded space where the App renders.
   lumin::PlanarResource* plane_ = nullptr; // the plane we're rendering into
   lumin::QuadNode* content_node_ = nullptr; // the node containing the plane
+  lumin::ui::UiButton* back_button_ = nullptr; // the back button
+  lumin::ui::UiButton* fwd_button_ = nullptr; // the forward button
+  lumin::ui::UiTextEdit* url_bar_ = nullptr; // the URL bar
   ServoInstance* servo_ = nullptr; // the servo instance we're embedding
 };
