@@ -22,6 +22,10 @@ public class JNIServo {
 
     public native void init(Activity activity, ServoOptions options, Callbacks callbacks);
 
+    public native void deinit();
+
+    public native void requestShutdown();
+
     public native void setBatchMode(boolean mode);
 
     public native void performUpdates();
@@ -83,6 +87,8 @@ public class JNIServo {
         void onUrlChanged(String url);
 
         void onHistoryChanged(boolean canGoBack, boolean canGoForward);
+
+        void onShutdownComplete();
 
         byte[] readfile(String file);
     }

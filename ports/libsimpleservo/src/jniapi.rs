@@ -70,6 +70,8 @@ pub fn Java_org_mozilla_servoview_JNIServo_init(
             "script::dom::bindings::error",
             // Show GL errors by default.
             "canvas::webgl_thread",
+            "compositing::compositor",
+            "constellation::constellation",
         ];
         let mut filter = Filter::default().with_min_level(Level::Debug);
         for &module in &filters {
@@ -115,6 +117,18 @@ pub fn Java_org_mozilla_servoview_JNIServo_setBatchMode(
 ) {
     debug!("setBatchMode");
     call(&env, |s| s.set_batch_mode(batch == JNI_TRUE));
+}
+
+#[no_mangle]
+pub fn Java_org_mozilla_servoview_JNIServo_requestShutdown(env: JNIEnv, _class: JClass) {
+    debug!("requestShutdown");
+    call(&env, |s| s.request_shutdown());
+}
+
+#[no_mangle]
+pub fn Java_org_mozilla_servoview_JNIServo_deinit(_env: JNIEnv, _class: JClass) {
+    debug!("deinit");
+    api::deinit();
 }
 
 #[no_mangle]
@@ -354,6 +368,13 @@ impl HostTrait for HostCallbacks {
         debug!("on_load_ended");
         let env = self.jvm.get_env().unwrap();
         env.call_method(self.callbacks.as_obj(), "onLoadEnded", "()V", &[])
+            .unwrap();
+    }
+
+    fn on_shutdown_complete(&self) {
+        debug!("on_shutdown_complete");
+        let env = self.jvm.get_env().unwrap();
+        env.call_method(self.callbacks.as_obj(), "onShutdownComplete", "()V", &[])
             .unwrap();
     }
 
