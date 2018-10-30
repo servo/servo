@@ -12,8 +12,10 @@ use servo::BrowserId;
 use servo::Servo;
 use servo::compositing::windowing::AnimationState;
 use servo::compositing::windowing::EmbedderCoordinates;
+use servo::compositing::windowing::MouseWindowEvent;
 use servo::compositing::windowing::WindowEvent;
 use servo::compositing::windowing::WindowMethods;
+use servo::embedder_traits::EmbedderMsg;
 use servo::embedder_traits::EventLoopWaker;
 use servo::embedder_traits::resources::Resource;
 use servo::embedder_traits::resources::ResourceReaderMethods;
@@ -25,8 +27,10 @@ use servo::euclid::TypedSize2D;
 use servo::gl;
 use servo::gl::Gl;
 use servo::gl::GlesFns;
+use servo::script_traits::MouseButton;
 use servo::servo_url::ServoUrl;
 use servo::style_traits::DevicePixel;
+use servo::webrender_api::DevicePoint;
 use smallvec::SmallVec;
 use std::ffi::CStr;
 use std::ffi::CString;
@@ -98,6 +102,61 @@ pub unsafe extern "C" fn heartbeat_servo(servo: ServoInstance) {
     // Servo heartbeat goes here!
     if let Some(servo) = (servo as *mut Servo<WindowInstance>).as_mut() {
         servo.handle_events(vec![]);
+        for ((_browser_id, event)) in servo.get_events() {
+            match event {
+                // Respond to any messages with a response channel
+                // to avoid deadlocking the constellation
+                EmbedderMsg::AllowNavigation(_url, sender) => {
+                    let _ = sender.send(true);
+                },
+                EmbedderMsg::GetSelectedBluetoothDevice(_, sender) => {
+                    let _ = sender.send(None);
+                },
+                EmbedderMsg::AllowUnload(sender) => {
+                    let _ = sender.send(true);
+                },
+                EmbedderMsg::Alert(_, sender) => {
+                    let _ = sender.send(());
+                },
+                EmbedderMsg::AllowOpeningBrowser(sender) => {
+                    let _ = sender.send(false);
+                },
+                // Ignore most messages for now
+                EmbedderMsg::ChangePageTitle(..) |
+                EmbedderMsg::BrowserCreated(..) |
+                EmbedderMsg::HistoryChanged(..) |
+                EmbedderMsg::LoadStart |
+                EmbedderMsg::LoadComplete |
+                EmbedderMsg::CloseBrowser |
+                EmbedderMsg::Status(..) |
+                EmbedderMsg::SelectFiles(..) |
+                EmbedderMsg::MoveTo(..) |
+                EmbedderMsg::ResizeTo(..) |
+                EmbedderMsg::Keyboard(..) |
+                EmbedderMsg::SetCursor(..) |
+                EmbedderMsg::NewFavicon(..) |
+                EmbedderMsg::HeadParsed |
+                EmbedderMsg::SetFullscreenState(..) |
+                EmbedderMsg::ShowIME(..) |
+                EmbedderMsg::HideIME |
+                EmbedderMsg::Shutdown |
+                EmbedderMsg::Panic(..) => {},
+            }
+        }
+    }
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn cursor_servo(servo: ServoInstance, x: f32, y: f32, trigger: bool) {
+    // Servo was triggered
+    if let Some(servo) = (servo as *mut Servo<WindowInstance>).as_mut() {
+        let point = DevicePoint::new(x, y);
+        let window_event = if trigger {
+            WindowEvent::MouseWindowEventClass(MouseWindowEvent::Click(MouseButton::Left, point))
+        } else {
+            WindowEvent::MouseWindowMoveEventClass(point)
+        };
+        servo.handle_events(vec![window_event]);
     }
 }
 

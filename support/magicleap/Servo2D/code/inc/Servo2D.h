@@ -5,6 +5,9 @@
 #include <lumin/LandscapeApp.h>
 #include <lumin/Prism.h>
 #include <lumin/event/ServerEvent.h>
+#include <lumin/event/KeyInputEventData.h>
+#include <lumin/event/ControlTouchPadInputEventData.h>
+#include <lumin/node/QuadNode.h>
 #include <lumin/resource/PlanarResource.h>
 #include <SceneDescriptor.h>
 
@@ -88,9 +91,18 @@ protected:
    * Handle events from the server
    */
   virtual bool eventListener(lumin::ServerEvent* event) override;
+  bool touchpadEventListener(lumin::ControlTouchPadInputEventData* event);
+  bool keyEventListener(lumin::KeyInputEventData* event);
+
+  /**
+   * Get the current cursor position, with respect to the viewport.
+   */
+  glm::vec2 viewportCursorPosition();
+  bool pointInsideViewport(glm::vec2 pt);
 
 private:
   lumin::Prism* prism_ = nullptr;  // represents the bounded space where the App renders.
   lumin::PlanarResource* plane_ = nullptr; // the plane we're rendering into
+  lumin::QuadNode* content_node_ = nullptr; // the node containing the plane
   ServoInstance servo_ = nullptr; // the servo instance we're embedding
 };
