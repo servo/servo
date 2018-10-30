@@ -7,13 +7,12 @@ use servo::{self, gl, webrender_api, BrowserId, Servo};
 use servo::compositing::windowing::{AnimationState, EmbedderCoordinates, MouseWindowEvent, WindowEvent, WindowMethods};
 use servo::embedder_traits::EmbedderMsg;
 use servo::embedder_traits::resources::{self, Resource};
-use servo::euclid::{Length, TypedPoint2D, TypedScale, TypedSize2D, TypedVector2D};
+use servo::euclid::{TypedPoint2D, TypedScale, TypedSize2D, TypedVector2D};
 use servo::msg::constellation_msg::TraversalDirection;
 use servo::script_traits::{MouseButton, TouchEventType};
 use servo::servo_config::opts;
 use servo::servo_config::prefs::{PrefValue, PREFS};
 use servo::servo_url::ServoUrl;
-use servo::style_traits::DevicePixel;
 use std::cell::{Cell, RefCell};
 use std::mem;
 use std::path::PathBuf;
@@ -433,11 +432,7 @@ struct ServoCallbacks {
 }
 
 impl WindowMethods for ServoCallbacks {
-    fn prepare_for_composite(
-        &self,
-        _width: Length<u32, DevicePixel>,
-        _height: Length<u32, DevicePixel>,
-    ) -> bool {
+    fn prepare_for_composite(&self) -> bool {
         debug!("WindowMethods::prepare_for_composite");
         self.host_callbacks.make_current();
         true

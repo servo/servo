@@ -1213,7 +1213,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     ) -> Result<Option<Image>, UnableToComposite> {
         let width = self.embedder_coordinates.framebuffer.width_typed();
         let height = self.embedder_coordinates.framebuffer.height_typed();
-        if !self.window.prepare_for_composite(width, height) {
+        if !self.window.prepare_for_composite() {
             return Err(UnableToComposite::WindowUnprepared);
         }
 
