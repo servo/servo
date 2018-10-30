@@ -149,12 +149,24 @@ Servo admins have scope `auth:update-role:repo:github.com/servo/*` which allows 
 to edit that role in the web UI and grant more scopes to these tasks
 (if that person has the new scope themselves).
 
+The [`project:servo:decision-task/base`][base]
+and [`project:servo:decision-task/trusted`][trusted] roles
+centralize the set of scopes granted to the decision task.
+This avoids maintaining them seprately in the `repo:…` roles,
+in the `hook-id:…` role,
+and in the `taskcluster.yml` file.
+Only the `base` role is granted to tasks executed when a pull request is opened.
+These tasks are less trusted because they run before the code has been reviewed,
+and anyone can open a PR.
+
 [Scopes]: https://docs.taskcluster.net/docs/manual/design/apis/hawk/scopes
 [web UI]: https://tools.taskcluster.net/
 [credentials]: https://tools.taskcluster.net/credentials
 [Roles]: https://docs.taskcluster.net/docs/manual/design/apis/hawk/roles
 [expand]: https://docs.taskcluster.net/docs/reference/platform/taskcluster-auth/docs/roles
 [branches]: https://tools.taskcluster.net/auth/roles/repo%3Agithub.com%2Fservo%2Fservo%3Abranch%3A*
+[base]: https://tools.taskcluster.net/auth/roles/project%3Aservo%3Adecision-task%2Fbase
+[trusted]: https://tools.taskcluster.net/auth/roles/project%3Aservo%3Adecision-task%2Ftrusted
 
 
 ## Daily tasks
