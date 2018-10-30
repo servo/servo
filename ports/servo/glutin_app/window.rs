@@ -4,7 +4,7 @@
 
 //! A windowing implementation using winit.
 
-use euclid::{Length, TypedPoint2D, TypedVector2D, TypedScale, TypedSize2D};
+use euclid::{TypedPoint2D, TypedVector2D, TypedScale, TypedSize2D};
 #[cfg(target_os = "windows")]
 use gdi32;
 use gleam::gl;
@@ -776,11 +776,12 @@ impl WindowMethods for Window {
         self.animation_state.set(state);
     }
 
-    fn prepare_for_composite(
-        &self,
-        _width: Length<u32, DevicePixel>,
-        _height: Length<u32, DevicePixel>,
-    ) -> bool {
+    fn prepare_for_composite(&self) -> bool {
+        if let WindowKind::Window(ref window, ..) = self.kind {
+            if let Err(err) = unsafe { window.context().make_current() } {
+                warn!("Couldn't make window current: {}", err);
+            }
+        };
         true
     }
 }

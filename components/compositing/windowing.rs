@@ -11,7 +11,7 @@ use gleam::gl;
 use keyboard_types::KeyboardEvent;
 use msg::constellation_msg::{TopLevelBrowsingContextId, TraversalDirection};
 use script_traits::{MouseButton, TouchEventType, TouchId};
-use servo_geometry::{DeviceIndependentPixel, DeviceUintLength};
+use servo_geometry::DeviceIndependentPixel;
 use servo_url::ServoUrl;
 use std::fmt::{Debug, Error, Formatter};
 #[cfg(feature = "gleam")]
@@ -129,7 +129,7 @@ pub trait WindowMethods {
     /// Requests that the window system prepare a composite. Typically this will involve making
     /// some type of platform-specific graphics context current. Returns true if the composite may
     /// proceed and false if it should not.
-    fn prepare_for_composite(&self, width: DeviceUintLength, height: DeviceUintLength) -> bool;
+    fn prepare_for_composite(&self) -> bool;
     /// Return the GL function pointer trait.
     #[cfg(feature = "gleam")]
     fn gl(&self) -> Rc<gl::Gl>;

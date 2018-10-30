@@ -82,7 +82,6 @@ use constellation::{FromCompositorLogger, FromScriptLogger};
 use constellation::content_process_sandbox_profile;
 use embedder_traits::{EmbedderMsg, EmbedderProxy, EmbedderReceiver, EventLoopWaker};
 use env_logger::Builder as EnvLoggerBuilder;
-use euclid::Length;
 #[cfg(all(not(target_os = "windows"), not(target_os = "ios")))]
 use gaol::sandbox::{ChildSandbox, ChildSandboxMethods};
 use gfx::font_cache_thread::FontCacheThread;
@@ -138,7 +137,7 @@ where
         let opts = opts::get();
 
         // Make sure the gl context is made current.
-        window.prepare_for_composite(Length::new(0), Length::new(0));
+        window.prepare_for_composite();
 
         // Reserving a namespace to create TopLevelBrowserContextId.
         PipelineNamespace::install(PipelineNamespaceId(0));
