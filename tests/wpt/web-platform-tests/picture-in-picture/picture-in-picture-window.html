@@ -16,7 +16,7 @@ promise_test(async t => {
     assert_not_equals(pipWindow.height, 0);
     const videoAspectRatio = video.videoWidth / video.videoHeight;
     const pipWindowAspectRatio = pipWindow.width / pipWindow.height;
-    assert_equals(videoAspectRatio, pipWindowAspectRatio);
+    assert_approx_equals(videoAspectRatio, pipWindowAspectRatio, 0.01);
   });
 }, 'Picture-in-Picture window dimensions are set after entering Picture-in-Picture');
 
