@@ -22,12 +22,14 @@ def main():
     response = api_request("/projects/%s/devices?per_page=1000" % SERVO_PROJECT_ID)
     for device in response["devices"]:
         print(device["id"])
-        print("  Host:\t" + device["hostname"])
-        print("  Plan:\t" + device["plan"]["name"])
-        print("  OS:\t" + device["operating_system"]["name"])
+        print("    Hostname:\t" + device["hostname"])
+        print("    Plan:\t" + device["plan"]["name"])
+        print("    OS: \t" + device["operating_system"]["name"])
         for address in device["ip_addresses"]:
             if address["public"]:
-                print("  IPv%s:\t%s" % (address["address_family"], address["address"]))
+                print("    IPv%s:\t%s" % (address["address_family"], address["address"]))
+        print("    Created:\t" + device["created_at"].replace("T", " "))
+        print("    Updated:\t" + device["updated_at"].replace("T", " "))
     assert response["meta"]["next"] is None
 
 
