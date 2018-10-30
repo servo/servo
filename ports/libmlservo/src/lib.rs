@@ -24,7 +24,6 @@ use servo::embedder_traits::EmbedderMsg;
 use servo::embedder_traits::EventLoopWaker;
 use servo::embedder_traits::resources::Resource;
 use servo::embedder_traits::resources::ResourceReaderMethods;
-use servo::euclid::Length;
 use servo::euclid::TypedPoint2D;
 use servo::euclid::TypedRect;
 use servo::euclid::TypedScale;
@@ -32,20 +31,17 @@ use servo::euclid::TypedSize2D;
 use servo::gl;
 use servo::gl::Gl;
 use servo::gl::GlesFns;
+use servo::msg::constellation_msg::TraversalDirection;
 use servo::script_traits::MouseButton;
 use servo::servo_url::ServoUrl;
-use servo::style_traits::DevicePixel;
 use servo::webrender_api::DevicePoint;
 use smallvec::SmallVec;
 use std::ffi::CStr;
 use std::ffi::CString;
 use std::io::Write;
 use std::os::raw::c_char;
-use std::os::raw::c_void;
 use std::path::PathBuf;
 use std::rc::Rc;
-
-type ServoInstance = *mut c_void;
 
 #[repr(u32)]
 pub enum MLLogLevel {
@@ -70,7 +66,7 @@ pub unsafe extern "C" fn init_servo(ctxt: EGLContext,
                                     url: *const c_char,
                                     width: u32,
                                     height: u32,
-                                    hidpi: f32) -> ServoInstance
+                                    hidpi: f32) -> *mut ServoInstance
 {
     // Servo initialization goes here!
     servo::embedder_traits::resources::set(Box::new(ResourceReaderInstance::new()));
@@ -93,9 +89,9 @@ pub unsafe extern "C" fn init_servo(ctxt: EGLContext,
     });
 
     info!("Starting servo");
-    let mut servo = Box::new(Servo::new(window));
-
+    let mut servo = Servo::new(window);
     let browser_id = BrowserId::new();
+
     let blank_url = ServoUrl::parse("about:blank").expect("Failed to parse about:blank!");
     let url = CStr::from_ptr(url).to_str().unwrap_or("about:blank");
     let url = ServoUrl::parse(url).unwrap_or(blank_url);
@@ -103,15 +99,19 @@ pub unsafe extern "C" fn init_servo(ctxt: EGLContext,
         WindowEvent::NewBrowser(url, browser_id),
     ]);
 
-    Box::into_raw(servo) as ServoInstance
+    let result = Box::new(ServoInstance {
+        browser_id: browser_id,
+        servo: servo,
+    });
+    Box::into_raw(result)
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn heartbeat_servo(servo: ServoInstance) {
+pub unsafe extern "C" fn heartbeat_servo(servo: *mut ServoInstance) {
     // Servo heartbeat goes here!
-    if let Some(servo) = (servo as *mut Servo<WindowInstance>).as_mut() {
-        servo.handle_events(vec![]);
-        for ((_browser_id, event)) in servo.get_events() {
+    if let Some(servo) = servo.as_mut() {
+        servo.servo.handle_events(vec![]);
+        for ((_browser_id, event)) in servo.servo.get_events() {
             match event {
                 // Respond to any messages with a response channel
                 // to avoid deadlocking the constellation
@@ -156,25 +156,45 @@ pub unsafe extern "C" fn heartbeat_servo(servo: ServoInstance) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn cursor_servo(servo: ServoInstance, x: f32, y: f32, trigger: bool) {
+pub unsafe extern "C" fn cursor_servo(servo: *mut ServoInstance, x: f32, y: f32, trigger: bool) {
     // Servo was triggered
-    if let Some(servo) = (servo as *mut Servo<WindowInstance>).as_mut() {
+    if let Some(servo) = servo.as_mut() {
         let point = DevicePoint::new(x, y);
         let window_event = if trigger {
             WindowEvent::MouseWindowEventClass(MouseWindowEvent::Click(MouseButton::Left, point))
         } else {
             WindowEvent::MouseWindowMoveEventClass(point)
         };
-        servo.handle_events(vec![window_event]);
+        servo.servo.handle_events(vec![window_event]);
     }
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn discard_servo(servo: ServoInstance) {
+pub unsafe extern "C" fn traverse_servo(servo: *mut ServoInstance, delta: i32) {
+    // Traverse the session history
+    if let Some(servo) = servo.as_mut() {
+        let window_event = if delta == 0 {
+            WindowEvent::Reload(servo.browser_id)
+        } else if delta < 0 {
+            WindowEvent::Navigation(servo.browser_id, TraversalDirection::Back(-delta as usize))
+        } else {
+            WindowEvent::Navigation(servo.browser_id, TraversalDirection::Forward(delta as usize))
+        };
+        servo.servo.handle_events(vec![window_event]);
+    }
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn discard_servo(servo: *mut ServoInstance) {
     // Servo drop goes here!
     if !servo.is_null() {
-        Box::from_raw(servo as *mut Servo<WindowInstance>);
+        Box::from_raw(servo);
     }
+}
+
+pub struct ServoInstance {
+    browser_id: BrowserId,
+    servo: Servo<WindowInstance>,
 }
 
 struct WindowInstance {
@@ -192,7 +212,7 @@ impl WindowMethods for WindowInstance {
         SwapBuffers(self.disp, self.surf);
     }
 
-    fn prepare_for_composite(&self, _w: Length<u32, DevicePixel>, _h: Length<u32, DevicePixel>) -> bool {
+    fn prepare_for_composite(&self) -> bool {
         MakeCurrent(self.disp, self.surf, self.surf, self.ctxt);
         self.gl.viewport(0, 0, self.width as i32, self.height as i32);
         true
