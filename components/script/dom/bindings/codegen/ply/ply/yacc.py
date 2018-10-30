@@ -486,7 +486,7 @@ class LRParser:
                     # --! DEBUG
                     return result
 
-            if t == None:
+            if t is None:
 
                 # --! DEBUG
                 debug.error('Error  : %s',
@@ -764,7 +764,7 @@ class LRParser:
                     n = symstack[-1]
                     return getattr(n,"value",None)
 
-            if t == None:
+            if t is None:
 
                 # We have some kind of parsing error here.  To handle
                 # this, we are going to push the current token onto
@@ -1019,7 +1019,7 @@ class LRParser:
                     n = symstack[-1]
                     return getattr(n,"value",None)
 
-            if t == None:
+            if t is None:
 
                 # We have some kind of parsing error here.  To handle
                 # this, we are going to push the current token onto
