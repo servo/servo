@@ -12,10 +12,18 @@ path = "lib.rs"
 [dependencies]
 bitflags = "1.0"
 bluetooth_traits = {path = "../bluetooth_traits"}
-device = {git = "https://github.com/servo/devices", features = ["bluetooth-test"]}
 embedder_traits = {path = "../embedder_traits"}
 ipc-channel = "0.11"
 log = "0.4"
 servo_config = {path = "../config"}
 servo_rand = {path = "../rand"}
 uuid = {version = "0.6", features = ["v4"]}
+
+[features]
+disable-native-bluetooth = []
+
+[target.'cfg(feature = "disable-native-bluetooth")'.dependencies]
+device = {git = "https://github.com/servo/devices", default-features = false, features = ["bluetooth-test"]}
+
+[target.'cfg(not(feature = "disable-native-bluetooth"))'.dependencies]
+device = {git = "https://github.com/servo/devices", features = ["bluetooth-test"]}
