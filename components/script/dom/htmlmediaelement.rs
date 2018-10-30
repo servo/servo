@@ -1122,21 +1122,29 @@ impl HTMLMediaElement {
                 self.playback_position.set(0.);
 
                 // Step 4.
+                let previous_duration = self.duration.get();
                 if let Some(duration) = metadata.duration {
                     self.duration.set(duration.as_secs() as f64);
                 } else {
                     self.duration.set(f64::INFINITY);
                 }
-                let window = window_from_node(self);
-                let task_source = window.dom_manipulation_task_source();
-                task_source.queue_simple_event(self.upcast(), atom!("durationchange"), &window);
+                if previous_duration != self.duration.get() {
+                    let window = window_from_node(self);
+                    let task_source = window.dom_manipulation_task_source();
+                    task_source.queue_simple_event(self.upcast(), atom!("durationchange"), &window);
+                }
 
                 // Step 5.
                 if self.is::<HTMLVideoElement>() {
                     let video_elem = self.downcast::<HTMLVideoElement>().unwrap();
-                    video_elem.set_video_width(metadata.width);
-                    video_elem.set_video_height(metadata.height);
-                    task_source.queue_simple_event(self.upcast(), atom!("resize"), &window);
+                    if video_elem.get_video_width() != metadata.width ||
+                       video_elem.get_video_height() != metadata.height {
+                        video_elem.set_video_width(metadata.width);
+                        video_elem.set_video_height(metadata.height);
+                        let window = window_from_node(self);
+                        let task_source = window.dom_manipulation_task_source();
+                        task_source.queue_simple_event(self.upcast(), atom!("resize"), &window);
+                    }
                 }
 
                 // Step 6.

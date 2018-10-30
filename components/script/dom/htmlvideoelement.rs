@@ -49,8 +49,16 @@ impl HTMLVideoElement {
         )
     }
 
+    pub fn get_video_width(&self) -> u32 {
+        self.video_width.get()
+    }
+
     pub fn set_video_width(&self, width: u32) {
         self.video_width.set(width);
+    }
+
+    pub fn get_video_height(&self) -> u32 {
+        self.video_height.get()
     }
 
     pub fn set_video_height(&self, height: u32) {
