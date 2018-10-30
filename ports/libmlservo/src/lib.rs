@@ -7,6 +7,11 @@ extern crate egl;
 extern crate servo;
 extern crate smallvec;
 
+use egl::egl::EGLContext;
+use egl::egl::EGLDisplay;
+use egl::egl::EGLSurface;
+use egl::egl::MakeCurrent;
+use egl::egl::SwapBuffers;
 use egl::eglext::eglGetProcAddress;
 use servo::BrowserId;
 use servo::Servo;
@@ -40,10 +45,6 @@ use std::os::raw::c_void;
 use std::path::PathBuf;
 use std::rc::Rc;
 
-type EGLContext = *const c_void;
-type EGLSurface = *const c_void;
-type EGLDisplay = *const c_void;
-
 type ServoInstance = *mut c_void;
 
 #[repr(u32)]
@@ -62,9 +63,9 @@ pub struct MLLogger(extern "C" fn (MLLogLevel, *const c_char));
 const LOG_LEVEL: log::LevelFilter = log::LevelFilter::Info;
 
 #[no_mangle]
-pub unsafe extern "C" fn init_servo(_ctxt: EGLContext,
-                                    _surf: EGLSurface,
-                                    _disp: EGLDisplay,
+pub unsafe extern "C" fn init_servo(ctxt: EGLContext,
+                                    surf: EGLSurface,
+                                    disp: EGLDisplay,
                                     logger: MLLogger,
                                     url: *const c_char,
                                     width: u32,
@@ -81,7 +82,15 @@ pub unsafe extern "C" fn init_servo(_ctxt: EGLContext,
     });
 
     info!("OpenGL version {}", gl.get_string(gl::VERSION));
-    let window = Rc::new(WindowInstance::new(gl, width, height, hidpi));
+    let window = Rc::new(WindowInstance {
+        ctxt: ctxt,
+        surf: surf,
+        disp: disp,
+        gl: gl,
+        width: width,
+        height: height,
+        hidpi: hidpi,
+    });
 
     info!("Starting servo");
     let mut servo = Box::new(Servo::new(window));
@@ -169,28 +178,23 @@ pub unsafe extern "C" fn discard_servo(servo: ServoInstance) {
 }
 
 struct WindowInstance {
+    ctxt: EGLContext,
+    surf: EGLSurface,
+    disp: EGLDisplay,
     gl: Rc<Gl>,
     width: u32,
     height: u32,
     hidpi: f32,
 }
 
-impl WindowInstance {
-    fn new(gl: Rc<Gl>, width: u32, height: u32, hidpi: f32) -> WindowInstance {
-        WindowInstance {
-            gl: gl,
-            width: width,
-            height: height,
-            hidpi: hidpi,
-        }
-    }
-}
-
 impl WindowMethods for WindowInstance {
     fn present(&self) {
+        SwapBuffers(self.disp, self.surf);
     }
 
     fn prepare_for_composite(&self, _w: Length<u32, DevicePixel>, _h: Length<u32, DevicePixel>) -> bool {
+        MakeCurrent(self.disp, self.surf, self.surf, self.ctxt);
+        self.gl.viewport(0, 0, self.width as i32, self.height as i32);
         true
     }
 
