@@ -2351,10 +2351,21 @@ impl Animate for ComputedRotate {
         let from = ComputedRotate::resolve(self);
         let to = ComputedRotate::resolve(other);
 
-        let (fx, fy, fz, fa) =
+        let (mut fx, mut fy, mut fz, fa) =
             transform::get_normalized_vector_and_angle(from.0, from.1, from.2, from.3);
-        let (tx, ty, tz, ta) =
+        let (mut tx, mut ty, mut tz, ta) =
             transform::get_normalized_vector_and_angle(to.0, to.1, to.2, to.3);
+
+        if fa == Angle::from_degrees(0.) {
+            fx = tx;
+            fy = ty;
+            fz = tz;
+        } else if ta == Angle::from_degrees(0.) {
+            tx = fx;
+            ty = fy;
+            tz = fz;
+        }
+
         if (fx, fy, fz) == (tx, ty, tz) {
             return Ok(Rotate::Rotate3D(fx, fy, fz, fa.animate(&ta, procedure)?));
         }
