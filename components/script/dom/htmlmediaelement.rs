@@ -705,7 +705,8 @@ impl HTMLMediaElement {
             ..RequestInit::default()
         };
 
-        let context = Arc::new(Mutex::new(HTMLMediaElementContext::new(self)));
+        let context = Arc::new(Mutex::new(HTMLMediaElementContext::new(self,
+            self.resource_url.borrow().as_ref().unwrap().clone())));
         let (action_sender, action_receiver) = ipc::channel().unwrap();
         let window = window_from_node(self);
         let listener = NetworkListener {
@@ -798,48 +799,6 @@ impl HTMLMediaElement {
                 // Step 4.remote.2.
                 *self.resource_url.borrow_mut() = Some(url);
                 self.fetch_request(None);
-
-                // FIXME(nox): Handle CORS setting from crossorigin attribute.
-                let document = document_from_node(self);
-                let destination = match self.media_type_id() {
-                    HTMLMediaElementTypeId::HTMLAudioElement => Destination::Audio,
-                    HTMLMediaElementTypeId::HTMLVideoElement => Destination::Video,
-                };
-                let request = RequestInit {
-                    url: url.clone(),
-                    destination,
-                    credentials_mode: CredentialsMode::Include,
-                    use_url_credentials: true,
-                    origin: document.origin().immutable().clone(),
-                    pipeline_id: Some(self.global().pipeline_id()),
-                    referrer_url: Some(document.url()),
-                    referrer_policy: document.get_referrer_policy(),
-                    ..RequestInit::default()
-                };
-
-                let context = Arc::new(Mutex::new(HTMLMediaElementContext::new(self, url)));
-                let (action_sender, action_receiver) = ipc::channel().unwrap();
-                let window = window_from_node(self);
-                let listener = NetworkListener {
-                    context: context,
-                    task_source: window.networking_task_source(),
-                    canceller: Some(window.task_canceller(TaskSourceName::Networking)),
-                };
-                ROUTER.add_route(
-                    action_receiver.to_opaque(),
-                    Box::new(move |message| {
-                        listener.notify_fetch(message.to().unwrap());
-                    }),
-                );
-                let cancel_receiver = self.fetch_canceller.borrow_mut().initialize();
-                let global = self.global();
-                global
-                    .core_resource_thread()
-                    .send(CoreResourceMsg::Fetch(
-                        request,
-                        FetchChannels::ResponseMsg(action_sender, Some(cancel_receiver)),
-                    ))
-                    .unwrap();
             },
             Resource::Object => {
                 // FIXME(nox): Actually do something with the object.

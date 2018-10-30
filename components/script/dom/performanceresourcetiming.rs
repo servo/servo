@@ -22,7 +22,7 @@ use servo_url::ServoUrl;
 // https://w3c.github.io/resource-timing/#sec-cross-origin-resources
 
 // TODO CSS, Beacon
-#[derive(Debug, MallocSizeOf, PartialEq)]
+#[derive(Debug, JSTraceable, MallocSizeOf, PartialEq)]
 pub enum InitiatorType {
     LocalName(String),
     Navigation,

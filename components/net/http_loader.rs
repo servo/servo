@@ -499,11 +499,6 @@ pub fn http_fetch(request: &mut Request,
     *done_chan = None;
     // Step 1
     let mut response: Option<Response> = None;
-    //TODO is this needed?
-    if context.timing.lock().unwrap().timing_type == ResourceTimingType::None {
-        panic!("no timing type!!!");
-        // context.timing.timing_type = request.timing_type();
-    }
 
     // Step 2
     // nothing to do, since actual_response is a function on response

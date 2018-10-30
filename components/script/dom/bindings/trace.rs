@@ -49,7 +49,6 @@ use dom::bindings::utils::WindowProxyHandler;
 use dom::document::PendingRestyle;
 use dom::htmlimageelement::SourceSet;
 use dom::htmlmediaelement::MediaFrameRenderer;
-use dom::performanceresourcetiming::InitiatorType;
 use encoding_rs::{Decoder, Encoding};
 use euclid::{Transform2D, Transform3D, Point2D, Vector2D, Rect, TypedSize2D, TypedScale};
 use euclid::Length as EuclidLength;
@@ -462,7 +461,6 @@ unsafe_no_jsmanaged_fields!(Player<Error=ServoMediaError>);
 unsafe_no_jsmanaged_fields!(Mutex<MediaFrameRenderer>);
 unsafe_no_jsmanaged_fields!(RenderApiSender);
 unsafe_no_jsmanaged_fields!(ResourceFetchTiming);
-unsafe_no_jsmanaged_fields!(InitiatorType);
 
 unsafe impl<'a> JSTraceable for &'a str {
     #[inline]

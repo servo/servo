@@ -257,7 +257,7 @@ impl<T: FetchResponseListener> Action<T> for FetchResponseMsg {
             FetchResponseMsg::ProcessResponseEOF(data) => {
                 match data {
                     Ok(ref response_resource_timing) => {
-                        *listener.resource_timing_mut() = response_resource_timing.clone(); // TODO needed?
+                        *listener.resource_timing_mut() = response_resource_timing.clone();
                         listener.process_response_eof(Ok(response_resource_timing.clone()));
                         // TODO timing check https://w3c.github.io/resource-timing/#dfn-timing-allow-check
 
@@ -268,7 +268,6 @@ impl<T: FetchResponseListener> Action<T> for FetchResponseMsg {
                     // objects in the Performance Timeline and MUST contain initialized attribute
                     // values for processed substeps of the processing model.
                     Err(e) => {
-                        println!("error");
                         listener.process_response_eof(Err(e))
                     },
                 }

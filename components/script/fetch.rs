@@ -274,17 +274,9 @@ impl FetchResponseListener for FetchContext {
     }
 
     fn submit_resource_timing(&mut self) {
+        // navigation submission is handled in servoparser/mod.rs
         match self.resource_timing.timing_type {
            ResourceTimingType::Resource => network_listener::submit_timing(self),
-           // TODO remove?
-           ResourceTimingType::Navigation => {
-                println!("submit navigation");
-                //TODO nav_start and nav_start_precise
-                // let performance_entry = PerformanceNavigationTiming::new(
-                    // &global, 0, 0, &document);
-                // global.performance().queue_entry(
-                    // performance_entry.upcast::<PerformanceEntry>(), false);
-            }
             _ => {},
         };
     }
