@@ -38,19 +38,19 @@ derive_helper_methods = true
 [export]
 prefix = "Style"
 include = [
-  "StyleAppearance",
-  "StyleComputedFontStretchRange",
-  "StyleComputedFontStyleDescriptor",
-  "StyleComputedFontWeightRange",
-  "StyleComputedTimingFunction",
-  "StyleDisplay",
-  "StyleDisplayMode",
-  "StyleFillRule",
-  "StyleFontDisplay",
-  "StyleFontFaceSourceListComponent",
-  "StyleFontLanguageOverride",
-  "StyleTimingFunction",
-  "StylePathCommand",
-  "StyleUnicodeRange",
+  "Appearance",
+  "ComputedFontStretchRange",
+  "ComputedFontStyleDescriptor",
+  "ComputedFontWeightRange",
+  "ComputedTimingFunction",
+  "Display",
+  "DisplayMode",
+  "FillRule",
+  "FontDisplay",
+  "FontFaceSourceListComponent",
+  "FontLanguageOverride",
+  "TimingFunction",
+  "PathCommand",
+  "UnicodeRange",
 ]
 item_types = ["enums", "structs", "typedefs"]
