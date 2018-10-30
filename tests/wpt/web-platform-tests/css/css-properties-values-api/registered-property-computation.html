@@ -29,7 +29,7 @@ for (let element of [divWithFontSizeSet, divWithFontSizeInherited]) {
         // Because we want to include the parsing step, insert a stylesheet
         // node with textContent.
         let node = document.createElement('style');
-        node.textContent = `#${id} { ${name}: ${value}; }`;
+        node.textContent = `#${id} { ${name}:${value}; }`;
         document.body.append(node);
 
         try {
@@ -123,5 +123,29 @@ for (let element of [divWithFontSizeSet, divWithFontSizeInherited]) {
     test(function() {
         assert_computed_value('<integer>+', '15 calc(2.4) calc(2.6)', '15 2 3');
     }, "<integer>+ values are computed correctly for " + id);
+
+    test(function() {
+        assert_computed_value('<color>', '#ff0000', 'rgb(255, 0, 0)');
+        assert_computed_value('<color>', '#000f00', 'rgb(0, 15, 0)');
+        assert_computed_value('<color>', '#00000a', 'rgb(0, 0, 10)');
+        assert_computed_value('<color>', '#badbee', 'rgb(186, 219, 238)');
+        assert_computed_value('<color>', '#badbee33', 'rgba(186, 219, 238, 0.2)');
+        assert_computed_value('<color>', 'tomato', 'rgb(255, 99, 71)');
+        assert_computed_value('<color>', 'plum', 'rgb(221, 160, 221)');
+        assert_computed_value('<color>', 'currentcolor', 'currentcolor');
+    }, "<color> values are computed correctly for " + id);
+
+    test(function() {
+        assert_computed_value('*', 'tomato', 'tomato');
+        assert_computed_value('tomato | plum', 'plum', 'plum');
+        assert_computed_value('tomato | plum | <color>', 'plum', 'plum');
+    }, "ident values that look like color keywords are not converted to colors" + id);
+
+    test(function() {
+        assert_computed_value('*', '-50grad', '-50grad');
+        assert_computed_value('<angle>', '180deg', '180deg');
+        assert_computed_value('<angle>', '400grad', '360deg');
+        assert_computed_value('<angle>', 'calc(360deg + 400grad)', '720deg');
+    }, "<angle> values computed correctly for " + id);
 }
 </script>

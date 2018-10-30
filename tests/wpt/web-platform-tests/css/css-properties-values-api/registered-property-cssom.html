@@ -46,7 +46,7 @@ test(function() {
   assert_equals(inlineStyle.getPropertyValue('--length'), '5');
   assert_equals(inlineStyle.getPropertyValue('--color'), 'hello');
   assert_equals(computedStyle.getPropertyValue('--length'), '0px');
-  assert_equals(computedStyle.getPropertyValue('--color'), 'blue');
+  assert_equals(computedStyle.getPropertyValue('--color'), 'rgb(0, 0, 255)');
 }, "Formerly valid values are still readable from inline styles but are computed as the unset value");
 
 test(function() {
@@ -62,7 +62,7 @@ test(function() {
   assert_equals(inlineStyle.getPropertyValue('--length'), '');
   assert_equals(inlineStyle.getPropertyValue('--color'), '');
   assert_equals(computedStyle.getPropertyValue('--length'), '10px');
-  assert_equals(computedStyle.getPropertyValue('--color'), 'red');
+  assert_equals(computedStyle.getPropertyValue('--color'), 'rgb(255, 0, 0)');
 }, "Values can be removed from inline styles");
 
 test(function() {
@@ -80,9 +80,9 @@ test(function() {
   assert_equals(inlineStyle.getPropertyValue('--length'), '30px');
   assert_equals(inlineStyle.getPropertyValue('--color'), 'pink');
   assert_equals(computedStyle.getPropertyValue('--length'), '30px');
-  assert_equals(computedStyle.getPropertyValue('--color'), 'pink');
+  assert_equals(computedStyle.getPropertyValue('--color'), 'rgb(255, 192, 203)');
   inlineStyle.setProperty('--color', 'inherit');
   assert_equals(inlineStyle.getPropertyValue('--color'), 'inherit');
-  assert_equals(computedStyle.getPropertyValue('--color'), 'blue');
+  assert_equals(computedStyle.getPropertyValue('--color'), 'rgb(0, 0, 255)');
 }, "Valid values can be set on inline styles");
 </script>

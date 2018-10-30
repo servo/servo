@@ -9,6 +9,12 @@ the [web platform][web-platform]; it excludes only ECMAScript (whose
 testsuite lives in [test262][test262]) and WebGL (whose testsuite
 lives in [WebGL][WebGL]).
 
+## Watch a Talk
+
+If you prefer watching a video, here is a talk introducing web-platform-tests:
+
+<iframe width="560" height="315" src="https://www.youtube.com/embed/XnfE3MfH5hQ" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+
 ## Help!
 
 If you get stuck or want clarification about anything, feel free to

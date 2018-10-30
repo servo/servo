@@ -23,8 +23,8 @@ test(function() {
     computedStyle = getComputedStyle(target);
     assert_equals(computedStyle.getPropertyValue('--length'), '25px');
     assert_equals(computedStyle.getPropertyValue('--length-percentage'), 'calc(100px + 10%)');
-    assert_equals(computedStyle.getPropertyValue('--inherited-color'), 'pink');
-    assert_equals(computedStyle.getPropertyValue('--non-inherited-color'), 'purple');
+    assert_equals(computedStyle.getPropertyValue('--inherited-color'), 'rgb(255, 192, 203)');
+    assert_equals(computedStyle.getPropertyValue('--non-inherited-color'), 'rgb(128, 0, 128)');
     assert_equals(computedStyle.getPropertyValue('--transform-function'), 'rotate(42deg)');
     assert_equals(computedStyle.getPropertyValue('--single-transform-list'), 'scale(4)');
     assert_equals(computedStyle.getPropertyValue('--multiple-transform-list'), 'scale(3) translateX(4px)');
