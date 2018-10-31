@@ -395,8 +395,8 @@ mod bindings {
             .handle_table_items("cbindgen-types", |b, item| {
                 let gecko = item["gecko"].as_str().unwrap();
                 let servo = item["servo"].as_str().unwrap();
-                let line = format!("pub use {} as {};", servo, gecko.rsplit("::").next().unwrap());
-                b.blacklist_type(gecko).module_raw_line("root::mozilla", line)
+                b.blacklist_type(format!("mozilla::{}", gecko))
+                    .module_raw_line("root::mozilla", format!("pub use {} as {};", servo, gecko))
             })
             .handle_table_items("mapped-generic-types", |builder, item| {
                 let generic = item["generic"].as_bool().unwrap();
