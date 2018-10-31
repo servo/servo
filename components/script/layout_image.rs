@@ -46,11 +46,9 @@ impl FetchResponseListener for LayoutImageContext {
     }
 
     fn process_response_eof(&mut self, response: Result<ResourceFetchTiming, NetworkError>) {
-        // TODO notify_pending_response doesn't use the ResourceFetchTiming
         self.cache.notify_pending_response(self.id,
                                            FetchResponseMsg::ProcessResponseEOF(
-                                           response.map(|_| ResourceFetchTiming::new(
-                                           ResourceTimingType::Resource))));
+                                           response));
     }
 
     fn resource_timing_mut(&mut self) -> &mut ResourceFetchTiming {

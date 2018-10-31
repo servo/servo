@@ -4198,7 +4198,7 @@ impl DocumentMethods for Document {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-document-open
-    fn Open(&self, _unused1: Option<DOMString>, _unused2: Option<DOMString>) -> Fallible<DomRoot<Document>> { 
+    fn Open(&self, _unused1: Option<DOMString>, _unused2: Option<DOMString>) -> Fallible<DomRoot<Document>> {
         // Step 1
         if !self.is_html_document() {
             return Err(Error::InvalidState);
@@ -4270,7 +4270,7 @@ impl DocumentMethods for Document {
 
         // Step 12
         // TODO: https://github.com/servo/servo/issues/21938
-        
+
         // Step 13
         self.set_quirks_mode(QuirksMode::NoQuirks);
 
