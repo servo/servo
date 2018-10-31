@@ -34,7 +34,7 @@ use hyper_serde::Serde;
 use log;
 use msg::constellation_msg::{HistoryStateId, PipelineId};
 use net_traits::{CookieSource, FetchMetadata, NetworkError, ReferrerPolicy};
-use net_traits::{ResourceAttribute, ResourceTimingType};
+use net_traits::ResourceAttribute;
 use net_traits::request::{CacheMode, CredentialsMode, Destination, Origin};
 use net_traits::request::{RedirectMode, Referrer, Request, RequestMode};
 use net_traits::request::{ResponseTainting, ServiceWorkersMode};

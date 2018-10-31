@@ -6,9 +6,7 @@
 <body>
 <script>
 async_test(function (t) {
-  var observer = new PerformanceObserver(
-    t.step_func(function (entryList, obs) {
-
+    window.onload = t.step_func(function (entryList, obs) {
       var entries = window.performance.getEntries();
       assert_greater_than(entries.length, 0);
       var navigation = entries[0];
@@ -17,12 +15,8 @@ async_test(function (t) {
       assert_true(navigation.domContentLoadedEventStart <= navigation.topLevelDomComplete);
       assert_true(navigation.topLevelDomComplete <= navigation.domComplete);
 
-      observer.disconnect();
       t.done();
-    }));
-
-  observer.observe({entryTypes: ["navigation"]});
-
+    });
 }, "top level dom complete");
 </script>
 </body>

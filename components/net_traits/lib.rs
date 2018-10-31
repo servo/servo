@@ -257,8 +257,7 @@ impl<T: FetchResponseListener> Action<T> for FetchResponseMsg {
             FetchResponseMsg::ProcessResponseEOF(data) => {
                 match data {
                     Ok(ref response_resource_timing) => {
-                        println!("{:?}", listener.resource_timing());
-                        println!("{:?}", response_resource_timing.clone());
+                        // update listener with values from response
                         *listener.resource_timing_mut() = response_resource_timing.clone();
                         listener.process_response_eof(Ok(response_resource_timing.clone()));
                         // TODO timing check https://w3c.github.io/resource-timing/#dfn-timing-allow-check
@@ -505,7 +504,6 @@ pub struct Metadata {
 
     /// Referrer Policy of the Request used to obtain Response
     pub referrer_policy: Option<ReferrerPolicy>,
-
     /// Performance information for navigation events
     pub timing: Option<ResourceFetchTiming>,
 }
@@ -577,7 +575,6 @@ pub fn load_whole_resource(request: RequestInit,
                 })
             },
             FetchResponseMsg::ProcessResponseChunk(data) => buf.extend_from_slice(&data),
-            //TODO maybe return timing information
             FetchResponseMsg::ProcessResponseEOF(Ok(_)) => return Ok((metadata.unwrap(), buf)),
             FetchResponseMsg::ProcessResponse(Err(e)) |
             FetchResponseMsg::ProcessResponseEOF(Err(e)) => return Err(e),

@@ -223,13 +223,10 @@ impl FetchResponseListener for ImageContext {
         }
     }
 
-    // FIXME
     fn process_response_eof(&mut self, response: Result<ResourceFetchTiming, NetworkError>) {
-        // notify_pending_response doesn't use the resource timing
         self.image_cache.notify_pending_response(
             self.id,
-            FetchResponseMsg::ProcessResponseEOF(response.map(|_|
-                ResourceFetchTiming::new(ResourceTimingType::Resource))));
+            FetchResponseMsg::ProcessResponseEOF(response));
     }
 
     fn resource_timing_mut(&mut self) -> &mut ResourceFetchTiming {
