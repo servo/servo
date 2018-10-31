@@ -2743,7 +2743,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 [[package]]
 name = "osmesa-src"
 version = "0.1.0"
-source = "git+https://github.com/servo/osmesa-src#2b72bc315664a597887b4bb642294525c79b2ee7"
+source = "git+https://github.com/servo/osmesa-src?branch=update#8bd8f9a09127899d5b3d6a6535a0be60db4dba5a"
 
 [[package]]
 name = "osmesa-sys"
@@ -3414,7 +3414,7 @@ dependencies = [
  "lazy_static 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "libservo 0.0.1",
  "log 0.4.5 (registry+https://github.com/rust-lang/crates.io-index)",
- "osmesa-src 0.1.0 (git+https://github.com/servo/osmesa-src)",
+ "osmesa-src 0.1.0 (git+https://github.com/servo/osmesa-src?branch=update)",
  "osmesa-sys 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "sig 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "tinyfiledialogs 3.3.5 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -4962,7 +4962,7 @@ dependencies = [
 "checksum openssl-sys 0.9.35 (registry+https://github.com/rust-lang/crates.io-index)" = "912f301a749394e1025d9dcddef6106ddee9252620e6d0a0e5f8d0681de9b129"
 "checksum ordered-float 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)" = "e9a3c8db0fca1fdb34404f0b1286db252f23930b9f7a481e376c16c0d5c309d4"
 "checksum ordermap 0.3.5 (registry+https://github.com/rust-lang/crates.io-index)" = "a86ed3f5f244b372d6b1a00b72ef7f8876d0bc6a78a4c9985c53614041512063"
-"checksum osmesa-src 0.1.0 (git+https://github.com/servo/osmesa-src)" = "<none>"
+"checksum osmesa-src 0.1.0 (git+https://github.com/servo/osmesa-src?branch=update)" = "<none>"
 "checksum osmesa-sys 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)" = "88cfece6e95d2e717e0872a7f53a8684712ad13822a7979bc760b9c77ec0013b"
 "checksum ovr-mobile-sys 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)" = "a69b517feac6fc640f0679625defa0998bbcb32871a6901e63063c2abf9c4cbe"
 "checksum owning_ref 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)" = "cdf84f41639e037b484f93433aa3897863b561ed65c6e59c7073d7c561710f37"
