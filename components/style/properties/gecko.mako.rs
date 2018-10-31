@@ -3031,9 +3031,8 @@ fn static_assert() {
 <%self:impl_trait style_struct_name="Box" skip_longhands="${skip_box_longhands}">
     #[inline]
     pub fn set_display(&mut self, v: longhands::display::computed_value::T) {
-        // unsafe: cbindgen ensures the representation is the same.
-        self.gecko.mDisplay = unsafe { transmute(v) };
-        self.gecko.mOriginalDisplay = unsafe { transmute(v) };
+        self.gecko.mDisplay = v;
+        self.gecko.mOriginalDisplay = v;
     }
 
     #[inline]
@@ -3053,14 +3052,12 @@ fn static_assert() {
         v: longhands::display::computed_value::T,
         _is_item_or_root: bool
     ) {
-        // unsafe: cbindgen ensures the representation is the same.
-        self.gecko.mDisplay = unsafe { transmute(v) };
+        self.gecko.mDisplay = v;
     }
 
     #[inline]
     pub fn clone_display(&self) -> longhands::display::computed_value::T {
-        // unsafe: cbindgen ensures the representation is the same.
-        unsafe { transmute(self.gecko.mDisplay) }
+        self.gecko.mDisplay
     }
 
     ${impl_simple('_moz_appearance', 'mAppearance')}
