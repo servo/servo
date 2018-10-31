@@ -260,16 +260,10 @@ svg > * {
     margin: 0;
 }
 
-/* The outer fragment wrapper of an inline absolute hypothetical fragment.
- *
- * FIXME(emilio): This was disabled because of a typo in the CSS parser,
- * re-enable or figure out why it's not needed.
-
+/* The outer fragment wrapper of an inline absolute hypothetical fragment. */
 *|*::-servo-inline-absolute {
     clip: auto;
     border: none;
     padding: 0;
     margin: 0;
 }
-
-*/
