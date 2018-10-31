@@ -5,11 +5,39 @@ function databaseName(testCase) {
   return 'db' + self.location.pathname + '-' + testCase.name;
 }
 
-// Creates an EventWatcher covering all the events that can be issued by
-// IndexedDB requests and transactions.
+// EventWatcher covering all the events defined on IndexedDB requests.
+//
+// The events cover IDBRequest and IDBOpenDBRequest.
 function requestWatcher(testCase, request) {
   return new EventWatcher(testCase, request,
-      ['abort', 'blocked', 'complete', 'error', 'success', 'upgradeneeded']);
+                          ['blocked', 'error', 'success', 'upgradeneeded']);
+}
+
+// EventWatcher covering all the events defined on IndexedDB transactions.
+//
+// The events cover IDBTransaction.
+function transactionWatcher(testCase, request) {
+  return new EventWatcher(testCase, request, ['abort', 'complete', 'error']);
+}
+
+// Promise that resolves with an IDBRequest's result.
+//
+// The promise only resolves if IDBRequest receives the "success" event. Any
+// other event causes the promise to reject with an error. This is correct in
+// most cases, but insufficient for indexedDB.open(), which issues
+// "upgradeneded" events under normal operation.
+function promiseForRequest(testCase, request) {
+  const eventWatcher = requestWatcher(testCase, request);
+  return eventWatcher.wait_for('success').then(event => event.target.result);
+}
+
+// Promise that resolves when an IDBTransaction completes.
+//
+// The promise resolves with undefined if IDBTransaction receives the "complete"
+// event, and rejects with an error for any other event.
+function promiseForTransaction(testCase, request) {
+  const eventWatcher = transactionWatcher(testCase, request);
+  return eventWatcher.wait_for('complete').then(() => {});
 }
 
 // Migrates an IndexedDB database whose name is unique for the test case.
@@ -64,7 +92,7 @@ function migrateNamedDatabase(
         requestEventPromise = new Promise((resolve, reject) => {
           request.onerror = event => {
             event.preventDefault();
-            resolve(event);
+            resolve(event.target.error);
           };
           request.onsuccess = () => reject(new Error(
               'indexedDB.open should not succeed for an aborted ' +
@@ -79,8 +107,7 @@ function migrateNamedDatabase(
       if (!shouldBeAborted) {
         request.onerror = null;
         request.onsuccess = null;
-        requestEventPromise =
-            requestWatcher(testCase, request).wait_for('success');
+        requestEventPromise = promiseForRequest(testCase, request);
       }
 
       // requestEventPromise needs to be the last promise in the chain, because
@@ -95,12 +122,10 @@ function migrateNamedDatabase(
           'indexedDB.open should not succeed without creating a ' +
           'versionchange transaction'));
     };
-  }).then(event => {
-    const database = event.target.result;
-    if (database) {
-      testCase.add_cleanup(() => { database.close(); });
-    }
-    return database || event.target.error;
+  }).then(databaseOrError => {
+    if (databaseOrError instanceof IDBDatabase)
+      testCase.add_cleanup(() => { databaseOrError.close(); });
+    return databaseOrError;
   });
 }
 
@@ -126,9 +151,7 @@ function createDatabase(testCase, setupCallback) {
 // close the database.
 function createNamedDatabase(testCase, databaseName, setupCallback) {
   const request = indexedDB.deleteDatabase(databaseName);
-  const eventWatcher = requestWatcher(testCase, request);
-
-  return eventWatcher.wait_for('success').then(event => {
+  return promiseForRequest(testCase, request).then(() => {
     testCase.add_cleanup(() => { indexedDB.deleteDatabase(databaseName); });
     return migrateNamedDatabase(testCase, databaseName, 1, setupCallback)
   });
@@ -152,9 +175,7 @@ function openDatabase(testCase, version) {
 // close the database.
 function openNamedDatabase(testCase, databaseName, version) {
   const request = indexedDB.open(databaseName, version);
-  const eventWatcher = requestWatcher(testCase, request);
-  return eventWatcher.wait_for('success').then(() => {
-    const database = request.result;
+  return promiseForRequest(testCase, request).then(database => {
     testCase.add_cleanup(() => { database.close(); });
     return database;
   });
@@ -215,9 +236,7 @@ function checkStoreIndexes (testCase, store, errorMessage) {
 function checkStoreGenerator(testCase, store, expectedKey, errorMessage) {
   const request = store.put(
       { title: 'Bedrock Nights ' + expectedKey, author: 'Barney' });
-  const eventWatcher = requestWatcher(testCase, request);
-  return eventWatcher.wait_for('success').then(() => {
-    const result = request.result;
+  return promiseForRequest(testCase, request).then(result => {
     assert_equals(result, expectedKey, errorMessage);
   });
 }
@@ -230,9 +249,7 @@ function checkStoreGenerator(testCase, store, expectedKey, errorMessage) {
 // is using it incorrectly.
 function checkStoreContents(testCase, store, errorMessage) {
   const request = store.get(123456);
-  const eventWatcher = requestWatcher(testCase, request);
-  return eventWatcher.wait_for('success').then(() => {
-    const result = request.result;
+  return promiseForRequest(testCase, request).then(result => {
     assert_equals(result.isbn, BOOKS_RECORD_DATA[0].isbn, errorMessage);
     assert_equals(result.author, BOOKS_RECORD_DATA[0].author, errorMessage);
     assert_equals(result.title, BOOKS_RECORD_DATA[0].title, errorMessage);
@@ -247,9 +264,7 @@ function checkStoreContents(testCase, store, errorMessage) {
 // is using it incorrectly.
 function checkAuthorIndexContents(testCase, index, errorMessage) {
   const request = index.get(BOOKS_RECORD_DATA[2].author);
-  const eventWatcher = requestWatcher(testCase, request);
-  return eventWatcher.wait_for('success').then(() => {
-    const result = request.result;
+  return promiseForRequest(testCase, request).then(result => {
     assert_equals(result.isbn, BOOKS_RECORD_DATA[2].isbn, errorMessage);
     assert_equals(result.title, BOOKS_RECORD_DATA[2].title, errorMessage);
   });
@@ -263,9 +278,7 @@ function checkAuthorIndexContents(testCase, index, errorMessage) {
 // is using it incorrectly.
 function checkTitleIndexContents(testCase, index, errorMessage) {
   const request = index.get(BOOKS_RECORD_DATA[2].title);
-  const eventWatcher = requestWatcher(testCase, request);
-  return eventWatcher.wait_for('success').then(() => {
-    const result = request.result;
+  return promiseForRequest(testCase, request).then(result => {
     assert_equals(result.isbn, BOOKS_RECORD_DATA[2].isbn, errorMessage);
     assert_equals(result.author, BOOKS_RECORD_DATA[2].author, errorMessage);
   });
@@ -289,4 +302,13 @@ function largeValue(size, seed) {
   }
 
   return buffer;
+}
+
+async function deleteAllDatabases(testCase) {
+  const dbs_to_delete = await indexedDB.databases();
+  for( const db_info of dbs_to_delete) {
+    let request = indexedDB.deleteDatabase(db_info.name);
+    let eventWatcher = requestWatcher(testCase, request);
+    await eventWatcher.wait_for('success');
+  }
 }

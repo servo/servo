@@ -273,6 +273,11 @@ testText("<div>abc<div class='itable'><span class='cell'>def</span></div>ghi", "
 testText("<div>abc<div class='itable'><span class='row'><span class='cell'>def</span></span>\n<span class='row'><span class='cell'>123</span></span></div>ghi",
          "abcdef\n123ghi", "Single newline in two-row inline-table");
 
+/**** display:table-row/table-cell/table-caption ****/
+testText("<div style='display:table-row'>", "", "display:table-row on the element itself");
+testText("<div style='display:table-cell'>", "", "display:table-cell on the element itself");
+testText("<div style='display:table-caption'>", "", "display:table-caption on the element itself");
+
 /**** Lists ****/
 
 testText("<div><ol><li>abc", "abc", "<ol> list items get no special treatment");
@@ -293,6 +298,9 @@ testText("<div>abc<hr><hr>def", "abc\ndef", "<hr><hr> induces just one line brea
 testText("<div>abc<hr><hr><hr>def", "abc\ndef", "<hr><hr><hr> induces just one line break");
 testText("<div><hr class='poke'>", "abc", "<hr> content rendered");
 testText("<div>abc<!--comment-->def", "abcdef", "comment ignored");
+testText("<br>", "", "<br>");
+testText("<p>", "", "empty <p>");
+testText("<div>", "", "empty <div>");
 
 /**** text-transform ****/
 
@@ -308,11 +316,13 @@ testText("<div>abc<span>123<div>456</div>789</span>def", "abc123\n456\n789def", 
 
 testText("<div>abc<div style='float:left'>123</div>def", "abc\n123\ndef", "floats induce a block boundary");
 testText("<div>abc<span style='float:left'>123</span>def", "abc\n123\ndef", "floats induce a block boundary");
+testText("<div style='float:left'>123", "123", "float on the element itself");
 
 /**** position ****/
 
 testText("<div>abc<div style='position:absolute'>123</div>def", "abc\n123\ndef", "position:absolute induces a block boundary");
 testText("<div>abc<span style='position:absolute'>123</span>def", "abc\n123\ndef", "position:absolute induces a block boundary");
+testText("<div style='position:absolute'>123", "123", "position:absolute on the element itself");
 testText("<div>abc<div style='position:relative'>123</div>def", "abc\n123\ndef", "position:relative has no effect");
 testText("<div>abc<span style='position:relative'>123</span>def", "abc123def", "position:relative has no effect");
 

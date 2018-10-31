@@ -1,7 +1,6 @@
 spec: https://drafts.csswg.org/css-grid/
 suggested_reviewers:
   - mrego
-  - tomalec
   - plinss
   - jxs
   - tabatkins

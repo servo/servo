@@ -51,7 +51,7 @@ def square(size):
         <script>
         window.clicks = [];
         let div = document.querySelector("div");
-        div.addEventListener("click", ({{clientX, clientY}}) => window.clicks.push([clientX, clientY]));
+        div.addEventListener("click", function(e) {{ window.clicks.push([e.clientX, e.clientY]) }});
         </script>
         """.format(size=size))
 
