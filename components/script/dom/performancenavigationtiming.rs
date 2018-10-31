@@ -45,11 +45,6 @@ impl PerformanceNavigationTiming {
         }
     }
 
-    #[allow(unused)]
-    pub fn set_type(&mut self, nav_type: NavigationType) {
-        self.nav_type = nav_type
-    }
-
     pub fn new(global: &GlobalScope,
                nav_start: u64,
                nav_start_precise: u64,
