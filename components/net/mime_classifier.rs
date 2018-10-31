@@ -196,7 +196,8 @@ impl MimeClassifier {
 
     fn is_xml(mt: &Mime) -> bool {
         mt.suffix() == Some(mime::XML) ||
-        mt.type_() == mime::APPLICATION && mt.subtype() == mime::XML
+        mt.type_() == mime::APPLICATION && mt.subtype() == mime::XML ||
+        mt.type_() == mime::TEXT && mt.subtype() == mime::XML
     }
 
     fn is_html(mt: &Mime) -> bool {
