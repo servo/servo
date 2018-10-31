@@ -11703,6 +11703,16 @@
      {}
     ]
    ],
+   "mozilla/resources/range.txt": [
+    [
+     {}
+    ]
+   ],
+   "mozilla/resources/range_small.txt": [
+    [
+     {}
+    ]
+   ],
    "mozilla/resources/ssl.https.html": [
     [
      {}
@@ -14251,6 +14261,12 @@
    "mozilla/range_deleteContents.html": [
     [
      "/_mozilla/mozilla/range_deleteContents.html",
+     {}
+    ]
+   ],
+   "mozilla/range_request_file_url.html": [
+    [
+     "/_mozilla/mozilla/range_request_file_url.html",
      {}
     ]
    ],
@@ -27213,6 +27229,10 @@
    "8de03455bcb0d18258f76af20f58c14868fe1c21",
    "testharness"
   ],
+  "mozilla/range_request_file_url.html": [
+   "65fe13fe93d97cebc2846ff7d7deab3eb84c1787",
+   "testharness"
+  ],
   "mozilla/referrer-policy/OWNERS": [
    "db2d613c22614f458bef6b6fe357f765bf289506",
    "support"
@@ -32519,6 +32539,14 @@
   ],
   "mozilla/resources/origin_helpers.js": [
    "6493d422c0839f11cfa4e85832495dbbc3b1a171",
+   "support"
+  ],
+  "mozilla/resources/range.txt": [
+   "80be6ea7ed834788063a1e546e0d0ea26751b1b4",
+   "support"
+  ],
+  "mozilla/resources/range_small.txt": [
+   "b0883f382e1a80609b7b2c7904e701fbe6760b14",
    "support"
   ],
   "mozilla/resources/ssl.https.html": [
