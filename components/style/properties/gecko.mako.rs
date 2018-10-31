@@ -4947,11 +4947,7 @@ fn set_style_svg_path(
         &mut shape_source.__bindgen_anon_1.mSVGPath.as_mut().mPtr.as_mut().unwrap()
     };
 
-    let iter = servo_path.commands().iter().map(|command| {
-        // unsafe: cbindgen ensures the representation is the same.
-        unsafe { transmute(*command) }
-    });
-    gecko_path.mPath.assign_from_iter_pod(iter);
+    gecko_path.mPath.assign_from_iter_pod(servo_path.commands().iter().cloned());
 
     // Setup fill-rule.
     gecko_path.mFillRule = fill;

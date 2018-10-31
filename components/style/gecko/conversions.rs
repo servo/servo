@@ -701,18 +701,11 @@ pub mod basic_shape {
 
         /// Generate a SVGPathData from StyleShapeSource if possible.
         fn to_svg_path(&self) -> Option<SVGPathData> {
-            use gecko_bindings::structs::StylePathCommand;
             use values::specified::svg_path::PathCommand;
             match self.mType {
                 StyleShapeSourceType::Path => {
                     let gecko_path = unsafe { &*self.__bindgen_anon_1.mSVGPath.as_ref().mPtr };
-                    let result: Vec<PathCommand> = gecko_path
-                        .mPath
-                        .iter()
-                        .map(|gecko: &StylePathCommand| {
-                            // unsafe: cbindgen ensures the representation is the same.
-                            unsafe { ::std::mem::transmute(*gecko) }
-                        }).collect();
+                    let result: Vec<PathCommand> = gecko_path.mPath.iter().cloned().collect();
                     Some(SVGPathData::new(result.into_boxed_slice()))
                 },
                 _ => None,
