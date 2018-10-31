@@ -5,6 +5,7 @@
 #include <lumin/LandscapeApp.h>
 #include <lumin/Prism.h>
 #include <lumin/event/ServerEvent.h>
+#include <lumin/event/GestureInputEventData.h>
 #include <lumin/event/KeyInputEventData.h>
 #include <lumin/event/ControlTouchPadInputEventData.h>
 #include <lumin/node/QuadNode.h>
@@ -100,8 +101,8 @@ protected:
    */
   virtual bool eventListener(lumin::ServerEvent* event) override;
   bool touchpadEventListener(lumin::ControlTouchPadInputEventData* event);
-  bool keyEventListener(lumin::KeyInputEventData* event);
   void urlBarEventListener();
+  bool gestureEventListener(lumin::GestureInputEventData* event);
 
   /**
    * Get the current cursor position, with respect to the viewport.
