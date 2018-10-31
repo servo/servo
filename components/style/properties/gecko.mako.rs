@@ -1397,6 +1397,7 @@ impl Clone for ${style_struct.gecko_struct_name} {
         "length::LengthOrNormal": impl_style_coord,
         "length::NonNegativeLengthOrAuto": impl_style_coord,
         "length::NonNegativeLengthOrPercentageOrNormal": impl_style_coord,
+        "FillRule": impl_simple,
         "FlexBasis": impl_style_coord,
         "Length": impl_absolute_length,
         "LengthOrNormal": impl_style_coord,
@@ -4953,8 +4954,7 @@ fn set_style_svg_path(
     gecko_path.mPath.assign_from_iter_pod(iter);
 
     // Setup fill-rule.
-    // unsafe: cbindgen ensures the representation is the same.
-    gecko_path.mFillRule = unsafe { transmute(fill) };
+    gecko_path.mFillRule = fill;
 }
 
 <%def name="impl_shape_source(ident, gecko_ffi_name)">
@@ -5059,8 +5059,7 @@ fn set_style_svg_path(
                             coord.0.to_gecko_style_coord(&mut shape.mCoordinates[2 * i]);
                             coord.1.to_gecko_style_coord(&mut shape.mCoordinates[2 * i + 1]);
                         }
-                        // unsafe: cbindgen ensures the representation is the same.
-                        shape.mFillRule = unsafe { transmute(poly.fill) };
+                        shape.mFillRule = poly.fill;
                     }
                 }
 

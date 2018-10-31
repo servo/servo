@@ -55,10 +55,11 @@ ${helpers.predefined_type(
     spec="https://www.w3.org/TR/SVG11/painting.html#FillOpacityProperty",
 )}
 
-${helpers.single_keyword(
+${helpers.predefined_type(
     "fill-rule",
-    "nonzero evenodd",
-    gecko_enum_prefix="StyleFillRule",
+    "FillRule",
+    "Default::default()",
+    needs_context=False,
     products="gecko",
     animation_value_type="discrete",
     spec="https://www.w3.org/TR/SVG11/painting.html#FillRuleProperty",
@@ -142,11 +143,12 @@ ${helpers.predefined_type(
 )}
 
 // Section 14 - Clipping, Masking and Compositing
-${helpers.single_keyword(
+${helpers.predefined_type(
     "clip-rule",
-    "nonzero evenodd",
+    "FillRule",
+    "Default::default()",
+    needs_context=False,
     products="gecko",
-    gecko_enum_prefix="StyleFillRule",
     animation_value_type="discrete",
     spec="https://www.w3.org/TR/SVG11/masking.html#ClipRuleProperty",
 )}

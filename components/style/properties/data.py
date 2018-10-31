@@ -298,6 +298,7 @@ class Longhand(object):
                 "ColumnCount",
                 "Contain",
                 "Display",
+                "FillRule",
                 "Float",
                 "FontSizeAdjust",
                 "FontStretch",
