@@ -257,6 +257,8 @@ impl<T: FetchResponseListener> Action<T> for FetchResponseMsg {
             FetchResponseMsg::ProcessResponseEOF(data) => {
                 match data {
                     Ok(ref response_resource_timing) => {
+                        println!("{:?}", listener.resource_timing());
+                        println!("{:?}", response_resource_timing.clone());
                         *listener.resource_timing_mut() = response_resource_timing.clone();
                         listener.process_response_eof(Ok(response_resource_timing.clone()));
                         // TODO timing check https://w3c.github.io/resource-timing/#dfn-timing-allow-check
