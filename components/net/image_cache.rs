@@ -505,7 +505,7 @@ impl ImageCache for ImageCacheImpl {
                         let bytes = {
                             let mut store = self.store.lock().unwrap();
                             let pending_load = store.pending_loads.get_by_key_mut(&id).unwrap();
-                            pending_load.result = Some(Ok(()));
+                            pending_load.result = Some(result);
                             debug!("Async decoding {} ({:?})", pending_load.url, key);
                             pending_load.bytes.mark_complete()
                         };

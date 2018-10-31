@@ -27,7 +27,6 @@ pub trait ResourceTimingListener {
     fn resource_timing_global(&self) -> DomRoot<GlobalScope>;
 }
 
-// Currently can only submit resource timing events
 pub fn submit_timing<T: ResourceTimingListener + FetchResponseListener>(listener: &T) {
     if listener.resource_timing().timing_type != ResourceTimingType::Resource {
         warn!("Submitting non-resource ({:?}) timing as resource", listener.resource_timing().timing_type);

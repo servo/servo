@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-
 use dom::bindings::codegen::Bindings::PerformanceBinding::DOMHighResTimeStamp;
 use dom::bindings::codegen::Bindings::PerformanceNavigationTimingBinding::{self, NavigationType};
 use dom::bindings::codegen::Bindings::PerformanceNavigationTimingBinding::PerformanceNavigationTimingMethods;

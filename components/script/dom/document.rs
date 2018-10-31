@@ -2702,7 +2702,6 @@ impl Document {
             let node = document.upcast::<Node>();
             node.set_owner_doc(&document);
         }
-
         document
     }
 
@@ -4244,14 +4243,14 @@ impl DocumentMethods for Document {
             self.abort();
         }
 
-        // Step 9
-        if self.window.Document() == DomRoot::from_ref(self) {
-            self.window.upcast::<EventTarget>().remove_all_listeners();
-        }
-
         // Step 8
         for node in self.upcast::<Node>().traverse_preorder() {
             node.upcast::<EventTarget>().remove_all_listeners();
+        }
+
+        // Step 9
+        if self.window.Document() == DomRoot::from_ref(self) {
+            self.window.upcast::<EventTarget>().remove_all_listeners();
         }
 
         // Step 10
@@ -4293,7 +4292,6 @@ impl DocumentMethods for Document {
         // Step 17
         Ok(DomRoot::from_ref(self))
     }
-
 
     // https://html.spec.whatwg.org/multipage/#dom-document-open-window
     fn Open_(&self, url: DOMString, target: DOMString, features: DOMString) -> Fallible<DomRoot<WindowProxy>> {

@@ -135,7 +135,6 @@ impl PerformanceResourceTiming {
                 url, initiator_type, next_hop, resource_timing)),
             global, PerformanceResourceTimingBinding::Wrap)
     }
-
 }
 
 // https://w3c.github.io/resource-timing/
@@ -172,5 +171,4 @@ impl PerformanceResourceTimingMethods for PerformanceResourceTiming {
         // TODO
         Finite::wrap(self.response_start)
     }
-
 }

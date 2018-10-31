@@ -6,7 +6,6 @@
  * https://w3c.github.io/navigation-timing/#dom-performancenavigationtiming
  */
 
-
 enum NavigationType {
     "navigate",
     "reload",
