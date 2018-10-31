@@ -10,6 +10,7 @@ use filemanager_thread::FileManager;
 use http_loader::{HttpState, determine_request_referrer, http_fetch};
 use http_loader::{set_default_accept, set_default_accept_language};
 use hyper::{Error, Result as HyperResult};
+use hyper::header;
 use hyper::header::{Accept, AcceptLanguage, AccessControlExposeHeaders, ContentLanguage, ContentType};
 use hyper::header::{Header, HeaderFormat, HeaderView, Headers, Referer as RefererHeader};
 use hyper::method::Method;
@@ -26,7 +27,7 @@ use servo_url::ServoUrl;
 use std::borrow::Cow;
 use std::fmt;
 use std::fs::File;
-use std::io::{BufReader, BufRead};
+use std::io::{BufReader, BufRead, Seek, SeekFrom};
 use std::mem;
 use std::str;
 use std::sync::{Arc, Mutex};
@@ -502,8 +503,33 @@ fn scheme_fetch(request: &mut Request,
 
                                 let cancellation_listener = context.cancellation_listener.clone();
 
+                                let range = request.headers.get::<header::Range>();
+                                let (start, end) = if let Some(&header::Range::Bytes(ref range)) = range {
+                                    match range.first().unwrap() {
+                                        &header::ByteRangeSpec::AllFrom(start) => (start, None),
+                                        &header::ByteRangeSpec::FromTo(start, end) => {
+                                            // `end` should be less or equal to `start`.
+                                            (start, Some(u64::max(start, end)))
+                                        },
+                                        &header::ByteRangeSpec::Last(offset) => {
+                                            if let Ok(metadata) = file.metadata() {
+                                                // `offset` cannot be bigger than the file size.
+                                                (metadata.len() - u64::min(metadata.len(), offset), None)
+                                            } else {
+                                                (0, None)
+                                            }
+                                        }
+                                    }
+                                } else {
+                                    (0, None)
+                                };
+
                                 thread::Builder::new().name("fetch file worker thread".to_string()).spawn(move || {
                                     let mut reader = BufReader::with_capacity(FILE_CHUNK_SIZE, file);
+                                    if reader.seek(SeekFrom::Start(start)).is_err() {
+                                        warn!("Fetch - could not seek to {:?}", start);
+                                    }
+
                                     loop {
                                         if cancellation_listener.lock().unwrap().cancelled() {
                                             *res_body.lock().unwrap() = ResponseBody::Done(vec![]);
@@ -512,9 +538,25 @@ fn scheme_fetch(request: &mut Request,
                                         }
                                         let length = {
                                             let mut buffer = reader.fill_buf().unwrap().to_vec();
-                                            let buffer_len = buffer.len();
+                                            let mut buffer_len = buffer.len();
                                             if let ResponseBody::Receiving(ref mut body) = *res_body.lock().unwrap() {
-                                                body.extend_from_slice(&buffer);
+                                                let offset = usize::min({
+                                                    if let Some(end) = end {
+                                                        let remaining_bytes =
+                                                            end as usize - start as usize - body.len();
+                                                        if remaining_bytes <= FILE_CHUNK_SIZE {
+                                                            // This is the last chunk so we set buffer len to 0 to break
+                                                            // the reading loop.
+                                                            buffer_len = 0;
+                                                            remaining_bytes
+                                                        } else {
+                                                            FILE_CHUNK_SIZE
+                                                        }
+                                                    } else {
+                                                        FILE_CHUNK_SIZE
+                                                    }
+                                                }, buffer.len());
+                                                body.extend_from_slice(&buffer[0..offset]);
                                                 let _ = done_sender.send(Data::Payload(buffer));
                                             }
                                             buffer_len
