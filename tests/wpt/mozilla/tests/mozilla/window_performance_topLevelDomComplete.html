@@ -7,7 +7,7 @@
 <script>
 async_test(function (t) {
   var observer = new PerformanceObserver(
-    window.onload = t.step_func(function (entryList, obs) {
+    t.step_func(function (entryList, obs) {
 
       var entries = window.performance.getEntries();
       assert_greater_than(entries.length, 0);
