@@ -512,7 +512,9 @@ class DockerWorkerTask(Task):
         self.env = {}
         self.caches = {}
         self.features = {}
+        self.capabilities = {}
         self.artifacts = []
+        self.curl_scripts_count = 0
 
     with_docker_image = chaining(setattr, "docker_image")
     with_max_run_time_minutes = chaining(setattr, "max_run_time_minutes")
@@ -521,6 +523,7 @@ class DockerWorkerTask(Task):
     with_early_script = chaining(prepend_to_attr, "scripts")
     with_caches = chaining(update_attr, "caches")
     with_env = chaining(update_attr, "env")
+    with_capabilities = chaining(update_attr, "capabilities")
 
     def build_worker_payload(self):
         """
@@ -541,6 +544,7 @@ class DockerWorkerTask(Task):
             env=self.env,
             cache=self.caches,
             features=self.features,
+            capabilities=self.capabilities,
             artifacts={
                 "public/" + url_basename(path): {
                     "type": "file",
@@ -559,6 +563,28 @@ class DockerWorkerTask(Task):
         """
         self.features.update({name: True for name in names})
         return self
+
+    def with_curl_script(self, url, file_path):
+        self.curl_scripts_count += 1
+        n = self.curl_scripts_count
+        return self \
+        .with_env(**{
+            "CURL_%s_URL" % n: url,
+            "CURL_%s_PATH" % n: file_path,
+        }) \
+        .with_script("""
+            mkdir -p $(dirname "$CURL_{n}_PATH")
+            curl --retry 5 --connect-timeout 10 -Lf "$CURL_{n}_URL" -o "$CURL_{n}_PATH"
+        """.format(n=n))
+
+    def with_curl_artifact_script(self, task_id, artifact_name, out_directory=""):
+        return self \
+        .with_dependencies(task_id) \
+        .with_curl_script(
+            "https://queue.taskcluster.net/v1/task/%s/artifacts/public/%s"
+                % (task_id, artifact_name),
+            os.path.join(out_directory, url_basename(artifact_name)),
+        )
 
     def with_repo(self):
         """

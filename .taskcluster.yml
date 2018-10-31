@@ -23,12 +23,8 @@ tasks:
           owner: &task_owner ${event.pusher.name}@users.noreply.github.com
           source: &task_source ${event.compare}
         scopes:
-          - "queue:scheduler-id:taskcluster-github"
-
           # Granted to role "repo:github.com/servo/servo:branch:*"
-          - "queue:create-task:highest:aws-provisioner-v1/servo-*"
-          - "queue:route:index.project.servo.servo.*"
-          - "docker-worker:cache:servo-*"
+          - "assume:project:servo:decision-task/trusted"
 
         payload:
           maxRunTime: {$eval: '20 * 60'}
