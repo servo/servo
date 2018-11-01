@@ -42,7 +42,7 @@ pub enum Msg {
     Reflow(ScriptReflow),
 
     /// Get an RPC interface.
-    GetRPC(Sender<Box<LayoutRPC + Send>>),
+    GetRPC(Sender<Box<dyn LayoutRPC + Send>>),
 
     /// Requests that the layout thread render the next frame of all animations.
     TickAnimations,
@@ -94,7 +94,7 @@ pub enum Msg {
     UpdateScrollStateFromScript(ScrollState),
 
     /// Tells layout that script has added some paint worklet modules.
-    RegisterPaint(Atom, Vec<Atom>, Box<Painter>),
+    RegisterPaint(Atom, Vec<Atom>, Box<dyn Painter>),
 
     /// Send to layout the precise time when the navigation started.
     SetNavigationStart(u64),
@@ -214,7 +214,7 @@ pub struct NewLayoutThreadInfo {
     pub pipeline_port: IpcReceiver<LayoutControlMsg>,
     pub constellation_chan: IpcSender<ConstellationMsg>,
     pub script_chan: IpcSender<ConstellationControlMsg>,
-    pub image_cache: Arc<ImageCache>,
+    pub image_cache: Arc<dyn ImageCache>,
     pub content_process_shutdown_chan: Option<IpcSender<()>>,
     pub layout_threads: usize,
     pub paint_time_metrics: PaintTimeMetrics,

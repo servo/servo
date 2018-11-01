@@ -74,8 +74,8 @@ impl HTMLFontElementMethods for HTMLFontElement {
 }
 
 impl VirtualMethods for HTMLFontElement {
-    fn super_type(&self) -> Option<&VirtualMethods> {
-        Some(self.upcast::<HTMLElement>() as &VirtualMethods)
+    fn super_type(&self) -> Option<&dyn VirtualMethods> {
+        Some(self.upcast::<HTMLElement>() as &dyn VirtualMethods)
     }
 
     fn attribute_affects_presentational_hints(&self, attr: &Attr) -> bool {

@@ -2579,8 +2579,8 @@ impl ElementMethods for Element {
 }
 
 impl VirtualMethods for Element {
-    fn super_type(&self) -> Option<&VirtualMethods> {
-        Some(self.upcast::<Node>() as &VirtualMethods)
+    fn super_type(&self) -> Option<&dyn VirtualMethods> {
+        Some(self.upcast::<Node>() as &dyn VirtualMethods)
     }
 
     fn attribute_affects_presentational_hints(&self, attr: &Attr) -> bool {
@@ -2941,31 +2941,31 @@ impl<'a> SelectorsElement for DomRoot<Element> {
 }
 
 impl Element {
-    pub fn as_maybe_activatable(&self) -> Option<&Activatable> {
+    pub fn as_maybe_activatable(&self) -> Option<&dyn Activatable> {
         let element = match self.upcast::<Node>().type_id() {
             NodeTypeId::Element(ElementTypeId::HTMLElement(
                 HTMLElementTypeId::HTMLInputElement,
             )) => {
                 let element = self.downcast::<HTMLInputElement>().unwrap();
-                Some(element as &Activatable)
+                Some(element as &dyn Activatable)
             },
             NodeTypeId::Element(ElementTypeId::HTMLElement(
                 HTMLElementTypeId::HTMLButtonElement,
             )) => {
                 let element = self.downcast::<HTMLButtonElement>().unwrap();
-                Some(element as &Activatable)
+                Some(element as &dyn Activatable)
             },
             NodeTypeId::Element(ElementTypeId::HTMLElement(
                 HTMLElementTypeId::HTMLAnchorElement,
             )) => {
                 let element = self.downcast::<HTMLAnchorElement>().unwrap();
-                Some(element as &Activatable)
+                Some(element as &dyn Activatable)
             },
             NodeTypeId::Element(ElementTypeId::HTMLElement(
                 HTMLElementTypeId::HTMLLabelElement,
             )) => {
                 let element = self.downcast::<HTMLLabelElement>().unwrap();
-                Some(element as &Activatable)
+                Some(element as &dyn Activatable)
             },
             _ => None,
         };
@@ -2978,50 +2978,50 @@ impl Element {
         })
     }
 
-    pub fn as_stylesheet_owner(&self) -> Option<&StylesheetOwner> {
+    pub fn as_stylesheet_owner(&self) -> Option<&dyn StylesheetOwner> {
         if let Some(s) = self.downcast::<HTMLStyleElement>() {
-            return Some(s as &StylesheetOwner);
+            return Some(s as &dyn StylesheetOwner);
         }
 
         if let Some(l) = self.downcast::<HTMLLinkElement>() {
-            return Some(l as &StylesheetOwner);
+            return Some(l as &dyn StylesheetOwner);
         }
 
         None
     }
 
     // https://html.spec.whatwg.org/multipage/#category-submit
-    pub fn as_maybe_validatable(&self) -> Option<&Validatable> {
+    pub fn as_maybe_validatable(&self) -> Option<&dyn Validatable> {
         let element = match self.upcast::<Node>().type_id() {
             NodeTypeId::Element(ElementTypeId::HTMLElement(
                 HTMLElementTypeId::HTMLInputElement,
             )) => {
                 let element = self.downcast::<HTMLInputElement>().unwrap();
-                Some(element as &Validatable)
+                Some(element as &dyn Validatable)
             },
             NodeTypeId::Element(ElementTypeId::HTMLElement(
                 HTMLElementTypeId::HTMLButtonElement,
             )) => {
                 let element = self.downcast::<HTMLButtonElement>().unwrap();
-                Some(element as &Validatable)
+                Some(element as &dyn Validatable)
             },
             NodeTypeId::Element(ElementTypeId::HTMLElement(
                 HTMLElementTypeId::HTMLObjectElement,
             )) => {
                 let element = self.downcast::<HTMLObjectElement>().unwrap();
-                Some(element as &Validatable)
+                Some(element as &dyn Validatable)
             },
             NodeTypeId::Element(ElementTypeId::HTMLElement(
                 HTMLElementTypeId::HTMLSelectElement,
             )) => {
                 let element = self.downcast::<HTMLSelectElement>().unwrap();
-                Some(element as &Validatable)
+                Some(element as &dyn Validatable)
             },
             NodeTypeId::Element(ElementTypeId::HTMLElement(
                 HTMLElementTypeId::HTMLTextAreaElement,
             )) => {
                 let element = self.downcast::<HTMLTextAreaElement>().unwrap();
-                Some(element as &Validatable)
+                Some(element as &dyn Validatable)
             },
             _ => None,
         };

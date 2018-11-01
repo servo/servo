@@ -32,7 +32,7 @@ pub struct HTMLOptionsCollection {
 impl HTMLOptionsCollection {
     fn new_inherited(
         select: &HTMLSelectElement,
-        filter: Box<CollectionFilter + 'static>,
+        filter: Box<dyn CollectionFilter + 'static>,
     ) -> HTMLOptionsCollection {
         HTMLOptionsCollection {
             collection: HTMLCollection::new_inherited(select.upcast(), filter),
@@ -42,7 +42,7 @@ impl HTMLOptionsCollection {
     pub fn new(
         window: &Window,
         select: &HTMLSelectElement,
-        filter: Box<CollectionFilter + 'static>,
+        filter: Box<dyn CollectionFilter + 'static>,
     ) -> DomRoot<HTMLOptionsCollection> {
         reflect_dom_object(
             Box::new(HTMLOptionsCollection::new_inherited(select, filter)),

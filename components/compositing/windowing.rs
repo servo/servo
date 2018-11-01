@@ -132,9 +132,9 @@ pub trait WindowMethods {
     fn prepare_for_composite(&self) -> bool;
     /// Return the GL function pointer trait.
     #[cfg(feature = "gleam")]
-    fn gl(&self) -> Rc<gl::Gl>;
+    fn gl(&self) -> Rc<dyn gl::Gl>;
     /// Returns a thread-safe object to wake up the window's event loop.
-    fn create_event_loop_waker(&self) -> Box<EventLoopWaker>;
+    fn create_event_loop_waker(&self) -> Box<dyn EventLoopWaker>;
     /// Get the coordinates of the native window, the screen and the framebuffer.
     fn get_coordinates(&self) -> EmbedderCoordinates;
     /// Set whether the application is currently animating.

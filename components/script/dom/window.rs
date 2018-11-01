@@ -384,7 +384,7 @@ impl Window {
         self.networking_task_source.clone()
     }
 
-    pub fn history_traversal_task_source(&self) -> Box<ScriptChan + Send> {
+    pub fn history_traversal_task_source(&self) -> Box<dyn ScriptChan + Send> {
         self.history_traversal_task_source.clone()
     }
 
@@ -412,12 +412,12 @@ impl Window {
         self.parent_info
     }
 
-    pub fn new_script_pair(&self) -> (Box<ScriptChan + Send>, Box<ScriptPort + Send>) {
+    pub fn new_script_pair(&self) -> (Box<dyn ScriptChan + Send>, Box<dyn ScriptPort + Send>) {
         let (tx, rx) = channel();
         (Box::new(SendableMainThreadScriptChan(tx)), Box::new(rx))
     }
 
-    pub fn image_cache(&self) -> Arc<ImageCache> {
+    pub fn image_cache(&self) -> Arc<dyn ImageCache> {
         self.image_cache.clone()
     }
 
@@ -446,7 +446,7 @@ impl Window {
         &self.bluetooth_extra_permission_data
     }
 
-    pub fn css_error_reporter(&self) -> Option<&ParseErrorReporter> {
+    pub fn css_error_reporter(&self) -> Option<&dyn ParseErrorReporter> {
         Some(&self.error_reporter)
     }
 
@@ -1641,7 +1641,7 @@ impl Window {
         )
     }
 
-    pub fn layout(&self) -> &LayoutRPC {
+    pub fn layout(&self) -> &dyn LayoutRPC {
         &*self.layout_rpc
     }
 
@@ -2089,7 +2089,7 @@ impl Window {
         remote_event_task_source: RemoteEventTaskSource,
         websocket_task_source: WebsocketTaskSource,
         image_cache_chan: Sender<ImageCacheMsg>,
-        image_cache: Arc<ImageCache>,
+        image_cache: Arc<dyn ImageCache>,
         resource_threads: ResourceThreads,
         bluetooth_thread: IpcSender<BluetoothRequest>,
         mem_profiler_chan: MemProfilerChan,
@@ -2112,7 +2112,7 @@ impl Window {
         webrender_document: DocumentId,
         webrender_api_sender: RenderApiSender,
     ) -> DomRoot<Self> {
-        let layout_rpc: Box<LayoutRPC + Send> = {
+        let layout_rpc: Box<dyn LayoutRPC + Send> = {
             let (rpc_send, rpc_recv) = channel();
             layout_chan.send(Msg::GetRPC(rpc_send)).unwrap();
             rpc_recv.recv().unwrap()

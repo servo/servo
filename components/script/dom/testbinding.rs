@@ -1028,7 +1028,7 @@ impl TestBindingMethods for TestBinding {
             handler: Rc<SimpleCallback>,
         }
         impl SimpleHandler {
-            fn new(callback: Rc<SimpleCallback>) -> Box<Callback> {
+            fn new(callback: Rc<SimpleCallback>) -> Box<dyn Callback> {
                 Box::new(SimpleHandler { handler: callback })
             }
         }

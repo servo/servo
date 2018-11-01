@@ -6,30 +6,15 @@
 #![crate_type = "rlib"]
 #![deny(unsafe_code)]
 
-extern crate base64;
-extern crate cookie as cookie_rs;
-extern crate euclid;
-extern crate hyper;
-extern crate image;
-extern crate ipc_channel;
-extern crate keyboard_types;
 #[macro_use]
 extern crate log;
-extern crate msg;
-extern crate net_traits;
-extern crate regex;
-extern crate script_traits;
 #[macro_use]
 extern crate serde;
-extern crate serde_json;
-extern crate servo_channel;
-extern crate servo_config;
-extern crate servo_url;
-extern crate uuid;
-extern crate webdriver;
 
 mod keys;
 
+use base64;
+use cookie;
 use crate::keys::keycodes_to_keys;
 use euclid::TypedSize2D;
 use hyper::Method;
@@ -45,7 +30,7 @@ use script_traits::webdriver_msg::{
 use script_traits::{ConstellationMsg, LoadData, WebDriverCommandMsg};
 use serde::de::{Deserialize, Deserializer, MapAccess, Visitor};
 use serde::ser::{Serialize, Serializer};
-use serde_json::Value;
+use serde_json::{self, Value};
 use servo_channel::Sender;
 use servo_config::prefs::{PrefValue, PREFS};
 use servo_url::ServoUrl;
@@ -91,7 +76,7 @@ fn extension_routes() -> Vec<(Method, &'static str, ServoExtensionRoute)> {
     ];
 }
 
-fn cookie_msg_to_cookie(cookie: cookie_rs::Cookie) -> Cookie {
+fn cookie_msg_to_cookie(cookie: cookie::Cookie) -> Cookie {
     Cookie {
         name: cookie.name().to_owned(),
         value: cookie.value().to_owned(),
@@ -920,7 +905,7 @@ impl Handler {
     ) -> WebDriverResult<WebDriverResponse> {
         let (sender, receiver) = ipc::channel().unwrap();
 
-        let cookie = cookie_rs::Cookie::build(params.name.to_owned(), params.value.to_owned())
+        let cookie = cookie::Cookie::build(params.name.to_owned(), params.value.to_owned())
             .secure(params.secure)
             .http_only(params.httpOnly);
         let cookie = match params.domain {

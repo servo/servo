@@ -2616,8 +2616,8 @@ pub fn window_from_node<T: DerivedFrom<Node> + DomObject>(derived: &T) -> DomRoo
 }
 
 impl VirtualMethods for Node {
-    fn super_type(&self) -> Option<&VirtualMethods> {
-        Some(self.upcast::<EventTarget>() as &VirtualMethods)
+    fn super_type(&self) -> Option<&dyn VirtualMethods> {
+        Some(self.upcast::<EventTarget>() as &dyn VirtualMethods)
     }
 
     fn children_changed(&self, mutation: &ChildrenMutation) {

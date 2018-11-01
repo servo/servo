@@ -41,7 +41,7 @@ lazy_static! {
 
 const FILE_CHUNK_SIZE: usize = 32768; //32 KB
 
-pub type Target<'a> = &'a mut (FetchTaskTarget + Send);
+pub type Target<'a> = &'a mut (dyn FetchTaskTarget + Send);
 
 pub enum Data {
     Payload(Vec<u8>),

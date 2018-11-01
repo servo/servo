@@ -116,7 +116,7 @@ impl ScriptChan for ServiceWorkerChan {
             .map_err(|_| ())
     }
 
-    fn clone(&self) -> Box<ScriptChan + Send> {
+    fn clone(&self) -> Box<dyn ScriptChan + Send> {
         Box::new(ServiceWorkerChan {
             sender: self.sender.clone(),
         })
@@ -412,7 +412,7 @@ impl ServiceWorkerGlobalScope {
         }
     }
 
-    pub fn script_chan(&self) -> Box<ScriptChan + Send> {
+    pub fn script_chan(&self) -> Box<dyn ScriptChan + Send> {
         Box::new(ServiceWorkerChan {
             sender: self.own_sender.clone(),
         })

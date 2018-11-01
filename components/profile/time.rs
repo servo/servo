@@ -5,7 +5,6 @@
 //! Timing functions.
 
 use crate::heartbeats;
-use crate::std_time::precise_time_ns;
 use crate::trace_dump::TraceDump;
 use influent::client::{Client, Credentials};
 use influent::create_client;
@@ -26,6 +25,7 @@ use std::io::{self, Write};
 use std::path::Path;
 use std::time::Duration;
 use std::{f64, thread, u32, u64};
+use time_crate::precise_time_ns;
 use tokio;
 use tokio::prelude::Future;
 

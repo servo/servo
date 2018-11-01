@@ -203,7 +203,7 @@ impl DedicatedWorkerGlobalScope {
         worker_url: ServoUrl,
         from_devtools_receiver: Receiver<DevtoolScriptControlMsg>,
         runtime: Runtime,
-        parent_sender: Box<ScriptChan + Send>,
+        parent_sender: Box<dyn ScriptChan + Send>,
         own_sender: Sender<DedicatedWorkerScriptMsg>,
         receiver: Receiver<DedicatedWorkerScriptMsg>,
         timer_event_chan: IpcSender<TimerEvent>,
@@ -233,7 +233,7 @@ impl DedicatedWorkerGlobalScope {
         worker_url: ServoUrl,
         from_devtools_receiver: Receiver<DevtoolScriptControlMsg>,
         runtime: Runtime,
-        parent_sender: Box<ScriptChan + Send>,
+        parent_sender: Box<dyn ScriptChan + Send>,
         own_sender: Sender<DedicatedWorkerScriptMsg>,
         receiver: Receiver<DedicatedWorkerScriptMsg>,
         timer_event_chan: IpcSender<TimerEvent>,
@@ -263,7 +263,7 @@ impl DedicatedWorkerGlobalScope {
         worker_url: ServoUrl,
         from_devtools_receiver: IpcReceiver<DevtoolScriptControlMsg>,
         worker: TrustedWorkerAddress,
-        parent_sender: Box<ScriptChan + Send>,
+        parent_sender: Box<dyn ScriptChan + Send>,
         own_sender: Sender<DedicatedWorkerScriptMsg>,
         receiver: Receiver<DedicatedWorkerScriptMsg>,
         worker_load_origin: WorkerScriptLoadOrigin,
@@ -396,14 +396,14 @@ impl DedicatedWorkerGlobalScope {
             .expect("Thread spawning failed");
     }
 
-    pub fn script_chan(&self) -> Box<ScriptChan + Send> {
+    pub fn script_chan(&self) -> Box<dyn ScriptChan + Send> {
         Box::new(WorkerThreadWorkerChan {
             sender: self.own_sender.clone(),
             worker: self.worker.borrow().as_ref().unwrap().clone(),
         })
     }
 
-    pub fn new_script_pair(&self) -> (Box<ScriptChan + Send>, Box<ScriptPort + Send>) {
+    pub fn new_script_pair(&self) -> (Box<dyn ScriptChan + Send>, Box<dyn ScriptPort + Send>) {
         let (tx, rx) = channel();
         let chan = Box::new(SendableWorkerScriptChan {
             sender: tx,

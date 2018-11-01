@@ -4,53 +4,18 @@
 
 #![deny(unsafe_code)]
 
-extern crate base64;
-extern crate brotli;
-extern crate bytes;
-extern crate cookie as cookie_rs;
-extern crate devtools_traits;
-extern crate embedder_traits;
-extern crate flate2;
-extern crate headers_core;
-extern crate headers_ext;
-extern crate http;
-extern crate hyper;
-extern crate hyper_openssl;
-extern crate hyper_serde;
-extern crate immeta;
-extern crate ipc_channel;
 #[macro_use]
 extern crate lazy_static;
 #[macro_use]
 extern crate log;
-extern crate malloc_size_of;
 #[macro_use]
 extern crate malloc_size_of_derive;
 #[macro_use]
-#[no_link]
 extern crate matches;
-extern crate mime;
-extern crate mime_guess;
-extern crate msg;
-extern crate net_traits;
-extern crate openssl;
-extern crate pixels;
 #[macro_use]
 extern crate profile_traits;
 #[macro_use]
 extern crate serde;
-extern crate serde_json;
-extern crate servo_allocator;
-extern crate servo_arc;
-extern crate servo_channel;
-extern crate servo_config;
-extern crate servo_url;
-extern crate time;
-extern crate tokio;
-extern crate url;
-extern crate uuid;
-extern crate webrender_api;
-extern crate ws;
 
 mod blob_loader;
 pub mod connector;

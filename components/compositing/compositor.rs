@@ -263,7 +263,7 @@ impl RenderNotifier {
 }
 
 impl webrender_api::RenderNotifier for RenderNotifier {
-    fn clone(&self) -> Box<webrender_api::RenderNotifier> {
+    fn clone(&self) -> Box<dyn webrender_api::RenderNotifier> {
         Box::new(RenderNotifier::new(self.compositor_proxy.clone()))
     }
 

@@ -153,7 +153,7 @@ pub struct Window {
     last_pressed: Cell<Option<KeyboardEvent>>,
     animation_state: Cell<AnimationState>,
     fullscreen: Cell<bool>,
-    gl: Rc<gl::Gl>,
+    gl: Rc<dyn gl::Gl>,
     suspended: Cell<bool>,
 }
 
@@ -675,7 +675,7 @@ impl Window {
 }
 
 impl WindowMethods for Window {
-    fn gl(&self) -> Rc<gl::Gl> {
+    fn gl(&self) -> Rc<dyn gl::Gl> {
         self.gl.clone()
     }
 
@@ -738,7 +738,7 @@ impl WindowMethods for Window {
         }
     }
 
-    fn create_event_loop_waker(&self) -> Box<EventLoopWaker> {
+    fn create_event_loop_waker(&self) -> Box<dyn EventLoopWaker> {
         struct GlutinEventLoopWaker {
             proxy: Option<Arc<winit::EventsLoopProxy>>,
         }
@@ -762,7 +762,7 @@ impl WindowMethods for Window {
                     }
                 }
             }
-            fn clone(&self) -> Box<EventLoopWaker + Send> {
+            fn clone(&self) -> Box<dyn EventLoopWaker + Send> {
                 Box::new(GlutinEventLoopWaker {
                     proxy: self.proxy.clone(),
                 })

@@ -93,7 +93,12 @@ impl WorkletGlobalScope {
     }
 
     /// Register a paint worklet to the script thread.
-    pub fn register_paint_worklet(&self, name: Atom, properties: Vec<Atom>, painter: Box<Painter>) {
+    pub fn register_paint_worklet(
+        &self,
+        name: Atom,
+        properties: Vec<Atom>,
+        painter: Box<dyn Painter>,
+    ) {
         self.to_script_thread_sender
             .send(MainThreadScriptMsg::RegisterPaintWorklet {
                 pipeline_id: self.globalscope.pipeline_id(),
@@ -147,7 +152,7 @@ pub struct WorkletGlobalScopeInit {
     /// Message to send to the scheduler
     pub scheduler_chan: IpcSender<TimerSchedulerMsg>,
     /// The image cache
-    pub image_cache: Arc<ImageCache>,
+    pub image_cache: Arc<dyn ImageCache>,
 }
 
 /// <https://drafts.css-houdini.org/worklets/#worklet-global-scope-type>

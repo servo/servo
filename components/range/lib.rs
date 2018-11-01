@@ -4,10 +4,8 @@
 
 #![deny(unsafe_code)]
 
-extern crate malloc_size_of;
 #[macro_use]
 extern crate malloc_size_of_derive;
-extern crate num_traits;
 #[macro_use]
 extern crate serde;
 

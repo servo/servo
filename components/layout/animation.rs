@@ -163,7 +163,7 @@ pub fn update_animation_state<E>(
 /// lock held.
 pub fn recalc_style_for_animations<E>(
     context: &LayoutContext,
-    flow: &mut Flow,
+    flow: &mut dyn Flow,
     animations: &FxHashMap<OpaqueNode, Vec<Animation>>,
 ) where
     E: TElement,

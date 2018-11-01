@@ -131,7 +131,7 @@ impl PaintWorkletGlobalScope {
         unsafe { PaintWorkletGlobalScopeBinding::Wrap(runtime.cx(), global) }
     }
 
-    pub fn image_cache(&self) -> Arc<ImageCache> {
+    pub fn image_cache(&self) -> Arc<dyn ImageCache> {
         self.image_cache.clone()
     }
 
@@ -396,7 +396,7 @@ impl PaintWorkletGlobalScope {
         }
     }
 
-    fn painter(&self, name: Atom) -> Box<Painter> {
+    fn painter(&self, name: Atom) -> Box<dyn Painter> {
         // Rather annoyingly we have to use a mutex here to make the painter Sync.
         struct WorkletPainter {
             name: Atom,

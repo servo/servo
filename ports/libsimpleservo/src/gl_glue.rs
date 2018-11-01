@@ -89,7 +89,7 @@ pub mod egl {
 pub mod gl {
     use servo::gl::Gl;
     use std::rc::Rc;
-    pub fn init() -> Result<Rc<Gl>, &'static str> {
+    pub fn init() -> Result<Rc<dyn Gl>, &'static str> {
         // FIXME: Add an OpenGL version
         unimplemented!()
     }

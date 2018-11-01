@@ -169,8 +169,8 @@ impl HTMLStyleElement {
 }
 
 impl VirtualMethods for HTMLStyleElement {
-    fn super_type(&self) -> Option<&VirtualMethods> {
-        Some(self.upcast::<HTMLElement>() as &VirtualMethods)
+    fn super_type(&self) -> Option<&dyn VirtualMethods> {
+        Some(self.upcast::<HTMLElement>() as &dyn VirtualMethods)
     }
 
     fn children_changed(&self, mutation: &ChildrenMutation) {

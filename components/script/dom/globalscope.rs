@@ -463,7 +463,7 @@ impl GlobalScope {
     }
 
     /// `ScriptChan` to send messages to the event loop of this global scope.
-    pub fn script_chan(&self) -> Box<ScriptChan + Send> {
+    pub fn script_chan(&self) -> Box<dyn ScriptChan + Send> {
         if let Some(window) = self.downcast::<Window>() {
             return MainThreadScriptChan(window.main_thread_script_chan().clone()).clone();
         }
@@ -663,7 +663,7 @@ impl GlobalScope {
     /// Create a new sender/receiver pair that can be used to implement an on-demand
     /// event loop. Used for implementing web APIs that require blocking semantics
     /// without resorting to nested event loops.
-    pub fn new_script_pair(&self) -> (Box<ScriptChan + Send>, Box<ScriptPort + Send>) {
+    pub fn new_script_pair(&self) -> (Box<dyn ScriptChan + Send>, Box<dyn ScriptPort + Send>) {
         if let Some(window) = self.downcast::<Window>() {
             return window.new_script_pair();
         }

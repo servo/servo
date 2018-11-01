@@ -17,49 +17,40 @@
 //! `Servo` is fed events from a generic type that implements the
 //! `WindowMethods` trait.
 
-extern crate env_logger;
-#[cfg(all(not(target_os = "windows"), not(target_os = "ios")))]
-extern crate gaol;
-extern crate gleam;
 #[macro_use]
 extern crate log;
 
-pub extern crate bluetooth;
-pub extern crate bluetooth_traits;
-pub extern crate canvas;
-pub extern crate canvas_traits;
-pub extern crate compositing;
-pub extern crate constellation;
-pub extern crate debugger;
-pub extern crate devtools;
-pub extern crate devtools_traits;
-pub extern crate embedder_traits;
-pub extern crate euclid;
-pub extern crate gfx;
-pub extern crate ipc_channel;
-pub extern crate layout_thread;
-pub extern crate msg;
-pub extern crate net;
-pub extern crate net_traits;
-pub extern crate profile;
-pub extern crate profile_traits;
-pub extern crate script;
-pub extern crate script_layout_interface;
-pub extern crate script_traits;
-pub extern crate servo_channel;
-pub extern crate servo_config;
-pub extern crate servo_geometry;
-pub extern crate servo_url;
-pub extern crate style;
-pub extern crate style_traits;
-pub extern crate webrender_api;
-pub extern crate webvr;
-pub extern crate webvr_traits;
-
-#[cfg(feature = "webdriver")]
-extern crate webdriver_server;
-
-extern crate webrender;
+pub use bluetooth;
+pub use bluetooth_traits;
+pub use canvas;
+pub use canvas_traits;
+pub use compositing;
+pub use constellation;
+pub use debugger;
+pub use devtools;
+pub use devtools_traits;
+pub use embedder_traits;
+pub use euclid;
+pub use gfx;
+pub use ipc_channel;
+pub use layout_thread;
+pub use msg;
+pub use net;
+pub use net_traits;
+pub use profile;
+pub use profile_traits;
+pub use script;
+pub use script_layout_interface;
+pub use script_traits;
+pub use servo_channel;
+pub use servo_config;
+pub use servo_geometry;
+pub use servo_url;
+pub use style;
+pub use style_traits;
+pub use webrender_api;
+pub use webvr;
+pub use webvr_traits;
 
 #[cfg(feature = "webdriver")]
 fn webdriver(port: u16, constellation: Sender<ConstellationMsg>) {
@@ -170,7 +161,7 @@ where
             let recorder = if opts.webrender_record {
                 let record_path = PathBuf::from("wr-record.bin");
                 let recorder = Box::new(webrender::BinaryRecorder::new(&record_path));
-                Some(recorder as Box<webrender::ApiRecordingReceiver>)
+                Some(recorder as Box<dyn webrender::ApiRecordingReceiver>)
             } else {
                 None
             };
@@ -458,7 +449,7 @@ where
 }
 
 fn create_embedder_channel(
-    event_loop_waker: Box<EventLoopWaker>,
+    event_loop_waker: Box<dyn EventLoopWaker>,
 ) -> (EmbedderProxy, EmbedderReceiver) {
     let (sender, receiver) = channel();
     (
@@ -471,7 +462,7 @@ fn create_embedder_channel(
 }
 
 fn create_compositor_channel(
-    event_loop_waker: Box<EventLoopWaker>,
+    event_loop_waker: Box<dyn EventLoopWaker>,
 ) -> (CompositorProxy, CompositorReceiver) {
     let (sender, receiver) = channel();
     (
@@ -495,7 +486,7 @@ fn create_constellation(
     webrender: &mut webrender::Renderer,
     webrender_document: webrender_api::DocumentId,
     webrender_api_sender: webrender_api::RenderApiSender,
-    window_gl: Rc<gl::Gl>,
+    window_gl: Rc<dyn gl::Gl>,
 ) -> (Sender<ConstellationMsg>, SWManagerSenders) {
     let bluetooth_thread: IpcSender<BluetoothRequest> =
         BluetoothThreadFactory::new(embedder_proxy.clone());

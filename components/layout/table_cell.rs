@@ -334,7 +334,7 @@ impl Flow for TableCellFlow {
 
     fn iterate_through_fragment_border_boxes(
         &self,
-        iterator: &mut FragmentBorderBoxIterator,
+        iterator: &mut dyn FragmentBorderBoxIterator,
         level: i32,
         stacking_context_position: &Point2D<Au>,
     ) {
@@ -345,7 +345,7 @@ impl Flow for TableCellFlow {
         )
     }
 
-    fn mutate_fragments(&mut self, mutator: &mut FnMut(&mut Fragment)) {
+    fn mutate_fragments(&mut self, mutator: &mut dyn FnMut(&mut Fragment)) {
         self.block_flow.mutate_fragments(mutator)
     }
 

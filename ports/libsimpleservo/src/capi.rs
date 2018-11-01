@@ -64,7 +64,7 @@ pub extern "C" fn servo_version() -> *const c_char {
 
 fn init(
     opts: CInitOptions,
-    gl: Rc<gl::Gl>,
+    gl: Rc<dyn gl::Gl>,
     wakeup: extern "C" fn(),
     readfile: extern "C" fn(*const c_char) -> *const c_char,
     callbacks: CHostCallbacks,
@@ -238,7 +238,7 @@ impl WakeupCallback {
 }
 
 impl EventLoopWaker for WakeupCallback {
-    fn clone(&self) -> Box<EventLoopWaker + Send> {
+    fn clone(&self) -> Box<dyn EventLoopWaker + Send> {
         Box::new(WakeupCallback(self.0))
     }
     fn wake(&self) {

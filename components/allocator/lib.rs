@@ -10,9 +10,11 @@ static ALLOC: Allocator = Allocator;
 pub use crate::platform::*;
 
 #[cfg(not(windows))]
-mod platform {
-    extern crate jemalloc_sys as ffi;
+pub use jemalloc_sys;
 
+#[cfg(not(windows))]
+mod platform {
+    use jemalloc_sys as ffi;
     use std::alloc::{GlobalAlloc, Layout};
     use std::os::raw::{c_int, c_void};
 
@@ -96,9 +98,7 @@ mod platform {
 
 #[cfg(windows)]
 mod platform {
-    extern crate kernel32;
-
-    use self::kernel32::{GetProcessHeap, HeapSize, HeapValidate};
+    use kernel32::{GetProcessHeap, HeapSize, HeapValidate};
     pub use std::alloc::System as Allocator;
     use std::os::raw::c_void;
 

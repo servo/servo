@@ -26,8 +26,8 @@ pub struct PromiseNativeHandler {
 impl PromiseNativeHandler {
     pub fn new(
         global: &GlobalScope,
-        resolve: Option<Box<Callback>>,
-        reject: Option<Box<Callback>>,
+        resolve: Option<Box<dyn Callback>>,
+        reject: Option<Box<dyn Callback>>,
     ) -> DomRoot<PromiseNativeHandler> {
         reflect_dom_object(
             Box::new(PromiseNativeHandler {
@@ -40,7 +40,7 @@ impl PromiseNativeHandler {
         )
     }
 
-    fn callback(callback: &Option<Box<Callback>>, cx: *mut JSContext, v: HandleValue) {
+    fn callback(callback: &Option<Box<dyn Callback>>, cx: *mut JSContext, v: HandleValue) {
         if let Some(ref callback) = *callback {
             callback.callback(cx, v)
         }

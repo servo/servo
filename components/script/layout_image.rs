@@ -21,7 +21,7 @@ use std::sync::{Arc, Mutex};
 
 struct LayoutImageContext {
     id: PendingImageId,
-    cache: Arc<ImageCache>,
+    cache: Arc<dyn ImageCache>,
 }
 
 impl FetchResponseListener for LayoutImageContext {
@@ -49,7 +49,7 @@ pub fn fetch_image_for_layout(
     url: ServoUrl,
     node: &Node,
     id: PendingImageId,
-    cache: Arc<ImageCache>,
+    cache: Arc<dyn ImageCache>,
 ) {
     let context = Arc::new(Mutex::new(LayoutImageContext {
         id: id,

@@ -16,8 +16,6 @@
 extern crate lazy_static;
 #[macro_use]
 extern crate log;
-extern crate rand;
-extern crate uuid;
 
 #[cfg(target_pointer_width = "64")]
 use rand::isaac::Isaac64Rng as IsaacWordRng;

@@ -69,7 +69,10 @@ pub struct HTMLCollection {
 
 impl HTMLCollection {
     #[allow(unrooted_must_root)]
-    pub fn new_inherited(root: &Node, filter: Box<CollectionFilter + 'static>) -> HTMLCollection {
+    pub fn new_inherited(
+        root: &Node,
+        filter: Box<dyn CollectionFilter + 'static>,
+    ) -> HTMLCollection {
         HTMLCollection {
             reflector_: Reflector::new(),
             root: Dom::from_ref(root),
@@ -99,7 +102,7 @@ impl HTMLCollection {
     pub fn new(
         window: &Window,
         root: &Node,
-        filter: Box<CollectionFilter + 'static>,
+        filter: Box<dyn CollectionFilter + 'static>,
     ) -> DomRoot<HTMLCollection> {
         reflect_dom_object(
             Box::new(HTMLCollection::new_inherited(root, filter)),
@@ -111,7 +114,7 @@ impl HTMLCollection {
     pub fn create(
         window: &Window,
         root: &Node,
-        filter: Box<CollectionFilter + 'static>,
+        filter: Box<dyn CollectionFilter + 'static>,
     ) -> DomRoot<HTMLCollection> {
         HTMLCollection::new(window, root, filter)
     }

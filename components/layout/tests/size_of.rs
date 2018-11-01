@@ -4,7 +4,6 @@
 
 #![cfg(target_pointer_width = "64")]
 
-extern crate layout;
 #[macro_use]
 extern crate size_of_test;
 

@@ -69,11 +69,11 @@ impl FlowList {
         self.flows.push_back(new_tail);
     }
 
-    pub fn push_back_arc(&mut self, new_head: Arc<Flow>) {
+    pub fn push_back_arc(&mut self, new_head: Arc<dyn Flow>) {
         self.flows.push_back(FlowRef::new(new_head));
     }
 
-    pub fn back(&self) -> Option<&Flow> {
+    pub fn back(&self) -> Option<&dyn Flow> {
         self.flows.back().map(|x| &**x)
     }
 
@@ -84,15 +84,15 @@ impl FlowList {
         self.flows.push_front(new_head);
     }
 
-    pub fn push_front_arc(&mut self, new_head: Arc<Flow>) {
+    pub fn push_front_arc(&mut self, new_head: Arc<dyn Flow>) {
         self.flows.push_front(FlowRef::new(new_head));
     }
 
-    pub fn pop_front_arc(&mut self) -> Option<Arc<Flow>> {
+    pub fn pop_front_arc(&mut self) -> Option<Arc<dyn Flow>> {
         self.flows.pop_front().map(FlowRef::into_arc)
     }
 
-    pub fn front(&self) -> Option<&Flow> {
+    pub fn front(&self) -> Option<&dyn Flow> {
         self.flows.front().map(|x| &**x)
     }
 
@@ -161,21 +161,21 @@ impl FlowList {
 }
 
 impl<'a> DoubleEndedIterator for FlowListIterator<'a> {
-    fn next_back(&mut self) -> Option<&'a Flow> {
+    fn next_back(&mut self) -> Option<&'a dyn Flow> {
         self.it.next_back().map(Deref::deref)
     }
 }
 
 impl<'a> DoubleEndedIterator for MutFlowListIterator<'a> {
-    fn next_back(&mut self) -> Option<&'a mut Flow> {
+    fn next_back(&mut self) -> Option<&'a mut dyn Flow> {
         self.it.next_back().map(FlowRef::deref_mut)
     }
 }
 
 impl<'a> Iterator for FlowListIterator<'a> {
-    type Item = &'a Flow;
+    type Item = &'a dyn Flow;
     #[inline]
-    fn next(&mut self) -> Option<&'a Flow> {
+    fn next(&mut self) -> Option<&'a dyn Flow> {
         self.it.next().map(Deref::deref)
     }
 
@@ -186,9 +186,9 @@ impl<'a> Iterator for FlowListIterator<'a> {
 }
 
 impl<'a> Iterator for MutFlowListIterator<'a> {
-    type Item = &'a mut Flow;
+    type Item = &'a mut dyn Flow;
     #[inline]
-    fn next(&mut self) -> Option<&'a mut Flow> {
+    fn next(&mut self) -> Option<&'a mut dyn Flow> {
         self.it.next().map(FlowRef::deref_mut)
     }
 
@@ -206,7 +206,7 @@ pub struct FlowListRandomAccessMut<'a> {
 }
 
 impl<'a> FlowListRandomAccessMut<'a> {
-    pub fn get<'b>(&'b mut self, index: usize) -> &'b mut Flow {
+    pub fn get<'b>(&'b mut self, index: usize) -> &'b mut dyn Flow {
         while index >= self.cache.len() {
             match self.iterator.next() {
                 None => panic!("Flow index out of range!"),

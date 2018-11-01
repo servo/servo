@@ -17,8 +17,6 @@
 //! a page runs its course and the script thread returns to processing events in the main event
 //! loop.
 
-extern crate itertools;
-
 use bluetooth_traits::BluetoothRequest;
 use canvas_traits::webgl::WebGLPipeline;
 use crate::devtools;
@@ -94,6 +92,7 @@ use headers_ext::LastModified;
 use headers_ext::ReferrerPolicy as ReferrerPolicyHeader;
 use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcSender};
+use itertools;
 use js::glue::GetWindowProxyClass;
 use js::jsapi::{JSAutoCompartment, JSContext, JS_SetWrapObjectCallbacks};
 use js::jsapi::{JSTracer, SetWindowProxyClass};
@@ -260,7 +259,7 @@ pub enum MainThreadScriptMsg {
         pipeline_id: PipelineId,
         name: Atom,
         properties: Vec<Atom>,
-        painter: Box<Painter>,
+        painter: Box<dyn Painter>,
     },
     /// Dispatches a job queue.
     DispatchJobQueue { scope_url: ServoUrl },
@@ -314,7 +313,7 @@ impl QueuedTaskConversion for MainThreadScriptMsg {
     }
 }
 
-impl OpaqueSender<CommonScriptMsg> for Box<ScriptChan + Send> {
+impl OpaqueSender<CommonScriptMsg> for Box<dyn ScriptChan + Send> {
     fn send(&self, msg: CommonScriptMsg) {
         ScriptChan::send(&**self, msg).unwrap();
     }
@@ -367,7 +366,7 @@ impl ScriptChan for SendableMainThreadScriptChan {
         self.0.send(msg).map_err(|_| ())
     }
 
-    fn clone(&self) -> Box<ScriptChan + Send> {
+    fn clone(&self) -> Box<dyn ScriptChan + Send> {
         Box::new(SendableMainThreadScriptChan((&self.0).clone()))
     }
 }
@@ -383,7 +382,7 @@ impl ScriptChan for MainThreadScriptChan {
             .map_err(|_| ())
     }
 
-    fn clone(&self) -> Box<ScriptChan + Send> {
+    fn clone(&self) -> Box<dyn ScriptChan + Send> {
         Box::new(MainThreadScriptChan((&self.0).clone()))
     }
 }
@@ -501,7 +500,7 @@ pub struct ScriptThread {
     /// A job queue for Service Workers keyed by their scope url
     job_queue_map: Rc<JobQueue>,
     /// Image cache for this script thread.
-    image_cache: Arc<ImageCache>,
+    image_cache: Arc<dyn ImageCache>,
     /// A handle to the resource thread. This is an `Arc` to avoid running out of file descriptors if
     /// there are many iframes.
     resource_threads: ResourceThreads,
@@ -515,21 +514,21 @@ pub struct ScriptThread {
     /// events in the event queue.
     chan: MainThreadScriptChan,
 
-    dom_manipulation_task_sender: Box<ScriptChan>,
+    dom_manipulation_task_sender: Box<dyn ScriptChan>,
 
     media_element_task_sender: Sender<MainThreadScriptMsg>,
 
     user_interaction_task_sender: Sender<MainThreadScriptMsg>,
 
-    networking_task_sender: Box<ScriptChan>,
+    networking_task_sender: Box<dyn ScriptChan>,
 
     history_traversal_task_source: HistoryTraversalTaskSource,
 
-    file_reading_task_sender: Box<ScriptChan>,
+    file_reading_task_sender: Box<dyn ScriptChan>,
 
-    performance_timeline_task_sender: Box<ScriptChan>,
+    performance_timeline_task_sender: Box<dyn ScriptChan>,
 
-    remote_event_task_sender: Box<ScriptChan>,
+    remote_event_task_sender: Box<dyn ScriptChan>,
 
     /// A channel to hand out to threads that need to respond to a message from the script thread.
     control_chan: IpcSender<ConstellationControlMsg>,
@@ -913,7 +912,7 @@ impl ScriptThread {
         pipeline_id: PipelineId,
         name: Atom,
         properties: Vec<Atom>,
-        painter: Box<Painter>,
+        painter: Box<dyn Painter>,
     ) {
         let window = self.documents.borrow().find_window(pipeline_id);
         let window = match window {

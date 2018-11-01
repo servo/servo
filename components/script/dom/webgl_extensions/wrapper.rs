@@ -25,7 +25,7 @@ pub trait WebGLExtensionWrapper: JSTraceable + MallocSizeOf {
     fn is_enabled(&self) -> bool;
     fn enable(&self, ext: &WebGLExtensions);
     fn name(&self) -> &'static str;
-    fn as_any(&self) -> &Any;
+    fn as_any(&self) -> &dyn Any;
 }
 
 #[must_root]
@@ -85,7 +85,7 @@ where
         T::name()
     }
 
-    fn as_any<'a>(&'a self) -> &'a Any {
+    fn as_any<'a>(&'a self) -> &'a dyn Any {
         self
     }
 }

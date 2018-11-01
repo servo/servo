@@ -5,52 +5,18 @@
 //! The layout thread. Performs layout on the DOM, builds display lists and sends them to be
 //! painted.
 
-extern crate app_units;
-extern crate atomic_refcell;
-extern crate embedder_traits;
-extern crate euclid;
-extern crate fnv;
-extern crate fxhash;
-extern crate gfx;
-extern crate gfx_traits;
-extern crate histogram;
 #[macro_use]
 extern crate html5ever;
-extern crate ipc_channel;
 #[macro_use]
 extern crate layout;
-extern crate layout_traits;
 #[macro_use]
 extern crate lazy_static;
-extern crate libc;
 #[macro_use]
 extern crate log;
-extern crate malloc_size_of;
-extern crate metrics;
-extern crate msg;
-extern crate net_traits;
-extern crate parking_lot;
 #[macro_use]
 extern crate profile_traits;
-extern crate range;
-extern crate rayon;
-extern crate script;
-extern crate script_layout_interface;
-extern crate script_traits;
-extern crate selectors;
-extern crate serde_json;
-extern crate servo_allocator;
-extern crate servo_arc;
-extern crate servo_atoms;
 #[macro_use]
 extern crate servo_channel;
-extern crate servo_config;
-extern crate servo_geometry;
-extern crate servo_url;
-extern crate style;
-extern crate style_traits;
-extern crate time as std_time;
-extern crate webrender_api;
 
 mod dom_wrapper;
 
@@ -101,8 +67,8 @@ use msg::constellation_msg::PipelineId;
 use msg::constellation_msg::TopLevelBrowsingContextId;
 use net_traits::image_cache::{ImageCache, UsePlaceholder};
 use parking_lot::RwLock;
-use profile_traits::mem::{self, Report, ReportKind, ReportsChan};
-use profile_traits::time::{self, profile, TimerMetadata};
+use profile_traits::mem::{self as profile_mem, Report, ReportKind, ReportsChan};
+use profile_traits::time::{self as profile_time, profile, TimerMetadata};
 use profile_traits::time::{TimerMetadataFrameType, TimerMetadataReflowType};
 use script_layout_interface::message::{Msg, NewLayoutThreadInfo, NodesFromPointQueryType, Reflow};
 use script_layout_interface::message::{QueryMsg, ReflowComplete, ReflowGoal, ScriptReflow};
@@ -124,7 +90,6 @@ use servo_url::ServoUrl;
 use std::borrow::ToOwned;
 use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
-use std::mem as std_mem;
 use std::ops::{Deref, DerefMut};
 use std::process;
 use std::sync::atomic::{AtomicUsize, Ordering};
@@ -191,13 +156,13 @@ pub struct LayoutThread {
     script_chan: IpcSender<ConstellationControlMsg>,
 
     /// The channel on which messages can be sent to the time profiler.
-    time_profiler_chan: time::ProfilerChan,
+    time_profiler_chan: profile_time::ProfilerChan,
 
     /// The channel on which messages can be sent to the memory profiler.
-    mem_profiler_chan: mem::ProfilerChan,
+    mem_profiler_chan: profile_mem::ProfilerChan,
 
     /// Reference to the script thread image cache.
-    image_cache: Arc<ImageCache>,
+    image_cache: Arc<dyn ImageCache>,
 
     /// Public interface to the font cache thread.
     font_cache_thread: FontCacheThread,
@@ -289,10 +254,10 @@ impl LayoutThreadFactory for LayoutThread {
         pipeline_port: IpcReceiver<LayoutControlMsg>,
         constellation_chan: IpcSender<ConstellationMsg>,
         script_chan: IpcSender<ConstellationControlMsg>,
-        image_cache: Arc<ImageCache>,
+        image_cache: Arc<dyn ImageCache>,
         font_cache_thread: FontCacheThread,
-        time_profiler_chan: time::ProfilerChan,
-        mem_profiler_chan: mem::ProfilerChan,
+        time_profiler_chan: profile_time::ProfilerChan,
+        mem_profiler_chan: profile_mem::ProfilerChan,
         content_process_shutdown_chan: Option<IpcSender<()>>,
         webrender_api_sender: webrender_api::RenderApiSender,
         webrender_document: webrender_api::DocumentId,
@@ -480,10 +445,10 @@ impl LayoutThread {
         pipeline_port: IpcReceiver<LayoutControlMsg>,
         constellation_chan: IpcSender<ConstellationMsg>,
         script_chan: IpcSender<ConstellationControlMsg>,
-        image_cache: Arc<ImageCache>,
+        image_cache: Arc<dyn ImageCache>,
         font_cache_thread: FontCacheThread,
-        time_profiler_chan: time::ProfilerChan,
-        mem_profiler_chan: mem::ProfilerChan,
+        time_profiler_chan: profile_time::ProfilerChan,
+        mem_profiler_chan: profile_mem::ProfilerChan,
         webrender_api_sender: webrender_api::RenderApiSender,
         webrender_document: webrender_api::DocumentId,
         layout_threads: usize,
@@ -716,13 +681,13 @@ impl LayoutThread {
             Msg::SetQuirksMode(mode) => self.handle_set_quirks_mode(mode),
             Msg::GetRPC(response_chan) => {
                 response_chan
-                    .send(Box::new(LayoutRPCImpl(self.rw_data.clone())) as Box<LayoutRPC + Send>)
+                    .send(Box::new(LayoutRPCImpl(self.rw_data.clone())) as Box<dyn LayoutRPC + Send>)
                     .unwrap();
             },
             Msg::Reflow(data) => {
                 let mut data = ScriptReflowResult::new(data);
                 profile(
-                    time::ProfilerCategory::LayoutPerform,
+                    profile_time::ProfilerCategory::LayoutPerform,
                     self.profiler_metadata(),
                     self.time_profiler_chan.clone(),
                     || self.handle_reflow(&mut data, possibly_locked_rw_data),
@@ -812,7 +777,7 @@ impl LayoutThread {
         let mut reports = vec![];
         // Servo uses vanilla jemalloc, which doesn't have a
         // malloc_enclosing_size_of function.
-        let mut ops = MallocSizeOfOps::new(::servo_allocator::usable_size, None, None);
+        let mut ops = MallocSizeOfOps::new(servo_allocator::usable_size, None, None);
 
         // FIXME(njn): Just measuring the display tree for now.
         let rw_data = possibly_locked_rw_data.lock();
@@ -963,7 +928,7 @@ impl LayoutThread {
     /// This corresponds to `Reflow()` in Gecko and `layout()` in WebKit/Blink and should be
     /// benchmarked against those two. It is marked `#[inline(never)]` to aid profiling.
     #[inline(never)]
-    fn solve_constraints(layout_root: &mut Flow, layout_context: &LayoutContext) {
+    fn solve_constraints(layout_root: &mut dyn Flow, layout_context: &LayoutContext) {
         let _scope = layout_debug_scope!("solve_constraints");
         sequential::reflow(layout_root, layout_context, RelayoutMode::Incremental);
     }
@@ -975,9 +940,9 @@ impl LayoutThread {
     #[inline(never)]
     fn solve_constraints_parallel(
         traversal: &rayon::ThreadPool,
-        layout_root: &mut Flow,
+        layout_root: &mut dyn Flow,
         profiler_metadata: Option<TimerMetadata>,
-        time_profiler_chan: time::ProfilerChan,
+        time_profiler_chan: profile_time::ProfilerChan,
         layout_context: &LayoutContext,
     ) {
         let _scope = layout_debug_scope!("solve_constraints_parallel");
@@ -1000,14 +965,14 @@ impl LayoutThread {
         data: &Reflow,
         reflow_goal: &ReflowGoal,
         document: Option<&ServoLayoutDocument>,
-        layout_root: &mut Flow,
+        layout_root: &mut dyn Flow,
         layout_context: &mut LayoutContext,
         rw_data: &mut LayoutThreadData,
     ) {
         let writing_mode = layout_root.base().writing_mode;
         let (metadata, sender) = (self.profiler_metadata(), self.time_profiler_chan.clone());
         profile(
-            time::ProfilerCategory::LayoutDispListBuild,
+            profile_time::ProfilerCategory::LayoutDispListBuild,
             metadata.clone(),
             sender.clone(),
             || {
@@ -1149,7 +1114,7 @@ impl LayoutThread {
         let mut rw_data = possibly_locked_rw_data.lock();
 
         // Record the time that layout query has been waited.
-        let now = std_time::precise_time_ns();
+        let now = time::precise_time_ns();
         if let ReflowGoal::LayoutQuery(_, timestamp) = data.reflow_goal {
             self.layout_query_waiting_time
                 .increment(now - timestamp)
@@ -1366,7 +1331,7 @@ impl LayoutThread {
         if token.should_traverse() {
             // Recalculate CSS styles and rebuild flows and fragments.
             profile(
-                time::ProfilerCategory::LayoutStyleRecalc,
+                profile_time::ProfilerCategory::LayoutStyleRecalc,
                 self.profiler_metadata(),
                 self.time_profiler_chan.clone(),
                 || {
@@ -1381,8 +1346,8 @@ impl LayoutThread {
             // TODO(pcwalton): Measure energy usage of text shaping, perhaps?
             let text_shaping_time = (font::get_and_reset_text_shaping_performance_counter() as u64) /
                 (self.layout_threads as u64);
-            time::send_profile_data(
-                time::ProfilerCategory::LayoutTextShaping,
+            profile_time::send_profile_data(
+                profile_time::ProfilerCategory::LayoutTextShaping,
                 self.profiler_metadata(),
                 &self.time_profiler_chan,
                 0,
@@ -1447,13 +1412,13 @@ impl LayoutThread {
         reflow_result: &mut ReflowComplete,
     ) {
         let pending_images = match context.pending_images {
-            Some(ref pending) => std_mem::replace(&mut *pending.lock().unwrap(), vec![]),
+            Some(ref pending) => std::mem::replace(&mut *pending.lock().unwrap(), vec![]),
             None => vec![],
         };
         reflow_result.pending_images = pending_images;
 
         let newly_transitioning_nodes = match context.newly_transitioning_nodes {
-            Some(ref nodes) => std_mem::replace(&mut *nodes.lock().unwrap(), vec![]),
+            Some(ref nodes) => std::mem::replace(&mut *nodes.lock().unwrap(), vec![]),
             None => vec![],
         };
         reflow_result.newly_transitioning_nodes = newly_transitioning_nodes;
@@ -1608,7 +1573,7 @@ impl LayoutThread {
                 // Perform an abbreviated style recalc that operates without access to the DOM.
                 let animations = self.running_animations.read();
                 profile(
-                    time::ProfilerCategory::LayoutStyleRecalc,
+                    profile_time::ProfilerCategory::LayoutStyleRecalc,
                     self.profiler_metadata(),
                     self.time_profiler_chan.clone(),
                     || {
@@ -1663,7 +1628,7 @@ impl LayoutThread {
         }
 
         profile(
-            time::ProfilerCategory::LayoutRestyleDamagePropagation,
+            profile_time::ProfilerCategory::LayoutRestyleDamagePropagation,
             self.profiler_metadata(),
             self.time_profiler_chan.clone(),
             || {
@@ -1685,7 +1650,7 @@ impl LayoutThread {
 
         // Resolve generated content.
         profile(
-            time::ProfilerCategory::LayoutGeneratedContent,
+            profile_time::ProfilerCategory::LayoutGeneratedContent,
             self.profiler_metadata(),
             self.time_profiler_chan.clone(),
             || sequential::resolve_generated_content(FlowRef::deref_mut(root_flow), &context),
@@ -1693,7 +1658,7 @@ impl LayoutThread {
 
         // Guess float placement.
         profile(
-            time::ProfilerCategory::LayoutFloatPlacementSpeculation,
+            profile_time::ProfilerCategory::LayoutFloatPlacementSpeculation,
             self.profiler_metadata(),
             self.time_profiler_chan.clone(),
             || sequential::guess_float_placement(FlowRef::deref_mut(root_flow)),
@@ -1707,7 +1672,7 @@ impl LayoutThread {
             .intersects(ServoRestyleDamage::REFLOW | ServoRestyleDamage::REFLOW_OUT_OF_FLOW)
         {
             profile(
-                time::ProfilerCategory::LayoutMain,
+                profile_time::ProfilerCategory::LayoutMain,
                 self.profiler_metadata(),
                 self.time_profiler_chan.clone(),
                 || {
@@ -1733,11 +1698,11 @@ impl LayoutThread {
         }
 
         profile(
-            time::ProfilerCategory::LayoutStoreOverflow,
+            profile_time::ProfilerCategory::LayoutStoreOverflow,
             self.profiler_metadata(),
             self.time_profiler_chan.clone(),
             || {
-                sequential::store_overflow(context, FlowRef::deref_mut(root_flow) as &mut Flow);
+                sequential::store_overflow(context, FlowRef::deref_mut(root_flow) as &mut dyn Flow);
             },
         );
 
@@ -1781,7 +1746,7 @@ impl LayoutThread {
         self.generation.set(self.generation.get() + 1);
     }
 
-    fn reflow_all_nodes(flow: &mut Flow) {
+    fn reflow_all_nodes(flow: &mut dyn Flow) {
         debug!("reflowing all nodes!");
         flow.mut_base().restyle_damage.insert(
             ServoRestyleDamage::REPAINT |
@@ -1828,7 +1793,7 @@ impl ProfilerMetadataFactory for LayoutThread {
 // clearing the frame buffer to white. This ensures that setting a background
 // color on an iframe element, while the iframe content itself has a default
 // transparent background color is handled correctly.
-fn get_root_flow_background_color(flow: &mut Flow) -> webrender_api::ColorF {
+fn get_root_flow_background_color(flow: &mut dyn Flow) -> webrender_api::ColorF {
     let transparent = webrender_api::ColorF {
         r: 0.0,
         g: 0.0,
@@ -1948,7 +1913,7 @@ lazy_static! {
 }
 
 struct RegisteredPainterImpl {
-    painter: Box<Painter>,
+    painter: Box<dyn Painter>,
     name: Atom,
     // FIXME: Should be a PrecomputedHashMap.
     properties: FxHashMap<Atom, PropertyId>,
@@ -1992,17 +1957,17 @@ impl RegisteredPainter for RegisteredPainterImpl {}
 struct RegisteredPaintersImpl(FnvHashMap<Atom, RegisteredPainterImpl>);
 
 impl RegisteredSpeculativePainters for RegisteredPaintersImpl {
-    fn get(&self, name: &Atom) -> Option<&RegisteredSpeculativePainter> {
+    fn get(&self, name: &Atom) -> Option<&dyn RegisteredSpeculativePainter> {
         self.0
             .get(&name)
-            .map(|painter| painter as &RegisteredSpeculativePainter)
+            .map(|painter| painter as &dyn RegisteredSpeculativePainter)
     }
 }
 
 impl RegisteredPainters for RegisteredPaintersImpl {
-    fn get(&self, name: &Atom) -> Option<&RegisteredPainter> {
+    fn get(&self, name: &Atom) -> Option<&dyn RegisteredPainter> {
         self.0
             .get(&name)
-            .map(|painter| painter as &RegisteredPainter)
+            .map(|painter| painter as &dyn RegisteredPainter)
     }
 }

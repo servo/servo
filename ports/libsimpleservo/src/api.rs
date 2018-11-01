@@ -106,10 +106,10 @@ pub fn servo_version() -> String {
 /// In the future, this will be done in multiple steps.
 pub fn init(
     init_opts: InitOptions,
-    gl: Rc<gl::Gl>,
-    waker: Box<EventLoopWaker>,
-    readfile: Box<ReadFileTrait + Send + Sync>,
-    callbacks: Box<HostTrait>,
+    gl: Rc<dyn gl::Gl>,
+    waker: Box<dyn EventLoopWaker>,
+    readfile: Box<dyn ReadFileTrait + Send + Sync>,
+    callbacks: Box<dyn HostTrait>,
 ) -> Result<(), &'static str> {
     resources::set(Box::new(ResourceReader(readfile)));
 
@@ -444,9 +444,9 @@ impl ServoGlue {
 }
 
 struct ServoCallbacks {
-    waker: Box<EventLoopWaker>,
-    gl: Rc<gl::Gl>,
-    host_callbacks: Box<HostTrait>,
+    waker: Box<dyn EventLoopWaker>,
+    gl: Rc<dyn gl::Gl>,
+    host_callbacks: Box<dyn HostTrait>,
     width: Cell<u32>,
     height: Cell<u32>,
     density: f32,
@@ -464,12 +464,12 @@ impl WindowMethods for ServoCallbacks {
         self.host_callbacks.flush();
     }
 
-    fn create_event_loop_waker(&self) -> Box<EventLoopWaker> {
+    fn create_event_loop_waker(&self) -> Box<dyn EventLoopWaker> {
         debug!("WindowMethods::create_event_loop_waker");
         self.waker.clone()
     }
 
-    fn gl(&self) -> Rc<gl::Gl> {
+    fn gl(&self) -> Rc<dyn gl::Gl> {
         debug!("WindowMethods::gl");
         self.gl.clone()
     }
@@ -493,7 +493,7 @@ impl WindowMethods for ServoCallbacks {
     }
 }
 
-struct ResourceReader(Box<ReadFileTrait + Send + Sync>);
+struct ResourceReader(Box<dyn ReadFileTrait + Send + Sync>);
 
 impl resources::ResourceReaderMethods for ResourceReader {
     fn read(&self, file: Resource) -> Vec<u8> {

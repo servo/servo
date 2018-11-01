@@ -126,7 +126,7 @@ impl CanvasRenderingContext2D {
     pub fn new_inherited(
         global: &GlobalScope,
         canvas: Option<&HTMLCanvasElement>,
-        image_cache: Arc<ImageCache>,
+        image_cache: Arc<dyn ImageCache>,
         base_url: ServoUrl,
         size: Size2D<u32>,
     ) -> CanvasRenderingContext2D {

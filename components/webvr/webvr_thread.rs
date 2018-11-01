@@ -347,7 +347,7 @@ impl WebVRThread {
 ///    * WebVRThread and its VRDisplays are destroyed after all tabs are dropped and the browser is about to exit.
 ///      WebVRThread is closed using the Exit message.
 
-pub struct WebVRCompositor(*mut VRDisplay);
+pub struct WebVRCompositor(*mut dyn VRDisplay);
 pub struct WebVRCompositorHandler {
     compositors: HashMap<webgl::WebVRDeviceId, WebVRCompositor>,
     webvr_thread_receiver: Receiver<Option<WebVRCompositor>>,

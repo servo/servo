@@ -255,7 +255,7 @@ pub trait Flow: HasBaseFlow + fmt::Debug + Sync + Send + 'static {
         &mut self,
         layout_context: &LayoutContext,
         _fragmentation_context: Option<FragmentationContext>,
-    ) -> Option<Arc<Flow>> {
+    ) -> Option<Arc<dyn Flow>> {
         fn recursive_assign_block_size<F: ?Sized + Flow + GetBaseFlow>(
             flow: &mut F,
             ctx: &LayoutContext,
@@ -423,13 +423,13 @@ pub trait Flow: HasBaseFlow + fmt::Debug + Sync + Send + 'static {
     /// depth of the flow tree during fragment iteration.
     fn iterate_through_fragment_border_boxes(
         &self,
-        iterator: &mut FragmentBorderBoxIterator,
+        iterator: &mut dyn FragmentBorderBoxIterator,
         level: i32,
         stacking_context_position: &Point2D<Au>,
     );
 
     /// Mutably iterates through fragments in this flow.
-    fn mutate_fragments(&mut self, mutator: &mut FnMut(&mut Fragment));
+    fn mutate_fragments(&mut self, mutator: &mut dyn FnMut(&mut Fragment));
 
     fn compute_collapsible_block_start_margin(
         &mut self,
@@ -813,8 +813,8 @@ pub struct AbsoluteDescendantIter<'a> {
 }
 
 impl<'a> Iterator for AbsoluteDescendantIter<'a> {
-    type Item = &'a mut Flow;
-    fn next(&mut self) -> Option<&'a mut Flow> {
+    type Item = &'a mut dyn Flow;
+    fn next(&mut self) -> Option<&'a mut dyn Flow> {
         self.iter
             .next()
             .map(|info| FlowRef::deref_mut(&mut info.flow))
@@ -1245,7 +1245,7 @@ impl BaseFlow {
     }
 }
 
-impl<'a> ImmutableFlowUtils for &'a Flow {
+impl<'a> ImmutableFlowUtils for &'a dyn Flow {
     /// Returns true if this flow is a block flow or subclass thereof.
     fn is_block_like(self) -> bool {
         self.class().is_block_like()
@@ -1419,7 +1419,7 @@ impl<'a> ImmutableFlowUtils for &'a Flow {
     }
 }
 
-impl<'a> MutableFlowUtils for &'a mut Flow {
+impl<'a> MutableFlowUtils for &'a mut dyn Flow {
     /// Calls `repair_style` and `bubble_inline_sizes`. You should use this method instead of
     /// calling them individually, since there is no reason not to perform both operations.
     fn repair_style_and_bubble_inline_sizes(self, style: &crate::ServoArc<ComputedValues>) {
@@ -1550,8 +1550,8 @@ impl ContainingBlockLink {
 pub struct OpaqueFlow(pub usize);
 
 impl OpaqueFlow {
-    pub fn from_flow(flow: &Flow) -> OpaqueFlow {
-        let object_ptr: *const Flow = flow;
+    pub fn from_flow(flow: &dyn Flow) -> OpaqueFlow {
+        let object_ptr: *const dyn Flow = flow;
         let data_ptr = object_ptr as *const ();
         OpaqueFlow(data_ptr as usize)
     }

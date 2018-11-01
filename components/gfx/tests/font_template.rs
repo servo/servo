@@ -2,13 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#[cfg(not(target_os = "macos"))]
-extern crate gfx;
-#[cfg(not(target_os = "macos"))]
-extern crate servo_atoms;
-#[cfg(not(target_os = "macos"))]
-extern crate style;
-
 // Test doesn't yet run on Mac, see https://github.com/servo/servo/pull/19928 for explanation.
 #[cfg(not(target_os = "macos"))]
 #[test]

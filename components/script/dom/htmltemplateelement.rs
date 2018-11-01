@@ -64,8 +64,8 @@ impl HTMLTemplateElementMethods for HTMLTemplateElement {
 }
 
 impl VirtualMethods for HTMLTemplateElement {
-    fn super_type(&self) -> Option<&VirtualMethods> {
-        Some(self.upcast::<HTMLElement>() as &VirtualMethods)
+    fn super_type(&self) -> Option<&dyn VirtualMethods> {
+        Some(self.upcast::<HTMLElement>() as &dyn VirtualMethods)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#template-adopting-steps>

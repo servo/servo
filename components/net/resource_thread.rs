@@ -3,9 +3,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 //! A thread that takes a URL and streams back the binary data.
+
+use cookie_rs;
 use crate::connector::{create_http_client, create_ssl_connector_builder};
 use crate::cookie;
-use crate::cookie_rs;
 use crate::cookie_storage::CookieStorage;
 use crate::fetch::cors_cache::CorsCache;
 use crate::fetch::methods::{fetch, CancellationListener, FetchContext};

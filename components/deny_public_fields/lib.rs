@@ -3,11 +3,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 extern crate proc_macro;
-extern crate syn;
-#[macro_use]
-extern crate synstructure;
 
 use std::str::FromStr;
+use syn;
+use synstructure::{self, decl_derive};
 
 decl_derive!([DenyPublicFields] => deny_public_fields_derive);
 

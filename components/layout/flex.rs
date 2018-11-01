@@ -116,7 +116,7 @@ struct FlexItem {
 }
 
 impl FlexItem {
-    pub fn new(index: usize, flow: &Flow) -> FlexItem {
+    pub fn new(index: usize, flow: &dyn Flow) -> FlexItem {
         let style = &flow.as_block().fragment.style;
         let flex_grow = style.get_position().flex_grow;
         let flex_shrink = style.get_position().flex_shrink;
@@ -140,7 +140,7 @@ impl FlexItem {
     /// Initialize the used flex base size, minimal main size and maximal main size.
     /// For block mode container this method should be called in assign_block_size()
     /// pass so that the item has already been layouted.
-    pub fn init_sizes(&mut self, flow: &mut Flow, containing_length: Au, direction: Direction) {
+    pub fn init_sizes(&mut self, flow: &mut dyn Flow, containing_length: Au, direction: Direction) {
         let block = flow.as_mut_block();
         match direction {
             // TODO(stshine): the definition of min-{width, height} in style component
@@ -207,7 +207,7 @@ impl FlexItem {
 
     /// Returns the outer main size of the item, including paddings and margins,
     /// clamped by max and min size.
-    pub fn outer_main_size(&self, flow: &Flow, direction: Direction) -> Au {
+    pub fn outer_main_size(&self, flow: &dyn Flow, direction: Direction) -> Au {
         let ref fragment = flow.as_block().fragment;
         let outer_width = match direction {
             Direction::Inline => {
@@ -223,7 +223,7 @@ impl FlexItem {
     }
 
     /// Returns the number of auto margins in given direction.
-    pub fn auto_margin_count(&self, flow: &Flow, direction: Direction) -> i32 {
+    pub fn auto_margin_count(&self, flow: &dyn Flow, direction: Direction) -> i32 {
         let margin = flow.as_block().fragment.style.logical_margin();
         let mut margin_count = 0;
         match direction {
@@ -577,7 +577,7 @@ impl FlexFlow {
 
         debug!("content_inline_size = {:?}", content_inline_size);
 
-        let child_count = ImmutableFlowUtils::child_count(self as &Flow) as i32;
+        let child_count = ImmutableFlowUtils::child_count(self as &dyn Flow) as i32;
         debug!("child_count = {:?}", child_count);
         if child_count == 0 {
             return;
@@ -1055,7 +1055,7 @@ impl Flow for FlexFlow {
                     CollapsibleMargins::Collapse(block_start, block_end);
 
                 // TODO(stshine): assign proper static position for absolute descendants.
-                if (&*self as &Flow).contains_roots_of_absolute_flow_tree() {
+                if (&*self as &dyn Flow).contains_roots_of_absolute_flow_tree() {
                     // Assign block-sizes for all flows in this absolute flow tree.
                     // This is preorder because the block-size of an absolute flow may depend on
                     // the block-size of its containing block, which may also be an absolute flow.
@@ -1124,7 +1124,7 @@ impl Flow for FlexFlow {
 
     fn iterate_through_fragment_border_boxes(
         &self,
-        iterator: &mut FragmentBorderBoxIterator,
+        iterator: &mut dyn FragmentBorderBoxIterator,
         level: i32,
         stacking_context_position: &Point2D<Au>,
     ) {
@@ -1135,7 +1135,7 @@ impl Flow for FlexFlow {
         );
     }
 
-    fn mutate_fragments(&mut self, mutator: &mut FnMut(&mut Fragment)) {
+    fn mutate_fragments(&mut self, mutator: &mut dyn FnMut(&mut Fragment)) {
         self.block_flow.mutate_fragments(mutator);
     }
 }

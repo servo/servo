@@ -380,7 +380,7 @@ fn obtain_response(
     request_id: Option<&str>,
     is_xhr: bool,
 ) -> Box<
-    Future<
+    dyn Future<
         Item = (
             HyperResponse<WrappedBody>,
             Option<ChromeToDevtoolsControlMsg>,

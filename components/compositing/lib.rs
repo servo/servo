@@ -4,30 +4,8 @@
 
 #![deny(unsafe_code)]
 
-extern crate embedder_traits;
-extern crate euclid;
-extern crate gfx_traits;
-#[cfg(feature = "gleam")]
-extern crate gleam;
-#[cfg(feature = "gleam")]
-extern crate image;
-extern crate ipc_channel;
-extern crate keyboard_types;
-extern crate libc;
 #[macro_use]
 extern crate log;
-extern crate msg;
-extern crate net_traits;
-extern crate profile_traits;
-extern crate script_traits;
-extern crate servo_channel;
-extern crate servo_config;
-extern crate servo_geometry;
-extern crate servo_url;
-extern crate style_traits;
-extern crate time;
-extern crate webrender;
-extern crate webrender_api;
 
 pub use crate::compositor::IOCompositor;
 pub use crate::compositor::RenderNotifier;

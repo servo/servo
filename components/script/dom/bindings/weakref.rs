@@ -269,7 +269,7 @@ impl<T: WeakReferenceable> DerefMut for WeakRefVec<T> {
 /// An entry of a vector of weak references. Passed to the closure
 /// given to `WeakRefVec::update`.
 #[allow_unrooted_interior]
-pub struct WeakRefEntry<'a, T: WeakReferenceable + 'a> {
+pub struct WeakRefEntry<'a, T: WeakReferenceable> {
     vec: &'a mut WeakRefVec<T>,
     index: &'a mut usize,
 }

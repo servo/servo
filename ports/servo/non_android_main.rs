@@ -2,32 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-extern crate backtrace;
-extern crate euclid;
-#[cfg(target_os = "windows")]
-extern crate gdi32;
-extern crate gleam;
-extern crate glutin;
-extern crate keyboard_types;
-#[macro_use]
-extern crate lazy_static;
-#[cfg(any(target_os = "linux", target_os = "macos"))]
-extern crate osmesa_sys;
-extern crate servo;
-#[cfg(feature = "unstable")]
-#[macro_use]
-extern crate sig;
-#[cfg(any(
-    target_os = "macos",
-    target_os = "linux",
-    target_os = "windows"
-))]
-extern crate tinyfiledialogs;
-#[cfg(target_os = "windows")]
-extern crate user32;
-#[cfg(target_os = "windows")]
-extern crate winapi;
-extern crate winit;
+#[macro_use] extern crate lazy_static;
+#[cfg(feature = "unstable")] #[macro_use] extern crate sig;
 
 // The window backed by glutin
 mod glutin_app;

@@ -366,7 +366,7 @@ impl FragmentBorderBoxIterator for MarginRetrievingFragmentBorderBoxIterator {
 
 pub fn process_content_box_request<N: LayoutNode>(
     requested_node: N,
-    layout_root: &mut Flow,
+    layout_root: &mut dyn Flow,
 ) -> Option<Rect<Au>> {
     // FIXME(pcwalton): This has not been updated to handle the stacking context relative
     // stuff. So the position is wrong in most cases.
@@ -377,7 +377,7 @@ pub fn process_content_box_request<N: LayoutNode>(
 
 pub fn process_content_boxes_request<N: LayoutNode>(
     requested_node: N,
-    layout_root: &mut Flow,
+    layout_root: &mut dyn Flow,
 ) -> Vec<Rect<Au>> {
     // FIXME(pcwalton): This has not been updated to handle the stacking context relative
     // stuff. So the position is wrong in most cases.
@@ -671,7 +671,7 @@ impl FragmentBorderBoxIterator for ParentOffsetBorderBoxIterator {
 
 pub fn process_node_geometry_request<N: LayoutNode>(
     requested_node: N,
-    layout_root: &mut Flow,
+    layout_root: &mut dyn Flow,
 ) -> Rect<i32> {
     let mut iterator = FragmentLocatingFragmentIterator::new(requested_node.opaque());
     sequential::iterate_through_flow_tree_fragment_border_boxes(layout_root, &mut iterator);
@@ -689,7 +689,7 @@ pub fn process_node_scroll_id_request<N: LayoutNode>(
 /// https://drafts.csswg.org/cssom-view/#scrolling-area
 pub fn process_node_scroll_area_request<N: LayoutNode>(
     requested_node: N,
-    layout_root: &mut Flow,
+    layout_root: &mut dyn Flow,
 ) -> Rect<i32> {
     let mut iterator = UnioningFragmentScrollAreaIterator::new(requested_node.opaque());
     sequential::iterate_through_flow_tree_fragment_border_boxes(layout_root, &mut iterator);
@@ -742,7 +742,7 @@ pub fn process_resolved_style_request<'a, N>(
     node: N,
     pseudo: &Option<PseudoElement>,
     property: &PropertyId,
-    layout_root: &mut Flow,
+    layout_root: &mut dyn Flow,
 ) -> String
 where
     N: LayoutNode,
@@ -791,7 +791,7 @@ fn process_resolved_style_request_internal<'a, N>(
     requested_node: N,
     pseudo: &Option<PseudoElement>,
     property: &PropertyId,
-    layout_root: &mut Flow,
+    layout_root: &mut dyn Flow,
 ) -> String
 where
     N: LayoutNode,
@@ -843,7 +843,7 @@ where
 
     fn used_value_for_position_property<N: LayoutNode>(
         layout_el: <N::ConcreteThreadSafeLayoutNode as ThreadSafeLayoutNode>::ConcreteThreadSafeLayoutElement,
-        layout_root: &mut Flow,
+        layout_root: &mut dyn Flow,
         requested_node: N,
         longhand_id: LonghandId,
     ) -> String {
@@ -934,7 +934,7 @@ where
 
 pub fn process_offset_parent_query<N: LayoutNode>(
     requested_node: N,
-    layout_root: &mut Flow,
+    layout_root: &mut dyn Flow,
 ) -> OffsetParentResponse {
     let mut iterator = ParentOffsetBorderBoxIterator::new(requested_node.opaque());
     sequential::iterate_through_flow_tree_fragment_border_boxes(layout_root, &mut iterator);

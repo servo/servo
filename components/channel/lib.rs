@@ -2,16 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-extern crate crossbeam_channel;
-extern crate ipc_channel;
-extern crate serde;
-
 pub mod base_channel {
     pub use crossbeam_channel::*;
 }
 // Needed to re-export the select macro.
 pub use crossbeam_channel::*;
 
+use crossbeam_channel;
 use ipc_channel::ipc::IpcReceiver;
 use ipc_channel::router::ROUTER;
 use serde::{Deserialize, Serialize};

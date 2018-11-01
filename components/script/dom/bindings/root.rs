@@ -78,14 +78,14 @@ where
 pub unsafe trait StableTraceObject {
     /// Returns a stable trace object which address won't change for the whole
     /// lifetime of the value.
-    fn stable_trace_object(&self) -> *const JSTraceable;
+    fn stable_trace_object(&self) -> *const dyn JSTraceable;
 }
 
 unsafe impl<T> StableTraceObject for Dom<T>
 where
     T: DomObject,
 {
-    fn stable_trace_object<'a>(&'a self) -> *const JSTraceable {
+    fn stable_trace_object<'a>(&'a self) -> *const dyn JSTraceable {
         // The JSTraceable impl for Reflector doesn't actually do anything,
         // so we need this shenanigan to actually trace the reflector of the
         // T pointer in Dom<T>.
@@ -198,7 +198,7 @@ where
 /// See also [*Exact Stack Rooting - Storing a GCPointer on the CStack*]
 /// (https://developer.mozilla.org/en-US/docs/Mozilla/Projects/SpiderMonkey/Internals/GC/Exact_Stack_Rooting).
 pub struct RootCollection {
-    roots: UnsafeCell<Vec<*const JSTraceable>>,
+    roots: UnsafeCell<Vec<*const dyn JSTraceable>>,
 }
 
 thread_local!(static STACK_ROOTS: Cell<Option<*const RootCollection>> = Cell::new(None));
@@ -228,13 +228,13 @@ impl RootCollection {
     }
 
     /// Starts tracking a trace object.
-    unsafe fn root(&self, object: *const JSTraceable) {
+    unsafe fn root(&self, object: *const dyn JSTraceable) {
         debug_assert!(thread_state::get().is_script());
         (*self.roots.get()).push(object);
     }
 
     /// Stops tracking a trace object, asserting if it isn't found.
-    unsafe fn unroot(&self, object: *const JSTraceable) {
+    unsafe fn unroot(&self, object: *const dyn JSTraceable) {
         debug_assert!(thread_state::get().is_script());
         let roots = &mut *self.roots.get();
         match roots.iter().rposition(|r| *r == object) {

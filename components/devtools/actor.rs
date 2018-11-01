@@ -33,23 +33,23 @@ pub trait Actor: Any + ActorAsAny {
 }
 
 pub trait ActorAsAny {
-    fn actor_as_any(&self) -> &Any;
-    fn actor_as_any_mut(&mut self) -> &mut Any;
+    fn actor_as_any(&self) -> &dyn Any;
+    fn actor_as_any_mut(&mut self) -> &mut dyn Any;
 }
 
 impl<T: Actor> ActorAsAny for T {
-    fn actor_as_any(&self) -> &Any {
+    fn actor_as_any(&self) -> &dyn Any {
         self
     }
-    fn actor_as_any_mut(&mut self) -> &mut Any {
+    fn actor_as_any_mut(&mut self) -> &mut dyn Any {
         self
     }
 }
 
 /// A list of known, owned actors.
 pub struct ActorRegistry {
-    actors: HashMap<String, Box<Actor + Send>>,
-    new_actors: RefCell<Vec<Box<Actor + Send>>>,
+    actors: HashMap<String, Box<dyn Actor + Send>>,
+    new_actors: RefCell<Vec<Box<dyn Actor + Send>>>,
     old_actors: RefCell<Vec<String>>,
     script_actors: RefCell<HashMap<String, String>>,
     shareable: Option<Arc<Mutex<ActorRegistry>>>,
@@ -131,11 +131,11 @@ impl ActorRegistry {
     }
 
     /// Add an actor to the registry of known actors that can receive messages.
-    pub fn register(&mut self, actor: Box<Actor + Send>) {
+    pub fn register(&mut self, actor: Box<dyn Actor + Send>) {
         self.actors.insert(actor.name(), actor);
     }
 
-    pub fn register_later(&self, actor: Box<Actor + Send>) {
+    pub fn register_later(&self, actor: Box<dyn Actor + Send>) {
         let mut actors = self.new_actors.borrow_mut();
         actors.push(actor);
     }

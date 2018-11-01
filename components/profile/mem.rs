@@ -496,7 +496,7 @@ mod system_reporter {
     }
 
     #[cfg(all(feature = "unstable", not(target_os = "windows")))]
-    use jemalloc_sys::mallctl;
+    use servo_allocator::jemalloc_sys::mallctl;
 
     #[cfg(all(feature = "unstable", not(target_os = "windows")))]
     fn jemalloc_stat(value_name: &str) -> Option<usize> {

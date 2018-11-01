@@ -4,15 +4,6 @@
 
 #![deny(unsafe_code)]
 
-extern crate cookie as cookie_rs;
-extern crate embedder_traits;
-extern crate headers_core;
-extern crate headers_ext;
-extern crate http;
-extern crate hyper;
-extern crate hyper_serde;
-extern crate image as piston_image;
-extern crate ipc_channel;
 #[macro_use]
 extern crate lazy_static;
 #[macro_use]
@@ -21,20 +12,12 @@ extern crate log;
 extern crate malloc_size_of;
 #[macro_use]
 extern crate malloc_size_of_derive;
-extern crate mime;
-extern crate msg;
-extern crate num_traits;
-extern crate pixels;
 #[macro_use]
 extern crate serde;
-extern crate servo_arc;
-extern crate servo_url;
 #[macro_use]
 extern crate url;
-extern crate uuid;
-extern crate webrender_api;
 
-use crate::cookie_rs::Cookie;
+use cookie::Cookie;
 use crate::filemanager_thread::FileManagerThreadMsg;
 use crate::request::{Request, RequestInit};
 use crate::response::{HttpsState, Response, ResponseInit};
