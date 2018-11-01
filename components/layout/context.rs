@@ -4,7 +4,7 @@
 
 //! Data needed by the layout thread.
 
-use display_list::items::{WebRenderImageInfo, OpaqueNode};
+use crate::display_list::items::{WebRenderImageInfo, OpaqueNode};
 use fnv::FnvHasher;
 use gfx::font_cache_thread::FontCacheThread;
 use gfx::font_context::FontContext;
@@ -12,7 +12,7 @@ use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use msg::constellation_msg::PipelineId;
 use net_traits::image_cache::{CanRequestImages, ImageCache, ImageState};
 use net_traits::image_cache::{ImageOrMetadataAvailable, UsePlaceholder};
-use opaque_node::OpaqueNodeMethods;
+use crate::opaque_node::OpaqueNodeMethods;
 use parking_lot::RwLock;
 use script_layout_interface::{PendingImage, PendingImageState};
 use script_traits::Painter;

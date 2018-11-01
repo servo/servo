@@ -4,13 +4,13 @@
 
 use app_units::Au;
 use euclid::{Point2D, Rect, Size2D};
-use font_context::{FontContext, FontSource};
-use font_template::FontTemplateDescriptor;
+use crate::font_context::{FontContext, FontSource};
+use crate::font_template::FontTemplateDescriptor;
 use ordered_float::NotNan;
-use platform::font::{FontHandle, FontTable};
-use platform::font_context::FontContextHandle;
-pub use platform::font_list::fallback_font_families;
-use platform::font_template::FontTemplateData;
+use crate::platform::font::{FontHandle, FontTable};
+use crate::platform::font_context::FontContextHandle;
+pub use crate::platform::font_list::fallback_font_families;
+use crate::platform::font_template::FontTemplateData;
 use servo_atoms::Atom;
 use smallvec::SmallVec;
 use std::borrow::ToOwned;
@@ -24,9 +24,9 @@ use std::sync::atomic::{ATOMIC_USIZE_INIT, AtomicUsize, Ordering};
 use style::computed_values::{font_stretch, font_style, font_variant_caps, font_weight};
 use style::properties::style_structs::Font as FontStyleStruct;
 use style::values::computed::font::SingleFontFamily;
-use text::Shaper;
-use text::glyph::{ByteIndex, GlyphData, GlyphId, GlyphStore};
-use text::shaping::ShaperMethods;
+use crate::text::Shaper;
+use crate::text::glyph::{ByteIndex, GlyphData, GlyphId, GlyphStore};
+use crate::text::shaping::ShaperMethods;
 use time;
 use unicode_script::Script;
 use webrender_api;
@@ -64,13 +64,13 @@ pub trait FontHandleMethods: Sized {
     fn stretchiness(&self) -> font_stretch::T;
 
     fn glyph_index(&self, codepoint: char) -> Option<GlyphId>;
-    fn glyph_h_advance(&self, GlyphId) -> Option<FractionalPixel>;
+    fn glyph_h_advance(&self, _: GlyphId) -> Option<FractionalPixel>;
     fn glyph_h_kerning(&self, glyph0: GlyphId, glyph1: GlyphId) -> FractionalPixel;
 
     /// Can this font do basic horizontal LTR shaping without Harfbuzz?
     fn can_do_fast_shaping(&self) -> bool;
     fn metrics(&self) -> FontMetrics;
-    fn table_for_tag(&self, FontTableTag) -> Option<FontTable>;
+    fn table_for_tag(&self, _: FontTableTag) -> Option<FontTable>;
 
     /// A unique identifier for the font, allowing comparison.
     fn identifier(&self) -> Atom;

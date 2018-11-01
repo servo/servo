@@ -4,12 +4,12 @@
 
 //! Base classes to work with IDL callbacks.
 
-use dom::bindings::error::{Error, Fallible, report_pending_exception};
-use dom::bindings::reflector::DomObject;
-use dom::bindings::root::{Dom, DomRoot};
-use dom::bindings::settings_stack::{AutoEntryScript, AutoIncumbentScript};
-use dom::bindings::utils::AsCCharPtrPtr;
-use dom::globalscope::GlobalScope;
+use crate::dom::bindings::error::{Error, Fallible, report_pending_exception};
+use crate::dom::bindings::reflector::DomObject;
+use crate::dom::bindings::root::{Dom, DomRoot};
+use crate::dom::bindings::settings_stack::{AutoEntryScript, AutoIncumbentScript};
+use crate::dom::bindings::utils::AsCCharPtrPtr;
+use crate::dom::globalscope::GlobalScope;
 use js::jsapi::{IsCallable, JSContext, JSObject, AddRawValueRoot};
 use js::jsapi::{JSCompartment, JS_EnterCompartment, JS_LeaveCompartment, RemoveRawValueRoot};
 use js::jsapi::Heap;

@@ -12,7 +12,7 @@ pub mod blocklist;
 pub mod scanfilter;
 
 use ipc_channel::ipc::IpcSender;
-use scanfilter::{BluetoothScanfilterSequence, RequestDeviceoptions};
+use crate::scanfilter::{BluetoothScanfilterSequence, RequestDeviceoptions};
 
 #[derive(Debug, Deserialize, Serialize)]
 pub enum BluetoothError {

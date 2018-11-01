@@ -6,8 +6,8 @@
 macro_rules! make_getter(
     ( $attr:ident, $htmlname:tt ) => (
         fn $attr(&self) -> DOMString {
-            use dom::bindings::inheritance::Castable;
-            use dom::element::Element;
+            use crate::dom::bindings::inheritance::Castable;
+            use crate::dom::element::Element;
             let element = self.upcast::<Element>();
             element.get_string_attribute(&local_name!($htmlname))
         }
@@ -18,8 +18,8 @@ macro_rules! make_getter(
 macro_rules! make_bool_getter(
     ( $attr:ident, $htmlname:tt ) => (
         fn $attr(&self) -> bool {
-            use dom::bindings::inheritance::Castable;
-            use dom::element::Element;
+            use crate::dom::bindings::inheritance::Castable;
+            use crate::dom::element::Element;
             let element = self.upcast::<Element>();
             element.has_attribute(&local_name!($htmlname))
         }
@@ -30,8 +30,8 @@ macro_rules! make_bool_getter(
 macro_rules! make_limited_int_setter(
     ($attr:ident, $htmlname:tt, $default:expr) => (
         fn $attr(&self, value: i32) -> $crate::dom::bindings::error::ErrorResult {
-            use dom::bindings::inheritance::Castable;
-            use dom::element::Element;
+            use crate::dom::bindings::inheritance::Castable;
+            use crate::dom::element::Element;
 
             let value = if value < 0 {
                 return Err($crate::dom::bindings::error::Error::IndexSize);
@@ -50,8 +50,8 @@ macro_rules! make_limited_int_setter(
 macro_rules! make_int_setter(
     ($attr:ident, $htmlname:tt, $default:expr) => (
         fn $attr(&self, value: i32) {
-            use dom::bindings::inheritance::Castable;
-            use dom::element::Element;
+            use crate::dom::bindings::inheritance::Castable;
+            use crate::dom::element::Element;
 
             let element = self.upcast::<Element>();
             element.set_int_attribute(&local_name!($htmlname), value)
@@ -66,8 +66,8 @@ macro_rules! make_int_setter(
 macro_rules! make_int_getter(
     ($attr:ident, $htmlname:tt, $default:expr) => (
         fn $attr(&self) -> i32 {
-            use dom::bindings::inheritance::Castable;
-            use dom::element::Element;
+            use crate::dom::bindings::inheritance::Castable;
+            use crate::dom::element::Element;
             let element = self.upcast::<Element>();
             element.get_int_attribute(&local_name!($htmlname), $default)
         }
@@ -82,8 +82,8 @@ macro_rules! make_int_getter(
 macro_rules! make_uint_getter(
     ($attr:ident, $htmlname:tt, $default:expr) => (
         fn $attr(&self) -> u32 {
-            use dom::bindings::inheritance::Castable;
-            use dom::element::Element;
+            use crate::dom::bindings::inheritance::Castable;
+            use crate::dom::element::Element;
             let element = self.upcast::<Element>();
             element.get_uint_attribute(&local_name!($htmlname), $default)
         }
@@ -97,8 +97,8 @@ macro_rules! make_uint_getter(
 macro_rules! make_url_getter(
     ( $attr:ident, $htmlname:tt ) => (
         fn $attr(&self) -> DOMString {
-            use dom::bindings::inheritance::Castable;
-            use dom::element::Element;
+            use crate::dom::bindings::inheritance::Castable;
+            use crate::dom::element::Element;
             let element = self.upcast::<Element>();
             element.get_url_attribute(&local_name!($htmlname))
         }
@@ -109,10 +109,10 @@ macro_rules! make_url_getter(
 macro_rules! make_form_action_getter(
     ( $attr:ident, $htmlname:tt ) => (
         fn $attr(&self) -> DOMString {
-            use dom::bindings::inheritance::Castable;
-            use dom::element::Element;
+            use crate::dom::bindings::inheritance::Castable;
+            use crate::dom::element::Element;
             let element = self.upcast::<Element>();
-            let doc = ::dom::node::document_from_node(self);
+            let doc = crate::dom::node::document_from_node(self);
             let attr = element.get_attribute(&ns!(), &local_name!($htmlname));
             let value = attr.as_ref().map(|attr| attr.value());
             let value = match value {
@@ -131,8 +131,8 @@ macro_rules! make_form_action_getter(
 macro_rules! make_enumerated_getter(
     ( $attr:ident, $htmlname:tt, $default:expr, $($choices: pat)|+) => (
         fn $attr(&self) -> DOMString {
-            use dom::bindings::inheritance::Castable;
-            use dom::element::Element;
+            use crate::dom::bindings::inheritance::Castable;
+            use crate::dom::element::Element;
             let element = self.upcast::<Element>();
             let mut val = element.get_string_attribute(&local_name!($htmlname));
             val.make_ascii_lowercase();
@@ -151,8 +151,8 @@ macro_rules! make_enumerated_getter(
 macro_rules! make_setter(
     ( $attr:ident, $htmlname:tt ) => (
         fn $attr(&self, value: DOMString) {
-            use dom::bindings::inheritance::Castable;
-            use dom::element::Element;
+            use crate::dom::bindings::inheritance::Castable;
+            use crate::dom::element::Element;
             let element = self.upcast::<Element>();
             element.set_string_attribute(&local_name!($htmlname), value)
         }
@@ -163,8 +163,8 @@ macro_rules! make_setter(
 macro_rules! make_bool_setter(
     ( $attr:ident, $htmlname:tt ) => (
         fn $attr(&self, value: bool) {
-            use dom::bindings::inheritance::Castable;
-            use dom::element::Element;
+            use crate::dom::bindings::inheritance::Castable;
+            use crate::dom::element::Element;
             let element = self.upcast::<Element>();
             element.set_bool_attribute(&local_name!($htmlname), value)
         }
@@ -187,9 +187,9 @@ macro_rules! make_url_setter(
 macro_rules! make_uint_setter(
     ($attr:ident, $htmlname:tt, $default:expr) => (
         fn $attr(&self, value: u32) {
-            use dom::bindings::inheritance::Castable;
-            use dom::element::Element;
-            use dom::values::UNSIGNED_LONG_MAX;
+            use crate::dom::bindings::inheritance::Castable;
+            use crate::dom::element::Element;
+            use crate::dom::values::UNSIGNED_LONG_MAX;
             let value = if value > UNSIGNED_LONG_MAX {
                 $default
             } else {
@@ -208,9 +208,9 @@ macro_rules! make_uint_setter(
 macro_rules! make_limited_uint_setter(
     ($attr:ident, $htmlname:tt, $default:expr) => (
         fn $attr(&self, value: u32) -> $crate::dom::bindings::error::ErrorResult {
-            use dom::bindings::inheritance::Castable;
-            use dom::element::Element;
-            use dom::values::UNSIGNED_LONG_MAX;
+            use crate::dom::bindings::inheritance::Castable;
+            use crate::dom::element::Element;
+            use crate::dom::values::UNSIGNED_LONG_MAX;
             let value = if value == 0 {
                 return Err($crate::dom::bindings::error::Error::IndexSize);
             } else if value > UNSIGNED_LONG_MAX {
@@ -232,8 +232,8 @@ macro_rules! make_limited_uint_setter(
 macro_rules! make_atomic_setter(
     ( $attr:ident, $htmlname:tt ) => (
         fn $attr(&self, value: DOMString) {
-            use dom::bindings::inheritance::Castable;
-            use dom::element::Element;
+            use crate::dom::bindings::inheritance::Castable;
+            use crate::dom::element::Element;
             let element = self.upcast::<Element>();
             element.set_atomic_attribute(&local_name!($htmlname), value)
         }
@@ -244,8 +244,8 @@ macro_rules! make_atomic_setter(
 macro_rules! make_legacy_color_setter(
     ( $attr:ident, $htmlname:tt ) => (
         fn $attr(&self, value: DOMString) {
-            use dom::bindings::inheritance::Castable;
-            use dom::element::Element;
+            use crate::dom::bindings::inheritance::Castable;
+            use crate::dom::element::Element;
             use style::attr::AttrValue;
             let element = self.upcast::<Element>();
             let value = AttrValue::from_legacy_color(value.into());
@@ -258,8 +258,8 @@ macro_rules! make_legacy_color_setter(
 macro_rules! make_dimension_setter(
     ( $attr:ident, $htmlname:tt ) => (
         fn $attr(&self, value: DOMString) {
-            use dom::bindings::inheritance::Castable;
-            use dom::element::Element;
+            use crate::dom::bindings::inheritance::Castable;
+            use crate::dom::element::Element;
             let element = self.upcast::<Element>();
             let value = AttrValue::from_dimension(value.into());
             element.set_attribute(&local_name!($htmlname), value)
@@ -271,8 +271,8 @@ macro_rules! make_dimension_setter(
 macro_rules! make_nonzero_dimension_setter(
     ( $attr:ident, $htmlname:tt ) => (
         fn $attr(&self, value: DOMString) {
-            use dom::bindings::inheritance::Castable;
-            use dom::element::Element;
+            use crate::dom::bindings::inheritance::Castable;
+            use crate::dom::element::Element;
             let element = self.upcast::<Element>();
             let value = AttrValue::from_nonzero_dimension(value.into());
             element.set_attribute(&local_name!($htmlname), value)
@@ -316,15 +316,15 @@ macro_rules! jsmanaged_array(
 macro_rules! define_event_handler(
     ($handler: ty, $event_type: ident, $getter: ident, $setter: ident, $setter_fn: ident) => (
         fn $getter(&self) -> Option<::std::rc::Rc<$handler>> {
-            use dom::bindings::inheritance::Castable;
-            use dom::eventtarget::EventTarget;
+            use crate::dom::bindings::inheritance::Castable;
+            use crate::dom::eventtarget::EventTarget;
             let eventtarget = self.upcast::<EventTarget>();
             eventtarget.get_event_handler_common(stringify!($event_type))
         }
 
         fn $setter(&self, listener: Option<::std::rc::Rc<$handler>>) {
-            use dom::bindings::inheritance::Castable;
-            use dom::eventtarget::EventTarget;
+            use crate::dom::bindings::inheritance::Castable;
+            use crate::dom::eventtarget::EventTarget;
             let eventtarget = self.upcast::<EventTarget>();
             eventtarget.$setter_fn(stringify!($event_type), listener)
         }
@@ -354,7 +354,7 @@ macro_rules! define_window_owned_event_handler(
 macro_rules! event_handler(
     ($event_type: ident, $getter: ident, $setter: ident) => (
         define_event_handler!(
-            ::dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull,
+            crate::dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull,
             $event_type,
             $getter,
             $setter,
@@ -366,7 +366,7 @@ macro_rules! event_handler(
 macro_rules! error_event_handler(
     ($event_type: ident, $getter: ident, $setter: ident) => (
         define_event_handler!(
-            ::dom::bindings::codegen::Bindings::EventHandlerBinding::OnErrorEventHandlerNonNull,
+            crate::dom::bindings::codegen::Bindings::EventHandlerBinding::OnErrorEventHandlerNonNull,
             $event_type,
             $getter,
             $setter,
@@ -378,7 +378,7 @@ macro_rules! error_event_handler(
 macro_rules! beforeunload_event_handler(
     ($event_type: ident, $getter: ident, $setter: ident) => (
         define_event_handler!(
-            ::dom::bindings::codegen::Bindings::EventHandlerBinding::OnBeforeUnloadEventHandlerNonNull,
+            crate::dom::bindings::codegen::Bindings::EventHandlerBinding::OnBeforeUnloadEventHandlerNonNull,
             $event_type,
             $getter,
             $setter,
@@ -390,7 +390,7 @@ macro_rules! beforeunload_event_handler(
 macro_rules! window_owned_event_handler(
     ($event_type: ident, $getter: ident, $setter: ident) => (
         define_window_owned_event_handler!(
-            ::dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull,
+            crate::dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull,
             $event_type,
             $getter,
             $setter
@@ -401,7 +401,7 @@ macro_rules! window_owned_event_handler(
 macro_rules! window_owned_beforeunload_event_handler(
     ($event_type: ident, $getter: ident, $setter: ident) => (
         define_window_owned_event_handler!(
-            ::dom::bindings::codegen::Bindings::EventHandlerBinding::OnBeforeUnloadEventHandlerNonNull,
+            crate::dom::bindings::codegen::Bindings::EventHandlerBinding::OnBeforeUnloadEventHandlerNonNull,
             $event_type,
             $getter,
             $setter
@@ -579,12 +579,12 @@ macro_rules! rooted_vec {
 /// DOM struct implementation for simple interfaces inheriting from PerformanceEntry.
 macro_rules! impl_performance_entry_struct(
     ($binding:ident, $struct:ident, $type:expr) => (
-        use dom::bindings::codegen::Bindings::$binding;
-        use dom::bindings::reflector::reflect_dom_object;
-        use dom::bindings::root::DomRoot;
-        use dom::bindings::str::DOMString;
-        use dom::globalscope::GlobalScope;
-        use dom::performanceentry::PerformanceEntry;
+        use crate::dom::bindings::codegen::Bindings::$binding;
+        use crate::dom::bindings::reflector::reflect_dom_object;
+        use crate::dom::bindings::root::DomRoot;
+        use crate::dom::bindings::str::DOMString;
+        use crate::dom::globalscope::GlobalScope;
+        use crate::dom::performanceentry::PerformanceEntry;
         use dom_struct::dom_struct;
 
         #[dom_struct]

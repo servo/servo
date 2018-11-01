@@ -6,7 +6,7 @@
 
 use app_units::Au;
 use euclid::SideOffsets2D;
-use fragment::Fragment;
+use crate::fragment::Fragment;
 use std::cmp::{max, min};
 use std::fmt;
 use style::logical_geometry::{LogicalMargin, WritingMode};

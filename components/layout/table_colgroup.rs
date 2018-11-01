@@ -5,19 +5,19 @@
 //! CSS table formatting contexts.
 
 use app_units::Au;
-use context::LayoutContext;
-use display_list::{DisplayListBuildState, StackingContextCollectionState};
+use crate::context::LayoutContext;
+use crate::display_list::{DisplayListBuildState, StackingContextCollectionState};
 use euclid::Point2D;
-use flow::{BaseFlow, Flow, FlowClass, ForceNonfloatedFlag, OpaqueFlow};
-use fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
-use layout_debug;
+use crate::flow::{BaseFlow, Flow, FlowClass, ForceNonfloatedFlag, OpaqueFlow};
+use crate::fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
+use crate::layout_debug;
 use std::fmt;
 use style::logical_geometry::LogicalSize;
 use style::properties::ComputedValues;
 use style::values::computed::LengthOrPercentageOrAuto;
 
 #[allow(unsafe_code)]
-unsafe impl ::flow::HasBaseFlow for TableColGroupFlow {}
+unsafe impl crate::flow::HasBaseFlow for TableColGroupFlow {}
 
 /// A table formatting context.
 #[repr(C)]
@@ -100,7 +100,7 @@ impl Flow for TableColGroupFlow {
         self.base.clipping_and_scrolling = Some(state.current_clipping_and_scrolling);
     }
 
-    fn repair_style(&mut self, _: &::ServoArc<ComputedValues>) {}
+    fn repair_style(&mut self, _: &crate::ServoArc<ComputedValues>) {}
 
     fn compute_overflow(&self) -> Overflow {
         Overflow::new()

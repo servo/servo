@@ -34,7 +34,7 @@ use euclid::TypedSize2D;
 use hyper::Method;
 use image::{DynamicImage, ImageFormat, RgbImage};
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
-use keys::keycodes_to_keys;
+use crate::keys::keycodes_to_keys;
 use msg::constellation_msg::{BrowsingContextId, TopLevelBrowsingContextId, TraversalDirection};
 use net_traits::image::base::PixelFormat;
 use regex::Captures;

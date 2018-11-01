@@ -3,19 +3,19 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 //! A thread that takes a URL and streams back the binary data.
-use connector::{create_http_client, create_ssl_connector_builder};
-use cookie;
-use cookie_rs;
-use cookie_storage::CookieStorage;
+use crate::connector::{create_http_client, create_ssl_connector_builder};
+use crate::cookie;
+use crate::cookie_rs;
+use crate::cookie_storage::CookieStorage;
 use devtools_traits::DevtoolsControlMsg;
 use embedder_traits::EmbedderProxy;
 use embedder_traits::resources::{self, Resource};
-use fetch::cors_cache::CorsCache;
-use fetch::methods::{CancellationListener, FetchContext, fetch};
-use filemanager_thread::FileManager;
-use hsts::HstsList;
-use http_cache::HttpCache;
-use http_loader::{HANDLE, HttpState, http_redirect_fetch};
+use crate::fetch::cors_cache::CorsCache;
+use crate::fetch::methods::{CancellationListener, FetchContext, fetch};
+use crate::filemanager_thread::FileManager;
+use crate::hsts::HstsList;
+use crate::http_cache::HttpCache;
+use crate::http_loader::{HANDLE, HttpState, http_redirect_fetch};
 use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcReceiver, IpcReceiverSet, IpcSender};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
@@ -44,8 +44,8 @@ use std::ops::Deref;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex, RwLock};
 use std::thread;
-use storage_thread::StorageThreadFactory;
-use websocket_loader;
+use crate::storage_thread::StorageThreadFactory;
+use crate::websocket_loader;
 
 /// Returns a tuple of (public, private) senders to the new threads.
 pub fn new_resource_threads(

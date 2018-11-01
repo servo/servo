@@ -3,21 +3,21 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use devtools_traits::AttrInfo;
-use dom::bindings::cell::DomRefCell;
-use dom::bindings::codegen::Bindings::AttrBinding::{self, AttrMethods};
-use dom::bindings::inheritance::Castable;
-use dom::bindings::reflector::{Reflector, reflect_dom_object};
-use dom::bindings::root::{DomRoot, LayoutDom, MutNullableDom, RootedReference};
-use dom::bindings::str::DOMString;
-use dom::customelementregistry::CallbackReaction;
-use dom::element::{AttributeMutation, Element};
-use dom::mutationobserver::{Mutation, MutationObserver};
-use dom::node::Node;
-use dom::virtualmethods::vtable_for;
-use dom::window::Window;
+use crate::dom::bindings::cell::DomRefCell;
+use crate::dom::bindings::codegen::Bindings::AttrBinding::{self, AttrMethods};
+use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
+use crate::dom::bindings::root::{DomRoot, LayoutDom, MutNullableDom, RootedReference};
+use crate::dom::bindings::str::DOMString;
+use crate::dom::customelementregistry::CallbackReaction;
+use crate::dom::element::{AttributeMutation, Element};
+use crate::dom::mutationobserver::{Mutation, MutationObserver};
+use crate::dom::node::Node;
+use crate::dom::virtualmethods::vtable_for;
+use crate::dom::window::Window;
 use dom_struct::dom_struct;
 use html5ever::{Prefix, LocalName, Namespace};
-use script_thread::ScriptThread;
+use crate::script_thread::ScriptThread;
 use servo_atoms::Atom;
 use std::borrow::ToOwned;
 use std::cell::Ref;

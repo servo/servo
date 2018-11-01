@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use filemanager_thread::FileManager;
+use crate::filemanager_thread::FileManager;
 use headers_core::HeaderMapExt;
 use headers_ext::{ContentLength, ContentType};
 use http::HeaderMap;

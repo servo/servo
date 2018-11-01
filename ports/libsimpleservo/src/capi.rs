@@ -2,8 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use api::{self, EventLoopWaker, InitOptions, ServoGlue, SERVO, HostTrait, ReadFileTrait};
-use gl_glue;
+use crate::api::{self, EventLoopWaker, InitOptions, ServoGlue, SERVO, HostTrait, ReadFileTrait};
+use crate::gl_glue;
 use servo::gl;
 use std::ffi::{CStr, CString};
 use std::mem;

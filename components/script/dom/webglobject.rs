@@ -3,9 +3,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 // https://www.khronos.org/registry/webgl/specs/latest/1.0/webgl.idl
-use dom::bindings::reflector::Reflector;
-use dom::bindings::root::Dom;
-use dom::webglrenderingcontext::WebGLRenderingContext;
+use crate::dom::bindings::reflector::Reflector;
+use crate::dom::bindings::root::Dom;
+use crate::dom::webglrenderingcontext::WebGLRenderingContext;
 use dom_struct::dom_struct;
 
 #[dom_struct]

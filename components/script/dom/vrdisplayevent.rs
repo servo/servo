@@ -2,19 +2,19 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::codegen::Bindings::EventBinding::EventBinding::EventMethods;
-use dom::bindings::codegen::Bindings::VRDisplayEventBinding;
-use dom::bindings::codegen::Bindings::VRDisplayEventBinding::VRDisplayEventMethods;
-use dom::bindings::codegen::Bindings::VRDisplayEventBinding::VRDisplayEventReason;
-use dom::bindings::error::Fallible;
-use dom::bindings::inheritance::Castable;
-use dom::bindings::reflector::{DomObject, reflect_dom_object};
-use dom::bindings::root::{Dom, DomRoot};
-use dom::bindings::str::DOMString;
-use dom::event::Event;
-use dom::globalscope::GlobalScope;
-use dom::vrdisplay::VRDisplay;
-use dom::window::Window;
+use crate::dom::bindings::codegen::Bindings::EventBinding::EventBinding::EventMethods;
+use crate::dom::bindings::codegen::Bindings::VRDisplayEventBinding;
+use crate::dom::bindings::codegen::Bindings::VRDisplayEventBinding::VRDisplayEventMethods;
+use crate::dom::bindings::codegen::Bindings::VRDisplayEventBinding::VRDisplayEventReason;
+use crate::dom::bindings::error::Fallible;
+use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::reflector::{DomObject, reflect_dom_object};
+use crate::dom::bindings::root::{Dom, DomRoot};
+use crate::dom::bindings::str::DOMString;
+use crate::dom::event::Event;
+use crate::dom::globalscope::GlobalScope;
+use crate::dom::vrdisplay::VRDisplay;
+use crate::dom::window::Window;
 use dom_struct::dom_struct;
 use servo_atoms::Atom;
 use webvr_traits::{WebVRDisplayEvent, WebVRDisplayEventReason};

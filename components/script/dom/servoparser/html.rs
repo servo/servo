@@ -4,19 +4,19 @@
 
 #![allow(unrooted_must_root)]
 
-use dom::bindings::codegen::Bindings::HTMLTemplateElementBinding::HTMLTemplateElementMethods;
-use dom::bindings::inheritance::{Castable, CharacterDataTypeId, NodeTypeId};
-use dom::bindings::root::{Dom, DomRoot};
-use dom::bindings::trace::JSTraceable;
-use dom::characterdata::CharacterData;
-use dom::document::Document;
-use dom::documenttype::DocumentType;
-use dom::element::Element;
-use dom::htmlscriptelement::HTMLScriptElement;
-use dom::htmltemplateelement::HTMLTemplateElement;
-use dom::node::Node;
-use dom::processinginstruction::ProcessingInstruction;
-use dom::servoparser::{ParsingAlgorithm, Sink};
+use crate::dom::bindings::codegen::Bindings::HTMLTemplateElementBinding::HTMLTemplateElementMethods;
+use crate::dom::bindings::inheritance::{Castable, CharacterDataTypeId, NodeTypeId};
+use crate::dom::bindings::root::{Dom, DomRoot};
+use crate::dom::bindings::trace::JSTraceable;
+use crate::dom::characterdata::CharacterData;
+use crate::dom::document::Document;
+use crate::dom::documenttype::DocumentType;
+use crate::dom::element::Element;
+use crate::dom::htmlscriptelement::HTMLScriptElement;
+use crate::dom::htmltemplateelement::HTMLTemplateElement;
+use crate::dom::node::Node;
+use crate::dom::processinginstruction::ProcessingInstruction;
+use crate::dom::servoparser::{ParsingAlgorithm, Sink};
 use html5ever::QualName;
 use html5ever::buffer_queue::BufferQueue;
 use html5ever::serialize::{AttrRef, Serialize, Serializer};

@@ -7,7 +7,7 @@
 //! A memory cache implementing the logic specified in <http://tools.ietf.org/html/rfc7234>
 //! and <http://tools.ietf.org/html/rfc7232>.
 
-use fetch::methods::{Data, DoneChannel};
+use crate::fetch::methods::{Data, DoneChannel};
 use headers_core::HeaderMapExt;
 use headers_ext::{CacheControl, ContentRange, Expires, LastModified, Pragma, Range, Vary};
 use http::{header, HeaderMap};

@@ -4,8 +4,8 @@
 
 //! Functions for validating and extracting qualified XML names.
 
-use dom::bindings::error::{Error, ErrorResult, Fallible};
-use dom::bindings::str::DOMString;
+use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
+use crate::dom::bindings::str::DOMString;
 use html5ever::{Prefix, LocalName, Namespace};
 
 /// Validate a qualified name. See https://dom.spec.whatwg.org/#validate for details.

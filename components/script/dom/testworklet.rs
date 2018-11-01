@@ -4,22 +4,22 @@
 
 // check-tidy: no specs after this line
 
-use dom::bindings::codegen::Bindings::TestWorkletBinding::TestWorkletMethods;
-use dom::bindings::codegen::Bindings::TestWorkletBinding::Wrap;
-use dom::bindings::codegen::Bindings::WorkletBinding::WorkletBinding::WorkletMethods;
-use dom::bindings::codegen::Bindings::WorkletBinding::WorkletOptions;
-use dom::bindings::error::Fallible;
-use dom::bindings::reflector::Reflector;
-use dom::bindings::reflector::reflect_dom_object;
-use dom::bindings::root::{Dom, DomRoot};
-use dom::bindings::str::DOMString;
-use dom::bindings::str::USVString;
-use dom::promise::Promise;
-use dom::window::Window;
-use dom::worklet::Worklet;
-use dom::workletglobalscope::WorkletGlobalScopeType;
+use crate::dom::bindings::codegen::Bindings::TestWorkletBinding::TestWorkletMethods;
+use crate::dom::bindings::codegen::Bindings::TestWorkletBinding::Wrap;
+use crate::dom::bindings::codegen::Bindings::WorkletBinding::WorkletBinding::WorkletMethods;
+use crate::dom::bindings::codegen::Bindings::WorkletBinding::WorkletOptions;
+use crate::dom::bindings::error::Fallible;
+use crate::dom::bindings::reflector::Reflector;
+use crate::dom::bindings::reflector::reflect_dom_object;
+use crate::dom::bindings::root::{Dom, DomRoot};
+use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::USVString;
+use crate::dom::promise::Promise;
+use crate::dom::window::Window;
+use crate::dom::worklet::Worklet;
+use crate::dom::workletglobalscope::WorkletGlobalScopeType;
 use dom_struct::dom_struct;
-use script_thread::ScriptThread;
+use crate::script_thread::ScriptThread;
 use std::rc::Rc;
 
 #[dom_struct]

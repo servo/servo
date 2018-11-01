@@ -12,17 +12,17 @@
 //! Hereafter this document is referred to as INTRINSIC.
 
 use app_units::Au;
-use block::{AbsoluteNonReplaced, BlockFlow, FloatNonReplaced, ISizeAndMarginsComputer, ISizeConstraintInput};
-use block::{ISizeConstraintSolution, MarginsMayCollapseFlag};
-use context::LayoutContext;
-use display_list::{BlockFlowDisplayListBuilding, DisplayListBuildState, StackingContextCollectionFlags};
-use display_list::StackingContextCollectionState;
+use crate::block::{AbsoluteNonReplaced, BlockFlow, FloatNonReplaced, ISizeAndMarginsComputer, ISizeConstraintInput};
+use crate::block::{ISizeConstraintSolution, MarginsMayCollapseFlag};
+use crate::context::LayoutContext;
+use crate::display_list::{BlockFlowDisplayListBuilding, DisplayListBuildState, StackingContextCollectionFlags};
+use crate::display_list::StackingContextCollectionState;
 use euclid::Point2D;
-use floats::FloatKind;
-use flow::{Flow, FlowClass, ImmutableFlowUtils, FlowFlags, OpaqueFlow};
-use fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
+use crate::floats::FloatKind;
+use crate::flow::{Flow, FlowClass, ImmutableFlowUtils, FlowFlags, OpaqueFlow};
+use crate::fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
 use gfx_traits::print_tree::PrintTree;
-use model::MaybeAuto;
+use crate::model::MaybeAuto;
 use std::cmp::{max, min};
 use std::fmt;
 use std::ops::Add;
@@ -32,7 +32,7 @@ use style::logical_geometry::{LogicalRect, LogicalSize};
 use style::properties::ComputedValues;
 use style::values::CSSFloat;
 use style::values::computed::LengthOrPercentageOrAuto;
-use table::{ColumnComputedInlineSize, ColumnIntrinsicInlineSize};
+use crate::table::{ColumnComputedInlineSize, ColumnIntrinsicInlineSize};
 
 #[derive(Clone, Copy, Debug, Serialize)]
 pub enum TableLayout {
@@ -41,7 +41,7 @@ pub enum TableLayout {
 }
 
 #[allow(unsafe_code)]
-unsafe impl ::flow::HasBaseFlow for TableWrapperFlow {}
+unsafe impl crate::flow::HasBaseFlow for TableWrapperFlow {}
 
 /// A table wrapper flow based on a block formatting context.
 #[derive(Serialize)]
@@ -515,7 +515,7 @@ impl Flow for TableWrapperFlow {
         );
     }
 
-    fn repair_style(&mut self, new_style: &::ServoArc<ComputedValues>) {
+    fn repair_style(&mut self, new_style: &crate::ServoArc<ComputedValues>) {
         self.block_flow.repair_style(new_style)
     }
 

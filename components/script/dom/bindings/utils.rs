@@ -4,15 +4,15 @@
 
 //! Various utilities to glue JavaScript and the DOM implementation together.
 
-use dom::bindings::codegen::InterfaceObjectMap;
-use dom::bindings::codegen::PrototypeList;
-use dom::bindings::codegen::PrototypeList::{MAX_PROTO_CHAIN_LENGTH, PROTO_OR_IFACE_LENGTH};
-use dom::bindings::conversions::{jsstring_to_str, private_from_proto_check};
-use dom::bindings::error::throw_invalid_this;
-use dom::bindings::inheritance::TopTypeId;
-use dom::bindings::str::DOMString;
-use dom::bindings::trace::trace_object;
-use dom::windowproxy;
+use crate::dom::bindings::codegen::InterfaceObjectMap;
+use crate::dom::bindings::codegen::PrototypeList;
+use crate::dom::bindings::codegen::PrototypeList::{MAX_PROTO_CHAIN_LENGTH, PROTO_OR_IFACE_LENGTH};
+use crate::dom::bindings::conversions::{jsstring_to_str, private_from_proto_check};
+use crate::dom::bindings::error::throw_invalid_this;
+use crate::dom::bindings::inheritance::TopTypeId;
+use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::trace::trace_object;
+use crate::dom::windowproxy;
 use js;
 use js::JS_CALLEE;
 use js::glue::{CallJitGetterOp, CallJitMethodOp, CallJitSetterOp, IsWrapper};

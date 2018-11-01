@@ -2,17 +2,17 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::attr::Attr;
-use dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
-use dom::bindings::codegen::Bindings::NamedNodeMapBinding;
-use dom::bindings::codegen::Bindings::NamedNodeMapBinding::NamedNodeMapMethods;
-use dom::bindings::error::{Error, Fallible};
-use dom::bindings::reflector::{Reflector, reflect_dom_object};
-use dom::bindings::root::{Dom, DomRoot};
-use dom::bindings::str::DOMString;
-use dom::bindings::xmlname::namespace_from_domstring;
-use dom::element::Element;
-use dom::window::Window;
+use crate::dom::attr::Attr;
+use crate::dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
+use crate::dom::bindings::codegen::Bindings::NamedNodeMapBinding;
+use crate::dom::bindings::codegen::Bindings::NamedNodeMapBinding::NamedNodeMapMethods;
+use crate::dom::bindings::error::{Error, Fallible};
+use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
+use crate::dom::bindings::root::{Dom, DomRoot};
+use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::xmlname::namespace_from_domstring;
+use crate::dom::element::Element;
+use crate::dom::window::Window;
 use dom_struct::dom_struct;
 use html5ever::LocalName;
 

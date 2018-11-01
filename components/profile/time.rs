@@ -4,7 +4,7 @@
 
 //! Timing functions.
 
-use heartbeats;
+use crate::heartbeats;
 use influent::client::{Client, Credentials};
 use influent::create_client;
 use influent::measurement::{Measurement, Value};
@@ -22,10 +22,10 @@ use std::fs::File;
 use std::io::{self, Write};
 use std::path::Path;
 use std::time::Duration;
-use std_time::precise_time_ns;
+use crate::std_time::precise_time_ns;
+use crate::trace_dump::TraceDump;
 use tokio;
 use tokio::prelude::Future;
-use trace_dump::TraceDump;
 
 pub trait Formattable {
     fn format(&self, output: &Option<OutputOptions>) -> String;

@@ -2,26 +2,26 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::attr::Attr;
-use dom::bindings::codegen::Bindings::CharacterDataBinding::CharacterDataMethods;
-use dom::bindings::codegen::Bindings::HTMLOptionElementBinding;
-use dom::bindings::codegen::Bindings::HTMLOptionElementBinding::HTMLOptionElementMethods;
-use dom::bindings::codegen::Bindings::HTMLSelectElementBinding::HTMLSelectElementBinding::HTMLSelectElementMethods;
-use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
-use dom::bindings::inheritance::Castable;
-use dom::bindings::root::DomRoot;
-use dom::bindings::str::DOMString;
-use dom::characterdata::CharacterData;
-use dom::document::Document;
-use dom::element::{AttributeMutation, Element};
-use dom::htmlelement::HTMLElement;
-use dom::htmlformelement::HTMLFormElement;
-use dom::htmloptgroupelement::HTMLOptGroupElement;
-use dom::htmlscriptelement::HTMLScriptElement;
-use dom::htmlselectelement::HTMLSelectElement;
-use dom::node::{Node, UnbindContext};
-use dom::text::Text;
-use dom::virtualmethods::VirtualMethods;
+use crate::dom::attr::Attr;
+use crate::dom::bindings::codegen::Bindings::CharacterDataBinding::CharacterDataMethods;
+use crate::dom::bindings::codegen::Bindings::HTMLOptionElementBinding;
+use crate::dom::bindings::codegen::Bindings::HTMLOptionElementBinding::HTMLOptionElementMethods;
+use crate::dom::bindings::codegen::Bindings::HTMLSelectElementBinding::HTMLSelectElementBinding::HTMLSelectElementMethods;
+use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
+use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::str::DOMString;
+use crate::dom::characterdata::CharacterData;
+use crate::dom::document::Document;
+use crate::dom::element::{AttributeMutation, Element};
+use crate::dom::htmlelement::HTMLElement;
+use crate::dom::htmlformelement::HTMLFormElement;
+use crate::dom::htmloptgroupelement::HTMLOptGroupElement;
+use crate::dom::htmlscriptelement::HTMLScriptElement;
+use crate::dom::htmlselectelement::HTMLSelectElement;
+use crate::dom::node::{Node, UnbindContext};
+use crate::dom::text::Text;
+use crate::dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
 use std::cell::Cell;

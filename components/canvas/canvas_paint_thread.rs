@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use azure::azure_hl::AntialiasMode;
-use canvas_data::*;
+use crate::canvas_data::*;
 use canvas_traits::canvas::*;
 use euclid::Size2D;
 use ipc_channel::ipc::{self, IpcSender};

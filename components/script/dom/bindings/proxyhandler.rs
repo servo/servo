@@ -6,8 +6,8 @@
 
 #![deny(missing_docs)]
 
-use dom::bindings::conversions::is_dom_proxy;
-use dom::bindings::utils::delete_property_by_id;
+use crate::dom::bindings::conversions::is_dom_proxy;
+use crate::dom::bindings::utils::delete_property_by_id;
 use js::glue::{GetProxyHandler, GetProxyHandlerFamily};
 use js::glue::{GetProxyPrivate, SetProxyPrivate};
 use js::glue::InvokeGetOwnPropertyDescriptor;

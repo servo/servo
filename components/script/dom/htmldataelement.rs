@@ -2,13 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::codegen::Bindings::HTMLDataElementBinding;
-use dom::bindings::codegen::Bindings::HTMLDataElementBinding::HTMLDataElementMethods;
-use dom::bindings::root::DomRoot;
-use dom::bindings::str::DOMString;
-use dom::document::Document;
-use dom::htmlelement::HTMLElement;
-use dom::node::Node;
+use crate::dom::bindings::codegen::Bindings::HTMLDataElementBinding;
+use crate::dom::bindings::codegen::Bindings::HTMLDataElementBinding::HTMLDataElementMethods;
+use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::str::DOMString;
+use crate::dom::document::Document;
+use crate::dom::htmlelement::HTMLElement;
+use crate::dom::node::Node;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
 

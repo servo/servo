@@ -5,8 +5,8 @@
 #![allow(non_snake_case)]
 
 use android_logger::{self, Filter};
-use api::{self, EventLoopWaker, InitOptions, ServoGlue, SERVO, HostTrait, ReadFileTrait};
-use gl_glue;
+use crate::api::{self, EventLoopWaker, InitOptions, ServoGlue, SERVO, HostTrait, ReadFileTrait};
+use crate::gl_glue;
 use jni::{errors, JNIEnv, JavaVM};
 use jni::objects::{GlobalRef, JClass, JObject, JString, JValue};
 use jni::sys::{jboolean, jfloat, jint, jstring, JNI_TRUE};

@@ -2,14 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::cell::DomRefCell;
-use dom::bindings::codegen::Bindings::TestWorkletGlobalScopeBinding;
-use dom::bindings::codegen::Bindings::TestWorkletGlobalScopeBinding::TestWorkletGlobalScopeMethods;
-use dom::bindings::root::DomRoot;
-use dom::bindings::str::DOMString;
-use dom::worklet::WorkletExecutor;
-use dom::workletglobalscope::WorkletGlobalScope;
-use dom::workletglobalscope::WorkletGlobalScopeInit;
+use crate::dom::bindings::cell::DomRefCell;
+use crate::dom::bindings::codegen::Bindings::TestWorkletGlobalScopeBinding;
+use crate::dom::bindings::codegen::Bindings::TestWorkletGlobalScopeBinding::TestWorkletGlobalScopeMethods;
+use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::str::DOMString;
+use crate::dom::worklet::WorkletExecutor;
+use crate::dom::workletglobalscope::WorkletGlobalScope;
+use crate::dom::workletglobalscope::WorkletGlobalScopeInit;
 use dom_struct::dom_struct;
 use js::rust::Runtime;
 use msg::constellation_msg::PipelineId;

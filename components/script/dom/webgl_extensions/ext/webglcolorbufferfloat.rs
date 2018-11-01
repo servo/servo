@@ -3,11 +3,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use canvas_traits::webgl::WebGLVersion;
-use dom::bindings::codegen::Bindings::WEBGLColorBufferFloatBinding;
-use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
-use dom::bindings::root::DomRoot;
-use dom::webgl_extensions::ext::oestexturefloat::OESTextureFloat;
-use dom::webglrenderingcontext::WebGLRenderingContext;
+use crate::dom::bindings::codegen::Bindings::WEBGLColorBufferFloatBinding;
+use crate::dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
+use crate::dom::bindings::root::DomRoot;
+use crate::dom::webgl_extensions::ext::oestexturefloat::OESTextureFloat;
+use crate::dom::webglrenderingcontext::WebGLRenderingContext;
 use dom_struct::dom_struct;
 use super::{WebGLExtension, WebGLExtensions, WebGLExtensionSpec};
 

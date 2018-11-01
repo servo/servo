@@ -10,7 +10,7 @@ pub trait ClipboardProvider {
     // blocking method to get the clipboard contents
     fn clipboard_contents(&mut self) -> String;
     // blocking method to set the clipboard contents
-    fn set_clipboard_contents(&mut self, String);
+    fn set_clipboard_contents(&mut self, _: String);
 }
 
 impl ClipboardProvider for ScriptToConstellationChan {

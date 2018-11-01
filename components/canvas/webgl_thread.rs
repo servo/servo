@@ -15,7 +15,7 @@ use webrender_api;
 
 /// WebGL Threading API entry point that lives in the constellation.
 /// It allows to get a WebGLThread handle for each script pipeline.
-pub use ::webgl_mode::WebGLThreads;
+pub use crate::webgl_mode::WebGLThreads;
 
 struct GLContextData {
     ctx: GLContextWrapper,

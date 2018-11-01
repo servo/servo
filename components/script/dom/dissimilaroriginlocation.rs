@@ -2,15 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::codegen::Bindings::DissimilarOriginLocationBinding;
-use dom::bindings::codegen::Bindings::DissimilarOriginLocationBinding::DissimilarOriginLocationMethods;
-use dom::bindings::error::{Error, ErrorResult, Fallible};
-use dom::bindings::reflector::Reflector;
-use dom::bindings::reflector::reflect_dom_object;
-use dom::bindings::root::{Dom, DomRoot};
-use dom::bindings::str::DOMString;
-use dom::bindings::str::USVString;
-use dom::dissimilaroriginwindow::DissimilarOriginWindow;
+use crate::dom::bindings::codegen::Bindings::DissimilarOriginLocationBinding;
+use crate::dom::bindings::codegen::Bindings::DissimilarOriginLocationBinding::DissimilarOriginLocationMethods;
+use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
+use crate::dom::bindings::reflector::Reflector;
+use crate::dom::bindings::reflector::reflect_dom_object;
+use crate::dom::bindings::root::{Dom, DomRoot};
+use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::USVString;
+use crate::dom::dissimilaroriginwindow::DissimilarOriginWindow;
 use dom_struct::dom_struct;
 use servo_url::MutableOrigin;
 

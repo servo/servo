@@ -2,10 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use font::FontHandleMethods;
-use platform::font::FontHandle;
-use platform::font_context::FontContextHandle;
-use platform::font_template::FontTemplateData;
+use crate::font::FontHandleMethods;
+use crate::platform::font::FontHandle;
+use crate::platform::font_context::FontContextHandle;
+use crate::platform::font_template::FontTemplateData;
 use servo_atoms::Atom;
 use std::fmt::{Debug, Error, Formatter};
 use std::io::Error as IoError;

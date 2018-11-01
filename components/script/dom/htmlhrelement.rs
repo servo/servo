@@ -3,15 +3,15 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use cssparser::RGBA;
-use dom::bindings::codegen::Bindings::HTMLHRElementBinding::{self, HTMLHRElementMethods};
-use dom::bindings::inheritance::Castable;
-use dom::bindings::root::{DomRoot, LayoutDom};
-use dom::bindings::str::DOMString;
-use dom::document::Document;
-use dom::element::{Element, RawLayoutElementHelpers};
-use dom::htmlelement::HTMLElement;
-use dom::node::Node;
-use dom::virtualmethods::VirtualMethods;
+use crate::dom::bindings::codegen::Bindings::HTMLHRElementBinding::{self, HTMLHRElementMethods};
+use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::root::{DomRoot, LayoutDom};
+use crate::dom::bindings::str::DOMString;
+use crate::dom::document::Document;
+use crate::dom::element::{Element, RawLayoutElementHelpers};
+use crate::dom::htmlelement::HTMLElement;
+use crate::dom::node::Node;
+use crate::dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
 use style::attr::{AttrValue, LengthOrPercentageOrAuto};
