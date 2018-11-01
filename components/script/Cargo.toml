@@ -1,3 +1,5 @@
+cargo-features = ["rename-dependency"]
+
 [package]
 name = "script"
 version = "0.0.1"
@@ -12,7 +14,7 @@ name = "script"
 path = "lib.rs"
 
 [features]
-debugmozjs = ['mozjs/debugmozjs']
+debugmozjs = ['js/debugmozjs']
 unstable = []
 unrooted_must_root_lint = ["script_plugins/unrooted_must_root_lint"]
 default = ["unrooted_must_root_lint"]
@@ -60,6 +62,7 @@ hyper_serde = "0.9"
 image = "0.19"
 ipc-channel = "0.11"
 itertools = "0.7.6"
+js = {package = "mozjs", version = "0.9.3"}
 jstraceable_derive = {path = "../jstraceable_derive"}
 keyboard-types = {version = "0.4.2-servo", features = ["serde"]}
 lazy_static = "1"
@@ -71,7 +74,6 @@ metrics = {path = "../metrics"}
 mitochondria = "1.1.2"
 mime = "0.3"
 mime_guess = "2.0.0-alpha.6"
-mozjs = "0.9.3"
 msg = {path = "../msg"}
 net_traits = {path = "../net_traits"}
 num-traits = "0.2"
