@@ -20,7 +20,7 @@ use crate::values::specified::{AllowQuirks, Angle, Integer, LengthOrPercentage, 
 use crate::values::specified::length::{FontBaseSize, AU_PER_PT, AU_PER_PX};
 use cssparser::{Parser, Token};
 #[cfg(feature = "gecko")]
-use gecko_bindings::bindings;
+use crate::gecko_bindings::bindings;
 #[cfg(feature = "gecko")]
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use std::fmt::{self, Write};
@@ -747,8 +747,8 @@ impl ToComputedValue for KeywordSize {
     type ComputedValue = NonNegativeLength;
     #[inline]
     fn to_computed_value(&self, cx: &Context) -> NonNegativeLength {
-        use context::QuirksMode;
-        use values::specified::length::au_to_int_px;
+        use crate::context::QuirksMode;
+        use crate::values::specified::length::au_to_int_px;
 
         // The tables in this function are originally from
         // nsRuleNode::CalcFontPointSize in Gecko:
@@ -1302,7 +1302,7 @@ macro_rules! impl_variant_east_asian {
         #[cfg(feature = "gecko")]
         #[inline]
         pub fn assert_variant_east_asian_matches() {
-            use gecko_bindings::structs;
+            use crate::gecko_bindings::structs;
             $(
                 debug_assert_eq!(structs::$gecko as u16, VariantEastAsian::$ident.bits());
             )+
@@ -1512,7 +1512,7 @@ macro_rules! impl_variant_ligatures {
         #[cfg(feature = "gecko")]
         #[inline]
         pub fn assert_variant_ligatures_matches() {
-            use gecko_bindings::structs;
+            use crate::gecko_bindings::structs;
             $(
                 debug_assert_eq!(structs::$gecko as u16, VariantLigatures::$ident.bits());
             )+
@@ -1731,7 +1731,7 @@ macro_rules! impl_variant_numeric {
         #[cfg(feature = "gecko")]
         #[inline]
         pub fn assert_variant_numeric_matches() {
-            use gecko_bindings::structs;
+            use crate::gecko_bindings::structs;
             $(
                 debug_assert_eq!(structs::$gecko as u8, VariantNumeric::$ident.bits());
             )+
@@ -2011,7 +2011,7 @@ impl ToCss for FontSynthesis {
 #[cfg(feature = "gecko")]
 impl From<u8> for FontSynthesis {
     fn from(bits: u8) -> FontSynthesis {
-        use gecko_bindings::structs;
+        use crate::gecko_bindings::structs;
 
         FontSynthesis {
             weight: bits & structs::NS_FONT_SYNTHESIS_WEIGHT as u8 != 0,
@@ -2023,7 +2023,7 @@ impl From<u8> for FontSynthesis {
 #[cfg(feature = "gecko")]
 impl From<FontSynthesis> for u8 {
     fn from(v: FontSynthesis) -> u8 {
-        use gecko_bindings::structs;
+        use crate::gecko_bindings::structs;
 
         let mut bits: u8 = 0;
         if v.weight {

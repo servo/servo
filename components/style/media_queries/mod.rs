@@ -21,4 +21,4 @@ pub use self::media_feature_expression::MediaFeatureExpression;
 #[cfg(feature = "servo")]
 pub use crate::servo::media_queries::Device;
 #[cfg(feature = "gecko")]
-pub use gecko::media_queries::Device;
+pub use crate::gecko::media_queries::Device;

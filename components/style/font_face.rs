@@ -21,14 +21,14 @@ use cssparser::{CowRcStr, SourceLocation};
 #[cfg(feature = "gecko")]
 use cssparser::UnicodeRange;
 #[cfg(feature = "gecko")]
-use properties::longhands::font_language_override;
+use crate::properties::longhands::font_language_override;
 use selectors::parser::SelectorParseErrorKind;
 use std::fmt::{self, Write};
 use style_traits::{Comma, CssWriter, OneOrMoreSeparated, ParseError};
 use style_traits::{StyleParseErrorKind, ToCss};
 use style_traits::values::SequenceWriter;
 #[cfg(feature = "gecko")]
-use values::specified::font::{SpecifiedFontFeatureSettings, SpecifiedFontVariationSettings};
+use crate::values::specified::font::{SpecifiedFontFeatureSettings, SpecifiedFontVariationSettings};
 
 /// A source for a font-face rule.
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
@@ -53,8 +53,8 @@ impl OneOrMoreSeparated for Source {
 #[repr(u8)]
 #[allow(missing_docs)]
 pub enum FontFaceSourceListComponent {
-    Url(*const ::gecko_bindings::structs::mozilla::css::URLValue),
-    Local(*mut ::gecko_bindings::structs::nsAtom),
+    Url(*const crate::gecko_bindings::structs::mozilla::css::URLValue),
+    Local(*mut crate::gecko_bindings::structs::nsAtom),
     FormatHint { length: usize, utf8_bytes: *const u8 },
 }
 
@@ -409,13 +409,13 @@ impl Parse for Source {
 macro_rules! is_descriptor_enabled {
     ("font-display") => {
         unsafe {
-            use gecko_bindings::structs::mozilla;
+            use crate::gecko_bindings::structs::mozilla;
             mozilla::StaticPrefs_sVarCache_layout_css_font_display_enabled
         }
     };
     ("font-variation-settings") => {
         unsafe {
-            use gecko_bindings::structs::mozilla;
+            use crate::gecko_bindings::structs::mozilla;
             mozilla::StaticPrefs_sVarCache_layout_css_font_variations_enabled != 0
         }
     };

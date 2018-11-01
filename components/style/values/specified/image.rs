@@ -27,7 +27,7 @@ use std::fmt::{self, Write};
 use style_traits::{CssType, CssWriter, KeywordsCollectFn, ParseError};
 use style_traits::{StyleParseErrorKind, SpecifiedValueInfo, ToCss};
 #[cfg(feature = "gecko")]
-use values::computed::{Context, Position as ComputedPosition, ToComputedValue};
+use crate::values::computed::{Context, Position as ComputedPosition, ToComputedValue};
 
 /// A specified image layer.
 pub type ImageLayer = Either<None_, Image>;
@@ -266,7 +266,7 @@ impl Parse for Gradient {
 
         #[cfg(feature = "gecko")]
         {
-            use gecko_bindings::structs;
+            use crate::gecko_bindings::structs;
             if compat_mode == CompatMode::Moz &&
                 !unsafe { structs::StaticPrefs_sVarCache_layout_css_prefixes_gradients }
             {
@@ -689,8 +689,8 @@ impl generic::LineDirection for LineDirection {
                 }),
                 None,
             ) => {
-                use values::computed::Percentage as ComputedPercentage;
-                use values::specified::transform::OriginComponent;
+                use crate::values::computed::Percentage as ComputedPercentage;
+                use crate::values::specified::transform::OriginComponent;
 
                 // `50% 0%` is the default value for line direction.
                 // These percentage values can also be keywords.

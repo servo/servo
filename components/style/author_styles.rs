@@ -76,10 +76,10 @@ where
 }
 
 #[cfg(feature = "gecko")]
-unsafe impl HasFFI for AuthorStyles<::gecko::data::GeckoStyleSheet> {
-    type FFIType = ::gecko_bindings::bindings::RawServoAuthorStyles;
+unsafe impl HasFFI for AuthorStyles<crate::gecko::data::GeckoStyleSheet> {
+    type FFIType = crate::gecko_bindings::bindings::RawServoAuthorStyles;
 }
 #[cfg(feature = "gecko")]
-unsafe impl HasSimpleFFI for AuthorStyles<::gecko::data::GeckoStyleSheet> {}
+unsafe impl HasSimpleFFI for AuthorStyles<crate::gecko::data::GeckoStyleSheet> {}
 #[cfg(feature = "gecko")]
-unsafe impl HasBoxFFI for AuthorStyles<::gecko::data::GeckoStyleSheet> {}
+unsafe impl HasBoxFFI for AuthorStyles<crate::gecko::data::GeckoStyleSheet> {}

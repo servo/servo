@@ -29,7 +29,7 @@ use crate::stylesheets::keyframes_rule::KeyframesAnimation;
 use crate::stylesheets::viewport_rule::{self, MaybeNew, ViewportRule};
 use crate::thread_state::{self, ThreadState};
 #[cfg(feature = "gecko")]
-use gecko_bindings::structs::{ServoStyleSetSizes, StyleRuleInclusion};
+use crate::gecko_bindings::structs::{ServoStyleSetSizes, StyleRuleInclusion};
 use hashglobe::FailedAllocationError;
 #[cfg(feature = "gecko")]
 use malloc_size_of::{MallocShallowSizeOf, MallocSizeOf, MallocSizeOfOps};
@@ -50,7 +50,7 @@ use std::ops;
 use std::sync::Mutex;
 use style_traits::viewport::ViewportConstraints;
 #[cfg(feature = "gecko")]
-use stylesheets::{CounterStyleRule, FontFaceRule, FontFeatureValuesRule, PageRule};
+use crate::stylesheets::{CounterStyleRule, FontFaceRule, FontFeatureValuesRule, PageRule};
 
 /// The type of the stylesheets that the stylist contains.
 #[cfg(feature = "servo")]
@@ -58,7 +58,7 @@ pub type StylistSheet = crate::stylesheets::DocumentStyleSheet;
 
 /// The type of the stylesheets that the stylist contains.
 #[cfg(feature = "gecko")]
-pub type StylistSheet = ::gecko::data::GeckoStyleSheet;
+pub type StylistSheet = crate::gecko::data::GeckoStyleSheet;
 
 /// A cache of computed user-agent data, to be shared across documents.
 lazy_static! {

@@ -9,9 +9,9 @@ use cssparser::{Parser, Token};
 use std::fmt::{self, Write};
 use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
 #[cfg(feature = "gecko")]
-use values::CustomIdent;
+use crate::values::CustomIdent;
 #[cfg(feature = "gecko")]
-use values::generics::CounterStyleOrNone;
+use crate::values::generics::CounterStyleOrNone;
 
 /// Specified and computed `list-style-type` property.
 #[cfg(feature = "gecko")]
@@ -37,7 +37,7 @@ impl ListStyleType {
     /// list-style-type, and thus only values possible in that
     /// attribute is considered here.
     pub fn from_gecko_keyword(value: u32) -> Self {
-        use gecko_bindings::structs;
+        use crate::gecko_bindings::structs;
 
         if value == structs::NS_STYLE_LIST_STYLE_NONE {
             return ListStyleType::CounterStyle(CounterStyleOrNone::None);

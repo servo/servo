@@ -23,19 +23,19 @@ pub type AttrValue = <SelectorImpl as ::selectors::SelectorImpl>::AttrValue;
 pub use crate::servo::selector_parser::*;
 
 #[cfg(feature = "gecko")]
-pub use gecko::selector_parser::*;
+pub use crate::gecko::selector_parser::*;
 
 #[cfg(feature = "servo")]
 pub use crate::servo::selector_parser::ServoElementSnapshot as Snapshot;
 
 #[cfg(feature = "gecko")]
-pub use gecko::snapshot::GeckoElementSnapshot as Snapshot;
+pub use crate::gecko::snapshot::GeckoElementSnapshot as Snapshot;
 
 #[cfg(feature = "servo")]
 pub use crate::servo::restyle_damage::ServoRestyleDamage as RestyleDamage;
 
 #[cfg(feature = "gecko")]
-pub use gecko::restyle_damage::GeckoRestyleDamage as RestyleDamage;
+pub use crate::gecko::restyle_damage::GeckoRestyleDamage as RestyleDamage;
 
 /// Servo's selector parser.
 #[cfg_attr(feature = "servo", derive(MallocSizeOf))]

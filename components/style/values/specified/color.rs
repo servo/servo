@@ -11,10 +11,10 @@ use crate::values::specified::calc::CalcNode;
 use cssparser::{AngleOrNumber, Color as CSSParserColor, Parser, Token, RGBA};
 use cssparser::{BasicParseErrorKind, NumberOrPercentage, ParseErrorKind};
 #[cfg(feature = "gecko")]
-use gecko_bindings::structs::nscolor;
+use crate::gecko_bindings::structs::nscolor;
 use itoa;
 #[cfg(feature = "gecko")]
-use properties::longhands::system_colors::SystemColor;
+use crate::properties::longhands::system_colors::SystemColor;
 use std::fmt::{self, Write};
 use std::io::Write as IoWrite;
 use style_traits::{CssType, CssWriter, KeywordsCollectFn, ParseError, StyleParseErrorKind};
@@ -329,7 +329,7 @@ impl Color {
 
 #[cfg(feature = "gecko")]
 fn convert_nscolor_to_computedcolor(color: nscolor) -> ComputedColor {
-    use gecko::values::convert_nscolor_to_rgba;
+    use crate::gecko::values::convert_nscolor_to_rgba;
     ComputedColor::rgba(convert_nscolor_to_rgba(color))
 }
 

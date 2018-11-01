@@ -19,7 +19,7 @@ use std::f32::consts::PI;
 use std::fmt::{self, Write};
 use style_traits::{CssWriter, ToCss};
 #[cfg(feature = "gecko")]
-use values::computed::Percentage;
+use crate::values::computed::Percentage;
 
 /// A computed image layer.
 pub type ImageLayer = Either<None_, Image>;

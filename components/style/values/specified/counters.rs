@@ -18,9 +18,9 @@ use cssparser::{Parser, Token};
 use selectors::parser::SelectorParseErrorKind;
 use style_traits::{ParseError, StyleParseErrorKind};
 #[cfg(feature = "gecko")]
-use values::generics::CounterStyleOrNone;
+use crate::values::generics::CounterStyleOrNone;
 #[cfg(feature = "gecko")]
-use values::specified::Attr;
+use crate::values::specified::Attr;
 
 /// A specified value for the `counter-increment` property.
 pub type CounterIncrement = GenericCounterIncrement<Integer>;

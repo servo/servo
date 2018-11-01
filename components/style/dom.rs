@@ -9,9 +9,9 @@
 
 use atomic_refcell::{AtomicRef, AtomicRefCell, AtomicRefMut};
 #[cfg(feature = "gecko")]
-use context::PostAnimationTasks;
+use crate::context::PostAnimationTasks;
 #[cfg(feature = "gecko")]
-use context::UpdateAnimationsTasks;
+use crate::context::UpdateAnimationsTasks;
 use crate::{Atom, LocalName, Namespace, WeakAtom};
 use crate::applicable_declarations::ApplicableDeclarationBlock;
 use crate::data::ElementData;

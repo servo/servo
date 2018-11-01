@@ -78,7 +78,7 @@ impl UseCounters {
 
 #[cfg(feature = "gecko")]
 unsafe impl HasFFI for UseCounters {
-    type FFIType = ::gecko_bindings::structs::StyleUseCounters;
+    type FFIType = crate::gecko_bindings::structs::StyleUseCounters;
 }
 
 #[cfg(feature = "gecko")]

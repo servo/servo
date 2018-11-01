@@ -11,7 +11,7 @@ use crate::values::computed::{self, ToComputedValue};
 use crate::values::specified::{Length, NoCalcLength, ViewportPercentageLength};
 use cssparser::{Delimiter, Parser, Token};
 #[cfg(feature = "gecko")]
-use gecko_bindings::sugar::ownership::{HasBoxFFI, HasFFI, HasSimpleFFI};
+use crate::gecko_bindings::sugar::ownership::{HasBoxFFI, HasFFI, HasSimpleFFI};
 use selectors::context::QuirksMode;
 use style_traits::ParseError;
 
@@ -140,7 +140,7 @@ impl SourceSizeList {
 
 #[cfg(feature = "gecko")]
 unsafe impl HasFFI for SourceSizeList {
-    type FFIType = ::gecko_bindings::structs::RawServoSourceSizeList;
+    type FFIType = crate::gecko_bindings::structs::RawServoSourceSizeList;
 }
 #[cfg(feature = "gecko")]
 unsafe impl HasSimpleFFI for SourceSizeList {}

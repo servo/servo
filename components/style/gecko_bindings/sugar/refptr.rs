@@ -4,9 +4,9 @@
 
 //! A rust helper to ease the use of Gecko's refcounted types.
 
-use Atom;
-use gecko_bindings::{structs, bindings};
-use gecko_bindings::sugar::ownership::HasArcFFI;
+use crate::Atom;
+use crate::gecko_bindings::{structs, bindings};
+use crate::gecko_bindings::sugar::ownership::HasArcFFI;
 use servo_arc::Arc;
 use std::{fmt, mem, ptr};
 use std::marker::PhantomData;

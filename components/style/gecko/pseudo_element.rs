@@ -9,15 +9,15 @@
 //! need to update the checked-in files for Servo.
 
 use cssparser::ToCss;
-use gecko_bindings::structs::{self, CSSPseudoElementType};
-use properties::{ComputedValues, PropertyFlags};
-use properties::longhands::display::computed_value::T as Display;
-use selector_parser::{NonTSPseudoClass, PseudoElementCascadeType, SelectorImpl};
+use crate::gecko_bindings::structs::{self, CSSPseudoElementType};
+use crate::properties::{ComputedValues, PropertyFlags};
+use crate::properties::longhands::display::computed_value::T as Display;
+use crate::selector_parser::{NonTSPseudoClass, PseudoElementCascadeType, SelectorImpl};
 use std::fmt;
-use str::{starts_with_ignore_ascii_case, string_as_ascii_lowercase};
-use string_cache::Atom;
+use crate::str::{starts_with_ignore_ascii_case, string_as_ascii_lowercase};
+use crate::string_cache::Atom;
 use thin_slice::ThinBoxedSlice;
-use values::serialize_atom_identifier;
+use crate::values::serialize_atom_identifier;
 
 include!(concat!(
     env!("OUT_DIR"),

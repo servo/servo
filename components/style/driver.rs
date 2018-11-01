@@ -26,7 +26,7 @@ fn should_report_statistics() -> bool {
 
 #[cfg(feature = "gecko")]
 fn should_report_statistics() -> bool {
-    unsafe { ::gecko_bindings::structs::ServoTraversalStatistics_sActive }
+    unsafe { crate::gecko_bindings::structs::ServoTraversalStatistics_sActive }
 }
 
 #[cfg(feature = "servo")]
@@ -38,9 +38,9 @@ fn report_statistics(_stats: &PerThreadTraversalStatistics) {
 fn report_statistics(stats: &PerThreadTraversalStatistics) {
     // This should only be called in the main thread, or it may be racy
     // to update the statistics in a global variable.
-    debug_assert!(unsafe { ::gecko_bindings::bindings::Gecko_IsMainThread() });
+    debug_assert!(unsafe { crate::gecko_bindings::bindings::Gecko_IsMainThread() });
     let gecko_stats =
-        unsafe { &mut ::gecko_bindings::structs::ServoTraversalStatistics_sSingleton };
+        unsafe { &mut crate::gecko_bindings::structs::ServoTraversalStatistics_sSingleton };
     gecko_stats.mElementsTraversed += stats.elements_traversed;
     gecko_stats.mElementsStyled += stats.elements_styled;
     gecko_stats.mElementsMatched += stats.elements_matched;

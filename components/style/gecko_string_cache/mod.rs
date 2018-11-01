@@ -10,11 +10,11 @@
 
 //! A drop-in replacement for string_cache, but backed by Gecko `nsAtom`s.
 
-use gecko_bindings::bindings::Gecko_AddRefAtom;
-use gecko_bindings::bindings::Gecko_Atomize;
-use gecko_bindings::bindings::Gecko_Atomize16;
-use gecko_bindings::bindings::Gecko_ReleaseAtom;
-use gecko_bindings::structs::{nsAtom, nsAtom_AtomKind, nsDynamicAtom, nsStaticAtom};
+use crate::gecko_bindings::bindings::Gecko_AddRefAtom;
+use crate::gecko_bindings::bindings::Gecko_Atomize;
+use crate::gecko_bindings::bindings::Gecko_Atomize16;
+use crate::gecko_bindings::bindings::Gecko_ReleaseAtom;
+use crate::gecko_bindings::structs::{nsAtom, nsAtom_AtomKind, nsDynamicAtom, nsStaticAtom};
 use nsstring::{nsAString, nsStr};
 use precomputed_hash::PrecomputedHash;
 use std::{mem, slice, str};

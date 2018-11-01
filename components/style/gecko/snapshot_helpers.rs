@@ -4,11 +4,11 @@
 
 //! Element an snapshot common logic.
 
-use CaseSensitivityExt;
-use gecko_bindings::bindings;
-use gecko_bindings::structs::{self, nsAtom};
+use crate::CaseSensitivityExt;
+use crate::gecko_bindings::bindings;
+use crate::gecko_bindings::structs::{self, nsAtom};
 use selectors::attr::CaseSensitivity;
-use string_cache::{Atom, WeakAtom};
+use crate::string_cache::{Atom, WeakAtom};
 
 /// A function that, given an element of type `T`, allows you to get a single
 /// class or a class list.

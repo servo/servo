@@ -20,7 +20,7 @@ use crate::values::specified::length::{Length, NonNegativeLength};
 use cssparser::{self, BasicParseErrorKind, Parser, Token};
 use style_traits::{ParseError, StyleParseErrorKind, ValueParseErrorKind};
 #[cfg(feature = "gecko")]
-use values::specified::url::SpecifiedUrl;
+use crate::values::specified::url::SpecifiedUrl;
 
 /// A specified value for a single shadow of the `box-shadow` property.
 pub type BoxShadow =

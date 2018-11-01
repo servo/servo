@@ -31,7 +31,7 @@ use euclid::Size2D;
 use euclid::TypedScale;
 use fxhash::FxHashMap;
 #[cfg(feature = "gecko")]
-use gecko_bindings::structs;
+use crate::gecko_bindings::structs;
 #[cfg(feature = "servo")]
 use parking_lot::RwLock;
 use selectors::NthIndexCache;

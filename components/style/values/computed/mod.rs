@@ -14,7 +14,7 @@ use crate::properties::{ComputedValues, LonghandId, StyleBuilder};
 use crate::rule_cache::RuleCacheConditions;
 use euclid::Size2D;
 #[cfg(feature = "gecko")]
-use properties;
+use crate::properties;
 use std::cell::RefCell;
 use std::cmp;
 use std::f32;

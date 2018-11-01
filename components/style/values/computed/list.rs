@@ -6,7 +6,7 @@
 
 pub use crate::values::specified::list::Quotes;
 #[cfg(feature = "gecko")]
-pub use values::specified::list::ListStyleType;
+pub use crate::values::specified::list::ListStyleType;
 
 impl Quotes {
     /// Initial value for `quotes`.

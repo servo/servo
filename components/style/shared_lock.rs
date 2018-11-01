@@ -239,7 +239,7 @@ pub trait ToCssWithGuard {
 #[cfg(feature = "gecko")]
 pub struct DeepCloneParams {
     /// The new sheet we're cloning rules into.
-    pub reference_sheet: *const ::gecko_bindings::structs::StyleSheet,
+    pub reference_sheet: *const crate::gecko_bindings::structs::StyleSheet,
 }
 
 /// Parameters needed for deep clones.

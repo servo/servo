@@ -15,7 +15,7 @@ use style_traits::{OneOrMoreSeparated, ParseError, ParsingMode, Separator};
 #[cfg(feature = "gecko")]
 #[inline]
 pub fn assert_parsing_mode_match() {
-    use gecko_bindings::structs;
+    use crate::gecko_bindings::structs;
 
     macro_rules! check_parsing_modes {
         ( $( $a:ident => $b:path ),*, ) => {

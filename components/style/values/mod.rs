@@ -20,7 +20,7 @@ use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
 #[cfg(feature = "servo")]
 pub use crate::servo::url::CssUrl;
 #[cfg(feature = "gecko")]
-pub use gecko::url::CssUrl;
+pub use crate::gecko::url::CssUrl;
 
 pub mod animated;
 pub mod computed;

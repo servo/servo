@@ -437,7 +437,7 @@ impl SingleFontFamily {
     #[cfg(feature = "gecko")]
     /// Return the generic ID for a given generic font name
     pub fn generic(name: &Atom) -> (structs::FontFamilyType, u8) {
-        use gecko_bindings::structs::FontFamilyType;
+        use crate::gecko_bindings::structs::FontFamilyType;
         if *name == atom!("serif") {
             (FontFamilyType::eFamily_serif, structs::kGenericFont_serif)
         } else if *name == atom!("sans-serif") {
@@ -473,7 +473,7 @@ impl SingleFontFamily {
     #[cfg(feature = "gecko")]
     /// Get the corresponding font-family with family name
     fn from_font_family_name(family: &structs::FontFamilyName) -> SingleFontFamily {
-        use gecko_bindings::structs::FontFamilyType;
+        use crate::gecko_bindings::structs::FontFamilyType;
 
         match family.mType {
             FontFamilyType::eFamily_sans_serif => SingleFontFamily::Generic(atom!("sans-serif")),
@@ -541,7 +541,7 @@ impl Hash for FontFamilyList {
     where
         H: Hasher,
     {
-        use string_cache::WeakAtom;
+        use crate::string_cache::WeakAtom;
 
         for name in self.0.mNames.iter() {
             name.mType.hash(state);
@@ -823,7 +823,7 @@ impl ToComputedValue for specified::MozScriptLevel {
     type ComputedValue = MozScriptLevel;
 
     fn to_computed_value(&self, cx: &Context) -> i8 {
-        use properties::longhands::_moz_math_display::SpecifiedValue as DisplayValue;
+        use crate::properties::longhands::_moz_math_display::SpecifiedValue as DisplayValue;
         use std::{cmp, i8};
 
         let int = match *self {

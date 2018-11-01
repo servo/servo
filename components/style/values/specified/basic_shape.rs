@@ -54,7 +54,7 @@ pub type Polygon = generic::Polygon<LengthOrPercentage>;
 
 #[cfg(feature = "gecko")]
 fn is_clip_path_path_enabled(context: &ParserContext) -> bool {
-    use gecko_bindings::structs::mozilla;
+    use crate::gecko_bindings::structs::mozilla;
     context.chrome_rules_enabled() ||
         unsafe { mozilla::StaticPrefs_sVarCache_layout_css_clip_path_path_enabled }
 }
