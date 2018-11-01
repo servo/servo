@@ -2540,7 +2540,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 [[package]]
 name = "osmesa-src"
 version = "0.1.0"
-source = "git+https://github.com/servo/osmesa-src#2b72bc315664a597887b4bb642294525c79b2ee7"
+source = "git+https://github.com/servo/osmesa-src#97f4613fd80eee153ab134dfe349777bc5a27bab"
 
 [[package]]
 name = "osmesa-sys"
