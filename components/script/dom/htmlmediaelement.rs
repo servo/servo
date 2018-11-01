@@ -36,8 +36,8 @@ use dom_struct::dom_struct;
 use fetch::FetchCanceller;
 use headers_core::HeaderMapExt;
 use headers_ext::ContentLength;
+use http::header::{self, HeaderMap, HeaderValue};
 use html5ever::{LocalName, Prefix};
-use hyper::header::{ByteRangeSpec, ContentLength, Headers, Range as HyperRange};
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use microtask::{Microtask, MicrotaskRunnable};
@@ -688,10 +688,9 @@ impl HTMLMediaElement {
             HTMLMediaElementTypeId::HTMLAudioElement => Destination::Audio,
             HTMLMediaElementTypeId::HTMLVideoElement => Destination::Video,
         };
-        let mut headers = Headers::new();
-        headers.set(HyperRange::Bytes(vec![ByteRangeSpec::AllFrom(
-            offset.unwrap_or(0),
-        )]));
+        let mut headers = HeaderMap::new();
+        // FIXME(eijebong): Use typed headers once we have a constructor for the range header
+        headers.insert(header::RANGE, HeaderValue::from_str(&format!("bytes={}-", offset.unwrap_or(0))).unwrap());
         let request = RequestInit {
             url: self.resource_url.borrow().as_ref().unwrap().clone(),
             headers,

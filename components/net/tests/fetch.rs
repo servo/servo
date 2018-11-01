@@ -518,7 +518,7 @@ fn test_fetch_with_hsts() {
 
     let cert_path = Path::new("../../resources/self_signed_certificate_for_testing.crt").canonicalize().unwrap();
     let key_path = Path::new("../../resources/privatekey_for_testing.key").canonicalize().unwrap();
-    let url = make_ssl_server(handler, cert_path.clone(), key_path.clone());
+    let (server, url) = make_ssl_server(handler, cert_path.clone(), key_path.clone());
 
     let mut ca_content = String::new();
     File::open(cert_path).unwrap().read_to_string(&mut ca_content).unwrap();
@@ -543,6 +543,7 @@ fn test_fetch_with_hsts() {
     // Set the flag.
     request.local_urls_only = false;
     let response = fetch_with_context(&mut request, &context);
+    server.close();
     assert_eq!(response.internal_response.unwrap().url().unwrap().scheme(),
                "https");
 }

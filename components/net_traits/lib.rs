@@ -529,10 +529,6 @@ impl NetworkError {
         NetworkError::Internal(error.description().to_owned())
     }
 
-    pub fn from_ssl_error(url: &ServoUrl, error: &Error) -> Self {
-        NetworkError::SslValidation(url.clone(), error.description().to_owned())
-    }
-
     pub fn from_http_error(error: &HttpError) -> Self {
         NetworkError::Internal(error.description().to_owned())
     }

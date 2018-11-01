@@ -66,6 +66,7 @@ impl WrappedBody {
         }
     }
 }
+
 impl Payload for WrappedBody {
     type Data = <Body as Payload>::Data;
     type Error = <Body as Payload>::Error;
@@ -80,44 +81,42 @@ impl Stream for WrappedBody {
     fn poll(&mut self) -> Result<Async<Option<Self::Item>>, Self::Error> {
         self.body.poll().map(|res| {
             res.map(|maybe_chunk| {
-                maybe_chunk.map(|chunk| {
+                if let Some(chunk) = maybe_chunk {
                     match self.decoder {
-                        Decoder::Plain => chunk,
+                        Decoder::Plain => Some(chunk),
                         Decoder::Gzip(Some(ref mut decoder)) => {
                             let mut buf = vec![0; BUF_SIZE];
                             *decoder.get_mut() = Cursor::new(chunk.into_bytes());
-                            if let Ok(len) = decoder.read(&mut buf) {
-                                buf.truncate(len);
-                            }
-                            buf.into()
+                            let len = decoder.read(&mut buf).ok()?;
+                            buf.truncate(len);
+                            Some(buf.into())
                         }
                         Decoder::Gzip(None) => {
                             let mut buf = vec![0; BUF_SIZE];
                             let mut decoder = GzDecoder::new(Cursor::new(chunk.into_bytes()));
-                            if let Ok(len) = decoder.read(&mut buf) {
-                                buf.truncate(len);
-                            }
+                            let len = decoder.read(&mut buf).ok()?;
+                            buf.truncate(len);
                             self.decoder = Decoder::Gzip(Some(decoder));
-                            buf.into()
+                            Some(buf.into())
                         }
                         Decoder::Deflate(ref mut decoder) => {
                             let mut buf = vec![0; BUF_SIZE];
                             *decoder.get_mut() = Cursor::new(chunk.into_bytes());
-                            if let Ok(len) = decoder.read(&mut buf) {
-                                buf.truncate(len);
-                            }
-                            buf.into()
+                            let len = decoder.read(&mut buf).ok()?;
+                            buf.truncate(len);
+                            Some(buf.into())
                         }
                         Decoder::Brotli(ref mut decoder) => {
                             let mut buf = vec![0; BUF_SIZE];
                             decoder.get_mut().get_mut().extend(&chunk.into_bytes());
-                            if let Ok(len) = decoder.read(&mut buf) {
-                                buf.truncate(len);
-                            }
-                            buf.into()
+                            let len = decoder.read(&mut buf).ok()?;
+                            buf.truncate(len);
+                            Some(buf.into())
                         }
                     }
-                })
+                } else {
+                    None
+                }
             })
         })
     }

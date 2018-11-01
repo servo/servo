@@ -366,6 +366,7 @@ fn obtain_response(client: &Client<Connector, WrappedBody>,
     }
 
     let connect_start = precise_time_ms();
+    // https://url.spec.whatwg.org/#percent-encoded-bytes
     let request = HyperRequest::builder()
         .method(method)
         .uri(url.clone().into_url().as_ref().replace("|", "%7C").replace("{", "%7B").replace("}", "%7D"))
@@ -394,7 +395,10 @@ fn obtain_response(client: &Client<Connector, WrappedBody>,
                     closure_url, method.clone(), headers,
                     Some(request_body.clone()), pipeline_id, time::now(),
                     connect_end - connect_start, send_end - send_start, is_xhr))
-                    //TODO: ^This is not right
+                    // TODO: ^This is not right, connect_start is taken before contructing the
+                    // request and connect_end at the end of it. send_start is takend before the
+                    // connection too. I'm not sure it's currently possible to get the time at the
+                    // point between the connection and the start of a request.
             } else {
                 debug!("Not notifying devtools (no pipeline_id)");
                 None
@@ -1002,6 +1006,7 @@ fn http_network_fetch(request: &Request,
                                           request_id.as_ref().map(Deref::deref), is_xhr);
 
     let pipeline_id = request.pipeline_id;
+    // This will only get the headers, the body is read later
     let (res, msg) = match response_future.wait() {
         Ok(wrapped_response) => wrapped_response,
         Err(error) => return Response::network_error(error),

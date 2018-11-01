@@ -505,7 +505,8 @@ fn handle_range_request(request: &Request,
                 }
             }
         },
-        _ => unreachable!()
+        // All the cases with Bound::Excluded should be unreachable anyway
+        _ => return None
     }
     None
 }

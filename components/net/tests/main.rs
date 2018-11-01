@@ -192,7 +192,7 @@ fn make_server<H>(handler: H) -> (Server, ServoUrl)
     (server, url)
 }
 
-fn make_ssl_server<H>(handler: H, cert_path: PathBuf, key_path: PathBuf) -> ServoUrl
+fn make_ssl_server<H>(handler: H, cert_path: PathBuf, key_path: PathBuf) -> (Server, ServoUrl)
     where
     H: Fn(HyperRequest<Body>, &mut HyperResponse<Body>) + Send + Sync + 'static,
 {
@@ -222,7 +222,11 @@ fn make_ssl_server<H>(handler: H, cert_path: PathBuf, key_path: PathBuf) -> Serv
             })
         });
 
+    let (tx, rx) = futures::sync::oneshot::channel::<()>();
+    let server = server.select(rx.map_err(|_| ())).map(|_| ()).map_err(|_| ());
+
     HANDLE.lock().unwrap().spawn(server);
 
-    url
+    let server = Server { close_channel: tx };
+    (server, url)
 }

@@ -8,7 +8,7 @@ use devtools_traits::DevtoolsControlMsg;
 use fetch::cors_cache::CorsCache;
 use filemanager_thread::FileManager;
 use headers_core::HeaderMapExt;
-use headers_ext::{AccessControlExposeHeaders, ContentType};
+use headers_ext::{AccessControlExposeHeaders, ContentType, Range};
 use http::header::{self, HeaderMap, HeaderName, HeaderValue};
 use http_loader::{HttpState, determine_request_referrer, http_fetch};
 use http_loader::{set_default_accept, set_default_accept_language};
@@ -27,6 +27,7 @@ use std::borrow::Cow;
 use std::fs::File;
 use std::io::{BufReader, BufRead, Seek, SeekFrom};
 use std::mem;
+use std::ops::Bound;
 use std::str;
 use std::sync::{Arc, Mutex};
 use std::sync::atomic::Ordering;
@@ -506,22 +507,22 @@ fn scheme_fetch(request: &mut Request,
 
                                 let cancellation_listener = context.cancellation_listener.clone();
 
-                                let range = request.headers.get::<header::Range>();
-                                let (start, end) = if let Some(&header::Range::Bytes(ref range)) = range {
-                                    match range.first().unwrap() {
-                                        &header::ByteRangeSpec::AllFrom(start) => (start, None),
-                                        &header::ByteRangeSpec::FromTo(start, end) => {
+                                let (start, end) = if let Some(ref range) = request.headers.typed_get::<Range>() {
+                                    match range.iter().collect::<Vec<(Bound<u64>, Bound<u64>)>>().first() {
+                                        Some(&(Bound::Included(start), Bound::Unbounded)) => (start, None),
+                                        Some(&(Bound::Included(start), Bound::Included(end))) => {
                                             // `end` should be less or equal to `start`.
                                             (start, Some(u64::max(start, end)))
                                         },
-                                        &header::ByteRangeSpec::Last(offset) => {
+                                        Some(&(Bound::Unbounded, Bound::Included(offset))) => {
                                             if let Ok(metadata) = file.metadata() {
                                                 // `offset` cannot be bigger than the file size.
                                                 (metadata.len() - u64::min(metadata.len(), offset), None)
                                             } else {
                                                 (0, None)
                                             }
-                                        }
+                                        },
+                                        _ => (0, None)
                                     }
                                 } else {
                                     (0, None)
