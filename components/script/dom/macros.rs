@@ -495,6 +495,7 @@ macro_rules! window_event_handlers(
         event_handler!(languagechange, GetOnlanguagechange,
                        SetOnlanguagechange);
         event_handler!(message, GetOnmessage, SetOnmessage);
+        event_handler!(messageerror, GetOnmessageerror, SetOnmessageerror);
         event_handler!(offline, GetOnoffline, SetOnoffline);
         event_handler!(online, GetOnonline, SetOnonline);
         event_handler!(pagehide, GetOnpagehide, SetOnpagehide);
@@ -527,6 +528,7 @@ macro_rules! window_event_handlers(
         window_owned_event_handler!(languagechange, GetOnlanguagechange,
                                     SetOnlanguagechange);
         window_owned_event_handler!(message, GetOnmessage, SetOnmessage);
+        window_owned_event_handler!(messageerror, GetOnmessageerror, SetOnmessageerror);
         window_owned_event_handler!(offline, GetOnoffline, SetOnoffline);
         window_owned_event_handler!(online, GetOnonline, SetOnonline);
         window_owned_event_handler!(pagehide, GetOnpagehide, SetOnpagehide);
