@@ -5683,7 +5683,11 @@ class CGInterfaceTrait(CGThing):
                     yield name, arguments, rettype
 
         def fmt(arguments):
-            return "".join(", %s: %s" % argument for argument in arguments)
+            keywords = {"async"}
+            return "".join(
+                ", %s: %s" % (name if name not in keywords else "r#" + name, type_)
+                for name, type_ in arguments
+            )
 
         def contains_unsafe_arg(arguments):
             if not arguments or len(arguments) == 0:
@@ -6247,7 +6251,7 @@ class CGDictionary(CGThing):
         d = self.dictionary
         if d.parent:
             initParent = ("{\n"
-                          "    match try!(%s::%s::new(cx, val)) {\n"
+                          "    match r#try!(%s::%s::new(cx, val)) {\n"
                           "        ConversionResult::Success(v) => v,\n"
                           "        ConversionResult::Failure(error) => {\n"
                           "            throw_type_error(cx, &error);\n"
@@ -6393,7 +6397,7 @@ class CGDictionary(CGThing):
         conversion = (
             "{\n"
             "    rooted!(in(cx) let mut rval = UndefinedValue());\n"
-            "    match try!(get_dictionary_property(cx, object.handle(), \"%s\", rval.handle_mut())) {\n"
+            "    match r#try!(get_dictionary_property(cx, object.handle(), \"%s\", rval.handle_mut())) {\n"
             "        true => {\n"
             "%s\n"
             "        },\n"
@@ -7164,7 +7168,7 @@ class CallbackOperationBase(CallbackMethod):
             "methodName": self.methodName
         }
         getCallableFromProp = string.Template(
-            'try!(self.parent.get_callable_property(cx, "${methodName}"))'
+            'r#try!(self.parent.get_callable_property(cx, "${methodName}"))'
         ).substitute(replacements)
         if not self.singleOperation:
             return 'rooted!(in(cx) let callable =\n' + getCallableFromProp + ');\n'

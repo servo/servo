@@ -53,7 +53,7 @@ use js::rust::wrappers::Evaluate2;
 use libc;
 use msg::constellation_msg::PipelineId;
 use net_traits::{CoreResourceThread, ResourceThreads, IpcSend};
-use profile_traits::{mem, time};
+use profile_traits::{mem as profile_mem, time as profile_time};
 use script_traits::{MsDuration, ScriptToConstellationChan, TimerEvent};
 use script_traits::{TimerEventId, TimerSchedulerMsg, TimerSource};
 use servo_url::{MutableOrigin, ServoUrl};
@@ -97,11 +97,11 @@ pub struct GlobalScope {
 
     /// For sending messages to the memory profiler.
     #[ignore_malloc_size_of = "channels are hard"]
-    mem_profiler_chan: mem::ProfilerChan,
+    mem_profiler_chan: profile_mem::ProfilerChan,
 
     /// For sending messages to the time profiler.
     #[ignore_malloc_size_of = "channels are hard"]
-    time_profiler_chan: time::ProfilerChan,
+    time_profiler_chan: profile_time::ProfilerChan,
 
     /// A handle for communicating messages to the constellation thread.
     #[ignore_malloc_size_of = "channels are hard"]
@@ -160,8 +160,8 @@ impl GlobalScope {
     pub fn new_inherited(
         pipeline_id: PipelineId,
         devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
-        mem_profiler_chan: mem::ProfilerChan,
-        time_profiler_chan: time::ProfilerChan,
+        mem_profiler_chan: profile_mem::ProfilerChan,
+        time_profiler_chan: profile_time::ProfilerChan,
         script_to_constellation_chan: ScriptToConstellationChan,
         scheduler_chan: IpcSender<TimerSchedulerMsg>,
         resource_threads: ResourceThreads,
@@ -337,12 +337,12 @@ impl GlobalScope {
     }
 
     /// Get a sender to the memory profiler thread.
-    pub fn mem_profiler_chan(&self) -> &mem::ProfilerChan {
+    pub fn mem_profiler_chan(&self) -> &profile_mem::ProfilerChan {
         &self.mem_profiler_chan
     }
 
     /// Get a sender to the time profiler thread.
-    pub fn time_profiler_chan(&self) -> &time::ProfilerChan {
+    pub fn time_profiler_chan(&self) -> &profile_time::ProfilerChan {
         &self.time_profiler_chan
     }
 
@@ -513,17 +513,17 @@ impl GlobalScope {
         rval: MutableHandleValue,
         line_number: u32,
     ) -> bool {
-        let metadata = time::TimerMetadata {
+        let metadata = profile_time::TimerMetadata {
             url: if filename.is_empty() {
                 self.get_url().as_str().into()
             } else {
                 filename.into()
             },
-            iframe: time::TimerMetadataFrameType::RootWindow,
-            incremental: time::TimerMetadataReflowType::FirstReflow,
+            iframe: profile_time::TimerMetadataFrameType::RootWindow,
+            incremental: profile_time::TimerMetadataReflowType::FirstReflow,
         };
-        time::profile(
-            time::ProfilerCategory::ScriptEvaluate,
+        profile_time::profile(
+            profile_time::ProfilerCategory::ScriptEvaluate,
             Some(metadata),
             self.time_profiler_chan().clone(),
             || {

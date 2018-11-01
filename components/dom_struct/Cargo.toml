@@ -1,6 +1,7 @@
 [package]
 authors = ["The Servo Project Developers"]
 license = "MPL-2.0"
+edition = "2018"
 name = "dom_struct"
 publish = false
 version = "0.0.1"

@@ -20,7 +20,7 @@ use msg::constellation_msg::{PipelineId, PipelineIndex, PipelineNamespaceId};
 use net_traits::image::base::Image;
 #[cfg(feature = "gleam")]
 use net_traits::image::base::PixelFormat;
-use profile_traits::time::{self, ProfilerCategory, profile};
+use profile_traits::time::{self as profile_time, ProfilerCategory, profile};
 use script_traits::{AnimationState, AnimationTickType, ConstellationMsg, LayoutControlMsg};
 use script_traits::{MouseButton, MouseEventType, ScrollState, TouchEventType, TouchId};
 use script_traits::{UntrustedNodeAddress, WindowSizeData, WindowSizeType};
@@ -151,7 +151,7 @@ pub struct IOCompositor<Window: WindowMethods> {
     constellation_chan: Sender<ConstellationMsg>,
 
     /// The channel on which messages can be sent to the time profiler.
-    time_profiler_chan: time::ProfilerChan,
+    time_profiler_chan: profile_time::ProfilerChan,
 
     /// Touch input state machine
     touch_handler: TouchHandler,
@@ -374,7 +374,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         // Tell the profiler, memory profiler, and scrolling timer to shut down.
         if let Ok((sender, receiver)) = ipc::channel() {
             self.time_profiler_chan
-                .send(time::ProfilerMsg::Exit(sender));
+                .send(profile_time::ProfilerMsg::Exit(sender));
             let _ = receiver.recv();
         }
 
