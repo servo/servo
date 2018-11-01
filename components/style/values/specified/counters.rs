@@ -8,19 +8,19 @@
 use crate::computed_values::list_style_type::T as ListStyleType;
 use crate::parser::{Parse, ParserContext};
 use crate::values::CustomIdent;
+#[cfg(feature = "gecko")]
+use crate::values::generics::CounterStyleOrNone;
 use crate::values::generics::counters as generics;
 use crate::values::generics::counters::CounterIncrement as GenericCounterIncrement;
 use crate::values::generics::counters::CounterPair;
 use crate::values::generics::counters::CounterReset as GenericCounterReset;
+#[cfg(feature = "gecko")]
+use crate::values::specified::Attr;
 use crate::values::specified::Integer;
 use crate::values::specified::url::SpecifiedImageUrl;
 use cssparser::{Parser, Token};
 use selectors::parser::SelectorParseErrorKind;
 use style_traits::{ParseError, StyleParseErrorKind};
-#[cfg(feature = "gecko")]
-use crate::values::generics::CounterStyleOrNone;
-#[cfg(feature = "gecko")]
-use crate::values::specified::Attr;
 
 /// A specified value for the `counter-increment` property.
 pub type CounterIncrement = GenericCounterIncrement<Integer>;

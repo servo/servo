@@ -5,13 +5,13 @@
 //! `list` specified values.
 
 use crate::parser::{Parse, ParserContext};
-use cssparser::{Parser, Token};
-use std::fmt::{self, Write};
-use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
 #[cfg(feature = "gecko")]
 use crate::values::CustomIdent;
 #[cfg(feature = "gecko")]
 use crate::values::generics::CounterStyleOrNone;
+use cssparser::{Parser, Token};
+use std::fmt::{self, Write};
+use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
 
 /// Specified and computed `list-style-type` property.
 #[cfg(feature = "gecko")]

@@ -4,21 +4,21 @@
 
 //! Common handling for the specified value CSS url() values.
 
-use cssparser::Parser;
 use crate::gecko_bindings::bindings;
 use crate::gecko_bindings::structs::root::mozilla::CORSMode;
 use crate::gecko_bindings::structs::root::mozilla::css::URLValue;
 use crate::gecko_bindings::structs::root::nsStyleImageRequest;
 use crate::gecko_bindings::sugar::ownership::{HasArcFFI, FFIArcHelpers};
 use crate::gecko_bindings::sugar::refptr::RefPtr;
+use crate::parser::{Parse, ParserContext};
+use crate::stylesheets::UrlExtraData;
+use crate::values::computed::{Context, ToComputedValue};
+use cssparser::Parser;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use nsstring::nsCString;
-use crate::parser::{Parse, ParserContext};
 use servo_arc::Arc;
 use std::fmt::{self, Write};
 use style_traits::{CssWriter, ParseError, ToCss};
-use crate::stylesheets::UrlExtraData;
-use crate::values::computed::{Context, ToComputedValue};
 
 /// A CSS url() value for gecko.
 #[css(function = "url")]

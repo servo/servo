@@ -14,10 +14,10 @@
 //! style system it's kind of pointless in the Stylo case, and only Servo forces
 //! the separation between the style system implementation and everything else.
 
-use crate::CaseSensitivityExt;
 use app_units::Au;
-use crate::applicable_declarations::ApplicableDeclarationBlock;
 use atomic_refcell::{AtomicRefCell, AtomicRefMut};
+use crate::CaseSensitivityExt;
+use crate::applicable_declarations::ApplicableDeclarationBlock;
 use crate::author_styles::AuthorStyles;
 use crate::context::{PostAnimationTasks, QuirksMode, SharedStyleContext, UpdateAnimationsTasks};
 use crate::data::ElementData;
@@ -70,6 +70,9 @@ use crate::properties::animated_properties::{AnimationValue, AnimationValueMap};
 use crate::properties::style_structs::Font;
 use crate::rule_tree::CascadeLevel as ServoCascadeLevel;
 use crate::selector_parser::{AttrValue, HorizontalDirection, Lang};
+use crate::shared_lock::Locked;
+use crate::string_cache::{Atom, Namespace, WeakAtom, WeakNamespace};
+use crate::stylist::CascadeData;
 use selectors::{Element, OpaqueElement};
 use selectors::attr::{AttrSelectorOperation, AttrSelectorOperator};
 use selectors::attr::{CaseSensitivity, NamespaceConstraint};
@@ -77,14 +80,11 @@ use selectors::matching::{ElementSelectorFlags, MatchingContext};
 use selectors::matching::VisitedHandlingMode;
 use selectors::sink::Push;
 use servo_arc::{Arc, ArcBorrow, RawOffsetArc};
-use crate::shared_lock::Locked;
 use std::cell::RefCell;
 use std::fmt;
 use std::hash::{Hash, Hasher};
 use std::mem;
 use std::ptr;
-use crate::string_cache::{Atom, Namespace, WeakAtom, WeakNamespace};
-use crate::stylist::CascadeData;
 
 #[inline]
 fn elements_with_id<'a, 'le>(

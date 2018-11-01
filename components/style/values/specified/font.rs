@@ -7,6 +7,8 @@
 use app_units::Au;
 use byteorder::{BigEndian, ByteOrder};
 use crate::Atom;
+#[cfg(feature = "gecko")]
+use crate::gecko_bindings::bindings;
 use crate::parser::{Parse, ParserContext};
 use crate::properties::longhands::system_font::SystemFont;
 use crate::values::CustomIdent;
@@ -19,8 +21,6 @@ use crate::values::generics::font::{self as generics, FeatureTagValue, FontSetti
 use crate::values::specified::{AllowQuirks, Angle, Integer, LengthOrPercentage, NoCalcLength, Number, Percentage};
 use crate::values::specified::length::{FontBaseSize, AU_PER_PT, AU_PER_PX};
 use cssparser::{Parser, Token};
-#[cfg(feature = "gecko")]
-use crate::gecko_bindings::bindings;
 #[cfg(feature = "gecko")]
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use std::fmt::{self, Write};

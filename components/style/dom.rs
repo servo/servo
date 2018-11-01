@@ -8,12 +8,12 @@
 #![deny(missing_docs)]
 
 use atomic_refcell::{AtomicRef, AtomicRefCell, AtomicRefMut};
+use crate::{Atom, LocalName, Namespace, WeakAtom};
+use crate::applicable_declarations::ApplicableDeclarationBlock;
 #[cfg(feature = "gecko")]
 use crate::context::PostAnimationTasks;
 #[cfg(feature = "gecko")]
 use crate::context::UpdateAnimationsTasks;
-use crate::{Atom, LocalName, Namespace, WeakAtom};
-use crate::applicable_declarations::ApplicableDeclarationBlock;
 use crate::data::ElementData;
 use crate::element_state::ElementState;
 use crate::font_metrics::FontMetricsProvider;

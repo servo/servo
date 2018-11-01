@@ -4,24 +4,24 @@
 
 //! Gecko-specific bits for selector-parsing.
 
-use cssparser::{BasicParseError, BasicParseErrorKind, Parser};
-use cssparser::{CowRcStr, SourceLocation, ToCss, Token};
 use crate::element_state::{DocumentState, ElementState};
 use crate::gecko_bindings::structs;
 use crate::gecko_bindings::structs::RawServoSelectorList;
 use crate::gecko_bindings::sugar::ownership::{HasBoxFFI, HasFFI, HasSimpleFFI};
 use crate::invalidation::element::document_state::InvalidationMatchingData;
 use crate::selector_parser::{Direction, SelectorParser};
+use crate::str::starts_with_ignore_ascii_case;
+use crate::string_cache::{Atom, Namespace, WeakAtom, WeakNamespace};
+use crate::values::serialize_atom_identifier;
+use cssparser::{BasicParseError, BasicParseErrorKind, Parser};
+use cssparser::{CowRcStr, SourceLocation, ToCss, Token};
 use selectors::SelectorList;
 use selectors::parser::{SelectorParseErrorKind, Visit};
 use selectors::parser::{self as selector_parser, Selector};
 use selectors::visitor::SelectorVisitor;
 use std::fmt;
-use crate::str::starts_with_ignore_ascii_case;
-use crate::string_cache::{Atom, Namespace, WeakAtom, WeakNamespace};
 use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss as ToCss_};
 use thin_slice::ThinBoxedSlice;
-use crate::values::serialize_atom_identifier;
 
 pub use crate::gecko::pseudo_element::{PseudoElement, EAGER_PSEUDOS, EAGER_PSEUDO_COUNT, PSEUDO_COUNT};
 pub use crate::gecko::snapshot::SnapshotMap;

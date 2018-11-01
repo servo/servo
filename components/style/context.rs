@@ -13,6 +13,8 @@ use crate::dom::{SendElement, TElement};
 #[cfg(feature = "servo")]
 use crate::dom::OpaqueNode;
 use crate::font_metrics::FontMetricsProvider;
+#[cfg(feature = "gecko")]
+use crate::gecko_bindings::structs;
 use crate::parallel::{STACK_SAFETY_MARGIN_KB, STYLE_THREAD_STACK_SIZE_KB};
 use crate::properties::ComputedValues;
 #[cfg(feature = "servo")]
@@ -30,8 +32,6 @@ use crate::traversal_flags::TraversalFlags;
 use euclid::Size2D;
 use euclid::TypedScale;
 use fxhash::FxHashMap;
-#[cfg(feature = "gecko")]
-use crate::gecko_bindings::structs;
 #[cfg(feature = "servo")]
 use parking_lot::RwLock;
 use selectors::NthIndexCache;

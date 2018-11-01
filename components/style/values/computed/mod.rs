@@ -10,11 +10,11 @@ use crate::Prefix;
 use crate::context::QuirksMode;
 use crate::font_metrics::{get_metrics_provider_for_product, FontMetricsProvider};
 use crate::media_queries::Device;
+#[cfg(feature = "gecko")]
+use crate::properties;
 use crate::properties::{ComputedValues, LonghandId, StyleBuilder};
 use crate::rule_cache::RuleCacheConditions;
 use euclid::Size2D;
-#[cfg(feature = "gecko")]
-use crate::properties;
 use std::cell::RefCell;
 use std::cmp;
 use std::f32;

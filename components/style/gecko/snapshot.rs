@@ -15,9 +15,9 @@ use crate::gecko_bindings::structs::ServoElementSnapshot;
 use crate::gecko_bindings::structs::ServoElementSnapshotFlags as Flags;
 use crate::gecko_bindings::structs::ServoElementSnapshotTable;
 use crate::invalidation::element::element_wrapper::ElementSnapshot;
+use crate::string_cache::{Atom, Namespace};
 use selectors::attr::{AttrSelectorOperation, AttrSelectorOperator};
 use selectors::attr::{CaseSensitivity, NamespaceConstraint};
-use crate::string_cache::{Atom, Namespace};
 
 /// A snapshot of a Gecko element.
 pub type GeckoElementSnapshot = ServoElementSnapshot;

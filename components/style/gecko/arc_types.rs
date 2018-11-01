@@ -34,13 +34,13 @@ use crate::media_queries::MediaList;
 use crate::properties::{ComputedValues, PropertyDeclarationBlock};
 use crate::properties::animated_properties::AnimationValue;
 use crate::rule_tree::StrongRuleNode;
-use servo_arc::{Arc, ArcBorrow};
 use crate::shared_lock::Locked;
-use std::{mem, ptr};
 use crate::stylesheets::{CounterStyleRule, CssRules, FontFaceRule, FontFeatureValuesRule};
 use crate::stylesheets::{DocumentRule, ImportRule, KeyframesRule, MediaRule, NamespaceRule, PageRule};
 use crate::stylesheets::{StyleRule, StylesheetContents, SupportsRule};
 use crate::stylesheets::keyframes_rule::Keyframe;
+use servo_arc::{Arc, ArcBorrow};
+use std::{mem, ptr};
 
 macro_rules! impl_arc_ffi {
     ($servo_type:ty => $gecko_type:ty[$addref:ident, $release:ident]) => {

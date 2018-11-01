@@ -5,11 +5,11 @@
 //! A type to represent a namespace.
 
 use crate::gecko_bindings::structs::nsAtom;
+use crate::string_cache::{Atom, WeakAtom};
 use precomputed_hash::PrecomputedHash;
 use std::borrow::Borrow;
 use std::fmt;
 use std::ops::Deref;
-use crate::string_cache::{Atom, WeakAtom};
 
 #[macro_export]
 macro_rules! ns {

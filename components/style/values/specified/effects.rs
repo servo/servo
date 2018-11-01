@@ -17,10 +17,10 @@ use crate::values::generics::effects::SimpleShadow as GenericSimpleShadow;
 use crate::values::specified::{Angle, NumberOrPercentage};
 use crate::values::specified::color::Color;
 use crate::values::specified::length::{Length, NonNegativeLength};
-use cssparser::{self, BasicParseErrorKind, Parser, Token};
-use style_traits::{ParseError, StyleParseErrorKind, ValueParseErrorKind};
 #[cfg(feature = "gecko")]
 use crate::values::specified::url::SpecifiedUrl;
+use cssparser::{self, BasicParseErrorKind, Parser, Token};
+use style_traits::{ParseError, StyleParseErrorKind, ValueParseErrorKind};
 
 /// A specified value for a single shadow of the `box-shadow` property.
 pub type BoxShadow =

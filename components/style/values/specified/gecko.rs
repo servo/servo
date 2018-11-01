@@ -4,18 +4,18 @@
 
 //! Specified types for legacy Gecko-only properties.
 
-use cssparser::{Parser, Token};
 use crate::gecko::values::GeckoStyleCoordConvertible;
 use crate::gecko_bindings::sugar::ns_style_coord::{CoordData, CoordDataMut};
 use crate::parser::{Parse, ParserContext};
-use std::fmt;
-use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
-use style_traits::values::SequenceWriter;
 use crate::values::computed;
 use crate::values::computed::length::CSSPixelLength;
 use crate::values::generics::gecko::ScrollSnapPoint as GenericScrollSnapPoint;
 use crate::values::generics::rect::Rect;
 use crate::values::specified::length::LengthOrPercentage;
+use cssparser::{Parser, Token};
+use std::fmt;
+use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
+use style_traits::values::SequenceWriter;
 
 /// A specified type for scroll snap points.
 pub type ScrollSnapPoint = GenericScrollSnapPoint<LengthOrPercentage>;

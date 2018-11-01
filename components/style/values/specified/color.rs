@@ -4,17 +4,17 @@
 
 //! Specified color values.
 
+#[cfg(feature = "gecko")]
+use crate::gecko_bindings::structs::nscolor;
 use crate::parser::{Parse, ParserContext};
+#[cfg(feature = "gecko")]
+use crate::properties::longhands::system_colors::SystemColor;
 use crate::values::computed::{Color as ComputedColor, Context, ToComputedValue};
 use crate::values::generics::color::Color as GenericColor;
 use crate::values::specified::calc::CalcNode;
 use cssparser::{AngleOrNumber, Color as CSSParserColor, Parser, Token, RGBA};
 use cssparser::{BasicParseErrorKind, NumberOrPercentage, ParseErrorKind};
-#[cfg(feature = "gecko")]
-use crate::gecko_bindings::structs::nscolor;
 use itoa;
-#[cfg(feature = "gecko")]
-use crate::properties::longhands::system_colors::SystemColor;
 use std::fmt::{self, Write};
 use std::io::Write as IoWrite;
 use style_traits::{CssType, CssWriter, KeywordsCollectFn, ParseError, StyleParseErrorKind};

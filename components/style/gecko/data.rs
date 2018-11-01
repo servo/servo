@@ -12,15 +12,15 @@ use crate::gecko_bindings::structs::{RawGeckoPresContextBorrowed, ServoStyleSetS
 use crate::gecko_bindings::structs::{StyleSheetInfo, nsIDocument};
 use crate::gecko_bindings::sugar::ownership::{HasArcFFI, HasBoxFFI, HasFFI, HasSimpleFFI};
 use crate::invalidation::media_queries::{MediaListKey, ToMediaListKey};
-use malloc_size_of::MallocSizeOfOps;
 use crate::media_queries::{Device, MediaList};
 use crate::properties::ComputedValues;
 use crate::selector_parser::SnapshotMap;
-use servo_arc::Arc;
 use crate::shared_lock::{Locked, SharedRwLockReadGuard, StylesheetGuards};
-use std::fmt;
 use crate::stylesheets::{CssRule, Origin, StylesheetContents, StylesheetInDocument};
 use crate::stylist::Stylist;
+use malloc_size_of::MallocSizeOfOps;
+use servo_arc::Arc;
+use std::fmt;
 
 /// Little wrapper to a Gecko style sheet.
 #[derive(Eq, PartialEq)]

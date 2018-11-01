@@ -10,6 +10,8 @@ use crate::context::{CascadeInputs, QuirksMode};
 use crate::dom::{TElement, TShadowRoot};
 use crate::element_state::{DocumentState, ElementState};
 use crate::font_metrics::FontMetricsProvider;
+#[cfg(feature = "gecko")]
+use crate::gecko_bindings::structs::{ServoStyleSetSizes, StyleRuleInclusion};
 use crate::invalidation::element::invalidation_map::InvalidationMap;
 use crate::invalidation::media_queries::{EffectiveMediaQueryResults, ToMediaListKey};
 use crate::media_queries::Device;
@@ -22,14 +24,14 @@ use crate::selector_parser::{PerPseudoElementMap, PseudoElement, SelectorImpl, S
 use crate::shared_lock::{Locked, SharedRwLockReadGuard, StylesheetGuards};
 use crate::stylesheet_set::{DataValidity, DocumentStylesheetSet, SheetRebuildKind};
 use crate::stylesheet_set::{DocumentStylesheetFlusher, SheetCollectionFlusher};
+#[cfg(feature = "gecko")]
+use crate::stylesheets::{CounterStyleRule, FontFaceRule, FontFeatureValuesRule, PageRule};
 use crate::stylesheets::{CssRule, Origin, OriginSet, PerOrigin, PerOriginIter};
 use crate::stylesheets::StyleRule;
 use crate::stylesheets::StylesheetInDocument;
 use crate::stylesheets::keyframes_rule::KeyframesAnimation;
 use crate::stylesheets::viewport_rule::{self, MaybeNew, ViewportRule};
 use crate::thread_state::{self, ThreadState};
-#[cfg(feature = "gecko")]
-use crate::gecko_bindings::structs::{ServoStyleSetSizes, StyleRuleInclusion};
 use hashglobe::FailedAllocationError;
 #[cfg(feature = "gecko")]
 use malloc_size_of::{MallocShallowSizeOf, MallocSizeOf, MallocSizeOfOps};
@@ -49,8 +51,6 @@ use smallvec::SmallVec;
 use std::ops;
 use std::sync::Mutex;
 use style_traits::viewport::ViewportConstraints;
-#[cfg(feature = "gecko")]
-use crate::stylesheets::{CounterStyleRule, FontFaceRule, FontFeatureValuesRule, PageRule};
 
 /// The type of the stylesheets that the stylist contains.
 #[cfg(feature = "servo")]

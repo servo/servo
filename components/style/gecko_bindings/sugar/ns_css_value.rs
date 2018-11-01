@@ -9,11 +9,11 @@ use crate::gecko_bindings::structs;
 use crate::gecko_bindings::structs::{nsCSSUnit, nsCSSValue};
 use crate::gecko_bindings::structs::{nsCSSValueList, nsCSSValue_Array};
 use crate::gecko_string_cache::Atom;
+use crate::values::computed::{Angle, Length, LengthOrPercentage, Percentage};
 use std::marker::PhantomData;
 use std::mem;
 use std::ops::{Index, IndexMut};
 use std::slice;
-use crate::values::computed::{Angle, Length, LengthOrPercentage, Percentage};
 
 impl nsCSSValue {
     /// Create a CSSValue with null unit, useful to be used as a return value.

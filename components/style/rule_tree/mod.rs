@@ -7,12 +7,12 @@
 //! The rule tree.
 
 use crate::applicable_declarations::ApplicableDeclarationList;
+#[cfg(feature = "gecko")]
+use crate::gecko::selector_parser::PseudoElement;
 use crate::properties::{Importance, LonghandIdSet, PropertyDeclarationBlock};
 use crate::shared_lock::{Locked, SharedRwLockReadGuard, StylesheetGuards};
 use crate::stylesheets::StyleRule;
 use crate::thread_state;
-#[cfg(feature = "gecko")]
-use crate::gecko::selector_parser::PseudoElement;
 #[cfg(feature = "gecko")]
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use servo_arc::{Arc, ArcBorrow, ArcUnion, ArcUnionBorrow};
@@ -1220,8 +1220,8 @@ impl StrongRuleNode {
         use crate::gecko_bindings::structs::NS_AUTHOR_SPECIFIED_PADDING;
         use crate::properties::{CSSWideKeyword, LonghandId, LonghandIdSet};
         use crate::properties::{PropertyDeclaration, PropertyDeclarationId};
-        use std::borrow::Cow;
         use crate::values::specified::Color;
+        use std::borrow::Cow;
 
         // Reset properties:
         const BACKGROUND_PROPS: &'static [LonghandId] =

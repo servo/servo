@@ -6,16 +6,13 @@
 
 //! Different kind of helpers to interact with Gecko values.
 
-use crate::Atom;
 use app_units::Au;
+use crate::Atom;
 use crate::counter_style::{Symbol, Symbols};
-use cssparser::RGBA;
 use crate::gecko_bindings::structs::{self, CounterStylePtr, nsStyleCoord};
 use crate::gecko_bindings::structs::{StyleGridTrackBreadth, StyleShapeRadius};
 use crate::gecko_bindings::sugar::ns_style_coord::{CoordData, CoordDataMut, CoordDataValue};
 use crate::media_queries::Device;
-use nsstring::{nsACString, nsCStr};
-use std::cmp::max;
 use crate::values::{Auto, Either, None_, Normal};
 use crate::values::computed::{Angle, ExtremumLength, Length, LengthOrPercentage, LengthOrPercentageOrAuto};
 use crate::values::computed::{LengthOrPercentageOrNone, Number, NumberOrPercentage};
@@ -30,6 +27,9 @@ use crate::values::generics::flex::FlexBasis;
 use crate::values::generics::gecko::ScrollSnapPoint;
 use crate::values::generics::grid::{TrackBreadth, TrackKeyword};
 use crate::values::generics::length::{MaxLength, MozLength};
+use cssparser::RGBA;
+use nsstring::{nsACString, nsCStr};
+use std::cmp::max;
 
 /// A trait that defines an interface to convert from and to `nsStyleCoord`s.
 pub trait GeckoStyleCoordConvertible: Sized {

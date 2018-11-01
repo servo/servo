@@ -7,14 +7,14 @@
 use crate::context::StyleSystemOptions;
 use crate::gecko_bindings::bindings::{Gecko_RegisterProfilerThread, Gecko_UnregisterProfilerThread};
 use crate::gecko_bindings::bindings::Gecko_SetJemallocThreadLocalArena;
-use num_cpus;
 use crate::parallel::STYLE_THREAD_STACK_SIZE_KB;
-use rayon;
 use crate::shared_lock::SharedRwLock;
+use crate::thread_state;
+use num_cpus;
+use rayon;
 use std::cmp;
 use std::env;
 use std::ffi::CString;
-use crate::thread_state;
 
 /// Global style data
 pub struct GlobalStyleData {

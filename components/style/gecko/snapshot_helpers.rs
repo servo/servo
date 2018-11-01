@@ -7,8 +7,8 @@
 use crate::CaseSensitivityExt;
 use crate::gecko_bindings::bindings;
 use crate::gecko_bindings::structs::{self, nsAtom};
-use selectors::attr::CaseSensitivity;
 use crate::string_cache::{Atom, WeakAtom};
+use selectors::attr::CaseSensitivity;
 
 /// A function that, given an element of type `T`, allows you to get a single
 /// class or a class list.

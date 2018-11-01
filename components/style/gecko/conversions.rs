@@ -14,17 +14,18 @@ use crate::gecko_bindings::bindings;
 use crate::gecko_bindings::structs::{self, nsStyleCoord_CalcValue};
 use crate::gecko_bindings::structs::{nsresult, SheetType, nsStyleImage};
 use crate::gecko_bindings::sugar::ns_style_coord::{CoordData, CoordDataMut, CoordDataValue};
-use std::f32::consts::PI;
 use crate::stylesheets::{Origin, RulesMutateError};
 use crate::values::computed::{Angle, CalcLengthOrPercentage, Gradient, Image};
-use crate::values::computed::{Integer, LengthOrPercentage, LengthOrPercentageOrAuto, NonNegativeLengthOrPercentageOrAuto};
+use crate::values::computed::{Integer, LengthOrPercentage, LengthOrPercentageOrAuto};
 use crate::values::computed::{Percentage, TextAlign};
+use crate::values::computed::NonNegativeLengthOrPercentageOrAuto;
 use crate::values::computed::image::LineDirection;
 use crate::values::computed::url::ComputedImageUrl;
 use crate::values::generics::box_::VerticalAlign;
 use crate::values::generics::grid::{TrackListValue, TrackSize};
 use crate::values::generics::image::{CompatMode, GradientItem, Image as GenericImage};
 use crate::values::generics::rect::Rect;
+use std::f32::consts::PI;
 
 impl From<CalcLengthOrPercentage> for nsStyleCoord_CalcValue {
     fn from(other: CalcLengthOrPercentage) -> nsStyleCoord_CalcValue {
@@ -110,8 +111,8 @@ impl From<nsStyleCoord_CalcValue> for LengthOrPercentageOrAuto {
 // disappear as we move more stuff to cbindgen.
 impl From<nsStyleCoord_CalcValue> for NonNegativeLengthOrPercentageOrAuto {
     fn from(other: nsStyleCoord_CalcValue) -> Self {
-        use style_traits::values::specified::AllowedNumericType;
         use crate::values::generics::NonNegative;
+        use style_traits::values::specified::AllowedNumericType;
         NonNegative(if other.mLength < 0 || other.mPercent < 0. {
             LengthOrPercentageOrAuto::Calc(
                 CalcLengthOrPercentage::with_clamping_mode(
@@ -231,13 +232,13 @@ impl nsStyleImage {
 
     // FIXME(emilio): This is really complex, we should use cbindgen for this.
     fn set_gradient(&mut self, gradient: Gradient) {
+        use crate::values::generics::image::{Circle, Ellipse, EndingShape, GradientKind, ShapeExtent};
+        use crate::values::specified::position::{X, Y};
         use self::structs::NS_STYLE_GRADIENT_SIZE_CLOSEST_CORNER as CLOSEST_CORNER;
         use self::structs::NS_STYLE_GRADIENT_SIZE_CLOSEST_SIDE as CLOSEST_SIDE;
         use self::structs::NS_STYLE_GRADIENT_SIZE_FARTHEST_CORNER as FARTHEST_CORNER;
         use self::structs::NS_STYLE_GRADIENT_SIZE_FARTHEST_SIDE as FARTHEST_SIDE;
         use self::structs::nsStyleCoord;
-        use crate::values::generics::image::{Circle, Ellipse, EndingShape, GradientKind, ShapeExtent};
-        use crate::values::specified::position::{X, Y};
 
         let stop_count = gradient.items.len();
         if stop_count >= ::std::u32::MAX as usize {
@@ -489,15 +490,15 @@ impl nsStyleImage {
     }
 
     unsafe fn get_gradient(self: &nsStyleImage) -> Box<Gradient> {
-        use self::structs::NS_STYLE_GRADIENT_SIZE_CLOSEST_CORNER as CLOSEST_CORNER;
-        use self::structs::NS_STYLE_GRADIENT_SIZE_CLOSEST_SIDE as CLOSEST_SIDE;
-        use self::structs::NS_STYLE_GRADIENT_SIZE_FARTHEST_CORNER as FARTHEST_CORNER;
-        use self::structs::NS_STYLE_GRADIENT_SIZE_FARTHEST_SIDE as FARTHEST_SIDE;
         use crate::values::computed::Length;
         use crate::values::computed::image::LineDirection;
         use crate::values::computed::position::Position;
         use crate::values::generics::image::{Circle, ColorStop, CompatMode, Ellipse};
         use crate::values::generics::image::{EndingShape, GradientKind, ShapeExtent};
+        use self::structs::NS_STYLE_GRADIENT_SIZE_CLOSEST_CORNER as CLOSEST_CORNER;
+        use self::structs::NS_STYLE_GRADIENT_SIZE_CLOSEST_SIDE as CLOSEST_SIDE;
+        use self::structs::NS_STYLE_GRADIENT_SIZE_FARTHEST_CORNER as FARTHEST_CORNER;
+        use self::structs::NS_STYLE_GRADIENT_SIZE_FARTHEST_SIDE as FARTHEST_SIDE;
 
         let gecko_gradient = bindings::Gecko_GetGradientImageValue(self)
             .as_ref()
@@ -654,7 +655,6 @@ pub mod basic_shape {
     use crate::gecko_bindings::structs::{nsStyleCoord, nsStyleCorners};
     use crate::gecko_bindings::sugar::ns_style_coord::{CoordDataMut, CoordDataValue};
     use crate::gecko_bindings::sugar::refptr::RefPtr;
-    use std::borrow::Borrow;
     use crate::values::computed::basic_shape::{BasicShape, ClippingShape, FloatAreaShape, ShapeRadius};
     use crate::values::computed::border::{BorderCornerRadius, BorderRadius};
     use crate::values::computed::length::LengthOrPercentage;
@@ -667,6 +667,7 @@ pub mod basic_shape {
     use crate::values::generics::border::BorderRadius as GenericBorderRadius;
     use crate::values::generics::rect::Rect;
     use crate::values::specified::SVGPathData;
+    use std::borrow::Borrow;
 
     impl StyleShapeSource {
         /// Convert StyleShapeSource to ShapeSource except URL and Image
