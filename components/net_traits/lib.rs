@@ -31,6 +31,9 @@ extern crate webrender_api;
 
 use crate::cookie_rs::Cookie;
 use crate::filemanager_thread::FileManagerThreadMsg;
+use crate::request::{Request, RequestInit};
+use crate::response::{HttpsState, Response, ResponseInit};
+use crate::storage_thread::StorageThreadMsg;
 use headers_core::HeaderMapExt;
 use headers_ext::{ContentType, ReferrerPolicy as ReferrerPolicyHeader};
 use http::{Error as HttpError, HeaderMap};
@@ -42,11 +45,8 @@ use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
 use mime::Mime;
 use msg::constellation_msg::HistoryStateId;
-use crate::request::{Request, RequestInit};
-use crate::response::{HttpsState, Response, ResponseInit};
 use servo_url::ServoUrl;
 use std::error::Error;
-use crate::storage_thread::StorageThreadMsg;
 use url::percent_encoding;
 
 pub mod blob_url_store;

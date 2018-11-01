@@ -6,8 +6,6 @@ use canvas_traits::canvas::{Canvas2dMsg, CanvasMsg, CanvasId};
 use canvas_traits::canvas::{CompositionOrBlending, FillOrStrokeStyle, FillRule};
 use canvas_traits::canvas::{LineCapStyle, LineJoinStyle, LinearGradientStyle};
 use canvas_traits::canvas::{RadialGradientStyle, RepetitionStyle};
-use cssparser::{Parser, ParserInput, RGBA};
-use cssparser::Color as CSSColor;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding;
 use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasFillRule;
@@ -30,6 +28,9 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlcanvaselement::{CanvasContext, HTMLCanvasElement};
 use crate::dom::imagedata::ImageData;
 use crate::dom::node::{Node, NodeDamage, window_from_node};
+use crate::unpremultiplytable::UNPREMULTIPLY_TABLE;
+use cssparser::{Parser, ParserInput, RGBA};
+use cssparser::Color as CSSColor;
 use dom_struct::dom_struct;
 use euclid::{Transform2D, Point2D, Rect, Size2D, vec2};
 use ipc_channel::ipc::{self, IpcSender};
@@ -48,7 +49,6 @@ use std::{fmt, mem};
 use std::cell::Cell;
 use std::str::FromStr;
 use std::sync::Arc;
-use crate::unpremultiplytable::UNPREMULTIPLY_TABLE;
 
 #[must_root]
 #[derive(Clone, JSTraceable, MallocSizeOf)]

@@ -17,8 +17,9 @@ use crate::dom::bindings::codegen::UnionTypes::{ByteStringOrLong, ByteStringSequ
 use crate::dom::bindings::codegen::UnionTypes::{ByteStringSequenceOrLong, DocumentOrTestTypedef};
 use crate::dom::bindings::codegen::UnionTypes::{EventOrUSVString, HTMLElementOrLong, LongSequenceOrTestTypedef};
 use crate::dom::bindings::codegen::UnionTypes::{HTMLElementOrUnsignedLongOrStringOrBoolean, LongSequenceOrBoolean};
-use crate::dom::bindings::codegen::UnionTypes::{StringOrLongSequence, StringOrStringSequence, StringSequenceOrUnsignedLong};
-use crate::dom::bindings::codegen::UnionTypes::{StringOrUnsignedLong, StringOrBoolean, UnsignedLongOrBoolean};
+use crate::dom::bindings::codegen::UnionTypes::{StringOrBoolean, UnsignedLongOrBoolean};
+use crate::dom::bindings::codegen::UnionTypes::{StringOrLongSequence, StringOrStringSequence};
+use crate::dom::bindings::codegen::UnionTypes::{StringSequenceOrUnsignedLong, StringOrUnsignedLong};
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::mozmap::MozMap;
 use crate::dom::bindings::num::Finite;
@@ -33,6 +34,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::dom::promisenativehandler::{PromiseNativeHandler, Callback};
 use crate::dom::url::URL;
+use crate::timers::OneshotTimerCallback;
 use dom_struct::dom_struct;
 use js::jsapi::{Heap, JSContext, JSObject};
 use js::jsapi::{JS_NewPlainObject, JS_NewUint8ClampedArray};
@@ -46,7 +48,6 @@ use std::borrow::ToOwned;
 use std::ptr;
 use std::ptr::NonNull;
 use std::rc::Rc;
-use crate::timers::OneshotTimerCallback;
 
 #[dom_struct]
 pub struct TestBinding {

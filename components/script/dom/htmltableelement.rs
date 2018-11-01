@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use cssparser::RGBA;
 use crate::dom::attr::Attr;
 use crate::dom::bindings::codegen::Bindings::HTMLCollectionBinding::HTMLCollectionMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLTableElementBinding;
@@ -22,6 +21,7 @@ use crate::dom::htmltablerowelement::HTMLTableRowElement;
 use crate::dom::htmltablesectionelement::HTMLTableSectionElement;
 use crate::dom::node::{Node, document_from_node, window_from_node};
 use crate::dom::virtualmethods::VirtualMethods;
+use cssparser::RGBA;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
 use std::cell::Cell;

@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use cssparser::{Parser, ParserInput};
 use crate::dom::bindings::codegen::Bindings::MediaListBinding;
 use crate::dom::bindings::codegen::Bindings::MediaListBinding::MediaListMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowBinding::WindowMethods;
@@ -11,6 +10,7 @@ use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::cssstylesheet::CSSStyleSheet;
 use crate::dom::window::Window;
+use cssparser::{Parser, ParserInput};
 use dom_struct::dom_struct;
 use servo_arc::Arc;
 use style::media_queries::MediaList as StyleMediaList;

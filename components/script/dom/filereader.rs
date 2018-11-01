@@ -20,6 +20,9 @@ use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::progressevent::ProgressEvent;
+use crate::task::TaskCanceller;
+use crate::task_source::{TaskSource, TaskSourceName};
+use crate::task_source::file_reading::{FileReadingTask, FileReadingTaskSource};
 use dom_struct::dom_struct;
 use encoding_rs::{Encoding, UTF_8};
 use js::jsapi::Heap;
@@ -34,9 +37,6 @@ use std::cell::Cell;
 use std::ptr;
 use std::sync::Arc;
 use std::thread;
-use crate::task::TaskCanceller;
-use crate::task_source::{TaskSource, TaskSourceName};
-use crate::task_source::file_reading::{FileReadingTask, FileReadingTaskSource};
 
 #[derive(Clone, Copy, JSTraceable, MallocSizeOf, PartialEq)]
 pub enum FileReaderFunction {

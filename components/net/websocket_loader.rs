@@ -4,11 +4,11 @@
 
 use crate::connector::create_ssl_connector_builder;
 use crate::cookie::Cookie;
-use embedder_traits::resources::{self, Resource};
 use crate::fetch::methods::should_be_blocked_due_to_bad_port;
-use headers_ext::Host;
 use crate::hosts::replace_host;
 use crate::http_loader::HttpState;
+use embedder_traits::resources::{self, Resource};
+use headers_ext::Host;
 use http::header::{self, HeaderMap, HeaderName, HeaderValue};
 use http::uri::Authority;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};

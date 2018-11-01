@@ -7,15 +7,17 @@ use crate::connector::{create_http_client, create_ssl_connector_builder};
 use crate::cookie;
 use crate::cookie_rs;
 use crate::cookie_storage::CookieStorage;
-use devtools_traits::DevtoolsControlMsg;
-use embedder_traits::EmbedderProxy;
-use embedder_traits::resources::{self, Resource};
 use crate::fetch::cors_cache::CorsCache;
 use crate::fetch::methods::{CancellationListener, FetchContext, fetch};
 use crate::filemanager_thread::FileManager;
 use crate::hsts::HstsList;
 use crate::http_cache::HttpCache;
 use crate::http_loader::{HANDLE, HttpState, http_redirect_fetch};
+use crate::storage_thread::StorageThreadFactory;
+use crate::websocket_loader;
+use devtools_traits::DevtoolsControlMsg;
+use embedder_traits::EmbedderProxy;
+use embedder_traits::resources::{self, Resource};
 use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcReceiver, IpcReceiverSet, IpcSender};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
@@ -44,8 +46,6 @@ use std::ops::Deref;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex, RwLock};
 use std::thread;
-use crate::storage_thread::StorageThreadFactory;
-use crate::websocket_loader;
 
 /// Returns a tuple of (public, private) senders to the new threads.
 pub fn new_resource_threads(user_agent: Cow<'static, str>,

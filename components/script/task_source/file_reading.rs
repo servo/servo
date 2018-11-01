@@ -4,11 +4,11 @@
 
 use crate::dom::domexception::DOMErrorName;
 use crate::dom::filereader::{FileReader, TrustedFileReader, GenerationId, ReadMetaData};
-use msg::constellation_msg::PipelineId;
 use crate::script_runtime::{CommonScriptMsg, ScriptThreadEventCategory, ScriptChan};
-use std::sync::Arc;
 use crate::task::{TaskCanceller, TaskOnce};
 use crate::task_source::{TaskSource, TaskSourceName};
+use msg::constellation_msg::PipelineId;
+use std::sync::Arc;
 
 #[derive(JSTraceable)]
 pub struct FileReadingTaskSource(pub Box<ScriptChan + Send + 'static>, pub PipelineId);

@@ -23,13 +23,14 @@ use crate::dom::node::{Node, NodeDamage, UnbindContext, document_from_node, wind
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::dom::window::ReflowReason;
 use crate::dom::windowproxy::WindowProxy;
+use crate::script_thread::ScriptThread;
+use crate::task_source::TaskSource;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
 use ipc_channel::ipc;
 use msg::constellation_msg::{BrowsingContextId, PipelineId, TopLevelBrowsingContextId};
 use profile_traits::ipc as ProfiledIpc;
 use script_layout_interface::message::ReflowGoal;
-use crate::script_thread::ScriptThread;
 use script_traits::{IFrameLoadInfo, IFrameLoadInfoWithData, JsEvalResult, LoadData, UpdatePipelineIdReason};
 use script_traits::{NewLayoutInfo, ScriptMsg};
 use script_traits::IFrameSandboxState::{IFrameSandboxed, IFrameUnsandboxed};
@@ -37,7 +38,6 @@ use servo_config::prefs::PREFS;
 use servo_url::ServoUrl;
 use std::cell::Cell;
 use style::attr::{AttrValue, LengthOrPercentageOrAuto};
-use crate::task_source::TaskSource;
 
 bitflags! {
     #[derive(JSTraceable, MallocSizeOf)]

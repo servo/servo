@@ -22,6 +22,8 @@ use crate::dom::htmlelement::HTMLElement;
 use crate::dom::node::{ChildrenMutation, CloneChildrenFlag, Node};
 use crate::dom::node::{document_from_node, window_from_node};
 use crate::dom::virtualmethods::VirtualMethods;
+use crate::network_listener::{NetworkListener, PreInvoke};
+use crate::task_source::TaskSourceName;
 use dom_struct::dom_struct;
 use encoding_rs::Encoding;
 use html5ever::{LocalName, Prefix};
@@ -30,7 +32,6 @@ use ipc_channel::router::ROUTER;
 use js::jsval::UndefinedValue;
 use net_traits::{FetchMetadata, FetchResponseListener, Metadata, NetworkError};
 use net_traits::request::{CorsSettings, CredentialsMode, Destination, RequestInit, RequestMode};
-use crate::network_listener::{NetworkListener, PreInvoke};
 use servo_atoms::Atom;
 use servo_config::opts;
 use servo_url::ServoUrl;
@@ -41,7 +42,6 @@ use std::path::PathBuf;
 use std::process::{Command, Stdio};
 use std::sync::{Arc, Mutex};
 use style::str::{HTML_SPACE_CHARACTERS, StaticStringVec};
-use crate::task_source::TaskSourceName;
 use uuid::Uuid;
 
 #[dom_struct]

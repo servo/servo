@@ -3,10 +3,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use crate::{DEFAULT_USER_AGENT, new_fetch_context, create_embedder_proxy, fetch, make_server, make_ssl_server};
-use devtools_traits::HttpRequest as DevtoolsHttpRequest;
-use devtools_traits::HttpResponse as DevtoolsHttpResponse;
 use crate::fetch_with_context;
 use crate::fetch_with_cors_cache;
+use crate::http_loader::{expect_devtools_http_request, expect_devtools_http_response};
+use devtools_traits::HttpRequest as DevtoolsHttpRequest;
+use devtools_traits::HttpResponse as DevtoolsHttpResponse;
 use headers_core::HeaderMapExt;
 use headers_ext::{AccessControlAllowCredentials, AccessControlAllowHeaders, AccessControlAllowOrigin};
 use headers_ext::{AccessControlAllowMethods, AccessControlMaxAge};
@@ -14,7 +15,6 @@ use headers_ext::{CacheControl, ContentLength, ContentType, Expires, Host, LastM
 use http::{Method, StatusCode};
 use http::header::{self, HeaderMap, HeaderName, HeaderValue};
 use http::uri::Authority;
-use crate::http_loader::{expect_devtools_http_request, expect_devtools_http_response};
 use hyper::{Request as HyperRequest, Response as HyperResponse};
 use hyper::body::Body;
 use mime::{self, Mime};

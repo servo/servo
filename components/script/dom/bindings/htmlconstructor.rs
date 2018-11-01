@@ -76,6 +76,7 @@ use crate::dom::customelementregistry::ConstructionStackEntry;
 use crate::dom::element::{CustomElementState, Element, ElementCreator};
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::window::Window;
+use crate::script_thread::ScriptThread;
 use html5ever::LocalName;
 use html5ever::interface::QualName;
 use js::glue::UnwrapObject;
@@ -83,7 +84,6 @@ use js::jsapi::{CallArgs, CurrentGlobalOrNull};
 use js::jsapi::{JSAutoCompartment, JSContext, JSObject};
 use js::rust::HandleObject;
 use js::rust::MutableHandleObject;
-use crate::script_thread::ScriptThread;
 use std::ptr;
 
 // https://html.spec.whatwg.org/multipage/#htmlconstructor

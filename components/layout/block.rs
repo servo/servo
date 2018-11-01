@@ -31,17 +31,18 @@ use crate::display_list::{BlockFlowDisplayListBuilding, BorderPaintingMode};
 use crate::display_list::{DisplayListBuildState, StackingContextCollectionFlags};
 use crate::display_list::StackingContextCollectionState;
 use crate::display_list::items::DisplayListSection;
-use euclid::{Point2D, Rect, SideOffsets2D, Size2D};
 use crate::floats::{ClearType, FloatKind, Floats, PlacementInfo};
 use crate::flow::{BaseFlow, EarlyAbsolutePositionInfo, Flow, FlowClass, ForceNonfloatedFlag, GetBaseFlow};
 use crate::flow::{ImmutableFlowUtils, LateAbsolutePositionInfo, OpaqueFlow, FragmentationContext, FlowFlags};
 use crate::flow_list::FlowList;
 use crate::fragment::{CoordinateSystem, Fragment, FragmentBorderBoxIterator, Overflow, FragmentFlags};
-use gfx_traits::print_tree::PrintTree;
 use crate::incremental::RelayoutMode;
 use crate::layout_debug;
 use crate::model::{AdjoiningMargins, CollapsibleMargins, IntrinsicISizes, MarginCollapseInfo, MaybeAuto};
 use crate::sequential;
+use crate::traversal::PreorderFlowTraversal;
+use euclid::{Point2D, Rect, SideOffsets2D, Size2D};
+use gfx_traits::print_tree::PrintTree;
 use serde::{Serialize, Serializer};
 use servo_geometry::MaxRect;
 use std::cmp::{max, min};
@@ -59,7 +60,6 @@ use style::properties::ComputedValues;
 use style::servo::restyle_damage::ServoRestyleDamage;
 use style::values::computed::{LengthOrPercentageOrNone, LengthOrPercentage};
 use style::values::computed::LengthOrPercentageOrAuto;
-use crate::traversal::PreorderFlowTraversal;
 
 /// Information specific to floated blocks.
 #[derive(Clone, Serialize)]

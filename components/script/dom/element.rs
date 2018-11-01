@@ -4,7 +4,6 @@
 
 //! Element nodes.
 
-use devtools_traits::AttrInfo;
 use crate::dom::activation::Activatable;
 use crate::dom::attr::{Attr, AttrHelpersForLayout};
 use crate::dom::bindings::cell::DomRefCell;
@@ -75,6 +74,10 @@ use crate::dom::text::Text;
 use crate::dom::validation::Validatable;
 use crate::dom::virtualmethods::{VirtualMethods, vtable_for};
 use crate::dom::window::ReflowReason;
+use crate::script_thread::ScriptThread;
+use crate::stylesheet_loader::StylesheetOwner;
+use crate::task::TaskOnce;
+use devtools_traits::AttrInfo;
 use dom_struct::dom_struct;
 use html5ever::{Prefix, LocalName, Namespace, QualName};
 use html5ever::serialize;
@@ -87,7 +90,6 @@ use msg::constellation_msg::InputMethodType;
 use net_traits::request::CorsSettings;
 use ref_filter_map::ref_filter_map;
 use script_layout_interface::message::ReflowGoal;
-use crate::script_thread::ScriptThread;
 use selectors::Element as SelectorsElement;
 use selectors::attr::{AttrSelectorOperation, NamespaceConstraint, CaseSensitivity};
 use selectors::matching::{ElementSelectorFlags, MatchingContext};
@@ -119,8 +121,6 @@ use style::shared_lock::{SharedRwLock, Locked};
 use style::thread_state;
 use style::values::{CSSFloat, Either};
 use style::values::{specified, computed};
-use crate::stylesheet_loader::StylesheetOwner;
-use crate::task::TaskOnce;
 use xml5ever::serialize as xmlSerialize;
 use xml5ever::serialize::SerializeOpts as XmlSerializeOpts;
 use xml5ever::serialize::TraversalScope as XmlTraversalScope;

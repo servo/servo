@@ -38,6 +38,7 @@ use crate::dom::oscillatornode::OscillatorNode;
 use crate::dom::pannernode::PannerNode;
 use crate::dom::promise::Promise;
 use crate::dom::window::Window;
+use crate::task_source::{TaskSource, TaskSourceName};
 use dom_struct::dom_struct;
 use js::rust::CustomAutoRooterGuard;
 use js::typedarray::ArrayBuffer;
@@ -51,7 +52,6 @@ use std::collections::{HashMap, VecDeque};
 use std::mem;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
-use crate::task_source::{TaskSource, TaskSourceName};
 use uuid::Uuid;
 
 #[allow(dead_code)]

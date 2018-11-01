@@ -7,13 +7,13 @@ use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::event::{EventBubbles, EventCancelable, EventTask, SimpleEventTask};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::window::Window;
-use msg::constellation_msg::PipelineId;
 use crate::script_runtime::{CommonScriptMsg, ScriptChan, ScriptThreadEventCategory};
+use crate::task::{TaskCanceller, TaskOnce};
+use crate::task_source::{TaskSource, TaskSourceName};
+use msg::constellation_msg::PipelineId;
 use servo_atoms::Atom;
 use std::fmt;
 use std::result::Result;
-use crate::task::{TaskCanceller, TaskOnce};
-use crate::task_source::{TaskSource, TaskSourceName};
 
 #[derive(JSTraceable)]
 pub struct DOMManipulationTaskSource(pub Box<ScriptChan + Send>, pub PipelineId);

@@ -9,15 +9,15 @@
 
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::node::{Node, document_from_node};
+use crate::network_listener::{NetworkListener, PreInvoke};
+use crate::task_source::TaskSourceName;
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use net_traits::{FetchResponseMsg, FetchResponseListener, FetchMetadata, NetworkError};
 use net_traits::image_cache::{ImageCache, PendingImageId};
 use net_traits::request::{Destination, RequestInit as FetchRequestInit};
-use crate::network_listener::{NetworkListener, PreInvoke};
 use servo_url::ServoUrl;
 use std::sync::{Arc, Mutex};
-use crate::task_source::TaskSourceName;
 
 struct LayoutImageContext {
     id: PendingImageId,

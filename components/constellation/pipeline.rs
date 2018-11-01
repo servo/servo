@@ -7,9 +7,9 @@ use canvas_traits::webgl::WebGLPipeline;
 use compositing::CompositionPipeline;
 use compositing::CompositorProxy;
 use compositing::compositor_thread::Msg as CompositorMsg;
+use crate::event_loop::EventLoop;
 use devtools_traits::{DevtoolsControlMsg, ScriptToDevtoolsControlMsg};
 use euclid::{TypedSize2D, TypedScale};
-use crate::event_loop::EventLoop;
 use gfx::font_cache_thread::FontCacheThread;
 use ipc_channel::Error;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
@@ -555,9 +555,9 @@ impl UnprivilegedPipelineContent {
 
     #[cfg(all(not(target_os = "windows"), not(target_os = "ios")))]
     pub fn spawn_multiprocess(self) -> Result<(), Error> {
+        use crate::sandboxing::content_process_sandbox_profile;
         use gaol::sandbox::{self, Sandbox, SandboxMethods};
         use ipc_channel::ipc::IpcOneShotServer;
-        use crate::sandboxing::content_process_sandbox_profile;
 
         impl CommandMethods for sandbox::Command {
             fn arg<T>(&mut self, arg: T)

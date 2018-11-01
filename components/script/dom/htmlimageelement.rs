@@ -3,7 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use app_units::{Au, AU_PER_PX};
-use cssparser::{Parser, ParserInput};
 use crate::document_loader::{LoadType, LoadBlocker};
 use crate::dom::activation::Activatable;
 use crate::dom::attr::Attr;
@@ -38,12 +37,16 @@ use crate::dom::progressevent::ProgressEvent;
 use crate::dom::values::UNSIGNED_LONG_MAX;
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::dom::window::Window;
+use crate::microtask::{Microtask, MicrotaskRunnable};
+use crate::network_listener::{NetworkListener, PreInvoke};
+use crate::script_thread::ScriptThread;
+use crate::task_source::{TaskSource, TaskSourceName};
+use cssparser::{Parser, ParserInput};
 use dom_struct::dom_struct;
 use euclid::Point2D;
 use html5ever::{LocalName, Prefix};
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
-use crate::microtask::{Microtask, MicrotaskRunnable};
 use mime::{self, Mime};
 use net_traits::{FetchResponseListener, FetchMetadata, NetworkError, FetchResponseMsg};
 use net_traits::image::base::{Image, ImageMetadata};
@@ -51,9 +54,7 @@ use net_traits::image_cache::{CanRequestImages, ImageCache, ImageOrMetadataAvail
 use net_traits::image_cache::{ImageResponder, ImageResponse, ImageState, PendingImageId};
 use net_traits::image_cache::UsePlaceholder;
 use net_traits::request::RequestInit;
-use crate::network_listener::{NetworkListener, PreInvoke};
 use num_traits::ToPrimitive;
-use crate::script_thread::ScriptThread;
 use servo_url::ServoUrl;
 use servo_url::origin::MutableOrigin;
 use std::cell::{Cell, RefMut};
@@ -72,7 +73,6 @@ use style::stylesheets::{CssRuleType, Origin};
 use style::values::specified::{AbsoluteLength, source_size_list::SourceSizeList};
 use style::values::specified::length::{Length, NoCalcLength};
 use style_traits::ParsingMode;
-use crate::task_source::{TaskSource, TaskSourceName};
 
 enum ParseState {
     InDescriptor,

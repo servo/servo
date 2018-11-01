@@ -2,10 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use devtools_traits::{AutoMargins, CachedConsoleMessage, CachedConsoleMessageTypes};
-use devtools_traits::{ComputedNodeLayout, ConsoleAPI, PageError};
-use devtools_traits::{EvaluateJSReply, Modification, NodeInfo, TimelineMarker};
-use devtools_traits::TimelineMarkerType;
 use crate::dom::bindings::codegen::Bindings::CSSStyleDeclarationBinding::CSSStyleDeclarationMethods;
 use crate::dom::bindings::codegen::Bindings::DOMRectBinding::DOMRectMethods;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
@@ -21,12 +17,16 @@ use crate::dom::element::Element;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::node::{Node, window_from_node};
 use crate::dom::window::Window;
+use crate::script_thread::Documents;
+use devtools_traits::{AutoMargins, CachedConsoleMessage, CachedConsoleMessageTypes};
+use devtools_traits::{ComputedNodeLayout, ConsoleAPI, PageError};
+use devtools_traits::{EvaluateJSReply, Modification, NodeInfo, TimelineMarker};
+use devtools_traits::TimelineMarkerType;
 use ipc_channel::ipc::IpcSender;
 use js::jsapi::JSAutoCompartment;
 use js::jsval::UndefinedValue;
 use js::rust::wrappers::ObjectClassName;
 use msg::constellation_msg::PipelineId;
-use crate::script_thread::Documents;
 use std::ffi::CStr;
 use std::str;
 use style::properties::longhands::{margin_bottom, margin_left, margin_right, margin_top};

@@ -14,10 +14,10 @@ use crate::dom::eventtarget::EventTarget;
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::node::{Node, window_from_node};
 use crate::dom::virtualmethods::VirtualMethods;
+use crate::task_source::TaskSource;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
 use std::cell::Cell;
-use crate::task_source::TaskSource;
 
 #[dom_struct]
 pub struct HTMLDetailsElement {

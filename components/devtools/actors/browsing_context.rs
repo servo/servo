@@ -9,8 +9,8 @@
 
 use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
 use crate::actors::console::ConsoleActor;
-use devtools_traits::DevtoolScriptControlMsg::{self, WantsLiveNotifications};
 use crate::protocol::JsonPacketStream;
+use devtools_traits::DevtoolScriptControlMsg::{self, WantsLiveNotifications};
 use serde_json::{Map, Value};
 use std::net::TcpStream;
 

@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use devtools_traits::ScriptToDevtoolsControlMsg;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::globalscope::GlobalScope;
@@ -11,6 +10,8 @@ use crate::dom::paintworkletglobalscope::PaintWorkletTask;
 use crate::dom::testworkletglobalscope::TestWorkletGlobalScope;
 use crate::dom::testworkletglobalscope::TestWorkletTask;
 use crate::dom::worklet::WorkletExecutor;
+use crate::script_thread::MainThreadScriptMsg;
+use devtools_traits::ScriptToDevtoolsControlMsg;
 use dom_struct::dom_struct;
 use ipc_channel::ipc;
 use ipc_channel::ipc::IpcSender;
@@ -22,7 +23,6 @@ use net_traits::ResourceThreads;
 use net_traits::image_cache::ImageCache;
 use profile_traits::mem;
 use profile_traits::time;
-use crate::script_thread::MainThreadScriptMsg;
 use script_traits::{Painter, ScriptMsg};
 use script_traits::{ScriptToConstellationChan, TimerSchedulerMsg};
 use servo_atoms::Atom;

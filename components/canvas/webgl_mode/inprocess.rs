@@ -2,17 +2,17 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use crate::gl_context::GLContextFactory;
 use canvas_traits::webgl::{WebGLChan, WebGLContextId, WebGLMsg, WebGLPipeline, WebGLReceiver};
 use canvas_traits::webgl::{WebGLSender, WebVRCommand, WebVRRenderHandler};
 use canvas_traits::webgl::DOMToTextureCommand;
 use canvas_traits::webgl::webgl_channel;
+use crate::gl_context::GLContextFactory;
+use crate::webgl_thread::{WebGLExternalImageApi, WebGLExternalImageHandler, WebGLThread};
 use euclid::Size2D;
 use fnv::FnvHashMap;
 use gleam::gl;
 use servo_config::prefs::PREFS;
 use std::rc::Rc;
-use crate::webgl_thread::{WebGLExternalImageApi, WebGLExternalImageHandler, WebGLThread};
 use webrender;
 use webrender_api;
 
