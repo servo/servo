@@ -11,8 +11,6 @@ use libc;
 use mach;
 use servo_channel::{Receiver, base_channel};
 use std::collections::HashMap;
-#[cfg(target_os = "macos")]
-use std::mem;
 use std::ptr;
 #[cfg(any(target_os = "android", target_os = "linux"))]
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -82,63 +80,66 @@ impl NativeStack {
 }
 
 #[cfg(target_os = "macos")]
-fn check_kern_return(kret: mach::kern_return::kern_return_t, success: &mut bool) {
+fn check_kern_return(kret: mach::kern_return::kern_return_t) -> Result<(), ()> {
     if kret != mach::kern_return::KERN_SUCCESS {
         warn!("Kern return error: {:?}", kret);
-        *success = false;
+        return Err(());
+    }
+    Ok(())
+}
+
+#[cfg(target_os = "macos")]
+#[allow(unsafe_code)]
+unsafe fn suspend_thread(thread_id: MonitoredThreadId) -> Result<(), ()> {
+    check_kern_return(mach::thread_act::thread_suspend(thread_id))
+}
+
+#[cfg(target_os = "windows")]
+#[allow(unsafe_code)]
+unsafe fn suspend_thread(thread_id: MonitoredThreadId) -> Result<(), ()> {
+    // TODO: use winapi::um::processthreadsapi::SuspendThread
+    Err(())
+}
+
+#[cfg(any(target_os = "android", target_os = "linux"))]
+#[allow(unsafe_code)]
+unsafe fn suspend_thread(thread_id: MonitoredThreadId) -> Result<(), ()> {
+    match libc::pthread_kill(thread_id, libc::SIGPROF) {
+        0 => Ok(()),
+        _ => Err(()),
     }
 }
 
 #[cfg(target_os = "macos")]
 #[allow(unsafe_code)]
-unsafe fn suspend_thread(thread_id: MonitoredThreadId, success: &mut bool) {
-    check_kern_return(mach::thread_act::thread_suspend(thread_id), success);
-}
-
-#[cfg(target_os = "windows")]
-#[allow(unsafe_code)]
-unsafe fn suspend_thread(thread_id: MonitoredThreadId, success: &mut bool) {
-    // TODO: use winapi::um::processthreadsapi::SuspendThread
-    *success = false;
-}
-
-#[cfg(any(target_os = "android", target_os = "linux"))]
-#[allow(unsafe_code)]
-unsafe fn suspend_thread(thread_id: MonitoredThreadId, success: &mut bool) {
-    match libc::pthread_kill(thread_id, libc::SIGPROF) {
-        0 => {},
-        _ => {
-            *success = false;
-        },
-    };
-}
-
-#[cfg(target_os = "macos")]
-#[allow(unsafe_code)]
-unsafe fn get_registers(thread_id: MonitoredThreadId, regs: &mut Registers, success: &mut bool) {
-    let state = mach::structs::x86_thread_state64_t::new();
-    let state_count = mach::structs::x86_thread_state64_t::count();
+unsafe fn get_registers(thread_id: MonitoredThreadId) -> Result<Registers, ()> {
+    let state = (&mut mach::structs::x86_thread_state64_t::new()) as *mut _ as *mut u32;
+    let state_count = (&mut mach::structs::x86_thread_state64_t::count()) as *mut _ as *mut u32;
     let kret = mach::thread_act::thread_get_state(thread_id,
                                                   mach::thread_status::x86_THREAD_STATE64,
-                                                  mem::transmute(&state),
-                                                  mem::transmute(&state_count));
-    check_kern_return(kret, success);
-    regs.instruction_ptr = state.__rip as Address;
-    regs.stack_ptr = state.__rsp as Address;
-    regs.frame_ptr = state.__rbp as Address;
+                                                  state,
+                                                  state_count);
+    check_kern_return(kret)?;
+    let thread_state = *(state as *mut mach::structs::x86_thread_state64_t);
+    Ok(Registers {
+        instruction_ptr: thread_state.__rip as Address,
+        stack_ptr: thread_state.__rsp as Address,
+        frame_ptr: thread_state.__rbp as Address,
+    })
 }
 
 #[cfg(target_os = "windows")]
 #[allow(unsafe_code)]
-unsafe fn get_registers(thread_id: MonitoredThreadId, _regs: &mut Registers, _success: &mut bool) {
+unsafe fn get_registers(thread_id: MonitoredThreadId) -> Result<Registers, ()> {
     // TODO: use winapi::um::processthreadsapi::GetThreadContext
     // and populate registers using the context.
     // See https://dxr.mozilla.org/mozilla-central/source/tools/profiler/core/platform-win32.cpp#129
+    Err(())
 }
 
 #[cfg(any(target_os = "android", target_os = "linux"))]
 #[allow(unsafe_code)]
-unsafe fn get_registers(_thread_id: MonitoredThreadId, _regs: &mut Registers, _success: &mut bool) {
+unsafe fn get_registers(_thread_id: MonitoredThreadId) -> Result<Registers, ()> {
     loop {
         if SAMPLEE_CONTEXT_READY.load(Ordering::SeqCst) {
             break;
@@ -148,29 +149,33 @@ unsafe fn get_registers(_thread_id: MonitoredThreadId, _regs: &mut Registers, _s
     let (_thread_id, _context) = SAMPLEE_CONTEXT.take().unwrap();
     // TODO: populate registers from context.
     // See https://dxr.mozilla.org/mozilla-central/source/tools/profiler/core/platform-linux-android.cpp#85
+    Err(())
 }
 
 #[cfg(target_os = "macos")]
 #[allow(unsafe_code)]
-unsafe fn resume_thread(thread_id: MonitoredThreadId, success: &mut bool) {
-    check_kern_return(mach::thread_act::thread_resume(thread_id), success);
+unsafe fn resume_thread(thread_id: MonitoredThreadId) {
+    if let Err(()) = check_kern_return(mach::thread_act::thread_resume(thread_id)) {
+        warn!("Background-hang-monitor failed to resume thread: {:?}", thread_id);
+    }
 }
 
 #[cfg(target_os = "windows")]
 #[allow(unsafe_code)]
-unsafe fn resume_thread(thread_id: MonitoredThreadId, _success: &mut bool) {
+unsafe fn resume_thread(thread_id: MonitoredThreadId) {
     // TODO: use winapi::um::processthreadsapi::ResumeThread
 }
 
 #[cfg(any(target_os = "android", target_os = "linux"))]
-fn resume_thread(_thread_id: MonitoredThreadId, _success: &mut bool) {
+fn resume_thread(_thread_id: MonitoredThreadId) {
     SAMPLEE_MAY_RESUME.store(true, Ordering::SeqCst);
 }
 
 #[allow(unsafe_code)]
-unsafe fn frame_pointer_stack_walk(regs: &mut Registers, native_stack: &mut NativeStack) {
+unsafe fn frame_pointer_stack_walk(regs: Registers) -> NativeStack {
     // Note: this will only work with code build with debug flags,
     // or RUSTFLAGS=-Cforce-frame-pointers=yes
+    let mut native_stack = NativeStack::new();
     let pc = regs.instruction_ptr as *mut std::ffi::c_void;
     let stack = regs.stack_ptr as *mut std::ffi::c_void;
     native_stack.process_register(pc, stack);
@@ -186,14 +191,14 @@ unsafe fn frame_pointer_stack_walk(regs: &mut Registers, native_stack: &mut Nati
         frame_count = frame_count + 1;
         current = next;
     }
+    native_stack
 }
 
-fn symbolize_backtrace(native_stack: &mut NativeStack, hang_profile: &mut Option<HangProfile>) {
+fn symbolize_backtrace(native_stack: NativeStack) -> HangProfile {
     let mut profile = HangProfile {
         backtrace: Vec::new()
     };
-    native_stack.instruction_ptrs.reverse();
-    for ip in native_stack.instruction_ptrs.iter() {
+    for ip in native_stack.instruction_ptrs.iter().rev() {
         if ip.is_null() {
             continue;
         }
@@ -204,38 +209,27 @@ fn symbolize_backtrace(native_stack: &mut NativeStack, hang_profile: &mut Option
             }
         });
     }
-    *hang_profile = Some(profile);
+    profile
 }
 
 #[allow(unsafe_code)]
 unsafe fn suspend_and_sample_thread(monitored: &MonitoredComponent) -> Option<HangProfile> {
-    let mut native_stack = NativeStack::new();
-    let mut regs = Registers {
-        instruction_ptr: ptr::null(),
-        stack_ptr: ptr::null(),
-        frame_ptr: ptr::null(),
-    };
-    let mut success = true;
-    let mut hang_profile = None;
     // Warning: The "critical section" begins here.
     // In the critical section:
     // we must not do any dynamic memory allocation,
     // nor try to acquire any lock
     // or any other unshareable resource.
-    suspend_thread(monitored.thread_id, &mut success);
-    if !success {
-        // If we didn't succeed in suspending the samplee thread,
-        // do not proceed further.
-        return hang_profile
+    if let Err(()) = suspend_thread(monitored.thread_id) {
+        return None
     };
-    get_registers(monitored.thread_id, &mut regs, &mut success);
-    frame_pointer_stack_walk(&mut regs, &mut native_stack);
-    resume_thread(monitored.thread_id, &mut success);
+    let registers = match get_registers(monitored.thread_id) {
+        Ok(regs) => regs,
+        Err(()) => return None
+    };
+    let native_stack = frame_pointer_stack_walk(registers);
+    resume_thread(monitored.thread_id);
     // NOTE: End of "critical section".
-    if success {
-        symbolize_backtrace(&mut native_stack, &mut hang_profile);
-    }
-    hang_profile
+    Some(symbolize_backtrace(native_stack))
 }
 
 struct MonitoredComponent {
