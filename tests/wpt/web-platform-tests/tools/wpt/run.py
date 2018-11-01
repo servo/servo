@@ -264,6 +264,8 @@ class Chrome(BrowserSetup):
         if kwargs["browser_channel"] == "dev":
             logger.info("Automatically turning on experimental features for Chrome Dev")
             kwargs["binary_args"].append("--enable-experimental-web-platform-features")
+            # TODO(foolip): remove after unified plan is enabled on Chrome stable
+            kwargs["binary_args"].append("--enable-features=RTCUnifiedPlanByDefault")
 
         # Allow audio autoplay without a user gesture.
         kwargs["binary_args"].append("--autoplay-policy=no-user-gesture-required")

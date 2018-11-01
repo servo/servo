@@ -32,4 +32,10 @@ test(function(){
   }
 }, 'Generated properties respect inherits flag');
 
+test(function(){
+  assert_throws(new Error(), () => generate_property({syntax: '<length>', foo: 1}));
+  assert_throws(new Error(), () => generate_property({syntax: '<length>', inherited: false}));
+  assert_throws(new Error(), () => generate_property({syntax: '<length>', initial: '10px'}));
+}, 'Can\'t generate property with unknown fields');
+
 </script>

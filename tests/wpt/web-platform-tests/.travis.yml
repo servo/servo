@@ -74,7 +74,7 @@ matrix:
       os: linux
       python: "3.6"
       env: JOB=tools_unittest TOXENV=py36 HYPOTHESIS_PROFILE=ci SCRIPT=tools/ci/ci_tools_unittest.sh
-    - name: "tools/wpt/ unittests"
+    - name: "tools/wpt/ tests"
       if: type = pull_request
       os: linux
       python: "2.7"

@@ -117,3 +117,11 @@ def is_element_in_viewport(session, element):
         return !(rect.right < 0 || rect.bottom < 0 ||
             rect.left > viewport.width || rect.top > viewport.height)
     """, args=(element,))
+
+
+def document_dimensions(session):
+    return tuple(session.execute_script("""
+        let {devicePixelRatio} = window;
+        let {width, height} = document.documentElement.getBoundingClientRect();
+        return [width * devicePixelRatio, height * devicePixelRatio];
+        """))

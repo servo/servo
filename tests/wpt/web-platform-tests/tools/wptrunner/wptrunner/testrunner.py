@@ -818,14 +818,10 @@ class ManagerGroup(object):
             self.pool.add(manager)
         self.wait()
 
-    def is_alive(self):
-        """Boolean indicating whether any manager in the group is still alive"""
-        return any(manager.is_alive() for manager in self.pool)
-
     def wait(self):
         """Wait for all the managers in the group to finish"""
-        for item in self.pool:
-            item.join()
+        for manager in self.pool:
+            manager.join()
 
     def stop(self):
         """Set the stop flag so that all managers in the group stop as soon
@@ -834,7 +830,7 @@ class ManagerGroup(object):
         self.logger.debug("Stop flag set in ManagerGroup")
 
     def test_count(self):
-        return sum(item.test_count for item in self.pool)
+        return sum(manager.test_count for manager in self.pool)
 
     def unexpected_count(self):
-        return sum(item.unexpected_count for item in self.pool)
+        return sum(manager.unexpected_count for manager in self.pool)

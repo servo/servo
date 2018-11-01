@@ -4,8 +4,6 @@
     <title>XMLHttpRequest: send() - charset parameter of Content-Type</title>
     <script src="/resources/testharness.js"></script>
     <script src="/resources/testharnessreport.js"></script>
-    <link rel="help" href="https://xhr.spec.whatwg.org/#the-send()-method" data-tested-assertations="following::ol[1]/li[4]/p/code[contains(text(),'Content-Type')]/.. following::ol[1]/li[4]/p/code[contains(text(),'Content-Type')]/../following-sibling::p" />
-    <link rel="help" href="https://xhr.spec.whatwg.org/#dom-XMLHttpRequest-send-a-string" data-tested-assertations="following::p[2]" />
   </head>
   <body>
     <div id="log"></div>
@@ -45,8 +43,8 @@
       )
       request(
         "text/plain;charset=utf-8",
-        "text/plain;charset=UTF-8",
-        "Correct text/plain MIME with charset"
+        "text/plain;charset=utf-8",
+        "If charset= param is UTF-8 (case-insensitive), it should not be changed"
       )
       request(
         "text/x-pink-unicorn",
@@ -70,8 +68,8 @@
       )
       request(
         "text/plain;charset=utf-8;charset=waddup",
-        "text/plain;charset=UTF-8",
-        "charset given but wrong, fix it (known MIME, bogus charset)"
+        "text/plain;charset=utf-8;charset=waddup",
+        "If charset= param is UTF-8 (case-insensitive), it should not be changed (bogus charset)"
       )
       request(
         "text/plain;charset=shift-jis",
@@ -81,7 +79,7 @@
       request(
         "text/x-pink-unicorn; charset=windows-1252; charset=bogus; notrelated; charset=ascii",
         "text/x-pink-unicorn;charset=UTF-8",
-        "Multiple charset parameters deduplicate, bogus parameter dropped"
+        "Multiple non-UTF-8 charset parameters deduplicate, bogus parameter dropped"
       )
       request(
         null,
@@ -90,20 +88,20 @@
       )
       request(
         "text/plain;charset= utf-8",
-        "text/plain;charset=UTF-8",
-        "charset with space")
+        "text/plain;charset= utf-8",
+        "charset with space that is UTF-8 does not change")
       request(
         "text/plain;charset=\"utf-8\"",
-        "text/plain;charset=UTF-8",
-        "charset in double quotes")
+        "text/plain;charset=\"utf-8\"",
+        "charset in double quotes that is UTF-8 does not change")
       request(
         "text/plain;charset=\" utf-8\"",
         "text/plain;charset=UTF-8",
         "charset in double quotes with space")
       request(
         "text/plain;charset=\"u\\t\\f-8\"",
-        "text/plain;charset=UTF-8",
-        "charset in double quotes with backslashes")
+        "text/plain;charset=\"u\\t\\f-8\"",
+        "charset in double quotes with backslashes that is UTF-8 does not change")
       request(
         "YO/yo;charset=x;yo=YO; X=y",
         "yo/yo;charset=UTF-8;yo=YO;x=y",
