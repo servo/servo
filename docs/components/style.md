@@ -134,25 +134,25 @@ pseudo-elements**.
 Feel free to ping @SimonSapin, @mbrubeck or @emilio on irc, and please mention
 that you didn't find it here so it can be added :)
 
-[style-doc]: http://doc.servo.org/style/index.html
+[style-doc]: https://doc.servo.org/style/index.html
 [wiki-styling-overview]: https://github.com/servo/servo/wiki/Styling-overview
 [stylo]: https://public.etherpad-mozilla.org/p/stylo
-[selector-impl]: http://doc.servo.org/selectors/parser/trait.SelectorImpl.html
-[selector-impl-ext]: http://doc.servo.org/style/selector_parser/trait.SelectorImplExt.html
-[servo-selector-impl]: http://doc.servo.org/style/servo/selector_parser/struct.SelectorImpl.html
+[selector-impl]: https://doc.servo.org/selectors/parser/trait.SelectorImpl.html
+[selector-impl-ext]: https://doc.servo.org/style/selector_parser/trait.SelectorImplExt.html
+[servo-selector-impl]: https://doc.servo.org/style/servo/selector_parser/struct.SelectorImpl.html
 [tree-structural-pseudo-classes]: https://www.w3.org/TR/selectors4/#structural-pseudos
-[style-dom-traits]: http://doc.servo.org/style/dom/index.html
-[layout-wrapper]: http://doc.servo.org/layout/wrapper/index.html
-[pseudo-cascade-type]: http://doc.servo.org/style/selector_parser/enum.PseudoElementCascadeType.html
-[servo-pseudo-elements]: http://doc.servo.org/style/selector_parser/enum.PseudoElement.html
+[style-dom-traits]: https://doc.servo.org/style/dom/index.html
+[layout-wrapper]: https://doc.servo.org/layout/wrapper/index.html
+[pseudo-cascade-type]: https://doc.servo.org/style/selector_parser/enum.PseudoElementCascadeType.html
+[servo-pseudo-elements]: https://doc.servo.org/style/selector_parser/enum.PseudoElement.html
 [mdn-pseudo-before]: https://developer.mozilla.org/en/docs/Web/CSS/::before
 [mdn-pseudo-after]: https://developer.mozilla.org/en/docs/Web/CSS/::after
 [mdn-pseudo-selection]: https://developer.mozilla.org/en/docs/Web/CSS/::selection
-[stylist]: http://doc.servo.org/style/stylist/struct.Stylist.html
-[selectors-selectormap]: http://doc.servo.org/style/selector_map/struct.SelectorMap.html
-[selectors-rule]: http://doc.servo.org/style/stylist/struct.Rule.html
-[per-pseudo-selectormap]: http://doc.servo.org/style/selector_parser/struct.PerPseudoElementMap.html
-[per-origin-selectormap]: http://doc.servo.org/style/stylist/struct.PerOriginSelectorMap.html
+[stylist]: https://doc.servo.org/style/stylist/struct.Stylist.html
+[selectors-selectormap]: https://doc.servo.org/style/selector_map/struct.SelectorMap.html
+[selectors-rule]: https://doc.servo.org/style/stylist/struct.Rule.html
+[per-pseudo-selectormap]: https://doc.servo.org/style/selector_parser/struct.PerPseudoElementMap.html
+[per-origin-selectormap]: https://doc.servo.org/style/stylist/struct.PerOriginSelectorMap.html
 [docs-pipeline]: https://github.com/servo/servo/blob/master/docs/glossary.md#pipeline
-[properties-module]: http://doc.servo.org/style/properties/index.html
-[properties-cascade-fn]: http://doc.servo.org/style/properties/fn.cascade.html
+[properties-module]: https://doc.servo.org/style/properties/index.html
+[properties-cascade-fn]: https://doc.servo.org/style/properties/fn.cascade.html

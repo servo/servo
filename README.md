@@ -226,7 +226,7 @@ list of installed components. It is not on by default. Visual Studio 2017 MUST i
 
 You may experience much faster builds on Windows by following these steps. (Related Rust issue: https://github.com/rust-lang/rust/issues/37543)
 
-1. Download the latest version of LLVM (http://releases.llvm.org/).
+1. Download the latest version of LLVM (https://releases.llvm.org/).
 2. Run the installer and choose to add LLVM to the system PATH.
 3. Add the following to your Cargo config (Found at `%USERPROFILE%\.cargo\config`). You may need to change the triple to match your environment.
 
@@ -358,4 +358,4 @@ There are lots of mach commands you can use. You can list them with `./mach
 --help`.
 
 
-The generated documentation can be found on http://doc.servo.org/servo/index.html
+The generated documentation can be found on https://doc.servo.org/servo/index.html
