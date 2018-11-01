@@ -17,6 +17,7 @@ import functools
 from WebIDL import (
     BuiltinTypes,
     IDLBuiltinType,
+    IDLEmptySequenceValue,
     IDLInterfaceMember,
     IDLNullableType,
     IDLNullValue,
@@ -673,17 +674,19 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
             ('throw_type_error(cx, \"%s is not callable.\");\n'
              '%s' % (firstCap(sourceDescription), exceptionCode)))
 
-    # A helper function for handling null default values. Checks that the
-    # default value, if it exists, is null.
-    def handleDefaultNull(nullValue):
+    # A helper function for handling default values.
+    def handleDefault(nullValue):
         if defaultValue is None:
             return None
 
-        if not isinstance(defaultValue, IDLNullValue):
-            raise TypeError("Can't handle non-null default value here")
+        if isinstance(defaultValue, IDLNullValue):
+            assert type.nullable() or type.isDictionary()
+            return nullValue
+        elif isinstance(defaultValue, IDLEmptySequenceValue):
+            assert type.isSequence()
+            return "Vec::new()"
 
-        assert type.nullable() or type.isDictionary()
-        return nullValue
+        raise TypeError("Can't handle non-null or non-empty sequence default value here")
 
     # A helper function for wrapping up the template body for
     # possibly-nullable objecty stuff
@@ -726,7 +729,7 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
                         "    _ => { %s },\n"
                         "}" % (config, indent(failOrPropagate, 8), exceptionCode))
 
-        return handleOptional(templateBody, declType, handleDefaultNull("None"))
+        return handleOptional(templateBody, declType, handleDefault("None"))
 
     if type.isUnion():
         declType = CGGeneric(union_native_type(type))
@@ -758,7 +761,7 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
             else:
                 default = None
         else:
-            default = handleDefaultNull("None")
+            default = handleDefault("None")
 
         return handleOptional(templateBody, declType, default)
 
@@ -810,7 +813,7 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
             declType = CGGeneric("&Promise")
         else:
             declType = CGGeneric("Rc<Promise>")
-        return handleOptional(templateBody, declType, handleDefaultNull("None"))
+        return handleOptional(templateBody, declType, handleDefault("None"))
 
     if type.isGeckoInterface():
         assert not isEnforceRange and not isClamp
@@ -828,7 +831,7 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
                                               isDefinitelyObject, type,
                                               failureCode)
 
-            return handleOptional(template, declType, handleDefaultNull("None"))
+            return handleOptional(template, declType, handleDefault("None"))
 
         conversionFunction = "root_from_handlevalue"
         descriptorType = descriptor.returnType
@@ -875,7 +878,7 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
         templateBody = wrapObjectTemplate(templateBody, "None",
                                           isDefinitelyObject, type, failureCode)
 
-        return handleOptional(templateBody, declType, handleDefaultNull("None"))
+        return handleOptional(templateBody, declType, handleDefault("None"))
 
     if is_typed_array(type):
         if failureCode is None:
@@ -918,7 +921,7 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
         templateBody = wrapObjectTemplate(templateBody, "None",
                                           isDefinitelyObject, type, failureCode)
 
-        return handleOptional(templateBody, declType, handleDefaultNull("None"))
+        return handleOptional(templateBody, declType, handleDefault("None"))
 
     elif type.isSpiderMonkeyInterface():
         raise TypeError("Can't handle SpiderMonkey interface arguments other than typed arrays yet")
@@ -1145,7 +1148,7 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
                                           isDefinitelyObject, type, failureCode)
 
         return handleOptional(templateBody, declType,
-                              handleDefaultNull(default))
+                              handleDefault(default))
 
     if type.isDictionary():
         # There are no nullable dictionaries
@@ -1167,7 +1170,7 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
                     "    _ => { %s },\n"
                     "}" % (indent(failOrPropagate, 8), exceptionCode))
 
-        return handleOptional(template, declType, handleDefaultNull(empty))
+        return handleOptional(template, declType, handleDefault(empty))
 
     if type.isVoid():
         # This one only happens for return values, and its easy: Just
