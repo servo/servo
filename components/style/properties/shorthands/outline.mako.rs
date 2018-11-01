@@ -8,9 +8,9 @@
                     sub_properties="outline-color outline-style outline-width"
                     derive_serialize="True"
                     spec="https://drafts.csswg.org/css-ui/#propdef-outline">
-    use properties::longhands::{outline_color, outline_width, outline_style};
-    use values::specified;
-    use parser::Parse;
+    use crate::properties::longhands::{outline_color, outline_width, outline_style};
+    use crate::values::specified;
+    use crate::parser::Parse;
 
     pub fn parse_value<'i, 't>(
         context: &ParserContext,
@@ -62,9 +62,9 @@
     '-moz-outline-radius-%s' % corner
     for corner in ['topleft', 'topright', 'bottomright', 'bottomleft']
 )}" products="gecko" spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-outline-radius)">
-    use values::generics::rect::Rect;
-    use values::specified::border::BorderRadius;
-    use parser::Parse;
+    use crate::values::generics::rect::Rect;
+    use crate::values::specified::border::BorderRadius;
+    use crate::parser::Parse;
 
     pub fn parse_value<'i, 't>(
         context: &ParserContext,
@@ -81,7 +81,7 @@
 
     impl<'a> ToCss for LonghandsToSerialize<'a>  {
         fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result where W: fmt::Write {
-            use values::generics::border::BorderCornerRadius;
+            use crate::values::generics::border::BorderCornerRadius;
 
             let LonghandsToSerialize {
                 _moz_outline_radius_topleft: &BorderCornerRadius(ref tl),

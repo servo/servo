@@ -21,8 +21,8 @@ ${helpers.four_sides_shorthand(
         ' '.join('border-%s-width' % side
                  for side in PHYSICAL_SIDES)}"
     spec="https://drafts.csswg.org/css-backgrounds/#border-width">
-    use values::generics::rect::Rect;
-    use values::specified::{AllowQuirks, BorderSideWidth};
+    use crate::values::generics::rect::Rect;
+    use crate::values::specified::{AllowQuirks, BorderSideWidth};
 
     pub fn parse_value<'i, 't>(
         context: &ParserContext,
@@ -54,7 +54,7 @@ pub fn parse_border<'i, 't>(
     context: &ParserContext,
     input: &mut Parser<'i, 't>,
 ) -> Result<(specified::Color, specified::BorderStyle, specified::BorderSideWidth), ParseError<'i>> {
-    use values::specified::{Color, BorderStyle, BorderSideWidth};
+    use crate::values::specified::{Color, BorderStyle, BorderSideWidth};
     let _unused = context;
     let mut color = None;
     let mut style = None;
@@ -147,8 +147,8 @@ pub fn parse_border<'i, 't>(
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Longhands, ParseError<'i>> {
-        use properties::longhands::{border_image_outset, border_image_repeat, border_image_slice};
-        use properties::longhands::{border_image_source, border_image_width};
+        use crate::properties::longhands::{border_image_outset, border_image_repeat, border_image_slice};
+        use crate::properties::longhands::{border_image_source, border_image_width};
 
         let (color, style, width) = super::parse_border(context, input)?;
         Ok(expanded! {
@@ -206,7 +206,7 @@ pub fn parse_border<'i, 't>(
     // Just use the same as border-left. The border shorthand can't accept
     // any value that the sub-shorthand couldn't.
     <%
-        border_left = "<::properties::shorthands::border_left::Longhands as SpecifiedValueInfo>"
+        border_left = "<crate::properties::shorthands::border_left::Longhands as SpecifiedValueInfo>"
     %>
     impl SpecifiedValueInfo for Longhands {
         const SUPPORTED_TYPES: u8 = ${border_left}::SUPPORTED_TYPES;
@@ -220,10 +220,10 @@ pub fn parse_border<'i, 't>(
     'border-%s-radius' % (corner)
      for corner in ['top-left', 'top-right', 'bottom-right', 'bottom-left']
 )}" extra_prefixes="webkit" spec="https://drafts.csswg.org/css-backgrounds/#border-radius">
-    use values::generics::rect::Rect;
-    use values::generics::border::BorderCornerRadius;
-    use values::specified::border::BorderRadius;
-    use parser::Parse;
+    use crate::values::generics::rect::Rect;
+    use crate::values::generics::border::BorderCornerRadius;
+    use crate::values::specified::border::BorderRadius;
+    use crate::parser::Parse;
 
     pub fn parse_value<'i, 't>(
         context: &ParserContext,
@@ -260,8 +260,8 @@ pub fn parse_border<'i, 't>(
     border-image-repeat border-image-slice border-image-source border-image-width"
     extra_prefixes="moz:layout.css.prefixes.border-image webkit"
     spec="https://drafts.csswg.org/css-backgrounds-3/#border-image">
-    use properties::longhands::{border_image_outset, border_image_repeat, border_image_slice};
-    use properties::longhands::{border_image_source, border_image_width};
+    use crate::properties::longhands::{border_image_outset, border_image_repeat, border_image_slice};
+    use crate::properties::longhands::{border_image_source, border_image_width};
 
     pub fn parse_value<'i, 't>(
         context: &ParserContext,

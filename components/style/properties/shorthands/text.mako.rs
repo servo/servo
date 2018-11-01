@@ -11,10 +11,10 @@
                     spec="https://drafts.csswg.org/css-text-decor/#propdef-text-decoration">
 
     % if product == "gecko":
-        use values::specified;
-        use properties::longhands::{text_decoration_line, text_decoration_style, text_decoration_color};
+        use crate::values::specified;
+        use crate::properties::longhands::{text_decoration_line, text_decoration_style, text_decoration_color};
     % else:
-        use properties::longhands::text_decoration_line;
+        use crate::properties::longhands::text_decoration_line;
     % endif
 
     pub fn parse_value<'i, 't>(

@@ -32,9 +32,9 @@ ${helpers.predefined_type(
 ${helpers.predefined_type(
     "outline-width",
     "BorderSideWidth",
-    "::values::computed::NonNegativeLength::new(3.)",
+    "crate::values::computed::NonNegativeLength::new(3.)",
     initial_specified_value="specified::BorderSideWidth::Medium",
-    computed_type="::values::computed::NonNegativeLength",
+    computed_type="crate::values::computed::NonNegativeLength",
     animation_value_type="NonNegativeLength",
     spec="https://drafts.csswg.org/css-ui/#propdef-outline-width",
 )}
@@ -55,7 +55,7 @@ ${helpers.predefined_type(
 ${helpers.predefined_type(
     "outline-offset",
     "Length",
-    "::values::computed::Length::new(0.)",
+    "crate::values::computed::Length::new(0.)",
     products="servo gecko",
     animation_value_type="ComputedValue",
     spec="https://drafts.csswg.org/css-ui/#propdef-outline-offset",

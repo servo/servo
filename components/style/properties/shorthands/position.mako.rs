@@ -9,7 +9,7 @@
                     extra_prefixes="webkit"
                     derive_serialize="True"
                     spec="https://drafts.csswg.org/css-flexbox/#flex-flow-property">
-    use properties::longhands::{flex_direction, flex_wrap};
+    use crate::properties::longhands::{flex_direction, flex_wrap};
 
     pub fn parse_value<'i, 't>(
         context: &ParserContext,
@@ -48,9 +48,9 @@
                     extra_prefixes="webkit"
                     derive_serialize="True"
                     spec="https://drafts.csswg.org/css-flexbox/#flex-property">
-    use parser::Parse;
-    use values::specified::NonNegativeNumber;
-    use properties::longhands::flex_basis::SpecifiedValue as FlexBasis;
+    use crate::parser::Parse;
+    use crate::values::specified::NonNegativeNumber;
+    use crate::properties::longhands::flex_basis::SpecifiedValue as FlexBasis;
 
     fn parse_flexibility<'i, 't>(
         context: &ParserContext,
@@ -111,7 +111,7 @@
 <%helpers:shorthand name="gap" alias="grid-gap" sub_properties="row-gap column-gap"
                     spec="https://drafts.csswg.org/css-align-3/#gap-shorthand"
                     products="gecko">
-  use properties::longhands::{row_gap, column_gap};
+  use crate::properties::longhands::{row_gap, column_gap};
 
   pub fn parse_value<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
                              -> Result<Longhands, ParseError<'i>> {
@@ -142,8 +142,8 @@
 <%helpers:shorthand name="grid-${kind}" sub_properties="grid-${kind}-start grid-${kind}-end"
                     spec="https://drafts.csswg.org/css-grid/#propdef-grid-${kind}"
                     products="gecko">
-    use values::specified::GridLine;
-    use parser::Parse;
+    use crate::values::specified::GridLine;
+    use crate::parser::Parse;
 
     // NOTE: Since both the shorthands have the same code, we should (re-)use code from one to implement
     // the other. This might not be a big deal for now, but we should consider looking into this in the future
@@ -184,8 +184,8 @@
                     sub_properties="grid-row-start grid-row-end grid-column-start grid-column-end"
                     spec="https://drafts.csswg.org/css-grid/#propdef-grid-area"
                     products="gecko">
-    use values::specified::GridLine;
-    use parser::Parse;
+    use crate::values::specified::GridLine;
+    use crate::parser::Parse;
 
     // The code is the same as `grid-{row,column}` except that this can have four values at most.
     pub fn parse_value<'i, 't>(
@@ -251,14 +251,14 @@
                     sub_properties="grid-template-rows grid-template-columns grid-template-areas"
                     spec="https://drafts.csswg.org/css-grid/#propdef-grid-template"
                     products="gecko">
-    use parser::Parse;
+    use crate::parser::Parse;
     use servo_arc::Arc;
-    use values::{Either, None_};
-    use values::generics::grid::{LineNameList, TrackSize, TrackList, TrackListType};
-    use values::generics::grid::{TrackListValue, concat_serialize_idents};
-    use values::specified::{GridTemplateComponent, GenericGridTemplateComponent};
-    use values::specified::grid::parse_line_names;
-    use values::specified::position::{TemplateAreas, TemplateAreasArc};
+    use crate::values::{Either, None_};
+    use crate::values::generics::grid::{LineNameList, TrackSize, TrackList, TrackListType};
+    use crate::values::generics::grid::{TrackListValue, concat_serialize_idents};
+    use crate::values::specified::{GridTemplateComponent, GenericGridTemplateComponent};
+    use crate::values::specified::grid::parse_line_names;
+    use crate::values::specified::position::{TemplateAreas, TemplateAreasArc};
 
     /// Parsing for `<grid-template>` shorthand (also used by `grid` shorthand).
     pub fn parse_grid_template<'i, 't>(
@@ -484,12 +484,12 @@
                                     grid-auto-rows grid-auto-columns grid-auto-flow"
                     spec="https://drafts.csswg.org/css-grid/#propdef-grid"
                     products="gecko">
-    use parser::Parse;
-    use properties::longhands::{grid_auto_columns, grid_auto_rows, grid_auto_flow};
-    use values::{Either, None_};
-    use values::generics::grid::{GridTemplateComponent, TrackListType};
-    use values::specified::{GenericGridTemplateComponent, TrackSize};
-    use values::specified::position::{AutoFlow, GridAutoFlow};
+    use crate::parser::Parse;
+    use crate::properties::longhands::{grid_auto_columns, grid_auto_rows, grid_auto_flow};
+    use crate::values::{Either, None_};
+    use crate::values::generics::grid::{GridTemplateComponent, TrackListType};
+    use crate::values::specified::{GenericGridTemplateComponent, TrackSize};
+    use crate::values::specified::position::{AutoFlow, GridAutoFlow};
 
     pub fn parse_value<'i, 't>(
         context: &ParserContext,
@@ -636,7 +636,7 @@
 <%helpers:shorthand name="place-content" sub_properties="align-content justify-content"
                     spec="https://drafts.csswg.org/css-align/#propdef-place-content"
                     products="gecko">
-    use values::specified::align::{AlignContent, JustifyContent, ContentDistribution, AxisDirection};
+    use crate::values::specified::align::{AlignContent, JustifyContent, ContentDistribution, AxisDirection};
 
     pub fn parse_value<'i, 't>(
         _: &ParserContext,
@@ -688,7 +688,7 @@
 <%helpers:shorthand name="place-self" sub_properties="align-self justify-self"
                     spec="https://drafts.csswg.org/css-align/#place-self-property"
                     products="gecko">
-    use values::specified::align::{AlignSelf, JustifySelf, SelfAlignment, AxisDirection};
+    use crate::values::specified::align::{AlignSelf, JustifySelf, SelfAlignment, AxisDirection};
 
     pub fn parse_value<'i, 't>(
         _: &ParserContext,
@@ -726,8 +726,8 @@
 <%helpers:shorthand name="place-items" sub_properties="align-items justify-items"
                     spec="https://drafts.csswg.org/css-align/#place-items-property"
                     products="gecko">
-    use values::specified::align::{AlignItems, JustifyItems};
-    use parser::Parse;
+    use crate::values::specified::align::{AlignItems, JustifyItems};
+    use crate::parser::Parse;
 
     impl From<AlignItems> for JustifyItems {
         fn from(align: AlignItems) -> JustifyItems {

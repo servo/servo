@@ -326,12 +326,12 @@ ${helpers.predefined_type(
 
         use app_units::Au;
         use cssparser::{Parser, ToCss};
-        use gecko_bindings::structs::FontFamilyType;
-        use properties::longhands;
+        use crate::gecko_bindings::structs::FontFamilyType;
+        use crate::properties::longhands;
         use std::fmt;
         use std::hash::{Hash, Hasher};
         use style_traits::ParseError;
-        use values::computed::{ToComputedValue, Context};
+        use crate::values::computed::{ToComputedValue, Context};
 
         <%
             system_fonts = """caption icon menu message-box small-caption status-bar
@@ -375,12 +375,12 @@ ${helpers.predefined_type(
             type ComputedValue = ComputedSystemFont;
 
             fn to_computed_value(&self, cx: &Context) -> Self::ComputedValue {
-                use gecko_bindings::bindings;
-                use gecko_bindings::structs::{LookAndFeel_FontID, nsFont};
+                use crate::gecko_bindings::bindings;
+                use crate::gecko_bindings::structs::{LookAndFeel_FontID, nsFont};
                 use std::mem;
-                use values::computed::Percentage;
-                use values::computed::font::{FontSize, FontStretch, FontStyle, FontFamilyList};
-                use values::generics::NonNegative;
+                use crate::values::computed::Percentage;
+                use crate::values::computed::font::{FontSize, FontStretch, FontStyle, FontFamilyList};
+                use crate::values::generics::NonNegative;
 
                 let id = match *self {
                     % for font in system_fonts:

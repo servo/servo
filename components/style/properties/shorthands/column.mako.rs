@@ -9,7 +9,7 @@
                     servo_pref="layout.columns.enabled",
                     derive_serialize="True"
                     extra_prefixes="moz" spec="https://drafts.csswg.org/css-multicol/#propdef-columns">
-    use properties::longhands::{column_count, column_width};
+    use crate::properties::longhands::{column_count, column_width};
 
     pub fn parse_value<'i, 't>(
         context: &ParserContext,
@@ -59,8 +59,8 @@
     sub_properties="column-rule-width column-rule-style column-rule-color"
     derive_serialize="True"
     spec="https://drafts.csswg.org/css-multicol/#propdef-column-rule">
-    use properties::longhands::{column_rule_width, column_rule_style};
-    use properties::longhands::column_rule_color;
+    use crate::properties::longhands::{column_rule_width, column_rule_style};
+    use crate::properties::longhands::column_rule_color;
 
     pub fn parse_value<'i, 't>(
         context: &ParserContext,

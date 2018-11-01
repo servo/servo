@@ -10,13 +10,13 @@
                                     background-attachment background-image background-size background-origin
                                     background-clip"
                     spec="https://drafts.csswg.org/css-backgrounds/#the-background">
-    use properties::longhands::{background_position_x, background_position_y, background_repeat};
-    use properties::longhands::{background_attachment, background_image, background_size, background_origin};
-    use properties::longhands::background_clip;
-    use properties::longhands::background_clip::single_value::computed_value::T as Clip;
-    use properties::longhands::background_origin::single_value::computed_value::T as Origin;
-    use values::specified::{Color, Position, PositionComponent};
-    use parser::Parse;
+    use crate::properties::longhands::{background_position_x, background_position_y, background_repeat};
+    use crate::properties::longhands::{background_attachment, background_image, background_size, background_origin};
+    use crate::properties::longhands::background_clip;
+    use crate::properties::longhands::background_clip::single_value::computed_value::T as Clip;
+    use crate::properties::longhands::background_origin::single_value::computed_value::T as Origin;
+    use crate::values::specified::{Color, Position, PositionComponent};
+    use crate::parser::Parse;
 
     // FIXME(emilio): Should be the same type!
     impl From<background_origin::single_value::SpecifiedValue> for background_clip::single_value::SpecifiedValue {
@@ -199,9 +199,9 @@
                     flags="SHORTHAND_IN_GETCS"
                     sub_properties="background-position-x background-position-y"
                     spec="https://drafts.csswg.org/css-backgrounds-4/#the-background-position">
-    use properties::longhands::{background_position_x, background_position_y};
-    use values::specified::AllowQuirks;
-    use values::specified::position::Position;
+    use crate::properties::longhands::{background_position_x, background_position_y};
+    use crate::values::specified::AllowQuirks;
+    use crate::values::specified::position::Position;
 
     pub fn parse_value<'i, 't>(
         context: &ParserContext,
