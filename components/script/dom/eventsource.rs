@@ -17,13 +17,14 @@ use dom::messageevent::MessageEvent;
 use dom_struct::dom_struct;
 use euclid::Length;
 use fetch::FetchCanceller;
-use hyper::header::{Accept, qitem};
+use headers_ext::ContentType;
+use http::header::{self, HeaderName, HeaderValue};
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use js::conversions::ToJSValConvertible;
 use js::jsapi::JSAutoCompartment;
 use js::jsval::UndefinedValue;
-use mime::{Mime, TopLevel, SubLevel};
+use mime::{self, Mime};
 use net_traits::{CoreResourceMsg, FetchChannels, FetchMetadata};
 use net_traits::{FetchResponseMsg, FetchResponseListener, NetworkError};
 use net_traits::request::{CacheMode, CorsSettings, CredentialsMode};
@@ -39,7 +40,6 @@ use task_source::{TaskSource, TaskSourceName};
 use timers::OneshotTimerCallback;
 use utf8;
 
-header! { (LastEventId, "Last-Event-ID") => [String] }
 
 const DEFAULT_RECONNECTION_TIME: u64 = 5000;
 
@@ -338,13 +338,14 @@ impl FetchResponseListener for EventSourceContext {
                 };
                 match meta.content_type {
                     None => self.fail_the_connection(),
-                    Some(ct) => match ct.into_inner().0 {
-                        Mime(TopLevel::Text, SubLevel::EventStream, _) => {
+                    Some(ct) => {
+                        if <ContentType as Into<Mime>>::into(ct.into_inner()) == mime::TEXT_EVENT_STREAM {
                             self.origin = meta.final_url.origin().ascii_serialization();
                             self.announce_the_connection();
-                        },
-                        _ => self.fail_the_connection(),
-                    },
+                        } else {
+                            self.fail_the_connection()
+                        }
+                    }
                 }
             },
             Err(_) => {
@@ -501,9 +502,8 @@ impl EventSource {
             ..RequestInit::default()
         };
         // Step 10
-        request
-            .headers
-            .set(Accept(vec![qitem(mime!(Text / EventStream))]));
+        // TODO(eijebong): Replace once typed headers allow it
+        request.headers.insert(header::ACCEPT, HeaderValue::from_static("text/event-stream"));
         // Step 11
         request.cache_mode = CacheMode::NoStore;
         // Step 12
@@ -613,9 +613,9 @@ impl EventSourceTimeoutCallback {
         let mut request = event_source.request();
         // Step 5.3
         if !event_source.last_event_id.borrow().is_empty() {
-            request.headers.set(LastEventId(String::from(
-                event_source.last_event_id.borrow().clone(),
-            )));
+            //TODO(eijebong): Change this once typed header support custom values
+            request.headers.insert(HeaderName::from_static("last-event-id"),
+                HeaderValue::from_str(&String::from(event_source.last_event_id.borrow().clone())).unwrap());
         }
         // Step 5.4
         global

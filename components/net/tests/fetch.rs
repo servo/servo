@@ -2,27 +2,24 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use {DEFAULT_USER_AGENT, new_fetch_context, create_embedder_proxy, fetch, make_server};
+use {DEFAULT_USER_AGENT, new_fetch_context, create_embedder_proxy, fetch, make_server, make_ssl_server};
 use devtools_traits::HttpRequest as DevtoolsHttpRequest;
 use devtools_traits::HttpResponse as DevtoolsHttpResponse;
 use fetch_with_context;
 use fetch_with_cors_cache;
+use headers_core::HeaderMapExt;
+use headers_ext::{AccessControlAllowCredentials, AccessControlAllowHeaders, AccessControlAllowOrigin};
+use headers_ext::{AccessControlAllowMethods, AccessControlMaxAge};
+use headers_ext::{CacheControl, ContentLength, ContentType, Expires, Host, LastModified, Pragma, UserAgent};
+use http::{Method, StatusCode};
+use http::header::{self, HeaderMap, HeaderName, HeaderValue};
+use http::uri::Authority;
 use http_loader::{expect_devtools_http_request, expect_devtools_http_response};
-use hyper::LanguageTag;
-use hyper::header::{Accept, AccessControlAllowCredentials, AccessControlAllowHeaders, AccessControlAllowOrigin};
-use hyper::header::{AcceptEncoding, AcceptLanguage, AccessControlAllowMethods, AccessControlMaxAge};
-use hyper::header::{AccessControlRequestHeaders, AccessControlRequestMethod, Date, UserAgent};
-use hyper::header::{CacheControl, ContentLanguage, ContentLength, ContentType, Expires, LastModified};
-use hyper::header::{Encoding, Location, Pragma, Quality, QualityItem, SetCookie, qitem};
-use hyper::header::{Headers, Host, HttpDate, Referer as HyperReferer};
-use hyper::method::Method;
-use hyper::mime::{Mime, SubLevel, TopLevel};
-use hyper::server::{Request as HyperRequest, Response as HyperResponse, Server};
-use hyper::status::StatusCode;
-use hyper::uri::RequestUri;
-use hyper_openssl;
+use hyper::{Request as HyperRequest, Response as HyperResponse};
+use hyper::body::Body;
+use mime::{self, Mime};
 use msg::constellation_msg::TEST_PIPELINE_ID;
-use net::connector::create_ssl_client;
+use net::connector::create_ssl_connector_builder;
 use net::fetch::cors_cache::CorsCache;
 use net::fetch::methods::{CancellationListener, FetchContext};
 use net::filemanager_thread::FileManager;
@@ -37,21 +34,21 @@ use servo_channel::{channel, Sender};
 use servo_url::{ImmutableOrigin, ServoUrl};
 use std::fs::File;
 use std::io::Read;
+use std::iter::FromIterator;
 use std::path::Path;
 use std::sync::{Arc, Mutex};
 use std::sync::atomic::{AtomicUsize, Ordering};
-use time::{self, Duration};
-use unicase::UniCase;
+use std::time::{SystemTime, Duration};
 
 // TODO write a struct that impls Handler for storing test values
 
 #[test]
 fn test_fetch_response_is_not_network_error() {
     static MESSAGE: &'static [u8] = b"";
-    let handler = move |_: HyperRequest, response: HyperResponse| {
-        response.send(MESSAGE).unwrap();
+    let handler = move |_: HyperRequest<Body>, response: &mut HyperResponse<Body>| {
+        *response.body_mut() = MESSAGE.to_vec().into();
     };
-    let (mut server, url) = make_server(handler);
+    let (server, url) = make_server(handler);
 
     let origin = Origin::Origin(url.origin());
     let mut request = Request::new(url, Some(origin), None);
@@ -79,10 +76,10 @@ fn test_fetch_on_bad_port_is_network_error() {
 #[test]
 fn test_fetch_response_body_matches_const_message() {
     static MESSAGE: &'static [u8] = b"Hello World!";
-    let handler = move |_: HyperRequest, response: HyperResponse| {
-        response.send(MESSAGE).unwrap();
+    let handler = move |_: HyperRequest<Body>, response: &mut HyperResponse<Body>| {
+        *response.body_mut() = MESSAGE.to_vec().into();
     };
-    let (mut server, url) = make_server(handler);
+    let (server, url) = make_server(handler);
 
     let origin = Origin::Origin(url.origin());
     let mut request = Request::new(url, Some(origin), None);
@@ -142,11 +139,11 @@ fn test_fetch_blob() {
 
     assert_eq!(fetch_response.headers.len(), 2);
 
-    let content_type: &ContentType = fetch_response.headers.get().unwrap();
-    assert_eq!(**content_type, Mime(TopLevel::Text, SubLevel::Plain, vec![]));
+    let content_type: Mime = fetch_response.headers.typed_get::<ContentType>().unwrap().into();
+    assert_eq!(content_type, mime::TEXT_PLAIN);
 
-    let content_length: &ContentLength = fetch_response.headers.get().unwrap();
-    assert_eq!(**content_length, bytes.len() as u64);
+    let content_length: ContentLength = fetch_response.headers.typed_get().unwrap();
+    assert_eq!(content_length.0, bytes.len() as u64);
 
     assert_eq!(*fetch_response.body.lock().unwrap(),
                ResponseBody::Done(bytes.to_vec()));
@@ -162,8 +159,8 @@ fn test_fetch_file() {
     let fetch_response = fetch(&mut request, None);
     assert!(!fetch_response.is_network_error());
     assert_eq!(fetch_response.headers.len(), 1);
-    let content_type: &ContentType = fetch_response.headers.get().unwrap();
-    assert_eq!(**content_type, Mime(TopLevel::Text, SubLevel::Css, vec![]));
+    let content_type: Mime = fetch_response.headers.typed_get::<ContentType>().unwrap().into();
+    assert_eq!(content_type, mime::TEXT_CSS);
 
     let resp_body = fetch_response.body.lock().unwrap();
     let mut file = File::open(path).unwrap();
@@ -202,20 +199,20 @@ fn test_fetch_bogus_scheme() {
 fn test_cors_preflight_fetch() {
     static ACK: &'static [u8] = b"ACK";
     let state = Arc::new(AtomicUsize::new(0));
-    let handler = move |request: HyperRequest, mut response: HyperResponse| {
-        if request.method == Method::Options && state.clone().fetch_add(1, Ordering::SeqCst) == 0 {
-            assert!(request.headers.has::<AccessControlRequestMethod>());
-            assert!(!request.headers.has::<AccessControlRequestHeaders>());
-            assert!(!request.headers.get::<HyperReferer>().unwrap().contains("a.html"));
-            response.headers_mut().set(AccessControlAllowOrigin::Any);
-            response.headers_mut().set(AccessControlAllowCredentials);
-            response.headers_mut().set(AccessControlAllowMethods(vec![Method::Get]));
+    let handler = move |request: HyperRequest<Body>, response: &mut HyperResponse<Body>| {
+        if request.method() == Method::OPTIONS && state.clone().fetch_add(1, Ordering::SeqCst) == 0 {
+            assert!(request.headers().contains_key(header::ACCESS_CONTROL_REQUEST_METHOD));
+            assert!(!request.headers().contains_key(header::ACCESS_CONTROL_REQUEST_HEADERS));
+            assert!(!request.headers().get(header::REFERER).unwrap().to_str().unwrap().contains("a.html"));
+            response.headers_mut().typed_insert(AccessControlAllowOrigin::ANY);
+            response.headers_mut().typed_insert(AccessControlAllowCredentials);
+            response.headers_mut().typed_insert(AccessControlAllowMethods::from_iter(vec![Method::GET]));
         } else {
-            response.headers_mut().set(AccessControlAllowOrigin::Any);
-            response.send(ACK).unwrap();
+            response.headers_mut().typed_insert(AccessControlAllowOrigin::ANY);
+            *response.body_mut() = ACK.to_vec().into();
         }
     };
-    let (mut server, url) = make_server(handler);
+    let (server, url) = make_server(handler);
 
     let target_url = url.clone().join("a.html").unwrap();
 
@@ -241,20 +238,20 @@ fn test_cors_preflight_cache_fetch() {
     let state = Arc::new(AtomicUsize::new(0));
     let counter = state.clone();
     let mut cache = CorsCache::new();
-    let handler = move |request: HyperRequest, mut response: HyperResponse| {
-        if request.method == Method::Options && state.clone().fetch_add(1, Ordering::SeqCst) == 0 {
-            assert!(request.headers.has::<AccessControlRequestMethod>());
-            assert!(!request.headers.has::<AccessControlRequestHeaders>());
-            response.headers_mut().set(AccessControlAllowOrigin::Any);
-            response.headers_mut().set(AccessControlAllowCredentials);
-            response.headers_mut().set(AccessControlAllowMethods(vec![Method::Get]));
-            response.headers_mut().set(AccessControlMaxAge(6000));
+    let handler = move |request: HyperRequest<Body>, response: &mut HyperResponse<Body>| {
+        if request.method() == Method::OPTIONS && state.clone().fetch_add(1, Ordering::SeqCst) == 0 {
+            assert!(request.headers().contains_key(header::ACCESS_CONTROL_REQUEST_METHOD));
+            assert!(!request.headers().contains_key(header::ACCESS_CONTROL_REQUEST_HEADERS));
+            response.headers_mut().typed_insert(AccessControlAllowOrigin::ANY);
+            response.headers_mut().typed_insert(AccessControlAllowCredentials);
+            response.headers_mut().typed_insert(AccessControlAllowMethods::from_iter(vec![Method::GET]));
+            response.headers_mut().typed_insert(AccessControlMaxAge::from(Duration::new(6000, 0)));
         } else {
-            response.headers_mut().set(AccessControlAllowOrigin::Any);
-            response.send(ACK).unwrap();
+            response.headers_mut().typed_insert(AccessControlAllowOrigin::ANY);
+            *response.body_mut() = ACK.to_vec().into();
         }
     };
-    let (mut server, url) = make_server(handler);
+    let (server, url) = make_server(handler);
 
     let origin = Origin::Origin(ImmutableOrigin::new_opaque());
     let mut request = Request::new(url.clone(), Some(origin.clone()), None);
@@ -274,8 +271,8 @@ fn test_cors_preflight_cache_fetch() {
     assert_eq!(1, counter.load(Ordering::SeqCst));
 
     // The entry exists in the CORS-preflight cache
-    assert_eq!(true, cache.match_method(&wrapped_request0, Method::Get));
-    assert_eq!(true, cache.match_method(&wrapped_request1, Method::Get));
+    assert_eq!(true, cache.match_method(&wrapped_request0, Method::GET));
+    assert_eq!(true, cache.match_method(&wrapped_request1, Method::GET));
 
     match *fetch_response0.body.lock().unwrap() {
         ResponseBody::Done(ref body) => assert_eq!(&**body, ACK),
@@ -291,23 +288,23 @@ fn test_cors_preflight_cache_fetch() {
 fn test_cors_preflight_fetch_network_error() {
     static ACK: &'static [u8] = b"ACK";
     let state = Arc::new(AtomicUsize::new(0));
-    let handler = move |request: HyperRequest, mut response: HyperResponse| {
-        if request.method == Method::Options && state.clone().fetch_add(1, Ordering::SeqCst) == 0 {
-            assert!(request.headers.has::<AccessControlRequestMethod>());
-            assert!(!request.headers.has::<AccessControlRequestHeaders>());
-            response.headers_mut().set(AccessControlAllowOrigin::Any);
-            response.headers_mut().set(AccessControlAllowCredentials);
-            response.headers_mut().set(AccessControlAllowMethods(vec![Method::Get]));
+    let handler = move |request: HyperRequest<Body>, response: &mut HyperResponse<Body>| {
+        if request.method() == Method::OPTIONS && state.clone().fetch_add(1, Ordering::SeqCst) == 0 {
+            assert!(request.headers().contains_key(header::ACCESS_CONTROL_REQUEST_METHOD));
+            assert!(!request.headers().contains_key(header::ACCESS_CONTROL_REQUEST_HEADERS));
+            response.headers_mut().typed_insert(AccessControlAllowOrigin::ANY);
+            response.headers_mut().typed_insert(AccessControlAllowCredentials);
+            response.headers_mut().typed_insert(AccessControlAllowMethods::from_iter(vec![Method::GET]));
         } else {
-            response.headers_mut().set(AccessControlAllowOrigin::Any);
-            response.send(ACK).unwrap();
+            response.headers_mut().typed_insert(AccessControlAllowOrigin::ANY);
+            *response.body_mut() = ACK.to_vec().into();
         }
     };
-    let (mut server, url) = make_server(handler);
+    let (server, url) = make_server(handler);
 
     let origin = Origin::Origin(ImmutableOrigin::new_opaque());
     let mut request = Request::new(url, Some(origin), None);
-    request.method = Method::Extension("CHICKEN".to_owned());
+    request.method = Method::from_bytes(b"CHICKEN").unwrap();
     request.referrer = Referrer::NoReferrer;
     request.use_cors_preflight = true;
     request.mode = RequestMode::CorsMode;
@@ -320,14 +317,17 @@ fn test_cors_preflight_fetch_network_error() {
 #[test]
 fn test_fetch_response_is_basic_filtered() {
     static MESSAGE: &'static [u8] = b"";
-    let handler = move |_: HyperRequest, mut response: HyperResponse| {
-        response.headers_mut().set(SetCookie(vec![]));
+    let handler = move |_: HyperRequest<Body>, response: &mut HyperResponse<Body>| {
+        response.headers_mut().insert(header::SET_COOKIE, HeaderValue::from_static(""));
         // this header is obsoleted, so hyper doesn't implement it, but it's still covered by the spec
-        response.headers_mut().set_raw("Set-Cookie2", vec![]);
+        response.headers_mut().insert(
+            HeaderName::from_static("set-cookie2"),
+            HeaderValue::from_bytes(&vec![]).unwrap()
+        );
 
-        response.send(MESSAGE).unwrap();
+        *response.body_mut() = MESSAGE.to_vec().into();
     };
-    let (mut server, url) = make_server(handler);
+    let (server, url) = make_server(handler);
 
     let origin = Origin::Origin(url.origin());
     let mut request = Request::new(url, Some(origin), None);
@@ -339,39 +339,42 @@ fn test_fetch_response_is_basic_filtered() {
     assert_eq!(fetch_response.response_type, ResponseType::Basic);
 
     let headers = fetch_response.headers;
-    assert!(!headers.has::<SetCookie>());
-    assert!(headers.get_raw("Set-Cookie2").is_none());
+    assert!(!headers.contains_key(header::SET_COOKIE));
+    assert!(headers.get(HeaderName::from_static("set-cookie2")).is_none());
 }
 
 #[test]
 fn test_fetch_response_is_cors_filtered() {
     static MESSAGE: &'static [u8] = b"";
-    let handler = move |_: HyperRequest, mut response: HyperResponse| {
+    let handler = move |_: HyperRequest<Body>, response: &mut HyperResponse<Body>| {
         // this is mandatory for the Cors Check to pass
         // TODO test using different url encodings with this value ie. punycode
-        response.headers_mut().set(AccessControlAllowOrigin::Any);
+        response.headers_mut().typed_insert(AccessControlAllowOrigin::ANY);
 
         // these are the headers that should be kept after filtering
-        response.headers_mut().set(CacheControl(vec![]));
-        response.headers_mut().set(ContentLanguage(vec![]));
-        response.headers_mut().set(ContentType::html());
-        response.headers_mut().set(Expires(HttpDate(time::now() + Duration::days(1))));
-        response.headers_mut().set(LastModified(HttpDate(time::now())));
-        response.headers_mut().set(Pragma::NoCache);
+        response.headers_mut().typed_insert(CacheControl::new());
+        response.headers_mut().insert(header::CONTENT_LANGUAGE, HeaderValue::from_bytes(&vec![]).unwrap());
+        response.headers_mut().typed_insert(ContentType::from(mime::TEXT_HTML));
+        response.headers_mut().typed_insert(Expires::from(SystemTime::now() + Duration::new(86400, 0)));
+        response.headers_mut().typed_insert(LastModified::from(SystemTime::now()));
+        response.headers_mut().typed_insert(Pragma::no_cache());
 
         // these headers should not be kept after filtering, even though they are given a pass
-        response.headers_mut().set(SetCookie(vec![]));
-        response.headers_mut().set_raw("Set-Cookie2", vec![]);
-        response.headers_mut().set(
-            AccessControlAllowHeaders(vec![
-                UniCase("set-cookie".to_owned()),
-                UniCase("set-cookie2".to_owned())
+        response.headers_mut().insert(header::SET_COOKIE, HeaderValue::from_static(""));
+        response.headers_mut().insert(
+            HeaderName::from_static("set-cookie2"),
+            HeaderValue::from_bytes(&vec![]).unwrap()
+        );
+        response.headers_mut().typed_insert(
+            AccessControlAllowHeaders::from_iter(vec![
+                HeaderName::from_static("set-cookie"),
+                HeaderName::from_static("set-cookie2")
             ])
         );
 
-        response.send(MESSAGE).unwrap();
+        *response.body_mut() = MESSAGE.to_vec().into();
     };
-    let (mut server, url) = make_server(handler);
+    let (server, url) = make_server(handler);
 
     // an origin mis-match will stop it from defaulting to a basic filtered response
     let origin = Origin::Origin(ImmutableOrigin::new_opaque());
@@ -385,25 +388,25 @@ fn test_fetch_response_is_cors_filtered() {
     assert_eq!(fetch_response.response_type, ResponseType::Cors);
 
     let headers = fetch_response.headers;
-    assert!(headers.has::<CacheControl>());
-    assert!(headers.has::<ContentLanguage>());
-    assert!(headers.has::<ContentType>());
-    assert!(headers.has::<Expires>());
-    assert!(headers.has::<LastModified>());
-    assert!(headers.has::<Pragma>());
+    assert!(headers.contains_key(header::CACHE_CONTROL));
+    assert!(headers.contains_key(header::CONTENT_LANGUAGE));
+    assert!(headers.contains_key(header::CONTENT_TYPE));
+    assert!(headers.contains_key(header::EXPIRES));
+    assert!(headers.contains_key(header::LAST_MODIFIED));
+    assert!(headers.contains_key(header::PRAGMA));
 
-    assert!(!headers.has::<AccessControlAllowOrigin>());
-    assert!(!headers.has::<SetCookie>());
-    assert!(headers.get_raw("Set-Cookie2").is_none());
+    assert!(!headers.contains_key(header::ACCESS_CONTROL_ALLOW_ORIGIN));
+    assert!(!headers.contains_key(header::SET_COOKIE));
+    assert!(headers.get(HeaderName::from_static("set-cookie2")).is_none());
 }
 
 #[test]
 fn test_fetch_response_is_opaque_filtered() {
     static MESSAGE: &'static [u8] = b"";
-    let handler = move |_: HyperRequest, response: HyperResponse| {
-        response.send(MESSAGE).unwrap();
+    let handler = move |_: HyperRequest<Body>, response: &mut HyperResponse<Body>| {
+        *response.body_mut() = MESSAGE.to_vec().into();
     };
-    let (mut server, url) = make_server(handler);
+    let (server, url) = make_server(handler);
 
     // an origin mis-match will fall through to an Opaque filtered response
     let origin = Origin::Origin(ImmutableOrigin::new_opaque());
@@ -419,7 +422,7 @@ fn test_fetch_response_is_opaque_filtered() {
     assert!(fetch_response.url_list.is_empty());
     // this also asserts that status message is "the empty byte sequence"
     assert!(fetch_response.status.is_none());
-    assert_eq!(fetch_response.headers, Headers::new());
+    assert_eq!(fetch_response.headers, HeaderMap::new());
     match *fetch_response.body.lock().unwrap() {
         ResponseBody::Empty => { },
         _ => panic!()
@@ -433,25 +436,18 @@ fn test_fetch_response_is_opaque_filtered() {
 #[test]
 fn test_fetch_response_is_opaque_redirect_filtered() {
     static MESSAGE: &'static [u8] = b"";
-    let handler = move |request: HyperRequest, mut response: HyperResponse| {
-        let redirects = match request.uri {
-            RequestUri::AbsolutePath(url) =>
-                url.split("/").collect::<String>().parse::<u32>().unwrap_or(0),
-            RequestUri::AbsoluteUri(url) =>
-                url.path_segments().unwrap().next_back().unwrap().parse::<u32>().unwrap_or(0),
-            _ => panic!()
-        };
+    let handler = move |request: HyperRequest<Body>, response: &mut HyperResponse<Body>| {
+        let redirects = request.uri().path().split("/").collect::<String>().parse::<u32>().unwrap_or(0);
 
         if redirects == 1 {
-            response.send(MESSAGE).unwrap();
+            *response.body_mut() = MESSAGE.to_vec().into();
         } else {
-            *response.status_mut() = StatusCode::Found;
-            let url = format!("{}", 1);
-            response.headers_mut().set(Location(url.to_owned()));
+            *response.status_mut() = StatusCode::FOUND;
+            response.headers_mut().insert(header::LOCATION, HeaderValue::from_static("1"));
         }
     };
 
-    let (mut server, url) = make_server(handler);
+    let (server, url) = make_server(handler);
 
     let origin = Origin::Origin(url.origin());
     let mut request = Request::new(url, Some(origin), None);
@@ -465,7 +461,7 @@ fn test_fetch_response_is_opaque_redirect_filtered() {
 
     // this also asserts that status message is "the empty byte sequence"
     assert!(fetch_response.status.is_none());
-    assert_eq!(fetch_response.headers, Headers::new());
+    assert_eq!(fetch_response.headers, HeaderMap::new());
     match *fetch_response.body.lock().unwrap() {
         ResponseBody::Empty => { },
         _ => panic!()
@@ -481,10 +477,10 @@ fn test_fetch_with_local_urls_only() {
     // If flag `local_urls_only` is set, fetching a non-local URL must result in network error.
 
     static MESSAGE: &'static [u8] = b"";
-    let handler = move |_: HyperRequest, response: HyperResponse| {
-        response.send(MESSAGE).unwrap();
+    let handler = move |_: HyperRequest<Body>, response: &mut HyperResponse<Body>| {
+        *response.body_mut() = MESSAGE.to_vec().into();
     };
-    let (mut server, server_url) = make_server(handler);
+    let (server, server_url) = make_server(handler);
 
     let do_fetch = |url: ServoUrl| {
         let origin = Origin::Origin(url.origin());
@@ -506,7 +502,6 @@ fn test_fetch_with_local_urls_only() {
     assert!(!local_response.is_network_error());
     assert!(server_response.is_network_error());
 }
-
 // NOTE(emilio): If this test starts failing:
 //
 // openssl req -x509 -nodes -days 3650 -newkey rsa:2048 \
@@ -517,22 +512,17 @@ fn test_fetch_with_local_urls_only() {
 #[test]
 fn test_fetch_with_hsts() {
     static MESSAGE: &'static [u8] = b"";
-    let handler = move |_: HyperRequest, response: HyperResponse| {
-        response.send(MESSAGE).unwrap();
+    let handler = move |_: HyperRequest<Body>, response: &mut HyperResponse<Body>| {
+        *response.body_mut() = MESSAGE.to_vec().into();
     };
 
     let cert_path = Path::new("../../resources/self_signed_certificate_for_testing.crt").canonicalize().unwrap();
     let key_path = Path::new("../../resources/privatekey_for_testing.key").canonicalize().unwrap();
-
-    let ssl = hyper_openssl::OpensslServer::from_files(key_path, cert_path.clone())
-        .unwrap();
-
-    //takes an address and something that implements hyper::net::Ssl
-    let mut server = Server::https("0.0.0.0:0", ssl).unwrap().handle_threads(handler, 1).unwrap();
+    let (server, url) = make_ssl_server(handler, cert_path.clone(), key_path.clone());
 
     let mut ca_content = String::new();
     File::open(cert_path).unwrap().read_to_string(&mut ca_content).unwrap();
-    let ssl_client = create_ssl_client(&ca_content);
+    let ssl_client = create_ssl_connector_builder(&ca_content);
 
     let context = FetchContext {
         state: Arc::new(HttpState::new(ssl_client)),
@@ -547,15 +537,13 @@ fn test_fetch_with_hsts() {
         list.push(HstsEntry::new("localhost".to_owned(), IncludeSubdomains::NotIncluded, None)
             .unwrap());
     }
-    let url_string = format!("http://localhost:{}", server.socket.port());
-    let url = ServoUrl::parse(&url_string).unwrap();
     let origin = Origin::Origin(url.origin());
     let mut request = Request::new(url, Some(origin), None);
     request.referrer = Referrer::NoReferrer;
     // Set the flag.
     request.local_urls_only = false;
     let response = fetch_with_context(&mut request, &context);
-    let _ = server.close();
+    server.close();
     assert_eq!(response.internal_response.unwrap().url().unwrap().scheme(),
                "https");
 }
@@ -563,10 +551,10 @@ fn test_fetch_with_hsts() {
 #[test]
 fn test_fetch_with_sri_network_error() {
     static MESSAGE: &'static [u8] = b"alert('Hello, Network Error');";
-    let handler = move |_: HyperRequest, response: HyperResponse| {
-        response.send(MESSAGE).unwrap();
+    let handler = move |_: HyperRequest<Body>, response: &mut HyperResponse<Body>| {
+        *response.body_mut() = MESSAGE.to_vec().into();
     };
-    let (mut server, url) = make_server(handler);
+    let (server, url) = make_server(handler);
 
     let origin = Origin::Origin(url.origin());
     let mut request = Request::new(url, Some(origin), None);
@@ -587,10 +575,10 @@ fn test_fetch_with_sri_network_error() {
 #[test]
 fn test_fetch_with_sri_sucess() {
     static MESSAGE: &'static [u8] = b"alert('Hello, world.');";
-    let handler = move |_: HyperRequest, response: HyperResponse| {
-        response.send(MESSAGE).unwrap();
+    let handler = move |_: HyperRequest<Body>, response: &mut HyperResponse<Body>| {
+        *response.body_mut() = MESSAGE.to_vec().into();
     };
-    let (mut server, url) = make_server(handler);
+    let (server, url) = make_server(handler);
 
     let origin = Origin::Origin(url.origin());
     let mut request = Request::new(url, Some(origin), None);
@@ -616,20 +604,20 @@ fn test_fetch_blocked_nosniff() {
                             mime: Mime,
                             should_error: bool) {
         const MESSAGE: &'static [u8] = b"";
-        const HEADER: &'static str = "X-Content-Type-Options";
+        const HEADER: &'static str = "x-content-type-options";
         const VALUE: &'static [u8] = b"nosniff";
 
-        let handler = move |_: HyperRequest, mut response: HyperResponse| {
-            let mime_header = ContentType(mime.clone());
-            response.headers_mut().set(mime_header);
-            assert!(response.headers().has::<ContentType>());
+        let handler = move |_: HyperRequest<Body>, response: &mut HyperResponse<Body>| {
+            let mime_header = ContentType::from(mime.clone());
+            response.headers_mut().typed_insert(mime_header);
+            assert!(response.headers().contains_key(header::CONTENT_TYPE));
             // Add the nosniff header
-            response.headers_mut().set_raw(HEADER, vec![VALUE.to_vec()]);
+            response.headers_mut().insert(HeaderName::from_static(HEADER), HeaderValue::from_bytes(VALUE).unwrap());
 
-            response.send(MESSAGE).unwrap();
+            *response.body_mut() = MESSAGE.to_vec().into();
         };
 
-        let (mut server, url) = make_server(handler);
+        let (server, url) = make_server(handler);
 
         let origin = Origin::Origin(url.origin());
         let mut request = Request::new(url, Some(origin), None);
@@ -641,9 +629,9 @@ fn test_fetch_blocked_nosniff() {
     }
 
     let tests = vec![
-        (Destination::Script, Mime(TopLevel::Text, SubLevel::Javascript, vec![]), false),
-        (Destination::Script, Mime(TopLevel::Text, SubLevel::Css, vec![]), true),
-        (Destination::Style,  Mime(TopLevel::Text, SubLevel::Css, vec![]), false),
+        (Destination::Script, mime::TEXT_JAVASCRIPT, false),
+        (Destination::Script, mime::TEXT_CSS, true),
+        (Destination::Style,  mime::TEXT_CSS, false),
     ];
 
     for test in tests {
@@ -653,25 +641,19 @@ fn test_fetch_blocked_nosniff() {
 }
 
 fn setup_server_and_fetch(message: &'static [u8], redirect_cap: u32) -> Response {
-    let handler = move |request: HyperRequest, mut response: HyperResponse| {
-        let redirects = match request.uri {
-            RequestUri::AbsolutePath(url) =>
-                url.split("/").collect::<String>().parse::<u32>().unwrap_or(0),
-            RequestUri::AbsoluteUri(url) =>
-                url.path_segments().unwrap().next_back().unwrap().parse::<u32>().unwrap_or(0),
-            _ => panic!()
-        };
+    let handler = move |request: HyperRequest<Body>, response: &mut HyperResponse<Body>| {
+        let redirects = request.uri().path().split("/").collect::<String>().parse::<u32>().unwrap_or(0);
 
         if redirects >= redirect_cap {
-            response.send(message).unwrap();
+            *response.body_mut() = message.to_vec().into();
         } else {
-            *response.status_mut() = StatusCode::Found;
+            *response.status_mut() = StatusCode::FOUND;
             let url = format!("{redirects}", redirects = redirects + 1);
-            response.headers_mut().set(Location(url.to_owned()));
+            response.headers_mut().insert(header::LOCATION, HeaderValue::from_str(&url).unwrap());
         }
     };
 
-    let (mut server, url) = make_server(handler);
+    let (server, url) = make_server(handler);
 
     let origin = Origin::Origin(url.origin());
     let mut request = Request::new(url, Some(origin), None);
@@ -720,30 +702,24 @@ fn test_fetch_redirect_updates_method_runner(tx: Sender<bool>, status_code: Stat
     let handler_method = method.clone();
     let handler_tx = Arc::new(Mutex::new(tx));
 
-    let handler = move |request: HyperRequest, mut response: HyperResponse| {
-        let redirects = match request.uri {
-            RequestUri::AbsolutePath(url) =>
-                url.split("/").collect::<String>().parse::<u32>().unwrap_or(0),
-            RequestUri::AbsoluteUri(url) =>
-                url.path_segments().unwrap().next_back().unwrap().parse::<u32>().unwrap_or(0),
-            _ => panic!()
-        };
+    let handler = move |request: HyperRequest<Body>, response: &mut HyperResponse<Body>| {
+        let redirects = request.uri().path().split("/").collect::<String>().parse::<u32>().unwrap_or(0);
 
         let mut test_pass = true;
 
         if redirects == 0 {
-            *response.status_mut() = StatusCode::TemporaryRedirect;
-            response.headers_mut().set(Location("1".to_owned()));
+            *response.status_mut() = StatusCode::TEMPORARY_REDIRECT;
+            response.headers_mut().insert(header::LOCATION, HeaderValue::from_static("1"));
 
         } else if redirects == 1 {
             // this makes sure that the request method does't change from the wrong status code
-            if handler_method != Method::Get && request.method == Method::Get {
+            if handler_method != Method::GET && request.method() == Method::GET {
                 test_pass = false;
             }
             *response.status_mut() = status_code;
-            response.headers_mut().set(Location("2".to_owned()));
+            response.headers_mut().insert(header::LOCATION, HeaderValue::from_static("2"));
 
-        } else if request.method != Method::Get {
+        } else if request.method() != Method::GET {
             test_pass = false;
         }
 
@@ -754,7 +730,7 @@ fn test_fetch_redirect_updates_method_runner(tx: Sender<bool>, status_code: Stat
 
     };
 
-    let (mut server, url) = make_server(handler);
+    let (server, url) = make_server(handler);
 
     let origin = Origin::Origin(url.origin());
     let mut request = Request::new(url, Some(origin), None);
@@ -769,36 +745,36 @@ fn test_fetch_redirect_updates_method_runner(tx: Sender<bool>, status_code: Stat
 fn test_fetch_redirect_updates_method() {
     let (tx, rx) = channel();
 
-    test_fetch_redirect_updates_method_runner(tx.clone(), StatusCode::MovedPermanently, Method::Post);
+    test_fetch_redirect_updates_method_runner(tx.clone(), StatusCode::MOVED_PERMANENTLY, Method::POST);
     assert_eq!(rx.recv().unwrap(), true);
     assert_eq!(rx.recv().unwrap(), true);
     // make sure the test doesn't send more data than expected
     assert_eq!(rx.try_recv().is_none(), true);
 
-    test_fetch_redirect_updates_method_runner(tx.clone(), StatusCode::Found, Method::Post);
+    test_fetch_redirect_updates_method_runner(tx.clone(), StatusCode::FOUND, Method::POST);
     assert_eq!(rx.recv().unwrap(), true);
     assert_eq!(rx.recv().unwrap(), true);
     assert_eq!(rx.try_recv().is_none(), true);
 
-    test_fetch_redirect_updates_method_runner(tx.clone(), StatusCode::SeeOther, Method::Get);
+    test_fetch_redirect_updates_method_runner(tx.clone(), StatusCode::SEE_OTHER, Method::GET);
     assert_eq!(rx.recv().unwrap(), true);
     assert_eq!(rx.recv().unwrap(), true);
     assert_eq!(rx.try_recv().is_none(), true);
 
-    let extension = Method::Extension("FOO".to_owned());
+    let extension = Method::from_bytes(b"FOO").unwrap();
 
-    test_fetch_redirect_updates_method_runner(tx.clone(), StatusCode::MovedPermanently, extension.clone());
+    test_fetch_redirect_updates_method_runner(tx.clone(), StatusCode::MOVED_PERMANENTLY, extension.clone());
     assert_eq!(rx.recv().unwrap(), true);
     // for MovedPermanently and Found, Method should only be changed if it was Post
     assert_eq!(rx.recv().unwrap(), false);
     assert_eq!(rx.try_recv().is_none(), true);
 
-    test_fetch_redirect_updates_method_runner(tx.clone(), StatusCode::Found, extension.clone());
+    test_fetch_redirect_updates_method_runner(tx.clone(), StatusCode::FOUND, extension.clone());
     assert_eq!(rx.recv().unwrap(), true);
     assert_eq!(rx.recv().unwrap(), false);
     assert_eq!(rx.try_recv().is_none(), true);
 
-    test_fetch_redirect_updates_method_runner(tx.clone(), StatusCode::SeeOther, extension.clone());
+    test_fetch_redirect_updates_method_runner(tx.clone(), StatusCode::SEE_OTHER, extension.clone());
     assert_eq!(rx.recv().unwrap(), true);
     // for SeeOther, Method should always be changed, so this should be true
     assert_eq!(rx.recv().unwrap(), true);
@@ -826,10 +802,10 @@ fn response_is_done(response: &Response) -> bool {
 #[test]
 fn test_fetch_async_returns_complete_response() {
     static MESSAGE: &'static [u8] = b"this message should be retrieved in full";
-    let handler = move |_: HyperRequest, response: HyperResponse| {
-        response.send(MESSAGE).unwrap();
+    let handler = move |_: HyperRequest<Body>, response: &mut HyperResponse<Body>| {
+        *response.body_mut() = MESSAGE.to_vec().into();
     };
-    let (mut server, url) = make_server(handler);
+    let (server, url) = make_server(handler);
 
     let origin = Origin::Origin(url.origin());
     let mut request = Request::new(url, Some(origin), None);
@@ -844,10 +820,10 @@ fn test_fetch_async_returns_complete_response() {
 #[test]
 fn test_opaque_filtered_fetch_async_returns_complete_response() {
     static MESSAGE: &'static [u8] = b"";
-    let handler = move |_: HyperRequest, response: HyperResponse| {
-        response.send(MESSAGE).unwrap();
+    let handler = move |_: HyperRequest<Body>, response: &mut HyperResponse<Body>| {
+        *response.body_mut() = MESSAGE.to_vec().into();
     };
-    let (mut server, url) = make_server(handler);
+    let (server, url) = make_server(handler);
 
     // an origin mis-match will fall through to an Opaque filtered response
     let origin = Origin::Origin(ImmutableOrigin::new_opaque());
@@ -865,25 +841,18 @@ fn test_opaque_filtered_fetch_async_returns_complete_response() {
 #[test]
 fn test_opaque_redirect_filtered_fetch_async_returns_complete_response() {
     static MESSAGE: &'static [u8] = b"";
-    let handler = move |request: HyperRequest, mut response: HyperResponse| {
-        let redirects = match request.uri {
-            RequestUri::AbsolutePath(url) =>
-                url.split("/").collect::<String>().parse::<u32>().unwrap_or(0),
-            RequestUri::AbsoluteUri(url) =>
-                url.path_segments().unwrap().last().unwrap().parse::<u32>().unwrap_or(0),
-            _ => panic!()
-        };
+    let handler = move |request: HyperRequest<Body>, response: &mut HyperResponse<Body>| {
+        let redirects = request.uri().path().split("/").collect::<String>().parse::<u32>().unwrap_or(0);
 
         if redirects == 1 {
-            response.send(MESSAGE).unwrap();
+            *response.body_mut() = MESSAGE.to_vec().into();
         } else {
-            *response.status_mut() = StatusCode::Found;
-            let url = format!("{}", 1);
-            response.headers_mut().set(Location(url.to_owned()));
+            *response.status_mut() = StatusCode::FOUND;
+            response.headers_mut().insert(header::LOCATION, HeaderValue::from_static("1"));
         }
     };
 
-    let (mut server, url) = make_server(handler);
+    let (server, url) = make_server(handler);
 
     let origin = Origin::Origin(url.origin());
     let mut request = Request::new(url, Some(origin), None);
@@ -901,11 +870,11 @@ fn test_opaque_redirect_filtered_fetch_async_returns_complete_response() {
 #[test]
 fn test_fetch_with_devtools() {
     static MESSAGE: &'static [u8] = b"Yay!";
-    let handler = move |_: HyperRequest, response: HyperResponse| {
-        response.send(MESSAGE).unwrap();
+    let handler = move |_: HyperRequest<Body>, response: &mut HyperResponse<Body>| {
+        *response.body_mut() = MESSAGE.to_vec().into();
     };
 
-    let (mut server, url) = make_server(handler);
+    let (server, url) = make_server(handler);
 
     let origin = Origin::Origin(url.origin());
     let mut request = Request::new(url.clone(), Some(origin), Some(TEST_PIPELINE_ID));
@@ -921,36 +890,23 @@ fn test_fetch_with_devtools() {
     let mut devhttpresponse = expect_devtools_http_response(&devtools_port);
 
     //Creating default headers for request
-    let mut headers = Headers::new();
+    let mut headers = HeaderMap::new();
 
-    headers.set(AcceptEncoding(vec![
-                                   qitem(Encoding::Gzip),
-                                   qitem(Encoding::Deflate),
-                                   qitem(Encoding::EncodingExt("br".to_owned()))
-                                   ]));
+    headers.insert(header::ACCEPT_ENCODING, HeaderValue::from_static("gzip, deflate, br"));
+    headers.typed_insert(
+        Host::from(format!("{}:{}", url.host_str().unwrap(), url.port().unwrap()).parse::<Authority>().unwrap()));
 
-    headers.set(Host { hostname: url.host_str().unwrap().to_owned() , port: url.port().to_owned() });
+    headers.insert(header::ACCEPT, HeaderValue::from_static("*/*"));
 
-    let accept = Accept(vec![qitem(Mime(TopLevel::Star, SubLevel::Star, vec![]))]);
-    headers.set(accept);
+    headers.insert(header::ACCEPT_LANGUAGE, HeaderValue::from_static("en-US, en; q=0.5"));
 
-    let mut en_us: LanguageTag = Default::default();
-    en_us.language = Some("en".to_owned());
-    en_us.region = Some("US".to_owned());
-    let mut en: LanguageTag = Default::default();
-    en.language = Some("en".to_owned());
-    headers.set(AcceptLanguage(vec![
-        qitem(en_us),
-        QualityItem::new(en, Quality(500)),
-    ]));
-
-    headers.set(UserAgent(DEFAULT_USER_AGENT.to_owned()));
+    headers.typed_insert::<UserAgent>(DEFAULT_USER_AGENT.parse().unwrap());
 
     let httprequest = DevtoolsHttpRequest {
         url: url,
-        method: Method::Get,
+        method: Method::GET,
         headers: headers,
-        body: None,
+        body: Some(vec![]),
         pipeline_id: TEST_PIPELINE_ID,
         startedDateTime: devhttprequest.startedDateTime,
         timeStamp: devhttprequest.timeStamp,
@@ -960,9 +916,9 @@ fn test_fetch_with_devtools() {
     };
 
     let content = "Yay!";
-    let mut response_headers = Headers::new();
-    response_headers.set(ContentLength(content.len() as u64));
-    devhttpresponse.headers.as_mut().unwrap().remove::<Date>();
+    let mut response_headers = HeaderMap::new();
+    response_headers.typed_insert(ContentLength(content.len() as u64));
+    devhttpresponse.headers.as_mut().unwrap().remove(header::DATE);
 
     let httpresponse = DevtoolsHttpResponse {
         headers: Some(response_headers),

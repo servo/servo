@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use base64;
-use hyper::mime::{Attr, Mime, SubLevel, TopLevel, Value};
+use mime::Mime;
 use servo_url::ServoUrl;
 use url::Position;
 use url::percent_encoding::percent_decode;
@@ -37,8 +37,7 @@ pub fn decode(url: &ServoUrl) -> Result<DecodeData, DecodeError> {
     };
 
     let content_type = ct_str.parse().unwrap_or_else(|_| {
-        Mime(TopLevel::Text, SubLevel::Plain,
-             vec![(Attr::Charset, Value::Ext("US-ASCII".to_owned()))])
+        "text/plain; charset=US-ASCII".parse().unwrap()
     });
 
     let mut bytes = percent_decode(parts[1].as_bytes()).collect::<Vec<_>>();

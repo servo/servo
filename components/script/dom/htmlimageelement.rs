@@ -44,7 +44,7 @@ use html5ever::{LocalName, Prefix};
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use microtask::{Microtask, MicrotaskRunnable};
-use mime::{Mime, TopLevel, SubLevel};
+use mime::{self, Mime};
 use net_traits::{FetchResponseListener, FetchMetadata, NetworkError, FetchResponseMsg};
 use net_traits::image::base::{Image, ImageMetadata};
 use net_traits::image_cache::{CanRequestImages, ImageCache, ImageOrMetadataAvailable};
@@ -180,13 +180,9 @@ impl FetchResponseListener for ImageContext {
         // Step 14.5 of https://html.spec.whatwg.org/multipage/#img-environment-changes
         if let Some(metadata) = metadata.as_ref() {
             if let Some(ref content_type) = metadata.content_type {
-                match content_type.clone().into_inner().0 {
-                    Mime(TopLevel::Multipart, SubLevel::Ext(s), _) => {
-                        if s == "x-mixed-replace" {
-                            self.aborted.set(true);
-                        }
-                    },
-                    _ => (),
+                let mime: Mime = content_type.clone().into_inner().into();
+                if mime.type_() == mime::MULTIPART && mime.subtype().as_str() == "x-mixed-replace" {
+                    self.aborted.set(true);
                 }
             }
         }
@@ -570,11 +566,12 @@ impl HTMLImageElement {
                 // TODO Handle unsupported mime type
                 let mime = x.value().parse::<Mime>();
                 match mime {
-                    Ok(m) => match m {
-                        Mime(TopLevel::Image, _, _) => (),
-                        _ => continue,
-                    },
-                    _ => continue,
+                    Ok(m) =>
+                        match m.type_() {
+                            mime::IMAGE => (),
+                            _ => continue
+                        },
+                    _ => continue
                 }
             }
 

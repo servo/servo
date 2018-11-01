@@ -94,14 +94,14 @@ impl Cookie {
 
 
         // Step 10
-        if cookie.http_only() && source == CookieSource::NonHTTP {
+        if cookie.http_only().unwrap_or(false) && source == CookieSource::NonHTTP {
             return None;
         }
 
         // https://tools.ietf.org/html/draft-west-cookie-prefixes-04#section-4
         // Step 1 of cookie prefixes
         if (cookie.name().starts_with("__Secure-") || cookie.name().starts_with("__Host-")) &&
-           !(cookie.secure() && request.is_secure_scheme())
+           !(cookie.secure().unwrap_or(false) && request.is_secure_scheme())
         {
             return None;
         }
@@ -197,10 +197,10 @@ impl Cookie {
             }
         }
 
-        if self.cookie.secure() && !url.is_secure_scheme() {
+        if self.cookie.secure().unwrap_or(false) && !url.is_secure_scheme() {
             return false;
         }
-        if self.cookie.http_only() && source == CookieSource::NonHTTP {
+        if self.cookie.http_only().unwrap_or(false) && source == CookieSource::NonHTTP {
             return false;
         }
 

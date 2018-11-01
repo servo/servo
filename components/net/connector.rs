@@ -2,60 +2,132 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use flate2::read::GzDecoder;
 use hosts::replace_host;
-use hyper::client::Pool;
-use hyper::error::{Result as HyperResult, Error as HyperError};
-use hyper::net::{NetworkConnector, HttpsStream, HttpStream, SslClient};
-use hyper_openssl::OpensslClient;
-use openssl::ssl::{SSL_OP_NO_COMPRESSION, SSL_OP_NO_SSLV2, SSL_OP_NO_SSLV3};
-use openssl::ssl::{SslConnector, SslConnectorBuilder, SslMethod};
+use http_loader::Decoder;
+use hyper::{Body, Client};
+use hyper::body::Payload;
+use hyper::client::HttpConnector as HyperHttpConnector;
+use hyper::client::connect::{Connect, Destination};
+use hyper::rt::Future;
+use hyper_openssl::HttpsConnector;
+use openssl::ssl::{SslConnector, SslConnectorBuilder, SslMethod, SslOptions};
 use openssl::x509;
-use std::io;
-use std::net::TcpStream;
+use std::io::{Cursor, Read};
+use tokio::prelude::{Async, Stream};
+use tokio::prelude::future::Executor;
 
-pub struct HttpsConnector {
-    ssl: OpensslClient,
+pub const BUF_SIZE: usize = 32768;
+
+pub struct HttpConnector {
+    inner: HyperHttpConnector
 }
 
-impl HttpsConnector {
-    fn new(ssl: OpensslClient) -> HttpsConnector {
-        HttpsConnector {
-            ssl: ssl,
+impl HttpConnector {
+    fn new() -> HttpConnector {
+        let mut inner = HyperHttpConnector::new(4);
+        inner.enforce_http(false);
+        inner.set_happy_eyeballs_timeout(None);
+        HttpConnector {
+            inner
         }
     }
 }
 
-impl NetworkConnector for HttpsConnector {
-    type Stream = HttpsStream<<OpensslClient as SslClient>::Stream>;
+impl Connect for HttpConnector {
+    type Transport = <HyperHttpConnector as Connect>::Transport;
+    type Error = <HyperHttpConnector as Connect>::Error;
+    type Future = <HyperHttpConnector as Connect>::Future;
 
-    fn connect(&self, host: &str, port: u16, scheme: &str) -> HyperResult<Self::Stream> {
-        if scheme != "http" && scheme != "https" {
-            return Err(HyperError::Io(io::Error::new(io::ErrorKind::InvalidInput,
-                                                     "Invalid scheme for Http")));
-        }
-
+    fn connect(&self, dest: Destination) -> Self::Future {
         // Perform host replacement when making the actual TCP connection.
-        let addr = &(&*replace_host(host), port);
-        let stream = HttpStream(TcpStream::connect(addr)?);
+        let mut new_dest = dest.clone();
+        let addr = replace_host(dest.host());
+        new_dest.set_host(&*addr).unwrap();
+        self.inner.connect(new_dest)
+    }
+}
 
-        if scheme == "http" {
-            Ok(HttpsStream::Http(stream))
-        } else {
-            // Do not perform host replacement on the host that is used
-            // for verifying any SSL certificate encountered.
-            self.ssl.wrap_client(stream, host).map(HttpsStream::Https)
+pub type Connector = HttpsConnector<HttpConnector>;
+pub struct WrappedBody {
+    pub body: Body,
+    pub decoder: Decoder,
+}
+
+impl WrappedBody {
+    pub fn new(body: Body) -> Self {
+        Self::new_with_decoder(body, Decoder::Plain)
+    }
+
+    pub fn new_with_decoder(body: Body, decoder: Decoder) -> Self {
+        WrappedBody {
+            body,
+            decoder,
         }
     }
 }
 
-pub type Connector = HttpsConnector;
+impl Payload for WrappedBody {
+    type Data = <Body as Payload>::Data;
+    type Error = <Body as Payload>::Error;
+    fn poll_data(&mut self) -> Result<Async<Option<Self::Data>>, Self::Error> {
+        self.body.poll_data()
+    }
+}
 
-pub fn create_ssl_connector(certs: &str) -> SslConnector {
+impl Stream for WrappedBody {
+    type Item = <Body as Stream>::Item;
+    type Error = <Body as Stream>::Error;
+    fn poll(&mut self) -> Result<Async<Option<Self::Item>>, Self::Error> {
+        self.body.poll().map(|res| {
+            res.map(|maybe_chunk| {
+                if let Some(chunk) = maybe_chunk {
+                    match self.decoder {
+                        Decoder::Plain => Some(chunk),
+                        Decoder::Gzip(Some(ref mut decoder)) => {
+                            let mut buf = vec![0; BUF_SIZE];
+                            *decoder.get_mut() = Cursor::new(chunk.into_bytes());
+                            let len = decoder.read(&mut buf).ok()?;
+                            buf.truncate(len);
+                            Some(buf.into())
+                        }
+                        Decoder::Gzip(None) => {
+                            let mut buf = vec![0; BUF_SIZE];
+                            let mut decoder = GzDecoder::new(Cursor::new(chunk.into_bytes()));
+                            let len = decoder.read(&mut buf).ok()?;
+                            buf.truncate(len);
+                            self.decoder = Decoder::Gzip(Some(decoder));
+                            Some(buf.into())
+                        }
+                        Decoder::Deflate(ref mut decoder) => {
+                            let mut buf = vec![0; BUF_SIZE];
+                            *decoder.get_mut() = Cursor::new(chunk.into_bytes());
+                            let len = decoder.read(&mut buf).ok()?;
+                            buf.truncate(len);
+                            Some(buf.into())
+                        }
+                        Decoder::Brotli(ref mut decoder) => {
+                            let mut buf = vec![0; BUF_SIZE];
+                            decoder.get_mut().get_mut().extend(&chunk.into_bytes());
+                            let len = decoder.read(&mut buf).ok()?;
+                            buf.truncate(len);
+                            Some(buf.into())
+                        }
+                    }
+                } else {
+                    None
+                }
+            })
+        })
+    }
+}
+
+pub fn create_ssl_connector_builder(certs: &str) -> SslConnectorBuilder {
     // certs include multiple certificates. We could add all of them at once,
     // but if any of them were already added, openssl would fail to insert all
     // of them.
     let mut certs = certs;
-    let mut ssl_connector_builder = SslConnectorBuilder::new(SslMethod::tls()).unwrap();
+    let mut ssl_connector_builder = SslConnector::builder(SslMethod::tls()).unwrap();
     loop {
         let token = "-----END CERTIFICATE-----";
         if let Some(index) = certs.find(token) {
@@ -78,18 +150,17 @@ pub fn create_ssl_connector(certs: &str) -> SslConnector {
         }
     }
     ssl_connector_builder.set_cipher_list(DEFAULT_CIPHERS).expect("could not set ciphers");
-    ssl_connector_builder.set_options(SSL_OP_NO_SSLV2 | SSL_OP_NO_SSLV3 | SSL_OP_NO_COMPRESSION);
-    ssl_connector_builder.build()
+    ssl_connector_builder.set_options(SslOptions::NO_SSLV2 | SslOptions::NO_SSLV3 | SslOptions::NO_COMPRESSION);
+    ssl_connector_builder
 }
 
-pub fn create_ssl_client(certs: &str) -> OpensslClient {
-    let ssl_connector = create_ssl_connector(certs);
-    OpensslClient::from(ssl_connector)
-}
-
-pub fn create_http_connector(ssl_client: OpensslClient) -> Pool<Connector> {
-    let https_connector = HttpsConnector::new(ssl_client);
-    Pool::with_connector(Default::default(), https_connector)
+pub fn create_http_client<E>(ssl_connector_builder: SslConnectorBuilder, executor: E)
+    -> Client<Connector, WrappedBody>
+    where
+        E: Executor<Box<Future<Error=(), Item=()> + Send + 'static>> + Sync + Send + 'static
+{
+    let connector = HttpsConnector::with_connector(HttpConnector::new(), ssl_connector_builder).unwrap();
+    Client::builder().http1_title_case_headers(true).executor(executor).build(connector)
 }
 
 // The basic logic here is to prefer ciphers with ECDSA certificates, Forward

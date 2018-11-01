@@ -34,12 +34,14 @@ use dom::promise::Promise;
 use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
 use fetch::FetchCanceller;
+use headers_core::HeaderMapExt;
+use headers_ext::ContentLength;
 use html5ever::{LocalName, Prefix};
-use hyper::header::{ByteRangeSpec, ContentLength, Headers, Range as HyperRange};
+use http::header::{self, HeaderMap, HeaderValue};
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use microtask::{Microtask, MicrotaskRunnable};
-use mime::{Mime, SubLevel, TopLevel};
+use mime::{self, Mime};
 use net_traits::{CoreResourceMsg, FetchChannels, FetchResponseListener, FetchMetadata, Metadata};
 use net_traits::NetworkError;
 use net_traits::request::{CredentialsMode, Destination, RequestInit};
@@ -686,10 +688,9 @@ impl HTMLMediaElement {
             HTMLMediaElementTypeId::HTMLAudioElement => Destination::Audio,
             HTMLMediaElementTypeId::HTMLVideoElement => Destination::Video,
         };
-        let mut headers = Headers::new();
-        headers.set(HyperRange::Bytes(vec![ByteRangeSpec::AllFrom(
-            offset.unwrap_or(0),
-        )]));
+        let mut headers = HeaderMap::new();
+        // FIXME(eijebong): Use typed headers once we have a constructor for the range header
+        headers.insert(header::RANGE, HeaderValue::from_str(&format!("bytes={}-", offset.unwrap_or(0))).unwrap());
         let request = RequestInit {
             url: self.resource_url.borrow().as_ref().unwrap().clone(),
             headers,
@@ -1271,7 +1272,10 @@ impl HTMLMediaElementMethods for HTMLMediaElement {
     // https://html.spec.whatwg.org/multipage/#dom-navigator-canplaytype
     fn CanPlayType(&self, type_: DOMString) -> CanPlayTypeResult {
         match type_.parse::<Mime>() {
-            Ok(Mime(TopLevel::Application, SubLevel::OctetStream, _)) | Err(_) => {
+            Ok(ref mime) if (mime.type_() == mime::APPLICATION && mime.subtype() == mime::OCTET_STREAM) => {
+                CanPlayTypeResult::_empty
+            },
+            Err(_) => {
                 CanPlayTypeResult::_empty
             },
             _ => CanPlayTypeResult::Maybe,
@@ -1464,8 +1468,8 @@ impl FetchResponseListener for HTMLMediaElementContext {
 
         if let Some(metadata) = self.metadata.as_ref() {
             if let Some(headers) = metadata.headers.as_ref() {
-                if let Some(content_length) = headers.get::<ContentLength>() {
-                    if let Err(e) = self.elem.root().player.set_input_size(**content_length) {
+                if let Some(content_length) = headers.typed_get::<ContentLength>() {
+                    if let Err(e) = self.elem.root().player.set_input_size(content_length.0) {
                         eprintln!("Could not set player input size {:?}", e);
                     }
                 }
