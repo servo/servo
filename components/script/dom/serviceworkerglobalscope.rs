@@ -3,7 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use crate::devtools;
-use devtools_traits::DevtoolScriptControlMsg;
 use crate::dom::abstractworker::WorkerScriptMsg;
 use crate::dom::abstractworkerglobalscope::{WorkerEventLoopMethods, run_worker_event_loop};
 use crate::dom::bindings::codegen::Bindings::ServiceWorkerGlobalScopeBinding;
@@ -20,13 +19,16 @@ use crate::dom::extendablemessageevent::ExtendableMessageEvent;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::worker::TrustedWorkerAddress;
 use crate::dom::workerglobalscope::WorkerGlobalScope;
+use crate::script_runtime::{CommonScriptMsg, ScriptChan, new_rt_and_cx, Runtime};
+use crate::task_queue::{QueuedTask, QueuedTaskConversion, TaskQueue};
+use crate::task_source::TaskSourceName;
+use devtools_traits::DevtoolScriptControlMsg;
 use dom_struct::dom_struct;
 use ipc_channel::ipc::{self, IpcSender, IpcReceiver};
 use js::jsapi::{JSAutoCompartment, JSContext, JS_AddInterruptCallback};
 use js::jsval::UndefinedValue;
 use net_traits::{load_whole_resource, IpcSend, CustomResponseMediator};
 use net_traits::request::{CredentialsMode, Destination, RequestInit};
-use crate::script_runtime::{CommonScriptMsg, ScriptChan, new_rt_and_cx, Runtime};
 use script_traits::{TimerEvent, WorkerGlobalScopeInit, ScopeThings, ServiceWorkerMsg, WorkerScriptLoadOrigin};
 use servo_channel::{channel, route_ipc_receiver_to_new_servo_sender, Receiver, Sender};
 use servo_config::prefs::PREFS;
@@ -35,8 +37,6 @@ use servo_url::ServoUrl;
 use std::thread;
 use std::time::Duration;
 use style::thread_state::{self, ThreadState};
-use crate::task_queue::{QueuedTask, QueuedTaskConversion, TaskQueue};
-use crate::task_source::TaskSourceName;
 
 /// Messages used to control service worker event loop
 pub enum ServiceWorkerScriptMsg {

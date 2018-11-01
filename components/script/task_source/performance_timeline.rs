@@ -8,12 +8,12 @@
 
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::globalscope::GlobalScope;
-use msg::constellation_msg::PipelineId;
 use crate::script_runtime::{CommonScriptMsg, ScriptChan, ScriptThreadEventCategory};
-use std::fmt;
-use std::result::Result;
 use crate::task::{TaskCanceller, TaskOnce};
 use crate::task_source::{TaskSource, TaskSourceName};
+use msg::constellation_msg::PipelineId;
+use std::fmt;
+use std::result::Result;
 
 #[derive(JSTraceable)]
 pub struct PerformanceTimelineTaskSource(pub Box<ScriptChan + Send + 'static>, pub PipelineId);

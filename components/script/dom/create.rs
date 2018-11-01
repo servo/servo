@@ -78,9 +78,9 @@ use crate::dom::htmlulistelement::HTMLUListElement;
 use crate::dom::htmlunknownelement::HTMLUnknownElement;
 use crate::dom::htmlvideoelement::HTMLVideoElement;
 use crate::dom::svgsvgelement::SVGSVGElement;
+use crate::script_thread::ScriptThread;
 use html5ever::{LocalName, Prefix, QualName};
 use js::jsapi::JSAutoCompartment;
-use crate::script_thread::ScriptThread;
 use servo_config::prefs::PREFS;
 
 fn create_svg_element(

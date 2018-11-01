@@ -9,13 +9,15 @@ use crate::block::{BlockFlow, ISizeAndMarginsComputer};
 use crate::context::LayoutContext;
 use crate::display_list::{BlockFlowDisplayListBuilding, DisplayListBuildState};
 use crate::display_list::{StackingContextCollectionFlags, StackingContextCollectionState};
-use euclid::Point2D;
 use crate::flow::{EarlyAbsolutePositionInfo, Flow, FlowClass, ImmutableFlowUtils, GetBaseFlow, OpaqueFlow};
 use crate::flow_list::MutFlowListIterator;
 use crate::fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
-use gfx_traits::print_tree::PrintTree;
 use crate::layout_debug;
 use crate::model::MaybeAuto;
+use crate::table::{ColumnComputedInlineSize, ColumnIntrinsicInlineSize, InternalTable, VecExt};
+use crate::table_cell::{CollapsedBordersForCell, TableCellFlow};
+use euclid::Point2D;
+use gfx_traits::print_tree::PrintTree;
 use serde::{Serialize, Serializer};
 use std::cmp::max;
 use std::fmt;
@@ -26,8 +28,6 @@ use style::computed_values::border_top_style::T as BorderStyle;
 use style::logical_geometry::{LogicalSize, PhysicalSide, WritingMode};
 use style::properties::ComputedValues;
 use style::values::computed::{Color, LengthOrPercentageOrAuto};
-use crate::table::{ColumnComputedInlineSize, ColumnIntrinsicInlineSize, InternalTable, VecExt};
-use crate::table_cell::{CollapsedBordersForCell, TableCellFlow};
 
 #[allow(unsafe_code)]
 unsafe impl crate::flow::HasBaseFlow for TableRowFlow {}

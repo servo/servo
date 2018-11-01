@@ -6,14 +6,14 @@
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::worker::TrustedWorkerAddress;
-use msg::constellation_msg::PipelineId;
 use crate::script_runtime::ScriptThreadEventCategory;
+use crate::task::TaskBox;
+use crate::task_source::TaskSourceName;
+use msg::constellation_msg::PipelineId;
 use servo_channel::{Receiver, Sender, base_channel};
 use std::cell::Cell;
 use std::collections::{HashMap, VecDeque};
 use std::default::Default;
-use crate::task::TaskBox;
-use crate::task_source::TaskSourceName;
 
 pub type QueuedTask = (
     Option<TrustedWorkerAddress>,

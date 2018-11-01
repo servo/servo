@@ -37,8 +37,6 @@ use canvas_traits::webgl::{WebGLContextShareMode, WebGLError, WebGLFramebufferId
 use canvas_traits::webgl::{WebGLPipeline, WebGLProgramId, WebGLReceiver, WebGLRenderbufferId};
 use canvas_traits::webgl::{WebGLSLVersion, WebGLSender, WebGLShaderId, WebGLTextureId};
 use canvas_traits::webgl::{WebGLVersion, WebGLVertexArrayId};
-use cssparser::RGBA;
-use devtools_traits::{CSSError, TimelineMarkerType, WorkerId};
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
@@ -49,6 +47,8 @@ use crate::dom::bindings::utils::WindowProxyHandler;
 use crate::dom::document::PendingRestyle;
 use crate::dom::htmlimageelement::SourceSet;
 use crate::dom::htmlmediaelement::MediaFrameRenderer;
+use cssparser::RGBA;
+use devtools_traits::{CSSError, TimelineMarkerType, WorkerId};
 use encoding_rs::{Decoder, Encoding};
 use euclid::{Transform2D, Transform3D, Point2D, Vector2D, Rect, TypedSize2D, TypedScale};
 use euclid::Length as EuclidLength;

@@ -13,9 +13,9 @@ use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::dom::serviceworker::ServiceWorker;
-use dom_struct::dom_struct;
 use crate::script_thread::ScriptThread;
 use crate::serviceworkerjob::{Job, JobType};
+use dom_struct::dom_struct;
 use std::default::Default;
 use std::rc::Rc;
 

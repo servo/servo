@@ -8,8 +8,9 @@ use bluetooth_traits::blocklist::{Blocklist, uuid_is_blocklisted};
 use bluetooth_traits::scanfilter::{BluetoothScanfilter, BluetoothScanfilterSequence};
 use bluetooth_traits::scanfilter::{RequestDeviceoptions, ServiceUUIDSequence};
 use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::BluetoothBinding::{self, BluetoothDataFilterInit, BluetoothLEScanFilterInit};
+use crate::dom::bindings::codegen::Bindings::BluetoothBinding::{self, BluetoothDataFilterInit};
 use crate::dom::bindings::codegen::Bindings::BluetoothBinding::{BluetoothMethods, RequestDeviceOptions};
+use crate::dom::bindings::codegen::Bindings::BluetoothBinding::BluetoothLEScanFilterInit;
 use crate::dom::bindings::codegen::Bindings::BluetoothPermissionResultBinding::BluetoothPermissionDescriptor;
 use crate::dom::bindings::codegen::Bindings::BluetoothRemoteGATTServerBinding::BluetoothRemoteGATTServerBinding::
 BluetoothRemoteGATTServerMethods;
@@ -28,6 +29,7 @@ use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::permissions::{get_descriptor_permission_state, PermissionAlgorithm};
 use crate::dom::promise::Promise;
+use crate::task::TaskOnce;
 use dom_struct::dom_struct;
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
@@ -40,7 +42,6 @@ use std::collections::HashMap;
 use std::rc::Rc;
 use std::str::FromStr;
 use std::sync::{Arc, Mutex};
-use crate::task::TaskOnce;
 
 const KEY_CONVERSION_ERROR: &'static str =
     "This `manufacturerData` key can not be parsed as unsigned short:";

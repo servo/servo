@@ -28,6 +28,7 @@ use crate::dom::nodelist::NodeList;
 use crate::dom::textcontrol::{TextControlElement, TextControlSelection};
 use crate::dom::validation::Validatable;
 use crate::dom::virtualmethods::VirtualMethods;
+use crate::textinput::{Direction, KeyReaction, Lines, SelectionDirection, TextInput};
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
 use script_traits::ScriptToConstellationChan;
@@ -36,7 +37,6 @@ use std::default::Default;
 use std::ops::Range;
 use style::attr::AttrValue;
 use style::element_state::ElementState;
-use crate::textinput::{Direction, KeyReaction, Lines, SelectionDirection, TextInput};
 
 #[dom_struct]
 pub struct HTMLTextAreaElement {

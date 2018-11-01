@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use devtools_traits::{DevtoolScriptControlMsg, WorkerId};
 use crate::dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use crate::dom::bindings::codegen::Bindings::RequestBinding::RequestInit;
 use crate::dom::bindings::codegen::Bindings::WorkerGlobalScopeBinding::WorkerGlobalScopeMethods;
@@ -23,8 +22,18 @@ use crate::dom::serviceworkerglobalscope::ServiceWorkerGlobalScope;
 use crate::dom::window::{base64_atob, base64_btoa};
 use crate::dom::workerlocation::WorkerLocation;
 use crate::dom::workernavigator::WorkerNavigator;
-use dom_struct::dom_struct;
 use crate::fetch;
+use crate::script_runtime::{CommonScriptMsg, ScriptChan, ScriptPort, get_reports, Runtime};
+use crate::task::TaskCanceller;
+use crate::task_source::dom_manipulation::DOMManipulationTaskSource;
+use crate::task_source::file_reading::FileReadingTaskSource;
+use crate::task_source::networking::NetworkingTaskSource;
+use crate::task_source::performance_timeline::PerformanceTimelineTaskSource;
+use crate::task_source::remote_event::RemoteEventTaskSource;
+use crate::task_source::websocket::WebsocketTaskSource;
+use crate::timers::{IsInterval, TimerCallback};
+use devtools_traits::{DevtoolScriptControlMsg, WorkerId};
+use dom_struct::dom_struct;
 use ipc_channel::ipc::IpcSender;
 use js::jsapi::{JSAutoCompartment, JSContext};
 use js::jsval::UndefinedValue;
@@ -33,7 +42,6 @@ use js::rust::HandleValue;
 use msg::constellation_msg::PipelineId;
 use net_traits::{IpcSend, load_whole_resource};
 use net_traits::request::{CredentialsMode, Destination, RequestInit as NetRequestInit};
-use crate::script_runtime::{CommonScriptMsg, ScriptChan, ScriptPort, get_reports, Runtime};
 use script_traits::{TimerEvent, TimerEventId};
 use script_traits::WorkerGlobalScopeInit;
 use servo_channel::Receiver;
@@ -42,15 +50,7 @@ use std::default::Default;
 use std::rc::Rc;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
-use crate::task::TaskCanceller;
-use crate::task_source::dom_manipulation::DOMManipulationTaskSource;
-use crate::task_source::file_reading::FileReadingTaskSource;
-use crate::task_source::networking::NetworkingTaskSource;
-use crate::task_source::performance_timeline::PerformanceTimelineTaskSource;
-use crate::task_source::remote_event::RemoteEventTaskSource;
-use crate::task_source::websocket::WebsocketTaskSource;
 use time::precise_time_ns;
-use crate::timers::{IsInterval, TimerCallback};
 
 pub fn prepare_workerscope_init(
     global: &GlobalScope,

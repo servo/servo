@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use devtools_traits::{ScriptToDevtoolsControlMsg, WorkerId};
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::EventSourceBinding::EventSourceBinding::EventSourceMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
@@ -25,6 +24,20 @@ use crate::dom::performance::Performance;
 use crate::dom::window::Window;
 use crate::dom::workerglobalscope::WorkerGlobalScope;
 use crate::dom::workletglobalscope::WorkletGlobalScope;
+use crate::microtask::{Microtask, MicrotaskQueue};
+use crate::script_runtime::{CommonScriptMsg, ScriptChan, ScriptPort};
+use crate::script_thread::{MainThreadScriptChan, ScriptThread};
+use crate::task::TaskCanceller;
+use crate::task_source::TaskSourceName;
+use crate::task_source::dom_manipulation::DOMManipulationTaskSource;
+use crate::task_source::file_reading::FileReadingTaskSource;
+use crate::task_source::networking::NetworkingTaskSource;
+use crate::task_source::performance_timeline::PerformanceTimelineTaskSource;
+use crate::task_source::remote_event::RemoteEventTaskSource;
+use crate::task_source::websocket::WebsocketTaskSource;
+use crate::timers::{IsInterval, OneshotTimerCallback, OneshotTimerHandle};
+use crate::timers::{OneshotTimers, TimerCallback};
+use devtools_traits::{ScriptToDevtoolsControlMsg, WorkerId};
 use dom_struct::dom_struct;
 use ipc_channel::ipc::IpcSender;
 use js::{JSCLASS_IS_DOMJSCLASS, JSCLASS_IS_GLOBAL};
@@ -38,12 +51,9 @@ use js::rust::{CompileOptionsWrapper, Runtime, get_object_class};
 use js::rust::{HandleValue, MutableHandleValue};
 use js::rust::wrappers::Evaluate2;
 use libc;
-use crate::microtask::{Microtask, MicrotaskQueue};
 use msg::constellation_msg::PipelineId;
 use net_traits::{CoreResourceThread, ResourceThreads, IpcSend};
 use profile_traits::{mem, time};
-use crate::script_runtime::{CommonScriptMsg, ScriptChan, ScriptPort};
-use crate::script_thread::{MainThreadScriptChan, ScriptThread};
 use script_traits::{MsDuration, ScriptToConstellationChan, TimerEvent};
 use script_traits::{TimerEventId, TimerSchedulerMsg, TimerSource};
 use servo_url::{MutableOrigin, ServoUrl};
@@ -54,17 +64,7 @@ use std::ffi::CString;
 use std::rc::Rc;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
-use crate::task::TaskCanceller;
-use crate::task_source::TaskSourceName;
-use crate::task_source::dom_manipulation::DOMManipulationTaskSource;
-use crate::task_source::file_reading::FileReadingTaskSource;
-use crate::task_source::networking::NetworkingTaskSource;
-use crate::task_source::performance_timeline::PerformanceTimelineTaskSource;
-use crate::task_source::remote_event::RemoteEventTaskSource;
-use crate::task_source::websocket::WebsocketTaskSource;
 use time::{Timespec, get_time};
-use crate::timers::{IsInterval, OneshotTimerCallback, OneshotTimerHandle};
-use crate::timers::{OneshotTimers, TimerCallback};
 
 #[derive(JSTraceable)]
 pub struct AutoCloseWorker(Arc<AtomicBool>);

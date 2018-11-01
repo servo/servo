@@ -163,8 +163,8 @@ pub mod layout_exports {
 
 use crate::dom::bindings::codegen::RegisterBindings;
 use crate::dom::bindings::proxyhandler;
-use script_traits::SWManagerSenders;
 use crate::serviceworker_manager::ServiceWorkerManager;
+use script_traits::SWManagerSenders;
 
 #[cfg(target_os = "linux")]
 #[allow(unsafe_code)]

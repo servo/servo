@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use devtools_traits::{DevtoolsPageInfo, ScriptToDevtoolsControlMsg};
 use crate::dom::abstractworker::SimpleWorkerErrorHandler;
 use crate::dom::abstractworker::WorkerScriptMsg;
 use crate::dom::bindings::codegen::Bindings::WorkerBinding;
@@ -19,6 +18,8 @@ use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::messageevent::MessageEvent;
 use crate::dom::workerglobalscope::prepare_workerscope_init;
+use crate::task::TaskOnce;
+use devtools_traits::{DevtoolsPageInfo, ScriptToDevtoolsControlMsg};
 use dom_struct::dom_struct;
 use ipc_channel::ipc;
 use js::jsapi::{JSAutoCompartment, JSContext, JS_RequestInterruptCallback};
@@ -29,7 +30,6 @@ use servo_channel::{channel, Sender};
 use std::cell::Cell;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
-use crate::task::TaskOnce;
 
 pub type TrustedWorkerAddress = Trusted<Worker>;
 

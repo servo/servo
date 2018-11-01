@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use devtools_traits::AttrInfo;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::AttrBinding::{self, AttrMethods};
 use crate::dom::bindings::inheritance::Castable;
@@ -15,9 +14,10 @@ use crate::dom::mutationobserver::{Mutation, MutationObserver};
 use crate::dom::node::Node;
 use crate::dom::virtualmethods::vtable_for;
 use crate::dom::window::Window;
+use crate::script_thread::ScriptThread;
+use devtools_traits::AttrInfo;
 use dom_struct::dom_struct;
 use html5ever::{Prefix, LocalName, Namespace};
-use crate::script_thread::ScriptThread;
 use servo_atoms::Atom;
 use std::borrow::ToOwned;
 use std::cell::Ref;

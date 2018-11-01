@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use devtools_traits::{TimelineMarker, TimelineMarkerType};
 use crate::dom::bindings::callback::ExceptionHandling;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::EventBinding;
@@ -19,11 +18,12 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::node::Node;
 use crate::dom::virtualmethods::vtable_for;
 use crate::dom::window::Window;
+use crate::task::TaskOnce;
+use devtools_traits::{TimelineMarker, TimelineMarkerType};
 use dom_struct::dom_struct;
 use servo_atoms::Atom;
 use std::cell::Cell;
 use std::default::Default;
-use crate::task::TaskOnce;
 use time;
 
 #[dom_struct]

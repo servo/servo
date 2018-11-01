@@ -3,9 +3,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use crate::basedir::default_config_dir;
+use crate::opts;
 use embedder_traits::resources::{self, Resource};
 use num_cpus;
-use crate::opts;
 use rustc_serialize::json::{Json, ToJson};
 use std::borrow::ToOwned;
 use std::cmp::max;

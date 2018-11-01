@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use cssparser::SourceLocation;
 use crate::document_loader::LoadType;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
@@ -13,13 +12,15 @@ use crate::dom::eventtarget::EventTarget;
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::htmllinkelement::{RequestGenerationId, HTMLLinkElement};
 use crate::dom::node::{document_from_node, window_from_node};
+use crate::network_listener::{NetworkListener, PreInvoke};
+use crate::task_source::TaskSourceName;
+use cssparser::SourceLocation;
 use encoding_rs::UTF_8;
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use mime::{self, Mime};
 use net_traits::{FetchResponseListener, FetchMetadata, FilteredMetadata, Metadata, NetworkError, ReferrerPolicy};
 use net_traits::request::{CorsSettings, CredentialsMode, Destination, RequestInit, RequestMode};
-use crate::network_listener::{NetworkListener, PreInvoke};
 use parking_lot::RwLock;
 use servo_arc::Arc;
 use servo_url::ServoUrl;
@@ -33,7 +34,6 @@ use style::stylesheets::{CssRules, ImportRule, Namespaces, Stylesheet, Styleshee
 use style::stylesheets::StylesheetLoader as StyleStylesheetLoader;
 use style::stylesheets::import_rule::ImportSheet;
 use style::values::CssUrl;
-use crate::task_source::TaskSourceName;
 
 pub trait StylesheetOwner {
     /// Returns whether this element was inserted by the parser (i.e., it should

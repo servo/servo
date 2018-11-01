@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use cssparser::{Parser, ParserInput};
 use crate::dom::bindings::codegen::Bindings::CSSKeyframesRuleBinding;
 use crate::dom::bindings::codegen::Bindings::CSSKeyframesRuleBinding::CSSKeyframesRuleMethods;
 use crate::dom::bindings::error::ErrorResult;
@@ -15,6 +14,7 @@ use crate::dom::cssrule::{CSSRule, SpecificCSSRule};
 use crate::dom::cssrulelist::{CSSRuleList, RulesSource};
 use crate::dom::cssstylesheet::CSSStyleSheet;
 use crate::dom::window::Window;
+use cssparser::{Parser, ParserInput};
 use dom_struct::dom_struct;
 use servo_arc::Arc;
 use style::shared_lock::{Locked, ToCssWithGuard};
