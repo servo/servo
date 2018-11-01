@@ -4,27 +4,27 @@
 
 use crate::{Namespace, Prefix};
 use crate::context::QuirksMode;
-use cssparser::{Parser, ParserInput, RuleListParser};
 use crate::error_reporting::{ContextualParseError, ParseErrorReporter};
-use fallible::FallibleVec;
-use fxhash::FxHashMap;
 use crate::invalidation::media_queries::{MediaListKey, ToMediaListKey};
-#[cfg(feature = "gecko")]
-use malloc_size_of::{MallocSizeOfOps, MallocUnconditionalShallowSizeOf};
 use crate::media_queries::{Device, MediaList};
-use parking_lot::RwLock;
 use crate::parser::ParserContext;
-use servo_arc::Arc;
 use crate::shared_lock::{DeepCloneParams, DeepCloneWithLock, Locked, SharedRwLock, SharedRwLockReadGuard};
-use std::mem;
-use std::sync::atomic::{AtomicBool, Ordering};
-use style_traits::ParsingMode;
 use crate::stylesheets::{CssRule, CssRules, Origin, UrlExtraData};
 use crate::stylesheets::loader::StylesheetLoader;
 use crate::stylesheets::rule_parser::{State, TopLevelRuleParser};
 use crate::stylesheets::rules_iterator::{EffectiveRules, EffectiveRulesIterator};
 use crate::stylesheets::rules_iterator::{NestedRuleIterationCondition, RulesIterator};
 use crate::use_counters::UseCounters;
+use cssparser::{Parser, ParserInput, RuleListParser};
+use fallible::FallibleVec;
+use fxhash::FxHashMap;
+#[cfg(feature = "gecko")]
+use malloc_size_of::{MallocSizeOfOps, MallocUnconditionalShallowSizeOf};
+use parking_lot::RwLock;
+use servo_arc::Arc;
+use std::mem;
+use std::sync::atomic::{AtomicBool, Ordering};
+use style_traits::ParsingMode;
 
 /// This structure holds the user-agent and user stylesheets.
 pub struct UserAgentStylesheets {

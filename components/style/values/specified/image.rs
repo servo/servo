@@ -8,19 +8,9 @@
 //! [image]: https://drafts.csswg.org/css-images/#image-values
 
 use crate::Atom;
-use cssparser::{Parser, Token, Delimiter};
 use crate::custom_properties::SpecifiedValue;
 use crate::parser::{Parse, ParserContext};
-use selectors::parser::SelectorParseErrorKind;
-#[cfg(feature = "servo")]
-use servo_url::ServoUrl;
-use std::cmp::Ordering;
-use std::fmt::{self, Write};
-use style_traits::{CssType, CssWriter, KeywordsCollectFn, ParseError};
-use style_traits::{StyleParseErrorKind, SpecifiedValueInfo, ToCss};
 use crate::values::{Either, None_};
-#[cfg(feature = "gecko")]
-use values::computed::{Context, Position as ComputedPosition, ToComputedValue};
 use crate::values::generics::image::{self as generic, Circle, CompatMode, Ellipse, ShapeExtent};
 use crate::values::generics::image::PaintWorklet;
 use crate::values::generics::position::Position as GenericPosition;
@@ -28,6 +18,16 @@ use crate::values::specified::{Angle, Color, Length, LengthOrPercentage};
 use crate::values::specified::{Number, NumberOrPercentage, Percentage};
 use crate::values::specified::position::{LegacyPosition, Position, PositionComponent, Side, X, Y};
 use crate::values::specified::url::SpecifiedImageUrl;
+use cssparser::{Parser, Token, Delimiter};
+use selectors::parser::SelectorParseErrorKind;
+#[cfg(feature = "servo")]
+use servo_url::ServoUrl;
+use std::cmp::Ordering;
+use std::fmt::{self, Write};
+use style_traits::{CssType, CssWriter, KeywordsCollectFn, ParseError};
+use style_traits::{StyleParseErrorKind, SpecifiedValueInfo, ToCss};
+#[cfg(feature = "gecko")]
+use values::computed::{Context, Position as ComputedPosition, ToComputedValue};
 
 /// A specified image layer.
 pub type ImageLayer = Either<None_, Image>;

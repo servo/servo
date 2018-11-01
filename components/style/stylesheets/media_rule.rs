@@ -6,17 +6,17 @@
 //!
 //! [media]: https://drafts.csswg.org/css-conditional/#at-ruledef-media
 
+use crate::media_queries::MediaList;
+use crate::shared_lock::{DeepCloneParams, DeepCloneWithLock, Locked};
+use crate::shared_lock::{SharedRwLock, SharedRwLockReadGuard, ToCssWithGuard};
+use crate::str::CssStringWriter;
+use crate::stylesheets::CssRules;
 use cssparser::SourceLocation;
 #[cfg(feature = "gecko")]
 use malloc_size_of::{MallocSizeOfOps, MallocUnconditionalShallowSizeOf};
-use crate::media_queries::MediaList;
 use servo_arc::Arc;
-use crate::shared_lock::{DeepCloneParams, DeepCloneWithLock, Locked};
-use crate::shared_lock::{SharedRwLock, SharedRwLockReadGuard, ToCssWithGuard};
 use std::fmt::{self, Write};
-use crate::str::CssStringWriter;
 use style_traits::{CssWriter, ToCss};
-use crate::stylesheets::CssRules;
 
 /// An [`@media`][media] urle.
 ///

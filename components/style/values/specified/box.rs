@@ -5,19 +5,19 @@
 //! Specified types for box properties.
 
 use crate::Atom;
-use cssparser::Parser;
 use crate::custom_properties::Name as CustomPropertyName;
 use crate::parser::{Parse, ParserContext};
 use crate::properties::{LonghandId, ShorthandId, PropertyId, PropertyFlags, PropertyDeclarationId};
-use selectors::parser::SelectorParseErrorKind;
-use std::fmt::{self, Write};
-use style_traits::{CssWriter, KeywordsCollectFn, ParseError, StyleParseErrorKind, SpecifiedValueInfo, ToCss};
 use crate::values::{CustomIdent, KeyframesName};
 use crate::values::generics::box_::AnimationIterationCount as GenericAnimationIterationCount;
 use crate::values::generics::box_::Perspective as GenericPerspective;
 use crate::values::generics::box_::VerticalAlign as GenericVerticalAlign;
 use crate::values::specified::{AllowQuirks, Number};
 use crate::values::specified::length::{LengthOrPercentage, NonNegativeLength};
+use cssparser::Parser;
+use selectors::parser::SelectorParseErrorKind;
+use std::fmt::{self, Write};
+use style_traits::{CssWriter, KeywordsCollectFn, ParseError, StyleParseErrorKind, SpecifiedValueInfo, ToCss};
 
 fn in_ua_or_chrome_sheet(context: &ParserContext) -> bool {
     use crate::stylesheets::Origin;

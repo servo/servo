@@ -7,20 +7,20 @@
 //! The rule tree.
 
 use crate::applicable_declarations::ApplicableDeclarationList;
+use crate::properties::{Importance, LonghandIdSet, PropertyDeclarationBlock};
+use crate::shared_lock::{Locked, SharedRwLockReadGuard, StylesheetGuards};
+use crate::stylesheets::StyleRule;
+use crate::thread_state;
 #[cfg(feature = "gecko")]
 use gecko::selector_parser::PseudoElement;
 #[cfg(feature = "gecko")]
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
-use crate::properties::{Importance, LonghandIdSet, PropertyDeclarationBlock};
 use servo_arc::{Arc, ArcBorrow, ArcUnion, ArcUnionBorrow};
-use crate::shared_lock::{Locked, SharedRwLockReadGuard, StylesheetGuards};
 use smallvec::SmallVec;
 use std::io::{self, Write};
 use std::mem;
 use std::ptr;
 use std::sync::atomic::{AtomicPtr, AtomicUsize, Ordering};
-use crate::stylesheets::StyleRule;
-use crate::thread_state;
 
 /// The rule tree, the structure servo uses to preserve the results of selector
 /// matching.

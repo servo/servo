@@ -6,8 +6,8 @@
 
 use crate::properties::PropertyDeclarationBlock;
 use crate::rule_tree::{CascadeLevel, ShadowCascadeOrder, StyleSource};
-use servo_arc::Arc;
 use crate::shared_lock::Locked;
+use servo_arc::Arc;
 use smallvec::SmallVec;
 use std::fmt::{self, Debug};
 

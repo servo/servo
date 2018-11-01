@@ -17,14 +17,14 @@ use crate::properties::CASCADE_PROPERTY;
 use crate::rule_cache::{RuleCache, RuleCacheConditions};
 use crate::rule_tree::{CascadeLevel, StrongRuleNode};
 use crate::selector_parser::PseudoElement;
-use servo_arc::Arc;
 use crate::shared_lock::StylesheetGuards;
+use crate::style_adjuster::StyleAdjuster;
+use crate::values::computed;
+use servo_arc::Arc;
 use smallbitvec::SmallBitVec;
 use smallvec::SmallVec;
 use std::borrow::Cow;
 use std::cell::RefCell;
-use crate::style_adjuster::StyleAdjuster;
-use crate::values::computed;
 
 /// We split the cascade in two phases: 'early' properties, and 'late'
 /// properties.

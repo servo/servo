@@ -7,13 +7,13 @@
 #![deny(missing_docs)]
 
 use crate::Atom;
-use cssparser::{Parser as CssParser, ParserInput};
 use crate::element_state::ElementState;
+use crate::stylesheets::{Namespaces, Origin, UrlExtraData};
+use crate::values::serialize_atom_identifier;
+use cssparser::{Parser as CssParser, ParserInput};
 use selectors::parser::SelectorList;
 use std::fmt::{self, Debug, Write};
 use style_traits::{CssWriter, ParseError, ToCss};
-use crate::stylesheets::{Namespaces, Origin, UrlExtraData};
-use crate::values::serialize_atom_identifier;
 
 /// A convenient alias for the type that represents an attribute value used for
 /// selector parser implementation.

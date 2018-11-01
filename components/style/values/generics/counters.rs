@@ -6,12 +6,12 @@
 
 #[cfg(feature = "servo")]
 use crate::computed_values::list_style_type::T as ListStyleType;
-use std::ops::Deref;
 use crate::values::CustomIdent;
 #[cfg(feature = "gecko")]
-use values::generics::CounterStyleOrNone;
+use crate::values::generics::CounterStyleOrNone;
 #[cfg(feature = "gecko")]
-use values::specified::Attr;
+use crate::values::specified::Attr;
+use std::ops::Deref;
 
 /// A name / value pair for counters.
 #[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue, ToCss)]

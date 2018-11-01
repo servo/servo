@@ -5,15 +5,15 @@
 //! A cache from rule node to computed values, in order to cache reset
 //! properties.
 
-use fxhash::FxHashMap;
 use crate::logical_geometry::WritingMode;
 use crate::properties::{ComputedValues, StyleBuilder};
 use crate::rule_tree::StrongRuleNode;
 use crate::selector_parser::PseudoElement;
-use servo_arc::Arc;
 use crate::shared_lock::StylesheetGuards;
-use smallvec::SmallVec;
 use crate::values::computed::NonNegativeLength;
+use fxhash::FxHashMap;
+use servo_arc::Arc;
+use smallvec::SmallVec;
 
 /// The conditions for caching and matching a style in the rule cache.
 #[derive(Clone, Debug, Default)]

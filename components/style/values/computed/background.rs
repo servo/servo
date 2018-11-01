@@ -4,13 +4,13 @@
 
 //! Computed types for CSS values related to backgrounds.
 
-use std::fmt::{self, Write};
-use style_traits::{CssWriter, ToCss};
 use crate::values::computed::{Context, ToComputedValue};
 use crate::values::computed::length::NonNegativeLengthOrPercentageOrAuto;
 use crate::values::generics::background::BackgroundSize as GenericBackgroundSize;
 use crate::values::specified::background::BackgroundRepeat as SpecifiedBackgroundRepeat;
 use crate::values::specified::background::BackgroundRepeatKeyword;
+use std::fmt::{self, Write};
+use style_traits::{CssWriter, ToCss};
 
 /// A computed value for the `background-size` property.
 pub type BackgroundSize = GenericBackgroundSize<NonNegativeLengthOrPercentageOrAuto>;

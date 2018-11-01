@@ -10,12 +10,12 @@ use crate::dom::{NodeInfo, OpaqueNode, TElement, TNode};
 use crate::invalidation::element::restyle_hints::RestyleHint;
 use crate::matching::{ChildCascadeRequirement, MatchMethods};
 use crate::selector_parser::PseudoElement;
-use selectors::NthIndexCache;
 use crate::sharing::StyleSharingTarget;
-use smallvec::SmallVec;
 use crate::style_resolver::{PseudoElementResolution, StyleResolverForElement};
 use crate::stylist::RuleInclusion;
 use crate::traversal_flags::TraversalFlags;
+use selectors::NthIndexCache;
+use smallvec::SmallVec;
 
 /// A per-traversal-level chunk of data. This is sent down by the traversal, and
 /// currently only holds the dom depth for the bloom filter.
@@ -403,8 +403,8 @@ pub fn recalc_style_at<E, D, F>(
     D: DomTraversal<E>,
     F: FnMut(E::ConcreteNode),
 {
-    use std::cmp;
     use crate::traversal_flags::TraversalFlags;
+    use std::cmp;
 
     let flags = context.shared.traversal_flags;
     let is_initial_style = !data.has_styles();
@@ -716,9 +716,9 @@ fn notify_paint_worklet<E>(context: &StyleContext<E>, data: &ElementData)
 where
     E: TElement,
 {
-    use style_traits::ToCss;
     use crate::values::Either;
     use crate::values::generics::image::Image;
+    use style_traits::ToCss;
 
     // We speculatively evaluate any paint worklets during styling.
     // This allows us to run paint worklets in parallel with style and layout.

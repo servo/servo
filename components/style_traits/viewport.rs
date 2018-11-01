@@ -116,8 +116,8 @@ impl Zoom {
     /// <https://drafts.csswg.org/css-device-adapt/#descdef-viewport-zoom>
     pub fn parse<'i, 't>(input: &mut Parser<'i, 't>) -> Result<Zoom, ParseError<'i>> {
         use crate::ParsingMode;
-        use cssparser::Token;
         use crate::values::specified::AllowedNumericType::NonNegative;
+        use cssparser::Token;
 
         let location = input.current_source_location();
         match *input.next()? {

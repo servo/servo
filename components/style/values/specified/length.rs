@@ -7,20 +7,20 @@
 //! [length]: https://drafts.csswg.org/css-values/#lengths
 
 use app_units::Au;
-use cssparser::{Parser, Token};
-use euclid::Size2D;
 use crate::font_metrics::FontMetricsQueryResult;
 use crate::parser::{Parse, ParserContext};
-use std::cmp;
-use std::ops::{Add, Mul};
-use style_traits::{ParseError, SpecifiedValueInfo, StyleParseErrorKind};
-use style_traits::values::specified::AllowedNumericType;
-use super::{AllowQuirks, Number, Percentage, ToComputedValue};
 use crate::values::{Auto, CSSFloat, Either, Normal};
 use crate::values::computed::{self, CSSPixelLength, Context, ExtremumLength};
 use crate::values::generics::NonNegative;
 use crate::values::generics::length::{MaxLength as GenericMaxLength, MozLength as GenericMozLength};
 use crate::values::specified::calc::CalcNode;
+use cssparser::{Parser, Token};
+use euclid::Size2D;
+use std::cmp;
+use std::ops::{Add, Mul};
+use style_traits::{ParseError, SpecifiedValueInfo, StyleParseErrorKind};
+use style_traits::values::specified::AllowedNumericType;
+use super::{AllowQuirks, Number, Percentage, ToComputedValue};
 
 pub use crate::values::specified::calc::CalcLengthOrPercentage;
 pub use super::image::{ColorStop, EndingShape as GradientEndingShape, Gradient};

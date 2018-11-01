@@ -4,12 +4,12 @@
 
 //! Computed types for CSS values that are related to transformations.
 
-use euclid::{Transform3D, Vector3D};
-use num_traits::Zero;
-use super::CSSFloat;
 use crate::values::animated::ToAnimatedZero;
 use crate::values::computed::{Angle, Integer, Length, LengthOrPercentage, Number, Percentage};
 use crate::values::generics::transform as generic;
+use euclid::{Transform3D, Vector3D};
+use num_traits::Zero;
+use super::CSSFloat;
 
 pub use crate::values::generics::transform::TransformStyle;
 

@@ -4,17 +4,17 @@
 
 //! A list of CSS rules.
 
-#[cfg(feature = "gecko")]
-use malloc_size_of::{MallocShallowSizeOf, MallocSizeOfOps};
-use servo_arc::{Arc, RawOffsetArc};
 use crate::shared_lock::{DeepCloneParams, DeepCloneWithLock, Locked};
 use crate::shared_lock::{SharedRwLock, SharedRwLockReadGuard, ToCssWithGuard};
-use std::fmt::{self, Write};
 use crate::str::CssStringWriter;
 use crate::stylesheets::{CssRule, RulesMutateError};
 use crate::stylesheets::loader::StylesheetLoader;
 use crate::stylesheets::rule_parser::{InsertRuleContext, State};
 use crate::stylesheets::stylesheet::StylesheetContents;
+#[cfg(feature = "gecko")]
+use malloc_size_of::{MallocShallowSizeOf, MallocSizeOfOps};
+use servo_arc::{Arc, RawOffsetArc};
+use std::fmt::{self, Write};
 
 /// A list of CSS rules.
 #[derive(Debug)]

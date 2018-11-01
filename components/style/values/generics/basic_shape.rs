@@ -5,14 +5,14 @@
 //! CSS handling for the [`basic-shape`](https://drafts.csswg.org/css-shapes/#typedef-basic-shape)
 //! types that are generic over their `ToCss` implementations.
 
-use std::fmt::{self, Write};
-use style_traits::{CssWriter, ToCss};
 use crate::values::animated::{Animate, Procedure, ToAnimatedZero};
 use crate::values::distance::{ComputeSquaredDistance, SquaredDistance};
 use crate::values::generics::border::BorderRadius;
 use crate::values::generics::position::Position;
 use crate::values::generics::rect::Rect;
 use crate::values::specified::SVGPathData;
+use std::fmt::{self, Write};
+use style_traits::{CssWriter, ToCss};
 
 /// A clipping shape, for `clip-path`.
 pub type ClippingShape<BasicShape, Url> = ShapeSource<BasicShape, GeometryBox, Url>;

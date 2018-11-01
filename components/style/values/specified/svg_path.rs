@@ -4,17 +4,17 @@
 
 //! Specified types for SVG Path.
 
-use cssparser::Parser;
 use crate::parser::{Parse, ParserContext};
+use crate::values::CSSFloat;
+use crate::values::animated::{Animate, Procedure, ToAnimatedZero};
+use crate::values::distance::{ComputeSquaredDistance, SquaredDistance};
+use cssparser::Parser;
 use std::fmt::{self, Write};
 use std::iter::{Cloned, Peekable};
 use std::ops::AddAssign;
 use std::slice;
 use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
 use style_traits::values::SequenceWriter;
-use crate::values::CSSFloat;
-use crate::values::animated::{Animate, Procedure, ToAnimatedZero};
-use crate::values::distance::{ComputeSquaredDistance, SquaredDistance};
 
 /// The SVG path data.
 ///

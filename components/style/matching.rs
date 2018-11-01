@@ -16,10 +16,10 @@ use crate::properties::ComputedValues;
 use crate::properties::longhands::display::computed_value::T as Display;
 use crate::rule_tree::{CascadeLevel, StrongRuleNode};
 use crate::selector_parser::{PseudoElement, RestyleDamage};
-use selectors::matching::ElementSelectorFlags;
-use servo_arc::{Arc, ArcBorrow};
 use crate::style_resolver::ResolvedElementStyles;
 use crate::traversal_flags::TraversalFlags;
+use selectors::matching::ElementSelectorFlags;
+use servo_arc::{Arc, ArcBorrow};
 
 /// Represents the result of comparing an element's old and new style.
 #[derive(Debug)]

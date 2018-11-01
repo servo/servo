@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use crate::properties::{parse, parse_input};
+use crate::stylesheets::block_from;
 use style::computed_values::display::T as Display;
 use style::properties::{PropertyDeclaration, Importance};
 use style::properties::declaration_block::PropertyDeclarationBlock;
@@ -13,7 +14,6 @@ use style::values::specified::{Length, LengthOrPercentage, LengthOrPercentageOrA
 use style::values::specified::NoCalcLength;
 use style::values::specified::url::SpecifiedUrl;
 use style_traits::ToCss;
-use crate::stylesheets::block_from;
 
 trait ToCssString {
     fn to_css_string(&self) -> String;

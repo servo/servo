@@ -5,15 +5,15 @@
 //! https://html.spec.whatwg.org/multipage/#source-size-list
 
 use app_units::Au;
+use crate::media_queries::{Device, MediaCondition};
+use crate::parser::{Parse, ParserContext};
+use crate::values::computed::{self, ToComputedValue};
+use crate::values::specified::{Length, NoCalcLength, ViewportPercentageLength};
 use cssparser::{Delimiter, Parser, Token};
 #[cfg(feature = "gecko")]
 use gecko_bindings::sugar::ownership::{HasBoxFFI, HasFFI, HasSimpleFFI};
-use crate::media_queries::{Device, MediaCondition};
-use crate::parser::{Parse, ParserContext};
 use selectors::context::QuirksMode;
 use style_traits::ParseError;
-use crate::values::computed::{self, ToComputedValue};
-use crate::values::specified::{Length, NoCalcLength, ViewportPercentageLength};
 
 /// A value for a `<source-size>`:
 ///

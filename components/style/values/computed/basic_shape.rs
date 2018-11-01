@@ -7,11 +7,11 @@
 //!
 //! [basic-shape]: https://drafts.csswg.org/css-shapes/#typedef-basic-shape
 
-use std::fmt::{self, Write};
-use style_traits::{CssWriter, ToCss};
 use crate::values::computed::{Image, LengthOrPercentage};
 use crate::values::computed::url::ComputedUrl;
 use crate::values::generics::basic_shape as generic;
+use std::fmt::{self, Write};
+use style_traits::{CssWriter, ToCss};
 
 /// A computed alias for FillRule.
 pub use values::generics::basic_shape::FillRule;

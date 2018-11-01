@@ -7,10 +7,10 @@
 use crate::{Atom, LocalName, Namespace};
 use crate::context::QuirksMode;
 use crate::element_state::{DocumentState, ElementState};
-use fallible::FallibleVec;
-use hashglobe::FailedAllocationError;
 use crate::selector_map::{MaybeCaseInsensitiveHashMap, SelectorMap, SelectorMapEntry};
 use crate::selector_parser::SelectorImpl;
+use fallible::FallibleVec;
+use hashglobe::FailedAllocationError;
 use selectors::attr::NamespaceConstraint;
 use selectors::parser::{Combinator, Component};
 use selectors::parser::{Selector, SelectorIter, Visit};

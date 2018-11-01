@@ -4,9 +4,9 @@
 
 //! Geometry in flow-relative space.
 
+use crate::properties::style_structs;
 use euclid::{Point2D, Rect, SideOffsets2D, Size2D};
 use euclid::num::Zero;
-use crate::properties::style_structs;
 use std::cmp::{max, min};
 use std::fmt::{self, Debug, Error, Formatter};
 use std::ops::{Add, Sub};

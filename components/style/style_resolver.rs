@@ -8,15 +8,15 @@ use crate::applicable_declarations::ApplicableDeclarationList;
 use crate::context::{CascadeInputs, ElementCascadeInputs, StyleContext};
 use crate::data::{EagerPseudoStyles, ElementStyles};
 use crate::dom::TElement;
-use log::Level::Trace;
 use crate::matching::MatchMethods;
 use crate::properties::{AnimationRules, ComputedValues};
 use crate::properties::longhands::display::computed_value::T as Display;
 use crate::rule_tree::StrongRuleNode;
 use crate::selector_parser::{PseudoElement, SelectorImpl};
+use crate::stylist::RuleInclusion;
+use log::Level::Trace;
 use selectors::matching::{ElementSelectorFlags, MatchingContext, MatchingMode, VisitedHandlingMode};
 use servo_arc::Arc;
-use crate::stylist::RuleInclusion;
 
 /// Whether pseudo-elements should be resolved or not.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

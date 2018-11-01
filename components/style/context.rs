@@ -4,29 +4,36 @@
 
 //! The context within which style is calculated.
 
+use app_units::Au;
 #[cfg(feature = "servo")]
 use crate::animation::Animation;
-use app_units::Au;
 use crate::bloom::StyleBloom;
 use crate::data::{EagerPseudoStyles, ElementData};
 use crate::dom::{SendElement, TElement};
 #[cfg(feature = "servo")]
 use crate::dom::OpaqueNode;
-use euclid::Size2D;
-use euclid::TypedScale;
 use crate::font_metrics::FontMetricsProvider;
-use fxhash::FxHashMap;
-#[cfg(feature = "gecko")]
-use gecko_bindings::structs;
 use crate::parallel::{STACK_SAFETY_MARGIN_KB, STYLE_THREAD_STACK_SIZE_KB};
-#[cfg(feature = "servo")]
-use parking_lot::RwLock;
 use crate::properties::ComputedValues;
 #[cfg(feature = "servo")]
 use crate::properties::PropertyId;
 use crate::rule_cache::RuleCache;
 use crate::rule_tree::StrongRuleNode;
 use crate::selector_parser::{SnapshotMap, EAGER_PSEUDO_COUNT};
+use crate::shared_lock::StylesheetGuards;
+use crate::sharing::StyleSharingCache;
+use crate::stylist::Stylist;
+use crate::thread_state::{self, ThreadState};
+use crate::timer::Timer;
+use crate::traversal::DomTraversal;
+use crate::traversal_flags::TraversalFlags;
+use euclid::Size2D;
+use euclid::TypedScale;
+use fxhash::FxHashMap;
+#[cfg(feature = "gecko")]
+use gecko_bindings::structs;
+#[cfg(feature = "servo")]
+use parking_lot::RwLock;
 use selectors::NthIndexCache;
 use selectors::matching::ElementSelectorFlags;
 use servo_arc::Arc;
@@ -34,8 +41,6 @@ use servo_arc::Arc;
 use servo_atoms::Atom;
 #[cfg(feature = "servo")]
 use servo_channel::Sender;
-use crate::shared_lock::StylesheetGuards;
-use crate::sharing::StyleSharingCache;
 use std::fmt;
 use std::ops;
 #[cfg(feature = "servo")]
@@ -44,12 +49,7 @@ use style_traits::CSSPixel;
 use style_traits::DevicePixel;
 #[cfg(feature = "servo")]
 use style_traits::SpeculativePainter;
-use crate::stylist::Stylist;
-use crate::thread_state::{self, ThreadState};
 use time;
-use crate::timer::Timer;
-use crate::traversal::DomTraversal;
-use crate::traversal_flags::TraversalFlags;
 use uluru::{Entry, LRUCache};
 
 pub use selectors::matching::QuirksMode;

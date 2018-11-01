@@ -7,11 +7,7 @@
 //!
 //! [basic-shape]: https://drafts.csswg.org/css-shapes/#typedef-basic-shape
 
-use cssparser::Parser;
 use crate::parser::{Parse, ParserContext};
-use std::borrow::Cow;
-use std::fmt::{self, Write};
-use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
 use crate::values::computed::Percentage;
 use crate::values::generics::basic_shape as generic;
 use crate::values::generics::basic_shape::{GeometryBox, Path, PolygonCoord};
@@ -24,6 +20,10 @@ use crate::values::specified::image::Image;
 use crate::values::specified::position::{HorizontalPosition, Position, PositionComponent};
 use crate::values::specified::position::{Side, VerticalPosition};
 use crate::values::specified::url::SpecifiedUrl;
+use cssparser::Parser;
+use std::borrow::Cow;
+use std::fmt::{self, Write};
+use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
 
 /// A specified alias for FillRule.
 pub use values::generics::basic_shape::FillRule;

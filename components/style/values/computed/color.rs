@@ -4,12 +4,12 @@
 
 //! Computed color values.
 
-use cssparser::{Color as CSSParserColor, RGBA};
-use std::fmt;
-use style_traits::{CssWriter, ToCss};
 use crate::values::animated::ToAnimatedValue;
 use crate::values::animated::color::RGBA as AnimatedRGBA;
 use crate::values::generics::color::Color as GenericColor;
+use cssparser::{Color as CSSParserColor, RGBA};
+use std::fmt;
+use style_traits::{CssWriter, ToCss};
 
 /// Computed value type for the specified RGBAColor.
 pub type RGBAColor = RGBA;

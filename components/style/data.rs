@@ -8,18 +8,18 @@ use crate::context::{SharedStyleContext, StackLimitChecker};
 use crate::dom::TElement;
 use crate::invalidation::element::invalidator::InvalidationResult;
 use crate::invalidation::element::restyle_hints::RestyleHint;
-#[cfg(feature = "gecko")]
-use malloc_size_of::MallocSizeOfOps;
 use crate::properties::ComputedValues;
 use crate::rule_tree::StrongRuleNode;
 use crate::selector_parser::{PseudoElement, RestyleDamage, EAGER_PSEUDO_COUNT};
+use crate::shared_lock::StylesheetGuards;
+use crate::style_resolver::{PrimaryStyle, ResolvedElementStyles, ResolvedStyle};
+#[cfg(feature = "gecko")]
+use malloc_size_of::MallocSizeOfOps;
 use selectors::NthIndexCache;
 use servo_arc::Arc;
-use crate::shared_lock::StylesheetGuards;
 use std::fmt;
 use std::mem;
 use std::ops::{Deref, DerefMut};
-use crate::style_resolver::{PrimaryStyle, ResolvedElementStyles, ResolvedStyle};
 
 bitflags! {
     /// Various flags stored on ElementData.

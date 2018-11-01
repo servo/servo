@@ -4,14 +4,14 @@
 
 //! Computed angles.
 
+use crate::values::CSSFloat;
+use crate::values::distance::{ComputeSquaredDistance, SquaredDistance};
 use num_traits::Zero;
 use std::{f32, f64};
 use std::f64::consts::PI;
 use std::fmt::{self, Write};
 use std::ops::Add;
 use style_traits::{CssWriter, ToCss};
-use crate::values::CSSFloat;
-use crate::values::distance::{ComputeSquaredDistance, SquaredDistance};
 
 /// A computed angle in degrees.
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]

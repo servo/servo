@@ -4,9 +4,7 @@
 
 //! Specified types for CSS values related to effects.
 
-use cssparser::{self, BasicParseErrorKind, Parser, Token};
 use crate::parser::{Parse, ParserContext};
-use style_traits::{ParseError, StyleParseErrorKind, ValueParseErrorKind};
 #[cfg(not(feature = "gecko"))]
 use crate::values::Impossible;
 use crate::values::computed::{Context, NonNegativeNumber as ComputedNonNegativeNumber, ToComputedValue};
@@ -19,6 +17,8 @@ use crate::values::generics::effects::SimpleShadow as GenericSimpleShadow;
 use crate::values::specified::{Angle, NumberOrPercentage};
 use crate::values::specified::color::Color;
 use crate::values::specified::length::{Length, NonNegativeLength};
+use cssparser::{self, BasicParseErrorKind, Parser, Token};
+use style_traits::{ParseError, StyleParseErrorKind, ValueParseErrorKind};
 #[cfg(feature = "gecko")]
 use values::specified::url::SpecifiedUrl;
 

@@ -8,20 +8,20 @@ use crate::attr::{ParsedCaseSensitivity, SELECTOR_WHITESPACE};
 use crate::bloom::BLOOM_HASH_MASK;
 use crate::builder::{SelectorBuilder, SpecificityAndFlags};
 use crate::context::QuirksMode;
+use crate::sink::Push;
+pub use crate::visitor::{SelectorVisitor, Visit};
 use cssparser::{BasicParseError, BasicParseErrorKind, ParseError, ParseErrorKind};
 use cssparser::{CowRcStr, Delimiter, SourceLocation};
 use cssparser::{CssStringWriter, Parser as CssParser, ToCss, Token};
 use cssparser::{parse_nth, serialize_identifier};
 use precomputed_hash::PrecomputedHash;
 use servo_arc::ThinArc;
-use crate::sink::Push;
 use smallvec::SmallVec;
 use std::borrow::{Borrow, Cow};
 use std::fmt::{self, Debug, Display, Write};
 use std::iter::Rev;
 use std::slice;
 use thin_slice::ThinBoxedSlice;
-pub use crate::visitor::{SelectorVisitor, Visit};
 
 /// A trait that represents a pseudo-element.
 pub trait PseudoElement: Sized + ToCss {
@@ -2148,8 +2148,8 @@ where
 #[cfg(test)]
 pub mod tests {
     use crate::builder::HAS_PSEUDO_BIT;
-    use cssparser::{serialize_identifier, Parser as CssParser, ParserInput, ToCss};
     use crate::parser;
+    use cssparser::{serialize_identifier, Parser as CssParser, ParserInput, ToCss};
     use std::collections::HashMap;
     use std::fmt;
     use super::*;

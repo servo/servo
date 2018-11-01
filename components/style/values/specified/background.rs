@@ -4,12 +4,12 @@
 
 //! Specified types for CSS values related to backgrounds.
 
-use cssparser::Parser;
 use crate::parser::{Parse, ParserContext};
-use selectors::parser::SelectorParseErrorKind;
-use style_traits::ParseError;
 use crate::values::generics::background::BackgroundSize as GenericBackgroundSize;
 use crate::values::specified::length::NonNegativeLengthOrPercentageOrAuto;
+use cssparser::Parser;
+use selectors::parser::SelectorParseErrorKind;
+use style_traits::ParseError;
 
 /// A specified value for the `background-size` property.
 pub type BackgroundSize = GenericBackgroundSize<NonNegativeLengthOrPercentageOrAuto>;

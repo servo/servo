@@ -7,15 +7,9 @@
 //!
 //! [position]: https://drafts.csswg.org/css-backgrounds-3/#position
 
-use cssparser::Parser;
 use crate::hash::FxHashMap;
 use crate::parser::{Parse, ParserContext};
-use selectors::parser::SelectorParseErrorKind;
-use servo_arc::Arc;
-use std::fmt::{self, Write};
-use std::ops::Range;
 use crate::str::HTML_SPACE_CHARACTERS;
-use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
 use crate::values::{Either, None_};
 use crate::values::computed::{CalcLengthOrPercentage, LengthOrPercentage as ComputedLengthOrPercentage};
 use crate::values::computed::{Context, Percentage, ToComputedValue};
@@ -23,6 +17,12 @@ use crate::values::generics::position::Position as GenericPosition;
 use crate::values::generics::position::ZIndex as GenericZIndex;
 use crate::values::specified::{AllowQuirks, Integer, LengthOrPercentage};
 use crate::values::specified::transform::OriginComponent;
+use cssparser::Parser;
+use selectors::parser::SelectorParseErrorKind;
+use servo_arc::Arc;
+use std::fmt::{self, Write};
+use std::ops::Range;
+use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
 
 /// The specified value of a CSS `<position>`
 pub type Position = GenericPosition<HorizontalPosition, VerticalPosition>;

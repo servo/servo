@@ -9,18 +9,18 @@ use crate::{Atom, LocalName, Namespace, WeakAtom};
 use crate::applicable_declarations::ApplicableDeclarationList;
 use crate::context::QuirksMode;
 use crate::dom::TElement;
-use fallible::FallibleVec;
 use crate::hash::{HashMap, HashSet};
 use crate::hash::map as hash_map;
-use hashglobe::FailedAllocationError;
-use precomputed_hash::PrecomputedHash;
 use crate::rule_tree::{CascadeLevel, ShadowCascadeOrder};
 use crate::selector_parser::SelectorImpl;
+use crate::stylist::Rule;
+use fallible::FallibleVec;
+use hashglobe::FailedAllocationError;
+use precomputed_hash::PrecomputedHash;
 use selectors::matching::{matches_selector, ElementSelectorFlags, MatchingContext};
 use selectors::parser::{Combinator, Component, SelectorIter};
 use smallvec::SmallVec;
 use std::hash::{BuildHasherDefault, Hash, Hasher};
-use crate::stylist::Rule;
 
 /// A hasher implementation that doesn't hash anything, because it expects its
 /// input to be a suitable u32 hash.

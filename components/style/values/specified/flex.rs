@@ -4,10 +4,10 @@
 
 //! Specified types for CSS values related to flexbox.
 
-use cssparser::Parser;
 use crate::parser::{Parse, ParserContext};
-use style_traits::ParseError;
 use crate::values::generics::flex::FlexBasis as GenericFlexBasis;
+use cssparser::Parser;
+use style_traits::ParseError;
 
 /// The `width` value type.
 #[cfg(feature = "servo")]

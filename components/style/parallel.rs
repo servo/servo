@@ -25,11 +25,11 @@
 use arrayvec::ArrayVec;
 use crate::context::{StyleContext, ThreadLocalStyleContext};
 use crate::dom::{OpaqueNode, SendNode, TElement};
+use crate::scoped_tls::ScopedTLS;
+use crate::traversal::{DomTraversal, PerLevelTraversalData};
 use itertools::Itertools;
 use rayon;
-use crate::scoped_tls::ScopedTLS;
 use smallvec::SmallVec;
-use crate::traversal::{DomTraversal, PerLevelTraversalData};
 
 /// The minimum stack size for a thread in the styling pool, in kilobytes.
 pub const STYLE_THREAD_STACK_SIZE_KB: usize = 256;

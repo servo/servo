@@ -4,21 +4,13 @@
 
 //! Computed values for font properties
 
-use crate::Atom;
 use app_units::Au;
 use byteorder::{BigEndian, ByteOrder};
-use cssparser::{serialize_identifier, CssStringWriter, Parser};
+use crate::Atom;
 #[cfg(feature = "gecko")]
-use gecko_bindings::{bindings, structs};
+use crate::gecko_bindings::{bindings, structs};
 #[cfg(feature = "gecko")]
-use gecko_bindings::sugar::refptr::RefPtr;
-#[cfg(feature = "gecko")]
-use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
-use std::fmt::{self, Write};
-use std::hash::{Hash, Hasher};
-#[cfg(feature = "servo")]
-use std::slice;
-use style_traits::{CssWriter, ParseError, ToCss};
+use crate::gecko_bindings::sugar::refptr::RefPtr;
 use crate::values::CSSFloat;
 use crate::values::animated::{ToAnimatedValue, ToAnimatedZero};
 use crate::values::computed::{Angle, Context, Integer, NonNegativeLength, NonNegativePercentage};
@@ -26,6 +18,14 @@ use crate::values::computed::{Number, Percentage, ToComputedValue};
 use crate::values::generics::font::{self as generics, FeatureTagValue, FontSettings, VariationValue};
 use crate::values::specified::font::{self as specified, MIN_FONT_WEIGHT, MAX_FONT_WEIGHT};
 use crate::values::specified::length::{FontBaseSize, NoCalcLength};
+use cssparser::{serialize_identifier, CssStringWriter, Parser};
+#[cfg(feature = "gecko")]
+use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
+use std::fmt::{self, Write};
+use std::hash::{Hash, Hasher};
+#[cfg(feature = "servo")]
+use std::slice;
+use style_traits::{CssWriter, ParseError, ToCss};
 
 pub use crate::values::computed::Length as MozScriptMinSize;
 pub use crate::values::specified::font::{FontSynthesis, MozScriptSizeMultiplier, XLang, XTextZoom};

@@ -64,16 +64,18 @@
 //! selectors are effectively stripped off, so that matching them all against
 //! elements makes sense.
 
+use atomic_refcell::{AtomicRefCell, AtomicRefMut};
 use crate::Atom;
 use crate::applicable_declarations::ApplicableDeclarationBlock;
-use atomic_refcell::{AtomicRefCell, AtomicRefMut};
 use crate::bloom::StyleBloom;
 use crate::context::{SelectorFlagsMap, SharedStyleContext, StyleContext};
 use crate::dom::{SendElement, TElement};
 use crate::matching::MatchMethods;
-use owning_ref::OwningHandle;
 use crate::properties::ComputedValues;
 use crate::rule_tree::StrongRuleNode;
+use crate::style_resolver::{PrimaryStyle, ResolvedElementStyles};
+use crate::stylist::Stylist;
+use owning_ref::OwningHandle;
 use selectors::NthIndexCache;
 use selectors::matching::{ElementSelectorFlags, VisitedHandlingMode};
 use servo_arc::Arc;
@@ -83,8 +85,6 @@ use std::marker::PhantomData;
 use std::mem;
 use std::ops::Deref;
 use std::ptr::NonNull;
-use crate::style_resolver::{PrimaryStyle, ResolvedElementStyles};
-use crate::stylist::Stylist;
 use uluru::{Entry, LRUCache};
 
 mod checks;

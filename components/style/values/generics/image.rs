@@ -8,10 +8,10 @@
 
 use crate::Atom;
 use crate::custom_properties;
+use crate::values::serialize_atom_identifier;
 use servo_arc::Arc;
 use std::fmt::{self, Write};
 use style_traits::{CssWriter, ToCss};
-use crate::values::serialize_atom_identifier;
 
 /// An [image].
 ///

@@ -4,10 +4,7 @@
 
 //! Specified types for CSS values related to borders.
 
-use cssparser::Parser;
 use crate::parser::{Parse, ParserContext};
-use std::fmt::{self, Write};
-use style_traits::{CssWriter, ParseError, ToCss};
 use crate::values::computed::{self, Context, ToComputedValue};
 use crate::values::generics::border::BorderCornerRadius as GenericBorderCornerRadius;
 use crate::values::generics::border::BorderImageSideWidth as GenericBorderImageSideWidth;
@@ -18,6 +15,9 @@ use crate::values::generics::rect::Rect;
 use crate::values::generics::size::Size;
 use crate::values::specified::{AllowQuirks, Number, NumberOrPercentage};
 use crate::values::specified::length::{Length, LengthOrPercentage, NonNegativeLength};
+use cssparser::Parser;
+use std::fmt::{self, Write};
+use style_traits::{CssWriter, ParseError, ToCss};
 
 /// A specified value for a single side of the `border-width` property.
 #[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss)]

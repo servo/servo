@@ -6,19 +6,14 @@
 
 use crate::{Namespace, Prefix};
 use crate::counter_style::{parse_counter_style_body, parse_counter_style_name_definition};
-use cssparser::{AtRuleParser, AtRuleType, Parser, QualifiedRuleParser, RuleListParser};
-use cssparser::{BasicParseError, BasicParseErrorKind, CowRcStr, SourceLocation};
 use crate::error_reporting::ContextualParseError;
 use crate::font_face::parse_font_face_block;
 use crate::media_queries::MediaList;
 use crate::parser::{Parse, ParserContext};
 use crate::properties::parse_property_declaration_list;
 use crate::selector_parser::{SelectorImpl, SelectorParser};
-use selectors::SelectorList;
-use servo_arc::Arc;
 use crate::shared_lock::{Locked, SharedRwLock};
 use crate::str::starts_with_ignore_ascii_case;
-use style_traits::{ParseError, StyleParseErrorKind};
 use crate::stylesheets::{CssRule, CssRuleType, CssRules, RulesMutateError, StylesheetLoader};
 use crate::stylesheets::{DocumentRule, FontFeatureValuesRule, KeyframesRule, MediaRule};
 use crate::stylesheets::{NamespaceRule, PageRule, StyleRule, SupportsRule, ViewportRule};
@@ -30,6 +25,11 @@ use crate::stylesheets::supports_rule::SupportsCondition;
 use crate::stylesheets::viewport_rule;
 use crate::values::{CssUrl, CustomIdent, KeyframesName};
 use crate::values::computed::font::FamilyName;
+use cssparser::{AtRuleParser, AtRuleType, Parser, QualifiedRuleParser, RuleListParser};
+use cssparser::{BasicParseError, BasicParseErrorKind, CowRcStr, SourceLocation};
+use selectors::SelectorList;
+use servo_arc::Arc;
+use style_traits::{ParseError, StyleParseErrorKind};
 
 /// The information we need particularly to do CSSOM insertRule stuff.
 pub struct InsertRuleContext<'a> {

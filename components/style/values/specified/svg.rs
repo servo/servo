@@ -4,17 +4,17 @@
 
 //! Specified types for SVG properties.
 
-use cssparser::Parser;
 use crate::parser::{Parse, ParserContext};
-use std::fmt::{self, Write};
-use style_traits::{CommaWithSpace, CssWriter, ParseError, Separator};
-use style_traits::{StyleParseErrorKind, ToCss};
 use crate::values::CustomIdent;
 use crate::values::generics::svg as generic;
 use crate::values::specified::{LengthOrPercentage, NonNegativeLengthOrPercentage, NonNegativeNumber};
 use crate::values::specified::{Number, Opacity};
 use crate::values::specified::color::Color;
 use crate::values::specified::url::SpecifiedUrl;
+use cssparser::Parser;
+use std::fmt::{self, Write};
+use style_traits::{CommaWithSpace, CssWriter, ParseError, Separator};
+use style_traits::{StyleParseErrorKind, ToCss};
 
 /// Specified SVG Paint value
 pub type SVGPaint = generic::SVGPaint<Color, SpecifiedUrl>;

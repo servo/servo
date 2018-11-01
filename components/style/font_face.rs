@@ -6,29 +6,29 @@
 //!
 //! [ff]: https://drafts.csswg.org/css-fonts/#at-font-face-rule
 
-use cssparser::{AtRuleParser, DeclarationListParser, DeclarationParser, Parser};
-use cssparser::{CowRcStr, SourceLocation};
-#[cfg(feature = "gecko")]
-use cssparser::UnicodeRange;
 use crate::error_reporting::ContextualParseError;
 use crate::parser::{Parse, ParserContext};
-#[cfg(feature = "gecko")]
-use properties::longhands::font_language_override;
-use selectors::parser::SelectorParseErrorKind;
 use crate::shared_lock::{SharedRwLockReadGuard, ToCssWithGuard};
-use std::fmt::{self, Write};
 use crate::str::CssStringWriter;
-use style_traits::{Comma, CssWriter, OneOrMoreSeparated, ParseError};
-use style_traits::{StyleParseErrorKind, ToCss};
-use style_traits::values::SequenceWriter;
 use crate::values::computed::font::FamilyName;
 use crate::values::generics::font::FontStyle as GenericFontStyle;
 use crate::values::specified::Angle;
 use crate::values::specified::font::{AbsoluteFontWeight, FontStretch};
-#[cfg(feature = "gecko")]
-use values::specified::font::{SpecifiedFontFeatureSettings, SpecifiedFontVariationSettings};
 use crate::values::specified::font::SpecifiedFontStyle;
 use crate::values::specified::url::SpecifiedUrl;
+use cssparser::{AtRuleParser, DeclarationListParser, DeclarationParser, Parser};
+use cssparser::{CowRcStr, SourceLocation};
+#[cfg(feature = "gecko")]
+use cssparser::UnicodeRange;
+#[cfg(feature = "gecko")]
+use properties::longhands::font_language_override;
+use selectors::parser::SelectorParseErrorKind;
+use std::fmt::{self, Write};
+use style_traits::{Comma, CssWriter, OneOrMoreSeparated, ParseError};
+use style_traits::{StyleParseErrorKind, ToCss};
+use style_traits::values::SequenceWriter;
+#[cfg(feature = "gecko")]
+use values::specified::font::{SpecifiedFontFeatureSettings, SpecifiedFontVariationSettings};
 
 /// A source for a font-face rule.
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]

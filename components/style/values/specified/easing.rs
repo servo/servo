@@ -4,14 +4,14 @@
 
 //! Specified types for CSS Easing functions.
 
-use cssparser::Parser;
 use crate::parser::{Parse, ParserContext};
-use selectors::parser::SelectorParseErrorKind;
-use style_traits::{ParseError, StyleParseErrorKind};
 use crate::values::computed::easing::TimingFunction as ComputedTimingFunction;
 use crate::values::generics::easing::{StepPosition, TimingKeyword};
 use crate::values::generics::easing::TimingFunction as GenericTimingFunction;
 use crate::values::specified::{Integer, Number};
+use cssparser::Parser;
+use selectors::parser::SelectorParseErrorKind;
+use style_traits::{ParseError, StyleParseErrorKind};
 
 /// A specified timing function.
 pub type TimingFunction = GenericTimingFunction<Integer, Number>;

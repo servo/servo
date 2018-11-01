@@ -4,8 +4,8 @@
 
 //! Generic types for CSS values that are composed of four sides.
 
-use cssparser::Parser;
 use crate::parser::{Parse, ParserContext};
+use cssparser::Parser;
 use std::fmt::{self, Write};
 use style_traits::{CssWriter, ParseError, ToCss};
 

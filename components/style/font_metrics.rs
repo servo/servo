@@ -6,8 +6,8 @@
 
 #![deny(missing_docs)]
 
-use crate::Atom;
 use app_units::Au;
+use crate::Atom;
 use crate::context::SharedStyleContext;
 use crate::logical_geometry::WritingMode;
 use crate::media_queries::Device;

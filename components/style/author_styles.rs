@@ -8,7 +8,7 @@
 use crate::context::QuirksMode;
 use crate::dom::TElement;
 #[cfg(feature = "gecko")]
-use gecko_bindings::sugar::ownership::{HasBoxFFI, HasFFI, HasSimpleFFI};
+use crate::gecko_bindings::sugar::ownership::{HasBoxFFI, HasFFI, HasSimpleFFI};
 use crate::invalidation::media_queries::ToMediaListKey;
 use crate::media_queries::Device;
 use crate::shared_lock::SharedRwLockReadGuard;

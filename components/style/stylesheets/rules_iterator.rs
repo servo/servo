@@ -7,10 +7,10 @@
 use crate::context::QuirksMode;
 use crate::media_queries::Device;
 use crate::shared_lock::SharedRwLockReadGuard;
-use smallvec::SmallVec;
-use std::slice;
 use crate::stylesheets::{CssRule, DocumentRule, ImportRule, MediaRule, SupportsRule};
 use crate::stylesheets::StylesheetInDocument;
+use smallvec::SmallVec;
+use std::slice;
 
 /// An iterator over a list of rules.
 pub struct RulesIterator<'a, 'b, C>

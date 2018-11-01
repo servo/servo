@@ -11,15 +11,15 @@ use crate::Atom;
 use crate::CaseSensitivityExt;
 use crate::LocalName as SelectorLocalName;
 use crate::dom::{TDocument, TElement, TNode};
-use fxhash::FxHashSet;
 use crate::invalidation::element::element_wrapper::{ElementSnapshot, ElementWrapper};
 use crate::invalidation::element::restyle_hints::RestyleHint;
 use crate::media_queries::Device;
 use crate::selector_parser::{SelectorImpl, Snapshot, SnapshotMap};
-use selectors::attr::CaseSensitivity;
-use selectors::parser::{Component, LocalName, Selector};
 use crate::shared_lock::SharedRwLockReadGuard;
 use crate::stylesheets::{CssRule, StylesheetInDocument};
+use fxhash::FxHashSet;
+use selectors::attr::CaseSensitivity;
+use selectors::parser::{Component, LocalName, Selector};
 
 /// A style sheet invalidation represents a kind of element or subtree that may
 /// need to be restyled. Whether it represents a whole subtree or just a single

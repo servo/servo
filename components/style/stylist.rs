@@ -10,15 +10,8 @@ use crate::context::{CascadeInputs, QuirksMode};
 use crate::dom::{TElement, TShadowRoot};
 use crate::element_state::{DocumentState, ElementState};
 use crate::font_metrics::FontMetricsProvider;
-#[cfg(feature = "gecko")]
-use gecko_bindings::structs::{ServoStyleSetSizes, StyleRuleInclusion};
-use hashglobe::FailedAllocationError;
 use crate::invalidation::element::invalidation_map::InvalidationMap;
 use crate::invalidation::media_queries::{EffectiveMediaQueryResults, ToMediaListKey};
-#[cfg(feature = "gecko")]
-use malloc_size_of::{MallocShallowSizeOf, MallocSizeOf, MallocSizeOfOps};
-#[cfg(feature = "gecko")]
-use malloc_size_of::MallocUnconditionalShallowSizeOf;
 use crate::media_queries::Device;
 use crate::properties::{self, CascadeMode, ComputedValues};
 use crate::properties::{AnimationRules, PropertyDeclarationBlock};
@@ -26,6 +19,22 @@ use crate::rule_cache::{RuleCache, RuleCacheConditions};
 use crate::rule_tree::{CascadeLevel, RuleTree, ShadowCascadeOrder, StrongRuleNode, StyleSource};
 use crate::selector_map::{PrecomputedHashMap, PrecomputedHashSet, SelectorMap, SelectorMapEntry};
 use crate::selector_parser::{PerPseudoElementMap, PseudoElement, SelectorImpl, SnapshotMap};
+use crate::shared_lock::{Locked, SharedRwLockReadGuard, StylesheetGuards};
+use crate::stylesheet_set::{DataValidity, DocumentStylesheetSet, SheetRebuildKind};
+use crate::stylesheet_set::{DocumentStylesheetFlusher, SheetCollectionFlusher};
+use crate::stylesheets::{CssRule, Origin, OriginSet, PerOrigin, PerOriginIter};
+use crate::stylesheets::StyleRule;
+use crate::stylesheets::StylesheetInDocument;
+use crate::stylesheets::keyframes_rule::KeyframesAnimation;
+use crate::stylesheets::viewport_rule::{self, MaybeNew, ViewportRule};
+use crate::thread_state::{self, ThreadState};
+#[cfg(feature = "gecko")]
+use gecko_bindings::structs::{ServoStyleSetSizes, StyleRuleInclusion};
+use hashglobe::FailedAllocationError;
+#[cfg(feature = "gecko")]
+use malloc_size_of::{MallocShallowSizeOf, MallocSizeOf, MallocSizeOfOps};
+#[cfg(feature = "gecko")]
+use malloc_size_of::MallocUnconditionalShallowSizeOf;
 use selectors::NthIndexCache;
 use selectors::attr::{CaseSensitivity, NamespaceConstraint};
 use selectors::bloom::BloomFilter;
@@ -35,22 +44,13 @@ use selectors::parser::{AncestorHashes, Combinator, Component, Selector};
 use selectors::parser::{SelectorIter, Visit};
 use selectors::visitor::SelectorVisitor;
 use servo_arc::{Arc, ArcBorrow};
-use crate::shared_lock::{Locked, SharedRwLockReadGuard, StylesheetGuards};
 use smallbitvec::SmallBitVec;
 use smallvec::SmallVec;
 use std::ops;
 use std::sync::Mutex;
 use style_traits::viewport::ViewportConstraints;
-use crate::stylesheet_set::{DataValidity, DocumentStylesheetSet, SheetRebuildKind};
-use crate::stylesheet_set::{DocumentStylesheetFlusher, SheetCollectionFlusher};
 #[cfg(feature = "gecko")]
 use stylesheets::{CounterStyleRule, FontFaceRule, FontFeatureValuesRule, PageRule};
-use crate::stylesheets::{CssRule, Origin, OriginSet, PerOrigin, PerOriginIter};
-use crate::stylesheets::StyleRule;
-use crate::stylesheets::StylesheetInDocument;
-use crate::stylesheets::keyframes_rule::KeyframesAnimation;
-use crate::stylesheets::viewport_rule::{self, MaybeNew, ViewportRule};
-use crate::thread_state::{self, ThreadState};
 
 /// The type of the stylesheets that the stylist contains.
 #[cfg(feature = "servo")]

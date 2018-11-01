@@ -13,7 +13,8 @@ use crate::values::specified::box_ as specified;
 
 pub use crate::values::specified::box_::{AnimationName, Appearance, Contain, Display, OverflowClipBox};
 pub use crate::values::specified::box_::{Clear as SpecifiedClear, Float as SpecifiedFloat};
-pub use crate::values::specified::box_::{OverscrollBehavior, ScrollSnapType, TouchAction, TransitionProperty, WillChange};
+pub use crate::values::specified::box_::{OverscrollBehavior, ScrollSnapType, TouchAction};
+pub use crate::values::specified::box_::{TransitionProperty, WillChange};
 
 /// A computed value for the `vertical-align` property.
 pub type VerticalAlign = GenericVerticalAlign<LengthOrPercentage>;

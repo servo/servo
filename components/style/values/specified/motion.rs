@@ -4,10 +4,10 @@
 
 //! Specified types for CSS values that are related to motion path.
 
-use cssparser::Parser;
 use crate::parser::{Parse, ParserContext};
-use style_traits::{ParseError, StyleParseErrorKind};
 use crate::values::specified::SVGPathData;
+use cssparser::Parser;
+use style_traits::{ParseError, StyleParseErrorKind};
 
 /// The offset-path value.
 ///

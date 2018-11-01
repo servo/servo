@@ -5,11 +5,11 @@
 //! Generic types for text properties.
 
 use app_units::Au;
-use cssparser::Parser;
 use crate::parser::ParserContext;
-use style_traits::ParseError;
 use crate::values::animated::{Animate, Procedure, ToAnimatedZero};
 use crate::values::distance::{ComputeSquaredDistance, SquaredDistance};
+use cssparser::Parser;
+use style_traits::ParseError;
 
 /// A generic value for the `initial-letter` property.
 #[derive(

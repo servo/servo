@@ -7,11 +7,11 @@
 //! [custom]: https://drafts.csswg.org/css-variables/
 
 use crate::Atom;
-use cssparser::{Delimiter, Parser, ParserInput, SourcePosition, Token, TokenSerializationType};
 use crate::hash::map::Entry;
-use precomputed_hash::PrecomputedHash;
 use crate::properties::{CSSWideKeyword, CustomDeclarationValue};
 use crate::selector_map::{PrecomputedHashMap, PrecomputedHashSet};
+use cssparser::{Delimiter, Parser, ParserInput, SourcePosition, Token, TokenSerializationType};
+use precomputed_hash::PrecomputedHash;
 use selectors::parser::SelectorParseErrorKind;
 use servo_arc::Arc;
 use smallvec::SmallVec;

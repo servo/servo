@@ -8,9 +8,11 @@
 
 use crate::{Atom, Namespace, Prefix};
 use crate::context::QuirksMode;
+use crate::parser::{Parse, ParserContext};
+use crate::values::serialize_atom_identifier;
+use crate::values::specified::calc::CalcNode;
 use cssparser::{Parser, Token};
 use num_traits::One;
-use crate::parser::{Parse, ParserContext};
 use std::f32;
 use std::fmt::{self, Write};
 use style_traits::{CssWriter, ParseError, SpecifiedValueInfo, StyleParseErrorKind, ToCss};
@@ -20,8 +22,6 @@ use super::computed::{Context, ToComputedValue};
 use super::generics::{GreaterThanOrEqualToOne, NonNegative};
 use super::generics::grid::{GridLine as GenericGridLine, TrackBreadth as GenericTrackBreadth};
 use super::generics::grid::{TrackList as GenericTrackList, TrackSize as GenericTrackSize};
-use crate::values::serialize_atom_identifier;
-use crate::values::specified::calc::CalcNode;
 
 pub use self::angle::Angle;
 #[cfg(feature = "gecko")]

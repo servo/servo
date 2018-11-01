@@ -6,8 +6,8 @@
 //! for both specified and computed values.
 
 use crate::counter_style::{parse_counter_style_name, Symbols};
-use cssparser::Parser;
 use crate::parser::{Parse, ParserContext};
+use cssparser::Parser;
 use style_traits::{KeywordsCollectFn, ParseError};
 use style_traits::{SpecifiedValueInfo, StyleParseErrorKind};
 use super::CustomIdent;

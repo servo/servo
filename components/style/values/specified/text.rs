@@ -4,15 +4,8 @@
 
 //! Specified types for text properties.
 
-use cssparser::{Parser, Token};
 use crate::parser::{Parse, ParserContext};
 use crate::properties::longhands::writing_mode::computed_value::T as SpecifiedWritingMode;
-use selectors::parser::SelectorParseErrorKind;
-use std::fmt::{self, Write};
-use style_traits::{CssWriter, KeywordsCollectFn, ParseError};
-use style_traits::{SpecifiedValueInfo, StyleParseErrorKind, ToCss};
-use style_traits::values::SequenceWriter;
-use unicode_segmentation::UnicodeSegmentation;
 use crate::values::computed::{Context, ToComputedValue};
 use crate::values::computed::text::LineHeight as ComputedLineHeight;
 use crate::values::computed::text::TextEmphasisKeywordValue as ComputedTextEmphasisKeywordValue;
@@ -25,6 +18,13 @@ use crate::values::generics::text::Spacing;
 use crate::values::specified::{AllowQuirks, Integer, NonNegativeNumber, Number};
 use crate::values::specified::length::{FontRelativeLength, Length, LengthOrPercentage, NoCalcLength};
 use crate::values::specified::length::{NonNegativeLength, NonNegativeLengthOrPercentage};
+use cssparser::{Parser, Token};
+use selectors::parser::SelectorParseErrorKind;
+use std::fmt::{self, Write};
+use style_traits::{CssWriter, KeywordsCollectFn, ParseError};
+use style_traits::{SpecifiedValueInfo, StyleParseErrorKind, ToCss};
+use style_traits::values::SequenceWriter;
+use unicode_segmentation::UnicodeSegmentation;
 
 /// A specified type for the `initial-letter` property.
 pub type InitialLetter = GenericInitialLetter<Number, Integer>;

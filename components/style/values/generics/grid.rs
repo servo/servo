@@ -5,15 +5,15 @@
 //! Generic types for the handling of
 //! [grids](https://drafts.csswg.org/css-grid/).
 
-use cssparser::Parser;
 use crate::parser::{Parse, ParserContext};
-use std::{mem, usize};
-use std::fmt::{self, Write};
-use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
 use crate::values::{CSSFloat, CustomIdent};
 use crate::values::computed::{Context, ToComputedValue};
 use crate::values::specified;
 use crate::values::specified::grid::parse_line_names;
+use cssparser::Parser;
+use std::{mem, usize};
+use std::fmt::{self, Write};
+use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
 
 /// A `<grid-line>` type.
 ///

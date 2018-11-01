@@ -18,8 +18,8 @@
 //! easy-to-use API for the parser.
 
 use crate::parser::{Combinator, Component, SelectorImpl};
-use servo_arc::{Arc, HeaderWithLength, ThinArc};
 use crate::sink::Push;
+use servo_arc::{Arc, HeaderWithLength, ThinArc};
 use smallvec::{self, SmallVec};
 use std::cmp;
 use std::iter;

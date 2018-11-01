@@ -6,16 +6,16 @@
 //!
 //! [calc]: https://drafts.csswg.org/css-values/#calc-notation
 
-use cssparser::{AngleOrNumber, NumberOrPercentage, Parser, Token};
 use crate::parser::ParserContext;
-use std::fmt::{self, Write};
-use style_traits::{CssWriter, ParseError, SpecifiedValueInfo, StyleParseErrorKind, ToCss};
-use style_traits::values::specified::AllowedNumericType;
 use crate::values::{CSSFloat, CSSInteger};
 use crate::values::computed;
 use crate::values::specified::{Angle, Time};
 use crate::values::specified::length::{AbsoluteLength, FontRelativeLength, NoCalcLength};
 use crate::values::specified::length::ViewportPercentageLength;
+use cssparser::{AngleOrNumber, NumberOrPercentage, Parser, Token};
+use std::fmt::{self, Write};
+use style_traits::{CssWriter, ParseError, SpecifiedValueInfo, StyleParseErrorKind, ToCss};
+use style_traits::values::specified::AllowedNumericType;
 
 /// A node inside a `Calc` expression's AST.
 #[derive(Clone, Debug)]

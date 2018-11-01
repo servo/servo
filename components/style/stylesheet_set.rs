@@ -9,8 +9,8 @@ use crate::invalidation::stylesheets::StylesheetInvalidationSet;
 use crate::media_queries::Device;
 use crate::selector_parser::SnapshotMap;
 use crate::shared_lock::SharedRwLockReadGuard;
-use std::{mem, slice};
 use crate::stylesheets::{Origin, OriginSet, OriginSetIterator, PerOrigin, StylesheetInDocument};
+use std::{mem, slice};
 
 /// Entry for a StylesheetSet.
 #[derive(MallocSizeOf)]

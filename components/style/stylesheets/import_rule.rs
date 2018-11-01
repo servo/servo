@@ -7,15 +7,15 @@
 //! [import]: https://drafts.csswg.org/css-cascade-3/#at-import
 
 use crate::context::QuirksMode;
-use cssparser::SourceLocation;
 use crate::media_queries::MediaList;
 use crate::shared_lock::{DeepCloneParams, DeepCloneWithLock};
 use crate::shared_lock::{SharedRwLock, SharedRwLockReadGuard, ToCssWithGuard};
-use std::fmt::{self, Write};
 use crate::str::CssStringWriter;
-use style_traits::{CssWriter, ToCss};
 use crate::stylesheets::{CssRule, Origin, StylesheetInDocument};
 use crate::values::CssUrl;
+use cssparser::SourceLocation;
+use std::fmt::{self, Write};
+use style_traits::{CssWriter, ToCss};
 
 /// With asynchronous stylesheet parsing, we can't synchronously create a
 /// GeckoStyleSheet. So we use this placeholder instead.

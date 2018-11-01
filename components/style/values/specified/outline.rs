@@ -4,11 +4,11 @@
 
 //! Specified values for outline properties
 
-use cssparser::Parser;
 use crate::parser::{Parse, ParserContext};
+use crate::values::specified::BorderStyle;
+use cssparser::Parser;
 use selectors::parser::SelectorParseErrorKind;
 use style_traits::ParseError;
-use crate::values::specified::BorderStyle;
 
 #[derive(
     Clone,

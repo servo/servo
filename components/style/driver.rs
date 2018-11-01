@@ -12,12 +12,12 @@ use crate::context::{ThreadLocalStyleContext, TraversalStatistics};
 use crate::dom::{SendNode, TElement, TNode};
 use crate::parallel;
 use crate::parallel::{DispatchMode, WORK_UNIT_MAX};
-use rayon;
 use crate::scoped_tls::ScopedTLS;
+use crate::traversal::{DomTraversal, PerLevelTraversalData, PreTraverseToken};
+use rayon;
 use std::collections::VecDeque;
 use std::mem;
 use time;
-use crate::traversal::{DomTraversal, PerLevelTraversalData, PreTraverseToken};
 
 #[cfg(feature = "servo")]
 fn should_report_statistics() -> bool {

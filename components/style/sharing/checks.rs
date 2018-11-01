@@ -9,8 +9,8 @@
 use crate::bloom::StyleBloom;
 use crate::context::{SelectorFlagsMap, SharedStyleContext};
 use crate::dom::TElement;
-use selectors::NthIndexCache;
 use crate::sharing::{StyleSharingCandidate, StyleSharingTarget};
+use selectors::NthIndexCache;
 
 /// Determines whether a target and a candidate have compatible parents for
 /// sharing.

@@ -7,30 +7,30 @@
 #![allow(unsafe_code)]
 #![deny(missing_docs)]
 
-use crate::{Atom, LocalName, Namespace, WeakAtom};
-use crate::applicable_declarations::ApplicableDeclarationBlock;
 use atomic_refcell::{AtomicRef, AtomicRefCell, AtomicRefMut};
 #[cfg(feature = "gecko")]
 use context::PostAnimationTasks;
 #[cfg(feature = "gecko")]
 use context::UpdateAnimationsTasks;
+use crate::{Atom, LocalName, Namespace, WeakAtom};
+use crate::applicable_declarations::ApplicableDeclarationBlock;
 use crate::data::ElementData;
 use crate::element_state::ElementState;
 use crate::font_metrics::FontMetricsProvider;
 use crate::media_queries::Device;
 use crate::properties::{AnimationRules, ComputedValues, PropertyDeclarationBlock};
 use crate::selector_parser::{AttrValue, Lang, PseudoElement, SelectorImpl};
+use crate::shared_lock::Locked;
+use crate::stylist::CascadeData;
+use crate::traversal_flags::TraversalFlags;
 use selectors::Element as SelectorsElement;
 use selectors::matching::{ElementSelectorFlags, QuirksMode, VisitedHandlingMode};
 use selectors::sink::Push;
 use servo_arc::{Arc, ArcBorrow};
-use crate::shared_lock::Locked;
 use std::fmt;
 use std::fmt::Debug;
 use std::hash::Hash;
 use std::ops::Deref;
-use crate::stylist::CascadeData;
-use crate::traversal_flags::TraversalFlags;
 
 /// An opaque handle to a node, which, unlike UnsafeNode, cannot be transformed
 /// back into a non-opaque representation. The only safe operation that can be

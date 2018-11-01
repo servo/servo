@@ -7,14 +7,14 @@
 extern crate encoding_rs;
 
 use crate::context::QuirksMode;
-use cssparser::{stylesheet_encoding, EncodingSupport};
 use crate::error_reporting::ParseErrorReporter;
 use crate::media_queries::MediaList;
-use servo_arc::Arc;
 use crate::shared_lock::SharedRwLock;
+use crate::stylesheets::{Origin, Stylesheet, StylesheetLoader, UrlExtraData};
+use cssparser::{stylesheet_encoding, EncodingSupport};
+use servo_arc::Arc;
 use std::borrow::Cow;
 use std::str;
-use crate::stylesheets::{Origin, Stylesheet, StylesheetLoader, UrlExtraData};
 
 struct EncodingRs;
 

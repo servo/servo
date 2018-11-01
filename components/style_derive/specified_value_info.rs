@@ -4,9 +4,9 @@
 
 use crate::cg;
 use crate::parse::ParseVariantAttrs;
+use crate::to_css::{CssFieldAttrs, CssInputAttrs, CssVariantAttrs};
 use quote::Tokens;
 use syn::{Data, DeriveInput, Fields, Ident, Type};
-use crate::to_css::{CssFieldAttrs, CssInputAttrs, CssVariantAttrs};
 
 pub fn derive(mut input: DeriveInput) -> Tokens {
     let css_attrs = cg::parse_input_attrs::<CssInputAttrs>(&input);

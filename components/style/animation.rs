@@ -18,12 +18,6 @@ use crate::properties::animated_properties::AnimatedProperty;
 use crate::properties::longhands::animation_direction::computed_value::single_value::T as AnimationDirection;
 use crate::properties::longhands::animation_play_state::computed_value::single_value::T as AnimationPlayState;
 use crate::rule_tree::CascadeLevel;
-use servo_arc::Arc;
-#[cfg(feature = "servo")]
-use servo_channel::Sender;
-use std::fmt;
-#[cfg(feature = "gecko")]
-use std::sync::mpsc::Sender;
 use crate::stylesheets::keyframes_rule::{KeyframesAnimation, KeyframesStep, KeyframesStepValue};
 use crate::timer::Timer;
 use crate::values::computed::Time;
@@ -31,6 +25,12 @@ use crate::values::computed::TimingFunction;
 use crate::values::computed::box_::TransitionProperty;
 use crate::values::generics::box_::AnimationIterationCount;
 use crate::values::generics::easing::{StepPosition, TimingFunction as GenericTimingFunction};
+use servo_arc::Arc;
+#[cfg(feature = "servo")]
+use servo_channel::Sender;
+use std::fmt;
+#[cfg(feature = "gecko")]
+use std::sync::mpsc::Sender;
 
 
 /// This structure represents a keyframes animation current iteration state.

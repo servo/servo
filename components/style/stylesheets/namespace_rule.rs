@@ -5,10 +5,10 @@
 //! The `@namespace` at-rule.
 
 use crate::{Namespace, Prefix};
-use cssparser::SourceLocation;
 use crate::shared_lock::{SharedRwLockReadGuard, ToCssWithGuard};
-use std::fmt::{self, Write};
 use crate::str::CssStringWriter;
+use cssparser::SourceLocation;
+use std::fmt::{self, Write};
 
 /// A `@namespace` rule.
 #[derive(Clone, Debug, PartialEq)]

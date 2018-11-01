@@ -5,12 +5,6 @@
 //! `<length>` computed values, and related ones.
 
 use app_units::Au;
-use ordered_float::NotNan;
-use std::fmt::{self, Write};
-use std::ops::{Add, Neg};
-use style_traits::{CssWriter, ToCss};
-use style_traits::values::specified::AllowedNumericType;
-use super::{Context, Number, Percentage, ToComputedValue};
 use crate::values::{specified, Auto, CSSFloat, Either, Normal};
 use crate::values::animated::{Animate, Procedure, ToAnimatedValue, ToAnimatedZero};
 use crate::values::distance::{ComputeSquaredDistance, SquaredDistance};
@@ -18,10 +12,16 @@ use crate::values::generics::NonNegative;
 use crate::values::generics::length::{MaxLength as GenericMaxLength, MozLength as GenericMozLength};
 use crate::values::specified::length::{AbsoluteLength, FontBaseSize, FontRelativeLength};
 use crate::values::specified::length::ViewportPercentageLength;
+use ordered_float::NotNan;
+use std::fmt::{self, Write};
+use std::ops::{Add, Neg};
+use style_traits::{CssWriter, ToCss};
+use style_traits::values::specified::AllowedNumericType;
+use super::{Context, Number, Percentage, ToComputedValue};
 
-pub use super::image::Image;
 pub use crate::values::specified::url::UrlOrNone;
 pub use crate::values::specified::{Angle, BorderStyle, Time};
+pub use super::image::Image;
 
 impl ToComputedValue for specified::NoCalcLength {
     type ComputedValue = CSSPixelLength;

@@ -5,7 +5,7 @@
 //! Restyle hints: an optimization to avoid unnecessarily matching selectors.
 
 #[cfg(feature = "gecko")]
-use gecko_bindings::structs::nsRestyleHint;
+use crate::gecko_bindings::structs::nsRestyleHint;
 use crate::traversal_flags::TraversalFlags;
 
 bitflags! {

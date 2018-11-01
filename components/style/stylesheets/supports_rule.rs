@@ -4,24 +4,24 @@
 
 //! [@supports rules](https://drafts.csswg.org/css-conditional-3/#at-supports)
 
+use crate::parser::ParserContext;
+use crate::properties::{PropertyDeclaration, PropertyId, SourcePropertyDeclaration};
+use crate::selector_parser::{SelectorImpl, SelectorParser};
+use crate::shared_lock::{DeepCloneParams, DeepCloneWithLock, Locked};
+use crate::shared_lock::{SharedRwLock, SharedRwLockReadGuard, ToCssWithGuard};
+use crate::str::CssStringWriter;
+use crate::stylesheets::{CssRuleType, CssRules, Namespaces};
 use cssparser::{Delimiter, Parser, SourceLocation, Token};
 use cssparser::{ParseError as CssParseError, ParserInput};
 use cssparser::parse_important;
 #[cfg(feature = "gecko")]
 use malloc_size_of::{MallocSizeOfOps, MallocUnconditionalShallowSizeOf};
-use crate::parser::ParserContext;
-use crate::properties::{PropertyDeclaration, PropertyId, SourcePropertyDeclaration};
-use crate::selector_parser::{SelectorImpl, SelectorParser};
 use selectors::parser::{Selector, SelectorParseErrorKind};
 use servo_arc::Arc;
-use crate::shared_lock::{DeepCloneParams, DeepCloneWithLock, Locked};
-use crate::shared_lock::{SharedRwLock, SharedRwLockReadGuard, ToCssWithGuard};
 use std::ffi::{CStr, CString};
 use std::fmt::{self, Write};
 use std::str;
-use crate::str::CssStringWriter;
 use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
-use crate::stylesheets::{CssRuleType, CssRules, Namespaces};
 
 /// An [`@supports`][supports] rule.
 ///

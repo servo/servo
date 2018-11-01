@@ -5,11 +5,11 @@
 //! Code related to the invalidation of media-query-affected rules.
 
 use crate::context::QuirksMode;
-use fxhash::FxHashSet;
 use crate::media_queries::Device;
 use crate::shared_lock::SharedRwLockReadGuard;
 use crate::stylesheets::{DocumentRule, ImportRule, MediaRule};
 use crate::stylesheets::{NestedRuleIterationCondition, Stylesheet, SupportsRule};
+use fxhash::FxHashSet;
 
 /// A key for a given media query result.
 ///

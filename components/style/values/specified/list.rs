@@ -4,8 +4,8 @@
 
 //! `list` specified values.
 
-use cssparser::{Parser, Token};
 use crate::parser::{Parse, ParserContext};
+use cssparser::{Parser, Token};
 use std::fmt::{self, Write};
 use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
 #[cfg(feature = "gecko")]

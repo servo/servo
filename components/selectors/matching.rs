@@ -7,9 +7,9 @@ use crate::bloom::{BloomFilter, BLOOM_HASH_MASK};
 use crate::nth_index_cache::NthIndexCacheInner;
 use crate::parser::{AncestorHashes, Combinator, Component, LocalName};
 use crate::parser::{NonTSPseudoClass, Selector, SelectorImpl, SelectorIter, SelectorList};
+use crate::tree::Element;
 use std::borrow::Borrow;
 use std::iter;
-use crate::tree::Element;
 
 pub use crate::context::*;
 

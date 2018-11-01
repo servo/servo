@@ -4,20 +4,11 @@
 
 //! Specified values for font properties
 
-use crate::Atom;
 use app_units::Au;
 use byteorder::{BigEndian, ByteOrder};
-use cssparser::{Parser, Token};
-#[cfg(feature = "gecko")]
-use gecko_bindings::bindings;
-#[cfg(feature = "gecko")]
-use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
+use crate::Atom;
 use crate::parser::{Parse, ParserContext};
 use crate::properties::longhands::system_font::SystemFont;
-use std::fmt::{self, Write};
-use style_traits::{CssWriter, KeywordsCollectFn, ParseError};
-use style_traits::{SpecifiedValueInfo, StyleParseErrorKind, ToCss};
-use style_traits::values::SequenceWriter;
 use crate::values::CustomIdent;
 use crate::values::computed::{Angle as ComputedAngle, Percentage as ComputedPercentage};
 use crate::values::computed::{font as computed, Context, Length, NonNegativeLength, ToComputedValue};
@@ -27,6 +18,15 @@ use crate::values::generics::font::{KeywordSize, VariationValue};
 use crate::values::generics::font::{self as generics, FeatureTagValue, FontSettings, FontTag};
 use crate::values::specified::{AllowQuirks, Angle, Integer, LengthOrPercentage, NoCalcLength, Number, Percentage};
 use crate::values::specified::length::{FontBaseSize, AU_PER_PT, AU_PER_PX};
+use cssparser::{Parser, Token};
+#[cfg(feature = "gecko")]
+use gecko_bindings::bindings;
+#[cfg(feature = "gecko")]
+use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
+use std::fmt::{self, Write};
+use style_traits::{CssWriter, KeywordsCollectFn, ParseError};
+use style_traits::{SpecifiedValueInfo, StyleParseErrorKind, ToCss};
+use style_traits::values::SequenceWriter;
 
 // FIXME(emilio): The system font code is copy-pasta, and should be cleaned up.
 macro_rules! system_font_methods {

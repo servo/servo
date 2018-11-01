@@ -9,13 +9,13 @@
 #![deny(missing_docs)]
 
 use crate::Atom;
-pub use cssparser::{serialize_identifier, serialize_name, CowRcStr, Parser, SourceLocation, Token, RGBA};
 use crate::parser::{Parse, ParserContext};
+use crate::values::distance::{ComputeSquaredDistance, SquaredDistance};
+pub use cssparser::{serialize_identifier, serialize_name, CowRcStr, Parser, SourceLocation, Token, RGBA};
 use selectors::parser::SelectorParseErrorKind;
 use std::fmt::{self, Debug, Write};
 use std::hash;
 use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
-use crate::values::distance::{ComputeSquaredDistance, SquaredDistance};
 
 #[cfg(feature = "servo")]
 pub use crate::servo::url::CssUrl;

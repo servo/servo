@@ -8,15 +8,15 @@
 
 use crate::{Atom, CaseSensitivityExt, LocalName, Namespace, Prefix};
 use crate::attr::{AttrIdentifier, AttrValue};
-use cssparser::{serialize_identifier, CowRcStr, Parser as CssParser, SourceLocation, ToCss};
 use crate::dom::{OpaqueNode, TElement, TNode};
 use crate::element_state::{DocumentState, ElementState};
-use fxhash::FxHashMap;
 use crate::invalidation::element::document_state::InvalidationMatchingData;
 use crate::invalidation::element::element_wrapper::ElementSnapshot;
 use crate::properties::{ComputedValues, PropertyFlags};
 use crate::properties::longhands::display::computed_value::T as Display;
 use crate::selector_parser::{AttrValue as SelectorAttrValue, PseudoElementCascadeType, SelectorParser};
+use cssparser::{serialize_identifier, CowRcStr, Parser as CssParser, SourceLocation, ToCss};
+use fxhash::FxHashMap;
 use selectors::attr::{AttrSelectorOperation, CaseSensitivity, NamespaceConstraint};
 use selectors::parser::{SelectorParseErrorKind, Visit};
 use selectors::visitor::SelectorVisitor;

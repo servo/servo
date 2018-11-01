@@ -6,9 +6,9 @@
 
 use app_units::Au;
 use byteorder::{BigEndian, ReadBytesExt};
+use crate::parser::{Parse, ParserContext};
 use cssparser::Parser;
 use num_traits::One;
-use crate::parser::{Parse, ParserContext};
 use std::fmt::{self, Write};
 use std::io::Cursor;
 use style_traits::{CssWriter, KeywordsCollectFn, ParseError};

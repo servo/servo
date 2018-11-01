@@ -3,10 +3,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use crate::cg;
+use crate::to_css::CssVariantAttrs;
 use quote::Tokens;
 use syn::{DeriveInput, Path};
 use synstructure;
-use crate::to_css::CssVariantAttrs;
 
 #[darling(attributes(parse), default)]
 #[derive(Default, FromVariant)]

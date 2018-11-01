@@ -7,24 +7,24 @@
 #![deny(missing_docs)]
 
 use crate::context::QuirksMode;
-use cssparser::{DeclarationListParser, parse_important, ParserInput, CowRcStr};
-use cssparser::{Parser, AtRuleParser, DeclarationParser, Delimiter, ParseErrorKind};
 use crate::custom_properties::{CustomPropertiesBuilder, CssEnvironment};
 use crate::error_reporting::{ParseErrorReporter, ContextualParseError};
-use itertools::Itertools;
 use crate::parser::ParserContext;
 use crate::properties::animated_properties::{AnimationValue, AnimationValueMap};
 use crate::shared_lock::Locked;
+use crate::str::{CssString, CssStringBorrow, CssStringWriter};
+use crate::stylesheets::{CssRuleType, Origin, UrlExtraData};
+use crate::values::computed::Context;
+use cssparser::{DeclarationListParser, parse_important, ParserInput, CowRcStr};
+use cssparser::{Parser, AtRuleParser, DeclarationParser, Delimiter, ParseErrorKind};
+use itertools::Itertools;
 use smallbitvec::{self, SmallBitVec};
 use smallvec::SmallVec;
 use std::fmt::{self, Write};
 use std::iter::{DoubleEndedIterator, Zip};
 use std::slice::Iter;
-use crate::str::{CssString, CssStringBorrow, CssStringWriter};
 use style_traits::{CssWriter, ParseError, ParsingMode, StyleParseErrorKind, ToCss};
-use crate::stylesheets::{CssRuleType, Origin, UrlExtraData};
 use super::*;
-use crate::values::computed::Context;
 
 /// The animation rules.
 ///

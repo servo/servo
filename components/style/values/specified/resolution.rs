@@ -6,10 +6,10 @@
 //!
 //! https://drafts.csswg.org/css-values/#resolution
 
-use cssparser::{Parser, Token};
 use crate::parser::{Parse, ParserContext};
-use style_traits::{ParseError, StyleParseErrorKind};
 use crate::values::CSSFloat;
+use cssparser::{Parser, Token};
+use style_traits::{ParseError, StyleParseErrorKind};
 
 /// A specified resolution.
 #[derive(Clone, Debug, MallocSizeOf, PartialEq, ToCss)]

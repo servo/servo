@@ -2,8 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use fxhash::FxHashMap;
 use crate::tree::OpaqueElement;
+use fxhash::FxHashMap;
 
 /// A cache to speed up matching of nth-index-like selectors.
 ///
