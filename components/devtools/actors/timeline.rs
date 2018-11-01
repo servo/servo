@@ -5,12 +5,12 @@
 use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
 use crate::actors::framerate::FramerateActor;
 use crate::actors::memory::{MemoryActor, TimelineMemoryReply};
+use crate::protocol::JsonPacketStream;
 use devtools_traits::{PreciseTime, TimelineMarker, TimelineMarkerType};
 use devtools_traits::DevtoolScriptControlMsg;
 use devtools_traits::DevtoolScriptControlMsg::{DropTimelineMarkers, SetTimelineMarkers};
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use msg::constellation_msg::PipelineId;
-use crate::protocol::JsonPacketStream;
 use serde::{Serialize, Serializer};
 use serde_json::{Map, Value};
 use std::cell::RefCell;

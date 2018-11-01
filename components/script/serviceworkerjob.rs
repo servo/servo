@@ -17,12 +17,12 @@ use crate::dom::promise::Promise;
 use crate::dom::serviceworkerregistration::ServiceWorkerRegistration;
 use crate::dom::urlhelper::UrlHelper;
 use crate::script_thread::ScriptThread;
+use crate::task_source::TaskSource;
+use crate::task_source::dom_manipulation::DOMManipulationTaskSource;
 use servo_url::ServoUrl;
 use std::cmp::PartialEq;
 use std::collections::HashMap;
 use std::rc::Rc;
-use crate::task_source::TaskSource;
-use crate::task_source::dom_manipulation::DOMManipulationTaskSource;
 
 #[derive(Clone, Copy, Debug, JSTraceable, PartialEq)]
 pub enum JobType {

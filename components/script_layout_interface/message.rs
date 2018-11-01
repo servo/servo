@@ -2,8 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use crate::{OpaqueStyleAndLayoutData, PendingImage, TrustedNodeAddress};
 use app_units::Au;
+use crate::{OpaqueStyleAndLayoutData, PendingImage, TrustedNodeAddress};
+use crate::rpc::LayoutRPC;
 use euclid::{Point2D, Rect};
 use gfx_traits::Epoch;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
@@ -11,7 +12,6 @@ use metrics::PaintTimeMetrics;
 use msg::constellation_msg::PipelineId;
 use net_traits::image_cache::ImageCache;
 use profile_traits::mem::ReportsChan;
-use crate::rpc::LayoutRPC;
 use script_traits::{ConstellationControlMsg, LayoutControlMsg, LayoutMsg as ConstellationMsg};
 use script_traits::{ScrollState, UntrustedNodeAddress, WindowSizeData};
 use script_traits::Painter;

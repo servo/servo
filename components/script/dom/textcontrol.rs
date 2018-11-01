@@ -15,8 +15,8 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::event::{EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::node::{Node, NodeDamage, window_from_node};
-use script_traits::ScriptToConstellationChan;
 use crate::textinput::{SelectionDirection, SelectionState, TextInput};
+use script_traits::ScriptToConstellationChan;
 
 pub trait TextControlElement: DerivedFrom<EventTarget> + DerivedFrom<Node> {
     fn selection_api_applies(&self) -> bool;

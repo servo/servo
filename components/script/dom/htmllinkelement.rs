@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use cssparser::{Parser as CssParser, ParserInput};
 use crate::dom::attr::Attr;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::DOMTokenListBinding::DOMTokenListBinding::DOMTokenListMethods;
@@ -20,6 +19,8 @@ use crate::dom::htmlelement::HTMLElement;
 use crate::dom::node::{Node, UnbindContext, document_from_node, window_from_node};
 use crate::dom::stylesheet::StyleSheet as DOMStyleSheet;
 use crate::dom::virtualmethods::VirtualMethods;
+use crate::stylesheet_loader::{StylesheetLoader, StylesheetContextSource, StylesheetOwner};
+use cssparser::{Parser as CssParser, ParserInput};
 use dom_struct::dom_struct;
 use embedder_traits::EmbedderMsg;
 use html5ever::{LocalName, Prefix};
@@ -34,7 +35,6 @@ use style::parser::ParserContext as CssParserContext;
 use style::str::HTML_SPACE_CHARACTERS;
 use style::stylesheets::{CssRuleType, Stylesheet};
 use style_traits::ParsingMode;
-use crate::stylesheet_loader::{StylesheetLoader, StylesheetContextSource, StylesheetOwner};
 
 #[derive(Clone, Copy, JSTraceable, MallocSizeOf, PartialEq)]
 pub struct RequestGenerationId(u32);

@@ -3,12 +3,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use bincode;
-use ipc_channel::ipc;
-use serde::{Deserialize, Serialize};
-use std::io::Error;
 use crate::time;
 use crate::time::ProfilerCategory;
 use crate::time::ProfilerChan;
+use ipc_channel::ipc;
+use serde::{Deserialize, Serialize};
+use std::io::Error;
 
 pub struct IpcReceiver<T>
 where

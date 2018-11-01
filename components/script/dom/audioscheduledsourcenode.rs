@@ -1,6 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
 use crate::dom::audionode::{AudioNode, UnwrappedAudioNodeOptions};
 use crate::dom::baseaudiocontext::BaseAudioContext;
 use crate::dom::bindings::codegen::Bindings::AudioScheduledSourceNodeBinding::AudioScheduledSourceNodeMethods;
@@ -9,11 +10,11 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomObject;
+use crate::task_source::{TaskSource, TaskSourceName};
 use dom_struct::dom_struct;
 use servo_media::audio::node::{AudioNodeMessage, AudioNodeInit, AudioScheduledSourceNodeMessage};
 use servo_media::audio::node::OnEndedCallback;
 use std::cell::Cell;
-use crate::task_source::{TaskSource, TaskSourceName};
 
 #[dom_struct]
 pub struct AudioScheduledSourceNode {

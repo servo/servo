@@ -14,13 +14,13 @@ use crate::dom::bindings::str::USVString;
 use crate::dom::bindings::structuredclone::StructuredCloneData;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
+use crate::task::TaskOnce;
 use dom_struct::dom_struct;
 use js::jsapi::JSContext;
 use js::rust::HandleValue;
 use script_traits::{ScriptMsg, DOMMessage};
 use servo_url::ServoUrl;
 use std::cell::Cell;
-use crate::task::TaskOnce;
 
 pub type TrustedServiceWorkerAddress = Trusted<ServiceWorker>;
 

@@ -3,14 +3,17 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use app_units::Au;
-use euclid::{Point2D, Rect, Size2D};
 use crate::font_context::{FontContext, FontSource};
 use crate::font_template::FontTemplateDescriptor;
-use ordered_float::NotNan;
 use crate::platform::font::{FontHandle, FontTable};
 use crate::platform::font_context::FontContextHandle;
 pub use crate::platform::font_list::fallback_font_families;
 use crate::platform::font_template::FontTemplateData;
+use crate::text::Shaper;
+use crate::text::glyph::{ByteIndex, GlyphData, GlyphId, GlyphStore};
+use crate::text::shaping::ShaperMethods;
+use euclid::{Point2D, Rect, Size2D};
+use ordered_float::NotNan;
 use servo_atoms::Atom;
 use smallvec::SmallVec;
 use std::borrow::ToOwned;
@@ -24,9 +27,6 @@ use std::sync::atomic::{ATOMIC_USIZE_INIT, AtomicUsize, Ordering};
 use style::computed_values::{font_stretch, font_style, font_variant_caps, font_weight};
 use style::properties::style_structs::Font as FontStyleStruct;
 use style::values::computed::font::SingleFontFamily;
-use crate::text::Shaper;
-use crate::text::glyph::{ByteIndex, GlyphData, GlyphId, GlyphStore};
-use crate::text::shaping::ShaperMethods;
 use time;
 use unicode_script::Script;
 use webrender_api;

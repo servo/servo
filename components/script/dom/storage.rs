@@ -13,6 +13,7 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::storageevent::StorageEvent;
 use crate::dom::window::Window;
+use crate::task_source::TaskSource;
 use dom_struct::dom_struct;
 use ipc_channel::ipc::IpcSender;
 use net_traits::IpcSend;
@@ -20,7 +21,6 @@ use net_traits::storage_thread::{StorageThreadMsg, StorageType};
 use profile_traits::ipc;
 use script_traits::ScriptMsg;
 use servo_url::ServoUrl;
-use crate::task_source::TaskSource;
 
 #[dom_struct]
 pub struct Storage {

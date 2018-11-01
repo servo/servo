@@ -2,14 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use crate::ServoArc;
 use app_units::{Au, MIN_AU};
+use crate::ServoArc;
 use crate::block::AbsoluteAssignBSizesTraversal;
 use crate::context::{LayoutContext, LayoutFontContext};
 use crate::display_list::{DisplayListBuildState, InlineFlowDisplayListBuilding};
 use crate::display_list::StackingContextCollectionState;
 use crate::display_list::items::OpaqueNode;
-use euclid::{Point2D, Size2D};
 use crate::floats::{FloatKind, Floats, PlacementInfo};
 use crate::flow::{BaseFlow, Flow, FlowClass, ForceNonfloatedFlag};
 use crate::flow::{FlowFlags, EarlyAbsolutePositionInfo, GetBaseFlow, OpaqueFlow};
@@ -17,10 +16,13 @@ use crate::flow_ref::FlowRef;
 use crate::fragment::{CoordinateSystem, Fragment, FragmentBorderBoxIterator, Overflow};
 use crate::fragment::FragmentFlags;
 use crate::fragment::SpecificFragmentInfo;
-use gfx::font::FontMetrics;
-use gfx_traits::print_tree::PrintTree;
 use crate::layout_debug;
 use crate::model::IntrinsicISizesContribution;
+use crate::text;
+use crate::traversal::PreorderFlowTraversal;
+use euclid::{Point2D, Size2D};
+use gfx::font::FontMetrics;
+use gfx_traits::print_tree::PrintTree;
 use range::{Range, RangeIndex};
 use script_layout_interface::wrapper_traits::PseudoElementType;
 use std::{fmt, i32, isize, mem};
@@ -39,8 +41,6 @@ use style::servo::restyle_damage::ServoRestyleDamage;
 use style::values::computed::box_::VerticalAlign;
 use style::values::generics::box_::VerticalAlign as GenericVerticalAlign;
 use style::values::specified::text::TextOverflowSide;
-use crate::text;
-use crate::traversal::PreorderFlowTraversal;
 use unicode_bidi as bidi;
 
 /// `Line`s are represented as offsets into the child list, rather than

@@ -3,13 +3,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use app_units::Au;
-use fnv::FnvHasher;
 use crate::font::{Font, FontDescriptor, FontFamilyDescriptor, FontGroup, FontHandleMethods, FontRef};
 use crate::font_cache_thread::FontTemplateInfo;
 use crate::font_template::FontTemplateDescriptor;
-use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use crate::platform::font::FontHandle;
 pub use crate::platform::font_context::FontContextHandle;
+use fnv::FnvHasher;
+use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use servo_arc::Arc;
 use std::cell::RefCell;
 use std::collections::HashMap;

@@ -17,12 +17,12 @@ use crate::font::{FontHandleMethods, FontMetrics, FontTableMethods, FontTableTag
 use crate::font::{GPOS, GSUB, KERN};
 use crate::platform::font_template::FontTemplateData;
 use crate::platform::macos::font_context::FontContextHandle;
+use crate::text::glyph::GlyphId;
 use servo_atoms::Atom;
 use std::{fmt, ptr};
 use std::ops::Range;
 use std::sync::Arc;
 use style::values::computed::font::{FontStretch, FontStyle, FontWeight};
-use crate::text::glyph::GlyphId;
 
 const KERN_PAIR_LEN: usize = 6;
 

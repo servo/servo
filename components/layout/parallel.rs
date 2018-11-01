@@ -12,6 +12,8 @@ use crate::block::BlockFlow;
 use crate::context::LayoutContext;
 use crate::flow::{Flow, GetBaseFlow};
 use crate::flow_ref::FlowRef;
+use crate::traversal::{AssignBSizes, AssignISizes, BubbleISizes};
+use crate::traversal::{PostorderFlowTraversal, PreorderFlowTraversal};
 use profile_traits::time::{self, TimerMetadata, profile};
 use rayon;
 use servo_config::opts;
@@ -19,8 +21,6 @@ use smallvec::SmallVec;
 use std::mem;
 use std::ptr;
 use std::sync::atomic::{AtomicIsize, Ordering};
-use crate::traversal::{AssignBSizes, AssignISizes, BubbleISizes};
-use crate::traversal::{PostorderFlowTraversal, PreorderFlowTraversal};
 
 /// Traversal chunk size.
 const CHUNK_SIZE: usize = 16;

@@ -7,16 +7,16 @@
 use app_units::Au;
 use crate::context::LayoutContext;
 use crate::display_list::{DisplayListBuildState, StackingContextCollectionState};
-use euclid::{Point2D, Vector2D};
 use crate::floats::SpeculatedFloatPlacement;
 use crate::flow::{Flow, ImmutableFlowUtils, FlowFlags, GetBaseFlow};
 use crate::fragment::{FragmentBorderBoxIterator, CoordinateSystem};
 use crate::generated_content::ResolveGeneratedContent;
 use crate::incremental::RelayoutMode;
-use servo_config::opts;
-use style::servo::restyle_damage::ServoRestyleDamage;
 use crate::traversal::{AssignBSizes, AssignISizes, BubbleISizes, BuildDisplayList};
 use crate::traversal::{InorderFlowTraversal, PostorderFlowTraversal, PreorderFlowTraversal};
+use euclid::{Point2D, Vector2D};
+use servo_config::opts;
+use style::servo::restyle_damage::ServoRestyleDamage;
 use webrender_api::LayoutPoint;
 
 pub fn resolve_generated_content(root: &mut Flow, layout_context: &LayoutContext) {

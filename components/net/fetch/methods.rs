@@ -4,11 +4,12 @@
 
 use crate::blob_loader::load_blob_sync;
 use crate::data_loader::decode;
-use devtools_traits::DevtoolsControlMsg;
 use crate::fetch::cors_cache::CorsCache;
 use crate::filemanager_thread::FileManager;
 use crate::http_loader::{HttpState, determine_request_referrer, http_fetch};
 use crate::http_loader::{set_default_accept, set_default_accept_language};
+use crate::subresource_integrity::is_response_integrity_valid;
+use devtools_traits::DevtoolsControlMsg;
 use headers_core::HeaderMapExt;
 use headers_ext::{AccessControlExposeHeaders, ContentType, Range};
 use http::header::{self, HeaderMap, HeaderName, HeaderValue};
@@ -32,7 +33,6 @@ use std::str;
 use std::sync::{Arc, Mutex};
 use std::sync::atomic::Ordering;
 use std::thread;
-use crate::subresource_integrity::is_response_integrity_valid;
 
 lazy_static! {
     static ref X_CONTENT_TYPE_OPTIONS: HeaderName =

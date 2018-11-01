@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use cssparser::{Parser as CssParser, ParserInput};
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::HTMLStyleElementBinding;
 use crate::dom::bindings::codegen::Bindings::HTMLStyleElementBinding::HTMLStyleElementMethods;
@@ -16,6 +15,8 @@ use crate::dom::htmlelement::HTMLElement;
 use crate::dom::node::{ChildrenMutation, Node, UnbindContext, document_from_node, window_from_node};
 use crate::dom::stylesheet::StyleSheet as DOMStyleSheet;
 use crate::dom::virtualmethods::VirtualMethods;
+use crate::stylesheet_loader::{StylesheetLoader, StylesheetOwner};
+use cssparser::{Parser as CssParser, ParserInput};
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
 use net_traits::ReferrerPolicy;
@@ -25,7 +26,6 @@ use style::media_queries::MediaList;
 use style::parser::ParserContext as CssParserContext;
 use style::stylesheets::{CssRuleType, Stylesheet, Origin};
 use style_traits::ParsingMode;
-use crate::stylesheet_loader::{StylesheetLoader, StylesheetOwner};
 
 #[dom_struct]
 pub struct HTMLStyleElement {

@@ -7,7 +7,7 @@
 #[cfg(feature = "js_backtrace")]
 use backtrace::Backtrace;
 #[cfg(feature = "js_backtrace")]
-use dom::bindings::cell::DomRefCell;
+use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::DOMExceptionBinding::DOMExceptionMethods;
 use crate::dom::bindings::codegen::PrototypeList::proto_id_to_name;
 use crate::dom::bindings::conversions::{ConversionResult, FromJSValConvertible, ToJSValConvertible};

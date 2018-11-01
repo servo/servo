@@ -7,10 +7,10 @@
 use crate::context::LayoutContext;
 use crate::display_list::items::OpaqueNode;
 use crate::flow::{Flow, GetBaseFlow};
+use crate::opaque_node::OpaqueNodeMethods;
 use fxhash::FxHashMap;
 use ipc_channel::ipc::IpcSender;
 use msg::constellation_msg::PipelineId;
-use crate::opaque_node::OpaqueNodeMethods;
 use script_traits::{AnimationState, ConstellationControlMsg, LayoutMsg as ConstellationMsg};
 use script_traits::UntrustedNodeAddress;
 use servo_channel::Receiver;

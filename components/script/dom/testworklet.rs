@@ -18,8 +18,8 @@ use crate::dom::promise::Promise;
 use crate::dom::window::Window;
 use crate::dom::worklet::Worklet;
 use crate::dom::workletglobalscope::WorkletGlobalScopeType;
-use dom_struct::dom_struct;
 use crate::script_thread::ScriptThread;
+use dom_struct::dom_struct;
 use std::rc::Rc;
 
 #[dom_struct]

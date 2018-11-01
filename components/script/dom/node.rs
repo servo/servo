@@ -5,7 +5,6 @@
 //! The core DOM types. Defines the basic DOM hierarchy as well as all the HTML elements.
 
 use app_units::Au;
-use devtools_traits::NodeInfo;
 use crate::document_loader::DocumentLoader;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::CharacterDataBinding::CharacterDataMethods;
@@ -55,6 +54,8 @@ use crate::dom::svgsvgelement::{SVGSVGElement, LayoutSVGSVGElementHelpers};
 use crate::dom::text::Text;
 use crate::dom::virtualmethods::{VirtualMethods, vtable_for};
 use crate::dom::window::Window;
+use crate::script_thread::ScriptThread;
+use devtools_traits::NodeInfo;
 use dom_struct::dom_struct;
 use euclid::{Point2D, Vector2D, Rect, Size2D};
 use html5ever::{Prefix, Namespace, QualName};
@@ -67,7 +68,6 @@ use ref_slice::ref_slice;
 use script_layout_interface::{HTMLCanvasData, HTMLMediaData, LayoutElementType, LayoutNodeType};
 use script_layout_interface::{OpaqueStyleAndLayoutData, SVGSVGData, TrustedNodeAddress};
 use script_layout_interface::message::Msg;
-use crate::script_thread::ScriptThread;
 use script_traits::DocumentActivity;
 use script_traits::UntrustedNodeAddress;
 use selectors::matching::{matches_selector_list, MatchingContext, MatchingMode};
