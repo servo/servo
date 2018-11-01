@@ -4,27 +4,27 @@
 
 //! The `Fragment` type, which represents the leaves of the layout tree.
 
-use ServoArc;
+use crate::ServoArc;
 use app_units::Au;
 use canvas_traits::canvas::{CanvasMsg, CanvasId};
-use context::{LayoutContext, with_thread_local_font_context};
-use display_list::ToLayout;
-use display_list::items::{BLUR_INFLATION_FACTOR, ClipScrollNodeIndex, OpaqueNode};
+use crate::context::{LayoutContext, with_thread_local_font_context};
+use crate::display_list::ToLayout;
+use crate::display_list::items::{BLUR_INFLATION_FACTOR, ClipScrollNodeIndex, OpaqueNode};
 use euclid::{Point2D, Vector2D, Rect, Size2D};
-use floats::ClearType;
-use flow::{GetBaseFlow, ImmutableFlowUtils};
-use flow_ref::FlowRef;
+use crate::floats::ClearType;
+use crate::flow::{GetBaseFlow, ImmutableFlowUtils};
+use crate::flow_ref::FlowRef;
 use gfx;
 use gfx::text::glyph::ByteIndex;
 use gfx::text::text_run::{TextRun, TextRunSlice};
 use gfx_traits::StackingContextId;
-use inline::{InlineFragmentNodeFlags, InlineFragmentContext, InlineFragmentNodeInfo};
-use inline::{InlineMetrics, LineMetrics};
+use crate::inline::{InlineFragmentNodeFlags, InlineFragmentContext, InlineFragmentNodeInfo};
+use crate::inline::{InlineMetrics, LineMetrics};
 use ipc_channel::ipc::IpcSender;
 #[cfg(debug_assertions)]
-use layout_debug;
-use model::{self, IntrinsicISizes, IntrinsicISizesContribution, MaybeAuto, SizeConstraint};
-use model::style_length;
+use crate::layout_debug;
+use crate::model::{self, IntrinsicISizes, IntrinsicISizesContribution, MaybeAuto, SizeConstraint};
+use crate::model::style_length;
 use msg::constellation_msg::{BrowsingContextId, PipelineId};
 use net_traits::image::base::{Image, ImageMetadata};
 use net_traits::image_cache::{ImageOrMetadataAvailable, UsePlaceholder};
@@ -60,10 +60,10 @@ use style::values::computed::{Length, LengthOrPercentage, LengthOrPercentageOrAu
 use style::values::computed::counters::ContentItem;
 use style::values::generics::box_::{Perspective, VerticalAlign};
 use style::values::generics::transform;
-use text;
-use text::TextRunScanner;
+use crate::text;
+use crate::text::TextRunScanner;
 use webrender_api::{self, LayoutTransform};
-use wrapper::ThreadSafeLayoutNodeHelpers;
+use crate::wrapper::ThreadSafeLayoutNodeHelpers;
 
 // From gfxFontConstants.h in Firefox.
 static FONT_SUBSCRIPT_OFFSET_RATIO: f32 = 0.20;

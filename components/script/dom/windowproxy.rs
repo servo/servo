@@ -2,21 +2,21 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::cell::DomRefCell;
-use dom::bindings::conversions::{ToJSValConvertible, root_from_handleobject};
-use dom::bindings::error::{Error, throw_dom_exception};
-use dom::bindings::inheritance::Castable;
-use dom::bindings::proxyhandler::{fill_property_descriptor, get_property_descriptor};
-use dom::bindings::reflector::{DomObject, Reflector};
-use dom::bindings::root::{Dom, DomRoot, RootedReference};
-use dom::bindings::str::DOMString;
-use dom::bindings::trace::JSTraceable;
-use dom::bindings::utils::{WindowProxyHandler, get_array_index_from_id, AsVoidPtr};
-use dom::dissimilaroriginwindow::DissimilarOriginWindow;
-use dom::document::Document;
-use dom::element::Element;
-use dom::globalscope::GlobalScope;
-use dom::window::Window;
+use crate::dom::bindings::cell::DomRefCell;
+use crate::dom::bindings::conversions::{ToJSValConvertible, root_from_handleobject};
+use crate::dom::bindings::error::{Error, throw_dom_exception};
+use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::proxyhandler::{fill_property_descriptor, get_property_descriptor};
+use crate::dom::bindings::reflector::{DomObject, Reflector};
+use crate::dom::bindings::root::{Dom, DomRoot, RootedReference};
+use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::trace::JSTraceable;
+use crate::dom::bindings::utils::{WindowProxyHandler, get_array_index_from_id, AsVoidPtr};
+use crate::dom::dissimilaroriginwindow::DissimilarOriginWindow;
+use crate::dom::document::Document;
+use crate::dom::element::Element;
+use crate::dom::globalscope::GlobalScope;
+use crate::dom::window::Window;
 use dom_struct::dom_struct;
 use embedder_traits::EmbedderMsg;
 use ipc_channel::ipc;
@@ -43,7 +43,7 @@ use js::rust::wrappers::{NewWindowProxy, SetWindowProxy, JS_TransplantObject};
 use msg::constellation_msg::BrowsingContextId;
 use msg::constellation_msg::PipelineId;
 use msg::constellation_msg::TopLevelBrowsingContextId;
-use script_thread::ScriptThread;
+use crate::script_thread::ScriptThread;
 use script_traits::{AuxiliaryBrowsingContextLoadInfo, LoadData, NewLayoutInfo, ScriptMsg};
 use servo_config::prefs::PREFS;
 use servo_url::ServoUrl;

@@ -4,9 +4,9 @@
 
 //! Common handling of keyboard input and state management for text input controls
 
-use clipboard_provider::ClipboardProvider;
-use dom::bindings::str::DOMString;
-use dom::keyboardevent::KeyboardEvent;
+use crate::clipboard_provider::ClipboardProvider;
+use crate::dom::bindings::str::DOMString;
+use crate::dom::keyboardevent::KeyboardEvent;
 use keyboard_types::{Key, KeyState, Modifiers, ShortcutMatcher};
 use std::borrow::ToOwned;
 use std::cmp::{max, min};

@@ -5,9 +5,9 @@
 // FIXME(rust-lang/rust#26264): Remove GenericBackgroundSize.
 
 use app_units::Au;
-use display_list::border;
+use crate::display_list::border;
 use euclid::{Point2D, Rect, SideOffsets2D, Size2D};
-use model::MaybeAuto;
+use crate::model::MaybeAuto;
 use style::computed_values::background_attachment::single_value::T as BackgroundAttachment;
 use style::computed_values::background_clip::single_value::T as BackgroundClip;
 use style::computed_values::background_origin::single_value::T as BackgroundOrigin;

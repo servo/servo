@@ -3,16 +3,16 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use app_units::Au;
-use font::{Font, FontHandleMethods, FontMetrics, ShapingFlags};
-use font::{RunMetrics, ShapingOptions};
-use platform::font_template::FontTemplateData;
+use crate::font::{Font, FontHandleMethods, FontMetrics, ShapingFlags};
+use crate::font::{RunMetrics, ShapingOptions};
+use crate::platform::font_template::FontTemplateData;
 use range::Range;
 use std::cell::Cell;
 use std::cmp::{Ordering, max};
 use std::slice::Iter;
 use std::sync::Arc;
 use style::str::char_is_whitespace;
-use text::glyph::{ByteIndex, GlyphStore};
+use crate::text::glyph::{ByteIndex, GlyphStore};
 use unicode_bidi as bidi;
 use webrender_api;
 use xi_unicode::LineBreakLeafIter;

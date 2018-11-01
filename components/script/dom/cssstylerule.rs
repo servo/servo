@@ -4,16 +4,16 @@
 
 use cssparser::{Parser as CssParser, ParserInput as CssParserInput};
 use cssparser::ToCss;
-use dom::bindings::codegen::Bindings::CSSStyleRuleBinding::{self, CSSStyleRuleMethods};
-use dom::bindings::codegen::Bindings::WindowBinding::WindowBinding::WindowMethods;
-use dom::bindings::inheritance::Castable;
-use dom::bindings::reflector::{DomObject, reflect_dom_object};
-use dom::bindings::root::{Dom, DomRoot, MutNullableDom};
-use dom::bindings::str::DOMString;
-use dom::cssrule::{CSSRule, SpecificCSSRule};
-use dom::cssstyledeclaration::{CSSModificationAccess, CSSStyleDeclaration, CSSStyleOwner};
-use dom::cssstylesheet::CSSStyleSheet;
-use dom::window::Window;
+use crate::dom::bindings::codegen::Bindings::CSSStyleRuleBinding::{self, CSSStyleRuleMethods};
+use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowBinding::WindowMethods;
+use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::reflector::{DomObject, reflect_dom_object};
+use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
+use crate::dom::bindings::str::DOMString;
+use crate::dom::cssrule::{CSSRule, SpecificCSSRule};
+use crate::dom::cssstyledeclaration::{CSSModificationAccess, CSSStyleDeclaration, CSSStyleOwner};
+use crate::dom::cssstylesheet::CSSStyleSheet;
+use crate::dom::window::Window;
 use dom_struct::dom_struct;
 use selectors::parser::SelectorList;
 use servo_arc::Arc;
@@ -58,7 +58,7 @@ impl CSSStyleRule {
 
 impl SpecificCSSRule for CSSStyleRule {
     fn ty(&self) -> u16 {
-        use dom::bindings::codegen::Bindings::CSSRuleBinding::CSSRuleConstants;
+        use crate::dom::bindings::codegen::Bindings::CSSRuleBinding::CSSRuleConstants;
         CSSRuleConstants::STYLE_RULE
     }
 

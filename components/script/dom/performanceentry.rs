@@ -2,13 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::codegen::Bindings::PerformanceEntryBinding;
-use dom::bindings::codegen::Bindings::PerformanceEntryBinding::PerformanceEntryMethods;
-use dom::bindings::num::Finite;
-use dom::bindings::reflector::{Reflector, reflect_dom_object};
-use dom::bindings::root::DomRoot;
-use dom::bindings::str::DOMString;
-use dom::globalscope::GlobalScope;
+use crate::dom::bindings::codegen::Bindings::PerformanceEntryBinding;
+use crate::dom::bindings::codegen::Bindings::PerformanceEntryBinding::PerformanceEntryMethods;
+use crate::dom::bindings::num::Finite;
+use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
+use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::str::DOMString;
+use crate::dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
 
 #[dom_struct]

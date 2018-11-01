@@ -6,17 +6,17 @@
 //! microtask queues. It is up to implementations of event loops to store a queue and
 //! perform checkpoints at appropriate times, as well as enqueue microtasks as required.
 
-use dom::bindings::callback::ExceptionHandling;
-use dom::bindings::cell::DomRefCell;
-use dom::bindings::codegen::Bindings::PromiseBinding::PromiseJobCallback;
-use dom::bindings::root::DomRoot;
-use dom::globalscope::GlobalScope;
-use dom::htmlimageelement::ImageElementMicrotask;
-use dom::htmlmediaelement::MediaElementMicrotask;
-use dom::mutationobserver::MutationObserver;
+use crate::dom::bindings::callback::ExceptionHandling;
+use crate::dom::bindings::cell::DomRefCell;
+use crate::dom::bindings::codegen::Bindings::PromiseBinding::PromiseJobCallback;
+use crate::dom::bindings::root::DomRoot;
+use crate::dom::globalscope::GlobalScope;
+use crate::dom::htmlimageelement::ImageElementMicrotask;
+use crate::dom::htmlmediaelement::MediaElementMicrotask;
+use crate::dom::mutationobserver::MutationObserver;
 use msg::constellation_msg::PipelineId;
-use script_runtime::notify_about_rejected_promises;
-use script_thread::ScriptThread;
+use crate::script_runtime::notify_about_rejected_promises;
+use crate::script_thread::ScriptThread;
 use std::cell::Cell;
 use std::mem;
 use std::rc::Rc;

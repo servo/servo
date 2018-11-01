@@ -7,16 +7,16 @@
 //!
 //! https://html.spec.whatwg.org/multipage/#textFieldSelection
 
-use dom::bindings::cell::DomRefCell;
-use dom::bindings::codegen::Bindings::HTMLFormElementBinding::SelectionMode;
-use dom::bindings::conversions::DerivedFrom;
-use dom::bindings::error::{Error, ErrorResult};
-use dom::bindings::str::DOMString;
-use dom::event::{EventBubbles, EventCancelable};
-use dom::eventtarget::EventTarget;
-use dom::node::{Node, NodeDamage, window_from_node};
+use crate::dom::bindings::cell::DomRefCell;
+use crate::dom::bindings::codegen::Bindings::HTMLFormElementBinding::SelectionMode;
+use crate::dom::bindings::conversions::DerivedFrom;
+use crate::dom::bindings::error::{Error, ErrorResult};
+use crate::dom::bindings::str::DOMString;
+use crate::dom::event::{EventBubbles, EventCancelable};
+use crate::dom::eventtarget::EventTarget;
+use crate::dom::node::{Node, NodeDamage, window_from_node};
 use script_traits::ScriptToConstellationChan;
-use textinput::{SelectionDirection, SelectionState, TextInput};
+use crate::textinput::{SelectionDirection, SelectionState, TextInput};
 
 pub trait TextControlElement: DerivedFrom<EventTarget> + DerivedFrom<Node> {
     fn selection_api_applies(&self) -> bool;

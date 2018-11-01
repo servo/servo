@@ -2,12 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::codegen::Bindings::ImageDataBinding;
-use dom::bindings::codegen::Bindings::ImageDataBinding::ImageDataMethods;
-use dom::bindings::error::{Fallible, Error};
-use dom::bindings::reflector::{Reflector, reflect_dom_object};
-use dom::bindings::root::DomRoot;
-use dom::globalscope::GlobalScope;
+use crate::dom::bindings::codegen::Bindings::ImageDataBinding;
+use crate::dom::bindings::codegen::Bindings::ImageDataBinding::ImageDataMethods;
+use crate::dom::bindings::error::{Fallible, Error};
+use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
+use crate::dom::bindings::root::DomRoot;
+use crate::dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
 use euclid::{Rect, Size2D};
 use js::jsapi::{Heap, JSContext, JSObject};

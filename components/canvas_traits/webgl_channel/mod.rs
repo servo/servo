@@ -7,7 +7,7 @@
 mod ipc;
 mod mpsc;
 
-use ::webgl::WebGLMsg;
+use crate::webgl::WebGLMsg;
 use serde::{Deserialize, Serialize};
 use servo_config::opts;
 use std::fmt;

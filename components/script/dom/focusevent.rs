@@ -2,18 +2,18 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::codegen::Bindings::FocusEventBinding;
-use dom::bindings::codegen::Bindings::FocusEventBinding::FocusEventMethods;
-use dom::bindings::codegen::Bindings::UIEventBinding::UIEventMethods;
-use dom::bindings::error::Fallible;
-use dom::bindings::inheritance::Castable;
-use dom::bindings::reflector::reflect_dom_object;
-use dom::bindings::root::{DomRoot, MutNullableDom, RootedReference};
-use dom::bindings::str::DOMString;
-use dom::event::{EventBubbles, EventCancelable};
-use dom::eventtarget::EventTarget;
-use dom::uievent::UIEvent;
-use dom::window::Window;
+use crate::dom::bindings::codegen::Bindings::FocusEventBinding;
+use crate::dom::bindings::codegen::Bindings::FocusEventBinding::FocusEventMethods;
+use crate::dom::bindings::codegen::Bindings::UIEventBinding::UIEventMethods;
+use crate::dom::bindings::error::Fallible;
+use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::reflector::reflect_dom_object;
+use crate::dom::bindings::root::{DomRoot, MutNullableDom, RootedReference};
+use crate::dom::bindings::str::DOMString;
+use crate::dom::event::{EventBubbles, EventCancelable};
+use crate::dom::eventtarget::EventTarget;
+use crate::dom::uievent::UIEvent;
+use crate::dom::window::Window;
 use dom_struct::dom_struct;
 use std::default::Default;
 

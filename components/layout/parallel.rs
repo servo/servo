@@ -8,10 +8,10 @@
 
 #![allow(unsafe_code)]
 
-use block::BlockFlow;
-use context::LayoutContext;
-use flow::{Flow, GetBaseFlow};
-use flow_ref::FlowRef;
+use crate::block::BlockFlow;
+use crate::context::LayoutContext;
+use crate::flow::{Flow, GetBaseFlow};
+use crate::flow_ref::FlowRef;
 use profile_traits::time::{self, TimerMetadata, profile};
 use rayon;
 use servo_config::opts;
@@ -19,8 +19,8 @@ use smallvec::SmallVec;
 use std::mem;
 use std::ptr;
 use std::sync::atomic::{AtomicIsize, Ordering};
-use traversal::{AssignBSizes, AssignISizes, BubbleISizes};
-use traversal::{PostorderFlowTraversal, PreorderFlowTraversal};
+use crate::traversal::{AssignBSizes, AssignISizes, BubbleISizes};
+use crate::traversal::{PostorderFlowTraversal, PreorderFlowTraversal};
 
 /// Traversal chunk size.
 const CHUNK_SIZE: usize = 16;

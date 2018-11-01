@@ -3,10 +3,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use devtools_traits::{ConsoleMessage, LogLevel, ScriptToDevtoolsControlMsg};
-use dom::bindings::inheritance::Castable;
-use dom::bindings::str::DOMString;
-use dom::globalscope::GlobalScope;
-use dom::workerglobalscope::WorkerGlobalScope;
+use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::str::DOMString;
+use crate::dom::globalscope::GlobalScope;
+use crate::dom::workerglobalscope::WorkerGlobalScope;
 use std::io;
 
 // https://developer.mozilla.org/en-US/docs/Web/API/Console

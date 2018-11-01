@@ -2,14 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::cell::DomRefCell;
-use dom::bindings::codegen::Bindings::TimeRangesBinding;
-use dom::bindings::codegen::Bindings::TimeRangesBinding::TimeRangesMethods;
-use dom::bindings::error::{Error, Fallible};
-use dom::bindings::num::Finite;
-use dom::bindings::reflector::{Reflector, reflect_dom_object};
-use dom::bindings::root::DomRoot;
-use dom::window::Window;
+use crate::dom::bindings::cell::DomRefCell;
+use crate::dom::bindings::codegen::Bindings::TimeRangesBinding;
+use crate::dom::bindings::codegen::Bindings::TimeRangesBinding::TimeRangesMethods;
+use crate::dom::bindings::error::{Error, Fallible};
+use crate::dom::bindings::num::Finite;
+use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
+use crate::dom::bindings::root::DomRoot;
+use crate::dom::window::Window;
 use dom_struct::dom_struct;
 use std::fmt;
 

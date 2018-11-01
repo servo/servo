@@ -4,9 +4,9 @@
 
 use net_traits::{Action, FetchResponseListener, FetchResponseMsg};
 use std::sync::{Arc, Mutex};
-use task::{TaskCanceller, TaskOnce};
-use task_source::TaskSource;
-use task_source::networking::NetworkingTaskSource;
+use crate::task::{TaskCanceller, TaskOnce};
+use crate::task_source::TaskSource;
+use crate::task_source::networking::NetworkingTaskSource;
 
 /// An off-thread sink for async network event tasks. All such events are forwarded to
 /// a target thread, where they are invoked on the provided context object.

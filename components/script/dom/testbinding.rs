@@ -4,35 +4,35 @@
 
 // check-tidy: no specs after this line
 
-use dom::bindings::callback::ExceptionHandling;
-use dom::bindings::codegen::Bindings::EventListenerBinding::EventListener;
-use dom::bindings::codegen::Bindings::FunctionBinding::Function;
-use dom::bindings::codegen::Bindings::TestBindingBinding::{self, SimpleCallback};
-use dom::bindings::codegen::Bindings::TestBindingBinding::{TestBindingMethods, TestDictionary};
-use dom::bindings::codegen::Bindings::TestBindingBinding::{TestDictionaryDefaults, TestEnum};
-use dom::bindings::codegen::UnionTypes;
-use dom::bindings::codegen::UnionTypes::{BlobOrBoolean, BlobOrBlobSequence, LongOrLongSequenceSequence};
-use dom::bindings::codegen::UnionTypes::{BlobOrString, BlobOrUnsignedLong, EventOrString};
-use dom::bindings::codegen::UnionTypes::{ByteStringOrLong, ByteStringSequenceOrLongOrString};
-use dom::bindings::codegen::UnionTypes::{ByteStringSequenceOrLong, DocumentOrTestTypedef};
-use dom::bindings::codegen::UnionTypes::{EventOrUSVString, HTMLElementOrLong, LongSequenceOrTestTypedef};
-use dom::bindings::codegen::UnionTypes::{HTMLElementOrUnsignedLongOrStringOrBoolean, LongSequenceOrBoolean};
-use dom::bindings::codegen::UnionTypes::{StringOrLongSequence, StringOrStringSequence, StringSequenceOrUnsignedLong};
-use dom::bindings::codegen::UnionTypes::{StringOrUnsignedLong, StringOrBoolean, UnsignedLongOrBoolean};
-use dom::bindings::error::{Error, Fallible};
-use dom::bindings::mozmap::MozMap;
-use dom::bindings::num::Finite;
-use dom::bindings::refcounted::TrustedPromise;
-use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
-use dom::bindings::root::DomRoot;
-use dom::bindings::str::{ByteString, DOMString, USVString};
-use dom::bindings::trace::RootedTraceableBox;
-use dom::bindings::weakref::MutableWeakRef;
-use dom::blob::{Blob, BlobImpl};
-use dom::globalscope::GlobalScope;
-use dom::promise::Promise;
-use dom::promisenativehandler::{PromiseNativeHandler, Callback};
-use dom::url::URL;
+use crate::dom::bindings::callback::ExceptionHandling;
+use crate::dom::bindings::codegen::Bindings::EventListenerBinding::EventListener;
+use crate::dom::bindings::codegen::Bindings::FunctionBinding::Function;
+use crate::dom::bindings::codegen::Bindings::TestBindingBinding::{self, SimpleCallback};
+use crate::dom::bindings::codegen::Bindings::TestBindingBinding::{TestBindingMethods, TestDictionary};
+use crate::dom::bindings::codegen::Bindings::TestBindingBinding::{TestDictionaryDefaults, TestEnum};
+use crate::dom::bindings::codegen::UnionTypes;
+use crate::dom::bindings::codegen::UnionTypes::{BlobOrBoolean, BlobOrBlobSequence, LongOrLongSequenceSequence};
+use crate::dom::bindings::codegen::UnionTypes::{BlobOrString, BlobOrUnsignedLong, EventOrString};
+use crate::dom::bindings::codegen::UnionTypes::{ByteStringOrLong, ByteStringSequenceOrLongOrString};
+use crate::dom::bindings::codegen::UnionTypes::{ByteStringSequenceOrLong, DocumentOrTestTypedef};
+use crate::dom::bindings::codegen::UnionTypes::{EventOrUSVString, HTMLElementOrLong, LongSequenceOrTestTypedef};
+use crate::dom::bindings::codegen::UnionTypes::{HTMLElementOrUnsignedLongOrStringOrBoolean, LongSequenceOrBoolean};
+use crate::dom::bindings::codegen::UnionTypes::{StringOrLongSequence, StringOrStringSequence, StringSequenceOrUnsignedLong};
+use crate::dom::bindings::codegen::UnionTypes::{StringOrUnsignedLong, StringOrBoolean, UnsignedLongOrBoolean};
+use crate::dom::bindings::error::{Error, Fallible};
+use crate::dom::bindings::mozmap::MozMap;
+use crate::dom::bindings::num::Finite;
+use crate::dom::bindings::refcounted::TrustedPromise;
+use crate::dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
+use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::str::{ByteString, DOMString, USVString};
+use crate::dom::bindings::trace::RootedTraceableBox;
+use crate::dom::bindings::weakref::MutableWeakRef;
+use crate::dom::blob::{Blob, BlobImpl};
+use crate::dom::globalscope::GlobalScope;
+use crate::dom::promise::Promise;
+use crate::dom::promisenativehandler::{PromiseNativeHandler, Callback};
+use crate::dom::url::URL;
 use dom_struct::dom_struct;
 use js::jsapi::{Heap, JSContext, JSObject};
 use js::jsapi::{JS_NewPlainObject, JS_NewUint8ClampedArray};
@@ -46,7 +46,7 @@ use std::borrow::ToOwned;
 use std::ptr;
 use std::ptr::NonNull;
 use std::rc::Rc;
-use timers::OneshotTimerCallback;
+use crate::timers::OneshotTimerCallback;
 
 #[dom_struct]
 pub struct TestBinding {

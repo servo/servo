@@ -19,7 +19,7 @@ extern crate uuid;
 
 pub mod origin;
 
-pub use origin::{OpaqueOrigin, ImmutableOrigin, MutableOrigin};
+pub use crate::origin::{OpaqueOrigin, ImmutableOrigin, MutableOrigin};
 
 use std::fmt;
 use std::net::IpAddr;

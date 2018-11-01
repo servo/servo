@@ -6,9 +6,9 @@
 //!
 //! <https://html.spec.whatwg.org/multipage/#the-end>
 
-use dom::bindings::root::Dom;
-use dom::document::Document;
-use fetch::FetchCanceller;
+use crate::dom::bindings::root::Dom;
+use crate::dom::document::Document;
+use crate::fetch::FetchCanceller;
 use ipc_channel::ipc::IpcSender;
 use net_traits::{CoreResourceMsg, FetchChannels, FetchResponseMsg};
 use net_traits::{ResourceThreads, IpcSend};

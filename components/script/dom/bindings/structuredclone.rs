@@ -5,12 +5,12 @@
 //! This module implements structured cloning, as defined by [HTML]
 //! (https://html.spec.whatwg.org/multipage/#safe-passing-of-structured-data).
 
-use dom::bindings::conversions::root_from_handleobject;
-use dom::bindings::error::{Error, Fallible};
-use dom::bindings::reflector::DomObject;
-use dom::bindings::root::DomRoot;
-use dom::blob::{Blob, BlobImpl};
-use dom::globalscope::GlobalScope;
+use crate::dom::bindings::conversions::root_from_handleobject;
+use crate::dom::bindings::error::{Error, Fallible};
+use crate::dom::bindings::reflector::DomObject;
+use crate::dom::bindings::root::DomRoot;
+use crate::dom::blob::{Blob, BlobImpl};
+use crate::dom::globalscope::GlobalScope;
 use js::glue::CopyJSStructuredCloneData;
 use js::glue::DeleteJSAutoStructuredCloneBuffer;
 use js::glue::GetLengthOfJSStructuredCloneData;

@@ -2,13 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::codegen::Bindings::WorkerLocationBinding;
-use dom::bindings::codegen::Bindings::WorkerLocationBinding::WorkerLocationMethods;
-use dom::bindings::reflector::{Reflector, reflect_dom_object};
-use dom::bindings::root::DomRoot;
-use dom::bindings::str::{DOMString, USVString};
-use dom::urlhelper::UrlHelper;
-use dom::workerglobalscope::WorkerGlobalScope;
+use crate::dom::bindings::codegen::Bindings::WorkerLocationBinding;
+use crate::dom::bindings::codegen::Bindings::WorkerLocationBinding::WorkerLocationMethods;
+use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
+use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::str::{DOMString, USVString};
+use crate::dom::urlhelper::UrlHelper;
+use crate::dom::workerglobalscope::WorkerGlobalScope;
 use dom_struct::dom_struct;
 use servo_url::ServoUrl;
 

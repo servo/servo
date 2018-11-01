@@ -3,14 +3,14 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use devtools_traits::ScriptToDevtoolsControlMsg;
-use dom::bindings::inheritance::Castable;
-use dom::bindings::root::DomRoot;
-use dom::globalscope::GlobalScope;
-use dom::paintworkletglobalscope::PaintWorkletGlobalScope;
-use dom::paintworkletglobalscope::PaintWorkletTask;
-use dom::testworkletglobalscope::TestWorkletGlobalScope;
-use dom::testworkletglobalscope::TestWorkletTask;
-use dom::worklet::WorkletExecutor;
+use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::root::DomRoot;
+use crate::dom::globalscope::GlobalScope;
+use crate::dom::paintworkletglobalscope::PaintWorkletGlobalScope;
+use crate::dom::paintworkletglobalscope::PaintWorkletTask;
+use crate::dom::testworkletglobalscope::TestWorkletGlobalScope;
+use crate::dom::testworkletglobalscope::TestWorkletTask;
+use crate::dom::worklet::WorkletExecutor;
 use dom_struct::dom_struct;
 use ipc_channel::ipc;
 use ipc_channel::ipc::IpcSender;
@@ -22,7 +22,7 @@ use net_traits::ResourceThreads;
 use net_traits::image_cache::ImageCache;
 use profile_traits::mem;
 use profile_traits::time;
-use script_thread::MainThreadScriptMsg;
+use crate::script_thread::MainThreadScriptMsg;
 use script_traits::{Painter, ScriptMsg};
 use script_traits::{ScriptToConstellationChan, TimerSchedulerMsg};
 use servo_atoms::Atom;

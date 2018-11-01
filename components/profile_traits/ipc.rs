@@ -6,9 +6,9 @@ use bincode;
 use ipc_channel::ipc;
 use serde::{Deserialize, Serialize};
 use std::io::Error;
-use time;
-use time::ProfilerCategory;
-use time::ProfilerChan;
+use crate::time;
+use crate::time::ProfilerCategory;
+use crate::time::ProfilerChan;
 
 pub struct IpcReceiver<T>
 where

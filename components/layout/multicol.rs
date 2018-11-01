@@ -4,15 +4,15 @@
 
 //! CSS Multi-column layout http://dev.w3.org/csswg/css-multicol/
 
-use ServoArc;
+use crate::ServoArc;
 use app_units::Au;
-use block::BlockFlow;
-use context::LayoutContext;
-use display_list::{DisplayListBuildState, StackingContextCollectionState};
+use crate::block::BlockFlow;
+use crate::context::LayoutContext;
+use crate::display_list::{DisplayListBuildState, StackingContextCollectionState};
 use euclid::{Point2D, Vector2D};
-use floats::FloatKind;
-use flow::{Flow, FlowClass, OpaqueFlow, FragmentationContext, GetBaseFlow};
-use fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
+use crate::floats::FloatKind;
+use crate::flow::{Flow, FlowClass, OpaqueFlow, FragmentationContext, GetBaseFlow};
+use crate::fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
 use gfx_traits::print_tree::PrintTree;
 use std::cmp::{min, max};
 use std::fmt;
@@ -24,7 +24,7 @@ use style::values::computed::{LengthOrPercentageOrAuto, LengthOrPercentageOrNone
 use style::values::generics::column::ColumnCount;
 
 #[allow(unsafe_code)]
-unsafe impl ::flow::HasBaseFlow for MulticolFlow {}
+unsafe impl crate::flow::HasBaseFlow for MulticolFlow {}
 
 #[repr(C)]
 pub struct MulticolFlow {
@@ -36,7 +36,7 @@ pub struct MulticolFlow {
 }
 
 #[allow(unsafe_code)]
-unsafe impl ::flow::HasBaseFlow for MulticolColumnFlow {}
+unsafe impl crate::flow::HasBaseFlow for MulticolColumnFlow {}
 
 #[repr(C)]
 pub struct MulticolColumnFlow {

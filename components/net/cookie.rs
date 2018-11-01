@@ -5,7 +5,7 @@
 //! Implementation of cookie creation and matching as specified by
 //! http://tools.ietf.org/html/rfc6265
 
-use cookie_rs;
+use crate::cookie_rs;
 use hyper_serde::{self, Serde};
 use net_traits::CookieSource;
 use net_traits::pub_domains::is_pub_domain;

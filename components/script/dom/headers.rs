@@ -2,14 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::cell::DomRefCell;
-use dom::bindings::codegen::Bindings::HeadersBinding::{HeadersInit, HeadersMethods, HeadersWrap};
-use dom::bindings::error::{Error, ErrorResult, Fallible};
-use dom::bindings::iterable::Iterable;
-use dom::bindings::reflector::{Reflector, reflect_dom_object};
-use dom::bindings::root::DomRoot;
-use dom::bindings::str::{ByteString, is_token};
-use dom::globalscope::GlobalScope;
+use crate::dom::bindings::cell::DomRefCell;
+use crate::dom::bindings::codegen::Bindings::HeadersBinding::{HeadersInit, HeadersMethods, HeadersWrap};
+use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
+use crate::dom::bindings::iterable::Iterable;
+use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
+use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::str::{ByteString, is_token};
+use crate::dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
 use http::header::{self, HeaderMap as HyperHeaders, HeaderName, HeaderValue};
 use mime::{self, Mime};

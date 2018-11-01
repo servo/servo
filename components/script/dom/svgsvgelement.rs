@@ -2,16 +2,16 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::attr::Attr;
-use dom::bindings::codegen::Bindings::SVGSVGElementBinding;
-use dom::bindings::inheritance::Castable;
-use dom::bindings::root::{DomRoot, LayoutDom};
-use dom::bindings::str::DOMString;
-use dom::document::Document;
-use dom::element::{AttributeMutation, Element, RawLayoutElementHelpers};
-use dom::node::Node;
-use dom::svggraphicselement::SVGGraphicsElement;
-use dom::virtualmethods::VirtualMethods;
+use crate::dom::attr::Attr;
+use crate::dom::bindings::codegen::Bindings::SVGSVGElementBinding;
+use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::root::{DomRoot, LayoutDom};
+use crate::dom::bindings::str::DOMString;
+use crate::dom::document::Document;
+use crate::dom::element::{AttributeMutation, Element, RawLayoutElementHelpers};
+use crate::dom::node::Node;
+use crate::dom::svggraphicselement::SVGGraphicsElement;
+use crate::dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
 use script_layout_interface::SVGSVGData;

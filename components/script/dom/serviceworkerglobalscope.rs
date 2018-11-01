@@ -2,31 +2,31 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use devtools;
+use crate::devtools;
 use devtools_traits::DevtoolScriptControlMsg;
-use dom::abstractworker::WorkerScriptMsg;
-use dom::abstractworkerglobalscope::{WorkerEventLoopMethods, run_worker_event_loop};
-use dom::bindings::codegen::Bindings::ServiceWorkerGlobalScopeBinding;
-use dom::bindings::codegen::Bindings::ServiceWorkerGlobalScopeBinding::ServiceWorkerGlobalScopeMethods;
-use dom::bindings::inheritance::Castable;
-use dom::bindings::reflector::DomObject;
-use dom::bindings::root::{DomRoot, RootCollection, ThreadLocalStackRoots};
-use dom::bindings::str::DOMString;
-use dom::dedicatedworkerglobalscope::AutoWorkerReset;
-use dom::event::Event;
-use dom::eventtarget::EventTarget;
-use dom::extendableevent::ExtendableEvent;
-use dom::extendablemessageevent::ExtendableMessageEvent;
-use dom::globalscope::GlobalScope;
-use dom::worker::TrustedWorkerAddress;
-use dom::workerglobalscope::WorkerGlobalScope;
+use crate::dom::abstractworker::WorkerScriptMsg;
+use crate::dom::abstractworkerglobalscope::{WorkerEventLoopMethods, run_worker_event_loop};
+use crate::dom::bindings::codegen::Bindings::ServiceWorkerGlobalScopeBinding;
+use crate::dom::bindings::codegen::Bindings::ServiceWorkerGlobalScopeBinding::ServiceWorkerGlobalScopeMethods;
+use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::reflector::DomObject;
+use crate::dom::bindings::root::{DomRoot, RootCollection, ThreadLocalStackRoots};
+use crate::dom::bindings::str::DOMString;
+use crate::dom::dedicatedworkerglobalscope::AutoWorkerReset;
+use crate::dom::event::Event;
+use crate::dom::eventtarget::EventTarget;
+use crate::dom::extendableevent::ExtendableEvent;
+use crate::dom::extendablemessageevent::ExtendableMessageEvent;
+use crate::dom::globalscope::GlobalScope;
+use crate::dom::worker::TrustedWorkerAddress;
+use crate::dom::workerglobalscope::WorkerGlobalScope;
 use dom_struct::dom_struct;
 use ipc_channel::ipc::{self, IpcSender, IpcReceiver};
 use js::jsapi::{JSAutoCompartment, JSContext, JS_AddInterruptCallback};
 use js::jsval::UndefinedValue;
 use net_traits::{load_whole_resource, IpcSend, CustomResponseMediator};
 use net_traits::request::{CredentialsMode, Destination, RequestInit};
-use script_runtime::{CommonScriptMsg, ScriptChan, new_rt_and_cx, Runtime};
+use crate::script_runtime::{CommonScriptMsg, ScriptChan, new_rt_and_cx, Runtime};
 use script_traits::{TimerEvent, WorkerGlobalScopeInit, ScopeThings, ServiceWorkerMsg, WorkerScriptLoadOrigin};
 use servo_channel::{channel, route_ipc_receiver_to_new_servo_sender, Receiver, Sender};
 use servo_config::prefs::PREFS;
@@ -35,8 +35,8 @@ use servo_url::ServoUrl;
 use std::thread;
 use std::time::Duration;
 use style::thread_state::{self, ThreadState};
-use task_queue::{QueuedTask, QueuedTaskConversion, TaskQueue};
-use task_source::TaskSourceName;
+use crate::task_queue::{QueuedTask, QueuedTaskConversion, TaskQueue};
+use crate::task_source::TaskSourceName;
 
 /// Messages used to control service worker event loop
 pub enum ServiceWorkerScriptMsg {
