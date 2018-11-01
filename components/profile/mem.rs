@@ -13,7 +13,7 @@ use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::thread;
 use std::time::Instant;
-use time::duration_from_seconds;
+use crate::time::duration_from_seconds;
 
 pub struct Profiler {
     /// The port through which messages are received.

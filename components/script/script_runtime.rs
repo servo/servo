@@ -5,22 +5,22 @@
 //! The script runtime contains common traits and structs commonly used by the
 //! script thread, the dom, and the worker threads.
 
-use dom::bindings::codegen::Bindings::PromiseBinding::PromiseJobCallback;
-use dom::bindings::conversions::get_dom_class;
-use dom::bindings::conversions::private_from_object;
-use dom::bindings::inheritance::Castable;
-use dom::bindings::refcounted::{LiveDOMReferences, trace_refcounted_objects};
-use dom::bindings::refcounted::{Trusted, TrustedPromise};
-use dom::bindings::reflector::DomObject;
-use dom::bindings::root::trace_roots;
-use dom::bindings::settings_stack;
-use dom::bindings::trace::{JSTraceable, trace_traceables};
-use dom::bindings::utils::DOM_CALLBACKS;
-use dom::event::{Event, EventBubbles, EventCancelable, EventStatus};
-use dom::eventtarget::EventTarget;
-use dom::globalscope::GlobalScope;
-use dom::promise::Promise;
-use dom::promiserejectionevent::PromiseRejectionEvent;
+use crate::dom::bindings::codegen::Bindings::PromiseBinding::PromiseJobCallback;
+use crate::dom::bindings::conversions::get_dom_class;
+use crate::dom::bindings::conversions::private_from_object;
+use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::refcounted::{LiveDOMReferences, trace_refcounted_objects};
+use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
+use crate::dom::bindings::reflector::DomObject;
+use crate::dom::bindings::root::trace_roots;
+use crate::dom::bindings::settings_stack;
+use crate::dom::bindings::trace::{JSTraceable, trace_traceables};
+use crate::dom::bindings::utils::DOM_CALLBACKS;
+use crate::dom::event::{Event, EventBubbles, EventCancelable, EventStatus};
+use crate::dom::eventtarget::EventTarget;
+use crate::dom::globalscope::GlobalScope;
+use crate::dom::promise::Promise;
+use crate::dom::promiserejectionevent::PromiseRejectionEvent;
 use js::glue::CollectServoSizes;
 use js::glue::SetBuildId;
 use js::jsapi::{BuildIdCharVector, DisableIncrementalGC, GCDescription, GCProgress};
@@ -37,10 +37,10 @@ use js::rust::Handle;
 use js::rust::Runtime as RustRuntime;
 use js::rust::wrappers::{GetPromiseIsHandled, GetPromiseResult};
 use malloc_size_of::MallocSizeOfOps;
-use microtask::{EnqueuedPromiseCallback, Microtask};
+use crate::microtask::{EnqueuedPromiseCallback, Microtask};
 use msg::constellation_msg::PipelineId;
 use profile_traits::mem::{Report, ReportKind, ReportsChan};
-use script_thread::trace_thread;
+use crate::script_thread::trace_thread;
 use servo_config::opts;
 use servo_config::prefs::PREFS;
 use std::cell::Cell;
@@ -52,8 +52,8 @@ use std::os::raw::c_void;
 use std::panic::AssertUnwindSafe;
 use std::ptr;
 use style::thread_state::{self, ThreadState};
-use task::TaskBox;
-use task_source::{TaskSource, TaskSourceName};
+use crate::task::TaskBox;
+use crate::task_source::{TaskSource, TaskSourceName};
 use time::{Tm, now};
 
 /// Common messages used to control the event loops in both the script and the worker

@@ -12,7 +12,7 @@ macro_rules! task {
     ($name:ident: move || $body:tt) => {{
         #[allow(non_camel_case_types)]
         struct $name<F>(F);
-        impl<F> ::task::TaskOnce for $name<F>
+        impl<F> crate::task::TaskOnce for $name<F>
         where
             F: ::std::ops::FnOnce() + Send,
         {

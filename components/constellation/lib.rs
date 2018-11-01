@@ -53,7 +53,7 @@ mod sandboxing;
 mod session_history;
 mod timer_scheduler;
 
-pub use constellation::{Constellation, FromCompositorLogger, FromScriptLogger, InitialConstellationState};
-pub use pipeline::UnprivilegedPipelineContent;
+pub use crate::constellation::{Constellation, FromCompositorLogger, FromScriptLogger, InitialConstellationState};
+pub use crate::pipeline::UnprivilegedPipelineContent;
 #[cfg(all(not(target_os = "windows"), not(target_os = "ios")))]
-pub use sandboxing::content_process_sandbox_profile;
+pub use crate::sandboxing::content_process_sandbox_profile;

@@ -7,7 +7,7 @@ use servo_atoms::Atom;
 use std::collections::HashMap;
 use std::sync::Mutex;
 use std::sync::atomic::{Ordering, AtomicUsize};
-use text::util::unicode_plane;
+use crate::text::util::unicode_plane;
 use ucd::{Codepoint, UnicodeBlock};
 
 lazy_static! {

@@ -2,14 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::codegen::Bindings::DOMStringMapBinding;
-use dom::bindings::codegen::Bindings::DOMStringMapBinding::DOMStringMapMethods;
-use dom::bindings::error::ErrorResult;
-use dom::bindings::reflector::{Reflector, reflect_dom_object};
-use dom::bindings::root::{Dom, DomRoot};
-use dom::bindings::str::DOMString;
-use dom::htmlelement::HTMLElement;
-use dom::node::window_from_node;
+use crate::dom::bindings::codegen::Bindings::DOMStringMapBinding;
+use crate::dom::bindings::codegen::Bindings::DOMStringMapBinding::DOMStringMapMethods;
+use crate::dom::bindings::error::ErrorResult;
+use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
+use crate::dom::bindings::root::{Dom, DomRoot};
+use crate::dom::bindings::str::DOMString;
+use crate::dom::htmlelement::HTMLElement;
+use crate::dom::node::window_from_node;
 use dom_struct::dom_struct;
 
 #[dom_struct]

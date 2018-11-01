@@ -7,8 +7,8 @@
 //           This might be achieved by sharing types between WR and Servo display lists, or
 //           completely converting layout to directly generate WebRender display lists, for example.
 
-use display_list::items::{ClipScrollNode, ClipScrollNodeIndex, ClipScrollNodeType};
-use display_list::items::{DisplayItem, DisplayList, StackingContextType};
+use crate::display_list::items::{ClipScrollNode, ClipScrollNodeIndex, ClipScrollNodeType};
+use crate::display_list::items::{DisplayItem, DisplayList, StackingContextType};
 use msg::constellation_msg::PipelineId;
 use webrender_api::{self, ClipAndScrollInfo, ClipId, DisplayListBuilder, RasterSpace};
 use webrender_api::{LayoutPoint, SpecificDisplayItem};

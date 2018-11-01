@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use platform::windows::font_list::{descriptor_from_atom, font_from_atom};
+use crate::platform::windows::font_list::{descriptor_from_atom, font_from_atom};
 use servo_atoms::Atom;
 use std::fmt;
 use std::io;

@@ -2,34 +2,34 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use document_loader::{LoadBlocker, LoadType};
-use dom::attr::Attr;
-use dom::bindings::cell::DomRefCell;
-use dom::bindings::codegen::Bindings::HTMLIFrameElementBinding;
-use dom::bindings::codegen::Bindings::HTMLIFrameElementBinding::HTMLIFrameElementMethods;
-use dom::bindings::codegen::Bindings::WindowBinding::WindowBinding::WindowMethods;
-use dom::bindings::inheritance::Castable;
-use dom::bindings::refcounted::Trusted;
-use dom::bindings::reflector::DomObject;
-use dom::bindings::root::{LayoutDom, DomRoot, MutNullableDom};
-use dom::bindings::str::DOMString;
-use dom::document::Document;
-use dom::domtokenlist::DOMTokenList;
-use dom::element::{AttributeMutation, Element, RawLayoutElementHelpers};
-use dom::eventtarget::EventTarget;
-use dom::globalscope::GlobalScope;
-use dom::htmlelement::HTMLElement;
-use dom::node::{Node, NodeDamage, UnbindContext, document_from_node, window_from_node};
-use dom::virtualmethods::VirtualMethods;
-use dom::window::ReflowReason;
-use dom::windowproxy::WindowProxy;
+use crate::document_loader::{LoadBlocker, LoadType};
+use crate::dom::attr::Attr;
+use crate::dom::bindings::cell::DomRefCell;
+use crate::dom::bindings::codegen::Bindings::HTMLIFrameElementBinding;
+use crate::dom::bindings::codegen::Bindings::HTMLIFrameElementBinding::HTMLIFrameElementMethods;
+use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowBinding::WindowMethods;
+use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::refcounted::Trusted;
+use crate::dom::bindings::reflector::DomObject;
+use crate::dom::bindings::root::{LayoutDom, DomRoot, MutNullableDom};
+use crate::dom::bindings::str::DOMString;
+use crate::dom::document::Document;
+use crate::dom::domtokenlist::DOMTokenList;
+use crate::dom::element::{AttributeMutation, Element, RawLayoutElementHelpers};
+use crate::dom::eventtarget::EventTarget;
+use crate::dom::globalscope::GlobalScope;
+use crate::dom::htmlelement::HTMLElement;
+use crate::dom::node::{Node, NodeDamage, UnbindContext, document_from_node, window_from_node};
+use crate::dom::virtualmethods::VirtualMethods;
+use crate::dom::window::ReflowReason;
+use crate::dom::windowproxy::WindowProxy;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
 use ipc_channel::ipc;
 use msg::constellation_msg::{BrowsingContextId, PipelineId, TopLevelBrowsingContextId};
 use profile_traits::ipc as ProfiledIpc;
 use script_layout_interface::message::ReflowGoal;
-use script_thread::ScriptThread;
+use crate::script_thread::ScriptThread;
 use script_traits::{IFrameLoadInfo, IFrameLoadInfoWithData, JsEvalResult, LoadData, UpdatePipelineIdReason};
 use script_traits::{NewLayoutInfo, ScriptMsg};
 use script_traits::IFrameSandboxState::{IFrameSandboxed, IFrameUnsandboxed};
@@ -37,7 +37,7 @@ use servo_config::prefs::PREFS;
 use servo_url::ServoUrl;
 use std::cell::Cell;
 use style::attr::{AttrValue, LengthOrPercentageOrAuto};
-use task_source::TaskSource;
+use crate::task_source::TaskSource;
 
 bitflags! {
     #[derive(JSTraceable, MallocSizeOf)]

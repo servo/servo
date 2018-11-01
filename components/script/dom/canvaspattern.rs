@@ -3,11 +3,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use canvas_traits::canvas::{FillOrStrokeStyle, RepetitionStyle, SurfaceStyle};
-use dom::bindings::codegen::Bindings::CanvasPatternBinding;
-use dom::bindings::reflector::{Reflector, reflect_dom_object};
-use dom::bindings::root::DomRoot;
-use dom::canvasgradient::ToFillOrStrokeStyle;
-use dom::globalscope::GlobalScope;
+use crate::dom::bindings::codegen::Bindings::CanvasPatternBinding;
+use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
+use crate::dom::bindings::root::DomRoot;
+use crate::dom::canvasgradient::ToFillOrStrokeStyle;
+use crate::dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
 use euclid::Size2D;
 

@@ -6,7 +6,7 @@ use std::cell::RefCell;
 use std::fs::File;
 use std::io::{self, Read};
 use std::path::Path;
-use text::util::is_cjk;
+use crate::text::util::is_cjk;
 use ucd::{Codepoint, UnicodeBlock};
 use xml5ever::Attribute;
 use xml5ever::driver::parse_document;

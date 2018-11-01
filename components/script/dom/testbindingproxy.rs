@@ -4,9 +4,9 @@
 
 // check-tidy: no specs after this line
 
-use dom::bindings::codegen::Bindings::TestBindingProxyBinding::TestBindingProxyMethods;
-use dom::bindings::reflector::Reflector;
-use dom::bindings::str::DOMString;
+use crate::dom::bindings::codegen::Bindings::TestBindingProxyBinding::TestBindingProxyMethods;
+use crate::dom::bindings::reflector::Reflector;
+use crate::dom::bindings::str::DOMString;
 use dom_struct::dom_struct;
 
 #[dom_struct]

@@ -4,7 +4,7 @@
 
 #![allow(missing_docs)]
 
-use cookie_rs::Cookie;
+use crate::cookie_rs::Cookie;
 use euclid::Rect;
 use hyper_serde::Serde;
 use ipc_channel::ipc::IpcSender;

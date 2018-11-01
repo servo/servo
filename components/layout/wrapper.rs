@@ -31,7 +31,7 @@
 #![allow(unsafe_code)]
 
 use atomic_refcell::{AtomicRef, AtomicRefMut};
-use data::{LayoutData, LayoutDataFlags, StyleAndLayoutData};
+use crate::data::{LayoutData, LayoutDataFlags, StyleAndLayoutData};
 use script_layout_interface::wrapper_traits::{ThreadSafeLayoutElement, ThreadSafeLayoutNode};
 use script_layout_interface::wrapper_traits::GetLayoutData;
 use style::dom::{NodeInfo, TNode};
@@ -144,7 +144,7 @@ impl<T: ThreadSafeLayoutNode> ThreadSafeLayoutNodeHelpers for T {
                 .layout_data
                 .borrow()
                 .flags
-                .contains(::data::LayoutDataFlags::HAS_BEEN_TRAVERSED)
+                .contains(crate::data::LayoutDataFlags::HAS_BEEN_TRAVERSED)
             {
                 // We're reflowing a node that was styled for the first time and
                 // has never been visited by layout. Return rebuild_and_reflow,

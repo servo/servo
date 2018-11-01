@@ -11,10 +11,10 @@
 //! slot. When all associated `WeakRef` values are dropped, the
 //! `WeakBox` itself is dropped too.
 
-use dom::bindings::cell::DomRefCell;
-use dom::bindings::reflector::DomObject;
-use dom::bindings::root::DomRoot;
-use dom::bindings::trace::JSTraceable;
+use crate::dom::bindings::cell::DomRefCell;
+use crate::dom::bindings::reflector::DomObject;
+use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::trace::JSTraceable;
 use js::glue::JS_GetReservedSlot;
 use js::jsapi::{JSTracer, JS_SetReservedSlot};
 use js::jsval::PrivateValue;

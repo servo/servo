@@ -24,10 +24,10 @@ mod gl_glue;
 #[cfg(not(target_os = "android"))]
 mod capi;
 #[cfg(not(target_os = "android"))]
-pub use capi::*;
+pub use crate::capi::*;
 
 // If Android, expose the JNI-API
 #[cfg(target_os = "android")]
 mod jniapi;
 #[cfg(target_os = "android")]
-pub use jniapi::*;
+pub use crate::jniapi::*;

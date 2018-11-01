@@ -4,11 +4,11 @@
 
 #![allow(unsafe_code)]
 
-use HTMLCanvasData;
-use HTMLMediaData;
-use LayoutNodeType;
-use OpaqueStyleAndLayoutData;
-use SVGSVGData;
+use crate::HTMLCanvasData;
+use crate::HTMLMediaData;
+use crate::LayoutNodeType;
+use crate::OpaqueStyleAndLayoutData;
+use crate::SVGSVGData;
 use atomic_refcell::AtomicRef;
 use gfx_traits::{ByteIndex, FragmentType, combine_id_with_fragment_type};
 use html5ever::{Namespace, LocalName};

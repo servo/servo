@@ -8,7 +8,7 @@
 //! be superfluous. This design is largely duplicating logic of Arc<T> and
 //! Weak<T>; please see comments there for details.
 
-use flow::Flow;
+use crate::flow::Flow;
 use std::ops::Deref;
 use std::sync::{Arc, Weak};
 

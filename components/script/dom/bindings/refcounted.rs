@@ -22,12 +22,12 @@
 //! its hash table during the next GC. During GC, the entries of the hash table are counted
 //! as JS roots.
 
-use dom::bindings::conversions::ToJSValConvertible;
-use dom::bindings::error::Error;
-use dom::bindings::reflector::{DomObject, Reflector};
-use dom::bindings::root::DomRoot;
-use dom::bindings::trace::trace_reflector;
-use dom::promise::Promise;
+use crate::dom::bindings::conversions::ToJSValConvertible;
+use crate::dom::bindings::error::Error;
+use crate::dom::bindings::reflector::{DomObject, Reflector};
+use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::trace::trace_reflector;
+use crate::dom::promise::Promise;
 use js::jsapi::JSTracer;
 use libc;
 use std::cell::RefCell;
@@ -37,7 +37,7 @@ use std::hash::Hash;
 use std::marker::PhantomData;
 use std::rc::Rc;
 use std::sync::{Arc, Weak};
-use task::TaskOnce;
+use crate::task::TaskOnce;
 
 #[allow(missing_docs)] // FIXME
 mod dummy {

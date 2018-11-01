@@ -4,7 +4,7 @@
 
 use euclid::TypedSize2D;
 use msg::constellation_msg::{BrowsingContextId, PipelineId, TopLevelBrowsingContextId};
-use pipeline::Pipeline;
+use crate::pipeline::Pipeline;
 use std::collections::{HashMap, HashSet};
 use style_traits::CSSPixel;
 

@@ -2,14 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use CompositionPipeline;
-use SendableFrameTree;
-use compositor_thread::{CompositorProxy, CompositorReceiver};
-use compositor_thread::{InitialCompositorState, Msg};
+use crate::CompositionPipeline;
+use crate::SendableFrameTree;
+use crate::compositor_thread::{CompositorProxy, CompositorReceiver};
+use crate::compositor_thread::{InitialCompositorState, Msg};
 use euclid::{TypedPoint2D, TypedVector2D, TypedScale};
 use gfx_traits::Epoch;
 #[cfg(feature = "gleam")]
-use gl;
+use crate::gl;
 #[cfg(feature = "gleam")]
 use image::{DynamicImage, ImageFormat};
 use ipc_channel::ipc;
@@ -36,11 +36,11 @@ use style_traits::{CSSPixel, DevicePixel, PinchZoomFactor};
 use style_traits::cursor::CursorKind;
 use style_traits::viewport::ViewportConstraints;
 use time::{now, precise_time_ns, precise_time_s};
-use touch::{TouchHandler, TouchAction};
+use crate::touch::{TouchHandler, TouchAction};
 use webrender;
 use webrender_api::{self, DeviceIntPoint, DevicePoint, HitTestFlags, HitTestResult};
 use webrender_api::{LayoutVector2D, ScrollLocation};
-use windowing::{self, EmbedderCoordinates, MouseWindowEvent, WebRenderDebugOption, WindowMethods};
+use crate::windowing::{self, EmbedderCoordinates, MouseWindowEvent, WebRenderDebugOption, WindowMethods};
 
 #[derive(Debug, PartialEq)]
 enum UnableToComposite {

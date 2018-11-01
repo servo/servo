@@ -2,10 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::reflector::DomObject;
-use dom::bindings::root::MutNullableDom;
-use dom::bindings::trace::JSTraceable;
-use dom::webglrenderingcontext::WebGLRenderingContext;
+use crate::dom::bindings::reflector::DomObject;
+use crate::dom::bindings::root::MutNullableDom;
+use crate::dom::bindings::trace::JSTraceable;
+use crate::dom::webglrenderingcontext::WebGLRenderingContext;
 use js::jsapi::JSObject;
 use malloc_size_of::MallocSizeOf;
 use std::any::Any;
@@ -21,7 +21,7 @@ pub trait WebGLExtensionWrapper: JSTraceable + MallocSizeOf {
         ext: &WebGLExtensions,
     ) -> NonNull<JSObject>;
     fn spec(&self) -> WebGLExtensionSpec;
-    fn is_supported(&self, &WebGLExtensions) -> bool;
+    fn is_supported(&self, _: &WebGLExtensions) -> bool;
     fn is_enabled(&self) -> bool;
     fn enable(&self, ext: &WebGLExtensions);
     fn name(&self) -> &'static str;

@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::str::USVString;
+use crate::dom::bindings::str::USVString;
 use servo_url::ServoUrl;
 use std::borrow::ToOwned;
 use url::quirks;

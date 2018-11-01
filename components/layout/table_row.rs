@@ -5,17 +5,17 @@
 //! CSS table formatting contexts.
 
 use app_units::Au;
-use block::{BlockFlow, ISizeAndMarginsComputer};
-use context::LayoutContext;
-use display_list::{BlockFlowDisplayListBuilding, DisplayListBuildState};
-use display_list::{StackingContextCollectionFlags, StackingContextCollectionState};
+use crate::block::{BlockFlow, ISizeAndMarginsComputer};
+use crate::context::LayoutContext;
+use crate::display_list::{BlockFlowDisplayListBuilding, DisplayListBuildState};
+use crate::display_list::{StackingContextCollectionFlags, StackingContextCollectionState};
 use euclid::Point2D;
-use flow::{EarlyAbsolutePositionInfo, Flow, FlowClass, ImmutableFlowUtils, GetBaseFlow, OpaqueFlow};
-use flow_list::MutFlowListIterator;
-use fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
+use crate::flow::{EarlyAbsolutePositionInfo, Flow, FlowClass, ImmutableFlowUtils, GetBaseFlow, OpaqueFlow};
+use crate::flow_list::MutFlowListIterator;
+use crate::fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
 use gfx_traits::print_tree::PrintTree;
-use layout_debug;
-use model::MaybeAuto;
+use crate::layout_debug;
+use crate::model::MaybeAuto;
 use serde::{Serialize, Serializer};
 use std::cmp::max;
 use std::fmt;
@@ -26,11 +26,11 @@ use style::computed_values::border_top_style::T as BorderStyle;
 use style::logical_geometry::{LogicalSize, PhysicalSide, WritingMode};
 use style::properties::ComputedValues;
 use style::values::computed::{Color, LengthOrPercentageOrAuto};
-use table::{ColumnComputedInlineSize, ColumnIntrinsicInlineSize, InternalTable, VecExt};
-use table_cell::{CollapsedBordersForCell, TableCellFlow};
+use crate::table::{ColumnComputedInlineSize, ColumnIntrinsicInlineSize, InternalTable, VecExt};
+use crate::table_cell::{CollapsedBordersForCell, TableCellFlow};
 
 #[allow(unsafe_code)]
-unsafe impl ::flow::HasBaseFlow for TableRowFlow {}
+unsafe impl crate::flow::HasBaseFlow for TableRowFlow {}
 
 /// A single row of a table.
 #[repr(C)]
@@ -626,7 +626,7 @@ impl Flow for TableRowFlow {
             .collect_stacking_contexts_for_block(state, StackingContextCollectionFlags::empty());
     }
 
-    fn repair_style(&mut self, new_style: &::ServoArc<ComputedValues>) {
+    fn repair_style(&mut self, new_style: &crate::ServoArc<ComputedValues>) {
         self.block_flow.repair_style(new_style)
     }
 

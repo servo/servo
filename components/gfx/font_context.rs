@@ -4,12 +4,12 @@
 
 use app_units::Au;
 use fnv::FnvHasher;
-use font::{Font, FontDescriptor, FontFamilyDescriptor, FontGroup, FontHandleMethods, FontRef};
-use font_cache_thread::FontTemplateInfo;
-use font_template::FontTemplateDescriptor;
+use crate::font::{Font, FontDescriptor, FontFamilyDescriptor, FontGroup, FontHandleMethods, FontRef};
+use crate::font_cache_thread::FontTemplateInfo;
+use crate::font_template::FontTemplateDescriptor;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
-use platform::font::FontHandle;
-pub use platform::font_context::FontContextHandle;
+use crate::platform::font::FontHandle;
+pub use crate::platform::font_context::FontContextHandle;
 use servo_arc::Arc;
 use std::cell::RefCell;
 use std::collections::HashMap;

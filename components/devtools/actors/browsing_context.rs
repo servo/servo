@@ -7,10 +7,10 @@
 //! Connection point for remote devtools that wish to investigate a particular Browsing Context's contents.
 //! Supports dynamic attaching and detaching which control notifications of navigation, etc.
 
-use actor::{Actor, ActorMessageStatus, ActorRegistry};
-use actors::console::ConsoleActor;
+use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
+use crate::actors::console::ConsoleActor;
 use devtools_traits::DevtoolScriptControlMsg::{self, WantsLiveNotifications};
-use protocol::JsonPacketStream;
+use crate::protocol::JsonPacketStream;
 use serde_json::{Map, Value};
 use std::net::TcpStream;
 
