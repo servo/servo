@@ -68,7 +68,11 @@ impl<'a> CanvasData<'a> {
         // We round up the floating pixel values to draw the pixels
         let source_rect = source_rect.ceil();
         // It discards the extra pixels (if any) that won't be painted
-        let image_data = crop_image(image_data, image_size, source_rect);
+        let image_data = if Rect::from_size(image_size).contains_rect(&source_rect) {
+            pixels::get_rect(&image_data, image_size.to_u32(), source_rect.to_u32()).into()
+        } else {
+            image_data.into()
+        };
 
         let writer = |draw_target: &DrawTarget| {
             write_image(&draw_target, image_data, source_rect.size, dest_rect,
@@ -575,42 +579,6 @@ fn is_zero_size_gradient(pattern: &Pattern) -> bool {
         }
     }
     false
-}
-
-/// Used by drawImage to get rid of the extra pixels of the image data that
-/// won't be copied to the canvas
-/// image_data: Color pixel data of the image
-/// image_size: Image dimensions
-/// crop_rect: It determines the area of the image we want to keep
-fn crop_image(
-    image_data: Vec<u8>,
-    image_size: Size2D<f64>,
-    crop_rect: Rect<f64>
-) -> Vec<u8> {
-    // We're going to iterate over a pixel values array so we need integers
-    let crop_rect = crop_rect.to_i32();
-    let image_size = image_size.to_i32();
-    if crop_rect == Rect::from_size(image_size) {
-        return image_data;
-    }
-    // Assuming 4 bytes per pixel and row-major order for storage
-    // (consecutive elements in a pixel row of the image are contiguous in memory)
-    let stride = image_size.width * 4;
-    let image_bytes_length = image_size.height * image_size.width * 4;
-    let crop_area_bytes_length = crop_rect.size.height * crop_rect.size.width * 4;
-    // If the image size is less or equal than the crop area we do nothing
-    if image_bytes_length <= crop_area_bytes_length {
-        return image_data;
-    }
-
-    let mut new_image_data = Vec::new();
-    let mut src = (crop_rect.origin.y * stride + crop_rect.origin.x * 4) as usize;
-    for _ in 0..crop_rect.size.height {
-        let row = &image_data[src .. src + (4 * crop_rect.size.width) as usize];
-        new_image_data.extend_from_slice(row);
-        src += stride as usize;
-    }
-    new_image_data
 }
 
 /// It writes an image to the destination target
