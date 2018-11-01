@@ -493,7 +493,7 @@ fn scheme_fetch(request: &mut Request,
                 match url.to_file_path() {
                     Ok(file_path) => {
                         match File::open(file_path.clone()) {
-                            Ok(mut file) => {
+                            Ok(file) => {
                                 let mime = guess_mime_type(file_path);
 
                                 let mut response = Response::new(url);
@@ -503,7 +503,7 @@ fn scheme_fetch(request: &mut Request,
                                 *done_chan = Some((done_sender.clone(), done_receiver));
                                 *response.body.lock().unwrap() = ResponseBody::Receiving(vec![]);
 
-                                let mut res_body = response.body.clone();
+                                let res_body = response.body.clone();
 
                                 let cancellation_listener = context.cancellation_listener.clone();
 
@@ -541,7 +541,7 @@ fn scheme_fetch(request: &mut Request,
                                             return;
                                         }
                                         let length = {
-                                            let mut buffer = reader.fill_buf().unwrap().to_vec();
+                                            let buffer = reader.fill_buf().unwrap().to_vec();
                                             let mut buffer_len = buffer.len();
                                             if let ResponseBody::Receiving(ref mut body) = *res_body.lock().unwrap() {
                                                 let offset = usize::min({
