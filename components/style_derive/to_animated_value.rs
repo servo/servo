@@ -12,19 +12,19 @@ pub fn derive(mut input: DeriveInput) -> quote::Tokens {
     for param in input.generics.type_params() {
         cg::add_predicate(
             &mut where_clause,
-            parse_quote!(#param: ::values::animated::ToAnimatedValue),
+            parse_quote!(#param: crate::values::animated::ToAnimatedValue),
         );
     }
 
     let to_body = cg::fmap_match(
         &input,
         BindStyle::Move,
-        |binding| quote!(::values::animated::ToAnimatedValue::to_animated_value(#binding)),
+        |binding| quote!(crate::values::animated::ToAnimatedValue::to_animated_value(#binding)),
     );
     let from_body = cg::fmap_match(
         &input,
         BindStyle::Move,
-        |binding| quote!(::values::animated::ToAnimatedValue::from_animated_value(#binding)),
+        |binding| quote!(crate::values::animated::ToAnimatedValue::from_animated_value(#binding)),
     );
 
     input.generics.where_clause = where_clause;
@@ -32,12 +32,12 @@ pub fn derive(mut input: DeriveInput) -> quote::Tokens {
     let (impl_generics, ty_generics, where_clause) = input.generics.split_for_impl();
     let animated_value_type = cg::fmap_trait_output(
         &input,
-        &parse_quote!(values::animated::ToAnimatedValue),
+        &parse_quote!(crate::values::animated::ToAnimatedValue),
         "AnimatedValue".into(),
     );
 
     quote! {
-        impl #impl_generics ::values::animated::ToAnimatedValue for #name #ty_generics #where_clause {
+        impl #impl_generics crate::values::animated::ToAnimatedValue for #name #ty_generics #where_clause {
             type AnimatedValue = #animated_value_type;
 
             #[allow(unused_variables)]
