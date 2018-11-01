@@ -20,6 +20,7 @@ use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::offlineaudiocompletionevent::OfflineAudioCompletionEvent;
 use crate::dom::promise::Promise;
 use crate::dom::window::Window;
+use crate::task_source::{TaskSource, TaskSourceName};
 use dom_struct::dom_struct;
 use servo_media::audio::context::OfflineAudioContextOptions as ServoMediaOfflineAudioContextOptions;
 use std::cell::Cell;
@@ -27,7 +28,6 @@ use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use std::sync::mpsc;
 use std::thread::Builder;
-use crate::task_source::{TaskSource, TaskSourceName};
 
 #[dom_struct]
 pub struct OfflineAudioContext {

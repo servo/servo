@@ -30,11 +30,12 @@ use crate::dom::vrframedata::VRFrameData;
 use crate::dom::vrpose::VRPose;
 use crate::dom::vrstageparameters::VRStageParameters;
 use crate::dom::webglrenderingcontext::WebGLRenderingContext;
+use crate::script_runtime::CommonScriptMsg;
+use crate::script_runtime::ScriptThreadEventCategory::WebVREvent;
+use crate::task_source::TaskSourceName;
 use dom_struct::dom_struct;
 use ipc_channel::ipc::IpcSender;
 use profile_traits::ipc;
-use crate::script_runtime::CommonScriptMsg;
-use crate::script_runtime::ScriptThreadEventCategory::WebVREvent;
 use serde_bytes::ByteBuf;
 use servo_channel::{channel, Sender};
 use std::cell::Cell;
@@ -42,7 +43,6 @@ use std::mem;
 use std::ops::Deref;
 use std::rc::Rc;
 use std::thread;
-use crate::task_source::TaskSourceName;
 use webvr_traits::{WebVRDisplayData, WebVRDisplayEvent, WebVRFrameData, WebVRLayer, WebVRMsg};
 
 #[dom_struct]

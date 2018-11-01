@@ -18,6 +18,8 @@ use crate::dom::promise::Promise;
 use crate::dom::request::Request;
 use crate::dom::response::Response;
 use crate::dom::serviceworkerglobalscope::ServiceWorkerGlobalScope;
+use crate::network_listener::{NetworkListener, PreInvoke};
+use crate::task_source::TaskSourceName;
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use js::jsapi::JSAutoCompartment;
@@ -26,12 +28,10 @@ use net_traits::{FilteredMetadata, FetchMetadata, Metadata};
 use net_traits::CoreResourceMsg::Fetch as NetTraitsFetch;
 use net_traits::request::{Request as NetTraitsRequest, ServiceWorkersMode};
 use net_traits::request::RequestInit as NetTraitsRequestInit;
-use crate::network_listener::{NetworkListener, PreInvoke};
 use servo_url::ServoUrl;
 use std::mem;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
-use crate::task_source::TaskSourceName;
 
 struct FetchContext {
     fetch_promise: Option<TrustedPromise>,

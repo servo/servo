@@ -3,11 +3,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use crate::cookie_rs::Cookie as CookiePair;
+use crate::fetch;
+use crate::fetch_with_context;
+use crate::make_server;
+use crate::new_fetch_context;
 use devtools_traits::{ChromeToDevtoolsControlMsg, DevtoolsControlMsg, NetworkEvent};
 use devtools_traits::HttpRequest as DevtoolsHttpRequest;
 use devtools_traits::HttpResponse as DevtoolsHttpResponse;
-use crate::fetch;
-use crate::fetch_with_context;
 use flate2::Compression;
 use flate2::write::{DeflateEncoder, GzEncoder};
 use futures::{self, Future, Stream};
@@ -19,7 +21,6 @@ use http::header::{self, HeaderMap, HeaderValue};
 use http::uri::Authority;
 use hyper::{Request as HyperRequest, Response as HyperResponse};
 use hyper::body::Body;
-use crate::make_server;
 use msg::constellation_msg::TEST_PIPELINE_ID;
 use net::cookie::Cookie;
 use net::cookie_storage::CookieStorage;
@@ -28,7 +29,6 @@ use net::test::replace_host_table;
 use net_traits::{CookieSource, NetworkError};
 use net_traits::request::{Request, RequestInit, RequestMode, CredentialsMode, Destination};
 use net_traits::response::ResponseBody;
-use crate::new_fetch_context;
 use servo_channel::{channel, Receiver};
 use servo_url::{ServoUrl, ImmutableOrigin};
 use std::collections::HashMap;

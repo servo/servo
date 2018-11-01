@@ -10,13 +10,17 @@ use crate::block::{ISizeConstraintInput, ISizeConstraintSolution};
 use crate::context::LayoutContext;
 use crate::display_list::{BlockFlowDisplayListBuilding, BorderPaintingMode};
 use crate::display_list::{DisplayListBuildState, StackingContextCollectionFlags, StackingContextCollectionState};
-use euclid::Point2D;
 use crate::flow::{BaseFlow, EarlyAbsolutePositionInfo, Flow, FlowClass, ImmutableFlowUtils, GetBaseFlow, OpaqueFlow};
 use crate::flow_list::{FlowListIterator, MutFlowListIterator};
 use crate::fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
-use gfx_traits::print_tree::PrintTree;
 use crate::layout_debug;
 use crate::model::{IntrinsicISizes, IntrinsicISizesContribution, MaybeAuto};
+use crate::table_cell::TableCellFlow;
+use crate::table_row::{self, CellIntrinsicInlineSize, CollapsedBorder, CollapsedBorderProvenance};
+use crate::table_row::{TableRowFlow, TableRowSizeData};
+use crate::table_wrapper::TableLayout;
+use euclid::Point2D;
+use gfx_traits::print_tree::PrintTree;
 use std::{cmp, fmt};
 use style::computed_values::{border_collapse, border_spacing, table_layout};
 use style::context::SharedStyleContext;
@@ -26,10 +30,6 @@ use style::properties::style_structs::Background;
 use style::servo::restyle_damage::ServoRestyleDamage;
 use style::values::CSSFloat;
 use style::values::computed::LengthOrPercentageOrAuto;
-use crate::table_cell::TableCellFlow;
-use crate::table_row::{self, CellIntrinsicInlineSize, CollapsedBorder, CollapsedBorderProvenance};
-use crate::table_row::{TableRowFlow, TableRowSizeData};
-use crate::table_wrapper::TableLayout;
 
 #[allow(unsafe_code)]
 unsafe impl crate::flow::HasBaseFlow for TableFlow {}

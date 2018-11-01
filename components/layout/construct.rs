@@ -30,6 +30,16 @@ use crate::linked_list::prepend_from;
 use crate::list_item::{ListItemFlow, ListStyleTypeContent};
 use crate::multicol::{MulticolColumnFlow, MulticolFlow};
 use crate::parallel;
+use crate::table::TableFlow;
+use crate::table_caption::TableCaptionFlow;
+use crate::table_cell::TableCellFlow;
+use crate::table_colgroup::TableColGroupFlow;
+use crate::table_row::TableRowFlow;
+use crate::table_rowgroup::TableRowGroupFlow;
+use crate::table_wrapper::TableWrapperFlow;
+use crate::text::TextRunScanner;
+use crate::traversal::PostorderNodeMutTraversal;
+use crate::wrapper::{LayoutNodeLayoutData, TextContent, ThreadSafeLayoutNodeHelpers};
 use script_layout_interface::{LayoutElementType, LayoutNodeType, is_image_data};
 use script_layout_interface::wrapper_traits::{PseudoElementType, ThreadSafeLayoutElement, ThreadSafeLayoutNode};
 use servo_config::opts;
@@ -53,16 +63,6 @@ use style::selector_parser::{PseudoElement, RestyleDamage};
 use style::servo::restyle_damage::ServoRestyleDamage;
 use style::values::generics::counters::ContentItem;
 use style::values::generics::url::UrlOrNone as ImageUrlOrNone;
-use crate::table::TableFlow;
-use crate::table_caption::TableCaptionFlow;
-use crate::table_cell::TableCellFlow;
-use crate::table_colgroup::TableColGroupFlow;
-use crate::table_row::TableRowFlow;
-use crate::table_rowgroup::TableRowGroupFlow;
-use crate::table_wrapper::TableWrapperFlow;
-use crate::text::TextRunScanner;
-use crate::traversal::PostorderNodeMutTraversal;
-use crate::wrapper::{LayoutNodeLayoutData, TextContent, ThreadSafeLayoutNodeHelpers};
 
 /// The results of flow construction for a DOM node.
 #[derive(Clone)]

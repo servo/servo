@@ -20,6 +20,11 @@ use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::messageevent::MessageEvent;
+use crate::script_runtime::CommonScriptMsg;
+use crate::script_runtime::ScriptThreadEventCategory::WebSocketEvent;
+use crate::task::{TaskOnce, TaskCanceller};
+use crate::task_source::TaskSource;
+use crate::task_source::websocket::WebsocketTaskSource;
 use dom_struct::dom_struct;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use js::jsapi::{JSAutoCompartment, JSObject};
@@ -31,16 +36,11 @@ use net_traits::{WebSocketDomAction, WebSocketNetworkEvent};
 use net_traits::MessageData;
 use net_traits::request::{RequestInit, RequestMode};
 use profile_traits::ipc as ProfiledIpc;
-use crate::script_runtime::CommonScriptMsg;
-use crate::script_runtime::ScriptThreadEventCategory::WebSocketEvent;
 use servo_url::{ImmutableOrigin, ServoUrl};
 use std::borrow::ToOwned;
 use std::cell::Cell;
 use std::ptr;
 use std::thread;
-use crate::task::{TaskOnce, TaskCanceller};
-use crate::task_source::TaskSource;
-use crate::task_source::websocket::WebsocketTaskSource;
 
 #[derive(Clone, Copy, Debug, JSTraceable, MallocSizeOf, PartialEq)]
 enum WebSocketRequestState {

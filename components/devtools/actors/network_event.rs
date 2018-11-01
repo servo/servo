@@ -7,13 +7,13 @@
 //! Handles interaction with the remote web console on network events (HTTP requests, responses) in Servo.
 
 use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
+use crate::protocol::JsonPacketStream;
 use devtools_traits::HttpRequest as DevtoolsHttpRequest;
 use devtools_traits::HttpResponse as DevtoolsHttpResponse;
 use headers_core::HeaderMapExt;
 use headers_ext::{ContentType, Cookie};
 use http::{header, HeaderMap};
 use hyper::{Method, StatusCode};
-use crate::protocol::JsonPacketStream;
 use serde_json::{Map, Value};
 use std::net::TcpStream;
 use time;

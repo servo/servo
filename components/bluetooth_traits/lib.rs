@@ -11,8 +11,8 @@ extern crate serde;
 pub mod blocklist;
 pub mod scanfilter;
 
-use ipc_channel::ipc::IpcSender;
 use crate::scanfilter::{BluetoothScanfilterSequence, RequestDeviceoptions};
+use ipc_channel::ipc::IpcSender;
 
 #[derive(Debug, Deserialize, Serialize)]
 pub enum BluetoothError {

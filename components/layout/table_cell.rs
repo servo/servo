@@ -9,12 +9,14 @@ use crate::block::{BlockFlow, ISizeAndMarginsComputer, MarginsMayCollapseFlag};
 use crate::context::LayoutContext;
 use crate::display_list::{BlockFlowDisplayListBuilding, DisplayListBuildState};
 use crate::display_list::{StackingContextCollectionFlags, StackingContextCollectionState};
-use euclid::{Point2D, Rect, SideOffsets2D, Size2D};
 use crate::flow::{Flow, FlowClass, FlowFlags, GetBaseFlow, OpaqueFlow};
 use crate::fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
-use gfx_traits::print_tree::PrintTree;
 use crate::layout_debug;
 use crate::model::MaybeAuto;
+use crate::table::InternalTable;
+use crate::table_row::{CollapsedBorder, CollapsedBorderProvenance};
+use euclid::{Point2D, Rect, SideOffsets2D, Size2D};
+use gfx_traits::print_tree::PrintTree;
 use script_layout_interface::wrapper_traits::ThreadSafeLayoutNode;
 use std::fmt;
 use style::logical_geometry::{LogicalMargin, LogicalRect, LogicalSize, WritingMode};
@@ -22,8 +24,6 @@ use style::properties::ComputedValues;
 use style::values::computed::Color;
 use style::values::generics::box_::VerticalAlign;
 use style::values::specified::BorderStyle;
-use crate::table::InternalTable;
-use crate::table_row::{CollapsedBorder, CollapsedBorderProvenance};
 
 #[allow(unsafe_code)]
 unsafe impl crate::flow::HasBaseFlow for TableCellFlow {}

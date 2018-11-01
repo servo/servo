@@ -3,7 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use crate::cookie_rs;
-use devtools_traits::ScriptToDevtoolsControlMsg;
 use crate::document_loader::{DocumentLoader, LoadType};
 use crate::dom::activation::{ActivationSource, synthetic_click_activation};
 use crate::dom::attr::Attr;
@@ -12,7 +11,8 @@ use crate::dom::bindings::callback::ExceptionHandling;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::BeforeUnloadEventBinding::BeforeUnloadEventBinding::BeforeUnloadEventMethods;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding;
-use crate::dom::bindings::codegen::Bindings::DocumentBinding::{DocumentMethods, DocumentReadyState, ElementCreationOptions};
+use crate::dom::bindings::codegen::Bindings::DocumentBinding::{DocumentMethods, DocumentReadyState};
+use crate::dom::bindings::codegen::Bindings::DocumentBinding::ElementCreationOptions;
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventBinding::EventMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLIFrameElementBinding::HTMLIFrameElementBinding::HTMLIFrameElementMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
@@ -89,11 +89,16 @@ use crate::dom::virtualmethods::vtable_for;
 use crate::dom::webglcontextevent::WebGLContextEvent;
 use crate::dom::window::{ReflowReason, Window};
 use crate::dom::windowproxy::WindowProxy;
+use crate::fetch::FetchCanceller;
+use crate::script_runtime::{CommonScriptMsg, ScriptThreadEventCategory};
+use crate::script_thread::{MainThreadScriptMsg, ScriptThread};
+use crate::task_source::{TaskSource, TaskSourceName};
+use crate::timers::OneshotTimerCallback;
+use devtools_traits::ScriptToDevtoolsControlMsg;
 use dom_struct::dom_struct;
 use embedder_traits::EmbedderMsg;
 use encoding_rs::{Encoding, UTF_8};
 use euclid::Point2D;
-use crate::fetch::FetchCanceller;
 use html5ever::{LocalName, Namespace, QualName};
 use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcSender};
@@ -114,8 +119,6 @@ use profile_traits::ipc as profile_ipc;
 use profile_traits::time::{TimerMetadata, TimerMetadataFrameType, TimerMetadataReflowType};
 use ref_slice::ref_slice;
 use script_layout_interface::message::{Msg, NodesFromPointQueryType, QueryMsg, ReflowGoal};
-use crate::script_runtime::{CommonScriptMsg, ScriptThreadEventCategory};
-use crate::script_thread::{MainThreadScriptMsg, ScriptThread};
 use script_traits::{AnimationState, DocumentActivity, MouseButton, MouseEventType};
 use script_traits::{MsDuration, ScriptMsg, TouchEventType, TouchId, UntrustedNodeAddress};
 use servo_arc::Arc;
@@ -141,9 +144,7 @@ use style::shared_lock::{SharedRwLock as StyleSharedRwLock, SharedRwLockReadGuar
 use style::str::{split_html_space_chars, str_join};
 use style::stylesheet_set::DocumentStylesheetSet;
 use style::stylesheets::{CssRule, Stylesheet, Origin, OriginSet};
-use crate::task_source::{TaskSource, TaskSourceName};
 use time;
-use crate::timers::OneshotTimerCallback;
 use url::Host;
 use url::percent_encoding::percent_decode;
 

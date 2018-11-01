@@ -5,8 +5,8 @@
 //! Borders, padding, and margins.
 
 use app_units::Au;
-use euclid::SideOffsets2D;
 use crate::fragment::Fragment;
+use euclid::SideOffsets2D;
 use std::cmp::{max, min};
 use std::fmt;
 use style::logical_geometry::{LogicalMargin, WritingMode};

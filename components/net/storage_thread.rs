@@ -2,9 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use crate::resource_thread;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use net_traits::storage_thread::{StorageThreadMsg, StorageType};
-use crate::resource_thread;
 use servo_url::ServoUrl;
 use std::borrow::ToOwned;
 use std::collections::BTreeMap;

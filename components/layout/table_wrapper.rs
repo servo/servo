@@ -17,12 +17,13 @@ use crate::block::{ISizeConstraintSolution, MarginsMayCollapseFlag};
 use crate::context::LayoutContext;
 use crate::display_list::{BlockFlowDisplayListBuilding, DisplayListBuildState, StackingContextCollectionFlags};
 use crate::display_list::StackingContextCollectionState;
-use euclid::Point2D;
 use crate::floats::FloatKind;
 use crate::flow::{Flow, FlowClass, ImmutableFlowUtils, FlowFlags, OpaqueFlow};
 use crate::fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
-use gfx_traits::print_tree::PrintTree;
 use crate::model::MaybeAuto;
+use crate::table::{ColumnComputedInlineSize, ColumnIntrinsicInlineSize};
+use euclid::Point2D;
+use gfx_traits::print_tree::PrintTree;
 use std::cmp::{max, min};
 use std::fmt;
 use std::ops::Add;
@@ -32,7 +33,6 @@ use style::logical_geometry::{LogicalRect, LogicalSize};
 use style::properties::ComputedValues;
 use style::values::CSSFloat;
 use style::values::computed::LengthOrPercentageOrAuto;
-use crate::table::{ColumnComputedInlineSize, ColumnIntrinsicInlineSize};
 
 #[derive(Clone, Copy, Debug, Serialize)]
 pub enum TableLayout {

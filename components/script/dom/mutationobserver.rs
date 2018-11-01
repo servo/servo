@@ -15,10 +15,10 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::mutationrecord::MutationRecord;
 use crate::dom::node::Node;
 use crate::dom::window::Window;
-use dom_struct::dom_struct;
-use html5ever::{Namespace, LocalName};
 use crate::microtask::Microtask;
 use crate::script_thread::ScriptThread;
+use dom_struct::dom_struct;
+use html5ever::{Namespace, LocalName};
 use std::rc::Rc;
 
 #[dom_struct]

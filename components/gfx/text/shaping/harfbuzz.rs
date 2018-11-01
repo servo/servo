@@ -5,7 +5,6 @@
 #![allow(unsafe_code)]
 
 use app_units::Au;
-use euclid::Point2D;
 use crate::font::{ShapingFlags, Font, FontTableMethods, FontTableTag, ShapingOptions, KERN};
 use crate::harfbuzz::{HB_DIRECTION_LTR, HB_DIRECTION_RTL, HB_MEMORY_MODE_READONLY};
 use crate::harfbuzz::{hb_blob_create, hb_face_create_for_tables};
@@ -34,11 +33,12 @@ use crate::harfbuzz::hb_font_set_scale;
 use crate::harfbuzz::hb_glyph_info_t;
 use crate::harfbuzz::hb_glyph_position_t;
 use crate::platform::font::FontTable;
-use std::{char, cmp, ptr};
-use std::os::raw::{c_char, c_int, c_uint, c_void};
 use crate::text::glyph::{ByteIndex, GlyphData, GlyphId, GlyphStore};
 use crate::text::shaping::ShaperMethods;
 use crate::text::util::{fixed_to_float, float_to_fixed, is_bidi_control};
+use euclid::Point2D;
+use std::{char, cmp, ptr};
+use std::os::raw::{c_char, c_int, c_uint, c_void};
 
 const NO_GLYPH: i32 = -1;
 const LIGA: u32 = ot_tag!('l', 'i', 'g', 'a');

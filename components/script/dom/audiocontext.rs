@@ -16,10 +16,10 @@ use crate::dom::bindings::reflector::{DomObject, reflect_dom_object};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::promise::Promise;
 use crate::dom::window::Window;
+use crate::task_source::TaskSource;
 use dom_struct::dom_struct;
 use servo_media::audio::context::{LatencyCategory, ProcessingState, RealTimeAudioContextOptions};
 use std::rc::Rc;
-use crate::task_source::TaskSource;
 
 #[dom_struct]
 pub struct AudioContext {

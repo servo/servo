@@ -3,8 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use canvas_traits::canvas::{CanvasGradientStop, FillOrStrokeStyle, LinearGradientStyle, RadialGradientStyle};
-use cssparser::{Parser, ParserInput, RGBA};
-use cssparser::Color as CSSColor;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::CanvasGradientBinding;
 use crate::dom::bindings::codegen::Bindings::CanvasGradientBinding::CanvasGradientMethods;
@@ -14,6 +12,8 @@ use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
+use cssparser::{Parser, ParserInput, RGBA};
+use cssparser::Color as CSSColor;
 use dom_struct::dom_struct;
 
 // https://html.spec.whatwg.org/multipage/#canvasgradient
