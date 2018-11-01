@@ -6,7 +6,7 @@ use crate::basedir::default_config_dir;
 use crate::opts;
 use embedder_traits::resources::{self, Resource};
 use num_cpus;
-use rustc_serialize::json::{Json, ToJson};
+use serde_json::{self, Value};
 use std::borrow::ToOwned;
 use std::cmp::max;
 use std::collections::HashMap;
@@ -34,13 +34,17 @@ pub enum PrefValue {
 }
 
 impl PrefValue {
-    pub fn from_json(data: Json) -> Result<PrefValue, ()> {
+    pub fn from_json(data: Value) -> Result<PrefValue, ()> {
         let value = match data {
-            Json::Boolean(x) => PrefValue::Boolean(x),
-            Json::String(x) => PrefValue::String(x),
-            Json::F64(x) => PrefValue::Number(x),
-            Json::I64(x) => PrefValue::Number(x as f64),
-            Json::U64(x) => PrefValue::Number(x as f64),
+            Value::Bool(x) => PrefValue::Boolean(x),
+            Value::String(x) => PrefValue::String(x),
+            Value::Number(x) => {
+                if let Some(v) = x.as_f64() {
+                    PrefValue::Number(v)
+                } else {
+                    return Err(());
+                }
+            },
             _ => return Err(()),
         };
         Ok(value)
@@ -75,17 +79,6 @@ impl PrefValue {
     }
 }
 
-impl ToJson for PrefValue {
-    fn to_json(&self) -> Json {
-        match *self {
-            PrefValue::Boolean(x) => Json::Boolean(x),
-            PrefValue::String(ref x) => Json::String(x.clone()),
-            PrefValue::Number(x) => Json::F64(x),
-            PrefValue::Missing => Json::Null,
-        }
-    }
-}
-
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum Pref {
     NoDefault(Arc<PrefValue>),
@@ -101,7 +94,7 @@ impl Pref {
         Pref::WithDefault(Arc::new(value), None)
     }
 
-    fn from_json(data: Json) -> Result<Pref, ()> {
+    fn from_json(data: Value) -> Result<Pref, ()> {
         let value = PrefValue::from_json(data)?;
         Ok(Pref::new_default(value))
     }
@@ -126,12 +119,6 @@ impl Pref {
     }
 }
 
-impl ToJson for Pref {
-    fn to_json(&self) -> Json {
-        self.value().to_json()
-    }
-}
-
 pub fn default_prefs() -> Preferences {
     let prefs = Preferences(Arc::new(RwLock::new(HashMap::new())));
     prefs.set(
@@ -142,13 +129,13 @@ pub fn default_prefs() -> Preferences {
 }
 
 pub fn read_prefs(txt: &str) -> Result<HashMap<String, Pref>, ()> {
-    let json = Json::from_str(txt).or_else(|e| {
+    let json: Value = serde_json::from_str(txt).or_else(|e| {
         println!("Ignoring invalid JSON in preferences: {:?}.", e);
         Err(())
     })?;
 
     let mut prefs = HashMap::new();
-    if let Json::Object(obj) = json {
+    if let Value::Object(obj) = json {
         for (name, value) in obj.into_iter() {
             match Pref::from_json(value) {
                 Ok(x) => {

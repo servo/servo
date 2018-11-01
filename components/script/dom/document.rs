@@ -4420,7 +4420,7 @@ impl DocumentMethods for Document {
 }
 
 fn update_with_current_time_ms(marker: &Cell<u64>) {
-    if marker.get() == Default::default() {
+    if marker.get() == 0 {
         let time = time::get_time();
         let current_time_ms = time.sec * 1000 + time.nsec as i64 / 1000000;
         marker.set(current_time_ms as u64);
