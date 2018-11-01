@@ -65,9 +65,10 @@ ${helpers.single_keyword(
 // And, firefox doesn't support `pixelated` yet (https://bugzilla.mozilla.org/show_bug.cgi?id=856337)
 ${helpers.single_keyword(
     "image-rendering",
-    "auto",
-    extra_gecko_values="optimizespeed optimizequality -moz-crisp-edges",
-    extra_servo_values="pixelated crisp-edges",
+    "auto crisp-edges",
+    extra_gecko_values="optimizespeed optimizequality",
+    extra_servo_values="pixelated",
+    extra_gecko_aliases="-moz-crisp-edges=crisp-edges",
     custom_consts=image_rendering_custom_consts,
     animation_value_type="discrete",
     spec="https://drafts.csswg.org/css-images/#propdef-image-rendering",
