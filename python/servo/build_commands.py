@@ -188,7 +188,7 @@ class MachCommands(CommandBase):
                      default=None,
                      action='store_true',
                      help='Build the libsimpleservo library instead of the servo executable')
-    @CommandArgument('--with_frame_pointer',
+    @CommandArgument('--with-frame-pointer',
                      default=None,
                      action='store_true',
                      help='Build with frame pointer enabled, used by the background hang monitor.')

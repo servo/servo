@@ -113,18 +113,17 @@ unsafe fn suspend_thread(thread_id: MonitoredThreadId) -> Result<(), ()> {
 #[cfg(target_os = "macos")]
 #[allow(unsafe_code)]
 unsafe fn get_registers(thread_id: MonitoredThreadId) -> Result<Registers, ()> {
-    let state = (&mut mach::structs::x86_thread_state64_t::new()) as *mut _ as *mut u32;
-    let state_count = (&mut mach::structs::x86_thread_state64_t::count()) as *mut _ as *mut u32;
+    let mut state = mach::structs::x86_thread_state64_t::new();
+    let mut state_count = mach::structs::x86_thread_state64_t::count();
     let kret = mach::thread_act::thread_get_state(thread_id,
                                                   mach::thread_status::x86_THREAD_STATE64,
-                                                  state,
-                                                  state_count);
+                                                  (&mut state) as *mut _ as *mut _,
+                                                  &mut state_count);
     check_kern_return(kret)?;
-    let thread_state = *(state as *mut mach::structs::x86_thread_state64_t);
     Ok(Registers {
-        instruction_ptr: thread_state.__rip as Address,
-        stack_ptr: thread_state.__rsp as Address,
-        frame_ptr: thread_state.__rbp as Address,
+        instruction_ptr: state.__rip as Address,
+        stack_ptr: state.__rsp as Address,
+        frame_ptr: state.__rbp as Address,
     })
 }
 
@@ -222,14 +221,16 @@ unsafe fn suspend_and_sample_thread(monitored: &MonitoredComponent) -> Option<Ha
     if let Err(()) = suspend_thread(monitored.thread_id) {
         return None
     };
-    let registers = match get_registers(monitored.thread_id) {
-        Ok(regs) => regs,
-        Err(()) => return None
+    let native_stack = match get_registers(monitored.thread_id) {
+        Ok(regs) => frame_pointer_stack_walk(registers),
+        Err(()) => None,
     };
-    let native_stack = frame_pointer_stack_walk(registers);
     resume_thread(monitored.thread_id);
     // NOTE: End of "critical section".
-    Some(symbolize_backtrace(native_stack))
+    match native_stack {
+        Some(stack) => Some(symbolize_backtrace(native_stack)),
+        None => None
+    }
 }
 
 struct MonitoredComponent {
