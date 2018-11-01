@@ -50,7 +50,7 @@ use std::thread;
 
 pub mod platform {
     #[cfg(target_os = "macos")]
-    pub use platform::macos::deinit;
+    pub use crate::platform::macos::deinit;
 
     #[cfg(target_os = "macos")]
     pub mod macos;

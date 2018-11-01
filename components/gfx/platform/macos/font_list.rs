@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use core_text;
-use text::util::unicode_plane;
+use crate::text::util::unicode_plane;
 use ucd::{Codepoint, UnicodeBlock};
 
 pub fn for_each_available_family<F>(mut callback: F)

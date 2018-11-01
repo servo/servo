@@ -3,27 +3,27 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use devtools_traits::{TimelineMarker, TimelineMarkerType};
-use dom::bindings::callback::ExceptionHandling;
-use dom::bindings::cell::DomRefCell;
-use dom::bindings::codegen::Bindings::EventBinding;
-use dom::bindings::codegen::Bindings::EventBinding::{EventConstants, EventMethods};
-use dom::bindings::error::Fallible;
-use dom::bindings::inheritance::Castable;
-use dom::bindings::refcounted::Trusted;
-use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
-use dom::bindings::root::{DomRoot, MutNullableDom, RootedReference};
-use dom::bindings::str::DOMString;
-use dom::document::Document;
-use dom::eventtarget::{CompiledEventListener, EventTarget, ListenerPhase};
-use dom::globalscope::GlobalScope;
-use dom::node::Node;
-use dom::virtualmethods::vtable_for;
-use dom::window::Window;
+use crate::dom::bindings::callback::ExceptionHandling;
+use crate::dom::bindings::cell::DomRefCell;
+use crate::dom::bindings::codegen::Bindings::EventBinding;
+use crate::dom::bindings::codegen::Bindings::EventBinding::{EventConstants, EventMethods};
+use crate::dom::bindings::error::Fallible;
+use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::refcounted::Trusted;
+use crate::dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
+use crate::dom::bindings::root::{DomRoot, MutNullableDom, RootedReference};
+use crate::dom::bindings::str::DOMString;
+use crate::dom::document::Document;
+use crate::dom::eventtarget::{CompiledEventListener, EventTarget, ListenerPhase};
+use crate::dom::globalscope::GlobalScope;
+use crate::dom::node::Node;
+use crate::dom::virtualmethods::vtable_for;
+use crate::dom::window::Window;
 use dom_struct::dom_struct;
 use servo_atoms::Atom;
 use std::cell::Cell;
 use std::default::Default;
-use task::TaskOnce;
+use crate::task::TaskOnce;
 use time;
 
 #[dom_struct]

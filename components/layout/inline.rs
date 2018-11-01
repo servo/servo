@@ -2,25 +2,25 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use ServoArc;
+use crate::ServoArc;
 use app_units::{Au, MIN_AU};
-use block::AbsoluteAssignBSizesTraversal;
-use context::{LayoutContext, LayoutFontContext};
-use display_list::{DisplayListBuildState, InlineFlowDisplayListBuilding};
-use display_list::StackingContextCollectionState;
-use display_list::items::OpaqueNode;
+use crate::block::AbsoluteAssignBSizesTraversal;
+use crate::context::{LayoutContext, LayoutFontContext};
+use crate::display_list::{DisplayListBuildState, InlineFlowDisplayListBuilding};
+use crate::display_list::StackingContextCollectionState;
+use crate::display_list::items::OpaqueNode;
 use euclid::{Point2D, Size2D};
-use floats::{FloatKind, Floats, PlacementInfo};
-use flow::{BaseFlow, Flow, FlowClass, ForceNonfloatedFlag};
-use flow::{FlowFlags, EarlyAbsolutePositionInfo, GetBaseFlow, OpaqueFlow};
-use flow_ref::FlowRef;
-use fragment::{CoordinateSystem, Fragment, FragmentBorderBoxIterator, Overflow};
-use fragment::FragmentFlags;
-use fragment::SpecificFragmentInfo;
+use crate::floats::{FloatKind, Floats, PlacementInfo};
+use crate::flow::{BaseFlow, Flow, FlowClass, ForceNonfloatedFlag};
+use crate::flow::{FlowFlags, EarlyAbsolutePositionInfo, GetBaseFlow, OpaqueFlow};
+use crate::flow_ref::FlowRef;
+use crate::fragment::{CoordinateSystem, Fragment, FragmentBorderBoxIterator, Overflow};
+use crate::fragment::FragmentFlags;
+use crate::fragment::SpecificFragmentInfo;
 use gfx::font::FontMetrics;
 use gfx_traits::print_tree::PrintTree;
-use layout_debug;
-use model::IntrinsicISizesContribution;
+use crate::layout_debug;
+use crate::model::IntrinsicISizesContribution;
 use range::{Range, RangeIndex};
 use script_layout_interface::wrapper_traits::PseudoElementType;
 use std::{fmt, i32, isize, mem};
@@ -39,8 +39,8 @@ use style::servo::restyle_damage::ServoRestyleDamage;
 use style::values::computed::box_::VerticalAlign;
 use style::values::generics::box_::VerticalAlign as GenericVerticalAlign;
 use style::values::specified::text::TextOverflowSide;
-use text;
-use traversal::PreorderFlowTraversal;
+use crate::text;
+use crate::traversal::PreorderFlowTraversal;
 use unicode_bidi as bidi;
 
 /// `Line`s are represented as offsets into the child list, rather than
@@ -943,7 +943,7 @@ impl InlineFragments {
 }
 
 #[allow(unsafe_code)]
-unsafe impl ::flow::HasBaseFlow for InlineFlow {}
+unsafe impl crate::flow::HasBaseFlow for InlineFlow {}
 
 /// Flows for inline layout.
 #[derive(Serialize)]

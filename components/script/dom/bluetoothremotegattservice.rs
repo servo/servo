@@ -3,19 +3,19 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use bluetooth_traits::{BluetoothResponse, GATTType};
-use dom::bindings::codegen::Bindings::BluetoothRemoteGATTServerBinding::BluetoothRemoteGATTServerMethods;
-use dom::bindings::codegen::Bindings::BluetoothRemoteGATTServiceBinding;
-use dom::bindings::codegen::Bindings::BluetoothRemoteGATTServiceBinding::BluetoothRemoteGATTServiceMethods;
-use dom::bindings::error::Error;
-use dom::bindings::reflector::reflect_dom_object;
-use dom::bindings::root::{Dom, DomRoot};
-use dom::bindings::str::DOMString;
-use dom::bluetooth::{AsyncBluetoothListener, get_gatt_children};
-use dom::bluetoothdevice::BluetoothDevice;
-use dom::bluetoothuuid::{BluetoothCharacteristicUUID, BluetoothServiceUUID, BluetoothUUID};
-use dom::eventtarget::EventTarget;
-use dom::globalscope::GlobalScope;
-use dom::promise::Promise;
+use crate::dom::bindings::codegen::Bindings::BluetoothRemoteGATTServerBinding::BluetoothRemoteGATTServerMethods;
+use crate::dom::bindings::codegen::Bindings::BluetoothRemoteGATTServiceBinding;
+use crate::dom::bindings::codegen::Bindings::BluetoothRemoteGATTServiceBinding::BluetoothRemoteGATTServiceMethods;
+use crate::dom::bindings::error::Error;
+use crate::dom::bindings::reflector::reflect_dom_object;
+use crate::dom::bindings::root::{Dom, DomRoot};
+use crate::dom::bindings::str::DOMString;
+use crate::dom::bluetooth::{AsyncBluetoothListener, get_gatt_children};
+use crate::dom::bluetoothdevice::BluetoothDevice;
+use crate::dom::bluetoothuuid::{BluetoothCharacteristicUUID, BluetoothServiceUUID, BluetoothUUID};
+use crate::dom::eventtarget::EventTarget;
+use crate::dom::globalscope::GlobalScope;
+use crate::dom::promise::Promise;
 use dom_struct::dom_struct;
 use std::rc::Rc;
 

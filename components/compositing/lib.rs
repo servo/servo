@@ -29,10 +29,10 @@ extern crate time;
 extern crate webrender;
 extern crate webrender_api;
 
-pub use compositor_thread::CompositorProxy;
-pub use compositor::IOCompositor;
-pub use compositor::RenderNotifier;
-pub use compositor::ShutdownState;
+pub use crate::compositor_thread::CompositorProxy;
+pub use crate::compositor::IOCompositor;
+pub use crate::compositor::RenderNotifier;
+pub use crate::compositor::ShutdownState;
 use euclid::TypedSize2D;
 use ipc_channel::ipc::IpcSender;
 use msg::constellation_msg::PipelineId;

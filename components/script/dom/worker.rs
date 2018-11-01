@@ -3,22 +3,22 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use devtools_traits::{DevtoolsPageInfo, ScriptToDevtoolsControlMsg};
-use dom::abstractworker::SimpleWorkerErrorHandler;
-use dom::abstractworker::WorkerScriptMsg;
-use dom::bindings::codegen::Bindings::WorkerBinding;
-use dom::bindings::codegen::Bindings::WorkerBinding::WorkerMethods;
-use dom::bindings::error::{Error, ErrorResult, Fallible};
-use dom::bindings::inheritance::Castable;
-use dom::bindings::refcounted::Trusted;
-use dom::bindings::reflector::{DomObject, reflect_dom_object};
-use dom::bindings::root::DomRoot;
-use dom::bindings::str::DOMString;
-use dom::bindings::structuredclone::StructuredCloneData;
-use dom::dedicatedworkerglobalscope::{DedicatedWorkerGlobalScope, DedicatedWorkerScriptMsg};
-use dom::eventtarget::EventTarget;
-use dom::globalscope::GlobalScope;
-use dom::messageevent::MessageEvent;
-use dom::workerglobalscope::prepare_workerscope_init;
+use crate::dom::abstractworker::SimpleWorkerErrorHandler;
+use crate::dom::abstractworker::WorkerScriptMsg;
+use crate::dom::bindings::codegen::Bindings::WorkerBinding;
+use crate::dom::bindings::codegen::Bindings::WorkerBinding::WorkerMethods;
+use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
+use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::refcounted::Trusted;
+use crate::dom::bindings::reflector::{DomObject, reflect_dom_object};
+use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::structuredclone::StructuredCloneData;
+use crate::dom::dedicatedworkerglobalscope::{DedicatedWorkerGlobalScope, DedicatedWorkerScriptMsg};
+use crate::dom::eventtarget::EventTarget;
+use crate::dom::globalscope::GlobalScope;
+use crate::dom::messageevent::MessageEvent;
+use crate::dom::workerglobalscope::prepare_workerscope_init;
 use dom_struct::dom_struct;
 use ipc_channel::ipc;
 use js::jsapi::{JSAutoCompartment, JSContext, JS_RequestInterruptCallback};
@@ -29,7 +29,7 @@ use servo_channel::{channel, Sender};
 use std::cell::Cell;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
-use task::TaskOnce;
+use crate::task::TaskOnce;
 
 pub type TrustedWorkerAddress = Trusted<Worker>;
 

@@ -4,7 +4,7 @@
 
 extern crate time as std_time;
 
-use energy::read_energy_uj;
+use crate::energy::read_energy_uj;
 use ipc_channel::ipc::IpcSender;
 use self::std_time::precise_time_ns;
 use servo_config::opts;

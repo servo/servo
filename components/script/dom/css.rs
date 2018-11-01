@@ -3,13 +3,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use cssparser::{Parser, ParserInput, serialize_identifier};
-use dom::bindings::codegen::Bindings::WindowBinding::WindowBinding::WindowMethods;
-use dom::bindings::error::Fallible;
-use dom::bindings::reflector::Reflector;
-use dom::bindings::root::DomRoot;
-use dom::bindings::str::DOMString;
-use dom::window::Window;
-use dom::worklet::Worklet;
+use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowBinding::WindowMethods;
+use crate::dom::bindings::error::Fallible;
+use crate::dom::bindings::reflector::Reflector;
+use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::str::DOMString;
+use crate::dom::window::Window;
+use crate::dom::worklet::Worklet;
 use dom_struct::dom_struct;
 use style::context::QuirksMode;
 use style::parser::ParserContext;

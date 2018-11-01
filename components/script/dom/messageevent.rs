@@ -2,18 +2,18 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
-use dom::bindings::codegen::Bindings::MessageEventBinding;
-use dom::bindings::codegen::Bindings::MessageEventBinding::MessageEventMethods;
-use dom::bindings::error::Fallible;
-use dom::bindings::inheritance::Castable;
-use dom::bindings::reflector::reflect_dom_object;
-use dom::bindings::root::DomRoot;
-use dom::bindings::str::DOMString;
-use dom::bindings::trace::RootedTraceableBox;
-use dom::event::Event;
-use dom::eventtarget::EventTarget;
-use dom::globalscope::GlobalScope;
+use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
+use crate::dom::bindings::codegen::Bindings::MessageEventBinding;
+use crate::dom::bindings::codegen::Bindings::MessageEventBinding::MessageEventMethods;
+use crate::dom::bindings::error::Fallible;
+use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::reflector::reflect_dom_object;
+use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::trace::RootedTraceableBox;
+use crate::dom::event::Event;
+use crate::dom::eventtarget::EventTarget;
+use crate::dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
 use js::jsapi::{Heap, JSContext};
 use js::jsval::JSVal;

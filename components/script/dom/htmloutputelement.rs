@@ -2,19 +2,19 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::attr::Attr;
-use dom::bindings::codegen::Bindings::HTMLOutputElementBinding;
-use dom::bindings::codegen::Bindings::HTMLOutputElementBinding::HTMLOutputElementMethods;
-use dom::bindings::inheritance::Castable;
-use dom::bindings::root::{DomRoot, MutNullableDom};
-use dom::document::Document;
-use dom::element::{AttributeMutation, Element};
-use dom::htmlelement::HTMLElement;
-use dom::htmlformelement::{FormControl, HTMLFormElement};
-use dom::node::{Node, window_from_node};
-use dom::nodelist::NodeList;
-use dom::validitystate::ValidityState;
-use dom::virtualmethods::VirtualMethods;
+use crate::dom::attr::Attr;
+use crate::dom::bindings::codegen::Bindings::HTMLOutputElementBinding;
+use crate::dom::bindings::codegen::Bindings::HTMLOutputElementBinding::HTMLOutputElementMethods;
+use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::root::{DomRoot, MutNullableDom};
+use crate::dom::document::Document;
+use crate::dom::element::{AttributeMutation, Element};
+use crate::dom::htmlelement::HTMLElement;
+use crate::dom::htmlformelement::{FormControl, HTMLFormElement};
+use crate::dom::node::{Node, window_from_node};
+use crate::dom::nodelist::NodeList;
+use crate::dom::validitystate::ValidityState;
+use crate::dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
 

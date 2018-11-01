@@ -4,27 +4,27 @@
 
 use bluetooth_traits::{BluetoothRequest, BluetoothResponse, GATTType};
 use bluetooth_traits::blocklist::{Blocklist, uuid_is_blocklisted};
-use dom::bindings::cell::DomRefCell;
-use dom::bindings::codegen::Bindings::BluetoothCharacteristicPropertiesBinding::
+use crate::dom::bindings::cell::DomRefCell;
+use crate::dom::bindings::codegen::Bindings::BluetoothCharacteristicPropertiesBinding::
 BluetoothCharacteristicPropertiesMethods;
-use dom::bindings::codegen::Bindings::BluetoothRemoteGATTCharacteristicBinding;
-use dom::bindings::codegen::Bindings::BluetoothRemoteGATTCharacteristicBinding::
+use crate::dom::bindings::codegen::Bindings::BluetoothRemoteGATTCharacteristicBinding;
+use crate::dom::bindings::codegen::Bindings::BluetoothRemoteGATTCharacteristicBinding::
 BluetoothRemoteGATTCharacteristicMethods;
-use dom::bindings::codegen::Bindings::BluetoothRemoteGATTServerBinding::BluetoothRemoteGATTServerMethods;
-use dom::bindings::codegen::Bindings::BluetoothRemoteGATTServiceBinding::BluetoothRemoteGATTServiceMethods;
-use dom::bindings::codegen::UnionTypes::ArrayBufferViewOrArrayBuffer;
-use dom::bindings::error::Error::{self, InvalidModification, Network, NotSupported, Security};
-use dom::bindings::inheritance::Castable;
-use dom::bindings::reflector::{DomObject, reflect_dom_object};
-use dom::bindings::root::{Dom, DomRoot};
-use dom::bindings::str::{ByteString, DOMString};
-use dom::bluetooth::{AsyncBluetoothListener, get_gatt_children, response_async};
-use dom::bluetoothcharacteristicproperties::BluetoothCharacteristicProperties;
-use dom::bluetoothremotegattservice::BluetoothRemoteGATTService;
-use dom::bluetoothuuid::{BluetoothDescriptorUUID, BluetoothUUID};
-use dom::eventtarget::EventTarget;
-use dom::globalscope::GlobalScope;
-use dom::promise::Promise;
+use crate::dom::bindings::codegen::Bindings::BluetoothRemoteGATTServerBinding::BluetoothRemoteGATTServerMethods;
+use crate::dom::bindings::codegen::Bindings::BluetoothRemoteGATTServiceBinding::BluetoothRemoteGATTServiceMethods;
+use crate::dom::bindings::codegen::UnionTypes::ArrayBufferViewOrArrayBuffer;
+use crate::dom::bindings::error::Error::{self, InvalidModification, Network, NotSupported, Security};
+use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::reflector::{DomObject, reflect_dom_object};
+use crate::dom::bindings::root::{Dom, DomRoot};
+use crate::dom::bindings::str::{ByteString, DOMString};
+use crate::dom::bluetooth::{AsyncBluetoothListener, get_gatt_children, response_async};
+use crate::dom::bluetoothcharacteristicproperties::BluetoothCharacteristicProperties;
+use crate::dom::bluetoothremotegattservice::BluetoothRemoteGATTService;
+use crate::dom::bluetoothuuid::{BluetoothDescriptorUUID, BluetoothUUID};
+use crate::dom::eventtarget::EventTarget;
+use crate::dom::globalscope::GlobalScope;
+use crate::dom::promise::Promise;
 use dom_struct::dom_struct;
 use ipc_channel::ipc::IpcSender;
 use std::rc::Rc;

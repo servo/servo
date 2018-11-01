@@ -6,11 +6,11 @@
 /// (http://mxr.mozilla.org/mozilla-central/source/toolkit/devtools/server/actors/root.js).
 /// Connection point for all new remote devtools interactions, providing lists of know actors
 /// that perform more specific actions (targets, addons, browser chrome, etc.)
-use actor::{Actor, ActorMessageStatus, ActorRegistry};
-use actors::browsing_context::{BrowsingContextActor, BrowsingContextActorMsg};
-use actors::device::DeviceActor;
-use actors::performance::PerformanceActor;
-use protocol::{ActorDescription, JsonPacketStream};
+use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
+use crate::actors::browsing_context::{BrowsingContextActor, BrowsingContextActorMsg};
+use crate::actors::device::DeviceActor;
+use crate::actors::performance::PerformanceActor;
+use crate::protocol::{ActorDescription, JsonPacketStream};
 use serde_json::{Map, Value};
 use std::net::TcpStream;
 

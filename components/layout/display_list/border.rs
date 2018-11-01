@@ -5,7 +5,7 @@
 // FIXME(rust-lang/rust#26264): Remove GenericBorderImageSideWidth.
 
 use app_units::Au;
-use display_list::ToLayout;
+use crate::display_list::ToLayout;
 use euclid::{Rect, SideOffsets2D, Size2D};
 use style::computed_values::border_image_outset::T as BorderImageOutset;
 use style::properties::style_structs::Border;

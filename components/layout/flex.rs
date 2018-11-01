@@ -5,17 +5,17 @@
 //! Layout for elements with a CSS `display` property of `flex`.
 
 use app_units::{Au, MAX_AU};
-use block::{AbsoluteAssignBSizesTraversal, BlockFlow, MarginsMayCollapseFlag};
-use context::LayoutContext;
-use display_list::{DisplayListBuildState, FlexFlowDisplayListBuilding};
-use display_list::StackingContextCollectionState;
+use crate::block::{AbsoluteAssignBSizesTraversal, BlockFlow, MarginsMayCollapseFlag};
+use crate::context::LayoutContext;
+use crate::display_list::{DisplayListBuildState, FlexFlowDisplayListBuilding};
+use crate::display_list::StackingContextCollectionState;
 use euclid::Point2D;
-use floats::FloatKind;
-use flow::{Flow, FlowClass, GetBaseFlow, ImmutableFlowUtils, OpaqueFlow, FlowFlags};
-use fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
-use layout_debug;
-use model::{AdjoiningMargins, CollapsibleMargins};
-use model::{IntrinsicISizes, MaybeAuto, SizeConstraint};
+use crate::floats::FloatKind;
+use crate::flow::{Flow, FlowClass, GetBaseFlow, ImmutableFlowUtils, OpaqueFlow, FlowFlags};
+use crate::fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
+use crate::layout_debug;
+use crate::model::{AdjoiningMargins, CollapsibleMargins};
+use crate::model::{IntrinsicISizes, MaybeAuto, SizeConstraint};
 use std::cmp::{max, min};
 use std::ops::Range;
 use style::computed_values::align_content::T as AlignContent;
@@ -29,7 +29,7 @@ use style::servo::restyle_damage::ServoRestyleDamage;
 use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto, LengthOrPercentageOrNone};
 use style::values::computed::flex::FlexBasis;
 use style::values::generics::flex::FlexBasis as GenericFlexBasis;
-use traversal::PreorderFlowTraversal;
+use crate::traversal::PreorderFlowTraversal;
 
 /// The size of an axis. May be a specified size, a min/max
 /// constraint, or an unlimited size
@@ -348,7 +348,7 @@ impl FlexLine {
 }
 
 #[allow(unsafe_code)]
-unsafe impl ::flow::HasBaseFlow for FlexFlow {}
+unsafe impl crate::flow::HasBaseFlow for FlexFlow {}
 
 /// A block with the CSS `display` property equal to `flex`.
 #[derive(Debug, Serialize)]
@@ -1099,7 +1099,7 @@ impl Flow for FlexFlow {
         self.block_flow.collect_stacking_contexts(state);
     }
 
-    fn repair_style(&mut self, new_style: &::ServoArc<ComputedValues>) {
+    fn repair_style(&mut self, new_style: &crate::ServoArc<ComputedValues>) {
         self.block_flow.repair_style(new_style)
     }
 

@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use atomic_refcell::AtomicRefCell;
-use construct::ConstructionResult;
+use crate::construct::ConstructionResult;
 use script_layout_interface::StyleData;
 
 #[repr(C)]

@@ -5,26 +5,26 @@
 use base64;
 use canvas_traits::canvas::{CanvasMsg, CanvasId, FromScriptMsg};
 use canvas_traits::webgl::WebGLVersion;
-use dom::attr::Attr;
-use dom::bindings::cell::DomRefCell;
-use dom::bindings::codegen::Bindings::HTMLCanvasElementBinding;
-use dom::bindings::codegen::Bindings::HTMLCanvasElementBinding::{HTMLCanvasElementMethods, RenderingContext};
-use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLContextAttributes;
-use dom::bindings::conversions::ConversionResult;
-use dom::bindings::error::{Error, Fallible};
-use dom::bindings::inheritance::Castable;
-use dom::bindings::reflector::DomObject;
-use dom::bindings::root::{Dom, DomRoot, LayoutDom};
-use dom::bindings::str::{DOMString, USVString};
-use dom::canvasrenderingcontext2d::{CanvasRenderingContext2D, LayoutCanvasRenderingContext2DHelpers};
-use dom::document::Document;
-use dom::element::{AttributeMutation, Element, RawLayoutElementHelpers};
-use dom::globalscope::GlobalScope;
-use dom::htmlelement::HTMLElement;
-use dom::node::{Node, window_from_node};
-use dom::virtualmethods::VirtualMethods;
-use dom::webgl2renderingcontext::WebGL2RenderingContext;
-use dom::webglrenderingcontext::{LayoutCanvasWebGLRenderingContextHelpers, WebGLRenderingContext};
+use crate::dom::attr::Attr;
+use crate::dom::bindings::cell::DomRefCell;
+use crate::dom::bindings::codegen::Bindings::HTMLCanvasElementBinding;
+use crate::dom::bindings::codegen::Bindings::HTMLCanvasElementBinding::{HTMLCanvasElementMethods, RenderingContext};
+use crate::dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLContextAttributes;
+use crate::dom::bindings::conversions::ConversionResult;
+use crate::dom::bindings::error::{Error, Fallible};
+use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::reflector::DomObject;
+use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom};
+use crate::dom::bindings::str::{DOMString, USVString};
+use crate::dom::canvasrenderingcontext2d::{CanvasRenderingContext2D, LayoutCanvasRenderingContext2DHelpers};
+use crate::dom::document::Document;
+use crate::dom::element::{AttributeMutation, Element, RawLayoutElementHelpers};
+use crate::dom::globalscope::GlobalScope;
+use crate::dom::htmlelement::HTMLElement;
+use crate::dom::node::{Node, window_from_node};
+use crate::dom::virtualmethods::VirtualMethods;
+use crate::dom::webgl2renderingcontext::WebGL2RenderingContext;
+use crate::dom::webglrenderingcontext::{LayoutCanvasWebGLRenderingContextHelpers, WebGLRenderingContext};
 use dom_struct::dom_struct;
 use euclid::{Rect, Size2D};
 use html5ever::{LocalName, Prefix};
@@ -439,7 +439,7 @@ impl<'a> From<&'a WebGLContextAttributes> for GLContextAttributes {
 }
 
 pub mod utils {
-    use dom::window::Window;
+    use crate::dom::window::Window;
     use net_traits::image_cache::{ImageResponse, UsePlaceholder, ImageOrMetadataAvailable};
     use net_traits::image_cache::CanRequestImages;
     use servo_url::ServoUrl;

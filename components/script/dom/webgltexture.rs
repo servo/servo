@@ -6,16 +6,16 @@
 
 use canvas_traits::webgl::{DOMToTextureCommand, WebGLCommand, WebGLError};
 use canvas_traits::webgl::{WebGLResult, WebGLTextureId, webgl_channel};
-use dom::bindings::cell::DomRefCell;
-use dom::bindings::codegen::Bindings::EXTTextureFilterAnisotropicBinding::EXTTextureFilterAnisotropicConstants;
-use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
-use dom::bindings::codegen::Bindings::WebGLTextureBinding;
-use dom::bindings::inheritance::Castable;
-use dom::bindings::reflector::{DomObject, reflect_dom_object};
-use dom::bindings::root::DomRoot;
-use dom::webgl_validations::types::{TexImageTarget, TexFormat, TexDataType};
-use dom::webglobject::WebGLObject;
-use dom::webglrenderingcontext::WebGLRenderingContext;
+use crate::dom::bindings::cell::DomRefCell;
+use crate::dom::bindings::codegen::Bindings::EXTTextureFilterAnisotropicBinding::EXTTextureFilterAnisotropicConstants;
+use crate::dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
+use crate::dom::bindings::codegen::Bindings::WebGLTextureBinding;
+use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::reflector::{DomObject, reflect_dom_object};
+use crate::dom::bindings::root::DomRoot;
+use crate::dom::webgl_validations::types::{TexImageTarget, TexFormat, TexDataType};
+use crate::dom::webglobject::WebGLObject;
+use crate::dom::webglrenderingcontext::WebGLRenderingContext;
 use dom_struct::dom_struct;
 use std::cell::Cell;
 use std::cmp;

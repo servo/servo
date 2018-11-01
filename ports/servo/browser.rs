@@ -3,8 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use euclid::{TypedPoint2D, TypedVector2D};
-use glutin_app::keyutils::{CMD_OR_CONTROL, CMD_OR_ALT};
-use glutin_app::window::{Window, LINE_HEIGHT};
+use crate::glutin_app::keyutils::{CMD_OR_CONTROL, CMD_OR_ALT};
+use crate::glutin_app::window::{Window, LINE_HEIGHT};
 use keyboard_types::{Key, KeyboardEvent, Modifiers, ShortcutMatcher};
 use servo::compositing::windowing::{WebRenderDebugOption, WindowEvent};
 use servo::embedder_traits::{EmbedderMsg, FilterPattern};

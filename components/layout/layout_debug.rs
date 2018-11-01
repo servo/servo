@@ -5,8 +5,8 @@
 //! Supports writing a trace file created during each layout scope
 //! that can be viewed by an external tool to make layout debugging easier.
 
-use flow::GetBaseFlow;
-use flow_ref::FlowRef;
+use crate::flow::GetBaseFlow;
+use crate::flow_ref::FlowRef;
 use serde_json::{to_string, to_value, Value};
 use std::borrow::ToOwned;
 use std::cell::RefCell;

@@ -2,16 +2,16 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use blob_loader::load_blob_sync;
-use data_loader::decode;
+use crate::blob_loader::load_blob_sync;
+use crate::data_loader::decode;
 use devtools_traits::DevtoolsControlMsg;
-use fetch::cors_cache::CorsCache;
-use filemanager_thread::FileManager;
+use crate::fetch::cors_cache::CorsCache;
+use crate::filemanager_thread::FileManager;
+use crate::http_loader::{HttpState, determine_request_referrer, http_fetch};
+use crate::http_loader::{set_default_accept, set_default_accept_language};
 use headers_core::HeaderMapExt;
 use headers_ext::{AccessControlExposeHeaders, ContentType, Range};
 use http::header::{self, HeaderMap, HeaderName, HeaderValue};
-use http_loader::{HttpState, determine_request_referrer, http_fetch};
-use http_loader::{set_default_accept, set_default_accept_language};
 use hyper::Method;
 use hyper::StatusCode;
 use ipc_channel::ipc::IpcReceiver;
@@ -32,7 +32,7 @@ use std::str;
 use std::sync::{Arc, Mutex};
 use std::sync::atomic::Ordering;
 use std::thread;
-use subresource_integrity::is_response_integrity_valid;
+use crate::subresource_integrity::is_response_integrity_valid;
 
 lazy_static! {
     static ref X_CONTENT_TYPE_OPTIONS: HeaderName = HeaderName::from_static("x-content-type-options");

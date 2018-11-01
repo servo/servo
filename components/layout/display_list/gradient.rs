@@ -5,7 +5,7 @@
 // FIXME(rust-lang/rust#26264): Remove GenericEndingShape and GenericGradientItem.
 
 use app_units::Au;
-use display_list::ToLayout;
+use crate::display_list::ToLayout;
 use euclid::{Point2D, Size2D, Vector2D};
 use style::properties::ComputedValues;
 use style::values::computed::{Angle, GradientItem, LengthOrPercentage, Percentage, Position};

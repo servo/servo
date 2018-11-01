@@ -2,9 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use crate::hosts::replace_host;
+use crate::http_loader::Decoder;
 use flate2::read::GzDecoder;
-use hosts::replace_host;
-use http_loader::Decoder;
 use hyper::{Body, Client};
 use hyper::body::Payload;
 use hyper::client::HttpConnector as HyperHttpConnector;

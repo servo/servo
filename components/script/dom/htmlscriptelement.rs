@@ -2,26 +2,26 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use document_loader::LoadType;
-use dom::attr::Attr;
-use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
-use dom::bindings::codegen::Bindings::HTMLScriptElementBinding;
-use dom::bindings::codegen::Bindings::HTMLScriptElementBinding::HTMLScriptElementMethods;
-use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
-use dom::bindings::inheritance::Castable;
-use dom::bindings::refcounted::Trusted;
-use dom::bindings::reflector::DomObject;
-use dom::bindings::root::{Dom, DomRoot, RootedReference};
-use dom::bindings::str::DOMString;
-use dom::document::Document;
-use dom::element::{AttributeMutation, Element, ElementCreator};
-use dom::element::{cors_setting_for_element, reflect_cross_origin_attribute, set_cross_origin_attribute};
-use dom::event::{Event, EventBubbles, EventCancelable, EventStatus};
-use dom::globalscope::GlobalScope;
-use dom::htmlelement::HTMLElement;
-use dom::node::{ChildrenMutation, CloneChildrenFlag, Node};
-use dom::node::{document_from_node, window_from_node};
-use dom::virtualmethods::VirtualMethods;
+use crate::document_loader::LoadType;
+use crate::dom::attr::Attr;
+use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
+use crate::dom::bindings::codegen::Bindings::HTMLScriptElementBinding;
+use crate::dom::bindings::codegen::Bindings::HTMLScriptElementBinding::HTMLScriptElementMethods;
+use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
+use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::refcounted::Trusted;
+use crate::dom::bindings::reflector::DomObject;
+use crate::dom::bindings::root::{Dom, DomRoot, RootedReference};
+use crate::dom::bindings::str::DOMString;
+use crate::dom::document::Document;
+use crate::dom::element::{AttributeMutation, Element, ElementCreator};
+use crate::dom::element::{cors_setting_for_element, reflect_cross_origin_attribute, set_cross_origin_attribute};
+use crate::dom::event::{Event, EventBubbles, EventCancelable, EventStatus};
+use crate::dom::globalscope::GlobalScope;
+use crate::dom::htmlelement::HTMLElement;
+use crate::dom::node::{ChildrenMutation, CloneChildrenFlag, Node};
+use crate::dom::node::{document_from_node, window_from_node};
+use crate::dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
 use encoding_rs::Encoding;
 use html5ever::{LocalName, Prefix};
@@ -30,7 +30,7 @@ use ipc_channel::router::ROUTER;
 use js::jsval::UndefinedValue;
 use net_traits::{FetchMetadata, FetchResponseListener, Metadata, NetworkError};
 use net_traits::request::{CorsSettings, CredentialsMode, Destination, RequestInit, RequestMode};
-use network_listener::{NetworkListener, PreInvoke};
+use crate::network_listener::{NetworkListener, PreInvoke};
 use servo_atoms::Atom;
 use servo_config::opts;
 use servo_url::ServoUrl;
@@ -41,7 +41,7 @@ use std::path::PathBuf;
 use std::process::{Command, Stdio};
 use std::sync::{Arc, Mutex};
 use style::str::{HTML_SPACE_CHARACTERS, StaticStringVec};
-use task_source::TaskSourceName;
+use crate::task_source::TaskSourceName;
 use uuid::Uuid;
 
 #[dom_struct]
@@ -320,9 +320,9 @@ impl HTMLScriptElement {
 
         // Step 3.
         let element = self.upcast::<Element>();
-        let async = element.has_attribute(&local_name!("async"));
+        let r#async = element.has_attribute(&local_name!("async"));
         // Note: confusingly, this is done if the element does *not* have an "async" attribute.
-        if was_parser_inserted && !async {
+        if was_parser_inserted && !r#async {
             self.non_blocking.set(true);
         }
 
@@ -438,13 +438,13 @@ impl HTMLScriptElement {
 
             // Preparation for step 23.
             let kind =
-                if element.has_attribute(&local_name!("defer")) && was_parser_inserted && !async {
+                if element.has_attribute(&local_name!("defer")) && was_parser_inserted && !r#async {
                     // Step 23.a: classic, has src, has defer, was parser-inserted, is not async.
                     ExternalScriptKind::Deferred
-                } else if was_parser_inserted && !async {
+                } else if was_parser_inserted && !r#async {
                     // Step 23.c: classic, has src, was parser-inserted, is not async.
                     ExternalScriptKind::ParsingBlocking
-                } else if !async && !self.non_blocking.get() {
+                } else if !r#async && !self.non_blocking.get() {
                     // Step 23.d: classic, has src, is not async, is not non-blocking.
                     ExternalScriptKind::AsapInOrder
                 } else {

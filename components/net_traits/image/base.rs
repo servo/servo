@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use ipc_channel::ipc::IpcSharedMemory;
-use piston_image::{self, DynamicImage, ImageFormat};
+use crate::piston_image::{self, DynamicImage, ImageFormat};
 use pixels;
 use std::fmt;
 use webrender_api;

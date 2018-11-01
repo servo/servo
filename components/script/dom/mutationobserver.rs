@@ -2,23 +2,23 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::callback::ExceptionHandling;
-use dom::bindings::cell::DomRefCell;
-use dom::bindings::codegen::Bindings::MutationObserverBinding;
-use dom::bindings::codegen::Bindings::MutationObserverBinding::MutationCallback;
-use dom::bindings::codegen::Bindings::MutationObserverBinding::MutationObserverBinding::MutationObserverMethods;
-use dom::bindings::codegen::Bindings::MutationObserverBinding::MutationObserverInit;
-use dom::bindings::error::{Error, Fallible};
-use dom::bindings::reflector::{Reflector, reflect_dom_object, DomObject};
-use dom::bindings::root::DomRoot;
-use dom::bindings::str::DOMString;
-use dom::mutationrecord::MutationRecord;
-use dom::node::Node;
-use dom::window::Window;
+use crate::dom::bindings::callback::ExceptionHandling;
+use crate::dom::bindings::cell::DomRefCell;
+use crate::dom::bindings::codegen::Bindings::MutationObserverBinding;
+use crate::dom::bindings::codegen::Bindings::MutationObserverBinding::MutationCallback;
+use crate::dom::bindings::codegen::Bindings::MutationObserverBinding::MutationObserverBinding::MutationObserverMethods;
+use crate::dom::bindings::codegen::Bindings::MutationObserverBinding::MutationObserverInit;
+use crate::dom::bindings::error::{Error, Fallible};
+use crate::dom::bindings::reflector::{Reflector, reflect_dom_object, DomObject};
+use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::str::DOMString;
+use crate::dom::mutationrecord::MutationRecord;
+use crate::dom::node::Node;
+use crate::dom::window::Window;
 use dom_struct::dom_struct;
 use html5ever::{Namespace, LocalName};
-use microtask::Microtask;
-use script_thread::ScriptThread;
+use crate::microtask::Microtask;
+use crate::script_thread::ScriptThread;
 use std::rc::Rc;
 
 #[dom_struct]

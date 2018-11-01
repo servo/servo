@@ -4,7 +4,7 @@
 
 use ipc_channel::ipc::IpcSender;
 use msg::constellation_msg::PipelineId;
-use webvr::*;
+use crate::webvr::*;
 
 pub type WebVRResult<T> = Result<T, String>;
 

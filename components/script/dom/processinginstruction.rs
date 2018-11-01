@@ -2,13 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::codegen::Bindings::ProcessingInstructionBinding;
-use dom::bindings::codegen::Bindings::ProcessingInstructionBinding::ProcessingInstructionMethods;
-use dom::bindings::root::DomRoot;
-use dom::bindings::str::DOMString;
-use dom::characterdata::CharacterData;
-use dom::document::Document;
-use dom::node::Node;
+use crate::dom::bindings::codegen::Bindings::ProcessingInstructionBinding;
+use crate::dom::bindings::codegen::Bindings::ProcessingInstructionBinding::ProcessingInstructionMethods;
+use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::str::DOMString;
+use crate::dom::characterdata::CharacterData;
+use crate::dom::document::Document;
+use crate::dom::node::Node;
 use dom_struct::dom_struct;
 
 /// An HTML processing instruction node.

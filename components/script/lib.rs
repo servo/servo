@@ -150,21 +150,21 @@ mod webdriver_handlers;
 ///
 /// TODO(emilio): A few of the FooHelpers can go away, presumably...
 pub mod layout_exports {
-    pub use dom::bindings::inheritance::{CharacterDataTypeId, ElementTypeId};
-    pub use dom::bindings::inheritance::{HTMLElementTypeId, NodeTypeId};
-    pub use dom::bindings::root::LayoutDom;
-    pub use dom::characterdata::LayoutCharacterDataHelpers;
-    pub use dom::document::{Document, LayoutDocumentHelpers, PendingRestyle};
-    pub use dom::element::{Element, LayoutElementHelpers, RawLayoutElementHelpers};
-    pub use dom::node::NodeFlags;
-    pub use dom::node::{LayoutNodeHelpers, Node};
-    pub use dom::text::Text;
+    pub use crate::dom::bindings::inheritance::{CharacterDataTypeId, ElementTypeId};
+    pub use crate::dom::bindings::inheritance::{HTMLElementTypeId, NodeTypeId};
+    pub use crate::dom::bindings::root::LayoutDom;
+    pub use crate::dom::characterdata::LayoutCharacterDataHelpers;
+    pub use crate::dom::document::{Document, LayoutDocumentHelpers, PendingRestyle};
+    pub use crate::dom::element::{Element, LayoutElementHelpers, RawLayoutElementHelpers};
+    pub use crate::dom::node::NodeFlags;
+    pub use crate::dom::node::{LayoutNodeHelpers, Node};
+    pub use crate::dom::text::Text;
 }
 
-use dom::bindings::codegen::RegisterBindings;
-use dom::bindings::proxyhandler;
+use crate::dom::bindings::codegen::RegisterBindings;
+use crate::dom::bindings::proxyhandler;
 use script_traits::SWManagerSenders;
-use serviceworker_manager::ServiceWorkerManager;
+use crate::serviceworker_manager::ServiceWorkerManager;
 
 #[cfg(target_os = "linux")]
 #[allow(unsafe_code)]

@@ -3,10 +3,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use canvas_traits::webgl::WebGLVersion;
-use dom::bindings::reflector::DomObject;
-use dom::bindings::root::DomRoot;
-use dom::bindings::trace::JSTraceable;
-use dom::webglrenderingcontext::WebGLRenderingContext;
+use crate::dom::bindings::reflector::DomObject;
+use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::trace::JSTraceable;
+use crate::dom::webglrenderingcontext::WebGLRenderingContext;
 use super::WebGLExtensions;
 
 /// Trait implemented by WebGL extensions.

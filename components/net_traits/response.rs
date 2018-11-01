@@ -4,7 +4,7 @@
 
 //! The [Response](https://fetch.spec.whatwg.org/#responses) object
 //! resulting from a [fetch operation](https://fetch.spec.whatwg.org/#concept-fetch)
-use {FetchMetadata, FilteredMetadata, Metadata, NetworkError, ReferrerPolicy};
+use crate::{FetchMetadata, FilteredMetadata, Metadata, NetworkError, ReferrerPolicy};
 use headers_core::HeaderMapExt;
 use headers_ext::{AccessControlExposeHeaders, ContentType};
 use http::{HeaderMap, StatusCode};

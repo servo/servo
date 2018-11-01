@@ -2,14 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::codegen::Bindings::WorkerNavigatorBinding;
-use dom::bindings::codegen::Bindings::WorkerNavigatorBinding::WorkerNavigatorMethods;
-use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
-use dom::bindings::root::{DomRoot, MutNullableDom};
-use dom::bindings::str::DOMString;
-use dom::navigatorinfo;
-use dom::permissions::Permissions;
-use dom::workerglobalscope::WorkerGlobalScope;
+use crate::dom::bindings::codegen::Bindings::WorkerNavigatorBinding;
+use crate::dom::bindings::codegen::Bindings::WorkerNavigatorBinding::WorkerNavigatorMethods;
+use crate::dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
+use crate::dom::bindings::root::{DomRoot, MutNullableDom};
+use crate::dom::bindings::str::DOMString;
+use crate::dom::navigatorinfo;
+use crate::dom::permissions::Permissions;
+use crate::dom::workerglobalscope::WorkerGlobalScope;
 use dom_struct::dom_struct;
 
 // https://html.spec.whatwg.org/multipage/#workernavigator

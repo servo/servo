@@ -17,4 +17,4 @@ extern crate servo_config;
 extern crate webvr_traits;
 
 mod webvr_thread;
-pub use webvr_thread::{WebVRThread, WebVRCompositorHandler};
+pub use crate::webvr_thread::{WebVRThread, WebVRCompositorHandler};

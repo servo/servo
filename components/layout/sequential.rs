@@ -5,18 +5,18 @@
 //! Implements sequential traversals over the DOM and flow trees.
 
 use app_units::Au;
-use context::LayoutContext;
-use display_list::{DisplayListBuildState, StackingContextCollectionState};
+use crate::context::LayoutContext;
+use crate::display_list::{DisplayListBuildState, StackingContextCollectionState};
 use euclid::{Point2D, Vector2D};
-use floats::SpeculatedFloatPlacement;
-use flow::{Flow, ImmutableFlowUtils, FlowFlags, GetBaseFlow};
-use fragment::{FragmentBorderBoxIterator, CoordinateSystem};
-use generated_content::ResolveGeneratedContent;
-use incremental::RelayoutMode;
+use crate::floats::SpeculatedFloatPlacement;
+use crate::flow::{Flow, ImmutableFlowUtils, FlowFlags, GetBaseFlow};
+use crate::fragment::{FragmentBorderBoxIterator, CoordinateSystem};
+use crate::generated_content::ResolveGeneratedContent;
+use crate::incremental::RelayoutMode;
 use servo_config::opts;
 use style::servo::restyle_damage::ServoRestyleDamage;
-use traversal::{AssignBSizes, AssignISizes, BubbleISizes, BuildDisplayList};
-use traversal::{InorderFlowTraversal, PostorderFlowTraversal, PreorderFlowTraversal};
+use crate::traversal::{AssignBSizes, AssignISizes, BubbleISizes, BuildDisplayList};
+use crate::traversal::{InorderFlowTraversal, PostorderFlowTraversal, PreorderFlowTraversal};
 use webrender_api::LayoutPoint;
 
 pub fn resolve_generated_content(root: &mut Flow, layout_context: &LayoutContext) {

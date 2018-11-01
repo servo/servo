@@ -4,24 +4,24 @@
 
 //! DOM bindings for `CharacterData`.
 
-use dom::bindings::cell::DomRefCell;
-use dom::bindings::codegen::Bindings::CharacterDataBinding::CharacterDataMethods;
-use dom::bindings::codegen::Bindings::NodeBinding::NodeBinding::NodeMethods;
-use dom::bindings::codegen::Bindings::ProcessingInstructionBinding::ProcessingInstructionMethods;
-use dom::bindings::codegen::InheritTypes::{CharacterDataTypeId, NodeTypeId};
-use dom::bindings::codegen::UnionTypes::NodeOrString;
-use dom::bindings::error::{Error, ErrorResult, Fallible};
-use dom::bindings::inheritance::Castable;
-use dom::bindings::root::{DomRoot, LayoutDom};
-use dom::bindings::str::DOMString;
-use dom::comment::Comment;
-use dom::document::Document;
-use dom::element::Element;
-use dom::mutationobserver::{Mutation, MutationObserver};
-use dom::node::{ChildrenMutation, Node, NodeDamage};
-use dom::processinginstruction::ProcessingInstruction;
-use dom::text::Text;
-use dom::virtualmethods::vtable_for;
+use crate::dom::bindings::cell::DomRefCell;
+use crate::dom::bindings::codegen::Bindings::CharacterDataBinding::CharacterDataMethods;
+use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeBinding::NodeMethods;
+use crate::dom::bindings::codegen::Bindings::ProcessingInstructionBinding::ProcessingInstructionMethods;
+use crate::dom::bindings::codegen::InheritTypes::{CharacterDataTypeId, NodeTypeId};
+use crate::dom::bindings::codegen::UnionTypes::NodeOrString;
+use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
+use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::root::{DomRoot, LayoutDom};
+use crate::dom::bindings::str::DOMString;
+use crate::dom::comment::Comment;
+use crate::dom::document::Document;
+use crate::dom::element::Element;
+use crate::dom::mutationobserver::{Mutation, MutationObserver};
+use crate::dom::node::{ChildrenMutation, Node, NodeDamage};
+use crate::dom::processinginstruction::ProcessingInstruction;
+use crate::dom::text::Text;
+use crate::dom::virtualmethods::vtable_for;
 use dom_struct::dom_struct;
 use servo_config::opts;
 use std::cell::Ref;

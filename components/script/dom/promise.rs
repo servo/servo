@@ -11,12 +11,12 @@
 //! native Promise values that refer to the same JS value yet are distinct native objects
 //! (ie. address equality for the native objects is meaningless).
 
-use dom::bindings::conversions::root_from_object;
-use dom::bindings::error::{Error, Fallible};
-use dom::bindings::reflector::{DomObject, MutDomObject, Reflector};
-use dom::bindings::utils::AsCCharPtrPtr;
-use dom::globalscope::GlobalScope;
-use dom::promisenativehandler::PromiseNativeHandler;
+use crate::dom::bindings::conversions::root_from_object;
+use crate::dom::bindings::error::{Error, Fallible};
+use crate::dom::bindings::reflector::{DomObject, MutDomObject, Reflector};
+use crate::dom::bindings::utils::AsCCharPtrPtr;
+use crate::dom::globalscope::GlobalScope;
+use crate::dom::promisenativehandler::PromiseNativeHandler;
 use dom_struct::dom_struct;
 use js::conversions::ToJSValConvertible;
 use js::jsapi::{AddRawValueRoot, CallArgs, GetFunctionNativeReserved};

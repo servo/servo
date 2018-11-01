@@ -2,20 +2,20 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::codegen::Bindings::ServiceWorkerContainerBinding::{ServiceWorkerContainerMethods, Wrap};
-use dom::bindings::codegen::Bindings::ServiceWorkerContainerBinding::RegistrationOptions;
-use dom::bindings::error::Error;
-use dom::bindings::reflector::{DomObject, reflect_dom_object};
-use dom::bindings::root::{Dom, DomRoot, MutNullableDom};
-use dom::bindings::str::USVString;
-use dom::client::Client;
-use dom::eventtarget::EventTarget;
-use dom::globalscope::GlobalScope;
-use dom::promise::Promise;
-use dom::serviceworker::ServiceWorker;
+use crate::dom::bindings::codegen::Bindings::ServiceWorkerContainerBinding::{ServiceWorkerContainerMethods, Wrap};
+use crate::dom::bindings::codegen::Bindings::ServiceWorkerContainerBinding::RegistrationOptions;
+use crate::dom::bindings::error::Error;
+use crate::dom::bindings::reflector::{DomObject, reflect_dom_object};
+use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
+use crate::dom::bindings::str::USVString;
+use crate::dom::client::Client;
+use crate::dom::eventtarget::EventTarget;
+use crate::dom::globalscope::GlobalScope;
+use crate::dom::promise::Promise;
+use crate::dom::serviceworker::ServiceWorker;
 use dom_struct::dom_struct;
-use script_thread::ScriptThread;
-use serviceworkerjob::{Job, JobType};
+use crate::script_thread::ScriptThread;
+use crate::serviceworkerjob::{Job, JobType};
 use std::default::Default;
 use std::rc::Rc;
 
