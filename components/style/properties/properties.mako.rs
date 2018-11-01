@@ -22,28 +22,28 @@ use std::mem::{self, ManuallyDrop};
 use cssparser::{Parser, RGBA, TokenSerializationType};
 use cssparser::ParserInput;
 #[cfg(feature = "servo")] use euclid::SideOffsets2D;
-use context::QuirksMode;
-#[cfg(feature = "gecko")] use gecko_bindings::structs::{self, nsCSSPropertyID};
-#[cfg(feature = "servo")] use logical_geometry::LogicalMargin;
-#[cfg(feature = "servo")] use computed_values;
-use logical_geometry::WritingMode;
+use crate::context::QuirksMode;
+#[cfg(feature = "gecko")] use crate::gecko_bindings::structs::{self, nsCSSPropertyID};
+#[cfg(feature = "servo")] use crate::logical_geometry::LogicalMargin;
+#[cfg(feature = "servo")] use crate::computed_values;
+use crate::logical_geometry::WritingMode;
 #[cfg(feature = "gecko")] use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
-use media_queries::Device;
-use parser::ParserContext;
-use properties::longhands::system_font::SystemFont;
-use selector_parser::PseudoElement;
+use crate::media_queries::Device;
+use crate::parser::ParserContext;
+use crate::properties::longhands::system_font::SystemFont;
+use crate::selector_parser::PseudoElement;
 use selectors::parser::SelectorParseErrorKind;
 #[cfg(feature = "servo")] use servo_config::prefs::PREFS;
 use style_traits::{CssWriter, KeywordsCollectFn, ParseError, ParsingMode};
 use style_traits::{SpecifiedValueInfo, StyleParseErrorKind, ToCss};
-use stylesheets::{CssRuleType, Origin, UrlExtraData};
-use values::generics::text::LineHeight;
-use values::computed;
-use values::computed::NonNegativeLength;
-use values::serialize_atom_name;
-use rule_tree::StrongRuleNode;
+use crate::stylesheets::{CssRuleType, Origin, UrlExtraData};
+use crate::values::generics::text::LineHeight;
+use crate::values::computed;
+use crate::values::computed::NonNegativeLength;
+use crate::values::serialize_atom_name;
+use crate::rule_tree::StrongRuleNode;
 use self::computed_value_flags::*;
-use str::{CssString, CssStringBorrow, CssStringWriter};
+use crate::str::{CssString, CssStringBorrow, CssStringWriter};
 
 pub use self::declaration_block::*;
 pub use self::cascade::*;
@@ -110,12 +110,12 @@ macro_rules! unwrap_or_initial {
 #[allow(missing_docs)]
 pub mod shorthands {
     use cssparser::Parser;
-    use parser::{Parse, ParserContext};
+    use crate::parser::{Parse, ParserContext};
     use style_traits::{ParseError, StyleParseErrorKind};
-    use values::specified;
+    use crate::values::specified;
 
     use style_traits::{CssWriter, ToCss};
-    use values::specified::{BorderStyle, Color};
+    use crate::values::specified::{BorderStyle, Color};
     use std::fmt::{self, Write};
 
     fn serialize_directional_border<W, I,>(
@@ -427,7 +427,7 @@ pub const NON_CUSTOM_PROPERTY_ID_COUNT: usize =
 #[allow(dead_code)]
 unsafe fn static_assert_nscsspropertyid() {
     % for i, property in enumerate(data.longhands + data.shorthands + data.all_aliases()):
-    ::std::mem::transmute::<[u8; ${i}], [u8; ${property.nscsspropertyid()} as usize]>([0; ${i}]); // ${property.name}
+    std::mem::transmute::<[u8; ${i}], [u8; ${property.nscsspropertyid()} as usize]>([0; ${i}]); // ${property.name}
     % endfor
 }
 % endif
@@ -442,7 +442,7 @@ impl NonCustomPropertyId {
     #[inline]
     fn to_nscsspropertyid(self) -> nsCSSPropertyID {
         // unsafe: guaranteed by static_assert_nscsspropertyid above.
-        unsafe { ::std::mem::transmute(self.0 as i32) }
+        unsafe { std::mem::transmute(self.0 as i32) }
     }
 
     /// Convert an `nsCSSPropertyID` into a `NonCustomPropertyId`.
@@ -457,7 +457,7 @@ impl NonCustomPropertyId {
             return Err(());
         }
         // unsafe: guaranteed by static_assert_nscsspropertyid above.
-        Ok(unsafe { ::std::mem::transmute(prop as usize) })
+        Ok(unsafe { std::mem::transmute(prop as usize) })
     }
 
     /// Get the property name.
@@ -1301,7 +1301,7 @@ impl LonghandId {
 /// shorthand, if that shorthand is enabled for all content too.
 pub struct NonCustomPropertyIterator<Item: 'static> {
     filter: bool,
-    iter: ::std::slice::Iter<'static, Item>,
+    iter: std::slice::Iter<'static, Item>,
 }
 
 impl<Item> Iterator for NonCustomPropertyIterator<Item>
@@ -1534,11 +1534,11 @@ impl UnparsedValue {
     fn substitute_variables(
         &self,
         longhand_id: LonghandId,
-        custom_properties: Option<<&Arc<::custom_properties::CustomPropertiesMap>>,
+        custom_properties: Option<<&Arc<crate::custom_properties::CustomPropertiesMap>>,
         quirks_mode: QuirksMode,
         environment: &::custom_properties::CssEnvironment,
     ) -> PropertyDeclaration {
-        ::custom_properties::substitute(
+        crate::custom_properties::substitute(
             &self.css,
             self.first_token_type,
             custom_properties,
@@ -1617,7 +1617,7 @@ pub enum PropertyDeclarationId<'a> {
     /// A longhand.
     Longhand(LonghandId),
     /// A custom property declaration.
-    Custom(&'a ::custom_properties::Name),
+    Custom(&'a crate::custom_properties::Name),
 }
 
 impl<'a> ToCss for PropertyDeclarationId<'a> {
@@ -1699,7 +1699,7 @@ pub enum PropertyId {
     /// An alias for a shorthand property.
     ShorthandAlias(ShorthandId, AliasId),
     /// A custom property.
-    Custom(::custom_properties::Name),
+    Custom(crate::custom_properties::Name),
 }
 
 impl fmt::Debug for PropertyId {
@@ -1763,8 +1763,8 @@ impl PropertyId {
             return Ok(id.clone())
         }
 
-        let name = ::custom_properties::parse_name(property_name)?;
-        Ok(PropertyId::Custom(::custom_properties::Name::from(name)))
+        let name = crate::custom_properties::parse_name(property_name)?;
+        Ok(PropertyId::Custom(crate::custom_properties::Name::from(name)))
     }
 
     /// Parses a property name, and returns an error if it's unknown or isn't
@@ -1948,7 +1948,7 @@ pub struct VariableDeclaration {
 #[derive(Clone, PartialEq, ToCss)]
 pub enum CustomDeclarationValue {
     /// A value.
-    Value(Arc<::custom_properties::SpecifiedValue>),
+    Value(Arc<crate::custom_properties::SpecifiedValue>),
     /// A wide keyword.
     CSSWideKeyword(CSSWideKeyword),
 }
@@ -1959,7 +1959,7 @@ pub enum CustomDeclarationValue {
 pub struct CustomDeclaration {
     /// The name of the custom property.
     #[css(skip)]
-    pub name: ::custom_properties::Name,
+    pub name: crate::custom_properties::Name,
     /// The value of the custom property.
     #[cfg_attr(feature = "gecko", ignore_malloc_size_of = "XXX: how to handle this?")]
     pub value: CustomDeclarationValue,
@@ -2196,7 +2196,7 @@ impl PropertyDeclaration {
                 // This probably affects some test results.
                 let value = match input.try(CSSWideKeyword::parse) {
                     Ok(keyword) => CustomDeclarationValue::CSSWideKeyword(keyword),
-                    Err(()) => match ::custom_properties::SpecifiedValue::parse(input) {
+                    Err(()) => match crate::custom_properties::SpecifiedValue::parse(input) {
                         Ok(value) => CustomDeclarationValue::Value(value),
                         Err(e) => return Err(StyleParseErrorKind::new_invalid(
                             format!("--{}", property_name),
@@ -2230,7 +2230,7 @@ impl PropertyDeclaration {
                         }
                         input.reset(&start);
                         let (first_token_type, css) =
-                            ::custom_properties::parse_non_custom_with_var(input).map_err(|e| {
+                            crate::custom_properties::parse_non_custom_with_var(input).map_err(|e| {
                                 StyleParseErrorKind::new_invalid(
                                     non_custom_id.unwrap().name(),
                                     e,
@@ -2282,7 +2282,7 @@ impl PropertyDeclaration {
 
                         input.reset(&start);
                         let (first_token_type, css) =
-                            ::custom_properties::parse_non_custom_with_var(input).map_err(|e| {
+                            crate::custom_properties::parse_non_custom_with_var(input).map_err(|e| {
                                 StyleParseErrorKind::new_invalid(
                                     non_custom_id.unwrap().name(),
                                     e,
@@ -2424,7 +2424,7 @@ impl<'a> Iterator for AllShorthandDeclarationIterator<'a> {
 }
 
 #[cfg(feature = "gecko")]
-pub use gecko_properties::style_structs;
+pub use crate::gecko_properties::style_structs;
 
 /// The module where all the style structs are defined.
 #[cfg(feature = "servo")]
@@ -2432,9 +2432,9 @@ pub mod style_structs {
     use fxhash::FxHasher;
     use super::longhands;
     use std::hash::{Hash, Hasher};
-    use logical_geometry::WritingMode;
-    use media_queries::Device;
-    use values::computed::NonNegativeLength;
+    use crate::logical_geometry::WritingMode;
+    use crate::media_queries::Device;
+    use crate::values::computed::NonNegativeLength;
 
     % for style_struct in data.active_style_structs():
         % if style_struct.name == "Font":
@@ -2453,7 +2453,7 @@ pub mod style_structs {
                 ///
                 /// FIXME(emilio): This is technically a box-tree concept, and
                 /// would be nice to move away from style.
-                pub text_decorations_in_effect: ::values::computed::text::TextDecorationsInEffect,
+                pub text_decorations_in_effect: crate::values::computed::text::TextDecorationsInEffect,
             % endif
             % if style_struct.name == "Font":
                 /// The font hash, used for font caching.
@@ -2700,7 +2700,7 @@ pub mod style_structs {
             /// Whether this is a multicol style.
             #[cfg(feature = "servo")]
             pub fn is_multicol(&self) -> bool {
-                use values::Either;
+                use crate::values::Either;
                 match self.column_width {
                     Either::First(_width) => true,
                     Either::Second(_auto) => !self.column_count.is_auto(),
@@ -2736,7 +2736,7 @@ pub mod style_structs {
 
 
 #[cfg(feature = "gecko")]
-pub use gecko_properties::{ComputedValues, ComputedValuesInner};
+pub use crate::gecko_properties::{ComputedValues, ComputedValuesInner};
 
 #[cfg(feature = "servo")]
 #[cfg_attr(feature = "servo", derive(Clone, Debug))]
@@ -2745,7 +2745,7 @@ pub struct ComputedValuesInner {
     % for style_struct in data.active_style_structs():
         ${style_struct.ident}: Arc<style_structs::${style_struct.name}>,
     % endfor
-    custom_properties: Option<Arc<::custom_properties::CustomPropertiesMap>>,
+    custom_properties: Option<Arc<crate::custom_properties::CustomPropertiesMap>>,
     /// The writing mode of this computed values struct.
     pub writing_mode: WritingMode,
 
@@ -2804,7 +2804,7 @@ impl ComputedValues {
     }
 
     /// Gets a reference to the custom properties map (if one exists).
-    pub fn custom_properties(&self) -> Option<<&Arc<::custom_properties::CustomPropertiesMap>> {
+    pub fn custom_properties(&self) -> Option<<&Arc<crate::custom_properties::CustomPropertiesMap>> {
         self.custom_properties.as_ref()
     }
 
@@ -2874,7 +2874,7 @@ impl ComputedValues {
     pub fn new(
         _: &Device,
         _: Option<<&PseudoElement>,
-        custom_properties: Option<Arc<::custom_properties::CustomPropertiesMap>>,
+        custom_properties: Option<Arc<crate::custom_properties::CustomPropertiesMap>>,
         writing_mode: WritingMode,
         flags: ComputedValueFlags,
         rules: Option<StrongRuleNode>,
@@ -2978,7 +2978,7 @@ impl ComputedValuesInner {
     /// ineffective, and would yield an empty `::before` or `::after`
     /// pseudo-element.
     pub fn ineffective_content_property(&self) -> bool {
-        use values::generics::counters::Content;
+        use crate::values::generics::counters::Content;
         match self.get_counters().content {
             Content::Normal | Content::None => true,
             Content::Items(ref items) => items.is_empty(),
@@ -3100,7 +3100,7 @@ impl ComputedValuesInner {
 
     /// Return true if the effects force the transform style to be Flat
     pub fn overrides_transform_style(&self) -> bool {
-        use computed_values::mix_blend_mode::T as MixBlendMode;
+        use crate::computed_values::mix_blend_mode::T as MixBlendMode;
 
         let effects = self.get_effects();
         // TODO(gw): Add clip-path, isolation, mask-image, mask-border-source when supported.
@@ -3112,7 +3112,7 @@ impl ComputedValuesInner {
 
     /// <https://drafts.csswg.org/css-transforms/#grouping-property-values>
     pub fn get_used_transform_style(&self) -> computed_values::transform_style::T {
-        use computed_values::transform_style::T as TransformStyle;
+        use crate::computed_values::transform_style::T as TransformStyle;
 
         let box_ = self.get_box();
 
@@ -3127,7 +3127,7 @@ impl ComputedValuesInner {
     /// Whether given this transform value, the compositor would require a
     /// layer.
     pub fn transform_requires_layer(&self) -> bool {
-        use values::generics::transform::TransformOperation;
+        use crate::values::generics::transform::TransformOperation;
         // Check if the transform matrix is 2D or 3D
         for transform in &self.get_box().transform.0 {
             match *transform {
@@ -3160,13 +3160,13 @@ impl ComputedValuesInner {
 }
 
 % if product == "gecko":
-    pub use ::servo_arc::RawOffsetArc as BuilderArc;
+    pub use crate::servo_arc::RawOffsetArc as BuilderArc;
     /// Clone an arc, returning a regular arc
     fn clone_arc<T: 'static>(x: &BuilderArc<T>) -> Arc<T> {
         Arc::from_raw_offset(x.clone())
     }
 % else:
-    pub use ::servo_arc::Arc as BuilderArc;
+    pub use crate::servo_arc::Arc as BuilderArc;
     /// Clone an arc, returning a regular arc
     fn clone_arc<T: 'static>(x: &BuilderArc<T>) -> Arc<T> {
         x.clone()
@@ -3301,7 +3301,7 @@ pub struct StyleBuilder<'a> {
     /// node.
     pub rules: Option<StrongRuleNode>,
 
-    custom_properties: Option<Arc<::custom_properties::CustomPropertiesMap>>,
+    custom_properties: Option<Arc<crate::custom_properties::CustomPropertiesMap>>,
 
     /// The pseudo-element this style will represent.
     pub pseudo: Option<<&'a PseudoElement>,
@@ -3334,12 +3334,12 @@ impl<'a> StyleBuilder<'a> {
         parent_style_ignoring_first_line: Option<<&'a ComputedValues>,
         pseudo: Option<<&'a PseudoElement>,
         rules: Option<StrongRuleNode>,
-        custom_properties: Option<Arc<::custom_properties::CustomPropertiesMap>>,
+        custom_properties: Option<Arc<crate::custom_properties::CustomPropertiesMap>>,
     ) -> Self {
         debug_assert_eq!(parent_style.is_some(), parent_style_ignoring_first_line.is_some());
         #[cfg(feature = "gecko")]
         debug_assert!(parent_style.is_none() ||
-                      ::std::ptr::eq(parent_style.unwrap(),
+                      std::ptr::eq(parent_style.unwrap(),
                                      parent_style_ignoring_first_line.unwrap()) ||
                       parent_style.unwrap().pseudo() == Some(PseudoElement::FirstLine));
         let reset_style = device.default_computed_values();
@@ -3604,7 +3604,7 @@ impl<'a> StyleBuilder<'a> {
     /// Returns whether this computed style represents an out of flow-positioned
     /// object.
     pub fn out_of_flow_positioned(&self) -> bool {
-        use properties::longhands::position::computed_value::T as Position;
+        use crate::properties::longhands::position::computed_value::T as Position;
         matches!(self.get_box().clone_position(),
                  Position::Absolute | Position::Fixed)
     }
@@ -3653,7 +3653,7 @@ impl<'a> StyleBuilder<'a> {
     ///
     /// Cloning the Arc here is fine because it only happens in the case where
     /// we have custom properties, and those are both rare and expensive.
-    fn custom_properties(&self) -> Option<<&Arc<::custom_properties::CustomPropertiesMap>> {
+    fn custom_properties(&self) -> Option<<&Arc<crate::custom_properties::CustomPropertiesMap>> {
         self.custom_properties.as_ref()
     }
 
@@ -3697,7 +3697,7 @@ pub use self::lazy_static_module::INITIAL_SERVO_VALUES;
 #[cfg(feature = "servo")]
 #[allow(missing_docs)]
 mod lazy_static_module {
-    use logical_geometry::WritingMode;
+    use crate::logical_geometry::WritingMode;
     use servo_arc::Arc;
     use super::{ComputedValues, ComputedValuesInner, longhands, style_structs};
     use super::computed_value_flags::ComputedValueFlags;
@@ -3712,7 +3712,8 @@ mod lazy_static_module {
                             ${longhand.ident}: longhands::${longhand.ident}::get_initial_value(),
                         % endfor
                         % if style_struct.name == "InheritedText":
-                            text_decorations_in_effect: ::values::computed::text::TextDecorationsInEffect::default(),
+                            text_decorations_in_effect:
+                                crate::values::computed::text::TextDecorationsInEffect::default(),
                         % endif
                         % if style_struct.name == "Font":
                             hash: 0,
