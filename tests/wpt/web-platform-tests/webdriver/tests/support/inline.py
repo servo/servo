@@ -2,7 +2,7 @@ import urllib
 
 
 def inline(doc, doctype="html", mime="text/html;charset=utf-8", protocol="http"):
-    from ..conftest import server_config, url
+    from .fixtures import server_config, url
     build_url = url(server_config())
 
     if doctype == "html":

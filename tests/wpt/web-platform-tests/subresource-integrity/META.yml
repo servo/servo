@@ -1,8 +1,6 @@
 spec: https://w3c.github.io/webappsec-subresource-integrity/
 suggested_reviewers:
   - metromoxie
-  - fmarier
   - jonathanKingston
   - mikewest
   - hillbrad
-  - mastahyeti

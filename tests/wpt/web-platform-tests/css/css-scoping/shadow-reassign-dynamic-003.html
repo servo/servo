@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="help" href="https://drafts.csswg.org/css-scoping/#slots-in-shadow-tree">
+<div id="host"><span id="slotted">This text should be green.</span></div>
+<script>
+  const root = host.attachShadow({mode:"open"});
+  root.innerHTML = '<slot name="nomatch" style="color:green"></slot><slot style="color:red"></slot>';
+
+  test(() => {
+    assert_equals(getComputedStyle(slotted).color, "rgb(255, 0, 0)");
+  }, "Initial computed color.");
+
+  test(() => {
+    root.querySelector("slot").removeAttribute("name");
+    assert_equals(getComputedStyle(slotted).color, "rgb(0, 128, 0)");
+
+  }, "Computed color after re-slotting.");
+</script>

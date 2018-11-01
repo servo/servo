@@ -39,9 +39,8 @@ promise_test(testCase => {
             'versionchange transaction is aborted');
 
         const request = indexedDB.open(dbName, 1);
-        return requestWatcher(testCase, request).wait_for('success');
-    }).then(event => {
-        const database = event.target.result;
+        return promiseForRequest(testCase, request);
+    }).then(database => {
         const transaction = database.transaction('books', 'readonly');
         const store = transaction.objectStore('books');
         assert_array_equals(
@@ -95,9 +94,8 @@ promise_test(testCase => {
             'versionchange transaction is aborted');
 
         const request = indexedDB.open(dbName, 1);
-        return requestWatcher(testCase, request).wait_for('success');
-    }).then(event => {
-        const database = event.target.result;
+        return promiseForRequest(testCase, request);
+    }).then(database => {
         const transaction = database.transaction('not_books', 'readonly');
         const store = transaction.objectStore('not_books');
         assert_array_equals(

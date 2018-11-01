@@ -50,6 +50,14 @@ function any_initial_value(syntax) {
 // generated. If a single string is used as the argument, it is assumed to be
 // the syntax.
 function generate_property(reg) {
+  // Verify that only valid keys are specified. This prevents the caller from
+  // accidentally supplying 'inherited' instead of 'inherits', for example.
+  if (typeof(reg) === 'object') {
+    const permitted = new Set(['name', 'syntax', 'initialValue', 'inherits']);
+    if (!Object.keys(reg).every(k => permitted.has(k)))
+      throw new Error('generate_property: invalid parameter');
+  }
+
   let syntax = typeof(reg) === 'string' ? reg : reg.syntax;
   let initial = typeof(reg.initialValue) === 'undefined' ? any_initial_value(syntax)
                                                          : reg.initialValue;

@@ -21,11 +21,21 @@ function registration_tests_mime_types(register_method, check_error_types) {
           'Registration of plain text script should fail.');
     }, 'Registering script with bad MIME type');
 
+  /**
+   * ServiceWorkerContainer.register() should throw a TypeError, according to
+   * step 17.1 of https://w3c.github.io/ServiceWorker/#importscripts
+   *
+   * "[17] If an uncaught runtime script error occurs during the above step, then:
+   *  [17.1] Invoke Reject Job Promise with job and TypeError"
+   *
+   * (Where the "uncaught runtime script error" is thrown by an unsuccessful
+   * importScripts())
+   */
   promise_test(function(t) {
       var script = 'resources/import-mime-type-worker.py';
       var scope = 'resources/scope/no-mime-type-worker/';
       return promise_rejects(t,
-          check_error_types ? 'SecurityError' : null,
+          check_error_types ? new TypeError() : null,
           register_method(script, {scope: scope}),
           'Registration of no MIME type imported script should fail.');
     }, 'Registering script that imports script with no MIME type');
@@ -34,7 +44,7 @@ function registration_tests_mime_types(register_method, check_error_types) {
       var script = 'resources/import-mime-type-worker.py?mime=text/plain';
       var scope = 'resources/scope/bad-mime-type-worker/';
       return promise_rejects(t,
-          check_error_types ? 'SecurityError' : null,
+          check_error_types ? new TypeError() : null,
           register_method(script, {scope: scope}),
           'Registration of plain text imported script should fail.');
     }, 'Registering script that imports script with bad MIME type');

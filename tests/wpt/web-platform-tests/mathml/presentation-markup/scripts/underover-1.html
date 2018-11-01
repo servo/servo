@@ -74,7 +74,7 @@
     }, "Width of scripted elements");
 
     test(function() {
-      var e = 3;
+      var e = 3.2;
       for (var i = 0; i <= 3; i++) {
         assert_approx_equals(getBox("under" + i).height, getBox("under" + i + "base").height + getBox("under" + i + "under").height + e, e, "munder " + i + ": height is determined by the sum of heights of base and script plus some spacing.");
         assert_approx_equals(getBox("over" + i).height, getBox("over" + i + "base").height + getBox("over" + i + "over").height + e, e, "mover " + i + ": height is determined by the sum of heights of base and script plus some spacing.");
