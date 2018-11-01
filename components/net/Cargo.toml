@@ -3,6 +3,7 @@ name = "net"
 version = "0.0.1"
 authors = ["The Servo Project Developers"]
 license = "MPL-2.0"
+edition = "2018"
 publish = false
 autotests = false  # Inhibit lookup for tests/*.rs without [[test]] sections
 

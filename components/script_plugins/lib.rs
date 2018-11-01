@@ -14,6 +14,7 @@
 //!                       Use this for structs that correspond to a DOM type
 
 #![deny(unsafe_code)]
+#![feature(extern_crate_item_prelude)]
 #![feature(macro_at_most_once_rep)]
 #![feature(plugin)]
 #![feature(plugin_registrar)]

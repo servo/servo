@@ -321,9 +321,8 @@ impl AudioBufferMethods for AudioBuffer {
         typedarray!(in(cx) let js_channel: Float32Array = js_channel);
         if let Ok(mut js_channel) = js_channel {
             let bytes_to_copy = min(self.length - start_in_channel, source.len() as u32) as usize;
-            let mut js_channel_data = unsafe { js_channel.as_mut_slice() };
-            let (_, mut js_channel_data) =
-                js_channel_data.split_at_mut(start_in_channel as usize);
+            let js_channel_data = unsafe { js_channel.as_mut_slice() };
+            let (_, js_channel_data) = js_channel_data.split_at_mut(start_in_channel as usize);
             unsafe {
                 js_channel_data[0..bytes_to_copy].copy_from_slice(&source.as_slice()[0..bytes_to_copy])
             };
