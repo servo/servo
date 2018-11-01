@@ -9,7 +9,7 @@
 use cssparser::{BasicParseErrorKind, ParseErrorKind, SourceLocation, Token};
 use std::fmt;
 use style_traits::ParseError;
-use stylesheets::UrlExtraData;
+use crate::stylesheets::UrlExtraData;
 
 /// Errors that can be encountered while parsing CSS.
 #[derive(Debug)]

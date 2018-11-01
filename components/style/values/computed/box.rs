@@ -4,16 +4,16 @@
 
 //! Computed types for box properties.
 
-use values::computed::{Context, Number, ToComputedValue};
-use values::computed::length::{LengthOrPercentage, NonNegativeLength};
-use values::generics::box_::AnimationIterationCount as GenericAnimationIterationCount;
-use values::generics::box_::Perspective as GenericPerspective;
-use values::generics::box_::VerticalAlign as GenericVerticalAlign;
-use values::specified::box_ as specified;
+use crate::values::computed::{Context, Number, ToComputedValue};
+use crate::values::computed::length::{LengthOrPercentage, NonNegativeLength};
+use crate::values::generics::box_::AnimationIterationCount as GenericAnimationIterationCount;
+use crate::values::generics::box_::Perspective as GenericPerspective;
+use crate::values::generics::box_::VerticalAlign as GenericVerticalAlign;
+use crate::values::specified::box_ as specified;
 
-pub use values::specified::box_::{AnimationName, Appearance, Contain, Display, OverflowClipBox};
-pub use values::specified::box_::{Clear as SpecifiedClear, Float as SpecifiedFloat};
-pub use values::specified::box_::{OverscrollBehavior, ScrollSnapType, TouchAction, TransitionProperty, WillChange};
+pub use crate::values::specified::box_::{AnimationName, Appearance, Contain, Display, OverflowClipBox};
+pub use crate::values::specified::box_::{Clear as SpecifiedClear, Float as SpecifiedFloat};
+pub use crate::values::specified::box_::{OverscrollBehavior, ScrollSnapType, TouchAction, TransitionProperty, WillChange};
 
 /// A computed value for the `vertical-align` property.
 pub type VerticalAlign = GenericVerticalAlign<LengthOrPercentage>;

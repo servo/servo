@@ -6,19 +6,19 @@
 
 use app_units::Au;
 use cssparser::RGBA;
-use custom_properties::CssEnvironment;
+use crate::custom_properties::CssEnvironment;
 use euclid::{Size2D, TypedScale, TypedSize2D};
-use media_queries::MediaType;
-use media_queries::media_feature::{AllowsRanges, ParsingRequirements};
-use media_queries::media_feature::{MediaFeatureDescription, Evaluator};
-use media_queries::media_feature_expression::RangeOrOperator;
-use properties::ComputedValues;
+use crate::media_queries::MediaType;
+use crate::media_queries::media_feature::{AllowsRanges, ParsingRequirements};
+use crate::media_queries::media_feature::{MediaFeatureDescription, Evaluator};
+use crate::media_queries::media_feature_expression::RangeOrOperator;
+use crate::properties::ComputedValues;
 use std::sync::atomic::{AtomicBool, AtomicIsize, Ordering};
 use style_traits::{CSSPixel, DevicePixel};
 use style_traits::viewport::ViewportConstraints;
-use values::KeyframesName;
-use values::computed::CSSPixelLength;
-use values::computed::font::FontSize;
+use crate::values::KeyframesName;
+use crate::values::computed::CSSPixelLength;
+use crate::values::computed::font::FontSize;
 
 /// A device is a structure that represents the current media a given document
 /// is displayed in.

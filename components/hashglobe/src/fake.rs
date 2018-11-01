@@ -26,7 +26,7 @@ pub use std::collections::hash_set::{Iter as SetIter, IntoIter as SetIntoIter};
 #[derive(Clone)]
 pub struct HashMap<K, V, S = RandomState>(StdMap<K, V, S>);
 
-use FailedAllocationError;
+use crate::FailedAllocationError;
 
 impl<K, V, S> Deref for HashMap<K, V, S> {
     type Target = StdMap<K, V, S>;

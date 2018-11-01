@@ -4,13 +4,13 @@
 
 //! Computed values for UI properties
 
-use values::{Auto, Either};
-use values::computed::Number;
-use values::computed::color::Color;
-use values::computed::url::ComputedImageUrl;
-use values::generics::ui as generics;
+use crate::values::{Auto, Either};
+use crate::values::computed::Number;
+use crate::values::computed::color::Color;
+use crate::values::computed::url::ComputedImageUrl;
+use crate::values::generics::ui as generics;
 
-pub use values::specified::ui::MozForceBrokenImageIcon;
+pub use crate::values::specified::ui::MozForceBrokenImageIcon;
 
 /// auto | <color>
 pub type ColorOrAuto = Either<Color, Auto>;

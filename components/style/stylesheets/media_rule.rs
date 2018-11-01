@@ -9,14 +9,14 @@
 use cssparser::SourceLocation;
 #[cfg(feature = "gecko")]
 use malloc_size_of::{MallocSizeOfOps, MallocUnconditionalShallowSizeOf};
-use media_queries::MediaList;
+use crate::media_queries::MediaList;
 use servo_arc::Arc;
-use shared_lock::{DeepCloneParams, DeepCloneWithLock, Locked};
-use shared_lock::{SharedRwLock, SharedRwLockReadGuard, ToCssWithGuard};
+use crate::shared_lock::{DeepCloneParams, DeepCloneWithLock, Locked};
+use crate::shared_lock::{SharedRwLock, SharedRwLockReadGuard, ToCssWithGuard};
 use std::fmt::{self, Write};
-use str::CssStringWriter;
+use crate::str::CssStringWriter;
 use style_traits::{CssWriter, ToCss};
-use stylesheets::CssRules;
+use crate::stylesheets::CssRules;
 
 /// An [`@media`][media] urle.
 ///

@@ -4,15 +4,15 @@
 
 //! Computed types for SVG properties.
 
-use values::RGBA;
-use values::computed::{NonNegativeLengthOrPercentage, NonNegativeNumber, Number, LengthOrPercentage, Opacity};
-use values::computed::color::Color;
-use values::computed::url::ComputedUrl;
-use values::generics::svg as generic;
+use crate::values::RGBA;
+use crate::values::computed::{NonNegativeLengthOrPercentage, NonNegativeNumber, Number, LengthOrPercentage, Opacity};
+use crate::values::computed::color::Color;
+use crate::values::computed::url::ComputedUrl;
+use crate::values::generics::svg as generic;
 
-pub use values::specified::SVGPaintOrder;
+pub use crate::values::specified::SVGPaintOrder;
 
-pub use values::specified::MozContextProperties;
+pub use crate::values::specified::MozContextProperties;
 
 /// Computed SVG Paint value
 pub type SVGPaint = generic::SVGPaint<Color, ComputedUrl>;

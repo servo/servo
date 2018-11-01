@@ -7,19 +7,19 @@
 
 #![deny(unsafe_code)]
 
-use Atom;
-use CaseSensitivityExt;
-use LocalName as SelectorLocalName;
-use dom::{TDocument, TElement, TNode};
+use crate::Atom;
+use crate::CaseSensitivityExt;
+use crate::LocalName as SelectorLocalName;
+use crate::dom::{TDocument, TElement, TNode};
 use fxhash::FxHashSet;
-use invalidation::element::element_wrapper::{ElementSnapshot, ElementWrapper};
-use invalidation::element::restyle_hints::RestyleHint;
-use media_queries::Device;
-use selector_parser::{SelectorImpl, Snapshot, SnapshotMap};
+use crate::invalidation::element::element_wrapper::{ElementSnapshot, ElementWrapper};
+use crate::invalidation::element::restyle_hints::RestyleHint;
+use crate::media_queries::Device;
+use crate::selector_parser::{SelectorImpl, Snapshot, SnapshotMap};
 use selectors::attr::CaseSensitivity;
 use selectors::parser::{Component, LocalName, Selector};
-use shared_lock::SharedRwLockReadGuard;
-use stylesheets::{CssRule, StylesheetInDocument};
+use crate::shared_lock::SharedRwLockReadGuard;
+use crate::stylesheets::{CssRule, StylesheetInDocument};
 
 /// A style sheet invalidation represents a kind of element or subtree that may
 /// need to be restyled. Whether it represents a whole subtree or just a single
@@ -419,7 +419,7 @@ impl StylesheetInvalidationSet {
         guard: &SharedRwLockReadGuard,
         device: &Device,
     ) {
-        use stylesheets::CssRule::*;
+        use crate::stylesheets::CssRule::*;
         debug!("StylesheetInvalidationSet::collect_invalidations_for_rule");
         debug_assert!(!self.fully_invalid, "Not worth to be here!");
 

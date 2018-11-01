@@ -2,29 +2,29 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use {Namespace, Prefix};
-use context::QuirksMode;
+use crate::{Namespace, Prefix};
+use crate::context::QuirksMode;
 use cssparser::{Parser, ParserInput, RuleListParser};
-use error_reporting::{ContextualParseError, ParseErrorReporter};
+use crate::error_reporting::{ContextualParseError, ParseErrorReporter};
 use fallible::FallibleVec;
 use fxhash::FxHashMap;
-use invalidation::media_queries::{MediaListKey, ToMediaListKey};
+use crate::invalidation::media_queries::{MediaListKey, ToMediaListKey};
 #[cfg(feature = "gecko")]
 use malloc_size_of::{MallocSizeOfOps, MallocUnconditionalShallowSizeOf};
-use media_queries::{Device, MediaList};
+use crate::media_queries::{Device, MediaList};
 use parking_lot::RwLock;
-use parser::ParserContext;
+use crate::parser::ParserContext;
 use servo_arc::Arc;
-use shared_lock::{DeepCloneParams, DeepCloneWithLock, Locked, SharedRwLock, SharedRwLockReadGuard};
+use crate::shared_lock::{DeepCloneParams, DeepCloneWithLock, Locked, SharedRwLock, SharedRwLockReadGuard};
 use std::mem;
 use std::sync::atomic::{AtomicBool, Ordering};
 use style_traits::ParsingMode;
-use stylesheets::{CssRule, CssRules, Origin, UrlExtraData};
-use stylesheets::loader::StylesheetLoader;
-use stylesheets::rule_parser::{State, TopLevelRuleParser};
-use stylesheets::rules_iterator::{EffectiveRules, EffectiveRulesIterator};
-use stylesheets::rules_iterator::{NestedRuleIterationCondition, RulesIterator};
-use use_counters::UseCounters;
+use crate::stylesheets::{CssRule, CssRules, Origin, UrlExtraData};
+use crate::stylesheets::loader::StylesheetLoader;
+use crate::stylesheets::rule_parser::{State, TopLevelRuleParser};
+use crate::stylesheets::rules_iterator::{EffectiveRules, EffectiveRulesIterator};
+use crate::stylesheets::rules_iterator::{NestedRuleIterationCondition, RulesIterator};
+use crate::use_counters::UseCounters;
 
 /// This structure holds the user-agent and user stylesheets.
 pub struct UserAgentStylesheets {
@@ -164,9 +164,9 @@ macro_rules! rule_filter {
         $(
             #[allow(missing_docs)]
             fn $method<F>(&self, device: &Device, guard: &SharedRwLockReadGuard, mut f: F)
-                where F: FnMut(&::stylesheets::$rule_type),
+                where F: FnMut(&crate::stylesheets::$rule_type),
             {
-                use stylesheets::CssRule;
+                use crate::stylesheets::CssRule;
 
                 for rule in self.effective_rules(device, guard) {
                     if let CssRule::$variant(ref lock) = *rule {

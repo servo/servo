@@ -5,9 +5,9 @@
 //! Traits that nodes must implement. Breaks the otherwise-cyclic dependency
 //! between layout and style.
 
-use attr::{AttrSelectorOperation, CaseSensitivity, NamespaceConstraint};
-use matching::{ElementSelectorFlags, MatchingContext};
-use parser::SelectorImpl;
+use crate::attr::{AttrSelectorOperation, CaseSensitivity, NamespaceConstraint};
+use crate::matching::{ElementSelectorFlags, MatchingContext};
+use crate::parser::SelectorImpl;
 use std::fmt::Debug;
 use std::ptr::NonNull;
 

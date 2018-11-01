@@ -5,26 +5,26 @@
 //! Specified types for text properties.
 
 use cssparser::{Parser, Token};
-use parser::{Parse, ParserContext};
-use properties::longhands::writing_mode::computed_value::T as SpecifiedWritingMode;
+use crate::parser::{Parse, ParserContext};
+use crate::properties::longhands::writing_mode::computed_value::T as SpecifiedWritingMode;
 use selectors::parser::SelectorParseErrorKind;
 use std::fmt::{self, Write};
 use style_traits::{CssWriter, KeywordsCollectFn, ParseError};
 use style_traits::{SpecifiedValueInfo, StyleParseErrorKind, ToCss};
 use style_traits::values::SequenceWriter;
 use unicode_segmentation::UnicodeSegmentation;
-use values::computed::{Context, ToComputedValue};
-use values::computed::text::LineHeight as ComputedLineHeight;
-use values::computed::text::TextEmphasisKeywordValue as ComputedTextEmphasisKeywordValue;
-use values::computed::text::TextEmphasisStyle as ComputedTextEmphasisStyle;
-use values::computed::text::TextOverflow as ComputedTextOverflow;
-use values::generics::text::InitialLetter as GenericInitialLetter;
-use values::generics::text::LineHeight as GenericLineHeight;
-use values::generics::text::MozTabSize as GenericMozTabSize;
-use values::generics::text::Spacing;
-use values::specified::{AllowQuirks, Integer, NonNegativeNumber, Number};
-use values::specified::length::{FontRelativeLength, Length, LengthOrPercentage, NoCalcLength};
-use values::specified::length::{NonNegativeLength, NonNegativeLengthOrPercentage};
+use crate::values::computed::{Context, ToComputedValue};
+use crate::values::computed::text::LineHeight as ComputedLineHeight;
+use crate::values::computed::text::TextEmphasisKeywordValue as ComputedTextEmphasisKeywordValue;
+use crate::values::computed::text::TextEmphasisStyle as ComputedTextEmphasisStyle;
+use crate::values::computed::text::TextOverflow as ComputedTextOverflow;
+use crate::values::generics::text::InitialLetter as GenericInitialLetter;
+use crate::values::generics::text::LineHeight as GenericLineHeight;
+use crate::values::generics::text::MozTabSize as GenericMozTabSize;
+use crate::values::generics::text::Spacing;
+use crate::values::specified::{AllowQuirks, Integer, NonNegativeNumber, Number};
+use crate::values::specified::length::{FontRelativeLength, Length, LengthOrPercentage, NoCalcLength};
+use crate::values::specified::length::{NonNegativeLength, NonNegativeLengthOrPercentage};
 
 /// A specified type for the `initial-letter` property.
 pub type InitialLetter = GenericInitialLetter<Number, Integer>;
@@ -43,11 +43,11 @@ impl Parse for InitialLetter {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
-        if input.try(|i| i.expect_ident_matching("normal")).is_ok() {
+        if input.r#try(|i| i.expect_ident_matching("normal")).is_ok() {
             return Ok(GenericInitialLetter::Normal);
         }
         let size = Number::parse_at_least_one(context, input)?;
-        let sink = input.try(|i| Integer::parse_positive(context, i)).ok();
+        let sink = input.r#try(|i| Integer::parse_positive(context, i)).ok();
         Ok(GenericInitialLetter::Specified(size, sink))
     }
 }
@@ -79,10 +79,10 @@ impl Parse for LineHeight {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
-        if let Ok(number) = input.try(|i| NonNegativeNumber::parse(context, i)) {
+        if let Ok(number) = input.r#try(|i| NonNegativeNumber::parse(context, i)) {
             return Ok(GenericLineHeight::Number(number));
         }
-        if let Ok(nlop) = input.try(|i| NonNegativeLengthOrPercentage::parse(context, i)) {
+        if let Ok(nlop) = input.r#try(|i| NonNegativeLengthOrPercentage::parse(context, i)) {
             return Ok(GenericLineHeight::Length(nlop));
         }
         let location = input.current_source_location();
@@ -107,8 +107,8 @@ impl ToComputedValue for LineHeight {
 
     #[inline]
     fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
-        use values::computed::Length as ComputedLength;
-        use values::specified::length::FontBaseSize;
+        use crate::values::computed::Length as ComputedLength;
+        use crate::values::specified::length::FontBaseSize;
         match *self {
             GenericLineHeight::Normal => GenericLineHeight::Normal,
             #[cfg(feature = "gecko")]
@@ -213,7 +213,7 @@ impl Parse for TextOverflow {
     ) -> Result<TextOverflow, ParseError<'i>> {
         let first = TextOverflowSide::parse(context, input)?;
         let second = input
-            .try(|input| TextOverflowSide::parse(context, input))
+            .r#try(|input| TextOverflowSide::parse(context, input))
             .ok();
         Ok(TextOverflow { first, second })
     }
@@ -293,14 +293,14 @@ macro_rules! impl_text_decoration_line {
             ) -> Result<TextDecorationLine, ParseError<'i>> {
                 let mut result = TextDecorationLine::NONE;
                 if input
-                    .try(|input| input.expect_ident_matching("none"))
+                    .r#try(|input| input.expect_ident_matching("none"))
                     .is_ok()
                 {
                     return Ok(result);
                 }
 
                 loop {
-                    let result = input.try(|input| {
+                    let result = input.r#try(|input| {
                         let ident = input.expect_ident().map_err(|_| ())?;
                         match_ignore_ascii_case! { ident,
                             $(
@@ -469,7 +469,7 @@ impl Parse for TextAlign {
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
         // MozCenterOrInherit cannot be parsed, only set directly on the elements
-        if let Ok(key) = input.try(TextAlignKeyword::parse) {
+        if let Ok(key) = input.r#try(TextAlignKeyword::parse) {
             return Ok(TextAlign::Keyword(key));
         }
         #[cfg(feature = "gecko")]
@@ -690,22 +690,22 @@ impl Parse for TextEmphasisStyle {
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
         if input
-            .try(|input| input.expect_ident_matching("none"))
+            .r#try(|input| input.expect_ident_matching("none"))
             .is_ok()
         {
             return Ok(TextEmphasisStyle::None);
         }
 
-        if let Ok(s) = input.try(|i| i.expect_string().map(|s| s.as_ref().to_owned())) {
+        if let Ok(s) = input.r#try(|i| i.expect_string().map(|s| s.as_ref().to_owned())) {
             // Handle <string>
             return Ok(TextEmphasisStyle::String(s));
         }
 
         // Handle a pair of keywords
-        let mut shape = input.try(TextEmphasisShapeKeyword::parse).ok();
-        let fill = input.try(TextEmphasisFillMode::parse).ok();
+        let mut shape = input.r#try(TextEmphasisShapeKeyword::parse).ok();
+        let fill = input.r#try(TextEmphasisFillMode::parse).ok();
         if shape.is_none() {
-            shape = input.try(TextEmphasisShapeKeyword::parse).ok();
+            shape = input.r#try(TextEmphasisShapeKeyword::parse).ok();
         }
 
         // At least one of shape or fill must be handled
@@ -805,7 +805,7 @@ impl Parse for TextEmphasisPosition {
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
         if let Ok(horizontal) =
-            input.try(|input| TextEmphasisHorizontalWritingModeValue::parse(input))
+            input.r#try(|input| TextEmphasisHorizontalWritingModeValue::parse(input))
         {
             let vertical = TextEmphasisVerticalWritingModeValue::parse(input)?;
             Ok(TextEmphasisPosition(horizontal, vertical))
@@ -857,7 +857,7 @@ impl Parse for MozTabSize {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
-        if let Ok(number) = input.try(|i| NonNegativeNumber::parse(context, i)) {
+        if let Ok(number) = input.r#try(|i| NonNegativeNumber::parse(context, i)) {
             // Numbers need to be parsed first because `0` must be recognised
             // as the number `0` and not the length `0px`.
             return Ok(GenericMozTabSize::Number(number));

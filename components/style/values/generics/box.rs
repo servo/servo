@@ -4,7 +4,7 @@
 
 //! Generic types for box properties.
 
-use values::animated::ToAnimatedZero;
+use crate::values::animated::ToAnimatedZero;
 
 /// A generic value for the `vertical-align` property.
 #[derive(

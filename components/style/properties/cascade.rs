@@ -4,27 +4,27 @@
 
 //! The main cascading algorithm of the style system.
 
-use context::QuirksMode;
-use custom_properties::CustomPropertiesBuilder;
-use dom::TElement;
-use font_metrics::FontMetricsProvider;
-use logical_geometry::WritingMode;
-use media_queries::Device;
-use properties::{ComputedValues, StyleBuilder};
-use properties::{LonghandId, LonghandIdSet};
-use properties::{PropertyDeclaration, PropertyDeclarationId, DeclarationImportanceIterator};
-use properties::CASCADE_PROPERTY;
-use rule_cache::{RuleCache, RuleCacheConditions};
-use rule_tree::{CascadeLevel, StrongRuleNode};
-use selector_parser::PseudoElement;
+use crate::context::QuirksMode;
+use crate::custom_properties::CustomPropertiesBuilder;
+use crate::dom::TElement;
+use crate::font_metrics::FontMetricsProvider;
+use crate::logical_geometry::WritingMode;
+use crate::media_queries::Device;
+use crate::properties::{ComputedValues, StyleBuilder};
+use crate::properties::{LonghandId, LonghandIdSet};
+use crate::properties::{PropertyDeclaration, PropertyDeclarationId, DeclarationImportanceIterator};
+use crate::properties::CASCADE_PROPERTY;
+use crate::rule_cache::{RuleCache, RuleCacheConditions};
+use crate::rule_tree::{CascadeLevel, StrongRuleNode};
+use crate::selector_parser::PseudoElement;
 use servo_arc::Arc;
-use shared_lock::StylesheetGuards;
+use crate::shared_lock::StylesheetGuards;
 use smallbitvec::SmallBitVec;
 use smallvec::SmallVec;
 use std::borrow::Cow;
 use std::cell::RefCell;
-use style_adjuster::StyleAdjuster;
-use values::computed;
+use crate::style_adjuster::StyleAdjuster;
+use crate::values::computed;
 
 /// We split the cascade in two phases: 'early' properties, and 'late'
 /// properties.

@@ -5,28 +5,28 @@
 //! The context within which style is calculated.
 
 #[cfg(feature = "servo")]
-use animation::Animation;
+use crate::animation::Animation;
 use app_units::Au;
-use bloom::StyleBloom;
-use data::{EagerPseudoStyles, ElementData};
-use dom::{SendElement, TElement};
+use crate::bloom::StyleBloom;
+use crate::data::{EagerPseudoStyles, ElementData};
+use crate::dom::{SendElement, TElement};
 #[cfg(feature = "servo")]
-use dom::OpaqueNode;
+use crate::dom::OpaqueNode;
 use euclid::Size2D;
 use euclid::TypedScale;
-use font_metrics::FontMetricsProvider;
+use crate::font_metrics::FontMetricsProvider;
 use fxhash::FxHashMap;
 #[cfg(feature = "gecko")]
 use gecko_bindings::structs;
-use parallel::{STACK_SAFETY_MARGIN_KB, STYLE_THREAD_STACK_SIZE_KB};
+use crate::parallel::{STACK_SAFETY_MARGIN_KB, STYLE_THREAD_STACK_SIZE_KB};
 #[cfg(feature = "servo")]
 use parking_lot::RwLock;
-use properties::ComputedValues;
+use crate::properties::ComputedValues;
 #[cfg(feature = "servo")]
-use properties::PropertyId;
-use rule_cache::RuleCache;
-use rule_tree::StrongRuleNode;
-use selector_parser::{SnapshotMap, EAGER_PSEUDO_COUNT};
+use crate::properties::PropertyId;
+use crate::rule_cache::RuleCache;
+use crate::rule_tree::StrongRuleNode;
+use crate::selector_parser::{SnapshotMap, EAGER_PSEUDO_COUNT};
 use selectors::NthIndexCache;
 use selectors::matching::ElementSelectorFlags;
 use servo_arc::Arc;
@@ -34,8 +34,8 @@ use servo_arc::Arc;
 use servo_atoms::Atom;
 #[cfg(feature = "servo")]
 use servo_channel::Sender;
-use shared_lock::StylesheetGuards;
-use sharing::StyleSharingCache;
+use crate::shared_lock::StylesheetGuards;
+use crate::sharing::StyleSharingCache;
 use std::fmt;
 use std::ops;
 #[cfg(feature = "servo")]
@@ -44,12 +44,12 @@ use style_traits::CSSPixel;
 use style_traits::DevicePixel;
 #[cfg(feature = "servo")]
 use style_traits::SpeculativePainter;
-use stylist::Stylist;
-use thread_state::{self, ThreadState};
+use crate::stylist::Stylist;
+use crate::thread_state::{self, ThreadState};
 use time;
-use timer::Timer;
-use traversal::DomTraversal;
-use traversal_flags::TraversalFlags;
+use crate::timer::Timer;
+use crate::traversal::DomTraversal;
+use crate::traversal_flags::TraversalFlags;
 use uluru::{Entry, LRUCache};
 
 pub use selectors::matching::QuirksMode;

@@ -4,23 +4,23 @@
 
 //! Specified types for box properties.
 
-use Atom;
+use crate::Atom;
 use cssparser::Parser;
-use custom_properties::Name as CustomPropertyName;
-use parser::{Parse, ParserContext};
-use properties::{LonghandId, ShorthandId, PropertyId, PropertyFlags, PropertyDeclarationId};
+use crate::custom_properties::Name as CustomPropertyName;
+use crate::parser::{Parse, ParserContext};
+use crate::properties::{LonghandId, ShorthandId, PropertyId, PropertyFlags, PropertyDeclarationId};
 use selectors::parser::SelectorParseErrorKind;
 use std::fmt::{self, Write};
 use style_traits::{CssWriter, KeywordsCollectFn, ParseError, StyleParseErrorKind, SpecifiedValueInfo, ToCss};
-use values::{CustomIdent, KeyframesName};
-use values::generics::box_::AnimationIterationCount as GenericAnimationIterationCount;
-use values::generics::box_::Perspective as GenericPerspective;
-use values::generics::box_::VerticalAlign as GenericVerticalAlign;
-use values::specified::{AllowQuirks, Number};
-use values::specified::length::{LengthOrPercentage, NonNegativeLength};
+use crate::values::{CustomIdent, KeyframesName};
+use crate::values::generics::box_::AnimationIterationCount as GenericAnimationIterationCount;
+use crate::values::generics::box_::Perspective as GenericPerspective;
+use crate::values::generics::box_::VerticalAlign as GenericVerticalAlign;
+use crate::values::specified::{AllowQuirks, Number};
+use crate::values::specified::length::{LengthOrPercentage, NonNegativeLength};
 
 fn in_ua_or_chrome_sheet(context: &ParserContext) -> bool {
-    use stylesheets::Origin;
+    use crate::stylesheets::Origin;
     context.stylesheet_origin == Origin::UserAgent || context.chrome_rules_enabled()
 }
 
@@ -307,7 +307,7 @@ impl Parse for VerticalAlign {
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
         if let Ok(lop) =
-            input.try(|i| LengthOrPercentage::parse_quirky(context, i, AllowQuirks::Yes))
+            input.r#try(|i| LengthOrPercentage::parse_quirky(context, i, AllowQuirks::Yes))
         {
             return Ok(GenericVerticalAlign::Length(lop));
         }
@@ -338,7 +338,7 @@ impl Parse for AnimationIterationCount {
         input: &mut ::cssparser::Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
         if input
-            .try(|input| input.expect_ident_matching("infinite"))
+            .r#try(|input| input.expect_ident_matching("infinite"))
             .is_ok()
         {
             return Ok(GenericAnimationIterationCount::Infinite);
@@ -391,7 +391,7 @@ impl Parse for AnimationName {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
-        if let Ok(name) = input.try(|input| KeyframesName::parse(context, input)) {
+        if let Ok(name) = input.r#try(|input| KeyframesName::parse(context, input)) {
             return Ok(AnimationName(Some(name)));
         }
 
@@ -554,7 +554,7 @@ impl Parse for WillChange {
         input: &mut Parser<'i, 't>,
     ) -> Result<WillChange, ParseError<'i>> {
         if input
-            .try(|input| input.expect_ident_matching("auto"))
+            .r#try(|input| input.expect_ident_matching("auto"))
             .is_ok()
         {
             return Ok(WillChange::Auto);
@@ -643,14 +643,14 @@ impl Parse for TouchAction {
             "none" => Ok(TouchAction::TOUCH_ACTION_NONE),
             "manipulation" => Ok(TouchAction::TOUCH_ACTION_MANIPULATION),
             "pan-x" => {
-                if input.try(|i| i.expect_ident_matching("pan-y")).is_ok() {
+                if input.r#try(|i| i.expect_ident_matching("pan-y")).is_ok() {
                     Ok(TouchAction::TOUCH_ACTION_PAN_X | TouchAction::TOUCH_ACTION_PAN_Y)
                 } else {
                     Ok(TouchAction::TOUCH_ACTION_PAN_X)
                 }
             },
             "pan-y" => {
-                if input.try(|i| i.expect_ident_matching("pan-x")).is_ok() {
+                if input.r#try(|i| i.expect_ident_matching("pan-x")).is_ok() {
                     Ok(TouchAction::TOUCH_ACTION_PAN_X | TouchAction::TOUCH_ACTION_PAN_Y)
                 } else {
                     Ok(TouchAction::TOUCH_ACTION_PAN_Y)
@@ -754,7 +754,7 @@ impl Parse for Contain {
         input: &mut Parser<'i, 't>,
     ) -> Result<Contain, ParseError<'i>> {
         let mut result = Contain::empty();
-        while let Ok(name) = input.try(|i| i.expect_ident_cloned()) {
+        while let Ok(name) = input.r#try(|i| i.expect_ident_cloned()) {
             let flag = match_ignore_ascii_case! { &name,
                 "size" => Some(Contain::SIZE),
                 "layout" => Some(Contain::LAYOUT),
@@ -791,7 +791,7 @@ impl Parse for Perspective {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
-        if input.try(|i| i.expect_ident_matching("none")).is_ok() {
+        if input.r#try(|i| i.expect_ident_matching("none")).is_ok() {
             return Ok(GenericPerspective::None);
         }
         Ok(GenericPerspective::Length(NonNegativeLength::parse(
@@ -820,7 +820,7 @@ impl ToCss for TransitionProperty {
     where
         W: Write,
     {
-        use values::serialize_atom_name;
+        use crate::values::serialize_atom_name;
         match *self {
             TransitionProperty::Shorthand(ref s) => s.to_css(dest),
             TransitionProperty::Longhand(ref l) => l.to_css(dest),

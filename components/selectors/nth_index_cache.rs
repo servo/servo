@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use fxhash::FxHashMap;
-use tree::OpaqueElement;
+use crate::tree::OpaqueElement;
 
 /// A cache to speed up matching of nth-index-like selectors.
 ///

@@ -2,11 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use attr::CaseSensitivity;
-use bloom::BloomFilter;
-use nth_index_cache::NthIndexCache;
-use parser::SelectorImpl;
-use tree::{Element, OpaqueElement};
+use crate::attr::CaseSensitivity;
+use crate::bloom::BloomFilter;
+use crate::nth_index_cache::NthIndexCache;
+use crate::parser::SelectorImpl;
+use crate::tree::{Element, OpaqueElement};
 
 /// What kind of selector matching mode we should use.
 ///

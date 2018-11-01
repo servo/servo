@@ -4,11 +4,11 @@
 
 //! The `@namespace` at-rule.
 
-use {Namespace, Prefix};
+use crate::{Namespace, Prefix};
 use cssparser::SourceLocation;
-use shared_lock::{SharedRwLockReadGuard, ToCssWithGuard};
+use crate::shared_lock::{SharedRwLockReadGuard, ToCssWithGuard};
 use std::fmt::{self, Write};
-use str::CssStringWriter;
+use crate::str::CssStringWriter;
 
 /// A `@namespace` rule.
 #[derive(Clone, Debug, PartialEq)]

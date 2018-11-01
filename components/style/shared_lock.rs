@@ -15,8 +15,8 @@ use std::fmt;
 use std::mem;
 #[cfg(feature = "gecko")]
 use std::ptr;
-use str::{CssString, CssStringWriter};
-use stylesheets::Origin;
+use crate::str::{CssString, CssStringWriter};
+use crate::stylesheets::Origin;
 
 /// A shared read/write lock that can protect multiple objects.
 ///

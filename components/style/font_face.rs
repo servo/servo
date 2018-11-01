@@ -10,25 +10,25 @@ use cssparser::{AtRuleParser, DeclarationListParser, DeclarationParser, Parser};
 use cssparser::{CowRcStr, SourceLocation};
 #[cfg(feature = "gecko")]
 use cssparser::UnicodeRange;
-use error_reporting::ContextualParseError;
-use parser::{Parse, ParserContext};
+use crate::error_reporting::ContextualParseError;
+use crate::parser::{Parse, ParserContext};
 #[cfg(feature = "gecko")]
 use properties::longhands::font_language_override;
 use selectors::parser::SelectorParseErrorKind;
-use shared_lock::{SharedRwLockReadGuard, ToCssWithGuard};
+use crate::shared_lock::{SharedRwLockReadGuard, ToCssWithGuard};
 use std::fmt::{self, Write};
-use str::CssStringWriter;
+use crate::str::CssStringWriter;
 use style_traits::{Comma, CssWriter, OneOrMoreSeparated, ParseError};
 use style_traits::{StyleParseErrorKind, ToCss};
 use style_traits::values::SequenceWriter;
-use values::computed::font::FamilyName;
-use values::generics::font::FontStyle as GenericFontStyle;
-use values::specified::Angle;
-use values::specified::font::{AbsoluteFontWeight, FontStretch};
+use crate::values::computed::font::FamilyName;
+use crate::values::generics::font::FontStyle as GenericFontStyle;
+use crate::values::specified::Angle;
+use crate::values::specified::font::{AbsoluteFontWeight, FontStretch};
 #[cfg(feature = "gecko")]
 use values::specified::font::{SpecifiedFontFeatureSettings, SpecifiedFontVariationSettings};
-use values::specified::font::SpecifiedFontStyle;
-use values::specified::url::SpecifiedUrl;
+use crate::values::specified::font::SpecifiedFontStyle;
+use crate::values::specified::url::SpecifiedUrl;
 
 /// A source for a font-face rule.
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
@@ -115,7 +115,7 @@ macro_rules! impl_range {
             ) -> Result<Self, ParseError<'i>> {
                 let first = $component::parse(context, input)?;
                 let second = input
-                    .try(|input| $component::parse(context, input))
+                    .r#try(|input| $component::parse(context, input))
                     .unwrap_or_else(|_| first.clone());
                 Ok($range(first, second))
             }
@@ -232,7 +232,7 @@ impl Parse for FontStyle {
             GenericFontStyle::Italic => FontStyle::Italic,
             GenericFontStyle::Oblique(angle) => {
                 let second_angle = input
-                    .try(|input| SpecifiedFontStyle::parse_angle(context, input))
+                    .r#try(|input| SpecifiedFontStyle::parse_angle(context, input))
                     .unwrap_or_else(|_| angle.clone());
 
                 FontStyle::Oblique(angle, second_angle)
@@ -377,7 +377,7 @@ impl Parse for Source {
         input: &mut Parser<'i, 't>,
     ) -> Result<Source, ParseError<'i>> {
         if input
-            .try(|input| input.expect_function_matching("local"))
+            .r#try(|input| input.expect_function_matching("local"))
             .is_ok()
         {
             return input
@@ -389,7 +389,7 @@ impl Parse for Source {
 
         // Parsing optional format()
         let format_hints = if input
-            .try(|input| input.expect_function_matching("format"))
+            .r#try(|input| input.expect_function_matching("format"))
             .is_ok()
         {
             input.parse_nested_block(|input| {

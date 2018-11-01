@@ -9,16 +9,16 @@
 use cssparser::{Parser, SourceLocation};
 #[cfg(feature = "gecko")]
 use malloc_size_of::{MallocSizeOfOps, MallocUnconditionalShallowSizeOf};
-use media_queries::Device;
-use parser::{Parse, ParserContext};
+use crate::media_queries::Device;
+use crate::parser::{Parse, ParserContext};
 use servo_arc::Arc;
-use shared_lock::{DeepCloneParams, DeepCloneWithLock, Locked};
-use shared_lock::{SharedRwLock, SharedRwLockReadGuard, ToCssWithGuard};
+use crate::shared_lock::{DeepCloneParams, DeepCloneWithLock, Locked};
+use crate::shared_lock::{SharedRwLock, SharedRwLockReadGuard, ToCssWithGuard};
 use std::fmt::{self, Write};
-use str::CssStringWriter;
+use crate::str::CssStringWriter;
 use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
-use stylesheets::CssRules;
-use values::CssUrl;
+use crate::stylesheets::CssRules;
+use crate::values::CssUrl;
 
 #[derive(Debug)]
 /// A @-moz-document rule
@@ -134,7 +134,7 @@ impl DocumentMatchingFunction {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
-        if let Ok(url) = input.try(|input| CssUrl::parse(context, input)) {
+        if let Ok(url) = input.r#try(|input| CssUrl::parse(context, input)) {
             return Ok(DocumentMatchingFunction::Url(url));
         }
 

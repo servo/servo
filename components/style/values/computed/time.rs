@@ -6,7 +6,7 @@
 
 use std::fmt::{self, Write};
 use style_traits::{CssWriter, ToCss};
-use values::CSSFloat;
+use crate::values::CSSFloat;
 
 /// A computed `<time>` value.
 #[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, PartialOrd)]

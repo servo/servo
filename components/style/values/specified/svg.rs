@@ -5,16 +5,16 @@
 //! Specified types for SVG properties.
 
 use cssparser::Parser;
-use parser::{Parse, ParserContext};
+use crate::parser::{Parse, ParserContext};
 use std::fmt::{self, Write};
 use style_traits::{CommaWithSpace, CssWriter, ParseError, Separator};
 use style_traits::{StyleParseErrorKind, ToCss};
-use values::CustomIdent;
-use values::generics::svg as generic;
-use values::specified::{LengthOrPercentage, NonNegativeLengthOrPercentage, NonNegativeNumber};
-use values::specified::{Number, Opacity};
-use values::specified::color::Color;
-use values::specified::url::SpecifiedUrl;
+use crate::values::CustomIdent;
+use crate::values::generics::svg as generic;
+use crate::values::specified::{LengthOrPercentage, NonNegativeLengthOrPercentage, NonNegativeNumber};
+use crate::values::specified::{Number, Opacity};
+use crate::values::specified::color::Color;
+use crate::values::specified::url::SpecifiedUrl;
 
 /// Specified SVG Paint value
 pub type SVGPaint = generic::SVGPaint<Color, SpecifiedUrl>;
@@ -61,7 +61,7 @@ impl Parse for SVGLength {
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
         input
-            .try(|i| SvgLengthOrPercentageOrNumber::parse(context, i))
+            .r#try(|i| SvgLengthOrPercentageOrNumber::parse(context, i))
             .map(Into::into)
             .or_else(|_| parse_context_value(input, generic::SVGLength::ContextValue))
     }
@@ -87,7 +87,7 @@ impl Parse for SVGWidth {
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
         input
-            .try(|i| NonNegativeSvgLengthOrPercentageOrNumber::parse(context, i))
+            .r#try(|i| NonNegativeSvgLengthOrPercentageOrNumber::parse(context, i))
             .map(Into::into)
             .or_else(|_| parse_context_value(input, generic::SVGLength::ContextValue))
     }
@@ -107,13 +107,13 @@ impl Parse for SVGStrokeDashArray {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
-        if let Ok(values) = input.try(|i| {
+        if let Ok(values) = input.r#try(|i| {
             CommaWithSpace::parse(i, |i| {
                 NonNegativeSvgLengthOrPercentageOrNumber::parse(context, i)
             })
         }) {
             Ok(generic::SVGStrokeDashArray::Values(values))
-        } else if let Ok(_) = input.try(|i| i.expect_ident_matching("none")) {
+        } else if let Ok(_) = input.r#try(|i| i.expect_ident_matching("none")) {
             Ok(generic::SVGStrokeDashArray::Values(vec![]))
         } else {
             parse_context_value(input, generic::SVGStrokeDashArray::ContextValue)
@@ -129,7 +129,7 @@ impl Parse for SVGOpacity {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
-        if let Ok(opacity) = input.try(|i| Opacity::parse(context, i)) {
+        if let Ok(opacity) = input.r#try(|i| Opacity::parse(context, i)) {
             return Ok(generic::SVGOpacity::Opacity(opacity));
         }
 
@@ -194,7 +194,7 @@ impl Parse for SVGPaintOrder {
         _context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<SVGPaintOrder, ParseError<'i>> {
-        if let Ok(()) = input.try(|i| i.expect_ident_matching("normal")) {
+        if let Ok(()) = input.r#try(|i| i.expect_ident_matching("normal")) {
             return Ok(SVGPaintOrder::normal());
         }
 
@@ -205,7 +205,7 @@ impl Parse for SVGPaintOrder {
         let mut pos = 0;
 
         loop {
-            let result: Result<_, ParseError> = input.try(|input| {
+            let result: Result<_, ParseError> = input.r#try(|input| {
                 try_match_ident_ignore_ascii_case! { input,
                     "fill" => Ok(PaintOrder::Fill),
                     "stroke" => Ok(PaintOrder::Stroke),

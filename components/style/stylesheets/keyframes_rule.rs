@@ -6,22 +6,22 @@
 
 use cssparser::{AtRuleParser, CowRcStr, Parser, ParserInput, QualifiedRuleParser, RuleListParser};
 use cssparser::{parse_one_rule, DeclarationListParser, DeclarationParser, SourceLocation, Token};
-use error_reporting::ContextualParseError;
-use parser::ParserContext;
-use properties::{Importance, PropertyDeclaration};
-use properties::{LonghandId, PropertyDeclarationBlock, PropertyId};
-use properties::{PropertyDeclarationId, SourcePropertyDeclaration};
-use properties::LonghandIdSet;
-use properties::longhands::transition_timing_function::single_value::SpecifiedValue as SpecifiedTimingFunction;
+use crate::error_reporting::ContextualParseError;
+use crate::parser::ParserContext;
+use crate::properties::{Importance, PropertyDeclaration};
+use crate::properties::{LonghandId, PropertyDeclarationBlock, PropertyId};
+use crate::properties::{PropertyDeclarationId, SourcePropertyDeclaration};
+use crate::properties::LonghandIdSet;
+use crate::properties::longhands::transition_timing_function::single_value::SpecifiedValue as SpecifiedTimingFunction;
 use servo_arc::Arc;
-use shared_lock::{DeepCloneParams, DeepCloneWithLock, SharedRwLock, SharedRwLockReadGuard};
-use shared_lock::{Locked, ToCssWithGuard};
+use crate::shared_lock::{DeepCloneParams, DeepCloneWithLock, SharedRwLock, SharedRwLockReadGuard};
+use crate::shared_lock::{Locked, ToCssWithGuard};
 use std::fmt::{self, Write};
-use str::CssStringWriter;
+use crate::str::CssStringWriter;
 use style_traits::{CssWriter, ParseError, ParsingMode, StyleParseErrorKind, ToCss};
-use stylesheets::{CssRuleType, StylesheetContents};
-use stylesheets::rule_parser::VendorPrefix;
-use values::{serialize_percentage, KeyframesName};
+use crate::stylesheets::{CssRuleType, StylesheetContents};
+use crate::stylesheets::rule_parser::VendorPrefix;
+use crate::values::{serialize_percentage, KeyframesName};
 
 /// A [`@keyframes`][keyframes] rule.
 ///

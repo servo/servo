@@ -6,10 +6,10 @@
 
 use app_units::Au;
 use cssparser::Parser;
-use parser::ParserContext;
+use crate::parser::ParserContext;
 use style_traits::ParseError;
-use values::animated::{Animate, Procedure, ToAnimatedZero};
-use values::distance::{ComputeSquaredDistance, SquaredDistance};
+use crate::values::animated::{Animate, Procedure, ToAnimatedZero};
+use crate::values::distance::{ComputeSquaredDistance, SquaredDistance};
 
 /// A generic value for the `initial-letter` property.
 #[derive(
@@ -58,7 +58,7 @@ impl<Value> Spacing<Value> {
     where
         F: FnOnce(&ParserContext, &mut Parser<'i, 't>) -> Result<Value, ParseError<'i>>,
     {
-        if input.try(|i| i.expect_ident_matching("normal")).is_ok() {
+        if input.r#try(|i| i.expect_ident_matching("normal")).is_ok() {
             return Ok(Spacing::Normal);
         }
         parse(context, input).map(Spacing::Value)

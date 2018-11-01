@@ -19,6 +19,6 @@ pub use self::media_query::{MediaQuery, MediaQueryType, MediaType, Qualifier};
 pub use self::media_feature_expression::MediaFeatureExpression;
 
 #[cfg(feature = "servo")]
-pub use servo::media_queries::Device;
+pub use crate::servo::media_queries::Device;
 #[cfg(feature = "gecko")]
 pub use gecko::media_queries::Device;

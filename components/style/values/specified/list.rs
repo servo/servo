@@ -5,7 +5,7 @@
 //! `list` specified values.
 
 use cssparser::{Parser, Token};
-use parser::{Parse, ParserContext};
+use crate::parser::{Parse, ParserContext};
 use std::fmt::{self, Write};
 use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
 #[cfg(feature = "gecko")]
@@ -63,7 +63,7 @@ impl Parse for ListStyleType {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
-        if let Ok(style) = input.try(|i| CounterStyleOrNone::parse(context, i)) {
+        if let Ok(style) = input.r#try(|i| CounterStyleOrNone::parse(context, i)) {
             return Ok(ListStyleType::CounterStyle(style));
         }
 
@@ -114,7 +114,7 @@ impl Parse for Quotes {
         input: &mut Parser<'i, 't>,
     ) -> Result<Quotes, ParseError<'i>> {
         if input
-            .try(|input| input.expect_ident_matching("none"))
+            .r#try(|input| input.expect_ident_matching("none"))
             .is_ok()
         {
             return Ok(Quotes(Vec::new().into_boxed_slice()));

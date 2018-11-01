@@ -5,10 +5,10 @@
 //! Specified types for CSS borders.
 
 use cssparser::Parser;
-use parser::ParserContext;
+use crate::parser::ParserContext;
 use style_traits::ParseError;
-use values::generics::rect::Rect;
-use values::specified::length::LengthOrNumber;
+use crate::values::generics::rect::Rect;
+use crate::values::specified::length::LengthOrNumber;
 
 /// A specified rectangle made of four `<length-or-number>` values.
 pub type LengthOrNumberRect = Rect<LengthOrNumber>;

@@ -4,10 +4,10 @@
 
 //! Common handling for the specified value CSS url() values.
 
-use values::generics::url::UrlOrNone as GenericUrlOrNone;
+use crate::values::generics::url::UrlOrNone as GenericUrlOrNone;
 
 #[cfg(feature = "servo")]
-pub use servo::url::{SpecifiedImageUrl, SpecifiedUrl};
+pub use crate::servo::url::{SpecifiedImageUrl, SpecifiedUrl};
 #[cfg(feature = "gecko")]
 pub use gecko::url::{SpecifiedImageUrl, SpecifiedUrl};
 

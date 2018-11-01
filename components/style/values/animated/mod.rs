@@ -10,13 +10,13 @@
 
 use app_units::Au;
 use euclid::{Point2D, Size2D};
-use properties::PropertyId;
+use crate::properties::PropertyId;
 use smallvec::SmallVec;
 use std::cmp;
-use values::computed::Angle as ComputedAngle;
-use values::computed::BorderCornerRadius as ComputedBorderCornerRadius;
-use values::computed::length::CalcLengthOrPercentage;
-use values::computed::url::ComputedUrl;
+use crate::values::computed::Angle as ComputedAngle;
+use crate::values::computed::BorderCornerRadius as ComputedBorderCornerRadius;
+use crate::values::computed::CalcLengthOrPercentage;
+use crate::values::computed::url::ComputedUrl;
 
 pub mod color;
 pub mod effects;

@@ -8,17 +8,17 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-use alloc::{alloc, dealloc};
+use crate::alloc::{alloc, dealloc};
 use std::cmp;
 use std::hash::{BuildHasher, Hash, Hasher};
 use std::marker;
 use std::mem::{self, align_of, size_of};
 use std::ops::{Deref, DerefMut};
 use std::ptr;
-use shim::{Unique, Shared};
+use crate::shim::{Unique, Shared};
 
 use self::BucketState::*;
-use FailedAllocationError;
+use crate::FailedAllocationError;
 
 /// Integer type used for stored hash values.
 ///
@@ -795,7 +795,7 @@ impl<K, V> RawTable<K, V> {
         let buffer = alloc(size, alignment);
 
         if buffer.is_null() {
-            use AllocationInfo;
+            use crate::AllocationInfo;
             return Err(FailedAllocationError {
                 reason: "out of memory when allocating RawTable",
                 allocation_info: Some(AllocationInfo { size, alignment }),

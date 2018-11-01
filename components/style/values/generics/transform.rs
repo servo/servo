@@ -7,12 +7,12 @@
 use app_units::Au;
 use euclid::{self, Rect, Transform3D};
 use num_traits::Zero;
-use values::{computed, CSSFloat};
-use values::computed::length::Length as ComputedLength;
-use values::computed::length::LengthOrPercentage as ComputedLengthOrPercentage;
-use values::specified::angle::Angle as SpecifiedAngle;
-use values::specified::length::Length as SpecifiedLength;
-use values::specified::length::LengthOrPercentage as SpecifiedLengthOrPercentage;
+use crate::values::{computed, CSSFloat};
+use crate::values::computed::length::Length as ComputedLength;
+use crate::values::computed::length::LengthOrPercentage as ComputedLengthOrPercentage;
+use crate::values::specified::angle::Angle as SpecifiedAngle;
+use crate::values::specified::length::Length as SpecifiedLength;
+use crate::values::specified::length::LengthOrPercentage as SpecifiedLengthOrPercentage;
 
 /// A generic 2D transformation matrix.
 #[allow(missing_docs)]
@@ -513,7 +513,7 @@ pub fn get_normalized_vector_and_angle<T: Zero>(
     angle: T,
 ) -> (CSSFloat, CSSFloat, CSSFloat, T) {
     use euclid::approxeq::ApproxEq;
-    use values::computed::transform::DirectionVector;
+    use crate::values::computed::transform::DirectionVector;
     let vector = DirectionVector::new(x, y, z);
     if vector.square_length().approx_eq(&f32::zero()) {
         // https://www.w3.org/TR/css-transforms-1/#funcdef-rotate3d

@@ -6,12 +6,12 @@
 //! for `@import` rules.
 
 use cssparser::SourceLocation;
-use media_queries::MediaList;
-use parser::ParserContext;
+use crate::media_queries::MediaList;
+use crate::parser::ParserContext;
 use servo_arc::Arc;
-use shared_lock::{Locked, SharedRwLock};
-use stylesheets::import_rule::ImportRule;
-use values::CssUrl;
+use crate::shared_lock::{Locked, SharedRwLock};
+use crate::stylesheets::import_rule::ImportRule;
+use crate::values::CssUrl;
 
 /// The stylesheet loader is the abstraction used to trigger network requests
 /// for `@import` rules.

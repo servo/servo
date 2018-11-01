@@ -6,12 +6,12 @@
 //!
 //! [custom]: https://drafts.csswg.org/css-variables/
 
-use Atom;
+use crate::Atom;
 use cssparser::{Delimiter, Parser, ParserInput, SourcePosition, Token, TokenSerializationType};
-use hash::map::Entry;
+use crate::hash::map::Entry;
 use precomputed_hash::PrecomputedHash;
-use properties::{CSSWideKeyword, CustomDeclarationValue};
-use selector_map::{PrecomputedHashMap, PrecomputedHashSet};
+use crate::properties::{CSSWideKeyword, CustomDeclarationValue};
+use crate::selector_map::{PrecomputedHashMap, PrecomputedHashSet};
 use selectors::parser::SelectorParseErrorKind;
 use servo_arc::Arc;
 use smallvec::SmallVec;

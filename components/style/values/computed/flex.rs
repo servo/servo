@@ -4,11 +4,11 @@
 
 //! Computed types for CSS values related to flexbox.
 
-use values::generics::flex::FlexBasis as GenericFlexBasis;
+use crate::values::generics::flex::FlexBasis as GenericFlexBasis;
 
 /// The `width` value type.
 #[cfg(feature = "servo")]
-pub type Width = ::values::computed::NonNegativeLengthOrPercentageOrAuto;
+pub type Width = crate::values::computed::NonNegativeLengthOrPercentageOrAuto;
 
 /// The `width` value type.
 #[cfg(feature = "gecko")]

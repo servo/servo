@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use properties::{parse, parse_input};
+use crate::properties::{parse, parse_input};
 use style::computed_values::display::T as Display;
 use style::properties::{PropertyDeclaration, Importance};
 use style::properties::declaration_block::PropertyDeclarationBlock;
@@ -13,7 +13,7 @@ use style::values::specified::{Length, LengthOrPercentage, LengthOrPercentageOrA
 use style::values::specified::NoCalcLength;
 use style::values::specified::url::SpecifiedUrl;
 use style_traits::ToCss;
-use stylesheets::block_from;
+use crate::stylesheets::block_from;
 
 trait ToCssString {
     fn to_css_string(&self) -> String;

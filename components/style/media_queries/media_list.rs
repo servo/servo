@@ -6,11 +6,11 @@
 //!
 //! https://drafts.csswg.org/mediaqueries/#typedef-media-query-list
 
-use context::QuirksMode;
+use crate::context::QuirksMode;
 use cssparser::{Delimiter, Parser};
 use cssparser::{ParserInput, Token};
-use error_reporting::ContextualParseError;
-use parser::ParserContext;
+use crate::error_reporting::ContextualParseError;
+use crate::parser::ParserContext;
 use super::{Device, MediaQuery, Qualifier};
 
 /// A type that encapsulates a media query list.

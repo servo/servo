@@ -5,9 +5,9 @@
 //! Generic types for counters-related CSS values.
 
 #[cfg(feature = "servo")]
-use computed_values::list_style_type::T as ListStyleType;
+use crate::computed_values::list_style_type::T as ListStyleType;
 use std::ops::Deref;
-use values::CustomIdent;
+use crate::values::CustomIdent;
 #[cfg(feature = "gecko")]
 use values::generics::CounterStyleOrNone;
 #[cfg(feature = "gecko")]

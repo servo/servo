@@ -6,11 +6,11 @@
 //!
 //! TODO(emilio): Enhance docs.
 
-use {Atom, Namespace, Prefix};
-use context::QuirksMode;
+use crate::{Atom, Namespace, Prefix};
+use crate::context::QuirksMode;
 use cssparser::{Parser, Token};
 use num_traits::One;
-use parser::{Parse, ParserContext};
+use crate::parser::{Parse, ParserContext};
 use std::f32;
 use std::fmt::{self, Write};
 use style_traits::{CssWriter, ParseError, SpecifiedValueInfo, StyleParseErrorKind, ToCss};
@@ -20,8 +20,8 @@ use super::computed::{Context, ToComputedValue};
 use super::generics::{GreaterThanOrEqualToOne, NonNegative};
 use super::generics::grid::{GridLine as GenericGridLine, TrackBreadth as GenericTrackBreadth};
 use super::generics::grid::{TrackList as GenericTrackList, TrackSize as GenericTrackSize};
-use values::serialize_atom_identifier;
-use values::specified::calc::CalcNode;
+use crate::values::serialize_atom_identifier;
+use crate::values::specified::calc::CalcNode;
 
 pub use self::angle::Angle;
 #[cfg(feature = "gecko")]
@@ -357,7 +357,7 @@ impl NumberOrPercentage {
         input: &mut Parser<'i, 't>,
         type_: AllowedNumericType,
     ) -> Result<Self, ParseError<'i>> {
-        if let Ok(per) = input.try(|i| Percentage::parse_with_clamping_mode(context, i, type_)) {
+        if let Ok(per) = input.r#try(|i| Percentage::parse_with_clamping_mode(context, i, type_)) {
             return Ok(NumberOrPercentage::Percentage(per));
         }
 
@@ -693,7 +693,7 @@ impl ClipRect {
         input: &mut Parser<'i, 't>,
         allow_quirks: AllowQuirks,
     ) -> Result<Self, ParseError<'i>> {
-        use values::specified::Length;
+        use crate::values::specified::Length;
 
         fn parse_argument<'i, 't>(
             context: &ParserContext,
@@ -701,7 +701,7 @@ impl ClipRect {
             allow_quirks: AllowQuirks,
         ) -> Result<Option<Length>, ParseError<'i>> {
             if input
-                .try(|input| input.expect_ident_matching("auto"))
+                .r#try(|input| input.expect_ident_matching("auto"))
                 .is_ok()
             {
                 Ok(None)
@@ -718,7 +718,7 @@ impl ClipRect {
             let bottom;
             let left;
 
-            if input.try(|input| input.expect_comma()).is_ok() {
+            if input.r#try(|input| input.expect_comma()).is_ok() {
                 right = parse_argument(context, input, allow_quirks)?;
                 input.expect_comma()?;
                 bottom = parse_argument(context, input, allow_quirks)?;
@@ -749,7 +749,7 @@ impl ClipRectOrAuto {
         input: &mut Parser<'i, 't>,
         allow_quirks: AllowQuirks,
     ) -> Result<Self, ParseError<'i>> {
-        if let Ok(v) = input.try(|i| ClipRect::parse_quirky(context, i, allow_quirks)) {
+        if let Ok(v) = input.r#try(|i| ClipRect::parse_quirky(context, i, allow_quirks)) {
             Ok(Either::First(v))
         } else {
             Auto::parse(context, input).map(Either::Second)
@@ -814,8 +814,8 @@ impl Attr {
     ) -> Result<Attr, ParseError<'i>> {
         // Syntax is `[namespace? `|`]? ident`
         // no spaces allowed
-        let first = input.try(|i| i.expect_ident_cloned()).ok();
-        if let Ok(token) = input.try(|i| i.next_including_whitespace().map(|t| t.clone())) {
+        let first = input.r#try(|i| i.expect_ident_cloned()).ok();
+        if let Ok(token) = input.r#try(|i| i.next_including_whitespace().map(|t| t.clone())) {
             match token {
                 Token::Delim('|') => {
                     let location = input.current_source_location();

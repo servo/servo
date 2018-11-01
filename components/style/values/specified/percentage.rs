@@ -5,14 +5,14 @@
 //! Specified percentages.
 
 use cssparser::{Parser, Token};
-use parser::{Parse, ParserContext};
+use crate::parser::{Parse, ParserContext};
 use std::fmt::{self, Write};
 use style_traits::{CssWriter, ParseError, SpecifiedValueInfo, ToCss};
 use style_traits::values::specified::AllowedNumericType;
-use values::{serialize_percentage, CSSFloat};
-use values::computed::{Context, ToComputedValue};
-use values::computed::percentage::Percentage as ComputedPercentage;
-use values::specified::calc::CalcNode;
+use crate::values::{serialize_percentage, CSSFloat};
+use crate::values::computed::{Context, ToComputedValue};
+use crate::values::computed::percentage::Percentage as ComputedPercentage;
+use crate::values::specified::calc::CalcNode;
 
 /// A percentage value.
 #[derive(Clone, Copy, Debug, Default, MallocSizeOf, PartialEq)]

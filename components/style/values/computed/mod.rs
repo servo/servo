@@ -4,17 +4,17 @@
 
 //! Computed values.
 
-use Atom;
+use crate::Atom;
 #[cfg(feature = "servo")]
-use Prefix;
-use context::QuirksMode;
+use crate::Prefix;
+use crate::context::QuirksMode;
 use euclid::Size2D;
-use font_metrics::{get_metrics_provider_for_product, FontMetricsProvider};
-use media_queries::Device;
+use crate::font_metrics::{get_metrics_provider_for_product, FontMetricsProvider};
+use crate::media_queries::Device;
 #[cfg(feature = "gecko")]
 use properties;
-use properties::{ComputedValues, LonghandId, StyleBuilder};
-use rule_cache::RuleCacheConditions;
+use crate::properties::{ComputedValues, LonghandId, StyleBuilder};
+use crate::rule_cache::RuleCacheConditions;
 use std::cell::RefCell;
 use std::cmp;
 use std::f32;
