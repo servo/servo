@@ -188,10 +188,14 @@ class MachCommands(CommandBase):
                      default=None,
                      action='store_true',
                      help='Build the libsimpleservo library instead of the servo executable')
+    @CommandArgument('--with_frame_pointer',
+                     default=None,
+                     action='store_true',
+                     help='Build with frame pointer enabled, used by the background hang monitor.')
     def build(self, target=None, release=False, dev=False, jobs=None,
               features=None, android=None, no_package=False, verbose=False, very_verbose=False,
               debug_mozjs=False, params=None, with_debug_assertions=False,
-              libsimpleservo=False):
+              libsimpleservo=False, with_frame_pointer=False):
 
         opts = params or []
 
@@ -277,6 +281,9 @@ class MachCommands(CommandBase):
 
         if with_debug_assertions:
             env['RUSTFLAGS'] = env.get('RUSTFLAGS', "") + " -C debug_assertions"
+
+        if with_frame_pointer:
+            env['RUSTFLAGS'] = env.get('RUSTFLAGS', "") + " -C force-frame-pointers=yes"
 
         if android:
             if "ANDROID_NDK" not in env:
