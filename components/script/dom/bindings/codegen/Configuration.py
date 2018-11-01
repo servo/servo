@@ -204,9 +204,9 @@ class Descriptor(DescriptorProvider):
             self.returnType = 'Rc<%s>' % typeName
             self.argumentType = '&%s' % typeName
             self.nativeType = typeName
-            pathDefault = 'dom::types::%s' % typeName
+            pathDefault = 'crate::dom::types::%s' % typeName
         elif self.interface.isCallback():
-            ty = 'dom::bindings::codegen::Bindings::%sBinding::%s' % (ifaceName, ifaceName)
+            ty = 'crate::dom::bindings::codegen::Bindings::%sBinding::%s' % (ifaceName, ifaceName)
             pathDefault = ty
             self.returnType = "Rc<%s>" % ty
             self.argumentType = "???"
@@ -216,14 +216,14 @@ class Descriptor(DescriptorProvider):
             self.argumentType = "&%s" % typeName
             self.nativeType = "*const %s" % typeName
             if self.interface.isIteratorInterface():
-                pathDefault = 'dom::bindings::iterable::IterableIterator'
+                pathDefault = 'crate::dom::bindings::iterable::IterableIterator'
             else:
-                pathDefault = 'dom::types::%s' % MakeNativeName(typeName)
+                pathDefault = 'crate::dom::types::%s' % MakeNativeName(typeName)
 
         self.concreteType = typeName
         self.register = desc.get('register', True)
         self.path = desc.get('path', pathDefault)
-        self.bindingPath = 'dom::bindings::codegen::Bindings::%s' % ('::'.join([ifaceName + 'Binding'] * 2))
+        self.bindingPath = 'crate::dom::bindings::codegen::Bindings::%s' % ('::'.join([ifaceName + 'Binding'] * 2))
         self.outerObjectHook = desc.get('outerObjectHook', 'None')
         self.proxy = False
         self.weakReferenceable = desc.get('weakReferenceable', False)
@@ -422,7 +422,7 @@ def MakeNativeName(name):
 
 
 def getModuleFromObject(object):
-    return ('dom::bindings::codegen::Bindings::' +
+    return ('crate::dom::bindings::codegen::Bindings::' +
             os.path.basename(object.location.filename()).split('.webidl')[0] + 'Binding')
 
 
