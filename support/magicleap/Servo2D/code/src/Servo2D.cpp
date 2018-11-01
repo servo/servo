@@ -6,7 +6,6 @@
 #include <lumin/node/RootNode.h>
 #include <lumin/node/QuadNode.h>
 #include <lumin/ui/Cursor.h>
-#include <lumin/ui/node/UiButton.h>
 #include <ml_logging.h>
 #include <scenesGen.h>
 #include <SceneDescriptor.h>
@@ -35,13 +34,20 @@ void logger(MLLogLevel lvl, char* msg) {
   }
 }
 
+// A function which updates the history ui, suitable for passing into Servo
+typedef void (*MLHistoryUpdate)(Servo2D* app, bool canGoBack, char* url, bool canGoForward);
+void history(Servo2D* app, bool canGoBack, char* url, bool canGoForward) {
+  app->updateHistory(canGoBack, url, canGoForward);
+}
+
 // The functions Servo provides for hooking up to the ML.
-// For the moment, this doesn't handle input events.
-extern "C" ServoInstance* init_servo(EGLContext, EGLSurface, EGLDisplay, MLLogger,
-                                    const char* url, int width, int height, float hidpi);
+extern "C" ServoInstance* init_servo(EGLContext, EGLSurface, EGLDisplay,
+                                     Servo2D*, MLLogger, MLHistoryUpdate,
+                                     const char* url, int width, int height, float hidpi);
 extern "C" void heartbeat_servo(ServoInstance*);
 extern "C" void cursor_servo(ServoInstance*, float x, float y, bool triggered);
 extern "C" void traverse_servo(ServoInstance*, int delta);
+extern "C" void navigate_servo(ServoInstance*, const char* text);
 extern "C" void discard_servo(ServoInstance*);
 
 // Create a Servo2D instance
@@ -120,7 +126,7 @@ int Servo2D::init() {
   EGLDisplay dpy = eglGetDisplay(EGL_DEFAULT_DISPLAY);
 
   // Hook into servo
-  servo_ = init_servo(ctx, surf, dpy, logger, "https://servo.org/", VIEWPORT_H, VIEWPORT_W, HIDPI);
+  servo_ = init_servo(ctx, surf, dpy, this, logger, history, "https://servo.org/", VIEWPORT_H, VIEWPORT_W, HIDPI);
   if (!servo_) {
     ML_LOG(Error, "Servo2D Failed to init servo instance");
     abort();
@@ -129,24 +135,33 @@ int Servo2D::init() {
 
   // Add a callback to the back button
   std::string back_button_id = Servo2D_exportedNodes::backButton;
-  lumin::ui::UiButton* back_button = lumin::ui::UiButton::CastFrom(prism_->findNode(back_button_id, root_node));
-  if (!back_button) {
+  back_button_ = lumin::ui::UiButton::CastFrom(prism_->findNode(back_button_id, root_node));
+  if (!back_button_) {
     ML_LOG(Error, "Servo2D Failed to get back button");
     abort();
     return 1;
   }
-  back_button->onActivateSub(std::bind(traverse_servo, servo_, -1));
+  back_button_->onActivateSub(std::bind(traverse_servo, servo_, -1));
 
   // Add a callback to the forward button
   std::string fwd_button_id = Servo2D_exportedNodes::fwdButton;
-  lumin::ui::UiButton* fwd_button = lumin::ui::UiButton::CastFrom(prism_->findNode(fwd_button_id, root_node));
-  if (!fwd_button) {
+  fwd_button_ = lumin::ui::UiButton::CastFrom(prism_->findNode(fwd_button_id, root_node));
+  if (!fwd_button_) {
     ML_LOG(Error, "Servo2D Failed to get forward button");
     abort();
     return 1;
   }
-  fwd_button->onActivateSub(std::bind(traverse_servo, servo_, +1));
+  fwd_button_->onActivateSub(std::bind(traverse_servo, servo_, +1));
 
+  // Add a callback to the URL bar
+  std::string url_bar_id = Servo2D_exportedNodes::urlBar;
+  url_bar_ = lumin::ui::UiTextEdit::CastFrom(prism_->findNode(url_bar_id, root_node));
+  if (!url_bar_) {
+    ML_LOG(Error, "Servo2D Failed to get URL bar");
+    abort();
+    return 1;
+  }
+  url_bar_->onFocusLostSub(std::bind(&Servo2D::urlBarEventListener, this));
   return 0;
 }
 
@@ -267,4 +282,14 @@ bool Servo2D::keyEventListener(lumin::KeyInputEventData* event) {
   // Inform Servo of the trigger
   cursor_servo(servo_, pos.x, pos.y, true);
   return true;
+}
+
+void Servo2D::urlBarEventListener() {
+  navigate_servo(servo_, url_bar_->getText().c_str());
+}
+
+void Servo2D::updateHistory(bool canGoBack, const char* url, bool canGoForward) {
+  back_button_->setEnabled(canGoBack);
+  fwd_button_->setEnabled(canGoForward);
+  url_bar_->setText(url);
 }

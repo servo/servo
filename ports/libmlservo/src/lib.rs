@@ -40,6 +40,7 @@ use std::ffi::CStr;
 use std::ffi::CString;
 use std::io::Write;
 use std::os::raw::c_char;
+use std::os::raw::c_void;
 use std::path::PathBuf;
 use std::rc::Rc;
 
@@ -56,13 +57,22 @@ pub enum MLLogLevel {
 #[repr(transparent)]
 pub struct MLLogger(extern "C" fn (MLLogLevel, *const c_char));
 
+#[repr(transparent)]
+pub struct MLHistoryUpdate(extern "C" fn (MLApp, bool, *const c_char, bool));
+
+#[repr(transparent)]
+#[derive(Clone, Copy)]
+pub struct MLApp(*mut c_void);
+
 const LOG_LEVEL: log::LevelFilter = log::LevelFilter::Info;
 
 #[no_mangle]
 pub unsafe extern "C" fn init_servo(ctxt: EGLContext,
                                     surf: EGLSurface,
                                     disp: EGLDisplay,
+                                    app: MLApp,
                                     logger: MLLogger,
+                                    history_update: MLHistoryUpdate,
                                     url: *const c_char,
                                     width: u32,
                                     height: u32,
@@ -100,7 +110,9 @@ pub unsafe extern "C" fn init_servo(ctxt: EGLContext,
     ]);
 
     let result = Box::new(ServoInstance {
+        app: app,
         browser_id: browser_id,
+        history_update: history_update,
         servo: servo,
     });
     Box::into_raw(result)
@@ -130,10 +142,19 @@ pub unsafe extern "C" fn heartbeat_servo(servo: *mut ServoInstance) {
                 EmbedderMsg::AllowOpeningBrowser(sender) => {
                     let _ = sender.send(false);
                 },
+                // Update the history UI
+                EmbedderMsg::HistoryChanged(urls, index) => {
+                    if let Some(url) = urls.get(index) {
+                        if let Ok(cstr) = CString::new(url.as_str()) {
+                            let can_go_back = index > 0;
+                            let can_go_fwd = (index + 1) < urls.len();
+                            (servo.history_update.0)(servo.app, can_go_back, cstr.as_ptr(), can_go_fwd);
+                        }
+                    }
+                },
                 // Ignore most messages for now
                 EmbedderMsg::ChangePageTitle(..) |
                 EmbedderMsg::BrowserCreated(..) |
-                EmbedderMsg::HistoryChanged(..) |
                 EmbedderMsg::LoadStart |
                 EmbedderMsg::LoadComplete |
                 EmbedderMsg::CloseBrowser |
@@ -185,6 +206,22 @@ pub unsafe extern "C" fn traverse_servo(servo: *mut ServoInstance, delta: i32) {
 }
 
 #[no_mangle]
+pub unsafe extern "C" fn navigate_servo(servo: *mut ServoInstance, text: *const c_char) {
+    if let Some(servo) = servo.as_mut() {
+        let text = CStr::from_ptr(text).to_str().expect("Failed to convert text to UTF-8");
+        let url = ServoUrl::parse(text).unwrap_or_else(|_| {
+            let mut search = ServoUrl::parse("http://google.com/search")
+               .expect("Failed to parse search URL")
+               .into_url();
+            search.query_pairs_mut().append_pair("q", text);
+            ServoUrl::from_url(search)
+        });
+        let window_event = WindowEvent::LoadUrl(servo.browser_id, url);
+        servo.servo.handle_events(vec![window_event]);
+    }
+}
+
+#[no_mangle]
 pub unsafe extern "C" fn discard_servo(servo: *mut ServoInstance) {
     // Servo drop goes here!
     if !servo.is_null() {
@@ -193,7 +230,9 @@ pub unsafe extern "C" fn discard_servo(servo: *mut ServoInstance) {
 }
 
 pub struct ServoInstance {
+    app: MLApp,
     browser_id: BrowserId,
+    history_update: MLHistoryUpdate,
     servo: Servo<WindowInstance>,
 }
 
