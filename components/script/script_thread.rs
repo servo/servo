@@ -99,8 +99,8 @@ use net_traits::{Metadata, NetworkError, ReferrerPolicy, ResourceThreads};
 use net_traits::image_cache::{ImageCache, PendingImageResponse};
 use net_traits::request::{CredentialsMode, Destination, RedirectMode, RequestInit};
 use net_traits::storage_thread::StorageType;
-use profile_traits::mem::{self, OpaqueSender, ReportsChan};
-use profile_traits::time::{self, ProfilerCategory, profile};
+use profile_traits::mem::{self as profile_mem, OpaqueSender, ReportsChan};
+use profile_traits::time::{self as profile_time, ProfilerCategory, profile};
 use script_layout_interface::message::{self, Msg, NewLayoutThreadInfo, ReflowGoal};
 use script_traits::{CompositorEvent, ConstellationControlMsg};
 use script_traits::{DiscardBrowsingContext, DocumentActivity, EventResult};
@@ -538,10 +538,10 @@ pub struct ScriptThread {
     /// The channel on which the image cache can send messages to ourself.
     image_cache_channel: Sender<ImageCacheMsg>,
     /// For providing contact with the time profiler.
-    time_profiler_chan: time::ProfilerChan,
+    time_profiler_chan: profile_time::ProfilerChan,
 
     /// For providing contact with the memory profiler.
-    mem_profiler_chan: mem::ProfilerChan,
+    mem_profiler_chan: profile_mem::ProfilerChan,
 
     /// For providing instructions to an optional devtools server.
     devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
