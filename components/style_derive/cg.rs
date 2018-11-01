@@ -54,7 +54,7 @@ pub fn fmap_trait_output(input: &DeriveInput, trait_path: &Path, trait_output: I
                     &GenericParam::Type(ref data) => {
                         let ident = data.ident;
                         GenericArgument::Type(
-                            parse_quote!(<#ident as ::#trait_path>::#trait_output),
+                            parse_quote!(<#ident as #trait_path>::#trait_output),
                         )
                     },
                     ref arg => panic!("arguments {:?} cannot be mapped yet", arg),

@@ -14,7 +14,7 @@ pub fn derive(mut input: DeriveInput) -> Tokens {
         for param in &params {
             cg::add_predicate(
                 &mut where_clause,
-                parse_quote!(#param: ::values::computed::ToComputedValue),
+                parse_quote!(#param: crate::values::computed::ToComputedValue),
             );
         }
 
@@ -26,23 +26,23 @@ pub fn derive(mut input: DeriveInput) -> Tokens {
                 let output_type = cg::map_type_params(
                     ty,
                     &params,
-                    &mut |ident| parse_quote!(<#ident as ::values::computed::ToComputedValue>::ComputedValue),
+                    &mut |ident| parse_quote!(<#ident as crate::values::computed::ToComputedValue>::ComputedValue),
                 );
 
                 cg::add_predicate(
                     &mut where_clause,
                     parse_quote!(
-                        #ty: ::values::computed::ToComputedValue<ComputedValue = #output_type>
+                        #ty: crate::values::computed::ToComputedValue<ComputedValue = #output_type>
                     ),
                 );
             }
             quote! {
-                ::values::computed::ToComputedValue::to_computed_value(#binding, context)
+                crate::values::computed::ToComputedValue::to_computed_value(#binding, context)
             }
         });
         let from_body = cg::fmap_match(&input, BindStyle::Ref, |binding| {
             quote! {
-                ::values::computed::ToComputedValue::from_computed_value(#binding)
+                crate::values::computed::ToComputedValue::from_computed_value(#binding)
             }
         });
 
@@ -55,7 +55,7 @@ pub fn derive(mut input: DeriveInput) -> Tokens {
 
     if input.generics.type_params().next().is_none() {
         return quote! {
-            impl #impl_generics ::values::computed::ToComputedValue for #name #ty_generics
+            impl #impl_generics crate::values::computed::ToComputedValue for #name #ty_generics
             #where_clause
             {
                 type ComputedValue = Self;
@@ -63,14 +63,14 @@ pub fn derive(mut input: DeriveInput) -> Tokens {
                 #[inline]
                 fn to_computed_value(
                     &self,
-                    _context: &::values::computed::Context,
+                    _context: &crate::values::computed::Context,
                 ) -> Self::ComputedValue {
-                    ::std::clone::Clone::clone(self)
+                    std::clone::Clone::clone(self)
                 }
 
                 #[inline]
                 fn from_computed_value(computed: &Self::ComputedValue) -> Self {
-                    ::std::clone::Clone::clone(computed)
+                    std::clone::Clone::clone(computed)
                 }
             }
         };
@@ -78,17 +78,17 @@ pub fn derive(mut input: DeriveInput) -> Tokens {
 
     let computed_value_type = cg::fmap_trait_output(
         &input,
-        &parse_quote!(values::computed::ToComputedValue),
+        &parse_quote!(crate::values::computed::ToComputedValue),
         "ComputedValue".into(),
     );
 
     quote! {
-        impl #impl_generics ::values::computed::ToComputedValue for #name #ty_generics #where_clause {
+        impl #impl_generics crate::values::computed::ToComputedValue for #name #ty_generics #where_clause {
             type ComputedValue = #computed_value_type;
 
             #[allow(unused_variables)]
             #[inline]
-            fn to_computed_value(&self, context: &::values::computed::Context) -> Self::ComputedValue {
+            fn to_computed_value(&self, context: &crate::values::computed::Context) -> Self::ComputedValue {
                 match *self {
                     #to_body
                 }

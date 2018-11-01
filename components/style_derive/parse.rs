@@ -79,7 +79,7 @@ pub fn derive(input: DeriveInput) -> Tokens {
             match_ignore_ascii_case! { &ident,
                 #match_body
                 _ => Err(location.new_unexpected_token_error(
-                    ::cssparser::Token::Ident(ident.clone())
+                    cssparser::Token::Ident(ident.clone())
                 ))
             }
         }
@@ -88,12 +88,12 @@ pub fn derive(input: DeriveInput) -> Tokens {
     };
 
     let parse_trait_impl = quote! {
-        impl ::parser::Parse for #name {
+        impl crate::parser::Parse for #name {
             #[inline]
             fn parse<'i, 't>(
-                #context_ident: &::parser::ParserContext,
-                input: &mut ::cssparser::Parser<'i, 't>,
-            ) -> Result<Self, ::style_traits::ParseError<'i>> {
+                #context_ident: &crate::parser::ParserContext,
+                input: &mut cssparser::Parser<'i, 't>,
+            ) -> Result<Self, style_traits::ParseError<'i>> {
                 #parse_body
             }
         }
@@ -110,13 +110,13 @@ pub fn derive(input: DeriveInput) -> Tokens {
             /// Parse this keyword.
             #[inline]
             pub fn parse<'i, 't>(
-                input: &mut ::cssparser::Parser<'i, 't>,
-            ) -> Result<Self, ::style_traits::ParseError<'i>> {
+                input: &mut cssparser::Parser<'i, 't>,
+            ) -> Result<Self, style_traits::ParseError<'i>> {
                 let location = input.current_source_location();
                 let ident = input.expect_ident()?;
                 Self::from_ident(ident.as_ref()).map_err(|()| {
                     location.new_unexpected_token_error(
-                        ::cssparser::Token::Ident(ident.clone())
+                        cssparser::Token::Ident(ident.clone())
                     )
                 })
             }

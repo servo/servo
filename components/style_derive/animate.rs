@@ -16,7 +16,7 @@ pub fn derive(mut input: DeriveInput) -> Tokens {
         if !no_bound.contains(&param.ident) {
             cg::add_predicate(
                 &mut where_clause,
-                parse_quote!(#param: ::values::animated::Animate),
+                parse_quote!(#param: crate::values::animated::Animate),
             );
         }
     }
@@ -51,13 +51,13 @@ pub fn derive(mut input: DeriveInput) -> Tokens {
     let (impl_generics, ty_generics, where_clause) = input.generics.split_for_impl();
 
     quote! {
-        impl #impl_generics ::values::animated::Animate for #name #ty_generics #where_clause {
+        impl #impl_generics crate::values::animated::Animate for #name #ty_generics #where_clause {
             #[allow(unused_variables, unused_imports)]
             #[inline]
             fn animate(
                 &self,
                 other: &Self,
-                procedure: ::values::animated::Procedure,
+                procedure: crate::values::animated::Procedure,
             ) -> Result<Self, ()> {
                 match (self, other) {
                     #match_body
@@ -84,12 +84,12 @@ fn derive_variant_arm(variant: &VariantInfo) -> Result<Tokens, ()> {
                 if #this != #other {
                     return Err(());
                 }
-                let #result = ::std::clone::Clone::clone(#this);
+                let #result = std::clone::Clone::clone(#this);
             }
         } else {
             quote! {
                 let #result =
-                    ::values::animated::Animate::animate(#this, #other, procedure)?;
+                    crate::values::animated::Animate::animate(#this, #other, procedure)?;
             }
         }
     }));

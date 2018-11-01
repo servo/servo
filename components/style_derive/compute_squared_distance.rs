@@ -16,7 +16,7 @@ pub fn derive(mut input: DeriveInput) -> Tokens {
         if !no_bound.contains(&param.ident) {
             cg::add_predicate(
                 &mut where_clause,
-                parse_quote!(#param: ::values::distance::ComputeSquaredDistance),
+                parse_quote!(#param: crate::values::distance::ComputeSquaredDistance),
             );
         }
     }
@@ -35,7 +35,7 @@ pub fn derive(mut input: DeriveInput) -> Tokens {
             let (this_pattern, this_info) = cg::ref_pattern(&variant, "this");
             let (other_pattern, other_info) = cg::ref_pattern(&variant, "other");
             let sum = if this_info.is_empty() {
-                quote! { ::values::distance::SquaredDistance::from_sqrt(0.) }
+                quote! { crate::values::distance::SquaredDistance::from_sqrt(0.) }
             } else {
                 let mut sum = quote!();
                 sum.append_separated(this_info.iter().zip(&other_info).map(|(this, other)| {
@@ -44,7 +44,7 @@ pub fn derive(mut input: DeriveInput) -> Tokens {
                         let ty = &this.ast().ty;
                         cg::add_predicate(
                             &mut where_clause,
-                            parse_quote!(#ty: ::values::distance::ComputeSquaredDistance),
+                            parse_quote!(#ty: crate::values::distance::ComputeSquaredDistance),
                         );
                     }
 
@@ -57,12 +57,12 @@ pub fn derive(mut input: DeriveInput) -> Tokens {
                                 if #this != #other {
                                     return Err(());
                                 }
-                                ::values::distance::SquaredDistance::from_sqrt(0.)
+                                crate::values::distance::SquaredDistance::from_sqrt(0.)
                             }
                         }
                     } else {
                         quote! {
-                            ::values::distance::ComputeSquaredDistance::compute_squared_distance(#this, #other)?
+                            crate::values::distance::ComputeSquaredDistance::compute_squared_distance(#this, #other)?
                         }
                     }
                 }), quote!(+));
@@ -95,13 +95,13 @@ pub fn derive(mut input: DeriveInput) -> Tokens {
     let (impl_generics, ty_generics, where_clause) = input.generics.split_for_impl();
 
     quote! {
-        impl #impl_generics ::values::distance::ComputeSquaredDistance for #name #ty_generics #where_clause {
+        impl #impl_generics crate::values::distance::ComputeSquaredDistance for #name #ty_generics #where_clause {
             #[allow(unused_variables, unused_imports)]
             #[inline]
             fn compute_squared_distance(
                 &self,
                 other: &Self,
-            ) -> Result<::values::distance::SquaredDistance, ()> {
+            ) -> Result<crate::values::distance::SquaredDistance, ()> {
                 match (self, other) {
                     #match_body
                 }
