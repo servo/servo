@@ -55,6 +55,8 @@ extern crate hyper_serde;
 extern crate image;
 extern crate ipc_channel;
 #[macro_use]
+extern crate js;
+#[macro_use]
 extern crate jstraceable_derive;
 extern crate keyboard_types;
 #[macro_use]
@@ -71,8 +73,6 @@ extern crate mime;
 extern crate mime_guess;
 extern crate mitochondria;
 extern crate mozangle;
-#[macro_use]
-extern crate mozjs as js;
 extern crate msg;
 extern crate net_traits;
 extern crate num_traits;
