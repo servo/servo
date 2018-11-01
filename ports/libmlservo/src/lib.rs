@@ -33,8 +33,12 @@ use servo::gl::Gl;
 use servo::gl::GlesFns;
 use servo::msg::constellation_msg::TraversalDirection;
 use servo::script_traits::MouseButton;
+use servo::script_traits::TouchEventType;
 use servo::servo_url::ServoUrl;
+use servo::webrender_api::DevicePixel;
 use servo::webrender_api::DevicePoint;
+use servo::webrender_api::LayoutPixel;
+use servo::webrender_api::ScrollLocation;
 use smallvec::SmallVec;
 use std::ffi::CStr;
 use std::ffi::CString;
@@ -113,6 +117,8 @@ pub unsafe extern "C" fn init_servo(ctxt: EGLContext,
         app: app,
         browser_id: browser_id,
         history_update: history_update,
+        scroll_state: ScrollState::TriggerUp,
+        scroll_scale: TypedScale::new(SCROLL_SCALE / hidpi),
         servo: servo,
     });
     Box::into_raw(result)
@@ -176,17 +182,84 @@ pub unsafe extern "C" fn heartbeat_servo(servo: *mut ServoInstance) {
     }
 }
 
+// Some magic numbers.
+
+// How far does the cursor have to move for it to count as a drag rather than a click?
+// (In device pixels squared, to avoid taking a sqrt when calculating move distance.)
+const DRAG_CUTOFF_SQUARED: f32 = 100.0;
+
+// How much should we scale scrolling by?
+const SCROLL_SCALE: f32 = 3.0;
+
 #[no_mangle]
-pub unsafe extern "C" fn cursor_servo(servo: *mut ServoInstance, x: f32, y: f32, trigger: bool) {
+pub unsafe extern "C" fn move_servo(servo: *mut ServoInstance, x: f32, y: f32) {
+    // Servo's cursor was moved
+    if let Some(servo) = servo.as_mut() {
+        let point = DevicePoint::new(x, y);
+        let (new_state, window_event) = match servo.scroll_state {
+            ScrollState::TriggerUp => (
+                ScrollState::TriggerUp,
+                WindowEvent::MouseWindowMoveEventClass(point),
+            ),
+            ScrollState::TriggerDown(start) if (start - point).square_length() < DRAG_CUTOFF_SQUARED => return,
+            ScrollState::TriggerDown(start) => (
+                ScrollState::TriggerDragging(start, point),
+                WindowEvent::Scroll(
+                    ScrollLocation::Delta((point - start) * servo.scroll_scale),
+                    start.to_i32(),
+                    TouchEventType::Down
+                ),
+            ),
+            ScrollState::TriggerDragging(start, prev) => (
+                ScrollState::TriggerDragging(start, point),
+                WindowEvent::Scroll(
+                    ScrollLocation::Delta((point - prev) * servo.scroll_scale),
+                    start.to_i32(),
+                    TouchEventType::Move
+                ),
+            ),
+        };
+        servo.scroll_state = new_state;
+        servo.servo.handle_events(vec![window_event]);
+    }
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn trigger_servo(servo: *mut ServoInstance, x: f32, y: f32, down: bool) {
     // Servo was triggered
     if let Some(servo) = servo.as_mut() {
         let point = DevicePoint::new(x, y);
-        let window_event = if trigger {
-            WindowEvent::MouseWindowEventClass(MouseWindowEvent::Click(MouseButton::Left, point))
-        } else {
-            WindowEvent::MouseWindowMoveEventClass(point)
+        let (new_state, window_events) = match servo.scroll_state {
+            ScrollState::TriggerUp if down => (
+                ScrollState::TriggerDown(point),
+                vec![
+                    WindowEvent::MouseWindowEventClass(MouseWindowEvent::MouseDown(MouseButton::Left, point)),
+                ],
+            ),
+            ScrollState::TriggerDown(start) if !down => (
+                ScrollState::TriggerUp,
+                vec![
+                   WindowEvent::MouseWindowEventClass(MouseWindowEvent::MouseUp(MouseButton::Left, start)),
+                   WindowEvent::MouseWindowEventClass(MouseWindowEvent::Click(MouseButton::Left, start)),
+                   WindowEvent::MouseWindowMoveEventClass(point),
+                ],
+            ),
+            ScrollState::TriggerDragging(start, prev) if !down => (
+                ScrollState::TriggerUp,
+                vec![
+                    WindowEvent::Scroll(
+                        ScrollLocation::Delta((point - prev) * servo.scroll_scale),
+                        start.to_i32(),
+                        TouchEventType::Up
+                    ),
+                    WindowEvent::MouseWindowEventClass(MouseWindowEvent::MouseUp(MouseButton::Left, point)),
+                    WindowEvent::MouseWindowMoveEventClass(point),
+                ],
+            ),
+            _ => return,
         };
-        servo.servo.handle_events(vec![window_event]);
+        servo.scroll_state = new_state;
+        servo.servo.handle_events(window_events);
     }
 }
 
@@ -234,6 +307,8 @@ pub struct ServoInstance {
     browser_id: BrowserId,
     history_update: MLHistoryUpdate,
     servo: Servo<WindowInstance>,
+    scroll_state: ScrollState,
+    scroll_scale: TypedScale<f32, DevicePixel, LayoutPixel>,
 }
 
 struct WindowInstance {
@@ -244,6 +319,13 @@ struct WindowInstance {
     width: u32,
     height: u32,
     hidpi: f32,
+}
+
+#[derive(Clone, Copy)]
+enum ScrollState {
+  TriggerUp,
+  TriggerDown(DevicePoint),
+  TriggerDragging(DevicePoint, DevicePoint),
 }
 
 impl WindowMethods for WindowInstance {

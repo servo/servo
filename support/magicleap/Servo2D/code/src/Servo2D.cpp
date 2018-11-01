@@ -45,7 +45,8 @@ extern "C" ServoInstance* init_servo(EGLContext, EGLSurface, EGLDisplay,
                                      Servo2D*, MLLogger, MLHistoryUpdate,
                                      const char* url, int width, int height, float hidpi);
 extern "C" void heartbeat_servo(ServoInstance*);
-extern "C" void cursor_servo(ServoInstance*, float x, float y, bool triggered);
+extern "C" void trigger_servo(ServoInstance*, float x, float y, bool down);
+extern "C" void move_servo(ServoInstance*, float x, float y);
 extern "C" void traverse_servo(ServoInstance*, int delta);
 extern "C" void navigate_servo(ServoInstance*, const char* text);
 extern "C" void discard_servo(ServoInstance*);
@@ -220,8 +221,8 @@ bool Servo2D::eventListener(lumin::ServerEvent* event) {
   switch (event->getServerEventType()) {
     case lumin::ServerEventType::kControlTouchPadInputEvent:
       return touchpadEventListener(static_cast<lumin::ControlTouchPadInputEventData*>(event));
-    case lumin::ServerEventType::kKeyInputEvent:
-      return keyEventListener(static_cast<lumin::KeyInputEventData*>(event));
+    case lumin::ServerEventType::kGestureInputEvent:
+      return gestureEventListener(static_cast<lumin::GestureInputEventData*>(event));
     default:
       return false;
   }
@@ -257,14 +258,15 @@ bool Servo2D::touchpadEventListener(lumin::ControlTouchPadInputEventData* event)
     return false;
   }
 
-  // Inform Servo of the trigger
-  cursor_servo(servo_, pos.x, pos.y, false);
+  // Inform Servo of the move
+  move_servo(servo_, pos.x, pos.y);
   return true;
 }
 
-bool Servo2D::keyEventListener(lumin::KeyInputEventData* event) {
-  // Only respond to trigger keys
-  if (event->keyCode() != lumin::input::KeyCodes::AKEYCODE_EX_TRIGGER) {
+bool Servo2D::gestureEventListener(lumin::GestureInputEventData* event) {
+  // Only respond to trigger up or down
+  lumin::input::GestureType typ = event->getGesture();
+  if (typ != lumin::input::GestureType::TriggerDown && typ != lumin::input::GestureType::TriggerUp) {
     return false;
   }
 
@@ -280,7 +282,7 @@ bool Servo2D::keyEventListener(lumin::KeyInputEventData* event) {
   }
 
   // Inform Servo of the trigger
-  cursor_servo(servo_, pos.x, pos.y, true);
+  trigger_servo(servo_, pos.x, pos.y, typ == lumin::input::GestureType::TriggerDown);
   return true;
 }
 
