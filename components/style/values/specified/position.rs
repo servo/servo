@@ -7,22 +7,24 @@
 //!
 //! [position]: https://drafts.csswg.org/css-backgrounds-3/#position
 
+use crate::hash::FxHashMap;
+use crate::parser::{Parse, ParserContext};
+use crate::str::HTML_SPACE_CHARACTERS;
+use crate::values::computed::{
+    CalcLengthOrPercentage, LengthOrPercentage as ComputedLengthOrPercentage,
+};
+use crate::values::computed::{Context, Percentage, ToComputedValue};
+use crate::values::generics::position::Position as GenericPosition;
+use crate::values::generics::position::ZIndex as GenericZIndex;
+use crate::values::specified::transform::OriginComponent;
+use crate::values::specified::{AllowQuirks, Integer, LengthOrPercentage};
+use crate::values::{Either, None_};
 use cssparser::Parser;
-use hash::FxHashMap;
-use parser::{Parse, ParserContext};
 use selectors::parser::SelectorParseErrorKind;
 use servo_arc::Arc;
 use std::fmt::{self, Write};
 use std::ops::Range;
-use str::HTML_SPACE_CHARACTERS;
 use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
-use values::computed::{CalcLengthOrPercentage, LengthOrPercentage as ComputedLengthOrPercentage};
-use values::computed::{Context, Percentage, ToComputedValue};
-use values::generics::position::Position as GenericPosition;
-use values::generics::position::ZIndex as GenericZIndex;
-use values::specified::transform::OriginComponent;
-use values::specified::{AllowQuirks, Integer, LengthOrPercentage};
-use values::{Either, None_};
 
 /// The specified value of a CSS `<position>`
 pub type Position = GenericPosition<HorizontalPosition, VerticalPosition>;
@@ -100,28 +102,28 @@ impl Position {
         input: &mut Parser<'i, 't>,
         allow_quirks: AllowQuirks,
     ) -> Result<Self, ParseError<'i>> {
-        match input.try(|i| PositionComponent::parse_quirky(context, i, allow_quirks)) {
+        match input.r#try(|i| PositionComponent::parse_quirky(context, i, allow_quirks)) {
             Ok(x_pos @ PositionComponent::Center) => {
                 if let Ok(y_pos) =
-                    input.try(|i| PositionComponent::parse_quirky(context, i, allow_quirks))
+                    input.r#try(|i| PositionComponent::parse_quirky(context, i, allow_quirks))
                 {
                     return Ok(Self::new(x_pos, y_pos));
                 }
                 let x_pos = input
-                    .try(|i| PositionComponent::parse_quirky(context, i, allow_quirks))
+                    .r#try(|i| PositionComponent::parse_quirky(context, i, allow_quirks))
                     .unwrap_or(x_pos);
                 let y_pos = PositionComponent::Center;
                 return Ok(Self::new(x_pos, y_pos));
             },
             Ok(PositionComponent::Side(x_keyword, lop)) => {
-                if input.try(|i| i.expect_ident_matching("center")).is_ok() {
+                if input.r#try(|i| i.expect_ident_matching("center")).is_ok() {
                     let x_pos = PositionComponent::Side(x_keyword, lop);
                     let y_pos = PositionComponent::Center;
                     return Ok(Self::new(x_pos, y_pos));
                 }
-                if let Ok(y_keyword) = input.try(Y::parse) {
+                if let Ok(y_keyword) = input.r#try(Y::parse) {
                     let y_lop = input
-                        .try(|i| LengthOrPercentage::parse_quirky(context, i, allow_quirks))
+                        .r#try(|i| LengthOrPercentage::parse_quirky(context, i, allow_quirks))
                         .ok();
                     let x_pos = PositionComponent::Side(x_keyword, lop);
                     let y_pos = PositionComponent::Side(y_keyword, y_lop);
@@ -132,30 +134,30 @@ impl Position {
                 return Ok(Self::new(x_pos, y_pos));
             },
             Ok(x_pos @ PositionComponent::Length(_)) => {
-                if let Ok(y_keyword) = input.try(Y::parse) {
+                if let Ok(y_keyword) = input.r#try(Y::parse) {
                     let y_pos = PositionComponent::Side(y_keyword, None);
                     return Ok(Self::new(x_pos, y_pos));
                 }
                 if let Ok(y_lop) =
-                    input.try(|i| LengthOrPercentage::parse_quirky(context, i, allow_quirks))
+                    input.r#try(|i| LengthOrPercentage::parse_quirky(context, i, allow_quirks))
                 {
                     let y_pos = PositionComponent::Length(y_lop);
                     return Ok(Self::new(x_pos, y_pos));
                 }
                 let y_pos = PositionComponent::Center;
-                let _ = input.try(|i| i.expect_ident_matching("center"));
+                let _ = input.r#try(|i| i.expect_ident_matching("center"));
                 return Ok(Self::new(x_pos, y_pos));
             },
             Err(_) => {},
         }
         let y_keyword = Y::parse(input)?;
-        let lop_and_x_pos: Result<_, ParseError> = input.try(|i| {
+        let lop_and_x_pos: Result<_, ParseError> = input.r#try(|i| {
             let y_lop = i
-                .try(|i| LengthOrPercentage::parse_quirky(context, i, allow_quirks))
+                .r#try(|i| LengthOrPercentage::parse_quirky(context, i, allow_quirks))
                 .ok();
-            if let Ok(x_keyword) = i.try(X::parse) {
+            if let Ok(x_keyword) = i.r#try(X::parse) {
                 let x_lop = i
-                    .try(|i| LengthOrPercentage::parse_quirky(context, i, allow_quirks))
+                    .r#try(|i| LengthOrPercentage::parse_quirky(context, i, allow_quirks))
                     .ok();
                 let x_pos = PositionComponent::Side(x_keyword, x_lop);
                 return Ok((y_lop, x_pos));
@@ -228,15 +230,16 @@ impl<S: Parse> PositionComponent<S> {
         input: &mut Parser<'i, 't>,
         allow_quirks: AllowQuirks,
     ) -> Result<Self, ParseError<'i>> {
-        if input.try(|i| i.expect_ident_matching("center")).is_ok() {
+        if input.r#try(|i| i.expect_ident_matching("center")).is_ok() {
             return Ok(PositionComponent::Center);
         }
-        if let Ok(lop) = input.try(|i| LengthOrPercentage::parse_quirky(context, i, allow_quirks)) {
+        if let Ok(lop) = input.r#try(|i| LengthOrPercentage::parse_quirky(context, i, allow_quirks))
+        {
             return Ok(PositionComponent::Length(lop));
         }
         let keyword = S::parse(context, input)?;
         let lop = input
-            .try(|i| LengthOrPercentage::parse_quirky(context, i, allow_quirks))
+            .r#try(|i| LengthOrPercentage::parse_quirky(context, i, allow_quirks))
             .ok();
         Ok(PositionComponent::Side(keyword, lop))
     }
@@ -357,51 +360,51 @@ impl LegacyPosition {
         input: &mut Parser<'i, 't>,
         allow_quirks: AllowQuirks,
     ) -> Result<Self, ParseError<'i>> {
-        match input.try(|i| OriginComponent::parse(context, i)) {
+        match input.r#try(|i| OriginComponent::parse(context, i)) {
             Ok(x_pos @ OriginComponent::Center) => {
-                if let Ok(y_pos) = input.try(|i| OriginComponent::parse(context, i)) {
+                if let Ok(y_pos) = input.r#try(|i| OriginComponent::parse(context, i)) {
                     return Ok(Self::new(x_pos, y_pos));
                 }
                 let x_pos = input
-                    .try(|i| OriginComponent::parse(context, i))
+                    .r#try(|i| OriginComponent::parse(context, i))
                     .unwrap_or(x_pos);
                 let y_pos = OriginComponent::Center;
                 return Ok(Self::new(x_pos, y_pos));
             },
             Ok(OriginComponent::Side(x_keyword)) => {
-                if let Ok(y_keyword) = input.try(Y::parse) {
+                if let Ok(y_keyword) = input.r#try(Y::parse) {
                     let x_pos = OriginComponent::Side(x_keyword);
                     let y_pos = OriginComponent::Side(y_keyword);
                     return Ok(Self::new(x_pos, y_pos));
                 }
                 let x_pos = OriginComponent::Side(x_keyword);
                 if let Ok(y_lop) =
-                    input.try(|i| LengthOrPercentage::parse_quirky(context, i, allow_quirks))
+                    input.r#try(|i| LengthOrPercentage::parse_quirky(context, i, allow_quirks))
                 {
                     return Ok(Self::new(x_pos, OriginComponent::Length(y_lop)));
                 }
-                let _ = input.try(|i| i.expect_ident_matching("center"));
+                let _ = input.r#try(|i| i.expect_ident_matching("center"));
                 return Ok(Self::new(x_pos, OriginComponent::Center));
             },
             Ok(x_pos @ OriginComponent::Length(_)) => {
-                if let Ok(y_keyword) = input.try(Y::parse) {
+                if let Ok(y_keyword) = input.r#try(Y::parse) {
                     let y_pos = OriginComponent::Side(y_keyword);
                     return Ok(Self::new(x_pos, y_pos));
                 }
                 if let Ok(y_lop) =
-                    input.try(|i| LengthOrPercentage::parse_quirky(context, i, allow_quirks))
+                    input.r#try(|i| LengthOrPercentage::parse_quirky(context, i, allow_quirks))
                 {
                     let y_pos = OriginComponent::Length(y_lop);
                     return Ok(Self::new(x_pos, y_pos));
                 }
-                let _ = input.try(|i| i.expect_ident_matching("center"));
+                let _ = input.r#try(|i| i.expect_ident_matching("center"));
                 return Ok(Self::new(x_pos, OriginComponent::Center));
             },
             Err(_) => {},
         }
         let y_keyword = Y::parse(input)?;
-        let x_pos: Result<_, ParseError> = input.try(|i| {
-            if let Ok(x_keyword) = i.try(X::parse) {
+        let x_pos: Result<_, ParseError> = input.r#try(|i| {
+            if let Ok(x_keyword) = i.r#try(X::parse) {
                 let x_pos = OriginComponent::Side(x_keyword);
                 return Ok(x_pos);
             }
@@ -646,7 +649,7 @@ impl Parse for TemplateAreas {
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
         let mut strings = vec![];
-        while let Ok(string) = input.try(|i| i.expect_string().map(|s| s.as_ref().into())) {
+        while let Ok(string) = input.r#try(|i| i.expect_string().map(|s| s.as_ref().into())) {
             strings.push(string);
         }
 
@@ -740,7 +743,7 @@ impl Parse for ZIndex {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
-        if input.try(|i| i.expect_ident_matching("auto")).is_ok() {
+        if input.r#try(|i| i.expect_ident_matching("auto")).is_ok() {
             return Ok(GenericZIndex::Auto);
         }
         Ok(GenericZIndex::Integer(Integer::parse(context, input)?))

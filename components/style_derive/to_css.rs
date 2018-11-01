@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use cg;
+use crate::cg;
 use darling::util::Override;
 use quote::{ToTokens, Tokens};
 use syn::{self, Data, Path, WhereClause};
@@ -11,10 +11,7 @@ use synstructure::{BindingInfo, Structure, VariantInfo};
 pub fn derive(mut input: syn::DeriveInput) -> Tokens {
     let mut where_clause = input.generics.where_clause.take();
     for param in input.generics.type_params() {
-        cg::add_predicate(
-            &mut where_clause,
-            parse_quote!(#param: style_traits::ToCss),
-        );
+        cg::add_predicate(&mut where_clause, parse_quote!(#param: style_traits::ToCss));
     }
 
     let input_attrs = cg::parse_input_attrs::<CssInputAttrs>(&input);

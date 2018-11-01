@@ -2,31 +2,31 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use context::QuirksMode;
-use cssparser::{Parser, ParserInput, RuleListParser};
-use error_reporting::{ContextualParseError, ParseErrorReporter};
-use fallible::FallibleVec;
-use fxhash::FxHashMap;
-use invalidation::media_queries::{MediaListKey, ToMediaListKey};
-#[cfg(feature = "gecko")]
-use malloc_size_of::{MallocSizeOfOps, MallocUnconditionalShallowSizeOf};
-use media_queries::{Device, MediaList};
-use parking_lot::RwLock;
-use parser::ParserContext;
-use servo_arc::Arc;
-use shared_lock::{
+use crate::context::QuirksMode;
+use crate::error_reporting::{ContextualParseError, ParseErrorReporter};
+use crate::invalidation::media_queries::{MediaListKey, ToMediaListKey};
+use crate::media_queries::{Device, MediaList};
+use crate::parser::ParserContext;
+use crate::shared_lock::{
     DeepCloneParams, DeepCloneWithLock, Locked, SharedRwLock, SharedRwLockReadGuard,
 };
+use crate::stylesheets::loader::StylesheetLoader;
+use crate::stylesheets::rule_parser::{State, TopLevelRuleParser};
+use crate::stylesheets::rules_iterator::{EffectiveRules, EffectiveRulesIterator};
+use crate::stylesheets::rules_iterator::{NestedRuleIterationCondition, RulesIterator};
+use crate::stylesheets::{CssRule, CssRules, Origin, UrlExtraData};
+use crate::use_counters::UseCounters;
+use crate::{Namespace, Prefix};
+use cssparser::{Parser, ParserInput, RuleListParser};
+use fallible::FallibleVec;
+use fxhash::FxHashMap;
+#[cfg(feature = "gecko")]
+use malloc_size_of::{MallocSizeOfOps, MallocUnconditionalShallowSizeOf};
+use parking_lot::RwLock;
+use servo_arc::Arc;
 use std::mem;
 use std::sync::atomic::{AtomicBool, Ordering};
 use style_traits::ParsingMode;
-use stylesheets::loader::StylesheetLoader;
-use stylesheets::rule_parser::{State, TopLevelRuleParser};
-use stylesheets::rules_iterator::{EffectiveRules, EffectiveRulesIterator};
-use stylesheets::rules_iterator::{NestedRuleIterationCondition, RulesIterator};
-use stylesheets::{CssRule, CssRules, Origin, UrlExtraData};
-use use_counters::UseCounters;
-use {Namespace, Prefix};
 
 /// This structure holds the user-agent and user stylesheets.
 pub struct UserAgentStylesheets {
@@ -166,9 +166,9 @@ macro_rules! rule_filter {
         $(
             #[allow(missing_docs)]
             fn $method<F>(&self, device: &Device, guard: &SharedRwLockReadGuard, mut f: F)
-                where F: FnMut(&::stylesheets::$rule_type),
+                where F: FnMut(&crate::stylesheets::$rule_type),
             {
-                use stylesheets::CssRule;
+                use crate::stylesheets::CssRule;
 
                 for rule in self.effective_rules(device, guard) {
                     if let CssRule::$variant(ref lock) = *rule {

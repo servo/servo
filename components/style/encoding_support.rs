@@ -6,15 +6,15 @@
 
 extern crate encoding_rs;
 
-use context::QuirksMode;
+use crate::context::QuirksMode;
+use crate::error_reporting::ParseErrorReporter;
+use crate::media_queries::MediaList;
+use crate::shared_lock::SharedRwLock;
+use crate::stylesheets::{Origin, Stylesheet, StylesheetLoader, UrlExtraData};
 use cssparser::{stylesheet_encoding, EncodingSupport};
-use error_reporting::ParseErrorReporter;
-use media_queries::MediaList;
 use servo_arc::Arc;
-use shared_lock::SharedRwLock;
 use std::borrow::Cow;
 use std::str;
-use stylesheets::{Origin, Stylesheet, StylesheetLoader, UrlExtraData};
 
 struct EncodingRs;
 

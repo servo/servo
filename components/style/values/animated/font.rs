@@ -5,10 +5,10 @@
 //! Animation implementation for various font-related types.
 
 use super::{Animate, Procedure, ToAnimatedZero};
-use values::computed::font::{FontVariationSettings, FontWeight};
-use values::computed::Number;
-use values::distance::{ComputeSquaredDistance, SquaredDistance};
-use values::generics::font::{FontSettings as GenericFontSettings, FontTag, VariationValue};
+use crate::values::computed::font::{FontVariationSettings, FontWeight};
+use crate::values::computed::Number;
+use crate::values::distance::{ComputeSquaredDistance, SquaredDistance};
+use crate::values::generics::font::{FontSettings as GenericFontSettings, FontTag, VariationValue};
 
 impl ToAnimatedZero for FontWeight {
     #[inline]

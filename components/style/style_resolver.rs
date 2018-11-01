@@ -4,21 +4,21 @@
 
 //! Style resolution for a given element or pseudo-element.
 
-use applicable_declarations::ApplicableDeclarationList;
-use context::{CascadeInputs, ElementCascadeInputs, StyleContext};
-use data::{EagerPseudoStyles, ElementStyles};
-use dom::TElement;
+use crate::applicable_declarations::ApplicableDeclarationList;
+use crate::context::{CascadeInputs, ElementCascadeInputs, StyleContext};
+use crate::data::{EagerPseudoStyles, ElementStyles};
+use crate::dom::TElement;
+use crate::matching::MatchMethods;
+use crate::properties::longhands::display::computed_value::T as Display;
+use crate::properties::{AnimationRules, ComputedValues};
+use crate::rule_tree::StrongRuleNode;
+use crate::selector_parser::{PseudoElement, SelectorImpl};
+use crate::stylist::RuleInclusion;
 use log::Level::Trace;
-use matching::MatchMethods;
-use properties::longhands::display::computed_value::T as Display;
-use properties::{AnimationRules, ComputedValues};
-use rule_tree::StrongRuleNode;
-use selector_parser::{PseudoElement, SelectorImpl};
 use selectors::matching::{
     ElementSelectorFlags, MatchingContext, MatchingMode, VisitedHandlingMode,
 };
 use servo_arc::Arc;
-use stylist::RuleInclusion;
 
 /// Whether pseudo-elements should be resolved or not.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -111,7 +111,7 @@ fn eager_pseudo_is_definitely_not_generated(
     pseudo: &PseudoElement,
     style: &ComputedValues,
 ) -> bool {
-    use properties::computed_value_flags::ComputedValueFlags;
+    use crate::properties::computed_value_flags::ComputedValueFlags;
 
     if !pseudo.is_before_or_after() {
         return false;

@@ -6,11 +6,12 @@
 //!
 //! [custom]: https://drafts.csswg.org/css-variables/
 
+use crate::hash::map::Entry;
+use crate::properties::{CSSWideKeyword, CustomDeclarationValue};
+use crate::selector_map::{PrecomputedHashMap, PrecomputedHashSet};
+use crate::Atom;
 use cssparser::{Delimiter, Parser, ParserInput, SourcePosition, Token, TokenSerializationType};
-use hash::map::Entry;
 use precomputed_hash::PrecomputedHash;
-use properties::{CSSWideKeyword, CustomDeclarationValue};
-use selector_map::{PrecomputedHashMap, PrecomputedHashSet};
 use selectors::parser::SelectorParseErrorKind;
 use servo_arc::Arc;
 use smallvec::SmallVec;
@@ -19,7 +20,6 @@ use std::cmp;
 use std::fmt::{self, Write};
 use std::hash::Hash;
 use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
-use Atom;
 
 /// The environment from which to get `env` function values.
 ///
@@ -553,7 +553,7 @@ fn parse_var_function<'i, 't>(
     let name = parse_name(&name).map_err(|()| {
         input.new_custom_error(SelectorParseErrorKind::UnexpectedIdent(name.clone()))
     })?;
-    if input.try(|input| input.expect_comma()).is_ok() {
+    if input.r#try(|input| input.expect_comma()).is_ok() {
         parse_fallback(input)?;
     }
     if let Some(refs) = references {
@@ -569,7 +569,7 @@ fn parse_env_function<'i, 't>(
     // TODO(emilio): This should be <custom-ident> per spec, but no other
     // browser does that, see https://github.com/w3c/csswg-drafts/issues/3262.
     input.expect_ident()?;
-    if input.try(|input| input.expect_comma()).is_ok() {
+    if input.r#try(|input| input.expect_comma()).is_ok() {
         parse_fallback(input)?;
     }
     if let Some(references) = references {

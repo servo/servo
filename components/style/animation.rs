@@ -8,29 +8,29 @@
 // compile it out so that people remember it exists, thus the cfg'd Sender
 // import.
 
-use bezier::Bezier;
-use context::SharedStyleContext;
-use dom::{OpaqueNode, TElement};
-use font_metrics::FontMetricsProvider;
-use properties::animated_properties::AnimatedProperty;
-use properties::longhands::animation_direction::computed_value::single_value::T as AnimationDirection;
-use properties::longhands::animation_play_state::computed_value::single_value::T as AnimationPlayState;
-use properties::{self, CascadeMode, ComputedValues, LonghandId};
-use rule_tree::CascadeLevel;
+use crate::bezier::Bezier;
+use crate::context::SharedStyleContext;
+use crate::dom::{OpaqueNode, TElement};
+use crate::font_metrics::FontMetricsProvider;
+use crate::properties::animated_properties::AnimatedProperty;
+use crate::properties::longhands::animation_direction::computed_value::single_value::T as AnimationDirection;
+use crate::properties::longhands::animation_play_state::computed_value::single_value::T as AnimationPlayState;
+use crate::properties::{self, CascadeMode, ComputedValues, LonghandId};
+use crate::rule_tree::CascadeLevel;
+use crate::stylesheets::keyframes_rule::{KeyframesAnimation, KeyframesStep, KeyframesStepValue};
+use crate::timer::Timer;
+use crate::values::computed::box_::TransitionProperty;
+use crate::values::computed::Time;
+use crate::values::computed::TimingFunction;
+use crate::values::generics::box_::AnimationIterationCount;
+use crate::values::generics::easing::{StepPosition, TimingFunction as GenericTimingFunction};
+use crate::Atom;
 use servo_arc::Arc;
 #[cfg(feature = "servo")]
 use servo_channel::Sender;
 use std::fmt;
 #[cfg(feature = "gecko")]
 use std::sync::mpsc::Sender;
-use stylesheets::keyframes_rule::{KeyframesAnimation, KeyframesStep, KeyframesStepValue};
-use timer::Timer;
-use values::computed::box_::TransitionProperty;
-use values::computed::Time;
-use values::computed::TimingFunction;
-use values::generics::box_::AnimationIterationCount;
-use values::generics::easing::{StepPosition, TimingFunction as GenericTimingFunction};
-use Atom;
 
 /// This structure represents a keyframes animation current iteration state.
 ///

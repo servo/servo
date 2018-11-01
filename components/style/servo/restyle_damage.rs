@@ -5,9 +5,9 @@
 //! The restyle damage is a hint that tells layout which kind of operations may
 //! be needed in presence of incremental style changes.
 
-use computed_values::display::T as Display;
-use matching::{StyleChange, StyleDifference};
-use properties::ComputedValues;
+use crate::computed_values::display::T as Display;
+use crate::matching::{StyleChange, StyleDifference};
+use crate::properties::ComputedValues;
 use std::fmt;
 
 bitflags! {

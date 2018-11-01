@@ -6,11 +6,11 @@
 //! quickly whether it's worth to share style, and whether two different
 //! elements can indeed share the same style.
 
-use bloom::StyleBloom;
-use context::{SelectorFlagsMap, SharedStyleContext};
-use dom::TElement;
+use crate::bloom::StyleBloom;
+use crate::context::{SelectorFlagsMap, SharedStyleContext};
+use crate::dom::TElement;
+use crate::sharing::{StyleSharingCandidate, StyleSharingTarget};
 use selectors::NthIndexCache;
-use sharing::{StyleSharingCandidate, StyleSharingTarget};
 
 /// Determines whether a target and a candidate have compatible parents for
 /// sharing.

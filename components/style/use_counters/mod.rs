@@ -4,9 +4,9 @@
 
 //! Various stuff for CSS property use counters.
 
+use crate::properties::{NonCustomPropertyId, NON_CUSTOM_PROPERTY_ID_COUNT};
 #[cfg(feature = "gecko")]
 use gecko_bindings::sugar::ownership::{HasBoxFFI, HasFFI, HasSimpleFFI};
-use properties::{NonCustomPropertyId, NON_CUSTOM_PROPERTY_ID_COUNT};
 use std::cell::Cell;
 
 #[cfg(target_pointer_width = "64")]

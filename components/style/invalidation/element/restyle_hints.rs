@@ -4,9 +4,9 @@
 
 //! Restyle hints: an optimization to avoid unnecessarily matching selectors.
 
+use crate::traversal_flags::TraversalFlags;
 #[cfg(feature = "gecko")]
 use gecko_bindings::structs::nsRestyleHint;
-use traversal_flags::TraversalFlags;
 
 bitflags! {
     /// The kind of restyle we need to do for a given element.

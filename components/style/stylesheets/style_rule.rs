@@ -4,19 +4,19 @@
 
 //! A style rule.
 
+use crate::properties::PropertyDeclarationBlock;
+use crate::selector_parser::SelectorImpl;
+use crate::shared_lock::{DeepCloneParams, DeepCloneWithLock, Locked};
+use crate::shared_lock::{SharedRwLock, SharedRwLockReadGuard, ToCssWithGuard};
+use crate::str::CssStringWriter;
 use cssparser::SourceLocation;
 #[cfg(feature = "gecko")]
 use malloc_size_of::MallocUnconditionalShallowSizeOf;
 #[cfg(feature = "gecko")]
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
-use properties::PropertyDeclarationBlock;
-use selector_parser::SelectorImpl;
 use selectors::SelectorList;
 use servo_arc::Arc;
-use shared_lock::{DeepCloneParams, DeepCloneWithLock, Locked};
-use shared_lock::{SharedRwLock, SharedRwLockReadGuard, ToCssWithGuard};
 use std::fmt::{self, Write};
-use str::CssStringWriter;
 
 /// A style rule, with selectors and declarations.
 #[derive(Debug)]

@@ -6,33 +6,33 @@
 
 #![deny(missing_docs)]
 
+use crate::element_state::ElementState;
+use crate::stylesheets::{Namespaces, Origin, UrlExtraData};
+use crate::values::serialize_atom_identifier;
+use crate::Atom;
 use cssparser::{Parser as CssParser, ParserInput};
-use element_state::ElementState;
 use selectors::parser::SelectorList;
 use std::fmt::{self, Debug, Write};
 use style_traits::{CssWriter, ParseError, ToCss};
-use stylesheets::{Namespaces, Origin, UrlExtraData};
-use values::serialize_atom_identifier;
-use Atom;
 
 /// A convenient alias for the type that represents an attribute value used for
 /// selector parser implementation.
 pub type AttrValue = <SelectorImpl as ::selectors::SelectorImpl>::AttrValue;
 
 #[cfg(feature = "servo")]
-pub use servo::selector_parser::*;
+pub use crate::servo::selector_parser::*;
 
 #[cfg(feature = "gecko")]
 pub use gecko::selector_parser::*;
 
 #[cfg(feature = "servo")]
-pub use servo::selector_parser::ServoElementSnapshot as Snapshot;
+pub use crate::servo::selector_parser::ServoElementSnapshot as Snapshot;
 
 #[cfg(feature = "gecko")]
 pub use gecko::snapshot::GeckoElementSnapshot as Snapshot;
 
 #[cfg(feature = "servo")]
-pub use servo::restyle_damage::ServoRestyleDamage as RestyleDamage;
+pub use crate::servo::restyle_damage::ServoRestyleDamage as RestyleDamage;
 
 #[cfg(feature = "gecko")]
 pub use gecko::restyle_damage::GeckoRestyleDamage as RestyleDamage;

@@ -4,16 +4,16 @@
 
 //! Computed types for CSS values related to effects.
 
-use values::computed::color::Color;
-use values::computed::length::{Length, NonNegativeLength};
+use crate::values::computed::color::Color;
+use crate::values::computed::length::{Length, NonNegativeLength};
+use crate::values::computed::{Angle, NonNegativeNumber};
+use crate::values::generics::effects::BoxShadow as GenericBoxShadow;
+use crate::values::generics::effects::Filter as GenericFilter;
+use crate::values::generics::effects::SimpleShadow as GenericSimpleShadow;
+#[cfg(not(feature = "gecko"))]
+use crate::values::Impossible;
 #[cfg(feature = "gecko")]
 use values::computed::url::ComputedUrl;
-use values::computed::{Angle, NonNegativeNumber};
-use values::generics::effects::BoxShadow as GenericBoxShadow;
-use values::generics::effects::Filter as GenericFilter;
-use values::generics::effects::SimpleShadow as GenericSimpleShadow;
-#[cfg(not(feature = "gecko"))]
-use values::Impossible;
 
 /// A computed value for a single shadow of the `box-shadow` property.
 pub type BoxShadow = GenericBoxShadow<Color, Length, NonNegativeLength, Length>;

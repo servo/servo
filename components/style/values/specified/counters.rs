@@ -5,22 +5,22 @@
 //! Specified types for counter properties.
 
 #[cfg(feature = "servo")]
-use computed_values::list_style_type::T as ListStyleType;
+use crate::computed_values::list_style_type::T as ListStyleType;
+use crate::parser::{Parse, ParserContext};
+use crate::values::generics::counters as generics;
+use crate::values::generics::counters::CounterIncrement as GenericCounterIncrement;
+use crate::values::generics::counters::CounterPair;
+use crate::values::generics::counters::CounterReset as GenericCounterReset;
+use crate::values::specified::url::SpecifiedImageUrl;
+use crate::values::specified::Integer;
+use crate::values::CustomIdent;
 use cssparser::{Parser, Token};
-use parser::{Parse, ParserContext};
 use selectors::parser::SelectorParseErrorKind;
 use style_traits::{ParseError, StyleParseErrorKind};
-use values::generics::counters as generics;
-use values::generics::counters::CounterIncrement as GenericCounterIncrement;
-use values::generics::counters::CounterPair;
-use values::generics::counters::CounterReset as GenericCounterReset;
 #[cfg(feature = "gecko")]
 use values::generics::CounterStyleOrNone;
-use values::specified::url::SpecifiedImageUrl;
 #[cfg(feature = "gecko")]
 use values::specified::Attr;
-use values::specified::Integer;
-use values::CustomIdent;
 
 /// A specified value for the `counter-increment` property.
 pub type CounterIncrement = GenericCounterIncrement<Integer>;
@@ -52,7 +52,7 @@ fn parse_counters<'i, 't>(
     default_value: i32,
 ) -> Result<Vec<CounterPair<Integer>>, ParseError<'i>> {
     if input
-        .try(|input| input.expect_ident_matching("none"))
+        .r#try(|input| input.expect_ident_matching("none"))
         .is_ok()
     {
         return Ok(vec![]);
@@ -68,7 +68,7 @@ fn parse_counters<'i, 't>(
         };
 
         let value = input
-            .try(|input| Integer::parse(context, input))
+            .r#try(|input| Integer::parse(context, input))
             .unwrap_or(Integer::new(default_value));
         counters.push(CounterPair { name, value });
     }
@@ -90,7 +90,7 @@ impl Content {
     #[cfg(feature = "servo")]
     fn parse_counter_style(_: &ParserContext, input: &mut Parser) -> ListStyleType {
         input
-            .try(|input| {
+            .r#try(|input| {
                 input.expect_comma()?;
                 ListStyleType::parse(input)
             })
@@ -100,7 +100,7 @@ impl Content {
     #[cfg(feature = "gecko")]
     fn parse_counter_style(context: &ParserContext, input: &mut Parser) -> CounterStyleOrNone {
         input
-            .try(|input| {
+            .r#try(|input| {
                 input.expect_comma()?;
                 CounterStyleOrNone::parse(context, input)
             })
@@ -117,13 +117,13 @@ impl Parse for Content {
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
         if input
-            .try(|input| input.expect_ident_matching("normal"))
+            .r#try(|input| input.expect_ident_matching("normal"))
             .is_ok()
         {
             return Ok(generics::Content::Normal);
         }
         if input
-            .try(|input| input.expect_ident_matching("none"))
+            .r#try(|input| input.expect_ident_matching("none"))
             .is_ok()
         {
             return Ok(generics::Content::None);
@@ -131,7 +131,7 @@ impl Parse for Content {
         #[cfg(feature = "gecko")]
         {
             if input
-                .try(|input| input.expect_ident_matching("-moz-alt-content"))
+                .r#try(|input| input.expect_ident_matching("-moz-alt-content"))
                 .is_ok()
             {
                 return Ok(generics::Content::MozAltContent);
@@ -142,7 +142,7 @@ impl Parse for Content {
         loop {
             #[cfg(feature = "gecko")]
             {
-                if let Ok(url) = input.try(|i| SpecifiedImageUrl::parse(context, i)) {
+                if let Ok(url) = input.r#try(|i| SpecifiedImageUrl::parse(context, i)) {
                     content.push(generics::ContentItem::Url(url));
                     continue;
                 }

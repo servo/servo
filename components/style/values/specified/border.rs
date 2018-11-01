@@ -4,20 +4,20 @@
 
 //! Specified types for CSS values related to borders.
 
+use crate::parser::{Parse, ParserContext};
+use crate::values::computed::{self, Context, ToComputedValue};
+use crate::values::generics::border::BorderCornerRadius as GenericBorderCornerRadius;
+use crate::values::generics::border::BorderImageSideWidth as GenericBorderImageSideWidth;
+use crate::values::generics::border::BorderImageSlice as GenericBorderImageSlice;
+use crate::values::generics::border::BorderRadius as GenericBorderRadius;
+use crate::values::generics::border::BorderSpacing as GenericBorderSpacing;
+use crate::values::generics::rect::Rect;
+use crate::values::generics::size::Size;
+use crate::values::specified::length::{Length, LengthOrPercentage, NonNegativeLength};
+use crate::values::specified::{AllowQuirks, Number, NumberOrPercentage};
 use cssparser::Parser;
-use parser::{Parse, ParserContext};
 use std::fmt::{self, Write};
 use style_traits::{CssWriter, ParseError, ToCss};
-use values::computed::{self, Context, ToComputedValue};
-use values::generics::border::BorderCornerRadius as GenericBorderCornerRadius;
-use values::generics::border::BorderImageSideWidth as GenericBorderImageSideWidth;
-use values::generics::border::BorderImageSlice as GenericBorderImageSlice;
-use values::generics::border::BorderRadius as GenericBorderRadius;
-use values::generics::border::BorderSpacing as GenericBorderSpacing;
-use values::generics::rect::Rect;
-use values::generics::size::Size;
-use values::specified::length::{Length, LengthOrPercentage, NonNegativeLength};
-use values::specified::{AllowQuirks, Number, NumberOrPercentage};
 
 /// A specified value for a single side of the `border-width` property.
 #[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss)]
@@ -58,7 +58,7 @@ impl BorderSideWidth {
         allow_quirks: AllowQuirks,
     ) -> Result<Self, ParseError<'i>> {
         if let Ok(length) =
-            input.try(|i| Length::parse_non_negative_quirky(context, i, allow_quirks))
+            input.r#try(|i| Length::parse_non_negative_quirky(context, i, allow_quirks))
         {
             return Ok(BorderSideWidth::Length(length));
         }
@@ -115,11 +115,11 @@ impl Parse for BorderImageSideWidth {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
-        if input.try(|i| i.expect_ident_matching("auto")).is_ok() {
+        if input.r#try(|i| i.expect_ident_matching("auto")).is_ok() {
             return Ok(GenericBorderImageSideWidth::Auto);
         }
 
-        if let Ok(len) = input.try(|i| LengthOrPercentage::parse_non_negative(context, i)) {
+        if let Ok(len) = input.r#try(|i| LengthOrPercentage::parse_non_negative(context, i)) {
             return Ok(GenericBorderImageSideWidth::Length(len));
         }
 
@@ -133,10 +133,10 @@ impl Parse for BorderImageSlice {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
-        let mut fill = input.try(|i| i.expect_ident_matching("fill")).is_ok();
+        let mut fill = input.r#try(|i| i.expect_ident_matching("fill")).is_ok();
         let offsets = Rect::parse_with(context, input, NumberOrPercentage::parse_non_negative)?;
         if !fill {
-            fill = input.try(|i| i.expect_ident_matching("fill")).is_ok();
+            fill = input.r#try(|i| i.expect_ident_matching("fill")).is_ok();
         }
         Ok(GenericBorderImageSlice {
             offsets: offsets,
@@ -151,7 +151,7 @@ impl Parse for BorderRadius {
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
         let widths = Rect::parse_with(context, input, LengthOrPercentage::parse_non_negative)?;
-        let heights = if input.try(|i| i.expect_delim('/')).is_ok() {
+        let heights = if input.r#try(|i| i.expect_delim('/')).is_ok() {
             Rect::parse_with(context, input, LengthOrPercentage::parse_non_negative)?
         } else {
             widths.clone()
@@ -236,7 +236,7 @@ impl Parse for BorderImageRepeat {
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
         let horizontal = BorderImageRepeatKeyword::parse(input)?;
-        let vertical = input.try(BorderImageRepeatKeyword::parse).ok();
+        let vertical = input.r#try(BorderImageRepeatKeyword::parse).ok();
         Ok(BorderImageRepeat(
             horizontal,
             vertical.unwrap_or(horizontal),

@@ -10,18 +10,18 @@
 
 pub use cssparser::{serialize_identifier, serialize_name, CowRcStr, Parser};
 pub use cssparser::{SourceLocation, Token, RGBA};
-use parser::{Parse, ParserContext};
+use crate::Atom;
+use crate::parser::{Parse, ParserContext};
+use crate::values::distance::{ComputeSquaredDistance, SquaredDistance};
 use selectors::parser::SelectorParseErrorKind;
 use std::fmt::{self, Debug, Write};
 use std::hash;
 use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
-use values::distance::{ComputeSquaredDistance, SquaredDistance};
-use Atom;
 
+#[cfg(feature = "servo")]
+pub use crate::servo::url::CssUrl;
 #[cfg(feature = "gecko")]
 pub use gecko::url::CssUrl;
-#[cfg(feature = "servo")]
-pub use servo::url::CssUrl;
 
 pub mod animated;
 pub mod computed;
@@ -155,7 +155,7 @@ impl<A: Parse, B: Parse> Parse for Either<A, B> {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Either<A, B>, ParseError<'i>> {
-        if let Ok(v) = input.try(|i| A::parse(context, i)) {
+        if let Ok(v) = input.r#try(|i| A::parse(context, i)) {
             Ok(Either::First(v))
         } else {
             B::parse(context, input).map(Either::Second)

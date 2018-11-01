@@ -11,23 +11,23 @@ use super::generics::grid::{TrackList as GenericTrackList, TrackSize as GenericT
 use super::generics::{GreaterThanOrEqualToOne, NonNegative};
 use super::specified;
 use super::{CSSFloat, CSSInteger};
-use context::QuirksMode;
+use crate::context::QuirksMode;
+use crate::font_metrics::{get_metrics_provider_for_product, FontMetricsProvider};
+use crate::media_queries::Device;
+use crate::properties::{ComputedValues, LonghandId, StyleBuilder};
+use crate::rule_cache::RuleCacheConditions;
+use crate::Atom;
+#[cfg(feature = "servo")]
+use crate::Prefix;
 use euclid::Size2D;
-use font_metrics::{get_metrics_provider_for_product, FontMetricsProvider};
-use media_queries::Device;
 #[cfg(feature = "gecko")]
 use properties;
-use properties::{ComputedValues, LonghandId, StyleBuilder};
-use rule_cache::RuleCacheConditions;
 use std::cell::RefCell;
 use std::cmp;
 use std::f32;
 use std::fmt::{self, Write};
 use style_traits::cursor::CursorKind;
 use style_traits::{CssWriter, ToCss};
-use Atom;
-#[cfg(feature = "servo")]
-use Prefix;
 
 #[cfg(feature = "gecko")]
 pub use self::align::{AlignContent, AlignItems, JustifyContent, JustifyItems, SelfAlignment};

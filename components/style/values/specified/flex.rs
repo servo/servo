@@ -4,14 +4,14 @@
 
 //! Specified types for CSS values related to flexbox.
 
+use crate::parser::{Parse, ParserContext};
+use crate::values::generics::flex::FlexBasis as GenericFlexBasis;
 use cssparser::Parser;
-use parser::{Parse, ParserContext};
 use style_traits::ParseError;
-use values::generics::flex::FlexBasis as GenericFlexBasis;
 
 /// The `width` value type.
 #[cfg(feature = "servo")]
-pub type Width = ::values::specified::NonNegativeLengthOrPercentageOrAuto;
+pub type Width = crate::values::specified::NonNegativeLengthOrPercentageOrAuto;
 
 /// The `width` value type.
 #[cfg(feature = "gecko")]
@@ -25,7 +25,7 @@ impl Parse for FlexBasis {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
-        if let Ok(width) = input.try(|i| Width::parse(context, i)) {
+        if let Ok(width) = input.r#try(|i| Width::parse(context, i)) {
             return Ok(GenericFlexBasis::Width(width));
         }
         try_match_ident_ignore_ascii_case! { input,

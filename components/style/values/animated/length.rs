@@ -5,11 +5,11 @@
 //! Animation implementation for various length-related types.
 
 use super::{Animate, Procedure, ToAnimatedValue, ToAnimatedZero};
-use values::computed::length::{CalcLengthOrPercentage, Length};
-use values::computed::length::{LengthOrPercentageOrAuto, LengthOrPercentageOrNone};
-use values::computed::MaxLength as ComputedMaxLength;
-use values::computed::MozLength as ComputedMozLength;
-use values::computed::Percentage;
+use crate::values::computed::length::{CalcLengthOrPercentage, Length};
+use crate::values::computed::length::{LengthOrPercentageOrAuto, LengthOrPercentageOrNone};
+use crate::values::computed::MaxLength as ComputedMaxLength;
+use crate::values::computed::MozLength as ComputedMozLength;
+use crate::values::computed::Percentage;
 
 /// <https://drafts.csswg.org/css-transitions/#animtype-lpcalc>
 impl Animate for CalcLengthOrPercentage {
@@ -74,8 +74,8 @@ impl ToAnimatedValue for ComputedMaxLength {
 
     #[inline]
     fn from_animated_value(animated: Self::AnimatedValue) -> Self {
-        use values::computed::{Length, LengthOrPercentageOrNone, Percentage};
-        use values::generics::length::MaxLength as GenericMaxLength;
+        use crate::values::computed::{Length, LengthOrPercentageOrNone, Percentage};
+        use crate::values::generics::length::MaxLength as GenericMaxLength;
         match animated {
             GenericMaxLength::LengthOrPercentageOrNone(lopn) => {
                 let result = match lopn {
@@ -104,8 +104,8 @@ impl ToAnimatedValue for ComputedMozLength {
 
     #[inline]
     fn from_animated_value(animated: Self::AnimatedValue) -> Self {
-        use values::computed::{Length, LengthOrPercentageOrAuto, Percentage};
-        use values::generics::length::MozLength as GenericMozLength;
+        use crate::values::computed::{Length, LengthOrPercentageOrAuto, Percentage};
+        use crate::values::generics::length::MozLength as GenericMozLength;
         match animated {
             GenericMozLength::LengthOrPercentageOrAuto(lopa) => {
                 let result = match lopa {

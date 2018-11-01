@@ -6,9 +6,9 @@
 
 use app_units::Au;
 use byteorder::{BigEndian, ReadBytesExt};
+use crate::parser::{Parse, ParserContext};
 use cssparser::Parser;
 use num_traits::One;
-use parser::{Parse, ParserContext};
 use std::fmt::{self, Write};
 use std::io::Cursor;
 use style_traits::{CssWriter, KeywordsCollectFn, ParseError};
@@ -85,7 +85,7 @@ impl<T: Parse> Parse for FontSettings<T> {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
-        if input.try(|i| i.expect_ident_matching("normal")).is_ok() {
+        if input.r#try(|i| i.expect_ident_matching("normal")).is_ok() {
             return Ok(Self::normal());
         }
 

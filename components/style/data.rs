@@ -4,22 +4,22 @@
 
 //! Per-node data used in style calculation.
 
-use context::{SharedStyleContext, StackLimitChecker};
-use dom::TElement;
-use invalidation::element::invalidator::InvalidationResult;
-use invalidation::element::restyle_hints::RestyleHint;
+use crate::context::{SharedStyleContext, StackLimitChecker};
+use crate::dom::TElement;
+use crate::invalidation::element::invalidator::InvalidationResult;
+use crate::invalidation::element::restyle_hints::RestyleHint;
+use crate::properties::ComputedValues;
+use crate::rule_tree::StrongRuleNode;
+use crate::selector_parser::{PseudoElement, RestyleDamage, EAGER_PSEUDO_COUNT};
+use crate::shared_lock::StylesheetGuards;
+use crate::style_resolver::{PrimaryStyle, ResolvedElementStyles, ResolvedStyle};
 #[cfg(feature = "gecko")]
 use malloc_size_of::MallocSizeOfOps;
-use properties::ComputedValues;
-use rule_tree::StrongRuleNode;
-use selector_parser::{PseudoElement, RestyleDamage, EAGER_PSEUDO_COUNT};
 use selectors::NthIndexCache;
 use servo_arc::Arc;
-use shared_lock::StylesheetGuards;
 use std::fmt;
 use std::mem;
 use std::ops::{Deref, DerefMut};
-use style_resolver::{PrimaryStyle, ResolvedElementStyles, ResolvedStyle};
 
 bitflags! {
     /// Various flags stored on ElementData.
@@ -255,8 +255,8 @@ impl ElementData {
             return InvalidationResult::empty();
         }
 
-        use invalidation::element::invalidator::TreeStyleInvalidator;
-        use invalidation::element::state_and_attributes::StateAndAttrInvalidationProcessor;
+        use crate::invalidation::element::invalidator::TreeStyleInvalidator;
+        use crate::invalidation::element::state_and_attributes::StateAndAttrInvalidationProcessor;
 
         debug!(
             "invalidate_style_if_needed: {:?}, flags: {:?}, has_snapshot: {}, \

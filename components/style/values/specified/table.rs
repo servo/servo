@@ -4,8 +4,8 @@
 
 //! Specified types for table properties.
 
+use crate::parser::{Parse, ParserContext};
 use cssparser::Parser;
-use parser::{Parse, ParserContext};
 use style_traits::{ParseError, StyleParseErrorKind};
 
 #[derive(

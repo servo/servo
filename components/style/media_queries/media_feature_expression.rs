@@ -8,21 +8,21 @@
 use super::media_feature::{Evaluator, MediaFeatureDescription};
 use super::media_feature::{KeywordDiscriminant, ParsingRequirements};
 use super::Device;
-use context::QuirksMode;
+use crate::context::QuirksMode;
+use crate::parser::{Parse, ParserContext};
+use crate::str::{starts_with_ignore_ascii_case, string_as_ascii_lowercase};
+use crate::stylesheets::Origin;
+use crate::values::computed::{self, ToComputedValue};
+use crate::values::specified::{Integer, Length, Number, Resolution};
+use crate::values::{serialize_atom_identifier, CSSFloat};
+use crate::Atom;
 use cssparser::{Parser, Token};
 #[cfg(feature = "gecko")]
 use gecko_bindings::structs;
 use num_traits::Zero;
-use parser::{Parse, ParserContext};
 use std::cmp::{Ordering, PartialOrd};
 use std::fmt::{self, Write};
-use str::{starts_with_ignore_ascii_case, string_as_ascii_lowercase};
 use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
-use stylesheets::Origin;
-use values::computed::{self, ToComputedValue};
-use values::specified::{Integer, Length, Number, Resolution};
-use values::{serialize_atom_identifier, CSSFloat};
-use Atom;
 
 /// An aspect ratio, with a numerator and denominator.
 #[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq)]
@@ -221,14 +221,14 @@ fn consume_operation_or_colon(input: &mut Parser) -> Result<Option<Operator>, ()
     Ok(Some(match first_delim {
         '=' => Operator::Equal,
         '>' => {
-            if input.try(|i| i.expect_delim('=')).is_ok() {
+            if input.r#try(|i| i.expect_delim('=')).is_ok() {
                 Operator::GreaterThanEqual
             } else {
                 Operator::GreaterThan
             }
         },
         '<' => {
-            if input.try(|i| i.expect_delim('=')).is_ok() {
+            if input.r#try(|i| i.expect_delim('=')).is_ok() {
                 Operator::LessThanEqual
             } else {
                 Operator::LessThan
@@ -270,10 +270,10 @@ impl MediaFeatureExpression {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
+        #[cfg(feature = "servo")]
+        use crate::servo::media_queries::MEDIA_FEATURES;
         #[cfg(feature = "gecko")]
         use gecko::media_features::MEDIA_FEATURES;
-        #[cfg(feature = "servo")]
-        use servo::media_queries::MEDIA_FEATURES;
 
         // FIXME: remove extra indented block when lifetimes are non-lexical
         let feature;
@@ -350,7 +350,7 @@ impl MediaFeatureExpression {
             }
         }
 
-        let operator = input.try(consume_operation_or_colon);
+        let operator = input.r#try(consume_operation_or_colon);
         let operator = match operator {
             Err(..) => {
                 // If there's no colon, this is a media query of the

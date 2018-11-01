@@ -215,10 +215,10 @@ macro_rules! reexport_computed_values {
         /// [computed]: https://drafts.csswg.org/css-cascade/#computed
         pub mod computed_values {
             $(
-                pub use properties::longhands::$name::computed_value as $name;
+                pub use crate::properties::longhands::$name::computed_value as $name;
             )+
             // Don't use a side-specific name needlessly:
-            pub use properties::longhands::border_top_style::computed_value as border_style;
+            pub use crate::properties::longhands::border_top_style::computed_value as border_style;
         }
     }
 }

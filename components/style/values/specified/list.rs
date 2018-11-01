@@ -4,8 +4,8 @@
 
 //! `list` specified values.
 
+use crate::parser::{Parse, ParserContext};
 use cssparser::{Parser, Token};
-use parser::{Parse, ParserContext};
 use servo_arc::Arc;
 use style_traits::{ParseError, StyleParseErrorKind};
 #[cfg(feature = "gecko")]
@@ -63,7 +63,7 @@ impl Parse for ListStyleType {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
-        if let Ok(style) = input.try(|i| CounterStyleOrNone::parse(context, i)) {
+        if let Ok(style) = input.r#try(|i| CounterStyleOrNone::parse(context, i)) {
             return Ok(ListStyleType::CounterStyle(style));
         }
 
@@ -97,7 +97,7 @@ impl Parse for Quotes {
         input: &mut Parser<'i, 't>,
     ) -> Result<Quotes, ParseError<'i>> {
         if input
-            .try(|input| input.expect_ident_matching("none"))
+            .r#try(|input| input.expect_ident_matching("none"))
             .is_ok()
         {
             return Ok(Quotes(Arc::new(Box::new([]))));

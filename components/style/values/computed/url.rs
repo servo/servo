@@ -4,12 +4,12 @@
 
 //! Common handling for the computed value CSS url() values.
 
-use values::generics::url::UrlOrNone as GenericUrlOrNone;
+use crate::values::generics::url::UrlOrNone as GenericUrlOrNone;
 
+#[cfg(feature = "servo")]
+pub use crate::servo::url::{ComputedImageUrl, ComputedUrl};
 #[cfg(feature = "gecko")]
 pub use gecko::url::{ComputedImageUrl, ComputedUrl};
-#[cfg(feature = "servo")]
-pub use servo::url::{ComputedImageUrl, ComputedUrl};
 
 /// Computed <url> | <none>
 pub type UrlOrNone = GenericUrlOrNone<ComputedUrl>;

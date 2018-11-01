@@ -2,8 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use animate::{AnimationFieldAttrs, AnimationInputAttrs, AnimationVariantAttrs};
-use cg;
+use crate::animate::{AnimationFieldAttrs, AnimationInputAttrs, AnimationVariantAttrs};
+use crate::cg;
 use quote;
 use syn;
 use synstructure;

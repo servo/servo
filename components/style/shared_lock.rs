@@ -6,6 +6,8 @@
 
 #[cfg(feature = "gecko")]
 use atomic_refcell::{AtomicRef, AtomicRefCell, AtomicRefMut};
+use crate::str::{CssString, CssStringWriter};
+use crate::stylesheets::Origin;
 #[cfg(feature = "servo")]
 use parking_lot::RwLock;
 use servo_arc::Arc;
@@ -15,8 +17,6 @@ use std::fmt;
 use std::mem;
 #[cfg(feature = "gecko")]
 use std::ptr;
-use str::{CssString, CssStringWriter};
-use stylesheets::Origin;
 
 /// A shared read/write lock that can protect multiple objects.
 ///

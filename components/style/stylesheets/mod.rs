@@ -23,15 +23,15 @@ mod stylesheet;
 pub mod supports_rule;
 pub mod viewport_rule;
 
+use crate::parser::ParserContext;
+use crate::shared_lock::{DeepCloneParams, DeepCloneWithLock, Locked};
+use crate::shared_lock::{SharedRwLock, SharedRwLockReadGuard, ToCssWithGuard};
+use crate::str::CssStringWriter;
 use cssparser::{parse_one_rule, Parser, ParserInput};
 #[cfg(feature = "gecko")]
 use malloc_size_of::{MallocSizeOfOps, MallocUnconditionalShallowSizeOf};
-use parser::ParserContext;
 use servo_arc::Arc;
-use shared_lock::{DeepCloneParams, DeepCloneWithLock, Locked};
-use shared_lock::{SharedRwLock, SharedRwLockReadGuard, ToCssWithGuard};
 use std::fmt;
-use str::CssStringWriter;
 use style_traits::ParsingMode;
 
 pub use self::counter_style_rule::CounterStyleRule;

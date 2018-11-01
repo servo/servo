@@ -4,9 +4,9 @@
 
 //! Geometry in flow-relative space.
 
+use crate::properties::style_structs;
 use euclid::num::Zero;
 use euclid::{Point2D, Rect, SideOffsets2D, Size2D};
-use properties::style_structs;
 use std::cmp::{max, min};
 use std::fmt::{self, Debug, Error, Formatter};
 use std::ops::{Add, Sub};
@@ -42,8 +42,8 @@ bitflags!(
 impl WritingMode {
     /// Return a WritingMode bitflags from the relevant CSS properties.
     pub fn new(inheritedbox_style: &style_structs::InheritedBox) -> Self {
-        use properties::longhands::direction::computed_value::T as Direction;
-        use properties::longhands::writing_mode::computed_value::T as SpecifiedWritingMode;
+        use crate::properties::longhands::direction::computed_value::T as Direction;
+        use crate::properties::longhands::writing_mode::computed_value::T as SpecifiedWritingMode;
 
         let mut flags = WritingMode::empty();
 

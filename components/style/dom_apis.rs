@@ -5,17 +5,17 @@
 //! Generic implementations of some DOM APIs so they can be shared between Servo
 //! and Gecko.
 
-use context::QuirksMode;
-use dom::{TDocument, TElement, TNode, TShadowRoot};
-use invalidation::element::invalidator::{DescendantInvalidationLists, Invalidation};
-use invalidation::element::invalidator::{InvalidationProcessor, InvalidationVector};
+use crate::context::QuirksMode;
+use crate::dom::{TDocument, TElement, TNode, TShadowRoot};
+use crate::invalidation::element::invalidator::{DescendantInvalidationLists, Invalidation};
+use crate::invalidation::element::invalidator::{InvalidationProcessor, InvalidationVector};
+use crate::Atom;
 use selectors::attr::CaseSensitivity;
 use selectors::matching::{self, MatchingContext, MatchingMode};
 use selectors::parser::{Combinator, Component, LocalName, SelectorImpl};
 use selectors::{Element, NthIndexCache, SelectorList};
 use smallvec::SmallVec;
 use std::borrow::Borrow;
-use Atom;
 
 /// <https://dom.spec.whatwg.org/#dom-element-matches>
 pub fn element_matches<E>(
@@ -594,7 +594,7 @@ pub fn query_selector<E, Q>(
     E: TElement,
     Q: SelectorQuery<E>,
 {
-    use invalidation::element::invalidator::TreeStyleInvalidator;
+    use crate::invalidation::element::invalidator::TreeStyleInvalidator;
 
     let quirks_mode = root.owner_doc().quirks_mode();
 

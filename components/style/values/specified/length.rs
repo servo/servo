@@ -8,23 +8,25 @@
 
 use super::{AllowQuirks, Number, Percentage, ToComputedValue};
 use app_units::Au;
+use crate::font_metrics::FontMetricsQueryResult;
+use crate::parser::{Parse, ParserContext};
+use crate::values::computed::{self, CSSPixelLength, Context, ExtremumLength};
+use crate::values::generics::length::{
+    MaxLength as GenericMaxLength, MozLength as GenericMozLength,
+};
+use crate::values::generics::NonNegative;
+use crate::values::specified::calc::CalcNode;
+use crate::values::{Auto, CSSFloat, Either, IsAuto, Normal};
 use cssparser::{Parser, Token};
 use euclid::Size2D;
-use font_metrics::FontMetricsQueryResult;
-use parser::{Parse, ParserContext};
 use std::cmp;
 use std::ops::{Add, Mul};
 use style_traits::values::specified::AllowedNumericType;
 use style_traits::{ParseError, SpecifiedValueInfo, StyleParseErrorKind};
-use values::computed::{self, CSSPixelLength, Context, ExtremumLength};
-use values::generics::length::{MaxLength as GenericMaxLength, MozLength as GenericMozLength};
-use values::generics::NonNegative;
-use values::specified::calc::CalcNode;
-use values::{Auto, CSSFloat, Either, IsAuto, Normal};
 
 pub use super::image::{ColorStop, EndingShape as GradientEndingShape, Gradient};
 pub use super::image::{GradientKind, Image};
-pub use values::specified::calc::CalcLengthOrPercentage;
+pub use crate::values::specified::calc::CalcLengthOrPercentage;
 
 /// Number of app units per pixel
 pub const AU_PER_PX: CSSFloat = 60.;
@@ -1182,7 +1184,7 @@ impl LengthOrNumber {
         // We try to parse as a Number first because, for cases like
         // LengthOrNumber, we want "0" to be parsed as a plain Number rather
         // than a Length (0px); this matches the behaviour of all major browsers
-        if let Ok(v) = input.try(|i| Number::parse_non_negative(context, i)) {
+        if let Ok(v) = input.r#try(|i| Number::parse_non_negative(context, i)) {
             return Ok(Either::Second(v));
         }
 
@@ -1226,7 +1228,7 @@ impl MozLength {
         input: &mut Parser<'i, 't>,
         allow_quirks: AllowQuirks,
     ) -> Result<Self, ParseError<'i>> {
-        if let Ok(l) = input.try(ExtremumLength::parse) {
+        if let Ok(l) = input.r#try(ExtremumLength::parse) {
             return Ok(GenericMozLength::ExtremumLength(l));
         }
 
@@ -1278,7 +1280,7 @@ impl MaxLength {
         input: &mut Parser<'i, 't>,
         allow_quirks: AllowQuirks,
     ) -> Result<Self, ParseError<'i>> {
-        if let Ok(l) = input.try(ExtremumLength::parse) {
+        if let Ok(l) = input.r#try(ExtremumLength::parse) {
             return Ok(GenericMaxLength::ExtremumLength(l));
         }
 

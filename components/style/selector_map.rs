@@ -5,22 +5,22 @@
 //! A data structure to efficiently index structs containing selectors by local
 //! name, ids and hash.
 
-use applicable_declarations::ApplicableDeclarationList;
-use context::QuirksMode;
-use dom::TElement;
+use crate::applicable_declarations::ApplicableDeclarationList;
+use crate::context::QuirksMode;
+use crate::dom::TElement;
+use crate::hash::map as hash_map;
+use crate::hash::{HashMap, HashSet};
+use crate::rule_tree::{CascadeLevel, ShadowCascadeOrder};
+use crate::selector_parser::SelectorImpl;
+use crate::stylist::Rule;
+use crate::{Atom, LocalName, Namespace, WeakAtom};
 use fallible::FallibleVec;
-use hash::map as hash_map;
-use hash::{HashMap, HashSet};
 use hashglobe::FailedAllocationError;
 use precomputed_hash::PrecomputedHash;
-use rule_tree::{CascadeLevel, ShadowCascadeOrder};
-use selector_parser::SelectorImpl;
 use selectors::matching::{matches_selector, ElementSelectorFlags, MatchingContext};
 use selectors::parser::{Combinator, Component, SelectorIter};
 use smallvec::SmallVec;
 use std::hash::{BuildHasherDefault, Hash, Hasher};
-use stylist::Rule;
-use {Atom, LocalName, Namespace, WeakAtom};
 
 /// A hasher implementation that doesn't hash anything, because it expects its
 /// input to be a suitable u32 hash.

@@ -4,10 +4,10 @@
 
 //! Specified types for CSS values that are related to motion path.
 
+use crate::parser::{Parse, ParserContext};
+use crate::values::specified::SVGPathData;
 use cssparser::Parser;
-use parser::{Parse, ParserContext};
 use style_traits::{ParseError, StyleParseErrorKind};
-use values::specified::SVGPathData;
 
 /// The offset-path value.
 ///
@@ -50,7 +50,7 @@ impl Parse for OffsetPath {
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
         // Parse none.
-        if input.try(|i| i.expect_ident_matching("none")).is_ok() {
+        if input.r#try(|i| i.expect_ident_matching("none")).is_ok() {
             return Ok(OffsetPath::none());
         }
 

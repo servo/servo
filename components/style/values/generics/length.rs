@@ -4,7 +4,7 @@
 
 //! Generic types for CSS values related to length.
 
-use values::computed::ExtremumLength;
+use crate::values::computed::ExtremumLength;
 
 /// A generic value for the `width`, `height`, `min-width`, or `min-height` property.
 ///

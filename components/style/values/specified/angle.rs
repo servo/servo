@@ -4,15 +4,15 @@
 
 //! Specified angles.
 
+use crate::parser::{Parse, ParserContext};
+use crate::values::computed::angle::Angle as ComputedAngle;
+use crate::values::computed::{Context, ToComputedValue};
+use crate::values::specified::calc::CalcNode;
+use crate::values::CSSFloat;
 use cssparser::{Parser, Token};
-use parser::{Parse, ParserContext};
 use std::f32::consts::PI;
 use std::fmt::{self, Write};
 use style_traits::{CssWriter, ParseError, SpecifiedValueInfo, ToCss};
-use values::computed::angle::Angle as ComputedAngle;
-use values::computed::{Context, ToComputedValue};
-use values::specified::calc::CalcNode;
-use values::CSSFloat;
 
 /// A specified angle dimension.
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]

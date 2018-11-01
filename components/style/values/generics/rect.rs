@@ -4,8 +4,8 @@
 
 //! Generic types for CSS values that are composed of four sides.
 
+use crate::parser::{Parse, ParserContext};
 use cssparser::Parser;
-use parser::{Parse, ParserContext};
 use std::fmt::{self, Write};
 use style_traits::{CssWriter, ParseError, ToCss};
 
@@ -50,7 +50,7 @@ where
         Parse: Fn(&ParserContext, &mut Parser<'i, 't>) -> Result<T, ParseError<'i>>,
     {
         let first = parse(context, input)?;
-        let second = if let Ok(second) = input.try(|i| parse(context, i)) {
+        let second = if let Ok(second) = input.r#try(|i| parse(context, i)) {
             second
         } else {
             // <first>
@@ -61,13 +61,13 @@ where
                 first,
             ));
         };
-        let third = if let Ok(third) = input.try(|i| parse(context, i)) {
+        let third = if let Ok(third) = input.r#try(|i| parse(context, i)) {
             third
         } else {
             // <first> <second>
             return Ok(Self::new(first.clone(), second.clone(), first, second));
         };
-        let fourth = if let Ok(fourth) = input.try(|i| parse(context, i)) {
+        let fourth = if let Ok(fourth) = input.r#try(|i| parse(context, i)) {
             fourth
         } else {
             // <first> <second> <third>

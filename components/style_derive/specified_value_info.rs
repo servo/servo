@@ -2,11 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use cg;
-use parse::ParseVariantAttrs;
+use crate::cg;
+use crate::parse::ParseVariantAttrs;
+use crate::to_css::{CssFieldAttrs, CssInputAttrs, CssVariantAttrs};
 use quote::Tokens;
 use syn::{Data, DeriveInput, Fields, Ident, Type};
-use to_css::{CssFieldAttrs, CssInputAttrs, CssVariantAttrs};
 
 pub fn derive(mut input: DeriveInput) -> Tokens {
     let css_attrs = cg::parse_input_attrs::<CssInputAttrs>(&input);

@@ -7,19 +7,19 @@
 //!
 //! [image]: https://drafts.csswg.org/css-images/#image-values
 
+use crate::values::computed::position::Position;
+use crate::values::computed::url::ComputedImageUrl;
+use crate::values::computed::{Angle, Color, Context};
+use crate::values::computed::{Length, LengthOrPercentage, NumberOrPercentage, ToComputedValue};
+use crate::values::generics::image::{self as generic, CompatMode};
+use crate::values::specified::image::LineDirection as SpecifiedLineDirection;
+use crate::values::specified::position::{X, Y};
+use crate::values::{Either, None_};
 use std::f32::consts::PI;
 use std::fmt::{self, Write};
 use style_traits::{CssWriter, ToCss};
-use values::computed::position::Position;
-use values::computed::url::ComputedImageUrl;
 #[cfg(feature = "gecko")]
 use values::computed::Percentage;
-use values::computed::{Angle, Color, Context};
-use values::computed::{Length, LengthOrPercentage, NumberOrPercentage, ToComputedValue};
-use values::generics::image::{self as generic, CompatMode};
-use values::specified::image::LineDirection as SpecifiedLineDirection;
-use values::specified::position::{X, Y};
-use values::{Either, None_};
 
 /// A computed image layer.
 pub type ImageLayer = Either<None_, Image>;

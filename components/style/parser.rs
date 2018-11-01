@@ -4,12 +4,12 @@
 
 //! The context within which CSS code is parsed.
 
-use context::QuirksMode;
+use crate::context::QuirksMode;
+use crate::error_reporting::{ContextualParseError, ParseErrorReporter};
+use crate::stylesheets::{CssRuleType, Namespaces, Origin, UrlExtraData};
+use crate::use_counters::UseCounters;
 use cssparser::{Parser, SourceLocation, UnicodeRange};
-use error_reporting::{ContextualParseError, ParseErrorReporter};
 use style_traits::{OneOrMoreSeparated, ParseError, ParsingMode, Separator};
-use stylesheets::{CssRuleType, Namespaces, Origin, UrlExtraData};
-use use_counters::UseCounters;
 
 /// Asserts that all ParsingMode flags have a matching ParsingMode value in gecko.
 #[cfg(feature = "gecko")]

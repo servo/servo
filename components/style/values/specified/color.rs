@@ -5,21 +5,21 @@
 //! Specified color values.
 
 use super::AllowQuirks;
+use crate::parser::{Parse, ParserContext};
+use crate::values::computed::{Color as ComputedColor, Context, ToComputedValue};
+use crate::values::generics::color::Color as GenericColor;
+use crate::values::specified::calc::CalcNode;
 use cssparser::{AngleOrNumber, Color as CSSParserColor, Parser, Token, RGBA};
 use cssparser::{BasicParseErrorKind, NumberOrPercentage, ParseErrorKind};
 #[cfg(feature = "gecko")]
 use gecko_bindings::structs::nscolor;
 use itoa;
-use parser::{Parse, ParserContext};
 #[cfg(feature = "gecko")]
 use properties::longhands::system_colors::SystemColor;
 use std::fmt::{self, Write};
 use std::io::Write as IoWrite;
 use style_traits::{CssType, CssWriter, KeywordsCollectFn, ParseError, StyleParseErrorKind};
 use style_traits::{SpecifiedValueInfo, ToCss, ValueParseErrorKind};
-use values::computed::{Color as ComputedColor, Context, ToComputedValue};
-use values::generics::color::Color as GenericColor;
-use values::specified::calc::CalcNode;
 
 /// Specified color value
 #[derive(Clone, Debug, MallocSizeOf, PartialEq)]
@@ -73,7 +73,7 @@ impl<'a, 'b: 'a, 'i: 'a> ::cssparser::ColorComponentParser<'i> for ColorComponen
         &self,
         input: &mut Parser<'i, 't>,
     ) -> Result<AngleOrNumber, ParseError<'i>> {
-        use values::specified::Angle;
+        use crate::values::specified::Angle;
 
         let location = input.current_source_location();
         let token = input.next()?.clone();
@@ -99,13 +99,13 @@ impl<'a, 'b: 'a, 'i: 'a> ::cssparser::ColorComponentParser<'i> for ColorComponen
     }
 
     fn parse_percentage<'t>(&self, input: &mut Parser<'i, 't>) -> Result<f32, ParseError<'i>> {
-        use values::specified::Percentage;
+        use crate::values::specified::Percentage;
 
         Ok(Percentage::parse(self.0, input)?.get())
     }
 
     fn parse_number<'t>(&self, input: &mut Parser<'i, 't>) -> Result<f32, ParseError<'i>> {
-        use values::specified::Number;
+        use crate::values::specified::Number;
 
         Ok(Number::parse(self.0, input)?.get())
     }
@@ -142,7 +142,7 @@ impl Parse for Color {
         input.reset(&start);
 
         let compontent_parser = ColorComponentParser(&*context);
-        match input.try(|i| CSSParserColor::parse_with(&compontent_parser, i)) {
+        match input.r#try(|i| CSSParserColor::parse_with(&compontent_parser, i)) {
             Ok(value) => Ok(match value {
                 CSSParserColor::CurrentColor => Color::CurrentColor,
                 CSSParserColor::RGBA(rgba) => Color::Numeric {
@@ -245,7 +245,7 @@ impl Color {
         input: &mut Parser<'i, 't>,
         allow_quirks: AllowQuirks,
     ) -> Result<Self, ParseError<'i>> {
-        input.try(|i| Self::parse(context, i)).or_else(|e| {
+        input.r#try(|i| Self::parse(context, i)).or_else(|e| {
             if !allow_quirks.allowed(context.quirks_mode) {
                 return Err(e);
             }

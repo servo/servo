@@ -6,13 +6,13 @@
 //! a computed style needs in order for it to adhere to the CSS spec.
 
 use app_units::Au;
-use dom::TElement;
-use properties::computed_value_flags::ComputedValueFlags;
-use properties::longhands::display::computed_value::T as Display;
-use properties::longhands::float::computed_value::T as Float;
-use properties::longhands::overflow_x::computed_value::T as Overflow;
-use properties::longhands::position::computed_value::T as Position;
-use properties::{self, ComputedValues, StyleBuilder};
+use crate::dom::TElement;
+use crate::properties::computed_value_flags::ComputedValueFlags;
+use crate::properties::longhands::display::computed_value::T as Display;
+use crate::properties::longhands::float::computed_value::T as Float;
+use crate::properties::longhands::overflow_x::computed_value::T as Overflow;
+use crate::properties::longhands::position::computed_value::T as Position;
+use crate::properties::{self, ComputedValues, StyleBuilder};
 
 /// A struct that implements all the adjustment methods.
 ///
@@ -362,8 +362,8 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
     /// See https://github.com/servo/servo/issues/15229
     #[cfg(feature = "servo")]
     fn adjust_for_alignment(&mut self, layout_parent_style: &ComputedValues) {
-        use computed_values::align_items::T as AlignItems;
-        use computed_values::align_self::T as AlignSelf;
+        use crate::computed_values::align_items::T as AlignItems;
+        use crate::computed_values::align_self::T as AlignSelf;
 
         if self.style.get_position().clone_align_self() == AlignSelf::Auto &&
             !self.style.out_of_flow_positioned()
@@ -534,7 +534,7 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
     /// and Blink have with this very same thing.
     #[cfg(feature = "servo")]
     fn adjust_for_text_decorations_in_effect(&mut self) {
-        use values::computed::text::TextDecorationsInEffect;
+        use crate::values::computed::text::TextDecorationsInEffect;
 
         let decorations_in_effect = TextDecorationsInEffect::from_style(&self.style);
         if self.style.get_inherited_text().text_decorations_in_effect != decorations_in_effect {

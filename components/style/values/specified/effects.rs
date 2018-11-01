@@ -4,23 +4,25 @@
 
 //! Specified types for CSS values related to effects.
 
+use crate::parser::{Parse, ParserContext};
+use crate::values::computed::effects::BoxShadow as ComputedBoxShadow;
+use crate::values::computed::effects::SimpleShadow as ComputedSimpleShadow;
+use crate::values::computed::{
+    Context, NonNegativeNumber as ComputedNonNegativeNumber, ToComputedValue,
+};
+use crate::values::generics::effects::BoxShadow as GenericBoxShadow;
+use crate::values::generics::effects::Filter as GenericFilter;
+use crate::values::generics::effects::SimpleShadow as GenericSimpleShadow;
+use crate::values::generics::NonNegative;
+use crate::values::specified::color::Color;
+use crate::values::specified::length::{Length, NonNegativeLength};
+use crate::values::specified::{Angle, NumberOrPercentage};
+#[cfg(not(feature = "gecko"))]
+use crate::values::Impossible;
 use cssparser::{self, BasicParseErrorKind, Parser, Token};
-use parser::{Parse, ParserContext};
 use style_traits::{ParseError, StyleParseErrorKind, ValueParseErrorKind};
-use values::computed::effects::BoxShadow as ComputedBoxShadow;
-use values::computed::effects::SimpleShadow as ComputedSimpleShadow;
-use values::computed::{Context, NonNegativeNumber as ComputedNonNegativeNumber, ToComputedValue};
-use values::generics::effects::BoxShadow as GenericBoxShadow;
-use values::generics::effects::Filter as GenericFilter;
-use values::generics::effects::SimpleShadow as GenericSimpleShadow;
-use values::generics::NonNegative;
-use values::specified::color::Color;
-use values::specified::length::{Length, NonNegativeLength};
 #[cfg(feature = "gecko")]
 use values::specified::url::SpecifiedUrl;
-use values::specified::{Angle, NumberOrPercentage};
-#[cfg(not(feature = "gecko"))]
-use values::Impossible;
 
 /// A specified value for a single shadow of the `box-shadow` property.
 pub type BoxShadow =
@@ -77,7 +79,7 @@ impl ToComputedValue for Factor {
 
     #[inline]
     fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
-        use values::computed::NumberOrPercentage;
+        use crate::values::computed::NumberOrPercentage;
         match self.0.to_computed_value(context) {
             NumberOrPercentage::Number(n) => n.into(),
             NumberOrPercentage::Percentage(p) => p.0.into(),
@@ -107,7 +109,7 @@ impl Parse for BoxShadow {
         loop {
             if !inset {
                 if input
-                    .try(|input| input.expect_ident_matching("inset"))
+                    .r#try(|input| input.expect_ident_matching("inset"))
                     .is_ok()
                 {
                     inset = true;
@@ -115,14 +117,14 @@ impl Parse for BoxShadow {
                 }
             }
             if lengths.is_none() {
-                let value = input.try::<_, _, ParseError>(|i| {
+                let value = input.r#try::<_, _, ParseError>(|i| {
                     let horizontal = Length::parse(context, i)?;
                     let vertical = Length::parse(context, i)?;
                     let (blur, spread) = match i
-                        .try::<_, _, ParseError>(|i| Length::parse_non_negative(context, i))
+                        .r#try::<_, _, ParseError>(|i| Length::parse_non_negative(context, i))
                     {
                         Ok(blur) => {
-                            let spread = i.try(|i| Length::parse(context, i)).ok();
+                            let spread = i.r#try(|i| Length::parse(context, i)).ok();
                             (Some(blur.into()), spread)
                         },
                         Err(_) => (None, None),
@@ -135,7 +137,7 @@ impl Parse for BoxShadow {
                 }
             }
             if color.is_none() {
-                if let Ok(value) = input.try(|i| Color::parse(context, i)) {
+                if let Ok(value) = input.r#try(|i| Color::parse(context, i)) {
                     color = Some(value);
                     continue;
                 }
@@ -192,7 +194,7 @@ impl Parse for Filter {
     ) -> Result<Self, ParseError<'i>> {
         #[cfg(feature = "gecko")]
         {
-            if let Ok(url) = input.try(|i| SpecifiedUrl::parse(context, i)) {
+            if let Ok(url) = input.r#try(|i| SpecifiedUrl::parse(context, i)) {
                 return Ok(GenericFilter::Url(url));
             }
         }
@@ -251,12 +253,12 @@ impl Parse for SimpleShadow {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
-        let color = input.try(|i| Color::parse(context, i)).ok();
+        let color = input.r#try(|i| Color::parse(context, i)).ok();
         let horizontal = Length::parse(context, input)?;
         let vertical = Length::parse(context, input)?;
-        let blur = input.try(|i| Length::parse_non_negative(context, i)).ok();
+        let blur = input.r#try(|i| Length::parse_non_negative(context, i)).ok();
         let blur = blur.map(NonNegative::<Length>);
-        let color = color.or_else(|| input.try(|i| Color::parse(context, i)).ok());
+        let color = color.or_else(|| input.r#try(|i| Color::parse(context, i)).ok());
 
         Ok(SimpleShadow {
             color,

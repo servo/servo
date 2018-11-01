@@ -8,29 +8,29 @@
 //! [meta]: https://drafts.csswg.org/css-device-adapt/#viewport-meta
 
 use app_units::Au;
-use context::QuirksMode;
+use crate::context::QuirksMode;
+use crate::error_reporting::ContextualParseError;
+use crate::font_metrics::get_metrics_provider_for_product;
+use crate::media_queries::Device;
+use crate::parser::ParserContext;
+use crate::properties::StyleBuilder;
+use crate::rule_cache::RuleCacheConditions;
+use crate::shared_lock::{SharedRwLockReadGuard, StylesheetGuards, ToCssWithGuard};
+use crate::str::CssStringWriter;
+use crate::stylesheets::{Origin, StylesheetInDocument};
+use crate::values::computed::{Context, ToComputedValue};
+use crate::values::specified::{LengthOrPercentageOrAuto, NoCalcLength, ViewportPercentageLength};
 use cssparser::CowRcStr;
 use cssparser::{parse_important, AtRuleParser, DeclarationListParser, DeclarationParser, Parser};
-use error_reporting::ContextualParseError;
 use euclid::TypedSize2D;
-use font_metrics::get_metrics_provider_for_product;
-use media_queries::Device;
-use parser::ParserContext;
-use properties::StyleBuilder;
-use rule_cache::RuleCacheConditions;
 use selectors::parser::SelectorParseErrorKind;
-use shared_lock::{SharedRwLockReadGuard, StylesheetGuards, ToCssWithGuard};
 use std::borrow::Cow;
 use std::cell::RefCell;
 use std::fmt::{self, Write};
 use std::iter::Enumerate;
 use std::str::Chars;
-use str::CssStringWriter;
 use style_traits::viewport::{Orientation, UserZoom, ViewportConstraints, Zoom};
 use style_traits::{CssWriter, ParseError, PinchZoomFactor, StyleParseErrorKind, ToCss};
-use stylesheets::{Origin, StylesheetInDocument};
-use values::computed::{Context, ToComputedValue};
-use values::specified::{LengthOrPercentageOrAuto, NoCalcLength, ViewportPercentageLength};
 
 /// Whether parsing and processing of `@viewport` rules is enabled.
 #[cfg(feature = "servo")]
@@ -265,7 +265,7 @@ fn parse_shorthand<'i, 't>(
     input: &mut Parser<'i, 't>,
 ) -> Result<(ViewportLength, ViewportLength), ParseError<'i>> {
     let min = ViewportLength::parse(context, input)?;
-    match input.try(|i| ViewportLength::parse(context, i)) {
+    match input.r#try(|i| ViewportLength::parse(context, i)) {
         Err(_) => Ok((min.clone(), min)),
         Ok(max) => Ok((min, max)),
     }
@@ -289,8 +289,8 @@ impl<'a, 'b, 'i> DeclarationParser<'i> for ViewportRuleParser<'a, 'b> {
     ) -> Result<Vec<ViewportDescriptorDeclaration>, ParseError<'i>> {
         macro_rules! declaration {
             ($declaration:ident($parse:expr)) => {
-                declaration!($declaration(value: try!($parse(input)),
-                                          important: input.try(parse_important).is_ok()))
+                declaration!($declaration(value: r#try!($parse(input)),
+                                          important: input.r#try(parse_important).is_ok()))
             };
             ($declaration:ident(value: $value:expr, important: $important:expr)) => {
                 ViewportDescriptorDeclaration::new(
@@ -306,7 +306,7 @@ impl<'a, 'b, 'i> DeclarationParser<'i> for ViewportRuleParser<'a, 'b> {
             };
             (shorthand -> [$min:ident, $max:ident]) => {{
                 let shorthand = parse_shorthand(self.context, input)?;
-                let important = input.try(parse_important).is_ok();
+                let important = input.r#try(parse_important).is_ok();
 
                 Ok(vec![
                     declaration!($min(value: shorthand.0, important: important)),

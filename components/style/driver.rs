@@ -7,17 +7,17 @@
 
 #![deny(missing_docs)]
 
-use context::{PerThreadTraversalStatistics, StyleContext};
-use context::{ThreadLocalStyleContext, TraversalStatistics};
-use dom::{SendNode, TElement, TNode};
-use parallel;
-use parallel::{DispatchMode, WORK_UNIT_MAX};
+use crate::context::{PerThreadTraversalStatistics, StyleContext};
+use crate::context::{ThreadLocalStyleContext, TraversalStatistics};
+use crate::dom::{SendNode, TElement, TNode};
+use crate::parallel;
+use crate::parallel::{DispatchMode, WORK_UNIT_MAX};
+use crate::scoped_tls::ScopedTLS;
+use crate::traversal::{DomTraversal, PerLevelTraversalData, PreTraverseToken};
 use rayon;
-use scoped_tls::ScopedTLS;
 use std::collections::VecDeque;
 use std::mem;
 use time;
-use traversal::{DomTraversal, PerLevelTraversalData, PreTraverseToken};
 
 #[cfg(feature = "servo")]
 fn should_report_statistics() -> bool {

@@ -23,7 +23,7 @@ use std::ops::{Deref, Index};
 use super::table::BucketState::{Empty, Full};
 use super::table::{self, Bucket, EmptyBucket, FullBucket, FullBucketMut, RawTable, SafeHash};
 
-use FailedAllocationError;
+use crate::FailedAllocationError;
 
 const MIN_NONZERO_RAW_CAPACITY: usize = 32; // must be a power of two
 

@@ -4,24 +4,24 @@
 
 //! [@supports rules](https://drafts.csswg.org/css-conditional-3/#at-supports)
 
+use crate::parser::ParserContext;
+use crate::properties::{PropertyDeclaration, PropertyId, SourcePropertyDeclaration};
+use crate::selector_parser::{SelectorImpl, SelectorParser};
+use crate::shared_lock::{DeepCloneParams, DeepCloneWithLock, Locked};
+use crate::shared_lock::{SharedRwLock, SharedRwLockReadGuard, ToCssWithGuard};
+use crate::str::CssStringWriter;
+use crate::stylesheets::{CssRuleType, CssRules, Namespaces};
 use cssparser::parse_important;
 use cssparser::{Delimiter, Parser, SourceLocation, Token};
 use cssparser::{ParseError as CssParseError, ParserInput};
 #[cfg(feature = "gecko")]
 use malloc_size_of::{MallocSizeOfOps, MallocUnconditionalShallowSizeOf};
-use parser::ParserContext;
-use properties::{PropertyDeclaration, PropertyId, SourcePropertyDeclaration};
-use selector_parser::{SelectorImpl, SelectorParser};
 use selectors::parser::{Selector, SelectorParseErrorKind};
 use servo_arc::Arc;
-use shared_lock::{DeepCloneParams, DeepCloneWithLock, Locked};
-use shared_lock::{SharedRwLock, SharedRwLockReadGuard, ToCssWithGuard};
 use std::ffi::{CStr, CString};
 use std::fmt::{self, Write};
 use std::str;
-use str::CssStringWriter;
 use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
-use stylesheets::{CssRuleType, CssRules, Namespaces};
 
 /// An [`@supports`][supports] rule.
 ///
@@ -103,7 +103,7 @@ impl SupportsCondition {
     ///
     /// <https://drafts.csswg.org/css-conditional/#supports_condition>
     pub fn parse<'i, 't>(input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
-        if input.try(|i| i.expect_ident_matching("not")).is_ok() {
+        if input.r#try(|i| i.expect_ident_matching("not")).is_ok() {
             let inner = SupportsCondition::parse_in_parens(input)?;
             return Ok(SupportsCondition::Not(Box::new(inner)));
         }
@@ -129,7 +129,7 @@ impl SupportsCondition {
         loop {
             conditions.push(SupportsCondition::parse_in_parens(input)?);
             if input
-                .try(|input| input.expect_ident_matching(keyword))
+                .r#try(|input| input.expect_ident_matching(keyword))
                 .is_err()
             {
                 // Did not find the expected keyword.
@@ -175,20 +175,20 @@ impl SupportsCondition {
     fn parse_in_parens<'i, 't>(input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
         // Whitespace is normally taken care of in `Parser::next`,
         // but we want to not include it in `pos` for the SupportsCondition::FutureSyntax cases.
-        while input.try(Parser::expect_whitespace).is_ok() {}
+        while input.r#try(Parser::expect_whitespace).is_ok() {}
         let pos = input.position();
         let location = input.current_source_location();
         // FIXME: remove clone() when lifetimes are non-lexical
         match input.next()?.clone() {
             Token::ParenthesisBlock => {
                 let nested =
-                    input.try(|input| input.parse_nested_block(parse_condition_or_declaration));
+                    input.r#try(|input| input.parse_nested_block(parse_condition_or_declaration));
                 if nested.is_ok() {
                     return nested;
                 }
             },
             Token::Function(ident) => {
-                let nested = input.try(|input| {
+                let nested = input.r#try(|input| {
                     input.parse_nested_block(|input| {
                         SupportsCondition::parse_functional(&ident, input)
                     })
@@ -240,7 +240,7 @@ fn eval_moz_bool_pref(_: &CStr, _: &ParserContext) -> bool {
 pub fn parse_condition_or_declaration<'i, 't>(
     input: &mut Parser<'i, 't>,
 ) -> Result<SupportsCondition, ParseError<'i>> {
-    if let Ok(condition) = input.try(SupportsCondition::parse) {
+    if let Ok(condition) = input.r#try(SupportsCondition::parse) {
         Ok(SupportsCondition::Parenthesized(Box::new(condition)))
     } else {
         Declaration::parse(input).map(SupportsCondition::Declaration)
@@ -418,7 +418,7 @@ impl Declaration {
                     PropertyDeclaration::parse_into(&mut declarations, id, &context, input)
                         .map_err(|_| input.new_custom_error(()))
                 })?;
-                let _ = input.try(parse_important);
+                let _ = input.r#try(parse_important);
                 Ok(())
             })
             .is_ok()

@@ -6,16 +6,16 @@
 //!
 //! [import]: https://drafts.csswg.org/css-cascade-3/#at-import
 
-use context::QuirksMode;
+use crate::context::QuirksMode;
+use crate::media_queries::MediaList;
+use crate::shared_lock::{DeepCloneParams, DeepCloneWithLock};
+use crate::shared_lock::{SharedRwLock, SharedRwLockReadGuard, ToCssWithGuard};
+use crate::str::CssStringWriter;
+use crate::stylesheets::{CssRule, Origin, StylesheetInDocument};
+use crate::values::CssUrl;
 use cssparser::SourceLocation;
-use media_queries::MediaList;
-use shared_lock::{DeepCloneParams, DeepCloneWithLock};
-use shared_lock::{SharedRwLock, SharedRwLockReadGuard, ToCssWithGuard};
 use std::fmt::{self, Write};
-use str::CssStringWriter;
 use style_traits::{CssWriter, ToCss};
-use stylesheets::{CssRule, Origin, StylesheetInDocument};
-use values::CssUrl;
 
 /// With asynchronous stylesheet parsing, we can't synchronously create a
 /// GeckoStyleSheet. So we use this placeholder instead.
@@ -124,7 +124,7 @@ impl StylesheetInDocument for ImportSheet {
 /// A sheet that is held from an import rule.
 #[cfg(feature = "servo")]
 #[derive(Debug)]
-pub struct ImportSheet(pub ::servo_arc::Arc<::stylesheets::Stylesheet>);
+pub struct ImportSheet(pub ::servo_arc::Arc<crate::stylesheets::Stylesheet>);
 
 #[cfg(feature = "servo")]
 impl StylesheetInDocument for ImportSheet {

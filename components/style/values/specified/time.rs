@@ -4,15 +4,15 @@
 
 //! Specified time values.
 
+use crate::parser::{Parse, ParserContext};
+use crate::values::computed::time::Time as ComputedTime;
+use crate::values::computed::{Context, ToComputedValue};
+use crate::values::specified::calc::CalcNode;
+use crate::values::CSSFloat;
 use cssparser::{Parser, Token};
-use parser::{Parse, ParserContext};
 use std::fmt::{self, Write};
 use style_traits::values::specified::AllowedNumericType;
 use style_traits::{CssWriter, ParseError, SpecifiedValueInfo, StyleParseErrorKind, ToCss};
-use values::computed::time::Time as ComputedTime;
-use values::computed::{Context, ToComputedValue};
-use values::specified::calc::CalcNode;
-use values::CSSFloat;
 
 /// A time value according to CSS-VALUES § 6.2.
 #[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq)]

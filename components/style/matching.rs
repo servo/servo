@@ -7,19 +7,19 @@
 #![allow(unsafe_code)]
 #![deny(missing_docs)]
 
-use context::{ElementCascadeInputs, QuirksMode, SelectorFlagsMap};
-use context::{SharedStyleContext, StyleContext};
-use data::ElementData;
-use dom::TElement;
-use invalidation::element::restyle_hints::RestyleHint;
-use properties::longhands::display::computed_value::T as Display;
-use properties::ComputedValues;
-use rule_tree::{CascadeLevel, StrongRuleNode};
-use selector_parser::{PseudoElement, RestyleDamage};
+use crate::context::{ElementCascadeInputs, QuirksMode, SelectorFlagsMap};
+use crate::context::{SharedStyleContext, StyleContext};
+use crate::data::ElementData;
+use crate::dom::TElement;
+use crate::invalidation::element::restyle_hints::RestyleHint;
+use crate::properties::longhands::display::computed_value::T as Display;
+use crate::properties::ComputedValues;
+use crate::rule_tree::{CascadeLevel, StrongRuleNode};
+use crate::selector_parser::{PseudoElement, RestyleDamage};
+use crate::style_resolver::ResolvedElementStyles;
+use crate::traversal_flags::TraversalFlags;
 use selectors::matching::ElementSelectorFlags;
 use servo_arc::{Arc, ArcBorrow};
-use style_resolver::ResolvedElementStyles;
-use traversal_flags::TraversalFlags;
 
 /// Represents the result of comparing an element's old and new style.
 #[derive(Debug)]
@@ -93,8 +93,8 @@ trait PrivateMatchMethods: TElement {
         cascade_visited: CascadeVisitedMode,
         cascade_inputs: &mut ElementCascadeInputs,
     ) -> bool {
-        use properties::PropertyDeclarationBlock;
-        use shared_lock::Locked;
+        use crate::properties::PropertyDeclarationBlock;
+        use crate::shared_lock::Locked;
 
         debug_assert!(
             replacements.intersects(RestyleHint::replacements()) &&
@@ -419,8 +419,8 @@ trait PrivateMatchMethods: TElement {
         _restyle_hint: RestyleHint,
         _important_rules_changed: bool,
     ) {
-        use animation;
-        use dom::TNode;
+        use crate::animation;
+        use crate::dom::TNode;
 
         let mut possibly_expired_animations = vec![];
         let shared_context = context.shared;
@@ -583,11 +583,11 @@ trait PrivateMatchMethods: TElement {
         &self,
         context: &SharedStyleContext,
         style: &mut Arc<ComputedValues>,
-        possibly_expired_animations: &mut Vec<::animation::PropertyAnimation>,
-        font_metrics: &::font_metrics::FontMetricsProvider,
+        possibly_expired_animations: &mut Vec<crate::animation::PropertyAnimation>,
+        font_metrics: &crate::font_metrics::FontMetricsProvider,
     ) {
-        use animation::{self, Animation, AnimationUpdate};
-        use dom::TNode;
+        use crate::animation::{self, Animation, AnimationUpdate};
+        use crate::dom::TNode;
 
         // Finish any expired transitions.
         let this_opaque = self.as_node().opaque();
