@@ -554,6 +554,7 @@ impl TestBindingMethods for TestBinding {
             dict: RootedTraceableBox::new(TestDictionaryDefaults {
                 UnrestrictedDoubleValue: 0.0,
                 anyValue: RootedTraceableBox::new(Heap::default()),
+                arrayValue: Vec::new(),
                 booleanValue: false,
                 bytestringValue: ByteString::new(vec![]),
                 byteValue: 0,
@@ -790,6 +791,7 @@ impl TestBindingMethods for TestBinding {
     fn PassOptionalUsvstringWithDefault(&self, _: USVString) {}
     fn PassOptionalBytestringWithDefault(&self, _: ByteString) {}
     fn PassOptionalEnumWithDefault(&self, _: TestEnum) {}
+    fn PassOptionalSequenceWithDefault(&self, _: Vec<i32>) {}
 
     fn PassOptionalNullableBooleanWithDefault(&self, _: Option<bool>) {}
     fn PassOptionalNullableByteWithDefault(&self, _: Option<i8>) {}
