@@ -11,57 +11,56 @@
 </head>
 <body>
 <script>
-// none -> none
 test_interpolation(
   {
     property: 'transform',
     from: 'none',
     to: 'none',
   },
-  [{ at: 0.25, expect: 'none' }]
+  [{ at: 0.25, expect: 'none' }],
+  'none -> none'
 );
 
-// none -> something
 test_interpolation(
   {
     property: 'transform',
     from: 'none',
     to: 'translate(200px) rotate(720deg)',
   },
-  [{ at: 0.25, expect: 'translate(50px) rotate(180deg)' }]
+  [{ at: 0.25, expect: 'translate(50px) rotate(180deg)' }],
+  'none -> something'
 );
 
-// something -> none
 test_interpolation(
   {
     property: 'transform',
     from: 'translate(200px) rotate(720deg)',
     to: 'none',
   },
-  [{ at: 0.25, expect: 'translate(150px) rotate(540deg)' }]
+  [{ at: 0.25, expect: 'translate(150px) rotate(540deg)' }],
+  'something -> none'
 );
 
-// Mismatched lengths (from is shorter), common part matches
 test_interpolation(
   {
     property: 'transform',
     from: 'translate(100px)',
     to: 'translate(200px) rotate(720deg)',
   },
-  [{ at: 0.25, expect: 'translate(125px) rotate(180deg)' }]
+  [{ at: 0.25, expect: 'translate(125px) rotate(180deg)' }],
+  'Mismatched lengths (from is shorter), common part matches'
 );
 
-// Mismatched lengths (to is shorter), common part matches
 test_interpolation(
   {
     property: 'transform',
     from: 'translate(100px) rotate(720deg)',
     to: 'translate(200px)',
   },
-  [{ at: 0.25, expect: 'translate(125px) rotate(540deg)' }]
+  [{ at: 0.25, expect: 'translate(125px) rotate(540deg)' }],
+  'Mismatched lengths (to is shorter), common part matches'
 );
 
-// Perfect match
 test_interpolation(
   {
     property: 'transform',
@@ -73,47 +72,68 @@ test_interpolation(
       at: 0.25,
       expect: 'scale(2.25) rotate(540deg) translate(125px) matrix(1, 0, 0, 1, 75, 50) skew(180deg)',
     },
-  ]
+  ],
+  'Perfect match'
 );
 
-// Matches on primitives
 test_interpolation(
   {
     property: 'transform',
     from: 'translateX(100px) scaleX(3) translate(500px) scale(2)',
     to: 'translateY(200px) scale(5) translateX(100px) scaleY(3)',
   },
-  [{ at: 0.25, expect: 'translate(75px, 50px) scale(3.5, 2) translate(400px, 0px) scale(1.75, 2.25)' }]
+  [{ at: 0.25, expect: 'translate(75px, 50px) scale(3.5, 2) translate(400px, 0px) scale(1.75, 2.25)' }],
+  'Matches on primitives'
 );
 
-// Common prefix
+test_interpolation(
+  {
+    property: 'transform',
+    from: 'rotateX(90deg) translateX(100px)',
+    to: 'rotate3d(50, 0, 0, 180deg) translateY(200px)',
+  },
+  [{ at: 0.25, expect: 'rotateX(112.5deg) translate(75px, 50px)' }],
+  'Match on rotation vector'
+);
+
+test_interpolation(
+  {
+    property: 'transform',
+    from: 'rotateX(90deg) translateX(100px)',
+    to: 'rotateY(0deg) translateY(200px)',
+  },
+  [{ at: 0.25, expect: 'rotateX(67.5deg) translate(75px, 50px)' }],
+  'Match on rotation due to 0deg angle'
+);
+
 test_interpolation(
   {
     property: 'transform',
     from: 'rotate(0deg) translate(100px)',
     to: 'rotate(720deg) scale(2) translate(200px)',
   },
-  [{ at: 0.25, expect: 'rotate(180deg) matrix(1.25, 0, 0, 1.25, 175, 0)' }]
+  [{ at: 0.25, expect: 'rotate(180deg) matrix(1.25, 0, 0, 1.25, 175, 0)' }],
+  'Common prefix'
 );
 
-// Complete mismatch (except length)
 test_interpolation(
   {
     property: 'transform',
     from: 'scale(2) rotate(0deg) translate(100px)',
     to: 'rotate(720deg) scale(2) translate(200px)',
   },
-  [{ at: 0.25, expect: 'matrix(2, 0, 0, 2, 250, 0)' }]
+  [{ at: 0.25, expect: 'matrix(2, 0, 0, 2, 250, 0)' }],
+  'Complete mismatch (except length)'
 );
 
-// Complete mismatch including length
 test_interpolation(
   {
     property: 'transform',
     from: 'scale(2) rotate(0deg)',
     to: 'rotate(720deg) scale(2) translate(200px)',
   },
-  [{ at: 0.25, expect: 'matrix(2, 0, 0, 2, 100, 0)' }]
+  [{ at: 0.25, expect: 'matrix(2, 0, 0, 2, 100, 0)' }],
+  'Complete mismatch including length'
 );
 </script>
 </body>

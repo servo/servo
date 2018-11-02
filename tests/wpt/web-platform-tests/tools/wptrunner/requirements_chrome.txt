@@ -1,2 +1,2 @@
 mozprocess == 0.26
-selenium==3.14.1
+selenium==3.141.0

@@ -1262,6 +1262,13 @@ policies and contribution forms [3].
     }
     expose(assert_own_property, "assert_own_property");
 
+    function assert_not_own_property(object, property_name, description) {
+        assert(!object.hasOwnProperty(property_name),
+               "assert_not_own_property", description,
+               "unexpected property ${p} is found on object", {p:property_name});
+    }
+    expose(assert_not_own_property, "assert_not_own_property");
+
     function _assert_inherits(name) {
         return function (object, property_name, description)
         {

@@ -281,9 +281,9 @@ def run_tests(config, test_paths, product, **kwargs):
                 test_total += test_count
                 unexpected_total += unexpected_count
                 logger.info("Got %i unexpected results" % unexpected_count)
+                logger.suite_end()
                 if repeat_until_unexpected and unexpected_total > 0:
                     break
-                logger.suite_end()
 
     if test_total == 0:
         if skipped_tests > 0:

@@ -15,7 +15,7 @@ regenerate these files by running `generate-test-sxgs.sh` in the
 `resource` directory before running the tests.
 
 `generate-test-sxgs.sh` requires command-line tools in the
-[webpackage repository][https://github.com/WICG/webpackage].
+[webpackage repository](https://github.com/WICG/webpackage).
 To install them, run:
 ```
 go get -u github.com/WICG/webpackage/go/signedexchange/cmd/...

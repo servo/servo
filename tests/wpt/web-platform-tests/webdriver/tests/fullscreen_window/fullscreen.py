@@ -1,20 +1,10 @@
 from tests.support.asserts import assert_error, assert_success
+from tests.support.helpers import is_fullscreen
 
 
 def fullscreen(session):
     return session.transport.send(
         "POST", "session/{session_id}/window/fullscreen".format(**vars(session)))
-
-
-def is_fullscreen(session):
-    # At the time of writing, WebKit does not conform to the
-    # Fullscreen API specification.
-    #
-    # Remove the prefixed fallback when
-    # https://bugs.webkit.org/show_bug.cgi?id=158125 is fixed.
-    return session.execute_script("""
-        return !!(window.fullScreen || document.webkitIsFullScreen)
-        """)
 
 
 def test_no_browsing_context(session, closed_window):
@@ -26,7 +16,7 @@ def test_fullscreen(session):
     response = fullscreen(session)
     assert_success(response)
 
-    assert is_fullscreen(session) is True
+    assert is_fullscreen(session)
 
 
 def test_payload(session):
@@ -47,12 +37,12 @@ def test_payload(session):
 
 
 def test_fullscreen_twice_is_idempotent(session):
-    assert is_fullscreen(session) is False
+    assert not is_fullscreen(session)
 
     first_response = fullscreen(session)
     assert_success(first_response)
-    assert is_fullscreen(session) is True
+    assert is_fullscreen(session)
 
     second_response = fullscreen(session)
     assert_success(second_response)
-    assert is_fullscreen(session) is True
+    assert is_fullscreen(session)

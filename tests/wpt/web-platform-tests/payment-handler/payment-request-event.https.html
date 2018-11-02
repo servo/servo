@@ -16,7 +16,7 @@ async function setInstrumentsAndRunTests(registration) {
       {src: '/images/rgrg-256x256.png', sizes: '256x256', type: 'image/png'},
     ],
     method: 'basic-card',
-    capabilities: {supportedNetworks: ['mir'], supportedTypes: ['prepaid']},
+    capabilities: {supportedNetworks: ['mir']},
   });
   runTests();
 }
@@ -25,7 +25,7 @@ function runTests() {
   promise_test(async t => {
     const response = await new PaymentRequest(
       [
-        {supportedMethods: 'basic-card', data: {supportedTypes: ['prepaid']}},
+        {supportedMethods: 'basic-card', data: {}},
         {supportedMethods: 'interledger', data: {supportedNetworks: ['mir']}},
       ],
       {
@@ -60,7 +60,7 @@ function runTests() {
           },
           {
             supportedMethods: 'interledger',
-            data: {supportedTypes: ['prepaid']},
+            data: {},
             total: {
               label: 'Prepaid total',
               amount: {currency: 'USD', value: '0.0097'},

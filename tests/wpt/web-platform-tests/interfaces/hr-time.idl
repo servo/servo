@@ -13,6 +13,5 @@ interface Performance : EventTarget {
 };
 
 partial interface mixin WindowOrWorkerGlobalScope {
-    [Replaceable]
-    readonly    attribute Performance performance;
+  [Replaceable] readonly attribute Performance performance;
 };

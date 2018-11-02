@@ -5,6 +5,8 @@ import sys
 import webdriver
 
 from tests.support import defaults
+from tests.support.sync import Poll
+
 
 def ignore_exceptions(f):
     def inner(*args, **kwargs):
@@ -117,6 +119,24 @@ def is_element_in_viewport(session, element):
         return !(rect.right < 0 || rect.bottom < 0 ||
             rect.left > viewport.width || rect.top > viewport.height)
     """, args=(element,))
+
+
+def document_hidden(session):
+    """Polls for the document to become hidden."""
+    def hidden(session):
+        return session.execute_script("return document.hidden")
+    return Poll(session, timeout=3, raises=None).until(hidden)
+
+
+def is_fullscreen(session):
+    # At the time of writing, WebKit does not conform to the
+    # Fullscreen API specification.
+    #
+    # Remove the prefixed fallback when
+    # https://bugs.webkit.org/show_bug.cgi?id=158125 is fixed.
+    return session.execute_script("""
+        return !!(window.fullScreen || document.webkitIsFullScreen)
+        """)
 
 
 def document_dimensions(session):

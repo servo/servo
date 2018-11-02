@@ -758,6 +758,9 @@ asserts that the class string of `object` as returned in
 ### `assert_own_property(object, property_name, description)`
 assert that object has own property `property_name`
 
+### `assert_not_own_property(object, property_name, description)`
+assert that object does not have an own property named `property_name`
+
 ### `assert_inherits(object, property_name, description)`
 assert that object does not have an own property named
 `property_name` but that `property_name` is present in the prototype

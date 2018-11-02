@@ -77,7 +77,7 @@ function runPromiseTest(button, data, expectedCard = visaCredit, expectedAddress
   The test expects the following credit card.
 </p>
 <ol>
-  <li>Add credit card:
+  <li>Add card:
     <dl>
       <dt>Cardholder name:</dt>
       <dd>web platform test</dd>
@@ -112,22 +112,12 @@ function runPromiseTest(button, data, expectedCard = visaCredit, expectedAddress
 <ol>
   <li>
     <button onclick="runPromiseTest(this, {});">
-      When passed BasicCardRequest without members, allow the user to input of any credit card type.
-    </button>
-  </li>
-  <li>
-    <button onclick="runPromiseTest(this, { supportedNetworks: [], supportedTypes: [] });">
-      Returns any card type on any network, because zero length supportedNetworks and supportedTypes.
+      When passed BasicCardRequest without members, allow the user to input a card on any network.
     </button>
   </li>
   <li>
     <button onclick="runPromiseTest(this, { supportedNetworks: [] });">
-      Returns any card type on any network, because supportedNetworks is missing and supportedTypes is empty.
-    </button>
-  </li>
-  <li>
-    <button onclick="runPromiseTest(this, { supportedTypes: [] });">
-      Returns any card type on any network missing supportedTypes, and empty supportedNetwork.
+      Returns a card on any network, because zero length supportedNetworks.
     </button>
   </li>
 </ol>
