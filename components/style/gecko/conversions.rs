@@ -718,7 +718,7 @@ pub mod basic_shape {
             match other.mType {
                 StyleShapeSourceType::URL => unsafe {
                     let shape_image = &*other.__bindgen_anon_1.mShapeImage.as_ref().mPtr;
-                    let other_url = RefPtr::new(*shape_image.__bindgen_anon_1.mURLValue.as_ref());
+                    let other_url = RefPtr::new(*shape_image.__bindgen_anon_1.mURLValue.as_ref() as *mut _);
                     let url = ComputedUrl::from_url_value(other_url);
                     ShapeSource::ImageOrUrl(url)
                 },
