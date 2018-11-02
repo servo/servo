@@ -11,6 +11,9 @@
       ml:visible_name="Servo2D"
       ml:binary_name="bin/Servo2D"
       ml:type="Universe">
+      <icon
+        ml:model_folder="Icon/Model/"
+        ml:portal_folder="Icon/Portal/" />
     </component>
     <uses-privilege ml:name="Internet"/>
   </application>
