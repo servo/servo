@@ -49,6 +49,7 @@ use crate::dom::bindings::utils::WindowProxyHandler;
 use crate::dom::document::PendingRestyle;
 use crate::dom::htmlimageelement::SourceSet;
 use crate::dom::htmlmediaelement::MediaFrameRenderer;
+use crate::dom::timeranges::TimeRangesContainer;
 use cssparser::RGBA;
 use devtools_traits::{CSSError, TimelineMarkerType, WorkerId};
 use encoding_rs::{Decoder, Encoding};
@@ -143,6 +144,7 @@ unsafe_no_jsmanaged_fields!(&'static Encoding);
 
 unsafe_no_jsmanaged_fields!(RefCell<Decoder>);
 unsafe_no_jsmanaged_fields!(RefCell<Vec<u8>>);
+unsafe_no_jsmanaged_fields!(RefCell<TimeRangesContainer>);
 
 unsafe_no_jsmanaged_fields!(Reflector);
 

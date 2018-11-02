@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::TimeRangesBinding;
 use crate::dom::bindings::codegen::Bindings::TimeRangesBinding::TimeRangesMethods;
 use crate::dom::bindings::error::{Error, Fallible};
@@ -11,7 +10,9 @@ use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::window::Window;
 use dom_struct::dom_struct;
+use std::cell::RefCell;
 use std::fmt;
+use std::rc::Rc;
 
 #[derive(JSTraceable, MallocSizeOf)]
 struct TimeRange {
@@ -127,23 +128,24 @@ impl TimeRangesContainer {
 #[dom_struct]
 pub struct TimeRanges {
     reflector_: Reflector,
-    ranges: DomRefCell<TimeRangesContainer>,
+    #[ignore_malloc_size_of = "Rc"]
+    ranges: Rc<RefCell<TimeRangesContainer>>,
 }
 
 //XXX(ferjm) We'll get warnings about unused methods until we use this
 //           on the media element implementation.
 #[allow(dead_code)]
 impl TimeRanges {
-    fn new_inherited() -> TimeRanges {
+    fn new_inherited(ranges: Rc<RefCell<TimeRangesContainer>>) -> TimeRanges {
         Self {
             reflector_: Reflector::new(),
-            ranges: DomRefCell::new(TimeRangesContainer::new()),
+            ranges,
         }
     }
 
-    pub fn new(window: &Window) -> DomRoot<TimeRanges> {
+    pub fn new(window: &Window, ranges: Rc<RefCell<TimeRangesContainer>>) -> DomRoot<TimeRanges> {
         reflect_dom_object(
-            Box::new(TimeRanges::new_inherited()),
+            Box::new(TimeRanges::new_inherited(ranges)),
             window,
             TimeRangesBinding::Wrap,
         )

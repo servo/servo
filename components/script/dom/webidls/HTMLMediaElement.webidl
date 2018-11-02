@@ -44,7 +44,7 @@ interface HTMLMediaElement : HTMLElement {
   readonly attribute boolean paused;
   // attribute double defaultPlaybackRate;
   // attribute double playbackRate;
-  // readonly attribute TimeRanges played;
+  readonly attribute TimeRanges played;
   // readonly attribute TimeRanges seekable;
   // readonly attribute boolean ended;
   [CEReactions] attribute boolean autoplay;
