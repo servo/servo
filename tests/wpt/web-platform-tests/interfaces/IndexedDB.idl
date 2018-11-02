@@ -50,7 +50,14 @@ interface IDBFactory {
                                     optional [EnforceRange] unsigned long long version);
   [NewObject] IDBOpenDBRequest deleteDatabase(DOMString name);
 
+  Promise<sequence<IDBDatabaseInfo>> databases();
+
   short cmp(any first, any second);
+};
+
+dictionary IDBDatabaseInfo {
+  DOMString name;
+  unsigned long long version;
 };
 
 [Exposed=(Window,Worker)]

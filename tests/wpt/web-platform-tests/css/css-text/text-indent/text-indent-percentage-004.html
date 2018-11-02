@@ -8,7 +8,7 @@
 <link rel="match" href="reference/text-indent-percentage-002-ref.html">
 <meta name="assert" content="Percentages in text-indent refer to width of the element's content box, when used in a calc expression">
 <style>
-section { position: absolute; }
+body { background: white; }
 section, div {
   border-right: 10px solid white;
   margin-right: 10px;
@@ -19,10 +19,7 @@ div {
   box-sizing: border-box;
   width: 120px;
 }
-.test div { text-indent: calc(25px + 25%); color: red; }
-.ref div { text-indent: 50px; }
+.test div { text-indent: calc(25px + 25%); }
 </style>
 
-<p>Test passes if there is a single black X below and no red.
 <section class=test><div>X</div></section>
-<section class=ref><div>X</div></section>

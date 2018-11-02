@@ -148,10 +148,10 @@
         A.prototype = {b:"b"}
         var a = new A();
         assert_own_property(a, "a");
-        assert_false(a.hasOwnProperty("b"), "unexpected property found: \"b\"");
+        assert_not_own_property(a, "b", "unexpected property found: \"b\"");
         assert_inherits(a, "b");
     }
-    test(testAssertInherits, "test for assert[_not]_exists and insert_inherits")
+    test(testAssertInherits, "test for assert[_not]_own_property and insert_inherits")
 
     test(function()
     {
@@ -398,7 +398,7 @@
     },
     {
       "status_string": "PASS",
-      "name": "test for assert[_not]_exists and insert_inherits",
+      "name": "test for assert[_not]_own_property and insert_inherits",
       "message": null,
       "properties": {}
     },

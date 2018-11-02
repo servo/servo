@@ -71,8 +71,14 @@ shouldFail((location.protocol + "//" + location.host).toUpperCase())
 shouldFail(location.protocol.toUpperCase() + "//" + location.host)
 shouldFail("-")
 shouldFail("**")
+shouldFail(",*");
+shouldFail("*,");
 shouldFail("\0*")
+shouldFail("\u000B*");
+shouldFail("\u000C*");
 shouldFail("*\0")
+shouldFail("*\u000B");
+shouldFail("*\u000C");
 shouldFail("'*'")
 shouldFail('"*"')
 shouldFail("* *")

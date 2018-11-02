@@ -90,6 +90,9 @@ def get_paths(**kwargs):
 
 
 def get_jobs(paths, **kwargs):
+    if kwargs.get("all"):
+        return set(job_path_map.keys())
+
     jobs = set()
 
     rules = {}
@@ -121,6 +124,7 @@ def get_jobs(paths, **kwargs):
 def create_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument("revish", default=None, help="Commits to consider. Defaults to the commits on the current branch", nargs="?")
+    parser.add_argument("--all", help="List all jobs unconditionally.", action="store_true")
     parser.add_argument("--includes", default=None, help="Jobs to check for. Return code is 0 if all jobs are found, otherwise 1", nargs="*")
     return parser
 

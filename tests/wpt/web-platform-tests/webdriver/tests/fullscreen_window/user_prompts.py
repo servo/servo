@@ -3,6 +3,7 @@
 import pytest
 
 from tests.support.asserts import assert_dialog_handled, assert_error, assert_success
+from tests.support.helpers import is_fullscreen
 
 
 def fullscreen(session):
@@ -10,21 +11,10 @@ def fullscreen(session):
         "POST", "session/{session_id}/window/fullscreen".format(**vars(session)))
 
 
-def is_fullscreen(session):
-    # At the time of writing, WebKit does not conform to the
-    # Fullscreen API specification.
-    #
-    # Remove the prefixed fallback when
-    # https://bugs.webkit.org/show_bug.cgi?id=158125 is fixed.
-    return session.execute_script("""
-        return !!(window.fullScreen || document.webkitIsFullScreen)
-        """)
-
-
 @pytest.fixture
 def check_user_prompt_closed_without_exception(session, create_dialog):
     def check_user_prompt_closed_without_exception(dialog_type, retval):
-        assert is_fullscreen(session) is False
+        assert not is_fullscreen(session)
 
         create_dialog(dialog_type, text=dialog_type)
 
@@ -32,8 +22,7 @@ def check_user_prompt_closed_without_exception(session, create_dialog):
         assert_success(response)
 
         assert_dialog_handled(session, expected_text=dialog_type, expected_retval=retval)
-
-        assert is_fullscreen(session) is True
+        assert is_fullscreen(session)
 
     return check_user_prompt_closed_without_exception
 
@@ -41,7 +30,7 @@ def check_user_prompt_closed_without_exception(session, create_dialog):
 @pytest.fixture
 def check_user_prompt_closed_with_exception(session, create_dialog):
     def check_user_prompt_closed_with_exception(dialog_type, retval):
-        assert is_fullscreen(session) is False
+        assert not is_fullscreen(session)
 
         create_dialog(dialog_type, text=dialog_type)
 
@@ -49,8 +38,7 @@ def check_user_prompt_closed_with_exception(session, create_dialog):
         assert_error(response, "unexpected alert open")
 
         assert_dialog_handled(session, expected_text=dialog_type, expected_retval=retval)
-
-        assert is_fullscreen(session) is False
+        assert not is_fullscreen(session)
 
     return check_user_prompt_closed_with_exception
 
@@ -58,7 +46,7 @@ def check_user_prompt_closed_with_exception(session, create_dialog):
 @pytest.fixture
 def check_user_prompt_not_closed_but_exception(session, create_dialog):
     def check_user_prompt_not_closed_but_exception(dialog_type):
-        assert is_fullscreen(session) is False
+        assert not is_fullscreen(session)
 
         create_dialog(dialog_type, text=dialog_type)
 
@@ -68,7 +56,7 @@ def check_user_prompt_not_closed_but_exception(session, create_dialog):
         assert session.alert.text == dialog_type
         session.alert.dismiss()
 
-        assert is_fullscreen(session) is False
+        assert not is_fullscreen(session)
 
     return check_user_prompt_not_closed_but_exception
 

@@ -1,0 +1,64 @@
+# This is the configuration file for Azure Pipelines, used to run tests on
+# macOS. Documentation to help understand this setup:
+# https://docs.microsoft.com/en-us/azure/devops/pipelines/yaml-schema
+
+trigger: none # disable builds for branches
+
+jobs:
+- job: macOS
+
+  pool:
+    vmImage: 'macOS-10.13'
+
+  steps:
+  - checkout: self
+    fetchDepth: 50
+    submodules: false
+
+  - script: |
+      echo "Test jobs:"
+      ./wpt test-jobs | while read job; do
+        echo "$job"
+        echo "##vso[task.setvariable variable=run_$job]true";
+      done
+    displayName: 'List test jobs'
+
+  - script: |
+      sudo easy_install pip
+      sudo pip install -U virtualenv
+    displayName: 'Install Python packages'
+    condition: variables.run_wptrunner_infrastructure
+
+  # Installig Ahem in /Library/Fonts instead of using --install-fonts is a
+  # workaround for https://github.com/web-platform-tests/wpt/issues/13803.
+  - script: sudo cp fonts/Ahem.ttf /Library/Fonts
+    displayName: 'Install Ahem font'
+    condition: variables.run_wptrunner_infrastructure
+
+  - script: |
+      # https://github.com/web-platform-tests/results-collection/blob/master/src/scripts/trust-root-ca.sh
+      sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain tools/certs/cacert.pem
+    displayName: 'Install web-platform.test certificate'
+    condition: variables.run_wptrunner_infrastructure
+
+  - script: |
+      # Pin to STP 67, as SafariDriver isn't working in 68:
+      # https://github.com/web-platform-tests/wpt/issues/13800
+      HOMEBREW_NO_AUTO_UPDATE=1 brew cask install https://raw.githubusercontent.com/Homebrew/homebrew-cask-versions/23fae0a88868911913c2ee7d527c89164b6d5720/Casks/safari-technology-preview.rb
+      # https://web-platform-tests.org/running-tests/safari.html
+      sudo "/Applications/Safari Technology Preview.app/Contents/MacOS/safaridriver" --enable
+      defaults write com.apple.Safari WebKitJavaScriptCanOpenWindowsAutomatically 1
+    displayName: 'Install Safari Technology Preview'
+    condition: variables.run_wptrunner_infrastructure
+
+  - script: ./wpt make-hosts-file | sudo tee -a /etc/hosts
+    displayName: 'Update /etc/hosts'
+    condition: variables.run_wptrunner_infrastructure
+
+  - script: ./wpt manifest
+    displayName: 'Update manifest'
+    condition: variables.run_wptrunner_infrastructure
+
+  - script: no_proxy='*' ./wpt run --yes --no-manifest-update --manifest MANIFEST.json --metadata infrastructure/metadata/ --channel=preview safari_webdriver infrastructure/
+    displayName: 'Run infrastructure/ tests'
+    condition: variables.run_wptrunner_infrastructure

@@ -1,0 +1,27 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>CSS Text test: intrinsic minimum sizing of trailing spaces with white-space:pre-wrap</title>
+<link rel="author" title="Florian Rivoal" href="https://florian.rivoal.net/">
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#white-space-phase-2">
+<link rel="match" href="reference/white-space-pre-wrap-trailing-spaces-002-ref.html">
+<meta name="assert" content="Preserved white space at the end of the line is hanged when white-space is pre-wrap, and therefore does not count when computing the (minimum) intrinsic size.">
+
+<style>
+/* Make the table invisible */
+table { border-collapse: collapse; }
+td { padding: 0; }
+
+/* for the content of the table to be sized to their mininum intrinsic size */
+table { width: 0; }
+
+span {
+  display: inline-block;
+  white-space: pre-wrap;
+}
+#s1 { text-align: right; }
+#s2 { text-align: center; }
+</style>
+
+<p>This test passes if you can see the word PASS below, without any extra spaces.
+
+<table><td><span id=s1>P                                 </span><td><span id=s2>A                                    </span><td>SS</table>

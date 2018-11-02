@@ -33,29 +33,6 @@ self.addEventListener('paymentrequest', event => {
     return;
   }
 
-  const supportedTypes = methodData.data.supportedTypes;
-  if (!supportedTypes) {
-    const msg = 'Expected supported types in payment method specific data';
-    event.respondWith(Promise.reject(new Error(msg)));
-    return;
-  }
-
-  if (supportedTypes.length !== 1) {
-    const msg = `Expected one supported type, but got ${
-      supportedTypes.length
-    } instead`;
-    event.respondWith(Promise.reject(new Error(msg)));
-    return;
-  }
-
-  const supportedType = supportedTypes[0];
-  const expectedSupportedType = 'prepaid';
-  if (supportedType !== expectedSupportedType) {
-    const msg = `Expected supported type "${expectedSupportedType}", but got "${supportedType}"`;
-    event.respondWith(Promise.reject(new Error(msg)));
-    return;
-  }
-
   if (methodData.displayItems) {
     const msg = 'Expected no display items';
     event.respondWith(Promise.reject(new Error(msg)));

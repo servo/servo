@@ -18,7 +18,7 @@
     }, 'Call PresentationRequest constructor with an empty sequence. NotSupportedError Exception expected.');
 
     assert_throws('SyntaxError', () => {
-      new PresentationRequest('http://@');
+      new PresentationRequest('https://@');
     }, 'Call PresentationRequest constructor with an invalid URL. SyntaxError Exception expected.');
 
     assert_throws('NotSupportedError', () => {
@@ -26,7 +26,7 @@
     }, 'Call PresentationRequest constructor with an unsupported URL. NotSupportedError expected.');
 
     assert_throws('SyntaxError', function() {
-      new PresentationRequest(['presentation.html', 'http://@']);
+      new PresentationRequest(['presentation.html', 'https://@']);
     }, 'Call PresentationRequest constructor with a sequence of URLs, one of them invalid. SyntaxError Exception expected.');
 
     assert_throws('NotSupportedError', function() {

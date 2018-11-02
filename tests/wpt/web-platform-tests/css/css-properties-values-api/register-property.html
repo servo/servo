@@ -2,6 +2,8 @@
 <link rel="help" href="https://drafts.css-houdini.org/css-properties-values-api/#register-a-custom-property" />
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="./resources/utils.js"></script>
+<div id=target></div>
 <script>
 // Tests for error checking during property registration
 
@@ -45,4 +47,29 @@ test(function(){
     CSS.registerProperty({name: '--inherit-test-2', syntax: '<length>', initialValue: '0px', inherits: false});
     assert_throws(new TypeError(), () => CSS.registerProperty({name: '--inherit-test-3', syntax: '<length>', initialValue: '0px'}));
 }, "registerProperty requires inherits");
+
+test(function(){
+    try {
+        let name = generate_name();
+
+        target.style.setProperty(name, 'green');
+        target.style.transitionProperty = name;
+        target.style.transitionDuration = '1s';
+        target.style.transitionTimingFunction = 'steps(1, end)';
+
+        assert_equals(getComputedStyle(target).getPropertyValue(name), 'green');
+
+        CSS.registerProperty({
+            name: name,
+            syntax: '<color>',
+            initialValue: 'red',
+            inherits: false
+        });
+
+        assert_equals(getComputedStyle(target).getPropertyValue(name), 'rgb(0, 128, 0)');
+    } finally {
+        target.style = '';
+    }
+}, 'Registering a property should not cause a transition');
+
 </script>

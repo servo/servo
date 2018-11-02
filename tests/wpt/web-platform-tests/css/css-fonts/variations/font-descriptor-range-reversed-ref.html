@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<title>CSS Reference</title>
+
+<style>
+@font-face {
+  font-family: TestWeight;
+  src: url(resources/csstest-weights-100-kerned.ttf);
+  font-weight: 200 300;
+}
+@font-face {
+  font-family: TestWeight;
+  src: url(resources/csstest-weights-900-kerned.ttf);
+  font-weight: 300 400;
+}
+@font-face {
+  font-family: TestStyle;
+  src: url(resources/csstest-weights-100-kerned.ttf);
+  font-style: oblique 20deg 30deg;
+}
+@font-face {
+  font-family: TestStyle;
+  src: url(resources/csstest-weights-900-kerned.ttf);
+  font-style: oblique 30deg 40deg;
+}
+@font-face {
+  font-family: TestStretch;
+  src: url(resources/csstest-weights-100-kerned.ttf);
+  font-stretch: 110% 120%;
+}
+@font-face {
+  font-family: TestStretch;
+  src: url(resources/csstest-weights-900-kerned.ttf);
+  font-stretch: 120% 130%;
+}
+</style>
+
+<p style="font-family: TestWeight; font-weight: 250;">A</p>
+<p style="font-family: TestStyle; font-style: oblique 25deg;">A</p>
+<p style="font-family: TestStretch; font-stretch: 115%;">A</p>
