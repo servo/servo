@@ -20,6 +20,7 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ProgressBar;
 import android.widget.TextView;
+import android.util.Log;
 
 import org.mozilla.servoview.ServoView;
 import org.mozilla.servoview.Servo;
@@ -160,6 +161,14 @@ public class MainActivity extends Activity implements Servo.Client {
         mBackButton.setEnabled(canGoBack);
         mFwdButton.setEnabled(canGoForward);
         mCanGoBack = canGoBack;
+    }
+
+    public void onAllowNavigation(String url) {
+        Log.d("onAllowNavigation", url);
+        if (url.startsWith("market://")) {
+            startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(url)));
+            return;
+        }
     }
 
     public void onRedrawing(boolean redrawing) {
