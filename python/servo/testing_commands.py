@@ -586,6 +586,7 @@ class MachCommands(CommandBase):
         args = [sys.executable] + args + [url]
         process = subprocess.Popen(args, stdout=subprocess.PIPE)
         try:
+            process.stdout._set_mode('b')
             while 1:
                 line = process.stdout.readline()
                 if len(line) == 0:
