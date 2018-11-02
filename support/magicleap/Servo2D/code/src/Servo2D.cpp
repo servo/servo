@@ -58,8 +58,6 @@ Servo2D::Servo2D() {
 // Destroy a Servo 2D instance
 Servo2D::~Servo2D() {
   ML_LOG(Debug, "Servo2D Destructor.");
-  discard_servo(servo_);
-  servo_ = nullptr;
 }
 
 // The prism dimensions
@@ -167,6 +165,8 @@ int Servo2D::init() {
 
 int Servo2D::deInit() {
   ML_LOG(Debug, "Servo2D Deinitializing.");
+  discard_servo(servo_);
+  servo_ = nullptr;
   return 0;
 }
 

@@ -43,6 +43,9 @@ use std::os::raw::c_char;
 use std::os::raw::c_void;
 use std::path::PathBuf;
 use std::rc::Rc;
+use std::thread;
+use std::time::Duration;
+use std::time::Instant;
 
 #[repr(u32)]
 pub enum MLLogLevel {
@@ -221,11 +224,25 @@ pub unsafe extern "C" fn navigate_servo(servo: *mut ServoInstance, text: *const 
     }
 }
 
+// Some magic numbers for shutdown
+const SHUTDOWN_DURATION: Duration = Duration::from_secs(10);
+const SHUTDOWN_POLL_INTERVAL: Duration = Duration::from_millis(100);
+
 #[no_mangle]
 pub unsafe extern "C" fn discard_servo(servo: *mut ServoInstance) {
-    // Servo drop goes here!
-    if !servo.is_null() {
-        Box::from_raw(servo);
+    if let Some(servo) = servo.as_mut() {
+        let mut servo = Box::from_raw(servo);
+        let finish = Instant::now() + SHUTDOWN_DURATION;
+        'outer: while Instant::now() < finish {
+            servo.servo.handle_events(vec![WindowEvent::Quit]);
+            for (_, msg) in servo.servo.get_events() {
+                if let EmbedderMsg::Shutdown = msg {
+                    break 'outer;
+                }
+            }
+            thread::sleep(SHUTDOWN_POLL_INTERVAL);
+        }
+        servo.servo.deinit();
     }
 }
 
