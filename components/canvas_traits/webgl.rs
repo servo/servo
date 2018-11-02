@@ -342,7 +342,7 @@ macro_rules! define_resource_id {
             fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
                 where D: ::serde::Deserializer<'de>
             {
-                let id = r#try!(u32::deserialize(deserializer));
+                let id = u32::deserialize(deserializer)?;
                 if id == 0 {
                     Err(::serde::de::Error::custom("expected a non-zero value"))
                 } else {
