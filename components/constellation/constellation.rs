@@ -155,6 +155,17 @@ use timer_scheduler::TimerScheduler;
 use webrender_api;
 use webvr_traits::{WebVREvent, WebVRMsg};
 
+/// Servo supports tabs (referred to as browsers), so `Constellation` needs to
+/// store browser specific data for bookkeeping.
+struct Browser {
+    /// The currently focused browsing context for key events. The focused
+    /// pipeline is the current entry of the focused browsing context.
+    focused_browsing_context_id: BrowsingContextId,
+
+    /// The joint session history for this browser.
+    session_history: JointSessionHistory,
+}
+
 /// The `Constellation` itself. In the servo browser, there is one
 /// constellation, which maintains all of the browser global data.
 /// In embedded applications, there may be more than one constellation,
@@ -201,16 +212,21 @@ pub struct Constellation<Message, LTF, STF> {
     /// constellation to send messages to the compositor thread.
     compositor_proxy: CompositorProxy,
 
-    /// The last frame tree sent to WebRender.
+    /// The last frame tree sent to WebRender, denoting the browser (tab) user
+    /// has currently selected. This also serves as a key to the retrieve data
+    /// about the current active browser from the `browsers` hash map.
     active_browser_id: Option<TopLevelBrowsingContextId>,
 
-    /// All the browsers in constellation. Since the active browser
-    /// (`active_browser_id`) may change with the `SelectBrowser` message (e.g.
-    /// when user switches to another tab), we must keep track of each browser's
-    /// focused browsing context so that we can restore the
-    /// `focused_browsing_context_id` to point to the active browser's focused
-    /// browsing context.
-    browser_ids: HashMap<TopLevelBrowsingContextId, BrowsingContextId>,
+    /// All the browsers in constellation.
+    ///
+    /// TODO: update docs
+    ///
+    /// Since the active browser (`active_browser_id`) may change with the
+    /// `SelectBrowser` message (e.g.  when user switches to another tab), we
+    /// must keep track of each browser's focused browsing context so that we
+    /// can restore the `focused_browsing_context_id` to point to the active
+    /// browser's focused browsing context.
+    browsers: HashMap<TopLevelBrowsingContextId, Browser>,
 
     /// The currently focused browsing context for key events. The focused
     /// pipeline is the current entry of the focused browsing context. This
@@ -287,10 +303,8 @@ pub struct Constellation<Message, LTF, STF> {
     /// to become same-origin, at which point they can share DOM objects.
     event_loops: HashMap<Host, Weak<EventLoop>>,
 
-    joint_session_histories: HashMap<TopLevelBrowsingContextId, JointSessionHistory>,
-
-    /// The set of all the pipelines in the browser.
-    /// (See the `pipeline` module for more details.)
+    /// The set of all the pipelines in the browser.  (See the `pipeline` module
+    /// for more details.)
     pipelines: HashMap<PipelineId, Pipeline>,
 
     /// The set of all the browsing contexts in the browser.
@@ -600,7 +614,7 @@ where
                     embedder_proxy: state.embedder_proxy,
                     compositor_proxy: state.compositor_proxy,
                     active_browser_id: None,
-                    browser_ids: HashMap::new(),
+                    browsers: HashMap::new(),
                     focused_browsing_context_id: None,
                     debugger_chan: state.debugger_chan,
                     devtools_chan: state.devtools_chan,
@@ -612,7 +626,6 @@ where
                     swmanager_receiver: swmanager_receiver,
                     swmanager_sender: sw_mgr_clone,
                     event_loops: HashMap::new(),
-                    joint_session_histories: HashMap::new(),
                     pipelines: HashMap::new(),
                     browsing_contexts: HashMap::new(),
                     pending_changes: vec![],
@@ -1657,13 +1670,14 @@ where
 
         // Register this new top-level browsing context id as a browser and set
         // its focused browsing context to be itself.
-        self.browser_ids.insert(top_level_browsing_context_id, browsing_context_id);
+        self.browsers.insert(top_level_browsing_context_id, Browser {
+            focused_browsing_context_id: browsing_context_id,
+            session_history: JointSessionHistory::new(),
+        });
         if self.focused_browsing_context_id.is_none() {
             self.focused_browsing_context_id = Some(browsing_context_id);
         }
 
-        self.joint_session_histories
-            .insert(top_level_browsing_context_id, JointSessionHistory::new());
         self.new_pipeline(
             pipeline_id,
             browsing_context_id,
@@ -1695,7 +1709,7 @@ where
     ) {
         let browsing_context_id = BrowsingContextId::from(top_level_browsing_context_id);
         self.close_browsing_context(browsing_context_id, ExitPipelineMode::Normal);
-        self.browser_ids.remove(&top_level_browsing_context_id);
+        self.browsers.remove(&top_level_browsing_context_id);
         if self.active_browser_id == Some(top_level_browsing_context_id) {
             self.focused_browsing_context_id = None;
             self.active_browser_id = None;
@@ -1979,7 +1993,10 @@ where
 
         assert!(!self.pipelines.contains_key(&new_pipeline_id));
         self.pipelines.insert(new_pipeline_id, pipeline);
-        self.joint_session_histories.insert(new_top_level_browsing_context_id, JointSessionHistory::new());
+        self.browsers.insert(new_top_level_browsing_context_id, Browser {
+            focused_browsing_context_id: new_browsing_context_id,
+            session_history: JointSessionHistory::new(),
+        });
         self.add_pending_change(SessionHistoryChange {
             top_level_browsing_context_id: new_top_level_browsing_context_id,
             browsing_context_id: new_browsing_context_id,
@@ -2571,9 +2588,9 @@ where
         sender: IpcSender<u32>,
     ) {
         let length = self
-            .joint_session_histories
+            .browsers
             .get(&top_level_browsing_context_id)
-            .map(JointSessionHistory::history_length)
+            .map(|browser| browser.session_history.history_length())
             .unwrap_or(1);
         let _ = sender.send(length as u32);
     }
@@ -2770,11 +2787,18 @@ where
         }
 
         // But we always need to update the focused browsing context in its
-        // browser in `browser_ids`. However, there is an opportunity to avoid
-        // the look up if the focus request targets an already focused browsing
+        // browser in `browsers`. However, there is an opportunity to avoid the
+        // look up if the focus request targets an already focused browsing
         // context.
         if Some(browsing_context_id) != self.focused_browsing_context_id {
-            self.browser_ids.insert(top_level_browsing_context_id, browsing_context_id);
+            let browser = match self.browsers.get_mut(&top_level_browsing_context_id) {
+                Some(browser) => browser,
+                None => return warn!(
+                    "Browser {} for focus msg does not exist",
+                    top_level_browsing_context_id
+                ),
+            };
+            browser.focused_browsing_context_id = browsing_context_id;
         }
 
         // Focus parent iframes recursively
@@ -3000,11 +3024,8 @@ where
         // LoadData of inner frames are ignored and replaced with the LoadData
         // of the parent.
 
-        let session_history = match self
-            .joint_session_histories
-            .get(&top_level_browsing_context_id)
-        {
-            Some(session_history) => session_history,
+        let session_history = match self.browsers.get(&top_level_browsing_context_id) {
+            Some(browser) => &browser.session_history,
             None => {
                 return warn!(
                     "Session history does not exist for {}",
@@ -3199,24 +3220,17 @@ where
                 let (pipelines_to_close, states_to_close) = if let Some(replace_reloader) =
                     change.replace
                 {
-                    let session_history = self
-                        .joint_session_histories
-                        .entry(change.top_level_browsing_context_id)
-                        .or_insert(JointSessionHistory::new());
-                    session_history.replace_reloader(
-                        replace_reloader.clone(),
-                        NeedsToReload::No(change.new_pipeline_id),
-                    );
+                    self.get_joint_session_history(change.top_level_browsing_context_id)
+                        .replace_reloader(
+                            replace_reloader.clone(),
+                            NeedsToReload::No(change.new_pipeline_id),
+                        );
 
                     match replace_reloader {
                         NeedsToReload::No(pipeline_id) => (Some(vec![pipeline_id]), None),
                         NeedsToReload::Yes(..) => (None, None),
                     }
                 } else {
-                    let session_history = self
-                        .joint_session_histories
-                        .entry(change.top_level_browsing_context_id)
-                        .or_insert(JointSessionHistory::new());
                     let diff = SessionHistoryDiff::BrowsingContextDiff {
                         browsing_context_id: change.browsing_context_id,
                         new_reloader: NeedsToReload::No(change.new_pipeline_id),
@@ -3226,7 +3240,9 @@ where
                     let mut pipelines_to_close = vec![];
                     let mut states_to_close = HashMap::new();
 
-                    let diffs_to_close = session_history.push_diff(diff);
+                    let diffs_to_close = self
+                        .get_joint_session_history(change.top_level_browsing_context_id)
+                        .push_diff(diff);
 
                     for diff in diffs_to_close {
                         match diff {
@@ -3749,17 +3765,23 @@ where
         top_level_browsing_context_id: TopLevelBrowsingContextId,
         pipeline_id: PipelineId,
     ) {
-        let load_data = match self.pipelines.get(&pipeline_id) {
-            Some(pipeline) => pipeline.load_data.clone(),
-            None => return,
+        match self.browsers.get_mut(&top_level_browsing_context_id) {
+            Some(browser) => {
+                let load_data = match self.pipelines.get(&pipeline_id) {
+                    Some(pipeline) => pipeline.load_data.clone(),
+                    None => return warn!("Discarding closed pipeline {}", pipeline_id),
+                };
+                browser.session_history.replace_reloader(
+                    NeedsToReload::No(pipeline_id),
+                    NeedsToReload::Yes(pipeline_id, load_data),
+                );
+            },
+            None => return warn!(
+                "Discarding pipeline {} after browser {} closure",
+                pipeline_id,
+                top_level_browsing_context_id,
+            ),
         };
-        self.joint_session_histories
-            .entry(top_level_browsing_context_id)
-            .or_insert(JointSessionHistory::new())
-            .replace_reloader(
-                NeedsToReload::No(pipeline_id),
-                NeedsToReload::Yes(pipeline_id, load_data),
-            );
         self.close_pipeline(
             pipeline_id,
             DiscardBrowsingContext::No,
@@ -3878,9 +3900,16 @@ where
         &mut self,
         top_level_id: TopLevelBrowsingContextId,
     ) -> &mut JointSessionHistory {
-        self.joint_session_histories
+        &mut self.browsers
             .entry(top_level_id)
-            .or_insert(JointSessionHistory::new())
+            // This shouldn't be necessary since `get_joint_session_history` is
+            // invoked for existing browsers but we need this to satisfy the
+            // type system.
+            .or_insert_with(|| Browser {
+                focused_browsing_context_id: BrowsingContextId::from(top_level_id),
+                session_history: JointSessionHistory::new(),
+            })
+            .session_history
     }
 
     // Convert a browsing context to a sendable form to pass to the compositor
@@ -3937,9 +3966,9 @@ where
         // `send_frame_tree`).
         if Some(top_level_browsing_context_id) != self.active_browser_id {
             self.active_browser_id = Some(top_level_browsing_context_id);
-            self.focused_browsing_context_id = self.browser_ids
+            self.focused_browsing_context_id = self.browsers
                 .get(&top_level_browsing_context_id)
-                .map(|focus_id| *focus_id)
+                .map(|browser| browser.focused_browsing_context_id)
                 .or(Some(browsing_context_id));
         }
 
