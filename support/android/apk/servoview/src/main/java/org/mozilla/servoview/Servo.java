@@ -128,6 +128,8 @@ public class Servo {
     }
 
     public interface Client {
+        boolean onAllowNavigation(String url);
+
         void onLoadStarted();
 
         void onLoadEnded();
@@ -189,6 +191,10 @@ public class Servo {
 
         public void onAnimatingChanged(boolean animating) {
             mRunCallback.inGLThread(() -> mGfxCb.animationStateChanged(animating));
+        }
+
+        public boolean onAllowNavigation(String url) {
+            return mClient.onAllowNavigation(url);
         }
 
         public void onLoadStarted() {

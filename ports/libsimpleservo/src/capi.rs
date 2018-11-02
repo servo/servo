@@ -35,6 +35,7 @@ pub struct CHostCallbacks {
     pub on_load_started: extern "C" fn(),
     pub on_load_ended: extern "C" fn(),
     pub on_title_changed: extern "C" fn(title: *const c_char),
+    pub on_allow_navigation: extern "C" fn(url: *const c_char) -> bool,
     pub on_url_changed: extern "C" fn(url: *const c_char),
     pub on_history_changed: extern "C" fn(can_go_back: bool, can_go_forward: bool),
     pub on_animating_changed: extern "C" fn(animating: bool),
@@ -300,6 +301,14 @@ impl HostTrait for HostCallbacks {
         let title_ptr = title.as_ptr();
         mem::forget(title);
         (self.0.on_title_changed)(title_ptr);
+    }
+
+    fn on_allow_navigation(&self, url: String) -> bool {
+        debug!("on_allow_navigation");
+        let url = CString::new(url).expect("Can't create string");
+        let url_ptr = url.as_ptr();
+        mem::forget(url);
+        (self.0.on_allow_navigation)(url_ptr)
     }
 
     fn on_url_changed(&self, url: String) {

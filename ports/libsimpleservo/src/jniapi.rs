@@ -395,6 +395,26 @@ impl HostTrait for HostCallbacks {
         .unwrap();
     }
 
+    fn on_allow_navigation(&self, url: String) -> bool {
+        debug!("on_allow_navigation");
+        let env = self.jvm.get_env().unwrap();
+        let s = match new_string(&env, &url) {
+            Ok(s) => s,
+            Err(_) => return false,
+        };
+        let s = JValue::from(JObject::from(s));
+        let allow = env.call_method(
+            self.callbacks.as_obj(),
+            "onAllowNavigation",
+            "(Ljava/lang/String;)Z",
+            &[s],
+        );
+        match allow {
+            Ok(allow) => return allow.z().unwrap(),
+            Err(_) => return true,
+        }
+    }
+
     fn on_url_changed(&self, url: String) {
         debug!("on_url_changed");
         let env = self.jvm.get_env().unwrap();
