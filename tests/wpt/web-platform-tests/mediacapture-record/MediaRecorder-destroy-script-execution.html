@@ -1,0 +1,47 @@
+<!doctype html>
+<meta charset="utf-8">
+<html>
+<title>MediaRecorder destroy script execution context</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<iframe src="support/MediaRecorder-iframe.html" id="subFrame-stop" name="subFrameStop"></iframe>
+<iframe src="support/MediaRecorder-iframe.html" id="subFrame-allTrackEnded" name="subFrameAllTrackEnded"></iframe>
+<script>
+    var iframeForCallingStop = document.getElementById('subFrame-stop');
+    var iframeForAllTrackEnded = document.getElementById('subFrame-allTrackEnded');
+
+    var testForCallingStop = async_test('MediaRecorder will not fire the stop event when stop() is called and the script execution context is going away');
+    var testForAllTrackEnded = async_test('MediaRecorder will not fire the stop event when all tracks are ended and the script execution context is going away');
+
+    iframeForCallingStop.onload = function(e) {
+        subFrameStop.window.prepareForTest();
+        const recorder = subFrameStop.window.recorder;
+        recorder.ondataavailable = testForCallingStop.step_func(blobEvent => {
+            iframeForCallingStop.remove();
+            testForCallingStop.step_timeout(testForCallingStop.step_func_done(), 0);
+        });
+        recorder.onstop = testForCallingStop.unreached_func('Unexpected stop event');
+        recorder.start();
+        assert_equals(recorder.state, 'recording', 'MediaRecorder has been started successfully');
+        subFrameStop.window.drawSomethingOnCanvas();
+        recorder.stop();
+    };
+
+    iframeForAllTrackEnded.onload = function(e) {
+        subFrameAllTrackEnded.window.prepareForTest();
+        const recorder = subFrameAllTrackEnded.window.recorder;
+        recorder.ondataavailable = testForAllTrackEnded.step_func(blobEvent => {
+            iframeForAllTrackEnded.remove();
+            testForAllTrackEnded.step_timeout(testForAllTrackEnded.step_func_done(), 0);
+        });
+        recorder.onstop = testForAllTrackEnded.unreached_func('Unexpected stop event');
+        recorder.start();
+        assert_equals(recorder.state, 'recording', 'MediaRecorder has been started successfully');
+        subFrameAllTrackEnded.window.drawSomethingOnCanvas();
+        subFrameAllTrackEnded.window.video.getVideoTracks()[0].stop();
+    };
+
+</script>
+</body>
+</html>

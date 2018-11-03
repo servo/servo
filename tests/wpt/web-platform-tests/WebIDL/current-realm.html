@@ -43,6 +43,19 @@
      }, val[0])
    })
 
+   ;["Request", "Response"].forEach(val => {
+     test(() => {
+       const obj = new self[0][val]("about:blank");
+       assert_global(obj);
+
+       const cloneObj = obj.clone();
+       assert_global(cloneObj);
+
+       const involvedCloneObj = self[val].prototype["clone"].call(cloneObj);
+       assert_global(cloneObj);
+     }, val)
+   })
+
    // Note: these are not [NewObject] and can be cached. But across globals?
    ;[["getElementsByTagName", "x"],
      ["getElementsByTagNameNS", null, "x"],

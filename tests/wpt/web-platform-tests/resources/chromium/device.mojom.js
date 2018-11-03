@@ -23,6 +23,12 @@
     mojo.internal.loadMojomIfNecessary(
         'mojo/public/mojom/base/string16.mojom', '../../../../mojo/public/mojom/base/string16.mojom.js');
   }
+  var url$ =
+      mojo.internal.exposeNamespace('url.mojom');
+  if (mojo.config.autoLoadMojomDeps) {
+    mojo.internal.loadMojomIfNecessary(
+        'url/mojom/url.mojom', '../../../../url/mojom/url.mojom.js');
+  }
 
 
   var UsbOpenDeviceError = {};
@@ -518,6 +524,7 @@
     this.manufacturerName = null;
     this.productName = null;
     this.serialNumber = null;
+    this.webusbLandingPage = null;
     this.configurations = null;
   };
   UsbDeviceInfo.prototype.initFields_ = function(fields) {
@@ -534,7 +541,7 @@
         return err;
 
     var kVersionSizes = [
-      {version: 0, numBytes: 64}
+      {version: 0, numBytes: 72}
     ];
     err = messageValidator.validateStructVersion(offset, kVersionSizes);
     if (err !== validator.validationError.NONE)
@@ -576,16 +583,22 @@
         return err;
 
 
+    // validate UsbDeviceInfo.webusbLandingPage
+    err = messageValidator.validateStructPointer(offset + codec.kStructHeaderSize + 48, url$.Url, true);
+    if (err !== validator.validationError.NONE)
+        return err;
+
+
 
     // validate UsbDeviceInfo.configurations
-    err = messageValidator.validateArrayPointer(offset + codec.kStructHeaderSize + 48, 8, new codec.PointerTo(UsbConfigurationInfo), false, [0], 0);
+    err = messageValidator.validateArrayPointer(offset + codec.kStructHeaderSize + 56, 8, new codec.PointerTo(UsbConfigurationInfo), false, [0], 0);
     if (err !== validator.validationError.NONE)
         return err;
 
     return validator.validationError.NONE;
   };
 
-  UsbDeviceInfo.encodedSize = codec.kStructHeaderSize + 56;
+  UsbDeviceInfo.encodedSize = codec.kStructHeaderSize + 64;
 
   UsbDeviceInfo.decode = function(decoder) {
     var packed;
@@ -610,6 +623,7 @@
     val.manufacturerName = decoder.decodeStructPointer(string16$.String16);
     val.productName = decoder.decodeStructPointer(string16$.String16);
     val.serialNumber = decoder.decodeStructPointer(string16$.String16);
+    val.webusbLandingPage = decoder.decodeStructPointer(url$.Url);
     val.configurations = decoder.decodeArrayPointer(new codec.PointerTo(UsbConfigurationInfo));
     return val;
   };
@@ -636,6 +650,7 @@
     encoder.encodeStructPointer(string16$.String16, val.manufacturerName);
     encoder.encodeStructPointer(string16$.String16, val.productName);
     encoder.encodeStructPointer(string16$.String16, val.serialNumber);
+    encoder.encodeStructPointer(url$.Url, val.webusbLandingPage);
     encoder.encodeArrayPointer(new codec.PointerTo(UsbConfigurationInfo), val.configurations);
   };
   function UsbControlTransferParams(values) {
@@ -2578,6 +2593,98 @@
     encoder.writeUint32(0);
     encoder.encodeArrayPointer(new codec.PointerTo(UsbIsochronousPacket), val.packets);
   };
+  function UsbDeviceClient_OnDeviceOpened_Params(values) {
+    this.initDefaults_();
+    this.initFields_(values);
+  }
+
+
+  UsbDeviceClient_OnDeviceOpened_Params.prototype.initDefaults_ = function() {
+  };
+  UsbDeviceClient_OnDeviceOpened_Params.prototype.initFields_ = function(fields) {
+    for(var field in fields) {
+        if (this.hasOwnProperty(field))
+          this[field] = fields[field];
+    }
+  };
+
+  UsbDeviceClient_OnDeviceOpened_Params.validate = function(messageValidator, offset) {
+    var err;
+    err = messageValidator.validateStructHeader(offset, codec.kStructHeaderSize);
+    if (err !== validator.validationError.NONE)
+        return err;
+
+    var kVersionSizes = [
+      {version: 0, numBytes: 8}
+    ];
+    err = messageValidator.validateStructVersion(offset, kVersionSizes);
+    if (err !== validator.validationError.NONE)
+        return err;
+
+    return validator.validationError.NONE;
+  };
+
+  UsbDeviceClient_OnDeviceOpened_Params.encodedSize = codec.kStructHeaderSize + 0;
+
+  UsbDeviceClient_OnDeviceOpened_Params.decode = function(decoder) {
+    var packed;
+    var val = new UsbDeviceClient_OnDeviceOpened_Params();
+    var numberOfBytes = decoder.readUint32();
+    var version = decoder.readUint32();
+    return val;
+  };
+
+  UsbDeviceClient_OnDeviceOpened_Params.encode = function(encoder, val) {
+    var packed;
+    encoder.writeUint32(UsbDeviceClient_OnDeviceOpened_Params.encodedSize);
+    encoder.writeUint32(0);
+  };
+  function UsbDeviceClient_OnDeviceClosed_Params(values) {
+    this.initDefaults_();
+    this.initFields_(values);
+  }
+
+
+  UsbDeviceClient_OnDeviceClosed_Params.prototype.initDefaults_ = function() {
+  };
+  UsbDeviceClient_OnDeviceClosed_Params.prototype.initFields_ = function(fields) {
+    for(var field in fields) {
+        if (this.hasOwnProperty(field))
+          this[field] = fields[field];
+    }
+  };
+
+  UsbDeviceClient_OnDeviceClosed_Params.validate = function(messageValidator, offset) {
+    var err;
+    err = messageValidator.validateStructHeader(offset, codec.kStructHeaderSize);
+    if (err !== validator.validationError.NONE)
+        return err;
+
+    var kVersionSizes = [
+      {version: 0, numBytes: 8}
+    ];
+    err = messageValidator.validateStructVersion(offset, kVersionSizes);
+    if (err !== validator.validationError.NONE)
+        return err;
+
+    return validator.validationError.NONE;
+  };
+
+  UsbDeviceClient_OnDeviceClosed_Params.encodedSize = codec.kStructHeaderSize + 0;
+
+  UsbDeviceClient_OnDeviceClosed_Params.decode = function(decoder) {
+    var packed;
+    var val = new UsbDeviceClient_OnDeviceClosed_Params();
+    var numberOfBytes = decoder.readUint32();
+    var version = decoder.readUint32();
+    return val;
+  };
+
+  UsbDeviceClient_OnDeviceClosed_Params.encode = function(encoder, val) {
+    var packed;
+    encoder.writeUint32(UsbDeviceClient_OnDeviceClosed_Params.encodedSize);
+    encoder.writeUint32(0);
+  };
   var kUsbDevice_Open_Name = 0;
   var kUsbDevice_Close_Name = 1;
   var kUsbDevice_SetConfiguration_Name = 2;
@@ -2617,13 +2724,13 @@
   };
 
   UsbDeviceProxy.prototype.open = function() {
-    var params = new UsbDevice_Open_Params();
+    var params_ = new UsbDevice_Open_Params();
     return new Promise(function(resolve, reject) {
       var builder = new codec.MessageV1Builder(
           kUsbDevice_Open_Name,
           codec.align(UsbDevice_Open_Params.encodedSize),
           codec.kMessageExpectsResponse, 0);
-      builder.encodeStruct(UsbDevice_Open_Params, params);
+      builder.encodeStruct(UsbDevice_Open_Params, params_);
       var message = builder.finish();
       this.receiver_.acceptAndExpectResponse(message).then(function(message) {
         var reader = new codec.MessageReader(message);
@@ -2641,13 +2748,13 @@
   };
 
   UsbDeviceProxy.prototype.close = function() {
-    var params = new UsbDevice_Close_Params();
+    var params_ = new UsbDevice_Close_Params();
     return new Promise(function(resolve, reject) {
       var builder = new codec.MessageV1Builder(
           kUsbDevice_Close_Name,
           codec.align(UsbDevice_Close_Params.encodedSize),
           codec.kMessageExpectsResponse, 0);
-      builder.encodeStruct(UsbDevice_Close_Params, params);
+      builder.encodeStruct(UsbDevice_Close_Params, params_);
       var message = builder.finish();
       this.receiver_.acceptAndExpectResponse(message).then(function(message) {
         var reader = new codec.MessageReader(message);
@@ -2665,14 +2772,14 @@
   };
 
   UsbDeviceProxy.prototype.setConfiguration = function(value) {
-    var params = new UsbDevice_SetConfiguration_Params();
-    params.value = value;
+    var params_ = new UsbDevice_SetConfiguration_Params();
+    params_.value = value;
     return new Promise(function(resolve, reject) {
       var builder = new codec.MessageV1Builder(
           kUsbDevice_SetConfiguration_Name,
           codec.align(UsbDevice_SetConfiguration_Params.encodedSize),
           codec.kMessageExpectsResponse, 0);
-      builder.encodeStruct(UsbDevice_SetConfiguration_Params, params);
+      builder.encodeStruct(UsbDevice_SetConfiguration_Params, params_);
       var message = builder.finish();
       this.receiver_.acceptAndExpectResponse(message).then(function(message) {
         var reader = new codec.MessageReader(message);
@@ -2690,14 +2797,14 @@
   };
 
   UsbDeviceProxy.prototype.claimInterface = function(interfaceNumber) {
-    var params = new UsbDevice_ClaimInterface_Params();
-    params.interfaceNumber = interfaceNumber;
+    var params_ = new UsbDevice_ClaimInterface_Params();
+    params_.interfaceNumber = interfaceNumber;
     return new Promise(function(resolve, reject) {
       var builder = new codec.MessageV1Builder(
           kUsbDevice_ClaimInterface_Name,
           codec.align(UsbDevice_ClaimInterface_Params.encodedSize),
           codec.kMessageExpectsResponse, 0);
-      builder.encodeStruct(UsbDevice_ClaimInterface_Params, params);
+      builder.encodeStruct(UsbDevice_ClaimInterface_Params, params_);
       var message = builder.finish();
       this.receiver_.acceptAndExpectResponse(message).then(function(message) {
         var reader = new codec.MessageReader(message);
@@ -2715,14 +2822,14 @@
   };
 
   UsbDeviceProxy.prototype.releaseInterface = function(interfaceNumber) {
-    var params = new UsbDevice_ReleaseInterface_Params();
-    params.interfaceNumber = interfaceNumber;
+    var params_ = new UsbDevice_ReleaseInterface_Params();
+    params_.interfaceNumber = interfaceNumber;
     return new Promise(function(resolve, reject) {
       var builder = new codec.MessageV1Builder(
           kUsbDevice_ReleaseInterface_Name,
           codec.align(UsbDevice_ReleaseInterface_Params.encodedSize),
           codec.kMessageExpectsResponse, 0);
-      builder.encodeStruct(UsbDevice_ReleaseInterface_Params, params);
+      builder.encodeStruct(UsbDevice_ReleaseInterface_Params, params_);
       var message = builder.finish();
       this.receiver_.acceptAndExpectResponse(message).then(function(message) {
         var reader = new codec.MessageReader(message);
@@ -2740,15 +2847,15 @@
   };
 
   UsbDeviceProxy.prototype.setInterfaceAlternateSetting = function(interfaceNumber, alternateSetting) {
-    var params = new UsbDevice_SetInterfaceAlternateSetting_Params();
-    params.interfaceNumber = interfaceNumber;
-    params.alternateSetting = alternateSetting;
+    var params_ = new UsbDevice_SetInterfaceAlternateSetting_Params();
+    params_.interfaceNumber = interfaceNumber;
+    params_.alternateSetting = alternateSetting;
     return new Promise(function(resolve, reject) {
       var builder = new codec.MessageV1Builder(
           kUsbDevice_SetInterfaceAlternateSetting_Name,
           codec.align(UsbDevice_SetInterfaceAlternateSetting_Params.encodedSize),
           codec.kMessageExpectsResponse, 0);
-      builder.encodeStruct(UsbDevice_SetInterfaceAlternateSetting_Params, params);
+      builder.encodeStruct(UsbDevice_SetInterfaceAlternateSetting_Params, params_);
       var message = builder.finish();
       this.receiver_.acceptAndExpectResponse(message).then(function(message) {
         var reader = new codec.MessageReader(message);
@@ -2766,13 +2873,13 @@
   };
 
   UsbDeviceProxy.prototype.reset = function() {
-    var params = new UsbDevice_Reset_Params();
+    var params_ = new UsbDevice_Reset_Params();
     return new Promise(function(resolve, reject) {
       var builder = new codec.MessageV1Builder(
           kUsbDevice_Reset_Name,
           codec.align(UsbDevice_Reset_Params.encodedSize),
           codec.kMessageExpectsResponse, 0);
-      builder.encodeStruct(UsbDevice_Reset_Params, params);
+      builder.encodeStruct(UsbDevice_Reset_Params, params_);
       var message = builder.finish();
       this.receiver_.acceptAndExpectResponse(message).then(function(message) {
         var reader = new codec.MessageReader(message);
@@ -2790,14 +2897,14 @@
   };
 
   UsbDeviceProxy.prototype.clearHalt = function(endpoint) {
-    var params = new UsbDevice_ClearHalt_Params();
-    params.endpoint = endpoint;
+    var params_ = new UsbDevice_ClearHalt_Params();
+    params_.endpoint = endpoint;
     return new Promise(function(resolve, reject) {
       var builder = new codec.MessageV1Builder(
           kUsbDevice_ClearHalt_Name,
           codec.align(UsbDevice_ClearHalt_Params.encodedSize),
           codec.kMessageExpectsResponse, 0);
-      builder.encodeStruct(UsbDevice_ClearHalt_Params, params);
+      builder.encodeStruct(UsbDevice_ClearHalt_Params, params_);
       var message = builder.finish();
       this.receiver_.acceptAndExpectResponse(message).then(function(message) {
         var reader = new codec.MessageReader(message);
@@ -2815,16 +2922,16 @@
   };
 
   UsbDeviceProxy.prototype.controlTransferIn = function(params, length, timeout) {
-    var params = new UsbDevice_ControlTransferIn_Params();
-    params.params = params;
-    params.length = length;
-    params.timeout = timeout;
+    var params_ = new UsbDevice_ControlTransferIn_Params();
+    params_.params = params;
+    params_.length = length;
+    params_.timeout = timeout;
     return new Promise(function(resolve, reject) {
       var builder = new codec.MessageV1Builder(
           kUsbDevice_ControlTransferIn_Name,
           codec.align(UsbDevice_ControlTransferIn_Params.encodedSize),
           codec.kMessageExpectsResponse, 0);
-      builder.encodeStruct(UsbDevice_ControlTransferIn_Params, params);
+      builder.encodeStruct(UsbDevice_ControlTransferIn_Params, params_);
       var message = builder.finish();
       this.receiver_.acceptAndExpectResponse(message).then(function(message) {
         var reader = new codec.MessageReader(message);
@@ -2842,16 +2949,16 @@
   };
 
   UsbDeviceProxy.prototype.controlTransferOut = function(params, data, timeout) {
-    var params = new UsbDevice_ControlTransferOut_Params();
-    params.params = params;
-    params.data = data;
-    params.timeout = timeout;
+    var params_ = new UsbDevice_ControlTransferOut_Params();
+    params_.params = params;
+    params_.data = data;
+    params_.timeout = timeout;
     return new Promise(function(resolve, reject) {
       var builder = new codec.MessageV1Builder(
           kUsbDevice_ControlTransferOut_Name,
           codec.align(UsbDevice_ControlTransferOut_Params.encodedSize),
           codec.kMessageExpectsResponse, 0);
-      builder.encodeStruct(UsbDevice_ControlTransferOut_Params, params);
+      builder.encodeStruct(UsbDevice_ControlTransferOut_Params, params_);
       var message = builder.finish();
       this.receiver_.acceptAndExpectResponse(message).then(function(message) {
         var reader = new codec.MessageReader(message);
@@ -2869,16 +2976,16 @@
   };
 
   UsbDeviceProxy.prototype.genericTransferIn = function(endpointNumber, length, timeout) {
-    var params = new UsbDevice_GenericTransferIn_Params();
-    params.endpointNumber = endpointNumber;
-    params.length = length;
-    params.timeout = timeout;
+    var params_ = new UsbDevice_GenericTransferIn_Params();
+    params_.endpointNumber = endpointNumber;
+    params_.length = length;
+    params_.timeout = timeout;
     return new Promise(function(resolve, reject) {
       var builder = new codec.MessageV1Builder(
           kUsbDevice_GenericTransferIn_Name,
           codec.align(UsbDevice_GenericTransferIn_Params.encodedSize),
           codec.kMessageExpectsResponse, 0);
-      builder.encodeStruct(UsbDevice_GenericTransferIn_Params, params);
+      builder.encodeStruct(UsbDevice_GenericTransferIn_Params, params_);
       var message = builder.finish();
       this.receiver_.acceptAndExpectResponse(message).then(function(message) {
         var reader = new codec.MessageReader(message);
@@ -2896,16 +3003,16 @@
   };
 
   UsbDeviceProxy.prototype.genericTransferOut = function(endpointNumber, data, timeout) {
-    var params = new UsbDevice_GenericTransferOut_Params();
-    params.endpointNumber = endpointNumber;
-    params.data = data;
-    params.timeout = timeout;
+    var params_ = new UsbDevice_GenericTransferOut_Params();
+    params_.endpointNumber = endpointNumber;
+    params_.data = data;
+    params_.timeout = timeout;
     return new Promise(function(resolve, reject) {
       var builder = new codec.MessageV1Builder(
           kUsbDevice_GenericTransferOut_Name,
           codec.align(UsbDevice_GenericTransferOut_Params.encodedSize),
           codec.kMessageExpectsResponse, 0);
-      builder.encodeStruct(UsbDevice_GenericTransferOut_Params, params);
+      builder.encodeStruct(UsbDevice_GenericTransferOut_Params, params_);
       var message = builder.finish();
       this.receiver_.acceptAndExpectResponse(message).then(function(message) {
         var reader = new codec.MessageReader(message);
@@ -2923,16 +3030,16 @@
   };
 
   UsbDeviceProxy.prototype.isochronousTransferIn = function(endpointNumber, packetLengths, timeout) {
-    var params = new UsbDevice_IsochronousTransferIn_Params();
-    params.endpointNumber = endpointNumber;
-    params.packetLengths = packetLengths;
-    params.timeout = timeout;
+    var params_ = new UsbDevice_IsochronousTransferIn_Params();
+    params_.endpointNumber = endpointNumber;
+    params_.packetLengths = packetLengths;
+    params_.timeout = timeout;
     return new Promise(function(resolve, reject) {
       var builder = new codec.MessageV1Builder(
           kUsbDevice_IsochronousTransferIn_Name,
           codec.align(UsbDevice_IsochronousTransferIn_Params.encodedSize),
           codec.kMessageExpectsResponse, 0);
-      builder.encodeStruct(UsbDevice_IsochronousTransferIn_Params, params);
+      builder.encodeStruct(UsbDevice_IsochronousTransferIn_Params, params_);
       var message = builder.finish();
       this.receiver_.acceptAndExpectResponse(message).then(function(message) {
         var reader = new codec.MessageReader(message);
@@ -2950,17 +3057,17 @@
   };
 
   UsbDeviceProxy.prototype.isochronousTransferOut = function(endpointNumber, data, packetLengths, timeout) {
-    var params = new UsbDevice_IsochronousTransferOut_Params();
-    params.endpointNumber = endpointNumber;
-    params.data = data;
-    params.packetLengths = packetLengths;
-    params.timeout = timeout;
+    var params_ = new UsbDevice_IsochronousTransferOut_Params();
+    params_.endpointNumber = endpointNumber;
+    params_.data = data;
+    params_.packetLengths = packetLengths;
+    params_.timeout = timeout;
     return new Promise(function(resolve, reject) {
       var builder = new codec.MessageV1Builder(
           kUsbDevice_IsochronousTransferOut_Name,
           codec.align(UsbDevice_IsochronousTransferOut_Params.encodedSize),
           codec.kMessageExpectsResponse, 0);
-      builder.encodeStruct(UsbDevice_IsochronousTransferOut_Params, params);
+      builder.encodeStruct(UsbDevice_IsochronousTransferOut_Params, params_);
       var message = builder.finish();
       this.receiver_.acceptAndExpectResponse(message).then(function(message) {
         var reader = new codec.MessageReader(message);
@@ -3405,6 +3512,124 @@
   };
   UsbDeviceStub.prototype.validator = validateUsbDeviceRequest;
   UsbDeviceProxy.prototype.validator = validateUsbDeviceResponse;
+  var kUsbDeviceClient_OnDeviceOpened_Name = 0;
+  var kUsbDeviceClient_OnDeviceClosed_Name = 1;
+
+  function UsbDeviceClientPtr(handleOrPtrInfo) {
+    this.ptr = new bindings.InterfacePtrController(UsbDeviceClient,
+                                                   handleOrPtrInfo);
+  }
+
+  function UsbDeviceClientAssociatedPtr(associatedInterfacePtrInfo) {
+    this.ptr = new associatedBindings.AssociatedInterfacePtrController(
+        UsbDeviceClient, associatedInterfacePtrInfo);
+  }
+
+  UsbDeviceClientAssociatedPtr.prototype =
+      Object.create(UsbDeviceClientPtr.prototype);
+  UsbDeviceClientAssociatedPtr.prototype.constructor =
+      UsbDeviceClientAssociatedPtr;
+
+  function UsbDeviceClientProxy(receiver) {
+    this.receiver_ = receiver;
+  }
+  UsbDeviceClientPtr.prototype.onDeviceOpened = function() {
+    return UsbDeviceClientProxy.prototype.onDeviceOpened
+        .apply(this.ptr.getProxy(), arguments);
+  };
+
+  UsbDeviceClientProxy.prototype.onDeviceOpened = function() {
+    var params_ = new UsbDeviceClient_OnDeviceOpened_Params();
+    var builder = new codec.MessageV0Builder(
+        kUsbDeviceClient_OnDeviceOpened_Name,
+        codec.align(UsbDeviceClient_OnDeviceOpened_Params.encodedSize));
+    builder.encodeStruct(UsbDeviceClient_OnDeviceOpened_Params, params_);
+    var message = builder.finish();
+    this.receiver_.accept(message);
+  };
+  UsbDeviceClientPtr.prototype.onDeviceClosed = function() {
+    return UsbDeviceClientProxy.prototype.onDeviceClosed
+        .apply(this.ptr.getProxy(), arguments);
+  };
+
+  UsbDeviceClientProxy.prototype.onDeviceClosed = function() {
+    var params_ = new UsbDeviceClient_OnDeviceClosed_Params();
+    var builder = new codec.MessageV0Builder(
+        kUsbDeviceClient_OnDeviceClosed_Name,
+        codec.align(UsbDeviceClient_OnDeviceClosed_Params.encodedSize));
+    builder.encodeStruct(UsbDeviceClient_OnDeviceClosed_Params, params_);
+    var message = builder.finish();
+    this.receiver_.accept(message);
+  };
+
+  function UsbDeviceClientStub(delegate) {
+    this.delegate_ = delegate;
+  }
+  UsbDeviceClientStub.prototype.onDeviceOpened = function() {
+    return this.delegate_ && this.delegate_.onDeviceOpened && this.delegate_.onDeviceOpened();
+  }
+  UsbDeviceClientStub.prototype.onDeviceClosed = function() {
+    return this.delegate_ && this.delegate_.onDeviceClosed && this.delegate_.onDeviceClosed();
+  }
+
+  UsbDeviceClientStub.prototype.accept = function(message) {
+    var reader = new codec.MessageReader(message);
+    switch (reader.messageName) {
+    case kUsbDeviceClient_OnDeviceOpened_Name:
+      var params = reader.decodeStruct(UsbDeviceClient_OnDeviceOpened_Params);
+      this.onDeviceOpened();
+      return true;
+    case kUsbDeviceClient_OnDeviceClosed_Name:
+      var params = reader.decodeStruct(UsbDeviceClient_OnDeviceClosed_Params);
+      this.onDeviceClosed();
+      return true;
+    default:
+      return false;
+    }
+  };
+
+  UsbDeviceClientStub.prototype.acceptWithResponder =
+      function(message, responder) {
+    var reader = new codec.MessageReader(message);
+    switch (reader.messageName) {
+    default:
+      return false;
+    }
+  };
+
+  function validateUsbDeviceClientRequest(messageValidator) {
+    var message = messageValidator.message;
+    var paramsClass = null;
+    switch (message.getName()) {
+      case kUsbDeviceClient_OnDeviceOpened_Name:
+        if (!message.expectsResponse() && !message.isResponse())
+          paramsClass = UsbDeviceClient_OnDeviceOpened_Params;
+      break;
+      case kUsbDeviceClient_OnDeviceClosed_Name:
+        if (!message.expectsResponse() && !message.isResponse())
+          paramsClass = UsbDeviceClient_OnDeviceClosed_Params;
+      break;
+    }
+    if (paramsClass === null)
+      return validator.validationError.NONE;
+    return paramsClass.validate(messageValidator, messageValidator.message.getHeaderNumBytes());
+  }
+
+  function validateUsbDeviceClientResponse(messageValidator) {
+    return validator.validationError.NONE;
+  }
+
+  var UsbDeviceClient = {
+    name: 'device.mojom.UsbDeviceClient',
+    kVersion: 0,
+    ptrClass: UsbDeviceClientPtr,
+    proxyClass: UsbDeviceClientProxy,
+    stubClass: UsbDeviceClientStub,
+    validateRequest: validateUsbDeviceClientRequest,
+    validateResponse: null,
+  };
+  UsbDeviceClientStub.prototype.validator = validateUsbDeviceClientRequest;
+  UsbDeviceClientProxy.prototype.validator = null;
   exports.UsbOpenDeviceError = UsbOpenDeviceError;
   exports.UsbTransferDirection = UsbTransferDirection;
   exports.UsbControlTransferType = UsbControlTransferType;
@@ -3421,4 +3646,7 @@
   exports.UsbDevice = UsbDevice;
   exports.UsbDevicePtr = UsbDevicePtr;
   exports.UsbDeviceAssociatedPtr = UsbDeviceAssociatedPtr;
+  exports.UsbDeviceClient = UsbDeviceClient;
+  exports.UsbDeviceClientPtr = UsbDeviceClientPtr;
+  exports.UsbDeviceClientAssociatedPtr = UsbDeviceClientAssociatedPtr;
 })();

@@ -251,6 +251,8 @@ testText("<div><table style='border-collapse:collapse'><tr><td>abc<td>def</table
 testText("<div><table><tfoot>x</tfoot><tbody>y</tbody></table>", "xy", "tfoot not reordered");
 testText("<table><tfoot><tr><td>footer</tfoot><thead><tr><td style='visibility:collapse'>thead</thead><tbody><tr><td>tbody</tbody></table>",
          "footer\n\ntbody", "");
+testText("<table><tr><td id=target>abc</td><td>def</td>", "abc", "No tab on table-cell itself");
+testText("<table><tr id=target><td>abc</td><td>def</td></tr><tr id=target><td>ghi</td><td>jkl</td></tr>", "abc\tdef", "No newline on table-row itself");
 
 /**** Table captions ****/
 

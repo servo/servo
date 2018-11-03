@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text level 3 Test: letter spacing after bidi</title>
+<link rel="author" title="Florian Rivoal" href="http://florian.rivoal.net/">
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#letter-spacing-property">
+<link rel="match" href="reference/letter-spacing-bidi-001-ref.html">
+<meta name="assert" content="Letter spacing is inserted after RTL reordering, so letter spacing cannot apply to any of the letters in the span below,
+since they get split appart.">
+<style>
+div {
+  font-family: monospace;
+  font-size: 3em;
+}
+span {
+  letter-spacing: 1ch;
+}
+</style>
+
+<p>Test passes if the rightmost character of the line that starts with “a” is under the number 4.
+<div>12345</div>
+<div>a<span>bא</span>ב</div>

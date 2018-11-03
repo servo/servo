@@ -57,9 +57,9 @@ def test_setup_wptrunner(venv, product):
     parser = run.create_parser()
     kwargs = vars(parser.parse_args(["--channel=nightly", product]))
     kwargs["prompt"] = False
-    kwargs["webdriver_binary"] = "fake"
     # Hack to get a real existing path
     kwargs["binary"] = sys.argv[0]
+    kwargs["webdriver_binary"] = sys.argv[0]
     if kwargs["product"] == "sauce":
         kwargs["product"] = "sauce:firefox:63"
     run.setup_wptrunner(venv, **kwargs)

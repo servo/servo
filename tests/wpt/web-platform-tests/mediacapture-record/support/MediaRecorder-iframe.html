@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<title>Start a MediaRecorder</title>
+<html>
+<body>
+<canvas id="canvas" width="200px" height="200px"></canvas>
+<script>
+    var context;
+    var recorder;
+    var video;
+
+    function createVideoStream() {
+        const canvas = document.getElementById("canvas");
+        context = canvas.getContext('2d');
+        return canvas.captureStream();
+    }
+
+    function drawSomethingOnCanvas() {
+        context.fillStyle = "red";
+        context.fillRect(0, 0, 10, 10);
+    }
+
+    function prepareForTest() {
+        video = createVideoStream();
+        recorder = new MediaRecorder(video);
+    }
+</script>
+</body>
+</html>

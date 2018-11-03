@@ -82,7 +82,7 @@ matrix:
         apt:
           packages:
             - libnss3-tools
-      env: JOB=wpt_integration TOXENV=py27,py27-flake8 SCRIPT=tools/ci/ci_wpt.sh
+      env: JOB=wpt_integration TOXENV=py27 SCRIPT=tools/ci/ci_wpt.sh
     - name: "resources/ tests"
       if: type = pull_request
       os: linux
