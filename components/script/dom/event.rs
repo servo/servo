@@ -525,7 +525,10 @@ fn inner_invoke(
         // Step 2.2.
         found = true;
 
-        // TODO: step 2.5.
+        // Step 2.5.
+        if let CompiledEventListener::Listener(event_listener) = listener {
+            object.remove_listener_if_once(&event.type_(), &event_listener);
+        }
 
         // Step 2.6.
         let marker = TimelineMarker::start("DOMEvent".to_owned());
