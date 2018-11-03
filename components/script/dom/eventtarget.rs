@@ -244,11 +244,18 @@ impl CompiledEventListener {
     }
 }
 
-#[derive(Clone, DenyPublicFields, JSTraceable, MallocSizeOf, PartialEq)]
+#[derive(Clone, DenyPublicFields, JSTraceable, MallocSizeOf)]
 /// A listener in a collection of event listeners.
 struct EventListenerEntry {
     phase: ListenerPhase,
     listener: EventListenerType,
+    once: bool,
+}
+
+impl std::cmp::PartialEq for EventListenerEntry {
+    fn eq(&self, other: &Self) -> bool {
+        self.phase == other.phase && self.listener == other.listener
+    }
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
@@ -401,9 +408,21 @@ impl EventTarget {
                     entries.push(EventListenerEntry {
                         phase: ListenerPhase::Bubbling,
                         listener: EventListenerType::Inline(listener),
+                        once: false
                     });
                 }
             },
+        }
+    }
+
+    pub fn remove_listener_if_once(&self, ty: &Atom, listener: Rc<EventListener>) {
+        let mut handlers = self.handlers.borrow_mut();
+
+        let listener = EventListenerType::Additive(listener);
+        for entry in handlers.get_mut(ty) {
+            if let Some(position) = entry.iter().position(|e| e.listener == listener && e.once) {
+                entry.remove(position);
+            }
         }
     }
 
@@ -662,6 +681,7 @@ impl EventTarget {
         let new_entry = EventListenerEntry {
             phase: phase,
             listener: EventListenerType::Additive(listener),
+            once: options.once,
         };
         if !entry.contains(&new_entry) {
             entry.push(new_entry);
@@ -690,6 +710,7 @@ impl EventTarget {
             let old_entry = EventListenerEntry {
                 phase: phase,
                 listener: EventListenerType::Additive(listener.clone()),
+                once: false,
             };
             if let Some(position) = entry.iter().position(|e| *e == old_entry) {
                 entry.remove(position);
@@ -744,6 +765,7 @@ impl From<AddEventListenerOptionsOrBoolean> for AddEventListenerOptions {
             AddEventListenerOptionsOrBoolean::AddEventListenerOptions(options) => options,
             AddEventListenerOptionsOrBoolean::Boolean(capture) => Self {
                 parent: EventListenerOptions { capture },
+                once: false,
             },
         }
     }
