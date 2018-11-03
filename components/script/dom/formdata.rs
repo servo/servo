@@ -18,19 +18,19 @@ use dom::globalscope::GlobalScope;
 use dom::htmlformelement::{HTMLFormElement, FormDatumValue, FormDatum};
 use dom_struct::dom_struct;
 use html5ever::LocalName;
-use std::collections::HashMap;
-use std::collections::hash_map::Entry::{Occupied, Vacant};
+use std::collections::BTreeMap;
+use std::collections::btree_map::Entry::{Occupied, Vacant};
 use std::iter;
 
 #[dom_struct]
 pub struct FormData {
     reflector_: Reflector,
-    data: DomRefCell<HashMap<LocalName, Vec<FormDatum>>>,
+    data: DomRefCell<BTreeMap<LocalName, Vec<FormDatum>>>,
 }
 
 impl FormData {
     fn new_inherited(opt_form: Option<&HTMLFormElement>) -> FormData {
-        let mut hashmap: HashMap<LocalName, Vec<FormDatum>> = HashMap::new();
+        let mut hashmap: BTreeMap<LocalName, Vec<FormDatum>> = BTreeMap::new();
 
         if let Some(form) = opt_form {
             for datum in form.get_form_dataset(None) {
