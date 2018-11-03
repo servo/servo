@@ -28,5 +28,5 @@ servo_channel = {path = "../channel"}
 servo_config = {path = "../config"}
 servo_url = {path = "../url"}
 url = "1.2"
-uuid = {version = "0.6", features = ["v4"]}
+uuid = {version = "0.7", features = ["v4"]}
 webdriver = "0.37"

@@ -17,7 +17,7 @@ ipc-channel = "0.11"
 log = "0.4"
 servo_config = {path = "../config"}
 servo_rand = {path = "../rand"}
-uuid = {version = "0.6", features = ["v4"]}
+uuid = {version = "0.7", features = ["v4"]}
 
 [features]
 disable-native-bluetooth = []

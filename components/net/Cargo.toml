@@ -52,7 +52,7 @@ tokio-timer = "0.2"
 threadpool = "1.0"
 time = "0.1.17"
 url = "1.2"
-uuid = {version = "0.6", features = ["v4"]}
+uuid = {version = "0.7", features = ["v4"]}
 webrender_api = {git = "https://github.com/servo/webrender", features = ["ipc"]}
 ws = { version = "0.7", features = ["ssl"] }
 

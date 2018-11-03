@@ -129,7 +129,7 @@ fn test_fetch_blob() {
     let (sender, receiver) = ipc::channel().unwrap();
     context.filemanager.promote_memory(blob_buf, true, sender, "http://www.example.org".into());
     let id = receiver.recv().unwrap().unwrap();
-    let url = ServoUrl::parse(&format!("blob:{}{}", origin.as_str(), id.simple())).unwrap();
+    let url = ServoUrl::parse(&format!("blob:{}{}", origin.as_str(), id.to_simple())).unwrap();
 
 
     let mut request = Request::new(url, Some(Origin::Origin(origin.origin())), None);

@@ -106,7 +106,7 @@ time = "0.1.12"
 unicode-segmentation = "1.1.0"
 url = "1.6"
 utf-8 = "0.7"
-uuid = {version = "0.6", features = ["v4"]}
+uuid = {version = "0.7", features = ["v4"]}
 xml5ever = {version = "0.12"}
 webrender_api = {git = "https://github.com/servo/webrender", features = ["ipc"]}
 webvr_traits = {path = "../webvr_traits"}

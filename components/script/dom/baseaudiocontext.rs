@@ -406,7 +406,7 @@ impl BaseAudioContextMethods for BaseAudioContext {
         if audio_data.len() > 0 {
             // Step 2.
             // XXX detach array buffer.
-            let uuid = Uuid::new_v4().simple().to_string();
+            let uuid = Uuid::new_v4().to_simple().to_string();
             let uuid_ = uuid.clone();
             self.decode_resolvers.borrow_mut().insert(
                 uuid.clone(),

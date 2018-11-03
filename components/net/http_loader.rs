@@ -991,7 +991,7 @@ fn http_network_fetch(request: &Request,
     let url = request.current_url();
 
     let request_id = context.devtools_chan.as_ref().map(|_| {
-        uuid::Uuid::new_v4().simple().to_string()
+        uuid::Uuid::new_v4().to_simple().to_string()
     });
 
     // XHR uses the default destination; other kinds of fetches (which haven't been implemented yet)
