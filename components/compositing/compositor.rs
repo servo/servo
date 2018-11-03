@@ -320,7 +320,6 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             time_profiler_chan: state.time_profiler_chan,
             last_composite_time: 0,
             ready_to_save_state: ReadyState::Unknown,
-            scroll_in_progress: false,
             in_scroll_transaction: None,
             webrender: state.webrender,
             webrender_document: state.webrender_document,
