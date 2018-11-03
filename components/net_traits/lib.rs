@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-
 #![deny(unsafe_code)]
 
 extern crate cookie as cookie_rs;
@@ -14,18 +13,24 @@ extern crate hyper;
 extern crate hyper_serde;
 extern crate image as piston_image;
 extern crate ipc_channel;
-#[macro_use] extern crate lazy_static;
-#[macro_use] extern crate log;
-#[macro_use] extern crate malloc_size_of;
-#[macro_use] extern crate malloc_size_of_derive;
+#[macro_use]
+extern crate lazy_static;
+#[macro_use]
+extern crate log;
+#[macro_use]
+extern crate malloc_size_of;
+#[macro_use]
+extern crate malloc_size_of_derive;
 extern crate mime;
 extern crate msg;
 extern crate num_traits;
 extern crate pixels;
-#[macro_use] extern crate serde;
+#[macro_use]
+extern crate serde;
 extern crate servo_arc;
 extern crate servo_url;
-#[macro_use] extern crate url;
+#[macro_use]
+extern crate url;
 extern crate uuid;
 extern crate webrender_api;
 
@@ -86,18 +91,26 @@ pub enum LoadContext {
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub struct CustomResponse {
     #[ignore_malloc_size_of = "Defined in hyper"]
-    #[serde(deserialize_with = "::hyper_serde::deserialize",
-            serialize_with = "::hyper_serde::serialize")]
+    #[serde(
+        deserialize_with = "::hyper_serde::deserialize",
+        serialize_with = "::hyper_serde::serialize"
+    )]
     pub headers: HeaderMap,
     #[ignore_malloc_size_of = "Defined in hyper"]
-    #[serde(deserialize_with = "::hyper_serde::deserialize",
-            serialize_with = "::hyper_serde::serialize")]
+    #[serde(
+        deserialize_with = "::hyper_serde::deserialize",
+        serialize_with = "::hyper_serde::serialize"
+    )]
     pub raw_status: (StatusCode, String),
     pub body: Vec<u8>,
 }
 
 impl CustomResponse {
-    pub fn new(headers: HeaderMap, raw_status: (StatusCode, String), body: Vec<u8>) -> CustomResponse {
+    pub fn new(
+        headers: HeaderMap,
+        raw_status: (StatusCode, String),
+        body: Vec<u8>,
+    ) -> CustomResponse {
         CustomResponse {
             headers: headers,
             raw_status: raw_status,
@@ -137,22 +150,18 @@ pub enum ReferrerPolicy {
 impl From<ReferrerPolicyHeader> for ReferrerPolicy {
     fn from(policy: ReferrerPolicyHeader) -> Self {
         match policy {
-            ReferrerPolicyHeader::NO_REFERRER =>
-                ReferrerPolicy::NoReferrer,
-            ReferrerPolicyHeader::NO_REFERRER_WHEN_DOWNGRADE =>
-                ReferrerPolicy::NoReferrerWhenDowngrade,
-            ReferrerPolicyHeader::SAME_ORIGIN =>
-                ReferrerPolicy::SameOrigin,
-            ReferrerPolicyHeader::ORIGIN =>
-                ReferrerPolicy::Origin,
-            ReferrerPolicyHeader::ORIGIN_WHEN_CROSS_ORIGIN =>
-                ReferrerPolicy::OriginWhenCrossOrigin,
-            ReferrerPolicyHeader::UNSAFE_URL =>
-                ReferrerPolicy::UnsafeUrl,
-            ReferrerPolicyHeader::STRICT_ORIGIN =>
-                ReferrerPolicy::StrictOrigin,
-            ReferrerPolicyHeader::STRICT_ORIGIN_WHEN_CROSS_ORIGIN =>
-                ReferrerPolicy::StrictOriginWhenCrossOrigin,
+            ReferrerPolicyHeader::NO_REFERRER => ReferrerPolicy::NoReferrer,
+            ReferrerPolicyHeader::NO_REFERRER_WHEN_DOWNGRADE => {
+                ReferrerPolicy::NoReferrerWhenDowngrade
+            },
+            ReferrerPolicyHeader::SAME_ORIGIN => ReferrerPolicy::SameOrigin,
+            ReferrerPolicyHeader::ORIGIN => ReferrerPolicy::Origin,
+            ReferrerPolicyHeader::ORIGIN_WHEN_CROSS_ORIGIN => ReferrerPolicy::OriginWhenCrossOrigin,
+            ReferrerPolicyHeader::UNSAFE_URL => ReferrerPolicy::UnsafeUrl,
+            ReferrerPolicyHeader::STRICT_ORIGIN => ReferrerPolicy::StrictOrigin,
+            ReferrerPolicyHeader::STRICT_ORIGIN_WHEN_CROSS_ORIGIN => {
+                ReferrerPolicy::StrictOriginWhenCrossOrigin
+            },
         }
     }
 }
@@ -198,7 +207,7 @@ pub enum FilteredMetadata {
     Basic(Metadata),
     Cors(Metadata),
     Opaque,
-    OpaqueRedirect
+    OpaqueRedirect,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -244,7 +253,6 @@ impl FetchTaskTarget for IpcSender<FetchResponseMsg> {
     }
 }
 
-
 pub trait Action<Listener> {
     fn process(self, listener: &mut Listener);
 }
@@ -271,7 +279,8 @@ pub type IpcSendResult = Result<(), IpcError>;
 /// used by net_traits::ResourceThreads to ease the use its IpcSender sub-fields
 /// XXX: If this trait will be used more in future, some auto derive might be appealing
 pub trait IpcSend<T>
-    where T: serde::Serialize + for<'de> serde::Deserialize<'de>,
+where
+    T: serde::Serialize + for<'de> serde::Deserialize<'de>,
 {
     /// send message T
     fn send(&self, T) -> IpcSendResult;
@@ -342,9 +351,7 @@ pub enum WebSocketDomAction {
 
 #[derive(Debug, Deserialize, Serialize)]
 pub enum WebSocketNetworkEvent {
-    ConnectionEstablished {
-        protocol_in_use: Option<String>,
-    },
+    ConnectionEstablished { protocol_in_use: Option<String> },
     MessageReceived(MessageData),
     Close(Option<u16>, String),
     Fail,
@@ -353,18 +360,26 @@ pub enum WebSocketNetworkEvent {
 #[derive(Debug, Deserialize, Serialize)]
 /// IPC channels to communicate with the script thread about network or DOM events.
 pub enum FetchChannels {
-    ResponseMsg(IpcSender<FetchResponseMsg>, /* cancel_chan */ Option<IpcReceiver<()>>),
+    ResponseMsg(
+        IpcSender<FetchResponseMsg>,
+        /* cancel_chan */ Option<IpcReceiver<()>>,
+    ),
     WebSocket {
         event_sender: IpcSender<WebSocketNetworkEvent>,
         action_receiver: IpcReceiver<WebSocketDomAction>,
-    }
+    },
 }
 
 #[derive(Debug, Deserialize, Serialize)]
 pub enum CoreResourceMsg {
     Fetch(RequestInit, FetchChannels),
     /// Initiate a fetch in response to processing a redirection
-    FetchRedirect(RequestInit, ResponseInit, IpcSender<FetchResponseMsg>, /* cancel_chan */ Option<IpcReceiver<()>>),
+    FetchRedirect(
+        RequestInit,
+        ResponseInit,
+        IpcSender<FetchResponseMsg>,
+        /* cancel_chan */ Option<IpcReceiver<()>>,
+    ),
     /// Store a cookie for a given originating URL
     SetCookieForUrl(ServoUrl, Serde<Cookie<'static>>, CookieSource),
     /// Store a set of cookies for a given originating URL
@@ -372,7 +387,11 @@ pub enum CoreResourceMsg {
     /// Retrieve the stored cookies for a given URL
     GetCookiesForUrl(ServoUrl, IpcSender<Option<String>>, CookieSource),
     /// Get a cookie by name for a given originating URL
-    GetCookiesDataForUrl(ServoUrl, IpcSender<Vec<Serde<Cookie<'static>>>>, CookieSource),
+    GetCookiesDataForUrl(
+        ServoUrl,
+        IpcSender<Vec<Serde<Cookie<'static>>>>,
+        CookieSource,
+    ),
     /// Get a history state by a given history state id
     GetHistoryState(HistoryStateId, IpcSender<Option<Vec<u8>>>),
     /// Set a history state for a given history state id
@@ -392,13 +411,20 @@ pub enum CoreResourceMsg {
 
 /// Instruct the resource thread to make a new request.
 pub fn fetch_async<F>(request: RequestInit, core_resource_thread: &CoreResourceThread, f: F)
-    where F: Fn(FetchResponseMsg) + Send + 'static,
+where
+    F: Fn(FetchResponseMsg) + Send + 'static,
 {
     let (action_sender, action_receiver) = ipc::channel().unwrap();
-    ROUTER.add_route(action_receiver.to_opaque(),
-                     Box::new(move |message| f(message.to().unwrap())));
-    core_resource_thread.send(
-        CoreResourceMsg::Fetch(request, FetchChannels::ResponseMsg(action_sender, None))).unwrap();
+    ROUTER.add_route(
+        action_receiver.to_opaque(),
+        Box::new(move |message| f(message.to().unwrap())),
+    );
+    core_resource_thread
+        .send(CoreResourceMsg::Fetch(
+            request,
+            FetchChannels::ResponseMsg(action_sender, None),
+        ))
+        .unwrap();
 }
 
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
@@ -466,7 +492,10 @@ impl Metadata {
         }
 
         if let Some(mime) = content_type {
-            self.headers.as_mut().unwrap().typed_insert(ContentType::from(mime.clone()));
+            self.headers
+                .as_mut()
+                .unwrap()
+                .typed_insert(ContentType::from(mime.clone()));
             self.content_type = Some(Serde(ContentType::from(mime.clone())));
             for (name, value) in mime.params() {
                 if mime::CHARSET == name {
@@ -487,19 +516,23 @@ pub enum CookieSource {
 }
 
 /// Convenience function for synchronously loading a whole resource.
-pub fn load_whole_resource(request: RequestInit,
-                           core_resource_thread: &CoreResourceThread)
-                           -> Result<(Metadata, Vec<u8>), NetworkError> {
+pub fn load_whole_resource(
+    request: RequestInit,
+    core_resource_thread: &CoreResourceThread,
+) -> Result<(Metadata, Vec<u8>), NetworkError> {
     let (action_sender, action_receiver) = ipc::channel().unwrap();
-    core_resource_thread.send(
-        CoreResourceMsg::Fetch(request, FetchChannels::ResponseMsg(action_sender, None))).unwrap();
+    core_resource_thread
+        .send(CoreResourceMsg::Fetch(
+            request,
+            FetchChannels::ResponseMsg(action_sender, None),
+        ))
+        .unwrap();
 
     let mut buf = vec![];
     let mut metadata = None;
     loop {
         match action_receiver.recv().unwrap() {
-            FetchResponseMsg::ProcessRequestBody |
-            FetchResponseMsg::ProcessRequestEOF => (),
+            FetchResponseMsg::ProcessRequestBody | FetchResponseMsg::ProcessRequestEOF => (),
             FetchResponseMsg::ProcessResponse(Ok(m)) => {
                 metadata = Some(match m {
                     FetchMetadata::Unfiltered(m) => m,
@@ -533,7 +566,6 @@ impl NetworkError {
         NetworkError::Internal(error.description().to_owned())
     }
 }
-
 
 /// Normalize `slice`, as defined by
 /// [the Fetch Spec](https://fetch.spec.whatwg.org/#concept-header-value-normalize).
@@ -569,4 +601,3 @@ pub fn http_percent_encode(bytes: &[u8]) -> String {
 
     url::percent_encoding::percent_encode(bytes, HTTP_VALUE).to_string()
 }
-

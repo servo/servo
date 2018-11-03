@@ -33,8 +33,11 @@ pub struct Image {
 
 impl fmt::Debug for Image {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "Image {{ width: {}, height: {}, format: {:?}, ..., id: {:?} }}",
-               self.width, self.height, self.format, self.id)
+        write!(
+            f,
+            "Image {{ width: {}, height: {}, format: {:?}, ..., id: {:?} }}",
+            self.width, self.height, self.format, self.id
+        )
     }
 }
 
@@ -58,31 +61,28 @@ pub fn load_from_memory(buffer: &[u8]) -> Option<Image> {
             debug!("{}", msg);
             None
         },
-        Ok(_) => {
-            match piston_image::load_from_memory(buffer) {
-                Ok(image) => {
-                    let mut rgba = match image {
-                        DynamicImage::ImageRgba8(rgba) => rgba,
-                        image => image.to_rgba(),
-                    };
-                    pixels::byte_swap_colors_inplace(&mut *rgba);
-                    Some(Image {
-                        width: rgba.width(),
-                        height: rgba.height(),
-                        format: PixelFormat::BGRA8,
-                        bytes: IpcSharedMemory::from_bytes(&*rgba),
-                        id: None,
-                    })
-                },
-                Err(e) => {
-                    debug!("Image decoding error: {:?}", e);
-                    None
-                },
-            }
+        Ok(_) => match piston_image::load_from_memory(buffer) {
+            Ok(image) => {
+                let mut rgba = match image {
+                    DynamicImage::ImageRgba8(rgba) => rgba,
+                    image => image.to_rgba(),
+                };
+                pixels::byte_swap_colors_inplace(&mut *rgba);
+                Some(Image {
+                    width: rgba.width(),
+                    height: rgba.height(),
+                    format: PixelFormat::BGRA8,
+                    bytes: IpcSharedMemory::from_bytes(&*rgba),
+                    id: None,
+                })
+            },
+            Err(e) => {
+                debug!("Image decoding error: {:?}", e);
+                None
+            },
         },
     }
 }
-
 
 // https://developer.mozilla.org/en-US/docs/Web/HTML/Element/img
 pub fn detect_image_format(buffer: &[u8]) -> Result<ImageFormat, &str> {

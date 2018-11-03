@@ -27,7 +27,13 @@ pub enum StorageThreadMsg {
     GetItem(IpcSender<Option<String>>, ServoUrl, StorageType, String),
 
     /// sets the value of the given key in the associated storage data
-    SetItem(IpcSender<Result<(bool, Option<String>), ()>>, ServoUrl, StorageType, String, String),
+    SetItem(
+        IpcSender<Result<(bool, Option<String>), ()>>,
+        ServoUrl,
+        StorageType,
+        String,
+        String,
+    ),
 
     /// removes the key/value pair for the given key in the associated storage data
     RemoveItem(IpcSender<Option<String>>, ServoUrl, StorageType, String),
