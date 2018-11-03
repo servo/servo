@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text level 3 Test: ideographic space at the end of line must be removed</title>
+<link rel="author" title="Florian Rivoal" href="https://florian.rivoal.net/">
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#white-space-phase-2">
+<link rel="match" href="reference/trailing-ideographic-space-001-ref.html">
+<meta name="assert" content="An ideographic space (U+3000) at the end of the line must be removed.">
+<style>
+div { width: 2em; }
+span { background: red; } /* If the space hangs instead of being removed, there will be red */
+</style>
+
+<p>Test passes if the characters below are arranged in a square and if there is no red.
+<div>ああ<span>&#x3000;</span>ああ</div>

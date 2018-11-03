@@ -2,12 +2,12 @@
 <head>
     <meta charset='utf-8' />
     <script src="/resources/testharness.js"></script>
-    <script src='/resources/testharnessreport.js'></script>
+    <script src="/resources/testharnessreport.js"></script>
     <script src="/common/performance-timeline-utils.js"></script>
     <script>
       setup({explicit_done: true})
 
-      window.addEventListener('load', function() {
+      delayedLoadListener(function() {
         // there should be exactly three server-timing entries, 2 for document, 1 for img#one
         test_entries(performance.getEntriesByType('navigation')[0].serverTiming, [{
           duration: 1.1,

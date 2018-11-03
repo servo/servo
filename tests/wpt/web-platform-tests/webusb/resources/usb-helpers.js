@@ -42,6 +42,7 @@ let loadChromiumResources = Promise.resolve().then(() => {
   [
     '/resources/chromium/mojo_bindings.js',
     '/resources/chromium/string16.mojom.js',
+    '/resources/chromium/url.mojom.js',
     '/resources/chromium/device.mojom.js',
     '/resources/chromium/device_manager.mojom.js',
     '/resources/chromium/web_usb_service.mojom.js',

@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS test reference</title>
+<link rel="author" title="Florian Rivoal" href="https://florian.rivoal.net/">
+<style>
+div { white-space: pre; }
+span {
+  background: blue;
+
+  /* to make the span go under the right border */
+  z-index:-1;
+  position: relative;
+}
+aside {
+  display: inline-block;
+  width: 0.5em;
+  border-right: 1em white solid;
+}
+</style>
+
+<p>Test passes if the characters below are arranged in a square and if there is a blue rectangle at the end of the first line.
+<div>ああ<aside><span>&#x3000;</span></aside><br>ああ</div>

@@ -14,6 +14,15 @@ function importWorklet(worklet, code) {
     return worklet.addModule(url);
 }
 
+async function animationFrames(frames) {
+  for (let i = 0; i < frames; i++)
+    await new Promise(requestAnimationFrame);
+}
+
+async function workletPainted() {
+    await animationFrames(2);
+}
+
 // To make sure that we take the snapshot at the right time, we do double
 // requestAnimationFrame. In the second frame, we take a screenshot, that makes
 // sure that we already have a full frame.
@@ -24,10 +33,6 @@ async function importWorkletAndTerminateTestAfterAsyncPaint(worklet, code) {
     }
 
     await importWorklet(worklet, code);
-
-    requestAnimationFrame(function() {
-        requestAnimationFrame(function() {
-            takeScreenshot();
-        });
-    });
+    await workletPainted();
+    takeScreenshot();
 }

@@ -2,7 +2,7 @@
 <head>
     <meta charset='utf-8' />
     <script src="/resources/testharness.js"></script>
-    <script src='/resources/testharnessreport.js'></script>
+    <script src="/resources/testharnessreport.js"></script>
     <script src="/common/performance-timeline-utils.js"></script>
     <script src="/common/get-host-info.sub.js"></script>
     <script>
@@ -20,7 +20,7 @@
         document.getElementsByTagName('script')[0].parentNode.appendChild(img)
       })
 
-      window.addEventListener('load', function() {
+      delayedLoadListener(function() {
         function assertServerTimingEntries(url, expectedEntryCount) {
           test_equals(performance.getEntriesByName(url)[0].serverTiming.length,
             expectedEntryCount,

@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text level 3 Test: letter spacing at bidi fragment boudary</title>
+<link rel="author" title="Florian Rivoal" href="http://florian.rivoal.net/">
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#letter-spacing-property">
+<link rel="help" href="https://drafts.csswg.org/css-writing-modes-4/#bidi-fragmentation">
+<link rel="match" href="reference/letter-spacing-bidi-002-ref.html">
+<meta name="assert" content="When bidi would cause to pieces of a single inline box to be appart if there was enough room to fit everything in one line,
+the two pieces are separate fragments even if they end up next to eachother due to line breaking.
+Letter spacing at the boundary of such separate fragments comes from their common ancestor,
+not from the letter-spacing property on the fragmented inline box itself.">
+<style>
+div {
+  font-family: monospace;
+  font-size: 3em;
+  width: 0;
+}
+span {
+  letter-spacing: 1ch;
+}
+</style>
+
+<p>Test passes if the rightmost character of the line that starts with “a” is under the number 3.
+<div>12345</div>
+<div>a<span>aב</span> ב</div>

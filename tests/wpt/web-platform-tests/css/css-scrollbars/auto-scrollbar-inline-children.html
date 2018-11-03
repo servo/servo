@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mstensho@chromium.org">
+<link rel="help" href="https://www.w3.org/TR/CSS22/visufx.html#propdef-overflow">
+<style>
+  /* Avoid auto scrollbars on the viewport, because that might trigger re-layout
+    (and thus hide bugs). */
+  body { overflow:hidden; }
+
+  .container { width:100px; }
+</style>
+<p>There should be a blue rectangle below, and possibly a scrollbar (depending
+  on OS / browser), that shouldn not obscure any parts of the rectangle. The
+  word "FAIL" should not be seen.</p>
+<div class="container" style="overflow:auto; height:200px;">
+  <div id="child" style="display:inline-block; box-sizing:border-box; width:100%; height:100%; border:10px solid blue;"></div>
+  <br>FAIL
+</div>
+
+<div class="container" style="visibility:hidden; overflow:scroll;">
+  <div id="ref"></div>
+</div>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  test(()=> {
+    var child = document.getElementById("child");
+    assert_equals(child.offsetWidth, ref.offsetWidth);
+  }, "Auto scrollbar affects size of children");
+</script>
