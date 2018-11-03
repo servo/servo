@@ -1166,7 +1166,7 @@ fn http_network_fetch(
     let request_id = context
         .devtools_chan
         .as_ref()
-        .map(|_| uuid::Uuid::new_v4().simple().to_string());
+        .map(|_| uuid::Uuid::new_v4().to_simple().to_string());
 
     // XHR uses the default destination; other kinds of fetches (which haven't been implemented yet)
     // do not. Once we support other kinds of fetches we'll need to be more fine grained here
