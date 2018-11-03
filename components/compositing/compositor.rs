@@ -166,9 +166,6 @@ pub struct IOCompositor<Window: WindowMethods> {
     /// image for the reftest framework.
     ready_to_save_state: ReadyState,
 
-    /// Whether a scroll is in progress; i.e. whether the user's fingers are down.
-    scroll_in_progress: bool,
-
     in_scroll_transaction: Option<Instant>,
 
     /// The webrender renderer.
@@ -852,44 +849,16 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         match phase {
             TouchEventType::Move => self.on_scroll_window_event(delta, cursor),
             TouchEventType::Up | TouchEventType::Cancel => {
-                self.on_scroll_end_window_event(delta, cursor);
+                self.on_scroll_window_event(delta, cursor);
             },
             TouchEventType::Down => {
-                self.on_scroll_start_window_event(delta, cursor);
+                self.on_scroll_window_event(delta, cursor);
             },
         }
     }
 
     fn on_scroll_window_event(&mut self, scroll_location: ScrollLocation, cursor: DeviceIntPoint) {
         self.in_scroll_transaction = Some(Instant::now());
-        self.pending_scroll_zoom_events.push(ScrollZoomEvent {
-            magnification: 1.0,
-            scroll_location: scroll_location,
-            cursor: cursor,
-            event_count: 1,
-        });
-    }
-
-    fn on_scroll_start_window_event(
-        &mut self,
-        scroll_location: ScrollLocation,
-        cursor: DeviceIntPoint,
-    ) {
-        self.scroll_in_progress = true;
-        self.pending_scroll_zoom_events.push(ScrollZoomEvent {
-            magnification: 1.0,
-            scroll_location: scroll_location,
-            cursor: cursor,
-            event_count: 1,
-        });
-    }
-
-    fn on_scroll_end_window_event(
-        &mut self,
-        scroll_location: ScrollLocation,
-        cursor: DeviceIntPoint,
-    ) {
-        self.scroll_in_progress = false;
         self.pending_scroll_zoom_events.push(ScrollZoomEvent {
             magnification: 1.0,
             scroll_location: scroll_location,
