@@ -18,7 +18,9 @@ pub type DecodeData = (Mime, Vec<u8>);
 pub fn decode(url: &ServoUrl) -> Result<DecodeData, DecodeError> {
     assert_eq!(url.scheme(), "data");
     // Split out content type and data.
-    let parts: Vec<&str> = url[Position::BeforePath..Position::AfterQuery].splitn(2, ',').collect();
+    let parts: Vec<&str> = url[Position::BeforePath..Position::AfterQuery]
+        .splitn(2, ',')
+        .collect();
     if parts.len() != 2 {
         return Err(DecodeError::InvalidDataUri);
     }
@@ -36,15 +38,18 @@ pub fn decode(url: &ServoUrl) -> Result<DecodeData, DecodeError> {
         ct_str.to_owned()
     };
 
-    let content_type = ct_str.parse().unwrap_or_else(|_| {
-        "text/plain; charset=US-ASCII".parse().unwrap()
-    });
+    let content_type = ct_str
+        .parse()
+        .unwrap_or_else(|_| "text/plain; charset=US-ASCII".parse().unwrap());
 
     let mut bytes = percent_decode(parts[1].as_bytes()).collect::<Vec<_>>();
     if is_base64 {
         // FIXME(#2909): It’s unclear what to do with non-alphabet characters,
         // but Acid 3 apparently depends on spaces being ignored.
-        bytes = bytes.into_iter().filter(|&b| b != b' ').collect::<Vec<u8>>();
+        bytes = bytes
+            .into_iter()
+            .filter(|&b| b != b' ')
+            .collect::<Vec<u8>>();
         match base64::decode(&bytes) {
             Err(..) => return Err(DecodeError::NonBase64DataUri),
             Ok(data) => bytes = data,

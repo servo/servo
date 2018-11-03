@@ -19,16 +19,16 @@ use servo_url::ServoUrl;
 
 /// https://fetch.spec.whatwg.org/#concept-basic-fetch (partial)
 // TODO: make async.
-pub fn load_blob_sync
-            (url: ServoUrl,
-             filemanager: FileManager)
-             -> Result<(HeaderMap, Vec<u8>), NetworkError> {
+pub fn load_blob_sync(
+    url: ServoUrl,
+    filemanager: FileManager,
+) -> Result<(HeaderMap, Vec<u8>), NetworkError> {
     let (id, origin) = match parse_blob_url(&url) {
         Ok((id, origin)) => (id, origin),
         Err(()) => {
             let e = format!("Invalid blob URL format {:?}", url);
             return Err(NetworkError::Internal(e));
-        }
+        },
     };
 
     let (sender, receiver) = ipc::channel().unwrap();
@@ -38,11 +38,13 @@ pub fn load_blob_sync
     let blob_buf = match receiver.recv().unwrap() {
         Ok(ReadFileProgress::Meta(blob_buf)) => blob_buf,
         Ok(_) => {
-            return Err(NetworkError::Internal("Invalid filemanager reply".to_string()));
-        }
+            return Err(NetworkError::Internal(
+                "Invalid filemanager reply".to_string(),
+            ));
+        },
         Err(e) => {
             return Err(NetworkError::Internal(format!("{:?}", e)));
-        }
+        },
     };
 
     let content_type: Mime = blob_buf.type_string.parse().unwrap_or(mime::TEXT_PLAIN);
@@ -51,19 +53,31 @@ pub fn load_blob_sync
     let mut headers = HeaderMap::new();
 
     if let Some(name) = blob_buf.filename {
-        let charset = charset.map(|c| c.as_ref().into()).unwrap_or("us-ascii".to_owned());
+        let charset = charset
+            .map(|c| c.as_ref().into())
+            .unwrap_or("us-ascii".to_owned());
         // TODO(eijebong): Replace this once the typed header is there
         headers.insert(
             header::CONTENT_DISPOSITION,
             HeaderValue::from_bytes(
-                format!("inline; {}",
+                format!(
+                    "inline; {}",
                     if charset.to_lowercase() == "utf-8" {
-                        format!("filename=\"{}\"", String::from_utf8(name.as_bytes().into()).unwrap())
+                        format!(
+                            "filename=\"{}\"",
+                            String::from_utf8(name.as_bytes().into()).unwrap()
+                        )
                     } else {
-                        format!("filename*=\"{}\"''{}", charset, http_percent_encode(name.as_bytes()))
+                        format!(
+                            "filename*=\"{}\"''{}",
+                            charset,
+                            http_percent_encode(name.as_bytes())
+                        )
                     }
-                ).as_bytes()
-            ).unwrap()
+                )
+                .as_bytes(),
+            )
+            .unwrap(),
         );
     }
 
@@ -77,16 +91,18 @@ pub fn load_blob_sync
         match receiver.recv().unwrap() {
             Ok(ReadFileProgress::Partial(ref mut new_bytes)) => {
                 bytes.append(new_bytes);
-            }
+            },
             Ok(ReadFileProgress::EOF) => {
                 return Ok((headers, bytes));
-            }
+            },
             Ok(_) => {
-                return Err(NetworkError::Internal("Invalid filemanager reply".to_string()));
-            }
+                return Err(NetworkError::Internal(
+                    "Invalid filemanager reply".to_string(),
+                ));
+            },
             Err(e) => {
                 return Err(NetworkError::Internal(format!("{:?}", e)));
-            }
+            },
         }
     }
 }

@@ -14,10 +14,12 @@ use servo_url::ServoUrl;
 use std::ops::Deref;
 
 #[cfg(test)]
-fn assert_parse(url:          &'static str,
-                content_type: Option<ContentType>,
-                charset:      Option<&str>,
-                data:         Option<&[u8]>) {
+fn assert_parse(
+    url: &'static str,
+    content_type: Option<ContentType>,
+    charset: Option<&str>,
+    data: Option<&[u8]>,
+) {
     let url = ServoUrl::parse(url).unwrap();
     let origin = Origin::Origin(url.origin());
     let mut request = Request::new(url, Some(origin), None);
@@ -33,7 +35,10 @@ fn assert_parse(url:          &'static str,
             assert_eq!(header_content_type, content_type);
 
             let metadata = match response.metadata() {
-                Ok(FetchMetadata::Filtered { filtered: FilteredMetadata::Basic(m), .. }) => m,
+                Ok(FetchMetadata::Filtered {
+                    filtered: FilteredMetadata::Basic(m),
+                    ..
+                }) => m,
                 result => panic!(result),
             };
             assert_eq!(metadata.content_type.map(Serde::into_inner), content_type);
@@ -49,7 +54,12 @@ fn assert_parse(url:          &'static str,
         },
         None => {
             assert!(response.is_network_error());
-            assert_eq!(response.metadata().err(), Some(NetworkError::Internal("Decoding data URL failed".to_owned())));
+            assert_eq!(
+                response.metadata().err(),
+                Some(NetworkError::Internal(
+                    "Decoding data URL failed".to_owned()
+                ))
+            );
         },
     }
 }
@@ -63,9 +73,12 @@ fn empty_invalid() {
 fn plain() {
     assert_parse(
         "data:,hello%20world",
-        Some(ContentType::from("text/plain; charset=US-ASCII".parse::<Mime>().unwrap())),
+        Some(ContentType::from(
+            "text/plain; charset=US-ASCII".parse::<Mime>().unwrap(),
+        )),
         Some("us-ascii"),
-        Some(b"hello world"));
+        Some(b"hello world"),
+    );
 }
 
 #[test]
@@ -74,7 +87,8 @@ fn plain_ct() {
         "data:text/plain,hello",
         Some(ContentType::from(mime::TEXT_PLAIN)),
         None,
-        Some(b"hello"));
+        Some(b"hello"),
+    );
 }
 
 #[test]
@@ -83,16 +97,20 @@ fn plain_html() {
         "data:text/html,<p>Servo</p>",
         Some(ContentType::from(mime::TEXT_HTML)),
         None,
-        Some(b"<p>Servo</p>"));
+        Some(b"<p>Servo</p>"),
+    );
 }
 
 #[test]
 fn plain_charset() {
     assert_parse(
         "data:text/plain;charset=latin1,hello",
-        Some(ContentType::from("text/plain; charset=latin1".parse::<Mime>().unwrap())),
+        Some(ContentType::from(
+            "text/plain; charset=latin1".parse::<Mime>().unwrap(),
+        )),
         Some("latin1"),
-        Some(b"hello"));
+        Some(b"hello"),
+    );
 }
 
 #[test]
@@ -101,16 +119,20 @@ fn plain_only_charset() {
         "data:;charset=utf-8,hello",
         Some(ContentType::from(mime::TEXT_PLAIN_UTF_8)),
         Some("utf-8"),
-        Some(b"hello"));
+        Some(b"hello"),
+    );
 }
 
 #[test]
 fn base64() {
     assert_parse(
         "data:;base64,C62+7w==",
-        Some(ContentType::from("text/plain; charset=US-ASCII".parse::<Mime>().unwrap())),
+        Some(ContentType::from(
+            "text/plain; charset=US-ASCII".parse::<Mime>().unwrap(),
+        )),
         Some("us-ascii"),
-        Some(&[0x0B, 0xAD, 0xBE, 0xEF]));
+        Some(&[0x0B, 0xAD, 0xBE, 0xEF]),
+    );
 }
 
 #[test]
@@ -119,14 +141,20 @@ fn base64_ct() {
         "data:application/octet-stream;base64,C62+7w==",
         Some(ContentType::from(mime::APPLICATION_OCTET_STREAM)),
         None,
-        Some(&[0x0B, 0xAD, 0xBE, 0xEF]));
+        Some(&[0x0B, 0xAD, 0xBE, 0xEF]),
+    );
 }
 
 #[test]
 fn base64_charset() {
     assert_parse(
         "data:text/plain;charset=koi8-r;base64,8PLl9+XkIO3l5Pfl5A==",
-        Some(ContentType::from("text/plain; charset=koi8-r".parse::<Mime>().unwrap())),
+        Some(ContentType::from(
+            "text/plain; charset=koi8-r".parse::<Mime>().unwrap(),
+        )),
         Some("koi8-r"),
-        Some(&[0xF0, 0xF2, 0xE5, 0xF7, 0xE5, 0xE4, 0x20, 0xED, 0xE5, 0xE4, 0xF7, 0xE5, 0xE4]));
+        Some(&[
+            0xF0, 0xF2, 0xE5, 0xF7, 0xE5, 0xE4, 0x20, 0xED, 0xE5, 0xE4, 0xF7, 0xE5, 0xE4,
+        ]),
+    );
 }

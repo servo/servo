@@ -70,9 +70,7 @@ use tokio::runtime::Runtime;
 use tokio_openssl::SslAcceptorExt;
 
 lazy_static! {
-        pub static ref HANDLE: Mutex<Runtime> = {
-            Mutex::new(Runtime::new().unwrap())
-        };
+    pub static ref HANDLE: Mutex<Runtime> = { Mutex::new(Runtime::new().unwrap()) };
 }
 
 const DEFAULT_USER_AGENT: &'static str = "Such Browser. Very Layout. Wow.";
@@ -83,18 +81,17 @@ struct FetchResponseCollector {
 
 fn create_embedder_proxy() -> EmbedderProxy {
     let (sender, _) = channel();
-    let event_loop_waker = | | {
-        struct DummyEventLoopWaker {
-        }
+    let event_loop_waker = || {
+        struct DummyEventLoopWaker {}
         impl DummyEventLoopWaker {
             fn new() -> DummyEventLoopWaker {
-                DummyEventLoopWaker { }
+                DummyEventLoopWaker {}
             }
         }
         impl EventLoopWaker for DummyEventLoopWaker {
-            fn wake(&self) { }
+            fn wake(&self) {}
             fn clone(&self) -> Box<EventLoopWaker + Send> {
-                Box::new(DummyEventLoopWaker { })
+                Box::new(DummyEventLoopWaker {})
             }
         }
 
@@ -103,12 +100,16 @@ fn create_embedder_proxy() -> EmbedderProxy {
 
     EmbedderProxy {
         sender: sender,
-        event_loop_waker: event_loop_waker()
+        event_loop_waker: event_loop_waker(),
     }
 }
 
-fn new_fetch_context(dc: Option<Sender<DevtoolsControlMsg>>, fc: Option<EmbedderProxy>) -> FetchContext {
-    let ssl_connector = create_ssl_connector_builder(&resources::read_string(Resource::SSLCertificates));
+fn new_fetch_context(
+    dc: Option<Sender<DevtoolsControlMsg>>,
+    fc: Option<EmbedderProxy>,
+) -> FetchContext {
+    let ssl_connector =
+        create_ssl_connector_builder(&resources::read_string(Resource::SSLCertificates));
     let sender = fc.unwrap_or_else(|| create_embedder_proxy());
     FetchContext {
         state: Arc::new(HttpState::new(ssl_connector)),
@@ -135,9 +136,7 @@ fn fetch(request: &mut Request, dc: Option<Sender<DevtoolsControlMsg>>) -> Respo
 
 fn fetch_with_context(request: &mut Request, context: &FetchContext) -> Response {
     let (sender, receiver) = channel();
-    let mut target = FetchResponseCollector {
-        sender: sender,
-    };
+    let mut target = FetchResponseCollector { sender: sender };
 
     methods::fetch(request, &mut target, context);
 
@@ -146,9 +145,7 @@ fn fetch_with_context(request: &mut Request, context: &FetchContext) -> Response
 
 fn fetch_with_cors_cache(request: &mut Request, cache: &mut CorsCache) -> Response {
     let (sender, receiver) = channel();
-    let mut target = FetchResponseCollector {
-        sender: sender,
-    };
+    let mut target = FetchResponseCollector { sender: sender };
 
     methods::fetch_with_cors_cache(request, cache, &mut target, &new_fetch_context(None, None));
 
@@ -166,7 +163,7 @@ impl Server {
 }
 
 fn make_server<H>(handler: H) -> (Server, ServoUrl)
-    where
+where
     H: Fn(HyperRequest<Body>, &mut HyperResponse<Body>) + Send + Sync + 'static,
 {
     let handler = Arc::new(handler);
@@ -174,18 +171,18 @@ fn make_server<H>(handler: H) -> (Server, ServoUrl)
     let url_string = format!("http://localhost:{}", listener.local_addr().unwrap().port());
     let url = ServoUrl::parse(&url_string).unwrap();
     let (tx, rx) = futures::sync::oneshot::channel::<()>();
-    let server = HyperServer::from_tcp(listener).unwrap().serve(
-        move || {
+    let server = HyperServer::from_tcp(listener)
+        .unwrap()
+        .serve(move || {
             let handler = handler.clone();
             service_fn_ok(move |req: HyperRequest<Body>| {
                 let mut response = HyperResponse::new(Vec::<u8>::new().into());
                 handler(req, &mut response);
                 response
             })
-        }
-    )
-    .with_graceful_shutdown(rx)
-    .map_err(|_|());
+        })
+        .with_graceful_shutdown(rx)
+        .map_err(|_| ());
 
     HANDLE.lock().unwrap().spawn(server);
     let server = Server { close_channel: tx };
@@ -193,7 +190,7 @@ fn make_server<H>(handler: H) -> (Server, ServoUrl)
 }
 
 fn make_ssl_server<H>(handler: H, cert_path: PathBuf, key_path: PathBuf) -> (Server, ServoUrl)
-    where
+where
     H: Fn(HyperRequest<Body>, &mut HyperResponse<Body>) + Send + Sync + 'static,
 {
     let handler = Arc::new(handler);
@@ -202,28 +199,39 @@ fn make_ssl_server<H>(handler: H, cert_path: PathBuf, key_path: PathBuf) -> (Ser
     let url_string = format!("http://localhost:{}", listener.local_addr().unwrap().port());
     let url = ServoUrl::parse(&url_string).unwrap();
 
-    let server = listener.incoming()
-        .map_err(|_| ())
-        .for_each(move |sock| {
-            let mut ssl_builder = SslAcceptor::mozilla_modern(SslMethod::tls()).unwrap();
-            ssl_builder.set_certificate_file(&cert_path, SslFiletype::PEM).unwrap();
-            ssl_builder.set_private_key_file(&key_path, SslFiletype::PEM).unwrap();
+    let server = listener.incoming().map_err(|_| ()).for_each(move |sock| {
+        let mut ssl_builder = SslAcceptor::mozilla_modern(SslMethod::tls()).unwrap();
+        ssl_builder
+            .set_certificate_file(&cert_path, SslFiletype::PEM)
+            .unwrap();
+        ssl_builder
+            .set_private_key_file(&key_path, SslFiletype::PEM)
+            .unwrap();
 
-            let handler = handler.clone();
-            ssl_builder.build().accept_async(sock).map_err(|_| ()).and_then(move |ssl| {
-                Http::new().serve_connection(ssl,
+        let handler = handler.clone();
+        ssl_builder
+            .build()
+            .accept_async(sock)
+            .map_err(|_| ())
+            .and_then(move |ssl| {
+                Http::new()
+                    .serve_connection(
+                        ssl,
                         service_fn_ok(move |req: HyperRequest<Body>| {
                             let mut response = HyperResponse::new(Vec::<u8>::new().into());
                             handler(req, &mut response);
                             response
-                        })
-                )
-                .map_err(|_|())
+                        }),
+                    )
+                    .map_err(|_| ())
             })
-        });
+    });
 
     let (tx, rx) = futures::sync::oneshot::channel::<()>();
-    let server = server.select(rx.map_err(|_| ())).map(|_| ()).map_err(|_| ());
+    let server = server
+        .select(rx.map_err(|_| ()))
+        .map(|_| ())
+        .map_err(|_| ());
 
     HANDLE.lock().unwrap().spawn(server);
 
