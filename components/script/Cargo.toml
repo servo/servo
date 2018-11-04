@@ -63,7 +63,7 @@ hyper_serde = "0.9"
 image = "0.19"
 ipc-channel = "0.11"
 itertools = "0.7.6"
-js = {package = "mozjs", version = "0.9.3"}
+js = {package = "mozjs", version = "0.9.4"}
 jstraceable_derive = {path = "../jstraceable_derive"}
 keyboard-types = {version = "0.4.2-servo", features = ["serde"]}
 lazy_static = "1"
