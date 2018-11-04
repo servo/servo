@@ -23,7 +23,11 @@ test_valid_value("animation-timing-function", "cubic-bezier(0, 0.7, 1, 1.3)");
 
 
 test_valid_value("animation-timing-function", "steps(4, start)");
-test_valid_value("animation-timing-function", "steps(2, end)");
+test_valid_value("animation-timing-function", "steps(2, end)", "steps(2)");
+test_valid_value("animation-timing-function", "steps(2, jump-start)");
+test_valid_value("animation-timing-function", "steps(2, jump-end)", "steps(2)");
+test_valid_value("animation-timing-function", "steps(2, jump-both)");
+test_valid_value("animation-timing-function", "steps(2, jump-none)");
 
 test_valid_value("animation-timing-function", "linear, ease, linear");
 </script>

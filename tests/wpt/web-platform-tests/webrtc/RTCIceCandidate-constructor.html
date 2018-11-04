@@ -34,7 +34,7 @@
         candidate: '',
         sdpMid: null,
         sdpMLineIndex: null,
-        ufrag: undefined
+        usernameFragment: undefined
       }));
   }, 'new RTCIceCandidate({ ... }) with manually filled default values');
 
@@ -77,7 +77,7 @@
     assert_equals(candidate.candidate, '');
     assert_equals(candidate.sdpMid, 'audio');
     assert_equals(candidate.sdpMLineIndex, null);
-    assert_equals(candidate.ufrag, null);
+    assert_equals(candidate.usernameFragment, null);
   }, `new RTCIceCandidate({ sdpMid: 'audio' })`);
 
   test(t => {
@@ -86,7 +86,7 @@
     assert_equals(candidate.candidate, '');
     assert_equals(candidate.sdpMid, null);
     assert_equals(candidate.sdpMLineIndex, 0);
-    assert_equals(candidate.ufrag, null);
+    assert_equals(candidate.usernameFragment, null);
   }, 'new RTCIceCandidate({ sdpMLineIndex: 0 })');
 
   test(t => {
@@ -98,7 +98,7 @@
     assert_equals(candidate.candidate, '');
     assert_equals(candidate.sdpMid, 'audio');
     assert_equals(candidate.sdpMLineIndex, 0);
-    assert_equals(candidate.ufrag, null);
+    assert_equals(candidate.usernameFragment, null);
   }, `new RTCIceCandidate({ sdpMid: 'audio', sdpMLineIndex: 0 })`);
 
   test(t => {
@@ -110,7 +110,7 @@
     assert_equals(candidate.candidate, '');
     assert_equals(candidate.sdpMid, 'audio');
     assert_equals(candidate.sdpMLineIndex, null);
-    assert_equals(candidate.ufrag, null);
+    assert_equals(candidate.usernameFragment, null);
   }, `new RTCIceCandidate({ candidate: '', sdpMid: 'audio' }`);
 
   test(t => {
@@ -122,7 +122,7 @@
     assert_equals(candidate.candidate, '');
     assert_equals(candidate.sdpMid, null);
     assert_equals(candidate.sdpMLineIndex, 0);
-    assert_equals(candidate.ufrag, null);
+    assert_equals(candidate.usernameFragment, null);
   }, `new RTCIceCandidate({ candidate: '', sdpMLineIndex: 0 }`);
 
   test(t => {
@@ -134,7 +134,7 @@
     assert_equals(candidate.candidate, candidateString);
     assert_equals(candidate.sdpMid, 'audio');
     assert_equals(candidate.sdpMLineIndex, null);
-    assert_equals(candidate.ufrag, null);
+    assert_equals(candidate.usernameFragment, null);
   }, 'new RTCIceCandidate({ ... }) with valid candidate string and sdpMid');
 
   test(t =>{
@@ -147,7 +147,7 @@
     assert_equals(candidate.candidate, arbitraryString);
     assert_equals(candidate.sdpMid, 'audio');
     assert_equals(candidate.sdpMLineIndex, null);
-    assert_equals(candidate.ufrag, null);
+    assert_equals(candidate.usernameFragment, null);
   }, 'new RTCIceCandidate({ ... }) with invalid candidate string and sdpMid');
 
   test(t => {
@@ -155,13 +155,13 @@
       candidate: candidateString,
       sdpMid: 'video',
       sdpMLineIndex: 1,
-      ufrag: 'test'
+      usernameFragment: 'test'
     });
 
     assert_equals(candidate.candidate, candidateString);
     assert_equals(candidate.sdpMid, 'video');
     assert_equals(candidate.sdpMLineIndex, 1);
-    assert_equals(candidate.ufrag, 'test');
+    assert_equals(candidate.usernameFragment, 'test');
   }, 'new RTCIceCandidate({ ... }) with non default value for all fields');
 
 
@@ -174,7 +174,7 @@
     assert_equals(candidate.candidate, '');
     assert_equals(candidate.sdpMid, arbitraryString);
     assert_equals(candidate.sdpMLineIndex, null);
-    assert_equals(candidate.ufrag, null);
+    assert_equals(candidate.usernameFragment, null);
   }, 'new RTCIceCandidate({ ... }) with invalid sdpMid');
 
 
@@ -190,7 +190,7 @@
     assert_equals(candidate.candidate, '');
     assert_equals(candidate.sdpMid, null);
     assert_equals(candidate.sdpMLineIndex, 65535);
-    assert_equals(candidate.ufrag, null);
+    assert_equals(candidate.usernameFragment, null);
   }, 'new RTCIceCandidate({ ... }) with invalid sdpMLineIndex');
 
 </script>

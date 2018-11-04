@@ -30,6 +30,6 @@ partial interface Document {
   attribute EventHandler onfullscreenerror;
 };
 
-partial interface DocumentOrShadowRoot {
+partial interface mixin DocumentOrShadowRoot {
   [LenientSetter] readonly attribute Element? fullscreenElement;
 };

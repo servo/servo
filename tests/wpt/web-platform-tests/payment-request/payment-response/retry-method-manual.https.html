@@ -28,7 +28,7 @@ function checkCompletedCantRetry(button) {
     return promise_rejects(
       t,
       "InvalidStateError",
-      response.retry({}),
+      response.retry(),
       "response.[[complete]] is true, so rejects with InvalidStateError."
     );
   }, button.textContent.trim());
@@ -38,11 +38,11 @@ function repeatedCallsToRetry(button) {
   button.disabled = true;
   promise_test(async t => {
     const { response } = await getPaymentRequestResponse();
-    const retryPromise = response.retry({});
+    const retryPromise = response.retry();
     await promise_rejects(
       t,
       "InvalidStateError",
-      response.retry({}),
+      response.retry(),
       "Calling retry() again rejects with an InvalidStateError"
     );
     await retryPromise;
@@ -54,7 +54,7 @@ function callCompleteWhileRetrying(button) {
   button.disabled = true;
   promise_test(async t => {
     const { response } = await getPaymentRequestResponse();
-    const retryPromise = response.retry({});
+    const retryPromise = response.retry();
     await promise_rejects(
       t,
       "InvalidStateError",
@@ -70,7 +70,7 @@ function callingRequestAbortMustNotAbort(button) {
   button.disabled = true;
   promise_test(async t => {
     const { response, request } = await getPaymentRequestResponse();
-    const retryPromise = response.retry({});
+    const retryPromise = response.retry();
     await promise_rejects(
       t,
       "InvalidStateError",
@@ -87,12 +87,12 @@ function canRetryMultipleTimes(button) {
   promise_test(async t => {
     const { response } = await getPaymentRequestResponse();
     assert_equals(
-      await response.retry({}),
+      await response.retry(),
       undefined,
       "Expected undefined as the resolve value"
     );
     assert_equals(
-      await response.retry({}),
+      await response.retry(),
       undefined,
       "Expected undefined as the resolve value"
     );
@@ -100,7 +100,7 @@ function canRetryMultipleTimes(button) {
     await promise_rejects(
       t,
       "InvalidStateError",
-      response.retry({}),
+      response.retry(),
       "Calling retry() after complete() rejects with a InvalidStateError"
     );
   }, button.textContent.trim());
@@ -113,13 +113,13 @@ function userCanAbortARetry(button) {
     await promise_rejects(
       t,
       "AbortError",
-      response.retry({}),
+      response.retry(),
       "The user aborting a retry rejects with a AbortError"
     );
     await promise_rejects(
       t,
       "InvalidStateError",
-      response.retry({}),
+      response.retry(),
       "After the user aborts, response [[complete]] is true so retry() must reject with InvalidStateError"
     );
     await promise_rejects(
@@ -154,7 +154,7 @@ function abortTheUpdate(button) {
         resolve();
       };
     });
-    const retryPromise = response.retry({});
+    const retryPromise = response.retry();
     await shippingChangedPromise;
     await promise_rejects(
       t,
@@ -175,11 +175,11 @@ function callingRetryReturnsUniquePromise(button){
   button.disabled = true;
   promise_test(async t => {
     const { response } = await getPaymentRequestResponse();
-    const retryPromise = response.retry({});
+    const retryPromise = response.retry();
     const promises = new Set([
       retryPromise,
-      response.retry({}),
-      response.retry({}),
+      response.retry(),
+      response.retry(),
     ]);
     assert_equals(promises.size, 3, "Must have three unique objects");
     await retryPromise;
