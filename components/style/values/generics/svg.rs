@@ -8,9 +8,6 @@ use cssparser::Parser;
 use parser::{Parse, ParserContext};
 use style_traits::{ParseError, StyleParseErrorKind};
 use values::{Either, None_};
-use values::computed::NumberOrPercentage;
-use values::computed::length::LengthOrPercentage;
-use values::distance::{ComputeSquaredDistance, SquaredDistance};
 
 /// An SVG paint value
 ///
@@ -152,54 +149,6 @@ pub enum SvgLengthOrPercentageOrNumber<LengthOrPercentage, Number> {
     Number(Number),
 }
 
-impl<L, N> ComputeSquaredDistance for SvgLengthOrPercentageOrNumber<L, N>
-where
-    L: ComputeSquaredDistance + Copy + Into<NumberOrPercentage>,
-    N: ComputeSquaredDistance + Copy + Into<NumberOrPercentage>,
-{
-    #[inline]
-    fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {
-        match (self, other) {
-            (
-                &SvgLengthOrPercentageOrNumber::LengthOrPercentage(ref from),
-                &SvgLengthOrPercentageOrNumber::LengthOrPercentage(ref to),
-            ) => from.compute_squared_distance(to),
-            (
-                &SvgLengthOrPercentageOrNumber::Number(ref from),
-                &SvgLengthOrPercentageOrNumber::Number(ref to),
-            ) => from.compute_squared_distance(to),
-            (
-                &SvgLengthOrPercentageOrNumber::LengthOrPercentage(from),
-                &SvgLengthOrPercentageOrNumber::Number(to),
-            ) => from.into().compute_squared_distance(&to.into()),
-            (
-                &SvgLengthOrPercentageOrNumber::Number(from),
-                &SvgLengthOrPercentageOrNumber::LengthOrPercentage(to),
-            ) => from.into().compute_squared_distance(&to.into()),
-        }
-    }
-}
-
-impl<LengthOrPercentageType, NumberType>
-    SvgLengthOrPercentageOrNumber<LengthOrPercentageType, NumberType>
-where
-    LengthOrPercentage: From<LengthOrPercentageType>,
-    LengthOrPercentageType: Copy,
-{
-    /// return true if this struct has calc value.
-    pub fn has_calc(&self) -> bool {
-        match self {
-            &SvgLengthOrPercentageOrNumber::LengthOrPercentage(lop) => {
-                match LengthOrPercentage::from(lop) {
-                    LengthOrPercentage::Calc(_) => true,
-                    _ => false,
-                }
-            },
-            _ => false,
-        }
-    }
-}
-
 /// Parsing the SvgLengthOrPercentageOrNumber. At first, we need to parse number
 /// since prevent converting to the length.
 impl<LengthOrPercentageType: Parse, NumberType: Parse> Parse
@@ -213,10 +162,8 @@ impl<LengthOrPercentageType: Parse, NumberType: Parse> Parse
             return Ok(SvgLengthOrPercentageOrNumber::Number(num));
         }
 
-        if let Ok(lop) = input.try(|i| LengthOrPercentageType::parse(context, i)) {
-            return Ok(SvgLengthOrPercentageOrNumber::LengthOrPercentage(lop));
-        }
-        Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
+        let lop = LengthOrPercentageType::parse(context, input)?;
+        Ok(SvgLengthOrPercentageOrNumber::LengthOrPercentage(lop))
     }
 }
 

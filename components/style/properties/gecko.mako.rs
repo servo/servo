@@ -561,17 +561,24 @@ def set_gecko_property(ffi_name, expr):
             return SVGLength::ContextValue;
         }
         let length = match self.gecko.${gecko_ffi_name}.as_value() {
-            CoordDataValue::Factor(number) =>
-                SvgLengthOrPercentageOrNumber::Number(number),
-            CoordDataValue::Coord(coord) =>
+            CoordDataValue::Factor(number) => {
+                SvgLengthOrPercentageOrNumber::Number(number)
+            },
+            CoordDataValue::Coord(coord) => {
                 SvgLengthOrPercentageOrNumber::LengthOrPercentage(
-                    LengthOrPercentage::Length(Au(coord).into())),
-            CoordDataValue::Percent(p) =>
+                    LengthOrPercentage::Length(Au(coord).into())
+                )
+            },
+            CoordDataValue::Percent(p) => {
                 SvgLengthOrPercentageOrNumber::LengthOrPercentage(
-                    LengthOrPercentage::Percentage(Percentage(p))),
-            CoordDataValue::Calc(calc) =>
+                    LengthOrPercentage::Percentage(Percentage(p))
+                )
+            },
+            CoordDataValue::Calc(calc) => {
                 SvgLengthOrPercentageOrNumber::LengthOrPercentage(
-                    LengthOrPercentage::Calc(calc.into())),
+                    LengthOrPercentage::Calc(calc.into())
+                )
+            },
             _ => unreachable!("Unexpected coordinate in ${ident}"),
         };
         SVGLength::Length(length.into())
