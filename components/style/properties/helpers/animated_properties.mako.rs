@@ -31,10 +31,9 @@ use values::animated::{Animate, Procedure, ToAnimatedValue, ToAnimatedZero};
 use values::animated::color::Color as AnimatedColor;
 use values::animated::effects::Filter as AnimatedFilter;
 #[cfg(feature = "gecko")] use values::computed::TransitionProperty;
-use values::computed::{Angle, CalcLengthOrPercentage};
+use values::computed::Angle;
 use values::computed::{ClipRect, Context};
-use values::computed::{Length, LengthOrPercentage, LengthOrPercentageOrAuto};
-use values::computed::LengthOrPercentageOrNone;
+use values::computed::{Length, LengthOrPercentage};
 use values::computed::{NonNegativeNumber, Number, NumberOrPercentage, Percentage};
 use values::computed::length::NonNegativeLengthOrPercentage;
 use values::computed::ToComputedValue;
@@ -842,53 +841,6 @@ impl ToAnimatedZero for Visibility {
     #[inline]
     fn to_animated_zero(&self) -> Result<Self, ()> {
         Err(())
-    }
-}
-
-/// <https://drafts.csswg.org/css-transitions/#animtype-lpcalc>
-impl Animate for CalcLengthOrPercentage {
-    #[inline]
-    fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
-        let animate_percentage_half = |this: Option<Percentage>, other: Option<Percentage>| {
-            if this.is_none() && other.is_none() {
-                return Ok(None);
-            }
-            let this = this.unwrap_or_default();
-            let other = other.unwrap_or_default();
-            Ok(Some(this.animate(&other, procedure)?))
-        };
-
-        let length = self.unclamped_length().animate(&other.unclamped_length(), procedure)?;
-        let percentage = animate_percentage_half(self.percentage, other.percentage)?;
-        Ok(CalcLengthOrPercentage::with_clamping_mode(length, percentage, self.clamping_mode))
-    }
-}
-
-impl ToAnimatedZero for LengthOrPercentageOrAuto {
-    #[inline]
-    fn to_animated_zero(&self) -> Result<Self, ()> {
-        match *self {
-            LengthOrPercentageOrAuto::Length(_) |
-            LengthOrPercentageOrAuto::Percentage(_) |
-            LengthOrPercentageOrAuto::Calc(_) => {
-                Ok(LengthOrPercentageOrAuto::Length(Length::new(0.)))
-            },
-            LengthOrPercentageOrAuto::Auto => Err(()),
-        }
-    }
-}
-
-impl ToAnimatedZero for LengthOrPercentageOrNone {
-    #[inline]
-    fn to_animated_zero(&self) -> Result<Self, ()> {
-        match *self {
-            LengthOrPercentageOrNone::Length(_) |
-            LengthOrPercentageOrNone::Percentage(_) |
-            LengthOrPercentageOrNone::Calc(_) => {
-                Ok(LengthOrPercentageOrNone::Length(Length::new(0.)))
-            },
-            LengthOrPercentageOrNone::None => Err(()),
-        }
     }
 }
 

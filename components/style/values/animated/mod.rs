@@ -15,13 +15,12 @@ use smallvec::SmallVec;
 use std::cmp;
 use values::computed::Angle as ComputedAngle;
 use values::computed::BorderCornerRadius as ComputedBorderCornerRadius;
-use values::computed::MaxLength as ComputedMaxLength;
-use values::computed::MozLength as ComputedMozLength;
 use values::computed::length::CalcLengthOrPercentage;
 use values::computed::url::ComputedUrl;
 
 pub mod color;
 pub mod effects;
+mod length;
 
 /// The category a property falls into for ordering purposes.
 ///
@@ -342,66 +341,6 @@ impl ToAnimatedValue for ComputedBorderCornerRadius {
             (animated.0).0.width.clamp_to_non_negative(),
             (animated.0).0.height.clamp_to_non_negative(),
         )
-    }
-}
-
-impl ToAnimatedValue for ComputedMaxLength {
-    type AnimatedValue = Self;
-
-    #[inline]
-    fn to_animated_value(self) -> Self {
-        self
-    }
-
-    #[inline]
-    fn from_animated_value(animated: Self::AnimatedValue) -> Self {
-        use values::computed::{Length, LengthOrPercentageOrNone, Percentage};
-        use values::generics::length::MaxLength as GenericMaxLength;
-        match animated {
-            GenericMaxLength::LengthOrPercentageOrNone(lopn) => {
-                let result = match lopn {
-                    LengthOrPercentageOrNone::Length(px) => {
-                        LengthOrPercentageOrNone::Length(Length::new(px.px().max(0.)))
-                    },
-                    LengthOrPercentageOrNone::Percentage(percentage) => {
-                        LengthOrPercentageOrNone::Percentage(Percentage(percentage.0.max(0.)))
-                    },
-                    _ => lopn,
-                };
-                GenericMaxLength::LengthOrPercentageOrNone(result)
-            },
-            _ => animated,
-        }
-    }
-}
-
-impl ToAnimatedValue for ComputedMozLength {
-    type AnimatedValue = Self;
-
-    #[inline]
-    fn to_animated_value(self) -> Self {
-        self
-    }
-
-    #[inline]
-    fn from_animated_value(animated: Self::AnimatedValue) -> Self {
-        use values::computed::{Length, LengthOrPercentageOrAuto, Percentage};
-        use values::generics::length::MozLength as GenericMozLength;
-        match animated {
-            GenericMozLength::LengthOrPercentageOrAuto(lopa) => {
-                let result = match lopa {
-                    LengthOrPercentageOrAuto::Length(px) => {
-                        LengthOrPercentageOrAuto::Length(Length::new(px.px().max(0.)))
-                    },
-                    LengthOrPercentageOrAuto::Percentage(percentage) => {
-                        LengthOrPercentageOrAuto::Percentage(Percentage(percentage.0.max(0.)))
-                    },
-                    _ => lopa,
-                };
-                GenericMozLength::LengthOrPercentageOrAuto(result)
-            },
-            _ => animated,
-        }
     }
 }
 
