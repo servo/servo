@@ -3057,32 +3057,17 @@ pub fn compare_property_priority(a: &PropertyId, b: &PropertyId) -> cmp::Orderin
         return a_category.cmp(&b_category);
     }
 
-    if a_category == PropertyCategory::Shorthand {
-        let a = a.as_shorthand().unwrap();
-        let b = b.as_shorthand().unwrap();
-        // Within shorthands, sort by the number of subproperties, then by IDL
-        // name.
-        let subprop_count_a = a.longhands().count();
-        let subprop_count_b = b.longhands().count();
-        return subprop_count_a.cmp(&subprop_count_b).then_with(|| {
-            get_idl_name_sort_order(a).cmp(&get_idl_name_sort_order(b))
-        });
+    if a_category != PropertyCategory::Shorthand {
+        return cmp::Ordering::Equal;
     }
 
-    cmp::Ordering::Equal
-}
-
-fn get_idl_name_sort_order(shorthand: ShorthandId) -> u32 {
-<%
-# Sort by IDL name.
-sorted_shorthands = sorted(data.shorthands, key=lambda p: to_idl_name(p.ident))
-
-# Annotate with sorted position
-sorted_shorthands = [(p, position) for position, p in enumerate(sorted_shorthands)]
-%>
-    match shorthand {
-        % for property, position in sorted_shorthands:
-            ShorthandId::${property.camel_case} => ${position},
-        % endfor
-    }
+    let a = a.as_shorthand().unwrap();
+    let b = b.as_shorthand().unwrap();
+    // Within shorthands, sort by the number of subproperties, then by IDL
+    // name.
+    let subprop_count_a = a.longhands().count();
+    let subprop_count_b = b.longhands().count();
+    subprop_count_a.cmp(&subprop_count_b).then_with(|| {
+        a.idl_name_sort_order().cmp(&b.idl_name_sort_order())
+    })
 }

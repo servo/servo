@@ -1453,6 +1453,25 @@ impl ShorthandId {
         }
     }
 
+    /// Returns the order in which this property appears relative to other
+    /// shorthands in idl-name-sorting order.
+    #[inline]
+    pub fn idl_name_sort_order(self) -> u32 {
+        <%
+            from data import to_idl_name
+            ordered = {}
+            sorted_shorthands = sorted(data.shorthands, key=lambda p: to_idl_name(p.ident))
+            for order, shorthand in enumerate(sorted_shorthands):
+                ordered[shorthand.ident] = order
+        %>
+        static IDL_NAME_SORT_ORDER: [u32; ${len(data.shorthands)}] = [
+            % for property in data.shorthands:
+            ${ordered[property.ident]},
+            % endfor
+        ];
+        IDL_NAME_SORT_ORDER[self as usize]
+    }
+
     fn parse_into<'i, 't>(
         &self,
         declarations: &mut SourcePropertyDeclaration,
