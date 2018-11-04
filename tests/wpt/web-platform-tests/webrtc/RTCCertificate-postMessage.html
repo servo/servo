@@ -1,0 +1,77 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>RTCCertificate persistent Tests</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<body>
+<script>
+    function findMatchingFingerprint(fingerprints, fingerprint) {
+        for (let f of fingerprints) {
+            if (f.value == fingerprint.value && f.algorithm == fingerprint.algorithm)
+                return true;
+        }
+        return false;
+    }
+
+    function with_iframe(url) {
+        return new Promise(function(resolve) {
+            var frame = document.createElement('iframe');
+            frame.src = url;
+            frame.onload = function() { resolve(frame); };
+            document.body.appendChild(frame);
+        });
+    }
+
+    function testPostMessageCertificate(isCrossOrigin) {
+        promise_test(async t => {
+            let certificate = await  RTCPeerConnection.generateCertificate({ name: 'ECDSA', namedCurve: 'P-256' });
+
+            let url = "resources/RTCCertificate-postMessage-iframe.html";
+            if (isCrossOrigin)
+                url = get_host_info().HTTP_REMOTE_ORIGIN + "/webrtc/" + url;
+
+            let iframe = await with_iframe(url);
+
+            let promise = new Promise((resolve, reject) => {
+                window.onmessage = (event) => {
+                    resolve(event.data);
+                };
+                t.step_timeout(() => reject("Timed out waiting for frame to send back certificate"), 5000);
+            });
+            iframe.contentWindow.postMessage(certificate, "*");
+            let certificate2 = await promise;
+
+            new RTCPeerConnection({certificates: [certificate]});
+
+            new RTCPeerConnection({certificates: [certificate2]});
+
+            assert_equals(certificate.expires, certificate2.expires);
+            for (let fingerprint of certificate2.getFingerprints())
+                assert_true(findMatchingFingerprint(certificate.getFingerprints(), fingerprint), "check fingerprints");
+
+            iframe.remove();
+        }, "Check " + (isCrossOrigin ? "cross-origin" : "same-origin") + " RTCCertificate serialization");
+    }
+
+    testPostMessageCertificate(false);
+    testPostMessageCertificate(true);
+
+    promise_test(async t => {
+        let url = get_host_info().HTTP_REMOTE_ORIGIN + "/webrtc/resources/RTCCertificate-postMessage-iframe.html";
+        let iframe = await with_iframe(url);
+
+        let promise = new Promise((resolve, reject) => {
+            window.onmessage = (event) => {
+                resolve(event.data);
+            };
+            t.step_timeout(() => reject("Timed out waiting for frame to send back certificate"), 5000);
+        });
+        iframe.contentWindow.postMessage(null, "*");
+        let certificate2 = await promise;
+
+        assert_throws("InvalidAccessError", () => { new RTCPeerConnection({certificates: [certificate2]}) });
+        iframe.remove();
+    }, "Check cross-origin created RTCCertificate");
+</script>
+</body>

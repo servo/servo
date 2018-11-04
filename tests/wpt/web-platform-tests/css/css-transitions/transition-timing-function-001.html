@@ -42,12 +42,20 @@
                 'steps(3, start)': 'steps(3, start)',
                 'steps(3, end)': 'steps(3)',
                 'steps(3)': 'steps(3)',
+                'steps(3, jump-start)': 'steps(3, jump-start)',
+                'steps(3, jump-end)': 'steps(3)',
+                'steps(3, jump-both)': 'steps(3, jump-both)',
+                'steps(3, jump-none)': 'steps(3, jump-none)',
                 // invalid
                 'cubic-bezier(foobar)': defaultValue,
                 'steps(foobar)': defaultValue,
                 'steps(3.3, end)': defaultValue,
                 'steps(3, top)': defaultValue,
                 'steps(-3, top)': defaultValue,
+                'steps(0, jump-start)': defaultValue,
+                'steps(0, jump-end)': defaultValue,
+                'steps(0, jump-both)': defaultValue,
+                'steps(1, jump-none)': defaultValue,
                 // Both x values must be in the range [0, 1]
                 'cubic-bezier(-0.1, -0.2, -0.3, -0.4)': defaultValue,
                 'cubic-bezier(1.1, 1.2, 1.3, 1.4)': defaultValue

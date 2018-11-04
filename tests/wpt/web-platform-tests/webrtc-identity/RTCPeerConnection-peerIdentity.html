@@ -1,0 +1,336 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>RTCPeerConnection.prototype.peerIdentity</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="identity-helper.sub.js"></script>
+<script>
+  'use strict';
+
+  // Test is based on the following editor draft:
+  //   https://w3c.github.io/webrtc-pc/archives/20170605/webrtc.html
+
+  // The tests here interacts with the mock identity provider located at
+  //   /.well-known/idp-proxy/mock-idp.js
+
+  // The following helper functions are called from identity-helper.sub.js
+  //   parseAssertionResult
+  //   getIdpDomains
+  //   assert_rtcerror_rejection
+  //   hostString
+
+  /*
+    9.6.  RTCPeerConnection Interface Extensions
+      partial interface RTCPeerConnection {
+        void               setIdentityProvider(DOMString provider,
+                                               optional RTCIdentityProviderOptions options);
+        Promise<DOMString> getIdentityAssertion();
+        readonly attribute Promise<RTCIdentityAssertion> peerIdentity;
+        readonly attribute DOMString?                    idpLoginUrl;
+        readonly attribute DOMString?                    idpErrorInfo;
+      };
+
+      dictionary RTCIdentityProviderOptions {
+        DOMString protocol = "default";
+        DOMString usernameHint;
+        DOMString peerIdentity;
+      };
+
+      [Constructor(DOMString idp, DOMString name)]
+      interface RTCIdentityAssertion {
+        attribute DOMString idp;
+        attribute DOMString name;
+      };
+   */
+
+  /*
+    4.3.2. setRemoteDescription
+      If an a=identity attribute is present in the session description, the browser
+      validates the identity assertion..
+
+      If the "peerIdentity" configuration is applied to the RTCPeerConnection, this
+      establishes a target peer identity of the provided value. Alternatively, if the
+      RTCPeerConnection has previously authenticated the identity of the peer (that
+      is, there is a current value for peerIdentity ), then this also establishes a
+      target peer identity.
+   */
+  promise_test(t => {
+    const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    const pc2 = new RTCPeerConnection();
+
+    t.add_cleanup(() => pc2.close());
+
+    const port = window.location.port;
+    const [idpDomain] = getIdpDomains();
+    const idpHost = hostString(idpDomain, port);
+
+    pc1.setIdentityProvider(idpHost, {
+      protocol: 'mock-idp.js',
+      usernameHint: `alice@${idpDomain}`
+    });
+
+    return pc1.createOffer()
+    .then(offer => pc2.setRemoteDescription(offer))
+    .then(() => pc2.peerIdentity)
+    .then(identityAssertion => {
+      const { idp, name } = identityAssertion;
+      assert_equals(idp, idpDomain, `Expect IdP domain to be ${idpDomain}`);
+      assert_equals(identityAssertion, `alice@${idpDomain}`,
+        `Expect validated identity from mock-idp.js to be same as specified in usernameHint`);
+    });
+  }, 'setRemoteDescription() on offer with a=identity should establish peerIdentity');
+
+  /*
+    4.3.2. setRemoteDescription
+      The target peer identity cannot be changed once set. Once set, if a different
+      value is provided, the user agent MUST reject the returned promise with a newly
+      created InvalidModificationError and abort this operation. The RTCPeerConnection
+      MUST be closed if the validated peer identity does not match the target peer
+      identity.
+   */
+  promise_test(t => {
+    const port = window.location.port;
+    const [idpDomain] = getIdpDomains();
+    const idpHost = hostString(idpDomain, port);
+
+    const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    const pc2 = new RTCPeerConnection({
+      peerIdentity: `bob@${idpDomain}`
+    });
+
+    t.add_cleanup(() => pc2.close());
+
+    pc1.setIdentityProvider(idpHost, {
+      protocol: 'mock-idp.js',
+      usernameHint: `alice@${idpDomain}`
+    });
+
+    return pc1.createOffer()
+    .then(offer =>
+      promise_rejects(t, 'InvalidModificationError',
+        pc2.setRemoteDescription(offer)))
+    .then(() => {
+      assert_true(pc2.signalingState, 'closed',
+        'Expect peer connection to be closed after mismatch peer identity');
+    });
+  }, 'setRemoteDescription() on offer with a=identity that resolve to value different from target peer identity should reject with InvalidModificationError');
+
+  /*
+    9.4.  Verifying Identity Assertions
+      8.  The RTCPeerConnection decodes the contents and validates that it contains a
+          fingerprint value for every a=fingerprint attribute in the session description.
+          This ensures that the certificate used by the remote peer for communications
+          is covered by the identity assertion.
+
+      If identity validation fails, the peerIdentity promise is rejected with a newly
+      created OperationError.
+
+      If identity validation fails and there is a target peer identity for the
+      RTCPeerConnection, the promise returned by setRemoteDescription MUST be rejected
+      with the same DOMException.
+   */
+  promise_test(t => {
+    const port = window.location.port;
+    const [idpDomain] = getIdpDomains();
+    const idpHost = hostString(idpDomain, port);
+
+    const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    const pc2 = new RTCPeerConnection({
+      peerIdentity: `alice@${idpDomain}`
+    });
+
+    t.add_cleanup(() => pc2.close());
+
+    // Ask mockidp.js to return custom contents in validation result
+    pc1.setIdentityProvider(idpHost, {
+      protocol: 'mock-idp.js?validatorAction=return-custom-contents&contents=bogus',
+      usernameHint: `alice@${idpDomain}`
+    });
+
+    const peerIdentityPromise = pc2.peerIdentity;
+
+    return pc1.createOffer()
+    .then(offer => Promise.all([
+      promise_rejects(t, 'OperationError',
+        pc2.setRemoteDescription(offer)),
+      promise_rejects(t, 'OperationError',
+        peerIdentityPromise)
+    ]));
+  }, 'setRemoteDescription() with peerIdentity set and with IdP proxy that return validationAssertion with mismatch contents should reject with OperationError');
+
+  /*
+    9.4.  Verifying Identity Assertions
+      9.  The RTCPeerConnection validates that the domain portion of the identity matches
+          the domain of the IdP as described in [RTCWEB-SECURITY-ARCH]. If this check
+          fails then the identity validation fails.
+   */
+  promise_test(t => {
+    const port = window.location.port;
+    const [idpDomain1, idpDomain2] = getIdpDomains();
+    assert_not_equals(idpDomain1, idpDomain2,
+      'Sanity check two idpDomains are different');
+
+    const idpHost1 = hostString(idpDomain1, port);
+
+    const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    const pc2 = new RTCPeerConnection({
+      peerIdentity: `alice@${idpDomain2}`
+    });
+
+    t.add_cleanup(() => pc2.close());
+
+    // mock-idp.js will return assertion of domain2 identity
+    // with domain1 in the idp.domain field
+    pc1.setIdentityProvider(idpHost1, {
+      protocol: 'mock-idp.js',
+      usernameHint: `alice@${idpDomain2}`
+    });
+
+    return pc1.getIdentityAssertion()
+    .then(assertionResultStr => {
+      const { idp, assertion } = parseAssertionResult(assertionResultStr);
+
+      assert_equals(idp.domain, idpDomain1,
+        'Sanity check domain of assertion is domain1');
+
+      assert_equals(assertion.options.usernameHint, `alice@${idpDomain2}`,
+        'Sanity check domain1 is going to validate a domain2 identity');
+
+      return pc1.createOffer();
+    })
+    .then(offer => Promise.all([
+      promise_rejects(t, 'OperationError',
+        pc2.setRemoteDescription(offer)),
+      promise_rejects(t, 'OperationError',
+        pc2.peerIdentity)
+    ]));
+  }, 'setRemoteDescription() and peerIdentity should reject with OperationError if IdP return validated identity that is different from its own domain');
+
+  /*
+    9.4 Verifying Identity Assertions
+      If identity validation fails and there is a target peer identity for the
+      RTCPeerConnection, the promise returned by setRemoteDescription MUST be rejected
+      with the same DOMException.
+
+    9.5 IdP Error Handling
+      - If an identity provider throws an exception or returns a promise that is ultimately
+        rejected, then the procedure that depends on the IdP MUST also fail. These types of
+        errors will cause an IdP failure with an RTCError with errorDetail set to
+        "idp-execution-failure".
+
+      Any error generated by the IdP MAY provide additional information in the
+      idpErrorInfo attribute. The information in this string is defined by the
+      IdP in use.
+   */
+  promise_test(t => {
+    const port = window.location.port;
+    const [idpDomain] = getIdpDomains();
+    const idpHost = hostString(idpDomain, port);
+
+    const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    const pc2 = new RTCPeerConnection({
+      peerIdentity: `alice@${idpDomain}`
+    });
+
+    t.add_cleanup(() => pc2.close());
+
+    // Ask mock-idp.js to throw error during validation,
+    // i.e. during pc2.setRemoteDescription()
+    pc1.setIdentityProvider(idpHost, {
+      protocol: 'mock-idp.js?validatorAction=throw-error&errorInfo=bar',
+      usernameHint: `alice@${idpDomain}`
+    });
+
+    return pc1.createOffer()
+    .then(offer => Promise.all([
+      assert_rtcerror_rejection('idp-execution-failure',
+        pc2.setRemoteDescription(offer)),
+      assert_rtcerror_rejection('idp-execution-failure',
+        pc2.peerIdentity)
+    ]))
+    .then(() => {
+      assert_equals(pc2.idpErrorInfo, 'bar',
+        'Expect pc2.idpErrorInfo to be set to the err.idpErrorInfo thrown by mock-idp.js');
+    });
+  }, `When IdP throws error and pc has target peer identity, setRemoteDescription() and peerIdentity rejected with RTCError('idp-execution-error')`);
+
+  /*
+    4.3.2. setRemoteDescription
+      If there is no target peer identity, then setRemoteDescription does not await the
+      completion of identity validation.
+
+    9.5.  IdP Error Handling
+      - If an identity provider throws an exception or returns a promise that is
+        ultimately rejected, then the procedure that depends on the IdP MUST also fail.
+        These types of errors will cause an IdP failure with an RTCError with errorDetail
+        set to "idp-execution-failure".
+
+    9.4.  Verifying Identity Assertions
+      If identity validation fails and there is no a target peer identity, the value of
+      the peerIdentity MUST be set to a new, unresolved promise instance. This permits
+      the use of renegotiation (or a subsequent answer, if the session description was
+      a provisional answer) to resolve or reject the identity.
+   */
+  promise_test(t => {
+    const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    const pc2 = new RTCPeerConnection();
+
+    t.add_cleanup(() => pc2.close());
+
+    const port = window.location.port;
+    const [idpDomain] = getIdpDomains();
+    const idpHost = hostString(idpDomain, port);
+
+    // Ask mock-idp.js to throw error during validation,
+    // i.e. during pc2.setRemoteDescription()
+    pc1.setIdentityProvider(idpHost, {
+      protocol: 'mock-idp.js?validatorAction=throw-error',
+      usernameHint: `alice@${idpDomain}`
+    });
+
+    const peerIdentityPromise1 = pc2.peerIdentity;
+
+    return pc1.createOffer()
+    .then(offer =>
+      // setRemoteDescription should succeed because there is no target peer identity set
+      pc2.setRemoteDescription(offer))
+    .then(() =>
+      assert_rtcerror_rejection('idp-execution-failure',
+        peerIdentityPromise1,
+        `Expect first peerIdentity promise to be rejected with RTCError('idp-execution-failure')`))
+    .then(() => {
+      const peerIdentityPromise2 = pc2.peerIdentity;
+      assert_not_equals(peerIdentityPromise2, peerIdentityPromise1,
+        'Expect pc2.peerIdentity to be replaced with a fresh unresolved promise');
+
+      // regenerate an identity assertion with no test option to throw error
+      pc1.setIdentityProvider(idpHost, {
+        protocol: 'idp-test.js',
+        usernameHint: `alice@${idpDomain}`
+      });
+
+      return pc1.createOffer()
+      .then(offer => pc2.setRemoteDescription(offer))
+      .then(peerIdentityPromise2)
+      .then(identityAssertion => {
+        const { idp, name } = identityAssertion;
+
+        assert_equals(idp, idpDomain,
+          `Expect IdP domain to be ${idpDomain}`);
+
+        assert_equals(name, `alice@${idpDomain}`,
+          `Expect validated identity to be alice@${idpDomain}`);
+
+        assert_equals(pc2.peeridentity, peerIdentityPromise2,
+          'Expect pc2.peerIdentity to stay fixed after identity is validated');
+      });
+    });
+  }, 'IdP failure with no target peer identity should have following setRemoteDescription() succeed and replace pc.peerIdentity with a new promise');
+
+</script>

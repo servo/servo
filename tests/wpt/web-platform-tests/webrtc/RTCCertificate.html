@@ -6,8 +6,8 @@
 <script>
   'use strict';
 
-  // Test is based on the following editor draft:
-  // https://w3c.github.io/webrtc-pc/archives/20170515/webrtc.html
+  // Test is based on the Candidate Recommendation:
+  // https://www.w3.org/TR/webrtc/
 
   /*
     4.2.1. RTCConfiguration Dictionary
@@ -26,8 +26,8 @@
     4.10.2. RTCCertificate Interface
       interface RTCCertificate {
         readonly attribute DOMTimeStamp expires;
+        static sequence<AlgorithmIdentifier> getSupportedAlgorithms();
         sequence<RTCDtlsFingerprint>    getFingerprints();
-        AlgorithmIdentifier             getAlgorithm();
       };
 
     5.5.1 The RTCDtlsFingerprint Dictionary
@@ -257,10 +257,9 @@
     TODO
 
     4.10.2. RTCCertificate Interface
-      getAlgorithm
-        Returns the result of the WebCrypto algorithm normalization process
-        [WebCryptoAPI] that occurred when this certificate was generated
-        with generateCertificate().
+      getSupportedAlgorithms
+           Returns a sequence providing a representative set of supported
+           certificate algorithms. At least one algorithm MUST be returned.
 
       The RTCCertificate object can be stored and retrieved from persistent
       storage by an application. When a user agent is required to obtain a

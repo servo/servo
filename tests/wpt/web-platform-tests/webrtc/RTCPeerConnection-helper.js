@@ -358,7 +358,7 @@ const trackFactories = {
    */
   canCreate(requested) {
     const supported = {
-      audio: !!window.MediaStreamAudioDestinationNode,
+      audio: !!window.AudioContext && !!window.MediaStreamAudioDestinationNode,
       video: !!HTMLCanvasElement.prototype.captureStream
     };
 

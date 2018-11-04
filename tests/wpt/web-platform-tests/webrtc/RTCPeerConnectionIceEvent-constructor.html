@@ -92,11 +92,11 @@ both the sdpMid and sdpMLineIndex dictionary members are null, throw a TypeError
 const candidate = "";
 const sdpMid = "sdpMid";
 const sdpMLineIndex = 1;
-const ufrag = "";
+const usernameFragment = "";
 const url = "foo.bar";
 
 test(() => {
-  const iceCandidate = new RTCIceCandidate({ candidate, sdpMid, sdpMLineIndex, ufrag });
+  const iceCandidate = new RTCIceCandidate({ candidate, sdpMid, sdpMLineIndex, usernameFragment });
   const event = new RTCPeerConnectionIceEvent("type", {
     candidate: iceCandidate,
     url,
@@ -108,32 +108,9 @@ test(() => {
 }, "RTCPeerConnectionIceEvent with RTCIceCandidate");
 
 test(() => {
-  const plain = { candidate, sdpMid, sdpMLineIndex, ufrag };
+  const plain = { candidate, sdpMid, sdpMLineIndex, usernameFragment };
   assert_throws(new TypeError(), () => new RTCPeerConnectionIceEvent("type", { candidate: plain }));
 }, "RTCPeerConnectionIceEvent with non RTCIceCandidate object throws");
-
-/*
-This will remain commented out until https://github.com/w3c/webrtc-pc/issues/1232
-is resolved.
-
-test(() => {
-  // When firing an RTCPeerConnectionIceEvent event that contains a RTCIceCandidate
-  // object, it must include values for both sdpMid and sdpMLineIndex.
-
-  assert_throws(new TypeError(), () => {
-    new RTCPeerConnectionIceEvent("type", {
-      candidate: new RTCIceCandidate({ candidate, sdpMid, ufrag })
-    });
-  });
-
-  assert_throws(new TypeError(), () => {
-    new RTCPeerConnectionIceEvent("type", {
-      candidate: new RTCIceCandidate({ candidate, sdpMLineIndex, ufrag })
-    });
-  });
-
-}, "RTCIceCandidate must include values for both sdpMid and sdpMLineIndex");
-*/
 
 test(() => {
   const event = new RTCPeerConnectionIceEvent("type", {
@@ -145,4 +122,5 @@ test(() => {
   assert_true(event.bubbles);
   assert_true(event.cancelable);
 }, "RTCPeerConnectionIceEvent bubbles and cancelable");
+
 </script>

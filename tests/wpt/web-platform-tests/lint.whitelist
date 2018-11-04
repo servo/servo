@@ -760,7 +760,7 @@ MISSING-LINK: css/css-scroll-anchoring/position-change-heuristic.html
 MISSING-LINK: css/css-scroll-anchoring/start-edge-in-block-layout-direction.html
 MISSING-LINK: css/css-scroll-anchoring/subtree-exclusion.html
 MISSING-LINK: css/css-scroll-anchoring/wrapped-text.html
-SUPPORT-WRONG-DIR: css/css-timing/testcommon.js
+SUPPORT-WRONG-DIR: css/css-easing/testcommon.js
 MISSING-LINK: css/css-typed-om/CSSMatrixComponent-DOMMatrix-mutable.html
 MISSING-LINK: css/css-typed-om/declared-styleMap-accepts-inherit.html
 SUPPORT-WRONG-DIR: css/cssom/stylesheet-same-origin.css
