@@ -20,6 +20,7 @@ use values::computed::url::ComputedUrl;
 
 pub mod color;
 pub mod effects;
+mod font;
 mod length;
 
 /// The category a property falls into for ordering purposes.
