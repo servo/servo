@@ -402,7 +402,7 @@ impl ServiceWorkerGlobalScope {
             Response(mediator) => {
                 // TODO XXXcreativcoder This will eventually use a FetchEvent interface to fire event
                 // when we have the Request and Response dom api's implemented
-                // https://slightlyoff.github.io/ServiceWorker/spec/service_worker_1/index.html#fetch-event-section
+                // https://w3c.github.io/ServiceWorker/#fetchevent-interface
                 self.upcast::<EventTarget>().fire_event(atom!("fetch"));
                 let _ = mediator.response_chan.send(None);
             },
