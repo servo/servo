@@ -41,6 +41,7 @@ use js::jsapi::{SetBuildIdOp, SetEnqueuePromiseJobCallback, SetPromiseRejectionT
 use js::panic::wrap_panic;
 use js::rust::wrappers::{GetPromiseIsHandled, GetPromiseResult};
 use js::rust::Handle;
+use js::rust::IntoHandle;
 use js::rust::Runtime as RustRuntime;
 use malloc_size_of::MallocSizeOfOps;
 use msg::constellation_msg::PipelineId;
@@ -152,7 +153,7 @@ unsafe extern "C" fn enqueue_job(
     )
 }
 
-#[allow(unsafe_code)]
+#[allow(unsafe_code, unrooted_must_root)]
 /// https://html.spec.whatwg.org/multipage/#the-hostpromiserejectiontracker-implementation
 unsafe extern "C" fn promise_rejection_tracker(
     cx: *mut JSContext,
@@ -190,14 +191,38 @@ unsafe extern "C" fn promise_rejection_tracker(
                         .borrow()
                         .contains(&Heap::boxed(promise.get()))
                     {
-                        global.add_consumed_rejection(promise);
                         return;
                     }
 
                     // Step 5-3.
                     global.remove_consumed_rejection(promise);
 
-                    // TODO: Step 5-4 - Queue a task to fire `rejectionhandled` event
+                    let target = Trusted::new(global.upcast::<EventTarget>());
+                    let promise = Promise::new_with_js_promise(Handle::from_raw(promise), cx);
+                    let trusted_promise = TrustedPromise::new(promise.clone());
+
+                    // Step 5-4.
+                    global.dom_manipulation_task_source().queue(
+                    task!(rejection_handled_event: move || {
+                        let target = target.root();
+                        let cx = target.global().get_cx();
+                        let root_promise = trusted_promise.root();
+
+                        rooted!(in(cx) let reason = GetPromiseResult(root_promise.reflector().get_jsobject()));
+
+                        let event = PromiseRejectionEvent::new(
+                            &target.global(),
+                            atom!("rejectionhandled"),
+                            EventBubbles::DoesNotBubble,
+                            EventCancelable::Cancelable,
+                            root_promise,
+                            reason.handle()
+                        );
+
+                        event.upcast::<Event>().fire(&target);
+                    }),
+                    global.upcast(),
+                ).unwrap();
                 },
             };
         }),
@@ -254,7 +279,7 @@ pub fn notify_about_rejected_promises(global: &GlobalScope) {
                             atom!("unhandledrejection"),
                             EventBubbles::DoesNotBubble,
                             EventCancelable::Cancelable,
-                            promise,
+                            promise.clone(),
                             reason.handle()
                         );
 
@@ -265,18 +290,14 @@ pub fn notify_about_rejected_promises(global: &GlobalScope) {
                             // TODO: The promise rejection is not handled; we need to add it back to the list.
                         }
 
-                        // TODO: Step 4-4 - If [[PromiseIsHandled]] is false, add promise to consumed_rejections
+                        // Step 4-4.
+                        if !promise_is_handled {
+                            target.global().add_consumed_rejection(promise.reflector().get_jsobject().into_handle());
+                        }
                     }
                 }),
                 global.upcast(),
             ).unwrap();
-        }
-
-        if global.get_consumed_rejections().borrow().len() > 0 {
-            // FIXME(cybai): Implement `rejectionhandled` event instead of clearing the whole
-            //               consumed rejections
-            // https://html.spec.whatwg.org/multipage/#the-hostpromiserejectiontracker-implementation
-            global.get_consumed_rejections().borrow_mut().clear();
         }
     }
 }
