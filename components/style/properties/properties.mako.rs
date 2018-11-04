@@ -471,6 +471,20 @@ impl NonCustomPropertyId {
         MAP[self.0]
     }
 
+    /// Returns whether this property is transitionable.
+    #[inline]
+    pub fn is_transitionable(self) -> bool {
+        ${static_non_custom_property_id_set("TRANSITIONABLE", lambda p: p.transitionable)}
+        TRANSITIONABLE.contains(self)
+    }
+
+    /// Returns whether this property is animatable.
+    #[inline]
+    pub fn is_animatable(self) -> bool {
+        ${static_non_custom_property_id_set("ANIMATABLE", lambda p: p.animatable)}
+        ANIMATABLE.contains(self)
+    }
+
     #[inline]
     fn enabled_for_all_content(self) -> bool {
         ${static_non_custom_property_id_set(

@@ -50,20 +50,6 @@ use values::generics::svg::{SVGLength,  SvgLengthOrPercentageOrNumber, SVGPaint}
 use values::generics::svg::{SVGPaintKind, SVGStrokeDashArray, SVGOpacity};
 use void::{self, Void};
 
-
-/// Returns true if this nsCSSPropertyID is one of the animatable properties.
-#[cfg(feature = "gecko")]
-pub fn nscsspropertyid_is_animatable(property: nsCSSPropertyID) -> bool {
-    match property {
-        % for prop in data.longhands + data.shorthands_except_all():
-            % if prop.animatable:
-                ${prop.nscsspropertyid()} => true,
-            % endif
-        % endfor
-        _ => false
-    }
-}
-
 /// Convert nsCSSPropertyID to TransitionProperty
 #[cfg(feature = "gecko")]
 #[allow(non_upper_case_globals)]
@@ -87,19 +73,6 @@ impl From<nsCSSPropertyID> for TransitionProperty {
                 panic!("non-convertible nsCSSPropertyID")
             }
         }
-    }
-}
-
-/// Returns true if this nsCSSPropertyID is one of the transitionable properties.
-#[cfg(feature = "gecko")]
-pub fn nscsspropertyid_is_transitionable(property: nsCSSPropertyID) -> bool {
-    match property {
-        % for prop in data.longhands + data.shorthands_except_all():
-            % if prop.transitionable:
-                ${prop.nscsspropertyid()} => true,
-            % endif
-        % endfor
-        _ => false
     }
 }
 

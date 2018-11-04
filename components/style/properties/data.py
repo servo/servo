@@ -432,6 +432,8 @@ class Alias(object):
         self.original = original
         self.enabled_in = original.enabled_in
         self.servo_pref = original.servo_pref
+        self.animatable = original.animatable
+        self.transitionable = original.transitionable
         self.gecko_pref = gecko_pref
         self.allowed_in_page_rule = original.allowed_in_page_rule
         self.allowed_in_keyframe_block = original.allowed_in_keyframe_block
