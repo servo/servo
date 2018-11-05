@@ -101,16 +101,19 @@ pub enum UsePlaceholder {
 // ======================================================================
 
 pub trait ImageCache: Sync + Send {
-    fn new(webrender_api: webrender_api::RenderApi) -> Self where Self: Sized;
+    fn new(webrender_api: webrender_api::RenderApi) -> Self
+    where
+        Self: Sized;
 
     /// Return any available metadata or image for the given URL,
     /// or an indication that the image is not yet available if it is in progress,
     /// or else reserve a slot in the cache for the URL if the consumer can request images.
-    fn find_image_or_metadata(&self,
-                              url: ServoUrl,
-                              use_placeholder: UsePlaceholder,
-                              can_request: CanRequestImages)
-                              -> Result<ImageOrMetadataAvailable, ImageState>;
+    fn find_image_or_metadata(
+        &self,
+        url: ServoUrl,
+        use_placeholder: UsePlaceholder,
+        can_request: CanRequestImages,
+    ) -> Result<ImageOrMetadataAvailable, ImageState>;
 
     /// Add a new listener for the given pending image id. If the image is already present,
     /// the responder will still receive the expected response.

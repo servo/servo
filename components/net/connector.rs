@@ -20,7 +20,7 @@ use tokio::prelude::future::Executor;
 pub const BUF_SIZE: usize = 32768;
 
 pub struct HttpConnector {
-    inner: HyperHttpConnector
+    inner: HyperHttpConnector,
 }
 
 impl HttpConnector {
@@ -28,9 +28,7 @@ impl HttpConnector {
         let mut inner = HyperHttpConnector::new(4);
         inner.enforce_http(false);
         inner.set_happy_eyeballs_timeout(None);
-        HttpConnector {
-            inner
-        }
+        HttpConnector { inner }
     }
 }
 
@@ -60,10 +58,7 @@ impl WrappedBody {
     }
 
     pub fn new_with_decoder(body: Body, decoder: Decoder) -> Self {
-        WrappedBody {
-            body,
-            decoder,
-        }
+        WrappedBody { body, decoder }
     }
 }
 
@@ -90,7 +85,7 @@ impl Stream for WrappedBody {
                             let len = decoder.read(&mut buf).ok()?;
                             buf.truncate(len);
                             Some(buf.into())
-                        }
+                        },
                         Decoder::Gzip(None) => {
                             let mut buf = vec![0; BUF_SIZE];
                             let mut decoder = GzDecoder::new(Cursor::new(chunk.into_bytes()));
@@ -98,21 +93,21 @@ impl Stream for WrappedBody {
                             buf.truncate(len);
                             self.decoder = Decoder::Gzip(Some(decoder));
                             Some(buf.into())
-                        }
+                        },
                         Decoder::Deflate(ref mut decoder) => {
                             let mut buf = vec![0; BUF_SIZE];
                             *decoder.get_mut() = Cursor::new(chunk.into_bytes());
                             let len = decoder.read(&mut buf).ok()?;
                             buf.truncate(len);
                             Some(buf.into())
-                        }
+                        },
                         Decoder::Brotli(ref mut decoder) => {
                             let mut buf = vec![0; BUF_SIZE];
                             decoder.get_mut().get_mut().extend(&chunk.into_bytes());
                             let len = decoder.read(&mut buf).ok()?;
                             buf.truncate(len);
                             Some(buf.into())
-                        }
+                        },
                     }
                 } else {
                     None
@@ -134,33 +129,46 @@ pub fn create_ssl_connector_builder(certs: &str) -> SslConnectorBuilder {
             let (cert, rest) = certs.split_at(index + token.len());
             certs = rest;
             let cert = x509::X509::from_pem(cert.as_bytes()).unwrap();
-            ssl_connector_builder.cert_store_mut().add_cert(cert).or_else(|e| {
-                let v: Option<Option<&str>> = e.errors().iter().nth(0).map(|e| e.reason());
-                if v == Some(Some("cert already in hash table")) {
-                    warn!("Cert already in hash table. Ignoring.");
-                    // Ignore error X509_R_CERT_ALREADY_IN_HASH_TABLE which means the
-                    // certificate is already in the store.
-                    Ok(())
-                } else {
-                    Err(e)
-                }
-            }).expect("could not set CA file");
+            ssl_connector_builder
+                .cert_store_mut()
+                .add_cert(cert)
+                .or_else(|e| {
+                    let v: Option<Option<&str>> = e.errors().iter().nth(0).map(|e| e.reason());
+                    if v == Some(Some("cert already in hash table")) {
+                        warn!("Cert already in hash table. Ignoring.");
+                        // Ignore error X509_R_CERT_ALREADY_IN_HASH_TABLE which means the
+                        // certificate is already in the store.
+                        Ok(())
+                    } else {
+                        Err(e)
+                    }
+                })
+                .expect("could not set CA file");
         } else {
             break;
         }
     }
-    ssl_connector_builder.set_cipher_list(DEFAULT_CIPHERS).expect("could not set ciphers");
-    ssl_connector_builder.set_options(SslOptions::NO_SSLV2 | SslOptions::NO_SSLV3 | SslOptions::NO_COMPRESSION);
+    ssl_connector_builder
+        .set_cipher_list(DEFAULT_CIPHERS)
+        .expect("could not set ciphers");
+    ssl_connector_builder
+        .set_options(SslOptions::NO_SSLV2 | SslOptions::NO_SSLV3 | SslOptions::NO_COMPRESSION);
     ssl_connector_builder
 }
 
-pub fn create_http_client<E>(ssl_connector_builder: SslConnectorBuilder, executor: E)
-    -> Client<Connector, WrappedBody>
-    where
-        E: Executor<Box<Future<Error=(), Item=()> + Send + 'static>> + Sync + Send + 'static
+pub fn create_http_client<E>(
+    ssl_connector_builder: SslConnectorBuilder,
+    executor: E,
+) -> Client<Connector, WrappedBody>
+where
+    E: Executor<Box<Future<Error = (), Item = ()> + Send + 'static>> + Sync + Send + 'static,
 {
-    let connector = HttpsConnector::with_connector(HttpConnector::new(), ssl_connector_builder).unwrap();
-    Client::builder().http1_title_case_headers(true).executor(executor).build(connector)
+    let connector =
+        HttpsConnector::with_connector(HttpConnector::new(), ssl_connector_builder).unwrap();
+    Client::builder()
+        .http1_title_case_headers(true)
+        .executor(executor)
+        .build(connector)
 }
 
 // The basic logic here is to prefer ciphers with ECDSA certificates, Forward

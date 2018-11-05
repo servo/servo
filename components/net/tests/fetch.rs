@@ -70,7 +70,10 @@ fn test_fetch_on_bad_port_is_network_error() {
     let fetch_response = fetch(&mut request, None);
     assert!(fetch_response.is_network_error());
     let fetch_error = fetch_response.get_network_error().unwrap();
-    assert_eq!(fetch_error, &NetworkError::Internal("Request attempted on bad port".into()))
+    assert_eq!(
+        fetch_error,
+        &NetworkError::Internal("Request attempted on bad port".into())
+    )
 }
 
 #[test]
@@ -94,7 +97,7 @@ fn test_fetch_response_body_matches_const_message() {
         ResponseBody::Done(ref body) => {
             assert_eq!(&**body, MESSAGE);
         },
-        _ => panic!()
+        _ => panic!(),
     };
 }
 
@@ -106,7 +109,10 @@ fn test_fetch_aboutblank() {
     request.referrer = Referrer::NoReferrer;
     let fetch_response = fetch(&mut request, None);
     assert!(!fetch_response.is_network_error());
-    assert_eq!(*fetch_response.body.lock().unwrap(), ResponseBody::Done(vec![]));
+    assert_eq!(
+        *fetch_response.body.lock().unwrap(),
+        ResponseBody::Done(vec![])
+    );
 }
 
 #[test]
@@ -127,10 +133,11 @@ fn test_fetch_blob() {
     let origin = ServoUrl::parse("http://www.example.org/").unwrap();
 
     let (sender, receiver) = ipc::channel().unwrap();
-    context.filemanager.promote_memory(blob_buf, true, sender, "http://www.example.org".into());
+    context
+        .filemanager
+        .promote_memory(blob_buf, true, sender, "http://www.example.org".into());
     let id = receiver.recv().unwrap().unwrap();
     let url = ServoUrl::parse(&format!("blob:{}{}", origin.as_str(), id.simple())).unwrap();
-
 
     let mut request = Request::new(url, Some(Origin::Origin(origin.origin())), None);
     let fetch_response = fetch_with_context(&mut request, &context);
@@ -139,19 +146,27 @@ fn test_fetch_blob() {
 
     assert_eq!(fetch_response.headers.len(), 2);
 
-    let content_type: Mime = fetch_response.headers.typed_get::<ContentType>().unwrap().into();
+    let content_type: Mime = fetch_response
+        .headers
+        .typed_get::<ContentType>()
+        .unwrap()
+        .into();
     assert_eq!(content_type, mime::TEXT_PLAIN);
 
     let content_length: ContentLength = fetch_response.headers.typed_get().unwrap();
     assert_eq!(content_length.0, bytes.len() as u64);
 
-    assert_eq!(*fetch_response.body.lock().unwrap(),
-               ResponseBody::Done(bytes.to_vec()));
+    assert_eq!(
+        *fetch_response.body.lock().unwrap(),
+        ResponseBody::Done(bytes.to_vec())
+    );
 }
 
 #[test]
 fn test_fetch_file() {
-    let path = Path::new("../../resources/servo.css").canonicalize().unwrap();
+    let path = Path::new("../../resources/servo.css")
+        .canonicalize()
+        .unwrap();
     let url = ServoUrl::from_file_path(path.clone()).unwrap();
     let origin = Origin::Origin(url.origin());
     let mut request = Request::new(url, Some(origin), None);
@@ -159,7 +174,11 @@ fn test_fetch_file() {
     let fetch_response = fetch(&mut request, None);
     assert!(!fetch_response.is_network_error());
     assert_eq!(fetch_response.headers.len(), 1);
-    let content_type: Mime = fetch_response.headers.typed_get::<ContentType>().unwrap().into();
+    let content_type: Mime = fetch_response
+        .headers
+        .typed_get::<ContentType>()
+        .unwrap()
+        .into();
     assert_eq!(content_type, mime::TEXT_CSS);
 
     let resp_body = fetch_response.body.lock().unwrap();
@@ -171,7 +190,7 @@ fn test_fetch_file() {
         ResponseBody::Done(ref val) => {
             assert_eq!(val, &bytes);
         },
-        _ => panic!()
+        _ => panic!(),
     }
 }
 
@@ -200,15 +219,34 @@ fn test_cors_preflight_fetch() {
     static ACK: &'static [u8] = b"ACK";
     let state = Arc::new(AtomicUsize::new(0));
     let handler = move |request: HyperRequest<Body>, response: &mut HyperResponse<Body>| {
-        if request.method() == Method::OPTIONS && state.clone().fetch_add(1, Ordering::SeqCst) == 0 {
-            assert!(request.headers().contains_key(header::ACCESS_CONTROL_REQUEST_METHOD));
-            assert!(!request.headers().contains_key(header::ACCESS_CONTROL_REQUEST_HEADERS));
-            assert!(!request.headers().get(header::REFERER).unwrap().to_str().unwrap().contains("a.html"));
-            response.headers_mut().typed_insert(AccessControlAllowOrigin::ANY);
-            response.headers_mut().typed_insert(AccessControlAllowCredentials);
-            response.headers_mut().typed_insert(AccessControlAllowMethods::from_iter(vec![Method::GET]));
+        if request.method() == Method::OPTIONS && state.clone().fetch_add(1, Ordering::SeqCst) == 0
+        {
+            assert!(request
+                .headers()
+                .contains_key(header::ACCESS_CONTROL_REQUEST_METHOD));
+            assert!(!request
+                .headers()
+                .contains_key(header::ACCESS_CONTROL_REQUEST_HEADERS));
+            assert!(!request
+                .headers()
+                .get(header::REFERER)
+                .unwrap()
+                .to_str()
+                .unwrap()
+                .contains("a.html"));
+            response
+                .headers_mut()
+                .typed_insert(AccessControlAllowOrigin::ANY);
+            response
+                .headers_mut()
+                .typed_insert(AccessControlAllowCredentials);
+            response
+                .headers_mut()
+                .typed_insert(AccessControlAllowMethods::from_iter(vec![Method::GET]));
         } else {
-            response.headers_mut().typed_insert(AccessControlAllowOrigin::ANY);
+            response
+                .headers_mut()
+                .typed_insert(AccessControlAllowOrigin::ANY);
             *response.body_mut() = ACK.to_vec().into();
         }
     };
@@ -228,7 +266,7 @@ fn test_cors_preflight_fetch() {
     assert!(!fetch_response.is_network_error());
     match *fetch_response.body.lock().unwrap() {
         ResponseBody::Done(ref body) => assert_eq!(&**body, ACK),
-        _ => panic!()
+        _ => panic!(),
     };
 }
 
@@ -239,15 +277,30 @@ fn test_cors_preflight_cache_fetch() {
     let counter = state.clone();
     let mut cache = CorsCache::new();
     let handler = move |request: HyperRequest<Body>, response: &mut HyperResponse<Body>| {
-        if request.method() == Method::OPTIONS && state.clone().fetch_add(1, Ordering::SeqCst) == 0 {
-            assert!(request.headers().contains_key(header::ACCESS_CONTROL_REQUEST_METHOD));
-            assert!(!request.headers().contains_key(header::ACCESS_CONTROL_REQUEST_HEADERS));
-            response.headers_mut().typed_insert(AccessControlAllowOrigin::ANY);
-            response.headers_mut().typed_insert(AccessControlAllowCredentials);
-            response.headers_mut().typed_insert(AccessControlAllowMethods::from_iter(vec![Method::GET]));
-            response.headers_mut().typed_insert(AccessControlMaxAge::from(Duration::new(6000, 0)));
+        if request.method() == Method::OPTIONS && state.clone().fetch_add(1, Ordering::SeqCst) == 0
+        {
+            assert!(request
+                .headers()
+                .contains_key(header::ACCESS_CONTROL_REQUEST_METHOD));
+            assert!(!request
+                .headers()
+                .contains_key(header::ACCESS_CONTROL_REQUEST_HEADERS));
+            response
+                .headers_mut()
+                .typed_insert(AccessControlAllowOrigin::ANY);
+            response
+                .headers_mut()
+                .typed_insert(AccessControlAllowCredentials);
+            response
+                .headers_mut()
+                .typed_insert(AccessControlAllowMethods::from_iter(vec![Method::GET]));
+            response
+                .headers_mut()
+                .typed_insert(AccessControlMaxAge::from(Duration::new(6000, 0)));
         } else {
-            response.headers_mut().typed_insert(AccessControlAllowOrigin::ANY);
+            response
+                .headers_mut()
+                .typed_insert(AccessControlAllowOrigin::ANY);
             *response.body_mut() = ACK.to_vec().into();
         }
     };
@@ -276,11 +329,11 @@ fn test_cors_preflight_cache_fetch() {
 
     match *fetch_response0.body.lock().unwrap() {
         ResponseBody::Done(ref body) => assert_eq!(&**body, ACK),
-        _ => panic!()
+        _ => panic!(),
     };
     match *fetch_response1.body.lock().unwrap() {
         ResponseBody::Done(ref body) => assert_eq!(&**body, ACK),
-        _ => panic!()
+        _ => panic!(),
     };
 }
 
@@ -289,14 +342,27 @@ fn test_cors_preflight_fetch_network_error() {
     static ACK: &'static [u8] = b"ACK";
     let state = Arc::new(AtomicUsize::new(0));
     let handler = move |request: HyperRequest<Body>, response: &mut HyperResponse<Body>| {
-        if request.method() == Method::OPTIONS && state.clone().fetch_add(1, Ordering::SeqCst) == 0 {
-            assert!(request.headers().contains_key(header::ACCESS_CONTROL_REQUEST_METHOD));
-            assert!(!request.headers().contains_key(header::ACCESS_CONTROL_REQUEST_HEADERS));
-            response.headers_mut().typed_insert(AccessControlAllowOrigin::ANY);
-            response.headers_mut().typed_insert(AccessControlAllowCredentials);
-            response.headers_mut().typed_insert(AccessControlAllowMethods::from_iter(vec![Method::GET]));
+        if request.method() == Method::OPTIONS && state.clone().fetch_add(1, Ordering::SeqCst) == 0
+        {
+            assert!(request
+                .headers()
+                .contains_key(header::ACCESS_CONTROL_REQUEST_METHOD));
+            assert!(!request
+                .headers()
+                .contains_key(header::ACCESS_CONTROL_REQUEST_HEADERS));
+            response
+                .headers_mut()
+                .typed_insert(AccessControlAllowOrigin::ANY);
+            response
+                .headers_mut()
+                .typed_insert(AccessControlAllowCredentials);
+            response
+                .headers_mut()
+                .typed_insert(AccessControlAllowMethods::from_iter(vec![Method::GET]));
         } else {
-            response.headers_mut().typed_insert(AccessControlAllowOrigin::ANY);
+            response
+                .headers_mut()
+                .typed_insert(AccessControlAllowOrigin::ANY);
             *response.body_mut() = ACK.to_vec().into();
         }
     };
@@ -318,11 +384,13 @@ fn test_cors_preflight_fetch_network_error() {
 fn test_fetch_response_is_basic_filtered() {
     static MESSAGE: &'static [u8] = b"";
     let handler = move |_: HyperRequest<Body>, response: &mut HyperResponse<Body>| {
-        response.headers_mut().insert(header::SET_COOKIE, HeaderValue::from_static(""));
+        response
+            .headers_mut()
+            .insert(header::SET_COOKIE, HeaderValue::from_static(""));
         // this header is obsoleted, so hyper doesn't implement it, but it's still covered by the spec
         response.headers_mut().insert(
             HeaderName::from_static("set-cookie2"),
-            HeaderValue::from_bytes(&vec![]).unwrap()
+            HeaderValue::from_bytes(&vec![]).unwrap(),
         );
 
         *response.body_mut() = MESSAGE.to_vec().into();
@@ -340,7 +408,9 @@ fn test_fetch_response_is_basic_filtered() {
 
     let headers = fetch_response.headers;
     assert!(!headers.contains_key(header::SET_COOKIE));
-    assert!(headers.get(HeaderName::from_static("set-cookie2")).is_none());
+    assert!(headers
+        .get(HeaderName::from_static("set-cookie2"))
+        .is_none());
 }
 
 #[test]
@@ -349,28 +419,41 @@ fn test_fetch_response_is_cors_filtered() {
     let handler = move |_: HyperRequest<Body>, response: &mut HyperResponse<Body>| {
         // this is mandatory for the Cors Check to pass
         // TODO test using different url encodings with this value ie. punycode
-        response.headers_mut().typed_insert(AccessControlAllowOrigin::ANY);
+        response
+            .headers_mut()
+            .typed_insert(AccessControlAllowOrigin::ANY);
 
         // these are the headers that should be kept after filtering
         response.headers_mut().typed_insert(CacheControl::new());
-        response.headers_mut().insert(header::CONTENT_LANGUAGE, HeaderValue::from_bytes(&vec![]).unwrap());
-        response.headers_mut().typed_insert(ContentType::from(mime::TEXT_HTML));
-        response.headers_mut().typed_insert(Expires::from(SystemTime::now() + Duration::new(86400, 0)));
-        response.headers_mut().typed_insert(LastModified::from(SystemTime::now()));
+        response.headers_mut().insert(
+            header::CONTENT_LANGUAGE,
+            HeaderValue::from_bytes(&vec![]).unwrap(),
+        );
+        response
+            .headers_mut()
+            .typed_insert(ContentType::from(mime::TEXT_HTML));
+        response
+            .headers_mut()
+            .typed_insert(Expires::from(SystemTime::now() + Duration::new(86400, 0)));
+        response
+            .headers_mut()
+            .typed_insert(LastModified::from(SystemTime::now()));
         response.headers_mut().typed_insert(Pragma::no_cache());
 
         // these headers should not be kept after filtering, even though they are given a pass
-        response.headers_mut().insert(header::SET_COOKIE, HeaderValue::from_static(""));
+        response
+            .headers_mut()
+            .insert(header::SET_COOKIE, HeaderValue::from_static(""));
         response.headers_mut().insert(
             HeaderName::from_static("set-cookie2"),
-            HeaderValue::from_bytes(&vec![]).unwrap()
+            HeaderValue::from_bytes(&vec![]).unwrap(),
         );
-        response.headers_mut().typed_insert(
-            AccessControlAllowHeaders::from_iter(vec![
+        response
+            .headers_mut()
+            .typed_insert(AccessControlAllowHeaders::from_iter(vec![
                 HeaderName::from_static("set-cookie"),
-                HeaderName::from_static("set-cookie2")
-            ])
-        );
+                HeaderName::from_static("set-cookie2"),
+            ]));
 
         *response.body_mut() = MESSAGE.to_vec().into();
     };
@@ -397,7 +480,9 @@ fn test_fetch_response_is_cors_filtered() {
 
     assert!(!headers.contains_key(header::ACCESS_CONTROL_ALLOW_ORIGIN));
     assert!(!headers.contains_key(header::SET_COOKIE));
-    assert!(headers.get(HeaderName::from_static("set-cookie2")).is_none());
+    assert!(headers
+        .get(HeaderName::from_static("set-cookie2"))
+        .is_none());
 }
 
 #[test]
@@ -424,12 +509,12 @@ fn test_fetch_response_is_opaque_filtered() {
     assert!(fetch_response.status.is_none());
     assert_eq!(fetch_response.headers, HeaderMap::new());
     match *fetch_response.body.lock().unwrap() {
-        ResponseBody::Empty => { },
-        _ => panic!()
+        ResponseBody::Empty => {},
+        _ => panic!(),
     }
     match fetch_response.cache_state {
-        CacheState::None => { },
-        _ => panic!()
+        CacheState::None => {},
+        _ => panic!(),
     }
 }
 
@@ -437,13 +522,21 @@ fn test_fetch_response_is_opaque_filtered() {
 fn test_fetch_response_is_opaque_redirect_filtered() {
     static MESSAGE: &'static [u8] = b"";
     let handler = move |request: HyperRequest<Body>, response: &mut HyperResponse<Body>| {
-        let redirects = request.uri().path().split("/").collect::<String>().parse::<u32>().unwrap_or(0);
+        let redirects = request
+            .uri()
+            .path()
+            .split("/")
+            .collect::<String>()
+            .parse::<u32>()
+            .unwrap_or(0);
 
         if redirects == 1 {
             *response.body_mut() = MESSAGE.to_vec().into();
         } else {
             *response.status_mut() = StatusCode::FOUND;
-            response.headers_mut().insert(header::LOCATION, HeaderValue::from_static("1"));
+            response
+                .headers_mut()
+                .insert(header::LOCATION, HeaderValue::from_static("1"));
         }
     };
 
@@ -463,12 +556,12 @@ fn test_fetch_response_is_opaque_redirect_filtered() {
     assert!(fetch_response.status.is_none());
     assert_eq!(fetch_response.headers, HeaderMap::new());
     match *fetch_response.body.lock().unwrap() {
-        ResponseBody::Empty => { },
-        _ => panic!()
+        ResponseBody::Empty => {},
+        _ => panic!(),
     }
     match fetch_response.cache_state {
-        CacheState::None => { },
-        _ => panic!()
+        CacheState::None => {},
+        _ => panic!(),
     }
 }
 
@@ -516,12 +609,19 @@ fn test_fetch_with_hsts() {
         *response.body_mut() = MESSAGE.to_vec().into();
     };
 
-    let cert_path = Path::new("../../resources/self_signed_certificate_for_testing.crt").canonicalize().unwrap();
-    let key_path = Path::new("../../resources/privatekey_for_testing.key").canonicalize().unwrap();
+    let cert_path = Path::new("../../resources/self_signed_certificate_for_testing.crt")
+        .canonicalize()
+        .unwrap();
+    let key_path = Path::new("../../resources/privatekey_for_testing.key")
+        .canonicalize()
+        .unwrap();
     let (server, url) = make_ssl_server(handler, cert_path.clone(), key_path.clone());
 
     let mut ca_content = String::new();
-    File::open(cert_path).unwrap().read_to_string(&mut ca_content).unwrap();
+    File::open(cert_path)
+        .unwrap()
+        .read_to_string(&mut ca_content)
+        .unwrap();
     let ssl_client = create_ssl_connector_builder(&ca_content);
 
     let context = FetchContext {
@@ -534,8 +634,9 @@ fn test_fetch_with_hsts() {
 
     {
         let mut list = context.state.hsts_list.write().unwrap();
-        list.push(HstsEntry::new("localhost".to_owned(), IncludeSubdomains::NotIncluded, None)
-            .unwrap());
+        list.push(
+            HstsEntry::new("localhost".to_owned(), IncludeSubdomains::NotIncluded, None).unwrap(),
+        );
     }
     let origin = Origin::Origin(url.origin());
     let mut request = Request::new(url, Some(origin), None);
@@ -544,8 +645,10 @@ fn test_fetch_with_hsts() {
     request.local_urls_only = false;
     let response = fetch_with_context(&mut request, &context);
     server.close();
-    assert_eq!(response.internal_response.unwrap().url().unwrap().scheme(),
-               "https");
+    assert_eq!(
+        response.internal_response.unwrap().url().unwrap().scheme(),
+        "https"
+    );
 }
 
 #[test]
@@ -562,7 +665,7 @@ fn test_fetch_with_sri_network_error() {
     // To calulate hash use :
     // echo -n "alert('Hello, Network Error');" | openssl dgst -sha384 -binary | openssl base64 -A
     request.integrity_metadata =
-           "sha384-H8BRh8j48O9oYatfu5AZzq6A9RINhZO5H16dQZngK7T62em8MUt1FLm52t+eX6xO".to_owned();
+        "sha384-H8BRh8j48O9oYatfu5AZzq6A9RINhZO5H16dQZngK7T62em8MUt1FLm52t+eX6xO".to_owned();
     // Set the flag.
     request.local_urls_only = false;
 
@@ -586,7 +689,7 @@ fn test_fetch_with_sri_sucess() {
     // To calulate hash use :
     // echo -n "alert('Hello, Network Error');" | openssl dgst -sha384 -binary | openssl base64 -A
     request.integrity_metadata =
-            "sha384-H8BRh8j48O9oYatfu5AZzq6A9RINhZO5H16dQZngK7T62em8MUt1FLm52t+eX6xO".to_owned();
+        "sha384-H8BRh8j48O9oYatfu5AZzq6A9RINhZO5H16dQZngK7T62em8MUt1FLm52t+eX6xO".to_owned();
     // Set the flag.
     request.local_urls_only = false;
 
@@ -600,9 +703,7 @@ fn test_fetch_with_sri_sucess() {
 #[test]
 fn test_fetch_blocked_nosniff() {
     #[inline]
-    fn test_nosniff_request(destination: Destination,
-                            mime: Mime,
-                            should_error: bool) {
+    fn test_nosniff_request(destination: Destination, mime: Mime, should_error: bool) {
         const MESSAGE: &'static [u8] = b"";
         const HEADER: &'static str = "x-content-type-options";
         const VALUE: &'static [u8] = b"nosniff";
@@ -612,7 +713,10 @@ fn test_fetch_blocked_nosniff() {
             response.headers_mut().typed_insert(mime_header);
             assert!(response.headers().contains_key(header::CONTENT_TYPE));
             // Add the nosniff header
-            response.headers_mut().insert(HeaderName::from_static(HEADER), HeaderValue::from_bytes(VALUE).unwrap());
+            response.headers_mut().insert(
+                HeaderName::from_static(HEADER),
+                HeaderValue::from_bytes(VALUE).unwrap(),
+            );
 
             *response.body_mut() = MESSAGE.to_vec().into();
         };
@@ -631,7 +735,7 @@ fn test_fetch_blocked_nosniff() {
     let tests = vec![
         (Destination::Script, mime::TEXT_JAVASCRIPT, false),
         (Destination::Script, mime::TEXT_CSS, true),
-        (Destination::Style,  mime::TEXT_CSS, false),
+        (Destination::Style, mime::TEXT_CSS, false),
     ];
 
     for test in tests {
@@ -642,14 +746,22 @@ fn test_fetch_blocked_nosniff() {
 
 fn setup_server_and_fetch(message: &'static [u8], redirect_cap: u32) -> Response {
     let handler = move |request: HyperRequest<Body>, response: &mut HyperResponse<Body>| {
-        let redirects = request.uri().path().split("/").collect::<String>().parse::<u32>().unwrap_or(0);
+        let redirects = request
+            .uri()
+            .path()
+            .split("/")
+            .collect::<String>()
+            .parse::<u32>()
+            .unwrap_or(0);
 
         if redirects >= redirect_cap {
             *response.body_mut() = message.to_vec().into();
         } else {
             *response.status_mut() = StatusCode::FOUND;
             let url = format!("{redirects}", redirects = redirects + 1);
-            response.headers_mut().insert(header::LOCATION, HeaderValue::from_str(&url).unwrap());
+            response
+                .headers_mut()
+                .insert(header::LOCATION, HeaderValue::from_str(&url).unwrap());
         }
     };
 
@@ -678,7 +790,7 @@ fn test_fetch_redirect_count_ceiling() {
         ResponseBody::Done(ref body) => {
             assert_eq!(&**body, MESSAGE);
         },
-        _ => panic!()
+        _ => panic!(),
     };
 }
 
@@ -694,31 +806,43 @@ fn test_fetch_redirect_count_failure() {
 
     match *fetch_response.body.lock().unwrap() {
         ResponseBody::Done(_) | ResponseBody::Receiving(_) => panic!(),
-        _ => { }
+        _ => {},
     };
 }
 
-fn test_fetch_redirect_updates_method_runner(tx: Sender<bool>, status_code: StatusCode, method: Method) {
+fn test_fetch_redirect_updates_method_runner(
+    tx: Sender<bool>,
+    status_code: StatusCode,
+    method: Method,
+) {
     let handler_method = method.clone();
     let handler_tx = Arc::new(Mutex::new(tx));
 
     let handler = move |request: HyperRequest<Body>, response: &mut HyperResponse<Body>| {
-        let redirects = request.uri().path().split("/").collect::<String>().parse::<u32>().unwrap_or(0);
+        let redirects = request
+            .uri()
+            .path()
+            .split("/")
+            .collect::<String>()
+            .parse::<u32>()
+            .unwrap_or(0);
 
         let mut test_pass = true;
 
         if redirects == 0 {
             *response.status_mut() = StatusCode::TEMPORARY_REDIRECT;
-            response.headers_mut().insert(header::LOCATION, HeaderValue::from_static("1"));
-
+            response
+                .headers_mut()
+                .insert(header::LOCATION, HeaderValue::from_static("1"));
         } else if redirects == 1 {
             // this makes sure that the request method does't change from the wrong status code
             if handler_method != Method::GET && request.method() == Method::GET {
                 test_pass = false;
             }
             *response.status_mut() = status_code;
-            response.headers_mut().insert(header::LOCATION, HeaderValue::from_static("2"));
-
+            response
+                .headers_mut()
+                .insert(header::LOCATION, HeaderValue::from_static("2"));
         } else if request.method() != Method::GET {
             test_pass = false;
         }
@@ -727,7 +851,6 @@ fn test_fetch_redirect_updates_method_runner(tx: Sender<bool>, status_code: Stat
         if redirects > 0 {
             handler_tx.lock().unwrap().send(test_pass).unwrap();
         }
-
     };
 
     let (server, url) = make_server(handler);
@@ -745,7 +868,11 @@ fn test_fetch_redirect_updates_method_runner(tx: Sender<bool>, status_code: Stat
 fn test_fetch_redirect_updates_method() {
     let (tx, rx) = channel();
 
-    test_fetch_redirect_updates_method_runner(tx.clone(), StatusCode::MOVED_PERMANENTLY, Method::POST);
+    test_fetch_redirect_updates_method_runner(
+        tx.clone(),
+        StatusCode::MOVED_PERMANENTLY,
+        Method::POST,
+    );
     assert_eq!(rx.recv().unwrap(), true);
     assert_eq!(rx.recv().unwrap(), true);
     // make sure the test doesn't send more data than expected
@@ -763,7 +890,11 @@ fn test_fetch_redirect_updates_method() {
 
     let extension = Method::from_bytes(b"FOO").unwrap();
 
-    test_fetch_redirect_updates_method_runner(tx.clone(), StatusCode::MOVED_PERMANENTLY, extension.clone());
+    test_fetch_redirect_updates_method_runner(
+        tx.clone(),
+        StatusCode::MOVED_PERMANENTLY,
+        extension.clone(),
+    );
     assert_eq!(rx.recv().unwrap(), true);
     // for MovedPermanently and Found, Method should only be changed if it was Post
     assert_eq!(rx.recv().unwrap(), false);
@@ -785,9 +916,9 @@ fn response_is_done(response: &Response) -> bool {
     let response_complete = match response.response_type {
         ResponseType::Default | ResponseType::Basic | ResponseType::Cors => {
             (*response.body.lock().unwrap()).is_done()
-        }
+        },
         // if the internal response cannot have a body, it shouldn't block the "done" state
-        ResponseType::Opaque | ResponseType::OpaqueRedirect | ResponseType::Error(..) => true
+        ResponseType::Opaque | ResponseType::OpaqueRedirect | ResponseType::Error(..) => true,
     };
 
     let internal_complete = if let Some(ref res) = response.internal_response {
@@ -842,13 +973,21 @@ fn test_opaque_filtered_fetch_async_returns_complete_response() {
 fn test_opaque_redirect_filtered_fetch_async_returns_complete_response() {
     static MESSAGE: &'static [u8] = b"";
     let handler = move |request: HyperRequest<Body>, response: &mut HyperResponse<Body>| {
-        let redirects = request.uri().path().split("/").collect::<String>().parse::<u32>().unwrap_or(0);
+        let redirects = request
+            .uri()
+            .path()
+            .split("/")
+            .collect::<String>()
+            .parse::<u32>()
+            .unwrap_or(0);
 
         if redirects == 1 {
             *response.body_mut() = MESSAGE.to_vec().into();
         } else {
             *response.status_mut() = StatusCode::FOUND;
-            response.headers_mut().insert(header::LOCATION, HeaderValue::from_static("1"));
+            response
+                .headers_mut()
+                .insert(header::LOCATION, HeaderValue::from_static("1"));
         }
     };
 
@@ -892,13 +1031,22 @@ fn test_fetch_with_devtools() {
     //Creating default headers for request
     let mut headers = HeaderMap::new();
 
-    headers.insert(header::ACCEPT_ENCODING, HeaderValue::from_static("gzip, deflate, br"));
-    headers.typed_insert(
-        Host::from(format!("{}:{}", url.host_str().unwrap(), url.port().unwrap()).parse::<Authority>().unwrap()));
+    headers.insert(
+        header::ACCEPT_ENCODING,
+        HeaderValue::from_static("gzip, deflate, br"),
+    );
+    headers.typed_insert(Host::from(
+        format!("{}:{}", url.host_str().unwrap(), url.port().unwrap())
+            .parse::<Authority>()
+            .unwrap(),
+    ));
 
     headers.insert(header::ACCEPT, HeaderValue::from_static("*/*"));
 
-    headers.insert(header::ACCEPT_LANGUAGE, HeaderValue::from_static("en-US, en; q=0.5"));
+    headers.insert(
+        header::ACCEPT_LANGUAGE,
+        HeaderValue::from_static("en-US, en; q=0.5"),
+    );
 
     headers.typed_insert::<UserAgent>(DEFAULT_USER_AGENT.parse().unwrap());
 
@@ -918,7 +1066,11 @@ fn test_fetch_with_devtools() {
     let content = "Yay!";
     let mut response_headers = HeaderMap::new();
     response_headers.typed_insert(ContentLength(content.len() as u64));
-    devhttpresponse.headers.as_mut().unwrap().remove(header::DATE);
+    devhttpresponse
+        .headers
+        .as_mut()
+        .unwrap()
+        .remove(header::DATE);
 
     let httpresponse = DevtoolsHttpResponse {
         headers: Some(response_headers),

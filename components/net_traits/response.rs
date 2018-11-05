@@ -46,12 +46,10 @@ impl ResponseBody {
     pub fn is_done(&self) -> bool {
         match *self {
             ResponseBody::Done(..) => true,
-            ResponseBody::Empty |
-            ResponseBody::Receiving(..) => false,
+            ResponseBody::Empty | ResponseBody::Receiving(..) => false,
         }
     }
 }
-
 
 /// [Cache state](https://fetch.spec.whatwg.org/#concept-response-cache-state)
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
@@ -79,8 +77,10 @@ pub enum ResponseMsg {
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub struct ResponseInit {
     pub url: ServoUrl,
-    #[serde(deserialize_with = "::hyper_serde::deserialize",
-            serialize_with = "::hyper_serde::serialize")]
+    #[serde(
+        deserialize_with = "::hyper_serde::deserialize",
+        serialize_with = "::hyper_serde::serialize"
+    )]
     #[ignore_malloc_size_of = "Defined in hyper"]
     pub headers: HeaderMap,
     pub status_code: u16,
@@ -149,7 +149,9 @@ impl Response {
         res.location_url = init.location_url;
         res.headers = init.headers;
         res.referrer = init.referrer;
-        res.status = StatusCode::from_u16(init.status_code).map(|s| (s, s.to_string())).ok();
+        res.status = StatusCode::from_u16(init.status_code)
+            .map(|s| (s, s.to_string()))
+            .ok();
         res
     }
 
@@ -292,7 +294,13 @@ impl Response {
     pub fn metadata(&self) -> Result<FetchMetadata, NetworkError> {
         fn init_metadata(response: &Response, url: &ServoUrl) -> Metadata {
             let mut metadata = Metadata::default(url.clone());
-            metadata.set_content_type(response.headers.typed_get::<ContentType>().map(|v| v.into()).as_ref());
+            metadata.set_content_type(
+                response
+                    .headers
+                    .typed_get::<ContentType>()
+                    .map(|v| v.into())
+                    .as_ref(),
+            );
             metadata.location_url = response.location_url.clone();
             metadata.headers = Some(Serde(response.headers.clone()));
             metadata.status = response.raw_status.clone();
@@ -316,26 +324,27 @@ impl Response {
                     match self.response_type {
                         ResponseType::Basic => Ok(FetchMetadata::Filtered {
                             filtered: FilteredMetadata::Basic(metadata.unwrap()),
-                            unsafe_: unsafe_metadata
+                            unsafe_: unsafe_metadata,
                         }),
                         ResponseType::Cors => Ok(FetchMetadata::Filtered {
                             filtered: FilteredMetadata::Cors(metadata.unwrap()),
-                            unsafe_: unsafe_metadata
+                            unsafe_: unsafe_metadata,
                         }),
                         ResponseType::Default => unreachable!(),
-                        ResponseType::Error(ref network_err) =>
-                            Err(network_err.clone()),
+                        ResponseType::Error(ref network_err) => Err(network_err.clone()),
                         ResponseType::Opaque => Ok(FetchMetadata::Filtered {
                             filtered: FilteredMetadata::Opaque,
-                            unsafe_: unsafe_metadata
+                            unsafe_: unsafe_metadata,
                         }),
                         ResponseType::OpaqueRedirect => Ok(FetchMetadata::Filtered {
                             filtered: FilteredMetadata::OpaqueRedirect,
-                            unsafe_: unsafe_metadata
-                        })
+                            unsafe_: unsafe_metadata,
+                        }),
                     }
                 },
-                None => Err(NetworkError::Internal("No url found in unsafe response".to_owned()))
+                None => Err(NetworkError::Internal(
+                    "No url found in unsafe response".to_owned(),
+                )),
             }
         } else {
             assert_eq!(self.response_type, ResponseType::Default);

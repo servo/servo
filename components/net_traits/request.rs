@@ -46,9 +46,9 @@ impl Destination {
     #[inline]
     pub fn is_script_like(&self) -> bool {
         *self == Destination::Script ||
-        *self == Destination::ServiceWorker ||
-        *self == Destination::SharedWorker ||
-        *self == Destination::Worker
+            *self == Destination::ServiceWorker ||
+            *self == Destination::SharedWorker ||
+            *self == Destination::Worker
     }
 }
 
@@ -75,7 +75,7 @@ pub enum RequestMode {
     SameOrigin,
     NoCors,
     CorsMode,
-    WebSocket { protocols: Vec<String> }
+    WebSocket { protocols: Vec<String> },
 }
 
 /// Request [credentials mode](https://fetch.spec.whatwg.org/#concept-request-credentials-mode)
@@ -137,13 +137,17 @@ pub enum CorsSettings {
 
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub struct RequestInit {
-    #[serde(deserialize_with = "::hyper_serde::deserialize",
-            serialize_with = "::hyper_serde::serialize")]
+    #[serde(
+        deserialize_with = "::hyper_serde::deserialize",
+        serialize_with = "::hyper_serde::serialize"
+    )]
     #[ignore_malloc_size_of = "Defined in hyper"]
     pub method: Method,
     pub url: ServoUrl,
-    #[serde(deserialize_with = "::hyper_serde::deserialize",
-            serialize_with = "::hyper_serde::serialize")]
+    #[serde(
+        deserialize_with = "::hyper_serde::deserialize",
+        serialize_with = "::hyper_serde::serialize"
+    )]
     #[ignore_malloc_size_of = "Defined in hyper"]
     pub headers: HeaderMap,
     pub unsafe_request: bool,
@@ -259,10 +263,7 @@ pub struct Request {
 }
 
 impl Request {
-    pub fn new(url: ServoUrl,
-               origin: Option<Origin>,
-               pipeline_id: Option<PipelineId>)
-               -> Request {
+    pub fn new(url: ServoUrl, origin: Option<Origin>, pipeline_id: Option<PipelineId>) -> Request {
         Request {
             method: Method::GET,
             local_urls_only: false,
@@ -294,9 +295,11 @@ impl Request {
     }
 
     pub fn from_init(init: RequestInit) -> Request {
-        let mut req = Request::new(init.url.clone(),
-                                   Some(Origin::Origin(init.origin)),
-                                   init.pipeline_id);
+        let mut req = Request::new(
+            init.url.clone(),
+            Some(Origin::Origin(init.origin)),
+            init.pipeline_id,
+        );
         req.method = init.method;
         req.headers = init.headers;
         req.unsafe_request = init.unsafe_request;
@@ -350,9 +353,16 @@ impl Request {
     /// <https://fetch.spec.whatwg.org/#subresource-request>
     pub fn is_subresource_request(&self) -> bool {
         match self.destination {
-            Destination::Audio | Destination::Font | Destination::Image | Destination::Manifest |
-            Destination::Script | Destination::Style | Destination::Track | Destination::Video |
-            Destination::Xslt | Destination::None => true,
+            Destination::Audio |
+            Destination::Font |
+            Destination::Image |
+            Destination::Manifest |
+            Destination::Script |
+            Destination::Style |
+            Destination::Track |
+            Destination::Video |
+            Destination::Xslt |
+            Destination::None => true,
             _ => false,
         }
     }

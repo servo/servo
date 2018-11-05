@@ -33,7 +33,7 @@ fn test_sniff_mp4_matcher() {
                 panic!("Didn't read mime type")
             }
         },
-        Err(e) => panic!("Couldn't read from file with error {}", e)
+        Err(e) => panic!("Couldn't read from file with error {}", e),
     }
 }
 
@@ -43,9 +43,9 @@ fn test_sniff_mp4_matcher_long() {
     let matcher = Mp4Matcher;
 
     let mut data: [u8; 260] = [0; 260];
-    &data[.. 11].clone_from_slice(
-        &[0x00, 0x00, 0x01, 0x04, 0x66, 0x74, 0x79, 0x70, 0x6D, 0x70, 0x34]
-    );
+    &data[..11].clone_from_slice(&[
+        0x00, 0x00, 0x01, 0x04, 0x66, 0x74, 0x79, 0x70, 0x6D, 0x70, 0x34,
+    ]);
 
     assert!(matcher.matches(&data));
 }
@@ -57,13 +57,18 @@ fn test_validate_classifier() {
 }
 
 #[cfg(test)]
-fn test_sniff_with_flags(filename_orig: &path::Path,
-                         expected_mime: Mime,
-                         supplied_type: Option<Mime>,
-                         no_sniff_flag: NoSniffFlag,
-                         apache_bug_flag: ApacheBugFlag) {
+fn test_sniff_with_flags(
+    filename_orig: &path::Path,
+    expected_mime: Mime,
+    supplied_type: Option<Mime>,
+    no_sniff_flag: NoSniffFlag,
+    apache_bug_flag: ApacheBugFlag,
+) {
     let current_working_directory = env::current_dir().unwrap();
-    println!("The current directory is {}", current_working_directory.display());
+    println!(
+        "The current directory is {}",
+        current_working_directory.display()
+    );
 
     let mut filename = PathBuf::from("tests/parsable_mime/");
     filename.push(filename_orig);
@@ -74,30 +79,35 @@ fn test_sniff_with_flags(filename_orig: &path::Path,
 
     match read_result {
         Ok(data) => {
-            let parsed_mime = classifier.classify(LoadContext::Browsing,
-                                                  no_sniff_flag,
-                                                  apache_bug_flag,
-                                                  &supplied_type,
-                                                  &data);
+            let parsed_mime = classifier.classify(
+                LoadContext::Browsing,
+                no_sniff_flag,
+                apache_bug_flag,
+                &supplied_type,
+                &data,
+            );
             if (parsed_mime.type_() != expected_mime.type_()) ||
-                (parsed_mime.subtype() != expected_mime.subtype()) {
-                    panic!("File {:?} parsed incorrectly should be {:?}, parsed as {:?}",
-                            filename, expected_mime, parsed_mime);
+                (parsed_mime.subtype() != expected_mime.subtype())
+            {
+                panic!(
+                    "File {:?} parsed incorrectly should be {:?}, parsed as {:?}",
+                    filename, expected_mime, parsed_mime
+                );
             }
-        }
-        Err(e) => panic!("Couldn't read from file {:?} with error {}",
-                         filename, e),
+        },
+        Err(e) => panic!("Couldn't read from file {:?} with error {}", filename, e),
     }
 }
 
 #[cfg(test)]
-fn test_sniff_full(filename_orig: &path::Path, expected_mime: Mime,
-                   supplied_type: Option<Mime>) {
-    test_sniff_with_flags(filename_orig,
-                          expected_mime,
-                          supplied_type,
-                          NoSniffFlag::Off,
-                          ApacheBugFlag::Off)
+fn test_sniff_full(filename_orig: &path::Path, expected_mime: Mime, supplied_type: Option<Mime>) {
+    test_sniff_with_flags(
+        filename_orig,
+        expected_mime,
+        supplied_type,
+        NoSniffFlag::Off,
+        ApacheBugFlag::Off,
+    )
 }
 
 #[cfg(test)]
@@ -198,32 +208,50 @@ fn test_sniff_wave() {
 #[test]
 fn test_sniff_ogg() {
     test_sniff_classification("small.ogg", "application/ogg".parse().unwrap(), None);
-    test_sniff_classification("small.ogg", "application/ogg".parse().unwrap(), Some("audio/".parse().unwrap()));
+    test_sniff_classification(
+        "small.ogg",
+        "application/ogg".parse().unwrap(),
+        Some("audio/".parse().unwrap()),
+    );
 }
 
 #[test]
 #[should_panic]
 fn test_sniff_vsn_ms_fontobject() {
-    test_sniff_classification_sup("vnd.ms-fontobject", "application/vnd.ms-fontobject".parse().unwrap());
+    test_sniff_classification_sup(
+        "vnd.ms-fontobject",
+        "application/vnd.ms-fontobject".parse().unwrap(),
+    );
 }
 
 #[test]
 #[should_panic]
 fn test_sniff_true_type() {
-    test_sniff_full(&PathBuf::from("unknown/true_type.ttf"), "(TrueType)/".parse().unwrap(), None);
+    test_sniff_full(
+        &PathBuf::from("unknown/true_type.ttf"),
+        "(TrueType)/".parse().unwrap(),
+        None,
+    );
 }
 
 #[test]
 #[should_panic]
 fn test_sniff_open_type() {
-    test_sniff_full(&PathBuf::from("unknown/open_type"), "(OpenType)/".parse().unwrap(), None);
+    test_sniff_full(
+        &PathBuf::from("unknown/open_type"),
+        "(OpenType)/".parse().unwrap(),
+        None,
+    );
 }
 
 #[test]
 #[should_panic]
 fn test_sniff_true_type_collection() {
-    test_sniff_full(&PathBuf::from("unknown/true_type_collection.ttc"), "(TrueType Collection)/".parse().unwrap(),
-                    None);
+    test_sniff_full(
+        &PathBuf::from("unknown/true_type_collection.ttc"),
+        "(TrueType Collection)/".parse().unwrap(),
+        None,
+    );
 }
 
 #[test]
@@ -244,7 +272,11 @@ fn test_sniff_zip() {
 
 #[test]
 fn test_sniff_rar() {
-    test_sniff_classification("test.rar", "application/x-rar-compressed".parse().unwrap(), None);
+    test_sniff_classification(
+        "test.rar",
+        "application/x-rar-compressed".parse().unwrap(),
+        None,
+    );
 }
 
 #[test]
@@ -466,86 +498,130 @@ fn test_sniff_utf_8_bom() {
 #[test]
 fn test_sniff_rss_feed() {
     // RSS feeds
-    test_sniff_full(&PathBuf::from("text/xml/feed.rss"), "application/rss+xml".parse().unwrap(), Some(mime::TEXT_HTML));
-    test_sniff_full(&PathBuf::from("text/xml/rdf_rss.xml"), "application/rss+xml".parse().unwrap(),
-                    Some(mime::TEXT_HTML));
+    test_sniff_full(
+        &PathBuf::from("text/xml/feed.rss"),
+        "application/rss+xml".parse().unwrap(),
+        Some(mime::TEXT_HTML),
+    );
+    test_sniff_full(
+        &PathBuf::from("text/xml/rdf_rss.xml"),
+        "application/rss+xml".parse().unwrap(),
+        Some(mime::TEXT_HTML),
+    );
     // Not RSS feeds
-    test_sniff_full(&PathBuf::from("text/xml/rdf_rss_ko_1.xml"), mime::TEXT_HTML, Some(mime::TEXT_HTML));
-    test_sniff_full(&PathBuf::from("text/xml/rdf_rss_ko_2.xml"), mime::TEXT_HTML, Some(mime::TEXT_HTML));
-    test_sniff_full(&PathBuf::from("text/xml/rdf_rss_ko_3.xml"), mime::TEXT_HTML, Some(mime::TEXT_HTML));
-    test_sniff_full(&PathBuf::from("text/xml/rdf_rss_ko_4.xml"), mime::TEXT_HTML, Some(mime::TEXT_HTML));
+    test_sniff_full(
+        &PathBuf::from("text/xml/rdf_rss_ko_1.xml"),
+        mime::TEXT_HTML,
+        Some(mime::TEXT_HTML),
+    );
+    test_sniff_full(
+        &PathBuf::from("text/xml/rdf_rss_ko_2.xml"),
+        mime::TEXT_HTML,
+        Some(mime::TEXT_HTML),
+    );
+    test_sniff_full(
+        &PathBuf::from("text/xml/rdf_rss_ko_3.xml"),
+        mime::TEXT_HTML,
+        Some(mime::TEXT_HTML),
+    );
+    test_sniff_full(
+        &PathBuf::from("text/xml/rdf_rss_ko_4.xml"),
+        mime::TEXT_HTML,
+        Some(mime::TEXT_HTML),
+    );
 }
 
 #[test]
 fn test_sniff_atom_feed() {
-    test_sniff_full(&PathBuf::from("text/xml/feed.atom"), "application/atom+xml".parse().unwrap(),
-                    Some(mime::TEXT_HTML));
+    test_sniff_full(
+        &PathBuf::from("text/xml/feed.atom"),
+        "application/atom+xml".parse().unwrap(),
+        Some(mime::TEXT_HTML),
+    );
 }
 
 #[test]
 fn test_sniff_binary_file() {
-    test_sniff_full(&PathBuf::from("unknown/binary_file"), mime::APPLICATION_OCTET_STREAM, None);
+    test_sniff_full(
+        &PathBuf::from("unknown/binary_file"),
+        mime::APPLICATION_OCTET_STREAM,
+        None,
+    );
 }
 
 #[test]
 fn test_sniff_atom_feed_with_no_sniff_flag_on() {
-    test_sniff_with_flags(&PathBuf::from("text/xml/feed.atom"),
-                                  mime::TEXT_HTML,
-                                  Some(mime::TEXT_HTML),
-                                  NoSniffFlag::On,
-                                  ApacheBugFlag::Off);
+    test_sniff_with_flags(
+        &PathBuf::from("text/xml/feed.atom"),
+        mime::TEXT_HTML,
+        Some(mime::TEXT_HTML),
+        NoSniffFlag::On,
+        ApacheBugFlag::Off,
+    );
 }
 
 #[test]
 fn test_sniff_with_no_sniff_flag_on_and_apache_flag_on() {
-    test_sniff_with_flags(&PathBuf::from("text/xml/feed.atom"),
-                                  mime::TEXT_HTML,
-                                  Some(mime::TEXT_HTML),
-                                  NoSniffFlag::On,
-                                  ApacheBugFlag::On);
+    test_sniff_with_flags(
+        &PathBuf::from("text/xml/feed.atom"),
+        mime::TEXT_HTML,
+        Some(mime::TEXT_HTML),
+        NoSniffFlag::On,
+        ApacheBugFlag::On,
+    );
 }
 
 #[test]
 fn test_sniff_utf_8_bom_with_apache_flag_on() {
-    test_sniff_with_flags(&PathBuf::from("text/plain/utf8bom.txt"),
-                                  mime::TEXT_PLAIN,
-                                  Some("dummy/text".parse().unwrap()),
-                                  NoSniffFlag::Off,
-                                  ApacheBugFlag::On);
+    test_sniff_with_flags(
+        &PathBuf::from("text/plain/utf8bom.txt"),
+        mime::TEXT_PLAIN,
+        Some("dummy/text".parse().unwrap()),
+        NoSniffFlag::Off,
+        ApacheBugFlag::On,
+    );
 }
 
 #[test]
 fn test_sniff_utf_16be_bom_with_apache_flag_on() {
-    test_sniff_with_flags(&PathBuf::from("text/plain/utf16bebom.txt"),
-                                  mime::TEXT_PLAIN,
-                                  Some("dummy/text".parse().unwrap()),
-                                  NoSniffFlag::Off,
-                                  ApacheBugFlag::On);
+    test_sniff_with_flags(
+        &PathBuf::from("text/plain/utf16bebom.txt"),
+        mime::TEXT_PLAIN,
+        Some("dummy/text".parse().unwrap()),
+        NoSniffFlag::Off,
+        ApacheBugFlag::On,
+    );
 }
 
 #[test]
 fn test_sniff_utf_16le_bom_with_apache_flag_on() {
-    test_sniff_with_flags(&PathBuf::from("text/plain/utf16lebom.txt"),
-                                  mime::TEXT_PLAIN,
-                                  Some("dummy/text".parse().unwrap()),
-                                  NoSniffFlag::Off,
-                                  ApacheBugFlag::On);
+    test_sniff_with_flags(
+        &PathBuf::from("text/plain/utf16lebom.txt"),
+        mime::TEXT_PLAIN,
+        Some("dummy/text".parse().unwrap()),
+        NoSniffFlag::Off,
+        ApacheBugFlag::On,
+    );
 }
 
 #[test]
 fn test_sniff_octet_stream_apache_flag_on() {
-    test_sniff_with_flags(&PathBuf::from("unknown/binary_file"),
-                                  mime::APPLICATION_OCTET_STREAM,
-                                  Some("dummy/binary".parse().unwrap()),
-                                  NoSniffFlag::Off,
-                                  ApacheBugFlag::On);
+    test_sniff_with_flags(
+        &PathBuf::from("unknown/binary_file"),
+        mime::APPLICATION_OCTET_STREAM,
+        Some("dummy/binary".parse().unwrap()),
+        NoSniffFlag::Off,
+        ApacheBugFlag::On,
+    );
 }
 
 #[test]
 fn test_sniff_mp4_video_apache_flag_on() {
-    test_sniff_with_flags(&PathBuf::from("video/mp4/test.mp4"),
-                          mime::APPLICATION_OCTET_STREAM,
-                          Some("video/mp4".parse().unwrap()),
-                          NoSniffFlag::Off,
-                          ApacheBugFlag::On);
+    test_sniff_with_flags(
+        &PathBuf::from("video/mp4/test.mp4"),
+        mime::APPLICATION_OCTET_STREAM,
+        Some("video/mp4".parse().unwrap()),
+        NoSniffFlag::Off,
+        ApacheBugFlag::On,
+    );
 }

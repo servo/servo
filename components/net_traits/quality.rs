@@ -70,11 +70,17 @@ where
 
                 let s = str::from_utf8(&digits[..]).unwrap();
                 fmt.write_str(s.trim_right_matches('0'))
-            }
+            },
         }
     }
 }
 
 pub fn quality_to_value(q: Vec<QualityItem<Mime>>) -> HeaderValue {
-    HeaderValue::from_str(&q.iter().map(|q| q.to_string()).collect::<Vec<String>>().join(", ")).unwrap()
+    HeaderValue::from_str(
+        &q.iter()
+            .map(|q| q.to_string())
+            .collect::<Vec<String>>()
+            .join(", "),
+    )
+    .unwrap()
 }

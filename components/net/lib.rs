@@ -21,10 +21,14 @@ extern crate immeta;
 extern crate ipc_channel;
 #[macro_use]
 extern crate lazy_static;
-#[macro_use] extern crate log;
+#[macro_use]
+extern crate log;
 extern crate malloc_size_of;
-#[macro_use] extern crate malloc_size_of_derive;
-#[macro_use] #[no_link] extern crate matches;
+#[macro_use]
+extern crate malloc_size_of_derive;
+#[macro_use]
+#[no_link]
+extern crate matches;
 extern crate mime;
 extern crate mime_guess;
 extern crate msg;
@@ -33,7 +37,8 @@ extern crate openssl;
 extern crate pixels;
 #[macro_use]
 extern crate profile_traits;
-#[macro_use] extern crate serde;
+#[macro_use]
+extern crate serde;
 extern crate serde_json;
 extern crate servo_allocator;
 extern crate servo_arc;
