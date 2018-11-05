@@ -535,6 +535,7 @@ fn create_constellation(
             window_gl,
             webrender_api_sender.clone(),
             webvr_compositor.map(|c| c as Box<_>),
+            time_profiler_chan.clone(),
         );
 
         // Set webrender external image handler for WebGL textures

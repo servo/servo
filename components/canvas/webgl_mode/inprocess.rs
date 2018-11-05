@@ -11,6 +11,7 @@ use crate::webgl_thread::{WebGLExternalImageApi, WebGLExternalImageHandler, WebG
 use euclid::Size2D;
 use fnv::FnvHashMap;
 use gleam::gl;
+use profile_traits::time::ProfilerChan;
 use servo_config::prefs::PREFS;
 use std::rc::Rc;
 
@@ -24,6 +25,7 @@ impl WebGLThreads {
         webrender_gl: Rc<dyn gl::Gl>,
         webrender_api_sender: webrender_api::RenderApiSender,
         webvr_compositor: Option<Box<dyn WebVRRenderHandler>>,
+        time_profiler_chan: ProfilerChan,
     ) -> (
         WebGLThreads,
         Box<dyn webrender::ExternalImageHandler>,
@@ -34,6 +36,7 @@ impl WebGLThreads {
             gl_factory,
             webrender_api_sender,
             webvr_compositor.map(|c| WebVRRenderWrapper(c)),
+            time_profiler_chan,
         );
         let output_handler = if PREFS.is_dom_to_texture_enabled() {
             Some(Box::new(OutputHandler::new(
