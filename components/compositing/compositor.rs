@@ -32,7 +32,6 @@ use std::fs::{File, create_dir_all};
 use std::io::Write;
 use std::num::NonZeroU32;
 use std::rc::Rc;
-use std::time::Instant;
 use style_traits::{CSSPixel, DevicePixel, PinchZoomFactor};
 use style_traits::cursor::CursorKind;
 use style_traits::viewport::ViewportConstraints;
@@ -165,11 +164,6 @@ pub struct IOCompositor<Window: WindowMethods> {
     /// Used by the logic that determines when it is safe to output an
     /// image for the reftest framework.
     ready_to_save_state: ReadyState,
-
-    /// Whether a scroll is in progress; i.e. whether the user's fingers are down.
-    scroll_in_progress: bool,
-
-    in_scroll_transaction: Option<Instant>,
 
     /// The webrender renderer.
     webrender: webrender::Renderer,
@@ -323,8 +317,6 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             time_profiler_chan: state.time_profiler_chan,
             last_composite_time: 0,
             ready_to_save_state: ReadyState::Unknown,
-            scroll_in_progress: false,
-            in_scroll_transaction: None,
             webrender: state.webrender,
             webrender_document: state.webrender_document,
             webrender_api: state.webrender_api,
@@ -847,49 +839,24 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         &mut self,
         delta: ScrollLocation,
         cursor: DeviceIntPoint,
-        phase: TouchEventType,
+        phase: TouchEventType
     ) {
         match phase {
             TouchEventType::Move => self.on_scroll_window_event(delta, cursor),
             TouchEventType::Up | TouchEventType::Cancel => {
-                self.on_scroll_end_window_event(delta, cursor);
+                self.on_scroll_window_event(delta, cursor);
             },
             TouchEventType::Down => {
-                self.on_scroll_start_window_event(delta, cursor);
+                self.on_scroll_window_event(delta, cursor);
             },
         }
     }
 
-    fn on_scroll_window_event(&mut self, scroll_location: ScrollLocation, cursor: DeviceIntPoint) {
-        self.in_scroll_transaction = Some(Instant::now());
-        self.pending_scroll_zoom_events.push(ScrollZoomEvent {
-            magnification: 1.0,
-            scroll_location: scroll_location,
-            cursor: cursor,
-            event_count: 1,
-        });
-    }
-
-    fn on_scroll_start_window_event(
+    fn on_scroll_window_event(
         &mut self,
         scroll_location: ScrollLocation,
-        cursor: DeviceIntPoint,
+        cursor: DeviceIntPoint
     ) {
-        self.scroll_in_progress = true;
-        self.pending_scroll_zoom_events.push(ScrollZoomEvent {
-            magnification: 1.0,
-            scroll_location: scroll_location,
-            cursor: cursor,
-            event_count: 1,
-        });
-    }
-
-    fn on_scroll_end_window_event(
-        &mut self,
-        scroll_location: ScrollLocation,
-        cursor: DeviceIntPoint,
-    ) {
-        self.scroll_in_progress = false;
         self.pending_scroll_zoom_events.push(ScrollZoomEvent {
             magnification: 1.0,
             scroll_location: scroll_location,
