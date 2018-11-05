@@ -17,6 +17,7 @@ This test uses the legacy callback API with no media, and thus does not require 
   <!-- These files are in place when executing on W3C. -->
   <script src="/resources/testharness.js"></script>
   <script src="/resources/testharnessreport.js"></script>
+  <script src="/webrtc/RTCPeerConnection-helper.js"></script>
   <script type="text/javascript">
   var test = async_test('Can set up a basic WebRTC call with no data.');
 
@@ -123,9 +124,7 @@ This test uses the legacy callback API with no media, and thus does not require 
     gSecondConnection.onicecandidate = onIceCandidateToSecond;
     gSecondConnection.oniceconnectionstatechange = onIceConnectionStateChange;
 
-    // The offerToReceiveVideo is necessary and sufficient to make
-    // an actual connection.
-    gFirstConnection.createOffer({offerToReceiveVideo: true})
+    generateVideoReceiveOnlyOffer(gFirstConnection)
       .then(onOfferCreated, failed('createOffer'));
   });
 </script>

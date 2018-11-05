@@ -11,8 +11,6 @@
   // https://w3c.github.io/webrtc-pc/archives/20170515/webrtc.html
 
   // The following helper functions are called from RTCPeerConnection-helper.js:
-  //   generateOffer()
-  //   generateAnswer()
   //   countAudioLine()
   //   countVideoLine()
   //   assert_session_desc_similar()
@@ -49,7 +47,7 @@
     const states = [];
     pc.addEventListener('signalingstatechange', () => states.push(pc.signalingState));
 
-    return pc.createOffer({ offerToReceiveAudio: true })
+    return generateVideoReceiveOnlyOffer(pc)
     .then(offer =>
       pc.setLocalDescription(offer)
       .then(() => {
@@ -113,93 +111,4 @@
    *    5.  If this inspection failed for any reason, reject p with a newly created
    *        OperationError and abort these steps.
    */
-
-  /*
-   *  4.3.3.2 Configuration data extensions
-   *  partial dictionary RTCOfferOptions
-   */
-
-  /*
-   *  offerToReceiveAudio of type boolean
-   *    When this is given a non-false value, no outgoing track of type
-   *    "audio" is attached to the PeerConnection, and the existing
-   *    localDescription (if any) doesn't contain any sendrecv or recv
-   *    audio media sections, createOffer() will behave as if
-   *    addTransceiver("audio") had been called once prior to the createOffer() call.
-   */
-  promise_test(t => {
-    const pc = new RTCPeerConnection();
-
-    t.add_cleanup(() => pc.close());
-
-    return pc.createOffer({ offerToReceiveAudio: true })
-    .then(offer1 => {
-      assert_equals(countAudioLine(offer1.sdp), 1,
-        'Expect created offer to have audio line');
-
-      // The first createOffer implicitly calls addTransceiver('audio'),
-      // so all following offers will also have audio media section
-      // in their SDP.
-      return pc.createOffer({ offerToReceiveAudio: false })
-      .then(offer2 => {
-        assert_equals(countAudioLine(offer2.sdp), 1,
-          'Expect audio line to remain in created offer');
-      })
-    });
-  }, 'createOffer() with offerToReceiveAudio should add audio line to all subsequent created offers');
-
-  /*
-   *  offerToReceiveVideo of type boolean
-   *    When this is given a non-false value, and no outgoing track
-   *    of type "video" is attached to the PeerConnection, and the
-   *    existing localDescription (if any) doesn't contain any sendecv
-   *    or recv video media sections, createOffer() will behave as if
-   *    addTransceiver("video") had been called prior to the createOffer() call.
-   */
-  promise_test(t => {
-    const pc = new RTCPeerConnection();
-
-    t.add_cleanup(() => pc.close());
-
-    return pc.createOffer({ offerToReceiveVideo: true })
-    .then(offer1 => {
-      assert_equals(countVideoLine(offer1.sdp), 1,
-      'Expect created offer to have video line');
-
-      return pc.createOffer({ offerToReceiveVideo: false })
-      .then(offer2 => {
-        assert_equals(countVideoLine(offer2.sdp), 1,
-          'Expect video line to remain in created offer');
-      })
-    });
-  }, 'createOffer() with offerToReceiveVideo should add video line to all subsequent created offers');
-
-  promise_test(t => {
-    const pc = new RTCPeerConnection();
-
-    t.add_cleanup(() => pc.close());
-
-    return pc.createOffer({
-      offerToReceiveAudio: true,
-      offerToReceiveVideo: false
-    }).then(offer1 => {
-      assert_equals(countAudioLine(offer1.sdp), 1,
-        'Expect audio line to be found in created offer');
-
-      assert_equals(countVideoLine(offer1.sdp), 0,
-        'Expect video line to not found in create offer');
-
-      return pc.createOffer({
-        offerToReceiveAudio: false,
-        offerToReceiveVideo: true
-      }).then(offer2 => {
-        assert_equals(countAudioLine(offer2.sdp), 1,
-          'Expect audio line to remain in created offer');
-
-        assert_equals(countVideoLine(offer2.sdp), 1,
-          'Expect video line to be found in create offer');
-      })
-    });
-  }, 'createOffer() with offerToReceiveAudio:true then offerToReceiveVideo:true should have result offer with both audio and video line');
-
 </script>

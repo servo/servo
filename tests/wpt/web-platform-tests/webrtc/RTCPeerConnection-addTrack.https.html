@@ -276,19 +276,6 @@
             createAnswer to mark the corresponding media description as sendrecv
             or sendonly and add the MSID of the track added, as defined in [JSEP]
             (section 5.2.2. and section 5.3.2.).
-        9.  A track could have contents that are inaccessible to the application.
-            This can be due to being marked with a peerIdentity option or anything
-            that would make a track CORS cross-origin. These tracks can be supplied
-            to the addTrack method, and have an RTCRtpSender created for them, but
-            content must not be transmitted, unless they are also marked with
-            peerIdentity and they meet the requirements for sending (see isolated
-            streams and RTCPeerConnection).
-
-            All other tracks that are not accessible to the application must not be
-            sent to the peer, with silence (audio), black frames (video) or
-            equivalently absent content being sent in place of track content.
-
-            Note that this property can change over time.
 
     Non-Testable
       5.1.  addTrack

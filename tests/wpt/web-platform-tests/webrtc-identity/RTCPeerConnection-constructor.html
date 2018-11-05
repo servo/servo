@@ -1,0 +1,11 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>RTCPeerConnection constructor</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script>
+test(() => {
+    const toStringThrows = { toString: function() { throw new Error; } };
+    assert_throws(new Error, () => new RTCPeerConnection({ peerIdentity: toStringThrows }));
+}, "RTCPeerConnection constructor throws if the given peerIdentity getter throws");
+</script>

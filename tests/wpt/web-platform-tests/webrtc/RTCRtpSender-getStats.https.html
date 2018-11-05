@@ -44,7 +44,11 @@
     t.add_cleanup(() => caller.close());
     const callee = new RTCPeerConnection();
     t.add_cleanup(() => callee.close());
-    const { sender } = caller.addTransceiver('audio');
+
+    const stream = await getNoiseStream({audio:true});
+    t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
+    const [track] = stream.getTracks();
+    const { sender } = caller.addTransceiver(track);
 
     await doSignalingHandshake(caller, callee);
     const statsReport = await sender.getStats();

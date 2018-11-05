@@ -36,7 +36,7 @@
   test(t => {
     const pc = new RTCPeerConnection();
     const { receiver } = pc.addTransceiver('audio');
-    const param = pc.getParameters();
+    const param = receiver.getParameters();
     validateReceiverRtpParameters(param);
   });
 </script>
