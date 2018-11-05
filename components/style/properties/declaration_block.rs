@@ -9,7 +9,7 @@
 use context::QuirksMode;
 use cssparser::{DeclarationListParser, parse_important, ParserInput, CowRcStr};
 use cssparser::{Parser, AtRuleParser, DeclarationParser, Delimiter, ParseErrorKind};
-use custom_properties::CustomPropertiesBuilder;
+use custom_properties::{CustomPropertiesBuilder, CssEnvironment};
 use error_reporting::{ParseErrorReporter, ContextualParseError};
 use itertools::Itertools;
 use parser::ParserContext;
@@ -760,13 +760,19 @@ impl PropertyDeclarationBlock {
             None => return Err(fmt::Error),
         };
 
+        // TODO(emilio): When we implement any environment variable without
+        // hard-coding the values we're going to need to get something
+        // meaningful out of here... All this code path is so terribly hacky
+        // ;_;.
+        let env = CssEnvironment;
+
         let custom_properties = if let Some(cv) = computed_values {
             // If there are extra custom properties for this declaration block,
             // factor them in too.
             if let Some(block) = custom_properties_block {
                 // FIXME(emilio): This is not super-efficient here, and all this
                 // feels like a hack anyway...
-                block.cascade_custom_properties(cv.custom_properties())
+                block.cascade_custom_properties(cv.custom_properties(), &env)
             } else {
                 cv.custom_properties().cloned()
             }
@@ -790,6 +796,7 @@ impl PropertyDeclarationBlock {
                     declaration.id,
                     custom_properties.as_ref(),
                     QuirksMode::NoQuirks,
+                    &env,
                 ).to_css(dest)
             },
             (ref d, _) => d.to_css(dest),
@@ -835,17 +842,24 @@ impl PropertyDeclarationBlock {
         &self,
         context: &Context,
     ) -> Option<Arc<::custom_properties::CustomPropertiesMap>> {
-        self.cascade_custom_properties(context.style().custom_properties())
+        self.cascade_custom_properties(
+            context.style().custom_properties(),
+            context.device().environment(),
+        )
     }
 
     /// Returns a custom properties map which is the result of cascading custom
     /// properties in this declaration block along with the given custom
     /// properties.
-    pub fn cascade_custom_properties(
+    fn cascade_custom_properties(
         &self,
         inherited_custom_properties: Option<&Arc<::custom_properties::CustomPropertiesMap>>,
+        environment: &CssEnvironment,
     ) -> Option<Arc<::custom_properties::CustomPropertiesMap>> {
-        let mut builder = CustomPropertiesBuilder::new(inherited_custom_properties);
+        let mut builder = CustomPropertiesBuilder::new(
+            inherited_custom_properties,
+            environment,
+        );
 
         for declaration in self.normal_declaration_iter() {
             if let PropertyDeclaration::Custom(ref declaration) = *declaration {

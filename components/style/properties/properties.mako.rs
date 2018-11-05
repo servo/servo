@@ -1536,10 +1536,14 @@ impl UnparsedValue {
         longhand_id: LonghandId,
         custom_properties: Option<<&Arc<::custom_properties::CustomPropertiesMap>>,
         quirks_mode: QuirksMode,
+        environment: &::custom_properties::CssEnvironment,
     ) -> PropertyDeclaration {
-        ::custom_properties::substitute(&self.css, self.first_token_type, custom_properties)
-        .ok()
-        .and_then(|css| {
+        ::custom_properties::substitute(
+            &self.css,
+            self.first_token_type,
+            custom_properties,
+            environment,
+        ).ok().and_then(|css| {
             // As of this writing, only the base URL is used for property
             // values.
             //
@@ -2214,34 +2218,33 @@ impl PropertyDeclaration {
                         WideKeywordDeclaration { id, keyword },
                     )
                 }).or_else(|()| {
-                    input.look_for_var_functions();
+                    input.look_for_var_or_env_functions();
                     input.parse_entirely(|input| id.parse_value(context, input))
                     .or_else(|err| {
                         while let Ok(_) = input.next() {}  // Look for var() after the error.
-                        if input.seen_var_functions() {
-                            input.reset(&start);
-                            let (first_token_type, css) =
-                                ::custom_properties::parse_non_custom_with_var(input).map_err(|e| {
-                                    StyleParseErrorKind::new_invalid(
-                                        non_custom_id.unwrap().name(),
-                                        e,
-                                    )
-                                })?;
-                            Ok(PropertyDeclaration::WithVariables(VariableDeclaration {
-                                id,
-                                value: Arc::new(UnparsedValue {
+                        if !input.seen_var_or_env_functions() {
+                            return Err(StyleParseErrorKind::new_invalid(
+                                non_custom_id.unwrap().name(),
+                                err,
+                            ));
+                        }
+                        input.reset(&start);
+                        let (first_token_type, css) =
+                            ::custom_properties::parse_non_custom_with_var(input).map_err(|e| {
+                                StyleParseErrorKind::new_invalid(
+                                    non_custom_id.unwrap().name(),
+                                    e,
+                                )
+                            })?;
+                        Ok(PropertyDeclaration::WithVariables(VariableDeclaration {
+                            id,
+                            value: Arc::new(UnparsedValue {
                                 css: css.into_owned(),
                                 first_token_type: first_token_type,
                                 url_data: context.url_data.clone(),
                                 from_shorthand: None,
-                                }),
-                            }))
-                        } else {
-                            Err(StyleParseErrorKind::new_invalid(
-                                non_custom_id.unwrap().name(),
-                                err,
-                            ))
-                        }
+                            }),
+                        }))
                     })
                 }).map(|declaration| {
                     declarations.push(declaration)
@@ -2264,12 +2267,13 @@ impl PropertyDeclaration {
                         }
                     }
                 } else {
-                    input.look_for_var_functions();
-                    // Not using parse_entirely here: each ${shorthand.ident}::parse_into function
-                    // needs to do so *before* pushing to `declarations`.
+                    input.look_for_var_or_env_functions();
+                    // Not using parse_entirely here: each
+                    // ${shorthand.ident}::parse_into function needs to do so
+                    // *before* pushing to `declarations`.
                     id.parse_into(declarations, context, input).or_else(|err| {
                         while let Ok(_) = input.next() {}  // Look for var() after the error.
-                        if !input.seen_var_functions() {
+                        if !input.seen_var_or_env_functions() {
                             return Err(StyleParseErrorKind::new_invalid(
                                 non_custom_id.unwrap().name(),
                                 err,

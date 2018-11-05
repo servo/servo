@@ -519,6 +519,7 @@ impl AnimationValue {
                         declaration.id,
                         custom_properties,
                         context.quirks_mode,
+                        context.device().environment(),
                     )
                 };
                 return AnimationValue::from_declaration(

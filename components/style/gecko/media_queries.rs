@@ -7,6 +7,7 @@
 use app_units::AU_PER_PX;
 use app_units::Au;
 use cssparser::RGBA;
+use custom_properties::CssEnvironment;
 use euclid::Size2D;
 use euclid::TypedScale;
 use gecko::values::{convert_nscolor_to_rgba, convert_rgba_to_nscolor};
@@ -52,6 +53,9 @@ pub struct Device {
     /// Whether any styles computed in the document relied on the viewport size
     /// by using vw/vh/vmin/vmax units.
     used_viewport_size: AtomicBool,
+    /// The CssEnvironment object responsible of getting CSS environment
+    /// variables.
+    environment: CssEnvironment,
 }
 
 impl fmt::Debug for Device {
@@ -87,7 +91,14 @@ impl Device {
             body_text_color: AtomicUsize::new(unsafe { &*pres_context }.mDefaultColor as usize),
             used_root_font_size: AtomicBool::new(false),
             used_viewport_size: AtomicBool::new(false),
+            environment: CssEnvironment,
         }
+    }
+
+    /// Get the relevant environment to resolve `env()` functions.
+    #[inline]
+    pub fn environment(&self) -> &CssEnvironment {
+        &self.environment
     }
 
     /// Tells the device that a new viewport rule has been found, and stores the
