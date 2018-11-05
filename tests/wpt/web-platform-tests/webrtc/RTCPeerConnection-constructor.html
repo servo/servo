@@ -23,9 +23,6 @@ const testArgs = {
   'undefined': false,
   '{}': false,
 
-  // peerIdentity
-  '{ peerIdentity: toStringThrows }': new Error,
-
   // certificates
   '{ certificates: null }': new TypeError,
   '{ certificates: undefined }': false,

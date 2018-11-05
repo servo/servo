@@ -1,0 +1,35 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>RTCPeerConnection.prototype.createOffer</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../RTCPeerConnection-helper.js"></script>
+<script>
+  'use strict';
+
+  // Tests for the construction of initial offers according to
+  // draft-ietf-rtcweb-jsep-24 section 5.2.1
+  promise_test(async t => {
+    const pc = new RTCPeerConnection();
+    const offer = await generateVideoReceiveOnlyOffer(pc);
+    let offer_lines = offer.sdp.split('\r\n');
+    // The first 3 lines are dictated by JSEP.
+    assert_equals(offer_lines[0], "v=0");
+    assert_equals(offer_lines[1].slice(0, 2), "o=");
+    // JSEP says that the address part SHOULD be a meaningless address
+    // "such as" IN IP4 127.0.0.1. We do strict matching here in order
+    // to detect if anyone ever uses something different.
+    assert_regexp_match(offer_lines[1], /^o=- \d+ \d+ IN IP4 127.0.0.1$/);
+    const fields = RegExp(/^o=- (\d+) (\d+)/).exec(offer_lines[1]);
+    // Per RFC 3264, the sess-id should be representable in an uint64
+    // Note: JSEP -24 has this wrong - see bug:
+    // https://github.com/rtcweb-wg/jsep/issues/855
+    assert_less_than(Number(fields[1]), 2**64);
+    // Per RFC 3264, the version should be less than 2^62 to avoid overflow
+    assert_less_than(Number(fields[2]), 2**62);
+    // Note: using - in s=- is a SHOULD in JSEP, not a MUST.
+    assert_equals(offer_lines[2], "s=-");
+    // After this, the order is not dictated by JSEP.
+    // TODO: Check lines subsequent to the s= line.
+  }, 'Offer conforms to basic SDP requirements');
+</script>

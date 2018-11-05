@@ -21,7 +21,7 @@
 // Section 5: Browsers MUST implement VP8 and H.264 Constrained Baseline
 promise_test(async t => {
   const pc = new RTCPeerConnection();
-  const offer = await pc.createOffer({offerToReceiveVideo: true});
+  const offer = await generateVideoReceiveOnlyOffer(pc);
   let video_section_found = false;
   for (let section of offer.sdp.split(/\r\nm=/)) {
     if (section.search('video') != 0) {

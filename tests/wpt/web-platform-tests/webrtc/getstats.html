@@ -38,10 +38,6 @@ This test uses data only, and thus does not require fake media devices.
     }
   });
 
-  var onRemoteStream = test.step_func(function(event) {
-    assert_unreached('WebRTC received a stream when there was none');
-  });
-
   var getStatsRecordByType = function(stats, type) {
     for (let stat of stats.values()) {
       if (stat.type == type) {
@@ -91,7 +87,6 @@ This test uses data only, and thus does not require fake media devices.
 
     gSecondConnection = new RTCPeerConnection(null);
     gSecondConnection.onicecandidate = onIceCandidateToSecond;
-    gSecondConnection.onaddstream = onRemoteStream;
 
     // The createDataChannel is necessary and sufficient to make
     // sure the ICE connection be attempted.

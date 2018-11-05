@@ -11,7 +11,7 @@
   // https://w3c.github.io/webrtc-pc/archives/20170605/webrtc.html
 
   // The following helper functions are called from RTCPeerConnection-helper.js:
-  //   generateOffer
+  //   generateDataChannelOffer
   //   assert_session_desc_similar
 
   /*
@@ -63,7 +63,7 @@
     const states = [];
     pc.addEventListener('signalingstatechange', () => states.push(pc.signalingState));
 
-    return generateOffer({ data: true })
+    return generateDataChannelOffer(pc)
     .then(offer => pc.setRemoteDescription(offer))
     .then(() => {
       assert_equals(pc.signalingState, 'have-remote-offer');

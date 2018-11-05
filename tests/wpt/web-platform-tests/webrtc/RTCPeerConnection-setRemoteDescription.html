@@ -91,7 +91,7 @@
       assert_equals(state, states[eventCount]);
     };
 
-    const offer = await pc.createOffer({ offerToReceiveAudio: true });
+    const offer = await generateAudioReceiveOnlyOffer(pc);
     assert_state('stable');
     await pc.setLocalDescription(offer);
     assert_state('have-local-offer');
@@ -111,10 +111,10 @@
     t.add_cleanup(() => pc.close());
     t.add_cleanup(() => pc2.close());
 
-    const offer1 = await pc2.createOffer({ offerToReceiveAudio: true });
+    const offer1 = await generateAudioReceiveOnlyOffer(pc2);
     await pc.setRemoteDescription(offer1);
     await pc.setLocalDescription(await pc.createAnswer());
-    const offer2 = await pc2.createOffer({ offerToReceiveVideo: true });
+    const offer2 = await generateVideoReceiveOnlyOffer(pc2);
     await pc.setRemoteDescription(offer2);
     assert_session_desc_not_similar(offer1, offer2);
     assert_session_desc_similar(pc.remoteDescription, offer2);
@@ -128,7 +128,7 @@
     t.add_cleanup(() => pc.close());
     t.add_cleanup(() => pc2.close());
 
-    const offer = await pc.createOffer({ offerToReceiveAudio: true });
+    const offer = await generateAudioReceiveOnlyOffer(pc);
     await pc.setLocalDescription(offer);
     await pc2.setRemoteDescription(offer);
     const answer = await pc2.createAnswer();

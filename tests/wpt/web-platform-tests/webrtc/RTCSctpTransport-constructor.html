@@ -11,7 +11,7 @@
   // https://w3c.github.io/webrtc-pc/archives/20170605/webrtc.html
 
   // The following helper functions are called from RTCPeerConnection-helper.js:
-  //   generateOffer()
+  //   generateDataChannelOffer()
   //   generateAnswer()
 
   /*
@@ -69,7 +69,7 @@
     t.add_cleanup(() => pc.close());
     assert_equals(pc.sctp, null);
 
-    return generateOffer({ pc, data: true })
+    return generateDataChannelOffer(pc)
     .then(offer => pc.setRemoteDescription(offer))
     .then(() => pc.createAnswer())
     .then(answer => pc.setLocalDescription(answer))
