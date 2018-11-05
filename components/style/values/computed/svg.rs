@@ -5,9 +5,7 @@
 //! Computed types for SVG properties.
 
 use values::RGBA;
-use values::computed::LengthOrPercentage;
-use values::computed::{NonNegativeLengthOrPercentage, NonNegativeNumber, Number};
-use values::computed::Opacity;
+use values::computed::{NonNegativeLengthOrPercentage, NonNegativeNumber, Number, LengthOrPercentage, Opacity};
 use values::computed::color::Color;
 use values::computed::url::ComputedUrl;
 use values::generics::svg as generic;

@@ -4,11 +4,11 @@
 
 //! Animation implementation for various length-related types.
 
+use super::{Animate, Procedure, ToAnimatedValue, ToAnimatedZero};
 use values::computed::MaxLength as ComputedMaxLength;
 use values::computed::MozLength as ComputedMozLength;
 use values::computed::Percentage;
 use values::computed::length::{Length, CalcLengthOrPercentage, LengthOrPercentageOrNone, LengthOrPercentageOrAuto};
-use super::{Animate, Procedure, ToAnimatedValue, ToAnimatedZero};
 
 /// <https://drafts.csswg.org/css-transitions/#animtype-lpcalc>
 impl Animate for CalcLengthOrPercentage {

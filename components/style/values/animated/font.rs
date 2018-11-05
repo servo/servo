@@ -4,11 +4,11 @@
 
 //! Animation implementation for various font-related types.
 
+use super::{Animate, Procedure, ToAnimatedZero};
 use values::computed::Number;
 use values::computed::font::{FontWeight, FontVariationSettings};
 use values::distance::{ComputeSquaredDistance, SquaredDistance};
 use values::generics::font::{FontSettings as GenericFontSettings, FontTag, VariationValue};
-use super::{Animate, Procedure, ToAnimatedZero};
 
 impl ToAnimatedZero for FontWeight {
     #[inline]
