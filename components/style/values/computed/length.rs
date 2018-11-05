@@ -17,7 +17,7 @@ use values::generics::length::{MaxLength as GenericMaxLength, MozLength as Gener
 use values::generics::NonNegative;
 use values::specified::length::ViewportPercentageLength;
 use values::specified::length::{AbsoluteLength, FontBaseSize, FontRelativeLength};
-use values::{specified, Auto, CSSFloat, Either, Normal};
+use values::{specified, Auto, CSSFloat, Either, Normal, IsAuto};
 
 pub use super::image::Image;
 pub use values::specified::url::UrlOrNone;
@@ -527,6 +527,13 @@ impl LengthOrPercentageOrAuto {
 
 /// A wrapper of LengthOrPercentageOrAuto, whose value must be >= 0.
 pub type NonNegativeLengthOrPercentageOrAuto = NonNegative<LengthOrPercentageOrAuto>;
+
+impl IsAuto for NonNegativeLengthOrPercentageOrAuto {
+    #[inline]
+    fn is_auto(&self) -> bool {
+        *self == Self::auto()
+    }
+}
 
 impl NonNegativeLengthOrPercentageOrAuto {
     /// `auto`

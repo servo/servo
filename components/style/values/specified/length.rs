@@ -20,7 +20,7 @@ use values::computed::{self, CSSPixelLength, Context, ExtremumLength};
 use values::generics::length::{MaxLength as GenericMaxLength, MozLength as GenericMozLength};
 use values::generics::NonNegative;
 use values::specified::calc::CalcNode;
-use values::{Auto, CSSFloat, Either, Normal};
+use values::{Auto, CSSFloat, Either, Normal, IsAuto};
 
 pub use super::image::{ColorStop, EndingShape as GradientEndingShape, Gradient};
 pub use super::image::{GradientKind, Image};
@@ -979,6 +979,13 @@ impl Parse for LengthOrPercentageOrAuto {
 
 /// A wrapper of LengthOrPercentageOrAuto, whose value must be >= 0.
 pub type NonNegativeLengthOrPercentageOrAuto = NonNegative<LengthOrPercentageOrAuto>;
+
+impl IsAuto for NonNegativeLengthOrPercentageOrAuto {
+    #[inline]
+    fn is_auto(&self) -> bool {
+        *self == Self::auto()
+    }
+}
 
 impl NonNegativeLengthOrPercentageOrAuto {
     /// 0
