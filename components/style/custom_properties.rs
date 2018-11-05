@@ -25,6 +25,7 @@ use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
 ///
 /// TODO(emilio): If this becomes a bit more complex we should probably move it
 /// to the `media_queries` module, or something.
+#[derive(Debug, MallocSizeOf)]
 pub struct CssEnvironment;
 
 struct EnvironmentVariable {

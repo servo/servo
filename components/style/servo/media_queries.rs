@@ -6,6 +6,7 @@
 
 use app_units::Au;
 use cssparser::RGBA;
+use custom_properties::CssEnvironment;
 use euclid::{Size2D, TypedScale, TypedSize2D};
 use media_queries::MediaType;
 use media_queries::media_feature::{AllowsRanges, ParsingRequirements};
@@ -49,6 +50,9 @@ pub struct Device {
     /// Whether any styles computed in the document relied on the viewport size.
     #[ignore_malloc_size_of = "Pure stack type"]
     used_viewport_units: AtomicBool,
+    /// The CssEnvironment object responsible of getting CSS environment
+    /// variables.
+    environment: CssEnvironment,
 }
 
 impl Device {
@@ -66,7 +70,14 @@ impl Device {
             root_font_size: AtomicIsize::new(FontSize::medium().size().0 as isize),
             used_root_font_size: AtomicBool::new(false),
             used_viewport_units: AtomicBool::new(false),
+            environment: CssEnvironment,
         }
+    }
+
+    /// Get the relevant environment to resolve `env()` functions.
+    #[inline]
+    pub fn environment(&self) -> &CssEnvironment {
+        &self.environment
     }
 
     /// Return the default computed values for this device.

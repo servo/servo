@@ -18,7 +18,7 @@ use num_traits::Zero;
 use properties::{CSSWideKeyword, PropertyDeclaration};
 use properties::longhands;
 use properties::longhands::visibility::computed_value::T as Visibility;
-use properties::{LonghandId, ShorthandId};
+use properties::LonghandId;
 use servo_arc::Arc;
 use smallvec::SmallVec;
 use std::{cmp, ptr};
@@ -50,6 +50,7 @@ use void::{self, Void};
 #[allow(non_upper_case_globals)]
 impl From<nsCSSPropertyID> for TransitionProperty {
     fn from(property: nsCSSPropertyID) -> TransitionProperty {
+        use properties::ShorthandId;
         match property {
             % for prop in data.longhands:
             ${prop.nscsspropertyid()} => {
