@@ -233,14 +233,19 @@ pub unsafe extern "C" fn discard_servo(servo: *mut ServoInstance) {
     if let Some(servo) = servo.as_mut() {
         let mut servo = Box::from_raw(servo);
         let finish = Instant::now() + SHUTDOWN_DURATION;
-        'outer: while Instant::now() < finish {
-            servo.servo.handle_events(vec![WindowEvent::Quit]);
+        servo.servo.handle_events(vec![WindowEvent::Quit]);
+        'outer: loop {
             for (_, msg) in servo.servo.get_events() {
                 if let EmbedderMsg::Shutdown = msg {
                     break 'outer;
                 }
             }
+            if Instant::now() > finish {
+	       warn!("Incomplete shutdown.");
+               break 'outer;
+	    }
             thread::sleep(SHUTDOWN_POLL_INTERVAL);
+            servo.servo.handle_events(vec![]);
         }
         servo.servo.deinit();
     }
