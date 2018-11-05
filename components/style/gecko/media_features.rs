@@ -179,7 +179,7 @@ fn eval_device_orientation(device: &Device, value: Option<Orientation>) -> bool 
 }
 
 /// Values for the display-mode media feature.
-#[derive(Clone, Copy, Debug, FromPrimitive, Parse, ToCss)]
+#[derive(Clone, Copy, Debug, FromPrimitive, Parse, PartialEq, ToCss)]
 #[repr(u8)]
 #[allow(missing_docs)]
 pub enum DisplayMode {
@@ -191,16 +191,10 @@ pub enum DisplayMode {
 
 /// https://w3c.github.io/manifest/#the-display-mode-media-feature
 fn eval_display_mode(device: &Device, query_value: Option<DisplayMode>) -> bool {
-    let query_value = match query_value {
-        Some(v) => v,
-        None => return true,
-    };
-
-    let gecko_display_mode =
-        unsafe { bindings::Gecko_MediaFeatures_GetDisplayMode(device.document()) };
-
-    // NOTE: cbindgen guarantees the same representation.
-    gecko_display_mode as u8 == query_value as u8
+    match query_value {
+        Some(v) => v == unsafe { bindings::Gecko_MediaFeatures_GetDisplayMode(device.document()) },
+        None => true,
+    }
 }
 
 /// https://drafts.csswg.org/mediaqueries-4/#grid

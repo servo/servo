@@ -39,7 +39,7 @@ canvas_traits = {path = "../canvas_traits"}
 caseless = "0.2"
 cookie = "0.11"
 chrono = "0.4"
-cssparser = "0.24"
+cssparser = "0.25"
 deny_public_fields = {path = "../deny_public_fields"}
 devtools_traits = {path = "../devtools_traits"}
 dom_struct = {path = "../dom_struct"}

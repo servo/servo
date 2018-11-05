@@ -27,6 +27,14 @@ include!(concat!(
 impl ::selectors::parser::PseudoElement for PseudoElement {
     type Impl = SelectorImpl;
 
+    fn valid_after_slotted(&self) -> bool {
+        // TODO(emilio): Remove this function or this comment after [1] is
+        // resolved.
+        //
+        // [1]: https://github.com/w3c/csswg-drafts/issues/3150
+        self.is_before_or_after()
+    }
+
     fn supports_pseudo_class(&self, pseudo_class: &NonTSPseudoClass) -> bool {
         if !self.supports_user_action_state() {
             return false;

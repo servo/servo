@@ -17,10 +17,8 @@ use itertools::{EitherOrBoth, Itertools};
 use num_traits::Zero;
 use properties::{CSSWideKeyword, PropertyDeclaration};
 use properties::longhands;
-use properties::longhands::font_weight::computed_value::T as FontWeight;
 use properties::longhands::visibility::computed_value::T as Visibility;
-use properties::PropertyId;
-use properties::{LonghandId, ShorthandId};
+use properties::LonghandId;
 use servo_arc::Arc;
 use smallvec::SmallVec;
 use std::{cmp, ptr};
@@ -29,15 +27,12 @@ use hash::FxHashMap;
 use super::ComputedValues;
 use values::CSSFloat;
 use values::animated::{Animate, Procedure, ToAnimatedValue, ToAnimatedZero};
-use values::animated::color::Color as AnimatedColor;
 use values::animated::effects::Filter as AnimatedFilter;
 #[cfg(feature = "gecko")] use values::computed::TransitionProperty;
-use values::computed::{Angle, CalcLengthOrPercentage};
+use values::computed::Angle;
 use values::computed::{ClipRect, Context};
-use values::computed::{Length, LengthOrPercentage, LengthOrPercentageOrAuto};
-use values::computed::LengthOrPercentageOrNone;
-use values::computed::{NonNegativeNumber, Number, NumberOrPercentage, Percentage};
-use values::computed::length::NonNegativeLengthOrPercentage;
+use values::computed::{Length, LengthOrPercentage};
+use values::computed::{Number, Percentage};
 use values::computed::ToComputedValue;
 use values::computed::transform::{DirectionVector, Matrix, Matrix3D};
 use values::computed::transform::TransformOperation as ComputedTransformOperation;
@@ -45,35 +40,17 @@ use values::computed::transform::Transform as ComputedTransform;
 use values::computed::transform::Rotate as ComputedRotate;
 use values::computed::transform::Translate as ComputedTranslate;
 use values::computed::transform::Scale as ComputedScale;
-use values::computed::url::ComputedUrl;
 use values::generics::transform::{self, Rotate, Translate, Scale, Transform, TransformOperation};
 use values::distance::{ComputeSquaredDistance, SquaredDistance};
-use values::generics::font::{FontSettings as GenericFontSettings, FontTag, VariationValue};
-use values::computed::font::FontVariationSettings;
 use values::generics::effects::Filter;
-use values::generics::svg::{SVGLength,  SvgLengthOrPercentageOrNumber, SVGPaint};
-use values::generics::svg::{SVGPaintKind, SVGStrokeDashArray, SVGOpacity};
 use void::{self, Void};
-
-
-/// Returns true if this nsCSSPropertyID is one of the animatable properties.
-#[cfg(feature = "gecko")]
-pub fn nscsspropertyid_is_animatable(property: nsCSSPropertyID) -> bool {
-    match property {
-        % for prop in data.longhands + data.shorthands_except_all():
-            % if prop.animatable:
-                ${prop.nscsspropertyid()} => true,
-            % endif
-        % endfor
-        _ => false
-    }
-}
 
 /// Convert nsCSSPropertyID to TransitionProperty
 #[cfg(feature = "gecko")]
 #[allow(non_upper_case_globals)]
 impl From<nsCSSPropertyID> for TransitionProperty {
     fn from(property: nsCSSPropertyID) -> TransitionProperty {
+        use properties::ShorthandId;
         match property {
             % for prop in data.longhands:
             ${prop.nscsspropertyid()} => {
@@ -92,19 +69,6 @@ impl From<nsCSSPropertyID> for TransitionProperty {
                 panic!("non-convertible nsCSSPropertyID")
             }
         }
-    }
-}
-
-/// Returns true if this nsCSSPropertyID is one of the transitionable properties.
-#[cfg(feature = "gecko")]
-pub fn nscsspropertyid_is_transitionable(property: nsCSSPropertyID) -> bool {
-    match property {
-        % for prop in data.longhands + data.shorthands_except_all():
-            % if prop.transitionable:
-                ${prop.nscsspropertyid()} => true,
-            % endif
-        % endfor
-        _ => false
     }
 }
 
@@ -556,6 +520,7 @@ impl AnimationValue {
                         declaration.id,
                         custom_properties,
                         context.quirks_mode,
+                        context.device().environment(),
                     )
                 };
                 return AnimationValue::from_declaration(
@@ -843,197 +808,6 @@ impl ToAnimatedZero for Visibility {
     #[inline]
     fn to_animated_zero(&self) -> Result<Self, ()> {
         Err(())
-    }
-}
-
-/// <https://drafts.csswg.org/css-transitions/#animtype-lpcalc>
-impl Animate for CalcLengthOrPercentage {
-    #[inline]
-    fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
-        let animate_percentage_half = |this: Option<Percentage>, other: Option<Percentage>| {
-            if this.is_none() && other.is_none() {
-                return Ok(None);
-            }
-            let this = this.unwrap_or_default();
-            let other = other.unwrap_or_default();
-            Ok(Some(this.animate(&other, procedure)?))
-        };
-
-        let length = self.unclamped_length().animate(&other.unclamped_length(), procedure)?;
-        let percentage = animate_percentage_half(self.percentage, other.percentage)?;
-        Ok(CalcLengthOrPercentage::with_clamping_mode(length, percentage, self.clamping_mode))
-    }
-}
-
-impl ToAnimatedZero for LengthOrPercentageOrAuto {
-    #[inline]
-    fn to_animated_zero(&self) -> Result<Self, ()> {
-        match *self {
-            LengthOrPercentageOrAuto::Length(_) |
-            LengthOrPercentageOrAuto::Percentage(_) |
-            LengthOrPercentageOrAuto::Calc(_) => {
-                Ok(LengthOrPercentageOrAuto::Length(Length::new(0.)))
-            },
-            LengthOrPercentageOrAuto::Auto => Err(()),
-        }
-    }
-}
-
-impl ToAnimatedZero for LengthOrPercentageOrNone {
-    #[inline]
-    fn to_animated_zero(&self) -> Result<Self, ()> {
-        match *self {
-            LengthOrPercentageOrNone::Length(_) |
-            LengthOrPercentageOrNone::Percentage(_) |
-            LengthOrPercentageOrNone::Calc(_) => {
-                Ok(LengthOrPercentageOrNone::Length(Length::new(0.)))
-            },
-            LengthOrPercentageOrNone::None => Err(()),
-        }
-    }
-}
-
-impl ToAnimatedZero for FontWeight {
-    #[inline]
-    fn to_animated_zero(&self) -> Result<Self, ()> {
-        Ok(FontWeight::normal())
-    }
-}
-
-/// <https://drafts.csswg.org/css-fonts-4/#font-variation-settings-def>
-impl Animate for FontVariationSettings {
-    #[inline]
-    fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
-        FontSettingTagIter::new(self, other)?
-            .map(|r| r.and_then(|(st, ot)| st.animate(&ot, procedure)))
-            .collect::<Result<Vec<ComputedVariationValue>, ()>>()
-            .map(|v| GenericFontSettings(v.into_boxed_slice()))
-    }
-}
-
-impl ComputeSquaredDistance for FontVariationSettings {
-    #[inline]
-    fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {
-        FontSettingTagIter::new(self, other)?
-            .map(|r| r.and_then(|(st, ot)| st.compute_squared_distance(&ot)))
-            .sum()
-    }
-}
-
-impl ToAnimatedZero for FontVariationSettings {
-    #[inline]
-    fn to_animated_zero(&self) -> Result<Self, ()> {
-        Err(())
-    }
-}
-
-type ComputedVariationValue = VariationValue<Number>;
-
-// FIXME: Could do a rename, this is only used for font variations.
-struct FontSettingTagIterState<'a> {
-    tags: Vec<(&'a ComputedVariationValue)>,
-    index: usize,
-    prev_tag: FontTag,
-}
-
-impl<'a> FontSettingTagIterState<'a> {
-    fn new(tags: Vec<<&'a ComputedVariationValue>) -> FontSettingTagIterState<'a> {
-        FontSettingTagIterState {
-            index: tags.len(),
-            tags,
-            prev_tag: FontTag(0),
-        }
-    }
-}
-
-/// Iterator for font-variation-settings tag lists
-///
-/// [CSS fonts level 4](https://drafts.csswg.org/css-fonts-4/#descdef-font-face-font-variation-settings)
-/// defines the animation of font-variation-settings as follows:
-///
-///   Two declarations of font-feature-settings[sic] can be animated between if
-///   they are "like".  "Like" declarations are ones where the same set of
-///   properties appear (in any order).  Because succesive[sic] duplicate
-///   properties are applied instead of prior duplicate properties, two
-///   declarations can be "like" even if they have differing number of
-///   properties. If two declarations are "like" then animation occurs pairwise
-///   between corresponding values in the declarations.
-///
-/// In other words if we have the following lists:
-///
-///   "wght" 1.4, "wdth" 5, "wght" 2
-///   "wdth" 8, "wght" 4, "wdth" 10
-///
-/// We should animate between:
-///
-///   "wdth" 5, "wght" 2
-///   "wght" 4, "wdth" 10
-///
-/// This iterator supports this by sorting the two lists, then iterating them in
-/// reverse, and skipping entries with repeated tag names. It will return
-/// Some(Err()) if it reaches the end of one list before the other, or if the
-/// tag names do not match.
-///
-/// For the above example, this iterator would return:
-///
-///   Some(Ok("wght" 2, "wght" 4))
-///   Some(Ok("wdth" 5, "wdth" 10))
-///   None
-///
-struct FontSettingTagIter<'a> {
-    a_state: FontSettingTagIterState<'a>,
-    b_state: FontSettingTagIterState<'a>,
-}
-
-impl<'a> FontSettingTagIter<'a> {
-    fn new(
-        a_settings: &'a FontVariationSettings,
-        b_settings: &'a FontVariationSettings,
-    ) -> Result<FontSettingTagIter<'a>, ()> {
-        if a_settings.0.is_empty() || b_settings.0.is_empty() {
-            return Err(());
-        }
-        fn as_new_sorted_tags(tags: &[ComputedVariationValue]) -> Vec<<&ComputedVariationValue> {
-            use std::iter::FromIterator;
-            let mut sorted_tags = Vec::from_iter(tags.iter());
-            sorted_tags.sort_by_key(|k| k.tag.0);
-            sorted_tags
-        };
-
-        Ok(FontSettingTagIter {
-            a_state: FontSettingTagIterState::new(as_new_sorted_tags(&a_settings.0)),
-            b_state: FontSettingTagIterState::new(as_new_sorted_tags(&b_settings.0)),
-        })
-    }
-
-    fn next_tag(state: &mut FontSettingTagIterState<'a>) -> Option<<&'a ComputedVariationValue> {
-        if state.index == 0 {
-            return None;
-        }
-
-        state.index -= 1;
-        let tag = state.tags[state.index];
-        if tag.tag == state.prev_tag {
-            FontSettingTagIter::next_tag(state)
-        } else {
-            state.prev_tag = tag.tag;
-            Some(tag)
-        }
-    }
-}
-
-impl<'a> Iterator for FontSettingTagIter<'a> {
-    type Item = Result<(&'a ComputedVariationValue, &'a ComputedVariationValue), ()>;
-
-    fn next(&mut self) -> Option<Result<(&'a ComputedVariationValue, &'a ComputedVariationValue), ()>> {
-        match (
-            FontSettingTagIter::next_tag(&mut self.a_state),
-            FontSettingTagIter::next_tag(&mut self.b_state),
-        ) {
-            (Some(at), Some(bt)) if at.tag == bt.tag => Some(Ok((at, bt))),
-            (None, None) => None,
-            _ => Some(Err(())), // Mismatch number of unique tags or tag names.
-        }
     }
 }
 
@@ -2351,10 +2125,21 @@ impl Animate for ComputedRotate {
         let from = ComputedRotate::resolve(self);
         let to = ComputedRotate::resolve(other);
 
-        let (fx, fy, fz, fa) =
+        let (mut fx, mut fy, mut fz, fa) =
             transform::get_normalized_vector_and_angle(from.0, from.1, from.2, from.3);
-        let (tx, ty, tz, ta) =
+        let (mut tx, mut ty, mut tz, ta) =
             transform::get_normalized_vector_and_angle(to.0, to.1, to.2, to.3);
+
+        if fa == Angle::from_degrees(0.) {
+            fx = tx;
+            fy = ty;
+            fz = tz;
+        } else if ta == Angle::from_degrees(0.) {
+            tx = fx;
+            ty = fy;
+            tz = fz;
+        }
+
         if (fx, fy, fz) == (tx, ty, tz) {
             return Ok(Rotate::Rotate3D(fx, fy, fz, fa.animate(&ta, procedure)?));
         }
@@ -2747,205 +2532,6 @@ impl ComputeSquaredDistance for ComputedTransform {
     }
 }
 
-/// Animated SVGPaint
-pub type IntermediateSVGPaint = SVGPaint<AnimatedColor, ComputedUrl>;
-
-/// Animated SVGPaintKind
-pub type IntermediateSVGPaintKind = SVGPaintKind<AnimatedColor, ComputedUrl>;
-
-impl ToAnimatedZero for IntermediateSVGPaint {
-    #[inline]
-    fn to_animated_zero(&self) -> Result<Self, ()> {
-        Ok(IntermediateSVGPaint {
-            kind: self.kind.to_animated_zero()?,
-            fallback: self.fallback.and_then(|v| v.to_animated_zero().ok()),
-        })
-    }
-}
-
-impl From<NonNegativeLengthOrPercentage> for NumberOrPercentage {
-    fn from(lop: NonNegativeLengthOrPercentage) -> NumberOrPercentage {
-        lop.0.into()
-    }
-}
-
-impl From<NonNegativeNumber> for NumberOrPercentage {
-    fn from(num: NonNegativeNumber) -> NumberOrPercentage {
-        num.0.into()
-    }
-}
-
-impl From<LengthOrPercentage> for NumberOrPercentage {
-    fn from(lop: LengthOrPercentage) -> NumberOrPercentage {
-        match lop {
-            LengthOrPercentage::Length(len) => NumberOrPercentage::Number(len.px()),
-            LengthOrPercentage::Percentage(p) => NumberOrPercentage::Percentage(p),
-            LengthOrPercentage::Calc(_) => {
-                panic!("We dont't expected calc interpolation for SvgLengthOrPercentageOrNumber");
-            },
-        }
-    }
-}
-
-impl From<Number> for NumberOrPercentage {
-    fn from(num: Number) -> NumberOrPercentage {
-        NumberOrPercentage::Number(num)
-    }
-}
-
-fn convert_to_number_or_percentage<LengthOrPercentageType, NumberType>(
-    from: SvgLengthOrPercentageOrNumber<LengthOrPercentageType, NumberType>)
-    -> NumberOrPercentage
-    where LengthOrPercentageType: Into<NumberOrPercentage>,
-          NumberType: Into<NumberOrPercentage>
-{
-    match from {
-        SvgLengthOrPercentageOrNumber::LengthOrPercentage(lop) => {
-            lop.into()
-        }
-        SvgLengthOrPercentageOrNumber::Number(num) => {
-            num.into()
-        }
-    }
-}
-
-fn convert_from_number_or_percentage<LengthOrPercentageType, NumberType>(
-    from: NumberOrPercentage)
-    -> SvgLengthOrPercentageOrNumber<LengthOrPercentageType, NumberType>
-    where LengthOrPercentageType: From<LengthOrPercentage>,
-          NumberType: From<Number>
-{
-    match from {
-        NumberOrPercentage::Number(num) =>
-            SvgLengthOrPercentageOrNumber::Number(num.into()),
-        NumberOrPercentage::Percentage(p) =>
-            SvgLengthOrPercentageOrNumber::LengthOrPercentage(
-                (LengthOrPercentage::Percentage(p)).into())
-    }
-}
-
-impl <L, N> Animate for SvgLengthOrPercentageOrNumber<L, N>
-where
-    L: Animate + From<LengthOrPercentage> + Into<NumberOrPercentage> + Copy,
-    N: Animate + From<Number> + Into<NumberOrPercentage>,
-    LengthOrPercentage: From<L>,
-    Self: Copy,
-{
-    #[inline]
-    fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
-        if self.has_calc() || other.has_calc() {
-            // TODO: We need to treat calc value.
-            // https://bugzilla.mozilla.org/show_bug.cgi?id=1386967
-            return Err(());
-        }
-
-        let this = convert_to_number_or_percentage(*self);
-        let other = convert_to_number_or_percentage(*other);
-
-        match (this, other) {
-            (
-                NumberOrPercentage::Number(ref this),
-                NumberOrPercentage::Number(ref other),
-            ) => {
-                Ok(convert_from_number_or_percentage(
-                    NumberOrPercentage::Number(this.animate(other, procedure)?)
-                ))
-            },
-            (
-                NumberOrPercentage::Percentage(ref this),
-                NumberOrPercentage::Percentage(ref other),
-            ) => {
-                Ok(convert_from_number_or_percentage(
-                    NumberOrPercentage::Percentage(this.animate(other, procedure)?)
-                ))
-            },
-            _ => Err(()),
-        }
-    }
-}
-
-impl<L> Animate for SVGLength<L>
-where
-    L: Animate + Clone,
-{
-    #[inline]
-    fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
-        match (self, other) {
-            (&SVGLength::Length(ref this), &SVGLength::Length(ref other)) => {
-                Ok(SVGLength::Length(this.animate(other, procedure)?))
-            },
-            _ => Err(()),
-        }
-    }
-}
-
-/// <https://www.w3.org/TR/SVG11/painting.html#StrokeDasharrayProperty>
-impl<L> Animate for SVGStrokeDashArray<L>
-where
-    L: Clone + Animate,
-{
-    #[inline]
-    fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
-        if matches!(procedure, Procedure::Add | Procedure::Accumulate { .. }) {
-            // Non-additive.
-            return Err(());
-        }
-        match (self, other) {
-            (&SVGStrokeDashArray::Values(ref this), &SVGStrokeDashArray::Values(ref other)) => {
-                Ok(SVGStrokeDashArray::Values(this.animate_repeatable_list(other, procedure)?))
-            },
-            _ => Err(()),
-        }
-    }
-}
-
-impl<L> ComputeSquaredDistance for SVGStrokeDashArray<L>
-where
-    L: ComputeSquaredDistance,
-{
-    #[inline]
-    fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {
-        match (self, other) {
-            (&SVGStrokeDashArray::Values(ref this), &SVGStrokeDashArray::Values(ref other)) => {
-                this.squared_distance_repeatable_list(other)
-            },
-            _ => Err(()),
-        }
-    }
-}
-
-impl<L> ToAnimatedZero for SVGStrokeDashArray<L>
-where
-    L: ToAnimatedZero,
-{
-    #[inline]
-    fn to_animated_zero(&self) -> Result<Self, ()> {
-        match *self {
-            SVGStrokeDashArray::Values(ref values) => {
-                Ok(SVGStrokeDashArray::Values(
-                    values.iter().map(ToAnimatedZero::to_animated_zero).collect::<Result<Vec<_>, _>>()?,
-                ))
-            }
-            SVGStrokeDashArray::ContextValue => Ok(SVGStrokeDashArray::ContextValue),
-        }
-    }
-}
-
-impl<O> Animate for SVGOpacity<O>
-where
-    O: Animate + Clone,
-{
-    #[inline]
-    fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
-        match (self, other) {
-            (&SVGOpacity::Opacity(ref this), &SVGOpacity::Opacity(ref other)) => {
-                Ok(SVGOpacity::Opacity(this.animate(other, procedure)?))
-            },
-            _ => Err(()),
-        }
-    }
-}
-
 <%
     FILTER_FUNCTIONS = [ 'Blur', 'Brightness', 'Contrast', 'Grayscale',
                          'HueRotate', 'Invert', 'Opacity', 'Saturate',
@@ -2995,83 +2581,5 @@ impl ToAnimatedZero for AnimatedFilter {
             % endif
             _ => Err(()),
         }
-    }
-}
-
-/// The category a property falls into for ordering purposes.
-///
-/// https://drafts.csswg.org/web-animations/#calculating-computed-keyframes
-///
-#[derive(Clone, Copy, Eq, Ord, PartialEq, PartialOrd)]
-enum PropertyCategory {
-    Custom,
-    PhysicalLonghand,
-    LogicalLonghand,
-    Shorthand,
-}
-
-impl PropertyCategory {
-    fn of(id: &PropertyId) -> Self {
-        match *id {
-            PropertyId::Shorthand(..) |
-            PropertyId::ShorthandAlias(..) => PropertyCategory::Shorthand,
-            PropertyId::Longhand(id) |
-            PropertyId::LonghandAlias(id, ..) => {
-                if id.is_logical() {
-                    PropertyCategory::LogicalLonghand
-                } else {
-                    PropertyCategory::PhysicalLonghand
-                }
-            }
-            PropertyId::Custom(..) => PropertyCategory::Custom,
-        }
-    }
-}
-
-/// A comparator to sort PropertyIds such that physical longhands are sorted
-/// before logical longhands and shorthands, shorthands with fewer components
-/// are sorted before shorthands with more components, and otherwise shorthands
-/// are sorted by IDL name as defined by [Web Animations][property-order].
-///
-/// Using this allows us to prioritize values specified by longhands (or smaller
-/// shorthand subsets) when longhands and shorthands are both specified on the
-/// one keyframe.
-///
-/// [property-order] https://drafts.csswg.org/web-animations/#calculating-computed-keyframes
-pub fn compare_property_priority(a: &PropertyId, b: &PropertyId) -> cmp::Ordering {
-    let a_category = PropertyCategory::of(a);
-    let b_category = PropertyCategory::of(b);
-
-    if a_category != b_category {
-        return a_category.cmp(&b_category);
-    }
-
-    if a_category == PropertyCategory::Shorthand {
-        let a = a.as_shorthand().unwrap();
-        let b = b.as_shorthand().unwrap();
-        // Within shorthands, sort by the number of subproperties, then by IDL
-        // name.
-        let subprop_count_a = a.longhands().count();
-        let subprop_count_b = b.longhands().count();
-        return subprop_count_a.cmp(&subprop_count_b).then_with(|| {
-            get_idl_name_sort_order(a).cmp(&get_idl_name_sort_order(b))
-        });
-    }
-
-    cmp::Ordering::Equal
-}
-
-fn get_idl_name_sort_order(shorthand: ShorthandId) -> u32 {
-<%
-# Sort by IDL name.
-sorted_shorthands = sorted(data.shorthands, key=lambda p: to_idl_name(p.ident))
-
-# Annotate with sorted position
-sorted_shorthands = [(p, position) for position, p in enumerate(sorted_shorthands)]
-%>
-    match shorthand {
-        % for property, position in sorted_shorthands:
-            ShorthandId::${property.camel_case} => ${position},
-        % endfor
     }
 }

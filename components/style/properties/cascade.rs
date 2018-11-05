@@ -243,7 +243,10 @@ where
 
     let mut declarations = SmallVec::<[(&_, CascadeLevel); 32]>::new();
     let custom_properties = {
-        let mut builder = CustomPropertiesBuilder::new(inherited_style.custom_properties());
+        let mut builder = CustomPropertiesBuilder::new(
+            inherited_style.custom_properties(),
+            device.environment(),
+        );
 
         for (declaration, cascade_level) in iter_declarations() {
             declarations.push((declaration, cascade_level));
@@ -420,6 +423,7 @@ impl<'a, 'b: 'a> Cascade<'a, 'b> {
             declaration.id,
             self.context.builder.custom_properties.as_ref(),
             self.context.quirks_mode,
+            self.context.device().environment(),
         ))
     }
 

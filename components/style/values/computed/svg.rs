@@ -4,11 +4,8 @@
 
 //! Computed types for SVG properties.
 
-use app_units::Au;
 use values::RGBA;
-use values::computed::{LengthOrPercentage, NonNegativeLength};
-use values::computed::{NonNegativeLengthOrPercentage, NonNegativeNumber, Number};
-use values::computed::Opacity;
+use values::computed::{NonNegativeLengthOrPercentage, NonNegativeNumber, Number, LengthOrPercentage, Opacity};
 use values::computed::color::Color;
 use values::computed::url::ComputedUrl;
 use values::generics::svg as generic;
@@ -50,10 +47,11 @@ pub type SvgLengthOrPercentageOrNumber =
 /// <length> | <percentage> | <number> | context-value
 pub type SVGLength = generic::SVGLength<SvgLengthOrPercentageOrNumber>;
 
-impl From<Au> for SVGLength {
-    fn from(length: Au) -> Self {
+impl SVGLength {
+    /// `0px`
+    pub fn zero() -> Self {
         generic::SVGLength::Length(generic::SvgLengthOrPercentageOrNumber::LengthOrPercentage(
-            length.into(),
+            LengthOrPercentage::zero()
         ))
     }
 }
@@ -63,6 +61,8 @@ impl From<Au> for SVGLength {
 pub type NonNegativeSvgLengthOrPercentageOrNumber =
     generic::SvgLengthOrPercentageOrNumber<NonNegativeLengthOrPercentage, NonNegativeNumber>;
 
+// FIXME(emilio): This is really hacky, and can go away with a bit of work on
+// the clone_stroke_width code in gecko.mako.rs.
 impl Into<NonNegativeSvgLengthOrPercentageOrNumber> for SvgLengthOrPercentageOrNumber {
     fn into(self) -> NonNegativeSvgLengthOrPercentageOrNumber {
         match self {
@@ -79,10 +79,12 @@ impl Into<NonNegativeSvgLengthOrPercentageOrNumber> for SvgLengthOrPercentageOrN
 /// An non-negative wrapper of SVGLength.
 pub type SVGWidth = generic::SVGLength<NonNegativeSvgLengthOrPercentageOrNumber>;
 
-impl From<NonNegativeLength> for SVGWidth {
-    fn from(length: NonNegativeLength) -> Self {
+impl SVGWidth {
+    /// `1px`.
+    pub fn one() -> Self {
+        use values::generics::NonNegative;
         generic::SVGLength::Length(generic::SvgLengthOrPercentageOrNumber::LengthOrPercentage(
-            length.into(),
+            NonNegative(LengthOrPercentage::one())
         ))
     }
 }

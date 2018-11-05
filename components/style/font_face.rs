@@ -151,10 +151,20 @@ impl_range!(FontWeightRange, AbsoluteFontWeight);
 #[allow(missing_docs)]
 pub struct ComputedFontWeightRange(f32, f32);
 
+#[inline]
+fn sort_range<T: PartialOrd>(a: T, b: T) -> (T, T) {
+    if a > b {
+        (b, a)
+    } else {
+        (a, b)
+    }
+}
+
 impl FontWeightRange {
     /// Returns a computed font-stretch range.
     pub fn compute(&self) -> ComputedFontWeightRange {
-        ComputedFontWeightRange(self.0.compute().0, self.1.compute().0)
+        let (min, max) = sort_range(self.0.compute().0, self.1.compute().0);
+        ComputedFontWeightRange(min, max)
     }
 }
 
@@ -182,7 +192,11 @@ impl FontStretchRange {
             }
         }
 
-        ComputedFontStretchRange(compute_stretch(&self.0), compute_stretch(&self.1))
+        let (min, max) = sort_range(
+            compute_stretch(&self.0),
+            compute_stretch(&self.1),
+        );
+        ComputedFontStretchRange(min, max)
     }
 }
 
@@ -258,10 +272,11 @@ impl FontStyle {
             FontStyle::Normal => ComputedFontStyleDescriptor::Normal,
             FontStyle::Italic => ComputedFontStyleDescriptor::Italic,
             FontStyle::Oblique(ref first, ref second) => {
-                ComputedFontStyleDescriptor::Oblique(
+                let (min, max) = sort_range(
                     SpecifiedFontStyle::compute_angle_degrees(first),
                     SpecifiedFontStyle::compute_angle_degrees(second),
-                )
+                );
+                ComputedFontStyleDescriptor::Oblique(min, max)
             }
         }
     }

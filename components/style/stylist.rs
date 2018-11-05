@@ -605,11 +605,11 @@ impl Stylist {
                 maybe = maybe || f(&*data);
             });
 
-        if maybe || !doc_author_rules_apply {
-            return maybe;
+        if maybe || f(&self.cascade_data.user) {
+            return true;
         }
 
-        f(&self.cascade_data.author) || f(&self.cascade_data.user)
+        doc_author_rules_apply && f(&self.cascade_data.author)
     }
 
     /// Computes the style for a given "precomputed" pseudo-element, taking the
@@ -1491,7 +1491,33 @@ impl Stylist {
         // the lookups, which means that the bitvecs are comparable. We verify
         // this in the caller by asserting that the bitvecs are same-length.
         let mut results = SmallBitVec::new();
-        for (data, _) in self.cascade_data.iter_origins() {
+
+        let matches_document_rules =
+            element.each_applicable_non_document_style_rule_data(|data, quirks_mode, host| {
+                matching_context.with_shadow_host(host, |matching_context| {
+                    data.selectors_for_cache_revalidation.lookup(
+                        element,
+                        quirks_mode,
+                        |selector_and_hashes| {
+                            results.push(matches_selector(
+                                &selector_and_hashes.selector,
+                                selector_and_hashes.selector_offset,
+                                Some(&selector_and_hashes.hashes),
+                                &element,
+                                matching_context,
+                                flags_setter,
+                            ));
+                            true
+                        },
+                    );
+                })
+            });
+
+        for (data, origin) in self.cascade_data.iter_origins() {
+            if origin == Origin::Author && !matches_document_rules {
+                continue;
+            }
+
             data.selectors_for_cache_revalidation.lookup(
                 element,
                 self.quirks_mode,
@@ -1509,25 +1535,6 @@ impl Stylist {
             );
         }
 
-        element.each_applicable_non_document_style_rule_data(|data, quirks_mode, host| {
-            matching_context.with_shadow_host(host, |matching_context| {
-                data.selectors_for_cache_revalidation.lookup(
-                    element,
-                    quirks_mode,
-                    |selector_and_hashes| {
-                        results.push(matches_selector(
-                            &selector_and_hashes.selector,
-                            selector_and_hashes.selector_offset,
-                            Some(&selector_and_hashes.hashes),
-                            &element,
-                            matching_context,
-                            flags_setter,
-                        ));
-                        true
-                    },
-                );
-            })
-        });
 
         results
     }

@@ -112,6 +112,7 @@ ${helpers.predefined_type(
     animation_value_type="discrete",
     flags="APPLIES_TO_FIRST_LETTER",
     boxed=product == "servo",
+    ignored_when_colors_disabled=True
 )}
 
 ${helpers.predefined_type(

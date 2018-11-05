@@ -31,7 +31,7 @@ atomic_refcell = "0.1"
 bitflags = "1.0"
 byteorder = "1.0"
 cfg-if = "0.1.0"
-cssparser = "0.24.0"
+cssparser = "0.25"
 new_debug_unreachable = "1.0"
 encoding_rs = {version = "0.7", optional = true}
 euclid = "0.19"

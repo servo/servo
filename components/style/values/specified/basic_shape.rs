@@ -14,7 +14,7 @@ use std::fmt::{self, Write};
 use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
 use values::computed::Percentage;
 use values::generics::basic_shape as generic;
-use values::generics::basic_shape::{FillRule, GeometryBox, Path, PolygonCoord};
+use values::generics::basic_shape::{GeometryBox, Path, PolygonCoord};
 use values::generics::basic_shape::{ShapeBox, ShapeSource};
 use values::generics::rect::Rect;
 use values::specified::LengthOrPercentage;
@@ -24,6 +24,9 @@ use values::specified::image::Image;
 use values::specified::position::{HorizontalPosition, Position, PositionComponent};
 use values::specified::position::{Side, VerticalPosition};
 use values::specified::url::SpecifiedUrl;
+
+/// A specified alias for FillRule.
+pub use values::generics::basic_shape::FillRule;
 
 /// A specified clipping shape.
 pub type ClippingShape = generic::ClippingShape<BasicShape, SpecifiedUrl>;

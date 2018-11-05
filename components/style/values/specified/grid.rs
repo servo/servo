@@ -95,7 +95,7 @@ pub fn parse_line_names<'i, 't>(
         while let Ok((loc, ident)) = input.try(|i| -> Result<_, CssParseError<()>> {
             Ok((i.current_source_location(), i.expect_ident_cloned()?))
         }) {
-            let ident = CustomIdent::from_ident(loc, &ident, &["span"])?;
+            let ident = CustomIdent::from_ident(loc, &ident, &["span", "auto"])?;
             values.push(ident);
         }
 

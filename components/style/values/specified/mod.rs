@@ -29,6 +29,7 @@ pub use self::align::{AlignContent, AlignItems, AlignSelf, ContentDistribution};
 #[cfg(feature = "gecko")]
 pub use self::align::{JustifyContent, JustifyItems, JustifySelf, SelfAlignment};
 pub use self::background::{BackgroundRepeat, BackgroundSize};
+pub use self::basic_shape::FillRule;
 pub use self::border::{BorderCornerRadius, BorderImageSlice, BorderImageWidth};
 pub use self::border::{BorderImageRepeat, BorderImageSideWidth};
 pub use self::border::{BorderRadius, BorderSideWidth, BorderSpacing};

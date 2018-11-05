@@ -70,6 +70,10 @@ resize
 right
 rtl
 sans-serif
+safe-area-inset-top
+safe-area-inset-bottom
+safe-area-inset-left
+safe-area-inset-right
 scan
 screen
 scroll-position

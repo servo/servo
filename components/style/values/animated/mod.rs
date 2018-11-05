@@ -10,16 +10,81 @@
 
 use app_units::Au;
 use euclid::{Point2D, Size2D};
+use properties::PropertyId;
 use smallvec::SmallVec;
+use std::cmp;
 use values::computed::Angle as ComputedAngle;
 use values::computed::BorderCornerRadius as ComputedBorderCornerRadius;
-use values::computed::MaxLength as ComputedMaxLength;
-use values::computed::MozLength as ComputedMozLength;
 use values::computed::length::CalcLengthOrPercentage;
 use values::computed::url::ComputedUrl;
 
 pub mod color;
 pub mod effects;
+mod font;
+mod length;
+mod svg;
+
+/// The category a property falls into for ordering purposes.
+///
+/// https://drafts.csswg.org/web-animations/#calculating-computed-keyframes
+#[derive(Clone, Copy, Eq, Ord, PartialEq, PartialOrd)]
+enum PropertyCategory {
+    Custom,
+    PhysicalLonghand,
+    LogicalLonghand,
+    Shorthand,
+}
+
+impl PropertyCategory {
+    fn of(id: &PropertyId) -> Self {
+        match *id {
+            PropertyId::Shorthand(..) |
+            PropertyId::ShorthandAlias(..) => PropertyCategory::Shorthand,
+            PropertyId::Longhand(id) |
+            PropertyId::LonghandAlias(id, ..) => {
+                if id.is_logical() {
+                    PropertyCategory::LogicalLonghand
+                } else {
+                    PropertyCategory::PhysicalLonghand
+                }
+            }
+            PropertyId::Custom(..) => PropertyCategory::Custom,
+        }
+    }
+}
+
+/// A comparator to sort PropertyIds such that physical longhands are sorted
+/// before logical longhands and shorthands, shorthands with fewer components
+/// are sorted before shorthands with more components, and otherwise shorthands
+/// are sorted by IDL name as defined by [Web Animations][property-order].
+///
+/// Using this allows us to prioritize values specified by longhands (or smaller
+/// shorthand subsets) when longhands and shorthands are both specified on the
+/// one keyframe.
+///
+/// [property-order] https://drafts.csswg.org/web-animations/#calculating-computed-keyframes
+pub fn compare_property_priority(a: &PropertyId, b: &PropertyId) -> cmp::Ordering {
+    let a_category = PropertyCategory::of(a);
+    let b_category = PropertyCategory::of(b);
+
+    if a_category != b_category {
+        return a_category.cmp(&b_category);
+    }
+
+    if a_category != PropertyCategory::Shorthand {
+        return cmp::Ordering::Equal;
+    }
+
+    let a = a.as_shorthand().unwrap();
+    let b = b.as_shorthand().unwrap();
+    // Within shorthands, sort by the number of subproperties, then by IDL
+    // name.
+    let subprop_count_a = a.longhands().count();
+    let subprop_count_b = b.longhands().count();
+    subprop_count_a.cmp(&subprop_count_b).then_with(|| {
+        a.idl_name_sort_order().cmp(&b.idl_name_sort_order())
+    })
+}
 
 /// Animate from one value to another.
 ///
@@ -278,66 +343,6 @@ impl ToAnimatedValue for ComputedBorderCornerRadius {
             (animated.0).0.width.clamp_to_non_negative(),
             (animated.0).0.height.clamp_to_non_negative(),
         )
-    }
-}
-
-impl ToAnimatedValue for ComputedMaxLength {
-    type AnimatedValue = Self;
-
-    #[inline]
-    fn to_animated_value(self) -> Self {
-        self
-    }
-
-    #[inline]
-    fn from_animated_value(animated: Self::AnimatedValue) -> Self {
-        use values::computed::{Length, LengthOrPercentageOrNone, Percentage};
-        use values::generics::length::MaxLength as GenericMaxLength;
-        match animated {
-            GenericMaxLength::LengthOrPercentageOrNone(lopn) => {
-                let result = match lopn {
-                    LengthOrPercentageOrNone::Length(px) => {
-                        LengthOrPercentageOrNone::Length(Length::new(px.px().max(0.)))
-                    },
-                    LengthOrPercentageOrNone::Percentage(percentage) => {
-                        LengthOrPercentageOrNone::Percentage(Percentage(percentage.0.max(0.)))
-                    },
-                    _ => lopn,
-                };
-                GenericMaxLength::LengthOrPercentageOrNone(result)
-            },
-            _ => animated,
-        }
-    }
-}
-
-impl ToAnimatedValue for ComputedMozLength {
-    type AnimatedValue = Self;
-
-    #[inline]
-    fn to_animated_value(self) -> Self {
-        self
-    }
-
-    #[inline]
-    fn from_animated_value(animated: Self::AnimatedValue) -> Self {
-        use values::computed::{Length, LengthOrPercentageOrAuto, Percentage};
-        use values::generics::length::MozLength as GenericMozLength;
-        match animated {
-            GenericMozLength::LengthOrPercentageOrAuto(lopa) => {
-                let result = match lopa {
-                    LengthOrPercentageOrAuto::Length(px) => {
-                        LengthOrPercentageOrAuto::Length(Length::new(px.px().max(0.)))
-                    },
-                    LengthOrPercentageOrAuto::Percentage(percentage) => {
-                        LengthOrPercentageOrAuto::Percentage(Percentage(percentage.0.max(0.)))
-                    },
-                    _ => lopa,
-                };
-                GenericMozLength::LengthOrPercentageOrAuto(result)
-            },
-            _ => animated,
-        }
     }
 }
 

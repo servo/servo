@@ -392,6 +392,12 @@ mod bindings {
             .handle_str_items("whitelist-vars", |b, item| b.whitelist_var(item))
             .handle_str_items("whitelist-types", |b, item| b.whitelist_type(item))
             .handle_str_items("opaque-types", |b, item| b.opaque_type(item))
+            .handle_table_items("cbindgen-types", |b, item| {
+                let gecko = item["gecko"].as_str().unwrap();
+                let servo = item["servo"].as_str().unwrap();
+                b.blacklist_type(format!("mozilla::{}", gecko))
+                    .module_raw_line("root::mozilla", format!("pub use {} as {};", servo, gecko))
+            })
             .handle_table_items("mapped-generic-types", |builder, item| {
                 let generic = item["generic"].as_bool().unwrap();
                 let gecko = item["gecko"].as_str().unwrap();

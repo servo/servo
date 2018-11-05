@@ -36,6 +36,7 @@ pub use self::align::{AlignContent, AlignItems, JustifyContent, JustifyItems, Se
 pub use self::align::{AlignSelf, JustifySelf};
 pub use self::angle::Angle;
 pub use self::background::{BackgroundRepeat, BackgroundSize};
+pub use self::basic_shape::FillRule;
 pub use self::border::{BorderImageRepeat, BorderImageSideWidth, BorderImageSlice, BorderImageWidth};
 pub use self::border::{BorderCornerRadius, BorderRadius, BorderSpacing};
 pub use self::font::{FontSize, FontSizeAdjust, FontStretch, FontSynthesis, FontVariantAlternates, FontWeight};

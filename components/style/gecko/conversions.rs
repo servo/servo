@@ -649,7 +649,7 @@ pub mod basic_shape {
 
     use gecko::values::GeckoStyleCoordConvertible;
     use gecko_bindings::structs;
-    use gecko_bindings::structs::{StyleBasicShape, StyleBasicShapeType, StyleFillRule};
+    use gecko_bindings::structs::{StyleBasicShape, StyleBasicShapeType};
     use gecko_bindings::structs::{StyleGeometryBox, StyleShapeSource, StyleShapeSourceType};
     use gecko_bindings::structs::{nsStyleCoord, nsStyleCorners};
     use gecko_bindings::sugar::ns_style_coord::{CoordDataMut, CoordDataValue};
@@ -662,7 +662,7 @@ pub mod basic_shape {
     use values::computed::position;
     use values::computed::url::ComputedUrl;
     use values::generics::basic_shape::{BasicShape as GenericBasicShape, InsetRect, Polygon};
-    use values::generics::basic_shape::{Circle, Ellipse, FillRule, Path, PolygonCoord};
+    use values::generics::basic_shape::{Circle, Ellipse, Path, PolygonCoord};
     use values::generics::basic_shape::{GeometryBox, ShapeBox, ShapeSource};
     use values::generics::border::BorderRadius as GenericBorderRadius;
     use values::generics::rect::Rect;
@@ -693,12 +693,7 @@ pub mod basic_shape {
                 StyleShapeSourceType::URL | StyleShapeSourceType::Image => None,
                 StyleShapeSourceType::Path => {
                     let path = self.to_svg_path().expect("expect an SVGPathData");
-                    let gecko_path = unsafe { &*self.__bindgen_anon_1.mSVGPath.as_ref().mPtr };
-                    let fill = if gecko_path.mFillRule == StyleFillRule::Evenodd {
-                        FillRule::Evenodd
-                    } else {
-                        FillRule::Nonzero
-                    };
+                    let fill = unsafe { &*self.__bindgen_anon_1.mSVGPath.as_ref().mPtr }.mFillRule;
                     Some(ShapeSource::Path(Path { fill, path }))
                 },
             }
@@ -706,18 +701,11 @@ pub mod basic_shape {
 
         /// Generate a SVGPathData from StyleShapeSource if possible.
         fn to_svg_path(&self) -> Option<SVGPathData> {
-            use gecko_bindings::structs::StylePathCommand;
             use values::specified::svg_path::PathCommand;
             match self.mType {
                 StyleShapeSourceType::Path => {
                     let gecko_path = unsafe { &*self.__bindgen_anon_1.mSVGPath.as_ref().mPtr };
-                    let result: Vec<PathCommand> = gecko_path
-                        .mPath
-                        .iter()
-                        .map(|gecko: &StylePathCommand| {
-                            // unsafe: cbindgen ensures the representation is the same.
-                            unsafe { ::std::mem::transmute(*gecko) }
-                        }).collect();
+                    let result: Vec<PathCommand> = gecko_path.mPath.iter().cloned().collect();
                     Some(SVGPathData::new(result.into_boxed_slice()))
                 },
                 _ => None,
@@ -730,7 +718,7 @@ pub mod basic_shape {
             match other.mType {
                 StyleShapeSourceType::URL => unsafe {
                     let shape_image = &*other.__bindgen_anon_1.mShapeImage.as_ref().mPtr;
-                    let other_url = RefPtr::new(*shape_image.__bindgen_anon_1.mURLValue.as_ref());
+                    let other_url = RefPtr::new(*shape_image.__bindgen_anon_1.mURLValue.as_ref() as *mut _);
                     let url = ComputedUrl::from_url_value(other_url);
                     ShapeSource::ImageOrUrl(url)
                 },
@@ -805,11 +793,6 @@ pub mod basic_shape {
                     position: (&other.mPosition).into(),
                 }),
                 StyleBasicShapeType::Polygon => {
-                    let fill_rule = if other.mFillRule == StyleFillRule::Evenodd {
-                        FillRule::Evenodd
-                    } else {
-                        FillRule::Nonzero
-                    };
                     let mut coords = Vec::with_capacity(other.mCoordinates.len() / 2);
                     for i in 0..(other.mCoordinates.len() / 2) {
                         let x = 2 * i;
@@ -828,7 +811,7 @@ pub mod basic_shape {
                         ))
                     }
                     GenericBasicShape::Polygon(Polygon {
-                        fill: fill_rule,
+                        fill: other.mFillRule,
                         coordinates: coords,
                     })
                 },
