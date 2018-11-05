@@ -241,9 +241,9 @@ pub unsafe extern "C" fn discard_servo(servo: *mut ServoInstance) {
                 }
             }
             if Instant::now() > finish {
-	       warn!("Incomplete shutdown.");
+               warn!("Incomplete shutdown.");
                break 'outer;
-	    }
+            }
             thread::sleep(SHUTDOWN_POLL_INTERVAL);
             servo.servo.handle_events(vec![]);
         }
