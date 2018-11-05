@@ -758,6 +758,41 @@ impl<'a> Iterator for LonghandIdSetIterator<'a> {
 }
 
 impl LonghandIdSet {
+    #[inline]
+    fn reset() -> &'static Self {
+        ${static_longhand_id_set("RESET", lambda p: not p.style_struct.inherited)}
+        &RESET
+    }
+
+    #[inline]
+    fn animatable() -> &'static Self {
+        ${static_longhand_id_set("ANIMATABLE", lambda p: p.animatable)}
+        &ANIMATABLE
+    }
+
+    #[inline]
+    fn discrete_animatable() -> &'static Self {
+        ${static_longhand_id_set("DISCRETE_ANIMATABLE", lambda p: p.animation_value_type == "discrete")}
+        &DISCRETE_ANIMATABLE
+    }
+
+    #[inline]
+    fn logical() -> &'static Self {
+        ${static_longhand_id_set("LOGICAL", lambda p: p.logical)}
+        &LOGICAL
+    }
+
+    /// Returns the set of longhands that are ignored when document colors are
+    /// disabled.
+    #[inline]
+    pub fn ignored_when_colors_disabled() -> &'static Self {
+        ${static_longhand_id_set(
+            "IGNORED_WHEN_COLORS_DISABLED",
+            lambda p: p.ignored_when_colors_disabled
+        )}
+        &IGNORED_WHEN_COLORS_DISABLED
+    }
+
     /// Iterate over the current longhand id set.
     pub fn iter(&self) -> LonghandIdSetIterator {
         LonghandIdSetIterator { longhands: self, cur: 0, }
@@ -784,6 +819,14 @@ impl LonghandIdSet {
         false
     }
 
+    /// Remove all the given properties from the set.
+    #[inline]
+    pub fn remove_all(&mut self, other: &Self) {
+        for (self_cell, other_cell) in self.storage.iter_mut().zip(other.storage.iter()) {
+            *self_cell &= !*other_cell;
+        }
+    }
+
     /// Create an empty set
     #[inline]
     pub fn new() -> LonghandIdSet {
@@ -800,8 +843,7 @@ impl LonghandIdSet {
     /// Return whether this set contains any reset longhand.
     #[inline]
     pub fn contains_any_reset(&self) -> bool {
-        ${static_longhand_id_set("RESET", lambda p: not p.style_struct.inherited)}
-        self.contains_any(&RESET)
+        self.contains_any(Self::reset())
     }
 
     /// Add the given property to the set
@@ -961,9 +1003,8 @@ impl LonghandId {
 
     /// Returns whether the longhand property is inherited by default.
     #[inline]
-    pub fn inherited(&self) -> bool {
-        ${static_longhand_id_set("INHERITED", lambda p: p.style_struct.inherited)}
-        INHERITED.contains(*self)
+    pub fn inherited(self) -> bool {
+        !LonghandIdSet::reset().contains(self)
     }
 
     fn shorthands(&self) -> NonCustomPropertyIterator<ShorthandId> {
@@ -1034,15 +1075,13 @@ impl LonghandId {
     /// Returns whether this property is animatable.
     #[inline]
     pub fn is_animatable(self) -> bool {
-        ${static_longhand_id_set("ANIMATABLE", lambda p: p.animatable)}
-        ANIMATABLE.contains(self)
+        LonghandIdSet::animatable().contains(self)
     }
 
     /// Returns whether this property is animatable in a discrete way.
     #[inline]
     pub fn is_discrete_animatable(self) -> bool {
-        ${static_longhand_id_set("DISCRETE_ANIMATABLE", lambda p: p.animation_value_type == "discrete")}
-        DISCRETE_ANIMATABLE.contains(self)
+        LonghandIdSet::discrete_animatable().contains(self)
     }
 
     /// Converts from a LonghandId to an adequate nsCSSPropertyID.
@@ -1065,9 +1104,8 @@ impl LonghandId {
 
     /// Return whether this property is logical.
     #[inline]
-    pub fn is_logical(&self) -> bool {
-        ${static_longhand_id_set("LOGICAL", lambda p: p.logical)}
-        LOGICAL.contains(*self)
+    pub fn is_logical(self) -> bool {
+        LonghandIdSet::logical().contains(self)
     }
 
     /// If this is a logical property, return the corresponding physical one in
@@ -1157,12 +1195,7 @@ impl LonghandId {
     /// colors are disabled.
     #[inline]
     fn ignored_when_document_colors_disabled(self) -> bool {
-        ${static_longhand_id_set(
-            "IGNORED_WHEN_COLORS_DISABLED",
-            lambda p: p.ignored_when_colors_disabled
-        )}
-
-        IGNORED_WHEN_COLORS_DISABLED.contains(self)
+        LonghandIdSet::ignored_when_colors_disabled().contains(self)
     }
 
     /// The computed value of some properties depends on the (sometimes

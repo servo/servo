@@ -1288,25 +1288,12 @@ impl StrongRuleNode {
             }
         }
 
-        // If author colors are not allowed, only claim to have author-specified
-        // rules if we're looking at a non-color property, a border image, or if
-        // we're looking at the background color and it's set to transparent.
-        const IGNORED_WHEN_COLORS_DISABLED: &'static [LonghandId] = &[
-            LonghandId::BackgroundImage,
-            LonghandId::BorderImageSource,
-            LonghandId::BorderTopColor,
-            LonghandId::BorderRightColor,
-            LonghandId::BorderBottomColor,
-            LonghandId::BorderLeftColor,
-            LonghandId::BorderInlineStartColor,
-            LonghandId::BorderInlineEndColor,
-            LonghandId::BorderBlockStartColor,
-            LonghandId::BorderBlockEndColor,
-        ];
-
+        // If author colors are not allowed, don't look at those properties
+        // (except for background-color which is special and we handle below).
         if !author_colors_allowed {
-            for id in IGNORED_WHEN_COLORS_DISABLED {
-                properties.remove(*id);
+            properties.remove_all(LonghandIdSet::ignored_when_colors_disabled());
+            if rule_type_mask & NS_AUTHOR_SPECIFIED_BACKGROUND != 0 {
+                properties.insert(LonghandId::BackgroundColor);
             }
         }
 
