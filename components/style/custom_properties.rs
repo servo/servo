@@ -230,18 +230,6 @@ where
         self.index.remove(index);
         self.values.remove(key)
     }
-
-    fn remove_set<S>(&mut self, set: &::hash::HashSet<K, S>)
-    where
-        S: ::std::hash::BuildHasher,
-    {
-        if set.is_empty() {
-            return;
-        }
-        self.index.retain(|key| !set.contains(key));
-        self.values.retain(|key, _| !set.contains(key));
-        debug_assert_eq!(self.values.len(), self.index.len());
-    }
 }
 
 /// An iterator for OrderedMap.
@@ -642,11 +630,9 @@ impl<'a> CustomPropertiesBuilder<'a> {
                 // environment variable here, perform substitution here instead
                 // of forcing a full traversal in `substitute_all` afterwards.
                 let value = if !has_references && unparsed_value.references_environment {
-                    let invalid = Default::default(); // Irrelevant, since there are no references.
                     let result = substitute_references_in_value(
                         unparsed_value,
                         &map,
-                        &invalid,
                         &self.environment,
                     );
                     match result {
@@ -735,18 +721,6 @@ fn substitute_all(custom_properties_map: &mut CustomPropertiesMap, environment: 
     // listed in
     // https://en.wikipedia.org/w/index.php?
     // title=Tarjan%27s_strongly_connected_components_algorithm&oldid=801728495
-    //
-    // FIXME This function currently does at least one addref to names
-    // for each variable regardless whether it has reference. Each
-    // variable with any reference would have an additional addref.
-    // There is another addref for each reference.
-    // Strictly speaking, these addrefs are not necessary, because we
-    // don't add/remove entry from custom properties map, and thus keys
-    // should be alive in the whole process until we start removing
-    // invalids. However, there is no safe way for us to prove this to
-    // the compiler. We may be able to fix this issue at some point if
-    // the standard library can provide some kind of hashmap wrapper
-    // with frozen keys.
 
     /// Struct recording necessary information for each variable.
     struct VarInfo {
@@ -775,8 +749,6 @@ fn substitute_all(custom_properties_map: &mut CustomPropertiesMap, environment: 
         /// all unfinished strong connected components.
         stack: SmallVec<[usize; 5]>,
         map: &'a mut CustomPropertiesMap,
-        /// The set of invalid custom properties.
-        invalid: &'a mut PrecomputedHashSet<Name>,
         /// The environment to substitute `env()` variables.
         environment: &'a CssEnvironment,
     }
@@ -790,9 +762,9 @@ fn substitute_all(custom_properties_map: &mut CustomPropertiesMap, environment: 
     /// in one of the following states:
     /// * It is still in context.stack, which means it is part of an
     ///   potentially incomplete dependency circle.
-    /// * It has been added into the invalid set. It can be either that
-    ///   the substitution failed, or it is inside a dependency circle.
-    ///   When this function put a variable into the invalid set because
+    /// * It has been removed from the map.  It can be either that the
+    ///   substitution failed, or it is inside a dependency circle.
+    ///   When this function removes a variable from the map because
     ///   of dependency circle, it would put all variables in the same
     ///   strong connected component to the set together.
     /// * It doesn't have any reference, because either this variable
@@ -810,11 +782,6 @@ fn substitute_all(custom_properties_map: &mut CustomPropertiesMap, environment: 
                     !value.references_environment,
                     "Should've been handled earlier"
                 );
-                return None;
-            }
-
-            // This variable has already been resolved.
-            if context.invalid.contains(&name) {
                 return None;
             }
 
@@ -875,8 +842,9 @@ fn substitute_all(custom_properties_map: &mut CustomPropertiesMap, environment: 
         if lowlink != index {
             // This variable is in a loop, but it is not the root of
             // this strong connected component. We simply return for
-            // now, and the root would add it into the invalid set.
-            // This cannot be added into the invalid set here, because
+            // now, and the root would remove it from the map.
+            //
+            // This cannot be removed from the map here, because
             // otherwise the shortcut check at the beginning of this
             // function would return the wrong value.
             return Some(index);
@@ -903,15 +871,14 @@ fn substitute_all(custom_properties_map: &mut CustomPropertiesMap, environment: 
                 break;
             }
             // Anything here is in a loop which can traverse to the
-            // variable we are handling, so we should add it into
-            // the invalid set. We should never visit the variable
-            // again so it's safe to just take the name away.
-            context.invalid.insert(var_name);
+            // variable we are handling, so remove it from the map, it's invalid
+            // at computed-value time.
+            context.map.remove(&var_name);
             in_loop = true;
         }
         if in_loop {
             // This variable is in loop. Resolve to invalid.
-            context.invalid.insert(name);
+            context.map.remove(&name);
             return None;
         }
 
@@ -921,7 +888,6 @@ fn substitute_all(custom_properties_map: &mut CustomPropertiesMap, environment: 
         let result = substitute_references_in_value(
             &value,
             &context.map,
-            &context.invalid,
             &context.environment,
         );
 
@@ -930,7 +896,7 @@ fn substitute_all(custom_properties_map: &mut CustomPropertiesMap, environment: 
                 context.map.insert(name, Arc::new(computed_value));
             },
             Err(..) => {
-                context.invalid.insert(name);
+                context.map.remove(&name);
             },
         }
 
@@ -941,7 +907,6 @@ fn substitute_all(custom_properties_map: &mut CustomPropertiesMap, environment: 
     // We have to clone the names so that we can mutably borrow the map
     // in the context we create for traversal.
     let names = custom_properties_map.index.clone();
-    let mut invalid = PrecomputedHashSet::default();
     for name in names.into_iter() {
         let mut context = Context {
             count: 0,
@@ -949,20 +914,16 @@ fn substitute_all(custom_properties_map: &mut CustomPropertiesMap, environment: 
             stack: SmallVec::new(),
             var_info: SmallVec::new(),
             map: custom_properties_map,
-            invalid: &mut invalid,
             environment,
         };
         traverse(name, &mut context);
     }
-
-    custom_properties_map.remove_set(&invalid);
 }
 
 /// Replace `var()` and `env()` functions in a pre-existing variable value.
 fn substitute_references_in_value<'i>(
     value: &'i VariableValue,
     custom_properties: &CustomPropertiesMap,
-    invalid_custom_properties: &PrecomputedHashSet<Name>,
     environment: &CssEnvironment,
 ) -> Result<ComputedValue, ParseError<'i>> {
     debug_assert!(!value.references.is_empty() || value.references_environment);
@@ -977,7 +938,6 @@ fn substitute_references_in_value<'i>(
         &mut position,
         &mut computed_value,
         custom_properties,
-        invalid_custom_properties,
         environment,
     )?;
 
@@ -1000,7 +960,6 @@ fn substitute_block<'i, 't>(
     position: &mut (SourcePosition, TokenSerializationType),
     partial_computed_value: &mut ComputedValue,
     custom_properties: &CustomPropertiesMap,
-    invalid_custom_properties: &PrecomputedHashSet<Name>,
     env: &CssEnvironment,
 ) -> Result<TokenSerializationType, ParseError<'i>> {
     let mut last_token_type = TokenSerializationType::nothing();
@@ -1050,11 +1009,7 @@ fn substitute_block<'i, 't>(
                     let value = if is_env {
                         env.get(&name)
                     } else {
-                        if invalid_custom_properties.contains(&name) {
-                            None
-                        } else {
-                            custom_properties.get(&name).map(|v| &**v)
-                        }
+                        custom_properties.get(&name).map(|v| &**v)
                     };
 
                     if let Some(v) = value {
@@ -1079,7 +1034,6 @@ fn substitute_block<'i, 't>(
                             &mut position,
                             partial_computed_value,
                             custom_properties,
-                            invalid_custom_properties,
                             env,
                         )?;
                         partial_computed_value.push_from(position, input, last_token_type);
@@ -1098,7 +1052,6 @@ fn substitute_block<'i, 't>(
                         position,
                         partial_computed_value,
                         custom_properties,
-                        invalid_custom_properties,
                         env,
                     )
                 })?;
@@ -1131,7 +1084,6 @@ pub fn substitute<'i>(
     let mut input = ParserInput::new(input);
     let mut input = Parser::new(&mut input);
     let mut position = (input.position(), first_token_type);
-    let invalid = PrecomputedHashSet::default();
     let empty_map = CustomPropertiesMap::new();
     let custom_properties = match computed_values_map {
         Some(m) => &**m,
@@ -1142,7 +1094,6 @@ pub fn substitute<'i>(
         &mut position,
         &mut substituted,
         &custom_properties,
-        &invalid,
         env,
     )?;
     substituted.push_from(position, &input, last_token_type);
