@@ -12,7 +12,7 @@
 
 # Optional
 $client.DownloadFile(
-    "http://download.tuxfamily.org/dvorak/windows/bepo.exe",
+    "https://download.tuxfamily.org/dvorak/windows/bepo.exe",
     "C:\bepo.exe"
 )
 
