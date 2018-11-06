@@ -9,7 +9,6 @@ pub use values::specified::list::ListStyleType;
 pub use values::specified::list::{QuotePair, Quotes};
 
 use servo_arc::Arc;
-use values::specified::list::QuotePair;
 
 lazy_static! {
     static ref INITIAL_QUOTES: Arc<Box<[QuotePair]>> = Arc::new(

@@ -27,6 +27,7 @@ use gecko_bindings::structs::RawServoCssUrlData;
 use gecko_bindings::structs::RawServoDeclarationBlock;
 use gecko_bindings::structs::RawServoFontFaceRule;
 use gecko_bindings::structs::RawServoMediaList;
+use gecko_bindings::structs::RawServoQuotes;
 use gecko_bindings::structs::RawServoStyleRule;
 use gecko_bindings::structs::RawServoStyleSheetContents;
 use gecko_bindings::sugar::ownership::{HasArcFFI, HasFFI, Strong};
@@ -41,6 +42,7 @@ use stylesheets::keyframes_rule::Keyframe;
 use stylesheets::{CounterStyleRule, CssRules, FontFaceRule, FontFeatureValuesRule};
 use stylesheets::{DocumentRule, ImportRule, KeyframesRule, MediaRule, NamespaceRule, PageRule};
 use stylesheets::{StyleRule, StylesheetContents, SupportsRule};
+use values::computed::QuotePair;
 
 macro_rules! impl_arc_ffi {
     ($servo_type:ty => $gecko_type:ty[$addref:ident, $release:ident]) => {
@@ -114,6 +116,9 @@ impl_arc_ffi!(Locked<CounterStyleRule> => RawServoCounterStyleRule
 
 impl_arc_ffi!(CssUrlData => RawServoCssUrlData
               [Servo_CssUrlData_AddRef, Servo_CssUrlData_Release]);
+
+impl_arc_ffi!(Box<[QuotePair]> => RawServoQuotes
+              [Servo_Quotes_AddRef, Servo_Quotes_Release]);
 
 // RuleNode is a Arc-like type but it does not use Arc.
 

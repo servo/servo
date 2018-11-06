@@ -4180,23 +4180,11 @@ fn static_assert() {
     }
 
     pub fn set_quotes(&mut self, other: longhands::quotes::computed_value::T) {
-        use gecko_bindings::bindings::Gecko_NewStyleQuoteValues;
-        use gecko_bindings::sugar::refptr::UniqueRefPtr;
-
-        let mut refptr = unsafe {
-            UniqueRefPtr::from_addrefed(Gecko_NewStyleQuoteValues(other.0.len() as u32))
-        };
-
-        for (servo, gecko) in other.0.iter().zip(refptr.mQuotePairs.iter_mut()) {
-            gecko.first.assign_str(&servo.opening);
-            gecko.second.assign_str(&servo.closing);
-        }
-
-        self.gecko.mQuotes.set_move(refptr.get())
+        self.gecko.mQuotes.set_arc(other.0.clone());
     }
 
     pub fn copy_quotes_from(&mut self, other: &Self) {
-        unsafe { self.gecko.mQuotes.set(&other.gecko.mQuotes); }
+        self.set_quotes(other.clone_quotes());
     }
 
     pub fn reset_quotes(&mut self, other: &Self) {
@@ -4204,17 +4192,13 @@ fn static_assert() {
     }
 
     pub fn clone_quotes(&self) -> longhands::quotes::computed_value::T {
-        unsafe {
-            let ref gecko_quote_values = *self.gecko.mQuotes.mRawPtr;
-            longhands::quotes::computed_value::T(Arc::new(
-                gecko_quote_values.mQuotePairs.iter().map(|gecko_pair| {
-                    values::specified::QuotePair {
-                        opening: gecko_pair.first.to_string().into_boxed_str(),
-                        closing: gecko_pair.second.to_string().into_boxed_str(),
-                    }
-                }).collect::<Vec<_>>().into_boxed_slice()
-            ))
-        }
+        use gecko_bindings::sugar::ownership::HasArcFFI;
+        use values::computed::QuotePair;
+
+        let quote_pairs = unsafe { &*self.gecko.mQuotes.mRawPtr };
+        longhands::quotes::computed_value::T(
+            Box::<[QuotePair]>::as_arc(&quote_pairs).clone_arc()
+        )
     }
 
     #[allow(non_snake_case)]
