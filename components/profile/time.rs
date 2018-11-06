@@ -302,7 +302,7 @@ impl Formattable for ProfilerCategory {
             ProfilerCategory::WebGlDOMGetParameter => "WebGl DOM GetParameter",
             ProfilerCategory::WebGlDOMGetTexParameter => "WebGL DOM GetTexParameter",
             ProfilerCategory::WebGlDOMGetContextAttributes => "WebGL DOM GetContextAttributes",
-            ProfilerCategory::WebGlDOMGetFramebufferAttachmentParameter => "WebGL DOM GetFramebufferAttachmentParameter",
+            ProfilerCategory::WebGlDOMGetFramebufferAttachmentParameter => "WebGL DOM GetFBAttachmentParameter",
             ProfilerCategory::WebGlDOMGetRenderbufferParameter => "WebGL DOM GetRenderbufferParameter",
             ProfilerCategory::WebGlDOMGetProgramParameter => "WebGL DOM GetProgramParameter",
             ProfilerCategory::WebGlDOMGetShaderPrecisionFormat => "WebGL DOM GetShaderPrecisionFormat",
