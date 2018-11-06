@@ -8,10 +8,10 @@ use attr::{ParsedCaseSensitivity, SELECTOR_WHITESPACE};
 use bloom::BLOOM_HASH_MASK;
 use builder::{SelectorBuilder, SpecificityAndFlags};
 use context::QuirksMode;
+use cssparser::{parse_nth, serialize_identifier};
 use cssparser::{BasicParseError, BasicParseErrorKind, ParseError, ParseErrorKind};
 use cssparser::{CowRcStr, Delimiter, SourceLocation};
 use cssparser::{CssStringWriter, Parser as CssParser, ToCss, Token};
-use cssparser::{parse_nth, serialize_identifier};
 use precomputed_hash::PrecomputedHash;
 use servo_arc::ThinArc;
 use sink::Push;
@@ -2146,12 +2146,12 @@ where
 // NB: pub module in order to access the DummyParser
 #[cfg(test)]
 pub mod tests {
+    use super::*;
     use builder::HAS_PSEUDO_BIT;
     use cssparser::{serialize_identifier, Parser as CssParser, ParserInput, ToCss};
     use parser;
     use std::collections::HashMap;
     use std::fmt;
-    use super::*;
 
     #[derive(Clone, Debug, Eq, PartialEq)]
     pub enum PseudoClass {

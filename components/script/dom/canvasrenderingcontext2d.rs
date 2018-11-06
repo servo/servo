@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use canvas_traits::canvas::{Canvas2dMsg, CanvasMsg, CanvasId};
+use canvas_traits::canvas::{Canvas2dMsg, CanvasId, CanvasMsg};
 use canvas_traits::canvas::{CompositionOrBlending, FillOrStrokeStyle, FillRule};
 use canvas_traits::canvas::{LineCapStyle, LineJoinStyle, LinearGradientStyle};
 use canvas_traits::canvas::{RadialGradientStyle, RepetitionStyle};
@@ -18,7 +18,7 @@ use crate::dom::bindings::codegen::UnionTypes::StringOrCanvasGradientOrCanvasPat
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
-use crate::dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
+use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::canvasgradient::{CanvasGradient, CanvasGradientStyle, ToFillOrStrokeStyle};
@@ -27,12 +27,12 @@ use crate::dom::element::Element;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlcanvaselement::{CanvasContext, HTMLCanvasElement};
 use crate::dom::imagedata::ImageData;
-use crate::dom::node::{Node, NodeDamage, window_from_node};
+use crate::dom::node::{window_from_node, Node, NodeDamage};
 use crate::unpremultiplytable::UNPREMULTIPLY_TABLE;
-use cssparser::{Parser, ParserInput, RGBA};
 use cssparser::Color as CSSColor;
+use cssparser::{Parser, ParserInput, RGBA};
 use dom_struct::dom_struct;
-use euclid::{Transform2D, Point2D, Rect, Size2D, vec2};
+use euclid::{vec2, Point2D, Rect, Size2D, Transform2D};
 use ipc_channel::ipc::{self, IpcSender};
 use net_traits::image::base::PixelFormat;
 use net_traits::image_cache::CanRequestImages;
@@ -45,10 +45,10 @@ use pixels;
 use profile_traits::ipc as profiled_ipc;
 use script_traits::ScriptMsg;
 use servo_url::ServoUrl;
-use std::{fmt, mem};
 use std::cell::Cell;
 use std::str::FromStr;
 use std::sync::Arc;
+use std::{fmt, mem};
 
 #[must_root]
 #[derive(Clone, JSTraceable, MallocSizeOf)]

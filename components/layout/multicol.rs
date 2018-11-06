@@ -5,23 +5,23 @@
 //! CSS Multi-column layout http://dev.w3.org/csswg/css-multicol/
 
 use app_units::Au;
-use crate::ServoArc;
 use crate::block::BlockFlow;
 use crate::context::LayoutContext;
 use crate::display_list::{DisplayListBuildState, StackingContextCollectionState};
 use crate::floats::FloatKind;
-use crate::flow::{Flow, FlowClass, OpaqueFlow, FragmentationContext, GetBaseFlow};
+use crate::flow::{Flow, FlowClass, FragmentationContext, GetBaseFlow, OpaqueFlow};
 use crate::fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
+use crate::ServoArc;
 use euclid::{Point2D, Vector2D};
 use gfx_traits::print_tree::PrintTree;
-use std::cmp::{min, max};
+use std::cmp::{max, min};
 use std::fmt;
 use std::sync::Arc;
 use style::logical_geometry::LogicalSize;
 use style::properties::ComputedValues;
-use style::values::Either;
 use style::values::computed::{LengthOrPercentageOrAuto, LengthOrPercentageOrNone};
 use style::values::generics::column::ColumnCount;
+use style::values::Either;
 
 #[allow(unsafe_code)]
 unsafe impl crate::flow::HasBaseFlow for MulticolFlow {}

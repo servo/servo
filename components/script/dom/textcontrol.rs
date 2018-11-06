@@ -14,7 +14,7 @@ use crate::dom::bindings::error::{Error, ErrorResult};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::event::{EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
-use crate::dom::node::{Node, NodeDamage, window_from_node};
+use crate::dom::node::{window_from_node, Node, NodeDamage};
 use crate::textinput::{SelectionDirection, SelectionState, TextInput};
 use script_traits::ScriptToConstellationChan;
 

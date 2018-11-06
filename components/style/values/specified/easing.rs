@@ -9,8 +9,8 @@ use parser::{Parse, ParserContext};
 use selectors::parser::SelectorParseErrorKind;
 use style_traits::{ParseError, StyleParseErrorKind};
 use values::computed::easing::TimingFunction as ComputedTimingFunction;
-use values::generics::easing::{StepPosition, TimingKeyword};
 use values::generics::easing::TimingFunction as GenericTimingFunction;
+use values::generics::easing::{StepPosition, TimingKeyword};
 use values::specified::{Integer, Number};
 
 /// A specified timing function.

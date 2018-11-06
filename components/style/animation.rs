@@ -8,15 +8,14 @@
 // compile it out so that people remember it exists, thus the cfg'd Sender
 // import.
 
-use Atom;
 use bezier::Bezier;
 use context::SharedStyleContext;
 use dom::{OpaqueNode, TElement};
 use font_metrics::FontMetricsProvider;
-use properties::{self, CascadeMode, ComputedValues, LonghandId};
 use properties::animated_properties::AnimatedProperty;
 use properties::longhands::animation_direction::computed_value::single_value::T as AnimationDirection;
 use properties::longhands::animation_play_state::computed_value::single_value::T as AnimationPlayState;
+use properties::{self, CascadeMode, ComputedValues, LonghandId};
 use rule_tree::CascadeLevel;
 use servo_arc::Arc;
 #[cfg(feature = "servo")]
@@ -26,11 +25,12 @@ use std::fmt;
 use std::sync::mpsc::Sender;
 use stylesheets::keyframes_rule::{KeyframesAnimation, KeyframesStep, KeyframesStepValue};
 use timer::Timer;
+use values::computed::box_::TransitionProperty;
 use values::computed::Time;
 use values::computed::TimingFunction;
-use values::computed::box_::TransitionProperty;
 use values::generics::box_::AnimationIterationCount;
 use values::generics::easing::{StepPosition, TimingFunction as GenericTimingFunction};
+use Atom;
 
 /// This structure represents a keyframes animation current iteration state.
 ///

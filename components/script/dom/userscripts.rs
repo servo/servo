@@ -8,7 +8,7 @@ use crate::dom::htmlheadelement::HTMLHeadElement;
 use crate::dom::node::Node;
 use js::jsval::UndefinedValue;
 use servo_config::opts;
-use std::fs::{File, read_dir};
+use std::fs::{read_dir, File};
 use std::io::Read;
 use std::path::PathBuf;
 

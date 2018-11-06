@@ -7,20 +7,20 @@
 use cssparser::{self, BasicParseErrorKind, Parser, Token};
 use parser::{Parse, ParserContext};
 use style_traits::{ParseError, StyleParseErrorKind, ValueParseErrorKind};
-#[cfg(not(feature = "gecko"))]
-use values::Impossible;
-use values::computed::{Context, NonNegativeNumber as ComputedNonNegativeNumber, ToComputedValue};
 use values::computed::effects::BoxShadow as ComputedBoxShadow;
 use values::computed::effects::SimpleShadow as ComputedSimpleShadow;
-use values::generics::NonNegative;
+use values::computed::{Context, NonNegativeNumber as ComputedNonNegativeNumber, ToComputedValue};
 use values::generics::effects::BoxShadow as GenericBoxShadow;
 use values::generics::effects::Filter as GenericFilter;
 use values::generics::effects::SimpleShadow as GenericSimpleShadow;
-use values::specified::{Angle, NumberOrPercentage};
+use values::generics::NonNegative;
 use values::specified::color::Color;
 use values::specified::length::{Length, NonNegativeLength};
 #[cfg(feature = "gecko")]
 use values::specified::url::SpecifiedUrl;
+use values::specified::{Angle, NumberOrPercentage};
+#[cfg(not(feature = "gecko"))]
+use values::Impossible;
 
 /// A specified value for a single shadow of the `box-shadow` property.
 pub type BoxShadow =

@@ -3,8 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
-use crate::protocol::{ActorDescription,  Method};
 use crate::protocol::JsonPacketStream;
+use crate::protocol::{ActorDescription, Method};
 use serde_json::{Map, Value};
 use std::net::TcpStream;
 

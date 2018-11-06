@@ -6,19 +6,19 @@ use cssparser::{Parser, ParserInput};
 use euclid::TypedScale;
 use euclid::TypedSize2D;
 use servo_arc::Arc;
-use servo_config::prefs::{PREFS, PrefValue};
+use servo_config::prefs::{PrefValue, PREFS};
 use servo_url::ServoUrl;
 use style::context::QuirksMode;
 use style::media_queries::{Device, MediaList, MediaType};
 use style::parser::ParserContext;
 use style::shared_lock::{SharedRwLock, StylesheetGuards};
-use style::stylesheets::{CssRuleType, Stylesheet, StylesheetInDocument, Origin};
 use style::stylesheets::viewport_rule::*;
+use style::stylesheets::{CssRuleType, Origin, Stylesheet, StylesheetInDocument};
 use style::values::specified::LengthOrPercentageOrAuto::{self, Auto};
 use style::values::specified::NoCalcLength::{self, ViewportPercentage};
 use style::values::specified::ViewportPercentageLength::Vw;
-use style_traits::{ParsingMode, PinchZoomFactor};
 use style_traits::viewport::*;
+use style_traits::{ParsingMode, PinchZoomFactor};
 
 macro_rules! stylesheet {
     ($css:expr, $origin:ident) => {

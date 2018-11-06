@@ -6,7 +6,7 @@
 
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::str::DOMString;
-use html5ever::{Prefix, LocalName, Namespace};
+use html5ever::{LocalName, Namespace, Prefix};
 
 /// Validate a qualified name. See https://dom.spec.whatwg.org/#validate for details.
 pub fn validate_qualified_name(qualified_name: &str) -> ErrorResult {

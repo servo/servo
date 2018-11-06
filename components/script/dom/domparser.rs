@@ -12,11 +12,11 @@ use crate::dom::bindings::codegen::Bindings::DOMParserBinding::SupportedType::Te
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentReadyState;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::error::Fallible;
-use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
+use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
-use crate::dom::document::{Document, HasBrowsingContext, IsHTMLDocument};
 use crate::dom::document::DocumentSource;
+use crate::dom::document::{Document, HasBrowsingContext, IsHTMLDocument};
 use crate::dom::servoparser::ServoParser;
 use crate::dom::window::Window;
 use dom_struct::dom_struct;

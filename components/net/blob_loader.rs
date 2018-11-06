@@ -5,13 +5,13 @@
 use crate::filemanager_thread::FileManager;
 use headers_core::HeaderMapExt;
 use headers_ext::{ContentLength, ContentType};
-use http::HeaderMap;
 use http::header::{self, HeaderValue};
+use http::HeaderMap;
 use ipc_channel::ipc;
 use mime::{self, Mime};
-use net_traits::{http_percent_encode, NetworkError};
 use net_traits::blob_url_store::parse_blob_url;
 use net_traits::filemanager_thread::ReadFileProgress;
+use net_traits::{http_percent_encode, NetworkError};
 use servo_url::ServoUrl;
 
 // TODO: Check on GET

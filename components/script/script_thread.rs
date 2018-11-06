@@ -24,11 +24,15 @@ use canvas_traits::webgl::WebGLPipeline;
 use crate::devtools;
 use crate::document_loader::DocumentLoader;
 use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::DocumentBinding::{DocumentMethods, DocumentReadyState};
+use crate::dom::bindings::codegen::Bindings::DocumentBinding::{
+    DocumentMethods, DocumentReadyState,
+};
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventInit;
 use crate::dom::bindings::codegen::Bindings::TransitionEventBinding::TransitionEventInit;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
-use crate::dom::bindings::conversions::{ConversionResult, FromJSValConvertible, StringificationBehavior};
+use crate::dom::bindings::conversions::{
+    ConversionResult, FromJSValConvertible, StringificationBehavior,
+};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::reflector::DomObject;
@@ -38,15 +42,19 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::structuredclone::StructuredCloneData;
 use crate::dom::bindings::trace::JSTraceable;
 use crate::dom::bindings::utils::WRAP_CALLBACKS;
-use crate::dom::customelementregistry::{CallbackReaction, CustomElementDefinition, CustomElementReactionStack};
-use crate::dom::document::{Document, DocumentSource, FocusType, HasBrowsingContext, IsHTMLDocument, TouchEventResult};
+use crate::dom::customelementregistry::{
+    CallbackReaction, CustomElementDefinition, CustomElementReactionStack,
+};
+use crate::dom::document::{
+    Document, DocumentSource, FocusType, HasBrowsingContext, IsHTMLDocument, TouchEventResult,
+};
 use crate::dom::element::Element;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlanchorelement::HTMLAnchorElement;
 use crate::dom::htmliframeelement::{HTMLIFrameElement, NavigationType};
 use crate::dom::mutationobserver::MutationObserver;
-use crate::dom::node::{Node, NodeDamage, window_from_node, from_untrusted_node_address};
+use crate::dom::node::{from_untrusted_node_address, window_from_node, Node, NodeDamage};
 use crate::dom::performanceentry::PerformanceEntry;
 use crate::dom::performancepainttiming::PerformancePaintTiming;
 use crate::dom::serviceworker::TrustedServiceWorkerAddress;
@@ -60,12 +68,11 @@ use crate::dom::worker::TrustedWorkerAddress;
 use crate::dom::worklet::WorkletThreadPool;
 use crate::dom::workletglobalscope::WorkletGlobalScopeInit;
 use crate::fetch::FetchCanceller;
-use crate::microtask::{MicrotaskQueue, Microtask};
+use crate::microtask::{Microtask, MicrotaskQueue};
+use crate::script_runtime::{get_reports, new_rt_and_cx, Runtime, ScriptPort};
 use crate::script_runtime::{CommonScriptMsg, ScriptChan, ScriptThreadEventCategory};
-use crate::script_runtime::{ScriptPort, get_reports, new_rt_and_cx, Runtime};
 use crate::serviceworkerjob::{Job, JobQueue};
 use crate::task_queue::{QueuedTask, QueuedTaskConversion, TaskQueue};
-use crate::task_source::TaskSourceName;
 use crate::task_source::dom_manipulation::DOMManipulationTaskSource;
 use crate::task_source::file_reading::FileReadingTaskSource;
 use crate::task_source::history_traversal::HistoryTraversalTaskSource;
@@ -75,12 +82,13 @@ use crate::task_source::performance_timeline::PerformanceTimelineTaskSource;
 use crate::task_source::remote_event::RemoteEventTaskSource;
 use crate::task_source::user_interaction::UserInteractionTaskSource;
 use crate::task_source::websocket::WebsocketTaskSource;
+use crate::task_source::TaskSourceName;
 use crate::webdriver_handlers;
+use devtools_traits::CSSError;
 use devtools_traits::{DevtoolScriptControlMsg, DevtoolsPageInfo};
 use devtools_traits::{ScriptToDevtoolsControlMsg, WorkerId};
-use devtools_traits::CSSError;
 use embedder_traits::EmbedderMsg;
-use euclid::{Point2D, Vector2D, Rect};
+use euclid::{Point2D, Rect, Vector2D};
 use headers_core::HeaderMapExt;
 use headers_ext::LastModified;
 use headers_ext::ReferrerPolicy as ReferrerPolicyHeader;
@@ -90,31 +98,35 @@ use js::glue::GetWindowProxyClass;
 use js::jsapi::{JSAutoCompartment, JSContext, JS_SetWrapObjectCallbacks};
 use js::jsapi::{JSTracer, SetWindowProxyClass};
 use js::jsval::UndefinedValue;
-use metrics::{MAX_TASK_NS, PaintTimeMetrics};
+use metrics::{PaintTimeMetrics, MAX_TASK_NS};
 use mime::{self, Mime};
 use msg::constellation_msg::{BrowsingContextId, HistoryStateId, PipelineId};
 use msg::constellation_msg::{PipelineNamespace, TopLevelBrowsingContextId};
-use net_traits::{FetchMetadata, FetchResponseListener, FetchResponseMsg};
-use net_traits::{Metadata, NetworkError, ReferrerPolicy, ResourceThreads};
 use net_traits::image_cache::{ImageCache, PendingImageResponse};
 use net_traits::request::{CredentialsMode, Destination, RedirectMode, RequestInit};
 use net_traits::storage_thread::StorageType;
+use net_traits::{FetchMetadata, FetchResponseListener, FetchResponseMsg};
+use net_traits::{Metadata, NetworkError, ReferrerPolicy, ResourceThreads};
 use profile_traits::mem::{self as profile_mem, OpaqueSender, ReportsChan};
-use profile_traits::time::{self as profile_time, ProfilerCategory, profile};
+use profile_traits::time::{self as profile_time, profile, ProfilerCategory};
 use script_layout_interface::message::{self, Msg, NewLayoutThreadInfo, ReflowGoal};
+use script_traits::webdriver_msg::WebDriverScriptCommand;
+use script_traits::CompositorEvent::{
+    KeyboardEvent, MouseButtonEvent, MouseMoveEvent, ResizeEvent, TouchEvent,
+};
 use script_traits::{CompositorEvent, ConstellationControlMsg};
 use script_traits::{DiscardBrowsingContext, DocumentActivity, EventResult};
 use script_traits::{InitialScriptState, JsEvalResult, LayoutMsg, LoadData};
 use script_traits::{MouseButton, MouseEventType, NewLayoutInfo};
-use script_traits::{ProgressiveWebMetricType, Painter, ScriptMsg, ScriptThreadFactory};
+use script_traits::{Painter, ProgressiveWebMetricType, ScriptMsg, ScriptThreadFactory};
 use script_traits::{ScriptToConstellationChan, TimerEvent, TimerSchedulerMsg};
 use script_traits::{TimerSource, TouchEventType, TouchId, UntrustedNodeAddress};
 use script_traits::{UpdatePipelineIdReason, WindowSizeData, WindowSizeType};
-use script_traits::CompositorEvent::{KeyboardEvent, MouseButtonEvent, MouseMoveEvent, ResizeEvent, TouchEvent};
-use script_traits::webdriver_msg::WebDriverScriptCommand;
 use servo_atoms::Atom;
 use servo_channel::{channel, Receiver, Sender};
-use servo_channel::{route_ipc_receiver_to_new_servo_receiver, route_ipc_receiver_to_new_servo_sender};
+use servo_channel::{
+    route_ipc_receiver_to_new_servo_receiver, route_ipc_receiver_to_new_servo_sender,
+};
 use servo_config::opts;
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use std::cell::Cell;
@@ -131,8 +143,8 @@ use std::thread;
 use std::time::SystemTime;
 use style::thread_state::{self, ThreadState};
 use time::{at_utc, get_time, precise_time_ns, Timespec};
-use url::Position;
 use url::percent_encoding::percent_decode;
+use url::Position;
 use webrender_api::{DocumentId, RenderApiSender};
 use webvr_traits::{WebVREvent, WebVRMsg};
 

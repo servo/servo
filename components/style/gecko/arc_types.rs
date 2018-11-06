@@ -31,16 +31,16 @@ use gecko_bindings::structs::RawServoStyleRule;
 use gecko_bindings::structs::RawServoStyleSheetContents;
 use gecko_bindings::sugar::ownership::{HasArcFFI, HasFFI, Strong};
 use media_queries::MediaList;
-use properties::{ComputedValues, PropertyDeclarationBlock};
 use properties::animated_properties::AnimationValue;
+use properties::{ComputedValues, PropertyDeclarationBlock};
 use rule_tree::StrongRuleNode;
 use servo_arc::{Arc, ArcBorrow};
 use shared_lock::Locked;
 use std::{mem, ptr};
+use stylesheets::keyframes_rule::Keyframe;
 use stylesheets::{CounterStyleRule, CssRules, FontFaceRule, FontFeatureValuesRule};
 use stylesheets::{DocumentRule, ImportRule, KeyframesRule, MediaRule, NamespaceRule, PageRule};
 use stylesheets::{StyleRule, StylesheetContents, SupportsRule};
-use stylesheets::keyframes_rule::Keyframe;
 
 macro_rules! impl_arc_ffi {
     ($servo_type:ty => $gecko_type:ty[$addref:ident, $release:ident]) => {

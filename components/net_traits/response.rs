@@ -11,8 +11,8 @@ use http::{HeaderMap, StatusCode};
 use hyper_serde::Serde;
 use servo_arc::Arc;
 use servo_url::ServoUrl;
-use std::sync::Mutex;
 use std::sync::atomic::AtomicBool;
+use std::sync::Mutex;
 
 /// [Response type](https://fetch.spec.whatwg.org/#concept-response-type)
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]

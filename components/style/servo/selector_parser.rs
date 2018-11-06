@@ -6,7 +6,6 @@
 
 //! Servo's selector parser.
 
-use {Atom, CaseSensitivityExt, LocalName, Namespace, Prefix};
 use attr::{AttrIdentifier, AttrValue};
 use cssparser::{serialize_identifier, CowRcStr, Parser as CssParser, SourceLocation, ToCss};
 use dom::{OpaqueNode, TElement, TNode};
@@ -14,8 +13,8 @@ use element_state::{DocumentState, ElementState};
 use fxhash::FxHashMap;
 use invalidation::element::document_state::InvalidationMatchingData;
 use invalidation::element::element_wrapper::ElementSnapshot;
-use properties::{ComputedValues, PropertyFlags};
 use properties::longhands::display::computed_value::T as Display;
+use properties::{ComputedValues, PropertyFlags};
 use selector_parser::{AttrValue as SelectorAttrValue, PseudoElementCascadeType, SelectorParser};
 use selectors::attr::{AttrSelectorOperation, CaseSensitivity, NamespaceConstraint};
 use selectors::parser::{SelectorParseErrorKind, Visit};
@@ -24,6 +23,7 @@ use std::fmt;
 use std::mem;
 use std::ops::{Deref, DerefMut};
 use style_traits::{ParseError, StyleParseErrorKind};
+use {Atom, CaseSensitivityExt, LocalName, Namespace, Prefix};
 
 /// A pseudo-element, both public and private.
 ///
@@ -348,8 +348,8 @@ impl NonTSPseudoClass {
     /// Gets a given state flag for this pseudo-class. This is used to do
     /// selector matching, and it's set from the DOM.
     pub fn state_flag(&self) -> ElementState {
-        use element_state::ElementState;
         use self::NonTSPseudoClass::*;
+        use element_state::ElementState;
         match *self {
             Active => ElementState::IN_ACTIVE_STATE,
             Focus => ElementState::IN_FOCUS_STATE,

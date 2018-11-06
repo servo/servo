@@ -3,32 +3,32 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use app_units::{Au, MIN_AU};
-use crate::ServoArc;
 use crate::block::AbsoluteAssignBSizesTraversal;
 use crate::context::{LayoutContext, LayoutFontContext};
-use crate::display_list::{DisplayListBuildState, InlineFlowDisplayListBuilding};
-use crate::display_list::StackingContextCollectionState;
 use crate::display_list::items::OpaqueNode;
+use crate::display_list::StackingContextCollectionState;
+use crate::display_list::{DisplayListBuildState, InlineFlowDisplayListBuilding};
 use crate::floats::{FloatKind, Floats, PlacementInfo};
 use crate::flow::{BaseFlow, Flow, FlowClass, ForceNonfloatedFlag};
-use crate::flow::{FlowFlags, EarlyAbsolutePositionInfo, GetBaseFlow, OpaqueFlow};
+use crate::flow::{EarlyAbsolutePositionInfo, FlowFlags, GetBaseFlow, OpaqueFlow};
 use crate::flow_ref::FlowRef;
-use crate::fragment::{CoordinateSystem, Fragment, FragmentBorderBoxIterator, Overflow};
 use crate::fragment::FragmentFlags;
 use crate::fragment::SpecificFragmentInfo;
+use crate::fragment::{CoordinateSystem, Fragment, FragmentBorderBoxIterator, Overflow};
 use crate::layout_debug;
 use crate::model::IntrinsicISizesContribution;
 use crate::text;
 use crate::traversal::PreorderFlowTraversal;
+use crate::ServoArc;
 use euclid::{Point2D, Size2D};
 use gfx::font::FontMetrics;
 use gfx_traits::print_tree::PrintTree;
 use range::{Range, RangeIndex};
 use script_layout_interface::wrapper_traits::PseudoElementType;
-use std::{fmt, i32, isize, mem};
 use std::cmp::max;
 use std::collections::VecDeque;
 use std::sync::Arc;
+use std::{fmt, i32, isize, mem};
 use style::computed_values::display::T as Display;
 use style::computed_values::overflow_x::T as StyleOverflow;
 use style::computed_values::position::T as Position;

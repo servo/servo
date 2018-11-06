@@ -10,14 +10,14 @@ use servo_arc::Arc;
 use servo_atoms::Atom;
 use style::context::QuirksMode;
 use style::media_queries::{Device, MediaType};
-use style::properties::{PropertyDeclarationBlock, PropertyDeclaration};
 use style::properties::{longhands, Importance};
+use style::properties::{PropertyDeclaration, PropertyDeclarationBlock};
 use style::selector_map::SelectorMap;
 use style::selector_parser::{SelectorImpl, SelectorParser};
 use style::shared_lock::SharedRwLock;
 use style::stylesheets::StyleRule;
-use style::stylist::{Stylist, Rule};
 use style::stylist::needs_revalidation_for_testing;
+use style::stylist::{Rule, Stylist};
 use style::thread_state::{self, ThreadState};
 
 /// Helper method to get some Rules from selector strings.

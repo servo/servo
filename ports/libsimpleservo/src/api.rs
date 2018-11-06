@@ -3,16 +3,18 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use serde_json;
-use servo::{self, gl, webrender_api, BrowserId, Servo};
-use servo::compositing::windowing::{AnimationState, EmbedderCoordinates, MouseWindowEvent, WindowEvent, WindowMethods};
-use servo::embedder_traits::EmbedderMsg;
+use servo::compositing::windowing::{
+    AnimationState, EmbedderCoordinates, MouseWindowEvent, WindowEvent, WindowMethods,
+};
 use servo::embedder_traits::resources::{self, Resource};
+use servo::embedder_traits::EmbedderMsg;
 use servo::euclid::{TypedPoint2D, TypedScale, TypedSize2D, TypedVector2D};
 use servo::msg::constellation_msg::TraversalDirection;
 use servo::script_traits::{MouseButton, TouchEventType};
 use servo::servo_config::opts;
 use servo::servo_config::prefs::{PrefValue, PREFS};
 use servo::servo_url::ServoUrl;
+use servo::{self, gl, webrender_api, BrowserId, Servo};
 use std::cell::{Cell, RefCell};
 use std::mem;
 use std::path::PathBuf;

@@ -5,7 +5,7 @@
 use cssparser::{Parser, ParserInput, ToCss};
 use selectors::parser::SelectorList;
 use style::selector_parser::{SelectorImpl, SelectorParser};
-use style::stylesheets::{Origin, Namespaces};
+use style::stylesheets::{Namespaces, Origin};
 use style_traits::ParseError;
 
 fn parse_selector<'i, 't>(

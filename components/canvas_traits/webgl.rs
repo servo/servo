@@ -11,18 +11,18 @@ use std::borrow::Cow;
 use std::num::NonZeroU32;
 use webrender_api::{DocumentId, ImageKey, PipelineId};
 
-/// Sender type used in WebGLCommands.
-pub use crate::webgl_channel::WebGLSender;
+/// Helper function that creates a WebGL channel (WebGLSender, WebGLReceiver) to be used in WebGLCommands.
+pub use crate::webgl_channel::webgl_channel;
+/// Entry point channel type used for sending WebGLMsg messages to the WebGL renderer.
+pub use crate::webgl_channel::WebGLChan;
+/// Entry point type used in a Script Pipeline to get the WebGLChan to be used in that thread.
+pub use crate::webgl_channel::WebGLPipeline;
 /// Receiver type used in WebGLCommands.
 pub use crate::webgl_channel::WebGLReceiver;
 /// Result type for send()/recv() calls in in WebGLCommands.
 pub use crate::webgl_channel::WebGLSendResult;
-/// Helper function that creates a WebGL channel (WebGLSender, WebGLReceiver) to be used in WebGLCommands.
-pub use crate::webgl_channel::webgl_channel;
-/// Entry point type used in a Script Pipeline to get the WebGLChan to be used in that thread.
-pub use crate::webgl_channel::WebGLPipeline;
-/// Entry point channel type used for sending WebGLMsg messages to the WebGL renderer.
-pub use crate::webgl_channel::WebGLChan;
+/// Sender type used in WebGLCommands.
+pub use crate::webgl_channel::WebGLSender;
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct WebGLCommandBacktrace {

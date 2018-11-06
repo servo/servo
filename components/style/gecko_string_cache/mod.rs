@@ -17,13 +17,13 @@ use gecko_bindings::bindings::Gecko_ReleaseAtom;
 use gecko_bindings::structs::{nsAtom, nsAtom_AtomKind, nsDynamicAtom, nsStaticAtom};
 use nsstring::{nsAString, nsStr};
 use precomputed_hash::PrecomputedHash;
-use std::{mem, slice, str};
 use std::borrow::{Borrow, Cow};
 use std::char::{self, DecodeUtf16};
 use std::fmt::{self, Write};
 use std::hash::{Hash, Hasher};
 use std::iter::Cloned;
 use std::ops::Deref;
+use std::{mem, slice, str};
 use style_traits::SpecifiedValueInfo;
 
 #[macro_use]

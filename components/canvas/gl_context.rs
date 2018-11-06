@@ -2,16 +2,18 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use canvas_traits::webgl::{WebGLCommand, WebGLVersion, WebGLCommandBacktrace};
-use compositing::compositor_thread::{CompositorProxy, self};
+use super::webgl_thread::{GLState, WebGLImpl};
+use canvas_traits::webgl::{WebGLCommand, WebGLCommandBacktrace, WebGLVersion};
+use compositing::compositor_thread::{self, CompositorProxy};
 use euclid::Size2D;
 use gleam::gl;
-use offscreen_gl_context::{ColorAttachmentType, GLContext, GLContextAttributes, GLContextDispatcher};
+use offscreen_gl_context::{
+    ColorAttachmentType, GLContext, GLContextAttributes, GLContextDispatcher,
+};
 use offscreen_gl_context::{GLLimits, GLVersion};
 use offscreen_gl_context::{NativeGLContext, NativeGLContextHandle, NativeGLContextMethods};
 use offscreen_gl_context::{OSMesaContext, OSMesaContextHandle};
 use std::sync::{Arc, Mutex};
-use super::webgl_thread::{WebGLImpl, GLState};
 
 /// The GLContextFactory is used to create shared GL contexts with the main thread GL context.
 /// Currently, shared textures are used to render WebGL textures into the WR compositor.

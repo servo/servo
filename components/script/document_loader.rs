@@ -10,9 +10,9 @@ use crate::dom::bindings::root::Dom;
 use crate::dom::document::Document;
 use crate::fetch::FetchCanceller;
 use ipc_channel::ipc::IpcSender;
-use net_traits::{CoreResourceMsg, FetchChannels, FetchResponseMsg};
-use net_traits::{ResourceThreads, IpcSend};
 use net_traits::request::RequestInit;
+use net_traits::{CoreResourceMsg, FetchChannels, FetchResponseMsg};
+use net_traits::{IpcSend, ResourceThreads};
 use servo_url::ServoUrl;
 use std::thread;
 

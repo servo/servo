@@ -9,14 +9,14 @@ use crate::display_list::ToLayout;
 use euclid::{Rect, SideOffsets2D, Size2D};
 use style::computed_values::border_image_outset::T as BorderImageOutset;
 use style::properties::style_structs::Border;
-use style::values::Either;
+use style::values::computed::NumberOrPercentage;
 use style::values::computed::{BorderCornerRadius, BorderImageWidth};
 use style::values::computed::{BorderImageSideWidth, LengthOrNumber};
-use style::values::computed::NumberOrPercentage;
-use style::values::generics::border::{BorderImageSideWidth as GenericBorderImageSideWidth};
+use style::values::generics::border::BorderImageSideWidth as GenericBorderImageSideWidth;
 use style::values::generics::rect::Rect as StyleRect;
+use style::values::Either;
 use webrender_api::{BorderRadius, BorderSide, BorderStyle, ColorF};
-use webrender_api::{LayoutSize, LayoutSideOffsets, NormalBorder};
+use webrender_api::{LayoutSideOffsets, LayoutSize, NormalBorder};
 
 /// Computes a border radius size against the containing size.
 ///

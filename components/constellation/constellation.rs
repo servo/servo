@@ -96,49 +96,61 @@ use canvas::webgl_thread::WebGLThreads;
 use canvas_traits::canvas::CanvasId;
 use canvas_traits::canvas::CanvasMsg;
 use clipboard::{ClipboardContext, ClipboardProvider};
-use compositing::SendableFrameTree;
 use compositing::compositor_thread::CompositorProxy;
 use compositing::compositor_thread::Msg as ToCompositorMsg;
-use crate::browsingcontext::{AllBrowsingContextsIterator, BrowsingContext, FullyActiveBrowsingContextsIterator};
+use compositing::SendableFrameTree;
 use crate::browsingcontext::NewBrowsingContextInfo;
+use crate::browsingcontext::{
+    AllBrowsingContextsIterator, BrowsingContext, FullyActiveBrowsingContextsIterator,
+};
 use crate::event_loop::EventLoop;
 use crate::network_listener::NetworkListener;
 use crate::pipeline::{InitialPipelineState, Pipeline};
-use crate::session_history::{JointSessionHistory, NeedsToReload, SessionHistoryChange, SessionHistoryDiff};
+use crate::session_history::{
+    JointSessionHistory, NeedsToReload, SessionHistoryChange, SessionHistoryDiff,
+};
 use crate::timer_scheduler::TimerScheduler;
 use debugger;
 use devtools_traits::{ChromeToDevtoolsControlMsg, DevtoolsControlMsg};
 use embedder_traits::{EmbedderMsg, EmbedderProxy};
-use euclid::{Size2D, TypedSize2D, TypedScale};
+use euclid::{Size2D, TypedScale, TypedSize2D};
 use gfx::font_cache_thread::FontCacheThread;
 use gfx_traits::Epoch;
-use ipc_channel::{Error as IpcError};
-use ipc_channel::ipc::{self, IpcSender, IpcReceiver};
+use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
+use ipc_channel::Error as IpcError;
 use keyboard_types::KeyboardEvent;
 use layout_traits::LayoutThreadFactory;
-use log::{Log, Level, LevelFilter, Metadata, Record};
-use msg::constellation_msg::{BrowsingContextId, PipelineId, HistoryStateId, TopLevelBrowsingContextId};
+use log::{Level, LevelFilter, Log, Metadata, Record};
+use msg::constellation_msg::{
+    BrowsingContextId, HistoryStateId, PipelineId, TopLevelBrowsingContextId,
+};
 use msg::constellation_msg::{PipelineNamespace, PipelineNamespaceId, TraversalDirection};
-use net_traits::{self, IpcSend, FetchResponseMsg, ResourceThreads};
 use net_traits::pub_domains::reg_host;
 use net_traits::request::RequestInit;
 use net_traits::storage_thread::{StorageThreadMsg, StorageType};
+use net_traits::{self, FetchResponseMsg, IpcSend, ResourceThreads};
 use profile_traits::mem;
 use profile_traits::time;
-use script_traits::{AnimationState, AuxiliaryBrowsingContextLoadInfo, AnimationTickType, CompositorEvent};
-use script_traits::{ConstellationControlMsg, ConstellationMsg as FromCompositorMsg, DiscardBrowsingContext};
+use script_traits::{webdriver_msg, LogEntry, ScriptToConstellationChan, ServiceWorkerMsg};
+use script_traits::{
+    AnimationState, AnimationTickType, AuxiliaryBrowsingContextLoadInfo, CompositorEvent,
+};
+use script_traits::{
+    ConstellationControlMsg, ConstellationMsg as FromCompositorMsg, DiscardBrowsingContext,
+};
 use script_traits::{DocumentActivity, DocumentState, LayoutControlMsg, LoadData};
-use script_traits::{IFrameLoadInfo, IFrameLoadInfoWithData, IFrameSandboxState, TimerSchedulerMsg};
+use script_traits::{
+    IFrameLoadInfo, IFrameLoadInfoWithData, IFrameSandboxState, TimerSchedulerMsg,
+};
 use script_traits::{LayoutMsg as FromLayoutMsg, ScriptMsg as FromScriptMsg, ScriptThreadFactory};
-use script_traits::{LogEntry, ScriptToConstellationChan, ServiceWorkerMsg, webdriver_msg};
 use script_traits::{SWManagerMsg, ScopeThings, UpdatePipelineIdReason, WebDriverCommandMsg};
 use script_traits::{WindowSizeData, WindowSizeType};
 use serde::{Deserialize, Serialize};
-use servo_channel::{Receiver, Sender, channel};
+use servo_channel::{channel, Receiver, Sender};
 use servo_config::opts;
 use servo_config::prefs::PREFS;
-use servo_rand::{Rng, SeedableRng, ServoRng, random};
+use servo_rand::{random, Rng, SeedableRng, ServoRng};
 use servo_remutex::ReentrantMutex;
 use servo_url::{Host, ImmutableOrigin, ServoUrl};
 use std::borrow::ToOwned;
@@ -149,9 +161,9 @@ use std::process;
 use std::rc::{Rc, Weak};
 use std::sync::Arc;
 use std::thread;
-use style_traits::CSSPixel;
 use style_traits::cursor::CursorKind;
 use style_traits::viewport::ViewportConstraints;
+use style_traits::CSSPixel;
 use webrender_api;
 use webvr_traits::{WebVREvent, WebVRMsg};
 

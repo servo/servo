@@ -13,8 +13,8 @@
 //! low-level drawing primitives.
 
 use euclid::{SideOffsets2D, TypedRect, Vector2D};
-use gfx_traits::{self, StackingContextId};
 use gfx_traits::print_tree::PrintTree;
+use gfx_traits::{self, StackingContextId};
 use msg::constellation_msg::PipelineId;
 use net_traits::image::base::Image;
 use servo_geometry::MaxRect;

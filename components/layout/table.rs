@@ -9,8 +9,13 @@ use crate::block::{BlockFlow, CandidateBSizeIterator, ISizeAndMarginsComputer};
 use crate::block::{ISizeConstraintInput, ISizeConstraintSolution};
 use crate::context::LayoutContext;
 use crate::display_list::{BlockFlowDisplayListBuilding, BorderPaintingMode};
-use crate::display_list::{DisplayListBuildState, StackingContextCollectionFlags, StackingContextCollectionState};
-use crate::flow::{BaseFlow, EarlyAbsolutePositionInfo, Flow, FlowClass, ImmutableFlowUtils, GetBaseFlow, OpaqueFlow};
+use crate::display_list::{
+    DisplayListBuildState, StackingContextCollectionFlags, StackingContextCollectionState,
+};
+use crate::flow::{
+    BaseFlow, EarlyAbsolutePositionInfo, Flow, FlowClass, GetBaseFlow, ImmutableFlowUtils,
+    OpaqueFlow,
+};
 use crate::flow_list::{FlowListIterator, MutFlowListIterator};
 use crate::fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
 use crate::layout_debug;
@@ -25,11 +30,11 @@ use std::{cmp, fmt};
 use style::computed_values::{border_collapse, border_spacing, table_layout};
 use style::context::SharedStyleContext;
 use style::logical_geometry::LogicalSize;
-use style::properties::ComputedValues;
 use style::properties::style_structs::Background;
+use style::properties::ComputedValues;
 use style::servo::restyle_damage::ServoRestyleDamage;
-use style::values::CSSFloat;
 use style::values::computed::LengthOrPercentageOrAuto;
+use style::values::CSSFloat;
 
 #[allow(unsafe_code)]
 unsafe impl crate::flow::HasBaseFlow for TableFlow {}

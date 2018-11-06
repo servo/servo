@@ -4,12 +4,12 @@
 
 use crate::dom::bindings::codegen::Bindings::VRPoseBinding;
 use crate::dom::bindings::codegen::Bindings::VRPoseBinding::VRPoseMethods;
-use crate::dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
+use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
 use js::jsapi::{Heap, JSContext, JSObject};
-use js::typedarray::{Float32Array, CreateWith};
+use js::typedarray::{CreateWith, Float32Array};
 use std::ptr;
 use std::ptr::NonNull;
 use webvr_traits::webvr;

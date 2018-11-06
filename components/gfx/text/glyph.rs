@@ -10,9 +10,9 @@ use euclid::Point2D;
 ))]
 use packed_simd::u32x4;
 use range::{self, EachIndex, Range, RangeIndex};
-use std::{fmt, mem, u16};
 use std::cmp::{Ordering, PartialOrd};
 use std::vec::Vec;
+use std::{fmt, mem, u16};
 
 pub use gfx_traits::ByteIndex;
 

@@ -5,8 +5,12 @@
 use crate::dom::audionode::AudioNode;
 use crate::dom::baseaudiocontext::BaseAudioContext;
 use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::AnalyserNodeBinding::{self, AnalyserNodeMethods, AnalyserOptions};
-use crate::dom::bindings::codegen::Bindings::AudioNodeBinding::{ChannelCountMode, ChannelInterpretation};
+use crate::dom::bindings::codegen::Bindings::AnalyserNodeBinding::{
+    self, AnalyserNodeMethods, AnalyserOptions,
+};
+use crate::dom::bindings::codegen::Bindings::AudioNodeBinding::{
+    ChannelCountMode, ChannelInterpretation,
+};
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::refcounted::Trusted;

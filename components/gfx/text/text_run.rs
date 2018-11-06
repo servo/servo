@@ -9,7 +9,7 @@ use crate::platform::font_template::FontTemplateData;
 use crate::text::glyph::{ByteIndex, GlyphStore};
 use range::Range;
 use std::cell::Cell;
-use std::cmp::{Ordering, max};
+use std::cmp::{max, Ordering};
 use std::slice::Iter;
 use std::sync::Arc;
 use style::str::char_is_whitespace;

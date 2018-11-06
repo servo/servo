@@ -9,12 +9,12 @@ use cssparser::{ParseError as CssParseError, Parser, Token};
 use parser::{Parse, ParserContext};
 use std::mem;
 use style_traits::{ParseError, StyleParseErrorKind};
-use values::{CSSFloat, CustomIdent};
 use values::computed::{self, Context, ToComputedValue};
 use values::generics::grid::{GridTemplateComponent, RepeatCount, TrackBreadth};
 use values::generics::grid::{LineNameList, TrackKeyword, TrackRepeat, TrackSize};
 use values::generics::grid::{TrackList, TrackListType, TrackListValue};
 use values::specified::{Integer, LengthOrPercentage};
+use values::{CSSFloat, CustomIdent};
 
 /// Parse a single flexible length.
 pub fn parse_flex<'i, 't>(input: &mut Parser<'i, 't>) -> Result<CSSFloat, ParseError<'i>> {

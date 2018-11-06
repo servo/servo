@@ -12,10 +12,11 @@ use influent::create_client;
 use influent::measurement::{Measurement, Value};
 use ipc_channel::ipc::{self, IpcReceiver};
 use profile_traits::energy::{energy_interval_ms, read_energy_uj};
-use profile_traits::time::{ProfilerCategory, ProfilerChan, ProfilerMsg, ProfilerData, TimerMetadata};
+use profile_traits::time::{
+    ProfilerCategory, ProfilerChan, ProfilerData, ProfilerMsg, TimerMetadata,
+};
 use profile_traits::time::{TimerMetadataFrameType, TimerMetadataReflowType};
 use servo_config::opts::OutputOptions;
-use std::{f64, thread, u32, u64};
 use std::borrow::ToOwned;
 use std::cmp::Ordering;
 use std::collections::BTreeMap;
@@ -24,6 +25,7 @@ use std::fs::File;
 use std::io::{self, Write};
 use std::path::Path;
 use std::time::Duration;
+use std::{f64, thread, u32, u64};
 use tokio;
 use tokio::prelude::Future;
 

@@ -6,15 +6,15 @@ use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::CryptoBinding;
 use crate::dom::bindings::codegen::Bindings::CryptoBinding::CryptoMethods;
 use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
+use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
-use js::jsapi::{JSContext, JSObject};
 use js::jsapi::Type;
+use js::jsapi::{JSContext, JSObject};
 use js::rust::CustomAutoRooterGuard;
 use js::typedarray::ArrayBufferView;
-use servo_rand::{ServoRng, Rng};
+use servo_rand::{Rng, ServoRng};
 use std::ptr::NonNull;
 
 unsafe_no_jsmanaged_fields!(ServoRng);

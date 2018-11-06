@@ -7,8 +7,8 @@
 
 use crate::cookie::Cookie;
 use crate::cookie_rs;
-use net_traits::CookieSource;
 use net_traits::pub_domains::reg_suffix;
+use net_traits::CookieSource;
 use servo_url::ServoUrl;
 use std::cmp::Ordering;
 use std::collections::HashMap;

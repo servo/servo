@@ -7,12 +7,12 @@
 
 use crate::cookie_rs;
 use hyper_serde::{self, Serde};
-use net_traits::CookieSource;
 use net_traits::pub_domains::is_pub_domain;
+use net_traits::CookieSource;
 use servo_url::ServoUrl;
 use std::borrow::ToOwned;
 use std::net::{Ipv4Addr, Ipv6Addr};
-use time::{Tm, now, at, Duration};
+use time::{at, now, Duration, Tm};
 
 /// A stored cookie that wraps the definition in cookie-rs. This is used to implement
 /// various behaviours defined in the spec that rely on an associated request URL,

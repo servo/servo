@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use super::wrapper::{TypedWebGLExtensionWrapper, WebGLExtensionWrapper};
+use super::{ext, WebGLExtension, WebGLExtensionSpec};
 use canvas_traits::webgl::WebGLVersion;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::ANGLEInstancedArraysBinding::ANGLEInstancedArraysConstants;
@@ -23,8 +25,6 @@ use malloc_size_of::MallocSizeOf;
 use std::collections::HashMap;
 use std::iter::FromIterator;
 use std::ptr::NonNull;
-use super::{ext, WebGLExtension, WebGLExtensionSpec};
-use super::wrapper::{WebGLExtensionWrapper, TypedWebGLExtensionWrapper};
 
 // Data types that are implemented for texImage2D and texSubImage2D in a WebGL 1.0 context
 // but must trigger a InvalidValue error until the related WebGL Extensions are enabled.

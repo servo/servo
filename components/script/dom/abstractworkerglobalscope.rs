@@ -9,7 +9,7 @@ use crate::dom::dedicatedworkerglobalscope::{AutoWorkerReset, DedicatedWorkerScr
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::worker::TrustedWorkerAddress;
 use crate::dom::workerglobalscope::WorkerGlobalScope;
-use crate::script_runtime::{ScriptChan, CommonScriptMsg, ScriptPort};
+use crate::script_runtime::{CommonScriptMsg, ScriptChan, ScriptPort};
 use crate::task_queue::{QueuedTaskConversion, TaskQueue};
 use devtools_traits::DevtoolScriptControlMsg;
 use servo_channel::{Receiver, Sender};

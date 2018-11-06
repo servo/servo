@@ -3,14 +3,16 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use azure::azure::AzFloat;
+use azure::azure_hl::SurfacePattern;
 use azure::azure_hl::{AntialiasMode, CapStyle, CompositionOp, JoinStyle};
-use azure::azure_hl::{BackendType, DrawOptions, DrawTarget, Pattern, StrokeOptions, SurfaceFormat};
+use azure::azure_hl::{
+    BackendType, DrawOptions, DrawTarget, Pattern, StrokeOptions, SurfaceFormat,
+};
 use azure::azure_hl::{Color, ColorPattern, DrawSurfaceOptions, Filter, PathBuilder};
 use azure::azure_hl::{ExtendMode, GradientStop, LinearGradientPattern, RadialGradientPattern};
-use azure::azure_hl::SurfacePattern;
 use canvas_traits::canvas::*;
 use cssparser::RGBA;
-use euclid::{Transform2D, Point2D, Vector2D, Rect, Size2D};
+use euclid::{Point2D, Rect, Size2D, Transform2D, Vector2D};
 use ipc_channel::ipc::IpcSender;
 use num_traits::ToPrimitive;
 use pixels;

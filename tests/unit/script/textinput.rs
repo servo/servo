@@ -10,7 +10,7 @@
 use keyboard_types::{Key, Modifiers};
 use script::clipboard_provider::DummyClipboardContext;
 use script::test::DOMString;
-use script::textinput::{TextInput, TextPoint, Selection, Lines, Direction, SelectionDirection};
+use script::textinput::{Direction, Lines, Selection, SelectionDirection, TextInput, TextPoint};
 
 fn text_input(lines: Lines, s: &str) -> TextInput<DummyClipboardContext> {
     TextInput::new(

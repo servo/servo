@@ -5,7 +5,7 @@
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::AttrBinding::{self, AttrMethods};
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
+use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::{DomRoot, LayoutDom, MutNullableDom, RootedReference};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::customelementregistry::CallbackReaction;
@@ -17,7 +17,7 @@ use crate::dom::window::Window;
 use crate::script_thread::ScriptThread;
 use devtools_traits::AttrInfo;
 use dom_struct::dom_struct;
-use html5ever::{Prefix, LocalName, Namespace};
+use html5ever::{LocalName, Namespace, Prefix};
 use servo_atoms::Atom;
 use std::borrow::ToOwned;
 use std::cell::Ref;

@@ -8,7 +8,7 @@ use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::document::Document;
 use crate::dom::htmlelement::HTMLElement;
-use crate::dom::node::{Node, document_from_node};
+use crate::dom::node::{document_from_node, Node};
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
 

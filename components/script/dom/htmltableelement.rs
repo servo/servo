@@ -19,13 +19,13 @@ use crate::dom::htmltablecaptionelement::HTMLTableCaptionElement;
 use crate::dom::htmltablecolelement::HTMLTableColElement;
 use crate::dom::htmltablerowelement::HTMLTableRowElement;
 use crate::dom::htmltablesectionelement::HTMLTableSectionElement;
-use crate::dom::node::{Node, document_from_node, window_from_node};
+use crate::dom::node::{document_from_node, window_from_node, Node};
 use crate::dom::virtualmethods::VirtualMethods;
 use cssparser::RGBA;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
 use std::cell::Cell;
-use style::attr::{AttrValue, LengthOrPercentageOrAuto, parse_unsigned_integer};
+use style::attr::{parse_unsigned_integer, AttrValue, LengthOrPercentageOrAuto};
 
 #[dom_struct]
 pub struct HTMLTableElement {

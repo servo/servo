@@ -24,8 +24,8 @@ extern crate serde;
 extern crate servo_url;
 extern crate time;
 
-use http::HeaderMap;
 use http::method::Method;
+use http::HeaderMap;
 use ipc_channel::ipc::IpcSender;
 use msg::constellation_msg::PipelineId;
 use servo_url::ServoUrl;

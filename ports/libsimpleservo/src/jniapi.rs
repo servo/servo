@@ -5,12 +5,12 @@
 #![allow(non_snake_case)]
 
 use android_logger::{self, Filter};
-use crate::api::{self, EventLoopWaker, InitOptions, ServoGlue, SERVO, HostTrait, ReadFileTrait};
+use crate::api::{self, EventLoopWaker, HostTrait, InitOptions, ReadFileTrait, ServoGlue, SERVO};
 use crate::gl_glue;
-use jni::{errors, JNIEnv, JavaVM};
 use jni::objects::{GlobalRef, JClass, JObject, JString, JValue};
 use jni::sys::{jboolean, jfloat, jint, jstring, JNI_TRUE};
-use libc::{pipe, dup2, read};
+use jni::{errors, JNIEnv, JavaVM};
+use libc::{dup2, pipe, read};
 use log::Level;
 use std;
 use std::os::raw::{c_char, c_int, c_void};
@@ -441,7 +441,7 @@ impl HostTrait for HostCallbacks {
 }
 
 fn initialize_android_glue(env: &JNIEnv, activity: JObject) {
-    use android_injected_glue::{ANDROID_APP, ffi};
+    use android_injected_glue::{ffi, ANDROID_APP};
 
     // From jni-rs to android_injected_glue
 

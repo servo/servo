@@ -5,17 +5,17 @@
 use crate::hosts::replace_host;
 use crate::http_loader::Decoder;
 use flate2::read::GzDecoder;
-use hyper::{Body, Client};
 use hyper::body::Payload;
-use hyper::client::HttpConnector as HyperHttpConnector;
 use hyper::client::connect::{Connect, Destination};
+use hyper::client::HttpConnector as HyperHttpConnector;
 use hyper::rt::Future;
+use hyper::{Body, Client};
 use hyper_openssl::HttpsConnector;
 use openssl::ssl::{SslConnector, SslConnectorBuilder, SslMethod, SslOptions};
 use openssl::x509;
 use std::io::{Cursor, Read};
-use tokio::prelude::{Async, Stream};
 use tokio::prelude::future::Executor;
+use tokio::prelude::{Async, Stream};
 
 pub const BUF_SIZE: usize = 32768;
 

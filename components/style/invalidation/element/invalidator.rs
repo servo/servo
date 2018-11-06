@@ -8,8 +8,8 @@
 use context::StackLimitChecker;
 use dom::{TElement, TNode, TShadowRoot};
 use selector_parser::SelectorImpl;
-use selectors::matching::{CompoundSelectorMatchingResult, MatchingContext};
 use selectors::matching::matches_compound_selector_from;
+use selectors::matching::{CompoundSelectorMatchingResult, MatchingContext};
 use selectors::parser::{Combinator, Component, Selector};
 use smallvec::SmallVec;
 use std::fmt;

@@ -8,23 +8,37 @@ use crate::dom::bindings::callback::ExceptionHandling;
 use crate::dom::bindings::codegen::Bindings::EventListenerBinding::EventListener;
 use crate::dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use crate::dom::bindings::codegen::Bindings::TestBindingBinding::{self, SimpleCallback};
-use crate::dom::bindings::codegen::Bindings::TestBindingBinding::{TestBindingMethods, TestDictionary};
-use crate::dom::bindings::codegen::Bindings::TestBindingBinding::{TestDictionaryDefaults, TestEnum};
+use crate::dom::bindings::codegen::Bindings::TestBindingBinding::{
+    TestBindingMethods, TestDictionary,
+};
+use crate::dom::bindings::codegen::Bindings::TestBindingBinding::{
+    TestDictionaryDefaults, TestEnum,
+};
 use crate::dom::bindings::codegen::UnionTypes;
-use crate::dom::bindings::codegen::UnionTypes::{BlobOrBoolean, BlobOrBlobSequence, LongOrLongSequenceSequence};
+use crate::dom::bindings::codegen::UnionTypes::{
+    BlobOrBlobSequence, BlobOrBoolean, LongOrLongSequenceSequence,
+};
 use crate::dom::bindings::codegen::UnionTypes::{BlobOrString, BlobOrUnsignedLong, EventOrString};
-use crate::dom::bindings::codegen::UnionTypes::{ByteStringOrLong, ByteStringSequenceOrLongOrString};
+use crate::dom::bindings::codegen::UnionTypes::{
+    ByteStringOrLong, ByteStringSequenceOrLongOrString,
+};
 use crate::dom::bindings::codegen::UnionTypes::{ByteStringSequenceOrLong, DocumentOrTestTypedef};
-use crate::dom::bindings::codegen::UnionTypes::{EventOrUSVString, HTMLElementOrLong, LongSequenceOrTestTypedef};
-use crate::dom::bindings::codegen::UnionTypes::{HTMLElementOrUnsignedLongOrStringOrBoolean, LongSequenceOrBoolean};
+use crate::dom::bindings::codegen::UnionTypes::{
+    EventOrUSVString, HTMLElementOrLong, LongSequenceOrTestTypedef,
+};
+use crate::dom::bindings::codegen::UnionTypes::{
+    HTMLElementOrUnsignedLongOrStringOrBoolean, LongSequenceOrBoolean,
+};
 use crate::dom::bindings::codegen::UnionTypes::{StringOrBoolean, UnsignedLongOrBoolean};
 use crate::dom::bindings::codegen::UnionTypes::{StringOrLongSequence, StringOrStringSequence};
-use crate::dom::bindings::codegen::UnionTypes::{StringSequenceOrUnsignedLong, StringOrUnsignedLong};
+use crate::dom::bindings::codegen::UnionTypes::{
+    StringOrUnsignedLong, StringSequenceOrUnsignedLong,
+};
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::mozmap::MozMap;
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::refcounted::TrustedPromise;
-use crate::dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
+use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::{ByteString, DOMString, USVString};
 use crate::dom::bindings::trace::RootedTraceableBox;
@@ -32,15 +46,15 @@ use crate::dom::bindings::weakref::MutableWeakRef;
 use crate::dom::blob::{Blob, BlobImpl};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
-use crate::dom::promisenativehandler::{PromiseNativeHandler, Callback};
+use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
 use crate::dom::url::URL;
 use crate::timers::OneshotTimerCallback;
 use dom_struct::dom_struct;
 use js::jsapi::{Heap, JSContext, JSObject};
 use js::jsapi::{JS_NewPlainObject, JS_NewUint8ClampedArray};
 use js::jsval::{JSVal, NullValue};
-use js::rust::{HandleObject, HandleValue};
 use js::rust::CustomAutoRooterGuard;
+use js::rust::{HandleObject, HandleValue};
 use js::typedarray;
 use script_traits::MsDuration;
 use servo_config::prefs::PREFS;

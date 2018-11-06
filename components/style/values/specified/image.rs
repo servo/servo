@@ -7,8 +7,7 @@
 //!
 //! [image]: https://drafts.csswg.org/css-images/#image-values
 
-use Atom;
-use cssparser::{Parser, Token, Delimiter};
+use cssparser::{Delimiter, Parser, Token};
 use custom_properties::SpecifiedValue;
 use parser::{Parse, ParserContext};
 use selectors::parser::SelectorParseErrorKind;
@@ -17,17 +16,18 @@ use servo_url::ServoUrl;
 use std::cmp::Ordering;
 use std::fmt::{self, Write};
 use style_traits::{CssType, CssWriter, KeywordsCollectFn, ParseError};
-use style_traits::{StyleParseErrorKind, SpecifiedValueInfo, ToCss};
-use values::{Either, None_};
+use style_traits::{SpecifiedValueInfo, StyleParseErrorKind, ToCss};
 #[cfg(feature = "gecko")]
 use values::computed::{Context, Position as ComputedPosition, ToComputedValue};
-use values::generics::image::{self as generic, Circle, CompatMode, Ellipse, ShapeExtent};
 use values::generics::image::PaintWorklet;
+use values::generics::image::{self as generic, Circle, CompatMode, Ellipse, ShapeExtent};
 use values::generics::position::Position as GenericPosition;
-use values::specified::{Angle, Color, Length, LengthOrPercentage};
-use values::specified::{Number, NumberOrPercentage, Percentage};
 use values::specified::position::{LegacyPosition, Position, PositionComponent, Side, X, Y};
 use values::specified::url::SpecifiedImageUrl;
+use values::specified::{Angle, Color, Length, LengthOrPercentage};
+use values::specified::{Number, NumberOrPercentage, Percentage};
+use values::{Either, None_};
+use Atom;
 
 /// A specified image layer.
 pub type ImageLayer = Either<None_, Image>;

@@ -15,8 +15,8 @@ pub use crossbeam_channel::*;
 use ipc_channel::ipc::IpcReceiver;
 use ipc_channel::router::ROUTER;
 use serde::{Deserialize, Serialize};
-use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
 
 pub fn route_ipc_receiver_to_new_servo_receiver<T>(ipc_receiver: IpcReceiver<T>) -> Receiver<T>
 where

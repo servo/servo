@@ -8,10 +8,12 @@
 //! done in parallel and is therefore a sequential pass that runs on as little of the flow tree
 //! as possible.
 
-use crate::context::{LayoutContext, with_thread_local_font_context};
+use crate::context::{with_thread_local_font_context, LayoutContext};
 use crate::display_list::items::OpaqueNode;
 use crate::flow::{Flow, FlowFlags, GetBaseFlow, ImmutableFlowUtils};
-use crate::fragment::{Fragment, GeneratedContentInfo, SpecificFragmentInfo, UnscannedTextFragmentInfo};
+use crate::fragment::{
+    Fragment, GeneratedContentInfo, SpecificFragmentInfo, UnscannedTextFragmentInfo,
+};
 use crate::text::TextRunScanner;
 use crate::traversal::InorderFlowTraversal;
 use script_layout_interface::wrapper_traits::PseudoElementType;

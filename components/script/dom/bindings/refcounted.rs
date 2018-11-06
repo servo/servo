@@ -42,9 +42,9 @@ use std::sync::{Arc, Weak};
 #[allow(missing_docs)] // FIXME
 mod dummy {
     // Attributes don’t apply through the macro.
+    use super::LiveDOMReferences;
     use std::cell::RefCell;
     use std::rc::Rc;
-    use super::LiveDOMReferences;
     thread_local!(pub static LIVE_REFERENCES: Rc<RefCell<Option<LiveDOMReferences>>> =
             Rc::new(RefCell::new(None)));
 }

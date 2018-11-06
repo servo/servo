@@ -30,7 +30,7 @@
 
 #![allow(unsafe_code)]
 
-use atomic_refcell::{AtomicRef, AtomicRefMut, AtomicRefCell};
+use atomic_refcell::{AtomicRef, AtomicRefCell, AtomicRefMut};
 use gfx_traits::ByteIndex;
 use html5ever::{LocalName, Namespace};
 use layout::data::StyleAndLayoutData;
@@ -38,19 +38,27 @@ use layout::wrapper::GetRawData;
 use msg::constellation_msg::{BrowsingContextId, PipelineId};
 use net_traits::image::base::{Image, ImageMetadata};
 use range::Range;
+use script::layout_exports::NodeFlags;
+use script::layout_exports::PendingRestyle;
 use script::layout_exports::{CharacterDataTypeId, ElementTypeId, HTMLElementTypeId, NodeTypeId};
 use script::layout_exports::{Document, Element, Node, Text};
 use script::layout_exports::{LayoutCharacterDataHelpers, LayoutDocumentHelpers};
-use script::layout_exports::{LayoutElementHelpers, LayoutNodeHelpers, LayoutDom, RawLayoutElementHelpers};
-use script::layout_exports::NodeFlags;
-use script::layout_exports::PendingRestyle;
-use script_layout_interface::{HTMLCanvasData, HTMLMediaData, LayoutNodeType, OpaqueStyleAndLayoutData};
+use script::layout_exports::{
+    LayoutDom, LayoutElementHelpers, LayoutNodeHelpers, RawLayoutElementHelpers,
+};
+use script_layout_interface::wrapper_traits::{
+    DangerousThreadSafeLayoutNode, GetLayoutData, LayoutNode,
+};
+use script_layout_interface::wrapper_traits::{
+    PseudoElementType, ThreadSafeLayoutElement, ThreadSafeLayoutNode,
+};
+use script_layout_interface::{
+    HTMLCanvasData, HTMLMediaData, LayoutNodeType, OpaqueStyleAndLayoutData,
+};
 use script_layout_interface::{SVGSVGData, StyleData, TrustedNodeAddress};
-use script_layout_interface::wrapper_traits::{DangerousThreadSafeLayoutNode, GetLayoutData, LayoutNode};
-use script_layout_interface::wrapper_traits::{PseudoElementType, ThreadSafeLayoutElement, ThreadSafeLayoutNode};
-use selectors::attr::{AttrSelectorOperation, NamespaceConstraint, CaseSensitivity};
-use selectors::matching::{ElementSelectorFlags, MatchingContext, QuirksMode};
+use selectors::attr::{AttrSelectorOperation, CaseSensitivity, NamespaceConstraint};
 use selectors::matching::VisitedHandlingMode;
+use selectors::matching::{ElementSelectorFlags, MatchingContext, QuirksMode};
 use selectors::sink::Push;
 use servo_arc::{Arc, ArcBorrow};
 use servo_atoms::Atom;
@@ -60,9 +68,8 @@ use std::fmt::Debug;
 use std::hash::{Hash, Hasher};
 use std::marker::PhantomData;
 use std::ptr::NonNull;
-use std::sync::Arc as StdArc;
 use std::sync::atomic::Ordering;
-use style::CaseSensitivityExt;
+use std::sync::Arc as StdArc;
 use style::applicable_declarations::ApplicableDeclarationBlock;
 use style::attr::AttrValue;
 use style::context::SharedStyleContext;
@@ -72,11 +79,12 @@ use style::dom::{TDocument, TElement, TNode, TShadowRoot};
 use style::element_state::*;
 use style::font_metrics::ServoMetricsProvider;
 use style::properties::{ComputedValues, PropertyDeclarationBlock};
-use style::selector_parser::{AttrValue as SelectorAttrValue, NonTSPseudoClass, Lang};
-use style::selector_parser::{PseudoElement, SelectorImpl, extended_filtering};
-use style::shared_lock::{SharedRwLock as StyleSharedRwLock, Locked as StyleLocked};
+use style::selector_parser::{extended_filtering, PseudoElement, SelectorImpl};
+use style::selector_parser::{AttrValue as SelectorAttrValue, Lang, NonTSPseudoClass};
+use style::shared_lock::{Locked as StyleLocked, SharedRwLock as StyleSharedRwLock};
 use style::str::is_whitespace;
 use style::stylist::CascadeData;
+use style::CaseSensitivityExt;
 
 pub unsafe fn drop_style_and_layout_data(data: OpaqueStyleAndLayoutData) {
     let ptr = data.ptr.as_ptr() as *mut StyleData;
@@ -664,7 +672,7 @@ impl<'le> ServoLayoutElement<'le> {
     }
 
     pub unsafe fn note_dirty_descendant(&self) {
-        use ::selectors::Element;
+        use selectors::Element;
 
         let mut current = Some(*self);
         while let Some(el) = current {
@@ -1132,7 +1140,7 @@ where
 {
     type Item = ConcreteNode;
     fn next(&mut self) -> Option<ConcreteNode> {
-        use ::selectors::Element;
+        use selectors::Element;
         match self.parent_node.get_pseudo_element_type() {
             PseudoElementType::Before | PseudoElementType::After => None,
 

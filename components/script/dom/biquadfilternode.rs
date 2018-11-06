@@ -5,18 +5,22 @@
 use crate::dom::audionode::AudioNode;
 use crate::dom::audioparam::AudioParam;
 use crate::dom::baseaudiocontext::BaseAudioContext;
-use crate::dom::bindings::codegen::Bindings::AudioNodeBinding::{ChannelCountMode, ChannelInterpretation};
+use crate::dom::bindings::codegen::Bindings::AudioNodeBinding::{
+    ChannelCountMode, ChannelInterpretation,
+};
 use crate::dom::bindings::codegen::Bindings::AudioParamBinding::AutomationRate;
-use crate::dom::bindings::codegen::Bindings::BiquadFilterNodeBinding::{self, BiquadFilterNodeMethods};
 use crate::dom::bindings::codegen::Bindings::BiquadFilterNodeBinding::BiquadFilterOptions;
 use crate::dom::bindings::codegen::Bindings::BiquadFilterNodeBinding::BiquadFilterType;
+use crate::dom::bindings::codegen::Bindings::BiquadFilterNodeBinding::{
+    self, BiquadFilterNodeMethods,
+};
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::reflector::reflect_dom_object;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::window::Window;
 use dom_struct::dom_struct;
-use servo_media::audio::biquad_filter_node::{BiquadFilterNodeOptions, FilterType};
 use servo_media::audio::biquad_filter_node::BiquadFilterNodeMessage;
+use servo_media::audio::biquad_filter_node::{BiquadFilterNodeOptions, FilterType};
 use servo_media::audio::node::{AudioNodeInit, AudioNodeMessage};
 use servo_media::audio::param::ParamType;
 use std::cell::Cell;

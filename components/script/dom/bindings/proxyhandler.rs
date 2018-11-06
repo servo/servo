@@ -8,11 +8,9 @@
 
 use crate::dom::bindings::conversions::is_dom_proxy;
 use crate::dom::bindings::utils::delete_property_by_id;
+use js::glue::InvokeGetOwnPropertyDescriptor;
 use js::glue::{GetProxyHandler, GetProxyHandlerFamily};
 use js::glue::{GetProxyPrivate, SetProxyPrivate};
-use js::glue::InvokeGetOwnPropertyDescriptor;
-use js::jsapi::{DOMProxyShadowsResult, JSContext, JSObject, PropertyDescriptor};
-use js::jsapi::{JSErrNum, SetDOMProxyInformation};
 use js::jsapi::GetObjectProto;
 use js::jsapi::GetStaticPrototype;
 use js::jsapi::Handle as RawHandle;
@@ -23,11 +21,13 @@ use js::jsapi::JS_GetPropertyDescriptorById;
 use js::jsapi::MutableHandle as RawMutableHandle;
 use js::jsapi::MutableHandleObject as RawMutableHandleObject;
 use js::jsapi::ObjectOpResult;
+use js::jsapi::{DOMProxyShadowsResult, JSContext, JSObject, PropertyDescriptor};
+use js::jsapi::{JSErrNum, SetDOMProxyInformation};
 use js::jsval::ObjectValue;
 use js::jsval::UndefinedValue;
-use js::rust::{Handle, HandleObject, MutableHandle, MutableHandleObject};
 use js::rust::wrappers::JS_AlreadyHasOwnPropertyById;
 use js::rust::wrappers::JS_NewObjectWithGivenProto;
+use js::rust::{Handle, HandleObject, MutableHandle, MutableHandleObject};
 use std::ptr;
 
 /// Determine if this id shadows any existing properties for this proxy.

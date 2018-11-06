@@ -3,11 +3,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::EventSourceBinding::{EventSourceInit, EventSourceMethods, Wrap};
+use crate::dom::bindings::codegen::Bindings::EventSourceBinding::{
+    EventSourceInit, EventSourceMethods, Wrap,
+};
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
-use crate::dom::bindings::reflector::{DomObject, reflect_dom_object};
+use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::event::Event;
@@ -28,10 +30,10 @@ use js::conversions::ToJSValConvertible;
 use js::jsapi::JSAutoCompartment;
 use js::jsval::UndefinedValue;
 use mime::{self, Mime};
-use net_traits::{CoreResourceMsg, FetchChannels, FetchMetadata};
-use net_traits::{FetchResponseMsg, FetchResponseListener, NetworkError};
 use net_traits::request::{CacheMode, CorsSettings, CredentialsMode};
 use net_traits::request::{RequestInit, RequestMode};
+use net_traits::{CoreResourceMsg, FetchChannels, FetchMetadata};
+use net_traits::{FetchResponseListener, FetchResponseMsg, NetworkError};
 use servo_atoms::Atom;
 use servo_url::ServoUrl;
 use std::cell::Cell;

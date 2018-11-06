@@ -23,7 +23,7 @@ use sink::Push;
 use smallvec::{self, SmallVec};
 use std::cmp;
 use std::iter;
-use std::ops::{AddAssign, Add};
+use std::ops::{Add, AddAssign};
 use std::ptr;
 use std::slice;
 

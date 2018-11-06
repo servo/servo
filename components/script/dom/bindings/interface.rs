@@ -9,28 +9,32 @@ use crate::dom::bindings::codegen::PrototypeList;
 use crate::dom::bindings::constant::{define_constants, ConstantSpec};
 use crate::dom::bindings::conversions::{get_dom_class, DOM_OBJECT_SLOT};
 use crate::dom::bindings::guard::Guard;
-use crate::dom::bindings::utils::{get_proto_or_iface_array, ProtoOrIfaceArray, DOM_PROTOTYPE_SLOT};
+use crate::dom::bindings::utils::{
+    get_proto_or_iface_array, ProtoOrIfaceArray, DOM_PROTOTYPE_SLOT,
+};
 use js::error::throw_type_error;
 use js::glue::{UncheckedUnwrapObject, RUST_SYMBOL_TO_JSID};
+use js::jsapi::HandleObject as RawHandleObject;
+use js::jsapi::MutableHandleValue as RawMutableHandleValue;
 use js::jsapi::{Class, ClassOps, CompartmentOptions};
 use js::jsapi::{GetGlobalForObjectCrossCompartment, GetWellKnownSymbol};
-use js::jsapi::{JSAutoCompartment, JSClass, JSContext, JSFunctionSpec, JSObject, JSFUN_CONSTRUCTOR};
-use js::jsapi::{JSPROP_PERMANENT, JSPROP_READONLY, JSPROP_RESOLVING};
+use js::jsapi::{
+    JSAutoCompartment, JSClass, JSContext, JSFunctionSpec, JSObject, JSFUN_CONSTRUCTOR,
+};
 use js::jsapi::{JSPropertySpec, JSString, JSTracer, JS_AtomizeAndPinString};
 use js::jsapi::{JS_GetFunctionObject, JS_NewFunction, JS_NewGlobalObject};
 use js::jsapi::{JS_NewObject, JS_NewPlainObject};
 use js::jsapi::{JS_NewStringCopyN, JS_SetReservedSlot};
 use js::jsapi::{ObjectOps, OnNewGlobalHookOption, SymbolCode};
 use js::jsapi::{TrueHandleValue, Value};
-use js::jsapi::HandleObject as RawHandleObject;
-use js::jsapi::MutableHandleValue as RawMutableHandleValue;
+use js::jsapi::{JSPROP_PERMANENT, JSPROP_READONLY, JSPROP_RESOLVING};
 use js::jsval::{JSVal, PrivateValue};
-use js::rust::{HandleObject, HandleValue, MutableHandleObject};
-use js::rust::{define_methods, define_properties, get_object_class};
 use js::rust::wrappers::{JS_DefineProperty, JS_DefineProperty2};
 use js::rust::wrappers::{JS_DefineProperty3, JS_DefineProperty4, JS_DefinePropertyById4};
 use js::rust::wrappers::{JS_FireOnNewGlobalObject, JS_GetPrototype};
 use js::rust::wrappers::{JS_LinkConstructorAndPrototype, JS_NewObjectWithUniqueType};
+use js::rust::{define_methods, define_properties, get_object_class};
+use js::rust::{HandleObject, HandleValue, MutableHandleObject};
 use libc;
 use std::convert::TryFrom;
 use std::ptr;

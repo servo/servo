@@ -6,7 +6,7 @@ use bluetooth_traits::BluetoothRequest;
 use crate::dom::bindings::codegen::Bindings::TestRunnerBinding;
 use crate::dom::bindings::codegen::Bindings::TestRunnerBinding::TestRunnerMethods;
 use crate::dom::bindings::error::{Error, ErrorResult};
-use crate::dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
+use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;

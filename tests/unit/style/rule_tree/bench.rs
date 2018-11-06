@@ -7,12 +7,12 @@ use rayon;
 use servo_arc::Arc;
 use servo_url::ServoUrl;
 use style::context::QuirksMode;
-use style::error_reporting::{ParseErrorReporter, ContextualParseError};
+use style::error_reporting::{ContextualParseError, ParseErrorReporter};
 use style::media_queries::MediaList;
 use style::properties::{longhands, Importance, PropertyDeclaration, PropertyDeclarationBlock};
 use style::rule_tree::{CascadeLevel, RuleTree, StrongRuleNode, StyleSource};
 use style::shared_lock::SharedRwLock;
-use style::stylesheets::{Origin, Stylesheet, CssRule};
+use style::stylesheets::{CssRule, Origin, Stylesheet};
 use style::thread_state::{self, ThreadState};
 use test::{self, Bencher};
 

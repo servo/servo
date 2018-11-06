@@ -7,9 +7,9 @@ pub use crate::dom::headers::normalize_value;
 
 // For compile-fail tests only.
 pub use crate::dom::bindings::cell::DomRefCell;
+pub use crate::dom::bindings::refcounted::TrustedPromise;
 pub use crate::dom::bindings::root::Dom;
 pub use crate::dom::node::Node;
-pub use crate::dom::bindings::refcounted::TrustedPromise;
 
 pub mod area {
     pub use crate::dom::htmlareaelement::{Area, Shape};
@@ -60,7 +60,7 @@ pub mod size_of {
 }
 
 pub mod srcset {
-    pub use crate::dom::htmlimageelement::{parse_a_srcset_attribute, ImageSource, Descriptor};
+    pub use crate::dom::htmlimageelement::{parse_a_srcset_attribute, Descriptor, ImageSource};
 }
 
 pub mod timeranges {

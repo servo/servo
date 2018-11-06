@@ -5,24 +5,24 @@
 //! The `Fragment` type, which represents the leaves of the layout tree.
 
 use app_units::Au;
-use canvas_traits::canvas::{CanvasMsg, CanvasId};
-use crate::ServoArc;
-use crate::context::{LayoutContext, with_thread_local_font_context};
+use canvas_traits::canvas::{CanvasId, CanvasMsg};
+use crate::context::{with_thread_local_font_context, LayoutContext};
+use crate::display_list::items::{ClipScrollNodeIndex, OpaqueNode, BLUR_INFLATION_FACTOR};
 use crate::display_list::ToLayout;
-use crate::display_list::items::{BLUR_INFLATION_FACTOR, ClipScrollNodeIndex, OpaqueNode};
 use crate::floats::ClearType;
 use crate::flow::{GetBaseFlow, ImmutableFlowUtils};
 use crate::flow_ref::FlowRef;
-use crate::inline::{InlineFragmentNodeFlags, InlineFragmentContext, InlineFragmentNodeInfo};
+use crate::inline::{InlineFragmentContext, InlineFragmentNodeFlags, InlineFragmentNodeInfo};
 use crate::inline::{InlineMetrics, LineMetrics};
 #[cfg(debug_assertions)]
 use crate::layout_debug;
-use crate::model::{self, IntrinsicISizes, IntrinsicISizesContribution, MaybeAuto, SizeConstraint};
 use crate::model::style_length;
+use crate::model::{self, IntrinsicISizes, IntrinsicISizesContribution, MaybeAuto, SizeConstraint};
 use crate::text;
 use crate::text::TextRunScanner;
 use crate::wrapper::ThreadSafeLayoutNodeHelpers;
-use euclid::{Point2D, Vector2D, Rect, Size2D};
+use crate::ServoArc;
+use euclid::{Point2D, Rect, Size2D, Vector2D};
 use gfx;
 use gfx::text::glyph::ByteIndex;
 use gfx::text::text_run::{TextRun, TextRunSlice};
@@ -32,15 +32,17 @@ use msg::constellation_msg::{BrowsingContextId, PipelineId};
 use net_traits::image::base::{Image, ImageMetadata};
 use net_traits::image_cache::{ImageOrMetadataAvailable, UsePlaceholder};
 use range::*;
+use script_layout_interface::wrapper_traits::{
+    PseudoElementType, ThreadSafeLayoutElement, ThreadSafeLayoutNode,
+};
 use script_layout_interface::{HTMLCanvasData, HTMLCanvasDataSource, HTMLMediaData, SVGSVGData};
-use script_layout_interface::wrapper_traits::{PseudoElementType, ThreadSafeLayoutElement, ThreadSafeLayoutNode};
 use serde::ser::{Serialize, SerializeStruct, Serializer};
 use servo_url::ServoUrl;
-use std::{f32, fmt};
 use std::borrow::ToOwned;
-use std::cmp::{Ordering, max, min};
+use std::cmp::{max, min, Ordering};
 use std::collections::LinkedList;
 use std::sync::{Arc, Mutex};
+use std::{f32, fmt};
 use style::computed_values::border_collapse::T as BorderCollapse;
 use style::computed_values::box_sizing::T as BoxSizing;
 use style::computed_values::clear::T as Clear;
@@ -59,8 +61,8 @@ use style::properties::ComputedValues;
 use style::selector_parser::RestyleDamage;
 use style::servo::restyle_damage::ServoRestyleDamage;
 use style::str::char_is_whitespace;
-use style::values::computed::{Length, LengthOrPercentage, LengthOrPercentageOrAuto};
 use style::values::computed::counters::ContentItem;
+use style::values::computed::{Length, LengthOrPercentage, LengthOrPercentageOrAuto};
 use style::values::generics::box_::{Perspective, VerticalAlign};
 use style::values::generics::transform;
 use webrender_api::{self, LayoutTransform};

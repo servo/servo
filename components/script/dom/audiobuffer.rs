@@ -4,17 +4,19 @@
 
 use crate::dom::audionode::MAX_CHANNEL_COUNT;
 use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::AudioBufferBinding::{self, AudioBufferMethods, AudioBufferOptions};
+use crate::dom::bindings::codegen::Bindings::AudioBufferBinding::{
+    self, AudioBufferMethods, AudioBufferOptions,
+};
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::num::Finite;
-use crate::dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
+use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::window::Window;
 use dom_struct::dom_struct;
-use js::jsapi::{Heap, JSAutoCompartment, JSContext, JSObject};
 use js::jsapi::JS_GetArrayBufferViewBuffer;
-use js::rust::CustomAutoRooterGuard;
+use js::jsapi::{Heap, JSAutoCompartment, JSContext, JSObject};
 use js::rust::wrappers::JS_DetachArrayBuffer;
+use js::rust::CustomAutoRooterGuard;
 use js::typedarray::{CreateWith, Float32Array};
 use servo_media::audio::buffer_source_node::AudioBuffer as ServoMediaAudioBuffer;
 use std::cell::Ref;

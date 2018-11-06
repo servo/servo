@@ -5,8 +5,8 @@
 use crate::dom::bindings::codegen::Bindings::DissimilarOriginLocationBinding;
 use crate::dom::bindings::codegen::Bindings::DissimilarOriginLocationBinding::DissimilarOriginLocationMethods;
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
-use crate::dom::bindings::reflector::Reflector;
 use crate::dom::bindings::reflector::reflect_dom_object;
+use crate::dom::bindings::reflector::Reflector;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::str::USVString;

@@ -5,7 +5,7 @@
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::GamepadListBinding;
 use crate::dom::bindings::codegen::Bindings::GamepadListBinding::GamepadListMethods;
-use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
+use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::gamepad::Gamepad;
 use crate::dom::globalscope::GlobalScope;

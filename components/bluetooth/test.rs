@@ -4,10 +4,12 @@
 
 use crate::BluetoothManager;
 use device::bluetooth::{BluetoothAdapter, BluetoothDevice};
-use device::bluetooth::{BluetoothGATTCharacteristic, BluetoothGATTDescriptor, BluetoothGATTService};
+use device::bluetooth::{
+    BluetoothGATTCharacteristic, BluetoothGATTDescriptor, BluetoothGATTService,
+};
 use std::borrow::ToOwned;
 use std::cell::RefCell;
-use std::collections::{HashSet, HashMap};
+use std::collections::{HashMap, HashSet};
 use std::error::Error;
 use std::string::String;
 use uuid::Uuid;

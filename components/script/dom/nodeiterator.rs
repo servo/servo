@@ -9,7 +9,7 @@ use crate::dom::bindings::codegen::Bindings::NodeFilterBinding::NodeFilterConsta
 use crate::dom::bindings::codegen::Bindings::NodeIteratorBinding;
 use crate::dom::bindings::codegen::Bindings::NodeIteratorBinding::NodeIteratorMethods;
 use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
+use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot, MutDom};
 use crate::dom::document::Document;
 use crate::dom::node::Node;

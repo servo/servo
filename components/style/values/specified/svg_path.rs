@@ -10,11 +10,11 @@ use std::fmt::{self, Write};
 use std::iter::{Cloned, Peekable};
 use std::ops::AddAssign;
 use std::slice;
-use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
 use style_traits::values::SequenceWriter;
-use values::CSSFloat;
+use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
 use values::animated::{Animate, Procedure, ToAnimatedZero};
 use values::distance::{ComputeSquaredDistance, SquaredDistance};
+use values::CSSFloat;
 
 /// The SVG path data.
 ///

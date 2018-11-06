@@ -8,7 +8,7 @@ use crate::dom::bindings::codegen::Bindings::VRDisplayEventBinding::VRDisplayEve
 use crate::dom::bindings::codegen::Bindings::VRDisplayEventBinding::VRDisplayEventReason;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::{DomObject, reflect_dom_object};
+use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::event::Event;

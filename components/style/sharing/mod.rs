@@ -64,7 +64,6 @@
 //! selectors are effectively stripped off, so that matching them all against
 //! elements makes sense.
 
-use Atom;
 use applicable_declarations::ApplicableDeclarationBlock;
 use atomic_refcell::{AtomicRefCell, AtomicRefMut};
 use bloom::StyleBloom;
@@ -74,8 +73,8 @@ use matching::MatchMethods;
 use owning_ref::OwningHandle;
 use properties::ComputedValues;
 use rule_tree::StrongRuleNode;
-use selectors::NthIndexCache;
 use selectors::matching::{ElementSelectorFlags, VisitedHandlingMode};
+use selectors::NthIndexCache;
 use servo_arc::Arc;
 use smallbitvec::SmallBitVec;
 use smallvec::SmallVec;
@@ -86,6 +85,7 @@ use std::ptr::NonNull;
 use style_resolver::{PrimaryStyle, ResolvedElementStyles};
 use stylist::Stylist;
 use uluru::{Entry, LRUCache};
+use Atom;
 
 mod checks;
 

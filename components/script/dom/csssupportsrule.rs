@@ -4,7 +4,7 @@
 
 use crate::dom::bindings::codegen::Bindings::CSSSupportsRuleBinding;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowBinding::WindowMethods;
-use crate::dom::bindings::reflector::{DomObject, reflect_dom_object};
+use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::cssconditionrule::CSSConditionRule;
@@ -16,8 +16,8 @@ use dom_struct::dom_struct;
 use servo_arc::Arc;
 use style::parser::ParserContext;
 use style::shared_lock::{Locked, ToCssWithGuard};
-use style::stylesheets::{CssRuleType, SupportsRule};
 use style::stylesheets::supports_rule::SupportsCondition;
+use style::stylesheets::{CssRuleType, SupportsRule};
 use style_traits::{ParsingMode, ToCss};
 
 #[dom_struct]

@@ -9,13 +9,13 @@
 // except according to those terms.
 
 use alloc::{alloc, dealloc};
+use shim::{Shared, Unique};
 use std::cmp;
 use std::hash::{BuildHasher, Hash, Hasher};
 use std::marker;
 use std::mem::{self, align_of, size_of};
 use std::ops::{Deref, DerefMut};
 use std::ptr;
-use shim::{Unique, Shared};
 
 use self::BucketState::*;
 use FailedAllocationError;

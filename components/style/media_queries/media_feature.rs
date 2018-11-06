@@ -4,14 +4,14 @@
 
 //! Media features.
 
-use Atom;
+use super::media_feature_expression::{AspectRatio, RangeOrOperator};
+use super::Device;
 use cssparser::Parser;
 use parser::ParserContext;
 use std::fmt;
 use style_traits::ParseError;
-use super::Device;
-use super::media_feature_expression::{AspectRatio, RangeOrOperator};
 use values::computed::{CSSPixelLength, Resolution};
+use Atom;
 
 /// A generic discriminant for an enum value.
 pub type KeywordDiscriminant = u8;

@@ -4,23 +4,23 @@
 
 use bluetooth_traits::BluetoothRequest;
 use canvas_traits::webgl::WebGLPipeline;
+use compositing::compositor_thread::Msg as CompositorMsg;
 use compositing::CompositionPipeline;
 use compositing::CompositorProxy;
-use compositing::compositor_thread::Msg as CompositorMsg;
 use crate::event_loop::EventLoop;
 use devtools_traits::{DevtoolsControlMsg, ScriptToDevtoolsControlMsg};
-use euclid::{TypedSize2D, TypedScale};
+use euclid::{TypedScale, TypedSize2D};
 use gfx::font_cache_thread::FontCacheThread;
-use ipc_channel::Error;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
+use ipc_channel::Error;
 use layout_traits::LayoutThreadFactory;
 use metrics::PaintTimeMetrics;
-use msg::constellation_msg::{BrowsingContextId, HistoryStateId, PipelineId, PipelineNamespaceId};
 use msg::constellation_msg::TopLevelBrowsingContextId;
+use msg::constellation_msg::{BrowsingContextId, HistoryStateId, PipelineId, PipelineNamespaceId};
 use net::image_cache::ImageCacheImpl;
-use net_traits::{IpcSend, ResourceThreads};
 use net_traits::image_cache::ImageCache;
+use net_traits::{IpcSend, ResourceThreads};
 use profile_traits::mem as profile_mem;
 use profile_traits::time;
 use script_traits::{ConstellationControlMsg, DiscardBrowsingContext, ScriptToConstellationChan};
@@ -30,7 +30,7 @@ use script_traits::{NewLayoutInfo, SWManagerMsg, SWManagerSenders};
 use script_traits::{ScriptThreadFactory, TimerSchedulerMsg, WindowSizeData};
 use servo_channel::Sender;
 use servo_config::opts::{self, Opts};
-use servo_config::prefs::{PREFS, Pref};
+use servo_config::prefs::{Pref, PREFS};
 use servo_url::ServoUrl;
 use std::collections::{HashMap, HashSet};
 #[cfg(not(windows))]

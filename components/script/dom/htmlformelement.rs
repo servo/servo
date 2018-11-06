@@ -37,8 +37,8 @@ use crate::dom::htmlobjectelement::HTMLObjectElement;
 use crate::dom::htmloutputelement::HTMLOutputElement;
 use crate::dom::htmlselectelement::HTMLSelectElement;
 use crate::dom::htmltextareaelement::HTMLTextAreaElement;
-use crate::dom::node::{Node, NodeFlags, UnbindContext, VecPreOrderInsertionHelper};
 use crate::dom::node::{document_from_node, window_from_node};
+use crate::dom::node::{Node, NodeFlags, UnbindContext, VecPreOrderInsertionHelper};
 use crate::dom::validitystate::ValidationFlags;
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::dom::window::Window;
@@ -58,8 +58,8 @@ use std::borrow::ToOwned;
 use std::cell::Cell;
 use style::attr::AttrValue;
 use style::str::split_html_space_chars;
-use url::UrlQuery;
 use url::form_urlencoded::Serializer;
+use url::UrlQuery;
 
 #[derive(Clone, Copy, JSTraceable, MallocSizeOf, PartialEq)]
 pub struct GenerationId(u32);

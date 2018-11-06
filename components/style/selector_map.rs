@@ -5,13 +5,12 @@
 //! A data structure to efficiently index structs containing selectors by local
 //! name, ids and hash.
 
-use {Atom, LocalName, Namespace, WeakAtom};
 use applicable_declarations::ApplicableDeclarationList;
 use context::QuirksMode;
 use dom::TElement;
 use fallible::FallibleVec;
-use hash::{HashMap, HashSet};
 use hash::map as hash_map;
+use hash::{HashMap, HashSet};
 use hashglobe::FailedAllocationError;
 use precomputed_hash::PrecomputedHash;
 use rule_tree::{CascadeLevel, ShadowCascadeOrder};
@@ -21,6 +20,7 @@ use selectors::parser::{Combinator, Component, SelectorIter};
 use smallvec::SmallVec;
 use std::hash::{BuildHasherDefault, Hash, Hasher};
 use stylist::Rule;
+use {Atom, LocalName, Namespace, WeakAtom};
 
 /// A hasher implementation that doesn't hash anything, because it expects its
 /// input to be a suitable u32 hash.

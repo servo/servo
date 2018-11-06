@@ -3,32 +3,34 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use cssparser::{self, SourceLocation};
-use html5ever::{Namespace as NsAtom};
+use html5ever::Namespace as NsAtom;
 use parking_lot::RwLock;
 use selectors::attr::*;
 use selectors::parser::*;
 use servo_arc::Arc;
 use servo_atoms::Atom;
-use servo_config::prefs::{PREFS, PrefValue};
+use servo_config::prefs::{PrefValue, PREFS};
 use servo_url::ServoUrl;
 use std::borrow::ToOwned;
 use std::cell::RefCell;
 use std::sync::atomic::AtomicBool;
 use style::context::QuirksMode;
-use style::error_reporting::{ParseErrorReporter, ContextualParseError};
+use style::error_reporting::{ContextualParseError, ParseErrorReporter};
 use style::media_queries::MediaList;
+use style::properties::longhands::{self, animation_timing_function};
 use style::properties::{CSSWideKeyword, CustomDeclaration};
 use style::properties::{CustomDeclarationValue, Importance};
 use style::properties::{PropertyDeclaration, PropertyDeclarationBlock};
-use style::properties::longhands::{self, animation_timing_function};
 use style::shared_lock::SharedRwLock;
-use style::stylesheets::{Origin, Namespaces};
-use style::stylesheets::{Stylesheet, StylesheetContents, NamespaceRule, CssRule, CssRules, StyleRule, KeyframesRule};
-use style::stylesheets::keyframes_rule::{Keyframe, KeyframeSelector, KeyframePercentage};
-use style::values::{KeyframesName, CustomIdent};
+use style::stylesheets::keyframes_rule::{Keyframe, KeyframePercentage, KeyframeSelector};
+use style::stylesheets::{
+    CssRule, CssRules, KeyframesRule, NamespaceRule, StyleRule, Stylesheet, StylesheetContents,
+};
+use style::stylesheets::{Namespaces, Origin};
 use style::values::computed::Percentage;
-use style::values::specified::{LengthOrPercentageOrAuto, PositionComponent};
 use style::values::specified::TimingFunction;
+use style::values::specified::{LengthOrPercentageOrAuto, PositionComponent};
+use style::values::{CustomIdent, KeyframesName};
 
 pub fn block_from<I>(iterable: I) -> PropertyDeclarationBlock
 where

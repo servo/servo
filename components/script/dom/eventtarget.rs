@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use crate::dom::beforeunloadevent::BeforeUnloadEvent;
-use crate::dom::bindings::callback::{CallbackContainer, ExceptionHandling, CallbackFunction};
+use crate::dom::bindings::callback::{CallbackContainer, CallbackFunction, ExceptionHandling};
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::BeforeUnloadEventBinding::BeforeUnloadEventMethods;
 use crate::dom::bindings::codegen::Bindings::ErrorEventBinding::ErrorEventMethods;
@@ -20,9 +20,9 @@ use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::codegen::UnionTypes::AddEventListenerOptionsOrBoolean;
 use crate::dom::bindings::codegen::UnionTypes::EventListenerOptionsOrBoolean;
 use crate::dom::bindings::codegen::UnionTypes::EventOrString;
-use crate::dom::bindings::error::{Error, Fallible, report_pending_exception};
+use crate::dom::bindings::error::{report_pending_exception, Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
+use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::element::Element;
@@ -34,14 +34,14 @@ use crate::dom::virtualmethods::VirtualMethods;
 use crate::dom::window::Window;
 use dom_struct::dom_struct;
 use fnv::FnvHasher;
-use js::jsapi::{JS_GetFunctionObject, JSAutoCompartment, JSFunction};
-use js::rust::{AutoObjectVectorWrapper, CompileOptionsWrapper};
+use js::jsapi::{JSAutoCompartment, JSFunction, JS_GetFunctionObject};
 use js::rust::wrappers::CompileFunction;
+use js::rust::{AutoObjectVectorWrapper, CompileOptionsWrapper};
 use libc::{c_char, size_t};
 use servo_atoms::Atom;
 use servo_url::ServoUrl;
-use std::collections::HashMap;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
+use std::collections::HashMap;
 use std::default::Default;
 use std::ffi::CString;
 use std::hash::BuildHasherDefault;

@@ -48,11 +48,11 @@ use devtools_traits::{DevtoolScriptControlMsg, DevtoolsPageInfo, LogLevel, Netwo
 use devtools_traits::{ScriptToDevtoolsControlMsg, WorkerId};
 use ipc_channel::ipc::IpcSender;
 use msg::constellation_msg::PipelineId;
-use servo_channel::{Receiver, Sender, channel};
+use servo_channel::{channel, Receiver, Sender};
 use std::borrow::ToOwned;
 use std::cell::RefCell;
-use std::collections::HashMap;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
+use std::collections::HashMap;
 use std::net::{Shutdown, TcpListener, TcpStream};
 use std::sync::{Arc, Mutex};
 use std::thread;

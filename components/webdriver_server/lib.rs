@@ -38,14 +38,16 @@ use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use msg::constellation_msg::{BrowsingContextId, TopLevelBrowsingContextId, TraversalDirection};
 use net_traits::image::base::PixelFormat;
 use regex::Captures;
-use script_traits::{ConstellationMsg, LoadData, WebDriverCommandMsg};
 use script_traits::webdriver_msg::{LoadStatus, WebDriverCookieError, WebDriverFrameId};
-use script_traits::webdriver_msg::{WebDriverJSError, WebDriverJSResult, WebDriverScriptCommand, WebDriverJSValue};
+use script_traits::webdriver_msg::{
+    WebDriverJSError, WebDriverJSResult, WebDriverJSValue, WebDriverScriptCommand,
+};
+use script_traits::{ConstellationMsg, LoadData, WebDriverCommandMsg};
 use serde::de::{Deserialize, Deserializer, MapAccess, Visitor};
 use serde::ser::{Serialize, Serializer};
 use serde_json::Value;
 use servo_channel::Sender;
-use servo_config::prefs::{PREFS, PrefValue};
+use servo_config::prefs::{PrefValue, PREFS};
 use servo_url::ServoUrl;
 use std::borrow::ToOwned;
 use std::collections::BTreeMap;
@@ -54,9 +56,13 @@ use std::net::{SocketAddr, SocketAddrV4};
 use std::thread;
 use std::time::Duration;
 use uuid::Uuid;
-use webdriver::command::{AddCookieParameters, GetParameters, JavascriptCommandParameters, LocatorParameters};
+use webdriver::command::{
+    AddCookieParameters, GetParameters, JavascriptCommandParameters, LocatorParameters,
+};
 use webdriver::command::{SendKeysParameters, SwitchToFrameParameters, TimeoutsParameters};
-use webdriver::command::{WebDriverCommand, WebDriverExtensionCommand, WebDriverMessage, WindowRectParameters};
+use webdriver::command::{
+    WebDriverCommand, WebDriverExtensionCommand, WebDriverMessage, WindowRectParameters,
+};
 use webdriver::common::{Cookie, Date, LocatorStrategy, WebElement};
 use webdriver::error::{ErrorStatus, WebDriverError, WebDriverResult};
 use webdriver::httpapi::WebDriverExtensionRoute;

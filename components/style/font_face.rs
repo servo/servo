@@ -6,10 +6,10 @@
 //!
 //! [ff]: https://drafts.csswg.org/css-fonts/#at-font-face-rule
 
-use cssparser::{AtRuleParser, DeclarationListParser, DeclarationParser, Parser};
-use cssparser::{CowRcStr, SourceLocation};
 #[cfg(feature = "gecko")]
 use cssparser::UnicodeRange;
+use cssparser::{AtRuleParser, DeclarationListParser, DeclarationParser, Parser};
+use cssparser::{CowRcStr, SourceLocation};
 use error_reporting::ContextualParseError;
 use parser::{Parse, ParserContext};
 #[cfg(feature = "gecko")]
@@ -18,17 +18,17 @@ use selectors::parser::SelectorParseErrorKind;
 use shared_lock::{SharedRwLockReadGuard, ToCssWithGuard};
 use std::fmt::{self, Write};
 use str::CssStringWriter;
+use style_traits::values::SequenceWriter;
 use style_traits::{Comma, CssWriter, OneOrMoreSeparated, ParseError};
 use style_traits::{StyleParseErrorKind, ToCss};
-use style_traits::values::SequenceWriter;
 use values::computed::font::FamilyName;
 use values::generics::font::FontStyle as GenericFontStyle;
-use values::specified::Angle;
+use values::specified::font::SpecifiedFontStyle;
 use values::specified::font::{AbsoluteFontWeight, FontStretch};
 #[cfg(feature = "gecko")]
 use values::specified::font::{SpecifiedFontFeatureSettings, SpecifiedFontVariationSettings};
-use values::specified::font::SpecifiedFontStyle;
 use values::specified::url::SpecifiedUrl;
+use values::specified::Angle;
 
 /// A source for a font-face rule.
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]

@@ -4,8 +4,8 @@
 
 //! Communication with the compositor thread.
 
-use crate::SendableFrameTree;
 use crate::compositor::CompositingReason;
+use crate::SendableFrameTree;
 use embedder_traits::EventLoopWaker;
 use gfx_traits::Epoch;
 use ipc_channel::ipc::IpcSender;

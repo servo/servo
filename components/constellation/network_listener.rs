@@ -11,10 +11,10 @@ use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use msg::constellation_msg::PipelineId;
 use net::http_loader::{set_default_accept, set_default_accept_language};
-use net_traits::{CoreResourceMsg, FetchChannels, FetchMetadata, FetchResponseMsg};
-use net_traits::{IpcSend, NetworkError, ResourceThreads};
 use net_traits::request::{Destination, RequestInit};
 use net_traits::response::ResponseInit;
+use net_traits::{CoreResourceMsg, FetchChannels, FetchMetadata, FetchResponseMsg};
+use net_traits::{IpcSend, NetworkError, ResourceThreads};
 use servo_channel::Sender;
 
 pub struct NetworkListener {

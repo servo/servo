@@ -3,7 +3,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use app_units::Au;
-use crate::font::{Font, FontDescriptor, FontFamilyDescriptor, FontGroup, FontHandleMethods, FontRef};
+use crate::font::{
+    Font, FontDescriptor, FontFamilyDescriptor, FontGroup, FontHandleMethods, FontRef,
+};
 use crate::font_cache_thread::FontTemplateInfo;
 use crate::font_template::FontTemplateDescriptor;
 use crate::platform::font::FontHandle;

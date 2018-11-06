@@ -5,8 +5,8 @@
 //! Machinery for [tasks](https://html.spec.whatwg.org/multipage/#concept-task).
 
 use std::fmt;
-use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
 
 macro_rules! task {
     ($name:ident: move || $body:tt) => {{

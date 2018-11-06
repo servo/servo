@@ -5,8 +5,8 @@
 use crate::flow::{Flow, FlowClass};
 use crate::flow_ref::FlowRef;
 use serde::ser::{Serialize, SerializeSeq, Serializer};
-use serde_json::{Map, Value, to_value};
-use std::collections::{LinkedList, linked_list};
+use serde_json::{to_value, Map, Value};
+use std::collections::{linked_list, LinkedList};
 use std::ops::Deref;
 use std::sync::Arc;
 

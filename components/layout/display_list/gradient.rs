@@ -8,11 +8,11 @@ use app_units::Au;
 use crate::display_list::ToLayout;
 use euclid::{Point2D, Size2D, Vector2D};
 use style::properties::ComputedValues;
-use style::values::computed::{Angle, GradientItem, LengthOrPercentage, Percentage, Position};
 use style::values::computed::image::{EndingShape, LineDirection};
-use style::values::generics::image::{Circle, Ellipse, ShapeExtent};
+use style::values::computed::{Angle, GradientItem, LengthOrPercentage, Percentage, Position};
 use style::values::generics::image::EndingShape as GenericEndingShape;
 use style::values::generics::image::GradientItem as GenericGradientItem;
+use style::values::generics::image::{Circle, Ellipse, ShapeExtent};
 use style::values::specified::position::{X, Y};
 use webrender_api::{ExtendMode, Gradient, GradientBuilder, GradientStop, RadialGradient};
 

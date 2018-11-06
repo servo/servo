@@ -9,7 +9,7 @@ use syn::{GenericArgument, GenericParam, Ident, Path};
 use syn::{PathArguments, PathSegment, QSelf, Type, TypeArray};
 use syn::{TypeParam, TypeParen, TypePath, TypeSlice, TypeTuple};
 use syn::{Variant, WherePredicate};
-use synstructure::{self, BindingInfo, BindStyle, VariantAst, VariantInfo};
+use synstructure::{self, BindStyle, BindingInfo, VariantAst, VariantInfo};
 
 pub fn add_predicate(where_clause: &mut Option<syn::WhereClause>, pred: WherePredicate) {
     where_clause

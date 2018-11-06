@@ -4,14 +4,16 @@
 
 use crate::document_loader::{DocumentLoader, LoadType};
 use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::DocumentBinding::{DocumentMethods, DocumentReadyState};
+use crate::dom::bindings::codegen::Bindings::DocumentBinding::{
+    DocumentMethods, DocumentReadyState,
+};
 use crate::dom::bindings::codegen::Bindings::HTMLImageElementBinding::HTMLImageElementMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLTemplateElementBinding::HTMLTemplateElementMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::codegen::Bindings::ServoParserBinding;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
-use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
+use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom, RootedReference};
 use crate::dom::bindings::settings_stack::is_execution_stack_empty;
 use crate::dom::bindings::str::DOMString;
@@ -19,7 +21,7 @@ use crate::dom::characterdata::CharacterData;
 use crate::dom::comment::Comment;
 use crate::dom::document::{Document, DocumentSource, HasBrowsingContext, IsHTMLDocument};
 use crate::dom::documenttype::DocumentType;
-use crate::dom::element::{Element, ElementCreator, CustomElementCreationMode};
+use crate::dom::element::{CustomElementCreationMode, Element, ElementCreator};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlformelement::{FormControlElementHelpers, HTMLFormElement};
 use crate::dom::htmlimageelement::HTMLImageElement;
@@ -33,16 +35,16 @@ use crate::network_listener::PreInvoke;
 use crate::script_thread::ScriptThread;
 use dom_struct::dom_struct;
 use embedder_traits::resources::{self, Resource};
-use html5ever::{Attribute, ExpandedName, LocalName, QualName};
 use html5ever::buffer_queue::BufferQueue;
-use html5ever::tendril::{StrTendril, ByteTendril, IncompleteUtf8};
-use html5ever::tree_builder::{NodeOrText, TreeSink, NextParserState, QuirksMode, ElementFlags};
+use html5ever::tendril::{ByteTendril, IncompleteUtf8, StrTendril};
+use html5ever::tree_builder::{ElementFlags, NextParserState, NodeOrText, QuirksMode, TreeSink};
+use html5ever::{Attribute, ExpandedName, LocalName, QualName};
 use hyper_serde::Serde;
 use mime::{self, Mime};
 use msg::constellation_msg::PipelineId;
 use net_traits::{FetchMetadata, FetchResponseListener, Metadata, NetworkError};
+use profile_traits::time::{profile, ProfilerCategory, TimerMetadataReflowType};
 use profile_traits::time::{TimerMetadata, TimerMetadataFrameType};
-use profile_traits::time::{TimerMetadataReflowType, ProfilerCategory, profile};
 use script_traits::DocumentActivity;
 use servo_config::prefs::PREFS;
 use servo_url::ServoUrl;

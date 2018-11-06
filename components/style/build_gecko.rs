@@ -14,6 +14,8 @@ mod common {
 
 #[cfg(feature = "bindgen")]
 mod bindings {
+    use super::super::PYTHON;
+    use super::common::*;
     use bindgen::{Builder, CodegenConfig};
     use regex::Regex;
     use std::cmp;
@@ -26,8 +28,6 @@ mod bindings {
     use std::slice;
     use std::sync::Mutex;
     use std::time::SystemTime;
-    use super::common::*;
-    use super::super::PYTHON;
     use toml;
     use toml::value::Table;
 
@@ -606,9 +606,9 @@ mod bindings {
 
 #[cfg(not(feature = "bindgen"))]
 mod bindings {
-    use std::{env, fs, io};
-    use std::path::{Path, PathBuf};
     use super::common::*;
+    use std::path::{Path, PathBuf};
+    use std::{env, fs, io};
 
     /// Copy contents of one directory into another.
     /// It currently only does a shallow copy.

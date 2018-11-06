@@ -6,7 +6,7 @@ use crate::dom::bindings::codegen::Bindings::HTMLCollectionBinding::HTMLCollecti
 use crate::dom::bindings::codegen::Bindings::HTMLFormControlsCollectionBinding;
 use crate::dom::bindings::codegen::Bindings::HTMLFormControlsCollectionBinding::HTMLFormControlsCollectionMethods;
 use crate::dom::bindings::codegen::UnionTypes::RadioNodeListOrElement;
-use crate::dom::bindings::reflector::{DomObject, reflect_dom_object};
+use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::element::Element;

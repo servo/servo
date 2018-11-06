@@ -4,15 +4,19 @@
 
 use crate::dom::baseaudiocontext::{BaseAudioContext, BaseAudioContextOptions};
 use crate::dom::bindings::codegen::Bindings::AudioContextBinding;
-use crate::dom::bindings::codegen::Bindings::AudioContextBinding::{AudioContextLatencyCategory, AudioContextMethods};
-use crate::dom::bindings::codegen::Bindings::AudioContextBinding::{AudioContextOptions, AudioTimestamp};
+use crate::dom::bindings::codegen::Bindings::AudioContextBinding::{
+    AudioContextLatencyCategory, AudioContextMethods,
+};
+use crate::dom::bindings::codegen::Bindings::AudioContextBinding::{
+    AudioContextOptions, AudioTimestamp,
+};
 use crate::dom::bindings::codegen::Bindings::BaseAudioContextBinding::AudioContextState;
 use crate::dom::bindings::codegen::Bindings::BaseAudioContextBinding::BaseAudioContextBinding::BaseAudioContextMethods;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
-use crate::dom::bindings::reflector::{DomObject, reflect_dom_object};
+use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::promise::Promise;
 use crate::dom::window::Window;

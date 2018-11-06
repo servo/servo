@@ -4,20 +4,20 @@
 
 //! `<length>` computed values, and related ones.
 
+use super::{Context, Number, Percentage, ToComputedValue};
 use app_units::Au;
 use ordered_float::NotNan;
 use std::fmt::{self, Write};
 use std::ops::{Add, Neg};
-use style_traits::{CssWriter, ToCss};
 use style_traits::values::specified::AllowedNumericType;
-use super::{Context, Number, Percentage, ToComputedValue};
-use values::{specified, Auto, CSSFloat, Either, Normal};
+use style_traits::{CssWriter, ToCss};
 use values::animated::{Animate, Procedure, ToAnimatedValue, ToAnimatedZero};
 use values::distance::{ComputeSquaredDistance, SquaredDistance};
-use values::generics::NonNegative;
 use values::generics::length::{MaxLength as GenericMaxLength, MozLength as GenericMozLength};
-use values::specified::length::{AbsoluteLength, FontBaseSize, FontRelativeLength};
+use values::generics::NonNegative;
 use values::specified::length::ViewportPercentageLength;
+use values::specified::length::{AbsoluteLength, FontBaseSize, FontRelativeLength};
+use values::{specified, Auto, CSSFloat, Either, Normal};
 
 pub use super::image::Image;
 pub use values::specified::url::UrlOrNone;

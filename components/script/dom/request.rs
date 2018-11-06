@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use crate::body::{BodyOperations, BodyType, consume_body};
+use crate::body::{consume_body, BodyOperations, BodyType};
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::HeadersBinding::{HeadersInit, HeadersMethods};
 use crate::dom::bindings::codegen::Bindings::RequestBinding;
@@ -16,7 +16,7 @@ use crate::dom::bindings::codegen::Bindings::RequestBinding::RequestMethods;
 use crate::dom::bindings::codegen::Bindings::RequestBinding::RequestMode;
 use crate::dom::bindings::codegen::Bindings::RequestBinding::RequestRedirect;
 use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
+use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::{ByteString, DOMString, USVString};
 use crate::dom::bindings::trace::RootedTraceableBox;
@@ -25,10 +25,8 @@ use crate::dom::headers::{Guard, Headers};
 use crate::dom::promise::Promise;
 use crate::dom::xmlhttprequest::Extractable;
 use dom_struct::dom_struct;
-use http::Method as HttpMethod;
 use http::method::InvalidMethod;
-use net_traits::ReferrerPolicy as MsgReferrerPolicy;
-use net_traits::request::{Origin, Window};
+use http::Method as HttpMethod;
 use net_traits::request::CacheMode as NetTraitsRequestCache;
 use net_traits::request::CredentialsMode as NetTraitsRequestCredentials;
 use net_traits::request::Destination as NetTraitsRequestDestination;
@@ -36,6 +34,8 @@ use net_traits::request::RedirectMode as NetTraitsRequestRedirect;
 use net_traits::request::Referrer as NetTraitsRequestReferrer;
 use net_traits::request::Request as NetTraitsRequest;
 use net_traits::request::RequestMode as NetTraitsRequestMode;
+use net_traits::request::{Origin, Window};
+use net_traits::ReferrerPolicy as MsgReferrerPolicy;
 use servo_url::ServoUrl;
 use std::cell::{Cell, Ref};
 use std::rc::Rc;

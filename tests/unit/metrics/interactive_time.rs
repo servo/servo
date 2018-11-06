@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use ipc_channel::ipc;
-use metrics::{InteractiveMetrics, InteractiveFlag};
+use metrics::{InteractiveFlag, InteractiveMetrics};
 use metrics::{ProfilerMetadataFactory, ProgressiveWebMetric};
 use profile_traits::time::{ProfilerChan, TimerMetadata};
 use servo_url::ServoUrl;

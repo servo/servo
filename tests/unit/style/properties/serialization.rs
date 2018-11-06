@@ -4,14 +4,14 @@
 
 use properties::{parse, parse_input};
 use style::computed_values::display::T as Display;
-use style::properties::{PropertyDeclaration, Importance};
 use style::properties::declaration_block::PropertyDeclarationBlock;
 use style::properties::parse_property_declaration_list;
-use style::values::RGBA;
-use style::values::specified::{BorderStyle, BorderSideWidth, Color};
-use style::values::specified::{Length, LengthOrPercentage, LengthOrPercentageOrAuto};
-use style::values::specified::NoCalcLength;
+use style::properties::{Importance, PropertyDeclaration};
 use style::values::specified::url::SpecifiedUrl;
+use style::values::specified::NoCalcLength;
+use style::values::specified::{BorderSideWidth, BorderStyle, Color};
+use style::values::specified::{Length, LengthOrPercentage, LengthOrPercentageOrAuto};
+use style::values::RGBA;
 use style_traits::ToCss;
 use stylesheets::block_from;
 
@@ -486,10 +486,10 @@ mod shorthand_serialization {
     }
 
     mod list_style {
+        use super::*;
         use style::properties::longhands::list_style_position::SpecifiedValue as ListStylePosition;
         use style::properties::longhands::list_style_type::SpecifiedValue as ListStyleType;
         use style::values::generics::url::UrlOrNone as ImageUrlOrNone;
-        use super::*;
 
         #[test]
         fn list_style_should_show_all_properties_when_values_are_set() {

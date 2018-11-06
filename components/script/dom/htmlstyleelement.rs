@@ -12,7 +12,9 @@ use crate::dom::cssstylesheet::CSSStyleSheet;
 use crate::dom::document::Document;
 use crate::dom::element::{Element, ElementCreator};
 use crate::dom::htmlelement::HTMLElement;
-use crate::dom::node::{ChildrenMutation, Node, UnbindContext, document_from_node, window_from_node};
+use crate::dom::node::{
+    document_from_node, window_from_node, ChildrenMutation, Node, UnbindContext,
+};
 use crate::dom::stylesheet::StyleSheet as DOMStyleSheet;
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::stylesheet_loader::{StylesheetLoader, StylesheetOwner};
@@ -24,7 +26,7 @@ use servo_arc::Arc;
 use std::cell::Cell;
 use style::media_queries::MediaList;
 use style::parser::ParserContext as CssParserContext;
-use style::stylesheets::{CssRuleType, Stylesheet, Origin};
+use style::stylesheets::{CssRuleType, Origin, Stylesheet};
 use style_traits::ParsingMode;
 
 #[dom_struct]

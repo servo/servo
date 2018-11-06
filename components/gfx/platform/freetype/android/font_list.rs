@@ -8,11 +8,11 @@ use std::fs::File;
 use std::io::{self, Read};
 use std::path::Path;
 use ucd::{Codepoint, UnicodeBlock};
-use xml5ever::Attribute;
 use xml5ever::driver::parse_document;
 use xml5ever::rcdom::*;
 use xml5ever::rcdom::{Node, RcDom};
 use xml5ever::tendril::TendrilSink;
+use xml5ever::Attribute;
 
 lazy_static! {
     static ref FONT_LIST: FontList = FontList::new();

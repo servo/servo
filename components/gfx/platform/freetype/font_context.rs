@@ -10,7 +10,7 @@ use freetype::freetype::FT_MemoryRec_;
 use freetype::freetype::FT_New_Library;
 use freetype::succeeded;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
-use servo_allocator::libc_compat::{malloc, realloc, free};
+use servo_allocator::libc_compat::{free, malloc, realloc};
 use servo_allocator::usable_size;
 use std::os::raw::{c_long, c_void};
 use std::ptr;

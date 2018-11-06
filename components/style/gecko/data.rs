@@ -8,8 +8,10 @@ use atomic_refcell::{AtomicRef, AtomicRefCell, AtomicRefMut};
 use context::QuirksMode;
 use dom::TElement;
 use gecko_bindings::bindings::{self, RawServoStyleSet};
-use gecko_bindings::structs::{RawGeckoPresContextBorrowed, ServoStyleSetSizes, StyleSheet as DomStyleSheet};
-use gecko_bindings::structs::{StyleSheetInfo, nsIDocument};
+use gecko_bindings::structs::{nsIDocument, StyleSheetInfo};
+use gecko_bindings::structs::{
+    RawGeckoPresContextBorrowed, ServoStyleSetSizes, StyleSheet as DomStyleSheet,
+};
 use gecko_bindings::sugar::ownership::{HasArcFFI, HasBoxFFI, HasFFI, HasSimpleFFI};
 use invalidation::media_queries::{MediaListKey, ToMediaListKey};
 use malloc_size_of::MallocSizeOfOps;

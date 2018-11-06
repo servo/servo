@@ -4,8 +4,12 @@
 
 use crate::dom::audioparam::AudioParam;
 use crate::dom::baseaudiocontext::BaseAudioContext;
-use crate::dom::bindings::codegen::Bindings::AudioNodeBinding::{AudioNodeMethods, AudioNodeOptions};
-use crate::dom::bindings::codegen::Bindings::AudioNodeBinding::{ChannelCountMode, ChannelInterpretation};
+use crate::dom::bindings::codegen::Bindings::AudioNodeBinding::{
+    AudioNodeMethods, AudioNodeOptions,
+};
+use crate::dom::bindings::codegen::Bindings::AudioNodeBinding::{
+    ChannelCountMode, ChannelInterpretation,
+};
 use crate::dom::bindings::codegen::InheritTypes::{AudioNodeTypeId, EventTargetTypeId};
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::Castable;
@@ -13,9 +17,9 @@ use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::eventtarget::EventTarget;
 use dom_struct::dom_struct;
 use servo_media::audio::graph::NodeId;
-use servo_media::audio::node::{AudioNodeMessage, AudioNodeInit, ChannelInfo};
 use servo_media::audio::node::ChannelCountMode as ServoMediaChannelCountMode;
 use servo_media::audio::node::ChannelInterpretation as ServoMediaChannelInterpretation;
+use servo_media::audio::node::{AudioNodeInit, AudioNodeMessage, ChannelInfo};
 use std::cell::Cell;
 
 // 32 is the minimum required by the spec for createBuffer() and the deprecated

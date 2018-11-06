@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use canvas_traits::canvas::{CanvasMsg, CanvasId};
+use canvas_traits::canvas::{CanvasId, CanvasMsg};
 use crate::AnimationState;
 use crate::AuxiliaryBrowsingContextLoadInfo;
 use crate::DocumentState;
@@ -19,15 +19,15 @@ use gfx_traits::Epoch;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use msg::constellation_msg::{BrowsingContextId, PipelineId, TopLevelBrowsingContextId};
 use msg::constellation_msg::{HistoryStateId, TraversalDirection};
-use net_traits::CoreResourceMsg;
 use net_traits::request::RequestInit;
 use net_traits::storage_thread::StorageType;
+use net_traits::CoreResourceMsg;
 use servo_url::ImmutableOrigin;
 use servo_url::ServoUrl;
 use std::fmt;
-use style_traits::CSSPixel;
 use style_traits::cursor::CursorKind;
 use style_traits::viewport::ViewportConstraints;
+use style_traits::CSSPixel;
 use webrender_api::{DeviceIntPoint, DeviceUintSize};
 
 /// Messages from the layout to the constellation.

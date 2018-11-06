@@ -11,7 +11,9 @@ use crate::dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputE
 use crate::dom::bindings::codegen::Bindings::HTMLOptionElementBinding::HTMLOptionElementMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
-use crate::dom::bindings::conversions::{ConversionResult, FromJSValConvertible, StringificationBehavior};
+use crate::dom::bindings::conversions::{
+    ConversionResult, FromJSValConvertible, StringificationBehavior,
+};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
@@ -21,7 +23,7 @@ use crate::dom::htmlelement::HTMLElement;
 use crate::dom::htmliframeelement::HTMLIFrameElement;
 use crate::dom::htmlinputelement::HTMLInputElement;
 use crate::dom::htmloptionelement::HTMLOptionElement;
-use crate::dom::node::{Node, window_from_node};
+use crate::dom::node::{window_from_node, Node};
 use crate::script_thread::Documents;
 use euclid::{Point2D, Rect, Size2D};
 use hyper_serde::Serde;
@@ -31,11 +33,13 @@ use js::jsval::UndefinedValue;
 use js::rust::HandleValue;
 use msg::constellation_msg::BrowsingContextId;
 use msg::constellation_msg::PipelineId;
-use net_traits::CookieSource::{HTTP, NonHTTP};
+use net_traits::CookieSource::{NonHTTP, HTTP};
 use net_traits::CoreResourceMsg::{GetCookiesDataForUrl, SetCookieForUrl};
 use net_traits::IpcSend;
-use script_traits::webdriver_msg::{WebDriverFrameId, WebDriverJSError, WebDriverJSResult, WebDriverJSValue};
 use script_traits::webdriver_msg::WebDriverCookieError;
+use script_traits::webdriver_msg::{
+    WebDriverFrameId, WebDriverJSError, WebDriverJSResult, WebDriverJSValue,
+};
 use servo_url::ServoUrl;
 
 fn find_node_by_unique_id(

@@ -4,7 +4,9 @@
 
 use cssparser::{Parser, ParserInput};
 use servo_arc::Arc;
-use style::custom_properties::{Name, SpecifiedValue, CustomPropertiesMap, CustomPropertiesBuilder, CssEnvironment};
+use style::custom_properties::{
+    CssEnvironment, CustomPropertiesBuilder, CustomPropertiesMap, Name, SpecifiedValue,
+};
 use style::properties::CustomDeclarationValue;
 use test::{self, Bencher};
 

@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use caseless::compatibility_caseless_match_str;
-use crate::dom::activation::{Activatable, ActivationSource, synthetic_click_activation};
+use crate::dom::activation::{synthetic_click_activation, Activatable, ActivationSource};
 use crate::dom::attr::Attr;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
@@ -18,7 +18,9 @@ use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom, RootedReference};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
-use crate::dom::element::{AttributeMutation, Element, LayoutElementHelpers, RawLayoutElementHelpers};
+use crate::dom::element::{
+    AttributeMutation, Element, LayoutElementHelpers, RawLayoutElementHelpers,
+};
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::file::File;
@@ -26,28 +28,32 @@ use crate::dom::filelist::FileList;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::htmlfieldsetelement::HTMLFieldSetElement;
-use crate::dom::htmlformelement::{FormControl, FormDatum, FormDatumValue, FormSubmitter, HTMLFormElement};
+use crate::dom::htmlformelement::{
+    FormControl, FormDatum, FormDatumValue, FormSubmitter, HTMLFormElement,
+};
 use crate::dom::htmlformelement::{ResetFrom, SubmittedFrom};
 use crate::dom::keyboardevent::KeyboardEvent;
 use crate::dom::mouseevent::MouseEvent;
-use crate::dom::node::{Node, NodeDamage, UnbindContext};
 use crate::dom::node::{document_from_node, window_from_node};
+use crate::dom::node::{Node, NodeDamage, UnbindContext};
 use crate::dom::nodelist::NodeList;
 use crate::dom::textcontrol::{TextControlElement, TextControlSelection};
 use crate::dom::validation::Validatable;
 use crate::dom::validitystate::ValidationFlags;
 use crate::dom::virtualmethods::VirtualMethods;
-use crate::textinput::{Direction, SelectionDirection, TextInput};
-use crate::textinput::KeyReaction::{DispatchInput, Nothing, RedrawSelection, TriggerDefaultAction};
+use crate::textinput::KeyReaction::{
+    DispatchInput, Nothing, RedrawSelection, TriggerDefaultAction,
+};
 use crate::textinput::Lines::Single;
+use crate::textinput::{Direction, SelectionDirection, TextInput};
 use dom_struct::dom_struct;
 use embedder_traits::FilterPattern;
 use html5ever::{LocalName, Prefix};
 use mime_guess;
 use msg::constellation_msg::InputMethodType;
-use net_traits::{CoreResourceMsg, IpcSend};
 use net_traits::blob_url_store::get_blob_origin;
 use net_traits::filemanager_thread::FileManagerThreadMsg;
+use net_traits::{CoreResourceMsg, IpcSend};
 use profile_traits::ipc;
 use script_layout_interface::rpc::TextIndexResponse;
 use script_traits::ScriptToConstellationChan;

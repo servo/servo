@@ -16,7 +16,7 @@ use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::htmlanchorelement::follow_hyperlink;
 use crate::dom::htmlelement::HTMLElement;
-use crate::dom::node::{Node, document_from_node};
+use crate::dom::node::{document_from_node, Node};
 use crate::dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
 use euclid::Point2D;

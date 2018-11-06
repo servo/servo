@@ -47,21 +47,21 @@ use bluetooth_traits::BluetoothRequest;
 use canvas_traits::webgl::WebGLPipeline;
 use crate::webdriver_msg::{LoadStatus, WebDriverScriptCommand};
 use devtools_traits::{DevtoolScriptControlMsg, ScriptToDevtoolsControlMsg, WorkerId};
-use euclid::{Length, Point2D, Vector2D, Rect, TypedSize2D, TypedScale};
+use euclid::{Length, Point2D, Rect, TypedScale, TypedSize2D, Vector2D};
 use gfx_traits::Epoch;
 use http::HeaderMap;
 use hyper::Method;
-use ipc_channel::{Error as IpcError};
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
+use ipc_channel::Error as IpcError;
 use keyboard_types::KeyboardEvent;
 use libc::c_void;
 use msg::constellation_msg::{BrowsingContextId, HistoryStateId, PipelineId};
-use msg::constellation_msg::{PipelineNamespaceId, TraversalDirection, TopLevelBrowsingContextId};
-use net_traits::{FetchResponseMsg, ReferrerPolicy, ResourceThreads};
+use msg::constellation_msg::{PipelineNamespaceId, TopLevelBrowsingContextId, TraversalDirection};
 use net_traits::image::base::Image;
 use net_traits::image::base::PixelFormat;
 use net_traits::image_cache::ImageCache;
 use net_traits::storage_thread::StorageType;
+use net_traits::{FetchResponseMsg, ReferrerPolicy, ResourceThreads};
 use profile_traits::mem;
 use profile_traits::time as profile_time;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
@@ -72,14 +72,18 @@ use servo_url::ServoUrl;
 use std::collections::HashMap;
 use std::fmt;
 use std::sync::Arc;
+use style_traits::cursor::CursorKind;
 use style_traits::CSSPixel;
 use style_traits::SpeculativePainter;
-use style_traits::cursor::CursorKind;
-use webrender_api::{DevicePixel, DeviceUintSize, DocumentId, ExternalScrollId, ImageKey, RenderApiSender};
+use webrender_api::{
+    DevicePixel, DeviceUintSize, DocumentId, ExternalScrollId, ImageKey, RenderApiSender,
+};
 use webvr_traits::{WebVREvent, WebVRMsg};
 
-pub use crate::script_msg::{LayoutMsg, ScriptMsg, EventResult, LogEntry};
-pub use crate::script_msg::{ServiceWorkerMsg, ScopeThings, SWManagerMsg, SWManagerSenders, DOMMessage};
+pub use crate::script_msg::{
+    DOMMessage, SWManagerMsg, SWManagerSenders, ScopeThings, ServiceWorkerMsg,
+};
+pub use crate::script_msg::{EventResult, LayoutMsg, LogEntry, ScriptMsg};
 
 /// The address of a node. Layout sends these back. They must be validated via
 /// `from_untrusted_node_address` before they can be used, because we do not trust layout.

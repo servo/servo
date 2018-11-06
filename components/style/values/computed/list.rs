@@ -4,9 +4,9 @@
 
 //! `list` computed values.
 
-pub use values::specified::list::Quotes;
 #[cfg(feature = "gecko")]
 pub use values::specified::list::ListStyleType;
+pub use values::specified::list::Quotes;
 
 impl Quotes {
     /// Initial value for `quotes`.

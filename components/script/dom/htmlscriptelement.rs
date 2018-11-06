@@ -14,13 +14,15 @@ use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::{Dom, DomRoot, RootedReference};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
+use crate::dom::element::{
+    cors_setting_for_element, reflect_cross_origin_attribute, set_cross_origin_attribute,
+};
 use crate::dom::element::{AttributeMutation, Element, ElementCreator};
-use crate::dom::element::{cors_setting_for_element, reflect_cross_origin_attribute, set_cross_origin_attribute};
 use crate::dom::event::{Event, EventBubbles, EventCancelable, EventStatus};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlelement::HTMLElement;
-use crate::dom::node::{ChildrenMutation, CloneChildrenFlag, Node};
 use crate::dom::node::{document_from_node, window_from_node};
+use crate::dom::node::{ChildrenMutation, CloneChildrenFlag, Node};
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::network_listener::{NetworkListener, PreInvoke};
 use crate::task_source::TaskSourceName;
@@ -30,8 +32,8 @@ use html5ever::{LocalName, Prefix};
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use js::jsval::UndefinedValue;
-use net_traits::{FetchMetadata, FetchResponseListener, Metadata, NetworkError};
 use net_traits::request::{CorsSettings, CredentialsMode, Destination, RequestInit, RequestMode};
+use net_traits::{FetchMetadata, FetchResponseListener, Metadata, NetworkError};
 use servo_atoms::Atom;
 use servo_config::opts;
 use servo_url::ServoUrl;
@@ -41,7 +43,7 @@ use std::io::{Read, Write};
 use std::path::PathBuf;
 use std::process::{Command, Stdio};
 use std::sync::{Arc, Mutex};
-use style::str::{HTML_SPACE_CHARACTERS, StaticStringVec};
+use style::str::{StaticStringVec, HTML_SPACE_CHARACTERS};
 use uuid::Uuid;
 
 #[dom_struct]

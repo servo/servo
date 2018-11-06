@@ -2,21 +2,28 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use crate::{DEFAULT_USER_AGENT, new_fetch_context, create_embedder_proxy, fetch, make_server, make_ssl_server};
 use crate::fetch_with_context;
 use crate::fetch_with_cors_cache;
 use crate::http_loader::{expect_devtools_http_request, expect_devtools_http_response};
+use crate::{
+    create_embedder_proxy, fetch, make_server, make_ssl_server, new_fetch_context,
+    DEFAULT_USER_AGENT,
+};
 use devtools_traits::HttpRequest as DevtoolsHttpRequest;
 use devtools_traits::HttpResponse as DevtoolsHttpResponse;
 use headers_core::HeaderMapExt;
-use headers_ext::{AccessControlAllowCredentials, AccessControlAllowHeaders, AccessControlAllowOrigin};
+use headers_ext::{
+    AccessControlAllowCredentials, AccessControlAllowHeaders, AccessControlAllowOrigin,
+};
 use headers_ext::{AccessControlAllowMethods, AccessControlMaxAge};
-use headers_ext::{CacheControl, ContentLength, ContentType, Expires, Host, LastModified, Pragma, UserAgent};
-use http::{Method, StatusCode};
+use headers_ext::{
+    CacheControl, ContentLength, ContentType, Expires, Host, LastModified, Pragma, UserAgent,
+};
 use http::header::{self, HeaderMap, HeaderName, HeaderValue};
 use http::uri::Authority;
-use hyper::{Request as HyperRequest, Response as HyperResponse};
+use http::{Method, StatusCode};
 use hyper::body::Body;
+use hyper::{Request as HyperRequest, Response as HyperResponse};
 use mime::{self, Mime};
 use msg::constellation_msg::TEST_PIPELINE_ID;
 use net::connector::create_ssl_connector_builder;
@@ -25,20 +32,20 @@ use net::fetch::methods::{CancellationListener, FetchContext};
 use net::filemanager_thread::FileManager;
 use net::hsts::HstsEntry;
 use net::test::HttpState;
+use net_traits::request::{Destination, Origin, RedirectMode, Referrer, Request, RequestMode};
+use net_traits::response::{CacheState, Response, ResponseBody, ResponseType};
 use net_traits::IncludeSubdomains;
 use net_traits::NetworkError;
 use net_traits::ReferrerPolicy;
-use net_traits::request::{Destination, Origin, RedirectMode, Referrer, Request, RequestMode};
-use net_traits::response::{CacheState, Response, ResponseBody, ResponseType};
 use servo_channel::{channel, Sender};
 use servo_url::{ImmutableOrigin, ServoUrl};
 use std::fs::File;
 use std::io::Read;
 use std::iter::FromIterator;
 use std::path::Path;
-use std::sync::{Arc, Mutex};
 use std::sync::atomic::{AtomicUsize, Ordering};
-use std::time::{SystemTime, Duration};
+use std::sync::{Arc, Mutex};
+use std::time::{Duration, SystemTime};
 
 // TODO write a struct that impls Handler for storing test values
 

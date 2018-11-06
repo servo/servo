@@ -11,8 +11,8 @@ use std::cmp::{max, min};
 use std::fmt;
 use style::logical_geometry::{LogicalMargin, WritingMode};
 use style::properties::ComputedValues;
-use style::values::computed::{LengthOrPercentageOrAuto, LengthOrPercentage};
 use style::values::computed::LengthOrPercentageOrNone;
+use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto};
 
 /// A collapsible margin. See CSS 2.1 § 8.3.1.
 #[derive(Clone, Copy, Debug)]

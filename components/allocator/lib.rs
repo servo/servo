@@ -23,7 +23,7 @@ mod platform {
 
     /// Memory allocation APIs compatible with libc
     pub mod libc_compat {
-        pub use super::ffi::{malloc, realloc, free};
+        pub use super::ffi::{free, malloc, realloc};
     }
 
     pub struct Allocator;
@@ -98,8 +98,8 @@ mod platform {
 mod platform {
     extern crate kernel32;
 
-    pub use std::alloc::System as Allocator;
     use self::kernel32::{GetProcessHeap, HeapSize, HeapValidate};
+    pub use std::alloc::System as Allocator;
     use std::os::raw::c_void;
 
     /// Get the size of a heap block.

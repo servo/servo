@@ -11,7 +11,7 @@ use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowBinding::Windo
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomObject;
-use crate::dom::bindings::root::{LayoutDom, DomRoot, MutNullableDom};
+use crate::dom::bindings::root::{DomRoot, LayoutDom, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
 use crate::dom::domtokenlist::DOMTokenList;
@@ -19,7 +19,7 @@ use crate::dom::element::{AttributeMutation, Element, RawLayoutElementHelpers};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlelement::HTMLElement;
-use crate::dom::node::{Node, NodeDamage, UnbindContext, document_from_node, window_from_node};
+use crate::dom::node::{document_from_node, window_from_node, Node, NodeDamage, UnbindContext};
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::dom::window::ReflowReason;
 use crate::dom::windowproxy::WindowProxy;
@@ -31,9 +31,11 @@ use ipc_channel::ipc;
 use msg::constellation_msg::{BrowsingContextId, PipelineId, TopLevelBrowsingContextId};
 use profile_traits::ipc as ProfiledIpc;
 use script_layout_interface::message::ReflowGoal;
-use script_traits::{IFrameLoadInfo, IFrameLoadInfoWithData, JsEvalResult, LoadData, UpdatePipelineIdReason};
-use script_traits::{NewLayoutInfo, ScriptMsg};
 use script_traits::IFrameSandboxState::{IFrameSandboxed, IFrameUnsandboxed};
+use script_traits::{
+    IFrameLoadInfo, IFrameLoadInfoWithData, JsEvalResult, LoadData, UpdatePipelineIdReason,
+};
+use script_traits::{NewLayoutInfo, ScriptMsg};
 use servo_config::prefs::PREFS;
 use servo_url::ServoUrl;
 use std::cell::Cell;

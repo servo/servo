@@ -10,7 +10,7 @@ use crate::fragment::{Fragment, ScannedTextFlags};
 use crate::fragment::{ScannedTextFragmentInfo, SpecificFragmentInfo, UnscannedTextFragmentInfo};
 use crate::inline::{InlineFragmentNodeFlags, InlineFragments};
 use crate::linked_list::split_off_head;
-use gfx::font::{FontRef, FontMetrics, RunMetrics, ShapingFlags, ShapingOptions};
+use gfx::font::{FontMetrics, FontRef, RunMetrics, ShapingFlags, ShapingOptions};
 use gfx::text::glyph::ByteIndex;
 use gfx::text::text_run::TextRun;
 use gfx::text::util::{self, CompressionMode};
@@ -26,11 +26,11 @@ use style::computed_values::text_transform::T as TextTransform;
 use style::computed_values::white_space::T as WhiteSpace;
 use style::computed_values::word_break::T as WordBreak;
 use style::logical_geometry::{LogicalSize, WritingMode};
-use style::properties::ComputedValues;
 use style::properties::style_structs::Font as FontStyleStruct;
+use style::properties::ComputedValues;
 use style::values::generics::text::LineHeight;
 use unicode_bidi as bidi;
-use unicode_script::{Script, get_script};
+use unicode_script::{get_script, Script};
 use xi_unicode::LineBreakLeafIter;
 
 /// Returns the concatenated text of a list of unscanned text fragments.

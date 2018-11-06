@@ -13,8 +13,8 @@ use style::computed_values::background_clip::single_value::T as BackgroundClip;
 use style::computed_values::background_origin::single_value::T as BackgroundOrigin;
 use style::properties::style_structs::Background;
 use style::values::computed::{BackgroundSize, LengthOrPercentageOrAuto};
-use style::values::generics::NonNegative;
 use style::values::generics::background::BackgroundSize as GenericBackgroundSize;
+use style::values::generics::NonNegative;
 use style::values::specified::background::BackgroundRepeatKeyword;
 use webrender_api::BorderRadius;
 

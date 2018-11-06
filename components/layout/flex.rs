@@ -7,10 +7,10 @@
 use app_units::{Au, MAX_AU};
 use crate::block::{AbsoluteAssignBSizesTraversal, BlockFlow, MarginsMayCollapseFlag};
 use crate::context::LayoutContext;
-use crate::display_list::{DisplayListBuildState, FlexFlowDisplayListBuilding};
 use crate::display_list::StackingContextCollectionState;
+use crate::display_list::{DisplayListBuildState, FlexFlowDisplayListBuilding};
 use crate::floats::FloatKind;
-use crate::flow::{Flow, FlowClass, GetBaseFlow, ImmutableFlowUtils, OpaqueFlow, FlowFlags};
+use crate::flow::{Flow, FlowClass, FlowFlags, GetBaseFlow, ImmutableFlowUtils, OpaqueFlow};
 use crate::fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
 use crate::layout_debug;
 use crate::model::{AdjoiningMargins, CollapsibleMargins};
@@ -27,8 +27,10 @@ use style::computed_values::justify_content::T as JustifyContent;
 use style::logical_geometry::{Direction, LogicalSize};
 use style::properties::ComputedValues;
 use style::servo::restyle_damage::ServoRestyleDamage;
-use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto, LengthOrPercentageOrNone};
 use style::values::computed::flex::FlexBasis;
+use style::values::computed::{
+    LengthOrPercentage, LengthOrPercentageOrAuto, LengthOrPercentageOrNone,
+};
 use style::values::generics::flex::FlexBasis as GenericFlexBasis;
 
 /// The size of an axis. May be a specified size, a min/max

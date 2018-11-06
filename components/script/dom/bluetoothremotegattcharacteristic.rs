@@ -2,23 +2,23 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use bluetooth_traits::blocklist::{uuid_is_blocklisted, Blocklist};
 use bluetooth_traits::{BluetoothRequest, BluetoothResponse, GATTType};
-use bluetooth_traits::blocklist::{Blocklist, uuid_is_blocklisted};
 use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::BluetoothCharacteristicPropertiesBinding::
-BluetoothCharacteristicPropertiesMethods;
+use crate::dom::bindings::codegen::Bindings::BluetoothCharacteristicPropertiesBinding::BluetoothCharacteristicPropertiesMethods;
 use crate::dom::bindings::codegen::Bindings::BluetoothRemoteGATTCharacteristicBinding;
-use crate::dom::bindings::codegen::Bindings::BluetoothRemoteGATTCharacteristicBinding::
-BluetoothRemoteGATTCharacteristicMethods;
+use crate::dom::bindings::codegen::Bindings::BluetoothRemoteGATTCharacteristicBinding::BluetoothRemoteGATTCharacteristicMethods;
 use crate::dom::bindings::codegen::Bindings::BluetoothRemoteGATTServerBinding::BluetoothRemoteGATTServerMethods;
 use crate::dom::bindings::codegen::Bindings::BluetoothRemoteGATTServiceBinding::BluetoothRemoteGATTServiceMethods;
 use crate::dom::bindings::codegen::UnionTypes::ArrayBufferViewOrArrayBuffer;
-use crate::dom::bindings::error::Error::{self, InvalidModification, Network, NotSupported, Security};
+use crate::dom::bindings::error::Error::{
+    self, InvalidModification, Network, NotSupported, Security,
+};
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::{DomObject, reflect_dom_object};
+use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::{ByteString, DOMString};
-use crate::dom::bluetooth::{AsyncBluetoothListener, get_gatt_children, response_async};
+use crate::dom::bluetooth::{get_gatt_children, response_async, AsyncBluetoothListener};
 use crate::dom::bluetoothcharacteristicproperties::BluetoothCharacteristicProperties;
 use crate::dom::bluetoothremotegattservice::BluetoothRemoteGATTService;
 use crate::dom::bluetoothuuid::{BluetoothDescriptorUUID, BluetoothUUID};

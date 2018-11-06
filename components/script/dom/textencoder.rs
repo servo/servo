@@ -5,13 +5,13 @@
 use crate::dom::bindings::codegen::Bindings::TextEncoderBinding;
 use crate::dom::bindings::codegen::Bindings::TextEncoderBinding::TextEncoderMethods;
 use crate::dom::bindings::error::Fallible;
-use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
+use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
 use js::jsapi::{JSContext, JSObject};
-use js::typedarray::{Uint8Array, CreateWith};
+use js::typedarray::{CreateWith, Uint8Array};
 use std::ptr;
 use std::ptr::NonNull;
 

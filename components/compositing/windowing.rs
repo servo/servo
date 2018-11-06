@@ -17,7 +17,7 @@ use std::fmt::{Debug, Error, Formatter};
 #[cfg(feature = "gleam")]
 use std::rc::Rc;
 use style_traits::DevicePixel;
-use webrender_api::{DeviceIntPoint, DevicePoint, DeviceUintSize, DeviceUintRect, ScrollLocation};
+use webrender_api::{DeviceIntPoint, DevicePoint, DeviceUintRect, DeviceUintSize, ScrollLocation};
 
 #[derive(Clone)]
 pub enum MouseWindowEvent {

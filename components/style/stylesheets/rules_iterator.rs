@@ -9,8 +9,8 @@ use media_queries::Device;
 use shared_lock::SharedRwLockReadGuard;
 use smallvec::SmallVec;
 use std::slice;
-use stylesheets::{CssRule, DocumentRule, ImportRule, MediaRule, SupportsRule};
 use stylesheets::StylesheetInDocument;
+use stylesheets::{CssRule, DocumentRule, ImportRule, MediaRule, SupportsRule};
 
 /// An iterator over a list of rules.
 pub struct RulesIterator<'a, 'b, C>

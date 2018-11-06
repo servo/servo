@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use super::c_str_to_string;
 use app_units::Au;
 use crate::font::{FontHandleMethods, FontMetrics, FontTableMethods};
 use crate::font::{FontTableTag, FractionalPixel, GPOS, GSUB, KERN};
@@ -9,6 +10,7 @@ use crate::platform::font_context::FontContextHandle;
 use crate::platform::font_template::FontTemplateData;
 use crate::text::glyph::GlyphId;
 use crate::text::util::fixed_to_float;
+use freetype::freetype::FT_Sfnt_Tag;
 use freetype::freetype::{FT_Done_Face, FT_New_Face, FT_New_Memory_Face};
 use freetype::freetype::{FT_F26Dot6, FT_Face, FT_FaceRec};
 use freetype::freetype::{FT_Get_Char_Index, FT_Get_Postscript_Name};
@@ -17,18 +19,16 @@ use freetype::freetype::{FT_GlyphSlot, FT_Library, FT_Long, FT_ULong};
 use freetype::freetype::{FT_Int32, FT_Kerning_Mode, FT_STYLE_FLAG_ITALIC};
 use freetype::freetype::{FT_Load_Glyph, FT_Set_Char_Size};
 use freetype::freetype::{FT_SizeRec, FT_Size_Metrics, FT_UInt, FT_Vector};
-use freetype::freetype::FT_Sfnt_Tag;
 use freetype::succeeded;
 use freetype::tt_os2::TT_OS2;
 use servo_atoms::Atom;
-use std::{mem, ptr};
 use std::ffi::CString;
 use std::os::raw::{c_char, c_long};
 use std::sync::Arc;
+use std::{mem, ptr};
 use style::computed_values::font_stretch::T as FontStretch;
 use style::computed_values::font_weight::T as FontWeight;
 use style::values::computed::font::FontStyle;
-use super::c_str_to_string;
 
 // This constant is not present in the freetype
 // bindings due to bindgen not handling the way

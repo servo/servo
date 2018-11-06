@@ -4,10 +4,10 @@
 
 use crate::dom::bindings::codegen::Bindings::MutationRecordBinding::MutationRecordBinding;
 use crate::dom::bindings::codegen::Bindings::MutationRecordBinding::MutationRecordBinding::MutationRecordMethods;
-use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
+use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
-use crate::dom::node::{Node, window_from_node};
+use crate::dom::node::{window_from_node, Node};
 use crate::dom::nodelist::NodeList;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Namespace};

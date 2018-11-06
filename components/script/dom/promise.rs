@@ -24,11 +24,13 @@ use js::jsapi::{Heap, JS_ClearPendingException};
 use js::jsapi::{JSAutoCompartment, JSContext, JSObject, JS_GetFunctionObject};
 use js::jsapi::{JS_NewFunction, NewFunctionWithReserved, PromiseState};
 use js::jsapi::{RemoveRawValueRoot, SetFunctionNativeReserved};
-use js::jsval::{JSVal, UndefinedValue, ObjectValue, Int32Value};
-use js::rust::{HandleObject, HandleValue, MutableHandleObject, Runtime};
-use js::rust::wrappers::{AddPromiseReactions, CallOriginalPromiseResolve, CallOriginalPromiseReject};
+use js::jsval::{Int32Value, JSVal, ObjectValue, UndefinedValue};
+use js::rust::wrappers::{
+    AddPromiseReactions, CallOriginalPromiseReject, CallOriginalPromiseResolve,
+};
 use js::rust::wrappers::{GetPromiseState, IsPromiseObject};
-use js::rust::wrappers::{NewPromiseObject, ResolvePromise, RejectPromise};
+use js::rust::wrappers::{NewPromiseObject, RejectPromise, ResolvePromise};
+use js::rust::{HandleObject, HandleValue, MutableHandleObject, Runtime};
 use std::ptr;
 use std::rc::Rc;
 

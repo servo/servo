@@ -6,10 +6,10 @@
 
 use cssparser::Parser;
 use gecko_bindings::bindings;
-use gecko_bindings::structs::root::mozilla::CORSMode;
 use gecko_bindings::structs::root::mozilla::css::URLValue;
+use gecko_bindings::structs::root::mozilla::CORSMode;
 use gecko_bindings::structs::root::nsStyleImageRequest;
-use gecko_bindings::sugar::ownership::{HasArcFFI, FFIArcHelpers};
+use gecko_bindings::sugar::ownership::{FFIArcHelpers, HasArcFFI};
 use gecko_bindings::sugar::refptr::RefPtr;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use nsstring::nsCString;

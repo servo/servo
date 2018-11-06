@@ -17,7 +17,7 @@ use ipc_channel::ipc::IpcSender;
 use js::jsapi::Heap;
 use js::jsval::{JSVal, UndefinedValue};
 use js::rust::HandleValue;
-use script_traits::{MsDuration, precise_time_ms};
+use script_traits::{precise_time_ms, MsDuration};
 use script_traits::{TimerEvent, TimerEventId, TimerEventRequest};
 use script_traits::{TimerSchedulerMsg, TimerSource};
 use servo_config::prefs::PREFS;

@@ -9,12 +9,12 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::window::Window;
 use crate::dom::worklet::Worklet;
-use cssparser::{Parser, ParserInput, serialize_identifier};
+use cssparser::{serialize_identifier, Parser, ParserInput};
 use dom_struct::dom_struct;
 use style::context::QuirksMode;
 use style::parser::ParserContext;
+use style::stylesheets::supports_rule::{parse_condition_or_declaration, Declaration};
 use style::stylesheets::CssRuleType;
-use style::stylesheets::supports_rule::{Declaration, parse_condition_or_declaration};
 use style_traits::ParsingMode;
 
 #[dom_struct]

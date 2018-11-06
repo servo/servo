@@ -3,8 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use app_units::Au;
-use crate::{OpaqueStyleAndLayoutData, PendingImage, TrustedNodeAddress};
 use crate::rpc::LayoutRPC;
+use crate::{OpaqueStyleAndLayoutData, PendingImage, TrustedNodeAddress};
 use euclid::{Point2D, Rect};
 use gfx_traits::Epoch;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
@@ -12,9 +12,9 @@ use metrics::PaintTimeMetrics;
 use msg::constellation_msg::PipelineId;
 use net_traits::image_cache::ImageCache;
 use profile_traits::mem::ReportsChan;
+use script_traits::Painter;
 use script_traits::{ConstellationControlMsg, LayoutControlMsg, LayoutMsg as ConstellationMsg};
 use script_traits::{ScrollState, UntrustedNodeAddress, WindowSizeData};
-use script_traits::Painter;
 use servo_arc::Arc as ServoArc;
 use servo_atoms::Atom;
 use servo_channel::{Receiver, Sender};

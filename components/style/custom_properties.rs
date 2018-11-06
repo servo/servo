@@ -6,7 +6,6 @@
 //!
 //! [custom]: https://drafts.csswg.org/css-variables/
 
-use Atom;
 use cssparser::{Delimiter, Parser, ParserInput, SourcePosition, Token, TokenSerializationType};
 use hash::map::Entry;
 use precomputed_hash::PrecomputedHash;
@@ -20,6 +19,7 @@ use std::cmp;
 use std::fmt::{self, Write};
 use std::hash::Hash;
 use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
+use Atom;
 
 /// The environment from which to get `env` function values.
 ///

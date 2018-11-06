@@ -4,7 +4,7 @@
 
 use base64;
 use net_traits::response::{Response, ResponseBody, ResponseType};
-use openssl::hash::{MessageDigest, hash};
+use openssl::hash::{hash, MessageDigest};
 use std::iter::Filter;
 use std::str::Split;
 use std::sync::MutexGuard;

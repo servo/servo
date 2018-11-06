@@ -4,9 +4,9 @@
 
 //! Computed types for CSS values that are related to transformations.
 
+use super::CSSFloat;
 use euclid::{Transform3D, Vector3D};
 use num_traits::Zero;
-use super::CSSFloat;
 use values::animated::ToAnimatedZero;
 use values::computed::{Angle, Integer, Length, LengthOrPercentage, Number, Percentage};
 use values::generics::transform as generic;

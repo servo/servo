@@ -11,8 +11,8 @@ use values::computed::{Context, LengthOrPercentage as ComputedLengthOrPercentage
 use values::computed::{Percentage as ComputedPercentage, ToComputedValue};
 use values::generics::transform as generic;
 use values::generics::transform::{Matrix, Matrix3D};
-use values::specified::{self, Angle, Integer, Length, LengthOrPercentage, Number};
 use values::specified::position::{Side, X, Y};
+use values::specified::{self, Angle, Integer, Length, LengthOrPercentage, Number};
 
 pub use values::generics::transform::TransformStyle;
 

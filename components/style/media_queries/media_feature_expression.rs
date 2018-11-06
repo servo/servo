@@ -5,24 +5,24 @@
 //! Parsing for media feature expressions, like `(foo: bar)` or
 //! `(width >= 400px)`.
 
-use Atom;
+use super::media_feature::{Evaluator, MediaFeatureDescription};
+use super::media_feature::{KeywordDiscriminant, ParsingRequirements};
+use super::Device;
 use context::QuirksMode;
 use cssparser::{Parser, Token};
 #[cfg(feature = "gecko")]
 use gecko_bindings::structs;
 use num_traits::Zero;
 use parser::{Parse, ParserContext};
-use std::cmp::{PartialOrd, Ordering};
+use std::cmp::{Ordering, PartialOrd};
 use std::fmt::{self, Write};
 use str::{starts_with_ignore_ascii_case, string_as_ascii_lowercase};
 use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
 use stylesheets::Origin;
-use super::Device;
-use super::media_feature::{Evaluator, MediaFeatureDescription};
-use super::media_feature::{ParsingRequirements, KeywordDiscriminant};
-use values::{serialize_atom_identifier, CSSFloat};
 use values::computed::{self, ToComputedValue};
 use values::specified::{Integer, Length, Number, Resolution};
+use values::{serialize_atom_identifier, CSSFloat};
+use Atom;
 
 /// An aspect ratio, with a numerator and denominator.
 #[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq)]

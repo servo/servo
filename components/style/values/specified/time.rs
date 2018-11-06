@@ -7,12 +7,12 @@
 use cssparser::{Parser, Token};
 use parser::{Parse, ParserContext};
 use std::fmt::{self, Write};
-use style_traits::{CssWriter, ParseError, SpecifiedValueInfo, StyleParseErrorKind, ToCss};
 use style_traits::values::specified::AllowedNumericType;
-use values::CSSFloat;
-use values::computed::{Context, ToComputedValue};
+use style_traits::{CssWriter, ParseError, SpecifiedValueInfo, StyleParseErrorKind, ToCss};
 use values::computed::time::Time as ComputedTime;
+use values::computed::{Context, ToComputedValue};
 use values::specified::calc::CalcNode;
+use values::CSSFloat;
 
 /// A time value according to CSS-VALUES § 6.2.
 #[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq)]

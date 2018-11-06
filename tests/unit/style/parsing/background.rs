@@ -3,9 +3,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use parsing::parse;
-use style::properties::longhands::{background_attachment, background_clip, background_color, background_image};
-use style::properties::longhands::{background_origin, background_position_x, background_position_y, background_repeat};
 use style::properties::longhands::background_size;
+use style::properties::longhands::{
+    background_attachment, background_clip, background_color, background_image,
+};
+use style::properties::longhands::{
+    background_origin, background_position_x, background_position_y, background_repeat,
+};
 use style::properties::shorthands::background;
 
 #[test]

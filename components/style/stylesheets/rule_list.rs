@@ -11,10 +11,10 @@ use shared_lock::{DeepCloneParams, DeepCloneWithLock, Locked};
 use shared_lock::{SharedRwLock, SharedRwLockReadGuard, ToCssWithGuard};
 use std::fmt::{self, Write};
 use str::CssStringWriter;
-use stylesheets::{CssRule, RulesMutateError};
 use stylesheets::loader::StylesheetLoader;
 use stylesheets::rule_parser::{InsertRuleContext, State};
 use stylesheets::stylesheet::StylesheetContents;
+use stylesheets::{CssRule, RulesMutateError};
 
 /// A list of CSS rules.
 #[derive(Debug)]

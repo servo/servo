@@ -9,12 +9,12 @@ use parser::{Parse, ParserContext};
 use std::fmt::{self, Write};
 use style_traits::{CommaWithSpace, CssWriter, ParseError, Separator};
 use style_traits::{StyleParseErrorKind, ToCss};
-use values::CustomIdent;
 use values::generics::svg as generic;
-use values::specified::{LengthOrPercentage, NonNegativeLengthOrPercentage, NonNegativeNumber};
-use values::specified::{Number, Opacity};
 use values::specified::color::Color;
 use values::specified::url::SpecifiedUrl;
+use values::specified::{LengthOrPercentage, NonNegativeLengthOrPercentage, NonNegativeNumber};
+use values::specified::{Number, Opacity};
+use values::CustomIdent;
 
 /// Specified SVG Paint value
 pub type SVGPaint = generic::SVGPaint<Color, SpecifiedUrl>;

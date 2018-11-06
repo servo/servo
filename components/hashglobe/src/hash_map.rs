@@ -15,13 +15,13 @@ use std::borrow::Borrow;
 use std::cmp::max;
 use std::fmt::{self, Debug};
 #[allow(deprecated)]
-use std::hash::{Hash, BuildHasher};
+use std::hash::{BuildHasher, Hash};
 use std::iter::FromIterator;
 use std::mem::{self, replace};
 use std::ops::{Deref, Index};
 
-use super::table::{self, Bucket, EmptyBucket, FullBucket, FullBucketMut, RawTable, SafeHash};
 use super::table::BucketState::{Empty, Full};
+use super::table::{self, Bucket, EmptyBucket, FullBucket, FullBucketMut, RawTable, SafeHash};
 
 use FailedAllocationError;
 
@@ -2214,11 +2214,11 @@ fn assert_covariance() {
 #[cfg(test)]
 mod test_map {
     extern crate rand;
-    use super::HashMap;
+    use self::rand::{thread_rng, Rng};
     use super::Entry::{Occupied, Vacant};
+    use super::HashMap;
     use super::RandomState;
     use cell::RefCell;
-    use self::rand::{thread_rng, Rng};
 
     #[test]
     fn test_zero_capacities() {

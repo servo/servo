@@ -9,9 +9,9 @@ use animation::Animation;
 use app_units::Au;
 use bloom::StyleBloom;
 use data::{EagerPseudoStyles, ElementData};
-use dom::{SendElement, TElement};
 #[cfg(feature = "servo")]
 use dom::OpaqueNode;
+use dom::{SendElement, TElement};
 use euclid::Size2D;
 use euclid::TypedScale;
 use font_metrics::FontMetricsProvider;
@@ -27,8 +27,8 @@ use properties::PropertyId;
 use rule_cache::RuleCache;
 use rule_tree::StrongRuleNode;
 use selector_parser::{SnapshotMap, EAGER_PSEUDO_COUNT};
-use selectors::NthIndexCache;
 use selectors::matching::ElementSelectorFlags;
+use selectors::NthIndexCache;
 use servo_arc::Arc;
 #[cfg(feature = "servo")]
 use servo_atoms::Atom;

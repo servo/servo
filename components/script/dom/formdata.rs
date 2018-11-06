@@ -9,17 +9,17 @@ use crate::dom::bindings::codegen::UnionTypes::FileOrUSVString;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::iterable::Iterable;
-use crate::dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
+use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::blob::{Blob, BlobImpl};
 use crate::dom::file::File;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::htmlformelement::{HTMLFormElement, FormDatumValue, FormDatum};
+use crate::dom::htmlformelement::{FormDatum, FormDatumValue, HTMLFormElement};
 use dom_struct::dom_struct;
 use html5ever::LocalName;
-use std::collections::BTreeMap;
 use std::collections::btree_map::Entry::{Occupied, Vacant};
+use std::collections::BTreeMap;
 use std::iter;
 
 #[dom_struct]

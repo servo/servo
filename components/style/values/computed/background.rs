@@ -6,8 +6,8 @@
 
 use std::fmt::{self, Write};
 use style_traits::{CssWriter, ToCss};
-use values::computed::{Context, ToComputedValue};
 use values::computed::length::NonNegativeLengthOrPercentageOrAuto;
+use values::computed::{Context, ToComputedValue};
 use values::generics::background::BackgroundSize as GenericBackgroundSize;
 use values::specified::background::BackgroundRepeat as SpecifiedBackgroundRepeat;
 use values::specified::background::BackgroundRepeatKeyword;

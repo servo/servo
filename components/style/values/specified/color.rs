@@ -4,6 +4,7 @@
 
 //! Specified color values.
 
+use super::AllowQuirks;
 use cssparser::{AngleOrNumber, Color as CSSParserColor, Parser, Token, RGBA};
 use cssparser::{BasicParseErrorKind, NumberOrPercentage, ParseErrorKind};
 #[cfg(feature = "gecko")]
@@ -16,7 +17,6 @@ use std::fmt::{self, Write};
 use std::io::Write as IoWrite;
 use style_traits::{CssType, CssWriter, KeywordsCollectFn, ParseError, StyleParseErrorKind};
 use style_traits::{SpecifiedValueInfo, ToCss, ValueParseErrorKind};
-use super::AllowQuirks;
 use values::computed::{Color as ComputedColor, Context, ToComputedValue};
 use values::generics::color::Color as GenericColor;
 use values::specified::calc::CalcNode;

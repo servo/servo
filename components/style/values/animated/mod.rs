@@ -13,10 +13,10 @@ use euclid::{Point2D, Size2D};
 use properties::PropertyId;
 use smallvec::SmallVec;
 use std::cmp;
-use values::computed::Angle as ComputedAngle;
-use values::computed::BorderCornerRadius as ComputedBorderCornerRadius;
 use values::computed::length::CalcLengthOrPercentage;
 use values::computed::url::ComputedUrl;
+use values::computed::Angle as ComputedAngle;
+use values::computed::BorderCornerRadius as ComputedBorderCornerRadius;
 
 pub mod color;
 pub mod effects;

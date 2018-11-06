@@ -4,14 +4,14 @@
 
 //! Animation implementations for various SVG-related types.
 
-use properties::animated_properties::ListAnimation;
 use super::{Animate, Procedure, ToAnimatedZero};
+use properties::animated_properties::ListAnimation;
 use values::animated::color::Color as AnimatedColor;
-use values::computed::{Number, NumberOrPercentage, LengthOrPercentage};
 use values::computed::url::ComputedUrl;
+use values::computed::{LengthOrPercentage, Number, NumberOrPercentage};
 use values::distance::{ComputeSquaredDistance, SquaredDistance};
-use values::generics::svg::{SVGLength,  SvgLengthOrPercentageOrNumber, SVGPaint};
-use values::generics::svg::{SVGStrokeDashArray, SVGOpacity};
+use values::generics::svg::{SVGLength, SVGPaint, SvgLengthOrPercentageOrNumber};
+use values::generics::svg::{SVGOpacity, SVGStrokeDashArray};
 
 /// Animated SVGPaint.
 pub type IntermediateSVGPaint = SVGPaint<AnimatedColor, ComputedUrl>;

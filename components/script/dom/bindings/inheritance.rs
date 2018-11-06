@@ -6,8 +6,8 @@
 
 pub use crate::dom::bindings::codegen::InheritTypes::*;
 
-use crate::dom::bindings::conversions::{DerivedFrom, IDLInterface};
 use crate::dom::bindings::conversions::get_dom_class;
+use crate::dom::bindings::conversions::{DerivedFrom, IDLInterface};
 use crate::dom::bindings::reflector::DomObject;
 use std::mem;
 

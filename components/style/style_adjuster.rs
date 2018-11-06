@@ -7,12 +7,12 @@
 
 use app_units::Au;
 use dom::TElement;
-use properties::{self, ComputedValues, StyleBuilder};
 use properties::computed_value_flags::ComputedValueFlags;
 use properties::longhands::display::computed_value::T as Display;
 use properties::longhands::float::computed_value::T as Float;
 use properties::longhands::overflow_x::computed_value::T as Overflow;
 use properties::longhands::position::computed_value::T as Position;
+use properties::{self, ComputedValues, StyleBuilder};
 
 /// A struct that implements all the adjustment methods.
 ///

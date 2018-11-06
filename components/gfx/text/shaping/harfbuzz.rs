@@ -5,15 +5,7 @@
 #![allow(unsafe_code)]
 
 use app_units::Au;
-use crate::font::{ShapingFlags, Font, FontTableMethods, FontTableTag, ShapingOptions, KERN};
-use crate::harfbuzz::{HB_DIRECTION_LTR, HB_DIRECTION_RTL, HB_MEMORY_MODE_READONLY};
-use crate::harfbuzz::{hb_blob_create, hb_face_create_for_tables};
-use crate::harfbuzz::{hb_buffer_create, hb_font_destroy};
-use crate::harfbuzz::{hb_buffer_get_glyph_infos, hb_shape};
-use crate::harfbuzz::{hb_buffer_set_direction, hb_buffer_set_script};
-use crate::harfbuzz::{hb_buffer_t, hb_codepoint_t, hb_font_funcs_t};
-use crate::harfbuzz::{hb_face_t, hb_font_t};
-use crate::harfbuzz::{hb_position_t, hb_tag_t};
+use crate::font::{Font, FontTableMethods, FontTableTag, ShapingFlags, ShapingOptions, KERN};
 use crate::harfbuzz::hb_blob_t;
 use crate::harfbuzz::hb_bool_t;
 use crate::harfbuzz::hb_buffer_add_utf8;
@@ -32,13 +24,21 @@ use crate::harfbuzz::hb_font_set_ppem;
 use crate::harfbuzz::hb_font_set_scale;
 use crate::harfbuzz::hb_glyph_info_t;
 use crate::harfbuzz::hb_glyph_position_t;
+use crate::harfbuzz::{hb_blob_create, hb_face_create_for_tables};
+use crate::harfbuzz::{hb_buffer_create, hb_font_destroy};
+use crate::harfbuzz::{hb_buffer_get_glyph_infos, hb_shape};
+use crate::harfbuzz::{hb_buffer_set_direction, hb_buffer_set_script};
+use crate::harfbuzz::{hb_buffer_t, hb_codepoint_t, hb_font_funcs_t};
+use crate::harfbuzz::{hb_face_t, hb_font_t};
+use crate::harfbuzz::{hb_position_t, hb_tag_t};
+use crate::harfbuzz::{HB_DIRECTION_LTR, HB_DIRECTION_RTL, HB_MEMORY_MODE_READONLY};
 use crate::platform::font::FontTable;
 use crate::text::glyph::{ByteIndex, GlyphData, GlyphId, GlyphStore};
 use crate::text::shaping::ShaperMethods;
 use crate::text::util::{fixed_to_float, float_to_fixed, is_bidi_control};
 use euclid::Point2D;
-use std::{char, cmp, ptr};
 use std::os::raw::{c_char, c_int, c_uint, c_void};
+use std::{char, cmp, ptr};
 
 const NO_GLYPH: i32 = -1;
 const LIGA: u32 = ot_tag!('l', 'i', 'g', 'a');

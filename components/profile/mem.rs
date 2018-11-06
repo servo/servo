@@ -7,8 +7,8 @@
 use crate::time::duration_from_seconds;
 use ipc_channel::ipc::{self, IpcReceiver};
 use ipc_channel::router::ROUTER;
-use profile_traits::mem::{ProfilerChan, ProfilerMsg, ReportKind, Reporter, ReporterRequest};
 use profile_traits::mem::ReportsChan;
+use profile_traits::mem::{ProfilerChan, ProfilerMsg, ReportKind, Reporter, ReporterRequest};
 use std::borrow::ToOwned;
 use std::cmp::Ordering;
 use std::collections::HashMap;
@@ -386,10 +386,11 @@ impl ReportsForest {
 //---------------------------------------------------------------------------
 
 mod system_reporter {
-    #[cfg(all(feature = "unstable", not(target_os = "windows")))]
-    use libc::{c_void, size_t};
+    use super::{JEMALLOC_HEAP_ALLOCATED_STR, SYSTEM_HEAP_ALLOCATED_STR};
     #[cfg(target_os = "linux")]
     use libc::c_int;
+    #[cfg(all(feature = "unstable", not(target_os = "windows")))]
+    use libc::{c_void, size_t};
     use profile_traits::mem::{Report, ReportKind, ReporterRequest};
     #[cfg(all(feature = "unstable", not(target_os = "windows")))]
     use std::ffi::CString;
@@ -397,9 +398,8 @@ mod system_reporter {
     use std::mem::size_of;
     #[cfg(all(feature = "unstable", not(target_os = "windows")))]
     use std::ptr::null_mut;
-    use super::{JEMALLOC_HEAP_ALLOCATED_STR, SYSTEM_HEAP_ALLOCATED_STR};
     #[cfg(target_os = "macos")]
-    use task_info::task_basic_info::{virtual_size, resident_size};
+    use task_info::task_basic_info::{resident_size, virtual_size};
 
     /// Collects global measurements from the OS and heap allocators.
     pub fn collect_reports(request: ReporterRequest) {
@@ -601,10 +601,10 @@ mod system_reporter {
     #[cfg(target_os = "linux")]
     fn resident_segments() -> Vec<(String, usize)> {
         use regex::Regex;
-        use std::collections::HashMap;
         use std::collections::hash_map::Entry;
+        use std::collections::HashMap;
         use std::fs::File;
-        use std::io::{BufReader, BufRead};
+        use std::io::{BufRead, BufReader};
 
         // The first line of an entry in /proc/<pid>/smaps looks just like an entry
         // in /proc/<pid>/maps:

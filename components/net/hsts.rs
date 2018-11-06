@@ -3,8 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use embedder_traits::resources::{self, Resource};
-use net_traits::IncludeSubdomains;
 use net_traits::pub_domains::reg_suffix;
+use net_traits::IncludeSubdomains;
 use serde_json;
 use servo_url::ServoUrl;
 use std::collections::HashMap;

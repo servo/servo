@@ -4,7 +4,9 @@
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::DOMMatrixBinding::{DOMMatrixInit, DOMMatrixMethods};
-use crate::dom::bindings::codegen::Bindings::DOMMatrixReadOnlyBinding::{DOMMatrixReadOnlyMethods, Wrap};
+use crate::dom::bindings::codegen::Bindings::DOMMatrixReadOnlyBinding::{
+    DOMMatrixReadOnlyMethods, Wrap,
+};
 use crate::dom::bindings::codegen::Bindings::DOMPointBinding::DOMPointInit;
 use crate::dom::bindings::error;
 use crate::dom::bindings::error::Fallible;
@@ -14,11 +16,11 @@ use crate::dom::dommatrix::DOMMatrix;
 use crate::dom::dompoint::DOMPoint;
 use crate::dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
-use euclid::{Transform3D, Angle};
-use js::jsapi::{JSObject, JSContext};
+use euclid::{Angle, Transform3D};
+use js::jsapi::{JSContext, JSObject};
 use js::rust::CustomAutoRooterGuard;
-use js::typedarray::{Float32Array, Float64Array};
 use js::typedarray::CreateWith;
+use js::typedarray::{Float32Array, Float64Array};
 use std::cell::{Cell, Ref};
 use std::f64;
 use std::ptr;

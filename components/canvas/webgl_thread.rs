@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use super::gl_context::{GLContextFactory, GLContextWrapper};
 use canvas_traits::webgl::*;
 use euclid::Size2D;
 use fnv::FnvHashMap;
@@ -9,7 +10,6 @@ use gleam::gl;
 use offscreen_gl_context::{GLContext, GLContextAttributes, GLLimits, NativeGLContextMethods};
 use pixels;
 use std::thread;
-use super::gl_context::{GLContextFactory, GLContextWrapper};
 use webrender;
 use webrender_api;
 

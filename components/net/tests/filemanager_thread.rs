@@ -7,7 +7,9 @@ use embedder_traits::FilterPattern;
 use ipc_channel::ipc;
 use net::filemanager_thread::FileManager;
 use net_traits::blob_url_store::BlobURLStoreError;
-use net_traits::filemanager_thread::{FileManagerThreadMsg, FileManagerThreadError, ReadFileProgress};
+use net_traits::filemanager_thread::{
+    FileManagerThreadError, FileManagerThreadMsg, ReadFileProgress,
+};
 use servo_config::prefs::{PrefValue, PREFS};
 use std::fs::File;
 use std::io::Read;

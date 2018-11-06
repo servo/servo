@@ -7,35 +7,37 @@ use crate::fetch;
 use crate::fetch_with_context;
 use crate::make_server;
 use crate::new_fetch_context;
-use devtools_traits::{ChromeToDevtoolsControlMsg, DevtoolsControlMsg, NetworkEvent};
 use devtools_traits::HttpRequest as DevtoolsHttpRequest;
 use devtools_traits::HttpResponse as DevtoolsHttpResponse;
-use flate2::Compression;
+use devtools_traits::{ChromeToDevtoolsControlMsg, DevtoolsControlMsg, NetworkEvent};
 use flate2::write::{DeflateEncoder, GzEncoder};
+use flate2::Compression;
 use futures::{self, Future, Stream};
 use headers_core::HeaderMapExt;
-use headers_ext::{Authorization, Basic, AccessControlAllowOrigin, ContentLength, Date, Host, Origin};
+use headers_ext::{
+    AccessControlAllowOrigin, Authorization, Basic, ContentLength, Date, Host, Origin,
+};
 use headers_ext::{StrictTransportSecurity, UserAgent};
-use http::{Method, StatusCode};
 use http::header::{self, HeaderMap, HeaderValue};
 use http::uri::Authority;
-use hyper::{Request as HyperRequest, Response as HyperResponse};
+use http::{Method, StatusCode};
 use hyper::body::Body;
+use hyper::{Request as HyperRequest, Response as HyperResponse};
 use msg::constellation_msg::TEST_PIPELINE_ID;
 use net::cookie::Cookie;
 use net::cookie_storage::CookieStorage;
 use net::resource_thread::AuthCacheEntry;
 use net::test::replace_host_table;
-use net_traits::{CookieSource, NetworkError};
-use net_traits::request::{Request, RequestInit, RequestMode, CredentialsMode, Destination};
+use net_traits::request::{CredentialsMode, Destination, Request, RequestInit, RequestMode};
 use net_traits::response::ResponseBody;
+use net_traits::{CookieSource, NetworkError};
 use servo_channel::{channel, Receiver};
-use servo_url::{ServoUrl, ImmutableOrigin};
+use servo_url::{ImmutableOrigin, ServoUrl};
 use std::collections::HashMap;
 use std::io::Write;
 use std::str;
-use std::sync::{Arc, Mutex, RwLock};
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Arc, Mutex, RwLock};
 use std::time::Duration;
 
 fn mock_origin() -> ImmutableOrigin {

@@ -4,7 +4,7 @@
 
 use serde_json::{self, Value};
 use std::env;
-use std::fs::{File, remove_file};
+use std::fs::{remove_file, File};
 use std::path::Path;
 use std::process::Command;
 
