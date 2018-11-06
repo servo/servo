@@ -388,7 +388,7 @@ impl ServoGlue {
     }
 
     fn handle_servo_events(&mut self) -> Result<(), &'static str> {
-        for (_browser_id, event) in self.servo.get_events() {
+        for (browser_id, event) in self.servo.get_events() {
             match event {
                 EmbedderMsg::ChangePageTitle(title) => {
                     let fallback_title: String = if let Some(ref current_url) = self.current_url {
@@ -403,10 +403,11 @@ impl ServoGlue {
                     let title = format!("{} - Servo", title);
                     self.callbacks.host_callbacks.on_title_changed(title);
                 },
-                EmbedderMsg::AllowNavigation(_url, response_chan) => {
-                    if let Err(e) = response_chan.send(true) {
-                        warn!("Failed to send allow_navigation() response: {}", e);
-                    };
+                EmbedderMsg::AllowNavigationRequest(pipeline_id, _url) => {
+                    if let Some(_browser_id) = browser_id {
+                        let window_event = WindowEvent::AllowNavigationResponse(pipeline_id, true);
+                        let _ = self.process_event(window_event);
+                    }
                 },
                 EmbedderMsg::HistoryChanged(entries, current) => {
                     let can_go_back = current > 0;
