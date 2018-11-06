@@ -9,7 +9,7 @@ use euclid::TypedScale;
 #[cfg(feature = "gl")]
 use gleam::gl;
 use keyboard_types::KeyboardEvent;
-use msg::constellation_msg::{TopLevelBrowsingContextId, TraversalDirection};
+use msg::constellation_msg::{PipelineId, TopLevelBrowsingContextId, TraversalDirection};
 use script_traits::{MouseButton, TouchEventType, TouchId};
 use servo_geometry::DeviceIndependentPixel;
 use servo_url::ServoUrl;
@@ -49,6 +49,8 @@ pub enum WindowEvent {
     Refresh,
     /// Sent when the window is resized.
     Resize,
+    /// Sent when a navigation request from script is allowed/refused.
+    AllowNavigationResponse(PipelineId, bool),
     /// Sent when a new URL is to be loaded.
     LoadUrl(TopLevelBrowsingContextId, ServoUrl),
     /// Sent when a mouse hit test is to be performed.
@@ -96,6 +98,7 @@ impl Debug for WindowEvent {
             WindowEvent::Refresh => write!(f, "Refresh"),
             WindowEvent::Resize => write!(f, "Resize"),
             WindowEvent::Keyboard(..) => write!(f, "Keyboard"),
+            WindowEvent::AllowNavigationResponse(..) => write!(f, "AllowNavigationResponse"),
             WindowEvent::LoadUrl(..) => write!(f, "LoadUrl"),
             WindowEvent::MouseWindowEventClass(..) => write!(f, "Mouse"),
             WindowEvent::MouseWindowMoveEventClass(..) => write!(f, "MouseMove"),
