@@ -491,7 +491,7 @@ class MachCommands(CommandBase):
         for failure in failures:
             if tracker_api:
                 if tracker_api == 'default':
-                    tracker_api = "http://build.servo.org/intermittent-tracker"
+                    tracker_api = "https://build.servo.org/intermittent-tracker"
                 elif tracker_api.endswith('/'):
                     tracker_api = tracker_api[0:-1]
 
@@ -519,7 +519,7 @@ class MachCommands(CommandBase):
 
         if reporter_api:
             if reporter_api == 'default':
-                reporter_api = "http://build.servo.org/intermittent-failure-tracker"
+                reporter_api = "https://build.servo.org/intermittent-failure-tracker"
             if reporter_api.endswith('/'):
                 reporter_api = reporter_api[0:-1]
             reported = set()
