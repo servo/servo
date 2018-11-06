@@ -296,6 +296,19 @@ impl Formattable for ProfilerCategory {
             ProfilerCategory::WebGlGetUniformFloat9 => "WebGlGetUniformFloat9",
             ProfilerCategory::WebGlGetUniformFloat16 => "WebGlGetUniformFloat16",
             ProfilerCategory::WebGlInitializeFramebuffer => "WebGlInitializeFramebuffer",
+            ProfilerCategory::WebGlDOMFinish => "WebGl DOM Finish",
+            ProfilerCategory::WebGlDOMDrawingBufferWidth => "WebGl DOM DrawingBufferWidth",
+            ProfilerCategory::WebGlDOMDrawingBufferHeight => "WebGl DOM DrawingBufferHeight",
+            ProfilerCategory::WebGlDOMGetParameter => "WebGl DOM GetParameter",
+            ProfilerCategory::WebGlDOMGetTexParameter => "WebGL DOM GetTexParameter",
+            ProfilerCategory::WebGlDOMGetContextAttributes => "WebGL DOM GetContextAttributes",
+            ProfilerCategory::WebGlDOMGetFramebufferAttachmentParameter => "WebGL DOM GetFramebufferAttachmentParameter",
+            ProfilerCategory::WebGlDOMGetRenderbufferParameter => "WebGL DOM GetRenderbufferParameter",
+            ProfilerCategory::WebGlDOMGetProgramParameter => "WebGL DOM GetProgramParameter",
+            ProfilerCategory::WebGlDOMGetShaderPrecisionFormat => "WebGL DOM GetShaderPrecisionFormat",
+            ProfilerCategory::WebGlDOMGetVertexAttrib => "WebGL DOM GetVertexAttrib",
+            ProfilerCategory::WebGlDOMReadPixels => "WebGL DOM ReadPixels",
+            ProfilerCategory::WebGlDOMGetUniform => "WebGL DOM GetUniform",
         };
         format!("{}{}", padding, name)
     }

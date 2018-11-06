@@ -208,6 +208,19 @@ HEARTBEAT_PROFILER_CATEGORIES = [
     ("WebGlGetUniformFloat9", HEARTBEAT_DEFAULT_WINDOW_SIZE),
     ("WebGlGetUniformFloat16", HEARTBEAT_DEFAULT_WINDOW_SIZE),
     ("WebGlInitializeFramebuffer", HEARTBEAT_DEFAULT_WINDOW_SIZE),
+    ("WebGlDOMFinish", HEARTBEAT_DEFAULT_WINDOW_SIZE),
+    ("WebGlDOMDrawingBufferWidth", HEARTBEAT_DEFAULT_WINDOW_SIZE),
+    ("WebGlDOMDrawingBufferHeight", HEARTBEAT_DEFAULT_WINDOW_SIZE),
+    ("WebGlDOMGetParameter", HEARTBEAT_DEFAULT_WINDOW_SIZE),
+    ("WebGlDOMGetTexParameter", HEARTBEAT_DEFAULT_WINDOW_SIZE),
+    ("WebGlDOMGetContextAttributes", HEARTBEAT_DEFAULT_WINDOW_SIZE),
+    ("WebGlDOMGetFramebufferAttachmentParameter", HEARTBEAT_DEFAULT_WINDOW_SIZE),
+    ("WebGlDOMGetRenderbufferParameter", HEARTBEAT_DEFAULT_WINDOW_SIZE),
+    ("WebGlDOMGetProgramParameter", HEARTBEAT_DEFAULT_WINDOW_SIZE),
+    ("WebGlDOMGetShaderPrecisionFormat", HEARTBEAT_DEFAULT_WINDOW_SIZE),
+    ("WebGlDOMGetVertexAttrib", HEARTBEAT_DEFAULT_WINDOW_SIZE),
+    ("WebGlDOMReadPixels", HEARTBEAT_DEFAULT_WINDOW_SIZE),
+    ("WebGlDOMGetUniform", HEARTBEAT_DEFAULT_WINDOW_SIZE),
 ]
 ENERGY_READER_BIN = "energymon-file-provider"
 ENERGY_READER_TEMP_OUTPUT = "energymon.txt"

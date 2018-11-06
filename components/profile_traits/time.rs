@@ -249,6 +249,19 @@ pub enum ProfilerCategory {
     WebGlGetUniformFloat9 = 0xa89,
     WebGlGetUniformFloat16 = 0xa8a,
     WebGlInitializeFramebuffer = 0xa8b,
+    WebGlDOMFinish = 0xb01,
+    WebGlDOMDrawingBufferWidth = 0xb02,
+    WebGlDOMDrawingBufferHeight = 0xb03,
+    WebGlDOMGetParameter = 0xb04,
+    WebGlDOMGetTexParameter = 0xb05,
+    WebGlDOMGetContextAttributes = 0xb06,
+    WebGlDOMGetFramebufferAttachmentParameter = 0xb07,
+    WebGlDOMGetRenderbufferParameter = 0xb08,
+    WebGlDOMGetProgramParameter = 0xb09,
+    WebGlDOMGetShaderPrecisionFormat = 0xb0a,
+    WebGlDOMGetVertexAttrib = 0xb0b,
+    WebGlDOMReadPixels = 0xb0c,
+    WebGlDOMGetUniform = 0xb0d,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, Ord, PartialEq, PartialOrd, Serialize)]
