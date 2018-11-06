@@ -86,8 +86,7 @@ pub struct QuotePair {
 /// Specified and computed `quotes` property.
 #[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue, ToCss)]
 pub struct Quotes(
-    #[css(if_empty = "none")]
-    #[css(iterable)]
+    #[css(iterable, if_empty = "none")]
     #[ignore_malloc_size_of = "Arc"]
     pub Arc<Box<[QuotePair]>>
 );
