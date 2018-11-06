@@ -13,7 +13,7 @@ pub mod resources;
 
 use ipc_channel::ipc::IpcSender;
 use keyboard_types::KeyboardEvent;
-use msg::constellation_msg::{InputMethodType, TopLevelBrowsingContextId};
+use msg::constellation_msg::{InputMethodType, PipelineId, TopLevelBrowsingContextId};
 use servo_channel::{Receiver, Sender};
 use servo_url::ServoUrl;
 use std::fmt::{Debug, Error, Formatter};
@@ -79,8 +79,8 @@ pub enum EmbedderMsg {
     ResizeTo(DeviceUintSize),
     // Show an alert message.
     Alert(String, IpcSender<()>),
-    /// Wether or not to follow a link
-    AllowNavigation(ServoUrl, IpcSender<bool>),
+    /// Wether or not to allow a pipeline to load a url.
+    AllowNavigation(PipelineId, ServoUrl),
     /// Whether or not to allow script to open a new tab/browser
     AllowOpeningBrowser(IpcSender<bool>),
     /// A new browser was created by script

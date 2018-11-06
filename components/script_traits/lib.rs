@@ -720,6 +720,8 @@ pub enum ConstellationMsg {
     IsReadyToSaveImage(HashMap<PipelineId, Epoch>),
     /// Inform the constellation of a key event.
     Keyboard(KeyboardEvent),
+    /// Whether to allow script to navigate.
+    AllowNavigation(TopLevelBrowsingContextId, PipelineId, ServoUrl, bool),
     /// Request to load a page.
     LoadUrl(TopLevelBrowsingContextId, ServoUrl),
     /// Request to traverse the joint session history of the provided browsing context.
@@ -764,6 +766,7 @@ impl fmt::Debug for ConstellationMsg {
             GetFocusTopLevelBrowsingContext(..) => "GetFocusTopLevelBrowsingContext",
             IsReadyToSaveImage(..) => "IsReadyToSaveImage",
             Keyboard(..) => "Keyboard",
+            AllowNavigation(..) => "AllowNavigation",
             LoadUrl(..) => "LoadUrl",
             TraverseHistory(..) => "TraverseHistory",
             WindowSize(..) => "WindowSize",

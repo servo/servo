@@ -266,6 +266,26 @@ where
                 self.compositor.on_resize_window_event();
             },
 
+            WindowEvent::AllowNavigation(
+                top_level_browsing_context_id,
+                pipeline_id,
+                url,
+                allowed,
+            ) => {
+                let msg = ConstellationMsg::AllowNavigation(
+                    top_level_browsing_context_id,
+                    pipeline_id,
+                    url,
+                    allowed,
+                );
+                if let Err(e) = self.constellation_chan.send(msg) {
+                    warn!(
+                        "Sending allow navigation to constellation failed ({:?}).",
+                        e
+                    );
+                }
+            },
+
             WindowEvent::LoadUrl(top_level_browsing_context_id, url) => {
                 let msg = ConstellationMsg::LoadUrl(top_level_browsing_context_id, url);
                 if let Err(e) = self.constellation_chan.send(msg) {
