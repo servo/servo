@@ -173,7 +173,7 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                     None,
                     stacking_context.transform_style,
                     stacking_context.mix_blend_mode,
-                    stacking_context.filters.clone(),
+                    &stacking_context.filters,
                     RasterSpace::Screen,
                 );
 
