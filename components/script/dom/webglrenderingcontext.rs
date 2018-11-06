@@ -808,7 +808,7 @@ impl WebGLRenderingContext {
             width as i32,
             height as i32,
             format,
-            data_type,
+            self.extension_manager.effective_type(data_type),
             receiver,
         ));
         sender.send(&pixels).unwrap();
@@ -1179,6 +1179,10 @@ impl WebGLRenderingContext {
 
     pub fn bound_framebuffer(&self) -> Option<DomRoot<WebGLFramebuffer>> {
         self.bound_framebuffer.get()
+    }
+
+    pub fn extension_manager(&self) -> &WebGLExtensions {
+        &self.extension_manager
     }
 }
 
@@ -4059,18 +4063,13 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             return self.webgl_error(InvalidValue);
         }
 
-        match self.bound_renderbuffer.get() {
-            Some(rb) => {
-                handle_potential_webgl_error!(self, rb.storage(internal_format, width, height));
-                if let Some(fb) = self.bound_framebuffer.get() {
-                    fb.invalidate_renderbuffer(&*rb);
-                }
-            },
-            None => self.webgl_error(InvalidOperation),
-        };
+        let rb = handle_potential_webgl_error!(self, self.bound_renderbuffer.get().ok_or(InvalidOperation), return);
+        handle_potential_webgl_error!(self, rb.storage(internal_format, width, height));
+        if let Some(fb) = self.bound_framebuffer.get() {
+            fb.invalidate_renderbuffer(&*rb);
+        }
 
-        // FIXME: We need to clear the renderbuffer before it can be
-        // accessed.  See https://github.com/servo/servo/issues/13710
+        // FIXME: https://github.com/servo/servo/issues/13710
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.6

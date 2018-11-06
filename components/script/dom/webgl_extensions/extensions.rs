@@ -11,9 +11,13 @@ use dom::bindings::codegen::Bindings::OESTextureHalfFloatBinding::OESTextureHalf
 use dom::bindings::codegen::Bindings::OESVertexArrayObjectBinding::OESVertexArrayObjectConstants;
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
 use dom::bindings::trace::JSTraceable;
+use dom::extcolorbufferhalffloat::EXTColorBufferHalfFloat;
+use dom::oestexturefloat::OESTextureFloat;
+use dom::oestexturehalffloat::OESTextureHalfFloat;
+use dom::webglcolorbufferfloat::WEBGLColorBufferFloat;
 use dom::webglrenderingcontext::WebGLRenderingContext;
 use fnv::{FnvHashMap, FnvHashSet};
-use gleam::gl::GLenum;
+use gleam::gl::{self, GLenum};
 use js::jsapi::JSObject;
 use malloc_size_of::MallocSizeOf;
 use std::collections::HashMap;
@@ -333,6 +337,7 @@ impl WebGLExtensions {
     fn register_all_extensions(&self) {
         self.register::<ext::angleinstancedarrays::ANGLEInstancedArrays>();
         self.register::<ext::extblendminmax::EXTBlendMinmax>();
+        self.register::<ext::extcolorbufferhalffloat::EXTColorBufferHalfFloat>();
         self.register::<ext::extshadertexturelod::EXTShaderTextureLod>();
         self.register::<ext::exttexturefilteranisotropic::EXTTextureFilterAnisotropic>();
         self.register::<ext::oeselementindexuint::OESElementIndexUint>();
@@ -342,6 +347,7 @@ impl WebGLExtensions {
         self.register::<ext::oestexturehalffloat::OESTextureHalfFloat>();
         self.register::<ext::oestexturehalffloatlinear::OESTextureHalfFloatLinear>();
         self.register::<ext::oesvertexarrayobject::OESVertexArrayObject>();
+        self.register::<ext::webglcolorbufferfloat::WEBGLColorBufferFloat>();
     }
 
     pub fn enable_element_index_uint(&self) {
@@ -358,6 +364,23 @@ impl WebGLExtensions {
 
     pub fn is_blend_minmax_enabled(&self) -> bool {
         self.features.borrow().blend_minmax_enabled
+    }
+
+    pub fn is_float_buffer_renderable(&self) -> bool {
+        self.is_enabled::<WEBGLColorBufferFloat>() || self.is_enabled::<OESTextureFloat>()
+    }
+
+    pub fn is_half_float_buffer_renderable(&self) -> bool {
+        self.is_enabled::<EXTColorBufferHalfFloat>() || self.is_enabled::<OESTextureHalfFloat>()
+    }
+
+    pub fn effective_type(&self, type_: u32) -> u32 {
+        if type_ == OESTextureHalfFloatConstants::HALF_FLOAT_OES {
+            if !self.supports_gl_extension("GL_OES_texture_half_float") {
+                return gl::HALF_FLOAT;
+            }
+        }
+        type_
     }
 }
 

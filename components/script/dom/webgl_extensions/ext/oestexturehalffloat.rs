@@ -47,12 +47,9 @@ impl WebGLExtension for OESTextureHalfFloat {
     }
 
     fn enable(ext: &WebGLExtensions) {
-        // Enable FLOAT text data type
         let hf = OESTextureHalfFloatConstants::HALF_FLOAT_OES;
         ext.enable_tex_type(hf);
-        let needs_replace = !ext.supports_gl_extension("GL_OES_texture_float");
-        if needs_replace {
-            // Special internal formats must be used to avoid clamped float values
+        if !ext.supports_gl_extension("GL_OES_texture_half_float") {
             ext.add_effective_tex_internal_format(webgl::RGBA, hf, gl::RGBA16F);
             ext.add_effective_tex_internal_format(webgl::RGB, hf, gl::RGB16F);
             ext.add_effective_tex_internal_format(webgl::LUMINANCE, hf, gl::LUMINANCE16F_ARB);
