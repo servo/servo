@@ -21,6 +21,7 @@ def test_sessionid(new_session, add_browser_capabilities):
     ("proxy", dict),
     ("setWindowRect", bool),
     ("timeouts", dict),
+    ("strictFileInteractability", bool),
     ("unhandledPromptBehavior", basestring),
 ])
 def test_capability_type(session, capability, type):
@@ -35,6 +36,7 @@ def test_capability_type(session, capability, type):
     ("proxy", {}),
     ("setWindowRect", True),
     ("timeouts", {"implicit": 0, "pageLoad": 300000, "script": 30000}),
+    ("strictFileInteractability", False),
     ("unhandledPromptBehavior", "dismiss and notify"),
 ])
 def test_capability_default_value(session, capability, default_value):
