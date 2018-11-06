@@ -1,7 +1,6 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
-#![rustfmt::skip]
 
 /**
 ```
@@ -21,6 +20,7 @@ fn main() {
 */
 pub fn imports_ok() {}
 
+#[rustfmt::skip]
 pub mod does_not_impl_malloc_size_of {
     /**
     ```compile_fail,E0277
@@ -63,6 +63,7 @@ pub mod does_not_impl_malloc_size_of {
     pub fn rc() {}
 }
 
+#[rustfmt::skip]
 pub mod does_not_impl_malloc_shallow_size_of {
     /**
     ```compile_fail,E0277
