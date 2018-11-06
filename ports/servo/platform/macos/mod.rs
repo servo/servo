@@ -2,7 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use servo::config::opts;
 use std::ptr;
+use std::thread;
+use std::time::Duration;
 
 pub fn deinit() {
     // An unfortunate hack to make sure the linker's dead code stripping doesn't strip our
@@ -10,9 +13,36 @@ pub fn deinit() {
     unsafe {
         ptr::read_volatile(&INFO_PLIST[0]);
     }
+
+    let thread_count = unsafe {
+        macos_count_running_threads()
+    };
+
+    if thread_count != 1 {
+        println!("{} threads are still running after shutdown (bad).", thread_count);
+        if opts::get().clean_shutdown {
+            println!("Waiting until all threads have shutdown");
+            loop {
+                let thread_count = unsafe {
+                    macos_count_running_threads()
+                };
+                if thread_count == 1 {
+                    break;
+                }
+                thread::sleep(Duration::from_millis(1000));
+                println!("{} threads are still running.", thread_count);
+            }
+        }
+    } else {
+        println!("All threads have shutdown (good).");
+    }
 }
 
-#[cfg(target_os = "macos")]
 #[link_section = "__TEXT,__info_plist"]
 #[no_mangle]
 pub static INFO_PLIST: [u8; 619] = *include_bytes!("Info.plist");
+
+#[link(name = "count_threads")]
+extern {
+    fn macos_count_running_threads() -> i32;
+}

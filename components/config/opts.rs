@@ -226,6 +226,9 @@ pub struct Opts {
 
     /// Print Progressive Web Metrics to console.
     pub print_pwm: bool,
+
+    /// Only shutdown once all theads are finished.
+    pub clean_shutdown: bool,
 }
 
 fn print_usage(app: &str, opts: &Options) {
@@ -600,6 +603,7 @@ pub fn default_opts() -> Opts {
         certificate_path: None,
         unminify_js: false,
         print_pwm: false,
+        clean_shutdown: false,
     }
 }
 
@@ -751,6 +755,11 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
         "config-dir",
         "config directory following xdg spec on linux platform",
         "",
+    );
+    opts.optflag(
+        "",
+        "clean-shutdown",
+        "Do not shutdown until all threads have finished (macos only)",
     );
     opts.optflag("v", "version", "Display servo version information");
     opts.optflag("", "unminify-js", "Unminify Javascript");
@@ -1035,6 +1044,7 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
         certificate_path: opt_match.opt_str("certificate-path"),
         unminify_js: opt_match.opt_present("unminify-js"),
         print_pwm: opt_match.opt_present("print-pwm"),
+        clean_shutdown: opt_match.opt_present("clean-shutdown"),
     };
 
     set_defaults(opts);

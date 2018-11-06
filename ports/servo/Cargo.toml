@@ -16,6 +16,9 @@ bench = false
 [target.'cfg(windows)'.build-dependencies]
 winres = "0.1"
 
+[target.'cfg(target_os = "macos")'.build-dependencies]
+cc = "1.0"
+
 [package.metadata.winres]
 FileDescription = "Servo"
 LegalCopyright = "© The Servo Project Developers"
