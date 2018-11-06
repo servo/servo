@@ -4187,9 +4187,9 @@ fn static_assert() {
             UniqueRefPtr::from_addrefed(Gecko_NewStyleQuoteValues(other.0.len() as u32))
         };
 
-        for (servo, gecko) in other.0.into_iter().zip(refptr.mQuotePairs.iter_mut()) {
-            gecko.first.assign_str(&servo.0);
-            gecko.second.assign_str(&servo.1);
+        for (servo, gecko) in other.0.iter().zip(refptr.mQuotePairs.iter_mut()) {
+            gecko.first.assign_str(&servo.opening);
+            gecko.second.assign_str(&servo.closing);
         }
 
         self.gecko.mQuotes.set_move(refptr.get())
@@ -4206,14 +4206,14 @@ fn static_assert() {
     pub fn clone_quotes(&self) -> longhands::quotes::computed_value::T {
         unsafe {
             let ref gecko_quote_values = *self.gecko.mQuotes.mRawPtr;
-            longhands::quotes::computed_value::T(
+            longhands::quotes::computed_value::T(Arc::new(
                 gecko_quote_values.mQuotePairs.iter().map(|gecko_pair| {
-                    (
-                        gecko_pair.first.to_string().into_boxed_str(),
-                        gecko_pair.second.to_string().into_boxed_str(),
-                    )
+                    values::specified::QuotePair {
+                        opening: gecko_pair.first.to_string().into_boxed_str(),
+                        closing: gecko_pair.second.to_string().into_boxed_str(),
+                    }
                 }).collect::<Vec<_>>().into_boxed_slice()
-            )
+            ))
         }
     }
 
