@@ -128,12 +128,15 @@ pub unsafe extern "C" fn heartbeat_servo(servo: *mut ServoInstance) {
     // Servo heartbeat goes here!
     if let Some(servo) = servo.as_mut() {
         servo.servo.handle_events(vec![]);
-        for ((_browser_id, event)) in servo.servo.get_events() {
+        for ((browser_id, event)) in servo.servo.get_events() {
             match event {
                 // Respond to any messages with a response channel
                 // to avoid deadlocking the constellation
-                EmbedderMsg::AllowNavigation(_url, sender) => {
-                    let _ = sender.send(true);
+                EmbedderMsg::AllowNavigationRequest(pipeline_id, _url) => {
+                    if let Some(_browser_id) = browser_id {
+                        let window_event = WindowEvent::AllowNavigationResponse(pipeline_id, true);
+                        servo.servo.handle_events(vec![window_event]);
+                    }
                 },
                 EmbedderMsg::GetSelectedBluetoothDevice(_, sender) => {
                     let _ = sender.send(None);

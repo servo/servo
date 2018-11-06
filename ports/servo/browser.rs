@@ -290,9 +290,10 @@ impl Browser {
                             .push(WindowEvent::SendError(browser_id, reason));
                     }
                 },
-                EmbedderMsg::AllowNavigation(_url, sender) => {
-                    if let Err(e) = sender.send(true) {
-                        warn!("Failed to send AllowNavigation response: {}", e);
+                EmbedderMsg::AllowNavigationRequest(pipeline_id, _url) => {
+                    if let Some(_browser_id) = browser_id {
+                        self.event_queue
+                            .push(WindowEvent::AllowNavigationResponse(pipeline_id, true));
                     }
                 },
                 EmbedderMsg::AllowOpeningBrowser(response_chan) => {
