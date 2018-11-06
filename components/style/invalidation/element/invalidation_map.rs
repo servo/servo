@@ -358,7 +358,7 @@ impl<'a> SelectorVisitor for CompoundSelectorDependencyCollector<'a> {
 
     fn visit_simple_selector(&mut self, s: &Component<SelectorImpl>) -> bool {
         #[cfg(feature = "gecko")]
-        use selector_parser::NonTSPseudoClass;
+        use crate::selector_parser::NonTSPseudoClass;
 
         match *s {
             Component::ID(ref id) => {

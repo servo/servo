@@ -4,16 +4,16 @@
 
 //! Little helpers for `nsCSSValue`.
 
-use gecko_bindings::bindings;
-use gecko_bindings::structs;
-use gecko_bindings::structs::{nsCSSUnit, nsCSSValue};
-use gecko_bindings::structs::{nsCSSValueList, nsCSSValue_Array};
-use gecko_string_cache::Atom;
+use crate::gecko_bindings::bindings;
+use crate::gecko_bindings::structs;
+use crate::gecko_bindings::structs::{nsCSSUnit, nsCSSValue};
+use crate::gecko_bindings::structs::{nsCSSValueList, nsCSSValue_Array};
+use crate::gecko_string_cache::Atom;
+use crate::values::computed::{Angle, Length, LengthOrPercentage, Percentage};
 use std::marker::PhantomData;
 use std::mem;
 use std::ops::{Index, IndexMut};
 use std::slice;
-use values::computed::{Angle, Length, LengthOrPercentage, Percentage};
 
 impl nsCSSValue {
     /// Create a CSSValue with null unit, useful to be used as a return value.

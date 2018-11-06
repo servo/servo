@@ -29,7 +29,7 @@ fn is_context_value_enabled() -> bool {
     // The prefs can only be mutated on the main thread, so it is safe
     // to read whenever we are on the main thread or the main thread is
     // blocked.
-    use gecko_bindings::structs::mozilla;
+    use crate::gecko_bindings::structs::mozilla;
     unsafe { mozilla::StaticPrefs_sVarCache_gfx_font_rendering_opentype_svg_enabled }
 }
 #[cfg(not(feature = "gecko"))]

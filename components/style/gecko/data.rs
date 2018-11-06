@@ -5,23 +5,23 @@
 //! Data needed to style a Gecko document.
 
 use atomic_refcell::{AtomicRef, AtomicRefCell, AtomicRefMut};
-use context::QuirksMode;
-use dom::TElement;
-use gecko_bindings::bindings::{self, RawServoStyleSet};
-use gecko_bindings::structs::StyleSheet as DomStyleSheet;
-use gecko_bindings::structs::{nsIDocument, StyleSheetInfo};
-use gecko_bindings::structs::{RawGeckoPresContextBorrowed, ServoStyleSetSizes};
-use gecko_bindings::sugar::ownership::{HasArcFFI, HasBoxFFI, HasFFI, HasSimpleFFI};
-use invalidation::media_queries::{MediaListKey, ToMediaListKey};
+use crate::context::QuirksMode;
+use crate::dom::TElement;
+use crate::gecko_bindings::bindings::{self, RawServoStyleSet};
+use crate::gecko_bindings::structs::StyleSheet as DomStyleSheet;
+use crate::gecko_bindings::structs::{nsIDocument, StyleSheetInfo};
+use crate::gecko_bindings::structs::{RawGeckoPresContextBorrowed, ServoStyleSetSizes};
+use crate::gecko_bindings::sugar::ownership::{HasArcFFI, HasBoxFFI, HasFFI, HasSimpleFFI};
+use crate::invalidation::media_queries::{MediaListKey, ToMediaListKey};
+use crate::media_queries::{Device, MediaList};
+use crate::properties::ComputedValues;
+use crate::selector_parser::SnapshotMap;
+use crate::shared_lock::{Locked, SharedRwLockReadGuard, StylesheetGuards};
+use crate::stylesheets::{CssRule, Origin, StylesheetContents, StylesheetInDocument};
+use crate::stylist::Stylist;
 use malloc_size_of::MallocSizeOfOps;
-use media_queries::{Device, MediaList};
-use properties::ComputedValues;
-use selector_parser::SnapshotMap;
 use servo_arc::Arc;
-use shared_lock::{Locked, SharedRwLockReadGuard, StylesheetGuards};
 use std::fmt;
-use stylesheets::{CssRule, Origin, StylesheetContents, StylesheetInDocument};
-use stylist::Stylist;
 
 /// Little wrapper to a Gecko style sheet.
 #[derive(Eq, PartialEq)]
@@ -38,7 +38,7 @@ impl fmt::Debug for GeckoStyleSheet {
     }
 }
 
-impl ToMediaListKey for ::gecko::data::GeckoStyleSheet {
+impl ToMediaListKey for crate::gecko::data::GeckoStyleSheet {
     fn to_media_list_key(&self) -> MediaListKey {
         use std::mem;
         unsafe { MediaListKey::from_raw(mem::transmute(self.0)) }
@@ -105,7 +105,7 @@ impl StylesheetInDocument for GeckoStyleSheet {
     }
 
     fn media<'a>(&'a self, guard: &'a SharedRwLockReadGuard) -> Option<&'a MediaList> {
-        use gecko_bindings::structs::mozilla::dom::MediaList as DomMediaList;
+        use crate::gecko_bindings::structs::mozilla::dom::MediaList as DomMediaList;
         use std::mem;
 
         unsafe {

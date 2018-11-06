@@ -63,7 +63,7 @@ pub type UrlExtraData = ::servo_url::ServoUrl;
 #[cfg(feature = "gecko")]
 #[derive(Clone, PartialEq)]
 pub struct UrlExtraData(
-    pub ::gecko_bindings::sugar::refptr::RefPtr<::gecko_bindings::structs::URLExtraData>,
+    pub crate::gecko_bindings::sugar::refptr::RefPtr<crate::gecko_bindings::structs::URLExtraData>,
 );
 
 #[cfg(feature = "gecko")]
@@ -80,7 +80,7 @@ impl UrlExtraData {
     ///
     /// This method doesn't touch refcount.
     #[inline]
-    pub unsafe fn from_ptr_ref(ptr: &*mut ::gecko_bindings::structs::URLExtraData) -> &Self {
+    pub unsafe fn from_ptr_ref(ptr: &*mut crate::gecko_bindings::structs::URLExtraData) -> &Self {
         ::std::mem::transmute(ptr)
     }
 }
@@ -88,7 +88,7 @@ impl UrlExtraData {
 #[cfg(feature = "gecko")]
 impl fmt::Debug for UrlExtraData {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-        use gecko_bindings::{bindings, structs};
+        use crate::gecko_bindings::{bindings, structs};
 
         struct DebugURI(*mut structs::nsIURI);
         impl fmt::Debug for DebugURI {

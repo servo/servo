@@ -8,11 +8,11 @@
 #![deny(missing_docs)]
 
 use atomic_refcell::{AtomicRef, AtomicRefCell, AtomicRefMut};
-#[cfg(feature = "gecko")]
-use context::PostAnimationTasks;
-#[cfg(feature = "gecko")]
-use context::UpdateAnimationsTasks;
 use crate::applicable_declarations::ApplicableDeclarationBlock;
+#[cfg(feature = "gecko")]
+use crate::context::PostAnimationTasks;
+#[cfg(feature = "gecko")]
+use crate::context::UpdateAnimationsTasks;
 use crate::data::ElementData;
 use crate::element_state::ElementState;
 use crate::font_metrics::FontMetricsProvider;

@@ -59,7 +59,7 @@ fn is_effective_display_none_for_display_contents<E>(element: E) -> bool
 where
     E: TElement,
 {
-    use Atom;
+    use crate::Atom;
 
     // FIXME(emilio): This should be an actual static.
     lazy_static! {
@@ -272,8 +272,8 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
     /// mutating writing-mode change the potential physical sides chosen?
     #[cfg(feature = "gecko")]
     fn adjust_for_text_combine_upright(&mut self) {
-        use computed_values::text_combine_upright::T as TextCombineUpright;
-        use computed_values::writing_mode::T as WritingMode;
+        use crate::computed_values::text_combine_upright::T as TextCombineUpright;
+        use crate::computed_values::writing_mode::T as WritingMode;
 
         let writing_mode = self.style.get_inherited_box().clone_writing_mode();
         let text_combine_upright = self.style.get_inherited_text().clone_text_combine_upright();
@@ -346,9 +346,9 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
     /// both forced to "normal".
     #[cfg(feature = "gecko")]
     fn adjust_for_mathvariant(&mut self) {
-        use properties::longhands::_moz_math_variant::computed_value::T as MozMathVariant;
-        use properties::longhands::font_weight::computed_value::T as FontWeight;
-        use values::generics::font::FontStyle;
+        use crate::properties::longhands::_moz_math_variant::computed_value::T as MozMathVariant;
+        use crate::properties::longhands::font_weight::computed_value::T as FontWeight;
+        use crate::values::generics::font::FontStyle;
         if self.style.get_font().clone__moz_math_variant() != MozMathVariant::None {
             let font_style = self.style.mutate_font();
             font_style.set_font_weight(FontWeight::normal());
@@ -512,7 +512,7 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
     /// table.
     #[cfg(feature = "gecko")]
     fn adjust_for_table_text_align(&mut self) {
-        use properties::longhands::text_align::computed_value::T as TextAlign;
+        use crate::properties::longhands::text_align::computed_value::T as TextAlign;
         if self.style.get_box().clone_display() != Display::Table {
             return;
         }
@@ -587,7 +587,7 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
     where
         E: TElement,
     {
-        use properties::longhands::unicode_bidi::computed_value::T as UnicodeBidi;
+        use crate::properties::longhands::unicode_bidi::computed_value::T as UnicodeBidi;
 
         let self_display = self.style.get_box().clone_display();
         // Check whether line break should be suppressed for this element.
@@ -669,7 +669,7 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
     /// <https://drafts.csswg.org/css-align/#valdef-justify-items-legacy>
     #[cfg(feature = "gecko")]
     fn adjust_for_justify_items(&mut self) {
-        use values::specified::align;
+        use crate::values::specified::align;
         let justify_items = self.style.get_position().clone_justify_items();
         if justify_items.specified.0 != align::AlignFlags::LEGACY {
             return;
@@ -703,8 +703,8 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
     where
         E: TElement,
     {
-        use properties::longhands::_moz_appearance::computed_value::T as Appearance;
-        use properties::longhands::line_height::computed_value::T as LineHeight;
+        use crate::properties::longhands::_moz_appearance::computed_value::T as Appearance;
+        use crate::properties::longhands::line_height::computed_value::T as LineHeight;
 
         if self.style.get_box().clone__moz_appearance() == Appearance::Menulist {
             if self.style.get_inherited_text().clone_line_height() == LineHeight::normal() {

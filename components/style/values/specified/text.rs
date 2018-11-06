@@ -793,7 +793,7 @@ impl TextEmphasisPosition {
     #[cfg(feature = "gecko")]
     /// Converts an enumerated value coming from Gecko to a `TextEmphasisPosition`.
     pub fn from_gecko_keyword(kw: u32) -> Self {
-        use gecko_bindings::structs;
+        use crate::gecko_bindings::structs;
 
         let vert = if kw & structs::NS_STYLE_TEXT_EMPHASIS_POSITION_RIGHT != 0 {
             TextEmphasisVerticalWritingModeValue::Right
@@ -839,7 +839,7 @@ impl From<u8> for TextEmphasisPosition {
 #[cfg(feature = "gecko")]
 impl From<TextEmphasisPosition> for u8 {
     fn from(v: TextEmphasisPosition) -> u8 {
-        use gecko_bindings::structs;
+        use crate::gecko_bindings::structs;
 
         let mut result = match v.0 {
             TextEmphasisHorizontalWritingModeValue::Over => {

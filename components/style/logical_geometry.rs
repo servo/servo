@@ -79,7 +79,7 @@ impl WritingMode {
 
         #[cfg(feature = "gecko")]
         {
-            use properties::longhands::text_orientation::computed_value::T as TextOrientation;
+            use crate::properties::longhands::text_orientation::computed_value::T as TextOrientation;
 
             // If FLAG_SIDEWAYS is already set, this means writing-mode is
             // either sideways-rl or sideways-lr, and for both of these values,

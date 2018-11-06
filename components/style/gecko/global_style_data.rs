@@ -4,17 +4,19 @@
 
 //! Global style data
 
-use context::StyleSystemOptions;
-use gecko_bindings::bindings::Gecko_SetJemallocThreadLocalArena;
-use gecko_bindings::bindings::{Gecko_RegisterProfilerThread, Gecko_UnregisterProfilerThread};
+use crate::context::StyleSystemOptions;
+use crate::gecko_bindings::bindings::Gecko_SetJemallocThreadLocalArena;
+use crate::gecko_bindings::bindings::{
+    Gecko_RegisterProfilerThread, Gecko_UnregisterProfilerThread,
+};
+use crate::parallel::STYLE_THREAD_STACK_SIZE_KB;
+use crate::shared_lock::SharedRwLock;
+use crate::thread_state;
 use num_cpus;
-use parallel::STYLE_THREAD_STACK_SIZE_KB;
 use rayon;
-use shared_lock::SharedRwLock;
 use std::cmp;
 use std::env;
 use std::ffi::CString;
-use thread_state;
 
 /// Global style data
 pub struct GlobalStyleData {

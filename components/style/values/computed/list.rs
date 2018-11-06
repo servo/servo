@@ -4,9 +4,9 @@
 
 //! `list` computed values.
 
-pub use crate::values::specified::list::{QuotePair, Quotes};
 #[cfg(feature = "gecko")]
-pub use values::specified::list::ListStyleType;
+pub use crate::values::specified::list::ListStyleType;
+pub use crate::values::specified::list::{QuotePair, Quotes};
 
 use servo_arc::Arc;
 

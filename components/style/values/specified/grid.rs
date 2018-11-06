@@ -388,7 +388,7 @@ impl ToComputedValue for TrackList<LengthOrPercentage, Integer> {
 #[cfg(feature = "gecko")]
 #[inline]
 fn allow_grid_template_subgrids() -> bool {
-    use gecko_bindings::structs::mozilla;
+    use crate::gecko_bindings::structs::mozilla;
     unsafe { mozilla::StaticPrefs_sVarCache_layout_css_grid_template_subgrid_value_enabled }
 }
 

@@ -4,9 +4,9 @@
 
 //! Various stuff for CSS property use counters.
 
-use crate::properties::{NonCustomPropertyId, NON_CUSTOM_PROPERTY_ID_COUNT};
 #[cfg(feature = "gecko")]
-use gecko_bindings::sugar::ownership::{HasBoxFFI, HasFFI, HasSimpleFFI};
+use crate::gecko_bindings::sugar::ownership::{HasBoxFFI, HasFFI, HasSimpleFFI};
+use crate::properties::{NonCustomPropertyId, NON_CUSTOM_PROPERTY_ID_COUNT};
 use std::cell::Cell;
 
 #[cfg(target_pointer_width = "64")]
@@ -78,7 +78,7 @@ impl UseCounters {
 
 #[cfg(feature = "gecko")]
 unsafe impl HasFFI for UseCounters {
-    type FFIType = ::gecko_bindings::structs::StyleUseCounters;
+    type FFIType = crate::gecko_bindings::structs::StyleUseCounters;
 }
 
 #[cfg(feature = "gecko")]

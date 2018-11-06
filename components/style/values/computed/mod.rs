@@ -14,14 +14,14 @@ use super::{CSSFloat, CSSInteger};
 use crate::context::QuirksMode;
 use crate::font_metrics::{get_metrics_provider_for_product, FontMetricsProvider};
 use crate::media_queries::Device;
+#[cfg(feature = "gecko")]
+use crate::properties;
 use crate::properties::{ComputedValues, LonghandId, StyleBuilder};
 use crate::rule_cache::RuleCacheConditions;
 use crate::Atom;
 #[cfg(feature = "servo")]
 use crate::Prefix;
 use euclid::Size2D;
-#[cfg(feature = "gecko")]
-use properties;
 use std::cell::RefCell;
 use std::cmp;
 use std::f32;

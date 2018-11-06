@@ -745,7 +745,7 @@ impl<'a, 'b: 'a> Cascade<'a, 'b> {
                 let gecko_font = self.context.builder.mutate_font().gecko_mut();
                 gecko_font.mGenericID = generic;
                 unsafe {
-                    ::gecko_bindings::bindings::Gecko_nsStyleFont_PrefillDefaultForGeneric(
+                    crate::gecko_bindings::bindings::Gecko_nsStyleFont_PrefillDefaultForGeneric(
                         gecko_font,
                         pres_context,
                         generic,
@@ -796,7 +796,7 @@ impl<'a, 'b: 'a> Cascade<'a, 'b> {
                     self.seen.contains(LonghandId::MozMinFontSizeRatio) ||
                     self.seen.contains(LonghandId::FontFamily)
                 {
-                    use properties::{CSSWideKeyword, WideKeywordDeclaration};
+                    use crate::properties::{CSSWideKeyword, WideKeywordDeclaration};
 
                     // font-size must be explicitly inherited to handle lang
                     // changes and scriptlevel changes.

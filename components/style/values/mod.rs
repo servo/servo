@@ -8,20 +8,20 @@
 
 #![deny(missing_docs)]
 
-pub use cssparser::{serialize_identifier, serialize_name, CowRcStr, Parser};
-pub use cssparser::{SourceLocation, Token, RGBA};
-use crate::Atom;
 use crate::parser::{Parse, ParserContext};
 use crate::values::distance::{ComputeSquaredDistance, SquaredDistance};
+use crate::Atom;
+pub use cssparser::{serialize_identifier, serialize_name, CowRcStr, Parser};
+pub use cssparser::{SourceLocation, Token, RGBA};
 use selectors::parser::SelectorParseErrorKind;
 use std::fmt::{self, Debug, Write};
 use std::hash;
 use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
 
+#[cfg(feature = "gecko")]
+pub use crate::gecko::url::CssUrl;
 #[cfg(feature = "servo")]
 pub use crate::servo::url::CssUrl;
-#[cfg(feature = "gecko")]
-pub use gecko::url::CssUrl;
 
 pub mod animated;
 pub mod computed;

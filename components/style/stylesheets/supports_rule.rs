@@ -222,8 +222,8 @@ impl SupportsCondition {
 
 #[cfg(feature = "gecko")]
 fn eval_moz_bool_pref(name: &CStr, cx: &ParserContext) -> bool {
-    use gecko_bindings::bindings;
-    use stylesheets::Origin;
+    use crate::gecko_bindings::bindings;
+    use crate::stylesheets::Origin;
     if cx.stylesheet_origin != Origin::UserAgent && !cx.chrome_rules_enabled() {
         return false;
     }
@@ -325,7 +325,7 @@ impl RawSelector {
         #[cfg(feature = "gecko")]
         {
             if unsafe {
-                !::gecko_bindings::structs::StaticPrefs_sVarCache_layout_css_supports_selector_enabled
+                !crate::gecko_bindings::structs::StaticPrefs_sVarCache_layout_css_supports_selector_enabled
             } {
                 return false;
             }
@@ -347,7 +347,7 @@ impl RawSelector {
 
                 #[cfg(feature = "gecko")]
                 {
-                    use selector_parser::PseudoElement;
+                    use crate::selector_parser::PseudoElement;
                     use selectors::parser::Component;
 
                     let has_any_unknown_webkit_pseudo = selector.has_pseudo_element() && selector

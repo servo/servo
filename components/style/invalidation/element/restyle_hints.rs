@@ -4,9 +4,9 @@
 
 //! Restyle hints: an optimization to avoid unnecessarily matching selectors.
 
-use crate::traversal_flags::TraversalFlags;
 #[cfg(feature = "gecko")]
-use gecko_bindings::structs::nsRestyleHint;
+use crate::gecko_bindings::structs::nsRestyleHint;
+use crate::traversal_flags::TraversalFlags;
 
 bitflags! {
     /// The kind of restyle we need to do for a given element.
@@ -193,12 +193,12 @@ impl Default for RestyleHint {
 #[cfg(feature = "gecko")]
 impl From<nsRestyleHint> for RestyleHint {
     fn from(mut raw: nsRestyleHint) -> Self {
-        use gecko_bindings::structs::nsRestyleHint_eRestyle_Force as eRestyle_Force;
-        use gecko_bindings::structs::nsRestyleHint_eRestyle_ForceDescendants as eRestyle_ForceDescendants;
-        use gecko_bindings::structs::nsRestyleHint_eRestyle_LaterSiblings as eRestyle_LaterSiblings;
-        use gecko_bindings::structs::nsRestyleHint_eRestyle_Self as eRestyle_Self;
-        use gecko_bindings::structs::nsRestyleHint_eRestyle_SomeDescendants as eRestyle_SomeDescendants;
-        use gecko_bindings::structs::nsRestyleHint_eRestyle_Subtree as eRestyle_Subtree;
+        use crate::gecko_bindings::structs::nsRestyleHint_eRestyle_Force as eRestyle_Force;
+        use crate::gecko_bindings::structs::nsRestyleHint_eRestyle_ForceDescendants as eRestyle_ForceDescendants;
+        use crate::gecko_bindings::structs::nsRestyleHint_eRestyle_LaterSiblings as eRestyle_LaterSiblings;
+        use crate::gecko_bindings::structs::nsRestyleHint_eRestyle_Self as eRestyle_Self;
+        use crate::gecko_bindings::structs::nsRestyleHint_eRestyle_SomeDescendants as eRestyle_SomeDescendants;
+        use crate::gecko_bindings::structs::nsRestyleHint_eRestyle_Subtree as eRestyle_Subtree;
 
         let mut hint = RestyleHint::empty();
 
@@ -241,7 +241,7 @@ malloc_size_of_is_0!(RestyleHint);
 #[cfg(feature = "gecko")]
 #[inline]
 pub fn assert_restyle_hints_match() {
-    use gecko_bindings::structs;
+    use crate::gecko_bindings::structs;
 
     macro_rules! check_restyle_hints {
         ( $( $a:ident => $b:path),*, ) => {

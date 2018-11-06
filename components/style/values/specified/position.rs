@@ -522,7 +522,7 @@ impl Parse for GridAutoFlow {
 #[cfg(feature = "gecko")]
 impl From<u8> for GridAutoFlow {
     fn from(bits: u8) -> GridAutoFlow {
-        use gecko_bindings::structs;
+        use crate::gecko_bindings::structs;
 
         GridAutoFlow {
             autoflow: if bits & structs::NS_STYLE_GRID_AUTO_FLOW_ROW as u8 != 0 {
@@ -538,7 +538,7 @@ impl From<u8> for GridAutoFlow {
 #[cfg(feature = "gecko")]
 impl From<GridAutoFlow> for u8 {
     fn from(v: GridAutoFlow) -> u8 {
-        use gecko_bindings::structs;
+        use crate::gecko_bindings::structs;
 
         let mut result: u8 = match v.autoflow {
             AutoFlow::Row => structs::NS_STYLE_GRID_AUTO_FLOW_ROW as u8,

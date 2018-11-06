@@ -58,7 +58,7 @@ pub enum TimingKeyword {
 
 #[cfg(feature = "gecko")]
 fn step_position_jump_enabled(_context: &ParserContext) -> bool {
-    use gecko_bindings::structs;
+    use crate::gecko_bindings::structs;
     unsafe { structs::StaticPrefs_sVarCache_layout_css_step_position_jump_enabled }
 }
 

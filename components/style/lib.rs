@@ -165,15 +165,15 @@ pub mod use_counters;
 pub mod values;
 
 #[cfg(feature = "gecko")]
-pub use gecko_string_cache as string_cache;
+pub use crate::gecko_string_cache as string_cache;
 #[cfg(feature = "gecko")]
-pub use gecko_string_cache::Atom;
+pub use crate::gecko_string_cache::Atom;
 #[cfg(feature = "gecko")]
-pub use gecko_string_cache::Atom as Prefix;
+pub use crate::gecko_string_cache::Atom as Prefix;
 #[cfg(feature = "gecko")]
-pub use gecko_string_cache::Atom as LocalName;
+pub use crate::gecko_string_cache::Atom as LocalName;
 #[cfg(feature = "gecko")]
-pub use gecko_string_cache::Namespace;
+pub use crate::gecko_string_cache::Namespace;
 
 #[cfg(feature = "servo")]
 pub use html5ever::LocalName;
@@ -225,7 +225,7 @@ macro_rules! reexport_computed_values {
 longhand_properties_idents!(reexport_computed_values);
 
 #[cfg(feature = "gecko")]
-use gecko_string_cache::WeakAtom;
+use crate::gecko_string_cache::WeakAtom;
 #[cfg(feature = "servo")]
 use servo_atoms::Atom as WeakAtom;
 

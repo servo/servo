@@ -15,7 +15,7 @@ pub type Width = crate::values::specified::NonNegativeLengthOrPercentageOrAuto;
 
 /// The `width` value type.
 #[cfg(feature = "gecko")]
-pub type Width = ::values::specified::MozLength;
+pub type Width = crate::values::specified::MozLength;
 
 /// A specified value for the `flex-basis` property.
 pub type FlexBasis = GenericFlexBasis<Width>;

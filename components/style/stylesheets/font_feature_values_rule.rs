@@ -7,6 +7,10 @@
 //! [font-feature-values]: https://drafts.csswg.org/css-fonts-3/#at-font-feature-values-rule
 
 use crate::error_reporting::ContextualParseError;
+#[cfg(feature = "gecko")]
+use crate::gecko_bindings::bindings::Gecko_AppendFeatureValueHashEntry;
+#[cfg(feature = "gecko")]
+use crate::gecko_bindings::structs::{self, gfxFontFeatureValueSet, nsTArray};
 use crate::parser::{Parse, ParserContext};
 use crate::shared_lock::{SharedRwLockReadGuard, ToCssWithGuard};
 use crate::str::CssStringWriter;
@@ -17,10 +21,6 @@ use crate::Atom;
 use cssparser::{AtRuleParser, AtRuleType, BasicParseErrorKind, CowRcStr};
 use cssparser::{DeclarationListParser, DeclarationParser, Parser};
 use cssparser::{QualifiedRuleParser, RuleListParser, SourceLocation, Token};
-#[cfg(feature = "gecko")]
-use gecko_bindings::bindings::Gecko_AppendFeatureValueHashEntry;
-#[cfg(feature = "gecko")]
-use gecko_bindings::structs::{self, gfxFontFeatureValueSet, nsTArray};
 use std::fmt::{self, Write};
 use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
 

@@ -5,19 +5,19 @@
 //! A gecko snapshot, that stores the element attributes and state before they
 //! change in order to properly calculate restyle hints.
 
-use dom::TElement;
-use element_state::ElementState;
-use gecko::snapshot_helpers;
-use gecko::wrapper::{GeckoElement, NamespaceConstraintHelpers};
-use gecko_bindings::bindings;
-use gecko_bindings::structs::ServoElementSnapshot;
-use gecko_bindings::structs::ServoElementSnapshotFlags as Flags;
-use gecko_bindings::structs::ServoElementSnapshotTable;
-use invalidation::element::element_wrapper::ElementSnapshot;
+use crate::dom::TElement;
+use crate::element_state::ElementState;
+use crate::gecko::snapshot_helpers;
+use crate::gecko::wrapper::{GeckoElement, NamespaceConstraintHelpers};
+use crate::gecko_bindings::bindings;
+use crate::gecko_bindings::structs::ServoElementSnapshot;
+use crate::gecko_bindings::structs::ServoElementSnapshotFlags as Flags;
+use crate::gecko_bindings::structs::ServoElementSnapshotTable;
+use crate::invalidation::element::element_wrapper::ElementSnapshot;
+use crate::string_cache::{Atom, Namespace};
+use crate::WeakAtom;
 use selectors::attr::{AttrSelectorOperation, AttrSelectorOperator};
 use selectors::attr::{CaseSensitivity, NamespaceConstraint};
-use string_cache::{Atom, Namespace};
-use WeakAtom;
 
 /// A snapshot of a Gecko element.
 pub type GeckoElementSnapshot = ServoElementSnapshot;

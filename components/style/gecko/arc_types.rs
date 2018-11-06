@@ -8,40 +8,42 @@
 
 #![allow(non_snake_case, missing_docs)]
 
-use gecko::url::CssUrlData;
-use gecko_bindings::bindings::RawServoCounterStyleRule;
-use gecko_bindings::bindings::RawServoFontFeatureValuesRule;
-use gecko_bindings::bindings::RawServoImportRule;
-use gecko_bindings::bindings::RawServoKeyframe;
-use gecko_bindings::bindings::RawServoKeyframesRule;
-use gecko_bindings::bindings::RawServoMediaRule;
-use gecko_bindings::bindings::RawServoMozDocumentRule;
-use gecko_bindings::bindings::RawServoNamespaceRule;
-use gecko_bindings::bindings::RawServoPageRule;
-use gecko_bindings::bindings::RawServoRuleNode;
-use gecko_bindings::bindings::RawServoRuleNodeStrong;
-use gecko_bindings::bindings::RawServoSupportsRule;
-use gecko_bindings::bindings::ServoCssRules;
-use gecko_bindings::structs::RawServoAnimationValue;
-use gecko_bindings::structs::RawServoCssUrlData;
-use gecko_bindings::structs::RawServoDeclarationBlock;
-use gecko_bindings::structs::RawServoFontFaceRule;
-use gecko_bindings::structs::RawServoMediaList;
-use gecko_bindings::structs::RawServoQuotes;
-use gecko_bindings::structs::RawServoStyleRule;
-use gecko_bindings::structs::RawServoStyleSheetContents;
-use gecko_bindings::sugar::ownership::{HasArcFFI, HasFFI, Strong};
-use media_queries::MediaList;
-use properties::animated_properties::AnimationValue;
-use properties::{ComputedValues, PropertyDeclarationBlock};
-use rule_tree::StrongRuleNode;
+use crate::gecko::url::CssUrlData;
+use crate::gecko_bindings::bindings::RawServoCounterStyleRule;
+use crate::gecko_bindings::bindings::RawServoFontFeatureValuesRule;
+use crate::gecko_bindings::bindings::RawServoImportRule;
+use crate::gecko_bindings::bindings::RawServoKeyframe;
+use crate::gecko_bindings::bindings::RawServoKeyframesRule;
+use crate::gecko_bindings::bindings::RawServoMediaRule;
+use crate::gecko_bindings::bindings::RawServoMozDocumentRule;
+use crate::gecko_bindings::bindings::RawServoNamespaceRule;
+use crate::gecko_bindings::bindings::RawServoPageRule;
+use crate::gecko_bindings::bindings::RawServoRuleNode;
+use crate::gecko_bindings::bindings::RawServoRuleNodeStrong;
+use crate::gecko_bindings::bindings::RawServoSupportsRule;
+use crate::gecko_bindings::bindings::ServoCssRules;
+use crate::gecko_bindings::structs::RawServoAnimationValue;
+use crate::gecko_bindings::structs::RawServoCssUrlData;
+use crate::gecko_bindings::structs::RawServoDeclarationBlock;
+use crate::gecko_bindings::structs::RawServoFontFaceRule;
+use crate::gecko_bindings::structs::RawServoMediaList;
+use crate::gecko_bindings::structs::RawServoQuotes;
+use crate::gecko_bindings::structs::RawServoStyleRule;
+use crate::gecko_bindings::structs::RawServoStyleSheetContents;
+use crate::gecko_bindings::sugar::ownership::{HasArcFFI, HasFFI, Strong};
+use crate::media_queries::MediaList;
+use crate::properties::animated_properties::AnimationValue;
+use crate::properties::{ComputedValues, PropertyDeclarationBlock};
+use crate::rule_tree::StrongRuleNode;
+use crate::shared_lock::Locked;
+use crate::stylesheets::keyframes_rule::Keyframe;
+use crate::stylesheets::{CounterStyleRule, CssRules, FontFaceRule, FontFeatureValuesRule};
+use crate::stylesheets::{
+    DocumentRule, ImportRule, KeyframesRule, MediaRule, NamespaceRule, PageRule,
+};
+use crate::stylesheets::{StyleRule, StylesheetContents, SupportsRule};
 use servo_arc::{Arc, ArcBorrow};
-use shared_lock::Locked;
 use std::{mem, ptr};
-use stylesheets::keyframes_rule::Keyframe;
-use stylesheets::{CounterStyleRule, CssRules, FontFaceRule, FontFeatureValuesRule};
-use stylesheets::{DocumentRule, ImportRule, KeyframesRule, MediaRule, NamespaceRule, PageRule};
-use stylesheets::{StyleRule, StylesheetContents, SupportsRule};
 use values::computed::QuotePair;
 
 macro_rules! impl_arc_ffi {

@@ -29,14 +29,14 @@ fn in_ua_or_chrome_sheet(context: &ParserContext) -> bool {
 
 #[cfg(feature = "gecko")]
 fn moz_display_values_enabled(context: &ParserContext) -> bool {
-    use gecko_bindings::structs;
+    use crate::gecko_bindings::structs;
     in_ua_or_chrome_sheet(context) ||
         unsafe { structs::StaticPrefs_sVarCache_layout_css_xul_display_values_content_enabled }
 }
 
 #[cfg(feature = "gecko")]
 fn moz_box_display_values_enabled(context: &ParserContext) -> bool {
-    use gecko_bindings::structs;
+    use crate::gecko_bindings::structs;
     in_ua_or_chrome_sheet(context) ||
         unsafe {
             structs::StaticPrefs_sVarCache_layout_css_xul_box_display_values_content_enabled
@@ -670,7 +670,7 @@ impl_bitflags_conversions!(TouchAction);
 #[cfg(feature = "gecko")]
 #[inline]
 pub fn assert_touch_action_matches() {
-    use gecko_bindings::structs;
+    use crate::gecko_bindings::structs;
 
     macro_rules! check_touch_action {
         ( $( $a:ident => $b:path),*, ) => {
@@ -883,10 +883,12 @@ impl TransitionProperty {
 
     /// Convert TransitionProperty to nsCSSPropertyID.
     #[cfg(feature = "gecko")]
-    pub fn to_nscsspropertyid(&self) -> Result<::gecko_bindings::structs::nsCSSPropertyID, ()> {
+    pub fn to_nscsspropertyid(
+        &self,
+    ) -> Result<crate::gecko_bindings::structs::nsCSSPropertyID, ()> {
         Ok(match *self {
             TransitionProperty::Shorthand(ShorthandId::All) => {
-                ::gecko_bindings::structs::nsCSSPropertyID::eCSSPropertyExtra_all_properties
+                crate::gecko_bindings::structs::nsCSSPropertyID::eCSSPropertyExtra_all_properties
             },
             TransitionProperty::Shorthand(ref id) => id.to_nscsspropertyid(),
             TransitionProperty::Longhand(ref id) => id.to_nscsspropertyid(),

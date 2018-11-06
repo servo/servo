@@ -195,9 +195,9 @@ trait PrivateMatchMethods: TElement {
         context: &mut StyleContext<Self>,
         primary_style: &Arc<ComputedValues>,
     ) -> Option<Arc<ComputedValues>> {
-        use context::CascadeInputs;
-        use style_resolver::{PseudoElementResolution, StyleResolverForElement};
-        use stylist::RuleInclusion;
+        use crate::context::CascadeInputs;
+        use crate::style_resolver::{PseudoElementResolution, StyleResolverForElement};
+        use crate::stylist::RuleInclusion;
 
         let rule_node = primary_style.rules();
         let without_transition_rules = context
@@ -307,7 +307,7 @@ trait PrivateMatchMethods: TElement {
         new_values: &ComputedValues,
         restyle_hints: RestyleHint,
     ) {
-        use context::PostAnimationTasks;
+        use crate::context::PostAnimationTasks;
 
         if !restyle_hints.intersects(RestyleHint::RESTYLE_SMIL) {
             return;
@@ -337,7 +337,7 @@ trait PrivateMatchMethods: TElement {
         restyle_hint: RestyleHint,
         important_rules_changed: bool,
     ) {
-        use context::UpdateAnimationsTasks;
+        use crate::context::UpdateAnimationsTasks;
 
         if context.shared.traversal_flags.for_animation_only() {
             self.handle_display_change_for_smil_if_needed(
@@ -538,7 +538,7 @@ trait PrivateMatchMethods: TElement {
         // seems not common enough to care about.
         #[cfg(feature = "gecko")]
         {
-            use values::specified::align::AlignFlags;
+            use crate::values::specified::align::AlignFlags;
 
             let old_justify_items = old_values.get_position().clone_justify_items();
             let new_justify_items = new_values.get_position().clone_justify_items();

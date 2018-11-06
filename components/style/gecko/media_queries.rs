@@ -6,24 +6,24 @@
 
 use app_units::Au;
 use app_units::AU_PER_PX;
+use crate::custom_properties::CssEnvironment;
+use crate::gecko::values::{convert_nscolor_to_rgba, convert_rgba_to_nscolor};
+use crate::gecko_bindings::bindings;
+use crate::gecko_bindings::structs;
+use crate::gecko_bindings::structs::{nsPresContext, RawGeckoPresContextBorrowed};
+use crate::media_queries::MediaType;
+use crate::properties::ComputedValues;
+use crate::string_cache::Atom;
+use crate::values::computed::font::FontSize;
+use crate::values::{CustomIdent, KeyframesName};
 use cssparser::RGBA;
-use custom_properties::CssEnvironment;
 use euclid::Size2D;
 use euclid::TypedScale;
-use gecko::values::{convert_nscolor_to_rgba, convert_rgba_to_nscolor};
-use gecko_bindings::bindings;
-use gecko_bindings::structs;
-use gecko_bindings::structs::{nsPresContext, RawGeckoPresContextBorrowed};
-use media_queries::MediaType;
-use properties::ComputedValues;
 use servo_arc::Arc;
 use std::fmt;
 use std::sync::atomic::{AtomicBool, AtomicIsize, AtomicUsize, Ordering};
-use string_cache::Atom;
 use style_traits::viewport::ViewportConstraints;
 use style_traits::{CSSPixel, DevicePixel};
-use values::computed::font::FontSize;
-use values::{CustomIdent, KeyframesName};
 
 /// The `Device` in Gecko wraps a pres context, has a default values computed,
 /// and contains all the viewport rule state.

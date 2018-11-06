@@ -172,8 +172,8 @@ impl DocumentMatchingFunction {
     #[cfg(feature = "gecko")]
     /// Evaluate a URL matching function.
     pub fn evaluate(&self, device: &Device) -> bool {
-        use gecko_bindings::bindings::Gecko_DocumentRule_UseForPresentation;
-        use gecko_bindings::structs::DocumentMatchingFunction as GeckoDocumentMatchingFunction;
+        use crate::gecko_bindings::bindings::Gecko_DocumentRule_UseForPresentation;
+        use crate::gecko_bindings::structs::DocumentMatchingFunction as GeckoDocumentMatchingFunction;
         use nsstring::nsCStr;
 
         let func = match *self {
@@ -253,8 +253,8 @@ impl DocumentCondition {
 
     #[cfg(feature = "gecko")]
     fn allowed_in(&self, context: &ParserContext) -> bool {
-        use gecko_bindings::structs;
-        use stylesheets::Origin;
+        use crate::gecko_bindings::structs;
+        use crate::stylesheets::Origin;
 
         if context.stylesheet_origin != Origin::Author {
             return true;
