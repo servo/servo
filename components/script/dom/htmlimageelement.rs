@@ -566,12 +566,11 @@ impl HTMLImageElement {
                 // TODO Handle unsupported mime type
                 let mime = x.value().parse::<Mime>();
                 match mime {
-                    Ok(m) =>
-                        match m.type_() {
-                            mime::IMAGE => (),
-                            _ => continue
-                        },
-                    _ => continue
+                    Ok(m) => match m.type_() {
+                        mime::IMAGE => (),
+                        _ => continue,
+                    },
+                    _ => continue,
                 }
             }
 
@@ -1274,9 +1273,13 @@ impl HTMLImageElement {
     }
 
     pub fn same_origin(&self, origin: &MutableOrigin) -> bool {
-        self.current_request.borrow_mut().final_url.as_ref().map_or(false, |url| {
-            url.scheme() == "data" || url.origin().same_origin(origin)
-        })
+        self.current_request
+            .borrow_mut()
+            .final_url
+            .as_ref()
+            .map_or(false, |url| {
+                url.scheme() == "data" || url.origin().same_origin(origin)
+            })
     }
 }
 
@@ -1353,10 +1356,11 @@ impl LayoutHTMLImageElementHelpers for LayoutDom<HTMLImageElement> {
 
     #[allow(unsafe_code)]
     unsafe fn image_data(&self) -> (Option<Arc<Image>>, Option<ImageMetadata>) {
-        let current_request = (*self.unsafe_get())
-            .current_request
-            .borrow_for_layout();
-        (current_request.image.clone(), current_request.metadata.clone())
+        let current_request = (*self.unsafe_get()).current_request.borrow_for_layout();
+        (
+            current_request.image.clone(),
+            current_request.metadata.clone(),
+        )
     }
 
     #[allow(unsafe_code)]
@@ -1502,11 +1506,11 @@ impl HTMLImageElementMethods for HTMLImageElement {
         let elem = self.upcast::<Element>();
         let srcset_absent = !elem.has_attribute(&local_name!("srcset"));
         if !elem.has_attribute(&local_name!("src")) && srcset_absent {
-            return true
+            return true;
         }
         let src = elem.get_string_attribute(&local_name!("src"));
         if srcset_absent && src.is_empty() {
-            return true
+            return true;
         }
         let request = self.current_request.borrow();
         let request_state = request.state;
@@ -1582,8 +1586,10 @@ impl VirtualMethods for HTMLImageElement {
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
         self.super_type().unwrap().attribute_mutated(attr, mutation);
         match attr.local_name() {
-            &local_name!("src") | &local_name!("srcset")  |
-            &local_name!("width") | &local_name!("crossorigin") |
+            &local_name!("src") |
+            &local_name!("srcset") |
+            &local_name!("width") |
+            &local_name!("crossorigin") |
             &local_name!("sizes") => self.update_the_image_data(),
             _ => {},
         }

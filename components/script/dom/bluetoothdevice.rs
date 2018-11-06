@@ -152,7 +152,8 @@ impl BluetoothDevice {
             .send(BluetoothRequest::IsRepresentedDeviceNull(
                 self.Id().to_string(),
                 sender,
-            )).unwrap();
+            ))
+            .unwrap();
         receiver.recv().unwrap()
     }
 
@@ -242,7 +243,8 @@ impl BluetoothDevice {
             .send(BluetoothRequest::GATTServerDisconnect(
                 String::from(self.Id()),
                 sender,
-            )).unwrap();
+            ))
+            .unwrap();
         receiver.recv().unwrap().map_err(Error::from)
     }
 }
@@ -286,7 +288,8 @@ impl BluetoothDeviceMethods for BluetoothDevice {
             .send(BluetoothRequest::WatchAdvertisements(
                 String::from(self.Id()),
                 sender,
-            )).unwrap();
+            ))
+            .unwrap();
         return p;
     }
 

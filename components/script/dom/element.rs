@@ -456,7 +456,8 @@ pub unsafe fn get_attr_for_layout<'a>(
         .find(|attr| {
             let attr = attr.to_layout();
             *name == attr.local_name_atom_forever() && (*attr.unsafe_get()).namespace() == namespace
-        }).map(|attr| attr.to_layout())
+        })
+        .map(|attr| attr.to_layout())
 }
 
 #[allow(unsafe_code)]
@@ -491,7 +492,8 @@ impl RawLayoutElementHelpers for Element {
                 } else {
                     None
                 }
-            }).collect()
+            })
+            .collect()
     }
 }
 
@@ -2014,7 +2016,8 @@ impl ElementMethods for Element {
                     rect.size.width.to_f64_px(),
                     rect.size.height.to_f64_px(),
                 )
-            }).collect()
+            })
+            .collect()
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-element-getboundingclientrect
@@ -2766,9 +2769,7 @@ impl<'a> SelectorsElement for DomRoot<Element> {
 
     #[allow(unsafe_code)]
     fn opaque(&self) -> ::selectors::OpaqueElement {
-        ::selectors::OpaqueElement::new(unsafe {
-            &*self.reflector().get_jsobject().get()
-        })
+        ::selectors::OpaqueElement::new(unsafe { &*self.reflector().get_jsobject().get() })
     }
 
     fn parent_element(&self) -> Option<DomRoot<Element>> {
@@ -3102,7 +3103,8 @@ impl Element {
                 })
                 // TODO: Check meta tags for a pragma-set default language
                 // TODO: Check HTTP Content-Language header
-            }).next()
+            })
+            .next()
             .unwrap_or(String::new())
     }
 

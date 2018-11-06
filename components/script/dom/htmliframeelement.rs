@@ -97,7 +97,8 @@ impl HTMLIFrameElement {
                 } else {
                     document_from_node(self).base_url().join(&url).ok()
                 }
-            }).unwrap_or_else(|| ServoUrl::parse("about:blank").unwrap())
+            })
+            .unwrap_or_else(|| ServoUrl::parse("about:blank").unwrap())
     }
 
     pub fn navigate_or_reload_child_browsing_context(

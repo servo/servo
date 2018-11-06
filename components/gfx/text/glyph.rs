@@ -226,9 +226,9 @@ impl<'a> DetailedGlyphStore {
         /* TODO: don't actually assert this until asserts are compiled
         in/out based on severity, debug/release, etc. This assertion
         would wreck the complexity of the lookup.
-
+        
         See Rust Issue #3647, #2228, #3627 for related information.
-
+        
         do self.detail_lookup.borrow |arr| {
             assert !arr.contains(entry)
         }
@@ -541,7 +541,8 @@ impl<'a> GlyphStore {
                     data_for_glyphs[i].advance,
                     data_for_glyphs[i].offset,
                 )
-            }).collect();
+            })
+            .collect();
 
         self.has_detailed_glyphs = true;
         self.detail_store

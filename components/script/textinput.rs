@@ -295,9 +295,7 @@ impl<T: ClipboardProvider> TextInput<T> {
     fn assert_ok_selection(&self) {
         debug!(
             "edit_point: {:?}, selection_origin: {:?}, direction: {:?}",
-            self.edit_point,
-            self.selection_origin,
-            self.selection_direction
+            self.edit_point, self.selection_origin, self.selection_direction
         );
         if let Some(begin) = self.selection_origin {
             debug_assert!(begin.line < self.lines.len());
@@ -532,8 +530,7 @@ impl<T: ClipboardProvider> TextInput<T> {
     fn update_selection_direction(&mut self) {
         debug!(
             "edit_point: {:?}, selection_origin: {:?}",
-            self.edit_point,
-            self.selection_origin
+            self.edit_point, self.selection_origin
         );
         self.selection_direction = if Some(self.edit_point) < self.selection_origin {
             SelectionDirection::Backward

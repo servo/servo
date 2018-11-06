@@ -27,9 +27,11 @@ impl EXTColorBufferHalfFloat {
 impl WebGLExtension for EXTColorBufferHalfFloat {
     type Extension = EXTColorBufferHalfFloat;
     fn new(ctx: &WebGLRenderingContext) -> DomRoot<EXTColorBufferHalfFloat> {
-        reflect_dom_object(Box::new(EXTColorBufferHalfFloat::new_inherited()),
-                           &*ctx.global(),
-                           EXTColorBufferHalfFloatBinding::Wrap)
+        reflect_dom_object(
+            Box::new(EXTColorBufferHalfFloat::new_inherited()),
+            &*ctx.global(),
+            EXTColorBufferHalfFloatBinding::Wrap,
+        )
     }
 
     fn spec() -> WebGLExtensionSpec {
@@ -40,8 +42,7 @@ impl WebGLExtension for EXTColorBufferHalfFloat {
         OESTextureHalfFloat::is_supported(ext)
     }
 
-    fn enable(_ext: &WebGLExtensions) {
-    }
+    fn enable(_ext: &WebGLExtensions) {}
 
     fn name() -> &'static str {
         "EXT_color_buffer_half_float"

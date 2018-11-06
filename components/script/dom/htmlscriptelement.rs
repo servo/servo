@@ -184,7 +184,8 @@ impl FetchResponseListener for ScriptContext {
             .and_then(|m| match m.status {
                 Some((c, _)) => Some(c),
                 _ => None,
-            }).unwrap_or(0);
+            })
+            .unwrap_or(0);
 
         self.status = match status_code {
             0 => Err(NetworkError::Internal(
@@ -437,20 +438,22 @@ impl HTMLScriptElement {
             };
 
             // Preparation for step 23.
-            let kind =
-                if element.has_attribute(&local_name!("defer")) && was_parser_inserted && !r#async {
-                    // Step 23.a: classic, has src, has defer, was parser-inserted, is not async.
-                    ExternalScriptKind::Deferred
-                } else if was_parser_inserted && !r#async {
-                    // Step 23.c: classic, has src, was parser-inserted, is not async.
-                    ExternalScriptKind::ParsingBlocking
-                } else if !r#async && !self.non_blocking.get() {
-                    // Step 23.d: classic, has src, is not async, is not non-blocking.
-                    ExternalScriptKind::AsapInOrder
-                } else {
-                    // Step 23.f: classic, has src.
-                    ExternalScriptKind::Asap
-                };
+            let kind = if element.has_attribute(&local_name!("defer")) &&
+                was_parser_inserted &&
+                !r#async
+            {
+                // Step 23.a: classic, has src, has defer, was parser-inserted, is not async.
+                ExternalScriptKind::Deferred
+            } else if was_parser_inserted && !r#async {
+                // Step 23.c: classic, has src, was parser-inserted, is not async.
+                ExternalScriptKind::ParsingBlocking
+            } else if !r#async && !self.non_blocking.get() {
+                // Step 23.d: classic, has src, is not async, is not non-blocking.
+                ExternalScriptKind::AsapInOrder
+            } else {
+                // Step 23.f: classic, has src.
+                ExternalScriptKind::Asap
+            };
 
             // Step 21.6.
             fetch_a_classic_script(

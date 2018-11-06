@@ -74,10 +74,9 @@ impl Parse for TimingFunction {
                     Ok(GenericTimingFunction::Steps(steps, position))
                 },
                 _ => Err(()),
-            }).map_err(|()| {
-                location.new_custom_error(
-                    StyleParseErrorKind::UnexpectedFunction(function.clone())
-                )
+            })
+            .map_err(|()| {
+                location.new_custom_error(StyleParseErrorKind::UnexpectedFunction(function.clone()))
             })
         })
     }

@@ -505,10 +505,12 @@ pub fn style_length(
 ) -> MaybeAuto {
     match container_size {
         Some(length) => MaybeAuto::from_style(style_length, length),
-        None => if let LengthOrPercentageOrAuto::Length(length) = style_length {
-            MaybeAuto::Specified(Au::from(length))
-        } else {
-            MaybeAuto::Auto
+        None => {
+            if let LengthOrPercentageOrAuto::Length(length) = style_length {
+                MaybeAuto::Specified(Au::from(length))
+            } else {
+                MaybeAuto::Auto
+            }
         },
     }
 }
@@ -580,19 +582,23 @@ impl SizeConstraint {
     ) -> SizeConstraint {
         let mut min_size = match container_size {
             Some(container_size) => min_size.to_used_value(container_size),
-            None => if let LengthOrPercentage::Length(length) = min_size {
-                Au::from(length)
-            } else {
-                Au(0)
+            None => {
+                if let LengthOrPercentage::Length(length) = min_size {
+                    Au::from(length)
+                } else {
+                    Au(0)
+                }
             },
         };
 
         let mut max_size = match container_size {
             Some(container_size) => max_size.to_used_value(container_size),
-            None => if let LengthOrPercentageOrNone::Length(length) = max_size {
-                Some(Au::from(length))
-            } else {
-                None
+            None => {
+                if let LengthOrPercentageOrNone::Length(length) = max_size {
+                    Some(Au::from(length))
+                } else {
+                    None
+                }
             },
         };
         // Make sure max size is not smaller than min size.

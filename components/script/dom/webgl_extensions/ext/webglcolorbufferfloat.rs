@@ -27,9 +27,11 @@ impl WEBGLColorBufferFloat {
 impl WebGLExtension for WEBGLColorBufferFloat {
     type Extension = WEBGLColorBufferFloat;
     fn new(ctx: &WebGLRenderingContext) -> DomRoot<WEBGLColorBufferFloat> {
-        reflect_dom_object(Box::new(WEBGLColorBufferFloat::new_inherited()),
-                           &*ctx.global(),
-                           WEBGLColorBufferFloatBinding::Wrap)
+        reflect_dom_object(
+            Box::new(WEBGLColorBufferFloat::new_inherited()),
+            &*ctx.global(),
+            WEBGLColorBufferFloatBinding::Wrap,
+        )
     }
 
     fn spec() -> WebGLExtensionSpec {
@@ -40,8 +42,7 @@ impl WebGLExtension for WEBGLColorBufferFloat {
         OESTextureFloat::is_supported(ext)
     }
 
-    fn enable(_ext: &WebGLExtensions) {
-    }
+    fn enable(_ext: &WebGLExtensions) {}
 
     fn name() -> &'static str {
         "WEBGL_color_buffer_float"

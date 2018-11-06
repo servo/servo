@@ -166,7 +166,8 @@ impl BluetoothRemoteGATTDescriptorMethods for BluetoothRemoteGATTDescriptor {
                 self.get_instance_id(),
                 vec,
                 sender,
-            )).unwrap();
+            ))
+            .unwrap();
         return p;
     }
 }

@@ -63,7 +63,8 @@ impl StorageMethods for Storage {
                 sender,
                 self.get_url(),
                 self.storage_type,
-            )).unwrap();
+            ))
+            .unwrap();
         receiver.recv().unwrap() as u32
     }
 
@@ -77,7 +78,8 @@ impl StorageMethods for Storage {
                 self.get_url(),
                 self.storage_type,
                 index,
-            )).unwrap();
+            ))
+            .unwrap();
         receiver.recv().unwrap().map(DOMString::from)
     }
 
@@ -138,7 +140,8 @@ impl StorageMethods for Storage {
                 sender,
                 self.get_url(),
                 self.storage_type,
-            )).unwrap();
+            ))
+            .unwrap();
         if receiver.recv().unwrap() {
             self.broadcast_change_notification(None, None, None);
         }
@@ -153,7 +156,8 @@ impl StorageMethods for Storage {
                 sender,
                 self.get_url(),
                 self.storage_type,
-            )).unwrap();
+            ))
+            .unwrap();
         receiver
             .recv()
             .unwrap()
@@ -224,6 +228,7 @@ impl Storage {
                 event.upcast::<Event>().fire(global.upcast());
             }),
                 global.upcast(),
-            ).unwrap();
+            )
+            .unwrap();
     }
 }

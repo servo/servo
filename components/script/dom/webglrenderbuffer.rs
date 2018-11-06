@@ -122,9 +122,9 @@ impl WebGLRenderbuffer {
         // Validate the internal_format, and save it for completeness
         // validation.
         let actual_format = match internal_format {
-            constants::RGBA4 |
-            constants::DEPTH_COMPONENT16 |
-            constants::STENCIL_INDEX8 => internal_format,
+            constants::RGBA4 | constants::DEPTH_COMPONENT16 | constants::STENCIL_INDEX8 => {
+                internal_format
+            },
             // https://www.khronos.org/registry/webgl/specs/latest/1.0/#6.8
             constants::DEPTH_STENCIL => WebGL2RenderingContextConstants::DEPTH24_STENCIL8,
             constants::RGB5_A1 => {
@@ -134,7 +134,7 @@ impl WebGLRenderbuffer {
                 } else {
                     WebGL2RenderingContextConstants::RGBA8
                 }
-            }
+            },
             constants::RGB565 => {
                 // RGB565 is not supported on desktop GL.
                 if is_gles() {
@@ -142,16 +142,26 @@ impl WebGLRenderbuffer {
                 } else {
                     WebGL2RenderingContextConstants::RGB8
                 }
-            }
+            },
             EXTColorBufferHalfFloatConstants::RGBA16F_EXT |
             EXTColorBufferHalfFloatConstants::RGB16F_EXT => {
-                if !self.upcast().context().extension_manager().is_half_float_buffer_renderable() {
+                if !self
+                    .upcast()
+                    .context()
+                    .extension_manager()
+                    .is_half_float_buffer_renderable()
+                {
                     return Err(WebGLError::InvalidEnum);
                 }
                 internal_format
             },
             WEBGLColorBufferFloatConstants::RGBA32F_EXT => {
-                if !self.upcast().context().extension_manager().is_float_buffer_renderable() {
+                if !self
+                    .upcast()
+                    .context()
+                    .extension_manager()
+                    .is_float_buffer_renderable()
+                {
                     return Err(WebGLError::InvalidEnum);
                 }
                 internal_format

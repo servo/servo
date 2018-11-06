@@ -87,7 +87,8 @@ impl BluetoothRemoteGATTServerMethods for BluetoothRemoteGATTServer {
             .send(BluetoothRequest::GATTServerConnect(
                 String::from(self.Device().Id()),
                 sender,
-            )).unwrap();
+            ))
+            .unwrap();
         // Step 5: return promise.
         return p;
     }

@@ -73,7 +73,8 @@ impl PerformanceEntryList {
                 name.as_ref().map_or(true, |name_| *e.name() == *name_) && entry_type
                     .as_ref()
                     .map_or(true, |type_| *e.entry_type() == *type_)
-            }).map(|e| e.clone())
+            })
+            .map(|e| e.clone())
             .collect::<Vec<DomRoot<PerformanceEntry>>>();
         res.sort_by(|a, b| {
             a.start_time()
@@ -284,7 +285,8 @@ impl Performance {
                     o.observer.callback(),
                     o.observer.entries(),
                 )
-            }).collect();
+            })
+            .collect();
 
         // Step 7.3.
         for o in observers.iter() {

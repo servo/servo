@@ -183,7 +183,8 @@ impl WebGLExtensions {
                     }
                 }
                 v.1.is_supported(&self)
-            }).map(|ref v| v.1.name())
+            })
+            .map(|ref v| v.1.name())
             .collect()
     }
 

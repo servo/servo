@@ -836,7 +836,8 @@ impl RangeMethods for Range {
                 start_offset,
                 start_node.len() - start_offset,
                 DOMString::new(),
-            ).unwrap();
+            )
+            .unwrap();
         }
 
         // Step 8.

@@ -252,13 +252,18 @@ impl GlobalScope {
     }
 
     pub fn add_uncaught_rejection(&self, rejection: HandleObject) {
-        self.uncaught_rejections.borrow_mut().push(Heap::boxed(rejection.get()));
+        self.uncaught_rejections
+            .borrow_mut()
+            .push(Heap::boxed(rejection.get()));
     }
 
     pub fn remove_uncaught_rejection(&self, rejection: HandleObject) {
         let mut uncaught_rejections = self.uncaught_rejections.borrow_mut();
 
-        if let Some(index) = uncaught_rejections.iter().position(|promise| *promise == Heap::boxed(rejection.get())) {
+        if let Some(index) = uncaught_rejections
+            .iter()
+            .position(|promise| *promise == Heap::boxed(rejection.get()))
+        {
             uncaught_rejections.remove(index);
         }
     }
@@ -268,13 +273,18 @@ impl GlobalScope {
     }
 
     pub fn add_consumed_rejection(&self, rejection: HandleObject) {
-        self.consumed_rejections.borrow_mut().push(Heap::boxed(rejection.get()));
+        self.consumed_rejections
+            .borrow_mut()
+            .push(Heap::boxed(rejection.get()));
     }
 
     pub fn remove_consumed_rejection(&self, rejection: HandleObject) {
         let mut consumed_rejections = self.consumed_rejections.borrow_mut();
 
-        if let Some(index) = consumed_rejections.iter().position(|promise| *promise == Heap::boxed(rejection.get())) {
+        if let Some(index) = consumed_rejections
+            .iter()
+            .position(|promise| *promise == Heap::boxed(rejection.get()))
+        {
             consumed_rejections.remove(index);
         }
     }
@@ -639,11 +649,10 @@ impl GlobalScope {
 
     /// Perform a microtask checkpoint.
     pub fn perform_a_microtask_checkpoint(&self) {
-        self.microtask_queue
-            .checkpoint(
-                |_| Some(DomRoot::from_ref(self)),
-                vec![DomRoot::from_ref(self)]
-            );
+        self.microtask_queue.checkpoint(
+            |_| Some(DomRoot::from_ref(self)),
+            vec![DomRoot::from_ref(self)],
+        );
     }
 
     /// Enqueue a microtask for subsequent execution.

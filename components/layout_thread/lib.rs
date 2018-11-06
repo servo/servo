@@ -334,7 +334,8 @@ impl LayoutThreadFactory for LayoutThread {
                 if let Some(content_process_shutdown_chan) = content_process_shutdown_chan {
                     let _ = content_process_shutdown_chan.send(());
                 }
-            }).expect("Thread spawning failed");
+            })
+            .expect("Thread spawning failed");
     }
 }
 
@@ -507,8 +508,7 @@ impl LayoutThread {
 
         // Ask the router to proxy IPC messages from the font cache thread to the layout thread.
         let (ipc_font_cache_sender, ipc_font_cache_receiver) = ipc::channel().unwrap();
-        let font_cache_receiver =
-            route_ipc_receiver_to_new_servo_receiver(ipc_font_cache_receiver);
+        let font_cache_receiver = route_ipc_receiver_to_new_servo_receiver(ipc_font_cache_receiver);
 
         LayoutThread {
             id: id,
@@ -769,7 +769,8 @@ impl LayoutThread {
                     .filter_map(|name| {
                         let id = PropertyId::parse_enabled_for_all_content(&*name).ok()?;
                         Some((name.clone(), id))
-                    }).filter(|&(_, ref id)| !id.is_shorthand())
+                    })
+                    .filter(|&(_, ref id)| !id.is_shorthand())
                     .collect();
                 let registered_painter = RegisteredPainterImpl {
                     name: name.clone(),
@@ -1249,7 +1250,8 @@ impl LayoutThread {
                     .send(ConstellationMsg::ViewportConstrained(
                         self.id,
                         constraints.clone(),
-                    )).unwrap();
+                    ))
+                    .unwrap();
             }
             if had_used_viewport_units {
                 if let Some(mut data) = element.mutate_data() {

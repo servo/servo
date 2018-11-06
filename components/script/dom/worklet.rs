@@ -323,7 +323,11 @@ impl WorkletThreadPool {
     }
 
     pub(crate) fn exit_worklet(&self, worklet_id: WorkletId) {
-        for sender in &[&self.control_sender_0, &self.control_sender_1, &self.control_sender_2] {
+        for sender in &[
+            &self.control_sender_0,
+            &self.control_sender_1,
+            &self.control_sender_2,
+        ] {
             let _ = sender.send(WorkletControl::ExitWorklet(worklet_id));
         }
         self.wake_threads();

@@ -100,7 +100,8 @@ impl WorkletGlobalScope {
                 name,
                 properties,
                 painter,
-            }).expect("Worklet thread outlived script thread.");
+            })
+            .expect("Worklet thread outlived script thread.");
     }
 
     /// The base URL of this global.

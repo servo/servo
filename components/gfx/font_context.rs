@@ -133,7 +133,8 @@ impl<S: FontSource> FontContext<S> {
                     .and_then(|template_info| {
                         self.create_font(template_info, font_descriptor.to_owned())
                             .ok()
-                    }).map(|font| Rc::new(RefCell::new(font)));
+                    })
+                    .map(|font| Rc::new(RefCell::new(font)));
 
                 self.font_cache.insert(cache_key, font.clone());
                 font

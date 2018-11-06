@@ -130,7 +130,8 @@ impl MediaQuery {
                 let ident = input.expect_ident().map_err(|_| ())?;
                 let media_type = MediaQueryType::parse(&ident)?;
                 Ok((qualifier, Some(media_type)))
-            }).unwrap_or_default();
+            })
+            .unwrap_or_default();
 
         let condition = if explicit_media_type.is_none() {
             Some(MediaCondition::parse(context, input)?)

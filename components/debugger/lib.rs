@@ -49,7 +49,8 @@ pub fn start_server(port: u16) -> Sender {
                 .name("debugger-websocket".to_owned())
                 .spawn(move || {
                     socket.listen(("127.0.0.1", port)).unwrap();
-                }).expect("Thread spawning failed");
+                })
+                .expect("Thread spawning failed");
             while let Some(message) = receiver.recv() {
                 match message {
                     Message::ShutdownServer => {
@@ -58,7 +59,8 @@ pub fn start_server(port: u16) -> Sender {
                 }
             }
             sender.shutdown().unwrap();
-        }).expect("Thread spawning failed");
+        })
+        .expect("Thread spawning failed");
     Sender(sender)
 }
 

@@ -235,7 +235,17 @@ fn run_server(
         let (pipeline, worker_id) = ids;
 
         //TODO: move all this actor creation into a constructor method on BrowsingContextActor
-        let (target, console, emulation, inspector, timeline, profiler, performance, styleSheets, thread) = {
+        let (
+            target,
+            console,
+            emulation,
+            inspector,
+            timeline,
+            profiler,
+            performance,
+            styleSheets,
+            thread,
+        ) = {
             let console = ConsoleActor {
                 name: actors.new_name("console"),
                 script_chan: script_sender.clone(),
@@ -347,7 +357,8 @@ fn run_server(
                     LogLevel::Warn => "warn",
                     LogLevel::Error => "error",
                     _ => "log",
-                }.to_owned(),
+                }
+                .to_owned(),
                 timeStamp: precise_time_ns(),
                 arguments: vec![console_message.message],
                 filename: console_message.filename,
@@ -373,7 +384,12 @@ fn run_server(
             Some(actors.find::<WorkerActor>(actor_name).console.clone())
         } else {
             let actor_name = (*actor_pipelines).get(&id)?;
-            Some(actors.find::<BrowsingContextActor>(actor_name).console.clone())
+            Some(
+                actors
+                    .find::<BrowsingContextActor>(actor_name)
+                    .console
+                    .clone(),
+            )
         }
     }
 
@@ -537,9 +553,11 @@ fn run_server(
                 sender_clone
                     .send(DevtoolsControlMsg::FromChrome(
                         ChromeToDevtoolsControlMsg::AddClient(stream.unwrap()),
-                    )).unwrap();
+                    ))
+                    .unwrap();
             }
-        }).expect("Thread spawning failed");
+        })
+        .expect("Thread spawning failed");
 
     while let Some(msg) = receiver.recv() {
         match msg {

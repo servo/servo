@@ -156,40 +156,51 @@ unsafe extern "C" fn promise_rejection_tracker(
     cx: *mut JSContext,
     promise: HandleObject,
     state: PromiseRejectionHandlingState,
-    _data: *mut c_void
+    _data: *mut c_void,
 ) {
     // TODO: Step 2 - If script's muted errors is true, terminate these steps.
 
     // Step 3.
     let global = GlobalScope::from_context(cx);
 
-    wrap_panic(AssertUnwindSafe(|| {
-        match state {
-            // Step 4.
-            PromiseRejectionHandlingState::Unhandled => {
-                global.add_uncaught_rejection(promise);
-            },
-            // Step 5.
-            PromiseRejectionHandlingState::Handled => {
-                // Step 5-1.
-                if global.get_uncaught_rejections().borrow().contains(&Heap::boxed(promise.get())) {
-                    global.remove_uncaught_rejection(promise);
-                    return;
-                }
+    wrap_panic(
+        AssertUnwindSafe(|| {
+            match state {
+                // Step 4.
+                PromiseRejectionHandlingState::Unhandled => {
+                    global.add_uncaught_rejection(promise);
+                },
+                // Step 5.
+                PromiseRejectionHandlingState::Handled => {
+                    // Step 5-1.
+                    if global
+                        .get_uncaught_rejections()
+                        .borrow()
+                        .contains(&Heap::boxed(promise.get()))
+                    {
+                        global.remove_uncaught_rejection(promise);
+                        return;
+                    }
 
-                // Step 5-2.
-                if !global.get_consumed_rejections().borrow().contains(&Heap::boxed(promise.get())) {
-                    global.add_consumed_rejection(promise);
-                    return;
-                }
+                    // Step 5-2.
+                    if !global
+                        .get_consumed_rejections()
+                        .borrow()
+                        .contains(&Heap::boxed(promise.get()))
+                    {
+                        global.add_consumed_rejection(promise);
+                        return;
+                    }
 
-                // Step 5-3.
-                global.remove_consumed_rejection(promise);
+                    // Step 5-3.
+                    global.remove_consumed_rejection(promise);
 
-                // TODO: Step 5-4 - Queue a task to fire `rejectionhandled` event
-            }
-        };
-    }), ());
+                    // TODO: Step 5-4 - Queue a task to fire `rejectionhandled` event
+                },
+            };
+        }),
+        (),
+    );
 }
 
 #[allow(unsafe_code, unrooted_must_root)]
@@ -201,11 +212,13 @@ pub fn notify_about_rejected_promises(global: &GlobalScope) {
         // Step 2.
         if global.get_uncaught_rejections().borrow().len() > 0 {
             // Step 1.
-            let uncaught_rejections: Vec<TrustedPromise> = global.get_uncaught_rejections()
+            let uncaught_rejections: Vec<TrustedPromise> = global
+                .get_uncaught_rejections()
                 .borrow()
                 .iter()
                 .map(|promise| {
-                    let promise = Promise::new_with_js_promise(Handle::from_raw(promise.handle()), cx);
+                    let promise =
+                        Promise::new_with_js_promise(Handle::from_raw(promise.handle()), cx);
 
                     TrustedPromise::new(promise)
                 })

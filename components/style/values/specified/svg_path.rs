@@ -563,7 +563,6 @@ impl ToAnimatedZero for ArcFlag {
     }
 }
 
-
 /// SVG Path parser.
 struct PathParser<'a> {
     chars: Peekable<Cloned<slice::Iter<'a, u8>>>,

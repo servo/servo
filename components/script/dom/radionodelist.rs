@@ -59,20 +59,28 @@ impl RadioNodeList {
 impl RadioNodeListMethods for RadioNodeList {
     // https://html.spec.whatwg.org/multipage/#dom-radionodelist-value
     fn Value(&self) -> DOMString {
-        self.upcast::<NodeList>().as_simple_list().iter().filter_map(|node| {
-            // Step 1
-            node.downcast::<HTMLInputElement>().and_then(|input| {
-                if input.input_type() == InputType::Radio && input.Checked() {
-                    // Step 3-4
-                    let value = input.Value();
-                    Some(if value.is_empty() { DOMString::from("on") } else { value })
-                } else {
-                    None
-                }
+        self.upcast::<NodeList>()
+            .as_simple_list()
+            .iter()
+            .filter_map(|node| {
+                // Step 1
+                node.downcast::<HTMLInputElement>().and_then(|input| {
+                    if input.input_type() == InputType::Radio && input.Checked() {
+                        // Step 3-4
+                        let value = input.Value();
+                        Some(if value.is_empty() {
+                            DOMString::from("on")
+                        } else {
+                            value
+                        })
+                    } else {
+                        None
+                    }
+                })
             })
-        }).next()
-        // Step 2
-          .unwrap_or(DOMString::from(""))
+            .next()
+            // Step 2
+            .unwrap_or(DOMString::from(""))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-radionodelist-value

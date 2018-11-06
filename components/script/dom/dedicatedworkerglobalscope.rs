@@ -318,7 +318,8 @@ impl DedicatedWorkerGlobalScope {
                                     Box::new(SimpleWorkerErrorHandler::new(worker)),
                                     pipeline_id,
                                     TaskSourceName::DOMManipulation,
-                                )).unwrap();
+                                ))
+                                .unwrap();
                             return;
                         },
                         Ok((metadata, bytes)) => (metadata, bytes),
@@ -391,7 +392,8 @@ impl DedicatedWorkerGlobalScope {
                         parent_sender,
                         CommonScriptMsg::CollectReports,
                     );
-            }).expect("Thread spawning failed");
+            })
+            .expect("Thread spawning failed");
     }
 
     pub fn script_chan(&self) -> Box<ScriptChan + Send> {
@@ -495,7 +497,8 @@ impl DedicatedWorkerGlobalScope {
                 task,
                 Some(pipeline_id),
                 TaskSourceName::DOMManipulation,
-            )).unwrap();
+            ))
+            .unwrap();
     }
 }
 
@@ -526,7 +529,8 @@ impl DedicatedWorkerGlobalScopeMethods for DedicatedWorkerGlobalScope {
                 task,
                 Some(pipeline_id),
                 TaskSourceName::DOMManipulation,
-            )).unwrap();
+            ))
+            .unwrap();
         Ok(())
     }
 

@@ -185,7 +185,8 @@ impl InlineBlockSplit {
             predecessors: mem::replace(
                 fragment_accumulator,
                 InlineFragmentsAccumulator::from_inline_node(node, style_context),
-            ).to_intermediate_inline_fragments::<ConcreteThreadSafeLayoutNode>(style_context),
+            )
+            .to_intermediate_inline_fragments::<ConcreteThreadSafeLayoutNode>(style_context),
             flow: flow,
         };
 
@@ -402,7 +403,7 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
                     &self.layout_context,
                 ));
                 SpecificFragmentInfo::Image(image_info)
-            }
+            },
             Some(LayoutNodeType::Element(LayoutElementType::HTMLMediaElement)) => {
                 let data = node.media_data().unwrap();
                 SpecificFragmentInfo::Media(Box::new(MediaFragmentInfo::new(data)))

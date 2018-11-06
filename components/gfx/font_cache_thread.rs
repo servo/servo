@@ -434,7 +434,8 @@ impl FontCache {
             FontSearchScope::Local => {
                 self.find_font_in_local_family(&template_descriptor, &family_descriptor.name)
             },
-        }.map(|t| self.get_font_template_info(t))
+        }
+        .map(|t| self.get_font_template_info(t))
     }
 }
 
@@ -474,7 +475,8 @@ impl FontCacheThread {
 
                 cache.refresh_local_families();
                 cache.run();
-            }).expect("Thread spawning failed");
+            })
+            .expect("Thread spawning failed");
 
         FontCacheThread { chan: chan }
     }
@@ -490,7 +492,8 @@ impl FontCacheThread {
                 LowercaseString::new(&family.name),
                 sources,
                 sender,
-            )).unwrap();
+            ))
+            .unwrap();
     }
 
     pub fn exit(&self) {
@@ -538,7 +541,8 @@ impl FontSource for FontCacheThread {
                 template_descriptor,
                 family_descriptor,
                 response_chan,
-            )).expect("failed to send message to font cache thread");
+            ))
+            .expect("failed to send message to font cache thread");
 
         let reply = response_port.recv();
 

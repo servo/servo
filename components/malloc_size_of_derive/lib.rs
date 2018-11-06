@@ -88,7 +88,8 @@ fn malloc_size_of_derive(s: synstructure::Structure) -> quote::Tokens {
 fn test_struct() {
     let source = syn::parse_str(
         "struct Foo<T> { bar: Bar, baz: T, #[ignore_malloc_size_of = \"\"] z: Arc<T> }",
-    ).unwrap();
+    )
+    .unwrap();
     let source = synstructure::Structure::new(&source);
 
     let expanded = malloc_size_of_derive(source).to_string();

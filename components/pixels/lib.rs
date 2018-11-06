@@ -21,7 +21,10 @@ pub fn get_rect(pixels: &[u8], size: Size2D<u32>, rect: Rect<u32>) -> Cow<[u8]> 
         return Cow::Borrowed(&pixels[start..start + area * 4]);
     }
     let mut data = Vec::with_capacity(area * 4);
-    for row in pixels[first_row_start..].chunks(row_length).take(rect.size.height as usize) {
+    for row in pixels[first_row_start..]
+        .chunks(row_length)
+        .take(rect.size.height as usize)
+    {
         data.extend_from_slice(&row[first_column_start..][..rect.size.width as usize * 4]);
     }
     data.into()

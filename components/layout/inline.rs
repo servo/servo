@@ -316,7 +316,8 @@ impl LineBreaker {
             .map(|fragment| match fragment.specific {
                 SpecificFragmentInfo::ScannedText(ref info) => info.run.bidi_level,
                 _ => para_level,
-            }).collect();
+            })
+            .collect();
 
         let mut lines = mem::replace(&mut self.lines, Vec::new());
 
@@ -336,7 +337,8 @@ impl LineBreaker {
                             let start = FragmentIndex(run.start as isize);
                             let len = FragmentIndex(run.len() as isize);
                             (Range::new(start, len), levels[run.start])
-                        }).collect(),
+                        })
+                        .collect(),
                 );
             }
         }
@@ -1719,7 +1721,8 @@ impl Flow for InlineFlow {
                     debug_assert!(first_fragment_index < self.fragments.fragments.len());
                     let first_fragment = &self.fragments.fragments[first_fragment_index];
                     let padding_box_origin = (first_fragment.border_box -
-                        first_fragment.style.logical_border_width()).start;
+                        first_fragment.style.logical_border_width())
+                    .start;
                     containing_block_positions.push(
                         padding_box_origin.to_physical(self.base.writing_mode, container_size),
                     );
@@ -1733,7 +1736,8 @@ impl Flow for InlineFlow {
                     debug_assert!(first_fragment_index < self.fragments.fragments.len());
                     let first_fragment = &self.fragments.fragments[first_fragment_index];
                     let padding_box_origin = (first_fragment.border_box -
-                        first_fragment.style.logical_border_width()).start;
+                        first_fragment.style.logical_border_width())
+                    .start;
                     containing_block_positions.push(
                         padding_box_origin.to_physical(self.base.writing_mode, container_size),
                     );
@@ -1878,7 +1882,8 @@ impl Flow for InlineFlow {
                         relative_containing_block_size,
                         relative_containing_block_mode,
                         CoordinateSystem::Own,
-                    ).translate(&stacking_context_position.to_vector()),
+                    )
+                    .translate(&stacking_context_position.to_vector()),
             )
         }
     }

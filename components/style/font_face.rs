@@ -55,7 +55,10 @@ impl OneOrMoreSeparated for Source {
 pub enum FontFaceSourceListComponent {
     Url(*const ::gecko_bindings::structs::mozilla::css::URLValue),
     Local(*mut ::gecko_bindings::structs::nsAtom),
-    FormatHint { length: usize, utf8_bytes: *const u8 },
+    FormatHint {
+        length: usize,
+        utf8_bytes: *const u8,
+    },
 }
 
 /// A `UrlSource` represents a font-face source that has been specified with a
@@ -133,7 +136,7 @@ macro_rules! impl_range {
                 Ok(())
             }
         }
-    }
+    };
 }
 
 /// The font-weight descriptor:
@@ -192,10 +195,7 @@ impl FontStretchRange {
             }
         }
 
-        let (min, max) = sort_range(
-            compute_stretch(&self.0),
-            compute_stretch(&self.1),
-        );
+        let (min, max) = sort_range(compute_stretch(&self.0), compute_stretch(&self.1));
         ComputedFontStretchRange(min, max)
     }
 }
@@ -277,7 +277,7 @@ impl FontStyle {
                     SpecifiedFontStyle::compute_angle_degrees(second),
                 );
                 ComputedFontStyleDescriptor::Oblique(min, max)
-            }
+            },
         }
     }
 }
@@ -340,7 +340,8 @@ impl<'a> FontFace<'a> {
                     } else {
                         true
                     }
-                }).cloned()
+                })
+                .cloned()
                 .collect(),
         )
     }

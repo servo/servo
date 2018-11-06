@@ -216,7 +216,8 @@ impl FontHandleMethods for FontHandle {
             }
         } else {
             FontStretchKeyword::Normal
-        }.compute();
+        }
+        .compute();
         FontStretch(NonNegative(percentage))
     }
 

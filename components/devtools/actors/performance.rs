@@ -106,7 +106,8 @@ impl PerformanceActor {
                     vec![(
                         "type".to_owned(),
                         Value::String("canCurrentlyRecord".to_owned()),
-                    )].into_iter()
+                    )]
+                    .into_iter()
                     .collect(),
                 ),
                 response: Value::Object(
@@ -117,7 +118,8 @@ impl PerformanceActor {
                                 .into_iter()
                                 .collect(),
                         ),
-                    )].into_iter()
+                    )]
+                    .into_iter()
                     .collect(),
                 ),
             }],

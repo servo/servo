@@ -10,7 +10,10 @@ use std::mem;
 use std::os::raw::c_char;
 use std::rc::Rc;
 
-fn call<F>(f: F) where F: Fn(&mut ServoGlue) -> Result<(), &'static str> {
+fn call<F>(f: F)
+where
+    F: Fn(&mut ServoGlue) -> Result<(), &'static str>,
+{
     SERVO.with(|s| {
         if let Err(error) = match s.borrow_mut().as_mut() {
             Some(ref mut s) => (f)(s),
@@ -27,15 +30,15 @@ fn call<F>(f: F) where F: Fn(&mut ServoGlue) -> Result<(), &'static str> {
 /// Callback used by Servo internals
 #[repr(C)]
 pub struct CHostCallbacks {
-    pub flush: extern fn(),
-    pub make_current: extern fn(),
-    pub on_load_started: extern fn(),
-    pub on_load_ended: extern fn(),
-    pub on_title_changed: extern fn(title: *const c_char),
-    pub on_url_changed: extern fn(url: *const c_char),
-    pub on_history_changed: extern fn(can_go_back: bool, can_go_forward: bool),
-    pub on_animating_changed: extern fn(animating: bool),
-    pub on_shutdown_complete: extern fn(),
+    pub flush: extern "C" fn(),
+    pub make_current: extern "C" fn(),
+    pub on_load_started: extern "C" fn(),
+    pub on_load_ended: extern "C" fn(),
+    pub on_title_changed: extern "C" fn(title: *const c_char),
+    pub on_url_changed: extern "C" fn(url: *const c_char),
+    pub on_history_changed: extern "C" fn(can_go_back: bool, can_go_forward: bool),
+    pub on_animating_changed: extern "C" fn(animating: bool),
+    pub on_shutdown_complete: extern "C" fn(),
 }
 
 /// Servo options
@@ -62,9 +65,10 @@ pub extern "C" fn servo_version() -> *const c_char {
 fn init(
     opts: CInitOptions,
     gl: Rc<gl::Gl>,
-    wakeup: extern fn(),
-    readfile: extern fn(*const c_char) -> *const c_char,
-    callbacks: CHostCallbacks) {
+    wakeup: extern "C" fn(),
+    readfile: extern "C" fn(*const c_char) -> *const c_char,
+    callbacks: CHostCallbacks,
+) {
     let args = unsafe { CStr::from_ptr(opts.args) };
     let args = args.to_str().map(|s| s.to_string()).ok();
 
@@ -91,20 +95,26 @@ fn init(
 #[no_mangle]
 pub extern "C" fn init_with_egl(
     opts: CInitOptions,
-    wakeup: extern fn(),
-    readfile: extern fn(*const c_char) -> *const c_char,
-    callbacks: CHostCallbacks) {
+    wakeup: extern "C" fn(),
+    readfile: extern "C" fn(*const c_char) -> *const c_char,
+    callbacks: CHostCallbacks,
+) {
     let gl = gl_glue::egl::init().unwrap();
     init(opts, gl, wakeup, readfile, callbacks)
 }
 
-#[cfg(any(target_os = "linux", target_os = "windows", target_os = "macos"))]
+#[cfg(any(
+    target_os = "linux",
+    target_os = "windows",
+    target_os = "macos"
+))]
 #[no_mangle]
 pub extern "C" fn init_with_gl(
     opts: CInitOptions,
-    wakeup: extern fn(),
-    readfile: extern fn(*const c_char) -> *const c_char,
-    callbacks: CHostCallbacks) {
+    wakeup: extern "C" fn(),
+    readfile: extern "C" fn(*const c_char) -> *const c_char,
+    callbacks: CHostCallbacks,
+) {
     let gl = gl_glue::gl::init().unwrap();
     init(opts, gl, wakeup, readfile, callbacks)
 }
@@ -219,10 +229,10 @@ pub extern "C" fn click(x: i32, y: i32) {
     call(|s| s.click(x as u32, y as u32));
 }
 
-pub struct WakeupCallback(extern fn());
+pub struct WakeupCallback(extern "C" fn());
 
 impl WakeupCallback {
-    fn new(callback: extern fn()) -> WakeupCallback {
+    fn new(callback: extern "C" fn()) -> WakeupCallback {
         WakeupCallback(callback)
     }
 }
@@ -236,10 +246,10 @@ impl EventLoopWaker for WakeupCallback {
     }
 }
 
-pub struct ReadFileCallback(extern fn(*const c_char) -> *const c_char);
+pub struct ReadFileCallback(extern "C" fn(*const c_char) -> *const c_char);
 
 impl ReadFileCallback {
-    fn new(callback: extern fn(*const c_char) -> *const c_char) -> ReadFileCallback {
+    fn new(callback: extern "C" fn(*const c_char) -> *const c_char) -> ReadFileCallback {
         ReadFileCallback(callback)
     }
 }

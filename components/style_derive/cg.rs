@@ -58,7 +58,8 @@ pub fn fmap_trait_output(input: &DeriveInput, trait_path: &Path, trait_output: I
                         )
                     },
                     ref arg => panic!("arguments {:?} cannot be mapped yet", arg),
-                }).collect(),
+                })
+                .collect(),
             colon2_token: Default::default(),
             gt_token: Default::default(),
             lt_token: Default::default(),
@@ -154,14 +155,16 @@ where
                                         })
                                     },
                                     ref arg => panic!("arguments {:?} cannot be mapped yet", arg),
-                                }).collect(),
+                                })
+                                .collect(),
                             ..data.clone()
                         })
                     },
                     ref arg @ PathArguments::None => arg.clone(),
                     ref parameters => panic!("parameters {:?} cannot be mapped yet", parameters),
                 },
-            }).collect(),
+            })
+            .collect(),
     }
 }
 

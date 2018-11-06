@@ -97,7 +97,8 @@ impl CustomElementRegistry {
                 // Step 4-5
                 definition.local_name == *local_name &&
                     (definition.name == *local_name || Some(&definition.name) == is)
-            }).cloned()
+            })
+            .cloned()
     }
 
     pub fn lookup_definition_by_constructor(

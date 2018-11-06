@@ -152,11 +152,7 @@ impl Parse for Angle {
 
 impl Angle {
     /// Parse an `<angle>` value given a value and an unit.
-    pub fn parse_dimension(
-        value: CSSFloat,
-        unit: &str,
-        was_calc: bool,
-    ) -> Result<Angle, ()> {
+    pub fn parse_dimension(value: CSSFloat, unit: &str, was_calc: bool) -> Result<Angle, ()> {
         let value = match_ignore_ascii_case! { unit,
             "deg" => AngleDimension::Deg(value),
             "grad" => AngleDimension::Grad(value),
@@ -200,7 +196,8 @@ impl Angle {
                 return input.parse_nested_block(|i| CalcNode::parse_angle(context, i))
             },
             _ => Err(()),
-        }.map_err(|()| input.new_unexpected_token_error(token.clone()))
+        }
+        .map_err(|()| input.new_unexpected_token_error(token.clone()))
     }
 }
 

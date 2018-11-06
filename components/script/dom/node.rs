@@ -384,7 +384,8 @@ impl<'a> Iterator for QuerySelectorIterator {
                     }
                 }
                 None
-            }).next()
+            })
+            .next()
     }
 }
 
@@ -1238,9 +1239,7 @@ impl LayoutNodeHelpers for LayoutDom<Node> {
 
     #[allow(unsafe_code)]
     fn image_data(&self) -> Option<(Option<StdArc<Image>>, Option<ImageMetadata>)> {
-        unsafe {
-            self.downcast::<HTMLImageElement>().map(|e| e.image_data())
-        }
+        unsafe { self.downcast::<HTMLImageElement>().map(|e| e.image_data()) }
     }
 
     #[allow(unsafe_code)]
@@ -2837,10 +2836,12 @@ pub struct UnbindContext<'a> {
 
 impl<'a> UnbindContext<'a> {
     /// Create a new `UnbindContext` value.
-    fn new(parent: &'a Node,
-           prev_sibling: Option<&'a Node>,
-           next_sibling: Option<&'a Node>,
-           cached_index: Option<u32>) -> Self {
+    fn new(
+        parent: &'a Node,
+        prev_sibling: Option<&'a Node>,
+        next_sibling: Option<&'a Node>,
+        cached_index: Option<u32>,
+    ) -> Self {
         UnbindContext {
             index: Cell::new(cached_index),
             parent: parent,

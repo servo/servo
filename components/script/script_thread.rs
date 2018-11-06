@@ -691,7 +691,8 @@ impl ScriptThreadFactory for ScriptThread {
 
                 // This must always be the very last operation performed before the thread completes
                 failsafe.neuter();
-            }).expect("Thread spawning failed");
+            })
+            .expect("Thread spawning failed");
 
         (sender, receiver)
     }
@@ -890,7 +891,8 @@ impl ScriptThread {
                         image_cache: script_thread.image_cache.clone(),
                     };
                     Rc::new(WorkletThreadPool::spawn(init))
-                }).clone()
+                })
+                .clone()
         })
     }
 
@@ -2539,7 +2541,8 @@ impl ScriptThread {
                 .send((
                     incomplete.pipeline_id,
                     ScriptMsg::SetFinalUrl(final_url.clone()),
-                )).unwrap();
+                ))
+                .unwrap();
         }
         debug!(
             "ScriptThread: loading {} on pipeline {:?}",
@@ -2613,7 +2616,8 @@ impl ScriptThread {
         window.init_window_proxy(&window_proxy);
 
         let last_modified = metadata.headers.as_ref().and_then(|headers| {
-            headers.typed_get::<LastModified>()
+            headers
+                .typed_get::<LastModified>()
                 .map(|tm| dom_last_modified(&tm.into()))
         });
 
@@ -2622,18 +2626,22 @@ impl ScriptThread {
             Some(final_url.clone()),
         );
 
-        let content_type: Option<Mime> = metadata.content_type
-            .map(Serde::into_inner)
-            .map(Into::into);
+        let content_type: Option<Mime> =
+            metadata.content_type.map(Serde::into_inner).map(Into::into);
 
         let is_html_document = match content_type {
-            Some(ref mime) if mime.type_() == mime::APPLICATION &&
-                mime.suffix() == Some(mime::XML) => IsHTMLDocument::NonHTMLDocument,
+            Some(ref mime)
+                if mime.type_() == mime::APPLICATION && mime.suffix() == Some(mime::XML) =>
+            {
+                IsHTMLDocument::NonHTMLDocument
+            },
 
-            Some(ref mime) if
-                (mime.type_() == mime::TEXT && mime.subtype() == mime::XML) ||
-                (mime.type_() == mime::APPLICATION && mime.subtype() == mime::XML)
-                => IsHTMLDocument::NonHTMLDocument,
+            Some(ref mime)
+                if (mime.type_() == mime::TEXT && mime.subtype() == mime::XML) ||
+                    (mime.type_() == mime::APPLICATION && mime.subtype() == mime::XML) =>
+            {
+                IsHTMLDocument::NonHTMLDocument
+            },
             _ => IsHTMLDocument::HTMLDocument,
         };
 
@@ -2642,25 +2650,28 @@ impl ScriptThread {
             None => None,
         };
 
-        let referrer_policy = metadata.headers
-                                      .as_ref()
-                                      .map(Serde::deref)
-                                      .and_then(|h| h.typed_get::<ReferrerPolicyHeader>())
-                                      .map(ReferrerPolicy::from);
+        let referrer_policy = metadata
+            .headers
+            .as_ref()
+            .map(Serde::deref)
+            .and_then(|h| h.typed_get::<ReferrerPolicyHeader>())
+            .map(ReferrerPolicy::from);
 
-        let document = Document::new(&window,
-                                     HasBrowsingContext::Yes,
-                                     Some(final_url.clone()),
-                                     incomplete.origin,
-                                     is_html_document,
-                                     content_type,
-                                     last_modified,
-                                     incomplete.activity,
-                                     DocumentSource::FromParser,
-                                     loader,
-                                     referrer,
-                                     referrer_policy,
-                                     incomplete.canceller);
+        let document = Document::new(
+            &window,
+            HasBrowsingContext::Yes,
+            Some(final_url.clone()),
+            incomplete.origin,
+            is_html_document,
+            content_type,
+            last_modified,
+            incomplete.activity,
+            DocumentSource::FromParser,
+            loader,
+            referrer,
+            referrer_policy,
+            incomplete.canceller,
+        );
         document.set_ready_state(DocumentReadyState::Loading);
 
         self.documents
@@ -2719,7 +2730,8 @@ impl ScriptThread {
                 ids,
                 self.devtools_sender.clone(),
                 page_info,
-            )).unwrap();
+            ))
+            .unwrap();
         }
     }
 
@@ -3042,7 +3054,8 @@ impl ScriptThread {
             .send((
                 id,
                 ScriptMsg::InitiateNavigateRequest(req_init, cancel_chan),
-            )).unwrap();
+            ))
+            .unwrap();
         self.incomplete_loads.borrow_mut().push(incomplete);
     }
 
@@ -3189,16 +3202,15 @@ impl ScriptThread {
     }
 
     fn perform_a_microtask_checkpoint(&self) {
-        let globals = self.documents.borrow()
-                            .iter()
-                            .map(|(_id, document)| document.global())
-                            .collect();
+        let globals = self
+            .documents
+            .borrow()
+            .iter()
+            .map(|(_id, document)| document.global())
+            .collect();
 
         self.microtask_queue
-            .checkpoint(
-                |id| self.documents.borrow().find_global(id),
-                globals
-            )
+            .checkpoint(|id| self.documents.borrow().find_global(id), globals)
     }
 }
 

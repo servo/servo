@@ -84,7 +84,8 @@ impl<T: QueuedTaskConversion> TaskQueue<T> {
                         return false;
                     },
                 }
-            }).collect();
+            })
+            .collect();
 
         for msg in incoming {
             // Immediately send non-throttled tasks for processing.

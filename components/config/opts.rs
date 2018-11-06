@@ -814,7 +814,8 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
             .or_else(|error| {
                 warn!("URL parsing failed ({:?}).", error);
                 Err(error)
-            }).ok()
+            })
+            .ok()
     });
 
     let tile_size: usize = match opt_match.opt_str("s") {
@@ -940,7 +941,8 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
                     r.parse().unwrap_or_else(|err| {
                         args_fail(&format!("Error parsing option: --resolution ({})", err))
                     })
-                }).collect();
+                })
+                .collect();
             TypedSize2D::new(res[0], res[1])
         },
         None => TypedSize2D::new(1024, 740),
@@ -970,7 +972,8 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
                 .read_to_end(&mut contents)
                 .unwrap_or_else(|err| args_fail(&format!("Couldn't read {}: {}", filename, err)));
             (contents, url)
-        }).collect();
+        })
+        .collect();
 
     let do_not_use_native_titlebar = opt_match.opt_present("b") || !PREFS
         .get("shell.native-titlebar.enabled")

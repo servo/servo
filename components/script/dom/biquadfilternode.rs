@@ -39,9 +39,10 @@ impl BiquadFilterNode {
         context: &BaseAudioContext,
         options: &BiquadFilterOptions,
     ) -> Fallible<BiquadFilterNode> {
-        let node_options = options.parent
-                                  .unwrap_or(2, ChannelCountMode::Max,
-                                             ChannelInterpretation::Speakers);
+        let node_options =
+            options
+                .parent
+                .unwrap_or(2, ChannelCountMode::Max, ChannelInterpretation::Speakers);
         let filter = Cell::new(options.type_);
         let options = options.into();
         let node = AudioNode::new_inherited(
@@ -57,9 +58,9 @@ impl BiquadFilterNode {
             node.node_id(),
             ParamType::Gain,
             AutomationRate::A_rate,
-            options.gain,       // default value
-            f32::MIN, // min value
-            f32::MAX, // max value
+            options.gain, // default value
+            f32::MIN,     // min value
+            f32::MAX,     // max value
         );
         let q = AudioParam::new(
             window,
@@ -67,9 +68,9 @@ impl BiquadFilterNode {
             node.node_id(),
             ParamType::Q,
             AutomationRate::A_rate,
-            options.q,       // default value
-            f32::MIN, // min value
-            f32::MAX, // max value
+            options.q, // default value
+            f32::MIN,  // min value
+            f32::MAX,  // max value
         );
         let frequency = AudioParam::new(
             window,
@@ -77,9 +78,9 @@ impl BiquadFilterNode {
             node.node_id(),
             ParamType::Frequency,
             AutomationRate::A_rate,
-            options.frequency,       // default value
-            f32::MIN, // min value
-            f32::MAX, // max value
+            options.frequency, // default value
+            f32::MIN,          // min value
+            f32::MAX,          // max value
         );
         let detune = AudioParam::new(
             window,
@@ -87,9 +88,9 @@ impl BiquadFilterNode {
             node.node_id(),
             ParamType::Detune,
             AutomationRate::A_rate,
-            options.detune,       // default value
-            f32::MIN, // min value
-            f32::MAX, // max value
+            options.detune, // default value
+            f32::MIN,       // min value
+            f32::MAX,       // max value
         );
         Ok(BiquadFilterNode {
             node,
@@ -108,7 +109,11 @@ impl BiquadFilterNode {
         options: &BiquadFilterOptions,
     ) -> Fallible<DomRoot<BiquadFilterNode>> {
         let node = BiquadFilterNode::new_inherited(window, context, options)?;
-        Ok(reflect_dom_object(Box::new(node), window, BiquadFilterNodeBinding::Wrap))
+        Ok(reflect_dom_object(
+            Box::new(node),
+            window,
+            BiquadFilterNodeBinding::Wrap,
+        ))
     }
 
     pub fn Constructor(
@@ -149,10 +154,9 @@ impl BiquadFilterNodeMethods for BiquadFilterNode {
     // https://webaudio.github.io/web-audio-api/#dom-biquadfilternode-type
     fn SetType(&self, filter: BiquadFilterType) {
         self.filter.set(filter);
-        self.node
-            .message(AudioNodeMessage::BiquadFilterNode(
-                BiquadFilterNodeMessage::SetFilterType(filter.into()),
-            ));
+        self.node.message(AudioNodeMessage::BiquadFilterNode(
+            BiquadFilterNodeMessage::SetFilterType(filter.into()),
+        ));
     }
 }
 
@@ -163,7 +167,7 @@ impl<'a> From<&'a BiquadFilterOptions> for BiquadFilterNodeOptions {
             q: *options.Q,
             frequency: *options.frequency,
             detune: *options.detune,
-            filter: options.type_.into()
+            filter: options.type_.into(),
         }
     }
 }

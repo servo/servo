@@ -295,7 +295,8 @@ impl DOMMatrixMethods for DOMMatrix {
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrix-multiplyself
     fn MultiplySelf(&self, other: &DOMMatrixInit) -> Fallible<DomRoot<DOMMatrix>> {
         // Steps 1-3.
-        self.upcast::<DOMMatrixReadOnly>().multiply_self(other)
+        self.upcast::<DOMMatrixReadOnly>()
+            .multiply_self(other)
             // Step 4.
             .and(Ok(DomRoot::from_ref(&self)))
     }
@@ -303,7 +304,8 @@ impl DOMMatrixMethods for DOMMatrix {
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrix-premultiplyself
     fn PreMultiplySelf(&self, other: &DOMMatrixInit) -> Fallible<DomRoot<DOMMatrix>> {
         // Steps 1-3.
-        self.upcast::<DOMMatrixReadOnly>().pre_multiply_self(other)
+        self.upcast::<DOMMatrixReadOnly>()
+            .pre_multiply_self(other)
             // Step 4.
             .and(Ok(DomRoot::from_ref(&self)))
     }

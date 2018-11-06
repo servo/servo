@@ -207,12 +207,12 @@ impl ToCss for CalcLengthOrPercentage {
                 if length.px() == 0. && self.clamping_mode.clamp(p.0) == p.0 {
                     return p.to_css(dest);
                 }
-            }
+            },
             None => {
                 if self.clamping_mode.clamp(length.px()) == length.px() {
                     return length.to_css(dest);
                 }
-            }
+            },
         }
 
         dest.write_str("calc(")?;
@@ -950,8 +950,18 @@ pub type NonNegativeLengthOrPercentageOrNormal = Either<NonNegativeLengthOrPerce
 /// block-size, and inline-size.
 #[allow(missing_docs)]
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
-#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, Parse, PartialEq, SpecifiedValueInfo,
-         ToComputedValue, ToCss)]
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    Eq,
+    MallocSizeOf,
+    Parse,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToComputedValue,
+    ToCss,
+)]
 pub enum ExtremumLength {
     MozMaxContent,
     MozMinContent,

@@ -82,8 +82,10 @@ impl WebVRThread {
                     sender_clone,
                     constellation_chan,
                     vr_compositor_chan,
-                ).start();
-            }).expect("Thread spawning failed");
+                )
+                .start();
+            })
+            .expect("Thread spawning failed");
 
         (sender, constellation_sender)
     }
@@ -263,7 +265,8 @@ impl WebVRThread {
                     Some(g.data())
                 };
                 (data, g.state())
-            }).collect();
+            })
+            .collect();
         sender.send(Ok(data)).unwrap();
     }
 
@@ -324,7 +327,8 @@ impl WebVRThread {
                     }
                     thread::sleep(time::Duration::from_millis(polling_interval));
                 }
-            }).expect("Thread spawning failed");
+            })
+            .expect("Thread spawning failed");
     }
 }
 

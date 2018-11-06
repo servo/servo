@@ -40,7 +40,6 @@ use std::str::{Chars, FromStr};
 use std::sync::{Arc, Mutex};
 use utf8;
 
-
 const DEFAULT_RECONNECTION_TIME: u64 = 5000;
 
 #[derive(Clone, Copy, Debug, JSTraceable, MallocSizeOf, PartialEq)]
@@ -179,8 +178,10 @@ impl EventSourceContext {
                 self.data.push('\n');
             },
             "id" => mem::swap(&mut self.last_event_id, &mut self.value),
-            "retry" => if let Ok(time) = u64::from_str(&self.value) {
-                self.event_source.root().reconnection_time.set(time);
+            "retry" => {
+                if let Ok(time) = u64::from_str(&self.value) {
+                    self.event_source.root().reconnection_time.set(time);
+                }
             },
             _ => (),
         }
@@ -339,13 +340,15 @@ impl FetchResponseListener for EventSourceContext {
                 match meta.content_type {
                     None => self.fail_the_connection(),
                     Some(ct) => {
-                        if <ContentType as Into<Mime>>::into(ct.into_inner()) == mime::TEXT_EVENT_STREAM {
+                        if <ContentType as Into<Mime>>::into(ct.into_inner()) ==
+                            mime::TEXT_EVENT_STREAM
+                        {
                             self.origin = meta.final_url.origin().ascii_serialization();
                             self.announce_the_connection();
                         } else {
                             self.fail_the_connection()
                         }
-                    }
+                    },
                 }
             },
             Err(_) => {
@@ -503,7 +506,10 @@ impl EventSource {
         };
         // Step 10
         // TODO(eijebong): Replace once typed headers allow it
-        request.headers.insert(header::ACCEPT, HeaderValue::from_static("text/event-stream"));
+        request.headers.insert(
+            header::ACCEPT,
+            HeaderValue::from_static("text/event-stream"),
+        );
         // Step 11
         request.cache_mode = CacheMode::NoStore;
         // Step 12
@@ -543,7 +549,8 @@ impl EventSource {
             .send(CoreResourceMsg::Fetch(
                 request,
                 FetchChannels::ResponseMsg(action_sender, Some(cancel_receiver)),
-            )).unwrap();
+            ))
+            .unwrap();
         // Step 13
         Ok(ev)
     }
@@ -614,8 +621,11 @@ impl EventSourceTimeoutCallback {
         // Step 5.3
         if !event_source.last_event_id.borrow().is_empty() {
             //TODO(eijebong): Change this once typed header support custom values
-            request.headers.insert(HeaderName::from_static("last-event-id"),
-                HeaderValue::from_str(&String::from(event_source.last_event_id.borrow().clone())).unwrap());
+            request.headers.insert(
+                HeaderName::from_static("last-event-id"),
+                HeaderValue::from_str(&String::from(event_source.last_event_id.borrow().clone()))
+                    .unwrap(),
+            );
         }
         // Step 5.4
         global
@@ -623,6 +633,7 @@ impl EventSourceTimeoutCallback {
             .send(CoreResourceMsg::Fetch(
                 request,
                 FetchChannels::ResponseMsg(self.action_sender, None),
-            )).unwrap();
+            ))
+            .unwrap();
     }
 }

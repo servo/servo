@@ -82,14 +82,13 @@ impl CSSSupportsRule {
                 None,
             );
             let enabled = {
-                let namespaces =
-                    self
-                        .cssconditionrule
-                        .parent_stylesheet()
-                        .style_stylesheet()
-                        .contents
-                        .namespaces
-                        .read();
+                let namespaces = self
+                    .cssconditionrule
+                    .parent_stylesheet()
+                    .style_stylesheet()
+                    .contents
+                    .namespaces
+                    .read();
                 cond.eval(&context, &namespaces)
             };
             let mut guard = self.cssconditionrule.shared_lock().write();

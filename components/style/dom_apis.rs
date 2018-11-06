@@ -338,7 +338,10 @@ fn local_name_matches<E>(element: E, local_name: &LocalName<E::Impl>) -> bool
 where
     E: TElement,
 {
-    let LocalName { ref name, ref lower_name } = *local_name;
+    let LocalName {
+        ref name,
+        ref lower_name,
+    } = *local_name;
     if element.is_html_element_in_html_document() {
         element.local_name() == lower_name.borrow()
     } else {
@@ -543,23 +546,15 @@ where
             let case_sensitivity = quirks_mode.classes_and_ids_case_sensitivity();
             collect_all_elements::<E, Q, _>(root, results, |element| {
                 element.has_class(class, case_sensitivity) &&
-                    matching::matches_selector_list(
-                        selector_list,
-                        &element,
-                        matching_context,
-                    )
+                    matching::matches_selector_list(selector_list, &element, matching_context)
             });
-        }
+        },
         SimpleFilter::LocalName(ref local_name) => {
             collect_all_elements::<E, Q, _>(root, results, |element| {
                 local_name_matches(element, local_name) &&
-                    matching::matches_selector_list(
-                        selector_list,
-                        &element,
-                        matching_context,
-                    )
+                    matching::matches_selector_list(selector_list, &element, matching_context)
             });
-        }
+        },
     }
 
     Ok(())

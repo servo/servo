@@ -502,7 +502,8 @@ impl Parse for Ranges {
                         }
                     }
                     Ok(opt_start..opt_end)
-                }).map(Ranges)
+                })
+                .map(Ranges)
         }
     }
 }

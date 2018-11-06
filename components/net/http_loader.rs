@@ -506,12 +506,10 @@ pub fn http_fetch(
         }
 
         // Substep 2
-        if response.is_none() &&
-            request.is_subresource_request() &&
-            match request.origin {
-                Origin::Origin(ref origin) => *origin == request.url().origin(),
-                _ => false,
-            } {
+        if response.is_none() && request.is_subresource_request() && match request.origin {
+            Origin::Origin(ref origin) => *origin == request.url().origin(),
+            _ => false,
+        } {
             // TODO (handle foreign fetch unimplemented)
         }
 
@@ -1044,11 +1042,10 @@ fn http_network_or_cache_fetch(
             }
         }
         // Substep 4
-        if revalidating_flag &&
-            forward_response
-                .status
-                .as_ref()
-                .map_or(false, |s| s.0 == StatusCode::NOT_MODIFIED)
+        if revalidating_flag && forward_response
+            .status
+            .as_ref()
+            .map_or(false, |s| s.0 == StatusCode::NOT_MODIFIED)
         {
             if let Ok(mut http_cache) = context.state.http_cache.write() {
                 response = http_cache.refresh(&http_request, forward_response.clone(), done_chan);
@@ -1384,11 +1381,10 @@ fn cors_preflight_fetch(
     let response = http_network_or_cache_fetch(&mut preflight, false, false, &mut None, context);
 
     // Step 6
-    if cors_check(&request, &response).is_ok() &&
-        response
-            .status
-            .as_ref()
-            .map_or(false, |(status, _)| status.is_success())
+    if cors_check(&request, &response).is_ok() && response
+        .status
+        .as_ref()
+        .map_or(false, |(status, _)| status.is_success())
     {
         // Substep 1, 2
         let mut methods = if response

@@ -539,7 +539,8 @@ impl Document {
                             );
                         }),
                             self.window.upcast(),
-                        ).unwrap();
+                        )
+                        .unwrap();
                 }
             } else {
                 self.window().suspend();
@@ -1904,7 +1905,8 @@ impl Document {
                 }
             }),
                 self.window.upcast(),
-            ).unwrap();
+            )
+            .unwrap();
 
         // Step 8.
         let document = Trusted::new(self);
@@ -1938,7 +1940,8 @@ impl Document {
                     );
                 }),
                     self.window.upcast(),
-                ).unwrap();
+                )
+                .unwrap();
         }
 
         // Step 9.
@@ -2780,14 +2783,16 @@ impl Document {
                 owner
                     .upcast::<Node>()
                     .is_before(sheet_in_doc.owner.upcast())
-            }).cloned();
+            })
+            .cloned();
 
         self.window()
             .layout_chan()
             .send(Msg::AddStylesheet(
                 sheet.clone(),
                 insertion_point.as_ref().map(|s| s.sheet.clone()),
-            )).unwrap();
+            ))
+            .unwrap();
 
         let sheet = StyleSheetInDocument {
             sheet,
@@ -3621,7 +3626,8 @@ impl DocumentMethods for Document {
                     .child_elements()
                     .find(|node| {
                         node.namespace() == &ns!(svg) && node.local_name() == &local_name!("title")
-                    }).map(DomRoot::upcast::<Node>)
+                    })
+                    .map(DomRoot::upcast::<Node>)
             } else {
                 // Step 2.
                 root.upcast::<Node>()
@@ -3726,7 +3732,8 @@ impl DocumentMethods for Document {
                         HTMLElementTypeId::HTMLFrameSetElement,
                     )) => true,
                     _ => false,
-                }).map(|node| DomRoot::downcast(node).unwrap())
+                })
+                .map(|node| DomRoot::downcast(node).unwrap())
         })
     }
 
@@ -3947,16 +3954,18 @@ impl DocumentMethods for Document {
             return Err(Error::Security);
         }
 
-        let cookies = if let Some(cookie) = cookie_rs::Cookie::parse(cookie.to_string()).ok().map(Serde) {
-            vec![cookie]
-        } else {
-            vec![]
-        };
+        let cookies =
+            if let Some(cookie) = cookie_rs::Cookie::parse(cookie.to_string()).ok().map(Serde) {
+                vec![cookie]
+            } else {
+                vec![]
+            };
 
-        let _ = self.window
-                .upcast::<GlobalScope>()
-                .resource_threads()
-                .send(SetCookiesForUrl(self.url(), cookies, NonHTTP));
+        let _ = self
+            .window
+            .upcast::<GlobalScope>()
+            .resource_threads()
+            .send(SetCookiesForUrl(self.url(), cookies, NonHTTP));
         Ok(())
     }
 
@@ -4158,7 +4167,8 @@ impl DocumentMethods for Document {
                     node::from_untrusted_node_address(js_runtime, untrusted_node_address)
                 };
                 DomRoot::downcast::<Element>(node)
-            }).collect();
+            })
+            .collect();
 
         // Step 4
         if let Some(root_element) = self.GetDocumentElement() {
@@ -4172,7 +4182,11 @@ impl DocumentMethods for Document {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-document-open
-    fn Open(&self, _unused1: Option<DOMString>, _unused2: Option<DOMString>) -> Fallible<DomRoot<Document>> {
+    fn Open(
+        &self,
+        _unused1: Option<DOMString>,
+        _unused2: Option<DOMString>,
+    ) -> Fallible<DomRoot<Document>> {
         // Step 1
         if !self.is_html_document() {
             return Err(Error::InvalidState);
@@ -4266,12 +4280,19 @@ impl DocumentMethods for Document {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-document-open-window
-    fn Open_(&self, url: DOMString, target: DOMString, features: DOMString) -> Fallible<DomRoot<WindowProxy>> {
+    fn Open_(
+        &self,
+        url: DOMString,
+        target: DOMString,
+        features: DOMString,
+    ) -> Fallible<DomRoot<WindowProxy>> {
         // WhatWG spec states this should always return a WindowProxy, but the spec for WindowProxy.open states
         // it optionally returns a WindowProxy. Assume an error if window.open returns none.
         // See https://github.com/whatwg/html/issues/4091
         let context = self.browsing_context().ok_or(Error::InvalidAccess)?;
-        context.open(url, target, features).ok_or(Error::InvalidAccess)
+        context
+            .open(url, target, features)
+            .ok_or(Error::InvalidAccess)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-document-write
@@ -4297,7 +4318,9 @@ impl DocumentMethods for Document {
                 // Either there is no parser, which means the parsing ended;
                 // or script nesting level is 0, which means the method was
                 // called from outside a parser-executed script.
-                if self.is_prompting_or_unloading() || self.ignore_destructive_writes_counter.get() > 0 {
+                if self.is_prompting_or_unloading() ||
+                    self.ignore_destructive_writes_counter.get() > 0
+                {
                     // Step 4.
                     return Ok(());
                 }

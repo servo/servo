@@ -199,7 +199,8 @@ where
                     ..Default::default()
                 },
                 None,
-            ).expect("Unable to initialize webrender!")
+            )
+            .expect("Unable to initialize webrender!")
         };
 
         let webrender_api = webrender_api_sender.create_api();
@@ -378,7 +379,10 @@ where
             WindowEvent::SendError(ctx, e) => {
                 let msg = ConstellationMsg::SendError(ctx, e);
                 if let Err(e) = self.constellation_chan.send(msg) {
-                    warn!("Sending SendError message to constellation failed ({:?}).", e);
+                    warn!(
+                        "Sending SendError message to constellation failed ({:?}).",
+                        e
+                    );
                 }
             },
         }
@@ -397,14 +401,8 @@ where
 
                 (_, ShutdownState::ShuttingDown) => {},
 
-                (
-                    EmbedderMsg::Keyboard(key_event),
-                    ShutdownState::NotShuttingDown,
-                ) => {
-                    let event = (
-                        top_level_browsing_context,
-                        EmbedderMsg::Keyboard(key_event),
-                    );
+                (EmbedderMsg::Keyboard(key_event), ShutdownState::NotShuttingDown) => {
+                    let event = (top_level_browsing_context, EmbedderMsg::Keyboard(key_event));
                     self.embedder_events.push(event);
                 },
 

@@ -120,9 +120,8 @@ unsafe impl Sync for OpaqueComputedValues {}
 
 impl OpaqueComputedValues {
     fn from(cv: &ComputedValues) -> Self {
-        let p = unsafe {
-            NonNull::new_unchecked(cv as *const ComputedValues as *const () as *mut ())
-        };
+        let p =
+            unsafe { NonNull::new_unchecked(cv as *const ComputedValues as *const () as *mut ()) };
         OpaqueComputedValues(p)
     }
 
@@ -204,7 +203,8 @@ impl ValidationData {
                 let values =
                     OpaqueComputedValues::from(parent.borrow_data().unwrap().styles.primary());
                 values
-            }).clone()
+            })
+            .clone()
     }
 
     /// Computes the revalidation results if needed, and returns it.

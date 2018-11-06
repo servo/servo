@@ -74,7 +74,8 @@ impl BluetoothThreadFactory for IpcSender<BluetoothRequest> {
             BluetoothAdapter::init()
         } else {
             BluetoothAdapter::init_mock()
-        }.ok();
+        }
+        .ok();
         thread::Builder::new()
             .name("BluetoothThread".to_owned())
             .spawn(move || {
@@ -465,8 +466,10 @@ impl BluetoothManager {
         };
 
         services.retain(|s| {
-            !uuid_is_blocklisted(&s.get_uuid().unwrap_or(String::new()), Blocklist::All) &&
-                self.allowed_services.get(device_id).map_or(false, |uuids| {
+            !uuid_is_blocklisted(&s.get_uuid().unwrap_or(String::new()), Blocklist::All) && self
+                .allowed_services
+                .get(device_id)
+                .map_or(false, |uuids| {
                     uuids.contains(&s.get_uuid().unwrap_or(String::new()))
                 })
         });
@@ -556,9 +559,9 @@ impl BluetoothManager {
     }
 
     fn characteristic_is_cached(&self, characteristic_id: &str) -> bool {
-        self.cached_characteristics.contains_key(characteristic_id) &&
-            self.characteristic_to_service
-                .contains_key(characteristic_id)
+        self.cached_characteristics.contains_key(characteristic_id) && self
+            .characteristic_to_service
+            .contains_key(characteristic_id)
     }
 
     // Descriptor

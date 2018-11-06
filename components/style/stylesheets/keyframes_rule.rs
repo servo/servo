@@ -89,7 +89,8 @@ impl DeepCloneWithLock for KeyframesRule {
                     Arc::new(
                         lock.wrap(x.read_with(guard).deep_clone_with_lock(lock, guard, params)),
                     )
-                }).collect(),
+                })
+                .collect(),
             vendor_prefix: self.vendor_prefix.clone(),
             source_location: self.source_location.clone(),
         }
@@ -327,7 +328,8 @@ impl KeyframesStep {
                 let (declaration, _) = guard
                     .get(PropertyDeclarationId::Longhand(
                         LonghandId::AnimationTimingFunction,
-                    )).unwrap();
+                    ))
+                    .unwrap();
                 match *declaration {
                     PropertyDeclaration::AnimationTimingFunction(ref value) => {
                         // Use the first value.
@@ -499,7 +501,8 @@ pub fn parse_keyframe_list(
             shared_lock: shared_lock,
             declarations: &mut declarations,
         },
-    ).filter_map(Result::ok)
+    )
+    .filter_map(Result::ok)
     .collect()
 }
 

@@ -110,10 +110,8 @@ impl AudioBuffer {
     // Initialize the underlying channels data with initial data provided by
     // the user or silence otherwise.
     fn set_initial_data(&self, initial_data: Option<&[Vec<f32>]>) {
-        let mut channels = ServoMediaAudioBuffer::new(
-            self.number_of_channels as u8,
-            self.length as usize,
-        );
+        let mut channels =
+            ServoMediaAudioBuffer::new(self.number_of_channels as u8, self.length as usize);
         for channel in 0..self.number_of_channels {
             channels.buffers[channel as usize] = match initial_data {
                 Some(data) => data[channel as usize].clone(),
@@ -143,7 +141,8 @@ impl AudioBuffer {
                     cx,
                     CreateWith::Slice(&shared_channels.buffers[i]),
                     array.handle_mut(),
-                ).is_err()
+                )
+                .is_err()
                 {
                     return false;
                 }
@@ -159,10 +158,8 @@ impl AudioBuffer {
     // https://webaudio.github.io/web-audio-api/#acquire-the-content
     #[allow(unsafe_code)]
     fn acquire_contents(&self) -> Option<ServoMediaAudioBuffer> {
-        let mut result = ServoMediaAudioBuffer::new(
-            self.number_of_channels as u8,
-            self.length as usize,
-        );
+        let mut result =
+            ServoMediaAudioBuffer::new(self.number_of_channels as u8, self.length as usize);
         let cx = self.global().get_cx();
         for (i, channel) in self.js_channels.borrow_mut().iter().enumerate() {
             // Step 1.
@@ -203,7 +200,7 @@ impl AudioBuffer {
                 *self.shared_channels.borrow_mut() = channels;
             }
         }
-        return self.shared_channels.borrow()
+        return self.shared_channels.borrow();
     }
 }
 
@@ -324,7 +321,8 @@ impl AudioBufferMethods for AudioBuffer {
             let js_channel_data = unsafe { js_channel.as_mut_slice() };
             let (_, js_channel_data) = js_channel_data.split_at_mut(start_in_channel as usize);
             unsafe {
-                js_channel_data[0..bytes_to_copy].copy_from_slice(&source.as_slice()[0..bytes_to_copy])
+                js_channel_data[0..bytes_to_copy]
+                    .copy_from_slice(&source.as_slice()[0..bytes_to_copy])
             };
         } else {
             return Err(Error::IndexSize);

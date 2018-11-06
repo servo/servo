@@ -120,7 +120,8 @@ macro_rules! parse_quoted_or_unquoted_string {
                 .parse_entirely(|input| {
                     let string = input.expect_string()?;
                     Ok($url_matching_function(string.as_ref().to_owned()))
-                }).or_else(|_: ParseError| {
+                })
+                .or_else(|_: ParseError| {
                     while let Ok(_) = input.next() {}
                     Ok($url_matching_function(input.slice_from(start).to_string()))
                 })

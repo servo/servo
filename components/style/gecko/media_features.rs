@@ -305,15 +305,15 @@ bitflags! {
 }
 
 fn primary_pointer_capabilities(device: &Device) -> PointerCapabilities {
-    PointerCapabilities::from_bits_truncate(
-        unsafe { bindings::Gecko_MediaFeatures_PrimaryPointerCapabilities(device.document()) }
-    )
+    PointerCapabilities::from_bits_truncate(unsafe {
+        bindings::Gecko_MediaFeatures_PrimaryPointerCapabilities(device.document())
+    })
 }
 
 fn all_pointer_capabilities(device: &Device) -> PointerCapabilities {
-    PointerCapabilities::from_bits_truncate(
-        unsafe { bindings::Gecko_MediaFeatures_AllPointerCapabilities(device.document()) }
-    )
+    PointerCapabilities::from_bits_truncate(unsafe {
+        bindings::Gecko_MediaFeatures_AllPointerCapabilities(device.document())
+    })
 }
 
 #[derive(Clone, Copy, Debug, FromPrimitive, Parse, ToCss)]

@@ -55,7 +55,7 @@ pub fn Java_org_mozilla_servoview_JNIServo_init(
         Err(err) => {
             throw(&env, &err);
             return;
-        }
+        },
     };
 
     if log {
@@ -95,7 +95,7 @@ pub fn Java_org_mozilla_servoview_JNIServo_init(
         Err(_) => {
             throw(&env, "Failed to get global reference of callback argument");
             return;
-        }
+        },
     };
 
     let wakeup = Box::new(WakeupCallback::new(callbacks_ref.clone(), &env));
@@ -110,11 +110,7 @@ pub fn Java_org_mozilla_servoview_JNIServo_init(
 }
 
 #[no_mangle]
-pub fn Java_org_mozilla_servoview_JNIServo_setBatchMode(
-    env: JNIEnv,
-    _: JClass,
-    batch: jboolean,
-) {
+pub fn Java_org_mozilla_servoview_JNIServo_setBatchMode(env: JNIEnv, _: JClass, batch: jboolean) {
     debug!("setBatchMode");
     call(&env, |s| s.set_batch_mode(batch == JNI_TRUE));
 }
@@ -158,7 +154,7 @@ pub fn Java_org_mozilla_servoview_JNIServo_loadUri(env: JNIEnv, _class: JClass, 
         },
         Err(_) => {
             throw(&env, "Failed to convert Java string");
-        }
+        },
     };
 }
 
@@ -202,7 +198,9 @@ pub fn Java_org_mozilla_servoview_JNIServo_scrollStart(
     y: jint,
 ) {
     debug!("scrollStart");
-    call(&env, |s| s.scroll_start(dx as i32, dy as i32, x as u32, y as u32));
+    call(&env, |s| {
+        s.scroll_start(dx as i32, dy as i32, x as u32, y as u32)
+    });
 }
 
 #[no_mangle]
@@ -215,9 +213,10 @@ pub fn Java_org_mozilla_servoview_JNIServo_scrollEnd(
     y: jint,
 ) {
     debug!("scrollEnd");
-    call(&env, |s| s.scroll_end(dx as i32, dy as i32, x as u32, y as u32));
+    call(&env, |s| {
+        s.scroll_end(dx as i32, dy as i32, x as u32, y as u32)
+    });
 }
-
 
 #[no_mangle]
 pub fn Java_org_mozilla_servoview_JNIServo_scroll(
@@ -241,7 +240,9 @@ pub fn Java_org_mozilla_servoview_JNIServo_pinchZoomStart(
     y: jint,
 ) {
     debug!("pinchZoomStart");
-    call(&env, |s| s.pinchzoom_start(factor as f32, x as u32, y as u32));
+    call(&env, |s| {
+        s.pinchzoom_start(factor as f32, x as u32, y as u32)
+    });
 }
 
 #[no_mangle]
@@ -267,7 +268,6 @@ pub fn Java_org_mozilla_servoview_JNIServo_pinchZoomEnd(
     debug!("pinchZoomEnd");
     call(&env, |s| s.pinchzoom_end(factor as f32, x as u32, y as u32));
 }
-
 
 #[no_mangle]
 pub fn Java_org_mozilla_servoview_JNIServo_click(env: JNIEnv, _: JClass, x: jint, y: jint) {
@@ -391,7 +391,8 @@ impl HostTrait for HostCallbacks {
             "onTitleChanged",
             "(Ljava/lang/String;)V",
             &[s],
-        ).unwrap();
+        )
+        .unwrap();
     }
 
     fn on_url_changed(&self, url: String) {
@@ -407,7 +408,8 @@ impl HostTrait for HostCallbacks {
             "onUrlChanged",
             "(Ljava/lang/String;)V",
             &[s],
-        ).unwrap();
+        )
+        .unwrap();
     }
 
     fn on_history_changed(&self, can_go_back: bool, can_go_forward: bool) {
@@ -420,7 +422,8 @@ impl HostTrait for HostCallbacks {
             "onHistoryChanged",
             "(ZZ)V",
             &[can_go_back, can_go_forward],
-        ).unwrap();
+        )
+        .unwrap();
     }
 
     fn on_animating_changed(&self, animating: bool) {
@@ -432,7 +435,8 @@ impl HostTrait for HostCallbacks {
             "onAnimatingChanged",
             "(Z)V",
             &[animating],
-        ).unwrap();
+        )
+        .unwrap();
     }
 }
 
@@ -441,17 +445,11 @@ fn initialize_android_glue(env: &JNIEnv, activity: JObject) {
 
     // From jni-rs to android_injected_glue
 
-    let mut app: ffi::android_app = unsafe {
-        std::mem::zeroed()
-    };
-    let mut native_activity: ffi::ANativeActivity = unsafe {
-        std::mem::zeroed()
-    };
+    let mut app: ffi::android_app = unsafe { std::mem::zeroed() };
+    let mut native_activity: ffi::ANativeActivity = unsafe { std::mem::zeroed() };
 
     let clazz = Box::into_raw(Box::new(env.new_global_ref(activity).unwrap()));
-    native_activity.clazz = unsafe {
-        (*clazz).as_obj().into_inner() as *mut c_void
-    };
+    native_activity.clazz = unsafe { (*clazz).as_obj().into_inner() as *mut c_void };
 
     let vm = env.get_java_vm().unwrap().get_java_vm_pointer();
     native_activity.vm = vm as *mut ffi::_JavaVM;
@@ -463,7 +461,7 @@ fn initialize_android_glue(env: &JNIEnv, activity: JObject) {
     }
 }
 
-extern {
+extern "C" {
     pub fn __android_log_write(prio: c_int, tag: *const c_char, text: *const c_char) -> c_int;
 }
 
@@ -497,7 +495,11 @@ fn redirect_stdout_to_logcat() {
             let result = {
                 let read_into = &mut buf[cursor..];
                 unsafe {
-                    read(descriptor, read_into.as_mut_ptr() as *mut _, read_into.len())
+                    read(
+                        descriptor,
+                        read_into.as_mut_ptr() as *mut _,
+                        read_into.len(),
+                    )
                 }
             };
 
@@ -505,7 +507,11 @@ fn redirect_stdout_to_logcat() {
                 return;
             } else if result < 0 {
                 unsafe {
-                    __android_log_write(3, tag, b"error in log thread; closing\0".as_ptr() as *const _);
+                    __android_log_write(
+                        3,
+                        tag,
+                        b"error in log thread; closing\0".as_ptr() as *const _,
+                    );
                 }
                 return;
             } else {
@@ -546,7 +552,10 @@ fn redirect_stdout_to_logcat() {
 
 fn throw(env: &JNIEnv, err: &str) {
     if let Err(e) = env.throw(("java/lang/Exception", err)) {
-        warn!("Failed to throw Java exception: `{}`. Exception was: `{}`", e, err);
+        warn!(
+            "Failed to throw Java exception: `{}`. Exception was: `{}`",
+            e, err
+        );
     }
 }
 

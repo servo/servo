@@ -291,7 +291,8 @@ impl XMLHttpRequest {
             .send(Fetch(
                 init,
                 FetchChannels::ResponseMsg(action_sender, Some(cancellation_chan)),
-            )).unwrap();
+            ))
+            .unwrap();
     }
 }
 
@@ -461,7 +462,10 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
             None => value.into(),
         };
 
-        headers.insert(HeaderName::from_str(name_str).unwrap(), HeaderValue::from_bytes(&value).unwrap());
+        headers.insert(
+            HeaderName::from_str(name_str).unwrap(),
+            HeaderValue::from_bytes(&value).unwrap(),
+        );
         Ok(())
     }
 
@@ -532,7 +536,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
         // Step 3
         let data = match *self.request_method.borrow() {
             Method::GET | Method::HEAD => None,
-            _ => data
+            _ => data,
         };
         // Step 4 (first half)
         let extracted_or_serialized = match data {
@@ -637,14 +641,18 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
                     // XHR spec differs from http, and says UTF-8 should be in capitals,
                     // instead of "utf-8", which is what Hyper defaults to. So not
                     // using content types provided by Hyper.
-                    Some("UTF-8"),
+                    {
+                        Some("UTF-8")
+                    },
                     _ => None,
                 };
 
                 let mut content_type_set = false;
                 if let Some(ref ct) = *content_type {
                     if !request.headers.contains_key(header::CONTENT_TYPE) {
-                        request.headers.insert(header::CONTENT_TYPE, HeaderValue::from_str(ct).unwrap());
+                        request
+                            .headers
+                            .insert(header::CONTENT_TYPE, HeaderValue::from_str(ct).unwrap());
                         content_type_set = true;
                     }
                 }
@@ -657,24 +665,26 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
                             for param in mime.params() {
                                 if param.0 == mime::CHARSET {
                                     if !param.1.as_ref().eq_ignore_ascii_case(encoding) {
-                                        let new_params: Vec<(Name, Name)> =
-                                            mime.params()
-                                                .filter(|p| p.0 != mime::CHARSET)
-                                                .map(|p| (p.0, p.1))
-                                                .collect();
+                                        let new_params: Vec<
+                                            (Name, Name),
+                                        > = mime
+                                            .params()
+                                            .filter(|p| p.0 != mime::CHARSET)
+                                            .map(|p| (p.0, p.1))
+                                            .collect();
 
-                                        let new_mime =
-                                            format!("{}/{}; charset={}{}{}",
-                                                    mime.type_().as_ref(),
-                                                    mime.subtype().as_ref(),
-                                                    encoding,
-                                                    if new_params.is_empty() { "" } else { "; " },
-                                                    new_params
-                                                        .iter()
-                                                        .map(|p| format!("{}={}", p.0, p.1))
-                                                        .collect::<Vec<String>>()
-                                                        .join("; ")
-                                            );
+                                        let new_mime = format!(
+                                            "{}/{}; charset={}{}{}",
+                                            mime.type_().as_ref(),
+                                            mime.subtype().as_ref(),
+                                            encoding,
+                                            if new_params.is_empty() { "" } else { "; " },
+                                            new_params
+                                                .iter()
+                                                .map(|p| format!("{}={}", p.0, p.1))
+                                                .collect::<Vec<String>>()
+                                                .join("; ")
+                                        );
                                         let new_mime: Mime = new_mime.parse().unwrap();
                                         request.headers.typed_insert(ContentType::from(new_mime))
                                     }
@@ -744,15 +754,14 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
         let headers = self.filter_response_headers();
         let headers = headers.get_all(HeaderName::from_str(&name.as_str()?.to_lowercase()).ok()?);
         let mut first = true;
-        let s = headers.iter()
-                       .fold(Vec::new(), |mut vec, value| {
-                           if !first {
-                               vec.extend(", ".as_bytes());
-                           }
-                           first = false;
-                           vec.extend(value.as_bytes());
-                           vec
-                       });
+        let s = headers.iter().fold(Vec::new(), |mut vec, value| {
+            if !first {
+                vec.extend(", ".as_bytes());
+            }
+            first = false;
+            vec.extend(value.as_bytes());
+            vec
+        });
 
         // There was no header with that name so we never got to change that value
         if first {
@@ -808,9 +817,8 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
         *self.override_mime_type.borrow_mut() = Some(mime_no_params);
         // Step 4
         let value = override_mime.get_param(mime::CHARSET);
-        *self.override_charset.borrow_mut() = value.and_then(|value| {
-            Encoding::for_label(value.as_ref().as_bytes())
-        });
+        *self.override_charset.borrow_mut() =
+            value.and_then(|value| Encoding::for_label(value.as_ref().as_bytes()));
         Ok(())
     }
 
@@ -1130,18 +1138,24 @@ impl XMLHttpRequest {
     }
 
     fn dispatch_progress_event(&self, upload: bool, type_: Atom, loaded: u64, total: Option<u64>) {
-        let (total_length, length_computable) =
-            if self.response_headers.borrow().contains_key(header::CONTENT_ENCODING) {
-                (0, false)
-            } else {
-                (total.unwrap_or(0), total.is_some())
-            };
-        let progressevent = ProgressEvent::new(&self.global(),
-                                               type_,
-                                               EventBubbles::DoesNotBubble,
-                                               EventCancelable::NotCancelable,
-                                               length_computable, loaded,
-                                               total_length);
+        let (total_length, length_computable) = if self
+            .response_headers
+            .borrow()
+            .contains_key(header::CONTENT_ENCODING)
+        {
+            (0, false)
+        } else {
+            (total.unwrap_or(0), total.is_some())
+        };
+        let progressevent = ProgressEvent::new(
+            &self.global(),
+            type_,
+            EventBubbles::DoesNotBubble,
+            EventCancelable::NotCancelable,
+            length_computable,
+            loaded,
+            total_length,
+        );
         let target = if upload {
             self.upload.upcast()
         } else {
@@ -1159,7 +1173,11 @@ impl XMLHttpRequest {
 
     fn dispatch_response_progress_event(&self, type_: Atom) {
         let len = self.response.borrow().len() as u64;
-        let total = self.response_headers.borrow().typed_get::<ContentLength>().map(|v| v.0);
+        let total = self
+            .response_headers
+            .borrow()
+            .typed_get::<ContentLength>()
+            .map(|v| v.0);
         self.dispatch_progress_event(false, type_, len, total);
     }
 
@@ -1202,7 +1220,11 @@ impl XMLHttpRequest {
             return response;
         }
         // Step 2
-        let mime = self.final_mime_type().as_ref().map(|m| m.to_string()).unwrap_or("".to_owned());
+        let mime = self
+            .final_mime_type()
+            .as_ref()
+            .map(|m| m.to_string())
+            .unwrap_or("".to_owned());
 
         // Step 3, 4
         let bytes = self.response.borrow().to_vec();
@@ -1254,10 +1276,12 @@ impl XMLHttpRequest {
                 }
             },
             // Step 7
-            Some(ref mime) if (mime.type_() == mime::TEXT && mime.subtype() == mime::XML) ||
-                (mime.type_() == mime::APPLICATION && mime.subtype() == mime::XML) => {
+            Some(ref mime)
+                if (mime.type_() == mime::TEXT && mime.subtype() == mime::XML) ||
+                    (mime.type_() == mime::APPLICATION && mime.subtype() == mime::XML) =>
+            {
                 temp_doc = self.handle_xml();
-            },
+            }
             None => {
                 temp_doc = self.handle_xml();
             },
@@ -1441,11 +1465,9 @@ impl XMLHttpRequest {
                 Some(ct) => {
                     let mime: Mime = ct.into();
                     let value = mime.get_param(mime::CHARSET);
-                    value.and_then(|value|{
-                        Encoding::for_label(value.as_ref().as_bytes())
-                    })
-                }
-                None => { None }
+                    value.and_then(|value| Encoding::for_label(value.as_ref().as_bytes()))
+                },
+                None => None,
             }
         }
     }
@@ -1455,8 +1477,8 @@ impl XMLHttpRequest {
             self.override_mime_type.borrow().clone()
         } else {
             match self.response_headers.borrow().typed_get::<ContentType>() {
-                Some(ct) => { Some(ct.into()) },
-                None => { None }
+                Some(ct) => Some(ct.into()),
+                None => None,
             }
         }
     }

@@ -449,7 +449,8 @@ pub trait ThreadSafeLayoutElement:
                                 /* is_probe = */ false,
                                 &ServoMetricsProvider,
                                 /* matching_func = */ None,
-                            ).unwrap()
+                            )
+                            .unwrap()
                     },
                 }
             },

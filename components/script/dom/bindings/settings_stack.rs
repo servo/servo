@@ -94,7 +94,8 @@ pub fn entry_global() -> DomRoot<GlobalScope> {
                 .rev()
                 .find(|entry| entry.kind == StackEntryKind::Entry)
                 .map(|entry| DomRoot::from_ref(&*entry.global))
-        }).unwrap()
+        })
+        .unwrap()
 }
 
 /// RAII struct that pushes and pops entries from the script settings stack.

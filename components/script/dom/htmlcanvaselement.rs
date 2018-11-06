@@ -302,7 +302,7 @@ impl HTMLCanvasElement {
                 // TODO: add a method in WebGL2RenderingContext to get the pixels.
                 return None;
             },
-            None => vec![0; size.height as usize * size.width as usize * 4]
+            None => vec![0; size.height as usize * size.width as usize * 4],
         };
 
         Some((data, size))

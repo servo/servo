@@ -498,7 +498,10 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
             (Msg::GetScreenAvailSize(req), ShutdownState::NotShuttingDown) => {
                 if let Err(e) = req.send(self.embedder_coordinates.screen_avail) {
-                    warn!("Sending response to get screen avail size failed ({:?}).", e);
+                    warn!(
+                        "Sending response to get screen avail size failed ({:?}).",
+                        e
+                    );
                 }
             },
 
@@ -839,7 +842,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         &mut self,
         delta: ScrollLocation,
         cursor: DeviceIntPoint,
-        phase: TouchEventType
+        phase: TouchEventType,
     ) {
         match phase {
             TouchEventType::Move => self.on_scroll_window_event(delta, cursor),
@@ -852,11 +855,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         }
     }
 
-    fn on_scroll_window_event(
-        &mut self,
-        scroll_location: ScrollLocation,
-        cursor: DeviceIntPoint
-    ) {
+    fn on_scroll_window_event(&mut self, scroll_location: ScrollLocation, cursor: DeviceIntPoint) {
         self.pending_scroll_zoom_events.push(ScrollZoomEvent {
             magnification: 1.0,
             scroll_location: scroll_location,
@@ -1155,15 +1154,19 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     pub fn composite(&mut self) {
         let target = self.composite_target;
         match self.composite_specific_target(target) {
-            Ok(_) => if opts::get().output_file.is_some() || opts::get().exit_after_load {
-                println!("Shutting down the Constellation after generating an output file or exit flag specified");
-                self.start_shutting_down();
+            Ok(_) => {
+                if opts::get().output_file.is_some() || opts::get().exit_after_load {
+                    println!("Shutting down the Constellation after generating an output file or exit flag specified");
+                    self.start_shutting_down();
+                }
             },
-            Err(e) => if opts::get().is_running_problem_test {
-                if e != UnableToComposite::NotReadyToPaintImage(
-                    NotReadyToPaint::WaitingOnConstellation,
-                ) {
-                    println!("not ready to composite: {:?}", e);
+            Err(e) => {
+                if opts::get().is_running_problem_test {
+                    if e != UnableToComposite::NotReadyToPaintImage(
+                        NotReadyToPaint::WaitingOnConstellation,
+                    ) {
+                        println!("not ready to composite: {:?}", e);
+                    }
                 }
             },
         }
@@ -1255,7 +1258,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                     if let Some(pipeline) = self.pipeline(*id) {
                         // and inform the layout thread with the measured paint time.
                         let msg = LayoutControlMsg::PaintMetric(epoch, paint_time);
-                        if let Err(e)  = pipeline.layout_chan.send(msg) {
+                        if let Err(e) = pipeline.layout_chan.send(msg) {
                             warn!("Sending PaintMetric message to layout failed ({:?}).", e);
                         }
                     }
@@ -1445,7 +1448,8 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 val.as_ref()
                     .map(|dir| dir.join("capture_webrender").join(&capture_id))
                     .ok()
-            }).find(|val| match create_dir_all(&val) {
+            })
+            .find(|val| match create_dir_all(&val) {
                 Ok(_) => true,
                 Err(err) => {
                     eprintln!("Unable to create path '{:?}' for capture: {:?}", &val, err);

@@ -590,7 +590,8 @@ impl ClippingRegion {
                     rect: complex.rect.translate(delta),
                     radii: complex.radii,
                     mode: complex.mode,
-                }).collect(),
+                })
+                .collect(),
         }
     }
 

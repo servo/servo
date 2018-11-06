@@ -312,7 +312,9 @@ impl WebGLRenderingContext {
 
     #[inline]
     pub fn send_command(&self, command: WebGLCommand) {
-        self.webgl_sender.send(command, capture_webgl_backtrace(self)).unwrap();
+        self.webgl_sender
+            .send(command, capture_webgl_backtrace(self))
+            .unwrap();
     }
 
     #[inline]
@@ -570,7 +572,7 @@ impl WebGLRenderingContext {
             TexImageSource::HTMLVideoElement(_) => {
                 // TODO: https://github.com/servo/servo/issues/6711
                 return Ok(None);
-            }
+            },
         }))
     }
 
@@ -1427,7 +1429,8 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                     cx,
                     CreateWith::Slice(&receiver.recv().unwrap()),
                     rval.handle_mut(),
-                ).unwrap();
+                )
+                .unwrap();
                 ObjectValue(rval.get())
             },
             Parameter::Int4(param) => {
@@ -1438,7 +1441,8 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                     cx,
                     CreateWith::Slice(&receiver.recv().unwrap()),
                     rval.handle_mut(),
-                ).unwrap();
+                )
+                .unwrap();
                 ObjectValue(rval.get())
             },
             Parameter::Float(param) => {
@@ -1454,7 +1458,8 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                     cx,
                     CreateWith::Slice(&receiver.recv().unwrap()),
                     rval.handle_mut(),
-                ).unwrap();
+                )
+                .unwrap();
                 ObjectValue(rval.get())
             },
             Parameter::Float4(param) => {
@@ -1465,7 +1470,8 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                     cx,
                     CreateWith::Slice(&receiver.recv().unwrap()),
                     rval.handle_mut(),
-                ).unwrap();
+                )
+                .unwrap();
                 ObjectValue(rval.get())
             },
         }
@@ -2895,7 +2901,9 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         }
 
         let (sender, receiver) = ipc::bytes_channel().unwrap();
-        self.send_command(WebGLCommand::ReadPixels(src_rect, format, pixel_type, sender));
+        self.send_command(WebGLCommand::ReadPixels(
+            src_rect, format, pixel_type, sender,
+        ));
         let src = receiver.recv().unwrap();
 
         let src_row_len = src_rect.size.width as usize * bytes_per_pixel as usize;
@@ -3467,7 +3475,8 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                 cx,
                 CreateWith::Slice(&value),
                 rval.handle_mut(),
-            ).unwrap();
+            )
+            .unwrap();
             ObjectValue(rval.get())
         }
 
@@ -3627,7 +3636,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         handle_potential_webgl_error!(
             self,
             self.current_vao()
-                .vertex_attrib_pointer(index, size, type_, normalized, stride, offset, )
+                .vertex_attrib_pointer(index, size, type_, normalized, stride, offset)
         );
     }
 
@@ -4063,7 +4072,11 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             return self.webgl_error(InvalidValue);
         }
 
-        let rb = handle_potential_webgl_error!(self, self.bound_renderbuffer.get().ok_or(InvalidOperation), return);
+        let rb = handle_potential_webgl_error!(
+            self,
+            self.bound_renderbuffer.get().ok_or(InvalidOperation),
+            return
+        );
         handle_potential_webgl_error!(self, rb.storage(internal_format, width, height));
         if let Some(fb) = self.bound_framebuffer.get() {
             fb.invalidate_renderbuffer(&*rb);

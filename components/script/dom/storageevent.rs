@@ -141,11 +141,22 @@ impl StorageEventMethods for StorageEvent {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-storageevent-initstorageevent
-    fn InitStorageEvent(&self, type_: DOMString, bubbles: bool, cancelable: bool, key:
-                        Option<DOMString>, oldValue: Option<DOMString>, newValue:
-                        Option<DOMString>, url: USVString, storageArea: Option<&Storage>)
-    {
-        self.event.init_event(Atom::from(type_), bool::from(bubbles), bool::from(cancelable));
+    fn InitStorageEvent(
+        &self,
+        type_: DOMString,
+        bubbles: bool,
+        cancelable: bool,
+        key: Option<DOMString>,
+        oldValue: Option<DOMString>,
+        newValue: Option<DOMString>,
+        url: USVString,
+        storageArea: Option<&Storage>,
+    ) {
+        self.event.init_event(
+            Atom::from(type_),
+            bool::from(bubbles),
+            bool::from(cancelable),
+        );
         *self.key.borrow_mut() = key;
         *self.old_value.borrow_mut() = oldValue;
         *self.new_value.borrow_mut() = newValue;

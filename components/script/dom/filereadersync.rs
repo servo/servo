@@ -100,7 +100,8 @@ impl FileReaderSyncMethods for FileReaderSync {
                 cx,
                 CreateWith::Slice(&blob_contents),
                 array_buffer.handle_mut()
-            ).is_ok()
+            )
+            .is_ok()
         );
 
         Ok(NonNull::new_unchecked(array_buffer.get()))

@@ -176,7 +176,8 @@ pub fn Fetch(
         .send(NetTraitsFetch(
             request_init,
             FetchChannels::ResponseMsg(action_sender, None),
-        )).unwrap();
+        ))
+        .unwrap();
 
     promise
 }

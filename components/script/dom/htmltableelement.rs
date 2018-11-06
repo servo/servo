@@ -139,7 +139,8 @@ impl HTMLTableElement {
             &local_name!("thead") => self.SetTHead(Some(&section)),
             &local_name!("tfoot") => self.SetTFoot(Some(&section)),
             _ => unreachable!("unexpected section type"),
-        }.expect("unexpected section type");
+        }
+        .expect("unexpected section type");
 
         section
     }
@@ -160,7 +161,8 @@ impl HTMLTableElement {
                 .filter_map(|ref node| {
                     node.downcast::<HTMLTableSectionElement>()
                         .map(|_| Dom::from_ref(&**node))
-                }).collect(),
+                })
+                .collect(),
         }
     }
 }

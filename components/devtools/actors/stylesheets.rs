@@ -30,4 +30,3 @@ impl StyleSheetsActor {
         StyleSheetsActor { name: name }
     }
 }
-

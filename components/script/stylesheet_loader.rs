@@ -120,7 +120,11 @@ impl FetchResponseListener for StylesheetContext {
                 mime.type_() == mime::TEXT && mime.subtype() == mime::CSS
             });
 
-            let data = if is_css { mem::replace(&mut self.data, vec![]) } else { vec![] };
+            let data = if is_css {
+                mem::replace(&mut self.data, vec![])
+            } else {
+                vec![]
+            };
 
             // TODO: Get the actual value. http://dev.w3.org/csswg/css-syntax/#environment-encoding
             let environment_encoding = UTF_8;

@@ -192,7 +192,8 @@ fn init_user_prefs(path: &mut PathBuf) {
         writeln!(
             &mut stderr(),
             "Error opening prefs.json from config directory"
-        ).expect("failed printing to stderr");
+        )
+        .expect("failed printing to stderr");
     }
 }
 

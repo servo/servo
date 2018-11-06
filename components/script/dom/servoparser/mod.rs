@@ -722,8 +722,9 @@ impl FetchResponseListener for ParserContext {
                 let doc_body = DomRoot::upcast::<Node>(doc.GetBody().unwrap());
                 let img = HTMLImageElement::new(local_name!("img"), None, doc);
                 img.SetSrc(DOMString::from(self.url.to_string()));
-                doc_body.AppendChild(&DomRoot::upcast::<Node>(img)).expect("Appending failed");
-
+                doc_body
+                    .AppendChild(&DomRoot::upcast::<Node>(img))
+                    .expect("Appending failed");
             },
             Some(ref mime) if mime.type_() == mime::TEXT && mime.subtype() == mime::PLAIN => {
                 // https://html.spec.whatwg.org/multipage/#read-text
@@ -750,17 +751,20 @@ impl FetchResponseListener for ParserContext {
                 }
             },
             // Handle text/xml, application/xml
-            Some(ref mime) if (mime.type_() == mime::TEXT && mime.subtype() == mime::XML) ||
-                (mime.type_() == mime::APPLICATION && mime.subtype() == mime::XML) => {},
-            Some(ref mime) if mime.type_() == mime::APPLICATION &&
-                mime.subtype().as_str() == "xhtml" &&
-                mime.suffix() == Some(mime::XML)
-                => {}, // Handle xhtml (application/xhtml+xml)
+            Some(ref mime)
+                if (mime.type_() == mime::TEXT && mime.subtype() == mime::XML) ||
+                    (mime.type_() == mime::APPLICATION && mime.subtype() == mime::XML) => {},
+            Some(ref mime)
+                if mime.type_() == mime::APPLICATION &&
+                    mime.subtype().as_str() == "xhtml" &&
+                    mime.suffix() == Some(mime::XML) => {}, // Handle xhtml (application/xhtml+xml)
             Some(ref mime) => {
                 // Show warning page for unknown mime types.
-                let page = format!("<html><body><p>Unknown content type ({}/{}).</p></body></html>",
-                                   mime.type_().as_str(),
-                                   mime.subtype().as_str());
+                let page = format!(
+                    "<html><body><p>Unknown content type ({}/{}).</p></body></html>",
+                    mime.type_().as_str(),
+                    mime.subtype().as_str()
+                );
                 self.is_synthesized_document = true;
                 parser.push_string_input_chunk(page);
                 parser.parse_sync();

@@ -109,7 +109,8 @@ impl fmt::Debug for UrlExtraData {
             .field(
                 "referrer",
                 &DebugURI(self.0.mReferrer.raw::<structs::nsIURI>()),
-            ).finish()
+            )
+            .finish()
     }
 }
 

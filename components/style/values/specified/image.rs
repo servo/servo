@@ -189,7 +189,9 @@ impl Image {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Image, ParseError<'i>> {
-        if let Ok(url) = input.try(|input| SpecifiedImageUrl::parse_with_cors_anonymous(context, input)) {
+        if let Ok(url) =
+            input.try(|input| SpecifiedImageUrl::parse_with_cors_anonymous(context, input))
+        {
             return Ok(generic::Image::Url(url));
         }
         Self::parse(context, input)
@@ -1023,7 +1025,8 @@ impl Parse for PaintWorklet {
                 .try(|input| {
                     input.expect_comma()?;
                     input.parse_comma_separated(|input| SpecifiedValue::parse(input))
-                }).unwrap_or(vec![]);
+                })
+                .unwrap_or(vec![]);
             Ok(PaintWorklet { name, arguments })
         })
     }

@@ -380,7 +380,8 @@ impl<'a> TextRun {
                 );
                 remaining -= slice_advance;
                 slice_index
-            }).sum()
+            })
+            .sum()
     }
 
     /// Returns an iterator that will iterate over all slices of glyphs that represent natural

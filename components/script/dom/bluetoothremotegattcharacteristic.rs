@@ -216,7 +216,8 @@ impl BluetoothRemoteGATTCharacteristicMethods for BluetoothRemoteGATTCharacteris
                 self.get_instance_id(),
                 vec,
                 sender,
-            )).unwrap();
+            ))
+            .unwrap();
         return p;
     }
 
@@ -253,7 +254,8 @@ impl BluetoothRemoteGATTCharacteristicMethods for BluetoothRemoteGATTCharacteris
                 self.get_instance_id(),
                 true,
                 sender,
-            )).unwrap();
+            ))
+            .unwrap();
         return p;
     }
 
@@ -272,7 +274,8 @@ impl BluetoothRemoteGATTCharacteristicMethods for BluetoothRemoteGATTCharacteris
                 self.get_instance_id(),
                 false,
                 sender,
-            )).unwrap();
+            ))
+            .unwrap();
         return p;
     }
 

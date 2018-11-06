@@ -143,7 +143,9 @@ impl<'a> FontSettingTagIter<'a> {
 impl<'a> Iterator for FontSettingTagIter<'a> {
     type Item = Result<(&'a ComputedVariationValue, &'a ComputedVariationValue), ()>;
 
-    fn next(&mut self) -> Option<Result<(&'a ComputedVariationValue, &'a ComputedVariationValue), ()>> {
+    fn next(
+        &mut self,
+    ) -> Option<Result<(&'a ComputedVariationValue, &'a ComputedVariationValue), ()>> {
         match (
             FontSettingTagIter::next_tag(&mut self.a_state),
             FontSettingTagIter::next_tag(&mut self.b_state),

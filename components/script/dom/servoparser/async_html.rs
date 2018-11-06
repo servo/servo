@@ -257,7 +257,8 @@ impl Tokenizer {
                     to_tokenizer_sender,
                     html_tokenizer_receiver,
                 );
-            }).expect("HTML Parser thread spawning failed");
+            })
+            .expect("HTML Parser thread spawning failed");
 
         tokenizer
     }
@@ -273,7 +274,8 @@ impl Tokenizer {
         self.html_tokenizer_sender
             .send(ToHtmlTokenizerMsg::Feed {
                 input: send_tendrils,
-            }).unwrap();
+            })
+            .unwrap();
 
         loop {
             match self
@@ -715,7 +717,8 @@ impl TreeSink for Sink {
             .map(|attr| Attribute {
                 name: attr.name,
                 value: String::from(attr.value),
-            }).collect();
+            })
+            .collect();
 
         self.send_op(ParseOperation::CreateElement {
             node: node.id,
@@ -835,7 +838,8 @@ impl TreeSink for Sink {
             .map(|attr| Attribute {
                 name: attr.name,
                 value: String::from(attr.value),
-            }).collect();
+            })
+            .collect();
         self.send_op(ParseOperation::AddAttrsIfMissing {
             target: target.id,
             attrs,

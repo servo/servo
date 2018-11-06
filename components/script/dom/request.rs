@@ -285,7 +285,8 @@ impl Request {
             }
             // Step 25.2
             let method = match init_method.as_str() {
-                Some(s) => normalize_method(s).map_err(|e| Error::Type(format!("Method is not valid: {:?}", e)))?,
+                Some(s) => normalize_method(s)
+                    .map_err(|e| Error::Type(format!("Method is not valid: {:?}", e)))?,
                 None => return Err(Error::Type("Method is not a valid UTF8".to_string())),
             };
             // Step 25.3
@@ -375,10 +376,16 @@ impl Request {
                 let req = r.request.borrow();
                 let req_method = &req.method;
                 match *req_method {
-                    HttpMethod::GET => return Err(Error::Type(
-                        "Init's body is non-null, and request method is GET".to_string())),
-                    HttpMethod::HEAD => return Err(Error::Type(
-                        "Init's body is non-null, and request method is HEAD".to_string())),
+                    HttpMethod::GET => {
+                        return Err(Error::Type(
+                            "Init's body is non-null, and request method is GET".to_string(),
+                        ))
+                    },
+                    HttpMethod::HEAD => {
+                        return Err(Error::Type(
+                            "Init's body is non-null, and request method is HEAD".to_string(),
+                        ))
+                    },
                     _ => {},
                 }
             }
@@ -500,9 +507,7 @@ fn is_forbidden_method(m: &ByteString) -> bool {
 
 // https://fetch.spec.whatwg.org/#cors-safelisted-method
 fn is_cors_safelisted_method(m: &HttpMethod) -> bool {
-    m == &HttpMethod::GET ||
-        m == &HttpMethod::HEAD ||
-        m == &HttpMethod::POST
+    m == &HttpMethod::GET || m == &HttpMethod::HEAD || m == &HttpMethod::POST
 }
 
 // https://url.spec.whatwg.org/#include-credentials

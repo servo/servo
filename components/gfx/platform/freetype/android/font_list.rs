@@ -127,7 +127,11 @@ struct FontList {
 impl FontList {
     fn new() -> FontList {
         // Possible paths containing the font mapping xml file.
-        let paths = ["/etc/fonts.xml", "/system/etc/system_fonts.xml", "/package/etc/fonts.xml"];
+        let paths = [
+            "/etc/fonts.xml",
+            "/system/etc/system_fonts.xml",
+            "/package/etc/fonts.xml",
+        ];
 
         // Try to load and parse paths until one of them success.
         let mut result = None;
@@ -213,7 +217,10 @@ impl FontList {
         let alternatives = [
             ("sans-serif", "Roboto-Regular.ttf"),
             ("Droid Sans", "DroidSans.ttf"),
-            ("Lomino", "/system/etc/ml/kali/Fonts/Lomino/Medium/LominoUI_Md.ttf"),
+            (
+                "Lomino",
+                "/system/etc/ml/kali/Fonts/Lomino/Medium/LominoUI_Md.ttf",
+            ),
         ];
 
         alternatives
@@ -225,7 +232,8 @@ impl FontList {
                     filename: item.1.into(),
                     weight: None,
                 }],
-            }).collect()
+            })
+            .collect()
     }
 
     // All Android fonts are located in /system/fonts
@@ -348,7 +356,8 @@ impl FontList {
                 .map(|f| Font {
                     filename: f.clone(),
                     weight: None,
-                }).collect();
+                })
+                .collect();
 
             if !fonts.is_empty() {
                 out.push(FontFamily {

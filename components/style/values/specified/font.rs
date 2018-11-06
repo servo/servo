@@ -733,7 +733,8 @@ impl ToComputedValue for KeywordSize {
             KeywordSize::XLarge => Au::from_px(FONT_MEDIUM_PX) * 3 / 2,
             KeywordSize::XXLarge => Au::from_px(FONT_MEDIUM_PX) * 2,
             KeywordSize::XXXLarge => Au::from_px(FONT_MEDIUM_PX) * 3,
-        }.into()
+        }
+        .into()
     }
 
     #[inline]
@@ -837,7 +838,8 @@ impl FontSize {
                 6 => KeywordSize::XXLarge,
                 // If value is greater than 7, let it be 7.
                 _ => KeywordSize::XXXLarge,
-            }.into(),
+            }
+            .into(),
         )
     }
 
@@ -906,7 +908,8 @@ impl FontSize {
                         .to_computed_value_zoomed(
                             context,
                             FontBaseSize::InheritedStyleButStripEmUnits,
-                        ).length_component();
+                        )
+                        .length_component();
 
                     info = parent.keyword_info.map(|i| i.compose(ratio, abs.into()));
                 }
@@ -2108,7 +2111,8 @@ impl ToComputedValue for FontLanguageOverride {
                 String::from_utf8(buf.to_vec()).unwrap()
             } else {
                 unsafe { String::from_utf8_unchecked(buf.to_vec()) }
-            }.into_boxed_str(),
+            }
+            .into_boxed_str(),
         )
     }
 }

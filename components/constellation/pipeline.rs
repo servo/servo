@@ -240,10 +240,12 @@ impl Pipeline {
                                 Err(e) => {
                                     error!("Cast to ScriptToDevtoolsControlMsg failed ({}).", e)
                                 },
-                                Ok(message) => if let Err(e) =
-                                    devtools_chan.send(DevtoolsControlMsg::FromScript(message))
-                                {
-                                    warn!("Sending to devtools failed ({:?})", e)
+                                Ok(message) => {
+                                    if let Err(e) =
+                                        devtools_chan.send(DevtoolsControlMsg::FromScript(message))
+                                    {
+                                        warn!("Sending to devtools failed ({:?})", e)
+                                    }
                                 },
                             },
                         ),
@@ -430,8 +432,7 @@ impl Pipeline {
 
     /// Notify the script thread that this pipeline is visible.
     pub fn notify_visibility(&self, is_visible: bool) {
-        let script_msg =
-            ConstellationControlMsg::ChangeFrameVisibilityStatus(self.id, is_visible);
+        let script_msg = ConstellationControlMsg::ChangeFrameVisibilityStatus(self.id, is_visible);
         let compositor_msg = CompositorMsg::PipelineVisibilityChanged(self.id, is_visible);
         let err = self.event_loop.send(script_msg);
         if let Err(e) = err {

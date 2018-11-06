@@ -302,7 +302,8 @@ impl EventListeners {
                 } else {
                     None
                 }
-            }).collect()
+            })
+            .collect()
     }
 
     fn has_listeners(&self) -> bool {

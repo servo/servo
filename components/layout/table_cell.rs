@@ -197,7 +197,8 @@ impl Flow for TableCellFlow {
         let specified_inline_size = MaybeAuto::from_style(
             self.block_flow.fragment.style().content_inline_size(),
             Au(0),
-        ).specified_or_zero();
+        )
+        .specified_or_zero();
         if self
             .block_flow
             .base

@@ -23,9 +23,15 @@ impl Animate for CalcLengthOrPercentage {
             Ok(Some(this.animate(&other, procedure)?))
         };
 
-        let length = self.unclamped_length().animate(&other.unclamped_length(), procedure)?;
+        let length = self
+            .unclamped_length()
+            .animate(&other.unclamped_length(), procedure)?;
         let percentage = animate_percentage_half(self.percentage, other.percentage)?;
-        Ok(CalcLengthOrPercentage::with_clamping_mode(length, percentage, self.clamping_mode))
+        Ok(CalcLengthOrPercentage::with_clamping_mode(
+            length,
+            percentage,
+            self.clamping_mode,
+        ))
     }
 }
 

@@ -169,7 +169,8 @@ impl TimelineActor {
                 emitter.send(markers);
 
                 thread::sleep(Duration::from_millis(DEFAULT_TIMELINE_DATA_PULL_TIMEOUT));
-            }).expect("Thread spawning failed");
+            })
+            .expect("Thread spawning failed");
     }
 }
 
@@ -195,7 +196,8 @@ impl Actor for TimelineActor {
                         self.pipeline,
                         self.marker_types.clone(),
                         tx,
-                    )).unwrap();
+                    ))
+                    .unwrap();
 
                 *self.stream.borrow_mut() = stream.try_clone().ok();
 
@@ -248,7 +250,8 @@ impl Actor for TimelineActor {
                     .send(DropTimelineMarkers(
                         self.pipeline,
                         self.marker_types.clone(),
-                    )).unwrap();
+                    ))
+                    .unwrap();
 
                 if let Some(ref actor_name) = *self.framerate_actor.borrow() {
                     registry.drop_actor_later(actor_name.clone());

@@ -7,13 +7,13 @@ pub mod unrooted_must_root {
     ```
     #![feature(plugin)]
     #![plugin(script_plugins)]
-
+    
     #[must_root] struct Foo(i32);
     #[must_root] struct Bar(Foo);
-
+    
     fn foo1(_: &Foo) {}
     fn foo2(_: &()) -> &Foo { unimplemented!() }
-
+    
     fn main() {}
     ```
     */
@@ -23,10 +23,10 @@ pub mod unrooted_must_root {
     ```compile_fail
     #![feature(plugin)]
     #![plugin(script_plugins)]
-
+    
     #[must_root] struct Foo(i32);
     struct Bar(Foo);
-
+    
     fn main() {}
     ```
     */
@@ -36,11 +36,11 @@ pub mod unrooted_must_root {
     ```compile_fail
     #![feature(plugin)]
     #![plugin(script_plugins)]
-
+    
     #[must_root] struct Foo(i32);
-
+    
     fn foo1(_: Foo) {}
-
+    
     fn main() {}
     ```
     */
@@ -50,11 +50,11 @@ pub mod unrooted_must_root {
     ```compile_fail
     #![feature(plugin)]
     #![plugin(script_plugins)]
-
+    
     #[must_root] struct Foo(i32);
-
+    
     fn foo2() -> Foo { unimplemented!() }
-
+    
     fn main() {}
     ```
     */

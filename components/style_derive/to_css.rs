@@ -130,7 +130,8 @@ fn derive_variant_fields_expr(
                 return None;
             }
             Some((binding, attrs))
-        }).peekable();
+        })
+        .peekable();
 
     let (first, attrs) = match iter.next() {
         Some(pair) => pair,

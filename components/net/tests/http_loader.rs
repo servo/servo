@@ -142,13 +142,15 @@ fn test_check_default_headers_loaded_in_every_request() {
         ..RequestInit::default()
     });
     let response = fetch(&mut request, None);
-    assert!(response
-        .internal_response
-        .unwrap()
-        .status
-        .unwrap()
-        .0
-        .is_success());
+    assert!(
+        response
+            .internal_response
+            .unwrap()
+            .status
+            .unwrap()
+            .0
+            .is_success()
+    );
 
     // Testing for method.POST
     let mut post_headers = headers.clone();
@@ -170,13 +172,15 @@ fn test_check_default_headers_loaded_in_every_request() {
         ..RequestInit::default()
     });
     let response = fetch(&mut request, None);
-    assert!(response
-        .internal_response
-        .unwrap()
-        .status
-        .unwrap()
-        .0
-        .is_success());
+    assert!(
+        response
+            .internal_response
+            .unwrap()
+            .status
+            .unwrap()
+            .0
+            .is_success()
+    );
 
     let _ = server.close();
 }
@@ -202,13 +206,15 @@ fn test_load_when_request_is_not_get_or_head_and_there_is_no_body_content_length
         ..RequestInit::default()
     });
     let response = fetch(&mut request, None);
-    assert!(response
-        .internal_response
-        .unwrap()
-        .status
-        .unwrap()
-        .0
-        .is_success());
+    assert!(
+        response
+            .internal_response
+            .unwrap()
+            .status
+            .unwrap()
+            .0
+            .is_success()
+    );
 
     let _ = server.close();
 }
@@ -237,13 +243,15 @@ fn test_request_and_response_data_with_network_messages() {
     });
     let (devtools_chan, devtools_port) = channel();
     let response = fetch(&mut request, Some(devtools_chan));
-    assert!(response
-        .internal_response
-        .unwrap()
-        .status
-        .unwrap()
-        .0
-        .is_success());
+    assert!(
+        response
+            .internal_response
+            .unwrap()
+            .status
+            .unwrap()
+            .0
+            .is_success()
+    );
 
     let _ = server.close();
 
@@ -336,13 +344,15 @@ fn test_request_and_response_message_from_devtool_without_pipeline_id() {
     });
     let (devtools_chan, devtools_port) = channel();
     let response = fetch(&mut request, Some(devtools_chan));
-    assert!(response
-        .internal_response
-        .unwrap()
-        .status
-        .unwrap()
-        .0
-        .is_success());
+    assert!(
+        response
+            .internal_response
+            .unwrap()
+            .status
+            .unwrap()
+            .0
+            .is_success()
+    );
 
     let _ = server.close();
 
@@ -580,13 +590,15 @@ fn test_load_doesnt_add_host_to_sts_list_when_url_is_http_even_if_sts_headers_ar
 
     let _ = server.close();
 
-    assert!(response
-        .internal_response
-        .unwrap()
-        .status
-        .unwrap()
-        .0
-        .is_success());
+    assert!(
+        response
+            .internal_response
+            .unwrap()
+            .status
+            .unwrap()
+            .0
+            .is_success()
+    );
     assert_eq!(
         context
             .state
@@ -627,13 +639,15 @@ fn test_load_sets_cookies_in_the_resource_manager_when_it_get_set_cookie_header_
 
     let _ = server.close();
 
-    assert!(response
-        .internal_response
-        .unwrap()
-        .status
-        .unwrap()
-        .0
-        .is_success());
+    assert!(
+        response
+            .internal_response
+            .unwrap()
+            .status
+            .unwrap()
+            .0
+            .is_success()
+    );
 
     assert_cookie_for_domain(
         &context.state.cookie_jar,
@@ -680,13 +694,15 @@ fn test_load_sets_requests_cookies_header_for_url_by_getting_cookies_from_the_re
 
     let _ = server.close();
 
-    assert!(response
-        .internal_response
-        .unwrap()
-        .status
-        .unwrap()
-        .0
-        .is_success());
+    assert!(
+        response
+            .internal_response
+            .unwrap()
+            .status
+            .unwrap()
+            .0
+            .is_success()
+    );
 }
 
 #[test]
@@ -727,13 +743,15 @@ fn test_load_sends_cookie_if_nonhttp() {
 
     let _ = server.close();
 
-    assert!(response
-        .internal_response
-        .unwrap()
-        .status
-        .unwrap()
-        .0
-        .is_success());
+    assert!(
+        response
+            .internal_response
+            .unwrap()
+            .status
+            .unwrap()
+            .0
+            .is_success()
+    );
 }
 
 #[test]
@@ -765,13 +783,15 @@ fn test_cookie_set_with_httponly_should_not_be_available_using_getcookiesforurl(
 
     let _ = server.close();
 
-    assert!(response
-        .internal_response
-        .unwrap()
-        .status
-        .unwrap()
-        .0
-        .is_success());
+    assert!(
+        response
+            .internal_response
+            .unwrap()
+            .status
+            .unwrap()
+            .0
+            .is_success()
+    );
 
     assert_cookie_for_domain(
         &context.state.cookie_jar,
@@ -779,9 +799,11 @@ fn test_cookie_set_with_httponly_should_not_be_available_using_getcookiesforurl(
         Some("mozillaIs=theBest"),
     );
     let mut cookie_jar = context.state.cookie_jar.write().unwrap();
-    assert!(cookie_jar
-        .cookies_for_url(&url, CookieSource::NonHTTP)
-        .is_none());
+    assert!(
+        cookie_jar
+            .cookies_for_url(&url, CookieSource::NonHTTP)
+            .is_none()
+    );
 }
 
 #[test]
@@ -813,13 +835,15 @@ fn test_when_cookie_received_marked_secure_is_ignored_for_http() {
 
     let _ = server.close();
 
-    assert!(response
-        .internal_response
-        .unwrap()
-        .status
-        .unwrap()
-        .0
-        .is_success());
+    assert!(
+        response
+            .internal_response
+            .unwrap()
+            .status
+            .unwrap()
+            .0
+            .is_success()
+    );
 
     assert_cookie_for_domain(&context.state.cookie_jar, url.as_str(), None);
 }
@@ -850,13 +874,15 @@ fn test_load_sets_content_length_to_length_of_request_body() {
 
     let _ = server.close();
 
-    assert!(response
-        .internal_response
-        .unwrap()
-        .status
-        .unwrap()
-        .0
-        .is_success());
+    assert!(
+        response
+            .internal_response
+            .unwrap()
+            .status
+            .unwrap()
+            .0
+            .is_success()
+    );
 }
 
 #[test]
@@ -890,13 +916,15 @@ fn test_load_uses_explicit_accept_from_headers_in_load_data() {
 
     let _ = server.close();
 
-    assert!(response
-        .internal_response
-        .unwrap()
-        .status
-        .unwrap()
-        .0
-        .is_success());
+    assert!(
+        response
+            .internal_response
+            .unwrap()
+            .status
+            .unwrap()
+            .0
+            .is_success()
+    );
 }
 
 #[test]
@@ -927,13 +955,15 @@ fn test_load_sets_default_accept_to_html_xhtml_xml_and_then_anything_else() {
 
     let _ = server.close();
 
-    assert!(response
-        .internal_response
-        .unwrap()
-        .status
-        .unwrap()
-        .0
-        .is_success());
+    assert!(
+        response
+            .internal_response
+            .unwrap()
+            .status
+            .unwrap()
+            .0
+            .is_success()
+    );
 }
 
 #[test]
@@ -967,13 +997,15 @@ fn test_load_uses_explicit_accept_encoding_from_load_data_headers() {
 
     let _ = server.close();
 
-    assert!(response
-        .internal_response
-        .unwrap()
-        .status
-        .unwrap()
-        .0
-        .is_success());
+    assert!(
+        response
+            .internal_response
+            .unwrap()
+            .status
+            .unwrap()
+            .0
+            .is_success()
+    );
 }
 
 #[test]
@@ -1004,13 +1036,15 @@ fn test_load_sets_default_accept_encoding_to_gzip_and_deflate() {
 
     let _ = server.close();
 
-    assert!(response
-        .internal_response
-        .unwrap()
-        .status
-        .unwrap()
-        .0
-        .is_success());
+    assert!(
+        response
+            .internal_response
+            .unwrap()
+            .status
+            .unwrap()
+            .0
+            .is_success()
+    );
 }
 
 #[test]
@@ -1338,13 +1372,15 @@ fn test_if_auth_creds_not_in_url_but_in_cache_it_sets_it() {
 
     let _ = server.close();
 
-    assert!(response
-        .internal_response
-        .unwrap()
-        .status
-        .unwrap()
-        .0
-        .is_success());
+    assert!(
+        response
+            .internal_response
+            .unwrap()
+            .status
+            .unwrap()
+            .0
+            .is_success()
+    );
 }
 
 #[test]
@@ -1401,13 +1437,15 @@ fn test_origin_set() {
         ..RequestInit::default()
     });
     let response = fetch(&mut request, None);
-    assert!(response
-        .internal_response
-        .unwrap()
-        .status
-        .unwrap()
-        .0
-        .is_success());
+    assert!(
+        response
+            .internal_response
+            .unwrap()
+            .status
+            .unwrap()
+            .0
+            .is_success()
+    );
 
     let origin_url = ServoUrl::parse("http://example.com").unwrap();
     // XXX: Not sure about the Some(80) here. origin_url.origin() returns 80 for the port but origin_url returns None.
@@ -1429,13 +1467,15 @@ fn test_origin_set() {
 
     *origin_header_clone.lock().unwrap() = Some(origin.clone());
     let response = fetch(&mut request, None);
-    assert!(response
-        .internal_response
-        .unwrap()
-        .status
-        .unwrap()
-        .0
-        .is_success());
+    assert!(
+        response
+            .internal_response
+            .unwrap()
+            .status
+            .unwrap()
+            .0
+            .is_success()
+    );
 
     // Test Origin header is not set on method Head
     let mut request = Request::from_init(RequestInit {
@@ -1448,13 +1488,15 @@ fn test_origin_set() {
 
     *origin_header_clone.lock().unwrap() = None;
     let response = fetch(&mut request, None);
-    assert!(response
-        .internal_response
-        .unwrap()
-        .status
-        .unwrap()
-        .0
-        .is_success());
+    assert!(
+        response
+            .internal_response
+            .unwrap()
+            .status
+            .unwrap()
+            .0
+            .is_success()
+    );
 
     let _ = server.close();
 }

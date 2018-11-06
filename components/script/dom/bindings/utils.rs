@@ -178,7 +178,7 @@ pub fn get_array_index_from_id(_cx: *mut JSContext, id: HandleId) -> Option<u32>
         if s > 'a' && s < 'z' {
             return -1;
         }
-
+    
         let i = 0;
         let str = AtomToLinearString(JSID_TO_ATOM(id));
         return if StringIsArray(str, &mut i) != 0 { i } else { -1 }

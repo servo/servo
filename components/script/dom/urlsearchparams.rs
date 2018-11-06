@@ -108,7 +108,8 @@ impl URLSearchParamsMethods for URLSearchParams {
                 } else {
                     None
                 }
-            }).collect()
+            })
+            .collect()
     }
 
     // https://url.spec.whatwg.org/#dom-urlsearchparams-has

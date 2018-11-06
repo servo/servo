@@ -416,23 +416,28 @@ impl ImageFragmentInfo {
         layout_context: &LayoutContext,
     ) -> ImageFragmentInfo {
         // First use any image data present in the element...
-        let image_or_metadata = node.image_data().and_then(|(image, metadata)| {
-            match (image, metadata) {
+        let image_or_metadata = node
+            .image_data()
+            .and_then(|(image, metadata)| match (image, metadata) {
                 (Some(image), _) => Some(ImageOrMetadata::Image(image)),
                 (None, Some(metadata)) => Some(ImageOrMetadata::Metadata(metadata)),
                 _ => None,
-            }
-        }).or_else(|| url.and_then(|url| {
-            // Otherwise query the image cache for anything known about the associated source URL.
-            layout_context.get_or_request_image_or_meta(
-                node.opaque(),
-                url,
-                UsePlaceholder::Yes
-            ).map(|result| match result {
-                ImageOrMetadataAvailable::ImageAvailable(i, _) => ImageOrMetadata::Image(i),
-                ImageOrMetadataAvailable::MetadataAvailable(m) => ImageOrMetadata::Metadata(m),
             })
-        }));
+            .or_else(|| {
+                url.and_then(|url| {
+                    // Otherwise query the image cache for anything known about the associated source URL.
+                    layout_context
+                        .get_or_request_image_or_meta(node.opaque(), url, UsePlaceholder::Yes)
+                        .map(|result| match result {
+                            ImageOrMetadataAvailable::ImageAvailable(i, _) => {
+                                ImageOrMetadata::Image(i)
+                            },
+                            ImageOrMetadataAvailable::MetadataAvailable(m) => {
+                                ImageOrMetadata::Metadata(m)
+                            },
+                        })
+                })
+            });
 
         let current_pixel_density = density.unwrap_or(1f64);
 
@@ -452,15 +457,13 @@ impl ImageFragmentInfo {
                     }),
                 )
             },
-            Some(ImageOrMetadata::Metadata(m)) => {
-                (
-                    None,
-                    Some(ImageMetadata {
-                        height: (m.height as f64 / current_pixel_density) as u32,
-                        width: (m.width as f64 / current_pixel_density) as u32,
-                    }),
-                )
-            },
+            Some(ImageOrMetadata::Metadata(m)) => (
+                None,
+                Some(ImageMetadata {
+                    height: (m.height as f64 / current_pixel_density) as u32,
+                    width: (m.width as f64 / current_pixel_density) as u32,
+                }),
+            ),
             None => (None, None),
         };
 
@@ -1012,7 +1015,7 @@ impl Fragment {
                 } else {
                     Au(0)
                 }
-            }
+            },
             SpecificFragmentInfo::Media(ref info) => {
                 if let Some((_, width, _)) = info.current_frame {
                     Au::from_px(width as i32)
@@ -1042,7 +1045,7 @@ impl Fragment {
                 } else {
                     Au(0)
                 }
-            }
+            },
             SpecificFragmentInfo::Media(ref info) => {
                 if let Some((_, _, height)) = info.current_frame {
                     Au::from_px(height as i32)
@@ -1174,17 +1177,21 @@ impl Fragment {
                         (_, Ordering::Equal) => (first_isize, first_bsize),
                         // When both rectangles grow (smaller than min sizes),
                         // Choose the larger one;
-                        (Ordering::Greater, Ordering::Greater) => if first_isize > second_isize {
-                            (first_isize, first_bsize)
-                        } else {
-                            (second_isize, second_bsize)
+                        (Ordering::Greater, Ordering::Greater) => {
+                            if first_isize > second_isize {
+                                (first_isize, first_bsize)
+                            } else {
+                                (second_isize, second_bsize)
+                            }
                         },
                         // When both rectangles shrink (larger than max sizes),
                         // Choose the smaller one;
-                        (Ordering::Less, Ordering::Less) => if first_isize > second_isize {
-                            (second_isize, second_bsize)
-                        } else {
-                            (first_isize, first_bsize)
+                        (Ordering::Less, Ordering::Less) => {
+                            if first_isize > second_isize {
+                                (second_isize, second_bsize)
+                            } else {
+                                (first_isize, first_bsize)
+                            }
                         },
                         // It does not matter which we choose here, because both sizes
                         // will be clamped to constraint;
@@ -3173,7 +3180,8 @@ impl Fragment {
                     perspective_origin
                         .vertical
                         .to_used_value(stacking_relative_border_box.size.height),
-                ).to_layout();
+                )
+                .to_layout();
 
                 let pre_transform = LayoutTransform::create_translation(
                     perspective_origin.x,

@@ -112,9 +112,8 @@ pub fn init(
     resources::set(Box::new(ResourceReader(readfile)));
 
     if let Some(args) = init_opts.args {
-        let mut args: Vec<String> = serde_json::from_str(&args).map_err(|_| {
-            "Invalid arguments. Servo arguments must be formatted as a JSON array"
-        })?;
+        let mut args: Vec<String> = serde_json::from_str(&args)
+            .map_err(|_| "Invalid arguments. Servo arguments must be formatted as a JSON array")?;
         // opts::from_cmdline_args expects the first argument to be the binary name.
         args.insert(0, "servo".to_string());
 
@@ -123,19 +122,19 @@ pub fn init(
         opts::from_cmdline_args(&args);
     }
 
-    let embedder_url = init_opts.url.as_ref().and_then(|s| {
-        ServoUrl::parse(s).ok()
-    });
+    let embedder_url = init_opts.url.as_ref().and_then(|s| ServoUrl::parse(s).ok());
     let cmdline_url = opts::get().url.clone();
-    let pref_url = PREFS.get("shell.homepage").as_string().and_then(|s| {
-        ServoUrl::parse(s).ok()
-    });
+    let pref_url = PREFS
+        .get("shell.homepage")
+        .as_string()
+        .and_then(|s| ServoUrl::parse(s).ok());
     let blank_url = ServoUrl::parse("about:blank").ok();
 
     let url = embedder_url
         .or(cmdline_url)
         .or(pref_url)
-        .or(blank_url).unwrap();
+        .or(blank_url)
+        .unwrap();
 
     gl.clear_color(1.0, 1.0, 1.0, 1.0);
     gl.clear(gl::COLOR_BUFFER_BIT);
@@ -171,16 +170,14 @@ pub fn init(
 }
 
 pub fn deinit() {
-    SERVO.with(|s| {
-        s.replace(None).unwrap().deinit()
-    });
+    SERVO.with(|s| s.replace(None).unwrap().deinit());
 }
 
 impl ServoGlue {
     fn get_browser_id(&self) -> Result<BrowserId, &'static str> {
         let browser_id = match self.browser_id {
             Some(id) => id,
-            None => return Err("No BrowserId set yet.")
+            None => return Err("No BrowserId set yet."),
         };
         Ok(browser_id)
     }
@@ -417,7 +414,8 @@ impl ServoGlue {
                     let _ = self.browsers.pop();
                     if let Some(prev_browser_id) = self.browsers.last() {
                         self.browser_id = Some(*prev_browser_id);
-                        self.events.push(WindowEvent::SelectBrowser(*prev_browser_id));
+                        self.events
+                            .push(WindowEvent::SelectBrowser(*prev_browser_id));
                     } else {
                         self.events.push(WindowEvent::Quit);
                     }
@@ -476,7 +474,8 @@ impl WindowMethods for ServoCallbacks {
 
     fn set_animation_state(&self, state: AnimationState) {
         debug!("WindowMethods::set_animation_state");
-        self.host_callbacks.on_animating_changed(state == AnimationState::Animating);
+        self.host_callbacks
+            .on_animating_changed(state == AnimationState::Animating);
     }
 
     fn get_coordinates(&self) -> EmbedderCoordinates {

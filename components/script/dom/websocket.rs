@@ -429,7 +429,7 @@ impl WebSocketMethods for WebSocket {
             WebSocketRequestState::Connecting => {
                 //Connection is not yet established
                 /*By setting the state to closing, the open function
-                  will abort connecting the websocket*/
+                will abort connecting the websocket*/
                 self.ready_state.set(WebSocketRequestState::Closing);
 
                 let address = Trusted::new(self);
@@ -588,7 +588,8 @@ impl TaskOnce for MessageReceivedTask {
                                 cx,
                                 CreateWith::Slice(&data),
                                 array_buffer.handle_mut()
-                            ).is_ok()
+                            )
+                            .is_ok()
                         );
 
                         (*array_buffer).to_jsval(cx, message.handle_mut());

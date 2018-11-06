@@ -672,7 +672,8 @@ impl HTMLElement {
             .filter_map(|attr| {
                 let raw_name = attr.local_name();
                 to_camel_case(&raw_name)
-            }).collect()
+            })
+            .collect()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-lfe-labels
@@ -684,16 +685,17 @@ impl HTMLElement {
 
         // Traverse ancestors for implicitly associated <label> elements
         // https://html.spec.whatwg.org/multipage/#the-label-element:attr-label-for-4
-        let ancestors = self.upcast::<Node>()
-                .ancestors()
-                .filter_map(DomRoot::downcast::<HTMLElement>)
-                // If we reach a labelable element, we have a guarantee no ancestors above it
-                // will be a label for this HTMLElement
-                .take_while(|elem| !elem.is_labelable_element())
-                .filter_map(DomRoot::downcast::<HTMLLabelElement>)
-                .filter(|elem| !elem.upcast::<Element>().has_attribute(&local_name!("for")))
-                .filter(|elem| elem.first_labelable_descendant().r() == Some(self))
-                .map(DomRoot::upcast::<Node>);
+        let ancestors = self
+            .upcast::<Node>()
+            .ancestors()
+            .filter_map(DomRoot::downcast::<HTMLElement>)
+            // If we reach a labelable element, we have a guarantee no ancestors above it
+            // will be a label for this HTMLElement
+            .take_while(|elem| !elem.is_labelable_element())
+            .filter_map(DomRoot::downcast::<HTMLLabelElement>)
+            .filter(|elem| !elem.upcast::<Element>().has_attribute(&local_name!("for")))
+            .filter(|elem| elem.first_labelable_descendant().r() == Some(self))
+            .map(DomRoot::upcast::<Node>);
 
         let id = element.Id();
         let id = match &id as &str {

@@ -236,8 +236,7 @@ impl FontHandleMethods for FontHandle {
         let count: CFIndex = 1;
 
         let result = unsafe {
-            self
-                .ctfont
+            self.ctfont
                 .get_glyphs_for_characters(&characters[0], &mut glyphs[0], count)
         };
 

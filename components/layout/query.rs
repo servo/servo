@@ -603,7 +603,7 @@ impl FragmentBorderBoxIterator for ParentOffsetBorderBoxIterator {
                     // cause this assertion to fail sometimes, so it's
                     // commented out for now.
                     /*assert!(node.flags.contains(FIRST_FRAGMENT_OF_ELEMENT),
-                        "First fragment of inline node found wasn't its first fragment!");*/
+                    "First fragment of inline node found wasn't its first fragment!");*/
 
                     self.node_offset_box = Some(NodeOffsetBoxInfo {
                         offset: border_box.origin,
@@ -840,12 +840,11 @@ where
     let applies = true;
 
     fn used_value_for_position_property<N: LayoutNode>(
-            layout_el: <N::ConcreteThreadSafeLayoutNode as ThreadSafeLayoutNode>::ConcreteThreadSafeLayoutElement,
-            layout_root: &mut Flow,
-            requested_node: N,
-            longhand_id: LonghandId,
-        ) -> String
-    {
+        layout_el: <N::ConcreteThreadSafeLayoutNode as ThreadSafeLayoutNode>::ConcreteThreadSafeLayoutElement,
+        layout_root: &mut Flow,
+        requested_node: N,
+        longhand_id: LonghandId,
+    ) -> String {
         let maybe_data = layout_el.borrow_layout_data();
         let position = maybe_data.map_or(Point2D::zero(), |data| {
             match (*data).flow_construction_result {

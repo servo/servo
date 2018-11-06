@@ -537,7 +537,8 @@ impl CounterStyleOrNone {
                     .map(|symbol| match *symbol {
                         Symbol::String(ref s) => nsCStr::from(s),
                         Symbol::Ident(_) => unreachable!("Should not have identifier in symbols()"),
-                    }).collect();
+                    })
+                    .collect();
                 let symbols: Vec<_> = symbols
                     .iter()
                     .map(|symbol| symbol as &nsACString as *const _)

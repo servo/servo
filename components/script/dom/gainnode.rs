@@ -48,9 +48,9 @@ impl GainNode {
             node.node_id(),
             ParamType::Gain,
             AutomationRate::A_rate,
-            *options.gain,  // default value
-            f32::MIN, // min value
-            f32::MAX, // max value
+            *options.gain, // default value
+            f32::MIN,      // min value
+            f32::MAX,      // max value
         );
         Ok(GainNode {
             node,

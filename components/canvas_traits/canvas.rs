@@ -22,7 +22,12 @@ pub struct CanvasId(pub u64);
 #[derive(Deserialize, Serialize)]
 pub enum CanvasMsg {
     Canvas2d(Canvas2dMsg, CanvasId),
-    Create(IpcSender<CanvasId>, Size2D<u32>, webrender_api::RenderApiSender, bool),
+    Create(
+        IpcSender<CanvasId>,
+        Size2D<u32>,
+        webrender_api::RenderApiSender,
+        bool,
+    ),
     FromLayout(FromLayoutMsg, CanvasId),
     FromScript(FromScriptMsg, CanvasId),
     Recreate(Size2D<u32>, CanvasId),
@@ -40,8 +45,7 @@ pub enum Canvas2dMsg {
     Arc(Point2D<f32>, f32, f32, f32, bool),
     ArcTo(Point2D<f32>, Point2D<f32>, f32),
     DrawImage(Option<ByteBuf>, Size2D<f64>, Rect<f64>, Rect<f64>, bool),
-    DrawImageInOther(
-        CanvasId, Size2D<f64>, Rect<f64>, Rect<f64>, bool),
+    DrawImageInOther(CanvasId, Size2D<f64>, Rect<f64>, Rect<f64>, bool),
     BeginPath,
     BezierCurveTo(Point2D<f32>, Point2D<f32>, Point2D<f32>),
     ClearRect(Rect<f32>),
@@ -99,12 +103,17 @@ pub struct LinearGradientStyle {
     pub y0: f64,
     pub x1: f64,
     pub y1: f64,
-    pub stops: Vec<CanvasGradientStop>
+    pub stops: Vec<CanvasGradientStop>,
 }
 
 impl LinearGradientStyle {
-    pub fn new(x0: f64, y0: f64, x1: f64, y1: f64, stops: Vec<CanvasGradientStop>)
-        -> LinearGradientStyle {
+    pub fn new(
+        x0: f64,
+        y0: f64,
+        x1: f64,
+        y1: f64,
+        stops: Vec<CanvasGradientStop>,
+    ) -> LinearGradientStyle {
         LinearGradientStyle {
             x0: x0,
             y0: y0,
@@ -123,12 +132,19 @@ pub struct RadialGradientStyle {
     pub x1: f64,
     pub y1: f64,
     pub r1: f64,
-    pub stops: Vec<CanvasGradientStop>
+    pub stops: Vec<CanvasGradientStop>,
 }
 
 impl RadialGradientStyle {
-    pub fn new(x0: f64, y0: f64, r0: f64, x1: f64, y1: f64, r1: f64, stops: Vec<CanvasGradientStop>)
-        -> RadialGradientStyle {
+    pub fn new(
+        x0: f64,
+        y0: f64,
+        r0: f64,
+        x1: f64,
+        y1: f64,
+        r1: f64,
+        stops: Vec<CanvasGradientStop>,
+    ) -> RadialGradientStyle {
         RadialGradientStyle {
             x0: x0,
             y0: y0,
@@ -164,7 +180,6 @@ impl SurfaceStyle {
         }
     }
 }
-
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum FillOrStrokeStyle {
@@ -256,18 +271,18 @@ impl FromStr for CompositionStyle {
 
     fn from_str(string: &str) -> Result<CompositionStyle, ()> {
         match string {
-            "source-in"        => Ok(CompositionStyle::SrcIn),
-            "source-out"       => Ok(CompositionStyle::SrcOut),
-            "source-over"      => Ok(CompositionStyle::SrcOver),
-            "source-atop"      => Ok(CompositionStyle::SrcAtop),
-            "destination-in"   => Ok(CompositionStyle::DestIn),
-            "destination-out"  => Ok(CompositionStyle::DestOut),
+            "source-in" => Ok(CompositionStyle::SrcIn),
+            "source-out" => Ok(CompositionStyle::SrcOut),
+            "source-over" => Ok(CompositionStyle::SrcOver),
+            "source-atop" => Ok(CompositionStyle::SrcAtop),
+            "destination-in" => Ok(CompositionStyle::DestIn),
+            "destination-out" => Ok(CompositionStyle::DestOut),
             "destination-over" => Ok(CompositionStyle::DestOver),
             "destination-atop" => Ok(CompositionStyle::DestAtop),
-            "copy"             => Ok(CompositionStyle::Copy),
-            "lighter"          => Ok(CompositionStyle::Lighter),
-            "xor"              => Ok(CompositionStyle::Xor),
-            _ => Err(())
+            "copy" => Ok(CompositionStyle::Copy),
+            "lighter" => Ok(CompositionStyle::Lighter),
+            "xor" => Ok(CompositionStyle::Xor),
+            _ => Err(()),
         }
     }
 }
@@ -275,17 +290,17 @@ impl FromStr for CompositionStyle {
 impl CompositionStyle {
     pub fn to_str(&self) -> &str {
         match *self {
-            CompositionStyle::SrcIn    => "source-in",
-            CompositionStyle::SrcOut   => "source-out",
-            CompositionStyle::SrcOver  => "source-over",
-            CompositionStyle::SrcAtop  => "source-atop",
-            CompositionStyle::DestIn   => "destination-in",
-            CompositionStyle::DestOut  => "destination-out",
+            CompositionStyle::SrcIn => "source-in",
+            CompositionStyle::SrcOut => "source-out",
+            CompositionStyle::SrcOver => "source-over",
+            CompositionStyle::SrcAtop => "source-atop",
+            CompositionStyle::DestIn => "destination-in",
+            CompositionStyle::DestOut => "destination-out",
             CompositionStyle::DestOver => "destination-over",
             CompositionStyle::DestAtop => "destination-atop",
-            CompositionStyle::Copy     => "copy",
-            CompositionStyle::Lighter  => "lighter",
-            CompositionStyle::Xor      => "xor",
+            CompositionStyle::Copy => "copy",
+            CompositionStyle::Lighter => "lighter",
+            CompositionStyle::Xor => "xor",
         }
     }
 }
@@ -314,22 +329,22 @@ impl FromStr for BlendingStyle {
 
     fn from_str(string: &str) -> Result<BlendingStyle, ()> {
         match string {
-            "multiply"    => Ok(BlendingStyle::Multiply),
-            "screen"      => Ok(BlendingStyle::Screen),
-            "overlay"     => Ok(BlendingStyle::Overlay),
-            "darken"      => Ok(BlendingStyle::Darken),
-            "lighten"     => Ok(BlendingStyle::Lighten),
+            "multiply" => Ok(BlendingStyle::Multiply),
+            "screen" => Ok(BlendingStyle::Screen),
+            "overlay" => Ok(BlendingStyle::Overlay),
+            "darken" => Ok(BlendingStyle::Darken),
+            "lighten" => Ok(BlendingStyle::Lighten),
             "color-dodge" => Ok(BlendingStyle::ColorDodge),
-            "color-burn"  => Ok(BlendingStyle::ColorBurn),
-            "hard-light"  => Ok(BlendingStyle::HardLight),
-            "soft-light"  => Ok(BlendingStyle::SoftLight),
-            "difference"  => Ok(BlendingStyle::Difference),
-            "exclusion"   => Ok(BlendingStyle::Exclusion),
-            "hue"         => Ok(BlendingStyle::Hue),
-            "saturation"  => Ok(BlendingStyle::Saturation),
-            "color"       => Ok(BlendingStyle::Color),
-            "luminosity"  => Ok(BlendingStyle::Luminosity),
-            _ => Err(())
+            "color-burn" => Ok(BlendingStyle::ColorBurn),
+            "hard-light" => Ok(BlendingStyle::HardLight),
+            "soft-light" => Ok(BlendingStyle::SoftLight),
+            "difference" => Ok(BlendingStyle::Difference),
+            "exclusion" => Ok(BlendingStyle::Exclusion),
+            "hue" => Ok(BlendingStyle::Hue),
+            "saturation" => Ok(BlendingStyle::Saturation),
+            "color" => Ok(BlendingStyle::Color),
+            "luminosity" => Ok(BlendingStyle::Luminosity),
+            _ => Err(()),
         }
     }
 }
@@ -337,20 +352,20 @@ impl FromStr for BlendingStyle {
 impl BlendingStyle {
     pub fn to_str(&self) -> &str {
         match *self {
-            BlendingStyle::Multiply   => "multiply",
-            BlendingStyle::Screen     => "screen",
-            BlendingStyle::Overlay    => "overlay",
-            BlendingStyle::Darken     => "darken",
-            BlendingStyle::Lighten    => "lighten",
+            BlendingStyle::Multiply => "multiply",
+            BlendingStyle::Screen => "screen",
+            BlendingStyle::Overlay => "overlay",
+            BlendingStyle::Darken => "darken",
+            BlendingStyle::Lighten => "lighten",
             BlendingStyle::ColorDodge => "color-dodge",
-            BlendingStyle::ColorBurn  => "color-burn",
-            BlendingStyle::HardLight  => "hard-light",
-            BlendingStyle::SoftLight  => "soft-light",
+            BlendingStyle::ColorBurn => "color-burn",
+            BlendingStyle::HardLight => "hard-light",
+            BlendingStyle::SoftLight => "soft-light",
             BlendingStyle::Difference => "difference",
-            BlendingStyle::Exclusion  => "exclusion",
-            BlendingStyle::Hue        => "hue",
+            BlendingStyle::Exclusion => "exclusion",
+            BlendingStyle::Hue => "hue",
             BlendingStyle::Saturation => "saturation",
-            BlendingStyle::Color      => "color",
+            BlendingStyle::Color => "color",
             BlendingStyle::Luminosity => "luminosity",
         }
     }

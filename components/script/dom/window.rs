@@ -1374,7 +1374,8 @@ impl Window {
             .send(Msg::UpdateScrollStateFromScript(ScrollState {
                 scroll_id,
                 scroll_offset: Vector2D::new(-x, -y),
-            })).unwrap();
+            }))
+            .unwrap();
     }
 
     pub fn update_viewport_for_scroll(&self, x: f32, y: f32) {
@@ -1852,7 +1853,8 @@ impl Window {
                     pipeline_id,
                     LoadData::new(url, Some(pipeline_id), referrer_policy, Some(doc.url())),
                     replace,
-                )).unwrap();
+                ))
+                .unwrap();
         };
     }
 

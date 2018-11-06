@@ -32,7 +32,6 @@ use values::computed::box_::TransitionProperty;
 use values::generics::box_::AnimationIterationCount;
 use values::generics::easing::{StepPosition, TimingFunction as GenericTimingFunction};
 
-
 /// This structure represents a keyframes animation current iteration state.
 ///
 /// If the iteration count is infinite, there's no other state, otherwise we
@@ -316,7 +315,8 @@ impl PropertyAnimation {
                         old_style,
                         new_style,
                     )
-                }).collect(),
+                })
+                .collect(),
             TransitionProperty::Longhand(longhand_id) => {
                 let animation = PropertyAnimation::from_longhand(
                     longhand_id,
@@ -367,8 +367,9 @@ impl PropertyAnimation {
                 let mut current_step = (time * (steps as f64)).floor() as i32;
 
                 if pos == StepPosition::Start ||
-                   pos == StepPosition::JumpStart ||
-                   pos == StepPosition::JumpBoth {
+                    pos == StepPosition::JumpStart ||
+                    pos == StepPosition::JumpBoth
+                {
                     current_step = current_step + 1;
                 }
 
@@ -472,7 +473,8 @@ pub fn start_transitions_if_applicable(
                         duration: box_style.transition_duration_mod(i).seconds() as f64,
                         property_animation,
                     },
-                )).unwrap();
+                ))
+                .unwrap();
 
             had_animations = true;
         }
@@ -759,7 +761,8 @@ where
                             } else {
                                 None
                             }
-                        }).unwrap_or(animation.steps.len() - 1);
+                        })
+                        .unwrap_or(animation.steps.len() - 1);
                 },
                 _ => unreachable!(),
             }

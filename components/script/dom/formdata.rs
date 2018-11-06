@@ -135,7 +135,8 @@ impl FormDataMethods for FormData {
                         FormDatumValue::File(ref b) => {
                             FileOrUSVString::File(DomRoot::from_ref(&*b))
                         },
-                    }).collect()
+                    })
+                    .collect()
             })
     }
 

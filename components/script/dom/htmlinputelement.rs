@@ -944,8 +944,10 @@ impl HTMLInputElement {
             },
 
             // Step 3.1: it's the "Checkbox" or "Radio Button" and whose checkedness is false.
-            InputType::Radio | InputType::Checkbox => if !self.Checked() || name.is_empty() {
-                return vec![];
+            InputType::Radio | InputType::Checkbox => {
+                if !self.Checked() || name.is_empty() {
+                    return vec![];
+                }
             },
 
             InputType::File => {
@@ -981,8 +983,10 @@ impl HTMLInputElement {
             InputType::Image => return vec![], // Unimplemented
 
             // Step 3.1: it's not the "Image Button" and doesn't have a name attribute.
-            _ => if name.is_empty() {
-                return vec![];
+            _ => {
+                if name.is_empty() {
+                    return vec![];
+                }
             },
         }
 
@@ -1280,7 +1284,8 @@ impl VirtualMethods for HTMLInputElement {
                                         .map_or(DOMString::from(""), |a| {
                                             DOMString::from(a.summarize().value)
                                         }),
-                                ).expect(
+                                )
+                                .expect(
                                     "Failed to set input value on type change to ValueMode::Value.",
                                 );
                                 self.value_dirty.set(false);

@@ -153,7 +153,8 @@ impl DocumentLoader {
             .send(CoreResourceMsg::Fetch(
                 request,
                 FetchChannels::ResponseMsg(fetch_target, Some(cancel_receiver)),
-            )).unwrap();
+            ))
+            .unwrap();
     }
 
     /// Mark an in-progress network request complete.

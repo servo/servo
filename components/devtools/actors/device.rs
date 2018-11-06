@@ -42,7 +42,7 @@ impl Actor for DeviceActor {
                     value: SystemInfo {
                         apptype: "servo".to_string(),
                         platformVersion: "63.0".to_string(),
-                    }
+                    },
                 };
                 stream.write_json_packet(&msg);
                 ActorMessageStatus::Processed
@@ -73,12 +73,11 @@ impl DeviceActor {
                                 .into_iter()
                                 .collect(),
                         ),
-                    )].into_iter()
+                    )]
+                    .into_iter()
                     .collect(),
                 ),
             }],
         }
     }
 }
-
-

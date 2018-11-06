@@ -221,19 +221,25 @@ fn test_cors_preflight_fetch() {
     let handler = move |request: HyperRequest<Body>, response: &mut HyperResponse<Body>| {
         if request.method() == Method::OPTIONS && state.clone().fetch_add(1, Ordering::SeqCst) == 0
         {
-            assert!(request
-                .headers()
-                .contains_key(header::ACCESS_CONTROL_REQUEST_METHOD));
-            assert!(!request
-                .headers()
-                .contains_key(header::ACCESS_CONTROL_REQUEST_HEADERS));
-            assert!(!request
-                .headers()
-                .get(header::REFERER)
-                .unwrap()
-                .to_str()
-                .unwrap()
-                .contains("a.html"));
+            assert!(
+                request
+                    .headers()
+                    .contains_key(header::ACCESS_CONTROL_REQUEST_METHOD)
+            );
+            assert!(
+                !request
+                    .headers()
+                    .contains_key(header::ACCESS_CONTROL_REQUEST_HEADERS)
+            );
+            assert!(
+                !request
+                    .headers()
+                    .get(header::REFERER)
+                    .unwrap()
+                    .to_str()
+                    .unwrap()
+                    .contains("a.html")
+            );
             response
                 .headers_mut()
                 .typed_insert(AccessControlAllowOrigin::ANY);
@@ -279,12 +285,16 @@ fn test_cors_preflight_cache_fetch() {
     let handler = move |request: HyperRequest<Body>, response: &mut HyperResponse<Body>| {
         if request.method() == Method::OPTIONS && state.clone().fetch_add(1, Ordering::SeqCst) == 0
         {
-            assert!(request
-                .headers()
-                .contains_key(header::ACCESS_CONTROL_REQUEST_METHOD));
-            assert!(!request
-                .headers()
-                .contains_key(header::ACCESS_CONTROL_REQUEST_HEADERS));
+            assert!(
+                request
+                    .headers()
+                    .contains_key(header::ACCESS_CONTROL_REQUEST_METHOD)
+            );
+            assert!(
+                !request
+                    .headers()
+                    .contains_key(header::ACCESS_CONTROL_REQUEST_HEADERS)
+            );
             response
                 .headers_mut()
                 .typed_insert(AccessControlAllowOrigin::ANY);
@@ -344,12 +354,16 @@ fn test_cors_preflight_fetch_network_error() {
     let handler = move |request: HyperRequest<Body>, response: &mut HyperResponse<Body>| {
         if request.method() == Method::OPTIONS && state.clone().fetch_add(1, Ordering::SeqCst) == 0
         {
-            assert!(request
-                .headers()
-                .contains_key(header::ACCESS_CONTROL_REQUEST_METHOD));
-            assert!(!request
-                .headers()
-                .contains_key(header::ACCESS_CONTROL_REQUEST_HEADERS));
+            assert!(
+                request
+                    .headers()
+                    .contains_key(header::ACCESS_CONTROL_REQUEST_METHOD)
+            );
+            assert!(
+                !request
+                    .headers()
+                    .contains_key(header::ACCESS_CONTROL_REQUEST_HEADERS)
+            );
             response
                 .headers_mut()
                 .typed_insert(AccessControlAllowOrigin::ANY);
@@ -408,9 +422,11 @@ fn test_fetch_response_is_basic_filtered() {
 
     let headers = fetch_response.headers;
     assert!(!headers.contains_key(header::SET_COOKIE));
-    assert!(headers
-        .get(HeaderName::from_static("set-cookie2"))
-        .is_none());
+    assert!(
+        headers
+            .get(HeaderName::from_static("set-cookie2"))
+            .is_none()
+    );
 }
 
 #[test]
@@ -480,9 +496,11 @@ fn test_fetch_response_is_cors_filtered() {
 
     assert!(!headers.contains_key(header::ACCESS_CONTROL_ALLOW_ORIGIN));
     assert!(!headers.contains_key(header::SET_COOKIE));
-    assert!(headers
-        .get(HeaderName::from_static("set-cookie2"))
-        .is_none());
+    assert!(
+        headers
+            .get(HeaderName::from_static("set-cookie2"))
+            .is_none()
+    );
 }
 
 #[test]

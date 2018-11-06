@@ -175,8 +175,9 @@ fn run_form_data_algorithm(
     } else {
         ""
     };
-    let mime: Mime = mime_str.parse().map_err(
-        |_| Error::Type("Inappropriate MIME-type for Body".to_string()))?;
+    let mime: Mime = mime_str
+        .parse()
+        .map_err(|_| Error::Type("Inappropriate MIME-type for Body".to_string()))?;
 
     // TODO
     // ... Parser for Mime(TopLevel::Multipart, SubLevel::FormData, _)

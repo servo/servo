@@ -526,7 +526,8 @@ impl RuleTree {
             path,
             guards,
             &mut dummy,
-        ).expect("Should return a valid rule node")
+        )
+        .expect("Should return a valid rule node")
     }
 }
 

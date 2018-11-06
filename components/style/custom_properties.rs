@@ -631,11 +631,8 @@ impl<'a> CustomPropertiesBuilder<'a> {
                 // environment variable here, perform substitution here instead
                 // of forcing a full traversal in `substitute_all` afterwards.
                 let value = if !has_references && unparsed_value.references_environment {
-                    let result = substitute_references_in_value(
-                        unparsed_value,
-                        &map,
-                        &self.environment,
-                    );
+                    let result =
+                        substitute_references_in_value(unparsed_value, &map, &self.environment);
                     match result {
                         Ok(new_value) => Arc::new(new_value),
                         Err(..) => {
@@ -886,11 +883,7 @@ fn substitute_all(custom_properties_map: &mut CustomPropertiesMap, environment: 
         // Now we have shown that this variable is not in a loop, and
         // all of its dependencies should have been resolved. We can
         // start substitution now.
-        let result = substitute_references_in_value(
-            &value,
-            &context.map,
-            &context.environment,
-        );
+        let result = substitute_references_in_value(&value, &context.map, &context.environment);
 
         match result {
             Ok(computed_value) => {

@@ -123,10 +123,7 @@ impl SpecifiedUrl {
 
     fn from_css_url_with_cors(url: CssUrl, cors: CORSMode) -> Self {
         let url_value = unsafe {
-            let ptr = bindings::Gecko_URLValue_Create(
-                url.0.clone().into_strong(),
-                cors,
-            );
+            let ptr = bindings::Gecko_URLValue_Create(url.0.clone().into_strong(), cors);
             // We do not expect Gecko_URLValue_Create returns null.
             debug_assert!(!ptr.is_null());
             RefPtr::from_addrefed(ptr)
@@ -261,11 +258,7 @@ impl ToCss for ComputedUrl {
     where
         W: Write,
     {
-        serialize_computed_url(
-            &self.0.url_value,
-            dest,
-            bindings::Gecko_GetComputedURLSpec,
-        )
+        serialize_computed_url(&self.0.url_value, dest, bindings::Gecko_GetComputedURLSpec)
     }
 }
 

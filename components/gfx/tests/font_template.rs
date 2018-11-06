@@ -41,7 +41,8 @@ fn test_font_template_descriptor() {
         let mut template = FontTemplate::new(
             Atom::from(filename),
             Some(file.bytes().map(|b| b.unwrap()).collect()),
-        ).unwrap();
+        )
+        .unwrap();
 
         let context = FontContextHandle::new();
 

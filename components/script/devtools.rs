@@ -172,7 +172,8 @@ pub fn handle_get_layout(
             paddingLeft: String::from(computed_style.PaddingLeft()),
             width: width,
             height: height,
-        })).unwrap();
+        }))
+        .unwrap();
 }
 
 fn determine_auto_margins(window: &Window, node: &Node) -> AutoMargins {

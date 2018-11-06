@@ -16,18 +16,26 @@ fn test_clip() {
     assert_roundtrip_with_context!(clip::parse, "rect(auto, auto, auto, auto)");
 
     // Non-standard syntax
-    assert_roundtrip_with_context!(clip::parse,
-                                   "rect(1px 2px 3px 4px)",
-                                   "rect(1px, 2px, 3px, 4px)");
-    assert_roundtrip_with_context!(clip::parse,
-                                   "rect(auto 2px 3px auto)",
-                                   "rect(auto, 2px, 3px, auto)");
-    assert_roundtrip_with_context!(clip::parse,
-                                   "rect(1px auto auto 4px)",
-                                   "rect(1px, auto, auto, 4px)");
-    assert_roundtrip_with_context!(clip::parse,
-                                   "rect(auto auto auto auto)",
-                                   "rect(auto, auto, auto, auto)");
+    assert_roundtrip_with_context!(
+        clip::parse,
+        "rect(1px 2px 3px 4px)",
+        "rect(1px, 2px, 3px, 4px)"
+    );
+    assert_roundtrip_with_context!(
+        clip::parse,
+        "rect(auto 2px 3px auto)",
+        "rect(auto, 2px, 3px, auto)"
+    );
+    assert_roundtrip_with_context!(
+        clip::parse,
+        "rect(1px auto auto 4px)",
+        "rect(1px, auto, auto, 4px)"
+    );
+    assert_roundtrip_with_context!(
+        clip::parse,
+        "rect(auto auto auto auto)",
+        "rect(auto, auto, auto, auto)"
+    );
 }
 
 #[test]
@@ -85,7 +93,7 @@ fn test_parse_factor() {
 #[test]
 fn blur_radius_should_not_accept_negavite_values() {
     use style::properties::longhands::box_shadow;
-    assert!(parse(box_shadow::parse, "1px 1px -1px").is_err());// for -ve values
-    assert!(parse(box_shadow::parse, "1px 1px 0").is_ok());// for zero
-    assert!(parse(box_shadow::parse, "1px 1px 1px").is_ok());// for +ve value
+    assert!(parse(box_shadow::parse, "1px 1px -1px").is_err()); // for -ve values
+    assert!(parse(box_shadow::parse, "1px 1px 0").is_ok()); // for zero
+    assert!(parse(box_shadow::parse, "1px 1px 1px").is_ok()); // for +ve value
 }

@@ -254,7 +254,8 @@ impl Font {
                 TEXT_SHAPING_PERFORMANCE_COUNTER
                     .fetch_add((end_time - start_time) as usize, Ordering::Relaxed);
                 Arc::new(glyphs)
-            }).clone();
+            })
+            .clone();
         self.shaper = shaper;
         result
     }
@@ -450,7 +451,8 @@ impl FontGroup {
         iter::once(FontFamilyDescriptor::default())
             .chain(fallback_font_families(codepoint).into_iter().map(|family| {
                 FontFamilyDescriptor::new(FontFamilyName::from(family), FontSearchScope::Local)
-            })).filter_map(|family| font_context.font(&self.descriptor, &family))
+            }))
+            .filter_map(|family| font_context.font(&self.descriptor, &family))
             .find(predicate)
     }
 }

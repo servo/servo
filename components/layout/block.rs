@@ -1334,7 +1334,8 @@ impl BlockFlow {
                 self.fragment.style.writing_mode,
                 inline_size_for_float_placement,
                 block_size + self.fragment.margin.block_start_end(),
-            ).convert(
+            )
+            .convert(
                 self.fragment.style.writing_mode,
                 self.base.floats.writing_mode,
             ),
@@ -1361,7 +1362,8 @@ impl BlockFlow {
                 self.base.floats.writing_mode,
                 self.base.writing_mode,
                 container_size,
-            ).start;
+            )
+            .start;
         let margin_offset = LogicalPoint::new(
             self.base.writing_mode,
             Au(0),
@@ -2626,7 +2628,8 @@ impl Flow for BlockFlow {
                         .early_absolute_position_info
                         .relative_containing_block_mode,
                     CoordinateSystem::Own,
-                ).translate(&stacking_context_position.to_vector()),
+                )
+                .translate(&stacking_context_position.to_vector()),
         );
     }
 

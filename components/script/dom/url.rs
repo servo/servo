@@ -86,7 +86,7 @@ impl URL {
                         return Err(Error::Type(format!("could not parse base: {}", error)));
                     },
                 }
-            },
+            }
         };
         // Step 3.
         let parsed_url = match ServoUrl::parse_with_base(parsed_base.as_ref(), &url.0) {
@@ -121,7 +121,7 @@ impl URL {
         /*
             If the value provided for the url argument is not a Blob URL OR
             if the value provided for the url argument does not have an entry in the Blob URL Store,
-
+        
             this method call does nothing. User agents may display a message on the error console.
         */
         let origin = get_blob_origin(&global.get_url());

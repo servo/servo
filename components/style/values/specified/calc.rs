@@ -529,8 +529,7 @@ impl CalcNode {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<CSSInteger, ParseError<'i>> {
-        Self::parse_number(context, input)
-            .map(|n| n.round() as CSSInteger)
+        Self::parse_number(context, input).map(|n| n.round() as CSSInteger)
     }
 
     /// Convenience parsing function for `<length> | <percentage>`.

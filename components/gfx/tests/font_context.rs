@@ -119,7 +119,8 @@ fn font_family(names: Vec<&str>) -> FontFamily {
                 name: Atom::from(name),
                 syntax: FamilyNameSyntax::Quoted,
             })
-        }).collect();
+        })
+        .collect();
 
     FontFamily(FontFamilyList::new(names.into_boxed_slice()))
 }

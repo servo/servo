@@ -517,7 +517,8 @@ impl Stylist {
                     self.stylesheets.iter(),
                     guards,
                     &self.device,
-                ).finish(),
+                )
+                .finish(),
             };
 
             self.viewport_constraints =
@@ -1017,7 +1018,8 @@ impl Stylist {
                         stylesheets.clone(),
                         guards,
                         &device,
-                    ).finish(),
+                    )
+                    .finish(),
                 }
             };
 
@@ -1534,7 +1536,6 @@ impl Stylist {
                 },
             );
         }
-
 
         results
     }

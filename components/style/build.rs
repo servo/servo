@@ -67,7 +67,8 @@ fn find_python() -> String {
         "python2.7"
     } else {
         "python"
-    }.to_owned()
+    }
+    .to_owned()
 }
 
 lazy_static! {

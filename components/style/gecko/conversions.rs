@@ -113,13 +113,15 @@ impl From<nsStyleCoord_CalcValue> for NonNegativeLengthOrPercentageOrAuto {
         use style_traits::values::specified::AllowedNumericType;
         use values::generics::NonNegative;
         NonNegative(if other.mLength < 0 || other.mPercent < 0. {
-            LengthOrPercentageOrAuto::Calc(
-                CalcLengthOrPercentage::with_clamping_mode(
-                    Au(other.mLength).into(),
-                    if other.mHasPercent { Some(Percentage(other.mPercent)) } else { None },
-                    AllowedNumericType::NonNegative,
-                )
-            )
+            LengthOrPercentageOrAuto::Calc(CalcLengthOrPercentage::with_clamping_mode(
+                Au(other.mLength).into(),
+                if other.mHasPercent {
+                    Some(Percentage(other.mPercent))
+                } else {
+                    None
+                },
+                AllowedNumericType::NonNegative,
+            ))
         } else {
             other.into()
         })
@@ -625,7 +627,8 @@ impl nsStyleImage {
                         position: LengthOrPercentage::from_gecko_style_coord(&stop.mLocation),
                     })
                 }
-            }).collect();
+            })
+            .collect();
 
         let compat_mode = if gecko_gradient.mMozLegacySyntax {
             CompatMode::Moz
@@ -718,7 +721,8 @@ pub mod basic_shape {
             match other.mType {
                 StyleShapeSourceType::URL => unsafe {
                     let shape_image = &*other.__bindgen_anon_1.mShapeImage.as_ref().mPtr;
-                    let other_url = RefPtr::new(*shape_image.__bindgen_anon_1.mURLValue.as_ref() as *mut _);
+                    let other_url =
+                        RefPtr::new(*shape_image.__bindgen_anon_1.mURLValue.as_ref() as *mut _);
                     let url = ComputedUrl::from_url_value(other_url);
                     ShapeSource::ImageOrUrl(url)
                 },

@@ -937,7 +937,8 @@ impl<'le> GeckoElement<'le> {
             .animate(
                 to.as_ref().unwrap(),
                 Procedure::Interpolate { progress: 0.5 },
-            ).is_ok()
+            )
+            .is_ok()
     }
 }
 
@@ -1278,7 +1279,8 @@ impl<'le> TElement for GeckoElement<'le> {
             Some(
                 Locked::<PropertyDeclarationBlock>::as_arc(
                     &*(&raw as *const &structs::RawServoDeclarationBlock),
-                ).borrow_arc(),
+                )
+                .borrow_arc(),
             )
         }
     }

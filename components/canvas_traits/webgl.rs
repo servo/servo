@@ -134,13 +134,15 @@ impl WebGLMsgSender {
     /// Send a WebGLCommand message
     #[inline]
     pub fn send(&self, command: WebGLCommand, backtrace: WebGLCommandBacktrace) -> WebGLSendResult {
-        self.sender.send(WebGLMsg::WebGLCommand(self.ctx_id, command, backtrace))
+        self.sender
+            .send(WebGLMsg::WebGLCommand(self.ctx_id, command, backtrace))
     }
 
     /// Send a WebVRCommand message
     #[inline]
     pub fn send_vr(&self, command: WebVRCommand) -> WebGLSendResult {
-        self.sender.send(WebGLMsg::WebVRCommand(self.ctx_id, command))
+        self.sender
+            .send(WebGLMsg::WebVRCommand(self.ctx_id, command))
     }
 
     /// Send a resize message
@@ -150,7 +152,8 @@ impl WebGLMsgSender {
         size: Size2D<u32>,
         sender: WebGLSender<Result<(), String>>,
     ) -> WebGLSendResult {
-        self.sender.send(WebGLMsg::ResizeContext(self.ctx_id, size, sender))
+        self.sender
+            .send(WebGLMsg::ResizeContext(self.ctx_id, size, sender))
     }
 
     #[inline]
@@ -160,7 +163,8 @@ impl WebGLMsgSender {
 
     #[inline]
     pub fn send_update_wr_image(&self, sender: WebGLSender<ImageKey>) -> WebGLSendResult {
-        self.sender.send(WebGLMsg::UpdateWebRenderImage(self.ctx_id, sender))
+        self.sender
+            .send(WebGLMsg::UpdateWebRenderImage(self.ctx_id, sender))
     }
 
     pub fn send_dom_to_texture(&self, command: DOMToTextureCommand) -> WebGLSendResult {
@@ -290,11 +294,34 @@ pub enum WebGLCommand {
     GetTexParameterInt(u32, TexParameterInt, WebGLSender<i32>),
     TexParameteri(u32, u32, i32),
     TexParameterf(u32, u32, f32),
-    DrawArrays { mode: u32, first: i32, count: i32 },
-    DrawArraysInstanced { mode: u32, first: i32, count: i32, primcount: i32 },
-    DrawElements { mode: u32, count: i32, type_: u32, offset: u32 },
-    DrawElementsInstanced { mode: u32, count: i32, type_: u32, offset: u32, primcount: i32 },
-    VertexAttribDivisor { index: u32, divisor: u32 },
+    DrawArrays {
+        mode: u32,
+        first: i32,
+        count: i32,
+    },
+    DrawArraysInstanced {
+        mode: u32,
+        first: i32,
+        count: i32,
+        primcount: i32,
+    },
+    DrawElements {
+        mode: u32,
+        count: i32,
+        type_: u32,
+        offset: u32,
+    },
+    DrawElementsInstanced {
+        mode: u32,
+        count: i32,
+        type_: u32,
+        offset: u32,
+        primcount: i32,
+    },
+    VertexAttribDivisor {
+        index: u32,
+        divisor: u32,
+    },
     GetUniformBool(WebGLProgramId, i32, WebGLSender<bool>),
     GetUniformBool2(WebGLProgramId, i32, WebGLSender<[bool; 2]>),
     GetUniformBool3(WebGLProgramId, i32, WebGLSender<[bool; 3]>),
@@ -309,7 +336,11 @@ pub enum WebGLCommand {
     GetUniformFloat4(WebGLProgramId, i32, WebGLSender<[f32; 4]>),
     GetUniformFloat9(WebGLProgramId, i32, WebGLSender<[f32; 9]>),
     GetUniformFloat16(WebGLProgramId, i32, WebGLSender<[f32; 16]>),
-    InitializeFramebuffer { color: bool, depth: bool, stencil: bool },
+    InitializeFramebuffer {
+        color: bool,
+        depth: bool,
+        stencil: bool,
+    },
 }
 
 macro_rules! define_resource_id_struct {
@@ -329,7 +360,6 @@ macro_rules! define_resource_id_struct {
                 self.0.get()
             }
         }
-
     };
 }
 
@@ -340,7 +370,8 @@ macro_rules! define_resource_id {
         #[allow(unsafe_code)]
         impl<'de> ::serde::Deserialize<'de> for $name {
             fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-                where D: ::serde::Deserializer<'de>
+            where
+                D: ::serde::Deserializer<'de>,
             {
                 let id = u32::deserialize(deserializer)?;
                 if id == 0 {
@@ -353,32 +384,33 @@ macro_rules! define_resource_id {
 
         impl ::serde::Serialize for $name {
             fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-                where S: ::serde::Serializer
+            where
+                S: ::serde::Serializer,
             {
                 self.get().serialize(serializer)
             }
         }
 
         impl ::std::fmt::Debug for $name {
-            fn fmt(&self, fmt: &mut ::std::fmt::Formatter)
-                  -> Result<(), ::std::fmt::Error> {
+            fn fmt(&self, fmt: &mut ::std::fmt::Formatter) -> Result<(), ::std::fmt::Error> {
                 fmt.debug_tuple(stringify!($name))
-                   .field(&self.get())
-                   .finish()
+                    .field(&self.get())
+                    .finish()
             }
         }
 
         impl ::std::fmt::Display for $name {
-            fn fmt(&self, fmt: &mut ::std::fmt::Formatter)
-                  -> Result<(), ::std::fmt::Error> {
+            fn fmt(&self, fmt: &mut ::std::fmt::Formatter) -> Result<(), ::std::fmt::Error> {
                 write!(fmt, "{}", self.get())
             }
         }
 
         impl ::malloc_size_of::MallocSizeOf for $name {
-            fn size_of(&self, _ops: &mut ::malloc_size_of::MallocSizeOfOps) -> usize { 0 }
+            fn size_of(&self, _ops: &mut ::malloc_size_of::MallocSizeOfOps) -> usize {
+                0
+            }
         }
-    }
+    };
 }
 
 define_resource_id!(WebGLBufferId);
@@ -389,8 +421,9 @@ define_resource_id!(WebGLProgramId);
 define_resource_id!(WebGLShaderId);
 define_resource_id!(WebGLVertexArrayId);
 
-#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, Ord)]
-#[derive(PartialEq, PartialOrd, Serialize)]
+#[derive(
+    Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, Ord, PartialEq, PartialOrd, Serialize,
+)]
 pub struct WebGLContextId(pub usize);
 
 #[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
@@ -423,7 +456,7 @@ pub enum WebVRCommand {
     /// Submit the frame to a VR device using the specified texture coordinates.
     SubmitFrame(WebVRDeviceId, [f32; 4], [f32; 4]),
     /// Stop presenting to a VR device
-    Release(WebVRDeviceId)
+    Release(WebVRDeviceId),
 }
 
 // Trait object that handles WebVR commands.
@@ -436,7 +469,13 @@ pub trait WebVRRenderHandler: Send {
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum DOMToTextureCommand {
     /// Attaches a HTMLIFrameElement to a WebGLTexture.
-    Attach(WebGLContextId, WebGLTextureId, DocumentId, PipelineId, Size2D<i32>),
+    Attach(
+        WebGLContextId,
+        WebGLTextureId,
+        DocumentId,
+        PipelineId,
+        Size2D<i32>,
+    ),
     /// Releases the HTMLIFrameElement to WebGLTexture attachment.
     Detach(WebGLTextureId),
     /// Lock message used for a correct synchronization with WebRender GL flow.

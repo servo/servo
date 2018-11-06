@@ -51,7 +51,8 @@ impl fmt::Debug for FontTemplateData {
                     .font_data
                     .as_ref()
                     .map(|bytes| format!("[{} bytes]", bytes.len())),
-            ).finish()
+            )
+            .finish()
     }
 }
 
@@ -111,7 +112,8 @@ impl FontTemplateData {
                 .expect("No URL for Core Text font!")
                 .get_string()
                 .to_string(),
-        ).expect("Couldn't parse Core Text font URL!")
+        )
+        .expect("Couldn't parse Core Text font URL!")
         .as_url()
         .to_file_path()
         .expect("Core Text font didn't name a path!");

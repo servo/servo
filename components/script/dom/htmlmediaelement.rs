@@ -690,7 +690,10 @@ impl HTMLMediaElement {
         };
         let mut headers = HeaderMap::new();
         // FIXME(eijebong): Use typed headers once we have a constructor for the range header
-        headers.insert(header::RANGE, HeaderValue::from_str(&format!("bytes={}-", offset.unwrap_or(0))).unwrap());
+        headers.insert(
+            header::RANGE,
+            HeaderValue::from_str(&format!("bytes={}-", offset.unwrap_or(0))).unwrap(),
+        );
         let request = RequestInit {
             url: self.resource_url.borrow().as_ref().unwrap().clone(),
             headers,
@@ -1139,7 +1142,8 @@ impl HTMLMediaElement {
                 if self.is::<HTMLVideoElement>() {
                     let video_elem = self.downcast::<HTMLVideoElement>().unwrap();
                     if video_elem.get_video_width() != metadata.width ||
-                       video_elem.get_video_height() != metadata.height {
+                        video_elem.get_video_height() != metadata.height
+                    {
                         video_elem.set_video_width(metadata.width);
                         video_elem.set_video_height(metadata.height);
                         let window = window_from_node(self);
@@ -1272,12 +1276,12 @@ impl HTMLMediaElementMethods for HTMLMediaElement {
     // https://html.spec.whatwg.org/multipage/#dom-navigator-canplaytype
     fn CanPlayType(&self, type_: DOMString) -> CanPlayTypeResult {
         match type_.parse::<Mime>() {
-            Ok(ref mime) if (mime.type_() == mime::APPLICATION && mime.subtype() == mime::OCTET_STREAM) => {
+            Ok(ref mime)
+                if (mime.type_() == mime::APPLICATION && mime.subtype() == mime::OCTET_STREAM) =>
+            {
                 CanPlayTypeResult::_empty
             },
-            Err(_) => {
-                CanPlayTypeResult::_empty
-            },
+            Err(_) => CanPlayTypeResult::_empty,
             _ => CanPlayTypeResult::Maybe,
         }
     }

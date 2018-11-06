@@ -71,7 +71,8 @@ impl ServiceWorkerManager {
             .spawn(move || {
                 ServiceWorkerManager::new(own_sender, from_constellation, resource_port)
                     .handle_message();
-            }).expect("Thread spawning failed");
+            })
+            .expect("Thread spawning failed");
     }
 
     pub fn get_matching_scope(&self, load_url: &ServoUrl) -> Option<ServoUrl> {

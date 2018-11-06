@@ -143,4 +143,3 @@ fn test_vertical_position() {
     assert!(parse(VerticalPosition::parse, "y-start").is_err());
     assert!(parse(VerticalPosition::parse, "y-end").is_err());
 }
-

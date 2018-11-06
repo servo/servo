@@ -224,7 +224,8 @@ trait PrivateMatchMethods: TElement {
             context,
             RuleInclusion::All,
             PseudoElementResolution::IfApplicable,
-        ).cascade_style_and_visited_with_default_parents(inputs);
+        )
+        .cascade_style_and_visited_with_default_parents(inputs);
 
         Some(style.0)
     }
@@ -618,14 +619,12 @@ trait PrivateMatchMethods: TElement {
 
             match *running_animation {
                 Animation::Transition(..) => unreachable!(),
-                Animation::Keyframes(_, _, _, ref mut state) => {
-                    match update {
-                        AnimationUpdate::Regular => {},
-                        AnimationUpdate::AnimationCanceled => {
-                            state.expired = true;
-                        }
-                    }
-                }
+                Animation::Keyframes(_, _, _, ref mut state) => match update {
+                    AnimationUpdate::Regular => {},
+                    AnimationUpdate::AnimationCanceled => {
+                        state.expired = true;
+                    },
+                },
             }
         }
     }

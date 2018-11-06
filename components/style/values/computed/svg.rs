@@ -51,7 +51,7 @@ impl SVGLength {
     /// `0px`
     pub fn zero() -> Self {
         generic::SVGLength::Length(generic::SvgLengthOrPercentageOrNumber::LengthOrPercentage(
-            LengthOrPercentage::zero()
+            LengthOrPercentage::zero(),
         ))
     }
 }
@@ -84,7 +84,7 @@ impl SVGWidth {
     pub fn one() -> Self {
         use values::generics::NonNegative;
         generic::SVGLength::Length(generic::SvgLengthOrPercentageOrNumber::LengthOrPercentage(
-            NonNegative(LengthOrPercentage::one())
+            NonNegative(LengthOrPercentage::one()),
         ))
     }
 }

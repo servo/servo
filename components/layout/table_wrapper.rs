@@ -143,7 +143,8 @@ impl TableWrapperFlow {
                 );
                 total_guess = &total_guess + &guess;
                 guess
-            }).collect();
+            })
+            .collect();
 
         // Assign inline sizes.
         let selection =
@@ -385,7 +386,8 @@ impl Flow for TableWrapperFlow {
                     size: column_intrinsic_inline_size.minimum_length,
                     percentage: column_intrinsic_inline_size.percentage,
                 },
-            ).collect::<Vec<_>>();
+            )
+            .collect::<Vec<_>>();
 
         // Our inline-size was set to the inline-size of the containing block by the flow's parent.
         // Now compute the real value.
@@ -753,17 +755,17 @@ impl ExcessInlineSizeDistributionInfo {
         if !column_intrinsic_inline_size.constrained &&
             column_intrinsic_inline_size.percentage == 0.0
         {
-            self.preferred_inline_size_of_nonconstrained_columns_with_no_percentage =
-                self.preferred_inline_size_of_nonconstrained_columns_with_no_percentage +
-                    column_intrinsic_inline_size.preferred;
+            self.preferred_inline_size_of_nonconstrained_columns_with_no_percentage = self
+                .preferred_inline_size_of_nonconstrained_columns_with_no_percentage +
+                column_intrinsic_inline_size.preferred;
             self.count_of_nonconstrained_columns_with_no_percentage += 1
         }
         if column_intrinsic_inline_size.constrained &&
             column_intrinsic_inline_size.percentage == 0.0
         {
-            self.preferred_inline_size_of_constrained_columns_with_no_percentage =
-                self.preferred_inline_size_of_constrained_columns_with_no_percentage +
-                    column_intrinsic_inline_size.preferred
+            self.preferred_inline_size_of_constrained_columns_with_no_percentage = self
+                .preferred_inline_size_of_constrained_columns_with_no_percentage +
+                column_intrinsic_inline_size.preferred
         }
         self.total_percentage += column_intrinsic_inline_size.percentage;
         self.column_count += 1

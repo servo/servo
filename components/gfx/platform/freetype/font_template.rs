@@ -25,7 +25,8 @@ impl fmt::Debug for FontTemplateData {
             .field(
                 "bytes",
                 &self.bytes.as_ref().map(|b| format!("[{} bytes]", b.len())),
-            ).field("identifier", &self.identifier)
+            )
+            .field("identifier", &self.identifier)
             .finish()
     }
 }

@@ -713,12 +713,15 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
             if self.style.pseudo.is_some() {
                 return;
             }
-            let is_html_select_element =
-                element.map_or(false, |e| e.is_html_element() && e.local_name() == &*local_name!("select"));
+            let is_html_select_element = element.map_or(false, |e| {
+                e.is_html_element() && e.local_name() == &*local_name!("select")
+            });
             if !is_html_select_element {
                 return;
             }
-            self.style.mutate_inherited_text().set_line_height(LineHeight::normal());
+            self.style
+                .mutate_inherited_text()
+                .set_line_height(LineHeight::normal());
         }
     }
 

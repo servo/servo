@@ -48,7 +48,7 @@ impl GLContextFactory {
         &self,
         webgl_version: WebGLVersion,
         size: Size2D<u32>,
-        attributes: GLContextAttributes
+        attributes: GLContextAttributes,
     ) -> Result<GLContextWrapper, &'static str> {
         Ok(match *self {
             GLContextFactory::Native(ref handle, ref dispatcher) => {
@@ -63,7 +63,7 @@ impl GLContextFactory {
                     Some(handle),
                     dispatcher,
                 )?)
-            }
+            },
             GLContextFactory::OSMesa(ref handle) => {
                 GLContextWrapper::OSMesa(GLContext::new_shared_with_dispatcher(
                     // FIXME(nox): Why are those i32 values?
@@ -75,7 +75,7 @@ impl GLContextFactory {
                     Some(handle),
                     None,
                 )?)
-            }
+            },
         })
     }
 
@@ -84,7 +84,7 @@ impl GLContextFactory {
         &self,
         webgl_version: WebGLVersion,
         size: Size2D<u32>,
-        attributes: GLContextAttributes
+        attributes: GLContextAttributes,
     ) -> Result<GLContextWrapper, &'static str> {
         Ok(match *self {
             GLContextFactory::Native(..) => {
@@ -98,7 +98,7 @@ impl GLContextFactory {
                     None,
                     None,
                 )?)
-            }
+            },
             GLContextFactory::OSMesa(_) => {
                 GLContextWrapper::OSMesa(GLContext::new_shared_with_dispatcher(
                     // FIXME(nox): Why are those i32 values?
@@ -110,7 +110,7 @@ impl GLContextFactory {
                     None,
                     None,
                 )?)
-            }
+            },
         })
     }
 
@@ -121,7 +121,6 @@ impl GLContextFactory {
         }
     }
 }
-
 
 /// GLContextWrapper used to abstract NativeGLContext and OSMesaContext types
 pub enum GLContextWrapper {
@@ -134,10 +133,10 @@ impl GLContextWrapper {
         match *self {
             GLContextWrapper::Native(ref ctx) => {
                 ctx.make_current().unwrap();
-            }
+            },
             GLContextWrapper::OSMesa(ref ctx) => {
                 ctx.make_current().unwrap();
-            }
+            },
         }
     }
 
@@ -145,10 +144,10 @@ impl GLContextWrapper {
         match *self {
             GLContextWrapper::Native(ref ctx) => {
                 ctx.unbind().unwrap();
-            }
+            },
             GLContextWrapper::OSMesa(ref ctx) => {
                 ctx.unbind().unwrap();
-            }
+            },
         }
     }
 
@@ -156,26 +155,22 @@ impl GLContextWrapper {
         &self,
         cmd: WebGLCommand,
         backtrace: WebGLCommandBacktrace,
-        state: &mut GLState
+        state: &mut GLState,
     ) {
         match *self {
             GLContextWrapper::Native(ref ctx) => {
                 WebGLImpl::apply(ctx, state, cmd, backtrace);
-            }
+            },
             GLContextWrapper::OSMesa(ref ctx) => {
                 WebGLImpl::apply(ctx, state, cmd, backtrace);
-            }
+            },
         }
     }
 
     pub fn gl(&self) -> &gl::Gl {
         match *self {
-            GLContextWrapper::Native(ref ctx) => {
-                ctx.gl()
-            }
-            GLContextWrapper::OSMesa(ref ctx) => {
-                ctx.gl()
-            }
+            GLContextWrapper::Native(ref ctx) => ctx.gl(),
+            GLContextWrapper::OSMesa(ref ctx) => ctx.gl(),
         }
     }
 
@@ -184,23 +179,29 @@ impl GLContextWrapper {
             GLContextWrapper::Native(ref ctx) => {
                 let (real_size, texture_id) = {
                     let draw_buffer = ctx.borrow_draw_buffer().unwrap();
-                    (draw_buffer.size(), draw_buffer.get_bound_texture_id().unwrap())
+                    (
+                        draw_buffer.size(),
+                        draw_buffer.get_bound_texture_id().unwrap(),
+                    )
                 };
 
                 let limits = ctx.borrow_limits().clone();
 
                 (real_size, texture_id, limits)
-            }
+            },
             GLContextWrapper::OSMesa(ref ctx) => {
                 let (real_size, texture_id) = {
                     let draw_buffer = ctx.borrow_draw_buffer().unwrap();
-                    (draw_buffer.size(), draw_buffer.get_bound_texture_id().unwrap())
+                    (
+                        draw_buffer.size(),
+                        draw_buffer.get_bound_texture_id().unwrap(),
+                    )
                 };
 
                 let limits = ctx.borrow_limits().clone();
 
                 (real_size, texture_id, limits)
-            }
+            },
         }
     }
 
@@ -209,11 +210,11 @@ impl GLContextWrapper {
             GLContextWrapper::Native(ref mut ctx) => {
                 // FIXME(nox): Why are those i32 values?
                 ctx.resize(size.to_i32())
-            }
+            },
             GLContextWrapper::OSMesa(ref mut ctx) => {
                 // FIXME(nox): Why are those i32 values?
                 ctx.resize(size.to_i32())
-            }
+            },
         }
     }
 }
@@ -222,7 +223,7 @@ impl GLContextWrapper {
 /// It's used in Windows to allow WGL GLContext sharing.
 #[derive(Clone)]
 pub struct MainThreadDispatcher {
-    compositor_proxy: Arc<Mutex<CompositorProxy>>
+    compositor_proxy: Arc<Mutex<CompositorProxy>>,
 }
 
 impl MainThreadDispatcher {
@@ -234,6 +235,9 @@ impl MainThreadDispatcher {
 }
 impl GLContextDispatcher for MainThreadDispatcher {
     fn dispatch(&self, f: Box<Fn() + Send>) {
-        self.compositor_proxy.lock().unwrap().send(compositor_thread::Msg::Dispatch(f));
+        self.compositor_proxy
+            .lock()
+            .unwrap()
+            .send(compositor_thread::Msg::Dispatch(f));
     }
 }

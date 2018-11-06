@@ -187,7 +187,8 @@ impl FontInfo {
                 8 => FontStretchKeyword::ExtraExpanded,
                 9 => FontStretchKeyword::UltraExpanded,
                 _ => return Err(()),
-            }.compute(),
+            }
+            .compute(),
         ));
 
         let style = if italic_bool {
@@ -224,7 +225,8 @@ impl FontInfo {
                 FontStretch::Expanded => FontStretchKeyword::Expanded,
                 FontStretch::ExtraExpanded => FontStretchKeyword::ExtraExpanded,
                 FontStretch::UltraExpanded => FontStretchKeyword::UltraExpanded,
-            }.compute(),
+            }
+            .compute(),
         ));
 
         Ok(FontInfo {

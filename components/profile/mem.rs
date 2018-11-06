@@ -43,7 +43,8 @@ impl Profiler {
                     if chan.send(ProfilerMsg::Print).is_err() {
                         break;
                     }
-                }).expect("Thread spawning failed");
+                })
+                .expect("Thread spawning failed");
         }
 
         // Always spawn the memory profiler. If there is no timer thread it won't receive regular
@@ -53,7 +54,8 @@ impl Profiler {
             .spawn(move || {
                 let mut mem_profiler = Profiler::new(port);
                 mem_profiler.start();
-            }).expect("Thread spawning failed");
+            })
+            .expect("Thread spawning failed");
 
         let mem_profiler_chan = ProfilerChan(chan);
 
@@ -623,7 +625,8 @@ mod system_reporter {
 
         let seg_re = Regex::new(
             r"^[:xdigit:]+-[:xdigit:]+ (....) [:xdigit:]+ [:xdigit:]+:[:xdigit:]+ \d+ +(.*)",
-        ).unwrap();
+        )
+        .unwrap();
         let rss_re = Regex::new(r"^Rss: +(\d+) kB").unwrap();
 
         // We record each segment's resident size.

@@ -922,7 +922,8 @@ impl Flow for FlexFlow {
                     .base
                     .flags
                     .contains(FlowFlags::IS_ABSOLUTELY_POSITIONED)
-            }).map(|(index, flow)| FlexItem::new(index, flow))
+            })
+            .map(|(index, flow)| FlexItem::new(index, flow))
             .collect();
 
         items.sort_by_key(|item| item.order);

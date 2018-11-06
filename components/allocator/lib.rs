@@ -30,31 +30,23 @@ mod platform {
 
     // The minimum alignment guaranteed by the architecture. This value is used to
     // add fast paths for low alignment values.
-    #[cfg(
-        all(
-            any(
-                target_arch = "arm",
-                target_arch = "mips",
-                target_arch = "mipsel",
-                target_arch = "powerpc"
-            )
-        )
-    )]
+    #[cfg(all(any(
+        target_arch = "arm",
+        target_arch = "mips",
+        target_arch = "mipsel",
+        target_arch = "powerpc"
+    )))]
     const MIN_ALIGN: usize = 8;
-    #[cfg(
-        all(
-            any(
-                target_arch = "x86",
-                target_arch = "x86_64",
-                target_arch = "aarch64",
-                target_arch = "powerpc64",
-                target_arch = "powerpc64le",
-                target_arch = "mips64",
-                target_arch = "s390x",
-                target_arch = "sparc64"
-            )
-        )
-    )]
+    #[cfg(all(any(
+        target_arch = "x86",
+        target_arch = "x86_64",
+        target_arch = "aarch64",
+        target_arch = "powerpc64",
+        target_arch = "powerpc64le",
+        target_arch = "mips64",
+        target_arch = "s390x",
+        target_arch = "sparc64"
+    )))]
     const MIN_ALIGN: usize = 16;
 
     fn layout_to_flags(align: usize, size: usize) -> c_int {
