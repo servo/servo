@@ -118,12 +118,9 @@ impl URL {
 
     // https://w3c.github.io/FileAPI/#dfn-revokeObjectURL
     pub fn RevokeObjectURL(global: &GlobalScope, url: DOMString) {
-        /*
-            If the value provided for the url argument is not a Blob URL OR
-            if the value provided for the url argument does not have an entry in the Blob URL Store,
-        
-            this method call does nothing. User agents may display a message on the error console.
-        */
+        // If the value provided for the url argument is not a Blob URL OR
+        // if the value provided for the url argument does not have an entry in the Blob URL Store,
+        // this method call does nothing. User agents may display a message on the error console.
         let origin = get_blob_origin(&global.get_url());
 
         if let Ok(url) = ServoUrl::parse(&url) {

@@ -172,19 +172,20 @@ pub fn get_array_index_from_id(_cx: *mut JSContext, id: HandleId) -> Option<u32>
         None
     }
     // if id is length atom, -1, otherwise
-    /*return if JSID_IS_ATOM(id) {
-        let atom = JSID_TO_ATOM(id);
-        //let s = *GetAtomChars(id);
-        if s > 'a' && s < 'z' {
-            return -1;
-        }
-    
-        let i = 0;
-        let str = AtomToLinearString(JSID_TO_ATOM(id));
-        return if StringIsArray(str, &mut i) != 0 { i } else { -1 }
-    } else {
-        IdToInt32(cx, id);
-    }*/}
+    // return if JSID_IS_ATOM(id) {
+    //     let atom = JSID_TO_ATOM(id);
+    //     //let s = *GetAtomChars(id);
+    //     if s > 'a' && s < 'z' {
+    //         return -1;
+    //     }
+    //
+    //     let i = 0;
+    //     let str = AtomToLinearString(JSID_TO_ATOM(id));
+    //     return if StringIsArray(str, &mut i) != 0 { i } else { -1 }
+    // } else {
+    //     IdToInt32(cx, id);
+    // }
+}
 
 /// Find the enum equivelent of a string given by `v` in `pairs`.
 /// Returns `Err(())` on JSAPI failure (there is a pending exception), and
