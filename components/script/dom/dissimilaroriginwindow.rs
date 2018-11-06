@@ -2,16 +2,16 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::codegen::Bindings::DissimilarOriginWindowBinding;
-use dom::bindings::codegen::Bindings::DissimilarOriginWindowBinding::DissimilarOriginWindowMethods;
-use dom::bindings::error::{Error, ErrorResult};
-use dom::bindings::inheritance::Castable;
-use dom::bindings::root::{Dom, DomRoot, MutNullableDom};
-use dom::bindings::str::DOMString;
-use dom::bindings::structuredclone::StructuredCloneData;
-use dom::dissimilaroriginlocation::DissimilarOriginLocation;
-use dom::globalscope::GlobalScope;
-use dom::windowproxy::WindowProxy;
+use crate::dom::bindings::codegen::Bindings::DissimilarOriginWindowBinding;
+use crate::dom::bindings::codegen::Bindings::DissimilarOriginWindowBinding::DissimilarOriginWindowMethods;
+use crate::dom::bindings::error::{Error, ErrorResult};
+use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
+use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::structuredclone::StructuredCloneData;
+use crate::dom::dissimilaroriginlocation::DissimilarOriginLocation;
+use crate::dom::globalscope::GlobalScope;
+use crate::dom::windowproxy::WindowProxy;
 use dom_struct::dom_struct;
 use ipc_channel::ipc;
 use js::jsapi::JSContext;

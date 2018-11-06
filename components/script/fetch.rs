@@ -2,22 +2,24 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::codegen::Bindings::RequestBinding::RequestInfo;
-use dom::bindings::codegen::Bindings::RequestBinding::RequestInit;
-use dom::bindings::codegen::Bindings::ResponseBinding::ResponseBinding::ResponseMethods;
-use dom::bindings::codegen::Bindings::ResponseBinding::ResponseType as DOMResponseType;
-use dom::bindings::error::Error;
-use dom::bindings::inheritance::Castable;
-use dom::bindings::refcounted::{Trusted, TrustedPromise};
-use dom::bindings::reflector::DomObject;
-use dom::bindings::root::DomRoot;
-use dom::bindings::trace::RootedTraceableBox;
-use dom::globalscope::GlobalScope;
-use dom::headers::Guard;
-use dom::promise::Promise;
-use dom::request::Request;
-use dom::response::Response;
-use dom::serviceworkerglobalscope::ServiceWorkerGlobalScope;
+use crate::dom::bindings::codegen::Bindings::RequestBinding::RequestInfo;
+use crate::dom::bindings::codegen::Bindings::RequestBinding::RequestInit;
+use crate::dom::bindings::codegen::Bindings::ResponseBinding::ResponseBinding::ResponseMethods;
+use crate::dom::bindings::codegen::Bindings::ResponseBinding::ResponseType as DOMResponseType;
+use crate::dom::bindings::error::Error;
+use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
+use crate::dom::bindings::reflector::DomObject;
+use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::trace::RootedTraceableBox;
+use crate::dom::globalscope::GlobalScope;
+use crate::dom::headers::Guard;
+use crate::dom::promise::Promise;
+use crate::dom::request::Request;
+use crate::dom::response::Response;
+use crate::dom::serviceworkerglobalscope::ServiceWorkerGlobalScope;
+use crate::network_listener::{NetworkListener, PreInvoke};
+use crate::task_source::TaskSourceName;
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use js::jsapi::JSAutoCompartment;
@@ -26,12 +28,10 @@ use net_traits::{FilteredMetadata, FetchMetadata, Metadata};
 use net_traits::CoreResourceMsg::Fetch as NetTraitsFetch;
 use net_traits::request::{Request as NetTraitsRequest, ServiceWorkersMode};
 use net_traits::request::RequestInit as NetTraitsRequestInit;
-use network_listener::{NetworkListener, PreInvoke};
 use servo_url::ServoUrl;
 use std::mem;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
-use task_source::TaskSourceName;
 
 struct FetchContext {
     fetch_promise: Option<TrustedPromise>,

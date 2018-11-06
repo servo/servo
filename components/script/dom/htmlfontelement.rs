@@ -2,18 +2,18 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use crate::dom::attr::Attr;
+use crate::dom::bindings::codegen::Bindings::HTMLFontElementBinding;
+use crate::dom::bindings::codegen::Bindings::HTMLFontElementBinding::HTMLFontElementMethods;
+use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::root::{DomRoot, LayoutDom};
+use crate::dom::bindings::str::DOMString;
+use crate::dom::document::Document;
+use crate::dom::element::{Element, RawLayoutElementHelpers};
+use crate::dom::htmlelement::HTMLElement;
+use crate::dom::node::Node;
+use crate::dom::virtualmethods::VirtualMethods;
 use cssparser::RGBA;
-use dom::attr::Attr;
-use dom::bindings::codegen::Bindings::HTMLFontElementBinding;
-use dom::bindings::codegen::Bindings::HTMLFontElementBinding::HTMLFontElementMethods;
-use dom::bindings::inheritance::Castable;
-use dom::bindings::root::{DomRoot, LayoutDom};
-use dom::bindings::str::DOMString;
-use dom::document::Document;
-use dom::element::{Element, RawLayoutElementHelpers};
-use dom::htmlelement::HTMLElement;
-use dom::node::Node;
-use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
 use servo_atoms::Atom;

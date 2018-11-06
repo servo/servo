@@ -2,22 +2,22 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::cell::DomRefCell;
-use dom::bindings::codegen::Bindings::VRBinding;
-use dom::bindings::codegen::Bindings::VRBinding::VRMethods;
-use dom::bindings::codegen::Bindings::VRDisplayBinding::VRDisplayMethods;
-use dom::bindings::error::Error;
-use dom::bindings::inheritance::Castable;
-use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
-use dom::bindings::root::{Dom, DomRoot};
-use dom::event::Event;
-use dom::eventtarget::EventTarget;
-use dom::gamepad::Gamepad;
-use dom::gamepadevent::GamepadEventType;
-use dom::globalscope::GlobalScope;
-use dom::promise::Promise;
-use dom::vrdisplay::VRDisplay;
-use dom::vrdisplayevent::VRDisplayEvent;
+use crate::dom::bindings::cell::DomRefCell;
+use crate::dom::bindings::codegen::Bindings::VRBinding;
+use crate::dom::bindings::codegen::Bindings::VRBinding::VRMethods;
+use crate::dom::bindings::codegen::Bindings::VRDisplayBinding::VRDisplayMethods;
+use crate::dom::bindings::error::Error;
+use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
+use crate::dom::bindings::root::{Dom, DomRoot};
+use crate::dom::event::Event;
+use crate::dom::eventtarget::EventTarget;
+use crate::dom::gamepad::Gamepad;
+use crate::dom::gamepadevent::GamepadEventType;
+use crate::dom::globalscope::GlobalScope;
+use crate::dom::promise::Promise;
+use crate::dom::vrdisplay::VRDisplay;
+use crate::dom::vrdisplayevent::VRDisplayEvent;
 use dom_struct::dom_struct;
 use ipc_channel::ipc::IpcSender;
 use profile_traits::ipc;

@@ -3,9 +3,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use app_units::{Au, MAX_AU};
-use block::FormattingContextType;
-use flow::{Flow, FlowFlags, GetBaseFlow, ImmutableFlowUtils};
-use persistent_list::PersistentList;
+use crate::block::FormattingContextType;
+use crate::flow::{Flow, FlowFlags, GetBaseFlow, ImmutableFlowUtils};
+use crate::persistent_list::PersistentList;
 use std::cmp::{max, min};
 use std::fmt;
 use style::computed_values::float::T as StyleFloat;

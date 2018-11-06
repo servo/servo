@@ -3,9 +3,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use canvas_traits::webgl::WebGLError::*;
-use dom::bindings::root::DomRoot;
-use dom::webglrenderingcontext::WebGLRenderingContext;
-use dom::webgltexture::WebGLTexture;
+use crate::dom::bindings::root::DomRoot;
+use crate::dom::webglrenderingcontext::WebGLRenderingContext;
+use crate::dom::webgltexture::WebGLTexture;
 use std::{self, fmt};
 use super::WebGLValidator;
 use super::types::{TexImageTarget, TexDataType, TexFormat};

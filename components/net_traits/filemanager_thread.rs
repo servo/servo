@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use blob_url_store::{BlobBuf, BlobURLStoreError};
+use crate::blob_url_store::{BlobBuf, BlobURLStoreError};
 use embedder_traits::FilterPattern;
 use ipc_channel::ipc::IpcSender;
 use num_traits::ToPrimitive;

@@ -2,24 +2,25 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use crate::document_loader::LoadType;
+use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::refcounted::Trusted;
+use crate::dom::bindings::reflector::DomObject;
+use crate::dom::document::Document;
+use crate::dom::element::Element;
+use crate::dom::eventtarget::EventTarget;
+use crate::dom::htmlelement::HTMLElement;
+use crate::dom::htmllinkelement::{RequestGenerationId, HTMLLinkElement};
+use crate::dom::node::{document_from_node, window_from_node};
+use crate::network_listener::{NetworkListener, PreInvoke};
+use crate::task_source::TaskSourceName;
 use cssparser::SourceLocation;
-use document_loader::LoadType;
-use dom::bindings::inheritance::Castable;
-use dom::bindings::refcounted::Trusted;
-use dom::bindings::reflector::DomObject;
-use dom::document::Document;
-use dom::element::Element;
-use dom::eventtarget::EventTarget;
-use dom::htmlelement::HTMLElement;
-use dom::htmllinkelement::{RequestGenerationId, HTMLLinkElement};
-use dom::node::{document_from_node, window_from_node};
 use encoding_rs::UTF_8;
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use mime::{self, Mime};
 use net_traits::{FetchResponseListener, FetchMetadata, FilteredMetadata, Metadata, NetworkError, ReferrerPolicy};
 use net_traits::request::{CorsSettings, CredentialsMode, Destination, RequestInit, RequestMode};
-use network_listener::{NetworkListener, PreInvoke};
 use parking_lot::RwLock;
 use servo_arc::Arc;
 use servo_url::ServoUrl;
@@ -33,7 +34,6 @@ use style::stylesheets::{CssRules, ImportRule, Namespaces, Stylesheet, Styleshee
 use style::stylesheets::StylesheetLoader as StyleStylesheetLoader;
 use style::stylesheets::import_rule::ImportSheet;
 use style::values::CssUrl;
-use task_source::TaskSourceName;
 
 pub trait StylesheetOwner {
     /// Returns whether this element was inserted by the parser (i.e., it should

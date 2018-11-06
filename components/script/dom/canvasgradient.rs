@@ -3,17 +3,17 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use canvas_traits::canvas::{CanvasGradientStop, FillOrStrokeStyle, LinearGradientStyle, RadialGradientStyle};
+use crate::dom::bindings::cell::DomRefCell;
+use crate::dom::bindings::codegen::Bindings::CanvasGradientBinding;
+use crate::dom::bindings::codegen::Bindings::CanvasGradientBinding::CanvasGradientMethods;
+use crate::dom::bindings::error::{Error, ErrorResult};
+use crate::dom::bindings::num::Finite;
+use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
+use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::str::DOMString;
+use crate::dom::globalscope::GlobalScope;
 use cssparser::{Parser, ParserInput, RGBA};
 use cssparser::Color as CSSColor;
-use dom::bindings::cell::DomRefCell;
-use dom::bindings::codegen::Bindings::CanvasGradientBinding;
-use dom::bindings::codegen::Bindings::CanvasGradientBinding::CanvasGradientMethods;
-use dom::bindings::error::{Error, ErrorResult};
-use dom::bindings::num::Finite;
-use dom::bindings::reflector::{Reflector, reflect_dom_object};
-use dom::bindings::root::DomRoot;
-use dom::bindings::str::DOMString;
-use dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
 
 // https://html.spec.whatwg.org/multipage/#canvasgradient

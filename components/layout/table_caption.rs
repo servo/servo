@@ -5,20 +5,20 @@
 //! CSS table formatting contexts.
 
 use app_units::Au;
-use block::BlockFlow;
-use context::LayoutContext;
-use display_list::{BlockFlowDisplayListBuilding, DisplayListBuildState};
-use display_list::{StackingContextCollectionFlags, StackingContextCollectionState};
+use crate::block::BlockFlow;
+use crate::context::LayoutContext;
+use crate::display_list::{BlockFlowDisplayListBuilding, DisplayListBuildState};
+use crate::display_list::{StackingContextCollectionFlags, StackingContextCollectionState};
+use crate::flow::{Flow, FlowClass, OpaqueFlow};
+use crate::fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
 use euclid::Point2D;
-use flow::{Flow, FlowClass, OpaqueFlow};
-use fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
 use gfx_traits::print_tree::PrintTree;
 use std::fmt;
 use style::logical_geometry::LogicalSize;
 use style::properties::ComputedValues;
 
 #[allow(unsafe_code)]
-unsafe impl ::flow::HasBaseFlow for TableCaptionFlow {}
+unsafe impl crate::flow::HasBaseFlow for TableCaptionFlow {}
 
 /// A table formatting context.
 #[repr(C)]
@@ -93,7 +93,7 @@ impl Flow for TableCaptionFlow {
             .collect_stacking_contexts_for_block(state, StackingContextCollectionFlags::empty());
     }
 
-    fn repair_style(&mut self, new_style: &::ServoArc<ComputedValues>) {
+    fn repair_style(&mut self, new_style: &crate::ServoArc<ComputedValues>) {
         self.block_flow.repair_style(new_style)
     }
 

@@ -2,10 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::refcounted::Trusted;
-use dom::bindings::reflector::DomObject;
-use dom::bindings::structuredclone::StructuredCloneData;
-use script_runtime::CommonScriptMsg;
+use crate::dom::bindings::refcounted::Trusted;
+use crate::dom::bindings::reflector::DomObject;
+use crate::dom::bindings::structuredclone::StructuredCloneData;
+use crate::script_runtime::CommonScriptMsg;
 
 /// Messages used to control the worker event loops
 pub enum WorkerScriptMsg {

@@ -4,12 +4,12 @@
 
 //! Machinery to initialise interface prototype objects and interface objects.
 
-use dom::bindings::codegen::InterfaceObjectMap::Globals;
-use dom::bindings::codegen::PrototypeList;
-use dom::bindings::constant::{define_constants, ConstantSpec};
-use dom::bindings::conversions::{get_dom_class, DOM_OBJECT_SLOT};
-use dom::bindings::guard::Guard;
-use dom::bindings::utils::{get_proto_or_iface_array, ProtoOrIfaceArray, DOM_PROTOTYPE_SLOT};
+use crate::dom::bindings::codegen::InterfaceObjectMap::Globals;
+use crate::dom::bindings::codegen::PrototypeList;
+use crate::dom::bindings::constant::{define_constants, ConstantSpec};
+use crate::dom::bindings::conversions::{get_dom_class, DOM_OBJECT_SLOT};
+use crate::dom::bindings::guard::Guard;
+use crate::dom::bindings::utils::{get_proto_or_iface_array, ProtoOrIfaceArray, DOM_PROTOTYPE_SLOT};
 use js::error::throw_type_error;
 use js::glue::{UncheckedUnwrapObject, RUST_SYMBOL_TO_JSID};
 use js::jsapi::{Class, ClassOps, CompartmentOptions};

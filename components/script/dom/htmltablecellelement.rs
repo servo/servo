@@ -2,20 +2,20 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use crate::dom::bindings::codegen::Bindings::HTMLTableCellElementBinding;
+use crate::dom::bindings::codegen::Bindings::HTMLTableCellElementBinding::HTMLTableCellElementMethods;
+use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
+use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::root::LayoutDom;
+use crate::dom::bindings::str::DOMString;
+use crate::dom::document::Document;
+use crate::dom::element::{Element, RawLayoutElementHelpers};
+use crate::dom::htmlelement::HTMLElement;
+use crate::dom::htmltablerowelement::HTMLTableRowElement;
+use crate::dom::node::Node;
+use crate::dom::virtualmethods::VirtualMethods;
 use cssparser::RGBA;
-use dom::bindings::codegen::Bindings::HTMLTableCellElementBinding;
-use dom::bindings::codegen::Bindings::HTMLTableCellElementBinding::HTMLTableCellElementMethods;
-use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
-use dom::bindings::inheritance::Castable;
-use dom::bindings::root::DomRoot;
-use dom::bindings::root::LayoutDom;
-use dom::bindings::str::DOMString;
-use dom::document::Document;
-use dom::element::{Element, RawLayoutElementHelpers};
-use dom::htmlelement::HTMLElement;
-use dom::htmltablerowelement::HTMLTableRowElement;
-use dom::node::Node;
-use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
 use style::attr::{AttrValue, LengthOrPercentageOrAuto};

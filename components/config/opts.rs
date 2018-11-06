@@ -5,10 +5,10 @@
 //! Configuration options for a single run of the servo application. Created
 //! from command line arguments.
 
+use crate::prefs::{self, PrefValue, PREFS};
 use euclid::TypedSize2D;
 use getopts::Options;
 use num_cpus;
-use prefs::{self, PrefValue, PREFS};
 use servo_geometry::DeviceIndependentPixel;
 use servo_url::ServoUrl;
 use std::borrow::Cow;

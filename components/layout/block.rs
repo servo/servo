@@ -26,22 +26,23 @@
 //!   http://dev.w3.org/csswg/css-sizing/
 
 use app_units::{Au, MAX_AU};
-use context::LayoutContext;
-use display_list::{BlockFlowDisplayListBuilding, BorderPaintingMode};
-use display_list::{DisplayListBuildState, StackingContextCollectionFlags};
-use display_list::StackingContextCollectionState;
-use display_list::items::DisplayListSection;
+use crate::context::LayoutContext;
+use crate::display_list::{BlockFlowDisplayListBuilding, BorderPaintingMode};
+use crate::display_list::{DisplayListBuildState, StackingContextCollectionFlags};
+use crate::display_list::StackingContextCollectionState;
+use crate::display_list::items::DisplayListSection;
+use crate::floats::{ClearType, FloatKind, Floats, PlacementInfo};
+use crate::flow::{BaseFlow, EarlyAbsolutePositionInfo, Flow, FlowClass, ForceNonfloatedFlag, GetBaseFlow};
+use crate::flow::{ImmutableFlowUtils, LateAbsolutePositionInfo, OpaqueFlow, FragmentationContext, FlowFlags};
+use crate::flow_list::FlowList;
+use crate::fragment::{CoordinateSystem, Fragment, FragmentBorderBoxIterator, Overflow, FragmentFlags};
+use crate::incremental::RelayoutMode;
+use crate::layout_debug;
+use crate::model::{AdjoiningMargins, CollapsibleMargins, IntrinsicISizes, MarginCollapseInfo, MaybeAuto};
+use crate::sequential;
+use crate::traversal::PreorderFlowTraversal;
 use euclid::{Point2D, Rect, SideOffsets2D, Size2D};
-use floats::{ClearType, FloatKind, Floats, PlacementInfo};
-use flow::{BaseFlow, EarlyAbsolutePositionInfo, Flow, FlowClass, ForceNonfloatedFlag, GetBaseFlow};
-use flow::{ImmutableFlowUtils, LateAbsolutePositionInfo, OpaqueFlow, FragmentationContext, FlowFlags};
-use flow_list::FlowList;
-use fragment::{CoordinateSystem, Fragment, FragmentBorderBoxIterator, Overflow, FragmentFlags};
 use gfx_traits::print_tree::PrintTree;
-use incremental::RelayoutMode;
-use layout_debug;
-use model::{AdjoiningMargins, CollapsibleMargins, IntrinsicISizes, MarginCollapseInfo, MaybeAuto};
-use sequential;
 use serde::{Serialize, Serializer};
 use servo_geometry::MaxRect;
 use std::cmp::{max, min};
@@ -59,7 +60,6 @@ use style::properties::ComputedValues;
 use style::servo::restyle_damage::ServoRestyleDamage;
 use style::values::computed::{LengthOrPercentageOrNone, LengthOrPercentage};
 use style::values::computed::LengthOrPercentageOrAuto;
-use traversal::PreorderFlowTraversal;
 
 /// Information specific to floated blocks.
 #[derive(Clone, Serialize)]
@@ -591,7 +591,7 @@ pub enum FormattingContextType {
 }
 
 #[allow(unsafe_code)]
-unsafe impl ::flow::HasBaseFlow for BlockFlow {}
+unsafe impl crate::flow::HasBaseFlow for BlockFlow {}
 
 // A block formatting context.
 #[derive(Serialize)]
@@ -2585,7 +2585,7 @@ impl Flow for BlockFlow {
         self.build_display_list_for_block(state, BorderPaintingMode::Separate);
     }
 
-    fn repair_style(&mut self, new_style: &::ServoArc<ComputedValues>) {
+    fn repair_style(&mut self, new_style: &crate::ServoArc<ComputedValues>) {
         self.fragment.repair_style(new_style)
     }
 

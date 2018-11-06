@@ -3,13 +3,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use bluetooth_traits::BluetoothRequest;
-use dom::bindings::codegen::Bindings::TestRunnerBinding;
-use dom::bindings::codegen::Bindings::TestRunnerBinding::TestRunnerMethods;
-use dom::bindings::error::{Error, ErrorResult};
-use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
-use dom::bindings::root::DomRoot;
-use dom::bindings::str::DOMString;
-use dom::globalscope::GlobalScope;
+use crate::dom::bindings::codegen::Bindings::TestRunnerBinding;
+use crate::dom::bindings::codegen::Bindings::TestRunnerBinding::TestRunnerMethods;
+use crate::dom::bindings::error::{Error, ErrorResult};
+use crate::dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
+use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::str::DOMString;
+use crate::dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
 use ipc_channel::ipc::IpcSender;
 use profile_traits::ipc;

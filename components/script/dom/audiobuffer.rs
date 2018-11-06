@@ -2,14 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::audionode::MAX_CHANNEL_COUNT;
-use dom::bindings::cell::DomRefCell;
-use dom::bindings::codegen::Bindings::AudioBufferBinding::{self, AudioBufferMethods, AudioBufferOptions};
-use dom::bindings::error::{Error, Fallible};
-use dom::bindings::num::Finite;
-use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
-use dom::bindings::root::DomRoot;
-use dom::window::Window;
+use crate::dom::audionode::MAX_CHANNEL_COUNT;
+use crate::dom::bindings::cell::DomRefCell;
+use crate::dom::bindings::codegen::Bindings::AudioBufferBinding::{self, AudioBufferMethods, AudioBufferOptions};
+use crate::dom::bindings::error::{Error, Fallible};
+use crate::dom::bindings::num::Finite;
+use crate::dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
+use crate::dom::bindings::root::DomRoot;
+use crate::dom::window::Window;
 use dom_struct::dom_struct;
 use js::jsapi::{Heap, JSAutoCompartment, JSContext, JSObject};
 use js::jsapi::JS_GetArrayBufferViewBuffer;
@@ -321,9 +321,8 @@ impl AudioBufferMethods for AudioBuffer {
         typedarray!(in(cx) let js_channel: Float32Array = js_channel);
         if let Ok(mut js_channel) = js_channel {
             let bytes_to_copy = min(self.length - start_in_channel, source.len() as u32) as usize;
-            let mut js_channel_data = unsafe { js_channel.as_mut_slice() };
-            let (_, mut js_channel_data) =
-                js_channel_data.split_at_mut(start_in_channel as usize);
+            let js_channel_data = unsafe { js_channel.as_mut_slice() };
+            let (_, js_channel_data) = js_channel_data.split_at_mut(start_in_channel as usize);
             unsafe {
                 js_channel_data[0..bytes_to_copy].copy_from_slice(&source.as_slice()[0..bytes_to_copy])
             };

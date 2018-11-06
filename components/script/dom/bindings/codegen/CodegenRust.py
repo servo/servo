@@ -2034,9 +2034,9 @@ class CGImports(CGWrapper):
                     descriptor = descriptorProvider.getDescriptor(parentName)
                     extras += [descriptor.path, descriptor.bindingPath]
             elif t.isType() and t.isRecord():
-                extras += ['dom::bindings::mozmap::MozMap']
+                extras += ['crate::dom::bindings::mozmap::MozMap']
             elif isinstance(t, IDLPromiseType):
-                extras += ["dom::promise::Promise"]
+                extras += ['crate::dom::promise::Promise']
             else:
                 if t.isEnum():
                     extras += [getModuleFromObject(t) + '::' + getIdentifier(t).name + 'Values']
@@ -2086,15 +2086,15 @@ def DOMClassTypeId(desc):
     inner = ""
     if desc.hasDescendants():
         if desc.interface.getExtendedAttribute("Abstract"):
-            return "::dom::bindings::codegen::InheritTypes::TopTypeId { abstract_: () }"
+            return "crate::dom::bindings::codegen::InheritTypes::TopTypeId { abstract_: () }"
         name = desc.interface.identifier.name
-        inner = "(::dom::bindings::codegen::InheritTypes::%sTypeId::%s)" % (name, name)
+        inner = "(crate::dom::bindings::codegen::InheritTypes::%sTypeId::%s)" % (name, name)
     elif len(protochain) == 1:
-        return "::dom::bindings::codegen::InheritTypes::TopTypeId { alone: () }"
+        return "crate::dom::bindings::codegen::InheritTypes::TopTypeId { alone: () }"
     reversed_protochain = list(reversed(protochain))
     for (child, parent) in zip(reversed_protochain, reversed_protochain[1:]):
-        inner = "(::dom::bindings::codegen::InheritTypes::%sTypeId::%s%s)" % (parent, child, inner)
-    return "::dom::bindings::codegen::InheritTypes::TopTypeId { %s: %s }" % (protochain[0].lower(), inner)
+        inner = "(crate::dom::bindings::codegen::InheritTypes::%sTypeId::%s%s)" % (parent, child, inner)
+    return "crate::dom::bindings::codegen::InheritTypes::TopTypeId { %s: %s }" % (protochain[0].lower(), inner)
 
 
 def DOMClass(descriptor):
@@ -2130,7 +2130,7 @@ class CGDOMJSClass(CGThing):
     def define(self):
         parentName = self.descriptor.getParentName()
         if not parentName:
-            parentName = "::dom::bindings::reflector::Reflector"
+            parentName = "crate::dom::bindings::reflector::Reflector"
 
         args = {
             "domClass": DOMClass(self.descriptor),
@@ -2194,7 +2194,7 @@ class CGAssertInheritance(CGThing):
         if parent:
             parentName = parent.identifier.name
         else:
-            parentName = "::dom::bindings::reflector::Reflector"
+            parentName = "crate::dom::bindings::reflector::Reflector"
 
         selfName = self.descriptor.interface.identifier.name
 
@@ -2205,7 +2205,7 @@ class CGAssertInheritance(CGThing):
             # also has a reflector
             #
             # FIXME *RenderingContext2D should use Inline
-            parentName = "::dom::canvasrenderingcontext2d::CanvasRenderingContext2D"
+            parentName = "crate::dom::canvasrenderingcontext2d::CanvasRenderingContext2D"
         args = {
             "parentName": parentName,
             "selfName": selfName,
@@ -2214,7 +2214,7 @@ class CGAssertInheritance(CGThing):
         return """\
 impl %(selfName)s {
     fn __assert_parent_type(&self) {
-        use dom::bindings::inheritance::HasParent;
+        use crate::dom::bindings::inheritance::HasParent;
         // If this type assertion fails, make sure the first field of your
         // DOM struct is of the correct type -- it must be the parent class.
         let _: &%(parentName)s = self.as_parent();
@@ -2374,22 +2374,22 @@ def UnionTypes(descriptors, dictionaries, callbacks, typedefs, config):
     """
 
     imports = [
-        'dom',
-        'dom::bindings::codegen::PrototypeList',
-        'dom::bindings::conversions::ConversionResult',
-        'dom::bindings::conversions::FromJSValConvertible',
-        'dom::bindings::conversions::ToJSValConvertible',
-        'dom::bindings::conversions::ConversionBehavior',
-        'dom::bindings::conversions::StringificationBehavior',
-        'dom::bindings::conversions::root_from_handlevalue',
+        'crate::dom',
+        'crate::dom::bindings::codegen::PrototypeList',
+        'crate::dom::bindings::conversions::ConversionResult',
+        'crate::dom::bindings::conversions::FromJSValConvertible',
+        'crate::dom::bindings::conversions::ToJSValConvertible',
+        'crate::dom::bindings::conversions::ConversionBehavior',
+        'crate::dom::bindings::conversions::StringificationBehavior',
+        'crate::dom::bindings::conversions::root_from_handlevalue',
         'std::ptr::NonNull',
-        'dom::bindings::mozmap::MozMap',
-        'dom::bindings::root::DomRoot',
-        'dom::bindings::str::ByteString',
-        'dom::bindings::str::DOMString',
-        'dom::bindings::str::USVString',
-        'dom::bindings::trace::RootedTraceableBox',
-        'dom::types::*',
+        'crate::dom::bindings::mozmap::MozMap',
+        'crate::dom::bindings::root::DomRoot',
+        'crate::dom::bindings::str::ByteString',
+        'crate::dom::bindings::str::DOMString',
+        'crate::dom::bindings::str::USVString',
+        'crate::dom::bindings::trace::RootedTraceableBox',
+        'crate::dom::types::*',
         'js::error::throw_type_error',
         'js::rust::HandleValue',
         'js::jsapi::Heap',
@@ -4150,7 +4150,7 @@ pub enum %s {
         pairs = ",\n    ".join(['("%s", super::%s::%s)' % (val, ident, getEnumValueName(val)) for val in enum.values()])
 
         inner = string.Template("""\
-use dom::bindings::conversions::ToJSValConvertible;
+use crate::dom::bindings::conversions::ToJSValConvertible;
 use js::jsapi::JSContext;
 use js::rust::MutableHandleValue;
 use js::jsval::JSVal;
@@ -5686,7 +5686,11 @@ class CGInterfaceTrait(CGThing):
                     yield name, arguments, rettype
 
         def fmt(arguments):
-            return "".join(", %s: %s" % argument for argument in arguments)
+            keywords = {"async"}
+            return "".join(
+                ", %s: %s" % (name if name not in keywords else "r#" + name, type_)
+                for name, type_ in arguments
+            )
 
         def contains_unsafe_arg(arguments):
             if not arguments or len(arguments) == 0:
@@ -5866,112 +5870,112 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'js::rust::define_properties',
         'js::rust::get_object_class',
         'js::typedarray',
-        'dom',
-        'dom::bindings',
-        'dom::bindings::codegen::InterfaceObjectMap',
-        'dom::bindings::constant::ConstantSpec',
-        'dom::bindings::constant::ConstantVal',
-        'dom::bindings::interface::ConstructorClassHook',
-        'dom::bindings::interface::InterfaceConstructorBehavior',
-        'dom::bindings::interface::NonCallbackInterfaceObjectClass',
-        'dom::bindings::interface::create_global_object',
-        'dom::bindings::interface::create_callback_interface_object',
-        'dom::bindings::interface::create_interface_prototype_object',
-        'dom::bindings::interface::create_named_constructors',
-        'dom::bindings::interface::create_noncallback_interface_object',
-        'dom::bindings::interface::define_guarded_constants',
-        'dom::bindings::interface::define_guarded_methods',
-        'dom::bindings::interface::define_guarded_properties',
-        'dom::bindings::htmlconstructor::html_constructor',
-        'dom::bindings::interface::is_exposed_in',
-        'dom::bindings::htmlconstructor::pop_current_element_queue',
-        'dom::bindings::htmlconstructor::push_new_element_queue',
-        'dom::bindings::iterable::Iterable',
-        'dom::bindings::iterable::IteratorType',
-        'dom::bindings::namespace::NamespaceObjectClass',
-        'dom::bindings::namespace::create_namespace_object',
-        'dom::bindings::reflector::MutDomObject',
-        'dom::bindings::reflector::DomObject',
-        'dom::bindings::root::Dom',
-        'dom::bindings::root::DomRoot',
-        'dom::bindings::root::OptionalHeapSetter',
-        'dom::bindings::root::RootedReference',
-        'dom::bindings::utils::AsVoidPtr',
-        'dom::bindings::utils::DOMClass',
-        'dom::bindings::utils::DOMJSClass',
-        'dom::bindings::utils::DOM_PROTO_UNFORGEABLE_HOLDER_SLOT',
-        'dom::bindings::utils::JSCLASS_DOM_GLOBAL',
-        'dom::bindings::utils::ProtoOrIfaceArray',
-        'dom::bindings::utils::enumerate_global',
-        'dom::bindings::utils::finalize_global',
-        'dom::bindings::utils::find_enum_value',
-        'dom::bindings::utils::generic_getter',
-        'dom::bindings::utils::generic_lenient_getter',
-        'dom::bindings::utils::generic_lenient_setter',
-        'dom::bindings::utils::generic_method',
-        'dom::bindings::utils::generic_setter',
-        'dom::bindings::utils::get_array_index_from_id',
-        'dom::bindings::utils::get_dictionary_property',
-        'dom::bindings::utils::get_property_on_prototype',
-        'dom::bindings::utils::get_proto_or_iface_array',
-        'dom::bindings::utils::has_property_on_prototype',
-        'dom::bindings::utils::is_platform_object',
-        'dom::bindings::utils::resolve_global',
-        'dom::bindings::utils::set_dictionary_property',
-        'dom::bindings::utils::trace_global',
-        'dom::bindings::trace::JSTraceable',
-        'dom::bindings::trace::RootedTraceable',
-        'dom::bindings::trace::RootedTraceableBox',
-        'dom::bindings::callback::CallSetup',
-        'dom::bindings::callback::CallbackContainer',
-        'dom::bindings::callback::CallbackInterface',
-        'dom::bindings::callback::CallbackFunction',
-        'dom::bindings::callback::CallbackObject',
-        'dom::bindings::callback::ExceptionHandling',
-        'dom::bindings::callback::wrap_call_this_object',
-        'dom::bindings::conversions::ConversionBehavior',
-        'dom::bindings::conversions::ConversionResult',
-        'dom::bindings::conversions::DOM_OBJECT_SLOT',
-        'dom::bindings::conversions::FromJSValConvertible',
-        'dom::bindings::conversions::IDLInterface',
-        'dom::bindings::conversions::StringificationBehavior',
-        'dom::bindings::conversions::ToJSValConvertible',
-        'dom::bindings::conversions::is_array_like',
-        'dom::bindings::conversions::native_from_handlevalue',
-        'dom::bindings::conversions::native_from_object',
-        'dom::bindings::conversions::private_from_object',
-        'dom::bindings::conversions::root_from_handleobject',
-        'dom::bindings::conversions::root_from_handlevalue',
-        'dom::bindings::conversions::root_from_object',
-        'dom::bindings::conversions::jsid_to_string',
-        'dom::bindings::codegen::PrototypeList',
-        'dom::bindings::codegen::RegisterBindings',
-        'dom::bindings::codegen::UnionTypes',
-        'dom::bindings::error::Error',
-        'dom::bindings::error::ErrorResult',
-        'dom::bindings::error::Fallible',
-        'dom::bindings::error::Error::JSFailed',
-        'dom::bindings::error::throw_dom_exception',
-        'dom::bindings::guard::Condition',
-        'dom::bindings::guard::Guard',
-        'dom::bindings::inheritance::Castable',
-        'dom::bindings::proxyhandler',
-        'dom::bindings::proxyhandler::ensure_expando_object',
-        'dom::bindings::proxyhandler::fill_property_descriptor',
-        'dom::bindings::proxyhandler::get_expando_object',
-        'dom::bindings::proxyhandler::get_property_descriptor',
-        'dom::bindings::mozmap::MozMap',
+        'crate::dom',
+        'crate::dom::bindings',
+        'crate::dom::bindings::codegen::InterfaceObjectMap',
+        'crate::dom::bindings::constant::ConstantSpec',
+        'crate::dom::bindings::constant::ConstantVal',
+        'crate::dom::bindings::interface::ConstructorClassHook',
+        'crate::dom::bindings::interface::InterfaceConstructorBehavior',
+        'crate::dom::bindings::interface::NonCallbackInterfaceObjectClass',
+        'crate::dom::bindings::interface::create_global_object',
+        'crate::dom::bindings::interface::create_callback_interface_object',
+        'crate::dom::bindings::interface::create_interface_prototype_object',
+        'crate::dom::bindings::interface::create_named_constructors',
+        'crate::dom::bindings::interface::create_noncallback_interface_object',
+        'crate::dom::bindings::interface::define_guarded_constants',
+        'crate::dom::bindings::interface::define_guarded_methods',
+        'crate::dom::bindings::interface::define_guarded_properties',
+        'crate::dom::bindings::htmlconstructor::html_constructor',
+        'crate::dom::bindings::interface::is_exposed_in',
+        'crate::dom::bindings::htmlconstructor::pop_current_element_queue',
+        'crate::dom::bindings::htmlconstructor::push_new_element_queue',
+        'crate::dom::bindings::iterable::Iterable',
+        'crate::dom::bindings::iterable::IteratorType',
+        'crate::dom::bindings::namespace::NamespaceObjectClass',
+        'crate::dom::bindings::namespace::create_namespace_object',
+        'crate::dom::bindings::reflector::MutDomObject',
+        'crate::dom::bindings::reflector::DomObject',
+        'crate::dom::bindings::root::Dom',
+        'crate::dom::bindings::root::DomRoot',
+        'crate::dom::bindings::root::OptionalHeapSetter',
+        'crate::dom::bindings::root::RootedReference',
+        'crate::dom::bindings::utils::AsVoidPtr',
+        'crate::dom::bindings::utils::DOMClass',
+        'crate::dom::bindings::utils::DOMJSClass',
+        'crate::dom::bindings::utils::DOM_PROTO_UNFORGEABLE_HOLDER_SLOT',
+        'crate::dom::bindings::utils::JSCLASS_DOM_GLOBAL',
+        'crate::dom::bindings::utils::ProtoOrIfaceArray',
+        'crate::dom::bindings::utils::enumerate_global',
+        'crate::dom::bindings::utils::finalize_global',
+        'crate::dom::bindings::utils::find_enum_value',
+        'crate::dom::bindings::utils::generic_getter',
+        'crate::dom::bindings::utils::generic_lenient_getter',
+        'crate::dom::bindings::utils::generic_lenient_setter',
+        'crate::dom::bindings::utils::generic_method',
+        'crate::dom::bindings::utils::generic_setter',
+        'crate::dom::bindings::utils::get_array_index_from_id',
+        'crate::dom::bindings::utils::get_dictionary_property',
+        'crate::dom::bindings::utils::get_property_on_prototype',
+        'crate::dom::bindings::utils::get_proto_or_iface_array',
+        'crate::dom::bindings::utils::has_property_on_prototype',
+        'crate::dom::bindings::utils::is_platform_object',
+        'crate::dom::bindings::utils::resolve_global',
+        'crate::dom::bindings::utils::set_dictionary_property',
+        'crate::dom::bindings::utils::trace_global',
+        'crate::dom::bindings::trace::JSTraceable',
+        'crate::dom::bindings::trace::RootedTraceable',
+        'crate::dom::bindings::trace::RootedTraceableBox',
+        'crate::dom::bindings::callback::CallSetup',
+        'crate::dom::bindings::callback::CallbackContainer',
+        'crate::dom::bindings::callback::CallbackInterface',
+        'crate::dom::bindings::callback::CallbackFunction',
+        'crate::dom::bindings::callback::CallbackObject',
+        'crate::dom::bindings::callback::ExceptionHandling',
+        'crate::dom::bindings::callback::wrap_call_this_object',
+        'crate::dom::bindings::conversions::ConversionBehavior',
+        'crate::dom::bindings::conversions::ConversionResult',
+        'crate::dom::bindings::conversions::DOM_OBJECT_SLOT',
+        'crate::dom::bindings::conversions::FromJSValConvertible',
+        'crate::dom::bindings::conversions::IDLInterface',
+        'crate::dom::bindings::conversions::StringificationBehavior',
+        'crate::dom::bindings::conversions::ToJSValConvertible',
+        'crate::dom::bindings::conversions::is_array_like',
+        'crate::dom::bindings::conversions::native_from_handlevalue',
+        'crate::dom::bindings::conversions::native_from_object',
+        'crate::dom::bindings::conversions::private_from_object',
+        'crate::dom::bindings::conversions::root_from_handleobject',
+        'crate::dom::bindings::conversions::root_from_handlevalue',
+        'crate::dom::bindings::conversions::root_from_object',
+        'crate::dom::bindings::conversions::jsid_to_string',
+        'crate::dom::bindings::codegen::PrototypeList',
+        'crate::dom::bindings::codegen::RegisterBindings',
+        'crate::dom::bindings::codegen::UnionTypes',
+        'crate::dom::bindings::error::Error',
+        'crate::dom::bindings::error::ErrorResult',
+        'crate::dom::bindings::error::Fallible',
+        'crate::dom::bindings::error::Error::JSFailed',
+        'crate::dom::bindings::error::throw_dom_exception',
+        'crate::dom::bindings::guard::Condition',
+        'crate::dom::bindings::guard::Guard',
+        'crate::dom::bindings::inheritance::Castable',
+        'crate::dom::bindings::proxyhandler',
+        'crate::dom::bindings::proxyhandler::ensure_expando_object',
+        'crate::dom::bindings::proxyhandler::fill_property_descriptor',
+        'crate::dom::bindings::proxyhandler::get_expando_object',
+        'crate::dom::bindings::proxyhandler::get_property_descriptor',
+        'crate::dom::bindings::mozmap::MozMap',
         'std::ptr::NonNull',
-        'dom::bindings::num::Finite',
-        'dom::bindings::str::ByteString',
-        'dom::bindings::str::DOMString',
-        'dom::bindings::str::USVString',
-        'dom::bindings::weakref::DOM_WEAK_SLOT',
-        'dom::bindings::weakref::WeakBox',
-        'dom::bindings::weakref::WeakReferenceable',
-        'dom::windowproxy::WindowProxy',
-        'dom::globalscope::GlobalScope',
-        'mem::malloc_size_of_including_raw_self',
+        'crate::dom::bindings::num::Finite',
+        'crate::dom::bindings::str::ByteString',
+        'crate::dom::bindings::str::DOMString',
+        'crate::dom::bindings::str::USVString',
+        'crate::dom::bindings::weakref::DOM_WEAK_SLOT',
+        'crate::dom::bindings::weakref::WeakBox',
+        'crate::dom::bindings::weakref::WeakReferenceable',
+        'crate::dom::windowproxy::WindowProxy',
+        'crate::dom::globalscope::GlobalScope',
+        'crate::mem::malloc_size_of_including_raw_self',
         'libc',
         'servo_config::prefs::PREFS',
         'std::borrow::ToOwned',
@@ -6250,7 +6254,7 @@ class CGDictionary(CGThing):
         d = self.dictionary
         if d.parent:
             initParent = ("{\n"
-                          "    match try!(%s::%s::new(cx, val)) {\n"
+                          "    match r#try!(%s::%s::new(cx, val)) {\n"
                           "        ConversionResult::Success(v) => v,\n"
                           "        ConversionResult::Failure(error) => {\n"
                           "            throw_type_error(cx, &error);\n"
@@ -6396,7 +6400,7 @@ class CGDictionary(CGThing):
         conversion = (
             "{\n"
             "    rooted!(in(cx) let mut rval = UndefinedValue());\n"
-            "    match try!(get_dictionary_property(cx, object.handle(), \"%s\", rval.handle_mut())) {\n"
+            "    match r#try!(get_dictionary_property(cx, object.handle(), \"%s\", rval.handle_mut())) {\n"
             "        true => {\n"
             "%s\n"
             "        },\n"
@@ -7167,7 +7171,7 @@ class CallbackOperationBase(CallbackMethod):
             "methodName": self.methodName
         }
         getCallableFromProp = string.Template(
-            'try!(self.parent.get_callable_property(cx, "${methodName}"))'
+            'r#try!(self.parent.get_callable_property(cx, "${methodName}"))'
         ).substitute(replacements)
         if not self.singleOperation:
             return 'rooted!(in(cx) let callable =\n' + getCallableFromProp + ');\n'
@@ -7269,7 +7273,7 @@ class GlobalGenRoots():
     @staticmethod
     def InterfaceObjectMap(config):
         mods = [
-            "dom::bindings::codegen",
+            "crate::dom::bindings::codegen",
             "js::jsapi::JSContext",
             "js::rust::HandleObject",
             "phf",
@@ -7351,8 +7355,8 @@ class GlobalGenRoots():
         ], "\n")
 
         return CGImports(code, descriptors=[], callbacks=[], dictionaries=[], enums=[], typedefs=[], imports=[
-            'dom::bindings::codegen::Bindings',
-            'dom::bindings::codegen::PrototypeList::Proxies',
+            'crate::dom::bindings::codegen::Bindings',
+            'crate::dom::bindings::codegen::PrototypeList::Proxies',
             'libc',
         ], config=config, ignored_warnings=[])
 
@@ -7362,8 +7366,8 @@ class GlobalGenRoots():
                               for d in config.getDescriptors(register=True,
                                                              isCallback=False,
                                                              isIteratorInterface=False)])
-        curr = CGList([CGGeneric("pub use dom::%s::%s;\n" % (name.lower(),
-                                                             MakeNativeName(name)))
+        curr = CGList([CGGeneric("pub use crate::dom::%s::%s;\n" % (name.lower(),
+                                                                    MakeNativeName(name)))
                        for name in descriptors])
         curr = CGWrapper(curr, pre=AUTOGENERATED_WARNING_COMMENT)
         return curr
@@ -7386,12 +7390,12 @@ class GlobalGenRoots():
     def InheritTypes(config):
 
         descriptors = config.getDescriptors(register=True, isCallback=False)
-        imports = [CGGeneric("use dom::types::*;\n"),
-                   CGGeneric("use dom::bindings::conversions::{DerivedFrom, get_dom_class};\n"),
-                   CGGeneric("use dom::bindings::inheritance::Castable;\n"),
-                   CGGeneric("use dom::bindings::root::{Dom, DomRoot, LayoutDom};\n"),
-                   CGGeneric("use dom::bindings::trace::JSTraceable;\n"),
-                   CGGeneric("use dom::bindings::reflector::DomObject;\n"),
+        imports = [CGGeneric("use crate::dom::types::*;\n"),
+                   CGGeneric("use crate::dom::bindings::conversions::{DerivedFrom, get_dom_class};\n"),
+                   CGGeneric("use crate::dom::bindings::inheritance::Castable;\n"),
+                   CGGeneric("use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom};\n"),
+                   CGGeneric("use crate::dom::bindings::trace::JSTraceable;\n"),
+                   CGGeneric("use crate::dom::bindings::reflector::DomObject;\n"),
                    CGGeneric("use js::jsapi::JSTracer;\n\n"),
                    CGGeneric("use std::mem;\n\n")]
         allprotos = []

@@ -5,17 +5,19 @@
 //! Utilities for querying the layout, as needed by the layout thread.
 
 use app_units::Au;
-use construct::ConstructionResult;
-use context::LayoutContext;
-use display_list::IndexableText;
-use display_list::items::{DisplayList, OpaqueNode, ScrollOffsetMap};
+use crate::construct::ConstructionResult;
+use crate::context::LayoutContext;
+use crate::display_list::IndexableText;
+use crate::display_list::items::{DisplayList, OpaqueNode, ScrollOffsetMap};
+use crate::flow::{Flow, GetBaseFlow};
+use crate::fragment::{Fragment, FragmentBorderBoxIterator, SpecificFragmentInfo};
+use crate::inline::InlineFragmentNodeFlags;
+use crate::opaque_node::OpaqueNodeMethods;
+use crate::sequential;
+use crate::wrapper::LayoutNodeLayoutData;
 use euclid::{Point2D, Vector2D, Rect, Size2D};
-use flow::{Flow, GetBaseFlow};
-use fragment::{Fragment, FragmentBorderBoxIterator, SpecificFragmentInfo};
-use inline::InlineFragmentNodeFlags;
 use ipc_channel::ipc::IpcSender;
 use msg::constellation_msg::PipelineId;
-use opaque_node::OpaqueNodeMethods;
 use script_layout_interface::{LayoutElementType, LayoutNodeType};
 use script_layout_interface::StyleData;
 use script_layout_interface::rpc::{ContentBoxResponse, ContentBoxesResponse, LayoutRPC};
@@ -25,7 +27,6 @@ use script_layout_interface::rpc::TextIndexResponse;
 use script_layout_interface::wrapper_traits::{LayoutNode, ThreadSafeLayoutElement, ThreadSafeLayoutNode};
 use script_traits::LayoutMsg as ConstellationMsg;
 use script_traits::UntrustedNodeAddress;
-use sequential;
 use std::cmp::{min, max};
 use std::ops::Deref;
 use std::sync::{Arc, Mutex};
@@ -39,7 +40,6 @@ use style::properties::{style_structs, PropertyId, PropertyDeclarationId, Longha
 use style::selector_parser::PseudoElement;
 use style_traits::ToCss;
 use webrender_api::ExternalScrollId;
-use wrapper::LayoutNodeLayoutData;
 
 /// Mutable data belonging to the LayoutThread.
 ///

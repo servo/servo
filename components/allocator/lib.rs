@@ -7,7 +7,7 @@
 #[global_allocator]
 static ALLOC: Allocator = Allocator;
 
-pub use platform::*;
+pub use crate::platform::*;
 
 #[cfg(not(windows))]
 mod platform {

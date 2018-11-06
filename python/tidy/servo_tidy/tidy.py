@@ -256,8 +256,16 @@ def check_length(file_name, idx, line):
 
     # Prefer shorter lines when shell scripting.
     max_length = 80 if file_name.endswith(".sh") else 120
-    if len(line.rstrip('\n')) > max_length:
+    if len(line.rstrip('\n')) > max_length and not is_unsplittable(file_name, line):
         yield (idx + 1, "Line is longer than %d characters" % max_length)
+
+
+def is_unsplittable(file_name, line):
+    return (
+        file_name.endswith(".rs") and
+        line.startswith("use ") and
+        "{" not in line
+    )
 
 
 def check_whatwg_specific_url(idx, line):

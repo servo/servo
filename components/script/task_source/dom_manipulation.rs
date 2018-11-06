@@ -2,18 +2,18 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::inheritance::Castable;
-use dom::bindings::refcounted::Trusted;
-use dom::event::{EventBubbles, EventCancelable, EventTask, SimpleEventTask};
-use dom::eventtarget::EventTarget;
-use dom::window::Window;
+use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::refcounted::Trusted;
+use crate::dom::event::{EventBubbles, EventCancelable, EventTask, SimpleEventTask};
+use crate::dom::eventtarget::EventTarget;
+use crate::dom::window::Window;
+use crate::script_runtime::{CommonScriptMsg, ScriptChan, ScriptThreadEventCategory};
+use crate::task::{TaskCanceller, TaskOnce};
+use crate::task_source::{TaskSource, TaskSourceName};
 use msg::constellation_msg::PipelineId;
-use script_runtime::{CommonScriptMsg, ScriptChan, ScriptThreadEventCategory};
 use servo_atoms::Atom;
 use std::fmt;
 use std::result::Result;
-use task::{TaskCanceller, TaskOnce};
-use task_source::{TaskSource, TaskSourceName};
 
 #[derive(JSTraceable)]
 pub struct DOMManipulationTaskSource(pub Box<ScriptChan + Send>, pub PipelineId);

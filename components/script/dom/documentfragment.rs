@@ -2,20 +2,20 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::codegen::Bindings::DocumentFragmentBinding;
-use dom::bindings::codegen::Bindings::DocumentFragmentBinding::DocumentFragmentMethods;
-use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
-use dom::bindings::codegen::UnionTypes::NodeOrString;
-use dom::bindings::error::{ErrorResult, Fallible};
-use dom::bindings::inheritance::Castable;
-use dom::bindings::root::DomRoot;
-use dom::bindings::str::DOMString;
-use dom::document::Document;
-use dom::element::Element;
-use dom::htmlcollection::HTMLCollection;
-use dom::node::{Node, window_from_node};
-use dom::nodelist::NodeList;
-use dom::window::Window;
+use crate::dom::bindings::codegen::Bindings::DocumentFragmentBinding;
+use crate::dom::bindings::codegen::Bindings::DocumentFragmentBinding::DocumentFragmentMethods;
+use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
+use crate::dom::bindings::codegen::UnionTypes::NodeOrString;
+use crate::dom::bindings::error::{ErrorResult, Fallible};
+use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::str::DOMString;
+use crate::dom::document::Document;
+use crate::dom::element::Element;
+use crate::dom::htmlcollection::HTMLCollection;
+use crate::dom::node::{Node, window_from_node};
+use crate::dom::nodelist::NodeList;
+use crate::dom::window::Window;
 use dom_struct::dom_struct;
 use servo_atoms::Atom;
 

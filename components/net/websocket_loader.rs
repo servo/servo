@@ -2,15 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use connector::create_ssl_connector_builder;
-use cookie::Cookie;
+use crate::connector::create_ssl_connector_builder;
+use crate::cookie::Cookie;
+use crate::fetch::methods::should_be_blocked_due_to_bad_port;
+use crate::hosts::replace_host;
+use crate::http_loader::HttpState;
 use embedder_traits::resources::{self, Resource};
-use fetch::methods::should_be_blocked_due_to_bad_port;
 use headers_ext::Host;
-use hosts::replace_host;
 use http::header::{self, HeaderMap, HeaderName, HeaderValue};
 use http::uri::Authority;
-use http_loader::HttpState;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use net_traits::{CookieSource, MessageData};
 use net_traits::{WebSocketDomAction, WebSocketNetworkEvent};

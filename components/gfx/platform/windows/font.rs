@@ -7,14 +7,15 @@
 // renderer moves to a sandboxed process.
 
 use app_units::Au;
+use crate::font::{FontHandleMethods, FontMetrics, FontTableMethods};
+use crate::font::{FontTableTag, FractionalPixel};
+use crate::platform::font_template::FontTemplateData;
+use crate::platform::windows::font_context::FontContextHandle;
+use crate::platform::windows::font_list::font_from_atom;
+use crate::text::glyph::GlyphId;
 use dwrote;
 use dwrote::{Font, FontFace, FontFile};
 use dwrote::{FontStretch, FontStyle};
-use font::{FontHandleMethods, FontMetrics, FontTableMethods};
-use font::{FontTableTag, FractionalPixel};
-use platform::font_template::FontTemplateData;
-use platform::windows::font_context::FontContextHandle;
-use platform::windows::font_list::font_from_atom;
 use servo_atoms::Atom;
 use std::fmt;
 use std::ops::Deref;
@@ -25,7 +26,6 @@ use style::values::computed::font::FontStyle as StyleFontStyle;
 use style::values::generics::NonNegative;
 use style::values::generics::font::FontStyle as GenericFontStyle;
 use style::values::specified::font::FontStretchKeyword;
-use text::glyph::GlyphId;
 use truetype;
 
 // 1em = 12pt = 16px, assuming 72 points per inch and 96 px per inch

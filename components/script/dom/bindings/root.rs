@@ -24,12 +24,12 @@
 //! originating `DomRoot<T>`.
 //!
 
-use dom::bindings::conversions::DerivedFrom;
-use dom::bindings::inheritance::Castable;
-use dom::bindings::reflector::{DomObject, Reflector};
-use dom::bindings::trace::JSTraceable;
-use dom::bindings::trace::trace_reflector;
-use dom::node::Node;
+use crate::dom::bindings::conversions::DerivedFrom;
+use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::reflector::{DomObject, Reflector};
+use crate::dom::bindings::trace::JSTraceable;
+use crate::dom::bindings::trace::trace_reflector;
+use crate::dom::node::Node;
 use js::jsapi::{JSObject, JSTracer, Heap};
 use js::rust::GCMethods;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};

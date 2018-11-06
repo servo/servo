@@ -45,6 +45,7 @@ pub mod webdriver_msg;
 
 use bluetooth_traits::BluetoothRequest;
 use canvas_traits::webgl::WebGLPipeline;
+use crate::webdriver_msg::{LoadStatus, WebDriverScriptCommand};
 use devtools_traits::{DevtoolScriptControlMsg, ScriptToDevtoolsControlMsg, WorkerId};
 use euclid::{Length, Point2D, Vector2D, Rect, TypedSize2D, TypedScale};
 use gfx_traits::Epoch;
@@ -74,12 +75,11 @@ use std::sync::Arc;
 use style_traits::CSSPixel;
 use style_traits::SpeculativePainter;
 use style_traits::cursor::CursorKind;
-use webdriver_msg::{LoadStatus, WebDriverScriptCommand};
 use webrender_api::{DevicePixel, DeviceUintSize, DocumentId, ExternalScrollId, ImageKey, RenderApiSender};
 use webvr_traits::{WebVREvent, WebVRMsg};
 
-pub use script_msg::{LayoutMsg, ScriptMsg, EventResult, LogEntry};
-pub use script_msg::{ServiceWorkerMsg, ScopeThings, SWManagerMsg, SWManagerSenders, DOMMessage};
+pub use crate::script_msg::{LayoutMsg, ScriptMsg, EventResult, LogEntry};
+pub use crate::script_msg::{ServiceWorkerMsg, ScopeThings, SWManagerMsg, SWManagerSenders, DOMMessage};
 
 /// The address of a node. Layout sends these back. They must be validated via
 /// `from_untrusted_node_address` before they can be used, because we do not trust layout.

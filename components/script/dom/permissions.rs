@@ -2,17 +2,18 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::codegen::Bindings::PermissionStatusBinding::{PermissionDescriptor, PermissionName, PermissionState};
-use dom::bindings::codegen::Bindings::PermissionStatusBinding::PermissionStatusMethods;
-use dom::bindings::codegen::Bindings::PermissionsBinding::{self, PermissionsMethods};
-use dom::bindings::error::Error;
-use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
-use dom::bindings::root::DomRoot;
-use dom::bluetooth::Bluetooth;
-use dom::bluetoothpermissionresult::BluetoothPermissionResult;
-use dom::globalscope::GlobalScope;
-use dom::permissionstatus::PermissionStatus;
-use dom::promise::Promise;
+use crate::dom::bindings::codegen::Bindings::PermissionStatusBinding::{PermissionName, PermissionState};
+use crate::dom::bindings::codegen::Bindings::PermissionStatusBinding::PermissionDescriptor;
+use crate::dom::bindings::codegen::Bindings::PermissionStatusBinding::PermissionStatusMethods;
+use crate::dom::bindings::codegen::Bindings::PermissionsBinding::{self, PermissionsMethods};
+use crate::dom::bindings::error::Error;
+use crate::dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
+use crate::dom::bindings::root::DomRoot;
+use crate::dom::bluetooth::Bluetooth;
+use crate::dom::bluetoothpermissionresult::BluetoothPermissionResult;
+use crate::dom::globalscope::GlobalScope;
+use crate::dom::permissionstatus::PermissionStatus;
+use crate::dom::promise::Promise;
 use dom_struct::dom_struct;
 use js::conversions::ConversionResult;
 use js::jsapi::{JSContext, JSObject};

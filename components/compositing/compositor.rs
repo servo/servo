@@ -2,14 +2,16 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use CompositionPipeline;
-use SendableFrameTree;
-use compositor_thread::{CompositorProxy, CompositorReceiver};
-use compositor_thread::{InitialCompositorState, Msg};
+use crate::CompositionPipeline;
+use crate::SendableFrameTree;
+use crate::compositor_thread::{CompositorProxy, CompositorReceiver};
+use crate::compositor_thread::{InitialCompositorState, Msg};
+#[cfg(feature = "gleam")]
+use crate::gl;
+use crate::touch::{TouchHandler, TouchAction};
+use crate::windowing::{self, EmbedderCoordinates, MouseWindowEvent, WebRenderDebugOption, WindowMethods};
 use euclid::{TypedPoint2D, TypedVector2D, TypedScale};
 use gfx_traits::Epoch;
-#[cfg(feature = "gleam")]
-use gl;
 #[cfg(feature = "gleam")]
 use image::{DynamicImage, ImageFormat};
 use ipc_channel::ipc;
@@ -18,7 +20,7 @@ use msg::constellation_msg::{PipelineId, PipelineIndex, PipelineNamespaceId};
 use net_traits::image::base::Image;
 #[cfg(feature = "gleam")]
 use net_traits::image::base::PixelFormat;
-use profile_traits::time::{self, ProfilerCategory, profile};
+use profile_traits::time::{self as profile_time, ProfilerCategory, profile};
 use script_traits::{AnimationState, AnimationTickType, ConstellationMsg, LayoutControlMsg};
 use script_traits::{MouseButton, MouseEventType, ScrollState, TouchEventType, TouchId};
 use script_traits::{UntrustedNodeAddress, WindowSizeData, WindowSizeType};
@@ -36,11 +38,9 @@ use style_traits::{CSSPixel, DevicePixel, PinchZoomFactor};
 use style_traits::cursor::CursorKind;
 use style_traits::viewport::ViewportConstraints;
 use time::{now, precise_time_ns, precise_time_s};
-use touch::{TouchHandler, TouchAction};
 use webrender;
 use webrender_api::{self, DeviceIntPoint, DevicePoint, HitTestFlags, HitTestResult};
 use webrender_api::{LayoutVector2D, ScrollLocation};
-use windowing::{self, EmbedderCoordinates, MouseWindowEvent, WebRenderDebugOption, WindowMethods};
 
 #[derive(Debug, PartialEq)]
 enum UnableToComposite {
@@ -150,7 +150,7 @@ pub struct IOCompositor<Window: WindowMethods> {
     constellation_chan: Sender<ConstellationMsg>,
 
     /// The channel on which messages can be sent to the time profiler.
-    time_profiler_chan: time::ProfilerChan,
+    time_profiler_chan: profile_time::ProfilerChan,
 
     /// Touch input state machine
     touch_handler: TouchHandler,
@@ -366,7 +366,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         // Tell the profiler, memory profiler, and scrolling timer to shut down.
         if let Ok((sender, receiver)) = ipc::channel() {
             self.time_profiler_chan
-                .send(time::ProfilerMsg::Exit(sender));
+                .send(profile_time::ProfilerMsg::Exit(sender));
             let _ = receiver.recv();
         }
 

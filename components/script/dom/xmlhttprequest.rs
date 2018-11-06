@@ -2,43 +2,47 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use document_loader::DocumentLoader;
-use dom::bindings::cell::DomRefCell;
-use dom::bindings::codegen::Bindings::BlobBinding::BlobBinding::BlobMethods;
-use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
-use dom::bindings::codegen::Bindings::XMLHttpRequestBinding;
-use dom::bindings::codegen::Bindings::XMLHttpRequestBinding::BodyInit;
-use dom::bindings::codegen::Bindings::XMLHttpRequestBinding::XMLHttpRequestMethods;
-use dom::bindings::codegen::Bindings::XMLHttpRequestBinding::XMLHttpRequestResponseType;
-use dom::bindings::codegen::UnionTypes::DocumentOrBodyInit;
-use dom::bindings::conversions::ToJSValConvertible;
-use dom::bindings::error::{Error, ErrorResult, Fallible};
-use dom::bindings::inheritance::Castable;
-use dom::bindings::refcounted::Trusted;
-use dom::bindings::reflector::{DomObject, reflect_dom_object};
-use dom::bindings::root::{Dom, DomRoot, MutNullableDom};
-use dom::bindings::str::{ByteString, DOMString, USVString, is_token};
-use dom::blob::{Blob, BlobImpl};
-use dom::document::{Document, HasBrowsingContext, IsHTMLDocument};
-use dom::document::DocumentSource;
-use dom::event::{Event, EventBubbles, EventCancelable};
-use dom::eventtarget::EventTarget;
-use dom::formdata::FormData;
-use dom::globalscope::GlobalScope;
-use dom::headers::is_forbidden_header_name;
-use dom::htmlformelement::{encode_multipart_form_data, generate_boundary};
-use dom::node::Node;
-use dom::progressevent::ProgressEvent;
-use dom::servoparser::ServoParser;
-use dom::urlsearchparams::URLSearchParams;
-use dom::window::Window;
-use dom::workerglobalscope::WorkerGlobalScope;
-use dom::xmlhttprequesteventtarget::XMLHttpRequestEventTarget;
-use dom::xmlhttprequestupload::XMLHttpRequestUpload;
+use crate::document_loader::DocumentLoader;
+use crate::dom::bindings::cell::DomRefCell;
+use crate::dom::bindings::codegen::Bindings::BlobBinding::BlobBinding::BlobMethods;
+use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
+use crate::dom::bindings::codegen::Bindings::XMLHttpRequestBinding;
+use crate::dom::bindings::codegen::Bindings::XMLHttpRequestBinding::BodyInit;
+use crate::dom::bindings::codegen::Bindings::XMLHttpRequestBinding::XMLHttpRequestMethods;
+use crate::dom::bindings::codegen::Bindings::XMLHttpRequestBinding::XMLHttpRequestResponseType;
+use crate::dom::bindings::codegen::UnionTypes::DocumentOrBodyInit;
+use crate::dom::bindings::conversions::ToJSValConvertible;
+use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
+use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::refcounted::Trusted;
+use crate::dom::bindings::reflector::{DomObject, reflect_dom_object};
+use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
+use crate::dom::bindings::str::{ByteString, DOMString, USVString, is_token};
+use crate::dom::blob::{Blob, BlobImpl};
+use crate::dom::document::{Document, HasBrowsingContext, IsHTMLDocument};
+use crate::dom::document::DocumentSource;
+use crate::dom::event::{Event, EventBubbles, EventCancelable};
+use crate::dom::eventtarget::EventTarget;
+use crate::dom::formdata::FormData;
+use crate::dom::globalscope::GlobalScope;
+use crate::dom::headers::is_forbidden_header_name;
+use crate::dom::htmlformelement::{encode_multipart_form_data, generate_boundary};
+use crate::dom::node::Node;
+use crate::dom::progressevent::ProgressEvent;
+use crate::dom::servoparser::ServoParser;
+use crate::dom::urlsearchparams::URLSearchParams;
+use crate::dom::window::Window;
+use crate::dom::workerglobalscope::WorkerGlobalScope;
+use crate::dom::xmlhttprequesteventtarget::XMLHttpRequestEventTarget;
+use crate::dom::xmlhttprequestupload::XMLHttpRequestUpload;
+use crate::fetch::FetchCanceller;
+use crate::network_listener::{NetworkListener, PreInvoke};
+use crate::task_source::TaskSourceName;
+use crate::task_source::networking::NetworkingTaskSource;
+use crate::timers::{OneshotTimerCallback, OneshotTimerHandle};
 use dom_struct::dom_struct;
 use encoding_rs::{Encoding, UTF_8};
 use euclid::Length;
-use fetch::FetchCanceller;
 use headers_core::HeaderMapExt;
 use headers_ext::{ContentLength, ContentType};
 use html5ever::serialize;
@@ -59,7 +63,6 @@ use net_traits::{FetchResponseListener, NetworkError, ReferrerPolicy};
 use net_traits::CoreResourceMsg::Fetch;
 use net_traits::request::{CredentialsMode, Destination, RequestInit, RequestMode};
 use net_traits::trim_http_whitespace;
-use network_listener::{NetworkListener, PreInvoke};
 use script_traits::DocumentActivity;
 use servo_atoms::Atom;
 use servo_url::ServoUrl;
@@ -71,10 +74,7 @@ use std::ptr::NonNull;
 use std::slice;
 use std::str::{self, FromStr};
 use std::sync::{Arc, Mutex};
-use task_source::TaskSourceName;
-use task_source::networking::NetworkingTaskSource;
 use time;
-use timers::{OneshotTimerCallback, OneshotTimerHandle};
 use url::Position;
 
 #[derive(Clone, Copy, Debug, JSTraceable, MallocSizeOf, PartialEq)]
@@ -319,7 +319,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
         &self,
         method: ByteString,
         url: USVString,
-        async: bool,
+        r#async: bool,
         username: Option<USVString>,
         password: Option<USVString>,
     ) -> ErrorResult {
@@ -375,7 +375,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
                 }
 
                 // Step 10
-                if !async {
+                if !r#async {
                     // FIXME: This should only happen if the global environment is a document environment
                     if self.timeout.get() != 0 ||
                         self.response_type.get() != XMLHttpRequestResponseType::_empty
@@ -395,7 +395,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
                 // Step 12
                 *self.request_method.borrow_mut() = parsed_method;
                 *self.request_url.borrow_mut() = Some(parsed_url);
-                self.sync.set(!async);
+                self.sync.set(!r#async);
                 *self.request_headers.borrow_mut() = HeaderMap::new();
                 self.send_flag.set(false);
                 *self.status_text.borrow_mut() = ByteString::new(vec![]);

@@ -4,10 +4,12 @@
 
 //! Traversals over the DOM and flow trees, running the layout computations.
 
-use construct::FlowConstructor;
-use context::LayoutContext;
-use display_list::DisplayListBuildState;
-use flow::{FlowFlags, Flow, GetBaseFlow, ImmutableFlowUtils};
+use crate::construct::FlowConstructor;
+use crate::context::LayoutContext;
+use crate::display_list::DisplayListBuildState;
+use crate::flow::{FlowFlags, Flow, GetBaseFlow, ImmutableFlowUtils};
+use crate::wrapper::{GetRawData, LayoutNodeLayoutData};
+use crate::wrapper::ThreadSafeLayoutNodeHelpers;
 use script_layout_interface::wrapper_traits::{LayoutNode, ThreadSafeLayoutNode};
 use servo_config::opts;
 use style::context::{SharedStyleContext, StyleContext};
@@ -17,8 +19,6 @@ use style::selector_parser::RestyleDamage;
 use style::servo::restyle_damage::ServoRestyleDamage;
 use style::traversal::{DomTraversal, recalc_style_at};
 use style::traversal::PerLevelTraversalData;
-use wrapper::{GetRawData, LayoutNodeLayoutData};
-use wrapper::ThreadSafeLayoutNodeHelpers;
 
 pub struct RecalcStyleAndConstructFlows<'a> {
     context: LayoutContext<'a>,
@@ -220,7 +220,7 @@ where
             .mutate_layout_data()
             .unwrap()
             .flags
-            .insert(::data::LayoutDataFlags::HAS_BEEN_TRAVERSED);
+            .insert(crate::data::LayoutDataFlags::HAS_BEEN_TRAVERSED);
     }
 
     if let Some(el) = node.as_element() {

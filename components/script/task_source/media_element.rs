@@ -2,20 +2,20 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::inheritance::Castable;
-use dom::bindings::refcounted::Trusted;
-use dom::event::SimpleEventTask;
-use dom::eventtarget::EventTarget;
-use dom::window::Window;
+use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::refcounted::Trusted;
+use crate::dom::event::SimpleEventTask;
+use crate::dom::eventtarget::EventTarget;
+use crate::dom::window::Window;
+use crate::script_runtime::{CommonScriptMsg, ScriptThreadEventCategory};
+use crate::script_thread::MainThreadScriptMsg;
+use crate::task::{TaskCanceller, TaskOnce};
+use crate::task_source::{TaskSource, TaskSourceName};
 use msg::constellation_msg::PipelineId;
-use script_runtime::{CommonScriptMsg, ScriptThreadEventCategory};
-use script_thread::MainThreadScriptMsg;
 use servo_atoms::Atom;
 use servo_channel::Sender;
 use std::fmt;
 use std::result::Result;
-use task::{TaskCanceller, TaskOnce};
-use task_source::{TaskSource, TaskSourceName};
 
 #[derive(Clone, JSTraceable)]
 pub struct MediaElementTaskSource(pub Sender<MainThreadScriptMsg>, pub PipelineId);

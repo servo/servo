@@ -2,19 +2,19 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use crate::dom::attr::Attr;
+use crate::dom::bindings::codegen::Bindings::HTMLBodyElementBinding::{self, HTMLBodyElementMethods};
+use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
+use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::root::{LayoutDom, DomRoot};
+use crate::dom::bindings::str::DOMString;
+use crate::dom::document::Document;
+use crate::dom::element::{AttributeMutation, Element, RawLayoutElementHelpers};
+use crate::dom::eventtarget::EventTarget;
+use crate::dom::htmlelement::HTMLElement;
+use crate::dom::node::{Node, document_from_node, window_from_node};
+use crate::dom::virtualmethods::VirtualMethods;
 use cssparser::RGBA;
-use dom::attr::Attr;
-use dom::bindings::codegen::Bindings::HTMLBodyElementBinding::{self, HTMLBodyElementMethods};
-use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
-use dom::bindings::inheritance::Castable;
-use dom::bindings::root::{LayoutDom, DomRoot};
-use dom::bindings::str::DOMString;
-use dom::document::Document;
-use dom::element::{AttributeMutation, Element, RawLayoutElementHelpers};
-use dom::eventtarget::EventTarget;
-use dom::htmlelement::HTMLElement;
-use dom::node::{Node, document_from_node, window_from_node};
-use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
 use embedder_traits::EmbedderMsg;
 use html5ever::{LocalName, Prefix};

@@ -2,15 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::cell::DomRefCell;
-use dom::bindings::codegen::Bindings::BlobBinding;
-use dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
-use dom::bindings::codegen::UnionTypes::ArrayBufferOrArrayBufferViewOrBlobOrString;
-use dom::bindings::error::{Error, Fallible};
-use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
-use dom::bindings::root::{Dom, DomRoot};
-use dom::bindings::str::DOMString;
-use dom::globalscope::GlobalScope;
+use crate::dom::bindings::cell::DomRefCell;
+use crate::dom::bindings::codegen::Bindings::BlobBinding;
+use crate::dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
+use crate::dom::bindings::codegen::UnionTypes::ArrayBufferOrArrayBufferViewOrBlobOrString;
+use crate::dom::bindings::error::{Error, Fallible};
+use crate::dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
+use crate::dom::bindings::root::{Dom, DomRoot};
+use crate::dom::bindings::str::DOMString;
+use crate::dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
 use net_traits::{CoreResourceMsg, IpcSend};
 use net_traits::blob_url_store::{BlobBuf, get_blob_origin};

@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use crate::text::util::is_cjk;
 use fontconfig::fontconfig::{FcChar8, FcResultMatch, FcSetSystem};
 use fontconfig::fontconfig::{FcConfigGetCurrent, FcConfigGetFonts, FcConfigSubstitute};
 use fontconfig::fontconfig::{FcDefaultSubstitute, FcFontMatch, FcNameParse, FcPatternGetString};
@@ -13,7 +14,6 @@ use libc::{c_char, c_int};
 use std::ffi::CString;
 use std::ptr;
 use super::c_str_to_string;
-use text::util::is_cjk;
 
 static FC_FAMILY: &'static [u8] = b"family\0";
 static FC_FILE: &'static [u8] = b"file\0";

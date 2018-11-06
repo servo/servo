@@ -7,11 +7,11 @@
 //! If an active service worker timeouts, then it removes the descriptor entry from its
 //! active_workers map
 
+use crate::dom::abstractworker::WorkerScriptMsg;
+use crate::dom::bindings::structuredclone::StructuredCloneData;
+use crate::dom::serviceworkerglobalscope::{ServiceWorkerGlobalScope, ServiceWorkerScriptMsg};
+use crate::dom::serviceworkerregistration::longest_prefix_match;
 use devtools_traits::{DevtoolsPageInfo, ScriptToDevtoolsControlMsg};
-use dom::abstractworker::WorkerScriptMsg;
-use dom::bindings::structuredclone::StructuredCloneData;
-use dom::serviceworkerglobalscope::{ServiceWorkerGlobalScope, ServiceWorkerScriptMsg};
-use dom::serviceworkerregistration::longest_prefix_match;
 use ipc_channel::ipc::{self, IpcSender};
 use net_traits::{CustomResponseMediator, CoreResourceMsg};
 use script_traits::{ServiceWorkerMsg, ScopeThings, SWManagerMsg, SWManagerSenders, DOMMessage};

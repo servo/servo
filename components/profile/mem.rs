@@ -4,6 +4,7 @@
 
 //! Memory profiling functions.
 
+use crate::time::duration_from_seconds;
 use ipc_channel::ipc::{self, IpcReceiver};
 use ipc_channel::router::ROUTER;
 use profile_traits::mem::{ProfilerChan, ProfilerMsg, ReportKind, Reporter, ReporterRequest};
@@ -13,7 +14,6 @@ use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::thread;
 use std::time::Instant;
-use time::duration_from_seconds;
 
 pub struct Profiler {
     /// The port through which messages are received.

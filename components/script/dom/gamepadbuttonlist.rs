@@ -2,12 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::codegen::Bindings::GamepadButtonListBinding;
-use dom::bindings::codegen::Bindings::GamepadButtonListBinding::GamepadButtonListMethods;
-use dom::bindings::reflector::{Reflector, reflect_dom_object};
-use dom::bindings::root::{Dom, DomRoot, RootedReference};
-use dom::gamepadbutton::GamepadButton;
-use dom::globalscope::GlobalScope;
+use crate::dom::bindings::codegen::Bindings::GamepadButtonListBinding;
+use crate::dom::bindings::codegen::Bindings::GamepadButtonListBinding::GamepadButtonListMethods;
+use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
+use crate::dom::bindings::root::{Dom, DomRoot, RootedReference};
+use crate::dom::gamepadbutton::GamepadButton;
+use crate::dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
 use webvr_traits::WebVRGamepadButton;
 

@@ -13,16 +13,16 @@ use core_graphics::geometry::CGRect;
 use core_text::font::CTFont;
 use core_text::font_descriptor::{SymbolicTraitAccessors, TraitAccessors};
 use core_text::font_descriptor::kCTFontDefaultOrientation;
-use font::{FontHandleMethods, FontMetrics, FontTableMethods, FontTableTag, FractionalPixel};
-use font::{GPOS, GSUB, KERN};
-use platform::font_template::FontTemplateData;
-use platform::macos::font_context::FontContextHandle;
+use crate::font::{FontHandleMethods, FontMetrics, FontTableMethods, FontTableTag, FractionalPixel};
+use crate::font::{GPOS, GSUB, KERN};
+use crate::platform::font_template::FontTemplateData;
+use crate::platform::macos::font_context::FontContextHandle;
+use crate::text::glyph::GlyphId;
 use servo_atoms::Atom;
 use std::{fmt, ptr};
 use std::ops::Range;
 use std::sync::Arc;
 use style::values::computed::font::{FontStretch, FontStyle, FontWeight};
-use text::glyph::GlyphId;
 
 const KERN_PAIR_LEN: usize = 6;
 

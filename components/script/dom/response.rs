@@ -2,21 +2,21 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use body::{BodyOperations, BodyType, consume_body, consume_body_with_promise};
-use dom::bindings::cell::DomRefCell;
-use dom::bindings::codegen::Bindings::HeadersBinding::{HeadersInit, HeadersMethods};
-use dom::bindings::codegen::Bindings::ResponseBinding;
-use dom::bindings::codegen::Bindings::ResponseBinding::{ResponseMethods, ResponseType as DOMResponseType};
-use dom::bindings::codegen::Bindings::XMLHttpRequestBinding::BodyInit;
-use dom::bindings::error::{Error, Fallible};
-use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
-use dom::bindings::root::{DomRoot, MutNullableDom};
-use dom::bindings::str::{ByteString, USVString};
-use dom::globalscope::GlobalScope;
-use dom::headers::{Headers, Guard};
-use dom::headers::{is_vchar, is_obs_text};
-use dom::promise::Promise;
-use dom::xmlhttprequest::Extractable;
+use crate::body::{BodyOperations, BodyType, consume_body, consume_body_with_promise};
+use crate::dom::bindings::cell::DomRefCell;
+use crate::dom::bindings::codegen::Bindings::HeadersBinding::{HeadersInit, HeadersMethods};
+use crate::dom::bindings::codegen::Bindings::ResponseBinding;
+use crate::dom::bindings::codegen::Bindings::ResponseBinding::{ResponseMethods, ResponseType as DOMResponseType};
+use crate::dom::bindings::codegen::Bindings::XMLHttpRequestBinding::BodyInit;
+use crate::dom::bindings::error::{Error, Fallible};
+use crate::dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
+use crate::dom::bindings::root::{DomRoot, MutNullableDom};
+use crate::dom::bindings::str::{ByteString, USVString};
+use crate::dom::globalscope::GlobalScope;
+use crate::dom::headers::{Headers, Guard};
+use crate::dom::headers::{is_vchar, is_obs_text};
+use crate::dom::promise::Promise;
+use crate::dom::xmlhttprequest::Extractable;
 use dom_struct::dom_struct;
 use http::header::HeaderMap as HyperHeaders;
 use hyper::StatusCode;

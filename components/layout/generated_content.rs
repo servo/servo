@@ -8,10 +8,12 @@
 //! done in parallel and is therefore a sequential pass that runs on as little of the flow tree
 //! as possible.
 
-use context::{LayoutContext, with_thread_local_font_context};
-use display_list::items::OpaqueNode;
-use flow::{Flow, FlowFlags, GetBaseFlow, ImmutableFlowUtils};
-use fragment::{Fragment, GeneratedContentInfo, SpecificFragmentInfo, UnscannedTextFragmentInfo};
+use crate::context::{LayoutContext, with_thread_local_font_context};
+use crate::display_list::items::OpaqueNode;
+use crate::flow::{Flow, FlowFlags, GetBaseFlow, ImmutableFlowUtils};
+use crate::fragment::{Fragment, GeneratedContentInfo, SpecificFragmentInfo, UnscannedTextFragmentInfo};
+use crate::text::TextRunScanner;
+use crate::traversal::InorderFlowTraversal;
 use script_layout_interface::wrapper_traits::PseudoElementType;
 use smallvec::SmallVec;
 use std::collections::{HashMap, LinkedList};
@@ -21,8 +23,6 @@ use style::properties::ComputedValues;
 use style::selector_parser::RestyleDamage;
 use style::servo::restyle_damage::ServoRestyleDamage;
 use style::values::generics::counters::ContentItem;
-use text::TextRunScanner;
-use traversal::InorderFlowTraversal;
 
 // Decimal styles per CSS-COUNTER-STYLES § 6.1:
 static DECIMAL: [char; 10] = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
@@ -428,7 +428,7 @@ impl Counter {
         layout_context: &LayoutContext,
         node: OpaqueNode,
         pseudo: PseudoElementType,
-        style: ::ServoArc<ComputedValues>,
+        style: crate::ServoArc<ComputedValues>,
         list_style_type: ListStyleType,
         mode: RenderingMode,
     ) -> Option<SpecificFragmentInfo> {
@@ -492,7 +492,7 @@ fn render_text(
     layout_context: &LayoutContext,
     node: OpaqueNode,
     pseudo: PseudoElementType,
-    style: ::ServoArc<ComputedValues>,
+    style: crate::ServoArc<ComputedValues>,
     string: String,
 ) -> Option<SpecificFragmentInfo> {
     let mut fragments = LinkedList::new();

@@ -3,6 +3,7 @@ name = "script_layout_interface"
 version = "0.0.1"
 authors = ["The Servo Project Developers"]
 license = "MPL-2.0"
+edition = "2018"
 publish = false
 
 [lib]
@@ -34,5 +35,5 @@ servo_arc = {path = "../servo_arc"}
 servo_atoms = {path = "../atoms"}
 servo_channel = {path = "../channel"}
 servo_url = {path = "../url"}
-style = {path = "../style"}
+style = {path = "../style", features = ["servo"]}
 webrender_api = {git = "https://github.com/servo/webrender", features = ["ipc"]}

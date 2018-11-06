@@ -2,13 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::codegen::Bindings::TextEncoderBinding;
-use dom::bindings::codegen::Bindings::TextEncoderBinding::TextEncoderMethods;
-use dom::bindings::error::Fallible;
-use dom::bindings::reflector::{Reflector, reflect_dom_object};
-use dom::bindings::root::DomRoot;
-use dom::bindings::str::{DOMString, USVString};
-use dom::globalscope::GlobalScope;
+use crate::dom::bindings::codegen::Bindings::TextEncoderBinding;
+use crate::dom::bindings::codegen::Bindings::TextEncoderBinding::TextEncoderMethods;
+use crate::dom::bindings::error::Fallible;
+use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
+use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::str::{DOMString, USVString};
+use crate::dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
 use js::jsapi::{JSContext, JSObject};
 use js::typedarray::{Uint8Array, CreateWith};

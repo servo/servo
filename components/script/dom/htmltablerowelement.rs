@@ -2,24 +2,24 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use crate::dom::bindings::codegen::Bindings::HTMLTableElementBinding::HTMLTableElementMethods;
+use crate::dom::bindings::codegen::Bindings::HTMLTableRowElementBinding::{self, HTMLTableRowElementMethods};
+use crate::dom::bindings::codegen::Bindings::HTMLTableSectionElementBinding::HTMLTableSectionElementMethods;
+use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
+use crate::dom::bindings::error::{ErrorResult, Fallible};
+use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::root::{DomRoot, LayoutDom, MutNullableDom, RootedReference};
+use crate::dom::bindings::str::DOMString;
+use crate::dom::document::Document;
+use crate::dom::element::{Element, RawLayoutElementHelpers};
+use crate::dom::htmlcollection::{CollectionFilter, HTMLCollection};
+use crate::dom::htmlelement::HTMLElement;
+use crate::dom::htmltablecellelement::HTMLTableCellElement;
+use crate::dom::htmltableelement::HTMLTableElement;
+use crate::dom::htmltablesectionelement::HTMLTableSectionElement;
+use crate::dom::node::{Node, window_from_node};
+use crate::dom::virtualmethods::VirtualMethods;
 use cssparser::RGBA;
-use dom::bindings::codegen::Bindings::HTMLTableElementBinding::HTMLTableElementMethods;
-use dom::bindings::codegen::Bindings::HTMLTableRowElementBinding::{self, HTMLTableRowElementMethods};
-use dom::bindings::codegen::Bindings::HTMLTableSectionElementBinding::HTMLTableSectionElementMethods;
-use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
-use dom::bindings::error::{ErrorResult, Fallible};
-use dom::bindings::inheritance::Castable;
-use dom::bindings::root::{DomRoot, LayoutDom, MutNullableDom, RootedReference};
-use dom::bindings::str::DOMString;
-use dom::document::Document;
-use dom::element::{Element, RawLayoutElementHelpers};
-use dom::htmlcollection::{CollectionFilter, HTMLCollection};
-use dom::htmlelement::HTMLElement;
-use dom::htmltablecellelement::HTMLTableCellElement;
-use dom::htmltableelement::HTMLTableElement;
-use dom::htmltablesectionelement::HTMLTableSectionElement;
-use dom::node::{Node, window_from_node};
-use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
 use style::attr::AttrValue;

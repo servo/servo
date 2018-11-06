@@ -3,8 +3,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use app_units::Au;
-use font::{FontHandleMethods, FontMetrics, FontTableMethods};
-use font::{FontTableTag, FractionalPixel, GPOS, GSUB, KERN};
+use crate::font::{FontHandleMethods, FontMetrics, FontTableMethods};
+use crate::font::{FontTableTag, FractionalPixel, GPOS, GSUB, KERN};
+use crate::platform::font_context::FontContextHandle;
+use crate::platform::font_template::FontTemplateData;
+use crate::text::glyph::GlyphId;
+use crate::text::util::fixed_to_float;
 use freetype::freetype::{FT_Done_Face, FT_New_Face, FT_New_Memory_Face};
 use freetype::freetype::{FT_F26Dot6, FT_Face, FT_FaceRec};
 use freetype::freetype::{FT_Get_Char_Index, FT_Get_Postscript_Name};
@@ -16,8 +20,6 @@ use freetype::freetype::{FT_SizeRec, FT_Size_Metrics, FT_UInt, FT_Vector};
 use freetype::freetype::FT_Sfnt_Tag;
 use freetype::succeeded;
 use freetype::tt_os2::TT_OS2;
-use platform::font_context::FontContextHandle;
-use platform::font_template::FontTemplateData;
 use servo_atoms::Atom;
 use std::{mem, ptr};
 use std::ffi::CString;
@@ -27,8 +29,6 @@ use style::computed_values::font_stretch::T as FontStretch;
 use style::computed_values::font_weight::T as FontWeight;
 use style::values::computed::font::FontStyle;
 use super::c_str_to_string;
-use text::glyph::GlyphId;
-use text::util::fixed_to_float;
 
 // This constant is not present in the freetype
 // bindings due to bindgen not handling the way

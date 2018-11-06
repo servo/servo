@@ -7,22 +7,22 @@
 //! the script thread. The script thread contains a JobQueue, which stores all scheduled Jobs
 //! by multiple service worker clients in a Vec.
 
-use dom::bindings::cell::DomRefCell;
-use dom::bindings::error::Error;
-use dom::bindings::refcounted::{Trusted, TrustedPromise};
-use dom::bindings::reflector::DomObject;
-use dom::bindings::root::Dom;
-use dom::client::Client;
-use dom::promise::Promise;
-use dom::serviceworkerregistration::ServiceWorkerRegistration;
-use dom::urlhelper::UrlHelper;
-use script_thread::ScriptThread;
+use crate::dom::bindings::cell::DomRefCell;
+use crate::dom::bindings::error::Error;
+use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
+use crate::dom::bindings::reflector::DomObject;
+use crate::dom::bindings::root::Dom;
+use crate::dom::client::Client;
+use crate::dom::promise::Promise;
+use crate::dom::serviceworkerregistration::ServiceWorkerRegistration;
+use crate::dom::urlhelper::UrlHelper;
+use crate::script_thread::ScriptThread;
+use crate::task_source::TaskSource;
+use crate::task_source::dom_manipulation::DOMManipulationTaskSource;
 use servo_url::ServoUrl;
 use std::cmp::PartialEq;
 use std::collections::HashMap;
 use std::rc::Rc;
-use task_source::TaskSource;
-use task_source::dom_manipulation::DOMManipulationTaskSource;
 
 #[derive(Clone, Copy, Debug, JSTraceable, PartialEq)]
 pub enum JobType {

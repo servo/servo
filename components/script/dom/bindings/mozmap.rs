@@ -4,9 +4,9 @@
 
 //! The `MozMap` (open-ended dictionary) type.
 
-use dom::bindings::conversions::jsid_to_string;
-use dom::bindings::error::report_pending_exception;
-use dom::bindings::str::DOMString;
+use crate::dom::bindings::conversions::jsid_to_string;
+use crate::dom::bindings::error::report_pending_exception;
+use crate::dom::bindings::str::DOMString;
 use js::conversions::{ConversionResult, FromJSValConvertible, ToJSValConvertible};
 use js::jsapi::JSContext;
 use js::jsapi::JSITER_HIDDEN;

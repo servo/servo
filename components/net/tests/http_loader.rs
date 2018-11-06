@@ -2,12 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use cookie_rs::Cookie as CookiePair;
+use crate::cookie_rs::Cookie as CookiePair;
+use crate::fetch;
+use crate::fetch_with_context;
+use crate::make_server;
+use crate::new_fetch_context;
 use devtools_traits::{ChromeToDevtoolsControlMsg, DevtoolsControlMsg, NetworkEvent};
 use devtools_traits::HttpRequest as DevtoolsHttpRequest;
 use devtools_traits::HttpResponse as DevtoolsHttpResponse;
-use fetch;
-use fetch_with_context;
 use flate2::Compression;
 use flate2::write::{DeflateEncoder, GzEncoder};
 use futures::{self, Future, Stream};
@@ -19,7 +21,6 @@ use http::header::{self, HeaderMap, HeaderValue};
 use http::uri::Authority;
 use hyper::{Request as HyperRequest, Response as HyperResponse};
 use hyper::body::Body;
-use make_server;
 use msg::constellation_msg::TEST_PIPELINE_ID;
 use net::cookie::Cookie;
 use net::cookie_storage::CookieStorage;
@@ -28,7 +29,6 @@ use net::test::replace_host_table;
 use net_traits::{CookieSource, NetworkError};
 use net_traits::request::{Request, RequestInit, RequestMode, CredentialsMode, Destination};
 use net_traits::response::ResponseBody;
-use new_fetch_context;
 use servo_channel::{channel, Receiver};
 use servo_url::{ServoUrl, ImmutableOrigin};
 use std::collections::HashMap;
@@ -128,7 +128,7 @@ fn test_check_default_headers_loaded_in_every_request() {
         HeaderValue::from_static("en-US, en; q=0.5"),
     );
 
-    headers.typed_insert::<UserAgent>(::DEFAULT_USER_AGENT.parse().unwrap());
+    headers.typed_insert::<UserAgent>(crate::DEFAULT_USER_AGENT.parse().unwrap());
 
     *expected_headers.lock().unwrap() = Some(headers.clone());
 
@@ -275,7 +275,8 @@ fn test_request_and_response_data_with_network_messages() {
         header::ACCEPT_LANGUAGE,
         HeaderValue::from_static("en-US, en; q=0.5"),
     );
-    headers.typed_insert::<UserAgent>(::DEFAULT_USER_AGENT.parse().unwrap());
+
+    headers.typed_insert::<UserAgent>(crate::DEFAULT_USER_AGENT.parse().unwrap());
 
     let httprequest = DevtoolsHttpRequest {
         url: url,

@@ -2,21 +2,24 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::cell::DomRefCell;
-use dom::bindings::codegen::Bindings::EventSourceBinding::{EventSourceInit, EventSourceMethods, Wrap};
-use dom::bindings::error::{Error, Fallible};
-use dom::bindings::inheritance::Castable;
-use dom::bindings::refcounted::Trusted;
-use dom::bindings::reflector::{DomObject, reflect_dom_object};
-use dom::bindings::root::DomRoot;
-use dom::bindings::str::DOMString;
-use dom::event::Event;
-use dom::eventtarget::EventTarget;
-use dom::globalscope::GlobalScope;
-use dom::messageevent::MessageEvent;
+use crate::dom::bindings::cell::DomRefCell;
+use crate::dom::bindings::codegen::Bindings::EventSourceBinding::{EventSourceInit, EventSourceMethods, Wrap};
+use crate::dom::bindings::error::{Error, Fallible};
+use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::refcounted::Trusted;
+use crate::dom::bindings::reflector::{DomObject, reflect_dom_object};
+use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::str::DOMString;
+use crate::dom::event::Event;
+use crate::dom::eventtarget::EventTarget;
+use crate::dom::globalscope::GlobalScope;
+use crate::dom::messageevent::MessageEvent;
+use crate::fetch::FetchCanceller;
+use crate::network_listener::{NetworkListener, PreInvoke};
+use crate::task_source::{TaskSource, TaskSourceName};
+use crate::timers::OneshotTimerCallback;
 use dom_struct::dom_struct;
 use euclid::Length;
-use fetch::FetchCanceller;
 use headers_ext::ContentType;
 use http::header::{self, HeaderName, HeaderValue};
 use ipc_channel::ipc;
@@ -29,15 +32,12 @@ use net_traits::{CoreResourceMsg, FetchChannels, FetchMetadata};
 use net_traits::{FetchResponseMsg, FetchResponseListener, NetworkError};
 use net_traits::request::{CacheMode, CorsSettings, CredentialsMode};
 use net_traits::request::{RequestInit, RequestMode};
-use network_listener::{NetworkListener, PreInvoke};
 use servo_atoms::Atom;
 use servo_url::ServoUrl;
 use std::cell::Cell;
 use std::mem;
 use std::str::{Chars, FromStr};
 use std::sync::{Arc, Mutex};
-use task_source::{TaskSource, TaskSourceName};
-use timers::OneshotTimerCallback;
 use utf8;
 
 

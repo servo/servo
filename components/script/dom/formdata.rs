@@ -2,20 +2,20 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::cell::DomRefCell;
-use dom::bindings::codegen::Bindings::FormDataBinding::FormDataMethods;
-use dom::bindings::codegen::Bindings::FormDataBinding::FormDataWrap;
-use dom::bindings::codegen::UnionTypes::FileOrUSVString;
-use dom::bindings::error::Fallible;
-use dom::bindings::inheritance::Castable;
-use dom::bindings::iterable::Iterable;
-use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
-use dom::bindings::root::DomRoot;
-use dom::bindings::str::{DOMString, USVString};
-use dom::blob::{Blob, BlobImpl};
-use dom::file::File;
-use dom::globalscope::GlobalScope;
-use dom::htmlformelement::{HTMLFormElement, FormDatumValue, FormDatum};
+use crate::dom::bindings::cell::DomRefCell;
+use crate::dom::bindings::codegen::Bindings::FormDataBinding::FormDataMethods;
+use crate::dom::bindings::codegen::Bindings::FormDataBinding::FormDataWrap;
+use crate::dom::bindings::codegen::UnionTypes::FileOrUSVString;
+use crate::dom::bindings::error::Fallible;
+use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::iterable::Iterable;
+use crate::dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
+use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::str::{DOMString, USVString};
+use crate::dom::blob::{Blob, BlobImpl};
+use crate::dom::file::File;
+use crate::dom::globalscope::GlobalScope;
+use crate::dom::htmlformelement::{HTMLFormElement, FormDatumValue, FormDatum};
 use dom_struct::dom_struct;
 use html5ever::LocalName;
 use std::collections::BTreeMap;

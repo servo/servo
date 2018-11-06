@@ -2,9 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::root::{Dom, DomRoot};
-use dom::bindings::trace::JSTraceable;
-use dom::globalscope::GlobalScope;
+use crate::dom::bindings::root::{Dom, DomRoot};
+use crate::dom::bindings::trace::JSTraceable;
+use crate::dom::globalscope::GlobalScope;
 use js::jsapi::GetScriptedCallerGlobal;
 use js::jsapi::HideScriptedCaller;
 use js::jsapi::JSTracer;

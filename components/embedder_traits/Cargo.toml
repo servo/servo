@@ -3,6 +3,7 @@ name = "embedder_traits"
 version = "0.0.1"
 authors = ["The Servo Project Developers"]
 license = "MPL-2.0"
+edition = "2018"
 publish = false
 
 [lib]
@@ -18,5 +19,5 @@ msg = {path = "../msg"}
 serde = "1.0"
 servo_channel = {path = "../channel"}
 servo_url = {path = "../url"}
-style_traits = {path = "../style_traits"}
+style_traits = {path = "../style_traits", features = ["servo"]}
 webrender_api = {git = "https://github.com/servo/webrender", features = ["ipc"]}

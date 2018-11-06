@@ -2,16 +2,16 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use crate::dom::bindings::codegen::Bindings::CSSSupportsRuleBinding;
+use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowBinding::WindowMethods;
+use crate::dom::bindings::reflector::{DomObject, reflect_dom_object};
+use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::str::DOMString;
+use crate::dom::cssconditionrule::CSSConditionRule;
+use crate::dom::cssrule::SpecificCSSRule;
+use crate::dom::cssstylesheet::CSSStyleSheet;
+use crate::dom::window::Window;
 use cssparser::{Parser, ParserInput};
-use dom::bindings::codegen::Bindings::CSSSupportsRuleBinding;
-use dom::bindings::codegen::Bindings::WindowBinding::WindowBinding::WindowMethods;
-use dom::bindings::reflector::{DomObject, reflect_dom_object};
-use dom::bindings::root::DomRoot;
-use dom::bindings::str::DOMString;
-use dom::cssconditionrule::CSSConditionRule;
-use dom::cssrule::SpecificCSSRule;
-use dom::cssstylesheet::CSSStyleSheet;
-use dom::window::Window;
 use dom_struct::dom_struct;
 use servo_arc::Arc;
 use style::parser::ParserContext;
@@ -102,7 +102,7 @@ impl CSSSupportsRule {
 
 impl SpecificCSSRule for CSSSupportsRule {
     fn ty(&self) -> u16 {
-        use dom::bindings::codegen::Bindings::CSSRuleBinding::CSSRuleConstants;
+        use crate::dom::bindings::codegen::Bindings::CSSRuleBinding::CSSRuleConstants;
         CSSRuleConstants::SUPPORTS_RULE
     }
 

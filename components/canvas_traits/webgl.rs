@@ -12,17 +12,17 @@ use std::num::NonZeroU32;
 use webrender_api::{DocumentId, ImageKey, PipelineId};
 
 /// Sender type used in WebGLCommands.
-pub use ::webgl_channel::WebGLSender;
+pub use crate::webgl_channel::WebGLSender;
 /// Receiver type used in WebGLCommands.
-pub use ::webgl_channel::WebGLReceiver;
+pub use crate::webgl_channel::WebGLReceiver;
 /// Result type for send()/recv() calls in in WebGLCommands.
-pub use ::webgl_channel::WebGLSendResult;
+pub use crate::webgl_channel::WebGLSendResult;
 /// Helper function that creates a WebGL channel (WebGLSender, WebGLReceiver) to be used in WebGLCommands.
-pub use ::webgl_channel::webgl_channel;
+pub use crate::webgl_channel::webgl_channel;
 /// Entry point type used in a Script Pipeline to get the WebGLChan to be used in that thread.
-pub use ::webgl_channel::WebGLPipeline;
+pub use crate::webgl_channel::WebGLPipeline;
 /// Entry point channel type used for sending WebGLMsg messages to the WebGL renderer.
-pub use ::webgl_channel::WebGLChan;
+pub use crate::webgl_channel::WebGLChan;
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct WebGLCommandBacktrace {
@@ -342,7 +342,7 @@ macro_rules! define_resource_id {
             fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
                 where D: ::serde::Deserializer<'de>
             {
-                let id = try!(u32::deserialize(deserializer));
+                let id = u32::deserialize(deserializer)?;
                 if id == 0 {
                     Err(::serde::de::Error::custom("expected a non-zero value"))
                 } else {

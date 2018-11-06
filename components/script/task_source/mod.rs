@@ -12,10 +12,10 @@ pub mod remote_event;
 pub mod user_interaction;
 pub mod websocket;
 
-use dom::globalscope::GlobalScope;
+use crate::dom::globalscope::GlobalScope;
+use crate::task::{TaskCanceller, TaskOnce};
 use enum_iterator::IntoEnumIterator;
 use std::result::Result;
-use task::{TaskCanceller, TaskOnce};
 
 // The names of all task sources, used to differentiate TaskCancellers.
 // Note: When adding a task source, update this enum.

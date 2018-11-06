@@ -5,15 +5,15 @@
 //! Text layout.
 
 use app_units::Au;
-use context::LayoutFontContext;
-use fragment::{Fragment, ScannedTextFlags};
-use fragment::{ScannedTextFragmentInfo, SpecificFragmentInfo, UnscannedTextFragmentInfo};
+use crate::context::LayoutFontContext;
+use crate::fragment::{Fragment, ScannedTextFlags};
+use crate::fragment::{ScannedTextFragmentInfo, SpecificFragmentInfo, UnscannedTextFragmentInfo};
+use crate::inline::{InlineFragmentNodeFlags, InlineFragments};
+use crate::linked_list::split_off_head;
 use gfx::font::{FontRef, FontMetrics, RunMetrics, ShapingFlags, ShapingOptions};
 use gfx::text::glyph::ByteIndex;
 use gfx::text::text_run::TextRun;
 use gfx::text::util::{self, CompressionMode};
-use inline::{InlineFragmentNodeFlags, InlineFragments};
-use linked_list::split_off_head;
 use ordered_float::NotNan;
 use range::Range;
 use servo_atoms::Atom;
@@ -508,7 +508,7 @@ fn bounding_box_for_run_metrics(
 #[inline]
 pub fn font_metrics_for_style(
     mut font_context: &mut LayoutFontContext,
-    style: ::ServoArc<FontStyleStruct>,
+    style: crate::ServoArc<FontStyleStruct>,
 ) -> FontMetrics {
     let font_group = font_context.font_group(style);
     let font = font_group.borrow_mut().first(&mut font_context);
