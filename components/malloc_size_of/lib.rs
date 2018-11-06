@@ -557,6 +557,36 @@ where
     }
 }
 
+impl<K, V> MallocShallowSizeOf for std::collections::BTreeMap<K, V>
+where
+    K: Eq + Hash,
+{
+    fn shallow_size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        if ops.has_malloc_enclosing_size_of() {
+            self.values()
+                .next()
+                .map_or(0, |v| unsafe { ops.malloc_enclosing_size_of(v) })
+        } else {
+            self.len() * (size_of::<V>() + size_of::<K>() + size_of::<usize>())
+        }
+    }
+}
+
+impl<K, V> MallocSizeOf for std::collections::BTreeMap<K, V>
+where
+    K: Eq + Hash + MallocSizeOf,
+    V: MallocSizeOf,
+{
+    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        let mut n = self.shallow_size_of(ops);
+        for (k, v) in self.iter() {
+            n += k.size_of(ops);
+            n += v.size_of(ops);
+        }
+        n
+    }
+}
+
 impl<K, V, S> MallocShallowSizeOf for hashglobe::hash_map::HashMap<K, V, S>
 where
     K: Eq + Hash,
