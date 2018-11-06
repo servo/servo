@@ -156,6 +156,7 @@ use servo_rand::{random, Rng, SeedableRng, ServoRng};
 use servo_remutex::ReentrantMutex;
 use servo_url::{Host, ImmutableOrigin, ServoUrl};
 use std::borrow::ToOwned;
+use std::collections::hash_map::Entry;
 use std::collections::{HashMap, VecDeque};
 use std::marker::PhantomData;
 use std::mem::replace;
@@ -167,6 +168,8 @@ use style_traits::cursor::CursorKind;
 use style_traits::viewport::ViewportConstraints;
 use style_traits::CSSPixel;
 use webvr_traits::{WebVREvent, WebVRMsg};
+
+type PendingApprovalNavigations = HashMap<PipelineId, (LoadData, bool)>;
 
 /// Servo supports tabs (referred to as browsers), so `Constellation` needs to
 /// store browser specific data for bookkeeping.
@@ -366,6 +369,9 @@ pub struct Constellation<Message, LTF, STF> {
 
     /// A channel through which messages can be sent to the canvas paint thread.
     canvas_chan: IpcSender<CanvasMsg>,
+
+    /// Navigation requests from script awaiting approval from the embedder.
+    pending_approval_navigations: PendingApprovalNavigations,
 }
 
 /// State needed to construct a constellation.
@@ -698,6 +704,7 @@ where
                     webgl_threads: state.webgl_threads,
                     webvr_chan: state.webvr_chan,
                     canvas_chan: CanvasPaintThread::start(),
+                    pending_approval_navigations: HashMap::new(),
                 };
 
                 constellation.run();
@@ -1042,6 +1049,35 @@ where
             FromCompositorMsg::Keyboard(key_event) => {
                 self.handle_key_msg(key_event);
             },
+            // Perform a navigation previously requested by script, if approved by the embedder.
+            // If there is already a pending page (self.pending_changes), it will not be overridden;
+            // However, if the id is not encompassed by another change, it will be.
+            FromCompositorMsg::AllowNavigationResponse(pipeline_id, allowed) => {
+                let pending = self.pending_approval_navigations.remove(&pipeline_id);
+                let top_level_browsing_context_id = self
+                    .pipelines
+                    .get(&pipeline_id)
+                    .map(|pipeline| pipeline.top_level_browsing_context_id)
+                    .expect("Navigated pipeline doesn't have a top_level_browsing_context");
+                match pending {
+                    Some((load_data, replace)) => {
+                        if allowed {
+                            self.load_url(
+                                top_level_browsing_context_id,
+                                pipeline_id,
+                                load_data,
+                                replace,
+                            );
+                        }
+                    },
+                    None => {
+                        return warn!(
+                            "AllowNavigationReqsponse for unknow request: {:?}",
+                            pipeline_id
+                        )
+                    },
+                };
+            },
             // Load a new page from a typed url
             // If there is already a pending page (self.pending_changes), it will not be overridden;
             // However, if the id is not encompassed by another change, it will be.
@@ -1057,12 +1093,9 @@ where
                         )
                     },
                 };
-                self.handle_load_url_msg(
-                    top_level_browsing_context_id,
-                    pipeline_id,
-                    load_data,
-                    false,
-                );
+                // Since this is a top-level load, initiated by the embedder, go straight to load_url,
+                // bypassing schedule_navigation.
+                self.load_url(top_level_browsing_context_id, pipeline_id, load_data, false);
             },
             FromCompositorMsg::IsReadyToSaveImage(pipeline_states) => {
                 let is_ready = self.handle_is_ready_to_save_image(pipeline_states);
@@ -1174,11 +1207,9 @@ where
             FromScriptMsg::ChangeRunningAnimationsState(animation_state) => {
                 self.handle_change_running_animations_state(source_pipeline_id, animation_state)
             },
-            // Load a new page from a mouse click
-            // If there is already a pending page (self.pending_changes), it will not be overridden;
-            // However, if the id is not encompassed by another change, it will be.
+            // Ask the embedder for permission to load a new page.
             FromScriptMsg::LoadUrl(load_data, replace) => {
-                self.handle_load_url_msg(source_top_ctx_id, source_pipeline_id, load_data, replace);
+                self.schedule_navigation(source_top_ctx_id, source_pipeline_id, load_data, replace);
             },
             FromScriptMsg::AbortLoadUrl => {
                 self.handle_abort_load_url_msg(source_pipeline_id);
@@ -2134,14 +2165,33 @@ where
         }
     }
 
-    fn handle_load_url_msg(
+    /// Schedule a navigation(via load_url).
+    /// 1: Ask the embedder for permission.
+    /// 2: Store the details of the navigation, pending approval from the embedder.
+    fn schedule_navigation(
         &mut self,
         top_level_browsing_context_id: TopLevelBrowsingContextId,
         source_id: PipelineId,
         load_data: LoadData,
         replace: bool,
     ) {
-        self.load_url(top_level_browsing_context_id, source_id, load_data, replace);
+        match self.pending_approval_navigations.entry(source_id) {
+            Entry::Occupied(_) => {
+                return warn!(
+                    "Pipeline {:?} tried to schedule a navigation while one is already pending.",
+                    source_id
+                )
+            },
+            Entry::Vacant(entry) => {
+                let _ = entry.insert((load_data.clone(), replace));
+            },
+        };
+        // Allow the embedder to handle the url itself
+        let msg = (
+            Some(top_level_browsing_context_id),
+            EmbedderMsg::AllowNavigationRequest(source_id, load_data.url.clone()),
+        );
+        self.embedder_proxy.send(msg);
     }
 
     fn load_url(
@@ -2151,17 +2201,6 @@ where
         load_data: LoadData,
         replace: bool,
     ) -> Option<PipelineId> {
-        // Allow the embedder to handle the url itself
-        let (chan, port) = ipc::channel().expect("Failed to create IPC channel!");
-        let msg = (
-            Some(top_level_browsing_context_id),
-            EmbedderMsg::AllowNavigation(load_data.url.clone(), chan),
-        );
-        self.embedder_proxy.send(msg);
-        if let Ok(false) = port.recv() {
-            return None;
-        }
-
         debug!("Loading {} in pipeline {}.", load_data.url, source_id);
         // If this load targets an iframe, its framing element may exist
         // in a separate script thread than the framed document that initiated
