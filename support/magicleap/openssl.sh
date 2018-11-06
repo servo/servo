@@ -25,7 +25,7 @@ fi
 
 echo "Building ${OPENSSL_DIR}/lib/libssl.so"
 
-S3_BUCKET="https://s3.amazonaws.com/servo-deps/android-deps"
+S3_BUCKET="https://servo-deps.s3.amazonaws.com/android-deps"
 S3_URL="${S3_BUCKET}/openssl-${OPENSSL_VERSION}.tar.gz"
 
 if [[ ! -d "${OPENSSL_DIR}/src/openssl-${OPENSSL_VERSION}" ]]; then

@@ -437,7 +437,7 @@ class MachCommands(CommandBase):
                 # Follow these instructions to build and deploy new binaries
                 # https://github.com/servo/libgstreamer_android_gen#build
                 print("Downloading GStreamer dependencies")
-                gst_url = "http://servo-deps.s3.amazonaws.com/gstreamer/%s" % gst_lib_zip
+                gst_url = "https://servo-deps.s3.amazonaws.com/gstreamer/%s" % gst_lib_zip
                 print(gst_url)
                 urllib.urlretrieve(gst_url, gst_lib_zip)
                 zip_ref = zipfile.ZipFile(gst_lib_zip, "r")
