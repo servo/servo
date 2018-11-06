@@ -305,10 +305,11 @@ class MachCommands(CommandBase):
         return 0
 
     def install_rustfmt(self):
-        if self.call_rustup_run(["cargo", "fmt", "--version", "-q"],
-                                stderr=open(os.devnull, "w")) != 0:
-            # Rustfmt is not installed. Install:
-            self.call_rustup_run(["rustup", "component", "add", "rustfmt-preview"])
+        with open(os.devnull, "w") as devnull:
+            if self.call_rustup_run(["cargo", "fmt", "--version", "-q"],
+                                    stderr=devnull) != 0:
+                # Rustfmt is not installed. Install:
+                self.call_rustup_run(["rustup", "component", "add", "rustfmt-preview"])
 
     @Command('test-tidy',
              description='Run the source code tidiness check',

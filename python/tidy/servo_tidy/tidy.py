@@ -509,10 +509,8 @@ def check_rust(file_name, lines):
 
     is_lib_rs_file = file_name.endswith("lib.rs")
 
-    prev_use = None
     prev_open_brace = False
     multi_line_string = False
-    current_indent = 0
     prev_crate = {}
     prev_mod = {}
     prev_feature_name = ""
@@ -715,36 +713,6 @@ def check_rust(file_name, lines):
             else:
                 # not a feature attribute line, so empty previous name
                 prev_feature_name = ""
-
-        # imports must be in the same line, alphabetically sorted, and merged
-        # into a single import block
-        if line.startswith("use "):
-            import_block = True
-            if not line.endswith(";") and '{' in line:
-                yield (idx + 1, "use statement spans multiple lines")
-            if '{ ' in line:
-                yield (idx + 1, "extra space after {")
-            if ' }' in line:
-                yield (idx + 1, "extra space before }")
-            # strip "use" from the begin and ";" from the end
-            current_use = line[4:-1]
-            if prev_use:
-                current_use_cut = current_use.replace("{self,", ".").replace("{", ".")
-                prev_use_cut = prev_use.replace("{self,", ".").replace("{", ".")
-                if indent == current_indent and current_use_cut < prev_use_cut and check_alphabetical_order:
-                    yield(idx + 1, decl_message.format("use statement")
-                          + decl_expected.format(prev_use)
-                          + decl_found.format(current_use))
-            prev_use = current_use
-            current_indent = indent
-
-        if whitespace or not import_block:
-            current_indent = 0
-
-        # do not allow blank lines in an import block
-        if import_block and whitespace and line.startswith("use "):
-            whitespace = False
-            yield(idx, "encountered whitespace following a use statement")
 
         # modules must be in the same line and alphabetically sorted
         if line.startswith("mod ") or line.startswith("pub mod "):
