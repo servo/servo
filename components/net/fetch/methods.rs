@@ -653,7 +653,7 @@ fn scheme_fetch(
                     "Unexpected method for blob".into(),
                 ));
             }
-            
+
             load_blob_async(url.clone(), context.filemanager.clone(), done_chan)
         },
 

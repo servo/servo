@@ -2,22 +2,21 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use crate::fetch::methods::Data;
 use embedder_traits::{EmbedderMsg, EmbedderProxy, FilterPattern};
-use ipc_channel::ipc::{self, IpcSender};
-use fetch::methods::Data;
-use headers_core::HeaderMapExt;
-use headers_ext::{ContentLength, ContentType};
-use http::HeaderMap;
+use headers_ext::{ContentLength, ContentType, HeaderMap, HeaderMapExt};
 use http::header::{self, HeaderValue};
+use ipc_channel::ipc::{self, IpcSender};
 use mime::{self, Mime};
 use mime_guess::guess_mime_type_opt;
-use net_traits::{http_percent_encode, NetworkError};
 use net_traits::blob_url_store::{BlobBuf, BlobURLStoreError};
 use net_traits::filemanager_thread::{FileManagerResult, FileManagerThreadMsg, FileOrigin};
 use net_traits::filemanager_thread::{
     FileManagerThreadError, ReadFileProgress, RelativePos, SelectedFile,
 };
+use net_traits::http_percent_encode;
 use net_traits::response::{Response, ResponseBody};
+use servo_arc::Arc as ServoArc;
 use servo_channel;
 use servo_config::prefs::PREFS;
 use std::collections::HashMap;
@@ -26,7 +25,7 @@ use std::io::{Read, Seek, SeekFrom};
 use std::ops::Index;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{self, AtomicBool, AtomicUsize, Ordering};
-use std::sync::{Arc, RwLock};
+use std::sync::{Arc, Mutex, RwLock};
 use std::thread;
 use url::Url;
 use uuid::Uuid;
@@ -100,17 +99,27 @@ impl FileManager {
             .expect("Thread spawning failed");
     }
 
-    pub fn fetch_file(&self,
-                     sender: servo_channel::Sender<Data>,
-                     id: Uuid,
-                     check_url_validity: bool,
-                     origin: FileOrigin,
-                     response: &mut Response) {
-        let store = self.store.clone();
-        let mut r2 = response.clone();
-        thread::Builder::new().name("read file".to_owned()).spawn(move || {
-            store.try_fetch_file(&sender, id, check_url_validity, origin, &mut r2)
-        }).expect("Thread spawning failed");
+    // Read a file for the Fetch implementation.
+    // It gets the required headers synchronously and reads the actual content
+    // in a separate thread.
+    pub fn fetch_file(
+        &self,
+        sender: &servo_channel::Sender<Data>,
+        id: Uuid,
+        check_url_validity: bool,
+        origin: FileOrigin,
+        response: &mut Response,
+    ) -> Result<(), String> {
+        self.store
+            .fetch_blob_buf(
+                sender,
+                &id,
+                &origin,
+                RelativePos::full_range(),
+                check_url_validity,
+                response,
+            )
+            .map_err(|e| format!("{:?}", e))
     }
 
     pub fn promote_memory(
@@ -511,52 +520,36 @@ impl FileManagerStore {
         )
     }
 
-    fn fetch_blob_buf(&self, sender: &servo_channel::Sender<Data>,
-                    id: &Uuid, origin_in: &FileOrigin, rel_pos: RelativePos,
-                    check_url_validity: bool, response: &mut Response) -> Result<(), BlobURLStoreError> {
-        let mut bytes = vec![];
+    fn fetch_blob_buf(
+        &self,
+        sender: &servo_channel::Sender<Data>,
+        id: &Uuid,
+        origin_in: &FileOrigin,
+        rel_pos: RelativePos,
+        check_url_validity: bool,
+        response: &mut Response,
+    ) -> Result<(), BlobURLStoreError> {
         let file_impl = self.get_impl(id, origin_in, check_url_validity)?;
         match file_impl {
             FileImpl::Memory(buf) => {
                 let range = rel_pos.to_abs_range(buf.size as usize);
-                let blob_buf = BlobBuf {
-                    filename: None,
-                    type_string: buf.type_string,
-                    size: range.len() as u64,
-                    bytes: buf.bytes.index(range).to_vec(),
-                };
+                let len = range.len() as u64;
 
-                let content_type: Mime = blob_buf.type_string.parse().unwrap_or(mime::TEXT_PLAIN);
-                let charset = content_type.get_param(mime::CHARSET);
-                let mut headers = HeaderMap::new();
+                set_headers(
+                    &mut response.headers,
+                    len,
+                    buf.type_string.parse().unwrap_or(mime::TEXT_PLAIN),
+                    /* filename */ None,
+                );
 
-                if let Some(name) = blob_buf.filename {
-                    let charset = charset.map(|c| c.as_ref().into()).unwrap_or("us-ascii".to_owned());
-                    // TODO(eijebong): Replace this once the typed header is there
-                    headers.insert(
-                        header::CONTENT_DISPOSITION,
-                        HeaderValue::from_bytes(
-                            format!("inline; {}",
-                                if charset.to_lowercase() == "utf-8" {
-                                    format!("filename=\"{}\"", String::from_utf8(name.as_bytes().into()).unwrap())
-                                } else {
-                                    format!("filename*=\"{}\"''{}", charset, http_percent_encode(name.as_bytes()))
-                                }
-                            ).as_bytes()
-                        ).unwrap()
-                    );
-                }
+                let mut bytes = vec![];
+                bytes.extend_from_slice(buf.bytes.index(range));
 
-                headers.typed_insert(ContentLength(blob_buf.size as u64));
-                headers.typed_insert(ContentType::from(content_type.clone()));
-
-                bytes.extend_from_slice(&blob_buf.bytes);
-
-                response.headers = headers;
-                *response.body.lock().unwrap() = ResponseBody::Done(bytes);
+                let _ = sender.send(Data::Payload(bytes));
                 let _ = sender.send(Data::Done);
+
                 Ok(())
-            }
+            },
             FileImpl::MetaDataOnly(metadata) => {
                 /* XXX: Snapshot state check (optional) https://w3c.github.io/FileAPI/#snapshot-state.
                         Concretely, here we create another file, and this file might not
@@ -564,44 +557,52 @@ impl FileManagerStore {
                         create_entry is called.
                 */
 
-                let opt_filename = metadata.path.file_name()
-                                           .and_then(|osstr| osstr.to_str())
-                                           .map(|s| s.to_string());
-
-                let mime = guess_mime_type_opt(metadata.path.clone());
-                let range = rel_pos.to_abs_range(metadata.size as usize);
-
                 let mut file = File::open(&metadata.path)
-                                   .map_err(|e| BlobURLStoreError::External(e.to_string()))?;
-                let seeked_start = file.seek(SeekFrom::Start(range.start as u64))
-                                       .map_err(|e| BlobURLStoreError::External(e.to_string()))?;
+                    .map_err(|e| BlobURLStoreError::External(e.to_string()))?;
 
-                if seeked_start == (range.start as u64) {
-                    let type_string = match mime {
-                        Some(x) => format!("{}", x),
-                        None    => "".to_string(),
-                    };
-
-                    chunked_fetch(sender, &mut file, range.len(), opt_filename,
-                                 type_string, response, &mut bytes);
-                    Ok(())
-                } else {
-                    Err(BlobURLStoreError::InvalidEntry)
+                let range = rel_pos.to_abs_range(metadata.size as usize);
+                let range_start = range.start as u64;
+                let seeked_start = file
+                    .seek(SeekFrom::Start(range_start))
+                    .map_err(|e| BlobURLStoreError::External(e.to_string()))?;
+                if seeked_start != range_start {
+                    return Err(BlobURLStoreError::InvalidEntry);
                 }
-            }
+
+                let filename = metadata
+                    .path
+                    .file_name()
+                    .and_then(|osstr| osstr.to_str())
+                    .map(|s| s.to_string());
+
+                set_headers(
+                    &mut response.headers,
+                    metadata.size,
+                    guess_mime_type_opt(metadata.path).unwrap_or(mime::TEXT_PLAIN),
+                    filename,
+                );
+
+                let body = response.body.clone();
+                let sender = sender.clone();
+                thread::Builder::new()
+                    .name("fetch file".to_owned())
+                    .spawn(move || chunked_fetch(sender, &mut file, body))
+                    .expect("Thread spawn failed");
+                Ok(())
+            },
             FileImpl::Sliced(parent_id, inner_rel_pos) => {
                 // Next time we don't need to check validity since
-                // we have already done that for requesting URL if necessary
-                self.fetch_blob_buf(sender, &parent_id, origin_in,
-                                  rel_pos.slice_inner(&inner_rel_pos), false, response)
-            }
+                // we have already done that for requesting URL if necessary.
+                return self.fetch_blob_buf(
+                    sender,
+                    &parent_id,
+                    origin_in,
+                    rel_pos.slice_inner(&inner_rel_pos),
+                    false,
+                    response,
+                );
+            },
         }
-    }
-
-    fn try_fetch_file(&self, sender: &servo_channel::Sender<Data>, id: Uuid, check_url_validity: bool,
-                      origin_in: FileOrigin, response: &mut Response)
-                     -> Result<(), BlobURLStoreError> {
-        self.fetch_blob_buf(sender, &id, &origin_in, RelativePos::full_range(), check_url_validity, response)
     }
 
     fn dec_ref(&self, id: &Uuid, origin_in: &FileOrigin) -> Result<(), BlobURLStoreError> {
@@ -772,49 +773,62 @@ fn chunked_read(
     }
 }
 
-fn chunked_fetch(sender: &servo_channel::Sender<Data>,
-                file: &mut File, size: usize, opt_filename: Option<String>,
-                type_string: String, response: &mut Response, bytes: &mut Vec<u8>) {
-    // First chunk
-    let mut buf = vec![0; CHUNK_SIZE];
-    match file.read(&mut buf) {
-        Ok(n) => {
-            buf.truncate(n);
-            let blob_buf = BlobBuf {
-                filename: opt_filename,
-                type_string: type_string,
-                size: size as u64,
-                bytes: buf,
-            };
-
-            bytes.extend_from_slice(&blob_buf.bytes);
-
-            let _ = sender.send(Data::Payload(blob_buf.bytes));
-        }
-        Err(_) => {
-            *response = Response::network_error(NetworkError::Internal("Opening file failed".into()));
-            return;
-        }
-    }
-
-    // Send the remaining chunks
+fn chunked_fetch(
+    sender: servo_channel::Sender<Data>,
+    file: &mut File,
+    response_body: ServoArc<Mutex<ResponseBody>>,
+) {
     loop {
         let mut buf = vec![0; CHUNK_SIZE];
         match file.read(&mut buf) {
-            Ok(0) => {
-                *response.body.lock().unwrap() = ResponseBody::Done(bytes.to_vec());
+            Ok(0) | Err(_) => {
+                *response_body.lock().unwrap() = ResponseBody::Done(vec![]);
                 let _ = sender.send(Data::Done);
                 return;
-            }
+            },
             Ok(n) => {
                 buf.truncate(n);
+                let mut bytes = vec![];
                 bytes.extend_from_slice(&buf);
                 let _ = sender.send(Data::Payload(buf));
-            }
-            Err(_) => {
-                *response = Response::network_error(NetworkError::Internal("Opening file failed".into()));
-                return;
-            }
+            },
         }
     }
+}
+
+fn set_headers(headers: &mut HeaderMap, content_length: u64, mime: Mime, filename: Option<String>) {
+    headers.typed_insert(ContentLength(content_length));
+    headers.typed_insert(ContentType::from(mime.clone()));
+    let name = match filename {
+        Some(name) => name,
+        None => return,
+    };
+    let charset = mime.get_param(mime::CHARSET);
+    let charset = charset
+        .map(|c| c.as_ref().into())
+        .unwrap_or("us-ascii".to_owned());
+    // TODO(eijebong): Replace this once the typed header is there
+    //                 https://github.com/hyperium/headers/issues/8
+    headers.insert(
+        header::CONTENT_DISPOSITION,
+        HeaderValue::from_bytes(
+            format!(
+                "inline; {}",
+                if charset.to_lowercase() == "utf-8" {
+                    format!(
+                        "filename=\"{}\"",
+                        String::from_utf8(name.as_bytes().into()).unwrap()
+                    )
+                } else {
+                    format!(
+                        "filename*=\"{}\"''{}",
+                        charset,
+                        http_percent_encode(name.as_bytes())
+                    )
+                }
+            )
+            .as_bytes(),
+        )
+        .unwrap(),
+    );
 }
