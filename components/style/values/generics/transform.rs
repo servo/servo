@@ -580,9 +580,9 @@ impl<Number: ToCss + PartialEq> ToCss for Scale<Number> {
     where
         W: fmt::Write,
     {
-        match self {
-            &Scale::None => dest.write_str("none"),
-            &Scale::Scale(ref x, ref y) => {
+        match *self {
+            Scale::None => dest.write_str("none"),
+            Scale::Scale(ref x, ref y) => {
                 x.to_css(dest)?;
                 if x != y {
                     dest.write_char(' ')?;
@@ -590,7 +590,7 @@ impl<Number: ToCss + PartialEq> ToCss for Scale<Number> {
                 }
                 Ok(())
             },
-            &Scale::Scale3D(ref x, ref y, ref z) => {
+            Scale::Scale3D(ref x, ref y, ref z) => {
                 x.to_css(dest)?;
                 dest.write_char(' ')?;
                 y.to_css(dest)?;
