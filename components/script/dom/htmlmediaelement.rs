@@ -1090,7 +1090,7 @@ impl HTMLMediaElement {
 
         let trusted_node = Trusted::new(self);
         let window = window_from_node(self);
-        let task_source = window.dom_manipulation_task_source();
+        let task_source = window.media_element_task_source();
         let task_canceller = window.task_canceller(TaskSourceName::DOMManipulation);
         ROUTER.add_route(
             action_receiver.to_opaque(),
@@ -1134,7 +1134,7 @@ impl HTMLMediaElement {
                 }
                 if previous_duration != self.duration.get() {
                     let window = window_from_node(self);
-                    let task_source = window.dom_manipulation_task_source();
+                    let task_source = window.media_element_task_source();
                     task_source.queue_simple_event(self.upcast(), atom!("durationchange"), &window);
                 }
 
@@ -1147,7 +1147,7 @@ impl HTMLMediaElement {
                         video_elem.set_video_width(metadata.width);
                         video_elem.set_video_height(metadata.height);
                         let window = window_from_node(self);
-                        let task_source = window.dom_manipulation_task_source();
+                        let task_source = window.media_element_task_source();
                         task_source.queue_simple_event(self.upcast(), atom!("resize"), &window);
                     }
                 }
