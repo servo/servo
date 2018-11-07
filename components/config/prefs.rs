@@ -5,7 +5,6 @@
 use crate::basedir::default_config_dir;
 use crate::opts;
 use embedder_traits::resources::{self, Resource};
-use num_cpus;
 use serde_json::{self, Value};
 use std::borrow::ToOwned;
 use std::cmp::max;

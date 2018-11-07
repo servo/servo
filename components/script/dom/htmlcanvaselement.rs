@@ -41,7 +41,6 @@ use js::jsapi::JSContext;
 use js::rust::HandleValue;
 use offscreen_gl_context::GLContextAttributes;
 use profile_traits::ipc;
-use ref_filter_map;
 use script_layout_interface::{HTMLCanvasData, HTMLCanvasDataSource};
 use servo_config::prefs::PREFS;
 use std::cell::Ref;

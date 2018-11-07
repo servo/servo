@@ -16,7 +16,6 @@ use http::{header, HeaderMap};
 use hyper::{Method, StatusCode};
 use serde_json::{Map, Value};
 use std::net::TcpStream;
-use time;
 use time::Tm;
 
 struct HttpRequest {

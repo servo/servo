@@ -12,7 +12,6 @@ use fontconfig::fontconfig::{
     FcFontSetList, FcObjectSetCreate, FcObjectSetDestroy, FcPatternAddString,
 };
 use fontconfig::fontconfig::{FcObjectSetAdd, FcPatternGetInteger};
-use libc;
 use libc::{c_char, c_int};
 use std::ffi::CString;
 use std::ptr;

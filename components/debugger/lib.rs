@@ -5,7 +5,6 @@
 #[macro_use]
 extern crate log;
 
-use servo_channel;
 use std::thread;
 use ws::{self, Builder, CloseCode, Handler, Handshake};
 

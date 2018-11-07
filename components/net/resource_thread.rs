@@ -4,7 +4,6 @@
 
 //! A thread that takes a URL and streams back the binary data.
 
-use cookie_rs;
 use crate::connector::{create_http_client, create_ssl_connector_builder};
 use crate::cookie;
 use crate::cookie_storage::CookieStorage;
@@ -33,8 +32,6 @@ use profile_traits::mem::ProfilerChan as MemProfilerChan;
 use profile_traits::mem::{Report, ReportKind, ReportsChan};
 use profile_traits::time::ProfilerChan;
 use serde::{Deserialize, Serialize};
-use serde_json;
-use servo_allocator;
 use servo_channel::Sender;
 use servo_config::opts;
 use servo_url::ServoUrl;

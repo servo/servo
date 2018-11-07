@@ -92,7 +92,6 @@ use headers_ext::LastModified;
 use headers_ext::ReferrerPolicy as ReferrerPolicyHeader;
 use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcSender};
-use itertools;
 use js::glue::GetWindowProxyClass;
 use js::jsapi::{JSAutoCompartment, JSContext, JS_SetWrapObjectCallbacks};
 use js::jsapi::{JSTracer, SetWindowProxyClass};

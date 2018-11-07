@@ -13,8 +13,6 @@ use fnv::FnvHashMap;
 use gleam::gl;
 use servo_config::prefs::PREFS;
 use std::rc::Rc;
-use webrender;
-use webrender_api;
 
 /// WebGL Threading API entry point that lives in the constellation.
 pub struct WebGLThreads(WebGLSender<WebGLMsg>);

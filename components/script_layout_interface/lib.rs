@@ -31,7 +31,6 @@ use servo_url::ServoUrl;
 use std::ptr::NonNull;
 use std::sync::atomic::AtomicIsize;
 use style::data::ElementData;
-use webrender_api;
 
 #[repr(C)]
 pub struct StyleData {

@@ -14,7 +14,6 @@ use std::slice::Iter;
 use std::sync::Arc;
 use style::str::char_is_whitespace;
 use unicode_bidi as bidi;
-use webrender_api;
 use xi_unicode::LineBreakLeafIter;
 
 thread_local! {

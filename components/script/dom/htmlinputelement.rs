@@ -49,7 +49,6 @@ use crate::textinput::{Direction, SelectionDirection, TextInput};
 use dom_struct::dom_struct;
 use embedder_traits::FilterPattern;
 use html5ever::{LocalName, Prefix};
-use mime_guess;
 use msg::constellation_msg::InputMethodType;
 use net_traits::blob_url_store::get_blob_origin;
 use net_traits::filemanager_thread::FileManagerThreadMsg;

@@ -4,7 +4,6 @@
 
 use cssparser::SourceLocation;
 use ipc_channel::ipc::IpcSender;
-use log;
 use msg::constellation_msg::PipelineId;
 use script_traits::ConstellationControlMsg;
 use servo_url::ServoUrl;

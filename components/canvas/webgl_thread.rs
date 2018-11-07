@@ -8,10 +8,7 @@ use euclid::Size2D;
 use fnv::FnvHashMap;
 use gleam::gl;
 use offscreen_gl_context::{GLContext, GLContextAttributes, GLLimits, NativeGLContextMethods};
-use pixels;
 use std::thread;
-use webrender;
-use webrender_api;
 
 /// WebGL Threading API entry point that lives in the constellation.
 /// It allows to get a WebGLThread handle for each script pipeline.

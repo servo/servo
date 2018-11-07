@@ -8,7 +8,6 @@ pub mod base_channel {
 // Needed to re-export the select macro.
 pub use crossbeam_channel::*;
 
-use crossbeam_channel;
 use ipc_channel::ipc::IpcReceiver;
 use ipc_channel::router::ROUTER;
 use serde::{Deserialize, Serialize};

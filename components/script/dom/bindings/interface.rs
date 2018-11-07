@@ -35,7 +35,6 @@ use js::rust::wrappers::{JS_FireOnNewGlobalObject, JS_GetPrototype};
 use js::rust::wrappers::{JS_LinkConstructorAndPrototype, JS_NewObjectWithUniqueType};
 use js::rust::{define_methods, define_properties, get_object_class};
 use js::rust::{HandleObject, HandleValue, MutableHandleObject};
-use libc;
 use std::convert::TryFrom;
 use std::ptr;
 

@@ -155,7 +155,6 @@ use style::shared_lock::{SharedRwLock as StyleSharedRwLock, SharedRwLockReadGuar
 use style::str::{split_html_space_chars, str_join};
 use style::stylesheet_set::DocumentStylesheetSet;
 use style::stylesheets::{CssRule, Origin, OriginSet, Stylesheet};
-use time;
 use url::percent_encoding::percent_decode;
 use url::Host;
 

@@ -22,7 +22,6 @@ use embedder_traits::EmbedderMsg;
 use html5ever::{LocalName, Prefix};
 use servo_url::ServoUrl;
 use style::attr::AttrValue;
-use time;
 
 /// How long we should wait before performing the initial reflow after `<body>` is parsed, in
 /// nanoseconds.

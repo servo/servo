@@ -17,7 +17,6 @@ use script_traits::{AnimationState, ConstellationMsg, EventResult};
 use servo_channel::{Receiver, Sender};
 use std::fmt::{Debug, Error, Formatter};
 use style_traits::viewport::ViewportConstraints;
-use webrender;
 use webrender_api::{self, DeviceIntPoint, DeviceUintSize};
 
 /// Sends messages to the compositor.

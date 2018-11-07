@@ -13,7 +13,6 @@ use euclid::{Rect, Size2D};
 use js::jsapi::{Heap, JSContext, JSObject};
 use js::rust::Runtime;
 use js::typedarray::{CreateWith, Uint8ClampedArray};
-use pixels;
 use std::borrow::Cow;
 use std::default::Default;
 use std::ptr;

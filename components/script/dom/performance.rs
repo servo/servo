@@ -25,7 +25,6 @@ use dom_struct::dom_struct;
 use metrics::ToMs;
 use std::cell::Cell;
 use std::cmp::Ordering;
-use time;
 
 const INVALID_ENTRY_NAMES: &'static [&'static str] = &[
     "navigationStart",

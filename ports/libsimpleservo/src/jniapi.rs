@@ -12,7 +12,6 @@ use jni::sys::{jboolean, jfloat, jint, jstring, JNI_TRUE};
 use jni::{errors, JNIEnv, JavaVM};
 use libc::{dup2, pipe, read};
 use log::Level;
-use std;
 use std::os::raw::{c_char, c_int, c_void};
 use std::sync::{Arc, Mutex};
 use std::thread;

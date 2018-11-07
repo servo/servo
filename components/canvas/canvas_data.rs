@@ -15,11 +15,9 @@ use cssparser::RGBA;
 use euclid::{Point2D, Rect, Size2D, Transform2D, Vector2D};
 use ipc_channel::ipc::IpcSender;
 use num_traits::ToPrimitive;
-use pixels;
 use serde_bytes::ByteBuf;
 use std::mem;
 use std::sync::Arc;
-use webrender_api;
 
 pub struct CanvasData<'a> {
     drawtarget: DrawTarget,

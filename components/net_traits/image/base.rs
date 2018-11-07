@@ -4,9 +4,7 @@
 
 use ipc_channel::ipc::IpcSharedMemory;
 use piston_image::{DynamicImage, ImageFormat};
-use pixels;
 use std::fmt;
-use webrender_api;
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, MallocSizeOf, PartialEq, Serialize)]
 pub enum PixelFormat {

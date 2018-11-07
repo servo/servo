@@ -7,8 +7,6 @@ extern crate syn;
 #[macro_use]
 extern crate synstructure;
 
-use quote;
-
 decl_derive!([JSTraceable] => js_traceable_derive);
 
 fn js_traceable_derive(s: synstructure::Structure) -> quote::Tokens {

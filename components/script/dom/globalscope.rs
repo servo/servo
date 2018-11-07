@@ -50,7 +50,6 @@ use js::rust::wrappers::Evaluate2;
 use js::rust::{get_object_class, CompileOptionsWrapper, Runtime};
 use js::rust::{HandleValue, MutableHandleValue};
 use js::{JSCLASS_IS_DOMJSCLASS, JSCLASS_IS_GLOBAL};
-use libc;
 use msg::constellation_msg::PipelineId;
 use net_traits::{CoreResourceThread, IpcSend, ResourceThreads};
 use profile_traits::{mem as profile_mem, time as profile_time};

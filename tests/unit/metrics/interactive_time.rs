@@ -7,7 +7,6 @@ use metrics::{InteractiveFlag, InteractiveMetrics};
 use metrics::{ProfilerMetadataFactory, ProgressiveWebMetric};
 use profile_traits::time::{ProfilerChan, TimerMetadata};
 use servo_url::ServoUrl;
-use time;
 
 struct DummyProfilerMetadataFactory {}
 impl ProfilerMetadataFactory for DummyProfilerMetadataFactory {

@@ -5,11 +5,9 @@
 use embedder_traits::resources::{self, Resource};
 use net_traits::pub_domains::reg_suffix;
 use net_traits::IncludeSubdomains;
-use serde_json;
 use servo_url::ServoUrl;
 use std::collections::HashMap;
 use std::net::{Ipv4Addr, Ipv6Addr};
-use time;
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct HstsEntry {

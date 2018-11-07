@@ -21,7 +21,6 @@ use script_traits::{ConstellationControlMsg, LayoutControlMsg};
 use servo_channel::{Receiver, Sender};
 use servo_url::ServoUrl;
 use std::sync::Arc;
-use webrender_api;
 
 // A static method creating a layout thread
 // Here to remove the compositor -> layout dependency

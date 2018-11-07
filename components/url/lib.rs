@@ -23,7 +23,6 @@ use std::ops::{Index, Range, RangeFrom, RangeFull, RangeTo};
 use std::path::Path;
 use std::sync::Arc;
 use url::{Position, Url};
-use url_serde;
 
 pub use url::Host;
 

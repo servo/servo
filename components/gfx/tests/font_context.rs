@@ -24,7 +24,6 @@ use style::values::computed::font::{
 };
 use style::values::computed::font::{FontStretch, FontWeight, SingleFontFamily};
 use style::values::generics::font::FontStyle;
-use webrender_api;
 
 struct TestFontSource {
     handle: FontContextHandle,

@@ -9,7 +9,6 @@ use metrics::{PaintTimeMetrics, ProfilerMetadataFactory, ProgressiveWebMetric};
 use msg::constellation_msg::TEST_PIPELINE_ID;
 use profile_traits::time::{ProfilerChan, TimerMetadata};
 use servo_url::ServoUrl;
-use time;
 use webrender_api::{AlphaType, ColorF, ImageDisplayItem, ImageKey, ImageRendering, LayoutSize};
 
 struct DummyProfilerMetadataFactory {}

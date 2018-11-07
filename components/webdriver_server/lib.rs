@@ -14,7 +14,6 @@ extern crate serde;
 mod keys;
 
 use base64;
-use cookie;
 use crate::keys::keycodes_to_keys;
 use euclid::TypedSize2D;
 use hyper::Method;

@@ -5,7 +5,6 @@
 //! Implementation of cookie storage as specified in
 //! http://tools.ietf.org/html/rfc6265
 
-use cookie_rs;
 use crate::cookie::Cookie;
 use net_traits::pub_domains::reg_suffix;
 use net_traits::CookieSource;

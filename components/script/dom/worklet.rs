@@ -51,7 +51,6 @@ use net_traits::request::RequestInit;
 use net_traits::request::RequestMode;
 use net_traits::IpcSend;
 use servo_channel::{channel, Receiver, Sender};
-use servo_rand;
 use servo_url::ImmutableOrigin;
 use servo_url::ServoUrl;
 use std::cmp::max;

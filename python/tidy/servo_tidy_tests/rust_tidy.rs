@@ -10,7 +10,6 @@ use euclid::Size2D;
 use azure::azure::AzIntSize;
 use azure::azure::{AzIntSize};
 
-use std;
 
 mod paint_context;
 pub mod display_list;

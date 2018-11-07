@@ -6,7 +6,6 @@ use std::env;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
 use std::path::Path;
-use string_cache_codegen;
 
 fn main() {
     let static_atoms =

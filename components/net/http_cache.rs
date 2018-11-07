@@ -29,7 +29,6 @@ use std::ops::Bound;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
 use std::time::SystemTime;
-use time;
 use time::{Duration, Timespec, Tm};
 
 /// The key used to differentiate requests in the cache.

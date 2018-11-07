@@ -74,7 +74,6 @@ use std::ptr::NonNull;
 use std::slice;
 use std::str::{self, FromStr};
 use std::sync::{Arc, Mutex};
-use time;
 use url::Position;
 
 #[derive(Clone, Copy, Debug, JSTraceable, MallocSizeOf, PartialEq)]

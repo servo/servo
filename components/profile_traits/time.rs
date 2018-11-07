@@ -5,7 +5,6 @@
 use crate::energy::read_energy_uj;
 use ipc_channel::ipc::IpcSender;
 use servo_config::opts;
-use signpost;
 use time::precise_time_ns;
 
 #[derive(Clone, Debug, Deserialize, Eq, Ord, PartialEq, PartialOrd, Serialize)]

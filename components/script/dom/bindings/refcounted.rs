@@ -30,7 +30,6 @@ use crate::dom::bindings::trace::trace_reflector;
 use crate::dom::promise::Promise;
 use crate::task::TaskOnce;
 use js::jsapi::JSTracer;
-use libc;
 use std::cell::RefCell;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::collections::hash_map::HashMap;

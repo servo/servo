@@ -26,7 +26,6 @@ use std::path::Path;
 use std::time::Duration;
 use std::{f64, thread, u32, u64};
 use time_crate::precise_time_ns;
-use tokio;
 use tokio::prelude::Future;
 
 pub trait Formattable {

@@ -5,7 +5,6 @@
 extern crate proc_macro;
 
 use std::str::FromStr;
-use syn;
 use synstructure::{self, decl_derive};
 
 decl_derive!([DenyPublicFields] => deny_public_fields_derive);

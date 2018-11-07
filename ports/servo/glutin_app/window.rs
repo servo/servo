@@ -10,8 +10,6 @@ use gdi32;
 use gleam::gl;
 use glutin::{Api, ContextBuilder, GlContext, GlRequest, GlWindow};
 use keyboard_types::{Key, KeyboardEvent, KeyState};
-#[cfg(any(target_os = "linux", target_os = "macos"))]
-use osmesa_sys;
 use servo::compositing::windowing::{AnimationState, MouseWindowEvent, WindowEvent};
 use servo::compositing::windowing::{EmbedderCoordinates, WindowMethods};
 use servo::embedder_traits::EventLoopWaker;
@@ -34,9 +32,6 @@ use std::time;
 use super::keyutils::keyboard_event_from_winit;
 #[cfg(target_os = "windows")]
 use user32;
-#[cfg(target_os = "windows")]
-use winapi;
-use winit;
 use winit::{ElementState, Event, MouseButton, MouseScrollDelta, TouchPhase, KeyboardInput};
 use winit::dpi::{LogicalPosition, LogicalSize, PhysicalSize};
 #[cfg(target_os = "macos")]
