@@ -11,7 +11,7 @@ use std::borrow::ToOwned;
 use std::cmp::max;
 use std::collections::HashMap;
 use std::fs::File;
-use std::io::{Read, Write, stderr};
+use std::io::{stderr, Read, Write};
 use std::path::PathBuf;
 use std::sync::{Arc, RwLock};
 
@@ -192,7 +192,8 @@ fn init_user_prefs(path: &mut PathBuf) {
         writeln!(
             &mut stderr(),
             "Error opening prefs.json from config directory"
-        ).expect("failed printing to stderr");
+        )
+        .expect("failed printing to stderr");
     }
 }
 

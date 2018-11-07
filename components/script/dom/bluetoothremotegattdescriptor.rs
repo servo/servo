@@ -2,22 +2,23 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use bluetooth_traits::blocklist::{uuid_is_blocklisted, Blocklist};
 use bluetooth_traits::{BluetoothRequest, BluetoothResponse};
-use bluetooth_traits::blocklist::{Blocklist, uuid_is_blocklisted};
 use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::BluetoothRemoteGATTCharacteristicBinding::
-BluetoothRemoteGATTCharacteristicMethods;
+use crate::dom::bindings::codegen::Bindings::BluetoothRemoteGATTCharacteristicBinding::BluetoothRemoteGATTCharacteristicMethods;
 use crate::dom::bindings::codegen::Bindings::BluetoothRemoteGATTDescriptorBinding;
 use crate::dom::bindings::codegen::Bindings::BluetoothRemoteGATTDescriptorBinding::BluetoothRemoteGATTDescriptorMethods;
 use crate::dom::bindings::codegen::Bindings::BluetoothRemoteGATTServerBinding::BluetoothRemoteGATTServerMethods;
 use crate::dom::bindings::codegen::Bindings::BluetoothRemoteGATTServiceBinding::BluetoothRemoteGATTServiceMethods;
 use crate::dom::bindings::codegen::UnionTypes::ArrayBufferViewOrArrayBuffer;
 use crate::dom::bindings::error::Error::{self, InvalidModification, Network, Security};
-use crate::dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
+use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::{ByteString, DOMString};
-use crate::dom::bluetooth::{AsyncBluetoothListener, response_async};
-use crate::dom::bluetoothremotegattcharacteristic::{BluetoothRemoteGATTCharacteristic, MAXIMUM_ATTRIBUTE_LENGTH};
+use crate::dom::bluetooth::{response_async, AsyncBluetoothListener};
+use crate::dom::bluetoothremotegattcharacteristic::{
+    BluetoothRemoteGATTCharacteristic, MAXIMUM_ATTRIBUTE_LENGTH,
+};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use dom_struct::dom_struct;
@@ -166,7 +167,8 @@ impl BluetoothRemoteGATTDescriptorMethods for BluetoothRemoteGATTDescriptor {
                 self.get_instance_id(),
                 vec,
                 sender,
-            )).unwrap();
+            ))
+            .unwrap();
         return p;
     }
 }

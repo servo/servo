@@ -7,27 +7,29 @@
 use app_units::Au;
 use crate::construct::ConstructionResult;
 use crate::context::LayoutContext;
-use crate::display_list::IndexableText;
 use crate::display_list::items::{DisplayList, OpaqueNode, ScrollOffsetMap};
+use crate::display_list::IndexableText;
 use crate::flow::{Flow, GetBaseFlow};
 use crate::fragment::{Fragment, FragmentBorderBoxIterator, SpecificFragmentInfo};
 use crate::inline::InlineFragmentNodeFlags;
 use crate::opaque_node::OpaqueNodeMethods;
 use crate::sequential;
 use crate::wrapper::LayoutNodeLayoutData;
-use euclid::{Point2D, Vector2D, Rect, Size2D};
+use euclid::{Point2D, Rect, Size2D, Vector2D};
 use ipc_channel::ipc::IpcSender;
 use msg::constellation_msg::PipelineId;
-use script_layout_interface::{LayoutElementType, LayoutNodeType};
-use script_layout_interface::StyleData;
+use script_layout_interface::rpc::TextIndexResponse;
 use script_layout_interface::rpc::{ContentBoxResponse, ContentBoxesResponse, LayoutRPC};
 use script_layout_interface::rpc::{NodeGeometryResponse, NodeScrollIdResponse};
 use script_layout_interface::rpc::{OffsetParentResponse, ResolvedStyleResponse, StyleResponse};
-use script_layout_interface::rpc::TextIndexResponse;
-use script_layout_interface::wrapper_traits::{LayoutNode, ThreadSafeLayoutElement, ThreadSafeLayoutNode};
+use script_layout_interface::wrapper_traits::{
+    LayoutNode, ThreadSafeLayoutElement, ThreadSafeLayoutNode,
+};
+use script_layout_interface::StyleData;
+use script_layout_interface::{LayoutElementType, LayoutNodeType};
 use script_traits::LayoutMsg as ConstellationMsg;
 use script_traits::UntrustedNodeAddress;
-use std::cmp::{min, max};
+use std::cmp::{max, min};
 use std::ops::Deref;
 use std::sync::{Arc, Mutex};
 use style::computed_values::display::T as Display;
@@ -35,8 +37,8 @@ use style::computed_values::position::T as Position;
 use style::computed_values::visibility::T as Visibility;
 use style::context::{StyleContext, ThreadLocalStyleContext};
 use style::dom::TElement;
-use style::logical_geometry::{WritingMode, BlockFlowDirection, InlineBaseDirection};
-use style::properties::{style_structs, PropertyId, PropertyDeclarationId, LonghandId};
+use style::logical_geometry::{BlockFlowDirection, InlineBaseDirection, WritingMode};
+use style::properties::{style_structs, LonghandId, PropertyDeclarationId, PropertyId};
 use style::selector_parser::PseudoElement;
 use style_traits::ToCss;
 use webrender_api::ExternalScrollId;
@@ -603,7 +605,7 @@ impl FragmentBorderBoxIterator for ParentOffsetBorderBoxIterator {
                     // cause this assertion to fail sometimes, so it's
                     // commented out for now.
                     /*assert!(node.flags.contains(FIRST_FRAGMENT_OF_ELEMENT),
-                        "First fragment of inline node found wasn't its first fragment!");*/
+                    "First fragment of inline node found wasn't its first fragment!");*/
 
                     self.node_offset_box = Some(NodeOffsetBoxInfo {
                         offset: border_box.origin,
@@ -840,12 +842,11 @@ where
     let applies = true;
 
     fn used_value_for_position_property<N: LayoutNode>(
-            layout_el: <N::ConcreteThreadSafeLayoutNode as ThreadSafeLayoutNode>::ConcreteThreadSafeLayoutElement,
-            layout_root: &mut Flow,
-            requested_node: N,
-            longhand_id: LonghandId,
-        ) -> String
-    {
+        layout_el: <N::ConcreteThreadSafeLayoutNode as ThreadSafeLayoutNode>::ConcreteThreadSafeLayoutElement,
+        layout_root: &mut Flow,
+        requested_node: N,
+        longhand_id: LonghandId,
+    ) -> String {
         let maybe_data = layout_el.borrow_layout_data();
         let position = maybe_data.map_or(Point2D::zero(), |data| {
             match (*data).flow_construction_result {

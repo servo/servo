@@ -4,7 +4,7 @@
 
 //! Data needed by the layout thread.
 
-use crate::display_list::items::{WebRenderImageInfo, OpaqueNode};
+use crate::display_list::items::{OpaqueNode, WebRenderImageInfo};
 use crate::opaque_node::OpaqueNodeMethods;
 use fnv::FnvHasher;
 use gfx::font_cache_thread::FontCacheThread;

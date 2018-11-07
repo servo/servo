@@ -10,7 +10,7 @@ use crate::dom::bindings::error::Error;
 use crate::dom::bindings::reflector::reflect_dom_object;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
-use crate::dom::bluetooth::{AsyncBluetoothListener, get_gatt_children};
+use crate::dom::bluetooth::{get_gatt_children, AsyncBluetoothListener};
 use crate::dom::bluetoothdevice::BluetoothDevice;
 use crate::dom::bluetoothuuid::{BluetoothCharacteristicUUID, BluetoothServiceUUID, BluetoothUUID};
 use crate::dom::eventtarget::EventTarget;

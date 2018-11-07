@@ -4,17 +4,17 @@
 
 //! Gecko's media feature list and evaluator.
 
-use Atom;
 use app_units::Au;
 use euclid::Size2D;
 use gecko_bindings::bindings;
 use gecko_bindings::structs;
-use media_queries::Device;
 use media_queries::media_feature::{AllowsRanges, ParsingRequirements};
-use media_queries::media_feature::{MediaFeatureDescription, Evaluator};
+use media_queries::media_feature::{Evaluator, MediaFeatureDescription};
 use media_queries::media_feature_expression::{AspectRatio, RangeOrOperator};
+use media_queries::Device;
 use values::computed::CSSPixelLength;
 use values::computed::Resolution;
+use Atom;
 
 fn viewport_size(device: &Device) -> Size2D<Au> {
     let pc = device.pres_context();
@@ -305,15 +305,15 @@ bitflags! {
 }
 
 fn primary_pointer_capabilities(device: &Device) -> PointerCapabilities {
-    PointerCapabilities::from_bits_truncate(
-        unsafe { bindings::Gecko_MediaFeatures_PrimaryPointerCapabilities(device.document()) }
-    )
+    PointerCapabilities::from_bits_truncate(unsafe {
+        bindings::Gecko_MediaFeatures_PrimaryPointerCapabilities(device.document())
+    })
 }
 
 fn all_pointer_capabilities(device: &Device) -> PointerCapabilities {
-    PointerCapabilities::from_bits_truncate(
-        unsafe { bindings::Gecko_MediaFeatures_AllPointerCapabilities(device.document()) }
-    )
+    PointerCapabilities::from_bits_truncate(unsafe {
+        bindings::Gecko_MediaFeatures_AllPointerCapabilities(device.document())
+    })
 }
 
 #[derive(Clone, Copy, Debug, FromPrimitive, Parse, ToCss)]

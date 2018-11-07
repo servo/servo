@@ -13,7 +13,7 @@ use crate::dom::cssrulelist::{CSSRuleList, RulesSource};
 use crate::dom::cssstylesheet::CSSStyleSheet;
 use dom_struct::dom_struct;
 use servo_arc::Arc;
-use style::shared_lock::{SharedRwLock, Locked};
+use style::shared_lock::{Locked, SharedRwLock};
 use style::stylesheets::CssRules as StyleCssRules;
 
 #[dom_struct]

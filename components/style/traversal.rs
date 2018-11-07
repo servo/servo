@@ -361,7 +361,8 @@ where
             context,
             rule_inclusion,
             PseudoElementResolution::IfApplicable,
-        ).resolve_primary_style(
+        )
+        .resolve_primary_style(
             style.as_ref().map(|s| &**s),
             layout_parent_style.as_ref().map(|s| &**s),
         );
@@ -382,10 +383,12 @@ where
         context,
         rule_inclusion,
         PseudoElementResolution::Force,
-    ).resolve_style(
+    )
+    .resolve_style(
         style.as_ref().map(|s| &**s),
         layout_parent_style.as_ref().map(|s| &**s),
-    ).into()
+    )
+    .into()
 }
 
 /// Calculates the style for a single node.
@@ -717,8 +720,8 @@ where
     E: TElement,
 {
     use style_traits::ToCss;
-    use values::Either;
     use values::generics::image::Image;
+    use values::Either;
 
     // We speculatively evaluate any paint worklets during styling.
     // This allows us to run paint worklets in parallel with style and layout.

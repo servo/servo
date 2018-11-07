@@ -6,14 +6,11 @@ use cssparser::{Parser, ParserInput};
 use style::context::QuirksMode;
 use style::parser::ParserContext;
 use style::stylesheets::{CssRuleType, Origin};
-use style_traits::{ParsingMode, ParseError};
+use style_traits::{ParseError, ParsingMode};
 
 fn parse<T, F>(f: F, s: &'static str) -> Result<T, ParseError<'static>>
 where
-    F: for<'t> Fn(
-        &ParserContext,
-        &mut Parser<'static, 't>,
-    ) -> Result<T, ParseError<'static>>
+    F: for<'t> Fn(&ParserContext, &mut Parser<'static, 't>) -> Result<T, ParseError<'static>>,
 {
     let mut input = ParserInput::new(s);
     parse_input(f, &mut input)
@@ -42,24 +39,31 @@ macro_rules! assert_roundtrip_with_context {
         assert_roundtrip_with_context!($fun, $string, $string);
     };
     ($fun:expr, $input:expr, $output:expr) => {{
-        let serialized = parse(|context, i| {
-            let parsed = $fun(context, i)
-                         .expect(&format!("Failed to parse {}", $input));
-            let serialized = ToCss::to_css_string(&parsed);
-            assert_eq!(serialized, $output);
-            Ok(serialized)
-        }, $input).unwrap();
+        let serialized = parse(
+            |context, i| {
+                let parsed = $fun(context, i).expect(&format!("Failed to parse {}", $input));
+                let serialized = ToCss::to_css_string(&parsed);
+                assert_eq!(serialized, $output);
+                Ok(serialized)
+            },
+            $input,
+        )
+        .unwrap();
 
         let mut input = ::cssparser::ParserInput::new(&serialized);
-        let unwrapped = parse_input(|context, i| {
-            let re_parsed = $fun(context, i)
-                            .expect(&format!("Failed to parse serialization {}", $input));
-            let re_serialized = ToCss::to_css_string(&re_parsed);
-            assert_eq!(serialized, re_serialized);
-            Ok(())
-        }, &mut input).unwrap();
+        let unwrapped = parse_input(
+            |context, i| {
+                let re_parsed =
+                    $fun(context, i).expect(&format!("Failed to parse serialization {}", $input));
+                let re_serialized = ToCss::to_css_string(&re_parsed);
+                assert_eq!(serialized, re_serialized);
+                Ok(())
+            },
+            &mut input,
+        )
+        .unwrap();
         unwrapped
-    }}
+    }};
 }
 
 mod scaffolding;

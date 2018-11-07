@@ -5,7 +5,6 @@
 //! An invalidation processor for style changes due to state and attribute
 //! changes.
 
-use {Atom, WeakAtom};
 use context::SharedStyleContext;
 use data::ElementData;
 use dom::TElement;
@@ -17,12 +16,13 @@ use invalidation::element::invalidator::{Invalidation, InvalidationProcessor};
 use invalidation::element::restyle_hints::RestyleHint;
 use selector_map::SelectorMap;
 use selector_parser::Snapshot;
-use selectors::NthIndexCache;
 use selectors::attr::CaseSensitivity;
-use selectors::matching::{MatchingContext, MatchingMode, VisitedHandlingMode};
 use selectors::matching::matches_selector;
+use selectors::matching::{MatchingContext, MatchingMode, VisitedHandlingMode};
+use selectors::NthIndexCache;
 use smallvec::SmallVec;
 use stylesheets::origin::{Origin, OriginSet};
+use {Atom, WeakAtom};
 
 /// The collector implementation.
 struct Collector<'a, 'b: 'a, 'selectors: 'a, E>

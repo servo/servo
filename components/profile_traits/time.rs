@@ -4,9 +4,9 @@
 
 extern crate time as std_time;
 
+use self::std_time::precise_time_ns;
 use crate::energy::read_energy_uj;
 use ipc_channel::ipc::IpcSender;
-use self::std_time::precise_time_ns;
 use servo_config::opts;
 use signpost;
 

@@ -4,10 +4,12 @@
 
 use crate::BluetoothManager;
 use device::bluetooth::{BluetoothAdapter, BluetoothDevice};
-use device::bluetooth::{BluetoothGATTCharacteristic, BluetoothGATTDescriptor, BluetoothGATTService};
+use device::bluetooth::{
+    BluetoothGATTCharacteristic, BluetoothGATTDescriptor, BluetoothGATTService,
+};
 use std::borrow::ToOwned;
 use std::cell::RefCell;
-use std::collections::{HashSet, HashMap};
+use std::collections::{HashMap, HashSet};
 use std::error::Error;
 use std::string::String;
 use uuid::Uuid;
@@ -294,14 +296,16 @@ fn create_generic_access_service(
         NUMBER_OF_DIGITALS_UUID.to_owned(),
         vec![49],
     )?;
-    number_of_digitals_descriptor_1.set_flags(vec![READ_FLAG.to_string(), WRITE_FLAG.to_string()])?;
+    number_of_digitals_descriptor_1
+        .set_flags(vec![READ_FLAG.to_string(), WRITE_FLAG.to_string()])?;
 
     let number_of_digitals_descriptor_2 = create_descriptor_with_value(
         &device_name_characteristic,
         NUMBER_OF_DIGITALS_UUID.to_owned(),
         vec![50],
     )?;
-    number_of_digitals_descriptor_2.set_flags(vec![READ_FLAG.to_string(), WRITE_FLAG.to_string()])?;
+    number_of_digitals_descriptor_2
+        .set_flags(vec![READ_FLAG.to_string(), WRITE_FLAG.to_string()])?;
 
     // Characteristic User Description Descriptor
     let _characteristic_user_description = create_descriptor_with_value(

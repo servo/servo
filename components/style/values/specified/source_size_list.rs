@@ -73,10 +73,12 @@ impl SourceSizeList {
                     Some(ref v) => v.to_computed_value(context),
                     None => Length::NoCalc(NoCalcLength::ViewportPercentage(
                         ViewportPercentageLength::Vw(100.),
-                    )).to_computed_value(context),
+                    ))
+                    .to_computed_value(context),
                 },
             }
-        }).into()
+        })
+        .into()
     }
 }
 

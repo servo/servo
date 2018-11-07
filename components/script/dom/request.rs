@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use crate::body::{BodyOperations, BodyType, consume_body};
+use crate::body::{consume_body, BodyOperations, BodyType};
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::HeadersBinding::{HeadersInit, HeadersMethods};
 use crate::dom::bindings::codegen::Bindings::RequestBinding;
@@ -16,7 +16,7 @@ use crate::dom::bindings::codegen::Bindings::RequestBinding::RequestMethods;
 use crate::dom::bindings::codegen::Bindings::RequestBinding::RequestMode;
 use crate::dom::bindings::codegen::Bindings::RequestBinding::RequestRedirect;
 use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
+use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::{ByteString, DOMString, USVString};
 use crate::dom::bindings::trace::RootedTraceableBox;
@@ -25,10 +25,8 @@ use crate::dom::headers::{Guard, Headers};
 use crate::dom::promise::Promise;
 use crate::dom::xmlhttprequest::Extractable;
 use dom_struct::dom_struct;
-use http::Method as HttpMethod;
 use http::method::InvalidMethod;
-use net_traits::ReferrerPolicy as MsgReferrerPolicy;
-use net_traits::request::{Origin, Window};
+use http::Method as HttpMethod;
 use net_traits::request::CacheMode as NetTraitsRequestCache;
 use net_traits::request::CredentialsMode as NetTraitsRequestCredentials;
 use net_traits::request::Destination as NetTraitsRequestDestination;
@@ -36,6 +34,8 @@ use net_traits::request::RedirectMode as NetTraitsRequestRedirect;
 use net_traits::request::Referrer as NetTraitsRequestReferrer;
 use net_traits::request::Request as NetTraitsRequest;
 use net_traits::request::RequestMode as NetTraitsRequestMode;
+use net_traits::request::{Origin, Window};
+use net_traits::ReferrerPolicy as MsgReferrerPolicy;
 use servo_url::ServoUrl;
 use std::cell::{Cell, Ref};
 use std::rc::Rc;
@@ -285,7 +285,8 @@ impl Request {
             }
             // Step 25.2
             let method = match init_method.as_str() {
-                Some(s) => normalize_method(s).map_err(|e| Error::Type(format!("Method is not valid: {:?}", e)))?,
+                Some(s) => normalize_method(s)
+                    .map_err(|e| Error::Type(format!("Method is not valid: {:?}", e)))?,
                 None => return Err(Error::Type("Method is not a valid UTF8".to_string())),
             };
             // Step 25.3
@@ -375,10 +376,16 @@ impl Request {
                 let req = r.request.borrow();
                 let req_method = &req.method;
                 match *req_method {
-                    HttpMethod::GET => return Err(Error::Type(
-                        "Init's body is non-null, and request method is GET".to_string())),
-                    HttpMethod::HEAD => return Err(Error::Type(
-                        "Init's body is non-null, and request method is HEAD".to_string())),
+                    HttpMethod::GET => {
+                        return Err(Error::Type(
+                            "Init's body is non-null, and request method is GET".to_string(),
+                        ))
+                    },
+                    HttpMethod::HEAD => {
+                        return Err(Error::Type(
+                            "Init's body is non-null, and request method is HEAD".to_string(),
+                        ))
+                    },
                     _ => {},
                 }
             }
@@ -500,9 +507,7 @@ fn is_forbidden_method(m: &ByteString) -> bool {
 
 // https://fetch.spec.whatwg.org/#cors-safelisted-method
 fn is_cors_safelisted_method(m: &HttpMethod) -> bool {
-    m == &HttpMethod::GET ||
-        m == &HttpMethod::HEAD ||
-        m == &HttpMethod::POST
+    m == &HttpMethod::GET || m == &HttpMethod::HEAD || m == &HttpMethod::POST
 }
 
 // https://url.spec.whatwg.org/#include-credentials

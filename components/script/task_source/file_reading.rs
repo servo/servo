@@ -3,8 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use crate::dom::domexception::DOMErrorName;
-use crate::dom::filereader::{FileReader, TrustedFileReader, GenerationId, ReadMetaData};
-use crate::script_runtime::{CommonScriptMsg, ScriptThreadEventCategory, ScriptChan};
+use crate::dom::filereader::{FileReader, GenerationId, ReadMetaData, TrustedFileReader};
+use crate::script_runtime::{CommonScriptMsg, ScriptChan, ScriptThreadEventCategory};
 use crate::task::{TaskCanceller, TaskOnce};
 use crate::task_source::{TaskSource, TaskSourceName};
 use msg::constellation_msg::PipelineId;

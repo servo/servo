@@ -4,7 +4,7 @@
 
 extern crate servo_config;
 
-use servo_config::opts::{parse_url_or_filename, parse_pref_from_command_line};
+use servo_config::opts::{parse_pref_from_command_line, parse_url_or_filename};
 use servo_config::prefs::{PrefValue, PREFS};
 use std::path::Path;
 

@@ -7,9 +7,9 @@
 
 use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
 use crate::protocol::JsonPacketStream;
-use devtools_traits::{ComputedNodeLayout, DevtoolScriptControlMsg, NodeInfo};
 use devtools_traits::DevtoolScriptControlMsg::{GetChildren, GetDocumentElement, GetRootNode};
 use devtools_traits::DevtoolScriptControlMsg::{GetLayout, ModifyAttribute};
+use devtools_traits::{ComputedNodeLayout, DevtoolScriptControlMsg, NodeInfo};
 use ipc_channel::ipc::{self, IpcSender};
 use msg::constellation_msg::PipelineId;
 use serde_json::{self, Map, Value};
@@ -111,14 +111,16 @@ impl Actor for NodeActor {
                     .iter()
                     .map(|json_mod| {
                         serde_json::from_str(&serde_json::to_string(json_mod).unwrap()).unwrap()
-                    }).collect();
+                    })
+                    .collect();
 
                 self.script_chan
                     .send(ModifyAttribute(
                         self.pipeline,
                         registry.actor_to_script(target.to_owned()),
                         modifications,
-                    )).unwrap();
+                    ))
+                    .unwrap();
                 let reply = ModifyAttributeReply { from: self.name() };
                 stream.write_json_packet(&reply);
                 ActorMessageStatus::Processed
@@ -228,7 +230,8 @@ impl NodeInfoToProtocol for NodeInfo {
                     namespace: attr.namespace,
                     name: attr.name,
                     value: attr.value,
-                }).collect(),
+                })
+                .collect(),
 
             pseudoClassLocks: vec![], //TODO get this data from script
 
@@ -324,7 +327,8 @@ impl Actor for WalkerActor {
                         self.pipeline,
                         registry.actor_to_script(target.to_owned()),
                         tx,
-                    )).unwrap();
+                    ))
+                    .unwrap();
                 let children = rx.recv().unwrap().ok_or(())?;
 
                 let msg = ChildrenReply {
@@ -334,7 +338,8 @@ impl Actor for WalkerActor {
                         .into_iter()
                         .map(|child| {
                             child.encode(registry, true, self.script_chan.clone(), self.pipeline)
-                        }).collect(),
+                        })
+                        .collect(),
                     from: self.name(),
                 };
                 stream.write_json_packet(&msg);
@@ -498,7 +503,8 @@ impl Actor for PageStyleActor {
                         self.pipeline,
                         registry.actor_to_script(target.to_owned()),
                         tx,
-                    )).unwrap();
+                    ))
+                    .unwrap();
                 let ComputedNodeLayout {
                     display,
                     position,

@@ -8,16 +8,20 @@ use cssparser::{Parser, ParserInput};
 use style::context::QuirksMode;
 use style::parser::ParserContext;
 use style::stylesheets::{CssRuleType, Origin};
-use style_traits::{ParsingMode, ParseError};
+use style_traits::{ParseError, ParsingMode};
 
 fn parse<T, F>(f: F, s: &'static str) -> Result<T, ParseError<'static>>
-where F: for<'t> Fn(&ParserContext, &mut Parser<'static, 't>) -> Result<T, ParseError<'static>> {
+where
+    F: for<'t> Fn(&ParserContext, &mut Parser<'static, 't>) -> Result<T, ParseError<'static>>,
+{
     let mut input = ParserInput::new(s);
     parse_input(f, &mut input)
 }
 
 fn parse_input<'i: 't, 't, T, F>(f: F, input: &'t mut ParserInput<'i>) -> Result<T, ParseError<'i>>
-where F: Fn(&ParserContext, &mut Parser<'i, 't>) -> Result<T, ParseError<'i>> {
+where
+    F: Fn(&ParserContext, &mut Parser<'i, 't>) -> Result<T, ParseError<'i>>,
+{
     let url = ::servo_url::ServoUrl::parse("http://localhost").unwrap();
     let context = ParserContext::new(
         Origin::Author,
@@ -33,14 +37,24 @@ where F: Fn(&ParserContext, &mut Parser<'i, 't>) -> Result<T, ParseError<'i>> {
 }
 
 fn parse_entirely<T, F>(f: F, s: &'static str) -> Result<T, ParseError<'static>>
-where F: for<'t> Fn(&ParserContext, &mut Parser<'static, 't>) -> Result<T, ParseError<'static>> {
+where
+    F: for<'t> Fn(&ParserContext, &mut Parser<'static, 't>) -> Result<T, ParseError<'static>>,
+{
     let mut input = ParserInput::new(s);
     parse_entirely_input(f, &mut input)
 }
 
-fn parse_entirely_input<'i: 't, 't, T, F>(f: F, input: &'t mut ParserInput<'i>) -> Result<T, ParseError<'i>>
-where F: Fn(&ParserContext, &mut Parser<'i, 't>) -> Result<T, ParseError<'i>> {
-    parse_input(|context, parser| parser.parse_entirely(|p| f(context, p)), input)
+fn parse_entirely_input<'i: 't, 't, T, F>(
+    f: F,
+    input: &'t mut ParserInput<'i>,
+) -> Result<T, ParseError<'i>>
+where
+    F: Fn(&ParserContext, &mut Parser<'i, 't>) -> Result<T, ParseError<'i>>,
+{
+    parse_input(
+        |context, parser| parser.parse_entirely(|p| f(context, p)),
+        input,
+    )
 }
 
 // This is a macro so that the file/line information
@@ -51,24 +65,31 @@ macro_rules! assert_roundtrip_with_context {
     };
     ($fun:expr, $input:expr, $output:expr) => {{
         let mut input = ::cssparser::ParserInput::new($input);
-        let serialized = super::parse_input(|context, i| {
-            let parsed = $fun(context, i)
-                         .expect(&format!("Failed to parse {}", $input));
-            let serialized = ToCss::to_css_string(&parsed);
-            assert_eq!(serialized, $output);
-            Ok(serialized)
-        }, &mut input).unwrap();
+        let serialized = super::parse_input(
+            |context, i| {
+                let parsed = $fun(context, i).expect(&format!("Failed to parse {}", $input));
+                let serialized = ToCss::to_css_string(&parsed);
+                assert_eq!(serialized, $output);
+                Ok(serialized)
+            },
+            &mut input,
+        )
+        .unwrap();
 
         let mut input = ::cssparser::ParserInput::new(&serialized);
-        let unwrapped = super::parse_input(|context, i| {
-            let re_parsed = $fun(context, i)
-                            .expect(&format!("Failed to parse serialization {}", $input));
-            let re_serialized = ToCss::to_css_string(&re_parsed);
-            assert_eq!(serialized, re_serialized);
-            Ok(())
-        }, &mut input).unwrap();
+        let unwrapped = super::parse_input(
+            |context, i| {
+                let re_parsed =
+                    $fun(context, i).expect(&format!("Failed to parse serialization {}", $input));
+                let re_serialized = ToCss::to_css_string(&re_parsed);
+                assert_eq!(serialized, re_serialized);
+                Ok(())
+            },
+            &mut input,
+        )
+        .unwrap();
         unwrapped
-    }}
+    }};
 }
 
 macro_rules! assert_roundtrip {
@@ -78,34 +99,37 @@ macro_rules! assert_roundtrip {
     ($fun:expr, $input:expr, $output:expr) => {
         let mut input = ParserInput::new($input);
         let mut parser = Parser::new(&mut input);
-        let parsed = $fun(&mut parser)
-                     .expect(&format!("Failed to parse {}", $input));
+        let parsed = $fun(&mut parser).expect(&format!("Failed to parse {}", $input));
         let serialized = ToCss::to_css_string(&parsed);
         assert_eq!(serialized, $output);
 
         let mut input = ParserInput::new(&serialized);
         let mut parser = Parser::new(&mut input);
-        let re_parsed = $fun(&mut parser)
-                        .expect(&format!("Failed to parse serialization {}", $input));
+        let re_parsed =
+            $fun(&mut parser).expect(&format!("Failed to parse serialization {}", $input));
         let re_serialized = ToCss::to_css_string(&re_parsed);
         assert_eq!(serialized, re_serialized)
-    }
+    };
 }
 
 macro_rules! assert_parser_exhausted {
     ($fun:expr, $string:expr, $should_exhausted:expr) => {{
-        parse(|context, input| {
-            let parsed = $fun(context, input);
-            assert_eq!(parsed.is_ok(), true);
-            assert_eq!(input.is_exhausted(), $should_exhausted);
-            Ok(())
-        }, $string).unwrap()
-    }}
+        parse(
+            |context, input| {
+                let parsed = $fun(context, input);
+                assert_eq!(parsed.is_ok(), true);
+                assert_eq!(input.is_exhausted(), $should_exhausted);
+                Ok(())
+            },
+            $string,
+        )
+        .unwrap()
+    }};
 }
 
 macro_rules! parse_longhand {
     ($name:ident, $s:expr) => {
-         parse($name::parse, $s).unwrap()
+        parse($name::parse, $s).unwrap()
     };
 }
 

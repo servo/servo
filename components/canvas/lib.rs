@@ -12,7 +12,8 @@ extern crate euclid;
 extern crate fnv;
 extern crate gleam;
 extern crate ipc_channel;
-#[macro_use] extern crate log;
+#[macro_use]
+extern crate log;
 extern crate num_traits;
 extern crate offscreen_gl_context;
 extern crate pixels;

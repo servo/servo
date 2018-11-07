@@ -19,14 +19,14 @@ extern crate uuid;
 
 pub mod origin;
 
-pub use crate::origin::{OpaqueOrigin, ImmutableOrigin, MutableOrigin};
+pub use crate::origin::{ImmutableOrigin, MutableOrigin, OpaqueOrigin};
 
 use std::fmt;
 use std::net::IpAddr;
-use std::ops::{Range, RangeFrom, RangeTo, RangeFull, Index};
+use std::ops::{Index, Range, RangeFrom, RangeFull, RangeTo};
 use std::path::Path;
 use std::sync::Arc;
-use url::{Url, Position};
+use url::{Position, Url};
 
 pub use url::Host;
 

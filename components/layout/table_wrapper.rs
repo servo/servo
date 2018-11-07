@@ -12,13 +12,17 @@
 //! Hereafter this document is referred to as INTRINSIC.
 
 use app_units::Au;
-use crate::block::{AbsoluteNonReplaced, BlockFlow, FloatNonReplaced, ISizeAndMarginsComputer, ISizeConstraintInput};
+use crate::block::{
+    AbsoluteNonReplaced, BlockFlow, FloatNonReplaced, ISizeAndMarginsComputer, ISizeConstraintInput,
+};
 use crate::block::{ISizeConstraintSolution, MarginsMayCollapseFlag};
 use crate::context::LayoutContext;
-use crate::display_list::{BlockFlowDisplayListBuilding, DisplayListBuildState, StackingContextCollectionFlags};
 use crate::display_list::StackingContextCollectionState;
+use crate::display_list::{
+    BlockFlowDisplayListBuilding, DisplayListBuildState, StackingContextCollectionFlags,
+};
 use crate::floats::FloatKind;
-use crate::flow::{Flow, FlowClass, ImmutableFlowUtils, FlowFlags, OpaqueFlow};
+use crate::flow::{Flow, FlowClass, FlowFlags, ImmutableFlowUtils, OpaqueFlow};
 use crate::fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
 use crate::model::MaybeAuto;
 use crate::table::{ColumnComputedInlineSize, ColumnIntrinsicInlineSize};
@@ -31,8 +35,8 @@ use style::computed_values::{position, table_layout};
 use style::context::SharedStyleContext;
 use style::logical_geometry::{LogicalRect, LogicalSize};
 use style::properties::ComputedValues;
-use style::values::CSSFloat;
 use style::values::computed::LengthOrPercentageOrAuto;
+use style::values::CSSFloat;
 
 #[derive(Clone, Copy, Debug, Serialize)]
 pub enum TableLayout {
@@ -143,7 +147,8 @@ impl TableWrapperFlow {
                 );
                 total_guess = &total_guess + &guess;
                 guess
-            }).collect();
+            })
+            .collect();
 
         // Assign inline sizes.
         let selection =
@@ -385,7 +390,8 @@ impl Flow for TableWrapperFlow {
                     size: column_intrinsic_inline_size.minimum_length,
                     percentage: column_intrinsic_inline_size.percentage,
                 },
-            ).collect::<Vec<_>>();
+            )
+            .collect::<Vec<_>>();
 
         // Our inline-size was set to the inline-size of the containing block by the flow's parent.
         // Now compute the real value.
@@ -753,17 +759,17 @@ impl ExcessInlineSizeDistributionInfo {
         if !column_intrinsic_inline_size.constrained &&
             column_intrinsic_inline_size.percentage == 0.0
         {
-            self.preferred_inline_size_of_nonconstrained_columns_with_no_percentage =
-                self.preferred_inline_size_of_nonconstrained_columns_with_no_percentage +
-                    column_intrinsic_inline_size.preferred;
+            self.preferred_inline_size_of_nonconstrained_columns_with_no_percentage = self
+                .preferred_inline_size_of_nonconstrained_columns_with_no_percentage +
+                column_intrinsic_inline_size.preferred;
             self.count_of_nonconstrained_columns_with_no_percentage += 1
         }
         if column_intrinsic_inline_size.constrained &&
             column_intrinsic_inline_size.percentage == 0.0
         {
-            self.preferred_inline_size_of_constrained_columns_with_no_percentage =
-                self.preferred_inline_size_of_constrained_columns_with_no_percentage +
-                    column_intrinsic_inline_size.preferred
+            self.preferred_inline_size_of_constrained_columns_with_no_percentage = self
+                .preferred_inline_size_of_constrained_columns_with_no_percentage +
+                column_intrinsic_inline_size.preferred
         }
         self.total_percentage += column_intrinsic_inline_size.percentage;
         self.column_count += 1

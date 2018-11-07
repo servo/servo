@@ -125,7 +125,7 @@ fn test_first_contentful_paint_setter() {
             image_rendering: ImageRendering::Auto,
             alpha_type: AlphaType::PremultipliedAlpha,
             color: ColorF::WHITE,
-        }
+        },
     ));
     let display_list = DisplayList {
         list: vec![image],

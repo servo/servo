@@ -9,22 +9,22 @@ use parser::{Parse, ParserContext};
 use properties::longhands::writing_mode::computed_value::T as SpecifiedWritingMode;
 use selectors::parser::SelectorParseErrorKind;
 use std::fmt::{self, Write};
+use style_traits::values::SequenceWriter;
 use style_traits::{CssWriter, KeywordsCollectFn, ParseError};
 use style_traits::{SpecifiedValueInfo, StyleParseErrorKind, ToCss};
-use style_traits::values::SequenceWriter;
 use unicode_segmentation::UnicodeSegmentation;
-use values::computed::{Context, ToComputedValue};
 use values::computed::text::LineHeight as ComputedLineHeight;
 use values::computed::text::TextEmphasisKeywordValue as ComputedTextEmphasisKeywordValue;
 use values::computed::text::TextEmphasisStyle as ComputedTextEmphasisStyle;
 use values::computed::text::TextOverflow as ComputedTextOverflow;
+use values::computed::{Context, ToComputedValue};
 use values::generics::text::InitialLetter as GenericInitialLetter;
 use values::generics::text::LineHeight as GenericLineHeight;
 use values::generics::text::MozTabSize as GenericMozTabSize;
 use values::generics::text::Spacing;
-use values::specified::{AllowQuirks, Integer, NonNegativeNumber, Number};
 use values::specified::length::{FontRelativeLength, Length, LengthOrPercentage, NoCalcLength};
 use values::specified::length::{NonNegativeLength, NonNegativeLengthOrPercentage};
+use values::specified::{AllowQuirks, Integer, NonNegativeNumber, Number};
 
 /// A specified type for the `initial-letter` property.
 pub type InitialLetter = GenericInitialLetter<Number, Integer>;
@@ -613,30 +613,40 @@ impl TextEmphasisShapeKeyword {
     pub fn char(&self, fill: TextEmphasisFillMode) -> &str {
         let fill = fill == TextEmphasisFillMode::Filled;
         match *self {
-            TextEmphasisShapeKeyword::Dot => if fill {
-                "\u{2022}"
-            } else {
-                "\u{25e6}"
+            TextEmphasisShapeKeyword::Dot => {
+                if fill {
+                    "\u{2022}"
+                } else {
+                    "\u{25e6}"
+                }
             },
-            TextEmphasisShapeKeyword::Circle => if fill {
-                "\u{25cf}"
-            } else {
-                "\u{25cb}"
+            TextEmphasisShapeKeyword::Circle => {
+                if fill {
+                    "\u{25cf}"
+                } else {
+                    "\u{25cb}"
+                }
             },
-            TextEmphasisShapeKeyword::DoubleCircle => if fill {
-                "\u{25c9}"
-            } else {
-                "\u{25ce}"
+            TextEmphasisShapeKeyword::DoubleCircle => {
+                if fill {
+                    "\u{25c9}"
+                } else {
+                    "\u{25ce}"
+                }
             },
-            TextEmphasisShapeKeyword::Triangle => if fill {
-                "\u{25b2}"
-            } else {
-                "\u{25b3}"
+            TextEmphasisShapeKeyword::Triangle => {
+                if fill {
+                    "\u{25b2}"
+                } else {
+                    "\u{25b3}"
+                }
             },
-            TextEmphasisShapeKeyword::Sesame => if fill {
-                "\u{fe45}"
-            } else {
-                "\u{fe46}"
+            TextEmphasisShapeKeyword::Sesame => {
+                if fill {
+                    "\u{fe45}"
+                } else {
+                    "\u{fe46}"
+                }
             },
         }
     }

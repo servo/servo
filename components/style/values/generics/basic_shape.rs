@@ -307,7 +307,8 @@ where
                     this.0.animate(&other.0, procedure)?,
                     this.1.animate(&other.1, procedure)?,
                 ))
-            }).collect::<Result<Vec<_>, _>>()?;
+            })
+            .collect::<Result<Vec<_>, _>>()?;
         Ok(Polygon {
             fill: self.fill,
             coordinates,
@@ -333,7 +334,8 @@ where
                 let d1 = this.0.compute_squared_distance(&other.0)?;
                 let d2 = this.1.compute_squared_distance(&other.1)?;
                 Ok(d1 + d2)
-            }).sum()
+            })
+            .sum()
     }
 }
 

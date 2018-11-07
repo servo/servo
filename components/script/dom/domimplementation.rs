@@ -5,16 +5,18 @@
 use crate::document_loader::DocumentLoader;
 use crate::dom::bindings::codegen::Bindings::DOMImplementationBinding;
 use crate::dom::bindings::codegen::Bindings::DOMImplementationBinding::DOMImplementationMethods;
-use crate::dom::bindings::codegen::Bindings::DocumentBinding::{DocumentMethods, ElementCreationOptions};
+use crate::dom::bindings::codegen::Bindings::DocumentBinding::{
+    DocumentMethods, ElementCreationOptions,
+};
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
+use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::xmlname::{namespace_from_domstring, validate_qualified_name};
-use crate::dom::document::{Document, HasBrowsingContext, IsHTMLDocument};
 use crate::dom::document::DocumentSource;
+use crate::dom::document::{Document, HasBrowsingContext, IsHTMLDocument};
 use crate::dom::documenttype::DocumentType;
 use crate::dom::htmlbodyelement::HTMLBodyElement;
 use crate::dom::htmlheadelement::HTMLHeadElement;

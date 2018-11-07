@@ -32,8 +32,8 @@
 
 use atomic_refcell::{AtomicRef, AtomicRefMut};
 use crate::data::{LayoutData, LayoutDataFlags, StyleAndLayoutData};
-use script_layout_interface::wrapper_traits::{ThreadSafeLayoutElement, ThreadSafeLayoutNode};
 use script_layout_interface::wrapper_traits::GetLayoutData;
+use script_layout_interface::wrapper_traits::{ThreadSafeLayoutElement, ThreadSafeLayoutNode};
 use style::dom::{NodeInfo, TNode};
 use style::selector_parser::RestyleDamage;
 use style::values::computed::counters::ContentItem;

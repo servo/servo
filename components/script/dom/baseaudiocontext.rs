@@ -12,8 +12,10 @@ use crate::dom::bindings::callback::ExceptionHandling;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::AnalyserNodeBinding::AnalyserOptions;
 use crate::dom::bindings::codegen::Bindings::AudioBufferSourceNodeBinding::AudioBufferSourceOptions;
-use crate::dom::bindings::codegen::Bindings::AudioNodeBinding::{ChannelCountMode, ChannelInterpretation};
 use crate::dom::bindings::codegen::Bindings::AudioNodeBinding::AudioNodeOptions;
+use crate::dom::bindings::codegen::Bindings::AudioNodeBinding::{
+    ChannelCountMode, ChannelInterpretation,
+};
 use crate::dom::bindings::codegen::Bindings::BaseAudioContextBinding::AudioContextState;
 use crate::dom::bindings::codegen::Bindings::BaseAudioContextBinding::BaseAudioContextMethods;
 use crate::dom::bindings::codegen::Bindings::BaseAudioContextBinding::DecodeErrorCallback;
@@ -42,11 +44,11 @@ use crate::task_source::{TaskSource, TaskSourceName};
 use dom_struct::dom_struct;
 use js::rust::CustomAutoRooterGuard;
 use js::typedarray::ArrayBuffer;
-use servo_media::{Backend, ServoMedia};
 use servo_media::audio::context::{AudioContext, AudioContextOptions, ProcessingState};
 use servo_media::audio::context::{OfflineAudioContextOptions, RealTimeAudioContextOptions};
 use servo_media::audio::decoder::AudioDecoderCallbacks;
 use servo_media::audio::graph::NodeId;
+use servo_media::{Backend, ServoMedia};
 use std::cell::Cell;
 use std::collections::{HashMap, VecDeque};
 use std::mem;
@@ -348,7 +350,11 @@ impl BaseAudioContextMethods for BaseAudioContext {
 
     /// https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-createbiquadfilter
     fn CreateBiquadFilter(&self) -> Fallible<DomRoot<BiquadFilterNode>> {
-        BiquadFilterNode::new(&self.global().as_window(), &self, &BiquadFilterOptions::empty())
+        BiquadFilterNode::new(
+            &self.global().as_window(),
+            &self,
+            &BiquadFilterOptions::empty(),
+        )
     }
 
     /// https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-createchannelmerger
@@ -432,10 +438,12 @@ impl BaseAudioContextMethods for BaseAudioContext {
                         .lock()
                         .unwrap()
                         .resize(channel_count as usize, Vec::new());
-                }).progress(move |buffer, channel| {
+                })
+                .progress(move |buffer, channel| {
                     let mut decoded_audio = decoded_audio_.lock().unwrap();
                     decoded_audio[(channel - 1) as usize].extend_from_slice((*buffer).as_ref());
-                }).eos(move || {
+                })
+                .eos(move || {
                     let _ = task_source.queue_with_canceller(
                         task!(audio_decode_eos: move || {
                             let this = this.root();
@@ -461,7 +469,8 @@ impl BaseAudioContextMethods for BaseAudioContext {
                         }),
                         &canceller,
                     );
-                }).error(move |error| {
+                })
+                .error(move |error| {
                     let _ = task_source_.queue_with_canceller(
                         task!(audio_decode_eos: move || {
                         let this = this_.root();
@@ -478,7 +487,8 @@ impl BaseAudioContextMethods for BaseAudioContext {
                     }),
                         &canceller_,
                     );
-                }).build();
+                })
+                .build();
             self.audio_context_impl
                 .decode_audio_data(audio_data, callbacks);
         } else {

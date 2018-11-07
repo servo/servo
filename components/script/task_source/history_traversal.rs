@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use crate::script_runtime::{ScriptChan, CommonScriptMsg};
+use crate::script_runtime::{CommonScriptMsg, ScriptChan};
 use crate::script_thread::MainThreadScriptMsg;
 use servo_channel::Sender;
 

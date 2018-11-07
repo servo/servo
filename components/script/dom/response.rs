@@ -2,26 +2,28 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use crate::body::{BodyOperations, BodyType, consume_body, consume_body_with_promise};
+use crate::body::{consume_body, consume_body_with_promise, BodyOperations, BodyType};
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::HeadersBinding::{HeadersInit, HeadersMethods};
 use crate::dom::bindings::codegen::Bindings::ResponseBinding;
-use crate::dom::bindings::codegen::Bindings::ResponseBinding::{ResponseMethods, ResponseType as DOMResponseType};
+use crate::dom::bindings::codegen::Bindings::ResponseBinding::{
+    ResponseMethods, ResponseType as DOMResponseType,
+};
 use crate::dom::bindings::codegen::Bindings::XMLHttpRequestBinding::BodyInit;
 use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
+use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::{ByteString, USVString};
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::headers::{Headers, Guard};
-use crate::dom::headers::{is_vchar, is_obs_text};
+use crate::dom::headers::{is_obs_text, is_vchar};
+use crate::dom::headers::{Guard, Headers};
 use crate::dom::promise::Promise;
 use crate::dom::xmlhttprequest::Extractable;
 use dom_struct::dom_struct;
 use http::header::HeaderMap as HyperHeaders;
 use hyper::StatusCode;
 use hyper_serde::Serde;
-use net_traits::response::{ResponseBody as NetTraitsResponseBody};
+use net_traits::response::ResponseBody as NetTraitsResponseBody;
 use servo_url::ServoUrl;
 use std::cell::{Cell, Ref};
 use std::mem;

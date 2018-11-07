@@ -4,14 +4,14 @@
 
 //! Animation implementations for various SVG-related types.
 
-use properties::animated_properties::ListAnimation;
 use super::{Animate, Procedure, ToAnimatedZero};
+use properties::animated_properties::ListAnimation;
 use values::animated::color::Color as AnimatedColor;
-use values::computed::{Number, NumberOrPercentage, LengthOrPercentage};
 use values::computed::url::ComputedUrl;
+use values::computed::{LengthOrPercentage, Number, NumberOrPercentage};
 use values::distance::{ComputeSquaredDistance, SquaredDistance};
-use values::generics::svg::{SVGLength,  SvgLengthOrPercentageOrNumber, SVGPaint};
-use values::generics::svg::{SVGStrokeDashArray, SVGOpacity};
+use values::generics::svg::{SVGLength, SVGPaint, SvgLengthOrPercentageOrNumber};
+use values::generics::svg::{SVGOpacity, SVGStrokeDashArray};
 
 /// Animated SVGPaint.
 pub type IntermediateSVGPaint = SVGPaint<AnimatedColor, ComputedUrl>;
@@ -32,13 +32,11 @@ fn to_number_or_percentage(
     value: &SvgLengthOrPercentageOrNumber<LengthOrPercentage, Number>,
 ) -> Result<NumberOrPercentage, ()> {
     Ok(match *value {
-        SvgLengthOrPercentageOrNumber::LengthOrPercentage(ref l) => {
-            match *l {
-                LengthOrPercentage::Length(ref l) => NumberOrPercentage::Number(l.px()),
-                LengthOrPercentage::Percentage(ref p) => NumberOrPercentage::Percentage(*p),
-                LengthOrPercentage::Calc(..) => return Err(()),
-            }
-        }
+        SvgLengthOrPercentageOrNumber::LengthOrPercentage(ref l) => match *l {
+            LengthOrPercentage::Length(ref l) => NumberOrPercentage::Number(l.px()),
+            LengthOrPercentage::Percentage(ref p) => NumberOrPercentage::Percentage(*p),
+            LengthOrPercentage::Calc(..) => return Err(()),
+        },
         SvgLengthOrPercentageOrNumber::Number(ref n) => NumberOrPercentage::Number(*n),
     })
 }
@@ -50,22 +48,15 @@ impl Animate for SvgLengthOrPercentageOrNumber<LengthOrPercentage, Number> {
         let other = to_number_or_percentage(other)?;
 
         match (this, other) {
-            (
-                NumberOrPercentage::Number(ref this),
-                NumberOrPercentage::Number(ref other),
-            ) => {
-                Ok(SvgLengthOrPercentageOrNumber::Number(
-                    this.animate(other, procedure)?
-                ))
-            },
+            (NumberOrPercentage::Number(ref this), NumberOrPercentage::Number(ref other)) => Ok(
+                SvgLengthOrPercentageOrNumber::Number(this.animate(other, procedure)?),
+            ),
             (
                 NumberOrPercentage::Percentage(ref this),
                 NumberOrPercentage::Percentage(ref other),
-            ) => {
-                Ok(SvgLengthOrPercentageOrNumber::LengthOrPercentage(
-                    LengthOrPercentage::Percentage(this.animate(other, procedure)?)
-                ))
-            },
+            ) => Ok(SvgLengthOrPercentageOrNumber::LengthOrPercentage(
+                LengthOrPercentage::Percentage(this.animate(other, procedure)?),
+            )),
             _ => Err(()),
         }
     }
@@ -73,8 +64,7 @@ impl Animate for SvgLengthOrPercentageOrNumber<LengthOrPercentage, Number> {
 
 impl ComputeSquaredDistance for SvgLengthOrPercentageOrNumber<LengthOrPercentage, Number> {
     fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {
-        to_number_or_percentage(self)?
-            .compute_squared_distance(&to_number_or_percentage(other)?)
+        to_number_or_percentage(self)?.compute_squared_distance(&to_number_or_percentage(other)?)
     }
 }
 
@@ -105,9 +95,9 @@ where
             return Err(());
         }
         match (self, other) {
-            (&SVGStrokeDashArray::Values(ref this), &SVGStrokeDashArray::Values(ref other)) => {
-                Ok(SVGStrokeDashArray::Values(this.animate_repeatable_list(other, procedure)?))
-            },
+            (&SVGStrokeDashArray::Values(ref this), &SVGStrokeDashArray::Values(ref other)) => Ok(
+                SVGStrokeDashArray::Values(this.animate_repeatable_list(other, procedure)?),
+            ),
             _ => Err(()),
         }
     }
@@ -135,11 +125,12 @@ where
     #[inline]
     fn to_animated_zero(&self) -> Result<Self, ()> {
         match *self {
-            SVGStrokeDashArray::Values(ref values) => {
-                Ok(SVGStrokeDashArray::Values(
-                    values.iter().map(ToAnimatedZero::to_animated_zero).collect::<Result<Vec<_>, _>>()?,
-                ))
-            }
+            SVGStrokeDashArray::Values(ref values) => Ok(SVGStrokeDashArray::Values(
+                values
+                    .iter()
+                    .map(ToAnimatedZero::to_animated_zero)
+                    .collect::<Result<Vec<_>, _>>()?,
+            )),
             SVGStrokeDashArray::ContextValue => Ok(SVGStrokeDashArray::ContextValue),
         }
     }

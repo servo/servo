@@ -16,13 +16,13 @@ use std::fmt::{self, Write};
 use std::ops::Range;
 use str::HTML_SPACE_CHARACTERS;
 use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
-use values::{Either, None_};
 use values::computed::{CalcLengthOrPercentage, LengthOrPercentage as ComputedLengthOrPercentage};
 use values::computed::{Context, Percentage, ToComputedValue};
 use values::generics::position::Position as GenericPosition;
 use values::generics::position::ZIndex as GenericZIndex;
-use values::specified::{AllowQuirks, Integer, LengthOrPercentage};
 use values::specified::transform::OriginComponent;
+use values::specified::{AllowQuirks, Integer, LengthOrPercentage};
+use values::{Either, None_};
 
 /// The specified value of a CSS `<position>`
 pub type Position = GenericPosition<HorizontalPosition, VerticalPosition>;

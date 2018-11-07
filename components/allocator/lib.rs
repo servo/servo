@@ -23,38 +23,30 @@ mod platform {
 
     /// Memory allocation APIs compatible with libc
     pub mod libc_compat {
-        pub use super::ffi::{malloc, realloc, free};
+        pub use super::ffi::{free, malloc, realloc};
     }
 
     pub struct Allocator;
 
     // The minimum alignment guaranteed by the architecture. This value is used to
     // add fast paths for low alignment values.
-    #[cfg(
-        all(
-            any(
-                target_arch = "arm",
-                target_arch = "mips",
-                target_arch = "mipsel",
-                target_arch = "powerpc"
-            )
-        )
-    )]
+    #[cfg(all(any(
+        target_arch = "arm",
+        target_arch = "mips",
+        target_arch = "mipsel",
+        target_arch = "powerpc"
+    )))]
     const MIN_ALIGN: usize = 8;
-    #[cfg(
-        all(
-            any(
-                target_arch = "x86",
-                target_arch = "x86_64",
-                target_arch = "aarch64",
-                target_arch = "powerpc64",
-                target_arch = "powerpc64le",
-                target_arch = "mips64",
-                target_arch = "s390x",
-                target_arch = "sparc64"
-            )
-        )
-    )]
+    #[cfg(all(any(
+        target_arch = "x86",
+        target_arch = "x86_64",
+        target_arch = "aarch64",
+        target_arch = "powerpc64",
+        target_arch = "powerpc64le",
+        target_arch = "mips64",
+        target_arch = "s390x",
+        target_arch = "sparc64"
+    )))]
     const MIN_ALIGN: usize = 16;
 
     fn layout_to_flags(align: usize, size: usize) -> c_int {
@@ -106,8 +98,8 @@ mod platform {
 mod platform {
     extern crate kernel32;
 
-    pub use std::alloc::System as Allocator;
     use self::kernel32::{GetProcessHeap, HeapSize, HeapValidate};
+    pub use std::alloc::System as Allocator;
     use std::os::raw::c_void;
 
     /// Get the size of a heap block.

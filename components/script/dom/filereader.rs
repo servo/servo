@@ -5,12 +5,14 @@
 use base64;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
-use crate::dom::bindings::codegen::Bindings::FileReaderBinding::{self, FileReaderConstants, FileReaderMethods};
+use crate::dom::bindings::codegen::Bindings::FileReaderBinding::{
+    self, FileReaderConstants, FileReaderMethods,
+};
 use crate::dom::bindings::codegen::UnionTypes::StringOrObject;
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
-use crate::dom::bindings::reflector::{DomObject, reflect_dom_object};
+use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::trace::RootedTraceableBox;
@@ -21,8 +23,8 @@ use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::progressevent::ProgressEvent;
 use crate::task::TaskCanceller;
-use crate::task_source::{TaskSource, TaskSourceName};
 use crate::task_source::file_reading::{FileReadingTask, FileReadingTaskSource};
+use crate::task_source::{TaskSource, TaskSourceName};
 use dom_struct::dom_struct;
 use encoding_rs::{Encoding, UTF_8};
 use js::jsapi::Heap;
@@ -465,7 +467,8 @@ impl FileReader {
                     task_source,
                     canceller,
                 )
-            }).expect("Thread spawning failed");
+            })
+            .expect("Thread spawning failed");
 
         Ok(())
     }

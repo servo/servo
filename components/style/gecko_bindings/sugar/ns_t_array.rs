@@ -117,7 +117,9 @@ impl<T> nsTArray<T> {
         I: ExactSizeIterator + Iterator<Item = T>,
     {
         debug_assert!(iter.len() <= 0xFFFFFFFF);
-        unsafe { self.set_len_pod(iter.len() as u32); }
+        unsafe {
+            self.set_len_pod(iter.len() as u32);
+        }
         self.iter_mut().zip(iter).for_each(|(r, v)| *r = v);
     }
 }

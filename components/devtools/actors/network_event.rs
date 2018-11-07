@@ -33,7 +33,7 @@ struct HttpRequest {
 struct HttpResponse {
     headers: Option<HeaderMap>,
     status: Option<(StatusCode, String)>,
-    body: Option<Vec<u8>>
+    body: Option<Vec<u8>>,
 }
 
 pub struct NetworkEventActor {
@@ -192,7 +192,10 @@ impl Actor for NetworkEventActor {
                     let value = &value.to_str().unwrap().to_string();
                     rawHeadersString = rawHeadersString + name.as_str() + ":" + &value + "\r\n";
                     headersSize += name.as_str().len() + value.len();
-                    headers.push(Header { name: name.as_str().to_owned(), value: value.to_owned() });
+                    headers.push(Header {
+                        name: name.as_str().to_owned(),
+                        value: value.to_owned(),
+                    });
                 }
                 let msg = GetRequestHeadersReply {
                     from: self.name(),
@@ -376,8 +379,13 @@ impl NetworkEventActor {
         // TODO: Send the correct values for all these fields.
         let hSizeOption = self.response.headers.as_ref().map(|headers| headers.len());
         let hSize = hSizeOption.unwrap_or(0);
-        let (status_code, status_message) = self.response.status.as_ref()
-            .map_or((0, "".to_owned()), |(code, text)| (code.as_u16(), text.clone()));
+        let (status_code, status_message) = self
+            .response
+            .status
+            .as_ref()
+            .map_or((0, "".to_owned()), |(code, text)| {
+                (code.as_u16(), text.clone())
+            });
         // TODO: Send the correct values for remoteAddress and remotePort and http_version.
         ResponseStartMsg {
             httpVersion: "HTTP/1.1".to_owned(),
@@ -395,7 +403,7 @@ impl NetworkEventActor {
         if let Some(ref headers) = self.response.headers {
             mString = match headers.typed_get::<ContentType>() {
                 Some(ct) => ct.to_string(),
-                _ => "".to_owned()
+                _ => "".to_owned(),
             };
         }
         // TODO: Set correct values when response's body is sent to the devtools in http_loader.
@@ -436,10 +444,9 @@ impl NetworkEventActor {
     }
 
     pub fn request_headers(&self) -> RequestHeadersMsg {
-        let size = self.request
-                       .headers
-                       .iter()
-                       .fold(0, |acc, (name, value)| acc + name.as_str().len() + value.len());
+        let size = self.request.headers.iter().fold(0, |acc, (name, value)| {
+            acc + name.as_str().len() + value.len()
+        });
         RequestHeadersMsg {
             headers: self.request.headers.len(),
             headersSize: size,
@@ -449,7 +456,7 @@ impl NetworkEventActor {
     pub fn request_cookies(&self) -> RequestCookiesMsg {
         let cookies_size = match self.request.headers.typed_get::<Cookie>() {
             Some(ref cookie) => cookie.len(),
-            _ => 0
+            _ => 0,
         };
         RequestCookiesMsg {
             cookies: cookies_size,

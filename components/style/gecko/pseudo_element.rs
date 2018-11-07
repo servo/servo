@@ -10,8 +10,8 @@
 
 use cssparser::ToCss;
 use gecko_bindings::structs::{self, CSSPseudoElementType};
-use properties::{ComputedValues, PropertyFlags};
 use properties::longhands::display::computed_value::T as Display;
+use properties::{ComputedValues, PropertyFlags};
 use selector_parser::{NonTSPseudoClass, PseudoElementCascadeType, SelectorImpl};
 use std::fmt;
 use str::{starts_with_ignore_ascii_case, string_as_ascii_lowercase};

@@ -9,7 +9,9 @@ use parser::ParserContext;
 use values::CSSFloat;
 
 /// A generic easing function.
-#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue, ToCss)]
+#[derive(
+    Clone, Copy, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue, ToCss,
+)]
 #[value_info(ty = "TIMING_FUNCTION")]
 #[repr(u8, C)]
 pub enum TimingFunction<Integer, Number> {

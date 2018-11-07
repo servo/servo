@@ -3,11 +3,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use crate::text::util::unicode_plane;
-use dwrote::{Font, FontDescriptor, FontCollection};
+use dwrote::{Font, FontCollection, FontDescriptor};
 use servo_atoms::Atom;
 use std::collections::HashMap;
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Mutex;
-use std::sync::atomic::{Ordering, AtomicUsize};
 use ucd::{Codepoint, UnicodeBlock};
 
 lazy_static! {

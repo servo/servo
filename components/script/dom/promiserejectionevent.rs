@@ -36,7 +36,7 @@ impl PromiseRejectionEvent {
         PromiseRejectionEvent {
             event: Event::new_inherited(),
             promise,
-            reason: Heap::default()
+            reason: Heap::default(),
         }
     }
 
@@ -47,21 +47,17 @@ impl PromiseRejectionEvent {
         bubbles: EventBubbles,
         cancelable: EventCancelable,
         promise: Rc<Promise>,
-        reason: HandleValue
+        reason: HandleValue,
     ) -> DomRoot<Self> {
         let ev = reflect_dom_object(
             Box::new(PromiseRejectionEvent::new_inherited(promise)),
             global,
-            PromiseRejectionEventBinding::Wrap
+            PromiseRejectionEventBinding::Wrap,
         );
 
         {
             let event = ev.upcast::<Event>();
-            event.init_event(
-                type_,
-                bool::from(bubbles),
-                bool::from(cancelable)
-            );
+            event.init_event(type_, bool::from(bubbles), bool::from(cancelable));
 
             ev.reason.set(reason.get());
         }
@@ -72,12 +68,12 @@ impl PromiseRejectionEvent {
     pub fn Constructor(
         global: &GlobalScope,
         type_: DOMString,
-        init: RootedTraceableBox<PromiseRejectionEventBinding::PromiseRejectionEventInit>
+        init: RootedTraceableBox<PromiseRejectionEventBinding::PromiseRejectionEventInit>,
     ) -> Fallible<DomRoot<Self>> {
         let reason = init.reason.handle();
         let promise = match init.promise.as_ref() {
             Some(promise) => promise.clone(),
-            None => Promise::new(global)
+            None => Promise::new(global),
         };
         let bubbles = EventBubbles::from(init.parent.bubbles);
         let cancelable = EventCancelable::from(init.parent.cancelable);
@@ -88,7 +84,7 @@ impl PromiseRejectionEvent {
             bubbles,
             cancelable,
             promise,
-            reason
+            reason,
         );
         Ok(event)
     }

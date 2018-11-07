@@ -5,24 +5,24 @@
 //! The `Fragment` type, which represents the leaves of the layout tree.
 
 use app_units::Au;
-use canvas_traits::canvas::{CanvasMsg, CanvasId};
-use crate::ServoArc;
-use crate::context::{LayoutContext, with_thread_local_font_context};
+use canvas_traits::canvas::{CanvasId, CanvasMsg};
+use crate::context::{with_thread_local_font_context, LayoutContext};
+use crate::display_list::items::{ClipScrollNodeIndex, OpaqueNode, BLUR_INFLATION_FACTOR};
 use crate::display_list::ToLayout;
-use crate::display_list::items::{BLUR_INFLATION_FACTOR, ClipScrollNodeIndex, OpaqueNode};
 use crate::floats::ClearType;
 use crate::flow::{GetBaseFlow, ImmutableFlowUtils};
 use crate::flow_ref::FlowRef;
-use crate::inline::{InlineFragmentNodeFlags, InlineFragmentContext, InlineFragmentNodeInfo};
+use crate::inline::{InlineFragmentContext, InlineFragmentNodeFlags, InlineFragmentNodeInfo};
 use crate::inline::{InlineMetrics, LineMetrics};
 #[cfg(debug_assertions)]
 use crate::layout_debug;
-use crate::model::{self, IntrinsicISizes, IntrinsicISizesContribution, MaybeAuto, SizeConstraint};
 use crate::model::style_length;
+use crate::model::{self, IntrinsicISizes, IntrinsicISizesContribution, MaybeAuto, SizeConstraint};
 use crate::text;
 use crate::text::TextRunScanner;
 use crate::wrapper::ThreadSafeLayoutNodeHelpers;
-use euclid::{Point2D, Vector2D, Rect, Size2D};
+use crate::ServoArc;
+use euclid::{Point2D, Rect, Size2D, Vector2D};
 use gfx;
 use gfx::text::glyph::ByteIndex;
 use gfx::text::text_run::{TextRun, TextRunSlice};
@@ -32,15 +32,17 @@ use msg::constellation_msg::{BrowsingContextId, PipelineId};
 use net_traits::image::base::{Image, ImageMetadata};
 use net_traits::image_cache::{ImageOrMetadataAvailable, UsePlaceholder};
 use range::*;
+use script_layout_interface::wrapper_traits::{
+    PseudoElementType, ThreadSafeLayoutElement, ThreadSafeLayoutNode,
+};
 use script_layout_interface::{HTMLCanvasData, HTMLCanvasDataSource, HTMLMediaData, SVGSVGData};
-use script_layout_interface::wrapper_traits::{PseudoElementType, ThreadSafeLayoutElement, ThreadSafeLayoutNode};
 use serde::ser::{Serialize, SerializeStruct, Serializer};
 use servo_url::ServoUrl;
-use std::{f32, fmt};
 use std::borrow::ToOwned;
-use std::cmp::{Ordering, max, min};
+use std::cmp::{max, min, Ordering};
 use std::collections::LinkedList;
 use std::sync::{Arc, Mutex};
+use std::{f32, fmt};
 use style::computed_values::border_collapse::T as BorderCollapse;
 use style::computed_values::box_sizing::T as BoxSizing;
 use style::computed_values::clear::T as Clear;
@@ -59,8 +61,8 @@ use style::properties::ComputedValues;
 use style::selector_parser::RestyleDamage;
 use style::servo::restyle_damage::ServoRestyleDamage;
 use style::str::char_is_whitespace;
-use style::values::computed::{Length, LengthOrPercentage, LengthOrPercentageOrAuto};
 use style::values::computed::counters::ContentItem;
+use style::values::computed::{Length, LengthOrPercentage, LengthOrPercentageOrAuto};
 use style::values::generics::box_::{Perspective, VerticalAlign};
 use style::values::generics::transform;
 use webrender_api::{self, LayoutTransform};
@@ -416,23 +418,28 @@ impl ImageFragmentInfo {
         layout_context: &LayoutContext,
     ) -> ImageFragmentInfo {
         // First use any image data present in the element...
-        let image_or_metadata = node.image_data().and_then(|(image, metadata)| {
-            match (image, metadata) {
+        let image_or_metadata = node
+            .image_data()
+            .and_then(|(image, metadata)| match (image, metadata) {
                 (Some(image), _) => Some(ImageOrMetadata::Image(image)),
                 (None, Some(metadata)) => Some(ImageOrMetadata::Metadata(metadata)),
                 _ => None,
-            }
-        }).or_else(|| url.and_then(|url| {
-            // Otherwise query the image cache for anything known about the associated source URL.
-            layout_context.get_or_request_image_or_meta(
-                node.opaque(),
-                url,
-                UsePlaceholder::Yes
-            ).map(|result| match result {
-                ImageOrMetadataAvailable::ImageAvailable(i, _) => ImageOrMetadata::Image(i),
-                ImageOrMetadataAvailable::MetadataAvailable(m) => ImageOrMetadata::Metadata(m),
             })
-        }));
+            .or_else(|| {
+                url.and_then(|url| {
+                    // Otherwise query the image cache for anything known about the associated source URL.
+                    layout_context
+                        .get_or_request_image_or_meta(node.opaque(), url, UsePlaceholder::Yes)
+                        .map(|result| match result {
+                            ImageOrMetadataAvailable::ImageAvailable(i, _) => {
+                                ImageOrMetadata::Image(i)
+                            },
+                            ImageOrMetadataAvailable::MetadataAvailable(m) => {
+                                ImageOrMetadata::Metadata(m)
+                            },
+                        })
+                })
+            });
 
         let current_pixel_density = density.unwrap_or(1f64);
 
@@ -452,15 +459,13 @@ impl ImageFragmentInfo {
                     }),
                 )
             },
-            Some(ImageOrMetadata::Metadata(m)) => {
-                (
-                    None,
-                    Some(ImageMetadata {
-                        height: (m.height as f64 / current_pixel_density) as u32,
-                        width: (m.width as f64 / current_pixel_density) as u32,
-                    }),
-                )
-            },
+            Some(ImageOrMetadata::Metadata(m)) => (
+                None,
+                Some(ImageMetadata {
+                    height: (m.height as f64 / current_pixel_density) as u32,
+                    width: (m.width as f64 / current_pixel_density) as u32,
+                }),
+            ),
             None => (None, None),
         };
 
@@ -1012,7 +1017,7 @@ impl Fragment {
                 } else {
                     Au(0)
                 }
-            }
+            },
             SpecificFragmentInfo::Media(ref info) => {
                 if let Some((_, width, _)) = info.current_frame {
                     Au::from_px(width as i32)
@@ -1042,7 +1047,7 @@ impl Fragment {
                 } else {
                     Au(0)
                 }
-            }
+            },
             SpecificFragmentInfo::Media(ref info) => {
                 if let Some((_, _, height)) = info.current_frame {
                     Au::from_px(height as i32)
@@ -1174,17 +1179,21 @@ impl Fragment {
                         (_, Ordering::Equal) => (first_isize, first_bsize),
                         // When both rectangles grow (smaller than min sizes),
                         // Choose the larger one;
-                        (Ordering::Greater, Ordering::Greater) => if first_isize > second_isize {
-                            (first_isize, first_bsize)
-                        } else {
-                            (second_isize, second_bsize)
+                        (Ordering::Greater, Ordering::Greater) => {
+                            if first_isize > second_isize {
+                                (first_isize, first_bsize)
+                            } else {
+                                (second_isize, second_bsize)
+                            }
                         },
                         // When both rectangles shrink (larger than max sizes),
                         // Choose the smaller one;
-                        (Ordering::Less, Ordering::Less) => if first_isize > second_isize {
-                            (second_isize, second_bsize)
-                        } else {
-                            (first_isize, first_bsize)
+                        (Ordering::Less, Ordering::Less) => {
+                            if first_isize > second_isize {
+                                (second_isize, second_bsize)
+                            } else {
+                                (first_isize, first_bsize)
+                            }
                         },
                         // It does not matter which we choose here, because both sizes
                         // will be clamped to constraint;
@@ -3173,7 +3182,8 @@ impl Fragment {
                     perspective_origin
                         .vertical
                         .to_used_value(stacking_relative_border_box.size.height),
-                ).to_layout();
+                )
+                .to_layout();
 
                 let pre_transform = LayoutTransform::create_translation(
                     perspective_origin.x,

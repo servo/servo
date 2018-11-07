@@ -8,15 +8,14 @@
 // compile it out so that people remember it exists, thus the cfg'd Sender
 // import.
 
-use Atom;
 use bezier::Bezier;
 use context::SharedStyleContext;
 use dom::{OpaqueNode, TElement};
 use font_metrics::FontMetricsProvider;
-use properties::{self, CascadeMode, ComputedValues, LonghandId};
 use properties::animated_properties::AnimatedProperty;
 use properties::longhands::animation_direction::computed_value::single_value::T as AnimationDirection;
 use properties::longhands::animation_play_state::computed_value::single_value::T as AnimationPlayState;
+use properties::{self, CascadeMode, ComputedValues, LonghandId};
 use rule_tree::CascadeLevel;
 use servo_arc::Arc;
 #[cfg(feature = "servo")]
@@ -26,12 +25,12 @@ use std::fmt;
 use std::sync::mpsc::Sender;
 use stylesheets::keyframes_rule::{KeyframesAnimation, KeyframesStep, KeyframesStepValue};
 use timer::Timer;
+use values::computed::box_::TransitionProperty;
 use values::computed::Time;
 use values::computed::TimingFunction;
-use values::computed::box_::TransitionProperty;
 use values::generics::box_::AnimationIterationCount;
 use values::generics::easing::{StepPosition, TimingFunction as GenericTimingFunction};
-
+use Atom;
 
 /// This structure represents a keyframes animation current iteration state.
 ///
@@ -316,7 +315,8 @@ impl PropertyAnimation {
                         old_style,
                         new_style,
                     )
-                }).collect(),
+                })
+                .collect(),
             TransitionProperty::Longhand(longhand_id) => {
                 let animation = PropertyAnimation::from_longhand(
                     longhand_id,
@@ -367,8 +367,9 @@ impl PropertyAnimation {
                 let mut current_step = (time * (steps as f64)).floor() as i32;
 
                 if pos == StepPosition::Start ||
-                   pos == StepPosition::JumpStart ||
-                   pos == StepPosition::JumpBoth {
+                    pos == StepPosition::JumpStart ||
+                    pos == StepPosition::JumpBoth
+                {
                     current_step = current_step + 1;
                 }
 
@@ -472,7 +473,8 @@ pub fn start_transitions_if_applicable(
                         duration: box_style.transition_duration_mod(i).seconds() as f64,
                         property_animation,
                     },
-                )).unwrap();
+                ))
+                .unwrap();
 
             had_animations = true;
         }
@@ -759,7 +761,8 @@ where
                             } else {
                                 None
                             }
-                        }).unwrap_or(animation.steps.len() - 1);
+                        })
+                        .unwrap_or(animation.steps.len() - 1);
                 },
                 _ => unreachable!(),
             }

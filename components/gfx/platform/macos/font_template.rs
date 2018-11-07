@@ -7,15 +7,15 @@ use core_graphics::data_provider::CGDataProvider;
 use core_graphics::font::CGFont;
 use core_text;
 use core_text::font::CTFont;
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde::de::{Error, Visitor};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use servo_atoms::Atom;
 use servo_url::ServoUrl;
 use std::borrow::ToOwned;
 use std::collections::HashMap;
 use std::fmt;
 use std::fs::File;
-use std::io::{Read, Error as IoError};
+use std::io::{Error as IoError, Read};
 use std::ops::Deref;
 use std::sync::{Arc, Mutex};
 use webrender_api::NativeFontHandle;
@@ -51,7 +51,8 @@ impl fmt::Debug for FontTemplateData {
                     .font_data
                     .as_ref()
                     .map(|bytes| format!("[{} bytes]", bytes.len())),
-            ).finish()
+            )
+            .finish()
     }
 }
 
@@ -111,7 +112,8 @@ impl FontTemplateData {
                 .expect("No URL for Core Text font!")
                 .get_string()
                 .to_string(),
-        ).expect("Couldn't parse Core Text font URL!")
+        )
+        .expect("Couldn't parse Core Text font URL!")
         .as_url()
         .to_file_path()
         .expect("Core Text font didn't name a path!");

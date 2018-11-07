@@ -23,7 +23,9 @@ use crate::dom::webglbuffer::WebGLBuffer;
 use crate::dom::webglframebuffer::WebGLFramebuffer;
 use crate::dom::webglprogram::WebGLProgram;
 use crate::dom::webglrenderbuffer::WebGLRenderbuffer;
-use crate::dom::webglrenderingcontext::{LayoutCanvasWebGLRenderingContextHelpers, WebGLRenderingContext};
+use crate::dom::webglrenderingcontext::{
+    LayoutCanvasWebGLRenderingContextHelpers, WebGLRenderingContext,
+};
 use crate::dom::webglshader::WebGLShader;
 use crate::dom::webglshaderprecisionformat::WebGLShaderPrecisionFormat;
 use crate::dom::webgltexture::WebGLTexture;

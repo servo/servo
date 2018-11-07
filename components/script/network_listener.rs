@@ -3,8 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use crate::task::{TaskCanceller, TaskOnce};
-use crate::task_source::TaskSource;
 use crate::task_source::networking::NetworkingTaskSource;
+use crate::task_source::TaskSource;
 use net_traits::{Action, FetchResponseListener, FetchResponseMsg};
 use std::sync::{Arc, Mutex};
 

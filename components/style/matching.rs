@@ -12,8 +12,8 @@ use context::{SharedStyleContext, StyleContext};
 use data::ElementData;
 use dom::TElement;
 use invalidation::element::restyle_hints::RestyleHint;
-use properties::ComputedValues;
 use properties::longhands::display::computed_value::T as Display;
+use properties::ComputedValues;
 use rule_tree::{CascadeLevel, StrongRuleNode};
 use selector_parser::{PseudoElement, RestyleDamage};
 use selectors::matching::ElementSelectorFlags;
@@ -224,7 +224,8 @@ trait PrivateMatchMethods: TElement {
             context,
             RuleInclusion::All,
             PseudoElementResolution::IfApplicable,
-        ).cascade_style_and_visited_with_default_parents(inputs);
+        )
+        .cascade_style_and_visited_with_default_parents(inputs);
 
         Some(style.0)
     }
@@ -618,14 +619,12 @@ trait PrivateMatchMethods: TElement {
 
             match *running_animation {
                 Animation::Transition(..) => unreachable!(),
-                Animation::Keyframes(_, _, _, ref mut state) => {
-                    match update {
-                        AnimationUpdate::Regular => {},
-                        AnimationUpdate::AnimationCanceled => {
-                            state.expired = true;
-                        }
-                    }
-                }
+                Animation::Keyframes(_, _, _, ref mut state) => match update {
+                    AnimationUpdate::Regular => {},
+                    AnimationUpdate::AnimationCanceled => {
+                        state.expired = true;
+                    },
+                },
             }
         }
     }

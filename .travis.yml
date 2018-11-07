@@ -4,6 +4,9 @@ matrix:
   fast_finish: true
   include:
     - sudo: false
+      before_install:
+        - curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain none -y
+        - source ~/.profile
       script:
          - ./mach test-tidy --no-progress --all
          - ./mach test-tidy --no-progress --self-test

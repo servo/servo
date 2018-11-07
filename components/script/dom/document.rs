@@ -4,32 +4,38 @@
 
 use crate::cookie_rs;
 use crate::document_loader::{DocumentLoader, LoadType};
-use crate::dom::activation::{ActivationSource, synthetic_click_activation};
+use crate::dom::activation::{synthetic_click_activation, ActivationSource};
 use crate::dom::attr::Attr;
 use crate::dom::beforeunloadevent::BeforeUnloadEvent;
 use crate::dom::bindings::callback::ExceptionHandling;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::BeforeUnloadEventBinding::BeforeUnloadEventBinding::BeforeUnloadEventMethods;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding;
-use crate::dom::bindings::codegen::Bindings::DocumentBinding::{DocumentMethods, DocumentReadyState};
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::ElementCreationOptions;
+use crate::dom::bindings::codegen::Bindings::DocumentBinding::{
+    DocumentMethods, DocumentReadyState,
+};
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventBinding::EventMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLIFrameElementBinding::HTMLIFrameElementBinding::HTMLIFrameElementMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::codegen::Bindings::NodeFilterBinding::NodeFilter;
 use crate::dom::bindings::codegen::Bindings::PerformanceBinding::PerformanceMethods;
 use crate::dom::bindings::codegen::Bindings::TouchBinding::TouchMethods;
-use crate::dom::bindings::codegen::Bindings::WindowBinding::{FrameRequestCallback, ScrollBehavior, WindowMethods};
+use crate::dom::bindings::codegen::Bindings::WindowBinding::{
+    FrameRequestCallback, ScrollBehavior, WindowMethods,
+};
 use crate::dom::bindings::codegen::UnionTypes::NodeOrString;
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementTypeId, NodeTypeId};
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
-use crate::dom::bindings::reflector::{DomObject, reflect_dom_object};
+use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
 use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom, RootedReference};
 use crate::dom::bindings::str::{DOMString, USVString};
-use crate::dom::bindings::xmlname::{namespace_from_domstring, validate_and_extract, xml_name_type};
 use crate::dom::bindings::xmlname::XMLName::InvalidXMLName;
+use crate::dom::bindings::xmlname::{
+    namespace_from_domstring, validate_and_extract, xml_name_type,
+};
 use crate::dom::closeevent::CloseEvent;
 use crate::dom::comment::Comment;
 use crate::dom::cssstylesheet::CSSStyleSheet;
@@ -38,8 +44,10 @@ use crate::dom::customevent::CustomEvent;
 use crate::dom::documentfragment::DocumentFragment;
 use crate::dom::documenttype::DocumentType;
 use crate::dom::domimplementation::DOMImplementation;
-use crate::dom::element::{Element, ElementCreator, ElementPerformFullscreenEnter, ElementPerformFullscreenExit};
 use crate::dom::element::CustomElementCreationMode;
+use crate::dom::element::{
+    Element, ElementCreator, ElementPerformFullscreenEnter, ElementPerformFullscreenExit,
+};
 use crate::dom::errorevent::ErrorEvent;
 use crate::dom::event::{Event, EventBubbles, EventCancelable, EventDefault, EventStatus};
 use crate::dom::eventtarget::EventTarget;
@@ -65,9 +73,9 @@ use crate::dom::keyboardevent::KeyboardEvent;
 use crate::dom::location::Location;
 use crate::dom::messageevent::MessageEvent;
 use crate::dom::mouseevent::MouseEvent;
-use crate::dom::node::{self, CloneChildrenFlag, document_from_node, window_from_node};
-use crate::dom::node::{Node, NodeDamage, NodeFlags, LayoutNodeHelpers};
 use crate::dom::node::VecPreOrderInsertionHelper;
+use crate::dom::node::{self, document_from_node, window_from_node, CloneChildrenFlag};
+use crate::dom::node::{LayoutNodeHelpers, Node, NodeDamage, NodeFlags};
 use crate::dom::nodeiterator::NodeIterator;
 use crate::dom::nodelist::NodeList;
 use crate::dom::pagetransitionevent::PageTransitionEvent;
@@ -102,18 +110,21 @@ use euclid::Point2D;
 use html5ever::{LocalName, Namespace, QualName};
 use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcSender};
-use js::jsapi::{JSContext, JSObject, JSRuntime};
 use js::jsapi::JS_GetRuntime;
+use js::jsapi::{JSContext, JSObject, JSRuntime};
 use keyboard_types::{Key, KeyState, Modifiers};
-use metrics::{InteractiveFlag, InteractiveMetrics, InteractiveWindow, ProfilerMetadataFactory, ProgressiveWebMetric};
+use metrics::{
+    InteractiveFlag, InteractiveMetrics, InteractiveWindow, ProfilerMetadataFactory,
+    ProgressiveWebMetric,
+};
 use mime::{self, Mime};
 use msg::constellation_msg::BrowsingContextId;
-use net_traits::{FetchResponseMsg, IpcSend, ReferrerPolicy};
-use net_traits::CookieSource::NonHTTP;
-use net_traits::CoreResourceMsg::{GetCookiesForUrl, SetCookiesForUrl};
 use net_traits::pub_domains::is_pub_domain;
 use net_traits::request::RequestInit;
 use net_traits::response::HttpsState;
+use net_traits::CookieSource::NonHTTP;
+use net_traits::CoreResourceMsg::{GetCookiesForUrl, SetCookiesForUrl};
+use net_traits::{FetchResponseMsg, IpcSend, ReferrerPolicy};
 use num_traits::ToPrimitive;
 use profile_traits::ipc as profile_ipc;
 use profile_traits::time::{TimerMetadata, TimerMetadataFrameType, TimerMetadataReflowType};
@@ -127,8 +138,8 @@ use servo_config::prefs::PREFS;
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use std::borrow::ToOwned;
 use std::cell::{Cell, Ref, RefMut};
-use std::collections::{HashMap, HashSet, VecDeque};
 use std::collections::hash_map::Entry::{Occupied, Vacant};
+use std::collections::{HashMap, HashSet, VecDeque};
 use std::default::Default;
 use std::fmt;
 use std::mem;
@@ -143,10 +154,10 @@ use style::selector_parser::{RestyleDamage, Snapshot};
 use style::shared_lock::{SharedRwLock as StyleSharedRwLock, SharedRwLockReadGuard};
 use style::str::{split_html_space_chars, str_join};
 use style::stylesheet_set::DocumentStylesheetSet;
-use style::stylesheets::{CssRule, Stylesheet, Origin, OriginSet};
+use style::stylesheets::{CssRule, Origin, OriginSet, Stylesheet};
 use time;
-use url::Host;
 use url::percent_encoding::percent_decode;
+use url::Host;
 
 /// The number of times we are allowed to see spurious `requestAnimationFrame()` calls before
 /// falling back to fake ones.
@@ -539,7 +550,8 @@ impl Document {
                             );
                         }),
                             self.window.upcast(),
-                        ).unwrap();
+                        )
+                        .unwrap();
                 }
             } else {
                 self.window().suspend();
@@ -1904,7 +1916,8 @@ impl Document {
                 }
             }),
                 self.window.upcast(),
-            ).unwrap();
+            )
+            .unwrap();
 
         // Step 8.
         let document = Trusted::new(self);
@@ -1938,7 +1951,8 @@ impl Document {
                     );
                 }),
                     self.window.upcast(),
-                ).unwrap();
+                )
+                .unwrap();
         }
 
         // Step 9.
@@ -2780,14 +2794,16 @@ impl Document {
                 owner
                     .upcast::<Node>()
                     .is_before(sheet_in_doc.owner.upcast())
-            }).cloned();
+            })
+            .cloned();
 
         self.window()
             .layout_chan()
             .send(Msg::AddStylesheet(
                 sheet.clone(),
                 insertion_point.as_ref().map(|s| s.sheet.clone()),
-            )).unwrap();
+            ))
+            .unwrap();
 
         let sheet = StyleSheetInDocument {
             sheet,
@@ -3621,7 +3637,8 @@ impl DocumentMethods for Document {
                     .child_elements()
                     .find(|node| {
                         node.namespace() == &ns!(svg) && node.local_name() == &local_name!("title")
-                    }).map(DomRoot::upcast::<Node>)
+                    })
+                    .map(DomRoot::upcast::<Node>)
             } else {
                 // Step 2.
                 root.upcast::<Node>()
@@ -3726,7 +3743,8 @@ impl DocumentMethods for Document {
                         HTMLElementTypeId::HTMLFrameSetElement,
                     )) => true,
                     _ => false,
-                }).map(|node| DomRoot::downcast(node).unwrap())
+                })
+                .map(|node| DomRoot::downcast(node).unwrap())
         })
     }
 
@@ -3947,16 +3965,18 @@ impl DocumentMethods for Document {
             return Err(Error::Security);
         }
 
-        let cookies = if let Some(cookie) = cookie_rs::Cookie::parse(cookie.to_string()).ok().map(Serde) {
-            vec![cookie]
-        } else {
-            vec![]
-        };
+        let cookies =
+            if let Some(cookie) = cookie_rs::Cookie::parse(cookie.to_string()).ok().map(Serde) {
+                vec![cookie]
+            } else {
+                vec![]
+            };
 
-        let _ = self.window
-                .upcast::<GlobalScope>()
-                .resource_threads()
-                .send(SetCookiesForUrl(self.url(), cookies, NonHTTP));
+        let _ = self
+            .window
+            .upcast::<GlobalScope>()
+            .resource_threads()
+            .send(SetCookiesForUrl(self.url(), cookies, NonHTTP));
         Ok(())
     }
 
@@ -4158,7 +4178,8 @@ impl DocumentMethods for Document {
                     node::from_untrusted_node_address(js_runtime, untrusted_node_address)
                 };
                 DomRoot::downcast::<Element>(node)
-            }).collect();
+            })
+            .collect();
 
         // Step 4
         if let Some(root_element) = self.GetDocumentElement() {
@@ -4172,7 +4193,11 @@ impl DocumentMethods for Document {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-document-open
-    fn Open(&self, _unused1: Option<DOMString>, _unused2: Option<DOMString>) -> Fallible<DomRoot<Document>> {
+    fn Open(
+        &self,
+        _unused1: Option<DOMString>,
+        _unused2: Option<DOMString>,
+    ) -> Fallible<DomRoot<Document>> {
         // Step 1
         if !self.is_html_document() {
             return Err(Error::InvalidState);
@@ -4266,12 +4291,19 @@ impl DocumentMethods for Document {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-document-open-window
-    fn Open_(&self, url: DOMString, target: DOMString, features: DOMString) -> Fallible<DomRoot<WindowProxy>> {
+    fn Open_(
+        &self,
+        url: DOMString,
+        target: DOMString,
+        features: DOMString,
+    ) -> Fallible<DomRoot<WindowProxy>> {
         // WhatWG spec states this should always return a WindowProxy, but the spec for WindowProxy.open states
         // it optionally returns a WindowProxy. Assume an error if window.open returns none.
         // See https://github.com/whatwg/html/issues/4091
         let context = self.browsing_context().ok_or(Error::InvalidAccess)?;
-        context.open(url, target, features).ok_or(Error::InvalidAccess)
+        context
+            .open(url, target, features)
+            .ok_or(Error::InvalidAccess)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-document-write
@@ -4297,7 +4329,9 @@ impl DocumentMethods for Document {
                 // Either there is no parser, which means the parsing ended;
                 // or script nesting level is 0, which means the method was
                 // called from outside a parser-executed script.
-                if self.is_prompting_or_unloading() || self.ignore_destructive_writes_counter.get() > 0 {
+                if self.is_prompting_or_unloading() ||
+                    self.ignore_destructive_writes_counter.get() > 0
+                {
                     // Step 4.
                     return Ok(());
                 }

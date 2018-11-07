@@ -4,14 +4,13 @@
 
 //! Computed values for font properties
 
-use Atom;
 use app_units::Au;
 use byteorder::{BigEndian, ByteOrder};
 use cssparser::{serialize_identifier, CssStringWriter, Parser};
 #[cfg(feature = "gecko")]
-use gecko_bindings::{bindings, structs};
-#[cfg(feature = "gecko")]
 use gecko_bindings::sugar::refptr::RefPtr;
+#[cfg(feature = "gecko")]
+use gecko_bindings::{bindings, structs};
 #[cfg(feature = "gecko")]
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use std::fmt::{self, Write};
@@ -19,13 +18,14 @@ use std::hash::{Hash, Hasher};
 #[cfg(feature = "servo")]
 use std::slice;
 use style_traits::{CssWriter, ParseError, ToCss};
-use values::CSSFloat;
 use values::animated::{ToAnimatedValue, ToAnimatedZero};
 use values::computed::{Angle, Context, Integer, NonNegativeLength, NonNegativePercentage};
 use values::computed::{Number, Percentage, ToComputedValue};
 use values::generics::font::{self as generics, FeatureTagValue, FontSettings, VariationValue};
-use values::specified::font::{self as specified, MIN_FONT_WEIGHT, MAX_FONT_WEIGHT};
+use values::specified::font::{self as specified, MAX_FONT_WEIGHT, MIN_FONT_WEIGHT};
 use values::specified::length::{FontBaseSize, NoCalcLength};
+use values::CSSFloat;
+use Atom;
 
 pub use values::computed::Length as MozScriptMinSize;
 pub use values::specified::font::{FontSynthesis, MozScriptSizeMultiplier, XLang, XTextZoom};

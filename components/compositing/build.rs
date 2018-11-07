@@ -36,7 +36,8 @@ fn main() {
                         .find(|pkg| {
                             pkg.get("name").and_then(|name| name.as_str()).unwrap_or("") ==
                                 "webrender"
-                        }).and_then(|pkg| pkg.get("source").and_then(|source| source.as_str()))
+                        })
+                        .and_then(|pkg| pkg.get("source").and_then(|source| source.as_str()))
                         .unwrap_or("unknown");
 
                     let parsed: Vec<&str> = source.split("#").collect();

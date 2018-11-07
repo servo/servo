@@ -3,12 +3,14 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use base64;
-use canvas_traits::canvas::{CanvasMsg, CanvasId, FromScriptMsg};
+use canvas_traits::canvas::{CanvasId, CanvasMsg, FromScriptMsg};
 use canvas_traits::webgl::WebGLVersion;
 use crate::dom::attr::Attr;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::HTMLCanvasElementBinding;
-use crate::dom::bindings::codegen::Bindings::HTMLCanvasElementBinding::{HTMLCanvasElementMethods, RenderingContext};
+use crate::dom::bindings::codegen::Bindings::HTMLCanvasElementBinding::{
+    HTMLCanvasElementMethods, RenderingContext,
+};
 use crate::dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLContextAttributes;
 use crate::dom::bindings::conversions::ConversionResult;
 use crate::dom::bindings::error::{Error, Fallible};
@@ -16,20 +18,24 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom};
 use crate::dom::bindings::str::{DOMString, USVString};
-use crate::dom::canvasrenderingcontext2d::{CanvasRenderingContext2D, LayoutCanvasRenderingContext2DHelpers};
+use crate::dom::canvasrenderingcontext2d::{
+    CanvasRenderingContext2D, LayoutCanvasRenderingContext2DHelpers,
+};
 use crate::dom::document::Document;
 use crate::dom::element::{AttributeMutation, Element, RawLayoutElementHelpers};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlelement::HTMLElement;
-use crate::dom::node::{Node, window_from_node};
+use crate::dom::node::{window_from_node, Node};
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::dom::webgl2renderingcontext::WebGL2RenderingContext;
-use crate::dom::webglrenderingcontext::{LayoutCanvasWebGLRenderingContextHelpers, WebGLRenderingContext};
+use crate::dom::webglrenderingcontext::{
+    LayoutCanvasWebGLRenderingContextHelpers, WebGLRenderingContext,
+};
 use dom_struct::dom_struct;
 use euclid::{Rect, Size2D};
 use html5ever::{LocalName, Prefix};
-use image::ColorType;
 use image::png::PNGEncoder;
+use image::ColorType;
 use js::error::throw_type_error;
 use js::jsapi::JSContext;
 use js::rust::HandleValue;
@@ -302,7 +308,7 @@ impl HTMLCanvasElement {
                 // TODO: add a method in WebGL2RenderingContext to get the pixels.
                 return None;
             },
-            None => vec![0; size.height as usize * size.width as usize * 4]
+            None => vec![0; size.height as usize * size.width as usize * 4],
         };
 
         Some((data, size))
@@ -440,8 +446,8 @@ impl<'a> From<&'a WebGLContextAttributes> for GLContextAttributes {
 
 pub mod utils {
     use crate::dom::window::Window;
-    use net_traits::image_cache::{ImageResponse, UsePlaceholder, ImageOrMetadataAvailable};
     use net_traits::image_cache::CanRequestImages;
+    use net_traits::image_cache::{ImageOrMetadataAvailable, ImageResponse, UsePlaceholder};
     use servo_url::ServoUrl;
 
     pub fn request_image_from_cache(window: &Window, url: ServoUrl) -> ImageResponse {

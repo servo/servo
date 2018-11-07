@@ -16,7 +16,7 @@ use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowBinding::Windo
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::refcounted::Trusted;
-use crate::dom::bindings::reflector::{DomObject, reflect_dom_object};
+use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
 use crate::dom::bindings::root::{DomRoot, MutDom, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::event::Event;
@@ -213,7 +213,8 @@ impl VRDisplayMethods for VRDisplay {
                 self.depth_near.get(),
                 self.depth_far.get(),
                 sender,
-            )).unwrap();
+            ))
+            .unwrap();
         return match receiver.recv().unwrap() {
             Ok(data) => {
                 frameData.update(&data);
@@ -239,7 +240,8 @@ impl VRDisplayMethods for VRDisplay {
                 self.global().pipeline_id(),
                 self.DisplayId(),
                 sender,
-            )).unwrap();
+            ))
+            .unwrap();
         if let Ok(data) = receiver.recv().unwrap() {
             // Some VRDisplay data might change after calling ResetPose()
             *self.display.borrow_mut() = data;
@@ -352,7 +354,8 @@ impl VRDisplayMethods for VRDisplay {
                 self.global().pipeline_id(),
                 self.display.borrow().display_id,
                 sender,
-            )).unwrap();
+            ))
+            .unwrap();
         match receiver.recv().unwrap() {
             Ok(()) => {
                 *self.layer.borrow_mut() = layer_bounds;
@@ -387,7 +390,8 @@ impl VRDisplayMethods for VRDisplay {
                 self.global().pipeline_id(),
                 self.display.borrow().display_id,
                 Some(sender),
-            )).unwrap();
+            ))
+            .unwrap();
         match receiver.recv().unwrap() {
             Ok(()) => {
                 self.stop_present();
@@ -557,7 +561,8 @@ impl VRDisplay {
                             task,
                             Some(pipeline_id),
                             TaskSourceName::DOMManipulation,
-                        )).unwrap();
+                        ))
+                        .unwrap();
 
                     // Run Sync Poses in parallell on Render thread
                     let msg = WebVRCommand::SyncPoses(display_id, near, far, sync_sender.clone());
@@ -573,7 +578,8 @@ impl VRDisplay {
                         return;
                     }
                 }
-            }).expect("Thread spawning failed");
+            })
+            .expect("Thread spawning failed");
     }
 
     fn stop_present(&self) {
@@ -595,7 +601,8 @@ impl VRDisplay {
                 self.global().pipeline_id(),
                 self.display.borrow().display_id,
                 None,
-            )).unwrap();
+            ))
+            .unwrap();
         self.stop_present();
     }
 

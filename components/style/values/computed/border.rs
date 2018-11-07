@@ -6,8 +6,8 @@
 
 use app_units::Au;
 use values::animated::ToAnimatedZero;
-use values::computed::{Number, NumberOrPercentage};
 use values::computed::length::{LengthOrPercentage, NonNegativeLength};
+use values::computed::{Number, NumberOrPercentage};
 use values::generics::border::BorderCornerRadius as GenericBorderCornerRadius;
 use values::generics::border::BorderImageSideWidth as GenericBorderImageSideWidth;
 use values::generics::border::BorderImageSlice as GenericBorderImageSlice;

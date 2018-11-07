@@ -7,10 +7,10 @@
 use gecko::values::{convert_nscolor_to_rgba, convert_rgba_to_nscolor};
 use gecko_bindings::structs::StyleComplexColor;
 use gecko_bindings::structs::StyleComplexColor_Tag as Tag;
-use values::{Auto, Either};
-use values::computed::{Color as ComputedColor, RGBAColor as ComputedRGBA};
 use values::computed::ui::ColorOrAuto;
+use values::computed::{Color as ComputedColor, RGBAColor as ComputedRGBA};
 use values::generics::color::{Color as GenericColor, ComplexColorRatios};
+use values::{Auto, Either};
 
 impl StyleComplexColor {
     /// Create a `StyleComplexColor` value that represents `currentColor`.

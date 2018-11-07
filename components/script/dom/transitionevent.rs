@@ -4,7 +4,9 @@
 
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use crate::dom::bindings::codegen::Bindings::TransitionEventBinding;
-use crate::dom::bindings::codegen::Bindings::TransitionEventBinding::{TransitionEventInit, TransitionEventMethods};
+use crate::dom::bindings::codegen::Bindings::TransitionEventBinding::{
+    TransitionEventInit, TransitionEventMethods,
+};
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;

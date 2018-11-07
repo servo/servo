@@ -174,7 +174,8 @@ impl Reporter {
         self.0
             .send(ReporterRequest {
                 reports_channel: reports_chan,
-            }).unwrap()
+            })
+            .unwrap()
     }
 }
 

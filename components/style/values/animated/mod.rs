@@ -13,10 +13,10 @@ use euclid::{Point2D, Size2D};
 use properties::PropertyId;
 use smallvec::SmallVec;
 use std::cmp;
-use values::computed::Angle as ComputedAngle;
-use values::computed::BorderCornerRadius as ComputedBorderCornerRadius;
 use values::computed::length::CalcLengthOrPercentage;
 use values::computed::url::ComputedUrl;
+use values::computed::Angle as ComputedAngle;
+use values::computed::BorderCornerRadius as ComputedBorderCornerRadius;
 
 pub mod color;
 pub mod effects;
@@ -38,16 +38,16 @@ enum PropertyCategory {
 impl PropertyCategory {
     fn of(id: &PropertyId) -> Self {
         match *id {
-            PropertyId::Shorthand(..) |
-            PropertyId::ShorthandAlias(..) => PropertyCategory::Shorthand,
-            PropertyId::Longhand(id) |
-            PropertyId::LonghandAlias(id, ..) => {
+            PropertyId::Shorthand(..) | PropertyId::ShorthandAlias(..) => {
+                PropertyCategory::Shorthand
+            },
+            PropertyId::Longhand(id) | PropertyId::LonghandAlias(id, ..) => {
                 if id.is_logical() {
                     PropertyCategory::LogicalLonghand
                 } else {
                     PropertyCategory::PhysicalLonghand
                 }
-            }
+            },
             PropertyId::Custom(..) => PropertyCategory::Custom,
         }
     }
@@ -81,9 +81,9 @@ pub fn compare_property_priority(a: &PropertyId, b: &PropertyId) -> cmp::Orderin
     // name.
     let subprop_count_a = a.longhands().count();
     let subprop_count_b = b.longhands().count();
-    subprop_count_a.cmp(&subprop_count_b).then_with(|| {
-        a.idl_name_sort_order().cmp(&b.idl_name_sort_order())
-    })
+    subprop_count_a
+        .cmp(&subprop_count_b)
+        .then_with(|| a.idl_name_sort_order().cmp(&b.idl_name_sort_order()))
 }
 
 /// Animate from one value to another.

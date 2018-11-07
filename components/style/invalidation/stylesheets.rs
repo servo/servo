@@ -7,9 +7,6 @@
 
 #![deny(unsafe_code)]
 
-use Atom;
-use CaseSensitivityExt;
-use LocalName as SelectorLocalName;
 use dom::{TDocument, TElement, TNode};
 use fxhash::FxHashSet;
 use invalidation::element::element_wrapper::{ElementSnapshot, ElementWrapper};
@@ -20,6 +17,9 @@ use selectors::attr::CaseSensitivity;
 use selectors::parser::{Component, LocalName, Selector};
 use shared_lock::SharedRwLockReadGuard;
 use stylesheets::{CssRule, StylesheetInDocument};
+use Atom;
+use CaseSensitivityExt;
+use LocalName as SelectorLocalName;
 
 /// A style sheet invalidation represents a kind of element or subtree that may
 /// need to be restyled. Whether it represents a whole subtree or just a single

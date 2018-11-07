@@ -4,7 +4,7 @@
 
 use crate::dom::bindings::codegen::Bindings::FileListBinding;
 use crate::dom::bindings::codegen::Bindings::FileListBinding::FileListMethods;
-use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
+use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::file::File;
 use crate::dom::window::Window;

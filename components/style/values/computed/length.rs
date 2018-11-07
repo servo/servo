@@ -4,20 +4,20 @@
 
 //! `<length>` computed values, and related ones.
 
+use super::{Context, Number, Percentage, ToComputedValue};
 use app_units::Au;
 use ordered_float::NotNan;
 use std::fmt::{self, Write};
 use std::ops::{Add, Neg};
-use style_traits::{CssWriter, ToCss};
 use style_traits::values::specified::AllowedNumericType;
-use super::{Context, Number, Percentage, ToComputedValue};
-use values::{specified, Auto, CSSFloat, Either, Normal};
+use style_traits::{CssWriter, ToCss};
 use values::animated::{Animate, Procedure, ToAnimatedValue, ToAnimatedZero};
 use values::distance::{ComputeSquaredDistance, SquaredDistance};
-use values::generics::NonNegative;
 use values::generics::length::{MaxLength as GenericMaxLength, MozLength as GenericMozLength};
-use values::specified::length::{AbsoluteLength, FontBaseSize, FontRelativeLength};
+use values::generics::NonNegative;
 use values::specified::length::ViewportPercentageLength;
+use values::specified::length::{AbsoluteLength, FontBaseSize, FontRelativeLength};
+use values::{specified, Auto, CSSFloat, Either, Normal};
 
 pub use super::image::Image;
 pub use values::specified::url::UrlOrNone;
@@ -207,12 +207,12 @@ impl ToCss for CalcLengthOrPercentage {
                 if length.px() == 0. && self.clamping_mode.clamp(p.0) == p.0 {
                     return p.to_css(dest);
                 }
-            }
+            },
             None => {
                 if self.clamping_mode.clamp(length.px()) == length.px() {
                     return length.to_css(dest);
                 }
-            }
+            },
         }
 
         dest.write_str("calc(")?;
@@ -950,8 +950,18 @@ pub type NonNegativeLengthOrPercentageOrNormal = Either<NonNegativeLengthOrPerce
 /// block-size, and inline-size.
 #[allow(missing_docs)]
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
-#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, Parse, PartialEq, SpecifiedValueInfo,
-         ToComputedValue, ToCss)]
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    Eq,
+    MallocSizeOf,
+    Parse,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToComputedValue,
+    ToCss,
+)]
 pub enum ExtremumLength {
     MozMaxContent,
     MozMinContent,

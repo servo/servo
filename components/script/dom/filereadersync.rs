@@ -3,9 +3,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use crate::dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
-use crate::dom::bindings::codegen::Bindings::FileReaderSyncBinding::{FileReaderSyncBinding, FileReaderSyncMethods};
+use crate::dom::bindings::codegen::Bindings::FileReaderSyncBinding::{
+    FileReaderSyncBinding, FileReaderSyncMethods,
+};
 use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
+use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::blob::Blob;
@@ -100,7 +102,8 @@ impl FileReaderSyncMethods for FileReaderSync {
                 cx,
                 CreateWith::Slice(&blob_contents),
                 array_buffer.handle_mut()
-            ).is_ok()
+            )
+            .is_ok()
         );
 
         Ok(NonNull::new_unchecked(array_buffer.get()))

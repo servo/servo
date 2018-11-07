@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use app_units::{Au, AU_PER_PX};
-use crate::document_loader::{LoadType, LoadBlocker};
+use crate::document_loader::{LoadBlocker, LoadType};
 use crate::dom::activation::Activatable;
 use crate::dom::attr::Attr;
 use crate::dom::bindings::cell::DomRefCell;
@@ -21,8 +21,8 @@ use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::{DomRoot, LayoutDom, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
-use crate::dom::element::{AttributeMutation, Element, RawLayoutElementHelpers};
 use crate::dom::element::{reflect_cross_origin_attribute, set_cross_origin_attribute};
+use crate::dom::element::{AttributeMutation, Element, RawLayoutElementHelpers};
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::htmlareaelement::HTMLAreaElement;
@@ -32,7 +32,7 @@ use crate::dom::htmlmapelement::HTMLMapElement;
 use crate::dom::htmlpictureelement::HTMLPictureElement;
 use crate::dom::htmlsourceelement::HTMLSourceElement;
 use crate::dom::mouseevent::MouseEvent;
-use crate::dom::node::{Node, NodeDamage, document_from_node, window_from_node, UnbindContext};
+use crate::dom::node::{document_from_node, window_from_node, Node, NodeDamage, UnbindContext};
 use crate::dom::progressevent::ProgressEvent;
 use crate::dom::values::UNSIGNED_LONG_MAX;
 use crate::dom::virtualmethods::VirtualMethods;
@@ -48,15 +48,15 @@ use html5ever::{LocalName, Prefix};
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use mime::{self, Mime};
-use net_traits::{FetchResponseListener, FetchMetadata, NetworkError, FetchResponseMsg};
 use net_traits::image::base::{Image, ImageMetadata};
+use net_traits::image_cache::UsePlaceholder;
 use net_traits::image_cache::{CanRequestImages, ImageCache, ImageOrMetadataAvailable};
 use net_traits::image_cache::{ImageResponder, ImageResponse, ImageState, PendingImageId};
-use net_traits::image_cache::UsePlaceholder;
 use net_traits::request::RequestInit;
+use net_traits::{FetchMetadata, FetchResponseListener, FetchResponseMsg, NetworkError};
 use num_traits::ToPrimitive;
-use servo_url::ServoUrl;
 use servo_url::origin::MutableOrigin;
+use servo_url::ServoUrl;
 use std::cell::{Cell, RefMut};
 use std::char;
 use std::collections::HashSet;
@@ -64,14 +64,16 @@ use std::default::Default;
 use std::i32;
 use std::mem;
 use std::sync::{Arc, Mutex};
-use style::attr::{AttrValue, LengthOrPercentageOrAuto, parse_double, parse_length, parse_unsigned_integer};
+use style::attr::{
+    parse_double, parse_length, parse_unsigned_integer, AttrValue, LengthOrPercentageOrAuto,
+};
 use style::context::QuirksMode;
 use style::media_queries::MediaList;
 use style::parser::ParserContext;
 use style::str::is_ascii_digit;
 use style::stylesheets::{CssRuleType, Origin};
-use style::values::specified::{AbsoluteLength, source_size_list::SourceSizeList};
 use style::values::specified::length::{Length, NoCalcLength};
+use style::values::specified::{source_size_list::SourceSizeList, AbsoluteLength};
 use style_traits::ParsingMode;
 
 enum ParseState {
@@ -566,12 +568,11 @@ impl HTMLImageElement {
                 // TODO Handle unsupported mime type
                 let mime = x.value().parse::<Mime>();
                 match mime {
-                    Ok(m) =>
-                        match m.type_() {
-                            mime::IMAGE => (),
-                            _ => continue
-                        },
-                    _ => continue
+                    Ok(m) => match m.type_() {
+                        mime::IMAGE => (),
+                        _ => continue,
+                    },
+                    _ => continue,
                 }
             }
 
@@ -1274,9 +1275,13 @@ impl HTMLImageElement {
     }
 
     pub fn same_origin(&self, origin: &MutableOrigin) -> bool {
-        self.current_request.borrow_mut().final_url.as_ref().map_or(false, |url| {
-            url.scheme() == "data" || url.origin().same_origin(origin)
-        })
+        self.current_request
+            .borrow_mut()
+            .final_url
+            .as_ref()
+            .map_or(false, |url| {
+                url.scheme() == "data" || url.origin().same_origin(origin)
+            })
     }
 }
 
@@ -1353,10 +1358,11 @@ impl LayoutHTMLImageElementHelpers for LayoutDom<HTMLImageElement> {
 
     #[allow(unsafe_code)]
     unsafe fn image_data(&self) -> (Option<Arc<Image>>, Option<ImageMetadata>) {
-        let current_request = (*self.unsafe_get())
-            .current_request
-            .borrow_for_layout();
-        (current_request.image.clone(), current_request.metadata.clone())
+        let current_request = (*self.unsafe_get()).current_request.borrow_for_layout();
+        (
+            current_request.image.clone(),
+            current_request.metadata.clone(),
+        )
     }
 
     #[allow(unsafe_code)]
@@ -1502,11 +1508,11 @@ impl HTMLImageElementMethods for HTMLImageElement {
         let elem = self.upcast::<Element>();
         let srcset_absent = !elem.has_attribute(&local_name!("srcset"));
         if !elem.has_attribute(&local_name!("src")) && srcset_absent {
-            return true
+            return true;
         }
         let src = elem.get_string_attribute(&local_name!("src"));
         if srcset_absent && src.is_empty() {
-            return true
+            return true;
         }
         let request = self.current_request.borrow();
         let request_state = request.state;
@@ -1582,8 +1588,10 @@ impl VirtualMethods for HTMLImageElement {
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
         self.super_type().unwrap().attribute_mutated(attr, mutation);
         match attr.local_name() {
-            &local_name!("src") | &local_name!("srcset")  |
-            &local_name!("width") | &local_name!("crossorigin") |
+            &local_name!("src") |
+            &local_name!("srcset") |
+            &local_name!("width") |
+            &local_name!("crossorigin") |
             &local_name!("sizes") => self.update_the_image_data(),
             _ => {},
         }

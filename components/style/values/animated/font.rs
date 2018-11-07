@@ -5,8 +5,8 @@
 //! Animation implementation for various font-related types.
 
 use super::{Animate, Procedure, ToAnimatedZero};
+use values::computed::font::{FontVariationSettings, FontWeight};
 use values::computed::Number;
-use values::computed::font::{FontWeight, FontVariationSettings};
 use values::distance::{ComputeSquaredDistance, SquaredDistance};
 use values::generics::font::{FontSettings as GenericFontSettings, FontTag, VariationValue};
 
@@ -143,7 +143,9 @@ impl<'a> FontSettingTagIter<'a> {
 impl<'a> Iterator for FontSettingTagIter<'a> {
     type Item = Result<(&'a ComputedVariationValue, &'a ComputedVariationValue), ()>;
 
-    fn next(&mut self) -> Option<Result<(&'a ComputedVariationValue, &'a ComputedVariationValue), ()>> {
+    fn next(
+        &mut self,
+    ) -> Option<Result<(&'a ComputedVariationValue, &'a ComputedVariationValue), ()>> {
         match (
             FontSettingTagIter::next_tag(&mut self.a_state),
             FontSettingTagIter::next_tag(&mut self.b_state),

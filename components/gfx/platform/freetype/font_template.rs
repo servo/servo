@@ -5,7 +5,7 @@
 use servo_atoms::Atom;
 use std::fmt;
 use std::fs::File;
-use std::io::{Read, Error};
+use std::io::{Error, Read};
 use webrender_api::NativeFontHandle;
 
 /// Platform specific font representation for Linux.
@@ -25,7 +25,8 @@ impl fmt::Debug for FontTemplateData {
             .field(
                 "bytes",
                 &self.bytes.as_ref().map(|b| format!("[{} bytes]", b.len())),
-            ).field("identifier", &self.identifier)
+            )
+            .field("identifier", &self.identifier)
             .finish()
     }
 }

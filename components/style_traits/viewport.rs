@@ -4,10 +4,10 @@
 
 //! Helper types for the `@viewport` rule.
 
-use {CSSPixel, CssWriter, ParseError, PinchZoomFactor, ToCss};
 use cssparser::Parser;
 use euclid::TypedSize2D;
 use std::fmt::{self, Write};
+use {CSSPixel, CssWriter, ParseError, PinchZoomFactor, ToCss};
 
 define_css_keyword_enum! {
     pub enum UserZoom {
@@ -115,9 +115,9 @@ impl Zoom {
     ///
     /// <https://drafts.csswg.org/css-device-adapt/#descdef-viewport-zoom>
     pub fn parse<'i, 't>(input: &mut Parser<'i, 't>) -> Result<Zoom, ParseError<'i>> {
-        use ParsingMode;
         use cssparser::Token;
         use values::specified::AllowedNumericType::NonNegative;
+        use ParsingMode;
 
         let location = input.current_source_location();
         match *input.next()? {

@@ -10,8 +10,10 @@ use backtrace::Backtrace;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::DOMExceptionBinding::DOMExceptionMethods;
 use crate::dom::bindings::codegen::PrototypeList::proto_id_to_name;
-use crate::dom::bindings::conversions::{ConversionResult, FromJSValConvertible, ToJSValConvertible};
 use crate::dom::bindings::conversions::root_from_object;
+use crate::dom::bindings::conversions::{
+    ConversionResult, FromJSValConvertible, ToJSValConvertible,
+};
 use crate::dom::bindings::str::USVString;
 use crate::dom::domexception::{DOMErrorName, DOMException};
 use crate::dom::globalscope::GlobalScope;
@@ -20,11 +22,11 @@ use js::jsapi::JSContext;
 use js::jsapi::JS_ClearPendingException;
 use js::jsapi::JS_IsExceptionPending;
 use js::jsval::UndefinedValue;
-use js::rust::HandleObject;
-use js::rust::MutableHandleValue;
 use js::rust::wrappers::JS_ErrorFromException;
 use js::rust::wrappers::JS_GetPendingException;
 use js::rust::wrappers::JS_SetPendingException;
+use js::rust::HandleObject;
+use js::rust::MutableHandleValue;
 use libc::c_uint;
 use std::slice::from_raw_parts;
 

@@ -8,14 +8,14 @@
 use properties::StyleBuilder;
 use std::fmt::{self, Write};
 use style_traits::{CssWriter, ToCss};
-use values::{CSSFloat, CSSInteger};
-use values::computed::{NonNegativeLength, NonNegativeNumber};
 use values::computed::length::{Length, LengthOrPercentage};
+use values::computed::{NonNegativeLength, NonNegativeNumber};
 use values::generics::text::InitialLetter as GenericInitialLetter;
 use values::generics::text::LineHeight as GenericLineHeight;
 use values::generics::text::MozTabSize as GenericMozTabSize;
 use values::generics::text::Spacing;
 use values::specified::text::{TextEmphasisFillMode, TextEmphasisShapeKeyword, TextOverflowSide};
+use values::{CSSFloat, CSSInteger};
 
 pub use values::specified::TextAlignKeyword as TextAlign;
 pub use values::specified::TextEmphasisPosition;

@@ -5,8 +5,12 @@
 use crate::dom::audionode::AudioNode;
 use crate::dom::baseaudiocontext::BaseAudioContext;
 use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::AnalyserNodeBinding::{self, AnalyserNodeMethods, AnalyserOptions};
-use crate::dom::bindings::codegen::Bindings::AudioNodeBinding::{ChannelCountMode, ChannelInterpretation};
+use crate::dom::bindings::codegen::Bindings::AnalyserNodeBinding::{
+    self, AnalyserNodeMethods, AnalyserOptions,
+};
+use crate::dom::bindings::codegen::Bindings::AudioNodeBinding::{
+    ChannelCountMode, ChannelInterpretation,
+};
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::refcounted::Trusted;
@@ -37,17 +41,20 @@ impl AnalyserNode {
         context: &BaseAudioContext,
         options: &AnalyserOptions,
     ) -> Fallible<(AnalyserNode, IpcReceiver<Block>)> {
-        let node_options = options.parent
-                                  .unwrap_or(2, ChannelCountMode::Max,
-                                             ChannelInterpretation::Speakers);
+        let node_options =
+            options
+                .parent
+                .unwrap_or(2, ChannelCountMode::Max, ChannelInterpretation::Speakers);
 
-        if options.fftSize > 32768 || options.fftSize < 32 ||
-           (options.fftSize & (options.fftSize - 1) != 0) {
-            return Err(Error::IndexSize)
+        if options.fftSize > 32768 ||
+            options.fftSize < 32 ||
+            (options.fftSize & (options.fftSize - 1) != 0)
+        {
+            return Err(Error::IndexSize);
         }
 
         if *options.maxDecibels <= *options.minDecibels {
-            return Err(Error::IndexSize)
+            return Err(Error::IndexSize);
         }
 
         if *options.smoothingTimeConstant < 0. || *options.smoothingTimeConstant > 1. {
@@ -67,14 +74,19 @@ impl AnalyserNode {
             1, // outputs
         )?;
 
-
-        let engine = AnalysisEngine::new(options.fftSize as usize,
-                                         *options.smoothingTimeConstant,
-                                         *options.minDecibels, *options.maxDecibels);
-        Ok((AnalyserNode {
-            node,
-            engine: DomRefCell::new(engine)
-        }, rcv))
+        let engine = AnalysisEngine::new(
+            options.fftSize as usize,
+            *options.smoothingTimeConstant,
+            *options.minDecibels,
+            *options.maxDecibels,
+        );
+        Ok((
+            AnalyserNode {
+                node,
+                engine: DomRefCell::new(engine),
+            },
+            rcv,
+        ))
     }
 
     #[allow(unrooted_must_root)]
@@ -89,13 +101,19 @@ impl AnalyserNode {
         let canceller = window.task_canceller(TaskSourceName::DOMManipulation);
         let this = Trusted::new(&*object);
 
-        ROUTER.add_route(recv.to_opaque(), Box::new(move |block| {
-            let this = this.clone();
-            let _ = source.queue_with_canceller(task!(append_analysis_block: move || {
+        ROUTER.add_route(
+            recv.to_opaque(),
+            Box::new(move |block| {
+                let this = this.clone();
+                let _ = source.queue_with_canceller(
+                    task!(append_analysis_block: move || {
                 let this = this.root();
                 this.push_block(block.to().unwrap())
-            }), &canceller);
-        }));
+            }),
+                    &canceller,
+                );
+            }),
+        );
         Ok(object)
     }
 
@@ -130,7 +148,6 @@ impl AnalyserNodeMethods for AnalyserNode {
         // run whilst we're writing to it
         let dest = unsafe { array.as_mut_slice() };
         self.engine.borrow_mut().fill_byte_frequency_data(dest);
-
     }
 
     #[allow(unsafe_code)]
@@ -140,7 +157,6 @@ impl AnalyserNodeMethods for AnalyserNode {
         // run whilst we're writing to it
         let dest = unsafe { array.as_mut_slice() };
         self.engine.borrow().fill_time_domain_data(dest);
-
     }
 
     #[allow(unsafe_code)]
@@ -150,14 +166,12 @@ impl AnalyserNodeMethods for AnalyserNode {
         // run whilst we're writing to it
         let dest = unsafe { array.as_mut_slice() };
         self.engine.borrow().fill_byte_time_domain_data(dest);
-
     }
 
     /// https://webaudio.github.io/web-audio-api/#dom-analysernode-fftsize
     fn SetFftSize(&self, value: u32) -> Fallible<()> {
-        if value > 32768 || value < 32 ||
-           (value & (value - 1) != 0) {
-            return Err(Error::IndexSize)
+        if value > 32768 || value < 32 || (value & (value - 1) != 0) {
+            return Err(Error::IndexSize);
         }
         self.engine.borrow_mut().set_fft_size(value as usize);
         Ok(())
@@ -181,7 +195,7 @@ impl AnalyserNodeMethods for AnalyserNode {
     /// https://webaudio.github.io/web-audio-api/#dom-analysernode-mindecibels
     fn SetMinDecibels(&self, value: Finite<f64>) -> Fallible<()> {
         if *value >= self.engine.borrow().get_max_decibels() {
-            return Err(Error::IndexSize)
+            return Err(Error::IndexSize);
         }
         self.engine.borrow_mut().set_min_decibels(*value);
         Ok(())
@@ -195,7 +209,7 @@ impl AnalyserNodeMethods for AnalyserNode {
     /// https://webaudio.github.io/web-audio-api/#dom-analysernode-maxdecibels
     fn SetMaxDecibels(&self, value: Finite<f64>) -> Fallible<()> {
         if *value <= self.engine.borrow().get_min_decibels() {
-            return Err(Error::IndexSize)
+            return Err(Error::IndexSize);
         }
         self.engine.borrow_mut().set_max_decibels(*value);
         Ok(())
@@ -209,10 +223,9 @@ impl AnalyserNodeMethods for AnalyserNode {
     /// https://webaudio.github.io/web-audio-api/#dom-analysernode-smoothingtimeconstant
     fn SetSmoothingTimeConstant(&self, value: Finite<f64>) -> Fallible<()> {
         if *value < 0. || *value > 1. {
-            return Err(Error::IndexSize)
+            return Err(Error::IndexSize);
         }
         self.engine.borrow_mut().set_smoothing_constant(*value);
         Ok(())
     }
 }
-

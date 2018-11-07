@@ -16,8 +16,8 @@ use values::generics::border::BorderRadius as GenericBorderRadius;
 use values::generics::border::BorderSpacing as GenericBorderSpacing;
 use values::generics::rect::Rect;
 use values::generics::size::Size;
-use values::specified::{AllowQuirks, Number, NumberOrPercentage};
 use values::specified::length::{Length, LengthOrPercentage, NonNegativeLength};
+use values::specified::{AllowQuirks, Number, NumberOrPercentage};
 
 /// A specified value for a single side of the `border-width` property.
 #[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss)]
@@ -92,7 +92,8 @@ impl ToComputedValue for BorderSideWidth {
             BorderSideWidth::Medium => Length::from_px(3.).to_computed_value(context),
             BorderSideWidth::Thick => Length::from_px(5.).to_computed_value(context),
             BorderSideWidth::Length(ref length) => length.to_computed_value(context),
-        }.into()
+        }
+        .into()
     }
 
     #[inline]
@@ -182,7 +183,8 @@ impl Parse for BorderSpacing {
     ) -> Result<Self, ParseError<'i>> {
         Size::parse_with(context, input, |context, input| {
             Length::parse_non_negative_quirky(context, input, AllowQuirks::Yes).map(From::from)
-        }).map(GenericBorderSpacing)
+        })
+        .map(GenericBorderSpacing)
     }
 }
 

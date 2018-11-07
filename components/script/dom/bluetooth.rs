@@ -334,7 +334,8 @@ where
             single,
             child_type,
             sender,
-        )).unwrap();
+        ))
+        .unwrap();
     return p;
 }
 
@@ -694,7 +695,8 @@ impl PermissionAlgorithm for Bluetooth {
                         device_id.clone(),
                         BluetoothScanfilterSequence::new(scan_filters),
                         sender,
-                    )).unwrap();
+                    ))
+                    .unwrap();
 
                 match receiver.recv().unwrap() {
                     Ok(true) => (),

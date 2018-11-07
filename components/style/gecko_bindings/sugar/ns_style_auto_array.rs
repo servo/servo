@@ -6,8 +6,8 @@
 
 use gecko_bindings::bindings::Gecko_EnsureStyleAnimationArrayLength;
 use gecko_bindings::bindings::Gecko_EnsureStyleTransitionArrayLength;
-use gecko_bindings::structs::{StyleAnimation, StyleTransition};
 use gecko_bindings::structs::nsStyleAutoArray;
+use gecko_bindings::structs::{StyleAnimation, StyleTransition};
 use std::iter::{once, Chain, IntoIterator, Once};
 use std::ops::{Index, IndexMut};
 use std::slice::{Iter, IterMut};

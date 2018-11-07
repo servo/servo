@@ -6,14 +6,14 @@ use crate::dom::bindings::codegen::Bindings::CharacterDataBinding::CharacterData
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeConstants;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::codegen::Bindings::NodeListBinding::NodeListMethods;
-use crate::dom::bindings::codegen::Bindings::RangeBinding::{self, RangeConstants};
 use crate::dom::bindings::codegen::Bindings::RangeBinding::RangeMethods;
+use crate::dom::bindings::codegen::Bindings::RangeBinding::{self, RangeConstants};
 use crate::dom::bindings::codegen::Bindings::TextBinding::TextMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
-use crate::dom::bindings::inheritance::{CharacterDataTypeId, NodeTypeId};
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
+use crate::dom::bindings::inheritance::{CharacterDataTypeId, NodeTypeId};
+use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot, MutDom, RootedReference};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::trace::JSTraceable;
@@ -836,7 +836,8 @@ impl RangeMethods for Range {
                 start_offset,
                 start_node.len() - start_offset,
                 DOMString::new(),
-            ).unwrap();
+            )
+            .unwrap();
         }
 
         // Step 8.

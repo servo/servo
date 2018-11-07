@@ -4,11 +4,11 @@
 
 //! Computed values for UI properties
 
-use values::{Auto, Either};
-use values::computed::Number;
 use values::computed::color::Color;
 use values::computed::url::ComputedImageUrl;
+use values::computed::Number;
 use values::generics::ui as generics;
+use values::{Auto, Either};
 
 pub use values::specified::ui::MozForceBrokenImageIcon;
 

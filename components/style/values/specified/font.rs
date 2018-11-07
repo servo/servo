@@ -4,7 +4,6 @@
 
 //! Specified values for font properties
 
-use Atom;
 use app_units::Au;
 use byteorder::{BigEndian, ByteOrder};
 use cssparser::{Parser, Token};
@@ -15,18 +14,21 @@ use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use parser::{Parse, ParserContext};
 use properties::longhands::system_font::SystemFont;
 use std::fmt::{self, Write};
+use style_traits::values::SequenceWriter;
 use style_traits::{CssWriter, KeywordsCollectFn, ParseError};
 use style_traits::{SpecifiedValueInfo, StyleParseErrorKind, ToCss};
-use style_traits::values::SequenceWriter;
-use values::CustomIdent;
-use values::computed::{Angle as ComputedAngle, Percentage as ComputedPercentage};
-use values::computed::{font as computed, Context, Length, NonNegativeLength, ToComputedValue};
 use values::computed::font::{FamilyName, FontFamilyList, FontStyleAngle, SingleFontFamily};
-use values::generics::NonNegative;
-use values::generics::font::{KeywordSize, VariationValue};
+use values::computed::{font as computed, Context, Length, NonNegativeLength, ToComputedValue};
+use values::computed::{Angle as ComputedAngle, Percentage as ComputedPercentage};
 use values::generics::font::{self as generics, FeatureTagValue, FontSettings, FontTag};
-use values::specified::{AllowQuirks, Angle, Integer, LengthOrPercentage, NoCalcLength, Number, Percentage};
+use values::generics::font::{KeywordSize, VariationValue};
+use values::generics::NonNegative;
 use values::specified::length::{FontBaseSize, AU_PER_PT, AU_PER_PX};
+use values::specified::{
+    AllowQuirks, Angle, Integer, LengthOrPercentage, NoCalcLength, Number, Percentage,
+};
+use values::CustomIdent;
+use Atom;
 
 // FIXME(emilio): The system font code is copy-pasta, and should be cleaned up.
 macro_rules! system_font_methods {
@@ -733,7 +735,8 @@ impl ToComputedValue for KeywordSize {
             KeywordSize::XLarge => Au::from_px(FONT_MEDIUM_PX) * 3 / 2,
             KeywordSize::XXLarge => Au::from_px(FONT_MEDIUM_PX) * 2,
             KeywordSize::XXXLarge => Au::from_px(FONT_MEDIUM_PX) * 3,
-        }.into()
+        }
+        .into()
     }
 
     #[inline]
@@ -837,7 +840,8 @@ impl FontSize {
                 6 => KeywordSize::XXLarge,
                 // If value is greater than 7, let it be 7.
                 _ => KeywordSize::XXXLarge,
-            }.into(),
+            }
+            .into(),
         )
     }
 
@@ -906,7 +910,8 @@ impl FontSize {
                         .to_computed_value_zoomed(
                             context,
                             FontBaseSize::InheritedStyleButStripEmUnits,
-                        ).length_component();
+                        )
+                        .length_component();
 
                     info = parent.keyword_info.map(|i| i.compose(ratio, abs.into()));
                 }
@@ -2108,7 +2113,8 @@ impl ToComputedValue for FontLanguageOverride {
                 String::from_utf8(buf.to_vec()).unwrap()
             } else {
                 unsafe { String::from_utf8_unchecked(buf.to_vec()) }
-            }.into_boxed_str(),
+            }
+            .into_boxed_str(),
         )
     }
 }

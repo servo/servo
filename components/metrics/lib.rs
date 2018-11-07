@@ -16,11 +16,11 @@ extern crate servo_config;
 extern crate servo_url;
 extern crate time;
 
-use gfx_traits::{Epoch, DisplayList};
+use gfx_traits::{DisplayList, Epoch};
 use ipc_channel::ipc::IpcSender;
 use msg::constellation_msg::PipelineId;
-use profile_traits::time::{ProfilerChan, ProfilerCategory, send_profile_data};
 use profile_traits::time::TimerMetadata;
+use profile_traits::time::{send_profile_data, ProfilerCategory, ProfilerChan};
 use script_traits::{ConstellationControlMsg, LayoutMsg, ProgressiveWebMetricType};
 use servo_config::opts;
 use servo_url::ServoUrl;

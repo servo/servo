@@ -7,12 +7,12 @@
 use app_units::Au;
 use euclid::{self, Rect, Transform3D};
 use num_traits::Zero;
-use values::{computed, CSSFloat};
 use values::computed::length::Length as ComputedLength;
 use values::computed::length::LengthOrPercentage as ComputedLengthOrPercentage;
 use values::specified::angle::Angle as SpecifiedAngle;
 use values::specified::length::Length as SpecifiedLength;
 use values::specified::length::LengthOrPercentage as SpecifiedLengthOrPercentage;
+use values::{computed, CSSFloat};
 
 /// A generic 2D transformation matrix.
 #[allow(missing_docs)]

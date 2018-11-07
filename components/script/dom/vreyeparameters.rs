@@ -5,13 +5,13 @@
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::VREyeParametersBinding;
 use crate::dom::bindings::codegen::Bindings::VREyeParametersBinding::VREyeParametersMethods;
-use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
+use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::vrfieldofview::VRFieldOfView;
 use dom_struct::dom_struct;
 use js::jsapi::{Heap, JSContext, JSObject};
-use js::typedarray::{Float32Array, CreateWith};
+use js::typedarray::{CreateWith, Float32Array};
 use std::default::Default;
 use std::ptr;
 use std::ptr::NonNull;

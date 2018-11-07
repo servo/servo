@@ -17,7 +17,7 @@ extern crate serde;
 pub mod print_tree;
 
 use range::RangeIndex;
-use std::sync::atomic::{ATOMIC_USIZE_INIT, AtomicUsize, Ordering};
+use std::sync::atomic::{AtomicUsize, Ordering, ATOMIC_USIZE_INIT};
 
 /// A newtype struct for denoting the age of messages; prevents race conditions.
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]

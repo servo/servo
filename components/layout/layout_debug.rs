@@ -13,7 +13,7 @@ use std::cell::RefCell;
 use std::fs::File;
 use std::io::Write;
 #[cfg(debug_assertions)]
-use std::sync::atomic::{ATOMIC_USIZE_INIT, AtomicUsize, Ordering};
+use std::sync::atomic::{AtomicUsize, Ordering, ATOMIC_USIZE_INIT};
 
 thread_local!(static STATE_KEY: RefCell<Option<State>> = RefCell::new(None));
 

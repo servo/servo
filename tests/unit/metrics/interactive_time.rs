@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use ipc_channel::ipc;
-use metrics::{InteractiveMetrics, InteractiveFlag};
+use metrics::{InteractiveFlag, InteractiveMetrics};
 use metrics::{ProfilerMetadataFactory, ProgressiveWebMetric};
 use profile_traits::time::{ProfilerChan, TimerMetadata};
 use servo_url::ServoUrl;
@@ -16,14 +16,11 @@ impl ProfilerMetadataFactory for DummyProfilerMetadataFactory {
     }
 }
 
-
 fn test_interactive() -> InteractiveMetrics {
     let (sender, _) = ipc::channel().unwrap();
     let profiler_chan = ProfilerChan(sender);
-    let mut interactive = InteractiveMetrics::new(
-        profiler_chan,
-        ServoUrl::parse("about:blank").unwrap(),
-    );
+    let mut interactive =
+        InteractiveMetrics::new(profiler_chan, ServoUrl::parse("about:blank").unwrap());
 
     assert_eq!((&interactive).get_navigation_start(), None);
     assert_eq!(interactive.get_tti(), None);
@@ -38,12 +35,18 @@ fn test_set_dcl() {
     let profiler_metadata_factory = DummyProfilerMetadataFactory {};
 
     let interactive = test_interactive();
-    interactive.maybe_set_tti(&profiler_metadata_factory, InteractiveFlag::DOMContentLoaded);
+    interactive.maybe_set_tti(
+        &profiler_metadata_factory,
+        InteractiveFlag::DOMContentLoaded,
+    );
     let dcl = interactive.get_dom_content_loaded();
     assert!(dcl.is_some());
 
     //try to overwrite
-    interactive.maybe_set_tti(&profiler_metadata_factory, InteractiveFlag::DOMContentLoaded);
+    interactive.maybe_set_tti(
+        &profiler_metadata_factory,
+        InteractiveFlag::DOMContentLoaded,
+    );
     assert_eq!(interactive.get_dom_content_loaded(), dcl);
     assert_eq!(interactive.get_tti(), None);
 }
@@ -84,7 +87,10 @@ fn test_set_tti_dcl() {
     let mta = interactive.get_main_thread_available();
     assert!(mta.is_some());
 
-    interactive.maybe_set_tti(&profiler_metadata_factory, InteractiveFlag::DOMContentLoaded);
+    interactive.maybe_set_tti(
+        &profiler_metadata_factory,
+        InteractiveFlag::DOMContentLoaded,
+    );
     let dcl = interactive.get_dom_content_loaded();
     assert!(dcl.is_some());
 
@@ -97,7 +103,10 @@ fn test_set_tti_mta() {
     let profiler_metadata_factory = DummyProfilerMetadataFactory {};
 
     let interactive = test_interactive();
-    interactive.maybe_set_tti(&profiler_metadata_factory, InteractiveFlag::DOMContentLoaded);
+    interactive.maybe_set_tti(
+        &profiler_metadata_factory,
+        InteractiveFlag::DOMContentLoaded,
+    );
     let dcl = interactive.get_dom_content_loaded();
     assert!(dcl.is_some());
 

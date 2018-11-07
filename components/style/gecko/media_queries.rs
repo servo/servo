@@ -4,8 +4,8 @@
 
 //! Gecko's media-query device and expression representation.
 
-use app_units::AU_PER_PX;
 use app_units::Au;
+use app_units::AU_PER_PX;
 use cssparser::RGBA;
 use custom_properties::CssEnvironment;
 use euclid::Size2D;
@@ -20,10 +20,10 @@ use servo_arc::Arc;
 use std::fmt;
 use std::sync::atomic::{AtomicBool, AtomicIsize, AtomicUsize, Ordering};
 use string_cache::Atom;
-use style_traits::{CSSPixel, DevicePixel};
 use style_traits::viewport::ViewportConstraints;
-use values::{CustomIdent, KeyframesName};
+use style_traits::{CSSPixel, DevicePixel};
 use values::computed::font::FontSize;
+use values::{CustomIdent, KeyframesName};
 
 /// The `Device` in Gecko wraps a pres context, has a default values computed,
 /// and contains all the viewport rule state.

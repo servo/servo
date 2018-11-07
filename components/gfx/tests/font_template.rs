@@ -19,10 +19,10 @@ fn test_font_template_descriptor() {
     use std::fs::File;
     use std::io::prelude::*;
     use std::path::PathBuf;
-    use style::values::computed::Percentage;
     use style::values::computed::font::{FontStretch, FontWeight};
-    use style::values::generics::NonNegative;
+    use style::values::computed::Percentage;
     use style::values::generics::font::FontStyle;
+    use style::values::generics::NonNegative;
 
     fn descriptor(filename: &str) -> FontTemplateDescriptor {
         let mut path: PathBuf = [
@@ -41,7 +41,8 @@ fn test_font_template_descriptor() {
         let mut template = FontTemplate::new(
             Atom::from(filename),
             Some(file.bytes().map(|b| b.unwrap()).collect()),
-        ).unwrap();
+        )
+        .unwrap();
 
         let context = FontContextHandle::new();
 

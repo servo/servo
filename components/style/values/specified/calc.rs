@@ -9,13 +9,13 @@
 use cssparser::{AngleOrNumber, NumberOrPercentage, Parser, Token};
 use parser::ParserContext;
 use std::fmt::{self, Write};
-use style_traits::{CssWriter, ParseError, SpecifiedValueInfo, StyleParseErrorKind, ToCss};
 use style_traits::values::specified::AllowedNumericType;
-use values::{CSSFloat, CSSInteger};
+use style_traits::{CssWriter, ParseError, SpecifiedValueInfo, StyleParseErrorKind, ToCss};
 use values::computed;
-use values::specified::{Angle, Time};
-use values::specified::length::{AbsoluteLength, FontRelativeLength, NoCalcLength};
 use values::specified::length::ViewportPercentageLength;
+use values::specified::length::{AbsoluteLength, FontRelativeLength, NoCalcLength};
+use values::specified::{Angle, Time};
+use values::{CSSFloat, CSSInteger};
 
 /// A node inside a `Calc` expression's AST.
 #[derive(Clone, Debug)]
@@ -529,8 +529,7 @@ impl CalcNode {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<CSSInteger, ParseError<'i>> {
-        Self::parse_number(context, input)
-            .map(|n| n.round() as CSSInteger)
+        Self::parse_number(context, input).map(|n| n.round() as CSSInteger)
     }
 
     /// Convenience parsing function for `<length> | <percentage>`.

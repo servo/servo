@@ -6,12 +6,12 @@
 //!
 //! [images]: https://drafts.csswg.org/css-images/#image-values
 
-use Atom;
 use custom_properties;
 use servo_arc::Arc;
 use std::fmt::{self, Write};
 use style_traits::{CssWriter, ToCss};
 use values::serialize_atom_identifier;
+use Atom;
 
 /// An [image].
 ///

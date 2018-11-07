@@ -4,38 +4,47 @@
 
 use brotli::Decompressor;
 use bytes::Bytes;
-use crate::connector::{BUF_SIZE, Connector, create_http_client, WrappedBody};
+use crate::connector::{create_http_client, Connector, WrappedBody, BUF_SIZE};
 use crate::cookie;
 use crate::cookie_storage::CookieStorage;
 use crate::fetch::cors_cache::CorsCache;
+use crate::fetch::methods::{
+    is_cors_safelisted_method, is_cors_safelisted_request_header, main_fetch,
+};
 use crate::fetch::methods::{Data, DoneChannel, FetchContext, Target};
-use crate::fetch::methods::{is_cors_safelisted_request_header, is_cors_safelisted_method, main_fetch};
 use crate::hsts::HstsList;
 use crate::http_cache::HttpCache;
 use crate::resource_thread::AuthCache;
-use devtools_traits::{ChromeToDevtoolsControlMsg, DevtoolsControlMsg, HttpRequest as DevtoolsHttpRequest};
+use devtools_traits::{
+    ChromeToDevtoolsControlMsg, DevtoolsControlMsg, HttpRequest as DevtoolsHttpRequest,
+};
 use devtools_traits::{HttpResponse as DevtoolsHttpResponse, NetworkEvent};
 use flate2::read::{DeflateDecoder, GzDecoder};
 use headers_core::HeaderMapExt;
 use headers_ext::{AccessControlAllowCredentials, AccessControlAllowHeaders};
-use headers_ext::{AccessControlAllowMethods, AccessControlRequestHeaders, AccessControlRequestMethod, Authorization};
+use headers_ext::{
+    AccessControlAllowMethods, AccessControlRequestHeaders, AccessControlRequestMethod,
+    Authorization,
+};
 use headers_ext::{AccessControlAllowOrigin, AccessControlMaxAge, Basic};
 use headers_ext::{CacheControl, ContentEncoding, ContentLength};
-use headers_ext::{Host, IfModifiedSince, LastModified, Origin as HyperOrigin, Pragma, Referer, UserAgent};
-use http::{HeaderMap, Request as HyperRequest};
+use headers_ext::{
+    Host, IfModifiedSince, LastModified, Origin as HyperOrigin, Pragma, Referer, UserAgent,
+};
 use http::header::{self, HeaderName, HeaderValue};
 use http::uri::Authority;
-use hyper::{Body, Client, Method, StatusCode, Response as HyperResponse};
+use http::{HeaderMap, Request as HyperRequest};
+use hyper::{Body, Client, Method, Response as HyperResponse, StatusCode};
 use hyper_serde::Serde;
 use log;
 use mime;
 use msg::constellation_msg::{HistoryStateId, PipelineId};
-use net_traits::{CookieSource, FetchMetadata, NetworkError, ReferrerPolicy};
 use net_traits::quality::{quality_to_value, Quality, QualityItem};
 use net_traits::request::{CacheMode, CredentialsMode, Destination, Origin};
 use net_traits::request::{RedirectMode, Referrer, Request, RequestMode};
 use net_traits::request::{ResponseTainting, ServiceWorkersMode};
 use net_traits::response::{HttpsState, Response, ResponseBody, ResponseType};
+use net_traits::{CookieSource, FetchMetadata, NetworkError, ReferrerPolicy};
 use openssl::ssl::SslConnectorBuilder;
 use servo_channel::{channel, Sender};
 use servo_url::{ImmutableOrigin, ServoUrl};
@@ -50,7 +59,7 @@ use std::sync::Mutex;
 use std::sync::RwLock;
 use std::time::{Duration, SystemTime};
 use time::{self, Tm};
-use tokio::prelude::{Future, future, Stream};
+use tokio::prelude::{future, Future, Stream};
 use tokio::runtime::Runtime;
 use uuid;
 
@@ -506,12 +515,10 @@ pub fn http_fetch(
         }
 
         // Substep 2
-        if response.is_none() &&
-            request.is_subresource_request() &&
-            match request.origin {
-                Origin::Origin(ref origin) => *origin == request.url().origin(),
-                _ => false,
-            } {
+        if response.is_none() && request.is_subresource_request() && match request.origin {
+            Origin::Origin(ref origin) => *origin == request.url().origin(),
+            _ => false,
+        } {
             // TODO (handle foreign fetch unimplemented)
         }
 
@@ -1044,11 +1051,10 @@ fn http_network_or_cache_fetch(
             }
         }
         // Substep 4
-        if revalidating_flag &&
-            forward_response
-                .status
-                .as_ref()
-                .map_or(false, |s| s.0 == StatusCode::NOT_MODIFIED)
+        if revalidating_flag && forward_response
+            .status
+            .as_ref()
+            .map_or(false, |s| s.0 == StatusCode::NOT_MODIFIED)
         {
             if let Ok(mut http_cache) = context.state.http_cache.write() {
                 response = http_cache.refresh(&http_request, forward_response.clone(), done_chan);
@@ -1384,11 +1390,10 @@ fn cors_preflight_fetch(
     let response = http_network_or_cache_fetch(&mut preflight, false, false, &mut None, context);
 
     // Step 6
-    if cors_check(&request, &response).is_ok() &&
-        response
-            .status
-            .as_ref()
-            .map_or(false, |(status, _)| status.is_success())
+    if cors_check(&request, &response).is_ok() && response
+        .status
+        .as_ref()
+        .map_or(false, |(status, _)| status.is_success())
     {
         // Substep 1, 2
         let mut methods = if response

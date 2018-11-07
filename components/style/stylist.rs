@@ -4,7 +4,6 @@
 
 //! Selector matching.
 
-use {Atom, LocalName, Namespace, WeakAtom};
 use applicable_declarations::{ApplicableDeclarationBlock, ApplicableDeclarationList};
 use context::{CascadeInputs, QuirksMode};
 use dom::{TElement, TShadowRoot};
@@ -16,9 +15,9 @@ use hashglobe::FailedAllocationError;
 use invalidation::element::invalidation_map::InvalidationMap;
 use invalidation::media_queries::{EffectiveMediaQueryResults, ToMediaListKey};
 #[cfg(feature = "gecko")]
-use malloc_size_of::{MallocShallowSizeOf, MallocSizeOf, MallocSizeOfOps};
-#[cfg(feature = "gecko")]
 use malloc_size_of::MallocUnconditionalShallowSizeOf;
+#[cfg(feature = "gecko")]
+use malloc_size_of::{MallocShallowSizeOf, MallocSizeOf, MallocSizeOfOps};
 use media_queries::Device;
 use properties::{self, CascadeMode, ComputedValues};
 use properties::{AnimationRules, PropertyDeclarationBlock};
@@ -26,14 +25,14 @@ use rule_cache::{RuleCache, RuleCacheConditions};
 use rule_tree::{CascadeLevel, RuleTree, ShadowCascadeOrder, StrongRuleNode, StyleSource};
 use selector_map::{PrecomputedHashMap, PrecomputedHashSet, SelectorMap, SelectorMapEntry};
 use selector_parser::{PerPseudoElementMap, PseudoElement, SelectorImpl, SnapshotMap};
-use selectors::NthIndexCache;
 use selectors::attr::{CaseSensitivity, NamespaceConstraint};
 use selectors::bloom::BloomFilter;
-use selectors::matching::{matches_selector, ElementSelectorFlags, MatchingContext, MatchingMode};
 use selectors::matching::VisitedHandlingMode;
+use selectors::matching::{matches_selector, ElementSelectorFlags, MatchingContext, MatchingMode};
 use selectors::parser::{AncestorHashes, Combinator, Component, Selector};
 use selectors::parser::{SelectorIter, Visit};
 use selectors::visitor::SelectorVisitor;
+use selectors::NthIndexCache;
 use servo_arc::{Arc, ArcBorrow};
 use shared_lock::{Locked, SharedRwLockReadGuard, StylesheetGuards};
 use smallbitvec::SmallBitVec;
@@ -43,14 +42,15 @@ use std::sync::Mutex;
 use style_traits::viewport::ViewportConstraints;
 use stylesheet_set::{DataValidity, DocumentStylesheetSet, SheetRebuildKind};
 use stylesheet_set::{DocumentStylesheetFlusher, SheetCollectionFlusher};
+use stylesheets::keyframes_rule::KeyframesAnimation;
+use stylesheets::viewport_rule::{self, MaybeNew, ViewportRule};
+use stylesheets::StyleRule;
+use stylesheets::StylesheetInDocument;
 #[cfg(feature = "gecko")]
 use stylesheets::{CounterStyleRule, FontFaceRule, FontFeatureValuesRule, PageRule};
 use stylesheets::{CssRule, Origin, OriginSet, PerOrigin, PerOriginIter};
-use stylesheets::StyleRule;
-use stylesheets::StylesheetInDocument;
-use stylesheets::keyframes_rule::KeyframesAnimation;
-use stylesheets::viewport_rule::{self, MaybeNew, ViewportRule};
 use thread_state::{self, ThreadState};
+use {Atom, LocalName, Namespace, WeakAtom};
 
 /// The type of the stylesheets that the stylist contains.
 #[cfg(feature = "servo")]
@@ -517,7 +517,8 @@ impl Stylist {
                     self.stylesheets.iter(),
                     guards,
                     &self.device,
-                ).finish(),
+                )
+                .finish(),
             };
 
             self.viewport_constraints =
@@ -1017,7 +1018,8 @@ impl Stylist {
                         stylesheets.clone(),
                         guards,
                         &device,
-                    ).finish(),
+                    )
+                    .finish(),
                 }
             };
 
@@ -1534,7 +1536,6 @@ impl Stylist {
                 },
             );
         }
-
 
         results
     }

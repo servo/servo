@@ -11,10 +11,14 @@ use crate::dom::bindings::codegen::Bindings::CustomElementRegistryBinding::Eleme
 use crate::dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
 use crate::dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowBinding::WindowMethods;
-use crate::dom::bindings::conversions::{ConversionResult, FromJSValConvertible, StringificationBehavior};
-use crate::dom::bindings::error::{Error, ErrorResult, Fallible, report_pending_exception, throw_dom_exception};
+use crate::dom::bindings::conversions::{
+    ConversionResult, FromJSValConvertible, StringificationBehavior,
+};
+use crate::dom::bindings::error::{
+    report_pending_exception, throw_dom_exception, Error, ErrorResult, Fallible,
+};
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
+use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
@@ -22,7 +26,7 @@ use crate::dom::domexception::{DOMErrorName, DOMException};
 use crate::dom::element::{CustomElementState, Element};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlelement::HTMLElement;
-use crate::dom::node::{document_from_node, Node, window_from_node};
+use crate::dom::node::{document_from_node, window_from_node, Node};
 use crate::dom::promise::Promise;
 use crate::dom::window::Window;
 use crate::microtask::Microtask;
@@ -31,11 +35,11 @@ use dom_struct::dom_struct;
 use html5ever::{LocalName, Namespace, Prefix};
 use js::conversions::ToJSValConvertible;
 use js::glue::UnwrapObject;
-use js::jsapi::{Heap, IsCallable, IsConstructor, HandleValueArray};
+use js::jsapi::{HandleValueArray, Heap, IsCallable, IsConstructor};
 use js::jsapi::{JSAutoCompartment, JSContext, JSObject};
 use js::jsval::{JSVal, NullValue, ObjectValue, UndefinedValue};
+use js::rust::wrappers::{Construct1, JS_GetProperty, JS_SameValue};
 use js::rust::{HandleObject, HandleValue, MutableHandleValue};
-use js::rust::wrappers::{JS_GetProperty, Construct1, JS_SameValue};
 use std::cell::Cell;
 use std::collections::{HashMap, VecDeque};
 use std::mem;
@@ -97,7 +101,8 @@ impl CustomElementRegistry {
                 // Step 4-5
                 definition.local_name == *local_name &&
                     (definition.name == *local_name || Some(&definition.name) == is)
-            }).cloned()
+            })
+            .cloned()
     }
 
     pub fn lookup_definition_by_constructor(

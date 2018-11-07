@@ -2,9 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use self::synchronized_heartbeat::{heartbeat_window_callback, lock_and_work};
 use heartbeats_simple::HeartbeatPow as Heartbeat;
 use profile_traits::time::ProfilerCategory;
-use self::synchronized_heartbeat::{heartbeat_window_callback, lock_and_work};
 use servo_config::opts;
 use std::collections::HashMap;
 use std::env::var_os;
@@ -139,12 +139,12 @@ fn log_heartbeat_records(hb: &mut Heartbeat) {
 }
 
 mod synchronized_heartbeat {
+    use super::log_heartbeat_records;
     use heartbeats_simple::HeartbeatPow as Heartbeat;
     use heartbeats_simple::HeartbeatPowContext as HeartbeatContext;
     use profile_traits::time::ProfilerCategory;
     use std::collections::HashMap;
-    use std::sync::atomic::{ATOMIC_BOOL_INIT, AtomicBool, Ordering};
-    use super::log_heartbeat_records;
+    use std::sync::atomic::{AtomicBool, Ordering, ATOMIC_BOOL_INIT};
 
     static mut HBS: Option<*mut HashMap<ProfilerCategory, Heartbeat>> = None;
 

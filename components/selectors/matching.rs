@@ -588,7 +588,8 @@ where
         element.is_html_element_in_html_document(),
         &local_name.name,
         &local_name.lower_name,
-    ).borrow();
+    )
+    .borrow();
     element.local_name() == name
 }
 

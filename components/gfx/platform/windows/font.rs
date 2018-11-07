@@ -23,8 +23,8 @@ use std::sync::Arc;
 use style::computed_values::font_stretch::T as StyleFontStretch;
 use style::computed_values::font_weight::T as StyleFontWeight;
 use style::values::computed::font::FontStyle as StyleFontStyle;
-use style::values::generics::NonNegative;
 use style::values::generics::font::FontStyle as GenericFontStyle;
+use style::values::generics::NonNegative;
 use style::values::specified::font::FontStretchKeyword;
 use truetype;
 
@@ -119,7 +119,7 @@ struct FontInfo {
 
 impl FontInfo {
     fn new_from_face(face: &FontFace) -> Result<FontInfo, ()> {
-        use std::cmp::{min, max};
+        use std::cmp::{max, min};
         use std::io::Cursor;
         use truetype::{NamingTable, Value, WindowsMetrics};
 
@@ -187,7 +187,8 @@ impl FontInfo {
                 8 => FontStretchKeyword::ExtraExpanded,
                 9 => FontStretchKeyword::UltraExpanded,
                 _ => return Err(()),
-            }.compute(),
+            }
+            .compute(),
         ));
 
         let style = if italic_bool {
@@ -224,7 +225,8 @@ impl FontInfo {
                 FontStretch::Expanded => FontStretchKeyword::Expanded,
                 FontStretch::ExtraExpanded => FontStretchKeyword::ExtraExpanded,
                 FontStretch::UltraExpanded => FontStretchKeyword::UltraExpanded,
-            }.compute(),
+            }
+            .compute(),
         ));
 
         Ok(FontInfo {

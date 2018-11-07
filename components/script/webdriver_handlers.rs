@@ -11,7 +11,9 @@ use crate::dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputE
 use crate::dom::bindings::codegen::Bindings::HTMLOptionElementBinding::HTMLOptionElementMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
-use crate::dom::bindings::conversions::{ConversionResult, FromJSValConvertible, StringificationBehavior};
+use crate::dom::bindings::conversions::{
+    ConversionResult, FromJSValConvertible, StringificationBehavior,
+};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
@@ -21,7 +23,7 @@ use crate::dom::htmlelement::HTMLElement;
 use crate::dom::htmliframeelement::HTMLIFrameElement;
 use crate::dom::htmlinputelement::HTMLInputElement;
 use crate::dom::htmloptionelement::HTMLOptionElement;
-use crate::dom::node::{Node, window_from_node};
+use crate::dom::node::{window_from_node, Node};
 use crate::script_thread::Documents;
 use euclid::{Point2D, Rect, Size2D};
 use hyper_serde::Serde;
@@ -31,11 +33,13 @@ use js::jsval::UndefinedValue;
 use js::rust::HandleValue;
 use msg::constellation_msg::BrowsingContextId;
 use msg::constellation_msg::PipelineId;
-use net_traits::CookieSource::{HTTP, NonHTTP};
+use net_traits::CookieSource::{NonHTTP, HTTP};
 use net_traits::CoreResourceMsg::{GetCookiesDataForUrl, SetCookieForUrl};
 use net_traits::IpcSend;
-use script_traits::webdriver_msg::{WebDriverFrameId, WebDriverJSError, WebDriverJSResult, WebDriverJSValue};
 use script_traits::webdriver_msg::WebDriverCookieError;
+use script_traits::webdriver_msg::{
+    WebDriverFrameId, WebDriverJSError, WebDriverJSResult, WebDriverJSValue,
+};
 use servo_url::ServoUrl;
 
 fn find_node_by_unique_id(
@@ -147,7 +151,8 @@ pub fn handle_get_browsing_context_id(
             .and_then(|node| {
                 node.downcast::<HTMLIFrameElement>()
                     .and_then(|elem| elem.browsing_context_id())
-            }).ok_or(()),
+            })
+            .ok_or(()),
         WebDriverFrameId::Parent => documents
             .find_window(pipeline)
             .and_then(|window| {
@@ -155,7 +160,8 @@ pub fn handle_get_browsing_context_id(
                     .window_proxy()
                     .parent()
                     .map(|parent| parent.browsing_context_id())
-            }).ok_or(()),
+            })
+            .ok_or(()),
     };
 
     reply.send(result).unwrap()
@@ -187,7 +193,8 @@ pub fn handle_find_elements_css(
         .and_then(|doc| {
             doc.QuerySelectorAll(DOMString::from(selector))
                 .map_err(|_| ())
-        }).map(|nodes| {
+        })
+        .map(|nodes| {
             nodes
                 .iter()
                 .map(|x| x.upcast::<Node>().unique_id())
@@ -217,7 +224,8 @@ pub fn handle_focus_element(
                 },
                 None => Err(()),
             },
-        ).unwrap();
+        )
+        .unwrap();
 }
 
 pub fn handle_get_active_element(
@@ -231,7 +239,8 @@ pub fn handle_get_active_element(
                 .find_document(pipeline)
                 .and_then(|doc| doc.GetActiveElement())
                 .map(|elem| elem.upcast::<Node>().unique_id()),
-        ).unwrap();
+        )
+        .unwrap();
 }
 
 pub fn handle_get_cookies(
@@ -326,7 +335,8 @@ pub fn handle_add_cookie(
                 Ok(())
             },
             (_, _) => Err(WebDriverCookieError::UnableToSetCookie),
-        }).unwrap();
+        })
+        .unwrap();
 }
 
 pub fn handle_get_title(documents: &Documents, pipeline: PipelineId, reply: IpcSender<String>) {
@@ -382,7 +392,8 @@ pub fn handle_get_rect(
                 },
                 None => Err(()),
             },
-        ).unwrap();
+        )
+        .unwrap();
 }
 
 pub fn handle_get_text(
@@ -395,7 +406,8 @@ pub fn handle_get_text(
         .send(match find_node_by_unique_id(documents, pipeline, node_id) {
             Some(ref node) => Ok(node.GetTextContent().map_or("".to_owned(), String::from)),
             None => Err(()),
-        }).unwrap();
+        })
+        .unwrap();
 }
 
 pub fn handle_get_name(
@@ -408,7 +420,8 @@ pub fn handle_get_name(
         .send(match find_node_by_unique_id(documents, pipeline, node_id) {
             Some(node) => Ok(String::from(node.downcast::<Element>().unwrap().TagName())),
             None => Err(()),
-        }).unwrap();
+        })
+        .unwrap();
 }
 
 pub fn handle_get_attribute(
@@ -426,7 +439,8 @@ pub fn handle_get_attribute(
                 .GetAttribute(DOMString::from(name))
                 .map(String::from)),
             None => Err(()),
-        }).unwrap();
+        })
+        .unwrap();
 }
 
 pub fn handle_get_css(
@@ -448,7 +462,8 @@ pub fn handle_get_css(
                 ))
             },
             None => Err(()),
-        }).unwrap();
+        })
+        .unwrap();
 }
 
 pub fn handle_get_url(documents: &Documents, pipeline: PipelineId, reply: IpcSender<ServoUrl>) {
@@ -475,7 +490,8 @@ pub fn handle_is_enabled(
                 },
                 None => Err(()),
             },
-        ).unwrap();
+        )
+        .unwrap();
 }
 
 pub fn handle_is_selected(
@@ -500,5 +516,6 @@ pub fn handle_is_selected(
                 },
                 None => Err(()),
             },
-        ).unwrap();
+        )
+        .unwrap();
 }

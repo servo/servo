@@ -19,7 +19,7 @@ use std::fs::{self, File};
 use std::io::{self, Read, Write};
 use std::path::{Path, PathBuf};
 use std::process;
-use std::sync::atomic::{AtomicBool, ATOMIC_BOOL_INIT, Ordering};
+use std::sync::atomic::{AtomicBool, Ordering, ATOMIC_BOOL_INIT};
 use url::{self, Url};
 
 /// Global flags for Servo, currently set on the command line.
@@ -814,7 +814,8 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
             .or_else(|error| {
                 warn!("URL parsing failed ({:?}).", error);
                 Err(error)
-            }).ok()
+            })
+            .ok()
     });
 
     let tile_size: usize = match opt_match.opt_str("s") {
@@ -940,7 +941,8 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
                     r.parse().unwrap_or_else(|err| {
                         args_fail(&format!("Error parsing option: --resolution ({})", err))
                     })
-                }).collect();
+                })
+                .collect();
             TypedSize2D::new(res[0], res[1])
         },
         None => TypedSize2D::new(1024, 740),
@@ -970,7 +972,8 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
                 .read_to_end(&mut contents)
                 .unwrap_or_else(|err| args_fail(&format!("Couldn't read {}: {}", filename, err)));
             (contents, url)
-        }).collect();
+        })
+        .collect();
 
     let do_not_use_native_titlebar = opt_match.opt_present("b") || !PREFS
         .get("shell.native-titlebar.enabled")

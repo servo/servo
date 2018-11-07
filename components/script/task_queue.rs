@@ -10,7 +10,7 @@ use crate::script_runtime::ScriptThreadEventCategory;
 use crate::task::TaskBox;
 use crate::task_source::TaskSourceName;
 use msg::constellation_msg::PipelineId;
-use servo_channel::{Receiver, Sender, base_channel};
+use servo_channel::{base_channel, Receiver, Sender};
 use std::cell::Cell;
 use std::collections::{HashMap, VecDeque};
 use std::default::Default;
@@ -84,7 +84,8 @@ impl<T: QueuedTaskConversion> TaskQueue<T> {
                         return false;
                     },
                 }
-            }).collect();
+            })
+            .collect();
 
         for msg in incoming {
             // Immediately send non-throttled tasks for processing.

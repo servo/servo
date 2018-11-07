@@ -11,10 +11,10 @@ use crate::dom::bindings::codegen::Bindings::BluetoothRemoteGATTServerBinding::B
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::error::ErrorResult;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::{DomObject, reflect_dom_object};
+use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
-use crate::dom::bluetooth::{AsyncBluetoothListener, Bluetooth, response_async};
+use crate::dom::bluetooth::{response_async, AsyncBluetoothListener, Bluetooth};
 use crate::dom::bluetoothcharacteristicproperties::BluetoothCharacteristicProperties;
 use crate::dom::bluetoothremotegattcharacteristic::BluetoothRemoteGATTCharacteristic;
 use crate::dom::bluetoothremotegattdescriptor::BluetoothRemoteGATTDescriptor;
@@ -152,7 +152,8 @@ impl BluetoothDevice {
             .send(BluetoothRequest::IsRepresentedDeviceNull(
                 self.Id().to_string(),
                 sender,
-            )).unwrap();
+            ))
+            .unwrap();
         receiver.recv().unwrap()
     }
 
@@ -242,7 +243,8 @@ impl BluetoothDevice {
             .send(BluetoothRequest::GATTServerDisconnect(
                 String::from(self.Id()),
                 sender,
-            )).unwrap();
+            ))
+            .unwrap();
         receiver.recv().unwrap().map_err(Error::from)
     }
 }
@@ -286,7 +288,8 @@ impl BluetoothDeviceMethods for BluetoothDevice {
             .send(BluetoothRequest::WatchAdvertisements(
                 String::from(self.Id()),
                 sender,
-            )).unwrap();
+            ))
+            .unwrap();
         return p;
     }
 

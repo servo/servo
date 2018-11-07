@@ -5,7 +5,7 @@
 use crate::dom::bindings::codegen::Bindings::MediaListBinding;
 use crate::dom::bindings::codegen::Bindings::MediaListBinding::MediaListMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowBinding::WindowMethods;
-use crate::dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
+use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::cssstylesheet::CSSStyleSheet;
@@ -16,7 +16,7 @@ use servo_arc::Arc;
 use style::media_queries::MediaList as StyleMediaList;
 use style::media_queries::MediaQuery;
 use style::parser::ParserContext;
-use style::shared_lock::{SharedRwLock, Locked};
+use style::shared_lock::{Locked, SharedRwLock};
 use style::stylesheets::CssRuleType;
 use style_traits::{ParsingMode, ToCss};
 

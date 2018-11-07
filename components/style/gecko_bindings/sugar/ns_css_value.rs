@@ -234,9 +234,13 @@ impl nsCSSValue {
         }
         debug_assert_eq!(self.mUnit, nsCSSUnit::eCSSUnit_List);
         let list: &mut structs::nsCSSValueList = &mut unsafe {
-            self.mValue.mList.as_ref() // &*nsCSSValueList_heap
-                .as_mut().expect("List pointer should be non-null")
-        }._base;
+            self.mValue
+                .mList
+                .as_ref() // &*nsCSSValueList_heap
+                .as_mut()
+                .expect("List pointer should be non-null")
+        }
+        ._base;
         for (item, new_value) in list.into_iter().zip(values) {
             *item = new_value;
         }
@@ -255,9 +259,13 @@ impl nsCSSValue {
         }
         debug_assert_eq!(self.mUnit, nsCSSUnit::eCSSUnit_PairList);
         let mut item_ptr = &mut unsafe {
-            self.mValue.mPairList.as_ref() // &*nsCSSValuePairList_heap
-                .as_mut().expect("List pointer should be non-null")
-        }._base as *mut structs::nsCSSValuePairList;
+            self.mValue
+                .mPairList
+                .as_ref() // &*nsCSSValuePairList_heap
+                .as_mut()
+                .expect("List pointer should be non-null")
+        }
+        ._base as *mut structs::nsCSSValuePairList;
         while let Some(item) = unsafe { item_ptr.as_mut() } {
             let value = values.next().expect("Values shouldn't have been exhausted");
             item.mXValue = value.0;

@@ -27,18 +27,26 @@
 
 use app_units::{Au, MAX_AU};
 use crate::context::LayoutContext;
+use crate::display_list::items::DisplayListSection;
+use crate::display_list::StackingContextCollectionState;
 use crate::display_list::{BlockFlowDisplayListBuilding, BorderPaintingMode};
 use crate::display_list::{DisplayListBuildState, StackingContextCollectionFlags};
-use crate::display_list::StackingContextCollectionState;
-use crate::display_list::items::DisplayListSection;
 use crate::floats::{ClearType, FloatKind, Floats, PlacementInfo};
-use crate::flow::{BaseFlow, EarlyAbsolutePositionInfo, Flow, FlowClass, ForceNonfloatedFlag, GetBaseFlow};
-use crate::flow::{ImmutableFlowUtils, LateAbsolutePositionInfo, OpaqueFlow, FragmentationContext, FlowFlags};
+use crate::flow::{
+    BaseFlow, EarlyAbsolutePositionInfo, Flow, FlowClass, ForceNonfloatedFlag, GetBaseFlow,
+};
+use crate::flow::{
+    FlowFlags, FragmentationContext, ImmutableFlowUtils, LateAbsolutePositionInfo, OpaqueFlow,
+};
 use crate::flow_list::FlowList;
-use crate::fragment::{CoordinateSystem, Fragment, FragmentBorderBoxIterator, Overflow, FragmentFlags};
+use crate::fragment::{
+    CoordinateSystem, Fragment, FragmentBorderBoxIterator, FragmentFlags, Overflow,
+};
 use crate::incremental::RelayoutMode;
 use crate::layout_debug;
-use crate::model::{AdjoiningMargins, CollapsibleMargins, IntrinsicISizes, MarginCollapseInfo, MaybeAuto};
+use crate::model::{
+    AdjoiningMargins, CollapsibleMargins, IntrinsicISizes, MarginCollapseInfo, MaybeAuto,
+};
 use crate::sequential;
 use crate::traversal::PreorderFlowTraversal;
 use euclid::{Point2D, Rect, SideOffsets2D, Size2D};
@@ -58,8 +66,8 @@ use style::context::SharedStyleContext;
 use style::logical_geometry::{LogicalMargin, LogicalPoint, LogicalRect, LogicalSize, WritingMode};
 use style::properties::ComputedValues;
 use style::servo::restyle_damage::ServoRestyleDamage;
-use style::values::computed::{LengthOrPercentageOrNone, LengthOrPercentage};
 use style::values::computed::LengthOrPercentageOrAuto;
+use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrNone};
 
 /// Information specific to floated blocks.
 #[derive(Clone, Serialize)]
@@ -1334,7 +1342,8 @@ impl BlockFlow {
                 self.fragment.style.writing_mode,
                 inline_size_for_float_placement,
                 block_size + self.fragment.margin.block_start_end(),
-            ).convert(
+            )
+            .convert(
                 self.fragment.style.writing_mode,
                 self.base.floats.writing_mode,
             ),
@@ -1361,7 +1370,8 @@ impl BlockFlow {
                 self.base.floats.writing_mode,
                 self.base.writing_mode,
                 container_size,
-            ).start;
+            )
+            .start;
         let margin_offset = LogicalPoint::new(
             self.base.writing_mode,
             Au(0),
@@ -2626,7 +2636,8 @@ impl Flow for BlockFlow {
                         .early_absolute_position_info
                         .relative_containing_block_mode,
                     CoordinateSystem::Own,
-                ).translate(&stacking_context_position.to_vector()),
+                )
+                .translate(&stacking_context_position.to_vector()),
         );
     }
 

@@ -5,7 +5,6 @@
 //! A gecko snapshot, that stores the element attributes and state before they
 //! change in order to properly calculate restyle hints.
 
-use WeakAtom;
 use dom::TElement;
 use element_state::ElementState;
 use gecko::snapshot_helpers;
@@ -18,6 +17,7 @@ use invalidation::element::element_wrapper::ElementSnapshot;
 use selectors::attr::{AttrSelectorOperation, AttrSelectorOperator};
 use selectors::attr::{CaseSensitivity, NamespaceConstraint};
 use string_cache::{Atom, Namespace};
+use WeakAtom;
 
 /// A snapshot of a Gecko element.
 pub type GeckoElementSnapshot = ServoElementSnapshot;

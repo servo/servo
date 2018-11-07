@@ -10,22 +10,24 @@
 use crate::fetch::methods::{Data, DoneChannel};
 use headers_core::HeaderMapExt;
 use headers_ext::{CacheControl, ContentRange, Expires, LastModified, Pragma, Range, Vary};
-use http::{header, HeaderMap};
 use http::header::HeaderValue;
+use http::{header, HeaderMap};
 use hyper::{Method, StatusCode};
-use malloc_size_of::{MallocSizeOf, MallocSizeOfOps, MallocUnconditionalSizeOf, MallocUnconditionalShallowSizeOf};
 use malloc_size_of::Measurable;
-use net_traits::{Metadata, FetchMetadata};
+use malloc_size_of::{
+    MallocSizeOf, MallocSizeOfOps, MallocUnconditionalShallowSizeOf, MallocUnconditionalSizeOf,
+};
 use net_traits::request::Request;
 use net_traits::response::{HttpsState, Response, ResponseBody};
+use net_traits::{FetchMetadata, Metadata};
 use servo_arc::Arc;
-use servo_channel::{Sender, channel};
+use servo_channel::{channel, Sender};
 use servo_config::prefs::PREFS;
 use servo_url::ServoUrl;
 use std::collections::HashMap;
 use std::ops::Bound;
-use std::sync::Mutex;
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Mutex;
 use std::time::SystemTime;
 use time;
 use time::{Duration, Timespec, Tm};

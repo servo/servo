@@ -5,9 +5,9 @@
 extern crate hashglobe;
 extern crate smallvec;
 
-use hashglobe::FailedAllocationError;
 #[cfg(feature = "known_system_malloc")]
 use hashglobe::alloc;
+use hashglobe::FailedAllocationError;
 use smallvec::Array;
 use smallvec::SmallVec;
 use std::vec::Vec;

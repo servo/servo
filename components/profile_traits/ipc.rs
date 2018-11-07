@@ -54,14 +54,12 @@ where
     Ok((ipc_sender, profiled_ipc_receiver))
 }
 
-pub struct IpcBytesReceiver
-{
+pub struct IpcBytesReceiver {
     ipc_bytes_receiver: ipc::IpcBytesReceiver,
     time_profile_chan: ProfilerChan,
 }
 
-impl IpcBytesReceiver
-{
+impl IpcBytesReceiver {
     pub fn recv(&self) -> Result<Vec<u8>, bincode::Error> {
         time::profile(
             ProfilerCategory::IpcBytesReceiver,
@@ -74,8 +72,7 @@ impl IpcBytesReceiver
 
 pub fn bytes_channel(
     time_profile_chan: ProfilerChan,
-) -> Result<(ipc::IpcBytesSender, IpcBytesReceiver), Error>
-{
+) -> Result<(ipc::IpcBytesSender, IpcBytesReceiver), Error> {
     let (ipc_bytes_sender, ipc_bytes_receiver) = ipc::bytes_channel()?;
     let profiled_ipc_bytes_receiver = IpcBytesReceiver {
         ipc_bytes_receiver,

@@ -4,7 +4,7 @@
 
 use crate::devtools;
 use crate::dom::abstractworker::WorkerScriptMsg;
-use crate::dom::abstractworkerglobalscope::{WorkerEventLoopMethods, run_worker_event_loop};
+use crate::dom::abstractworkerglobalscope::{run_worker_event_loop, WorkerEventLoopMethods};
 use crate::dom::bindings::codegen::Bindings::ServiceWorkerGlobalScopeBinding;
 use crate::dom::bindings::codegen::Bindings::ServiceWorkerGlobalScopeBinding::ServiceWorkerGlobalScopeMethods;
 use crate::dom::bindings::inheritance::Castable;
@@ -19,17 +19,19 @@ use crate::dom::extendablemessageevent::ExtendableMessageEvent;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::worker::TrustedWorkerAddress;
 use crate::dom::workerglobalscope::WorkerGlobalScope;
-use crate::script_runtime::{CommonScriptMsg, ScriptChan, new_rt_and_cx, Runtime};
+use crate::script_runtime::{new_rt_and_cx, CommonScriptMsg, Runtime, ScriptChan};
 use crate::task_queue::{QueuedTask, QueuedTaskConversion, TaskQueue};
 use crate::task_source::TaskSourceName;
 use devtools_traits::DevtoolScriptControlMsg;
 use dom_struct::dom_struct;
-use ipc_channel::ipc::{self, IpcSender, IpcReceiver};
+use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use js::jsapi::{JSAutoCompartment, JSContext, JS_AddInterruptCallback};
 use js::jsval::UndefinedValue;
-use net_traits::{load_whole_resource, IpcSend, CustomResponseMediator};
 use net_traits::request::{CredentialsMode, Destination, RequestInit};
-use script_traits::{TimerEvent, WorkerGlobalScopeInit, ScopeThings, ServiceWorkerMsg, WorkerScriptLoadOrigin};
+use net_traits::{load_whole_resource, CustomResponseMediator, IpcSend};
+use script_traits::{
+    ScopeThings, ServiceWorkerMsg, TimerEvent, WorkerGlobalScopeInit, WorkerScriptLoadOrigin,
+};
 use servo_channel::{channel, route_ipc_receiver_to_new_servo_sender, Receiver, Sender};
 use servo_config::prefs::PREFS;
 use servo_rand::random;

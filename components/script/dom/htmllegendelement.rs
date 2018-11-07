@@ -11,7 +11,7 @@ use crate::dom::document::Document;
 use crate::dom::element::Element;
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::htmlfieldsetelement::HTMLFieldSetElement;
-use crate::dom::htmlformelement::{HTMLFormElement, FormControl};
+use crate::dom::htmlformelement::{FormControl, HTMLFormElement};
 use crate::dom::node::{Node, UnbindContext};
 use crate::dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;

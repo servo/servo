@@ -5,12 +5,12 @@
 #[cfg(feature = "webgl_backtrace")]
 use backtrace::Backtrace;
 use byteorder::{ByteOrder, NativeEndian, WriteBytesExt};
+use canvas_traits::webgl::WebGLError::*;
+use canvas_traits::webgl::{webgl_channel, WebGLVersion, WebVRCommand};
 use canvas_traits::webgl::{DOMToTextureCommand, Parameter, WebGLCommandBacktrace};
 use canvas_traits::webgl::{TexParameter, WebGLCommand, WebGLContextShareMode, WebGLError};
 use canvas_traits::webgl::{WebGLFramebufferBindingRequest, WebGLMsg, WebGLMsgSender};
 use canvas_traits::webgl::{WebGLProgramId, WebGLResult, WebGLSLVersion, WebGLSender};
-use canvas_traits::webgl::{WebGLVersion, WebVRCommand, webgl_channel};
-use canvas_traits::webgl::WebGLError::*;
 use crate::dom::bindings::codegen::Bindings::ANGLEInstancedArraysBinding::ANGLEInstancedArraysConstants;
 use crate::dom::bindings::codegen::Bindings::EXTBlendMinmaxBinding::EXTBlendMinmaxConstants;
 use crate::dom::bindings::codegen::Bindings::OESVertexArrayObjectBinding::OESVertexArrayObjectConstants;
@@ -25,23 +25,27 @@ use crate::dom::bindings::codegen::UnionTypes::Int32ArrayOrLongSequence;
 use crate::dom::bindings::conversions::{DerivedFrom, ToJSValConvertible};
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
+use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::{Dom, DomOnceCell, DomRoot, LayoutDom, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
-use crate::dom::htmlcanvaselement::HTMLCanvasElement;
 use crate::dom::htmlcanvaselement::utils as canvas_utils;
+use crate::dom::htmlcanvaselement::HTMLCanvasElement;
 use crate::dom::htmliframeelement::HTMLIFrameElement;
-use crate::dom::node::{Node, NodeDamage, document_from_node, window_from_node};
+use crate::dom::node::{document_from_node, window_from_node, Node, NodeDamage};
 use crate::dom::webgl_extensions::WebGLExtensions;
-use crate::dom::webgl_validations::WebGLValidator;
-use crate::dom::webgl_validations::tex_image_2d::{CommonTexImage2DValidator, CommonTexImage2DValidatorResult};
+use crate::dom::webgl_validations::tex_image_2d::{
+    CommonTexImage2DValidator, CommonTexImage2DValidatorResult,
+};
 use crate::dom::webgl_validations::tex_image_2d::{TexImage2DValidator, TexImage2DValidatorResult};
 use crate::dom::webgl_validations::types::{TexDataType, TexFormat, TexImageTarget};
+use crate::dom::webgl_validations::WebGLValidator;
 use crate::dom::webglactiveinfo::WebGLActiveInfo;
 use crate::dom::webglbuffer::WebGLBuffer;
 use crate::dom::webglcontextevent::WebGLContextEvent;
-use crate::dom::webglframebuffer::{WebGLFramebuffer, WebGLFramebufferAttachmentRoot, CompleteForRendering};
+use crate::dom::webglframebuffer::{
+    CompleteForRendering, WebGLFramebuffer, WebGLFramebufferAttachmentRoot,
+};
 use crate::dom::webglobject::WebGLObject;
 use crate::dom::webglprogram::WebGLProgram;
 use crate::dom::webglrenderbuffer::WebGLRenderbuffer;
@@ -56,10 +60,12 @@ use euclid::{Point2D, Rect, Size2D};
 use half::f16;
 use ipc_channel::ipc;
 use js::jsapi::{JSContext, JSObject, Type};
-use js::jsval::{BooleanValue, DoubleValue, Int32Value, UInt32Value, JSVal};
-use js::jsval::{ObjectValue, NullValue, UndefinedValue};
+use js::jsval::{BooleanValue, DoubleValue, Int32Value, JSVal, UInt32Value};
+use js::jsval::{NullValue, ObjectValue, UndefinedValue};
 use js::rust::CustomAutoRooterGuard;
-use js::typedarray::{ArrayBufferView, CreateWith, Float32, Float32Array, Int32, Int32Array, Uint32Array};
+use js::typedarray::{
+    ArrayBufferView, CreateWith, Float32, Float32Array, Int32, Int32Array, Uint32Array,
+};
 use js::typedarray::{TypedArray, TypedArrayElementCreator};
 use net_traits::image::base::PixelFormat;
 use net_traits::image_cache::ImageResponse;
@@ -312,7 +318,9 @@ impl WebGLRenderingContext {
 
     #[inline]
     pub fn send_command(&self, command: WebGLCommand) {
-        self.webgl_sender.send(command, capture_webgl_backtrace(self)).unwrap();
+        self.webgl_sender
+            .send(command, capture_webgl_backtrace(self))
+            .unwrap();
     }
 
     #[inline]
@@ -570,7 +578,7 @@ impl WebGLRenderingContext {
             TexImageSource::HTMLVideoElement(_) => {
                 // TODO: https://github.com/servo/servo/issues/6711
                 return Ok(None);
-            }
+            },
         }))
     }
 
@@ -1427,7 +1435,8 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                     cx,
                     CreateWith::Slice(&receiver.recv().unwrap()),
                     rval.handle_mut(),
-                ).unwrap();
+                )
+                .unwrap();
                 ObjectValue(rval.get())
             },
             Parameter::Int4(param) => {
@@ -1438,7 +1447,8 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                     cx,
                     CreateWith::Slice(&receiver.recv().unwrap()),
                     rval.handle_mut(),
-                ).unwrap();
+                )
+                .unwrap();
                 ObjectValue(rval.get())
             },
             Parameter::Float(param) => {
@@ -1454,7 +1464,8 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                     cx,
                     CreateWith::Slice(&receiver.recv().unwrap()),
                     rval.handle_mut(),
-                ).unwrap();
+                )
+                .unwrap();
                 ObjectValue(rval.get())
             },
             Parameter::Float4(param) => {
@@ -1465,7 +1476,8 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                     cx,
                     CreateWith::Slice(&receiver.recv().unwrap()),
                     rval.handle_mut(),
-                ).unwrap();
+                )
+                .unwrap();
                 ObjectValue(rval.get())
             },
         }
@@ -2895,7 +2907,9 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         }
 
         let (sender, receiver) = ipc::bytes_channel().unwrap();
-        self.send_command(WebGLCommand::ReadPixels(src_rect, format, pixel_type, sender));
+        self.send_command(WebGLCommand::ReadPixels(
+            src_rect, format, pixel_type, sender,
+        ));
         let src = receiver.recv().unwrap();
 
         let src_row_len = src_rect.size.width as usize * bytes_per_pixel as usize;
@@ -3467,7 +3481,8 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                 cx,
                 CreateWith::Slice(&value),
                 rval.handle_mut(),
-            ).unwrap();
+            )
+            .unwrap();
             ObjectValue(rval.get())
         }
 
@@ -3627,7 +3642,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         handle_potential_webgl_error!(
             self,
             self.current_vao()
-                .vertex_attrib_pointer(index, size, type_, normalized, stride, offset, )
+                .vertex_attrib_pointer(index, size, type_, normalized, stride, offset)
         );
     }
 
@@ -4063,7 +4078,11 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             return self.webgl_error(InvalidValue);
         }
 
-        let rb = handle_potential_webgl_error!(self, self.bound_renderbuffer.get().ok_or(InvalidOperation), return);
+        let rb = handle_potential_webgl_error!(
+            self,
+            self.bound_renderbuffer.get().ok_or(InvalidOperation),
+            return
+        );
         handle_potential_webgl_error!(self, rb.storage(internal_format, width, height));
         if let Some(fb) = self.bound_framebuffer.get() {
             fb.invalidate_renderbuffer(&*rb);

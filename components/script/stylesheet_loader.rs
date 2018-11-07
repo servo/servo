@@ -10,7 +10,7 @@ use crate::dom::document::Document;
 use crate::dom::element::Element;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::htmlelement::HTMLElement;
-use crate::dom::htmllinkelement::{RequestGenerationId, HTMLLinkElement};
+use crate::dom::htmllinkelement::{HTMLLinkElement, RequestGenerationId};
 use crate::dom::node::{document_from_node, window_from_node};
 use crate::network_listener::{NetworkListener, PreInvoke};
 use crate::task_source::TaskSourceName;
@@ -19,20 +19,24 @@ use encoding_rs::UTF_8;
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use mime::{self, Mime};
-use net_traits::{FetchResponseListener, FetchMetadata, FilteredMetadata, Metadata, NetworkError, ReferrerPolicy};
 use net_traits::request::{CorsSettings, CredentialsMode, Destination, RequestInit, RequestMode};
+use net_traits::{
+    FetchMetadata, FetchResponseListener, FilteredMetadata, Metadata, NetworkError, ReferrerPolicy,
+};
 use parking_lot::RwLock;
 use servo_arc::Arc;
 use servo_url::ServoUrl;
 use std::mem;
-use std::sync::Mutex;
 use std::sync::atomic::AtomicBool;
+use std::sync::Mutex;
 use style::media_queries::MediaList;
 use style::parser::ParserContext;
 use style::shared_lock::{Locked, SharedRwLock};
-use style::stylesheets::{CssRules, ImportRule, Namespaces, Stylesheet, StylesheetContents, Origin};
-use style::stylesheets::StylesheetLoader as StyleStylesheetLoader;
 use style::stylesheets::import_rule::ImportSheet;
+use style::stylesheets::StylesheetLoader as StyleStylesheetLoader;
+use style::stylesheets::{
+    CssRules, ImportRule, Namespaces, Origin, Stylesheet, StylesheetContents,
+};
 use style::values::CssUrl;
 
 pub trait StylesheetOwner {
@@ -120,7 +124,11 @@ impl FetchResponseListener for StylesheetContext {
                 mime.type_() == mime::TEXT && mime.subtype() == mime::CSS
             });
 
-            let data = if is_css { mem::replace(&mut self.data, vec![]) } else { vec![] };
+            let data = if is_css {
+                mem::replace(&mut self.data, vec![])
+            } else {
+                vec![]
+            };
 
             // TODO: Get the actual value. http://dev.w3.org/csswg/css-syntax/#environment-encoding
             let environment_encoding = UTF_8;

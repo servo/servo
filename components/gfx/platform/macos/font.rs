@@ -11,17 +11,19 @@ use core_foundation::string::UniChar;
 use core_graphics::font::CGGlyph;
 use core_graphics::geometry::CGRect;
 use core_text::font::CTFont;
-use core_text::font_descriptor::{SymbolicTraitAccessors, TraitAccessors};
 use core_text::font_descriptor::kCTFontDefaultOrientation;
-use crate::font::{FontHandleMethods, FontMetrics, FontTableMethods, FontTableTag, FractionalPixel};
+use core_text::font_descriptor::{SymbolicTraitAccessors, TraitAccessors};
+use crate::font::{
+    FontHandleMethods, FontMetrics, FontTableMethods, FontTableTag, FractionalPixel,
+};
 use crate::font::{GPOS, GSUB, KERN};
 use crate::platform::font_template::FontTemplateData;
 use crate::platform::macos::font_context::FontContextHandle;
 use crate::text::glyph::GlyphId;
 use servo_atoms::Atom;
-use std::{fmt, ptr};
 use std::ops::Range;
 use std::sync::Arc;
+use std::{fmt, ptr};
 use style::values::computed::font::{FontStretch, FontStyle, FontWeight};
 
 const KERN_PAIR_LEN: usize = 6;
@@ -236,8 +238,7 @@ impl FontHandleMethods for FontHandle {
         let count: CFIndex = 1;
 
         let result = unsafe {
-            self
-                .ctfont
+            self.ctfont
                 .get_glyphs_for_characters(&characters[0], &mut glyphs[0], count)
         };
 

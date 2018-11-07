@@ -4,9 +4,13 @@
 
 //! Computed values.
 
-use Atom;
-#[cfg(feature = "servo")]
-use Prefix;
+use super::animated::ToAnimatedValue;
+use super::generics::grid::GridTemplateComponent as GenericGridTemplateComponent;
+use super::generics::grid::{GridLine as GenericGridLine, TrackBreadth as GenericTrackBreadth};
+use super::generics::grid::{TrackList as GenericTrackList, TrackSize as GenericTrackSize};
+use super::generics::{GreaterThanOrEqualToOne, NonNegative};
+use super::specified;
+use super::{CSSFloat, CSSInteger};
 use context::QuirksMode;
 use euclid::Size2D;
 use font_metrics::{get_metrics_provider_for_product, FontMetricsProvider};
@@ -19,17 +23,12 @@ use std::cell::RefCell;
 use std::cmp;
 use std::f32;
 use std::fmt::{self, Write};
-use style_traits::{CssWriter, ToCss};
 use style_traits::cursor::CursorKind;
-use super::{CSSFloat, CSSInteger};
-use super::animated::ToAnimatedValue;
-use super::generics::{GreaterThanOrEqualToOne, NonNegative};
-use super::generics::grid::{GridLine as GenericGridLine, TrackBreadth as GenericTrackBreadth};
-use super::generics::grid::{TrackList as GenericTrackList, TrackSize as GenericTrackSize};
-use super::generics::grid::GridTemplateComponent as GenericGridTemplateComponent;
-use super::specified;
+use style_traits::{CssWriter, ToCss};
+use Atom;
+#[cfg(feature = "servo")]
+use Prefix;
 
-pub use app_units::Au;
 #[cfg(feature = "gecko")]
 pub use self::align::{AlignContent, AlignItems, JustifyContent, JustifyItems, SelfAlignment};
 #[cfg(feature = "gecko")]
@@ -37,13 +36,13 @@ pub use self::align::{AlignSelf, JustifySelf};
 pub use self::angle::Angle;
 pub use self::background::{BackgroundRepeat, BackgroundSize};
 pub use self::basic_shape::FillRule;
-pub use self::border::{BorderImageRepeat, BorderImageSideWidth, BorderImageSlice, BorderImageWidth};
 pub use self::border::{BorderCornerRadius, BorderRadius, BorderSpacing};
-pub use self::font::{FontSize, FontSizeAdjust, FontStretch, FontSynthesis, FontVariantAlternates, FontWeight};
-pub use self::font::{FontFamily, FontLanguageOverride, FontStyle, FontVariantEastAsian, FontVariationSettings};
-pub use self::font::{FontFeatureSettings, FontVariantLigatures, FontVariantNumeric};
-pub use self::font::{MozScriptLevel, MozScriptMinSize, MozScriptSizeMultiplier, XLang, XTextZoom};
-pub use self::box_::{AnimationIterationCount, AnimationName, Contain, Display, TransitionProperty};
+pub use self::border::{
+    BorderImageRepeat, BorderImageSideWidth, BorderImageSlice, BorderImageWidth,
+};
+pub use self::box_::{
+    AnimationIterationCount, AnimationName, Contain, Display, TransitionProperty,
+};
 pub use self::box_::{Appearance, Clear, Float};
 pub use self::box_::{OverflowClipBox, OverscrollBehavior, Perspective, Resize};
 pub use self::box_::{ScrollSnapType, TouchAction, VerticalAlign, WillChange};
@@ -53,36 +52,47 @@ pub use self::counters::{Content, ContentItem, CounterIncrement, CounterReset};
 pub use self::easing::TimingFunction;
 pub use self::effects::{BoxShadow, Filter, SimpleShadow};
 pub use self::flex::FlexBasis;
-pub use self::image::{Gradient, GradientItem, Image, ImageLayer, LineDirection, MozImageRect};
+pub use self::font::{
+    FontFamily, FontLanguageOverride, FontStyle, FontVariantEastAsian, FontVariationSettings,
+};
+pub use self::font::{FontFeatureSettings, FontVariantLigatures, FontVariantNumeric};
+pub use self::font::{
+    FontSize, FontSizeAdjust, FontStretch, FontSynthesis, FontVariantAlternates, FontWeight,
+};
+pub use self::font::{MozScriptLevel, MozScriptMinSize, MozScriptSizeMultiplier, XLang, XTextZoom};
 #[cfg(feature = "gecko")]
 pub use self::gecko::ScrollSnapPoint;
-pub use self::rect::LengthOrNumberRect;
-pub use self::resolution::Resolution;
-pub use super::{Auto, Either, None_};
-pub use super::specified::{BorderStyle, TextDecorationLine};
+pub use self::image::{Gradient, GradientItem, Image, ImageLayer, LineDirection, MozImageRect};
+pub use self::length::{CSSPixelLength, ExtremumLength, NonNegativeLength};
 pub use self::length::{CalcLengthOrPercentage, Length, LengthOrNumber, LengthOrPercentage};
 pub use self::length::{LengthOrPercentageOrAuto, LengthOrPercentageOrNone, MaxLength, MozLength};
-pub use self::length::{CSSPixelLength, ExtremumLength, NonNegativeLength};
 pub use self::length::{NonNegativeLengthOrPercentage, NonNegativeLengthOrPercentageOrAuto};
-pub use self::list::Quotes;
 #[cfg(feature = "gecko")]
 pub use self::list::ListStyleType;
+pub use self::list::Quotes;
 pub use self::motion::OffsetPath;
 pub use self::outline::OutlineStyle;
-pub use self::percentage::{Percentage, NonNegativePercentage};
+pub use self::percentage::{NonNegativePercentage, Percentage};
 pub use self::position::{GridAutoFlow, GridTemplateAreas, Position, ZIndex};
+pub use self::rect::LengthOrNumberRect;
+pub use self::resolution::Resolution;
+pub use self::svg::MozContextProperties;
 pub use self::svg::{SVGLength, SVGOpacity, SVGPaint, SVGPaintKind};
 pub use self::svg::{SVGPaintOrder, SVGStrokeDashArray, SVGWidth};
-pub use self::svg::MozContextProperties;
 pub use self::table::XSpan;
 pub use self::text::{InitialLetter, LetterSpacing, LineHeight, MozTabSize};
-pub use self::text::{TextAlign, TextEmphasisPosition, TextEmphasisStyle, TextOverflow, WordSpacing};
+pub use self::text::{
+    TextAlign, TextEmphasisPosition, TextEmphasisStyle, TextOverflow, WordSpacing,
+};
 pub use self::time::Time;
 pub use self::transform::{Rotate, Scale, Transform, TransformOperation};
 pub use self::transform::{TransformOrigin, TransformStyle, Translate};
-pub use self::ui::{ColorOrAuto, Cursor, MozForceBrokenImageIcon};
 #[cfg(feature = "gecko")]
 pub use self::ui::CursorImage;
+pub use self::ui::{ColorOrAuto, Cursor, MozForceBrokenImageIcon};
+pub use super::specified::{BorderStyle, TextDecorationLine};
+pub use super::{Auto, Either, None_};
+pub use app_units::Au;
 
 #[cfg(feature = "gecko")]
 pub mod align;

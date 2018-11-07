@@ -4,8 +4,8 @@
 
 use crate::devtools;
 use crate::dom::abstractworker::{SimpleWorkerErrorHandler, WorkerScriptMsg};
+use crate::dom::abstractworkerglobalscope::{run_worker_event_loop, WorkerEventLoopMethods};
 use crate::dom::abstractworkerglobalscope::{SendableWorkerScriptChan, WorkerThreadWorkerChan};
-use crate::dom::abstractworkerglobalscope::{WorkerEventLoopMethods, run_worker_event_loop};
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::DedicatedWorkerGlobalScopeBinding;
 use crate::dom::bindings::codegen::Bindings::DedicatedWorkerGlobalScopeBinding::DedicatedWorkerGlobalScopeMethods;
@@ -22,28 +22,28 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::messageevent::MessageEvent;
 use crate::dom::worker::{TrustedWorkerAddress, Worker};
 use crate::dom::workerglobalscope::WorkerGlobalScope;
-use crate::script_runtime::{CommonScriptMsg, ScriptChan, ScriptPort, new_rt_and_cx, Runtime};
 use crate::script_runtime::ScriptThreadEventCategory::WorkerEvent;
+use crate::script_runtime::{new_rt_and_cx, CommonScriptMsg, Runtime, ScriptChan, ScriptPort};
 use crate::task_queue::{QueuedTask, QueuedTaskConversion, TaskQueue};
 use crate::task_source::TaskSourceName;
 use devtools_traits::DevtoolScriptControlMsg;
 use dom_struct::dom_struct;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
-use js::jsapi::{JSAutoCompartment, JSContext};
 use js::jsapi::JS_AddInterruptCallback;
+use js::jsapi::{JSAutoCompartment, JSContext};
 use js::jsval::UndefinedValue;
 use js::rust::HandleValue;
 use msg::constellation_msg::TopLevelBrowsingContextId;
-use net_traits::{IpcSend, load_whole_resource};
 use net_traits::request::{CredentialsMode, Destination, RequestInit};
+use net_traits::{load_whole_resource, IpcSend};
 use script_traits::{TimerEvent, TimerSource, WorkerGlobalScopeInit, WorkerScriptLoadOrigin};
-use servo_channel::{channel, route_ipc_receiver_to_new_servo_sender, Sender, Receiver};
+use servo_channel::{channel, route_ipc_receiver_to_new_servo_sender, Receiver, Sender};
 use servo_rand::random;
 use servo_url::ServoUrl;
 use std::mem::replace;
-use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
+use std::sync::Arc;
 use std::thread;
 use style::thread_state::{self, ThreadState};
 
@@ -318,7 +318,8 @@ impl DedicatedWorkerGlobalScope {
                                     Box::new(SimpleWorkerErrorHandler::new(worker)),
                                     pipeline_id,
                                     TaskSourceName::DOMManipulation,
-                                )).unwrap();
+                                ))
+                                .unwrap();
                             return;
                         },
                         Ok((metadata, bytes)) => (metadata, bytes),
@@ -391,7 +392,8 @@ impl DedicatedWorkerGlobalScope {
                         parent_sender,
                         CommonScriptMsg::CollectReports,
                     );
-            }).expect("Thread spawning failed");
+            })
+            .expect("Thread spawning failed");
     }
 
     pub fn script_chan(&self) -> Box<ScriptChan + Send> {
@@ -495,7 +497,8 @@ impl DedicatedWorkerGlobalScope {
                 task,
                 Some(pipeline_id),
                 TaskSourceName::DOMManipulation,
-            )).unwrap();
+            ))
+            .unwrap();
     }
 }
 
@@ -526,7 +529,8 @@ impl DedicatedWorkerGlobalScopeMethods for DedicatedWorkerGlobalScope {
                 task,
                 Some(pipeline_id),
                 TaskSourceName::DOMManipulation,
-            )).unwrap();
+            ))
+            .unwrap();
         Ok(())
     }
 

@@ -7,12 +7,12 @@
 use cssparser::{Parser, Token};
 use parser::{Parse, ParserContext};
 use std::fmt::{self, Write};
-use style_traits::{CssWriter, ParseError, SpecifiedValueInfo, ToCss};
 use style_traits::values::specified::AllowedNumericType;
-use values::{serialize_percentage, CSSFloat};
-use values::computed::{Context, ToComputedValue};
+use style_traits::{CssWriter, ParseError, SpecifiedValueInfo, ToCss};
 use values::computed::percentage::Percentage as ComputedPercentage;
+use values::computed::{Context, ToComputedValue};
 use values::specified::calc::CalcNode;
+use values::{serialize_percentage, CSSFloat};
 
 /// A percentage value.
 #[derive(Clone, Copy, Debug, Default, MallocSizeOf, PartialEq)]

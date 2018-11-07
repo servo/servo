@@ -6,14 +6,14 @@
 //!
 //! https://drafts.csswg.org/mediaqueries/#typedef-media-query
 
-use Atom;
+use super::media_condition::MediaCondition;
 use cssparser::Parser;
 use parser::ParserContext;
 use std::fmt::{self, Write};
 use str::string_as_ascii_lowercase;
 use style_traits::{CssWriter, ParseError, ToCss};
-use super::media_condition::MediaCondition;
 use values::CustomIdent;
+use Atom;
 
 /// <https://drafts.csswg.org/mediaqueries/#mq-prefix>
 #[derive(Clone, Copy, Debug, Eq, MallocSizeOf, Parse, PartialEq, ToCss)]
@@ -130,7 +130,8 @@ impl MediaQuery {
                 let ident = input.expect_ident().map_err(|_| ())?;
                 let media_type = MediaQueryType::parse(&ident)?;
                 Ok((qualifier, Some(media_type)))
-            }).unwrap_or_default();
+            })
+            .unwrap_or_default();
 
         let condition = if explicit_media_type.is_none() {
             Some(MediaCondition::parse(context, input)?)

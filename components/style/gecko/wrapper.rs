@@ -14,7 +14,6 @@
 //! style system it's kind of pointless in the Stylo case, and only Servo forces
 //! the separation between the style system implementation and everything else.
 
-use CaseSensitivityExt;
 use app_units::Au;
 use applicable_declarations::ApplicableDeclarationBlock;
 use atomic_refcell::{AtomicRefCell, AtomicRefMut};
@@ -29,9 +28,6 @@ use gecko::global_style_data::GLOBAL_STYLE_DATA;
 use gecko::selector_parser::{NonTSPseudoClass, PseudoElement, SelectorImpl};
 use gecko::snapshot_helpers;
 use gecko_bindings::bindings;
-use gecko_bindings::bindings::{Gecko_ElementState, Gecko_GetDocumentLWTheme};
-use gecko_bindings::bindings::{Gecko_GetLastChild, Gecko_GetPreviousSibling, Gecko_GetNextStyleChild};
-use gecko_bindings::bindings::{Gecko_SetNodeFlags, Gecko_UnsetNodeFlags};
 use gecko_bindings::bindings::Gecko_ElementHasAnimations;
 use gecko_bindings::bindings::Gecko_ElementHasCSSAnimations;
 use gecko_bindings::bindings::Gecko_ElementHasCSSTransitions;
@@ -47,35 +43,40 @@ use gecko_bindings::bindings::Gecko_IsSignificantChild;
 use gecko_bindings::bindings::Gecko_MatchLang;
 use gecko_bindings::bindings::Gecko_UnsetDirtyStyleAttr;
 use gecko_bindings::bindings::Gecko_UpdateAnimations;
+use gecko_bindings::bindings::{Gecko_ElementState, Gecko_GetDocumentLWTheme};
+use gecko_bindings::bindings::{
+    Gecko_GetLastChild, Gecko_GetNextStyleChild, Gecko_GetPreviousSibling,
+};
+use gecko_bindings::bindings::{Gecko_SetNodeFlags, Gecko_UnsetNodeFlags};
 use gecko_bindings::structs;
-use gecko_bindings::structs::{RawGeckoElement, RawGeckoNode, RawGeckoXBLBinding};
-use gecko_bindings::structs::{nsAtom, nsIContent, nsINode_BooleanFlag};
+use gecko_bindings::structs::nsChangeHint;
+use gecko_bindings::structs::nsIDocument_DocumentTheme as DocumentTheme;
+use gecko_bindings::structs::nsRestyleHint;
+use gecko_bindings::structs::EffectCompositor_CascadeLevel as CascadeLevel;
 use gecko_bindings::structs::ELEMENT_HANDLED_SNAPSHOT;
 use gecko_bindings::structs::ELEMENT_HAS_ANIMATION_ONLY_DIRTY_DESCENDANTS_FOR_SERVO;
 use gecko_bindings::structs::ELEMENT_HAS_DIRTY_DESCENDANTS_FOR_SERVO;
 use gecko_bindings::structs::ELEMENT_HAS_SNAPSHOT;
-use gecko_bindings::structs::EffectCompositor_CascadeLevel as CascadeLevel;
 use gecko_bindings::structs::NODE_DESCENDANTS_NEED_FRAMES;
 use gecko_bindings::structs::NODE_NEEDS_FRAME;
-use gecko_bindings::structs::nsChangeHint;
-use gecko_bindings::structs::nsIDocument_DocumentTheme as DocumentTheme;
-use gecko_bindings::structs::nsRestyleHint;
+use gecko_bindings::structs::{nsAtom, nsIContent, nsINode_BooleanFlag};
+use gecko_bindings::structs::{RawGeckoElement, RawGeckoNode, RawGeckoXBLBinding};
 use gecko_bindings::sugar::ownership::{HasArcFFI, HasSimpleFFI};
 use hash::FxHashMap;
 use logical_geometry::WritingMode;
 use media_queries::Device;
-use properties::{ComputedValues, LonghandId};
-use properties::{Importance, PropertyDeclaration, PropertyDeclarationBlock};
 use properties::animated_properties::{AnimationValue, AnimationValueMap};
 use properties::style_structs::Font;
+use properties::{ComputedValues, LonghandId};
+use properties::{Importance, PropertyDeclaration, PropertyDeclarationBlock};
 use rule_tree::CascadeLevel as ServoCascadeLevel;
 use selector_parser::{AttrValue, HorizontalDirection, Lang};
-use selectors::{Element, OpaqueElement};
 use selectors::attr::{AttrSelectorOperation, AttrSelectorOperator};
 use selectors::attr::{CaseSensitivity, NamespaceConstraint};
-use selectors::matching::{ElementSelectorFlags, MatchingContext};
 use selectors::matching::VisitedHandlingMode;
+use selectors::matching::{ElementSelectorFlags, MatchingContext};
 use selectors::sink::Push;
+use selectors::{Element, OpaqueElement};
 use servo_arc::{Arc, ArcBorrow, RawOffsetArc};
 use shared_lock::Locked;
 use std::cell::RefCell;
@@ -85,6 +86,7 @@ use std::mem;
 use std::ptr;
 use string_cache::{Atom, Namespace, WeakAtom, WeakNamespace};
 use stylist::CascadeData;
+use CaseSensitivityExt;
 
 #[inline]
 fn elements_with_id<'a, 'le>(
@@ -937,7 +939,8 @@ impl<'le> GeckoElement<'le> {
             .animate(
                 to.as_ref().unwrap(),
                 Procedure::Interpolate { progress: 0.5 },
-            ).is_ok()
+            )
+            .is_ok()
     }
 }
 
@@ -1278,7 +1281,8 @@ impl<'le> TElement for GeckoElement<'le> {
             Some(
                 Locked::<PropertyDeclarationBlock>::as_arc(
                     &*(&raw as *const &structs::RawServoDeclarationBlock),
-                ).borrow_arc(),
+                )
+                .borrow_arc(),
             )
         }
     }

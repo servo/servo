@@ -18,8 +18,8 @@ extern crate log;
 use std::cell::{Cell, UnsafeCell};
 use std::num::NonZeroUsize;
 use std::ops::Deref;
-use std::sync::{LockResult, Mutex, MutexGuard, PoisonError, TryLockError, TryLockResult};
 use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::{LockResult, Mutex, MutexGuard, PoisonError, TryLockError, TryLockResult};
 
 /// A type for thread ids.
 

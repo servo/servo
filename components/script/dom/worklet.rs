@@ -18,8 +18,8 @@ use crate::dom::bindings::codegen::Bindings::WorkletBinding::Wrap;
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::TrustedPromise;
-use crate::dom::bindings::reflector::Reflector;
 use crate::dom::bindings::reflector::reflect_dom_object;
+use crate::dom::bindings::reflector::Reflector;
 use crate::dom::bindings::root::{Dom, DomRoot, RootCollection, ThreadLocalStackRoots};
 use crate::dom::bindings::str::USVString;
 use crate::dom::bindings::trace::JSTraceable;
@@ -32,39 +32,39 @@ use crate::dom::workletglobalscope::WorkletGlobalScope;
 use crate::dom::workletglobalscope::WorkletGlobalScopeInit;
 use crate::dom::workletglobalscope::WorkletGlobalScopeType;
 use crate::dom::workletglobalscope::WorkletTask;
+use crate::script_runtime::new_rt_and_cx;
 use crate::script_runtime::CommonScriptMsg;
 use crate::script_runtime::Runtime;
 use crate::script_runtime::ScriptThreadEventCategory;
-use crate::script_runtime::new_rt_and_cx;
 use crate::script_thread::{MainThreadScriptMsg, ScriptThread};
 use crate::task::TaskBox;
 use crate::task_source::TaskSourceName;
 use dom_struct::dom_struct;
 use js::jsapi::JSGCParamKey;
 use js::jsapi::JSTracer;
-use js::jsapi::JS_GC;
 use js::jsapi::JS_GetGCParameter;
+use js::jsapi::JS_GC;
 use msg::constellation_msg::PipelineId;
-use net_traits::IpcSend;
 use net_traits::load_whole_resource;
 use net_traits::request::Destination;
 use net_traits::request::RequestInit;
 use net_traits::request::RequestMode;
-use servo_channel::{channel, Sender, Receiver};
+use net_traits::IpcSend;
+use servo_channel::{channel, Receiver, Sender};
 use servo_rand;
 use servo_url::ImmutableOrigin;
 use servo_url::ServoUrl;
 use std::cmp::max;
-use std::collections::HashMap;
 use std::collections::hash_map;
+use std::collections::HashMap;
 use std::rc::Rc;
-use std::sync::Arc;
 use std::sync::atomic::AtomicIsize;
 use std::sync::atomic::Ordering;
+use std::sync::Arc;
 use std::thread;
 use style::thread_state::{self, ThreadState};
-use swapper::Swapper;
 use swapper::swapper;
+use swapper::Swapper;
 use uuid::Uuid;
 
 // Magic numbers
@@ -323,7 +323,11 @@ impl WorkletThreadPool {
     }
 
     pub(crate) fn exit_worklet(&self, worklet_id: WorkletId) {
-        for sender in &[&self.control_sender_0, &self.control_sender_1, &self.control_sender_2] {
+        for sender in &[
+            &self.control_sender_0,
+            &self.control_sender_1,
+            &self.control_sender_2,
+        ] {
             let _ = sender.send(WorkletControl::ExitWorklet(worklet_id));
         }
         self.wake_threads();

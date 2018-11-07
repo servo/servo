@@ -3,8 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
-use crate::protocol::{ActorDescription,  Method};
 use crate::protocol::JsonPacketStream;
+use crate::protocol::{ActorDescription, Method};
 use serde_json::{Map, Value};
 use std::net::TcpStream;
 
@@ -42,7 +42,7 @@ impl Actor for DeviceActor {
                     value: SystemInfo {
                         apptype: "servo".to_string(),
                         platformVersion: "63.0".to_string(),
-                    }
+                    },
                 };
                 stream.write_json_packet(&msg);
                 ActorMessageStatus::Processed
@@ -73,12 +73,11 @@ impl DeviceActor {
                                 .into_iter()
                                 .collect(),
                         ),
-                    )].into_iter()
+                    )]
+                    .into_iter()
                     .collect(),
                 ),
             }],
         }
     }
 }
-
-

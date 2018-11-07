@@ -12,8 +12,8 @@ use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomObject;
 use crate::task_source::{TaskSource, TaskSourceName};
 use dom_struct::dom_struct;
-use servo_media::audio::node::{AudioNodeMessage, AudioNodeInit, AudioScheduledSourceNodeMessage};
 use servo_media::audio::node::OnEndedCallback;
+use servo_media::audio::node::{AudioNodeInit, AudioNodeMessage, AudioScheduledSourceNodeMessage};
 use std::cell::Cell;
 
 #[dom_struct]

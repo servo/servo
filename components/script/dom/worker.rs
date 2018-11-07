@@ -9,11 +9,13 @@ use crate::dom::bindings::codegen::Bindings::WorkerBinding::WorkerMethods;
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
-use crate::dom::bindings::reflector::{DomObject, reflect_dom_object};
+use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::structuredclone::StructuredCloneData;
-use crate::dom::dedicatedworkerglobalscope::{DedicatedWorkerGlobalScope, DedicatedWorkerScriptMsg};
+use crate::dom::dedicatedworkerglobalscope::{
+    DedicatedWorkerGlobalScope, DedicatedWorkerScriptMsg,
+};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::messageevent::MessageEvent;
@@ -28,8 +30,8 @@ use js::rust::HandleValue;
 use script_traits::WorkerScriptLoadOrigin;
 use servo_channel::{channel, Sender};
 use std::cell::Cell;
-use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
 
 pub type TrustedWorkerAddress = Trusted<Worker>;
 

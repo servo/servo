@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use crate::dom::activation::{Activatable, ActivationSource, synthetic_click_activation};
+use crate::dom::activation::{synthetic_click_activation, Activatable, ActivationSource};
 use crate::dom::attr::Attr;
 use crate::dom::bindings::codegen::Bindings::HTMLLabelElementBinding;
 use crate::dom::bindings::codegen::Bindings::HTMLLabelElementBinding::HTMLLabelElementMethods;

@@ -3,12 +3,14 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::HeadersBinding::{HeadersInit, HeadersMethods, HeadersWrap};
+use crate::dom::bindings::codegen::Bindings::HeadersBinding::{
+    HeadersInit, HeadersMethods, HeadersWrap,
+};
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::iterable::Iterable;
-use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
+use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::{ByteString, is_token};
+use crate::dom::bindings::str::{is_token, ByteString};
 use crate::dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
 use http::header::{self, HeaderMap as HyperHeaders, HeaderName, HeaderValue};
@@ -87,14 +89,19 @@ impl HeadersMethods for Headers {
         }
         // Step 7
         let mut combined_value: Vec<u8> = vec![];
-        if let Some(v) = self.header_list.borrow().get(HeaderName::from_str(&valid_name).unwrap()) {
+        if let Some(v) = self
+            .header_list
+            .borrow()
+            .get(HeaderName::from_str(&valid_name).unwrap())
+        {
             combined_value = v.as_bytes().to_vec();
             combined_value.push(b',');
         }
         combined_value.extend(valid_value.iter().cloned());
-        self.header_list
-            .borrow_mut()
-            .insert(HeaderName::from_str(&valid_name).unwrap(), HeaderValue::from_bytes(&combined_value).unwrap());
+        self.header_list.borrow_mut().insert(
+            HeaderName::from_str(&valid_name).unwrap(),
+            HeaderValue::from_bytes(&combined_value).unwrap(),
+        );
         Ok(())
     }
 
@@ -129,9 +136,11 @@ impl HeadersMethods for Headers {
     fn Get(&self, name: ByteString) -> Fallible<Option<ByteString>> {
         // Step 1
         let valid_name = validate_name(name)?;
-        Ok(self.header_list.borrow().get(HeaderName::from_str(&valid_name).unwrap()).map(|v| {
-            ByteString::new(v.as_bytes().to_vec())
-        }))
+        Ok(self
+            .header_list
+            .borrow()
+            .get(HeaderName::from_str(&valid_name).unwrap())
+            .map(|v| ByteString::new(v.as_bytes().to_vec())))
     }
 
     // https://fetch.spec.whatwg.org/#dom-headers-has
@@ -169,9 +178,10 @@ impl HeadersMethods for Headers {
         }
         // Step 7
         // https://fetch.spec.whatwg.org/#concept-header-list-set
-        self.header_list
-            .borrow_mut()
-            .insert(HeaderName::from_str(&valid_name).unwrap(), HeaderValue::from_bytes(&valid_value).unwrap());
+        self.header_list.borrow_mut().insert(
+            HeaderName::from_str(&valid_name).unwrap(),
+            HeaderValue::from_bytes(&valid_value).unwrap(),
+        );
         Ok(())
     }
 }
@@ -185,7 +195,7 @@ impl Headers {
                 for (name, value) in h.header_list.borrow().iter() {
                     self.Append(
                         ByteString::new(Vec::from(name.as_str())),
-                        ByteString::new(Vec::from(value.to_str().unwrap().as_bytes()))
+                        ByteString::new(Vec::from(value.to_str().unwrap().as_bytes())),
                     )?;
                 }
                 Ok(())
@@ -251,7 +261,10 @@ impl Headers {
 
     // https://fetch.spec.whatwg.org/#concept-header-extract-mime-type
     pub fn extract_mime_type(&self) -> Vec<u8> {
-        self.header_list.borrow().get(header::CONTENT_TYPE).map_or(vec![], |v| v.as_bytes().to_owned())
+        self.header_list
+            .borrow()
+            .get(header::CONTENT_TYPE)
+            .map_or(vec![], |v| v.as_bytes().to_owned())
     }
 
     pub fn sort_header_list(&self) -> Vec<(String, String)> {
@@ -299,14 +312,12 @@ fn is_cors_safelisted_request_content_type(value: &[u8]) -> bool {
     let value_mime_result: Result<Mime, _> = value_string.parse();
     match value_mime_result {
         Err(_) => false,
-        Ok(value_mime) => {
-            match (value_mime.type_(), value_mime.subtype()) {
-                (mime::APPLICATION, mime::WWW_FORM_URLENCODED) |
-                (mime::MULTIPART, mime::FORM_DATA) |
-                (mime::TEXT, mime::PLAIN) => true,
-                _ => false,
-            }
-        }
+        Ok(value_mime) => match (value_mime.type_(), value_mime.subtype()) {
+            (mime::APPLICATION, mime::WWW_FORM_URLENCODED) |
+            (mime::MULTIPART, mime::FORM_DATA) |
+            (mime::TEXT, mime::PLAIN) => true,
+            _ => false,
+        },
     }
 }
 

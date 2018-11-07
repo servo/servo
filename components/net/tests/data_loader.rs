@@ -7,9 +7,9 @@ use headers_core::HeaderMapExt;
 use headers_ext::ContentType;
 use hyper_serde::Serde;
 use mime::{self, Mime};
-use net_traits::{FetchMetadata, FilteredMetadata, NetworkError};
 use net_traits::request::{Origin, Request};
 use net_traits::response::ResponseBody;
+use net_traits::{FetchMetadata, FilteredMetadata, NetworkError};
 use servo_url::ServoUrl;
 use std::ops::Deref;
 

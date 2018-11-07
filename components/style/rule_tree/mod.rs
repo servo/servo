@@ -526,7 +526,8 @@ impl RuleTree {
             path,
             guards,
             &mut dummy,
-        ).expect("Should return a valid rule node")
+        )
+        .expect("Should return a valid rule node")
     }
 }
 
@@ -730,9 +731,9 @@ unsafe impl Send for RuleTree {}
 #[cfg(feature = "gecko")]
 #[cfg(debug_assertions)]
 mod gecko_leak_checking {
+    use super::RuleNode;
     use std::mem::size_of;
     use std::os::raw::{c_char, c_void};
-    use super::RuleNode;
 
     extern "C" {
         pub fn NS_LogCtor(aPtr: *const c_void, aTypeName: *const c_char, aSize: u32);

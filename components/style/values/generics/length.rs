@@ -45,7 +45,7 @@ pub enum MozLength<LengthOrPercentageOrAuto> {
     SpecifiedValueInfo,
     ToAnimatedZero,
     ToComputedValue,
-    ToCss
+    ToCss,
 )]
 pub enum MaxLength<LengthOrPercentageOrNone> {
     LengthOrPercentageOrNone(LengthOrPercentageOrNone),

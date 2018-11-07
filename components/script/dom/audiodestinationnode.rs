@@ -4,9 +4,13 @@
 
 use crate::dom::audionode::{AudioNode, MAX_CHANNEL_COUNT};
 use crate::dom::baseaudiocontext::BaseAudioContext;
-use crate::dom::bindings::codegen::Bindings::AudioDestinationNodeBinding::{self, AudioDestinationNodeMethods};
-use crate::dom::bindings::codegen::Bindings::AudioNodeBinding::{ChannelCountMode, ChannelInterpretation};
+use crate::dom::bindings::codegen::Bindings::AudioDestinationNodeBinding::{
+    self, AudioDestinationNodeMethods,
+};
 use crate::dom::bindings::codegen::Bindings::AudioNodeBinding::AudioNodeOptions;
+use crate::dom::bindings::codegen::Bindings::AudioNodeBinding::{
+    ChannelCountMode, ChannelInterpretation,
+};
 use crate::dom::bindings::reflector::reflect_dom_object;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::globalscope::GlobalScope;

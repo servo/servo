@@ -8,8 +8,8 @@ use log;
 use msg::constellation_msg::PipelineId;
 use script_traits::ConstellationControlMsg;
 use servo_url::ServoUrl;
-use std::sync::{Mutex, Arc};
-use style::error_reporting::{ParseErrorReporter, ContextualParseError};
+use std::sync::{Arc, Mutex};
+use style::error_reporting::{ContextualParseError, ParseErrorReporter};
 
 #[derive(Clone, MallocSizeOf)]
 pub struct CSSErrorReporter {

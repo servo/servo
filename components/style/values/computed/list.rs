@@ -4,9 +4,9 @@
 
 //! `list` computed values.
 
-pub use values::specified::list::Quotes;
 #[cfg(feature = "gecko")]
 pub use values::specified::list::ListStyleType;
+pub use values::specified::list::Quotes;
 
 impl Quotes {
     /// Initial value for `quotes`.
@@ -24,7 +24,8 @@ impl Quotes {
                     "\u{2018}".to_owned().into_boxed_str(),
                     "\u{2019}".to_owned().into_boxed_str(),
                 ),
-            ].into_boxed_slice(),
+            ]
+            .into_boxed_slice(),
         )
     }
 }

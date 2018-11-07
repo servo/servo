@@ -2,12 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::codegen::Bindings::PermissionStatusBinding::{PermissionName, PermissionState};
 use crate::dom::bindings::codegen::Bindings::PermissionStatusBinding::PermissionDescriptor;
 use crate::dom::bindings::codegen::Bindings::PermissionStatusBinding::PermissionStatusMethods;
+use crate::dom::bindings::codegen::Bindings::PermissionStatusBinding::{
+    PermissionName, PermissionState,
+};
 use crate::dom::bindings::codegen::Bindings::PermissionsBinding::{self, PermissionsMethods};
 use crate::dom::bindings::error::Error;
-use crate::dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
+use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bluetooth::Bluetooth;
 use crate::dom::bluetoothpermissionresult::BluetoothPermissionResult;

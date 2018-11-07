@@ -21,13 +21,13 @@ use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::{Castable, CharacterDataTypeId, ElementTypeId};
 use crate::dom::bindings::inheritance::{EventTargetTypeId, HTMLElementTypeId, NodeTypeId};
 use crate::dom::bindings::inheritance::{SVGElementTypeId, SVGGraphicsElementTypeId};
-use crate::dom::bindings::reflector::{DomObject, reflect_dom_object};
+use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
 use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom, RootedReference};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::bindings::xmlname::namespace_from_domstring;
 use crate::dom::characterdata::{CharacterData, LayoutCharacterDataHelpers};
 use crate::dom::cssstylesheet::CSSStyleSheet;
-use crate::dom::customelementregistry::{CallbackReaction, try_upgrade_element};
+use crate::dom::customelementregistry::{try_upgrade_element, CallbackReaction};
 use crate::dom::document::{Document, DocumentSource, HasBrowsingContext, IsHTMLDocument};
 use crate::dom::documentfragment::DocumentFragment;
 use crate::dom::documenttype::DocumentType;
@@ -50,24 +50,24 @@ use crate::dom::mutationobserver::{Mutation, MutationObserver, RegisteredObserve
 use crate::dom::nodelist::NodeList;
 use crate::dom::processinginstruction::ProcessingInstruction;
 use crate::dom::range::WeakRangeVec;
-use crate::dom::svgsvgelement::{SVGSVGElement, LayoutSVGSVGElementHelpers};
+use crate::dom::svgsvgelement::{LayoutSVGSVGElementHelpers, SVGSVGElement};
 use crate::dom::text::Text;
-use crate::dom::virtualmethods::{VirtualMethods, vtable_for};
+use crate::dom::virtualmethods::{vtable_for, VirtualMethods};
 use crate::dom::window::Window;
 use crate::script_thread::ScriptThread;
 use devtools_traits::NodeInfo;
 use dom_struct::dom_struct;
-use euclid::{Point2D, Vector2D, Rect, Size2D};
-use html5ever::{Prefix, Namespace, QualName};
+use euclid::{Point2D, Rect, Size2D, Vector2D};
+use html5ever::{Namespace, Prefix, QualName};
 use js::jsapi::{JSContext, JSObject, JSRuntime};
 use libc::{self, c_void, uintptr_t};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use msg::constellation_msg::{BrowsingContextId, PipelineId};
 use net_traits::image::base::{Image, ImageMetadata};
 use ref_slice::ref_slice;
+use script_layout_interface::message::Msg;
 use script_layout_interface::{HTMLCanvasData, HTMLMediaData, LayoutElementType, LayoutNodeType};
 use script_layout_interface::{OpaqueStyleAndLayoutData, SVGSVGData, TrustedNodeAddress};
-use script_layout_interface::message::Msg;
 use script_traits::DocumentActivity;
 use script_traits::UntrustedNodeAddress;
 use selectors::matching::{matches_selector_list, MatchingContext, MatchingMode};
@@ -76,7 +76,7 @@ use servo_arc::Arc;
 use servo_url::ServoUrl;
 use smallvec::SmallVec;
 use std::borrow::ToOwned;
-use std::cell::{Cell, UnsafeCell, RefMut};
+use std::cell::{Cell, RefMut, UnsafeCell};
 use std::cmp;
 use std::default::Default;
 use std::iter;
@@ -384,7 +384,8 @@ impl<'a> Iterator for QuerySelectorIterator {
                     }
                 }
                 None
-            }).next()
+            })
+            .next()
     }
 }
 
@@ -1238,9 +1239,7 @@ impl LayoutNodeHelpers for LayoutDom<Node> {
 
     #[allow(unsafe_code)]
     fn image_data(&self) -> Option<(Option<StdArc<Image>>, Option<ImageMetadata>)> {
-        unsafe {
-            self.downcast::<HTMLImageElement>().map(|e| e.image_data())
-        }
+        unsafe { self.downcast::<HTMLImageElement>().map(|e| e.image_data()) }
     }
 
     #[allow(unsafe_code)]
@@ -2837,10 +2836,12 @@ pub struct UnbindContext<'a> {
 
 impl<'a> UnbindContext<'a> {
     /// Create a new `UnbindContext` value.
-    fn new(parent: &'a Node,
-           prev_sibling: Option<&'a Node>,
-           next_sibling: Option<&'a Node>,
-           cached_index: Option<u32>) -> Self {
+    fn new(
+        parent: &'a Node,
+        prev_sibling: Option<&'a Node>,
+        next_sibling: Option<&'a Node>,
+        cached_index: Option<u32>,
+    ) -> Self {
         UnbindContext {
             index: Cell::new(cached_index),
             parent: parent,

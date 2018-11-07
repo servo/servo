@@ -76,9 +76,9 @@ fn expand_dom_object(input: syn::DeriveInput) -> quote::Tokens {
     }));
 
     let mut generics = input.generics.clone();
-    generics
-        .params
-        .push(parse_quote!(__T: crate::dom::bindings::reflector::DomObject));
+    generics.params.push(parse_quote!(
+        __T: crate::dom::bindings::reflector::DomObject
+    ));
 
     let (impl_generics, _, where_clause) = generics.split_for_impl();
 

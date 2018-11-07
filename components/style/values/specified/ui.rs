@@ -7,13 +7,13 @@
 use cssparser::Parser;
 use parser::{Parse, ParserContext};
 use std::fmt::{self, Write};
-use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
 use style_traits::cursor::CursorKind;
-use values::{Auto, Either};
+use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
 use values::generics::ui as generics;
-use values::specified::Number;
 use values::specified::color::Color;
 use values::specified::url::SpecifiedImageUrl;
+use values::specified::Number;
+use values::{Auto, Either};
 
 /// auto | <color>
 pub type ColorOrAuto = Either<Color, Auto>;

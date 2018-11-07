@@ -13,9 +13,9 @@ use crate::dom::serviceworkerglobalscope::{ServiceWorkerGlobalScope, ServiceWork
 use crate::dom::serviceworkerregistration::longest_prefix_match;
 use devtools_traits::{DevtoolsPageInfo, ScriptToDevtoolsControlMsg};
 use ipc_channel::ipc::{self, IpcSender};
-use net_traits::{CustomResponseMediator, CoreResourceMsg};
-use script_traits::{ServiceWorkerMsg, ScopeThings, SWManagerMsg, SWManagerSenders, DOMMessage};
-use servo_channel::{channel, route_ipc_receiver_to_new_servo_receiver, Sender, Receiver};
+use net_traits::{CoreResourceMsg, CustomResponseMediator};
+use script_traits::{DOMMessage, SWManagerMsg, SWManagerSenders, ScopeThings, ServiceWorkerMsg};
+use servo_channel::{channel, route_ipc_receiver_to_new_servo_receiver, Receiver, Sender};
 use servo_config::prefs::PREFS;
 use servo_url::ServoUrl;
 use std::collections::HashMap;
@@ -71,7 +71,8 @@ impl ServiceWorkerManager {
             .spawn(move || {
                 ServiceWorkerManager::new(own_sender, from_constellation, resource_port)
                     .handle_message();
-            }).expect("Thread spawning failed");
+            })
+            .expect("Thread spawning failed");
     }
 
     pub fn get_matching_scope(&self, load_url: &ServoUrl) -> Option<ServoUrl> {

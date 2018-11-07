@@ -4,18 +4,20 @@
 
 #![crate_name = "canvas_traits"]
 #![crate_type = "rlib"]
-
 #![deny(unsafe_code)]
 
 extern crate cssparser;
 extern crate euclid;
 extern crate gleam;
 extern crate ipc_channel;
-#[macro_use] extern crate lazy_static;
+#[macro_use]
+extern crate lazy_static;
 extern crate malloc_size_of;
-#[macro_use] extern crate malloc_size_of_derive;
+#[macro_use]
+extern crate malloc_size_of_derive;
 extern crate offscreen_gl_context;
-#[macro_use] extern crate serde;
+#[macro_use]
+extern crate serde;
 extern crate serde_bytes;
 extern crate servo_config;
 extern crate webrender_api;

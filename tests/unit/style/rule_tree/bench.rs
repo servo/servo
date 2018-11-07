@@ -7,22 +7,25 @@ use rayon;
 use servo_arc::Arc;
 use servo_url::ServoUrl;
 use style::context::QuirksMode;
-use style::error_reporting::{ParseErrorReporter, ContextualParseError};
+use style::error_reporting::{ContextualParseError, ParseErrorReporter};
 use style::media_queries::MediaList;
 use style::properties::{longhands, Importance, PropertyDeclaration, PropertyDeclarationBlock};
 use style::rule_tree::{CascadeLevel, RuleTree, StrongRuleNode, StyleSource};
 use style::shared_lock::SharedRwLock;
-use style::stylesheets::{Origin, Stylesheet, CssRule};
+use style::stylesheets::{CssRule, Origin, Stylesheet};
 use style::thread_state::{self, ThreadState};
 use test::{self, Bencher};
 
 struct ErrorringErrorReporter;
 impl ParseErrorReporter for ErrorringErrorReporter {
-    fn report_error(&self,
-                    url: &ServoUrl,
-                    location: SourceLocation,
-                    error: ContextualParseError) {
-        panic!("CSS error: {}\t\n{}:{} {}", url.as_str(), location.line, location.column, error);
+    fn report_error(&self, url: &ServoUrl, location: SourceLocation, error: ContextualParseError) {
+        panic!(
+            "CSS error: {}\t\n{}:{} {}",
+            url.as_str(),
+            location.line,
+            location.column,
+            error
+        );
     }
 }
 
@@ -38,9 +41,10 @@ impl<'a> Drop for AutoGCRuleTree<'a> {
     fn drop(&mut self) {
         unsafe {
             self.0.gc();
-            assert!(::std::thread::panicking() ||
-                    !self.0.root().has_children_for_testing(),
-                    "No rule nodes other than the root shall remain!");
+            assert!(
+                ::std::thread::panicking() || !self.0.root().has_children_for_testing(),
+                "No rule nodes other than the root shall remain!"
+            );
         }
     }
 }
@@ -49,41 +53,51 @@ fn parse_rules(css: &str) -> Vec<(StyleSource, CascadeLevel)> {
     let lock = SharedRwLock::new();
     let media = Arc::new(lock.wrap(MediaList::empty()));
 
-    let s = Stylesheet::from_str(css,
-                                 ServoUrl::parse("http://localhost").unwrap(),
-                                 Origin::Author,
-                                 media,
-                                 lock,
-                                 None,
-                                 Some(&ErrorringErrorReporter),
-                                 QuirksMode::NoQuirks,
-                                 0);
+    let s = Stylesheet::from_str(
+        css,
+        ServoUrl::parse("http://localhost").unwrap(),
+        Origin::Author,
+        media,
+        lock,
+        None,
+        Some(&ErrorringErrorReporter),
+        QuirksMode::NoQuirks,
+        0,
+    );
     let guard = s.shared_lock.read();
     let rules = s.contents.rules.read_with(&guard);
-    rules.0.iter().filter_map(|rule| {
-        match *rule {
+    rules
+        .0
+        .iter()
+        .filter_map(|rule| match *rule {
             CssRule::Style(ref style_rule) => Some((
                 StyleSource::from_rule(style_rule.clone()),
                 CascadeLevel::UserNormal,
             )),
             _ => None,
-        }
-    }).collect()
+        })
+        .collect()
 }
 
 fn test_insertion(rule_tree: &RuleTree, rules: Vec<(StyleSource, CascadeLevel)>) -> StrongRuleNode {
     rule_tree.insert_ordered_rules(rules.into_iter())
 }
 
-fn test_insertion_style_attribute(rule_tree: &RuleTree, rules: &[(StyleSource, CascadeLevel)],
-                                  shared_lock: &SharedRwLock)
-                                  -> StrongRuleNode {
+fn test_insertion_style_attribute(
+    rule_tree: &RuleTree,
+    rules: &[(StyleSource, CascadeLevel)],
+    shared_lock: &SharedRwLock,
+) -> StrongRuleNode {
     let mut rules = rules.to_vec();
-    rules.push((StyleSource::from_declarations(Arc::new(shared_lock.wrap(PropertyDeclarationBlock::with_one(
-        PropertyDeclaration::Display(
-            longhands::display::SpecifiedValue::Block),
-        Importance::Normal
-    )))), CascadeLevel::UserNormal));
+    rules.push((
+        StyleSource::from_declarations(Arc::new(shared_lock.wrap(
+            PropertyDeclarationBlock::with_one(
+                PropertyDeclaration::Display(longhands::display::SpecifiedValue::Block),
+                Importance::Normal,
+            ),
+        ))),
+        CascadeLevel::UserNormal,
+    ));
     test_insertion(rule_tree, rules)
 }
 
@@ -95,7 +109,8 @@ fn bench_insertion_basic(b: &mut Bencher) {
     let rules_matched = parse_rules(
         ".foo { width: 200px; } \
          .bar { height: 500px; } \
-         .baz { display: block; }");
+         .baz { display: block; }",
+    );
 
     b.iter(|| {
         let _gc = AutoGCRuleTree::new(&r);
@@ -114,7 +129,8 @@ fn bench_insertion_basic_per_element(b: &mut Bencher) {
     let rules_matched = parse_rules(
         ".foo { width: 200px; } \
          .bar { height: 500px; } \
-         .baz { display: block; }");
+         .baz { display: block; }",
+    );
 
     b.iter(|| {
         let _gc = AutoGCRuleTree::new(&r);
@@ -134,14 +150,19 @@ fn bench_expensive_insertion(b: &mut Bencher) {
     let rules_matched = parse_rules(
         ".foo { width: 200px; } \
          .bar { height: 500px; } \
-         .baz { display: block; }");
+         .baz { display: block; }",
+    );
 
     let shared_lock = SharedRwLock::new();
     b.iter(|| {
         let _gc = AutoGCRuleTree::new(&r);
 
         for _ in 0..(4000 + 400) {
-            test::black_box(test_insertion_style_attribute(&r, &rules_matched, &shared_lock));
+            test::black_box(test_insertion_style_attribute(
+                &r,
+                &rules_matched,
+                &shared_lock,
+            ));
         }
     });
 }
@@ -154,7 +175,8 @@ fn bench_insertion_basic_parallel(b: &mut Bencher) {
     let rules_matched = parse_rules(
         ".foo { width: 200px; } \
          .bar { height: 500px; } \
-         .baz { display: block; }");
+         .baz { display: block; }",
+    );
 
     b.iter(|| {
         let _gc = AutoGCRuleTree::new(&r);
@@ -163,13 +185,11 @@ fn bench_insertion_basic_parallel(b: &mut Bencher) {
             for _ in 0..4 {
                 s.spawn(|s| {
                     for _ in 0..1000 {
-                        test::black_box(test_insertion(&r,
-                                                       rules_matched.clone()));
+                        test::black_box(test_insertion(&r, rules_matched.clone()));
                     }
                     s.spawn(|_| {
                         for _ in 0..100 {
-                            test::black_box(test_insertion(&r,
-                                                           rules_matched.clone()));
+                            test::black_box(test_insertion(&r, rules_matched.clone()));
                         }
                     })
                 })
@@ -186,7 +206,8 @@ fn bench_expensive_insertion_parallel(b: &mut Bencher) {
     let rules_matched = parse_rules(
         ".foo { width: 200px; } \
          .bar { height: 500px; } \
-         .baz { display: block; }");
+         .baz { display: block; }",
+    );
 
     let shared_lock = SharedRwLock::new();
     b.iter(|| {
@@ -196,15 +217,19 @@ fn bench_expensive_insertion_parallel(b: &mut Bencher) {
             for _ in 0..4 {
                 s.spawn(|s| {
                     for _ in 0..1000 {
-                        test::black_box(test_insertion_style_attribute(&r,
-                                                                       &rules_matched,
-                                                                       &shared_lock));
+                        test::black_box(test_insertion_style_attribute(
+                            &r,
+                            &rules_matched,
+                            &shared_lock,
+                        ));
                     }
                     s.spawn(|_| {
                         for _ in 0..100 {
-                            test::black_box(test_insertion_style_attribute(&r,
-                                                                           &rules_matched,
-                                                                           &shared_lock));
+                            test::black_box(test_insertion_style_attribute(
+                                &r,
+                                &rules_matched,
+                                &shared_lock,
+                            ));
                         }
                     })
                 })

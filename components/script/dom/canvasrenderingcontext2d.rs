@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use canvas_traits::canvas::{Canvas2dMsg, CanvasMsg, CanvasId};
+use canvas_traits::canvas::{Canvas2dMsg, CanvasId, CanvasMsg};
 use canvas_traits::canvas::{CompositionOrBlending, FillOrStrokeStyle, FillRule};
 use canvas_traits::canvas::{LineCapStyle, LineJoinStyle, LinearGradientStyle};
 use canvas_traits::canvas::{RadialGradientStyle, RepetitionStyle};
@@ -18,7 +18,7 @@ use crate::dom::bindings::codegen::UnionTypes::StringOrCanvasGradientOrCanvasPat
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
-use crate::dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
+use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::canvasgradient::{CanvasGradient, CanvasGradientStyle, ToFillOrStrokeStyle};
@@ -27,12 +27,12 @@ use crate::dom::element::Element;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlcanvaselement::{CanvasContext, HTMLCanvasElement};
 use crate::dom::imagedata::ImageData;
-use crate::dom::node::{Node, NodeDamage, window_from_node};
+use crate::dom::node::{window_from_node, Node, NodeDamage};
 use crate::unpremultiplytable::UNPREMULTIPLY_TABLE;
-use cssparser::{Parser, ParserInput, RGBA};
 use cssparser::Color as CSSColor;
+use cssparser::{Parser, ParserInput, RGBA};
 use dom_struct::dom_struct;
-use euclid::{Transform2D, Point2D, Rect, Size2D, vec2};
+use euclid::{vec2, Point2D, Rect, Size2D, Transform2D};
 use ipc_channel::ipc::{self, IpcSender};
 use net_traits::image::base::PixelFormat;
 use net_traits::image_cache::CanRequestImages;
@@ -45,10 +45,10 @@ use pixels;
 use profile_traits::ipc as profiled_ipc;
 use script_traits::ScriptMsg;
 use servo_url::ServoUrl;
-use std::{fmt, mem};
 use std::cell::Cell;
 use std::str::FromStr;
 use std::sync::Arc;
+use std::{fmt, mem};
 
 #[must_root]
 #[derive(Clone, JSTraceable, MallocSizeOf)]
@@ -266,7 +266,7 @@ impl CanvasRenderingContext2D {
             CanvasImageSource::HTMLCanvasElement(canvas) => canvas.origin_is_clean(),
             CanvasImageSource::HTMLImageElement(image) => {
                 image.same_origin(GlobalScope::entry().origin())
-            }
+            },
             CanvasImageSource::CSSStyleValue(_) => true,
         }
     }
@@ -403,8 +403,7 @@ impl CanvasRenderingContext2D {
         dh: Option<f64>,
     ) -> ErrorResult {
         debug!("Fetching image {}.", url);
-        let (mut image_data, image_size) =
-            self.fetch_image_data(url).ok_or(Error::InvalidState)?;
+        let (mut image_data, image_size) = self.fetch_image_data(url).ok_or(Error::InvalidState)?;
         pixels::premultiply_inplace(&mut image_data);
         let image_size = image_size.to_f64();
 
@@ -558,7 +557,10 @@ impl CanvasRenderingContext2D {
 
         // FIXME(nox): This is probably wrong when this is a context for an
         // offscreen canvas.
-        let canvas_size = self.canvas.as_ref().map_or(Size2D::zero(), |c| c.get_size());
+        let canvas_size = self
+            .canvas
+            .as_ref()
+            .map_or(Size2D::zero(), |c| c.get_size());
         assert!(Rect::from_size(canvas_size).contains_rect(&rect));
 
         let (sender, receiver) = ipc::bytes_channel().unwrap();
@@ -1144,7 +1146,10 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
         let (origin, size) = adjust_size_sign(Point2D::new(sx, sy), Size2D::new(sw, sh));
         // FIXME(nox): This is probably wrong when this is a context for an
         // offscreen canvas.
-        let canvas_size = self.canvas.as_ref().map_or(Size2D::zero(), |c| c.get_size());
+        let canvas_size = self
+            .canvas
+            .as_ref()
+            .map_or(Size2D::zero(), |c| c.get_size());
         let read_rect = match pixels::clip(origin, size, canvas_size) {
             Some(rect) => rect,
             None => {
@@ -1153,12 +1158,25 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
             },
         };
 
-        ImageData::new(&self.global(), size.width, size.height, Some(self.get_rect(read_rect)))
+        ImageData::new(
+            &self.global(),
+            size.width,
+            size.height,
+            Some(self.get_rect(read_rect)),
+        )
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-putimagedata
     fn PutImageData(&self, imagedata: &ImageData, dx: i32, dy: i32) {
-        self.PutImageData_(imagedata, dx, dy, 0, 0, imagedata.Width() as i32, imagedata.Height() as i32)
+        self.PutImageData_(
+            imagedata,
+            dx,
+            dy,
+            0,
+            0,
+            imagedata.Width() as i32,
+            imagedata.Height() as i32,
+        )
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-putimagedata
@@ -1176,7 +1194,6 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
         // FIXME(nox): There are many arithmetic operations here that can
         // overflow or underflow, this should probably be audited.
 
-
         let imagedata_size = Size2D::new(imagedata.Width(), imagedata.Height());
         if imagedata_size.area() == 0 {
             return;
@@ -1190,7 +1207,10 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
 
         // FIXME(nox): This is probably wrong when this is a context for an
         // offscreen canvas.
-        let canvas_size = self.canvas.as_ref().map_or(Size2D::zero(), |c| c.get_size());
+        let canvas_size = self
+            .canvas
+            .as_ref()
+            .map_or(Size2D::zero(), |c| c.get_size());
 
         // Steps 3-6.
         let (src_origin, src_size) = adjust_size_sign(
@@ -1214,9 +1234,7 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
 
         // Step 7.
         let (sender, receiver) = ipc::bytes_channel().unwrap();
-        let pixels = unsafe {
-            &imagedata.get_rect(Rect::new(src_rect.origin, dst_rect.size))
-        };
+        let pixels = unsafe { &imagedata.get_rect(Rect::new(src_rect.origin, dst_rect.size)) };
         self.send_canvas_2d_msg(Canvas2dMsg::PutImageData(dst_rect, receiver));
         sender.send(pixels).unwrap();
         self.mark_as_dirty();

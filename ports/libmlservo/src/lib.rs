@@ -3,7 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 extern crate egl;
-#[macro_use] extern crate log;
+#[macro_use]
+extern crate log;
 extern crate servo;
 extern crate smallvec;
 
@@ -13,17 +14,15 @@ use egl::egl::EGLSurface;
 use egl::egl::MakeCurrent;
 use egl::egl::SwapBuffers;
 use egl::eglext::eglGetProcAddress;
-use servo::BrowserId;
-use servo::Servo;
 use servo::compositing::windowing::AnimationState;
 use servo::compositing::windowing::EmbedderCoordinates;
 use servo::compositing::windowing::MouseWindowEvent;
 use servo::compositing::windowing::WindowEvent;
 use servo::compositing::windowing::WindowMethods;
-use servo::embedder_traits::EmbedderMsg;
-use servo::embedder_traits::EventLoopWaker;
 use servo::embedder_traits::resources::Resource;
 use servo::embedder_traits::resources::ResourceReaderMethods;
+use servo::embedder_traits::EmbedderMsg;
+use servo::embedder_traits::EventLoopWaker;
 use servo::euclid::TypedPoint2D;
 use servo::euclid::TypedRect;
 use servo::euclid::TypedScale;
@@ -39,6 +38,8 @@ use servo::webrender_api::DevicePixel;
 use servo::webrender_api::DevicePoint;
 use servo::webrender_api::LayoutPixel;
 use servo::webrender_api::ScrollLocation;
+use servo::BrowserId;
+use servo::Servo;
 use smallvec::SmallVec;
 use std::ffi::CStr;
 use std::ffi::CString;
@@ -62,10 +63,10 @@ pub enum MLLogLevel {
 }
 
 #[repr(transparent)]
-pub struct MLLogger(extern "C" fn (MLLogLevel, *const c_char));
+pub struct MLLogger(extern "C" fn(MLLogLevel, *const c_char));
 
 #[repr(transparent)]
-pub struct MLHistoryUpdate(extern "C" fn (MLApp, bool, *const c_char, bool));
+pub struct MLHistoryUpdate(extern "C" fn(MLApp, bool, *const c_char, bool));
 
 #[repr(transparent)]
 #[derive(Clone, Copy)]
@@ -74,17 +75,18 @@ pub struct MLApp(*mut c_void);
 const LOG_LEVEL: log::LevelFilter = log::LevelFilter::Info;
 
 #[no_mangle]
-pub unsafe extern "C" fn init_servo(ctxt: EGLContext,
-                                    surf: EGLSurface,
-                                    disp: EGLDisplay,
-                                    app: MLApp,
-                                    logger: MLLogger,
-                                    history_update: MLHistoryUpdate,
-                                    url: *const c_char,
-                                    width: u32,
-                                    height: u32,
-                                    hidpi: f32) -> *mut ServoInstance
-{
+pub unsafe extern "C" fn init_servo(
+    ctxt: EGLContext,
+    surf: EGLSurface,
+    disp: EGLDisplay,
+    app: MLApp,
+    logger: MLLogger,
+    history_update: MLHistoryUpdate,
+    url: *const c_char,
+    width: u32,
+    height: u32,
+    hidpi: f32,
+) -> *mut ServoInstance {
     // Servo initialization goes here!
     servo::embedder_traits::resources::set(Box::new(ResourceReaderInstance::new()));
     let _ = log::set_boxed_logger(Box::new(logger));
@@ -112,9 +114,7 @@ pub unsafe extern "C" fn init_servo(ctxt: EGLContext,
     let blank_url = ServoUrl::parse("about:blank").expect("Failed to parse about:blank!");
     let url = CStr::from_ptr(url).to_str().unwrap_or("about:blank");
     let url = ServoUrl::parse(url).unwrap_or(blank_url);
-    servo.handle_events(vec![
-        WindowEvent::NewBrowser(url, browser_id),
-    ]);
+    servo.handle_events(vec![WindowEvent::NewBrowser(url, browser_id)]);
 
     let result = Box::new(ServoInstance {
         app: app,
@@ -157,7 +157,12 @@ pub unsafe extern "C" fn heartbeat_servo(servo: *mut ServoInstance) {
                         if let Ok(cstr) = CString::new(url.as_str()) {
                             let can_go_back = index > 0;
                             let can_go_fwd = (index + 1) < urls.len();
-                            (servo.history_update.0)(servo.app, can_go_back, cstr.as_ptr(), can_go_fwd);
+                            (servo.history_update.0)(
+                                servo.app,
+                                can_go_back,
+                                cstr.as_ptr(),
+                                can_go_fwd,
+                            );
                         }
                     }
                 },
@@ -204,13 +209,17 @@ pub unsafe extern "C" fn move_servo(servo: *mut ServoInstance, x: f32, y: f32) {
                 ScrollState::TriggerUp,
                 WindowEvent::MouseWindowMoveEventClass(point),
             ),
-            ScrollState::TriggerDown(start) if (start - point).square_length() < DRAG_CUTOFF_SQUARED => return,
+            ScrollState::TriggerDown(start)
+                if (start - point).square_length() < DRAG_CUTOFF_SQUARED =>
+            {
+                return
+            },
             ScrollState::TriggerDown(start) => (
                 ScrollState::TriggerDragging(start, point),
                 WindowEvent::Scroll(
                     ScrollLocation::Delta((point - start) * servo.scroll_scale),
                     start.to_i32(),
-                    TouchEventType::Down
+                    TouchEventType::Down,
                 ),
             ),
             ScrollState::TriggerDragging(start, prev) => (
@@ -218,7 +227,7 @@ pub unsafe extern "C" fn move_servo(servo: *mut ServoInstance, x: f32, y: f32) {
                 WindowEvent::Scroll(
                     ScrollLocation::Delta((point - prev) * servo.scroll_scale),
                     start.to_i32(),
-                    TouchEventType::Move
+                    TouchEventType::Move,
                 ),
             ),
         };
@@ -235,16 +244,22 @@ pub unsafe extern "C" fn trigger_servo(servo: *mut ServoInstance, x: f32, y: f32
         let (new_state, window_events) = match servo.scroll_state {
             ScrollState::TriggerUp if down => (
                 ScrollState::TriggerDown(point),
-                vec![
-                    WindowEvent::MouseWindowEventClass(MouseWindowEvent::MouseDown(MouseButton::Left, point)),
-                ],
+                vec![WindowEvent::MouseWindowEventClass(
+                    MouseWindowEvent::MouseDown(MouseButton::Left, point),
+                )],
             ),
             ScrollState::TriggerDown(start) if !down => (
                 ScrollState::TriggerUp,
                 vec![
-                   WindowEvent::MouseWindowEventClass(MouseWindowEvent::MouseUp(MouseButton::Left, start)),
-                   WindowEvent::MouseWindowEventClass(MouseWindowEvent::Click(MouseButton::Left, start)),
-                   WindowEvent::MouseWindowMoveEventClass(point),
+                    WindowEvent::MouseWindowEventClass(MouseWindowEvent::MouseUp(
+                        MouseButton::Left,
+                        start,
+                    )),
+                    WindowEvent::MouseWindowEventClass(MouseWindowEvent::Click(
+                        MouseButton::Left,
+                        start,
+                    )),
+                    WindowEvent::MouseWindowMoveEventClass(point),
                 ],
             ),
             ScrollState::TriggerDragging(start, prev) if !down => (
@@ -253,9 +268,12 @@ pub unsafe extern "C" fn trigger_servo(servo: *mut ServoInstance, x: f32, y: f32
                     WindowEvent::Scroll(
                         ScrollLocation::Delta((point - prev) * servo.scroll_scale),
                         start.to_i32(),
-                        TouchEventType::Up
+                        TouchEventType::Up,
                     ),
-                    WindowEvent::MouseWindowEventClass(MouseWindowEvent::MouseUp(MouseButton::Left, point)),
+                    WindowEvent::MouseWindowEventClass(MouseWindowEvent::MouseUp(
+                        MouseButton::Left,
+                        point,
+                    )),
                     WindowEvent::MouseWindowMoveEventClass(point),
                 ],
             ),
@@ -275,7 +293,10 @@ pub unsafe extern "C" fn traverse_servo(servo: *mut ServoInstance, delta: i32) {
         } else if delta < 0 {
             WindowEvent::Navigation(servo.browser_id, TraversalDirection::Back(-delta as usize))
         } else {
-            WindowEvent::Navigation(servo.browser_id, TraversalDirection::Forward(delta as usize))
+            WindowEvent::Navigation(
+                servo.browser_id,
+                TraversalDirection::Forward(delta as usize),
+            )
         };
         servo.servo.handle_events(vec![window_event]);
     }
@@ -284,11 +305,13 @@ pub unsafe extern "C" fn traverse_servo(servo: *mut ServoInstance, delta: i32) {
 #[no_mangle]
 pub unsafe extern "C" fn navigate_servo(servo: *mut ServoInstance, text: *const c_char) {
     if let Some(servo) = servo.as_mut() {
-        let text = CStr::from_ptr(text).to_str().expect("Failed to convert text to UTF-8");
+        let text = CStr::from_ptr(text)
+            .to_str()
+            .expect("Failed to convert text to UTF-8");
         let url = ServoUrl::parse(text).unwrap_or_else(|_| {
             let mut search = ServoUrl::parse("http://google.com/search")
-               .expect("Failed to parse search URL")
-               .into_url();
+                .expect("Failed to parse search URL")
+                .into_url();
             search.query_pairs_mut().append_pair("q", text);
             ServoUrl::from_url(search)
         });
@@ -314,8 +337,8 @@ pub unsafe extern "C" fn discard_servo(servo: *mut ServoInstance) {
                 }
             }
             if Instant::now() > finish {
-               warn!("Incomplete shutdown.");
-               break 'outer;
+                warn!("Incomplete shutdown.");
+                break 'outer;
             }
             thread::sleep(SHUTDOWN_POLL_INTERVAL);
             servo.servo.handle_events(vec![]);
@@ -345,9 +368,9 @@ struct WindowInstance {
 
 #[derive(Clone, Copy)]
 enum ScrollState {
-  TriggerUp,
-  TriggerDown(DevicePoint),
-  TriggerDragging(DevicePoint, DevicePoint),
+    TriggerUp,
+    TriggerDown(DevicePoint),
+    TriggerDragging(DevicePoint, DevicePoint),
 }
 
 impl WindowMethods for WindowInstance {
@@ -357,7 +380,8 @@ impl WindowMethods for WindowInstance {
 
     fn prepare_for_composite(&self) -> bool {
         MakeCurrent(self.disp, self.surf, self.surf, self.ctxt);
-        self.gl.viewport(0, 0, self.width as i32, self.height as i32);
+        self.gl
+            .viewport(0, 0, self.width as i32, self.height as i32);
         true
     }
 
@@ -374,14 +398,19 @@ impl WindowMethods for WindowInstance {
             hidpi_factor: TypedScale::new(self.hidpi),
             screen: TypedSize2D::new(self.width, self.height),
             screen_avail: TypedSize2D::new(self.width, self.height),
-            window: (TypedSize2D::new(self.width, self.height), TypedPoint2D::new(0, 0)),
+            window: (
+                TypedSize2D::new(self.width, self.height),
+                TypedPoint2D::new(0, 0),
+            ),
             framebuffer: TypedSize2D::new(self.width, self.height),
-            viewport: TypedRect::new(TypedPoint2D::new(0, 0), TypedSize2D::new(self.width, self.height)),
+            viewport: TypedRect::new(
+                TypedPoint2D::new(0, 0),
+                TypedSize2D::new(self.width, self.height),
+            ),
         }
     }
 
-    fn set_animation_state(&self, _state: AnimationState) {
-    }
+    fn set_animation_state(&self, _state: AnimationState) {}
 }
 
 struct EventLoopWakerInstance;
@@ -397,8 +426,7 @@ impl EventLoopWaker for EventLoopWakerInstance {
         Box::new(EventLoopWakerInstance)
     }
 
-    fn wake(&self) {
-    }
+    fn wake(&self) {}
 }
 
 struct ResourceReaderInstance;
@@ -413,17 +441,23 @@ impl ResourceReaderMethods for ResourceReaderInstance {
     fn read(&self, res: Resource) -> Vec<u8> {
         Vec::from(match res {
             Resource::Preferences => &include_bytes!("../../../resources/prefs.json")[..],
-            Resource::HstsPreloadList => &include_bytes!("../../../resources/hsts_preload.json")[..],
+            Resource::HstsPreloadList => {
+                &include_bytes!("../../../resources/hsts_preload.json")[..]
+            },
             Resource::SSLCertificates => &include_bytes!("../../../resources/certs")[..],
             Resource::BadCertHTML => &include_bytes!("../../../resources/badcert.html")[..],
             Resource::NetErrorHTML => &include_bytes!("../../../resources/neterror.html")[..],
             Resource::UserAgentCSS => &include_bytes!("../../../resources/user-agent.css")[..],
             Resource::ServoCSS => &include_bytes!("../../../resources/servo.css")[..],
-            Resource::PresentationalHintsCSS => &include_bytes!("../../../resources/presentational-hints.css")[..],
+            Resource::PresentationalHintsCSS => {
+                &include_bytes!("../../../resources/presentational-hints.css")[..]
+            },
             Resource::QuirksModeCSS => &include_bytes!("../../../resources/quirks-mode.css")[..],
             Resource::RippyPNG => &include_bytes!("../../../resources/rippy.png")[..],
             Resource::DomainList => &include_bytes!("../../../resources/public_domains.txt")[..],
-            Resource::BluetoothBlocklist => &include_bytes!("../../../resources/gatt_blocklist.txt")[..],
+            Resource::BluetoothBlocklist => {
+                &include_bytes!("../../../resources/gatt_blocklist.txt")[..]
+            },
         })
     }
 

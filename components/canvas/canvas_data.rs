@@ -3,14 +3,16 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use azure::azure::AzFloat;
+use azure::azure_hl::SurfacePattern;
 use azure::azure_hl::{AntialiasMode, CapStyle, CompositionOp, JoinStyle};
-use azure::azure_hl::{BackendType, DrawOptions, DrawTarget, Pattern, StrokeOptions, SurfaceFormat};
+use azure::azure_hl::{
+    BackendType, DrawOptions, DrawTarget, Pattern, StrokeOptions, SurfaceFormat,
+};
 use azure::azure_hl::{Color, ColorPattern, DrawSurfaceOptions, Filter, PathBuilder};
 use azure::azure_hl::{ExtendMode, GradientStop, LinearGradientPattern, RadialGradientPattern};
-use azure::azure_hl::SurfacePattern;
 use canvas_traits::canvas::*;
 use cssparser::RGBA;
-use euclid::{Transform2D, Point2D, Vector2D, Rect, Size2D};
+use euclid::{Point2D, Rect, Size2D, Transform2D, Vector2D};
 use ipc_channel::ipc::IpcSender;
 use num_traits::ToPrimitive;
 use pixels;
@@ -39,7 +41,7 @@ impl<'a> CanvasData<'a> {
         size: Size2D<u32>,
         webrender_api_sender: webrender_api::RenderApiSender,
         antialias: AntialiasMode,
-        canvas_id: CanvasId
+        canvas_id: CanvasId,
     ) -> CanvasData<'a> {
         let draw_target = CanvasData::create(size);
         let path_builder = draw_target.create_path_builder();
@@ -63,7 +65,7 @@ impl<'a> CanvasData<'a> {
         image_size: Size2D<f64>,
         dest_rect: Rect<f64>,
         source_rect: Rect<f64>,
-        smoothing_enabled: bool
+        smoothing_enabled: bool,
     ) {
         // We round up the floating pixel values to draw the pixels
         let source_rect = source_rect.ceil();
@@ -75,14 +77,22 @@ impl<'a> CanvasData<'a> {
         };
 
         let writer = |draw_target: &DrawTarget| {
-            write_image(&draw_target, image_data, source_rect.size, dest_rect,
-                        smoothing_enabled, self.state.draw_options.composition,
-                        self.state.draw_options.alpha);
+            write_image(
+                &draw_target,
+                image_data,
+                source_rect.size,
+                dest_rect,
+                smoothing_enabled,
+                self.state.draw_options.composition,
+                self.state.draw_options.alpha,
+            );
         };
 
         if self.need_to_draw_shadow() {
-            let rect = Rect::new(Point2D::new(dest_rect.origin.x as f32, dest_rect.origin.y as f32),
-                                 Size2D::new(dest_rect.size.width as f32, dest_rect.size.height as f32));
+            let rect = Rect::new(
+                Point2D::new(dest_rect.origin.x as f32, dest_rect.origin.y as f32),
+                Size2D::new(dest_rect.size.width as f32, dest_rect.size.height as f32),
+            );
 
             self.draw_with_shadow(&rect, writer);
         } else {
@@ -103,7 +113,10 @@ impl<'a> CanvasData<'a> {
     }
 
     pub fn fill_text(&self, text: String, x: f64, y: f64, max_width: Option<f64>) {
-        error!("Unimplemented canvas2d.fillText. Values received: {}, {}, {}, {:?}.", text, x, y, max_width);
+        error!(
+            "Unimplemented canvas2d.fillText. Values received: {}, {}, {}, {:?}.",
+            text, x, y, max_width
+        );
     }
 
     pub fn fill_rect(&self, rect: &Rect<f32>) {
@@ -111,7 +124,8 @@ impl<'a> CanvasData<'a> {
             return; // Paint nothing if gradient size is zero.
         }
 
-        let draw_rect = Rect::new(rect.origin,
+        let draw_rect = Rect::new(
+            rect.origin,
             match self.state.fill_style {
                 Pattern::Surface(ref surface) => {
                     let surface_size = surface.size();
@@ -119,21 +133,29 @@ impl<'a> CanvasData<'a> {
                         (true, true) => rect.size,
                         (true, false) => Size2D::new(rect.size.width, surface_size.height as f32),
                         (false, true) => Size2D::new(surface_size.width as f32, rect.size.height),
-                        (false, false) => Size2D::new(surface_size.width as f32, surface_size.height as f32),
+                        (false, false) => {
+                            Size2D::new(surface_size.width as f32, surface_size.height as f32)
+                        },
                     }
                 },
                 _ => rect.size,
-            }
+            },
         );
 
         if self.need_to_draw_shadow() {
             self.draw_with_shadow(&draw_rect, |new_draw_target: &DrawTarget| {
-                new_draw_target.fill_rect(&draw_rect, self.state.fill_style.to_pattern_ref(),
-                                          Some(&self.state.draw_options));
+                new_draw_target.fill_rect(
+                    &draw_rect,
+                    self.state.fill_style.to_pattern_ref(),
+                    Some(&self.state.draw_options),
+                );
             });
         } else {
-            self.drawtarget.fill_rect(&draw_rect, self.state.fill_style.to_pattern_ref(),
-                                      Some(&self.state.draw_options));
+            self.drawtarget.fill_rect(
+                &draw_rect,
+                self.state.fill_style.to_pattern_ref(),
+                Some(&self.state.draw_options),
+            );
         }
     }
 
@@ -148,27 +170,40 @@ impl<'a> CanvasData<'a> {
 
         if self.need_to_draw_shadow() {
             self.draw_with_shadow(&rect, |new_draw_target: &DrawTarget| {
-                new_draw_target.stroke_rect(rect, self.state.stroke_style.to_pattern_ref(),
-                                            &self.state.stroke_opts, &self.state.draw_options);
+                new_draw_target.stroke_rect(
+                    rect,
+                    self.state.stroke_style.to_pattern_ref(),
+                    &self.state.stroke_opts,
+                    &self.state.draw_options,
+                );
             });
         } else if rect.size.width == 0. || rect.size.height == 0. {
             let cap = match self.state.stroke_opts.line_join {
                 JoinStyle::Round => CapStyle::Round,
-                _ => CapStyle::Butt
+                _ => CapStyle::Butt,
             };
 
-            let stroke_opts =
-                StrokeOptions::new(self.state.stroke_opts.line_width,
-                                   self.state.stroke_opts.line_join,
-                                   cap,
-                                   self.state.stroke_opts.miter_limit,
-                                   self.state.stroke_opts.mDashPattern);
-            self.drawtarget.stroke_line(rect.origin, rect.bottom_right(),
-                                        self.state.stroke_style.to_pattern_ref(),
-                                        &stroke_opts, &self.state.draw_options);
+            let stroke_opts = StrokeOptions::new(
+                self.state.stroke_opts.line_width,
+                self.state.stroke_opts.line_join,
+                cap,
+                self.state.stroke_opts.miter_limit,
+                self.state.stroke_opts.mDashPattern,
+            );
+            self.drawtarget.stroke_line(
+                rect.origin,
+                rect.bottom_right(),
+                self.state.stroke_style.to_pattern_ref(),
+                &stroke_opts,
+                &self.state.draw_options,
+            );
         } else {
-            self.drawtarget.stroke_rect(rect, self.state.stroke_style.to_pattern_ref(),
-                                        &self.state.stroke_opts, &self.state.draw_options);
+            self.drawtarget.stroke_rect(
+                rect,
+                self.state.stroke_style.to_pattern_ref(),
+                &self.state.stroke_opts,
+                &self.state.draw_options,
+            );
         }
     }
 
@@ -185,9 +220,11 @@ impl<'a> CanvasData<'a> {
             return; // Paint nothing if gradient size is zero.
         }
 
-        self.drawtarget.fill(&self.path_builder.finish(),
-                             self.state.fill_style.to_pattern_ref(),
-                             &self.state.draw_options);
+        self.drawtarget.fill(
+            &self.path_builder.finish(),
+            self.state.fill_style.to_pattern_ref(),
+            &self.state.draw_options,
+        );
     }
 
     pub fn stroke(&self) {
@@ -195,10 +232,12 @@ impl<'a> CanvasData<'a> {
             return; // Paint nothing if gradient size is zero.
         }
 
-        self.drawtarget.stroke(&self.path_builder.finish(),
-                               self.state.stroke_style.to_pattern_ref(),
-                               &self.state.stroke_opts,
-                               &self.state.draw_options);
+        self.drawtarget.stroke(
+            &self.path_builder.finish(),
+            self.state.stroke_style.to_pattern_ref(),
+            &self.state.stroke_opts,
+            &self.state.draw_options,
+        );
     }
 
     pub fn clip(&self) {
@@ -210,7 +249,7 @@ impl<'a> CanvasData<'a> {
         x: f64,
         y: f64,
         _fill_rule: FillRule,
-        chan: IpcSender<bool>
+        chan: IpcSender<bool>,
     ) {
         let path = self.path_builder.finish();
         let result = path.contains_point(x, y, &self.state.transform);
@@ -227,19 +266,22 @@ impl<'a> CanvasData<'a> {
     }
 
     pub fn rect(&self, rect: &Rect<f32>) {
-        self.path_builder.move_to(Point2D::new(rect.origin.x, rect.origin.y));
-        self.path_builder.line_to(Point2D::new(rect.origin.x + rect.size.width, rect.origin.y));
-        self.path_builder.line_to(Point2D::new(rect.origin.x + rect.size.width,
-                                               rect.origin.y + rect.size.height));
-        self.path_builder.line_to(Point2D::new(rect.origin.x, rect.origin.y + rect.size.height));
+        self.path_builder
+            .move_to(Point2D::new(rect.origin.x, rect.origin.y));
+        self.path_builder
+            .line_to(Point2D::new(rect.origin.x + rect.size.width, rect.origin.y));
+        self.path_builder.line_to(Point2D::new(
+            rect.origin.x + rect.size.width,
+            rect.origin.y + rect.size.height,
+        ));
+        self.path_builder.line_to(Point2D::new(
+            rect.origin.x,
+            rect.origin.y + rect.size.height,
+        ));
         self.path_builder.close();
     }
 
-    pub fn quadratic_curve_to(
-        &self,
-        cp: &Point2D<AzFloat>,
-        endpoint: &Point2D<AzFloat>
-    ) {
+    pub fn quadratic_curve_to(&self, cp: &Point2D<AzFloat>, endpoint: &Point2D<AzFloat>) {
         self.path_builder.quadratic_curve_to(cp, endpoint)
     }
 
@@ -247,7 +289,7 @@ impl<'a> CanvasData<'a> {
         &self,
         cp1: &Point2D<AzFloat>,
         cp2: &Point2D<AzFloat>,
-        endpoint: &Point2D<AzFloat>
+        endpoint: &Point2D<AzFloat>,
     ) {
         self.path_builder.bezier_curve_to(cp1, cp2, endpoint)
     }
@@ -258,17 +300,13 @@ impl<'a> CanvasData<'a> {
         radius: AzFloat,
         start_angle: AzFloat,
         end_angle: AzFloat,
-        ccw: bool
+        ccw: bool,
     ) {
-        self.path_builder.arc(*center, radius, start_angle, end_angle, ccw)
+        self.path_builder
+            .arc(*center, radius, start_angle, end_angle, ccw)
     }
 
-    pub fn arc_to(
-        &self,
-        cp1: &Point2D<AzFloat>,
-        cp2: &Point2D<AzFloat>,
-        radius: AzFloat
-    ) {
+    pub fn arc_to(&self, cp1: &Point2D<AzFloat>, cp2: &Point2D<AzFloat>, radius: AzFloat) {
         let cp0 = self.path_builder.get_current_point();
         let cp1 = *cp1;
         let cp2 = *cp2;
@@ -314,9 +352,17 @@ impl<'a> CanvasData<'a> {
         let angle_end = (tp2.y - cy).atan2(tp2.x - cx);
 
         self.line_to(&tp1);
-        if [cx, cy, angle_start, angle_end].iter().all(|x| x.is_finite()) {
-            self.arc(&Point2D::new(cx, cy), radius,
-                     angle_start, angle_end, anticlockwise);
+        if [cx, cy, angle_start, angle_end]
+            .iter()
+            .all(|x| x.is_finite())
+        {
+            self.arc(
+                &Point2D::new(cx, cy),
+                radius,
+                angle_start,
+                angle_end,
+                anticlockwise,
+            );
         }
     }
 
@@ -328,9 +374,17 @@ impl<'a> CanvasData<'a> {
         rotation_angle: AzFloat,
         start_angle: AzFloat,
         end_angle: AzFloat,
-        ccw: bool
+        ccw: bool,
     ) {
-        self.path_builder.ellipse(*center, radius_x, radius_y, rotation_angle, start_angle, end_angle, ccw);
+        self.path_builder.ellipse(
+            *center,
+            radius_x,
+            radius_y,
+            rotation_angle,
+            start_angle,
+            end_angle,
+            ccw,
+        );
     }
 
     pub fn set_fill_style(&mut self, style: FillOrStrokeStyle) {
@@ -371,7 +425,9 @@ impl<'a> CanvasData<'a> {
     }
 
     pub fn set_global_composition(&mut self, op: CompositionOrBlending) {
-        self.state.draw_options.set_composition_op(op.to_azure_style());
+        self.state
+            .draw_options
+            .set_composition_op(op.to_azure_style());
     }
 
     pub fn create(size: Size2D<u32>) -> DrawTarget {
@@ -398,7 +454,13 @@ impl<'a> CanvasData<'a> {
 
     #[allow(unsafe_code)]
     pub fn send_pixels(&mut self, chan: IpcSender<Option<ByteBuf>>) {
-        let data = unsafe { self.drawtarget.snapshot().get_data_surface().data().to_vec() };
+        let data = unsafe {
+            self.drawtarget
+                .snapshot()
+                .get_data_surface()
+                .data()
+                .to_vec()
+        };
         chan.send(Some(data.into())).unwrap();
     }
 
@@ -414,9 +476,9 @@ impl<'a> CanvasData<'a> {
             is_opaque: false,
             allow_mipmaps: false,
         };
-        let data = webrender_api::ImageData::Raw(Arc::new(
-            unsafe { self.drawtarget.snapshot().get_data_surface().data().into() },
-        ));
+        let data = webrender_api::ImageData::Raw(Arc::new(unsafe {
+            self.drawtarget.snapshot().get_data_surface().data().into()
+        }));
 
         let mut txn = webrender_api::Transaction::new();
 
@@ -424,15 +486,17 @@ impl<'a> CanvasData<'a> {
             Some(image_key) => {
                 debug!("Updating image {:?}.", image_key);
                 txn.update_image(image_key, descriptor, data, None);
-            }
+            },
             None => {
                 self.image_key = Some(self.webrender_api.generate_image_key());
                 debug!("New image {:?}.", self.image_key);
                 txn.add_image(self.image_key.unwrap(), descriptor, data, None);
-            }
+            },
         }
 
-        if let Some(image_key) = mem::replace(&mut self.very_old_image_key, self.old_image_key.take()) {
+        if let Some(image_key) =
+            mem::replace(&mut self.very_old_image_key, self.old_image_key.take())
+        {
             txn.delete_image(image_key);
         }
 
@@ -449,12 +513,15 @@ impl<'a> CanvasData<'a> {
         assert_eq!(imagedata.len() % 4, 0);
         assert_eq!(rect.size.area() as usize, imagedata.len() / 4);
         pixels::byte_swap_and_premultiply_inplace(&mut imagedata);
-        let source_surface = self.drawtarget.create_source_surface_from_data(
-            &imagedata,
-            rect.size.to_i32(),
-            rect.size.width as i32 * 4,
-            SurfaceFormat::B8G8R8A8,
-        ).unwrap();
+        let source_surface = self
+            .drawtarget
+            .create_source_surface_from_data(
+                &imagedata,
+                rect.size.to_i32(),
+                rect.size.width as i32 * 4,
+                SurfaceFormat::B8G8R8A8,
+            )
+            .unwrap();
         self.drawtarget.copy_surface(
             source_surface,
             Rect::from_size(rect.size.to_i32()),
@@ -481,15 +548,19 @@ impl<'a> CanvasData<'a> {
     // https://html.spec.whatwg.org/multipage/#when-shadows-are-drawn
     fn need_to_draw_shadow(&self) -> bool {
         self.state.shadow_color.a != 0.0f32 &&
-        (self.state.shadow_offset_x != 0.0f64 ||
-         self.state.shadow_offset_y != 0.0f64 ||
-         self.state.shadow_blur != 0.0f64)
+            (self.state.shadow_offset_x != 0.0f64 ||
+                self.state.shadow_offset_y != 0.0f64 ||
+                self.state.shadow_blur != 0.0f64)
     }
 
     fn create_draw_target_for_shadow(&self, source_rect: &Rect<f32>) -> DrawTarget {
-        let draw_target = self.drawtarget.create_similar_draw_target(&Size2D::new(source_rect.size.width as i32,
-                                                                                  source_rect.size.height as i32),
-                                                                     self.drawtarget.get_format());
+        let draw_target = self.drawtarget.create_similar_draw_target(
+            &Size2D::new(
+                source_rect.size.width as i32,
+                source_rect.size.height as i32,
+            ),
+            self.drawtarget.get_format(),
+        );
         let matrix = Transform2D::identity()
             .pre_translate(-source_rect.origin.to_vector().cast())
             .pre_mul(&self.state.transform);
@@ -498,19 +569,26 @@ impl<'a> CanvasData<'a> {
     }
 
     fn draw_with_shadow<F>(&self, rect: &Rect<f32>, draw_shadow_source: F)
-        where F: FnOnce(&DrawTarget)
+    where
+        F: FnOnce(&DrawTarget),
     {
         let shadow_src_rect = self.state.transform.transform_rect(rect);
         let new_draw_target = self.create_draw_target_for_shadow(&shadow_src_rect);
         draw_shadow_source(&new_draw_target);
-        self.drawtarget.draw_surface_with_shadow(new_draw_target.snapshot(),
-                                                 &Point2D::new(shadow_src_rect.origin.x as AzFloat,
-                                                               shadow_src_rect.origin.y as AzFloat),
-                                                 &self.state.shadow_color,
-                                                 &Vector2D::new(self.state.shadow_offset_x as AzFloat,
-                                                                self.state.shadow_offset_y as AzFloat),
-                                                 (self.state.shadow_blur / 2.0f64) as AzFloat,
-                                                 self.state.draw_options.composition);
+        self.drawtarget.draw_surface_with_shadow(
+            new_draw_target.snapshot(),
+            &Point2D::new(
+                shadow_src_rect.origin.x as AzFloat,
+                shadow_src_rect.origin.y as AzFloat,
+            ),
+            &self.state.shadow_color,
+            &Vector2D::new(
+                self.state.shadow_offset_x as AzFloat,
+                self.state.shadow_offset_y as AzFloat,
+            ),
+            (self.state.shadow_blur / 2.0f64) as AzFloat,
+            self.state.draw_options.composition,
+        );
     }
 
     /// It reads image data from the canvas
@@ -519,11 +597,19 @@ impl<'a> CanvasData<'a> {
     #[allow(unsafe_code)]
     pub fn read_pixels(&self, read_rect: Rect<u32>, canvas_size: Size2D<u32>) -> Vec<u8> {
         let canvas_rect = Rect::from_size(canvas_size);
-        if canvas_rect.intersection(&read_rect).map_or(true, |rect| rect.is_empty()) {
+        if canvas_rect
+            .intersection(&read_rect)
+            .map_or(true, |rect| rect.is_empty())
+        {
             return vec![];
         }
         let data_surface = self.drawtarget.snapshot().get_data_surface();
-        pixels::get_rect(unsafe { data_surface.data() }, canvas_size.to_u32(), read_rect.to_u32()).into_owned()
+        pixels::get_rect(
+            unsafe { data_surface.data() },
+            canvas_size.to_u32(),
+            read_rect.to_u32(),
+        )
+        .into_owned()
     }
 }
 
@@ -562,7 +648,13 @@ impl<'a> CanvasPaintState<'a> {
             draw_options: DrawOptions::new(1.0, CompositionOp::Over, antialias),
             fill_style: Pattern::Color(ColorPattern::new(Color::black())),
             stroke_style: Pattern::Color(ColorPattern::new(Color::black())),
-            stroke_opts: StrokeOptions::new(1.0, JoinStyle::MiterOrBevel, CapStyle::Butt, 10.0, &[]),
+            stroke_opts: StrokeOptions::new(
+                1.0,
+                JoinStyle::MiterOrBevel,
+                CapStyle::Butt,
+                10.0,
+                &[],
+            ),
             transform: Transform2D::identity(),
             shadow_offset_x: 0.0,
             shadow_offset_y: 0.0,
@@ -594,10 +686,10 @@ fn write_image(
     dest_rect: Rect<f64>,
     smoothing_enabled: bool,
     composition_op: CompositionOp,
-    global_alpha: f32
+    global_alpha: f32,
 ) {
     if image_data.is_empty() {
-        return
+        return;
     }
     let image_rect = Rect::new(Point2D::zero(), image_size);
 
@@ -612,12 +704,14 @@ fn write_image(
     };
     let image_size = image_size.to_i32();
 
-    let source_surface = draw_target.create_source_surface_from_data(
-        &image_data,
-        image_size,
-        image_size.width * 4,
-        SurfaceFormat::B8G8R8A8,
-    ).unwrap();
+    let source_surface = draw_target
+        .create_source_surface_from_data(
+            &image_data,
+            image_size,
+            image_size.width * 4,
+            SurfaceFormat::B8G8R8A8,
+        )
+        .unwrap();
     let draw_surface_options = DrawSurfaceOptions::new(filter, true);
     let draw_options = DrawOptions::new(global_alpha, composition_op, AntialiasMode::None);
     draw_target.draw_surface(
@@ -635,8 +729,7 @@ pub trait PointToi32 {
 
 impl PointToi32 for Point2D<f64> {
     fn to_i32(&self) -> Point2D<i32> {
-        Point2D::new(self.x.to_i32().unwrap(),
-                     self.y.to_i32().unwrap())
+        Point2D::new(self.x.to_i32().unwrap(), self.y.to_i32().unwrap())
     }
 }
 
@@ -646,8 +739,7 @@ pub trait SizeToi32 {
 
 impl SizeToi32 for Size2D<f64> {
     fn to_i32(&self) -> Size2D<i32> {
-        Size2D::new(self.width.to_i32().unwrap(),
-                    self.height.to_i32().unwrap())
+        Size2D::new(self.width.to_i32().unwrap(), self.height.to_i32().unwrap())
     }
 }
 
@@ -658,19 +750,24 @@ pub trait RectToi32 {
 
 impl RectToi32 for Rect<f64> {
     fn to_i32(&self) -> Rect<i32> {
-        Rect::new(Point2D::new(self.origin.x.to_i32().unwrap(),
-                               self.origin.y.to_i32().unwrap()),
-                  Size2D::new(self.size.width.to_i32().unwrap(),
-                              self.size.height.to_i32().unwrap()))
+        Rect::new(
+            Point2D::new(
+                self.origin.x.to_i32().unwrap(),
+                self.origin.y.to_i32().unwrap(),
+            ),
+            Size2D::new(
+                self.size.width.to_i32().unwrap(),
+                self.size.height.to_i32().unwrap(),
+            ),
+        )
     }
 
     fn ceil(&self) -> Rect<f64> {
-        Rect::new(Point2D::new(self.origin.x.ceil(),
-                               self.origin.y.ceil()),
-                  Size2D::new(self.size.width.ceil(),
-                              self.size.height.ceil()))
+        Rect::new(
+            Point2D::new(self.origin.x.ceil(), self.origin.y.ceil()),
+            Size2D::new(self.size.width.ceil(), self.size.height.ceil()),
+        )
     }
-
 }
 
 pub trait ToAzureStyle {
@@ -682,11 +779,12 @@ impl ToAzureStyle for Rect<f64> {
     type Target = Rect<AzFloat>;
 
     fn to_azure_style(self) -> Rect<AzFloat> {
-        Rect::new(Point2D::new(self.origin.x as AzFloat, self.origin.y as AzFloat),
-                  Size2D::new(self.size.width as AzFloat, self.size.height as AzFloat))
+        Rect::new(
+            Point2D::new(self.origin.x as AzFloat, self.origin.y as AzFloat),
+            Size2D::new(self.size.width as AzFloat, self.size.height as AzFloat),
+        )
     }
 }
-
 
 impl ToAzureStyle for LineCapStyle {
     type Target = CapStyle;
@@ -717,17 +815,17 @@ impl ToAzureStyle for CompositionStyle {
 
     fn to_azure_style(self) -> CompositionOp {
         match self {
-            CompositionStyle::SrcIn    => CompositionOp::In,
-            CompositionStyle::SrcOut   => CompositionOp::Out,
-            CompositionStyle::SrcOver  => CompositionOp::Over,
-            CompositionStyle::SrcAtop  => CompositionOp::Atop,
-            CompositionStyle::DestIn   => CompositionOp::DestIn,
-            CompositionStyle::DestOut  => CompositionOp::DestOut,
+            CompositionStyle::SrcIn => CompositionOp::In,
+            CompositionStyle::SrcOut => CompositionOp::Out,
+            CompositionStyle::SrcOver => CompositionOp::Over,
+            CompositionStyle::SrcAtop => CompositionOp::Atop,
+            CompositionStyle::DestIn => CompositionOp::DestIn,
+            CompositionStyle::DestOut => CompositionOp::DestOut,
             CompositionStyle::DestOver => CompositionOp::DestOver,
             CompositionStyle::DestAtop => CompositionOp::DestAtop,
-            CompositionStyle::Copy     => CompositionOp::Source,
-            CompositionStyle::Lighter  => CompositionOp::Add,
-            CompositionStyle::Xor      => CompositionOp::Xor,
+            CompositionStyle::Copy => CompositionOp::Source,
+            CompositionStyle::Lighter => CompositionOp::Add,
+            CompositionStyle::Xor => CompositionOp::Xor,
         }
     }
 }
@@ -737,20 +835,20 @@ impl ToAzureStyle for BlendingStyle {
 
     fn to_azure_style(self) -> CompositionOp {
         match self {
-            BlendingStyle::Multiply   => CompositionOp::Multiply,
-            BlendingStyle::Screen     => CompositionOp::Screen,
-            BlendingStyle::Overlay    => CompositionOp::Overlay,
-            BlendingStyle::Darken     => CompositionOp::Darken,
-            BlendingStyle::Lighten    => CompositionOp::Lighten,
+            BlendingStyle::Multiply => CompositionOp::Multiply,
+            BlendingStyle::Screen => CompositionOp::Screen,
+            BlendingStyle::Overlay => CompositionOp::Overlay,
+            BlendingStyle::Darken => CompositionOp::Darken,
+            BlendingStyle::Lighten => CompositionOp::Lighten,
             BlendingStyle::ColorDodge => CompositionOp::ColorDodge,
-            BlendingStyle::ColorBurn  => CompositionOp::ColorBurn,
-            BlendingStyle::HardLight  => CompositionOp::HardLight,
-            BlendingStyle::SoftLight  => CompositionOp::SoftLight,
+            BlendingStyle::ColorBurn => CompositionOp::ColorBurn,
+            BlendingStyle::HardLight => CompositionOp::HardLight,
+            BlendingStyle::SoftLight => CompositionOp::SoftLight,
             BlendingStyle::Difference => CompositionOp::Difference,
-            BlendingStyle::Exclusion  => CompositionOp::Exclusion,
-            BlendingStyle::Hue        => CompositionOp::Hue,
+            BlendingStyle::Exclusion => CompositionOp::Exclusion,
+            BlendingStyle::Hue => CompositionOp::Hue,
             BlendingStyle::Saturation => CompositionOp::Saturation,
-            BlendingStyle::Color      => CompositionOp::Color,
+            BlendingStyle::Color => CompositionOp::Color,
             BlendingStyle::Luminosity => CompositionOp::Luminosity,
         }
     }
@@ -778,32 +876,49 @@ impl ToAzurePattern for FillOrStrokeStyle {
                 Pattern::Color(ColorPattern::new(color.to_azure_style()))
             },
             FillOrStrokeStyle::LinearGradient(ref linear_gradient_style) => {
-                let gradient_stops: Vec<GradientStop> = linear_gradient_style.stops.iter().map(|s| {
-                    GradientStop {
+                let gradient_stops: Vec<GradientStop> = linear_gradient_style
+                    .stops
+                    .iter()
+                    .map(|s| GradientStop {
                         offset: s.offset as AzFloat,
-                        color: s.color.to_azure_style()
-                    }
-                }).collect();
+                        color: s.color.to_azure_style(),
+                    })
+                    .collect();
 
                 Pattern::LinearGradient(LinearGradientPattern::new(
-                    &Point2D::new(linear_gradient_style.x0 as AzFloat, linear_gradient_style.y0 as AzFloat),
-                    &Point2D::new(linear_gradient_style.x1 as AzFloat, linear_gradient_style.y1 as AzFloat),
+                    &Point2D::new(
+                        linear_gradient_style.x0 as AzFloat,
+                        linear_gradient_style.y0 as AzFloat,
+                    ),
+                    &Point2D::new(
+                        linear_gradient_style.x1 as AzFloat,
+                        linear_gradient_style.y1 as AzFloat,
+                    ),
                     drawtarget.create_gradient_stops(&gradient_stops, ExtendMode::Clamp),
                     &Transform2D::identity(),
                 ))
             },
             FillOrStrokeStyle::RadialGradient(ref radial_gradient_style) => {
-                let gradient_stops: Vec<GradientStop> = radial_gradient_style.stops.iter().map(|s| {
-                    GradientStop {
+                let gradient_stops: Vec<GradientStop> = radial_gradient_style
+                    .stops
+                    .iter()
+                    .map(|s| GradientStop {
                         offset: s.offset as AzFloat,
-                        color: s.color.to_azure_style()
-                    }
-                }).collect();
+                        color: s.color.to_azure_style(),
+                    })
+                    .collect();
 
                 Pattern::RadialGradient(RadialGradientPattern::new(
-                    &Point2D::new(radial_gradient_style.x0 as AzFloat, radial_gradient_style.y0 as AzFloat),
-                    &Point2D::new(radial_gradient_style.x1 as AzFloat, radial_gradient_style.y1 as AzFloat),
-                    radial_gradient_style.r0 as AzFloat, radial_gradient_style.r1 as AzFloat,
+                    &Point2D::new(
+                        radial_gradient_style.x0 as AzFloat,
+                        radial_gradient_style.y0 as AzFloat,
+                    ),
+                    &Point2D::new(
+                        radial_gradient_style.x1 as AzFloat,
+                        radial_gradient_style.y1 as AzFloat,
+                    ),
+                    radial_gradient_style.r0 as AzFloat,
+                    radial_gradient_style.r1 as AzFloat,
                     drawtarget.create_gradient_stops(&gradient_stops, ExtendMode::Clamp),
                     &Transform2D::identity(),
                 ))
@@ -822,7 +937,7 @@ impl ToAzurePattern for FillOrStrokeStyle {
                     surface_style.repeat_y,
                     &Transform2D::identity(),
                 ))
-            }
+            },
         })
     }
 }
@@ -831,9 +946,11 @@ impl ToAzureStyle for RGBA {
     type Target = Color;
 
     fn to_azure_style(self) -> Color {
-        Color::rgba(self.red_f32() as AzFloat,
-                    self.green_f32() as AzFloat,
-                    self.blue_f32() as AzFloat,
-                    self.alpha_f32() as AzFloat)
+        Color::rgba(
+            self.red_f32() as AzFloat,
+            self.green_f32() as AzFloat,
+            self.blue_f32() as AzFloat,
+            self.alpha_f32() as AzFloat,
+        )
     }
 }

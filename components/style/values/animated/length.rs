@@ -5,10 +5,12 @@
 //! Animation implementation for various length-related types.
 
 use super::{Animate, Procedure, ToAnimatedValue, ToAnimatedZero};
+use values::computed::length::{
+    CalcLengthOrPercentage, Length, LengthOrPercentageOrAuto, LengthOrPercentageOrNone,
+};
 use values::computed::MaxLength as ComputedMaxLength;
 use values::computed::MozLength as ComputedMozLength;
 use values::computed::Percentage;
-use values::computed::length::{Length, CalcLengthOrPercentage, LengthOrPercentageOrNone, LengthOrPercentageOrAuto};
 
 /// <https://drafts.csswg.org/css-transitions/#animtype-lpcalc>
 impl Animate for CalcLengthOrPercentage {
@@ -23,9 +25,15 @@ impl Animate for CalcLengthOrPercentage {
             Ok(Some(this.animate(&other, procedure)?))
         };
 
-        let length = self.unclamped_length().animate(&other.unclamped_length(), procedure)?;
+        let length = self
+            .unclamped_length()
+            .animate(&other.unclamped_length(), procedure)?;
         let percentage = animate_percentage_half(self.percentage, other.percentage)?;
-        Ok(CalcLengthOrPercentage::with_clamping_mode(length, percentage, self.clamping_mode))
+        Ok(CalcLengthOrPercentage::with_clamping_mode(
+            length,
+            percentage,
+            self.clamping_mode,
+        ))
     }
 }
 

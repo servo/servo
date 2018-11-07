@@ -14,7 +14,7 @@ use crate::flow::{Flow, GetBaseFlow};
 use crate::flow_ref::FlowRef;
 use crate::traversal::{AssignBSizes, AssignISizes, BubbleISizes};
 use crate::traversal::{PostorderFlowTraversal, PreorderFlowTraversal};
-use profile_traits::time::{self, TimerMetadata, profile};
+use profile_traits::time::{self, profile, TimerMetadata};
 use rayon;
 use servo_config::opts;
 use smallvec::SmallVec;

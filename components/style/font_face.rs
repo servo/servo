@@ -6,10 +6,10 @@
 //!
 //! [ff]: https://drafts.csswg.org/css-fonts/#at-font-face-rule
 
-use cssparser::{AtRuleParser, DeclarationListParser, DeclarationParser, Parser};
-use cssparser::{CowRcStr, SourceLocation};
 #[cfg(feature = "gecko")]
 use cssparser::UnicodeRange;
+use cssparser::{AtRuleParser, DeclarationListParser, DeclarationParser, Parser};
+use cssparser::{CowRcStr, SourceLocation};
 use error_reporting::ContextualParseError;
 use parser::{Parse, ParserContext};
 #[cfg(feature = "gecko")]
@@ -18,17 +18,17 @@ use selectors::parser::SelectorParseErrorKind;
 use shared_lock::{SharedRwLockReadGuard, ToCssWithGuard};
 use std::fmt::{self, Write};
 use str::CssStringWriter;
+use style_traits::values::SequenceWriter;
 use style_traits::{Comma, CssWriter, OneOrMoreSeparated, ParseError};
 use style_traits::{StyleParseErrorKind, ToCss};
-use style_traits::values::SequenceWriter;
 use values::computed::font::FamilyName;
 use values::generics::font::FontStyle as GenericFontStyle;
-use values::specified::Angle;
+use values::specified::font::SpecifiedFontStyle;
 use values::specified::font::{AbsoluteFontWeight, FontStretch};
 #[cfg(feature = "gecko")]
 use values::specified::font::{SpecifiedFontFeatureSettings, SpecifiedFontVariationSettings};
-use values::specified::font::SpecifiedFontStyle;
 use values::specified::url::SpecifiedUrl;
+use values::specified::Angle;
 
 /// A source for a font-face rule.
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
@@ -55,7 +55,10 @@ impl OneOrMoreSeparated for Source {
 pub enum FontFaceSourceListComponent {
     Url(*const ::gecko_bindings::structs::mozilla::css::URLValue),
     Local(*mut ::gecko_bindings::structs::nsAtom),
-    FormatHint { length: usize, utf8_bytes: *const u8 },
+    FormatHint {
+        length: usize,
+        utf8_bytes: *const u8,
+    },
 }
 
 /// A `UrlSource` represents a font-face source that has been specified with a
@@ -133,7 +136,7 @@ macro_rules! impl_range {
                 Ok(())
             }
         }
-    }
+    };
 }
 
 /// The font-weight descriptor:
@@ -192,10 +195,7 @@ impl FontStretchRange {
             }
         }
 
-        let (min, max) = sort_range(
-            compute_stretch(&self.0),
-            compute_stretch(&self.1),
-        );
+        let (min, max) = sort_range(compute_stretch(&self.0), compute_stretch(&self.1));
         ComputedFontStretchRange(min, max)
     }
 }
@@ -277,7 +277,7 @@ impl FontStyle {
                     SpecifiedFontStyle::compute_angle_degrees(second),
                 );
                 ComputedFontStyleDescriptor::Oblique(min, max)
-            }
+            },
         }
     }
 }
@@ -340,7 +340,8 @@ impl<'a> FontFace<'a> {
                     } else {
                         true
                     }
-                }).cloned()
+                })
+                .cloned()
                 .collect(),
         )
     }

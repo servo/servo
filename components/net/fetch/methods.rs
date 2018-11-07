@@ -6,7 +6,7 @@ use crate::blob_loader::load_blob_sync;
 use crate::data_loader::decode;
 use crate::fetch::cors_cache::CorsCache;
 use crate::filemanager_thread::FileManager;
-use crate::http_loader::{HttpState, determine_request_referrer, http_fetch};
+use crate::http_loader::{determine_request_referrer, http_fetch, HttpState};
 use crate::http_loader::{set_default_accept, set_default_accept_language};
 use crate::subresource_integrity::is_response_integrity_valid;
 use devtools_traits::DevtoolsControlMsg;
@@ -18,20 +18,20 @@ use hyper::StatusCode;
 use ipc_channel::ipc::IpcReceiver;
 use mime::{self, Mime};
 use mime_guess::guess_mime_type;
-use net_traits::{FetchTaskTarget, NetworkError, ReferrerPolicy};
 use net_traits::request::{CredentialsMode, Destination, Referrer, Request, RequestMode};
-use net_traits::request::{ResponseTainting, Origin, Window};
+use net_traits::request::{Origin, ResponseTainting, Window};
 use net_traits::response::{Response, ResponseBody, ResponseType};
-use servo_channel::{channel, Sender, Receiver};
+use net_traits::{FetchTaskTarget, NetworkError, ReferrerPolicy};
+use servo_channel::{channel, Receiver, Sender};
 use servo_url::ServoUrl;
 use std::borrow::Cow;
 use std::fs::File;
-use std::io::{BufReader, BufRead, Seek, SeekFrom};
+use std::io::{BufRead, BufReader, Seek, SeekFrom};
 use std::mem;
 use std::ops::Bound;
 use std::str;
-use std::sync::{Arc, Mutex};
 use std::sync::atomic::Ordering;
+use std::sync::{Arc, Mutex};
 use std::thread;
 
 lazy_static! {
@@ -254,10 +254,11 @@ pub fn main_fetch(
             Response::network_error(NetworkError::Internal("Non-http scheme".into()))
         } else if request.use_cors_preflight ||
             (request.unsafe_request &&
-                (!is_cors_safelisted_method(&request.method) ||
-                    request.headers.iter().any(|(name, value)| {
-                        !is_cors_safelisted_request_header(&name, &value)
-                    }))) {
+                (!is_cors_safelisted_method(&request.method) || request
+                    .headers
+                    .iter()
+                    .any(|(name, value)| !is_cors_safelisted_request_header(&name, &value))))
+        {
             // Substep 1.
             request.response_tainting = ResponseTainting::CorsTainting;
             // Substep 2.
@@ -372,11 +373,10 @@ pub fn main_fetch(
         // in the previous step.
         let not_network_error = !response_is_network_error && !internal_response.is_network_error();
         if not_network_error &&
-            (is_null_body_status(&internal_response.status) ||
-                match request.method {
-                    Method::HEAD | Method::CONNECT => true,
-                    _ => false,
-                }) {
+            (is_null_body_status(&internal_response.status) || match request.method {
+                Method::HEAD | Method::CONNECT => true,
+                _ => false,
+            }) {
             // when Fetch is used only asynchronously, we will need to make sure
             // that nothing tries to write to the body at this point
             let mut body = internal_response.body.lock().unwrap();
@@ -791,13 +791,12 @@ fn should_be_blocked_due_to_mime_type(
     };
 
     // Step 2-3
-    destination.is_script_like() &&
-        match mime_type.type_() {
-            mime::AUDIO | mime::VIDEO | mime::IMAGE => true,
-            mime::TEXT if mime_type.subtype() == mime::CSV => true,
-            // Step 4
-            _ => false,
-        }
+    destination.is_script_like() && match mime_type.type_() {
+        mime::AUDIO | mime::VIDEO | mime::IMAGE => true,
+        mime::TEXT if mime_type.subtype() == mime::CSV => true,
+        // Step 4
+        _ => false,
+    }
 }
 
 /// <https://fetch.spec.whatwg.org/#block-bad-port>

@@ -82,8 +82,8 @@ extern crate xml5ever;
 use serde_bytes::ByteBuf;
 use std::hash::{BuildHasher, Hash};
 use std::mem::size_of;
-use std::ops::{Deref, DerefMut};
 use std::ops::Range;
+use std::ops::{Deref, DerefMut};
 use std::os::raw::c_void;
 use void::Void;
 

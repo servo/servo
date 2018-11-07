@@ -15,7 +15,7 @@ use crate::dom::document::Document;
 use crate::dom::element::{AttributeMutation, Element};
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::htmlheadelement::HTMLHeadElement;
-use crate::dom::node::{Node, UnbindContext, document_from_node, window_from_node};
+use crate::dom::node::{document_from_node, window_from_node, Node, UnbindContext};
 use crate::dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
@@ -26,7 +26,7 @@ use std::sync::atomic::AtomicBool;
 use style::attr::AttrValue;
 use style::media_queries::MediaList;
 use style::str::HTML_SPACE_CHARACTERS;
-use style::stylesheets::{Stylesheet, StylesheetContents, CssRule, CssRules, Origin, ViewportRule};
+use style::stylesheets::{CssRule, CssRules, Origin, Stylesheet, StylesheetContents, ViewportRule};
 
 #[dom_struct]
 pub struct HTMLMetaElement {

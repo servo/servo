@@ -12,20 +12,23 @@ use headers_ext::Host;
 use http::header::{self, HeaderMap, HeaderName, HeaderValue};
 use http::uri::Authority;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
+use net_traits::request::{RequestInit, RequestMode};
 use net_traits::{CookieSource, MessageData};
 use net_traits::{WebSocketDomAction, WebSocketNetworkEvent};
-use net_traits::request::{RequestInit, RequestMode};
 use openssl::ssl::SslStream;
 use servo_config::opts;
 use servo_url::ServoUrl;
 use std::fs;
-use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
 use std::thread;
 use url::Url;
-use ws::{CloseCode, Factory, Handler, Handshake, Message, Request, Response as WsResponse, Sender, WebSocket};
-use ws::{Error as WebSocketError, ErrorKind as WebSocketErrorKind, Result as WebSocketResult};
 use ws::util::TcpStream;
+use ws::{
+    CloseCode, Factory, Handler, Handshake, Message, Request, Response as WsResponse, Sender,
+    WebSocket,
+};
+use ws::{Error as WebSocketError, ErrorKind as WebSocketErrorKind, Result as WebSocketResult};
 
 /// A client for connecting to a websocket server
 #[derive(Clone)]

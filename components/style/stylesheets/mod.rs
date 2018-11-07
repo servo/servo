@@ -45,13 +45,13 @@ pub use self::media_rule::MediaRule;
 pub use self::namespace_rule::NamespaceRule;
 pub use self::origin::{Origin, OriginSet, OriginSetIterator, PerOrigin, PerOriginIter};
 pub use self::page_rule::PageRule;
-pub use self::rule_parser::{State, TopLevelRuleParser, InsertRuleContext};
 pub use self::rule_list::{CssRules, CssRulesHelpers};
+pub use self::rule_parser::{InsertRuleContext, State, TopLevelRuleParser};
 pub use self::rules_iterator::{AllRules, EffectiveRules};
 pub use self::rules_iterator::{NestedRuleIterationCondition, RulesIterator};
+pub use self::style_rule::StyleRule;
 pub use self::stylesheet::{DocumentStyleSheet, Namespaces, Stylesheet};
 pub use self::stylesheet::{StylesheetContents, StylesheetInDocument, UserAgentStylesheets};
-pub use self::style_rule::StyleRule;
 pub use self::supports_rule::SupportsRule;
 pub use self::viewport_rule::ViewportRule;
 
@@ -88,7 +88,7 @@ impl UrlExtraData {
 #[cfg(feature = "gecko")]
 impl fmt::Debug for UrlExtraData {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-        use gecko_bindings::{structs, bindings};
+        use gecko_bindings::{bindings, structs};
 
         struct DebugURI(*mut structs::nsIURI);
         impl fmt::Debug for DebugURI {
@@ -109,7 +109,8 @@ impl fmt::Debug for UrlExtraData {
             .field(
                 "referrer",
                 &DebugURI(self.0.mReferrer.raw::<structs::nsIURI>()),
-            ).finish()
+            )
+            .finish()
     }
 }
 

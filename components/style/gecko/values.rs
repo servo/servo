@@ -6,30 +6,34 @@
 
 //! Different kind of helpers to interact with Gecko values.
 
-use Atom;
 use app_units::Au;
 use counter_style::{Symbol, Symbols};
 use cssparser::RGBA;
-use gecko_bindings::structs::{self, CounterStylePtr, nsStyleCoord};
+use gecko_bindings::structs::{self, nsStyleCoord, CounterStylePtr};
 use gecko_bindings::structs::{StyleGridTrackBreadth, StyleShapeRadius};
 use gecko_bindings::sugar::ns_style_coord::{CoordData, CoordDataMut, CoordDataValue};
 use media_queries::Device;
 use nsstring::{nsACString, nsCStr};
 use std::cmp::max;
-use values::{Auto, Either, None_, Normal};
-use values::computed::{Angle, ExtremumLength, Length, LengthOrPercentage, LengthOrPercentageOrAuto};
-use values::computed::{LengthOrPercentageOrNone, Number, NumberOrPercentage};
-use values::computed::{MaxLength as ComputedMaxLength, MozLength as ComputedMozLength, Percentage};
-use values::computed::{NonNegativeLength, NonNegativeLengthOrPercentage, NonNegativeNumber};
-use values::computed::FlexBasis as ComputedFlexBasis;
 use values::computed::basic_shape::ShapeRadius as ComputedShapeRadius;
-use values::generics::{CounterStyleOrNone, NonNegative};
+use values::computed::FlexBasis as ComputedFlexBasis;
+use values::computed::{
+    Angle, ExtremumLength, Length, LengthOrPercentage, LengthOrPercentageOrAuto,
+};
+use values::computed::{LengthOrPercentageOrNone, Number, NumberOrPercentage};
+use values::computed::{
+    MaxLength as ComputedMaxLength, MozLength as ComputedMozLength, Percentage,
+};
+use values::computed::{NonNegativeLength, NonNegativeLengthOrPercentage, NonNegativeNumber};
 use values::generics::basic_shape::ShapeRadius;
 use values::generics::box_::Perspective;
 use values::generics::flex::FlexBasis;
 use values::generics::gecko::ScrollSnapPoint;
 use values::generics::grid::{TrackBreadth, TrackKeyword};
 use values::generics::length::{MaxLength, MozLength};
+use values::generics::{CounterStyleOrNone, NonNegative};
+use values::{Auto, Either, None_, Normal};
+use Atom;
 
 /// A trait that defines an interface to convert from and to `nsStyleCoord`s.
 pub trait GeckoStyleCoordConvertible: Sized {
@@ -537,7 +541,8 @@ impl CounterStyleOrNone {
                     .map(|symbol| match *symbol {
                         Symbol::String(ref s) => nsCStr::from(s),
                         Symbol::Ident(_) => unreachable!("Should not have identifier in symbols()"),
-                    }).collect();
+                    })
+                    .collect();
                 let symbols: Vec<_> = symbols
                     .iter()
                     .map(|symbol| symbol as &nsACString as *const _)
@@ -557,8 +562,8 @@ impl CounterStyleOrNone {
     /// Convert Gecko CounterStylePtr to CounterStyleOrNone or String.
     pub fn from_gecko_value(gecko_value: &CounterStylePtr) -> Either<Self, String> {
         use gecko_bindings::bindings;
-        use values::CustomIdent;
         use values::generics::SymbolsType;
+        use values::CustomIdent;
 
         let name = unsafe { bindings::Gecko_CounterStyle_GetName(gecko_value) };
         if !name.is_null() {

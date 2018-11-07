@@ -6,7 +6,7 @@
 
 use gecko_bindings::bindings;
 use gecko_bindings::structs::{nsStyleCoord, nsStyleCoord_Calc, nsStyleCoord_CalcValue};
-use gecko_bindings::structs::{nscoord, nsStyleCorners, nsStyleSides, nsStyleUnion, nsStyleUnit};
+use gecko_bindings::structs::{nsStyleCorners, nsStyleSides, nsStyleUnion, nsStyleUnit, nscoord};
 use std::mem;
 
 impl nsStyleCoord {
@@ -277,8 +277,8 @@ pub unsafe trait CoordDataMut: CoordData {
     #[inline(always)]
     /// Sets the inner value.
     fn set_value(&mut self, value: CoordDataValue) {
-        use gecko_bindings::structs::nsStyleUnit::*;
         use self::CoordDataValue::*;
+        use gecko_bindings::structs::nsStyleUnit::*;
         self.reset();
         unsafe {
             let (unit, union) = self.values_mut();
@@ -364,8 +364,8 @@ pub unsafe trait CoordData {
     #[inline(always)]
     /// Get the appropriate value for this object.
     fn as_value(&self) -> CoordDataValue {
-        use gecko_bindings::structs::nsStyleUnit::*;
         use self::CoordDataValue::*;
+        use gecko_bindings::structs::nsStyleUnit::*;
         unsafe {
             match self.unit() {
                 eStyleUnit_Null => Null,

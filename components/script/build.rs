@@ -69,7 +69,8 @@ fn main() {
     write!(
         &mut phf,
         "pub static MAP: phf::Map<&'static [u8], unsafe fn(*mut JSContext, HandleObject)> = "
-    ).unwrap();
+    )
+    .unwrap();
     map.build(&mut phf).unwrap();
     write!(&mut phf, ";\n").unwrap();
 }

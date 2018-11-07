@@ -11,10 +11,10 @@ use crate::opaque_node::OpaqueNodeMethods;
 use fxhash::FxHashMap;
 use ipc_channel::ipc::IpcSender;
 use msg::constellation_msg::PipelineId;
-use script_traits::{AnimationState, ConstellationControlMsg, LayoutMsg as ConstellationMsg};
 use script_traits::UntrustedNodeAddress;
+use script_traits::{AnimationState, ConstellationControlMsg, LayoutMsg as ConstellationMsg};
 use servo_channel::Receiver;
-use style::animation::{Animation, update_style_for_animation};
+use style::animation::{update_style_for_animation, Animation};
 use style::dom::TElement;
 use style::font_metrics::ServoMetricsProvider;
 use style::selector_parser::RestyleDamage;
@@ -89,7 +89,10 @@ pub fn update_animation_state<E>(
                 },
             };
 
-            debug!("update_animation_state({:?}): {:?}", still_running, running_animation);
+            debug!(
+                "update_animation_state({:?}): {:?}",
+                still_running, running_animation
+            );
 
             if still_running {
                 animations_still_running.push(running_animation);
@@ -97,11 +100,13 @@ pub fn update_animation_state<E>(
             }
 
             if let Animation::Transition(node, _, ref frame) = running_animation {
-                script_chan.send(ConstellationControlMsg::TransitionEnd(
-                    node.to_untrusted_node_address(),
-                    frame.property_animation.property_name().into(),
-                    frame.duration,
-                )).unwrap();
+                script_chan
+                    .send(ConstellationControlMsg::TransitionEnd(
+                        node.to_untrusted_node_address(),
+                        frame.property_animation.property_name().into(),
+                        frame.duration,
+                    ))
+                    .unwrap();
             }
 
             expired_animations
@@ -150,7 +155,8 @@ pub fn update_animation_state<E>(
         .send(ConstellationMsg::ChangeRunningAnimationsState(
             pipeline_id,
             animation_state,
-        )).unwrap();
+        ))
+        .unwrap();
 }
 
 /// Recalculates style for a set of animations. This does *not* run with the DOM

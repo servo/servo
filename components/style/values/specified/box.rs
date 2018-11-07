@@ -4,20 +4,22 @@
 
 //! Specified types for box properties.
 
-use Atom;
 use cssparser::Parser;
 use custom_properties::Name as CustomPropertyName;
 use parser::{Parse, ParserContext};
-use properties::{LonghandId, ShorthandId, PropertyId, PropertyFlags, PropertyDeclarationId};
+use properties::{LonghandId, PropertyDeclarationId, PropertyFlags, PropertyId, ShorthandId};
 use selectors::parser::SelectorParseErrorKind;
 use std::fmt::{self, Write};
-use style_traits::{CssWriter, KeywordsCollectFn, ParseError, StyleParseErrorKind, SpecifiedValueInfo, ToCss};
-use values::{CustomIdent, KeyframesName};
+use style_traits::{
+    CssWriter, KeywordsCollectFn, ParseError, SpecifiedValueInfo, StyleParseErrorKind, ToCss,
+};
 use values::generics::box_::AnimationIterationCount as GenericAnimationIterationCount;
 use values::generics::box_::Perspective as GenericPerspective;
 use values::generics::box_::VerticalAlign as GenericVerticalAlign;
-use values::specified::{AllowQuirks, Number};
 use values::specified::length::{LengthOrPercentage, NonNegativeLength};
+use values::specified::{AllowQuirks, Number};
+use values::{CustomIdent, KeyframesName};
+use Atom;
 
 fn in_ua_or_chrome_sheet(context: &ParserContext) -> bool {
     use stylesheets::Origin;

@@ -14,23 +14,20 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::trace::trace_object;
 use crate::dom::windowproxy;
 use js;
-use js::JS_CALLEE;
 use js::glue::{CallJitGetterOp, CallJitMethodOp, CallJitSetterOp, IsWrapper};
 use js::glue::{GetCrossCompartmentWrapper, JS_GetReservedSlot, WrapperNew};
+use js::glue::{UnwrapObject, RUST_JSID_TO_INT, RUST_JSID_TO_STRING};
 use js::glue::{RUST_FUNCTION_VALUE_TO_JITINFO, RUST_JSID_IS_INT, RUST_JSID_IS_STRING};
-use js::glue::{RUST_JSID_TO_INT, RUST_JSID_TO_STRING, UnwrapObject};
+use js::jsapi::HandleId as RawHandleId;
+use js::jsapi::HandleObject as RawHandleObject;
+use js::jsapi::MutableHandleObject as RawMutableHandleObject;
 use js::jsapi::{CallArgs, DOMCallbacks, GetGlobalForObjectCrossCompartment};
 use js::jsapi::{Heap, JSAutoCompartment, JSContext};
 use js::jsapi::{JSJitInfo, JSObject, JSTracer, JSWrapObjectCallbacks};
 use js::jsapi::{JS_EnumerateStandardClasses, JS_GetLatin1StringCharsAndLength};
 use js::jsapi::{JS_IsExceptionPending, JS_IsGlobalObject};
 use js::jsapi::{JS_ResolveStandardClass, JS_StringHasLatin1Chars, ObjectOpResult};
-use js::jsapi::HandleId as RawHandleId;
-use js::jsapi::HandleObject as RawHandleObject;
-use js::jsapi::MutableHandleObject as RawMutableHandleObject;
 use js::jsval::{JSVal, UndefinedValue};
-use js::rust::{GCMethods, ToString, ToWindowProxyIfWindow, get_object_class, is_dom_class};
-use js::rust::{Handle, HandleId, HandleObject, HandleValue, MutableHandleValue};
 use js::rust::wrappers::JS_DeletePropertyById;
 use js::rust::wrappers::JS_ForwardGetPropertyTo;
 use js::rust::wrappers::JS_GetProperty;
@@ -38,6 +35,9 @@ use js::rust::wrappers::JS_GetPrototype;
 use js::rust::wrappers::JS_HasProperty;
 use js::rust::wrappers::JS_HasPropertyById;
 use js::rust::wrappers::JS_SetProperty;
+use js::rust::{get_object_class, is_dom_class, GCMethods, ToString, ToWindowProxyIfWindow};
+use js::rust::{Handle, HandleId, HandleObject, HandleValue, MutableHandleValue};
+use js::JS_CALLEE;
 use libc;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use std::ffi::CString;
@@ -172,19 +172,20 @@ pub fn get_array_index_from_id(_cx: *mut JSContext, id: HandleId) -> Option<u32>
         None
     }
     // if id is length atom, -1, otherwise
-    /*return if JSID_IS_ATOM(id) {
-        let atom = JSID_TO_ATOM(id);
-        //let s = *GetAtomChars(id);
-        if s > 'a' && s < 'z' {
-            return -1;
-        }
-
-        let i = 0;
-        let str = AtomToLinearString(JSID_TO_ATOM(id));
-        return if StringIsArray(str, &mut i) != 0 { i } else { -1 }
-    } else {
-        IdToInt32(cx, id);
-    }*/}
+    // return if JSID_IS_ATOM(id) {
+    //     let atom = JSID_TO_ATOM(id);
+    //     //let s = *GetAtomChars(id);
+    //     if s > 'a' && s < 'z' {
+    //         return -1;
+    //     }
+    //
+    //     let i = 0;
+    //     let str = AtomToLinearString(JSID_TO_ATOM(id));
+    //     return if StringIsArray(str, &mut i) != 0 { i } else { -1 }
+    // } else {
+    //     IdToInt32(cx, id);
+    // }
+}
 
 /// Find the enum equivelent of a string given by `v` in `pairs`.
 /// Returns `Err(())` on JSAPI failure (there is a pending exception), and

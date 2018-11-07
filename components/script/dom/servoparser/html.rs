@@ -17,13 +17,13 @@ use crate::dom::htmltemplateelement::HTMLTemplateElement;
 use crate::dom::node::Node;
 use crate::dom::processinginstruction::ProcessingInstruction;
 use crate::dom::servoparser::{ParsingAlgorithm, Sink};
-use html5ever::QualName;
 use html5ever::buffer_queue::BufferQueue;
-use html5ever::serialize::{AttrRef, Serialize, Serializer};
 use html5ever::serialize::TraversalScope;
 use html5ever::serialize::TraversalScope::IncludeNode;
+use html5ever::serialize::{AttrRef, Serialize, Serializer};
 use html5ever::tokenizer::{Tokenizer as HtmlTokenizer, TokenizerOpts, TokenizerResult};
 use html5ever::tree_builder::{Tracer as HtmlTracer, TreeBuilder, TreeBuilderOpts};
+use html5ever::QualName;
 use js::jsapi::JSTracer;
 use servo_url::ServoUrl;
 use std::io;
@@ -127,7 +127,8 @@ fn start_element<S: Serializer>(node: &Element, serializer: &mut S) -> io::Resul
             let qname = QualName::new(None, attr.namespace().clone(), attr.local_name().clone());
             let value = attr.value().clone();
             (qname, value)
-        }).collect::<Vec<_>>();
+        })
+        .collect::<Vec<_>>();
     let attr_refs = attrs.iter().map(|&(ref qname, ref value)| {
         let ar: AttrRef = (&qname, &**value);
         ar

@@ -6,7 +6,7 @@ extern crate string_cache_codegen;
 
 use std::env;
 use std::fs::File;
-use std::io::{BufReader, BufRead};
+use std::io::{BufRead, BufReader};
 use std::path::Path;
 
 fn main() {

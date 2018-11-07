@@ -37,8 +37,8 @@ use crate::dom::htmlobjectelement::HTMLObjectElement;
 use crate::dom::htmloutputelement::HTMLOutputElement;
 use crate::dom::htmlselectelement::HTMLSelectElement;
 use crate::dom::htmltextareaelement::HTMLTextAreaElement;
-use crate::dom::node::{Node, NodeFlags, UnbindContext, VecPreOrderInsertionHelper};
 use crate::dom::node::{document_from_node, window_from_node};
+use crate::dom::node::{Node, NodeFlags, UnbindContext, VecPreOrderInsertionHelper};
 use crate::dom::validitystate::ValidationFlags;
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::dom::window::Window;
@@ -58,8 +58,8 @@ use std::borrow::ToOwned;
 use std::cell::Cell;
 use style::attr::AttrValue;
 use style::str::split_html_space_chars;
-use url::UrlQuery;
 use url::form_urlencoded::Serializer;
+use url::UrlQuery;
 
 #[derive(Clone, Copy, JSTraceable, MallocSizeOf, PartialEq)]
 pub struct GenerationId(u32);
@@ -382,15 +382,25 @@ impl HTMLFormElement {
                 // https://html.spec.whatwg.org/multipage/#submit-dialog
             },
             // https://html.spec.whatwg.org/multipage/#submit-mutate-action
-            ("http", FormMethod::FormGet) | ("https", FormMethod::FormGet) | ("data", FormMethod::FormGet) => {
-                load_data.headers.typed_insert(ContentType::from(mime::APPLICATION_WWW_FORM_URLENCODED));
+            ("http", FormMethod::FormGet) |
+            ("https", FormMethod::FormGet) |
+            ("data", FormMethod::FormGet) => {
+                load_data
+                    .headers
+                    .typed_insert(ContentType::from(mime::APPLICATION_WWW_FORM_URLENCODED));
                 self.mutate_action_url(&mut form_data, load_data, encoding, &target_window);
             },
             // https://html.spec.whatwg.org/multipage/#submit-body
             ("http", FormMethod::FormPost) | ("https", FormMethod::FormPost) => {
                 load_data.method = Method::POST;
-                self.submit_entity_body(&mut form_data, load_data, enctype, encoding, &target_window);
-            }
+                self.submit_entity_body(
+                    &mut form_data,
+                    load_data,
+                    enctype,
+                    encoding,
+                    &target_window,
+                );
+            },
             // https://html.spec.whatwg.org/multipage/#submit-get-action
             ("file", _) |
             ("about", _) |
@@ -445,7 +455,9 @@ impl HTMLFormElement {
         let bytes = match enctype {
             FormEncType::UrlEncoded => {
                 let charset = encoding.name();
-                load_data.headers.typed_insert(ContentType::from(mime::APPLICATION_WWW_FORM_URLENCODED));
+                load_data
+                    .headers
+                    .typed_insert(ContentType::from(mime::APPLICATION_WWW_FORM_URLENCODED));
 
                 self.set_encoding_override(load_data.url.as_mut_url().query_pairs_mut())
                     .clear()
@@ -458,12 +470,16 @@ impl HTMLFormElement {
                 load_data.url.query().unwrap_or("").to_string().into_bytes()
             },
             FormEncType::FormDataEncoded => {
-                let mime: Mime = format!("multipart/form-data; boundary={}", boundary).parse().unwrap();
+                let mime: Mime = format!("multipart/form-data; boundary={}", boundary)
+                    .parse()
+                    .unwrap();
                 load_data.headers.typed_insert(ContentType::from(mime));
                 encode_multipart_form_data(form_data, boundary, encoding)
             },
             FormEncType::TextPlainEncoded => {
-                load_data.headers.typed_insert(ContentType::from(mime::TEXT_PLAIN));
+                load_data
+                    .headers
+                    .typed_insert(ContentType::from(mime::TEXT_PLAIN));
                 self.encode_plaintext(form_data).into_bytes()
             },
         };
@@ -555,7 +571,8 @@ impl HTMLFormElement {
                 } else {
                     None
                 }
-            }).collect::<Vec<FormSubmittableElement>>();
+            })
+            .collect::<Vec<FormSubmittableElement>>();
         // Step 4
         if invalid_controls.is_empty() {
             return Ok(());
@@ -571,7 +588,8 @@ impl HTMLFormElement {
                     return Some(field);
                 }
                 None
-            }).collect::<Vec<FormSubmittableElement>>();
+            })
+            .collect::<Vec<FormSubmittableElement>>();
         // Step 7
         Err(unhandled_invalid_controls)
     }
@@ -1239,17 +1257,30 @@ pub fn encode_multipart_form_data(
             },
             FormDatumValue::File(ref f) => {
                 let extra = if charset.to_lowercase() == "utf-8" {
-                    format!("filename=\"{}\"", String::from_utf8(f.name().as_bytes().into()).unwrap())
+                    format!(
+                        "filename=\"{}\"",
+                        String::from_utf8(f.name().as_bytes().into()).unwrap()
+                    )
                 } else {
-                    format!("filename*=\"{}\"''{}", charset, http_percent_encode(f.name().as_bytes()))
+                    format!(
+                        "filename*=\"{}\"''{}",
+                        charset,
+                        http_percent_encode(f.name().as_bytes())
+                    )
                 };
 
                 let content_disposition = format!("form-data; name=\"{}\"; {}", entry.name, extra);
                 // https://tools.ietf.org/html/rfc7578#section-4.4
-                let content_type: Mime = f.upcast::<Blob>().Type().parse().unwrap_or(mime::TEXT_PLAIN);
-                let mut type_bytes = format!("Content-Disposition: {}\r\ncontent-type: {}\r\n\r\n",
-                                             content_disposition,
-                                             content_type).into_bytes();
+                let content_type: Mime = f
+                    .upcast::<Blob>()
+                    .Type()
+                    .parse()
+                    .unwrap_or(mime::TEXT_PLAIN);
+                let mut type_bytes = format!(
+                    "Content-Disposition: {}\r\ncontent-type: {}\r\n\r\n",
+                    content_disposition, content_type
+                )
+                .into_bytes();
                 result.append(&mut type_bytes);
 
                 let mut bytes = f.upcast::<Blob>().get_bytes().unwrap_or(vec![]);

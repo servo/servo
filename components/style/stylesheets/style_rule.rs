@@ -6,9 +6,9 @@
 
 use cssparser::SourceLocation;
 #[cfg(feature = "gecko")]
-use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
-#[cfg(feature = "gecko")]
 use malloc_size_of::MallocUnconditionalShallowSizeOf;
+#[cfg(feature = "gecko")]
+use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use properties::PropertyDeclarationBlock;
 use selector_parser::SelectorImpl;
 use selectors::SelectorList;

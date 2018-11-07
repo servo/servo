@@ -5,8 +5,8 @@
 use base64;
 use mime::Mime;
 use servo_url::ServoUrl;
-use url::Position;
 use url::percent_encoding::percent_decode;
+use url::Position;
 
 pub enum DecodeError {
     InvalidDataUri,

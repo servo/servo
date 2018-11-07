@@ -13,13 +13,15 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::cssstylesheet::CSSStyleSheet;
 use crate::dom::document::Document;
 use crate::dom::domtokenlist::DOMTokenList;
+use crate::dom::element::{
+    cors_setting_for_element, reflect_cross_origin_attribute, set_cross_origin_attribute,
+};
 use crate::dom::element::{AttributeMutation, Element, ElementCreator};
-use crate::dom::element::{cors_setting_for_element, reflect_cross_origin_attribute, set_cross_origin_attribute};
 use crate::dom::htmlelement::HTMLElement;
-use crate::dom::node::{Node, UnbindContext, document_from_node, window_from_node};
+use crate::dom::node::{document_from_node, window_from_node, Node, UnbindContext};
 use crate::dom::stylesheet::StyleSheet as DOMStyleSheet;
 use crate::dom::virtualmethods::VirtualMethods;
-use crate::stylesheet_loader::{StylesheetLoader, StylesheetContextSource, StylesheetOwner};
+use crate::stylesheet_loader::{StylesheetContextSource, StylesheetLoader, StylesheetOwner};
 use cssparser::{Parser as CssParser, ParserInput};
 use dom_struct::dom_struct;
 use embedder_traits::EmbedderMsg;

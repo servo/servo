@@ -12,15 +12,17 @@ use app_units::Au;
 use gecko::values::GeckoStyleCoordConvertible;
 use gecko_bindings::bindings;
 use gecko_bindings::structs::{self, nsStyleCoord_CalcValue};
-use gecko_bindings::structs::{nsresult, SheetType, nsStyleImage};
+use gecko_bindings::structs::{nsStyleImage, nsresult, SheetType};
 use gecko_bindings::sugar::ns_style_coord::{CoordData, CoordDataMut, CoordDataValue};
 use std::f32::consts::PI;
 use stylesheets::{Origin, RulesMutateError};
-use values::computed::{Angle, CalcLengthOrPercentage, Gradient, Image};
-use values::computed::{Integer, LengthOrPercentage, LengthOrPercentageOrAuto, NonNegativeLengthOrPercentageOrAuto};
-use values::computed::{Percentage, TextAlign};
 use values::computed::image::LineDirection;
 use values::computed::url::ComputedImageUrl;
+use values::computed::{Angle, CalcLengthOrPercentage, Gradient, Image};
+use values::computed::{
+    Integer, LengthOrPercentage, LengthOrPercentageOrAuto, NonNegativeLengthOrPercentageOrAuto,
+};
+use values::computed::{Percentage, TextAlign};
 use values::generics::box_::VerticalAlign;
 use values::generics::grid::{TrackListValue, TrackSize};
 use values::generics::image::{CompatMode, GradientItem, Image as GenericImage};
@@ -113,13 +115,15 @@ impl From<nsStyleCoord_CalcValue> for NonNegativeLengthOrPercentageOrAuto {
         use style_traits::values::specified::AllowedNumericType;
         use values::generics::NonNegative;
         NonNegative(if other.mLength < 0 || other.mPercent < 0. {
-            LengthOrPercentageOrAuto::Calc(
-                CalcLengthOrPercentage::with_clamping_mode(
-                    Au(other.mLength).into(),
-                    if other.mHasPercent { Some(Percentage(other.mPercent)) } else { None },
-                    AllowedNumericType::NonNegative,
-                )
-            )
+            LengthOrPercentageOrAuto::Calc(CalcLengthOrPercentage::with_clamping_mode(
+                Au(other.mLength).into(),
+                if other.mHasPercent {
+                    Some(Percentage(other.mPercent))
+                } else {
+                    None
+                },
+                AllowedNumericType::NonNegative,
+            ))
         } else {
             other.into()
         })
@@ -231,11 +235,11 @@ impl nsStyleImage {
 
     // FIXME(emilio): This is really complex, we should use cbindgen for this.
     fn set_gradient(&mut self, gradient: Gradient) {
+        use self::structs::nsStyleCoord;
         use self::structs::NS_STYLE_GRADIENT_SIZE_CLOSEST_CORNER as CLOSEST_CORNER;
         use self::structs::NS_STYLE_GRADIENT_SIZE_CLOSEST_SIDE as CLOSEST_SIDE;
         use self::structs::NS_STYLE_GRADIENT_SIZE_FARTHEST_CORNER as FARTHEST_CORNER;
         use self::structs::NS_STYLE_GRADIENT_SIZE_FARTHEST_SIDE as FARTHEST_SIDE;
-        use self::structs::nsStyleCoord;
         use values::generics::image::{Circle, Ellipse, EndingShape, GradientKind, ShapeExtent};
         use values::specified::position::{X, Y};
 
@@ -493,9 +497,9 @@ impl nsStyleImage {
         use self::structs::NS_STYLE_GRADIENT_SIZE_CLOSEST_SIDE as CLOSEST_SIDE;
         use self::structs::NS_STYLE_GRADIENT_SIZE_FARTHEST_CORNER as FARTHEST_CORNER;
         use self::structs::NS_STYLE_GRADIENT_SIZE_FARTHEST_SIDE as FARTHEST_SIDE;
-        use values::computed::Length;
         use values::computed::image::LineDirection;
         use values::computed::position::Position;
+        use values::computed::Length;
         use values::generics::image::{Circle, ColorStop, CompatMode, Ellipse};
         use values::generics::image::{EndingShape, GradientKind, ShapeExtent};
 
@@ -625,7 +629,8 @@ impl nsStyleImage {
                         position: LengthOrPercentage::from_gecko_style_coord(&stop.mLocation),
                     })
                 }
-            }).collect();
+            })
+            .collect();
 
         let compat_mode = if gecko_gradient.mMozLegacySyntax {
             CompatMode::Moz
@@ -649,9 +654,9 @@ pub mod basic_shape {
 
     use gecko::values::GeckoStyleCoordConvertible;
     use gecko_bindings::structs;
+    use gecko_bindings::structs::{nsStyleCoord, nsStyleCorners};
     use gecko_bindings::structs::{StyleBasicShape, StyleBasicShapeType};
     use gecko_bindings::structs::{StyleGeometryBox, StyleShapeSource, StyleShapeSourceType};
-    use gecko_bindings::structs::{nsStyleCoord, nsStyleCorners};
     use gecko_bindings::sugar::ns_style_coord::{CoordDataMut, CoordDataValue};
     use gecko_bindings::sugar::refptr::RefPtr;
     use std::borrow::Borrow;
@@ -718,7 +723,8 @@ pub mod basic_shape {
             match other.mType {
                 StyleShapeSourceType::URL => unsafe {
                     let shape_image = &*other.__bindgen_anon_1.mShapeImage.as_ref().mPtr;
-                    let other_url = RefPtr::new(*shape_image.__bindgen_anon_1.mURLValue.as_ref() as *mut _);
+                    let other_url =
+                        RefPtr::new(*shape_image.__bindgen_anon_1.mURLValue.as_ref() as *mut _);
                     let url = ComputedUrl::from_url_value(other_url);
                     ShapeSource::ImageOrUrl(url)
                 },

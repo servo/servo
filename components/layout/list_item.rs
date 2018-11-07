@@ -7,13 +7,15 @@
 
 use app_units::Au;
 use crate::block::BlockFlow;
-use crate::context::{LayoutContext, with_thread_local_font_context};
-use crate::display_list::{DisplayListBuildState, ListItemFlowDisplayListBuilding};
+use crate::context::{with_thread_local_font_context, LayoutContext};
 use crate::display_list::StackingContextCollectionState;
+use crate::display_list::{DisplayListBuildState, ListItemFlowDisplayListBuilding};
 use crate::floats::FloatKind;
 use crate::flow::{Flow, FlowClass, OpaqueFlow};
-use crate::fragment::{CoordinateSystem, Fragment, FragmentBorderBoxIterator, GeneratedContentInfo};
 use crate::fragment::Overflow;
+use crate::fragment::{
+    CoordinateSystem, Fragment, FragmentBorderBoxIterator, GeneratedContentInfo,
+};
 use crate::generated_content;
 use crate::inline::InlineFlow;
 use euclid::Point2D;
@@ -257,7 +259,8 @@ impl Flow for ListItemFlow {
                                 .early_absolute_position_info
                                 .relative_containing_block_mode,
                             CoordinateSystem::Own,
-                        ).translate(&stacking_context_position.to_vector()),
+                        )
+                        .translate(&stacking_context_position.to_vector()),
                 );
             }
         }

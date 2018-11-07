@@ -9,7 +9,7 @@ use crate::dom::bindings::codegen::Bindings::MutationObserverBinding::MutationCa
 use crate::dom::bindings::codegen::Bindings::MutationObserverBinding::MutationObserverBinding::MutationObserverMethods;
 use crate::dom::bindings::codegen::Bindings::MutationObserverBinding::MutationObserverInit;
 use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::reflector::{Reflector, reflect_dom_object, DomObject};
+use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::mutationrecord::MutationRecord;
@@ -18,7 +18,7 @@ use crate::dom::window::Window;
 use crate::microtask::Microtask;
 use crate::script_thread::ScriptThread;
 use dom_struct::dom_struct;
-use html5ever::{Namespace, LocalName};
+use html5ever::{LocalName, Namespace};
 use std::rc::Rc;
 
 #[dom_struct]

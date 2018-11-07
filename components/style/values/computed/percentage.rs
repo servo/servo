@@ -6,9 +6,9 @@
 
 use std::fmt;
 use style_traits::{CssWriter, ToCss};
-use values::{serialize_percentage, CSSFloat};
 use values::animated::ToAnimatedValue;
 use values::generics::NonNegative;
+use values::{serialize_percentage, CSSFloat};
 
 /// A computed percentage.
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]

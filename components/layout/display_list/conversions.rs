@@ -7,10 +7,10 @@ use euclid::{Point2D, Rect, SideOffsets2D, Size2D, Vector2D};
 use style::computed_values::image_rendering::T as ImageRendering;
 use style::computed_values::mix_blend_mode::T as MixBlendMode;
 use style::computed_values::transform_style::T as TransformStyle;
-use style::values::RGBA;
 use style::values::computed::{BorderStyle, Filter};
 use style::values::generics::effects::Filter as GenericFilter;
 use style::values::specified::border::BorderImageRepeatKeyword;
+use style::values::RGBA;
 use webrender_api as wr;
 
 pub trait ToLayout {

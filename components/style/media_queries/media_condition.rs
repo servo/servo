@@ -6,12 +6,12 @@
 //!
 //! https://drafts.csswg.org/mediaqueries-4/#typedef-media-condition
 
+use super::{Device, MediaFeatureExpression};
 use context::QuirksMode;
 use cssparser::{Parser, Token};
 use parser::ParserContext;
 use std::fmt::{self, Write};
 use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
-use super::{Device, MediaFeatureExpression};
 
 /// A binary `and` or `or` operator.
 #[derive(Clone, Copy, Debug, Eq, MallocSizeOf, Parse, PartialEq, ToCss)]

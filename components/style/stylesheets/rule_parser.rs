@@ -4,7 +4,6 @@
 
 //! Parsing of the stylesheet contents.
 
-use {Namespace, Prefix};
 use counter_style::{parse_counter_style_body, parse_counter_style_name_definition};
 use cssparser::{AtRuleParser, AtRuleType, Parser, QualifiedRuleParser, RuleListParser};
 use cssparser::{BasicParseError, BasicParseErrorKind, CowRcStr, SourceLocation};
@@ -19,17 +18,18 @@ use servo_arc::Arc;
 use shared_lock::{Locked, SharedRwLock};
 use str::starts_with_ignore_ascii_case;
 use style_traits::{ParseError, StyleParseErrorKind};
-use stylesheets::{CssRule, CssRuleType, CssRules, RulesMutateError, StylesheetLoader};
-use stylesheets::{DocumentRule, FontFeatureValuesRule, KeyframesRule, MediaRule};
-use stylesheets::{NamespaceRule, PageRule, StyleRule, SupportsRule, ViewportRule};
 use stylesheets::document_rule::DocumentCondition;
 use stylesheets::font_feature_values_rule::parse_family_name_list;
 use stylesheets::keyframes_rule::parse_keyframe_list;
 use stylesheets::stylesheet::Namespaces;
 use stylesheets::supports_rule::SupportsCondition;
 use stylesheets::viewport_rule;
-use values::{CssUrl, CustomIdent, KeyframesName};
+use stylesheets::{CssRule, CssRuleType, CssRules, RulesMutateError, StylesheetLoader};
+use stylesheets::{DocumentRule, FontFeatureValuesRule, KeyframesRule, MediaRule};
+use stylesheets::{NamespaceRule, PageRule, StyleRule, SupportsRule, ViewportRule};
 use values::computed::font::FamilyName;
+use values::{CssUrl, CustomIdent, KeyframesName};
+use {Namespace, Prefix};
 
 /// The information we need particularly to do CSSOM insertRule stuff.
 pub struct InsertRuleContext<'a> {

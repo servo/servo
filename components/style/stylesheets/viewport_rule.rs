@@ -9,8 +9,8 @@
 
 use app_units::Au;
 use context::QuirksMode;
-use cssparser::{parse_important, AtRuleParser, DeclarationListParser, DeclarationParser, Parser};
 use cssparser::CowRcStr;
+use cssparser::{parse_important, AtRuleParser, DeclarationListParser, DeclarationParser, Parser};
 use error_reporting::ContextualParseError;
 use euclid::TypedSize2D;
 use font_metrics::get_metrics_provider_for_product;
@@ -26,8 +26,8 @@ use std::fmt::{self, Write};
 use std::iter::Enumerate;
 use std::str::Chars;
 use str::CssStringWriter;
-use style_traits::{CssWriter, ParseError, PinchZoomFactor, StyleParseErrorKind, ToCss};
 use style_traits::viewport::{Orientation, UserZoom, ViewportConstraints, Zoom};
+use style_traits::{CssWriter, ParseError, PinchZoomFactor, StyleParseErrorKind, ToCss};
 use stylesheets::{Origin, StylesheetInDocument};
 use values::computed::{Context, ToComputedValue};
 use values::specified::{LengthOrPercentageOrAuto, NoCalcLength, ViewportPercentageLength};

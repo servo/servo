@@ -55,8 +55,8 @@ extern crate webrender_api;
 mod dom_wrapper;
 
 use app_units::Au;
-use crate::dom_wrapper::{ServoLayoutElement, ServoLayoutDocument, ServoLayoutNode};
 use crate::dom_wrapper::drop_style_and_layout_data;
+use crate::dom_wrapper::{ServoLayoutDocument, ServoLayoutElement, ServoLayoutNode};
 use embedder_traits::resources::{self, Resource};
 use euclid::{Point2D, Rect, Size2D, TypedScale, TypedSize2D};
 use fnv::FnvHashMap;
@@ -64,28 +64,34 @@ use fxhash::FxHashMap;
 use gfx::font;
 use gfx::font_cache_thread::FontCacheThread;
 use gfx::font_context;
-use gfx_traits::{Epoch, node_id_from_scroll_id};
+use gfx_traits::{node_id_from_scroll_id, Epoch};
 use histogram::Histogram;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use layout::animation;
 use layout::construct::ConstructionResult;
+use layout::context::malloc_size_of_persistent_local_context;
 use layout::context::LayoutContext;
 use layout::context::RegisteredPainter;
 use layout::context::RegisteredPainters;
-use layout::context::malloc_size_of_persistent_local_context;
-use layout::display_list::{IndexableText, ToLayout, WebRenderDisplayListConverter};
 use layout::display_list::items::{OpaqueNode, WebRenderImageInfo};
+use layout::display_list::{IndexableText, ToLayout, WebRenderDisplayListConverter};
 use layout::flow::{Flow, GetBaseFlow, ImmutableFlowUtils, MutableOwnedFlowUtils};
 use layout::flow_ref::FlowRef;
 use layout::incremental::{LayoutDamageComputation, RelayoutMode, SpecialRestyleDamage};
 use layout::layout_debug;
 use layout::parallel;
-use layout::query::{LayoutRPCImpl, LayoutThreadData, process_content_box_request, process_content_boxes_request};
+use layout::query::{
+    process_content_box_request, process_content_boxes_request, LayoutRPCImpl, LayoutThreadData,
+};
 use layout::query::{process_element_inner_text_query, process_node_geometry_request};
 use layout::query::{process_node_scroll_area_request, process_node_scroll_id_request};
-use layout::query::{process_offset_parent_query, process_resolved_style_request, process_style_query};
+use layout::query::{
+    process_offset_parent_query, process_resolved_style_request, process_style_query,
+};
 use layout::sequential;
-use layout::traversal::{ComputeStackingRelativePositions, PreorderFlowTraversal, RecalcStyleAndConstructFlows};
+use layout::traversal::{
+    ComputeStackingRelativePositions, PreorderFlowTraversal, RecalcStyleAndConstructFlows,
+};
 use layout::wrapper::LayoutNodeLayoutData;
 use layout_traits::LayoutThreadFactory;
 use libc::c_void;
@@ -96,21 +102,21 @@ use msg::constellation_msg::TopLevelBrowsingContextId;
 use net_traits::image_cache::{ImageCache, UsePlaceholder};
 use parking_lot::RwLock;
 use profile_traits::mem::{self, Report, ReportKind, ReportsChan};
-use profile_traits::time::{self, TimerMetadata, profile};
+use profile_traits::time::{self, profile, TimerMetadata};
 use profile_traits::time::{TimerMetadataFrameType, TimerMetadataReflowType};
 use script_layout_interface::message::{Msg, NewLayoutThreadInfo, NodesFromPointQueryType, Reflow};
-use script_layout_interface::message::{ReflowComplete, QueryMsg, ReflowGoal, ScriptReflow};
-use script_layout_interface::rpc::{LayoutRPC, StyleResponse, OffsetParentResponse};
+use script_layout_interface::message::{QueryMsg, ReflowComplete, ReflowGoal, ScriptReflow};
 use script_layout_interface::rpc::TextIndexResponse;
+use script_layout_interface::rpc::{LayoutRPC, OffsetParentResponse, StyleResponse};
 use script_layout_interface::wrapper_traits::LayoutNode;
+use script_traits::Painter;
 use script_traits::{ConstellationControlMsg, LayoutControlMsg, LayoutMsg as ConstellationMsg};
 use script_traits::{DrawAPaintImageResult, PaintWorkletError};
 use script_traits::{ScrollState, UntrustedNodeAddress};
-use script_traits::Painter;
 use selectors::Element;
 use servo_arc::Arc as ServoArc;
 use servo_atoms::Atom;
-use servo_channel::{Receiver, Sender, channel, route_ipc_receiver_to_new_servo_receiver};
+use servo_channel::{channel, route_ipc_receiver_to_new_servo_receiver, Receiver, Sender};
 use servo_config::opts;
 use servo_config::prefs::PREFS;
 use servo_geometry::MaxRect;
@@ -121,8 +127,8 @@ use std::collections::HashMap;
 use std::mem as std_mem;
 use std::ops::{Deref, DerefMut};
 use std::process;
-use std::sync::{Arc, Mutex, MutexGuard};
 use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::{Arc, Mutex, MutexGuard};
 use std::thread;
 use style::animation::Animation;
 use style::context::{QuirksMode, RegisteredSpeculativePainter, RegisteredSpeculativePainters};
@@ -137,7 +143,9 @@ use style::properties::PropertyId;
 use style::selector_parser::SnapshotMap;
 use style::servo::restyle_damage::ServoRestyleDamage;
 use style::shared_lock::{SharedRwLock, SharedRwLockReadGuard, StylesheetGuards};
-use style::stylesheets::{Origin, Stylesheet, DocumentStyleSheet, StylesheetInDocument, UserAgentStylesheets};
+use style::stylesheets::{
+    DocumentStyleSheet, Origin, Stylesheet, StylesheetInDocument, UserAgentStylesheets,
+};
 use style::stylist::Stylist;
 use style::thread_state::{self, ThreadState};
 use style::timer::Timer;
@@ -334,7 +342,8 @@ impl LayoutThreadFactory for LayoutThread {
                 if let Some(content_process_shutdown_chan) = content_process_shutdown_chan {
                     let _ = content_process_shutdown_chan.send(());
                 }
-            }).expect("Thread spawning failed");
+            })
+            .expect("Thread spawning failed");
     }
 }
 
@@ -507,8 +516,7 @@ impl LayoutThread {
 
         // Ask the router to proxy IPC messages from the font cache thread to the layout thread.
         let (ipc_font_cache_sender, ipc_font_cache_receiver) = ipc::channel().unwrap();
-        let font_cache_receiver =
-            route_ipc_receiver_to_new_servo_receiver(ipc_font_cache_receiver);
+        let font_cache_receiver = route_ipc_receiver_to_new_servo_receiver(ipc_font_cache_receiver);
 
         LayoutThread {
             id: id,
@@ -769,7 +777,8 @@ impl LayoutThread {
                     .filter_map(|name| {
                         let id = PropertyId::parse_enabled_for_all_content(&*name).ok()?;
                         Some((name.clone(), id))
-                    }).filter(|&(_, ref id)| !id.is_shorthand())
+                    })
+                    .filter(|&(_, ref id)| !id.is_shorthand())
                     .collect();
                 let registered_painter = RegisteredPainterImpl {
                     name: name.clone(),
@@ -1249,7 +1258,8 @@ impl LayoutThread {
                     .send(ConstellationMsg::ViewportConstrained(
                         self.id,
                         constraints.clone(),
-                    )).unwrap();
+                    ))
+                    .unwrap();
             }
             if had_used_viewport_units {
                 if let Some(mut data) = element.mutate_data() {

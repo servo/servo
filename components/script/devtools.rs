@@ -7,7 +7,7 @@ use crate::dom::bindings::codegen::Bindings::DOMRectBinding::DOMRectMethods;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use crate::dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
-use crate::dom::bindings::conversions::{ConversionResult, FromJSValConvertible, jsstring_to_str};
+use crate::dom::bindings::conversions::{jsstring_to_str, ConversionResult, FromJSValConvertible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::DomRoot;
@@ -15,13 +15,13 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::document::AnimationFrameCallback;
 use crate::dom::element::Element;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::node::{Node, window_from_node};
+use crate::dom::node::{window_from_node, Node};
 use crate::dom::window::Window;
 use crate::script_thread::Documents;
+use devtools_traits::TimelineMarkerType;
 use devtools_traits::{AutoMargins, CachedConsoleMessage, CachedConsoleMessageTypes};
 use devtools_traits::{ComputedNodeLayout, ConsoleAPI, PageError};
 use devtools_traits::{EvaluateJSReply, Modification, NodeInfo, TimelineMarker};
-use devtools_traits::TimelineMarkerType;
 use ipc_channel::ipc::IpcSender;
 use js::jsapi::JSAutoCompartment;
 use js::jsval::UndefinedValue;
@@ -172,7 +172,8 @@ pub fn handle_get_layout(
             paddingLeft: String::from(computed_style.PaddingLeft()),
             width: width,
             height: height,
-        })).unwrap();
+        }))
+        .unwrap();
 }
 
 fn determine_auto_margins(window: &Window, node: &Node) -> AutoMargins {

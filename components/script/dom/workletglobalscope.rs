@@ -19,8 +19,8 @@ use js::jsapi::JSContext;
 use js::jsval::UndefinedValue;
 use js::rust::Runtime;
 use msg::constellation_msg::PipelineId;
-use net_traits::ResourceThreads;
 use net_traits::image_cache::ImageCache;
+use net_traits::ResourceThreads;
 use profile_traits::mem;
 use profile_traits::time;
 use script_traits::{Painter, ScriptMsg};
@@ -100,7 +100,8 @@ impl WorkletGlobalScope {
                 name,
                 properties,
                 painter,
-            }).expect("Worklet thread outlived script thread.");
+            })
+            .expect("Worklet thread outlived script thread.");
     }
 
     /// The base URL of this global.

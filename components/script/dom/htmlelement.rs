@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use crate::dom::activation::{ActivationSource, synthetic_click_activation};
+use crate::dom::activation::{synthetic_click_activation, ActivationSource};
 use crate::dom::attr::Attr;
 use crate::dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
 use crate::dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
@@ -11,8 +11,8 @@ use crate::dom::bindings::codegen::Bindings::HTMLElementBinding::HTMLElementMeth
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeBinding::NodeMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::error::{Error, ErrorResult};
-use crate::dom::bindings::inheritance::{ElementTypeId, HTMLElementTypeId, NodeTypeId};
 use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::inheritance::{ElementTypeId, HTMLElementTypeId, NodeTypeId};
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom, RootedReference};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::cssstyledeclaration::{CSSModificationAccess, CSSStyleDeclaration, CSSStyleOwner};
@@ -27,8 +27,8 @@ use crate::dom::htmlframesetelement::HTMLFrameSetElement;
 use crate::dom::htmlhtmlelement::HTMLHtmlElement;
 use crate::dom::htmlinputelement::{HTMLInputElement, InputType};
 use crate::dom::htmllabelelement::HTMLLabelElement;
-use crate::dom::node::{Node, NodeFlags};
 use crate::dom::node::{document_from_node, window_from_node};
+use crate::dom::node::{Node, NodeFlags};
 use crate::dom::nodelist::NodeList;
 use crate::dom::text::Text;
 use crate::dom::virtualmethods::VirtualMethods;
@@ -672,7 +672,8 @@ impl HTMLElement {
             .filter_map(|attr| {
                 let raw_name = attr.local_name();
                 to_camel_case(&raw_name)
-            }).collect()
+            })
+            .collect()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-lfe-labels
@@ -684,16 +685,17 @@ impl HTMLElement {
 
         // Traverse ancestors for implicitly associated <label> elements
         // https://html.spec.whatwg.org/multipage/#the-label-element:attr-label-for-4
-        let ancestors = self.upcast::<Node>()
-                .ancestors()
-                .filter_map(DomRoot::downcast::<HTMLElement>)
-                // If we reach a labelable element, we have a guarantee no ancestors above it
-                // will be a label for this HTMLElement
-                .take_while(|elem| !elem.is_labelable_element())
-                .filter_map(DomRoot::downcast::<HTMLLabelElement>)
-                .filter(|elem| !elem.upcast::<Element>().has_attribute(&local_name!("for")))
-                .filter(|elem| elem.first_labelable_descendant().r() == Some(self))
-                .map(DomRoot::upcast::<Node>);
+        let ancestors = self
+            .upcast::<Node>()
+            .ancestors()
+            .filter_map(DomRoot::downcast::<HTMLElement>)
+            // If we reach a labelable element, we have a guarantee no ancestors above it
+            // will be a label for this HTMLElement
+            .take_while(|elem| !elem.is_labelable_element())
+            .filter_map(DomRoot::downcast::<HTMLLabelElement>)
+            .filter(|elem| !elem.upcast::<Element>().has_attribute(&local_name!("for")))
+            .filter(|elem| elem.first_labelable_descendant().r() == Some(self))
+            .map(DomRoot::upcast::<Node>);
 
         let id = element.Id();
         let id = match &id as &str {

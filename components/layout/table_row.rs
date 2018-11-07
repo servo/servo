@@ -9,7 +9,9 @@ use crate::block::{BlockFlow, ISizeAndMarginsComputer};
 use crate::context::LayoutContext;
 use crate::display_list::{BlockFlowDisplayListBuilding, DisplayListBuildState};
 use crate::display_list::{StackingContextCollectionFlags, StackingContextCollectionState};
-use crate::flow::{EarlyAbsolutePositionInfo, Flow, FlowClass, ImmutableFlowUtils, GetBaseFlow, OpaqueFlow};
+use crate::flow::{
+    EarlyAbsolutePositionInfo, Flow, FlowClass, GetBaseFlow, ImmutableFlowUtils, OpaqueFlow,
+};
 use crate::flow_list::MutFlowListIterator;
 use crate::fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
 use crate::layout_debug;

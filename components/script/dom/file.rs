@@ -10,7 +10,7 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::reflect_dom_object;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
-use crate::dom::blob::{Blob, BlobImpl, blob_parts_to_bytes};
+use crate::dom::blob::{blob_parts_to_bytes, Blob, BlobImpl};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::window::Window;
 use dom_struct::dom_struct;

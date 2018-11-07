@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use ipc_channel::ipc::channel;
-use script_traits::{ScriptToConstellationChan, ScriptMsg};
+use script_traits::{ScriptMsg, ScriptToConstellationChan};
 use std::borrow::ToOwned;
 
 pub trait ClipboardProvider {

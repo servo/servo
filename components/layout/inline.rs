@@ -3,32 +3,32 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use app_units::{Au, MIN_AU};
-use crate::ServoArc;
 use crate::block::AbsoluteAssignBSizesTraversal;
 use crate::context::{LayoutContext, LayoutFontContext};
-use crate::display_list::{DisplayListBuildState, InlineFlowDisplayListBuilding};
-use crate::display_list::StackingContextCollectionState;
 use crate::display_list::items::OpaqueNode;
+use crate::display_list::StackingContextCollectionState;
+use crate::display_list::{DisplayListBuildState, InlineFlowDisplayListBuilding};
 use crate::floats::{FloatKind, Floats, PlacementInfo};
 use crate::flow::{BaseFlow, Flow, FlowClass, ForceNonfloatedFlag};
-use crate::flow::{FlowFlags, EarlyAbsolutePositionInfo, GetBaseFlow, OpaqueFlow};
+use crate::flow::{EarlyAbsolutePositionInfo, FlowFlags, GetBaseFlow, OpaqueFlow};
 use crate::flow_ref::FlowRef;
-use crate::fragment::{CoordinateSystem, Fragment, FragmentBorderBoxIterator, Overflow};
 use crate::fragment::FragmentFlags;
 use crate::fragment::SpecificFragmentInfo;
+use crate::fragment::{CoordinateSystem, Fragment, FragmentBorderBoxIterator, Overflow};
 use crate::layout_debug;
 use crate::model::IntrinsicISizesContribution;
 use crate::text;
 use crate::traversal::PreorderFlowTraversal;
+use crate::ServoArc;
 use euclid::{Point2D, Size2D};
 use gfx::font::FontMetrics;
 use gfx_traits::print_tree::PrintTree;
 use range::{Range, RangeIndex};
 use script_layout_interface::wrapper_traits::PseudoElementType;
-use std::{fmt, i32, isize, mem};
 use std::cmp::max;
 use std::collections::VecDeque;
 use std::sync::Arc;
+use std::{fmt, i32, isize, mem};
 use style::computed_values::display::T as Display;
 use style::computed_values::overflow_x::T as StyleOverflow;
 use style::computed_values::position::T as Position;
@@ -316,7 +316,8 @@ impl LineBreaker {
             .map(|fragment| match fragment.specific {
                 SpecificFragmentInfo::ScannedText(ref info) => info.run.bidi_level,
                 _ => para_level,
-            }).collect();
+            })
+            .collect();
 
         let mut lines = mem::replace(&mut self.lines, Vec::new());
 
@@ -336,7 +337,8 @@ impl LineBreaker {
                             let start = FragmentIndex(run.start as isize);
                             let len = FragmentIndex(run.len() as isize);
                             (Range::new(start, len), levels[run.start])
-                        }).collect(),
+                        })
+                        .collect(),
                 );
             }
         }
@@ -1719,7 +1721,8 @@ impl Flow for InlineFlow {
                     debug_assert!(first_fragment_index < self.fragments.fragments.len());
                     let first_fragment = &self.fragments.fragments[first_fragment_index];
                     let padding_box_origin = (first_fragment.border_box -
-                        first_fragment.style.logical_border_width()).start;
+                        first_fragment.style.logical_border_width())
+                    .start;
                     containing_block_positions.push(
                         padding_box_origin.to_physical(self.base.writing_mode, container_size),
                     );
@@ -1733,7 +1736,8 @@ impl Flow for InlineFlow {
                     debug_assert!(first_fragment_index < self.fragments.fragments.len());
                     let first_fragment = &self.fragments.fragments[first_fragment_index];
                     let padding_box_origin = (first_fragment.border_box -
-                        first_fragment.style.logical_border_width()).start;
+                        first_fragment.style.logical_border_width())
+                    .start;
                     containing_block_positions.push(
                         padding_box_origin.to_physical(self.base.writing_mode, container_size),
                     );
@@ -1878,7 +1882,8 @@ impl Flow for InlineFlow {
                         relative_containing_block_size,
                         relative_containing_block_mode,
                         CoordinateSystem::Own,
-                    ).translate(&stacking_context_position.to_vector()),
+                    )
+                    .translate(&stacking_context_position.to_vector()),
             )
         }
     }

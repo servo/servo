@@ -2,8 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use euclid::{Size2D, Point2D, SideOffsets2D, Rect};
-use style::logical_geometry::{WritingMode, LogicalSize, LogicalPoint, LogicalMargin, LogicalRect};
+use euclid::{Point2D, Rect, SideOffsets2D, Size2D};
+use style::logical_geometry::{LogicalMargin, LogicalPoint, LogicalRect, LogicalSize, WritingMode};
 
 #[cfg(test)]
 fn modes() -> [WritingMode; 13] {

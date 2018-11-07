@@ -4,7 +4,7 @@
 
 use crate::dom::bindings::codegen::Bindings::StyleSheetListBinding;
 use crate::dom::bindings::codegen::Bindings::StyleSheetListBinding::StyleSheetListMethods;
-use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
+use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::document::Document;
 use crate::dom::stylesheet::StyleSheet;

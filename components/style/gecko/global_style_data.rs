@@ -5,8 +5,8 @@
 //! Global style data
 
 use context::StyleSystemOptions;
-use gecko_bindings::bindings::{Gecko_RegisterProfilerThread, Gecko_UnregisterProfilerThread};
 use gecko_bindings::bindings::Gecko_SetJemallocThreadLocalArena;
+use gecko_bindings::bindings::{Gecko_RegisterProfilerThread, Gecko_UnregisterProfilerThread};
 use num_cpus;
 use parallel::STYLE_THREAD_STACK_SIZE_KB;
 use rayon;

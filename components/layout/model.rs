@@ -11,8 +11,8 @@ use std::cmp::{max, min};
 use std::fmt;
 use style::logical_geometry::{LogicalMargin, WritingMode};
 use style::properties::ComputedValues;
-use style::values::computed::{LengthOrPercentageOrAuto, LengthOrPercentage};
 use style::values::computed::LengthOrPercentageOrNone;
+use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto};
 
 /// A collapsible margin. See CSS 2.1 § 8.3.1.
 #[derive(Clone, Copy, Debug)]
@@ -505,10 +505,12 @@ pub fn style_length(
 ) -> MaybeAuto {
     match container_size {
         Some(length) => MaybeAuto::from_style(style_length, length),
-        None => if let LengthOrPercentageOrAuto::Length(length) = style_length {
-            MaybeAuto::Specified(Au::from(length))
-        } else {
-            MaybeAuto::Auto
+        None => {
+            if let LengthOrPercentageOrAuto::Length(length) = style_length {
+                MaybeAuto::Specified(Au::from(length))
+            } else {
+                MaybeAuto::Auto
+            }
         },
     }
 }
@@ -580,19 +582,23 @@ impl SizeConstraint {
     ) -> SizeConstraint {
         let mut min_size = match container_size {
             Some(container_size) => min_size.to_used_value(container_size),
-            None => if let LengthOrPercentage::Length(length) = min_size {
-                Au::from(length)
-            } else {
-                Au(0)
+            None => {
+                if let LengthOrPercentage::Length(length) = min_size {
+                    Au::from(length)
+                } else {
+                    Au(0)
+                }
             },
         };
 
         let mut max_size = match container_size {
             Some(container_size) => max_size.to_used_value(container_size),
-            None => if let LengthOrPercentageOrNone::Length(length) = max_size {
-                Some(Au::from(length))
-            } else {
-                None
+            None => {
+                if let LengthOrPercentageOrNone::Length(length) = max_size {
+                    Some(Au::from(length))
+                } else {
+                    None
+                }
             },
         };
         // Make sure max size is not smaller than min size.

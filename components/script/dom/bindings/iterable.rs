@@ -9,7 +9,7 @@
 use crate::dom::bindings::codegen::Bindings::IterableIteratorBinding::IterableKeyAndValueResult;
 use crate::dom::bindings::codegen::Bindings::IterableIteratorBinding::IterableKeyOrValueResult;
 use crate::dom::bindings::error::Fallible;
-use crate::dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
+use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::trace::{JSTraceable, RootedTraceableBox};
 use crate::dom::globalscope::GlobalScope;

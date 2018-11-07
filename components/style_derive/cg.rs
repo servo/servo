@@ -9,7 +9,7 @@ use syn::{GenericArgument, GenericParam, Ident, Path};
 use syn::{PathArguments, PathSegment, QSelf, Type, TypeArray};
 use syn::{TypeParam, TypeParen, TypePath, TypeSlice, TypeTuple};
 use syn::{Variant, WherePredicate};
-use synstructure::{self, BindingInfo, BindStyle, VariantAst, VariantInfo};
+use synstructure::{self, BindStyle, BindingInfo, VariantAst, VariantInfo};
 
 pub fn add_predicate(where_clause: &mut Option<syn::WhereClause>, pred: WherePredicate) {
     where_clause
@@ -58,7 +58,8 @@ pub fn fmap_trait_output(input: &DeriveInput, trait_path: &Path, trait_output: I
                         )
                     },
                     ref arg => panic!("arguments {:?} cannot be mapped yet", arg),
-                }).collect(),
+                })
+                .collect(),
             colon2_token: Default::default(),
             gt_token: Default::default(),
             lt_token: Default::default(),
@@ -154,14 +155,16 @@ where
                                         })
                                     },
                                     ref arg => panic!("arguments {:?} cannot be mapped yet", arg),
-                                }).collect(),
+                                })
+                                .collect(),
                             ..data.clone()
                         })
                     },
                     ref arg @ PathArguments::None => arg.clone(),
                     ref parameters => panic!("parameters {:?} cannot be mapped yet", parameters),
                 },
-            }).collect(),
+            })
+            .collect(),
     }
 }
 

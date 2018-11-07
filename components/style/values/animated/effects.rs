@@ -4,16 +4,16 @@
 
 //! Animated types for CSS values related to effects.
 
-#[cfg(not(feature = "gecko"))]
-use values::Impossible;
 use values::animated::color::Color;
-use values::computed::{Angle, Number};
 use values::computed::length::Length;
 #[cfg(feature = "gecko")]
 use values::computed::url::ComputedUrl;
+use values::computed::{Angle, Number};
 use values::generics::effects::BoxShadow as GenericBoxShadow;
 use values::generics::effects::Filter as GenericFilter;
 use values::generics::effects::SimpleShadow as GenericSimpleShadow;
+#[cfg(not(feature = "gecko"))]
+use values::Impossible;
 
 /// An animated value for a single `box-shadow`.
 pub type BoxShadow = GenericBoxShadow<Color, Length, Length, Length>;

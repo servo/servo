@@ -4,8 +4,12 @@
 
 use crate::dom::audionode::{AudioNode, MAX_CHANNEL_COUNT};
 use crate::dom::baseaudiocontext::BaseAudioContext;
-use crate::dom::bindings::codegen::Bindings::AudioNodeBinding::{ChannelCountMode, ChannelInterpretation};
-use crate::dom::bindings::codegen::Bindings::ChannelMergerNodeBinding::{self, ChannelMergerOptions};
+use crate::dom::bindings::codegen::Bindings::AudioNodeBinding::{
+    ChannelCountMode, ChannelInterpretation,
+};
+use crate::dom::bindings::codegen::Bindings::ChannelMergerNodeBinding::{
+    self, ChannelMergerOptions,
+};
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::reflect_dom_object;
 use crate::dom::bindings::root::DomRoot;

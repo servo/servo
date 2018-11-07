@@ -11,21 +11,28 @@
 //! maybe it's an absolute or fixed position thing that hasn't found its containing block yet.
 //! Construction items bubble up the tree from children to parents until they find their homes.
 
-use crate::ServoArc;
 use crate::block::BlockFlow;
-use crate::context::{LayoutContext, with_thread_local_font_context};
-use crate::data::{LayoutDataFlags, LayoutData};
+use crate::context::{with_thread_local_font_context, LayoutContext};
+use crate::data::{LayoutData, LayoutDataFlags};
 use crate::display_list::items::OpaqueNode;
 use crate::flex::FlexFlow;
 use crate::floats::FloatKind;
 use crate::flow::{AbsoluteDescendants, Flow, FlowClass, GetBaseFlow, ImmutableFlowUtils};
 use crate::flow::{FlowFlags, MutableFlowUtils, MutableOwnedFlowUtils};
 use crate::flow_ref::FlowRef;
-use crate::fragment::{CanvasFragmentInfo, Fragment, FragmentFlags, GeneratedContentInfo, IframeFragmentInfo};
-use crate::fragment::{ImageFragmentInfo, InlineAbsoluteFragmentInfo, InlineAbsoluteHypotheticalFragmentInfo};
-use crate::fragment::{InlineBlockFragmentInfo, MediaFragmentInfo, SpecificFragmentInfo, SvgFragmentInfo};
-use crate::fragment::{TableColumnFragmentInfo, UnscannedTextFragmentInfo, WhitespaceStrippingResult};
-use crate::inline::{InlineFlow, InlineFragmentNodeInfo, InlineFragmentNodeFlags};
+use crate::fragment::{
+    CanvasFragmentInfo, Fragment, FragmentFlags, GeneratedContentInfo, IframeFragmentInfo,
+};
+use crate::fragment::{
+    ImageFragmentInfo, InlineAbsoluteFragmentInfo, InlineAbsoluteHypotheticalFragmentInfo,
+};
+use crate::fragment::{
+    InlineBlockFragmentInfo, MediaFragmentInfo, SpecificFragmentInfo, SvgFragmentInfo,
+};
+use crate::fragment::{
+    TableColumnFragmentInfo, UnscannedTextFragmentInfo, WhitespaceStrippingResult,
+};
+use crate::inline::{InlineFlow, InlineFragmentNodeFlags, InlineFragmentNodeInfo};
 use crate::linked_list::prepend_from;
 use crate::list_item::{ListItemFlow, ListStyleTypeContent};
 use crate::multicol::{MulticolColumnFlow, MulticolFlow};
@@ -40,15 +47,18 @@ use crate::table_wrapper::TableWrapperFlow;
 use crate::text::TextRunScanner;
 use crate::traversal::PostorderNodeMutTraversal;
 use crate::wrapper::{LayoutNodeLayoutData, TextContent, ThreadSafeLayoutNodeHelpers};
-use script_layout_interface::{LayoutElementType, LayoutNodeType, is_image_data};
-use script_layout_interface::wrapper_traits::{PseudoElementType, ThreadSafeLayoutElement, ThreadSafeLayoutNode};
+use crate::ServoArc;
+use script_layout_interface::wrapper_traits::{
+    PseudoElementType, ThreadSafeLayoutElement, ThreadSafeLayoutNode,
+};
+use script_layout_interface::{is_image_data, LayoutElementType, LayoutNodeType};
 use servo_config::opts;
 use servo_url::ServoUrl;
 use std::collections::LinkedList;
 use std::marker::PhantomData;
 use std::mem;
-use std::sync::Arc;
 use std::sync::atomic::Ordering;
+use std::sync::Arc;
 use style::computed_values::caption_side::T as CaptionSide;
 use style::computed_values::display::T as Display;
 use style::computed_values::empty_cells::T as EmptyCells;
@@ -185,7 +195,8 @@ impl InlineBlockSplit {
             predecessors: mem::replace(
                 fragment_accumulator,
                 InlineFragmentsAccumulator::from_inline_node(node, style_context),
-            ).to_intermediate_inline_fragments::<ConcreteThreadSafeLayoutNode>(style_context),
+            )
+            .to_intermediate_inline_fragments::<ConcreteThreadSafeLayoutNode>(style_context),
             flow: flow,
         };
 
@@ -402,7 +413,7 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
                     &self.layout_context,
                 ));
                 SpecificFragmentInfo::Image(image_info)
-            }
+            },
             Some(LayoutNodeType::Element(LayoutElementType::HTMLMediaElement)) => {
                 let data = node.media_data().unwrap();
                 SpecificFragmentInfo::Media(Box::new(MediaFragmentInfo::new(data)))

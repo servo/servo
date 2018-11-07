@@ -14,6 +14,8 @@ mod common {
 
 #[cfg(feature = "bindgen")]
 mod bindings {
+    use super::super::PYTHON;
+    use super::common::*;
     use bindgen::{Builder, CodegenConfig};
     use regex::Regex;
     use std::cmp;
@@ -26,8 +28,6 @@ mod bindings {
     use std::slice;
     use std::sync::Mutex;
     use std::time::SystemTime;
-    use super::common::*;
-    use super::super::PYTHON;
     use toml;
     use toml::value::Table;
 
@@ -284,7 +284,8 @@ mod bindings {
                 let macro_name = captures.get(1).unwrap().as_str().to_string();
                 let type_name = captures.get(2).unwrap().as_str().to_string();
                 (macro_name, type_name)
-            }).collect()
+            })
+            .collect()
     }
 
     fn get_borrowed_types() -> Vec<(bool, String)> {
@@ -419,7 +420,8 @@ mod bindings {
                     servo,
                     if generic { "<T>" } else { "" }
                 ))
-            }).get_builder();
+            })
+            .get_builder();
         write_binding_file(builder, STRUCTS_FILE, &fixups);
     }
 
@@ -467,7 +469,8 @@ mod bindings {
                 filter: env::var("STYLO_BUILD_FILTER")
                     .ok()
                     .unwrap_or_else(|| "bindgen".to_owned()),
-            })).expect("Failed to set logger.");
+            }))
+            .expect("Failed to set logger.");
 
             true
         } else {
@@ -486,7 +489,8 @@ mod bindings {
             .handle_common(&mut fixups)
             .handle_str_items("whitelist-functions", |b, item| b.whitelist_function(item))
             .handle_str_items("structs-types", |mut builder, ty| {
-                builder = builder.blacklist_type(ty)
+                builder = builder
+                    .blacklist_type(ty)
                     .raw_line(format!("use gecko_bindings::structs::{};", ty));
                 structs_types.insert(ty);
                 // TODO this is hacky, figure out a better way to do it without
@@ -504,10 +508,14 @@ mod bindings {
             .handle_table_items("array-types", |builder, item| {
                 let cpp_type = item["cpp-type"].as_str().unwrap();
                 let rust_type = item["rust-type"].as_str().unwrap();
-                builder
-                    .raw_line(format!(concat!("pub type nsTArrayBorrowed_{}<'a> = ",
-                                              "&'a mut ::gecko_bindings::structs::nsTArray<{}>;"),
-                                      cpp_type, rust_type))
+                builder.raw_line(format!(
+                    concat!(
+                        "pub type nsTArrayBorrowed_{}<'a> = ",
+                        "&'a mut ::gecko_bindings::structs::nsTArray<{}>;"
+                    ),
+                    cpp_type,
+                    rust_type
+                ))
             })
             .handle_str_items("servo-immutable-borrow-types", |b, ty| b.borrowed_type(ty))
             // Right now the only immutable borrow types are ones which we import
@@ -529,7 +537,8 @@ mod bindings {
                 .raw_line(format!(
                     "pub type {0}Strong = ::gecko_bindings::sugar::ownership::Strong<{0}>;",
                     ty
-                )).borrowed_type(ty)
+                ))
+                .borrowed_type(ty)
                 .zero_size_type(ty, &structs_types);
         }
         for ty in get_boxed_types().iter() {
@@ -538,14 +547,16 @@ mod bindings {
                 .raw_line(format!(
                     "pub type {0}Owned = ::gecko_bindings::sugar::ownership::Owned<{0}>;",
                     ty
-                )).blacklist_type(format!("{}OwnedOrNull", ty))
+                ))
+                .blacklist_type(format!("{}OwnedOrNull", ty))
                 .raw_line(format!(
                     concat!(
                         "pub type {0}OwnedOrNull = ",
                         "::gecko_bindings::sugar::ownership::OwnedOrNull<{0}>;"
                     ),
                     ty
-                )).mutable_borrowed_type(ty)
+                ))
+                .mutable_borrowed_type(ty)
                 .zero_size_type(ty, &structs_types);
         }
         write_binding_file(builder, BINDINGS_FILE, &fixups);
@@ -595,9 +606,9 @@ mod bindings {
 
 #[cfg(not(feature = "bindgen"))]
 mod bindings {
-    use std::{env, fs, io};
-    use std::path::{Path, PathBuf};
     use super::common::*;
+    use std::path::{Path, PathBuf};
+    use std::{env, fs, io};
 
     /// Copy contents of one directory into another.
     /// It currently only does a shallow copy.
@@ -622,7 +633,8 @@ mod bindings {
         println!("cargo:rerun-if-changed={}", dir.display());
         copy_dir(&dir, &*OUTDIR_PATH, |path| {
             println!("cargo:rerun-if-changed={}", path.display());
-        }).expect("Fail to copy generated files to out dir");
+        })
+        .expect("Fail to copy generated files to out dir");
     }
 }
 

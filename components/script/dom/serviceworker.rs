@@ -4,11 +4,13 @@
 
 use crate::dom::abstractworker::SimpleWorkerErrorHandler;
 use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::ServiceWorkerBinding::{ServiceWorkerMethods, ServiceWorkerState, Wrap};
-use crate::dom::bindings::error::{ErrorResult, Error};
+use crate::dom::bindings::codegen::Bindings::ServiceWorkerBinding::{
+    ServiceWorkerMethods, ServiceWorkerState, Wrap,
+};
+use crate::dom::bindings::error::{Error, ErrorResult};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
-use crate::dom::bindings::reflector::{DomObject, reflect_dom_object};
+use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::USVString;
 use crate::dom::bindings::structuredclone::StructuredCloneData;
@@ -18,7 +20,7 @@ use crate::task::TaskOnce;
 use dom_struct::dom_struct;
 use js::jsapi::JSContext;
 use js::rust::HandleValue;
-use script_traits::{ScriptMsg, DOMMessage};
+use script_traits::{DOMMessage, ScriptMsg};
 use servo_url::ServoUrl;
 use std::cell::Cell;
 

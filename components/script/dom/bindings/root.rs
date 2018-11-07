@@ -27,10 +27,10 @@
 use crate::dom::bindings::conversions::DerivedFrom;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::{DomObject, Reflector};
-use crate::dom::bindings::trace::JSTraceable;
 use crate::dom::bindings::trace::trace_reflector;
+use crate::dom::bindings::trace::JSTraceable;
 use crate::dom::node::Node;
-use js::jsapi::{JSObject, JSTracer, Heap};
+use js::jsapi::{Heap, JSObject, JSTracer};
 use js::rust::GCMethods;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use mitochondria::OnceCell;

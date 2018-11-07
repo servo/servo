@@ -5,9 +5,13 @@
 use crate::dom::audionode::AudioNode;
 use crate::dom::audioparam::AudioParam;
 use crate::dom::baseaudiocontext::BaseAudioContext;
-use crate::dom::bindings::codegen::Bindings::AudioNodeBinding::{ChannelCountMode, ChannelInterpretation};
+use crate::dom::bindings::codegen::Bindings::AudioNodeBinding::{
+    ChannelCountMode, ChannelInterpretation,
+};
 use crate::dom::bindings::codegen::Bindings::AudioParamBinding::AutomationRate;
-use crate::dom::bindings::codegen::Bindings::GainNodeBinding::{self, GainNodeMethods, GainOptions};
+use crate::dom::bindings::codegen::Bindings::GainNodeBinding::{
+    self, GainNodeMethods, GainOptions,
+};
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::reflector::reflect_dom_object;
 use crate::dom::bindings::root::{Dom, DomRoot};
@@ -48,9 +52,9 @@ impl GainNode {
             node.node_id(),
             ParamType::Gain,
             AutomationRate::A_rate,
-            *options.gain,  // default value
-            f32::MIN, // min value
-            f32::MAX, // max value
+            *options.gain, // default value
+            f32::MIN,      // min value
+            f32::MAX,      // max value
         );
         Ok(GainNode {
             node,

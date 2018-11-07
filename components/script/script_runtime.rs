@@ -9,12 +9,12 @@ use crate::dom::bindings::codegen::Bindings::PromiseBinding::PromiseJobCallback;
 use crate::dom::bindings::conversions::get_dom_class;
 use crate::dom::bindings::conversions::private_from_object;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::refcounted::{LiveDOMReferences, trace_refcounted_objects};
+use crate::dom::bindings::refcounted::{trace_refcounted_objects, LiveDOMReferences};
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::trace_roots;
 use crate::dom::bindings::settings_stack;
-use crate::dom::bindings::trace::{JSTraceable, trace_traceables};
+use crate::dom::bindings::trace::{trace_traceables, JSTraceable};
 use crate::dom::bindings::utils::DOM_CALLBACKS;
 use crate::dom::event::{Event, EventBubbles, EventCancelable, EventStatus};
 use crate::dom::eventtarget::EventTarget;
@@ -27,19 +27,21 @@ use crate::task::TaskBox;
 use crate::task_source::{TaskSource, TaskSourceName};
 use js::glue::CollectServoSizes;
 use js::glue::SetBuildId;
+use js::jsapi::ContextOptionsRef;
 use js::jsapi::{BuildIdCharVector, DisableIncrementalGC, GCDescription, GCProgress};
-use js::jsapi::{Heap, HandleObject};
+use js::jsapi::{HandleObject, Heap};
 use js::jsapi::{JSContext, JSTracer, SetDOMCallbacks, SetGCSliceCallback};
 use js::jsapi::{JSGCInvocationKind, JSGCStatus, JS_AddExtraGCRootsTracer, JS_SetGCCallback};
 use js::jsapi::{JSGCMode, JSGCParamKey, JS_SetGCParameter, JS_SetGlobalJitCompilerOption};
-use js::jsapi::{JSJitCompilerOption, JS_SetOffthreadIonCompilationEnabled, JS_SetParallelParsingEnabled};
+use js::jsapi::{
+    JSJitCompilerOption, JS_SetOffthreadIonCompilationEnabled, JS_SetParallelParsingEnabled,
+};
 use js::jsapi::{JSObject, PromiseRejectionHandlingState, SetPreserveWrapperCallback};
 use js::jsapi::{SetBuildIdOp, SetEnqueuePromiseJobCallback, SetPromiseRejectionTrackerCallback};
-use js::jsapi::ContextOptionsRef;
 use js::panic::wrap_panic;
+use js::rust::wrappers::{GetPromiseIsHandled, GetPromiseResult};
 use js::rust::Handle;
 use js::rust::Runtime as RustRuntime;
-use js::rust::wrappers::{GetPromiseIsHandled, GetPromiseResult};
 use malloc_size_of::MallocSizeOfOps;
 use msg::constellation_msg::PipelineId;
 use profile_traits::mem::{Report, ReportKind, ReportsChan};
@@ -47,14 +49,14 @@ use servo_config::opts;
 use servo_config::prefs::PREFS;
 use std::cell::Cell;
 use std::fmt;
-use std::io::{Write, stdout};
+use std::io::{stdout, Write};
 use std::ops::Deref;
 use std::os;
 use std::os::raw::c_void;
 use std::panic::AssertUnwindSafe;
 use std::ptr;
 use style::thread_state::{self, ThreadState};
-use time::{Tm, now};
+use time::{now, Tm};
 
 /// Common messages used to control the event loops in both the script and the worker
 pub enum CommonScriptMsg {
@@ -156,40 +158,51 @@ unsafe extern "C" fn promise_rejection_tracker(
     cx: *mut JSContext,
     promise: HandleObject,
     state: PromiseRejectionHandlingState,
-    _data: *mut c_void
+    _data: *mut c_void,
 ) {
     // TODO: Step 2 - If script's muted errors is true, terminate these steps.
 
     // Step 3.
     let global = GlobalScope::from_context(cx);
 
-    wrap_panic(AssertUnwindSafe(|| {
-        match state {
-            // Step 4.
-            PromiseRejectionHandlingState::Unhandled => {
-                global.add_uncaught_rejection(promise);
-            },
-            // Step 5.
-            PromiseRejectionHandlingState::Handled => {
-                // Step 5-1.
-                if global.get_uncaught_rejections().borrow().contains(&Heap::boxed(promise.get())) {
-                    global.remove_uncaught_rejection(promise);
-                    return;
-                }
+    wrap_panic(
+        AssertUnwindSafe(|| {
+            match state {
+                // Step 4.
+                PromiseRejectionHandlingState::Unhandled => {
+                    global.add_uncaught_rejection(promise);
+                },
+                // Step 5.
+                PromiseRejectionHandlingState::Handled => {
+                    // Step 5-1.
+                    if global
+                        .get_uncaught_rejections()
+                        .borrow()
+                        .contains(&Heap::boxed(promise.get()))
+                    {
+                        global.remove_uncaught_rejection(promise);
+                        return;
+                    }
 
-                // Step 5-2.
-                if !global.get_consumed_rejections().borrow().contains(&Heap::boxed(promise.get())) {
-                    global.add_consumed_rejection(promise);
-                    return;
-                }
+                    // Step 5-2.
+                    if !global
+                        .get_consumed_rejections()
+                        .borrow()
+                        .contains(&Heap::boxed(promise.get()))
+                    {
+                        global.add_consumed_rejection(promise);
+                        return;
+                    }
 
-                // Step 5-3.
-                global.remove_consumed_rejection(promise);
+                    // Step 5-3.
+                    global.remove_consumed_rejection(promise);
 
-                // TODO: Step 5-4 - Queue a task to fire `rejectionhandled` event
-            }
-        };
-    }), ());
+                    // TODO: Step 5-4 - Queue a task to fire `rejectionhandled` event
+                },
+            };
+        }),
+        (),
+    );
 }
 
 #[allow(unsafe_code, unrooted_must_root)]
@@ -201,11 +214,13 @@ pub fn notify_about_rejected_promises(global: &GlobalScope) {
         // Step 2.
         if global.get_uncaught_rejections().borrow().len() > 0 {
             // Step 1.
-            let uncaught_rejections: Vec<TrustedPromise> = global.get_uncaught_rejections()
+            let uncaught_rejections: Vec<TrustedPromise> = global
+                .get_uncaught_rejections()
                 .borrow()
                 .iter()
                 .map(|promise| {
-                    let promise = Promise::new_with_js_promise(Handle::from_raw(promise.handle()), cx);
+                    let promise =
+                        Promise::new_with_js_promise(Handle::from_raw(promise.handle()), cx);
 
                     TrustedPromise::new(promise)
                 })
@@ -675,7 +690,7 @@ unsafe extern "C" fn servo_build_id(build_id: *mut BuildIdCharVector) -> bool {
 #[allow(unsafe_code)]
 #[cfg(feature = "debugmozjs")]
 unsafe fn set_gc_zeal_options(cx: *mut JSContext) {
-    use js::jsapi::{JS_DEFAULT_ZEAL_FREQ, JS_SetGCZeal};
+    use js::jsapi::{JS_SetGCZeal, JS_DEFAULT_ZEAL_FREQ};
 
     let level = match PREFS.get("js.mem.gc.zeal.level").as_i64() {
         Some(level @ 0...14) => level as u8,

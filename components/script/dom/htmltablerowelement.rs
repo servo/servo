@@ -3,7 +3,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use crate::dom::bindings::codegen::Bindings::HTMLTableElementBinding::HTMLTableElementMethods;
-use crate::dom::bindings::codegen::Bindings::HTMLTableRowElementBinding::{self, HTMLTableRowElementMethods};
+use crate::dom::bindings::codegen::Bindings::HTMLTableRowElementBinding::{
+    self, HTMLTableRowElementMethods,
+};
 use crate::dom::bindings::codegen::Bindings::HTMLTableSectionElementBinding::HTMLTableSectionElementMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::error::{ErrorResult, Fallible};
@@ -17,7 +19,7 @@ use crate::dom::htmlelement::HTMLElement;
 use crate::dom::htmltablecellelement::HTMLTableCellElement;
 use crate::dom::htmltableelement::HTMLTableElement;
 use crate::dom::htmltablesectionelement::HTMLTableSectionElement;
-use crate::dom::node::{Node, window_from_node};
+use crate::dom::node::{window_from_node, Node};
 use crate::dom::virtualmethods::VirtualMethods;
 use cssparser::RGBA;
 use dom_struct::dom_struct;
@@ -105,11 +107,7 @@ impl HTMLTableRowElementMethods for HTMLTableRowElement {
     // https://html.spec.whatwg.org/multipage/#dom-tr-deletecell
     fn DeleteCell(&self, index: i32) -> ErrorResult {
         let node = self.upcast::<Node>();
-        node.delete_cell_or_row(
-            index,
-            || self.Cells(),
-            |n| n.is::<HTMLTableCellElement>(),
-        )
+        node.delete_cell_or_row(index, || self.Cells(), |n| n.is::<HTMLTableCellElement>())
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-tr-rowindex

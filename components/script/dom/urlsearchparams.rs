@@ -8,7 +8,7 @@ use crate::dom::bindings::codegen::Bindings::URLSearchParamsBinding::URLSearchPa
 use crate::dom::bindings::codegen::UnionTypes::USVStringOrURLSearchParams;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::iterable::Iterable;
-use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
+use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::bindings::weakref::MutableWeakRef;
@@ -108,7 +108,8 @@ impl URLSearchParamsMethods for URLSearchParams {
                 } else {
                     None
                 }
-            }).collect()
+            })
+            .collect()
     }
 
     // https://url.spec.whatwg.org/#dom-urlsearchparams-has

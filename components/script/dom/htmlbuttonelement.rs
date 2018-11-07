@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use crate::dom::activation::{Activatable, ActivationSource, synthetic_click_activation};
+use crate::dom::activation::{synthetic_click_activation, Activatable, ActivationSource};
 use crate::dom::attr::Attr;
 use crate::dom::bindings::codegen::Bindings::HTMLButtonElementBinding;
 use crate::dom::bindings::codegen::Bindings::HTMLButtonElementBinding::HTMLButtonElementMethods;
@@ -15,13 +15,13 @@ use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::htmlfieldsetelement::HTMLFieldSetElement;
+use crate::dom::htmlformelement::HTMLFormElement;
 use crate::dom::htmlformelement::{FormControl, FormDatum, FormDatumValue};
 use crate::dom::htmlformelement::{FormSubmitter, ResetFrom, SubmittedFrom};
-use crate::dom::htmlformelement::HTMLFormElement;
-use crate::dom::node::{Node, UnbindContext, document_from_node, window_from_node};
+use crate::dom::node::{document_from_node, window_from_node, Node, UnbindContext};
 use crate::dom::nodelist::NodeList;
 use crate::dom::validation::Validatable;
-use crate::dom::validitystate::{ValidityState, ValidationFlags};
+use crate::dom::validitystate::{ValidationFlags, ValidityState};
 use crate::dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
@@ -29,7 +29,7 @@ use std::cell::Cell;
 use std::default::Default;
 use style::element_state::ElementState;
 
-#[derive(Clone, Copy, JSTraceable, MallocSizeOf, PartialEq )]
+#[derive(Clone, Copy, JSTraceable, MallocSizeOf, PartialEq)]
 enum ButtonType {
     Submit,
     Reset,

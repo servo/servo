@@ -4,15 +4,15 @@
 
 use crate::dom::bindings::codegen::Bindings::ImageDataBinding;
 use crate::dom::bindings::codegen::Bindings::ImageDataBinding::ImageDataMethods;
-use crate::dom::bindings::error::{Fallible, Error};
-use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
+use crate::dom::bindings::error::{Error, Fallible};
+use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
 use euclid::{Rect, Size2D};
 use js::jsapi::{Heap, JSContext, JSObject};
 use js::rust::Runtime;
-use js::typedarray::{Uint8ClampedArray, CreateWith};
+use js::typedarray::{CreateWith, Uint8ClampedArray};
 use pixels;
 use std::borrow::Cow;
 use std::default::Default;

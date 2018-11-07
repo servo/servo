@@ -5,16 +5,16 @@
 //! A wrapper over an element and a snapshot, that allows us to selector-match
 //! against a past state of the element.
 
-use {Atom, CaseSensitivityExt, LocalName, Namespace, WeakAtom};
 use dom::TElement;
 use element_state::ElementState;
 use selector_parser::{AttrValue, NonTSPseudoClass, PseudoElement, SelectorImpl};
 use selector_parser::{Snapshot, SnapshotMap};
-use selectors::{Element, OpaqueElement};
 use selectors::attr::{AttrSelectorOperation, CaseSensitivity, NamespaceConstraint};
 use selectors::matching::{ElementSelectorFlags, MatchingContext};
+use selectors::{Element, OpaqueElement};
 use std::cell::Cell;
 use std::fmt;
+use {Atom, CaseSensitivityExt, LocalName, Namespace, WeakAtom};
 
 /// In order to compute restyle hints, we perform a selector match against a
 /// list of partial selectors whose rightmost simple selector may be sensitive

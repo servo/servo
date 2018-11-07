@@ -20,7 +20,7 @@ use crate::dom::window::Window;
 use dom_struct::dom_struct;
 use servo_media::audio::buffer_source_node::AudioBufferSourceNodeMessage;
 use servo_media::audio::buffer_source_node::AudioBufferSourceNodeOptions;
-use servo_media::audio::node::{AudioNodeMessage, AudioNodeInit};
+use servo_media::audio::node::{AudioNodeInit, AudioNodeMessage};
 use servo_media::audio::param::ParamType;
 use std::cell::Cell;
 use std::f32;

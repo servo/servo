@@ -44,8 +44,8 @@ pub extern crate net_traits;
 pub extern crate profile;
 pub extern crate profile_traits;
 pub extern crate script;
-pub extern crate script_traits;
 pub extern crate script_layout_interface;
+pub extern crate script_traits;
 pub extern crate servo_channel;
 pub extern crate servo_config;
 pub extern crate servo_geometry;
@@ -73,13 +73,13 @@ use bluetooth::BluetoothThreadFactory;
 use bluetooth_traits::BluetoothRequest;
 use canvas::gl_context::GLContextFactory;
 use canvas::webgl_thread::WebGLThreads;
-use compositing::{IOCompositor, ShutdownState, RenderNotifier};
 use compositing::compositor_thread::{CompositorProxy, CompositorReceiver, InitialCompositorState};
 use compositing::windowing::{WindowEvent, WindowMethods};
-use constellation::{Constellation, InitialConstellationState, UnprivilegedPipelineContent};
-use constellation::{FromCompositorLogger, FromScriptLogger};
+use compositing::{IOCompositor, RenderNotifier, ShutdownState};
 #[cfg(all(not(target_os = "windows"), not(target_os = "ios")))]
 use constellation::content_process_sandbox_profile;
+use constellation::{Constellation, InitialConstellationState, UnprivilegedPipelineContent};
+use constellation::{FromCompositorLogger, FromScriptLogger};
 use embedder_traits::{EmbedderMsg, EmbedderProxy, EmbedderReceiver, EventLoopWaker};
 use env_logger::Builder as EnvLoggerBuilder;
 #[cfg(all(not(target_os = "windows"), not(target_os = "ios")))]
@@ -95,7 +95,7 @@ use profile::time as profile_time;
 use profile_traits::mem;
 use profile_traits::time;
 use script_traits::{ConstellationMsg, SWManagerSenders, ScriptToConstellationChan};
-use servo_channel::{Sender, channel};
+use servo_channel::{channel, Sender};
 use servo_config::opts;
 use servo_config::prefs::PREFS;
 use std::borrow::Cow;
@@ -103,12 +103,12 @@ use std::cmp::max;
 use std::path::PathBuf;
 use std::rc::Rc;
 use webrender::{RendererKind, ShaderPrecacheFlags};
-use webvr::{WebVRThread, WebVRCompositorHandler};
+use webvr::{WebVRCompositorHandler, WebVRThread};
 
 pub use gleam::gl;
+pub use msg::constellation_msg::TopLevelBrowsingContextId as BrowserId;
 pub use servo_config as config;
 pub use servo_url as url;
-pub use msg::constellation_msg::{TopLevelBrowsingContextId as BrowserId};
 
 /// The in-process interface to Servo.
 ///
@@ -199,7 +199,8 @@ where
                     ..Default::default()
                 },
                 None,
-            ).expect("Unable to initialize webrender!")
+            )
+            .expect("Unable to initialize webrender!")
         };
 
         let webrender_api = webrender_api_sender.create_api();
@@ -378,7 +379,10 @@ where
             WindowEvent::SendError(ctx, e) => {
                 let msg = ConstellationMsg::SendError(ctx, e);
                 if let Err(e) = self.constellation_chan.send(msg) {
-                    warn!("Sending SendError message to constellation failed ({:?}).", e);
+                    warn!(
+                        "Sending SendError message to constellation failed ({:?}).",
+                        e
+                    );
                 }
             },
         }
@@ -397,14 +401,8 @@ where
 
                 (_, ShutdownState::ShuttingDown) => {},
 
-                (
-                    EmbedderMsg::Keyboard(key_event),
-                    ShutdownState::NotShuttingDown,
-                ) => {
-                    let event = (
-                        top_level_browsing_context,
-                        EmbedderMsg::Keyboard(key_event),
-                    );
+                (EmbedderMsg::Keyboard(key_event), ShutdownState::NotShuttingDown) => {
+                    let event = (top_level_browsing_context, EmbedderMsg::Keyboard(key_event));
                     self.embedder_events.push(event);
                 },
 

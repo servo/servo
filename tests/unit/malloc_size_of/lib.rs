@@ -20,6 +20,7 @@ fn main() {
 */
 pub fn imports_ok() {}
 
+#[rustfmt::skip]
 pub mod does_not_impl_malloc_size_of {
     /**
     ```compile_fail,E0277
@@ -35,7 +36,6 @@ pub mod does_not_impl_malloc_size_of {
     */
     pub fn servo_arc() {}
 
-
     /**
     ```compile_fail,E0277
     extern crate malloc_size_of;
@@ -48,7 +48,6 @@ pub mod does_not_impl_malloc_size_of {
     ```
     */
     pub fn std_arc() {}
-
 
     /**
     ```compile_fail,E0277
@@ -64,6 +63,7 @@ pub mod does_not_impl_malloc_size_of {
     pub fn rc() {}
 }
 
+#[rustfmt::skip]
 pub mod does_not_impl_malloc_shallow_size_of {
     /**
     ```compile_fail,E0277
@@ -79,7 +79,6 @@ pub mod does_not_impl_malloc_shallow_size_of {
     */
     pub fn servo_arc() {}
 
-
     /**
     ```compile_fail,E0277
     extern crate malloc_size_of;
@@ -92,7 +91,6 @@ pub mod does_not_impl_malloc_shallow_size_of {
     ```
     */
     pub fn std_arc() {}
-
 
     /**
     ```compile_fail,E0277

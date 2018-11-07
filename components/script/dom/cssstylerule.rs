@@ -5,22 +5,22 @@
 use crate::dom::bindings::codegen::Bindings::CSSStyleRuleBinding::{self, CSSStyleRuleMethods};
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowBinding::WindowMethods;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::{DomObject, reflect_dom_object};
+use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::cssrule::{CSSRule, SpecificCSSRule};
 use crate::dom::cssstyledeclaration::{CSSModificationAccess, CSSStyleDeclaration, CSSStyleOwner};
 use crate::dom::cssstylesheet::CSSStyleSheet;
 use crate::dom::window::Window;
-use cssparser::{Parser as CssParser, ParserInput as CssParserInput};
 use cssparser::ToCss;
+use cssparser::{Parser as CssParser, ParserInput as CssParserInput};
 use dom_struct::dom_struct;
 use selectors::parser::SelectorList;
 use servo_arc::Arc;
 use std::mem;
 use style::selector_parser::SelectorParser;
 use style::shared_lock::{Locked, ToCssWithGuard};
-use style::stylesheets::{StyleRule, Origin};
+use style::stylesheets::{Origin, StyleRule};
 
 #[dom_struct]
 pub struct CSSStyleRule {

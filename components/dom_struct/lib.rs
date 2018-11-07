@@ -55,7 +55,8 @@ pub fn dom_struct(args: TokenStream, input: TokenStream) -> TokenStream {
                         &self.#ident
                     }
                 }
-            ).into()
+            )
+            .into()
         } else {
             panic!("#[dom_struct] only applies to structs with named fields");
         }

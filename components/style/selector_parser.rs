@@ -6,7 +6,6 @@
 
 #![deny(missing_docs)]
 
-use Atom;
 use cssparser::{Parser as CssParser, ParserInput};
 use element_state::ElementState;
 use selectors::parser::SelectorList;
@@ -14,6 +13,7 @@ use std::fmt::{self, Debug, Write};
 use style_traits::{CssWriter, ParseError, ToCss};
 use stylesheets::{Namespaces, Origin, UrlExtraData};
 use values::serialize_atom_identifier;
+use Atom;
 
 /// A convenient alias for the type that represents an attribute value used for
 /// selector parser implementation.

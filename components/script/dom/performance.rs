@@ -4,12 +4,14 @@
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::PerformanceBinding;
-use crate::dom::bindings::codegen::Bindings::PerformanceBinding::{DOMHighResTimeStamp, PerformanceMethods};
 use crate::dom::bindings::codegen::Bindings::PerformanceBinding::PerformanceEntryList as DOMPerformanceEntryList;
+use crate::dom::bindings::codegen::Bindings::PerformanceBinding::{
+    DOMHighResTimeStamp, PerformanceMethods,
+};
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
-use crate::dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
+use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
@@ -73,7 +75,8 @@ impl PerformanceEntryList {
                 name.as_ref().map_or(true, |name_| *e.name() == *name_) && entry_type
                     .as_ref()
                     .map_or(true, |type_| *e.entry_type() == *type_)
-            }).map(|e| e.clone())
+            })
+            .map(|e| e.clone())
             .collect::<Vec<DomRoot<PerformanceEntry>>>();
         res.sort_by(|a, b| {
             a.start_time()
@@ -284,7 +287,8 @@ impl Performance {
                     o.observer.callback(),
                     o.observer.entries(),
                 )
-            }).collect();
+            })
+            .collect();
 
         // Step 7.3.
         for o in observers.iter() {

@@ -7,7 +7,7 @@ use crate::dom::bindings::codegen::Bindings::TimeRangesBinding;
 use crate::dom::bindings::codegen::Bindings::TimeRangesBinding::TimeRangesMethods;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::num::Finite;
-use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
+use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::window::Window;
 use dom_struct::dom_struct;
@@ -63,9 +63,7 @@ pub struct TimeRangesContainer {
 
 impl TimeRangesContainer {
     pub fn new() -> Self {
-        Self {
-            ranges: Vec::new(),
-        }
+        Self { ranges: Vec::new() }
     }
 
     pub fn len(&self) -> u32 {
@@ -73,11 +71,17 @@ impl TimeRangesContainer {
     }
 
     pub fn start(&self, index: u32) -> Result<f64, TimeRangesError> {
-        self.ranges.get(index as usize).map(|r| r.start).ok_or(TimeRangesError::OutOfRange)
+        self.ranges
+            .get(index as usize)
+            .map(|r| r.start)
+            .ok_or(TimeRangesError::OutOfRange)
     }
 
     pub fn end(&self, index: u32) -> Result<f64, TimeRangesError> {
-        self.ranges.get(index as usize).map(|r| r.end).ok_or(TimeRangesError::OutOfRange)
+        self.ranges
+            .get(index as usize)
+            .map(|r| r.end)
+            .ok_or(TimeRangesError::OutOfRange)
     }
 
     pub fn add(&mut self, start: f64, end: f64) -> Result<(), TimeRangesError> {
@@ -93,13 +97,16 @@ impl TimeRangesContainer {
         //   in between two ranges.
         let mut idx = 0;
         while idx < self.ranges.len() {
-            if new_range.is_overlapping(&self.ranges[idx]) || new_range.is_contiguous(&self.ranges[idx]) {
+            if new_range.is_overlapping(&self.ranges[idx]) ||
+                new_range.is_contiguous(&self.ranges[idx])
+            {
                 // The ranges are either overlapping or contiguous,
                 // we need to merge the new range with the existing one.
                 new_range.union(&self.ranges[idx]);
                 self.ranges.remove(idx);
             } else if new_range.is_before(&self.ranges[idx]) &&
-                (idx == 0 || self.ranges[idx - 1].is_before(&new_range)) {
+                (idx == 0 || self.ranges[idx - 1].is_before(&new_range))
+            {
                 // We are exactly after the current previous range and before the current
                 // range, while not overlapping with none of them.
                 // Or we are simply at the beginning.
@@ -155,9 +162,7 @@ impl TimeRangesMethods for TimeRanges {
             .borrow()
             .start(index)
             .map(Finite::wrap)
-            .map_err(|_| {
-                Error::IndexSize
-            })
+            .map_err(|_| Error::IndexSize)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-timeranges-end
@@ -166,8 +171,6 @@ impl TimeRangesMethods for TimeRanges {
             .borrow()
             .end(index)
             .map(Finite::wrap)
-            .map_err(|_| {
-                Error::IndexSize
-            })
+            .map_err(|_| Error::IndexSize)
     }
 }

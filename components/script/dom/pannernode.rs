@@ -5,10 +5,18 @@
 use crate::dom::audionode::AudioNode;
 use crate::dom::audioparam::AudioParam;
 use crate::dom::baseaudiocontext::BaseAudioContext;
-use crate::dom::bindings::codegen::Bindings::AudioNodeBinding::{ChannelCountMode, ChannelInterpretation};
-use crate::dom::bindings::codegen::Bindings::AudioParamBinding::{AudioParamMethods, AutomationRate};
-use crate::dom::bindings::codegen::Bindings::PannerNodeBinding::{self, PannerNodeMethods, PannerOptions};
-use crate::dom::bindings::codegen::Bindings::PannerNodeBinding::{DistanceModelType, PanningModelType};
+use crate::dom::bindings::codegen::Bindings::AudioNodeBinding::{
+    ChannelCountMode, ChannelInterpretation,
+};
+use crate::dom::bindings::codegen::Bindings::AudioParamBinding::{
+    AudioParamMethods, AutomationRate,
+};
+use crate::dom::bindings::codegen::Bindings::PannerNodeBinding::{
+    self, PannerNodeMethods, PannerOptions,
+};
+use crate::dom::bindings::codegen::Bindings::PannerNodeBinding::{
+    DistanceModelType, PanningModelType,
+};
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
@@ -17,8 +25,8 @@ use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::window::Window;
 use dom_struct::dom_struct;
 use servo_media::audio::node::{AudioNodeInit, AudioNodeMessage};
-use servo_media::audio::panner_node::{DistanceModel, PannerNodeOptions, PanningModel};
 use servo_media::audio::panner_node::PannerNodeMessage;
+use servo_media::audio::panner_node::{DistanceModel, PannerNodeOptions, PanningModel};
 use servo_media::audio::param::{ParamDir, ParamType};
 use std::cell::Cell;
 use std::f32;

@@ -7,11 +7,11 @@ use crate::dom::bindings::codegen::Bindings::EventSourceBinding::EventSourceBind
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::codegen::Bindings::WorkerGlobalScopeBinding::WorkerGlobalScopeMethods;
 use crate::dom::bindings::conversions::root_from_object;
-use crate::dom::bindings::error::{ErrorInfo, report_pending_exception};
+use crate::dom::bindings::error::{report_pending_exception, ErrorInfo};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
-use crate::dom::bindings::settings_stack::{AutoEntryScript, entry_global, incumbent_global};
+use crate::dom::bindings::settings_stack::{entry_global, incumbent_global, AutoEntryScript};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::weakref::DOMTracker;
 use crate::dom::crypto::Crypto;
@@ -28,43 +28,43 @@ use crate::microtask::{Microtask, MicrotaskQueue};
 use crate::script_runtime::{CommonScriptMsg, ScriptChan, ScriptPort};
 use crate::script_thread::{MainThreadScriptChan, ScriptThread};
 use crate::task::TaskCanceller;
-use crate::task_source::TaskSourceName;
 use crate::task_source::dom_manipulation::DOMManipulationTaskSource;
 use crate::task_source::file_reading::FileReadingTaskSource;
 use crate::task_source::networking::NetworkingTaskSource;
 use crate::task_source::performance_timeline::PerformanceTimelineTaskSource;
 use crate::task_source::remote_event::RemoteEventTaskSource;
 use crate::task_source::websocket::WebsocketTaskSource;
+use crate::task_source::TaskSourceName;
 use crate::timers::{IsInterval, OneshotTimerCallback, OneshotTimerHandle};
 use crate::timers::{OneshotTimers, TimerCallback};
 use devtools_traits::{ScriptToDevtoolsControlMsg, WorkerId};
 use dom_struct::dom_struct;
 use ipc_channel::ipc::IpcSender;
-use js::{JSCLASS_IS_DOMJSCLASS, JSCLASS_IS_GLOBAL};
 use js::glue::{IsWrapper, UnwrapObject};
-use js::jsapi::{CurrentGlobalOrNull, GetGlobalForObjectCrossCompartment};
-use js::jsapi::{Heap, HandleObject};
-use js::jsapi::{JSAutoCompartment, JSContext};
 use js::jsapi::JSObject;
+use js::jsapi::{CurrentGlobalOrNull, GetGlobalForObjectCrossCompartment};
+use js::jsapi::{HandleObject, Heap};
+use js::jsapi::{JSAutoCompartment, JSContext};
 use js::panic::maybe_resume_unwind;
-use js::rust::{CompileOptionsWrapper, Runtime, get_object_class};
-use js::rust::{HandleValue, MutableHandleValue};
 use js::rust::wrappers::Evaluate2;
+use js::rust::{get_object_class, CompileOptionsWrapper, Runtime};
+use js::rust::{HandleValue, MutableHandleValue};
+use js::{JSCLASS_IS_DOMJSCLASS, JSCLASS_IS_GLOBAL};
 use libc;
 use msg::constellation_msg::PipelineId;
-use net_traits::{CoreResourceThread, ResourceThreads, IpcSend};
+use net_traits::{CoreResourceThread, IpcSend, ResourceThreads};
 use profile_traits::{mem as profile_mem, time as profile_time};
 use script_traits::{MsDuration, ScriptToConstellationChan, TimerEvent};
 use script_traits::{TimerEventId, TimerSchedulerMsg, TimerSource};
 use servo_url::{MutableOrigin, ServoUrl};
 use std::cell::Cell;
-use std::collections::HashMap;
 use std::collections::hash_map::Entry;
+use std::collections::HashMap;
 use std::ffi::CString;
 use std::rc::Rc;
-use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
-use time::{Timespec, get_time};
+use std::sync::Arc;
+use time::{get_time, Timespec};
 
 #[derive(JSTraceable)]
 pub struct AutoCloseWorker(Arc<AtomicBool>);
@@ -252,13 +252,18 @@ impl GlobalScope {
     }
 
     pub fn add_uncaught_rejection(&self, rejection: HandleObject) {
-        self.uncaught_rejections.borrow_mut().push(Heap::boxed(rejection.get()));
+        self.uncaught_rejections
+            .borrow_mut()
+            .push(Heap::boxed(rejection.get()));
     }
 
     pub fn remove_uncaught_rejection(&self, rejection: HandleObject) {
         let mut uncaught_rejections = self.uncaught_rejections.borrow_mut();
 
-        if let Some(index) = uncaught_rejections.iter().position(|promise| *promise == Heap::boxed(rejection.get())) {
+        if let Some(index) = uncaught_rejections
+            .iter()
+            .position(|promise| *promise == Heap::boxed(rejection.get()))
+        {
             uncaught_rejections.remove(index);
         }
     }
@@ -268,13 +273,18 @@ impl GlobalScope {
     }
 
     pub fn add_consumed_rejection(&self, rejection: HandleObject) {
-        self.consumed_rejections.borrow_mut().push(Heap::boxed(rejection.get()));
+        self.consumed_rejections
+            .borrow_mut()
+            .push(Heap::boxed(rejection.get()));
     }
 
     pub fn remove_consumed_rejection(&self, rejection: HandleObject) {
         let mut consumed_rejections = self.consumed_rejections.borrow_mut();
 
-        if let Some(index) = consumed_rejections.iter().position(|promise| *promise == Heap::boxed(rejection.get())) {
+        if let Some(index) = consumed_rejections
+            .iter()
+            .position(|promise| *promise == Heap::boxed(rejection.get()))
+        {
             consumed_rejections.remove(index);
         }
     }
@@ -639,11 +649,10 @@ impl GlobalScope {
 
     /// Perform a microtask checkpoint.
     pub fn perform_a_microtask_checkpoint(&self) {
-        self.microtask_queue
-            .checkpoint(
-                |_| Some(DomRoot::from_ref(self)),
-                vec![DomRoot::from_ref(self)]
-            );
+        self.microtask_queue.checkpoint(
+            |_| Some(DomRoot::from_ref(self)),
+            vec![DomRoot::from_ref(self)],
+        );
     }
 
     /// Enqueue a microtask for subsequent execution.

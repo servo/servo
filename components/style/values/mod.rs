@@ -8,19 +8,21 @@
 
 #![deny(missing_docs)]
 
-use Atom;
-pub use cssparser::{serialize_identifier, serialize_name, CowRcStr, Parser, SourceLocation, Token, RGBA};
+pub use cssparser::{
+    serialize_identifier, serialize_name, CowRcStr, Parser, SourceLocation, Token, RGBA,
+};
 use parser::{Parse, ParserContext};
 use selectors::parser::SelectorParseErrorKind;
 use std::fmt::{self, Debug, Write};
 use std::hash;
 use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
 use values::distance::{ComputeSquaredDistance, SquaredDistance};
+use Atom;
 
-#[cfg(feature = "servo")]
-pub use servo::url::CssUrl;
 #[cfg(feature = "gecko")]
 pub use gecko::url::CssUrl;
+#[cfg(feature = "servo")]
+pub use servo::url::CssUrl;
 
 pub mod animated;
 pub mod computed;

@@ -7,9 +7,9 @@
 use crate::construct::FlowConstructor;
 use crate::context::LayoutContext;
 use crate::display_list::DisplayListBuildState;
-use crate::flow::{FlowFlags, Flow, GetBaseFlow, ImmutableFlowUtils};
-use crate::wrapper::{GetRawData, LayoutNodeLayoutData};
+use crate::flow::{Flow, FlowFlags, GetBaseFlow, ImmutableFlowUtils};
 use crate::wrapper::ThreadSafeLayoutNodeHelpers;
+use crate::wrapper::{GetRawData, LayoutNodeLayoutData};
 use script_layout_interface::wrapper_traits::{LayoutNode, ThreadSafeLayoutNode};
 use servo_config::opts;
 use style::context::{SharedStyleContext, StyleContext};
@@ -17,8 +17,8 @@ use style::data::ElementData;
 use style::dom::{NodeInfo, TElement, TNode};
 use style::selector_parser::RestyleDamage;
 use style::servo::restyle_damage::ServoRestyleDamage;
-use style::traversal::{DomTraversal, recalc_style_at};
 use style::traversal::PerLevelTraversalData;
+use style::traversal::{recalc_style_at, DomTraversal};
 
 pub struct RecalcStyleAndConstructFlows<'a> {
     context: LayoutContext<'a>,

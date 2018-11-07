@@ -4,7 +4,6 @@
 
 //! Code for invalidations due to state or attribute changes.
 
-use {Atom, LocalName, Namespace};
 use context::QuirksMode;
 use element_state::{DocumentState, ElementState};
 use fallible::FallibleVec;
@@ -16,6 +15,7 @@ use selectors::parser::{Combinator, Component};
 use selectors::parser::{Selector, SelectorIter, Visit};
 use selectors::visitor::SelectorVisitor;
 use smallvec::SmallVec;
+use {Atom, LocalName, Namespace};
 
 /// Mapping between (partial) CompoundSelectors (and the combinator to their
 /// right) and the states and attributes they depend on.

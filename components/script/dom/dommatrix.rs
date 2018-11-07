@@ -2,13 +2,17 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::codegen::Bindings::DOMMatrixBinding::{Wrap, DOMMatrixMethods, DOMMatrixInit};
+use crate::dom::bindings::codegen::Bindings::DOMMatrixBinding::{
+    DOMMatrixInit, DOMMatrixMethods, Wrap,
+};
 use crate::dom::bindings::codegen::Bindings::DOMMatrixReadOnlyBinding::DOMMatrixReadOnlyMethods;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::reflect_dom_object;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::dommatrixreadonly::{dommatrixinit_to_matrix, DOMMatrixReadOnly, entries_to_matrix};
+use crate::dom::dommatrixreadonly::{
+    dommatrixinit_to_matrix, entries_to_matrix, DOMMatrixReadOnly,
+};
 use crate::dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
 use euclid::Transform3D;
@@ -295,7 +299,8 @@ impl DOMMatrixMethods for DOMMatrix {
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrix-multiplyself
     fn MultiplySelf(&self, other: &DOMMatrixInit) -> Fallible<DomRoot<DOMMatrix>> {
         // Steps 1-3.
-        self.upcast::<DOMMatrixReadOnly>().multiply_self(other)
+        self.upcast::<DOMMatrixReadOnly>()
+            .multiply_self(other)
             // Step 4.
             .and(Ok(DomRoot::from_ref(&self)))
     }
@@ -303,7 +308,8 @@ impl DOMMatrixMethods for DOMMatrix {
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrix-premultiplyself
     fn PreMultiplySelf(&self, other: &DOMMatrixInit) -> Fallible<DomRoot<DOMMatrix>> {
         // Steps 1-3.
-        self.upcast::<DOMMatrixReadOnly>().pre_multiply_self(other)
+        self.upcast::<DOMMatrixReadOnly>()
+            .pre_multiply_self(other)
             // Step 4.
             .and(Ok(DomRoot::from_ref(&self)))
     }

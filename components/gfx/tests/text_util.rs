@@ -4,7 +4,7 @@
 
 extern crate gfx;
 
-use gfx::text::util::{CompressionMode, transform_text};
+use gfx::text::util::{transform_text, CompressionMode};
 
 #[test]
 fn test_transform_compress_none() {

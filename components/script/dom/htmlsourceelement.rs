@@ -7,8 +7,8 @@ use crate::dom::bindings::codegen::Bindings::HTMLSourceElementBinding;
 use crate::dom::bindings::codegen::Bindings::HTMLSourceElementBinding::HTMLSourceElementMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeBinding::NodeMethods;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::root::{Dom, Root};
 use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::root::{Dom, Root};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
 use crate::dom::element::AttributeMutation;
@@ -51,7 +51,9 @@ impl HTMLSourceElement {
         )
     }
 
-    fn iterate_next_html_image_element_siblings(next_siblings_iterator: impl Iterator<Item=Root<Dom<Node>>>) {
+    fn iterate_next_html_image_element_siblings(
+        next_siblings_iterator: impl Iterator<Item = Root<Dom<Node>>>,
+    ) {
         for next_sibling in next_siblings_iterator {
             if let Some(html_image_element_sibling) = next_sibling.downcast::<HTMLImageElement>() {
                 html_image_element_sibling.update_the_image_data();
@@ -68,8 +70,10 @@ impl VirtualMethods for HTMLSourceElement {
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
         self.super_type().unwrap().attribute_mutated(attr, mutation);
         match attr.local_name() {
-            &local_name!("srcset") | &local_name!("sizes")  |
-            &local_name!("media") | &local_name!("type") => {
+            &local_name!("srcset") |
+            &local_name!("sizes") |
+            &local_name!("media") |
+            &local_name!("type") => {
                 let next_sibling_iterator = self.upcast::<Node>().following_siblings();
                 HTMLSourceElement::iterate_next_html_image_element_siblings(next_sibling_iterator);
             },

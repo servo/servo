@@ -3,7 +3,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use app_units::Au;
-use crate::font::{Font, FontDescriptor, FontFamilyDescriptor, FontGroup, FontHandleMethods, FontRef};
+use crate::font::{
+    Font, FontDescriptor, FontFamilyDescriptor, FontGroup, FontHandleMethods, FontRef,
+};
 use crate::font_cache_thread::FontTemplateInfo;
 use crate::font_template::FontTemplateDescriptor;
 use crate::platform::font::FontHandle;
@@ -133,7 +135,8 @@ impl<S: FontSource> FontContext<S> {
                     .and_then(|template_info| {
                         self.create_font(template_info, font_descriptor.to_owned())
                             .ok()
-                    }).map(|font| Rc::new(RefCell::new(font)));
+                    })
+                    .map(|font| Rc::new(RefCell::new(font)));
 
                 self.font_cache.insert(cache_key, font.clone());
                 font

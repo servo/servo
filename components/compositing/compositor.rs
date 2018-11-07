@@ -2,15 +2,17 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use crate::CompositionPipeline;
-use crate::SendableFrameTree;
 use crate::compositor_thread::{CompositorProxy, CompositorReceiver};
 use crate::compositor_thread::{InitialCompositorState, Msg};
 #[cfg(feature = "gleam")]
 use crate::gl;
-use crate::touch::{TouchHandler, TouchAction};
-use crate::windowing::{self, EmbedderCoordinates, MouseWindowEvent, WebRenderDebugOption, WindowMethods};
-use euclid::{TypedPoint2D, TypedVector2D, TypedScale};
+use crate::touch::{TouchAction, TouchHandler};
+use crate::windowing::{
+    self, EmbedderCoordinates, MouseWindowEvent, WebRenderDebugOption, WindowMethods,
+};
+use crate::CompositionPipeline;
+use crate::SendableFrameTree;
+use euclid::{TypedPoint2D, TypedScale, TypedVector2D};
 use gfx_traits::Epoch;
 #[cfg(feature = "gleam")]
 use image::{DynamicImage, ImageFormat};
@@ -20,23 +22,23 @@ use msg::constellation_msg::{PipelineId, PipelineIndex, PipelineNamespaceId};
 use net_traits::image::base::Image;
 #[cfg(feature = "gleam")]
 use net_traits::image::base::PixelFormat;
-use profile_traits::time::{self as profile_time, ProfilerCategory, profile};
+use profile_traits::time::{self as profile_time, profile, ProfilerCategory};
+use script_traits::CompositorEvent::{MouseButtonEvent, MouseMoveEvent, TouchEvent};
 use script_traits::{AnimationState, AnimationTickType, ConstellationMsg, LayoutControlMsg};
 use script_traits::{MouseButton, MouseEventType, ScrollState, TouchEventType, TouchId};
 use script_traits::{UntrustedNodeAddress, WindowSizeData, WindowSizeType};
-use script_traits::CompositorEvent::{MouseMoveEvent, MouseButtonEvent, TouchEvent};
 use servo_channel::Sender;
 use servo_config::opts;
 use servo_geometry::DeviceIndependentPixel;
 use std::collections::HashMap;
 use std::env;
-use std::fs::{File, create_dir_all};
+use std::fs::{create_dir_all, File};
 use std::io::Write;
 use std::num::NonZeroU32;
 use std::rc::Rc;
-use style_traits::{CSSPixel, DevicePixel, PinchZoomFactor};
 use style_traits::cursor::CursorKind;
 use style_traits::viewport::ViewportConstraints;
+use style_traits::{CSSPixel, DevicePixel, PinchZoomFactor};
 use time::{now, precise_time_ns, precise_time_s};
 use webrender;
 use webrender_api::{self, DeviceIntPoint, DevicePoint, HitTestFlags, HitTestResult};
@@ -498,7 +500,10 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
             (Msg::GetScreenAvailSize(req), ShutdownState::NotShuttingDown) => {
                 if let Err(e) = req.send(self.embedder_coordinates.screen_avail) {
-                    warn!("Sending response to get screen avail size failed ({:?}).", e);
+                    warn!(
+                        "Sending response to get screen avail size failed ({:?}).",
+                        e
+                    );
                 }
             },
 
@@ -839,7 +844,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         &mut self,
         delta: ScrollLocation,
         cursor: DeviceIntPoint,
-        phase: TouchEventType
+        phase: TouchEventType,
     ) {
         match phase {
             TouchEventType::Move => self.on_scroll_window_event(delta, cursor),
@@ -852,11 +857,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         }
     }
 
-    fn on_scroll_window_event(
-        &mut self,
-        scroll_location: ScrollLocation,
-        cursor: DeviceIntPoint
-    ) {
+    fn on_scroll_window_event(&mut self, scroll_location: ScrollLocation, cursor: DeviceIntPoint) {
         self.pending_scroll_zoom_events.push(ScrollZoomEvent {
             magnification: 1.0,
             scroll_location: scroll_location,
@@ -1155,15 +1156,19 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     pub fn composite(&mut self) {
         let target = self.composite_target;
         match self.composite_specific_target(target) {
-            Ok(_) => if opts::get().output_file.is_some() || opts::get().exit_after_load {
-                println!("Shutting down the Constellation after generating an output file or exit flag specified");
-                self.start_shutting_down();
+            Ok(_) => {
+                if opts::get().output_file.is_some() || opts::get().exit_after_load {
+                    println!("Shutting down the Constellation after generating an output file or exit flag specified");
+                    self.start_shutting_down();
+                }
             },
-            Err(e) => if opts::get().is_running_problem_test {
-                if e != UnableToComposite::NotReadyToPaintImage(
-                    NotReadyToPaint::WaitingOnConstellation,
-                ) {
-                    println!("not ready to composite: {:?}", e);
+            Err(e) => {
+                if opts::get().is_running_problem_test {
+                    if e != UnableToComposite::NotReadyToPaintImage(
+                        NotReadyToPaint::WaitingOnConstellation,
+                    ) {
+                        println!("not ready to composite: {:?}", e);
+                    }
                 }
             },
         }
@@ -1255,7 +1260,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                     if let Some(pipeline) = self.pipeline(*id) {
                         // and inform the layout thread with the measured paint time.
                         let msg = LayoutControlMsg::PaintMetric(epoch, paint_time);
-                        if let Err(e)  = pipeline.layout_chan.send(msg) {
+                        if let Err(e) = pipeline.layout_chan.send(msg) {
                             warn!("Sending PaintMetric message to layout failed ({:?}).", e);
                         }
                     }
@@ -1445,7 +1450,8 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 val.as_ref()
                     .map(|dir| dir.join("capture_webrender").join(&capture_id))
                     .ok()
-            }).find(|val| match create_dir_all(&val) {
+            })
+            .find(|val| match create_dir_all(&val) {
                 Ok(_) => true,
                 Err(err) => {
                     eprintln!("Unable to create path '{:?}' for capture: {:?}", &val, err);
