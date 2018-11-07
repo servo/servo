@@ -30,6 +30,8 @@ extern crate caseless;
 extern crate chrono;
 extern crate cookie as cookie_rs;
 #[macro_use]
+extern crate crossbeam_channel;
+#[macro_use]
 extern crate cssparser;
 #[macro_use]
 extern crate deny_public_fields;
@@ -94,8 +96,6 @@ extern crate servo_allocator;
 extern crate servo_arc;
 #[macro_use]
 extern crate servo_atoms;
-#[macro_use]
-extern crate servo_channel;
 extern crate servo_config;
 extern crate servo_geometry;
 extern crate servo_media;

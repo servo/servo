@@ -9,6 +9,7 @@ use crate::{
     create_embedder_proxy, fetch, make_server, make_ssl_server, new_fetch_context,
     DEFAULT_USER_AGENT,
 };
+use crossbeam_channel::{channel, Sender};
 use devtools_traits::HttpRequest as DevtoolsHttpRequest;
 use devtools_traits::HttpResponse as DevtoolsHttpResponse;
 use headers_core::HeaderMapExt;
@@ -37,7 +38,6 @@ use net_traits::response::{CacheState, Response, ResponseBody, ResponseType};
 use net_traits::IncludeSubdomains;
 use net_traits::NetworkError;
 use net_traits::ReferrerPolicy;
-use servo_channel::{channel, Sender};
 use servo_url::{ImmutableOrigin, ServoUrl};
 use std::fs::File;
 use std::io::Read;

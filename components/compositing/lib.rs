@@ -4,6 +4,7 @@
 
 #![deny(unsafe_code)]
 
+extern crate crossbeam_channel;
 extern crate embedder_traits;
 extern crate euclid;
 extern crate gfx_traits;
@@ -20,7 +21,6 @@ extern crate msg;
 extern crate net_traits;
 extern crate profile_traits;
 extern crate script_traits;
-extern crate servo_channel;
 extern crate servo_config;
 extern crate servo_geometry;
 extern crate servo_url;

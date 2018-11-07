@@ -26,6 +26,7 @@ use crate::script_runtime::ScriptThreadEventCategory::WorkerEvent;
 use crate::script_runtime::{new_rt_and_cx, CommonScriptMsg, Runtime, ScriptChan, ScriptPort};
 use crate::task_queue::{QueuedTask, QueuedTaskConversion, TaskQueue};
 use crate::task_source::TaskSourceName;
+use crossbeam_channel::{unbounded, Receiver, Sender};
 use devtools_traits::DevtoolScriptControlMsg;
 use dom_struct::dom_struct;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
@@ -38,7 +39,6 @@ use msg::constellation_msg::TopLevelBrowsingContextId;
 use net_traits::request::{CredentialsMode, Destination, RequestInit};
 use net_traits::{load_whole_resource, IpcSend};
 use script_traits::{TimerEvent, TimerSource, WorkerGlobalScopeInit, WorkerScriptLoadOrigin};
-use servo_channel::{channel, route_ipc_receiver_to_new_servo_sender, Receiver, Sender};
 use servo_rand::random;
 use servo_url::ServoUrl;
 use std::mem::replace;
@@ -329,10 +329,13 @@ impl DedicatedWorkerGlobalScope {
 
                 let runtime = unsafe { new_rt_and_cx() };
 
-                let (devtools_mpsc_chan, devtools_mpsc_port) = channel();
-                route_ipc_receiver_to_new_servo_sender(from_devtools_receiver, devtools_mpsc_chan);
+                let (devtools_mpsc_chan, devtools_mpsc_port) = unbounded();
+                ROUTER.route_ipc_receiver_to_crossbeam_sender(
+                    from_devtools_receiver,
+                    devtools_mpsc_chan,
+                );
 
-                let (timer_tx, timer_rx) = channel();
+                let (timer_tx, timer_rx) = unbounded();
                 let (timer_ipc_chan, timer_ipc_port) = ipc::channel().unwrap();
                 let worker_for_route = worker.clone();
                 ROUTER.add_route(
@@ -404,7 +407,7 @@ impl DedicatedWorkerGlobalScope {
     }
 
     pub fn new_script_pair(&self) -> (Box<ScriptChan + Send>, Box<ScriptPort + Send>) {
-        let (tx, rx) = channel();
+        let (tx, rx) = unbounded();
         let chan = Box::new(SendableWorkerScriptChan {
             sender: tx,
             worker: self.worker.borrow().as_ref().unwrap().clone(),

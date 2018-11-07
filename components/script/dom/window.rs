@@ -77,6 +77,7 @@ use crate::task_source::websocket::WebsocketTaskSource;
 use crate::task_source::TaskSourceName;
 use crate::timers::{IsInterval, TimerCallback};
 use crate::webdriver_handlers::jsval_to_webdriver;
+use crossbeam_channel::{unbounded, Sender};
 use cssparser::{Parser, ParserInput};
 use devtools_traits::{ScriptToDevtoolsControlMsg, TimelineMarker, TimelineMarkerType};
 use dom_struct::dom_struct;
@@ -115,7 +116,6 @@ use script_traits::{ScriptMsg, ScriptToConstellationChan, ScrollState, TimerEven
 use script_traits::{TimerSchedulerMsg, UntrustedNodeAddress, WindowSizeData, WindowSizeType};
 use selectors::attr::CaseSensitivity;
 use servo_arc;
-use servo_channel::{channel, Sender};
 use servo_config::opts;
 use servo_geometry::{f32_rect_to_au_rect, MaxRect};
 use servo_url::{Host, ImmutableOrigin, MutableOrigin, ServoUrl};
@@ -413,7 +413,7 @@ impl Window {
     }
 
     pub fn new_script_pair(&self) -> (Box<ScriptChan + Send>, Box<ScriptPort + Send>) {
-        let (tx, rx) = channel();
+        let (tx, rx) = unbounded();
         (Box::new(SendableMainThreadScriptChan(tx)), Box::new(rx))
     }
 
@@ -1467,7 +1467,7 @@ impl Window {
         };
 
         // Layout will let us know when it's done.
-        let (join_chan, join_port) = channel();
+        let (join_chan, join_port) = unbounded();
 
         // On debug mode, print the reflow event information.
         if opts::get().relayout_event {
@@ -1501,7 +1501,7 @@ impl Window {
         debug!("script: layout forked");
 
         let complete = select! {
-            recv(join_port.select(), msg) => if let Some(reflow_complete) = msg {
+            recv(join_port) -> msg => if let Ok(reflow_complete) = msg {
                 reflow_complete
             } else {
                 panic!("Layout thread failed while script was waiting for a result.");
@@ -2113,7 +2113,7 @@ impl Window {
         webrender_api_sender: RenderApiSender,
     ) -> DomRoot<Self> {
         let layout_rpc: Box<LayoutRPC + Send> = {
-            let (rpc_send, rpc_recv) = channel();
+            let (rpc_send, rpc_recv) = unbounded();
             layout_chan.send(Msg::GetRPC(rpc_send)).unwrap();
             rpc_recv.recv().unwrap()
         };

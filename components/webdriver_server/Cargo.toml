@@ -13,6 +13,7 @@ path = "lib.rs"
 [dependencies]
 base64 = "0.9"
 cookie = "0.11"
+crossbeam-channel = "0.3"
 euclid = "0.19"
 hyper = "0.12"
 image = "0.19"
@@ -25,7 +26,6 @@ regex = "1.0"
 serde = "1"
 serde_json = "1"
 script_traits = {path = "../script_traits"}
-servo_channel = {path = "../channel"}
 servo_config = {path = "../config"}
 servo_url = {path = "../url"}
 url = "1.2"

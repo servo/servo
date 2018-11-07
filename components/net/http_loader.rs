@@ -15,6 +15,7 @@ use crate::fetch::methods::{Data, DoneChannel, FetchContext, Target};
 use crate::hsts::HstsList;
 use crate::http_cache::HttpCache;
 use crate::resource_thread::AuthCache;
+use crossbeam_channel::{unbounded, Sender};
 use devtools_traits::{
     ChromeToDevtoolsControlMsg, DevtoolsControlMsg, HttpRequest as DevtoolsHttpRequest,
 };
@@ -46,7 +47,6 @@ use net_traits::request::{ResponseTainting, ServiceWorkersMode};
 use net_traits::response::{HttpsState, Response, ResponseBody, ResponseType};
 use net_traits::{CookieSource, FetchMetadata, NetworkError, ReferrerPolicy};
 use openssl::ssl::SslConnectorBuilder;
-use servo_channel::{channel, Sender};
 use servo_url::{ImmutableOrigin, ServoUrl};
 use std::collections::{HashMap, HashSet};
 use std::error::Error;
@@ -1218,7 +1218,7 @@ fn http_network_fetch(
     let res_body = response.body.clone();
 
     // We're about to spawn a future to be waited on here
-    let (done_sender, done_receiver) = channel();
+    let (done_sender, done_receiver) = unbounded();
     *done_chan = Some((done_sender.clone(), done_receiver));
     let meta = match response
         .metadata()

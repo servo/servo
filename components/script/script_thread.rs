@@ -84,6 +84,7 @@ use crate::task_source::user_interaction::UserInteractionTaskSource;
 use crate::task_source::websocket::WebsocketTaskSource;
 use crate::task_source::TaskSourceName;
 use crate::webdriver_handlers;
+use crossbeam_channel::{unbounded, Receiver, Sender};
 use devtools_traits::CSSError;
 use devtools_traits::{DevtoolScriptControlMsg, DevtoolsPageInfo};
 use devtools_traits::{ScriptToDevtoolsControlMsg, WorkerId};
@@ -94,6 +95,7 @@ use headers_ext::LastModified;
 use headers_ext::ReferrerPolicy as ReferrerPolicyHeader;
 use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcSender};
+use ipc_channel::router::ROUTER;
 use js::glue::GetWindowProxyClass;
 use js::jsapi::{JSAutoCompartment, JSContext, JS_SetWrapObjectCallbacks};
 use js::jsapi::{JSTracer, SetWindowProxyClass};
@@ -123,10 +125,6 @@ use script_traits::{ScriptToConstellationChan, TimerEvent, TimerSchedulerMsg};
 use script_traits::{TimerSource, TouchEventType, TouchId, UntrustedNodeAddress};
 use script_traits::{UpdatePipelineIdReason, WindowSizeData, WindowSizeType};
 use servo_atoms::Atom;
-use servo_channel::{channel, Receiver, Sender};
-use servo_channel::{
-    route_ipc_receiver_to_new_servo_receiver, route_ipc_receiver_to_new_servo_sender,
-};
 use servo_config::opts;
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use std::cell::Cell;
@@ -322,13 +320,13 @@ impl OpaqueSender<CommonScriptMsg> for Box<ScriptChan + Send> {
 
 impl ScriptPort for Receiver<CommonScriptMsg> {
     fn recv(&self) -> Result<CommonScriptMsg, ()> {
-        self.recv().ok_or(())
+        self.recv().map_err(|_| ())
     }
 }
 
 impl ScriptPort for Receiver<MainThreadScriptMsg> {
     fn recv(&self) -> Result<CommonScriptMsg, ()> {
-        match self.recv() {
+        match self.recv().ok() {
             Some(MainThreadScriptMsg::Common(script_msg)) => Ok(script_msg),
             Some(_) => panic!("unexpected main thread event message!"),
             None => Err(()),
@@ -338,13 +336,13 @@ impl ScriptPort for Receiver<MainThreadScriptMsg> {
 
 impl ScriptPort for Receiver<(TrustedWorkerAddress, CommonScriptMsg)> {
     fn recv(&self) -> Result<CommonScriptMsg, ()> {
-        self.recv().map(|(_, msg)| msg).ok_or(())
+        self.recv().map(|(_, msg)| msg).map_err(|_| ())
     }
 }
 
 impl ScriptPort for Receiver<(TrustedWorkerAddress, MainThreadScriptMsg)> {
     fn recv(&self) -> Result<CommonScriptMsg, ()> {
-        match self.recv().map(|(_, msg)| msg) {
+        match self.recv().map(|(_, msg)| msg).ok() {
             Some(MainThreadScriptMsg::Common(script_msg)) => Ok(script_msg),
             Some(_) => panic!("unexpected main thread event message!"),
             None => Err(()),
@@ -354,7 +352,7 @@ impl ScriptPort for Receiver<(TrustedWorkerAddress, MainThreadScriptMsg)> {
 
 impl ScriptPort for Receiver<(TrustedServiceWorkerAddress, CommonScriptMsg)> {
     fn recv(&self) -> Result<CommonScriptMsg, ()> {
-        self.recv().map(|(_, msg)| msg).ok_or(())
+        self.recv().map(|(_, msg)| msg).map_err(|_| ())
     }
 }
 
@@ -649,9 +647,9 @@ impl ScriptThreadFactory for ScriptThread {
         state: InitialScriptState,
         load_data: LoadData,
     ) -> (Sender<message::Msg>, Receiver<message::Msg>) {
-        let (script_chan, script_port) = channel();
+        let (script_chan, script_port) = unbounded();
 
-        let (sender, receiver) = channel();
+        let (sender, receiver) = unbounded();
         let layout_chan = sender.clone();
         thread::Builder::new()
             .name(format!("ScriptThread {:?}", state.id))
@@ -1005,16 +1003,17 @@ impl ScriptThread {
 
         // Ask the router to proxy IPC messages from the devtools to us.
         let (ipc_devtools_sender, ipc_devtools_receiver) = ipc::channel().unwrap();
-        let devtools_port = route_ipc_receiver_to_new_servo_receiver(ipc_devtools_receiver);
+        let devtools_port =
+            ROUTER.route_ipc_receiver_to_new_crossbeam_receiver(ipc_devtools_receiver);
 
-        let (timer_event_chan, timer_event_port) = channel();
+        let (timer_event_chan, timer_event_port) = unbounded();
 
         // Ask the router to proxy IPC messages from the control port to us.
-        let control_port = route_ipc_receiver_to_new_servo_receiver(state.control_port);
+        let control_port = ROUTER.route_ipc_receiver_to_new_crossbeam_receiver(state.control_port);
 
         let boxed_script_sender = Box::new(MainThreadScriptChan(chan.clone()));
 
-        let (image_cache_channel, image_cache_port) = channel();
+        let (image_cache_channel, image_cache_port) = unbounded();
 
         let task_queue = TaskQueue::new(port, chan.clone());
 
@@ -1131,14 +1130,14 @@ impl ScriptThread {
         // Receive at least one message so we don't spinloop.
         debug!("Waiting for event.");
         let mut event = select! {
-            recv(self.task_queue.select(), msg) => {
+            recv(self.task_queue.select()) -> msg => {
                 self.task_queue.take_tasks(msg.unwrap());
                 FromScript(self.task_queue.recv().unwrap())
             },
-            recv(self.control_port.select(), msg) => FromConstellation(msg.unwrap()),
-            recv(self.timer_event_port.select(), msg) => FromScheduler(msg.unwrap()),
-            recv(self.devtools_chan.as_ref().map(|_| self.devtools_port.select()), msg) => FromDevtools(msg.unwrap()),
-            recv(self.image_cache_port.select(), msg) => FromImageCache(msg.unwrap()),
+            recv(self.control_port) -> msg => FromConstellation(msg.unwrap()),
+            recv(self.timer_event_port) -> msg => FromScheduler(msg.unwrap()),
+            // TODO: recv(self.devtools_chan.as_ref().map(|_| self.devtools_port)) -> msg => FromDevtools(msg.unwrap()),
+            recv(self.image_cache_port) -> msg => FromImageCache(msg.unwrap()),
         };
         debug!("Got event.");
 
@@ -1221,11 +1220,11 @@ impl ScriptThread {
             // If any of our input sources has an event pending, we'll perform another iteration
             // and check for more resize events. If there are no events pending, we'll move
             // on and execute the sequential non-resize events we've seen.
-            match self.control_port.try_recv() {
+            match self.control_port.try_recv().ok() {
                 None => match self.task_queue.try_recv() {
-                    None => match self.timer_event_port.try_recv() {
-                        None => match self.devtools_port.try_recv() {
-                            None => match self.image_cache_port.try_recv() {
+                    None => match self.timer_event_port.try_recv().ok() {
+                        None => match self.devtools_port.try_recv().ok() {
+                            None => match self.image_cache_port.try_recv().ok() {
                                 None => break,
                                 Some(ev) => event = FromImageCache(ev),
                             },
@@ -1843,7 +1842,7 @@ impl ScriptThread {
             layout_threads,
         } = new_layout_info;
 
-        let layout_pair = channel();
+        let layout_pair = unbounded();
         let layout_chan = layout_pair.0.clone();
 
         let msg = message::Msg::CreateLayoutThread(NewLayoutThreadInfo {
@@ -2246,7 +2245,7 @@ impl ScriptThread {
         // We shut down layout before removing the document,
         // since layout might still be in the middle of laying it out.
         debug!("preparing to shut down layout for page {}", id);
-        let (response_chan, response_port) = channel();
+        let (response_chan, response_port) = unbounded();
         chan.send(message::Msg::PrepareToExit(response_chan)).ok();
         let _ = response_port.recv();
 
@@ -2565,7 +2564,10 @@ impl ScriptThread {
         let HistoryTraversalTaskSource(ref history_sender) = self.history_traversal_task_source;
 
         let (ipc_timer_event_chan, ipc_timer_event_port) = ipc::channel().unwrap();
-        route_ipc_receiver_to_new_servo_sender(ipc_timer_event_port, self.timer_event_chan.clone());
+        ROUTER.route_ipc_receiver_to_crossbeam_sender(
+            ipc_timer_event_port,
+            self.timer_event_chan.clone(),
+        );
 
         let origin = if final_url.as_str() == "about:blank" {
             incomplete.origin.clone()

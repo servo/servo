@@ -4,7 +4,7 @@
 
 use crate::script_runtime::{CommonScriptMsg, ScriptChan};
 use crate::script_thread::MainThreadScriptMsg;
-use servo_channel::Sender;
+use crossbeam_channel::Sender;
 
 #[derive(JSTraceable)]
 pub struct HistoryTraversalTaskSource(pub Sender<MainThreadScriptMsg>);

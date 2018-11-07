@@ -8,6 +8,7 @@
 //! and <http://tools.ietf.org/html/rfc7232>.
 
 use crate::fetch::methods::{Data, DoneChannel};
+use crossbeam_channel::{unbounded, Sender};
 use headers_core::HeaderMapExt;
 use headers_ext::{CacheControl, ContentRange, Expires, LastModified, Pragma, Range, Vary};
 use http::header::HeaderValue;
@@ -21,7 +22,6 @@ use net_traits::request::Request;
 use net_traits::response::{HttpsState, Response, ResponseBody};
 use net_traits::{FetchMetadata, Metadata};
 use servo_arc::Arc;
-use servo_channel::{channel, Sender};
 use servo_config::prefs::PREFS;
 use servo_url::ServoUrl;
 use std::collections::HashMap;
@@ -307,7 +307,7 @@ fn create_cached_response(
     response.headers = cached_headers.clone();
     response.body = cached_resource.body.clone();
     if let ResponseBody::Receiving(_) = *cached_resource.body.lock().unwrap() {
-        let (done_sender, done_receiver) = channel();
+        let (done_sender, done_receiver) = unbounded();
         *done_chan = Some((done_sender.clone(), done_receiver));
         cached_resource
             .awaiting_body
@@ -671,7 +671,7 @@ impl HttpCache {
                 // Otherwise, create a new dedicated channel to update the consumer.
                 // The response constructed here will replace the 304 one from the network.
                 let in_progress_channel = match *cached_resource.body.lock().unwrap() {
-                    ResponseBody::Receiving(..) => Some(channel()),
+                    ResponseBody::Receiving(..) => Some(unbounded()),
                     ResponseBody::Empty | ResponseBody::Done(..) => None,
                 };
                 match in_progress_channel {

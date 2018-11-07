@@ -30,6 +30,7 @@ pub extern crate canvas;
 pub extern crate canvas_traits;
 pub extern crate compositing;
 pub extern crate constellation;
+pub extern crate crossbeam_channel;
 pub extern crate debugger;
 pub extern crate devtools;
 pub extern crate devtools_traits;
@@ -46,7 +47,6 @@ pub extern crate profile_traits;
 pub extern crate script;
 pub extern crate script_layout_interface;
 pub extern crate script_traits;
-pub extern crate servo_channel;
 pub extern crate servo_config;
 pub extern crate servo_geometry;
 pub extern crate servo_url;
@@ -80,6 +80,7 @@ use compositing::{IOCompositor, RenderNotifier, ShutdownState};
 use constellation::content_process_sandbox_profile;
 use constellation::{Constellation, InitialConstellationState, UnprivilegedPipelineContent};
 use constellation::{FromCompositorLogger, FromScriptLogger};
+use crossbeam_channel::{unbounded, Sender};
 use embedder_traits::{EmbedderMsg, EmbedderProxy, EmbedderReceiver, EventLoopWaker};
 use env_logger::Builder as EnvLoggerBuilder;
 #[cfg(all(not(target_os = "windows"), not(target_os = "ios")))]
@@ -95,7 +96,6 @@ use profile::time as profile_time;
 use profile_traits::mem;
 use profile_traits::time;
 use script_traits::{ConstellationMsg, SWManagerSenders, ScriptToConstellationChan};
-use servo_channel::{channel, Sender};
 use servo_config::opts;
 use servo_config::prefs::PREFS;
 use std::borrow::Cow;
@@ -460,7 +460,7 @@ where
 fn create_embedder_channel(
     event_loop_waker: Box<EventLoopWaker>,
 ) -> (EmbedderProxy, EmbedderReceiver) {
-    let (sender, receiver) = channel();
+    let (sender, receiver) = unbounded();
     (
         EmbedderProxy {
             sender: sender,
@@ -473,7 +473,7 @@ fn create_embedder_channel(
 fn create_compositor_channel(
     event_loop_waker: Box<EventLoopWaker>,
 ) -> (CompositorProxy, CompositorReceiver) {
-    let (sender, receiver) = channel();
+    let (sender, receiver) = unbounded();
     (
         CompositorProxy {
             sender: sender,

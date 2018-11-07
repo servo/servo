@@ -17,6 +17,7 @@ app_units = "0.7"
 atomic_refcell = "0.1"
 bitflags = "1.0"
 canvas_traits = {path = "../canvas_traits"}
+crossbeam-channel = "0.3"
 euclid = "0.19"
 fnv = "1.0"
 fxhash = "0.2"
@@ -40,7 +41,6 @@ selectors = { path = "../selectors" }
 serde = "1.0"
 servo_arc = {path = "../servo_arc"}
 servo_atoms = {path = "../atoms"}
-servo_channel = {path = "../channel"}
 servo_geometry = {path = "../geometry"}
 serde_json = "1.0"
 servo_config = {path = "../config"}
