@@ -20,7 +20,7 @@ use values::computed::{self, CSSPixelLength, Context, ExtremumLength};
 use values::generics::length::{MaxLength as GenericMaxLength, MozLength as GenericMozLength};
 use values::generics::NonNegative;
 use values::specified::calc::CalcNode;
-use values::{Auto, CSSFloat, Either, Normal, IsAuto};
+use values::{Auto, CSSFloat, Either, IsAuto, Normal};
 
 pub use super::image::{ColorStop, EndingShape as GradientEndingShape, Gradient};
 pub use super::image::{GradientKind, Image};

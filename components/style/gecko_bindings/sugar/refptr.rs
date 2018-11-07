@@ -217,7 +217,9 @@ impl<T> structs::RefPtr<T> {
     where
         U: HasArcFFI<FFIType = T>,
     {
-        unsafe { U::release_opt(self.mRawPtr.as_ref()); }
+        unsafe {
+            U::release_opt(self.mRawPtr.as_ref());
+        }
         self.set_arc_leaky(other);
     }
 

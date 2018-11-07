@@ -88,7 +88,7 @@ pub struct QuotePair {
 pub struct Quotes(
     #[css(iterable, if_empty = "none")]
     #[ignore_malloc_size_of = "Arc"]
-    pub Arc<Box<[QuotePair]>>
+    pub Arc<Box<[QuotePair]>>,
 );
 
 impl Parse for Quotes {

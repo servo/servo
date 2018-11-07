@@ -57,7 +57,7 @@ where
                     height.to_css(dest)?;
                 }
                 Ok(())
-            }
+            },
             BackgroundSize::Cover => dest.write_str("cover"),
             BackgroundSize::Contain => dest.write_str("contain"),
         }

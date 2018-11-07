@@ -367,9 +367,7 @@ impl Scale {
     pub fn to_transform_operation(&self) -> Option<TransformOperation> {
         match *self {
             generic::Scale::None => None,
-            generic::Scale::Scale(sx, sy) => {
-                Some(generic::TransformOperation::Scale(sx, Some(sy)))
-            },
+            generic::Scale::Scale(sx, sy) => Some(generic::TransformOperation::Scale(sx, Some(sy))),
             generic::Scale::Scale3D(sx, sy, sz) => {
                 Some(generic::TransformOperation::Scale3D(sx, sy, sz))
             },

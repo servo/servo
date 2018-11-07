@@ -21,7 +21,8 @@ lazy_static! {
                 opening: "\u{2018}".to_owned().into_boxed_str(),
                 closing: "\u{2019}".to_owned().into_boxed_str(),
             },
-        ].into_boxed_slice()
+        ]
+        .into_boxed_slice()
     );
 }
 

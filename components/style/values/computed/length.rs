@@ -17,7 +17,7 @@ use values::generics::length::{MaxLength as GenericMaxLength, MozLength as Gener
 use values::generics::NonNegative;
 use values::specified::length::ViewportPercentageLength;
 use values::specified::length::{AbsoluteLength, FontBaseSize, FontRelativeLength};
-use values::{specified, Auto, CSSFloat, Either, Normal, IsAuto};
+use values::{specified, Auto, CSSFloat, Either, IsAuto, Normal};
 
 pub use super::image::Image;
 pub use values::specified::url::UrlOrNone;
