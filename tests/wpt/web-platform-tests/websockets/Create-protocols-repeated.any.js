@@ -5,4 +5,4 @@ test(function() {
   assert_throws("SYNTAX_ERR", function() {
     wsocket = CreateWebSocketWithRepeatedProtocols()
   });
-}, "W3C WebSocket API - Create WebSocket - Pass a valid URL and an array of protocol strings with repeated values - SYNTAX_ERR is thrown")
+}, "Create WebSocket - Pass a valid URL and an array of protocol strings with repeated values - SYNTAX_ERR is thrown")

@@ -10,13 +10,16 @@
             var testMouseUp = async_test('Tests that when pointer is locked, the mouseup is preventable.');
             var received_back = false;
             var received_forward = false;
+            const left_button = 0;
+            const back_button = 3;
+            const forward_button = 4;
             window.addEventListener('mouseup', function(e) {
-              if (e.button == 0) {
+              if (e.button == left_button) {
                 document.body.requestPointerLock();
-              } else if (e.button == 3) {
+              } else if (e.button == back_button) {
                 received_back = true;
                 e.preventDefault();
-              } else if (e.button == 4) {
+              } else if (e.button == forward_button) {
                 received_forward = true;
                 e.preventDefault();
               }

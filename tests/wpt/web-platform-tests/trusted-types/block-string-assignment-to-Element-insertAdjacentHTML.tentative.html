@@ -90,6 +90,58 @@
     assert_equals(d.lastChild, null);
     assert_equals(d.nextSibling, null);
   }, "`insertAdjacentHTML(null)` throws.");
+
+  // After default policy creation string assignment implicitly calls createHTML.
+  test(t => {
+    let p = window.TrustedTypes.createPolicy("default", { createHTML: createHTMLJS }, true);
+
+    var d = document.createElement('div');
+    container.appendChild(d);
+
+    d.insertAdjacentHTML('beforebegin', INPUTS.HTML);
+    assert_equals(d.previousSibling.nodeType, Node.TEXT_NODE);
+    assert_equals(d.previousSibling.data, RESULTS.HTML);
+
+    d.insertAdjacentHTML('afterbegin', INPUTS.HTML);
+    assert_equals(d.firstChild.nodeType, Node.TEXT_NODE);
+    assert_equals(d.firstChild.data, RESULTS.HTML);
+
+    d.insertAdjacentHTML('beforeend', INPUTS.HTML);
+    assert_equals(d.lastChild.nodeType, Node.TEXT_NODE);
+    assert_equals(d.lastChild.data, RESULTS.HTML);
+
+    d.insertAdjacentHTML('afterend', INPUTS.HTML);
+    assert_equals(d.nextSibling.nodeType, Node.TEXT_NODE);
+    assert_equals(d.nextSibling.data, RESULTS.HTML);
+
+    while (container.firstChild)
+      container.firstChild.remove();
+  }, "`insertAdjacentHTML(string)` assigned via default policy (successful HTML transformation).");
+
+   // After default policy creation null assignment implicitly calls createHTML.
+  test(t => {
+    var d = document.createElement('div');
+    container.appendChild(d);
+
+    d.insertAdjacentHTML('beforebegin', null);
+    assert_equals(d.previousSibling.nodeType, Node.TEXT_NODE);
+    assert_equals(d.previousSibling.data, "null");
+
+    d.insertAdjacentHTML('afterbegin', null);
+    assert_equals(d.firstChild.nodeType, Node.TEXT_NODE);
+    assert_equals(d.firstChild.data, "null");
+
+    d.insertAdjacentHTML('beforeend', null);
+    assert_equals(d.lastChild.nodeType, Node.TEXT_NODE);
+    assert_equals(d.lastChild.data, "null");
+
+    d.insertAdjacentHTML('afterend', null);
+    assert_equals(d.nextSibling.nodeType, Node.TEXT_NODE);
+    assert_equals(d.nextSibling.data, "null");
+
+    while (container.firstChild)
+      container.firstChild.remove();
+  }, "`insertAdjacentHTML(null)` assigned via default policy does not throw.");
 </script>
 </body>
 </html>

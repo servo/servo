@@ -29,6 +29,14 @@
     });
   }
 
+  function testWindowDoesntThrow(t, url, expected, win) {
+    let child_window = win.open(url, "", "");
+    child_window.onload = t.step_func_done(_ => {
+      assert_equals(child_window.location.href, expected);
+      child_window.close();
+    });
+  }
+
   // TrustedURL assignments do not throw.
   test(t => {
     testWindowOpen(t, window, ++testnb);
@@ -55,6 +63,24 @@
   test(t => {
     testWindowThrows(t, null, document, ++testnb);
   }, "`document.open(null)` throws.");
+
+  // After default policy creation string assignment implicitly calls createURL.
+  let p = window.TrustedTypes.createPolicy("default", { createURL: createURLJS }, true);
+  test(t => {
+    testWindowDoesntThrow(t, INPUTS.URL, RESULTS.URL, window);
+  }, "'window.open(string)' assigned via default policy (successful URL transformation).");
+
+  test(t => {
+    testWindowDoesntThrow(t, INPUTS.URL, RESULTS.URL, document);
+  }, "'document.open(string)' assigned via default policy (successful URL transformation).");
+
+  test(t => {
+    testWindowDoesntThrow(t, null, "null", window);
+  }, "'window.open(null)' assigned via default policy does not throw.");
+
+  test(t => {
+    testWindowDoesntThrow(t, null, "null", document);
+  }, "'document.open(null)' assigned via default policy does not throw.");
 </script>
 </body>
 </html>

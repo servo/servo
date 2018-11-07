@@ -6,4 +6,4 @@ test(function() {
   assert_throws("SYNTAX_ERR", function() {
     wsocket = CreateWebSocketNonAsciiProtocol(nonAsciiProtocol)
   });
-}, "W3C WebSocket API - Create WebSocket - Pass a valid URL and a protocol string with non-ascii values - SYNTAX_ERR is thrown")
+}, "Create WebSocket - Pass a valid URL and a protocol string with non-ascii values - SYNTAX_ERR is thrown")

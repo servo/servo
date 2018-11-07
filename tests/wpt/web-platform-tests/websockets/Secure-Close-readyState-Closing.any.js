@@ -1,6 +1,6 @@
 // META: script=websocket.sub.js
 
-var test = async_test("W3C WebSocket API - Create Secure WebSocket - Close the Connection - readyState should be in CLOSING state just before onclose is called");
+var test = async_test("Create Secure WebSocket - Close the Connection - readyState should be in CLOSING state just before onclose is called");
 
 var wsocket = CreateWebSocket(true, false, false);
 var isOpenCalled = false;

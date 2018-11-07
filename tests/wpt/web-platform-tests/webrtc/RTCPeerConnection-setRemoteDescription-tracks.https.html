@@ -115,9 +115,12 @@
                   'Second ontrack\'s stream ID matches local stream.');
     assert_array_equals(firstTrackEvent.streams, secondTrackEvent.streams,
                         'ontrack was fired with the same streams both times.');
-    assert_array_equals(firstTrackEvent.streams[0].getTracks(),
-                        [firstTrackEvent.track, secondTrackEvent.track],
-                        'The remote stream == [first track, second track].');
+
+    assert_equals(firstTrackEvent.streams[0].getTracks().length, 2, "stream should have two tracks");
+    assert_true(firstTrackEvent.streams[0].getTracks().includes(firstTrackEvent.track), "remoteStream should have the first track");
+    assert_true(firstTrackEvent.streams[0].getTracks().includes(secondTrackEvent.track), "remoteStream should have the second track");
+    assert_equals(ontrackEventsFired, 2, 'Unexpected number of track events.');
+
     assert_equals(ontrackEventsFired, 2, 'Unexpected number of track events.');
   }, 'addTrack() with two tracks and one stream makes ontrack fire twice with the tracks and shared stream.');
 

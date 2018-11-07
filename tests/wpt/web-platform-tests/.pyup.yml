@@ -7,16 +7,31 @@ search: False
 # default: empty
 # allowed: list
 requirements:
+ - tools/requirements_flake8.txt:
+      update: all
+      pin: True
+ - tools/wpt/requirements.txt:
+      update: all
+      pin: True
+ - tools/wptrunner/requirements.txt:
+      update: all
+      pin: True
+ - tools/wptrunner/requirements_chrome.txt:
+      update: all
+      pin: True
  - tools/wptrunner/requirements_chrome_android.txt:
       update: all
       pin: True
  - tools/wptrunner/requirements_edge.txt:
       update: all
       pin: True
- - tools/wptrunner/requirements_opera.txt:
+ - tools/wptrunner/requirements_firefox.txt:
       update: all
       pin: True
- - tools/wptrunner/requirements_servo.txt:
+ - tools/wptrunner/requirements_ie.txt:
+      update: all
+      pin: True
+ - tools/wptrunner/requirements_opera.txt:
       update: all
       pin: True
  - tools/wptrunner/requirements_safari.txt:
@@ -25,18 +40,6 @@ requirements:
  - tools/wptrunner/requirements_sauce.txt:
       update: all
       pin: True
- - tools/wptrunner/requirements_ie.txt:
-      update: all
-      pin: True
- - tools/wptrunner/requirements.txt:
-      update: all
-      pin: True
- - tools/wptrunner/requirements_firefox.txt:
-      update: all
-      pin: True
- - tools/wptrunner/requirements_chrome.txt:
-      update: all
-      pin: True
- - tools/wpt/requirements.txt:
+ - tools/wptrunner/requirements_servo.txt:
       update: all
       pin: True

@@ -1,7 +1,7 @@
 // META: script=websocket.sub.js
 
-var testOpen = async_test("W3C WebSocket API - Create Secure WebSocket - Close the Connection - close(reason with unpaired surrogates) - connection should get opened");
-var testClose = async_test("W3C WebSocket API - Create Secure WebSocket - Close the Connection - close(reason with unpaired surrogates) - connection should get closed");
+var testOpen = async_test("Create Secure WebSocket - Close the Connection - close(reason with unpaired surrogates) - connection should get opened");
+var testClose = async_test("Create Secure WebSocket - Close the Connection - close(reason with unpaired surrogates) - connection should get closed");
 
 var wsocket = CreateWebSocket(true, false, false);
 var isOpenCalled = false;

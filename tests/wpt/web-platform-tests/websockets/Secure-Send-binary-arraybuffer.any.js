@@ -1,8 +1,8 @@
 // META: script=websocket.sub.js
 
-var testOpen = async_test("W3C WebSocket API - Send binary data on a Secure WebSocket - ArrayBuffer - Connection should be opened");
-var testMessage = async_test("W3C WebSocket API - Send binary data on a Secure WebSocket - ArrayBuffer - Message should be received");
-var testClose = async_test("W3C WebSocket API - Send binary data on a Secure WebSocket - ArrayBuffer - Connection should be closed");
+var testOpen = async_test("Send binary data on a Secure WebSocket - ArrayBuffer - Connection should be opened");
+var testMessage = async_test("Send binary data on a Secure WebSocket - ArrayBuffer - Message should be received");
+var testClose = async_test("Send binary data on a Secure WebSocket - ArrayBuffer - Connection should be closed");
 
 var data = "";
 var datasize = 15;

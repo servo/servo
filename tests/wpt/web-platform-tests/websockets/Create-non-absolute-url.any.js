@@ -5,4 +5,4 @@ test(function() {
   assert_throws("SYNTAX_ERR", function() {
     wsocket = CreateWebSocketNonAbsolute()
   });
-}, "W3C WebSocket API - Create WebSocket - Pass a non absolute URL - SYNTAX_ERR is thrown")
+}, "Create WebSocket - Pass a non absolute URL - SYNTAX_ERR is thrown")

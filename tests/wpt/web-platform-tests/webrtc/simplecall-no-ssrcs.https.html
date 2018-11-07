@@ -101,9 +101,9 @@
 
   var onRemoteTrack = test.step_func(function(event) {
     var videoTag = document.getElementById('remote-view');
-    if (!videoTag.srcObject) {
-      videoTag.srcObject = event.streams[0];
-    }
+    if (!videoTag.srcObject)
+      videoTag.srcObject = new MediaStream();
+    videoTag.srcObject.addTrack(event.track);
   });
 
   // Returns a suitable error callback.

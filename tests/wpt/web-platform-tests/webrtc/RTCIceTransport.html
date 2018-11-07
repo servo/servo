@@ -58,7 +58,7 @@
     assert_true(dtlsTransport instanceof RTCDtlsTransport,
       'Expect sctp.transport to be an RTCDtlsTransport');
 
-    const iceTransport = dtlsTransport.transport;
+    const iceTransport = dtlsTransport.iceTransport;
     assert_true(iceTransport instanceof RTCIceTransport,
       'Expect dtlsTransport.transport to be an RTCIceTransport');
 

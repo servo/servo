@@ -16,6 +16,6 @@ async_test(function(t) {
             done();
     }), true);
 
-}, "W3C WebSocket API - Send data on a WebSocket in a Worker")
+}, "Send data on a WebSocket in a Worker")
 
 

@@ -48,7 +48,7 @@ promise_test(async t => {
   await promise_rejects(t, "AbortError", acceptPromise);
   // As request is now "closed", trying to show it will fail
   await promise_rejects(t, "InvalidStateError", request.show());
-});
+}, "The same request cannot be shown multiple times.");
 
 promise_test(async t => {
   // request is in "created" state.
@@ -70,7 +70,7 @@ promise_test(async t => {
   // The request is now "closed", so...
   await promise_rejects(t, "InvalidStateError", request.abort());
   await promise_rejects(t, "AbortError", acceptPromise);
-});
+}, "Aborting a request before it is shown doesn't prevent it from being shown later.");
 
 promise_test(async t => {
   const request = new PaymentRequest(defaultMethods, defaultDetails);

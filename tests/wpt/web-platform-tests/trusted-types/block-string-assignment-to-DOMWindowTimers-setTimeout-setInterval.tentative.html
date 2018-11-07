@@ -53,4 +53,17 @@
       setInterval(null);
     });
   }, "`window.setInterval(null)` throws.");
+
+  // After default policy creation string assignment implicitly calls createScript.
+  test(t => {
+    let policy = window.TrustedTypes.createPolicy("default", { createScript: createScriptJS }, true);
+    setTimeout(INPUTS.SCRIPT);
+    setInterval(INPUTS.SCRIPT);
+  }, "`setTimeout(string)`, `setInterval(string)` via default policy (successful Script transformation).");
+
+  // After default policy creation null assignment implicitly calls createScript.
+  test(t => {
+    setTimeout(null);
+    setInterval(null);
+  }, "`setTimeout(null)`, `setInterval(null)` via default policy (successful Script transformation).");
 </script>
