@@ -1,7 +1,7 @@
 // META: script=websocket.sub.js
 
-var testOpen = async_test("W3C WebSocket API - Create Secure WebSocket - Close the Connection - close(1000, reason) - Connection should be opened");
-var testClose = async_test("W3C WebSocket API - Create Secure WebSocket - Close the Connection - close(1000, reason) - event.code == 1000 and event.reason = 'Clean Close'");
+var testOpen = async_test("Create Secure WebSocket - Close the Connection - close(1000, reason) - Connection should be opened");
+var testClose = async_test("Create Secure WebSocket - Close the Connection - close(1000, reason) - event.code == 1000 and event.reason = 'Clean Close'");
 
 var wsocket = CreateWebSocket(true, false, false);
 var isOpenCalled = false;

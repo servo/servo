@@ -8,4 +8,10 @@
     let factory = window.TrustedTypes;
     assert_true(factory instanceof TrustedTypePolicyFactory);
   }, "factory = window.TrustedTypes");
+
+  test(t => {
+    assert_throws(new TypeError(), _ => {
+      let factory = new TrustedTypePolicyFactory();
+    });
+  }, "factory construction fails");
 </script>

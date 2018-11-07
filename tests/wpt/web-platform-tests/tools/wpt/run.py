@@ -3,6 +3,7 @@ import os
 import platform
 import sys
 from distutils.spawn import find_executable
+from six.moves import input
 
 wpt_root = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir, os.pardir))
 sys.path.insert(0, os.path.abspath(os.path.join(wpt_root, "tools")))
@@ -154,7 +155,7 @@ class BrowserSetup(object):
         if not self.prompt:
             return True
         while True:
-            resp = raw_input("Download and install %s [Y/n]? " % component).strip().lower()
+            resp = input("Download and install %s [Y/n]? " % component).strip().lower()
             if not resp or resp == "y":
                 return True
             elif resp == "n":

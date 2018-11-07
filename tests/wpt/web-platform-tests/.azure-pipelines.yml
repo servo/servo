@@ -1,6 +1,7 @@
 # This is the configuration file for Azure Pipelines, used to run tests on
 # macOS. Documentation to help understand this setup:
 # https://docs.microsoft.com/en-us/azure/devops/pipelines/yaml-schema
+# https://docs.microsoft.com/en-us/azure/devops/pipelines/process/variables
 
 trigger: none # disable builds for branches
 
@@ -41,6 +42,14 @@ jobs:
     displayName: 'Install web-platform.test certificate'
     condition: variables.run_wptrunner_infrastructure
 
+  - script: HOMEBREW_NO_AUTO_UPDATE=1 brew cask install Homebrew/homebrew-cask-versions/google-chrome-dev
+    displayName: 'Install Chrome Dev'
+    condition: variables.run_wptrunner_infrastructure
+
+  - script: HOMEBREW_NO_AUTO_UPDATE=1 brew cask install Homebrew/homebrew-cask-versions/firefox-nightly
+    displayName: 'Install Firefox Nightly'
+    condition: variables.run_wptrunner_infrastructure
+
   - script: |
       # Pin to STP 67, as SafariDriver isn't working in 68:
       # https://github.com/web-platform-tests/wpt/issues/13800
@@ -59,6 +68,14 @@ jobs:
     displayName: 'Update manifest'
     condition: variables.run_wptrunner_infrastructure
 
+  - script: no_proxy='*' ./wpt run --yes --no-manifest-update --manifest MANIFEST.json --metadata infrastructure/metadata/ --channel=dev chrome infrastructure/
+    displayName: 'Run infrastructure/ tests (Chrome Dev)'
+    condition: variables.run_wptrunner_infrastructure
+
+  - script: no_proxy='*' ./wpt run --yes --no-manifest-update --manifest MANIFEST.json --metadata infrastructure/metadata/ --channel=nightly firefox infrastructure/
+    displayName: 'Run infrastructure/ tests (Firefox Nightly)'
+    condition: variables.run_wptrunner_infrastructure
+
   - script: no_proxy='*' ./wpt run --yes --no-manifest-update --manifest MANIFEST.json --metadata infrastructure/metadata/ --channel=preview safari_webdriver infrastructure/
-    displayName: 'Run infrastructure/ tests'
+    displayName: 'Run infrastructure/ tests (Safari Technology Preview)'
     condition: variables.run_wptrunner_infrastructure

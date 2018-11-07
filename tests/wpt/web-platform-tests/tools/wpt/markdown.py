@@ -1,3 +1,5 @@
+from functools import reduce
+
 def format_comment_title(product):
     """Produce a Markdown-formatted string based on a given "product"--a string
     containing a browser identifier optionally followed by a colon and a

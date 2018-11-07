@@ -1,8 +1,8 @@
 // META: script=websocket.sub.js
 
-var testOpen = async_test("W3C WebSocket API - Send paired surrogates data on a Secure WebSocket - Connection should be opened");
-var testMessage = async_test("W3C WebSocket API - Send paired surrogates data on a Secure WebSocket - Message should be received");
-var testClose = async_test("W3C WebSocket API - Send paired surrogates data on a Secure WebSocket - Connection should be closed");
+var testOpen = async_test("Send paired surrogates data on a Secure WebSocket - Connection should be opened");
+var testMessage = async_test("Send paired surrogates data on a Secure WebSocket - Message should be received");
+var testClose = async_test("Send paired surrogates data on a Secure WebSocket - Connection should be closed");
 
 var data = "\uD801\uDC07";
 var wsocket = CreateWebSocket(true, false, false);

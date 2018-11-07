@@ -3,11 +3,44 @@ import pytest
 from tests.support.asserts import assert_error, assert_success
 from tests.support.inline import inline
 
+
 def element_click(session, element):
     return session.transport.send(
         "POST", "session/{session_id}/element/{element_id}/click".format(
             session_id=session.session_id,
             element_id=element.id))
+
+
+def test_display_none(session):
+    session.url = inline("""<button style="display: none">foobar</button>""")
+    element = session.find.css("button", all=False)
+
+    response = element_click(session, element)
+    assert_error(response, "element not interactable")
+
+
+def test_visibility_hidden(session):
+    session.url = inline("""<button style="visibility: hidden">foobar</button>""")
+    element = session.find.css("button", all=False)
+
+    response = element_click(session, element)
+    assert_error(response, "element not interactable")
+
+
+def test_hidden(session):
+    session.url = inline("<button hidden>foobar</button>")
+    element = session.find.css("button", all=False)
+
+    response = element_click(session, element)
+    assert_error(response, "element not interactable")
+
+
+def test_disabled(session):
+    session.url = inline("""<button disabled>foobar</button>""")
+    element = session.find.css("button", all=False)
+
+    response = element_click(session, element)
+    assert_success(response)
 
 
 @pytest.mark.parametrize("transform", ["translate(-100px, -100px)", "rotate(50deg)"])

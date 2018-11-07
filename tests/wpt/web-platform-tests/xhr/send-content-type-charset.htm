@@ -88,8 +88,12 @@
       )
       request(
         "text/plain;charset= utf-8",
-        "text/plain;charset= utf-8",
-        "charset with space that is UTF-8 does not change")
+        "text/plain;charset=UTF-8",
+        "charset with leading space that is UTF-8 does change")
+      request(
+        "text/plain;charset=utf-8 ;x=x",
+        "text/plain;charset=utf-8 ;x=x",
+        "charset with trailing space that is UTF-8 does not change");
       request(
         "text/plain;charset=\"utf-8\"",
         "text/plain;charset=\"utf-8\"",

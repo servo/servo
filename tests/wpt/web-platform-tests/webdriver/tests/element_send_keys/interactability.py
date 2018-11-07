@@ -111,7 +111,7 @@ def test_not_a_focusable_element(session):
     assert_error(response, "element not interactable")
 
 
-def test_not_displayed_element(session):
+def test_display_none(session):
     session.url = inline("""<input style="display: none">""")
     element = session.find.css("input", all=False)
 
@@ -119,7 +119,7 @@ def test_not_displayed_element(session):
     assert_error(response, "element not interactable")
 
 
-def test_hidden_element(session):
+def test_visibility_hidden(session):
     session.url = inline("""<input style="visibility: hidden">""")
     element = session.find.css("input", all=False)
 
@@ -127,7 +127,15 @@ def test_hidden_element(session):
     assert_error(response, "element not interactable")
 
 
-def test_disabled_element(session):
+def test_hidden(session):
+    session.url = inline("<input hidden>")
+    element = session.find.css("input", all=False)
+
+    response = element_send_keys(session, element, "foo")
+    assert_error(response, "element not interactable")
+
+
+def test_disabled(session):
     session.url = inline("""<input disabled>""")
     element = session.find.css("input", all=False)
 

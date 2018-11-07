@@ -1,6 +1,6 @@
 // META: script=websocket.sub.js
 
-var test = async_test("W3C WebSocket API - Create Secure WebSocket - Close the Connection - close(2999, reason) - INVALID_ACCESS_ERR is thrown");
+var test = async_test("Create Secure WebSocket - Close the Connection - close(2999, reason) - INVALID_ACCESS_ERR is thrown");
 
 var wsocket = CreateWebSocket(true, false, false);
 

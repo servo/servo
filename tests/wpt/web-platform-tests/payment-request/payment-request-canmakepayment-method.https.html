@@ -8,7 +8,9 @@
 <script src="/resources/testdriver.js"></script>
 <script>
 const basicCard = Object.freeze({ supportedMethods: "basic-card" });
-const applePay = Object.freeze({ supportedMethods: "https://apple.com/apple-pay" });
+const applePay = Object.freeze({
+  supportedMethods: "https://apple.com/apple-pay",
+});
 const defaultMethods = Object.freeze([basicCard, applePay]);
 const defaultDetails = Object.freeze({
   total: {
@@ -20,15 +22,23 @@ const defaultDetails = Object.freeze({
   },
 });
 
+const unsupportedMethods = [
+  { supportedMethods: "this-is-not-supported" },
+  { supportedMethods: "https://not.supported" },
+];
+
 promise_test(async t => {
   const request = new PaymentRequest(defaultMethods, defaultDetails);
-  assert_true(await request.canMakePayment(), "one of the methods should be supported");
-}, `If payment method identifier and serialized parts are supported, resolve promise with true.`);
+  assert_true(
+    await request.canMakePayment(),
+    "one of the methods should be supported"
+  );
+}, `If payment method identifier are supported, resolve promise with true.`);
 
 promise_test(async t => {
   const request = new PaymentRequest(defaultMethods, defaultDetails);
   const acceptPromise = test_driver.bless("show payment request", () => {
-    request.show() // Sets state to "interactive"
+    request.show(); // Sets state to "interactive"
   });
   const canMakePaymentPromise = request.canMakePayment();
   try {
@@ -50,7 +60,7 @@ promise_test(async t => {
 promise_test(async t => {
   const request = new PaymentRequest(defaultMethods, defaultDetails);
   const acceptPromise = test_driver.bless("show payment request", () => {
-    request.show() // Sets state to "interactive"
+    request.show(); // Sets state to "interactive"
   });
   acceptPromise.catch(() => {}); // no-op, just to silence unhandled rejection in devtools.
   await request.abort(); // The state is now "closed"
@@ -91,52 +101,20 @@ promise_test(async t => {
 }, `If request.[[state]] is "created", then return a promise that resolves to true for known method.`);
 
 promise_test(async t => {
-  const unsupportedMethods = [
-    "this-is-not-supported",
-    "https://not.supported",
-    "e",
-    "n6jzof05mk2g4lhxr-u-q-w1-c-i-pa-ty-bdvs9-ho-ae7-p-md8-s-wq3-h-qd-e-q-sa",
-    "a-b-q-n-s-pw0",
-    "m-u",
-    "s-l5",
-    "k9-f",
-    "m-l",
-    "u4-n-t",
-    "i488jh6-g18-fck-yb-v7-i",
-    "x-x-t-t-c34-o",
-    "https://wpt",
-    "https://wpt.fyi/",
-    "https://wpt.fyi/payment",
-    "https://wpt.fyi/payment-request",
-    "https://wpt.fyi/payment-request?",
-    "https://wpt.fyi/payment-request?this=is",
-    "https://wpt.fyi/payment-request?this=is&totally",
-    "https://wpt.fyi:443/payment-request?this=is&totally",
-    "https://wpt.fyi:443/payment-request?this=is&totally#fine",
-    "https://:@wpt.fyi:443/payment-request?this=is&totally#👍",
-    " \thttps://wpt\n ",
-    "https://xn--c1yn36f",
-    "https://點看",
-  ];
-  for (const method of unsupportedMethods) {
-    try {
-      const request = new PaymentRequest(
-        [{ supportedMethods: method }],
-        defaultDetails
-      );
-      assert_false(
-        await request.canMakePayment(),
-        `method "${method}" must not be supported`
-      );
-    } catch (err) {
-      assert_equals(
-        err.name,
-        "NotAllowedError",
-        "if it throws, then it must be a NotAllowedError."
-      );
-    }
-  }
-}, `If payment method identifier is unknown, resolve promise with false.`);
+  const noneSupported = new PaymentRequest(
+    unsupportedMethods,
+    defaultDetails
+  ).canMakePayment();
+  assert_false(await noneSupported, `methods must not be supported`);
+}, "All methods are unsupported");
+
+promise_test(async t => {
+  const someSupported = new PaymentRequest(
+    [...unsupportedMethods, ...defaultMethods],
+    defaultDetails
+  ).canMakePayment();
+  assert_true(await someSupported, `At least one method is expected to be supported.`);
+}, `Mix of supported and unsupported methods, at least one method is supported.`);
 </script>
 
 <small>

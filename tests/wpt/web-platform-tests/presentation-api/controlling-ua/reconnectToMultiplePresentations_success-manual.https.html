@@ -94,13 +94,31 @@
     await eventWatcher2.wait_for('close');
     assert_equals(connection2.state, 'closed', 'The presentation connection is successfully closed.');
 
-    const c1 = await request1.reconnect(connection1.id);
-    assert_equals(c1, connection1, 'The promise is resolved with the existing presentation connection.');
+    const c11 = await request1.reconnect(connection1.id);
+    assert_equals(c11, connection1, 'The promise is resolved with the existing presentation connection.');
+
+    const c22 = await request2.reconnect(connection2.id);
+    assert_equals(c22, connection2, 'The promise is resolved with the existing presentation connection.');
+
+    await Promise.all([
+      eventWatcher1.wait_for('connect'),
+      eventWatcher2.wait_for('connect')
+    ]);
+
+    assert_equals(connection1.state, 'connected', 'The presentation connection is successfully reconnected.');
+    assert_equals(connection2.state, 'connected', 'The presentation connection is successfully reconnected.');
 
     // Reconnecting a presentation via a different presentation request with the same presentation
     // URLs will succeed
-    const c2 = await request1.reconnect(connection2.id);
-    assert_equals(c2, connection2, 'The promise is resolved with the existing presentation connection.');
+    connection2.close();
+    await eventWatcher2.wait_for('close');
+    const c12 = await request1.reconnect(connection2.id);
+    assert_equals(c12, connection2, 'The promise is resolved with the existing presentation connection.');
+
+    connection1.close();
+    await eventWatcher1.wait_for('close');
+    const c21 = await request2.reconnect(connection1.id);
+    assert_equals(c21, connection1, 'The promise is resolved with the existing presentation connection.');
 
     await Promise.all([
       eventWatcher1.wait_for('connect'),

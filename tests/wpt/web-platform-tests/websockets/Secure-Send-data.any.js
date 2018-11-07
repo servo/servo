@@ -1,8 +1,8 @@
 // META: script=websocket.sub.js
 
-var testOpen = async_test("W3C WebSocket API - Send  data on a Secure WebSocket - Connection should be opened");
-var testMessage = async_test("W3C WebSocket API - Send data on a Secure WebSocket - Message should be received");
-var testClose = async_test("W3C WebSocket API - Send data on a Secure WebSocket - Connection should be closed");
+var testOpen = async_test("Send  data on a Secure WebSocket - Connection should be opened");
+var testMessage = async_test("Send data on a Secure WebSocket - Message should be received");
+var testClose = async_test("Send data on a Secure WebSocket - Connection should be closed");
 
 var data = "Message to send";
 var wsocket = CreateWebSocket(true, false, false);

@@ -5,4 +5,4 @@ test(function() {
   assert_throws("SYNTAX_ERR", function() {
     wsocket = CreateWebSocketWithSpaceInProtocol("ec ho")
   });
-}, "W3C WebSocket API - Create WebSocket - Pass a valid URL and a protocol string with a space in it - SYNTAX_ERR is thrown")
+}, "Create WebSocket - Pass a valid URL and a protocol string with a space in it - SYNTAX_ERR is thrown")

@@ -443,9 +443,9 @@ def test_serve():
                 assert False, "server did not start responding within 60s"
             try:
                 resp = urllib2.urlopen("http://web-platform.test:8000")
-                print resp
+                print(resp)
             except urllib2.URLError:
-                print "URLError"
+                print("URLError")
                 time.sleep(1)
             else:
                 assert resp.code == 200

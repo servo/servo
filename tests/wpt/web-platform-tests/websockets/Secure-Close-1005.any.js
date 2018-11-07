@@ -1,6 +1,6 @@
 // META: script=websocket.sub.js
 
-var test = async_test("W3C WebSocket API - Create Secure WebSocket - Close the Connection - close(1005) - see '7.1.5.  The WebSocket Connection Close Code' in http://www.ietf.org/rfc/rfc6455.txt");
+var test = async_test("Create Secure WebSocket - Close the Connection - close(1005) - see '7.1.5.  The WebSocket Connection Close Code' in http://www.ietf.org/rfc/rfc6455.txt");
 
 var wsocket = CreateWebSocket(true, false, false);
 var isOpenCalled = false;

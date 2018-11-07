@@ -1,7 +1,7 @@
 // META: script=websocket.sub.js
 
-var testOpen = async_test("W3C WebSocket API - Create WebSocket - set binaryType to something other than blob or arraybuffer - SYNTAX_ERR is returned - Connection should be opened");
-var testClose = async_test("W3C WebSocket API - Create WebSocket - set binaryType to something other than blob or arraybuffer - SYNTAX_ERR is returned - Connection should be closed");
+var testOpen = async_test("Create WebSocket - set binaryType to something other than blob or arraybuffer - SYNTAX_ERR is returned - Connection should be opened");
+var testClose = async_test("Create WebSocket - set binaryType to something other than blob or arraybuffer - SYNTAX_ERR is returned - Connection should be closed");
 
 var wsocket = CreateWebSocket(true, false, false);
 

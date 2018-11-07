@@ -30,4 +30,21 @@
       location.href = null;
     });
   }, "`location.href = null` throws");
+
+
+  // Create default policy. Applies to all subsequent tests.
+  let p = window.TrustedTypes.createPolicy("default",
+      { createURL: createLocationURLJS }, true);
+
+  // After default policy creation string assignment implicitly calls createURL.
+  test(t => {
+    location.href = "xxxx";
+    assert_true(location.href.endsWith("#xxxx"));
+  }, "`location.href = string` via default policy (successful URL transformation).");
+
+  // After default policy creation null assignment implicitly calls createURL.
+  test(t => {
+    location.href = null;
+    assert_true(location.href.endsWith("#null"));
+  }, "`location.href = null` assigned via default policy does not throw.");
 </script>

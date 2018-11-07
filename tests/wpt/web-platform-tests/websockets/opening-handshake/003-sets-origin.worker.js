@@ -14,5 +14,5 @@ async_test(function(t) {
     ws.close();
   })
   ws.onerror = ws.onclose = t.unreached_func();
-}, "W3C WebSocket API - origin set in a Worker");
+}, "origin set in a Worker");
 done();

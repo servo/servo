@@ -1,6 +1,6 @@
 // META: script=websocket.sub.js
 
-var test = async_test("W3C WebSocket API - Create Secure WebSocket - Close the Connection - close(code, 'reason more than 123 bytes') - SYNTAX_ERR is thrown");
+var test = async_test("Create Secure WebSocket - Close the Connection - close(code, 'reason more than 123 bytes') - SYNTAX_ERR is thrown");
 
 var wsocket = CreateWebSocket(true, false, false);
 var isOpenCalled = false;

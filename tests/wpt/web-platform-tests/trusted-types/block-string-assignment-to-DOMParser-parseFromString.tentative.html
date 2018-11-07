@@ -30,4 +30,19 @@
       var doc = parser.parseFromString(null, "text/html");
     });
   }, "'document.innerText = null' throws");
+
+  // After default policy creation string assignment implicitly calls createHTML.
+  test(t => {
+    let p = window.TrustedTypes.createPolicy("default", { createHTML: createHTMLJS }, true);
+    let parser = new DOMParser();
+    let doc = parser.parseFromString(INPUTS.HTML, "text/html");
+    assert_equals(doc.body.innerText, RESULTS.HTML);
+  }, "'document.innerText = string' assigned via default policy (successful HTML transformation).");
+
+  // After default policy creation null assignment implicitly calls createHTML.
+  test(t => {
+    var parser = new DOMParser();
+    var doc = parser.parseFromString(null, "text/html");
+    assert_equals(doc.body.innerText, "null");
+  }, "'document.innerText = null' assigned via default policy does not throw");
 </script>

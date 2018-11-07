@@ -1,7 +1,7 @@
 // META: script=websocket.sub.js
 
-var testOpen = async_test("W3C WebSocket API - Create Secure WebSocket - wsocket.extensions should be set to '' after connection is established - Connection should be opened");
-var testClose = async_test("W3C WebSocket API - Create Secure WebSocket - wsocket.extensions should be set to '' after connection is established - Connection should be closed");
+var testOpen = async_test("Create Secure WebSocket - wsocket.extensions should be set to '' after connection is established - Connection should be opened");
+var testClose = async_test("Create Secure WebSocket - wsocket.extensions should be set to '' after connection is established - Connection should be closed");
 
 var wsocket = CreateWebSocket(true, false, false);
 var isOpenCalled = false;

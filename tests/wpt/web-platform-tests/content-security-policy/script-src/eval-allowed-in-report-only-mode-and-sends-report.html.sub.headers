@@ -1,0 +1,2 @@
+Set-Cookie: eval-allowed-in-report-only-mode-and-sends-report={{$id:uuid()}}; Path=/content-security-policy/script-src
+Content-Security-Policy-Report-Only: script-src 'unsafe-inline'; report-uri ../support/report.py?op=put&reportID={{$id}}

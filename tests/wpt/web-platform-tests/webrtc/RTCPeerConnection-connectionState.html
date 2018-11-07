@@ -34,7 +34,7 @@
 
     5.5.  RTCDtlsTransport Interface
       interface RTCDtlsTransport {
-        readonly attribute RTCIceTransport       transport;
+        readonly attribute RTCIceTransport       iceTransport;
         readonly attribute RTCDtlsTransportState state;
         ...
       };
@@ -121,7 +121,7 @@
         assert_equals(dtlsTransport.state, 'connected',
           'Expect DTLS transport to be in connected state');
 
-        const iceTransport = dtlsTransport.transport
+        const iceTransport = dtlsTransport.iceTransport
         assert_true(iceTransport.state ===  'connected' ||
           iceTransport.state === 'completed',
           'Expect ICE transport to be in connected or completed state');

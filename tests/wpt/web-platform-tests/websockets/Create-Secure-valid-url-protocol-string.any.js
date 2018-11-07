@@ -1,7 +1,7 @@
 // META: script=websocket.sub.js
 
-var testOpen = async_test("W3C WebSocket API - Create Secure WebSocket - Check readyState is 1");
-var testClose = async_test("W3C WebSocket API - Create Secure WebSocket - Pass a valid URL and protocol string - Connection should be closed");
+var testOpen = async_test("Create Secure WebSocket - Check readyState is 1");
+var testClose = async_test("Create Secure WebSocket - Pass a valid URL and protocol string - Connection should be closed");
 
 var wsocket = CreateWebSocket(true, true, false);
 var isOpenCalled = false;
