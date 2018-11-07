@@ -1516,7 +1516,9 @@ fn static_assert() {
 
 
 <% border_style_keyword = Keyword("border-style",
-                                  "none solid double dotted dashed hidden groove ridge inset outset") %>
+                                  "none solid double dotted dashed hidden groove ridge inset outset",
+                                  gecko_enum_prefix="StyleBorderStyle",
+                                  gecko_inexhaustive=True) %>
 
 <% skip_border_longhands = " ".join(["border-{0}-{1}".format(x.ident, y)
                                      for x in SIDES

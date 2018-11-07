@@ -83,7 +83,8 @@ ${helpers.single_keyword(
     "none hidden dotted dashed solid double groove ridge inset outset",
     products="gecko",
     extra_prefixes="moz",
-    gecko_constant_prefix="NS_STYLE_BORDER_STYLE",
+    gecko_enum_prefix="StyleBorderStyle",
+    gecko_inexhaustive=True,
     animation_value_type="discrete",
     spec="https://drafts.csswg.org/css-multicol/#propdef-column-rule-style",
 )}
