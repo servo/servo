@@ -23,6 +23,7 @@ use crate::dom::worklet::WorkletExecutor;
 use crate::dom::workletglobalscope::WorkletGlobalScope;
 use crate::dom::workletglobalscope::WorkletGlobalScopeInit;
 use crate::dom::workletglobalscope::WorkletTask;
+use crossbeam_channel::{self, unbounded, Sender};
 use dom_struct::dom_struct;
 use euclid::TypedScale;
 use euclid::TypedSize2D;
@@ -49,8 +50,6 @@ use profile_traits::ipc;
 use script_traits::Painter;
 use script_traits::{DrawAPaintImageResult, PaintWorkletError};
 use servo_atoms::Atom;
-use servo_channel::base_channel;
-use servo_channel::{channel, Sender};
 use servo_config::prefs::PREFS;
 use servo_url::ServoUrl;
 use std::cell::Cell;
@@ -426,7 +425,7 @@ impl PaintWorkletGlobalScope {
                 arguments: Vec<String>,
             ) -> Result<DrawAPaintImageResult, PaintWorkletError> {
                 let name = self.name.clone();
-                let (sender, receiver) = channel();
+                let (sender, receiver) = unbounded();
                 let task = PaintWorkletTask::DrawAPaintImage(
                     name,
                     size,
@@ -446,10 +445,10 @@ impl PaintWorkletGlobalScope {
                     .unwrap_or(10u64);
 
                 select! {
-                    recv(base_channel::after(Duration::from_millis(timeout))) => {
+                    recv(crossbeam_channel::after(Duration::from_millis(timeout))) -> _ => {
                         Err(PaintWorkletError::Timeout)
                     }
-                    recv(receiver.select(), msg) => msg.ok_or(PaintWorkletError::Timeout)
+                    recv(receiver) -> msg => msg.map_err(|_| PaintWorkletError::Timeout)
                 }
             }
         }

@@ -9,8 +9,8 @@ use crate::dom::worker::TrustedWorkerAddress;
 use crate::script_runtime::ScriptThreadEventCategory;
 use crate::task::TaskBox;
 use crate::task_source::TaskSourceName;
+use crossbeam_channel::{self, Receiver, Sender};
 use msg::constellation_msg::PipelineId;
-use servo_channel::{base_channel, Receiver, Sender};
 use std::cell::Cell;
 use std::collections::{HashMap, VecDeque};
 use std::default::Default;
@@ -63,7 +63,7 @@ impl<T: QueuedTaskConversion> TaskQueue<T> {
         if !first_msg.is_wake_up() {
             incoming.push(first_msg);
         }
-        while let Some(msg) = self.port.try_recv() {
+        while let Ok(msg) = self.port.try_recv() {
             if !msg.is_wake_up() {
                 incoming.push(msg);
             }
@@ -110,12 +110,12 @@ impl<T: QueuedTaskConversion> TaskQueue<T> {
 
     /// Reset the queue for a new iteration of the event-loop,
     /// returning the port about whose readiness we want to be notified.
-    pub fn select(&self) -> &base_channel::Receiver<T> {
+    pub fn select(&self) -> &crossbeam_channel::Receiver<T> {
         // This is a new iteration of the event-loop, so we reset the "business" counter.
         self.taken_task_counter.set(0);
         // We want to be notified when the script-port is ready to receive.
         // Hence that's the one we need to include in the select.
-        self.port.select()
+        &self.port
     }
 
     /// Take a message from the front of the queue, without waiting if empty.

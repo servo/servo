@@ -9,6 +9,7 @@
 // The traits are here instead of in layout so
 //   that these modules won't have to depend on layout.
 
+use crossbeam_channel::{Receiver, Sender};
 use gfx::font_cache_thread::FontCacheThread;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use metrics::PaintTimeMetrics;
@@ -18,7 +19,6 @@ use net_traits::image_cache::ImageCache;
 use profile_traits::{mem, time};
 use script_traits::LayoutMsg as ConstellationMsg;
 use script_traits::{ConstellationControlMsg, LayoutControlMsg};
-use servo_channel::{Receiver, Sender};
 use servo_url::ServoUrl;
 use std::sync::Arc;
 

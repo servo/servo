@@ -110,6 +110,7 @@ use crate::session_history::{
     JointSessionHistory, NeedsToReload, SessionHistoryChange, SessionHistoryDiff,
 };
 use crate::timer_scheduler::TimerScheduler;
+use crossbeam_channel::{unbounded, Receiver, Sender};
 use devtools_traits::{ChromeToDevtoolsControlMsg, DevtoolsControlMsg};
 use embedder_traits::{EmbedderMsg, EmbedderProxy};
 use euclid::{Size2D, TypedScale, TypedSize2D};
@@ -146,7 +147,6 @@ use script_traits::{LayoutMsg as FromLayoutMsg, ScriptMsg as FromScriptMsg, Scri
 use script_traits::{SWManagerMsg, ScopeThings, UpdatePipelineIdReason, WebDriverCommandMsg};
 use script_traits::{WindowSizeData, WindowSizeType};
 use serde::{Deserialize, Serialize};
-use servo_channel::{channel, Receiver, Sender};
 use servo_config::opts;
 use servo_config::prefs::PREFS;
 use servo_rand::{random, Rng, SeedableRng, ServoRng};
@@ -555,7 +555,7 @@ fn route_ipc_receiver_to_new_mpsc_receiver_preserving_errors<T>(
 where
     T: for<'de> Deserialize<'de> + Serialize + Send + 'static,
 {
-    let (mpsc_sender, mpsc_receiver) = channel();
+    let (mpsc_sender, mpsc_receiver) = unbounded();
     ROUTER.add_route(
         ipc_receiver.to_opaque(),
         Box::new(move |message| drop(mpsc_sender.send(message.to::<T>()))),
@@ -572,7 +572,7 @@ where
     pub fn start(
         state: InitialConstellationState,
     ) -> (Sender<FromCompositorMsg>, IpcSender<SWManagerMsg>) {
-        let (compositor_sender, compositor_receiver) = channel();
+        let (compositor_sender, compositor_receiver) = unbounded();
 
         // service worker manager to communicate with constellation
         let (swmanager_sender, swmanager_receiver) = ipc::channel().expect("ipc channel failure");
@@ -591,7 +591,7 @@ where
                 let layout_receiver =
                     route_ipc_receiver_to_new_mpsc_receiver_preserving_errors(ipc_layout_receiver);
 
-                let (network_listener_sender, network_listener_receiver) = channel();
+                let (network_listener_sender, network_listener_receiver) = unbounded();
 
                 let swmanager_receiver =
                     route_ipc_receiver_to_new_mpsc_receiver_preserving_errors(swmanager_receiver);
@@ -906,21 +906,21 @@ where
         // being called. If this happens, there's not much we can do
         // other than panic.
         let request = select! {
-            recv(self.script_receiver.select(), msg) => {
+            recv(self.script_receiver) -> msg => {
                 msg.expect("Unexpected script channel panic in constellation").map(Request::Script)
             }
-            recv(self.compositor_receiver.select(), msg) => {
+            recv(self.compositor_receiver) -> msg => {
                 Ok(Request::Compositor(msg.expect("Unexpected compositor channel panic in constellation")))
             }
-            recv(self.layout_receiver.select(), msg) => {
+            recv(self.layout_receiver) -> msg => {
                 msg.expect("Unexpected layout channel panic in constellation").map(Request::Layout)
             }
-            recv(self.network_listener_receiver.select(), msg) => {
+            recv(self.network_listener_receiver) -> msg => {
                 Ok(Request::NetworkListener(
                     msg.expect("Unexpected network listener channel panic in constellation")
                 ))
             }
-            recv(self.swmanager_receiver.select(), msg) => {
+            recv(self.swmanager_receiver) -> msg => {
                 msg.expect("Unexpected panic channel panic in constellation").map(Request::FromSWManager)
             }
         };

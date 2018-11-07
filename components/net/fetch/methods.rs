@@ -9,6 +9,7 @@ use crate::filemanager_thread::FileManager;
 use crate::http_loader::{determine_request_referrer, http_fetch, HttpState};
 use crate::http_loader::{set_default_accept, set_default_accept_language};
 use crate::subresource_integrity::is_response_integrity_valid;
+use crossbeam_channel::{unbounded, Receiver, Sender};
 use devtools_traits::DevtoolsControlMsg;
 use headers_core::HeaderMapExt;
 use headers_ext::{AccessControlExposeHeaders, ContentType, Range};
@@ -22,7 +23,6 @@ use net_traits::request::{CredentialsMode, Destination, Referrer, Request, Reque
 use net_traits::request::{Origin, ResponseTainting, Window};
 use net_traits::response::{Response, ResponseBody, ResponseType};
 use net_traits::{FetchTaskTarget, NetworkError, ReferrerPolicy};
-use servo_channel::{channel, Receiver, Sender};
 use servo_url::ServoUrl;
 use std::borrow::Cow;
 use std::fs::File;
@@ -540,7 +540,7 @@ fn scheme_fetch(
                     let mut response = Response::new(url);
                     response.headers.typed_insert(ContentType::from(mime));
 
-                    let (done_sender, done_receiver) = channel();
+                    let (done_sender, done_receiver) = unbounded();
                     *done_chan = Some((done_sender.clone(), done_receiver));
                     *response.body.lock().unwrap() = ResponseBody::Receiving(vec![]);
 

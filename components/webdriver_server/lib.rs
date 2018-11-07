@@ -15,6 +15,7 @@ mod keys;
 
 use base64;
 use crate::keys::keycodes_to_keys;
+use crossbeam_channel::Sender;
 use euclid::TypedSize2D;
 use hyper::Method;
 use image::{DynamicImage, ImageFormat, RgbImage};
@@ -30,7 +31,6 @@ use script_traits::{ConstellationMsg, LoadData, WebDriverCommandMsg};
 use serde::de::{Deserialize, Deserializer, MapAccess, Visitor};
 use serde::ser::{Serialize, Serializer};
 use serde_json::{self, Value};
-use servo_channel::Sender;
 use servo_config::prefs::{PrefValue, PREFS};
 use servo_url::ServoUrl;
 use std::borrow::ToOwned;

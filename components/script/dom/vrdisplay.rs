@@ -33,11 +33,11 @@ use crate::dom::webglrenderingcontext::WebGLRenderingContext;
 use crate::script_runtime::CommonScriptMsg;
 use crate::script_runtime::ScriptThreadEventCategory::WebVREvent;
 use crate::task_source::TaskSourceName;
+use crossbeam_channel::{unbounded, Sender};
 use dom_struct::dom_struct;
 use ipc_channel::ipc::IpcSender;
 use profile_traits::ipc;
 use serde_bytes::ByteBuf;
-use servo_channel::{channel, Sender};
 use std::cell::Cell;
 use std::mem;
 use std::ops::Deref;
@@ -538,7 +538,7 @@ impl VRDisplay {
         thread::Builder::new()
             .name("WebVR_RAF".into())
             .spawn(move || {
-                let (raf_sender, raf_receiver) = channel();
+                let (raf_sender, raf_receiver) = unbounded();
                 let mut near = near_init;
                 let mut far = far_init;
 

@@ -11,6 +11,7 @@ name = "devtools"
 path = "lib.rs"
 
 [dependencies]
+crossbeam-channel = "0.3"
 devtools_traits = {path = "../devtools_traits"}
 headers-core = "0.0.1"
 headers-ext = "0.0.3"
@@ -22,5 +23,4 @@ log = "0.4"
 msg = {path = "../msg"}
 serde = "1.0"
 serde_json = "1.0"
-servo_channel = {path = "../channel"}
 time = "0.1"

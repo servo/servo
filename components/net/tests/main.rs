@@ -19,6 +19,7 @@ mod mime_classifier;
 mod resource_thread;
 mod subresource_integrity;
 
+use crossbeam_channel::{unbounded, Sender};
 use devtools_traits::DevtoolsControlMsg;
 use embedder_traits::resources::{self, Resource};
 use embedder_traits::{EmbedderProxy, EventLoopWaker};
@@ -36,7 +37,6 @@ use net_traits::request::Request;
 use net_traits::response::Response;
 use net_traits::FetchTaskTarget;
 use openssl::ssl::{SslAcceptor, SslFiletype, SslMethod};
-use servo_channel::{channel, Sender};
 use servo_url::ServoUrl;
 use std::net::TcpListener as StdTcpListener;
 use std::path::PathBuf;
@@ -56,7 +56,7 @@ struct FetchResponseCollector {
 }
 
 fn create_embedder_proxy() -> EmbedderProxy {
-    let (sender, _) = channel();
+    let (sender, _) = unbounded();
     let event_loop_waker = || {
         struct DummyEventLoopWaker {}
         impl DummyEventLoopWaker {
@@ -111,7 +111,7 @@ fn fetch(request: &mut Request, dc: Option<Sender<DevtoolsControlMsg>>) -> Respo
 }
 
 fn fetch_with_context(request: &mut Request, context: &FetchContext) -> Response {
-    let (sender, receiver) = channel();
+    let (sender, receiver) = unbounded();
     let mut target = FetchResponseCollector { sender: sender };
 
     methods::fetch(request, &mut target, context);
@@ -120,7 +120,7 @@ fn fetch_with_context(request: &mut Request, context: &FetchContext) -> Response
 }
 
 fn fetch_with_cors_cache(request: &mut Request, cache: &mut CorsCache) -> Response {
-    let (sender, receiver) = channel();
+    let (sender, receiver) = unbounded();
     let mut target = FetchResponseCollector { sender: sender };
 
     methods::fetch_with_cors_cache(request, cache, &mut target, &new_fetch_context(None, None));

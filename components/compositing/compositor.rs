@@ -12,6 +12,7 @@ use crate::windowing::{
 };
 use crate::CompositionPipeline;
 use crate::SendableFrameTree;
+use crossbeam_channel::Sender;
 use euclid::{TypedPoint2D, TypedScale, TypedVector2D};
 use gfx_traits::Epoch;
 #[cfg(feature = "gleam")]
@@ -27,7 +28,6 @@ use script_traits::CompositorEvent::{MouseButtonEvent, MouseMoveEvent, TouchEven
 use script_traits::{AnimationState, AnimationTickType, ConstellationMsg, LayoutControlMsg};
 use script_traits::{MouseButton, MouseEventType, ScrollState, TouchEventType, TouchId};
 use script_traits::{UntrustedNodeAddress, WindowSizeData, WindowSizeType};
-use servo_channel::Sender;
 use servo_config::opts;
 use servo_geometry::DeviceIndependentPixel;
 use std::collections::HashMap;
