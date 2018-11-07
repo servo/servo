@@ -10,6 +10,8 @@
 
 use bezier::Bezier;
 use context::SharedStyleContext;
+#[cfg(feature = "servo")]
+use crossbeam_channel::Sender;
 use dom::{OpaqueNode, TElement};
 use font_metrics::FontMetricsProvider;
 use properties::animated_properties::AnimatedProperty;
@@ -18,8 +20,6 @@ use properties::longhands::animation_play_state::computed_value::single_value::T
 use properties::{self, CascadeMode, ComputedValues, LonghandId};
 use rule_tree::CascadeLevel;
 use servo_arc::Arc;
-#[cfg(feature = "servo")]
-use servo_channel::Sender;
 use std::fmt;
 #[cfg(feature = "gecko")]
 use std::sync::mpsc::Sender;

@@ -11,8 +11,8 @@ use crate::dom::worker::TrustedWorkerAddress;
 use crate::dom::workerglobalscope::WorkerGlobalScope;
 use crate::script_runtime::{CommonScriptMsg, ScriptChan, ScriptPort};
 use crate::task_queue::{QueuedTaskConversion, TaskQueue};
+use crossbeam_channel::{Receiver, Sender};
 use devtools_traits::DevtoolScriptControlMsg;
-use servo_channel::{Receiver, Sender};
 
 /// A ScriptChan that can be cloned freely and will silently send a TrustedWorkerAddress with
 /// common event loop messages. While this SendableWorkerScriptChan is alive, the associated
@@ -68,7 +68,7 @@ impl ScriptChan for WorkerThreadWorkerChan {
 
 impl ScriptPort for Receiver<DedicatedWorkerScriptMsg> {
     fn recv(&self) -> Result<CommonScriptMsg, ()> {
-        let common_msg = match self.recv() {
+        let common_msg = match self.recv().ok() {
             Some(DedicatedWorkerScriptMsg::CommonWorker(_worker, common_msg)) => common_msg,
             None => return Err(()),
             Some(DedicatedWorkerScriptMsg::WakeUp) => panic!("unexpected worker event message!"),
@@ -108,17 +108,17 @@ pub fn run_worker_event_loop<T, TimerMsg, WorkerMsg, Event>(
     let scope = worker_scope.upcast::<WorkerGlobalScope>();
     let timer_event_port = worker_scope.timer_event_port();
     let devtools_port = match scope.from_devtools_sender() {
-        Some(_) => Some(scope.from_devtools_receiver().select()),
+        Some(_) => Some(scope.from_devtools_receiver()),
         None => None,
     };
     let task_queue = worker_scope.task_queue();
     let event = select! {
-        recv(task_queue.select(), msg) => {
+        recv(task_queue.select()) -> msg => {
             task_queue.take_tasks(msg.unwrap());
             worker_scope.from_worker_msg(task_queue.recv().unwrap())
         },
-        recv(timer_event_port.select(), msg) => worker_scope.from_timer_msg(msg.unwrap()),
-        recv(devtools_port, msg) => worker_scope.from_devtools_msg(msg.unwrap()),
+        recv(timer_event_port) -> msg => worker_scope.from_timer_msg(msg.unwrap()),
+        // TODO: recv(devtools_port) -> msg => worker_scope.from_devtools_msg(msg.unwrap()),
     };
     let mut sequential = vec![];
     sequential.push(event);
@@ -131,8 +131,8 @@ pub fn run_worker_event_loop<T, TimerMsg, WorkerMsg, Event>(
         // Batch all events that are ready.
         // The task queue will throttle non-priority tasks if necessary.
         match task_queue.try_recv() {
-            None => match timer_event_port.try_recv() {
-                None => match devtools_port.and_then(|port| port.try_recv()) {
+            None => match timer_event_port.try_recv().ok() {
+                None => match devtools_port.and_then(|port| port.try_recv().ok()) {
                     None => break,
                     Some(ev) => sequential.push(worker_scope.from_devtools_msg(ev)),
                 },

@@ -21,6 +21,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::messageevent::MessageEvent;
 use crate::dom::workerglobalscope::prepare_workerscope_init;
 use crate::task::TaskOnce;
+use crossbeam_channel::{unbounded, Sender};
 use devtools_traits::{DevtoolsPageInfo, ScriptToDevtoolsControlMsg};
 use dom_struct::dom_struct;
 use ipc_channel::ipc;
@@ -28,7 +29,6 @@ use js::jsapi::{JSAutoCompartment, JSContext, JS_RequestInterruptCallback};
 use js::jsval::UndefinedValue;
 use js::rust::HandleValue;
 use script_traits::WorkerScriptLoadOrigin;
-use servo_channel::{channel, Sender};
 use std::cell::Cell;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
@@ -79,7 +79,7 @@ impl Worker {
             Err(_) => return Err(Error::Syntax),
         };
 
-        let (sender, receiver) = channel();
+        let (sender, receiver) = unbounded();
         let closing = Arc::new(AtomicBool::new(false));
         let worker = Worker::new(global, sender.clone(), closing.clone());
         global.track_worker(closing.clone());

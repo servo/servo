@@ -8,6 +8,7 @@
 
 extern crate base64;
 extern crate cookie as cookie_rs;
+extern crate crossbeam_channel;
 extern crate euclid;
 extern crate hyper;
 extern crate image;
@@ -22,7 +23,6 @@ extern crate script_traits;
 #[macro_use]
 extern crate serde;
 extern crate serde_json;
-extern crate servo_channel;
 extern crate servo_config;
 extern crate servo_url;
 extern crate uuid;
@@ -31,6 +31,7 @@ extern crate webdriver;
 mod keys;
 
 use crate::keys::keycodes_to_keys;
+use crossbeam_channel::Sender;
 use euclid::TypedSize2D;
 use hyper::Method;
 use image::{DynamicImage, ImageFormat, RgbImage};
@@ -46,7 +47,6 @@ use script_traits::{ConstellationMsg, LoadData, WebDriverCommandMsg};
 use serde::de::{Deserialize, Deserializer, MapAccess, Visitor};
 use serde::ser::{Serialize, Serializer};
 use serde_json::Value;
-use servo_channel::Sender;
 use servo_config::prefs::{PrefValue, PREFS};
 use servo_url::ServoUrl;
 use std::borrow::ToOwned;

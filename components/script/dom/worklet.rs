@@ -39,6 +39,7 @@ use crate::script_runtime::ScriptThreadEventCategory;
 use crate::script_thread::{MainThreadScriptMsg, ScriptThread};
 use crate::task::TaskBox;
 use crate::task_source::TaskSourceName;
+use crossbeam_channel::{unbounded, Receiver, Sender};
 use dom_struct::dom_struct;
 use js::jsapi::JSGCParamKey;
 use js::jsapi::JSTracer;
@@ -50,7 +51,6 @@ use net_traits::request::Destination;
 use net_traits::request::RequestInit;
 use net_traits::request::RequestMode;
 use net_traits::IpcSend;
-use servo_channel::{channel, Receiver, Sender};
 use servo_rand;
 use servo_url::ImmutableOrigin;
 use servo_url::ServoUrl;
@@ -335,7 +335,7 @@ impl WorkletThreadPool {
 
     /// For testing.
     pub fn test_worklet_lookup(&self, id: WorkletId, key: String) -> Option<String> {
-        let (sender, receiver) = channel();
+        let (sender, receiver) = unbounded();
         let msg = WorkletData::Task(id, WorkletTask::Test(TestWorkletTask::Lookup(key, sender)));
         let _ = self.primary_sender.send(msg);
         receiver.recv().expect("Test worklet has died?")
@@ -389,7 +389,7 @@ struct WorkletThreadRole {
 
 impl WorkletThreadRole {
     fn new(is_hot_backup: bool, is_cold_backup: bool) -> WorkletThreadRole {
-        let (sender, receiver) = channel();
+        let (sender, receiver) = unbounded();
         WorkletThreadRole {
             sender: sender,
             receiver: receiver,
@@ -453,7 +453,7 @@ impl WorkletThread {
     #[allow(unsafe_code)]
     #[allow(unrooted_must_root)]
     fn spawn(role: WorkletThreadRole, init: WorkletThreadInit) -> Sender<WorkletControl> {
-        let (control_sender, control_receiver) = channel();
+        let (control_sender, control_receiver) = unbounded();
         // TODO: name this thread
         thread::spawn(move || {
             // TODO: add a new IN_WORKLET thread state?
@@ -523,12 +523,12 @@ impl WorkletThread {
                 if let Some(control) = self.control_buffer.take() {
                     self.process_control(control);
                 }
-                while let Some(control) = self.control_receiver.try_recv() {
+                while let Ok(control) = self.control_receiver.try_recv() {
                     self.process_control(control);
                 }
                 self.gc();
             } else if self.control_buffer.is_none() {
-                if let Some(control) = self.control_receiver.try_recv() {
+                if let Ok(control) = self.control_receiver.try_recv() {
                     self.control_buffer = Some(control);
                     let msg = WorkletData::StartSwapRoles(self.role.sender.clone());
                     let _ = self.cold_backup_sender.send(msg);

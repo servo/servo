@@ -2,9 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+extern crate crossbeam_channel;
 #[macro_use]
 extern crate log;
-extern crate servo_channel;
 extern crate ws;
 
 use std::thread;
@@ -14,7 +14,7 @@ enum Message {
     ShutdownServer,
 }
 
-pub struct Sender(servo_channel::Sender<Message>);
+pub struct Sender(crossbeam_channel::Sender<Message>);
 
 struct Connection {
     sender: ws::Sender,
@@ -37,7 +37,7 @@ impl Handler for Connection {
 
 pub fn start_server(port: u16) -> Sender {
     debug!("Starting server.");
-    let (sender, receiver) = servo_channel::channel();
+    let (sender, receiver) = crossbeam_channel::unbounded();
     thread::Builder::new()
         .name("debugger".to_owned())
         .spawn(move || {
@@ -51,7 +51,7 @@ pub fn start_server(port: u16) -> Sender {
                     socket.listen(("127.0.0.1", port)).unwrap();
                 })
                 .expect("Thread spawning failed");
-            while let Some(message) = receiver.recv() {
+            while let Ok(message) = receiver.recv() {
                 match message {
                     Message::ShutdownServer => {
                         break;

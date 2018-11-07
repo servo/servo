@@ -11,6 +11,8 @@ extern crate canvas;
 extern crate canvas_traits;
 extern crate clipboard;
 extern crate compositing;
+#[macro_use]
+extern crate crossbeam_channel;
 extern crate debugger;
 extern crate devtools_traits;
 #[cfg(not(target_os = "ios"))]
@@ -32,9 +34,8 @@ extern crate net;
 extern crate net_traits;
 extern crate profile_traits;
 extern crate script_traits;
-extern crate serde;
 #[macro_use]
-extern crate servo_channel;
+extern crate serde;
 extern crate servo_config;
 extern crate servo_rand;
 extern crate servo_remutex;

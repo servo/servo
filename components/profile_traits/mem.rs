@@ -6,10 +6,10 @@
 
 #![deny(missing_docs)]
 
+use crossbeam_channel::Sender;
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
 use serde;
-use servo_channel::Sender;
 use std::marker::Send;
 
 /// A trait to abstract away the various kinds of message senders we use.

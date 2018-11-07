@@ -40,7 +40,7 @@ canvas = {path = "../canvas"}
 canvas_traits = {path = "../canvas_traits"}
 compositing = {path = "../compositing", features = ["gleam"]}
 constellation = {path = "../constellation"}
-crossbeam-channel = "0.2"
+crossbeam-channel = "0.3"
 debugger = {path = "../debugger"}
 devtools = {path = "../devtools"}
 devtools_traits = {path = "../devtools_traits"}
@@ -60,7 +60,6 @@ profile_traits = {path = "../profile_traits"}
 script = {path = "../script"}
 script_layout_interface = {path = "../script_layout_interface"}
 script_traits = {path = "../script_traits"}
-servo_channel = {path = "../channel"}
 servo_config = {path = "../config"}
 servo_geometry = {path = "../geometry"}
 servo_url = {path = "../url"}

@@ -12,6 +12,7 @@
 #![allow(non_snake_case)]
 #![deny(unsafe_code)]
 
+extern crate crossbeam_channel;
 extern crate devtools_traits;
 extern crate headers_core;
 extern crate headers_ext;
@@ -24,7 +25,6 @@ extern crate msg;
 #[macro_use]
 extern crate serde;
 extern crate serde_json;
-extern crate servo_channel;
 extern crate time;
 
 use crate::actor::{Actor, ActorRegistry};
@@ -43,12 +43,12 @@ use crate::actors::thread::ThreadActor;
 use crate::actors::timeline::TimelineActor;
 use crate::actors::worker::WorkerActor;
 use crate::protocol::JsonPacketStream;
+use crossbeam_channel::{unbounded, Receiver, Sender};
 use devtools_traits::{ChromeToDevtoolsControlMsg, ConsoleMessage, DevtoolsControlMsg};
 use devtools_traits::{DevtoolScriptControlMsg, DevtoolsPageInfo, LogLevel, NetworkEvent};
 use devtools_traits::{ScriptToDevtoolsControlMsg, WorkerId};
 use ipc_channel::ipc::IpcSender;
 use msg::constellation_msg::PipelineId;
-use servo_channel::{channel, Receiver, Sender};
 use std::borrow::ToOwned;
 use std::cell::RefCell;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
@@ -135,7 +135,7 @@ struct ResponseStartUpdateMsg {
 
 /// Spin up a devtools server that listens for connections on the specified port.
 pub fn start_server(port: u16) -> Sender<DevtoolsControlMsg> {
-    let (sender, receiver) = channel();
+    let (sender, receiver) = unbounded();
     {
         let sender = sender.clone();
         thread::Builder::new()
@@ -559,7 +559,7 @@ fn run_server(
         })
         .expect("Thread spawning failed");
 
-    while let Some(msg) = receiver.recv() {
+    while let Ok(msg) = receiver.recv() {
         match msg {
             DevtoolsControlMsg::FromChrome(ChromeToDevtoolsControlMsg::AddClient(stream)) => {
                 let actors = actors.clone();

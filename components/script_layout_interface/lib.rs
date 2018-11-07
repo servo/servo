@@ -12,6 +12,7 @@
 extern crate app_units;
 extern crate atomic_refcell;
 extern crate canvas_traits;
+extern crate crossbeam_channel;
 extern crate cssparser;
 extern crate euclid;
 extern crate gfx_traits;
@@ -33,7 +34,6 @@ extern crate script_traits;
 extern crate selectors;
 extern crate servo_arc;
 extern crate servo_atoms;
-extern crate servo_channel;
 extern crate servo_url;
 extern crate style;
 extern crate webrender_api;

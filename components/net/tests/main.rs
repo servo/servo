@@ -5,6 +5,7 @@
 #![cfg(test)]
 
 extern crate cookie as cookie_rs;
+extern crate crossbeam_channel;
 extern crate devtools_traits;
 extern crate embedder_traits;
 extern crate flate2;
@@ -23,7 +24,6 @@ extern crate net;
 extern crate net_traits;
 extern crate openssl;
 extern crate profile_traits;
-extern crate servo_channel;
 extern crate servo_config;
 extern crate servo_url;
 extern crate time;
@@ -43,6 +43,7 @@ mod mime_classifier;
 mod resource_thread;
 mod subresource_integrity;
 
+use crossbeam_channel::{channel, Sender};
 use devtools_traits::DevtoolsControlMsg;
 use embedder_traits::resources::{self, Resource};
 use embedder_traits::{EmbedderProxy, EventLoopWaker};
@@ -60,7 +61,6 @@ use net_traits::request::Request;
 use net_traits::response::Response;
 use net_traits::FetchTaskTarget;
 use openssl::ssl::{SslAcceptor, SslFiletype, SslMethod};
-use servo_channel::{channel, Sender};
 use servo_url::ServoUrl;
 use std::net::TcpListener as StdTcpListener;
 use std::path::PathBuf;

@@ -8,6 +8,8 @@
 use animation::Animation;
 use app_units::Au;
 use bloom::StyleBloom;
+#[cfg(feature = "servo")]
+use crossbeam_channel::Sender;
 use data::{EagerPseudoStyles, ElementData};
 #[cfg(feature = "servo")]
 use dom::OpaqueNode;
@@ -32,8 +34,6 @@ use selectors::NthIndexCache;
 use servo_arc::Arc;
 #[cfg(feature = "servo")]
 use servo_atoms::Atom;
-#[cfg(feature = "servo")]
-use servo_channel::Sender;
 use shared_lock::StylesheetGuards;
 use sharing::StyleSharingCache;
 use std::fmt;

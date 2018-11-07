@@ -11,6 +11,7 @@ name = "layout_traits"
 path = "lib.rs"
 
 [dependencies]
+crossbeam-channel = "0.3"
 gfx = {path = "../gfx"}
 ipc-channel = "0.11"
 metrics = {path = "../metrics"}
@@ -18,6 +19,5 @@ msg = {path = "../msg"}
 net_traits = {path = "../net_traits"}
 profile_traits = {path = "../profile_traits"}
 script_traits = {path = "../script_traits"}
-servo_channel = {path = "../channel"}
 servo_url = {path = "../url"}
 webrender_api = {git = "https://github.com/servo/webrender", features = ["ipc"]}

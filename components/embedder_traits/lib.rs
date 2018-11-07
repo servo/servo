@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+extern crate crossbeam_channel;
 extern crate ipc_channel;
 extern crate keyboard_types;
 #[macro_use]
@@ -11,17 +12,16 @@ extern crate log;
 extern crate msg;
 #[macro_use]
 extern crate serde;
-extern crate servo_channel;
 extern crate servo_url;
 extern crate style_traits;
 extern crate webrender_api;
 
 pub mod resources;
 
+use crossbeam_channel::{Receiver, Sender};
 use ipc_channel::ipc::IpcSender;
 use keyboard_types::KeyboardEvent;
 use msg::constellation_msg::{InputMethodType, TopLevelBrowsingContextId};
-use servo_channel::{Receiver, Sender};
 use servo_url::ServoUrl;
 use std::fmt::{Debug, Error, Formatter};
 use style_traits::cursor::CursorKind;
@@ -67,7 +67,7 @@ impl EmbedderReceiver {
     pub fn try_recv_embedder_msg(
         &mut self,
     ) -> Option<(Option<TopLevelBrowsingContextId>, EmbedderMsg)> {
-        self.receiver.try_recv()
+        self.receiver.try_recv().ok()
     }
     pub fn recv_embedder_msg(&mut self) -> (Option<TopLevelBrowsingContextId>, EmbedderMsg) {
         self.receiver.recv().unwrap()

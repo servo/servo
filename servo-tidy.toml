@@ -45,6 +45,7 @@ packages = [
   "rand",
   "syn",
   "unicase",
+  "uuid",
   "winapi",
 ]
 # Files that are ignored for all tidy and lint checks.

@@ -10,13 +10,13 @@ path = "lib.rs"
 
 [features]
 servo = [
+    "crossbeam-channel",
     "hyper",
     "hyper_serde",
     "keyboard-types",
     "mozjs",
     "serde",
     "serde_bytes",
-    "servo_channel",
     "string_cache",
     "time",
     "url",
@@ -26,6 +26,7 @@ servo = [
 
 [dependencies]
 app_units = "0.7"
+crossbeam-channel = { version = "0.3", optional = true }
 cssparser = "0.25"
 euclid = "0.19"
 hashglobe = { path = "../hashglobe" }
@@ -37,7 +38,6 @@ selectors = { path = "../selectors" }
 serde = { version = "1.0.27", optional = true }
 serde_bytes = { version = "0.10", optional = true }
 servo_arc = { path = "../servo_arc" }
-servo_channel = { path = "../channel", optional = true }
 smallbitvec = "2.1.0"
 smallvec = "0.6"
 string_cache = { version = "0.7", optional = true }
