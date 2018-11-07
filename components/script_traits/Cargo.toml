@@ -29,7 +29,6 @@ malloc_size_of_derive = { path = "../malloc_size_of_derive" }
 msg = {path = "../msg"}
 net_traits = {path = "../net_traits"}
 profile_traits = {path = "../profile_traits"}
-rustc-serialize = "0.3.4"
 serde = "1.0"
 servo_atoms = {path = "../atoms"}
 servo_channel = {path = "../channel"}

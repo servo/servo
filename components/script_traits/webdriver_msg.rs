@@ -9,7 +9,6 @@ use euclid::Rect;
 use hyper_serde::Serde;
 use ipc_channel::ipc::IpcSender;
 use msg::constellation_msg::BrowsingContextId;
-use rustc_serialize::json::{Json, ToJson};
 use servo_url::ServoUrl;
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -73,18 +72,6 @@ pub enum WebDriverFrameId {
     Short(u16),
     Element(String),
     Parent,
-}
-
-impl ToJson for WebDriverJSValue {
-    fn to_json(&self) -> Json {
-        match *self {
-            WebDriverJSValue::Undefined => Json::Null,
-            WebDriverJSValue::Null => Json::Null,
-            WebDriverJSValue::Boolean(ref x) => x.to_json(),
-            WebDriverJSValue::Number(ref x) => x.to_json(),
-            WebDriverJSValue::String(ref x) => x.to_json(),
-        }
-    }
 }
 
 #[derive(Debug, Deserialize, Serialize)]

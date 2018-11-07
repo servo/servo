@@ -29,7 +29,6 @@ extern crate malloc_size_of_derive;
 extern crate msg;
 extern crate net_traits;
 extern crate profile_traits;
-extern crate rustc_serialize;
 #[macro_use]
 extern crate serde;
 extern crate servo_atoms;

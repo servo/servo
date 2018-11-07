@@ -14,9 +14,9 @@ extern crate lazy_static;
 #[macro_use]
 extern crate log;
 extern crate num_cpus;
-extern crate rustc_serialize;
 #[macro_use]
 extern crate serde;
+extern crate serde_json;
 extern crate servo_geometry;
 extern crate servo_url;
 extern crate url;
