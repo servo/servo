@@ -272,7 +272,7 @@ impl FontHandleMethods for FontHandle {
         pt_size: Option<Au>,
     ) -> Result<Self, ()> {
         let (info, face) = if let Some(ref raw_font) = template.bytes {
-            let font_file = FontFile::new_from_data(&raw_font);
+            let font_file = FontFile::new_from_data(Arc::new(raw_font.clone()));
             if font_file.is_none() {
                 // failed to load raw font
                 return Err(());
