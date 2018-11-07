@@ -657,7 +657,7 @@ fn scheme_fetch(
                 ));
             }
 
-            load_blob_async(url.clone(), context.filemanager.clone(), done_chan);
+            load_blob_async(url.clone(), context.filemanager.clone(), done_chan)
         },
 
         "ftp" => {
