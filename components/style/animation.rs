@@ -25,9 +25,8 @@ use crate::values::computed::TimingFunction;
 use crate::values::generics::box_::AnimationIterationCount;
 use crate::values::generics::easing::{StepPosition, TimingFunction as GenericTimingFunction};
 use crate::Atom;
+use crossbeam_channel::Sender;
 use servo_arc::Arc;
-#[cfg(feature = "servo")]
-use servo_channel::Sender;
 use std::fmt;
 #[cfg(feature = "gecko")]
 use std::sync::mpsc::Sender;

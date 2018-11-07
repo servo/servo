@@ -21,7 +21,7 @@ gecko = ["num_cpus",
 use_bindgen = ["bindgen", "regex", "toml"]
 servo = ["serde", "style_traits/servo", "servo_atoms", "servo_config", "html5ever",
          "cssparser/serde", "encoding_rs", "malloc_size_of/servo", "arrayvec/use_union",
-         "servo_url", "string_cache", "servo_channel"]
+         "servo_url", "string_cache", "crossbeam-channel"]
 gecko_debug = []
 
 [dependencies]
@@ -32,6 +32,7 @@ bitflags = "1.0"
 byteorder = "1.0"
 cfg-if = "0.1.0"
 cssparser = "0.25"
+crossbeam-channel = { version = "0.3", optional = true }
 new_debug_unreachable = "1.0"
 encoding_rs = {version = "0.7", optional = true}
 euclid = "0.19"
@@ -59,7 +60,6 @@ selectors = { path = "../selectors" }
 serde = {version = "1.0", optional = true, features = ["derive"]}
 servo_arc = { path = "../servo_arc" }
 servo_atoms = {path = "../atoms", optional = true}
-servo_channel = {path = "../channel", optional = true}
 servo_config = {path = "../config", optional = true}
 smallbitvec = "2.1.1"
 smallvec = "0.6"

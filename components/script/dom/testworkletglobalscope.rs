@@ -10,10 +10,10 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::worklet::WorkletExecutor;
 use crate::dom::workletglobalscope::WorkletGlobalScope;
 use crate::dom::workletglobalscope::WorkletGlobalScopeInit;
+use crossbeam_channel::Sender;
 use dom_struct::dom_struct;
 use js::rust::Runtime;
 use msg::constellation_msg::PipelineId;
-use servo_channel::Sender;
 use servo_url::ServoUrl;
 use std::collections::HashMap;
 

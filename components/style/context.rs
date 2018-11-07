@@ -29,6 +29,8 @@ use crate::thread_state::{self, ThreadState};
 use crate::timer::Timer;
 use crate::traversal::DomTraversal;
 use crate::traversal_flags::TraversalFlags;
+#[cfg(feature = "servo")]
+use crossbeam_channel::Sender;
 use euclid::Size2D;
 use euclid::TypedScale;
 use fxhash::FxHashMap;
@@ -39,8 +41,6 @@ use selectors::NthIndexCache;
 use servo_arc::Arc;
 #[cfg(feature = "servo")]
 use servo_atoms::Atom;
-#[cfg(feature = "servo")]
-use servo_channel::Sender;
 use std::fmt;
 use std::ops;
 #[cfg(feature = "servo")]

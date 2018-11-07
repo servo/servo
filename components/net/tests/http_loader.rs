@@ -7,6 +7,7 @@ use crate::fetch;
 use crate::fetch_with_context;
 use crate::make_server;
 use crate::new_fetch_context;
+use crossbeam_channel::{unbounded, Receiver};
 use devtools_traits::HttpRequest as DevtoolsHttpRequest;
 use devtools_traits::HttpResponse as DevtoolsHttpResponse;
 use devtools_traits::{ChromeToDevtoolsControlMsg, DevtoolsControlMsg, NetworkEvent};
@@ -31,7 +32,6 @@ use net::test::replace_host_table;
 use net_traits::request::{CredentialsMode, Destination, Request, RequestInit, RequestMode};
 use net_traits::response::ResponseBody;
 use net_traits::{CookieSource, NetworkError};
-use servo_channel::{channel, Receiver};
 use servo_url::{ImmutableOrigin, ServoUrl};
 use std::collections::HashMap;
 use std::io::Write;
@@ -243,7 +243,7 @@ fn test_request_and_response_data_with_network_messages() {
         pipeline_id: Some(TEST_PIPELINE_ID),
         ..RequestInit::default()
     });
-    let (devtools_chan, devtools_port) = channel();
+    let (devtools_chan, devtools_port) = unbounded();
     let response = fetch(&mut request, Some(devtools_chan));
     assert!(
         response
@@ -344,7 +344,7 @@ fn test_request_and_response_message_from_devtool_without_pipeline_id() {
         pipeline_id: None,
         ..RequestInit::default()
     });
-    let (devtools_chan, devtools_port) = channel();
+    let (devtools_chan, devtools_port) = unbounded();
     let response = fetch(&mut request, Some(devtools_chan));
     assert!(
         response
@@ -359,7 +359,7 @@ fn test_request_and_response_message_from_devtool_without_pipeline_id() {
     let _ = server.close();
 
     // notification received from devtools
-    assert!(devtools_port.try_recv().is_none());
+    assert!(devtools_port.try_recv().is_err());
 }
 
 #[test]
@@ -388,7 +388,7 @@ fn test_redirected_request_to_devtools() {
         pipeline_id: Some(TEST_PIPELINE_ID),
         ..RequestInit::default()
     });
-    let (devtools_chan, devtools_port) = channel();
+    let (devtools_chan, devtools_port) = unbounded();
     fetch(&mut request, Some(devtools_chan));
 
     let _ = pre_server.close();

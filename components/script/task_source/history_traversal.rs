@@ -6,8 +6,8 @@ use crate::script_runtime::{CommonScriptMsg, ScriptThreadEventCategory};
 use crate::script_thread::MainThreadScriptMsg;
 use crate::task::{TaskCanceller, TaskOnce};
 use crate::task_source::{TaskSource, TaskSourceName};
+use crossbeam_channel::Sender;
 use msg::constellation_msg::PipelineId;
-use servo_channel::Sender;
 
 #[derive(Clone, JSTraceable)]
 pub struct HistoryTraversalTaskSource(pub Sender<MainThreadScriptMsg>, pub PipelineId);

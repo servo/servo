@@ -22,9 +22,11 @@ use crate::dom::workerglobalscope::WorkerGlobalScope;
 use crate::script_runtime::{new_rt_and_cx, CommonScriptMsg, Runtime, ScriptChan};
 use crate::task_queue::{QueuedTask, QueuedTaskConversion, TaskQueue};
 use crate::task_source::TaskSourceName;
+use crossbeam_channel::{unbounded, Receiver, Sender};
 use devtools_traits::DevtoolScriptControlMsg;
 use dom_struct::dom_struct;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
+use ipc_channel::router::ROUTER;
 use js::jsapi::{JSAutoCompartment, JSContext, JS_AddInterruptCallback};
 use js::jsval::UndefinedValue;
 use net_traits::request::{CredentialsMode, Destination, RequestInit};
@@ -32,7 +34,6 @@ use net_traits::{load_whole_resource, CustomResponseMediator, IpcSend};
 use script_traits::{
     ScopeThings, ServiceWorkerMsg, TimerEvent, WorkerGlobalScopeInit, WorkerScriptLoadOrigin,
 };
-use servo_channel::{channel, route_ipc_receiver_to_new_servo_sender, Receiver, Sender};
 use servo_config::prefs::PREFS;
 use servo_rand::random;
 use servo_url::ServoUrl;
@@ -293,11 +294,12 @@ impl ServiceWorkerGlobalScope {
 
                 let runtime = unsafe { new_rt_and_cx() };
 
-                let (devtools_mpsc_chan, devtools_mpsc_port) = channel();
-                route_ipc_receiver_to_new_servo_sender(devtools_receiver, devtools_mpsc_chan);
+                let (devtools_mpsc_chan, devtools_mpsc_port) = unbounded();
+                ROUTER
+                    .route_ipc_receiver_to_crossbeam_sender(devtools_receiver, devtools_mpsc_chan);
                 // TODO XXXcreativcoder use this timer_ipc_port, when we have a service worker instance here
                 let (timer_ipc_chan, _timer_ipc_port) = ipc::channel().unwrap();
-                let (timer_chan, timer_port) = channel();
+                let (timer_chan, timer_port) = unbounded();
                 let global = ServiceWorkerGlobalScope::new(
                     init,
                     url,

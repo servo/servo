@@ -22,6 +22,7 @@ pub mod webdriver_msg;
 use bluetooth_traits::BluetoothRequest;
 use canvas_traits::webgl::WebGLPipeline;
 use crate::webdriver_msg::{LoadStatus, WebDriverScriptCommand};
+use crossbeam_channel::{Receiver, RecvTimeoutError, Sender};
 use devtools_traits::{DevtoolScriptControlMsg, ScriptToDevtoolsControlMsg, WorkerId};
 use euclid::{Length, Point2D, Rect, TypedScale, TypedSize2D, Vector2D};
 use gfx_traits::Epoch;
@@ -42,7 +43,6 @@ use profile_traits::mem;
 use profile_traits::time as profile_time;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use servo_atoms::Atom;
-use servo_channel::{Receiver, Sender};
 use servo_url::ImmutableOrigin;
 use servo_url::ServoUrl;
 use std::collections::HashMap;
@@ -826,6 +826,12 @@ pub enum PaintWorkletError {
     Timeout,
     /// No such worklet.
     WorkletNotFound,
+}
+
+impl From<RecvTimeoutError> for PaintWorkletError {
+    fn from(_: RecvTimeoutError) -> PaintWorkletError {
+        PaintWorkletError::Timeout
+    }
 }
 
 /// Execute paint code in the worklet thread pool.

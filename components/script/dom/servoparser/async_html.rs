@@ -20,6 +20,7 @@ use crate::dom::node::Node;
 use crate::dom::processinginstruction::ProcessingInstruction;
 use crate::dom::servoparser::{create_element_for_token, ElementAttribute, ParsingAlgorithm};
 use crate::dom::virtualmethods::vtable_for;
+use crossbeam_channel::{unbounded, Receiver, Sender};
 use html5ever::buffer_queue::BufferQueue;
 use html5ever::tendril::fmt::UTF8;
 use html5ever::tendril::{SendTendril, StrTendril, Tendril};
@@ -29,7 +30,6 @@ use html5ever::tree_builder::{
 };
 use html5ever::tree_builder::{TreeBuilder, TreeBuilderOpts};
 use html5ever::{Attribute as HtmlAttribute, ExpandedName, QualName};
-use servo_channel::{channel, Receiver, Sender};
 use servo_url::ServoUrl;
 use std::borrow::Cow;
 use std::cell::Cell;
@@ -215,9 +215,9 @@ impl Tokenizer {
         fragment_context: Option<super::FragmentContext>,
     ) -> Self {
         // Messages from the Tokenizer (main thread) to HtmlTokenizer (parser thread)
-        let (to_html_tokenizer_sender, html_tokenizer_receiver) = channel();
+        let (to_html_tokenizer_sender, html_tokenizer_receiver) = unbounded();
         // Messages from HtmlTokenizer and Sink (parser thread) to Tokenizer (main thread)
-        let (to_tokenizer_sender, tokenizer_receiver) = channel();
+        let (to_tokenizer_sender, tokenizer_receiver) = unbounded();
 
         let mut tokenizer = Tokenizer {
             document: Dom::from_ref(document),
