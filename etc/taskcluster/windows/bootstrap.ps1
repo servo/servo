@@ -10,13 +10,6 @@
     [EnvironmentVariableTarget]::Machine)
 
 
-# Optional
-$client.DownloadFile(
-    "http://download.tuxfamily.org/dvorak/windows/bepo.exe",
-    "C:\bepo.exe"
-)
-
-
 # use TLS 1.2 (see bug 1443595)
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
@@ -34,6 +27,12 @@ function Expand-ZIPFile($file, $destination, $url)
         $shell.Namespace($destination).copyhere($item)
     }
 }
+
+# Optional
+$client.DownloadFile(
+    "https://download.tuxfamily.org/dvorak/windows/bepo.exe",
+    "C:\bepo.exe"
+)
 
 md C:\git
 Expand-ZIPFile -File "C:\git.zip" -Destination "C:\git" -Url `
