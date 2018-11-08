@@ -33,6 +33,7 @@ rand = [
 [ignore]
 # Ignored packages with duplicated versions
 packages = [
+  "base64",
   "crossbeam-deque",
   "crossbeam-epoch",
   "crossbeam-utils",

@@ -34,7 +34,7 @@ tinyfiledialogs = "3.0"
 [dependencies]
 app_units = "0.7"
 backtrace = {version = "0.3", optional = true}
-base64 = "0.9"
+base64 = "0.10"
 bitflags = "1.0"
 bluetooth_traits = {path = "../bluetooth_traits"}
 byteorder = "1.0"

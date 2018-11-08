@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use base64;
+use base64::{self, write::EncoderWriter};
 use canvas_traits::canvas::{CanvasId, CanvasMsg, FromScriptMsg};
 use canvas_traits::webgl::WebGLVersion;
 use crate::dom::attr::Attr;
@@ -391,16 +391,21 @@ impl HTMLCanvasElementMethods for HTMLCanvasElement {
         };
 
         // FIXME: Only handle image/png for now.
-        let mut png = Vec::new();
+        let mut url = "data:image/png;base64,".to_owned();
         // FIXME(nox): https://github.com/PistonDevelopers/image-png/issues/86
         // FIXME(nox): https://github.com/PistonDevelopers/image-png/issues/87
-        PNGEncoder::new(&mut png)
-            .encode(&file, self.Width(), self.Height(), ColorType::RGBA(8))
-            .unwrap();
-        let mut url = "data:image/png;base64,".to_owned();
-        // FIXME(nox): Should this use base64::URL_SAFE?
-        // FIXME(nox): https://github.com/alicemaz/rust-base64/pull/56
-        base64::encode_config_buf(&png, base64::STANDARD, &mut url);
+        {
+            // FIXME(nox): Should this use base64::URL_SAFE?
+            let mut base64_encoder = EncoderWriter::new(
+                // NOTE(nox): This is sound because base64 is ASCII-only.
+                url.as_mut_vec(),
+                base64::STANDARD,
+            );
+            PNGEncoder::new(&mut base64_encoder)
+                .encode(&file, self.Width(), self.Height(), ColorType::RGBA(8))
+                .unwrap();
+            base64_encoder.finish().unwrap();
+        }
         Ok(USVString(url))
     }
 }
