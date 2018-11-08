@@ -2102,12 +2102,12 @@ impl Matrix3D {
 
 /// <https://drafts.csswg.org/css-transforms-2/#propdef-rotate>
 impl ComputedRotate {
-    fn resolve(rotate: &ComputedRotate) -> (Number, Number, Number, Angle) {
+    fn resolve(&self) -> (Number, Number, Number, Angle) {
         // According to the spec:
         // https://drafts.csswg.org/css-transforms-2/#individual-transforms
         //
         // If the axis is unspecified, it defaults to "0 0 1"
-        match *rotate {
+        match *self {
             Rotate::None => (0., 0., 1., Angle::zero()),
             Rotate::Rotate3D(rx, ry, rz, angle) => (rx, ry, rz, angle),
             Rotate::Rotate(angle) => (0., 0., 1., angle),
@@ -2122,8 +2122,7 @@ impl Animate for ComputedRotate {
         other: &Self,
         procedure: Procedure,
     ) -> Result<Self, ()> {
-        let from = ComputedRotate::resolve(self);
-        let to = ComputedRotate::resolve(other);
+        let (from, to) = (self.resolve(), other.resolve());
 
         let (mut fx, mut fy, mut fz, fa) =
             transform::get_normalized_vector_and_angle(from.0, from.1, from.2, from.3);
@@ -2163,24 +2162,17 @@ impl Animate for ComputedRotate {
 
 /// <https://drafts.csswg.org/css-transforms-2/#propdef-translate>
 impl ComputedTranslate {
-    fn resolve(
-        translate: &ComputedTranslate,
-    ) -> (LengthOrPercentage, LengthOrPercentage, Length) {
+    fn resolve(&self) -> (LengthOrPercentage, LengthOrPercentage, Length) {
         // According to the spec:
         // https://drafts.csswg.org/css-transforms-2/#individual-transforms
         //
         // Unspecified translations default to 0px
-        match *translate {
+        match *self {
             Translate::None => {
-                (
-                    LengthOrPercentage::Length(Length::zero()),
-                    LengthOrPercentage::Length(Length::zero()),
-                    Length::zero(),
-                )
+                (LengthOrPercentage::zero(), LengthOrPercentage::zero(), Length::zero())
             },
             Translate::Translate3D(tx, ty, tz) => (tx, ty, tz),
             Translate::Translate(tx, ty) => (tx, ty, Length::zero()),
-            Translate::TranslateX(tx) => (tx, LengthOrPercentage::Length(Length::zero()), Length::zero()),
         }
     }
 }
@@ -2192,23 +2184,31 @@ impl Animate for ComputedTranslate {
         other: &Self,
         procedure: Procedure,
     ) -> Result<Self, ()> {
-        let from = ComputedTranslate::resolve(self);
-        let to = ComputedTranslate::resolve(other);
-
-        Ok(Translate::Translate3D(from.0.animate(&to.0, procedure)?,
-                                  from.1.animate(&to.1, procedure)?,
-                                  from.2.animate(&to.2, procedure)?))
+        match (self, other) {
+            (&Translate::None, &Translate::None) => Ok(Translate::None),
+            (&Translate::Translate3D(_, ..), _) | (_, &Translate::Translate3D(_, ..)) => {
+                let (from, to) = (self.resolve(), other.resolve());
+                Ok(Translate::Translate3D(from.0.animate(&to.0, procedure)?,
+                                          from.1.animate(&to.1, procedure)?,
+                                          from.2.animate(&to.2, procedure)?))
+            },
+            (&Translate::Translate(_, ..), _) | (_, &Translate::Translate(_, ..)) => {
+                let (from, to) = (self.resolve(), other.resolve());
+                Ok(Translate::Translate(from.0.animate(&to.0, procedure)?,
+                                        from.1.animate(&to.1, procedure)?))
+            },
+        }
     }
 }
 
 /// <https://drafts.csswg.org/css-transforms-2/#propdef-scale>
 impl ComputedScale {
-    fn resolve(scale: &ComputedScale) -> (Number, Number, Number) {
+    fn resolve(&self) -> (Number, Number, Number) {
         // According to the spec:
         // https://drafts.csswg.org/css-transforms-2/#individual-transforms
         //
         // Unspecified scales default to 1
-        match *scale {
+        match *self {
             Scale::None => (1.0, 1.0, 1.0),
             Scale::Scale3D(sx, sy, sz) => (sx, sy, sz),
             Scale::Scale(sx, sy) => (sx, sy, 1.),
@@ -2226,8 +2226,7 @@ impl Animate for ComputedScale {
         match (self, other) {
             (&Scale::None, &Scale::None) => Ok(Scale::None),
             (&Scale::Scale3D(_, ..), _) | (_, &Scale::Scale3D(_, ..)) => {
-                let from = ComputedScale::resolve(self);
-                let to = ComputedScale::resolve(other);
+                let (from, to) = (self.resolve(), other.resolve());
                 // FIXME(emilio, bug 1464791): why does this do something different than
                 // Scale3D / TransformOperation::Scale3D?
                 if procedure == Procedure::Add {
@@ -2241,8 +2240,7 @@ impl Animate for ComputedScale {
                 ))
             },
             (&Scale::Scale(_, ..), _) | (_, &Scale::Scale(_, ..)) => {
-                let from = ComputedScale::resolve(self);
-                let to = ComputedScale::resolve(other);
+                let (from, to) = (self.resolve(), other.resolve());
                 // FIXME(emilio, bug 1464791): why does this do something different than
                 // Scale / TransformOperation::Scale?
                 if procedure == Procedure::Add {

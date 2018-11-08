@@ -334,7 +334,6 @@ impl Translate {
     pub fn to_transform_operation(&self) -> Option<TransformOperation> {
         match *self {
             generic::Translate::None => None,
-            generic::Translate::TranslateX(tx) => Some(generic::TransformOperation::TranslateX(tx)),
             generic::Translate::Translate(tx, ty) => {
                 Some(generic::TransformOperation::Translate(tx, Some(ty)))
             },
@@ -347,7 +346,6 @@ impl Translate {
     /// Convert Translate to TransformOperation.
     pub fn from_transform_operation(operation: &TransformOperation) -> Translate {
         match *operation {
-            generic::TransformOperation::TranslateX(tx) => generic::Translate::TranslateX(tx),
             generic::TransformOperation::Translate(tx, Some(ty)) => {
                 generic::Translate::Translate(tx, ty)
             },

@@ -610,7 +610,6 @@ impl<Number: ToCss + PartialEq> ToCss for Scale<Number> {
     SpecifiedValueInfo,
     ToAnimatedZero,
     ToComputedValue,
-    ToCss,
 )]
 /// A value of the `Translate` property
 ///
@@ -618,12 +617,54 @@ impl<Number: ToCss + PartialEq> ToCss for Scale<Number> {
 pub enum Translate<LengthOrPercentage, Length> {
     /// 'none'
     None,
-    /// '<length-percentage>'
-    TranslateX(LengthOrPercentage),
-    /// '<length-percentage> <length-percentage>'
+    /// '<length-percentage>' or '<length-percentage> <length-percentage>'
     Translate(LengthOrPercentage, LengthOrPercentage),
     /// '<length-percentage> <length-percentage> <length>'
     Translate3D(LengthOrPercentage, LengthOrPercentage, Length),
+}
+
+/// A trait to check if this is a zero length.
+/// An alternative way is use num_traits::Zero. However, in order to implement num_traits::Zero,
+/// we also have to implement Add, which may be complicated for LengthOrPercentage::Calc.
+/// We could do this if other types also need it. If so, we could drop this trait.
+pub trait IsZeroLength {
+    /// Returns true if this is a zero length.
+    fn is_zero_length(&self) -> bool;
+}
+
+impl<LoP: ToCss + IsZeroLength, L: ToCss> ToCss for Translate<LoP, L> {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: fmt::Write,
+    {
+        // The spec says:
+        // 1. If a 2d translation is specified, the property must serialize with only one or two
+        //    values (per usual, if the second value is 0px, the default, it must be omitted when
+        //    serializing).
+        // 2. If a 3d translation is specified, all three values must be serialized.
+        // https://drafts.csswg.org/css-transforms-2/#individual-transform-serialization
+        //
+        // We don't omit the 3rd component even if it is 0px for now, and the related
+        // spec issue is https://github.com/w3c/csswg-drafts/issues/3305
+        match *self {
+            Translate::None => dest.write_str("none"),
+            Translate::Translate(ref x, ref y) => {
+                x.to_css(dest)?;
+                if !y.is_zero_length() {
+                    dest.write_char(' ')?;
+                    y.to_css(dest)?;
+                }
+                Ok(())
+            },
+            Translate::Translate3D(ref x, ref y, ref z) => {
+                x.to_css(dest)?;
+                dest.write_char(' ')?;
+                y.to_css(dest)?;
+                dest.write_char(' ')?;
+                z.to_css(dest)
+            },
+        }
+    }
 }
 
 #[allow(missing_docs)]

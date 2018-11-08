@@ -11,6 +11,7 @@ use crate::values::distance::{ComputeSquaredDistance, SquaredDistance};
 use crate::values::generics::length::{
     MaxLength as GenericMaxLength, MozLength as GenericMozLength,
 };
+use crate::values::generics::transform::IsZeroLength;
 use crate::values::generics::NonNegative;
 use crate::values::specified::length::ViewportPercentageLength;
 use crate::values::specified::length::{AbsoluteLength, FontBaseSize, FontRelativeLength};
@@ -492,6 +493,17 @@ impl ToComputedValue for specified::LengthOrPercentage {
             LengthOrPercentage::Calc(ref calc) => specified::LengthOrPercentage::Calc(Box::new(
                 ToComputedValue::from_computed_value(calc),
             )),
+        }
+    }
+}
+
+impl IsZeroLength for LengthOrPercentage {
+    #[inline]
+    fn is_zero_length(&self) -> bool {
+        match *self {
+            LengthOrPercentage::Length(l) => l.0 == 0.0,
+            LengthOrPercentage::Percentage(p) => p.0 == 0.0,
+            LengthOrPercentage::Calc(c) => c.unclamped_length().0 == 0.0 && c.percentage() == 0.0,
         }
     }
 }
