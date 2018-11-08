@@ -27,12 +27,16 @@ include!(concat!(
 impl ::selectors::parser::PseudoElement for PseudoElement {
     type Impl = SelectorImpl;
 
+    // ::slotted() should support all tree-abiding pseudo-elements, see
+    // https://drafts.csswg.org/css-scoping/#slotted-pseudo
+    // https://drafts.csswg.org/css-pseudo-4/#treelike
     fn valid_after_slotted(&self) -> bool {
-        // TODO(emilio): Remove this function or this comment after [1] is
-        // resolved.
-        //
-        // [1]: https://github.com/w3c/csswg-drafts/issues/3150
-        self.is_before_or_after()
+        matches!(
+            *self,
+            PseudoElement::Before |
+            PseudoElement::After |
+            PseudoElement::Placeholder
+        )
     }
 
     fn supports_pseudo_class(&self, pseudo_class: &NonTSPseudoClass) -> bool {
