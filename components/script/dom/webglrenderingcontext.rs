@@ -496,9 +496,8 @@ impl WebGLRenderingContext {
             rgba8[3] = 255u8;
         }
 
-        let pixels = self.prepare_pixels(format, data_type, width, height, 1, true, true, pixels);
         self.tex_image_2d(
-            texture, target, data_type, format, level, width, height, 0, 1, pixels,
+            texture, target, data_type, format, level, width, height, 0, 1, true, true, pixels,
         );
 
         false
@@ -771,9 +770,20 @@ impl WebGLRenderingContext {
         height: u32,
         _border: u32,
         unpacking_alignment: u32,
+        source_premultiplied: bool,
+        source_from_image_or_canvas: bool,
         pixels: Vec<u8>,
     ) {
-        // NB: pixels should NOT be premultipied
+        let pixels = self.prepare_pixels(
+            internal_format,
+            data_type,
+            width,
+            height,
+            unpacking_alignment,
+            source_premultiplied,
+            source_from_image_or_canvas,
+            pixels,
+        );
 
         // TexImage2D depth is always equal to 1
         handle_potential_webgl_error!(
@@ -836,8 +846,21 @@ impl WebGLRenderingContext {
         format: TexFormat,
         data_type: TexDataType,
         unpacking_alignment: u32,
+        source_premultiplied: bool,
+        source_from_image_or_canvas: bool,
         pixels: Vec<u8>,
     ) {
+        let pixels = self.prepare_pixels(
+            format,
+            data_type,
+            width,
+            height,
+            unpacking_alignment,
+            source_premultiplied,
+            source_from_image_or_canvas,
+            pixels,
+        );
+
         // We have already validated level
         let image_info = texture.image_info_for_target(&target, level);
 
@@ -3735,17 +3758,6 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             return Ok(()); // The validator sets the correct error for use
         }
 
-        let pixels = self.prepare_pixels(
-            format,
-            data_type,
-            width,
-            height,
-            unpacking_alignment,
-            false,
-            false,
-            buff,
-        );
-
         self.tex_image_2d(
             &texture,
             target,
@@ -3756,7 +3768,9 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             height,
             border,
             unpacking_alignment,
-            pixels,
+            false,
+            false,
+            buff,
         );
 
         Ok(())
@@ -3813,20 +3827,19 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             return Ok(()); // The validator sets the correct error for use
         }
 
-        let unpacking_alignment = 1;
-        let pixels = self.prepare_pixels(
-            format,
+        self.tex_image_2d(
+            &texture,
+            target,
             data_type,
+            format,
+            level,
             width,
             height,
-            unpacking_alignment,
+            border,
+            1,
             premultiplied,
             true,
             pixels,
-        );
-
-        self.tex_image_2d(
-            &texture, target, data_type, format, level, width, height, border, 1, pixels,
         );
         Ok(())
     }
@@ -3949,18 +3962,6 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             return Ok(self.webgl_error(InvalidOperation));
         }
 
-        let unpacking_alignment = self.texture_unpacking_alignment.get();
-        let pixels = self.prepare_pixels(
-            format,
-            data_type,
-            width,
-            height,
-            unpacking_alignment,
-            false,
-            false,
-            buff,
-        );
-
         self.tex_sub_image_2d(
             texture,
             target,
@@ -3972,7 +3973,9 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             format,
             data_type,
             unpacking_alignment,
-            pixels,
+            false,
+            false,
+            buff,
         );
         Ok(())
     }
@@ -4018,20 +4021,20 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             Err(_) => return Ok(()), // NB: The validator sets the correct error for us.
         };
 
-        let unpacking_alignment = 1;
-        let pixels = self.prepare_pixels(
-            format,
-            data_type,
+        self.tex_sub_image_2d(
+            texture,
+            target,
+            level,
+            xoffset,
+            yoffset,
             width,
             height,
-            unpacking_alignment,
+            format,
+            data_type,
+            1,
             premultiplied,
             true,
             pixels,
-        );
-
-        self.tex_sub_image_2d(
-            texture, target, level, xoffset, yoffset, width, height, format, data_type, 1, pixels,
         );
         Ok(())
     }
