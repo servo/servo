@@ -41,7 +41,6 @@ use net_traits::image_cache::ImageOrMetadataAvailable;
 use net_traits::image_cache::ImageResponse;
 use net_traits::image_cache::ImageState;
 use net_traits::image_cache::UsePlaceholder;
-use pixels;
 use profile_traits::ipc as profiled_ipc;
 use script_traits::ScriptMsg;
 use servo_url::ServoUrl;
@@ -126,7 +125,7 @@ impl CanvasRenderingContext2D {
     pub fn new_inherited(
         global: &GlobalScope,
         canvas: Option<&HTMLCanvasElement>,
-        image_cache: Arc<ImageCache>,
+        image_cache: Arc<dyn ImageCache>,
         base_url: ServoUrl,
         size: Size2D<u32>,
     ) -> CanvasRenderingContext2D {

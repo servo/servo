@@ -733,7 +733,7 @@ impl EventTargetMethods for EventTarget {
 }
 
 impl VirtualMethods for EventTarget {
-    fn super_type(&self) -> Option<&VirtualMethods> {
+    fn super_type(&self) -> Option<&dyn VirtualMethods> {
         None
     }
 }

@@ -13,8 +13,6 @@ use fnv::FnvHashMap;
 use gleam::gl;
 use servo_config::prefs::PREFS;
 use std::rc::Rc;
-use webrender;
-use webrender_api;
 
 /// WebGL Threading API entry point that lives in the constellation.
 pub struct WebGLThreads(WebGLSender<WebGLMsg>);
@@ -23,13 +21,13 @@ impl WebGLThreads {
     /// Creates a new WebGLThreads object
     pub fn new(
         gl_factory: GLContextFactory,
-        webrender_gl: Rc<gl::Gl>,
+        webrender_gl: Rc<dyn gl::Gl>,
         webrender_api_sender: webrender_api::RenderApiSender,
-        webvr_compositor: Option<Box<WebVRRenderHandler>>,
+        webvr_compositor: Option<Box<dyn WebVRRenderHandler>>,
     ) -> (
         WebGLThreads,
-        Box<webrender::ExternalImageHandler>,
-        Option<Box<webrender::OutputImageHandler>>,
+        Box<dyn webrender::ExternalImageHandler>,
+        Option<Box<dyn webrender::OutputImageHandler>>,
     ) {
         // This implementation creates a single `WebGLThread` for all the pipelines.
         let channel = WebGLThread::start(
@@ -70,7 +68,7 @@ impl WebGLThreads {
 
 /// Bridge between the webrender::ExternalImage callbacks and the WebGLThreads.
 struct WebGLExternalImages {
-    webrender_gl: Rc<gl::Gl>,
+    webrender_gl: Rc<dyn gl::Gl>,
     webgl_channel: WebGLSender<WebGLMsg>,
     // Used to avoid creating a new channel on each received WebRender request.
     lock_channel: (
@@ -80,7 +78,7 @@ struct WebGLExternalImages {
 }
 
 impl WebGLExternalImages {
-    fn new(webrender_gl: Rc<gl::Gl>, channel: WebGLSender<WebGLMsg>) -> Self {
+    fn new(webrender_gl: Rc<dyn gl::Gl>, channel: WebGLSender<WebGLMsg>) -> Self {
         Self {
             webrender_gl,
             webgl_channel: channel,
@@ -111,7 +109,7 @@ impl WebGLExternalImageApi for WebGLExternalImages {
 }
 
 /// Wrapper to send WebVR commands used in `WebGLThread`.
-struct WebVRRenderWrapper(Box<WebVRRenderHandler>);
+struct WebVRRenderWrapper(Box<dyn WebVRRenderHandler>);
 
 impl WebVRRenderHandler for WebVRRenderWrapper {
     fn handle(&mut self, command: WebVRCommand, texture: Option<(u32, Size2D<i32>)>) {
@@ -122,7 +120,7 @@ impl WebVRRenderHandler for WebVRRenderWrapper {
 /// struct used to implement DOMToTexture feature and webrender::OutputImageHandler trait.
 type OutputHandlerData = Option<(u32, Size2D<i32>)>;
 struct OutputHandler {
-    webrender_gl: Rc<gl::Gl>,
+    webrender_gl: Rc<dyn gl::Gl>,
     webgl_channel: WebGLSender<WebGLMsg>,
     // Used to avoid creating a new channel on each received WebRender request.
     lock_channel: (
@@ -133,7 +131,7 @@ struct OutputHandler {
 }
 
 impl OutputHandler {
-    fn new(webrender_gl: Rc<gl::Gl>, channel: WebGLSender<WebGLMsg>) -> Self {
+    fn new(webrender_gl: Rc<dyn gl::Gl>, channel: WebGLSender<WebGLMsg>) -> Self {
         Self {
             webrender_gl,
             webgl_channel: channel,

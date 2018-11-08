@@ -110,7 +110,6 @@ use crate::session_history::{
     JointSessionHistory, NeedsToReload, SessionHistoryChange, SessionHistoryDiff,
 };
 use crate::timer_scheduler::TimerScheduler;
-use debugger;
 use devtools_traits::{ChromeToDevtoolsControlMsg, DevtoolsControlMsg};
 use embedder_traits::{EmbedderMsg, EmbedderProxy};
 use euclid::{Size2D, TypedScale, TypedSize2D};
@@ -164,7 +163,6 @@ use std::thread;
 use style_traits::cursor::CursorKind;
 use style_traits::viewport::ViewportConstraints;
 use style_traits::CSSPixel;
-use webrender_api;
 use webvr_traits::{WebVREvent, WebVRMsg};
 
 /// Servo supports tabs (referred to as browsers), so `Constellation` needs to

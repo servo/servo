@@ -36,8 +36,6 @@ use http::uri::Authority;
 use http::{HeaderMap, Request as HyperRequest};
 use hyper::{Body, Client, Method, Response as HyperResponse, StatusCode};
 use hyper_serde::Serde;
-use log;
-use mime;
 use msg::constellation_msg::{HistoryStateId, PipelineId};
 use net_traits::quality::{quality_to_value, Quality, QualityItem};
 use net_traits::request::{CacheMode, CredentialsMode, Destination, Origin};
@@ -61,7 +59,6 @@ use std::time::{Duration, SystemTime};
 use time::{self, Tm};
 use tokio::prelude::{future, Future, Stream};
 use tokio::runtime::Runtime;
-use uuid;
 
 lazy_static! {
     pub static ref HANDLE: Mutex<Runtime> = { Mutex::new(Runtime::new().unwrap()) };
@@ -380,7 +377,7 @@ fn obtain_response(
     request_id: Option<&str>,
     is_xhr: bool,
 ) -> Box<
-    Future<
+    dyn Future<
         Item = (
             HyperResponse<WrappedBody>,
             Option<ChromeToDevtoolsControlMsg>,

@@ -10,7 +10,7 @@
 use crate::font::ShapingOptions;
 use crate::text::glyph::GlyphStore;
 
-pub use crate::text::shaping::harfbuzz::Shaper;
+pub use self::harfbuzz::Shaper;
 
 pub mod harfbuzz;
 

@@ -4,49 +4,16 @@
 
 #![deny(unsafe_code)]
 
-extern crate app_units;
-extern crate atomic_refcell;
 #[macro_use]
 extern crate bitflags;
-extern crate canvas_traits;
-extern crate euclid;
-extern crate fnv;
-extern crate fxhash;
-extern crate gfx;
-extern crate gfx_traits;
 #[macro_use]
 extern crate html5ever;
-extern crate ipc_channel;
-extern crate libc;
 #[macro_use]
 extern crate log;
-extern crate malloc_size_of;
-extern crate msg;
-extern crate net_traits;
-extern crate ordered_float;
-extern crate parking_lot;
-extern crate profile_traits;
 #[macro_use]
 extern crate range;
-extern crate rayon;
-extern crate script_layout_interface;
-extern crate script_traits;
 #[macro_use]
 extern crate serde;
-extern crate serde_json;
-extern crate servo_arc;
-extern crate servo_atoms;
-extern crate servo_channel;
-extern crate servo_config;
-extern crate servo_geometry;
-extern crate servo_url;
-extern crate smallvec;
-extern crate style;
-extern crate style_traits;
-extern crate unicode_bidi;
-extern crate unicode_script;
-extern crate webrender_api;
-extern crate xi_unicode;
 
 #[macro_use]
 pub mod layout_debug;

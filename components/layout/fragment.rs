@@ -23,7 +23,6 @@ use crate::text::TextRunScanner;
 use crate::wrapper::ThreadSafeLayoutNodeHelpers;
 use crate::ServoArc;
 use euclid::{Point2D, Rect, Size2D, Vector2D};
-use gfx;
 use gfx::text::glyph::ByteIndex;
 use gfx::text::text_run::{TextRun, TextRunSlice};
 use gfx_traits::StackingContextId;

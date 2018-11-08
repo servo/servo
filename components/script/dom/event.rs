@@ -24,7 +24,6 @@ use dom_struct::dom_struct;
 use servo_atoms::Atom;
 use std::cell::Cell;
 use std::default::Default;
-use time;
 
 #[dom_struct]
 pub struct Event {

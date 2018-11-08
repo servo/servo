@@ -13,16 +13,10 @@
 
 #[macro_use]
 extern crate bitflags;
-extern crate http;
-extern crate ipc_channel;
-extern crate malloc_size_of;
 #[macro_use]
 extern crate malloc_size_of_derive;
-extern crate msg;
 #[macro_use]
 extern crate serde;
-extern crate servo_url;
-extern crate time;
 
 use http::method::Method;
 use http::HeaderMap;
@@ -30,8 +24,7 @@ use ipc_channel::ipc::IpcSender;
 use msg::constellation_msg::PipelineId;
 use servo_url::ServoUrl;
 use std::net::TcpStream;
-use time::Duration;
-use time::Tm;
+use time::{self, Duration, Tm};
 
 // Information would be attached to NewGlobal to be received and show in devtools.
 // Extend these fields if we need more information.

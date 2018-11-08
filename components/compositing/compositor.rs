@@ -40,7 +40,6 @@ use style_traits::cursor::CursorKind;
 use style_traits::viewport::ViewportConstraints;
 use style_traits::{CSSPixel, DevicePixel, PinchZoomFactor};
 use time::{now, precise_time_ns, precise_time_s};
-use webrender;
 use webrender_api::{self, DeviceIntPoint, DevicePoint, HitTestFlags, HitTestResult};
 use webrender_api::{LayoutVector2D, ScrollLocation};
 
@@ -263,7 +262,7 @@ impl RenderNotifier {
 }
 
 impl webrender_api::RenderNotifier for RenderNotifier {
-    fn clone(&self) -> Box<webrender_api::RenderNotifier> {
+    fn clone(&self) -> Box<dyn webrender_api::RenderNotifier> {
         Box::new(RenderNotifier::new(self.compositor_proxy.clone()))
     }
 

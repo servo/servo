@@ -64,7 +64,7 @@ pub struct LayoutContext<'a> {
     pub style_context: SharedStyleContext<'a>,
 
     /// Reference to the script thread image cache.
-    pub image_cache: Arc<ImageCache>,
+    pub image_cache: Arc<dyn ImageCache>,
 
     /// Interface to the font cache thread.
     pub font_cache_thread: Mutex<FontCacheThread>,
@@ -77,7 +77,7 @@ pub struct LayoutContext<'a> {
     >,
 
     /// Paint worklets
-    pub registered_painters: &'a RegisteredPainters,
+    pub registered_painters: &'a dyn RegisteredPainters,
 
     /// A list of in-progress image loads to be shared with the script thread.
     /// A None value means that this layout was not initiated by the script thread.
@@ -197,5 +197,5 @@ pub trait RegisteredPainter: RegisteredSpeculativePainter + Painter {}
 /// A set of registered painters
 pub trait RegisteredPainters: Sync {
     /// Look up a painter
-    fn get(&self, name: &Atom) -> Option<&RegisteredPainter>;
+    fn get(&self, name: &Atom) -> Option<&dyn RegisteredPainter>;
 }

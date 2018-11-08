@@ -27,7 +27,7 @@ pub trait LayoutDamageComputation {
     fn reflow_entire_document(self);
 }
 
-impl<'a> LayoutDamageComputation for &'a mut Flow {
+impl<'a> LayoutDamageComputation for &'a mut dyn Flow {
     fn compute_layout_damage(self) -> SpecialRestyleDamage {
         let mut special_damage = SpecialRestyleDamage::empty();
         let is_absolutely_positioned = self
@@ -53,7 +53,7 @@ impl<'a> LayoutDamageComputation for &'a mut Flow {
                         .damage_for_child(is_absolutely_positioned, child_is_absolutely_positioned),
                 );
                 {
-                    let kid: &mut Flow = kid;
+                    let kid: &mut dyn Flow = kid;
                     special_damage.insert(kid.compute_layout_damage());
                 }
                 self_base.restyle_damage.insert(

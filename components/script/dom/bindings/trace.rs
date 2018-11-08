@@ -375,7 +375,7 @@ unsafe_no_jsmanaged_fields!(usize, u8, u16, u32, u64);
 unsafe_no_jsmanaged_fields!(isize, i8, i16, i32, i64);
 unsafe_no_jsmanaged_fields!(Error);
 unsafe_no_jsmanaged_fields!(ServoUrl, ImmutableOrigin, MutableOrigin);
-unsafe_no_jsmanaged_fields!(Image, ImageMetadata, ImageCache, PendingImageId);
+unsafe_no_jsmanaged_fields!(Image, ImageMetadata, dyn ImageCache, PendingImageId);
 unsafe_no_jsmanaged_fields!(Metadata);
 unsafe_no_jsmanaged_fields!(NetworkError);
 unsafe_no_jsmanaged_fields!(Atom, Prefix, LocalName, Namespace, QualName);
@@ -461,7 +461,7 @@ unsafe_no_jsmanaged_fields!(AudioBuffer);
 unsafe_no_jsmanaged_fields!(AudioContext<Backend>);
 unsafe_no_jsmanaged_fields!(NodeId);
 unsafe_no_jsmanaged_fields!(AnalysisEngine, DistanceModel, PanningModel, ParamType);
-unsafe_no_jsmanaged_fields!(Player<Error = ServoMediaError>);
+unsafe_no_jsmanaged_fields!(dyn Player<Error = ServoMediaError>);
 unsafe_no_jsmanaged_fields!(Mutex<MediaFrameRenderer>);
 unsafe_no_jsmanaged_fields!(RenderApiSender);
 
@@ -497,7 +497,7 @@ where
 }
 
 // Safe thanks to the Send bound.
-unsafe impl JSTraceable for Box<LayoutRPC + Send + 'static> {
+unsafe impl JSTraceable for Box<dyn LayoutRPC + Send + 'static> {
     #[inline]
     unsafe fn trace(&self, _: *mut JSTracer) {
         // Do nothing
@@ -733,7 +733,7 @@ where
 
 /// Holds a set of JSTraceables that need to be rooted
 struct RootedTraceableSet {
-    set: Vec<*const JSTraceable>,
+    set: Vec<*const dyn JSTraceable>,
 }
 
 thread_local!(/// TLV Holds a set of JSTraceables that need to be rooted
@@ -744,7 +744,7 @@ impl RootedTraceableSet {
         RootedTraceableSet { set: vec![] }
     }
 
-    unsafe fn remove(traceable: *const JSTraceable) {
+    unsafe fn remove(traceable: *const dyn JSTraceable) {
         ROOTED_TRACEABLES.with(|ref traceables| {
             let mut traceables = traceables.borrow_mut();
             let idx = match traceables.set.iter().rposition(|x| *x == traceable) {
@@ -755,7 +755,7 @@ impl RootedTraceableSet {
         });
     }
 
-    unsafe fn add(traceable: *const JSTraceable) {
+    unsafe fn add(traceable: *const dyn JSTraceable) {
         ROOTED_TRACEABLES.with(|ref traceables| {
             traceables.borrow_mut().set.push(traceable);
         })

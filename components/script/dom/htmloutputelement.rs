@@ -71,8 +71,8 @@ impl HTMLOutputElementMethods for HTMLOutputElement {
 }
 
 impl VirtualMethods for HTMLOutputElement {
-    fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
-        Some(self.upcast::<HTMLElement>() as &VirtualMethods)
+    fn super_type<'b>(&'b self) -> Option<&'b dyn VirtualMethods> {
+        Some(self.upcast::<HTMLElement>() as &dyn VirtualMethods)
     }
 
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {

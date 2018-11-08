@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use crate::cookie_rs;
+use cookie::Cookie;
 use crate::document_loader::{DocumentLoader, LoadType};
 use crate::dom::activation::{synthetic_click_activation, ActivationSource};
 use crate::dom::attr::Attr;
@@ -155,7 +155,6 @@ use style::shared_lock::{SharedRwLock as StyleSharedRwLock, SharedRwLockReadGuar
 use style::str::{split_html_space_chars, str_join};
 use style::stylesheet_set::DocumentStylesheetSet;
 use style::stylesheets::{CssRule, Origin, OriginSet, Stylesheet};
-use time;
 use url::percent_encoding::percent_decode;
 use url::Host;
 
@@ -3965,12 +3964,11 @@ impl DocumentMethods for Document {
             return Err(Error::Security);
         }
 
-        let cookies =
-            if let Some(cookie) = cookie_rs::Cookie::parse(cookie.to_string()).ok().map(Serde) {
-                vec![cookie]
-            } else {
-                vec![]
-            };
+        let cookies = if let Some(cookie) = Cookie::parse(cookie.to_string()).ok().map(Serde) {
+            vec![cookie]
+        } else {
+            vec![]
+        };
 
         let _ = self
             .window

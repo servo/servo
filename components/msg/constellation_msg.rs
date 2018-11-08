@@ -8,7 +8,6 @@
 use std::cell::Cell;
 use std::fmt;
 use std::num::NonZeroU32;
-use webrender_api;
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 pub enum TraversalDirection {

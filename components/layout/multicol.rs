@@ -241,7 +241,7 @@ impl Flow for MulticolFlow {
 
     fn iterate_through_fragment_border_boxes(
         &self,
-        iterator: &mut FragmentBorderBoxIterator,
+        iterator: &mut dyn FragmentBorderBoxIterator,
         level: i32,
         stacking_context_position: &Point2D<Au>,
     ) {
@@ -252,7 +252,7 @@ impl Flow for MulticolFlow {
         );
     }
 
-    fn mutate_fragments(&mut self, mutator: &mut FnMut(&mut Fragment)) {
+    fn mutate_fragments(&mut self, mutator: &mut dyn FnMut(&mut Fragment)) {
         self.block_flow.mutate_fragments(mutator);
     }
 
@@ -295,7 +295,7 @@ impl Flow for MulticolColumnFlow {
         &mut self,
         layout_context: &LayoutContext,
         fragmentation_context: Option<FragmentationContext>,
-    ) -> Option<Arc<Flow>> {
+    ) -> Option<Arc<dyn Flow>> {
         Flow::fragment(&mut self.block_flow, layout_context, fragmentation_context)
     }
 
@@ -345,7 +345,7 @@ impl Flow for MulticolColumnFlow {
 
     fn iterate_through_fragment_border_boxes(
         &self,
-        iterator: &mut FragmentBorderBoxIterator,
+        iterator: &mut dyn FragmentBorderBoxIterator,
         level: i32,
         stacking_context_position: &Point2D<Au>,
     ) {
@@ -356,7 +356,7 @@ impl Flow for MulticolColumnFlow {
         );
     }
 
-    fn mutate_fragments(&mut self, mutator: &mut FnMut(&mut Fragment)) {
+    fn mutate_fragments(&mut self, mutator: &mut dyn FnMut(&mut Fragment)) {
         self.block_flow.mutate_fragments(mutator);
     }
 

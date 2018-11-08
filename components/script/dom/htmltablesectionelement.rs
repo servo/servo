@@ -102,8 +102,8 @@ impl HTMLTableSectionElementLayoutHelpers for LayoutDom<HTMLTableSectionElement>
 }
 
 impl VirtualMethods for HTMLTableSectionElement {
-    fn super_type(&self) -> Option<&VirtualMethods> {
-        Some(self.upcast::<HTMLElement>() as &VirtualMethods)
+    fn super_type(&self) -> Option<&dyn VirtualMethods> {
+        Some(self.upcast::<HTMLElement>() as &dyn VirtualMethods)
     }
 
     fn parse_plain_attribute(&self, local_name: &LocalName, value: DOMString) -> AttrValue {

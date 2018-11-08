@@ -408,7 +408,7 @@ impl WorkerGlobalScope {
         }
     }
 
-    pub fn script_chan(&self) -> Box<ScriptChan + Send> {
+    pub fn script_chan(&self) -> Box<dyn ScriptChan + Send> {
         let dedicated = self.downcast::<DedicatedWorkerGlobalScope>();
         let service_worker = self.downcast::<ServiceWorkerGlobalScope>();
         if let Some(dedicated) = dedicated {
@@ -444,7 +444,7 @@ impl WorkerGlobalScope {
         WebsocketTaskSource(self.script_chan(), self.pipeline_id())
     }
 
-    pub fn new_script_pair(&self) -> (Box<ScriptChan + Send>, Box<ScriptPort + Send>) {
+    pub fn new_script_pair(&self) -> (Box<dyn ScriptChan + Send>, Box<dyn ScriptPort + Send>) {
         let dedicated = self.downcast::<DedicatedWorkerGlobalScope>();
         if let Some(dedicated) = dedicated {
             return dedicated.new_script_pair();

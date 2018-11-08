@@ -16,7 +16,7 @@ impl ScriptChan for HistoryTraversalTaskSource {
             .map_err(|_| ())
     }
 
-    fn clone(&self) -> Box<ScriptChan + Send> {
+    fn clone(&self) -> Box<dyn ScriptChan + Send> {
         Box::new(HistoryTraversalTaskSource((&self.0).clone()))
     }
 }

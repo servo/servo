@@ -77,7 +77,7 @@ where
 
 pub struct PersistentListIterator<'a, T>
 where
-    T: 'a + Send + Sync,
+    T: Send + Sync,
 {
     entry: Option<&'a PersistentListEntry<T>>,
 }

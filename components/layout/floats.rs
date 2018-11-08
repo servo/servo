@@ -494,7 +494,7 @@ impl SpeculatedFloatPlacement {
 
     /// Given the speculated inline size of the floats out for the inorder predecessor of this
     /// flow, computes the speculated inline size of the floats flowing in.
-    pub fn compute_floats_in(&mut self, flow: &mut Flow) {
+    pub fn compute_floats_in(&mut self, flow: &mut dyn Flow) {
         let base_flow = flow.base();
         if base_flow.flags.contains(FlowFlags::CLEARS_LEFT) {
             self.left = Au(0)
@@ -506,7 +506,7 @@ impl SpeculatedFloatPlacement {
 
     /// Given the speculated inline size of the floats out for this flow's last child, computes the
     /// speculated inline size of the floats out for this flow.
-    pub fn compute_floats_out(&mut self, flow: &mut Flow) {
+    pub fn compute_floats_out(&mut self, flow: &mut dyn Flow) {
         if flow.is_block_like() {
             let block_flow = flow.as_block();
             if block_flow.formatting_context_type() != FormattingContextType::None {
@@ -564,7 +564,9 @@ impl SpeculatedFloatPlacement {
     }
 
     /// Given a flow, computes the speculated inline size of the floats in of its first child.
-    pub fn compute_floats_in_for_first_child(parent_flow: &mut Flow) -> SpeculatedFloatPlacement {
+    pub fn compute_floats_in_for_first_child(
+        parent_flow: &mut dyn Flow,
+    ) -> SpeculatedFloatPlacement {
         if !parent_flow.is_block_like() {
             return parent_flow.base().speculated_float_placement_in;
         }

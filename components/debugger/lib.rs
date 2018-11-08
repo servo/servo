@@ -4,11 +4,9 @@
 
 #[macro_use]
 extern crate log;
-extern crate servo_channel;
-extern crate ws;
 
 use std::thread;
-use ws::{Builder, CloseCode, Handler, Handshake};
+use ws::{self, Builder, CloseCode, Handler, Handshake};
 
 enum Message {
     ShutdownServer,

@@ -10,8 +10,6 @@ use gdi32;
 use gleam::gl;
 use glutin::{Api, ContextBuilder, GlContext, GlRequest, GlWindow};
 use keyboard_types::{Key, KeyboardEvent, KeyState};
-#[cfg(any(target_os = "linux", target_os = "macos"))]
-use osmesa_sys;
 use servo::compositing::windowing::{AnimationState, MouseWindowEvent, WindowEvent};
 use servo::compositing::windowing::{EmbedderCoordinates, WindowMethods};
 use servo::embedder_traits::EventLoopWaker;
@@ -34,9 +32,6 @@ use std::time;
 use super::keyutils::keyboard_event_from_winit;
 #[cfg(target_os = "windows")]
 use user32;
-#[cfg(target_os = "windows")]
-use winapi;
-use winit;
 use winit::{ElementState, Event, MouseButton, MouseScrollDelta, TouchPhase, KeyboardInput};
 use winit::dpi::{LogicalPosition, LogicalSize, PhysicalSize};
 #[cfg(target_os = "macos")]
@@ -153,7 +148,7 @@ pub struct Window {
     last_pressed: Cell<Option<KeyboardEvent>>,
     animation_state: Cell<AnimationState>,
     fullscreen: Cell<bool>,
-    gl: Rc<gl::Gl>,
+    gl: Rc<dyn gl::Gl>,
     suspended: Cell<bool>,
 }
 
@@ -675,7 +670,7 @@ impl Window {
 }
 
 impl WindowMethods for Window {
-    fn gl(&self) -> Rc<gl::Gl> {
+    fn gl(&self) -> Rc<dyn gl::Gl> {
         self.gl.clone()
     }
 
@@ -738,7 +733,7 @@ impl WindowMethods for Window {
         }
     }
 
-    fn create_event_loop_waker(&self) -> Box<EventLoopWaker> {
+    fn create_event_loop_waker(&self) -> Box<dyn EventLoopWaker> {
         struct GlutinEventLoopWaker {
             proxy: Option<Arc<winit::EventsLoopProxy>>,
         }
@@ -762,7 +757,7 @@ impl WindowMethods for Window {
                     }
                 }
             }
-            fn clone(&self) -> Box<EventLoopWaker + Send> {
+            fn clone(&self) -> Box<dyn EventLoopWaker + Send> {
                 Box::new(GlutinEventLoopWaker {
                     proxy: self.proxy.clone(),
                 })

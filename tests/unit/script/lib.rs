@@ -3,15 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #[cfg(test)]
-extern crate euclid;
-#[cfg(test)]
-extern crate keyboard_types;
-#[cfg(test)]
-extern crate script;
-#[cfg(test)]
-extern crate servo_url;
-
-#[cfg(test)]
 mod headers;
 #[cfg(test)]
 mod htmlareaelement;

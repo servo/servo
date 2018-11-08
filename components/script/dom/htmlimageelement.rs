@@ -157,7 +157,7 @@ impl HTMLImageElement {
 /// The context required for asynchronously loading an external image.
 struct ImageContext {
     /// Reference to the script thread image cache.
-    image_cache: Arc<ImageCache>,
+    image_cache: Arc<dyn ImageCache>,
     /// Indicates whether the request failed, and why
     status: Result<(), NetworkError>,
     /// The cache ID for this request.
@@ -229,7 +229,7 @@ impl HTMLImageElement {
     /// Update the current image with a valid URL.
     fn fetch_image(&self, img_url: &ServoUrl) {
         fn add_cache_listener_for_element(
-            image_cache: Arc<ImageCache>,
+            image_cache: Arc<dyn ImageCache>,
             id: PendingImageId,
             elem: &HTMLImageElement,
         ) {
@@ -979,7 +979,7 @@ impl HTMLImageElement {
     fn react_to_environment_changes_sync_steps(&self, generation: u32) {
         // TODO reduce duplicacy of this code
         fn add_cache_listener_for_element(
-            image_cache: Arc<ImageCache>,
+            image_cache: Arc<dyn ImageCache>,
             id: PendingImageId,
             elem: &HTMLImageElement,
             selected_source: String,
@@ -1576,8 +1576,8 @@ impl HTMLImageElementMethods for HTMLImageElement {
 }
 
 impl VirtualMethods for HTMLImageElement {
-    fn super_type(&self) -> Option<&VirtualMethods> {
-        Some(self.upcast::<HTMLElement>() as &VirtualMethods)
+    fn super_type(&self) -> Option<&dyn VirtualMethods> {
+        Some(self.upcast::<HTMLElement>() as &dyn VirtualMethods)
     }
 
     fn adopting_steps(&self, old_doc: &Document) {

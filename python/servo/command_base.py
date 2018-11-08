@@ -646,6 +646,8 @@ install them, let us know by filing a bug!")
             if target.startswith('arm') or target.startswith('aarch64'):
                 env['RUSTFLAGS'] = env.get('RUSTFLAGS', "") + " -C target-feature=+neon"
 
+        env['RUSTFLAGS'] = env.get('RUSTFLAGS', "") + " -W unused-extern-crates"
+
         git_info = []
         if os.path.isdir('.git') and is_build:
             git_sha = subprocess.check_output([

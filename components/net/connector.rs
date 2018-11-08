@@ -161,7 +161,7 @@ pub fn create_http_client<E>(
     executor: E,
 ) -> Client<Connector, WrappedBody>
 where
-    E: Executor<Box<Future<Error = (), Item = ()> + Send + 'static>> + Sync + Send + 'static,
+    E: Executor<Box<dyn Future<Error = (), Item = ()> + Send + 'static>> + Sync + Send + 'static,
 {
     let connector =
         HttpsConnector::with_connector(HttpConnector::new(), ssl_connector_builder).unwrap();

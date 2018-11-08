@@ -22,7 +22,6 @@ use embedder_traits::EmbedderMsg;
 use html5ever::{LocalName, Prefix};
 use servo_url::ServoUrl;
 use style::attr::AttrValue;
-use time;
 
 /// How long we should wait before performing the initial reflow after `<body>` is parsed, in
 /// nanoseconds.
@@ -135,8 +134,8 @@ impl HTMLBodyElementLayoutHelpers for LayoutDom<HTMLBodyElement> {
 }
 
 impl VirtualMethods for HTMLBodyElement {
-    fn super_type(&self) -> Option<&VirtualMethods> {
-        Some(self.upcast::<HTMLElement>() as &VirtualMethods)
+    fn super_type(&self) -> Option<&dyn VirtualMethods> {
+        Some(self.upcast::<HTMLElement>() as &dyn VirtualMethods)
     }
 
     fn attribute_affects_presentational_hints(&self, attr: &Attr) -> bool {

@@ -9,7 +9,6 @@ use net_traits::image_cache::{CanRequestImages, ImageCache, ImageResponder};
 use net_traits::image_cache::{ImageOrMetadataAvailable, ImageResponse, ImageState};
 use net_traits::image_cache::{PendingImageId, UsePlaceholder};
 use net_traits::{FetchMetadata, FetchResponseMsg, NetworkError};
-use pixels;
 use servo_url::ServoUrl;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::collections::HashMap;
@@ -17,7 +16,6 @@ use std::io;
 use std::mem;
 use std::sync::{Arc, Mutex};
 use std::thread;
-use webrender_api;
 
 ///
 /// TODO(gw): Remaining work on image cache:

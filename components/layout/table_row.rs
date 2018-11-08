@@ -650,7 +650,7 @@ impl Flow for TableRowFlow {
 
     fn iterate_through_fragment_border_boxes(
         &self,
-        iterator: &mut FragmentBorderBoxIterator,
+        iterator: &mut dyn FragmentBorderBoxIterator,
         level: i32,
         stacking_context_position: &Point2D<Au>,
     ) {
@@ -661,7 +661,7 @@ impl Flow for TableRowFlow {
         )
     }
 
-    fn mutate_fragments(&mut self, mutator: &mut FnMut(&mut Fragment)) {
+    fn mutate_fragments(&mut self, mutator: &mut dyn FnMut(&mut Fragment)) {
         self.block_flow.mutate_fragments(mutator)
     }
 
@@ -907,7 +907,7 @@ impl CollapsedBorder {
 
 /// Pushes column inline size, incoming rowspan, and border collapse info down to a child.
 pub fn propagate_column_inline_sizes_to_child(
-    child_flow: &mut Flow,
+    child_flow: &mut dyn Flow,
     table_writing_mode: WritingMode,
     column_computed_inline_sizes: &[ColumnComputedInlineSize],
     border_spacing: &BorderSpacing,
@@ -975,7 +975,7 @@ pub fn propagate_column_inline_sizes_to_child(
 
 /// Lay out table cells inline according to the computer column sizes.
 fn set_inline_position_of_child_flow(
-    child_flow: &mut Flow,
+    child_flow: &mut dyn Flow,
     child_index: usize,
     column_index: &mut usize,
     incoming_rowspan: &[u32],

@@ -454,7 +454,7 @@ impl MIMEChecker for BinaryOrPlaintextClassifier {
     }
 }
 struct GroupedClassifier {
-    byte_matchers: Vec<Box<MIMEChecker + Send + Sync>>,
+    byte_matchers: Vec<Box<dyn MIMEChecker + Send + Sync>>,
 }
 impl GroupedClassifier {
     fn image_classifer() -> GroupedClassifier {

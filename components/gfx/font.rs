@@ -27,9 +27,7 @@ use std::sync::Arc;
 use style::computed_values::{font_stretch, font_style, font_variant_caps, font_weight};
 use style::properties::style_structs::Font as FontStyleStruct;
 use style::values::computed::font::SingleFontFamily;
-use time;
 use unicode_script::Script;
-use webrender_api;
 
 macro_rules! ot_tag {
     ($t1:expr, $t2:expr, $t3:expr, $t4:expr) => {

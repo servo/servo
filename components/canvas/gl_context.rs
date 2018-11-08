@@ -169,7 +169,7 @@ impl GLContextWrapper {
         }
     }
 
-    pub fn gl(&self) -> &gl::Gl {
+    pub fn gl(&self) -> &dyn gl::Gl {
         match *self {
             GLContextWrapper::Native(ref ctx) => ctx.gl(),
             GLContextWrapper::OSMesa(ref ctx) => ctx.gl(),
@@ -236,7 +236,7 @@ impl MainThreadDispatcher {
     }
 }
 impl GLContextDispatcher for MainThreadDispatcher {
-    fn dispatch(&self, f: Box<Fn() + Send>) {
+    fn dispatch(&self, f: Box<dyn Fn() + Send>) {
         self.compositor_proxy
             .lock()
             .unwrap()

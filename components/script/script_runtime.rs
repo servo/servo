@@ -66,7 +66,7 @@ pub enum CommonScriptMsg {
     /// Generic message that encapsulates event handling.
     Task(
         ScriptThreadEventCategory,
-        Box<TaskBox>,
+        Box<dyn TaskBox>,
         Option<PipelineId>,
         TaskSourceName,
     ),
@@ -88,7 +88,7 @@ pub trait ScriptChan: JSTraceable {
     /// Send a message to the associated event loop.
     fn send(&self, msg: CommonScriptMsg) -> Result<(), ()>;
     /// Clone this handle.
-    fn clone(&self) -> Box<ScriptChan + Send>;
+    fn clone(&self) -> Box<dyn ScriptChan + Send>;
 }
 
 #[derive(Clone, Copy, Debug, Eq, Hash, JSTraceable, PartialEq)]
@@ -539,7 +539,7 @@ unsafe extern "C" fn get_size(obj: *mut JSObject) -> usize {
             if dom_object.is_null() {
                 return 0;
             }
-            let mut ops = MallocSizeOfOps::new(::servo_allocator::usable_size, None, None);
+            let mut ops = MallocSizeOfOps::new(servo_allocator::usable_size, None, None);
             (v.malloc_size_of)(&mut ops, dom_object)
         },
         Err(_e) => {

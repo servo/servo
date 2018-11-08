@@ -44,25 +44,25 @@ impl CSSRule {
         }
     }
 
-    pub fn as_specific(&self) -> &SpecificCSSRule {
+    pub fn as_specific(&self) -> &dyn SpecificCSSRule {
         if let Some(rule) = self.downcast::<CSSStyleRule>() {
-            rule as &SpecificCSSRule
+            rule as &dyn SpecificCSSRule
         } else if let Some(rule) = self.downcast::<CSSFontFaceRule>() {
-            rule as &SpecificCSSRule
+            rule as &dyn SpecificCSSRule
         } else if let Some(rule) = self.downcast::<CSSKeyframesRule>() {
-            rule as &SpecificCSSRule
+            rule as &dyn SpecificCSSRule
         } else if let Some(rule) = self.downcast::<CSSMediaRule>() {
-            rule as &SpecificCSSRule
+            rule as &dyn SpecificCSSRule
         } else if let Some(rule) = self.downcast::<CSSNamespaceRule>() {
-            rule as &SpecificCSSRule
+            rule as &dyn SpecificCSSRule
         } else if let Some(rule) = self.downcast::<CSSViewportRule>() {
-            rule as &SpecificCSSRule
+            rule as &dyn SpecificCSSRule
         } else if let Some(rule) = self.downcast::<CSSKeyframeRule>() {
-            rule as &SpecificCSSRule
+            rule as &dyn SpecificCSSRule
         } else if let Some(rule) = self.downcast::<CSSImportRule>() {
-            rule as &SpecificCSSRule
+            rule as &dyn SpecificCSSRule
         } else if let Some(rule) = self.downcast::<CSSSupportsRule>() {
-            rule as &SpecificCSSRule
+            rule as &dyn SpecificCSSRule
         } else {
             unreachable!()
         }

@@ -12,10 +12,6 @@ extern crate malloc_size_of;
 extern crate malloc_size_of_derive;
 #[macro_use]
 extern crate serde;
-extern crate servo_rand;
-extern crate url;
-extern crate url_serde;
-extern crate uuid;
 
 pub mod origin;
 

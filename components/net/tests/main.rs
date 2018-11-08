@@ -4,32 +4,8 @@
 
 #![cfg(test)]
 
-extern crate cookie as cookie_rs;
-extern crate devtools_traits;
-extern crate embedder_traits;
-extern crate flate2;
-extern crate futures;
-extern crate headers_core;
-extern crate headers_ext;
-extern crate http;
-extern crate hyper;
-extern crate hyper_serde;
-extern crate ipc_channel;
 #[macro_use]
 extern crate lazy_static;
-extern crate mime;
-extern crate msg;
-extern crate net;
-extern crate net_traits;
-extern crate openssl;
-extern crate profile_traits;
-extern crate servo_channel;
-extern crate servo_config;
-extern crate servo_url;
-extern crate time;
-extern crate tokio;
-extern crate tokio_openssl;
-extern crate url;
 
 mod cookie;
 mod cookie_http_state;
@@ -90,7 +66,7 @@ fn create_embedder_proxy() -> EmbedderProxy {
         }
         impl EventLoopWaker for DummyEventLoopWaker {
             fn wake(&self) {}
-            fn clone(&self) -> Box<EventLoopWaker + Send> {
+            fn clone(&self) -> Box<dyn EventLoopWaker + Send> {
                 Box::new(DummyEventLoopWaker {})
             }
         }

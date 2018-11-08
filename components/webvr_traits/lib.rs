@@ -4,29 +4,27 @@
 
 #![deny(unsafe_code)]
 
-extern crate ipc_channel;
-extern crate msg;
 #[macro_use]
 extern crate serde;
-pub extern crate rust_webvr_api as webvr;
 
 mod webvr_traits;
 
-pub use crate::webvr::VRDisplayCapabilities as WebVRDisplayCapabilities;
-pub use crate::webvr::VRDisplayData as WebVRDisplayData;
-pub use crate::webvr::VRDisplayEvent as WebVRDisplayEvent;
-pub use crate::webvr::VRDisplayEventReason as WebVRDisplayEventReason;
-pub use crate::webvr::VREvent as WebVREvent;
-pub use crate::webvr::VREye as WebVREye;
-pub use crate::webvr::VREyeParameters as WebVREyeParameters;
-pub use crate::webvr::VRFieldOfView as WebVRFieldOfView;
-pub use crate::webvr::VRFrameData as WebVRFrameData;
-pub use crate::webvr::VRGamepadButton as WebVRGamepadButton;
-pub use crate::webvr::VRGamepadData as WebVRGamepadData;
-pub use crate::webvr::VRGamepadEvent as WebVRGamepadEvent;
-pub use crate::webvr::VRGamepadHand as WebVRGamepadHand;
-pub use crate::webvr::VRGamepadState as WebVRGamepadState;
-pub use crate::webvr::VRLayer as WebVRLayer;
-pub use crate::webvr::VRPose as WebVRPose;
-pub use crate::webvr::VRStageParameters as WebVRStageParameters;
 pub use crate::webvr_traits::{WebVRMsg, WebVRResult};
+pub use rust_webvr_api as webvr;
+pub use rust_webvr_api::VRDisplayCapabilities as WebVRDisplayCapabilities;
+pub use rust_webvr_api::VRDisplayData as WebVRDisplayData;
+pub use rust_webvr_api::VRDisplayEvent as WebVRDisplayEvent;
+pub use rust_webvr_api::VRDisplayEventReason as WebVRDisplayEventReason;
+pub use rust_webvr_api::VREvent as WebVREvent;
+pub use rust_webvr_api::VREye as WebVREye;
+pub use rust_webvr_api::VREyeParameters as WebVREyeParameters;
+pub use rust_webvr_api::VRFieldOfView as WebVRFieldOfView;
+pub use rust_webvr_api::VRFrameData as WebVRFrameData;
+pub use rust_webvr_api::VRGamepadButton as WebVRGamepadButton;
+pub use rust_webvr_api::VRGamepadData as WebVRGamepadData;
+pub use rust_webvr_api::VRGamepadEvent as WebVRGamepadEvent;
+pub use rust_webvr_api::VRGamepadHand as WebVRGamepadHand;
+pub use rust_webvr_api::VRGamepadState as WebVRGamepadState;
+pub use rust_webvr_api::VRLayer as WebVRLayer;
+pub use rust_webvr_api::VRPose as WebVRPose;
+pub use rust_webvr_api::VRStageParameters as WebVRStageParameters;

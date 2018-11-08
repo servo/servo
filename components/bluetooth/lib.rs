@@ -4,15 +4,8 @@
 
 #[macro_use]
 extern crate bitflags;
-extern crate bluetooth_traits;
-extern crate device;
-extern crate embedder_traits;
-extern crate ipc_channel;
 #[macro_use]
 extern crate log;
-extern crate servo_config;
-extern crate servo_rand;
-extern crate uuid;
 
 pub mod test;
 
@@ -29,7 +22,7 @@ use embedder_traits::{EmbedderMsg, EmbedderProxy};
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use servo_config::opts;
 use servo_config::prefs::PREFS;
-use servo_rand::Rng;
+use servo_rand::{self, Rng};
 use std::borrow::ToOwned;
 use std::collections::{HashMap, HashSet};
 use std::string::String;

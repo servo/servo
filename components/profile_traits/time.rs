@@ -2,13 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-extern crate time as std_time;
-
-use self::std_time::precise_time_ns;
 use crate::energy::read_energy_uj;
 use ipc_channel::ipc::IpcSender;
 use servo_config::opts;
-use signpost;
+use time::precise_time_ns;
 
 #[derive(Clone, Debug, Deserialize, Eq, Ord, PartialEq, PartialOrd, Serialize)]
 pub struct TimerMetadata {

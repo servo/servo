@@ -112,13 +112,13 @@ impl Flow for TableColGroupFlow {
 
     fn iterate_through_fragment_border_boxes(
         &self,
-        _: &mut FragmentBorderBoxIterator,
+        _: &mut dyn FragmentBorderBoxIterator,
         _: i32,
         _: &Point2D<Au>,
     ) {
     }
 
-    fn mutate_fragments(&mut self, _: &mut FnMut(&mut Fragment)) {}
+    fn mutate_fragments(&mut self, _: &mut dyn FnMut(&mut Fragment)) {}
 }
 
 impl fmt::Debug for TableColGroupFlow {

@@ -17,13 +17,12 @@ use script_traits::{AnimationState, ConstellationMsg, EventResult};
 use servo_channel::{Receiver, Sender};
 use std::fmt::{Debug, Error, Formatter};
 use style_traits::viewport::ViewportConstraints;
-use webrender;
 use webrender_api::{self, DeviceIntPoint, DeviceUintSize};
 
 /// Sends messages to the compositor.
 pub struct CompositorProxy {
     pub sender: Sender<Msg>,
-    pub event_loop_waker: Box<EventLoopWaker>,
+    pub event_loop_waker: Box<dyn EventLoopWaker>,
 }
 
 impl CompositorProxy {
@@ -98,7 +97,7 @@ pub enum Msg {
     /// Runs a closure in the compositor thread.
     /// It's used to dispatch functions from webrender to the main thread's event loop.
     /// Required to allow WGL GLContext sharing in Windows.
-    Dispatch(Box<Fn() + Send>),
+    Dispatch(Box<dyn Fn() + Send>),
     /// Indicates to the compositor that it needs to record the time when the frame with
     /// the given ID (epoch) is painted and report it to the layout thread of the given
     /// pipeline ID.

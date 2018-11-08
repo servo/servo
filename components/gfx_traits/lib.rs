@@ -6,7 +6,6 @@
 #![crate_type = "rlib"]
 #![deny(unsafe_code)]
 
-extern crate malloc_size_of;
 #[macro_use]
 extern crate malloc_size_of_derive;
 #[macro_use]

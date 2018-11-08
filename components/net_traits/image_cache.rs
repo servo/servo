@@ -7,7 +7,6 @@ use crate::FetchResponseMsg;
 use ipc_channel::ipc::IpcSender;
 use servo_url::ServoUrl;
 use std::sync::Arc;
-use webrender_api;
 
 // ======================================================================
 // Aux structs and enums.

@@ -6,15 +6,12 @@
 //! http://tools.ietf.org/html/rfc6265
 
 use crate::cookie::Cookie;
-use crate::cookie_rs;
 use net_traits::pub_domains::reg_suffix;
 use net_traits::CookieSource;
 use servo_url::ServoUrl;
 use std::cmp::Ordering;
 use std::collections::HashMap;
-use time::Tm;
-
-extern crate time;
+use time::{self, Tm};
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct CookieStorage {

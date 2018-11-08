@@ -9,35 +9,12 @@
 #![deny(missing_docs)]
 #![deny(unsafe_code)]
 
-extern crate bluetooth_traits;
-extern crate canvas_traits;
-extern crate cookie as cookie_rs;
-extern crate devtools_traits;
-extern crate embedder_traits;
-extern crate euclid;
-extern crate gfx_traits;
-extern crate http;
-extern crate hyper;
-extern crate hyper_serde;
-extern crate ipc_channel;
-extern crate keyboard_types;
-extern crate libc;
 #[macro_use]
 extern crate malloc_size_of;
 #[macro_use]
 extern crate malloc_size_of_derive;
-extern crate msg;
-extern crate net_traits;
-extern crate profile_traits;
 #[macro_use]
 extern crate serde;
-extern crate servo_atoms;
-extern crate servo_channel;
-extern crate servo_url;
-extern crate style_traits;
-extern crate time;
-extern crate webrender_api;
-extern crate webvr_traits;
 
 mod script_msg;
 pub mod webdriver_msg;
@@ -575,7 +552,7 @@ pub struct InitialScriptState {
     /// A channel to the bluetooth thread.
     pub bluetooth_thread: IpcSender<BluetoothRequest>,
     /// The image cache for this script thread.
-    pub image_cache: Arc<ImageCache>,
+    pub image_cache: Arc<dyn ImageCache>,
     /// A channel to the time profiler thread.
     pub time_profiler_chan: profile_traits::time::ProfilerChan,
     /// A channel to the memory profiler thread.
@@ -863,7 +840,7 @@ pub trait Painter: SpeculativePainter {
     ) -> Result<DrawAPaintImageResult, PaintWorkletError>;
 }
 
-impl fmt::Debug for Painter {
+impl fmt::Debug for dyn Painter {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         fmt.debug_tuple("Painter")
             .field(&format_args!(".."))

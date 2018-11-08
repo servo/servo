@@ -12,20 +12,10 @@
 #![allow(non_snake_case)]
 #![deny(unsafe_code)]
 
-extern crate devtools_traits;
-extern crate headers_core;
-extern crate headers_ext;
-extern crate http;
-extern crate hyper;
-extern crate ipc_channel;
 #[macro_use]
 extern crate log;
-extern crate msg;
 #[macro_use]
 extern crate serde;
-extern crate serde_json;
-extern crate servo_channel;
-extern crate time;
 
 use crate::actor::{Actor, ActorRegistry};
 use crate::actors::browsing_context::BrowsingContextActor;

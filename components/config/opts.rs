@@ -8,7 +8,6 @@
 use crate::prefs::{self, PrefValue, PREFS};
 use euclid::TypedSize2D;
 use getopts::Options;
-use num_cpus;
 use servo_geometry::DeviceIndependentPixel;
 use servo_url::ServoUrl;
 use std::borrow::Cow;

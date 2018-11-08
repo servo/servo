@@ -139,7 +139,7 @@ impl WebGLExtensionFeatures {
 #[must_root]
 #[derive(JSTraceable, MallocSizeOf)]
 pub struct WebGLExtensions {
-    extensions: DomRefCell<HashMap<String, Box<WebGLExtensionWrapper>>>,
+    extensions: DomRefCell<HashMap<String, Box<dyn WebGLExtensionWrapper>>>,
     features: DomRefCell<WebGLExtensionFeatures>,
     webgl_version: WebGLVersion,
 }

@@ -29,7 +29,7 @@ impl SVGElement {
 }
 
 impl VirtualMethods for SVGElement {
-    fn super_type(&self) -> Option<&VirtualMethods> {
-        Some(self.upcast::<Element>() as &VirtualMethods)
+    fn super_type(&self) -> Option<&dyn VirtualMethods> {
+        Some(self.upcast::<Element>() as &dyn VirtualMethods)
     }
 }

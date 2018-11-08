@@ -15,7 +15,6 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::window::Window;
 use dom_struct::dom_struct;
 use net_traits::filemanager_thread::SelectedFile;
-use time;
 
 #[dom_struct]
 pub struct File {

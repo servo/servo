@@ -18,7 +18,7 @@ use std::default::Default;
 pub type QueuedTask = (
     Option<TrustedWorkerAddress>,
     ScriptThreadEventCategory,
-    Box<TaskBox>,
+    Box<dyn TaskBox>,
     Option<PipelineId>,
     TaskSourceName,
 );

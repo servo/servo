@@ -17,105 +17,38 @@
     allow(unknown_lints)
 )]
 
-extern crate app_units;
-#[cfg(any(feature = "webgl_backtrace", feature = "js_backtrace"))]
-extern crate backtrace;
-extern crate base64;
 #[macro_use]
 extern crate bitflags;
-extern crate bluetooth_traits;
-extern crate byteorder;
-extern crate canvas_traits;
-extern crate caseless;
-extern crate chrono;
-extern crate cookie as cookie_rs;
 #[macro_use]
 extern crate cssparser;
 #[macro_use]
 extern crate deny_public_fields;
-extern crate devtools_traits;
-extern crate dom_struct;
 #[macro_use]
 extern crate domobject_derive;
-extern crate embedder_traits;
-extern crate encoding_rs;
 #[macro_use]
 extern crate enum_iterator;
-extern crate euclid;
-extern crate fnv;
-extern crate gleam;
-extern crate half;
-extern crate headers_core;
-extern crate headers_ext;
 #[macro_use]
 extern crate html5ever;
-extern crate http;
-extern crate hyper;
-extern crate hyper_serde;
-extern crate image;
-extern crate ipc_channel;
 #[macro_use]
 extern crate js;
 #[macro_use]
 extern crate jstraceable_derive;
-extern crate keyboard_types;
 #[macro_use]
 extern crate lazy_static;
-extern crate libc;
 #[macro_use]
 extern crate log;
 #[macro_use]
 extern crate malloc_size_of;
 #[macro_use]
 extern crate malloc_size_of_derive;
-extern crate metrics;
-extern crate mime;
-extern crate mime_guess;
-extern crate mitochondria;
-extern crate mozangle;
-extern crate msg;
-extern crate net_traits;
-extern crate num_traits;
-extern crate offscreen_gl_context;
-extern crate parking_lot;
-extern crate phf;
-extern crate pixels;
 #[macro_use]
 extern crate profile_traits;
-extern crate ref_filter_map;
-extern crate ref_slice;
-extern crate regex;
-extern crate script_layout_interface;
-extern crate script_traits;
-extern crate selectors;
-extern crate serde;
-extern crate serde_bytes;
-extern crate servo_allocator;
-extern crate servo_arc;
 #[macro_use]
 extern crate servo_atoms;
 #[macro_use]
 extern crate servo_channel;
-extern crate servo_config;
-extern crate servo_geometry;
-extern crate servo_media;
-extern crate servo_rand;
-extern crate servo_url;
-extern crate smallvec;
 #[macro_use]
 extern crate style;
-extern crate style_traits;
-extern crate swapper;
-extern crate time;
-#[cfg(target_os = "linux")]
-extern crate tinyfiledialogs;
-extern crate unicode_segmentation;
-extern crate url;
-extern crate utf8;
-extern crate uuid;
-extern crate webrender_api;
-extern crate webvr_traits;
-extern crate xml5ever;
 
 #[macro_use]
 mod task;

@@ -5,14 +5,11 @@
 #[cfg(any(target_os = "android", target_os = "windows"))]
 #[allow(non_camel_case_types)]
 pub mod egl {
-    use libc;
     use servo::gl::{Gl, GlesFns};
     use std::ffi::CString;
     #[cfg(not(target_os = "windows"))]
     use std::os::raw::c_void;
     use std::rc::Rc;
-    #[cfg(target_os = "windows")]
-    use winapi;
     #[cfg(target_os = "windows")]
     use winapi::um::libloaderapi::{GetProcAddress, LoadLibraryA};
 
@@ -89,7 +86,7 @@ pub mod egl {
 pub mod gl {
     use servo::gl::Gl;
     use std::rc::Rc;
-    pub fn init() -> Result<Rc<Gl>, &'static str> {
+    pub fn init() -> Result<Rc<dyn Gl>, &'static str> {
         // FIXME: Add an OpenGL version
         unimplemented!()
     }

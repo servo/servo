@@ -8,7 +8,7 @@ use crate::task_source::{TaskSource, TaskSourceName};
 use msg::constellation_msg::PipelineId;
 
 #[derive(JSTraceable)]
-pub struct RemoteEventTaskSource(pub Box<ScriptChan + Send + 'static>, pub PipelineId);
+pub struct RemoteEventTaskSource(pub Box<dyn ScriptChan + Send + 'static>, pub PipelineId);
 
 impl Clone for RemoteEventTaskSource {
     fn clone(&self) -> RemoteEventTaskSource {

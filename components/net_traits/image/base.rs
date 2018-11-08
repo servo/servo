@@ -2,11 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use crate::piston_image::{self, DynamicImage, ImageFormat};
 use ipc_channel::ipc::IpcSharedMemory;
-use pixels;
+use piston_image::{DynamicImage, ImageFormat};
 use std::fmt;
-use webrender_api;
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, MallocSizeOf, PartialEq, Serialize)]
 pub enum PixelFormat {

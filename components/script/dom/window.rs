@@ -92,7 +92,6 @@ use js::jsval::JSVal;
 use js::jsval::UndefinedValue;
 use js::rust::wrappers::JS_DefineProperty;
 use js::rust::HandleValue;
-use libc;
 use msg::constellation_msg::PipelineId;
 use net_traits::image_cache::{ImageCache, ImageResponder, ImageResponse};
 use net_traits::image_cache::{PendingImageId, PendingImageResponse};
@@ -114,7 +113,6 @@ use script_traits::{ConstellationControlMsg, DocumentState, LoadData};
 use script_traits::{ScriptMsg, ScriptToConstellationChan, ScrollState, TimerEvent, TimerEventId};
 use script_traits::{TimerSchedulerMsg, UntrustedNodeAddress, WindowSizeData, WindowSizeType};
 use selectors::attr::CaseSensitivity;
-use servo_arc;
 use servo_channel::{channel, Sender};
 use servo_config::opts;
 use servo_geometry::{f32_rect_to_au_rect, MaxRect};
@@ -139,7 +137,6 @@ use style::selector_parser::PseudoElement;
 use style::str::HTML_SPACE_CHARACTERS;
 use style::stylesheets::CssRuleType;
 use style_traits::{CSSPixel, DevicePixel, ParsingMode};
-use time;
 use url::Position;
 use webrender_api::{
     DeviceIntPoint, DeviceUintSize, DocumentId, ExternalScrollId, RenderApiSender,
@@ -384,7 +381,7 @@ impl Window {
         self.networking_task_source.clone()
     }
 
-    pub fn history_traversal_task_source(&self) -> Box<ScriptChan + Send> {
+    pub fn history_traversal_task_source(&self) -> Box<dyn ScriptChan + Send> {
         self.history_traversal_task_source.clone()
     }
 
@@ -412,12 +409,12 @@ impl Window {
         self.parent_info
     }
 
-    pub fn new_script_pair(&self) -> (Box<ScriptChan + Send>, Box<ScriptPort + Send>) {
+    pub fn new_script_pair(&self) -> (Box<dyn ScriptChan + Send>, Box<dyn ScriptPort + Send>) {
         let (tx, rx) = channel();
         (Box::new(SendableMainThreadScriptChan(tx)), Box::new(rx))
     }
 
-    pub fn image_cache(&self) -> Arc<ImageCache> {
+    pub fn image_cache(&self) -> Arc<dyn ImageCache> {
         self.image_cache.clone()
     }
 
@@ -446,7 +443,7 @@ impl Window {
         &self.bluetooth_extra_permission_data
     }
 
-    pub fn css_error_reporter(&self) -> Option<&ParseErrorReporter> {
+    pub fn css_error_reporter(&self) -> Option<&dyn ParseErrorReporter> {
         Some(&self.error_reporter)
     }
 
@@ -1641,7 +1638,7 @@ impl Window {
         )
     }
 
-    pub fn layout(&self) -> &LayoutRPC {
+    pub fn layout(&self) -> &dyn LayoutRPC {
         &*self.layout_rpc
     }
 
@@ -2089,7 +2086,7 @@ impl Window {
         remote_event_task_source: RemoteEventTaskSource,
         websocket_task_source: WebsocketTaskSource,
         image_cache_chan: Sender<ImageCacheMsg>,
-        image_cache: Arc<ImageCache>,
+        image_cache: Arc<dyn ImageCache>,
         resource_threads: ResourceThreads,
         bluetooth_thread: IpcSender<BluetoothRequest>,
         mem_profiler_chan: MemProfilerChan,
@@ -2112,7 +2109,7 @@ impl Window {
         webrender_document: DocumentId,
         webrender_api_sender: RenderApiSender,
     ) -> DomRoot<Self> {
-        let layout_rpc: Box<LayoutRPC + Send> = {
+        let layout_rpc: Box<dyn LayoutRPC + Send> = {
             let (rpc_send, rpc_recv) = channel();
             layout_chan.send(Msg::GetRPC(rpc_send)).unwrap();
             rpc_recv.recv().unwrap()

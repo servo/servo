@@ -41,7 +41,6 @@ use std::rc::Rc;
 use std::sync::Arc;
 use style_traits::CSSPixel;
 use style_traits::DevicePixel;
-use webrender_api;
 use webvr_traits::WebVRMsg;
 
 /// A `Pipeline` is the constellation's view of a `Document`. Each pipeline has an

@@ -546,7 +546,7 @@ pub struct AbsoluteAssignBSizesTraversal<'a>(pub &'a SharedStyleContext<'a>);
 
 impl<'a> PreorderFlowTraversal for AbsoluteAssignBSizesTraversal<'a> {
     #[inline]
-    fn process(&self, flow: &mut Flow) {
+    fn process(&self, flow: &mut dyn Flow) {
         if !flow.is_block_like() {
             return;
         }
@@ -938,7 +938,7 @@ impl BlockFlow {
         layout_context: &LayoutContext,
         mut fragmentation_context: Option<FragmentationContext>,
         margins_may_collapse: MarginsMayCollapseFlag,
-    ) -> Option<Arc<Flow>> {
+    ) -> Option<Arc<dyn Flow>> {
         let _scope = layout_debug_scope!("assign_block_size_block_base {:x}", self.base.debug_id());
 
         let mut break_at = None;
@@ -1272,7 +1272,7 @@ impl BlockFlow {
             }
         }
 
-        if (&*self as &Flow).contains_roots_of_absolute_flow_tree() {
+        if (&*self as &dyn Flow).contains_roots_of_absolute_flow_tree() {
             // Assign block-sizes for all flows in this absolute flow tree.
             // This is preorder because the block-size of an absolute flow may depend on
             // the block-size of its containing block, which may also be an absolute flow.
@@ -1307,7 +1307,7 @@ impl BlockFlow {
                 if let Some(child) = child_remaining {
                     children.push_front_arc(child);
                 }
-                Some(Arc::new(self.clone_with_children(children)) as Arc<Flow>)
+                Some(Arc::new(self.clone_with_children(children)) as Arc<dyn Flow>)
             }
         })
     }
@@ -1592,7 +1592,7 @@ impl BlockFlow {
         content_inline_size: Au,
         mut callback: F,
     ) where
-        F: FnMut(&mut Flow, usize, Au, WritingMode, &mut Au, &mut Au),
+        F: FnMut(&mut dyn Flow, usize, Au, WritingMode, &mut Au, &mut Au),
     {
         let flags = self.base.flags.clone();
 
@@ -2246,7 +2246,7 @@ impl Flow for BlockFlow {
             self.assign_inline_position_for_formatting_context(layout_context, content_box);
         }
 
-        if (self as &Flow).floats_might_flow_through() {
+        if (self as &dyn Flow).floats_might_flow_through() {
             self.base.thread_id = parent_thread_id;
             if self
                 .base
@@ -2283,7 +2283,7 @@ impl Flow for BlockFlow {
         &mut self,
         layout_context: &LayoutContext,
         fragmentation_context: Option<FragmentationContext>,
-    ) -> Option<Arc<Flow>> {
+    ) -> Option<Arc<dyn Flow>> {
         if self.fragment.is_replaced() {
             let _scope = layout_debug_scope!(
                 "assign_replaced_block_size_if_necessary {:x}",
@@ -2613,7 +2613,7 @@ impl Flow for BlockFlow {
 
     fn iterate_through_fragment_border_boxes(
         &self,
-        iterator: &mut FragmentBorderBoxIterator,
+        iterator: &mut dyn FragmentBorderBoxIterator,
         level: i32,
         stacking_context_position: &Point2D<Au>,
     ) {
@@ -2641,7 +2641,7 @@ impl Flow for BlockFlow {
         );
     }
 
-    fn mutate_fragments(&mut self, mutator: &mut FnMut(&mut Fragment)) {
+    fn mutate_fragments(&mut self, mutator: &mut dyn FnMut(&mut Fragment)) {
         (*mutator)(&mut self.fragment)
     }
 

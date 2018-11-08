@@ -1,3 +1,5 @@
+cargo-features = ["rename-dependency"]
+
 [package]
 name = "net"
 version = "0.0.1"
@@ -17,7 +19,7 @@ doctest = false
 base64 = "0.9"
 brotli = "2.5"
 bytes = "0.4"
-cookie = "0.11"
+cookie_rs = {package = "cookie", version = "0.11"}
 devtools_traits = {path = "../devtools_traits"}
 embedder_traits = { path = "../embedder_traits" }
 flate2 = "1"

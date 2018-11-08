@@ -1137,8 +1137,8 @@ pub trait FormControl: DomObject {
 }
 
 impl VirtualMethods for HTMLFormElement {
-    fn super_type(&self) -> Option<&VirtualMethods> {
-        Some(self.upcast::<HTMLElement>() as &VirtualMethods)
+    fn super_type(&self) -> Option<&dyn VirtualMethods> {
+        Some(self.upcast::<HTMLElement>() as &dyn VirtualMethods)
     }
 
     fn parse_plain_attribute(&self, name: &LocalName, value: DOMString) -> AttrValue {
@@ -1175,44 +1175,44 @@ impl VirtualMethods for HTMLFormElement {
 }
 
 pub trait FormControlElementHelpers {
-    fn as_maybe_form_control<'a>(&'a self) -> Option<&'a FormControl>;
+    fn as_maybe_form_control<'a>(&'a self) -> Option<&'a dyn FormControl>;
 }
 
 impl FormControlElementHelpers for Element {
-    fn as_maybe_form_control<'a>(&'a self) -> Option<&'a FormControl> {
+    fn as_maybe_form_control<'a>(&'a self) -> Option<&'a dyn FormControl> {
         let node = self.upcast::<Node>();
 
         match node.type_id() {
             NodeTypeId::Element(ElementTypeId::HTMLElement(
                 HTMLElementTypeId::HTMLButtonElement,
-            )) => Some(self.downcast::<HTMLButtonElement>().unwrap() as &FormControl),
+            )) => Some(self.downcast::<HTMLButtonElement>().unwrap() as &dyn FormControl),
             NodeTypeId::Element(ElementTypeId::HTMLElement(
                 HTMLElementTypeId::HTMLFieldSetElement,
-            )) => Some(self.downcast::<HTMLFieldSetElement>().unwrap() as &FormControl),
+            )) => Some(self.downcast::<HTMLFieldSetElement>().unwrap() as &dyn FormControl),
             NodeTypeId::Element(ElementTypeId::HTMLElement(
                 HTMLElementTypeId::HTMLImageElement,
-            )) => Some(self.downcast::<HTMLImageElement>().unwrap() as &FormControl),
+            )) => Some(self.downcast::<HTMLImageElement>().unwrap() as &dyn FormControl),
             NodeTypeId::Element(ElementTypeId::HTMLElement(
                 HTMLElementTypeId::HTMLInputElement,
-            )) => Some(self.downcast::<HTMLInputElement>().unwrap() as &FormControl),
+            )) => Some(self.downcast::<HTMLInputElement>().unwrap() as &dyn FormControl),
             NodeTypeId::Element(ElementTypeId::HTMLElement(
                 HTMLElementTypeId::HTMLLabelElement,
-            )) => Some(self.downcast::<HTMLLabelElement>().unwrap() as &FormControl),
+            )) => Some(self.downcast::<HTMLLabelElement>().unwrap() as &dyn FormControl),
             NodeTypeId::Element(ElementTypeId::HTMLElement(
                 HTMLElementTypeId::HTMLLegendElement,
-            )) => Some(self.downcast::<HTMLLegendElement>().unwrap() as &FormControl),
+            )) => Some(self.downcast::<HTMLLegendElement>().unwrap() as &dyn FormControl),
             NodeTypeId::Element(ElementTypeId::HTMLElement(
                 HTMLElementTypeId::HTMLObjectElement,
-            )) => Some(self.downcast::<HTMLObjectElement>().unwrap() as &FormControl),
+            )) => Some(self.downcast::<HTMLObjectElement>().unwrap() as &dyn FormControl),
             NodeTypeId::Element(ElementTypeId::HTMLElement(
                 HTMLElementTypeId::HTMLOutputElement,
-            )) => Some(self.downcast::<HTMLOutputElement>().unwrap() as &FormControl),
+            )) => Some(self.downcast::<HTMLOutputElement>().unwrap() as &dyn FormControl),
             NodeTypeId::Element(ElementTypeId::HTMLElement(
                 HTMLElementTypeId::HTMLSelectElement,
-            )) => Some(self.downcast::<HTMLSelectElement>().unwrap() as &FormControl),
+            )) => Some(self.downcast::<HTMLSelectElement>().unwrap() as &dyn FormControl),
             NodeTypeId::Element(ElementTypeId::HTMLElement(
                 HTMLElementTypeId::HTMLTextAreaElement,
-            )) => Some(self.downcast::<HTMLTextAreaElement>().unwrap() as &FormControl),
+            )) => Some(self.downcast::<HTMLTextAreaElement>().unwrap() as &dyn FormControl),
             _ => None,
         }
     }

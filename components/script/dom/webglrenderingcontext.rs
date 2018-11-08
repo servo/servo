@@ -70,14 +70,12 @@ use js::typedarray::{TypedArray, TypedArrayElementCreator};
 use net_traits::image::base::PixelFormat;
 use net_traits::image_cache::ImageResponse;
 use offscreen_gl_context::{GLContextAttributes, GLLimits};
-use pixels;
 use script_layout_interface::HTMLCanvasDataSource;
 use serde::{Deserialize, Serialize};
 use servo_config::prefs::PREFS;
 use std::cell::Cell;
 use std::cmp;
 use std::ptr::{self, NonNull};
-use webrender_api;
 
 // From the GLES 2.0.25 spec, page 85:
 //

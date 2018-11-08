@@ -14,8 +14,5 @@ doctest = false
 ipc-channel = "0.11"
 profile = {path = "../../../components/profile"}
 profile_traits = {path = "../../../components/profile_traits"}
-
-# Work around https://github.com/alexcrichton/jemallocator/issues/19
-servo_allocator = {path = "../../../components/allocator"}
 servo_config = {path = "../../../components/config"}
 

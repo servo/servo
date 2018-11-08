@@ -11,7 +11,7 @@ use msg::constellation_msg::PipelineId;
 use std::sync::Arc;
 
 #[derive(JSTraceable)]
-pub struct FileReadingTaskSource(pub Box<ScriptChan + Send + 'static>, pub PipelineId);
+pub struct FileReadingTaskSource(pub Box<dyn ScriptChan + Send + 'static>, pub PipelineId);
 
 impl Clone for FileReadingTaskSource {
     fn clone(&self) -> FileReadingTaskSource {

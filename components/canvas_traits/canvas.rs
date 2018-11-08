@@ -8,7 +8,6 @@ use ipc_channel::ipc::{IpcBytesReceiver, IpcBytesSender, IpcSender};
 use serde_bytes::ByteBuf;
 use std::default::Default;
 use std::str::FromStr;
-use webrender_api;
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum FillRule {

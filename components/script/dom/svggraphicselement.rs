@@ -42,7 +42,7 @@ impl SVGGraphicsElement {
 }
 
 impl VirtualMethods for SVGGraphicsElement {
-    fn super_type(&self) -> Option<&VirtualMethods> {
-        Some(self.upcast::<SVGElement>() as &VirtualMethods)
+    fn super_type(&self) -> Option<&dyn VirtualMethods> {
+        Some(self.upcast::<SVGElement>() as &dyn VirtualMethods)
     }
 }

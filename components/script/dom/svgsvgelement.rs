@@ -75,8 +75,8 @@ impl LayoutSVGSVGElementHelpers for LayoutDom<SVGSVGElement> {
 }
 
 impl VirtualMethods for SVGSVGElement {
-    fn super_type(&self) -> Option<&VirtualMethods> {
-        Some(self.upcast::<SVGGraphicsElement>() as &VirtualMethods)
+    fn super_type(&self) -> Option<&dyn VirtualMethods> {
+        Some(self.upcast::<SVGGraphicsElement>() as &dyn VirtualMethods)
     }
 
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {

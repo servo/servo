@@ -12,7 +12,6 @@ use crate::platform::font_list::for_each_variation;
 use crate::platform::font_list::system_default_family;
 use crate::platform::font_list::SANS_SERIF_FONT_FAMILY;
 use crate::platform::font_template::FontTemplateData;
-use fontsan;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use net_traits::request::{Destination, RequestInit};
 use net_traits::{fetch_async, CoreResourceThread, FetchResponseMsg};
@@ -25,7 +24,6 @@ use std::sync::{Arc, Mutex};
 use std::{f32, fmt, mem, thread};
 use style::font_face::{EffectiveSources, Source};
 use style::values::computed::font::FamilyName;
-use webrender_api;
 
 /// A list of font templates that make up a given font family.
 pub struct FontTemplates {

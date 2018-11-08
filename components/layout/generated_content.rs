@@ -152,7 +152,7 @@ impl<'a> ResolveGeneratedContent<'a> {
 
 impl<'a> InorderFlowTraversal for ResolveGeneratedContent<'a> {
     #[inline]
-    fn process(&mut self, flow: &mut Flow, level: u32) {
+    fn process(&mut self, flow: &mut dyn Flow, level: u32) {
         let mut mutator = ResolveGeneratedContentFragmentMutator {
             traversal: self,
             level: level,
@@ -163,7 +163,7 @@ impl<'a> InorderFlowTraversal for ResolveGeneratedContent<'a> {
     }
 
     #[inline]
-    fn should_process_subtree(&mut self, flow: &mut Flow) -> bool {
+    fn should_process_subtree(&mut self, flow: &mut dyn Flow) -> bool {
         flow.base()
             .restyle_damage
             .intersects(ServoRestyleDamage::RESOLVE_GENERATED_CONTENT) ||

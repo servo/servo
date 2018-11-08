@@ -65,7 +65,7 @@ where
     }
 }
 
-impl fmt::Debug for TaskBox {
+impl fmt::Debug for dyn TaskBox {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         fmt.debug_tuple(self.name())
             .field(&format_args!("..."))

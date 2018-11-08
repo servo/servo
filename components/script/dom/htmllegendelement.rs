@@ -52,8 +52,8 @@ impl HTMLLegendElement {
 }
 
 impl VirtualMethods for HTMLLegendElement {
-    fn super_type(&self) -> Option<&VirtualMethods> {
-        Some(self.upcast::<HTMLElement>() as &VirtualMethods)
+    fn super_type(&self) -> Option<&dyn VirtualMethods> {
+        Some(self.upcast::<HTMLElement>() as &dyn VirtualMethods)
     }
 
     fn bind_to_tree(&self, tree_in_doc: bool) {

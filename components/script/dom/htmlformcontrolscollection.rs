@@ -25,7 +25,7 @@ pub struct HTMLFormControlsCollection {
 impl HTMLFormControlsCollection {
     fn new_inherited(
         root: &Node,
-        filter: Box<CollectionFilter + 'static>,
+        filter: Box<dyn CollectionFilter + 'static>,
     ) -> HTMLFormControlsCollection {
         HTMLFormControlsCollection {
             collection: HTMLCollection::new_inherited(root, filter),
@@ -35,7 +35,7 @@ impl HTMLFormControlsCollection {
     pub fn new(
         window: &Window,
         root: &Node,
-        filter: Box<CollectionFilter + 'static>,
+        filter: Box<dyn CollectionFilter + 'static>,
     ) -> DomRoot<HTMLFormControlsCollection> {
         reflect_dom_object(
             Box::new(HTMLFormControlsCollection::new_inherited(root, filter)),
