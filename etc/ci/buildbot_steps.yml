@@ -236,7 +236,7 @@ magicleap:
   - ./mach clean-nightlies --keep 3 --force
   - ./mach clean-cargo-cache --keep 3 --force
   - ./etc/ci/clean_build_artifacts.sh
-  - ./mach build --magicleap --dev
+  - ./mach build --magicleap --dev -vv # Temporarily -vv to debug the build
   - bash ./etc/ci/lockfile_changed.sh
   - ./etc/ci/clean_build_artifacts.sh
 
