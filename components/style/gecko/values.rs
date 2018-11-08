@@ -17,13 +17,10 @@ use nsstring::{nsACString, nsCStr};
 use std::cmp::max;
 use values::computed::basic_shape::ShapeRadius as ComputedShapeRadius;
 use values::computed::FlexBasis as ComputedFlexBasis;
-use values::computed::{
-    Angle, ExtremumLength, Length, LengthOrPercentage, LengthOrPercentageOrAuto,
-};
+use values::computed::{Angle, ExtremumLength, Length, LengthOrPercentage};
+use values::computed::{LengthOrPercentageOrAuto, Percentage};
 use values::computed::{LengthOrPercentageOrNone, Number, NumberOrPercentage};
-use values::computed::{
-    MaxLength as ComputedMaxLength, MozLength as ComputedMozLength, Percentage,
-};
+use values::computed::{MaxLength as ComputedMaxLength, MozLength as ComputedMozLength};
 use values::computed::{NonNegativeLength, NonNegativeLengthOrPercentage, NonNegativeNumber};
 use values::generics::basic_shape::ShapeRadius;
 use values::generics::box_::Perspective;

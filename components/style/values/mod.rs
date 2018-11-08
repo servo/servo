@@ -8,9 +8,8 @@
 
 #![deny(missing_docs)]
 
-pub use cssparser::{
-    serialize_identifier, serialize_name, CowRcStr, Parser, SourceLocation, Token, RGBA,
-};
+pub use cssparser::{serialize_identifier, serialize_name, CowRcStr, Parser};
+pub use cssparser::{SourceLocation, Token, RGBA};
 use parser::{Parse, ParserContext};
 use selectors::parser::SelectorParseErrorKind;
 use std::fmt::{self, Debug, Write};

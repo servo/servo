@@ -10,9 +10,8 @@ use parser::{Parse, ParserContext};
 use properties::{LonghandId, PropertyDeclarationId, PropertyFlags, PropertyId, ShorthandId};
 use selectors::parser::SelectorParseErrorKind;
 use std::fmt::{self, Write};
-use style_traits::{
-    CssWriter, KeywordsCollectFn, ParseError, SpecifiedValueInfo, StyleParseErrorKind, ToCss,
-};
+use style_traits::{CssWriter, KeywordsCollectFn, ParseError};
+use style_traits::{SpecifiedValueInfo, StyleParseErrorKind, ToCss};
 use values::generics::box_::AnimationIterationCount as GenericAnimationIterationCount;
 use values::generics::box_::Perspective as GenericPerspective;
 use values::generics::box_::VerticalAlign as GenericVerticalAlign;

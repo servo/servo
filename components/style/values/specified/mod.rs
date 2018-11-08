@@ -43,13 +43,11 @@ pub use self::counters::{Content, ContentItem, CounterIncrement, CounterReset};
 pub use self::easing::TimingFunction;
 pub use self::effects::{BoxShadow, Filter, SimpleShadow};
 pub use self::flex::FlexBasis;
-pub use self::font::{
-    FontFamily, FontLanguageOverride, FontStyle, FontVariantEastAsian, FontVariationSettings,
-};
+pub use self::font::{FontFamily, FontLanguageOverride, FontStyle};
 pub use self::font::{FontFeatureSettings, FontVariantLigatures, FontVariantNumeric};
-pub use self::font::{
-    FontSize, FontSizeAdjust, FontStretch, FontSynthesis, FontVariantAlternates, FontWeight,
-};
+pub use self::font::{FontSize, FontSizeAdjust, FontStretch, FontSynthesis};
+pub use self::font::{FontVariantAlternates, FontWeight};
+pub use self::font::{FontVariantEastAsian, FontVariationSettings};
 pub use self::font::{MozScriptLevel, MozScriptMinSize, MozScriptSizeMultiplier, XLang, XTextZoom};
 #[cfg(feature = "gecko")]
 pub use self::gecko::ScrollSnapPoint;

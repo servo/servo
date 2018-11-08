@@ -44,9 +44,6 @@ use gecko_bindings::bindings::Gecko_MatchLang;
 use gecko_bindings::bindings::Gecko_UnsetDirtyStyleAttr;
 use gecko_bindings::bindings::Gecko_UpdateAnimations;
 use gecko_bindings::bindings::{Gecko_ElementState, Gecko_GetDocumentLWTheme};
-use gecko_bindings::bindings::{
-    Gecko_GetLastChild, Gecko_GetNextStyleChild, Gecko_GetPreviousSibling,
-};
 use gecko_bindings::bindings::{Gecko_SetNodeFlags, Gecko_UnsetNodeFlags};
 use gecko_bindings::structs;
 use gecko_bindings::structs::nsChangeHint;
@@ -384,12 +381,12 @@ impl<'ln> TNode for GeckoNode<'ln> {
 
     #[inline]
     fn last_child(&self) -> Option<Self> {
-        unsafe { Gecko_GetLastChild(self.0).map(GeckoNode) }
+        unsafe { bindings::Gecko_GetLastChild(self.0).map(GeckoNode) }
     }
 
     #[inline]
     fn prev_sibling(&self) -> Option<Self> {
-        unsafe { Gecko_GetPreviousSibling(self.0).map(GeckoNode) }
+        unsafe { bindings::Gecko_GetPreviousSibling(self.0).map(GeckoNode) }
     }
 
     #[inline]
@@ -506,7 +503,7 @@ impl<'a> Iterator for GeckoChildrenIterator<'a> {
                 // however we can't express this easily with bindgen, and it would
                 // introduce functions with two input lifetimes into bindgen,
                 // which would be out of scope for elision.
-                Gecko_GetNextStyleChild(&mut *(it as *mut _)).map(GeckoNode)
+                bindings::Gecko_GetNextStyleChild(&mut *(it as *mut _)).map(GeckoNode)
             },
         }
     }

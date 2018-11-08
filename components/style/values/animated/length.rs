@@ -5,9 +5,8 @@
 //! Animation implementation for various length-related types.
 
 use super::{Animate, Procedure, ToAnimatedValue, ToAnimatedZero};
-use values::computed::length::{
-    CalcLengthOrPercentage, Length, LengthOrPercentageOrAuto, LengthOrPercentageOrNone,
-};
+use values::computed::length::{CalcLengthOrPercentage, Length};
+use values::computed::length::{LengthOrPercentageOrAuto, LengthOrPercentageOrNone};
 use values::computed::MaxLength as ComputedMaxLength;
 use values::computed::MozLength as ComputedMozLength;
 use values::computed::Percentage;

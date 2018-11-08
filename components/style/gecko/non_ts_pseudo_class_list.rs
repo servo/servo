@@ -3,29 +3,28 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 /*
-* This file contains a helper macro includes all supported non-tree-structural
-* pseudo-classes.
-*
-
-* FIXME: Find a way to autogenerate this file.
-*
-* Expected usage is as follows:
-* ```
-* macro_rules! pseudo_class_macro{
-*     ([$(($css:expr, $name:ident, $gecko_type:tt, $state:tt, $flags:tt),)*]) => {
-*         // do stuff
-*     }
-* }
-* apply_non_ts_list!(pseudo_class_macro)
-* ```
-*
-* $gecko_type can be either "_" or an ident in Gecko's CSSPseudoClassType.
-* $state can be either "_" or an expression of type ElementState.  If present,
-*        the semantics are that the pseudo-class matches if any of the bits in
-*        $state are set on the element.
-* $flags can be either "_" or an expression of type NonTSPseudoClassFlag,
-* see selector_parser.rs for more details.
-*/
+ * This file contains a helper macro includes all supported non-tree-structural
+ * pseudo-classes.
+ *
+ * FIXME: Find a way to autogenerate this file.
+ *
+ * Expected usage is as follows:
+ * ```
+ * macro_rules! pseudo_class_macro{
+ *     ([$(($css:expr, $name:ident, $gecko_type:tt, $state:tt, $flags:tt),)*]) => {
+ *         // do stuff
+ *     }
+ * }
+ * apply_non_ts_list!(pseudo_class_macro)
+ * ```
+ *
+ * $gecko_type can be either "_" or an ident in Gecko's CSSPseudoClassType.
+ * $state can be either "_" or an expression of type ElementState.  If present,
+ *        the semantics are that the pseudo-class matches if any of the bits in
+ *        $state are set on the element.
+ * $flags can be either "_" or an expression of type NonTSPseudoClassFlag,
+ * see selector_parser.rs for more details.
+ */
 
 macro_rules! apply_non_ts_list {
     ($apply_macro:ident) => {

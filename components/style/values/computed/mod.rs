@@ -37,13 +37,11 @@ pub use self::angle::Angle;
 pub use self::background::{BackgroundRepeat, BackgroundSize};
 pub use self::basic_shape::FillRule;
 pub use self::border::{BorderCornerRadius, BorderRadius, BorderSpacing};
-pub use self::border::{
-    BorderImageRepeat, BorderImageSideWidth, BorderImageSlice, BorderImageWidth,
-};
-pub use self::box_::{
-    AnimationIterationCount, AnimationName, Contain, Display, TransitionProperty,
-};
+pub use self::border::{BorderImageRepeat, BorderImageSideWidth};
+pub use self::border::{BorderImageSlice, BorderImageWidth};
+pub use self::box_::{AnimationIterationCount, AnimationName, Contain};
 pub use self::box_::{Appearance, Clear, Float};
+pub use self::box_::{Display, TransitionProperty};
 pub use self::box_::{OverflowClipBox, OverscrollBehavior, Perspective, Resize};
 pub use self::box_::{ScrollSnapType, TouchAction, VerticalAlign, WillChange};
 pub use self::color::{Color, ColorPropertyValue, RGBAColor};
@@ -52,13 +50,11 @@ pub use self::counters::{Content, ContentItem, CounterIncrement, CounterReset};
 pub use self::easing::TimingFunction;
 pub use self::effects::{BoxShadow, Filter, SimpleShadow};
 pub use self::flex::FlexBasis;
-pub use self::font::{
-    FontFamily, FontLanguageOverride, FontStyle, FontVariantEastAsian, FontVariationSettings,
-};
+pub use self::font::{FontFamily, FontLanguageOverride, FontStyle};
 pub use self::font::{FontFeatureSettings, FontVariantLigatures, FontVariantNumeric};
-pub use self::font::{
-    FontSize, FontSizeAdjust, FontStretch, FontSynthesis, FontVariantAlternates, FontWeight,
-};
+pub use self::font::{FontSize, FontSizeAdjust, FontStretch, FontSynthesis};
+pub use self::font::{FontVariantAlternates, FontWeight};
+pub use self::font::{FontVariantEastAsian, FontVariationSettings};
 pub use self::font::{MozScriptLevel, MozScriptMinSize, MozScriptSizeMultiplier, XLang, XTextZoom};
 #[cfg(feature = "gecko")]
 pub use self::gecko::ScrollSnapPoint;
@@ -81,9 +77,8 @@ pub use self::svg::{SVGLength, SVGOpacity, SVGPaint, SVGPaintKind};
 pub use self::svg::{SVGPaintOrder, SVGStrokeDashArray, SVGWidth};
 pub use self::table::XSpan;
 pub use self::text::{InitialLetter, LetterSpacing, LineHeight, MozTabSize};
-pub use self::text::{
-    TextAlign, TextEmphasisPosition, TextEmphasisStyle, TextOverflow, WordSpacing,
-};
+pub use self::text::{TextAlign, TextEmphasisPosition, TextEmphasisStyle};
+pub use self::text::{TextOverflow, WordSpacing};
 pub use self::time::Time;
 pub use self::transform::{Rotate, Scale, Transform, TransformOperation};
 pub use self::transform::{TransformOrigin, TransformStyle, Translate};
