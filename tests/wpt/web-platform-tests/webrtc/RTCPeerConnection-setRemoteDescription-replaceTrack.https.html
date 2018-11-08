@@ -85,57 +85,27 @@
     }));
   }, 'replaceTrack() rejects when the peer connection is closed.');
 
-  async_test(t => {
-    const expectedException = 'InvalidModificationError';
+  promise_test(async t => {
     const caller = new RTCPeerConnection();
     t.add_cleanup(() => caller.close());
-    return getUserMediaTracksAndStreams(2)
-    .then(t.step_func(([tracks, streams]) => {
-      const sender = caller.addTrack(tracks[0], streams[0]);
-      caller.removeTrack(sender);
-      // replaceTrack() should fail because the sender should be inactive after
-      // removeTrack().
-      return sender.replaceTrack(tracks[1])
-      .then(t.step_func(() => {
-        assert_unreached('Expected replaceTrack() to be rejected with ' +
-                         expectedException + ' but the promise was resolved.');
-      }),
-      t.step_func(e => {
-        assert_equals(e.name, expectedException);
-        t.done();
-      }));
-    }))
-    .catch(t.step_func(reason => {
-      assert_unreached(reason);
-    }));
-  }, 'replaceTrack() rejects when invoked after removeTrack().');
+    const [tracks, streams] = await getUserMediaTracksAndStreams(2);
+    const sender = caller.addTrack(tracks[0], streams[0]);
+    caller.removeTrack(sender);
+    await sender.replaceTrack(tracks[1]);
+    assert_equals(sender.track, tracks[1], "Make sure track gets updated");
+  }, 'replaceTrack() does not reject when invoked after removeTrack().');
 
-  async_test(t => {
-    const expectedException = 'InvalidModificationError';
+
+  promise_test(async t => {
     const caller = new RTCPeerConnection();
     t.add_cleanup(() => caller.close());
-    return getUserMediaTracksAndStreams(2)
-    .then(t.step_func(([tracks, streams]) => {
-      const sender = caller.addTrack(tracks[0], streams[0]);
-      let p = sender.replaceTrack(tracks[1])
-      caller.removeTrack(sender);
-      // replaceTrack() should fail because it executes steps in parallel and
-      // queues a task to execute after removeTrack() has occurred. The sender
-      // should be inactive. If this can be racy, update or remove the test.
-      // https://github.com/w3c/webrtc-pc/issues/1728
-      return p.then(t.step_func(() => {
-        assert_unreached('Expected replaceTrack() to be rejected with ' +
-                         expectedException + ' but the promise was resolved.');
-      }),
-      t.step_func(e => {
-        assert_equals(e.name, expectedException);
-        t.done();
-      }));
-    }))
-    .catch(t.step_func(reason => {
-      assert_unreached(reason);
-    }));
-  }, 'replaceTrack() rejects after a subsequent removeTrack().');
+    const [tracks, streams] = await getUserMediaTracksAndStreams(2);
+    const sender = caller.addTrack(tracks[0], streams[0]);
+    let p = sender.replaceTrack(tracks[1])
+    caller.removeTrack(sender);
+    await p;
+    assert_equals(sender.track, tracks[1], "Make sure track gets updated");
+  }, 'replaceTrack() does not reject after a subsequent removeTrack().');
 
   // TODO(hbos): Verify that replaceTrack() changes what media is received on
   // the remote end of two connected peer connections. For video tracks, this

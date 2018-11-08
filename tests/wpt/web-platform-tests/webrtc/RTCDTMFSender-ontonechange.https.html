@@ -247,7 +247,7 @@
       // tonechange event, to make sure that tonechange is triggered
       // then stopped
       if(tone === 'A') {
-        transceiver.setDirection('recvonly');
+        transceiver.direction = 'recvonly';
 
         pc.createOffer()
         .then(offer =>

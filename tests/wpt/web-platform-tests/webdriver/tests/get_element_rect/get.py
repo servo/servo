@@ -1,7 +1,6 @@
 from tests.support.asserts import assert_error, assert_success
+from tests.support.helpers import element_rect
 from tests.support.inline import inline
-
-from . import retrieve_element_rect
 
 
 def get_element_rect(session, element_id):
@@ -38,4 +37,4 @@ def test_basic(session):
     element = session.find.css("input", all=False)
 
     result = get_element_rect(session, element.id)
-    assert_success(result, retrieve_element_rect(session, element))
+    assert_success(result, element_rect(session, element))

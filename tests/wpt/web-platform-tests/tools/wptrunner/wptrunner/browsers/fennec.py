@@ -210,7 +210,7 @@ class FennecBrowser(FirefoxBrowser):
                                            process_class=ProcessHandler,
                                            process_args={"processOutputLine": [self.on_output]})
 
-        self.logger.debug("Starting Fennec")
+        self.logger.debug("Starting %s" % self.package_name)
         # connect to a running emulator
         self.runner.device.connect()
 
@@ -222,7 +222,7 @@ class FennecBrowser(FirefoxBrowser):
             local="tcp:{}".format(self.marionette_port),
             remote="tcp:{}".format(self.marionette_port))
 
-        self.logger.debug("Fennec Started")
+        self.logger.debug("%s Started" % self.package_name)
 
     def stop(self, force=False):
         if self.runner is not None:

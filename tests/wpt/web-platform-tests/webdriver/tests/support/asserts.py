@@ -1,5 +1,6 @@
 import base64
 import imghdr
+import struct
 
 from webdriver import Element, NoSuchAlertException, WebDriverException
 

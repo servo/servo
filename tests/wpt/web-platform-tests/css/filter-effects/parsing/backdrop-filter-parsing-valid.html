@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Filter Effects Module Level 2: parsing backdrop-filter with valid values</title>
+<link rel="author" title="Eric Willigers" href="mailto:ericwilligers@chromium.org">
+<link rel="help" href="https://drafts.fxtf.org/filter-effects-2/#BackdropFilterProperty">
+<meta name="assert" content="backdrop-filter supports the full grammar 'none | <backdrop-filter-function-list>'.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+test_valid_value("backdrop-filter", "none");
+
+test_valid_value("backdrop-filter", "blur(100px)");
+test_valid_value("backdrop-filter", "blur(0)", "blur(0px)");
+test_valid_value("backdrop-filter", "blur()");
+
+test_valid_value("backdrop-filter", "brightness(0)");
+test_valid_value("backdrop-filter", "brightness(300%)");
+test_valid_value("backdrop-filter", "brightness()");
+
+test_valid_value("backdrop-filter", "contrast(0)");
+test_valid_value("backdrop-filter", "contrast(300%)");
+test_valid_value("backdrop-filter", "contrast()");
+
+test_valid_value("backdrop-filter", "drop-shadow(1px 2px)");
+test_valid_value("backdrop-filter", "drop-shadow(1px 2px 3px)");
+test_valid_value("backdrop-filter", "drop-shadow(0 0 0)", "drop-shadow(0px 0px 0px)");
+test_valid_value("backdrop-filter", "drop-shadow(rgb(4, 5, 6) 1px 2px)");
+test_valid_value("backdrop-filter", "drop-shadow(1px 2px rgb(4, 5, 6))", "drop-shadow(rgb(4, 5, 6) 1px 2px)");
+test_valid_value("backdrop-filter", "drop-shadow(rgba(4, 5, 6, 0.75) 1px 2px 3px)");
+
+test_valid_value("backdrop-filter", "grayscale(0)");
+test_valid_value("backdrop-filter", "grayscale(300%)", "grayscale(100%)");
+test_valid_value("backdrop-filter", "grayscale()");
+
+test_valid_value("backdrop-filter", "hue-rotate(90deg)");
+test_valid_value("backdrop-filter", "hue-rotate(0)", "hue-rotate(0deg)");
+test_valid_value("backdrop-filter", "hue-rotate()");
+
+test_valid_value("backdrop-filter", "invert(0)");
+test_valid_value("backdrop-filter", "invert(300%)", "invert(100%)");
+test_valid_value("backdrop-filter", "invert()");
+
+test_valid_value("backdrop-filter", "opacity(0)");
+test_valid_value("backdrop-filter", "opacity(300%)", "opacity(100%)");
+test_valid_value("backdrop-filter", "opacity()");
+
+test_valid_value("backdrop-filter", "saturate(0)");
+test_valid_value("backdrop-filter", "saturate(300%)");
+test_valid_value("backdrop-filter", "saturate()");
+
+test_valid_value("backdrop-filter", "sepia(0)");
+test_valid_value("backdrop-filter", "sepia(300%)", "sepia(100%)");
+test_valid_value("backdrop-filter", "sepia()");
+
+test_valid_value("backdrop-filter", 'url("picture.svg#f")');
+
+test_valid_value("backdrop-filter", 'url("https://www.example.com/picture.svg#f")');
+
+test_valid_value("backdrop-filter", 'blur(10px) url("picture.svg#f") contrast(20) brightness(30)');
+</script>
+</body>
+</html>

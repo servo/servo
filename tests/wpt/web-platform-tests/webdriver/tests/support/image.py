@@ -1,4 +1,5 @@
 import base64
+import math
 import struct
 
 from tests.support.asserts import assert_png
