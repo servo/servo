@@ -137,7 +137,7 @@ ${helpers.single_keyword(
 ${helpers.predefined_type(
     "text-align",
     "TextAlign",
-    "computed::TextAlign::start()",
+    "computed::TextAlign::Start",
     animation_value_type="discrete",
     flags="APPLIES_TO_PLACEHOLDER",
     spec="https://drafts.csswg.org/css-text/#propdef-text-align",

@@ -380,71 +380,44 @@ impl TextDecorationLine {
     }
 }
 
-macro_rules! define_text_align_keyword {
-    ($(
-        $(#[$($meta:tt)+])*
-        $name: ident => $discriminant: expr,
-    )+) => {
-        /// Specified value of text-align keyword value.
-        #[derive(Clone, Copy, Debug, Eq, Hash, MallocSizeOf, Parse, PartialEq,
-                 SpecifiedValueInfo, ToComputedValue, ToCss)]
-        #[allow(missing_docs)]
-        pub enum TextAlignKeyword {
-            $(
-                $(#[$($meta)+])*
-                $name = $discriminant,
-            )+
-        }
-
-        impl TextAlignKeyword {
-            /// Construct a TextAlignKeyword from u32.
-            pub fn from_u32(discriminant: u32) -> Option<TextAlignKeyword> {
-                match discriminant {
-                    $(
-                        $discriminant => Some(TextAlignKeyword::$name),
-                    )+
-                    _ => None
-                }
-            }
-        }
-    }
-}
-
-// FIXME(emilio): Why reinventing the world?
-#[cfg(feature = "gecko")]
-define_text_align_keyword! {
-    Start => 0,
-    End => 1,
-    Left => 2,
-    Right => 3,
-    Center => 4,
-    Justify => 5,
-    MozCenter => 6,
-    MozLeft => 7,
-    MozRight => 8,
+/// Specified value of text-align keyword value.
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    Eq,
+    FromPrimitive,
+    Hash,
+    MallocSizeOf,
+    Parse,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToComputedValue,
+    ToCss,
+)]
+#[allow(missing_docs)]
+pub enum TextAlignKeyword {
+    Start,
+    End,
+    Left,
+    Right,
+    Center,
+    Justify,
+    #[cfg(feature = "gecko")]
+    MozCenter,
+    #[cfg(feature = "gecko")]
+    MozLeft,
+    #[cfg(feature = "gecko")]
+    MozRight,
+    #[cfg(feature = "servo")]
+    ServoCenter,
+    #[cfg(feature = "servo")]
+    ServoLeft,
+    #[cfg(feature = "servo")]
+    ServoRight,
     #[css(skip)]
-    Char => 10,
-}
-
-#[cfg(feature = "servo")]
-define_text_align_keyword! {
-    Start => 0,
-    End => 1,
-    Left => 2,
-    Right => 3,
-    Center => 4,
-    Justify => 5,
-    ServoCenter => 6,
-    ServoLeft => 7,
-    ServoRight => 8,
-}
-
-impl TextAlignKeyword {
-    /// Return the initial value of TextAlignKeyword.
-    #[inline]
-    pub fn start() -> TextAlignKeyword {
-        TextAlignKeyword::Start
-    }
+    #[cfg(feature = "gecko")]
+    Char,
 }
 
 /// Specified value of text-align property.
@@ -510,7 +483,7 @@ impl ToComputedValue for TextAlign {
                 // but we want to set it to right -- instead set it to the default (`start`),
                 // which will do the right thing in this case (but not the general case)
                 if _context.is_root_element {
-                    return TextAlignKeyword::start();
+                    return TextAlignKeyword::Start;
                 }
                 let parent = _context
                     .builder
