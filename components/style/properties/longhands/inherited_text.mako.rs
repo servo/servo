@@ -61,15 +61,16 @@ ${helpers.predefined_type(
     servo_restyle_damage = "reflow",
 )}
 
-// Also known as "word-wrap" (which is more popular because of IE), but this is the preferred
-// name per CSS-TEXT 6.2.
-${helpers.single_keyword(
+// Also known as "word-wrap" (which is more popular because of IE), but this is
+// the preferred name per CSS-TEXT 6.2.
+${helpers.predefined_type(
     "overflow-wrap",
-    "normal break-word",
-    gecko_constant_prefix="NS_STYLE_OVERFLOWWRAP",
+    "OverflowWrap",
+    "computed::OverflowWrap::Normal",
     animation_value_type="discrete",
     spec="https://drafts.csswg.org/css-text/#propdef-overflow-wrap",
     alias="word-wrap",
+    needs_context=False,
     servo_restyle_damage="rebuild_and_reflow",
 )}
 

@@ -21,6 +21,7 @@ use style_traits::{CssWriter, ToCss};
 
 pub use crate::values::specified::TextAlignKeyword as TextAlign;
 pub use crate::values::specified::TextEmphasisPosition;
+pub use crate::values::specified::OverflowWrap;
 
 /// A computed value for the `initial-letter` property.
 pub type InitialLetter = GenericInitialLetter<CSSFloat, CSSInteger>;
