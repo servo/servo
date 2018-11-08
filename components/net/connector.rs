@@ -81,7 +81,7 @@ impl Stream for WrappedBody {
                         Decoder::Plain => Some(chunk),
                         Decoder::Gzip(Some(ref mut decoder)) => {
                             let mut buf = vec![0; BUF_SIZE];
-                            *decoder.get_mut() = Cursor::new(chunk.into_bytes());
+                            decoder.get_mut().get_mut().extend(&chunk.into_bytes());
                             let len = decoder.read(&mut buf).ok()?;
                             buf.truncate(len);
                             Some(buf.into())
@@ -96,7 +96,7 @@ impl Stream for WrappedBody {
                         },
                         Decoder::Deflate(ref mut decoder) => {
                             let mut buf = vec![0; BUF_SIZE];
-                            *decoder.get_mut() = Cursor::new(chunk.into_bytes());
+                            decoder.get_mut().get_mut().extend(&chunk.into_bytes());
                             let len = decoder.read(&mut buf).ok()?;
                             buf.truncate(len);
                             Some(buf.into())
