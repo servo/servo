@@ -331,6 +331,8 @@ class MachCommands(CommandBase):
             tidy_failed = tidy.scan(not all_files, not no_progress, stylo=stylo)
             self.install_rustfmt()
             rustfmt_failed = self.call_rustup_run(["cargo", "fmt", "--", "--check"])
+            if rustfmt_failed:
+                print("Run `./mach fmt` to fix the formatting")
             return tidy_failed or manifest_dirty or rustfmt_failed
 
     @Command('test-webidl',
