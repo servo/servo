@@ -699,3 +699,13 @@ fn test_selection_bounds() {
     assert_eq!(TextPoint { line: 0, index: 0 }, textinput.selection_start());
     assert_eq!(TextPoint { line: 1, index: 0 }, textinput.selection_end());
 }
+
+#[test]
+fn test_select_all() {
+    let mut textinput = text_input(Lines::Single, "abc");
+    textinput.set_selection_range(2, 3, SelectionDirection::Backward);
+    textinput.select_all();
+    assert_eq!(textinput.selection_direction(), SelectionDirection::Forward);
+    assert_eq!(TextPoint { line: 0, index: 0 }, textinput.selection_start());
+    assert_eq!(TextPoint { line: 0, index: 3 }, textinput.selection_end());
+}

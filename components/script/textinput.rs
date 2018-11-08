@@ -583,6 +583,7 @@ impl<T: ClipboardProvider> TextInput<T> {
         let last_line = self.lines.len() - 1;
         self.edit_point.line = last_line;
         self.edit_point.index = self.lines[last_line].len();
+        self.selection_direction = SelectionDirection::Forward;
         self.assert_ok_selection();
     }
 
