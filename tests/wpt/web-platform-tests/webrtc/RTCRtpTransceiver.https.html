@@ -1181,7 +1181,7 @@
                 "InvalidStateError", "replaceTrack on stopped transceiver");
 
     checkThrows(() => transceiver.direction = "sendrecv",
-                "InvalidStateError", "setDirection on stopped transceiver");
+                "InvalidStateError", "set direction on stopped transceiver");
 
     checkThrows(() => transceiver.sender.dtmf.insertDTMF("111"),
                 "InvalidStateError", "insertDTMF on stopped transceiver");
@@ -1775,7 +1775,7 @@
     await pc2.setRemoteDescription({type: "rollback"});
 
     // Transceiver should be _gone_, again. replaceTrack doesn't prevent this,
-    // nor does setDirection.
+    // nor does setting direction.
     hasProps(pc2.getTransceivers(), []);
 
     // Setting the same offer for a _third_ time should do the same thing

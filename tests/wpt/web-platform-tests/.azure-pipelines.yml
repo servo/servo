@@ -2,6 +2,10 @@
 # macOS. Documentation to help understand this setup:
 # https://docs.microsoft.com/en-us/azure/devops/pipelines/yaml-schema
 # https://docs.microsoft.com/en-us/azure/devops/pipelines/process/variables
+#
+# In addition to this configuration file, the "Build pull requests from forks
+# of this repository" setting must also be enabled in the Azure DevOps project:
+# https://docs.microsoft.com/en-us/azure/devops/pipelines/repos/github#validate-contributions-from-forks
 
 trigger: none # disable builds for branches
 

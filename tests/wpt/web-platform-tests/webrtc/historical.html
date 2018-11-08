@@ -25,6 +25,14 @@ test(function() {
 });
 
 [
+  "setDirection",
+].forEach(function(name) {
+  test(function() {
+    assert_false(name in RTCRtpTransceiver.prototype);
+  }, "RTCRtpTransceiver member " + name + " should not exist");
+});
+
+[
   "DataChannel",
   "mozRTCIceCandidate",
   "mozRTCPeerConnection",

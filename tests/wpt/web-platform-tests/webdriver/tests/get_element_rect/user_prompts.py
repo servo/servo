@@ -3,9 +3,8 @@
 import pytest
 
 from tests.support.asserts import assert_error, assert_success, assert_dialog_handled
+from tests.support.helpers import element_rect
 from tests.support.inline import inline
-
-from . import retrieve_element_rect
 
 
 def get_element_rect(session, element_id):
@@ -27,7 +26,7 @@ def check_user_prompt_closed_without_exception(session, create_dialog):
         create_dialog(dialog_type, text=dialog_type)
 
         response = get_element_rect(session, element.id)
-        assert_success(response, retrieve_element_rect(session, element))
+        assert_success(response, element_rect(session, element))
 
         assert_dialog_handled(session, expected_text=dialog_type, expected_retval=retval)
 

@@ -89,7 +89,11 @@ def run(*args, **kwargs):
                     logger.info(path)
 
 
-def __main__():
+def main():
     kwargs = get_parser().parse_args()
 
     run(None, vars(kwargs))
+
+
+if __name__ == "__main__":
+    main()

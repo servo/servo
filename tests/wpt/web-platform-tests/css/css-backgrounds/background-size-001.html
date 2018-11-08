@@ -81,7 +81,7 @@
         document.getElementById("test").style.backgroundSize = "auto auto";
         test(function() {
             assert_equals(getComputedStyle(document.getElementById("test"), null).getPropertyValue("background-size"),
-                "auto auto", "background-size supporting value");
+                "auto", "background-size supporting value");
         }, "background-size_auto_auto");
 
         document.getElementById("test").style.backgroundSize = "auto 15px";

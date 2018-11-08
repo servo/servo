@@ -231,4 +231,3 @@ def closed_window(session, create_window):
     yield new_handle
 
     session.window_handle = original_handle
-

@@ -27,6 +27,17 @@ backgroundFetchTest(async (test, backgroundFetch) => {
   assert_equals(registration.id, registrationId);
 
   const message = await getMessageFromServiceWorker();
-  assert_equals(message.update, 'updateUI may only be called once.');
+  assert_equals(message.update, 'InvalidStateError');
 
 }, 'Background Fetch updateUI called twice fails', swName);
+
+backgroundFetchTest(async (test, backgroundFetch) => {
+  const registrationId = 'update-inactive';
+  const registration =
+      await backgroundFetch.fetch(registrationId, 'resources/feature-name.txt');
+  assert_equals(registration.id, registrationId);
+
+  const message = await getMessageFromServiceWorker();
+  assert_equals(message.update, 'InvalidStateError');
+
+}, 'Background Fetch updateUI fails when event is not active', swName);

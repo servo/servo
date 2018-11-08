@@ -15,7 +15,8 @@ __wptrunner__ = {"product": "webkit",
                               "wdspec": "WebKitDriverWdspecExecutor"},
                  "executor_kwargs": "executor_kwargs",
                  "env_extras": "env_extras",
-                 "env_options": "env_options"}
+                 "env_options": "env_options",
+                 "run_info_extras": "run_info_extras"}
 
 
 def check_args(**kwargs):
@@ -31,22 +32,22 @@ def browser_kwargs(test_type, run_info_data, config, **kwargs):
 
 
 def capabilities_for_port(server_config, **kwargs):
-    if kwargs["webkit_port"] == "gtk":
-        capabilities = {
+    port_name = kwargs["webkit_port"]
+    if port_name in ["gtk", "wpe"]:
+        port_key_map = {"gtk": "webkitgtk"}
+        browser_options_port = port_key_map.get(port_name, port_name)
+        browser_options_key = "%s:browserOptions" % browser_options_port
+
+        return {
             "browserName": "MiniBrowser",
             "browserVersion": "2.20",
             "platformName": "ANY",
-            "webkitgtk:browserOptions": {
+            browser_options_key: {
                 "binary": kwargs["binary"],
                 "args": kwargs.get("binary_args", []),
                 "certificates": [
                     {"host": server_config["browser_host"],
-                     "certificateFile": kwargs["host_cert_path"]}
-                ]
-            }
-        }
-
-        return capabilities
+                     "certificateFile": kwargs["host_cert_path"]}]}}
 
     return {}
 
@@ -67,6 +68,10 @@ def env_extras(**kwargs):
 
 def env_options():
     return {}
+
+
+def run_info_extras(**kwargs):
+    return {"webkit_port": kwargs["webkit_port"]}
 
 
 class WebKitBrowser(Browser):

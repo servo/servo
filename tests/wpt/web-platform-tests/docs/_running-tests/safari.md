@@ -9,6 +9,12 @@ To run Safari on macOS, some manual setup is required:
   * Allow pop-up windows:
     `defaults write com.apple.Safari WebKitJavaScriptCanOpenWindowsAutomatically 1`
 
+  * Turn on experimental features that are "off" by default:
+
+    * `defaults write com.apple.Safari ExperimentalServerTimingEnabled -bool true`
+
+    [//]: # (TODO\(cvazac\) Remove this if/when Server-Timing is enabled by default in Safari)
+
   * Trust the certificate:
     `security add-trusted-cert -k "$(security default-keychain | cut -d\" -f2)" tools/certs/cacert.pem`
 
