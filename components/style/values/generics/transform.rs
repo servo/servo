@@ -7,6 +7,8 @@
 use app_units::Au;
 use euclid::{self, Rect, Transform3D};
 use num_traits::Zero;
+use std::fmt::{self, Write};
+use style_traits::{CssWriter, ToCss};
 use values::computed::length::Length as ComputedLength;
 use values::computed::length::LengthOrPercentage as ComputedLengthOrPercentage;
 use values::specified::angle::Angle as SpecifiedAngle;
@@ -560,7 +562,6 @@ pub enum Rotate<Number, Angle> {
     SpecifiedValueInfo,
     ToAnimatedZero,
     ToComputedValue,
-    ToCss,
 )]
 /// A value of the `Scale` property
 ///
@@ -568,12 +569,36 @@ pub enum Rotate<Number, Angle> {
 pub enum Scale<Number> {
     /// 'none'
     None,
-    /// '<number>'
-    ScaleX(Number),
-    /// '<number>{2}'
+    /// '<number>{1,2}'
     Scale(Number, Number),
     /// '<number>{3}'
     Scale3D(Number, Number, Number),
+}
+
+impl<Number: ToCss + PartialEq> ToCss for Scale<Number> {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: fmt::Write,
+    {
+        match *self {
+            Scale::None => dest.write_str("none"),
+            Scale::Scale(ref x, ref y) => {
+                x.to_css(dest)?;
+                if x != y {
+                    dest.write_char(' ')?;
+                    y.to_css(dest)?;
+                }
+                Ok(())
+            },
+            Scale::Scale3D(ref x, ref y, ref z) => {
+                x.to_css(dest)?;
+                dest.write_char(' ')?;
+                y.to_css(dest)?;
+                dest.write_char(' ')?;
+                z.to_css(dest)
+            },
+        }
+    }
 }
 
 #[derive(

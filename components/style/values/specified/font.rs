@@ -24,9 +24,8 @@ use values::generics::font::{self as generics, FeatureTagValue, FontSettings, Fo
 use values::generics::font::{KeywordSize, VariationValue};
 use values::generics::NonNegative;
 use values::specified::length::{FontBaseSize, AU_PER_PT, AU_PER_PX};
-use values::specified::{
-    AllowQuirks, Angle, Integer, LengthOrPercentage, NoCalcLength, Number, Percentage,
-};
+use values::specified::{AllowQuirks, Angle, Integer, LengthOrPercentage};
+use values::specified::{NoCalcLength, Number, Percentage};
 use values::CustomIdent;
 use Atom;
 

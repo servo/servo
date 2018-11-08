@@ -423,6 +423,6 @@ impl Parse for Scale {
         }
 
         // 'scale: <number>'
-        Ok(generic::Scale::ScaleX(sx))
+        Ok(generic::Scale::Scale(sx, sx))
     }
 }

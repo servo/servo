@@ -6,26 +6,30 @@
 
 #[cfg(feature = "gecko")]
 pub use values::specified::list::ListStyleType;
-pub use values::specified::list::Quotes;
+pub use values::specified::list::{QuotePair, Quotes};
+
+use servo_arc::Arc;
+
+lazy_static! {
+    static ref INITIAL_QUOTES: Arc<Box<[QuotePair]>> = Arc::new(
+        vec![
+            QuotePair {
+                opening: "\u{201c}".to_owned().into_boxed_str(),
+                closing: "\u{201d}".to_owned().into_boxed_str(),
+            },
+            QuotePair {
+                opening: "\u{2018}".to_owned().into_boxed_str(),
+                closing: "\u{2019}".to_owned().into_boxed_str(),
+            },
+        ]
+        .into_boxed_slice()
+    );
+}
 
 impl Quotes {
     /// Initial value for `quotes`.
-    ///
-    /// FIXME(emilio): This should ideally not allocate.
     #[inline]
     pub fn get_initial_value() -> Quotes {
-        Quotes(
-            vec![
-                (
-                    "\u{201c}".to_owned().into_boxed_str(),
-                    "\u{201d}".to_owned().into_boxed_str(),
-                ),
-                (
-                    "\u{2018}".to_owned().into_boxed_str(),
-                    "\u{2019}".to_owned().into_boxed_str(),
-                ),
-            ]
-            .into_boxed_slice(),
-        )
+        Quotes(INITIAL_QUOTES.clone())
     }
 }

@@ -6,9 +6,8 @@
 
 use values::computed::color::Color;
 use values::computed::url::ComputedUrl;
-use values::computed::{
-    LengthOrPercentage, NonNegativeLengthOrPercentage, NonNegativeNumber, Number, Opacity,
-};
+use values::computed::{LengthOrPercentage, NonNegativeLengthOrPercentage};
+use values::computed::{NonNegativeNumber, Number, Opacity};
 use values::generics::svg as generic;
 use values::RGBA;
 

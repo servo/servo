@@ -366,16 +366,15 @@ impl<'a, 'b> ResolveGeneratedContentFragmentMutator<'a, 'b> {
         if quotes.0.is_empty() {
             return String::new();
         }
-        let &(ref open_quote, ref close_quote) = if self.traversal.quote as usize >= quotes.0.len()
-        {
+        let pair = if self.traversal.quote as usize >= quotes.0.len() {
             quotes.0.last().unwrap()
         } else {
             &quotes.0[self.traversal.quote as usize]
         };
         if close {
-            close_quote.to_string()
+            pair.closing.to_string()
         } else {
-            open_quote.to_string()
+            pair.opening.to_string()
         }
     }
 }

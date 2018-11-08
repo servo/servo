@@ -6,8 +6,8 @@
 
 use cssparser::{Parser, Token};
 use parser::{Parse, ParserContext};
-use std::fmt::{self, Write};
-use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
+use servo_arc::Arc;
+use style_traits::{ParseError, StyleParseErrorKind};
 #[cfg(feature = "gecko")]
 use values::generics::CounterStyleOrNone;
 #[cfg(feature = "gecko")]
@@ -73,40 +73,23 @@ impl Parse for ListStyleType {
     }
 }
 
-/// Specified and computed `quote` property.
-///
-/// FIXME(emilio): It's a shame that this allocates all the time it's computed,
-/// probably should just be refcounted.
-/// FIXME This can probably derive ToCss.
-#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue)]
-pub struct Quotes(#[css(if_empty = "none")] pub Box<[(Box<str>, Box<str>)]>);
+/// A quote pair.
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue, ToCss)]
+pub struct QuotePair {
+    /// The opening quote.
+    pub opening: Box<str>,
 
-impl ToCss for Quotes {
-    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
-    where
-        W: Write,
-    {
-        let mut iter = self.0.iter();
-
-        match iter.next() {
-            Some(&(ref l, ref r)) => {
-                l.to_css(dest)?;
-                dest.write_char(' ')?;
-                r.to_css(dest)?;
-            },
-            None => return dest.write_str("none"),
-        }
-
-        for &(ref l, ref r) in iter {
-            dest.write_char(' ')?;
-            l.to_css(dest)?;
-            dest.write_char(' ')?;
-            r.to_css(dest)?;
-        }
-
-        Ok(())
-    }
+    /// The closing quote.
+    pub closing: Box<str>,
 }
+
+/// Specified and computed `quotes` property.
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue, ToCss)]
+pub struct Quotes(
+    #[css(iterable, if_empty = "none")]
+    #[ignore_malloc_size_of = "Arc"]
+    pub Arc<Box<[QuotePair]>>,
+);
 
 impl Parse for Quotes {
     fn parse<'i, 't>(
@@ -117,24 +100,24 @@ impl Parse for Quotes {
             .try(|input| input.expect_ident_matching("none"))
             .is_ok()
         {
-            return Ok(Quotes(Vec::new().into_boxed_slice()));
+            return Ok(Quotes(Arc::new(Box::new([]))));
         }
 
         let mut quotes = Vec::new();
         loop {
             let location = input.current_source_location();
-            let first = match input.next() {
+            let opening = match input.next() {
                 Ok(&Token::QuotedString(ref value)) => value.as_ref().to_owned().into_boxed_str(),
                 Ok(t) => return Err(location.new_unexpected_token_error(t.clone())),
                 Err(_) => break,
             };
 
-            let second = input.expect_string()?.as_ref().to_owned().into_boxed_str();
-            quotes.push((first, second))
+            let closing = input.expect_string()?.as_ref().to_owned().into_boxed_str();
+            quotes.push(QuotePair { opening, closing });
         }
 
         if !quotes.is_empty() {
-            Ok(Quotes(quotes.into_boxed_slice()))
+            Ok(Quotes(Arc::new(quotes.into_boxed_slice())))
         } else {
             Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
         }

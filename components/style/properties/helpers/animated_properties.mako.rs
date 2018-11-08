@@ -2212,7 +2212,6 @@ impl ComputedScale {
             Scale::None => (1.0, 1.0, 1.0),
             Scale::Scale3D(sx, sy, sz) => (sx, sy, sz),
             Scale::Scale(sx, sy) => (sx, sy, 1.),
-            Scale::ScaleX(sx) => (sx, 1., 1.),
         }
     }
 }
@@ -2224,21 +2223,38 @@ impl Animate for ComputedScale {
         other: &Self,
         procedure: Procedure,
     ) -> Result<Self, ()> {
-        let from = ComputedScale::resolve(self);
-        let to = ComputedScale::resolve(other);
-
-        // FIXME(emilio, bug 1464791): why does this do something different than
-        // Scale3D / TransformOperation::Scale3D?
-        if procedure == Procedure::Add {
-            // scale(x1,y1,z1)*scale(x2,y2,z2) = scale(x1*x2, y1*y2, z1*z2)
-            return Ok(Scale::Scale3D(from.0 * to.0, from.1 * to.1, from.2 * to.2));
+        match (self, other) {
+            (&Scale::None, &Scale::None) => Ok(Scale::None),
+            (&Scale::Scale3D(_, ..), _) | (_, &Scale::Scale3D(_, ..)) => {
+                let from = ComputedScale::resolve(self);
+                let to = ComputedScale::resolve(other);
+                // FIXME(emilio, bug 1464791): why does this do something different than
+                // Scale3D / TransformOperation::Scale3D?
+                if procedure == Procedure::Add {
+                    // scale(x1,y1,z1)*scale(x2,y2,z2) = scale(x1*x2, y1*y2, z1*z2)
+                    return Ok(Scale::Scale3D(from.0 * to.0, from.1 * to.1, from.2 * to.2));
+                }
+                Ok(Scale::Scale3D(
+                    animate_multiplicative_factor(from.0, to.0, procedure)?,
+                    animate_multiplicative_factor(from.1, to.1, procedure)?,
+                    animate_multiplicative_factor(from.2, to.2, procedure)?,
+                ))
+            },
+            (&Scale::Scale(_, ..), _) | (_, &Scale::Scale(_, ..)) => {
+                let from = ComputedScale::resolve(self);
+                let to = ComputedScale::resolve(other);
+                // FIXME(emilio, bug 1464791): why does this do something different than
+                // Scale / TransformOperation::Scale?
+                if procedure == Procedure::Add {
+                    // scale(x1,y1)*scale(x2,y2) = scale(x1*x2, y1*y2)
+                    return Ok(Scale::Scale(from.0 * to.0, from.1 * to.1));
+                }
+                Ok(Scale::Scale(
+                    animate_multiplicative_factor(from.0, to.0, procedure)?,
+                    animate_multiplicative_factor(from.1, to.1, procedure)?,
+                ))
+            },
         }
-
-        Ok(Scale::Scale3D(
-            animate_multiplicative_factor(from.0, to.0, procedure)?,
-            animate_multiplicative_factor(from.1, to.1, procedure)?,
-            animate_multiplicative_factor(from.2, to.2, procedure)?,
-        ))
     }
 }
 
