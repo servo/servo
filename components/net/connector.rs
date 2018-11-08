@@ -110,7 +110,37 @@ impl Stream for WrappedBody {
                         },
                     }
                 } else {
-                    None
+                    // Hyper is done downloading but we still have uncompressed data
+                    match self.decoder {
+                        Decoder::Gzip(Some(ref mut decoder)) => {
+                            let mut buf = vec![0; BUF_SIZE];
+                            let len = decoder.read(&mut buf).ok()?;
+                            if len == 0 {
+                                return None;
+                            }
+                            buf.truncate(len);
+                            Some(buf.into())
+                        },
+                        Decoder::Deflate(ref mut decoder) => {
+                            let mut buf = vec![0; BUF_SIZE];
+                            let len = decoder.read(&mut buf).ok()?;
+                            if len == 0 {
+                                return None;
+                            }
+                            buf.truncate(len);
+                            Some(buf.into())
+                        },
+                        Decoder::Brotli(ref mut decoder) => {
+                            let mut buf = vec![0; BUF_SIZE];
+                            let len = decoder.read(&mut buf).ok()?;
+                            if len == 0 {
+                                return None;
+                            }
+                            buf.truncate(len);
+                            Some(buf.into())
+                        },
+                        _ => None,
+                    }
                 }
             })
         })
