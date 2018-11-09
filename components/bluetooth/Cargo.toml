@@ -19,12 +19,8 @@ log = "0.4"
 servo_config = {path = "../config"}
 servo_rand = {path = "../rand"}
 uuid = {version = "0.6", features = ["v4"]}
+device = {git = "https://github.com/asajeffrey/devices", features = ["bluetooth-test"]}
+# device = {git = "https://github.com/servo/devices", features = ["bluetooth-test"]}
 
 [features]
-disable-native-bluetooth = []
-
-[target.'cfg(feature = "disable-native-bluetooth")'.dependencies]
-device = {git = "https://github.com/servo/devices", default-features = false, features = ["bluetooth-test"]}
-
-[target.'cfg(not(feature = "disable-native-bluetooth"))'.dependencies]
-device = {git = "https://github.com/servo/devices", features = ["bluetooth-test"]}
+native-bluetooth = ["device/bluetooth"]

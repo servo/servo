@@ -13,7 +13,7 @@ test = false
 bench = false
 
 [dependencies]
-libservo = { path = "../../components/servo", features = ["disable-native-bluetooth"] }
+libservo = { path = "../../components/servo" }
 log = "0.4"
 servo-egl = "0.2"
 smallvec = "0.6"

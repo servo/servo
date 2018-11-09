@@ -203,7 +203,7 @@ version = "0.0.1"
 dependencies = [
  "bitflags 1.0.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "bluetooth_traits 0.0.1",
- "device 0.0.1 (git+https://github.com/servo/devices)",
+ "device 0.0.1 (git+https://github.com/asajeffrey/devices)",
  "embedder_traits 0.0.1",
  "ipc-channel 0.11.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.4.5 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -230,7 +230,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 [[package]]
 name = "blurmac"
 version = "0.1.0"
-source = "git+https://github.com/servo/devices#967e13521ac9825a6664f1ed3fb2d2025cac0371"
+source = "git+https://github.com/asajeffrey/devices#e1989c2456c20d3dac5993da8d3cf94dbe042e1c"
 dependencies = [
  "log 0.4.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "objc 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -820,10 +820,10 @@ dependencies = [
 [[package]]
 name = "device"
 version = "0.0.1"
-source = "git+https://github.com/servo/devices#967e13521ac9825a6664f1ed3fb2d2025cac0371"
+source = "git+https://github.com/asajeffrey/devices#e1989c2456c20d3dac5993da8d3cf94dbe042e1c"
 dependencies = [
  "blurdroid 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
- "blurmac 0.1.0 (git+https://github.com/servo/devices)",
+ "blurmac 0.1.0 (git+https://github.com/asajeffrey/devices)",
  "blurmock 0.1.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "blurz 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
@@ -4729,6 +4729,10 @@ dependencies = [
  "time 0.1.37 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
+[[patch.unused]]
+name = "device"
+version = "0.0.1"
+
 [metadata]
 "checksum adler32 1.0.3 (registry+https://github.com/rust-lang/crates.io-index)" = "7e522997b529f05601e05166c07ed17789691f562762c7f3b987263d2dedee5c"
 "checksum aho-corasick 0.6.5 (registry+https://github.com/rust-lang/crates.io-index)" = "f0ba20154ea1f47ce2793322f049c5646cc6d0fa9759d5f333f286e507bf8080"
@@ -4757,7 +4761,7 @@ dependencies = [
 "checksum block 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)" = "0d8c1fef690941d3e7788d328517591fecc684c084084702d6ff1641e993699a"
 "checksum block-buffer 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)" = "a076c298b9ecdb530ed9d967e74a6027d6a7478924520acddcddc24c1c8ab3ab"
 "checksum blurdroid 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)" = "19b23557dd27704797128f9db2816416bef20dad62d4a9768714eeb65f07d296"
-"checksum blurmac 0.1.0 (git+https://github.com/servo/devices)" = "<none>"
+"checksum blurmac 0.1.0 (git+https://github.com/asajeffrey/devices)" = "<none>"
 "checksum blurmock 0.1.3 (registry+https://github.com/rust-lang/crates.io-index)" = "9c150fd617830fd121919bbd500a784507e8af1bae744efcf587591c65c375d4"
 "checksum blurz 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)" = "f6dae8337ff67fe8ead29a28a0115605753e6a5205d4b6017e9f42f198c3c50a"
 "checksum boxfnonce 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)" = "cbec60c560f322d8e3cd403f91d8908cfd965fff53ba97154bd1b9d90149d98e"
@@ -4808,7 +4812,7 @@ dependencies = [
 "checksum darling_macro 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)" = "eb69a38fdeaeaf3db712e1df170de67ee9dfc24fb88ca3e9d21e703ec25a4d8e"
 "checksum dbus 0.6.3 (registry+https://github.com/rust-lang/crates.io-index)" = "3d975a175aa2dced1a6cd410b89a1bf23918f301eab2b6f7c5e608291b757639"
 "checksum deflate 0.7.5 (registry+https://github.com/rust-lang/crates.io-index)" = "ebb02aaf4b775afc96684b8402510a338086974e38570a1f65bea8c202eb77a7"
-"checksum device 0.0.1 (git+https://github.com/servo/devices)" = "<none>"
+"checksum device 0.0.1 (git+https://github.com/asajeffrey/devices)" = "<none>"
 "checksum digest 0.7.6 (registry+https://github.com/rust-lang/crates.io-index)" = "03b072242a8cbaf9c145665af9d250c59af3b958f83ed6824e13533cf76d5b90"
 "checksum dirs 1.0.2 (registry+https://github.com/rust-lang/crates.io-index)" = "37a76dd8b997af7107d0bb69d43903cf37153a18266f8b3fdb9911f28efb5444"
 "checksum dlib 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)" = "77e51249a9d823a4cb79e3eca6dcd756153e8ed0157b6c04775d04bf1b13b76a"
