@@ -35,7 +35,7 @@ cc = "1.0"
 
 [features]
 default = ["unstable", "default-except-unstable"]
-default-except-unstable = ["webdriver", "max_log_level", "native-bluetooth"]
+default-except-unstable = ["webdriver", "max_log_level"]
 max_log_level = ["log/release_max_level_info"]
 webdriver = ["libservo/webdriver"]
 energy-profiling = ["libservo/energy-profiling"]
