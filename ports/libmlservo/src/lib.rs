@@ -2,18 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-extern crate egl;
-#[macro_use]
-extern crate log;
-extern crate servo;
-extern crate smallvec;
-
 use egl::egl::EGLContext;
 use egl::egl::EGLDisplay;
 use egl::egl::EGLSurface;
 use egl::egl::MakeCurrent;
 use egl::egl::SwapBuffers;
 use egl::eglext::eglGetProcAddress;
+use log::info;
+use log::warn;
 use servo::compositing::windowing::AnimationState;
 use servo::compositing::windowing::EmbedderCoordinates;
 use servo::compositing::windowing::MouseWindowEvent;
@@ -483,7 +479,7 @@ impl log::Log for MLLogger {
             log::Level::Debug => MLLogLevel::Debug,
             log::Level::Trace => MLLogLevel::Verbose,
         };
-        let mut msg = SmallVec::<[c_char; 128]>::new();
+        let mut msg = SmallVec::<[u8; 128]>::new();
         write!(msg, "{}\0", record.args());
         (self.0)(lvl, &msg[0] as *const _ as *const _);
     }

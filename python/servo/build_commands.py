@@ -248,10 +248,11 @@ class MachCommands(CommandBase):
         if android:
             target = self.config["android"]["target"]
 
-        if magicleap:
-            features += ["disable-native-bluetooth"]
-            if not target:
-                target = "aarch64-linux-android"
+        if not magicleap:
+            features += ["native-bluetooth"]
+
+        if magicleap and not target:
+            target = "aarch64-linux-android"
 
         if target:
             if self.config["tools"]["use-rustup"]:
