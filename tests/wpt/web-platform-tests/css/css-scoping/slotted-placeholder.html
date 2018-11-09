@@ -1,0 +1,19 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Scoping Test: ::slotted() allows ::placeholder</title>
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="author" title="Mozilla" href="https://mozilla.org">
+<link rel="help" href="https://drafts.csswg.org/css-scoping/#slotted-pseudo">
+<link rel="match" href="slotted-placeholder-ref.html">
+<div id="host">
+  <input placeholder="I should be green">
+  <textarea placeholder="I should be green"></textarea>
+</div>
+<script>
+  host.attachShadow({ mode: "open" }).innerHTML = `
+    <style>
+      ::slotted(*)::placeholder { color: green }
+    </style>
+    <slot></slot>
+  `;
+</script>

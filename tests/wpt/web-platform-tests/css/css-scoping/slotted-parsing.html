@@ -49,6 +49,8 @@
   // Allow tree-abiding pseudo elements after ::slotted
   test_valid_selector("::slotted(*)::before");
   test_valid_selector("::slotted(*)::after");
+  test_valid_selector("::slotted(*)::placeholder");
+  test_valid_selector("::slotted(*)::marker");
 
   // Other pseudo elements not valid after ::slotted
   test_invalid_selector("::slotted(*)::first-line");

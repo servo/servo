@@ -1976,7 +1976,7 @@ const scaleListType = {
                                        1000);
 
       testAnimationSamples(animation, idlName,
-        [{ time: 500,  expected: '4 4' }]);
+        [{ time: 500,  expected: '4' }]);
     }, `${property} with one unspecified value`);
 
     test(t => {
@@ -2012,8 +2012,8 @@ const scaleListType = {
                                          composite: 'add' });
 
       testAnimationSamples(animation, idlName,
-        [{ time: 0,    expected: '-6 -6' },
-         { time: 1000, expected: '10 10' }]);
+        [{ time: 0,    expected: '-6' },
+         { time: 1000, expected: '10' }]);
     }, `${property} with one unspecified value`);
 
     test(t => {
@@ -2052,8 +2052,8 @@ const scaleListType = {
                                        composite: 'accumulate' });
 
       testAnimationSamples(animation, idlName,
-        [{ time: 0,    expected: '-2 -2' },
-         { time: 1000, expected: '6 6' }]);
+        [{ time: 0,    expected: '-2' },
+         { time: 1000, expected: '6' }]);
     }, `${property} with one unspecified value`);
 
     test(t => {

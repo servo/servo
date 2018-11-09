@@ -61,6 +61,13 @@
                 extraArgs: RENDER_QUANTUM_FRAMES / context.sampleRate,
                 outputTestFrame: 4 * RENDER_QUANTUM_FRAMES,
                 expectedOutputValue: 4
+              },
+              {
+                event: 'setValueAtTime',
+                frame: 5 * RENDER_QUANTUM_FRAMES - 1,
+                values: [99, 1, 5],
+                outputTestFrame: 5 * RENDER_QUANTUM_FRAMES,
+                expectedOutputValue: 5
               }
             ];
 
