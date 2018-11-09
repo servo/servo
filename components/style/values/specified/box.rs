@@ -1036,8 +1036,10 @@ pub enum Appearance {
     #[parse(condition = "in_ua_or_chrome_sheet")]
     Menuimage,
     /// A horizontal meter bar.
-    Meterbar,
+    #[parse(aliases = "meterbar")]
+    Meter,
     /// The meter bar's meter indicator.
+    #[parse(condition = "in_ua_or_chrome_sheet")]
     Meterchunk,
     /// The "arrowed" part of the dropdown button that open up a dropdown list.
     #[parse(condition = "in_ua_or_chrome_sheet")]
