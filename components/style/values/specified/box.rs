@@ -1047,13 +1047,13 @@ pub enum Appearance {
     /// For HTML's <input type=number>
     NumberInput,
     /// A horizontal progress bar.
-    Progressbar,
+    #[parse(aliases = "progressbar")]
+    ProgressBar,
     /// The progress bar's progress indicator
+    #[parse(condition = "in_ua_or_chrome_sheet")]
     Progresschunk,
     /// A vertical progress bar.
     ProgressbarVertical,
-    /// A vertical progress chunk.
-    ProgresschunkVertical,
     /// A checkbox element.
     Checkbox,
     /// A radio element within a radio group.
