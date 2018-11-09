@@ -15,14 +15,13 @@ lint-scripts = [
 [blocked-packages]
 num = []
 rand = [
-  "crossbeam-channel",  # Used to initialize a thread-local
+  "crossbeam-channel", # Used to initialize a thread-local
   "gaol",
   "hashglobe", # Only used in tests
   "ipc-channel",
   "parking_lot_core",
   "phf_generator",
   "rand",
-  "rayon-core",
   "servo_rand",
   "tempfile",
   "tokio-threadpool",
