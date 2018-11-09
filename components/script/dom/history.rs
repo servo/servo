@@ -184,7 +184,8 @@ impl History {
 
         // Step 5
         rooted!(in(cx) let transfer = UndefinedValue());
-        let serialized_data = StructuredCloneData::write(cx, data, transfer.handle())?.move_to_arraybuffer();
+        let serialized_data =
+            StructuredCloneData::write(cx, data, transfer.handle())?.move_to_arraybuffer();
 
         let new_url: ServoUrl = match url {
             // Step 6

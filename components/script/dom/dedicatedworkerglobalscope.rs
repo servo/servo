@@ -426,7 +426,7 @@ impl DedicatedWorkerGlobalScope {
                     scope.upcast(),
                     message.handle(),
                     Some(&origin),
-                    vec![]
+                    vec![],
                 );
             },
             WorkerScriptMsg::Common(msg) => {

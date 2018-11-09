@@ -26,11 +26,7 @@ impl fmt::Debug for PortMessageQueue {
 impl TaskSource for PortMessageQueue {
     const NAME: TaskSourceName = TaskSourceName::PortMessageQueue;
 
-    fn queue_with_canceller<T>(
-        &self,
-        task: T,
-        canceller: &TaskCanceller,
-    ) -> Result<(), ()>
+    fn queue_with_canceller<T>(&self, task: T, canceller: &TaskCanceller) -> Result<(), ()>
     where
         T: TaskOnce + 'static,
     {

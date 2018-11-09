@@ -89,8 +89,8 @@ use ipc_channel::ipc::IpcSender;
 use ipc_channel::router::ROUTER;
 use js::jsapi::{JSAutoCompartment, JSContext, JSObject, JSPROP_ENUMERATE, JS_GC};
 use js::jsval::{JSVal, UndefinedValue};
-use js::rust::{CustomAutoRooterGuard, HandleValue};
 use js::rust::wrappers::JS_DefineProperty;
+use js::rust::{CustomAutoRooterGuard, HandleValue};
 use msg::constellation_msg::PipelineId;
 use net_traits::image_cache::{ImageCache, ImageResponder, ImageResponse};
 use net_traits::image_cache::{PendingImageId, PendingImageResponse};
@@ -932,7 +932,13 @@ impl WindowMethods for Window {
         // Step 3-5.
         let origin = match &origin.0[..] {
             "*" => None,
-            "/" => Some(GlobalScope::incumbent().unwrap().origin().immutable().clone()),
+            "/" => Some(
+                GlobalScope::incumbent()
+                    .unwrap()
+                    .origin()
+                    .immutable()
+                    .clone(),
+            ),
             url => match ServoUrl::parse(&url) {
                 Ok(url) => Some(url.origin().clone()),
                 Err(_) => return Err(Error::Syntax),
@@ -941,7 +947,10 @@ impl WindowMethods for Window {
 
         // Step 1-2, 6-8.
         rooted!(in(cx) let mut val = UndefinedValue());
-        (*transfer).as_ref().unwrap_or(&Vec::new()).to_jsval(cx, val.handle_mut());
+        (*transfer)
+            .as_ref()
+            .unwrap_or(&Vec::new())
+            .to_jsval(cx, val.handle_mut());
 
         let data = StructuredCloneData::write(cx, message, val.handle())?;
 

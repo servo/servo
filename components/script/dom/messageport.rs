@@ -4,11 +4,11 @@
 
 use crate::dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use crate::dom::bindings::codegen::Bindings::MessagePortBinding::{MessagePortMethods, Wrap};
-use crate::dom::bindings::conversions::{ToJSValConvertible, root_from_object};
+use crate::dom::bindings::conversions::{root_from_object, ToJSValConvertible};
 use crate::dom::bindings::error::{Error, ErrorResult};
 use crate::dom::bindings::inheritance::{Castable, HasParent};
 use crate::dom::bindings::refcounted::Trusted;
-use crate::dom::bindings::reflector::{DomObject, reflect_dom_object};
+use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::structuredclone::StructuredCloneData;
 use crate::dom::bindings::trace::JSTraceable;
@@ -16,9 +16,9 @@ use crate::dom::bindings::transferable::Transferable;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::messageevent::MessageEvent;
-use crate::task_source::TaskSource;
 use crate::task_source::port_message::PortMessageQueue;
-use js::jsapi::{JSContext, JSStructuredCloneReader, JSObject, JSTracer, MutableHandleObject};
+use crate::task_source::TaskSource;
+use js::jsapi::{JSContext, JSObject, JSStructuredCloneReader, JSTracer, MutableHandleObject};
 use js::jsval::UndefinedValue;
 use js::rust::{CustomAutoRooterGuard, HandleValue};
 use servo_remutex::ReentrantMutex;
@@ -64,10 +64,11 @@ impl MessagePortInternal {
     // Step 7 substeps
     #[allow(unrooted_must_root)]
     fn process_pending_port_messages(&self) {
-        let PortMessageTask { origin, data } = match self.pending_port_messages.borrow_mut().pop_front() {
-            Some(task) => task,
-            None => return,
-        };
+        let PortMessageTask { origin, data } =
+            match self.pending_port_messages.borrow_mut().pop_front() {
+                Some(task) => task,
+                None => return,
+            };
 
         // Substep 1
         let final_target_port = self.dom_port.borrow().as_ref().unwrap().root();
@@ -77,18 +78,15 @@ impl MessagePortInternal {
 
         // Substep 3-4
         rooted!(in(target_global.get_cx()) let mut message_clone = UndefinedValue());
-        let deserialize_result = StructuredCloneData::Vector(data).read(
-            &target_global,
-            message_clone.handle_mut()
-        );
+        let deserialize_result =
+            StructuredCloneData::Vector(data).read(&target_global, message_clone.handle_mut());
         if !deserialize_result {
             return;
         }
 
         // Substep 5
-        let new_ports = TRANSFERRED_MESSAGE_PORTS.with(|list| {
-            mem::replace(&mut *list.borrow_mut(), vec![])
-        });
+        let new_ports =
+            TRANSFERRED_MESSAGE_PORTS.with(|list| mem::replace(&mut *list.borrow_mut(), vec![]));
 
         // Substep 6
         MessageEvent::dispatch_jsval(
@@ -134,15 +132,15 @@ impl MessagePort {
         MessagePort {
             eventtarget: EventTarget::new_inherited(),
             detached: Cell::new(false),
-            message_port_internal: Arc::new(
-                ReentrantMutex::new(
-                    MessagePortInternal::new(global.port_message_queue().clone())
-                )
-            ),
+            message_port_internal: Arc::new(ReentrantMutex::new(MessagePortInternal::new(
+                global.port_message_queue().clone(),
+            ))),
         }
     }
 
-    fn new_transferred(message_port_internal: Arc<ReentrantMutex<MessagePortInternal>>) -> MessagePort {
+    fn new_transferred(
+        message_port_internal: Arc<ReentrantMutex<MessagePortInternal>>,
+    ) -> MessagePort {
         MessagePort {
             eventtarget: EventTarget::new_inherited(),
             detached: Cell::new(false),
@@ -152,7 +150,8 @@ impl MessagePort {
 
     /// <https://html.spec.whatwg.org/multipage/#create-a-new-messageport-object>
     pub fn new(owner: &GlobalScope) -> DomRoot<MessagePort> {
-        let message_port = reflect_dom_object(Box::new(MessagePort::new_inherited(owner)), owner, Wrap);
+        let message_port =
+            reflect_dom_object(Box::new(MessagePort::new_inherited(owner)), owner, Wrap);
         {
             let internal = message_port.message_port_internal.lock().unwrap();
             *internal.dom_port.borrow_mut() = Some(Trusted::new(&*message_port));
@@ -173,7 +172,9 @@ impl MessagePort {
     /// <https://html.spec.whatwg.org/multipage/#dom-messageport-postmessage>
     // Step 7 substeps
     fn process_pending_port_messages(&self) {
-        if self.detached.get() { return; }
+        if self.detached.get() {
+            return;
+        }
         let internal = self.message_port_internal.lock().unwrap();
         internal.process_pending_port_messages();
     }
@@ -186,7 +187,7 @@ impl Transferable for MessagePort {
         &self,
         _closure: *mut raw::c_void,
         content: *mut *mut raw::c_void,
-        extra_data: *mut u64
+        extra_data: *mut u64,
     ) -> bool {
         {
             let internal = self.message_port_internal.lock().unwrap();
@@ -219,9 +220,10 @@ impl Transferable for MessagePort {
         _closure: *mut raw::c_void,
         content: *mut raw::c_void,
         _extra_data: u64,
-        return_object: MutableHandleObject
+        return_object: MutableHandleObject,
     ) -> bool {
-        let internal = unsafe { Arc::from_raw(content as *const ReentrantMutex<MessagePortInternal>) };
+        let internal =
+            unsafe { Arc::from_raw(content as *const ReentrantMutex<MessagePortInternal>) };
         let value = MessagePort::new_transferred(internal);
 
         // Step 2
@@ -269,7 +271,9 @@ impl MessagePortMethods for MessagePort {
         message: HandleValue,
         transfer: CustomAutoRooterGuard<Option<Vec<*mut JSObject>>>,
     ) -> ErrorResult {
-        if self.detached.get() { return Ok(()); }
+        if self.detached.get() {
+            return Ok(());
+        }
         let internal = self.message_port_internal.lock().unwrap();
         // Step 1
         let target_port = internal.entangled_port.borrow();
@@ -280,7 +284,9 @@ impl MessagePortMethods for MessagePort {
         rooted!(in(cx) let mut val = UndefinedValue());
         let transfer = match *transfer {
             Some(ref vec) => {
-                let ports = vec.iter().filter_map(|&obj| root_from_object::<MessagePort>(obj).ok());
+                let ports = vec
+                    .iter()
+                    .filter_map(|&obj| root_from_object::<MessagePort>(obj).ok());
                 for port in ports {
                     // Step 2
                     if Arc::ptr_eq(&port.message_port_internal, &self.message_port_internal) {
@@ -297,18 +303,21 @@ impl MessagePortMethods for MessagePort {
 
                 vec.to_jsval(cx, val.handle_mut());
                 val
-            }
+            },
             None => {
                 Vec::<*mut JSObject>::new().to_jsval(cx, val.handle_mut());
                 val
-            }
+            },
         };
 
         // Step 5
-       let data = StructuredCloneData::write(cx, message, transfer.handle())?.move_to_arraybuffer();
+        let data =
+            StructuredCloneData::write(cx, message, transfer.handle())?.move_to_arraybuffer();
 
         // Step 6
-        if target_port.is_none() || doomed { return Ok(()); }
+        if target_port.is_none() || doomed {
+            return Ok(());
+        }
 
         // Step 7
         let task = PortMessageTask {
@@ -319,7 +328,10 @@ impl MessagePortMethods for MessagePort {
         {
             let target_port = target_port.as_ref().unwrap();
             let target_internal = target_port.lock().unwrap();
-            target_internal.pending_port_messages.borrow_mut().push_back(task);
+            target_internal
+                .pending_port_messages
+                .borrow_mut()
+                .push_back(task);
 
             if target_internal.enabled.get() {
                 let target_port = target_port.clone();
@@ -328,7 +340,7 @@ impl MessagePortMethods for MessagePort {
                         let internal = target_port.lock().unwrap();
                         internal.process_pending_port_messages();
                     }),
-                    &self.global()
+                    &self.global(),
                 );
             }
         }
@@ -356,7 +368,7 @@ impl MessagePortMethods for MessagePort {
                     let this = port.root();
                     this.process_pending_port_messages();
                 }),
-                &global
+                &global,
             );
         }
     }

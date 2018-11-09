@@ -15,7 +15,7 @@ pub enum WorkerScriptMsg {
     DOMMessage {
         origin: String,
         data: StructuredCloneData,
-    }
+    },
 }
 
 pub struct SimpleWorkerErrorHandler<T: DomObject> {

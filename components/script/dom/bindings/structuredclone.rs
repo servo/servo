@@ -200,7 +200,14 @@ unsafe extern "C" fn read_transfer_callback(
     return_object: RawMutableHandleObject,
 ) -> bool {
     if tag == StructuredCloneTags::MessagePort as u32 {
-        <MessagePort as Transferable>::transfer_receive(cx, r, closure, content, extra_data, return_object)
+        <MessagePort as Transferable>::transfer_receive(
+            cx,
+            r,
+            closure,
+            content,
+            extra_data,
+            return_object,
+        )
     } else {
         false
     }
@@ -213,7 +220,7 @@ unsafe extern "C" fn write_transfer_callback(
     closure: *mut raw::c_void,
     tag: *mut u32,
     ownership: *mut TransferableOwnership,
-    content:  *mut *mut raw::c_void,
+    content: *mut *mut raw::c_void,
     extra_data: *mut u64,
 ) -> bool {
     if let Ok(port) = root_from_handleobject::<MessagePort>(Handle::from_raw(obj)) {
@@ -321,10 +328,10 @@ impl StructuredCloneData {
     ///
     /// Panics if `JS_ReadStructuredClone` fails.
     fn read_clone(
-      global: &GlobalScope,
-      data: *mut u64,
-      nbytes: size_t,
-      rval: MutableHandleValue,
+        global: &GlobalScope,
+        data: *mut u64,
+        nbytes: size_t,
+        rval: MutableHandleValue,
     ) -> bool {
         let cx = global.get_cx();
         let globalhandle = global.reflector().get_jsobject();
@@ -341,13 +348,13 @@ impl StructuredCloneData {
             WriteBytesToJSStructuredCloneData(data as *const u8, nbytes, scdata);
 
             let result = JS_ReadStructuredClone(
-              cx,
-              scdata,
-              JS_STRUCTURED_CLONE_VERSION,
-              StructuredCloneScope::DifferentProcess,
-              rval,
-              &STRUCTURED_CLONE_CALLBACKS,
-              sc_holder_ptr as *mut raw::c_void
+                cx,
+                scdata,
+                JS_STRUCTURED_CLONE_VERSION,
+                StructuredCloneScope::DifferentProcess,
+                rval,
+                &STRUCTURED_CLONE_CALLBACKS,
+                sc_holder_ptr as *mut raw::c_void,
             );
 
             DeleteJSAutoStructuredCloneBuffer(scbuf);
@@ -363,10 +370,10 @@ impl StructuredCloneData {
                 let nbytes = vec_msg.len();
                 let data = vec_msg.as_mut_ptr() as *mut u64;
                 StructuredCloneData::read_clone(global, data, nbytes, rval)
-            }
+            },
             StructuredCloneData::Struct(data, nbytes) => {
                 StructuredCloneData::read_clone(global, data, nbytes, rval)
-            }
+            },
         }
     }
 }

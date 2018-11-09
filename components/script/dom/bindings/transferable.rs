@@ -8,7 +8,7 @@ use crate::dom::bindings::reflector::DomObject;
 use js::jsapi::{JSContext, JSStructuredCloneReader, MutableHandleObject};
 use std::os::raw;
 
-pub trait Transferable : DomObject {
+pub trait Transferable: DomObject {
     fn transfer(
         &self,
         closure: *mut raw::c_void,
@@ -23,7 +23,11 @@ pub trait Transferable : DomObject {
         extra_data: u64,
         return_object: MutableHandleObject,
     ) -> bool;
-    fn detached(&self) -> Option<bool> { None }
-    fn set_detached(&self, _value: bool) { }
-    fn transferable(&self) -> bool { false }
+    fn detached(&self) -> Option<bool> {
+        None
+    }
+    fn set_detached(&self, _value: bool) {}
+    fn transferable(&self) -> bool {
+        false
+    }
 }
