@@ -146,6 +146,10 @@ class MockRuntime {
     } else {
       this.displayInfo_ = this.getNonImmersiveDisplayInfo();
     }
+
+    if (fakeDeviceInit.supportsEnvironmentIntegration) {
+      this.displayInfo_.capabilities.canProvideEnvironmentIntegration = true;
+    }
   }
 
   // Test methods.
@@ -323,6 +327,12 @@ class MockRuntime {
     });
   }
 
+  getEnvironmentIntegrationProvider(environmentProviderRequest) {
+    let environmentProviderBinding = new mojo.AssociatedBinding(
+        device.mojom.XREnvironmentIntegrationProvider, this,
+        environmentProviderRequest);
+  }
+
   updateSessionGeometry(frame_size, display_rotation) {
     // This function must exist to ensure that calls to it do not crash, but we
     // do not have any use for this data at present.
@@ -352,21 +362,12 @@ class MockRuntime {
         let dataProviderBinding = new mojo.Binding(
             device.mojom.XRFrameDataProvider, this, dataProviderRequest);
 
-        let environmentProviderPtr =
-            new device.mojom.XREnvironmentIntegrationProviderPtr();
-        let environmentProviderRequest =
-            mojo.makeRequest(environmentProviderPtr);
-        let environmentProviderBinding = new mojo.Binding(
-            device.mojom.XREnvironmentIntegrationProvider, this,
-            environmentProviderRequest);
-
         let clientRequest = mojo.makeRequest(this.sessionClient_);
 
         return Promise.resolve({
           session: {
             submitFrameSink: submit_frame_sink,
             dataProvider: dataProviderPtr,
-            environmentProvider: environmentProviderPtr,
             clientRequest: clientRequest,
             displayInfo: this.displayInfo_
           }

@@ -57,10 +57,17 @@ def test_element_not_interactable_css_transform(session, transform):
 
 def test_element_not_interactable_out_of_view(session):
     session.url = inline("""
-        <div style="width: 500px; height: 100px;
-            position: absolute; left: 0px; top: -150px; background-color: blue;">
-        </div>""")
-    element = session.find.css("div", all=False)
+        <style>
+        input {
+          position: absolute;
+          margin-top: -100vh;
+          background: red;
+        }
+        </style>
+
+        <input>
+        """)
+    element = session.find.css("input", all=False)
     response = element_click(session, element)
     assert_error(response, "element not interactable")
 
@@ -76,9 +83,20 @@ def test_zero_sized_element(session, tag_name):
 
 def test_element_intercepted(session):
     session.url = inline("""
-        <input type=button value=Roger style="position: absolute; left: 10px; top: 10px">
-        <div style="position: absolute; height: 100px; width: 100px; background: rgba(255,0,0,.5); left: 10px; top: 5px"></div>""")
+        <style>
+        div {
+          position: absolute;
+          height: 100vh;
+          width: 100vh;
+          background: blue;
+          top: 0;
+          left: 0;
+        }
+        </style>
 
+        <input type=button value=Roger>
+        <div></div>
+        """)
     element = session.find.css("input", all=False)
     response = element_click(session, element)
     assert_error(response, "element click intercepted")
@@ -86,7 +104,6 @@ def test_element_intercepted(session):
 
 def test_element_intercepted_no_pointer_events(session):
     session.url = inline("""<input type=button value=Roger style="pointer-events: none">""")
-
     element = session.find.css("input", all=False)
     response = element_click(session, element)
     assert_error(response, "element click intercepted")
@@ -94,11 +111,21 @@ def test_element_intercepted_no_pointer_events(session):
 
 def test_element_not_visible_overflow_hidden(session):
     session.url = inline("""
-        <div style="position: absolute; height: 50px; width: 100px; background: rgba(255,0,0,.5); left: 10px; top: 50px; overflow: hidden">
-            ABCDEFGHIJKLMNOPQRSTUVWXYZ
-            <input type=text value=Federer style="position: absolute; top: 50px; left: 10px;">
-        </div>""")
+        <style>
+        div {
+          overflow: hidden;
+          height: 50px;
+          background: green;
+        }
 
+        input {
+          margin-top: 100px;
+          background: red;
+        }
+        </style>
+
+        <div><input></div>
+        """)
     element = session.find.css("input", all=False)
     response = element_click(session, element)
     assert_error(response, "element not interactable")

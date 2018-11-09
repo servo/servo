@@ -36,6 +36,17 @@
   const selectionEnd = 5;
   const selectionDirection = "backward";
 
+  // Obtain selectionDirection after setting it to "none".
+  // Some platforms don't support "none" direction, and "forward" is returned
+  // in such platforms.
+  // https://html.spec.whatwg.org/multipage/form-control-infrastructure.html#set-the-selection-direction
+  function testNoneDirection() {
+    const input = document.createElement("input");
+    input.selectionDirection = "none";
+    return input.selectionDirection;
+  }
+  const noneDirectionResult = testNoneDirection();
+
   for (var i = 0; i < types.length; i++) {
     for (var j = 0; j < types.length; j++) {
       if (types[i] != types[j]) {
@@ -92,7 +103,8 @@
               } else {
                 assert_equals(input.selectionStart, 0, "selectionStart should be 0");
                 assert_equals(input.selectionEnd, 0, "selectionEnd should be 0");
-                assert_equals(input.selectionDirection, "none", "selectionDirection should be 'none'");
+                assert_equals(input.selectionDirection, noneDirectionResult,
+                              `selectionDirection should be '{noneDirectionResult}'`);
               }
             }
           }

@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>
+      Test if MediaElementAudioSourceNode works for cross-origin redirects with
+      "cors" request mode.
+    </title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/webaudio/resources/audit.js"></script>
+    <script src="/common/get-host-info.sub.js"></script>
+  </head>
+  <body>
+    <script id="layout-test-code">
+      const audit = Audit.createTaskRunner();
+
+      const context = new AudioContext();
+      context.suspend();
+
+      const host_info = get_host_info();
+      const audioElement = document.createElement('audio');
+      audioElement.loop = true;
+      audioElement.crossOrigin = 'anonymous';
+      const wav =
+          host_info.HTTPS_ORIGIN + '/webaudio/resources/4ch-440.wav?' +
+          'pipe=header(access-control-allow-origin,*)';
+      audioElement.src =
+          host_info.HTTPS_REMOTE_ORIGIN +
+          '/fetch/api/resources/redirect.py?location=' +
+          encodeURIComponent(wav);
+      let source;
+      let workletRecorder;
+
+      audit.define(
+          {label: 'setting-up-graph'},
+          (task, should) => {
+            source = new MediaElementAudioSourceNode(context, {
+              mediaElement: audioElement
+            });
+            workletRecorder = new AudioWorkletNode(
+                context, 'recorder-processor', {channelCount: 4});
+            source.connect(workletRecorder).connect(context.destination);
+            task.done();
+          });
+
+      // The recorded data from MESN must be non-zero. The source file contains
+      // 4 channels of sine wave.
+      audit.define(
+          {label: 'start-playback-and-capture'},
+          (task, should) => {
+            workletRecorder.port.onmessage = (event) => {
+              if (event.data.type === 'recordfinished') {
+                for (let i = 0; i < event.data.recordBuffer.length; ++i) {
+                  const channelData = event.data.recordBuffer[i];
+                  should(channelData, `Recorded channel #${i}`)
+                      .notBeConstantValueOf(0);
+                }
+              }
+
+              task.done();
+            };
+
+            context.resume();
+            audioElement.play();
+          });
+
+      Promise.all([
+        context.audioWorklet.addModule('/webaudio/js/worklet-recorder.js')
+      ]).then(() => {
+        audit.run();
+      });
+    </script>
+  </body>
+</html>
