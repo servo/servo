@@ -6,72 +6,104 @@ env:
   GST_DEBUG: '3'
 
 mac-rel-wpt1:
-  - ./mach clean-nightlies --keep 3 --force
-  - ./mach clean-cargo-cache --keep 3 --force
-  - env PKG_CONFIG_PATH=/usr/local/opt/zlib/lib/pkgconfig ./mach build --release
-  - ./mach run -r -o output.png
-  - ./mach test-wpt-failure
-  - ./mach test-wpt --release --processes 4 --total-chunks 6 --this-chunk 1 --log-raw test-wpt.log --log-errorsummary wpt-errorsummary.log --always-succeed
-  - ./mach filter-intermittents wpt-errorsummary.log --log-intermittents intermittents.log --log-filteredsummary filtered-wpt-errorsummary.log --tracker-api default --reporter-api default
-  - ./mach test-wpt --release --binary-arg=--multiprocess --processes 8 --log-raw test-wpt-mp.log --log-errorsummary wpt-mp-errorsummary.log eventsource
-  - bash ./etc/ci/lockfile_changed.sh
+  env:
+    CCACHE: sccache
+    RUSTC_WRAPPER: sccache
+  commands:
+   - ./mach clean-nightlies --keep 3 --force
+   - ./mach clean-cargo-cache --keep 3 --force
+   - env PKG_CONFIG_PATH=/usr/local/opt/zlib/lib/pkgconfig ./mach build --release
+   - ./mach run -r -o output.png
+   - ./mach test-wpt-failure
+   - ./mach test-wpt --release --processes 4 --total-chunks 6 --this-chunk 1 --log-raw test-wpt.log --log-errorsummary wpt-errorsummary.log --always-succeed
+   - ./mach filter-intermittents wpt-errorsummary.log --log-intermittents intermittents.log --log-filteredsummary filtered-wpt-errorsummary.log --tracker-api default --reporter-api default
+   - ./mach test-wpt --release --binary-arg=--multiprocess --processes 8 --log-raw test-wpt-mp.log --log-errorsummary wpt-mp-errorsummary.log eventsource
+   - bash ./etc/ci/lockfile_changed.sh
 
 mac-rel-wpt2:
-  - ./mach clean-nightlies --keep 3 --force
-  - ./mach clean-cargo-cache --keep 3 --force
-  - env PKG_CONFIG_PATH=/usr/local/opt/zlib/lib/pkgconfig ./mach build --release
-  - ./mach test-wpt --release --processes 4 --total-chunks 6 --this-chunk 2 --log-raw test-wpt.log --log-errorsummary wpt-errorsummary.log --always-succeed
-  - ./mach filter-intermittents wpt-errorsummary.log --log-intermittents intermittents.log --log-filteredsummary filtered-wpt-errorsummary.log --tracker-api default --reporter-api default
+  env:
+    CCACHE: sccache
+    RUSTC_WRAPPER: sccache
+  commands:
+   - ./mach clean-nightlies --keep 3 --force
+   - ./mach clean-cargo-cache --keep 3 --force
+   - env PKG_CONFIG_PATH=/usr/local/opt/zlib/lib/pkgconfig ./mach build --release
+   - ./mach test-wpt --release --processes 4 --total-chunks 6 --this-chunk 2 --log-raw test-wpt.log --log-errorsummary wpt-errorsummary.log --always-succeed
+   - ./mach filter-intermittents wpt-errorsummary.log --log-intermittents intermittents.log --log-filteredsummary filtered-wpt-errorsummary.log --tracker-api default --reporter-api default
 
 mac-rel-wpt3:
-  - ./mach clean-nightlies --keep 3 --force
-  - ./mach clean-cargo-cache --keep 3 --force
-  - env PKG_CONFIG_PATH=/usr/local/opt/zlib/lib/pkgconfig ./mach build --release
-  - ./mach test-wpt --release --processes 4 --total-chunks 6 --this-chunk 3 --log-raw test-wpt.log --log-errorsummary wpt-errorsummary.log --always-succeed
-  - ./mach filter-intermittents wpt-errorsummary.log --log-intermittents intermittents.log --log-filteredsummary filtered-wpt-errorsummary.log --tracker-api default --reporter-api default
+  env:
+    CCACHE: sccache
+    RUSTC_WRAPPER: sccache
+  commands:
+   - ./mach clean-nightlies --keep 3 --force
+   - ./mach clean-cargo-cache --keep 3 --force
+   - env PKG_CONFIG_PATH=/usr/local/opt/zlib/lib/pkgconfig ./mach build --release
+   - ./mach test-wpt --release --processes 4 --total-chunks 6 --this-chunk 3 --log-raw test-wpt.log --log-errorsummary wpt-errorsummary.log --always-succeed
+   - ./mach filter-intermittents wpt-errorsummary.log --log-intermittents intermittents.log --log-filteredsummary filtered-wpt-errorsummary.log --tracker-api default --reporter-api default
 
 mac-rel-wpt4:
-  - ./mach clean-nightlies --keep 3 --force
-  - ./mach clean-cargo-cache --keep 3 --force
-  - env PKG_CONFIG_PATH=/usr/local/opt/zlib/lib/pkgconfig ./mach build --release
-  - ./mach test-wpt --release --processes 4 --total-chunks 6 --this-chunk 4 --log-raw test-wpt.log --log-errorsummary wpt-errorsummary.log --always-succeed
-  - ./mach filter-intermittents wpt-errorsummary.log --log-intermittents intermittents.log --log-filteredsummary filtered-wpt-errorsummary.log --tracker-api default --reporter-api default
-  - ./mach test-wpt --release --pref dom.servoparser.async_html_tokenizer.enabled --processes=8 --log-raw test-async-parsing.log --log-errorsummary async-parsing-errorsummary.log --always-succeed domparsing html/syntax html/dom/documents html/dom/dynamic-markup-insertion
-  - ./mach filter-intermittents async-parsing-errorsummary.log --log-intermittents async-parsing-intermittents.log --log-filteredsummary filtered-async-parsing-errorsummary.log --tracker-api default --reporter-api default
+  env:
+    CCACHE: sccache
+    RUSTC_WRAPPER: sccache
+  commands:
+   - ./mach clean-nightlies --keep 3 --force
+   - ./mach clean-cargo-cache --keep 3 --force
+   - env PKG_CONFIG_PATH=/usr/local/opt/zlib/lib/pkgconfig ./mach build --release
+   - ./mach test-wpt --release --processes 4 --total-chunks 6 --this-chunk 4 --log-raw test-wpt.log --log-errorsummary wpt-errorsummary.log --always-succeed
+   - ./mach filter-intermittents wpt-errorsummary.log --log-intermittents intermittents.log --log-filteredsummary filtered-wpt-errorsummary.log --tracker-api default --reporter-api default
+   - ./mach test-wpt --release --pref dom.servoparser.async_html_tokenizer.enabled --processes=8 --log-raw test-async-parsing.log --log-errorsummary async-parsing-errorsummary.log --always-succeed domparsing html/syntax html/dom/documents html/dom/dynamic-markup-insertion
+   - ./mach filter-intermittents async-parsing-errorsummary.log --log-intermittents async-parsing-intermittents.log --log-filteredsummary filtered-async-parsing-errorsummary.log --tracker-api default --reporter-api default
 
 mac-dev-unit:
-  - ./mach clean-nightlies --keep 3 --force
-  - ./mach clean-cargo-cache --keep 3 --force
-  - env PKG_CONFIG_PATH=/usr/local/opt/zlib/lib/pkgconfig ./mach build --dev
-  - env PKG_CONFIG_PATH=/usr/local/opt/zlib/lib/pkgconfig ./mach test-unit
-  - python ./etc/memory_reports_over_time.py --test
-  - ./mach package --dev
-  - bash ./etc/ci/lockfile_changed.sh
+  env:
+    CCACHE: sccache
+    RUSTC_WRAPPER: sccache
+  commands:
+   - ./mach clean-nightlies --keep 3 --force
+   - ./mach clean-cargo-cache --keep 3 --force
+   - env PKG_CONFIG_PATH=/usr/local/opt/zlib/lib/pkgconfig ./mach build --dev
+   - env PKG_CONFIG_PATH=/usr/local/opt/zlib/lib/pkgconfig ./mach test-unit
+   - python ./etc/memory_reports_over_time.py --test
+   - ./mach package --dev
+   - bash ./etc/ci/lockfile_changed.sh
 
 mac-rel-css1:
-  - ./mach clean-nightlies --keep 3 --force
-  - ./mach clean-cargo-cache --keep 3 --force
-  - env PKG_CONFIG_PATH=/usr/local/opt/zlib/lib/pkgconfig ./mach build --release
-  - ./mach test-wpt --release --processes 4 --total-chunks 6 --this-chunk 5 --log-raw test-wpt.log --log-errorsummary wpt-errorsummary.log --always-succeed
-  - ./mach filter-intermittents wpt-errorsummary.log --log-intermittents intermittents.log --log-filteredsummary filtered-wpt-errorsummary.log --tracker-api default --reporter-api default
-  - bash ./etc/ci/lockfile_changed.sh
+  env:
+    CCACHE: sccache
+    RUSTC_WRAPPER: sccache
+  commands:
+   - ./mach clean-nightlies --keep 3 --force
+   - ./mach clean-cargo-cache --keep 3 --force
+   - env PKG_CONFIG_PATH=/usr/local/opt/zlib/lib/pkgconfig ./mach build --release
+   - ./mach test-wpt --release --processes 4 --total-chunks 6 --this-chunk 5 --log-raw test-wpt.log --log-errorsummary wpt-errorsummary.log --always-succeed
+   - ./mach filter-intermittents wpt-errorsummary.log --log-intermittents intermittents.log --log-filteredsummary filtered-wpt-errorsummary.log --tracker-api default --reporter-api default
+   - bash ./etc/ci/lockfile_changed.sh
 
 mac-rel-css2:
-  - ./mach clean-nightlies --keep 3 --force
-  - ./mach clean-cargo-cache --keep 3 --force
-  - env PKG_CONFIG_PATH=/usr/local/opt/zlib/lib/pkgconfig ./mach build --release
-  - ./mach test-wpt --release --processes 4 --total-chunks 6 --this-chunk 6 --log-raw test-wpt.log --log-errorsummary wpt-errorsummary.log --always-succeed
-  - ./mach filter-intermittents wpt-errorsummary.log --log-intermittents intermittents.log --log-filteredsummary filtered-wpt-errorsummary.log --tracker-api default --reporter-api default
+  env:
+    CCACHE: sccache
+    RUSTC_WRAPPER: sccache
+  commands:
+   - ./mach clean-nightlies --keep 3 --force
+   - ./mach clean-cargo-cache --keep 3 --force
+   - env PKG_CONFIG_PATH=/usr/local/opt/zlib/lib/pkgconfig ./mach build --release
+   - ./mach test-wpt --release --processes 4 --total-chunks 6 --this-chunk 6 --log-raw test-wpt.log --log-errorsummary wpt-errorsummary.log --always-succeed
+   - ./mach filter-intermittents wpt-errorsummary.log --log-intermittents intermittents.log --log-filteredsummary filtered-wpt-errorsummary.log --tracker-api default --reporter-api default
 
 mac-nightly:
-  - ./mach clean-nightlies --keep 3 --force
-  - ./mach clean-cargo-cache --keep 3 --force
-  - env PKG_CONFIG_PATH=/usr/local/opt/zlib/lib/pkgconfig ./mach build --release
-  - ./mach package --release
-  - ./mach upload-nightly mac
-  - ./etc/ci/update-wpt-checkout fetch-and-update-expectations
-  - ./etc/ci/update-wpt-checkout open-pr
-  - ./etc/ci/update-wpt-checkout cleanup
+  env:
+    CCACHE: sccache
+    RUSTC_WRAPPER: sccache
+  commands:
+   - ./mach clean-nightlies --keep 3 --force
+   - ./mach clean-cargo-cache --keep 3 --force
+   - env PKG_CONFIG_PATH=/usr/local/opt/zlib/lib/pkgconfig ./mach build --release
+   - ./mach package --release
+   - ./mach upload-nightly mac
+   - ./etc/ci/update-wpt-checkout fetch-and-update-expectations
+   - ./etc/ci/update-wpt-checkout open-pr
+   - ./etc/ci/update-wpt-checkout cleanup
 
 linux-rel-intermittent:
   - ./mach clean-nightlies --keep 3 --force
@@ -188,6 +220,9 @@ android:
   - ./etc/ci/clean_build_artifacts.sh
 
 android-mac:
+ env:
+   CCACHE: sccache
+   RUSTC_WRAPPER: sccache
  commands:
   - ./mach clean-nightlies --keep 3 --force
   - ./mach clean-cargo-cache --keep 3 --force
@@ -231,6 +266,8 @@ android-nightly:
 
 magicleap:
  env:
+  CCACHE: sccache
+  RUSTC_WRAPPER: sccache
   MAGICLEAP_SDK: /Users/servo/magicleap/v0.17.0
  commands:
   - ./mach clean-nightlies --keep 3 --force
