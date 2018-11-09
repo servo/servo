@@ -1,0 +1,2 @@
+salt-ssh:
+  config_dir: ./config
