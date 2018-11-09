@@ -1,0 +1,13 @@
+{
+	"global" : {},
+	"materials" : 
+	[
+		{
+			"albedo" : "Icon/Portal/InsidePortal_SkySphere.png",
+			"blendmode" : "opaque",
+			"name" : "com_magicleap_iconcreation_InsidePortal_SkySphere_Mat",
+			"shaderName" : "UnlitTextured"
+		}
+	]
+}
+
