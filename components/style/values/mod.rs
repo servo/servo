@@ -155,7 +155,7 @@ impl<A: Parse, B: Parse> Parse for Either<A, B> {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Either<A, B>, ParseError<'i>> {
-        if let Ok(v) = input.r#try(|i| A::parse(context, i)) {
+        if let Ok(v) = input.try(|i| A::parse(context, i)) {
             Ok(Either::First(v))
         } else {
             B::parse(context, input).map(Either::Second)

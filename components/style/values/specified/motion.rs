@@ -50,7 +50,7 @@ impl Parse for OffsetPath {
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
         // Parse none.
-        if input.r#try(|i| i.expect_ident_matching("none")).is_ok() {
+        if input.try(|i| i.expect_ident_matching("none")).is_ok() {
             return Ok(OffsetPath::none());
         }
 

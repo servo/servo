@@ -65,6 +65,7 @@ ${helpers.predefined_type(
     spec="https://drafts.csswg.org/css-multicol/#propdef-column-rule-color",
 )}
 
+// FIXME: Remove enabled_in="ua" once column-span is enabled on nightly (bug 1423383).
 ${helpers.single_keyword(
     "column-span",
     "none all",
@@ -72,6 +73,7 @@ ${helpers.single_keyword(
     animation_value_type="discrete",
     gecko_enum_prefix="StyleColumnSpan",
     gecko_pref="layout.css.column-span.enabled",
+    enabled_in="ua",
     spec="https://drafts.csswg.org/css-multicol/#propdef-column-span",
     extra_prefixes="moz:layout.css.column-span.enabled",
 )}

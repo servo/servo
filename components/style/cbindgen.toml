@@ -49,6 +49,7 @@ include = [
   "FontDisplay",
   "FontFaceSourceListComponent",
   "FontLanguageOverride",
+  "OverflowWrap",
   "TimingFunction",
   "PathCommand",
   "UnicodeRange",

@@ -14,13 +14,12 @@ use crate::gecko_bindings::sugar::ns_style_coord::{CoordData, CoordDataMut, Coor
 use crate::media_queries::Device;
 use crate::values::computed::basic_shape::ShapeRadius as ComputedShapeRadius;
 use crate::values::computed::FlexBasis as ComputedFlexBasis;
+use crate::values::computed::NonNegativeNumber;
 use crate::values::computed::{Angle, ExtremumLength, Length, LengthOrPercentage};
 use crate::values::computed::{LengthOrPercentageOrAuto, Percentage};
 use crate::values::computed::{LengthOrPercentageOrNone, Number, NumberOrPercentage};
 use crate::values::computed::{MaxLength as ComputedMaxLength, MozLength as ComputedMozLength};
-use crate::values::computed::{
-    NonNegativeLength, NonNegativeLengthOrPercentage, NonNegativeNumber,
-};
+use crate::values::computed::{NonNegativeLength, NonNegativeLengthOrPercentage};
 use crate::values::generics::basic_shape::ShapeRadius;
 use crate::values::generics::box_::Perspective;
 use crate::values::generics::flex::FlexBasis;

@@ -6,9 +6,8 @@
 
 use crate::gecko_bindings::bindings;
 use crate::gecko_bindings::structs::{nsStyleCoord, nsStyleCoord_Calc, nsStyleCoord_CalcValue};
-use crate::gecko_bindings::structs::{
-    nsStyleCorners, nsStyleSides, nsStyleUnion, nsStyleUnit, nscoord,
-};
+use crate::gecko_bindings::structs::{nsStyleCorners, nsStyleSides};
+use crate::gecko_bindings::structs::{nsStyleUnion, nsStyleUnit, nscoord};
 use std::mem;
 
 impl nsStyleCoord {

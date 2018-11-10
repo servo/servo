@@ -6,9 +6,8 @@
 
 use crate::custom_properties::Name as CustomPropertyName;
 use crate::parser::{Parse, ParserContext};
-use crate::properties::{
-    LonghandId, PropertyDeclarationId, PropertyFlags, PropertyId, ShorthandId,
-};
+use crate::properties::{LonghandId, PropertyDeclarationId, PropertyFlags};
+use crate::properties::{PropertyId, ShorthandId};
 use crate::values::generics::box_::AnimationIterationCount as GenericAnimationIterationCount;
 use crate::values::generics::box_::Perspective as GenericPerspective;
 use crate::values::generics::box_::VerticalAlign as GenericVerticalAlign;
@@ -310,7 +309,7 @@ impl Parse for VerticalAlign {
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
         if let Ok(lop) =
-            input.r#try(|i| LengthOrPercentage::parse_quirky(context, i, AllowQuirks::Yes))
+            input.try(|i| LengthOrPercentage::parse_quirky(context, i, AllowQuirks::Yes))
         {
             return Ok(GenericVerticalAlign::Length(lop));
         }
@@ -341,7 +340,7 @@ impl Parse for AnimationIterationCount {
         input: &mut ::cssparser::Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
         if input
-            .r#try(|input| input.expect_ident_matching("infinite"))
+            .try(|input| input.expect_ident_matching("infinite"))
             .is_ok()
         {
             return Ok(GenericAnimationIterationCount::Infinite);
@@ -394,7 +393,7 @@ impl Parse for AnimationName {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
-        if let Ok(name) = input.r#try(|input| KeyframesName::parse(context, input)) {
+        if let Ok(name) = input.try(|input| KeyframesName::parse(context, input)) {
             return Ok(AnimationName(Some(name)));
         }
 
@@ -557,7 +556,7 @@ impl Parse for WillChange {
         input: &mut Parser<'i, 't>,
     ) -> Result<WillChange, ParseError<'i>> {
         if input
-            .r#try(|input| input.expect_ident_matching("auto"))
+            .try(|input| input.expect_ident_matching("auto"))
             .is_ok()
         {
             return Ok(WillChange::Auto);
@@ -646,14 +645,14 @@ impl Parse for TouchAction {
             "none" => Ok(TouchAction::TOUCH_ACTION_NONE),
             "manipulation" => Ok(TouchAction::TOUCH_ACTION_MANIPULATION),
             "pan-x" => {
-                if input.r#try(|i| i.expect_ident_matching("pan-y")).is_ok() {
+                if input.try(|i| i.expect_ident_matching("pan-y")).is_ok() {
                     Ok(TouchAction::TOUCH_ACTION_PAN_X | TouchAction::TOUCH_ACTION_PAN_Y)
                 } else {
                     Ok(TouchAction::TOUCH_ACTION_PAN_X)
                 }
             },
             "pan-y" => {
-                if input.r#try(|i| i.expect_ident_matching("pan-x")).is_ok() {
+                if input.try(|i| i.expect_ident_matching("pan-x")).is_ok() {
                     Ok(TouchAction::TOUCH_ACTION_PAN_X | TouchAction::TOUCH_ACTION_PAN_Y)
                 } else {
                     Ok(TouchAction::TOUCH_ACTION_PAN_Y)
@@ -757,7 +756,7 @@ impl Parse for Contain {
         input: &mut Parser<'i, 't>,
     ) -> Result<Contain, ParseError<'i>> {
         let mut result = Contain::empty();
-        while let Ok(name) = input.r#try(|i| i.expect_ident_cloned()) {
+        while let Ok(name) = input.try(|i| i.expect_ident_cloned()) {
             let flag = match_ignore_ascii_case! { &name,
                 "size" => Some(Contain::SIZE),
                 "layout" => Some(Contain::LAYOUT),
@@ -794,7 +793,7 @@ impl Parse for Perspective {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
-        if input.r#try(|i| i.expect_ident_matching("none")).is_ok() {
+        if input.try(|i| i.expect_ident_matching("none")).is_ok() {
             return Ok(GenericPerspective::None);
         }
         Ok(GenericPerspective::Length(NonNegativeLength::parse(
@@ -1036,8 +1035,10 @@ pub enum Appearance {
     #[parse(condition = "in_ua_or_chrome_sheet")]
     Menuimage,
     /// A horizontal meter bar.
-    Meterbar,
+    #[parse(aliases = "meterbar")]
+    Meter,
     /// The meter bar's meter indicator.
+    #[parse(condition = "in_ua_or_chrome_sheet")]
     Meterchunk,
     /// The "arrowed" part of the dropdown button that open up a dropdown list.
     #[parse(condition = "in_ua_or_chrome_sheet")]
@@ -1045,13 +1046,13 @@ pub enum Appearance {
     /// For HTML's <input type=number>
     NumberInput,
     /// A horizontal progress bar.
-    Progressbar,
+    #[parse(aliases = "progressbar")]
+    ProgressBar,
     /// The progress bar's progress indicator
+    #[parse(condition = "in_ua_or_chrome_sheet")]
     Progresschunk,
     /// A vertical progress bar.
     ProgressbarVertical,
-    /// A vertical progress chunk.
-    ProgresschunkVertical,
     /// A checkbox element.
     Checkbox,
     /// A radio element within a radio group.

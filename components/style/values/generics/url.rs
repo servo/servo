@@ -44,7 +44,7 @@ where
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<UrlOrNone<Url>, ParseError<'i>> {
-        if let Ok(url) = input.r#try(|input| Url::parse(context, input)) {
+        if let Ok(url) = input.try(|input| Url::parse(context, input)) {
             return Ok(UrlOrNone::Url(url));
         }
         input.expect_ident_matching("none")?;

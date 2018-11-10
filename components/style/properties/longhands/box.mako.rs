@@ -370,7 +370,7 @@ ${helpers.predefined_type(
     "generics::transform::Translate::None",
     animation_value_type="ComputedValue",
     boxed=True,
-    flags="CREATES_STACKING_CONTEXT FIXPOS_CB GETCS_NEEDS_LAYOUT_FLUSH",
+    flags="CREATES_STACKING_CONTEXT FIXPOS_CB",
     gecko_pref="layout.css.individual-transform.enabled",
     spec="https://drafts.csswg.org/css-transforms-2/#individual-transforms",
     servo_restyle_damage="reflow_out_of_flow",

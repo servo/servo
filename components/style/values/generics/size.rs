@@ -55,7 +55,7 @@ impl<L> Size<L> {
     {
         let first = parse_one(context, input)?;
         let second = input
-            .r#try(|i| parse_one(context, i))
+            .try(|i| parse_one(context, i))
             .unwrap_or_else(|_| first.clone());
         Ok(Self::new(first, second))
     }

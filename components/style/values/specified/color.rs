@@ -142,7 +142,7 @@ impl Parse for Color {
         input.reset(&start);
 
         let compontent_parser = ColorComponentParser(&*context);
-        match input.r#try(|i| CSSParserColor::parse_with(&compontent_parser, i)) {
+        match input.try(|i| CSSParserColor::parse_with(&compontent_parser, i)) {
             Ok(value) => Ok(match value {
                 CSSParserColor::CurrentColor => Color::CurrentColor,
                 CSSParserColor::RGBA(rgba) => Color::Numeric {
@@ -245,7 +245,7 @@ impl Color {
         input: &mut Parser<'i, 't>,
         allow_quirks: AllowQuirks,
     ) -> Result<Self, ParseError<'i>> {
-        input.r#try(|i| Self::parse(context, i)).or_else(|e| {
+        input.try(|i| Self::parse(context, i)).or_else(|e| {
             if !allow_quirks.allowed(context.quirks_mode) {
                 return Err(e);
             }

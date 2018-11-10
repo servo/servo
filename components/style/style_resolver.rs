@@ -15,9 +15,8 @@ use crate::rule_tree::StrongRuleNode;
 use crate::selector_parser::{PseudoElement, SelectorImpl};
 use crate::stylist::RuleInclusion;
 use log::Level::Trace;
-use selectors::matching::{
-    ElementSelectorFlags, MatchingContext, MatchingMode, VisitedHandlingMode,
-};
+use selectors::matching::{ElementSelectorFlags, MatchingContext};
+use selectors::matching::{MatchingMode, VisitedHandlingMode};
 use servo_arc::Arc;
 
 /// Whether pseudo-elements should be resolved or not.

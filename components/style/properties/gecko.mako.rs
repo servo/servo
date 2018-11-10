@@ -1419,6 +1419,7 @@ impl Clone for ${style_struct.gecko_struct_name} {
         "NonNegativeNumber": impl_simple,
         "Number": impl_simple,
         "Opacity": impl_simple,
+        "OverflowWrap": impl_simple,
         "Perspective": impl_style_coord,
         "Position": impl_position,
         "RGBAColor": impl_rgba_color,

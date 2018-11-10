@@ -14,7 +14,7 @@ use crate::gecko_bindings::bindings::Gecko_AddRefAtom;
 use crate::gecko_bindings::bindings::Gecko_Atomize;
 use crate::gecko_bindings::bindings::Gecko_Atomize16;
 use crate::gecko_bindings::bindings::Gecko_ReleaseAtom;
-use crate::gecko_bindings::structs::{nsAtom, nsAtom_AtomKind, nsDynamicAtom, nsStaticAtom};
+use crate::gecko_bindings::structs::{nsAtom, nsDynamicAtom, nsStaticAtom};
 use nsstring::{nsAString, nsStr};
 use precomputed_hash::PrecomputedHash;
 use std::borrow::{Borrow, Cow};
@@ -175,7 +175,7 @@ impl WeakAtom {
     /// Returns whether this atom is static.
     #[inline]
     pub fn is_static(&self) -> bool {
-        unsafe { (*self.as_ptr()).mKind() == nsAtom_AtomKind::Static as u32 }
+        unsafe { (*self.as_ptr()).mIsStatic() != 0 }
     }
 
     /// Returns the length of the atom string.

@@ -370,7 +370,7 @@ impl Parse for System {
             "symbolic" => Ok(System::Symbolic),
             "additive" => Ok(System::Additive),
             "fixed" => {
-                let first_symbol_value = input.r#try(|i| Integer::parse(context, i)).ok();
+                let first_symbol_value = input.try(|i| Integer::parse(context, i)).ok();
                 Ok(System::Fixed { first_symbol_value: first_symbol_value })
             }
             "extends" => {
@@ -457,7 +457,7 @@ impl Parse for Negative {
     ) -> Result<Self, ParseError<'i>> {
         Ok(Negative(
             Symbol::parse(context, input)?,
-            input.r#try(|input| Symbol::parse(context, input)).ok(),
+            input.try(|input| Symbol::parse(context, input)).ok(),
         ))
     }
 }
@@ -483,7 +483,7 @@ impl Parse for Ranges {
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
         if input
-            .r#try(|input| input.expect_ident_matching("auto"))
+            .try(|input| input.expect_ident_matching("auto"))
             .is_ok()
         {
             Ok(Ranges(Vec::new()))
@@ -512,7 +512,7 @@ fn parse_bound<'i, 't>(
     context: &ParserContext,
     input: &mut Parser<'i, 't>,
 ) -> Result<CounterBound, ParseError<'i>> {
-    if let Ok(integer) = input.r#try(|input| Integer::parse(context, input)) {
+    if let Ok(integer) = input.try(|input| Integer::parse(context, input)) {
         return Ok(CounterBound::Integer(integer));
     }
     input.expect_ident_matching("infinite")?;
@@ -556,7 +556,7 @@ impl Parse for Pad {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
-        let pad_with = input.r#try(|input| Symbol::parse(context, input));
+        let pad_with = input.try(|input| Symbol::parse(context, input));
         let min_length = Integer::parse_non_negative(context, input)?;
         let pad_with = pad_with.or_else(|_| Symbol::parse(context, input))?;
         Ok(Pad(min_length, pad_with))
@@ -588,7 +588,7 @@ impl Parse for Symbols {
     ) -> Result<Self, ParseError<'i>> {
         let mut symbols = Vec::new();
         loop {
-            if let Ok(s) = input.r#try(|input| Symbol::parse(context, input)) {
+            if let Ok(s) = input.try(|input| Symbol::parse(context, input)) {
                 symbols.push(s)
             } else {
                 if symbols.is_empty() {
@@ -640,7 +640,7 @@ impl Parse for AdditiveTuple {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
-        let symbol = input.r#try(|input| Symbol::parse(context, input));
+        let symbol = input.try(|input| Symbol::parse(context, input));
         let weight = Integer::parse_non_negative(context, input)?;
         let symbol = symbol.or_else(|_| Symbol::parse(context, input))?;
         Ok(AdditiveTuple {
@@ -673,7 +673,7 @@ impl Parse for SpeakAs {
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
         let mut is_spell_out = false;
-        let result = input.r#try(|input| {
+        let result = input.try(|input| {
             let ident = input.expect_ident().map_err(|_| ())?;
             match_ignore_ascii_case! { &*ident,
                 "auto" => Ok(SpeakAs::Auto),

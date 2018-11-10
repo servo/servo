@@ -38,9 +38,8 @@ use crate::rule_tree::StrongRuleNode;
 use crate::shared_lock::Locked;
 use crate::stylesheets::keyframes_rule::Keyframe;
 use crate::stylesheets::{CounterStyleRule, CssRules, FontFaceRule, FontFeatureValuesRule};
-use crate::stylesheets::{
-    DocumentRule, ImportRule, KeyframesRule, MediaRule, NamespaceRule, PageRule,
-};
+use crate::stylesheets::{DocumentRule, ImportRule, KeyframesRule, MediaRule};
+use crate::stylesheets::{NamespaceRule, PageRule};
 use crate::stylesheets::{StyleRule, StylesheetContents, SupportsRule};
 use servo_arc::{Arc, ArcBorrow};
 use std::{mem, ptr};

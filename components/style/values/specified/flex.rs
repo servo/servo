@@ -25,7 +25,7 @@ impl Parse for FlexBasis {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
-        if let Ok(width) = input.r#try(|i| Width::parse(context, i)) {
+        if let Ok(width) = input.try(|i| Width::parse(context, i)) {
             return Ok(GenericFlexBasis::Width(width));
         }
         try_match_ident_ignore_ascii_case! { input,

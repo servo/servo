@@ -25,7 +25,7 @@ impl Parse for ScrollSnapPoint {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
-        if input.r#try(|i| i.expect_ident_matching("none")).is_ok() {
+        if input.try(|i| i.expect_ident_matching("none")).is_ok() {
             return Ok(GenericScrollSnapPoint::None);
         }
         input.expect_function_matching("repeat")?;

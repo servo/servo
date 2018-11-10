@@ -21,10 +21,10 @@ impl Parse for TimingFunction {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
-        if let Ok(keyword) = input.r#try(TimingKeyword::parse) {
+        if let Ok(keyword) = input.try(TimingKeyword::parse) {
             return Ok(GenericTimingFunction::Keyword(keyword));
         }
-        if let Ok(ident) = input.r#try(|i| i.expect_ident_cloned()) {
+        if let Ok(ident) = input.try(|i| i.expect_ident_cloned()) {
             let position = match_ignore_ascii_case! { &ident,
                 "step-start" => StepPosition::Start,
                 "step-end" => StepPosition::End,
@@ -57,7 +57,7 @@ impl Parse for TimingFunction {
                 },
                 "steps" => {
                     let steps = Integer::parse_positive(context, i)?;
-                    let position = i.r#try(|i| {
+                    let position = i.try(|i| {
                         i.expect_comma()?;
                         StepPosition::parse(context, i)
                     }).unwrap_or(StepPosition::End);

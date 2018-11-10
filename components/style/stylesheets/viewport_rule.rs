@@ -265,7 +265,7 @@ fn parse_shorthand<'i, 't>(
     input: &mut Parser<'i, 't>,
 ) -> Result<(ViewportLength, ViewportLength), ParseError<'i>> {
     let min = ViewportLength::parse(context, input)?;
-    match input.r#try(|i| ViewportLength::parse(context, i)) {
+    match input.try(|i| ViewportLength::parse(context, i)) {
         Err(_) => Ok((min.clone(), min)),
         Ok(max) => Ok((min, max)),
     }
@@ -289,8 +289,8 @@ impl<'a, 'b, 'i> DeclarationParser<'i> for ViewportRuleParser<'a, 'b> {
     ) -> Result<Vec<ViewportDescriptorDeclaration>, ParseError<'i>> {
         macro_rules! declaration {
             ($declaration:ident($parse:expr)) => {
-                declaration!($declaration(value: r#try!($parse(input)),
-                                          important: input.r#try(parse_important).is_ok()))
+                declaration!($declaration(value: try!($parse(input)),
+                                          important: input.try(parse_important).is_ok()))
             };
             ($declaration:ident(value: $value:expr, important: $important:expr)) => {
                 ViewportDescriptorDeclaration::new(
@@ -306,7 +306,7 @@ impl<'a, 'b, 'i> DeclarationParser<'i> for ViewportRuleParser<'a, 'b> {
             };
             (shorthand -> [$min:ident, $max:ident]) => {{
                 let shorthand = parse_shorthand(self.context, input)?;
-                let important = input.r#try(parse_important).is_ok();
+                let important = input.try(parse_important).is_ok();
 
                 Ok(vec![
                     declaration!($min(value: shorthand.0, important: important)),

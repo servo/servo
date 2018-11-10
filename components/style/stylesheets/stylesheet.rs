@@ -7,9 +7,8 @@ use crate::error_reporting::{ContextualParseError, ParseErrorReporter};
 use crate::invalidation::media_queries::{MediaListKey, ToMediaListKey};
 use crate::media_queries::{Device, MediaList};
 use crate::parser::ParserContext;
-use crate::shared_lock::{
-    DeepCloneParams, DeepCloneWithLock, Locked, SharedRwLock, SharedRwLockReadGuard,
-};
+use crate::shared_lock::{DeepCloneParams, DeepCloneWithLock, Locked};
+use crate::shared_lock::{SharedRwLock, SharedRwLockReadGuard};
 use crate::stylesheets::loader::StylesheetLoader;
 use crate::stylesheets::rule_parser::{State, TopLevelRuleParser};
 use crate::stylesheets::rules_iterator::{EffectiveRules, EffectiveRulesIterator};

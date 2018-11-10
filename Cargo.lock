@@ -1930,6 +1930,7 @@ dependencies = [
  "malloc_size_of 0.0.1",
  "msg 0.0.1",
  "net_traits 0.0.1",
+ "num-traits 0.2.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "ordered-float 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "parking_lot 0.6.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "profile_traits 0.0.1",
