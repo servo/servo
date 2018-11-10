@@ -327,7 +327,6 @@ def windows_build_task(name):
 
 CONFIG.task_name_template = "Servo: %s"
 CONFIG.index_prefix = "project.servo.servo"
-CONFIG.docker_image_buil_worker_type = "servo-docker-worker"
 CONFIG.docker_images_expire_in = build_dependencies_artifacts_expire_in
 CONFIG.repacked_msi_files_expire_in = build_dependencies_artifacts_expire_in
 
