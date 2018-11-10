@@ -5,18 +5,18 @@
 //! Computed types for CSS values related to borders.
 
 use app_units::Au;
-use values::animated::ToAnimatedZero;
-use values::computed::length::{LengthOrPercentage, NonNegativeLength};
-use values::computed::{Number, NumberOrPercentage};
-use values::generics::border::BorderCornerRadius as GenericBorderCornerRadius;
-use values::generics::border::BorderImageSideWidth as GenericBorderImageSideWidth;
-use values::generics::border::BorderImageSlice as GenericBorderImageSlice;
-use values::generics::border::BorderRadius as GenericBorderRadius;
-use values::generics::border::BorderSpacing as GenericBorderSpacing;
-use values::generics::rect::Rect;
-use values::generics::size::Size;
+use crate::values::animated::ToAnimatedZero;
+use crate::values::computed::length::{LengthOrPercentage, NonNegativeLength};
+use crate::values::computed::{Number, NumberOrPercentage};
+use crate::values::generics::border::BorderCornerRadius as GenericBorderCornerRadius;
+use crate::values::generics::border::BorderImageSideWidth as GenericBorderImageSideWidth;
+use crate::values::generics::border::BorderImageSlice as GenericBorderImageSlice;
+use crate::values::generics::border::BorderRadius as GenericBorderRadius;
+use crate::values::generics::border::BorderSpacing as GenericBorderSpacing;
+use crate::values::generics::rect::Rect;
+use crate::values::generics::size::Size;
 
-pub use values::specified::border::BorderImageRepeat;
+pub use crate::values::specified::border::BorderImageRepeat;
 
 /// A computed value for the `border-image-width` property.
 pub type BorderImageWidth = Rect<BorderImageSideWidth>;

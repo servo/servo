@@ -7,13 +7,13 @@
 //! https://drafts.csswg.org/mediaqueries/#typedef-media-query
 
 use super::media_condition::MediaCondition;
+use crate::parser::ParserContext;
+use crate::str::string_as_ascii_lowercase;
+use crate::values::CustomIdent;
+use crate::Atom;
 use cssparser::Parser;
-use parser::ParserContext;
 use std::fmt::{self, Write};
-use str::string_as_ascii_lowercase;
 use style_traits::{CssWriter, ParseError, ToCss};
-use values::CustomIdent;
-use Atom;
 
 /// <https://drafts.csswg.org/mediaqueries/#mq-prefix>
 #[derive(Clone, Copy, Debug, Eq, MallocSizeOf, Parse, PartialEq, ToCss)]
@@ -125,8 +125,8 @@ impl MediaQuery {
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
         let (qualifier, explicit_media_type) = input
-            .try(|input| -> Result<_, ()> {
-                let qualifier = input.try(Qualifier::parse).ok();
+            .r#try(|input| -> Result<_, ()> {
+                let qualifier = input.r#try(Qualifier::parse).ok();
                 let ident = input.expect_ident().map_err(|_| ())?;
                 let media_type = MediaQueryType::parse(&ident)?;
                 Ok((qualifier, Some(media_type)))
@@ -135,7 +135,7 @@ impl MediaQuery {
 
         let condition = if explicit_media_type.is_none() {
             Some(MediaCondition::parse(context, input)?)
-        } else if input.try(|i| i.expect_ident_matching("and")).is_ok() {
+        } else if input.r#try(|i| i.expect_ident_matching("and")).is_ok() {
             Some(MediaCondition::parse_disallow_or(context, input)?)
         } else {
             None

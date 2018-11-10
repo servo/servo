@@ -4,27 +4,39 @@
 
 //! Selector matching.
 
-use applicable_declarations::{ApplicableDeclarationBlock, ApplicableDeclarationList};
-use context::{CascadeInputs, QuirksMode};
-use dom::{TElement, TShadowRoot};
-use element_state::{DocumentState, ElementState};
-use font_metrics::FontMetricsProvider;
+use crate::applicable_declarations::{ApplicableDeclarationBlock, ApplicableDeclarationList};
+use crate::context::{CascadeInputs, QuirksMode};
+use crate::dom::{TElement, TShadowRoot};
+use crate::element_state::{DocumentState, ElementState};
+use crate::font_metrics::FontMetricsProvider;
 #[cfg(feature = "gecko")]
-use gecko_bindings::structs::{ServoStyleSetSizes, StyleRuleInclusion};
+use crate::gecko_bindings::structs::{ServoStyleSetSizes, StyleRuleInclusion};
+use crate::invalidation::element::invalidation_map::InvalidationMap;
+use crate::invalidation::media_queries::{EffectiveMediaQueryResults, ToMediaListKey};
+use crate::media_queries::Device;
+use crate::properties::{self, CascadeMode, ComputedValues};
+use crate::properties::{AnimationRules, PropertyDeclarationBlock};
+use crate::rule_cache::{RuleCache, RuleCacheConditions};
+use crate::rule_tree::{CascadeLevel, RuleTree, ShadowCascadeOrder, StrongRuleNode, StyleSource};
+use crate::selector_map::{PrecomputedHashMap, PrecomputedHashSet, SelectorMap, SelectorMapEntry};
+use crate::selector_parser::{PerPseudoElementMap, PseudoElement, SelectorImpl, SnapshotMap};
+use crate::shared_lock::{Locked, SharedRwLockReadGuard, StylesheetGuards};
+use crate::stylesheet_set::{DataValidity, DocumentStylesheetSet, SheetRebuildKind};
+use crate::stylesheet_set::{DocumentStylesheetFlusher, SheetCollectionFlusher};
+use crate::stylesheets::keyframes_rule::KeyframesAnimation;
+use crate::stylesheets::viewport_rule::{self, MaybeNew, ViewportRule};
+use crate::stylesheets::StyleRule;
+use crate::stylesheets::StylesheetInDocument;
+#[cfg(feature = "gecko")]
+use crate::stylesheets::{CounterStyleRule, FontFaceRule, FontFeatureValuesRule, PageRule};
+use crate::stylesheets::{CssRule, Origin, OriginSet, PerOrigin, PerOriginIter};
+use crate::thread_state::{self, ThreadState};
+use crate::{Atom, LocalName, Namespace, WeakAtom};
 use hashglobe::FailedAllocationError;
-use invalidation::element::invalidation_map::InvalidationMap;
-use invalidation::media_queries::{EffectiveMediaQueryResults, ToMediaListKey};
 #[cfg(feature = "gecko")]
 use malloc_size_of::MallocUnconditionalShallowSizeOf;
 #[cfg(feature = "gecko")]
 use malloc_size_of::{MallocShallowSizeOf, MallocSizeOf, MallocSizeOfOps};
-use media_queries::Device;
-use properties::{self, CascadeMode, ComputedValues};
-use properties::{AnimationRules, PropertyDeclarationBlock};
-use rule_cache::{RuleCache, RuleCacheConditions};
-use rule_tree::{CascadeLevel, RuleTree, ShadowCascadeOrder, StrongRuleNode, StyleSource};
-use selector_map::{PrecomputedHashMap, PrecomputedHashSet, SelectorMap, SelectorMapEntry};
-use selector_parser::{PerPseudoElementMap, PseudoElement, SelectorImpl, SnapshotMap};
 use selectors::attr::{CaseSensitivity, NamespaceConstraint};
 use selectors::bloom::BloomFilter;
 use selectors::matching::VisitedHandlingMode;
@@ -34,31 +46,19 @@ use selectors::parser::{SelectorIter, Visit};
 use selectors::visitor::SelectorVisitor;
 use selectors::NthIndexCache;
 use servo_arc::{Arc, ArcBorrow};
-use shared_lock::{Locked, SharedRwLockReadGuard, StylesheetGuards};
 use smallbitvec::SmallBitVec;
 use smallvec::SmallVec;
 use std::ops;
 use std::sync::Mutex;
 use style_traits::viewport::ViewportConstraints;
-use stylesheet_set::{DataValidity, DocumentStylesheetSet, SheetRebuildKind};
-use stylesheet_set::{DocumentStylesheetFlusher, SheetCollectionFlusher};
-use stylesheets::keyframes_rule::KeyframesAnimation;
-use stylesheets::viewport_rule::{self, MaybeNew, ViewportRule};
-use stylesheets::StyleRule;
-use stylesheets::StylesheetInDocument;
-#[cfg(feature = "gecko")]
-use stylesheets::{CounterStyleRule, FontFaceRule, FontFeatureValuesRule, PageRule};
-use stylesheets::{CssRule, Origin, OriginSet, PerOrigin, PerOriginIter};
-use thread_state::{self, ThreadState};
-use {Atom, LocalName, Namespace, WeakAtom};
 
 /// The type of the stylesheets that the stylist contains.
 #[cfg(feature = "servo")]
-pub type StylistSheet = ::stylesheets::DocumentStyleSheet;
+pub type StylistSheet = crate::stylesheets::DocumentStyleSheet;
 
 /// The type of the stylesheets that the stylist contains.
 #[cfg(feature = "gecko")]
-pub type StylistSheet = ::gecko::data::GeckoStyleSheet;
+pub type StylistSheet = crate::gecko::data::GeckoStyleSheet;
 
 /// A cache of computed user-agent data, to be shared across documents.
 lazy_static! {
@@ -719,7 +719,7 @@ impl Stylist {
     where
         E: TElement,
     {
-        use font_metrics::ServoMetricsProvider;
+        use crate::font_metrics::ServoMetricsProvider;
         self.precomputed_values_for_pseudo::<E>(
             guards,
             &pseudo,
@@ -1556,7 +1556,7 @@ impl Stylist {
     where
         E: TElement,
     {
-        use font_metrics::get_metrics_provider_for_product;
+        use crate::font_metrics::get_metrics_provider_for_product;
 
         let block = declarations.read_with(guards.author);
         let iter_declarations = || {
@@ -2333,7 +2333,7 @@ impl CascadeData {
     where
         S: StylesheetInDocument + ToMediaListKey + 'static,
     {
-        use invalidation::media_queries::PotentiallyEffectiveMediaRules;
+        use crate::invalidation::media_queries::PotentiallyEffectiveMediaRules;
 
         let effective_now = stylesheet.is_effective_for_device(device, guard);
 

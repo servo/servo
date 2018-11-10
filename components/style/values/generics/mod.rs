@@ -6,9 +6,9 @@
 //! for both specified and computed values.
 
 use super::CustomIdent;
-use counter_style::{parse_counter_style_name, Symbols};
+use crate::counter_style::{parse_counter_style_name, Symbols};
+use crate::parser::{Parse, ParserContext};
 use cssparser::Parser;
-use parser::{Parse, ParserContext};
 use style_traits::{KeywordsCollectFn, ParseError};
 use style_traits::{SpecifiedValueInfo, StyleParseErrorKind};
 
@@ -54,7 +54,7 @@ pub enum SymbolsType {
 impl SymbolsType {
     /// Convert symbols type to their corresponding Gecko values.
     pub fn to_gecko_keyword(self) -> u8 {
-        use gecko_bindings::structs;
+        use crate::gecko_bindings::structs;
         match self {
             SymbolsType::Cyclic => structs::NS_STYLE_COUNTER_SYSTEM_CYCLIC as u8,
             SymbolsType::Numeric => structs::NS_STYLE_COUNTER_SYSTEM_NUMERIC as u8,
@@ -66,7 +66,7 @@ impl SymbolsType {
 
     /// Convert Gecko value to symbol type.
     pub fn from_gecko_keyword(gecko_value: u32) -> SymbolsType {
-        use gecko_bindings::structs;
+        use crate::gecko_bindings::structs;
         match gecko_value {
             structs::NS_STYLE_COUNTER_SYSTEM_CYCLIC => SymbolsType::Cyclic,
             structs::NS_STYLE_COUNTER_SYSTEM_NUMERIC => SymbolsType::Numeric,
@@ -111,16 +111,19 @@ impl Parse for CounterStyleOrNone {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
-        if let Ok(name) = input.try(|i| parse_counter_style_name(i)) {
+        if let Ok(name) = input.r#try(|i| parse_counter_style_name(i)) {
             return Ok(CounterStyleOrNone::Name(name));
         }
-        if input.try(|i| i.expect_ident_matching("none")).is_ok() {
+        if input.r#try(|i| i.expect_ident_matching("none")).is_ok() {
             return Ok(CounterStyleOrNone::None);
         }
-        if input.try(|i| i.expect_function_matching("symbols")).is_ok() {
+        if input
+            .r#try(|i| i.expect_function_matching("symbols"))
+            .is_ok()
+        {
             return input.parse_nested_block(|input| {
                 let symbols_type = input
-                    .try(|i| SymbolsType::parse(i))
+                    .r#try(|i| SymbolsType::parse(i))
                     .unwrap_or(SymbolsType::Symbolic);
                 let symbols = Symbols::parse(context, input)?;
                 // There must be at least two symbols for alphabetic or

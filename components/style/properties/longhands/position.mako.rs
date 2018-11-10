@@ -42,7 +42,7 @@ macro_rules! impl_align_conversions {
     ($name: path) => {
         impl From<u8> for $name {
             fn from(bits: u8) -> $name {
-                $name(::values::specified::align::AlignFlags::from_bits(bits)
+                $name(crate::values::specified::align::AlignFlags::from_bits(bits)
                       .expect("bits contain valid flag"))
             }
         }
@@ -149,7 +149,7 @@ ${helpers.single_keyword(
     )}
 
     #[cfg(feature = "gecko")]
-    impl_align_conversions!(::values::specified::align::AlignItems);
+    impl_align_conversions!(crate::values::specified::align::AlignItems);
 
     ${helpers.predefined_type(
         "justify-items",
@@ -160,7 +160,7 @@ ${helpers.single_keyword(
     )}
 
     #[cfg(feature = "gecko")]
-    impl_align_conversions!(::values::specified::align::JustifyItems);
+    impl_align_conversions!(crate::values::specified::align::JustifyItems);
 % endif
 
 // Flex item properties
@@ -214,7 +214,7 @@ ${helpers.predefined_type(
     )}
 
     #[cfg(feature = "gecko")]
-    impl_align_conversions!(::values::specified::align::SelfAlignment);
+    impl_align_conversions!(crate::values::specified::align::SelfAlignment);
 % endif
 
 // https://drafts.csswg.org/css-flexbox/#propdef-order

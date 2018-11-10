@@ -4,13 +4,13 @@
 
 //! A rust helper to ease the use of Gecko's refcounted types.
 
-use gecko_bindings::sugar::ownership::HasArcFFI;
-use gecko_bindings::{bindings, structs};
+use crate::gecko_bindings::sugar::ownership::HasArcFFI;
+use crate::gecko_bindings::{bindings, structs};
+use crate::Atom;
 use servo_arc::Arc;
 use std::marker::PhantomData;
 use std::ops::{Deref, DerefMut};
 use std::{fmt, mem, ptr};
-use Atom;
 
 /// Trait for all objects that have Addref() and Release
 /// methods and can be placed inside RefPtr<T>

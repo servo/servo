@@ -9,11 +9,11 @@
                     sub_properties="mask-mode mask-repeat mask-clip mask-origin mask-composite mask-position-x
                                     mask-position-y mask-size mask-image"
                     spec="https://drafts.fxtf.org/css-masking/#propdef-mask">
-    use properties::longhands::{mask_mode, mask_repeat, mask_clip, mask_origin, mask_composite, mask_position_x,
+    use crate::properties::longhands::{mask_mode, mask_repeat, mask_clip, mask_origin, mask_composite, mask_position_x,
                                 mask_position_y};
-    use properties::longhands::{mask_size, mask_image};
-    use values::specified::{Position, PositionComponent};
-    use parser::Parse;
+    use crate::properties::longhands::{mask_size, mask_image};
+    use crate::values::specified::{Position, PositionComponent};
+    use crate::parser::Parse;
 
     // FIXME(emilio): These two mask types should be the same!
     impl From<mask_origin::single_value::SpecifiedValue> for mask_clip::single_value::SpecifiedValue {
@@ -125,8 +125,8 @@
 
     impl<'a> ToCss for LonghandsToSerialize<'a>  {
         fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result where W: fmt::Write {
-            use properties::longhands::mask_origin::single_value::computed_value::T as Origin;
-            use properties::longhands::mask_clip::single_value::computed_value::T as Clip;
+            use crate::properties::longhands::mask_origin::single_value::computed_value::T as Origin;
+            use crate::properties::longhands::mask_clip::single_value::computed_value::T as Clip;
 
             let len = self.mask_image.0.len();
             if len == 0 {
@@ -186,9 +186,9 @@
                     flags="SHORTHAND_IN_GETCS"
                     sub_properties="mask-position-x mask-position-y"
                     spec="https://drafts.csswg.org/css-masks-4/#the-mask-position">
-    use properties::longhands::{mask_position_x,mask_position_y};
-    use values::specified::position::Position;
-    use parser::Parse;
+    use crate::properties::longhands::{mask_position_x,mask_position_y};
+    use crate::values::specified::position::Position;
+    use crate::parser::Parse;
 
     pub fn parse_value<'i, 't>(
         context: &ParserContext,

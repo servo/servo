@@ -4,10 +4,10 @@
 
 //! Generic types for CSS values related to borders.
 
+use crate::values::generics::rect::Rect;
+use crate::values::generics::size::Size;
 use std::fmt::{self, Write};
 use style_traits::{CssWriter, ToCss};
-use values::generics::rect::Rect;
-use values::generics::size::Size;
 
 /// A generic value for a single side of a `border-image-width` property.
 #[derive(

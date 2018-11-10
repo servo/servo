@@ -2,16 +2,16 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use attr::{AttrSelectorOperation, NamespaceConstraint, ParsedAttrSelectorOperation};
-use bloom::{BloomFilter, BLOOM_HASH_MASK};
-use nth_index_cache::NthIndexCacheInner;
-use parser::{AncestorHashes, Combinator, Component, LocalName};
-use parser::{NonTSPseudoClass, Selector, SelectorImpl, SelectorIter, SelectorList};
+use crate::attr::{AttrSelectorOperation, NamespaceConstraint, ParsedAttrSelectorOperation};
+use crate::bloom::{BloomFilter, BLOOM_HASH_MASK};
+use crate::nth_index_cache::NthIndexCacheInner;
+use crate::parser::{AncestorHashes, Combinator, Component, LocalName};
+use crate::parser::{NonTSPseudoClass, Selector, SelectorImpl, SelectorIter, SelectorList};
+use crate::tree::Element;
 use std::borrow::Borrow;
 use std::iter;
-use tree::Element;
 
-pub use context::*;
+pub use crate::context::*;
 
 // The bloom filter for descendant CSS selectors will have a <1% false
 // positive rate until it has this many selectors in it, then it will
@@ -678,7 +678,7 @@ where
             element.namespace() == url.borrow()
         },
         Component::ExplicitNoNamespace => {
-            let ns = ::parser::namespace_empty_string::<E::Impl>();
+            let ns = crate::parser::namespace_empty_string::<E::Impl>();
             element.namespace() == ns.borrow()
         },
         Component::ID(ref id) => {
@@ -693,7 +693,7 @@ where
         } => {
             let is_html = element.is_html_element_in_html_document();
             element.attr_matches(
-                &NamespaceConstraint::Specific(&::parser::namespace_empty_string::<E::Impl>()),
+                &NamespaceConstraint::Specific(&crate::parser::namespace_empty_string::<E::Impl>()),
                 select_name(is_html, local_name, local_name_lower),
                 &AttrSelectorOperation::Exists,
             )
@@ -710,7 +710,7 @@ where
             }
             let is_html = element.is_html_element_in_html_document();
             element.attr_matches(
-                &NamespaceConstraint::Specific(&::parser::namespace_empty_string::<E::Impl>()),
+                &NamespaceConstraint::Specific(&crate::parser::namespace_empty_string::<E::Impl>()),
                 local_name,
                 &AttrSelectorOperation::WithValue {
                     operator: operator,
@@ -728,7 +728,7 @@ where
             let namespace = match attr_sel.namespace() {
                 Some(ns) => ns,
                 None => {
-                    empty_string = ::parser::namespace_empty_string::<E::Impl>();
+                    empty_string = crate::parser::namespace_empty_string::<E::Impl>();
                     NamespaceConstraint::Specific(&empty_string)
                 },
             };

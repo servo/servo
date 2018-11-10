@@ -1060,7 +1060,7 @@ unsafe impl<A: Sync + Send, B: Send + Sync> Sync for ArcUnion<A, B> {}
 
 impl<A: PartialEq, B: PartialEq> PartialEq for ArcUnion<A, B> {
     fn eq(&self, other: &Self) -> bool {
-        use ArcUnionBorrow::*;
+        use crate::ArcUnionBorrow::*;
         match (self.borrow(), other.borrow()) {
             (First(x), First(y)) => x == y,
             (Second(x), Second(y)) => x == y,

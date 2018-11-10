@@ -5,16 +5,16 @@
 //! Gecko's media feature list and evaluator.
 
 use app_units::Au;
+use crate::gecko_bindings::bindings;
+use crate::gecko_bindings::structs;
+use crate::media_queries::media_feature::{AllowsRanges, ParsingRequirements};
+use crate::media_queries::media_feature::{Evaluator, MediaFeatureDescription};
+use crate::media_queries::media_feature_expression::{AspectRatio, RangeOrOperator};
+use crate::media_queries::Device;
+use crate::values::computed::CSSPixelLength;
+use crate::values::computed::Resolution;
+use crate::Atom;
 use euclid::Size2D;
-use gecko_bindings::bindings;
-use gecko_bindings::structs;
-use media_queries::media_feature::{AllowsRanges, ParsingRequirements};
-use media_queries::media_feature::{Evaluator, MediaFeatureDescription};
-use media_queries::media_feature_expression::{AspectRatio, RangeOrOperator};
-use media_queries::Device;
-use values::computed::CSSPixelLength;
-use values::computed::Resolution;
-use Atom;
 
 fn viewport_size(device: &Device) -> Size2D<Au> {
     let pc = device.pres_context();

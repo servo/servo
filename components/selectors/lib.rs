@@ -31,6 +31,6 @@ pub mod sink;
 mod tree;
 pub mod visitor;
 
-pub use nth_index_cache::NthIndexCache;
-pub use parser::{Parser, SelectorImpl, SelectorList};
-pub use tree::{Element, OpaqueElement};
+pub use crate::nth_index_cache::NthIndexCache;
+pub use crate::parser::{Parser, SelectorImpl, SelectorList};
+pub use crate::tree::{Element, OpaqueElement};

@@ -4,12 +4,12 @@
 
 //! Specified types for CSS values related to backgrounds.
 
+use crate::parser::{Parse, ParserContext};
+use crate::values::generics::background::BackgroundSize as GenericBackgroundSize;
+use crate::values::specified::length::NonNegativeLengthOrPercentageOrAuto;
 use cssparser::Parser;
-use parser::{Parse, ParserContext};
 use selectors::parser::SelectorParseErrorKind;
 use style_traits::ParseError;
-use values::generics::background::BackgroundSize as GenericBackgroundSize;
-use values::specified::length::NonNegativeLengthOrPercentageOrAuto;
 
 /// A specified value for the `background-size` property.
 pub type BackgroundSize = GenericBackgroundSize<NonNegativeLengthOrPercentageOrAuto>;
@@ -19,9 +19,9 @@ impl Parse for BackgroundSize {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
-        if let Ok(width) = input.try(|i| NonNegativeLengthOrPercentageOrAuto::parse(context, i)) {
+        if let Ok(width) = input.r#try(|i| NonNegativeLengthOrPercentageOrAuto::parse(context, i)) {
             let height = input
-                .try(|i| NonNegativeLengthOrPercentageOrAuto::parse(context, i))
+                .r#try(|i| NonNegativeLengthOrPercentageOrAuto::parse(context, i))
                 .unwrap_or(NonNegativeLengthOrPercentageOrAuto::auto());
             return Ok(GenericBackgroundSize::Explicit { width, height });
         }
@@ -106,7 +106,7 @@ impl Parse for BackgroundRepeat {
             },
         };
 
-        let vertical = input.try(BackgroundRepeatKeyword::parse).ok();
+        let vertical = input.r#try(BackgroundRepeatKeyword::parse).ok();
         Ok(BackgroundRepeat::Keywords(horizontal, vertical))
     }
 }

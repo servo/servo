@@ -4,13 +4,13 @@
 
 //! Rust helpers to interact with Gecko's StyleComplexColor.
 
-use gecko::values::{convert_nscolor_to_rgba, convert_rgba_to_nscolor};
-use gecko_bindings::structs::StyleComplexColor;
-use gecko_bindings::structs::StyleComplexColor_Tag as Tag;
-use values::computed::ui::ColorOrAuto;
-use values::computed::{Color as ComputedColor, RGBAColor as ComputedRGBA};
-use values::generics::color::{Color as GenericColor, ComplexColorRatios};
-use values::{Auto, Either};
+use crate::gecko::values::{convert_nscolor_to_rgba, convert_rgba_to_nscolor};
+use crate::gecko_bindings::structs::StyleComplexColor;
+use crate::gecko_bindings::structs::StyleComplexColor_Tag as Tag;
+use crate::values::computed::ui::ColorOrAuto;
+use crate::values::computed::{Color as ComputedColor, RGBAColor as ComputedRGBA};
+use crate::values::generics::color::{Color as GenericColor, ComplexColorRatios};
+use crate::values::{Auto, Either};
 
 impl StyleComplexColor {
     /// Create a `StyleComplexColor` value that represents `currentColor`.

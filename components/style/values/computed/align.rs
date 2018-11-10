@@ -6,8 +6,8 @@
 //!
 //! https://drafts.csswg.org/css-align/
 
-use values::computed::{Context, ToComputedValue};
-use values::specified;
+use crate::values::computed::{Context, ToComputedValue};
+use crate::values::specified;
 
 pub use super::specified::{AlignContent, AlignItems, JustifyContent, SelfAlignment};
 pub use super::specified::{AlignSelf, JustifySelf};
@@ -60,7 +60,7 @@ impl ToComputedValue for specified::JustifyItems {
 
     /// <https://drafts.csswg.org/css-align/#valdef-justify-items-legacy>
     fn to_computed_value(&self, _context: &Context) -> JustifyItems {
-        use values::specified::align;
+        use crate::values::specified::align;
         let specified = *self;
         let computed = if self.0 != align::AlignFlags::LEGACY {
             *self

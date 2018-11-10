@@ -4,14 +4,14 @@
 
 //! `list` specified values.
 
+use crate::parser::{Parse, ParserContext};
+#[cfg(feature = "gecko")]
+use crate::values::generics::CounterStyleOrNone;
+#[cfg(feature = "gecko")]
+use crate::values::CustomIdent;
 use cssparser::{Parser, Token};
-use parser::{Parse, ParserContext};
 use servo_arc::Arc;
 use style_traits::{ParseError, StyleParseErrorKind};
-#[cfg(feature = "gecko")]
-use values::generics::CounterStyleOrNone;
-#[cfg(feature = "gecko")]
-use values::CustomIdent;
 
 /// Specified and computed `list-style-type` property.
 #[cfg(feature = "gecko")]
@@ -37,7 +37,7 @@ impl ListStyleType {
     /// list-style-type, and thus only values possible in that
     /// attribute is considered here.
     pub fn from_gecko_keyword(value: u32) -> Self {
-        use gecko_bindings::structs;
+        use crate::gecko_bindings::structs;
 
         if value == structs::NS_STYLE_LIST_STYLE_NONE {
             return ListStyleType::CounterStyle(CounterStyleOrNone::None);
@@ -63,7 +63,7 @@ impl Parse for ListStyleType {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
-        if let Ok(style) = input.try(|i| CounterStyleOrNone::parse(context, i)) {
+        if let Ok(style) = input.r#try(|i| CounterStyleOrNone::parse(context, i)) {
             return Ok(ListStyleType::CounterStyle(style));
         }
 
@@ -97,7 +97,7 @@ impl Parse for Quotes {
         input: &mut Parser<'i, 't>,
     ) -> Result<Quotes, ParseError<'i>> {
         if input
-            .try(|input| input.expect_ident_matching("none"))
+            .r#try(|input| input.expect_ident_matching("none"))
             .is_ok()
         {
             return Ok(Quotes(Arc::new(Box::new([]))));

@@ -40,7 +40,7 @@ bitflags! {
 #[cfg(feature = "gecko")]
 #[inline]
 pub fn assert_traversal_flags_match() {
-    use gecko_bindings::structs;
+    use crate::gecko_bindings::structs;
 
     macro_rules! check_traversal_flags {
         ( $( $a:ident => $b:path ),*, ) => {

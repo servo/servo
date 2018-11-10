@@ -23,15 +23,15 @@ mod stylesheet;
 pub mod supports_rule;
 pub mod viewport_rule;
 
+use crate::parser::ParserContext;
+use crate::shared_lock::{DeepCloneParams, DeepCloneWithLock, Locked};
+use crate::shared_lock::{SharedRwLock, SharedRwLockReadGuard, ToCssWithGuard};
+use crate::str::CssStringWriter;
 use cssparser::{parse_one_rule, Parser, ParserInput};
 #[cfg(feature = "gecko")]
 use malloc_size_of::{MallocSizeOfOps, MallocUnconditionalShallowSizeOf};
-use parser::ParserContext;
 use servo_arc::Arc;
-use shared_lock::{DeepCloneParams, DeepCloneWithLock, Locked};
-use shared_lock::{SharedRwLock, SharedRwLockReadGuard, ToCssWithGuard};
 use std::fmt;
-use str::CssStringWriter;
 use style_traits::ParsingMode;
 
 pub use self::counter_style_rule::CounterStyleRule;
@@ -63,7 +63,7 @@ pub type UrlExtraData = ::servo_url::ServoUrl;
 #[cfg(feature = "gecko")]
 #[derive(Clone, PartialEq)]
 pub struct UrlExtraData(
-    pub ::gecko_bindings::sugar::refptr::RefPtr<::gecko_bindings::structs::URLExtraData>,
+    pub crate::gecko_bindings::sugar::refptr::RefPtr<crate::gecko_bindings::structs::URLExtraData>,
 );
 
 #[cfg(feature = "gecko")]
@@ -80,7 +80,7 @@ impl UrlExtraData {
     ///
     /// This method doesn't touch refcount.
     #[inline]
-    pub unsafe fn from_ptr_ref(ptr: &*mut ::gecko_bindings::structs::URLExtraData) -> &Self {
+    pub unsafe fn from_ptr_ref(ptr: &*mut crate::gecko_bindings::structs::URLExtraData) -> &Self {
         ::std::mem::transmute(ptr)
     }
 }
@@ -88,7 +88,7 @@ impl UrlExtraData {
 #[cfg(feature = "gecko")]
 impl fmt::Debug for UrlExtraData {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-        use gecko_bindings::{bindings, structs};
+        use crate::gecko_bindings::{bindings, structs};
 
         struct DebugURI(*mut structs::nsIURI);
         impl fmt::Debug for DebugURI {

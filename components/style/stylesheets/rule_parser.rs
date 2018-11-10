@@ -4,32 +4,32 @@
 
 //! Parsing of the stylesheet contents.
 
-use counter_style::{parse_counter_style_body, parse_counter_style_name_definition};
+use crate::counter_style::{parse_counter_style_body, parse_counter_style_name_definition};
+use crate::error_reporting::ContextualParseError;
+use crate::font_face::parse_font_face_block;
+use crate::media_queries::MediaList;
+use crate::parser::{Parse, ParserContext};
+use crate::properties::parse_property_declaration_list;
+use crate::selector_parser::{SelectorImpl, SelectorParser};
+use crate::shared_lock::{Locked, SharedRwLock};
+use crate::str::starts_with_ignore_ascii_case;
+use crate::stylesheets::document_rule::DocumentCondition;
+use crate::stylesheets::font_feature_values_rule::parse_family_name_list;
+use crate::stylesheets::keyframes_rule::parse_keyframe_list;
+use crate::stylesheets::stylesheet::Namespaces;
+use crate::stylesheets::supports_rule::SupportsCondition;
+use crate::stylesheets::viewport_rule;
+use crate::stylesheets::{CssRule, CssRuleType, CssRules, RulesMutateError, StylesheetLoader};
+use crate::stylesheets::{DocumentRule, FontFeatureValuesRule, KeyframesRule, MediaRule};
+use crate::stylesheets::{NamespaceRule, PageRule, StyleRule, SupportsRule, ViewportRule};
+use crate::values::computed::font::FamilyName;
+use crate::values::{CssUrl, CustomIdent, KeyframesName};
+use crate::{Namespace, Prefix};
 use cssparser::{AtRuleParser, AtRuleType, Parser, QualifiedRuleParser, RuleListParser};
 use cssparser::{BasicParseError, BasicParseErrorKind, CowRcStr, SourceLocation};
-use error_reporting::ContextualParseError;
-use font_face::parse_font_face_block;
-use media_queries::MediaList;
-use parser::{Parse, ParserContext};
-use properties::parse_property_declaration_list;
-use selector_parser::{SelectorImpl, SelectorParser};
 use selectors::SelectorList;
 use servo_arc::Arc;
-use shared_lock::{Locked, SharedRwLock};
-use str::starts_with_ignore_ascii_case;
 use style_traits::{ParseError, StyleParseErrorKind};
-use stylesheets::document_rule::DocumentCondition;
-use stylesheets::font_feature_values_rule::parse_family_name_list;
-use stylesheets::keyframes_rule::parse_keyframe_list;
-use stylesheets::stylesheet::Namespaces;
-use stylesheets::supports_rule::SupportsCondition;
-use stylesheets::viewport_rule;
-use stylesheets::{CssRule, CssRuleType, CssRules, RulesMutateError, StylesheetLoader};
-use stylesheets::{DocumentRule, FontFeatureValuesRule, KeyframesRule, MediaRule};
-use stylesheets::{NamespaceRule, PageRule, StyleRule, SupportsRule, ViewportRule};
-use values::computed::font::FamilyName;
-use values::{CssUrl, CustomIdent, KeyframesName};
-use {Namespace, Prefix};
 
 /// The information we need particularly to do CSSOM insertRule stuff.
 pub struct InsertRuleContext<'a> {
@@ -202,7 +202,7 @@ impl<'a, 'i> AtRuleParser<'i> for TopLevelRuleParser<'a> {
                     return Err(input.new_custom_error(StyleParseErrorKind::UnexpectedNamespaceRule))
                 }
 
-                let prefix = input.try(|i| i.expect_ident_cloned())
+                let prefix = input.r#try(|i| i.expect_ident_cloned())
                                   .map(|s| Prefix::from(s.as_ref())).ok();
                 let maybe_namespace = match input.expect_url_or_string() {
                     Ok(url_or_string) => url_or_string,

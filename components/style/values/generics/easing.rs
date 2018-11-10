@@ -5,8 +5,8 @@
 //! Generic types for CSS Easing Functions.
 //! https://drafts.csswg.org/css-easing/#timing-functions
 
-use parser::ParserContext;
-use values::CSSFloat;
+use crate::parser::ParserContext;
+use crate::values::CSSFloat;
 
 /// A generic easing function.
 #[derive(
@@ -58,7 +58,7 @@ pub enum TimingKeyword {
 
 #[cfg(feature = "gecko")]
 fn step_position_jump_enabled(_context: &ParserContext) -> bool {
-    use gecko_bindings::structs;
+    use crate::gecko_bindings::structs;
     unsafe { structs::StaticPrefs_sVarCache_layout_css_step_position_jump_enabled }
 }
 

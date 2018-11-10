@@ -4,11 +4,11 @@
 
 //! Specified values for outline properties
 
+use crate::parser::{Parse, ParserContext};
+use crate::values::specified::BorderStyle;
 use cssparser::Parser;
-use parser::{Parse, ParserContext};
 use selectors::parser::SelectorParseErrorKind;
 use style_traits::ParseError;
-use values::specified::BorderStyle;
 
 #[derive(
     Clone,
@@ -53,7 +53,7 @@ impl Parse for OutlineStyle {
         _context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<OutlineStyle, ParseError<'i>> {
-        if let Ok(border_style) = input.try(BorderStyle::parse) {
+        if let Ok(border_style) = input.r#try(BorderStyle::parse) {
             if let BorderStyle::Hidden = border_style {
                 return Err(input
                     .new_custom_error(SelectorParseErrorKind::UnexpectedIdent("hidden".into())));

@@ -4,10 +4,10 @@
 
 //! Rust helpers for Gecko's `nsCSSShadowArray`.
 
-use gecko_bindings::bindings::Gecko_AddRefCSSShadowArrayArbitraryThread;
-use gecko_bindings::bindings::Gecko_NewCSSShadowArray;
-use gecko_bindings::bindings::Gecko_ReleaseCSSShadowArrayArbitraryThread;
-use gecko_bindings::structs::{nsCSSShadowArray, nsCSSShadowItem, RefPtr};
+use crate::gecko_bindings::bindings::Gecko_AddRefCSSShadowArrayArbitraryThread;
+use crate::gecko_bindings::bindings::Gecko_NewCSSShadowArray;
+use crate::gecko_bindings::bindings::Gecko_ReleaseCSSShadowArrayArbitraryThread;
+use crate::gecko_bindings::structs::{nsCSSShadowArray, nsCSSShadowItem, RefPtr};
 use std::ops::{Deref, DerefMut};
 use std::{ptr, slice};
 

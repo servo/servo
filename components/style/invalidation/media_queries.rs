@@ -4,12 +4,12 @@
 
 //! Code related to the invalidation of media-query-affected rules.
 
-use context::QuirksMode;
+use crate::context::QuirksMode;
+use crate::media_queries::Device;
+use crate::shared_lock::SharedRwLockReadGuard;
+use crate::stylesheets::{DocumentRule, ImportRule, MediaRule};
+use crate::stylesheets::{NestedRuleIterationCondition, Stylesheet, SupportsRule};
 use fxhash::FxHashSet;
-use media_queries::Device;
-use shared_lock::SharedRwLockReadGuard;
-use stylesheets::{DocumentRule, ImportRule, MediaRule};
-use stylesheets::{NestedRuleIterationCondition, Stylesheet, SupportsRule};
 
 /// A key for a given media query result.
 ///
@@ -115,7 +115,7 @@ impl NestedRuleIterationCondition for PotentiallyEffectiveMediaRules {
         quirks_mode: QuirksMode,
         rule: &DocumentRule,
     ) -> bool {
-        use stylesheets::EffectiveRules;
+        use crate::stylesheets::EffectiveRules;
         EffectiveRules::process_document(guard, device, quirks_mode, rule)
     }
 
@@ -126,7 +126,7 @@ impl NestedRuleIterationCondition for PotentiallyEffectiveMediaRules {
         quirks_mode: QuirksMode,
         rule: &SupportsRule,
     ) -> bool {
-        use stylesheets::EffectiveRules;
+        use crate::stylesheets::EffectiveRules;
         EffectiveRules::process_supports(guard, device, quirks_mode, rule)
     }
 }

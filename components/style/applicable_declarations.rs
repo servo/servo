@@ -4,10 +4,10 @@
 
 //! Applicable declarations management.
 
-use properties::PropertyDeclarationBlock;
-use rule_tree::{CascadeLevel, ShadowCascadeOrder, StyleSource};
+use crate::properties::PropertyDeclarationBlock;
+use crate::rule_tree::{CascadeLevel, ShadowCascadeOrder, StyleSource};
+use crate::shared_lock::Locked;
 use servo_arc::Arc;
-use shared_lock::Locked;
 use smallvec::SmallVec;
 use std::fmt::{self, Debug};
 

@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use parsing::parse;
+use crate::parsing::parse;
 use style::parser::Parse;
 use style::properties::longhands::{border_image_outset, border_image_repeat, border_image_slice};
 use style::properties::longhands::{border_image_source, border_image_width};

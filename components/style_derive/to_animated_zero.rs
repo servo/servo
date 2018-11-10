@@ -2,8 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use animate::{AnimationFieldAttrs, AnimationInputAttrs, AnimationVariantAttrs};
-use cg;
+use crate::animate::{AnimationFieldAttrs, AnimationInputAttrs, AnimationVariantAttrs};
+use crate::cg;
 use quote;
 use syn;
 use synstructure;
@@ -16,7 +16,7 @@ pub fn derive(mut input: syn::DeriveInput) -> quote::Tokens {
         if !no_bound.contains(&param.ident) {
             cg::add_predicate(
                 &mut where_clause,
-                parse_quote!(#param: ::values::animated::ToAnimatedZero),
+                parse_quote!(#param: crate::values::animated::ToAnimatedZero),
             );
         }
     }
@@ -33,12 +33,12 @@ pub fn derive(mut input: syn::DeriveInput) -> quote::Tokens {
             let field_attrs = cg::parse_field_attrs::<AnimationFieldAttrs>(&binding.ast());
             if field_attrs.constant {
                 quote! {
-                    let #mapped_binding = ::std::clone::Clone::clone(#binding);
+                    let #mapped_binding = std::clone::Clone::clone(#binding);
                 }
             } else {
                 quote! {
                     let #mapped_binding =
-                        ::values::animated::ToAnimatedZero::to_animated_zero(#binding)?;
+                        crate::values::animated::ToAnimatedZero::to_animated_zero(#binding)?;
                 }
             }
         }));
@@ -51,7 +51,7 @@ pub fn derive(mut input: syn::DeriveInput) -> quote::Tokens {
     let (impl_generics, ty_generics, where_clause) = input.generics.split_for_impl();
 
     quote! {
-        impl #impl_generics ::values::animated::ToAnimatedZero for #name #ty_generics #where_clause {
+        impl #impl_generics crate::values::animated::ToAnimatedZero for #name #ty_generics #where_clause {
             #[allow(unused_variables)]
             #[inline]
             fn to_animated_zero(&self) -> Result<Self, ()> {

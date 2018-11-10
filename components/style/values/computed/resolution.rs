@@ -6,11 +6,11 @@
 //!
 //! https://drafts.csswg.org/css-values/#resolution
 
+use crate::values::computed::{Context, ToComputedValue};
+use crate::values::specified;
+use crate::values::CSSFloat;
 use std::fmt::{self, Write};
 use style_traits::{CssWriter, ToCss};
-use values::computed::{Context, ToComputedValue};
-use values::specified;
-use values::CSSFloat;
 
 /// A computed `<resolution>`.
 pub struct Resolution(CSSFloat);

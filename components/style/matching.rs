@@ -7,19 +7,19 @@
 #![allow(unsafe_code)]
 #![deny(missing_docs)]
 
-use context::{ElementCascadeInputs, QuirksMode, SelectorFlagsMap};
-use context::{SharedStyleContext, StyleContext};
-use data::ElementData;
-use dom::TElement;
-use invalidation::element::restyle_hints::RestyleHint;
-use properties::longhands::display::computed_value::T as Display;
-use properties::ComputedValues;
-use rule_tree::{CascadeLevel, StrongRuleNode};
-use selector_parser::{PseudoElement, RestyleDamage};
+use crate::context::{ElementCascadeInputs, QuirksMode, SelectorFlagsMap};
+use crate::context::{SharedStyleContext, StyleContext};
+use crate::data::ElementData;
+use crate::dom::TElement;
+use crate::invalidation::element::restyle_hints::RestyleHint;
+use crate::properties::longhands::display::computed_value::T as Display;
+use crate::properties::ComputedValues;
+use crate::rule_tree::{CascadeLevel, StrongRuleNode};
+use crate::selector_parser::{PseudoElement, RestyleDamage};
+use crate::style_resolver::ResolvedElementStyles;
+use crate::traversal_flags::TraversalFlags;
 use selectors::matching::ElementSelectorFlags;
 use servo_arc::{Arc, ArcBorrow};
-use style_resolver::ResolvedElementStyles;
-use traversal_flags::TraversalFlags;
 
 /// Represents the result of comparing an element's old and new style.
 #[derive(Debug)]
@@ -93,8 +93,8 @@ trait PrivateMatchMethods: TElement {
         cascade_visited: CascadeVisitedMode,
         cascade_inputs: &mut ElementCascadeInputs,
     ) -> bool {
-        use properties::PropertyDeclarationBlock;
-        use shared_lock::Locked;
+        use crate::properties::PropertyDeclarationBlock;
+        use crate::shared_lock::Locked;
 
         debug_assert!(
             replacements.intersects(RestyleHint::replacements()) &&
@@ -195,9 +195,9 @@ trait PrivateMatchMethods: TElement {
         context: &mut StyleContext<Self>,
         primary_style: &Arc<ComputedValues>,
     ) -> Option<Arc<ComputedValues>> {
-        use context::CascadeInputs;
-        use style_resolver::{PseudoElementResolution, StyleResolverForElement};
-        use stylist::RuleInclusion;
+        use crate::context::CascadeInputs;
+        use crate::style_resolver::{PseudoElementResolution, StyleResolverForElement};
+        use crate::stylist::RuleInclusion;
 
         let rule_node = primary_style.rules();
         let without_transition_rules = context
@@ -307,7 +307,7 @@ trait PrivateMatchMethods: TElement {
         new_values: &ComputedValues,
         restyle_hints: RestyleHint,
     ) {
-        use context::PostAnimationTasks;
+        use crate::context::PostAnimationTasks;
 
         if !restyle_hints.intersects(RestyleHint::RESTYLE_SMIL) {
             return;
@@ -337,7 +337,7 @@ trait PrivateMatchMethods: TElement {
         restyle_hint: RestyleHint,
         important_rules_changed: bool,
     ) {
-        use context::UpdateAnimationsTasks;
+        use crate::context::UpdateAnimationsTasks;
 
         if context.shared.traversal_flags.for_animation_only() {
             self.handle_display_change_for_smil_if_needed(
@@ -419,8 +419,8 @@ trait PrivateMatchMethods: TElement {
         _restyle_hint: RestyleHint,
         _important_rules_changed: bool,
     ) {
-        use animation;
-        use dom::TNode;
+        use crate::animation;
+        use crate::dom::TNode;
 
         let mut possibly_expired_animations = vec![];
         let shared_context = context.shared;
@@ -538,7 +538,7 @@ trait PrivateMatchMethods: TElement {
         // seems not common enough to care about.
         #[cfg(feature = "gecko")]
         {
-            use values::specified::align::AlignFlags;
+            use crate::values::specified::align::AlignFlags;
 
             let old_justify_items = old_values.get_position().clone_justify_items();
             let new_justify_items = new_values.get_position().clone_justify_items();
@@ -583,11 +583,11 @@ trait PrivateMatchMethods: TElement {
         &self,
         context: &SharedStyleContext,
         style: &mut Arc<ComputedValues>,
-        possibly_expired_animations: &mut Vec<::animation::PropertyAnimation>,
-        font_metrics: &::font_metrics::FontMetricsProvider,
+        possibly_expired_animations: &mut Vec<crate::animation::PropertyAnimation>,
+        font_metrics: &crate::font_metrics::FontMetricsProvider,
     ) {
-        use animation::{self, Animation, AnimationUpdate};
-        use dom::TNode;
+        use crate::animation::{self, Animation, AnimationUpdate};
+        use crate::dom::TNode;
 
         // Finish any expired transitions.
         let this_opaque = self.as_node().opaque();

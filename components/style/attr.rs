@@ -7,20 +7,20 @@
 //! [attr]: https://dom.spec.whatwg.org/#interface-attr
 
 use app_units::Au;
+use crate::properties::PropertyDeclarationBlock;
+use crate::shared_lock::Locked;
+use crate::str::str_join;
+use crate::str::{read_exponent, read_fraction, HTML_SPACE_CHARACTERS};
+use crate::str::{read_numbers, split_commas, split_html_space_chars};
+use crate::values::specified::Length;
+use crate::{Atom, LocalName, Namespace, Prefix};
 use cssparser::{self, Color, RGBA};
 use euclid::num::Zero;
 use num_traits::ToPrimitive;
-use properties::PropertyDeclarationBlock;
 use selectors::attr::AttrSelectorOperation;
 use servo_arc::Arc;
 use servo_url::ServoUrl;
-use shared_lock::Locked;
 use std::str::FromStr;
-use str::str_join;
-use str::{read_exponent, read_fraction, HTML_SPACE_CHARACTERS};
-use str::{read_numbers, split_commas, split_html_space_chars};
-use values::specified::Length;
-use {Atom, LocalName, Namespace, Prefix};
 
 // Duplicated from script::dom::values.
 const UNSIGNED_LONG_MAX: u32 = 2147483647;

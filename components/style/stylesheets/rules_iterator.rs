@@ -4,13 +4,13 @@
 
 //! An iterator over a list of rules.
 
-use context::QuirksMode;
-use media_queries::Device;
-use shared_lock::SharedRwLockReadGuard;
+use crate::context::QuirksMode;
+use crate::media_queries::Device;
+use crate::shared_lock::SharedRwLockReadGuard;
+use crate::stylesheets::StylesheetInDocument;
+use crate::stylesheets::{CssRule, DocumentRule, ImportRule, MediaRule, SupportsRule};
 use smallvec::SmallVec;
 use std::slice;
-use stylesheets::StylesheetInDocument;
-use stylesheets::{CssRule, DocumentRule, ImportRule, MediaRule, SupportsRule};
 
 /// An iterator over a list of rules.
 pub struct RulesIterator<'a, 'b, C>

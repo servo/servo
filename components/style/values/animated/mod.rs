@@ -9,14 +9,14 @@
 //! module's raison d'être is to ultimately contain all these types.
 
 use app_units::Au;
+use crate::properties::PropertyId;
+use crate::values::computed::length::CalcLengthOrPercentage;
+use crate::values::computed::url::ComputedUrl;
+use crate::values::computed::Angle as ComputedAngle;
+use crate::values::computed::BorderCornerRadius as ComputedBorderCornerRadius;
 use euclid::{Point2D, Size2D};
-use properties::PropertyId;
 use smallvec::SmallVec;
 use std::cmp;
-use values::computed::length::CalcLengthOrPercentage;
-use values::computed::url::ComputedUrl;
-use values::computed::Angle as ComputedAngle;
-use values::computed::BorderCornerRadius as ComputedBorderCornerRadius;
 
 pub mod color;
 pub mod effects;

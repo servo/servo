@@ -2,11 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use cg;
-use parse::ParseVariantAttrs;
+use crate::cg;
+use crate::parse::ParseVariantAttrs;
+use crate::to_css::{CssFieldAttrs, CssInputAttrs, CssVariantAttrs};
 use quote::Tokens;
 use syn::{Data, DeriveInput, Fields, Ident, Type};
-use to_css::{CssFieldAttrs, CssInputAttrs, CssVariantAttrs};
 
 pub fn derive(mut input: DeriveInput) -> Tokens {
     let css_attrs = cg::parse_input_attrs::<CssInputAttrs>(&input);
@@ -24,7 +24,7 @@ pub fn derive(mut input: DeriveInput) -> Tokens {
         for param in input.generics.type_params() {
             cg::add_predicate(
                 &mut where_clause,
-                parse_quote!(#param: ::style_traits::SpecifiedValueInfo),
+                parse_quote!(#param: style_traits::SpecifiedValueInfo),
             );
         }
         input.generics.where_clause = where_clause;
@@ -86,20 +86,20 @@ pub fn derive(mut input: DeriveInput) -> Tokens {
     let mut types_value = quote!(0);
     types_value.append_all(types.iter().map(|ty| {
         quote! {
-            | <#ty as ::style_traits::SpecifiedValueInfo>::SUPPORTED_TYPES
+            | <#ty as style_traits::SpecifiedValueInfo>::SUPPORTED_TYPES
         }
     }));
 
     let mut nested_collects = quote!();
     nested_collects.append_all(types.iter().map(|ty| {
         quote! {
-            <#ty as ::style_traits::SpecifiedValueInfo>::collect_completion_keywords(_f);
+            <#ty as style_traits::SpecifiedValueInfo>::collect_completion_keywords(_f);
         }
     }));
 
     if let Some(ty) = info_attrs.ty {
         types_value.append_all(quote! {
-            | ::style_traits::CssType::#ty
+            | style_traits::CssType::#ty
         });
     }
 
@@ -114,7 +114,7 @@ pub fn derive(mut input: DeriveInput) -> Tokens {
     let name = &input.ident;
     let (impl_generics, ty_generics, where_clause) = input.generics.split_for_impl();
     quote! {
-        impl #impl_generics ::style_traits::SpecifiedValueInfo for #name #ty_generics
+        impl #impl_generics style_traits::SpecifiedValueInfo for #name #ty_generics
         #where_clause
         {
             const SUPPORTED_TYPES: u8 = #types_value;

@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use cg;
+use crate::cg;
 use darling::util::Override;
 use quote::{ToTokens, Tokens};
 use syn::{self, Data, Path, WhereClause};
@@ -11,10 +11,7 @@ use synstructure::{BindingInfo, Structure, VariantInfo};
 pub fn derive(mut input: syn::DeriveInput) -> Tokens {
     let mut where_clause = input.generics.where_clause.take();
     for param in input.generics.type_params() {
-        cg::add_predicate(
-            &mut where_clause,
-            parse_quote!(#param: ::style_traits::ToCss),
-        );
+        cg::add_predicate(&mut where_clause, parse_quote!(#param: style_traits::ToCss));
     }
 
     let input_attrs = cg::parse_input_attrs::<CssInputAttrs>(&input);
@@ -36,15 +33,15 @@ pub fn derive(mut input: syn::DeriveInput) -> Tokens {
     let (impl_generics, ty_generics, where_clause) = input.generics.split_for_impl();
 
     let mut impls = quote! {
-        impl #impl_generics ::style_traits::ToCss for #name #ty_generics #where_clause {
+        impl #impl_generics style_traits::ToCss for #name #ty_generics #where_clause {
             #[allow(unused_variables)]
             #[inline]
             fn to_css<W>(
                 &self,
-                dest: &mut ::style_traits::CssWriter<W>,
-            ) -> ::std::fmt::Result
+                dest: &mut style_traits::CssWriter<W>,
+            ) -> std::fmt::Result
             where
-                W: ::std::fmt::Write,
+                W: std::fmt::Write,
             {
                 match *self {
                     #match_body
@@ -55,11 +52,11 @@ pub fn derive(mut input: syn::DeriveInput) -> Tokens {
 
     if input_attrs.derive_debug {
         impls.append_all(quote! {
-            impl #impl_generics ::std::fmt::Debug for #name #ty_generics #where_clause {
-                fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
-                    ::style_traits::ToCss::to_css(
+            impl #impl_generics std::fmt::Debug for #name #ty_generics #where_clause {
+                fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+                    style_traits::ToCss::to_css(
                         self,
-                        &mut ::style_traits::CssWriter::new(f),
+                        &mut style_traits::CssWriter::new(f),
                     )
                 }
             }
@@ -90,28 +87,28 @@ fn derive_variant_arm(variant: &VariantInfo, generics: &mut Option<WhereClause>)
     let mut expr = if let Some(keyword) = variant_attrs.keyword {
         assert!(bindings.is_empty());
         quote! {
-            ::std::fmt::Write::write_str(dest, #keyword)
+            std::fmt::Write::write_str(dest, #keyword)
         }
     } else if !bindings.is_empty() {
         derive_variant_fields_expr(bindings, generics, separator)
     } else {
         quote! {
-            ::std::fmt::Write::write_str(dest, #identifier)
+            std::fmt::Write::write_str(dest, #identifier)
         }
     };
 
     if variant_attrs.dimension {
         expr = quote! {
             #expr?;
-            ::std::fmt::Write::write_str(dest, #identifier)
+            std::fmt::Write::write_str(dest, #identifier)
         }
     } else if let Some(function) = variant_attrs.function {
         let mut identifier = function.explicit().map_or(identifier, |name| name);
         identifier.push_str("(");
         expr = quote! {
-            ::std::fmt::Write::write_str(dest, #identifier)?;
+            std::fmt::Write::write_str(dest, #identifier)?;
             #expr?;
-            ::std::fmt::Write::write_str(dest, ")")
+            std::fmt::Write::write_str(dest, ")")
         }
     }
     expr
@@ -140,9 +137,9 @@ fn derive_variant_fields_expr(
     if !attrs.iterable && iter.peek().is_none() {
         if attrs.field_bound {
             let ty = &first.ast().ty;
-            cg::add_predicate(where_clause, parse_quote!(#ty: ::style_traits::ToCss));
+            cg::add_predicate(where_clause, parse_quote!(#ty: style_traits::ToCss));
         }
-        let mut expr = quote! { ::style_traits::ToCss::to_css(#first, dest) };
+        let mut expr = quote! { style_traits::ToCss::to_css(#first, dest) };
         if let Some(condition) = attrs.skip_if {
             expr = quote! {
                 if !#condition(#first) {
@@ -159,7 +156,7 @@ fn derive_variant_fields_expr(
     }
 
     quote! {{
-        let mut writer = ::style_traits::values::SequenceWriter::new(dest, #separator);
+        let mut writer = style_traits::values::SequenceWriter::new(dest, #separator);
         #expr
         Ok(())
     }}
@@ -205,7 +202,7 @@ fn derive_single_field_expr(
     } else {
         if attrs.field_bound {
             let ty = &field.ast().ty;
-            cg::add_predicate(where_clause, parse_quote!(#ty: ::style_traits::ToCss));
+            cg::add_predicate(where_clause, parse_quote!(#ty: style_traits::ToCss));
         }
         quote! { writer.item(#field)?; }
     };

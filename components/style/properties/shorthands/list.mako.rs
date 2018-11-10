@@ -8,8 +8,8 @@
                     sub_properties="list-style-position list-style-image list-style-type"
                     derive_serialize="True"
                     spec="https://drafts.csswg.org/css-lists/#propdef-list-style">
-    use properties::longhands::{list_style_image, list_style_position, list_style_type};
-    use values::specified::url::ImageUrlOrNone;
+    use crate::properties::longhands::{list_style_image, list_style_position, list_style_type};
+    use crate::values::specified::url::ImageUrlOrNone;
 
     pub fn parse_value<'i, 't>(
         context: &ParserContext,
@@ -64,7 +64,7 @@
             % if product == "servo":
             list_style_type::SpecifiedValue::None
             % else:
-            use values::generics::CounterStyleOrNone;
+            use crate::values::generics::CounterStyleOrNone;
             list_style_type::SpecifiedValue::CounterStyle(CounterStyleOrNone::None)
             % endif
         }

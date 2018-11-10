@@ -5,15 +5,15 @@
 //! https://html.spec.whatwg.org/multipage/#source-size-list
 
 use app_units::Au;
-use cssparser::{Delimiter, Parser, Token};
 #[cfg(feature = "gecko")]
-use gecko_bindings::sugar::ownership::{HasBoxFFI, HasFFI, HasSimpleFFI};
-use media_queries::{Device, MediaCondition};
-use parser::{Parse, ParserContext};
+use crate::gecko_bindings::sugar::ownership::{HasBoxFFI, HasFFI, HasSimpleFFI};
+use crate::media_queries::{Device, MediaCondition};
+use crate::parser::{Parse, ParserContext};
+use crate::values::computed::{self, ToComputedValue};
+use crate::values::specified::{Length, NoCalcLength, ViewportPercentageLength};
+use cssparser::{Delimiter, Parser, Token};
 use selectors::context::QuirksMode;
 use style_traits::ParseError;
-use values::computed::{self, ToComputedValue};
-use values::specified::{Length, NoCalcLength, ViewportPercentageLength};
 
 /// A value for a `<source-size>`:
 ///
@@ -92,7 +92,7 @@ impl Parse for SourceSizeOrLength {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
-        if let Ok(size) = input.try(|input| SourceSize::parse(context, input)) {
+        if let Ok(size) = input.r#try(|input| SourceSize::parse(context, input)) {
             return Ok(SourceSizeOrLength::SourceSize(size));
         }
 
@@ -142,7 +142,7 @@ impl SourceSizeList {
 
 #[cfg(feature = "gecko")]
 unsafe impl HasFFI for SourceSizeList {
-    type FFIType = ::gecko_bindings::structs::RawServoSourceSizeList;
+    type FFIType = crate::gecko_bindings::structs::RawServoSourceSizeList;
 }
 #[cfg(feature = "gecko")]
 unsafe impl HasSimpleFFI for SourceSizeList {}

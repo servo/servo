@@ -6,22 +6,24 @@
 
 use super::{Context, Number, Percentage, ToComputedValue};
 use app_units::Au;
+use crate::values::animated::{Animate, Procedure, ToAnimatedValue, ToAnimatedZero};
+use crate::values::distance::{ComputeSquaredDistance, SquaredDistance};
+use crate::values::generics::length::{
+    MaxLength as GenericMaxLength, MozLength as GenericMozLength,
+};
+use crate::values::generics::NonNegative;
+use crate::values::specified::length::ViewportPercentageLength;
+use crate::values::specified::length::{AbsoluteLength, FontBaseSize, FontRelativeLength};
+use crate::values::{specified, Auto, CSSFloat, Either, IsAuto, Normal};
 use ordered_float::NotNan;
 use std::fmt::{self, Write};
 use std::ops::{Add, Neg};
 use style_traits::values::specified::AllowedNumericType;
 use style_traits::{CssWriter, ToCss};
-use values::animated::{Animate, Procedure, ToAnimatedValue, ToAnimatedZero};
-use values::distance::{ComputeSquaredDistance, SquaredDistance};
-use values::generics::length::{MaxLength as GenericMaxLength, MozLength as GenericMozLength};
-use values::generics::NonNegative;
-use values::specified::length::ViewportPercentageLength;
-use values::specified::length::{AbsoluteLength, FontBaseSize, FontRelativeLength};
-use values::{specified, Auto, CSSFloat, Either, IsAuto, Normal};
 
 pub use super::image::Image;
-pub use values::specified::url::UrlOrNone;
-pub use values::specified::{Angle, BorderStyle, Time};
+pub use crate::values::specified::url::UrlOrNone;
+pub use crate::values::specified::{Angle, BorderStyle, Time};
 
 impl ToComputedValue for specified::NoCalcLength {
     type ComputedValue = CSSPixelLength;

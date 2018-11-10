@@ -5,16 +5,16 @@
 //! A set of author stylesheets and their computed representation, such as the
 //! ones used for ShadowRoot and XBL.
 
-use context::QuirksMode;
-use dom::TElement;
+use crate::context::QuirksMode;
+use crate::dom::TElement;
 #[cfg(feature = "gecko")]
-use gecko_bindings::sugar::ownership::{HasBoxFFI, HasFFI, HasSimpleFFI};
-use invalidation::media_queries::ToMediaListKey;
-use media_queries::Device;
-use shared_lock::SharedRwLockReadGuard;
-use stylesheet_set::AuthorStylesheetSet;
-use stylesheets::StylesheetInDocument;
-use stylist::CascadeData;
+use crate::gecko_bindings::sugar::ownership::{HasBoxFFI, HasFFI, HasSimpleFFI};
+use crate::invalidation::media_queries::ToMediaListKey;
+use crate::media_queries::Device;
+use crate::shared_lock::SharedRwLockReadGuard;
+use crate::stylesheet_set::AuthorStylesheetSet;
+use crate::stylesheets::StylesheetInDocument;
+use crate::stylist::CascadeData;
 
 /// A set of author stylesheets and their computed representation, such as the
 /// ones used for ShadowRoot and XBL.
@@ -76,10 +76,10 @@ where
 }
 
 #[cfg(feature = "gecko")]
-unsafe impl HasFFI for AuthorStyles<::gecko::data::GeckoStyleSheet> {
-    type FFIType = ::gecko_bindings::bindings::RawServoAuthorStyles;
+unsafe impl HasFFI for AuthorStyles<crate::gecko::data::GeckoStyleSheet> {
+    type FFIType = crate::gecko_bindings::bindings::RawServoAuthorStyles;
 }
 #[cfg(feature = "gecko")]
-unsafe impl HasSimpleFFI for AuthorStyles<::gecko::data::GeckoStyleSheet> {}
+unsafe impl HasSimpleFFI for AuthorStyles<crate::gecko::data::GeckoStyleSheet> {}
 #[cfg(feature = "gecko")]
-unsafe impl HasBoxFFI for AuthorStyles<::gecko::data::GeckoStyleSheet> {}
+unsafe impl HasBoxFFI for AuthorStyles<crate::gecko::data::GeckoStyleSheet> {}

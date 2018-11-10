@@ -4,16 +4,16 @@
 
 //! Computed types for SVG properties.
 
-use values::computed::color::Color;
-use values::computed::url::ComputedUrl;
-use values::computed::{LengthOrPercentage, NonNegativeLengthOrPercentage};
-use values::computed::{NonNegativeNumber, Number, Opacity};
-use values::generics::svg as generic;
-use values::RGBA;
+use crate::values::computed::color::Color;
+use crate::values::computed::url::ComputedUrl;
+use crate::values::computed::{LengthOrPercentage, NonNegativeLengthOrPercentage};
+use crate::values::computed::{NonNegativeNumber, Number, Opacity};
+use crate::values::generics::svg as generic;
+use crate::values::RGBA;
 
-pub use values::specified::SVGPaintOrder;
+pub use crate::values::specified::SVGPaintOrder;
 
-pub use values::specified::MozContextProperties;
+pub use crate::values::specified::MozContextProperties;
 
 /// Computed SVG Paint value
 pub type SVGPaint = generic::SVGPaint<Color, ComputedUrl>;
@@ -83,7 +83,7 @@ pub type SVGWidth = generic::SVGLength<NonNegativeSvgLengthOrPercentageOrNumber>
 impl SVGWidth {
     /// `1px`.
     pub fn one() -> Self {
-        use values::generics::NonNegative;
+        use crate::values::generics::NonNegative;
         generic::SVGLength::Length(generic::SvgLengthOrPercentageOrNumber::LengthOrPercentage(
             NonNegative(LengthOrPercentage::one()),
         ))

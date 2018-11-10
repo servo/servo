@@ -5,20 +5,20 @@
 //! Servo's media-query device and expression representation.
 
 use app_units::Au;
+use crate::custom_properties::CssEnvironment;
+use crate::media_queries::media_feature::{AllowsRanges, ParsingRequirements};
+use crate::media_queries::media_feature::{Evaluator, MediaFeatureDescription};
+use crate::media_queries::media_feature_expression::RangeOrOperator;
+use crate::media_queries::MediaType;
+use crate::properties::ComputedValues;
+use crate::values::computed::font::FontSize;
+use crate::values::computed::CSSPixelLength;
+use crate::values::KeyframesName;
 use cssparser::RGBA;
-use custom_properties::CssEnvironment;
 use euclid::{Size2D, TypedScale, TypedSize2D};
-use media_queries::media_feature::{AllowsRanges, ParsingRequirements};
-use media_queries::media_feature::{Evaluator, MediaFeatureDescription};
-use media_queries::media_feature_expression::RangeOrOperator;
-use media_queries::MediaType;
-use properties::ComputedValues;
 use std::sync::atomic::{AtomicBool, AtomicIsize, Ordering};
 use style_traits::viewport::ViewportConstraints;
 use style_traits::{CSSPixel, DevicePixel};
-use values::computed::font::FontSize;
-use values::computed::CSSPixelLength;
-use values::KeyframesName;
 
 /// A device is a structure that represents the current media a given document
 /// is displayed in.

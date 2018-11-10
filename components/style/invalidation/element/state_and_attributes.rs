@@ -5,24 +5,24 @@
 //! An invalidation processor for style changes due to state and attribute
 //! changes.
 
-use context::SharedStyleContext;
-use data::ElementData;
-use dom::TElement;
-use element_state::ElementState;
-use invalidation::element::element_wrapper::{ElementSnapshot, ElementWrapper};
-use invalidation::element::invalidation_map::*;
-use invalidation::element::invalidator::{DescendantInvalidationLists, InvalidationVector};
-use invalidation::element::invalidator::{Invalidation, InvalidationProcessor};
-use invalidation::element::restyle_hints::RestyleHint;
-use selector_map::SelectorMap;
-use selector_parser::Snapshot;
+use crate::context::SharedStyleContext;
+use crate::data::ElementData;
+use crate::dom::TElement;
+use crate::element_state::ElementState;
+use crate::invalidation::element::element_wrapper::{ElementSnapshot, ElementWrapper};
+use crate::invalidation::element::invalidation_map::*;
+use crate::invalidation::element::invalidator::{DescendantInvalidationLists, InvalidationVector};
+use crate::invalidation::element::invalidator::{Invalidation, InvalidationProcessor};
+use crate::invalidation::element::restyle_hints::RestyleHint;
+use crate::selector_map::SelectorMap;
+use crate::selector_parser::Snapshot;
+use crate::stylesheets::origin::{Origin, OriginSet};
+use crate::{Atom, WeakAtom};
 use selectors::attr::CaseSensitivity;
 use selectors::matching::matches_selector;
 use selectors::matching::{MatchingContext, MatchingMode, VisitedHandlingMode};
 use selectors::NthIndexCache;
 use smallvec::SmallVec;
-use stylesheets::origin::{Origin, OriginSet};
-use {Atom, WeakAtom};
 
 /// The collector implementation.
 struct Collector<'a, 'b: 'a, 'selectors: 'a, E>

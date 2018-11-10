@@ -5,16 +5,16 @@
 //! Generic types for CSS values that are related to transformations.
 
 use app_units::Au;
+use crate::values::computed::length::Length as ComputedLength;
+use crate::values::computed::length::LengthOrPercentage as ComputedLengthOrPercentage;
+use crate::values::specified::angle::Angle as SpecifiedAngle;
+use crate::values::specified::length::Length as SpecifiedLength;
+use crate::values::specified::length::LengthOrPercentage as SpecifiedLengthOrPercentage;
+use crate::values::{computed, CSSFloat};
 use euclid::{self, Rect, Transform3D};
 use num_traits::Zero;
 use std::fmt::{self, Write};
 use style_traits::{CssWriter, ToCss};
-use values::computed::length::Length as ComputedLength;
-use values::computed::length::LengthOrPercentage as ComputedLengthOrPercentage;
-use values::specified::angle::Angle as SpecifiedAngle;
-use values::specified::length::Length as SpecifiedLength;
-use values::specified::length::LengthOrPercentage as SpecifiedLengthOrPercentage;
-use values::{computed, CSSFloat};
 
 /// A generic 2D transformation matrix.
 #[allow(missing_docs)]
@@ -514,8 +514,8 @@ pub fn get_normalized_vector_and_angle<T: Zero>(
     z: CSSFloat,
     angle: T,
 ) -> (CSSFloat, CSSFloat, CSSFloat, T) {
+    use crate::values::computed::transform::DirectionVector;
     use euclid::approxeq::ApproxEq;
-    use values::computed::transform::DirectionVector;
     let vector = DirectionVector::new(x, y, z);
     if vector.square_length().approx_eq(&f32::zero()) {
         // https://www.w3.org/TR/css-transforms-1/#funcdef-rotate3d

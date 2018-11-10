@@ -7,30 +7,32 @@
 //! Different kind of helpers to interact with Gecko values.
 
 use app_units::Au;
-use counter_style::{Symbol, Symbols};
+use crate::counter_style::{Symbol, Symbols};
+use crate::gecko_bindings::structs::{self, nsStyleCoord, CounterStylePtr};
+use crate::gecko_bindings::structs::{StyleGridTrackBreadth, StyleShapeRadius};
+use crate::gecko_bindings::sugar::ns_style_coord::{CoordData, CoordDataMut, CoordDataValue};
+use crate::media_queries::Device;
+use crate::values::computed::basic_shape::ShapeRadius as ComputedShapeRadius;
+use crate::values::computed::FlexBasis as ComputedFlexBasis;
+use crate::values::computed::{Angle, ExtremumLength, Length, LengthOrPercentage};
+use crate::values::computed::{LengthOrPercentageOrAuto, Percentage};
+use crate::values::computed::{LengthOrPercentageOrNone, Number, NumberOrPercentage};
+use crate::values::computed::{MaxLength as ComputedMaxLength, MozLength as ComputedMozLength};
+use crate::values::computed::{
+    NonNegativeLength, NonNegativeLengthOrPercentage, NonNegativeNumber,
+};
+use crate::values::generics::basic_shape::ShapeRadius;
+use crate::values::generics::box_::Perspective;
+use crate::values::generics::flex::FlexBasis;
+use crate::values::generics::gecko::ScrollSnapPoint;
+use crate::values::generics::grid::{TrackBreadth, TrackKeyword};
+use crate::values::generics::length::{MaxLength, MozLength};
+use crate::values::generics::{CounterStyleOrNone, NonNegative};
+use crate::values::{Auto, Either, None_, Normal};
+use crate::Atom;
 use cssparser::RGBA;
-use gecko_bindings::structs::{self, nsStyleCoord, CounterStylePtr};
-use gecko_bindings::structs::{StyleGridTrackBreadth, StyleShapeRadius};
-use gecko_bindings::sugar::ns_style_coord::{CoordData, CoordDataMut, CoordDataValue};
-use media_queries::Device;
 use nsstring::{nsACString, nsCStr};
 use std::cmp::max;
-use values::computed::basic_shape::ShapeRadius as ComputedShapeRadius;
-use values::computed::FlexBasis as ComputedFlexBasis;
-use values::computed::{Angle, ExtremumLength, Length, LengthOrPercentage};
-use values::computed::{LengthOrPercentageOrAuto, Percentage};
-use values::computed::{LengthOrPercentageOrNone, Number, NumberOrPercentage};
-use values::computed::{MaxLength as ComputedMaxLength, MozLength as ComputedMozLength};
-use values::computed::{NonNegativeLength, NonNegativeLengthOrPercentage, NonNegativeNumber};
-use values::generics::basic_shape::ShapeRadius;
-use values::generics::box_::Perspective;
-use values::generics::flex::FlexBasis;
-use values::generics::gecko::ScrollSnapPoint;
-use values::generics::grid::{TrackBreadth, TrackKeyword};
-use values::generics::length::{MaxLength, MozLength};
-use values::generics::{CounterStyleOrNone, NonNegative};
-use values::{Auto, Either, None_, Normal};
-use Atom;
 
 /// A trait that defines an interface to convert from and to `nsStyleCoord`s.
 pub trait GeckoStyleCoordConvertible: Sized {
@@ -377,8 +379,12 @@ impl GeckoStyleCoordConvertible for Normal {
 
 impl GeckoStyleCoordConvertible for ExtremumLength {
     fn to_gecko_style_coord<T: CoordDataMut>(&self, coord: &mut T) {
-        use gecko_bindings::structs::{NS_STYLE_WIDTH_AVAILABLE, NS_STYLE_WIDTH_FIT_CONTENT};
-        use gecko_bindings::structs::{NS_STYLE_WIDTH_MAX_CONTENT, NS_STYLE_WIDTH_MIN_CONTENT};
+        use crate::gecko_bindings::structs::{
+            NS_STYLE_WIDTH_AVAILABLE, NS_STYLE_WIDTH_FIT_CONTENT,
+        };
+        use crate::gecko_bindings::structs::{
+            NS_STYLE_WIDTH_MAX_CONTENT, NS_STYLE_WIDTH_MIN_CONTENT,
+        };
         coord.set_value(CoordDataValue::Enumerated(match *self {
             ExtremumLength::MozMaxContent => NS_STYLE_WIDTH_MAX_CONTENT,
             ExtremumLength::MozMinContent => NS_STYLE_WIDTH_MIN_CONTENT,
@@ -388,8 +394,12 @@ impl GeckoStyleCoordConvertible for ExtremumLength {
     }
 
     fn from_gecko_style_coord<T: CoordData>(coord: &T) -> Option<Self> {
-        use gecko_bindings::structs::{NS_STYLE_WIDTH_AVAILABLE, NS_STYLE_WIDTH_FIT_CONTENT};
-        use gecko_bindings::structs::{NS_STYLE_WIDTH_MAX_CONTENT, NS_STYLE_WIDTH_MIN_CONTENT};
+        use crate::gecko_bindings::structs::{
+            NS_STYLE_WIDTH_AVAILABLE, NS_STYLE_WIDTH_FIT_CONTENT,
+        };
+        use crate::gecko_bindings::structs::{
+            NS_STYLE_WIDTH_MAX_CONTENT, NS_STYLE_WIDTH_MIN_CONTENT,
+        };
         match coord.as_value() {
             CoordDataValue::Enumerated(NS_STYLE_WIDTH_MAX_CONTENT) => {
                 Some(ExtremumLength::MozMaxContent)
@@ -451,8 +461,8 @@ impl GeckoStyleCoordConvertible for ScrollSnapPoint<LengthOrPercentage> {
     }
 
     fn from_gecko_style_coord<T: CoordData>(coord: &T) -> Option<Self> {
-        use gecko_bindings::structs::root::nsStyleUnit;
-        use values::generics::gecko::ScrollSnapPoint;
+        use crate::gecko_bindings::structs::root::nsStyleUnit;
+        use crate::values::generics::gecko::ScrollSnapPoint;
 
         Some(match coord.unit() {
             nsStyleUnit::eStyleUnit_None => ScrollSnapPoint::None,
@@ -476,7 +486,7 @@ where
     }
 
     fn from_gecko_style_coord<T: CoordData>(coord: &T) -> Option<Self> {
-        use gecko_bindings::structs::root::nsStyleUnit;
+        use crate::gecko_bindings::structs::root::nsStyleUnit;
 
         if coord.unit() == nsStyleUnit::eStyleUnit_None {
             return Some(Perspective::None);
@@ -521,8 +531,8 @@ pub fn round_border_to_device_pixels(width: Au, au_per_device_px: Au) -> Au {
 impl CounterStyleOrNone {
     /// Convert this counter style to a Gecko CounterStylePtr.
     pub fn to_gecko_value(self, gecko_value: &mut CounterStylePtr, device: &Device) {
-        use gecko_bindings::bindings::Gecko_SetCounterStyleToName as set_name;
-        use gecko_bindings::bindings::Gecko_SetCounterStyleToSymbols as set_symbols;
+        use crate::gecko_bindings::bindings::Gecko_SetCounterStyleToName as set_name;
+        use crate::gecko_bindings::bindings::Gecko_SetCounterStyleToSymbols as set_symbols;
         let pres_context = device.pres_context();
         match self {
             CounterStyleOrNone::None => unsafe {
@@ -558,9 +568,9 @@ impl CounterStyleOrNone {
 
     /// Convert Gecko CounterStylePtr to CounterStyleOrNone or String.
     pub fn from_gecko_value(gecko_value: &CounterStylePtr) -> Either<Self, String> {
-        use gecko_bindings::bindings;
-        use values::generics::SymbolsType;
-        use values::CustomIdent;
+        use crate::gecko_bindings::bindings;
+        use crate::values::generics::SymbolsType;
+        use crate::values::CustomIdent;
 
         let name = unsafe { bindings::Gecko_CounterStyle_GetName(gecko_value) };
         if !name.is_null() {

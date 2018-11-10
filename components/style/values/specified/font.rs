@@ -6,28 +6,30 @@
 
 use app_units::Au;
 use byteorder::{BigEndian, ByteOrder};
+#[cfg(feature = "gecko")]
+use crate::gecko_bindings::bindings;
+use crate::parser::{Parse, ParserContext};
+use crate::properties::longhands::system_font::SystemFont;
+use crate::values::computed::font::{FamilyName, FontFamilyList, FontStyleAngle, SingleFontFamily};
+use crate::values::computed::{
+    font as computed, Context, Length, NonNegativeLength, ToComputedValue,
+};
+use crate::values::computed::{Angle as ComputedAngle, Percentage as ComputedPercentage};
+use crate::values::generics::font::{self as generics, FeatureTagValue, FontSettings, FontTag};
+use crate::values::generics::font::{KeywordSize, VariationValue};
+use crate::values::generics::NonNegative;
+use crate::values::specified::length::{FontBaseSize, AU_PER_PT, AU_PER_PX};
+use crate::values::specified::{AllowQuirks, Angle, Integer, LengthOrPercentage};
+use crate::values::specified::{NoCalcLength, Number, Percentage};
+use crate::values::CustomIdent;
+use crate::Atom;
 use cssparser::{Parser, Token};
 #[cfg(feature = "gecko")]
-use gecko_bindings::bindings;
-#[cfg(feature = "gecko")]
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
-use parser::{Parse, ParserContext};
-use properties::longhands::system_font::SystemFont;
 use std::fmt::{self, Write};
 use style_traits::values::SequenceWriter;
 use style_traits::{CssWriter, KeywordsCollectFn, ParseError};
 use style_traits::{SpecifiedValueInfo, StyleParseErrorKind, ToCss};
-use values::computed::font::{FamilyName, FontFamilyList, FontStyleAngle, SingleFontFamily};
-use values::computed::{font as computed, Context, Length, NonNegativeLength, ToComputedValue};
-use values::computed::{Angle as ComputedAngle, Percentage as ComputedPercentage};
-use values::generics::font::{self as generics, FeatureTagValue, FontSettings, FontTag};
-use values::generics::font::{KeywordSize, VariationValue};
-use values::generics::NonNegative;
-use values::specified::length::{FontBaseSize, AU_PER_PT, AU_PER_PX};
-use values::specified::{AllowQuirks, Angle, Integer, LengthOrPercentage};
-use values::specified::{NoCalcLength, Number, Percentage};
-use values::CustomIdent;
-use Atom;
 
 // FIXME(emilio): The system font code is copy-pasta, and should be cleaned up.
 macro_rules! system_font_methods {
@@ -115,7 +117,7 @@ impl Parse for FontWeight {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<FontWeight, ParseError<'i>> {
-        if let Ok(absolute) = input.try(|input| AbsoluteFontWeight::parse(context, input)) {
+        if let Ok(absolute) = input.r#try(|input| AbsoluteFontWeight::parse(context, input)) {
             return Ok(FontWeight::Absolute(absolute));
         }
 
@@ -188,7 +190,7 @@ impl Parse for AbsoluteFontWeight {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
-        if let Ok(number) = input.try(|input| Number::parse(context, input)) {
+        if let Ok(number) = input.r#try(|input| Number::parse(context, input)) {
             // We could add another AllowedNumericType value, but it doesn't
             // seem worth it just for a single property with such a weird range,
             // so we do the clamping here manually.
@@ -240,7 +242,7 @@ impl Parse for SpecifiedFontStyle {
             "normal" => generics::FontStyle::Normal,
             "italic" => generics::FontStyle::Italic,
             "oblique" => {
-                let angle = input.try(|input| Self::parse_angle(context, input))
+                let angle = input.r#try(|input| Self::parse_angle(context, input))
                     .unwrap_or_else(|_| Self::default_angle());
 
                 generics::FontStyle::Oblique(angle)
@@ -479,7 +481,8 @@ impl Parse for FontStretch {
         //
         //    Values less than 0% are not allowed and are treated as parse
         //    errors.
-        if let Ok(percentage) = input.try(|input| Percentage::parse_non_negative(context, input)) {
+        if let Ok(percentage) = input.r#try(|input| Percentage::parse_non_negative(context, input))
+        {
             return Ok(FontStretch::Stretch(percentage));
         }
 
@@ -679,7 +682,7 @@ impl Parse for FontSizeAdjust {
         input: &mut Parser<'i, 't>,
     ) -> Result<FontSizeAdjust, ParseError<'i>> {
         if input
-            .try(|input| input.expect_ident_matching("none"))
+            .r#try(|input| input.expect_ident_matching("none"))
             .is_ok()
         {
             return Ok(FontSizeAdjust::None);
@@ -749,8 +752,8 @@ impl ToComputedValue for KeywordSize {
     type ComputedValue = NonNegativeLength;
     #[inline]
     fn to_computed_value(&self, cx: &Context) -> NonNegativeLength {
-        use context::QuirksMode;
-        use values::specified::length::au_to_int_px;
+        use crate::context::QuirksMode;
+        use crate::values::specified::length::au_to_int_px;
 
         // The tables in this function are originally from
         // nsRuleNode::CalcFontPointSize in Gecko:
@@ -850,7 +853,7 @@ impl FontSize {
         context: &Context,
         base_size: FontBaseSize,
     ) -> computed::FontSize {
-        use values::specified::length::FontRelativeLength;
+        use crate::values::specified::length::FontRelativeLength;
 
         let compose_keyword = |factor| {
             context
@@ -987,12 +990,12 @@ impl FontSize {
         allow_quirks: AllowQuirks,
     ) -> Result<FontSize, ParseError<'i>> {
         if let Ok(lop) =
-            input.try(|i| LengthOrPercentage::parse_non_negative_quirky(context, i, allow_quirks))
+            input.r#try(|i| LengthOrPercentage::parse_non_negative_quirky(context, i, allow_quirks))
         {
             return Ok(FontSize::Length(lop));
         }
 
-        if let Ok(kw) = input.try(KeywordSize::parse) {
+        if let Ok(kw) = input.r#try(KeywordSize::parse) {
             return Ok(FontSize::Keyword(kw.into()));
         }
 
@@ -1174,7 +1177,7 @@ impl Parse for FontVariantAlternates {
     ) -> Result<FontVariantAlternates, ParseError<'i>> {
         let mut alternates = Vec::new();
         if input
-            .try(|input| input.expect_ident_matching("normal"))
+            .r#try(|input| input.expect_ident_matching("normal"))
             .is_ok()
         {
             return Ok(FontVariantAlternates::Value(VariantAlternatesList(
@@ -1191,7 +1194,7 @@ impl Parse for FontVariantAlternates {
                 parsed_alternates |= $flag;
             )
         );
-        while let Ok(_) = input.try(|input| {
+        while let Ok(_) = input.r#try(|input| {
             // FIXME: remove clone() when lifetimes are non-lexical
             match input.next()?.clone() {
                 Token::Ident(ref value) if value.eq_ignore_ascii_case("historical-forms") => {
@@ -1306,7 +1309,7 @@ macro_rules! impl_variant_east_asian {
         #[cfg(feature = "gecko")]
         #[inline]
         pub fn assert_variant_east_asian_matches() {
-            use gecko_bindings::structs;
+            use crate::gecko_bindings::structs;
             $(
                 debug_assert_eq!(structs::$gecko as u16, VariantEastAsian::$ident.bits());
             )+
@@ -1406,13 +1409,13 @@ impl Parse for FontVariantEastAsian {
         let mut result = VariantEastAsian::empty();
 
         if input
-            .try(|input| input.expect_ident_matching("normal"))
+            .r#try(|input| input.expect_ident_matching("normal"))
             .is_ok()
         {
             return Ok(FontVariantEastAsian::Value(result));
         }
 
-        while let Ok(flag) = input.try(|input| {
+        while let Ok(flag) = input.r#try(|input| {
             Ok(
                 match_ignore_ascii_case! { &input.expect_ident().map_err(|_| ())?,
                     "jis78" =>
@@ -1516,7 +1519,7 @@ macro_rules! impl_variant_ligatures {
         #[cfg(feature = "gecko")]
         #[inline]
         pub fn assert_variant_ligatures_matches() {
-            use gecko_bindings::structs;
+            use crate::gecko_bindings::structs;
             $(
                 debug_assert_eq!(structs::$gecko as u16, VariantLigatures::$ident.bits());
             )+
@@ -1630,19 +1633,19 @@ impl Parse for FontVariantLigatures {
         let mut result = VariantLigatures::empty();
 
         if input
-            .try(|input| input.expect_ident_matching("normal"))
+            .r#try(|input| input.expect_ident_matching("normal"))
             .is_ok()
         {
             return Ok(FontVariantLigatures::Value(result));
         }
         if input
-            .try(|input| input.expect_ident_matching("none"))
+            .r#try(|input| input.expect_ident_matching("none"))
             .is_ok()
         {
             return Ok(FontVariantLigatures::Value(VariantLigatures::NONE));
         }
 
-        while let Ok(flag) = input.try(|input| {
+        while let Ok(flag) = input.r#try(|input| {
             Ok(
                 match_ignore_ascii_case! { &input.expect_ident().map_err(|_| ())?,
                     "common-ligatures" =>
@@ -1735,7 +1738,7 @@ macro_rules! impl_variant_numeric {
         #[cfg(feature = "gecko")]
         #[inline]
         pub fn assert_variant_numeric_matches() {
-            use gecko_bindings::structs;
+            use crate::gecko_bindings::structs;
             $(
                 debug_assert_eq!(structs::$gecko as u8, VariantNumeric::$ident.bits());
             )+
@@ -1839,13 +1842,13 @@ impl Parse for FontVariantNumeric {
         let mut result = VariantNumeric::empty();
 
         if input
-            .try(|input| input.expect_ident_matching("normal"))
+            .r#try(|input| input.expect_ident_matching("normal"))
             .is_ok()
         {
             return Ok(FontVariantNumeric::Value(result));
         }
 
-        while let Ok(flag) = input.try(|input| {
+        while let Ok(flag) = input.r#try(|input| {
             Ok(
                 match_ignore_ascii_case! { &input.expect_ident().map_err(|_| ())?,
                     "ordinal" =>
@@ -1979,14 +1982,14 @@ impl Parse for FontSynthesis {
             "none" => Ok(result),
             "weight" => {
                 result.weight = true;
-                if input.try(|input| input.expect_ident_matching("style")).is_ok() {
+                if input.r#try(|input| input.expect_ident_matching("style")).is_ok() {
                     result.style = true;
                 }
                 Ok(result)
             },
             "style" => {
                 result.style = true;
-                if input.try(|input| input.expect_ident_matching("weight")).is_ok() {
+                if input.r#try(|input| input.expect_ident_matching("weight")).is_ok() {
                     result.weight = true;
                 }
                 Ok(result)
@@ -2015,7 +2018,7 @@ impl ToCss for FontSynthesis {
 #[cfg(feature = "gecko")]
 impl From<u8> for FontSynthesis {
     fn from(bits: u8) -> FontSynthesis {
-        use gecko_bindings::structs;
+        use crate::gecko_bindings::structs;
 
         FontSynthesis {
             weight: bits & structs::NS_FONT_SYNTHESIS_WEIGHT as u8 != 0,
@@ -2027,7 +2030,7 @@ impl From<u8> for FontSynthesis {
 #[cfg(feature = "gecko")]
 impl From<FontSynthesis> for u8 {
     fn from(v: FontSynthesis) -> u8 {
-        use gecko_bindings::structs;
+        use crate::gecko_bindings::structs;
 
         let mut bits: u8 = 0;
         if v.weight {
@@ -2125,7 +2128,7 @@ impl Parse for FontLanguageOverride {
         input: &mut Parser<'i, 't>,
     ) -> Result<FontLanguageOverride, ParseError<'i>> {
         if input
-            .try(|input| input.expect_ident_matching("normal"))
+            .r#try(|input| input.expect_ident_matching("normal"))
             .is_ok()
         {
             return Ok(FontLanguageOverride::Normal);
@@ -2192,7 +2195,7 @@ fn parse_one_feature_value<'i, 't>(
     context: &ParserContext,
     input: &mut Parser<'i, 't>,
 ) -> Result<Integer, ParseError<'i>> {
-    if let Ok(integer) = input.try(|i| Integer::parse_non_negative(context, i)) {
+    if let Ok(integer) = input.r#try(|i| Integer::parse_non_negative(context, i)) {
         return Ok(integer);
     }
 
@@ -2210,7 +2213,7 @@ impl Parse for FeatureTagValue<Integer> {
     ) -> Result<Self, ParseError<'i>> {
         let tag = FontTag::parse(context, input)?;
         let value = input
-            .try(|i| parse_one_feature_value(context, i))
+            .r#try(|i| parse_one_feature_value(context, i))
             .unwrap_or_else(|_| Integer::new(1));
 
         Ok(Self { tag, value })
@@ -2328,7 +2331,7 @@ impl Parse for MozScriptLevel {
         input: &mut Parser<'i, 't>,
     ) -> Result<MozScriptLevel, ParseError<'i>> {
         // We don't bother to handle calc here.
-        if let Ok(i) = input.try(|i| i.expect_integer()) {
+        if let Ok(i) = input.r#try(|i| i.expect_integer()) {
             return Ok(MozScriptLevel::Relative(i));
         }
         input.expect_ident_matching("auto")?;

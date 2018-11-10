@@ -5,15 +5,15 @@
 //! Generic types for the handling of
 //! [grids](https://drafts.csswg.org/css-grid/).
 
+use crate::parser::{Parse, ParserContext};
+use crate::values::computed::{Context, ToComputedValue};
+use crate::values::specified;
+use crate::values::specified::grid::parse_line_names;
+use crate::values::{CSSFloat, CustomIdent};
 use cssparser::Parser;
-use parser::{Parse, ParserContext};
 use std::fmt::{self, Write};
 use std::{mem, usize};
 use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
-use values::computed::{Context, ToComputedValue};
-use values::specified;
-use values::specified::grid::parse_line_names;
-use values::{CSSFloat, CustomIdent};
 
 /// A `<grid-line>` type.
 ///
@@ -86,7 +86,7 @@ impl Parse for GridLine<specified::Integer> {
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
         let mut grid_line = Self::auto();
-        if input.try(|i| i.expect_ident_matching("auto")).is_ok() {
+        if input.r#try(|i| i.expect_ident_matching("auto")).is_ok() {
             return Ok(grid_line);
         }
 
@@ -99,7 +99,7 @@ impl Parse for GridLine<specified::Integer> {
         for _ in 0..3 {
             // Maximum possible entities for <grid-line>
             let location = input.current_source_location();
-            if input.try(|i| i.expect_ident_matching("span")).is_ok() {
+            if input.r#try(|i| i.expect_ident_matching("span")).is_ok() {
                 if grid_line.is_span {
                     return Err(location.new_custom_error(StyleParseErrorKind::UnspecifiedError));
                 }
@@ -109,14 +109,14 @@ impl Parse for GridLine<specified::Integer> {
                 }
 
                 grid_line.is_span = true;
-            } else if let Ok(i) = input.try(|i| specified::Integer::parse(context, i)) {
+            } else if let Ok(i) = input.r#try(|i| specified::Integer::parse(context, i)) {
                 // FIXME(emilio): Probably shouldn't reject if it's calc()...
                 if i.value() == 0 || val_before_span || grid_line.line_num.is_some() {
                     return Err(location.new_custom_error(StyleParseErrorKind::UnspecifiedError));
                 }
 
                 grid_line.line_num = Some(i);
-            } else if let Ok(name) = input.try(|i| i.expect_ident_cloned()) {
+            } else if let Ok(name) = input.r#try(|i| i.expect_ident_cloned()) {
                 if val_before_span || grid_line.ident.is_some() {
                     return Err(location.new_custom_error(StyleParseErrorKind::UnspecifiedError));
                 }
@@ -375,7 +375,7 @@ impl Parse for RepeatCount<specified::Integer> {
     ) -> Result<Self, ParseError<'i>> {
         // Maximum number of repeat is 10000. The greater numbers should be clamped.
         const MAX_LINE: i32 = 10000;
-        if let Ok(mut i) = input.try(|i| specified::Integer::parse_positive(context, i)) {
+        if let Ok(mut i) = input.r#try(|i| specified::Integer::parse_positive(context, i)) {
             if i.value() > MAX_LINE {
                 i = specified::Integer::new(MAX_LINE);
             }
@@ -605,14 +605,14 @@ impl Parse for LineNameList {
         let mut fill_idx = None;
 
         loop {
-            let repeat_parse_result = input.try(|input| {
+            let repeat_parse_result = input.r#try(|input| {
                 input.expect_function_matching("repeat")?;
                 input.parse_nested_block(|input| {
                     let count = RepeatCount::parse(context, input)?;
                     input.expect_comma()?;
                     let mut names_list = vec![];
                     names_list.push(parse_line_names(input)?); // there should be at least one
-                    while let Ok(names) = input.try(parse_line_names) {
+                    while let Ok(names) = input.r#try(parse_line_names) {
                         names_list.push(names);
                     }
 
@@ -643,7 +643,7 @@ impl Parse for LineNameList {
                     },
                     _ => return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError)),
                 }
-            } else if let Ok(names) = input.try(parse_line_names) {
+            } else if let Ok(names) = input.r#try(parse_line_names) {
                 line_names.push(names);
             } else {
                 break;

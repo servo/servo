@@ -4,21 +4,21 @@
 
 //! Common handling for the specified value CSS url() values.
 
+use crate::gecko_bindings::bindings;
+use crate::gecko_bindings::structs::root::mozilla::css::URLValue;
+use crate::gecko_bindings::structs::root::mozilla::CORSMode;
+use crate::gecko_bindings::structs::root::nsStyleImageRequest;
+use crate::gecko_bindings::sugar::ownership::{FFIArcHelpers, HasArcFFI};
+use crate::gecko_bindings::sugar::refptr::RefPtr;
+use crate::parser::{Parse, ParserContext};
+use crate::stylesheets::UrlExtraData;
+use crate::values::computed::{Context, ToComputedValue};
 use cssparser::Parser;
-use gecko_bindings::bindings;
-use gecko_bindings::structs::root::mozilla::css::URLValue;
-use gecko_bindings::structs::root::mozilla::CORSMode;
-use gecko_bindings::structs::root::nsStyleImageRequest;
-use gecko_bindings::sugar::ownership::{FFIArcHelpers, HasArcFFI};
-use gecko_bindings::sugar::refptr::RefPtr;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use nsstring::nsCString;
-use parser::{Parse, ParserContext};
 use servo_arc::Arc;
 use std::fmt::{self, Write};
 use style_traits::{CssWriter, ParseError, ToCss};
-use stylesheets::UrlExtraData;
-use values::computed::{Context, ToComputedValue};
 
 /// A CSS url() value for gecko.
 #[css(function = "url")]
@@ -132,12 +132,12 @@ impl SpecifiedUrl {
     }
 
     fn from_css_url(url: CssUrl) -> Self {
-        use gecko_bindings::structs::root::mozilla::CORSMode_CORS_NONE;
+        use crate::gecko_bindings::structs::root::mozilla::CORSMode_CORS_NONE;
         Self::from_css_url_with_cors(url, CORSMode_CORS_NONE)
     }
 
     fn from_css_url_with_cors_anonymous(url: CssUrl) -> Self {
-        use gecko_bindings::structs::root::mozilla::CORSMode_CORS_ANONYMOUS;
+        use crate::gecko_bindings::structs::root::mozilla::CORSMode_CORS_ANONYMOUS;
         Self::from_css_url_with_cors(url, CORSMode_CORS_ANONYMOUS)
     }
 }
