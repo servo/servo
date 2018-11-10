@@ -14,7 +14,3 @@ cd etc/taskcluster/macos
 ./salt-ssh '*' test.ping
 ./salt-ssh '*' state.apply test=True
 ```
-
-## Worker’s client ID
-
-`project/servo/worker/macos/1`
