@@ -11,9 +11,8 @@ use app_units::Au;
 use crate::font_metrics::FontMetricsQueryResult;
 use crate::parser::{Parse, ParserContext};
 use crate::values::computed::{self, CSSPixelLength, Context, ExtremumLength};
-use crate::values::generics::length::{
-    MaxLength as GenericMaxLength, MozLength as GenericMozLength,
-};
+use crate::values::generics::length::MaxLength as GenericMaxLength;
+use crate::values::generics::length::MozLength as GenericMozLength;
 use crate::values::generics::transform::IsZeroLength;
 use crate::values::generics::NonNegative;
 use crate::values::specified::calc::CalcNode;

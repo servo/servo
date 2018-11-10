@@ -10,9 +10,8 @@
 use crate::hash::FxHashMap;
 use crate::parser::{Parse, ParserContext};
 use crate::str::HTML_SPACE_CHARACTERS;
-use crate::values::computed::{
-    CalcLengthOrPercentage, LengthOrPercentage as ComputedLengthOrPercentage,
-};
+use crate::values::computed::CalcLengthOrPercentage;
+use crate::values::computed::LengthOrPercentage as ComputedLengthOrPercentage;
 use crate::values::computed::{Context, Percentage, ToComputedValue};
 use crate::values::generics::position::Position as GenericPosition;
 use crate::values::generics::position::ZIndex as GenericZIndex;

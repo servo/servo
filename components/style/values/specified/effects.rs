@@ -7,9 +7,8 @@
 use crate::parser::{Parse, ParserContext};
 use crate::values::computed::effects::BoxShadow as ComputedBoxShadow;
 use crate::values::computed::effects::SimpleShadow as ComputedSimpleShadow;
-use crate::values::computed::{
-    Context, NonNegativeNumber as ComputedNonNegativeNumber, ToComputedValue,
-};
+use crate::values::computed::NonNegativeNumber as ComputedNonNegativeNumber;
+use crate::values::computed::{Context, ToComputedValue};
 use crate::values::generics::effects::BoxShadow as GenericBoxShadow;
 use crate::values::generics::effects::Filter as GenericFilter;
 use crate::values::generics::effects::SimpleShadow as GenericSimpleShadow;

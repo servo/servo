@@ -12,9 +12,8 @@ use crate::values::generics::text::InitialLetter as GenericInitialLetter;
 use crate::values::generics::text::LineHeight as GenericLineHeight;
 use crate::values::generics::text::MozTabSize as GenericMozTabSize;
 use crate::values::generics::text::Spacing;
-use crate::values::specified::text::{
-    TextEmphasisFillMode, TextEmphasisShapeKeyword, TextOverflowSide,
-};
+use crate::values::specified::text::TextOverflowSide;
+use crate::values::specified::text::{TextEmphasisFillMode, TextEmphasisShapeKeyword};
 use crate::values::{CSSFloat, CSSInteger};
 use std::fmt::{self, Write};
 use style_traits::{CssWriter, ToCss};

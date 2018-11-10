@@ -15,9 +15,8 @@ use crate::values::generics::text::InitialLetter as GenericInitialLetter;
 use crate::values::generics::text::LineHeight as GenericLineHeight;
 use crate::values::generics::text::MozTabSize as GenericMozTabSize;
 use crate::values::generics::text::Spacing;
-use crate::values::specified::length::{
-    FontRelativeLength, Length, LengthOrPercentage, NoCalcLength,
-};
+use crate::values::specified::length::{FontRelativeLength, Length};
+use crate::values::specified::length::{LengthOrPercentage, NoCalcLength};
 use crate::values::specified::length::{NonNegativeLength, NonNegativeLengthOrPercentage};
 use crate::values::specified::{AllowQuirks, Integer, NonNegativeNumber, Number};
 use cssparser::{Parser, Token};

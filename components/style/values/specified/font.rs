@@ -11,10 +11,9 @@ use crate::gecko_bindings::bindings;
 use crate::parser::{Parse, ParserContext};
 use crate::properties::longhands::system_font::SystemFont;
 use crate::values::computed::font::{FamilyName, FontFamilyList, FontStyleAngle, SingleFontFamily};
-use crate::values::computed::{
-    font as computed, Context, Length, NonNegativeLength, ToComputedValue,
-};
+use crate::values::computed::{font as computed, Length, NonNegativeLength};
 use crate::values::computed::{Angle as ComputedAngle, Percentage as ComputedPercentage};
+use crate::values::computed::{Context, ToComputedValue};
 use crate::values::generics::font::{self as generics, FeatureTagValue, FontSettings, FontTag};
 use crate::values::generics::font::{KeywordSize, VariationValue};
 use crate::values::generics::NonNegative;

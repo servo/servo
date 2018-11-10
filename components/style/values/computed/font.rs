@@ -13,9 +13,8 @@ use crate::gecko_bindings::{bindings, structs};
 use crate::values::animated::{ToAnimatedValue, ToAnimatedZero};
 use crate::values::computed::{Angle, Context, Integer, NonNegativeLength, NonNegativePercentage};
 use crate::values::computed::{Number, Percentage, ToComputedValue};
-use crate::values::generics::font::{
-    self as generics, FeatureTagValue, FontSettings, VariationValue,
-};
+use crate::values::generics::font as generics;
+use crate::values::generics::font::{FeatureTagValue, FontSettings, VariationValue};
 use crate::values::specified::font::{self as specified, MAX_FONT_WEIGHT, MIN_FONT_WEIGHT};
 use crate::values::specified::length::{FontBaseSize, NoCalcLength};
 use crate::values::CSSFloat;
@@ -30,9 +29,8 @@ use std::slice;
 use style_traits::{CssWriter, ParseError, ToCss};
 
 pub use crate::values::computed::Length as MozScriptMinSize;
-pub use crate::values::specified::font::{
-    FontSynthesis, MozScriptSizeMultiplier, XLang, XTextZoom,
-};
+pub use crate::values::specified::font::{FontSynthesis, MozScriptSizeMultiplier};
+pub use crate::values::specified::font::{XLang, XTextZoom};
 
 /// A value for the font-weight property per:
 ///

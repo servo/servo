@@ -8,9 +8,8 @@ use super::{Context, Number, Percentage, ToComputedValue};
 use app_units::Au;
 use crate::values::animated::{Animate, Procedure, ToAnimatedValue, ToAnimatedZero};
 use crate::values::distance::{ComputeSquaredDistance, SquaredDistance};
-use crate::values::generics::length::{
-    MaxLength as GenericMaxLength, MozLength as GenericMozLength,
-};
+use crate::values::generics::length::MaxLength as GenericMaxLength;
+use crate::values::generics::length::MozLength as GenericMozLength;
 use crate::values::generics::transform::IsZeroLength;
 use crate::values::generics::NonNegative;
 use crate::values::specified::length::ViewportPercentageLength;

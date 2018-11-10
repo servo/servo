@@ -13,9 +13,8 @@ use crate::invalidation::element::document_state::InvalidationMatchingData;
 use crate::invalidation::element::element_wrapper::ElementSnapshot;
 use crate::properties::longhands::display::computed_value::T as Display;
 use crate::properties::{ComputedValues, PropertyFlags};
-use crate::selector_parser::{
-    AttrValue as SelectorAttrValue, PseudoElementCascadeType, SelectorParser,
-};
+use crate::selector_parser::AttrValue as SelectorAttrValue;
+use crate::selector_parser::{PseudoElementCascadeType, SelectorParser};
 use crate::{Atom, CaseSensitivityExt, LocalName, Namespace, Prefix};
 use cssparser::{serialize_identifier, CowRcStr, Parser as CssParser, SourceLocation, ToCss};
 use fxhash::FxHashMap;

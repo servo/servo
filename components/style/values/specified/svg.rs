@@ -8,9 +8,8 @@ use crate::parser::{Parse, ParserContext};
 use crate::values::generics::svg as generic;
 use crate::values::specified::color::Color;
 use crate::values::specified::url::SpecifiedUrl;
-use crate::values::specified::{
-    LengthOrPercentage, NonNegativeLengthOrPercentage, NonNegativeNumber,
-};
+use crate::values::specified::LengthOrPercentage;
+use crate::values::specified::{NonNegativeLengthOrPercentage, NonNegativeNumber};
 use crate::values::specified::{Number, Opacity};
 use crate::values::CustomIdent;
 use cssparser::Parser;

@@ -18,9 +18,8 @@ use crate::stylesheets::{Origin, RulesMutateError};
 use crate::values::computed::image::LineDirection;
 use crate::values::computed::url::ComputedImageUrl;
 use crate::values::computed::{Angle, CalcLengthOrPercentage, Gradient, Image};
-use crate::values::computed::{
-    Integer, LengthOrPercentage, LengthOrPercentageOrAuto, NonNegativeLengthOrPercentageOrAuto,
-};
+use crate::values::computed::{Integer, LengthOrPercentage};
+use crate::values::computed::{LengthOrPercentageOrAuto, NonNegativeLengthOrPercentageOrAuto};
 use crate::values::computed::{Percentage, TextAlign};
 use crate::values::generics::box_::VerticalAlign;
 use crate::values::generics::grid::{TrackListValue, TrackSize};

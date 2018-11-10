@@ -6,9 +6,8 @@
 
 use crate::custom_properties::Name as CustomPropertyName;
 use crate::parser::{Parse, ParserContext};
-use crate::properties::{
-    LonghandId, PropertyDeclarationId, PropertyFlags, PropertyId, ShorthandId,
-};
+use crate::properties::{LonghandId, PropertyDeclarationId, PropertyFlags};
+use crate::properties::{PropertyId, ShorthandId};
 use crate::values::generics::box_::AnimationIterationCount as GenericAnimationIterationCount;
 use crate::values::generics::box_::Perspective as GenericPerspective;
 use crate::values::generics::box_::VerticalAlign as GenericVerticalAlign;
