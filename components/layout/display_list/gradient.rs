@@ -283,7 +283,7 @@ pub fn linear(
             (center + delta).to_layout(),
             extend_mode(repeating),
         ),
-        builder.stops().to_vec(),
+        builder.into_stops(),
     )
 }
 
@@ -322,6 +322,6 @@ pub fn radial(
             radius.to_layout(),
             extend_mode(repeating),
         ),
-        builder.stops().to_vec(),
+        builder.into_stops(),
     )
 }
