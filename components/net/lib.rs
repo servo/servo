@@ -17,7 +17,6 @@ extern crate profile_traits;
 #[macro_use]
 extern crate serde;
 
-mod blob_loader;
 pub mod connector;
 pub mod cookie;
 pub mod cookie_storage;
