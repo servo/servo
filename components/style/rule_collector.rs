@@ -4,18 +4,18 @@
 
 //! Collects a series of applicable rules for a given element.
 
-use applicable_declarations::{ApplicableDeclarationBlock, ApplicableDeclarationList};
-use dom::{TElement, TShadowRoot};
-use properties::{AnimationRules, PropertyDeclarationBlock};
-use rule_tree::{CascadeLevel, ShadowCascadeOrder};
-use selector_map::SelectorMap;
-use selector_parser::PseudoElement;
+use crate::applicable_declarations::{ApplicableDeclarationBlock, ApplicableDeclarationList};
+use crate::dom::{TElement, TShadowRoot};
+use crate::properties::{AnimationRules, PropertyDeclarationBlock};
+use crate::rule_tree::{CascadeLevel, ShadowCascadeOrder};
+use crate::selector_map::SelectorMap;
+use crate::selector_parser::PseudoElement;
+use crate::shared_lock::Locked;
+use crate::stylesheets::Origin;
+use crate::stylist::{AuthorStylesEnabled, Rule, RuleInclusion, Stylist};
 use selectors::matching::{ElementSelectorFlags, MatchingContext};
 use servo_arc::ArcBorrow;
-use shared_lock::Locked;
 use smallvec::SmallVec;
-use stylesheets::Origin;
-use stylist::{AuthorStylesEnabled, Rule, RuleInclusion, Stylist};
 
 /// An object that we use with all the intermediate state needed for the
 /// cascade.

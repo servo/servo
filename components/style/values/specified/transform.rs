@@ -395,7 +395,10 @@ impl Parse for Translate {
         }
 
         // 'translate: <length-percentage> '
-        Ok(generic::Translate::Translate(tx, specified::LengthOrPercentage::zero()))
+        Ok(generic::Translate::Translate(
+            tx,
+            specified::LengthOrPercentage::zero(),
+        ))
     }
 }
 

@@ -4,9 +4,9 @@
 
 //! Generic types for CSS values related to backgrounds.
 
+use crate::values::IsAuto;
 use std::fmt::{self, Write};
 use style_traits::{CssWriter, ToCss};
-use values::IsAuto;
 
 /// A generic value for the `background-size` property.
 #[derive(

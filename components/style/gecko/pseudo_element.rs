@@ -33,9 +33,7 @@ impl ::selectors::parser::PseudoElement for PseudoElement {
     fn valid_after_slotted(&self) -> bool {
         matches!(
             *self,
-            PseudoElement::Before |
-            PseudoElement::After |
-            PseudoElement::Placeholder
+            PseudoElement::Before | PseudoElement::After | PseudoElement::Placeholder
         )
     }
 
