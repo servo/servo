@@ -56,7 +56,7 @@ and `}}`. Inside the block the following variables are available:
     The query parameters for the request
       e.g. `{{GET[id]}}` for an id parameter sent with the request.
 
-So, for example, to write a javascript file called `xhr.js` that
+So, for example, to write a JavaScript file called `xhr.js` that
 depends on the host name of the server, without hardcoding, one might
 write::
 

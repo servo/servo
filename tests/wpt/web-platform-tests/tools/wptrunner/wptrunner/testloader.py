@@ -15,15 +15,13 @@ from mozlog import structured
 manifest = None
 manifest_update = None
 download_from_github = None
-manifest_log = None
 
 def do_delayed_imports():
     # This relies on an already loaded module having set the sys.path correctly :(
-    global manifest, manifest_update, download_from_github, manifest_log
+    global manifest, manifest_update, download_from_github
     from manifest import manifest
     from manifest import update as manifest_update
     from manifest.download import download_from_github
-    from manifest import log as manifest_log
 
 
 class TestChunker(object):
@@ -406,7 +404,6 @@ class ManifestLoader(object):
     def update_manifest(self, manifest_path, tests_path, url_base="/",
                         recreate=False, download=False):
         self.logger.info("Updating test manifest %s" % manifest_path)
-        manifest_log.setup()
 
         json_data = None
         if download:

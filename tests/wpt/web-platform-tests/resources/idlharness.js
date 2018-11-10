@@ -298,15 +298,29 @@ IdlArray.prototype.add_dependency_idls = function(raw_idls, options)
         }.bind(this));
 
         deps.forEach(function(name) {
-            new_options.only.push(name);
+            if (!new_options.only.includes(name)) {
+                new_options.only.push(name);
+            }
 
             const follow_up = new Set();
             for (const dep_type of ["inheritance", "implements", "includes"]) {
                 if (parsed[dep_type]) {
                     const inheriting = parsed[dep_type];
                     const inheritor = parsed.name || parsed.target;
-                    for (const dep of [inheriting, inheritor]) {
-                        new_options.only.push(dep);
+                    const deps = [inheriting];
+                    // For A includes B, we can ignore A, unless B (or some of its
+                    // members) is being tested.
+                    if (dep_type !== "includes"
+                        || inheriting in this.members && !this.members[inheriting].untested
+                        || this.partials.some(function(p) {
+                                return p.name === inheriting;
+                            })) {
+                        deps.push(inheritor);
+                    }
+                    for (const dep of deps) {
+                        if (!new_options.only.includes(dep)) {
+                            new_options.only.push(dep);
+                        }
                         all_deps.add(dep);
                         follow_up.add(dep);
                     }
@@ -320,7 +334,7 @@ IdlArray.prototype.add_dependency_idls = function(raw_idls, options)
                     next.forEach(process);
                 }
             }
-        });
+        }.bind(this));
     }.bind(this);
 
     for (let parsed of parsed_idls) {
