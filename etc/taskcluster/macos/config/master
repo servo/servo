@@ -1,4 +1,0 @@
-root_dir: .salt
-file_roots:
-  base:
-    - states
