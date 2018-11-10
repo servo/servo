@@ -33,7 +33,7 @@ use crate::inline::{InlineFlow, InlineFragmentNodeFlags};
 use crate::list_item::ListItemFlow;
 use crate::model::MaybeAuto;
 use crate::table_cell::CollapsedBordersForCell;
-use euclid::{rect, Point2D, Rect, SideOffsets2D, Size2D, TypedSize2D, Vector2D};
+use euclid::{rect, Point2D, Rect, SideOffsets2D, Size2D, TypedRect, TypedSize2D, Vector2D};
 use fnv::FnvHashMap;
 use gfx::text::glyph::ByteIndex;
 use gfx::text::TextRun;
@@ -724,6 +724,9 @@ pub trait FragmentDisplayListBuilding {
     ///   under construction and other metadata useful for constructing it.
     /// * `dirty`: The dirty rectangle in the coordinate system of the owning flow.
     /// * `clip`: The region to clip the display items to.
+    /// * `overflow_content_size`: The size of content associated with this fragment
+    ///      that must have overflow handling applied to it. For a scrollable block
+    ///      flow, it is expected that this is the size of the child boxes.
     fn build_display_list(
         &mut self,
         state: &mut DisplayListBuildState,
@@ -731,6 +734,7 @@ pub trait FragmentDisplayListBuilding {
         border_painting_mode: BorderPaintingMode,
         display_list_section: DisplayListSection,
         clip: Rect<Au>,
+        overflow_content_size: Option<Size2D<Au>>,
     );
 
     /// build_display_list, but don't update the restyle damage
@@ -743,6 +747,7 @@ pub trait FragmentDisplayListBuilding {
         border_painting_mode: BorderPaintingMode,
         display_list_section: DisplayListSection,
         clip: Rect<Au>,
+        overflow_content_size: Option<Size2D<Au>>,
     );
 
     /// Builds the display items necessary to paint the selection and/or caret for this fragment,
@@ -1701,6 +1706,7 @@ impl FragmentDisplayListBuilding for Fragment {
         border_painting_mode: BorderPaintingMode,
         display_list_section: DisplayListSection,
         clip: Rect<Au>,
+        overflow_content_size: Option<Size2D<Au>>,
     ) {
         let previous_clipping_and_scrolling = state.current_clipping_and_scrolling;
         if let Some(index) = self.established_reference_frame {
@@ -1714,6 +1720,7 @@ impl FragmentDisplayListBuilding for Fragment {
             border_painting_mode,
             display_list_section,
             clip,
+            overflow_content_size,
         );
 
         state.current_clipping_and_scrolling = previous_clipping_and_scrolling;
@@ -1726,6 +1733,7 @@ impl FragmentDisplayListBuilding for Fragment {
         border_painting_mode: BorderPaintingMode,
         display_list_section: DisplayListSection,
         clip: Rect<Au>,
+        overflow_content_size: Option<Size2D<Au>>,
     ) {
         if self.style().get_inherited_box().visibility != Visibility::Visible {
             return;
@@ -1837,6 +1845,29 @@ impl FragmentDisplayListBuilding for Fragment {
         }
 
         debug!("Fragment::build_display_list: intersected. Adding display item...");
+
+        if let Some(content_size) = overflow_content_size {
+            // Create a transparent rectangle for hit-testing purposes that exists in front
+            // of this fragment's background but behind its content. This ensures that any
+            // hit tests inside the content box but not on actual content target the current
+            // scrollable ancestor.
+            let content_size = TypedRect::from_size(content_size);
+            let base = state.create_base_display_item(
+                content_size,
+                content_size,
+                self.node,
+                self.style
+                    .get_cursor(CursorKind::Default)
+                    .or_else(|| Some(CursorKind::Default)),
+                DisplayListSection::Content,
+            );
+            state.add_display_item(DisplayItem::Rectangle(CommonDisplayItem::new(
+                base,
+                webrender_api::RectangleDisplayItem {
+                    color: ColorF::TRANSPARENT,
+                },
+            )));
+        }
 
         // Create special per-fragment-type display items.
         state.clipping_and_scrolling_scope(|state| {
@@ -2947,6 +2978,14 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
         let background_border_section = self.background_border_section();
 
         state.processing_scrolling_overflow_element = self.has_scrolling_overflow();
+
+        let content_size = if state.processing_scrolling_overflow_element {
+            let content_size = self.base.overflow.scroll.origin + self.base.overflow.scroll.size;
+            Some(Size2D::new(content_size.x, content_size.y))
+        } else {
+            None
+        };
+
         let stacking_relative_border_box = self
             .base
             .stacking_relative_border_box_for_display_list(&self.fragment);
@@ -2957,6 +2996,7 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
             border_painting_mode,
             background_border_section,
             self.base.clip,
+            content_size,
         );
 
         self.base
@@ -3098,6 +3138,7 @@ impl InlineFlowDisplayListBuilding for InlineFlow {
             BorderPaintingMode::Separate,
             DisplayListSection::Content,
             self.base.clip,
+            None,
         );
     }
 
@@ -3156,6 +3197,7 @@ impl ListItemFlowDisplayListBuilding for ListItemFlow {
                 BorderPaintingMode::Separate,
                 DisplayListSection::Content,
                 self.block_flow.base.clip,
+                None,
             );
         }
 
