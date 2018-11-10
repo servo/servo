@@ -310,7 +310,7 @@ impl Parse for VerticalAlign {
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
         if let Ok(lop) =
-            input.r#try(|i| LengthOrPercentage::parse_quirky(context, i, AllowQuirks::Yes))
+            input.try(|i| LengthOrPercentage::parse_quirky(context, i, AllowQuirks::Yes))
         {
             return Ok(GenericVerticalAlign::Length(lop));
         }
@@ -341,7 +341,7 @@ impl Parse for AnimationIterationCount {
         input: &mut ::cssparser::Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
         if input
-            .r#try(|input| input.expect_ident_matching("infinite"))
+            .try(|input| input.expect_ident_matching("infinite"))
             .is_ok()
         {
             return Ok(GenericAnimationIterationCount::Infinite);
@@ -394,7 +394,7 @@ impl Parse for AnimationName {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
-        if let Ok(name) = input.r#try(|input| KeyframesName::parse(context, input)) {
+        if let Ok(name) = input.try(|input| KeyframesName::parse(context, input)) {
             return Ok(AnimationName(Some(name)));
         }
 
@@ -557,7 +557,7 @@ impl Parse for WillChange {
         input: &mut Parser<'i, 't>,
     ) -> Result<WillChange, ParseError<'i>> {
         if input
-            .r#try(|input| input.expect_ident_matching("auto"))
+            .try(|input| input.expect_ident_matching("auto"))
             .is_ok()
         {
             return Ok(WillChange::Auto);
@@ -646,14 +646,14 @@ impl Parse for TouchAction {
             "none" => Ok(TouchAction::TOUCH_ACTION_NONE),
             "manipulation" => Ok(TouchAction::TOUCH_ACTION_MANIPULATION),
             "pan-x" => {
-                if input.r#try(|i| i.expect_ident_matching("pan-y")).is_ok() {
+                if input.try(|i| i.expect_ident_matching("pan-y")).is_ok() {
                     Ok(TouchAction::TOUCH_ACTION_PAN_X | TouchAction::TOUCH_ACTION_PAN_Y)
                 } else {
                     Ok(TouchAction::TOUCH_ACTION_PAN_X)
                 }
             },
             "pan-y" => {
-                if input.r#try(|i| i.expect_ident_matching("pan-x")).is_ok() {
+                if input.try(|i| i.expect_ident_matching("pan-x")).is_ok() {
                     Ok(TouchAction::TOUCH_ACTION_PAN_X | TouchAction::TOUCH_ACTION_PAN_Y)
                 } else {
                     Ok(TouchAction::TOUCH_ACTION_PAN_Y)
@@ -757,7 +757,7 @@ impl Parse for Contain {
         input: &mut Parser<'i, 't>,
     ) -> Result<Contain, ParseError<'i>> {
         let mut result = Contain::empty();
-        while let Ok(name) = input.r#try(|i| i.expect_ident_cloned()) {
+        while let Ok(name) = input.try(|i| i.expect_ident_cloned()) {
             let flag = match_ignore_ascii_case! { &name,
                 "size" => Some(Contain::SIZE),
                 "layout" => Some(Contain::LAYOUT),
@@ -794,7 +794,7 @@ impl Parse for Perspective {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
-        if input.r#try(|i| i.expect_ident_matching("none")).is_ok() {
+        if input.try(|i| i.expect_ident_matching("none")).is_ok() {
             return Ok(GenericPerspective::None);
         }
         Ok(GenericPerspective::Length(NonNegativeLength::parse(

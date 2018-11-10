@@ -120,7 +120,7 @@ macro_rules! impl_range {
             ) -> Result<Self, ParseError<'i>> {
                 let first = $component::parse(context, input)?;
                 let second = input
-                    .r#try(|input| $component::parse(context, input))
+                    .try(|input| $component::parse(context, input))
                     .unwrap_or_else(|_| first.clone());
                 Ok($range(first, second))
             }
@@ -234,7 +234,7 @@ impl Parse for FontStyle {
             GenericFontStyle::Italic => FontStyle::Italic,
             GenericFontStyle::Oblique(angle) => {
                 let second_angle = input
-                    .r#try(|input| SpecifiedFontStyle::parse_angle(context, input))
+                    .try(|input| SpecifiedFontStyle::parse_angle(context, input))
                     .unwrap_or_else(|_| angle.clone());
 
                 FontStyle::Oblique(angle, second_angle)
@@ -380,7 +380,7 @@ impl Parse for Source {
         input: &mut Parser<'i, 't>,
     ) -> Result<Source, ParseError<'i>> {
         if input
-            .r#try(|input| input.expect_function_matching("local"))
+            .try(|input| input.expect_function_matching("local"))
             .is_ok()
         {
             return input
@@ -392,7 +392,7 @@ impl Parse for Source {
 
         // Parsing optional format()
         let format_hints = if input
-            .r#try(|input| input.expect_function_matching("format"))
+            .try(|input| input.expect_function_matching("format"))
             .is_ok()
         {
             input.parse_nested_block(|input| {

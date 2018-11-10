@@ -111,19 +111,16 @@ impl Parse for CounterStyleOrNone {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
-        if let Ok(name) = input.r#try(|i| parse_counter_style_name(i)) {
+        if let Ok(name) = input.try(|i| parse_counter_style_name(i)) {
             return Ok(CounterStyleOrNone::Name(name));
         }
-        if input.r#try(|i| i.expect_ident_matching("none")).is_ok() {
+        if input.try(|i| i.expect_ident_matching("none")).is_ok() {
             return Ok(CounterStyleOrNone::None);
         }
-        if input
-            .r#try(|i| i.expect_function_matching("symbols"))
-            .is_ok()
-        {
+        if input.try(|i| i.expect_function_matching("symbols")).is_ok() {
             return input.parse_nested_block(|input| {
                 let symbols_type = input
-                    .r#try(|i| SymbolsType::parse(i))
+                    .try(|i| SymbolsType::parse(i))
                     .unwrap_or(SymbolsType::Symbolic);
                 let symbols = Symbols::parse(context, input)?;
                 // There must be at least two symbols for alphabetic or

@@ -1228,7 +1228,7 @@ impl LengthOrNumber {
         // We try to parse as a Number first because, for cases like
         // LengthOrNumber, we want "0" to be parsed as a plain Number rather
         // than a Length (0px); this matches the behaviour of all major browsers
-        if let Ok(v) = input.r#try(|i| Number::parse_non_negative(context, i)) {
+        if let Ok(v) = input.try(|i| Number::parse_non_negative(context, i)) {
             return Ok(Either::Second(v));
         }
 
@@ -1272,7 +1272,7 @@ impl MozLength {
         input: &mut Parser<'i, 't>,
         allow_quirks: AllowQuirks,
     ) -> Result<Self, ParseError<'i>> {
-        if let Ok(l) = input.r#try(ExtremumLength::parse) {
+        if let Ok(l) = input.try(ExtremumLength::parse) {
             return Ok(GenericMozLength::ExtremumLength(l));
         }
 
@@ -1324,7 +1324,7 @@ impl MaxLength {
         input: &mut Parser<'i, 't>,
         allow_quirks: AllowQuirks,
     ) -> Result<Self, ParseError<'i>> {
-        if let Ok(l) = input.r#try(ExtremumLength::parse) {
+        if let Ok(l) = input.try(ExtremumLength::parse) {
             return Ok(GenericMaxLength::ExtremumLength(l));
         }
 

@@ -58,7 +58,7 @@ impl BorderSideWidth {
         allow_quirks: AllowQuirks,
     ) -> Result<Self, ParseError<'i>> {
         if let Ok(length) =
-            input.r#try(|i| Length::parse_non_negative_quirky(context, i, allow_quirks))
+            input.try(|i| Length::parse_non_negative_quirky(context, i, allow_quirks))
         {
             return Ok(BorderSideWidth::Length(length));
         }
@@ -115,11 +115,11 @@ impl Parse for BorderImageSideWidth {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
-        if input.r#try(|i| i.expect_ident_matching("auto")).is_ok() {
+        if input.try(|i| i.expect_ident_matching("auto")).is_ok() {
             return Ok(GenericBorderImageSideWidth::Auto);
         }
 
-        if let Ok(len) = input.r#try(|i| LengthOrPercentage::parse_non_negative(context, i)) {
+        if let Ok(len) = input.try(|i| LengthOrPercentage::parse_non_negative(context, i)) {
             return Ok(GenericBorderImageSideWidth::Length(len));
         }
 
@@ -133,10 +133,10 @@ impl Parse for BorderImageSlice {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
-        let mut fill = input.r#try(|i| i.expect_ident_matching("fill")).is_ok();
+        let mut fill = input.try(|i| i.expect_ident_matching("fill")).is_ok();
         let offsets = Rect::parse_with(context, input, NumberOrPercentage::parse_non_negative)?;
         if !fill {
-            fill = input.r#try(|i| i.expect_ident_matching("fill")).is_ok();
+            fill = input.try(|i| i.expect_ident_matching("fill")).is_ok();
         }
         Ok(GenericBorderImageSlice {
             offsets: offsets,
@@ -151,7 +151,7 @@ impl Parse for BorderRadius {
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
         let widths = Rect::parse_with(context, input, LengthOrPercentage::parse_non_negative)?;
-        let heights = if input.r#try(|i| i.expect_delim('/')).is_ok() {
+        let heights = if input.try(|i| i.expect_delim('/')).is_ok() {
             Rect::parse_with(context, input, LengthOrPercentage::parse_non_negative)?
         } else {
             widths.clone()
@@ -236,7 +236,7 @@ impl Parse for BorderImageRepeat {
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
         let horizontal = BorderImageRepeatKeyword::parse(input)?;
-        let vertical = input.r#try(BorderImageRepeatKeyword::parse).ok();
+        let vertical = input.try(BorderImageRepeatKeyword::parse).ok();
         Ok(BorderImageRepeat(
             horizontal,
             vertical.unwrap_or(horizontal),

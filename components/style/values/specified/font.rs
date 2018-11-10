@@ -117,7 +117,7 @@ impl Parse for FontWeight {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<FontWeight, ParseError<'i>> {
-        if let Ok(absolute) = input.r#try(|input| AbsoluteFontWeight::parse(context, input)) {
+        if let Ok(absolute) = input.try(|input| AbsoluteFontWeight::parse(context, input)) {
             return Ok(FontWeight::Absolute(absolute));
         }
 
@@ -190,7 +190,7 @@ impl Parse for AbsoluteFontWeight {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
-        if let Ok(number) = input.r#try(|input| Number::parse(context, input)) {
+        if let Ok(number) = input.try(|input| Number::parse(context, input)) {
             // We could add another AllowedNumericType value, but it doesn't
             // seem worth it just for a single property with such a weird range,
             // so we do the clamping here manually.
@@ -242,7 +242,7 @@ impl Parse for SpecifiedFontStyle {
             "normal" => generics::FontStyle::Normal,
             "italic" => generics::FontStyle::Italic,
             "oblique" => {
-                let angle = input.r#try(|input| Self::parse_angle(context, input))
+                let angle = input.try(|input| Self::parse_angle(context, input))
                     .unwrap_or_else(|_| Self::default_angle());
 
                 generics::FontStyle::Oblique(angle)
@@ -481,8 +481,7 @@ impl Parse for FontStretch {
         //
         //    Values less than 0% are not allowed and are treated as parse
         //    errors.
-        if let Ok(percentage) = input.r#try(|input| Percentage::parse_non_negative(context, input))
-        {
+        if let Ok(percentage) = input.try(|input| Percentage::parse_non_negative(context, input)) {
             return Ok(FontStretch::Stretch(percentage));
         }
 
@@ -682,7 +681,7 @@ impl Parse for FontSizeAdjust {
         input: &mut Parser<'i, 't>,
     ) -> Result<FontSizeAdjust, ParseError<'i>> {
         if input
-            .r#try(|input| input.expect_ident_matching("none"))
+            .try(|input| input.expect_ident_matching("none"))
             .is_ok()
         {
             return Ok(FontSizeAdjust::None);
@@ -990,12 +989,12 @@ impl FontSize {
         allow_quirks: AllowQuirks,
     ) -> Result<FontSize, ParseError<'i>> {
         if let Ok(lop) =
-            input.r#try(|i| LengthOrPercentage::parse_non_negative_quirky(context, i, allow_quirks))
+            input.try(|i| LengthOrPercentage::parse_non_negative_quirky(context, i, allow_quirks))
         {
             return Ok(FontSize::Length(lop));
         }
 
-        if let Ok(kw) = input.r#try(KeywordSize::parse) {
+        if let Ok(kw) = input.try(KeywordSize::parse) {
             return Ok(FontSize::Keyword(kw.into()));
         }
 
@@ -1177,7 +1176,7 @@ impl Parse for FontVariantAlternates {
     ) -> Result<FontVariantAlternates, ParseError<'i>> {
         let mut alternates = Vec::new();
         if input
-            .r#try(|input| input.expect_ident_matching("normal"))
+            .try(|input| input.expect_ident_matching("normal"))
             .is_ok()
         {
             return Ok(FontVariantAlternates::Value(VariantAlternatesList(
@@ -1194,7 +1193,7 @@ impl Parse for FontVariantAlternates {
                 parsed_alternates |= $flag;
             )
         );
-        while let Ok(_) = input.r#try(|input| {
+        while let Ok(_) = input.try(|input| {
             // FIXME: remove clone() when lifetimes are non-lexical
             match input.next()?.clone() {
                 Token::Ident(ref value) if value.eq_ignore_ascii_case("historical-forms") => {
@@ -1409,13 +1408,13 @@ impl Parse for FontVariantEastAsian {
         let mut result = VariantEastAsian::empty();
 
         if input
-            .r#try(|input| input.expect_ident_matching("normal"))
+            .try(|input| input.expect_ident_matching("normal"))
             .is_ok()
         {
             return Ok(FontVariantEastAsian::Value(result));
         }
 
-        while let Ok(flag) = input.r#try(|input| {
+        while let Ok(flag) = input.try(|input| {
             Ok(
                 match_ignore_ascii_case! { &input.expect_ident().map_err(|_| ())?,
                     "jis78" =>
@@ -1633,19 +1632,19 @@ impl Parse for FontVariantLigatures {
         let mut result = VariantLigatures::empty();
 
         if input
-            .r#try(|input| input.expect_ident_matching("normal"))
+            .try(|input| input.expect_ident_matching("normal"))
             .is_ok()
         {
             return Ok(FontVariantLigatures::Value(result));
         }
         if input
-            .r#try(|input| input.expect_ident_matching("none"))
+            .try(|input| input.expect_ident_matching("none"))
             .is_ok()
         {
             return Ok(FontVariantLigatures::Value(VariantLigatures::NONE));
         }
 
-        while let Ok(flag) = input.r#try(|input| {
+        while let Ok(flag) = input.try(|input| {
             Ok(
                 match_ignore_ascii_case! { &input.expect_ident().map_err(|_| ())?,
                     "common-ligatures" =>
@@ -1842,13 +1841,13 @@ impl Parse for FontVariantNumeric {
         let mut result = VariantNumeric::empty();
 
         if input
-            .r#try(|input| input.expect_ident_matching("normal"))
+            .try(|input| input.expect_ident_matching("normal"))
             .is_ok()
         {
             return Ok(FontVariantNumeric::Value(result));
         }
 
-        while let Ok(flag) = input.r#try(|input| {
+        while let Ok(flag) = input.try(|input| {
             Ok(
                 match_ignore_ascii_case! { &input.expect_ident().map_err(|_| ())?,
                     "ordinal" =>
@@ -1982,14 +1981,14 @@ impl Parse for FontSynthesis {
             "none" => Ok(result),
             "weight" => {
                 result.weight = true;
-                if input.r#try(|input| input.expect_ident_matching("style")).is_ok() {
+                if input.try(|input| input.expect_ident_matching("style")).is_ok() {
                     result.style = true;
                 }
                 Ok(result)
             },
             "style" => {
                 result.style = true;
-                if input.r#try(|input| input.expect_ident_matching("weight")).is_ok() {
+                if input.try(|input| input.expect_ident_matching("weight")).is_ok() {
                     result.weight = true;
                 }
                 Ok(result)
@@ -2128,7 +2127,7 @@ impl Parse for FontLanguageOverride {
         input: &mut Parser<'i, 't>,
     ) -> Result<FontLanguageOverride, ParseError<'i>> {
         if input
-            .r#try(|input| input.expect_ident_matching("normal"))
+            .try(|input| input.expect_ident_matching("normal"))
             .is_ok()
         {
             return Ok(FontLanguageOverride::Normal);
@@ -2195,7 +2194,7 @@ fn parse_one_feature_value<'i, 't>(
     context: &ParserContext,
     input: &mut Parser<'i, 't>,
 ) -> Result<Integer, ParseError<'i>> {
-    if let Ok(integer) = input.r#try(|i| Integer::parse_non_negative(context, i)) {
+    if let Ok(integer) = input.try(|i| Integer::parse_non_negative(context, i)) {
         return Ok(integer);
     }
 
@@ -2213,7 +2212,7 @@ impl Parse for FeatureTagValue<Integer> {
     ) -> Result<Self, ParseError<'i>> {
         let tag = FontTag::parse(context, input)?;
         let value = input
-            .r#try(|i| parse_one_feature_value(context, i))
+            .try(|i| parse_one_feature_value(context, i))
             .unwrap_or_else(|_| Integer::new(1));
 
         Ok(Self { tag, value })
@@ -2331,7 +2330,7 @@ impl Parse for MozScriptLevel {
         input: &mut Parser<'i, 't>,
     ) -> Result<MozScriptLevel, ParseError<'i>> {
         // We don't bother to handle calc here.
-        if let Ok(i) = input.r#try(|i| i.expect_integer()) {
+        if let Ok(i) = input.try(|i| i.expect_integer()) {
             return Ok(MozScriptLevel::Relative(i));
         }
         input.expect_ident_matching("auto")?;

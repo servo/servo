@@ -359,7 +359,7 @@ impl NumberOrPercentage {
         input: &mut Parser<'i, 't>,
         type_: AllowedNumericType,
     ) -> Result<Self, ParseError<'i>> {
-        if let Ok(per) = input.r#try(|i| Percentage::parse_with_clamping_mode(context, i, type_)) {
+        if let Ok(per) = input.try(|i| Percentage::parse_with_clamping_mode(context, i, type_)) {
             return Ok(NumberOrPercentage::Percentage(per));
         }
 
@@ -703,7 +703,7 @@ impl ClipRect {
             allow_quirks: AllowQuirks,
         ) -> Result<Option<Length>, ParseError<'i>> {
             if input
-                .r#try(|input| input.expect_ident_matching("auto"))
+                .try(|input| input.expect_ident_matching("auto"))
                 .is_ok()
             {
                 Ok(None)
@@ -720,7 +720,7 @@ impl ClipRect {
             let bottom;
             let left;
 
-            if input.r#try(|input| input.expect_comma()).is_ok() {
+            if input.try(|input| input.expect_comma()).is_ok() {
                 right = parse_argument(context, input, allow_quirks)?;
                 input.expect_comma()?;
                 bottom = parse_argument(context, input, allow_quirks)?;
@@ -751,7 +751,7 @@ impl ClipRectOrAuto {
         input: &mut Parser<'i, 't>,
         allow_quirks: AllowQuirks,
     ) -> Result<Self, ParseError<'i>> {
-        if let Ok(v) = input.r#try(|i| ClipRect::parse_quirky(context, i, allow_quirks)) {
+        if let Ok(v) = input.try(|i| ClipRect::parse_quirky(context, i, allow_quirks)) {
             Ok(Either::First(v))
         } else {
             Auto::parse(context, input).map(Either::Second)
@@ -816,8 +816,8 @@ impl Attr {
     ) -> Result<Attr, ParseError<'i>> {
         // Syntax is `[namespace? `|`]? ident`
         // no spaces allowed
-        let first = input.r#try(|i| i.expect_ident_cloned()).ok();
-        if let Ok(token) = input.r#try(|i| i.next_including_whitespace().map(|t| t.clone())) {
+        let first = input.try(|i| i.expect_ident_cloned()).ok();
+        if let Ok(token) = input.try(|i| i.next_including_whitespace().map(|t| t.clone())) {
             match token {
                 Token::Delim('|') => {
                     let location = input.current_source_location();

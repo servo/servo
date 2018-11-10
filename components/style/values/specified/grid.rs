@@ -36,11 +36,11 @@ impl Parse for TrackBreadth<LengthOrPercentage> {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
-        if let Ok(lop) = input.r#try(|i| LengthOrPercentage::parse_non_negative(context, i)) {
+        if let Ok(lop) = input.try(|i| LengthOrPercentage::parse_non_negative(context, i)) {
             return Ok(TrackBreadth::Breadth(lop));
         }
 
-        if let Ok(f) = input.r#try(parse_flex) {
+        if let Ok(f) = input.try(parse_flex) {
             return Ok(TrackBreadth::Fr(f));
         }
 
@@ -53,17 +53,14 @@ impl Parse for TrackSize<LengthOrPercentage> {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
-        if let Ok(b) = input.r#try(|i| TrackBreadth::parse(context, i)) {
+        if let Ok(b) = input.try(|i| TrackBreadth::parse(context, i)) {
             return Ok(TrackSize::Breadth(b));
         }
 
-        if input
-            .r#try(|i| i.expect_function_matching("minmax"))
-            .is_ok()
-        {
+        if input.try(|i| i.expect_function_matching("minmax")).is_ok() {
             return input.parse_nested_block(|input| {
                 let inflexible_breadth =
-                    match input.r#try(|i| LengthOrPercentage::parse_non_negative(context, i)) {
+                    match input.try(|i| LengthOrPercentage::parse_non_negative(context, i)) {
                         Ok(lop) => TrackBreadth::Breadth(lop),
                         Err(..) => {
                             let keyword = TrackKeyword::parse(input)?;
@@ -95,7 +92,7 @@ pub fn parse_line_names<'i, 't>(
     input.expect_square_bracket_block()?;
     input.parse_nested_block(|input| {
         let mut values = vec![];
-        while let Ok((loc, ident)) = input.r#try(|i| -> Result<_, CssParseError<()>> {
+        while let Ok((loc, ident)) = input.try(|i| -> Result<_, CssParseError<()>> {
             Ok((i.current_source_location(), i.expect_ident_cloned()?))
         }) {
             let ident = CustomIdent::from_ident(loc, &ident, &["span", "auto"])?;
@@ -126,7 +123,7 @@ impl TrackRepeat<LengthOrPercentage, Integer> {
         input: &mut Parser<'i, 't>,
     ) -> Result<(Self, RepeatType), ParseError<'i>> {
         input
-            .r#try(|i| i.expect_function_matching("repeat").map_err(|e| e.into()))
+            .try(|i| i.expect_function_matching("repeat").map_err(|e| e.into()))
             .and_then(|_| {
                 input.parse_nested_block(|input| {
                     let count = RepeatCount::parse(context, input)?;
@@ -146,9 +143,9 @@ impl TrackRepeat<LengthOrPercentage, Integer> {
 
                     loop {
                         current_names = input
-                            .r#try(parse_line_names)
+                            .try(parse_line_names)
                             .unwrap_or(vec![].into_boxed_slice());
-                        if let Ok(track_size) = input.r#try(|i| TrackSize::parse(context, i)) {
+                        if let Ok(track_size) = input.try(|i| TrackSize::parse(context, i)) {
                             if !track_size.is_fixed() {
                                 if is_auto {
                                     // should be <fixed-size> for <auto-repeat>
@@ -172,7 +169,7 @@ impl TrackRepeat<LengthOrPercentage, Integer> {
                                 // gecko implements new spec.
                                 names.push(
                                     input
-                                        .r#try(parse_line_names)
+                                        .try(parse_line_names)
                                         .unwrap_or(vec![].into_boxed_slice()),
                                 );
                                 break;
@@ -226,10 +223,10 @@ impl Parse for TrackList<LengthOrPercentage, Integer> {
         loop {
             current_names.extend_from_slice(
                 &mut input
-                    .r#try(parse_line_names)
+                    .try(parse_line_names)
                     .unwrap_or(vec![].into_boxed_slice()),
             );
-            if let Ok(track_size) = input.r#try(|i| TrackSize::parse(context, i)) {
+            if let Ok(track_size) = input.try(|i| TrackSize::parse(context, i)) {
                 if !track_size.is_fixed() {
                     atleast_one_not_fixed = true;
                     if auto_repeat.is_some() {
@@ -242,7 +239,7 @@ impl Parse for TrackList<LengthOrPercentage, Integer> {
                 names.push(vec.into_boxed_slice());
                 values.push(TrackListValue::TrackSize(track_size));
             } else if let Ok((repeat, type_)) =
-                input.r#try(|i| TrackRepeat::parse_with_repeat_type(context, i))
+                input.try(|i| TrackRepeat::parse_with_repeat_type(context, i))
             {
                 if list_type == TrackListType::Explicit {
                     list_type = TrackListType::Normal; // <explicit-track-list> doesn't contain repeat()
@@ -404,7 +401,7 @@ impl Parse for GridTemplateComponent<LengthOrPercentage, Integer> {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
-        if input.r#try(|i| i.expect_ident_matching("none")).is_ok() {
+        if input.try(|i| i.expect_ident_matching("none")).is_ok() {
             return Ok(GridTemplateComponent::None);
         }
 
@@ -419,7 +416,7 @@ impl GridTemplateComponent<LengthOrPercentage, Integer> {
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
         if allow_grid_template_subgrids() {
-            if let Ok(t) = input.r#try(|i| LineNameList::parse(context, i)) {
+            if let Ok(t) = input.try(|i| LineNameList::parse(context, i)) {
                 return Ok(GridTemplateComponent::Subgrid(t));
             }
         }

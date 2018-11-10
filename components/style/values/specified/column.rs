@@ -18,7 +18,7 @@ impl Parse for ColumnCount {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
-        if input.r#try(|i| i.expect_ident_matching("auto")).is_ok() {
+        if input.try(|i| i.expect_ident_matching("auto")).is_ok() {
             return Ok(GenericColumnCount::Auto);
         }
         Ok(GenericColumnCount::Integer(PositiveInteger::parse(

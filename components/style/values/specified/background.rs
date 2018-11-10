@@ -19,9 +19,9 @@ impl Parse for BackgroundSize {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
-        if let Ok(width) = input.r#try(|i| NonNegativeLengthOrPercentageOrAuto::parse(context, i)) {
+        if let Ok(width) = input.try(|i| NonNegativeLengthOrPercentageOrAuto::parse(context, i)) {
             let height = input
-                .r#try(|i| NonNegativeLengthOrPercentageOrAuto::parse(context, i))
+                .try(|i| NonNegativeLengthOrPercentageOrAuto::parse(context, i))
                 .unwrap_or(NonNegativeLengthOrPercentageOrAuto::auto());
             return Ok(GenericBackgroundSize::Explicit { width, height });
         }
@@ -106,7 +106,7 @@ impl Parse for BackgroundRepeat {
             },
         };
 
-        let vertical = input.r#try(BackgroundRepeatKeyword::parse).ok();
+        let vertical = input.try(BackgroundRepeatKeyword::parse).ok();
         Ok(BackgroundRepeat::Keywords(horizontal, vertical))
     }
 }
