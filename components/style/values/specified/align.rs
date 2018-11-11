@@ -287,7 +287,7 @@ impl From<AlignContent> for u16 {
 
 /// Value for the `justify-content` property.
 ///
-/// <https://drafts.csswg.org/css-align/#propdef-align-content>
+/// <https://drafts.csswg.org/css-align/#propdef-justify-content>
 #[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, ToComputedValue, ToCss)]
 pub struct JustifyContent(pub ContentDistribution);
 
@@ -461,7 +461,7 @@ impl From<JustifySelf> for u8 {
 
 /// Value of the `align-items` property
 ///
-/// <https://drafts.csswg.org/css-align/#self-alignment>
+/// <https://drafts.csswg.org/css-align/#propdef-align-items>
 #[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, ToComputedValue, ToCss)]
 pub struct AlignItems(pub AlignFlags);
 
