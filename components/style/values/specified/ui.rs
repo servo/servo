@@ -163,11 +163,7 @@ pub enum UserSelect {
     Text,
     #[parse(aliases = "-moz-none")]
     None,
-    Element,
-    Elements,
     All,
-    Toggle,
-    TriState,
     /// Force selection of all children, unless an ancestor has `none` set.
     ///
     /// See bug 48096.
