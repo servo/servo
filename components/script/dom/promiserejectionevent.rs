@@ -5,7 +5,7 @@
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use crate::dom::bindings::codegen::Bindings::PromiseRejectionEventBinding;
 use crate::dom::bindings::codegen::Bindings::PromiseRejectionEventBinding::PromiseRejectionEventMethods;
-use crate::dom::bindings::error::Fallible;
+use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::reflect_dom_object;
 use crate::dom::bindings::root::DomRoot;
@@ -73,7 +73,11 @@ impl PromiseRejectionEvent {
         let reason = init.reason.handle();
         let promise = match init.promise.as_ref() {
             Some(promise) => promise.clone(),
-            None => Promise::new(global),
+            None => {
+                return Err(Error::Type(
+                    "required member promise is undefined.".to_string(),
+                ))
+            },
         };
         let bubbles = EventBubbles::from(init.parent.bubbles);
         let cancelable = EventCancelable::from(init.parent.cancelable);
