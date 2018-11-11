@@ -63,6 +63,37 @@
         namespace E {};`);
       idlArray.collapse_partials();
     })();
+
+    (() => {
+      const idlArray = new IdlArray();
+      idlArray.add_idls(`
+        partial interface F {};
+        partial interface mixin G{};
+      `);
+      idlArray.add_dependency_idls(`
+        interface F {};
+        interface mixin G {};
+        interface mixin H {};
+        F includes H;
+        I includes H;
+        J includes G;
+        interface K : J {};
+        interface L : F {};
+      `);
+      test(() => {
+        // F is tested, so H is a dep.
+        assert_true('F' in idlArray.includes, 'Fs includes should be picked up');
+        assert_true(idlArray.includes.F.includes('H'), 'H should be picked up');
+        // H is not tested, so I is not a dep.
+        assert_false('I' in idlArray.includes, 'I should be ignored');
+        // G is a dep, so J is a dep.
+        assert_true('J' in idlArray.includes, 'J should be picked up');
+        // But, K isn't a dep just because of J.
+        assert_false('K' in idlArray.members, 'K should be ignored');
+        // L inherits F, so should be picked up.
+        assert_false('L' in idlArray.members, 'L should be picked up');
+      }, 'partial mixin dep implications');
+    })();
   </script>
   <script type="text/json" id="expected">
 {
@@ -118,6 +149,12 @@
       "status_string": "FAIL",
       "properties": {},
       "message": "assert_true: Original E definition should have type interface expected true got false"
+    },
+    {
+      "name": "partial mixin dep implications",
+      "status_string": "PASS",
+      "properties": {},
+      "message": null
     }
   ],
   "type": "complete"
