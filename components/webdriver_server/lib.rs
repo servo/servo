@@ -11,14 +11,12 @@ extern crate log;
 #[macro_use]
 extern crate serde;
 
-mod keys;
-
 use base64;
-use crate::keys::keycodes_to_keys;
 use euclid::TypedSize2D;
 use hyper::Method;
 use image::{DynamicImage, ImageFormat, RgbImage};
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
+use keyboard_types::webdriver::{send_keys, Event as KeyEvent};
 use msg::constellation_msg::{BrowsingContextId, TopLevelBrowsingContextId, TraversalDirection};
 use net_traits::image::base::PixelFormat;
 use regex::Captures;
@@ -1038,7 +1036,14 @@ impl Handler {
             ))
         })?;
 
-        let keys = keycodes_to_keys(&keys.text);
+        // FIXME: Don't discard composition events.
+        let keys = send_keys(&keys.text)
+            .drain(..)
+            .filter_map(|event| match event {
+                KeyEvent::Keyboard(v) => Some(v),
+                _ => None,
+            })
+            .collect();
 
         // TODO: there's a race condition caused by the focus command and the
         // send keys command being two separate messages,

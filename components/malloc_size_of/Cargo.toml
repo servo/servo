@@ -31,7 +31,7 @@ euclid = "0.19"
 hashglobe = { path = "../hashglobe" }
 hyper = { version = "0.12", optional = true }
 hyper_serde = { version = "0.9", optional = true }
-keyboard-types = {version = "0.4.2-servo", features = ["serde"], optional = true}
+keyboard-types = {version = "0.4.3", optional = true}
 mozjs = { version = "0.9.3", optional = true }
 selectors = { path = "../selectors" }
 serde = { version = "1.0.27", optional = true }

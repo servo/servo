@@ -45,7 +45,7 @@ crossbeam-channel = "0.2"
 euclid = "0.19"
 gleam = "0.6"
 glutin = "0.18"
-keyboard-types = {version = "0.4.2-servo", features = ["serde"]}
+keyboard-types = "0.4.3"
 lazy_static = "1"
 libservo = {path = "../../components/servo"}
 log = "0.4"
