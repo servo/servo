@@ -53,5 +53,6 @@ include = [
   "TimingFunction",
   "PathCommand",
   "UnicodeRange",
+  "UserSelect",
 ]
 item_types = ["enums", "structs", "typedefs"]

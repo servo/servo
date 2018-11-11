@@ -140,3 +140,39 @@ impl Parse for ScrollbarColor {
         })
     }
 }
+
+/// The specified value for the `user-select` property.
+///
+/// https://drafts.csswg.org/css-ui-4/#propdef-user-select
+#[allow(missing_docs)]
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    Eq,
+    MallocSizeOf,
+    Parse,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToComputedValue,
+    ToCss,
+)]
+#[repr(u8)]
+pub enum UserSelect {
+    Auto,
+    Text,
+    #[parse(aliases = "-moz-none")]
+    None,
+    Element,
+    Elements,
+    All,
+    Toggle,
+    TriState,
+    /// Force selection of all children, unless an ancestor has `none` set.
+    ///
+    /// See bug 48096.
+    MozAll,
+    /// Like `text`, except that it won't get overridden by ancestors having
+    /// `all`.
+    MozText,
+}

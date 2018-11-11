@@ -82,7 +82,7 @@ pub use self::transform::{Rotate, Scale, Transform};
 pub use self::transform::{TransformOrigin, TransformStyle, Translate};
 #[cfg(feature = "gecko")]
 pub use self::ui::CursorImage;
-pub use self::ui::{ColorOrAuto, Cursor, MozForceBrokenImageIcon};
+pub use self::ui::{ColorOrAuto, Cursor, MozForceBrokenImageIcon, UserSelect};
 pub use super::generics::grid::GridTemplateComponent as GenericGridTemplateComponent;
 
 #[cfg(feature = "gecko")]
