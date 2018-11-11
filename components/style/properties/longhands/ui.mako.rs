@@ -39,7 +39,6 @@ ${helpers.predefined_type(
     gecko_ffi_name="mUserSelect",
     alias="-webkit-user-select",
     animation_value_type="discrete",
-    needs_context=False,
     spec="https://drafts.csswg.org/css-ui-4/#propdef-user-select",
 )}
 

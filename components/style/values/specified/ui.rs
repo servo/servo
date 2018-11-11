@@ -141,6 +141,11 @@ impl Parse for ScrollbarColor {
     }
 }
 
+fn in_ua_sheet(context: &ParserContext) -> bool {
+    use crate::stylesheets::Origin;
+    context.stylesheet_origin == Origin::UserAgent
+}
+
 /// The specified value for the `user-select` property.
 ///
 /// https://drafts.csswg.org/css-ui-4/#propdef-user-select
@@ -167,5 +172,11 @@ pub enum UserSelect {
     All,
     /// Like `text`, except that it won't get overridden by ancestors having
     /// `all`.
+    ///
+    /// FIXME(emilio): This only has one use in contenteditable.css, can we find
+    /// a better way to do this?
+    ///
+    /// See bug 1181130.
+    #[parse(condition = "in_ua_sheet")]
     MozText,
 }
