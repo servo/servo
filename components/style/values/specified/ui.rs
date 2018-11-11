@@ -163,11 +163,8 @@ pub enum UserSelect {
     Text,
     #[parse(aliases = "-moz-none")]
     None,
-    All,
     /// Force selection of all children, unless an ancestor has `none` set.
-    ///
-    /// See bug 48096.
-    MozAll,
+    All,
     /// Like `text`, except that it won't get overridden by ancestors having
     /// `all`.
     MozText,
