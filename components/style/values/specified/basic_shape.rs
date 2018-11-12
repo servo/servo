@@ -8,20 +8,17 @@
 //! [basic-shape]: https://drafts.csswg.org/css-shapes/#typedef-basic-shape
 
 use crate::parser::{Parse, ParserContext};
-use crate::values::computed::Percentage;
 use crate::values::generics::basic_shape as generic;
 use crate::values::generics::basic_shape::{GeometryBox, Path, PolygonCoord};
 use crate::values::generics::basic_shape::{ShapeBox, ShapeSource};
 use crate::values::generics::rect::Rect;
 use crate::values::specified::border::BorderRadius;
 use crate::values::specified::image::Image;
-use crate::values::specified::position::{HorizontalPosition, Position, PositionComponent};
-use crate::values::specified::position::{Side, VerticalPosition};
+use crate::values::specified::position::{HorizontalPosition, VerticalPosition, Position};
 use crate::values::specified::url::SpecifiedUrl;
 use crate::values::specified::LengthOrPercentage;
 use crate::values::specified::SVGPathData;
 use cssparser::Parser;
-use std::borrow::Cow;
 use std::fmt::{self, Write};
 use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
 
@@ -249,7 +246,7 @@ impl ToCss for Circle {
         }
 
         dest.write_str("at ")?;
-        serialize_basicshape_position(&self.position, dest)?;
+        self.position.to_css(dest)?;
         dest.write_str(")")
     }
 }
@@ -305,7 +302,7 @@ impl ToCss for Ellipse {
         }
 
         dest.write_str("at ")?;
-        serialize_basicshape_position(&self.position, dest)?;
+        self.position.to_css(dest)?;
         dest.write_str(")")
     }
 }
@@ -324,82 +321,6 @@ impl Parse for ShapeRadius {
             "farthest-side" => Ok(generic::ShapeRadius::FarthestSide),
         }
     }
-}
-
-/// <https://drafts.csswg.org/css-shapes/#basic-shape-serialization>
-///
-/// Positions get serialized differently with basic shapes. Keywords
-/// are converted to percentages where possible. Only the two or four
-/// value forms are used. In case of two keyword-percentage pairs,
-/// the keywords are folded into the percentages
-fn serialize_basicshape_position<W>(position: &Position, dest: &mut CssWriter<W>) -> fmt::Result
-where
-    W: Write,
-{
-    fn to_keyword_and_lop<S>(component: &PositionComponent<S>) -> (S, Cow<LengthOrPercentage>)
-    where
-        S: Copy + Side,
-    {
-        match *component {
-            PositionComponent::Center => (
-                S::start(),
-                Cow::Owned(LengthOrPercentage::Percentage(Percentage(0.5))),
-            ),
-            PositionComponent::Side(keyword, None) => {
-                // left | top => 0%
-                // right | bottom => 100%
-                let p = if keyword.is_start() { 0. } else { 1. };
-                (
-                    S::start(),
-                    Cow::Owned(LengthOrPercentage::Percentage(Percentage(p))),
-                )
-            },
-            PositionComponent::Side(keyword, Some(ref lop)) if !keyword.is_start() => {
-                if let LengthOrPercentage::Percentage(p) = *to_non_zero_length(lop) {
-                    (
-                        S::start(),
-                        Cow::Owned(LengthOrPercentage::Percentage(Percentage(1. - p.0))),
-                    )
-                } else {
-                    (keyword, Cow::Borrowed(lop))
-                }
-            },
-            PositionComponent::Length(ref lop) | PositionComponent::Side(_, Some(ref lop)) => {
-                (S::start(), to_non_zero_length(lop))
-            },
-        }
-    }
-
-    fn to_non_zero_length(lop: &LengthOrPercentage) -> Cow<LengthOrPercentage> {
-        match *lop {
-            LengthOrPercentage::Length(ref l) if l.is_zero() => {
-                Cow::Owned(LengthOrPercentage::Percentage(Percentage(0.)))
-            },
-            _ => Cow::Borrowed(lop),
-        }
-    }
-
-    fn write_pair<A, B, W>(a: &A, b: &B, dest: &mut CssWriter<W>) -> fmt::Result
-    where
-        A: ToCss,
-        B: ToCss,
-        W: Write,
-    {
-        a.to_css(dest)?;
-        dest.write_str(" ")?;
-        b.to_css(dest)
-    }
-
-    let (x_pos, x_lop) = to_keyword_and_lop(&position.horizontal);
-    let (y_pos, y_lop) = to_keyword_and_lop(&position.vertical);
-
-    if x_pos.is_start() && y_pos.is_start() {
-        return write_pair(&*x_lop, &*y_lop, dest);
-    }
-
-    write_pair(&x_pos, &*x_lop, dest)?;
-    dest.write_str(" ")?;
-    write_pair(&y_pos, &*y_lop, dest)
 }
 
 impl Parse for Polygon {
