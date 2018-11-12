@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::fetch::methods::{CancellationListener, Data};
+use crate::fetch::methods::{CancellationListener, Data, RangeRequestBounds};
 use embedder_traits::{EmbedderMsg, EmbedderProxy, FilterPattern};
 use headers_ext::{ContentLength, ContentType, HeaderMap, HeaderMapExt};
 use http::header::{self, HeaderValue};
@@ -113,7 +113,7 @@ impl FileManager {
         check_url_validity: bool,
         origin: FileOrigin,
         response: &mut Response,
-        range: RelativePos
+        range: RangeRequestBounds,
     ) -> Result<(), String> {
         self.store
             .fetch_blob_buf(
@@ -532,13 +532,14 @@ impl FileManagerStore {
         cancellation_listener: Arc<Mutex<CancellationListener>>,
         id: &Uuid,
         origin_in: &FileOrigin,
-        range: RelativePos,
+        range: RangeRequestBounds,
         check_url_validity: bool,
         response: &mut Response,
     ) -> Result<(), BlobURLStoreError> {
         let file_impl = self.get_impl(id, origin_in, check_url_validity)?;
         match file_impl {
             FileImpl::Memory(buf) => {
+                let range = range.get_final(Some(buf.size));
                 let range = range.to_abs_range(buf.size as usize);
                 let len = range.len() as u64;
 
@@ -567,9 +568,12 @@ impl FileManagerStore {
                 let file = File::open(&metadata.path)
                     .map_err(|e| BlobURLStoreError::External(e.to_string()))?;
 
+                let range = range.get_final(Some(metadata.size));
                 let mut reader = BufReader::with_capacity(FILE_CHUNK_SIZE, file);
                 if reader.seek(SeekFrom::Start(range.start as u64)).is_err() {
-                    return Err(BlobURLStoreError::External("Unexpected method for blob".into()));
+                    return Err(BlobURLStoreError::External(
+                        "Unexpected method for blob".into(),
+                    ));
                 }
 
                 let filename = metadata
@@ -585,11 +589,13 @@ impl FileManagerStore {
                     filename,
                 );
 
-                fetch_file_in_chunks(done_sender.clone(),
-                                     reader,
-                                     response.body.clone(),
-                                     cancellation_listener,
-                                     range);
+                fetch_file_in_chunks(
+                    done_sender.clone(),
+                    reader,
+                    response.body.clone(),
+                    cancellation_listener,
+                    range,
+                );
 
                 Ok(())
             },
@@ -601,7 +607,7 @@ impl FileManagerStore {
                     cancellation_listener,
                     &parent_id,
                     origin_in,
-                    range.slice_inner(&inner_rel_pos),
+                    RangeRequestBounds::Final(range.get_final(None).slice_inner(&inner_rel_pos)),
                     false,
                     response,
                 );
@@ -794,9 +800,7 @@ pub fn fetch_file_in_chunks(
                 let length = {
                     let buffer = reader.fill_buf().unwrap().to_vec();
                     let mut buffer_len = buffer.len();
-                    if let ResponseBody::Receiving(ref mut body) =
-                        *res_body.lock().unwrap()
-                    {
+                    if let ResponseBody::Receiving(ref mut body) = *res_body.lock().unwrap() {
                         let offset = usize::min(
                             {
                                 if let Some(end) = range.end {
@@ -824,9 +828,7 @@ pub fn fetch_file_in_chunks(
                 if length == 0 {
                     let mut body = res_body.lock().unwrap();
                     let completed_body = match *body {
-                        ResponseBody::Receiving(ref mut body) => {
-                            mem::replace(body, vec![])
-                        },
+                        ResponseBody::Receiving(ref mut body) => mem::replace(body, vec![]),
                         _ => vec![],
                     };
                     *body = ResponseBody::Done(completed_body);
