@@ -2,3 +2,6 @@ root_dir: .salt
 file_roots:
   base:
     - states
+extension_modules: ../modules
+ext_pillar:
+  - taskcluster_secrets:

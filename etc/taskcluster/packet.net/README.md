@@ -39,7 +39,7 @@ This should be the case if you’re a Servo project administrator (the `project-
 ## Worker’s client ID
 
 Workers are configured to authenticate with client ID
-[project/servo/worker/docker-worker-kvm/1](
+[`project/servo/worker/docker-worker-kvm/1`](
 https://tools.taskcluster.net/auth/clients/project%2Fservo%2Fworker%2Fdocker-worker-kvm%2F1).
 This client has the scopes required to run docker-worker
 as well as for tasks that we run on this worker type.

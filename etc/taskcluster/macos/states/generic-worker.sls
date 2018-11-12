@@ -1,5 +1,6 @@
 {% set bin = "/usr/local/bin" %}
-{% set keyfile = "/etc/generic-worker/key" %}
+{% set user = "worker" %}
+{% set home = "/Users/" + user %}
 
 {{ bin }}/generic-worker:
   file.managed:
@@ -16,21 +17,76 @@
     - mode: 755
     - makedirs: True
 
-/etc/generic-worker/config.json:
+{{ user }}:
+  user.present:
+    - home: {{ home }}
+
+# `user.present`’s `createhome` is apparently not supported on macOS
+{{ home }}:
+  file.directory:
+    - user: {{ user }}
+
+{{ home }}/config.json:
   file.serialize:
     - makedirs: True
+    - user: {{ user }}
     - mode: 600
     - show_changes: False
     - formatter: json
     - dataset:
         provisionerId: proj-servo
         workerType: macos
-        workerId: servo-macos-1
-        clientId: project/servo/worker/macos/1
+        workerGroup: servo-macos
+        workerId: mac1
+        tasksDir: {{ home }}/tasks
         publicIP: {{ salt.network.ip_addrs()[0] }}
-        signingKeyLocation: {{ keyfile }}
+        signingKeyLocation: {{ home }}/key
+        clientId: {{ pillar["client_id"] }}
+        accessToken: {{ pillar["access_token"] }}
+        livelogSecret: {{ pillar["livelog_secret"] }}
 
-generic-worker new-openpgp-keypair --file {{ keyfile }}:
+{{ bin }}/generic-worker new-openpgp-keypair --file {{ home }}/key:
   cmd.run:
-    - creates: {{ keyfile }}
-    - prepend_path: {{ bin }}
+    - creates: {{ home }}/key
+    - runas: worker
+
+/Library/LaunchAgents/net.generic.worker.plist:
+  file.managed:
+    - mode: 644
+    - template: jinja
+    - contents: >-
+        <?xml version="1.0" encoding="UTF-8"?>
+        <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+        <plist version="1.0">
+        <dict>
+          <key>Label</key>
+          <string>net.generic.worker</string>
+
+          <key>ProgramArguments</key>
+          <array>
+            <string>{{ bin }}/generic-worker</string>
+            <string>run</string>
+            <string>--config</string>
+            <string>config.json</string>
+          </array>
+
+          <key>KeepAlive</key>
+          <true/>
+
+          <key>WorkingDirectory</key>
+          <string>{{ home }}</string>
+
+          <key>UserName</key>
+          <string>{{ user }}</string>
+
+          <key>StandardOutPath</key>
+          <string>stdout.log</string>
+
+          <key>StandardErrorPath</key>
+          <string>stderr.log</string>
+        </dict>
+        </plist>
+
+net.generic.worker:
+  service.running:
+    - enable: True

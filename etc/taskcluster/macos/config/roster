@@ -1,2 +1,7 @@
 mac1:
     host: servo-tc-mac1.servo.org
+
+    # https://github.com/saltstack/salt/issues/50477
+    minion_opts:
+        providers:
+            user: mac_user
