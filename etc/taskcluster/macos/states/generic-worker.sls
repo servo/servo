@@ -28,7 +28,6 @@
 
 {{ home }}/config.json:
   file.serialize:
-    - makedirs: True
     - user: {{ user }}
     - mode: 600
     - show_changes: False
@@ -43,9 +42,24 @@
         signingKeyLocation: {{ home }}/key
         clientId: {{ pillar["client_id"] }}
         accessToken: {{ pillar["access_token"] }}
+        livelogExecutable: {{ bin }}/livelog
+        livelogCertificate: {{ home }}/livelog.crt
+        livelogKey: {{ home }}/livelog.key
         livelogSecret: {{ pillar["livelog_secret"] }}
     - watch_in:
       - service: net.generic.worker
+
+{{ home }}/livelog.crt:
+  file.managed:
+    - contents_pillar: livelog_cert
+    - user: {{ user }}
+    - mode: 600
+
+{{ home }}/livelog.key:
+  file.managed:
+    - contents_pillar: livelog_key
+    - user: {{ user }}
+    - mode: 600
 
 {{ bin }}/generic-worker new-openpgp-keypair --file {{ home }}/key:
   cmd.run:
