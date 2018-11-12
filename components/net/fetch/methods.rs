@@ -4,7 +4,7 @@
 
 use crate::data_loader::decode;
 use crate::fetch::cors_cache::CorsCache;
-use crate::filemanager_thread::{fetch_file_in_chunks, FILE_CHUNK_SIZE, FileManager};
+use crate::filemanager_thread::{fetch_file_in_chunks, FileManager, FILE_CHUNK_SIZE};
 use crate::http_loader::{determine_request_referrer, http_fetch, HttpState};
 use crate::http_loader::{set_default_accept, set_default_accept_language};
 use crate::subresource_integrity::is_response_integrity_valid;
@@ -26,7 +26,7 @@ use net_traits::{FetchTaskTarget, NetworkError, ReferrerPolicy};
 use servo_channel::{channel, Receiver, Sender};
 use servo_url::ServoUrl;
 use std::borrow::Cow;
-use std::fs::{File, Metadata};
+use std::fs::File;
 use std::io::{BufReader, Seek, SeekFrom};
 use std::mem;
 use std::ops::Bound;
@@ -489,10 +489,34 @@ fn wait_for_response(response: &mut Response, target: Target, done_chan: &mut Do
     }
 }
 
+/// Range header start and end values.
+pub enum RangeRequestBounds {
+    /// The range bounds are known and set to final values.
+    Final(RelativePos),
+    /// We need extra information to set the range bounds.
+    /// i.e. buffer or file size.
+    Pending(u64),
+}
+
+impl RangeRequestBounds {
+    pub fn get_final(&self, len: Option<u64>) -> RelativePos {
+        match self {
+            RangeRequestBounds::Final(pos) => pos.clone(),
+            RangeRequestBounds::Pending(offset) => RelativePos::from_opts(
+                if let Some(len) = len {
+                    Some((len - u64::min(len, *offset)) as i64)
+                } else {
+                    Some(0)
+                },
+                None,
+            ),
+        }
+    }
+}
+
 /// Get the range bounds if the `Range` header is present.
-fn get_range_bounds(range: Option<Range>, metadata: Option<Metadata>) -> RelativePos {
-    if let Some(ref range) = range
-    {
+fn get_range_request_bounds(range: Option<Range>) -> RangeRequestBounds {
+    if let Some(ref range) = range {
         let (start, end) = match range
             .iter()
             .collect::<Vec<(Bound<u64>, Bound<u64>)>>()
@@ -504,18 +528,13 @@ fn get_range_bounds(range: Option<Range>, metadata: Option<Metadata>) -> Relativ
                 (start, Some(i64::max(start as i64, end as i64)))
             },
             Some(&(Bound::Unbounded, Bound::Included(offset))) => {
-                if let Some(metadata) = metadata {
-                    // `offset` cannot be bigger than the file size.
-                    (metadata.len() - u64::min(metadata.len(), offset), None)
-                } else {
-                    (0, None)
-                }
+                return RangeRequestBounds::Pending(offset);
             },
             _ => (0, None),
         };
-        RelativePos::from_opts(Some(start as i64), end)
+        RangeRequestBounds::Final(RelativePos::from_opts(Some(start as i64), end))
     } else {
-        RelativePos::from_opts(Some(0), None)
+        RangeRequestBounds::Final(RelativePos::from_opts(Some(0), None))
     }
 }
 
@@ -567,12 +586,17 @@ fn scheme_fetch(
 
                     // Get range bounds (if any) and try to seek to the requested offset.
                     // If seeking fails, bail out with a NetworkError.
-                    let range = get_range_bounds(request.headers.typed_get::<Range>(), file.metadata().ok());
+                    let file_size = match file.metadata() {
+                        Ok(metadata) => Some(metadata.len()),
+                        Err(_) => None,
+                    };
+                    let range = get_range_request_bounds(request.headers.typed_get::<Range>());
+                    let range = range.get_final(file_size);
                     let mut reader = BufReader::with_capacity(FILE_CHUNK_SIZE, file);
                     if reader.seek(SeekFrom::Start(range.start as u64)).is_err() {
                         *response.body.lock().unwrap() = ResponseBody::Done(vec![]);
                         return Response::network_error(NetworkError::Internal(
-                            "Unexpected method for blob".into(),
+                            "Unexpected method for file".into(),
                         ));
                     }
 
@@ -586,11 +610,13 @@ fn scheme_fetch(
                     *done_chan = Some((done_sender.clone(), done_receiver));
                     *response.body.lock().unwrap() = ResponseBody::Receiving(vec![]);
 
-                    fetch_file_in_chunks(done_sender,
-                                         reader,
-                                         response.body.clone(),
-                                         context.cancellation_listener.clone(),
-                                         range);
+                    fetch_file_in_chunks(
+                        done_sender,
+                        reader,
+                        response.body.clone(),
+                        context.cancellation_listener.clone(),
+                        range,
+                    );
 
                     response
                 } else {
@@ -612,12 +638,14 @@ fn scheme_fetch(
                 ));
             }
 
-            let range = get_range_bounds(request.headers.typed_get::<Range>(), None);
+            let range = get_range_request_bounds(request.headers.typed_get::<Range>());
 
             let (id, origin) = match parse_blob_url(&url) {
                 Ok((id, origin)) => (id, origin),
                 Err(()) => {
-                    return Response::network_error(NetworkError::Internal("Invalid blob url".into()));
+                    return Response::network_error(NetworkError::Internal(
+                        "Invalid blob url".into(),
+                    ));
                 },
             };
 
@@ -626,14 +654,15 @@ fn scheme_fetch(
             *done_chan = Some((done_sender.clone(), done_receiver));
             *response.body.lock().unwrap() = ResponseBody::Receiving(vec![]);
             let check_url_validity = true;
-            if let Err(err) = context.filemanager.fetch_file(&done_sender,
-                                                             context.cancellation_listener.clone(),
-                                                             id,
-                                                             check_url_validity,
-                                                             origin,
-                                                             &mut response,
-                                                             range)
-            {
+            if let Err(err) = context.filemanager.fetch_file(
+                &done_sender,
+                context.cancellation_listener.clone(),
+                id,
+                check_url_validity,
+                origin,
+                &mut response,
+                range,
+            ) {
                 let _ = done_sender.send(Data::Done);
                 return Response::network_error(NetworkError::Internal(err));
             };
