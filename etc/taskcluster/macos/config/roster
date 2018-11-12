@@ -5,3 +5,4 @@ mac1:
     minion_opts:
         providers:
             user: mac_user
+            group: mac_group
