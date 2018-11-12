@@ -77,38 +77,12 @@
   file.managed:
     - mode: 644
     - template: jinja
-    - contents: >-
-        <?xml version="1.0" encoding="UTF-8"?>
-        <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-        <plist version="1.0">
-        <dict>
-          <key>Label</key>
-          <string>net.generic.worker</string>
-
-          <key>ProgramArguments</key>
-          <array>
-            <string>{{ bin }}/generic-worker</string>
-            <string>run</string>
-            <string>--config</string>
-            <string>{{ etc }}/config.json</string>
-          </array>
-
-          <key>KeepAlive</key>
-          <true/>
-
-          <key>WorkingDirectory</key>
-          <string>{{ home }}</string>
-
-          <key>UserName</key>
-          <string>{{ user }}</string>
-
-          <key>StandardOutPath</key>
-          <string>stdout.log</string>
-
-          <key>StandardErrorPath</key>
-          <string>stderr.log</string>
-        </dict>
-        </plist>
+    - source: salt://generic-worker.plist.jinja
+    - context:
+      bin: {{ bin }}
+      etc: {{ etc }}
+      home: {{ home }}
+      user: {{ user }}
 
 net.generic.worker:
   service.running:
