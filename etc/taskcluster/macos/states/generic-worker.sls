@@ -44,11 +44,26 @@
         clientId: {{ pillar["client_id"] }}
         accessToken: {{ pillar["access_token"] }}
         livelogSecret: {{ pillar["livelog_secret"] }}
+    - watch_in:
+      - service: net.generic.worker
 
 {{ bin }}/generic-worker new-openpgp-keypair --file {{ home }}/key:
   cmd.run:
     - creates: {{ home }}/key
     - runas: worker
+
+{{ home }}/run:
+  file.managed:
+    - mode: 744
+    - user: {{ user }}
+    - template: jinja
+    - contents: |-
+        #!/bin/sh
+        # generic-worker overwrites its config file to fill in defaults,
+        # but we want to avoid touching config.json here
+        # so that SaltStack knows to (only) restart the service when it (really) changes.
+        cp -a config.json config-run.json
+        exec {{ bin }}/generic-worker run --config config-run.json
 
 /Library/LaunchAgents/net.generic.worker.plist:
   file.managed:
@@ -64,10 +79,7 @@
 
           <key>ProgramArguments</key>
           <array>
-            <string>{{ bin }}/generic-worker</string>
-            <string>run</string>
-            <string>--config</string>
-            <string>config.json</string>
+            <string>{{ home }}/run</string>
           </array>
 
           <key>KeepAlive</key>
