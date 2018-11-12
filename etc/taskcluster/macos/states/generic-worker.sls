@@ -1,4 +1,5 @@
 {% set bin = "/usr/local/bin" %}
+{% set etc = "/etc/generic-worker" %}
 {% set user = "worker" %}
 {% set home = "/Users/" + user %}
 
@@ -17,19 +18,25 @@
     - mode: 755
     - makedirs: True
 
+{{ user }} group:
+  group.present:
+    - name: {{ user }}
+
 {{ user }}:
   user.present:
     - home: {{ home }}
+    - gid_from_name: True
 
 # `user.present`’s `createhome` is apparently not supported on macOS
 {{ home }}:
   file.directory:
     - user: {{ user }}
 
-{{ home }}/config.json:
+{{ etc }}/config.json:
   file.serialize:
-    - user: {{ user }}
-    - mode: 600
+    - makedirs: True
+    - group: {{ user }}
+    - mode: 640
     - show_changes: False
     - formatter: json
     - dataset:
@@ -43,41 +50,28 @@
         clientId: {{ pillar["client_id"] }}
         accessToken: {{ pillar["access_token"] }}
         livelogExecutable: {{ bin }}/livelog
-        livelogCertificate: {{ home }}/livelog.crt
-        livelogKey: {{ home }}/livelog.key
+        livelogCertificate: {{ etc }}/livelog.crt
+        livelogKey: {{ etc }}/livelog.key
         livelogSecret: {{ pillar["livelog_secret"] }}
     - watch_in:
       - service: net.generic.worker
 
-{{ home }}/livelog.crt:
+{{ etc }}/livelog.crt:
   file.managed:
     - contents_pillar: livelog_cert
-    - user: {{ user }}
-    - mode: 600
+    - group: {{ user }}
+    - mode: 640
 
-{{ home }}/livelog.key:
+{{ etc }}/livelog.key:
   file.managed:
     - contents_pillar: livelog_key
-    - user: {{ user }}
-    - mode: 600
+    - group: {{ user }}
+    - mode: 640
 
 {{ bin }}/generic-worker new-openpgp-keypair --file {{ home }}/key:
   cmd.run:
     - creates: {{ home }}/key
-    - runas: worker
-
-{{ home }}/run:
-  file.managed:
-    - mode: 744
-    - user: {{ user }}
-    - template: jinja
-    - contents: |-
-        #!/bin/sh
-        # generic-worker overwrites its config file to fill in defaults,
-        # but we want to avoid touching config.json here
-        # so that SaltStack knows to (only) restart the service when it (really) changes.
-        cp -a config.json config-run.json
-        exec {{ bin }}/generic-worker run --config config-run.json
+    - runas: {{ user }}
 
 /Library/LaunchAgents/net.generic.worker.plist:
   file.managed:
@@ -93,7 +87,10 @@
 
           <key>ProgramArguments</key>
           <array>
-            <string>{{ home }}/run</string>
+            <string>{{ bin }}/generic-worker</string>
+            <string>run</string>
+            <string>--config</string>
+            <string>{{ etc }}/config.json</string>
           </array>
 
           <key>KeepAlive</key>
