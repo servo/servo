@@ -52,9 +52,6 @@ fn moz_box_display_values_enabled(context: &ParserContext) -> bool {
 /// If you change it, make sure to take a look at the
 /// FrameConstructionDataByDisplay stuff (both the XUL and non-XUL version), and
 /// ensure it's still correct!
-///
-/// Also, when you change this from Gecko you may need to regenerate the
-/// C++-side bindings (see components/style/cbindgen.toml).
 #[allow(missing_docs)]
 #[derive(
     Clone,
