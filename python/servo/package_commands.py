@@ -55,6 +55,9 @@ PACKAGES = {
     'macbrew': [
         'target/release/brew/servo.tar.gz',
     ],
+    'magicleap': [
+        'target/release/magicleap/Servo2D.mpk',
+    ],
     'maven': [
         'target/gradle/servoview/maven/org/mozilla/servoview/servoview-armv7/',
         'target/gradle/servoview/maven/org/mozilla/servoview/servoview-x86/',
