@@ -3,6 +3,9 @@
 {% set user = "worker" %}
 {% set home = "/Users/" + user %}
 
+GMT:
+  timezone.system
+
 {{ bin }}/generic-worker:
   file.managed:
     - name:
