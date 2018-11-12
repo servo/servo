@@ -14264,6 +14264,12 @@
      {}
     ]
    ],
+   "mozilla/range_request_blob_url.html": [
+    [
+     "/_mozilla/mozilla/range_request_blob_url.html",
+     {}
+    ]
+   ],
    "mozilla/range_request_file_url.html": [
     [
      "/_mozilla/mozilla/range_request_file_url.html",
@@ -27227,6 +27233,10 @@
   ],
   "mozilla/range_deleteContents.html": [
    "8de03455bcb0d18258f76af20f58c14868fe1c21",
+   "testharness"
+  ],
+  "mozilla/range_request_blob_url.html": [
+   "4e8b55d0b836dda9de14faead2ee1d6da354e8a4",
    "testharness"
   ],
   "mozilla/range_request_file_url.html": [
