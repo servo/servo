@@ -6,7 +6,6 @@
 
 import os
 import sys
-import base64
 import subprocess
 
 import tc
@@ -16,13 +15,7 @@ def main(*args):
     tc.check()
     ssh_key = tc.secret("project/servo/ssh-keys/docker-worker-kvm")
     tc_creds = tc.secret("project/servo/tc-client/worker/docker-worker-kvm/1")
-    win2016 = tc.api("awsProvisioner", "workerType", "servo-win2016")
-    files_by_desc = {f.get("description"): f for f in win2016["secrets"]["files"]}
-
-    def decode(description):
-        f = files_by_desc[description]
-        assert f["encoding"] == "base64"
-        return base64.b64decode(f["content"])
+    livelog = tc.livelog()
 
     terraform_vars = dict(
         ssh_pub_key=ssh_key["public"],
@@ -30,8 +23,8 @@ def main(*args):
         taskcluster_client_id=tc_creds["client_id"],
         taskcluster_access_token=tc_creds["access_token"],
         packet_api_key=tc.packet_auth_token(),
-        ssl_certificate=decode("SSL certificate for livelog"),
-        cert_key=decode("SSL key for livelog"),
+        ssl_certificate=livelog["livelog_cert_base64"],
+        cert_key=livelog["livelog_key_base64"],
     )
     env = dict(os.environ)
     env["PACKET_AUTH_TOKEN"] = terraform_vars["packet_api_key"]

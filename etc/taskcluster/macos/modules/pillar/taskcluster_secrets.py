@@ -12,5 +12,5 @@ def ext_pillar(_minion_id, _pillar, *_args):
     tc.check()
     data = {}
     data.update(tc.secret("project/servo/tc-client/worker/macos/1"))
-    data.update(tc.secret("project/servo/livelog-secret/1"))
+    data.update(tc.livelog())
     return data
