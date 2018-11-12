@@ -238,7 +238,7 @@ magicleap:
   - ./mach clean-cargo-cache --keep 3 --force
   - ./etc/ci/clean_build_artifacts.sh
   - ./mach build --magicleap --dev
-  - /Users/servo/magicleap/v0.17.0/mabu -o ./target/release/magicleap -t lumin_debug ./support/magicleap/Servo2D/Servo2D.package
+  - env --unset OPENSSL_INCLUDE_DIR --unset OPENSSL_LIB_DIR /Users/servo/magicleap/v0.17.0/mabu -o ./target/release/magicleap -t lumin_debug ./support/magicleap/Servo2D/Servo2D.package
   - bash ./etc/ci/lockfile_changed.sh
   - ./etc/ci/clean_build_artifacts.sh
 
@@ -250,7 +250,7 @@ magicleap-nightly:
   - ./mach clean-nightlies --keep 3 --force
   - ./mach clean-cargo-cache --keep 3 --force
   - ./etc/ci/clean_build_artifacts.sh
-  - ./mach build --magicleap --release
+  - env --unset OPENSSL_INCLUDE_DIR --unset OPENSSL_LIB_DIR ./mach build --magicleap --release
   - /Users/servo/magicleap/v0.17.0/mabu -o ./target/release/magicleap -t lumin_release ./support/magicleap/Servo2D/Servo2D.package
   - ./mach upload-nightly magicleap
   - bash ./etc/ci/lockfile_changed.sh
