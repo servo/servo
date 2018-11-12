@@ -39,6 +39,11 @@ def venv():
     shutil.rmtree(venv.path)
 
 
+@pytest.fixture(scope="module")
+def logger():
+    run.setup_logging({})
+
+
 @pytest.mark.parametrize("platform", ["Windows", "Linux", "Darwin"])
 def test_check_environ_fail(platform):
     m_open = mock.mock_open(read_data=b"")
@@ -53,7 +58,7 @@ def test_check_environ_fail(platform):
 
 
 @pytest.mark.parametrize("product", product_list)
-def test_setup_wptrunner(venv, product):
+def test_setup_wptrunner(venv, logger, product):
     parser = run.create_parser()
     kwargs = vars(parser.parse_args(["--channel=nightly", product]))
     kwargs["prompt"] = False

@@ -619,7 +619,7 @@ class Authentication(object):
     header, or None
 
     Both attributes are binary strings (`str` in Py2, `bytes` in Py3), since
-    RFC7617 Section 2.1 does not specify the encoding for username & passsword
+    RFC7617 Section 2.1 does not specify the encoding for username & password
     (as long it's compatible with ASCII). UTF-8 should be a relatively safe
     choice if callers need to decode them as most browsers use it.
     """

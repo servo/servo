@@ -67,22 +67,28 @@ class Firefox(Browser):
     platform_ini = "browsers/firefox/platform.ini"
     requirements = "requirements_firefox.txt"
 
-    def platform_string_geckodriver(self):
-        platform = {
-            "Linux": "linux",
-            "Windows": "win",
-            "Darwin": "macos"
-        }.get(uname[0])
+    platform = {
+        "Linux": "linux",
+        "Windows": "win",
+        "Darwin": "macos"
+    }.get(uname[0])
 
-        if platform is None:
+    application_name = {
+        "stable": "Firefox.app",
+        "beta": "Firefox.app",
+        "nightly": "Firefox Nightly.app"
+    }
+
+    def platform_string_geckodriver(self):
+        if self.platform is None:
             raise ValueError("Unable to construct a valid Geckodriver package name for current platform")
 
-        if platform in ("linux", "win"):
+        if self.platform in ("linux", "win"):
             bits = "64" if uname[4] == "x86_64" else "32"
         else:
             bits = ""
 
-        return "%s%s" % (platform, bits)
+        return "%s%s" % (self.platform, bits)
 
     def install(self, dest=None, channel="nightly"):
         """Install Firefox."""
@@ -102,24 +108,14 @@ class Firefox(Browser):
             "beta": "latest-beta",
             "nightly": "latest"
         }
-        application_name = {
-            "stable": "Firefox.app",
-            "beta": "Firefox.app",
-            "nightly": "Firefox Nightly.app"
-        }
+
         if channel not in branch:
             raise ValueError("Unrecognised release channel: %s" % channel)
 
         from mozdownload import FactoryScraper
         import mozinstall
 
-        platform = {
-            "Linux": "linux",
-            "Windows": "win",
-            "Darwin": "mac"
-        }.get(uname[0])
-
-        if platform is None:
+        if self.platform is None:
             raise ValueError("Unable to construct a valid Firefox package name for current platform")
 
         if dest is None:
@@ -136,10 +132,10 @@ class Firefox(Browser):
         try:
             mozinstall.install(filename, dest)
         except mozinstall.mozinstall.InstallError:
-            if platform == "mac" and os.path.exists(os.path.join(dest, application_name[channel])):
+            if self.platform == "macos" and os.path.exists(os.path.join(dest, self.application_name.get(channel, "Firefox Nightly.app"))):
                 # mozinstall will fail if nightly is already installed in the venv because
                 # mac installation uses shutil.copy_tree
-                mozinstall.uninstall(os.path.join(dest, application_name[channel]))
+                mozinstall.uninstall(os.path.join(dest, self.application_name.get(channel, "Firefox Nightly.app")))
                 mozinstall.install(filename, dest)
             else:
                 raise
@@ -150,46 +146,31 @@ class Firefox(Browser):
     def find_binary_path(self,path=None, channel="nightly"):
         """Looks for the firefox binary in the virtual environment"""
 
-        platform = {
-            "Linux": "linux",
-            "Windows": "win",
-            "Darwin": "mac"
-        }.get(uname[0])
-
-        application_name = {
-            "stable": "Firefox.app",
-            "beta": "Firefox.app",
-            "nightly": "Firefox Nightly.app"
-        }.get(channel)
-
         if path is None:
             #os.getcwd() doesn't include the venv path
             path = os.path.join(os.getcwd(), "_venv", "browsers", channel)
 
         binary = None
 
-        if platform == "linux":
+        if self.platform == "linux":
             binary = find_executable("firefox", os.path.join(path, "firefox"))
-        elif platform == "win":
+        elif self.platform == "win":
             import mozinstall
             binary = mozinstall.get_binary(path, "firefox")
-        elif platform == "mac":
-            binary = find_executable("firefox", os.path.join(path, application_name,
+        elif self.platform == "macos":
+            binary = find_executable("firefox", os.path.join(path, self.application_name.get(channel, "Firefox Nightly.app"),
                                                              "Contents", "MacOS"))
 
         return binary
 
-    def find_binary(self, venv_path=None, channel=None):
+    def find_binary(self, venv_path=None, channel="nightly"):
         if venv_path is None:
             venv_path = os.path.join(os.getcwd(), "_venv")
-
-        if channel is None:
-            channel = "nightly"
 
         path = os.path.join(venv_path, "browsers", channel)
         binary = self.find_binary_path(path, channel)
 
-        if not binary and uname[0] == "Darwin":
+        if not binary and self.platform == "macos":
             macpaths = ["/Applications/Firefox Nightly.app/Contents/MacOS",
                         os.path.expanduser("~/Applications/Firefox Nightly.app/Contents/MacOS"),
                         "/Applications/Firefox Developer Edition.app/Contents/MacOS",
@@ -282,7 +263,7 @@ class Firefox(Browser):
 
             url = self.get_profile_bundle_url(version, channel)
 
-            print("Installing test prefs from %s" % url)
+            logger.info("Installing test prefs from %s" % url)
             try:
                 extract_dir = tempfile.mkdtemp()
                 unzip(get(url).raw, dest=extract_dir)
@@ -294,7 +275,7 @@ class Firefox(Browser):
             finally:
                 shutil.rmtree(extract_dir)
         else:
-            print("Using cached test prefs from %s" % dest)
+            logger.info("Using cached test prefs from %s" % dest)
 
         return dest
 

@@ -107,8 +107,8 @@ def clear_all_cookies(session):
 
 def document_dimensions(session):
     return tuple(session.execute_script("""
-        let {width, height} = document.documentElement.getBoundingClientRect();
-        return [width, height];
+        let rect = document.documentElement.getBoundingClientRect();
+        return [rect.width, rect.height];
         """))
 
 
@@ -122,13 +122,13 @@ def document_hidden(session):
 def element_rect(session, element):
     return session.execute_script("""
         let element = arguments[0];
-        let {height, left, top, width} = element.getBoundingClientRect();
+        let rect = element.getBoundingClientRect();
 
         return {
-            x: left + window.pageXOffset,
-            y: top + window.pageYOffset,
-            width: width,
-            height: height,
+            x: rect.left + window.pageXOffset,
+            y: rect.top + window.pageYOffset,
+            width: rect.width,
+            height: rect.height,
         };
         """, args=(element,))
 

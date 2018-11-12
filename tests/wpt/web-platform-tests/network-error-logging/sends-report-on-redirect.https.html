@@ -1,0 +1,55 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <title>
+    Test that NEL reports are sent for redirects
+  </title>
+  <script src='/resources/testharness.js'></script>
+  <script src='/resources/testharnessreport.js'></script>
+  <script src='./support/nel.sub.js'></script>
+</head>
+<body>
+  <script>
+    nel_test(async t => {
+      // Make a request to a resource whose response headers include a NEL
+      // policy.
+      await fetchResourceWithBasicPolicy();
+      // Then make a request that results in a redirect.
+      await fetchRedirectedResource();
+      // We should receive a report about the redirect itself, and also about
+      // the resource that we were redirected to.
+      assert_true(await reportExists({
+        url: getURLForRedirectedResource(),
+        user_agent: navigator.userAgent,
+        type: "network-error",
+        body: {
+          method: "GET",
+          sampling_fraction: 1.0,
+          status_code: 302,
+          phase: "application",
+          type: "ok",
+        },
+        metadata: {
+          content_type: "application/reports+json",
+        },
+      }), "receive report about redirected resource");
+      assert_true(await reportExists({
+        // This happens to be where we're redirected to.
+        url: getURLForResourceWithNoPolicy(),
+        user_agent: navigator.userAgent,
+        type: "network-error",
+        body: {
+          method: "GET",
+          sampling_fraction: 1.0,
+          status_code: 200,
+          phase: "application",
+          type: "ok",
+        },
+        metadata: {
+          content_type: "application/reports+json",
+        },
+      }), "receive report about redirect target");
+    });
+  </script>
+</body>
+</html>
