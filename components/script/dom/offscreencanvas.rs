@@ -21,10 +21,12 @@
  use dom::webgl2renderingcontext::WebGL2RenderingContext;
  use js::rust::HandleValue;
  use js::jsapi::JSContext;
+ use dom::bindings::trace::RootedTraceableBox;
  use dom::node::{Node, window_from_node};
  use dom::bindings::codegen::UnionTypes::OffscreenCanvasRenderingContext2DOrWebGLRenderingContextOrWebGL2RenderingContext;
+ use dom::eventtarget::EventTarget;
 
-
+#[derive(JSTraceable, MallocSizeOf)]
  pub enum OffscreenRenderingContext {
      Context2D(Dom<OffscreenCanvasRenderingContext2D>),
      WebGL(Dom<WebGLRenderingContext>),
@@ -33,7 +35,7 @@
 
  #[dom_struct]
  pub struct OffscreenCanvas{
-     reflector_: Reflector,
+     eventtarget: EventTarget,
      height: u64,
      width: u64,
      context: DomRefCell<Option<OffscreenRenderingContext>>,
@@ -43,7 +45,7 @@
  impl OffscreenCanvas{
      pub fn new_inherited(height: u64, width: u64, placeholder: Option<&HTMLCanvasElement>) -> OffscreenCanvas {
          OffscreenCanvas {
-             reflector_: Reflector::new(),
+             eventtarget: EventTarget::new_inherited(),
              height: height,
              width: width,
              context: DomRefCell::new(None),
@@ -51,15 +53,20 @@
          }
      }
 
-     pub fn new(global: &GlobalScope, height: u64, width: u64, placeholder: Option<&HTMLCanvasElement>) -> DomRoot<OffscreenCanvas> {
-         reflect_dom_object(Box::new(OffscreenCanvas::new_inherited(height,width,placeholder)), global, OffscreenCanvasWrap)
+     pub fn new(
+         global: &GlobalScope,
+          height: u64,
+           width: u64,
+            placeholder: Option<&HTMLCanvasElement>
+        ) -> DomRoot<OffscreenCanvas> {
+         reflect_dom_object(Box::new
+             (OffscreenCanvas::new_inherited(height,width,placeholder)), global, OffscreenCanvasWrap)
      }
 
      pub fn Constructor (global: &GlobalScope, height: u64, width: u64) -> Fallible<DomRoot<OffscreenCanvas>> {
          //step 1
          let offscreencanvas = OffscreenCanvas::new(global,height,width,None);
          //step 2
-
          if offscreencanvas.context.borrow().is_some() {
              return Err(Error::InvalidState);
          }
@@ -112,14 +119,14 @@
              }
 
 
-         /*match &*contextID {
+        /* match &*contextID {
              "2d" => self.get_or_init_2d_context(),
              "webgl" | "experimental-webgl" => self
                  .map(CanvasRenderingContext::WebGLRenderingContext),
              "webgl2" | "experimental-webgl2" => self
                  .map(CanvasRenderingContext::WebGL2RenderingContext)
              _ => None,
-         }*/
+         } */
 
      }
 
