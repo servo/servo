@@ -15,7 +15,7 @@ async_test(function(t) {
 
   window.onerror = function (msg, url, line, col, error) {
     t.step(function() {
-      assert_equals(msg, 'Uncaught Error: e2');
+      assert_true(msg.includes('e2'));
       assert_equals(error, e2);
     });
     t.done();
