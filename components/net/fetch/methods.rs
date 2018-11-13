@@ -596,7 +596,6 @@ fn scheme_fetch(
                     let range = range.get_final(file_size);
                     let mut reader = BufReader::with_capacity(FILE_CHUNK_SIZE, file);
                     if reader.seek(SeekFrom::Start(range.start as u64)).is_err() {
-                        *response.body.lock().unwrap() = ResponseBody::Done(vec![]);
                         return Response::network_error(NetworkError::Internal(
                             "Unexpected method for file".into(),
                         ));
