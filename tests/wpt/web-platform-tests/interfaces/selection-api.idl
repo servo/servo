@@ -37,7 +37,7 @@ partial interface Window {
   Selection? getSelection();
 };
 
-partial interface GlobalEventHandlers {
+partial interface mixin GlobalEventHandlers {
   attribute EventHandler onselectstart;
   attribute EventHandler onselectionchange;
 };

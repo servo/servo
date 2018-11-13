@@ -8,7 +8,7 @@
 <script>
   var testnb = 0;
   // TrustedURL Assignments
-  let testCases = [
+  const URLTestCases = [
     [ 'a', 'href' ],
     [ 'area', 'href' ],
     [ 'base', 'href' ],
@@ -24,27 +24,27 @@
     [ 'track', 'src' ]
   ];
 
-  testCases.forEach(c => {
+  URLTestCases.forEach(c => {
     test(t => {
       assert_element_accepts_trusted_url(window, ++testnb, t, c[0], c[1], RESULTS.URL);
     }, c[0] + "." + c[1] + " assigned via policy (successful URL transformation)");
   });
 
   // TrustedScriptURL Assignments
-  let scriptTestCases = [
+  const scriptURLTestCases = [
     [ 'embed', 'src' ],
     [ 'script', 'src' ]
   ];
 
   testnb = 0;
-  scriptTestCases.forEach(c => {
+  scriptURLTestCases.forEach(c => {
     test(t => {
       assert_element_accepts_trusted_script_url(window, ++testnb, t, c[0], c[1], RESULTS.SCRIPTURL);
     }, c[0] + "." + c[1] + " assigned via policy (successful ScriptURL transformation)");
   });
 
   // TrustedHTML Assignments
-  let HTMLTestCases = [
+  const HTMLTestCases = [
     [ 'div', 'innerHTML' ],
     [ 'iframe', 'srcdoc' ]
   ];
@@ -54,5 +54,19 @@
     test(t => {
       assert_element_accepts_trusted_html(window, ++testnb, t, c[0], c[1], RESULTS.HTML);
     }, c[0] + "." + c[1] + " assigned via policy (successful HTML transformation)");
+  });
+
+  // TrustedScript Assignments
+  const scriptTestCases = [
+    [ 'script', 'text' ],
+    [ 'script', 'innerText' ],
+    [ 'script', 'textContent' ]
+  ];
+
+  testnb = 0;
+  scriptTestCases.forEach(c => {
+    test(t => {
+      assert_element_accepts_trusted_script(window, c, t, c[0], c[1], RESULTS.SCRIPT);
+    }, c[0] + "." + c[1] + " assigned via policy (successful Script transformation)");
   });
 </script>

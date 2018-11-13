@@ -69,6 +69,31 @@
     "navigable": true,
     "encoding": null
   },
+  "0x0B and 0x0C",
+  {
+    "input": "text/html;charset=\u000Bgbk",
+    "output": "text/html",
+    "navigable": true,
+    "encoding": null
+  },
+  {
+    "input": "text/html;charset=\u000Cgbk",
+    "output": "text/html",
+    "navigable": true,
+    "encoding": null
+  },
+  {
+    "input": "text/html;\u000Bcharset=gbk",
+    "output": "text/html",
+    "navigable": true,
+    "encoding": null
+  },
+  {
+    "input": "text/html;\u000Ccharset=gbk",
+    "output": "text/html",
+    "navigable": true,
+    "encoding": null
+  },
   "Single quotes are a token, not a delimiter",
   {
     "input": "text/html;charset='gbk'",
@@ -250,6 +275,18 @@
     "input": "x/x;x=\t",
     "output": "x/x"
   },
+  {
+    "input": "x/x\n\r\t ;x=x",
+    "output": "x/x;x=x"
+  },
+  {
+    "input": "\n\r\t x/x;x=x\n\r\t ",
+    "output": "x/x;x=x"
+  },
+  {
+    "input": "x/x;\n\r\t x=x\n\r\t ;x=y",
+    "output": "x/x;x=x"
+  },
   "Latin1",
   {
     "input": "text/html;test=\u00FF;charset=gbk",
@@ -263,6 +300,22 @@
     "output": "x/x;x=x"
   },
   "Failure",
+  {
+    "input": "\u000Bx/x",
+    "output": null
+  },
+  {
+    "input": "\u000Cx/x",
+    "output": null
+  },
+  {
+    "input": "x/x\u000B",
+    "output": null
+  },
+  {
+    "input": "x/x\u000C",
+    "output": null
+  },
   {
     "input": "",
     "output": null

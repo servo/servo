@@ -1,5 +1,6 @@
 <!doctype html>
 <meta charset=utf-8>
+<meta name="timeout" content="long">
 <title>RTCPeerConnection.prototype.getStats</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
@@ -12,6 +13,7 @@
   // The following helper functions are called from RTCPeerConnection-helper.js:
   //   doSignalingHandshake
   //   getUserMediaTracksAndStreams
+  //   waitForRtpAndRtcpStats
 
   // The following helper functions are called from RTCStats-helper.js
   // (depends on dictionary-helper.js):
@@ -504,6 +506,10 @@
     await doSignalingHandshake(caller, callee);
     await onIceConnectionStateCompleted(caller);
 
+    // Wait until RTCP has arrived so that it can not arrive between
+    // the two get stats calls.
+    await waitForRtpAndRtcpStats(caller);
+
     let senderReport = await sender.getStats();
     let trackReport = await caller.getStats(sender.track);
 
@@ -531,6 +537,10 @@
     await doSignalingHandshake(caller, callee);
     await onIceConnectionStateCompleted(caller);
     let receiver = caller.getReceivers()[0];
+
+    // Wait until RTCP has arrived so that it can not arrive between
+    // the two get stats calls.
+    await waitForRtpAndRtcpStats(caller);
 
     let receiverReport = await receiver.getStats();
     let trackReport = await caller.getStats(receiver.track);

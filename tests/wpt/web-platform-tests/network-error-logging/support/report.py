@@ -8,6 +8,7 @@ def retrieve_from_stash(request, key, timeout, default_value):
     time.sleep(0.5)
     value = request.server.stash.take(key=key)
     if value is not None:
+      request.server.stash.put(key=key, value=value)
       return json.dumps(value)
 
   return default_value

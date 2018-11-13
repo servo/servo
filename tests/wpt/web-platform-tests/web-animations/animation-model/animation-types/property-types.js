@@ -1885,7 +1885,7 @@ const translateListType = {
         1000
       );
       testAnimationSamples(animation, idlName,
-        [{ time: 500,  expected: '200px -25.5px 200px' }]);
+        [{ time: 500,  expected: '200px calc(25% - 50.5px) 200px' }]);
     }, `${property} with combination of percentages and lengths`);
   },
   testAddition: function(property, setup) {
@@ -1924,8 +1924,8 @@ const translateListType = {
                                        { duration: 1000, fill: 'both',
                                          composite: 'add' });
       testAnimationSamples(animation, idlName,
-        [ { time: 0,    expected: '-150px' },
-          { time: 1000, expected: '550px' }]);
+        [ { time: 0,    expected: 'calc(50% - 200px)' },
+          { time: 1000, expected: 'calc(50% + 500px)' }]);
 
     }, `${property} with underlying percentage value`);
   },
@@ -2181,7 +2181,7 @@ const filterListType = {
       const animation = target.animate(
         { [idlName]:
           // To make missing filter-function-lists, specified the opacity.
-          ['opoacity(1)',
+          ['opacity(1)',
            'opacity(0) grayscale(1) invert(1) sepia(1) blur(10px)'] },
         1000);
 

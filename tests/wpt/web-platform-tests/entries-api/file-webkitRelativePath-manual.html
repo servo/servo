@@ -23,9 +23,10 @@ promise_test(t => filesPromise.then(files => {
     (a, b) => a.name < b.name ? -1 : b.name < a.name ? 1 : 0);
   assert_equals(files[0].name, '1.txt');
   assert_equals(files[1].name, '2.txt');
-  assert_equals(files[0].webkitRelativePath, 'c/d/1.txt');
-  assert_equals(files[1].webkitRelativePath, 'c/d/2.txt');
-  assert_equals(files[2].webkitRelativePath, 'c/3.txt');
+  assert_equals(files[2].name, '3.txt');
+  assert_equals(files[0].webkitRelativePath, 'a/b/c/d/1.txt');
+  assert_equals(files[1].webkitRelativePath, 'a/b/c/d/2.txt');
+  assert_equals(files[2].webkitRelativePath, 'a/b/c/3.txt');
 
 }), 'webkitRelativePath is shortest common ancestor');
 

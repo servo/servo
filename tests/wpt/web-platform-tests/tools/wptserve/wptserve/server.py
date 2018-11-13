@@ -44,7 +44,7 @@ for parsing the incoming request. A RequestRewriter is then
 applied and may change the request data if it matches a
 supplied rule.
 
-Once the request data had been finalised, Request and Reponse
+Once the request data had been finalised, Request and Response
 objects are constructed. These are used by the other parts of the
 system to read information about the request and manipulate the
 response.
@@ -154,7 +154,7 @@ class WebTestServer(ThreadingMixIn, BaseHTTPServer.HTTPServer):
                             port specified in the server_address parameter.
                             False to bind the server only to the port in the
                             server_address parameter, but not to the address.
-        :param latency: Delay in ms to wait before seving each response, or
+        :param latency: Delay in ms to wait before serving each response, or
                         callable that returns a delay in ms
         """
         self.router = router
@@ -591,7 +591,7 @@ class WebTestHttpd(object):
     :param config: Dictionary holding environment configuration settings for
                    handlers to read, or None to use the default values.
     :param bind_address: Boolean indicating whether to bind server to IP address.
-    :param latency: Delay in ms to wait before seving each response, or
+    :param latency: Delay in ms to wait before serving each response, or
                     callable that returns a delay in ms
 
     HTTP server designed for testing scenarios.
@@ -621,7 +621,7 @@ class WebTestHttpd(object):
 
     .. attribute:: started
 
-      Boolean indictaing whether the server is running
+      Boolean indictating whether the server is running
 
     """
     def __init__(self, host="127.0.0.1", port=8000,

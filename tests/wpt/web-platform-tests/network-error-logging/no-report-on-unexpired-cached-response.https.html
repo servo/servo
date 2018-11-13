@@ -1,0 +1,33 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <title>
+    Test that NEL reports are not sent for cached responses that don't hit the
+    network
+  </title>
+  <script src='/resources/testharness.js'></script>
+  <script src='/resources/testharnessreport.js'></script>
+  <script src='./support/nel.sub.js'></script>
+</head>
+<body>
+  <script>
+    nel_test(async t => {
+      // Fetch a resource that can be cached without validation.  Do this
+      // *before* fetching the NEL policy for this origin, to ensure that we
+      // don't generate any report about this request.
+      await fetchCachedResource();
+      // Fetch the NEL policy for this origin.
+      await fetchResourceWithBasicPolicy();
+      // Fetch the now-cached resource again.  This should not generate a new
+      // network request.
+      await fetchCachedResource();
+      // Because the cached request did not generate a network request, we
+      // should never receive a report about the request.
+      assert_false(await reportExists({
+        url: getURLForCachedResource(),
+        type: "network-error",
+      }));
+    });
+  </script>
+</body>
+</html>
