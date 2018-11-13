@@ -234,13 +234,11 @@ magicleap:
   MAGICLEAP_SDK: /Users/servo/magicleap/v0.17.0
   MLCERT: /Users/servo/magicleap/certs/TempSharedCert.cert
  commands:
-  - unset OPENSSL_INCLUDE_DIR
-  - unset OPENSSL_LIB_DIR
   - ./mach clean-nightlies --keep 3 --force
   - ./mach clean-cargo-cache --keep 3 --force
   - ./etc/ci/clean_build_artifacts.sh
   - ./mach build --magicleap --dev
-  - /Users/servo/magicleap/v0.17.0/mabu -o ./target/release/magicleap -t lumin_debug ./support/magicleap/Servo2D/Servo2D.package
+  - env -u OPENSSL_INCLUDE_DIR -u OPENSSL_LIB_DIR /Users/servo/magicleap/v0.17.0/mabu -o ./target/release/magicleap -t lumin_debug ./support/magicleap/Servo2D/Servo2D.package
   - bash ./etc/ci/lockfile_changed.sh
   - ./etc/ci/clean_build_artifacts.sh
 
@@ -249,13 +247,11 @@ magicleap-nightly:
   MAGICLEAP_SDK: /Users/servo/magicleap/v0.17.0
   MLCERT: /Users/servo/magicleap/certs/TempSharedCert.cert
  commands:
-  - unset OPENSSL_INCLUDE_DIR
-  - unset OPENSSL_LIB_DIR
   - ./mach clean-nightlies --keep 3 --force
   - ./mach clean-cargo-cache --keep 3 --force
   - ./etc/ci/clean_build_artifacts.sh
   - ./mach build --magicleap --release
-  - /Users/servo/magicleap/v0.17.0/mabu -o ./target/release/magicleap -t lumin_release ./support/magicleap/Servo2D/Servo2D.package
+  - env -u OPENSSL_INCLUDE_DIR -u OPENSSL_LIB_DIR /Users/servo/magicleap/v0.17.0/mabu -o ./target/release/magicleap -t lumin_release ./support/magicleap/Servo2D/Servo2D.package
   - ./mach upload-nightly magicleap
   - bash ./etc/ci/lockfile_changed.sh
   - ./etc/ci/clean_build_artifacts.sh
