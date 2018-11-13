@@ -16,8 +16,8 @@ sys.path.insert(0, os.path.join(os.path.dirname(GECKO_DIR), "properties"))
 import build
 
 
-# Matches lines like `GK_ATOM(foo, "foo", 0x12345678, nsStaticAtom, PseudoElementAtom)`.
-PATTERN = re.compile('^GK_ATOM\(([^,]*),[^"]*"([^"]*)",\s*(0x[0-9a-f]+),\s*([^,]*),\s*([^)]*)\)',
+# Matches lines like `GK_ATOM(foo, "foo", 0x12345678, true, nsStaticAtom, PseudoElementAtom)`.
+PATTERN = re.compile('^GK_ATOM\(([^,]*),[^"]*"([^"]*)",\s*(0x[0-9a-f]+),\s*[^,]*,\s*([^,]*),\s*([^)]*)\)',
                      re.MULTILINE)
 FILE = "include/nsGkAtomList.h"
 
