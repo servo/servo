@@ -11,7 +11,7 @@ REPEAT_COUNT=100
 
 while read test_name; do
     echo "  - Checking ${test_name}"
-    ./mach "test-${test_type}" \
+    ./mach test-wpt \
         --release \
         --log-raw - \
         --repeat "${REPEAT_COUNT}" \
