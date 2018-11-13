@@ -28,15 +28,13 @@ use mime::{self, Mime};
 use msg::constellation_msg::TEST_PIPELINE_ID;
 use net::connector::create_ssl_connector_builder;
 use net::fetch::cors_cache::CorsCache;
-use net::fetch::methods::{CancellationListener, FetchContext};
+use net::fetch::methods::{self, CancellationListener, FetchContext};
 use net::filemanager_thread::FileManager;
 use net::hsts::HstsEntry;
 use net::test::HttpState;
 use net_traits::request::{Destination, Origin, RedirectMode, Referrer, Request, RequestMode};
 use net_traits::response::{CacheState, Response, ResponseBody, ResponseType};
-use net_traits::IncludeSubdomains;
-use net_traits::NetworkError;
-use net_traits::ReferrerPolicy;
+use net_traits::{FetchTaskTarget, IncludeSubdomains, NetworkError, ReferrerPolicy};
 use servo_channel::{channel, Sender};
 use servo_url::{ImmutableOrigin, ServoUrl};
 use std::fs::File;
@@ -127,6 +125,26 @@ fn test_fetch_blob() {
     use ipc_channel::ipc;
     use net_traits::blob_url_store::BlobBuf;
 
+    struct FetchResponseCollector {
+        sender: Sender<Response>,
+        buffer: Vec<u8>,
+        expected: Vec<u8>,
+    }
+
+    impl FetchTaskTarget for FetchResponseCollector {
+        fn process_request_body(&mut self, _: &Request) {}
+        fn process_request_eof(&mut self, _: &Request) {}
+        fn process_response(&mut self, _: &Response) {}
+        fn process_response_chunk(&mut self, chunk: Vec<u8>) {
+            self.buffer.extend_from_slice(chunk.as_slice());
+        }
+        /// Fired when the response is fully fetched
+        fn process_response_eof(&mut self, response: &Response) {
+            assert_eq!(self.buffer, self.expected);
+            let _ = self.sender.send(response.clone());
+        }
+    }
+
     let context = new_fetch_context(None, None);
 
     let bytes = b"content";
@@ -147,7 +165,18 @@ fn test_fetch_blob() {
     let url = ServoUrl::parse(&format!("blob:{}{}", origin.as_str(), id.to_simple())).unwrap();
 
     let mut request = Request::new(url, Some(Origin::Origin(origin.origin())), None);
-    let fetch_response = fetch_with_context(&mut request, &context);
+
+    let (sender, receiver) = channel();
+
+    let mut target = FetchResponseCollector {
+        sender,
+        buffer: vec![],
+        expected: bytes.to_vec(),
+    };
+
+    methods::fetch(&mut request, &mut target, &context);
+
+    let fetch_response = receiver.recv().unwrap();
 
     assert!(!fetch_response.is_network_error());
 
@@ -165,7 +194,7 @@ fn test_fetch_blob() {
 
     assert_eq!(
         *fetch_response.body.lock().unwrap(),
-        ResponseBody::Done(bytes.to_vec())
+        ResponseBody::Receiving(vec![])
     );
 }
 
