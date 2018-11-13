@@ -436,6 +436,9 @@ unsafe extern "C" fn interrupt_callback(cx: *mut JSContext) -> bool {
 }
 
 impl ServiceWorkerGlobalScopeMethods for ServiceWorkerGlobalScope {
-    // https://w3c.github.io/ServiceWorker/#service-worker-global-scope-onmessage-attribute
+    // https://w3c.github.io/ServiceWorker/#dom-serviceworkerglobalscope-onmessage
     event_handler!(message, GetOnmessage, SetOnmessage);
+
+    // https://w3c.github.io/ServiceWorker/#dom-serviceworkerglobalscope-onmessageerror
+    event_handler!(messageerror, GetOnmessageerror, SetOnmessageerror);
 }
