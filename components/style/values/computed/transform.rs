@@ -4,9 +4,9 @@
 
 //! Computed types for CSS values that are related to transformations.
 
-use super::CSSFloat;
 use euclid::{Transform3D, Vector3D};
 use num_traits::Zero;
+use super::CSSFloat;
 use values::animated::ToAnimatedZero;
 use values::computed::{Angle, Integer, Length, LengthOrPercentage, Number, Percentage};
 use values::generics::transform as generic;
@@ -21,6 +21,9 @@ pub type Transform = generic::Transform<TransformOperation>;
 
 /// The computed value of a CSS `<transform-origin>`
 pub type TransformOrigin = generic::TransformOrigin<LengthOrPercentage, LengthOrPercentage, Length>;
+
+/// A computed timing function.
+pub type TimingFunction = generic::TimingFunction<u32, Number>;
 
 /// A vector to represent the direction vector (rotate axis) for Rotate3D.
 pub type DirectionVector = Vector3D<CSSFloat>;
@@ -367,6 +370,7 @@ impl Scale {
     pub fn to_transform_operation(&self) -> Option<TransformOperation> {
         match *self {
             generic::Scale::None => None,
+            generic::Scale::ScaleX(sx) => Some(generic::TransformOperation::ScaleX(sx)),
             generic::Scale::Scale(sx, sy) => Some(generic::TransformOperation::Scale(sx, Some(sy))),
             generic::Scale::Scale3D(sx, sy, sz) => {
                 Some(generic::TransformOperation::Scale3D(sx, sy, sz))
@@ -377,8 +381,8 @@ impl Scale {
     /// Convert Scale to TransformOperation.
     pub fn from_transform_operation(operation: &TransformOperation) -> Scale {
         match *operation {
+            generic::TransformOperation::ScaleX(sx) => generic::Scale::ScaleX(sx),
             generic::TransformOperation::Scale(sx, Some(sy)) => generic::Scale::Scale(sx, sy),
-            generic::TransformOperation::Scale(sx, None) => generic::Scale::Scale(sx, sx),
             generic::TransformOperation::Scale3D(sx, sy, sz) => generic::Scale::Scale3D(sx, sy, sz),
             _ => unreachable!("Found unexpected value for scale"),
         }

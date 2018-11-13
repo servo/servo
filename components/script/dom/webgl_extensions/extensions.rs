@@ -2,29 +2,25 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use super::wrapper::{TypedWebGLExtensionWrapper, WebGLExtensionWrapper};
-use super::{ext, WebGLExtension, WebGLExtensionSpec};
 use canvas_traits::webgl::WebGLVersion;
-use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::ANGLEInstancedArraysBinding::ANGLEInstancedArraysConstants;
-use crate::dom::bindings::codegen::Bindings::EXTTextureFilterAnisotropicBinding::EXTTextureFilterAnisotropicConstants;
-use crate::dom::bindings::codegen::Bindings::OESStandardDerivativesBinding::OESStandardDerivativesConstants;
-use crate::dom::bindings::codegen::Bindings::OESTextureHalfFloatBinding::OESTextureHalfFloatConstants;
-use crate::dom::bindings::codegen::Bindings::OESVertexArrayObjectBinding::OESVertexArrayObjectConstants;
-use crate::dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
-use crate::dom::bindings::trace::JSTraceable;
-use crate::dom::extcolorbufferhalffloat::EXTColorBufferHalfFloat;
-use crate::dom::oestexturefloat::OESTextureFloat;
-use crate::dom::oestexturehalffloat::OESTextureHalfFloat;
-use crate::dom::webglcolorbufferfloat::WEBGLColorBufferFloat;
-use crate::dom::webglrenderingcontext::WebGLRenderingContext;
+use dom::bindings::cell::DomRefCell;
+use dom::bindings::codegen::Bindings::ANGLEInstancedArraysBinding::ANGLEInstancedArraysConstants;
+use dom::bindings::codegen::Bindings::EXTTextureFilterAnisotropicBinding::EXTTextureFilterAnisotropicConstants;
+use dom::bindings::codegen::Bindings::OESStandardDerivativesBinding::OESStandardDerivativesConstants;
+use dom::bindings::codegen::Bindings::OESTextureHalfFloatBinding::OESTextureHalfFloatConstants;
+use dom::bindings::codegen::Bindings::OESVertexArrayObjectBinding::OESVertexArrayObjectConstants;
+use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
+use dom::bindings::trace::JSTraceable;
+use dom::webglrenderingcontext::WebGLRenderingContext;
 use fnv::{FnvHashMap, FnvHashSet};
-use gleam::gl::{self, GLenum};
+use gleam::gl::GLenum;
 use js::jsapi::JSObject;
 use malloc_size_of::MallocSizeOf;
 use std::collections::HashMap;
 use std::iter::FromIterator;
 use std::ptr::NonNull;
+use super::{ext, WebGLExtension, WebGLExtensionSpec};
+use super::wrapper::{WebGLExtensionWrapper, TypedWebGLExtensionWrapper};
 
 // Data types that are implemented for texImage2D and texSubImage2D in a WebGL 1.0 context
 // but must trigger a InvalidValue error until the related WebGL Extensions are enabled.
@@ -139,7 +135,7 @@ impl WebGLExtensionFeatures {
 #[must_root]
 #[derive(JSTraceable, MallocSizeOf)]
 pub struct WebGLExtensions {
-    extensions: DomRefCell<HashMap<String, Box<dyn WebGLExtensionWrapper>>>,
+    extensions: DomRefCell<HashMap<String, Box<WebGLExtensionWrapper>>>,
     features: DomRefCell<WebGLExtensionFeatures>,
     webgl_version: WebGLVersion,
 }
@@ -183,8 +179,7 @@ impl WebGLExtensions {
                     }
                 }
                 v.1.is_supported(&self)
-            })
-            .map(|ref v| v.1.name())
+            }).map(|ref v| v.1.name())
             .collect()
     }
 
@@ -338,7 +333,6 @@ impl WebGLExtensions {
     fn register_all_extensions(&self) {
         self.register::<ext::angleinstancedarrays::ANGLEInstancedArrays>();
         self.register::<ext::extblendminmax::EXTBlendMinmax>();
-        self.register::<ext::extcolorbufferhalffloat::EXTColorBufferHalfFloat>();
         self.register::<ext::extshadertexturelod::EXTShaderTextureLod>();
         self.register::<ext::exttexturefilteranisotropic::EXTTextureFilterAnisotropic>();
         self.register::<ext::oeselementindexuint::OESElementIndexUint>();
@@ -348,7 +342,6 @@ impl WebGLExtensions {
         self.register::<ext::oestexturehalffloat::OESTextureHalfFloat>();
         self.register::<ext::oestexturehalffloatlinear::OESTextureHalfFloatLinear>();
         self.register::<ext::oesvertexarrayobject::OESVertexArrayObject>();
-        self.register::<ext::webglcolorbufferfloat::WEBGLColorBufferFloat>();
     }
 
     pub fn enable_element_index_uint(&self) {
@@ -365,23 +358,6 @@ impl WebGLExtensions {
 
     pub fn is_blend_minmax_enabled(&self) -> bool {
         self.features.borrow().blend_minmax_enabled
-    }
-
-    pub fn is_float_buffer_renderable(&self) -> bool {
-        self.is_enabled::<WEBGLColorBufferFloat>() || self.is_enabled::<OESTextureFloat>()
-    }
-
-    pub fn is_half_float_buffer_renderable(&self) -> bool {
-        self.is_enabled::<EXTColorBufferHalfFloat>() || self.is_enabled::<OESTextureHalfFloat>()
-    }
-
-    pub fn effective_type(&self, type_: u32) -> u32 {
-        if type_ == OESTextureHalfFloatConstants::HALF_FLOAT_OES {
-            if !self.supports_gl_extension("GL_OES_texture_half_float") {
-                return gl::HALF_FLOAT;
-            }
-        }
-        type_
     }
 }
 

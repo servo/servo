@@ -10,7 +10,7 @@ android {
     buildDir = rootDir.absolutePath + "/../../../target/gradle/servoapp"
 
     defaultConfig {
-        applicationId "org.mozilla.servo"
+        applicationId "com.mozilla.servo"
         minSdkVersion 18
         targetSdkVersion 27
         versionCode 1

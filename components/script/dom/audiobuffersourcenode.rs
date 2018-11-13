@@ -2,25 +2,25 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use crate::dom::audiobuffer::AudioBuffer;
-use crate::dom::audioparam::AudioParam;
-use crate::dom::audioscheduledsourcenode::AudioScheduledSourceNode;
-use crate::dom::baseaudiocontext::BaseAudioContext;
-use crate::dom::bindings::codegen::Bindings::AudioBufferSourceNodeBinding;
-use crate::dom::bindings::codegen::Bindings::AudioBufferSourceNodeBinding::AudioBufferSourceNodeMethods;
-use crate::dom::bindings::codegen::Bindings::AudioBufferSourceNodeBinding::AudioBufferSourceOptions;
-use crate::dom::bindings::codegen::Bindings::AudioParamBinding::AutomationRate;
-use crate::dom::bindings::codegen::Bindings::AudioScheduledSourceNodeBinding::AudioScheduledSourceNodeMethods;
-use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::num::Finite;
-use crate::dom::bindings::reflector::reflect_dom_object;
-use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
-use crate::dom::window::Window;
+use dom::audiobuffer::AudioBuffer;
+use dom::audioparam::AudioParam;
+use dom::audioscheduledsourcenode::AudioScheduledSourceNode;
+use dom::baseaudiocontext::BaseAudioContext;
+use dom::bindings::codegen::Bindings::AudioBufferSourceNodeBinding;
+use dom::bindings::codegen::Bindings::AudioBufferSourceNodeBinding::AudioBufferSourceNodeMethods;
+use dom::bindings::codegen::Bindings::AudioBufferSourceNodeBinding::AudioBufferSourceOptions;
+use dom::bindings::codegen::Bindings::AudioParamBinding::AutomationRate;
+use dom::bindings::codegen::Bindings::AudioScheduledSourceNodeBinding::AudioScheduledSourceNodeMethods;
+use dom::bindings::error::{Error, Fallible};
+use dom::bindings::inheritance::Castable;
+use dom::bindings::num::Finite;
+use dom::bindings::reflector::reflect_dom_object;
+use dom::bindings::root::{Dom, DomRoot, MutNullableDom};
+use dom::window::Window;
 use dom_struct::dom_struct;
 use servo_media::audio::buffer_source_node::AudioBufferSourceNodeMessage;
 use servo_media::audio::buffer_source_node::AudioBufferSourceNodeOptions;
-use servo_media::audio::node::{AudioNodeInit, AudioNodeMessage};
+use servo_media::audio::node::{AudioNodeMessage, AudioNodeInit};
 use servo_media::audio::param::ParamType;
 use std::cell::Cell;
 use std::f32;
@@ -137,14 +137,14 @@ impl AudioBufferSourceNodeMethods for AudioBufferSourceNode {
         self.buffer.set(new_buffer);
 
         // Step 5.
-        if self.source_node.has_start() {
+        if self.source_node.started() {
             if let Some(buffer) = self.buffer.get() {
-                let buffer = buffer.get_channels();
+                let buffer = buffer.acquire_contents();
                 if buffer.is_some() {
                     self.source_node
                         .node()
                         .message(AudioNodeMessage::AudioBufferSourceNode(
-                            AudioBufferSourceNodeMessage::SetBuffer((*buffer).clone()),
+                            AudioBufferSourceNodeMessage::SetBuffer(buffer),
                         ));
                 }
             }
@@ -215,12 +215,12 @@ impl AudioBufferSourceNodeMethods for AudioBufferSourceNode {
         }
 
         if let Some(buffer) = self.buffer.get() {
-            let buffer = buffer.get_channels();
+            let buffer = buffer.acquire_contents();
             if buffer.is_some() {
                 self.source_node
                     .node()
                     .message(AudioNodeMessage::AudioBufferSourceNode(
-                        AudioBufferSourceNodeMessage::SetBuffer((*buffer).clone()),
+                        AudioBufferSourceNodeMessage::SetBuffer(buffer),
                     ));
             }
         }
@@ -235,7 +235,7 @@ impl<'a> From<&'a AudioBufferSourceOptions> for AudioBufferSourceNodeOptions {
         Self {
             buffer: if let Some(ref buffer) = options.buffer {
                 if let Some(ref buffer) = buffer {
-                    (*buffer.get_channels()).clone()
+                    Some(buffer.get_channels())
                 } else {
                     None
                 }

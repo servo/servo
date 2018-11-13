@@ -1,11 +1,11 @@
-const INPUTS = {
+var INPUTS = {
   HTML: "Hi, I want to be transformed!",
   SCRIPT: "Hi, I want to be transformed!",
   SCRIPTURL: "http://this.is.a.scripturl.test/",
   URL: "http://hello.i.am.an.url/"
 };
 
-const RESULTS = {
+var RESULTS = {
   HTML: "Quack, I want to be a duck!",
   SCRIPT: "Meow, I want to be a cat!",
   SCRIPTURL: "http://this.is.a.successful.test/",
@@ -29,14 +29,6 @@ function createScriptURLJS(scripturl) {
 function createURLJS(url) {
   return url.replace("hello", "hooray")
       .replace("an.url", "successfully.transformed");
-}
-
-// When testing location.href (& friends), we have the problem that assigning
-// to the new location will navigate away from the test. To fix this, we'll
-// have a policy that will just stick the argument into the fragment identifier
-// of the current location.href.
-function createLocationURLJS(value) {
-  return location.href.replace(/#.*/g, "") + "#" + value;
 }
 
 function createHTML_policy(win, c) {

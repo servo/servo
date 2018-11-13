@@ -2,16 +2,16 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::codegen::Bindings::FormDataBinding::FormDataMethods;
-use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::reflector::DomObject;
-use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::USVString;
-use crate::dom::bindings::trace::RootedTraceableBox;
-use crate::dom::blob::{Blob, BlobImpl};
-use crate::dom::formdata::FormData;
-use crate::dom::globalscope::GlobalScope;
-use crate::dom::promise::Promise;
+use dom::bindings::codegen::Bindings::FormDataBinding::FormDataMethods;
+use dom::bindings::error::{Error, Fallible};
+use dom::bindings::reflector::DomObject;
+use dom::bindings::root::DomRoot;
+use dom::bindings::str::USVString;
+use dom::bindings::trace::RootedTraceableBox;
+use dom::blob::{Blob, BlobImpl};
+use dom::formdata::FormData;
+use dom::globalscope::GlobalScope;
+use dom::promise::Promise;
 use js::jsapi::Heap;
 use js::jsapi::JSContext;
 use js::jsapi::JSObject;
@@ -22,7 +22,7 @@ use js::jsval::UndefinedValue;
 use js::rust::wrappers::JS_GetPendingException;
 use js::rust::wrappers::JS_ParseJSON;
 use js::typedarray::{ArrayBuffer, CreateWith};
-use mime::{self, Mime};
+use mime::{Mime, TopLevel, SubLevel};
 use std::cell::Ref;
 use std::ptr;
 use std::rc::Rc;
@@ -178,20 +178,20 @@ fn run_form_data_algorithm(
     let mime: Mime = mime_str
         .parse()
         .map_err(|_| Error::Type("Inappropriate MIME-type for Body".to_string()))?;
-
-    // TODO
-    // ... Parser for Mime(TopLevel::Multipart, SubLevel::FormData, _)
-    // ... is not fully determined yet.
-    if mime.type_() == mime::APPLICATION && mime.subtype() == mime::WWW_FORM_URLENCODED {
-        let entries = form_urlencoded::parse(&bytes);
-        let formdata = FormData::new(None, root);
-        for (k, e) in entries {
-            formdata.Append(USVString(k.into_owned()), USVString(e.into_owned()));
-        }
-        return Ok(FetchedData::FormData(formdata));
+    match mime {
+        // TODO
+        // ... Parser for Mime(TopLevel::Multipart, SubLevel::FormData, _)
+        // ... is not fully determined yet.
+        Mime(TopLevel::Application, SubLevel::WwwFormUrlEncoded, _) => {
+            let entries = form_urlencoded::parse(&bytes);
+            let formdata = FormData::new(None, root);
+            for (k, e) in entries {
+                formdata.Append(USVString(k.into_owned()), USVString(e.into_owned()));
+            }
+            return Ok(FetchedData::FormData(formdata));
+        },
+        _ => return Err(Error::Type("Inappropriate MIME-type for Body".to_string())),
     }
-
-    Err(Error::Type("Inappropriate MIME-type for Body".to_string()))
 }
 
 #[allow(unsafe_code)]

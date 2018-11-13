@@ -291,8 +291,7 @@ promise_test(t => {
 
 async_test(t => {
   var validTypes = [ 'file', 'media-source' ];
-  var invalidTypes = [ undefined, null, '', 'foobar', 'mse', 'MediaSource',
-                       'record', 'transmission' ];
+  var invalidTypes = [ undefined, null, '', 'foobar', 'mse', 'MediaSource' ];
 
   var validPromises = [];
   var invalidCaught = 0;

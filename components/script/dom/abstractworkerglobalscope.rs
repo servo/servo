@@ -2,17 +2,17 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use crate::dom::abstractworker::WorkerScriptMsg;
-use crate::dom::bindings::conversions::DerivedFrom;
-use crate::dom::bindings::reflector::DomObject;
-use crate::dom::dedicatedworkerglobalscope::{AutoWorkerReset, DedicatedWorkerScriptMsg};
-use crate::dom::globalscope::GlobalScope;
-use crate::dom::worker::TrustedWorkerAddress;
-use crate::dom::workerglobalscope::WorkerGlobalScope;
-use crate::script_runtime::{CommonScriptMsg, ScriptChan, ScriptPort};
-use crate::task_queue::{QueuedTaskConversion, TaskQueue};
 use devtools_traits::DevtoolScriptControlMsg;
+use dom::abstractworker::WorkerScriptMsg;
+use dom::bindings::conversions::DerivedFrom;
+use dom::bindings::reflector::DomObject;
+use dom::dedicatedworkerglobalscope::{AutoWorkerReset, DedicatedWorkerScriptMsg};
+use dom::globalscope::GlobalScope;
+use dom::worker::TrustedWorkerAddress;
+use dom::workerglobalscope::WorkerGlobalScope;
+use script_runtime::{ScriptChan, CommonScriptMsg, ScriptPort};
 use servo_channel::{Receiver, Sender};
+use task_queue::{QueuedTaskConversion, TaskQueue};
 
 /// A ScriptChan that can be cloned freely and will silently send a TrustedWorkerAddress with
 /// common event loop messages. While this SendableWorkerScriptChan is alive, the associated
@@ -32,7 +32,7 @@ impl ScriptChan for SendableWorkerScriptChan {
         self.sender.send(msg).map_err(|_| ())
     }
 
-    fn clone(&self) -> Box<dyn ScriptChan + Send> {
+    fn clone(&self) -> Box<ScriptChan + Send> {
         Box::new(SendableWorkerScriptChan {
             sender: self.sender.clone(),
             worker: self.worker.clone(),
@@ -58,7 +58,7 @@ impl ScriptChan for WorkerThreadWorkerChan {
         self.sender.send(msg).map_err(|_| ())
     }
 
-    fn clone(&self) -> Box<dyn ScriptChan + Send> {
+    fn clone(&self) -> Box<ScriptChan + Send> {
         Box::new(WorkerThreadWorkerChan {
             sender: self.sender.clone(),
             worker: self.worker.clone(),

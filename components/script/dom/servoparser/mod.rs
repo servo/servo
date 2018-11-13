@@ -2,49 +2,48 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use crate::document_loader::{DocumentLoader, LoadType};
-use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::DocumentBinding::{
-    DocumentMethods, DocumentReadyState,
-};
-use crate::dom::bindings::codegen::Bindings::HTMLImageElementBinding::HTMLImageElementMethods;
-use crate::dom::bindings::codegen::Bindings::HTMLTemplateElementBinding::HTMLTemplateElementMethods;
-use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
-use crate::dom::bindings::codegen::Bindings::ServoParserBinding;
-use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::refcounted::Trusted;
-use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
-use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom, RootedReference};
-use crate::dom::bindings::settings_stack::is_execution_stack_empty;
-use crate::dom::bindings::str::DOMString;
-use crate::dom::characterdata::CharacterData;
-use crate::dom::comment::Comment;
-use crate::dom::document::{Document, DocumentSource, HasBrowsingContext, IsHTMLDocument};
-use crate::dom::documenttype::DocumentType;
-use crate::dom::element::{CustomElementCreationMode, Element, ElementCreator};
-use crate::dom::globalscope::GlobalScope;
-use crate::dom::htmlformelement::{FormControlElementHelpers, HTMLFormElement};
-use crate::dom::htmlimageelement::HTMLImageElement;
-use crate::dom::htmlscriptelement::{HTMLScriptElement, ScriptResult};
-use crate::dom::htmltemplateelement::HTMLTemplateElement;
-use crate::dom::node::Node;
-use crate::dom::processinginstruction::ProcessingInstruction;
-use crate::dom::text::Text;
-use crate::dom::virtualmethods::vtable_for;
-use crate::network_listener::PreInvoke;
-use crate::script_thread::ScriptThread;
+use document_loader::{DocumentLoader, LoadType};
+use dom::bindings::cell::DomRefCell;
+use dom::bindings::codegen::Bindings::DocumentBinding::{DocumentMethods, DocumentReadyState};
+use dom::bindings::codegen::Bindings::HTMLImageElementBinding::HTMLImageElementMethods;
+use dom::bindings::codegen::Bindings::HTMLTemplateElementBinding::HTMLTemplateElementMethods;
+use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
+use dom::bindings::codegen::Bindings::ServoParserBinding;
+use dom::bindings::inheritance::Castable;
+use dom::bindings::refcounted::Trusted;
+use dom::bindings::reflector::{Reflector, reflect_dom_object};
+use dom::bindings::root::{Dom, DomRoot, MutNullableDom, RootedReference};
+use dom::bindings::settings_stack::is_execution_stack_empty;
+use dom::bindings::str::DOMString;
+use dom::characterdata::CharacterData;
+use dom::comment::Comment;
+use dom::document::{Document, DocumentSource, HasBrowsingContext, IsHTMLDocument};
+use dom::documenttype::DocumentType;
+use dom::element::{Element, ElementCreator, CustomElementCreationMode};
+use dom::globalscope::GlobalScope;
+use dom::htmlformelement::{FormControlElementHelpers, HTMLFormElement};
+use dom::htmlimageelement::HTMLImageElement;
+use dom::htmlscriptelement::{HTMLScriptElement, ScriptResult};
+use dom::htmltemplateelement::HTMLTemplateElement;
+use dom::node::Node;
+use dom::processinginstruction::ProcessingInstruction;
+use dom::text::Text;
+use dom::virtualmethods::vtable_for;
 use dom_struct::dom_struct;
 use embedder_traits::resources::{self, Resource};
-use html5ever::buffer_queue::BufferQueue;
-use html5ever::tendril::{ByteTendril, IncompleteUtf8, StrTendril};
-use html5ever::tree_builder::{ElementFlags, NextParserState, NodeOrText, QuirksMode, TreeSink};
 use html5ever::{Attribute, ExpandedName, LocalName, QualName};
+use html5ever::buffer_queue::BufferQueue;
+use html5ever::tendril::{StrTendril, ByteTendril, IncompleteUtf8};
+use html5ever::tree_builder::{NodeOrText, TreeSink, NextParserState, QuirksMode, ElementFlags};
+use hyper::header::ContentType;
+use hyper::mime::{Mime, SubLevel, TopLevel};
 use hyper_serde::Serde;
-use mime::{self, Mime};
 use msg::constellation_msg::PipelineId;
 use net_traits::{FetchMetadata, FetchResponseListener, Metadata, NetworkError};
-use profile_traits::time::{profile, ProfilerCategory, TimerMetadataReflowType};
+use network_listener::PreInvoke;
 use profile_traits::time::{TimerMetadata, TimerMetadataFrameType};
+use profile_traits::time::{TimerMetadataReflowType, ProfilerCategory, profile};
+use script_thread::ScriptThread;
 use script_traits::DocumentActivity;
 use servo_config::prefs::PREFS;
 use servo_url::ServoUrl;
@@ -698,11 +697,10 @@ impl FetchResponseListener for ParserContext {
             },
             Err(_) => None,
         };
-        let content_type: Option<Mime> = metadata
+        let content_type = metadata
             .clone()
             .and_then(|meta| meta.content_type)
-            .map(Serde::into_inner)
-            .map(Into::into);
+            .map(Serde::into_inner);
         let parser = match ScriptThread::page_headers_available(&self.id, metadata) {
             Some(parser) => parser,
             None => return,
@@ -714,7 +712,7 @@ impl FetchResponseListener for ParserContext {
         self.parser = Some(Trusted::new(&*parser));
 
         match content_type {
-            Some(ref mime) if mime.type_() == mime::IMAGE => {
+            Some(ContentType(Mime(TopLevel::Image, _, _))) => {
                 self.is_synthesized_document = true;
                 let page = "<html><body></body></html>".into();
                 parser.push_string_input_chunk(page);
@@ -724,18 +722,17 @@ impl FetchResponseListener for ParserContext {
                 let doc_body = DomRoot::upcast::<Node>(doc.GetBody().unwrap());
                 let img = HTMLImageElement::new(local_name!("img"), None, doc);
                 img.SetSrc(DOMString::from(self.url.to_string()));
-                doc_body
-                    .AppendChild(&DomRoot::upcast::<Node>(img))
-                    .expect("Appending failed");
+                doc_body.AppendChild(&DomRoot::upcast::<Node>(img)).expect("Appending failed");
+
             },
-            Some(ref mime) if mime.type_() == mime::TEXT && mime.subtype() == mime::PLAIN => {
+            Some(ContentType(Mime(TopLevel::Text, SubLevel::Plain, _))) => {
                 // https://html.spec.whatwg.org/multipage/#read-text
                 let page = "<pre>\n".into();
                 parser.push_string_input_chunk(page);
                 parser.parse_sync();
                 parser.tokenizer.borrow_mut().set_plaintext_state();
             },
-            Some(ref mime) if mime.type_() == mime::TEXT && mime.subtype() == mime::HTML => {
+            Some(ContentType(Mime(TopLevel::Text, SubLevel::Html, _))) => {
                 // Handle text/html
                 if let Some(reason) = ssl_error {
                     self.is_synthesized_document = true;
@@ -752,21 +749,15 @@ impl FetchResponseListener for ParserContext {
                     parser.parse_sync();
                 }
             },
-            // Handle text/xml, application/xml
-            Some(ref mime)
-                if (mime.type_() == mime::TEXT && mime.subtype() == mime::XML) ||
-                    (mime.type_() == mime::APPLICATION && mime.subtype() == mime::XML) => {},
-            Some(ref mime)
-                if mime.type_() == mime::APPLICATION &&
-                    mime.subtype().as_str() == "xhtml" &&
-                    mime.suffix() == Some(mime::XML) => {}, // Handle xhtml (application/xhtml+xml)
-            Some(ref mime) => {
+            Some(ContentType(Mime(TopLevel::Text, SubLevel::Xml, _))) | // Handle text/xml, application/xml
+            Some(ContentType(Mime(TopLevel::Application, SubLevel::Xml, _))) => {},
+            Some(ContentType(Mime(TopLevel::Application, SubLevel::Ext(ref sub), _)))
+                if sub.as_str() == "xhtml+xml".to_owned() => {}, // Handle xhtml (application/xhtml+xml)
+            Some(ContentType(Mime(toplevel, sublevel, _))) => {
                 // Show warning page for unknown mime types.
-                let page = format!(
-                    "<html><body><p>Unknown content type ({}/{}).</p></body></html>",
-                    mime.type_().as_str(),
-                    mime.subtype().as_str()
-                );
+                let page = format!("<html><body><p>Unknown content type ({}/{}).</p></body></html>",
+                                   toplevel.as_str(),
+                                   sublevel.as_str());
                 self.is_synthesized_document = true;
                 parser.push_string_input_chunk(page);
                 parser.parse_sync();

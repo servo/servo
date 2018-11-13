@@ -4,8 +4,7 @@
 
 //! Data needed by the layout thread.
 
-use crate::display_list::items::{OpaqueNode, WebRenderImageInfo};
-use crate::opaque_node::OpaqueNodeMethods;
+use display_list::items::{WebRenderImageInfo, OpaqueNode};
 use fnv::FnvHasher;
 use gfx::font_cache_thread::FontCacheThread;
 use gfx::font_context::FontContext;
@@ -13,6 +12,7 @@ use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use msg::constellation_msg::PipelineId;
 use net_traits::image_cache::{CanRequestImages, ImageCache, ImageState};
 use net_traits::image_cache::{ImageOrMetadataAvailable, UsePlaceholder};
+use opaque_node::OpaqueNodeMethods;
 use parking_lot::RwLock;
 use script_layout_interface::{PendingImage, PendingImageState};
 use script_traits::Painter;
@@ -64,7 +64,7 @@ pub struct LayoutContext<'a> {
     pub style_context: SharedStyleContext<'a>,
 
     /// Reference to the script thread image cache.
-    pub image_cache: Arc<dyn ImageCache>,
+    pub image_cache: Arc<ImageCache>,
 
     /// Interface to the font cache thread.
     pub font_cache_thread: Mutex<FontCacheThread>,
@@ -77,7 +77,7 @@ pub struct LayoutContext<'a> {
     >,
 
     /// Paint worklets
-    pub registered_painters: &'a dyn RegisteredPainters,
+    pub registered_painters: &'a RegisteredPainters,
 
     /// A list of in-progress image loads to be shared with the script thread.
     /// A None value means that this layout was not initiated by the script thread.
@@ -197,5 +197,5 @@ pub trait RegisteredPainter: RegisteredSpeculativePainter + Painter {}
 /// A set of registered painters
 pub trait RegisteredPainters: Sync {
     /// Look up a painter
-    fn get(&self, name: &Atom) -> Option<&dyn RegisteredPainter>;
+    fn get(&self, name: &Atom) -> Option<&RegisteredPainter>;
 }

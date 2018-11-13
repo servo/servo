@@ -175,16 +175,16 @@ interface CanvasDrawImage {
 interface CanvasImageData {
   // pixel manipulation
   [Throws]
-  ImageData createImageData(long sw, long sh);
+  ImageData createImageData(double sw, double sh);
   [Throws]
   ImageData createImageData(ImageData imagedata);
   [Throws]
-  ImageData getImageData(long sx, long sy, long sw, long sh);
-  void putImageData(ImageData imagedata, long dx, long dy);
+  ImageData getImageData(double sx, double sy, double sw, double sh);
+  void putImageData(ImageData imagedata, double dx, double dy);
   void putImageData(ImageData imagedata,
-                    long dx, long dy,
-                    long dirtyX, long dirtyY,
-                    long dirtyWidth, long dirtyHeight);
+                    double dx, double dy,
+                    double dirtyX, double dirtyY,
+                    double dirtyWidth, double dirtyHeight);
 };
 
 enum CanvasLineCap { "butt", "round", "square" };

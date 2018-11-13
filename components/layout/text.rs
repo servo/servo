@@ -4,16 +4,18 @@
 
 //! Text layout.
 
+#![deny(unsafe_code)]
+
 use app_units::Au;
-use crate::context::LayoutFontContext;
-use crate::fragment::{Fragment, ScannedTextFlags};
-use crate::fragment::{ScannedTextFragmentInfo, SpecificFragmentInfo, UnscannedTextFragmentInfo};
-use crate::inline::{InlineFragmentNodeFlags, InlineFragments};
-use crate::linked_list::split_off_head;
-use gfx::font::{FontMetrics, FontRef, RunMetrics, ShapingFlags, ShapingOptions};
+use context::LayoutFontContext;
+use fragment::{Fragment, ScannedTextFlags};
+use fragment::{ScannedTextFragmentInfo, SpecificFragmentInfo, UnscannedTextFragmentInfo};
+use gfx::font::{FontRef, FontMetrics, RunMetrics, ShapingFlags, ShapingOptions};
 use gfx::text::glyph::ByteIndex;
 use gfx::text::text_run::TextRun;
 use gfx::text::util::{self, CompressionMode};
+use inline::{InlineFragmentNodeFlags, InlineFragments};
+use linked_list::split_off_head;
 use ordered_float::NotNan;
 use range::Range;
 use servo_atoms::Atom;
@@ -26,11 +28,11 @@ use style::computed_values::text_transform::T as TextTransform;
 use style::computed_values::white_space::T as WhiteSpace;
 use style::computed_values::word_break::T as WordBreak;
 use style::logical_geometry::{LogicalSize, WritingMode};
-use style::properties::style_structs::Font as FontStyleStruct;
 use style::properties::ComputedValues;
+use style::properties::style_structs::Font as FontStyleStruct;
 use style::values::generics::text::LineHeight;
 use unicode_bidi as bidi;
-use unicode_script::{get_script, Script};
+use unicode_script::{Script, get_script};
 use xi_unicode::LineBreakLeafIter;
 
 /// Returns the concatenated text of a list of unscanned text fragments.
@@ -508,7 +510,7 @@ fn bounding_box_for_run_metrics(
 #[inline]
 pub fn font_metrics_for_style(
     mut font_context: &mut LayoutFontContext,
-    style: crate::ServoArc<FontStyleStruct>,
+    style: ::ServoArc<FontStyleStruct>,
 ) -> FontMetrics {
     let font_group = font_context.font_group(style);
     let font = font_group.borrow_mut().first(&mut font_context);

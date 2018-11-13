@@ -64,6 +64,7 @@
 //! selectors are effectively stripped off, so that matching them all against
 //! elements makes sense.
 
+use Atom;
 use applicable_declarations::ApplicableDeclarationBlock;
 use atomic_refcell::{AtomicRefCell, AtomicRefMut};
 use bloom::StyleBloom;
@@ -73,8 +74,8 @@ use matching::MatchMethods;
 use owning_ref::OwningHandle;
 use properties::ComputedValues;
 use rule_tree::StrongRuleNode;
-use selectors::matching::{ElementSelectorFlags, VisitedHandlingMode};
 use selectors::NthIndexCache;
+use selectors::matching::{ElementSelectorFlags, VisitedHandlingMode};
 use servo_arc::Arc;
 use smallbitvec::SmallBitVec;
 use smallvec::SmallVec;
@@ -85,7 +86,6 @@ use std::ptr::NonNull;
 use style_resolver::{PrimaryStyle, ResolvedElementStyles};
 use stylist::Stylist;
 use uluru::{Entry, LRUCache};
-use Atom;
 
 mod checks;
 
@@ -120,8 +120,9 @@ unsafe impl Sync for OpaqueComputedValues {}
 
 impl OpaqueComputedValues {
     fn from(cv: &ComputedValues) -> Self {
-        let p =
-            unsafe { NonNull::new_unchecked(cv as *const ComputedValues as *const () as *mut ()) };
+        let p = unsafe {
+            NonNull::new_unchecked(cv as *const ComputedValues as *const () as *mut ())
+        };
         OpaqueComputedValues(p)
     }
 
@@ -203,8 +204,7 @@ impl ValidationData {
                 let values =
                     OpaqueComputedValues::from(parent.borrow_data().unwrap().styles.primary());
                 values
-            })
-            .clone()
+            }).clone()
     }
 
     /// Computes the revalidation results if needed, and returns it.

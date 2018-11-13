@@ -1,7 +1,3 @@
-import base64
-import imghdr
-import struct
-
 from webdriver import Element, NoSuchAlertException, WebDriverException
 
 
@@ -119,16 +115,6 @@ def assert_files_uploaded(session, element, files):
         assert get_file_contents(index) == f.read()
 
 
-def assert_is_active_element(session, element):
-    """Verify that element reference is the active element."""
-    from_js = session.execute_script("return document.activeElement")
-
-    if element is None:
-        assert from_js is None
-    else:
-        assert_same_element(session, element, from_js)
-
-
 def assert_same_element(session, a, b):
     """Verify that two element references describe the same element."""
     if isinstance(a, dict):
@@ -193,10 +179,3 @@ def assert_move_to_coordinates(point, target, events):
             assert e["pageX"] == point["x"]
             assert e["pageY"] == point["y"]
             assert e["target"] == target
-
-
-def assert_png(screenshot):
-    """Test that screenshot is a Base64 encoded PNG file."""
-    image = base64.decodestring(screenshot)
-    mime_type = imghdr.what("", image)
-    assert mime_type == "png", "Expected image to be PNG, but it was {}".format(mime_type)

@@ -2,14 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::codegen::Bindings::StylePropertyMapReadOnlyBinding::StylePropertyMapReadOnlyMethods;
-use crate::dom::bindings::codegen::Bindings::StylePropertyMapReadOnlyBinding::Wrap;
-use crate::dom::bindings::reflector::reflect_dom_object;
-use crate::dom::bindings::reflector::Reflector;
-use crate::dom::bindings::root::{Dom, DomRoot};
-use crate::dom::bindings::str::DOMString;
-use crate::dom::cssstylevalue::CSSStyleValue;
-use crate::dom::globalscope::GlobalScope;
+use dom::bindings::codegen::Bindings::StylePropertyMapReadOnlyBinding::StylePropertyMapReadOnlyMethods;
+use dom::bindings::codegen::Bindings::StylePropertyMapReadOnlyBinding::Wrap;
+use dom::bindings::reflector::Reflector;
+use dom::bindings::reflector::reflect_dom_object;
+use dom::bindings::root::{Dom, DomRoot};
+use dom::bindings::str::DOMString;
+use dom::cssstylevalue::CSSStyleValue;
+use dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
 use servo_atoms::Atom;
 use std::cmp::Ordering;

@@ -2,15 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
-use crate::actors::framerate::FramerateActor;
-use crate::actors::memory::{MemoryActor, TimelineMemoryReply};
-use crate::protocol::JsonPacketStream;
+use actor::{Actor, ActorMessageStatus, ActorRegistry};
+use actors::framerate::FramerateActor;
+use actors::memory::{MemoryActor, TimelineMemoryReply};
+use devtools_traits::{PreciseTime, TimelineMarker, TimelineMarkerType};
 use devtools_traits::DevtoolScriptControlMsg;
 use devtools_traits::DevtoolScriptControlMsg::{DropTimelineMarkers, SetTimelineMarkers};
-use devtools_traits::{PreciseTime, TimelineMarker, TimelineMarkerType};
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use msg::constellation_msg::PipelineId;
+use protocol::JsonPacketStream;
 use serde::{Serialize, Serializer};
 use serde_json::{Map, Value};
 use std::cell::RefCell;
@@ -169,8 +169,7 @@ impl TimelineActor {
                 emitter.send(markers);
 
                 thread::sleep(Duration::from_millis(DEFAULT_TIMELINE_DATA_PULL_TIMEOUT));
-            })
-            .expect("Thread spawning failed");
+            }).expect("Thread spawning failed");
     }
 }
 
@@ -196,8 +195,7 @@ impl Actor for TimelineActor {
                         self.pipeline,
                         self.marker_types.clone(),
                         tx,
-                    ))
-                    .unwrap();
+                    )).unwrap();
 
                 *self.stream.borrow_mut() = stream.try_clone().ok();
 
@@ -250,8 +248,7 @@ impl Actor for TimelineActor {
                     .send(DropTimelineMarkers(
                         self.pipeline,
                         self.marker_types.clone(),
-                    ))
-                    .unwrap();
+                    )).unwrap();
 
                 if let Some(ref actor_name) = *self.framerate_actor.borrow() {
                     registry.drop_actor_later(actor_name.clone());

@@ -2,11 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::codegen::Bindings::PromiseNativeHandlerBinding;
-use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
-use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::trace::JSTraceable;
-use crate::dom::globalscope::GlobalScope;
+use dom::bindings::codegen::Bindings::PromiseNativeHandlerBinding;
+use dom::bindings::reflector::{Reflector, reflect_dom_object};
+use dom::bindings::root::DomRoot;
+use dom::bindings::trace::JSTraceable;
+use dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
 use js::jsapi::JSContext;
 use js::rust::HandleValue;
@@ -26,8 +26,8 @@ pub struct PromiseNativeHandler {
 impl PromiseNativeHandler {
     pub fn new(
         global: &GlobalScope,
-        resolve: Option<Box<dyn Callback>>,
-        reject: Option<Box<dyn Callback>>,
+        resolve: Option<Box<Callback>>,
+        reject: Option<Box<Callback>>,
     ) -> DomRoot<PromiseNativeHandler> {
         reflect_dom_object(
             Box::new(PromiseNativeHandler {
@@ -40,7 +40,7 @@ impl PromiseNativeHandler {
         )
     }
 
-    fn callback(callback: &Option<Box<dyn Callback>>, cx: *mut JSContext, v: HandleValue) {
+    fn callback(callback: &Option<Box<Callback>>, cx: *mut JSContext, v: HandleValue) {
         if let Some(ref callback) = *callback {
             callback.callback(cx, v)
         }

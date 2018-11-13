@@ -32,32 +32,32 @@
 //! | sequences               | `Vec<T>`        |                |
 //! | union types             | `T`             |                |
 
-use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::num::Finite;
-use crate::dom::bindings::reflector::{DomObject, Reflector};
-use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::{ByteString, DOMString, USVString};
-use crate::dom::bindings::trace::{JSTraceable, RootedTraceableBox};
-use crate::dom::bindings::utils::DOMClass;
-use js::conversions::latin1_to_string;
-pub use js::conversions::ConversionBehavior;
+use dom::bindings::error::{Error, Fallible};
+use dom::bindings::inheritance::Castable;
+use dom::bindings::num::Finite;
+use dom::bindings::reflector::{DomObject, Reflector};
+use dom::bindings::root::DomRoot;
+use dom::bindings::str::{ByteString, DOMString, USVString};
+use dom::bindings::trace::{JSTraceable, RootedTraceableBox};
+use dom::bindings::utils::DOMClass;
+use js;
 pub use js::conversions::{ConversionResult, FromJSValConvertible, ToJSValConvertible};
+pub use js::conversions::ConversionBehavior;
+use js::conversions::latin1_to_string;
 use js::error::throw_type_error;
-use js::glue::GetProxyReservedSlot;
-use js::glue::JS_GetReservedSlot;
 use js::glue::{IsWrapper, UnwrapObject};
 use js::glue::{RUST_JSID_IS_INT, RUST_JSID_TO_INT};
 use js::glue::{RUST_JSID_IS_STRING, RUST_JSID_TO_STRING};
+use js::glue::GetProxyReservedSlot;
+use js::glue::JS_GetReservedSlot;
 use js::jsapi::{Heap, JSContext, JSObject, JSString};
-use js::jsapi::{
-    JS_GetLatin1StringCharsAndLength, JS_GetTwoByteStringCharsAndLength, JS_IsExceptionPending,
-};
+use js::jsapi::{JS_GetLatin1StringCharsAndLength, JS_GetTwoByteStringCharsAndLength, JS_IsExceptionPending};
 use js::jsapi::{JS_NewStringCopyN, JS_StringHasLatin1Chars};
 use js::jsval::{ObjectValue, StringValue, UndefinedValue};
-use js::rust::wrappers::{JS_GetProperty, JS_IsArrayObject};
-use js::rust::{get_object_class, is_dom_class, is_dom_object, maybe_wrap_value, ToString};
 use js::rust::{HandleId, HandleObject, HandleValue, MutableHandleValue};
+use js::rust::{get_object_class, is_dom_class, is_dom_object, maybe_wrap_value, ToString};
+use js::rust::wrappers::{JS_GetProperty, JS_IsArrayObject};
+use libc;
 use num_traits::Float;
 use servo_config::opts;
 use std::{char, ffi, ptr, slice};
@@ -65,7 +65,7 @@ use std::{char, ffi, ptr, slice};
 /// A trait to check whether a given `JSObject` implements an IDL interface.
 pub trait IDLInterface {
     /// Returns whether the given DOM class derives that interface.
-    fn derives(_: &'static DOMClass) -> bool;
+    fn derives(&'static DOMClass) -> bool;
 }
 
 /// A trait to mark an IDL interface as deriving from another one.
@@ -384,7 +384,7 @@ pub unsafe fn private_from_object(obj: *mut JSObject) -> *const libc::c_void {
 
 /// Get the `DOMClass` from `obj`, or `Err(())` if `obj` is not a DOM object.
 pub unsafe fn get_dom_class(obj: *mut JSObject) -> Result<&'static DOMClass, ()> {
-    use crate::dom::bindings::utils::DOMJSClass;
+    use dom::bindings::utils::DOMJSClass;
     use js::glue::GetProxyHandlerExtra;
 
     let clasp = get_object_class(obj);

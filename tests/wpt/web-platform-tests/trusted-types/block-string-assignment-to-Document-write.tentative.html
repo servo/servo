@@ -5,11 +5,11 @@
   <script src="/resources/testharnessreport.js"></script>
   <script src="support/helper.sub.js"></script>
 
-  <meta http-equiv="Content-Security-Policy" content="trusted-types *">
+  <meta http-equiv="Content-Security-Policy" content="trusted-types">
 </head>
 <body>
 <script>
-  // TrustedHTML assignments do not throw.
+  // TrustedURL assignments do not throw.
   test(t => {
     let p = createHTML_policy(window, 1);
     let html = p.createHTML(INPUTS.HTML);

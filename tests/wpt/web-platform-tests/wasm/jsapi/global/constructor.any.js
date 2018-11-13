@@ -119,9 +119,3 @@ for (const type of ["i32", "f32", "f64"]) {
     }, `Explicit value ${name} for type ${type}`);
   }
 }
-
-test(() => {
-  const argument = { "value": "i32" };
-  const global = new WebAssembly.Global(argument, 0, {});
-  assert_Global(global, 0);
-}, "Stray argument");

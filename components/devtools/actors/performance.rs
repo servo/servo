@@ -2,8 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
-use crate::protocol::{ActorDescription, JsonPacketStream, Method};
+use actor::{Actor, ActorMessageStatus, ActorRegistry};
+use protocol::{ActorDescription, JsonPacketStream, Method};
 use serde_json::{Map, Value};
 use std::net::TcpStream;
 
@@ -106,8 +106,7 @@ impl PerformanceActor {
                     vec![(
                         "type".to_owned(),
                         Value::String("canCurrentlyRecord".to_owned()),
-                    )]
-                    .into_iter()
+                    )].into_iter()
                     .collect(),
                 ),
                 response: Value::Object(
@@ -118,8 +117,7 @@ impl PerformanceActor {
                                 .into_iter()
                                 .collect(),
                         ),
-                    )]
-                    .into_iter()
+                    )].into_iter()
                     .collect(),
                 ),
             }],

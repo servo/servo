@@ -2,45 +2,44 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::EventSourceBinding::{
-    EventSourceInit, EventSourceMethods, Wrap,
-};
-use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::refcounted::Trusted;
-use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
-use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::DOMString;
-use crate::dom::event::Event;
-use crate::dom::eventtarget::EventTarget;
-use crate::dom::globalscope::GlobalScope;
-use crate::dom::messageevent::MessageEvent;
-use crate::fetch::FetchCanceller;
-use crate::network_listener::{NetworkListener, PreInvoke};
-use crate::task_source::{TaskSource, TaskSourceName};
-use crate::timers::OneshotTimerCallback;
+use dom::bindings::cell::DomRefCell;
+use dom::bindings::codegen::Bindings::EventSourceBinding::{EventSourceInit, EventSourceMethods, Wrap};
+use dom::bindings::error::{Error, Fallible};
+use dom::bindings::inheritance::Castable;
+use dom::bindings::refcounted::Trusted;
+use dom::bindings::reflector::{DomObject, reflect_dom_object};
+use dom::bindings::root::DomRoot;
+use dom::bindings::str::DOMString;
+use dom::event::Event;
+use dom::eventtarget::EventTarget;
+use dom::globalscope::GlobalScope;
+use dom::messageevent::MessageEvent;
 use dom_struct::dom_struct;
 use euclid::Length;
-use headers_ext::ContentType;
-use http::header::{self, HeaderName, HeaderValue};
+use fetch::FetchCanceller;
+use hyper::header::{Accept, qitem};
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use js::conversions::ToJSValConvertible;
 use js::jsapi::JSAutoCompartment;
 use js::jsval::UndefinedValue;
-use mime::{self, Mime};
+use mime::{Mime, TopLevel, SubLevel};
+use net_traits::{CoreResourceMsg, FetchChannels, FetchMetadata};
+use net_traits::{FetchResponseMsg, FetchResponseListener, NetworkError};
 use net_traits::request::{CacheMode, CorsSettings, CredentialsMode};
 use net_traits::request::{RequestInit, RequestMode};
-use net_traits::{CoreResourceMsg, FetchChannels, FetchMetadata};
-use net_traits::{FetchResponseListener, FetchResponseMsg, NetworkError};
+use network_listener::{NetworkListener, PreInvoke};
 use servo_atoms::Atom;
 use servo_url::ServoUrl;
 use std::cell::Cell;
 use std::mem;
 use std::str::{Chars, FromStr};
 use std::sync::{Arc, Mutex};
+use task_source::{TaskSource, TaskSourceName};
+use timers::OneshotTimerCallback;
 use utf8;
+
+header! { (LastEventId, "Last-Event-ID") => [String] }
 
 const DEFAULT_RECONNECTION_TIME: u64 = 5000;
 
@@ -180,10 +179,8 @@ impl EventSourceContext {
                 self.data.push('\n');
             },
             "id" => mem::swap(&mut self.last_event_id, &mut self.value),
-            "retry" => {
-                if let Ok(time) = u64::from_str(&self.value) {
-                    self.event_source.root().reconnection_time.set(time);
-                }
+            "retry" => if let Ok(time) = u64::from_str(&self.value) {
+                self.event_source.root().reconnection_time.set(time);
             },
             _ => (),
         }
@@ -341,15 +338,12 @@ impl FetchResponseListener for EventSourceContext {
                 };
                 match meta.content_type {
                     None => self.fail_the_connection(),
-                    Some(ct) => {
-                        if <ContentType as Into<Mime>>::into(ct.into_inner()) ==
-                            mime::TEXT_EVENT_STREAM
-                        {
-                            self.origin = meta.final_url.origin().ascii_serialization();
+                    Some(ct) => match ct.into_inner().0 {
+                        Mime(TopLevel::Text, SubLevel::EventStream, _) => {
+                            self.origin = meta.final_url.origin().unicode_serialization();
                             self.announce_the_connection();
-                        } else {
-                            self.fail_the_connection()
-                        }
+                        },
+                        _ => self.fail_the_connection(),
                     },
                 }
             },
@@ -507,11 +501,9 @@ impl EventSource {
             ..RequestInit::default()
         };
         // Step 10
-        // TODO(eijebong): Replace once typed headers allow it
-        request.headers.insert(
-            header::ACCEPT,
-            HeaderValue::from_static("text/event-stream"),
-        );
+        request
+            .headers
+            .set(Accept(vec![qitem(mime!(Text / EventStream))]));
         // Step 11
         request.cache_mode = CacheMode::NoStore;
         // Step 12
@@ -551,8 +543,7 @@ impl EventSource {
             .send(CoreResourceMsg::Fetch(
                 request,
                 FetchChannels::ResponseMsg(action_sender, Some(cancel_receiver)),
-            ))
-            .unwrap();
+            )).unwrap();
         // Step 13
         Ok(ev)
     }
@@ -622,12 +613,9 @@ impl EventSourceTimeoutCallback {
         let mut request = event_source.request();
         // Step 5.3
         if !event_source.last_event_id.borrow().is_empty() {
-            //TODO(eijebong): Change this once typed header support custom values
-            request.headers.insert(
-                HeaderName::from_static("last-event-id"),
-                HeaderValue::from_str(&String::from(event_source.last_event_id.borrow().clone()))
-                    .unwrap(),
-            );
+            request.headers.set(LastEventId(String::from(
+                event_source.last_event_id.borrow().clone(),
+            )));
         }
         // Step 5.4
         global
@@ -635,7 +623,6 @@ impl EventSourceTimeoutCallback {
             .send(CoreResourceMsg::Fetch(
                 request,
                 FetchChannels::ResponseMsg(self.action_sender, None),
-            ))
-            .unwrap();
+            )).unwrap();
     }
 }

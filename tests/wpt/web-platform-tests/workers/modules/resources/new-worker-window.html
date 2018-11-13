@@ -9,10 +9,7 @@ let worker;
 window.onmessage = e => {
   worker = new Worker(e.data, { type: 'module' });
   worker.onmessage = msg => window.opener.postMessage(msg.data, '*');
-  worker.onerror = err => {
-      window.opener.postMessage(['ERROR'], '*');
-      err.preventDefault();
-  };
+  worker.onerror = err => window.opener.postMessage(['ERROR'], '*');
 };
 window.opener.postMessage('LOADED', '*');
 </script>

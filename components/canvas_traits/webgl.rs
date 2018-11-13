@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use euclid::{Rect, Size2D};
+use euclid::Size2D;
 use gleam::gl;
 use ipc_channel::ipc::{IpcBytesReceiver, IpcBytesSender};
 use offscreen_gl_context::{GLContextAttributes, GLLimits};
@@ -11,20 +11,20 @@ use std::borrow::Cow;
 use std::num::NonZeroU32;
 use webrender_api::{DocumentId, ImageKey, PipelineId};
 
-/// Helper function that creates a WebGL channel (WebGLSender, WebGLReceiver) to be used in WebGLCommands.
-pub use crate::webgl_channel::webgl_channel;
-/// Entry point channel type used for sending WebGLMsg messages to the WebGL renderer.
-pub use crate::webgl_channel::WebGLChan;
-/// Entry point type used in a Script Pipeline to get the WebGLChan to be used in that thread.
-pub use crate::webgl_channel::WebGLPipeline;
-/// Receiver type used in WebGLCommands.
-pub use crate::webgl_channel::WebGLReceiver;
-/// Result type for send()/recv() calls in in WebGLCommands.
-pub use crate::webgl_channel::WebGLSendResult;
 /// Sender type used in WebGLCommands.
-pub use crate::webgl_channel::WebGLSender;
+pub use ::webgl_channel::WebGLSender;
+/// Receiver type used in WebGLCommands.
+pub use ::webgl_channel::WebGLReceiver;
+/// Result type for send()/recv() calls in in WebGLCommands.
+pub use ::webgl_channel::WebGLSendResult;
+/// Helper function that creates a WebGL channel (WebGLSender, WebGLReceiver) to be used in WebGLCommands.
+pub use ::webgl_channel::webgl_channel;
+/// Entry point type used in a Script Pipeline to get the WebGLChan to be used in that thread.
+pub use ::webgl_channel::WebGLPipeline;
+/// Entry point channel type used for sending WebGLMsg messages to the WebGL renderer.
+pub use ::webgl_channel::WebGLChan;
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize)]
 pub struct WebGLCommandBacktrace {
     #[cfg(feature = "webgl_backtrace")]
     pub backtrace: String,
@@ -33,17 +33,13 @@ pub struct WebGLCommandBacktrace {
 }
 
 /// WebGL Message API
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Deserialize, Serialize)]
 pub enum WebGLMsg {
     /// Creates a new WebGLContext.
-    CreateContext(
-        WebGLVersion,
-        Size2D<u32>,
-        GLContextAttributes,
-        WebGLSender<Result<(WebGLCreateContextResult), String>>,
-    ),
+    CreateContext(WebGLVersion, Size2D<i32>, GLContextAttributes,
+                  WebGLSender<Result<(WebGLCreateContextResult), String>>),
     /// Resizes a WebGLContext.
-    ResizeContext(WebGLContextId, Size2D<u32>, WebGLSender<Result<(), String>>),
+    ResizeContext(WebGLContextId, Size2D<i32>, WebGLSender<Result<(), String>>),
     /// Drops a WebGLContext.
     RemoveContext(WebGLContextId),
     /// Runs a WebGLCommand in a specific WebGLContext.
@@ -70,7 +66,7 @@ pub enum WebGLMsg {
 }
 
 /// Contains the WebGLCommand sender and information about a WebGLContext
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize)]
 pub struct WebGLCreateContextResult {
     /// Sender instance to send commands to the specific WebGLContext
     pub sender: WebGLMsgSender,
@@ -82,7 +78,7 @@ pub struct WebGLCreateContextResult {
     pub glsl_version: WebGLSLVersion,
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, Serialize)]
+#[derive(Clone, Copy, Deserialize, MallocSizeOf, Serialize)]
 pub enum WebGLContextShareMode {
     /// Fast: a shared texture_id is used in WebRender.
     SharedTexture,
@@ -91,7 +87,7 @@ pub enum WebGLContextShareMode {
 }
 
 /// Defines the WebGL version
-#[derive(Clone, Copy, Debug, Deserialize, Eq, MallocSizeOf, PartialEq, Serialize)]
+#[derive(Clone, Copy, Deserialize, Eq, MallocSizeOf, PartialEq, Serialize)]
 pub enum WebGLVersion {
     /// https://www.khronos.org/registry/webgl/specs/1.0.2/
     /// Conforms closely to the OpenGL ES 2.0 API
@@ -102,7 +98,7 @@ pub enum WebGLVersion {
 }
 
 /// Defines the GLSL version supported by the WebGL backend contexts.
-#[derive(Clone, Copy, Debug, Deserialize, Eq, MallocSizeOf, PartialEq, Serialize)]
+#[derive(Clone, Copy, Deserialize, Eq, MallocSizeOf, PartialEq, Serialize)]
 pub struct WebGLSLVersion {
     /// Major GLSL version
     pub major: u32,
@@ -111,7 +107,7 @@ pub struct WebGLSLVersion {
 }
 
 /// Helper struct to send WebGLCommands to a specific WebGLContext.
-#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
+#[derive(Clone, Deserialize, MallocSizeOf, Serialize)]
 pub struct WebGLMsgSender {
     ctx_id: WebGLContextId,
     #[ignore_malloc_size_of = "channels are hard"]
@@ -134,26 +130,22 @@ impl WebGLMsgSender {
     /// Send a WebGLCommand message
     #[inline]
     pub fn send(&self, command: WebGLCommand, backtrace: WebGLCommandBacktrace) -> WebGLSendResult {
-        self.sender
-            .send(WebGLMsg::WebGLCommand(self.ctx_id, command, backtrace))
+        self.sender.send(WebGLMsg::WebGLCommand(self.ctx_id, command, backtrace))
     }
 
     /// Send a WebVRCommand message
     #[inline]
     pub fn send_vr(&self, command: WebVRCommand) -> WebGLSendResult {
-        self.sender
-            .send(WebGLMsg::WebVRCommand(self.ctx_id, command))
+        self.sender.send(WebGLMsg::WebVRCommand(self.ctx_id, command))
     }
 
     /// Send a resize message
     #[inline]
-    pub fn send_resize(
-        &self,
-        size: Size2D<u32>,
-        sender: WebGLSender<Result<(), String>>,
-    ) -> WebGLSendResult {
-        self.sender
-            .send(WebGLMsg::ResizeContext(self.ctx_id, size, sender))
+    pub fn send_resize(&self,
+                       size: Size2D<i32>,
+                       sender: WebGLSender<Result<(), String>>)
+                       -> WebGLSendResult {
+        self.sender.send(WebGLMsg::ResizeContext(self.ctx_id, size, sender))
     }
 
     #[inline]
@@ -163,8 +155,7 @@ impl WebGLMsgSender {
 
     #[inline]
     pub fn send_update_wr_image(&self, sender: WebGLSender<ImageKey>) -> WebGLSendResult {
-        self.sender
-            .send(WebGLMsg::UpdateWebRenderImage(self.ctx_id, sender))
+        self.sender.send(WebGLMsg::UpdateWebRenderImage(self.ctx_id, sender))
     }
 
     pub fn send_dom_to_texture(&self, command: DOMToTextureCommand) -> WebGLSendResult {
@@ -231,9 +222,9 @@ pub enum WebGLCommand {
     GetRenderbufferParameter(u32, u32, WebGLSender<i32>),
     PolygonOffset(f32, f32),
     RenderbufferStorage(u32, u32, i32, i32),
-    ReadPixels(Rect<u32>, u32, u32, IpcBytesSender),
+    ReadPixels(i32, i32, i32, i32, u32, u32, IpcBytesSender),
     SampleCoverage(f32, bool),
-    Scissor(i32, i32, u32, u32),
+    Scissor(i32, i32, i32, i32),
     StencilFunc(u32, i32, u32),
     StencilFuncSeparate(u32, u32, i32, u32),
     StencilMask(u32),
@@ -294,34 +285,11 @@ pub enum WebGLCommand {
     GetTexParameterInt(u32, TexParameterInt, WebGLSender<i32>),
     TexParameteri(u32, u32, i32),
     TexParameterf(u32, u32, f32),
-    DrawArrays {
-        mode: u32,
-        first: i32,
-        count: i32,
-    },
-    DrawArraysInstanced {
-        mode: u32,
-        first: i32,
-        count: i32,
-        primcount: i32,
-    },
-    DrawElements {
-        mode: u32,
-        count: i32,
-        type_: u32,
-        offset: u32,
-    },
-    DrawElementsInstanced {
-        mode: u32,
-        count: i32,
-        type_: u32,
-        offset: u32,
-        primcount: i32,
-    },
-    VertexAttribDivisor {
-        index: u32,
-        divisor: u32,
-    },
+    DrawArrays { mode: u32, first: i32, count: i32 },
+    DrawArraysInstanced { mode: u32, first: i32, count: i32, primcount: i32 },
+    DrawElements { mode: u32, count: i32, type_: u32, offset: u32 },
+    DrawElementsInstanced { mode: u32, count: i32, type_: u32, offset: u32, primcount: i32 },
+    VertexAttribDivisor { index: u32, divisor: u32 },
     GetUniformBool(WebGLProgramId, i32, WebGLSender<bool>),
     GetUniformBool2(WebGLProgramId, i32, WebGLSender<[bool; 2]>),
     GetUniformBool3(WebGLProgramId, i32, WebGLSender<[bool; 3]>),
@@ -336,11 +304,7 @@ pub enum WebGLCommand {
     GetUniformFloat4(WebGLProgramId, i32, WebGLSender<[f32; 4]>),
     GetUniformFloat9(WebGLProgramId, i32, WebGLSender<[f32; 9]>),
     GetUniformFloat16(WebGLProgramId, i32, WebGLSender<[f32; 16]>),
-    InitializeFramebuffer {
-        color: bool,
-        depth: bool,
-        stencil: bool,
-    },
+    InitializeFramebuffer { color: bool, depth: bool, stencil: bool },
 }
 
 macro_rules! define_resource_id_struct {
@@ -360,6 +324,7 @@ macro_rules! define_resource_id_struct {
                 self.0.get()
             }
         }
+
     };
 }
 
@@ -370,10 +335,9 @@ macro_rules! define_resource_id {
         #[allow(unsafe_code)]
         impl<'de> ::serde::Deserialize<'de> for $name {
             fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-            where
-                D: ::serde::Deserializer<'de>,
+                where D: ::serde::Deserializer<'de>
             {
-                let id = u32::deserialize(deserializer)?;
+                let id = try!(u32::deserialize(deserializer));
                 if id == 0 {
                     Err(::serde::de::Error::custom("expected a non-zero value"))
                 } else {
@@ -384,33 +348,32 @@ macro_rules! define_resource_id {
 
         impl ::serde::Serialize for $name {
             fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-            where
-                S: ::serde::Serializer,
+                where S: ::serde::Serializer
             {
                 self.get().serialize(serializer)
             }
         }
 
         impl ::std::fmt::Debug for $name {
-            fn fmt(&self, fmt: &mut ::std::fmt::Formatter) -> Result<(), ::std::fmt::Error> {
+            fn fmt(&self, fmt: &mut ::std::fmt::Formatter)
+                  -> Result<(), ::std::fmt::Error> {
                 fmt.debug_tuple(stringify!($name))
-                    .field(&self.get())
-                    .finish()
+                   .field(&self.get())
+                   .finish()
             }
         }
 
         impl ::std::fmt::Display for $name {
-            fn fmt(&self, fmt: &mut ::std::fmt::Formatter) -> Result<(), ::std::fmt::Error> {
+            fn fmt(&self, fmt: &mut ::std::fmt::Formatter)
+                  -> Result<(), ::std::fmt::Error> {
                 write!(fmt, "{}", self.get())
             }
         }
 
         impl ::malloc_size_of::MallocSizeOf for $name {
-            fn size_of(&self, _ops: &mut ::malloc_size_of::MallocSizeOfOps) -> usize {
-                0
-            }
+            fn size_of(&self, _ops: &mut ::malloc_size_of::MallocSizeOfOps) -> usize { 0 }
         }
-    };
+    }
 }
 
 define_resource_id!(WebGLBufferId);
@@ -421,9 +384,8 @@ define_resource_id!(WebGLProgramId);
 define_resource_id!(WebGLShaderId);
 define_resource_id!(WebGLVertexArrayId);
 
-#[derive(
-    Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, Ord, PartialEq, PartialOrd, Serialize,
-)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, Ord)]
+#[derive(PartialEq, PartialOrd, Serialize)]
 pub struct WebGLContextId(pub usize);
 
 #[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
@@ -447,7 +409,7 @@ pub type WebGLResult<T> = Result<T, WebGLError>;
 pub type WebVRDeviceId = u32;
 
 // WebVR commands that must be called in the WebGL render thread.
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize)]
 pub enum WebVRCommand {
     /// Start presenting to a VR device.
     Create(WebVRDeviceId),
@@ -456,7 +418,7 @@ pub enum WebVRCommand {
     /// Submit the frame to a VR device using the specified texture coordinates.
     SubmitFrame(WebVRDeviceId, [f32; 4], [f32; 4]),
     /// Stop presenting to a VR device
-    Release(WebVRDeviceId),
+    Release(WebVRDeviceId)
 }
 
 // Trait object that handles WebVR commands.
@@ -466,16 +428,10 @@ pub trait WebVRRenderHandler: Send {
 }
 
 /// WebGL commands required to implement DOMToTexture feature.
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize)]
 pub enum DOMToTextureCommand {
     /// Attaches a HTMLIFrameElement to a WebGLTexture.
-    Attach(
-        WebGLContextId,
-        WebGLTextureId,
-        DocumentId,
-        PipelineId,
-        Size2D<i32>,
-    ),
+    Attach(WebGLContextId, WebGLTextureId, DocumentId, PipelineId, Size2D<i32>),
     /// Releases the HTMLIFrameElement to WebGLTexture attachment.
     Detach(WebGLTextureId),
     /// Lock message used for a correct synchronization with WebRender GL flow.
@@ -483,7 +439,7 @@ pub enum DOMToTextureCommand {
 }
 
 /// Information about a WebGL program linking operation.
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize)]
 pub struct ProgramLinkInfo {
     /// Whether the program was linked successfully.
     pub linked: bool,
@@ -494,7 +450,7 @@ pub struct ProgramLinkInfo {
 }
 
 /// Description of a single active attribute.
-#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
+#[derive(Clone, Deserialize, MallocSizeOf, Serialize)]
 pub struct ActiveAttribInfo {
     /// The name of the attribute.
     pub name: String,
@@ -507,7 +463,7 @@ pub struct ActiveAttribInfo {
 }
 
 /// Description of a single active uniform.
-#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
+#[derive(Clone, Deserialize, MallocSizeOf, Serialize)]
 pub struct ActiveUniformInfo {
     /// The base name of the uniform.
     pub base_name: Box<str>,
@@ -643,10 +599,4 @@ parameters! {
             TextureWrapT = gl::TEXTURE_WRAP_T,
         }),
     }
-}
-
-pub fn is_gles() -> bool {
-    // TODO: align this with the actual kind of graphics context in use, rather than
-    // making assumptions based on platform
-    cfg!(any(target_os = "android", target_os = "ios"))
 }

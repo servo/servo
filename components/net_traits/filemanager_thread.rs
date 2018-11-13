@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use crate::blob_url_store::{BlobBuf, BlobURLStoreError};
+use blob_url_store::{BlobBuf, BlobURLStoreError};
 use embedder_traits::FilterPattern;
 use ipc_channel::ipc::IpcSender;
 use num_traits::ToPrimitive;
@@ -19,7 +19,7 @@ pub type FileOrigin = String;
 /// Relative slice positions of a sequence,
 /// whose semantic should be consistent with (start, end) parameters in
 /// <https://w3c.github.io/FileAPI/#dfn-slice>
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize)]
 pub struct RelativePos {
     /// Relative to first byte if non-negative,
     /// relative to one past last byte if negative,
@@ -111,49 +111,24 @@ pub struct SelectedFile {
     pub type_string: String,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Deserialize, Serialize)]
 pub enum FileManagerThreadMsg {
     /// Select a single file. Last field is pre-selected file path for testing
-    SelectFile(
-        Vec<FilterPattern>,
-        IpcSender<FileManagerResult<SelectedFile>>,
-        FileOrigin,
-        Option<String>,
-    ),
+    SelectFile(Vec<FilterPattern>, IpcSender<FileManagerResult<SelectedFile>>, FileOrigin, Option<String>),
 
     /// Select multiple files. Last field is pre-selected file paths for testing
-    SelectFiles(
-        Vec<FilterPattern>,
-        IpcSender<FileManagerResult<Vec<SelectedFile>>>,
-        FileOrigin,
-        Option<Vec<String>>,
-    ),
+    SelectFiles(Vec<FilterPattern>, IpcSender<FileManagerResult<Vec<SelectedFile>>>, FileOrigin, Option<Vec<String>>),
 
     /// Read FileID-indexed file in chunks, optionally check URL validity based on boolean flag
-    ReadFile(
-        IpcSender<FileManagerResult<ReadFileProgress>>,
-        Uuid,
-        bool,
-        FileOrigin,
-    ),
+    ReadFile(IpcSender<FileManagerResult<ReadFileProgress>>, Uuid, bool, FileOrigin),
 
     /// Add an entry as promoted memory-based blob and send back the associated FileID
     /// as part of a valid/invalid Blob URL depending on the boolean flag
-    PromoteMemory(
-        BlobBuf,
-        bool,
-        IpcSender<Result<Uuid, BlobURLStoreError>>,
-        FileOrigin,
-    ),
+    PromoteMemory(BlobBuf, bool, IpcSender<Result<Uuid, BlobURLStoreError>>, FileOrigin),
 
     /// Add a sliced entry pointing to the parent FileID, and send back the associated FileID
     /// as part of a valid Blob URL
-    AddSlicedURLEntry(
-        Uuid,
-        RelativePos,
-        IpcSender<Result<Uuid, BlobURLStoreError>>,
-        FileOrigin,
-    ),
+    AddSlicedURLEntry(Uuid, RelativePos, IpcSender<Result<Uuid, BlobURLStoreError>>, FileOrigin),
 
     /// Decrease reference count and send back the acknowledgement
     DecRef(Uuid, FileOrigin, IpcSender<Result<(), BlobURLStoreError>>),

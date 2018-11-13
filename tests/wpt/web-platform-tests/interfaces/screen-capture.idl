@@ -3,26 +3,14 @@
 // (https://github.com/tidoust/reffy-reports)
 // Source: Screen Capture (https://w3c.github.io/mediacapture-screen-share/)
 
-partial interface MediaDevices {
+partial interface Navigator {
     Promise<MediaStream> getDisplayMedia(optional MediaStreamConstraints constraints);
-};
-
-partial dictionary MediaTrackSupportedConstraints {
-             boolean displaySurface = true;
-             boolean logicalSurface = true;
-             boolean cursor = true;
 };
 
 partial dictionary MediaTrackConstraintSet {
              ConstrainDOMString displaySurface;
              ConstrainBoolean logicalSurface;
              ConstrainDOMString cursor;
-};
-
-partial dictionary MediaTrackSettings {
-             DOMString displaySurface;
-             boolean logicalSurface;
-             DOMString cursor;
 };
 
 enum DisplayCaptureSurfaceType {

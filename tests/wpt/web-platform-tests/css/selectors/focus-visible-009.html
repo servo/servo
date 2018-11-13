@@ -33,7 +33,7 @@
       }));
 
       // Handle the case where the button is focused before the test runs.
-     if (document.activeElement === button) {
+     if (document.activeButtonement === button) {
         assert_equals(getComputedStyle(button).outlineColor, "rgb(0, 100, 0)");
         t.done();
      }

@@ -2,19 +2,19 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::codegen::Bindings::CharacterDataBinding::CharacterDataMethods;
-use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
-use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
-use crate::dom::bindings::codegen::Bindings::TextBinding::{self, TextMethods};
-use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
-use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::root::{DomRoot, RootedReference};
-use crate::dom::bindings::str::DOMString;
-use crate::dom::characterdata::CharacterData;
-use crate::dom::document::Document;
-use crate::dom::node::Node;
-use crate::dom::window::Window;
+use dom::bindings::codegen::Bindings::CharacterDataBinding::CharacterDataMethods;
+use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
+use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
+use dom::bindings::codegen::Bindings::TextBinding::{self, TextMethods};
+use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
+use dom::bindings::error::{Error, Fallible};
+use dom::bindings::inheritance::Castable;
+use dom::bindings::root::{DomRoot, RootedReference};
+use dom::bindings::str::DOMString;
+use dom::characterdata::CharacterData;
+use dom::document::Document;
+use dom::node::Node;
+use dom::window::Window;
 use dom_struct::dom_struct;
 
 /// An HTML text node.

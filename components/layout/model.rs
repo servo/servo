@@ -4,15 +4,17 @@
 
 //! Borders, padding, and margins.
 
+#![deny(unsafe_code)]
+
 use app_units::Au;
-use crate::fragment::Fragment;
-use euclid::SideOffsets2D;
+use euclid::{SideOffsets2D, Size2D};
+use fragment::Fragment;
 use std::cmp::{max, min};
 use std::fmt;
 use style::logical_geometry::{LogicalMargin, WritingMode};
 use style::properties::ComputedValues;
-use style::values::computed::LengthOrPercentageOrNone;
-use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto};
+use style::values::computed::{BorderCornerRadius, LengthOrPercentageOrAuto};
+use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrNone};
 
 /// A collapsible margin. See CSS 2.1 § 8.3.1.
 #[derive(Clone, Copy, Debug)]
@@ -505,14 +507,29 @@ pub fn style_length(
 ) -> MaybeAuto {
     match container_size {
         Some(length) => MaybeAuto::from_style(style_length, length),
-        None => {
-            if let LengthOrPercentageOrAuto::Length(length) = style_length {
-                MaybeAuto::Specified(Au::from(length))
-            } else {
-                MaybeAuto::Auto
-            }
+        None => if let LengthOrPercentageOrAuto::Length(length) = style_length {
+            MaybeAuto::Specified(Au::from(length))
+        } else {
+            MaybeAuto::Auto
         },
     }
+}
+
+/// Computes a border radius size against the containing size.
+///
+/// Note that percentages in `border-radius` are resolved against the relevant
+/// box dimension instead of only against the width per [1]:
+///
+/// > Percentages: Refer to corresponding dimension of the border box.
+///
+/// [1]: https://drafts.csswg.org/css-backgrounds-3/#border-radius
+pub fn specified_border_radius(
+    radius: BorderCornerRadius,
+    containing_size: Size2D<Au>,
+) -> Size2D<Au> {
+    let w = radius.0.width().to_used_value(containing_size.width);
+    let h = radius.0.height().to_used_value(containing_size.height);
+    Size2D::new(w, h)
 }
 
 #[inline]
@@ -582,23 +599,19 @@ impl SizeConstraint {
     ) -> SizeConstraint {
         let mut min_size = match container_size {
             Some(container_size) => min_size.to_used_value(container_size),
-            None => {
-                if let LengthOrPercentage::Length(length) = min_size {
-                    Au::from(length)
-                } else {
-                    Au(0)
-                }
+            None => if let LengthOrPercentage::Length(length) = min_size {
+                Au::from(length)
+            } else {
+                Au(0)
             },
         };
 
         let mut max_size = match container_size {
             Some(container_size) => max_size.to_used_value(container_size),
-            None => {
-                if let LengthOrPercentageOrNone::Length(length) = max_size {
-                    Some(Au::from(length))
-                } else {
-                    None
-                }
+            None => if let LengthOrPercentageOrNone::Length(length) = max_size {
+                Some(Au::from(length))
+            } else {
+                None
             },
         };
         // Make sure max size is not smaller than min size.

@@ -1,8 +1,11 @@
 # META: timeout=long
 
+import base64
+import imghdr
+
 import pytest
 
-from tests.support.asserts import assert_png, assert_success
+from tests.support.asserts import assert_success
 from tests.support.inline import inline
 
 
@@ -21,7 +24,8 @@ def check_user_prompt_not_closed_without_exception(session, create_dialog):
         response = take_screenshot(session)
         value = assert_success(response)
 
-        assert_png(value)
+        image = base64.decodestring(value)
+        assert imghdr.what("", image) == "png"
 
         assert session.alert.text == dialog_type
         session.alert.dismiss()

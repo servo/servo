@@ -5,31 +5,28 @@
 //! Utilities for querying the layout, as needed by the layout thread.
 
 use app_units::Au;
-use crate::construct::ConstructionResult;
-use crate::context::LayoutContext;
-use crate::display_list::items::{DisplayList, OpaqueNode, ScrollOffsetMap};
-use crate::display_list::IndexableText;
-use crate::flow::{Flow, GetBaseFlow};
-use crate::fragment::{Fragment, FragmentBorderBoxIterator, SpecificFragmentInfo};
-use crate::inline::InlineFragmentNodeFlags;
-use crate::opaque_node::OpaqueNodeMethods;
-use crate::sequential;
-use crate::wrapper::LayoutNodeLayoutData;
-use euclid::{Point2D, Rect, Size2D, Vector2D};
+use construct::ConstructionResult;
+use context::LayoutContext;
+use display_list::IndexableText;
+use display_list::items::{DisplayList, OpaqueNode, ScrollOffsetMap};
+use euclid::{Point2D, Vector2D, Rect, Size2D};
+use flow::{Flow, GetBaseFlow};
+use fragment::{Fragment, FragmentBorderBoxIterator, SpecificFragmentInfo};
+use inline::InlineFragmentNodeFlags;
 use ipc_channel::ipc::IpcSender;
 use msg::constellation_msg::PipelineId;
-use script_layout_interface::rpc::TextIndexResponse;
+use opaque_node::OpaqueNodeMethods;
+use script_layout_interface::{LayoutElementType, LayoutNodeType};
+use script_layout_interface::StyleData;
 use script_layout_interface::rpc::{ContentBoxResponse, ContentBoxesResponse, LayoutRPC};
 use script_layout_interface::rpc::{NodeGeometryResponse, NodeScrollIdResponse};
 use script_layout_interface::rpc::{OffsetParentResponse, ResolvedStyleResponse, StyleResponse};
-use script_layout_interface::wrapper_traits::{
-    LayoutNode, ThreadSafeLayoutElement, ThreadSafeLayoutNode,
-};
-use script_layout_interface::StyleData;
-use script_layout_interface::{LayoutElementType, LayoutNodeType};
+use script_layout_interface::rpc::TextIndexResponse;
+use script_layout_interface::wrapper_traits::{LayoutNode, ThreadSafeLayoutElement, ThreadSafeLayoutNode};
 use script_traits::LayoutMsg as ConstellationMsg;
 use script_traits::UntrustedNodeAddress;
-use std::cmp::{max, min};
+use sequential;
+use std::cmp::{min, max};
 use std::ops::Deref;
 use std::sync::{Arc, Mutex};
 use style::computed_values::display::T as Display;
@@ -37,11 +34,12 @@ use style::computed_values::position::T as Position;
 use style::computed_values::visibility::T as Visibility;
 use style::context::{StyleContext, ThreadLocalStyleContext};
 use style::dom::TElement;
-use style::logical_geometry::{BlockFlowDirection, InlineBaseDirection, WritingMode};
-use style::properties::{style_structs, LonghandId, PropertyDeclarationId, PropertyId};
+use style::logical_geometry::{WritingMode, BlockFlowDirection, InlineBaseDirection};
+use style::properties::{style_structs, PropertyId, PropertyDeclarationId, LonghandId};
 use style::selector_parser::PseudoElement;
 use style_traits::ToCss;
 use webrender_api::ExternalScrollId;
+use wrapper::LayoutNodeLayoutData;
 
 /// Mutable data belonging to the LayoutThread.
 ///
@@ -366,7 +364,7 @@ impl FragmentBorderBoxIterator for MarginRetrievingFragmentBorderBoxIterator {
 
 pub fn process_content_box_request<N: LayoutNode>(
     requested_node: N,
-    layout_root: &mut dyn Flow,
+    layout_root: &mut Flow,
 ) -> Option<Rect<Au>> {
     // FIXME(pcwalton): This has not been updated to handle the stacking context relative
     // stuff. So the position is wrong in most cases.
@@ -377,7 +375,7 @@ pub fn process_content_box_request<N: LayoutNode>(
 
 pub fn process_content_boxes_request<N: LayoutNode>(
     requested_node: N,
-    layout_root: &mut dyn Flow,
+    layout_root: &mut Flow,
 ) -> Vec<Rect<Au>> {
     // FIXME(pcwalton): This has not been updated to handle the stacking context relative
     // stuff. So the position is wrong in most cases.
@@ -605,7 +603,7 @@ impl FragmentBorderBoxIterator for ParentOffsetBorderBoxIterator {
                     // cause this assertion to fail sometimes, so it's
                     // commented out for now.
                     /*assert!(node.flags.contains(FIRST_FRAGMENT_OF_ELEMENT),
-                    "First fragment of inline node found wasn't its first fragment!");*/
+                        "First fragment of inline node found wasn't its first fragment!");*/
 
                     self.node_offset_box = Some(NodeOffsetBoxInfo {
                         offset: border_box.origin,
@@ -671,7 +669,7 @@ impl FragmentBorderBoxIterator for ParentOffsetBorderBoxIterator {
 
 pub fn process_node_geometry_request<N: LayoutNode>(
     requested_node: N,
-    layout_root: &mut dyn Flow,
+    layout_root: &mut Flow,
 ) -> Rect<i32> {
     let mut iterator = FragmentLocatingFragmentIterator::new(requested_node.opaque());
     sequential::iterate_through_flow_tree_fragment_border_boxes(layout_root, &mut iterator);
@@ -689,7 +687,7 @@ pub fn process_node_scroll_id_request<N: LayoutNode>(
 /// https://drafts.csswg.org/cssom-view/#scrolling-area
 pub fn process_node_scroll_area_request<N: LayoutNode>(
     requested_node: N,
-    layout_root: &mut dyn Flow,
+    layout_root: &mut Flow,
 ) -> Rect<i32> {
     let mut iterator = UnioningFragmentScrollAreaIterator::new(requested_node.opaque());
     sequential::iterate_through_flow_tree_fragment_border_boxes(layout_root, &mut iterator);
@@ -742,7 +740,7 @@ pub fn process_resolved_style_request<'a, N>(
     node: N,
     pseudo: &Option<PseudoElement>,
     property: &PropertyId,
-    layout_root: &mut dyn Flow,
+    layout_root: &mut Flow,
 ) -> String
 where
     N: LayoutNode,
@@ -791,7 +789,7 @@ fn process_resolved_style_request_internal<'a, N>(
     requested_node: N,
     pseudo: &Option<PseudoElement>,
     property: &PropertyId,
-    layout_root: &mut dyn Flow,
+    layout_root: &mut Flow,
 ) -> String
 where
     N: LayoutNode,
@@ -842,11 +840,12 @@ where
     let applies = true;
 
     fn used_value_for_position_property<N: LayoutNode>(
-        layout_el: <N::ConcreteThreadSafeLayoutNode as ThreadSafeLayoutNode>::ConcreteThreadSafeLayoutElement,
-        layout_root: &mut dyn Flow,
-        requested_node: N,
-        longhand_id: LonghandId,
-    ) -> String {
+            layout_el: <N::ConcreteThreadSafeLayoutNode as ThreadSafeLayoutNode>::ConcreteThreadSafeLayoutElement,
+            layout_root: &mut Flow,
+            requested_node: N,
+            longhand_id: LonghandId,
+        ) -> String
+    {
         let maybe_data = layout_el.borrow_layout_data();
         let position = maybe_data.map_or(Point2D::zero(), |data| {
             match (*data).flow_construction_result {
@@ -934,7 +933,7 @@ where
 
 pub fn process_offset_parent_query<N: LayoutNode>(
     requested_node: N,
-    layout_root: &mut dyn Flow,
+    layout_root: &mut Flow,
 ) -> OffsetParentResponse {
     let mut iterator = ParentOffsetBorderBoxIterator::new(requested_node.opaque());
     sequential::iterate_through_flow_tree_fragment_border_boxes(layout_root, &mut iterator);

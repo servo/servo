@@ -5,9 +5,10 @@
 //! Configuration options for a single run of the servo application. Created
 //! from command line arguments.
 
-use crate::prefs::{self, PrefValue, PREFS};
 use euclid::TypedSize2D;
 use getopts::Options;
+use num_cpus;
+use prefs::{self, PrefValue, PREFS};
 use servo_geometry::DeviceIndependentPixel;
 use servo_url::ServoUrl;
 use std::borrow::Cow;
@@ -18,11 +19,11 @@ use std::fs::{self, File};
 use std::io::{self, Read, Write};
 use std::path::{Path, PathBuf};
 use std::process;
-use std::sync::atomic::{AtomicBool, Ordering, ATOMIC_BOOL_INIT};
+use std::sync::atomic::{AtomicBool, ATOMIC_BOOL_INIT, Ordering};
 use url::{self, Url};
 
 /// Global flags for Servo, currently set on the command line.
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize)]
 pub struct Opts {
     pub is_running_problem_test: bool,
 
@@ -225,9 +226,6 @@ pub struct Opts {
 
     /// Print Progressive Web Metrics to console.
     pub print_pwm: bool,
-
-    /// Only shutdown once all theads are finished.
-    pub clean_shutdown: bool,
 }
 
 fn print_usage(app: &str, opts: &Options) {
@@ -476,7 +474,7 @@ fn print_debug_usage(app: &str) -> ! {
     process::exit(0)
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize)]
 pub enum OutputOptions {
     /// Database connection config (hostname, name, user, pass)
     DB(ServoUrl, Option<String>, Option<String>, Option<String>),
@@ -506,28 +504,28 @@ enum UserAgent {
 fn default_user_agent_string(agent: UserAgent) -> &'static str {
     #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
     const DESKTOP_UA_STRING: &'static str =
-        "Mozilla/5.0 (X11; Linux x86_64; rv:63.0) Servo/1.0 Firefox/63.0";
+        "Mozilla/5.0 (X11; Linux x86_64; rv:55.0) Servo/1.0 Firefox/55.0";
     #[cfg(all(target_os = "linux", not(target_arch = "x86_64")))]
     const DESKTOP_UA_STRING: &'static str =
-        "Mozilla/5.0 (X11; Linux i686; rv:63.0) Servo/1.0 Firefox/63.0";
+        "Mozilla/5.0 (X11; Linux i686; rv:55.0) Servo/1.0 Firefox/55.0";
 
     #[cfg(all(target_os = "windows", target_arch = "x86_64"))]
     const DESKTOP_UA_STRING: &'static str =
-        "Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:63.0) Servo/1.0 Firefox/63.0";
+        "Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:55.0) Servo/1.0 Firefox/55.0";
     #[cfg(all(target_os = "windows", not(target_arch = "x86_64")))]
     const DESKTOP_UA_STRING: &'static str =
-        "Mozilla/5.0 (Windows NT 6.1; rv:63.0) Servo/1.0 Firefox/63.0";
+        "Mozilla/5.0 (Windows NT 6.1; rv:55.0) Servo/1.0 Firefox/55.0";
 
     #[cfg(not(any(target_os = "linux", target_os = "windows")))]
     // Neither Linux nor Windows, so maybe OS X, and if not then OS X is an okay fallback.
     const DESKTOP_UA_STRING: &'static str =
-        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.10; rv:63.0) Servo/1.0 Firefox/63.0";
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.10; rv:55.0) Servo/1.0 Firefox/55.0";
 
     match agent {
         UserAgent::Desktop => DESKTOP_UA_STRING,
-        UserAgent::Android => "Mozilla/5.0 (Android; Mobile; rv:63.0) Servo/1.0 Firefox/63.0",
+        UserAgent::Android => "Mozilla/5.0 (Android; Mobile; rv:55.0) Servo/1.0 Firefox/55.0",
         UserAgent::iOS => {
-            "Mozilla/5.0 (iPhone; CPU iPhone OS 8_3 like Mac OS X; rv:63.0) Servo/1.0 Firefox/63.0"
+            "Mozilla/5.0 (iPhone; CPU iPhone OS 8_3 like Mac OS X; rv:55.0) Servo/1.0 Firefox/55.0"
         },
     }
 }
@@ -602,7 +600,6 @@ pub fn default_opts() -> Opts {
         certificate_path: None,
         unminify_js: false,
         print_pwm: false,
-        clean_shutdown: false,
     }
 }
 
@@ -755,11 +752,6 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
         "config directory following xdg spec on linux platform",
         "",
     );
-    opts.optflag(
-        "",
-        "clean-shutdown",
-        "Do not shutdown until all threads have finished (macos only)",
-    );
     opts.optflag("v", "version", "Display servo version information");
     opts.optflag("", "unminify-js", "Unminify Javascript");
     opts.optopt("", "profiler-db-user", "Profiler database user", "");
@@ -813,8 +805,7 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
             .or_else(|error| {
                 warn!("URL parsing failed ({:?}).", error);
                 Err(error)
-            })
-            .ok()
+            }).ok()
     });
 
     let tile_size: usize = match opt_match.opt_str("s") {
@@ -940,8 +931,7 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
                     r.parse().unwrap_or_else(|err| {
                         args_fail(&format!("Error parsing option: --resolution ({})", err))
                     })
-                })
-                .collect();
+                }).collect();
             TypedSize2D::new(res[0], res[1])
         },
         None => TypedSize2D::new(1024, 740),
@@ -971,16 +961,10 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
                 .read_to_end(&mut contents)
                 .unwrap_or_else(|err| args_fail(&format!("Couldn't read {}: {}", filename, err)));
             (contents, url)
-        })
-        .collect();
+        }).collect();
 
     let do_not_use_native_titlebar = opt_match.opt_present("b") || !PREFS
         .get("shell.native-titlebar.enabled")
-        .as_boolean()
-        .unwrap();
-
-    let enable_subpixel_text_antialiasing = !debug_options.disable_subpixel_aa && PREFS
-        .get("gfx.subpixel-text-antialiasing.enabled")
         .as_boolean()
         .unwrap();
 
@@ -1019,7 +1003,7 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
         show_debug_fragment_borders: debug_options.show_fragment_borders,
         show_debug_parallel_layout: debug_options.show_parallel_layout,
         enable_text_antialiasing: !debug_options.disable_text_aa,
-        enable_subpixel_text_antialiasing: enable_subpixel_text_antialiasing,
+        enable_subpixel_text_antialiasing: !debug_options.disable_subpixel_aa,
         enable_canvas_antialiasing: !debug_options.disable_canvas_aa,
         dump_style_tree: debug_options.dump_style_tree,
         dump_rule_tree: debug_options.dump_rule_tree,
@@ -1046,7 +1030,6 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
         certificate_path: opt_match.opt_str("certificate-path"),
         unminify_js: opt_match.opt_present("unminify-js"),
         print_pwm: opt_match.opt_present("print-pwm"),
-        clean_shutdown: opt_match.opt_present("clean-shutdown"),
     };
 
     set_defaults(opts);

@@ -2,11 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use crate::image::base::{Image, ImageMetadata};
-use crate::FetchResponseMsg;
+use FetchResponseMsg;
+use image::base::{Image, ImageMetadata};
 use ipc_channel::ipc::IpcSender;
 use servo_url::ServoUrl;
 use std::sync::Arc;
+use webrender_api;
 
 // ======================================================================
 // Aux structs and enums.
@@ -15,14 +16,14 @@ use std::sync::Arc;
 /// Whether a consumer is in a position to request images or not. This can occur
 /// when animations are being processed by the layout thread while the script
 /// thread is executing in parallel.
-#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Copy, Deserialize, PartialEq, Serialize)]
 pub enum CanRequestImages {
     No,
     Yes,
 }
 
 /// Indicating either entire image or just metadata availability
-#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
+#[derive(Clone, Deserialize, MallocSizeOf, Serialize)]
 pub enum ImageOrMetadataAvailable {
     ImageAvailable(#[ignore_malloc_size_of = "Arc"] Arc<Image>, ServoUrl),
     MetadataAvailable(ImageMetadata),
@@ -32,7 +33,7 @@ pub enum ImageOrMetadataAvailable {
 /// and image, and returned to the specified event loop when the
 /// image load completes. It is typically used to trigger a reflow
 /// and/or repaint.
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize)]
 pub struct ImageResponder {
     id: PendingImageId,
     sender: IpcSender<PendingImageResponse>,
@@ -72,7 +73,7 @@ pub enum ImageResponse {
 }
 
 /// The current state of an image in the cache.
-#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Copy, Deserialize, PartialEq, Serialize)]
 pub enum ImageState {
     Pending(PendingImageId),
     LoadError,
@@ -89,7 +90,7 @@ pub struct PendingImageResponse {
     pub id: PendingImageId,
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
+#[derive(Clone, Copy, Deserialize, Eq, Hash, PartialEq, Serialize)]
 pub enum UsePlaceholder {
     No,
     Yes,
@@ -100,19 +101,16 @@ pub enum UsePlaceholder {
 // ======================================================================
 
 pub trait ImageCache: Sync + Send {
-    fn new(webrender_api: webrender_api::RenderApi) -> Self
-    where
-        Self: Sized;
+    fn new(webrender_api: webrender_api::RenderApi) -> Self where Self: Sized;
 
     /// Return any available metadata or image for the given URL,
     /// or an indication that the image is not yet available if it is in progress,
     /// or else reserve a slot in the cache for the URL if the consumer can request images.
-    fn find_image_or_metadata(
-        &self,
-        url: ServoUrl,
-        use_placeholder: UsePlaceholder,
-        can_request: CanRequestImages,
-    ) -> Result<ImageOrMetadataAvailable, ImageState>;
+    fn find_image_or_metadata(&self,
+                              url: ServoUrl,
+                              use_placeholder: UsePlaceholder,
+                              can_request: CanRequestImages)
+                              -> Result<ImageOrMetadataAvailable, ImageState>;
 
     /// Add a new listener for the given pending image id. If the image is already present,
     /// the responder will still receive the expected response.

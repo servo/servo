@@ -3,20 +3,20 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 // https://www.khronos.org/registry/webgl/specs/latest/1.0/webgl.idl
-use canvas_traits::webgl::{webgl_channel, WebGLProgramId, WebGLResult};
 use canvas_traits::webgl::{ActiveAttribInfo, ActiveUniformInfo, WebGLCommand, WebGLError};
-use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::WebGLProgramBinding;
-use crate::dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
-use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
-use crate::dom::bindings::root::{DomRoot, MutNullableDom};
-use crate::dom::bindings::str::DOMString;
-use crate::dom::webglactiveinfo::WebGLActiveInfo;
-use crate::dom::webglobject::WebGLObject;
-use crate::dom::webglrenderingcontext::WebGLRenderingContext;
-use crate::dom::webglshader::WebGLShader;
-use crate::dom::webgluniformlocation::WebGLUniformLocation;
+use canvas_traits::webgl::{WebGLProgramId, WebGLResult, webgl_channel};
+use dom::bindings::cell::DomRefCell;
+use dom::bindings::codegen::Bindings::WebGLProgramBinding;
+use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
+use dom::bindings::inheritance::Castable;
+use dom::bindings::reflector::{DomObject, reflect_dom_object};
+use dom::bindings::root::{DomRoot, MutNullableDom};
+use dom::bindings::str::DOMString;
+use dom::webglactiveinfo::WebGLActiveInfo;
+use dom::webglobject::WebGLObject;
+use dom::webglrenderingcontext::WebGLRenderingContext;
+use dom::webglshader::WebGLShader;
+use dom::webgluniformlocation::WebGLUniformLocation;
 use dom_struct::dom_struct;
 use fnv::FnvHashSet;
 use std::cell::{Cell, Ref};

@@ -6,57 +6,29 @@ use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 
 #[test]
 fn same_origin() {
-    let a = MutableOrigin::new(
-        ServoUrl::parse("http://example.com/a.html")
-            .unwrap()
-            .origin(),
-    );
-    let b = MutableOrigin::new(
-        ServoUrl::parse("http://example.com/b.html")
-            .unwrap()
-            .origin(),
-    );
+    let a = MutableOrigin::new(ServoUrl::parse("http://example.com/a.html").unwrap().origin());
+    let b = MutableOrigin::new(ServoUrl::parse("http://example.com/b.html").unwrap().origin());
     assert!(a.same_origin(&b));
     assert_eq!(a.is_tuple(), true);
 }
 
 #[test]
 fn identical_origin() {
-    let a = MutableOrigin::new(
-        ServoUrl::parse("http://example.com/a.html")
-            .unwrap()
-            .origin(),
-    );
+    let a = MutableOrigin::new(ServoUrl::parse("http://example.com/a.html").unwrap().origin());
     assert!(a.same_origin(&a));
 }
 
 #[test]
 fn cross_origin() {
-    let a = MutableOrigin::new(
-        ServoUrl::parse("http://example.com/a.html")
-            .unwrap()
-            .origin(),
-    );
-    let b = MutableOrigin::new(
-        ServoUrl::parse("http://example.org/b.html")
-            .unwrap()
-            .origin(),
-    );
+    let a = MutableOrigin::new(ServoUrl::parse("http://example.com/a.html").unwrap().origin());
+    let b = MutableOrigin::new(ServoUrl::parse("http://example.org/b.html").unwrap().origin());
     assert!(!a.same_origin(&b));
 }
 
 #[test]
 fn clone_same_origin() {
-    let a = MutableOrigin::new(
-        ServoUrl::parse("http://example.com/a.html")
-            .unwrap()
-            .origin(),
-    );
-    let b = MutableOrigin::new(
-        ServoUrl::parse("http://example.com/b.html")
-            .unwrap()
-            .origin(),
-    );
+    let a = MutableOrigin::new(ServoUrl::parse("http://example.com/a.html").unwrap().origin());
+    let b = MutableOrigin::new(ServoUrl::parse("http://example.com/b.html").unwrap().origin());
     let c = b.clone();
     assert!(a.same_origin(&c));
     assert!(b.same_origin(&b));
@@ -66,16 +38,8 @@ fn clone_same_origin() {
 
 #[test]
 fn clone_cross_origin() {
-    let a = MutableOrigin::new(
-        ServoUrl::parse("http://example.com/a.html")
-            .unwrap()
-            .origin(),
-    );
-    let b = MutableOrigin::new(
-        ServoUrl::parse("http://example.org/b.html")
-            .unwrap()
-            .origin(),
-    );
+    let a = MutableOrigin::new(ServoUrl::parse("http://example.com/a.html").unwrap().origin());
+    let b = MutableOrigin::new(ServoUrl::parse("http://example.org/b.html").unwrap().origin());
     let c = b.clone();
     assert!(!a.same_origin(&c));
     assert!(b.same_origin(&c));

@@ -2,16 +2,16 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::CSSRuleListBinding;
-use crate::dom::bindings::codegen::Bindings::CSSRuleListBinding::CSSRuleListMethods;
-use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
-use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
-use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
-use crate::dom::csskeyframerule::CSSKeyframeRule;
-use crate::dom::cssrule::CSSRule;
-use crate::dom::cssstylesheet::CSSStyleSheet;
-use crate::dom::window::Window;
+use dom::bindings::cell::DomRefCell;
+use dom::bindings::codegen::Bindings::CSSRuleListBinding;
+use dom::bindings::codegen::Bindings::CSSRuleListBinding::CSSRuleListMethods;
+use dom::bindings::error::{Error, ErrorResult, Fallible};
+use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
+use dom::bindings::root::{Dom, DomRoot, MutNullableDom};
+use dom::csskeyframerule::CSSKeyframeRule;
+use dom::cssrule::CSSRule;
+use dom::cssstylesheet::CSSStyleSheet;
+use dom::window::Window;
 use dom_struct::dom_struct;
 use servo_arc::Arc;
 use style::shared_lock::Locked;

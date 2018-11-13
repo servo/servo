@@ -2,15 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
-use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::str::DOMString;
-use crate::dom::element::Element;
-use crate::dom::event::{Event, EventBubbles, EventCancelable};
-use crate::dom::eventtarget::EventTarget;
-use crate::dom::mouseevent::MouseEvent;
-use crate::dom::node::window_from_node;
-use crate::dom::window::ReflowReason;
+use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
+use dom::bindings::inheritance::Castable;
+use dom::bindings::str::DOMString;
+use dom::element::Element;
+use dom::event::{Event, EventBubbles, EventCancelable};
+use dom::eventtarget::EventTarget;
+use dom::mouseevent::MouseEvent;
+use dom::node::window_from_node;
+use dom::window::ReflowReason;
 use script_layout_interface::message::ReflowGoal;
 
 /// Trait for elements with defined activation behavior

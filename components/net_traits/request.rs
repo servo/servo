@@ -2,9 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use crate::ReferrerPolicy;
-use http::HeaderMap;
-use hyper::Method;
+use ReferrerPolicy;
+use hyper::header::Headers;
+use hyper::method::Method;
 use msg::constellation_msg::PipelineId;
 use servo_url::{ImmutableOrigin, ServoUrl};
 use std::default::Default;
@@ -20,7 +20,7 @@ pub enum Initiator {
 }
 
 /// A request [destination](https://fetch.spec.whatwg.org/#concept-request-destination)
-#[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]
+#[derive(Clone, Copy, Deserialize, MallocSizeOf, PartialEq, Serialize)]
 pub enum Destination {
     None,
     Audio,
@@ -46,9 +46,9 @@ impl Destination {
     #[inline]
     pub fn is_script_like(&self) -> bool {
         *self == Destination::Script ||
-            *self == Destination::ServiceWorker ||
-            *self == Destination::SharedWorker ||
-            *self == Destination::Worker
+        *self == Destination::ServiceWorker ||
+        *self == Destination::SharedWorker ||
+        *self == Destination::Worker
     }
 }
 
@@ -60,7 +60,7 @@ pub enum Origin {
 }
 
 /// A [referer](https://fetch.spec.whatwg.org/#concept-request-referrer)
-#[derive(Clone, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]
+#[derive(Clone, Deserialize, MallocSizeOf, PartialEq, Serialize)]
 pub enum Referrer {
     NoReferrer,
     /// Default referrer if nothing is specified
@@ -69,17 +69,17 @@ pub enum Referrer {
 }
 
 /// A [request mode](https://fetch.spec.whatwg.org/#concept-request-mode)
-#[derive(Clone, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]
+#[derive(Clone, Deserialize, MallocSizeOf, PartialEq, Serialize)]
 pub enum RequestMode {
     Navigate,
     SameOrigin,
     NoCors,
     CorsMode,
-    WebSocket { protocols: Vec<String> },
+    WebSocket { protocols: Vec<String> }
 }
 
 /// Request [credentials mode](https://fetch.spec.whatwg.org/#concept-request-credentials-mode)
-#[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]
+#[derive(Clone, Copy, Deserialize, MallocSizeOf, PartialEq, Serialize)]
 pub enum CredentialsMode {
     Omit,
     CredentialsSameOrigin,
@@ -87,7 +87,7 @@ pub enum CredentialsMode {
 }
 
 /// [Cache mode](https://fetch.spec.whatwg.org/#concept-request-cache-mode)
-#[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]
+#[derive(Clone, Copy, Deserialize, MallocSizeOf, PartialEq, Serialize)]
 pub enum CacheMode {
     Default,
     NoStore,
@@ -98,7 +98,7 @@ pub enum CacheMode {
 }
 
 /// [Service-workers mode](https://fetch.spec.whatwg.org/#request-service-workers-mode)
-#[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]
+#[derive(Clone, Copy, Deserialize, MallocSizeOf, PartialEq, Serialize)]
 pub enum ServiceWorkersMode {
     All,
     Foreign,
@@ -106,7 +106,7 @@ pub enum ServiceWorkersMode {
 }
 
 /// [Redirect mode](https://fetch.spec.whatwg.org/#concept-request-redirect-mode)
-#[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]
+#[derive(Clone, Copy, Deserialize, MallocSizeOf, PartialEq, Serialize)]
 pub enum RedirectMode {
     Follow,
     Error,
@@ -129,27 +129,23 @@ pub enum Window {
 }
 
 /// [CORS settings attribute](https://html.spec.whatwg.org/multipage/#attr-crossorigin-anonymous)
-#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Copy, Deserialize, PartialEq, Serialize)]
 pub enum CorsSettings {
     Anonymous,
     UseCredentials,
 }
 
-#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
+#[derive(Clone, Deserialize, MallocSizeOf, Serialize)]
 pub struct RequestInit {
-    #[serde(
-        deserialize_with = "::hyper_serde::deserialize",
-        serialize_with = "::hyper_serde::serialize"
-    )]
+    #[serde(deserialize_with = "::hyper_serde::deserialize",
+            serialize_with = "::hyper_serde::serialize")]
     #[ignore_malloc_size_of = "Defined in hyper"]
     pub method: Method,
     pub url: ServoUrl,
-    #[serde(
-        deserialize_with = "::hyper_serde::deserialize",
-        serialize_with = "::hyper_serde::serialize"
-    )]
+    #[serde(deserialize_with = "::hyper_serde::deserialize",
+            serialize_with = "::hyper_serde::serialize")]
     #[ignore_malloc_size_of = "Defined in hyper"]
-    pub headers: HeaderMap,
+    pub headers: Headers,
     pub unsafe_request: bool,
     pub body: Option<Vec<u8>>,
     pub service_workers_mode: ServiceWorkersMode,
@@ -175,9 +171,9 @@ pub struct RequestInit {
 impl Default for RequestInit {
     fn default() -> RequestInit {
         RequestInit {
-            method: Method::GET,
+            method: Method::Get,
             url: ServoUrl::parse("about:blank").unwrap(),
-            headers: HeaderMap::new(),
+            headers: Headers::new(),
             unsafe_request: false,
             body: None,
             service_workers_mode: ServiceWorkersMode::All,
@@ -212,7 +208,7 @@ pub struct Request {
     pub sandboxed_storage_area_urls: bool,
     /// <https://fetch.spec.whatwg.org/#concept-request-header-list>
     #[ignore_malloc_size_of = "Defined in hyper"]
-    pub headers: HeaderMap,
+    pub headers: Headers,
     /// <https://fetch.spec.whatwg.org/#unsafe-request-flag>
     pub unsafe_request: bool,
     /// <https://fetch.spec.whatwg.org/#concept-request-body>
@@ -263,12 +259,15 @@ pub struct Request {
 }
 
 impl Request {
-    pub fn new(url: ServoUrl, origin: Option<Origin>, pipeline_id: Option<PipelineId>) -> Request {
+    pub fn new(url: ServoUrl,
+               origin: Option<Origin>,
+               pipeline_id: Option<PipelineId>)
+               -> Request {
         Request {
-            method: Method::GET,
+            method: Method::Get,
             local_urls_only: false,
             sandboxed_storage_area_urls: false,
-            headers: HeaderMap::new(),
+            headers: Headers::new(),
             unsafe_request: false,
             body: None,
             window: Window::Client,
@@ -295,11 +294,9 @@ impl Request {
     }
 
     pub fn from_init(init: RequestInit) -> Request {
-        let mut req = Request::new(
-            init.url.clone(),
-            Some(Origin::Origin(init.origin)),
-            init.pipeline_id,
-        );
+        let mut req = Request::new(init.url.clone(),
+                                   Some(Origin::Origin(init.origin)),
+                                   init.pipeline_id);
         req.method = init.method;
         req.headers = init.headers;
         req.unsafe_request = init.unsafe_request;
@@ -353,16 +350,9 @@ impl Request {
     /// <https://fetch.spec.whatwg.org/#subresource-request>
     pub fn is_subresource_request(&self) -> bool {
         match self.destination {
-            Destination::Audio |
-            Destination::Font |
-            Destination::Image |
-            Destination::Manifest |
-            Destination::Script |
-            Destination::Style |
-            Destination::Track |
-            Destination::Video |
-            Destination::Xslt |
-            Destination::None => true,
+            Destination::Audio | Destination::Font | Destination::Image | Destination::Manifest |
+            Destination::Script | Destination::Style | Destination::Track | Destination::Video |
+            Destination::Xslt | Destination::None => true,
             _ => false,
         }
     }

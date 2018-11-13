@@ -15,16 +15,16 @@ lint-scripts = [
 [blocked-packages]
 num = []
 rand = [
-  "crossbeam-channel", # Used to initialize a thread-local
+  "crossbeam-channel",  # Used to initialize a thread-local
   "gaol",
   "hashglobe", # Only used in tests
   "ipc-channel",
   "parking_lot_core",
   "phf_generator",
   "rand",
+  "rayon-core",
   "servo_rand",
   "tempfile",
-  "tokio-threadpool",
   "uuid",
   "ws",
 ]
@@ -32,8 +32,7 @@ rand = [
 [ignore]
 # Ignored packages with duplicated versions
 packages = [
-  "core-graphics",
-  "crossbeam-deque",
+  "bitflags",
   "crossbeam-epoch",
   "crossbeam-utils",
   "log",
@@ -42,8 +41,9 @@ packages = [
   "proc-macro2",
   "quote",
   "rand",
+  # TODO: remove slab when #21426 lands
+  "slab",
   "syn",
-  "unicase",
   "winapi",
 ]
 # Files that are ignored for all tidy and lint checks.
@@ -69,17 +69,13 @@ files = [
   "./tests/wpt/mozilla/tests/css/pre_with_tab.html",
   "./tests/wpt/mozilla/tests/mozilla/textarea_placeholder.html",
   # Python 3 syntax causes "E901 SyntaxError" when flake8 runs in Python 2
-  "./etc/taskcluster/decision_task.py",
-  "./etc/taskcluster/decisionlib.py",
+  "./etc/ci/taskcluster/decision-task.py",
+  "./etc/ci/taskcluster/decisionlib.py",
 ]
 # Directories that are ignored for the non-WPT tidy check.
 directories = [
   # Upstream
   "./support/android/apk",
-  "./support/magicleap/Servo2D/.vscode",
-  "./support/magicleap/Servo2D/code/inc.gen",
-  "./support/magicleap/Servo2D/code/src.gen",
-  "./support/magicleap/Servo2D/pipeline",
   "./tests/wpt/harness",
   "./tests/wpt/update",
   "./tests/wpt/web-platform-tests",

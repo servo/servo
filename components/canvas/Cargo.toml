@@ -3,7 +3,6 @@ name = "canvas"
 version = "0.0.1"
 authors = ["The Servo Project Developers"]
 license = "MPL-2.0"
-edition = "2018"
 publish = false
 
 [lib]
@@ -17,15 +16,14 @@ webgl_backtrace = ["canvas_traits/webgl_backtrace"]
 azure = {git = "https://github.com/servo/rust-azure"}
 canvas_traits = {path = "../canvas_traits"}
 compositing = {path = "../compositing"}
-cssparser = "0.25"
+cssparser = "0.24"
 euclid = "0.19"
 fnv = "1.0"
-gleam = "0.6.4"
+gleam = "0.6"
 ipc-channel = "0.11"
 log = "0.4"
 num-traits = "0.2"
 offscreen_gl_context = {version = "0.21", features = ["serde", "osmesa"]}
-pixels = {path = "../pixels"}
 serde_bytes = "0.10"
 servo_config = {path = "../config"}
 webrender = {git = "https://github.com/servo/webrender"}

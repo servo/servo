@@ -4,8 +4,8 @@
 
 //! The `ByteString` struct.
 
-use chrono::prelude::{Utc, Weekday};
 use chrono::{Datelike, TimeZone};
+use chrono::prelude::{Weekday, Utc};
 use cssparser::CowRcStr;
 use html5ever::{LocalName, Namespace};
 use servo_atoms::Atom;

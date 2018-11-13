@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>CSS integration - image from imported stylesheet (external)</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/common/utils.js"></script>
+    <!-- Common global functions for referrer-policy tests. -->
+    <script src="/referrer-policy/generic/common.js"></script>
+    <meta name="referrer" content="never">
+  </head>
+  <body>
+    <p>Check that resources from imported stylesheets (loaded from external
+    stylesheets) are loaded with the referrer and referrer policy from the
+    external stylesheet.</p>
+
+    <div class="styled"></div>
+
+    <script>
+      var css_test = async_test("Image from imported stylesheet (external).");
+      var id = token();
+      var cross_origin_url_prefix = location.protocol + "//www1." + location.hostname + ":" + location.port;
+      var css_url = cross_origin_url_prefix + "/referrer-policy/generic/subresource/stylesheet.py?id=" + id + "&import-rule";
+      var url_prefix = location.protocol + "//" + location.hostname + ":" + location.port;
+      var css_referrer = url_prefix + "/referrer-policy/generic/subresource/stylesheet.py?id=" + id;
+      var img_url = url_prefix + "/referrer-policy/generic/subresource/image.py" +
+                    "?id=" + id + "&report-headers";
+
+      var link = document.createElement("link");
+      link.href = css_url;
+      link.rel = "stylesheet";
+      link.onload = function() {
+        css_test.step_timeout(
+            queryXhr.bind(this, img_url,
+                          function(message) {
+                            css_test.step(function() {
+                              assert_own_property(message, "headers");
+                              assert_own_property(message, "referrer");
+                              assert_equals(message.referrer, css_referrer);
+                            });
+                            css_test.done();
+                          }),
+            1000);
+      };
+      document.head.appendChild(link);
+    </script>
+
+    <div id="log"></div>
+  </body>
+</html>

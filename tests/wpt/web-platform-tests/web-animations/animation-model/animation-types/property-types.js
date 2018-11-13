@@ -1473,7 +1473,7 @@ const transformListType = {
                                    Math.cos(Math.PI / 2),
                                    100 * Math.cos(Math.PI / 2),
                                    100 * Math.sin(Math.PI / 2) ] }]);
-    }, `${property}: rotate on rotate and translate`);
+    }, `${property}: rotate on roate and translate`);
 
     test(t => {
       const idlName = propertyToIDL(property);
@@ -1976,7 +1976,7 @@ const scaleListType = {
                                        1000);
 
       testAnimationSamples(animation, idlName,
-        [{ time: 500,  expected: '4' }]);
+        [{ time: 500,  expected: '4 4' }]);
     }, `${property} with one unspecified value`);
 
     test(t => {
@@ -2012,8 +2012,8 @@ const scaleListType = {
                                          composite: 'add' });
 
       testAnimationSamples(animation, idlName,
-        [{ time: 0,    expected: '-6' },
-         { time: 1000, expected: '10' }]);
+        [{ time: 0,    expected: '-6 -6' },
+         { time: 1000, expected: '10 10' }]);
     }, `${property} with one unspecified value`);
 
     test(t => {
@@ -2052,8 +2052,8 @@ const scaleListType = {
                                        composite: 'accumulate' });
 
       testAnimationSamples(animation, idlName,
-        [{ time: 0,    expected: '-2' },
-         { time: 1000, expected: '6' }]);
+        [{ time: 0,    expected: '-2 -2' },
+         { time: 1000, expected: '6 6' }]);
     }, `${property} with one unspecified value`);
 
     test(t => {
@@ -2104,7 +2104,7 @@ const filterListType = {
 
       // 10deg = 0.1745rad.
       testAnimationSamples(animation, idlName,
-        [{ time: 500,    expected: 'hue-rotate(2869.79deg)' }]);
+        [{ time: 500,    expected: 'hue-rotate(50.0873rad)' }]);
     }, `${property}: hue-rotate function with different unit(deg -> rad)`);
 
     test(t => {

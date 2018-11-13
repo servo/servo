@@ -11,20 +11,18 @@ use core_foundation::string::UniChar;
 use core_graphics::font::CGGlyph;
 use core_graphics::geometry::CGRect;
 use core_text::font::CTFont;
-use core_text::font_descriptor::kCTFontDefaultOrientation;
 use core_text::font_descriptor::{SymbolicTraitAccessors, TraitAccessors};
-use crate::font::{
-    FontHandleMethods, FontMetrics, FontTableMethods, FontTableTag, FractionalPixel,
-};
-use crate::font::{GPOS, GSUB, KERN};
-use crate::platform::font_template::FontTemplateData;
-use crate::platform::macos::font_context::FontContextHandle;
-use crate::text::glyph::GlyphId;
+use core_text::font_descriptor::kCTFontDefaultOrientation;
+use font::{FontHandleMethods, FontMetrics, FontTableMethods, FontTableTag, FractionalPixel};
+use font::{GPOS, GSUB, KERN};
+use platform::font_template::FontTemplateData;
+use platform::macos::font_context::FontContextHandle;
 use servo_atoms::Atom;
+use std::{fmt, ptr};
 use std::ops::Range;
 use std::sync::Arc;
-use std::{fmt, ptr};
 use style::values::computed::font::{FontStretch, FontStyle, FontWeight};
+use text::glyph::GlyphId;
 
 const KERN_PAIR_LEN: usize = 6;
 
@@ -237,10 +235,9 @@ impl FontHandleMethods for FontHandle {
         let mut glyphs: [CGGlyph; 1] = [0 as CGGlyph];
         let count: CFIndex = 1;
 
-        let result = unsafe {
-            self.ctfont
-                .get_glyphs_for_characters(&characters[0], &mut glyphs[0], count)
-        };
+        let result = self
+            .ctfont
+            .get_glyphs_for_characters(&characters[0], &mut glyphs[0], count);
 
         if !result {
             // No glyph for this character
@@ -266,14 +263,12 @@ impl FontHandleMethods for FontHandle {
 
     fn glyph_h_advance(&self, glyph: GlyphId) -> Option<FractionalPixel> {
         let glyphs = [glyph as CGGlyph];
-        let advance = unsafe {
-            self.ctfont.get_advances_for_glyphs(
-                kCTFontDefaultOrientation,
-                &glyphs[0],
-                ptr::null_mut(),
-                1,
-            )
-        };
+        let advance = self.ctfont.get_advances_for_glyphs(
+            kCTFontDefaultOrientation,
+            &glyphs[0],
+            ptr::null_mut(),
+            1,
+        );
         Some(advance as FractionalPixel)
     }
 

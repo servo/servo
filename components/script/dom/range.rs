@@ -2,30 +2,30 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::codegen::Bindings::CharacterDataBinding::CharacterDataMethods;
-use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeConstants;
-use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
-use crate::dom::bindings::codegen::Bindings::NodeListBinding::NodeListMethods;
-use crate::dom::bindings::codegen::Bindings::RangeBinding::RangeMethods;
-use crate::dom::bindings::codegen::Bindings::RangeBinding::{self, RangeConstants};
-use crate::dom::bindings::codegen::Bindings::TextBinding::TextMethods;
-use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
-use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
-use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::inheritance::{CharacterDataTypeId, NodeTypeId};
-use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
-use crate::dom::bindings::root::{Dom, DomRoot, MutDom, RootedReference};
-use crate::dom::bindings::str::DOMString;
-use crate::dom::bindings::trace::JSTraceable;
-use crate::dom::bindings::weakref::{WeakRef, WeakRefVec};
-use crate::dom::characterdata::CharacterData;
-use crate::dom::document::Document;
-use crate::dom::documentfragment::DocumentFragment;
-use crate::dom::element::Element;
-use crate::dom::htmlscriptelement::HTMLScriptElement;
-use crate::dom::node::{Node, UnbindContext};
-use crate::dom::text::Text;
-use crate::dom::window::Window;
+use dom::bindings::codegen::Bindings::CharacterDataBinding::CharacterDataMethods;
+use dom::bindings::codegen::Bindings::NodeBinding::NodeConstants;
+use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
+use dom::bindings::codegen::Bindings::NodeListBinding::NodeListMethods;
+use dom::bindings::codegen::Bindings::RangeBinding::{self, RangeConstants};
+use dom::bindings::codegen::Bindings::RangeBinding::RangeMethods;
+use dom::bindings::codegen::Bindings::TextBinding::TextMethods;
+use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
+use dom::bindings::error::{Error, ErrorResult, Fallible};
+use dom::bindings::inheritance::{CharacterDataTypeId, NodeTypeId};
+use dom::bindings::inheritance::Castable;
+use dom::bindings::reflector::{Reflector, reflect_dom_object};
+use dom::bindings::root::{Dom, DomRoot, MutDom, RootedReference};
+use dom::bindings::str::DOMString;
+use dom::bindings::trace::JSTraceable;
+use dom::bindings::weakref::{WeakRef, WeakRefVec};
+use dom::characterdata::CharacterData;
+use dom::document::Document;
+use dom::documentfragment::DocumentFragment;
+use dom::element::Element;
+use dom::htmlscriptelement::HTMLScriptElement;
+use dom::node::{Node, UnbindContext};
+use dom::text::Text;
+use dom::window::Window;
 use dom_struct::dom_struct;
 use js::jsapi::JSTracer;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
@@ -836,8 +836,7 @@ impl RangeMethods for Range {
                 start_offset,
                 start_node.len() - start_offset,
                 DOMString::new(),
-            )
-            .unwrap();
+            ).unwrap();
         }
 
         // Step 8.

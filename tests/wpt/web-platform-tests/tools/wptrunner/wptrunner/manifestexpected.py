@@ -156,10 +156,6 @@ class ExpectedManifest(ManifestItem):
     def lsan_allowed(self):
         return lsan_allowed(self)
 
-    @property
-    def lsan_max_stack_depth(self):
-        return int_prop("lsan-max-stack-depth", self)
-
 
 class DirectoryManifest(ManifestItem):
     @property
@@ -194,9 +190,6 @@ class DirectoryManifest(ManifestItem):
     def lsan_allowed(self):
         return lsan_allowed(self)
 
-    @property
-    def lsan_max_stack_depth(self):
-        return int_prop("lsan-max-stack-depth", self)
 
 class TestNode(ManifestItem):
     def __init__(self, name):
@@ -257,10 +250,6 @@ class TestNode(ManifestItem):
     @property
     def lsan_allowed(self):
         return lsan_allowed(self)
-
-    @property
-    def lsan_max_stack_depth(self):
-        return int_prop("lsan-max-stack-depth", self)
 
     def append(self, node):
         """Add a subtest to the current test

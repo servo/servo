@@ -1,27 +1,6 @@
 from tools.ci import jobs
 
-all_jobs = set([
-    "build_css",
-    "lint",
-    "manifest_upload",
-    "resources_unittest",
-    "stability",
-    "tools_unittest",
-    "update_built",
-    "wpt_integration",
-    "wptrunner_infrastructure",
-    "wptrunner_unittest",
-])
-
 default_jobs = set(["lint", "manifest_upload"])
-
-
-def test_all():
-    assert jobs.get_jobs(["README.md"], all=True) == all_jobs
-
-
-def test_default():
-    assert jobs.get_jobs(["README.md"]) == default_jobs
 
 
 def test_testharness():
@@ -58,6 +37,10 @@ def test_stability():
     assert jobs.get_jobs(["css/build-css-testsuite.sh",
                           "css/CSS21/test-001.html"],
                          includes=["stability"]) == set(["stability"])
+
+
+def test_default():
+    assert jobs.get_jobs(["README.md"]) == default_jobs
 
 
 def test_tools_unittest():
@@ -99,7 +82,6 @@ def test_wpt_integration():
                          includes=["wpt_integration"]) == set(["wpt_integration"])
     assert jobs.get_jobs(["tools/wptrunner/wptrunner/wptrunner.py"],
                          includes=["wpt_integration"]) == set(["wpt_integration"])
-
 
 def test_wpt_infrastructure():
     assert jobs.get_jobs(["tools/hammer.html"],

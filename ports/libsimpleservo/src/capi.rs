@@ -2,18 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use crate::api::{self, EventLoopWaker, HostTrait, InitOptions, ReadFileTrait, ServoGlue, SERVO};
-use crate::gl_glue;
+use api::{self, EventLoopWaker, ServoGlue, SERVO, HostTrait, ReadFileTrait};
+use gl_glue;
 use servo::gl;
 use std::ffi::{CStr, CString};
 use std::mem;
 use std::os::raw::c_char;
 use std::rc::Rc;
 
-fn call<F>(f: F)
-where
-    F: Fn(&mut ServoGlue) -> Result<(), &'static str>,
-{
+fn call<F>(f: F) where F: Fn(&mut ServoGlue) -> Result<(), &'static str> {
     SERVO.with(|s| {
         if let Err(error) = match s.borrow_mut().as_mut() {
             Some(ref mut s) => (f)(s),
@@ -30,26 +27,14 @@ where
 /// Callback used by Servo internals
 #[repr(C)]
 pub struct CHostCallbacks {
-    pub flush: extern "C" fn(),
-    pub make_current: extern "C" fn(),
-    pub on_load_started: extern "C" fn(),
-    pub on_load_ended: extern "C" fn(),
-    pub on_title_changed: extern "C" fn(title: *const c_char),
-    pub on_url_changed: extern "C" fn(url: *const c_char),
-    pub on_history_changed: extern "C" fn(can_go_back: bool, can_go_forward: bool),
-    pub on_animating_changed: extern "C" fn(animating: bool),
-    pub on_shutdown_complete: extern "C" fn(),
-}
-
-/// Servo options
-#[repr(C)]
-pub struct CInitOptions {
-    pub args: *const c_char,
-    pub url: *const c_char,
-    pub width: u32,
-    pub height: u32,
-    pub density: f32,
-    pub enable_subpixel_text_antialiasing: bool,
+    pub flush: extern fn(),
+    pub make_current: extern fn(),
+    pub on_load_started: extern fn(),
+    pub on_load_ended: extern fn(),
+    pub on_title_changed: extern fn(title: *const c_char),
+    pub on_url_changed: extern fn(url: *const c_char),
+    pub on_history_changed: extern fn(can_go_back: bool, can_go_forward: bool),
+    pub on_animating_changed: extern fn(animating: bool),
 }
 
 /// The returned string is not freed. This will leak.
@@ -63,72 +48,66 @@ pub extern "C" fn servo_version() -> *const c_char {
 }
 
 fn init(
-    opts: CInitOptions,
-    gl: Rc<dyn gl::Gl>,
-    wakeup: extern "C" fn(),
-    readfile: extern "C" fn(*const c_char) -> *const c_char,
+    gl: Rc<gl::Gl>,
+    args: *const c_char,
+    url: *const c_char,
+    wakeup: extern fn(),
+    readfile: extern fn(*const c_char) -> *const c_char,
     callbacks: CHostCallbacks,
-) {
-    let args = unsafe { CStr::from_ptr(opts.args) };
-    let args = args.to_str().map(|s| s.to_string()).ok();
+    width: u32,
+    height: u32,
+    density: f32) {
+    let args = unsafe { CStr::from_ptr(args) };
+    let args = args.to_str().expect("Can't read string").to_string();
 
-    let url = unsafe { CStr::from_ptr(opts.url) };
-    let url = url.to_str().map(|s| s.to_string()).ok();
-
-    let opts = InitOptions {
-        args,
-        url,
-        width: opts.width,
-        height: opts.height,
-        density: opts.density,
-        enable_subpixel_text_antialiasing: opts.enable_subpixel_text_antialiasing,
-    };
+    let url = unsafe { CStr::from_ptr(url) };
+    let url = url.to_str().map(|s| s.to_string());
 
     let wakeup = Box::new(WakeupCallback::new(wakeup));
     let readfile = Box::new(ReadFileCallback::new(readfile));
     let callbacks = Box::new(HostCallbacks::new(callbacks));
 
-    api::init(opts, gl, wakeup, readfile, callbacks).unwrap();
+    api::init(
+        gl,
+        args,
+        url.ok(),
+        wakeup,
+        readfile,
+        callbacks,
+        width,
+        height,
+        density,
+    ).unwrap();
 }
 
 #[cfg(target_os = "windows")]
 #[no_mangle]
 pub extern "C" fn init_with_egl(
-    opts: CInitOptions,
-    wakeup: extern "C" fn(),
-    readfile: extern "C" fn(*const c_char) -> *const c_char,
+    args: *const c_char,
+    url: *const c_char,
+    wakeup: extern fn(),
+    readfile: extern fn(*const c_char) -> *const c_char,
     callbacks: CHostCallbacks,
-) {
+    width: u32,
+    height: u32,
+    density: f32) {
     let gl = gl_glue::egl::init().unwrap();
-    init(opts, gl, wakeup, readfile, callbacks)
+    init(gl, args, url, wakeup, readfile, callbacks, width, height, density)
 }
 
-#[cfg(any(
-    target_os = "linux",
-    target_os = "windows",
-    target_os = "macos"
-))]
+#[cfg(any(target_os = "linux", target_os = "windows", target_os = "macos"))]
 #[no_mangle]
 pub extern "C" fn init_with_gl(
-    opts: CInitOptions,
-    wakeup: extern "C" fn(),
-    readfile: extern "C" fn(*const c_char) -> *const c_char,
+    args: *const c_char,
+    url: *const c_char,
+    wakeup: extern fn(),
+    readfile: extern fn(*const c_char) -> *const c_char,
     callbacks: CHostCallbacks,
-) {
+    width: u32,
+    height: u32,
+    density: f32) {
     let gl = gl_glue::gl::init().unwrap();
-    init(opts, gl, wakeup, readfile, callbacks)
-}
-
-#[no_mangle]
-pub extern "C" fn deinit() {
-    debug!("deinit");
-    api::deinit();
-}
-
-#[no_mangle]
-pub extern "C" fn request_shutdown() {
-    debug!("request_shutdown");
-    call(|s| s.request_shutdown());
+    init(gl, args, url, wakeup, readfile, callbacks, width, height, density)
 }
 
 #[no_mangle]
@@ -229,16 +208,16 @@ pub extern "C" fn click(x: i32, y: i32) {
     call(|s| s.click(x as u32, y as u32));
 }
 
-pub struct WakeupCallback(extern "C" fn());
+pub struct WakeupCallback(extern fn());
 
 impl WakeupCallback {
-    fn new(callback: extern "C" fn()) -> WakeupCallback {
+    fn new(callback: extern fn()) -> WakeupCallback {
         WakeupCallback(callback)
     }
 }
 
 impl EventLoopWaker for WakeupCallback {
-    fn clone(&self) -> Box<dyn EventLoopWaker + Send> {
+    fn clone(&self) -> Box<EventLoopWaker + Send> {
         Box::new(WakeupCallback(self.0))
     }
     fn wake(&self) {
@@ -246,10 +225,10 @@ impl EventLoopWaker for WakeupCallback {
     }
 }
 
-pub struct ReadFileCallback(extern "C" fn(*const c_char) -> *const c_char);
+pub struct ReadFileCallback(extern fn(*const c_char) -> *const c_char);
 
 impl ReadFileCallback {
-    fn new(callback: extern "C" fn(*const c_char) -> *const c_char) -> ReadFileCallback {
+    fn new(callback: extern fn(*const c_char) -> *const c_char) -> ReadFileCallback {
         ReadFileCallback(callback)
     }
 }
@@ -318,10 +297,5 @@ impl HostTrait for HostCallbacks {
     fn on_animating_changed(&self, animating: bool) {
         debug!("on_animating_changed");
         (self.0.on_animating_changed)(animating);
-    }
-
-    fn on_shutdown_complete(&self) {
-        debug!("on_shutdown_complete");
-        (self.0.on_shutdown_complete)();
     }
 }

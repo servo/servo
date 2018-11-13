@@ -7,6 +7,8 @@ import traceback
 from six.moves.urllib.parse import parse_qs, quote, unquote, urljoin
 from six import iteritems
 
+from h2.events import RequestReceived, DataReceived
+
 from .constants import content_types
 from .pipes import Pipeline, template
 from .ranges import RangeParser
@@ -77,7 +79,7 @@ class DirectoryHandler(object):
 %(items)s
 </ul>
 """ % {"path": cgi.escape(url_path),
-       "items": "\n".join(self.list_items(url_path, path))}  # noqa: E122
+       "items": "\n".join(self.list_items(url_path, path))}  # flake8: noqa
 
     def list_items(self, base_path, path):
         assert base_path.endswith("/")

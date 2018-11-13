@@ -2,17 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
-use crate::dom::bindings::codegen::Bindings::FileReaderSyncBinding::{
-    FileReaderSyncBinding, FileReaderSyncMethods,
-};
-use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
-use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::DOMString;
-use crate::dom::blob::Blob;
-use crate::dom::filereader::FileReaderSharedFunctionality;
-use crate::dom::globalscope::GlobalScope;
+use dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
+use dom::bindings::codegen::Bindings::FileReaderSyncBinding::{FileReaderSyncBinding, FileReaderSyncMethods};
+use dom::bindings::error::{Error, Fallible};
+use dom::bindings::reflector::{Reflector, reflect_dom_object};
+use dom::bindings::root::DomRoot;
+use dom::bindings::str::DOMString;
+use dom::blob::Blob;
+use dom::filereader::FileReaderSharedFunctionality;
+use dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
 use js::jsapi::{JSContext, JSObject};
 use js::typedarray::{ArrayBuffer, CreateWith};
@@ -102,8 +100,7 @@ impl FileReaderSyncMethods for FileReaderSync {
                 cx,
                 CreateWith::Slice(&blob_contents),
                 array_buffer.handle_mut()
-            )
-            .is_ok()
+            ).is_ok()
         );
 
         Ok(NonNull::new_unchecked(array_buffer.get()))

@@ -2,55 +2,55 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use crate::dom::attr::Attr;
-use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::inheritance::ElementTypeId;
-use crate::dom::bindings::inheritance::HTMLElementTypeId;
-use crate::dom::bindings::inheritance::NodeTypeId;
-use crate::dom::bindings::inheritance::SVGElementTypeId;
-use crate::dom::bindings::inheritance::SVGGraphicsElementTypeId;
-use crate::dom::bindings::str::DOMString;
-use crate::dom::document::Document;
-use crate::dom::element::{AttributeMutation, Element};
-use crate::dom::event::Event;
-use crate::dom::htmlanchorelement::HTMLAnchorElement;
-use crate::dom::htmlareaelement::HTMLAreaElement;
-use crate::dom::htmlbaseelement::HTMLBaseElement;
-use crate::dom::htmlbodyelement::HTMLBodyElement;
-use crate::dom::htmlbuttonelement::HTMLButtonElement;
-use crate::dom::htmlcanvaselement::HTMLCanvasElement;
-use crate::dom::htmldetailselement::HTMLDetailsElement;
-use crate::dom::htmlelement::HTMLElement;
-use crate::dom::htmlfieldsetelement::HTMLFieldSetElement;
-use crate::dom::htmlfontelement::HTMLFontElement;
-use crate::dom::htmlformelement::HTMLFormElement;
-use crate::dom::htmlheadelement::HTMLHeadElement;
-use crate::dom::htmlhrelement::HTMLHRElement;
-use crate::dom::htmliframeelement::HTMLIFrameElement;
-use crate::dom::htmlimageelement::HTMLImageElement;
-use crate::dom::htmlinputelement::HTMLInputElement;
-use crate::dom::htmllabelelement::HTMLLabelElement;
-use crate::dom::htmllielement::HTMLLIElement;
-use crate::dom::htmllinkelement::HTMLLinkElement;
-use crate::dom::htmlmediaelement::HTMLMediaElement;
-use crate::dom::htmlmetaelement::HTMLMetaElement;
-use crate::dom::htmlobjectelement::HTMLObjectElement;
-use crate::dom::htmloptgroupelement::HTMLOptGroupElement;
-use crate::dom::htmloptionelement::HTMLOptionElement;
-use crate::dom::htmloutputelement::HTMLOutputElement;
-use crate::dom::htmlscriptelement::HTMLScriptElement;
-use crate::dom::htmlselectelement::HTMLSelectElement;
-use crate::dom::htmlsourceelement::HTMLSourceElement;
-use crate::dom::htmlstyleelement::HTMLStyleElement;
-use crate::dom::htmltablecellelement::HTMLTableCellElement;
-use crate::dom::htmltableelement::HTMLTableElement;
-use crate::dom::htmltablerowelement::HTMLTableRowElement;
-use crate::dom::htmltablesectionelement::HTMLTableSectionElement;
-use crate::dom::htmltemplateelement::HTMLTemplateElement;
-use crate::dom::htmltextareaelement::HTMLTextAreaElement;
-use crate::dom::htmltitleelement::HTMLTitleElement;
-use crate::dom::node::{ChildrenMutation, CloneChildrenFlag, Node, UnbindContext};
-use crate::dom::svgsvgelement::SVGSVGElement;
+use dom::attr::Attr;
+use dom::bindings::inheritance::Castable;
+use dom::bindings::inheritance::ElementTypeId;
+use dom::bindings::inheritance::HTMLElementTypeId;
+use dom::bindings::inheritance::NodeTypeId;
+use dom::bindings::inheritance::SVGElementTypeId;
+use dom::bindings::inheritance::SVGGraphicsElementTypeId;
+use dom::bindings::str::DOMString;
+use dom::document::Document;
+use dom::element::{AttributeMutation, Element};
+use dom::event::Event;
+use dom::htmlanchorelement::HTMLAnchorElement;
+use dom::htmlareaelement::HTMLAreaElement;
+use dom::htmlbaseelement::HTMLBaseElement;
+use dom::htmlbodyelement::HTMLBodyElement;
+use dom::htmlbuttonelement::HTMLButtonElement;
+use dom::htmlcanvaselement::HTMLCanvasElement;
+use dom::htmldetailselement::HTMLDetailsElement;
+use dom::htmlelement::HTMLElement;
+use dom::htmlfieldsetelement::HTMLFieldSetElement;
+use dom::htmlfontelement::HTMLFontElement;
+use dom::htmlformelement::HTMLFormElement;
+use dom::htmlheadelement::HTMLHeadElement;
+use dom::htmlhrelement::HTMLHRElement;
+use dom::htmliframeelement::HTMLIFrameElement;
+use dom::htmlimageelement::HTMLImageElement;
+use dom::htmlinputelement::HTMLInputElement;
+use dom::htmllabelelement::HTMLLabelElement;
+use dom::htmllielement::HTMLLIElement;
+use dom::htmllinkelement::HTMLLinkElement;
+use dom::htmlmediaelement::HTMLMediaElement;
+use dom::htmlmetaelement::HTMLMetaElement;
+use dom::htmlobjectelement::HTMLObjectElement;
+use dom::htmloptgroupelement::HTMLOptGroupElement;
+use dom::htmloptionelement::HTMLOptionElement;
+use dom::htmloutputelement::HTMLOutputElement;
+use dom::htmlscriptelement::HTMLScriptElement;
+use dom::htmlselectelement::HTMLSelectElement;
+use dom::htmlsourceelement::HTMLSourceElement;
+use dom::htmlstyleelement::HTMLStyleElement;
+use dom::htmltablecellelement::HTMLTableCellElement;
+use dom::htmltableelement::HTMLTableElement;
+use dom::htmltablerowelement::HTMLTableRowElement;
+use dom::htmltablesectionelement::HTMLTableSectionElement;
+use dom::htmltemplateelement::HTMLTemplateElement;
+use dom::htmltextareaelement::HTMLTextAreaElement;
+use dom::htmltitleelement::HTMLTitleElement;
+use dom::node::{ChildrenMutation, CloneChildrenFlag, Node, UnbindContext};
+use dom::svgsvgelement::SVGSVGElement;
 use html5ever::LocalName;
 use style::attr::AttrValue;
 
@@ -59,7 +59,7 @@ use style::attr::AttrValue;
 pub trait VirtualMethods {
     /// Returns self as the superclass of the implementation for this trait,
     /// if any.
-    fn super_type(&self) -> Option<&dyn VirtualMethods>;
+    fn super_type(&self) -> Option<&VirtualMethods>;
 
     /// Called when attributes of a node are mutated.
     /// <https://dom.spec.whatwg.org/#attribute-is-set>
@@ -152,120 +152,120 @@ pub trait VirtualMethods {
 /// method call on the trait object will invoke the corresponding method on the
 /// concrete type, propagating up the parent hierarchy unless otherwise
 /// interrupted.
-pub fn vtable_for(node: &Node) -> &dyn VirtualMethods {
+pub fn vtable_for(node: &Node) -> &VirtualMethods {
     match node.type_id() {
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLAnchorElement)) => {
-            node.downcast::<HTMLAnchorElement>().unwrap() as &dyn VirtualMethods
+            node.downcast::<HTMLAnchorElement>().unwrap() as &VirtualMethods
         },
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLAreaElement)) => {
-            node.downcast::<HTMLAreaElement>().unwrap() as &dyn VirtualMethods
+            node.downcast::<HTMLAreaElement>().unwrap() as &VirtualMethods
         },
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLBaseElement)) => {
-            node.downcast::<HTMLBaseElement>().unwrap() as &dyn VirtualMethods
+            node.downcast::<HTMLBaseElement>().unwrap() as &VirtualMethods
         },
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLBodyElement)) => {
-            node.downcast::<HTMLBodyElement>().unwrap() as &dyn VirtualMethods
+            node.downcast::<HTMLBodyElement>().unwrap() as &VirtualMethods
         },
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLButtonElement)) => {
-            node.downcast::<HTMLButtonElement>().unwrap() as &dyn VirtualMethods
+            node.downcast::<HTMLButtonElement>().unwrap() as &VirtualMethods
         },
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLCanvasElement)) => {
-            node.downcast::<HTMLCanvasElement>().unwrap() as &dyn VirtualMethods
+            node.downcast::<HTMLCanvasElement>().unwrap() as &VirtualMethods
         },
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLDetailsElement)) => {
-            node.downcast::<HTMLDetailsElement>().unwrap() as &dyn VirtualMethods
+            node.downcast::<HTMLDetailsElement>().unwrap() as &VirtualMethods
         },
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLFieldSetElement)) => {
-            node.downcast::<HTMLFieldSetElement>().unwrap() as &dyn VirtualMethods
+            node.downcast::<HTMLFieldSetElement>().unwrap() as &VirtualMethods
         },
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLFontElement)) => {
-            node.downcast::<HTMLFontElement>().unwrap() as &dyn VirtualMethods
+            node.downcast::<HTMLFontElement>().unwrap() as &VirtualMethods
         },
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLFormElement)) => {
-            node.downcast::<HTMLFormElement>().unwrap() as &dyn VirtualMethods
+            node.downcast::<HTMLFormElement>().unwrap() as &VirtualMethods
         },
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLHeadElement)) => {
-            node.downcast::<HTMLHeadElement>().unwrap() as &dyn VirtualMethods
+            node.downcast::<HTMLHeadElement>().unwrap() as &VirtualMethods
         },
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLHRElement)) => {
-            node.downcast::<HTMLHRElement>().unwrap() as &dyn VirtualMethods
+            node.downcast::<HTMLHRElement>().unwrap() as &VirtualMethods
         },
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLImageElement)) => {
-            node.downcast::<HTMLImageElement>().unwrap() as &dyn VirtualMethods
+            node.downcast::<HTMLImageElement>().unwrap() as &VirtualMethods
         },
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLIFrameElement)) => {
-            node.downcast::<HTMLIFrameElement>().unwrap() as &dyn VirtualMethods
+            node.downcast::<HTMLIFrameElement>().unwrap() as &VirtualMethods
         },
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLInputElement)) => {
-            node.downcast::<HTMLInputElement>().unwrap() as &dyn VirtualMethods
+            node.downcast::<HTMLInputElement>().unwrap() as &VirtualMethods
         },
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLLabelElement)) => {
-            node.downcast::<HTMLLabelElement>().unwrap() as &dyn VirtualMethods
+            node.downcast::<HTMLLabelElement>().unwrap() as &VirtualMethods
         },
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLLIElement)) => {
-            node.downcast::<HTMLLIElement>().unwrap() as &dyn VirtualMethods
+            node.downcast::<HTMLLIElement>().unwrap() as &VirtualMethods
         },
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLLinkElement)) => {
-            node.downcast::<HTMLLinkElement>().unwrap() as &dyn VirtualMethods
+            node.downcast::<HTMLLinkElement>().unwrap() as &VirtualMethods
         },
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLMediaElement(_))) => {
-            node.downcast::<HTMLMediaElement>().unwrap() as &dyn VirtualMethods
+            node.downcast::<HTMLMediaElement>().unwrap() as &VirtualMethods
         },
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLMetaElement)) => {
-            node.downcast::<HTMLMetaElement>().unwrap() as &dyn VirtualMethods
+            node.downcast::<HTMLMetaElement>().unwrap() as &VirtualMethods
         },
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLObjectElement)) => {
-            node.downcast::<HTMLObjectElement>().unwrap() as &dyn VirtualMethods
+            node.downcast::<HTMLObjectElement>().unwrap() as &VirtualMethods
         },
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLOptGroupElement)) => {
-            node.downcast::<HTMLOptGroupElement>().unwrap() as &dyn VirtualMethods
+            node.downcast::<HTMLOptGroupElement>().unwrap() as &VirtualMethods
         },
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLOptionElement)) => {
-            node.downcast::<HTMLOptionElement>().unwrap() as &dyn VirtualMethods
+            node.downcast::<HTMLOptionElement>().unwrap() as &VirtualMethods
         },
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLOutputElement)) => {
-            node.downcast::<HTMLOutputElement>().unwrap() as &dyn VirtualMethods
+            node.downcast::<HTMLOutputElement>().unwrap() as &VirtualMethods
         },
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLScriptElement)) => {
-            node.downcast::<HTMLScriptElement>().unwrap() as &dyn VirtualMethods
+            node.downcast::<HTMLScriptElement>().unwrap() as &VirtualMethods
         },
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLSelectElement)) => {
-            node.downcast::<HTMLSelectElement>().unwrap() as &dyn VirtualMethods
+            node.downcast::<HTMLSelectElement>().unwrap() as &VirtualMethods
         },
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLSourceElement)) => {
-            node.downcast::<HTMLSourceElement>().unwrap() as &dyn VirtualMethods
+            node.downcast::<HTMLSourceElement>().unwrap() as &VirtualMethods
         },
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLStyleElement)) => {
-            node.downcast::<HTMLStyleElement>().unwrap() as &dyn VirtualMethods
+            node.downcast::<HTMLStyleElement>().unwrap() as &VirtualMethods
         },
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTableElement)) => {
-            node.downcast::<HTMLTableElement>().unwrap() as &dyn VirtualMethods
+            node.downcast::<HTMLTableElement>().unwrap() as &VirtualMethods
         },
         NodeTypeId::Element(ElementTypeId::HTMLElement(
-            HTMLElementTypeId::HTMLTableCellElement,
-        )) => node.downcast::<HTMLTableCellElement>().unwrap() as &dyn VirtualMethods,
+            HTMLElementTypeId::HTMLTableCellElement(_),
+        )) => node.downcast::<HTMLTableCellElement>().unwrap() as &VirtualMethods,
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTableRowElement)) => {
-            node.downcast::<HTMLTableRowElement>().unwrap() as &dyn VirtualMethods
+            node.downcast::<HTMLTableRowElement>().unwrap() as &VirtualMethods
         },
         NodeTypeId::Element(ElementTypeId::HTMLElement(
             HTMLElementTypeId::HTMLTableSectionElement,
-        )) => node.downcast::<HTMLTableSectionElement>().unwrap() as &dyn VirtualMethods,
+        )) => node.downcast::<HTMLTableSectionElement>().unwrap() as &VirtualMethods,
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTemplateElement)) => {
-            node.downcast::<HTMLTemplateElement>().unwrap() as &dyn VirtualMethods
+            node.downcast::<HTMLTemplateElement>().unwrap() as &VirtualMethods
         },
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTextAreaElement)) => {
-            node.downcast::<HTMLTextAreaElement>().unwrap() as &dyn VirtualMethods
+            node.downcast::<HTMLTextAreaElement>().unwrap() as &VirtualMethods
         },
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTitleElement)) => {
-            node.downcast::<HTMLTitleElement>().unwrap() as &dyn VirtualMethods
+            node.downcast::<HTMLTitleElement>().unwrap() as &VirtualMethods
         },
         NodeTypeId::Element(ElementTypeId::SVGElement(SVGElementTypeId::SVGGraphicsElement(
             SVGGraphicsElementTypeId::SVGSVGElement,
-        ))) => node.downcast::<SVGSVGElement>().unwrap() as &dyn VirtualMethods,
+        ))) => node.downcast::<SVGSVGElement>().unwrap() as &VirtualMethods,
         NodeTypeId::Element(ElementTypeId::Element) => {
-            node.downcast::<Element>().unwrap() as &dyn VirtualMethods
+            node.downcast::<Element>().unwrap() as &VirtualMethods
         },
-        NodeTypeId::Element(_) => node.downcast::<HTMLElement>().unwrap() as &dyn VirtualMethods,
-        _ => node as &dyn VirtualMethods,
+        NodeTypeId::Element(_) => node.downcast::<HTMLElement>().unwrap() as &VirtualMethods,
+        _ => node as &VirtualMethods,
     }
 }

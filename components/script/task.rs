@@ -5,14 +5,14 @@
 //! Machinery for [tasks](https://html.spec.whatwg.org/multipage/#concept-task).
 
 use std::fmt;
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 
 macro_rules! task {
     ($name:ident: move || $body:tt) => {{
         #[allow(non_camel_case_types)]
         struct $name<F>(F);
-        impl<F> crate::task::TaskOnce for $name<F>
+        impl<F> ::task::TaskOnce for $name<F>
         where
             F: ::std::ops::FnOnce() + Send,
         {
@@ -65,7 +65,7 @@ where
     }
 }
 
-impl fmt::Debug for dyn TaskBox {
+impl fmt::Debug for TaskBox {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         fmt.debug_tuple(self.name())
             .field(&format_args!("..."))

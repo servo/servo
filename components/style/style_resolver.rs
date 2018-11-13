@@ -10,13 +10,11 @@ use data::{EagerPseudoStyles, ElementStyles};
 use dom::TElement;
 use log::Level::Trace;
 use matching::MatchMethods;
-use properties::longhands::display::computed_value::T as Display;
 use properties::{AnimationRules, ComputedValues};
+use properties::longhands::display::computed_value::T as Display;
 use rule_tree::StrongRuleNode;
 use selector_parser::{PseudoElement, SelectorImpl};
-use selectors::matching::{
-    ElementSelectorFlags, MatchingContext, MatchingMode, VisitedHandlingMode,
-};
+use selectors::matching::{ElementSelectorFlags, MatchingContext, MatchingMode, VisitedHandlingMode};
 use servo_arc::Arc;
 use stylist::RuleInclusion;
 

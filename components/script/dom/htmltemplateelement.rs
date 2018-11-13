@@ -2,17 +2,17 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
-use crate::dom::bindings::codegen::Bindings::HTMLTemplateElementBinding;
-use crate::dom::bindings::codegen::Bindings::HTMLTemplateElementBinding::HTMLTemplateElementMethods;
-use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
-use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::root::{DomRoot, MutNullableDom};
-use crate::dom::document::Document;
-use crate::dom::documentfragment::DocumentFragment;
-use crate::dom::htmlelement::HTMLElement;
-use crate::dom::node::{document_from_node, CloneChildrenFlag, Node};
-use crate::dom::virtualmethods::VirtualMethods;
+use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
+use dom::bindings::codegen::Bindings::HTMLTemplateElementBinding;
+use dom::bindings::codegen::Bindings::HTMLTemplateElementBinding::HTMLTemplateElementMethods;
+use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
+use dom::bindings::inheritance::Castable;
+use dom::bindings::root::{DomRoot, MutNullableDom};
+use dom::document::Document;
+use dom::documentfragment::DocumentFragment;
+use dom::htmlelement::HTMLElement;
+use dom::node::{CloneChildrenFlag, Node, document_from_node};
+use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
 
@@ -64,8 +64,8 @@ impl HTMLTemplateElementMethods for HTMLTemplateElement {
 }
 
 impl VirtualMethods for HTMLTemplateElement {
-    fn super_type(&self) -> Option<&dyn VirtualMethods> {
-        Some(self.upcast::<HTMLElement>() as &dyn VirtualMethods)
+    fn super_type(&self) -> Option<&VirtualMethods> {
+        Some(self.upcast::<HTMLElement>() as &VirtualMethods)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#template-adopting-steps>

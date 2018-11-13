@@ -10,8 +10,8 @@
 
 use cssparser::ToCss;
 use gecko_bindings::structs::{self, CSSPseudoElementType};
-use properties::longhands::display::computed_value::T as Display;
 use properties::{ComputedValues, PropertyFlags};
+use properties::longhands::display::computed_value::T as Display;
 use selector_parser::{NonTSPseudoClass, PseudoElementCascadeType, SelectorImpl};
 use std::fmt;
 use str::{starts_with_ignore_ascii_case, string_as_ascii_lowercase};
@@ -26,14 +26,6 @@ include!(concat!(
 
 impl ::selectors::parser::PseudoElement for PseudoElement {
     type Impl = SelectorImpl;
-
-    fn valid_after_slotted(&self) -> bool {
-        // TODO(emilio): Remove this function or this comment after [1] is
-        // resolved.
-        //
-        // [1]: https://github.com/w3c/csswg-drafts/issues/3150
-        self.is_before_or_after()
-    }
 
     fn supports_pseudo_class(&self, pseudo_class: &NonTSPseudoClass) -> bool {
         if !self.supports_user_action_state() {
@@ -63,6 +55,15 @@ impl PseudoElement {
         }
 
         PseudoElementCascadeType::Lazy
+    }
+
+    /// Whether cascading this pseudo-element makes it inherit all properties,
+    /// even reset ones.
+    ///
+    /// This is used in Servo for anonymous boxes, though it's likely broken.
+    #[inline]
+    pub fn inherits_all(&self) -> bool {
+        false
     }
 
     /// Whether the pseudo-element should inherit from the default computed

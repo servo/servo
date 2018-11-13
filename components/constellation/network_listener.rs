@@ -6,15 +6,15 @@
 //! Any redirects that are encountered are followed. Whenever a non-redirect
 //! response is received, it is forwarded to the appropriate script thread.
 
-use http::header::LOCATION;
+use hyper::header::Location;
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use msg::constellation_msg::PipelineId;
 use net::http_loader::{set_default_accept, set_default_accept_language};
-use net_traits::request::{Destination, RequestInit};
-use net_traits::response::ResponseInit;
 use net_traits::{CoreResourceMsg, FetchChannels, FetchMetadata, FetchResponseMsg};
 use net_traits::{IpcSend, NetworkError, ResourceThreads};
+use net_traits::request::{Destination, RequestInit};
+use net_traits::response::ResponseInit;
 use servo_channel::Sender;
 
 pub struct NetworkListener {
@@ -99,7 +99,7 @@ impl NetworkListener {
                 };
 
                 match metadata.headers {
-                    Some(ref headers) if headers.contains_key(LOCATION) => {
+                    Some(ref headers) if headers.has::<Location>() => {
                         if self.req_init.url_list.is_empty() {
                             self.req_init.url_list.push(self.req_init.url.clone());
                         }
@@ -113,11 +113,6 @@ impl NetworkListener {
                             location_url: metadata.location_url.clone(),
                             headers: headers.clone().into_inner(),
                             referrer: metadata.referrer.clone(),
-                            status_code: metadata
-                                .status
-                                .as_ref()
-                                .map(|&(code, _)| code)
-                                .unwrap_or(200),
                         });
 
                         // XXXManishearth we don't have the cancel_chan anymore and

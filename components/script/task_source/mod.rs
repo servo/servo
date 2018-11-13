@@ -5,17 +5,16 @@
 pub mod dom_manipulation;
 pub mod file_reading;
 pub mod history_traversal;
-pub mod media_element;
 pub mod networking;
 pub mod performance_timeline;
 pub mod remote_event;
 pub mod user_interaction;
 pub mod websocket;
 
-use crate::dom::globalscope::GlobalScope;
-use crate::task::{TaskCanceller, TaskOnce};
+use dom::globalscope::GlobalScope;
 use enum_iterator::IntoEnumIterator;
 use std::result::Result;
+use task::{TaskCanceller, TaskOnce};
 
 // The names of all task sources, used to differentiate TaskCancellers.
 // Note: When adding a task source, update this enum.
@@ -30,7 +29,6 @@ pub enum TaskSourceName {
     PerformanceTimeline,
     UserInteraction,
     RemoteEvent,
-    MediaElement,
     Websocket,
 }
 

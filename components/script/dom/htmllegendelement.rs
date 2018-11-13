@@ -2,18 +2,18 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-use crate::dom::bindings::codegen::Bindings::HTMLLegendElementBinding;
-use crate::dom::bindings::codegen::Bindings::HTMLLegendElementBinding::HTMLLegendElementMethods;
-use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
-use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::root::{DomRoot, MutNullableDom};
-use crate::dom::document::Document;
-use crate::dom::element::Element;
-use crate::dom::htmlelement::HTMLElement;
-use crate::dom::htmlfieldsetelement::HTMLFieldSetElement;
-use crate::dom::htmlformelement::{FormControl, HTMLFormElement};
-use crate::dom::node::{Node, UnbindContext};
-use crate::dom::virtualmethods::VirtualMethods;
+use dom::bindings::codegen::Bindings::HTMLLegendElementBinding;
+use dom::bindings::codegen::Bindings::HTMLLegendElementBinding::HTMLLegendElementMethods;
+use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
+use dom::bindings::inheritance::Castable;
+use dom::bindings::root::{DomRoot, MutNullableDom};
+use dom::document::Document;
+use dom::element::Element;
+use dom::htmlelement::HTMLElement;
+use dom::htmlfieldsetelement::HTMLFieldSetElement;
+use dom::htmlformelement::{HTMLFormElement, FormControl};
+use dom::node::{Node, UnbindContext};
+use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
 
@@ -52,8 +52,8 @@ impl HTMLLegendElement {
 }
 
 impl VirtualMethods for HTMLLegendElement {
-    fn super_type(&self) -> Option<&dyn VirtualMethods> {
-        Some(self.upcast::<HTMLElement>() as &dyn VirtualMethods)
+    fn super_type(&self) -> Option<&VirtualMethods> {
+        Some(self.upcast::<HTMLElement>() as &VirtualMethods)
     }
 
     fn bind_to_tree(&self, tree_in_doc: bool) {

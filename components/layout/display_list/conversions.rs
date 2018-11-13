@@ -7,10 +7,10 @@ use euclid::{Point2D, Rect, SideOffsets2D, Size2D, Vector2D};
 use style::computed_values::image_rendering::T as ImageRendering;
 use style::computed_values::mix_blend_mode::T as MixBlendMode;
 use style::computed_values::transform_style::T as TransformStyle;
+use style::values::RGBA;
 use style::values::computed::{BorderStyle, Filter};
 use style::values::generics::effects::Filter as GenericFilter;
 use style::values::specified::border::BorderImageRepeatKeyword;
-use style::values::RGBA;
 use webrender_api as wr;
 
 pub trait ToLayout {
@@ -129,14 +129,14 @@ impl ToLayout for Rect<Au> {
 }
 
 impl ToLayout for SideOffsets2D<Au> {
-    type Type = wr::LayoutSideOffsets;
+    type Type = wr::BorderWidths;
     fn to_layout(&self) -> Self::Type {
-        wr::LayoutSideOffsets::new(
-            self.top.to_f32_px(),
-            self.right.to_f32_px(),
-            self.bottom.to_f32_px(),
-            self.left.to_f32_px(),
-        )
+        wr::BorderWidths {
+            left: self.left.to_f32_px(),
+            top: self.top.to_f32_px(),
+            right: self.right.to_f32_px(),
+            bottom: self.bottom.to_f32_px(),
+        }
     }
 }
 

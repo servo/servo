@@ -2,18 +2,18 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputElementMethods;
-use crate::dom::bindings::codegen::Bindings::NodeListBinding::NodeListMethods;
-use crate::dom::bindings::codegen::Bindings::RadioNodeListBinding;
-use crate::dom::bindings::codegen::Bindings::RadioNodeListBinding::RadioNodeListMethods;
-use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::reflect_dom_object;
-use crate::dom::bindings::root::{Dom, DomRoot};
-use crate::dom::bindings::str::DOMString;
-use crate::dom::htmlinputelement::{HTMLInputElement, InputType};
-use crate::dom::node::Node;
-use crate::dom::nodelist::{NodeList, NodeListType};
-use crate::dom::window::Window;
+use dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputElementMethods;
+use dom::bindings::codegen::Bindings::NodeListBinding::NodeListMethods;
+use dom::bindings::codegen::Bindings::RadioNodeListBinding;
+use dom::bindings::codegen::Bindings::RadioNodeListBinding::RadioNodeListMethods;
+use dom::bindings::inheritance::Castable;
+use dom::bindings::reflector::reflect_dom_object;
+use dom::bindings::root::{Dom, DomRoot};
+use dom::bindings::str::DOMString;
+use dom::htmlinputelement::{HTMLInputElement, InputType};
+use dom::node::Node;
+use dom::nodelist::{NodeList, NodeListType};
+use dom::window::Window;
 use dom_struct::dom_struct;
 
 #[dom_struct]
@@ -59,28 +59,20 @@ impl RadioNodeList {
 impl RadioNodeListMethods for RadioNodeList {
     // https://html.spec.whatwg.org/multipage/#dom-radionodelist-value
     fn Value(&self) -> DOMString {
-        self.upcast::<NodeList>()
-            .as_simple_list()
-            .iter()
-            .filter_map(|node| {
-                // Step 1
-                node.downcast::<HTMLInputElement>().and_then(|input| {
-                    if input.input_type() == InputType::Radio && input.Checked() {
-                        // Step 3-4
-                        let value = input.Value();
-                        Some(if value.is_empty() {
-                            DOMString::from("on")
-                        } else {
-                            value
-                        })
-                    } else {
-                        None
-                    }
-                })
+        self.upcast::<NodeList>().as_simple_list().iter().filter_map(|node| {
+            // Step 1
+            node.downcast::<HTMLInputElement>().and_then(|input| {
+                if input.input_type() == InputType::Radio && input.Checked() {
+                    // Step 3-4
+                    let value = input.Value();
+                    Some(if value.is_empty() { DOMString::from("on") } else { value })
+                } else {
+                    None
+                }
             })
-            .next()
-            // Step 2
-            .unwrap_or(DOMString::from(""))
+        }).next()
+        // Step 2
+          .unwrap_or(DOMString::from(""))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-radionodelist-value

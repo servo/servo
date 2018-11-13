@@ -4,19 +4,19 @@
 
 //! Base classes to work with IDL callbacks.
 
-use crate::dom::bindings::error::{report_pending_exception, Error, Fallible};
-use crate::dom::bindings::reflector::DomObject;
-use crate::dom::bindings::root::{Dom, DomRoot};
-use crate::dom::bindings::settings_stack::{AutoEntryScript, AutoIncumbentScript};
-use crate::dom::bindings::utils::AsCCharPtrPtr;
-use crate::dom::globalscope::GlobalScope;
+use dom::bindings::error::{Error, Fallible, report_pending_exception};
+use dom::bindings::reflector::DomObject;
+use dom::bindings::root::{Dom, DomRoot};
+use dom::bindings::settings_stack::{AutoEntryScript, AutoIncumbentScript};
+use dom::bindings::utils::AsCCharPtrPtr;
+use dom::globalscope::GlobalScope;
+use js::jsapi::{IsCallable, JSContext, JSObject, AddRawValueRoot};
+use js::jsapi::{JSCompartment, JS_EnterCompartment, JS_LeaveCompartment, RemoveRawValueRoot};
 use js::jsapi::Heap;
 use js::jsapi::JSAutoCompartment;
-use js::jsapi::{AddRawValueRoot, IsCallable, JSContext, JSObject};
-use js::jsapi::{JSCompartment, JS_EnterCompartment, JS_LeaveCompartment, RemoveRawValueRoot};
-use js::jsval::{JSVal, ObjectValue, UndefinedValue};
-use js::rust::wrappers::{JS_GetProperty, JS_WrapObject};
+use js::jsval::{JSVal, UndefinedValue, ObjectValue};
 use js::rust::{MutableHandleObject, Runtime};
+use js::rust::wrappers::{JS_WrapObject, JS_GetProperty};
 use std::default::Default;
 use std::ffi::CString;
 use std::mem::drop;

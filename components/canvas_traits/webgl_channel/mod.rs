@@ -7,7 +7,7 @@
 mod ipc;
 mod mpsc;
 
-use crate::webgl::WebGLMsg;
+use ::webgl::WebGLMsg;
 use serde::{Deserialize, Serialize};
 use servo_config::opts;
 use std::fmt;
@@ -85,7 +85,7 @@ where
     }
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize)]
 pub struct WebGLChan(pub WebGLSender<WebGLMsg>);
 
 impl WebGLChan {
@@ -95,7 +95,7 @@ impl WebGLChan {
     }
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize)]
 pub struct WebGLPipeline(pub WebGLChan);
 
 impl WebGLPipeline {

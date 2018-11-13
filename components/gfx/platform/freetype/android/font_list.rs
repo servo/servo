@@ -2,17 +2,17 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use crate::text::util::is_cjk;
 use std::cell::RefCell;
 use std::fs::File;
 use std::io::{self, Read};
 use std::path::Path;
+use text::util::is_cjk;
 use ucd::{Codepoint, UnicodeBlock};
+use xml5ever::Attribute;
 use xml5ever::driver::parse_document;
 use xml5ever::rcdom::*;
 use xml5ever::rcdom::{Node, RcDom};
 use xml5ever::tendril::TendrilSink;
-use xml5ever::Attribute;
 
 lazy_static! {
     static ref FONT_LIST: FontList = FontList::new();
@@ -127,11 +127,7 @@ struct FontList {
 impl FontList {
     fn new() -> FontList {
         // Possible paths containing the font mapping xml file.
-        let paths = [
-            "/etc/fonts.xml",
-            "/system/etc/system_fonts.xml",
-            "/package/etc/fonts.xml",
-        ];
+        let paths = ["/etc/fonts.xml", "/system/etc/system_fonts.xml"];
 
         // Try to load and parse paths until one of them success.
         let mut result = None;
@@ -139,10 +135,6 @@ impl FontList {
             result = Self::from_path(path);
             !result.is_some()
         });
-
-        if result.is_none() {
-            warn!("Couldn't find font list");
-        }
 
         match result {
             Some(result) => result,
@@ -217,10 +209,6 @@ impl FontList {
         let alternatives = [
             ("sans-serif", "Roboto-Regular.ttf"),
             ("Droid Sans", "DroidSans.ttf"),
-            (
-                "Lomino",
-                "/system/etc/ml/kali/Fonts/Lomino/Medium/LominoUI_Md.ttf",
-            ),
         ];
 
         alternatives
@@ -232,17 +220,12 @@ impl FontList {
                     filename: item.1.into(),
                     weight: None,
                 }],
-            })
-            .collect()
+            }).collect()
     }
 
     // All Android fonts are located in /system/fonts
     fn font_absolute_path(filename: &str) -> String {
-        if filename.starts_with("/") {
-            String::from(filename)
-        } else {
-            format!("/system/fonts/{}", filename)
-        }
+        format!("/system/fonts/{}", filename)
     }
 
     fn find_family(&self, name: &str) -> Option<&FontFamily> {
@@ -356,8 +339,7 @@ impl FontList {
                 .map(|f| Font {
                     filename: f.clone(),
                     weight: None,
-                })
-                .collect();
+                }).collect();
 
             if !fonts.is_empty() {
                 out.push(FontFamily {

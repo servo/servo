@@ -4,6 +4,7 @@
 
 //! Parsing of the stylesheet contents.
 
+use {Namespace, Prefix};
 use counter_style::{parse_counter_style_body, parse_counter_style_name_definition};
 use cssparser::{AtRuleParser, AtRuleType, Parser, QualifiedRuleParser, RuleListParser};
 use cssparser::{BasicParseError, BasicParseErrorKind, CowRcStr, SourceLocation};
@@ -18,18 +19,17 @@ use servo_arc::Arc;
 use shared_lock::{Locked, SharedRwLock};
 use str::starts_with_ignore_ascii_case;
 use style_traits::{ParseError, StyleParseErrorKind};
+use stylesheets::{CssRule, CssRuleType, CssRules, Origin, RulesMutateError, StylesheetLoader};
+use stylesheets::{DocumentRule, FontFeatureValuesRule, KeyframesRule, MediaRule};
+use stylesheets::{NamespaceRule, PageRule, StyleRule, SupportsRule, ViewportRule};
 use stylesheets::document_rule::DocumentCondition;
 use stylesheets::font_feature_values_rule::parse_family_name_list;
 use stylesheets::keyframes_rule::parse_keyframe_list;
 use stylesheets::stylesheet::Namespaces;
 use stylesheets::supports_rule::SupportsCondition;
 use stylesheets::viewport_rule;
-use stylesheets::{CssRule, CssRuleType, CssRules, RulesMutateError, StylesheetLoader};
-use stylesheets::{DocumentRule, FontFeatureValuesRule, KeyframesRule, MediaRule};
-use stylesheets::{NamespaceRule, PageRule, StyleRule, SupportsRule, ViewportRule};
-use values::computed::font::FamilyName;
 use values::{CssUrl, CustomIdent, KeyframesName};
-use {Namespace, Prefix};
+use values::computed::font::FamilyName;
 
 /// The information we need particularly to do CSSOM insertRule stuff.
 pub struct InsertRuleContext<'a> {
@@ -41,6 +41,8 @@ pub struct InsertRuleContext<'a> {
 
 /// The parser for the top-level rules in a stylesheet.
 pub struct TopLevelRuleParser<'a> {
+    /// The origin of the stylesheet we're parsing.
+    pub stylesheet_origin: Origin,
     /// A reference to the lock we need to use to create rules.
     pub shared_lock: &'a SharedRwLock,
     /// A reference to a stylesheet loader if applicable, for `@import` rules.
@@ -67,6 +69,7 @@ pub struct TopLevelRuleParser<'a> {
 impl<'b> TopLevelRuleParser<'b> {
     fn nested<'a: 'b>(&'a self) -> NestedRuleParser<'a, 'b> {
         NestedRuleParser {
+            stylesheet_origin: self.stylesheet_origin,
             shared_lock: self.shared_lock,
             context: &self.context,
             namespaces: &self.namespaces,
@@ -322,6 +325,7 @@ impl<'a, 'i> QualifiedRuleParser<'i> for TopLevelRuleParser<'a> {
 
 #[derive(Clone)] // shallow, relatively cheap .clone
 struct NestedRuleParser<'a, 'b: 'a> {
+    stylesheet_origin: Origin,
     shared_lock: &'a SharedRwLock,
     context: &'a ParserContext<'b>,
     namespaces: &'a Namespaces,
@@ -336,6 +340,7 @@ impl<'a, 'b> NestedRuleParser<'a, 'b> {
         let context = ParserContext::new_with_rule_type(self.context, rule_type, self.namespaces);
 
         let nested_parser = NestedRuleParser {
+            stylesheet_origin: self.stylesheet_origin,
             shared_lock: self.shared_lock,
             context: &context,
             namespaces: self.namespaces,
@@ -496,7 +501,7 @@ impl<'a, 'b, 'i> AtRuleParser<'i> for NestedRuleParser<'a, 'b> {
                     self.namespaces,
                 );
 
-                let enabled = condition.eval(&eval_context, self.namespaces);
+                let enabled = condition.eval(&eval_context);
                 Ok(CssRule::Supports(Arc::new(self.shared_lock.wrap(
                     SupportsRule {
                         condition,
@@ -572,7 +577,7 @@ impl<'a, 'b, 'i> QualifiedRuleParser<'i> for NestedRuleParser<'a, 'b> {
         input: &mut Parser<'i, 't>,
     ) -> Result<Self::Prelude, ParseError<'i>> {
         let selector_parser = SelectorParser {
-            stylesheet_origin: self.context.stylesheet_origin,
+            stylesheet_origin: self.stylesheet_origin,
             namespaces: self.namespaces,
             url_data: Some(self.context.url_data),
         };

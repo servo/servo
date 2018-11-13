@@ -4,7 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context="org.mozilla.servo.MainActivity">
+    tools:context="com.mozilla.servo.MainActivity">
 
     <LinearLayout
         android:layout_width="0dp"
@@ -95,7 +95,7 @@
 
         </LinearLayout>
 
-        <org.mozilla.servoview.ServoView
+        <com.mozilla.servoview.ServoView
             android:id="@+id/servoview"
             android:layout_width="match_parent"
             android:layout_height="match_parent"

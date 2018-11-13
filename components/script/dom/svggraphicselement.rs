@@ -2,10 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::inheritance::Castable;
-use crate::dom::document::Document;
-use crate::dom::svgelement::SVGElement;
-use crate::dom::virtualmethods::VirtualMethods;
+use dom::bindings::inheritance::Castable;
+use dom::document::Document;
+use dom::svgelement::SVGElement;
+use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
 use style::element_state::ElementState;
@@ -42,7 +42,7 @@ impl SVGGraphicsElement {
 }
 
 impl VirtualMethods for SVGGraphicsElement {
-    fn super_type(&self) -> Option<&dyn VirtualMethods> {
-        Some(self.upcast::<SVGElement>() as &dyn VirtualMethods)
+    fn super_type(&self) -> Option<&VirtualMethods> {
+        Some(self.upcast::<SVGElement>() as &VirtualMethods)
     }
 }

@@ -2,12 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use crate::time;
-use crate::time::ProfilerCategory;
-use crate::time::ProfilerChan;
+use bincode;
 use ipc_channel::ipc;
 use serde::{Deserialize, Serialize};
 use std::io::Error;
+use time;
+use time::ProfilerCategory;
+use time::ProfilerChan;
 
 pub struct IpcReceiver<T>
 where
@@ -53,12 +54,14 @@ where
     Ok((ipc_sender, profiled_ipc_receiver))
 }
 
-pub struct IpcBytesReceiver {
+pub struct IpcBytesReceiver
+{
     ipc_bytes_receiver: ipc::IpcBytesReceiver,
     time_profile_chan: ProfilerChan,
 }
 
-impl IpcBytesReceiver {
+impl IpcBytesReceiver
+{
     pub fn recv(&self) -> Result<Vec<u8>, bincode::Error> {
         time::profile(
             ProfilerCategory::IpcBytesReceiver,
@@ -71,7 +74,8 @@ impl IpcBytesReceiver {
 
 pub fn bytes_channel(
     time_profile_chan: ProfilerChan,
-) -> Result<(ipc::IpcBytesSender, IpcBytesReceiver), Error> {
+) -> Result<(ipc::IpcBytesSender, IpcBytesReceiver), Error>
+{
     let (ipc_bytes_sender, ipc_bytes_receiver) = ipc::bytes_channel()?;
     let profiled_ipc_bytes_receiver = IpcBytesReceiver {
         ipc_bytes_receiver,

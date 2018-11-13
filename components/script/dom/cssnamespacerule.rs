@@ -2,14 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::codegen::Bindings::CSSNamespaceRuleBinding;
-use crate::dom::bindings::codegen::Bindings::CSSNamespaceRuleBinding::CSSNamespaceRuleMethods;
-use crate::dom::bindings::reflector::reflect_dom_object;
-use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::DOMString;
-use crate::dom::cssrule::{CSSRule, SpecificCSSRule};
-use crate::dom::cssstylesheet::CSSStyleSheet;
-use crate::dom::window::Window;
+use dom::bindings::codegen::Bindings::CSSNamespaceRuleBinding;
+use dom::bindings::codegen::Bindings::CSSNamespaceRuleBinding::CSSNamespaceRuleMethods;
+use dom::bindings::reflector::reflect_dom_object;
+use dom::bindings::root::DomRoot;
+use dom::bindings::str::DOMString;
+use dom::cssrule::{CSSRule, SpecificCSSRule};
+use dom::cssstylesheet::CSSStyleSheet;
+use dom::window::Window;
 use dom_struct::dom_struct;
 use servo_arc::Arc;
 use style::shared_lock::{Locked, ToCssWithGuard};
@@ -71,7 +71,7 @@ impl CSSNamespaceRuleMethods for CSSNamespaceRule {
 
 impl SpecificCSSRule for CSSNamespaceRule {
     fn ty(&self) -> u16 {
-        use crate::dom::bindings::codegen::Bindings::CSSRuleBinding::CSSRuleConstants;
+        use dom::bindings::codegen::Bindings::CSSRuleBinding::CSSRuleConstants;
         CSSRuleConstants::NAMESPACE_RULE
     }
 

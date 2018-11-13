@@ -77,7 +77,7 @@ function runTests(registration) {
           },
         ],
         method: 'basic-card',
-        capabilities: {supportedNetworks: ['mir']},
+        capabilities: {supportedNetworks: ['mir'], supportedTypes: ['prepaid']},
       },
     );
     const result = await registration.paymentManager.instruments.get(
@@ -104,7 +104,7 @@ function runTests(registration) {
           {src: '/images/green-16x16.png', sizes: '16x16', type: 'image/png'},
         ],
         method: 'basic-card',
-        capabilities: {supportedNetworks: ['mir']},
+        capabilities: {supportedNetworks: ['mir'], supportedTypes: ['prepaid']},
       },
     );
     let result = await registration.paymentManager.instruments.get(
@@ -120,6 +120,7 @@ function runTests(registration) {
     assert_equals(result.icons[0].type, 'image/png');
     assert_equals(result.method, 'basic-card');
     assert_array_equals(result.capabilities.supportedNetworks, ['mir']);
+    assert_array_equals(result.capabilities.supportedTypes, ['prepaid']);
     await registration.paymentManager.instruments.set(
       'existing-instrument-key',
       {
@@ -132,7 +133,7 @@ function runTests(registration) {
           },
         ],
         method: 'basic-card',
-        capabilities: {supportedNetworks: ['visa']},
+        capabilities: {supportedNetworks: ['visa'], supportedTypes: ['credit']},
       },
     );
     result = await registration.paymentManager.instruments.get(
@@ -148,6 +149,7 @@ function runTests(registration) {
     assert_equals(result.icons[0].type, 'image/png');
     assert_equals(result.method, 'basic-card');
     assert_array_equals(result.capabilities.supportedNetworks, ['visa']);
+    assert_array_equals(result.capabilities.supportedTypes, ['credit']);
   }, 'Resetting an existing instrument updates the instrument');
 
   promise_test(async t => {
@@ -164,7 +166,7 @@ function runTests(registration) {
           },
         ],
         method: 'basic-card',
-        capabilities: {supportedNetworks: ['mir']},
+        capabilities: {supportedNetworks: ['mir'], supportedTypes: ['prepaid']},
       },
     );
     await registration.paymentManager.instruments.clear();

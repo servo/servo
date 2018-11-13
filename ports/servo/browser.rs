@@ -2,14 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use crate::glutin_app::keyutils::{CMD_OR_CONTROL, CMD_OR_ALT};
-use crate::glutin_app::window::{Window, LINE_HEIGHT};
 use euclid::{TypedPoint2D, TypedVector2D};
-use keyboard_types::{Key, KeyboardEvent, Modifiers, ShortcutMatcher};
+use glutin_app::keyutils::{CMD_OR_CONTROL, CMD_OR_ALT};
+use glutin_app::window::{Window, LINE_HEIGHT};
 use servo::compositing::windowing::{WebRenderDebugOption, WindowEvent};
 use servo::embedder_traits::{EmbedderMsg, FilterPattern};
-use servo::msg::constellation_msg::{TopLevelBrowsingContextId as BrowserId};
-use servo::msg::constellation_msg::TraversalDirection;
+use servo::msg::constellation_msg::{Key, TopLevelBrowsingContextId as BrowserId};
+use servo::msg::constellation_msg::{KeyModifiers, KeyState, TraversalDirection};
 use servo::net_traits::pub_domains::is_reg_domain;
 use servo::script_traits::TouchEventType;
 use servo::servo_config::opts;
@@ -71,8 +70,8 @@ impl Browser {
     pub fn handle_window_events(&mut self, events: Vec<WindowEvent>) {
         for event in events {
             match event {
-                WindowEvent::Keyboard(key_event) => {
-                    self.handle_key_from_window(key_event);
+                WindowEvent::KeyEvent(ch, key, state, mods) => {
+                    self.handle_key_from_window(ch, key, state, mods);
                 },
                 event => {
                     self.event_queue.push(event);
@@ -86,14 +85,22 @@ impl Browser {
     }
 
     /// Handle key events before sending them to Servo.
-    fn handle_key_from_window(&mut self, key_event: KeyboardEvent) {
-        ShortcutMatcher::from_event(key_event.clone())
-            .shortcut(CMD_OR_CONTROL, 'R', || {
-                if let Some(id) = self.browser_id {
-                    self.event_queue.push(WindowEvent::Reload(id));
-                }
-            })
-            .shortcut(CMD_OR_CONTROL, 'L', || {
+    fn handle_key_from_window(
+        &mut self,
+        ch: Option<char>,
+        key: Key,
+        state: KeyState,
+        mods: KeyModifiers,
+    ) {
+        let pressed = state == KeyState::Pressed;
+        // We don't match the state in the parent `match` because we don't want to do anything
+        // on KeyState::Released when it's a combo that we handle on Pressed. For example,
+        // if we catch Alt-Left on pressed, we don't want the Release event to be sent to Servo.
+        match (mods, ch, key, self.browser_id) {
+            (CMD_OR_CONTROL, _, Key::R, Some(id)) => if pressed {
+                self.event_queue.push(WindowEvent::Reload(id));
+            },
+            (CMD_OR_CONTROL, _, Key::L, Some(id)) => if pressed {
                 let url: String = if let Some(ref current_url) = self.current_url {
                     current_url.to_string()
                 } else {
@@ -103,130 +110,163 @@ impl Browser {
                 let input = tinyfiledialogs::input_box(title, title, &url);
                 if let Some(input) = input {
                     if let Some(url) = sanitize_url(&input) {
-                        if let Some(id) = self.browser_id {
-                            self.event_queue.push(WindowEvent::LoadUrl(id, url));
-                        }
+                        self.event_queue.push(WindowEvent::LoadUrl(id, url));
                     }
                 }
-            })
-            .shortcut(CMD_OR_CONTROL, 'Q', || {
+            },
+            (CMD_OR_CONTROL, _, Key::Q, _) => if pressed {
                 self.event_queue.push(WindowEvent::Quit);
-            })
-            .shortcut(Modifiers::CONTROL, Key::F9, || {
-                self.event_queue.push(WindowEvent::CaptureWebRender)
-            })
-            .shortcut(Modifiers::CONTROL, Key::F10, || {
-                self.event_queue.push(WindowEvent::ToggleWebRenderDebug(
-                    WebRenderDebugOption::RenderTargetDebug,
-                ));
-            })
-            .shortcut(Modifiers::CONTROL, Key::F11, || {
-                self.event_queue.push(WindowEvent::ToggleWebRenderDebug(
-                    WebRenderDebugOption::TextureCacheDebug,
-                ));
-            })
-            .shortcut(Modifiers::CONTROL, Key::F12, || {
-                self.event_queue.push(WindowEvent::ToggleWebRenderDebug(
-                    WebRenderDebugOption::Profiler,
-                ));
-            })
-            .shortcut(CMD_OR_ALT, Key::ArrowRight, || {
-                if let Some(id) = self.browser_id {
-                    let event = WindowEvent::Navigation(id, TraversalDirection::Forward(1));
-                    self.event_queue.push(event);
+            },
+            (_, Some('3'), _, _) if mods ^ KeyModifiers::CONTROL == KeyModifiers::SHIFT => {
+                if pressed {
+                    self.event_queue.push(WindowEvent::CaptureWebRender);
                 }
-            })
-            .shortcut(CMD_OR_ALT, Key::ArrowLeft, || {
-                if let Some(id) = self.browser_id {
-                    let event = WindowEvent::Navigation(id, TraversalDirection::Back(1));
-                    self.event_queue.push(event);
-                }
-            })
-            .shortcut(Modifiers::empty(), Key::Escape, || {
+            },
+            (KeyModifiers::CONTROL, None, Key::F10, _) => if pressed {
+                let event =
+                    WindowEvent::ToggleWebRenderDebug(WebRenderDebugOption::RenderTargetDebug);
+                self.event_queue.push(event);
+            },
+            (KeyModifiers::CONTROL, None, Key::F11, _) => if pressed {
+                let event =
+                    WindowEvent::ToggleWebRenderDebug(WebRenderDebugOption::TextureCacheDebug);
+                self.event_queue.push(event);
+            },
+            (KeyModifiers::CONTROL, None, Key::F12, _) => if pressed {
+                let event = WindowEvent::ToggleWebRenderDebug(WebRenderDebugOption::Profiler);
+                self.event_queue.push(event);
+            },
+            (CMD_OR_ALT, None, Key::Right, Some(id)) |
+            (KeyModifiers::NONE, None, Key::NavigateForward, Some(id)) => if pressed {
+                let event = WindowEvent::Navigation(id, TraversalDirection::Forward(1));
+                self.event_queue.push(event);
+            },
+            (CMD_OR_ALT, None, Key::Left, Some(id)) |
+            (KeyModifiers::NONE, None, Key::NavigateBackward, Some(id)) => if pressed {
+                let event = WindowEvent::Navigation(id, TraversalDirection::Back(1));
+                self.event_queue.push(event);
+            },
+            (KeyModifiers::NONE, None, Key::Escape, _) => if pressed {
                 self.event_queue.push(WindowEvent::Quit);
-            })
-            .otherwise(|| self.platform_handle_key(key_event));
+            },
+            _ => {
+                self.platform_handle_key(ch, key, mods, state);
+            },
+        }
     }
 
     #[cfg(not(target_os = "win"))]
-    fn platform_handle_key(&mut self, key_event: KeyboardEvent) {
-        if let Some(id) = self.browser_id {
-            if let Some(event) = ShortcutMatcher::from_event(key_event.clone())
-                .shortcut(CMD_OR_CONTROL, '[', || {
-                    WindowEvent::Navigation(id, TraversalDirection::Back(1))
-                })
-                .shortcut(CMD_OR_CONTROL, ']', || {
-                    WindowEvent::Navigation(id, TraversalDirection::Forward(1))
-                })
-                .otherwise(|| WindowEvent::Keyboard(key_event))
-            {
-                self.event_queue.push(event)
-            }
+    fn platform_handle_key(
+        &mut self,
+        ch: Option<char>,
+        key: Key,
+        mods: KeyModifiers,
+        state: KeyState,
+    ) {
+        let pressed = state == KeyState::Pressed;
+        match (mods, key, self.browser_id) {
+            (CMD_OR_CONTROL, Key::LeftBracket, Some(id)) => if pressed {
+                let event = WindowEvent::Navigation(id, TraversalDirection::Back(1));
+                self.event_queue.push(event);
+            },
+            (CMD_OR_CONTROL, Key::RightBracket, Some(id)) => if pressed {
+                let event = WindowEvent::Navigation(id, TraversalDirection::Back(1));
+                self.event_queue.push(event);
+            },
+            _ => {
+                self.event_queue
+                    .push(WindowEvent::KeyEvent(ch, key, state, mods));
+            },
         }
     }
 
     #[cfg(target_os = "win")]
-    fn platform_handle_key(&mut self, _key_event: KeyboardEvent) {}
+    fn platform_handle_key(
+        &mut self,
+        _ch: Option<char>,
+        _key: Key,
+        _mods: KeyModifiers,
+        _state: KeyState,
+    ) {
+    }
 
     /// Handle key events after they have been handled by Servo.
-    fn handle_key_from_servo(&mut self, _: Option<BrowserId>, event: KeyboardEvent) {
-        ShortcutMatcher::from_event(event)
-            .shortcut(CMD_OR_CONTROL, '=', || {
-                self.event_queue.push(WindowEvent::Zoom(1.1))
-            })
-            .shortcut(CMD_OR_CONTROL, '+', || {
-                self.event_queue.push(WindowEvent::Zoom(1.1))
-            })
-            .shortcut(CMD_OR_CONTROL, '-', || {
-                self.event_queue.push(WindowEvent::Zoom(1.0 / 1.1))
-            })
-            .shortcut(CMD_OR_CONTROL, '0', || {
-                self.event_queue.push(WindowEvent::ResetZoom)
-            })
-            .shortcut(Modifiers::empty(), Key::PageDown, || {
+    fn handle_key_from_servo(
+        &mut self,
+        _: Option<BrowserId>,
+        ch: Option<char>,
+        key: Key,
+        state: KeyState,
+        mods: KeyModifiers,
+    ) {
+        if state == KeyState::Released {
+            return;
+        }
+
+        match (mods, ch, key) {
+            (CMD_OR_CONTROL, Some('='), _) | (CMD_OR_CONTROL, Some('+'), _) => {
+                self.event_queue.push(WindowEvent::Zoom(1.1));
+            },
+            (_, Some('='), _) if mods == (CMD_OR_CONTROL | KeyModifiers::SHIFT) => {
+                self.event_queue.push(WindowEvent::Zoom(1.1));
+            },
+            (CMD_OR_CONTROL, Some('-'), _) => {
+                self.event_queue.push(WindowEvent::Zoom(1.0 / 1.1));
+            },
+            (CMD_OR_CONTROL, Some('0'), _) => {
+                self.event_queue.push(WindowEvent::ResetZoom);
+            },
+
+            (KeyModifiers::NONE, None, Key::PageDown) => {
                 let scroll_location = ScrollLocation::Delta(TypedVector2D::new(
                     0.0,
                     -self.window.page_height() + 2.0 * LINE_HEIGHT,
                 ));
                 self.scroll_window_from_key(scroll_location, TouchEventType::Move);
-            })
-            .shortcut(Modifiers::empty(), Key::PageUp, || {
+            },
+            (KeyModifiers::NONE, None, Key::PageUp) => {
                 let scroll_location = ScrollLocation::Delta(TypedVector2D::new(
                     0.0,
                     self.window.page_height() - 2.0 * LINE_HEIGHT,
                 ));
                 self.scroll_window_from_key(scroll_location, TouchEventType::Move);
-            })
-            .shortcut(Modifiers::empty(), Key::Home, || {
+            },
+
+            (KeyModifiers::NONE, None, Key::Home) => {
                 self.scroll_window_from_key(ScrollLocation::Start, TouchEventType::Move);
-            })
-            .shortcut(Modifiers::empty(), Key::End, || {
+            },
+
+            (KeyModifiers::NONE, None, Key::End) => {
                 self.scroll_window_from_key(ScrollLocation::End, TouchEventType::Move);
-            })
-            .shortcut(Modifiers::empty(), Key::ArrowUp, || {
+            },
+
+            (KeyModifiers::NONE, None, Key::Up) => {
                 self.scroll_window_from_key(
                     ScrollLocation::Delta(TypedVector2D::new(0.0, 3.0 * LINE_HEIGHT)),
                     TouchEventType::Move,
                 );
-            })
-            .shortcut(Modifiers::empty(), Key::ArrowDown, || {
+            },
+            (KeyModifiers::NONE, None, Key::Down) => {
                 self.scroll_window_from_key(
                     ScrollLocation::Delta(TypedVector2D::new(0.0, -3.0 * LINE_HEIGHT)),
                     TouchEventType::Move,
                 );
-            })
-            .shortcut(Modifiers::empty(), Key::ArrowLeft, || {
+            },
+            (KeyModifiers::NONE, None, Key::Left) => {
                 self.scroll_window_from_key(
                     ScrollLocation::Delta(TypedVector2D::new(LINE_HEIGHT, 0.0)),
                     TouchEventType::Move,
                 );
-            })
-            .shortcut(Modifiers::empty(), Key::ArrowRight, || {
+            },
+            (KeyModifiers::NONE, None, Key::Right) => {
                 self.scroll_window_from_key(
                     ScrollLocation::Delta(TypedVector2D::new(-LINE_HEIGHT, 0.0)),
                     TouchEventType::Move,
                 );
-            });
+            },
+
+            _ => {},
+        }
     }
 
     fn scroll_window_from_key(&mut self, scroll_location: ScrollLocation, phase: TouchEventType) {
@@ -271,8 +311,7 @@ impl Browser {
                                     &message,
                                     MessageBoxIcon::Warning,
                                 );
-                            })
-                            .unwrap()
+                            }).unwrap()
                             .join()
                             .expect("Thread spawning failed");
                     }
@@ -311,8 +350,8 @@ impl Browser {
                     self.event_queue
                         .push(WindowEvent::SelectBrowser(new_browser_id));
                 },
-                EmbedderMsg::Keyboard(key_event) => {
-                    self.handle_key_from_servo(browser_id, key_event);
+                EmbedderMsg::KeyEvent(ch, key, state, modified) => {
+                    self.handle_key_from_servo(browser_id, ch, key, state, modified);
                 },
                 EmbedderMsg::SetCursor(cursor) => {
                     self.window.set_cursor(cursor);
@@ -399,8 +438,7 @@ fn platform_get_selected_devices(devices: Vec<String>) -> Option<String> {
                 },
                 None => None,
             }
-        })
-        .unwrap()
+        }).unwrap()
         .join()
         .expect("Thread spawning failed")
 }
@@ -442,8 +480,7 @@ fn get_selected_files(patterns: Vec<FilterPattern>, multiple_files: bool) -> Opt
                 let file = tinyfiledialogs::open_file_dialog(picker_name, "", filter_opt);
                 file.map(|x| vec![x])
             }
-        })
-        .unwrap()
+        }).unwrap()
         .join()
         .expect("Thread spawning failed")
 }
@@ -458,8 +495,7 @@ fn sanitize_url(request: &str) -> Option<ServoUrl> {
             } else {
                 None
             }
-        })
-        .or_else(|| {
+        }).or_else(|| {
             PREFS
                 .get("shell.searchpage")
                 .as_string()

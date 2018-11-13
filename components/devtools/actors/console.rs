@@ -7,15 +7,15 @@
 //! Mediates interaction between the remote web console and equivalent functionality (object
 //! inspection, JS evaluation, autocompletion) in Servo.
 
-use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
-use crate::actors::object::ObjectActor;
-use crate::protocol::JsonPacketStream;
+use actor::{Actor, ActorMessageStatus, ActorRegistry};
+use actors::object::ObjectActor;
+use devtools_traits::{CachedConsoleMessageTypes, DevtoolScriptControlMsg};
 use devtools_traits::CachedConsoleMessage;
 use devtools_traits::EvaluateJSReply::{ActorValue, BooleanValue, StringValue};
 use devtools_traits::EvaluateJSReply::{NullValue, NumberValue, VoidValue};
-use devtools_traits::{CachedConsoleMessageTypes, DevtoolScriptControlMsg};
 use ipc_channel::ipc::{self, IpcSender};
 use msg::constellation_msg::PipelineId;
+use protocol::JsonPacketStream;
 use serde_json::{self, Map, Number, Value};
 use std::cell::RefCell;
 use std::net::TcpStream;
@@ -126,8 +126,7 @@ impl Actor for ConsoleActor {
                         self.pipeline,
                         message_types,
                         chan,
-                    ))
-                    .unwrap();
+                    )).unwrap();
                 let messages = port
                     .recv()
                     .map_err(|_| ())?
@@ -136,8 +135,7 @@ impl Actor for ConsoleActor {
                         let json_string = message.encode().unwrap();
                         let json = serde_json::from_str::<Value>(&json_string).unwrap();
                         json.as_object().unwrap().to_owned()
-                    })
-                    .collect();
+                    }).collect();
 
                 let msg = GetCachedMessagesReply {
                     from: self.name(),
@@ -198,8 +196,7 @@ impl Actor for ConsoleActor {
                         self.pipeline,
                         input.clone(),
                         chan,
-                    ))
-                    .unwrap();
+                    )).unwrap();
 
                 //TODO: extract conversion into protocol module or some other useful place
                 let result = match port.recv().map_err(|_| ())? {

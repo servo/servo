@@ -2,17 +2,17 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::callback::ExceptionHandling::Rethrow;
-use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
-use crate::dom::bindings::codegen::Bindings::NodeFilterBinding::NodeFilter;
-use crate::dom::bindings::codegen::Bindings::NodeFilterBinding::NodeFilterConstants;
-use crate::dom::bindings::codegen::Bindings::NodeIteratorBinding;
-use crate::dom::bindings::codegen::Bindings::NodeIteratorBinding::NodeIteratorMethods;
-use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
-use crate::dom::bindings::root::{Dom, DomRoot, MutDom};
-use crate::dom::document::Document;
-use crate::dom::node::Node;
+use dom::bindings::callback::ExceptionHandling::Rethrow;
+use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
+use dom::bindings::codegen::Bindings::NodeFilterBinding::NodeFilter;
+use dom::bindings::codegen::Bindings::NodeFilterBinding::NodeFilterConstants;
+use dom::bindings::codegen::Bindings::NodeIteratorBinding;
+use dom::bindings::codegen::Bindings::NodeIteratorBinding::NodeIteratorMethods;
+use dom::bindings::error::{Error, Fallible};
+use dom::bindings::reflector::{Reflector, reflect_dom_object};
+use dom::bindings::root::{Dom, DomRoot, MutDom};
+use dom::document::Document;
+use dom::node::Node;
 use dom_struct::dom_struct;
 use std::cell::Cell;
 use std::rc::Rc;

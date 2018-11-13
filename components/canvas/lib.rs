@@ -4,8 +4,21 @@
 
 #![deny(unsafe_code)]
 
-#[macro_use]
-extern crate log;
+extern crate azure;
+extern crate canvas_traits;
+extern crate compositing;
+extern crate cssparser;
+extern crate euclid;
+extern crate fnv;
+extern crate gleam;
+extern crate ipc_channel;
+#[macro_use] extern crate log;
+extern crate num_traits;
+extern crate offscreen_gl_context;
+extern crate serde_bytes;
+extern crate servo_config;
+extern crate webrender;
+extern crate webrender_api;
 
 pub mod canvas_data;
 pub mod canvas_paint_thread;

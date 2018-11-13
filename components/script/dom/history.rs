@@ -2,22 +2,22 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::codegen::Bindings::HistoryBinding;
-use crate::dom::bindings::codegen::Bindings::HistoryBinding::HistoryMethods;
-use crate::dom::bindings::codegen::Bindings::LocationBinding::LocationBinding::LocationMethods;
-use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
-use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
-use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
-use crate::dom::bindings::root::{Dom, DomRoot};
-use crate::dom::bindings::str::{DOMString, USVString};
-use crate::dom::bindings::structuredclone::StructuredCloneData;
-use crate::dom::event::Event;
-use crate::dom::eventtarget::EventTarget;
-use crate::dom::globalscope::GlobalScope;
-use crate::dom::hashchangeevent::HashChangeEvent;
-use crate::dom::popstateevent::PopStateEvent;
-use crate::dom::window::Window;
+use dom::bindings::codegen::Bindings::HistoryBinding;
+use dom::bindings::codegen::Bindings::HistoryBinding::HistoryMethods;
+use dom::bindings::codegen::Bindings::LocationBinding::LocationBinding::LocationMethods;
+use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
+use dom::bindings::error::{Error, ErrorResult, Fallible};
+use dom::bindings::inheritance::Castable;
+use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
+use dom::bindings::root::{Dom, DomRoot};
+use dom::bindings::str::{DOMString, USVString};
+use dom::bindings::structuredclone::StructuredCloneData;
+use dom::event::Event;
+use dom::eventtarget::EventTarget;
+use dom::globalscope::GlobalScope;
+use dom::hashchangeevent::HashChangeEvent;
+use dom::popstateevent::PopStateEvent;
+use dom::window::Window;
 use dom_struct::dom_struct;
 use js::jsapi::{Heap, JSContext};
 use js::jsval::{JSVal, NullValue, UndefinedValue};

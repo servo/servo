@@ -12,7 +12,7 @@ doctest = false
 [dependencies]
 byteorder = "1.0"
 app_units = "0.7"
-cssparser = "0.25"
+cssparser = "0.24.0"
 euclid = "0.19"
 html5ever = "0.22"
 parking_lot = "0.6"
@@ -26,4 +26,3 @@ servo_url = {path = "../../../components/url"}
 size_of_test = {path = "../../../components/size_of_test"}
 style = {path = "../../../components/style"}
 style_traits = {path = "../../../components/style_traits"}
-std_test_override = { path = "../../../components/std_test_override" }

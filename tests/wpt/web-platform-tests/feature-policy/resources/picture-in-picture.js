@@ -1,21 +1,10 @@
-function async_pip_test(func, name) {
-  async_test(t => {
-    assert_true('pictureInPictureEnabled' in document, 'Picture-in-Picture API is available');
-    func(t);
-  }, name);
-}
-
-function promise_pip_test(func, name) {
-  promise_test(async t => {
-    assert_true('pictureInPictureEnabled' in document, 'Picture-in-Picture API is available');
-    return func(t);
-  }, name);
-}
-
 function isPictureInPictureAllowed() {
+  if (!('pictureInPictureEnabled' in document))
+    return Promise.resolve(false);
+
   return new Promise(resolve => {
     let video = document.createElement('video');
-    video.src = getVideoURI('/media/movie_5');
+    video.src = '/media/movie_5.ogv';
     video.onloadedmetadata = () => {
       video.requestPictureInPicture()
       .then(() => resolve(document.pictureInPictureEnabled))

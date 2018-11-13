@@ -4,12 +4,10 @@
 
 //! Traversals over the DOM and flow trees, running the layout computations.
 
-use crate::construct::FlowConstructor;
-use crate::context::LayoutContext;
-use crate::display_list::DisplayListBuildState;
-use crate::flow::{Flow, FlowFlags, GetBaseFlow, ImmutableFlowUtils};
-use crate::wrapper::ThreadSafeLayoutNodeHelpers;
-use crate::wrapper::{GetRawData, LayoutNodeLayoutData};
+use construct::FlowConstructor;
+use context::LayoutContext;
+use display_list::DisplayListBuildState;
+use flow::{FlowFlags, Flow, GetBaseFlow, ImmutableFlowUtils};
 use script_layout_interface::wrapper_traits::{LayoutNode, ThreadSafeLayoutNode};
 use servo_config::opts;
 use style::context::{SharedStyleContext, StyleContext};
@@ -17,8 +15,10 @@ use style::data::ElementData;
 use style::dom::{NodeInfo, TElement, TNode};
 use style::selector_parser::RestyleDamage;
 use style::servo::restyle_damage::ServoRestyleDamage;
+use style::traversal::{DomTraversal, recalc_style_at};
 use style::traversal::PerLevelTraversalData;
-use style::traversal::{recalc_style_at, DomTraversal};
+use wrapper::{GetRawData, LayoutNodeLayoutData};
+use wrapper::ThreadSafeLayoutNodeHelpers;
 
 pub struct RecalcStyleAndConstructFlows<'a> {
     context: LayoutContext<'a>,
@@ -90,23 +90,23 @@ where
 /// A top-down traversal.
 pub trait PreorderFlowTraversal {
     /// The operation to perform. Return true to continue or false to stop.
-    fn process(&self, flow: &mut dyn Flow);
+    fn process(&self, flow: &mut Flow);
 
     /// Returns true if this node should be processed and false if neither this node nor its
     /// descendants should be processed.
-    fn should_process_subtree(&self, _flow: &mut dyn Flow) -> bool {
+    fn should_process_subtree(&self, _flow: &mut Flow) -> bool {
         true
     }
 
     /// Returns true if this node must be processed in-order. If this returns false,
     /// we skip the operation for this node, but continue processing the descendants.
     /// This is called *after* parent nodes are visited.
-    fn should_process(&self, _flow: &mut dyn Flow) -> bool {
+    fn should_process(&self, _flow: &mut Flow) -> bool {
         true
     }
 
     /// Traverses the tree in preorder.
-    fn traverse(&self, flow: &mut dyn Flow) {
+    fn traverse(&self, flow: &mut Flow) {
         if !self.should_process_subtree(flow) {
             return;
         }
@@ -124,7 +124,7 @@ pub trait PreorderFlowTraversal {
     /// their direct absolute descendants.
     ///
     /// Return true if the traversal is to continue or false to stop.
-    fn traverse_absolute_flows(&self, flow: &mut dyn Flow) {
+    fn traverse_absolute_flows(&self, flow: &mut Flow) {
         if self.should_process(flow) {
             self.process(flow);
         }
@@ -137,17 +137,17 @@ pub trait PreorderFlowTraversal {
 /// A bottom-up traversal, with a optional in-order pass.
 pub trait PostorderFlowTraversal {
     /// The operation to perform. Return true to continue or false to stop.
-    fn process(&self, flow: &mut dyn Flow);
+    fn process(&self, flow: &mut Flow);
 
     /// Returns false if this node must be processed in-order. If this returns false, we skip the
     /// operation for this node, but continue processing the ancestors. This is called *after*
     /// child nodes are visited.
-    fn should_process(&self, _flow: &mut dyn Flow) -> bool {
+    fn should_process(&self, _flow: &mut Flow) -> bool {
         true
     }
 
     /// Traverses the tree in postorder.
-    fn traverse(&self, flow: &mut dyn Flow) {
+    fn traverse(&self, flow: &mut Flow) {
         for kid in flow.mut_base().child_iter_mut() {
             self.traverse(kid);
         }
@@ -160,16 +160,16 @@ pub trait PostorderFlowTraversal {
 /// An in-order (sequential only) traversal.
 pub trait InorderFlowTraversal {
     /// The operation to perform. Returns the level of the tree we're at.
-    fn process(&mut self, flow: &mut dyn Flow, level: u32);
+    fn process(&mut self, flow: &mut Flow, level: u32);
 
     /// Returns true if this node should be processed and false if neither this node nor its
     /// descendants should be processed.
-    fn should_process_subtree(&mut self, _flow: &mut dyn Flow) -> bool {
+    fn should_process_subtree(&mut self, _flow: &mut Flow) -> bool {
         true
     }
 
     /// Traverses the tree in-order.
-    fn traverse(&mut self, flow: &mut dyn Flow, level: u32) {
+    fn traverse(&mut self, flow: &mut Flow, level: u32) {
         if !self.should_process_subtree(flow) {
             return;
         }
@@ -220,7 +220,7 @@ where
             .mutate_layout_data()
             .unwrap()
             .flags
-            .insert(crate::data::LayoutDataFlags::HAS_BEEN_TRAVERSED);
+            .insert(::data::LayoutDataFlags::HAS_BEEN_TRAVERSED);
     }
 
     if let Some(el) = node.as_element() {
@@ -238,7 +238,7 @@ pub struct BubbleISizes<'a> {
 
 impl<'a> PostorderFlowTraversal for BubbleISizes<'a> {
     #[inline]
-    fn process(&self, flow: &mut dyn Flow) {
+    fn process(&self, flow: &mut Flow) {
         flow.bubble_inline_sizes();
         flow.mut_base()
             .restyle_damage
@@ -246,7 +246,7 @@ impl<'a> PostorderFlowTraversal for BubbleISizes<'a> {
     }
 
     #[inline]
-    fn should_process(&self, flow: &mut dyn Flow) -> bool {
+    fn should_process(&self, flow: &mut Flow) -> bool {
         flow.base()
             .restyle_damage
             .contains(ServoRestyleDamage::BUBBLE_ISIZES)
@@ -261,12 +261,12 @@ pub struct AssignISizes<'a> {
 
 impl<'a> PreorderFlowTraversal for AssignISizes<'a> {
     #[inline]
-    fn process(&self, flow: &mut dyn Flow) {
+    fn process(&self, flow: &mut Flow) {
         flow.assign_inline_sizes(self.layout_context);
     }
 
     #[inline]
-    fn should_process(&self, flow: &mut dyn Flow) -> bool {
+    fn should_process(&self, flow: &mut Flow) -> bool {
         flow.base()
             .restyle_damage
             .intersects(ServoRestyleDamage::REFLOW_OUT_OF_FLOW | ServoRestyleDamage::REFLOW)
@@ -283,7 +283,7 @@ pub struct AssignBSizes<'a> {
 
 impl<'a> PostorderFlowTraversal for AssignBSizes<'a> {
     #[inline]
-    fn process(&self, flow: &mut dyn Flow) {
+    fn process(&self, flow: &mut Flow) {
         // Can't do anything with anything that floats might flow through until we reach their
         // inorder parent.
         //
@@ -297,7 +297,7 @@ impl<'a> PostorderFlowTraversal for AssignBSizes<'a> {
     }
 
     #[inline]
-    fn should_process(&self, flow: &mut dyn Flow) -> bool {
+    fn should_process(&self, flow: &mut Flow) -> bool {
         let base = flow.base();
         base.restyle_damage.intersects(ServoRestyleDamage::REFLOW_OUT_OF_FLOW | ServoRestyleDamage::REFLOW) &&
         // The fragmentation countainer is responsible for calling
@@ -312,14 +312,14 @@ pub struct ComputeStackingRelativePositions<'a> {
 
 impl<'a> PreorderFlowTraversal for ComputeStackingRelativePositions<'a> {
     #[inline]
-    fn should_process_subtree(&self, flow: &mut dyn Flow) -> bool {
+    fn should_process_subtree(&self, flow: &mut Flow) -> bool {
         flow.base()
             .restyle_damage
             .contains(ServoRestyleDamage::REPOSITION)
     }
 
     #[inline]
-    fn process(&self, flow: &mut dyn Flow) {
+    fn process(&self, flow: &mut Flow) {
         flow.compute_stacking_relative_position(self.layout_context);
         flow.mut_base()
             .restyle_damage
@@ -333,7 +333,7 @@ pub struct BuildDisplayList<'a> {
 
 impl<'a> BuildDisplayList<'a> {
     #[inline]
-    pub fn traverse(&mut self, flow: &mut dyn Flow) {
+    pub fn traverse(&mut self, flow: &mut Flow) {
         let parent_stacking_context_id = self.state.current_stacking_context_id;
         self.state.current_stacking_context_id = flow.base().stacking_context_id;
 

@@ -2,15 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::codegen::Bindings::HTMLLIElementBinding;
-use crate::dom::bindings::codegen::Bindings::HTMLLIElementBinding::HTMLLIElementMethods;
-use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::DOMString;
-use crate::dom::document::Document;
-use crate::dom::htmlelement::HTMLElement;
-use crate::dom::node::Node;
-use crate::dom::virtualmethods::VirtualMethods;
+use dom::bindings::codegen::Bindings::HTMLLIElementBinding;
+use dom::bindings::codegen::Bindings::HTMLLIElementBinding::HTMLLIElementMethods;
+use dom::bindings::inheritance::Castable;
+use dom::bindings::root::DomRoot;
+use dom::bindings::str::DOMString;
+use dom::document::Document;
+use dom::htmlelement::HTMLElement;
+use dom::node::Node;
+use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
 use style::attr::AttrValue;
@@ -54,8 +54,8 @@ impl HTMLLIElementMethods for HTMLLIElement {
 }
 
 impl VirtualMethods for HTMLLIElement {
-    fn super_type(&self) -> Option<&dyn VirtualMethods> {
-        Some(self.upcast::<HTMLElement>() as &dyn VirtualMethods)
+    fn super_type(&self) -> Option<&VirtualMethods> {
+        Some(self.upcast::<HTMLElement>() as &VirtualMethods)
     }
 
     fn parse_plain_attribute(&self, name: &LocalName, value: DOMString) -> AttrValue {

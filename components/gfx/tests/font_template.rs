@@ -2,6 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#[cfg(not(target_os = "macos"))]
+extern crate gfx;
+#[cfg(not(target_os = "macos"))]
+extern crate servo_atoms;
+#[cfg(not(target_os = "macos"))]
+extern crate style;
+
 // Test doesn't yet run on Mac, see https://github.com/servo/servo/pull/19928 for explanation.
 #[cfg(not(target_os = "macos"))]
 #[test]
@@ -12,10 +19,10 @@ fn test_font_template_descriptor() {
     use std::fs::File;
     use std::io::prelude::*;
     use std::path::PathBuf;
-    use style::values::computed::font::{FontStretch, FontWeight};
     use style::values::computed::Percentage;
-    use style::values::generics::font::FontStyle;
+    use style::values::computed::font::{FontStretch, FontWeight};
     use style::values::generics::NonNegative;
+    use style::values::generics::font::FontStyle;
 
     fn descriptor(filename: &str) -> FontTemplateDescriptor {
         let mut path: PathBuf = [
@@ -34,8 +41,7 @@ fn test_font_template_descriptor() {
         let mut template = FontTemplate::new(
             Atom::from(filename),
             Some(file.bytes().map(|b| b.unwrap()).collect()),
-        )
-        .unwrap();
+        ).unwrap();
 
         let context = FontContextHandle::new();
 

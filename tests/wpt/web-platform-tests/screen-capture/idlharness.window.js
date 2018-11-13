@@ -7,10 +7,10 @@
 
 idl_test(
   ['screen-capture'],
-  ['mediacapture-streams', 'html', 'dom'],
+  ['mediacapture-streams', 'html'],
   idl_array => {
     idl_array.add_objects({
-      MediaDevices: ['navigator.mediaDevices'],
+      Navigator: ['navigator'],
     });
   }
 );

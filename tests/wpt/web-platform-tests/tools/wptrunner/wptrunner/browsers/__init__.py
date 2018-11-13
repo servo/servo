@@ -15,7 +15,7 @@ a dictionary with the fields
 "executor_kwargs": String naming a function that takes http server url and
                    timeout multiplier and returns kwargs to use when creating
                    the executor class.
-"env_options": String naming a function of no arguments that returns the
+"env_options": String naming a funtion of no arguments that returns the
                arguments passed to the TestEnvironment.
 
 All classes and functions named in the above dict must be imported into the
@@ -24,6 +24,7 @@ module global scope.
 
 product_list = ["chrome",
                 "chrome_android",
+                "chrome_webdriver",
                 "edge",
                 "edge_webdriver",
                 "fennec",

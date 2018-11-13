@@ -2,10 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use crate::energy::read_energy_uj;
+extern crate time as std_time;
+
+use energy::read_energy_uj;
 use ipc_channel::ipc::IpcSender;
+use self::std_time::precise_time_ns;
 use servo_config::opts;
-use time::precise_time_ns;
+use signpost;
 
 #[derive(Clone, Debug, Deserialize, Eq, Ord, PartialEq, PartialOrd, Serialize)]
 pub struct TimerMetadata {
@@ -14,7 +17,7 @@ pub struct TimerMetadata {
     pub incremental: TimerMetadataReflowType,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize)]
 pub struct ProfilerChan(pub IpcSender<ProfilerMsg>);
 
 impl ProfilerChan {
@@ -25,13 +28,13 @@ impl ProfilerChan {
     }
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize)]
 pub enum ProfilerData {
     NoRecords,
     Record(Vec<f64>),
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize)]
 pub enum ProfilerMsg {
     /// Normal message used for reporting time
     Time(

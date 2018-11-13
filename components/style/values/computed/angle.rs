@@ -5,41 +5,38 @@
 //! Computed angles.
 
 use num_traits::Zero;
-use std::f64::consts::PI;
-use std::fmt::{self, Write};
-use std::ops::Add;
 use std::{f32, f64};
-use style_traits::{CssWriter, ToCss};
-use values::distance::{ComputeSquaredDistance, SquaredDistance};
+use std::f64::consts::PI;
+use std::ops::Add;
 use values::CSSFloat;
+use values::animated::{Animate, Procedure};
+use values::distance::{ComputeSquaredDistance, SquaredDistance};
 
-/// A computed angle in degrees.
+/// A computed angle.
+#[animate(fallback = "Self::animate_fallback")]
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
-#[derive(Animate, Clone, Copy, Debug, MallocSizeOf, PartialEq, PartialOrd, ToAnimatedZero)]
-pub struct Angle(CSSFloat);
-
-impl ToCss for Angle {
-    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
-    where
-        W: Write,
-    {
-        self.degrees().to_css(dest)?;
-        dest.write_str("deg")
-    }
+#[derive(
+    Animate, Clone, Copy, Debug, MallocSizeOf, PartialEq, PartialOrd, ToAnimatedZero, ToCss,
+)]
+pub enum Angle {
+    /// An angle with degree unit.
+    #[css(dimension)]
+    Deg(CSSFloat),
+    /// An angle with gradian unit.
+    #[css(dimension)]
+    Grad(CSSFloat),
+    /// An angle with radian unit.
+    #[css(dimension)]
+    Rad(CSSFloat),
+    /// An angle with turn unit.
+    #[css(dimension)]
+    Turn(CSSFloat),
 }
-
-const RAD_PER_DEG: f64 = PI / 180.0;
 
 impl Angle {
     /// Creates a computed `Angle` value from a radian amount.
     pub fn from_radians(radians: CSSFloat) -> Self {
-        Angle(radians / RAD_PER_DEG as f32)
-    }
-
-    /// Creates a computed `Angle` value from a degrees amount.
-    #[inline]
-    pub fn from_degrees(degrees: CSSFloat) -> Self {
-        Angle(degrees)
+        Angle::Rad(radians)
     }
 
     /// Returns the amount of radians this angle represents.
@@ -51,18 +48,43 @@ impl Angle {
     /// Returns the amount of radians this angle represents as a `f64`.
     ///
     /// Gecko stores angles as singles, but does this computation using doubles.
-    ///
+    /// See nsCSSValue::GetAngleValueInRadians.
     /// This is significant enough to mess up rounding to the nearest
     /// quarter-turn for 225 degrees, for example.
     #[inline]
     pub fn radians64(&self) -> f64 {
-        self.0 as f64 * RAD_PER_DEG
+        const RAD_PER_DEG: f64 = PI / 180.0;
+        const RAD_PER_GRAD: f64 = PI / 200.0;
+        const RAD_PER_TURN: f64 = PI * 2.0;
+
+        let radians = match *self {
+            Angle::Deg(val) => val as f64 * RAD_PER_DEG,
+            Angle::Grad(val) => val as f64 * RAD_PER_GRAD,
+            Angle::Turn(val) => val as f64 * RAD_PER_TURN,
+            Angle::Rad(val) => val as f64,
+        };
+        radians.min(f64::MAX).max(f64::MIN)
     }
 
     /// Return the value in degrees.
+    pub fn degrees(&self) -> f32 {
+        use std::f32::consts::PI;
+        self.radians() * 360. / (2. * PI)
+    }
+
+    /// <https://drafts.csswg.org/css-transitions/#animtype-number>
     #[inline]
-    pub fn degrees(&self) -> CSSFloat {
-        self.0
+    fn animate_fallback(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
+        Ok(Angle::from_radians(
+            self.radians().animate(&other.radians(), procedure)?,
+        ))
+    }
+}
+
+impl AsRef<Angle> for Angle {
+    #[inline]
+    fn as_ref(&self) -> &Self {
+        self
     }
 }
 
@@ -71,19 +93,27 @@ impl Add for Angle {
 
     #[inline]
     fn add(self, rhs: Self) -> Self {
-        Angle(self.0 + rhs.0)
+        match (self, rhs) {
+            (Angle::Deg(x), Angle::Deg(y)) => Angle::Deg(x + y),
+            (Angle::Grad(x), Angle::Grad(y)) => Angle::Grad(x + y),
+            (Angle::Turn(x), Angle::Turn(y)) => Angle::Turn(x + y),
+            (Angle::Rad(x), Angle::Rad(y)) => Angle::Rad(x + y),
+            _ => Angle::from_radians(self.radians() + rhs.radians()),
+        }
     }
 }
 
 impl Zero for Angle {
     #[inline]
     fn zero() -> Self {
-        Angle(0.0)
+        Angle::from_radians(0.0)
     }
 
     #[inline]
     fn is_zero(&self) -> bool {
-        self.0 == 0.
+        match *self {
+            Angle::Deg(val) | Angle::Grad(val) | Angle::Turn(val) | Angle::Rad(val) => val == 0.,
+        }
     }
 }
 

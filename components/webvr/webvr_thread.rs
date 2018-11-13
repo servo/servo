@@ -11,10 +11,10 @@ use rust_webvr::VRServiceManager;
 use script_traits::ConstellationMsg;
 use servo_channel::{channel, Receiver, Sender};
 use servo_config::prefs::PREFS;
-use std::collections::{HashMap, HashSet};
 use std::{thread, time};
-use webvr_traits::webvr::*;
+use std::collections::{HashMap, HashSet};
 use webvr_traits::{WebVRMsg, WebVRResult};
+use webvr_traits::webvr::*;
 
 /// WebVRThread owns native VRDisplays, handles their life cycle inside Servo and
 /// acts a doorman for untrusted VR requests from DOM Objects. These are the key components
@@ -82,10 +82,8 @@ impl WebVRThread {
                     sender_clone,
                     constellation_chan,
                     vr_compositor_chan,
-                )
-                .start();
-            })
-            .expect("Thread spawning failed");
+                ).start();
+            }).expect("Thread spawning failed");
 
         (sender, constellation_sender)
     }
@@ -265,8 +263,7 @@ impl WebVRThread {
                     Some(g.data())
                 };
                 (data, g.state())
-            })
-            .collect();
+            }).collect();
         sender.send(Ok(data)).unwrap();
     }
 
@@ -327,8 +324,7 @@ impl WebVRThread {
                     }
                     thread::sleep(time::Duration::from_millis(polling_interval));
                 }
-            })
-            .expect("Thread spawning failed");
+            }).expect("Thread spawning failed");
     }
 }
 
@@ -347,7 +343,7 @@ impl WebVRThread {
 ///    * WebVRThread and its VRDisplays are destroyed after all tabs are dropped and the browser is about to exit.
 ///      WebVRThread is closed using the Exit message.
 
-pub struct WebVRCompositor(*mut dyn VRDisplay);
+pub struct WebVRCompositor(*mut VRDisplay);
 pub struct WebVRCompositorHandler {
     compositors: HashMap<webgl::WebVRDeviceId, WebVRCompositor>,
     webvr_thread_receiver: Receiver<Option<WebVRCompositor>>,

@@ -24,13 +24,13 @@
 //! originating `DomRoot<T>`.
 //!
 
-use crate::dom::bindings::conversions::DerivedFrom;
-use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::{DomObject, Reflector};
-use crate::dom::bindings::trace::trace_reflector;
-use crate::dom::bindings::trace::JSTraceable;
-use crate::dom::node::Node;
-use js::jsapi::{Heap, JSObject, JSTracer};
+use dom::bindings::conversions::DerivedFrom;
+use dom::bindings::inheritance::Castable;
+use dom::bindings::reflector::{DomObject, Reflector};
+use dom::bindings::trace::JSTraceable;
+use dom::bindings::trace::trace_reflector;
+use dom::node::Node;
+use js::jsapi::{JSObject, JSTracer, Heap};
 use js::rust::GCMethods;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use mitochondria::OnceCell;
@@ -78,14 +78,14 @@ where
 pub unsafe trait StableTraceObject {
     /// Returns a stable trace object which address won't change for the whole
     /// lifetime of the value.
-    fn stable_trace_object(&self) -> *const dyn JSTraceable;
+    fn stable_trace_object(&self) -> *const JSTraceable;
 }
 
 unsafe impl<T> StableTraceObject for Dom<T>
 where
     T: DomObject,
 {
-    fn stable_trace_object<'a>(&'a self) -> *const dyn JSTraceable {
+    fn stable_trace_object<'a>(&'a self) -> *const JSTraceable {
         // The JSTraceable impl for Reflector doesn't actually do anything,
         // so we need this shenanigan to actually trace the reflector of the
         // T pointer in Dom<T>.
@@ -198,7 +198,7 @@ where
 /// See also [*Exact Stack Rooting - Storing a GCPointer on the CStack*]
 /// (https://developer.mozilla.org/en-US/docs/Mozilla/Projects/SpiderMonkey/Internals/GC/Exact_Stack_Rooting).
 pub struct RootCollection {
-    roots: UnsafeCell<Vec<*const dyn JSTraceable>>,
+    roots: UnsafeCell<Vec<*const JSTraceable>>,
 }
 
 thread_local!(static STACK_ROOTS: Cell<Option<*const RootCollection>> = Cell::new(None));
@@ -228,13 +228,13 @@ impl RootCollection {
     }
 
     /// Starts tracking a trace object.
-    unsafe fn root(&self, object: *const dyn JSTraceable) {
+    unsafe fn root(&self, object: *const JSTraceable) {
         debug_assert!(thread_state::get().is_script());
         (*self.roots.get()).push(object);
     }
 
     /// Stops tracking a trace object, asserting if it isn't found.
-    unsafe fn unroot(&self, object: *const dyn JSTraceable) {
+    unsafe fn unroot(&self, object: *const JSTraceable) {
         debug_assert!(thread_state::get().is_script());
         let roots = &mut *self.roots.get();
         match roots.iter().rposition(|r| *r == object) {

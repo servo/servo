@@ -7,11 +7,11 @@
 //           This might be achieved by sharing types between WR and Servo display lists, or
 //           completely converting layout to directly generate WebRender display lists, for example.
 
-use crate::display_list::items::{ClipScrollNode, ClipScrollNodeIndex, ClipScrollNodeType};
-use crate::display_list::items::{DisplayItem, DisplayList, StackingContextType};
+use display_list::items::{ClipScrollNode, ClipScrollNodeIndex, ClipScrollNodeType};
+use display_list::items::{DisplayItem, DisplayList, StackingContextType};
 use msg::constellation_msg::PipelineId;
-use webrender_api::{self, ClipAndScrollInfo, ClipId, DisplayListBuilder, RasterSpace};
-use webrender_api::{LayoutPoint, SpecificDisplayItem};
+use webrender_api::{self, ClipAndScrollInfo, ClipId, DisplayListBuilder, GlyphRasterSpace};
+use webrender_api::LayoutPoint;
 
 pub trait WebRenderDisplayListConverter {
     fn convert_to_webrender(&self, pipeline_id: PipelineId) -> DisplayListBuilder;
@@ -104,37 +104,115 @@ impl WebRenderDisplayItemConverter for DisplayItem {
 
         match *self {
             DisplayItem::Rectangle(ref item) => {
-                builder.push_item(SpecificDisplayItem::Rectangle(item.item), &self.prim_info());
+                builder.push_rect(&self.prim_info(), item.item.color);
             },
             DisplayItem::Text(ref item) => {
-                builder.push_item(SpecificDisplayItem::Text(item.item), &self.prim_info());
-                builder.push_iter(item.data.iter());
+                builder.push_text(
+                    &self.prim_info(),
+                    &item.data,
+                    item.item.font_key,
+                    item.item.color,
+                    item.item.glyph_options,
+                );
             },
             DisplayItem::Image(ref item) => {
-                builder.push_item(SpecificDisplayItem::Image(item.item), &self.prim_info());
+                builder.push_image(
+                    &self.prim_info(),
+                    item.item.stretch_size,
+                    item.item.tile_spacing,
+                    item.item.image_rendering,
+                    item.item.alpha_type,
+                    item.item.image_key,
+                );
             },
             DisplayItem::Border(ref item) => {
-                if !item.data.is_empty() {
-                    builder.push_stops(item.data.as_ref());
+                if item.data.is_empty() {
+                    builder.push_border(&self.prim_info(), item.item.widths, item.item.details);
+                } else {
+                    let mut details = item.item.details.clone();
+                    match &mut details {
+                        webrender_api::BorderDetails::NinePatch(
+                            webrender_api::NinePatchBorder {
+                                source:
+                                    webrender_api::NinePatchBorderSource::Gradient(ref mut gradient),
+                                ..
+                            },
+                        ) => {
+                            *gradient = builder.create_gradient(
+                                gradient.start_point,
+                                gradient.end_point,
+                                item.data.clone(),
+                                gradient.extend_mode,
+                            );
+                        },
+                        webrender_api::BorderDetails::NinePatch(
+                            webrender_api::NinePatchBorder {
+                                source:
+                                    webrender_api::NinePatchBorderSource::RadialGradient(gradient),
+                                ..
+                            },
+                        ) => {
+                            *gradient = builder.create_radial_gradient(
+                                gradient.center,
+                                gradient.radius,
+                                item.data.clone(),
+                                gradient.extend_mode,
+                            )
+                        },
+                        _ => unreachable!(),
+                    }
+                    builder.push_border(&self.prim_info(), item.item.widths, details);
                 }
-                builder.push_item(SpecificDisplayItem::Border(item.item), &self.prim_info());
             },
             DisplayItem::Gradient(ref item) => {
-                builder.push_stops(item.data.as_ref());
-                builder.push_item(SpecificDisplayItem::Gradient(item.item), &self.prim_info());
+                let gradient = builder.create_gradient(
+                    item.item.gradient.start_point,
+                    item.item.gradient.end_point,
+                    item.data.clone(),
+                    item.item.gradient.extend_mode,
+                );
+                builder.push_gradient(
+                    &self.prim_info(),
+                    gradient,
+                    item.item.tile_size,
+                    item.item.tile_spacing,
+                );
             },
             DisplayItem::RadialGradient(ref item) => {
-                builder.push_stops(item.data.as_ref());
-                builder.push_item(
-                    SpecificDisplayItem::RadialGradient(item.item),
+                let gradient = builder.create_radial_gradient(
+                    item.item.gradient.center,
+                    item.item.gradient.radius,
+                    item.data.clone(),
+                    item.item.gradient.extend_mode,
+                );
+                builder.push_radial_gradient(
                     &self.prim_info(),
+                    gradient,
+                    item.item.tile_size,
+                    item.item.tile_spacing,
                 );
             },
             DisplayItem::Line(ref item) => {
-                builder.push_item(SpecificDisplayItem::Line(item.item), &self.prim_info());
+                builder.push_line(
+                    &self.prim_info(),
+                    // TODO(gw): Use a better estimate for wavy line thickness.
+                    (0.33 * item.base.bounds.size.height).ceil(),
+                    webrender_api::LineOrientation::Horizontal,
+                    &item.color,
+                    item.style,
+                );
             },
             DisplayItem::BoxShadow(ref item) => {
-                builder.push_item(SpecificDisplayItem::BoxShadow(item.item), &self.prim_info());
+                builder.push_box_shadow(
+                    &self.prim_info(),
+                    item.item.box_bounds,
+                    item.item.offset,
+                    item.item.color,
+                    item.item.blur_radius,
+                    item.item.spread_radius,
+                    item.item.border_radius,
+                    item.item.clip_mode,
+                );
             },
             DisplayItem::PushTextShadow(ref item) => {
                 builder.push_shadow(&self.prim_info(), item.shadow);
@@ -173,8 +251,8 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                     None,
                     stacking_context.transform_style,
                     stacking_context.mix_blend_mode,
-                    &stacking_context.filters,
-                    RasterSpace::Screen,
+                    stacking_context.filters.clone(),
+                    GlyphRasterSpace::Screen,
                 );
 
                 if stacking_context.established_reference_frame.is_some() {

@@ -4,9 +4,201 @@
 
 //! Bindings for CSS Rule objects
 
+use byteorder::{BigEndian, WriteBytesExt};
 use counter_style::{self, CounterBound};
+use cssparser::UnicodeRange;
+use font_face::{FontDisplay, FontWeight, FontStretch, FontStyle, Source};
 use gecko_bindings::structs::{self, nsCSSValue};
 use gecko_bindings::sugar::ns_css_value::ToNsCssValue;
+use properties::longhands::font_language_override;
+use std::str;
+use values::computed::font::FamilyName;
+use values::generics::font::FontTag;
+use values::specified::font::{AbsoluteFontWeight, FontStretch as SpecifiedFontStretch};
+use values::specified::font::{SpecifiedFontFeatureSettings, SpecifiedFontVariationSettings};
+use values::specified::font::SpecifiedFontStyle;
+
+impl<'a> ToNsCssValue for &'a FamilyName {
+    fn convert(self, nscssvalue: &mut nsCSSValue) {
+        nscssvalue.set_string_from_atom(&self.name)
+    }
+}
+
+impl<'a> ToNsCssValue for &'a SpecifiedFontStretch {
+    fn convert(self, nscssvalue: &mut nsCSSValue) {
+        let number = match *self {
+            SpecifiedFontStretch::Stretch(ref p) => p.get(),
+            SpecifiedFontStretch::Keyword(ref kw) => kw.compute().0,
+            SpecifiedFontStretch::System(..) => unreachable!(),
+        };
+        nscssvalue.set_font_stretch(number);
+    }
+}
+
+impl<'a> ToNsCssValue for &'a AbsoluteFontWeight {
+    fn convert(self, nscssvalue: &mut nsCSSValue) {
+        nscssvalue.set_font_weight(self.compute().0)
+    }
+}
+
+impl ToNsCssValue for FontTag {
+    fn convert(self, nscssvalue: &mut nsCSSValue) {
+        let mut raw = [0u8; 4];
+        (&mut raw[..]).write_u32::<BigEndian>(self.0).unwrap();
+        nscssvalue.set_string(str::from_utf8(&raw).unwrap());
+    }
+}
+
+impl<'a> ToNsCssValue for &'a SpecifiedFontFeatureSettings {
+    fn convert(self, nscssvalue: &mut nsCSSValue) {
+        if self.0.is_empty() {
+            nscssvalue.set_normal();
+            return;
+        }
+
+        nscssvalue.set_pair_list(self.0.iter().map(|entry| {
+            let mut index = nsCSSValue::null();
+            index.set_integer(entry.value.value());
+            (entry.tag.into(), index)
+        }))
+    }
+}
+
+impl<'a> ToNsCssValue for &'a SpecifiedFontVariationSettings {
+    fn convert(self, nscssvalue: &mut nsCSSValue) {
+        if self.0.is_empty() {
+            nscssvalue.set_normal();
+            return;
+        }
+
+        nscssvalue.set_pair_list(self.0.iter().map(|entry| {
+            let mut value = nsCSSValue::null();
+            value.set_number(entry.value.into());
+            (entry.tag.into(), value)
+        }))
+    }
+}
+
+macro_rules! descriptor_range_conversion {
+    ($name:ident) => {
+        impl<'a> ToNsCssValue for &'a $name {
+            fn convert(self, nscssvalue: &mut nsCSSValue) {
+                let $name(ref first, ref second) = *self;
+                let second = match *second {
+                    None => {
+                        nscssvalue.set_from(first);
+                        return;
+                    },
+                    Some(ref second) => second,
+                };
+
+                let mut a = nsCSSValue::null();
+                let mut b = nsCSSValue::null();
+
+                a.set_from(first);
+                b.set_from(second);
+
+                nscssvalue.set_pair(&a, &b);
+            }
+        }
+    };
+}
+
+descriptor_range_conversion!(FontWeight);
+descriptor_range_conversion!(FontStretch);
+
+impl<'a> ToNsCssValue for &'a FontStyle {
+    fn convert(self, nscssvalue: &mut nsCSSValue) {
+        match *self {
+            FontStyle::Normal => nscssvalue.set_normal(),
+            FontStyle::Italic => nscssvalue.set_enum(structs::NS_FONT_STYLE_ITALIC as i32),
+            FontStyle::Oblique(ref first, ref second) => {
+                let mut a = nsCSSValue::null();
+                let mut b = nsCSSValue::null();
+
+                a.set_font_style(SpecifiedFontStyle::compute_angle(first).degrees());
+                b.set_font_style(SpecifiedFontStyle::compute_angle(second).degrees());
+
+                nscssvalue.set_pair(&a, &b);
+            },
+        }
+    }
+}
+
+impl<'a> ToNsCssValue for &'a font_language_override::SpecifiedValue {
+    fn convert(self, nscssvalue: &mut nsCSSValue) {
+        match *self {
+            font_language_override::SpecifiedValue::Normal => nscssvalue.set_normal(),
+            font_language_override::SpecifiedValue::Override(ref lang) => {
+                nscssvalue.set_string(&*lang)
+            },
+            // This path is unreachable because the descriptor is only specified by the user.
+            font_language_override::SpecifiedValue::System(_) => unreachable!(),
+        }
+    }
+}
+
+impl<'a> ToNsCssValue for &'a Vec<Source> {
+    fn convert(self, nscssvalue: &mut nsCSSValue) {
+        let src_len = self.iter().fold(0, |acc, src| {
+            acc + match *src {
+                // Each format hint takes one position in the array of mSrc.
+                Source::Url(ref url) => url.format_hints.len() + 1,
+                Source::Local(_) => 1,
+            }
+        });
+        let mut target_srcs = nscssvalue
+            .set_array(src_len as i32)
+            .as_mut_slice()
+            .iter_mut();
+        macro_rules! next {
+            () => {
+                target_srcs
+                    .next()
+                    .expect("Length of target_srcs should be enough")
+            };
+        }
+        for src in self.iter() {
+            match *src {
+                Source::Url(ref url) => {
+                    next!().set_url(&url.url);
+                    for hint in url.format_hints.iter() {
+                        next!().set_font_format(&hint);
+                    }
+                },
+                Source::Local(ref family) => {
+                    next!().set_local_font(&family.name);
+                },
+            }
+        }
+        debug_assert!(target_srcs.next().is_none(), "Should have filled all slots");
+    }
+}
+
+impl<'a> ToNsCssValue for &'a Vec<UnicodeRange> {
+    fn convert(self, nscssvalue: &mut nsCSSValue) {
+        let target_ranges = nscssvalue
+            .set_array((self.len() * 2) as i32)
+            .as_mut_slice()
+            .chunks_mut(2);
+        for (range, target) in self.iter().zip(target_ranges) {
+            target[0].set_integer(range.start as i32);
+            target[1].set_integer(range.end as i32);
+        }
+    }
+}
+
+impl<'a> ToNsCssValue for &'a FontDisplay {
+    fn convert(self, nscssvalue: &mut nsCSSValue) {
+        nscssvalue.set_enum(match *self {
+            FontDisplay::Auto => structs::NS_FONT_DISPLAY_AUTO,
+            FontDisplay::Block => structs::NS_FONT_DISPLAY_BLOCK,
+            FontDisplay::Swap => structs::NS_FONT_DISPLAY_SWAP,
+            FontDisplay::Fallback => structs::NS_FONT_DISPLAY_FALLBACK,
+            FontDisplay::Optional => structs::NS_FONT_DISPLAY_OPTIONAL,
+        } as i32)
+    }
+}
 
 impl<'a> ToNsCssValue for &'a counter_style::System {
     fn convert(self, nscssvalue: &mut nsCSSValue) {

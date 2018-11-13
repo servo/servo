@@ -4,21 +4,21 @@
 
 //! Machinery for [task-queue](https://html.spec.whatwg.org/multipage/#task-queue).
 
-use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::worker::TrustedWorkerAddress;
-use crate::script_runtime::ScriptThreadEventCategory;
-use crate::task::TaskBox;
-use crate::task_source::TaskSourceName;
+use dom::bindings::cell::DomRefCell;
+use dom::worker::TrustedWorkerAddress;
 use msg::constellation_msg::PipelineId;
-use servo_channel::{base_channel, Receiver, Sender};
+use script_runtime::ScriptThreadEventCategory;
+use servo_channel::{Receiver, Sender, base_channel};
 use std::cell::Cell;
 use std::collections::{HashMap, VecDeque};
 use std::default::Default;
+use task::TaskBox;
+use task_source::TaskSourceName;
 
 pub type QueuedTask = (
     Option<TrustedWorkerAddress>,
     ScriptThreadEventCategory,
-    Box<dyn TaskBox>,
+    Box<TaskBox>,
     Option<PipelineId>,
     TaskSourceName,
 );
@@ -84,8 +84,7 @@ impl<T: QueuedTaskConversion> TaskQueue<T> {
                         return false;
                     },
                 }
-            })
-            .collect();
+            }).collect();
 
         for msg in incoming {
             // Immediately send non-throttled tasks for processing.

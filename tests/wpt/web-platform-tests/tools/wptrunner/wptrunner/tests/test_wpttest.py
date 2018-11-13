@@ -18,10 +18,6 @@ min-asserts: 1
 tags: [b, c]
 """
 
-dir_ini_2 = """\
-lsan-max-stack-depth: 42
-"""
-
 test_0 = """\
 [0.html]
   prefs: [c:d]
@@ -35,11 +31,6 @@ test_1 = """\
     if os == 'win': [a:b, c:d]
   expected:
     if os == 'win': FAIL
-"""
-
-test_2 = """\
-[2.html]
-  lsan-max-stack-depth: 42
 """
 
 
@@ -81,40 +72,3 @@ def test_conditional():
     test_obj = wpttest.from_manifest(test, [], test_metadata.get_test(test.id))
     assert test_obj.prefs == {"a": "b", "c": "d"}
     assert test_obj.expected() == "FAIL"
-
-def test_metadata_lsan_stack_depth():
-    tests = make_mock_manifest(("test", "a", 10), ("test", "a/b", 10))
-
-    test_metadata = manifestexpected.static.compile(BytesIO(test_2),
-                                                    {},
-                                                    data_cls_getter=manifestexpected.data_cls_getter,
-                                                    test_path="a",
-                                                    url_base="")
-
-    test = tests[2][2].pop()
-    test_obj = wpttest.from_manifest(test, [], test_metadata.get_test(test.id))
-
-    assert test_obj.lsan_max_stack_depth == 42
-
-    test = tests[1][2].pop()
-    test_obj = wpttest.from_manifest(test, [], test_metadata.get_test(test.id))
-
-    assert test_obj.lsan_max_stack_depth is None
-
-    test_metadata = manifestexpected.static.compile(BytesIO(test_0),
-                                                    {},
-                                                    data_cls_getter=manifestexpected.data_cls_getter,
-                                                    test_path="a",
-                                                    url_base="")
-
-    inherit_metadata = [
-        manifestexpected.static.compile(
-            BytesIO(dir_ini_2),
-            {},
-            data_cls_getter=lambda x,y: manifestexpected.DirectoryManifest)
-    ]
-
-    test = tests[0][2].pop()
-    test_obj = wpttest.from_manifest(test, inherit_metadata, test_metadata.get_test(test.id))
-
-    assert test_obj.lsan_max_stack_depth == 42

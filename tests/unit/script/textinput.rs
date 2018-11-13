@@ -7,31 +7,24 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-use keyboard_types::{Key, Modifiers};
+use msg::constellation_msg::{Key, KeyModifiers};
 use script::clipboard_provider::DummyClipboardContext;
 use script::test::DOMString;
-use script::textinput::{Direction, Lines, Selection, SelectionDirection, TextInput, TextPoint};
+use script::textinput::{TextInput, TextPoint, Selection, Lines, Direction, SelectionDirection};
 
 fn text_input(lines: Lines, s: &str) -> TextInput<DummyClipboardContext> {
-    TextInput::new(
-        lines,
-        DOMString::from(s),
-        DummyClipboardContext::new(""),
-        None,
-        None,
-        SelectionDirection::None,
-    )
+    TextInput::new(lines,
+                   DOMString::from(s),
+                   DummyClipboardContext::new(""),
+                   None,
+                   None,
+                   SelectionDirection::None)
 }
 
 #[test]
 fn test_set_content_ignores_max_length() {
     let mut textinput = TextInput::new(
-        Lines::Single,
-        DOMString::from(""),
-        DummyClipboardContext::new(""),
-        Some(1),
-        None,
-        SelectionDirection::None,
+        Lines::Single, DOMString::from(""), DummyClipboardContext::new(""), Some(1), None, SelectionDirection::None
     );
 
     textinput.set_content(DOMString::from("mozilla rocks"));
@@ -71,7 +64,7 @@ fn test_textinput_when_inserting_multiple_lines_still_respects_max_length() {
         DummyClipboardContext::new(""),
         Some(17),
         None,
-        SelectionDirection::None,
+        SelectionDirection::None
     );
 
     textinput.adjust_vertical(1, Selection::NotSelected);
@@ -81,8 +74,7 @@ fn test_textinput_when_inserting_multiple_lines_still_respects_max_length() {
 }
 
 #[test]
-fn test_textinput_when_content_is_already_longer_than_max_length_and_theres_no_selection_dont_insert_anything(
-) {
+fn test_textinput_when_content_is_already_longer_than_max_length_and_theres_no_selection_dont_insert_anything() {
     let mut textinput = TextInput::new(
         Lines::Single,
         DOMString::from("abc"),
@@ -98,8 +90,7 @@ fn test_textinput_when_content_is_already_longer_than_max_length_and_theres_no_s
 }
 
 #[test]
-fn test_multi_line_textinput_with_maxlength_doesnt_allow_appending_characters_when_input_spans_lines(
-) {
+fn test_multi_line_textinput_with_maxlength_doesnt_allow_appending_characters_when_input_spans_lines() {
     let mut textinput = TextInput::new(
         Lines::Multiple,
         DOMString::from("abc\nd"),
@@ -115,8 +106,7 @@ fn test_multi_line_textinput_with_maxlength_doesnt_allow_appending_characters_wh
 }
 
 #[test]
-fn test_single_line_textinput_with_max_length_doesnt_allow_appending_characters_when_replacing_a_selection(
-) {
+fn test_single_line_textinput_with_max_length_doesnt_allow_appending_characters_when_replacing_a_selection() {
     let mut textinput = TextInput::new(
         Lines::Single,
         DOMString::from("abcde"),
@@ -193,8 +183,7 @@ fn test_single_line_textinput_with_max_length_inside_char() {
 }
 
 #[test]
-fn test_single_line_textinput_with_max_length_doesnt_allow_appending_characters_after_max_length_is_reached(
-) {
+fn test_single_line_textinput_with_max_length_doesnt_allow_appending_characters_after_max_length_is_reached() {
     let mut textinput = TextInput::new(
         Lines::Single,
         DOMString::from("a"),
@@ -431,49 +420,34 @@ fn test_textinput_adjust_horizontal_to_line_end() {
 }
 
 #[test]
+#[cfg(target_os = "macos")]
 fn test_navigation_keyboard_shortcuts() {
     let mut textinput = text_input(Lines::Multiple, "hello áéc");
 
     // Test that CMD + Right moves to the end of the current line.
-    textinput.handle_keydown_aux(Key::ArrowRight, Modifiers::META, true);
+    textinput.handle_keydown_aux(None, Key::Right, KeyModifiers::SUPER);
     assert_eq!(textinput.edit_point().index, 11);
     // Test that CMD + Right moves to the beginning of the current line.
-    textinput.handle_keydown_aux(Key::ArrowLeft, Modifiers::META, true);
+    textinput.handle_keydown_aux(None, Key::Left, KeyModifiers::SUPER);
     assert_eq!(textinput.edit_point().index, 0);
     // Test that CTRL + ALT + E moves to the end of the current line also.
-    textinput.handle_keydown_aux(
-        Key::Character("e".to_owned()),
-        Modifiers::CONTROL | Modifiers::ALT,
-        true,
-    );
+    textinput.handle_keydown_aux(None, Key::E, KeyModifiers::CONTROL | KeyModifiers::ALT);
     assert_eq!(textinput.edit_point().index, 11);
     // Test that CTRL + ALT + A moves to the beginning of the current line also.
-    textinput.handle_keydown_aux(
-        Key::Character("a".to_owned()),
-        Modifiers::CONTROL | Modifiers::ALT,
-        true,
-    );
+    textinput.handle_keydown_aux(None, Key::A, KeyModifiers::CONTROL | KeyModifiers::ALT);
     assert_eq!(textinput.edit_point().index, 0);
 
     // Test that ALT + Right moves to the end of the word.
-    textinput.handle_keydown_aux(Key::ArrowRight, Modifiers::ALT, true);
+    textinput.handle_keydown_aux(None, Key::Right, KeyModifiers::ALT);
     assert_eq!(textinput.edit_point().index, 5);
     // Test that CTRL + ALT + F moves to the end of the word also.
-    textinput.handle_keydown_aux(
-        Key::Character("f".to_owned()),
-        Modifiers::CONTROL | Modifiers::ALT,
-        true,
-    );
+    textinput.handle_keydown_aux(None, Key::F, KeyModifiers::CONTROL | KeyModifiers::ALT);
     assert_eq!(textinput.edit_point().index, 11);
     // Test that ALT + Left moves to the end of the word.
-    textinput.handle_keydown_aux(Key::ArrowLeft, Modifiers::ALT, true);
+    textinput.handle_keydown_aux(None, Key::Left, KeyModifiers::ALT);
     assert_eq!(textinput.edit_point().index, 6);
     // Test that CTRL + ALT + B moves to the end of the word also.
-    textinput.handle_keydown_aux(
-        Key::Character("b".to_owned()),
-        Modifiers::CONTROL | Modifiers::ALT,
-        true,
-    );
+    textinput.handle_keydown_aux(None, Key::B, KeyModifiers::CONTROL | KeyModifiers::ALT);
     assert_eq!(textinput.edit_point().index, 0);
 }
 
@@ -533,21 +507,19 @@ fn test_textinput_set_content() {
 #[test]
 fn test_clipboard_paste() {
     #[cfg(target_os = "macos")]
-    const MODIFIERS: Modifiers = Modifiers::META;
+    const MODIFIERS: KeyModifiers = KeyModifiers::SUPER;
     #[cfg(not(target_os = "macos"))]
-    const MODIFIERS: Modifiers = Modifiers::CONTROL;
+    const MODIFIERS: KeyModifiers = KeyModifiers::CONTROL;
 
-    let mut textinput = TextInput::new(
-        Lines::Single,
-        DOMString::from("defg"),
-        DummyClipboardContext::new("abc"),
-        None,
-        None,
-        SelectionDirection::None,
-    );
+    let mut textinput = TextInput::new(Lines::Single,
+                                       DOMString::from("defg"),
+                                       DummyClipboardContext::new("abc"),
+                                       None,
+                                       None,
+                                       SelectionDirection::None);
     assert_eq!(textinput.get_content(), "defg");
     assert_eq!(textinput.edit_point().index, 0);
-    textinput.handle_keydown_aux(Key::Character("v".to_owned()), MODIFIERS, false);
+    textinput.handle_keydown_aux(Some('v'), Key::V, MODIFIERS);
     assert_eq!(textinput.get_content(), "abcdefg");
 }
 
@@ -575,6 +547,7 @@ fn test_textinput_cursor_position_correct_after_clearing_selection() {
     textinput.adjust_horizontal(3, Selection::Selected);
     textinput.adjust_horizontal_by_one(Direction::Backward, Selection::NotSelected);
     assert_eq!(textinput.edit_point().index, 0);
+
 
     let mut textinput = text_input(Lines::Multiple, "abc\nde\nf");
 
@@ -604,6 +577,7 @@ fn test_textinput_cursor_position_correct_after_clearing_selection() {
     assert_eq!(textinput.edit_point().line, 0);
 }
 
+
 #[test]
 fn test_textinput_set_selection_with_direction() {
     let mut textinput = text_input(Lines::Single, "abcdef");
@@ -619,10 +593,7 @@ fn test_textinput_set_selection_with_direction() {
     textinput.set_selection_range(2, 6, SelectionDirection::Backward);
     assert_eq!(textinput.edit_point().line, 0);
     assert_eq!(textinput.edit_point().index, 2);
-    assert_eq!(
-        textinput.selection_direction(),
-        SelectionDirection::Backward
-    );
+    assert_eq!(textinput.selection_direction(), SelectionDirection::Backward);
 
     assert!(textinput.selection_origin().is_some());
     assert_eq!(textinput.selection_origin().unwrap().line, 0);
@@ -647,6 +618,7 @@ fn test_textinput_set_selection_with_direction() {
     assert!(textinput.selection_origin().is_some());
     assert_eq!(textinput.selection_origin().unwrap().line, 0);
     assert_eq!(textinput.selection_origin().unwrap().index, 0);
+
 }
 
 #[test]
@@ -663,28 +635,19 @@ fn test_textinput_unicode_handling() {
 fn test_selection_bounds() {
     let mut textinput = text_input(Lines::Single, "abcdef");
 
-    assert_eq!(
-        TextPoint { line: 0, index: 0 },
-        textinput.selection_origin_or_edit_point()
-    );
+    assert_eq!(TextPoint { line: 0, index: 0 }, textinput.selection_origin_or_edit_point());
     assert_eq!(TextPoint { line: 0, index: 0 }, textinput.selection_start());
     assert_eq!(TextPoint { line: 0, index: 0 }, textinput.selection_end());
 
     textinput.set_selection_range(2, 5, SelectionDirection::Forward);
-    assert_eq!(
-        TextPoint { line: 0, index: 2 },
-        textinput.selection_origin_or_edit_point()
-    );
+    assert_eq!(TextPoint { line: 0, index: 2 }, textinput.selection_origin_or_edit_point());
     assert_eq!(TextPoint { line: 0, index: 2 }, textinput.selection_start());
     assert_eq!(TextPoint { line: 0, index: 5 }, textinput.selection_end());
     assert_eq!(2, textinput.selection_start_offset());
     assert_eq!(5, textinput.selection_end_offset());
 
     textinput.set_selection_range(3, 6, SelectionDirection::Backward);
-    assert_eq!(
-        TextPoint { line: 0, index: 6 },
-        textinput.selection_origin_or_edit_point()
-    );
+    assert_eq!(TextPoint { line: 0, index: 6 }, textinput.selection_origin_or_edit_point());
     assert_eq!(TextPoint { line: 0, index: 3 }, textinput.selection_start());
     assert_eq!(TextPoint { line: 0, index: 6 }, textinput.selection_end());
     assert_eq!(3, textinput.selection_start_offset());
@@ -692,20 +655,8 @@ fn test_selection_bounds() {
 
     textinput = text_input(Lines::Multiple, "\n\n");
     textinput.set_selection_range(0, 1, SelectionDirection::Forward);
-    assert_eq!(
-        TextPoint { line: 0, index: 0 },
-        textinput.selection_origin_or_edit_point()
-    );
+    assert_eq!(TextPoint { line: 0, index: 0 }, textinput.selection_origin_or_edit_point());
     assert_eq!(TextPoint { line: 0, index: 0 }, textinput.selection_start());
     assert_eq!(TextPoint { line: 1, index: 0 }, textinput.selection_end());
-}
 
-#[test]
-fn test_select_all() {
-    let mut textinput = text_input(Lines::Single, "abc");
-    textinput.set_selection_range(2, 3, SelectionDirection::Backward);
-    textinput.select_all();
-    assert_eq!(textinput.selection_direction(), SelectionDirection::Forward);
-    assert_eq!(TextPoint { line: 0, index: 0 }, textinput.selection_start());
-    assert_eq!(TextPoint { line: 0, index: 3 }, textinput.selection_end());
 }

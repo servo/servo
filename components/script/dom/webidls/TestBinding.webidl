@@ -64,7 +64,6 @@ dictionary TestDictionaryDefaults {
   USVString usvstringValue = "foo";
   TestEnum enumValue = "bar";
   any anyValue = null;
-  sequence<object> arrayValue = [];
 
   boolean? nullableBooleanValue = false;
   byte? nullableByteValue = 7;
@@ -381,7 +380,6 @@ interface TestBinding {
   void passOptionalStringWithDefault(optional DOMString arg = "x");
   void passOptionalUsvstringWithDefault(optional USVString arg = "x");
   void passOptionalEnumWithDefault(optional TestEnum arg = "foo");
-  void passOptionalSequenceWithDefault(optional sequence<long> seq = []);
   // void passOptionalUnionWithDefault(optional (HTMLElement or long) arg = 9);
   // void passOptionalUnion2WithDefault(optional(Event or DOMString)? data = "foo");
 

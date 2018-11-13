@@ -4,23 +4,23 @@
 
 //! Keyframes: https://drafts.csswg.org/css-animations/#keyframes
 
-use cssparser::{parse_one_rule, DeclarationListParser, DeclarationParser, SourceLocation, Token};
 use cssparser::{AtRuleParser, CowRcStr, Parser, ParserInput, QualifiedRuleParser, RuleListParser};
+use cssparser::{parse_one_rule, DeclarationListParser, DeclarationParser, SourceLocation, Token};
 use error_reporting::ContextualParseError;
 use parser::ParserContext;
-use properties::longhands::transition_timing_function::single_value::SpecifiedValue as SpecifiedTimingFunction;
-use properties::LonghandIdSet;
 use properties::{Importance, PropertyDeclaration};
 use properties::{LonghandId, PropertyDeclarationBlock, PropertyId};
 use properties::{PropertyDeclarationId, SourcePropertyDeclaration};
+use properties::LonghandIdSet;
+use properties::longhands::transition_timing_function::single_value::SpecifiedValue as SpecifiedTimingFunction;
 use servo_arc::Arc;
 use shared_lock::{DeepCloneParams, DeepCloneWithLock, SharedRwLock, SharedRwLockReadGuard};
 use shared_lock::{Locked, ToCssWithGuard};
 use std::fmt::{self, Write};
 use str::CssStringWriter;
 use style_traits::{CssWriter, ParseError, ParsingMode, StyleParseErrorKind, ToCss};
-use stylesheets::rule_parser::VendorPrefix;
 use stylesheets::{CssRuleType, StylesheetContents};
+use stylesheets::rule_parser::VendorPrefix;
 use values::{serialize_percentage, KeyframesName};
 
 /// A [`@keyframes`][keyframes] rule.
@@ -89,8 +89,7 @@ impl DeepCloneWithLock for KeyframesRule {
                     Arc::new(
                         lock.wrap(x.read_with(guard).deep_clone_with_lock(lock, guard, params)),
                     )
-                })
-                .collect(),
+                }).collect(),
             vendor_prefix: self.vendor_prefix.clone(),
             source_location: self.source_location.clone(),
         }
@@ -328,8 +327,7 @@ impl KeyframesStep {
                 let (declaration, _) = guard
                     .get(PropertyDeclarationId::Longhand(
                         LonghandId::AnimationTimingFunction,
-                    ))
-                    .unwrap();
+                    )).unwrap();
                 match *declaration {
                     PropertyDeclaration::AnimationTimingFunction(ref value) => {
                         // Use the first value.
@@ -501,8 +499,7 @@ pub fn parse_keyframe_list(
             shared_lock: shared_lock,
             declarations: &mut declarations,
         },
-    )
-    .filter_map(Result::ok)
+    ).filter_map(Result::ok)
     .collect()
 }
 

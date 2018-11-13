@@ -4,26 +4,25 @@
 
 //! Gecko's media-query device and expression representation.
 
-use app_units::Au;
 use app_units::AU_PER_PX;
+use app_units::Au;
 use cssparser::RGBA;
-use custom_properties::CssEnvironment;
 use euclid::Size2D;
 use euclid::TypedScale;
 use gecko::values::{convert_nscolor_to_rgba, convert_rgba_to_nscolor};
 use gecko_bindings::bindings;
 use gecko_bindings::structs;
-use gecko_bindings::structs::{nsPresContext, RawGeckoPresContextBorrowed};
+use gecko_bindings::structs::{nsPresContext, RawGeckoPresContextOwned};
 use media_queries::MediaType;
 use properties::ComputedValues;
 use servo_arc::Arc;
 use std::fmt;
 use std::sync::atomic::{AtomicBool, AtomicIsize, AtomicUsize, Ordering};
 use string_cache::Atom;
-use style_traits::viewport::ViewportConstraints;
 use style_traits::{CSSPixel, DevicePixel};
-use values::computed::font::FontSize;
+use style_traits::viewport::ViewportConstraints;
 use values::{CustomIdent, KeyframesName};
+use values::computed::font::FontSize;
 
 /// The `Device` in Gecko wraps a pres context, has a default values computed,
 /// and contains all the viewport rule state.
@@ -31,7 +30,7 @@ pub struct Device {
     /// NB: The pres context lifetime is tied to the styleset, who owns the
     /// stylist, and thus the `Device`, so having a raw pres context pointer
     /// here is fine.
-    pres_context: RawGeckoPresContextBorrowed,
+    pres_context: RawGeckoPresContextOwned,
     default_values: Arc<ComputedValues>,
     /// The font size of the root element
     /// This is set when computing the style of the root
@@ -53,9 +52,6 @@ pub struct Device {
     /// Whether any styles computed in the document relied on the viewport size
     /// by using vw/vh/vmin/vmax units.
     used_viewport_size: AtomicBool,
-    /// The CssEnvironment object responsible of getting CSS environment
-    /// variables.
-    environment: CssEnvironment,
 }
 
 impl fmt::Debug for Device {
@@ -81,7 +77,7 @@ unsafe impl Send for Device {}
 
 impl Device {
     /// Trivially constructs a new `Device`.
-    pub fn new(pres_context: RawGeckoPresContextBorrowed) -> Self {
+    pub fn new(pres_context: RawGeckoPresContextOwned) -> Self {
         assert!(!pres_context.is_null());
         Device {
             pres_context,
@@ -91,14 +87,7 @@ impl Device {
             body_text_color: AtomicUsize::new(unsafe { &*pres_context }.mDefaultColor as usize),
             used_root_font_size: AtomicBool::new(false),
             used_viewport_size: AtomicBool::new(false),
-            environment: CssEnvironment,
         }
-    }
-
-    /// Get the relevant environment to resolve `env()` functions.
-    #[inline]
-    pub fn environment(&self) -> &CssEnvironment {
-        &self.environment
     }
 
     /// Tells the device that a new viewport rule has been found, and stores the

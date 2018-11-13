@@ -2,16 +2,16 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::codegen::Bindings::HTMLTitleElementBinding;
-use crate::dom::bindings::codegen::Bindings::HTMLTitleElementBinding::HTMLTitleElementMethods;
-use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
-use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::DOMString;
-use crate::dom::document::Document;
-use crate::dom::htmlelement::HTMLElement;
-use crate::dom::node::{ChildrenMutation, Node};
-use crate::dom::virtualmethods::VirtualMethods;
+use dom::bindings::codegen::Bindings::HTMLTitleElementBinding;
+use dom::bindings::codegen::Bindings::HTMLTitleElementBinding::HTMLTitleElementMethods;
+use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
+use dom::bindings::inheritance::Castable;
+use dom::bindings::root::DomRoot;
+use dom::bindings::str::DOMString;
+use dom::document::Document;
+use dom::htmlelement::HTMLElement;
+use dom::node::{ChildrenMutation, Node};
+use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
 
@@ -60,8 +60,8 @@ impl HTMLTitleElementMethods for HTMLTitleElement {
 }
 
 impl VirtualMethods for HTMLTitleElement {
-    fn super_type(&self) -> Option<&dyn VirtualMethods> {
-        Some(self.upcast::<HTMLElement>() as &dyn VirtualMethods)
+    fn super_type(&self) -> Option<&VirtualMethods> {
+        Some(self.upcast::<HTMLElement>() as &VirtualMethods)
     }
 
     fn children_changed(&self, mutation: &ChildrenMutation) {

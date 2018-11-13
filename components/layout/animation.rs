@@ -4,17 +4,17 @@
 
 //! CSS transitions and animations.
 
-use crate::context::LayoutContext;
-use crate::display_list::items::OpaqueNode;
-use crate::flow::{Flow, GetBaseFlow};
-use crate::opaque_node::OpaqueNodeMethods;
+use context::LayoutContext;
+use display_list::items::OpaqueNode;
+use flow::{Flow, GetBaseFlow};
 use fxhash::FxHashMap;
 use ipc_channel::ipc::IpcSender;
 use msg::constellation_msg::PipelineId;
-use script_traits::UntrustedNodeAddress;
+use opaque_node::OpaqueNodeMethods;
 use script_traits::{AnimationState, ConstellationControlMsg, LayoutMsg as ConstellationMsg};
+use script_traits::UntrustedNodeAddress;
 use servo_channel::Receiver;
-use style::animation::{update_style_for_animation, Animation};
+use style::animation::{Animation, update_style_for_animation};
 use style::dom::TElement;
 use style::font_metrics::ServoMetricsProvider;
 use style::selector_parser::RestyleDamage;
@@ -79,7 +79,7 @@ pub fn update_animation_state<E>(
         let mut animations_still_running = vec![];
         for mut running_animation in running_animations.drain(..) {
             let still_running = !running_animation.is_expired() && match running_animation {
-                Animation::Transition(_, started_at, ref frame) => {
+                Animation::Transition(_, started_at, ref frame, _expired) => {
                     now < started_at + frame.duration
                 },
                 Animation::Keyframes(_, _, _, ref mut state) => {
@@ -89,24 +89,18 @@ pub fn update_animation_state<E>(
                 },
             };
 
-            debug!(
-                "update_animation_state({:?}): {:?}",
-                still_running, running_animation
-            );
-
             if still_running {
                 animations_still_running.push(running_animation);
                 continue;
             }
 
-            if let Animation::Transition(node, _, ref frame) = running_animation {
+            if let Animation::Transition(node, _, ref frame, _) = running_animation {
                 script_chan
                     .send(ConstellationControlMsg::TransitionEnd(
                         node.to_untrusted_node_address(),
                         frame.property_animation.property_name().into(),
                         frame.duration,
-                    ))
-                    .unwrap();
+                    )).unwrap();
             }
 
             expired_animations
@@ -155,15 +149,14 @@ pub fn update_animation_state<E>(
         .send(ConstellationMsg::ChangeRunningAnimationsState(
             pipeline_id,
             animation_state,
-        ))
-        .unwrap();
+        )).unwrap();
 }
 
 /// Recalculates style for a set of animations. This does *not* run with the DOM
 /// lock held.
 pub fn recalc_style_for_animations<E>(
     context: &LayoutContext,
-    flow: &mut dyn Flow,
+    flow: &mut Flow,
     animations: &FxHashMap<OpaqueNode, Vec<Animation>>,
 ) where
     E: TElement,

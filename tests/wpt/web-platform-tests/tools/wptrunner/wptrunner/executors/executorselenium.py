@@ -18,7 +18,6 @@ from .protocol import (BaseProtocolPart,
                        SelectorProtocolPart,
                        ClickProtocolPart,
                        SendKeysProtocolPart,
-                       ActionSequenceProtocolPart,
                        TestDriverProtocolPart)
 from ..testrunner import Stop
 
@@ -27,18 +26,15 @@ here = os.path.join(os.path.split(__file__)[0])
 webdriver = None
 exceptions = None
 RemoteConnection = None
-Command = None
 
 
 def do_delayed_imports():
     global webdriver
     global exceptions
     global RemoteConnection
-    global Command
     from selenium import webdriver
     from selenium.common import exceptions
     from selenium.webdriver.remote.remote_connection import RemoteConnection
-    from selenium.webdriver.remote.command import Command
 
 
 class SeleniumBaseProtocolPart(BaseProtocolPart):
@@ -76,31 +72,26 @@ class SeleniumBaseProtocolPart(BaseProtocolPart):
 class SeleniumTestharnessProtocolPart(TestharnessProtocolPart):
     def setup(self):
         self.webdriver = self.parent.webdriver
-        self.runner_handle = None
-        with open(os.path.join(here, "runner.js")) as f:
-            self.runner_script = f.read()
 
     def load_runner(self, url_protocol):
-        if self.runner_handle:
-            self.webdriver.switch_to_window(self.runner_handle)
         url = urlparse.urljoin(self.parent.executor.server_url(url_protocol),
                                "/testharness_runner.html")
         self.logger.debug("Loading %s" % url)
         self.webdriver.get(url)
-        self.runner_handle = self.webdriver.current_window_handle
-        format_map = {"title": threading.current_thread().name.replace("'", '"')}
-        self.parent.base.execute_script(self.runner_script % format_map)
+        self.webdriver.execute_script("document.title = '%s'" %
+                                      threading.current_thread().name.replace("'", '"'))
 
     def close_old_windows(self):
-        handles = [item for item in self.webdriver.window_handles if item != self.runner_handle]
+        exclude = self.webdriver.current_window_handle
+        handles = [item for item in self.webdriver.window_handles if item != exclude]
         for handle in handles:
             try:
                 self.webdriver.switch_to_window(handle)
                 self.webdriver.close()
             except exceptions.NoSuchWindowException:
                 pass
-        self.webdriver.switch_to_window(self.runner_handle)
-        return self.runner_handle
+        self.webdriver.switch_to_window(exclude)
+        return exclude
 
     def get_test_window(self, window_id, parent):
         test_window = None
@@ -142,21 +133,12 @@ class SeleniumClickProtocolPart(ClickProtocolPart):
     def element(self, element):
         return element.click()
 
-
 class SeleniumSendKeysProtocolPart(SendKeysProtocolPart):
     def setup(self):
         self.webdriver = self.parent.webdriver
 
     def send_keys(self, element, keys):
         return element.send_keys(keys)
-
-
-class SeleniumActionSequenceProtocolPart(ActionSequenceProtocolPart):
-    def setup(self):
-        self.webdriver = self.parent.webdriver
-
-    def send_actions(self, actions):
-        self.webdriver.execute(Command.W3C_ACTIONS, {"actions": actions})
 
 
 class SeleniumTestDriverProtocolPart(TestDriverProtocolPart):
@@ -179,8 +161,7 @@ class SeleniumProtocol(Protocol):
                   SeleniumSelectorProtocolPart,
                   SeleniumClickProtocolPart,
                   SeleniumSendKeysProtocolPart,
-                  SeleniumTestDriverProtocolPart,
-                  SeleniumActionSequenceProtocolPart]
+                  SeleniumTestDriverProtocolPart]
 
     def __init__(self, executor, browser, capabilities, **kwargs):
         do_delayed_imports()
@@ -245,12 +226,8 @@ class SeleniumRun(object):
 
         flag = self.result_flag.wait(timeout + 2 * extra_timeout)
         if self.result is None:
-            if flag:
-                # flag is True unless we timeout; this *shouldn't* happen, but
-                # it can if self._run fails to set self.result due to raising
-                self.result = False, ("INTERNAL-ERROR", "self._run didn't set a result")
-            else:
-                self.result = False, ("EXTERNAL-TIMEOUT", None)
+            assert not flag
+            self.result = False, ("EXTERNAL-TIMEOUT", None)
 
         return self.result
 
@@ -262,11 +239,11 @@ class SeleniumRun(object):
         except (socket.timeout, exceptions.ErrorInResponseException):
             self.result = False, ("CRASH", None)
         except Exception as e:
-            message = str(getattr(e, "message", ""))
+            message = getattr(e, "message", "")
             if message:
                 message += "\n"
             message += traceback.format_exc(e)
-            self.result = False, ("INTERNAL-ERROR", message)
+            self.result = False, ("INTERNAL-ERROR", e)
         finally:
             self.result_flag.set()
 
@@ -318,12 +295,11 @@ class SeleniumTestharnessExecutor(TestharnessExecutor):
 
         parent_window = protocol.testharness.close_old_windows()
         # Now start the test harness
-        protocol.base.execute_script(self.script % format_map, async=True)
+        protocol.base.execute_script(self.script % format_map)
         test_window = protocol.testharness.get_test_window(self.window_id, parent_window)
 
         handler = CallbackHandler(self.logger, protocol, test_window)
         while True:
-            self.protocol.base.set_window(test_window)
             result = protocol.base.execute_script(
                 self.script_resume % format_map, async=True)
             done, rv = handler(result)

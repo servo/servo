@@ -6,17 +6,16 @@
 //! microtask queues. It is up to implementations of event loops to store a queue and
 //! perform checkpoints at appropriate times, as well as enqueue microtasks as required.
 
-use crate::dom::bindings::callback::ExceptionHandling;
-use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::PromiseBinding::PromiseJobCallback;
-use crate::dom::bindings::root::DomRoot;
-use crate::dom::globalscope::GlobalScope;
-use crate::dom::htmlimageelement::ImageElementMicrotask;
-use crate::dom::htmlmediaelement::MediaElementMicrotask;
-use crate::dom::mutationobserver::MutationObserver;
-use crate::script_runtime::notify_about_rejected_promises;
-use crate::script_thread::ScriptThread;
+use dom::bindings::callback::ExceptionHandling;
+use dom::bindings::cell::DomRefCell;
+use dom::bindings::codegen::Bindings::PromiseBinding::PromiseJobCallback;
+use dom::bindings::root::DomRoot;
+use dom::globalscope::GlobalScope;
+use dom::htmlimageelement::ImageElementMicrotask;
+use dom::htmlmediaelement::MediaElementMicrotask;
+use dom::mutationobserver::MutationObserver;
 use msg::constellation_msg::PipelineId;
+use script_thread::ScriptThread;
 use std::cell::Cell;
 use std::mem;
 use std::rc::Rc;
@@ -60,7 +59,7 @@ impl MicrotaskQueue {
 
     /// <https://html.spec.whatwg.org/multipage/#perform-a-microtask-checkpoint>
     /// Perform a microtask checkpoint, executing all queued microtasks until the queue is empty.
-    pub fn checkpoint<F>(&self, target_provider: F, globalscopes: Vec<DomRoot<GlobalScope>>)
+    pub fn checkpoint<F>(&self, target_provider: F)
     where
         F: Fn(PipelineId) -> Option<DomRoot<GlobalScope>>,
     {
@@ -71,7 +70,7 @@ impl MicrotaskQueue {
         // Step 1
         self.performing_a_microtask_checkpoint.set(true);
 
-        // Steps 2
+        // Steps 2-7
         while !self.microtask_queue.borrow().is_empty() {
             rooted_vec!(let mut pending_queue);
             mem::swap(&mut *pending_queue, &mut *self.microtask_queue.borrow_mut());
@@ -99,14 +98,9 @@ impl MicrotaskQueue {
             }
         }
 
-        // Step 3
-        for global in globalscopes.into_iter() {
-            notify_about_rejected_promises(&global);
-        }
+        //TODO: Step 8 - notify about rejected promises
 
-        // TODO: Step 4 - Cleanup Indexed Database transactions.
-
-        // Step 5
+        // Step 9
         self.performing_a_microtask_checkpoint.set(false);
     }
 }

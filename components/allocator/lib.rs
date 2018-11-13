@@ -7,14 +7,12 @@
 #[global_allocator]
 static ALLOC: Allocator = Allocator;
 
-pub use crate::platform::*;
-
-#[cfg(not(windows))]
-pub use jemalloc_sys;
+pub use platform::*;
 
 #[cfg(not(windows))]
 mod platform {
-    use jemalloc_sys as ffi;
+    extern crate jemalloc_sys as ffi;
+
     use std::alloc::{GlobalAlloc, Layout};
     use std::os::raw::{c_int, c_void};
 
@@ -25,30 +23,38 @@ mod platform {
 
     /// Memory allocation APIs compatible with libc
     pub mod libc_compat {
-        pub use super::ffi::{free, malloc, realloc};
+        pub use super::ffi::{malloc, realloc, free};
     }
 
     pub struct Allocator;
 
     // The minimum alignment guaranteed by the architecture. This value is used to
     // add fast paths for low alignment values.
-    #[cfg(all(any(
-        target_arch = "arm",
-        target_arch = "mips",
-        target_arch = "mipsel",
-        target_arch = "powerpc"
-    )))]
+    #[cfg(
+        all(
+            any(
+                target_arch = "arm",
+                target_arch = "mips",
+                target_arch = "mipsel",
+                target_arch = "powerpc"
+            )
+        )
+    )]
     const MIN_ALIGN: usize = 8;
-    #[cfg(all(any(
-        target_arch = "x86",
-        target_arch = "x86_64",
-        target_arch = "aarch64",
-        target_arch = "powerpc64",
-        target_arch = "powerpc64le",
-        target_arch = "mips64",
-        target_arch = "s390x",
-        target_arch = "sparc64"
-    )))]
+    #[cfg(
+        all(
+            any(
+                target_arch = "x86",
+                target_arch = "x86_64",
+                target_arch = "aarch64",
+                target_arch = "powerpc64",
+                target_arch = "powerpc64le",
+                target_arch = "mips64",
+                target_arch = "s390x",
+                target_arch = "sparc64"
+            )
+        )
+    )]
     const MIN_ALIGN: usize = 16;
 
     fn layout_to_flags(align: usize, size: usize) -> c_int {
@@ -98,8 +104,10 @@ mod platform {
 
 #[cfg(windows)]
 mod platform {
-    use kernel32::{GetProcessHeap, HeapSize, HeapValidate};
+    extern crate kernel32;
+
     pub use std::alloc::System as Allocator;
+    use self::kernel32::{GetProcessHeap, HeapSize, HeapValidate};
     use std::os::raw::c_void;
 
     /// Get the size of a heap block.

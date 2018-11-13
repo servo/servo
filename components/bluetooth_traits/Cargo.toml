@@ -3,7 +3,6 @@ name = "bluetooth_traits"
 version = "0.0.1"
 authors = ["The Servo Project Developers"]
 license = "MPL-2.0"
-edition = "2018"
 publish = false
 
 [lib]
@@ -15,3 +14,6 @@ ipc-channel = "0.11"
 regex = "1.0"
 serde = "1.0"
 embedder_traits = { path = "../embedder_traits" }
+
+[dev-dependencies]
+embedder_traits = { path = "../embedder_traits", features = ["tests"] }

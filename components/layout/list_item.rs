@@ -5,20 +5,20 @@
 //! Layout for elements with a CSS `display` property of `list-item`. These elements consist of a
 //! block and an extra inline fragment for the marker.
 
+#![deny(unsafe_code)]
+
 use app_units::Au;
-use crate::block::BlockFlow;
-use crate::context::{with_thread_local_font_context, LayoutContext};
-use crate::display_list::StackingContextCollectionState;
-use crate::display_list::{DisplayListBuildState, ListItemFlowDisplayListBuilding};
-use crate::floats::FloatKind;
-use crate::flow::{Flow, FlowClass, OpaqueFlow};
-use crate::fragment::Overflow;
-use crate::fragment::{
-    CoordinateSystem, Fragment, FragmentBorderBoxIterator, GeneratedContentInfo,
-};
-use crate::generated_content;
-use crate::inline::InlineFlow;
+use block::BlockFlow;
+use context::{LayoutContext, with_thread_local_font_context};
+use display_list::{DisplayListBuildState, ListItemFlowDisplayListBuilding};
+use display_list::StackingContextCollectionState;
 use euclid::Point2D;
+use floats::FloatKind;
+use flow::{Flow, FlowClass, OpaqueFlow};
+use fragment::{CoordinateSystem, Fragment, FragmentBorderBoxIterator, GeneratedContentInfo};
+use fragment::Overflow;
+use generated_content;
+use inline::InlineFlow;
 use style::computed_values::list_style_type::T as ListStyleType;
 use style::computed_values::position::T as Position;
 use style::logical_geometry::LogicalSize;
@@ -26,7 +26,7 @@ use style::properties::ComputedValues;
 use style::servo::restyle_damage::ServoRestyleDamage;
 
 #[allow(unsafe_code)]
-unsafe impl crate::flow::HasBaseFlow for ListItemFlow {}
+unsafe impl ::flow::HasBaseFlow for ListItemFlow {}
 
 /// A block with the CSS `display` property equal to `list-item`.
 #[derive(Debug)]
@@ -196,7 +196,7 @@ impl Flow for ListItemFlow {
         self.block_flow.collect_stacking_contexts(state);
     }
 
-    fn repair_style(&mut self, new_style: &crate::ServoArc<ComputedValues>) {
+    fn repair_style(&mut self, new_style: &::ServoArc<ComputedValues>) {
         self.block_flow.repair_style(new_style)
     }
 
@@ -231,7 +231,7 @@ impl Flow for ListItemFlow {
 
     fn iterate_through_fragment_border_boxes(
         &self,
-        iterator: &mut dyn FragmentBorderBoxIterator,
+        iterator: &mut FragmentBorderBoxIterator,
         level: i32,
         stacking_context_position: &Point2D<Au>,
     ) {
@@ -259,14 +259,13 @@ impl Flow for ListItemFlow {
                                 .early_absolute_position_info
                                 .relative_containing_block_mode,
                             CoordinateSystem::Own,
-                        )
-                        .translate(&stacking_context_position.to_vector()),
+                        ).translate(&stacking_context_position.to_vector()),
                 );
             }
         }
     }
 
-    fn mutate_fragments(&mut self, mutator: &mut dyn FnMut(&mut Fragment)) {
+    fn mutate_fragments(&mut self, mutator: &mut FnMut(&mut Fragment)) {
         self.block_flow.mutate_fragments(mutator);
 
         for marker in &mut self.marker_fragments {

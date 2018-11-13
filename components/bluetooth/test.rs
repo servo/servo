@@ -2,14 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use crate::BluetoothManager;
+use BluetoothManager;
 use device::bluetooth::{BluetoothAdapter, BluetoothDevice};
-use device::bluetooth::{
-    BluetoothGATTCharacteristic, BluetoothGATTDescriptor, BluetoothGATTService,
-};
+use device::bluetooth::{BluetoothGATTCharacteristic, BluetoothGATTDescriptor, BluetoothGATTService};
 use std::borrow::ToOwned;
 use std::cell::RefCell;
-use std::collections::{HashMap, HashSet};
+use std::collections::{HashSet, HashMap};
 use std::error::Error;
 use std::string::String;
 use uuid::Uuid;
@@ -137,7 +135,7 @@ fn generate_id() -> Uuid {
 }
 
 // Set the adapter's name, is_powered and is_discoverable attributes
-fn set_adapter(adapter: &BluetoothAdapter, adapter_name: String) -> Result<(), Box<dyn Error>> {
+fn set_adapter(adapter: &BluetoothAdapter, adapter_name: String) -> Result<(), Box<Error>> {
     adapter.set_name(adapter_name)?;
     adapter.set_powered(true)?;
     adapter.set_discoverable(true)?;
@@ -149,7 +147,7 @@ fn create_device(
     adapter: &BluetoothAdapter,
     name: String,
     address: String,
-) -> Result<BluetoothDevice, Box<dyn Error>> {
+) -> Result<BluetoothDevice, Box<Error>> {
     let device = BluetoothDevice::create_mock_device(adapter.clone(), generate_id().to_string())?;
     device.set_name(Some(name))?;
     device.set_address(address)?;
@@ -163,7 +161,7 @@ fn create_device_with_uuids(
     name: String,
     address: String,
     uuids: Vec<String>,
-) -> Result<BluetoothDevice, Box<dyn Error>> {
+) -> Result<BluetoothDevice, Box<Error>> {
     let device = create_device(adapter, name, address)?;
     device.set_uuids(uuids)?;
     Ok(device)
@@ -173,7 +171,7 @@ fn create_device_with_uuids(
 fn create_service(
     device: &BluetoothDevice,
     uuid: String,
-) -> Result<BluetoothGATTService, Box<dyn Error>> {
+) -> Result<BluetoothGATTService, Box<Error>> {
     let service =
         BluetoothGATTService::create_mock_service(device.clone(), generate_id().to_string())?;
     service.set_uuid(uuid)?;
@@ -184,7 +182,7 @@ fn create_service(
 fn create_characteristic(
     service: &BluetoothGATTService,
     uuid: String,
-) -> Result<BluetoothGATTCharacteristic, Box<dyn Error>> {
+) -> Result<BluetoothGATTCharacteristic, Box<Error>> {
     let characteristic = BluetoothGATTCharacteristic::create_mock_characteristic(
         service.clone(),
         generate_id().to_string(),
@@ -198,7 +196,7 @@ fn create_characteristic_with_value(
     service: &BluetoothGATTService,
     uuid: String,
     value: Vec<u8>,
-) -> Result<BluetoothGATTCharacteristic, Box<dyn Error>> {
+) -> Result<BluetoothGATTCharacteristic, Box<Error>> {
     let characteristic = create_characteristic(service, uuid)?;
     characteristic.set_value(value)?;
     Ok(characteristic)
@@ -208,7 +206,7 @@ fn create_characteristic_with_value(
 fn create_descriptor(
     characteristic: &BluetoothGATTCharacteristic,
     uuid: String,
-) -> Result<BluetoothGATTDescriptor, Box<dyn Error>> {
+) -> Result<BluetoothGATTDescriptor, Box<Error>> {
     let descriptor = BluetoothGATTDescriptor::create_mock_descriptor(
         characteristic.clone(),
         generate_id().to_string(),
@@ -222,7 +220,7 @@ fn create_descriptor_with_value(
     characteristic: &BluetoothGATTCharacteristic,
     uuid: String,
     value: Vec<u8>,
-) -> Result<BluetoothGATTDescriptor, Box<dyn Error>> {
+) -> Result<BluetoothGATTDescriptor, Box<Error>> {
     let descriptor = create_descriptor(characteristic, uuid)?;
     descriptor.set_value(value)?;
     Ok(descriptor)
@@ -231,7 +229,7 @@ fn create_descriptor_with_value(
 fn create_heart_rate_service(
     device: &BluetoothDevice,
     empty: bool,
-) -> Result<BluetoothGATTService, Box<dyn Error>> {
+) -> Result<BluetoothGATTService, Box<Error>> {
     // Heart Rate Service
     let heart_rate_service = create_service(device, HEART_RATE_SERVICE_UUID.to_owned())?;
 
@@ -274,7 +272,7 @@ fn create_heart_rate_service(
 fn create_generic_access_service(
     device: &BluetoothDevice,
     empty: bool,
-) -> Result<BluetoothGATTService, Box<dyn Error>> {
+) -> Result<BluetoothGATTService, Box<Error>> {
     // Generic Access Service
     let generic_access_service = create_service(device, GENERIC_ACCESS_SERVICE_UUID.to_owned())?;
 
@@ -296,16 +294,14 @@ fn create_generic_access_service(
         NUMBER_OF_DIGITALS_UUID.to_owned(),
         vec![49],
     )?;
-    number_of_digitals_descriptor_1
-        .set_flags(vec![READ_FLAG.to_string(), WRITE_FLAG.to_string()])?;
+    number_of_digitals_descriptor_1.set_flags(vec![READ_FLAG.to_string(), WRITE_FLAG.to_string()])?;
 
     let number_of_digitals_descriptor_2 = create_descriptor_with_value(
         &device_name_characteristic,
         NUMBER_OF_DIGITALS_UUID.to_owned(),
         vec![50],
     )?;
-    number_of_digitals_descriptor_2
-        .set_flags(vec![READ_FLAG.to_string(), WRITE_FLAG.to_string()])?;
+    number_of_digitals_descriptor_2.set_flags(vec![READ_FLAG.to_string(), WRITE_FLAG.to_string()])?;
 
     // Characteristic User Description Descriptor
     let _characteristic_user_description = create_descriptor_with_value(
@@ -335,7 +331,7 @@ fn create_generic_access_service(
 fn create_heart_rate_device(
     adapter: &BluetoothAdapter,
     empty: bool,
-) -> Result<BluetoothDevice, Box<dyn Error>> {
+) -> Result<BluetoothDevice, Box<Error>> {
     // Heart Rate Device
     let heart_rate_device = create_device_with_uuids(
         adapter,
@@ -362,7 +358,7 @@ fn create_heart_rate_device(
 
 fn create_missing_characterisitc_heart_rate_device(
     adapter: &BluetoothAdapter,
-) -> Result<(), Box<dyn Error>> {
+) -> Result<(), Box<Error>> {
     let heart_rate_device_empty = create_heart_rate_device(adapter, true)?;
 
     let _generic_access_service_empty =
@@ -375,7 +371,7 @@ fn create_missing_characterisitc_heart_rate_device(
 
 fn create_missing_descriptor_heart_rate_device(
     adapter: &BluetoothAdapter,
-) -> Result<(), Box<dyn Error>> {
+) -> Result<(), Box<Error>> {
     let heart_rate_device_empty = create_heart_rate_device(adapter, true)?;
 
     let generic_access_service_empty =
@@ -399,7 +395,7 @@ fn create_missing_descriptor_heart_rate_device(
     Ok(())
 }
 
-fn create_two_heart_rate_services_device(adapter: &BluetoothAdapter) -> Result<(), Box<dyn Error>> {
+fn create_two_heart_rate_services_device(adapter: &BluetoothAdapter) -> Result<(), Box<Error>> {
     let heart_rate_device_empty = create_heart_rate_device(adapter, true)?;
 
     heart_rate_device_empty.set_uuids(vec![
@@ -435,7 +431,7 @@ fn create_two_heart_rate_services_device(adapter: &BluetoothAdapter) -> Result<(
     Ok(())
 }
 
-fn create_blocklisted_device(adapter: &BluetoothAdapter) -> Result<(), Box<dyn Error>> {
+fn create_blocklisted_device(adapter: &BluetoothAdapter) -> Result<(), Box<Error>> {
     let connectable_device = create_device_with_uuids(
         adapter,
         CONNECTABLE_DEVICE_NAME.to_owned(),
@@ -490,7 +486,7 @@ fn create_blocklisted_device(adapter: &BluetoothAdapter) -> Result<(), Box<dyn E
     Ok(())
 }
 
-fn create_glucose_heart_rate_devices(adapter: &BluetoothAdapter) -> Result<(), Box<dyn Error>> {
+fn create_glucose_heart_rate_devices(adapter: &BluetoothAdapter) -> Result<(), Box<Error>> {
     let glucose_devie = create_device_with_uuids(
         adapter,
         GLUCOSE_DEVICE_NAME.to_owned(),
@@ -517,7 +513,7 @@ fn create_glucose_heart_rate_devices(adapter: &BluetoothAdapter) -> Result<(), B
     Ok(())
 }
 
-pub fn test(manager: &mut BluetoothManager, data_set_name: String) -> Result<(), Box<dyn Error>> {
+pub fn test(manager: &mut BluetoothManager, data_set_name: String) -> Result<(), Box<Error>> {
     let may_existing_adapter = manager.get_or_create_adapter();
     let adapter = match may_existing_adapter.as_ref() {
         Some(adapter) => adapter,

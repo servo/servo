@@ -3,25 +3,21 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use bluetooth_traits::{BluetoothRequest, BluetoothResponse};
-use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::BluetoothPermissionResultBinding::{
-    self, BluetoothPermissionResultMethods,
-};
-use crate::dom::bindings::codegen::Bindings::NavigatorBinding::NavigatorBinding::NavigatorMethods;
-use crate::dom::bindings::codegen::Bindings::PermissionStatusBinding::PermissionStatusBinding::PermissionStatusMethods;
-use crate::dom::bindings::codegen::Bindings::PermissionStatusBinding::{
-    PermissionName, PermissionState,
-};
-use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowBinding::WindowMethods;
-use crate::dom::bindings::error::Error;
-use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
-use crate::dom::bindings::root::{Dom, DomRoot};
-use crate::dom::bindings::str::DOMString;
-use crate::dom::bluetooth::{AllowedBluetoothDevice, AsyncBluetoothListener, Bluetooth};
-use crate::dom::bluetoothdevice::BluetoothDevice;
-use crate::dom::globalscope::GlobalScope;
-use crate::dom::permissionstatus::PermissionStatus;
-use crate::dom::promise::Promise;
+use dom::bindings::cell::DomRefCell;
+use dom::bindings::codegen::Bindings::BluetoothPermissionResultBinding::{self, BluetoothPermissionResultMethods};
+use dom::bindings::codegen::Bindings::NavigatorBinding::NavigatorBinding::NavigatorMethods;
+use dom::bindings::codegen::Bindings::PermissionStatusBinding::{PermissionName, PermissionState};
+use dom::bindings::codegen::Bindings::PermissionStatusBinding::PermissionStatusBinding::PermissionStatusMethods;
+use dom::bindings::codegen::Bindings::WindowBinding::WindowBinding::WindowMethods;
+use dom::bindings::error::Error;
+use dom::bindings::reflector::{DomObject, reflect_dom_object};
+use dom::bindings::root::{Dom, DomRoot};
+use dom::bindings::str::DOMString;
+use dom::bluetooth::{AsyncBluetoothListener, Bluetooth, AllowedBluetoothDevice};
+use dom::bluetoothdevice::BluetoothDevice;
+use dom::globalscope::GlobalScope;
+use dom::permissionstatus::PermissionStatus;
+use dom::promise::Promise;
 use dom_struct::dom_struct;
 use ipc_channel::ipc::IpcSender;
 use std::rc::Rc;

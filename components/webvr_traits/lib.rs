@@ -4,27 +4,29 @@
 
 #![deny(unsafe_code)]
 
+extern crate ipc_channel;
+extern crate msg;
 #[macro_use]
 extern crate serde;
+pub extern crate rust_webvr_api as webvr;
 
 mod webvr_traits;
 
-pub use crate::webvr_traits::{WebVRMsg, WebVRResult};
-pub use rust_webvr_api as webvr;
-pub use rust_webvr_api::VRDisplayCapabilities as WebVRDisplayCapabilities;
-pub use rust_webvr_api::VRDisplayData as WebVRDisplayData;
-pub use rust_webvr_api::VRDisplayEvent as WebVRDisplayEvent;
-pub use rust_webvr_api::VRDisplayEventReason as WebVRDisplayEventReason;
-pub use rust_webvr_api::VREvent as WebVREvent;
-pub use rust_webvr_api::VREye as WebVREye;
-pub use rust_webvr_api::VREyeParameters as WebVREyeParameters;
-pub use rust_webvr_api::VRFieldOfView as WebVRFieldOfView;
-pub use rust_webvr_api::VRFrameData as WebVRFrameData;
-pub use rust_webvr_api::VRGamepadButton as WebVRGamepadButton;
-pub use rust_webvr_api::VRGamepadData as WebVRGamepadData;
-pub use rust_webvr_api::VRGamepadEvent as WebVRGamepadEvent;
-pub use rust_webvr_api::VRGamepadHand as WebVRGamepadHand;
-pub use rust_webvr_api::VRGamepadState as WebVRGamepadState;
-pub use rust_webvr_api::VRLayer as WebVRLayer;
-pub use rust_webvr_api::VRPose as WebVRPose;
-pub use rust_webvr_api::VRStageParameters as WebVRStageParameters;
+pub use webvr::VRDisplayData as WebVRDisplayData;
+pub use webvr::VRDisplayCapabilities as WebVRDisplayCapabilities;
+pub use webvr::VRDisplayEvent as WebVRDisplayEvent;
+pub use webvr::VRDisplayEventReason as WebVRDisplayEventReason;
+pub use webvr::VREvent as WebVREvent;
+pub use webvr::VREye as WebVREye;
+pub use webvr::VREyeParameters as WebVREyeParameters;
+pub use webvr::VRFieldOfView as WebVRFieldOfView;
+pub use webvr::VRGamepadButton as WebVRGamepadButton;
+pub use webvr::VRGamepadData as WebVRGamepadData;
+pub use webvr::VRGamepadEvent as WebVRGamepadEvent;
+pub use webvr::VRGamepadHand as WebVRGamepadHand;
+pub use webvr::VRGamepadState as WebVRGamepadState;
+pub use webvr::VRFrameData as WebVRFrameData;
+pub use webvr::VRLayer as WebVRLayer;
+pub use webvr::VRPose as WebVRPose;
+pub use webvr::VRStageParameters as WebVRStageParameters;
+pub use webvr_traits::{WebVRMsg, WebVRResult};

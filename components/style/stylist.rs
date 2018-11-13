@@ -4,6 +4,7 @@
 
 //! Selector matching.
 
+use {Atom, LocalName, Namespace, WeakAtom};
 use applicable_declarations::{ApplicableDeclarationBlock, ApplicableDeclarationList};
 use context::{CascadeInputs, QuirksMode};
 use dom::{TElement, TShadowRoot};
@@ -15,9 +16,9 @@ use hashglobe::FailedAllocationError;
 use invalidation::element::invalidation_map::InvalidationMap;
 use invalidation::media_queries::{EffectiveMediaQueryResults, ToMediaListKey};
 #[cfg(feature = "gecko")]
-use malloc_size_of::MallocUnconditionalShallowSizeOf;
-#[cfg(feature = "gecko")]
 use malloc_size_of::{MallocShallowSizeOf, MallocSizeOf, MallocSizeOfOps};
+#[cfg(feature = "gecko")]
+use malloc_size_of::MallocUnconditionalShallowSizeOf;
 use media_queries::Device;
 use properties::{self, CascadeMode, ComputedValues};
 use properties::{AnimationRules, PropertyDeclarationBlock};
@@ -25,14 +26,14 @@ use rule_cache::{RuleCache, RuleCacheConditions};
 use rule_tree::{CascadeLevel, RuleTree, ShadowCascadeOrder, StrongRuleNode, StyleSource};
 use selector_map::{PrecomputedHashMap, PrecomputedHashSet, SelectorMap, SelectorMapEntry};
 use selector_parser::{PerPseudoElementMap, PseudoElement, SelectorImpl, SnapshotMap};
+use selectors::NthIndexCache;
 use selectors::attr::{CaseSensitivity, NamespaceConstraint};
 use selectors::bloom::BloomFilter;
-use selectors::matching::VisitedHandlingMode;
 use selectors::matching::{matches_selector, ElementSelectorFlags, MatchingContext, MatchingMode};
+use selectors::matching::VisitedHandlingMode;
 use selectors::parser::{AncestorHashes, Combinator, Component, Selector};
 use selectors::parser::{SelectorIter, Visit};
 use selectors::visitor::SelectorVisitor;
-use selectors::NthIndexCache;
 use servo_arc::{Arc, ArcBorrow};
 use shared_lock::{Locked, SharedRwLockReadGuard, StylesheetGuards};
 use smallbitvec::SmallBitVec;
@@ -42,15 +43,14 @@ use std::sync::Mutex;
 use style_traits::viewport::ViewportConstraints;
 use stylesheet_set::{DataValidity, DocumentStylesheetSet, SheetRebuildKind};
 use stylesheet_set::{DocumentStylesheetFlusher, SheetCollectionFlusher};
-use stylesheets::keyframes_rule::KeyframesAnimation;
-use stylesheets::viewport_rule::{self, MaybeNew, ViewportRule};
-use stylesheets::StyleRule;
-use stylesheets::StylesheetInDocument;
 #[cfg(feature = "gecko")]
 use stylesheets::{CounterStyleRule, FontFaceRule, FontFeatureValuesRule, PageRule};
 use stylesheets::{CssRule, Origin, OriginSet, PerOrigin, PerOriginIter};
+use stylesheets::StyleRule;
+use stylesheets::StylesheetInDocument;
+use stylesheets::keyframes_rule::KeyframesAnimation;
+use stylesheets::viewport_rule::{self, MaybeNew, ViewportRule};
 use thread_state::{self, ThreadState};
-use {Atom, LocalName, Namespace, WeakAtom};
 
 /// The type of the stylesheets that the stylist contains.
 #[cfg(feature = "servo")]
@@ -517,8 +517,7 @@ impl Stylist {
                     self.stylesheets.iter(),
                     guards,
                     &self.device,
-                )
-                .finish(),
+                ).finish(),
             };
 
             self.viewport_constraints =
@@ -606,15 +605,23 @@ impl Stylist {
                 maybe = maybe || f(&*data);
             });
 
-        if maybe || f(&self.cascade_data.user) {
-            return true;
+        if maybe || !doc_author_rules_apply {
+            return maybe;
         }
 
-        doc_author_rules_apply && f(&self.cascade_data.author)
+        f(&self.cascade_data.author) || f(&self.cascade_data.user)
     }
 
     /// Computes the style for a given "precomputed" pseudo-element, taking the
     /// universal rules and applying them.
+    ///
+    /// If `inherit_all` is true, then all properties are inherited from the
+    /// parent; otherwise, non-inherited properties are reset to their initial
+    /// values. The flow constructor uses this flag when constructing anonymous
+    /// flows.
+    ///
+    /// TODO(emilio): The type parameter could go away with a void type
+    /// implementing TElement.
     pub fn precomputed_values_for_pseudo<E>(
         &self,
         guards: &StylesheetGuards,
@@ -1018,8 +1025,7 @@ impl Stylist {
                         stylesheets.clone(),
                         guards,
                         &device,
-                    )
-                    .finish(),
+                    ).finish(),
                 }
             };
 
@@ -1128,7 +1134,7 @@ impl Stylist {
 
         let rule_hash_target = element.rule_hash_target();
 
-        let matches_user_and_author_rules = rule_hash_target.matches_user_and_author_rules();
+        let matches_user_rules = rule_hash_target.matches_user_and_author_rules();
 
         // Normal user-agent rules.
         if let Some(map) = self
@@ -1156,7 +1162,7 @@ impl Stylist {
         //      rule_hash_target.matches_user_and_author_rules())
         //
         // Which may be more what you would probably expect.
-        if matches_user_and_author_rules {
+        if matches_user_rules {
             // User normal rules.
             if let Some(map) = self.cascade_data.user.normal_rules(pseudo_element) {
                 map.get_all_matching_rules(
@@ -1198,15 +1204,16 @@ impl Stylist {
             return;
         }
 
-        let mut match_document_author_rules = matches_user_and_author_rules;
+        let mut match_document_author_rules = matches_user_rules;
         let mut shadow_cascade_order = 0;
 
         // XBL / Shadow DOM rules, which are author rules too.
+        //
+        // TODO(emilio): Cascade order here is wrong for Shadow DOM. In
+        // particular, normally document rules override ::slotted() rules, but
+        // for !important it should be the other way around. So probably we need
+        // to add some sort of AuthorScoped cascade level or something.
         if let Some(shadow) = rule_hash_target.shadow_root() {
-            debug_assert!(
-                matches_user_and_author_rules,
-                "NAC should not be a shadow host"
-            );
             if let Some(map) = shadow
                 .style_data()
                 .and_then(|data| data.host_rules(pseudo_element))
@@ -1231,10 +1238,6 @@ impl Stylist {
         let mut slots = SmallVec::<[_; 3]>::new();
         let mut current = rule_hash_target.assigned_slot();
         while let Some(slot) = current {
-            debug_assert!(
-                matches_user_and_author_rules,
-                "We should not slot NAC anywhere"
-            );
             slots.push(slot);
             current = slot.assigned_slot();
         }
@@ -1260,57 +1263,55 @@ impl Stylist {
             }
         }
 
-        if matches_user_and_author_rules {
-            let mut current_containing_shadow = rule_hash_target.containing_shadow();
-            while let Some(containing_shadow) = current_containing_shadow {
-                let cascade_data = containing_shadow.style_data();
-                let host = containing_shadow.host();
-                if let Some(map) = cascade_data.and_then(|data| data.normal_rules(pseudo_element)) {
-                    context.with_shadow_host(Some(host), |context| {
-                        map.get_all_matching_rules(
-                            element,
-                            rule_hash_target,
-                            applicable_declarations,
-                            context,
-                            flags_setter,
-                            CascadeLevel::SameTreeAuthorNormal,
-                            shadow_cascade_order,
-                        );
-                    });
-                    shadow_cascade_order += 1;
-                }
-
-                let host_is_svg_use_element =
-                    host.is_svg_element() && host.local_name() == &*local_name!("use");
-
-                if !host_is_svg_use_element {
-                    match_document_author_rules = false;
-                    break;
-                }
-
-                debug_assert!(
-                    cascade_data.is_none(),
-                    "We allow no stylesheets in <svg:use> subtrees"
-                );
-
-                // NOTE(emilio): Hack so <svg:use> matches the rules of the
-                // enclosing tree.
-                //
-                // This is not a problem for invalidation and that kind of stuff
-                // because they still don't match rules based on elements
-                // outside of the shadow tree, and because the <svg:use>
-                // subtrees are immutable and recreated each time the source
-                // tree changes.
-                //
-                // We historically allow cross-document <svg:use> to have these
-                // rules applied, but I think that's not great. Gecko is the
-                // only engine supporting that.
-                //
-                // See https://github.com/w3c/svgwg/issues/504 for the relevant
-                // spec discussion.
-                current_containing_shadow = host.containing_shadow();
-                match_document_author_rules = current_containing_shadow.is_none();
+        let mut current_containing_shadow = rule_hash_target.containing_shadow();
+        while let Some(containing_shadow) = current_containing_shadow {
+            let cascade_data = containing_shadow.style_data();
+            let host = containing_shadow.host();
+            if let Some(map) = cascade_data.and_then(|data| data.normal_rules(pseudo_element)) {
+                context.with_shadow_host(Some(host), |context| {
+                    map.get_all_matching_rules(
+                        element,
+                        rule_hash_target,
+                        applicable_declarations,
+                        context,
+                        flags_setter,
+                        CascadeLevel::SameTreeAuthorNormal,
+                        shadow_cascade_order,
+                    );
+                });
+                shadow_cascade_order += 1;
             }
+
+            let host_is_svg_use_element =
+                host.is_svg_element() && host.local_name() == &*local_name!("use");
+
+            if !host_is_svg_use_element {
+                match_document_author_rules = false;
+                break;
+            }
+
+            debug_assert!(
+                cascade_data.is_none(),
+                "We allow no stylesheets in <svg:use> subtrees"
+            );
+
+            // NOTE(emilio): Hack so <svg:use> matches the rules of the
+            // enclosing tree.
+            //
+            // This is not a problem for invalidation and that kind of stuff
+            // because they still don't match rules based on elements
+            // outside of the shadow tree, and because the <svg:use>
+            // subtrees are immutable and recreated each time the source
+            // tree changes.
+            //
+            // We historically allow cross-document <svg:use> to have these
+            // rules applied, but I think that's not great. Gecko is the
+            // only engine supporting that.
+            //
+            // See https://github.com/w3c/svgwg/issues/504 for the relevant
+            // spec discussion.
+            current_containing_shadow = host.containing_shadow();
+            match_document_author_rules = current_containing_shadow.is_none();
         }
 
         let cut_xbl_binding_inheritance =
@@ -1493,33 +1494,7 @@ impl Stylist {
         // the lookups, which means that the bitvecs are comparable. We verify
         // this in the caller by asserting that the bitvecs are same-length.
         let mut results = SmallBitVec::new();
-
-        let matches_document_rules =
-            element.each_applicable_non_document_style_rule_data(|data, quirks_mode, host| {
-                matching_context.with_shadow_host(host, |matching_context| {
-                    data.selectors_for_cache_revalidation.lookup(
-                        element,
-                        quirks_mode,
-                        |selector_and_hashes| {
-                            results.push(matches_selector(
-                                &selector_and_hashes.selector,
-                                selector_and_hashes.selector_offset,
-                                Some(&selector_and_hashes.hashes),
-                                &element,
-                                matching_context,
-                                flags_setter,
-                            ));
-                            true
-                        },
-                    );
-                })
-            });
-
-        for (data, origin) in self.cascade_data.iter_origins() {
-            if origin == Origin::Author && !matches_document_rules {
-                continue;
-            }
-
+        for (data, _) in self.cascade_data.iter_origins() {
             data.selectors_for_cache_revalidation.lookup(
                 element,
                 self.quirks_mode,
@@ -1536,6 +1511,26 @@ impl Stylist {
                 },
             );
         }
+
+        element.each_applicable_non_document_style_rule_data(|data, quirks_mode, host| {
+            matching_context.with_shadow_host(host, |matching_context| {
+                data.selectors_for_cache_revalidation.lookup(
+                    element,
+                    quirks_mode,
+                    |selector_and_hashes| {
+                        results.push(matches_selector(
+                            &selector_and_hashes.selector,
+                            selector_and_hashes.selector_offset,
+                            Some(&selector_and_hashes.hashes),
+                            &element,
+                            matching_context,
+                            flags_setter,
+                        ));
+                        true
+                    },
+                );
+            })
+        });
 
         results
     }
@@ -2423,9 +2418,6 @@ impl CascadeData {
         if let Some(ref mut slotted_rules) = self.slotted_rules {
             slotted_rules.clear();
         }
-        if let Some(ref mut host_rules) = self.host_rules {
-            host_rules.clear();
-        }
         self.animations.clear();
         self.extra_data.clear();
         self.rules_source_order = 0;
@@ -2450,9 +2442,6 @@ impl CascadeData {
         self.normal_rules.add_size_of(ops, sizes);
         if let Some(ref slotted_rules) = self.slotted_rules {
             slotted_rules.add_size_of(ops, sizes);
-        }
-        if let Some(ref host_rules) = self.host_rules {
-            host_rules.add_size_of(ops, sizes);
         }
         sizes.mInvalidationMap += self.invalidation_map.size_of(ops);
         sizes.mRevalidationSelectors += self.selectors_for_cache_revalidation.size_of(ops);

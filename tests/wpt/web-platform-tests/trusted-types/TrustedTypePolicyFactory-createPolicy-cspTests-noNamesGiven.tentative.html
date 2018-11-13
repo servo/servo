@@ -7,9 +7,8 @@
 <script>
   //No name given test
   test(t => {
-    assert_throws(new TypeError(), _ => {
-      window.TrustedTypes.createPolicy('SomeName', { createHTML: s => s } );
-    });
-  }, "No name list given - policy creation throws");
+    let policy = window.TrustedTypes.createPolicy('SomeName', { createHTML: s => s } );
+    assert_equals(policy.name, 'SomeName');
+  }, "No name list given - policy creation works");
 </script>
 

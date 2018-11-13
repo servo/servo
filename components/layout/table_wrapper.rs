@@ -11,23 +11,20 @@
 //!
 //! Hereafter this document is referred to as INTRINSIC.
 
+#![deny(unsafe_code)]
+
 use app_units::Au;
-use crate::block::{
-    AbsoluteNonReplaced, BlockFlow, FloatNonReplaced, ISizeAndMarginsComputer, ISizeConstraintInput,
-};
-use crate::block::{ISizeConstraintSolution, MarginsMayCollapseFlag};
-use crate::context::LayoutContext;
-use crate::display_list::StackingContextCollectionState;
-use crate::display_list::{
-    BlockFlowDisplayListBuilding, DisplayListBuildState, StackingContextCollectionFlags,
-};
-use crate::floats::FloatKind;
-use crate::flow::{Flow, FlowClass, FlowFlags, ImmutableFlowUtils, OpaqueFlow};
-use crate::fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
-use crate::model::MaybeAuto;
-use crate::table::{ColumnComputedInlineSize, ColumnIntrinsicInlineSize};
+use block::{AbsoluteNonReplaced, BlockFlow, FloatNonReplaced, ISizeAndMarginsComputer, ISizeConstraintInput};
+use block::{ISizeConstraintSolution, MarginsMayCollapseFlag};
+use context::LayoutContext;
+use display_list::{BlockFlowDisplayListBuilding, DisplayListBuildState, StackingContextCollectionFlags};
+use display_list::StackingContextCollectionState;
 use euclid::Point2D;
+use floats::FloatKind;
+use flow::{Flow, FlowClass, ImmutableFlowUtils, FlowFlags, OpaqueFlow};
+use fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
 use gfx_traits::print_tree::PrintTree;
+use model::MaybeAuto;
 use std::cmp::{max, min};
 use std::fmt;
 use std::ops::Add;
@@ -35,8 +32,9 @@ use style::computed_values::{position, table_layout};
 use style::context::SharedStyleContext;
 use style::logical_geometry::{LogicalRect, LogicalSize};
 use style::properties::ComputedValues;
-use style::values::computed::LengthOrPercentageOrAuto;
 use style::values::CSSFloat;
+use style::values::computed::LengthOrPercentageOrAuto;
+use table::{ColumnComputedInlineSize, ColumnIntrinsicInlineSize};
 
 #[derive(Clone, Copy, Debug, Serialize)]
 pub enum TableLayout {
@@ -45,7 +43,7 @@ pub enum TableLayout {
 }
 
 #[allow(unsafe_code)]
-unsafe impl crate::flow::HasBaseFlow for TableWrapperFlow {}
+unsafe impl ::flow::HasBaseFlow for TableWrapperFlow {}
 
 /// A table wrapper flow based on a block formatting context.
 #[derive(Serialize)]
@@ -147,8 +145,7 @@ impl TableWrapperFlow {
                 );
                 total_guess = &total_guess + &guess;
                 guess
-            })
-            .collect();
+            }).collect();
 
         // Assign inline sizes.
         let selection =
@@ -390,8 +387,7 @@ impl Flow for TableWrapperFlow {
                     size: column_intrinsic_inline_size.minimum_length,
                     percentage: column_intrinsic_inline_size.percentage,
                 },
-            )
-            .collect::<Vec<_>>();
+            ).collect::<Vec<_>>();
 
         // Our inline-size was set to the inline-size of the containing block by the flow's parent.
         // Now compute the real value.
@@ -521,7 +517,7 @@ impl Flow for TableWrapperFlow {
         );
     }
 
-    fn repair_style(&mut self, new_style: &crate::ServoArc<ComputedValues>) {
+    fn repair_style(&mut self, new_style: &::ServoArc<ComputedValues>) {
         self.block_flow.repair_style(new_style)
     }
 
@@ -531,7 +527,7 @@ impl Flow for TableWrapperFlow {
 
     fn iterate_through_fragment_border_boxes(
         &self,
-        iterator: &mut dyn FragmentBorderBoxIterator,
+        iterator: &mut FragmentBorderBoxIterator,
         level: i32,
         stacking_context_position: &Point2D<Au>,
     ) {
@@ -542,7 +538,7 @@ impl Flow for TableWrapperFlow {
         )
     }
 
-    fn mutate_fragments(&mut self, mutator: &mut dyn FnMut(&mut Fragment)) {
+    fn mutate_fragments(&mut self, mutator: &mut FnMut(&mut Fragment)) {
         self.block_flow.mutate_fragments(mutator)
     }
 
@@ -759,17 +755,17 @@ impl ExcessInlineSizeDistributionInfo {
         if !column_intrinsic_inline_size.constrained &&
             column_intrinsic_inline_size.percentage == 0.0
         {
-            self.preferred_inline_size_of_nonconstrained_columns_with_no_percentage = self
-                .preferred_inline_size_of_nonconstrained_columns_with_no_percentage +
-                column_intrinsic_inline_size.preferred;
+            self.preferred_inline_size_of_nonconstrained_columns_with_no_percentage =
+                self.preferred_inline_size_of_nonconstrained_columns_with_no_percentage +
+                    column_intrinsic_inline_size.preferred;
             self.count_of_nonconstrained_columns_with_no_percentage += 1
         }
         if column_intrinsic_inline_size.constrained &&
             column_intrinsic_inline_size.percentage == 0.0
         {
-            self.preferred_inline_size_of_constrained_columns_with_no_percentage = self
-                .preferred_inline_size_of_constrained_columns_with_no_percentage +
-                column_intrinsic_inline_size.preferred
+            self.preferred_inline_size_of_constrained_columns_with_no_percentage =
+                self.preferred_inline_size_of_constrained_columns_with_no_percentage +
+                    column_intrinsic_inline_size.preferred
         }
         self.total_percentage += column_intrinsic_inline_size.percentage;
         self.column_count += 1

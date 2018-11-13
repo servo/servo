@@ -2,15 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use crate::dom::attr::Attr;
-use crate::dom::bindings::codegen::Bindings::DOMTokenListBinding;
-use crate::dom::bindings::codegen::Bindings::DOMTokenListBinding::DOMTokenListMethods;
-use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
-use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
-use crate::dom::bindings::root::{Dom, DomRoot};
-use crate::dom::bindings::str::DOMString;
-use crate::dom::element::Element;
-use crate::dom::node::window_from_node;
+use dom::attr::Attr;
+use dom::bindings::codegen::Bindings::DOMTokenListBinding;
+use dom::bindings::codegen::Bindings::DOMTokenListBinding::DOMTokenListMethods;
+use dom::bindings::error::{Error, ErrorResult, Fallible};
+use dom::bindings::reflector::{Reflector, reflect_dom_object};
+use dom::bindings::root::{Dom, DomRoot};
+use dom::bindings::str::DOMString;
+use dom::element::Element;
+use dom::node::window_from_node;
 use dom_struct::dom_struct;
 use html5ever::LocalName;
 use servo_atoms::Atom;

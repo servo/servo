@@ -10,60 +10,61 @@
 //! thread pool implementation, which only performs GC or code loading on
 //! a backup thread, not on the primary worklet thread.
 
-use crate::dom::bindings::codegen::Bindings::RequestBinding::RequestCredentials;
-use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowBinding::WindowMethods;
-use crate::dom::bindings::codegen::Bindings::WorkletBinding::WorkletMethods;
-use crate::dom::bindings::codegen::Bindings::WorkletBinding::WorkletOptions;
-use crate::dom::bindings::codegen::Bindings::WorkletBinding::Wrap;
-use crate::dom::bindings::error::Error;
-use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::refcounted::TrustedPromise;
-use crate::dom::bindings::reflector::reflect_dom_object;
-use crate::dom::bindings::reflector::Reflector;
-use crate::dom::bindings::root::{Dom, DomRoot, RootCollection, ThreadLocalStackRoots};
-use crate::dom::bindings::str::USVString;
-use crate::dom::bindings::trace::JSTraceable;
-use crate::dom::bindings::trace::RootedTraceableBox;
-use crate::dom::globalscope::GlobalScope;
-use crate::dom::promise::Promise;
-use crate::dom::testworkletglobalscope::TestWorkletTask;
-use crate::dom::window::Window;
-use crate::dom::workletglobalscope::WorkletGlobalScope;
-use crate::dom::workletglobalscope::WorkletGlobalScopeInit;
-use crate::dom::workletglobalscope::WorkletGlobalScopeType;
-use crate::dom::workletglobalscope::WorkletTask;
-use crate::script_runtime::new_rt_and_cx;
-use crate::script_runtime::CommonScriptMsg;
-use crate::script_runtime::Runtime;
-use crate::script_runtime::ScriptThreadEventCategory;
-use crate::script_thread::{MainThreadScriptMsg, ScriptThread};
-use crate::task::TaskBox;
-use crate::task_source::TaskSourceName;
+use dom::bindings::codegen::Bindings::RequestBinding::RequestCredentials;
+use dom::bindings::codegen::Bindings::WindowBinding::WindowBinding::WindowMethods;
+use dom::bindings::codegen::Bindings::WorkletBinding::WorkletMethods;
+use dom::bindings::codegen::Bindings::WorkletBinding::WorkletOptions;
+use dom::bindings::codegen::Bindings::WorkletBinding::Wrap;
+use dom::bindings::error::Error;
+use dom::bindings::inheritance::Castable;
+use dom::bindings::refcounted::TrustedPromise;
+use dom::bindings::reflector::Reflector;
+use dom::bindings::reflector::reflect_dom_object;
+use dom::bindings::root::{Dom, DomRoot, RootCollection, ThreadLocalStackRoots};
+use dom::bindings::str::USVString;
+use dom::bindings::trace::JSTraceable;
+use dom::bindings::trace::RootedTraceableBox;
+use dom::globalscope::GlobalScope;
+use dom::promise::Promise;
+use dom::testworkletglobalscope::TestWorkletTask;
+use dom::window::Window;
+use dom::workletglobalscope::WorkletGlobalScope;
+use dom::workletglobalscope::WorkletGlobalScopeInit;
+use dom::workletglobalscope::WorkletGlobalScopeType;
+use dom::workletglobalscope::WorkletTask;
 use dom_struct::dom_struct;
 use js::jsapi::JSGCParamKey;
 use js::jsapi::JSTracer;
-use js::jsapi::JS_GetGCParameter;
 use js::jsapi::JS_GC;
+use js::jsapi::JS_GetGCParameter;
 use msg::constellation_msg::PipelineId;
+use net_traits::IpcSend;
 use net_traits::load_whole_resource;
 use net_traits::request::Destination;
 use net_traits::request::RequestInit;
 use net_traits::request::RequestMode;
-use net_traits::IpcSend;
-use servo_channel::{channel, Receiver, Sender};
+use script_runtime::CommonScriptMsg;
+use script_runtime::Runtime;
+use script_runtime::ScriptThreadEventCategory;
+use script_runtime::new_rt_and_cx;
+use script_thread::{MainThreadScriptMsg, ScriptThread};
+use servo_channel::{channel, Sender, Receiver};
+use servo_rand;
 use servo_url::ImmutableOrigin;
 use servo_url::ServoUrl;
 use std::cmp::max;
-use std::collections::hash_map;
 use std::collections::HashMap;
+use std::collections::hash_map;
 use std::rc::Rc;
+use std::sync::Arc;
 use std::sync::atomic::AtomicIsize;
 use std::sync::atomic::Ordering;
-use std::sync::Arc;
 use std::thread;
 use style::thread_state::{self, ThreadState};
-use swapper::swapper;
 use swapper::Swapper;
+use swapper::swapper;
+use task::TaskBox;
+use task_source::TaskSourceName;
 use uuid::Uuid;
 
 // Magic numbers
@@ -322,11 +323,7 @@ impl WorkletThreadPool {
     }
 
     pub(crate) fn exit_worklet(&self, worklet_id: WorkletId) {
-        for sender in &[
-            &self.control_sender_0,
-            &self.control_sender_1,
-            &self.control_sender_2,
-        ] {
+        for sender in &[&self.control_sender_0, &self.control_sender_1, &self.control_sender_2] {
             let _ = sender.send(WorkletControl::ExitWorklet(worklet_id));
         }
         self.wake_threads();

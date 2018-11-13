@@ -4,7 +4,6 @@ name = "gfx"
 version = "0.0.1"
 authors = ["The Servo Project Developers"]
 license = "MPL-2.0"
-edition = "2018"
 publish = false
 
 [lib]
@@ -38,7 +37,7 @@ servo_arc = {path = "../servo_arc"}
 servo_atoms = {path = "../atoms"}
 servo_url = {path = "../url"}
 smallvec = { version = "0.6", features = ["std", "union"] }
-style = {path = "../style", features = ["servo"]}
+style = {path = "../style"}
 time = "0.1.12"
 unicode-bidi = {version = "0.3", features = ["with_serde"]}
 unicode-script = {version = "0.2", features = ["harfbuzz"]}
@@ -49,8 +48,8 @@ ucd = "0.1.1"
 [target.'cfg(target_os = "macos")'.dependencies]
 byteorder = "1.0"
 core-foundation = "0.6"
-core-graphics = "0.17"
-core-text = "13.0"
+core-graphics = "0.16"
+core-text = "11.0"
 
 [target.'cfg(any(target_os = "linux", target_os = "android"))'.dependencies]
 freetype = "0.4"
@@ -63,5 +62,5 @@ servo-fontconfig = "0.2.1"
 xml5ever = {version = "0.12"}
 
 [target.'cfg(target_os = "windows")'.dependencies]
-dwrote = "0.6"
+dwrote = "0.4"
 truetype = "0.26"

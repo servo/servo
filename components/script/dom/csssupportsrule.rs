@@ -2,22 +2,22 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::codegen::Bindings::CSSSupportsRuleBinding;
-use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowBinding::WindowMethods;
-use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
-use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::DOMString;
-use crate::dom::cssconditionrule::CSSConditionRule;
-use crate::dom::cssrule::SpecificCSSRule;
-use crate::dom::cssstylesheet::CSSStyleSheet;
-use crate::dom::window::Window;
 use cssparser::{Parser, ParserInput};
+use dom::bindings::codegen::Bindings::CSSSupportsRuleBinding;
+use dom::bindings::codegen::Bindings::WindowBinding::WindowBinding::WindowMethods;
+use dom::bindings::reflector::{DomObject, reflect_dom_object};
+use dom::bindings::root::DomRoot;
+use dom::bindings::str::DOMString;
+use dom::cssconditionrule::CSSConditionRule;
+use dom::cssrule::SpecificCSSRule;
+use dom::cssstylesheet::CSSStyleSheet;
+use dom::window::Window;
 use dom_struct::dom_struct;
 use servo_arc::Arc;
 use style::parser::ParserContext;
 use style::shared_lock::{Locked, ToCssWithGuard};
-use style::stylesheets::supports_rule::SupportsCondition;
 use style::stylesheets::{CssRuleType, SupportsRule};
+use style::stylesheets::supports_rule::SupportsCondition;
 use style_traits::{ParsingMode, ToCss};
 
 #[dom_struct]
@@ -81,16 +81,7 @@ impl CSSSupportsRule {
                 None,
                 None,
             );
-            let enabled = {
-                let namespaces = self
-                    .cssconditionrule
-                    .parent_stylesheet()
-                    .style_stylesheet()
-                    .contents
-                    .namespaces
-                    .read();
-                cond.eval(&context, &namespaces)
-            };
+            let enabled = cond.eval(&context);
             let mut guard = self.cssconditionrule.shared_lock().write();
             let rule = self.supportsrule.write_with(&mut guard);
             rule.condition = cond;
@@ -101,7 +92,7 @@ impl CSSSupportsRule {
 
 impl SpecificCSSRule for CSSSupportsRule {
     fn ty(&self) -> u16 {
-        use crate::dom::bindings::codegen::Bindings::CSSRuleBinding::CSSRuleConstants;
+        use dom::bindings::codegen::Bindings::CSSRuleBinding::CSSRuleConstants;
         CSSRuleConstants::SUPPORTS_RULE
     }
 

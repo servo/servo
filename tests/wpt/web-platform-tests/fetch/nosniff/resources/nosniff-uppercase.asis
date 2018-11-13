@@ -1,0 +1,6 @@
+HTTP/1.1 200 YOU HAVE NO POWER HERE
+Content-Length: 22
+Content-Type: x/x
+X-Content-Type-Options: NOSNIFF
+
+// nothing to see here

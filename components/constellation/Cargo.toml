@@ -3,7 +3,6 @@ name = "constellation"
 version = "0.0.1"
 authors = ["The Servo Project Developers"]
 license = "MPL-2.0"
-edition = "2018"
 publish = false
 
 [lib]
@@ -23,10 +22,9 @@ euclid = "0.19"
 embedder_traits = { path = "../embedder_traits" }
 gfx = {path = "../gfx"}
 gfx_traits = {path = "../gfx_traits"}
-http = "0.1"
+hyper = "0.10"
 ipc-channel = "0.11"
 layout_traits = {path = "../layout_traits"}
-keyboard-types = {version = "0.4.2-servo", features = ["serde"]}
 log = "0.4"
 metrics = {path = "../metrics"}
 msg = {path = "../msg"}
@@ -46,3 +44,6 @@ webrender_api = {git = "https://github.com/servo/webrender", features = ["ipc"]}
 
 [target.'cfg(all(not(target_os = "windows"), not(target_os = "ios")))'.dependencies]
 gaol = {git = "https://github.com/servo/gaol"}
+
+[dev-dependencies]
+embedder_traits = { path = "../embedder_traits", features = ["tests"] }

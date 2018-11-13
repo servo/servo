@@ -2,68 +2,67 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::EventSourceBinding::EventSourceBinding::EventSourceMethods;
-use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
-use crate::dom::bindings::codegen::Bindings::WorkerGlobalScopeBinding::WorkerGlobalScopeMethods;
-use crate::dom::bindings::conversions::root_from_object;
-use crate::dom::bindings::error::{report_pending_exception, ErrorInfo};
-use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::DomObject;
-use crate::dom::bindings::root::{DomRoot, MutNullableDom};
-use crate::dom::bindings::settings_stack::{entry_global, incumbent_global, AutoEntryScript};
-use crate::dom::bindings::str::DOMString;
-use crate::dom::bindings::weakref::DOMTracker;
-use crate::dom::crypto::Crypto;
-use crate::dom::dedicatedworkerglobalscope::DedicatedWorkerGlobalScope;
-use crate::dom::errorevent::ErrorEvent;
-use crate::dom::event::{Event, EventBubbles, EventCancelable, EventStatus};
-use crate::dom::eventsource::EventSource;
-use crate::dom::eventtarget::EventTarget;
-use crate::dom::performance::Performance;
-use crate::dom::window::Window;
-use crate::dom::workerglobalscope::WorkerGlobalScope;
-use crate::dom::workletglobalscope::WorkletGlobalScope;
-use crate::microtask::{Microtask, MicrotaskQueue};
-use crate::script_runtime::{CommonScriptMsg, ScriptChan, ScriptPort};
-use crate::script_thread::{MainThreadScriptChan, ScriptThread};
-use crate::task::TaskCanceller;
-use crate::task_source::dom_manipulation::DOMManipulationTaskSource;
-use crate::task_source::file_reading::FileReadingTaskSource;
-use crate::task_source::networking::NetworkingTaskSource;
-use crate::task_source::performance_timeline::PerformanceTimelineTaskSource;
-use crate::task_source::remote_event::RemoteEventTaskSource;
-use crate::task_source::websocket::WebsocketTaskSource;
-use crate::task_source::TaskSourceName;
-use crate::timers::{IsInterval, OneshotTimerCallback, OneshotTimerHandle};
-use crate::timers::{OneshotTimers, TimerCallback};
 use devtools_traits::{ScriptToDevtoolsControlMsg, WorkerId};
+use dom::bindings::cell::DomRefCell;
+use dom::bindings::codegen::Bindings::EventSourceBinding::EventSourceBinding::EventSourceMethods;
+use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
+use dom::bindings::codegen::Bindings::WorkerGlobalScopeBinding::WorkerGlobalScopeMethods;
+use dom::bindings::conversions::root_from_object;
+use dom::bindings::error::{ErrorInfo, report_pending_exception};
+use dom::bindings::inheritance::Castable;
+use dom::bindings::reflector::DomObject;
+use dom::bindings::root::{DomRoot, MutNullableDom};
+use dom::bindings::settings_stack::{AutoEntryScript, entry_global, incumbent_global};
+use dom::bindings::str::DOMString;
+use dom::bindings::weakref::DOMTracker;
+use dom::crypto::Crypto;
+use dom::dedicatedworkerglobalscope::DedicatedWorkerGlobalScope;
+use dom::errorevent::ErrorEvent;
+use dom::event::{Event, EventBubbles, EventCancelable, EventStatus};
+use dom::eventsource::EventSource;
+use dom::eventtarget::EventTarget;
+use dom::performance::Performance;
+use dom::window::Window;
+use dom::workerglobalscope::WorkerGlobalScope;
+use dom::workletglobalscope::WorkletGlobalScope;
 use dom_struct::dom_struct;
 use ipc_channel::ipc::IpcSender;
-use js::glue::{IsWrapper, UnwrapObject};
-use js::jsapi::JSObject;
-use js::jsapi::{CurrentGlobalOrNull, GetGlobalForObjectCrossCompartment};
-use js::jsapi::{HandleObject, Heap};
-use js::jsapi::{JSAutoCompartment, JSContext};
-use js::panic::maybe_resume_unwind;
-use js::rust::wrappers::Evaluate2;
-use js::rust::{get_object_class, CompileOptionsWrapper, Runtime};
-use js::rust::{HandleValue, MutableHandleValue};
 use js::{JSCLASS_IS_DOMJSCLASS, JSCLASS_IS_GLOBAL};
+use js::glue::{IsWrapper, UnwrapObject};
+use js::jsapi::{CurrentGlobalOrNull, GetGlobalForObjectCrossCompartment};
+use js::jsapi::{JSAutoCompartment, JSContext};
+use js::jsapi::JSObject;
+use js::panic::maybe_resume_unwind;
+use js::rust::{CompileOptionsWrapper, Runtime, get_object_class};
+use js::rust::{HandleValue, MutableHandleValue};
+use js::rust::wrappers::Evaluate2;
+use libc;
+use microtask::{Microtask, MicrotaskQueue};
 use msg::constellation_msg::PipelineId;
-use net_traits::{CoreResourceThread, IpcSend, ResourceThreads};
-use profile_traits::{mem as profile_mem, time as profile_time};
+use net_traits::{CoreResourceThread, ResourceThreads, IpcSend};
+use profile_traits::{mem, time};
+use script_runtime::{CommonScriptMsg, ScriptChan, ScriptPort};
+use script_thread::{MainThreadScriptChan, ScriptThread};
 use script_traits::{MsDuration, ScriptToConstellationChan, TimerEvent};
 use script_traits::{TimerEventId, TimerSchedulerMsg, TimerSource};
 use servo_url::{MutableOrigin, ServoUrl};
 use std::cell::Cell;
-use std::collections::hash_map::Entry;
 use std::collections::HashMap;
+use std::collections::hash_map::Entry;
 use std::ffi::CString;
 use std::rc::Rc;
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
-use time::{get_time, Timespec};
+use std::sync::atomic::{AtomicBool, Ordering};
+use task::TaskCanceller;
+use task_source::TaskSourceName;
+use task_source::file_reading::FileReadingTaskSource;
+use task_source::networking::NetworkingTaskSource;
+use task_source::performance_timeline::PerformanceTimelineTaskSource;
+use task_source::remote_event::RemoteEventTaskSource;
+use task_source::websocket::WebsocketTaskSource;
+use time::{Timespec, get_time};
+use timers::{IsInterval, OneshotTimerCallback, OneshotTimerHandle};
+use timers::{OneshotTimers, TimerCallback};
 
 #[derive(JSTraceable)]
 pub struct AutoCloseWorker(Arc<AtomicBool>);
@@ -96,11 +95,11 @@ pub struct GlobalScope {
 
     /// For sending messages to the memory profiler.
     #[ignore_malloc_size_of = "channels are hard"]
-    mem_profiler_chan: profile_mem::ProfilerChan,
+    mem_profiler_chan: mem::ProfilerChan,
 
     /// For sending messages to the time profiler.
     #[ignore_malloc_size_of = "channels are hard"]
-    time_profiler_chan: profile_time::ProfilerChan,
+    time_profiler_chan: time::ProfilerChan,
 
     /// A handle for communicating messages to the constellation thread.
     #[ignore_malloc_size_of = "channels are hard"]
@@ -136,31 +135,14 @@ pub struct GlobalScope {
 
     /// Vector storing references of all eventsources.
     event_source_tracker: DOMTracker<EventSource>,
-
-    /// Storage for watching rejected promises waiting for some client to
-    /// consume their rejection.
-    /// Promises in this list have been rejected in the last turn of the
-    /// event loop without the rejection being handled.
-    /// Note that this can contain nullptrs in place of promises removed because
-    /// they're consumed before it'd be reported.
-    ///
-    /// <https://html.spec.whatwg.org/multipage/#about-to-be-notified-rejected-promises-list>
-    uncaught_rejections: DomRefCell<Vec<Box<Heap<*mut JSObject>>>>,
-
-    /// Promises in this list have previously been reported as rejected
-    /// (because they were in the above list), but the rejection was handled
-    /// in the last turn of the event loop.
-    ///
-    /// <https://html.spec.whatwg.org/multipage/#outstanding-rejected-promises-weak-set>
-    consumed_rejections: DomRefCell<Vec<Box<Heap<*mut JSObject>>>>,
 }
 
 impl GlobalScope {
     pub fn new_inherited(
         pipeline_id: PipelineId,
         devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
-        mem_profiler_chan: profile_mem::ProfilerChan,
-        time_profiler_chan: profile_time::ProfilerChan,
+        mem_profiler_chan: mem::ProfilerChan,
+        time_profiler_chan: time::ProfilerChan,
         script_to_constellation_chan: ScriptToConstellationChan,
         scheduler_chan: IpcSender<TimerSchedulerMsg>,
         resource_threads: ResourceThreads,
@@ -187,8 +169,6 @@ impl GlobalScope {
             microtask_queue,
             list_auto_close_worker: Default::default(),
             event_source_tracker: DOMTracker::new(),
-            uncaught_rejections: Default::default(),
-            consumed_rejections: Default::default(),
         }
     }
 
@@ -250,49 +230,6 @@ impl GlobalScope {
         GlobalScope::from_object(obj)
     }
 
-    pub fn add_uncaught_rejection(&self, rejection: HandleObject) {
-        self.uncaught_rejections
-            .borrow_mut()
-            .push(Heap::boxed(rejection.get()));
-    }
-
-    pub fn remove_uncaught_rejection(&self, rejection: HandleObject) {
-        let mut uncaught_rejections = self.uncaught_rejections.borrow_mut();
-
-        if let Some(index) = uncaught_rejections
-            .iter()
-            .position(|promise| *promise == Heap::boxed(rejection.get()))
-        {
-            uncaught_rejections.remove(index);
-        }
-    }
-
-    pub fn get_uncaught_rejections(&self) -> &DomRefCell<Vec<Box<Heap<*mut JSObject>>>> {
-        &self.uncaught_rejections
-    }
-
-    pub fn add_consumed_rejection(&self, rejection: HandleObject) {
-        self.consumed_rejections
-            .borrow_mut()
-            .push(Heap::boxed(rejection.get()));
-    }
-
-    pub fn remove_consumed_rejection(&self, rejection: HandleObject) {
-        let mut consumed_rejections = self.consumed_rejections.borrow_mut();
-
-        if let Some(index) = consumed_rejections
-            .iter()
-            .position(|promise| *promise == Heap::boxed(rejection.get()))
-        {
-            consumed_rejections.remove(index);
-        }
-    }
-
-    pub fn get_consumed_rejections(&self) -> &DomRefCell<Vec<Box<Heap<*mut JSObject>>>> {
-        &self.consumed_rejections
-    }
-
-    #[allow(unsafe_code)]
     pub fn get_cx(&self) -> *mut JSContext {
         Runtime::get()
     }
@@ -346,12 +283,12 @@ impl GlobalScope {
     }
 
     /// Get a sender to the memory profiler thread.
-    pub fn mem_profiler_chan(&self) -> &profile_mem::ProfilerChan {
+    pub fn mem_profiler_chan(&self) -> &mem::ProfilerChan {
         &self.mem_profiler_chan
     }
 
     /// Get a sender to the time profiler thread.
-    pub fn time_profiler_chan(&self) -> &profile_time::ProfilerChan {
+    pub fn time_profiler_chan(&self) -> &time::ProfilerChan {
         &self.time_profiler_chan
     }
 
@@ -462,7 +399,7 @@ impl GlobalScope {
     }
 
     /// `ScriptChan` to send messages to the event loop of this global scope.
-    pub fn script_chan(&self) -> Box<dyn ScriptChan + Send> {
+    pub fn script_chan(&self) -> Box<ScriptChan + Send> {
         if let Some(window) = self.downcast::<Window>() {
             return MainThreadScriptChan(window.main_thread_script_chan().clone()).clone();
         }
@@ -522,17 +459,17 @@ impl GlobalScope {
         rval: MutableHandleValue,
         line_number: u32,
     ) -> bool {
-        let metadata = profile_time::TimerMetadata {
+        let metadata = time::TimerMetadata {
             url: if filename.is_empty() {
                 self.get_url().as_str().into()
             } else {
                 filename.into()
             },
-            iframe: profile_time::TimerMetadataFrameType::RootWindow,
-            incremental: profile_time::TimerMetadataReflowType::FirstReflow,
+            iframe: time::TimerMetadataFrameType::RootWindow,
+            incremental: time::TimerMetadataReflowType::FirstReflow,
         };
-        profile_time::profile(
-            profile_time::ProfilerCategory::ScriptEvaluate,
+        time::profile(
+            time::ProfilerCategory::ScriptEvaluate,
             Some(metadata),
             self.time_profiler_chan().clone(),
             || {
@@ -648,10 +585,8 @@ impl GlobalScope {
 
     /// Perform a microtask checkpoint.
     pub fn perform_a_microtask_checkpoint(&self) {
-        self.microtask_queue.checkpoint(
-            |_| Some(DomRoot::from_ref(self)),
-            vec![DomRoot::from_ref(self)],
-        );
+        self.microtask_queue
+            .checkpoint(|_| Some(DomRoot::from_ref(self)));
     }
 
     /// Enqueue a microtask for subsequent execution.
@@ -662,7 +597,7 @@ impl GlobalScope {
     /// Create a new sender/receiver pair that can be used to implement an on-demand
     /// event loop. Used for implementing web APIs that require blocking semantics
     /// without resorting to nested event loops.
-    pub fn new_script_pair(&self) -> (Box<dyn ScriptChan + Send>, Box<dyn ScriptPort + Send>) {
+    pub fn new_script_pair(&self) -> (Box<ScriptChan + Send>, Box<ScriptPort + Send>) {
         if let Some(window) = self.downcast::<Window>() {
             return window.new_script_pair();
         }
@@ -685,16 +620,6 @@ impl GlobalScope {
         }
         if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
             return worker.process_event(msg);
-        }
-        unreachable!();
-    }
-
-    pub fn dom_manipulation_task_source(&self) -> DOMManipulationTaskSource {
-        if let Some(window) = self.downcast::<Window>() {
-            return window.dom_manipulation_task_source();
-        }
-        if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
-            return worker.dom_manipulation_task_source();
         }
         unreachable!();
     }

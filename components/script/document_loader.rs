@@ -6,13 +6,13 @@
 //!
 //! <https://html.spec.whatwg.org/multipage/#the-end>
 
-use crate::dom::bindings::root::Dom;
-use crate::dom::document::Document;
-use crate::fetch::FetchCanceller;
+use dom::bindings::root::Dom;
+use dom::document::Document;
+use fetch::FetchCanceller;
 use ipc_channel::ipc::IpcSender;
-use net_traits::request::RequestInit;
 use net_traits::{CoreResourceMsg, FetchChannels, FetchResponseMsg};
-use net_traits::{IpcSend, ResourceThreads};
+use net_traits::{ResourceThreads, IpcSend};
+use net_traits::request::RequestInit;
 use servo_url::ServoUrl;
 use std::thread;
 
@@ -153,8 +153,7 @@ impl DocumentLoader {
             .send(CoreResourceMsg::Fetch(
                 request,
                 FetchChannels::ResponseMsg(fetch_target, Some(cancel_receiver)),
-            ))
-            .unwrap();
+            )).unwrap();
     }
 
     /// Mark an in-progress network request complete.

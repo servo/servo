@@ -2,28 +2,27 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
-use crate::dom::bindings::codegen::Bindings::StorageEventBinding;
-use crate::dom::bindings::codegen::Bindings::StorageEventBinding::StorageEventMethods;
-use crate::dom::bindings::error::Fallible;
-use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::reflect_dom_object;
-use crate::dom::bindings::root::{DomRoot, MutNullableDom, RootedReference};
-use crate::dom::bindings::str::{DOMString, USVString};
-use crate::dom::event::{Event, EventBubbles, EventCancelable};
-use crate::dom::storage::Storage;
-use crate::dom::window::Window;
+use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
+use dom::bindings::codegen::Bindings::StorageEventBinding;
+use dom::bindings::codegen::Bindings::StorageEventBinding::StorageEventMethods;
+use dom::bindings::error::Fallible;
+use dom::bindings::inheritance::Castable;
+use dom::bindings::reflector::reflect_dom_object;
+use dom::bindings::root::{DomRoot, MutNullableDom, RootedReference};
+use dom::bindings::str::DOMString;
+use dom::event::{Event, EventBubbles, EventCancelable};
+use dom::storage::Storage;
+use dom::window::Window;
 use dom_struct::dom_struct;
 use servo_atoms::Atom;
 
 #[dom_struct]
 pub struct StorageEvent {
     event: Event,
-    key: DomRefCell<Option<DOMString>>,
-    old_value: DomRefCell<Option<DOMString>>,
-    new_value: DomRefCell<Option<DOMString>>,
-    url: DomRefCell<DOMString>,
+    key: Option<DOMString>,
+    old_value: Option<DOMString>,
+    new_value: Option<DOMString>,
+    url: DOMString,
     storage_area: MutNullableDom<Storage>,
 }
 
@@ -37,10 +36,10 @@ impl StorageEvent {
     ) -> StorageEvent {
         StorageEvent {
             event: Event::new_inherited(),
-            key: DomRefCell::new(key),
-            old_value: DomRefCell::new(old_value),
-            new_value: DomRefCell::new(new_value),
-            url: DomRefCell::new(url),
+            key: key,
+            old_value: old_value,
+            new_value: new_value,
+            url: url,
             storage_area: MutNullableDom::new(storage_area),
         }
     }
@@ -112,22 +111,22 @@ impl StorageEvent {
 impl StorageEventMethods for StorageEvent {
     // https://html.spec.whatwg.org/multipage/#dom-storageevent-key
     fn GetKey(&self) -> Option<DOMString> {
-        self.key.borrow().clone()
+        self.key.clone()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-storageevent-oldvalue
     fn GetOldValue(&self) -> Option<DOMString> {
-        self.old_value.borrow().clone()
+        self.old_value.clone()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-storageevent-newvalue
     fn GetNewValue(&self) -> Option<DOMString> {
-        self.new_value.borrow().clone()
+        self.new_value.clone()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-storageevent-url
     fn Url(&self) -> DOMString {
-        self.url.borrow().clone()
+        self.url.clone()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-storageevent-storagearea
@@ -138,29 +137,5 @@ impl StorageEventMethods for StorageEvent {
     // https://dom.spec.whatwg.org/#dom-event-istrusted
     fn IsTrusted(&self) -> bool {
         self.event.IsTrusted()
-    }
-
-    // https://html.spec.whatwg.org/multipage/#dom-storageevent-initstorageevent
-    fn InitStorageEvent(
-        &self,
-        type_: DOMString,
-        bubbles: bool,
-        cancelable: bool,
-        key: Option<DOMString>,
-        oldValue: Option<DOMString>,
-        newValue: Option<DOMString>,
-        url: USVString,
-        storageArea: Option<&Storage>,
-    ) {
-        self.event.init_event(
-            Atom::from(type_),
-            bool::from(bubbles),
-            bool::from(cancelable),
-        );
-        *self.key.borrow_mut() = key;
-        *self.old_value.borrow_mut() = oldValue;
-        *self.new_value.borrow_mut() = newValue;
-        *self.url.borrow_mut() = DOMString::from_string(url.0);
-        self.storage_area.set(storageArea);
     }
 }

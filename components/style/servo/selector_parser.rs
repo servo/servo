@@ -6,6 +6,7 @@
 
 //! Servo's selector parser.
 
+use {Atom, CaseSensitivityExt, LocalName, Namespace, Prefix};
 use attr::{AttrIdentifier, AttrValue};
 use cssparser::{serialize_identifier, CowRcStr, Parser as CssParser, SourceLocation, ToCss};
 use dom::{OpaqueNode, TElement, TNode};
@@ -13,8 +14,8 @@ use element_state::{DocumentState, ElementState};
 use fxhash::FxHashMap;
 use invalidation::element::document_state::InvalidationMatchingData;
 use invalidation::element::element_wrapper::ElementSnapshot;
-use properties::longhands::display::computed_value::T as Display;
 use properties::{ComputedValues, PropertyFlags};
+use properties::longhands::display::computed_value::T as Display;
 use selector_parser::{AttrValue as SelectorAttrValue, PseudoElementCascadeType, SelectorParser};
 use selectors::attr::{AttrSelectorOperation, CaseSensitivity, NamespaceConstraint};
 use selectors::parser::{SelectorParseErrorKind, Visit};
@@ -23,7 +24,6 @@ use std::fmt;
 use std::mem;
 use std::ops::{Deref, DerefMut};
 use style_traits::{ParseError, StyleParseErrorKind};
-use {Atom, CaseSensitivityExt, LocalName, Namespace, Prefix};
 
 /// A pseudo-element, both public and private.
 ///
@@ -221,6 +221,43 @@ impl PseudoElement {
         }
     }
 
+    /// For most (but not all) anon-boxes, we inherit all values from the
+    /// parent, this is the hook in the style system to allow this.
+    ///
+    /// FIXME(emilio): It's likely that this is broken in a variety of
+    /// situations, and what it really wants is just inherit some reset
+    /// properties...  Also, I guess it just could do all: inherit on the
+    /// stylesheet, though chances are that'd be kinda slow if we don't cache
+    /// them...
+    pub fn inherits_all(&self) -> bool {
+        match *self {
+            PseudoElement::After |
+            PseudoElement::Before |
+            PseudoElement::Selection |
+            PseudoElement::DetailsContent |
+            PseudoElement::DetailsSummary |
+            // Anonymous table flows shouldn't inherit their parents properties in order
+            // to avoid doubling up styles such as transformations.
+            PseudoElement::ServoAnonymousTableCell |
+            PseudoElement::ServoAnonymousTableRow |
+            PseudoElement::ServoText |
+            PseudoElement::ServoInputText => false,
+
+            // For tables, we do want style to inherit, because TableWrapper is
+            // responsible for handling clipping and scrolling, while Table is
+            // responsible for creating stacking contexts.
+            //
+            // StackingContextCollectionFlags makes sure this is processed
+            // properly.
+            PseudoElement::ServoAnonymousTable |
+            PseudoElement::ServoAnonymousTableWrapper |
+            PseudoElement::ServoTableWrapper |
+            PseudoElement::ServoAnonymousBlock |
+            PseudoElement::ServoInlineBlockWrapper |
+            PseudoElement::ServoInlineAbsolute => true,
+        }
+    }
+
     /// Covert non-canonical pseudo-element to canonical one, and keep a
     /// canonical one as it is.
     pub fn canonical(&self) -> PseudoElement {
@@ -348,8 +385,8 @@ impl NonTSPseudoClass {
     /// Gets a given state flag for this pseudo-class. This is used to do
     /// selector matching, and it's set from the DOM.
     pub fn state_flag(&self) -> ElementState {
-        use self::NonTSPseudoClass::*;
         use element_state::ElementState;
+        use self::NonTSPseudoClass::*;
         match *self {
             Active => ElementState::IN_ACTIVE_STATE,
             Focus => ElementState::IN_FOCUS_STATE,
@@ -548,7 +585,7 @@ impl<'a, 'i> ::selectors::Parser<'i> for SelectorParser<'a> {
                 }
                 ServoInlineBlockWrapper
             },
-            "-servo-inline-absolute" => {
+            "-servo-input-absolute" => {
                 if !self.in_user_agent_stylesheet() {
                     return Err(location.new_custom_error(SelectorParseErrorKind::UnexpectedIdent(name.clone())))
                 }

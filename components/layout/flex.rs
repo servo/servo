@@ -4,19 +4,20 @@
 
 //! Layout for elements with a CSS `display` property of `flex`.
 
+#![deny(unsafe_code)]
+
 use app_units::{Au, MAX_AU};
-use crate::block::{AbsoluteAssignBSizesTraversal, BlockFlow, MarginsMayCollapseFlag};
-use crate::context::LayoutContext;
-use crate::display_list::StackingContextCollectionState;
-use crate::display_list::{DisplayListBuildState, FlexFlowDisplayListBuilding};
-use crate::floats::FloatKind;
-use crate::flow::{Flow, FlowClass, FlowFlags, GetBaseFlow, ImmutableFlowUtils, OpaqueFlow};
-use crate::fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
-use crate::layout_debug;
-use crate::model::{AdjoiningMargins, CollapsibleMargins};
-use crate::model::{IntrinsicISizes, MaybeAuto, SizeConstraint};
-use crate::traversal::PreorderFlowTraversal;
+use block::{AbsoluteAssignBSizesTraversal, BlockFlow, MarginsMayCollapseFlag};
+use context::LayoutContext;
+use display_list::{DisplayListBuildState, FlexFlowDisplayListBuilding};
+use display_list::StackingContextCollectionState;
 use euclid::Point2D;
+use floats::FloatKind;
+use flow::{Flow, FlowClass, GetBaseFlow, ImmutableFlowUtils, OpaqueFlow, FlowFlags};
+use fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
+use layout_debug;
+use model::{AdjoiningMargins, CollapsibleMargins};
+use model::{IntrinsicISizes, MaybeAuto, SizeConstraint};
 use std::cmp::{max, min};
 use std::ops::Range;
 use style::computed_values::align_content::T as AlignContent;
@@ -27,11 +28,10 @@ use style::computed_values::justify_content::T as JustifyContent;
 use style::logical_geometry::{Direction, LogicalSize};
 use style::properties::ComputedValues;
 use style::servo::restyle_damage::ServoRestyleDamage;
+use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto, LengthOrPercentageOrNone};
 use style::values::computed::flex::FlexBasis;
-use style::values::computed::{
-    LengthOrPercentage, LengthOrPercentageOrAuto, LengthOrPercentageOrNone,
-};
 use style::values::generics::flex::FlexBasis as GenericFlexBasis;
+use traversal::PreorderFlowTraversal;
 
 /// The size of an axis. May be a specified size, a min/max
 /// constraint, or an unlimited size
@@ -116,7 +116,7 @@ struct FlexItem {
 }
 
 impl FlexItem {
-    pub fn new(index: usize, flow: &dyn Flow) -> FlexItem {
+    pub fn new(index: usize, flow: &Flow) -> FlexItem {
         let style = &flow.as_block().fragment.style;
         let flex_grow = style.get_position().flex_grow;
         let flex_shrink = style.get_position().flex_shrink;
@@ -140,7 +140,7 @@ impl FlexItem {
     /// Initialize the used flex base size, minimal main size and maximal main size.
     /// For block mode container this method should be called in assign_block_size()
     /// pass so that the item has already been layouted.
-    pub fn init_sizes(&mut self, flow: &mut dyn Flow, containing_length: Au, direction: Direction) {
+    pub fn init_sizes(&mut self, flow: &mut Flow, containing_length: Au, direction: Direction) {
         let block = flow.as_mut_block();
         match direction {
             // TODO(stshine): the definition of min-{width, height} in style component
@@ -207,7 +207,7 @@ impl FlexItem {
 
     /// Returns the outer main size of the item, including paddings and margins,
     /// clamped by max and min size.
-    pub fn outer_main_size(&self, flow: &dyn Flow, direction: Direction) -> Au {
+    pub fn outer_main_size(&self, flow: &Flow, direction: Direction) -> Au {
         let ref fragment = flow.as_block().fragment;
         let outer_width = match direction {
             Direction::Inline => {
@@ -223,7 +223,7 @@ impl FlexItem {
     }
 
     /// Returns the number of auto margins in given direction.
-    pub fn auto_margin_count(&self, flow: &dyn Flow, direction: Direction) -> i32 {
+    pub fn auto_margin_count(&self, flow: &Flow, direction: Direction) -> i32 {
         let margin = flow.as_block().fragment.style.logical_margin();
         let mut margin_count = 0;
         match direction {
@@ -350,7 +350,7 @@ impl FlexLine {
 }
 
 #[allow(unsafe_code)]
-unsafe impl crate::flow::HasBaseFlow for FlexFlow {}
+unsafe impl ::flow::HasBaseFlow for FlexFlow {}
 
 /// A block with the CSS `display` property equal to `flex`.
 #[derive(Debug, Serialize)]
@@ -577,7 +577,7 @@ impl FlexFlow {
 
         debug!("content_inline_size = {:?}", content_inline_size);
 
-        let child_count = ImmutableFlowUtils::child_count(self as &dyn Flow) as i32;
+        let child_count = ImmutableFlowUtils::child_count(self as &Flow) as i32;
         debug!("child_count = {:?}", child_count);
         if child_count == 0 {
             return;
@@ -924,8 +924,7 @@ impl Flow for FlexFlow {
                     .base
                     .flags
                     .contains(FlowFlags::IS_ABSOLUTELY_POSITIONED)
-            })
-            .map(|(index, flow)| FlexItem::new(index, flow))
+            }).map(|(index, flow)| FlexItem::new(index, flow))
             .collect();
 
         items.sort_by_key(|item| item.order);
@@ -1055,7 +1054,7 @@ impl Flow for FlexFlow {
                     CollapsibleMargins::Collapse(block_start, block_end);
 
                 // TODO(stshine): assign proper static position for absolute descendants.
-                if (&*self as &dyn Flow).contains_roots_of_absolute_flow_tree() {
+                if (&*self as &Flow).contains_roots_of_absolute_flow_tree() {
                     // Assign block-sizes for all flows in this absolute flow tree.
                     // This is preorder because the block-size of an absolute flow may depend on
                     // the block-size of its containing block, which may also be an absolute flow.
@@ -1102,7 +1101,7 @@ impl Flow for FlexFlow {
         self.block_flow.collect_stacking_contexts(state);
     }
 
-    fn repair_style(&mut self, new_style: &crate::ServoArc<ComputedValues>) {
+    fn repair_style(&mut self, new_style: &::ServoArc<ComputedValues>) {
         self.block_flow.repair_style(new_style)
     }
 
@@ -1124,7 +1123,7 @@ impl Flow for FlexFlow {
 
     fn iterate_through_fragment_border_boxes(
         &self,
-        iterator: &mut dyn FragmentBorderBoxIterator,
+        iterator: &mut FragmentBorderBoxIterator,
         level: i32,
         stacking_context_position: &Point2D<Au>,
     ) {
@@ -1135,7 +1134,7 @@ impl Flow for FlexFlow {
         );
     }
 
-    fn mutate_fragments(&mut self, mutator: &mut dyn FnMut(&mut Fragment)) {
+    fn mutate_fragments(&mut self, mutator: &mut FnMut(&mut Fragment)) {
         self.block_flow.mutate_fragments(mutator);
     }
 }

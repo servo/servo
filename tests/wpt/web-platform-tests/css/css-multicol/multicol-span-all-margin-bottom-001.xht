@@ -7,7 +7,6 @@
   <link rel="help" href="http://www.w3.org/TR/css3-multicol/#column-span" title="6.1. 'column-span'" />
   <link rel="match" href="multicol-span-all-margin-bottom-001-ref.xht" />
   <meta name="flags" content="ahem" />
-  <meta name="assert" content="In this test, the glyphs 'or' are painted into 1st column box, the glyphs 'ang' extend outside the box, and  should not be clipped. In this test they are overwritten by spans so are not visible." />
   <style type="text/css"><![CDATA[
   div
   {
@@ -51,10 +50,10 @@
   color: orange;
   /*
   In this test, the glyphs "or" are painted into 1st column box.
-  Per spec, content in the normal flow that extends into column
-  gaps (e.g., long words or images) is not clipped to the column
-  box. However, the glyphs "ang" are overwritten by <span>s, so
-  they're not visible.
+  "Content in the normal flow that extends into column
+  gaps (e.g., long words or images) is clipped in the
+  middle of the column gap."
+  Therefore, the glyphs "ang" are clipped and not painted.
   */
   }
 

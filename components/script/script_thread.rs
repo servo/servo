@@ -17,114 +17,91 @@
 //! a page runs its course and the script thread returns to processing events in the main event
 //! loop.
 
+extern crate itertools;
+
 use bluetooth_traits::BluetoothRequest;
 use canvas_traits::webgl::WebGLPipeline;
-use crate::devtools;
-use crate::document_loader::DocumentLoader;
-use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::DocumentBinding::{
-    DocumentMethods, DocumentReadyState,
-};
-use crate::dom::bindings::codegen::Bindings::EventBinding::EventInit;
-use crate::dom::bindings::codegen::Bindings::TransitionEventBinding::TransitionEventInit;
-use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
-use crate::dom::bindings::conversions::{
-    ConversionResult, FromJSValConvertible, StringificationBehavior,
-};
-use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::num::Finite;
-use crate::dom::bindings::reflector::DomObject;
-use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom, RootCollection};
-use crate::dom::bindings::root::{RootedReference, ThreadLocalStackRoots};
-use crate::dom::bindings::str::DOMString;
-use crate::dom::bindings::structuredclone::StructuredCloneData;
-use crate::dom::bindings::trace::JSTraceable;
-use crate::dom::bindings::utils::WRAP_CALLBACKS;
-use crate::dom::customelementregistry::{
-    CallbackReaction, CustomElementDefinition, CustomElementReactionStack,
-};
-use crate::dom::document::{
-    Document, DocumentSource, FocusType, HasBrowsingContext, IsHTMLDocument, TouchEventResult,
-};
-use crate::dom::element::Element;
-use crate::dom::event::{Event, EventBubbles, EventCancelable};
-use crate::dom::globalscope::GlobalScope;
-use crate::dom::htmlanchorelement::HTMLAnchorElement;
-use crate::dom::htmliframeelement::{HTMLIFrameElement, NavigationType};
-use crate::dom::mutationobserver::MutationObserver;
-use crate::dom::node::{from_untrusted_node_address, window_from_node, Node, NodeDamage};
-use crate::dom::performanceentry::PerformanceEntry;
-use crate::dom::performancepainttiming::PerformancePaintTiming;
-use crate::dom::serviceworker::TrustedServiceWorkerAddress;
-use crate::dom::serviceworkerregistration::ServiceWorkerRegistration;
-use crate::dom::servoparser::{ParserContext, ServoParser};
-use crate::dom::transitionevent::TransitionEvent;
-use crate::dom::uievent::UIEvent;
-use crate::dom::window::{ReflowReason, Window};
-use crate::dom::windowproxy::WindowProxy;
-use crate::dom::worker::TrustedWorkerAddress;
-use crate::dom::worklet::WorkletThreadPool;
-use crate::dom::workletglobalscope::WorkletGlobalScopeInit;
-use crate::fetch::FetchCanceller;
-use crate::microtask::{Microtask, MicrotaskQueue};
-use crate::script_runtime::{get_reports, new_rt_and_cx, Runtime, ScriptPort};
-use crate::script_runtime::{CommonScriptMsg, ScriptChan, ScriptThreadEventCategory};
-use crate::serviceworkerjob::{Job, JobQueue};
-use crate::task_queue::{QueuedTask, QueuedTaskConversion, TaskQueue};
-use crate::task_source::dom_manipulation::DOMManipulationTaskSource;
-use crate::task_source::file_reading::FileReadingTaskSource;
-use crate::task_source::history_traversal::HistoryTraversalTaskSource;
-use crate::task_source::media_element::MediaElementTaskSource;
-use crate::task_source::networking::NetworkingTaskSource;
-use crate::task_source::performance_timeline::PerformanceTimelineTaskSource;
-use crate::task_source::remote_event::RemoteEventTaskSource;
-use crate::task_source::user_interaction::UserInteractionTaskSource;
-use crate::task_source::websocket::WebsocketTaskSource;
-use crate::task_source::TaskSourceName;
-use crate::webdriver_handlers;
-use devtools_traits::CSSError;
+use devtools;
 use devtools_traits::{DevtoolScriptControlMsg, DevtoolsPageInfo};
 use devtools_traits::{ScriptToDevtoolsControlMsg, WorkerId};
+use devtools_traits::CSSError;
+use document_loader::DocumentLoader;
+use dom::bindings::cell::DomRefCell;
+use dom::bindings::codegen::Bindings::DocumentBinding::{DocumentMethods, DocumentReadyState};
+use dom::bindings::codegen::Bindings::EventBinding::EventInit;
+use dom::bindings::codegen::Bindings::TransitionEventBinding::TransitionEventInit;
+use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
+use dom::bindings::conversions::{ConversionResult, FromJSValConvertible, StringificationBehavior};
+use dom::bindings::inheritance::Castable;
+use dom::bindings::num::Finite;
+use dom::bindings::reflector::DomObject;
+use dom::bindings::root::{Dom, DomRoot, MutNullableDom, RootCollection};
+use dom::bindings::root::{RootedReference, ThreadLocalStackRoots};
+use dom::bindings::str::DOMString;
+use dom::bindings::structuredclone::StructuredCloneData;
+use dom::bindings::trace::JSTraceable;
+use dom::bindings::utils::WRAP_CALLBACKS;
+use dom::customelementregistry::{CallbackReaction, CustomElementDefinition, CustomElementReactionStack};
+use dom::document::{Document, DocumentSource, FocusType, HasBrowsingContext, IsHTMLDocument, TouchEventResult};
+use dom::element::Element;
+use dom::event::{Event, EventBubbles, EventCancelable};
+use dom::globalscope::GlobalScope;
+use dom::htmlanchorelement::HTMLAnchorElement;
+use dom::htmliframeelement::{HTMLIFrameElement, NavigationType};
+use dom::mutationobserver::MutationObserver;
+use dom::node::{Node, NodeDamage, window_from_node, from_untrusted_node_address};
+use dom::performanceentry::PerformanceEntry;
+use dom::performancepainttiming::PerformancePaintTiming;
+use dom::serviceworker::TrustedServiceWorkerAddress;
+use dom::serviceworkerregistration::ServiceWorkerRegistration;
+use dom::servoparser::{ParserContext, ServoParser};
+use dom::transitionevent::TransitionEvent;
+use dom::uievent::UIEvent;
+use dom::window::{ReflowReason, Window};
+use dom::windowproxy::WindowProxy;
+use dom::worker::TrustedWorkerAddress;
+use dom::worklet::WorkletThreadPool;
+use dom::workletglobalscope::WorkletGlobalScopeInit;
 use embedder_traits::EmbedderMsg;
-use euclid::{Point2D, Rect, Vector2D};
-use headers_core::HeaderMapExt;
-use headers_ext::LastModified;
-use headers_ext::ReferrerPolicy as ReferrerPolicyHeader;
+use euclid::{Point2D, Vector2D, Rect};
+use fetch::FetchCanceller;
+use hyper::header::{ContentType, HttpDate, Headers, LastModified};
+use hyper::header::ReferrerPolicy as ReferrerPolicyHeader;
+use hyper::mime::{Mime, SubLevel, TopLevel};
 use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcSender};
 use js::glue::GetWindowProxyClass;
 use js::jsapi::{JSAutoCompartment, JSContext, JS_SetWrapObjectCallbacks};
 use js::jsapi::{JSTracer, SetWindowProxyClass};
 use js::jsval::UndefinedValue;
-use metrics::{PaintTimeMetrics, MAX_TASK_NS};
-use mime::{self, Mime};
+use metrics::{MAX_TASK_NS, PaintTimeMetrics};
+use microtask::{MicrotaskQueue, Microtask};
 use msg::constellation_msg::{BrowsingContextId, HistoryStateId, PipelineId};
 use msg::constellation_msg::{PipelineNamespace, TopLevelBrowsingContextId};
+use net_traits::{FetchMetadata, FetchResponseListener, FetchResponseMsg};
+use net_traits::{Metadata, NetworkError, ReferrerPolicy, ResourceThreads};
 use net_traits::image_cache::{ImageCache, PendingImageResponse};
 use net_traits::request::{CredentialsMode, Destination, RedirectMode, RequestInit};
 use net_traits::storage_thread::StorageType;
-use net_traits::{FetchMetadata, FetchResponseListener, FetchResponseMsg};
-use net_traits::{Metadata, NetworkError, ReferrerPolicy, ResourceThreads};
-use profile_traits::mem::{self as profile_mem, OpaqueSender, ReportsChan};
-use profile_traits::time::{self as profile_time, profile, ProfilerCategory};
+use profile_traits::mem::{self, OpaqueSender, ReportsChan};
+use profile_traits::time::{self, ProfilerCategory, profile};
 use script_layout_interface::message::{self, Msg, NewLayoutThreadInfo, ReflowGoal};
-use script_traits::webdriver_msg::WebDriverScriptCommand;
-use script_traits::CompositorEvent::{
-    KeyboardEvent, MouseButtonEvent, MouseMoveEvent, ResizeEvent, TouchEvent,
-};
+use script_runtime::{CommonScriptMsg, ScriptChan, ScriptThreadEventCategory};
+use script_runtime::{ScriptPort, get_reports, new_rt_and_cx, Runtime};
 use script_traits::{CompositorEvent, ConstellationControlMsg};
 use script_traits::{DiscardBrowsingContext, DocumentActivity, EventResult};
 use script_traits::{InitialScriptState, JsEvalResult, LayoutMsg, LoadData};
 use script_traits::{MouseButton, MouseEventType, NewLayoutInfo};
-use script_traits::{Painter, ProgressiveWebMetricType, ScriptMsg, ScriptThreadFactory};
+use script_traits::{ProgressiveWebMetricType, Painter, ScriptMsg, ScriptThreadFactory};
 use script_traits::{ScriptToConstellationChan, TimerEvent, TimerSchedulerMsg};
 use script_traits::{TimerSource, TouchEventType, TouchId, UntrustedNodeAddress};
 use script_traits::{UpdatePipelineIdReason, WindowSizeData, WindowSizeType};
+use script_traits::CompositorEvent::{KeyEvent, MouseButtonEvent, MouseMoveEvent, ResizeEvent, TouchEvent};
+use script_traits::webdriver_msg::WebDriverScriptCommand;
+use serviceworkerjob::{Job, JobQueue};
 use servo_atoms::Atom;
 use servo_channel::{channel, Receiver, Sender};
-use servo_channel::{
-    route_ipc_receiver_to_new_servo_receiver, route_ipc_receiver_to_new_servo_sender,
-};
+use servo_channel::{route_ipc_receiver_to_new_servo_receiver, route_ipc_receiver_to_new_servo_sender};
 use servo_config::opts;
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use std::cell::Cell;
@@ -138,12 +115,22 @@ use std::rc::Rc;
 use std::result::Result;
 use std::sync::Arc;
 use std::thread;
-use std::time::SystemTime;
 use style::thread_state::{self, ThreadState};
-use time::{at_utc, get_time, precise_time_ns, Timespec};
-use url::percent_encoding::percent_decode;
+use task_queue::{QueuedTask, QueuedTaskConversion, TaskQueue};
+use task_source::TaskSourceName;
+use task_source::dom_manipulation::DOMManipulationTaskSource;
+use task_source::file_reading::FileReadingTaskSource;
+use task_source::history_traversal::HistoryTraversalTaskSource;
+use task_source::networking::NetworkingTaskSource;
+use task_source::performance_timeline::PerformanceTimelineTaskSource;
+use task_source::remote_event::RemoteEventTaskSource;
+use task_source::user_interaction::UserInteractionTaskSource;
+use task_source::websocket::WebsocketTaskSource;
+use time::{get_time, precise_time_ns, Tm};
 use url::Position;
-use webrender_api::{DocumentId, RenderApiSender};
+use url::percent_encoding::percent_decode;
+use webdriver_handlers;
+use webrender_api::DocumentId;
 use webvr_traits::{WebVREvent, WebVRMsg};
 
 pub type ImageCacheMsg = (PipelineId, PendingImageResponse);
@@ -258,7 +245,7 @@ pub enum MainThreadScriptMsg {
         pipeline_id: PipelineId,
         name: Atom,
         properties: Vec<Atom>,
-        painter: Box<dyn Painter>,
+        painter: Box<Painter>,
     },
     /// Dispatches a job queue.
     DispatchJobQueue { scope_url: ServoUrl },
@@ -312,7 +299,7 @@ impl QueuedTaskConversion for MainThreadScriptMsg {
     }
 }
 
-impl OpaqueSender<CommonScriptMsg> for Box<dyn ScriptChan + Send> {
+impl OpaqueSender<CommonScriptMsg> for Box<ScriptChan + Send> {
     fn send(&self, msg: CommonScriptMsg) {
         ScriptChan::send(&**self, msg).unwrap();
     }
@@ -365,7 +352,7 @@ impl ScriptChan for SendableMainThreadScriptChan {
         self.0.send(msg).map_err(|_| ())
     }
 
-    fn clone(&self) -> Box<dyn ScriptChan + Send> {
+    fn clone(&self) -> Box<ScriptChan + Send> {
         Box::new(SendableMainThreadScriptChan((&self.0).clone()))
     }
 }
@@ -381,7 +368,7 @@ impl ScriptChan for MainThreadScriptChan {
             .map_err(|_| ())
     }
 
-    fn clone(&self) -> Box<dyn ScriptChan + Send> {
+    fn clone(&self) -> Box<ScriptChan + Send> {
         Box::new(MainThreadScriptChan((&self.0).clone()))
     }
 }
@@ -499,7 +486,7 @@ pub struct ScriptThread {
     /// A job queue for Service Workers keyed by their scope url
     job_queue_map: Rc<JobQueue>,
     /// Image cache for this script thread.
-    image_cache: Arc<dyn ImageCache>,
+    image_cache: Arc<ImageCache>,
     /// A handle to the resource thread. This is an `Arc` to avoid running out of file descriptors if
     /// there are many iframes.
     resource_threads: ResourceThreads,
@@ -513,21 +500,19 @@ pub struct ScriptThread {
     /// events in the event queue.
     chan: MainThreadScriptChan,
 
-    dom_manipulation_task_sender: Box<dyn ScriptChan>,
-
-    media_element_task_sender: Sender<MainThreadScriptMsg>,
+    dom_manipulation_task_sender: Sender<MainThreadScriptMsg>,
 
     user_interaction_task_sender: Sender<MainThreadScriptMsg>,
 
-    networking_task_sender: Box<dyn ScriptChan>,
+    networking_task_sender: Box<ScriptChan>,
 
     history_traversal_task_source: HistoryTraversalTaskSource,
 
-    file_reading_task_sender: Box<dyn ScriptChan>,
+    file_reading_task_sender: Box<ScriptChan>,
 
-    performance_timeline_task_sender: Box<dyn ScriptChan>,
+    performance_timeline_task_sender: Box<ScriptChan>,
 
-    remote_event_task_sender: Box<dyn ScriptChan>,
+    remote_event_task_sender: Box<ScriptChan>,
 
     /// A channel to hand out to threads that need to respond to a message from the script thread.
     control_chan: IpcSender<ConstellationControlMsg>,
@@ -548,10 +533,10 @@ pub struct ScriptThread {
     /// The channel on which the image cache can send messages to ourself.
     image_cache_channel: Sender<ImageCacheMsg>,
     /// For providing contact with the time profiler.
-    time_profiler_chan: profile_time::ProfilerChan,
+    time_profiler_chan: time::ProfilerChan,
 
     /// For providing contact with the memory profiler.
-    mem_profiler_chan: profile_mem::ProfilerChan,
+    mem_profiler_chan: mem::ProfilerChan,
 
     /// For providing instructions to an optional devtools server.
     devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
@@ -606,9 +591,6 @@ pub struct ScriptThread {
 
     /// The Webrender Document ID associated with this thread.
     webrender_document: DocumentId,
-
-    /// FIXME(victor):
-    webrender_api_sender: RenderApiSender,
 }
 
 /// In the event of thread panic, all data on the stack runs its destructor. However, there
@@ -701,8 +683,7 @@ impl ScriptThreadFactory for ScriptThread {
 
                 // This must always be the very last operation performed before the thread completes
                 failsafe.neuter();
-            })
-            .expect("Thread spawning failed");
+            }).expect("Thread spawning failed");
 
         (sender, receiver)
     }
@@ -901,8 +882,7 @@ impl ScriptThread {
                         image_cache: script_thread.image_cache.clone(),
                     };
                     Rc::new(WorkletThreadPool::spawn(init))
-                })
-                .clone()
+                }).clone()
         })
     }
 
@@ -911,7 +891,7 @@ impl ScriptThread {
         pipeline_id: PipelineId,
         name: Atom,
         properties: Vec<Atom>,
-        painter: Box<dyn Painter>,
+        painter: Box<Painter>,
     ) {
         let window = self.documents.borrow().find_window(pipeline_id);
         let window = match window {
@@ -1034,8 +1014,7 @@ impl ScriptThread {
             task_queue,
 
             chan: MainThreadScriptChan(chan.clone()),
-            dom_manipulation_task_sender: boxed_script_sender.clone(),
-            media_element_task_sender: chan.clone(),
+            dom_manipulation_task_sender: chan.clone(),
             user_interaction_task_sender: chan.clone(),
             networking_task_sender: boxed_script_sender.clone(),
             file_reading_task_sender: boxed_script_sender.clone(),
@@ -1084,7 +1063,6 @@ impl ScriptThread {
             custom_element_reaction_stack: CustomElementReactionStack::new(),
 
             webrender_document: state.webrender_document,
-            webrender_api_sender: state.webrender_api_sender,
         }
     }
 
@@ -2169,10 +2147,6 @@ impl ScriptThread {
         DOMManipulationTaskSource(self.dom_manipulation_task_sender.clone(), pipeline_id)
     }
 
-    pub fn media_element_task_source(&self, pipeline_id: PipelineId) -> MediaElementTaskSource {
-        MediaElementTaskSource(self.media_element_task_sender.clone(), pipeline_id)
-    }
-
     pub fn performance_timeline_task_source(
         &self,
         pipeline_id: PipelineId,
@@ -2551,8 +2525,7 @@ impl ScriptThread {
                 .send((
                     incomplete.pipeline_id,
                     ScriptMsg::SetFinalUrl(final_url.clone()),
-                ))
-                .unwrap();
+                )).unwrap();
         }
         debug!(
             "ScriptThread: loading {} on pipeline {:?}",
@@ -2581,7 +2554,6 @@ impl ScriptThread {
             self.js_runtime.clone(),
             MainThreadScriptChan(sender.clone()),
             self.dom_manipulation_task_source(incomplete.pipeline_id),
-            self.media_element_task_source(incomplete.pipeline_id),
             self.user_interaction_task_source(incomplete.pipeline_id),
             self.networking_task_source(incomplete.pipeline_id),
             HistoryTraversalTaskSource(history_sender.clone()),
@@ -2612,7 +2584,6 @@ impl ScriptThread {
             self.webvr_chan.clone(),
             self.microtask_queue.clone(),
             self.webrender_document,
-            self.webrender_api_sender.clone(),
         );
 
         // Initialize the browsing context for the window.
@@ -2627,31 +2598,36 @@ impl ScriptThread {
 
         let last_modified = metadata.headers.as_ref().and_then(|headers| {
             headers
-                .typed_get::<LastModified>()
-                .map(|tm| dom_last_modified(&tm.into()))
+                .get()
+                .map(|&LastModified(HttpDate(ref tm))| dom_last_modified(tm))
         });
+
+        let content_type = metadata
+            .content_type
+            .as_ref()
+            .map(|&Serde(ContentType(ref mimetype))| mimetype.clone());
 
         let loader = DocumentLoader::new_with_threads(
             self.resource_threads.clone(),
             Some(final_url.clone()),
         );
 
-        let content_type: Option<Mime> =
-            metadata.content_type.map(Serde::into_inner).map(Into::into);
-
-        let is_html_document = match content_type {
-            Some(ref mime)
-                if mime.type_() == mime::APPLICATION && mime.suffix() == Some(mime::XML) =>
+        let is_html_document = match metadata.content_type {
+            Some(Serde(ContentType(Mime(
+                TopLevel::Application,
+                SubLevel::Ext(ref sub_level),
+                _,
+            ))))
+                if sub_level.ends_with("+xml") =>
             {
                 IsHTMLDocument::NonHTMLDocument
             },
 
-            Some(ref mime)
-                if (mime.type_() == mime::TEXT && mime.subtype() == mime::XML) ||
-                    (mime.type_() == mime::APPLICATION && mime.subtype() == mime::XML) =>
-            {
+            Some(Serde(ContentType(Mime(TopLevel::Application, SubLevel::Xml, _)))) |
+            Some(Serde(ContentType(Mime(TopLevel::Text, SubLevel::Xml, _)))) => {
                 IsHTMLDocument::NonHTMLDocument
             },
+
             _ => IsHTMLDocument::HTMLDocument,
         };
 
@@ -2664,7 +2640,7 @@ impl ScriptThread {
             .headers
             .as_ref()
             .map(Serde::deref)
-            .and_then(|h| h.typed_get::<ReferrerPolicyHeader>())
+            .and_then(Headers::get::<ReferrerPolicyHeader>)
             .map(ReferrerPolicy::from);
 
         let document = Document::new(
@@ -2740,8 +2716,7 @@ impl ScriptThread {
                 ids,
                 self.devtools_sender.clone(),
                 page_info,
-            ))
-            .unwrap();
+            )).unwrap();
         }
     }
 
@@ -2834,7 +2809,6 @@ impl ScriptThread {
                     }
                 }
             },
-
             TouchEvent(event_type, identifier, point, node_address) => {
                 let touch_result = self.handle_touch_event(
                     pipeline_id,
@@ -2860,12 +2834,12 @@ impl ScriptThread {
                 }
             },
 
-            KeyboardEvent(key_event) => {
+            KeyEvent(ch, key, state, modifiers) => {
                 let document = match { self.documents.borrow().find_document(pipeline_id) } {
                     Some(document) => document,
                     None => return warn!("Message sent to closed pipeline {}.", pipeline_id),
                 };
-                document.dispatch_key_event(key_event);
+                document.dispatch_key_event(ch, key, state, modifiers);
             },
         }
     }
@@ -3064,8 +3038,7 @@ impl ScriptThread {
             .send((
                 id,
                 ScriptMsg::InitiateNavigateRequest(req_init, cancel_chan),
-            ))
-            .unwrap();
+            )).unwrap();
         self.incomplete_loads.borrow_mut().push(incomplete);
     }
 
@@ -3124,7 +3097,7 @@ impl ScriptThread {
         let mut context = ParserContext::new(id, url.clone());
 
         let mut meta = Metadata::default(url);
-        meta.set_content_type(Some(&mime::TEXT_HTML));
+        meta.set_content_type(Some(&mime!(Text / Html)));
 
         // If this page load is the result of a javascript scheme url, map
         // the evaluation result into a response.
@@ -3212,15 +3185,8 @@ impl ScriptThread {
     }
 
     fn perform_a_microtask_checkpoint(&self) {
-        let globals = self
-            .documents
-            .borrow()
-            .iter()
-            .map(|(_id, document)| document.global())
-            .collect();
-
         self.microtask_queue
-            .checkpoint(|id| self.documents.borrow().find_global(id), globals)
+            .checkpoint(|id| self.documents.borrow().find_global(id))
     }
 }
 
@@ -3232,10 +3198,7 @@ impl Drop for ScriptThread {
     }
 }
 
-fn dom_last_modified(tm: &SystemTime) -> String {
-    let tm = tm.duration_since(SystemTime::UNIX_EPOCH).unwrap();
-    let tm = Timespec::new(tm.as_secs() as i64, 0);
-    let tm = at_utc(tm);
+fn dom_last_modified(tm: &Tm) -> String {
     tm.to_local()
         .strftime("%m/%d/%Y %H:%M:%S")
         .unwrap()

@@ -4,30 +4,19 @@
 
 use serde_json::{self, Value};
 use std::env;
-use std::fs::{remove_file, File};
+use std::fs::{File, remove_file};
 use std::path::Path;
 use std::process::Command;
 
 #[test]
 fn properties_list_json() {
-    let top = Path::new(&env::var("CARGO_MANIFEST_DIR").unwrap())
-        .join("..")
-        .join("..")
-        .join("..");
-    let json = top
-        .join("target")
-        .join("doc")
-        .join("servo")
-        .join("css-properties.json");
+    let top = Path::new(&env::var("CARGO_MANIFEST_DIR").unwrap()).join("..").join("..").join("..");
+    let json = top.join("target").join("doc").join("servo").join("css-properties.json");
     if json.exists() {
         remove_file(&json).unwrap()
     }
     let python = env::var("PYTHON").ok().unwrap_or_else(find_python);
-    let script = top
-        .join("components")
-        .join("style")
-        .join("properties")
-        .join("build.py");
+    let script = top.join("components").join("style").join("properties").join("build.py");
     let status = Command::new(python)
         .arg(&script)
         .arg("servo")
@@ -45,19 +34,11 @@ fn properties_list_json() {
 
 #[cfg(windows)]
 fn find_python() -> String {
-    if Command::new("python2.7.exe")
-        .arg("--version")
-        .output()
-        .is_ok()
-    {
+    if Command::new("python2.7.exe").arg("--version").output().is_ok() {
         return "python2.7.exe".to_owned();
     }
 
-    if Command::new("python27.exe")
-        .arg("--version")
-        .output()
-        .is_ok()
-    {
+    if Command::new("python27.exe").arg("--version").output().is_ok() {
         return "python27.exe".to_owned();
     }
 
@@ -70,16 +51,9 @@ fn find_python() -> String {
 
 #[cfg(not(windows))]
 fn find_python() -> String {
-    if Command::new("python2.7")
-        .arg("--version")
-        .output()
-        .unwrap()
-        .status
-        .success()
-    {
+    if Command::new("python2.7").arg("--version").output().unwrap().status.success() {
         "python2.7"
     } else {
         "python"
-    }
-    .to_owned()
+    }.to_owned()
 }

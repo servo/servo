@@ -11,10 +11,10 @@
 //! slot. When all associated `WeakRef` values are dropped, the
 //! `WeakBox` itself is dropped too.
 
-use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::reflector::DomObject;
-use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::trace::JSTraceable;
+use dom::bindings::cell::DomRefCell;
+use dom::bindings::reflector::DomObject;
+use dom::bindings::root::DomRoot;
+use dom::bindings::trace::JSTraceable;
 use js::glue::JS_GetReservedSlot;
 use js::jsapi::{JSTracer, JS_SetReservedSlot};
 use js::jsval::PrivateValue;
@@ -269,7 +269,7 @@ impl<T: WeakReferenceable> DerefMut for WeakRefVec<T> {
 /// An entry of a vector of weak references. Passed to the closure
 /// given to `WeakRefVec::update`.
 #[allow_unrooted_interior]
-pub struct WeakRefEntry<'a, T: WeakReferenceable> {
+pub struct WeakRefEntry<'a, T: WeakReferenceable + 'a> {
     vec: &'a mut WeakRefVec<T>,
     index: &'a mut usize,
 }

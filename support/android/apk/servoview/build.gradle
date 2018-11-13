@@ -18,7 +18,7 @@ android {
     }
 
     compileOptions {
-        incremental false
+      incremental false
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
     }
@@ -258,43 +258,4 @@ class ServoDependency {
     }
     public String fileName;
     public String folderFilter;
-}
-
-apply plugin: 'maven'
-import org.gradle.api.internal.artifacts.publish.DefaultPublishArtifact
-
-uploadArchives {
-  doFirst {
-      for ( arch in ["arm", "armv7", "arm64", "x86"] ) {
-        def target = getTargetDir(false, arch)
-        def aar = new File(target, "servoview.aar")
-        if (aar.exists()) {
-          def art = new DefaultPublishArtifact("servoview-" + arch, "aar", "aar", null, new Date(), aar);
-          project.artifacts.add('archives', art)
-        }
-      }
-    }
-    repositories.mavenDeployer {
-        repository(url: "file://localhost/${buildDir}/maven")
-        def cmd = "git rev-parse --short HEAD"
-        def proc = cmd.execute()
-        def commit = proc.text.trim()
-        def version = "0.0.1." + new Date().format('yyyyMMdd') + "." + commit
-        for ( arch_ in ["arm", "armv7", "arm64", "x86"] ) {
-          def arch = arch_
-          addFilter(arch) {artifact, file -> artifact.name == "servoview-" + arch}
-          pom(arch).artifactId = "servoview-" + arch
-          pom(arch).groupId = 'org.mozilla.servoview'
-          pom(arch).version = version
-          pom(arch).project {
-              licenses {
-                  license {
-                      name 'The Mozilla Public License, v. 2.0'
-                      url 'http://mozilla.org/MPL/2.0/'
-                      distribution 'repo'
-                  }
-              }
-          }
-        }
-    }
 }

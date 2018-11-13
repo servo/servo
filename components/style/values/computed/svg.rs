@@ -4,12 +4,14 @@
 
 //! Computed types for SVG properties.
 
+use app_units::Au;
+use values::RGBA;
+use values::computed::{LengthOrPercentage, NonNegativeLength};
+use values::computed::{NonNegativeLengthOrPercentage, NonNegativeNumber, Number};
+use values::computed::Opacity;
 use values::computed::color::Color;
 use values::computed::url::ComputedUrl;
-use values::computed::{LengthOrPercentage, NonNegativeLengthOrPercentage};
-use values::computed::{NonNegativeNumber, Number, Opacity};
 use values::generics::svg as generic;
-use values::RGBA;
 
 pub use values::specified::SVGPaintOrder;
 
@@ -48,11 +50,10 @@ pub type SvgLengthOrPercentageOrNumber =
 /// <length> | <percentage> | <number> | context-value
 pub type SVGLength = generic::SVGLength<SvgLengthOrPercentageOrNumber>;
 
-impl SVGLength {
-    /// `0px`
-    pub fn zero() -> Self {
+impl From<Au> for SVGLength {
+    fn from(length: Au) -> Self {
         generic::SVGLength::Length(generic::SvgLengthOrPercentageOrNumber::LengthOrPercentage(
-            LengthOrPercentage::zero(),
+            length.into(),
         ))
     }
 }
@@ -62,8 +63,6 @@ impl SVGLength {
 pub type NonNegativeSvgLengthOrPercentageOrNumber =
     generic::SvgLengthOrPercentageOrNumber<NonNegativeLengthOrPercentage, NonNegativeNumber>;
 
-// FIXME(emilio): This is really hacky, and can go away with a bit of work on
-// the clone_stroke_width code in gecko.mako.rs.
 impl Into<NonNegativeSvgLengthOrPercentageOrNumber> for SvgLengthOrPercentageOrNumber {
     fn into(self) -> NonNegativeSvgLengthOrPercentageOrNumber {
         match self {
@@ -80,12 +79,10 @@ impl Into<NonNegativeSvgLengthOrPercentageOrNumber> for SvgLengthOrPercentageOrN
 /// An non-negative wrapper of SVGLength.
 pub type SVGWidth = generic::SVGLength<NonNegativeSvgLengthOrPercentageOrNumber>;
 
-impl SVGWidth {
-    /// `1px`.
-    pub fn one() -> Self {
-        use values::generics::NonNegative;
+impl From<NonNegativeLength> for SVGWidth {
+    fn from(length: NonNegativeLength) -> Self {
         generic::SVGLength::Length(generic::SvgLengthOrPercentageOrNumber::LengthOrPercentage(
-            NonNegative(LengthOrPercentage::one()),
+            length.into(),
         ))
     }
 }

@@ -133,14 +133,18 @@ const instanceTestFactory = [
 
       builder
         .addFunction("fn", kSig_v_d)
-        .addBody([])
+        .addBody([
+            kExprEnd
+        ])
         .exportFunc();
       builder
         .addFunction("fn2", kSig_v_v)
-        .addBody([])
+        .addBody([
+            kExprEnd
+        ])
         .exportFunc();
 
-      builder.setTableLength(1);
+      builder.setFunctionTableLength(1);
       builder.addExportOfKind("table", kExternalTable, 0);
 
       builder.addGlobal(kWasmI32, true)
@@ -186,6 +190,7 @@ const instanceTestFactory = [
             kExprGetGlobal,
             index,
             kExprReturn,
+            kExprEnd,
         ])
         .exportFunc();
 
@@ -206,18 +211,6 @@ const instanceTestFactory = [
         args: [imports],
         exports,
         verify: instance => assert_equals(instance.exports.fn(), value)
-      };
-    }
-  ],
-
-  [
-    "stray argument",
-    function() {
-      return {
-        buffer: emptyModuleBinary,
-        args: [{}, {}],
-        exports: {},
-        verify: () => {}
       };
     }
   ],

@@ -6,22 +6,24 @@
 //! (http://mxr.mozilla.org/mozilla-central/source/toolkit/devtools/server/actors/webconsole.js).
 //! Handles interaction with the remote web console on network events (HTTP requests, responses) in Servo.
 
-use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
-use crate::protocol::JsonPacketStream;
+use actor::{Actor, ActorMessageStatus, ActorRegistry};
 use devtools_traits::HttpRequest as DevtoolsHttpRequest;
 use devtools_traits::HttpResponse as DevtoolsHttpResponse;
-use headers_core::HeaderMapExt;
-use headers_ext::{ContentType, Cookie};
-use http::{header, HeaderMap};
-use hyper::{Method, StatusCode};
+use hyper::header::{ContentType, Cookie};
+use hyper::header::Headers;
+use hyper::http::RawStatus;
+use hyper::method::Method;
+use protocol::JsonPacketStream;
 use serde_json::{Map, Value};
+use std::borrow::Cow;
 use std::net::TcpStream;
+use time;
 use time::Tm;
 
 struct HttpRequest {
     url: String,
     method: Method,
-    headers: HeaderMap,
+    headers: Headers,
     body: Option<Vec<u8>>,
     startedDateTime: Tm,
     timeStamp: i64,
@@ -30,8 +32,8 @@ struct HttpRequest {
 }
 
 struct HttpResponse {
-    headers: Option<HeaderMap>,
-    status: Option<(StatusCode, String)>,
+    headers: Option<Headers>,
+    status: Option<RawStatus>,
     body: Option<Vec<u8>>,
 }
 
@@ -187,12 +189,13 @@ impl Actor for NetworkEventActor {
                 let mut headers = Vec::new();
                 let mut rawHeadersString = "".to_owned();
                 let mut headersSize = 0;
-                for (name, value) in self.request.headers.iter() {
-                    let value = &value.to_str().unwrap().to_string();
-                    rawHeadersString = rawHeadersString + name.as_str() + ":" + &value + "\r\n";
-                    headersSize += name.as_str().len() + value.len();
+                for item in self.request.headers.iter() {
+                    let name = item.name();
+                    let value = item.value_string();
+                    rawHeadersString = rawHeadersString + name + ":" + &value + "\r\n";
+                    headersSize += name.len() + value.len();
                     headers.push(Header {
-                        name: name.as_str().to_owned(),
+                        name: name.to_owned(),
                         value: value.to_owned(),
                     });
                 }
@@ -207,10 +210,11 @@ impl Actor for NetworkEventActor {
             },
             "getRequestCookies" => {
                 let mut cookies = Vec::new();
-
-                for cookie in self.request.headers.get_all(header::COOKIE) {
-                    if let Ok(cookie_value) = String::from_utf8(cookie.as_bytes().to_vec()) {
-                        cookies = cookie_value.into_bytes();
+                if let Some(req_cookies) = self.request.headers.get_raw("Cookie") {
+                    for cookie in &*req_cookies {
+                        if let Ok(cookie_value) = String::from_utf8(cookie.clone()) {
+                            cookies = cookie_value.into_bytes();
+                        }
                     }
                 }
 
@@ -235,15 +239,17 @@ impl Actor for NetworkEventActor {
                     let mut headers = vec![];
                     let mut rawHeadersString = "".to_owned();
                     let mut headersSize = 0;
-                    for (name, value) in response_headers.iter() {
+                    for item in response_headers.iter() {
+                        let name = item.name();
+                        let value = item.value_string();
                         headers.push(Header {
-                            name: name.as_str().to_owned(),
-                            value: value.to_str().unwrap().to_owned(),
+                            name: name.to_owned(),
+                            value: value.clone(),
                         });
-                        headersSize += name.as_str().len() + value.len();
-                        rawHeadersString.push_str(name.as_str());
+                        headersSize += name.len() + value.len();
+                        rawHeadersString.push_str(name);
                         rawHeadersString.push_str(":");
-                        rawHeadersString.push_str(value.to_str().unwrap());
+                        rawHeadersString.push_str(&value);
                         rawHeadersString.push_str("\r\n");
                     }
                     let msg = GetResponseHeadersReply {
@@ -258,10 +264,11 @@ impl Actor for NetworkEventActor {
             },
             "getResponseCookies" => {
                 let mut cookies = Vec::new();
-                // TODO: This seems quite broken
-                for cookie in self.request.headers.get_all(header::SET_COOKIE) {
-                    if let Ok(cookie_value) = String::from_utf8(cookie.as_bytes().to_vec()) {
-                        cookies = cookie_value.into_bytes();
+                if let Some(res_cookies) = self.request.headers.get_raw("set-cookie") {
+                    for cookie in &*res_cookies {
+                        if let Ok(cookie_value) = String::from_utf8(cookie.clone()) {
+                            cookies = cookie_value.into_bytes();
+                        }
                     }
                 }
 
@@ -323,8 +330,8 @@ impl NetworkEventActor {
             name: name,
             request: HttpRequest {
                 url: String::new(),
-                method: Method::GET,
-                headers: HeaderMap::new(),
+                method: Method::Get,
+                headers: Headers::new(),
                 body: None,
                 startedDateTime: time::now(),
                 timeStamp: time::get_time().sec,
@@ -356,7 +363,7 @@ impl NetworkEventActor {
         self.response.headers = response.headers.clone();
         self.response.status = response.status.as_ref().map(|&(s, ref st)| {
             let status_text = String::from_utf8_lossy(st).into_owned();
-            (StatusCode::from_u16(s).unwrap(), status_text)
+            RawStatus(s, Cow::from(status_text))
         });
         self.response.body = response.body.clone();
     }
@@ -382,8 +389,8 @@ impl NetworkEventActor {
             .response
             .status
             .as_ref()
-            .map_or((0, "".to_owned()), |(code, text)| {
-                (code.as_u16(), text.clone())
+            .map_or((0, "".to_owned()), |&RawStatus(ref code, ref text)| {
+                (*code, text.clone().into_owned())
             });
         // TODO: Send the correct values for remoteAddress and remotePort and http_version.
         ResponseStartMsg {
@@ -400,9 +407,9 @@ impl NetworkEventActor {
     pub fn response_content(&self) -> ResponseContentMsg {
         let mut mString = "".to_owned();
         if let Some(ref headers) = self.response.headers {
-            mString = match headers.typed_get::<ContentType>() {
-                Some(ct) => ct.to_string(),
-                _ => "".to_owned(),
+            mString = match headers.get() {
+                Some(&ContentType(ref mime)) => mime.to_string(),
+                None => "".to_owned(),
             };
         }
         // TODO: Set correct values when response's body is sent to the devtools in http_loader.
@@ -417,9 +424,9 @@ impl NetworkEventActor {
     pub fn response_cookies(&self) -> ResponseCookiesMsg {
         let mut cookies_size = 0;
         if let Some(ref headers) = self.response.headers {
-            cookies_size = match headers.typed_get::<Cookie>() {
-                Some(ref cookie) => cookie.len(),
-                _ => 0,
+            cookies_size = match headers.get() {
+                Some(&Cookie(ref cookie)) => cookie.len(),
+                None => 0,
             };
         }
         ResponseCookiesMsg {
@@ -432,8 +439,8 @@ impl NetworkEventActor {
         let mut headers_byte_count = 0;
         if let Some(ref headers) = self.response.headers {
             headers_size = headers.len();
-            for (name, value) in headers.iter() {
-                headers_byte_count += name.as_str().len() + value.len();
+            for item in headers.iter() {
+                headers_byte_count += item.name().len() + item.value_string().len();
             }
         }
         ResponseHeadersMsg {
@@ -443,9 +450,11 @@ impl NetworkEventActor {
     }
 
     pub fn request_headers(&self) -> RequestHeadersMsg {
-        let size = self.request.headers.iter().fold(0, |acc, (name, value)| {
-            acc + name.as_str().len() + value.len()
-        });
+        let size = self
+            .request
+            .headers
+            .iter()
+            .fold(0, |acc, h| acc + h.name().len() + h.value_string().len());
         RequestHeadersMsg {
             headers: self.request.headers.len(),
             headersSize: size,
@@ -453,9 +462,9 @@ impl NetworkEventActor {
     }
 
     pub fn request_cookies(&self) -> RequestCookiesMsg {
-        let cookies_size = match self.request.headers.typed_get::<Cookie>() {
-            Some(ref cookie) => cookie.len(),
-            _ => 0,
+        let cookies_size = match self.request.headers.get() {
+            Some(&Cookie(ref cookie)) => cookie.len(),
+            None => 0,
         };
         RequestCookiesMsg {
             cookies: cookies_size,

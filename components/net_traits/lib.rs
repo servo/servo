@@ -2,47 +2,50 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+
 #![deny(unsafe_code)]
 
-#[macro_use]
-extern crate lazy_static;
-#[macro_use]
-extern crate log;
-#[macro_use]
-extern crate malloc_size_of;
-#[macro_use]
-extern crate malloc_size_of_derive;
-#[macro_use]
-extern crate serde;
-#[macro_use]
+extern crate cookie as cookie_rs;
+extern crate embedder_traits;
+extern crate hyper;
+extern crate hyper_serde;
+extern crate image as piston_image;
+extern crate ipc_channel;
+#[macro_use] extern crate lazy_static;
+#[macro_use] extern crate log;
+#[macro_use] extern crate malloc_size_of;
+#[macro_use] extern crate malloc_size_of_derive;
+extern crate msg;
+extern crate num_traits;
+#[macro_use] extern crate serde;
+extern crate servo_arc;
+extern crate servo_url;
 extern crate url;
+extern crate uuid;
+extern crate webrender_api;
 
-use cookie::Cookie;
-use crate::filemanager_thread::FileManagerThreadMsg;
-use crate::request::{Request, RequestInit};
-use crate::response::{HttpsState, Response, ResponseInit};
-use crate::storage_thread::StorageThreadMsg;
-use headers_core::HeaderMapExt;
-use headers_ext::{ContentType, ReferrerPolicy as ReferrerPolicyHeader};
-use http::{Error as HttpError, HeaderMap};
+use cookie_rs::Cookie;
+use filemanager_thread::FileManagerThreadMsg;
 use hyper::Error as HyperError;
-use hyper::StatusCode;
+use hyper::header::{ContentType, Headers, ReferrerPolicy as ReferrerPolicyHeader};
+use hyper::http::RawStatus;
+use hyper::mime::{Attr, Mime};
 use hyper_serde::Serde;
+use ipc_channel::Error as IpcError;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
-use ipc_channel::Error as IpcError;
-use mime::Mime;
 use msg::constellation_msg::HistoryStateId;
+use request::{Request, RequestInit};
+use response::{HttpsState, Response, ResponseInit};
 use servo_url::ServoUrl;
 use std::error::Error;
-use url::percent_encoding;
+use storage_thread::StorageThreadMsg;
 
 pub mod blob_url_store;
 pub mod filemanager_thread;
 pub mod image_cache;
 pub mod net_error_list;
 pub mod pub_domains;
-pub mod quality;
 pub mod request;
 pub mod response;
 pub mod storage_thread;
@@ -58,7 +61,7 @@ pub mod image {
 
 /// A loading context, for context-specific sniffing, as defined in
 /// <https://mimesniff.spec.whatwg.org/#context-specific-sniffing>
-#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
+#[derive(Clone, Deserialize, MallocSizeOf, Serialize)]
 pub enum LoadContext {
     Browsing,
     Image,
@@ -74,26 +77,18 @@ pub enum LoadContext {
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub struct CustomResponse {
     #[ignore_malloc_size_of = "Defined in hyper"]
-    #[serde(
-        deserialize_with = "::hyper_serde::deserialize",
-        serialize_with = "::hyper_serde::serialize"
-    )]
-    pub headers: HeaderMap,
+    #[serde(deserialize_with = "::hyper_serde::deserialize",
+            serialize_with = "::hyper_serde::serialize")]
+    pub headers: Headers,
     #[ignore_malloc_size_of = "Defined in hyper"]
-    #[serde(
-        deserialize_with = "::hyper_serde::deserialize",
-        serialize_with = "::hyper_serde::serialize"
-    )]
-    pub raw_status: (StatusCode, String),
+    #[serde(deserialize_with = "::hyper_serde::deserialize",
+            serialize_with = "::hyper_serde::serialize")]
+    pub raw_status: RawStatus,
     pub body: Vec<u8>,
 }
 
 impl CustomResponse {
-    pub fn new(
-        headers: HeaderMap,
-        raw_status: (StatusCode, String),
-        body: Vec<u8>,
-    ) -> CustomResponse {
+    pub fn new(headers: Headers, raw_status: RawStatus, body: Vec<u8>) -> CustomResponse {
         CustomResponse {
             headers: headers,
             raw_status: raw_status,
@@ -102,7 +97,7 @@ impl CustomResponse {
     }
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize)]
 pub struct CustomResponseMediator {
     pub response_chan: IpcSender<Option<CustomResponse>>,
     pub load_url: ServoUrl,
@@ -130,26 +125,30 @@ pub enum ReferrerPolicy {
     StrictOriginWhenCrossOrigin,
 }
 
-impl From<ReferrerPolicyHeader> for ReferrerPolicy {
-    fn from(policy: ReferrerPolicyHeader) -> Self {
-        match policy {
-            ReferrerPolicyHeader::NO_REFERRER => ReferrerPolicy::NoReferrer,
-            ReferrerPolicyHeader::NO_REFERRER_WHEN_DOWNGRADE => {
-                ReferrerPolicy::NoReferrerWhenDowngrade
-            },
-            ReferrerPolicyHeader::SAME_ORIGIN => ReferrerPolicy::SameOrigin,
-            ReferrerPolicyHeader::ORIGIN => ReferrerPolicy::Origin,
-            ReferrerPolicyHeader::ORIGIN_WHEN_CROSS_ORIGIN => ReferrerPolicy::OriginWhenCrossOrigin,
-            ReferrerPolicyHeader::UNSAFE_URL => ReferrerPolicy::UnsafeUrl,
-            ReferrerPolicyHeader::STRICT_ORIGIN => ReferrerPolicy::StrictOrigin,
-            ReferrerPolicyHeader::STRICT_ORIGIN_WHEN_CROSS_ORIGIN => {
-                ReferrerPolicy::StrictOriginWhenCrossOrigin
-            },
+impl<'a> From<&'a ReferrerPolicyHeader> for ReferrerPolicy {
+    fn from(policy: &'a ReferrerPolicyHeader) -> Self {
+        match *policy {
+            ReferrerPolicyHeader::NoReferrer =>
+                ReferrerPolicy::NoReferrer,
+            ReferrerPolicyHeader::NoReferrerWhenDowngrade =>
+                ReferrerPolicy::NoReferrerWhenDowngrade,
+            ReferrerPolicyHeader::SameOrigin =>
+                ReferrerPolicy::SameOrigin,
+            ReferrerPolicyHeader::Origin =>
+                ReferrerPolicy::Origin,
+            ReferrerPolicyHeader::OriginWhenCrossOrigin =>
+                ReferrerPolicy::OriginWhenCrossOrigin,
+            ReferrerPolicyHeader::UnsafeUrl =>
+                ReferrerPolicy::UnsafeUrl,
+            ReferrerPolicyHeader::StrictOrigin =>
+                ReferrerPolicy::StrictOrigin,
+            ReferrerPolicyHeader::StrictOriginWhenCrossOrigin =>
+                ReferrerPolicy::StrictOriginWhenCrossOrigin,
         }
     }
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Deserialize, Serialize)]
 pub enum FetchResponseMsg {
     // todo: should have fields for transmitted/total bytes
     ProcessRequestBody,
@@ -185,15 +184,15 @@ pub trait FetchTaskTarget {
     fn process_response_eof(&mut self, response: &Response);
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize)]
 pub enum FilteredMetadata {
     Basic(Metadata),
     Cors(Metadata),
     Opaque,
-    OpaqueRedirect,
+    OpaqueRedirect
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize)]
 pub enum FetchMetadata {
     Unfiltered(Metadata),
     Filtered {
@@ -236,6 +235,7 @@ impl FetchTaskTarget for IpcSender<FetchResponseMsg> {
     }
 }
 
+
 pub trait Action<Listener> {
     fn process(self, listener: &mut Listener);
 }
@@ -262,11 +262,10 @@ pub type IpcSendResult = Result<(), IpcError>;
 /// used by net_traits::ResourceThreads to ease the use its IpcSender sub-fields
 /// XXX: If this trait will be used more in future, some auto derive might be appealing
 pub trait IpcSend<T>
-where
-    T: serde::Serialize + for<'de> serde::Deserialize<'de>,
+    where T: serde::Serialize + for<'de> serde::Deserialize<'de>,
 {
     /// send message T
-    fn send(&self, _: T) -> IpcSendResult;
+    fn send(&self, T) -> IpcSendResult;
     /// get underlying sender
     fn sender(&self) -> IpcSender<T>;
 }
@@ -276,7 +275,7 @@ where
 // the "Arc" hack implicitly in future.
 // See discussion: http://logs.glob.uno/?c=mozilla%23servo&s=16+May+2016&e=16+May+2016#c430412
 // See also: https://github.com/servo/servo/blob/735480/components/script/script_thread.rs#L313
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize)]
 pub struct ResourceThreads {
     core_thread: CoreResourceThread,
     storage_thread: IpcSender<StorageThreadMsg>,
@@ -314,55 +313,49 @@ impl IpcSend<StorageThreadMsg> for ResourceThreads {
 // Ignore the sub-fields
 malloc_size_of_is_0!(ResourceThreads);
 
-#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Copy, Deserialize, PartialEq, Serialize)]
 pub enum IncludeSubdomains {
     Included,
     NotIncluded,
 }
 
-#[derive(Debug, Deserialize, MallocSizeOf, Serialize)]
+#[derive(Deserialize, MallocSizeOf, Serialize)]
 pub enum MessageData {
     Text(String),
     Binary(Vec<u8>),
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Deserialize, Serialize)]
 pub enum WebSocketDomAction {
     SendMessage(MessageData),
     Close(Option<u16>, Option<String>),
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Deserialize, Serialize)]
 pub enum WebSocketNetworkEvent {
-    ConnectionEstablished { protocol_in_use: Option<String> },
+    ConnectionEstablished {
+        protocol_in_use: Option<String>,
+    },
     MessageReceived(MessageData),
     Close(Option<u16>, String),
     Fail,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Deserialize, Serialize)]
 /// IPC channels to communicate with the script thread about network or DOM events.
 pub enum FetchChannels {
-    ResponseMsg(
-        IpcSender<FetchResponseMsg>,
-        /* cancel_chan */ Option<IpcReceiver<()>>,
-    ),
+    ResponseMsg(IpcSender<FetchResponseMsg>, /* cancel_chan */ Option<IpcReceiver<()>>),
     WebSocket {
         event_sender: IpcSender<WebSocketNetworkEvent>,
         action_receiver: IpcReceiver<WebSocketDomAction>,
-    },
+    }
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Deserialize, Serialize)]
 pub enum CoreResourceMsg {
     Fetch(RequestInit, FetchChannels),
     /// Initiate a fetch in response to processing a redirection
-    FetchRedirect(
-        RequestInit,
-        ResponseInit,
-        IpcSender<FetchResponseMsg>,
-        /* cancel_chan */ Option<IpcReceiver<()>>,
-    ),
+    FetchRedirect(RequestInit, ResponseInit, IpcSender<FetchResponseMsg>, /* cancel_chan */ Option<IpcReceiver<()>>),
     /// Store a cookie for a given originating URL
     SetCookieForUrl(ServoUrl, Serde<Cookie<'static>>, CookieSource),
     /// Store a set of cookies for a given originating URL
@@ -370,11 +363,7 @@ pub enum CoreResourceMsg {
     /// Retrieve the stored cookies for a given URL
     GetCookiesForUrl(ServoUrl, IpcSender<Option<String>>, CookieSource),
     /// Get a cookie by name for a given originating URL
-    GetCookiesDataForUrl(
-        ServoUrl,
-        IpcSender<Vec<Serde<Cookie<'static>>>>,
-        CookieSource,
-    ),
+    GetCookiesDataForUrl(ServoUrl, IpcSender<Vec<Serde<Cookie<'static>>>>, CookieSource),
     /// Get a history state by a given history state id
     GetHistoryState(HistoryStateId, IpcSender<Option<Vec<u8>>>),
     /// Set a history state for a given history state id
@@ -394,23 +383,16 @@ pub enum CoreResourceMsg {
 
 /// Instruct the resource thread to make a new request.
 pub fn fetch_async<F>(request: RequestInit, core_resource_thread: &CoreResourceThread, f: F)
-where
-    F: Fn(FetchResponseMsg) + Send + 'static,
+    where F: Fn(FetchResponseMsg) + Send + 'static,
 {
     let (action_sender, action_receiver) = ipc::channel().unwrap();
-    ROUTER.add_route(
-        action_receiver.to_opaque(),
-        Box::new(move |message| f(message.to().unwrap())),
-    );
-    core_resource_thread
-        .send(CoreResourceMsg::Fetch(
-            request,
-            FetchChannels::ResponseMsg(action_sender, None),
-        ))
-        .unwrap();
+    ROUTER.add_route(action_receiver.to_opaque(),
+                     Box::new(move |message| f(message.to().unwrap())));
+    core_resource_thread.send(
+        CoreResourceMsg::Fetch(request, FetchChannels::ResponseMsg(action_sender, None))).unwrap();
 }
 
-#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
+#[derive(Clone, Deserialize, MallocSizeOf, Serialize)]
 pub struct ResourceCorsData {
     /// CORS Preflight flag
     pub preflight: bool,
@@ -419,7 +401,7 @@ pub struct ResourceCorsData {
 }
 
 /// Metadata about a loaded resource, such as is obtained from HTTP headers.
-#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
+#[derive(Clone, Deserialize, MallocSizeOf, Serialize)]
 pub struct Metadata {
     /// Final URL after redirects.
     pub final_url: ServoUrl,
@@ -436,7 +418,7 @@ pub struct Metadata {
 
     #[ignore_malloc_size_of = "Defined in hyper"]
     /// Headers
-    pub headers: Option<Serde<HeaderMap>>,
+    pub headers: Option<Serde<Headers>>,
 
     /// HTTP Status
     pub status: Option<(u16, Vec<u8>)>,
@@ -471,18 +453,16 @@ impl Metadata {
     /// Extract the parts of a Mime that we care about.
     pub fn set_content_type(&mut self, content_type: Option<&Mime>) {
         if self.headers.is_none() {
-            self.headers = Some(Serde(HeaderMap::new()));
+            self.headers = Some(Serde(Headers::new()));
         }
 
         if let Some(mime) = content_type {
-            self.headers
-                .as_mut()
-                .unwrap()
-                .typed_insert(ContentType::from(mime.clone()));
-            self.content_type = Some(Serde(ContentType::from(mime.clone())));
-            for (name, value) in mime.params() {
-                if mime::CHARSET == name {
-                    self.charset = Some(value.to_string());
+            self.headers.as_mut().unwrap().set(ContentType(mime.clone()));
+            self.content_type = Some(Serde(ContentType(mime.clone())));
+            let Mime(_, _, ref parameters) = *mime;
+            for &(ref k, ref v) in parameters {
+                if Attr::Charset == *k {
+                    self.charset = Some(v.to_string());
                 }
             }
         }
@@ -490,7 +470,7 @@ impl Metadata {
 }
 
 /// The creator of a given cookie
-#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Copy, Deserialize, PartialEq, Serialize)]
 pub enum CookieSource {
     /// An HTTP API
     HTTP,
@@ -499,23 +479,19 @@ pub enum CookieSource {
 }
 
 /// Convenience function for synchronously loading a whole resource.
-pub fn load_whole_resource(
-    request: RequestInit,
-    core_resource_thread: &CoreResourceThread,
-) -> Result<(Metadata, Vec<u8>), NetworkError> {
+pub fn load_whole_resource(request: RequestInit,
+                           core_resource_thread: &CoreResourceThread)
+                           -> Result<(Metadata, Vec<u8>), NetworkError> {
     let (action_sender, action_receiver) = ipc::channel().unwrap();
-    core_resource_thread
-        .send(CoreResourceMsg::Fetch(
-            request,
-            FetchChannels::ResponseMsg(action_sender, None),
-        ))
-        .unwrap();
+    core_resource_thread.send(
+        CoreResourceMsg::Fetch(request, FetchChannels::ResponseMsg(action_sender, None))).unwrap();
 
     let mut buf = vec![];
     let mut metadata = None;
     loop {
         match action_receiver.recv().unwrap() {
-            FetchResponseMsg::ProcessRequestBody | FetchResponseMsg::ProcessRequestEOF => (),
+            FetchResponseMsg::ProcessRequestBody |
+            FetchResponseMsg::ProcessRequestEOF => (),
             FetchResponseMsg::ProcessResponse(Ok(m)) => {
                 metadata = Some(match m {
                     FetchMetadata::Unfiltered(m) => m,
@@ -541,12 +517,15 @@ pub enum NetworkError {
 }
 
 impl NetworkError {
-    pub fn from_hyper_error(error: &HyperError) -> Self {
+    pub fn from_hyper_error(url: &ServoUrl, error: HyperError) -> Self {
+        if let HyperError::Ssl(ref ssl_error) = error {
+            return NetworkError::from_ssl_error(url, &**ssl_error);
+        }
         NetworkError::Internal(error.description().to_owned())
     }
 
-    pub fn from_http_error(error: &HttpError) -> Self {
-        NetworkError::Internal(error.description().to_owned())
+    pub fn from_ssl_error(url: &ServoUrl, error: &Error) -> Self {
+        NetworkError::SslValidation(url.clone(), error.description().to_owned())
     }
 }
 
@@ -570,17 +549,4 @@ pub fn trim_http_whitespace(mut slice: &[u8]) -> &[u8] {
     }
 
     slice
-}
-
-pub fn http_percent_encode(bytes: &[u8]) -> String {
-    define_encode_set! {
-        // This encode set is used for HTTP header values and is defined at
-        // https://tools.ietf.org/html/rfc5987#section-3.2
-        pub HTTP_VALUE = [percent_encoding::SIMPLE_ENCODE_SET] | {
-            ' ', '"', '%', '\'', '(', ')', '*', ',', '/', ':', ';', '<', '-', '>', '?',
-            '[', '\\', ']', '{', '}'
-        }
-    }
-
-    url::percent_encoding::percent_encode(bytes, HTTP_VALUE).to_string()
 }

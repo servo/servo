@@ -5,6 +5,7 @@
 //! A module for writing time profiler traces out to a self contained HTML file.
 
 use profile_traits::time::{ProfilerCategory, TimerMetadata};
+use serde_json;
 use std::fs;
 use std::io::{self, Write};
 use std::path;

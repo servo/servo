@@ -1,0 +1,77 @@
+<!doctype html>
+<meta charset="utf8">
+<link rel="help" href="https://w3c.github.io/payment-request/#dom-paymentitem-type">
+<title>
+  PaymentItem type member
+</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+const validMethods = [
+  { supportedMethods: "basic-card" },
+  { supportedMethods: "https://apple.com/apple-pay" },
+];
+const validTotal = {
+  label: "Total",
+  amount: {
+    currency: "USD",
+    value: "5.00",
+  },
+};
+const validDisplayItem = {
+  label: "Item",
+  amount: {
+    currency: "USD",
+    value: "1.00",
+  },
+};
+const validDetails = {
+  total: validTotal,
+  displayItems: [validDisplayItem],
+};
+
+test(() => {
+  new PaymentRequest(validMethods, validDetails);
+}, "Smoke test");
+
+test(() => {
+  // Let's make an invalid DisplayItem for the total
+  const invalidTotal = Object.assign({}, validTotal, {
+    type: "this is not valid",
+  });
+  const invalidDetails = Object.assign({}, validDetails, {
+    total: invalidTotal,
+  });
+  assert_throws(new TypeError(), () => {
+    new PaymentRequest(validMethods, invalidDetails);
+  });
+}, "An invalid enum value for PaymentDetailsInit.total's type throws TypeError");
+
+test(() => {
+  // Let's make an invalid DisplayItem to add to displayItems
+  const invalidDisplayItem = Object.assign({}, validDisplayItem, {
+    type: "this is not valid",
+  });
+  const invalidDetails = Object.assign({}, validDetails, {
+    displayItems: [invalidDisplayItem, validDisplayItem],
+  });
+  assert_throws(new TypeError(), () => {
+    new PaymentRequest(validMethods, invalidDetails);
+  });
+}, "Invalid enum value for PaymentItem.type member throws a TypeError");
+
+test(() => {
+  // Let's make an invalid DisplayItem to add to displayItems
+  const taxDisplayItem = Object.assign({}, validDisplayItem, { type: "tax" });
+  const taxTotal = Object.assign({}, validTotal, { type: "tax" });
+  const validDetailsWithType = Object.assign({}, validDetails, {
+    total: taxTotal,
+    displayItems: [taxDisplayItem],
+  });
+  try {
+    new PaymentRequest(validMethods, validDetailsWithType);
+  } catch (err) {
+    assert_unexpected(err.message);
+  }
+}, "Valid enum values for PaymentItem.type member does not throw");
+</script>

@@ -8,18 +8,19 @@
 
 #![allow(unsafe_code)]
 
-use crate::block::BlockFlow;
-use crate::context::LayoutContext;
-use crate::flow::{Flow, GetBaseFlow};
-use crate::flow_ref::FlowRef;
-use crate::traversal::{AssignBSizes, AssignISizes, BubbleISizes};
-use crate::traversal::{PostorderFlowTraversal, PreorderFlowTraversal};
-use profile_traits::time::{self, profile, TimerMetadata};
+use block::BlockFlow;
+use context::LayoutContext;
+use flow::{Flow, GetBaseFlow};
+use flow_ref::FlowRef;
+use profile_traits::time::{self, TimerMetadata, profile};
+use rayon;
 use servo_config::opts;
 use smallvec::SmallVec;
 use std::mem;
 use std::ptr;
 use std::sync::atomic::{AtomicIsize, Ordering};
+use traversal::{AssignBSizes, AssignISizes, BubbleISizes};
+use traversal::{PostorderFlowTraversal, PreorderFlowTraversal};
 
 /// Traversal chunk size.
 const CHUNK_SIZE: usize = 16;
@@ -28,7 +29,7 @@ pub type FlowList = SmallVec<[UnsafeFlow; CHUNK_SIZE]>;
 
 /// Vtable + pointer representation of a Flow trait object.
 #[derive(Clone, Copy, Eq, PartialEq)]
-pub struct UnsafeFlow(*const dyn Flow);
+pub struct UnsafeFlow(*const Flow);
 
 unsafe impl Sync for UnsafeFlow {}
 unsafe impl Send for UnsafeFlow {}
@@ -72,7 +73,7 @@ impl FlowParallelInfo {
 fn bottom_up_flow(mut unsafe_flow: UnsafeFlow, assign_bsize_traversal: &AssignBSizes) {
     loop {
         // Get a real flow.
-        let flow: &mut dyn Flow = unsafe { mem::transmute(unsafe_flow) };
+        let flow: &mut Flow = unsafe { mem::transmute(unsafe_flow) };
 
         // Perform the appropriate traversal.
         if assign_bsize_traversal.should_process(flow) {
@@ -96,7 +97,7 @@ fn bottom_up_flow(mut unsafe_flow: UnsafeFlow, assign_bsize_traversal: &AssignBS
         // No, we're not at the root yet. Then are we the last child
         // of our parent to finish processing? If so, we can continue
         // on with our parent; otherwise, we've gotta wait.
-        let parent: &mut dyn Flow = unsafe { &mut *(unsafe_parent.0 as *mut dyn Flow) };
+        let parent: &mut Flow = unsafe { &mut *(unsafe_parent.0 as *mut Flow) };
         let parent_base = parent.mut_base();
         if parent_base
             .parallel
@@ -126,7 +127,7 @@ fn top_down_flow<'scope>(
         let mut had_children = false;
         unsafe {
             // Get a real flow.
-            let flow: &mut dyn Flow = mem::transmute(*unsafe_flow);
+            let flow: &mut Flow = mem::transmute(*unsafe_flow);
             flow.mut_base().thread_id = pool.current_thread_index().unwrap() as u8;
 
             if assign_isize_traversal.should_process(flow) {
@@ -190,7 +191,7 @@ fn top_down_flow<'scope>(
 
 /// Run the main layout passes in parallel.
 pub fn reflow(
-    root: &mut dyn Flow,
+    root: &mut Flow,
     profiler_metadata: Option<TimerMetadata>,
     time_profiler_chan: time::ProfilerChan,
     context: &LayoutContext,

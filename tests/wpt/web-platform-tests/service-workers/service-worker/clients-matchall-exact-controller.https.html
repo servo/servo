@@ -5,6 +5,7 @@
 <script src="resources/test-helpers.sub.js"></script>
 <script>
 const scope = 'resources/blank.html?clients-matchAll';
+const t = async_test('Test Clients.matchAll() with exact controller');
 let frames = [];
 
 function checkWorkerClients(worker, expected) {
@@ -32,12 +33,10 @@ let expected = [
     ['visible', false, new URL(scope + '#2', location).toString(), 'window', 'nested']
 ];
 
-promise_test(t => {
+t.step(_ => {
     let script = 'resources/clients-matchall-worker.js';
-    return service_worker_unregister_and_register(t, script, scope)
+    service_worker_unregister_and_register(t, script, scope)
       .then(registration => {
-          t.add_cleanup(() => service_worker_unregister(t, scope));
-
           return wait_for_state(t, registration.installing, 'activated');
         })
       .then(_ => with_iframe(scope + '#1') )
@@ -62,6 +61,8 @@ promise_test(t => {
         })
       .then(_ => {
           frames.forEach(f => f.remove() );
-        });
-}, 'Test Clients.matchAll() with exact controller');
+          service_worker_unregister_and_done(t, scope);
+        })
+      .catch(unreached_rejection(t));
+  });
 </script>

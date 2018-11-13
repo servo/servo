@@ -5,7 +5,7 @@ policy:
 tasks:
   - $if: 'tasks_for == "github-push"'
     then:
-      $if: 'event.ref in ["refs/heads/auto", "refs/heads/try", "refs/heads/try-taskcluster"]'
+      $if: 'event.ref in ["refs/heads/auto", "refs/heads/try"]'
       then:
 
         # NOTE: when updating this consider whether the daily hook needs similar changes:
@@ -23,8 +23,12 @@ tasks:
           owner: &task_owner ${event.pusher.name}@users.noreply.github.com
           source: &task_source ${event.compare}
         scopes:
+          - "queue:scheduler-id:taskcluster-github"
+
           # Granted to role "repo:github.com/servo/servo:branch:*"
-          - "assume:project:servo:decision-task/trusted"
+          - "queue:create-task:highest:aws-provisioner-v1/servo-*"
+          - "queue:route:index.project.servo.servo.*"
+          - "docker-worker:cache:cargo-*"
 
         payload:
           maxRunTime: {$eval: '20 * 60'}
@@ -49,4 +53,4 @@ tasks:
               cd repo &&
               git fetch --depth 1 "$GIT_URL" "$GIT_REF" &&
               git reset --hard "$GIT_SHA" &&
-              python3 etc/taskcluster/decision_task.py
+              python3 etc/ci/taskcluster/decision-task.py

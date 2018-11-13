@@ -32,8 +32,7 @@ lazy_static! {
 
 impl<'a> FromIterator<&'a str> for PubDomainRules {
     fn from_iter<T>(iter: T) -> Self
-    where
-        T: IntoIterator<Item = &'a str>,
+        where T: IntoIterator<Item = &'a str>,
     {
         let mut result = PubDomainRules::new();
         for item in iter {
@@ -58,8 +57,7 @@ impl PubDomainRules {
         }
     }
     pub fn parse(content: &str) -> PubDomainRules {
-        content
-            .lines()
+        content.lines()
             .map(str::trim)
             .filter(|s| !s.is_empty())
             .filter(|s| !s.starts_with("//"))
@@ -101,7 +99,7 @@ impl PubDomainRules {
             None => !domain.is_empty(),
             Some(index) => {
                 !self.exceptions.contains(domain) && self.wildcards.contains(&domain[index + 1..]) ||
-                    self.rules.contains(domain)
+                self.rules.contains(domain)
             },
         }
     }
@@ -114,9 +112,8 @@ impl PubDomainRules {
             None => false,
             Some(index) => {
                 self.exceptions.contains(domain) ||
-                    !self.wildcards.contains(&domain[index + 1..]) &&
-                        !self.rules.contains(domain) &&
-                        self.is_public_suffix(&domain[index + 1..])
+                !self.wildcards.contains(&domain[index + 1..]) && !self.rules.contains(domain) &&
+                self.is_public_suffix(&domain[index + 1..])
             },
         }
     }
@@ -148,9 +145,7 @@ pub fn is_reg_domain(domain: &str) -> bool {
 /// Leaves the host name alone if it is an IP address.
 pub fn reg_host(url: &ServoUrl) -> Option<Host> {
     match url.origin() {
-        ImmutableOrigin::Tuple(_, Host::Domain(domain), _) => {
-            Some(Host::Domain(String::from(reg_suffix(&*domain))))
-        },
+        ImmutableOrigin::Tuple(_, Host::Domain(domain), _) => Some(Host::Domain(String::from(reg_suffix(&*domain)))),
         ImmutableOrigin::Tuple(_, ip, _) => Some(ip),
         ImmutableOrigin::Opaque(_) => None,
     }

@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+extern crate quote;
 #[macro_use]
 extern crate syn;
 #[macro_use]
@@ -20,16 +21,16 @@ fn js_traceable_derive(s: synstructure::Structure) -> quote::Tokens {
         let ident = param.ident;
         where_clause
             .predicates
-            .push(parse_quote!(#ident: crate::dom::bindings::trace::JSTraceable))
+            .push(parse_quote!(#ident: ::dom::bindings::trace::JSTraceable))
     }
 
     let tokens = quote! {
         #[allow(unsafe_code)]
-        unsafe impl #impl_generics crate::dom::bindings::trace::JSTraceable for #name #ty_generics #where_clause {
+        unsafe impl #impl_generics ::dom::bindings::trace::JSTraceable for #name #ty_generics #where_clause {
             #[inline]
             #[allow(unused_variables, unused_imports)]
-            unsafe fn trace(&self, tracer: *mut js::jsapi::JSTracer) {
-                use crate::dom::bindings::trace::JSTraceable;
+            unsafe fn trace(&self, tracer: *mut ::js::jsapi::JSTracer) {
+                use ::dom::bindings::trace::JSTraceable;
                 match *self {
                     #match_body
                 }

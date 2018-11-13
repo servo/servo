@@ -1,7 +1,7 @@
 {
   "dom.bluetooth.enabled": false,
   "dom.bluetooth.testing.enabled": false,
-  "dom.canvas-text.enabled": true,
+  "dom.canvas-text.enabled": false,
   "dom.compositionevent.enabled": false,
   "dom.customelements.enabled": true,
   "dom.forcetouch.enabled": false,
@@ -19,7 +19,6 @@
   "dom.webgl2.enabled": false,
   "dom.webvr.enabled": false,
   "dom.webvr.event_polling_interval": 500,
-  "gfx.subpixel-text-antialiasing.enabled": true,
   "js.asmjs.enabled": true,
   "js.asyncstack.enabled": false,
   "js.baseline.enabled": true,

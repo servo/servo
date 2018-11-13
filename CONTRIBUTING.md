@@ -16,7 +16,7 @@ Should you wish to work on an issue, please claim it first by commenting on
 the GitHub issue that you want to work on it. This is to prevent duplicated
 efforts from contributors on the same issue.
 
-Head over to [Servo Starters](https://starters.servo.org/) to find
+Head over to [Servo Starters](http://servo.github.io/servo-starters/) to find
 good tasks to start with. If you come across words or jargon that do not make
 sense, please check [the glossary](docs/glossary.md) first. If there's no
 matching entry, please make a pull request to add one with the content `TODO`
@@ -46,7 +46,7 @@ For specific git instructions, see [GitHub workflow 101](https://github.com/serv
 
 ## Conduct
 
-In all Servo-related forums, we follow the [Rust Code of Conduct](https://www.rust-lang.org/conduct.html). For escalation or moderation issues, please contact Jack (jmoffitt@mozilla.com) and Lars (larsberg@mozilla.com) instead of the Rust moderation team.
+In all Servo-related forums, we follow the [Rust Code of Conduct](http://www.rust-lang.org/conduct.html). For escalation or moderation issues, please contact Jack (jmoffitt@mozilla.com) and Lars (larsberg@mozilla.com) instead of the Rust moderation team.
 
 
 ## Communication

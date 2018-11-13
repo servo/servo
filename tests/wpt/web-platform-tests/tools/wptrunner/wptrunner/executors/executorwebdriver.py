@@ -18,14 +18,12 @@ from .protocol import (BaseProtocolPart,
                        SelectorProtocolPart,
                        ClickProtocolPart,
                        SendKeysProtocolPart,
-                       ActionSequenceProtocolPart,
                        TestDriverProtocolPart)
 from ..testrunner import Stop
 
 import webdriver as client
 
 here = os.path.join(os.path.split(__file__)[0])
-
 
 class WebDriverBaseProtocolPart(BaseProtocolPart):
     def setup(self):
@@ -54,7 +52,7 @@ class WebDriverBaseProtocolPart(BaseProtocolPart):
         while True:
             try:
                 self.webdriver.execute_async_script("")
-            except (client.TimeoutException, client.ScriptTimeoutException):
+            except client.TimeoutException:
                 pass
             except (socket.timeout, client.NoSuchWindowException,
                     client.UnknownErrorException, IOError):
@@ -67,32 +65,27 @@ class WebDriverBaseProtocolPart(BaseProtocolPart):
 class WebDriverTestharnessProtocolPart(TestharnessProtocolPart):
     def setup(self):
         self.webdriver = self.parent.webdriver
-        self.runner_handle = None
-        with open(os.path.join(here, "runner.js")) as f:
-            self.runner_script = f.read()
 
     def load_runner(self, url_protocol):
-        if self.runner_handle:
-            self.webdriver.window_handle = self.runner_handle
         url = urlparse.urljoin(self.parent.executor.server_url(url_protocol),
                                "/testharness_runner.html")
         self.logger.debug("Loading %s" % url)
 
         self.webdriver.url = url
-        self.runner_handle = self.webdriver.window_handle
-        format_map = {"title": threading.current_thread().name.replace("'", '"')}
-        self.parent.base.execute_script(self.runner_script % format_map)
+        self.webdriver.execute_script("document.title = '%s'" %
+                                      threading.current_thread().name.replace("'", '"'))
 
     def close_old_windows(self):
-        handles = [item for item in self.webdriver.handles if item != self.runner_handle]
+        exclude = self.webdriver.window_handle
+        handles = [item for item in self.webdriver.handles if item != exclude]
         for handle in handles:
             try:
                 self.webdriver.window_handle = handle
                 self.webdriver.close()
             except client.NoSuchWindowException:
                 pass
-        self.webdriver.window_handle = self.runner_handle
-        return self.runner_handle
+        self.webdriver.window_handle = exclude
+        return exclude
 
     def get_test_window(self, window_id, parent):
         test_window = None
@@ -132,7 +125,6 @@ class WebDriverClickProtocolPart(ClickProtocolPart):
         self.webdriver = self.parent.webdriver
 
     def element(self, element):
-        self.logger.info("click " + repr(element))
         return element.click()
 
 
@@ -149,14 +141,6 @@ class WebDriverSendKeysProtocolPart(SendKeysProtocolPart):
                 e.status_code != "unknown error"):
                 raise
             return element.send_element_command("POST", "value", {"value": list(keys)})
-
-
-class WebDriverActionSequenceProtocolPart(ActionSequenceProtocolPart):
-    def setup(self):
-        self.webdriver = self.parent.webdriver
-
-    def send_actions(self, actions):
-        self.webdriver.actions.perform(actions)
 
 
 class WebDriverTestDriverProtocolPart(TestDriverProtocolPart):
@@ -179,7 +163,6 @@ class WebDriverProtocol(Protocol):
                   WebDriverSelectorProtocolPart,
                   WebDriverClickProtocolPart,
                   WebDriverSendKeysProtocolPart,
-                  WebDriverActionSequenceProtocolPart,
                   WebDriverTestDriverProtocolPart]
 
     def __init__(self, executor, browser, capabilities, **kwargs):
@@ -245,12 +228,8 @@ class WebDriverRun(object):
 
         flag = self.result_flag.wait(timeout + 2 * extra_timeout)
         if self.result is None:
-            if flag:
-                # flag is True unless we timeout; this *shouldn't* happen, but
-                # it can if self._run fails to set self.result due to raising
-                self.result = False, ("INTERNAL-ERROR", "self._run didn't set a result")
-            else:
-                self.result = False, ("EXTERNAL-TIMEOUT", None)
+            assert not flag
+            self.result = False, ("EXTERNAL-TIMEOUT", None)
 
         return self.result
 
@@ -268,11 +247,11 @@ class WebDriverRun(object):
                 # workaround for https://bugs.chromium.org/p/chromedriver/issues/detail?id=2001
                 self.result = False, ("EXTERNAL-TIMEOUT", None)
             else:
-                message = str(getattr(e, "message", ""))
+                message = getattr(e, "message", "")
                 if message:
                     message += "\n"
                 message += traceback.format_exc(e)
-                self.result = False, ("INTERNAL-ERROR", message)
+                self.result = False, ("ERROR", message)
         finally:
             self.result_flag.set()
 
@@ -324,12 +303,11 @@ class WebDriverTestharnessExecutor(TestharnessExecutor):
 
         parent_window = protocol.testharness.close_old_windows()
         # Now start the test harness
-        protocol.base.execute_script(self.script % format_map, async=True)
+        protocol.base.execute_script(self.script % format_map)
         test_window = protocol.testharness.get_test_window(self.window_id, parent_window)
 
         handler = CallbackHandler(self.logger, protocol, test_window)
         while True:
-            self.protocol.base.set_window(test_window)
             result = protocol.base.execute_script(
                 self.script_resume % format_map, async=True)
             done, rv = handler(result)

@@ -7,13 +7,13 @@
 
 use cssparser::Parser;
 use parser::{Parse, ParserContext};
-use std::fmt::{self, Write};
 use std::{mem, usize};
+use std::fmt::{self, Write};
 use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
+use values::{CSSFloat, CustomIdent};
 use values::computed::{Context, ToComputedValue};
 use values::specified;
 use values::specified::grid::parse_line_names;
-use values::{CSSFloat, CustomIdent};
 
 /// A `<grid-line>` type.
 ///
@@ -120,9 +120,7 @@ impl Parse for GridLine<specified::Integer> {
                 if val_before_span || grid_line.ident.is_some() {
                     return Err(location.new_custom_error(StyleParseErrorKind::UnspecifiedError));
                 }
-                // NOTE(emilio): `span` is consumed above, so we only need to
-                // reject `auto`.
-                grid_line.ident = Some(CustomIdent::from_ident(location, &name, &["auto"])?);
+                grid_line.ident = Some(CustomIdent::from_ident(location, &name, &[])?);
             } else {
                 break;
             }

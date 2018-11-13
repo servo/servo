@@ -471,20 +471,6 @@ impl NonCustomPropertyId {
         MAP[self.0]
     }
 
-    /// Returns whether this property is transitionable.
-    #[inline]
-    pub fn is_transitionable(self) -> bool {
-        ${static_non_custom_property_id_set("TRANSITIONABLE", lambda p: p.transitionable)}
-        TRANSITIONABLE.contains(self)
-    }
-
-    /// Returns whether this property is animatable.
-    #[inline]
-    pub fn is_animatable(self) -> bool {
-        ${static_non_custom_property_id_set("ANIMATABLE", lambda p: p.animatable)}
-        ANIMATABLE.contains(self)
-    }
-
     #[inline]
     fn enabled_for_all_content(self) -> bool {
         ${static_non_custom_property_id_set(
@@ -772,41 +758,6 @@ impl<'a> Iterator for LonghandIdSetIterator<'a> {
 }
 
 impl LonghandIdSet {
-    #[inline]
-    fn reset() -> &'static Self {
-        ${static_longhand_id_set("RESET", lambda p: not p.style_struct.inherited)}
-        &RESET
-    }
-
-    #[inline]
-    fn animatable() -> &'static Self {
-        ${static_longhand_id_set("ANIMATABLE", lambda p: p.animatable)}
-        &ANIMATABLE
-    }
-
-    #[inline]
-    fn discrete_animatable() -> &'static Self {
-        ${static_longhand_id_set("DISCRETE_ANIMATABLE", lambda p: p.animation_value_type == "discrete")}
-        &DISCRETE_ANIMATABLE
-    }
-
-    #[inline]
-    fn logical() -> &'static Self {
-        ${static_longhand_id_set("LOGICAL", lambda p: p.logical)}
-        &LOGICAL
-    }
-
-    /// Returns the set of longhands that are ignored when document colors are
-    /// disabled.
-    #[inline]
-    pub fn ignored_when_colors_disabled() -> &'static Self {
-        ${static_longhand_id_set(
-            "IGNORED_WHEN_COLORS_DISABLED",
-            lambda p: p.ignored_when_colors_disabled
-        )}
-        &IGNORED_WHEN_COLORS_DISABLED
-    }
-
     /// Iterate over the current longhand id set.
     pub fn iter(&self) -> LonghandIdSetIterator {
         LonghandIdSetIterator { longhands: self, cur: 0, }
@@ -833,14 +784,6 @@ impl LonghandIdSet {
         false
     }
 
-    /// Remove all the given properties from the set.
-    #[inline]
-    pub fn remove_all(&mut self, other: &Self) {
-        for (self_cell, other_cell) in self.storage.iter_mut().zip(other.storage.iter()) {
-            *self_cell &= !*other_cell;
-        }
-    }
-
     /// Create an empty set
     #[inline]
     pub fn new() -> LonghandIdSet {
@@ -857,7 +800,8 @@ impl LonghandIdSet {
     /// Return whether this set contains any reset longhand.
     #[inline]
     pub fn contains_any_reset(&self) -> bool {
-        self.contains_any(Self::reset())
+        ${static_longhand_id_set("RESET", lambda p: not p.style_struct.inherited)}
+        self.contains_any(&RESET)
     }
 
     /// Add the given property to the set
@@ -1017,8 +961,9 @@ impl LonghandId {
 
     /// Returns whether the longhand property is inherited by default.
     #[inline]
-    pub fn inherited(self) -> bool {
-        !LonghandIdSet::reset().contains(self)
+    pub fn inherited(&self) -> bool {
+        ${static_longhand_id_set("INHERITED", lambda p: p.style_struct.inherited)}
+        INHERITED.contains(*self)
     }
 
     fn shorthands(&self) -> NonCustomPropertyIterator<ShorthandId> {
@@ -1089,13 +1034,15 @@ impl LonghandId {
     /// Returns whether this property is animatable.
     #[inline]
     pub fn is_animatable(self) -> bool {
-        LonghandIdSet::animatable().contains(self)
+        ${static_longhand_id_set("ANIMATABLE", lambda p: p.animatable)}
+        ANIMATABLE.contains(self)
     }
 
     /// Returns whether this property is animatable in a discrete way.
     #[inline]
     pub fn is_discrete_animatable(self) -> bool {
-        LonghandIdSet::discrete_animatable().contains(self)
+        ${static_longhand_id_set("DISCRETE_ANIMATABLE", lambda p: p.animation_value_type == "discrete")}
+        DISCRETE_ANIMATABLE.contains(self)
     }
 
     /// Converts from a LonghandId to an adequate nsCSSPropertyID.
@@ -1118,8 +1065,9 @@ impl LonghandId {
 
     /// Return whether this property is logical.
     #[inline]
-    pub fn is_logical(self) -> bool {
-        LonghandIdSet::logical().contains(self)
+    pub fn is_logical(&self) -> bool {
+        ${static_longhand_id_set("LOGICAL", lambda p: p.logical)}
+        LOGICAL.contains(*self)
     }
 
     /// If this is a logical property, return the corresponding physical one in
@@ -1209,7 +1157,12 @@ impl LonghandId {
     /// colors are disabled.
     #[inline]
     fn ignored_when_document_colors_disabled(self) -> bool {
-        LonghandIdSet::ignored_when_colors_disabled().contains(self)
+        ${static_longhand_id_set(
+            "IGNORED_WHEN_COLORS_DISABLED",
+            lambda p: p.ignored_when_colors_disabled
+        )}
+
+        IGNORED_WHEN_COLORS_DISABLED.contains(self)
     }
 
     /// The computed value of some properties depends on the (sometimes
@@ -1467,25 +1420,6 @@ impl ShorthandId {
         }
     }
 
-    /// Returns the order in which this property appears relative to other
-    /// shorthands in idl-name-sorting order.
-    #[inline]
-    pub fn idl_name_sort_order(self) -> u32 {
-        <%
-            from data import to_idl_name
-            ordered = {}
-            sorted_shorthands = sorted(data.shorthands, key=lambda p: to_idl_name(p.ident))
-            for order, shorthand in enumerate(sorted_shorthands):
-                ordered[shorthand.ident] = order
-        %>
-        static IDL_NAME_SORT_ORDER: [u32; ${len(data.shorthands)}] = [
-            % for property in data.shorthands:
-            ${ordered[property.ident]},
-            % endfor
-        ];
-        IDL_NAME_SORT_ORDER[self as usize]
-    }
-
     fn parse_into<'i, 't>(
         &self,
         declarations: &mut SourcePropertyDeclaration,
@@ -1536,14 +1470,10 @@ impl UnparsedValue {
         longhand_id: LonghandId,
         custom_properties: Option<<&Arc<::custom_properties::CustomPropertiesMap>>,
         quirks_mode: QuirksMode,
-        environment: &::custom_properties::CssEnvironment,
     ) -> PropertyDeclaration {
-        ::custom_properties::substitute(
-            &self.css,
-            self.first_token_type,
-            custom_properties,
-            environment,
-        ).ok().and_then(|css| {
+        ::custom_properties::substitute(&self.css, self.first_token_type, custom_properties)
+        .ok()
+        .and_then(|css| {
             // As of this writing, only the base URL is used for property
             // values.
             //
@@ -1741,30 +1671,53 @@ impl PropertyId {
     ///
     /// Returns Err(()) for unknown non-custom properties.
     fn parse_unchecked(property_name: &str) -> Result<Self, ()> {
+        // FIXME(https://github.com/rust-lang/rust/issues/33156): remove this
+        // enum and use PropertyId when stable Rust allows destructors in
+        // statics.
+        //
+        // ShorthandAlias is not used in the Servo build.
+        // That's why we need to allow dead_code.
+        #[allow(dead_code)]
+        pub enum StaticId {
+            Longhand(LonghandId),
+            Shorthand(ShorthandId),
+            LonghandAlias(LonghandId, AliasId),
+            ShorthandAlias(ShorthandId, AliasId),
+        }
         ascii_case_insensitive_phf_map! {
-            property_id -> PropertyId = {
+            static_id -> StaticId = {
                 % for (kind, properties) in [("Longhand", data.longhands), ("Shorthand", data.shorthands)]:
-                % for property in properties:
-                "${property.name}" => PropertyId::${kind}(${kind}Id::${property.camel_case}),
-                % for alias in property.alias:
-                "${alias.name}" => {
-                    PropertyId::${kind}Alias(
-                        ${kind}Id::${property.camel_case},
-                        AliasId::${alias.camel_case},
-                    )
-                },
-                % endfor
-                % endfor
+                    % for property in properties:
+                        "${property.name}" => StaticId::${kind}(${kind}Id::${property.camel_case}),
+                        % for alias in property.alias:
+                            "${alias.name}" => {
+                                StaticId::${kind}Alias(${kind}Id::${property.camel_case},
+                                                       AliasId::${alias.camel_case})
+                            },
+                        % endfor
+                    % endfor
                 % endfor
             }
         }
 
-        if let Some(id) = property_id(property_name) {
-            return Ok(id.clone())
-        }
-
-        let name = ::custom_properties::parse_name(property_name)?;
-        Ok(PropertyId::Custom(::custom_properties::Name::from(name)))
+        Ok(match static_id(property_name) {
+            Some(&StaticId::Longhand(id)) => {
+                PropertyId::Longhand(id)
+            },
+            Some(&StaticId::Shorthand(id)) => {
+                PropertyId::Shorthand(id)
+            },
+            Some(&StaticId::LonghandAlias(id, alias)) => {
+                PropertyId::LonghandAlias(id, alias)
+            },
+            Some(&StaticId::ShorthandAlias(id, alias)) => {
+                PropertyId::ShorthandAlias(id, alias)
+            },
+            None => {
+                let name = ::custom_properties::parse_name(property_name)?;
+                PropertyId::Custom(::custom_properties::Name::from(name))
+            },
+        })
     }
 
     /// Parses a property name, and returns an error if it's unknown or isn't
@@ -2218,33 +2171,34 @@ impl PropertyDeclaration {
                         WideKeywordDeclaration { id, keyword },
                     )
                 }).or_else(|()| {
-                    input.look_for_var_or_env_functions();
+                    input.look_for_var_functions();
                     input.parse_entirely(|input| id.parse_value(context, input))
                     .or_else(|err| {
                         while let Ok(_) = input.next() {}  // Look for var() after the error.
-                        if !input.seen_var_or_env_functions() {
-                            return Err(StyleParseErrorKind::new_invalid(
-                                non_custom_id.unwrap().name(),
-                                err,
-                            ));
-                        }
-                        input.reset(&start);
-                        let (first_token_type, css) =
-                            ::custom_properties::parse_non_custom_with_var(input).map_err(|e| {
-                                StyleParseErrorKind::new_invalid(
-                                    non_custom_id.unwrap().name(),
-                                    e,
-                                )
-                            })?;
-                        Ok(PropertyDeclaration::WithVariables(VariableDeclaration {
-                            id,
-                            value: Arc::new(UnparsedValue {
+                        if input.seen_var_functions() {
+                            input.reset(&start);
+                            let (first_token_type, css) =
+                                ::custom_properties::parse_non_custom_with_var(input).map_err(|e| {
+                                    StyleParseErrorKind::new_invalid(
+                                        non_custom_id.unwrap().name(),
+                                        e,
+                                    )
+                                })?;
+                            Ok(PropertyDeclaration::WithVariables(VariableDeclaration {
+                                id,
+                                value: Arc::new(UnparsedValue {
                                 css: css.into_owned(),
                                 first_token_type: first_token_type,
                                 url_data: context.url_data.clone(),
                                 from_shorthand: None,
-                            }),
-                        }))
+                                }),
+                            }))
+                        } else {
+                            Err(StyleParseErrorKind::new_invalid(
+                                non_custom_id.unwrap().name(),
+                                err,
+                            ))
+                        }
                     })
                 }).map(|declaration| {
                     declarations.push(declaration)
@@ -2267,13 +2221,12 @@ impl PropertyDeclaration {
                         }
                     }
                 } else {
-                    input.look_for_var_or_env_functions();
-                    // Not using parse_entirely here: each
-                    // ${shorthand.ident}::parse_into function needs to do so
-                    // *before* pushing to `declarations`.
+                    input.look_for_var_functions();
+                    // Not using parse_entirely here: each ${shorthand.ident}::parse_into function
+                    // needs to do so *before* pushing to `declarations`.
                     id.parse_into(declarations, context, input).or_else(|err| {
                         while let Ok(_) = input.next() {}  // Look for var() after the error.
-                        if !input.seen_var_or_env_functions() {
+                        if !input.seen_var_functions() {
                             return Err(StyleParseErrorKind::new_invalid(
                                 non_custom_id.unwrap().name(),
                                 err,
@@ -3184,8 +3137,7 @@ pub enum StyleStructRef<'a, T: 'static> {
 }
 
 impl<'a, T: 'a> StyleStructRef<'a, T>
-where
-    T: Clone,
+    where T: Clone,
 {
     /// Ensure a mutable reference of this value exists, either cloning the
     /// borrowed value, or returning the owned one.
@@ -3197,22 +3149,6 @@ where
         match *self {
             StyleStructRef::Owned(ref mut v) => v,
             StyleStructRef::Borrowed(..) => unreachable!(),
-            StyleStructRef::Vacated => panic!("Accessed vacated style struct")
-        }
-    }
-
-    /// Whether this is pointer-equal to the struct we're going to copy the
-    /// value from.
-    ///
-    /// This is used to avoid allocations when people write stuff like `font:
-    /// inherit` or such `all: initial`.
-    #[inline]
-    pub fn ptr_eq(&self, struct_to_copy_from: &T) -> bool {
-        match *self {
-            StyleStructRef::Owned(..) => false,
-            StyleStructRef::Borrowed(arc) => {
-                &**arc as *const T == struct_to_copy_from as *const T
-            }
             StyleStructRef::Vacated => panic!("Accessed vacated style struct")
         }
     }
@@ -3345,6 +3281,15 @@ impl<'a> StyleBuilder<'a> {
         let reset_style = device.default_computed_values();
         let inherited_style = parent_style.unwrap_or(reset_style);
         let inherited_style_ignoring_first_line = parent_style_ignoring_first_line.unwrap_or(reset_style);
+        // FIXME(bz): inherits_all seems like a fundamentally broken idea.  I'm
+        // 99% sure it should give incorrect behavior for table anonymous box
+        // backgrounds, for example.  This code doesn't attempt to make it play
+        // nice with inherited_style_ignoring_first_line.
+        let reset_style = if pseudo.map_or(false, |p| p.inherits_all()) {
+            inherited_style
+        } else {
+            reset_style
+        };
 
         let flags = inherited_style.flags.inherited();
 
@@ -3443,10 +3388,6 @@ impl<'a> StyleBuilder<'a> {
         self.flags.insert(ComputedValueFlags::INHERITS_DISPLAY);
         % endif
 
-        if self.${property.style_struct.ident}.ptr_eq(inherited_struct) {
-            return;
-        }
-
         self.${property.style_struct.ident}.mutate()
             .copy_${property.ident}_from(
                 inherited_struct,
@@ -3466,10 +3407,10 @@ impl<'a> StyleBuilder<'a> {
         self.modified_reset = true;
         % endif
 
-        if self.${property.style_struct.ident}.ptr_eq(reset_struct) {
-            return;
-        }
-
+        // TODO(emilio): There's a maybe-worth it optimization here: We should
+        // avoid allocating a new reset struct if `reset_struct` and our struct
+        // is the same pointer. Would remove a bunch of stupid allocations if
+        // you did something like `* { all: initial }` or what not.
         self.${property.style_struct.ident}.mutate()
             .reset_${property.ident}(
                 reset_struct,

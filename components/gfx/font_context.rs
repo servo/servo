@@ -3,15 +3,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use app_units::Au;
-use crate::font::{
-    Font, FontDescriptor, FontFamilyDescriptor, FontGroup, FontHandleMethods, FontRef,
-};
-use crate::font_cache_thread::FontTemplateInfo;
-use crate::font_template::FontTemplateDescriptor;
-use crate::platform::font::FontHandle;
-pub use crate::platform::font_context::FontContextHandle;
 use fnv::FnvHasher;
+use font::{Font, FontDescriptor, FontFamilyDescriptor, FontGroup, FontHandleMethods, FontRef};
+use font_cache_thread::FontTemplateInfo;
+use font_template::FontTemplateDescriptor;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
+use platform::font::FontHandle;
+pub use platform::font_context::FontContextHandle;
 use servo_arc::Arc;
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -21,6 +19,7 @@ use std::rc::Rc;
 use std::sync::atomic::{AtomicUsize, Ordering, ATOMIC_USIZE_INIT};
 use style::computed_values::font_variant_caps::T as FontVariantCaps;
 use style::properties::style_structs::Font as FontStyleStruct;
+use webrender_api;
 
 static SMALL_CAPS_SCALE_FACTOR: f32 = 0.8; // Matches FireFox (see gfxFont.h)
 
@@ -134,8 +133,7 @@ impl<S: FontSource> FontContext<S> {
                     .and_then(|template_info| {
                         self.create_font(template_info, font_descriptor.to_owned())
                             .ok()
-                    })
-                    .map(|font| Rc::new(RefCell::new(font)));
+                    }).map(|font| Rc::new(RefCell::new(font)));
 
                 self.font_cache.insert(cache_key, font.clone());
                 font

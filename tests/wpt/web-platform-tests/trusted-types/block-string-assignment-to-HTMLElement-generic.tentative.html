@@ -5,13 +5,13 @@
   <script src="/resources/testharnessreport.js"></script>
   <script src="support/helper.sub.js"></script>
 
-  <meta http-equiv="Content-Security-Policy" content="trusted-types *">
+  <meta http-equiv="Content-Security-Policy" content="trusted-types">
 </head>
 <body>
 <script>
   var testnb = 0;
   // TrustedURL Assignments
-  const URLTestCases = [
+  let testCases = [
     [ 'a', 'href' ],
     [ 'area', 'href' ],
     [ 'base', 'href' ],
@@ -27,7 +27,7 @@
     [ 'track', 'src' ]
   ];
 
-  URLTestCases.forEach(c => {
+  testCases.forEach(c => {
     test(t => {
       assert_element_accepts_trusted_url(window, ++testnb, t, c[0], c[1], RESULTS.URL);
       assert_throws_no_trusted_type(c[0], c[1], 'A string');
@@ -36,13 +36,13 @@
   });
 
   // TrustedScriptURL Assignments
-  const scriptURLTestCases = [
+  let scriptTestCases = [
     [ 'embed', 'src' ],
     [ 'script', 'src' ]
   ];
 
   testnb = 0;
-  scriptURLTestCases.forEach(c => {
+  scriptTestCases.forEach(c => {
     test(t => {
       assert_element_accepts_trusted_script_url(window, ++testnb, t, c[0], c[1], RESULTS.SCRIPTURL);
       assert_throws_no_trusted_type(c[0], c[1], 'A string');
@@ -51,7 +51,7 @@
   });
 
   // TrustedHTML Assignments
-  const HTMLTestCases = [
+  let HTMLTestCases = [
     [ 'div', 'innerHTML' ],
     [ 'iframe', 'srcdoc' ]
   ];
@@ -63,30 +63,5 @@
       assert_throws_no_trusted_type(c[0], c[1], 'A string');
       assert_throws_no_trusted_type(c[0], c[1], null);
     }, c[0] + "." + c[1] + " accepts only TrustedHTML");
-  });
-
-  // After default policy creation string and null assignments implicitly call createHTML
-  let p = window.TrustedTypes.createPolicy("default", { createURL: createURLJS, createScriptURL: createScriptURLJS, createHTML: createHTMLJS }, true);
-
-  URLTestCases.forEach(c => {
-    test(t => {
-      assert_element_accepts_trusted_type(c[0], c[1], INPUTS.URL, RESULTS.URL);
-      assert_element_accepts_trusted_type(c[0], c[1], null, "" + window.location);
-    }, c[0] + "." + c[1] + " accepts string and null after default policy was created");
-  });
-
-  scriptURLTestCases.forEach(c => {
-    test(t => {
-      assert_element_accepts_trusted_type(c[0], c[1], INPUTS.SCRIPTURL, RESULTS.SCRIPTURL);
-      assert_element_accepts_trusted_type(c[0], c[1], null, "" + window.location);
-    }, c[0] + "." + c[1] + " accepts string and null after default policy was created");
-  });
-
-
-  HTMLTestCases.forEach(c => {
-    test(t => {
-      assert_element_accepts_trusted_type(c[0], c[1], INPUTS.HTML, RESULTS.HTML);
-      assert_element_accepts_trusted_type(c[0], c[1], null, "null");
-    }, c[0] + "." + c[1] + " accepts string and null after default policy was created");
   });
 </script>

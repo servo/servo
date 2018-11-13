@@ -14,19 +14,16 @@ use std::fmt::{self, Write};
 use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
 use values::computed::Percentage;
 use values::generics::basic_shape as generic;
-use values::generics::basic_shape::{GeometryBox, Path, PolygonCoord};
+use values::generics::basic_shape::{FillRule, GeometryBox, Path, PolygonCoord};
 use values::generics::basic_shape::{ShapeBox, ShapeSource};
 use values::generics::rect::Rect;
+use values::specified::LengthOrPercentage;
+use values::specified::SVGPathData;
 use values::specified::border::BorderRadius;
 use values::specified::image::Image;
 use values::specified::position::{HorizontalPosition, Position, PositionComponent};
 use values::specified::position::{Side, VerticalPosition};
 use values::specified::url::SpecifiedUrl;
-use values::specified::LengthOrPercentage;
-use values::specified::SVGPathData;
-
-/// A specified alias for FillRule.
-pub use values::generics::basic_shape::FillRule;
 
 /// A specified clipping shape.
 pub type ClippingShape = generic::ClippingShape<BasicShape, SpecifiedUrl>;
@@ -275,8 +272,7 @@ impl Ellipse {
                     ShapeRadius::parse(context, i)?,
                     ShapeRadius::parse(context, i)?,
                 ))
-            })
-            .unwrap_or_default();
+            }).unwrap_or_default();
         let position = if input.try(|i| i.expect_ident_matching("at")).is_ok() {
             Position::parse(context, input)?
         } else {
@@ -423,8 +419,7 @@ impl Polygon {
                 let fill = FillRule::parse(i)?;
                 i.expect_comma()?; // only eat the comma if there is something before it
                 Ok(fill)
-            })
-            .unwrap_or_default();
+            }).unwrap_or_default();
 
         let buf = input.parse_comma_separated(|i| {
             Ok(PolygonCoord(
@@ -461,8 +456,7 @@ impl Path {
                 let fill = FillRule::parse(i)?;
                 i.expect_comma()?;
                 Ok(fill)
-            })
-            .unwrap_or_default();
+            }).unwrap_or_default();
         let path = SVGPathData::parse(context, input)?;
         Ok(Path { fill, path })
     }

@@ -10,17 +10,17 @@ use cssparser::{Parser, Token};
 use parser::{Parse, ParserContext};
 use selectors::parser::SelectorParseErrorKind;
 use style_traits::{ParseError, StyleParseErrorKind};
+use values::CustomIdent;
+#[cfg(feature = "gecko")]
+use values::generics::CounterStyleOrNone;
 use values::generics::counters as generics;
 use values::generics::counters::CounterIncrement as GenericCounterIncrement;
 use values::generics::counters::CounterPair;
 use values::generics::counters::CounterReset as GenericCounterReset;
 #[cfg(feature = "gecko")]
-use values::generics::CounterStyleOrNone;
-use values::specified::url::SpecifiedImageUrl;
-#[cfg(feature = "gecko")]
 use values::specified::Attr;
 use values::specified::Integer;
-use values::CustomIdent;
+use values::specified::url::SpecifiedImageUrl;
 
 /// A specified value for the `counter-increment` property.
 pub type CounterIncrement = GenericCounterIncrement<Integer>;
@@ -93,8 +93,7 @@ impl Content {
             .try(|input| {
                 input.expect_comma()?;
                 ListStyleType::parse(input)
-            })
-            .unwrap_or(ListStyleType::Decimal)
+            }).unwrap_or(ListStyleType::Decimal)
     }
 
     #[cfg(feature = "gecko")]
@@ -103,8 +102,7 @@ impl Content {
             .try(|input| {
                 input.expect_comma()?;
                 CounterStyleOrNone::parse(context, input)
-            })
-            .unwrap_or(CounterStyleOrNone::decimal())
+            }).unwrap_or(CounterStyleOrNone::decimal())
     }
 }
 

@@ -2,18 +2,18 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use servo::compositing::windowing::{
-    AnimationState, EmbedderCoordinates, MouseWindowEvent, WindowEvent, WindowMethods,
-};
-use servo::embedder_traits::resources::{self, Resource};
+use serde_json;
+use servo::{self, gl, webrender_api, BrowserId, Servo};
+use servo::compositing::windowing::{AnimationState, EmbedderCoordinates, MouseWindowEvent, WindowEvent, WindowMethods};
 use servo::embedder_traits::EmbedderMsg;
-use servo::euclid::{TypedPoint2D, TypedScale, TypedSize2D, TypedVector2D};
+use servo::embedder_traits::resources::{self, Resource};
+use servo::euclid::{Length, TypedPoint2D, TypedScale, TypedSize2D, TypedVector2D};
 use servo::msg::constellation_msg::TraversalDirection;
 use servo::script_traits::{MouseButton, TouchEventType};
 use servo::servo_config::opts;
-use servo::servo_config::prefs::{PrefValue, PREFS};
+use servo::servo_config::prefs::PREFS;
 use servo::servo_url::ServoUrl;
-use servo::{self, gl, webrender_api, BrowserId, Servo};
+use servo::style_traits::DevicePixel;
 use std::cell::{Cell, RefCell};
 use std::mem;
 use std::path::PathBuf;
@@ -27,15 +27,6 @@ thread_local! {
 /// It will be called to notify embedder that some events are available,
 /// and that perform_updates need to be called
 pub use servo::embedder_traits::EventLoopWaker;
-
-pub struct InitOptions {
-    pub args: Option<String>,
-    pub url: Option<String>,
-    pub width: u32,
-    pub height: u32,
-    pub density: f32,
-    pub enable_subpixel_text_antialiasing: bool,
-}
 
 /// Delegate resource file reading to the embedder.
 pub trait ReadFileTrait {
@@ -77,8 +68,6 @@ pub trait HostTrait {
     /// has events for Servo, or Servo has woken up the embedder event loop via
     /// EventLoopWaker).
     fn on_animating_changed(&self, animating: bool);
-    /// Servo finished shutting down.
-    fn on_shutdown_complete(&self);
 }
 
 pub struct ServoGlue {
@@ -104,38 +93,40 @@ pub fn servo_version() -> String {
 /// Initialize Servo. At that point, we need a valid GL context.
 /// In the future, this will be done in multiple steps.
 pub fn init(
-    init_opts: InitOptions,
-    gl: Rc<dyn gl::Gl>,
-    waker: Box<dyn EventLoopWaker>,
-    readfile: Box<dyn ReadFileTrait + Send + Sync>,
-    callbacks: Box<dyn HostTrait>,
+    gl: Rc<gl::Gl>,
+    argsline: String,
+    embedder_url: Option<String>,
+    waker: Box<EventLoopWaker>,
+    readfile: Box<ReadFileTrait + Send + Sync>,
+    callbacks: Box<HostTrait>,
+    width: u32,
+    height: u32,
+    density: f32,
 ) -> Result<(), &'static str> {
     resources::set(Box::new(ResourceReader(readfile)));
 
-    if let Some(args) = init_opts.args {
-        let mut args: Vec<String> = serde_json::from_str(&args)
-            .map_err(|_| "Invalid arguments. Servo arguments must be formatted as a JSON array")?;
+    if !argsline.is_empty() {
+        let mut args: Vec<String> = serde_json::from_str(&argsline).map_err(|_| {
+            "Invalid arguments. Servo arguments must be formatted as a JSON array"
+        })?;
         // opts::from_cmdline_args expects the first argument to be the binary name.
         args.insert(0, "servo".to_string());
-
-        let pref = PrefValue::Boolean(init_opts.enable_subpixel_text_antialiasing);
-        PREFS.set("gfx.subpixel-text-antialiasing.enabled", pref);
         opts::from_cmdline_args(&args);
     }
 
-    let embedder_url = init_opts.url.as_ref().and_then(|s| ServoUrl::parse(s).ok());
+    let embedder_url = embedder_url.as_ref().and_then(|s| {
+        ServoUrl::parse(s).ok()
+    });
     let cmdline_url = opts::get().url.clone();
-    let pref_url = PREFS
-        .get("shell.homepage")
-        .as_string()
-        .and_then(|s| ServoUrl::parse(s).ok());
+    let pref_url = PREFS.get("shell.homepage").as_string().and_then(|s| {
+        ServoUrl::parse(s).ok()
+    });
     let blank_url = ServoUrl::parse("about:blank").ok();
 
     let url = embedder_url
         .or(cmdline_url)
         .or(pref_url)
-        .or(blank_url)
-        .unwrap();
+        .or(blank_url).unwrap();
 
     gl.clear_color(1.0, 1.0, 1.0, 1.0);
     gl.clear(gl::COLOR_BUFFER_BIT);
@@ -144,9 +135,9 @@ pub fn init(
     let callbacks = Rc::new(ServoCallbacks {
         gl: gl.clone(),
         host_callbacks: callbacks,
-        width: Cell::new(init_opts.width),
-        height: Cell::new(init_opts.height),
-        density: init_opts.density,
+        width: Cell::new(width),
+        height: Cell::new(height),
+        density,
         waker,
     });
 
@@ -170,29 +161,14 @@ pub fn init(
     Ok(())
 }
 
-pub fn deinit() {
-    SERVO.with(|s| s.replace(None).unwrap().deinit());
-}
-
 impl ServoGlue {
     fn get_browser_id(&self) -> Result<BrowserId, &'static str> {
         let browser_id = match self.browser_id {
             Some(id) => id,
-            None => return Err("No BrowserId set yet."),
+            None => return Err("No BrowserId set yet.")
         };
         Ok(browser_id)
     }
-
-    /// Request shutdown. Will call on_shutdown_complete.
-    pub fn request_shutdown(&mut self) -> Result<(), &'static str> {
-        self.process_event(WindowEvent::Quit)
-    }
-
-    /// Call after on_shutdown_complete
-    pub fn deinit(self) {
-        self.servo.deinit();
-    }
-
     /// This is the Servo heartbeat. This needs to be called
     /// everytime wakeup is called or when embedder wants Servo
     /// to act on its pending events.
@@ -415,26 +391,23 @@ impl ServoGlue {
                     let _ = self.browsers.pop();
                     if let Some(prev_browser_id) = self.browsers.last() {
                         self.browser_id = Some(*prev_browser_id);
-                        self.events
-                            .push(WindowEvent::SelectBrowser(*prev_browser_id));
+                        self.events.push(WindowEvent::SelectBrowser(*prev_browser_id));
                     } else {
                         self.events.push(WindowEvent::Quit);
                     }
-                },
-                EmbedderMsg::Shutdown => {
-                    self.callbacks.host_callbacks.on_shutdown_complete();
                 },
                 EmbedderMsg::Status(..) |
                 EmbedderMsg::SelectFiles(..) |
                 EmbedderMsg::MoveTo(..) |
                 EmbedderMsg::ResizeTo(..) |
-                EmbedderMsg::Keyboard(..) |
+                EmbedderMsg::KeyEvent(..) |
                 EmbedderMsg::SetCursor(..) |
                 EmbedderMsg::NewFavicon(..) |
                 EmbedderMsg::HeadParsed |
                 EmbedderMsg::SetFullscreenState(..) |
                 EmbedderMsg::ShowIME(..) |
                 EmbedderMsg::HideIME |
+                EmbedderMsg::Shutdown |
                 EmbedderMsg::Panic(..) => {},
             }
         }
@@ -443,16 +416,20 @@ impl ServoGlue {
 }
 
 struct ServoCallbacks {
-    waker: Box<dyn EventLoopWaker>,
-    gl: Rc<dyn gl::Gl>,
-    host_callbacks: Box<dyn HostTrait>,
+    waker: Box<EventLoopWaker>,
+    gl: Rc<gl::Gl>,
+    host_callbacks: Box<HostTrait>,
     width: Cell<u32>,
     height: Cell<u32>,
     density: f32,
 }
 
 impl WindowMethods for ServoCallbacks {
-    fn prepare_for_composite(&self) -> bool {
+    fn prepare_for_composite(
+        &self,
+        _width: Length<u32, DevicePixel>,
+        _height: Length<u32, DevicePixel>,
+    ) -> bool {
         debug!("WindowMethods::prepare_for_composite");
         self.host_callbacks.make_current();
         true
@@ -463,20 +440,19 @@ impl WindowMethods for ServoCallbacks {
         self.host_callbacks.flush();
     }
 
-    fn create_event_loop_waker(&self) -> Box<dyn EventLoopWaker> {
+    fn create_event_loop_waker(&self) -> Box<EventLoopWaker> {
         debug!("WindowMethods::create_event_loop_waker");
         self.waker.clone()
     }
 
-    fn gl(&self) -> Rc<dyn gl::Gl> {
+    fn gl(&self) -> Rc<gl::Gl> {
         debug!("WindowMethods::gl");
         self.gl.clone()
     }
 
     fn set_animation_state(&self, state: AnimationState) {
         debug!("WindowMethods::set_animation_state");
-        self.host_callbacks
-            .on_animating_changed(state == AnimationState::Animating);
+        self.host_callbacks.on_animating_changed(state == AnimationState::Animating);
     }
 
     fn get_coordinates(&self) -> EmbedderCoordinates {
@@ -492,7 +468,7 @@ impl WindowMethods for ServoCallbacks {
     }
 }
 
-struct ResourceReader(Box<dyn ReadFileTrait + Send + Sync>);
+struct ResourceReader(Box<ReadFileTrait + Send + Sync>);
 
 impl resources::ResourceReaderMethods for ResourceReader {
     fn read(&self, file: Resource) -> Vec<u8> {

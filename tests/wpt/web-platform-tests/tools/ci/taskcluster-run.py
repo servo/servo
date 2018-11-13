@@ -31,12 +31,10 @@ def find_wptreport(args):
     return parser.parse_known_args(args)[0].log_wptreport
 
 
-def gzip_file(filename, delete_original=True):
+def gzip_file(filename):
     with open(filename, 'rb') as f_in:
         with gzip.open('%s.gz' % filename, 'wb') as f_out:
             shutil.copyfileobj(f_in, f_out)
-    if delete_original:
-        os.unlink(filename)
 
 
 def main(product, commit_range, wpt_args):
@@ -69,13 +67,13 @@ def main(product, commit_range, wpt_args):
         logger.info("Running all tests")
 
     wpt_args += [
+        "--log-tbpl=../artifacts/log_tbpl.log",
         "--log-tbpl-level=info",
-        "--log-tbpl=-",
+        "--log-mach=-",
         "-y",
         "--no-pause",
         "--no-restart-on-unexpected",
-        "--install-fonts",
-        "--no-headless"
+        "--install-fonts"
     ]
     wpt_args += browser_specific_args.get(product, [])
 

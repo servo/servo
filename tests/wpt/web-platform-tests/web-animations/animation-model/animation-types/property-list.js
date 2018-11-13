@@ -196,7 +196,7 @@ const gCSSProperties = {
   'border-image-repeat': {
     // https://drafts.csswg.org/css-backgrounds-3/#border-image-repeat
     types: [
-      { type: 'discrete', options: [ [ 'stretch repeat', 'round space' ] ] }
+      { type: 'discrete', options: [ [ 'stretch stretch', 'repeat repeat' ] ] }
     ]
   },
   'border-image-slice': {

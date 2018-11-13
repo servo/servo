@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <title>Test Picture-in-Picture window</title>
-<script src="/common/media.js"></script>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/resources/testdriver.js"></script>
@@ -14,9 +13,6 @@ promise_test(async t => {
   .then(pipWindow => {
     assert_not_equals(pipWindow.width, 0);
     assert_not_equals(pipWindow.height, 0);
-    const videoAspectRatio = video.videoWidth / video.videoHeight;
-    const pipWindowAspectRatio = pipWindow.width / pipWindow.height;
-    assert_approx_equals(videoAspectRatio, pipWindowAspectRatio, 0.01);
   });
 }, 'Picture-in-Picture window dimensions are set after entering Picture-in-Picture');
 

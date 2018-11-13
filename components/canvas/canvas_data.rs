@@ -3,21 +3,20 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use azure::azure::AzFloat;
-use azure::azure_hl::SurfacePattern;
 use azure::azure_hl::{AntialiasMode, CapStyle, CompositionOp, JoinStyle};
-use azure::azure_hl::{
-    BackendType, DrawOptions, DrawTarget, Pattern, StrokeOptions, SurfaceFormat,
-};
+use azure::azure_hl::{BackendType, DrawOptions, DrawTarget, Pattern, StrokeOptions, SurfaceFormat};
 use azure::azure_hl::{Color, ColorPattern, DrawSurfaceOptions, Filter, PathBuilder};
 use azure::azure_hl::{ExtendMode, GradientStop, LinearGradientPattern, RadialGradientPattern};
+use azure::azure_hl::SurfacePattern;
 use canvas_traits::canvas::*;
 use cssparser::RGBA;
-use euclid::{Point2D, Rect, Size2D, Transform2D, Vector2D};
-use ipc_channel::ipc::IpcSender;
+use euclid::{Transform2D, Point2D, Vector2D, Rect, Size2D};
+use ipc_channel::ipc::{IpcBytesSender, IpcSender};
 use num_traits::ToPrimitive;
 use serde_bytes::ByteBuf;
 use std::mem;
 use std::sync::Arc;
+use webrender_api;
 
 pub struct CanvasData<'a> {
     drawtarget: DrawTarget,
@@ -36,10 +35,10 @@ pub struct CanvasData<'a> {
 
 impl<'a> CanvasData<'a> {
     pub fn new(
-        size: Size2D<u32>,
+        size: Size2D<i32>,
         webrender_api_sender: webrender_api::RenderApiSender,
         antialias: AntialiasMode,
-        canvas_id: CanvasId,
+        canvas_id: CanvasId
     ) -> CanvasData<'a> {
         let draw_target = CanvasData::create(size);
         let path_builder = draw_target.create_path_builder();
@@ -63,34 +62,22 @@ impl<'a> CanvasData<'a> {
         image_size: Size2D<f64>,
         dest_rect: Rect<f64>,
         source_rect: Rect<f64>,
-        smoothing_enabled: bool,
+        smoothing_enabled: bool
     ) {
         // We round up the floating pixel values to draw the pixels
         let source_rect = source_rect.ceil();
         // It discards the extra pixels (if any) that won't be painted
-        let image_data = if Rect::from_size(image_size).contains_rect(&source_rect) {
-            pixels::get_rect(&image_data, image_size.to_u32(), source_rect.to_u32()).into()
-        } else {
-            image_data.into()
-        };
+        let image_data = crop_image(image_data, image_size, source_rect);
 
         let writer = |draw_target: &DrawTarget| {
-            write_image(
-                &draw_target,
-                image_data,
-                source_rect.size,
-                dest_rect,
-                smoothing_enabled,
-                self.state.draw_options.composition,
-                self.state.draw_options.alpha,
-            );
+            write_image(&draw_target, image_data, source_rect.size, dest_rect,
+                        smoothing_enabled, self.state.draw_options.composition,
+                        self.state.draw_options.alpha);
         };
 
         if self.need_to_draw_shadow() {
-            let rect = Rect::new(
-                Point2D::new(dest_rect.origin.x as f32, dest_rect.origin.y as f32),
-                Size2D::new(dest_rect.size.width as f32, dest_rect.size.height as f32),
-            );
+            let rect = Rect::new(Point2D::new(dest_rect.origin.x as f32, dest_rect.origin.y as f32),
+                                 Size2D::new(dest_rect.size.width as f32, dest_rect.size.height as f32));
 
             self.draw_with_shadow(&rect, writer);
         } else {
@@ -111,10 +98,7 @@ impl<'a> CanvasData<'a> {
     }
 
     pub fn fill_text(&self, text: String, x: f64, y: f64, max_width: Option<f64>) {
-        error!(
-            "Unimplemented canvas2d.fillText. Values received: {}, {}, {}, {:?}.",
-            text, x, y, max_width
-        );
+        error!("Unimplemented canvas2d.fillText. Values received: {}, {}, {}, {:?}.", text, x, y, max_width);
     }
 
     pub fn fill_rect(&self, rect: &Rect<f32>) {
@@ -122,8 +106,7 @@ impl<'a> CanvasData<'a> {
             return; // Paint nothing if gradient size is zero.
         }
 
-        let draw_rect = Rect::new(
-            rect.origin,
+        let draw_rect = Rect::new(rect.origin,
             match self.state.fill_style {
                 Pattern::Surface(ref surface) => {
                     let surface_size = surface.size();
@@ -131,29 +114,21 @@ impl<'a> CanvasData<'a> {
                         (true, true) => rect.size,
                         (true, false) => Size2D::new(rect.size.width, surface_size.height as f32),
                         (false, true) => Size2D::new(surface_size.width as f32, rect.size.height),
-                        (false, false) => {
-                            Size2D::new(surface_size.width as f32, surface_size.height as f32)
-                        },
+                        (false, false) => Size2D::new(surface_size.width as f32, surface_size.height as f32),
                     }
                 },
                 _ => rect.size,
-            },
+            }
         );
 
         if self.need_to_draw_shadow() {
             self.draw_with_shadow(&draw_rect, |new_draw_target: &DrawTarget| {
-                new_draw_target.fill_rect(
-                    &draw_rect,
-                    self.state.fill_style.to_pattern_ref(),
-                    Some(&self.state.draw_options),
-                );
+                new_draw_target.fill_rect(&draw_rect, self.state.fill_style.to_pattern_ref(),
+                                          Some(&self.state.draw_options));
             });
         } else {
-            self.drawtarget.fill_rect(
-                &draw_rect,
-                self.state.fill_style.to_pattern_ref(),
-                Some(&self.state.draw_options),
-            );
+            self.drawtarget.fill_rect(&draw_rect, self.state.fill_style.to_pattern_ref(),
+                                      Some(&self.state.draw_options));
         }
     }
 
@@ -168,40 +143,27 @@ impl<'a> CanvasData<'a> {
 
         if self.need_to_draw_shadow() {
             self.draw_with_shadow(&rect, |new_draw_target: &DrawTarget| {
-                new_draw_target.stroke_rect(
-                    rect,
-                    self.state.stroke_style.to_pattern_ref(),
-                    &self.state.stroke_opts,
-                    &self.state.draw_options,
-                );
+                new_draw_target.stroke_rect(rect, self.state.stroke_style.to_pattern_ref(),
+                                            &self.state.stroke_opts, &self.state.draw_options);
             });
         } else if rect.size.width == 0. || rect.size.height == 0. {
             let cap = match self.state.stroke_opts.line_join {
                 JoinStyle::Round => CapStyle::Round,
-                _ => CapStyle::Butt,
+                _ => CapStyle::Butt
             };
 
-            let stroke_opts = StrokeOptions::new(
-                self.state.stroke_opts.line_width,
-                self.state.stroke_opts.line_join,
-                cap,
-                self.state.stroke_opts.miter_limit,
-                self.state.stroke_opts.mDashPattern,
-            );
-            self.drawtarget.stroke_line(
-                rect.origin,
-                rect.bottom_right(),
-                self.state.stroke_style.to_pattern_ref(),
-                &stroke_opts,
-                &self.state.draw_options,
-            );
+            let stroke_opts =
+                StrokeOptions::new(self.state.stroke_opts.line_width,
+                                   self.state.stroke_opts.line_join,
+                                   cap,
+                                   self.state.stroke_opts.miter_limit,
+                                   self.state.stroke_opts.mDashPattern);
+            self.drawtarget.stroke_line(rect.origin, rect.bottom_right(),
+                                        self.state.stroke_style.to_pattern_ref(),
+                                        &stroke_opts, &self.state.draw_options);
         } else {
-            self.drawtarget.stroke_rect(
-                rect,
-                self.state.stroke_style.to_pattern_ref(),
-                &self.state.stroke_opts,
-                &self.state.draw_options,
-            );
+            self.drawtarget.stroke_rect(rect, self.state.stroke_style.to_pattern_ref(),
+                                        &self.state.stroke_opts, &self.state.draw_options);
         }
     }
 
@@ -218,11 +180,9 @@ impl<'a> CanvasData<'a> {
             return; // Paint nothing if gradient size is zero.
         }
 
-        self.drawtarget.fill(
-            &self.path_builder.finish(),
-            self.state.fill_style.to_pattern_ref(),
-            &self.state.draw_options,
-        );
+        self.drawtarget.fill(&self.path_builder.finish(),
+                             self.state.fill_style.to_pattern_ref(),
+                             &self.state.draw_options);
     }
 
     pub fn stroke(&self) {
@@ -230,12 +190,10 @@ impl<'a> CanvasData<'a> {
             return; // Paint nothing if gradient size is zero.
         }
 
-        self.drawtarget.stroke(
-            &self.path_builder.finish(),
-            self.state.stroke_style.to_pattern_ref(),
-            &self.state.stroke_opts,
-            &self.state.draw_options,
-        );
+        self.drawtarget.stroke(&self.path_builder.finish(),
+                               self.state.stroke_style.to_pattern_ref(),
+                               &self.state.stroke_opts,
+                               &self.state.draw_options);
     }
 
     pub fn clip(&self) {
@@ -247,7 +205,7 @@ impl<'a> CanvasData<'a> {
         x: f64,
         y: f64,
         _fill_rule: FillRule,
-        chan: IpcSender<bool>,
+        chan: IpcSender<bool>
     ) {
         let path = self.path_builder.finish();
         let result = path.contains_point(x, y, &self.state.transform);
@@ -264,22 +222,19 @@ impl<'a> CanvasData<'a> {
     }
 
     pub fn rect(&self, rect: &Rect<f32>) {
-        self.path_builder
-            .move_to(Point2D::new(rect.origin.x, rect.origin.y));
-        self.path_builder
-            .line_to(Point2D::new(rect.origin.x + rect.size.width, rect.origin.y));
-        self.path_builder.line_to(Point2D::new(
-            rect.origin.x + rect.size.width,
-            rect.origin.y + rect.size.height,
-        ));
-        self.path_builder.line_to(Point2D::new(
-            rect.origin.x,
-            rect.origin.y + rect.size.height,
-        ));
+        self.path_builder.move_to(Point2D::new(rect.origin.x, rect.origin.y));
+        self.path_builder.line_to(Point2D::new(rect.origin.x + rect.size.width, rect.origin.y));
+        self.path_builder.line_to(Point2D::new(rect.origin.x + rect.size.width,
+                                               rect.origin.y + rect.size.height));
+        self.path_builder.line_to(Point2D::new(rect.origin.x, rect.origin.y + rect.size.height));
         self.path_builder.close();
     }
 
-    pub fn quadratic_curve_to(&self, cp: &Point2D<AzFloat>, endpoint: &Point2D<AzFloat>) {
+    pub fn quadratic_curve_to(
+        &self,
+        cp: &Point2D<AzFloat>,
+        endpoint: &Point2D<AzFloat>
+    ) {
         self.path_builder.quadratic_curve_to(cp, endpoint)
     }
 
@@ -287,7 +242,7 @@ impl<'a> CanvasData<'a> {
         &self,
         cp1: &Point2D<AzFloat>,
         cp2: &Point2D<AzFloat>,
-        endpoint: &Point2D<AzFloat>,
+        endpoint: &Point2D<AzFloat>
     ) {
         self.path_builder.bezier_curve_to(cp1, cp2, endpoint)
     }
@@ -298,13 +253,17 @@ impl<'a> CanvasData<'a> {
         radius: AzFloat,
         start_angle: AzFloat,
         end_angle: AzFloat,
-        ccw: bool,
+        ccw: bool
     ) {
-        self.path_builder
-            .arc(*center, radius, start_angle, end_angle, ccw)
+        self.path_builder.arc(*center, radius, start_angle, end_angle, ccw)
     }
 
-    pub fn arc_to(&self, cp1: &Point2D<AzFloat>, cp2: &Point2D<AzFloat>, radius: AzFloat) {
+    pub fn arc_to(
+        &self,
+        cp1: &Point2D<AzFloat>,
+        cp2: &Point2D<AzFloat>,
+        radius: AzFloat
+    ) {
         let cp0 = self.path_builder.get_current_point();
         let cp1 = *cp1;
         let cp2 = *cp2;
@@ -350,17 +309,9 @@ impl<'a> CanvasData<'a> {
         let angle_end = (tp2.y - cy).atan2(tp2.x - cx);
 
         self.line_to(&tp1);
-        if [cx, cy, angle_start, angle_end]
-            .iter()
-            .all(|x| x.is_finite())
-        {
-            self.arc(
-                &Point2D::new(cx, cy),
-                radius,
-                angle_start,
-                angle_end,
-                anticlockwise,
-            );
+        if [cx, cy, angle_start, angle_end].iter().all(|x| x.is_finite()) {
+            self.arc(&Point2D::new(cx, cy), radius,
+                     angle_start, angle_end, anticlockwise);
         }
     }
 
@@ -372,17 +323,9 @@ impl<'a> CanvasData<'a> {
         rotation_angle: AzFloat,
         start_angle: AzFloat,
         end_angle: AzFloat,
-        ccw: bool,
+        ccw: bool
     ) {
-        self.path_builder.ellipse(
-            *center,
-            radius_x,
-            radius_y,
-            rotation_angle,
-            start_angle,
-            end_angle,
-            ccw,
-        );
+        self.path_builder.ellipse(*center, radius_x, radius_y, rotation_angle, start_angle, end_angle, ccw);
     }
 
     pub fn set_fill_style(&mut self, style: FillOrStrokeStyle) {
@@ -423,17 +366,14 @@ impl<'a> CanvasData<'a> {
     }
 
     pub fn set_global_composition(&mut self, op: CompositionOrBlending) {
-        self.state
-            .draw_options
-            .set_composition_op(op.to_azure_style());
+        self.state.draw_options.set_composition_op(op.to_azure_style());
     }
 
-    pub fn create(size: Size2D<u32>) -> DrawTarget {
-        // FIXME(nox): Why is the size made of i32 values?
-        DrawTarget::new(BackendType::Skia, size.to_i32(), SurfaceFormat::B8G8R8A8)
+    pub fn create(size: Size2D<i32>) -> DrawTarget {
+        DrawTarget::new(BackendType::Skia, size, SurfaceFormat::B8G8R8A8)
     }
 
-    pub fn recreate(&mut self, size: Size2D<u32>) {
+    pub fn recreate(&mut self, size: Size2D<i32>) {
         self.drawtarget = CanvasData::create(size);
         self.state = CanvasPaintState::new(self.state.draw_options.antialias);
         self.saved_states.clear();
@@ -452,13 +392,7 @@ impl<'a> CanvasData<'a> {
 
     #[allow(unsafe_code)]
     pub fn send_pixels(&mut self, chan: IpcSender<Option<ByteBuf>>) {
-        let data = unsafe {
-            self.drawtarget
-                .snapshot()
-                .get_data_surface()
-                .data()
-                .to_vec()
-        };
+        let data = unsafe { self.drawtarget.snapshot().get_data_surface().data().to_vec() };
         chan.send(Some(data.into())).unwrap();
     }
 
@@ -474,9 +408,9 @@ impl<'a> CanvasData<'a> {
             is_opaque: false,
             allow_mipmaps: false,
         };
-        let data = webrender_api::ImageData::Raw(Arc::new(unsafe {
-            self.drawtarget.snapshot().get_data_surface().data().into()
-        }));
+        let data = webrender_api::ImageData::Raw(Arc::new(
+            unsafe { self.drawtarget.snapshot().get_data_surface().data().into() },
+        ));
 
         let mut txn = webrender_api::Transaction::new();
 
@@ -484,17 +418,15 @@ impl<'a> CanvasData<'a> {
             Some(image_key) => {
                 debug!("Updating image {:?}.", image_key);
                 txn.update_image(image_key, descriptor, data, None);
-            },
+            }
             None => {
                 self.image_key = Some(self.webrender_api.generate_image_key());
                 debug!("New image {:?}.", self.image_key);
                 txn.add_image(self.image_key.unwrap(), descriptor, data, None);
-            },
+            }
         }
 
-        if let Some(image_key) =
-            mem::replace(&mut self.very_old_image_key, self.old_image_key.take())
-        {
+        if let Some(image_key) = mem::replace(&mut self.very_old_image_key, self.old_image_key.take()) {
             txn.delete_image(image_key);
         }
 
@@ -506,25 +438,104 @@ impl<'a> CanvasData<'a> {
         chan.send(data).unwrap();
     }
 
+    pub fn image_data(
+        &self,
+        dest_rect: Rect<i32>,
+        canvas_size: Size2D<f64>,
+        sender: IpcBytesSender,
+    ) {
+        sender.send(&self.read_pixels(dest_rect, canvas_size)).unwrap();
+    }
+
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-putimagedata
-    pub fn put_image_data(&mut self, mut imagedata: Vec<u8>, rect: Rect<u32>) {
-        assert_eq!(imagedata.len() % 4, 0);
-        assert_eq!(rect.size.area() as usize, imagedata.len() / 4);
-        pixels::byte_swap_and_premultiply_inplace(&mut imagedata);
-        let source_surface = self
-            .drawtarget
-            .create_source_surface_from_data(
-                &imagedata,
-                rect.size.to_i32(),
-                rect.size.width as i32 * 4,
-                SurfaceFormat::B8G8R8A8,
-            )
-            .unwrap();
-        self.drawtarget.copy_surface(
-            source_surface,
-            Rect::from_size(rect.size.to_i32()),
-            rect.origin.to_i32(),
-        );
+    pub fn put_image_data(
+        &mut self,
+        imagedata: Vec<u8>,
+        offset: Vector2D<f64>,
+        image_data_size: Size2D<f64>,
+        mut dirty_rect: Rect<f64>
+    ) {
+        if image_data_size.width <= 0.0 || image_data_size.height <= 0.0 {
+            return
+        }
+
+        assert_eq!(image_data_size.width * image_data_size.height * 4.0, imagedata.len() as f64);
+
+        // Step 1. TODO (neutered data)
+
+        // Step 2.
+        if dirty_rect.size.width < 0.0f64 {
+            dirty_rect.origin.x += dirty_rect.size.width;
+            dirty_rect.size.width = -dirty_rect.size.width;
+        }
+
+        if dirty_rect.size.height < 0.0f64 {
+            dirty_rect.origin.y += dirty_rect.size.height;
+            dirty_rect.size.height = -dirty_rect.size.height;
+        }
+
+        // Step 3.
+        if dirty_rect.origin.x < 0.0f64 {
+            dirty_rect.size.width += dirty_rect.origin.x;
+            dirty_rect.origin.x = 0.0f64;
+        }
+
+        if dirty_rect.origin.y < 0.0f64 {
+            dirty_rect.size.height += dirty_rect.origin.y;
+            dirty_rect.origin.y = 0.0f64;
+        }
+
+        // Step 4.
+        if dirty_rect.max_x() > image_data_size.width {
+            dirty_rect.size.width = image_data_size.width - dirty_rect.origin.x;
+        }
+
+        if dirty_rect.max_y() > image_data_size.height {
+            dirty_rect.size.height = image_data_size.height - dirty_rect.origin.y;
+        }
+
+        // 5) If either dirtyWidth or dirtyHeight is negative or zero,
+        // stop without affecting any bitmaps
+        if dirty_rect.size.width <= 0.0 || dirty_rect.size.height <= 0.0 {
+            return
+        }
+
+        // Step 6.
+        let dest_rect = dirty_rect.translate(&offset).to_i32();
+
+        // azure_hl operates with integers. We need to cast the image size
+        let image_size = image_data_size.to_i32();
+
+        let first_pixel = dest_rect.origin - offset.to_i32();
+        let mut src_line = (first_pixel.y * (image_size.width * 4) + first_pixel.x * 4) as usize;
+
+        let mut dest =
+            Vec::with_capacity((dest_rect.size.width * dest_rect.size.height * 4) as usize);
+
+        for _ in 0 .. dest_rect.size.height {
+            let mut src_offset = src_line;
+            for _ in 0 .. dest_rect.size.width {
+                let alpha = imagedata[src_offset + 3] as u16;
+                // add 127 before dividing for more accurate rounding
+                let premultiply_channel = |channel: u8| (((channel as u16 * alpha) + 127) / 255) as u8;
+                dest.push(premultiply_channel(imagedata[src_offset + 2]));
+                dest.push(premultiply_channel(imagedata[src_offset + 1]));
+                dest.push(premultiply_channel(imagedata[src_offset + 0]));
+                dest.push(imagedata[src_offset + 3]);
+                src_offset += 4;
+            }
+            src_line += (image_size.width * 4) as usize;
+        }
+
+        if let Some(source_surface) = self.drawtarget.create_source_surface_from_data(
+                &dest,
+                dest_rect.size,
+                dest_rect.size.width * 4,
+                SurfaceFormat::B8G8R8A8) {
+            self.drawtarget.copy_surface(source_surface,
+                                         Rect::new(Point2D::new(0, 0), dest_rect.size),
+                                         dest_rect.origin);
+        }
     }
 
     pub fn set_shadow_offset_x(&mut self, value: f64) {
@@ -546,19 +557,15 @@ impl<'a> CanvasData<'a> {
     // https://html.spec.whatwg.org/multipage/#when-shadows-are-drawn
     fn need_to_draw_shadow(&self) -> bool {
         self.state.shadow_color.a != 0.0f32 &&
-            (self.state.shadow_offset_x != 0.0f64 ||
-                self.state.shadow_offset_y != 0.0f64 ||
-                self.state.shadow_blur != 0.0f64)
+        (self.state.shadow_offset_x != 0.0f64 ||
+         self.state.shadow_offset_y != 0.0f64 ||
+         self.state.shadow_blur != 0.0f64)
     }
 
     fn create_draw_target_for_shadow(&self, source_rect: &Rect<f32>) -> DrawTarget {
-        let draw_target = self.drawtarget.create_similar_draw_target(
-            &Size2D::new(
-                source_rect.size.width as i32,
-                source_rect.size.height as i32,
-            ),
-            self.drawtarget.get_format(),
-        );
+        let draw_target = self.drawtarget.create_similar_draw_target(&Size2D::new(source_rect.size.width as i32,
+                                                                                  source_rect.size.height as i32),
+                                                                     self.drawtarget.get_format());
         let matrix = Transform2D::identity()
             .pre_translate(-source_rect.origin.to_vector().cast())
             .pre_mul(&self.state.transform);
@@ -567,47 +574,51 @@ impl<'a> CanvasData<'a> {
     }
 
     fn draw_with_shadow<F>(&self, rect: &Rect<f32>, draw_shadow_source: F)
-    where
-        F: FnOnce(&DrawTarget),
+        where F: FnOnce(&DrawTarget)
     {
         let shadow_src_rect = self.state.transform.transform_rect(rect);
         let new_draw_target = self.create_draw_target_for_shadow(&shadow_src_rect);
         draw_shadow_source(&new_draw_target);
-        self.drawtarget.draw_surface_with_shadow(
-            new_draw_target.snapshot(),
-            &Point2D::new(
-                shadow_src_rect.origin.x as AzFloat,
-                shadow_src_rect.origin.y as AzFloat,
-            ),
-            &self.state.shadow_color,
-            &Vector2D::new(
-                self.state.shadow_offset_x as AzFloat,
-                self.state.shadow_offset_y as AzFloat,
-            ),
-            (self.state.shadow_blur / 2.0f64) as AzFloat,
-            self.state.draw_options.composition,
-        );
+        self.drawtarget.draw_surface_with_shadow(new_draw_target.snapshot(),
+                                                 &Point2D::new(shadow_src_rect.origin.x as AzFloat,
+                                                               shadow_src_rect.origin.y as AzFloat),
+                                                 &self.state.shadow_color,
+                                                 &Vector2D::new(self.state.shadow_offset_x as AzFloat,
+                                                                self.state.shadow_offset_y as AzFloat),
+                                                 (self.state.shadow_blur / 2.0f64) as AzFloat,
+                                                 self.state.draw_options.composition);
     }
 
     /// It reads image data from the canvas
     /// canvas_size: The size of the canvas we're reading from
     /// read_rect: The area of the canvas we want to read from
     #[allow(unsafe_code)]
-    pub fn read_pixels(&self, read_rect: Rect<u32>, canvas_size: Size2D<u32>) -> Vec<u8> {
-        let canvas_rect = Rect::from_size(canvas_size);
-        if canvas_rect
-            .intersection(&read_rect)
-            .map_or(true, |rect| rect.is_empty())
-        {
-            return vec![];
+    pub fn read_pixels(&self, read_rect: Rect<i32>, canvas_size: Size2D<f64>) -> Vec<u8> {
+        let canvas_size = canvas_size.to_i32();
+        let canvas_rect = Rect::new(Point2D::new(0i32, 0i32), canvas_size);
+        let src_read_rect = canvas_rect.intersection(&read_rect).unwrap_or(Rect::zero());
+
+        if src_read_rect.is_empty() || canvas_size.width <= 0 && canvas_size.height <= 0 {
+          return vec![];
         }
+
         let data_surface = self.drawtarget.snapshot().get_data_surface();
-        pixels::get_rect(
-            unsafe { data_surface.data() },
-            canvas_size.to_u32(),
-            read_rect.to_u32(),
-        )
-        .into_owned()
+        let src_data = unsafe { data_surface.data() };
+        let stride = data_surface.stride();
+
+        //start offset of the copyable rectangle
+        let mut src = (src_read_rect.origin.y * stride + src_read_rect.origin.x * 4) as usize;
+        let mut image_data = Vec::with_capacity(
+            (src_read_rect.size.width * src_read_rect.size.height * 4) as usize,
+        );
+        //copy the data to the destination vector
+        for _ in 0..src_read_rect.size.height {
+            let row = &src_data[src .. src + (4 * src_read_rect.size.width) as usize];
+            image_data.extend_from_slice(row);
+            src += stride as usize;
+        }
+
+        image_data
     }
 }
 
@@ -646,13 +657,7 @@ impl<'a> CanvasPaintState<'a> {
             draw_options: DrawOptions::new(1.0, CompositionOp::Over, antialias),
             fill_style: Pattern::Color(ColorPattern::new(Color::black())),
             stroke_style: Pattern::Color(ColorPattern::new(Color::black())),
-            stroke_opts: StrokeOptions::new(
-                1.0,
-                JoinStyle::MiterOrBevel,
-                CapStyle::Butt,
-                10.0,
-                &[],
-            ),
+            stroke_opts: StrokeOptions::new(1.0, JoinStyle::MiterOrBevel, CapStyle::Butt, 10.0, &[]),
             transform: Transform2D::identity(),
             shadow_offset_x: 0.0,
             shadow_offset_y: 0.0,
@@ -671,6 +676,39 @@ fn is_zero_size_gradient(pattern: &Pattern) -> bool {
     false
 }
 
+/// Used by drawImage to get rid of the extra pixels of the image data that
+/// won't be copied to the canvas
+/// image_data: Color pixel data of the image
+/// image_size: Image dimensions
+/// crop_rect: It determines the area of the image we want to keep
+fn crop_image(
+    image_data: Vec<u8>,
+    image_size: Size2D<f64>,
+    crop_rect: Rect<f64>
+) -> Vec<u8> {
+    // We're going to iterate over a pixel values array so we need integers
+    let crop_rect = crop_rect.to_i32();
+    let image_size = image_size.to_i32();
+    // Assuming 4 bytes per pixel and row-major order for storage
+    // (consecutive elements in a pixel row of the image are contiguous in memory)
+    let stride = image_size.width * 4;
+    let image_bytes_length = image_size.height * image_size.width * 4;
+    let crop_area_bytes_length = crop_rect.size.height * crop_rect.size.width * 4;
+    // If the image size is less or equal than the crop area we do nothing
+    if image_bytes_length <= crop_area_bytes_length {
+        return image_data;
+    }
+
+    let mut new_image_data = Vec::new();
+    let mut src = (crop_rect.origin.y * stride + crop_rect.origin.x * 4) as usize;
+    for _ in 0..crop_rect.size.height {
+        let row = &image_data[src .. src + (4 * crop_rect.size.width) as usize];
+        new_image_data.extend_from_slice(row);
+        src += stride as usize;
+    }
+    new_image_data
+}
+
 /// It writes an image to the destination target
 /// draw_target: the destination target where the image_data will be copied
 /// image_data: Pixel information of the image to be written. It takes RGBA8
@@ -684,10 +722,10 @@ fn write_image(
     dest_rect: Rect<f64>,
     smoothing_enabled: bool,
     composition_op: CompositionOp,
-    global_alpha: f32,
+    global_alpha: f32
 ) {
     if image_data.is_empty() {
-        return;
+        return
     }
     let image_rect = Rect::new(Point2D::zero(), image_size);
 
@@ -700,25 +738,23 @@ fn write_image(
     } else {
         Filter::Point
     };
+    // azure_hl operates with integers. We need to cast the image size
     let image_size = image_size.to_i32();
 
-    let source_surface = draw_target
-        .create_source_surface_from_data(
-            &image_data,
-            image_size,
-            image_size.width * 4,
-            SurfaceFormat::B8G8R8A8,
-        )
-        .unwrap();
-    let draw_surface_options = DrawSurfaceOptions::new(filter, true);
-    let draw_options = DrawOptions::new(global_alpha, composition_op, AntialiasMode::None);
-    draw_target.draw_surface(
-        source_surface,
-        dest_rect.to_azure_style(),
-        image_rect.to_azure_style(),
-        draw_surface_options,
-        draw_options,
-    );
+    if let Some(source_surface) =
+            draw_target.create_source_surface_from_data(&image_data,
+                                                        image_size,
+                                                        image_size.width * 4,
+                                                        SurfaceFormat::B8G8R8A8) {
+        let draw_surface_options = DrawSurfaceOptions::new(filter, true);
+        let draw_options = DrawOptions::new(global_alpha, composition_op, AntialiasMode::None);
+
+        draw_target.draw_surface(source_surface,
+                                 dest_rect.to_azure_style(),
+                                 image_rect.to_azure_style(),
+                                 draw_surface_options,
+                                 draw_options);
+    }
 }
 
 pub trait PointToi32 {
@@ -727,7 +763,8 @@ pub trait PointToi32 {
 
 impl PointToi32 for Point2D<f64> {
     fn to_i32(&self) -> Point2D<i32> {
-        Point2D::new(self.x.to_i32().unwrap(), self.y.to_i32().unwrap())
+        Point2D::new(self.x.to_i32().unwrap(),
+                     self.y.to_i32().unwrap())
     }
 }
 
@@ -737,7 +774,8 @@ pub trait SizeToi32 {
 
 impl SizeToi32 for Size2D<f64> {
     fn to_i32(&self) -> Size2D<i32> {
-        Size2D::new(self.width.to_i32().unwrap(), self.height.to_i32().unwrap())
+        Size2D::new(self.width.to_i32().unwrap(),
+                    self.height.to_i32().unwrap())
     }
 }
 
@@ -748,24 +786,19 @@ pub trait RectToi32 {
 
 impl RectToi32 for Rect<f64> {
     fn to_i32(&self) -> Rect<i32> {
-        Rect::new(
-            Point2D::new(
-                self.origin.x.to_i32().unwrap(),
-                self.origin.y.to_i32().unwrap(),
-            ),
-            Size2D::new(
-                self.size.width.to_i32().unwrap(),
-                self.size.height.to_i32().unwrap(),
-            ),
-        )
+        Rect::new(Point2D::new(self.origin.x.to_i32().unwrap(),
+                               self.origin.y.to_i32().unwrap()),
+                  Size2D::new(self.size.width.to_i32().unwrap(),
+                              self.size.height.to_i32().unwrap()))
     }
 
     fn ceil(&self) -> Rect<f64> {
-        Rect::new(
-            Point2D::new(self.origin.x.ceil(), self.origin.y.ceil()),
-            Size2D::new(self.size.width.ceil(), self.size.height.ceil()),
-        )
+        Rect::new(Point2D::new(self.origin.x.ceil(),
+                               self.origin.y.ceil()),
+                  Size2D::new(self.size.width.ceil(),
+                              self.size.height.ceil()))
     }
+
 }
 
 pub trait ToAzureStyle {
@@ -777,12 +810,11 @@ impl ToAzureStyle for Rect<f64> {
     type Target = Rect<AzFloat>;
 
     fn to_azure_style(self) -> Rect<AzFloat> {
-        Rect::new(
-            Point2D::new(self.origin.x as AzFloat, self.origin.y as AzFloat),
-            Size2D::new(self.size.width as AzFloat, self.size.height as AzFloat),
-        )
+        Rect::new(Point2D::new(self.origin.x as AzFloat, self.origin.y as AzFloat),
+                  Size2D::new(self.size.width as AzFloat, self.size.height as AzFloat))
     }
 }
+
 
 impl ToAzureStyle for LineCapStyle {
     type Target = CapStyle;
@@ -813,17 +845,17 @@ impl ToAzureStyle for CompositionStyle {
 
     fn to_azure_style(self) -> CompositionOp {
         match self {
-            CompositionStyle::SrcIn => CompositionOp::In,
-            CompositionStyle::SrcOut => CompositionOp::Out,
-            CompositionStyle::SrcOver => CompositionOp::Over,
-            CompositionStyle::SrcAtop => CompositionOp::Atop,
-            CompositionStyle::DestIn => CompositionOp::DestIn,
-            CompositionStyle::DestOut => CompositionOp::DestOut,
+            CompositionStyle::SrcIn    => CompositionOp::In,
+            CompositionStyle::SrcOut   => CompositionOp::Out,
+            CompositionStyle::SrcOver  => CompositionOp::Over,
+            CompositionStyle::SrcAtop  => CompositionOp::Atop,
+            CompositionStyle::DestIn   => CompositionOp::DestIn,
+            CompositionStyle::DestOut  => CompositionOp::DestOut,
             CompositionStyle::DestOver => CompositionOp::DestOver,
             CompositionStyle::DestAtop => CompositionOp::DestAtop,
-            CompositionStyle::Copy => CompositionOp::Source,
-            CompositionStyle::Lighter => CompositionOp::Add,
-            CompositionStyle::Xor => CompositionOp::Xor,
+            CompositionStyle::Copy     => CompositionOp::Source,
+            CompositionStyle::Lighter  => CompositionOp::Add,
+            CompositionStyle::Xor      => CompositionOp::Xor,
         }
     }
 }
@@ -833,20 +865,20 @@ impl ToAzureStyle for BlendingStyle {
 
     fn to_azure_style(self) -> CompositionOp {
         match self {
-            BlendingStyle::Multiply => CompositionOp::Multiply,
-            BlendingStyle::Screen => CompositionOp::Screen,
-            BlendingStyle::Overlay => CompositionOp::Overlay,
-            BlendingStyle::Darken => CompositionOp::Darken,
-            BlendingStyle::Lighten => CompositionOp::Lighten,
+            BlendingStyle::Multiply   => CompositionOp::Multiply,
+            BlendingStyle::Screen     => CompositionOp::Screen,
+            BlendingStyle::Overlay    => CompositionOp::Overlay,
+            BlendingStyle::Darken     => CompositionOp::Darken,
+            BlendingStyle::Lighten    => CompositionOp::Lighten,
             BlendingStyle::ColorDodge => CompositionOp::ColorDodge,
-            BlendingStyle::ColorBurn => CompositionOp::ColorBurn,
-            BlendingStyle::HardLight => CompositionOp::HardLight,
-            BlendingStyle::SoftLight => CompositionOp::SoftLight,
+            BlendingStyle::ColorBurn  => CompositionOp::ColorBurn,
+            BlendingStyle::HardLight  => CompositionOp::HardLight,
+            BlendingStyle::SoftLight  => CompositionOp::SoftLight,
             BlendingStyle::Difference => CompositionOp::Difference,
-            BlendingStyle::Exclusion => CompositionOp::Exclusion,
-            BlendingStyle::Hue => CompositionOp::Hue,
+            BlendingStyle::Exclusion  => CompositionOp::Exclusion,
+            BlendingStyle::Hue        => CompositionOp::Hue,
             BlendingStyle::Saturation => CompositionOp::Saturation,
-            BlendingStyle::Color => CompositionOp::Color,
+            BlendingStyle::Color      => CompositionOp::Color,
             BlendingStyle::Luminosity => CompositionOp::Luminosity,
         }
     }
@@ -869,74 +901,53 @@ pub trait ToAzurePattern {
 
 impl ToAzurePattern for FillOrStrokeStyle {
     fn to_azure_pattern(&self, drawtarget: &DrawTarget) -> Option<Pattern> {
-        Some(match *self {
+        match *self {
             FillOrStrokeStyle::Color(ref color) => {
-                Pattern::Color(ColorPattern::new(color.to_azure_style()))
+                Some(Pattern::Color(ColorPattern::new(color.to_azure_style())))
             },
             FillOrStrokeStyle::LinearGradient(ref linear_gradient_style) => {
-                let gradient_stops: Vec<GradientStop> = linear_gradient_style
-                    .stops
-                    .iter()
-                    .map(|s| GradientStop {
+                let gradient_stops: Vec<GradientStop> = linear_gradient_style.stops.iter().map(|s| {
+                    GradientStop {
                         offset: s.offset as AzFloat,
-                        color: s.color.to_azure_style(),
-                    })
-                    .collect();
+                        color: s.color.to_azure_style()
+                    }
+                }).collect();
 
-                Pattern::LinearGradient(LinearGradientPattern::new(
-                    &Point2D::new(
-                        linear_gradient_style.x0 as AzFloat,
-                        linear_gradient_style.y0 as AzFloat,
-                    ),
-                    &Point2D::new(
-                        linear_gradient_style.x1 as AzFloat,
-                        linear_gradient_style.y1 as AzFloat,
-                    ),
+                Some(Pattern::LinearGradient(LinearGradientPattern::new(
+                    &Point2D::new(linear_gradient_style.x0 as AzFloat, linear_gradient_style.y0 as AzFloat),
+                    &Point2D::new(linear_gradient_style.x1 as AzFloat, linear_gradient_style.y1 as AzFloat),
                     drawtarget.create_gradient_stops(&gradient_stops, ExtendMode::Clamp),
-                    &Transform2D::identity(),
-                ))
+                    &Transform2D::identity())))
             },
             FillOrStrokeStyle::RadialGradient(ref radial_gradient_style) => {
-                let gradient_stops: Vec<GradientStop> = radial_gradient_style
-                    .stops
-                    .iter()
-                    .map(|s| GradientStop {
+                let gradient_stops: Vec<GradientStop> = radial_gradient_style.stops.iter().map(|s| {
+                    GradientStop {
                         offset: s.offset as AzFloat,
-                        color: s.color.to_azure_style(),
-                    })
-                    .collect();
+                        color: s.color.to_azure_style()
+                    }
+                }).collect();
 
-                Pattern::RadialGradient(RadialGradientPattern::new(
-                    &Point2D::new(
-                        radial_gradient_style.x0 as AzFloat,
-                        radial_gradient_style.y0 as AzFloat,
-                    ),
-                    &Point2D::new(
-                        radial_gradient_style.x1 as AzFloat,
-                        radial_gradient_style.y1 as AzFloat,
-                    ),
-                    radial_gradient_style.r0 as AzFloat,
-                    radial_gradient_style.r1 as AzFloat,
+                Some(Pattern::RadialGradient(RadialGradientPattern::new(
+                    &Point2D::new(radial_gradient_style.x0 as AzFloat, radial_gradient_style.y0 as AzFloat),
+                    &Point2D::new(radial_gradient_style.x1 as AzFloat, radial_gradient_style.y1 as AzFloat),
+                    radial_gradient_style.r0 as AzFloat, radial_gradient_style.r1 as AzFloat,
                     drawtarget.create_gradient_stops(&gradient_stops, ExtendMode::Clamp),
-                    &Transform2D::identity(),
-                ))
+                    &Transform2D::identity())))
             },
             FillOrStrokeStyle::Surface(ref surface_style) => {
-                let source_surface = drawtarget.create_source_surface_from_data(
-                    &surface_style.surface_data,
-                    // FIXME(nox): Why are those i32 values?
-                    surface_style.surface_size.to_i32(),
-                    surface_style.surface_size.width as i32 * 4,
-                    SurfaceFormat::B8G8R8A8,
-                )?;
-                Pattern::Surface(SurfacePattern::new(
-                    source_surface.azure_source_surface,
-                    surface_style.repeat_x,
-                    surface_style.repeat_y,
-                    &Transform2D::identity(),
-                ))
-            },
-        })
+                drawtarget.create_source_surface_from_data(&surface_style.surface_data,
+                                                           surface_style.surface_size,
+                                                           surface_style.surface_size.width * 4,
+                                                           SurfaceFormat::B8G8R8A8)
+                          .map(|source_surface| {
+                    Pattern::Surface(SurfacePattern::new(
+                        source_surface.azure_source_surface,
+                        surface_style.repeat_x,
+                        surface_style.repeat_y,
+                        &Transform2D::identity()))
+                    })
+            }
+        }
     }
 }
 
@@ -944,11 +955,9 @@ impl ToAzureStyle for RGBA {
     type Target = Color;
 
     fn to_azure_style(self) -> Color {
-        Color::rgba(
-            self.red_f32() as AzFloat,
-            self.green_f32() as AzFloat,
-            self.blue_f32() as AzFloat,
-            self.alpha_f32() as AzFloat,
-        )
+        Color::rgba(self.red_f32() as AzFloat,
+                    self.green_f32() as AzFloat,
+                    self.blue_f32() as AzFloat,
+                    self.alpha_f32() as AzFloat)
     }
 }

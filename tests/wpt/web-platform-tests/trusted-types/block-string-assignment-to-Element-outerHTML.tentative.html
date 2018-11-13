@@ -5,7 +5,7 @@
   <script src="/resources/testharnessreport.js"></script>
   <script src="support/helper.sub.js"></script>
 
-  <meta http-equiv="Content-Security-Policy" content="trusted-types *">
+  <meta http-equiv="Content-Security-Policy" content="trusted-types">
 </head>
 <body>
 <div id="container"></div>
@@ -49,30 +49,6 @@
     while (container.firstChild)
       container.firstChild.remove();
   }, "`outerHTML = null` throws.");
-
-  // After default policy creation string assignment implicitly calls createHTML.
-  test(t => {
-    let p = window.TrustedTypes.createPolicy("default", { createHTML: createHTMLJS }, true);
-
-    var d = document.createElement('div');
-    document.querySelector('#container').appendChild(d);
-    d.outerHTML = INPUTS.HTML;
-    assert_equals(container.innerText, RESULTS.HTML);
-
-    while (container.firstChild)
-      container.firstChild.remove();
-  }, "`outerHTML = string` assigned via default policy (successful HTML transformation).");
-
-  // After default policy creation null assignment implicitly calls createHTML.
-  test(t => {
-    var d = document.createElement('div');
-    container.appendChild(d);
-    d.outerHTML = null;
-    assert_equals(container.innerText, "null");
-
-    while (container.firstChild)
-      container.firstChild.remove();
-  }, "`outerHTML = null` assigned via default policy does not throw");
 </script>
 </body>
 </html>

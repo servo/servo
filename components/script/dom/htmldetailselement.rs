@@ -2,22 +2,22 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use crate::dom::attr::Attr;
-use crate::dom::bindings::codegen::Bindings::HTMLDetailsElementBinding;
-use crate::dom::bindings::codegen::Bindings::HTMLDetailsElementBinding::HTMLDetailsElementMethods;
-use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::refcounted::Trusted;
-use crate::dom::bindings::root::DomRoot;
-use crate::dom::document::Document;
-use crate::dom::element::AttributeMutation;
-use crate::dom::eventtarget::EventTarget;
-use crate::dom::htmlelement::HTMLElement;
-use crate::dom::node::{window_from_node, Node};
-use crate::dom::virtualmethods::VirtualMethods;
-use crate::task_source::TaskSource;
+use dom::attr::Attr;
+use dom::bindings::codegen::Bindings::HTMLDetailsElementBinding;
+use dom::bindings::codegen::Bindings::HTMLDetailsElementBinding::HTMLDetailsElementMethods;
+use dom::bindings::inheritance::Castable;
+use dom::bindings::refcounted::Trusted;
+use dom::bindings::root::DomRoot;
+use dom::document::Document;
+use dom::element::AttributeMutation;
+use dom::eventtarget::EventTarget;
+use dom::htmlelement::HTMLElement;
+use dom::node::{Node, window_from_node};
+use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
 use std::cell::Cell;
+use task_source::TaskSource;
 
 #[dom_struct]
 pub struct HTMLDetailsElement {
@@ -62,8 +62,8 @@ impl HTMLDetailsElementMethods for HTMLDetailsElement {
 }
 
 impl VirtualMethods for HTMLDetailsElement {
-    fn super_type(&self) -> Option<&dyn VirtualMethods> {
-        Some(self.upcast::<HTMLElement>() as &dyn VirtualMethods)
+    fn super_type(&self) -> Option<&VirtualMethods> {
+        Some(self.upcast::<HTMLElement>() as &VirtualMethods)
     }
 
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {

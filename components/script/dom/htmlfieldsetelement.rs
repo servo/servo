@@ -2,20 +2,20 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use crate::dom::attr::Attr;
-use crate::dom::bindings::codegen::Bindings::HTMLFieldSetElementBinding;
-use crate::dom::bindings::codegen::Bindings::HTMLFieldSetElementBinding::HTMLFieldSetElementMethods;
-use crate::dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementTypeId, NodeTypeId};
-use crate::dom::bindings::root::{DomRoot, MutNullableDom};
-use crate::dom::document::Document;
-use crate::dom::element::{AttributeMutation, Element};
-use crate::dom::htmlcollection::{CollectionFilter, HTMLCollection};
-use crate::dom::htmlelement::HTMLElement;
-use crate::dom::htmlformelement::{FormControl, HTMLFormElement};
-use crate::dom::htmllegendelement::HTMLLegendElement;
-use crate::dom::node::{window_from_node, Node};
-use crate::dom::validitystate::ValidityState;
-use crate::dom::virtualmethods::VirtualMethods;
+use dom::attr::Attr;
+use dom::bindings::codegen::Bindings::HTMLFieldSetElementBinding;
+use dom::bindings::codegen::Bindings::HTMLFieldSetElementBinding::HTMLFieldSetElementMethods;
+use dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementTypeId, NodeTypeId};
+use dom::bindings::root::{DomRoot, MutNullableDom};
+use dom::document::Document;
+use dom::element::{AttributeMutation, Element};
+use dom::htmlcollection::{CollectionFilter, HTMLCollection};
+use dom::htmlelement::HTMLElement;
+use dom::htmlformelement::{FormControl, HTMLFormElement};
+use dom::htmllegendelement::HTMLLegendElement;
+use dom::node::{Node, window_from_node};
+use dom::validitystate::ValidityState;
+use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
 use std::default::Default;
@@ -95,8 +95,8 @@ impl HTMLFieldSetElementMethods for HTMLFieldSetElement {
 }
 
 impl VirtualMethods for HTMLFieldSetElement {
-    fn super_type(&self) -> Option<&dyn VirtualMethods> {
-        Some(self.upcast::<HTMLElement>() as &dyn VirtualMethods)
+    fn super_type(&self) -> Option<&VirtualMethods> {
+        Some(self.upcast::<HTMLElement>() as &VirtualMethods)
     }
 
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {

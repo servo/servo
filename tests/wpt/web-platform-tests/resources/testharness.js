@@ -145,9 +145,9 @@ policies and contribution forms [3].
     };
 
     WindowTestEnvironment.prototype._forEach_windows = function(callback) {
-        // Iterate over the windows [self ... top, opener]. The callback is passed
-        // two objects, the first one is the window object itself, the second one
-        // is a boolean indicating whether or not it's on the same origin as the
+        // Iterate of the the windows [self ... top, opener]. The callback is passed
+        // two objects, the first one is the windows object itself, the second one
+        // is a boolean indicating whether or not its on the same origin as the
         // current window.
         var cache = this.window_cache;
         if (!cache) {
@@ -754,7 +754,7 @@ policies and contribution forms [3].
         }
         if (tests.file_is_test) {
             // file is test files never have asynchronous cleanup logic,
-            // meaning the fully-synchronous `done` function can be used here.
+            // meaning the fully-sycnronous `done` funtion can be used here.
             tests.tests[0].done();
         }
         tests.end_wait();
@@ -1255,19 +1255,24 @@ policies and contribution forms [3].
     expose(assert_class_string, "assert_class_string");
 
 
-    function assert_own_property(object, property_name, description) {
-        assert(object.hasOwnProperty(property_name),
-               "assert_own_property", description,
-               "expected property ${p} missing", {p:property_name});
+    function _assert_own_property(name) {
+        return function(object, property_name, description)
+        {
+            assert(object.hasOwnProperty(property_name),
+                   name, description,
+                   "expected property ${p} missing", {p:property_name});
+        };
     }
-    expose(assert_own_property, "assert_own_property");
+    expose(_assert_own_property("assert_exists"), "assert_exists");
+    expose(_assert_own_property("assert_own_property"), "assert_own_property");
 
-    function assert_not_own_property(object, property_name, description) {
+    function assert_not_exists(object, property_name, description)
+    {
         assert(!object.hasOwnProperty(property_name),
-               "assert_not_own_property", description,
-               "unexpected property ${p} is found on object", {p:property_name});
+               "assert_not_exists", description,
+               "unexpected property ${p} found", {p:property_name});
     }
-    expose(assert_not_own_property, "assert_not_own_property");
+    expose(assert_not_exists, "assert_not_exists");
 
     function _assert_inherits(name) {
         return function (object, property_name, description)
@@ -1548,7 +1553,7 @@ policies and contribution forms [3].
             return;
         }
         this.phase = this.phases.STARTED;
-        //If we don't get a result before the harness times out that will be a test timeout
+        //If we don't get a result before the harness times out that will be a test timout
         this.set_status(this.TIMEOUT, "Test timed out");
 
         tests.started = true;
@@ -2554,24 +2559,27 @@ policies and contribution forms [3].
             if (output_document.body) {
                 output_document.body.appendChild(node);
             } else {
-                var root = output_document.documentElement;
-                var is_html = (root &&
-                               root.namespaceURI == "http://www.w3.org/1999/xhtml" &&
-                               root.localName == "html");
-                var is_svg = (output_document.defaultView &&
-                              "SVGSVGElement" in output_document.defaultView &&
-                              root instanceof output_document.defaultView.SVGSVGElement);
+                var is_html = false;
+                var is_svg = false;
+                var output_window = output_document.defaultView;
+                if (output_window && "SVGSVGElement" in output_window) {
+                    is_svg = output_document.documentElement instanceof output_window.SVGSVGElement;
+                } else if (output_window) {
+                    is_html = (output_document.namespaceURI == "http://www.w3.org/1999/xhtml" &&
+                               output_document.localName == "html");
+                }
                 if (is_svg) {
                     var foreignObject = output_document.createElementNS("http://www.w3.org/2000/svg", "foreignObject");
                     foreignObject.setAttribute("width", "100%");
                     foreignObject.setAttribute("height", "100%");
-                    root.appendChild(foreignObject);
+                    output_document.documentElement.appendChild(foreignObject);
                     foreignObject.appendChild(node);
                 } else if (is_html) {
-                    root.appendChild(output_document.createElementNS("http://www.w3.org/1999/xhtml", "body"))
-                        .appendChild(node);
+                    var body = output_document.createElementNS("http://www.w3.org/1999/xhtml", "body");
+                    output_document.documentElement.appendChild(body);
+                    body.appendChild(node);
                 } else {
-                    root.appendChild(node);
+                    output_document.documentElement.appendChild(node);
                 }
             }
         }
@@ -2794,7 +2802,7 @@ policies and contribution forms [3].
     /*
      * Template code
      *
-     * A template is just a JavaScript structure. An element is represented as:
+     * A template is just a javascript structure. An element is represented as:
      *
      * [tag_name, {attr_name:attr_value}, child1, child2]
      *
@@ -2956,7 +2964,7 @@ policies and contribution forms [3].
     }
 
     /*
-     * Utility functions
+     * Utility funcions
      */
     function assert(expected_true, function_name, description, error, substitutions)
     {
@@ -3219,7 +3227,7 @@ policies and contribution forms [3].
         // Touching the postMessage prop on a window can throw if the window is
         // not from the same origin AND post message is not supported in that
         // browser. So just doing an existence test here won't do, you also need
-        // to wrap it in a try..catch block.
+        // to wrap it in a try..cacth block.
         try {
             type = typeof w.postMessage;
             if (type === "function") {

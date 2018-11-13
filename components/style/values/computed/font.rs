@@ -4,13 +4,14 @@
 
 //! Computed values for font properties
 
+use Atom;
 use app_units::Au;
 use byteorder::{BigEndian, ByteOrder};
 use cssparser::{serialize_identifier, CssStringWriter, Parser};
 #[cfg(feature = "gecko")]
-use gecko_bindings::sugar::refptr::RefPtr;
-#[cfg(feature = "gecko")]
 use gecko_bindings::{bindings, structs};
+#[cfg(feature = "gecko")]
+use gecko_bindings::sugar::refptr::RefPtr;
 #[cfg(feature = "gecko")]
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use std::fmt::{self, Write};
@@ -18,14 +19,13 @@ use std::hash::{Hash, Hasher};
 #[cfg(feature = "servo")]
 use std::slice;
 use style_traits::{CssWriter, ParseError, ToCss};
+use values::CSSFloat;
 use values::animated::{ToAnimatedValue, ToAnimatedZero};
 use values::computed::{Angle, Context, Integer, NonNegativeLength, NonNegativePercentage};
 use values::computed::{Number, Percentage, ToComputedValue};
 use values::generics::font::{self as generics, FeatureTagValue, FontSettings, VariationValue};
-use values::specified::font::{self as specified, MAX_FONT_WEIGHT, MIN_FONT_WEIGHT};
+use values::specified::font::{self as specified, MIN_FONT_WEIGHT, MAX_FONT_WEIGHT};
 use values::specified::length::{FontBaseSize, NoCalcLength};
-use values::CSSFloat;
-use Atom;
 
 pub use values::computed::Length as MozScriptMinSize;
 pub use values::specified::font::{FontSynthesis, MozScriptSizeMultiplier, XLang, XTextZoom};
@@ -747,7 +747,6 @@ pub type FontVariationSettings = FontSettings<VariationValue<Number>>;
 /// it and store it as a 32-bit integer
 /// (see http://www.microsoft.com/typography/otspec/languagetags.htm).
 #[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq)]
-#[repr(C)]
 pub struct FontLanguageOverride(pub u32);
 
 impl FontLanguageOverride {
@@ -866,7 +865,7 @@ impl ToAnimatedValue for FontStyleAngle {
 
     #[inline]
     fn from_animated_value(animated: Self::AnimatedValue) -> Self {
-        FontStyleAngle(Angle::from_degrees(
+        FontStyleAngle(Angle::Deg(
             animated
                 .degrees()
                 .min(specified::FONT_STYLE_OBLIQUE_MAX_ANGLE_DEGREES)
@@ -899,7 +898,7 @@ impl FontStyle {
     /// https://drafts.csswg.org/css-fonts-4/#valdef-font-style-oblique-angle
     #[inline]
     pub fn default_angle() -> FontStyleAngle {
-        FontStyleAngle(Angle::from_degrees(
+        FontStyleAngle(Angle::Deg(
             specified::DEFAULT_FONT_STYLE_OBLIQUE_ANGLE_DEGREES,
         ))
     }
@@ -919,7 +918,7 @@ impl FontStyle {
         if italic {
             return generics::FontStyle::Italic;
         }
-        generics::FontStyle::Oblique(FontStyleAngle(Angle::from_degrees(angle)))
+        generics::FontStyle::Oblique(FontStyleAngle(Angle::Deg(angle)))
     }
 }
 

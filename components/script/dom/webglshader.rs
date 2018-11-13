@@ -3,26 +3,26 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 // https://www.khronos.org/registry/webgl/specs/latest/1.0/webgl.idl
-use canvas_traits::webgl::{webgl_channel, WebGLVersion};
 use canvas_traits::webgl::{WebGLCommand, WebGLError};
 use canvas_traits::webgl::{WebGLResult, WebGLSLVersion, WebGLShaderId};
-use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::WebGLShaderBinding;
-use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
-use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::DOMString;
-use crate::dom::webgl_extensions::ext::extshadertexturelod::EXTShaderTextureLod;
-use crate::dom::webgl_extensions::ext::oesstandardderivatives::OESStandardDerivatives;
-use crate::dom::webgl_extensions::WebGLExtensions;
-use crate::dom::webglobject::WebGLObject;
-use crate::dom::webglrenderingcontext::WebGLRenderingContext;
+use canvas_traits::webgl::{WebGLVersion, webgl_channel};
+use dom::bindings::cell::DomRefCell;
+use dom::bindings::codegen::Bindings::WebGLShaderBinding;
+use dom::bindings::inheritance::Castable;
+use dom::bindings::reflector::{DomObject, reflect_dom_object};
+use dom::bindings::root::DomRoot;
+use dom::bindings::str::DOMString;
+use dom::webgl_extensions::WebGLExtensions;
+use dom::webgl_extensions::ext::extshadertexturelod::EXTShaderTextureLod;
+use dom::webgl_extensions::ext::oesstandardderivatives::OESStandardDerivatives;
+use dom::webglobject::WebGLObject;
+use dom::webglrenderingcontext::WebGLRenderingContext;
 use dom_struct::dom_struct;
 use mozangle::shaders::{BuiltInResources, Output, ShaderValidator};
 use offscreen_gl_context::GLLimits;
 use std::cell::Cell;
 use std::os::raw::c_int;
-use std::sync::{Once, ONCE_INIT};
+use std::sync::{ONCE_INIT, Once};
 
 #[derive(Clone, Copy, Debug, JSTraceable, MallocSizeOf, PartialEq)]
 pub enum ShaderCompilationStatus {

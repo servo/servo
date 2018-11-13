@@ -6,6 +6,7 @@
 //!
 //! [counter-style]: https://drafts.csswg.org/css-counter-styles/
 
+use Atom;
 use cssparser::{AtRuleParser, DeclarationListParser, DeclarationParser};
 use cssparser::{CowRcStr, Parser, SourceLocation, Token};
 use error_reporting::ContextualParseError;
@@ -19,9 +20,8 @@ use std::ops::Range;
 use str::CssStringWriter;
 use style_traits::{Comma, CssWriter, OneOrMoreSeparated, ParseError};
 use style_traits::{StyleParseErrorKind, ToCss};
-use values::specified::Integer;
 use values::CustomIdent;
-use Atom;
+use values::specified::Integer;
 
 /// Parse a counter style name reference.
 ///
@@ -502,8 +502,7 @@ impl Parse for Ranges {
                         }
                     }
                     Ok(opt_start..opt_end)
-                })
-                .map(Ranges)
+                }).map(Ranges)
         }
     }
 }

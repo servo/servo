@@ -2,15 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::codegen::Bindings::DOMPointBinding::{DOMPointInit, DOMPointMethods};
-use crate::dom::bindings::codegen::Bindings::DOMQuadBinding::{DOMQuadInit, DOMQuadMethods, Wrap};
-use crate::dom::bindings::codegen::Bindings::DOMRectReadOnlyBinding::DOMRectInit;
-use crate::dom::bindings::error::Fallible;
-use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
-use crate::dom::bindings::root::{Dom, DomRoot};
-use crate::dom::dompoint::DOMPoint;
-use crate::dom::domrect::DOMRect;
-use crate::dom::globalscope::GlobalScope;
+use dom::bindings::codegen::Bindings::DOMPointBinding::{DOMPointInit, DOMPointMethods};
+use dom::bindings::codegen::Bindings::DOMQuadBinding::{DOMQuadInit, DOMQuadMethods, Wrap};
+use dom::bindings::codegen::Bindings::DOMRectReadOnlyBinding::DOMRectInit;
+use dom::bindings::error::Fallible;
+use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
+use dom::bindings::root::{Dom, DomRoot};
+use dom::dompoint::DOMPoint;
+use dom::domrect::DOMRect;
+use dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
 
 // https://drafts.fxtf.org/geometry/#DOMQuad

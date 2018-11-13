@@ -6,7 +6,7 @@
 
 set -o errexit
 
-wget https://servo-deps.s3.amazonaws.com/gstreamer/gstreamer-x86_64-linux-gnu.tar.gz -O gstreamer.tar.gz
+wget http://servo-deps.s3.amazonaws.com/gstreamer/gstreamer-x86_64-linux-gnu.tar.gz -O gstreamer.tar.gz
 tar -zxf gstreamer.tar.gz
 rm gstreamer.tar.gz
 sed -i "s;prefix=/root/gstreamer;prefix=${PWD}/gstreamer;g" ${PWD}/gstreamer/lib/x86_64-linux-gnu/pkgconfig/*.pc

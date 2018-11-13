@@ -4,10 +4,10 @@
 
 //! The `Reflector` struct.
 
-use crate::dom::bindings::conversions::DerivedFrom;
-use crate::dom::bindings::root::DomRoot;
-use crate::dom::globalscope::GlobalScope;
-use js::jsapi::{Heap, JSContext, JSObject};
+use dom::bindings::conversions::DerivedFrom;
+use dom::bindings::root::DomRoot;
+use dom::globalscope::GlobalScope;
+use js::jsapi::{JSContext, JSObject, Heap};
 use js::rust::HandleObject;
 use std::default::Default;
 

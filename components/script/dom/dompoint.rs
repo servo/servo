@@ -2,15 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::codegen::Bindings::DOMPointBinding::{
-    DOMPointInit, DOMPointMethods, Wrap,
-};
-use crate::dom::bindings::codegen::Bindings::DOMPointReadOnlyBinding::DOMPointReadOnlyMethods;
-use crate::dom::bindings::error::Fallible;
-use crate::dom::bindings::reflector::reflect_dom_object;
-use crate::dom::bindings::root::DomRoot;
-use crate::dom::dompointreadonly::{DOMPointReadOnly, DOMPointWriteMethods};
-use crate::dom::globalscope::GlobalScope;
+use dom::bindings::codegen::Bindings::DOMPointBinding::{DOMPointInit, DOMPointMethods, Wrap};
+use dom::bindings::codegen::Bindings::DOMPointReadOnlyBinding::DOMPointReadOnlyMethods;
+use dom::bindings::error::Fallible;
+use dom::bindings::reflector::reflect_dom_object;
+use dom::bindings::root::DomRoot;
+use dom::dompointreadonly::{DOMPointReadOnly, DOMPointWriteMethods};
+use dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
 
 // http://dev.w3.org/fxtf/geometry/Overview.html#dompoint

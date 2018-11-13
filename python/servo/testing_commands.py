@@ -304,13 +304,6 @@ class MachCommands(CommandBase):
               "tests/wpt/mozilla/.")
         return 0
 
-    def install_rustfmt(self):
-        with open(os.devnull, "w") as devnull:
-            if self.call_rustup_run(["cargo", "fmt", "--version", "-q"],
-                                    stderr=devnull) != 0:
-                # Rustfmt is not installed. Install:
-                self.call_rustup_run(["rustup", "component", "add", "rustfmt-preview"])
-
     @Command('test-tidy',
              description='Run the source code tidiness check',
              category='testing')
@@ -329,11 +322,7 @@ class MachCommands(CommandBase):
         else:
             manifest_dirty = run_update(self.context.topdir, check_clean=True)
             tidy_failed = tidy.scan(not all_files, not no_progress, stylo=stylo)
-            self.install_rustfmt()
-            rustfmt_failed = self.call_rustup_run(["cargo", "fmt", "--", "--check"])
-            if rustfmt_failed:
-                print("Run `./mach fmt` to fix the formatting")
-            return tidy_failed or manifest_dirty or rustfmt_failed
+            return tidy_failed or manifest_dirty
 
     @Command('test-webidl',
              description='Run the WebIDL parser tests',
@@ -454,13 +443,6 @@ class MachCommands(CommandBase):
     def update_manifest(self, **kwargs):
         return run_update(self.context.topdir, **kwargs)
 
-    @Command('fmt',
-             description='Format the Rust source files with rustfmt',
-             category='testing')
-    def format_code(self, **kwargs):
-        self.install_rustfmt()
-        return self.call_rustup_run(["cargo", "fmt"])
-
     @Command('update-wpt',
              description='Update the web platform tests',
              category='testing',
@@ -509,7 +491,7 @@ class MachCommands(CommandBase):
         for failure in failures:
             if tracker_api:
                 if tracker_api == 'default':
-                    tracker_api = "https://build.servo.org/intermittent-tracker"
+                    tracker_api = "http://build.servo.org/intermittent-tracker"
                 elif tracker_api.endswith('/'):
                     tracker_api = tracker_api[0:-1]
 
@@ -537,7 +519,7 @@ class MachCommands(CommandBase):
 
         if reporter_api:
             if reporter_api == 'default':
-                reporter_api = "https://build.servo.org/intermittent-failure-tracker"
+                reporter_api = "http://build.servo.org/intermittent-failure-tracker"
             if reporter_api.endswith('/'):
                 reporter_api = reporter_api[0:-1]
             reported = set()

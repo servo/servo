@@ -6,51 +6,57 @@
 #![crate_type = "rlib"]
 #![deny(unsafe_code)]
 
+extern crate base64;
+extern crate cookie as cookie_rs;
+extern crate euclid;
+extern crate hyper;
+extern crate image;
+extern crate ipc_channel;
 #[macro_use]
 extern crate log;
-#[macro_use]
-extern crate serde;
+extern crate msg;
+extern crate net_traits;
+extern crate regex;
+extern crate rustc_serialize;
+extern crate script_traits;
+extern crate servo_channel;
+extern crate servo_config;
+extern crate servo_url;
+extern crate uuid;
+extern crate webdriver;
 
 mod keys;
 
-use base64;
-use crate::keys::keycodes_to_keys;
 use euclid::TypedSize2D;
-use hyper::Method;
+use hyper::method::Method::{self, Post};
 use image::{DynamicImage, ImageFormat, RgbImage};
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
+use keys::keycodes_to_keys;
 use msg::constellation_msg::{BrowsingContextId, TopLevelBrowsingContextId, TraversalDirection};
 use net_traits::image::base::PixelFormat;
 use regex::Captures;
-use script_traits::webdriver_msg::{LoadStatus, WebDriverCookieError, WebDriverFrameId};
-use script_traits::webdriver_msg::{
-    WebDriverJSError, WebDriverJSResult, WebDriverJSValue, WebDriverScriptCommand,
-};
+use rustc_serialize::json::{Json, ToJson};
 use script_traits::{ConstellationMsg, LoadData, WebDriverCommandMsg};
-use serde::de::{Deserialize, Deserializer, MapAccess, Visitor};
-use serde::ser::{Serialize, Serializer};
-use serde_json::{self, Value};
+use script_traits::webdriver_msg::{LoadStatus, WebDriverCookieError, WebDriverFrameId};
+use script_traits::webdriver_msg::{WebDriverJSError, WebDriverJSResult, WebDriverScriptCommand};
 use servo_channel::Sender;
-use servo_config::prefs::{PrefValue, PREFS};
+use servo_config::prefs::{PREFS, PrefValue};
 use servo_url::ServoUrl;
 use std::borrow::ToOwned;
 use std::collections::BTreeMap;
-use std::fmt;
 use std::net::{SocketAddr, SocketAddrV4};
 use std::thread;
 use std::time::Duration;
 use uuid::Uuid;
-use webdriver::command::{
-    AddCookieParameters, GetParameters, JavascriptCommandParameters, LocatorParameters,
-};
+use webdriver::command::{AddCookieParameters, GetParameters, JavascriptCommandParameters};
+use webdriver::command::{LocatorParameters, Parameters};
 use webdriver::command::{SendKeysParameters, SwitchToFrameParameters, TimeoutsParameters};
-use webdriver::command::{
-    WebDriverCommand, WebDriverExtensionCommand, WebDriverMessage, WindowRectParameters,
-};
-use webdriver::common::{Cookie, Date, LocatorStrategy, WebElement};
+use webdriver::command::{WebDriverCommand, WebDriverExtensionCommand, WebDriverMessage};
+use webdriver::command::WindowRectParameters;
+use webdriver::common::{Date, LocatorStrategy, Nullable, WebElement};
 use webdriver::error::{ErrorStatus, WebDriverError, WebDriverResult};
 use webdriver::httpapi::WebDriverExtensionRoute;
-use webdriver::response::{CookieResponse, CookiesResponse};
+use webdriver::response::{Cookie, CookieResponse, CookiesResponse};
 use webdriver::response::{ElementRectResponse, NewSessionResponse, ValueResponse};
 use webdriver::response::{WebDriverResponse, WindowRectResponse};
 use webdriver::server::{self, Session, WebDriverHandler};
@@ -58,34 +64,41 @@ use webdriver::server::{self, Session, WebDriverHandler};
 fn extension_routes() -> Vec<(Method, &'static str, ServoExtensionRoute)> {
     return vec![
         (
-            Method::POST,
+            Post,
             "/session/{sessionId}/servo/prefs/get",
             ServoExtensionRoute::GetPrefs,
         ),
         (
-            Method::POST,
+            Post,
             "/session/{sessionId}/servo/prefs/set",
             ServoExtensionRoute::SetPrefs,
         ),
         (
-            Method::POST,
+            Post,
             "/session/{sessionId}/servo/prefs/reset",
             ServoExtensionRoute::ResetPrefs,
         ),
     ];
 }
 
-fn cookie_msg_to_cookie(cookie: cookie::Cookie) -> Cookie {
+fn cookie_msg_to_cookie(cookie: cookie_rs::Cookie) -> Cookie {
     Cookie {
         name: cookie.name().to_owned(),
         value: cookie.value().to_owned(),
-        path: cookie.path().map(|s| s.to_owned()),
-        domain: cookie.domain().map(|s| s.to_owned()),
-        expiry: cookie
-            .expires()
-            .map(|time| Date(time.to_timespec().sec as u64)),
-        secure: cookie.secure().unwrap_or(false),
-        httpOnly: cookie.http_only().unwrap_or(false),
+        path: match cookie.path() {
+            Some(path) => Nullable::Value(path.to_string()),
+            None => Nullable::Null,
+        },
+        domain: match cookie.domain() {
+            Some(domain) => Nullable::Value(domain.to_string()),
+            None => Nullable::Null,
+        },
+        expiry: match cookie.expires() {
+            Some(time) => Nullable::Value(Date::new(time.to_timespec().sec as u64)),
+            None => Nullable::Null,
+        },
+        secure: cookie.secure(),
+        httpOnly: cookie.http_only(),
     }
 }
 
@@ -99,8 +112,7 @@ pub fn start_server(port: u16, constellation_chan: Sender<ConstellationMsg>) {
                 Ok(listening) => info!("WebDriver server listening on {}", listening.socket),
                 Err(_) => panic!("Unable to start WebDriver HTTPD server"),
             }
-        })
-        .expect("Thread spawning failed");
+        }).expect("Thread spawning failed");
 }
 
 /// Represents the current WebDriver session and holds relevant session state.
@@ -157,19 +169,19 @@ impl WebDriverExtensionRoute for ServoExtensionRoute {
     fn command(
         &self,
         _captures: &Captures,
-        body_data: &Value,
+        body_data: &Json,
     ) -> WebDriverResult<WebDriverCommand<ServoExtensionCommand>> {
         let command = match *self {
             ServoExtensionRoute::GetPrefs => {
-                let parameters: GetPrefsParameters = serde_json::from_value(body_data.clone())?;
+                let parameters: GetPrefsParameters = Parameters::from_json(&body_data)?;
                 ServoExtensionCommand::GetPrefs(parameters)
             },
             ServoExtensionRoute::SetPrefs => {
-                let parameters: SetPrefsParameters = serde_json::from_value(body_data.clone())?;
+                let parameters: SetPrefsParameters = Parameters::from_json(&body_data)?;
                 ServoExtensionCommand::SetPrefs(parameters)
             },
             ServoExtensionRoute::ResetPrefs => {
-                let parameters: GetPrefsParameters = serde_json::from_value(body_data.clone())?;
+                let parameters: GetPrefsParameters = Parameters::from_json(&body_data)?;
                 ServoExtensionCommand::ResetPrefs(parameters)
             },
         };
@@ -185,147 +197,95 @@ enum ServoExtensionCommand {
 }
 
 impl WebDriverExtensionCommand for ServoExtensionCommand {
-    fn parameters_json(&self) -> Option<Value> {
+    fn parameters_json(&self) -> Option<Json> {
         match *self {
-            ServoExtensionCommand::GetPrefs(ref x) => serde_json::to_value(x).ok(),
-            ServoExtensionCommand::SetPrefs(ref x) => serde_json::to_value(x).ok(),
-            ServoExtensionCommand::ResetPrefs(ref x) => serde_json::to_value(x).ok(),
-        }
-    }
-}
-
-struct SendableWebDriverJSValue(pub WebDriverJSValue);
-
-impl Serialize for SendableWebDriverJSValue {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        match self.0 {
-            WebDriverJSValue::Undefined => serializer.serialize_unit(),
-            WebDriverJSValue::Null => serializer.serialize_unit(),
-            WebDriverJSValue::Boolean(x) => serializer.serialize_bool(x),
-            WebDriverJSValue::Number(x) => serializer.serialize_f64(x),
-            WebDriverJSValue::String(ref x) => serializer.serialize_str(&x),
+            ServoExtensionCommand::GetPrefs(ref x) => Some(x.to_json()),
+            ServoExtensionCommand::SetPrefs(ref x) => Some(x.to_json()),
+            ServoExtensionCommand::ResetPrefs(ref x) => Some(x.to_json()),
         }
     }
 }
 
 #[derive(Clone, Debug, PartialEq)]
-struct WebDriverPrefValue(pub PrefValue);
-
-impl Serialize for WebDriverPrefValue {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        match self.0 {
-            PrefValue::Boolean(b) => serializer.serialize_bool(b),
-            PrefValue::String(ref s) => serializer.serialize_str(&s),
-            PrefValue::Number(f) => serializer.serialize_f64(f),
-            PrefValue::Missing => serializer.serialize_unit(),
-        }
-    }
-}
-
-impl<'de> Deserialize<'de> for WebDriverPrefValue {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        struct Visitor;
-
-        impl<'de> ::serde::de::Visitor<'de> for Visitor {
-            type Value = WebDriverPrefValue;
-
-            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-                formatter.write_str("preference value")
-            }
-
-            fn visit_f64<E>(self, value: f64) -> Result<Self::Value, E>
-            where
-                E: ::serde::de::Error,
-            {
-                Ok(WebDriverPrefValue(PrefValue::Number(value)))
-            }
-
-            fn visit_i64<E>(self, value: i64) -> Result<Self::Value, E>
-            where
-                E: ::serde::de::Error,
-            {
-                Ok(WebDriverPrefValue(PrefValue::Number(value as f64)))
-            }
-
-            fn visit_u64<E>(self, value: u64) -> Result<Self::Value, E>
-            where
-                E: ::serde::de::Error,
-            {
-                Ok(WebDriverPrefValue(PrefValue::Number(value as f64)))
-            }
-
-            fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
-            where
-                E: ::serde::de::Error,
-            {
-                Ok(WebDriverPrefValue(PrefValue::String(value.to_owned())))
-            }
-
-            fn visit_bool<E>(self, value: bool) -> Result<Self::Value, E>
-            where
-                E: ::serde::de::Error,
-            {
-                Ok(WebDriverPrefValue(PrefValue::Boolean(value)))
-            }
-        }
-
-        deserializer.deserialize_any(Visitor)
-    }
-}
-
-#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 struct GetPrefsParameters {
     prefs: Vec<String>,
 }
 
-#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+impl Parameters for GetPrefsParameters {
+    fn from_json(body: &Json) -> WebDriverResult<GetPrefsParameters> {
+        let data = body.as_object().ok_or(WebDriverError::new(
+            ErrorStatus::InvalidArgument,
+            "Message body was not an object",
+        ))?;
+        let prefs_value = data.get("prefs").ok_or(WebDriverError::new(
+            ErrorStatus::InvalidArgument,
+            "Missing prefs key",
+        ))?;
+        let items = prefs_value.as_array().ok_or(WebDriverError::new(
+            ErrorStatus::InvalidArgument,
+            "prefs was not an array",
+        ))?;
+        let params = items
+            .iter()
+            .map(|x| {
+                x.as_string()
+                    .map(|y| y.to_owned())
+                    .ok_or(WebDriverError::new(
+                        ErrorStatus::InvalidArgument,
+                        "Pref is not a string",
+                    ))
+            }).collect::<Result<Vec<_>, _>>()?;
+        Ok(GetPrefsParameters { prefs: params })
+    }
+}
+
+impl ToJson for GetPrefsParameters {
+    fn to_json(&self) -> Json {
+        let mut data = BTreeMap::new();
+        data.insert("prefs".to_owned(), self.prefs.to_json());
+        Json::Object(data)
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
 struct SetPrefsParameters {
-    #[serde(deserialize_with = "map_to_vec")]
-    prefs: Vec<(String, WebDriverPrefValue)>,
+    prefs: Vec<(String, PrefValue)>,
 }
 
-fn map_to_vec<'de, D>(de: D) -> Result<Vec<(String, WebDriverPrefValue)>, D::Error>
-where
-    D: Deserializer<'de>,
-{
-    de.deserialize_map(TupleVecMapVisitor)
-}
-
-struct TupleVecMapVisitor;
-
-impl<'de> Visitor<'de> for TupleVecMapVisitor {
-    type Value = Vec<(String, WebDriverPrefValue)>;
-
-    fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
-        formatter.write_str("a map")
-    }
-
-    #[inline]
-    fn visit_unit<E>(self) -> Result<Self::Value, E> {
-        Ok(Vec::new())
-    }
-
-    #[inline]
-    fn visit_map<T>(self, mut access: T) -> Result<Self::Value, T::Error>
-    where
-        T: MapAccess<'de>,
-    {
-        let mut values = Vec::new();
-
-        while let Some((key, value)) = access.next_entry()? {
-            values.push((key, value));
+impl Parameters for SetPrefsParameters {
+    fn from_json(body: &Json) -> WebDriverResult<SetPrefsParameters> {
+        let data = body.as_object().ok_or(WebDriverError::new(
+            ErrorStatus::InvalidArgument,
+            "Message body was not an object",
+        ))?;
+        let items = data
+            .get("prefs")
+            .ok_or(WebDriverError::new(
+                ErrorStatus::InvalidArgument,
+                "Missing prefs key",
+            ))?.as_object()
+            .ok_or(WebDriverError::new(
+                ErrorStatus::InvalidArgument,
+                "prefs was not an array",
+            ))?;
+        let mut params = Vec::with_capacity(items.len());
+        for (name, val) in items.iter() {
+            let value = PrefValue::from_json(val.clone()).or(Err(WebDriverError::new(
+                ErrorStatus::InvalidArgument,
+                "Pref is not a boolean or string",
+            )))?;
+            let key = name.to_owned();
+            params.push((key, value));
         }
+        Ok(SetPrefsParameters { prefs: params })
+    }
+}
 
-        Ok(values)
+impl ToJson for SetPrefsParameters {
+    fn to_json(&self) -> Json {
+        let mut data = BTreeMap::new();
+        data.insert("prefs".to_owned(), self.prefs.to_json());
+        Json::Object(data)
     }
 }
 
@@ -388,15 +348,12 @@ impl Handler {
             let top_level_browsing_context_id = self.focus_top_level_browsing_context_id()?;
             let browsing_context_id = BrowsingContextId::from(top_level_browsing_context_id);
             let session = WebDriverSession::new(browsing_context_id, top_level_browsing_context_id);
-            let mut capabilities = serde_json::Map::new();
-            capabilities.insert("browserName".to_owned(), serde_json::to_value("servo")?);
-            capabilities.insert("browserVersion".to_owned(), serde_json::to_value("0.0.1")?);
-            capabilities.insert(
-                "acceptInsecureCerts".to_owned(),
-                serde_json::to_value(false)?,
-            );
+            let mut capabilities = BTreeMap::new();
+            capabilities.insert("browserName".to_owned(), "servo".to_json());
+            capabilities.insert("browserVersion".to_owned(), "0.0.1".to_json());
+            capabilities.insert("acceptInsecureCerts".to_owned(), false.to_json());
             let response =
-                NewSessionResponse::new(session.id.to_string(), Value::Object(capabilities));
+                NewSessionResponse::new(session.id.to_string(), Json::Object(capabilities));
             debug!("new session created {}.", session.id);
             self.session = Some(session);
             Ok(WebDriverResponse::NewSession(response))
@@ -411,7 +368,7 @@ impl Handler {
 
     fn handle_delete_session(&mut self) -> WebDriverResult<WebDriverResponse> {
         self.session = None;
-        Ok(WebDriverResponse::DeleteSession)
+        Ok(WebDriverResponse::Void)
     }
 
     fn browsing_context_script_command(
@@ -489,8 +446,8 @@ impl Handler {
 
         let url = receiver.recv().unwrap();
 
-        Ok(WebDriverResponse::Generic(ValueResponse(
-            serde_json::to_value(url.as_str())?,
+        Ok(WebDriverResponse::Generic(ValueResponse::new(
+            url.as_str().to_json(),
         )))
     }
 
@@ -520,12 +477,12 @@ impl Handler {
     ) -> WebDriverResult<WebDriverResponse> {
         let (sender, receiver) = ipc::channel().unwrap();
         let width = match params.width {
-            Some(v) => v,
-            None => 0,
+            Nullable::Value(v) => v,
+            Nullable::Null => 0,
         };
         let height = match params.height {
-            Some(v) => v,
-            None => 0,
+            Nullable::Value(v) => v,
+            Nullable::Null => 0,
         };
         let size = TypedSize2D::new(width as u32, height as u32);
         let top_level_browsing_context_id = self.session()?.top_level_browsing_context_id;
@@ -568,8 +525,8 @@ impl Handler {
         ))?;
 
         match receiver.recv().unwrap() {
-            Ok(is_enabled) => Ok(WebDriverResponse::Generic(ValueResponse(
-                serde_json::to_value(is_enabled)?,
+            Ok(is_enabled) => Ok(WebDriverResponse::Generic(ValueResponse::new(
+                is_enabled.to_json(),
             ))),
             Err(_) => Err(WebDriverError::new(
                 ErrorStatus::StaleElementReference,
@@ -587,8 +544,8 @@ impl Handler {
         ))?;
 
         match receiver.recv().unwrap() {
-            Ok(is_selected) => Ok(WebDriverResponse::Generic(ValueResponse(
-                serde_json::to_value(is_selected)?,
+            Ok(is_selected) => Ok(WebDriverResponse::Generic(ValueResponse::new(
+                is_selected.to_json(),
             ))),
             Err(_) => Err(WebDriverError::new(
                 ErrorStatus::StaleElementReference,
@@ -632,8 +589,8 @@ impl Handler {
         self.top_level_script_command(WebDriverScriptCommand::GetTitle(sender))?;
 
         let value = receiver.recv().unwrap();
-        Ok(WebDriverResponse::Generic(ValueResponse(
-            serde_json::to_value(value)?,
+        Ok(WebDriverResponse::Generic(ValueResponse::new(
+            value.to_json(),
         )))
     }
 
@@ -641,19 +598,17 @@ impl Handler {
         // For now we assume there's only one window so just use the session
         // id as the window id
         let handle = self.session.as_ref().unwrap().id.to_string();
-        Ok(WebDriverResponse::Generic(ValueResponse(
-            serde_json::to_value(handle)?,
+        Ok(WebDriverResponse::Generic(ValueResponse::new(
+            handle.to_json(),
         )))
     }
 
     fn handle_window_handles(&self) -> WebDriverResult<WebDriverResponse> {
         // For now we assume there's only one window so just use the session
         // id as the window id
-        let handles = vec![serde_json::to_value(
-            self.session.as_ref().unwrap().id.to_string(),
-        )?];
-        Ok(WebDriverResponse::Generic(ValueResponse(
-            serde_json::to_value(handles)?,
+        let handles = vec![self.session.as_ref().unwrap().id.to_string().to_json()];
+        Ok(WebDriverResponse::Generic(ValueResponse::new(
+            handles.to_json(),
         )))
     }
 
@@ -675,10 +630,8 @@ impl Handler {
 
         match receiver.recv().unwrap() {
             Ok(value) => {
-                let value_resp = serde_json::to_value(
-                    value.map(|x| serde_json::to_value(WebElement::new(x)).unwrap()),
-                )?;
-                Ok(WebDriverResponse::Generic(ValueResponse(value_resp)))
+                let value_resp = value.map(|x| WebElement::new(x).to_json()).to_json();
+                Ok(WebDriverResponse::Generic(ValueResponse::new(value_resp)))
             },
             Err(_) => Err(WebDriverError::new(
                 ErrorStatus::InvalidSelector,
@@ -693,14 +646,14 @@ impl Handler {
     ) -> WebDriverResult<WebDriverResponse> {
         use webdriver::common::FrameId;
         let frame_id = match parameters.id {
-            None => {
+            FrameId::Null => {
                 let session = self.session_mut()?;
                 session.browsing_context_id =
                     BrowsingContextId::from(session.top_level_browsing_context_id);
                 return Ok(WebDriverResponse::Void);
             },
-            Some(FrameId::Short(ref x)) => WebDriverFrameId::Short(*x),
-            Some(FrameId::Element(ref x)) => WebDriverFrameId::Element(x.id.clone()),
+            FrameId::Short(ref x) => WebDriverFrameId::Short(*x),
+            FrameId::Element(ref x) => WebDriverFrameId::Element(x.id.clone()),
         };
 
         self.switch_to_frame(frame_id)
@@ -750,12 +703,12 @@ impl Handler {
         self.browsing_context_script_command(cmd)?;
         match receiver.recv().unwrap() {
             Ok(value) => {
-                let resp_value: Vec<Value> = value
+                let resp_value: Vec<Json> = value
                     .into_iter()
-                    .map(|x| serde_json::to_value(WebElement::new(x)).unwrap())
+                    .map(|x| WebElement::new(x).to_json())
                     .collect();
-                Ok(WebDriverResponse::Generic(ValueResponse(
-                    serde_json::to_value(resp_value)?,
+                Ok(WebDriverResponse::Generic(ValueResponse::new(
+                    resp_value.to_json(),
                 )))
             },
             Err(_) => Err(WebDriverError::new(
@@ -792,8 +745,8 @@ impl Handler {
         let cmd = WebDriverScriptCommand::GetElementText(element.id.clone(), sender);
         self.browsing_context_script_command(cmd)?;
         match receiver.recv().unwrap() {
-            Ok(value) => Ok(WebDriverResponse::Generic(ValueResponse(
-                serde_json::to_value(value)?,
+            Ok(value) => Ok(WebDriverResponse::Generic(ValueResponse::new(
+                value.to_json(),
             ))),
             Err(_) => Err(WebDriverError::new(
                 ErrorStatus::StaleElementReference,
@@ -809,9 +762,9 @@ impl Handler {
         let value = receiver
             .recv()
             .unwrap()
-            .map(|x| serde_json::to_value(WebElement::new(x)).unwrap());
-        Ok(WebDriverResponse::Generic(ValueResponse(
-            serde_json::to_value(value)?,
+            .map(|x| WebElement::new(x).to_json());
+        Ok(WebDriverResponse::Generic(ValueResponse::new(
+            value.to_json(),
         )))
     }
 
@@ -820,8 +773,8 @@ impl Handler {
         let cmd = WebDriverScriptCommand::GetElementTagName(element.id.clone(), sender);
         self.browsing_context_script_command(cmd)?;
         match receiver.recv().unwrap() {
-            Ok(value) => Ok(WebDriverResponse::Generic(ValueResponse(
-                serde_json::to_value(value)?,
+            Ok(value) => Ok(WebDriverResponse::Generic(ValueResponse::new(
+                value.to_json(),
             ))),
             Err(_) => Err(WebDriverError::new(
                 ErrorStatus::StaleElementReference,
@@ -843,8 +796,8 @@ impl Handler {
         );
         self.browsing_context_script_command(cmd)?;
         match receiver.recv().unwrap() {
-            Ok(value) => Ok(WebDriverResponse::Generic(ValueResponse(
-                serde_json::to_value(value)?,
+            Ok(value) => Ok(WebDriverResponse::Generic(ValueResponse::new(
+                value.to_json(),
             ))),
             Err(_) => Err(WebDriverError::new(
                 ErrorStatus::StaleElementReference,
@@ -863,8 +816,8 @@ impl Handler {
             WebDriverScriptCommand::GetElementCSS(element.id.clone(), name.to_owned(), sender);
         self.browsing_context_script_command(cmd)?;
         match receiver.recv().unwrap() {
-            Ok(value) => Ok(WebDriverResponse::Generic(ValueResponse(
-                serde_json::to_value(value)?,
+            Ok(value) => Ok(WebDriverResponse::Generic(ValueResponse::new(
+                value.to_json(),
             ))),
             Err(_) => Err(WebDriverError::new(
                 ErrorStatus::StaleElementReference,
@@ -882,7 +835,9 @@ impl Handler {
             .into_iter()
             .map(|cookie| cookie_msg_to_cookie(cookie.into_inner()))
             .collect::<Vec<Cookie>>();
-        Ok(WebDriverResponse::Cookies(CookiesResponse(response)))
+        Ok(WebDriverResponse::Cookies(CookiesResponse {
+            value: response,
+        }))
     }
 
     fn handle_get_cookie(&self, name: &str) -> WebDriverResult<WebDriverResponse> {
@@ -895,7 +850,9 @@ impl Handler {
             .map(|cookie| cookie_msg_to_cookie(cookie.into_inner()))
             .next()
             .unwrap();
-        Ok(WebDriverResponse::Cookie(CookieResponse(response)))
+        Ok(WebDriverResponse::Cookie(CookieResponse {
+            value: response,
+        }))
     }
 
     fn handle_add_cookie(
@@ -904,15 +861,15 @@ impl Handler {
     ) -> WebDriverResult<WebDriverResponse> {
         let (sender, receiver) = ipc::channel().unwrap();
 
-        let cookie = cookie::Cookie::build(params.name.to_owned(), params.value.to_owned())
+        let cookie = cookie_rs::Cookie::build(params.name.to_owned(), params.value.to_owned())
             .secure(params.secure)
             .http_only(params.httpOnly);
         let cookie = match params.domain {
-            Some(ref domain) => cookie.domain(domain.to_owned()),
+            Nullable::Value(ref domain) => cookie.domain(domain.to_owned()),
             _ => cookie,
         };
         let cookie = match params.path {
-            Some(ref path) => cookie.path(path.to_owned()).finish(),
+            Nullable::Value(ref path) => cookie.path(path.to_owned()).finish(),
             _ => cookie.finish(),
         };
 
@@ -1000,8 +957,8 @@ impl Handler {
         result: WebDriverJSResult,
     ) -> WebDriverResult<WebDriverResponse> {
         match result {
-            Ok(value) => Ok(WebDriverResponse::Generic(ValueResponse(
-                serde_json::to_value(SendableWebDriverJSValue(value))?,
+            Ok(value) => Ok(WebDriverResponse::Generic(ValueResponse::new(
+                value.to_json(),
             ))),
             Err(WebDriverJSError::Timeout) => Err(WebDriverError::new(ErrorStatus::Timeout, "")),
             Err(WebDriverJSError::UnknownType) => Err(WebDriverError::new(
@@ -1038,7 +995,12 @@ impl Handler {
             ))
         })?;
 
-        let keys = keycodes_to_keys(&keys.text);
+        let keys = keycodes_to_keys(&keys.text).or_else(|_| {
+            Err(WebDriverError::new(
+                ErrorStatus::UnsupportedOperation,
+                "Failed to convert keycodes",
+            ))
+        })?;
 
         // TODO: there's a race condition caused by the focus command and the
         // send keys command being two separate messages,
@@ -1097,8 +1059,8 @@ impl Handler {
             .unwrap();
 
         let encoded = base64::encode(&png_data);
-        Ok(WebDriverResponse::Generic(ValueResponse(
-            serde_json::to_value(encoded)?,
+        Ok(WebDriverResponse::Generic(ValueResponse::new(
+            encoded.to_json(),
         )))
     }
 
@@ -1109,11 +1071,11 @@ impl Handler {
         let prefs = parameters
             .prefs
             .iter()
-            .map(|item| (item.clone(), serde_json::to_value(PREFS.get(item)).unwrap()))
+            .map(|item| (item.clone(), PREFS.get(item).to_json()))
             .collect::<BTreeMap<_, _>>();
 
-        Ok(WebDriverResponse::Generic(ValueResponse(
-            serde_json::to_value(prefs)?,
+        Ok(WebDriverResponse::Generic(ValueResponse::new(
+            prefs.to_json(),
         )))
     }
 
@@ -1122,7 +1084,7 @@ impl Handler {
         parameters: &SetPrefsParameters,
     ) -> WebDriverResult<WebDriverResponse> {
         for &(ref key, ref value) in parameters.prefs.iter() {
-            PREFS.set(key, value.0.clone());
+            PREFS.set(key, value.clone());
         }
         Ok(WebDriverResponse::Void)
     }
@@ -1138,16 +1100,11 @@ impl Handler {
             parameters
                 .prefs
                 .iter()
-                .map(|item| {
-                    (
-                        item.clone(),
-                        serde_json::to_value(PREFS.reset(item)).unwrap(),
-                    )
-                })
+                .map(|item| (item.clone(), PREFS.reset(item).to_json()))
                 .collect::<BTreeMap<_, _>>()
         };
-        Ok(WebDriverResponse::Generic(ValueResponse(
-            serde_json::to_value(prefs)?,
+        Ok(WebDriverResponse::Generic(ValueResponse::new(
+            prefs.to_json(),
         )))
     }
 }
@@ -1224,10 +1181,7 @@ impl WebDriverHandler<ServoExtensionRoute> for Handler {
 
     fn delete_session(&mut self, _session: &Option<Session>) {
         // Servo doesn't support multiple sessions, so we exit on session deletion
-        let _ = self
-            .constellation_chan
-            .send(ConstellationMsg::Exit)
-            .unwrap();
+        let _ = self.constellation_chan.send(ConstellationMsg::Exit).unwrap();
         self.session = None;
     }
 }

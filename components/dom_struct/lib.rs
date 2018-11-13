@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 extern crate proc_macro;
+
 #[macro_use]
 extern crate quote;
 extern crate syn;
@@ -46,7 +47,7 @@ pub fn dom_struct(args: TokenStream, input: TokenStream) -> TokenStream {
             quote! (
                 #s2
 
-                impl crate::dom::bindings::inheritance::HasParent for #name {
+                impl ::dom::bindings::inheritance::HasParent for #name {
                     type Parent = #ty;
                     /// This is used in a type assertion to ensure that
                     /// the source and webidls agree as to what the parent type is
@@ -54,8 +55,7 @@ pub fn dom_struct(args: TokenStream, input: TokenStream) -> TokenStream {
                         &self.#ident
                     }
                 }
-            )
-            .into()
+            ).into()
         } else {
             panic!("#[dom_struct] only applies to structs with named fields");
         }

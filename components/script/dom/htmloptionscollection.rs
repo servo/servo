@@ -2,26 +2,24 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
-use crate::dom::bindings::codegen::Bindings::HTMLCollectionBinding::HTMLCollectionMethods;
-use crate::dom::bindings::codegen::Bindings::HTMLOptionsCollectionBinding;
-use crate::dom::bindings::codegen::Bindings::HTMLOptionsCollectionBinding::HTMLOptionsCollectionMethods;
-use crate::dom::bindings::codegen::Bindings::HTMLSelectElementBinding::HTMLSelectElementMethods;
-use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeBinding::NodeMethods;
-use crate::dom::bindings::codegen::UnionTypes::{
-    HTMLElementOrLong, HTMLOptionElementOrHTMLOptGroupElement,
-};
-use crate::dom::bindings::error::{Error, ErrorResult};
-use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::reflect_dom_object;
-use crate::dom::bindings::root::{DomRoot, RootedReference};
-use crate::dom::bindings::str::DOMString;
-use crate::dom::element::Element;
-use crate::dom::htmlcollection::{CollectionFilter, HTMLCollection};
-use crate::dom::htmloptionelement::HTMLOptionElement;
-use crate::dom::htmlselectelement::HTMLSelectElement;
-use crate::dom::node::{document_from_node, Node};
-use crate::dom::window::Window;
+use dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
+use dom::bindings::codegen::Bindings::HTMLCollectionBinding::HTMLCollectionMethods;
+use dom::bindings::codegen::Bindings::HTMLOptionsCollectionBinding;
+use dom::bindings::codegen::Bindings::HTMLOptionsCollectionBinding::HTMLOptionsCollectionMethods;
+use dom::bindings::codegen::Bindings::HTMLSelectElementBinding::HTMLSelectElementMethods;
+use dom::bindings::codegen::Bindings::NodeBinding::NodeBinding::NodeMethods;
+use dom::bindings::codegen::UnionTypes::{HTMLOptionElementOrHTMLOptGroupElement, HTMLElementOrLong};
+use dom::bindings::error::{Error, ErrorResult};
+use dom::bindings::inheritance::Castable;
+use dom::bindings::reflector::reflect_dom_object;
+use dom::bindings::root::{DomRoot, RootedReference};
+use dom::bindings::str::DOMString;
+use dom::element::Element;
+use dom::htmlcollection::{CollectionFilter, HTMLCollection};
+use dom::htmloptionelement::HTMLOptionElement;
+use dom::htmlselectelement::HTMLSelectElement;
+use dom::node::{document_from_node, Node};
+use dom::window::Window;
 use dom_struct::dom_struct;
 
 #[dom_struct]
@@ -32,7 +30,7 @@ pub struct HTMLOptionsCollection {
 impl HTMLOptionsCollection {
     fn new_inherited(
         select: &HTMLSelectElement,
-        filter: Box<dyn CollectionFilter + 'static>,
+        filter: Box<CollectionFilter + 'static>,
     ) -> HTMLOptionsCollection {
         HTMLOptionsCollection {
             collection: HTMLCollection::new_inherited(select.upcast(), filter),
@@ -42,7 +40,7 @@ impl HTMLOptionsCollection {
     pub fn new(
         window: &Window,
         select: &HTMLSelectElement,
-        filter: Box<dyn CollectionFilter + 'static>,
+        filter: Box<CollectionFilter + 'static>,
     ) -> DomRoot<HTMLOptionsCollection> {
         reflect_dom_object(
             Box::new(HTMLOptionsCollection::new_inherited(select, filter)),

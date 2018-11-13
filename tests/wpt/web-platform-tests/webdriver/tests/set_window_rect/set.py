@@ -5,13 +5,23 @@ import pytest
 from webdriver.transport import Response
 
 from tests.support.asserts import assert_error, assert_success
-from tests.support.helpers import document_hidden, is_fullscreen
 
 
 def set_window_rect(session, rect):
     return session.transport.send(
         "POST", "session/{session_id}/window/rect".format(**vars(session)),
         rect)
+
+
+def is_fullscreen(session):
+    # At the time of writing, WebKit does not conform to the
+    # Fullscreen API specification.
+    #
+    # Remove the prefixed fallback when
+    # https://bugs.webkit.org/show_bug.cgi?id=158125 is fixed.
+    return session.execute_script("""
+        return !!(window.fullScreen || document.webkitIsFullScreen)
+        """)
 
 
 def test_null_parameter_value(session, http):
@@ -132,26 +142,26 @@ def test_no_change(session, rect):
 
 def test_fully_exit_fullscreen(session):
     session.window.fullscreen()
-    assert is_fullscreen(session)
+    assert is_fullscreen(session) is True
 
     response = set_window_rect(session, {"width": 400, "height": 400})
     value = assert_success(response)
     assert value["width"] == 400
     assert value["height"] == 400
 
-    assert not is_fullscreen(session)
+    assert is_fullscreen(session) is False
 
 
 def test_restore_from_minimized(session):
     session.window.minimize()
-    assert document_hidden(session)
+    assert session.execute_script("return document.hidden") is True
 
     response = set_window_rect(session, {"width": 450, "height": 450})
     value = assert_success(response)
     assert value["width"] == 450
     assert value["height"] == 450
 
-    assert not document_hidden(session)
+    assert session.execute_script("return document.hidden") is False
 
 
 def test_restore_from_maximized(session):

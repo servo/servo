@@ -2,25 +2,25 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::codegen::Bindings::CSSStyleRuleBinding::{self, CSSStyleRuleMethods};
-use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowBinding::WindowMethods;
-use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
-use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
-use crate::dom::bindings::str::DOMString;
-use crate::dom::cssrule::{CSSRule, SpecificCSSRule};
-use crate::dom::cssstyledeclaration::{CSSModificationAccess, CSSStyleDeclaration, CSSStyleOwner};
-use crate::dom::cssstylesheet::CSSStyleSheet;
-use crate::dom::window::Window;
-use cssparser::ToCss;
 use cssparser::{Parser as CssParser, ParserInput as CssParserInput};
+use cssparser::ToCss;
+use dom::bindings::codegen::Bindings::CSSStyleRuleBinding::{self, CSSStyleRuleMethods};
+use dom::bindings::codegen::Bindings::WindowBinding::WindowBinding::WindowMethods;
+use dom::bindings::inheritance::Castable;
+use dom::bindings::reflector::{DomObject, reflect_dom_object};
+use dom::bindings::root::{Dom, DomRoot, MutNullableDom};
+use dom::bindings::str::DOMString;
+use dom::cssrule::{CSSRule, SpecificCSSRule};
+use dom::cssstyledeclaration::{CSSModificationAccess, CSSStyleDeclaration, CSSStyleOwner};
+use dom::cssstylesheet::CSSStyleSheet;
+use dom::window::Window;
 use dom_struct::dom_struct;
 use selectors::parser::SelectorList;
 use servo_arc::Arc;
 use std::mem;
 use style::selector_parser::SelectorParser;
 use style::shared_lock::{Locked, ToCssWithGuard};
-use style::stylesheets::{Origin, StyleRule};
+use style::stylesheets::{StyleRule, Origin};
 
 #[dom_struct]
 pub struct CSSStyleRule {
@@ -58,7 +58,7 @@ impl CSSStyleRule {
 
 impl SpecificCSSRule for CSSStyleRule {
     fn ty(&self) -> u16 {
-        use crate::dom::bindings::codegen::Bindings::CSSRuleBinding::CSSRuleConstants;
+        use dom::bindings::codegen::Bindings::CSSRuleBinding::CSSRuleConstants;
         CSSRuleConstants::STYLE_RULE
     }
 

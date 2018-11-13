@@ -1,8 +1,8 @@
 #!/usr/bin/env sh
 set -ex
 
-SCRIPT_DIR=$(cd $(dirname "$0") && pwd -P)
-WPT_ROOT=$SCRIPT_DIR/..
+SCRIPT_DIR=$(dirname $(readlink -f "$0"))
+WPT_ROOT=$(readlink -f $SCRIPT_DIR/..)
 cd $WPT_ROOT
 
 main() {
@@ -32,12 +32,6 @@ main() {
 
         if [ -z $PYTHON ]; then
             echo "Please ensure Python 2.7 is installed"
-            exit 1
-        fi
-
-        # The maximum Unicode code point is U+10FFFF = 1114111
-        if [ `$PYTHON -c 'import sys; print(sys.maxunicode)'` != "1114111" ]; then
-            echo "UCS-4 support for Python is required"
             exit 1
         fi
 

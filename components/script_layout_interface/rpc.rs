@@ -6,8 +6,8 @@ use app_units::Au;
 use euclid::{Point2D, Rect};
 use script_traits::UntrustedNodeAddress;
 use servo_arc::Arc;
-use style::properties::longhands::overflow_x;
 use style::properties::ComputedValues;
+use style::properties::longhands::overflow_x;
 use webrender_api::ExternalScrollId;
 
 /// Synchronous messages that script can send to layout.

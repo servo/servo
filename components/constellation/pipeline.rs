@@ -4,23 +4,23 @@
 
 use bluetooth_traits::BluetoothRequest;
 use canvas_traits::webgl::WebGLPipeline;
-use compositing::compositor_thread::Msg as CompositorMsg;
 use compositing::CompositionPipeline;
 use compositing::CompositorProxy;
-use crate::event_loop::EventLoop;
+use compositing::compositor_thread::Msg as CompositorMsg;
 use devtools_traits::{DevtoolsControlMsg, ScriptToDevtoolsControlMsg};
-use euclid::{TypedScale, TypedSize2D};
+use euclid::{TypedSize2D, TypedScale};
+use event_loop::EventLoop;
 use gfx::font_cache_thread::FontCacheThread;
+use ipc_channel::Error;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
-use ipc_channel::Error;
 use layout_traits::LayoutThreadFactory;
 use metrics::PaintTimeMetrics;
-use msg::constellation_msg::TopLevelBrowsingContextId;
 use msg::constellation_msg::{BrowsingContextId, HistoryStateId, PipelineId, PipelineNamespaceId};
+use msg::constellation_msg::TopLevelBrowsingContextId;
 use net::image_cache::ImageCacheImpl;
-use net_traits::image_cache::ImageCache;
 use net_traits::{IpcSend, ResourceThreads};
+use net_traits::image_cache::ImageCache;
 use profile_traits::mem as profile_mem;
 use profile_traits::time;
 use script_traits::{ConstellationControlMsg, DiscardBrowsingContext, ScriptToConstellationChan};
@@ -30,7 +30,7 @@ use script_traits::{NewLayoutInfo, SWManagerMsg, SWManagerSenders};
 use script_traits::{ScriptThreadFactory, TimerSchedulerMsg, WindowSizeData};
 use servo_channel::Sender;
 use servo_config::opts::{self, Opts};
-use servo_config::prefs::{Pref, PREFS};
+use servo_config::prefs::{PREFS, Pref};
 use servo_url::ServoUrl;
 use std::collections::{HashMap, HashSet};
 #[cfg(not(windows))]
@@ -41,6 +41,7 @@ use std::rc::Rc;
 use std::sync::Arc;
 use style_traits::CSSPixel;
 use style_traits::DevicePixel;
+use webrender_api;
 use webvr_traits::WebVRMsg;
 
 /// A `Pipeline` is the constellation's view of a `Document`. Each pipeline has an
@@ -239,12 +240,10 @@ impl Pipeline {
                                 Err(e) => {
                                     error!("Cast to ScriptToDevtoolsControlMsg failed ({}).", e)
                                 },
-                                Ok(message) => {
-                                    if let Err(e) =
-                                        devtools_chan.send(DevtoolsControlMsg::FromScript(message))
-                                    {
-                                        warn!("Sending to devtools failed ({:?})", e)
-                                    }
+                                Ok(message) => if let Err(e) =
+                                    devtools_chan.send(DevtoolsControlMsg::FromScript(message))
+                                {
+                                    warn!("Sending to devtools failed ({:?})", e)
                                 },
                             },
                         ),
@@ -431,7 +430,8 @@ impl Pipeline {
 
     /// Notify the script thread that this pipeline is visible.
     pub fn notify_visibility(&self, is_visible: bool) {
-        let script_msg = ConstellationControlMsg::ChangeFrameVisibilityStatus(self.id, is_visible);
+        let script_msg =
+            ConstellationControlMsg::ChangeFrameVisibilityStatus(self.id, is_visible);
         let compositor_msg = CompositorMsg::PipelineVisibilityChanged(self.id, is_visible);
         let err = self.event_loop.send(script_msg);
         if let Err(e) = err {
@@ -517,7 +517,6 @@ impl UnprivilegedPipelineContent {
                 webgl_chan: self.webgl_chan,
                 webvr_chan: self.webvr_chan,
                 webrender_document: self.webrender_document,
-                webrender_api_sender: self.webrender_api_sender.clone(),
             },
             self.load_data.clone(),
         );
@@ -555,9 +554,9 @@ impl UnprivilegedPipelineContent {
 
     #[cfg(all(not(target_os = "windows"), not(target_os = "ios")))]
     pub fn spawn_multiprocess(self) -> Result<(), Error> {
-        use crate::sandboxing::content_process_sandbox_profile;
         use gaol::sandbox::{self, Sandbox, SandboxMethods};
         use ipc_channel::ipc::IpcOneShotServer;
+        use sandboxing::content_process_sandbox_profile;
 
         impl CommandMethods for sandbox::Command {
             fn arg<T>(&mut self, arg: T)

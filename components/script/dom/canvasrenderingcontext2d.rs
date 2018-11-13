@@ -2,37 +2,36 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use canvas_traits::canvas::{Canvas2dMsg, CanvasId, CanvasMsg};
+use canvas_traits::canvas::{Canvas2dMsg, CanvasMsg, CanvasId};
 use canvas_traits::canvas::{CompositionOrBlending, FillOrStrokeStyle, FillRule};
 use canvas_traits::canvas::{LineCapStyle, LineJoinStyle, LinearGradientStyle};
-use canvas_traits::canvas::{RadialGradientStyle, RepetitionStyle};
-use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding;
-use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasFillRule;
-use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasImageSource;
-use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasLineCap;
-use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasLineJoin;
-use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasRenderingContext2DMethods;
-use crate::dom::bindings::codegen::Bindings::ImageDataBinding::ImageDataMethods;
-use crate::dom::bindings::codegen::UnionTypes::StringOrCanvasGradientOrCanvasPattern;
-use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
-use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::num::Finite;
-use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
-use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom};
-use crate::dom::bindings::str::DOMString;
-use crate::dom::canvasgradient::{CanvasGradient, CanvasGradientStyle, ToFillOrStrokeStyle};
-use crate::dom::canvaspattern::CanvasPattern;
-use crate::dom::element::Element;
-use crate::dom::globalscope::GlobalScope;
-use crate::dom::htmlcanvaselement::{CanvasContext, HTMLCanvasElement};
-use crate::dom::imagedata::ImageData;
-use crate::dom::node::{window_from_node, Node, NodeDamage};
-use crate::unpremultiplytable::UNPREMULTIPLY_TABLE;
-use cssparser::Color as CSSColor;
+use canvas_traits::canvas::{RadialGradientStyle, RepetitionStyle, byte_swap_and_premultiply};
 use cssparser::{Parser, ParserInput, RGBA};
+use cssparser::Color as CSSColor;
+use dom::bindings::cell::DomRefCell;
+use dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding;
+use dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasFillRule;
+use dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasImageSource;
+use dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasLineCap;
+use dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasLineJoin;
+use dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasRenderingContext2DMethods;
+use dom::bindings::codegen::Bindings::ImageDataBinding::ImageDataMethods;
+use dom::bindings::codegen::UnionTypes::StringOrCanvasGradientOrCanvasPattern;
+use dom::bindings::error::{Error, ErrorResult, Fallible};
+use dom::bindings::inheritance::Castable;
+use dom::bindings::num::Finite;
+use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
+use dom::bindings::root::{Dom, DomRoot, LayoutDom};
+use dom::bindings::str::DOMString;
+use dom::canvasgradient::{CanvasGradient, CanvasGradientStyle, ToFillOrStrokeStyle};
+use dom::canvaspattern::CanvasPattern;
+use dom::element::Element;
+use dom::globalscope::GlobalScope;
+use dom::htmlcanvaselement::{CanvasContext, HTMLCanvasElement};
+use dom::imagedata::ImageData;
+use dom::node::{Node, NodeDamage, window_from_node};
 use dom_struct::dom_struct;
-use euclid::{vec2, Point2D, Rect, Size2D, Transform2D};
+use euclid::{Transform2D, Point2D, Vector2D, Rect, Size2D, vec2};
 use ipc_channel::ipc::{self, IpcSender};
 use net_traits::image::base::PixelFormat;
 use net_traits::image_cache::CanRequestImages;
@@ -41,13 +40,15 @@ use net_traits::image_cache::ImageOrMetadataAvailable;
 use net_traits::image_cache::ImageResponse;
 use net_traits::image_cache::ImageState;
 use net_traits::image_cache::UsePlaceholder;
+use num_traits::ToPrimitive;
 use profile_traits::ipc as profiled_ipc;
 use script_traits::ScriptMsg;
 use servo_url::ServoUrl;
+use std::{cmp, fmt, mem};
 use std::cell::Cell;
 use std::str::FromStr;
 use std::sync::Arc;
-use std::{fmt, mem};
+use unpremultiplytable::UNPREMULTIPLY_TABLE;
 
 #[must_root]
 #[derive(Clone, JSTraceable, MallocSizeOf)]
@@ -125,9 +126,9 @@ impl CanvasRenderingContext2D {
     pub fn new_inherited(
         global: &GlobalScope,
         canvas: Option<&HTMLCanvasElement>,
-        image_cache: Arc<dyn ImageCache>,
+        image_cache: Arc<ImageCache>,
         base_url: ServoUrl,
-        size: Size2D<u32>,
+        size: Size2D<i32>,
     ) -> CanvasRenderingContext2D {
         debug!("Creating new canvas rendering context.");
         let (sender, receiver) =
@@ -156,7 +157,7 @@ impl CanvasRenderingContext2D {
     pub fn new(
         global: &GlobalScope,
         canvas: &HTMLCanvasElement,
-        size: Size2D<u32>,
+        size: Size2D<i32>,
     ) -> DomRoot<CanvasRenderingContext2D> {
         let window = window_from_node(canvas);
         let image_cache = window.image_cache();
@@ -172,7 +173,7 @@ impl CanvasRenderingContext2D {
     }
 
     // https://html.spec.whatwg.org/multipage/#concept-canvas-set-bitmap-dimensions
-    pub fn set_bitmap_dimensions(&self, size: Size2D<u32>) {
+    pub fn set_bitmap_dimensions(&self, size: Size2D<i32>) {
         self.reset_to_initial_state();
         self.ipc_renderer
             .send(CanvasMsg::Recreate(size, self.get_canvas_id()))
@@ -265,7 +266,7 @@ impl CanvasRenderingContext2D {
             CanvasImageSource::HTMLCanvasElement(canvas) => canvas.origin_is_clean(),
             CanvasImageSource::HTMLImageElement(image) => {
                 image.same_origin(GlobalScope::entry().origin())
-            },
+            }
             CanvasImageSource::CSSStyleValue(_) => true,
         }
     }
@@ -402,15 +403,39 @@ impl CanvasRenderingContext2D {
         dh: Option<f64>,
     ) -> ErrorResult {
         debug!("Fetching image {}.", url);
-        let (mut image_data, image_size) = self.fetch_image_data(url).ok_or(Error::InvalidState)?;
-        pixels::premultiply_inplace(&mut image_data);
-        let image_size = image_size.to_f64();
-
+        // https://html.spec.whatwg.org/multipage/#img-error
+        // If the image argument is an HTMLImageElement object that is in the broken state,
+        // then throw an InvalidStateError exception
+        let (image_data, image_size) = match self.fetch_image_data(url) {
+            Some((mut data, size)) => {
+                // Pixels come from cache in BGRA order and drawImage expects RGBA so we
+                // have to swap the color values
+                byte_swap_and_premultiply(&mut data);
+                let size = Size2D::new(size.width as f64, size.height as f64);
+                (data, size)
+            },
+            None => return Err(Error::InvalidState),
+        };
         let dw = dw.unwrap_or(image_size.width);
         let dh = dh.unwrap_or(image_size.height);
         let sw = sw.unwrap_or(image_size.width);
         let sh = sh.unwrap_or(image_size.height);
+        self.draw_image_data(image_data, image_size, sx, sy, sw, sh, dx, dy, dw, dh)
+    }
 
+    fn draw_image_data(
+        &self,
+        image_data: Vec<u8>,
+        image_size: Size2D<f64>,
+        sx: f64,
+        sy: f64,
+        sw: f64,
+        sh: f64,
+        dx: f64,
+        dy: f64,
+        dw: f64,
+        dh: f64,
+    ) -> ErrorResult {
         // Establish the source and destination rectangles
         let (source_rect, dest_rect) =
             self.adjust_source_dest_rects(image_size, sx, sy, sw, sh, dx, dy, dw, dh);
@@ -431,7 +456,7 @@ impl CanvasRenderingContext2D {
         Ok(())
     }
 
-    fn fetch_image_data(&self, url: ServoUrl) -> Option<(Vec<u8>, Size2D<u32>)> {
+    fn fetch_image_data(&self, url: ServoUrl) -> Option<(Vec<u8>, Size2D<i32>)> {
         let img = match self.request_image_from_cache(url) {
             ImageResponse::Loaded(img, _) => img,
             ImageResponse::PlaceholderLoaded(_, _) |
@@ -441,7 +466,7 @@ impl CanvasRenderingContext2D {
             },
         };
 
-        let image_size = Size2D::new(img.width, img.height);
+        let image_size = Size2D::new(img.width as i32, img.height as i32);
         let image_data = match img.format {
             PixelFormat::BGRA8 => img.bytes.to_vec(),
             PixelFormat::K8 => panic!("K8 color type not supported"),
@@ -549,31 +574,6 @@ impl CanvasRenderingContext2D {
 
     fn set_origin_unclean(&self) {
         self.origin_clean.set(false)
-    }
-
-    pub fn get_rect(&self, rect: Rect<u32>) -> Vec<u8> {
-        assert!(self.origin_is_clean());
-
-        // FIXME(nox): This is probably wrong when this is a context for an
-        // offscreen canvas.
-        let canvas_size = self
-            .canvas
-            .as_ref()
-            .map_or(Size2D::zero(), |c| c.get_size());
-        assert!(Rect::from_size(canvas_size).contains_rect(&rect));
-
-        let (sender, receiver) = ipc::bytes_channel().unwrap();
-        self.send_canvas_2d_msg(Canvas2dMsg::GetImageData(rect, canvas_size, sender));
-        let mut pixels = receiver.recv().unwrap().to_vec();
-
-        for chunk in pixels.chunks_mut(4) {
-            let b = chunk[0];
-            chunk[0] = UNPREMULTIPLY_TABLE[256 * (chunk[3] as usize) + chunk[2] as usize];
-            chunk[1] = UNPREMULTIPLY_TABLE[256 * (chunk[3] as usize) + chunk[1] as usize];
-            chunk[2] = UNPREMULTIPLY_TABLE[256 * (chunk[3] as usize) + b as usize];
-        }
-
-        pixels
     }
 }
 
@@ -1117,11 +1117,14 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-createimagedata
-    fn CreateImageData(&self, sw: i32, sh: i32) -> Fallible<DomRoot<ImageData>> {
-        if sw == 0 || sh == 0 {
+    fn CreateImageData(&self, sw: Finite<f64>, sh: Finite<f64>) -> Fallible<DomRoot<ImageData>> {
+        if *sw == 0.0 || *sh == 0.0 {
             return Err(Error::IndexSize);
         }
-        ImageData::new(&self.global(), sw.abs() as u32, sh.abs() as u32, None)
+
+        let sw = cmp::max(1, sw.abs().to_u32().unwrap());
+        let sh = cmp::max(1, sh.abs().to_u32().unwrap());
+        ImageData::new(&self.global(), sw, sh, None)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-createimagedata
@@ -1130,112 +1133,101 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-getimagedata
-    fn GetImageData(&self, sx: i32, sy: i32, sw: i32, sh: i32) -> Fallible<DomRoot<ImageData>> {
-        // FIXME(nox): There are many arithmetic operations here that can
-        // overflow or underflow, this should probably be audited.
-
-        if sw == 0 || sh == 0 {
-            return Err(Error::IndexSize);
-        }
-
+    fn GetImageData(
+        &self,
+        sx: Finite<f64>,
+        sy: Finite<f64>,
+        sw: Finite<f64>,
+        sh: Finite<f64>,
+    ) -> Fallible<DomRoot<ImageData>> {
         if !self.origin_is_clean() {
             return Err(Error::Security);
         }
 
-        let (origin, size) = adjust_size_sign(Point2D::new(sx, sy), Size2D::new(sw, sh));
-        // FIXME(nox): This is probably wrong when this is a context for an
-        // offscreen canvas.
+        let mut sx = *sx;
+        let mut sy = *sy;
+        let mut sw = *sw;
+        let mut sh = *sh;
+
+        if sw == 0.0 || sh == 0.0 {
+            return Err(Error::IndexSize);
+        }
+
+        if sw < 0.0 {
+            sw = -sw;
+            sx -= sw;
+        }
+        if sh < 0.0 {
+            sh = -sh;
+            sy -= sh;
+        }
+
+        let sh = cmp::max(1, sh.to_u32().unwrap());
+        let sw = cmp::max(1, sw.to_u32().unwrap());
+
+        let (sender, receiver) = ipc::bytes_channel().unwrap();
+        let dest_rect = Rect::new(
+            Point2D::new(sx.to_i32().unwrap(), sy.to_i32().unwrap()),
+            Size2D::new(sw as i32, sh as i32),
+        );
         let canvas_size = self
             .canvas
             .as_ref()
-            .map_or(Size2D::zero(), |c| c.get_size());
-        let read_rect = match pixels::clip(origin, size, canvas_size) {
-            Some(rect) => rect,
-            None => {
-                // All the pixels are outside the canvas surface.
-                return ImageData::new(&self.global(), size.width, size.height, None);
-            },
-        };
+            .map(|c| c.get_size())
+            .unwrap_or(Size2D::zero());
+        let canvas_size = Size2D::new(canvas_size.width as f64, canvas_size.height as f64);
+        self.send_canvas_2d_msg(Canvas2dMsg::GetImageData(dest_rect, canvas_size, sender));
+        let mut data = receiver.recv().unwrap();
 
-        ImageData::new(
-            &self.global(),
-            size.width,
-            size.height,
-            Some(self.get_rect(read_rect)),
-        )
+        // Byte swap and unmultiply alpha.
+        for chunk in data.chunks_mut(4) {
+            let (b, g, r, a) = (chunk[0], chunk[1], chunk[2], chunk[3]);
+            chunk[0] = UNPREMULTIPLY_TABLE[256 * (a as usize) + r as usize];
+            chunk[1] = UNPREMULTIPLY_TABLE[256 * (a as usize) + g as usize];
+            chunk[2] = UNPREMULTIPLY_TABLE[256 * (a as usize) + b as usize];
+        }
+
+        ImageData::new(&self.global(), sw, sh, Some(data.to_vec()))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-putimagedata
-    fn PutImageData(&self, imagedata: &ImageData, dx: i32, dy: i32) {
+    fn PutImageData(&self, imagedata: &ImageData, dx: Finite<f64>, dy: Finite<f64>) {
         self.PutImageData_(
             imagedata,
             dx,
             dy,
-            0,
-            0,
-            imagedata.Width() as i32,
-            imagedata.Height() as i32,
+            Finite::wrap(0f64),
+            Finite::wrap(0f64),
+            Finite::wrap(imagedata.Width() as f64),
+            Finite::wrap(imagedata.Height() as f64),
         )
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-putimagedata
-    #[allow(unsafe_code)]
     fn PutImageData_(
         &self,
         imagedata: &ImageData,
-        dx: i32,
-        dy: i32,
-        dirty_x: i32,
-        dirty_y: i32,
-        dirty_width: i32,
-        dirty_height: i32,
+        dx: Finite<f64>,
+        dy: Finite<f64>,
+        dirty_x: Finite<f64>,
+        dirty_y: Finite<f64>,
+        dirty_width: Finite<f64>,
+        dirty_height: Finite<f64>,
     ) {
-        // FIXME(nox): There are many arithmetic operations here that can
-        // overflow or underflow, this should probably be audited.
+        let data = imagedata.get_data_array();
+        let offset = Vector2D::new(*dx, *dy);
+        let image_data_size = Size2D::new(imagedata.Width() as f64, imagedata.Height() as f64);
 
-        let imagedata_size = Size2D::new(imagedata.Width(), imagedata.Height());
-        if imagedata_size.area() == 0 {
-            return;
-        }
-
-        // Step 1.
-        // Done later.
-
-        // Step 2.
-        // TODO: throw InvalidState if buffer is detached.
-
-        // FIXME(nox): This is probably wrong when this is a context for an
-        // offscreen canvas.
-        let canvas_size = self
-            .canvas
-            .as_ref()
-            .map_or(Size2D::zero(), |c| c.get_size());
-
-        // Steps 3-6.
-        let (src_origin, src_size) = adjust_size_sign(
-            Point2D::new(dirty_x, dirty_y),
-            Size2D::new(dirty_width, dirty_height),
+        let dirty_rect = Rect::new(
+            Point2D::new(*dirty_x, *dirty_y),
+            Size2D::new(*dirty_width, *dirty_height),
         );
-        let src_rect = match pixels::clip(src_origin, src_size, imagedata_size) {
-            Some(rect) => rect,
-            None => return,
-        };
-        let (dst_origin, _) = adjust_size_sign(
-            Point2D::new(dirty_x.saturating_add(dx), dirty_y.saturating_add(dy)),
-            Size2D::new(dirty_width, dirty_height),
-        );
-        // By clipping to the canvas surface, we avoid sending any pixel
-        // that would fall outside it.
-        let dst_rect = match pixels::clip(dst_origin, src_rect.size, canvas_size) {
-            Some(rect) => rect,
-            None => return,
-        };
-
-        // Step 7.
-        let (sender, receiver) = ipc::bytes_channel().unwrap();
-        let pixels = unsafe { &imagedata.get_rect(Rect::new(src_rect.origin, dst_rect.size)) };
-        self.send_canvas_2d_msg(Canvas2dMsg::PutImageData(dst_rect, receiver));
-        sender.send(pixels).unwrap();
+        self.send_canvas_2d_msg(Canvas2dMsg::PutImageData(
+            data.into(),
+            offset,
+            image_data_size,
+            dirty_rect,
+        ));
         self.mark_as_dirty();
     }
 
@@ -1485,7 +1477,7 @@ fn is_rect_valid(rect: Rect<f64>) -> bool {
     rect.size.width > 0.0 && rect.size.height > 0.0
 }
 
-// https://html.spec.whatwg.org/multipage/#serialisation-of-a-color
+// https://html.spec.whatwg.org/multipage/#serialisation-of-a-colour
 fn serialize<W>(color: &RGBA, dest: &mut W) -> fmt::Result
 where
     W: fmt::Write,
@@ -1515,19 +1507,4 @@ where
             color.alpha_f32()
         )
     }
-}
-
-fn adjust_size_sign(
-    mut origin: Point2D<i32>,
-    mut size: Size2D<i32>,
-) -> (Point2D<i32>, Size2D<u32>) {
-    if size.width < 0 {
-        size.width = -size.width;
-        origin.x = origin.x.saturating_sub(size.width);
-    }
-    if size.height < 0 {
-        size.height = -size.height;
-        origin.y = origin.y.saturating_sub(size.height);
-    }
-    (origin, size.to_u32())
 }

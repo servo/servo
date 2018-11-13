@@ -2,8 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+extern crate app_units;
+extern crate euclid;
+extern crate malloc_size_of;
 #[macro_use]
 extern crate malloc_size_of_derive;
+extern crate style_traits;
+extern crate webrender_api;
 
 use app_units::{Au, MAX_AU, MIN_AU};
 use euclid::{Length, Point2D, Rect, Size2D};

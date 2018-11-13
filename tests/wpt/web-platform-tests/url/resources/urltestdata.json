@@ -1433,22 +1433,6 @@
     "search": "",
     "hash": ""
   },
-  "# Based on https://felixfbecker.github.io/whatwg-url-custom-host-repro/",
-  {
-    "input": "ssh://example.com/foo/bar.git",
-    "base": "http://example.org/",
-    "href": "ssh://example.com/foo/bar.git",
-    "origin": "null",
-    "protocol": "ssh:",
-    "username": "",
-    "password": "",
-    "host": "example.com",
-    "hostname": "example.com",
-    "port": "",
-    "pathname": "/foo/bar.git",
-    "search": "",
-    "hash": ""
-  },
   "# Based on http://trac.webkit.org/browser/trunk/LayoutTests/fast/url/file.html",
   {
     "input": "file:c:\\foo\\bar.html",

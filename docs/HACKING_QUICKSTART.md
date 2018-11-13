@@ -26,13 +26,13 @@ You can use and build a release build and a debug build in parallel.
 The servo binary is located in `target/debug/servo` (or `target/release/servo`). You can directly run this binary, but we recommend using `./mach` instead:
 
 ``` shell
-./mach run -d -- https://github.com
+./mach run -d -- http://github.com
 ```
 
 … is equivalent to:
 
 ``` shell
-./target/debug/servo https://github.com
+./target/debug/servo http://github.com
 ```
 
 If you build with `-d`, run with `-d`. If you build with `-r`, run with `-r`.
@@ -61,9 +61,9 @@ This guide only covers the most important options. Be sure to look at all the av
 Even if you have never seen any Rust code, it's not too hard to read Servo's code. But there are some basics things one must know:
 
 - [Match](https://doc.rust-lang.org/book/first-edition/match.html) and [Patterns](https://doc.rust-lang.org/book/first-edition/patterns.html)
-- [Options](https://rustbyexample.com/std/option.html)
-- [Expression](https://rustbyexample.com/expression.html)
-- [Traits](https://rustbyexample.com/trait.html)
+- [Options](http://rustbyexample.com/std/option.html)
+- [Expression](http://rustbyexample.com/expression.html)
+- [Traits](http://rustbyexample.com/trait.html)
 - That doesn't sound important, but be sure to understand how `println!()` works, especially the [formatting traits](https://doc.rust-lang.org/std/fmt/#formatting-traits)
 
 This won't be enough to do any serious work at first, but if you want to navigate the code and fix basic bugs, that should do it. It's a good starting point, and as you dig into Servo source code, you'll learn more.
@@ -71,7 +71,7 @@ This won't be enough to do any serious work at first, but if you want to navigat
 For more exhaustive documentation:
 
 - [doc.rust-lang.org](https://doc.rust-lang.org)
-- [rust by example](https://rustbyexample.com)
+- [rust by example](http://rustbyexample.com)
 
 ## Cargo and Crates
 
@@ -96,13 +96,13 @@ source = "git+https://github.com/servo/rust-stb-image#f4c5380cd586bfe16326e05e25
 
 This file should not be edited by hand. In a normal Rust project, to update the git revision, you would use `cargo update -p stb_image`, but in Servo, use `./mach cargo-update -p stb_image`. Other arguments to cargo are also understood, e.g. use --precise '0.2.3' to update that crate to version 0.2.3.
 
-See [Cargo's documentation about Cargo.toml and Cargo.lock files](https://doc.crates.io/guide.html#cargotoml-vs-cargolock).
+See [Cargo's documentation about Cargo.toml and Cargo.lock files](http://doc.crates.io/guide.html#cargotoml-vs-cargolock).
 
 ## Working on a Crate
 
 As explained above, Servo depends on a lot of libraries, which makes it very modular. While working on a bug in Servo, you'll often end up in one of its dependencies. You will then want to compile your own version of the dependency (and maybe compiling against the HEAD of the library will fix the issue!).
 
-For example, I'm trying to bring some cocoa events to Servo. The Servo window on Desktop is constructed with a library named [Glutin](https://github.com/tomaka/glutin). Glutin itself depends on a cocoa library named [cocoa-rs](https://github.com/servo/cocoa-rs). When building Servo, magically, all these dependencies are downloaded and built for you. But because I want to work on this cocoa event feature, I want Servo to use my own version of *glutin* and *cocoa-rs*.
+For example, I'm trying to bring some cocoa events to Servo. The Servo window on Desktop is constructed with a library named [Glutin](https://github.com/tomaka/glutin). Glutin itself depends on a cocoa library named [cocoa-rs](http://github.com/servo/cocoa-rs). When building Servo, magically, all these dependencies are downloaded and built for you. But because I want to work on this cocoa event feature, I want Servo to use my own version of *glutin* and *cocoa-rs*.
 
 This is how my projects are laid out:
 
@@ -132,7 +132,7 @@ If the output is in the format `https://github.com/rust-lang/crates.io-index#moz
 
 Both will tell any cargo project to not use the online version of the dependency, but your local clone.
 
-For more details about overriding dependencies, see [Cargo's documentation](https://doc.crates.io/specifying-dependencies.html#overriding-dependencies).
+For more details about overriding dependencies, see [Cargo's documentation](http://doc.crates.io/specifying-dependencies.html#overriding-dependencies).
 
 ## Debugging
 
@@ -171,7 +171,7 @@ Using `RUST_LOG="debug"` is usually the very first thing you might want to do if
 RUST_LOG="debug" ./mach run -d -- -i -y 1 -t 1  /tmp/a.html 2>&1 | ts -s "%.S: " | tee /tmp/log.txt
 ```
 
-You can filter by crate or module, for example `RUST_LOG="layout::inline=debug" ./mach run …`. Check the [env_logger](https://doc.rust-lang.org/log/env_logger/index.html) documentation for more details.
+You can filter by crate or module, for example `RUST_LOG="layout::inline=debug" ./mach run …`. Check the [env_logger](http://doc.rust-lang.org/log/env_logger/index.html) documentation for more details.
 
 Use `RUST_BACKTRACE=1` to dump the backtrace when Servo panics.
 
@@ -214,7 +214,7 @@ And to search for a function's full name/regex:
 (gdb) info functions <name> #gdb
 ```
 
-See this [lldb tutorial](https://lldb.llvm.org/tutorial.html) and this [gdb tutorial](http://www.unknownroad.com/rtfm/gdbtut/gdbtoc.html).
+See this [lldb tutorial](http://lldb.llvm.org/tutorial.html) and this [gdb tutorial](http://www.unknownroad.com/rtfm/gdbtut/gdbtoc.html).
 
 To inspect variables and you are new with lldb, we recommend using the `gui` mode (use left/right to expand variables):
 
@@ -276,11 +276,11 @@ See the [debugging guide](./debugging.md) to get started in how to debug Servo.
 ## Documentation:
 
 - Servo's directory structure: [ORGANIZATION.md](./ORGANIZATION.md)
-- https://doc.servo.org/servo/index.html
+- http://doc.servo.org/servo/index.html
 - https://github.com/servo/servo/wiki
-- https://rustbyexample.com
+- http://rustbyexample.com
 - https://doc.rust-lang.org
-- Cargo & crates: https://doc.crates.io/guide.html
+- Cargo & crates: http://doc.crates.io/guide.html
 - mach help: `./mach --help`
 - servo options: `./mach run -- --help`
 - servo debug options: `./mach run -- --debug help`

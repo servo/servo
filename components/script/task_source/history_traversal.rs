@@ -2,8 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use crate::script_runtime::{CommonScriptMsg, ScriptChan};
-use crate::script_thread::MainThreadScriptMsg;
+use script_runtime::{ScriptChan, CommonScriptMsg};
+use script_thread::MainThreadScriptMsg;
 use servo_channel::Sender;
 
 #[derive(JSTraceable)]
@@ -16,7 +16,7 @@ impl ScriptChan for HistoryTraversalTaskSource {
             .map_err(|_| ())
     }
 
-    fn clone(&self) -> Box<dyn ScriptChan + Send> {
+    fn clone(&self) -> Box<ScriptChan + Send> {
         Box::new(HistoryTraversalTaskSource((&self.0).clone()))
     }
 }

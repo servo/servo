@@ -7,10 +7,10 @@
 //!
 //! Currently, only harfbuzz bindings are implemented.
 
-use crate::font::ShapingOptions;
-use crate::text::glyph::GlyphStore;
+use font::ShapingOptions;
+use text::glyph::GlyphStore;
 
-pub use self::harfbuzz::Shaper;
+pub use text::shaping::harfbuzz::Shaper;
 
 pub mod harfbuzz;
 

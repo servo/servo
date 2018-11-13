@@ -5,67 +5,62 @@
 #[cfg(feature = "webgl_backtrace")]
 use backtrace::Backtrace;
 use byteorder::{ByteOrder, NativeEndian, WriteBytesExt};
-use canvas_traits::webgl::WebGLError::*;
-use canvas_traits::webgl::{webgl_channel, WebGLVersion, WebVRCommand};
+use canvas_traits::canvas::{byte_swap, multiply_u8_pixel};
 use canvas_traits::webgl::{DOMToTextureCommand, Parameter, WebGLCommandBacktrace};
 use canvas_traits::webgl::{TexParameter, WebGLCommand, WebGLContextShareMode, WebGLError};
 use canvas_traits::webgl::{WebGLFramebufferBindingRequest, WebGLMsg, WebGLMsgSender};
 use canvas_traits::webgl::{WebGLProgramId, WebGLResult, WebGLSLVersion, WebGLSender};
-use crate::dom::bindings::codegen::Bindings::ANGLEInstancedArraysBinding::ANGLEInstancedArraysConstants;
-use crate::dom::bindings::codegen::Bindings::EXTBlendMinmaxBinding::EXTBlendMinmaxConstants;
-use crate::dom::bindings::codegen::Bindings::OESVertexArrayObjectBinding::OESVertexArrayObjectConstants;
-use crate::dom::bindings::codegen::Bindings::WebGLRenderingContextBinding;
-use crate::dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::TexImageSource;
-use crate::dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLContextAttributes;
-use crate::dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
-use crate::dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextMethods;
-use crate::dom::bindings::codegen::UnionTypes::ArrayBufferViewOrArrayBuffer;
-use crate::dom::bindings::codegen::UnionTypes::Float32ArrayOrUnrestrictedFloatSequence;
-use crate::dom::bindings::codegen::UnionTypes::Int32ArrayOrLongSequence;
-use crate::dom::bindings::conversions::{DerivedFrom, ToJSValConvertible};
-use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
-use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
-use crate::dom::bindings::root::{Dom, DomOnceCell, DomRoot, LayoutDom, MutNullableDom};
-use crate::dom::bindings::str::DOMString;
-use crate::dom::event::{Event, EventBubbles, EventCancelable};
-use crate::dom::htmlcanvaselement::utils as canvas_utils;
-use crate::dom::htmlcanvaselement::HTMLCanvasElement;
-use crate::dom::htmliframeelement::HTMLIFrameElement;
-use crate::dom::node::{document_from_node, window_from_node, Node, NodeDamage};
-use crate::dom::webgl_extensions::WebGLExtensions;
-use crate::dom::webgl_validations::tex_image_2d::{
-    CommonTexImage2DValidator, CommonTexImage2DValidatorResult,
-};
-use crate::dom::webgl_validations::tex_image_2d::{TexImage2DValidator, TexImage2DValidatorResult};
-use crate::dom::webgl_validations::types::{TexDataType, TexFormat, TexImageTarget};
-use crate::dom::webgl_validations::WebGLValidator;
-use crate::dom::webglactiveinfo::WebGLActiveInfo;
-use crate::dom::webglbuffer::WebGLBuffer;
-use crate::dom::webglcontextevent::WebGLContextEvent;
-use crate::dom::webglframebuffer::{
-    CompleteForRendering, WebGLFramebuffer, WebGLFramebufferAttachmentRoot,
-};
-use crate::dom::webglobject::WebGLObject;
-use crate::dom::webglprogram::WebGLProgram;
-use crate::dom::webglrenderbuffer::WebGLRenderbuffer;
-use crate::dom::webglshader::WebGLShader;
-use crate::dom::webglshaderprecisionformat::WebGLShaderPrecisionFormat;
-use crate::dom::webgltexture::{TexParameterValue, WebGLTexture};
-use crate::dom::webgluniformlocation::WebGLUniformLocation;
-use crate::dom::webglvertexarrayobjectoes::WebGLVertexArrayObjectOES;
-use crate::dom::window::Window;
+use canvas_traits::webgl::{WebGLVersion, WebVRCommand, webgl_channel};
+use canvas_traits::webgl::WebGLError::*;
+use dom::bindings::codegen::Bindings::ANGLEInstancedArraysBinding::ANGLEInstancedArraysConstants;
+use dom::bindings::codegen::Bindings::EXTBlendMinmaxBinding::EXTBlendMinmaxConstants;
+use dom::bindings::codegen::Bindings::OESVertexArrayObjectBinding::OESVertexArrayObjectConstants;
+use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding;
+use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::TexImageSource;
+use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLContextAttributes;
+use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
+use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextMethods;
+use dom::bindings::codegen::UnionTypes::ArrayBufferViewOrArrayBuffer;
+use dom::bindings::codegen::UnionTypes::Float32ArrayOrUnrestrictedFloatSequence;
+use dom::bindings::codegen::UnionTypes::Int32ArrayOrLongSequence;
+use dom::bindings::conversions::{DerivedFrom, ToJSValConvertible};
+use dom::bindings::error::{Error, ErrorResult, Fallible};
+use dom::bindings::inheritance::Castable;
+use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
+use dom::bindings::root::{Dom, DomOnceCell, DomRoot, LayoutDom, MutNullableDom};
+use dom::bindings::str::DOMString;
+use dom::event::{Event, EventBubbles, EventCancelable};
+use dom::htmlcanvaselement::HTMLCanvasElement;
+use dom::htmlcanvaselement::utils as canvas_utils;
+use dom::htmliframeelement::HTMLIFrameElement;
+use dom::node::{Node, NodeDamage, document_from_node, window_from_node};
+use dom::webgl_extensions::WebGLExtensions;
+use dom::webgl_validations::WebGLValidator;
+use dom::webgl_validations::tex_image_2d::{CommonTexImage2DValidator, CommonTexImage2DValidatorResult};
+use dom::webgl_validations::tex_image_2d::{TexImage2DValidator, TexImage2DValidatorResult};
+use dom::webgl_validations::types::{TexDataType, TexFormat, TexImageTarget};
+use dom::webglactiveinfo::WebGLActiveInfo;
+use dom::webglbuffer::WebGLBuffer;
+use dom::webglcontextevent::WebGLContextEvent;
+use dom::webglframebuffer::{WebGLFramebuffer, WebGLFramebufferAttachmentRoot, CompleteForRendering};
+use dom::webglobject::WebGLObject;
+use dom::webglprogram::WebGLProgram;
+use dom::webglrenderbuffer::WebGLRenderbuffer;
+use dom::webglshader::WebGLShader;
+use dom::webglshaderprecisionformat::WebGLShaderPrecisionFormat;
+use dom::webgltexture::{TexParameterValue, WebGLTexture};
+use dom::webgluniformlocation::WebGLUniformLocation;
+use dom::webglvertexarrayobjectoes::WebGLVertexArrayObjectOES;
+use dom::window::Window;
 use dom_struct::dom_struct;
-use euclid::{Point2D, Rect, Size2D};
+use euclid::Size2D;
 use half::f16;
 use ipc_channel::ipc;
 use js::jsapi::{JSContext, JSObject, Type};
-use js::jsval::{BooleanValue, DoubleValue, Int32Value, JSVal, UInt32Value};
-use js::jsval::{NullValue, ObjectValue, UndefinedValue};
+use js::jsval::{BooleanValue, DoubleValue, Int32Value, UInt32Value, JSVal};
+use js::jsval::{ObjectValue, NullValue, UndefinedValue};
 use js::rust::CustomAutoRooterGuard;
-use js::typedarray::{
-    ArrayBufferView, CreateWith, Float32, Float32Array, Int32, Int32Array, Uint32Array,
-};
+use js::typedarray::{ArrayBufferView, CreateWith, Float32, Float32Array, Int32, Int32Array, Uint32Array};
 use js::typedarray::{TypedArray, TypedArrayElementCreator};
 use net_traits::image::base::PixelFormat;
 use net_traits::image_cache::ImageResponse;
@@ -76,6 +71,13 @@ use servo_config::prefs::PREFS;
 use std::cell::Cell;
 use std::cmp;
 use std::ptr::{self, NonNull};
+use webrender_api;
+
+pub fn is_gles() -> bool {
+    // TODO: align this with the actual kind of graphics context in use, rather than
+    // making assumptions based on platform
+    cfg!(any(target_os = "android", target_os = "ios"))
+}
 
 // From the GLES 2.0.25 spec, page 85:
 //
@@ -155,7 +157,7 @@ pub struct WebGLRenderingContext {
     #[ignore_malloc_size_of = "Because it's small"]
     current_vertex_attrib_0: Cell<(f32, f32, f32, f32)>,
     #[ignore_malloc_size_of = "Because it's small"]
-    current_scissor: Cell<(i32, i32, u32, u32)>,
+    current_scissor: Cell<(i32, i32, i32, i32)>,
     #[ignore_malloc_size_of = "Because it's small"]
     current_clear_color: Cell<(f32, f32, f32, f32)>,
     extension_manager: WebGLExtensions,
@@ -170,7 +172,7 @@ impl WebGLRenderingContext {
         window: &Window,
         canvas: &HTMLCanvasElement,
         webgl_version: WebGLVersion,
-        size: Size2D<u32>,
+        size: Size2D<i32>,
         attrs: GLContextAttributes,
     ) -> Result<WebGLRenderingContext, String> {
         if let Some(true) = PREFS
@@ -227,7 +229,7 @@ impl WebGLRenderingContext {
         window: &Window,
         canvas: &HTMLCanvasElement,
         webgl_version: WebGLVersion,
-        size: Size2D<u32>,
+        size: Size2D<i32>,
         attrs: GLContextAttributes,
     ) -> Option<DomRoot<WebGLRenderingContext>> {
         match WebGLRenderingContext::new_inherited(window, canvas, webgl_version, size, attrs) {
@@ -264,7 +266,7 @@ impl WebGLRenderingContext {
         })
     }
 
-    pub fn recreate(&self, size: Size2D<u32>) {
+    pub fn recreate(&self, size: Size2D<i32>) {
         let (sender, receiver) = webgl_channel().unwrap();
         self.webgl_sender.send_resize(size, sender).unwrap();
 
@@ -316,9 +318,7 @@ impl WebGLRenderingContext {
 
     #[inline]
     pub fn send_command(&self, command: WebGLCommand) {
-        self.webgl_sender
-            .send(command, capture_webgl_backtrace(self))
-            .unwrap();
+        self.webgl_sender.send(command, capture_webgl_backtrace(self)).unwrap();
     }
 
     #[inline]
@@ -437,13 +437,9 @@ impl WebGLRenderingContext {
     }
 
     fn mark_as_dirty(&self) {
-        // If we don't have a bound framebuffer, then don't mark the canvas
-        // as dirty.
-        if self.bound_framebuffer.get().is_none() {
-            self.canvas
-                .upcast::<Node>()
-                .dirty(NodeDamage::OtherNodeDamage);
-        }
+        self.canvas
+            .upcast::<Node>()
+            .dirty(NodeDamage::OtherNodeDamage);
     }
 
     fn vertex_attrib(&self, indx: u32, x: f32, y: f32, z: f32, w: f32) {
@@ -521,10 +517,10 @@ impl WebGLRenderingContext {
     fn get_image_pixels(
         &self,
         source: TexImageSource,
-    ) -> Fallible<Option<(Vec<u8>, Size2D<u32>, bool)>> {
+    ) -> Fallible<Option<(Vec<u8>, Size2D<i32>, bool)>> {
         Ok(Some(match source {
             TexImageSource::ImageData(image_data) => {
-                (image_data.to_vec(), image_data.get_size(), false)
+                (image_data.get_data_array(), image_data.get_size(), false)
             },
             TexImageSource::HTMLImageElement(image) => {
                 let document = document_from_node(&*self.canvas);
@@ -546,7 +542,7 @@ impl WebGLRenderingContext {
                     ImageResponse::MetadataLoaded(_) => return Ok(None),
                 };
 
-                let size = Size2D::new(img.width, img.height);
+                let size = Size2D::new(img.width as i32, img.height as i32);
 
                 // For now Servo's images are all stored as BGRA8 internally.
                 let mut data = match img.format {
@@ -554,7 +550,7 @@ impl WebGLRenderingContext {
                     _ => unimplemented!(),
                 };
 
-                pixels::byte_swap_colors_inplace(&mut data);
+                byte_swap(&mut data);
 
                 (data, size, false)
             },
@@ -567,7 +563,7 @@ impl WebGLRenderingContext {
                 }
                 if let Some((mut data, size)) = canvas.fetch_all_data() {
                     // Pixels got from Canvas have already alpha premultiplied
-                    pixels::byte_swap_colors_inplace(&mut data);
+                    byte_swap(&mut data);
                     (data, size, true)
                 } else {
                     return Ok(None);
@@ -576,7 +572,7 @@ impl WebGLRenderingContext {
             TexImageSource::HTMLVideoElement(_) => {
                 // TODO: https://github.com/servo/servo/issues/6711
                 return Ok(None);
-            },
+            }
         }))
     }
 
@@ -683,11 +679,15 @@ impl WebGLRenderingContext {
 
         match (format, data_type) {
             (TexFormat::RGBA, TexDataType::UnsignedByte) => {
-                pixels::premultiply_inplace(pixels);
+                for rgba in pixels.chunks_mut(4) {
+                    rgba[0] = multiply_u8_pixel(rgba[0], rgba[3]);
+                    rgba[1] = multiply_u8_pixel(rgba[1], rgba[3]);
+                    rgba[2] = multiply_u8_pixel(rgba[2], rgba[3]);
+                }
             },
             (TexFormat::LuminanceAlpha, TexDataType::UnsignedByte) => {
                 for la in pixels.chunks_mut(2) {
-                    la[0] = pixels::multiply_u8_color(la[0], la[1]);
+                    la[0] = multiply_u8_pixel(la[0], la[1]);
                 }
             },
             (TexFormat::RGBA, TexDataType::UnsignedShort5551) => {
@@ -707,9 +707,9 @@ impl WebGLRenderingContext {
                     let a = extend_to_8_bits(pix & 0x0f);
                     NativeEndian::write_u16(
                         rgba,
-                        ((pixels::multiply_u8_color(r, a) & 0xf0) as u16) << 8 |
-                            ((pixels::multiply_u8_color(g, a) & 0xf0) as u16) << 4 |
-                            ((pixels::multiply_u8_color(b, a) & 0xf0) as u16) |
+                        ((multiply_u8_pixel(r, a) & 0xf0) as u16) << 8 |
+                            ((multiply_u8_pixel(g, a) & 0xf0) as u16) << 4 |
+                            ((multiply_u8_pixel(b, a) & 0xf0) as u16) |
                             ((a & 0x0f) as u16),
                     );
                 }
@@ -814,7 +814,7 @@ impl WebGLRenderingContext {
             width as i32,
             height as i32,
             format,
-            self.extension_manager.effective_type(data_type),
+            data_type,
             receiver,
         ));
         sender.send(&pixels).unwrap();
@@ -1074,7 +1074,7 @@ impl WebGLRenderingContext {
     // can fail and that it is UB what happens in that case.
     //
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#2.2
-    pub fn get_image_data(&self, mut size: Size2D<u32>) -> Option<Vec<u8>> {
+    pub fn get_image_data(&self, width: u32, height: u32) -> Option<Vec<u8>> {
         handle_potential_webgl_error!(self, self.validate_framebuffer(), return None);
 
         let (fb_width, fb_height) = handle_potential_webgl_error!(
@@ -1082,12 +1082,15 @@ impl WebGLRenderingContext {
             self.get_current_framebuffer_size().ok_or(InvalidOperation),
             return None
         );
-        size.width = cmp::min(size.width, fb_width as u32);
-        size.height = cmp::min(size.height, fb_height as u32);
+        let width = cmp::min(width, fb_width as u32);
+        let height = cmp::min(height, fb_height as u32);
 
         let (sender, receiver) = ipc::bytes_channel().unwrap();
         self.send_command(WebGLCommand::ReadPixels(
-            Rect::from_size(size),
+            0,
+            0,
+            width as i32,
+            height as i32,
             constants::RGBA,
             constants::UNSIGNED_BYTE,
             sender,
@@ -1185,10 +1188,6 @@ impl WebGLRenderingContext {
 
     pub fn bound_framebuffer(&self) -> Option<DomRoot<WebGLFramebuffer>> {
         self.bound_framebuffer.get()
-    }
-
-    pub fn extension_manager(&self) -> &WebGLExtensions {
-        &self.extension_manager
     }
 }
 
@@ -1433,8 +1432,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                     cx,
                     CreateWith::Slice(&receiver.recv().unwrap()),
                     rval.handle_mut(),
-                )
-                .unwrap();
+                ).unwrap();
                 ObjectValue(rval.get())
             },
             Parameter::Int4(param) => {
@@ -1445,8 +1443,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                     cx,
                     CreateWith::Slice(&receiver.recv().unwrap()),
                     rval.handle_mut(),
-                )
-                .unwrap();
+                ).unwrap();
                 ObjectValue(rval.get())
             },
             Parameter::Float(param) => {
@@ -1462,8 +1459,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                     cx,
                     CreateWith::Slice(&receiver.recv().unwrap()),
                     rval.handle_mut(),
-                )
-                .unwrap();
+                ).unwrap();
                 ObjectValue(rval.get())
             },
             Parameter::Float4(param) => {
@@ -1474,8 +1470,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                     cx,
                     CreateWith::Slice(&receiver.recv().unwrap()),
                     rval.handle_mut(),
-                )
-                .unwrap();
+                ).unwrap();
                 ObjectValue(rval.get())
             },
         }
@@ -2888,31 +2883,45 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             return self.webgl_error(InvalidOperation);
         }
 
-        let src_origin = Point2D::new(x, y);
-        let src_size = Size2D::new(width as u32, height as u32);
-        let fb_size = Size2D::new(fb_width as u32, fb_height as u32);
-        let src_rect = match pixels::clip(src_origin, src_size, fb_size) {
-            Some(rect) => rect,
-            None => return,
-        };
-
+        let mut src_x = x;
+        let mut src_y = y;
+        let mut src_width = width;
+        let mut src_height = height;
         let mut dest_offset = 0;
-        if x < 0 {
-            dest_offset += -x * bytes_per_pixel;
+
+        if src_x < 0 {
+            if src_width <= -src_x {
+                return;
+            }
+            dest_offset += bytes_per_pixel * -src_x;
+            src_width += src_x;
+            src_x = 0;
         }
-        if y < 0 {
-            dest_offset += -y * row_len;
+        if src_y < 0 {
+            if src_height <= -src_y {
+                return;
+            }
+            dest_offset += row_len * -src_y;
+            src_height += src_y;
+            src_y = 0;
+        }
+
+        if src_x + src_width > fb_width {
+            src_width = fb_width - src_x;
+        }
+        if src_y + src_height > fb_height {
+            src_height = fb_height - src_y;
         }
 
         let (sender, receiver) = ipc::bytes_channel().unwrap();
         self.send_command(WebGLCommand::ReadPixels(
-            src_rect, format, pixel_type, sender,
+            src_x, src_y, src_width, src_height, format, pixel_type, sender,
         ));
-        let src = receiver.recv().unwrap();
 
-        let src_row_len = src_rect.size.width as usize * bytes_per_pixel as usize;
-        for i in 0..src_rect.size.height {
-            let dest_start = dest_offset as usize + i as usize * dest_stride as usize;
+        let src = receiver.recv().unwrap();
+        let src_row_len = (src_width * bytes_per_pixel) as usize;
+        for i in 0..src_height {
+            let dest_start = (dest_offset + i * dest_stride) as usize;
             let dest_end = dest_start + src_row_len;
             let src_start = i as usize * src_row_len;
             let src_end = src_start + src_row_len;
@@ -2930,9 +2939,6 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         if width < 0 || height < 0 {
             return self.webgl_error(InvalidValue);
         }
-
-        let width = width as u32;
-        let height = height as u32;
 
         self.current_scissor.set((x, y, width, height));
         self.send_command(WebGLCommand::Scissor(x, y, width, height));
@@ -3479,8 +3485,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                 cx,
                 CreateWith::Slice(&value),
                 rval.handle_mut(),
-            )
-            .unwrap();
+            ).unwrap();
             ObjectValue(rval.get())
         }
 
@@ -3640,7 +3645,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         handle_potential_webgl_error!(
             self,
             self.current_vao()
-                .vertex_attrib_pointer(index, size, type_, normalized, stride, offset)
+                .vertex_attrib_pointer(index, size, type_, normalized, stride, offset, )
         );
     }
 
@@ -3786,8 +3791,8 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             target,
             level,
             internal_format,
-            size.width as i32,
-            size.height as i32,
+            size.width,
+            size.height,
             0,
             format,
             data_type,
@@ -3998,8 +4003,8 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             target,
             level,
             format,
-            size.width as i32,
-            size.height as i32,
+            size.width,
+            size.height,
             0,
             format,
             data_type,
@@ -4076,17 +4081,18 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             return self.webgl_error(InvalidValue);
         }
 
-        let rb = handle_potential_webgl_error!(
-            self,
-            self.bound_renderbuffer.get().ok_or(InvalidOperation),
-            return
-        );
-        handle_potential_webgl_error!(self, rb.storage(internal_format, width, height));
-        if let Some(fb) = self.bound_framebuffer.get() {
-            fb.invalidate_renderbuffer(&*rb);
-        }
+        match self.bound_renderbuffer.get() {
+            Some(rb) => {
+                handle_potential_webgl_error!(self, rb.storage(internal_format, width, height));
+                if let Some(fb) = self.bound_framebuffer.get() {
+                    fb.invalidate_renderbuffer(&*rb);
+                }
+            },
+            None => self.webgl_error(InvalidOperation),
+        };
 
-        // FIXME: https://github.com/servo/servo/issues/13710
+        // FIXME: We need to clear the renderbuffer before it can be
+        // accessed.  See https://github.com/servo/servo/issues/13710
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.6

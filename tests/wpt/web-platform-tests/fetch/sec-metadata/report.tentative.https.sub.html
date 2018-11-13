@@ -6,26 +6,30 @@
 <link id="style" href="https://foo.bar" rel="stylesheet">
 <body></body>
 <script>
-  function generate_test(expected, name) {
-    async_test(t => {
-      t.step_timeout(_ => {
-        return fetch("/fetch/sec-metadata/resources/record-header.py?retrieve=true&file=report-" + name)
+  let counter = 0;
+  document.addEventListener("securitypolicyviolation", (e) => {
+    counter++;
+    if (counter == 3) {
+      promise_test(t => {
+        expected = {"destination":"report", "site":"same-origin"};
+        return fetch("/fetch/sec-metadata/resources/record-header.py?retrieve=true&file=report-same-origin")
             .then(response => response.text())
-            .then(text => assert_header_equals(text, expected))
-            .then(_ => t.done());
-      }, 1000);
-    }, name + " report");
-  }
+            .then(text => assert_header_equals(text, expected));
+      }, "Same-Origin report");
 
-  test(_ => {
-    let counter = 0;
-    document.addEventListener("securitypolicyviolation", (e) => {
-      counter++;
-      if (counter == 3) {
-        generate_test({"destination":"report", "site":"same-origin"}, "same-origin");
-        generate_test({"destination":"report", "site":"same-site"}, "same-site");
-        generate_test({"destination":"report", "site":"cross-site"}, "cross-site");
-      }
-    });
-  }, "Initialization.");
+      promise_test(t => {
+        expected = {"destination":"report", "site":"same-site"};
+        return fetch("/fetch/sec-metadata/resources/record-header.py?retrieve=true&file=report-same-site")
+            .then(response => response.text())
+            .then(text => assert_header_equals(text, expected));
+      }, "Same-site report");
+
+      promise_test(t => {
+        expected = {"destination":"report", "site":"cross-site"};
+        return fetch("/fetch/sec-metadata/resources/record-header.py?retrieve=true&file=report-cross-site")
+            .then(response => response.text())
+            .then(text => assert_header_equals(text, expected));
+      }, "Cross-site report");
+    }
+  });
 </script>

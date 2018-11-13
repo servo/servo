@@ -2,16 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::root::DomRoot;
-use crate::dom::globalscope::GlobalScope;
-use crate::dom::paintworkletglobalscope::PaintWorkletGlobalScope;
-use crate::dom::paintworkletglobalscope::PaintWorkletTask;
-use crate::dom::testworkletglobalscope::TestWorkletGlobalScope;
-use crate::dom::testworkletglobalscope::TestWorkletTask;
-use crate::dom::worklet::WorkletExecutor;
-use crate::script_thread::MainThreadScriptMsg;
 use devtools_traits::ScriptToDevtoolsControlMsg;
+use dom::bindings::inheritance::Castable;
+use dom::bindings::root::DomRoot;
+use dom::globalscope::GlobalScope;
+use dom::paintworkletglobalscope::PaintWorkletGlobalScope;
+use dom::paintworkletglobalscope::PaintWorkletTask;
+use dom::testworkletglobalscope::TestWorkletGlobalScope;
+use dom::testworkletglobalscope::TestWorkletTask;
+use dom::worklet::WorkletExecutor;
 use dom_struct::dom_struct;
 use ipc_channel::ipc;
 use ipc_channel::ipc::IpcSender;
@@ -19,10 +18,11 @@ use js::jsapi::JSContext;
 use js::jsval::UndefinedValue;
 use js::rust::Runtime;
 use msg::constellation_msg::PipelineId;
-use net_traits::image_cache::ImageCache;
 use net_traits::ResourceThreads;
+use net_traits::image_cache::ImageCache;
 use profile_traits::mem;
 use profile_traits::time;
+use script_thread::MainThreadScriptMsg;
 use script_traits::{Painter, ScriptMsg};
 use script_traits::{ScriptToConstellationChan, TimerSchedulerMsg};
 use servo_atoms::Atom;
@@ -93,20 +93,14 @@ impl WorkletGlobalScope {
     }
 
     /// Register a paint worklet to the script thread.
-    pub fn register_paint_worklet(
-        &self,
-        name: Atom,
-        properties: Vec<Atom>,
-        painter: Box<dyn Painter>,
-    ) {
+    pub fn register_paint_worklet(&self, name: Atom, properties: Vec<Atom>, painter: Box<Painter>) {
         self.to_script_thread_sender
             .send(MainThreadScriptMsg::RegisterPaintWorklet {
                 pipeline_id: self.globalscope.pipeline_id(),
                 name,
                 properties,
                 painter,
-            })
-            .expect("Worklet thread outlived script thread.");
+            }).expect("Worklet thread outlived script thread.");
     }
 
     /// The base URL of this global.
@@ -152,7 +146,7 @@ pub struct WorkletGlobalScopeInit {
     /// Message to send to the scheduler
     pub scheduler_chan: IpcSender<TimerSchedulerMsg>,
     /// The image cache
-    pub image_cache: Arc<dyn ImageCache>,
+    pub image_cache: Arc<ImageCache>,
 }
 
 /// <https://drafts.css-houdini.org/worklets/#worklet-global-scope-type>

@@ -25,32 +25,25 @@
 //!
 //!   http://dev.w3.org/csswg/css-sizing/
 
+#![deny(unsafe_code)]
+
 use app_units::{Au, MAX_AU};
-use crate::context::LayoutContext;
-use crate::display_list::items::DisplayListSection;
-use crate::display_list::StackingContextCollectionState;
-use crate::display_list::{BlockFlowDisplayListBuilding, BorderPaintingMode};
-use crate::display_list::{DisplayListBuildState, StackingContextCollectionFlags};
-use crate::floats::{ClearType, FloatKind, Floats, PlacementInfo};
-use crate::flow::{
-    BaseFlow, EarlyAbsolutePositionInfo, Flow, FlowClass, ForceNonfloatedFlag, GetBaseFlow,
-};
-use crate::flow::{
-    FlowFlags, FragmentationContext, ImmutableFlowUtils, LateAbsolutePositionInfo, OpaqueFlow,
-};
-use crate::flow_list::FlowList;
-use crate::fragment::{
-    CoordinateSystem, Fragment, FragmentBorderBoxIterator, FragmentFlags, Overflow,
-};
-use crate::incremental::RelayoutMode;
-use crate::layout_debug;
-use crate::model::{
-    AdjoiningMargins, CollapsibleMargins, IntrinsicISizes, MarginCollapseInfo, MaybeAuto,
-};
-use crate::sequential;
-use crate::traversal::PreorderFlowTraversal;
+use context::LayoutContext;
+use display_list::{BlockFlowDisplayListBuilding, BorderPaintingMode};
+use display_list::{DisplayListBuildState, StackingContextCollectionFlags};
+use display_list::StackingContextCollectionState;
+use display_list::items::DisplayListSection;
 use euclid::{Point2D, Rect, SideOffsets2D, Size2D};
+use floats::{ClearType, FloatKind, Floats, PlacementInfo};
+use flow::{BaseFlow, EarlyAbsolutePositionInfo, Flow, FlowClass, ForceNonfloatedFlag, GetBaseFlow};
+use flow::{ImmutableFlowUtils, LateAbsolutePositionInfo, OpaqueFlow, FragmentationContext, FlowFlags};
+use flow_list::FlowList;
+use fragment::{CoordinateSystem, Fragment, FragmentBorderBoxIterator, Overflow, FragmentFlags};
 use gfx_traits::print_tree::PrintTree;
+use incremental::RelayoutMode;
+use layout_debug;
+use model::{AdjoiningMargins, CollapsibleMargins, IntrinsicISizes, MarginCollapseInfo, MaybeAuto};
+use sequential;
 use serde::{Serialize, Serializer};
 use servo_geometry::MaxRect;
 use std::cmp::{max, min};
@@ -66,8 +59,9 @@ use style::context::SharedStyleContext;
 use style::logical_geometry::{LogicalMargin, LogicalPoint, LogicalRect, LogicalSize, WritingMode};
 use style::properties::ComputedValues;
 use style::servo::restyle_damage::ServoRestyleDamage;
+use style::values::computed::{LengthOrPercentageOrNone, LengthOrPercentage};
 use style::values::computed::LengthOrPercentageOrAuto;
-use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrNone};
+use traversal::PreorderFlowTraversal;
 
 /// Information specific to floated blocks.
 #[derive(Clone, Serialize)]
@@ -546,7 +540,7 @@ pub struct AbsoluteAssignBSizesTraversal<'a>(pub &'a SharedStyleContext<'a>);
 
 impl<'a> PreorderFlowTraversal for AbsoluteAssignBSizesTraversal<'a> {
     #[inline]
-    fn process(&self, flow: &mut dyn Flow) {
+    fn process(&self, flow: &mut Flow) {
         if !flow.is_block_like() {
             return;
         }
@@ -599,7 +593,7 @@ pub enum FormattingContextType {
 }
 
 #[allow(unsafe_code)]
-unsafe impl crate::flow::HasBaseFlow for BlockFlow {}
+unsafe impl ::flow::HasBaseFlow for BlockFlow {}
 
 // A block formatting context.
 #[derive(Serialize)]
@@ -938,7 +932,7 @@ impl BlockFlow {
         layout_context: &LayoutContext,
         mut fragmentation_context: Option<FragmentationContext>,
         margins_may_collapse: MarginsMayCollapseFlag,
-    ) -> Option<Arc<dyn Flow>> {
+    ) -> Option<Arc<Flow>> {
         let _scope = layout_debug_scope!("assign_block_size_block_base {:x}", self.base.debug_id());
 
         let mut break_at = None;
@@ -1272,7 +1266,7 @@ impl BlockFlow {
             }
         }
 
-        if (&*self as &dyn Flow).contains_roots_of_absolute_flow_tree() {
+        if (&*self as &Flow).contains_roots_of_absolute_flow_tree() {
             // Assign block-sizes for all flows in this absolute flow tree.
             // This is preorder because the block-size of an absolute flow may depend on
             // the block-size of its containing block, which may also be an absolute flow.
@@ -1307,7 +1301,7 @@ impl BlockFlow {
                 if let Some(child) = child_remaining {
                     children.push_front_arc(child);
                 }
-                Some(Arc::new(self.clone_with_children(children)) as Arc<dyn Flow>)
+                Some(Arc::new(self.clone_with_children(children)) as Arc<Flow>)
             }
         })
     }
@@ -1342,8 +1336,7 @@ impl BlockFlow {
                 self.fragment.style.writing_mode,
                 inline_size_for_float_placement,
                 block_size + self.fragment.margin.block_start_end(),
-            )
-            .convert(
+            ).convert(
                 self.fragment.style.writing_mode,
                 self.base.floats.writing_mode,
             ),
@@ -1370,8 +1363,7 @@ impl BlockFlow {
                 self.base.floats.writing_mode,
                 self.base.writing_mode,
                 container_size,
-            )
-            .start;
+            ).start;
         let margin_offset = LogicalPoint::new(
             self.base.writing_mode,
             Au(0),
@@ -1592,7 +1584,7 @@ impl BlockFlow {
         content_inline_size: Au,
         mut callback: F,
     ) where
-        F: FnMut(&mut dyn Flow, usize, Au, WritingMode, &mut Au, &mut Au),
+        F: FnMut(&mut Flow, usize, Au, WritingMode, &mut Au, &mut Au),
     {
         let flags = self.base.flags.clone();
 
@@ -2246,7 +2238,7 @@ impl Flow for BlockFlow {
             self.assign_inline_position_for_formatting_context(layout_context, content_box);
         }
 
-        if (self as &dyn Flow).floats_might_flow_through() {
+        if (self as &Flow).floats_might_flow_through() {
             self.base.thread_id = parent_thread_id;
             if self
                 .base
@@ -2283,7 +2275,7 @@ impl Flow for BlockFlow {
         &mut self,
         layout_context: &LayoutContext,
         fragmentation_context: Option<FragmentationContext>,
-    ) -> Option<Arc<dyn Flow>> {
+    ) -> Option<Arc<Flow>> {
         if self.fragment.is_replaced() {
             let _scope = layout_debug_scope!(
                 "assign_replaced_block_size_if_necessary {:x}",
@@ -2595,7 +2587,7 @@ impl Flow for BlockFlow {
         self.build_display_list_for_block(state, BorderPaintingMode::Separate);
     }
 
-    fn repair_style(&mut self, new_style: &crate::ServoArc<ComputedValues>) {
+    fn repair_style(&mut self, new_style: &::ServoArc<ComputedValues>) {
         self.fragment.repair_style(new_style)
     }
 
@@ -2613,7 +2605,7 @@ impl Flow for BlockFlow {
 
     fn iterate_through_fragment_border_boxes(
         &self,
-        iterator: &mut dyn FragmentBorderBoxIterator,
+        iterator: &mut FragmentBorderBoxIterator,
         level: i32,
         stacking_context_position: &Point2D<Au>,
     ) {
@@ -2636,12 +2628,11 @@ impl Flow for BlockFlow {
                         .early_absolute_position_info
                         .relative_containing_block_mode,
                     CoordinateSystem::Own,
-                )
-                .translate(&stacking_context_position.to_vector()),
+                ).translate(&stacking_context_position.to_vector()),
         );
     }
 
-    fn mutate_fragments(&mut self, mutator: &mut dyn FnMut(&mut Fragment)) {
+    fn mutate_fragments(&mut self, mutator: &mut FnMut(&mut Fragment)) {
         (*mutator)(&mut self.fragment)
     }
 

@@ -2,6 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+extern crate crossbeam_channel;
+extern crate ipc_channel;
+extern crate serde;
+
 pub mod base_channel {
     pub use crossbeam_channel::*;
 }
@@ -11,45 +15,46 @@ pub use crossbeam_channel::*;
 use ipc_channel::ipc::IpcReceiver;
 use ipc_channel::router::ROUTER;
 use serde::{Deserialize, Serialize};
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
+
 
 pub fn route_ipc_receiver_to_new_servo_receiver<T>(ipc_receiver: IpcReceiver<T>) -> Receiver<T>
 where
-    T: for<'de> Deserialize<'de> + Serialize + Send + 'static,
+    T: for<'de> Deserialize<'de> + Serialize + Send + 'static
 {
     let (servo_sender, servo_receiver) = channel();
     ROUTER.add_route(
         ipc_receiver.to_opaque(),
-        Box::new(move |message| drop(servo_sender.send(message.to::<T>().unwrap()))),
+        Box::new(move |message| {
+            drop(servo_sender.send(message.to::<T>().unwrap()))
+        }),
     );
     servo_receiver
 }
 
-pub fn route_ipc_receiver_to_new_servo_sender<T>(
-    ipc_receiver: IpcReceiver<T>,
-    servo_sender: Sender<T>,
-) where
-    T: for<'de> Deserialize<'de> + Serialize + Send + 'static,
+pub fn route_ipc_receiver_to_new_servo_sender<T>(ipc_receiver: IpcReceiver<T>, servo_sender: Sender<T>)
+where
+    T: for<'de> Deserialize<'de> + Serialize + Send + 'static
 {
     ROUTER.add_route(
         ipc_receiver.to_opaque(),
-        Box::new(move |message| drop(servo_sender.send(message.to::<T>().unwrap()))),
+        Box::new(move |message| {
+            drop(servo_sender.send(message.to::<T>().unwrap()))
+        }),
     )
 }
 
 pub fn channel<T>() -> (Sender<T>, Receiver<T>) {
     let (base_sender, base_receiver) = crossbeam_channel::unbounded::<T>();
     let is_disconnected = Arc::new(AtomicBool::new(false));
-    (
-        Sender::new(base_sender, is_disconnected.clone()),
-        Receiver::new(base_receiver, is_disconnected),
-    )
+    (Sender::new(base_sender, is_disconnected.clone()),
+     Receiver::new(base_receiver, is_disconnected))
 }
 
 #[derive(Debug, PartialEq)]
 pub enum ChannelError {
-    ChannelClosedError,
+    ChannelClosedError
 }
 
 pub struct Receiver<T> {
@@ -73,10 +78,7 @@ impl<T> Clone for Receiver<T> {
 }
 
 impl<T> Receiver<T> {
-    pub fn new(
-        receiver: crossbeam_channel::Receiver<T>,
-        is_disconnected: Arc<AtomicBool>,
-    ) -> Receiver<T> {
+    pub fn new(receiver: crossbeam_channel::Receiver<T>, is_disconnected: Arc<AtomicBool>) -> Receiver<T> {
         Receiver {
             receiver,
             is_disconnected,
@@ -132,10 +134,7 @@ impl<T> Clone for Sender<T> {
 }
 
 impl<T> Sender<T> {
-    pub fn new(
-        sender: crossbeam_channel::Sender<T>,
-        is_disconnected: Arc<AtomicBool>,
-    ) -> Sender<T> {
+    pub fn new(sender: crossbeam_channel::Sender<T>, is_disconnected: Arc<AtomicBool>) -> Sender<T> {
         Sender {
             sender,
             is_disconnected,

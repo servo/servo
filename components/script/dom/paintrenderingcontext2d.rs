@@ -5,26 +5,26 @@
 use canvas_traits::canvas::CanvasImageData;
 use canvas_traits::canvas::CanvasMsg;
 use canvas_traits::canvas::FromLayoutMsg;
-use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasFillRule;
-use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasImageSource;
-use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasLineCap;
-use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasLineJoin;
-use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasRenderingContext2DMethods;
-use crate::dom::bindings::codegen::Bindings::PaintRenderingContext2DBinding;
-use crate::dom::bindings::codegen::Bindings::PaintRenderingContext2DBinding::PaintRenderingContext2DMethods;
-use crate::dom::bindings::codegen::UnionTypes::StringOrCanvasGradientOrCanvasPattern;
-use crate::dom::bindings::error::ErrorResult;
-use crate::dom::bindings::error::Fallible;
-use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::num::Finite;
-use crate::dom::bindings::reflector::reflect_dom_object;
-use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::DOMString;
-use crate::dom::canvasgradient::CanvasGradient;
-use crate::dom::canvaspattern::CanvasPattern;
-use crate::dom::canvasrenderingcontext2d::CanvasRenderingContext2D;
-use crate::dom::paintworkletglobalscope::PaintWorkletGlobalScope;
-use crate::dom::workletglobalscope::WorkletGlobalScope;
+use dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasFillRule;
+use dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasImageSource;
+use dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasLineCap;
+use dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasLineJoin;
+use dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasRenderingContext2DMethods;
+use dom::bindings::codegen::Bindings::PaintRenderingContext2DBinding;
+use dom::bindings::codegen::Bindings::PaintRenderingContext2DBinding::PaintRenderingContext2DMethods;
+use dom::bindings::codegen::UnionTypes::StringOrCanvasGradientOrCanvasPattern;
+use dom::bindings::error::ErrorResult;
+use dom::bindings::error::Fallible;
+use dom::bindings::inheritance::Castable;
+use dom::bindings::num::Finite;
+use dom::bindings::reflector::reflect_dom_object;
+use dom::bindings::root::DomRoot;
+use dom::bindings::str::DOMString;
+use dom::canvasgradient::CanvasGradient;
+use dom::canvaspattern::CanvasPattern;
+use dom::canvasrenderingcontext2d::CanvasRenderingContext2D;
+use dom::paintworkletglobalscope::PaintWorkletGlobalScope;
+use dom::workletglobalscope::WorkletGlobalScope;
 use dom_struct::dom_struct;
 use euclid::Size2D;
 use euclid::TypedScale;
@@ -86,7 +86,7 @@ impl PaintRenderingContext2D {
         let size = size * device_pixel_ratio;
         self.device_pixel_ratio.set(device_pixel_ratio);
         self.context
-            .set_bitmap_dimensions(size.to_untyped().to_u32());
+            .set_bitmap_dimensions(size.to_untyped().to_i32());
         self.scale_by_device_pixel_ratio();
     }
 

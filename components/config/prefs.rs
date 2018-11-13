@@ -2,15 +2,16 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use crate::basedir::default_config_dir;
-use crate::opts;
+use basedir::default_config_dir;
 use embedder_traits::resources::{self, Resource};
-use serde_json::{self, Value};
+use num_cpus;
+use opts;
+use rustc_serialize::json::{Json, ToJson};
 use std::borrow::ToOwned;
 use std::cmp::max;
 use std::collections::HashMap;
 use std::fs::File;
-use std::io::{stderr, Read, Write};
+use std::io::{Read, Write, stderr};
 use std::path::PathBuf;
 use std::sync::{Arc, RwLock};
 
@@ -33,17 +34,13 @@ pub enum PrefValue {
 }
 
 impl PrefValue {
-    pub fn from_json(data: Value) -> Result<PrefValue, ()> {
+    pub fn from_json(data: Json) -> Result<PrefValue, ()> {
         let value = match data {
-            Value::Bool(x) => PrefValue::Boolean(x),
-            Value::String(x) => PrefValue::String(x),
-            Value::Number(x) => {
-                if let Some(v) = x.as_f64() {
-                    PrefValue::Number(v)
-                } else {
-                    return Err(());
-                }
-            },
+            Json::Boolean(x) => PrefValue::Boolean(x),
+            Json::String(x) => PrefValue::String(x),
+            Json::F64(x) => PrefValue::Number(x),
+            Json::I64(x) => PrefValue::Number(x as f64),
+            Json::U64(x) => PrefValue::Number(x as f64),
             _ => return Err(()),
         };
         Ok(value)
@@ -78,6 +75,17 @@ impl PrefValue {
     }
 }
 
+impl ToJson for PrefValue {
+    fn to_json(&self) -> Json {
+        match *self {
+            PrefValue::Boolean(x) => Json::Boolean(x),
+            PrefValue::String(ref x) => Json::String(x.clone()),
+            PrefValue::Number(x) => Json::F64(x),
+            PrefValue::Missing => Json::Null,
+        }
+    }
+}
+
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum Pref {
     NoDefault(Arc<PrefValue>),
@@ -93,7 +101,7 @@ impl Pref {
         Pref::WithDefault(Arc::new(value), None)
     }
 
-    fn from_json(data: Value) -> Result<Pref, ()> {
+    fn from_json(data: Json) -> Result<Pref, ()> {
         let value = PrefValue::from_json(data)?;
         Ok(Pref::new_default(value))
     }
@@ -118,6 +126,12 @@ impl Pref {
     }
 }
 
+impl ToJson for Pref {
+    fn to_json(&self) -> Json {
+        self.value().to_json()
+    }
+}
+
 pub fn default_prefs() -> Preferences {
     let prefs = Preferences(Arc::new(RwLock::new(HashMap::new())));
     prefs.set(
@@ -128,13 +142,13 @@ pub fn default_prefs() -> Preferences {
 }
 
 pub fn read_prefs(txt: &str) -> Result<HashMap<String, Pref>, ()> {
-    let json: Value = serde_json::from_str(txt).or_else(|e| {
+    let json = Json::from_str(txt).or_else(|e| {
         println!("Ignoring invalid JSON in preferences: {:?}.", e);
         Err(())
     })?;
 
     let mut prefs = HashMap::new();
-    if let Value::Object(obj) = json {
+    if let Json::Object(obj) = json {
         for (name, value) in obj.into_iter() {
             match Pref::from_json(value) {
                 Ok(x) => {
@@ -178,8 +192,7 @@ fn init_user_prefs(path: &mut PathBuf) {
         writeln!(
             &mut stderr(),
             "Error opening prefs.json from config directory"
-        )
-        .expect("failed printing to stderr");
+        ).expect("failed printing to stderr");
     }
 }
 

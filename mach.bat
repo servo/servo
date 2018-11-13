@@ -25,13 +25,13 @@ IF EXIST "%VS_VCVARS%" (
       call "%VS_VCVARS%" x64
     ) ELSE (
       ECHO 32-bit Windows is currently unsupported.
-      EXIT /B 1
+      EXIT /B
     )
   )
 ) ELSE (
   ECHO Visual Studio 2015 or 2017 is not installed.
   ECHO Download and install Visual Studio 2015 or 2017 from https://www.visualstudio.com/
-  EXIT /B 1
+  EXIT /B
 )
 
 popd

@@ -10,13 +10,11 @@
             var testMouseUp = async_test('Tests that the mouseup is preventable.');
             var received_back = false;
             var received_forward = false;
-            const backButton = 3;
-            const forwardButton = 4;
             window.addEventListener('mouseup', function(e) {
-              if (e.button == backButton) {
+              if (e.button == 3) {
                 received_back = true;
                 e.preventDefault();
-              } else if (e.button == forwardButton) {
+              } else if (e.button == 4) {
                 received_forward = true;
                 e.preventDefault();
               }

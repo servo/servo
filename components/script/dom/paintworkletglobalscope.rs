@@ -2,27 +2,27 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::callback::CallbackContainer;
-use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::PaintWorkletGlobalScopeBinding;
-use crate::dom::bindings::codegen::Bindings::PaintWorkletGlobalScopeBinding::PaintWorkletGlobalScopeMethods;
-use crate::dom::bindings::codegen::Bindings::VoidFunctionBinding::VoidFunction;
-use crate::dom::bindings::conversions::get_property;
-use crate::dom::bindings::conversions::get_property_jsval;
-use crate::dom::bindings::error::Error;
-use crate::dom::bindings::error::Fallible;
-use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::DomObject;
-use crate::dom::bindings::root::{Dom, DomRoot};
-use crate::dom::bindings::str::DOMString;
-use crate::dom::cssstylevalue::CSSStyleValue;
-use crate::dom::paintrenderingcontext2d::PaintRenderingContext2D;
-use crate::dom::paintsize::PaintSize;
-use crate::dom::stylepropertymapreadonly::StylePropertyMapReadOnly;
-use crate::dom::worklet::WorkletExecutor;
-use crate::dom::workletglobalscope::WorkletGlobalScope;
-use crate::dom::workletglobalscope::WorkletGlobalScopeInit;
-use crate::dom::workletglobalscope::WorkletTask;
+use dom::bindings::callback::CallbackContainer;
+use dom::bindings::cell::DomRefCell;
+use dom::bindings::codegen::Bindings::PaintWorkletGlobalScopeBinding;
+use dom::bindings::codegen::Bindings::PaintWorkletGlobalScopeBinding::PaintWorkletGlobalScopeMethods;
+use dom::bindings::codegen::Bindings::VoidFunctionBinding::VoidFunction;
+use dom::bindings::conversions::get_property;
+use dom::bindings::conversions::get_property_jsval;
+use dom::bindings::error::Error;
+use dom::bindings::error::Fallible;
+use dom::bindings::inheritance::Castable;
+use dom::bindings::reflector::DomObject;
+use dom::bindings::root::{Dom, DomRoot};
+use dom::bindings::str::DOMString;
+use dom::cssstylevalue::CSSStyleValue;
+use dom::paintrenderingcontext2d::PaintRenderingContext2D;
+use dom::paintsize::PaintSize;
+use dom::stylepropertymapreadonly::StylePropertyMapReadOnly;
+use dom::worklet::WorkletExecutor;
+use dom::workletglobalscope::WorkletGlobalScope;
+use dom::workletglobalscope::WorkletGlobalScopeInit;
+use dom::workletglobalscope::WorkletTask;
 use dom_struct::dom_struct;
 use euclid::TypedScale;
 use euclid::TypedSize2D;
@@ -38,24 +38,24 @@ use js::jsapi::JS_NewArrayObject;
 use js::jsval::JSVal;
 use js::jsval::ObjectValue;
 use js::jsval::UndefinedValue;
-use js::rust::wrappers::Call;
-use js::rust::wrappers::Construct1;
 use js::rust::HandleValue;
 use js::rust::Runtime;
+use js::rust::wrappers::Call;
+use js::rust::wrappers::Construct1;
 use msg::constellation_msg::PipelineId;
 use net_traits::image::base::PixelFormat;
 use net_traits::image_cache::ImageCache;
 use profile_traits::ipc;
-use script_traits::Painter;
 use script_traits::{DrawAPaintImageResult, PaintWorkletError};
+use script_traits::Painter;
 use servo_atoms::Atom;
-use servo_channel::base_channel;
 use servo_channel::{channel, Sender};
+use servo_channel::base_channel;
 use servo_config::prefs::PREFS;
 use servo_url::ServoUrl;
 use std::cell::Cell;
-use std::collections::hash_map::Entry;
 use std::collections::HashMap;
+use std::collections::hash_map::Entry;
 use std::ptr::null_mut;
 use std::rc::Rc;
 use std::sync::Arc;
@@ -131,7 +131,7 @@ impl PaintWorkletGlobalScope {
         unsafe { PaintWorkletGlobalScopeBinding::Wrap(runtime.cx(), global) }
     }
 
-    pub fn image_cache(&self) -> Arc<dyn ImageCache> {
+    pub fn image_cache(&self) -> Arc<ImageCache> {
         self.image_cache.clone()
     }
 
@@ -396,7 +396,7 @@ impl PaintWorkletGlobalScope {
         }
     }
 
-    fn painter(&self, name: Atom) -> Box<dyn Painter> {
+    fn painter(&self, name: Atom) -> Box<Painter> {
         // Rather annoyingly we have to use a mutex here to make the painter Sync.
         struct WorkletPainter {
             name: Atom,

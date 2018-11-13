@@ -5,12 +5,11 @@
 /// Liberally derived from the [Firefox JS implementation]
 /// (http://mxr.mozilla.org/mozilla-central/source/toolkit/devtools/server/actors/root.js).
 /// Connection point for all new remote devtools interactions, providing lists of know actors
-/// that perform more specific actions (targets, addons, browser chrome, etc.)
-use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
-use crate::actors::browsing_context::{BrowsingContextActor, BrowsingContextActorMsg};
-use crate::actors::device::DeviceActor;
-use crate::actors::performance::PerformanceActor;
-use crate::protocol::{ActorDescription, JsonPacketStream};
+/// that perform more specific actions (tabs, addons, browser chrome, etc.)
+use actor::{Actor, ActorMessageStatus, ActorRegistry};
+use actors::performance::PerformanceActor;
+use actors::tab::{TabActor, TabActorMsg};
+use protocol::{ActorDescription, JsonPacketStream};
 use serde_json::{Map, Value};
 use std::net::TcpStream;
 
@@ -32,18 +31,10 @@ struct ListAddonsReply {
 enum AddonMsg {}
 
 #[derive(Serialize)]
-struct GetRootReply {
-    from: String,
-    selected: u32,
-    performanceActor: String,
-    deviceActor: String,
-}
-
-#[derive(Serialize)]
 struct ListTabsReply {
     from: String,
     selected: u32,
-    tabs: Vec<BrowsingContextActorMsg>,
+    tabs: Vec<TabActorMsg>,
 }
 
 #[derive(Serialize)]
@@ -62,13 +53,10 @@ pub struct ProtocolDescriptionReply {
 #[derive(Serialize)]
 pub struct Types {
     performance: ActorDescription,
-    device: ActorDescription,
 }
 
 pub struct RootActor {
     pub tabs: Vec<String>,
-    pub performance: String,
-    pub device: String,
 }
 
 impl Actor for RootActor {
@@ -93,18 +81,7 @@ impl Actor for RootActor {
                 ActorMessageStatus::Processed
             },
 
-            "getRoot" => {
-                let actor = GetRootReply {
-                    from: "root".to_owned(),
-                    selected: 0,
-                    performanceActor: self.performance.clone(),
-                    deviceActor: self.device.clone(),
-                };
-                stream.write_json_packet(&actor);
-                ActorMessageStatus::Processed
-            },
-
-            // https://docs.firefox-dev.tools/backend/protocol.html#listing-browser-tabs
+            //https://wiki.mozilla.org/Remote_Debugging_Protocol#Listing_Browser_Tabs
             "listTabs" => {
                 let actor = ListTabsReply {
                     from: "root".to_owned(),
@@ -112,7 +89,7 @@ impl Actor for RootActor {
                     tabs: self
                         .tabs
                         .iter()
-                        .map(|target| registry.find::<BrowsingContextActor>(target).encodable())
+                        .map(|tab| registry.find::<TabActor>(tab).encodable())
                         .collect(),
                 };
                 stream.write_json_packet(&actor);
@@ -124,7 +101,6 @@ impl Actor for RootActor {
                     from: self.name(),
                     types: Types {
                         performance: PerformanceActor::description(),
-                        device: DeviceActor::description(),
                     },
                 };
                 stream.write_json_packet(&msg);

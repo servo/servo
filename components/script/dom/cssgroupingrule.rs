@@ -2,18 +2,18 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::codegen::Bindings::CSSGroupingRuleBinding::CSSGroupingRuleMethods;
-use crate::dom::bindings::error::{ErrorResult, Fallible};
-use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::DomObject;
-use crate::dom::bindings::root::{DomRoot, MutNullableDom};
-use crate::dom::bindings::str::DOMString;
-use crate::dom::cssrule::CSSRule;
-use crate::dom::cssrulelist::{CSSRuleList, RulesSource};
-use crate::dom::cssstylesheet::CSSStyleSheet;
+use dom::bindings::codegen::Bindings::CSSGroupingRuleBinding::CSSGroupingRuleMethods;
+use dom::bindings::error::{ErrorResult, Fallible};
+use dom::bindings::inheritance::Castable;
+use dom::bindings::reflector::DomObject;
+use dom::bindings::root::{DomRoot, MutNullableDom};
+use dom::bindings::str::DOMString;
+use dom::cssrule::CSSRule;
+use dom::cssrulelist::{CSSRuleList, RulesSource};
+use dom::cssstylesheet::CSSStyleSheet;
 use dom_struct::dom_struct;
 use servo_arc::Arc;
-use style::shared_lock::{Locked, SharedRwLock};
+use style::shared_lock::{SharedRwLock, Locked};
 use style::stylesheets::CssRules as StyleCssRules;
 
 #[dom_struct]

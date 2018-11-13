@@ -30,36 +30,34 @@
 //! `JSTraceable` to a datatype.
 
 use app_units::Au;
-use canvas_traits::canvas::{
-    CanvasGradientStop, CanvasId, LinearGradientStyle, RadialGradientStyle,
-};
+use canvas_traits::canvas::{CanvasGradientStop, CanvasId, LinearGradientStyle, RadialGradientStyle};
 use canvas_traits::canvas::{CompositionOrBlending, LineCapStyle, LineJoinStyle, RepetitionStyle};
 use canvas_traits::webgl::{ActiveAttribInfo, ActiveUniformInfo, WebGLBufferId, WebGLChan};
 use canvas_traits::webgl::{WebGLContextShareMode, WebGLError, WebGLFramebufferId, WebGLMsgSender};
 use canvas_traits::webgl::{WebGLPipeline, WebGLProgramId, WebGLReceiver, WebGLRenderbufferId};
 use canvas_traits::webgl::{WebGLSLVersion, WebGLSender, WebGLShaderId, WebGLTextureId};
 use canvas_traits::webgl::{WebGLVersion, WebGLVertexArrayId};
-use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::error::Error;
-use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
-use crate::dom::bindings::reflector::{DomObject, Reflector};
-use crate::dom::bindings::root::{Dom, DomRoot};
-use crate::dom::bindings::str::{DOMString, USVString};
-use crate::dom::bindings::utils::WindowProxyHandler;
-use crate::dom::document::PendingRestyle;
-use crate::dom::htmlimageelement::SourceSet;
-use crate::dom::htmlmediaelement::MediaFrameRenderer;
 use cssparser::RGBA;
 use devtools_traits::{CSSError, TimelineMarkerType, WorkerId};
+use dom::bindings::cell::DomRefCell;
+use dom::bindings::error::Error;
+use dom::bindings::refcounted::{Trusted, TrustedPromise};
+use dom::bindings::reflector::{DomObject, Reflector};
+use dom::bindings::root::{Dom, DomRoot};
+use dom::bindings::str::{DOMString, USVString};
+use dom::bindings::utils::WindowProxyHandler;
+use dom::document::PendingRestyle;
+use dom::htmlimageelement::SourceSet;
 use encoding_rs::{Decoder, Encoding};
+use euclid::{Transform2D, Transform3D, Point2D, Vector2D, Rect, TypedSize2D, TypedScale};
 use euclid::Length as EuclidLength;
-use euclid::{Point2D, Rect, Transform2D, Transform3D, TypedScale, TypedSize2D, Vector2D};
+use html5ever::{Prefix, LocalName, Namespace, QualName};
 use html5ever::buffer_queue::BufferQueue;
 use html5ever::tendril::IncompleteUtf8;
-use html5ever::{LocalName, Namespace, Prefix, QualName};
-use http::header::HeaderMap;
-use hyper::Method;
-use hyper::StatusCode;
+use hyper::header::Headers;
+use hyper::method::Method;
+use hyper::mime::Mime;
+use hyper::status::StatusCode;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use js::glue::{CallObjectTracer, CallValueTracer};
 use js::jsapi::{GCTraceKindToAscii, Heap, JSObject, JSTracer, TraceKind};
@@ -68,41 +66,36 @@ use js::rust::{GCMethods, Handle, Runtime};
 use js::typedarray::TypedArray;
 use js::typedarray::TypedArrayElement;
 use metrics::{InteractiveMetrics, InteractiveWindow};
-use mime::Mime;
-use msg::constellation_msg::{
-    BrowsingContextId, HistoryStateId, PipelineId, TopLevelBrowsingContextId,
-};
+use msg::constellation_msg::{BrowsingContextId, HistoryStateId, PipelineId, TopLevelBrowsingContextId};
+use net_traits::{Metadata, NetworkError, ReferrerPolicy, ResourceThreads};
 use net_traits::filemanager_thread::RelativePos;
 use net_traits::image::base::{Image, ImageMetadata};
 use net_traits::image_cache::{ImageCache, PendingImageId};
 use net_traits::request::{Request, RequestInit};
-use net_traits::response::HttpsState;
 use net_traits::response::{Response, ResponseBody};
+use net_traits::response::HttpsState;
 use net_traits::storage_thread::StorageType;
-use net_traits::{Metadata, NetworkError, ReferrerPolicy, ResourceThreads};
 use offscreen_gl_context::GLLimits;
 use profile_traits::mem::ProfilerChan as MemProfilerChan;
 use profile_traits::time::ProfilerChan as TimeProfilerChan;
+use script_layout_interface::OpaqueStyleAndLayoutData;
 use script_layout_interface::reporter::CSSErrorReporter;
 use script_layout_interface::rpc::LayoutRPC;
-use script_layout_interface::OpaqueStyleAndLayoutData;
-use script_traits::DrawAPaintImageResult;
 use script_traits::{DocumentActivity, ScriptToConstellationChan, TimerEventId, TimerSource};
 use script_traits::{UntrustedNodeAddress, WindowSizeData, WindowSizeType};
+use script_traits::DrawAPaintImageResult;
 use selectors::matching::ElementSelectorFlags;
 use serde::{Deserialize, Serialize};
 use servo_arc::Arc as ServoArc;
 use servo_atoms::Atom;
 use servo_channel::{Receiver, Sender};
+use servo_media::Backend;
 use servo_media::audio::analyser_node::AnalysisEngine;
 use servo_media::audio::buffer_source_node::AudioBuffer;
 use servo_media::audio::context::AudioContext;
 use servo_media::audio::graph::NodeId;
 use servo_media::audio::panner_node::{DistanceModel, PanningModel};
 use servo_media::audio::param::ParamType;
-use servo_media::player::Player;
-use servo_media::Backend;
-use servo_media::Error as ServoMediaError;
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use smallvec::SmallVec;
 use std::cell::{Cell, RefCell, UnsafeCell};
@@ -111,24 +104,24 @@ use std::hash::{BuildHasher, Hash};
 use std::ops::{Deref, DerefMut};
 use std::path::PathBuf;
 use std::rc::Rc;
+use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, AtomicUsize};
-use std::sync::{Arc, Mutex};
-use std::time::{Instant, SystemTime};
+use std::time::{SystemTime, Instant};
 use style::attr::{AttrIdentifier, AttrValue, LengthOrPercentageOrAuto};
 use style::context::QuirksMode;
 use style::element_state::*;
 use style::media_queries::MediaList;
 use style::properties::PropertyDeclarationBlock;
 use style::selector_parser::{PseudoElement, Snapshot};
-use style::shared_lock::{Locked as StyleLocked, SharedRwLock as StyleSharedRwLock};
+use style::shared_lock::{SharedRwLock as StyleSharedRwLock, Locked as StyleLocked};
 use style::stylesheet_set::DocumentStylesheetSet;
-use style::stylesheets::keyframes_rule::Keyframe;
 use style::stylesheets::{CssRules, FontFaceRule, KeyframesRule, MediaRule, Stylesheet};
-use style::stylesheets::{ImportRule, NamespaceRule, StyleRule, SupportsRule, ViewportRule};
+use style::stylesheets::{NamespaceRule, StyleRule, ImportRule, SupportsRule, ViewportRule};
+use style::stylesheets::keyframes_rule::Keyframe;
 use style::values::specified::Length;
 use time::Duration;
 use uuid::Uuid;
-use webrender_api::{DocumentId, ImageKey, RenderApiSender};
+use webrender_api::{DocumentId, ImageKey};
 use webvr_traits::WebVRGamepadHand;
 
 /// A trait to allow tracing (only) DOM objects.
@@ -268,13 +261,7 @@ unsafe impl<T: JSTraceable> JSTraceable for VecDeque<T> {
     }
 }
 
-unsafe impl<A, B, C, D> JSTraceable for (A, B, C, D)
-where
-    A: JSTraceable,
-    B: JSTraceable,
-    C: JSTraceable,
-    D: JSTraceable,
-{
+unsafe impl<T: JSTraceable> JSTraceable for (T, T, T, T) {
     unsafe fn trace(&self, trc: *mut JSTracer) {
         self.0.trace(trc);
         self.1.trace(trc);
@@ -375,7 +362,7 @@ unsafe_no_jsmanaged_fields!(usize, u8, u16, u32, u64);
 unsafe_no_jsmanaged_fields!(isize, i8, i16, i32, i64);
 unsafe_no_jsmanaged_fields!(Error);
 unsafe_no_jsmanaged_fields!(ServoUrl, ImmutableOrigin, MutableOrigin);
-unsafe_no_jsmanaged_fields!(Image, ImageMetadata, dyn ImageCache, PendingImageId);
+unsafe_no_jsmanaged_fields!(Image, ImageMetadata, ImageCache, PendingImageId);
 unsafe_no_jsmanaged_fields!(Metadata);
 unsafe_no_jsmanaged_fields!(NetworkError);
 unsafe_no_jsmanaged_fields!(Atom, Prefix, LocalName, Namespace, QualName);
@@ -395,7 +382,7 @@ unsafe_no_jsmanaged_fields!(TimelineMarkerType);
 unsafe_no_jsmanaged_fields!(WorkerId);
 unsafe_no_jsmanaged_fields!(BufferQueue, QuirksMode, IncompleteUtf8);
 unsafe_no_jsmanaged_fields!(Runtime);
-unsafe_no_jsmanaged_fields!(HeaderMap, Method);
+unsafe_no_jsmanaged_fields!(Headers, Method);
 unsafe_no_jsmanaged_fields!(WindowProxyHandler);
 unsafe_no_jsmanaged_fields!(UntrustedNodeAddress);
 unsafe_no_jsmanaged_fields!(LengthOrPercentageOrAuto);
@@ -461,9 +448,6 @@ unsafe_no_jsmanaged_fields!(AudioBuffer);
 unsafe_no_jsmanaged_fields!(AudioContext<Backend>);
 unsafe_no_jsmanaged_fields!(NodeId);
 unsafe_no_jsmanaged_fields!(AnalysisEngine, DistanceModel, PanningModel, ParamType);
-unsafe_no_jsmanaged_fields!(dyn Player<Error = ServoMediaError>);
-unsafe_no_jsmanaged_fields!(Mutex<MediaFrameRenderer>);
-unsafe_no_jsmanaged_fields!(RenderApiSender);
 
 unsafe impl<'a> JSTraceable for &'a str {
     #[inline]
@@ -497,7 +481,7 @@ where
 }
 
 // Safe thanks to the Send bound.
-unsafe impl JSTraceable for Box<dyn LayoutRPC + Send + 'static> {
+unsafe impl JSTraceable for Box<LayoutRPC + Send + 'static> {
     #[inline]
     unsafe fn trace(&self, _: *mut JSTracer) {
         // Do nothing
@@ -632,13 +616,6 @@ unsafe impl<U> JSTraceable for TypedSize2D<f32, U> {
     }
 }
 
-unsafe impl<U> JSTraceable for TypedSize2D<u32, U> {
-    #[inline]
-    unsafe fn trace(&self, _trc: *mut JSTracer) {
-        // Do nothing
-    }
-}
-
 unsafe impl JSTraceable for StyleLocked<FontFaceRule> {
     unsafe fn trace(&self, _trc: *mut JSTracer) {
         // Do nothing.
@@ -733,7 +710,7 @@ where
 
 /// Holds a set of JSTraceables that need to be rooted
 struct RootedTraceableSet {
-    set: Vec<*const dyn JSTraceable>,
+    set: Vec<*const JSTraceable>,
 }
 
 thread_local!(/// TLV Holds a set of JSTraceables that need to be rooted
@@ -744,7 +721,7 @@ impl RootedTraceableSet {
         RootedTraceableSet { set: vec![] }
     }
 
-    unsafe fn remove(traceable: *const dyn JSTraceable) {
+    unsafe fn remove(traceable: *const JSTraceable) {
         ROOTED_TRACEABLES.with(|ref traceables| {
             let mut traceables = traceables.borrow_mut();
             let idx = match traceables.set.iter().rposition(|x| *x == traceable) {
@@ -755,7 +732,7 @@ impl RootedTraceableSet {
         });
     }
 
-    unsafe fn add(traceable: *const dyn JSTraceable) {
+    unsafe fn add(traceable: *const JSTraceable) {
         ROOTED_TRACEABLES.with(|ref traceables| {
             traceables.borrow_mut().set.push(traceable);
         })

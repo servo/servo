@@ -2,28 +2,24 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use crate::dom::baseaudiocontext::{BaseAudioContext, BaseAudioContextOptions};
-use crate::dom::bindings::codegen::Bindings::AudioContextBinding;
-use crate::dom::bindings::codegen::Bindings::AudioContextBinding::{
-    AudioContextLatencyCategory, AudioContextMethods,
-};
-use crate::dom::bindings::codegen::Bindings::AudioContextBinding::{
-    AudioContextOptions, AudioTimestamp,
-};
-use crate::dom::bindings::codegen::Bindings::BaseAudioContextBinding::AudioContextState;
-use crate::dom::bindings::codegen::Bindings::BaseAudioContextBinding::BaseAudioContextBinding::BaseAudioContextMethods;
-use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::num::Finite;
-use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
-use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
-use crate::dom::bindings::root::DomRoot;
-use crate::dom::promise::Promise;
-use crate::dom::window::Window;
-use crate::task_source::TaskSource;
+use dom::baseaudiocontext::{BaseAudioContext, BaseAudioContextOptions};
+use dom::bindings::codegen::Bindings::AudioContextBinding;
+use dom::bindings::codegen::Bindings::AudioContextBinding::{AudioContextLatencyCategory, AudioContextMethods};
+use dom::bindings::codegen::Bindings::AudioContextBinding::{AudioContextOptions, AudioTimestamp};
+use dom::bindings::codegen::Bindings::BaseAudioContextBinding::AudioContextState;
+use dom::bindings::codegen::Bindings::BaseAudioContextBinding::BaseAudioContextBinding::BaseAudioContextMethods;
+use dom::bindings::error::{Error, Fallible};
+use dom::bindings::inheritance::Castable;
+use dom::bindings::num::Finite;
+use dom::bindings::refcounted::{Trusted, TrustedPromise};
+use dom::bindings::reflector::{DomObject, reflect_dom_object};
+use dom::bindings::root::DomRoot;
+use dom::promise::Promise;
+use dom::window::Window;
 use dom_struct::dom_struct;
 use servo_media::audio::context::{LatencyCategory, ProcessingState, RealTimeAudioContextOptions};
 use std::rc::Rc;
+use task_source::TaskSource;
 
 #[dom_struct]
 pub struct AudioContext {

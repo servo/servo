@@ -10,6 +10,8 @@
 
 // These tests came from https://github.com/rust-lang/rust/blob/master/src/libstd/sys/common/remutex.rs
 
+extern crate servo_remutex;
+
 use servo_remutex::{ReentrantMutex, ReentrantMutexGuard};
 use std::cell::RefCell;
 use std::sync::Arc;
@@ -58,8 +60,7 @@ fn trylock_works() {
     thread::spawn(move || {
         let lock = m2.try_lock();
         assert!(lock.is_err());
-    })
-    .join()
+    }).join()
     .unwrap();
     let _lock3 = m.try_lock().unwrap();
 }
@@ -83,8 +84,7 @@ fn poison_works() {
         let _answer = Answer(lock2);
         println!("Intentionally panicking.");
         panic!("What the answer to my lifetimes dilemma is?");
-    })
-    .join();
+    }).join();
     assert!(result.is_err());
     let r = m.lock().err().unwrap().into_inner();
     assert_eq!(*r.borrow(), 42);

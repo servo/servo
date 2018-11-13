@@ -103,41 +103,73 @@ function assert_session_desc_not_similar(sessionDesc1, sessionDesc2) {
     'Expect both session descriptions to have different count of media lines');
 }
 
-async function generateDataChannelOffer(pc) {
-  pc.createDataChannel('test');
-  const offer = await pc.createOffer();
-  assert_equals(countApplicationLine(offer.sdp), 1, 'Expect m=application line to be present in generated SDP');
-  return offer;
-}
+// Helper function to generate offer using a freshly created RTCPeerConnection
+// object with any audio, video, data media lines present
+function generateOffer(options={}) {
+  const {
+    audio = false,
+    video = false,
+    data = false,
+    pc,
+  } = options;
 
-async function generateAudioReceiveOnlyOffer(pc)
-{
-    try {
-        pc.addTransceiver('audio', { direction: 'recvonly' });
-        return pc.createOffer();
-    } catch(e) {
-        return pc.createOffer({ offerToReceiveAudio: true });
-    }
-}
+  if (data) {
+    pc.createDataChannel('test');
+  }
 
-async function generateVideoReceiveOnlyOffer(pc)
-{
-    try {
-        pc.addTransceiver('video', { direction: 'recvonly' });
-        return pc.createOffer();
-    } catch(e) {
-        return pc.createOffer({ offerToReceiveVideo: true });
+  const setup = {};
+
+  if (audio) {
+    setup.offerToReceiveAudio = true;
+  }
+
+  if (video) {
+    setup.offerToReceiveVideo = true;
+  }
+
+  return pc.createOffer(setup).then(offer => {
+    // Guard here to ensure that the generated offer really
+    // contain the number of media lines we want
+    const { sdp } = offer;
+
+    if(audio) {
+      assert_equals(countAudioLine(sdp), 1,
+        'Expect m=audio line to be present in generated SDP');
+    } else {
+      assert_equals(countAudioLine(sdp), 0,
+        'Expect m=audio line to be present in generated SDP');
     }
+
+    if(video) {
+      assert_equals(countVideoLine(sdp), 1,
+        'Expect m=video line to be present in generated SDP');
+    } else {
+      assert_equals(countVideoLine(sdp), 0,
+        'Expect m=video line to not present in generated SDP');
+    }
+
+    if(data) {
+      assert_equals(countApplicationLine(sdp), 1,
+        'Expect m=application line to be present in generated SDP');
+    } else {
+      assert_equals(countApplicationLine(sdp), 0,
+        'Expect m=application line to not present in generated SDP');
+    }
+
+    return offer;
+  });
 }
 
 // Helper function to generate answer based on given offer using a freshly
 // created RTCPeerConnection object
-async function generateAnswer(offer) {
+function generateAnswer(offer) {
   const pc = new RTCPeerConnection();
-  await pc.setRemoteDescription(offer);
-  const answer = await pc.createAnswer();
-  pc.close();
-  return answer;
+  return pc.setRemoteDescription(offer)
+  .then(() => pc.createAnswer())
+  .then((answer) => {
+    pc.close();
+    return answer;
+  });
 }
 
 // Run a test function that return a promise that should
@@ -326,7 +358,7 @@ const trackFactories = {
    */
   canCreate(requested) {
     const supported = {
-      audio: !!window.AudioContext && !!window.MediaStreamAudioDestinationNode,
+      audio: !!window.MediaStreamAudioDestinationNode,
       video: !!HTMLCanvasElement.prototype.captureStream
     };
 
@@ -431,13 +463,11 @@ function getUserMediaTracksAndStreams(count, type = 'audio') {
   });
 }
 
-// Performs an offer exchange caller -> callee.
 async function exchangeOffer(caller, callee) {
   const offer = await caller.createOffer();
   await caller.setLocalDescription(offer);
   return callee.setRemoteDescription(offer);
 }
-// Performs an answer exchange caller -> callee.
 async function exchangeAnswer(caller, callee) {
   const answer = await callee.createAnswer();
   await callee.setLocalDescription(answer);
@@ -447,18 +477,7 @@ async function exchangeOfferAnswer(caller, callee) {
   await exchangeOffer(caller, callee);
   return exchangeAnswer(caller, callee);
 }
-// The returned promise is resolved with caller's ontrack event.
-async function exchangeAnswerAndListenToOntrack(t, caller, callee) {
-  const ontrackPromise = addEventListenerPromise(t, caller, 'track');
-  await exchangeAnswer(caller, callee);
-  return ontrackPromise;
-}
-// The returned promise is resolved with callee's ontrack event.
-async function exchangeOfferAndListenToOntrack(t, caller, callee) {
-  const ontrackPromise = addEventListenerPromise(t, callee, 'track');
-  await exchangeOffer(caller, callee);
-  return ontrackPromise;
-}
+
 
 // The resolver has a |promise| that can be resolved or rejected using |resolve|
 // or |reject|.
@@ -483,28 +502,4 @@ function addEventListenerPromise(t, target, type, listener) {
       resolve(e);
     }));
   });
-}
-
-function createPeerConnectionWithCleanup(t) {
-  const pc = new RTCPeerConnection();
-  t.add_cleanup(() => pc.close());
-  return pc;
-}
-
-async function createTrackAndStreamWithCleanup(t, kind = 'audio') {
-  let constraints = {};
-  constraints[kind] = true;
-  const stream = await navigator.mediaDevices.getUserMedia(constraints);
-  const [track] = stream.getTracks();
-  t.add_cleanup(() => track.stop());
-  return [track, stream];
-}
-
-function findTransceiverForSender(pc, sender) {
-  const transceivers = pc.getTransceivers();
-  for (let i = 0; i < transceivers.length; ++i) {
-    if (transceivers[i].sender == sender)
-      return transceivers[i];
-  }
-  return null;
 }

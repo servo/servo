@@ -31,7 +31,7 @@ the underlying low-level object. If the JavaScript garbage collector determines
 that a reflector is no longer reachable, it destroys the reflector and
 decrements the reference count on the underlying object.
 
-[uaf]: https://cwe.mitre.org/data/definitions/416.html
+[uaf]: http://cwe.mitre.org/data/definitions/416.html
 [refcounting]: https://en.wikipedia.org/wiki/Reference_counting
 [gEBI]: https://developer.mozilla.org/en-US/docs/Web/API/document.getElementById
 
@@ -157,7 +157,7 @@ storing a `Node` struct within a `Document` struct. As in C++, the fields of
 `Node` are included in-line with the fields of `Document`, without any pointer
 indirection, and the auto-generated `trace` method will visit them as well.
 
-[document-spec]: https://dom.spec.whatwg.org/#interface-document
+[document-spec]: http://dom.spec.whatwg.org/#interface-document
 
 A `Document` also has an associated `Window`, but this is not an 'is-a'
 relationship. The `Document` just has a pointer to a `Window`, one of many
@@ -168,7 +168,7 @@ garbage collector about. We do this with a
 above). The implementation of `trace` for `Dom<T>` is not auto-generated; this
 is where we actually call the SpiderMonkey trace hooks:
 
-[dom]: https://doc.servo.org/script/dom/bindings/root/struct.Dom.html
+[dom]: http://doc.servo.org/script/dom/bindings/root/struct.Dom.html
 
 ```rust
 pub fn trace_reflector(tracer: *mut JSTracer, description: &str, reflector: &Reflector) {
@@ -218,7 +218,7 @@ often called from JavaScript through [IDL-based bindings][bindings]. In this
 case, the bindings code constructs a [root][gc-root] for any involved DOM
 objects.
 
-[bindings]: https://doc.servo.org/script/dom/bindings/index.html
+[bindings]: http://doc.servo.org/script/dom/bindings/index.html
 [gc-root]: https://en.wikipedia.org/wiki/Tracing_garbage_collection#Reachability_of_an_object
 
 Another common situation is creating a stack-local root manually. For this
@@ -232,10 +232,10 @@ In some cases, we need to use a DOM object longer than the reference we
 received allows us to; the [`DomRoot::from_ref` associated function][from-ref]
 allows creating a new `DomRoot<T>` struct in that case.
 
-[root]: https://doc.servo.org/script/dom/bindings/root/struct.DomRoot.html
+[root]: http://doc.servo.org/script/dom/bindings/root/struct.DomRoot.html
 [raii]: https://en.wikipedia.org/wiki/Resource_Acquisition_Is_Initialization
-[new]: https://doc.servo.org/script/dom/index.html#construction
-[from-ref]: https://doc.servo.org/script/dom/bindings/root/struct.DomRoot.html#method.from_ref
+[new]: http://doc.servo.org/script/dom/index.html#construction
+[from-ref]: http://doc.servo.org/script/dom/bindings/root/struct.DomRoot.html#method.from_ref
 
 We can then obtain a reference from the `DomRoot<T>` through Rust's built-in
 [`Deref` trait][deref], which exposes a method `deref` with the following
@@ -285,7 +285,7 @@ use-after-free and other dangerous bugs.
 You can check out the [`root` module's documentation][root-docs] for more details
 that didn't make it into this document.
 
-[root-docs]: https://doc.servo.org/script/dom/bindings/root/index.html
+[root-docs]: http://doc.servo.org/script/dom/bindings/root/index.html
 
 Custom static analysis
 ======================
@@ -312,7 +312,7 @@ although in this case we set the default severity to 'error'. There is more
 information about lints in section 4.7 of the paper [<cite>Experience Report:
 Developing the Servo Web Browser Engine using Rust</cite>][lints].
 
-[lints]: https://arxiv.org/pdf/1505.07383v1.pdf
+[lints]: http://arxiv.org/pdf/1505.07383v1.pdf
 
 We have already [implemented a plugin][js-lint] which effectively forbids
 `Dom<T>` from appearing on the [stack][stack]. Because lint plugins are part of
@@ -320,7 +320,7 @@ the usual [warnings infrastructure][warnings], we can use the `allow` attribute
 in places where it's okay to use `Dom<T>`, like DOM struct definitions and the
 implementation of `Dom<T>` itself.
 
-[js-lint]: https://doc.servo.org/plugins/lints/unrooted_must_root/struct.UnrootedPass.html
+[js-lint]: http://doc.servo.org/plugins/lints/unrooted_must_root/struct.UnrootedPass.html
 [stack]: https://en.wikipedia.org/wiki/Stack-based_memory_allocation
 [warnings]: https://doc.rust-lang.org/book/compiler-plugins.html#lint-plugins
 
@@ -329,7 +329,7 @@ this adds only a fraction of a second to the compile time for Servo's largest
 subcomponent, as Rust compile times are dominated by [LLVM][llvm]'s back-end
 optimizations and code generation.
 
-[llvm]: https://llvm.org/
+[llvm]: http://llvm.org/
 
 In the end, the plugin won't necessarily catch every mistake. It's hard to
 achieve full [soundness][soundness] with ad-hoc extensions to a type system.
@@ -351,8 +351,8 @@ a traditional reference-counted DOM. The [Blink][blink] team has also performed
 have Servo's luxury of starting from a clean slate and using a cutting-edge
 language.
 
-[blink]: https://www.chromium.org/blink
-[blink-gc]: https://www.chromium.org/blink/blink-gc
+[blink]: http://www.chromium.org/blink
+[blink-gc]: http://www.chromium.org/blink/blink-gc
 
 In the future, we will likely attempt to merge the allocations of DOM objects
 into the allocations of their JavaScript reflectors. This could produce

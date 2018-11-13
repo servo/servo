@@ -1,6 +1,5 @@
 'use strict';
-function test_interpolation(settings, expectations, name) {
-  var message_prefix = name ? name + ': ' : '';
+function test_interpolation(settings, expectations) {
   // Returns a timing function that at 0.5 evaluates to progress.
   function timingFunction(progress) {
     if (progress === 0)
@@ -14,7 +13,7 @@ function test_interpolation(settings, expectations, name) {
   test(function(){
     assert_true(CSS.supports(settings.property, settings.from), 'Value "' + settings.from + '" is supported by ' + settings.property);
     assert_true(CSS.supports(settings.property, settings.to), 'Value "' + settings.to + '" is supported by ' + settings.property);
-  }, message_prefix + '"' + settings.from + '" and "' + settings.to + '" are valid ' + settings.property + ' values');
+  }, '"' + settings.from + '" and "' + settings.to + '" are valid ' + settings.property + ' values');
 
   for (var i = 0; i < expectations.length; ++i) {
     var progress = expectations[i].at;
@@ -50,6 +49,6 @@ function test_interpolation(settings, expectations, name) {
       reference.style = '';
 
       assert_equals(getComputedStyle(target)[settings.property], getComputedStyle(reference)[settings.property]);
-    }, message_prefix + 'Animation between "' + settings.from + '" and "' + settings.to + '" at progress ' + progress);
+    }, 'Animation between "' + settings.from + '" and "' + settings.to + '" at progress ' + progress);
   }
 }

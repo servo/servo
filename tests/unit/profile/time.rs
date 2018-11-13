@@ -22,9 +22,8 @@ fn time_profiler_smoke_test() {
 
 #[test]
 fn time_profiler_stats_test() {
-    let even_data = vec![
-        1.234, 3.24567, 3.54578, 5.0, 5.324, 7.345, 9.2345, 10.2342345, 13.2599, 15.0,
-    ];
+    let even_data = vec![1.234, 3.24567, 3.54578, 5.0, 5.324, 7.345,
+                         9.2345, 10.2342345, 13.2599, 15.0];
     let (even_mean, even_median, even_min, even_max) = time::Profiler::get_statistics(&even_data);
 
     assert_eq!(7.34230845, even_mean);
@@ -32,9 +31,8 @@ fn time_profiler_stats_test() {
     assert_eq!(1.234, even_min);
     assert_eq!(15.0, even_max);
 
-    let odd_data = vec![
-        1.234, 3.24567, 3.54578, 5.0, 5.324, 7.345, 9.2345, 10.2342345, 13.2599,
-    ];
+    let odd_data = vec![1.234, 3.24567, 3.54578, 5.0, 5.324, 7.345,
+                        9.2345, 10.2342345, 13.2599];
     let (odd_mean, odd_median, odd_min, odd_max) = time::Profiler::get_statistics(&odd_data);
 
     assert_eq!(6.491453833333334, odd_mean);
@@ -56,16 +54,14 @@ fn channel_profiler_test() {
     assert_eq!(val_profile_receiver, 43);
 
     let (sender, receiver) = ipc::channel().unwrap();
-    chan.send(ProfilerMsg::Get(
-        (ProfilerCategory::IpcReceiver, None),
-        sender.clone(),
-    ));
+    chan.send(ProfilerMsg::Get((ProfilerCategory::IpcReceiver, None), sender.clone()));
 
     match receiver.recv().unwrap() {
         // asserts that the time spent in the sleeping thread is more than 1500 milliseconds
         ProfilerData::Record(time_data) => assert!(time_data[0] > 1.5e3),
         ProfilerData::NoRecords => assert!(false),
     };
+
 }
 
 #[test]
@@ -81,16 +77,14 @@ fn bytes_channel_profiler_test() {
     assert_eq!(val_profile_receiver, [1, 2, 3]);
 
     let (sender, receiver) = ipc::channel().unwrap();
-    chan.send(ProfilerMsg::Get(
-        (ProfilerCategory::IpcBytesReceiver, None),
-        sender.clone(),
-    ));
+    chan.send(ProfilerMsg::Get((ProfilerCategory::IpcBytesReceiver, None), sender.clone()));
 
     match receiver.recv().unwrap() {
         // asserts that the time spent in the sleeping thread is more than 1500 milliseconds
         ProfilerData::Record(time_data) => assert!(time_data[0] > 1.5e3),
         ProfilerData::NoRecords => assert!(false),
     };
+
 }
 
 #[cfg(debug_assertions)]

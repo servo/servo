@@ -2,15 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use super::{WebGLExtension, WebGLExtensionSpec, WebGLExtensions};
-use crate::dom::bindings::reflector::DomObject;
-use crate::dom::bindings::root::MutNullableDom;
-use crate::dom::bindings::trace::JSTraceable;
-use crate::dom::webglrenderingcontext::WebGLRenderingContext;
+use dom::bindings::reflector::DomObject;
+use dom::bindings::root::MutNullableDom;
+use dom::bindings::trace::JSTraceable;
+use dom::webglrenderingcontext::WebGLRenderingContext;
 use js::jsapi::JSObject;
 use malloc_size_of::MallocSizeOf;
 use std::any::Any;
 use std::ptr::NonNull;
+use super::{WebGLExtension, WebGLExtensions, WebGLExtensionSpec};
 
 /// Trait used internally by WebGLExtensions to store and
 /// handle the different WebGL extensions in a common list.
@@ -21,11 +21,11 @@ pub trait WebGLExtensionWrapper: JSTraceable + MallocSizeOf {
         ext: &WebGLExtensions,
     ) -> NonNull<JSObject>;
     fn spec(&self) -> WebGLExtensionSpec;
-    fn is_supported(&self, _: &WebGLExtensions) -> bool;
+    fn is_supported(&self, &WebGLExtensions) -> bool;
     fn is_enabled(&self) -> bool;
     fn enable(&self, ext: &WebGLExtensions);
     fn name(&self) -> &'static str;
-    fn as_any(&self) -> &dyn Any;
+    fn as_any(&self) -> &Any;
 }
 
 #[must_root]
@@ -85,7 +85,7 @@ where
         T::name()
     }
 
-    fn as_any<'a>(&'a self) -> &'a dyn Any {
+    fn as_any<'a>(&'a self) -> &'a Any {
         self
     }
 }

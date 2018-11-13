@@ -2,32 +2,32 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use crate::dom::audiobuffer::{AudioBuffer, MAX_SAMPLE_RATE, MIN_SAMPLE_RATE};
-use crate::dom::audionode::MAX_CHANNEL_COUNT;
-use crate::dom::baseaudiocontext::{BaseAudioContext, BaseAudioContextOptions};
-use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::BaseAudioContextBinding::BaseAudioContextBinding::BaseAudioContextMethods;
-use crate::dom::bindings::codegen::Bindings::OfflineAudioContextBinding;
-use crate::dom::bindings::codegen::Bindings::OfflineAudioContextBinding::OfflineAudioContextMethods;
-use crate::dom::bindings::codegen::Bindings::OfflineAudioContextBinding::OfflineAudioContextOptions;
-use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::num::Finite;
-use crate::dom::bindings::refcounted::Trusted;
-use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
-use crate::dom::bindings::root::DomRoot;
-use crate::dom::event::{Event, EventBubbles, EventCancelable};
-use crate::dom::offlineaudiocompletionevent::OfflineAudioCompletionEvent;
-use crate::dom::promise::Promise;
-use crate::dom::window::Window;
-use crate::task_source::{TaskSource, TaskSourceName};
+use dom::audiobuffer::{AudioBuffer, MAX_SAMPLE_RATE, MIN_SAMPLE_RATE};
+use dom::audionode::MAX_CHANNEL_COUNT;
+use dom::baseaudiocontext::{BaseAudioContext, BaseAudioContextOptions};
+use dom::bindings::cell::DomRefCell;
+use dom::bindings::codegen::Bindings::BaseAudioContextBinding::BaseAudioContextBinding::BaseAudioContextMethods;
+use dom::bindings::codegen::Bindings::OfflineAudioContextBinding;
+use dom::bindings::codegen::Bindings::OfflineAudioContextBinding::OfflineAudioContextMethods;
+use dom::bindings::codegen::Bindings::OfflineAudioContextBinding::OfflineAudioContextOptions;
+use dom::bindings::error::{Error, Fallible};
+use dom::bindings::inheritance::Castable;
+use dom::bindings::num::Finite;
+use dom::bindings::refcounted::Trusted;
+use dom::bindings::reflector::{DomObject, reflect_dom_object};
+use dom::bindings::root::DomRoot;
+use dom::event::{Event, EventBubbles, EventCancelable};
+use dom::offlineaudiocompletionevent::OfflineAudioCompletionEvent;
+use dom::promise::Promise;
+use dom::window::Window;
 use dom_struct::dom_struct;
 use servo_media::audio::context::OfflineAudioContextOptions as ServoMediaOfflineAudioContextOptions;
 use std::cell::Cell;
 use std::rc::Rc;
-use std::sync::mpsc;
 use std::sync::{Arc, Mutex};
+use std::sync::mpsc;
 use std::thread::Builder;
+use task_source::{TaskSource, TaskSourceName};
 
 #[dom_struct]
 pub struct OfflineAudioContext {
@@ -151,14 +151,10 @@ impl OfflineAudioContextMethods for OfflineAudioContext {
                     task!(resolve: move || {
                         let this = this.root();
                         let processed_audio = processed_audio.lock().unwrap();
-                        let mut processed_audio: Vec<_> = processed_audio
+                        let processed_audio: Vec<_> = processed_audio
                             .chunks(this.length as usize)
                             .map(|channel| channel.to_vec())
                             .collect();
-                        // it can end up being empty if the task failed
-                        if processed_audio.len() != this.length as usize {
-                            processed_audio.resize(this.length as usize, Vec::new())
-                        }
                         let buffer = AudioBuffer::new(
                             &this.global().as_window(),
                             this.channel_count,

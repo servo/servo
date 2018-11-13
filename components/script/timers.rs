@@ -2,22 +2,22 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::callback::ExceptionHandling::Report;
-use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::FunctionBinding::Function;
-use crate::dom::bindings::reflector::DomObject;
-use crate::dom::bindings::str::DOMString;
-use crate::dom::document::FakeRequestAnimationFrameCallback;
-use crate::dom::eventsource::EventSourceTimeoutCallback;
-use crate::dom::globalscope::GlobalScope;
-use crate::dom::testbinding::TestBindingCallback;
-use crate::dom::xmlhttprequest::XHRTimeoutCallback;
+use dom::bindings::callback::ExceptionHandling::Report;
+use dom::bindings::cell::DomRefCell;
+use dom::bindings::codegen::Bindings::FunctionBinding::Function;
+use dom::bindings::reflector::DomObject;
+use dom::bindings::str::DOMString;
+use dom::document::FakeRequestAnimationFrameCallback;
+use dom::eventsource::EventSourceTimeoutCallback;
+use dom::globalscope::GlobalScope;
+use dom::testbinding::TestBindingCallback;
+use dom::xmlhttprequest::XHRTimeoutCallback;
 use euclid::Length;
 use ipc_channel::ipc::IpcSender;
 use js::jsapi::Heap;
 use js::jsval::{JSVal, UndefinedValue};
 use js::rust::HandleValue;
-use script_traits::{precise_time_ms, MsDuration};
+use script_traits::{MsDuration, precise_time_ms};
 use script_traits::{TimerEvent, TimerEventId, TimerEventRequest};
 use script_traits::{TimerSchedulerMsg, TimerSource};
 use servo_config::prefs::PREFS;

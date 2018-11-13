@@ -508,8 +508,7 @@ class CallbackHandler(object):
 
         self.actions = {
             "click": ClickAction(self.logger, self.protocol),
-            "send_keys": SendKeysAction(self.logger, self.protocol),
-            "action_sequence": ActionSequenceAction(self.logger, self.protocol)
+            "send_keys": SendKeysAction(self.logger, self.protocol)
         }
 
     def __call__(self, result):
@@ -526,22 +525,26 @@ class CallbackHandler(object):
         return True, rv
 
     def process_action(self, url, payload):
-        action = payload["action"]
-        self.logger.debug("Got action: %s" % action)
+        parent = self.protocol.base.current_window
         try:
-            action_handler = self.actions[action]
-        except KeyError:
-            raise ValueError("Unknown action %s" % action)
-        try:
-            action_handler(payload)
-        except Exception:
-            self.logger.warning("Action %s failed" % action)
-            self.logger.warning(traceback.format_exc())
-            self._send_message("complete", "error")
-            raise
-        else:
-            self.logger.debug("Action %s completed" % action)
-            self._send_message("complete", "success")
+            self.protocol.base.set_window(self.test_window)
+            action = payload["action"]
+            self.logger.debug("Got action: %s" % action)
+            try:
+                action_handler = self.actions[action]
+            except KeyError:
+                raise ValueError("Unknown action %s" % action)
+            try:
+                action_handler(payload)
+            except Exception:
+                self.logger.warning("Action %s failed" % action)
+                self.logger.warning(traceback.format_exc())
+                self._send_message("complete", "failure")
+            else:
+                self.logger.debug("Action %s completed" % action)
+                self._send_message("complete", "success")
+        finally:
+            self.protocol.base.set_window(parent)
 
         return False, None
 
@@ -556,9 +559,13 @@ class ClickAction(object):
 
     def __call__(self, payload):
         selector = payload["selector"]
-        element = self.protocol.select.element_by_selector(selector)
+        elements = self.protocol.select.elements_by_selector(selector)
+        if len(elements) == 0:
+            raise ValueError("Selector matches no elements")
+        elif len(elements) > 1:
+            raise ValueError("Selector matches multiple elements")
         self.logger.debug("Clicking element: %s" % selector)
-        self.protocol.click.element(element)
+        self.protocol.click.element(elements[0])
 
 
 class SendKeysAction(object):
@@ -569,27 +576,10 @@ class SendKeysAction(object):
     def __call__(self, payload):
         selector = payload["selector"]
         keys = payload["keys"]
-        element = self.protocol.select.element_by_selector(selector)
+        elements = self.protocol.select.elements_by_selector(selector)
+        if len(elements) == 0:
+            raise ValueError("Selector matches no elements")
+        elif len(elements) > 1:
+            raise ValueError("Selector matches multiple elements")
         self.logger.debug("Sending keys to element: %s" % selector)
-        self.protocol.send_keys.send_keys(element, keys)
-
-
-class ActionSequenceAction(object):
-    def __init__(self, logger, protocol):
-        self.logger = logger
-        self.protocol = protocol
-
-    def __call__(self, payload):
-        # TODO: some sort of shallow error checking
-        actions = payload["actions"]
-        for actionSequence in actions:
-            if actionSequence["type"] == "pointer":
-                for action in actionSequence["actions"]:
-                    if (action["type"] == "pointerMove" and
-                        isinstance(action["origin"], dict)):
-                        action["origin"] = self.get_element(action["origin"]["selector"])
-        self.protocol.action_sequence.send_actions({"actions": actions})
-
-    def get_element(self, selector):
-        element = self.protocol.select.element_by_selector(selector)
-        return element
+        self.protocol.send_keys.send_keys(elements[0], keys)

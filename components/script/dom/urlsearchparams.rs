@@ -2,18 +2,18 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::URLSearchParamsBinding::URLSearchParamsMethods;
-use crate::dom::bindings::codegen::Bindings::URLSearchParamsBinding::URLSearchParamsWrap;
-use crate::dom::bindings::codegen::UnionTypes::USVStringOrURLSearchParams;
-use crate::dom::bindings::error::Fallible;
-use crate::dom::bindings::iterable::Iterable;
-use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
-use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::{DOMString, USVString};
-use crate::dom::bindings::weakref::MutableWeakRef;
-use crate::dom::globalscope::GlobalScope;
-use crate::dom::url::URL;
+use dom::bindings::cell::DomRefCell;
+use dom::bindings::codegen::Bindings::URLSearchParamsBinding::URLSearchParamsMethods;
+use dom::bindings::codegen::Bindings::URLSearchParamsBinding::URLSearchParamsWrap;
+use dom::bindings::codegen::UnionTypes::USVStringOrURLSearchParams;
+use dom::bindings::error::Fallible;
+use dom::bindings::iterable::Iterable;
+use dom::bindings::reflector::{Reflector, reflect_dom_object};
+use dom::bindings::root::DomRoot;
+use dom::bindings::str::{DOMString, USVString};
+use dom::bindings::weakref::MutableWeakRef;
+use dom::globalscope::GlobalScope;
+use dom::url::URL;
 use dom_struct::dom_struct;
 use url::form_urlencoded;
 
@@ -108,8 +108,7 @@ impl URLSearchParamsMethods for URLSearchParams {
                 } else {
                     None
                 }
-            })
-            .collect()
+            }).collect()
     }
 
     // https://url.spec.whatwg.org/#dom-urlsearchparams-has

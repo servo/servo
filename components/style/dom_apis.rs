@@ -5,17 +5,17 @@
 //! Generic implementations of some DOM APIs so they can be shared between Servo
 //! and Gecko.
 
+use Atom;
 use context::QuirksMode;
 use dom::{TDocument, TElement, TNode, TShadowRoot};
 use invalidation::element::invalidator::{DescendantInvalidationLists, Invalidation};
 use invalidation::element::invalidator::{InvalidationProcessor, InvalidationVector};
+use selectors::{Element, NthIndexCache, SelectorList};
 use selectors::attr::CaseSensitivity;
 use selectors::matching::{self, MatchingContext, MatchingMode};
-use selectors::parser::{Combinator, Component, LocalName, SelectorImpl};
-use selectors::{Element, NthIndexCache, SelectorList};
+use selectors::parser::{Combinator, Component, LocalName};
 use smallvec::SmallVec;
 use std::borrow::Borrow;
-use Atom;
 
 /// <https://dom.spec.whatwg.org/#dom-element-matches>
 pub fn element_matches<E>(
@@ -333,22 +333,6 @@ fn collect_elements_with_id<E, Q, F>(
     }
 }
 
-#[inline(always)]
-fn local_name_matches<E>(element: E, local_name: &LocalName<E::Impl>) -> bool
-where
-    E: TElement,
-{
-    let LocalName {
-        ref name,
-        ref lower_name,
-    } = *local_name;
-    if element.is_html_element_in_html_document() {
-        element.local_name() == lower_name.borrow()
-    } else {
-        element.local_name() == name.borrow()
-    }
-}
-
 /// Fast paths for querySelector with a single simple selector.
 fn query_selector_single_query<E, Q>(
     root: E::ConcreteNode,
@@ -373,11 +357,16 @@ where
                 element.has_class(class, case_sensitivity)
             })
         },
-        Component::LocalName(ref local_name) => {
-            collect_all_elements::<E, Q, _>(root, results, |element| {
-                local_name_matches(element, local_name)
-            })
-        },
+        Component::LocalName(LocalName {
+            ref name,
+            ref lower_name,
+        }) => collect_all_elements::<E, Q, _>(root, results, |element| {
+            if element.is_html_element_in_html_document() {
+                element.local_name() == lower_name.borrow()
+            } else {
+                element.local_name() == name.borrow()
+            }
+        }),
         // TODO(emilio): More fast paths?
         _ => return Err(()),
     }
@@ -385,17 +374,7 @@ where
     Ok(())
 }
 
-enum SimpleFilter<'a, Impl: SelectorImpl> {
-    Class(&'a Atom),
-    LocalName(&'a LocalName<Impl>),
-}
-
 /// Fast paths for a given selector query.
-///
-/// When there's only one component, we go directly to
-/// `query_selector_single_query`, otherwise, we try to optimize by looking just
-/// at the subtrees rooted at ids in the selector, and otherwise we try to look
-/// up by class name or local name in the rightmost compound.
 ///
 /// FIXME(emilio, nbp): This may very well be a good candidate for code to be
 /// replaced by HolyJit :)
@@ -431,12 +410,7 @@ where
     let mut iter = selector.iter();
     let mut combinator: Option<Combinator> = None;
 
-    // We want to optimize some cases where there's no id involved whatsoever,
-    // like `.foo .bar`, but we don't want to make `#foo .bar` slower because of
-    // that.
-    let mut simple_filter = None;
-
-    'selector_loop: loop {
+    loop {
         debug_assert!(combinator.map_or(true, |c| !c.is_sibling()));
 
         'component_loop: for component in &mut iter {
@@ -495,28 +469,13 @@ where
 
                     return Ok(());
                 },
-                Component::Class(ref class) => {
-                    if combinator.is_none() {
-                        simple_filter = Some(SimpleFilter::Class(class));
-                    }
-                },
-                Component::LocalName(ref local_name) => {
-                    if combinator.is_none() {
-                        // Prefer to look at class rather than local-name if
-                        // both are present.
-                        if let Some(SimpleFilter::Class(..)) = simple_filter {
-                            continue;
-                        }
-                        simple_filter = Some(SimpleFilter::LocalName(local_name));
-                    }
-                },
                 _ => {},
             }
         }
 
         loop {
             let next_combinator = match iter.next_sequence() {
-                None => break 'selector_loop,
+                None => return Err(()),
                 Some(c) => c,
             };
 
@@ -533,31 +492,6 @@ where
             break;
         }
     }
-
-    // We got here without finding any ID or such that we could handle. Try to
-    // use one of the simple filters.
-    let simple_filter = match simple_filter {
-        Some(f) => f,
-        None => return Err(()),
-    };
-
-    match simple_filter {
-        SimpleFilter::Class(ref class) => {
-            let case_sensitivity = quirks_mode.classes_and_ids_case_sensitivity();
-            collect_all_elements::<E, Q, _>(root, results, |element| {
-                element.has_class(class, case_sensitivity) &&
-                    matching::matches_selector_list(selector_list, &element, matching_context)
-            });
-        },
-        SimpleFilter::LocalName(ref local_name) => {
-            collect_all_elements::<E, Q, _>(root, results, |element| {
-                local_name_matches(element, local_name) &&
-                    matching::matches_selector_list(selector_list, &element, matching_context)
-            });
-        },
-    }
-
-    Ok(())
 }
 
 // Slow path for a given selector query.

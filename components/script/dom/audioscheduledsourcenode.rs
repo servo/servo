@@ -1,26 +1,25 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
-
-use crate::dom::audionode::{AudioNode, UnwrappedAudioNodeOptions};
-use crate::dom::baseaudiocontext::BaseAudioContext;
-use crate::dom::bindings::codegen::Bindings::AudioScheduledSourceNodeBinding::AudioScheduledSourceNodeMethods;
-use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::num::Finite;
-use crate::dom::bindings::refcounted::Trusted;
-use crate::dom::bindings::reflector::DomObject;
-use crate::task_source::{TaskSource, TaskSourceName};
+use dom::audionode::{AudioNode, UnwrappedAudioNodeOptions};
+use dom::baseaudiocontext::BaseAudioContext;
+use dom::bindings::codegen::Bindings::AudioScheduledSourceNodeBinding::AudioScheduledSourceNodeMethods;
+use dom::bindings::error::{Error, Fallible};
+use dom::bindings::inheritance::Castable;
+use dom::bindings::num::Finite;
+use dom::bindings::refcounted::Trusted;
+use dom::bindings::reflector::DomObject;
 use dom_struct::dom_struct;
+use servo_media::audio::node::{AudioNodeMessage, AudioNodeInit, AudioScheduledSourceNodeMessage};
 use servo_media::audio::node::OnEndedCallback;
-use servo_media::audio::node::{AudioNodeInit, AudioNodeMessage, AudioScheduledSourceNodeMessage};
 use std::cell::Cell;
+use task_source::{TaskSource, TaskSourceName};
 
 #[dom_struct]
 pub struct AudioScheduledSourceNode {
     node: AudioNode,
-    has_start: Cell<bool>,
-    has_stop: Cell<bool>,
+    started: Cell<bool>,
+    stopped: Cell<bool>,
 }
 
 impl AudioScheduledSourceNode {
@@ -40,8 +39,8 @@ impl AudioScheduledSourceNode {
                 number_of_inputs,
                 number_of_outputs,
             )?,
-            has_start: Cell::new(false),
-            has_stop: Cell::new(false),
+            started: Cell::new(false),
+            stopped: Cell::new(false),
         })
     }
 
@@ -49,8 +48,8 @@ impl AudioScheduledSourceNode {
         &self.node
     }
 
-    pub fn has_start(&self) -> bool {
-        self.has_start.get()
+    pub fn started(&self) -> bool {
+        self.started.get()
     }
 }
 
@@ -64,7 +63,7 @@ impl AudioScheduledSourceNodeMethods for AudioScheduledSourceNode {
             return Err(Error::Range("'when' must be a positive value".to_owned()));
         }
 
-        if self.has_start.get() || self.has_stop.get() {
+        if self.started.get() || self.stopped.get() {
             return Err(Error::InvalidState);
         }
 
@@ -94,7 +93,7 @@ impl AudioScheduledSourceNodeMethods for AudioScheduledSourceNode {
                 AudioScheduledSourceNodeMessage::RegisterOnEndedCallback(callback),
             ));
 
-        self.has_start.set(true);
+        self.started.set(true);
         self.node
             .message(AudioNodeMessage::AudioScheduledSourceNode(
                 AudioScheduledSourceNodeMessage::Start(*when),
@@ -108,10 +107,10 @@ impl AudioScheduledSourceNodeMethods for AudioScheduledSourceNode {
             return Err(Error::Range("'when' must be a positive value".to_owned()));
         }
 
-        if !self.has_start.get() {
+        if !self.started.get() {
             return Err(Error::InvalidState);
         }
-        self.has_stop.set(true);
+        self.stopped.set(true);
         self.node
             .message(AudioNodeMessage::AudioScheduledSourceNode(
                 AudioScheduledSourceNodeMessage::Stop(*when),

@@ -4,26 +4,23 @@
 
 #![allow(unsafe_code)]
 
+use HTMLCanvasData;
+use LayoutNodeType;
+use OpaqueStyleAndLayoutData;
+use SVGSVGData;
 use atomic_refcell::AtomicRef;
-use crate::HTMLCanvasData;
-use crate::HTMLMediaData;
-use crate::LayoutNodeType;
-use crate::OpaqueStyleAndLayoutData;
-use crate::SVGSVGData;
-use gfx_traits::{combine_id_with_fragment_type, ByteIndex, FragmentType};
-use html5ever::{LocalName, Namespace};
+use gfx_traits::{ByteIndex, FragmentType, combine_id_with_fragment_type};
+use html5ever::{Namespace, LocalName};
 use msg::constellation_msg::{BrowsingContextId, PipelineId};
-use net_traits::image::base::{Image, ImageMetadata};
 use range::Range;
 use servo_arc::Arc;
 use servo_url::ServoUrl;
 use std::fmt::Debug;
-use std::sync::Arc as StdArc;
 use style::attr::AttrValue;
 use style::context::SharedStyleContext;
 use style::data::ElementData;
-use style::dom::OpaqueNode;
 use style::dom::{LayoutIterator, NodeInfo, TElement, TNode};
+use style::dom::OpaqueNode;
 use style::font_metrics::ServoMetricsProvider;
 use style::properties::ComputedValues;
 use style::selector_parser::{PseudoElement, PseudoElementCascadeType, SelectorImpl};
@@ -278,14 +275,9 @@ pub trait ThreadSafeLayoutNode:
     /// If this is an image element, returns its current-pixel-density. If this is not an image element, fails.
     fn image_density(&self) -> Option<f64>;
 
-    /// If this is an image element, returns its image data. Otherwise, returns `None`.
-    fn image_data(&self) -> Option<(Option<StdArc<Image>>, Option<ImageMetadata>)>;
-
     fn canvas_data(&self) -> Option<HTMLCanvasData>;
 
     fn svg_data(&self) -> Option<SVGSVGData>;
-
-    fn media_data(&self) -> Option<HTMLMediaData>;
 
     /// If this node is an iframe element, returns its browsing context ID. If this node is
     /// not an iframe element, fails. Returns None if there is no nested browsing context.
@@ -449,8 +441,7 @@ pub trait ThreadSafeLayoutElement:
                                 /* is_probe = */ false,
                                 &ServoMetricsProvider,
                                 /* matching_func = */ None,
-                            )
-                            .unwrap()
+                            ).unwrap()
                     },
                 }
             },

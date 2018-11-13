@@ -4,102 +4,94 @@
 
 //! Element nodes.
 
-use crate::dom::activation::Activatable;
-use crate::dom::attr::{Attr, AttrHelpersForLayout};
-use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
-use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
-use crate::dom::bindings::codegen::Bindings::ElementBinding;
-use crate::dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
-use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
-use crate::dom::bindings::codegen::Bindings::FunctionBinding::Function;
-use crate::dom::bindings::codegen::Bindings::HTMLTemplateElementBinding::HTMLTemplateElementMethods;
-use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
-use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
-use crate::dom::bindings::codegen::Bindings::WindowBinding::{ScrollBehavior, ScrollToOptions};
-use crate::dom::bindings::codegen::UnionTypes::NodeOrString;
-use crate::dom::bindings::conversions::DerivedFrom;
-use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
-use crate::dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementTypeId, NodeTypeId};
-use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
-use crate::dom::bindings::reflector::DomObject;
-use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom, RootedReference};
-use crate::dom::bindings::str::DOMString;
-use crate::dom::bindings::xmlname::XMLName::InvalidXMLName;
-use crate::dom::bindings::xmlname::{
-    namespace_from_domstring, validate_and_extract, xml_name_type,
-};
-use crate::dom::characterdata::CharacterData;
-use crate::dom::create::create_element;
-use crate::dom::customelementregistry::{
-    CallbackReaction, CustomElementDefinition, CustomElementReaction,
-};
-use crate::dom::document::{Document, LayoutDocumentHelpers};
-use crate::dom::documentfragment::DocumentFragment;
-use crate::dom::domrect::DOMRect;
-use crate::dom::domtokenlist::DOMTokenList;
-use crate::dom::event::Event;
-use crate::dom::eventtarget::EventTarget;
-use crate::dom::htmlanchorelement::HTMLAnchorElement;
-use crate::dom::htmlbodyelement::{HTMLBodyElement, HTMLBodyElementLayoutHelpers};
-use crate::dom::htmlbuttonelement::HTMLButtonElement;
-use crate::dom::htmlcanvaselement::{HTMLCanvasElement, LayoutHTMLCanvasElementHelpers};
-use crate::dom::htmlcollection::HTMLCollection;
-use crate::dom::htmlelement::HTMLElement;
-use crate::dom::htmlfieldsetelement::HTMLFieldSetElement;
-use crate::dom::htmlfontelement::{HTMLFontElement, HTMLFontElementLayoutHelpers};
-use crate::dom::htmlformelement::FormControlElementHelpers;
-use crate::dom::htmlhrelement::{HTMLHRElement, HTMLHRLayoutHelpers};
-use crate::dom::htmliframeelement::{HTMLIFrameElement, HTMLIFrameElementLayoutMethods};
-use crate::dom::htmlimageelement::{HTMLImageElement, LayoutHTMLImageElementHelpers};
-use crate::dom::htmlinputelement::{HTMLInputElement, LayoutHTMLInputElementHelpers};
-use crate::dom::htmllabelelement::HTMLLabelElement;
-use crate::dom::htmllegendelement::HTMLLegendElement;
-use crate::dom::htmllinkelement::HTMLLinkElement;
-use crate::dom::htmlobjectelement::HTMLObjectElement;
-use crate::dom::htmloptgroupelement::HTMLOptGroupElement;
-use crate::dom::htmlselectelement::HTMLSelectElement;
-use crate::dom::htmlstyleelement::HTMLStyleElement;
-use crate::dom::htmltablecellelement::{HTMLTableCellElement, HTMLTableCellElementLayoutHelpers};
-use crate::dom::htmltableelement::{HTMLTableElement, HTMLTableElementLayoutHelpers};
-use crate::dom::htmltablerowelement::{HTMLTableRowElement, HTMLTableRowElementLayoutHelpers};
-use crate::dom::htmltablesectionelement::{
-    HTMLTableSectionElement, HTMLTableSectionElementLayoutHelpers,
-};
-use crate::dom::htmltemplateelement::HTMLTemplateElement;
-use crate::dom::htmltextareaelement::{HTMLTextAreaElement, LayoutHTMLTextAreaElementHelpers};
-use crate::dom::mutationobserver::{Mutation, MutationObserver};
-use crate::dom::namednodemap::NamedNodeMap;
-use crate::dom::node::{document_from_node, window_from_node};
-use crate::dom::node::{ChildrenMutation, LayoutNodeHelpers, Node};
-use crate::dom::node::{NodeDamage, NodeFlags, UnbindContext};
-use crate::dom::nodelist::NodeList;
-use crate::dom::promise::Promise;
-use crate::dom::servoparser::ServoParser;
-use crate::dom::text::Text;
-use crate::dom::validation::Validatable;
-use crate::dom::virtualmethods::{vtable_for, VirtualMethods};
-use crate::dom::window::ReflowReason;
-use crate::script_thread::ScriptThread;
-use crate::stylesheet_loader::StylesheetOwner;
-use crate::task::TaskOnce;
 use devtools_traits::AttrInfo;
+use dom::activation::Activatable;
+use dom::attr::{Attr, AttrHelpersForLayout};
+use dom::bindings::cell::DomRefCell;
+use dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
+use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
+use dom::bindings::codegen::Bindings::ElementBinding;
+use dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
+use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
+use dom::bindings::codegen::Bindings::FunctionBinding::Function;
+use dom::bindings::codegen::Bindings::HTMLTemplateElementBinding::HTMLTemplateElementMethods;
+use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
+use dom::bindings::codegen::Bindings::WindowBinding::{ScrollBehavior, ScrollToOptions};
+use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
+use dom::bindings::codegen::UnionTypes::NodeOrString;
+use dom::bindings::conversions::DerivedFrom;
+use dom::bindings::error::{Error, ErrorResult, Fallible};
+use dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementTypeId, NodeTypeId};
+use dom::bindings::refcounted::{Trusted, TrustedPromise};
+use dom::bindings::reflector::DomObject;
+use dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom, RootedReference};
+use dom::bindings::str::DOMString;
+use dom::bindings::xmlname::{namespace_from_domstring, validate_and_extract, xml_name_type};
+use dom::bindings::xmlname::XMLName::InvalidXMLName;
+use dom::characterdata::CharacterData;
+use dom::create::create_element;
+use dom::customelementregistry::{CallbackReaction, CustomElementDefinition, CustomElementReaction};
+use dom::document::{Document, LayoutDocumentHelpers};
+use dom::documentfragment::DocumentFragment;
+use dom::domrect::DOMRect;
+use dom::domtokenlist::DOMTokenList;
+use dom::event::Event;
+use dom::eventtarget::EventTarget;
+use dom::htmlanchorelement::HTMLAnchorElement;
+use dom::htmlbodyelement::{HTMLBodyElement, HTMLBodyElementLayoutHelpers};
+use dom::htmlbuttonelement::HTMLButtonElement;
+use dom::htmlcanvaselement::{HTMLCanvasElement, LayoutHTMLCanvasElementHelpers};
+use dom::htmlcollection::HTMLCollection;
+use dom::htmlelement::HTMLElement;
+use dom::htmlfieldsetelement::HTMLFieldSetElement;
+use dom::htmlfontelement::{HTMLFontElement, HTMLFontElementLayoutHelpers};
+use dom::htmlformelement::FormControlElementHelpers;
+use dom::htmlhrelement::{HTMLHRElement, HTMLHRLayoutHelpers};
+use dom::htmliframeelement::{HTMLIFrameElement, HTMLIFrameElementLayoutMethods};
+use dom::htmlimageelement::{HTMLImageElement, LayoutHTMLImageElementHelpers};
+use dom::htmlinputelement::{HTMLInputElement, LayoutHTMLInputElementHelpers};
+use dom::htmllabelelement::HTMLLabelElement;
+use dom::htmllegendelement::HTMLLegendElement;
+use dom::htmllinkelement::HTMLLinkElement;
+use dom::htmlobjectelement::HTMLObjectElement;
+use dom::htmloptgroupelement::HTMLOptGroupElement;
+use dom::htmlselectelement::HTMLSelectElement;
+use dom::htmlstyleelement::HTMLStyleElement;
+use dom::htmltablecellelement::{HTMLTableCellElement, HTMLTableCellElementLayoutHelpers};
+use dom::htmltableelement::{HTMLTableElement, HTMLTableElementLayoutHelpers};
+use dom::htmltablerowelement::{HTMLTableRowElement, HTMLTableRowElementLayoutHelpers};
+use dom::htmltablesectionelement::{HTMLTableSectionElement, HTMLTableSectionElementLayoutHelpers};
+use dom::htmltemplateelement::HTMLTemplateElement;
+use dom::htmltextareaelement::{HTMLTextAreaElement, LayoutHTMLTextAreaElementHelpers};
+use dom::mutationobserver::{Mutation, MutationObserver};
+use dom::namednodemap::NamedNodeMap;
+use dom::node::{ChildrenMutation, LayoutNodeHelpers, Node};
+use dom::node::{NodeDamage, NodeFlags, UnbindContext};
+use dom::node::{document_from_node, window_from_node};
+use dom::nodelist::NodeList;
+use dom::promise::Promise;
+use dom::servoparser::ServoParser;
+use dom::text::Text;
+use dom::validation::Validatable;
+use dom::virtualmethods::{VirtualMethods, vtable_for};
+use dom::window::ReflowReason;
 use dom_struct::dom_struct;
+use html5ever::{Prefix, LocalName, Namespace, QualName};
 use html5ever::serialize;
 use html5ever::serialize::SerializeOpts;
 use html5ever::serialize::TraversalScope;
 use html5ever::serialize::TraversalScope::{ChildrenOnly, IncludeNode};
-use html5ever::{LocalName, Namespace, Prefix, QualName};
 use js::jsapi::Heap;
 use js::jsval::JSVal;
 use msg::constellation_msg::InputMethodType;
 use net_traits::request::CorsSettings;
 use ref_filter_map::ref_filter_map;
 use script_layout_interface::message::ReflowGoal;
-use selectors::attr::{AttrSelectorOperation, CaseSensitivity, NamespaceConstraint};
+use script_thread::ScriptThread;
+use selectors::Element as SelectorsElement;
+use selectors::attr::{AttrSelectorOperation, NamespaceConstraint, CaseSensitivity};
 use selectors::matching::{ElementSelectorFlags, MatchingContext};
 use selectors::sink::Push;
-use selectors::Element as SelectorsElement;
 use servo_arc::Arc;
 use servo_atoms::Atom;
 use std::borrow::Cow;
@@ -109,28 +101,26 @@ use std::fmt;
 use std::mem;
 use std::rc::Rc;
 use std::str::FromStr;
+use style::CaseSensitivityExt;
 use style::applicable_declarations::ApplicableDeclarationBlock;
 use style::attr::{AttrValue, LengthOrPercentageOrAuto};
 use style::context::QuirksMode;
 use style::dom_apis;
 use style::element_state::ElementState;
 use style::invalidation::element::restyle_hints::RestyleHint;
-use style::properties::longhands::{
-    self, background_image, border_spacing, font_family, font_size,
-};
-use style::properties::longhands::{overflow_x, overflow_y};
-use style::properties::{parse_style_attribute, PropertyDeclarationBlock};
 use style::properties::{ComputedValues, Importance, PropertyDeclaration};
+use style::properties::{PropertyDeclarationBlock, parse_style_attribute};
+use style::properties::longhands::{self, background_image, border_spacing, font_family, font_size};
+use style::properties::longhands::{overflow_x, overflow_y};
 use style::rule_tree::CascadeLevel;
+use style::selector_parser::{NonTSPseudoClass, PseudoElement, RestyleDamage, SelectorImpl, SelectorParser};
 use style::selector_parser::extended_filtering;
-use style::selector_parser::{
-    NonTSPseudoClass, PseudoElement, RestyleDamage, SelectorImpl, SelectorParser,
-};
-use style::shared_lock::{Locked, SharedRwLock};
+use style::shared_lock::{SharedRwLock, Locked};
 use style::thread_state;
-use style::values::{computed, specified};
 use style::values::{CSSFloat, Either};
-use style::CaseSensitivityExt;
+use style::values::{specified, computed};
+use stylesheet_loader::StylesheetOwner;
+use task::TaskOnce;
 use xml5ever::serialize as xmlSerialize;
 use xml5ever::serialize::SerializeOpts as XmlSerializeOpts;
 use xml5ever::serialize::TraversalScope as XmlTraversalScope;
@@ -466,8 +456,7 @@ pub unsafe fn get_attr_for_layout<'a>(
         .find(|attr| {
             let attr = attr.to_layout();
             *name == attr.local_name_atom_forever() && (*attr.unsafe_get()).namespace() == namespace
-        })
-        .map(|attr| attr.to_layout())
+        }).map(|attr| attr.to_layout())
 }
 
 #[allow(unsafe_code)]
@@ -502,8 +491,7 @@ impl RawLayoutElementHelpers for Element {
                 } else {
                     None
                 }
-            })
-            .collect()
+            }).collect()
     }
 }
 
@@ -514,7 +502,7 @@ pub trait LayoutElementHelpers {
     unsafe fn get_classes_for_layout(&self) -> Option<&'static [Atom]>;
 
     #[allow(unsafe_code)]
-    unsafe fn synthesize_presentational_hints_for_legacy_attributes<V>(&self, _: &mut V)
+    unsafe fn synthesize_presentational_hints_for_legacy_attributes<V>(&self, &mut V)
     where
         V: Push<ApplicableDeclarationBlock>;
     #[allow(unsafe_code)]
@@ -2026,8 +2014,7 @@ impl ElementMethods for Element {
                     rect.size.width.to_f64_px(),
                     rect.size.height.to_f64_px(),
                 )
-            })
-            .collect()
+            }).collect()
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-element-getboundingclientrect
@@ -2579,8 +2566,8 @@ impl ElementMethods for Element {
 }
 
 impl VirtualMethods for Element {
-    fn super_type(&self) -> Option<&dyn VirtualMethods> {
-        Some(self.upcast::<Node>() as &dyn VirtualMethods)
+    fn super_type(&self) -> Option<&VirtualMethods> {
+        Some(self.upcast::<Node>() as &VirtualMethods)
     }
 
     fn attribute_affects_presentational_hints(&self, attr: &Attr) -> bool {
@@ -2779,7 +2766,9 @@ impl<'a> SelectorsElement for DomRoot<Element> {
 
     #[allow(unsafe_code)]
     fn opaque(&self) -> ::selectors::OpaqueElement {
-        ::selectors::OpaqueElement::new(unsafe { &*self.reflector().get_jsobject().get() })
+        ::selectors::OpaqueElement::new(unsafe {
+            &*self.reflector().get_jsobject().get()
+        })
     }
 
     fn parent_element(&self) -> Option<DomRoot<Element>> {
@@ -2941,31 +2930,31 @@ impl<'a> SelectorsElement for DomRoot<Element> {
 }
 
 impl Element {
-    pub fn as_maybe_activatable(&self) -> Option<&dyn Activatable> {
+    pub fn as_maybe_activatable(&self) -> Option<&Activatable> {
         let element = match self.upcast::<Node>().type_id() {
             NodeTypeId::Element(ElementTypeId::HTMLElement(
                 HTMLElementTypeId::HTMLInputElement,
             )) => {
                 let element = self.downcast::<HTMLInputElement>().unwrap();
-                Some(element as &dyn Activatable)
+                Some(element as &Activatable)
             },
             NodeTypeId::Element(ElementTypeId::HTMLElement(
                 HTMLElementTypeId::HTMLButtonElement,
             )) => {
                 let element = self.downcast::<HTMLButtonElement>().unwrap();
-                Some(element as &dyn Activatable)
+                Some(element as &Activatable)
             },
             NodeTypeId::Element(ElementTypeId::HTMLElement(
                 HTMLElementTypeId::HTMLAnchorElement,
             )) => {
                 let element = self.downcast::<HTMLAnchorElement>().unwrap();
-                Some(element as &dyn Activatable)
+                Some(element as &Activatable)
             },
             NodeTypeId::Element(ElementTypeId::HTMLElement(
                 HTMLElementTypeId::HTMLLabelElement,
             )) => {
                 let element = self.downcast::<HTMLLabelElement>().unwrap();
-                Some(element as &dyn Activatable)
+                Some(element as &Activatable)
             },
             _ => None,
         };
@@ -2978,50 +2967,50 @@ impl Element {
         })
     }
 
-    pub fn as_stylesheet_owner(&self) -> Option<&dyn StylesheetOwner> {
+    pub fn as_stylesheet_owner(&self) -> Option<&StylesheetOwner> {
         if let Some(s) = self.downcast::<HTMLStyleElement>() {
-            return Some(s as &dyn StylesheetOwner);
+            return Some(s as &StylesheetOwner);
         }
 
         if let Some(l) = self.downcast::<HTMLLinkElement>() {
-            return Some(l as &dyn StylesheetOwner);
+            return Some(l as &StylesheetOwner);
         }
 
         None
     }
 
     // https://html.spec.whatwg.org/multipage/#category-submit
-    pub fn as_maybe_validatable(&self) -> Option<&dyn Validatable> {
+    pub fn as_maybe_validatable(&self) -> Option<&Validatable> {
         let element = match self.upcast::<Node>().type_id() {
             NodeTypeId::Element(ElementTypeId::HTMLElement(
                 HTMLElementTypeId::HTMLInputElement,
             )) => {
                 let element = self.downcast::<HTMLInputElement>().unwrap();
-                Some(element as &dyn Validatable)
+                Some(element as &Validatable)
             },
             NodeTypeId::Element(ElementTypeId::HTMLElement(
                 HTMLElementTypeId::HTMLButtonElement,
             )) => {
                 let element = self.downcast::<HTMLButtonElement>().unwrap();
-                Some(element as &dyn Validatable)
+                Some(element as &Validatable)
             },
             NodeTypeId::Element(ElementTypeId::HTMLElement(
                 HTMLElementTypeId::HTMLObjectElement,
             )) => {
                 let element = self.downcast::<HTMLObjectElement>().unwrap();
-                Some(element as &dyn Validatable)
+                Some(element as &Validatable)
             },
             NodeTypeId::Element(ElementTypeId::HTMLElement(
                 HTMLElementTypeId::HTMLSelectElement,
             )) => {
                 let element = self.downcast::<HTMLSelectElement>().unwrap();
-                Some(element as &dyn Validatable)
+                Some(element as &Validatable)
             },
             NodeTypeId::Element(ElementTypeId::HTMLElement(
                 HTMLElementTypeId::HTMLTextAreaElement,
             )) => {
                 let element = self.downcast::<HTMLTextAreaElement>().unwrap();
-                Some(element as &dyn Validatable)
+                Some(element as &Validatable)
             },
             _ => None,
         };
@@ -3113,8 +3102,7 @@ impl Element {
                 })
                 // TODO: Check meta tags for a pragma-set default language
                 // TODO: Check HTTP Content-Language header
-            })
-            .next()
+            }).next()
             .unwrap_or(String::new())
     }
 

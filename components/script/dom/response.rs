@@ -2,28 +2,26 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use crate::body::{consume_body, consume_body_with_promise, BodyOperations, BodyType};
-use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::HeadersBinding::{HeadersInit, HeadersMethods};
-use crate::dom::bindings::codegen::Bindings::ResponseBinding;
-use crate::dom::bindings::codegen::Bindings::ResponseBinding::{
-    ResponseMethods, ResponseType as DOMResponseType,
-};
-use crate::dom::bindings::codegen::Bindings::XMLHttpRequestBinding::BodyInit;
-use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
-use crate::dom::bindings::root::{DomRoot, MutNullableDom};
-use crate::dom::bindings::str::{ByteString, USVString};
-use crate::dom::globalscope::GlobalScope;
-use crate::dom::headers::{is_obs_text, is_vchar};
-use crate::dom::headers::{Guard, Headers};
-use crate::dom::promise::Promise;
-use crate::dom::xmlhttprequest::Extractable;
+use body::{BodyOperations, BodyType, consume_body, consume_body_with_promise};
+use dom::bindings::cell::DomRefCell;
+use dom::bindings::codegen::Bindings::HeadersBinding::{HeadersInit, HeadersMethods};
+use dom::bindings::codegen::Bindings::ResponseBinding;
+use dom::bindings::codegen::Bindings::ResponseBinding::{ResponseMethods, ResponseType as DOMResponseType};
+use dom::bindings::codegen::Bindings::XMLHttpRequestBinding::BodyInit;
+use dom::bindings::error::{Error, Fallible};
+use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
+use dom::bindings::root::{DomRoot, MutNullableDom};
+use dom::bindings::str::{ByteString, USVString};
+use dom::globalscope::GlobalScope;
+use dom::headers::{Headers, Guard};
+use dom::headers::{is_vchar, is_obs_text};
+use dom::promise::Promise;
+use dom::xmlhttprequest::Extractable;
 use dom_struct::dom_struct;
-use http::header::HeaderMap as HyperHeaders;
-use hyper::StatusCode;
+use hyper::header::Headers as HyperHeaders;
+use hyper::status::StatusCode;
 use hyper_serde::Serde;
-use net_traits::response::ResponseBody as NetTraitsResponseBody;
+use net_traits::response::{ResponseBody as NetTraitsResponseBody};
 use servo_url::ServoUrl;
 use std::cell::{Cell, Ref};
 use std::mem;
@@ -57,7 +55,7 @@ impl Response {
             headers_reflector: Default::default(),
             mime_type: DomRefCell::new("".to_string().into_bytes()),
             body_used: Cell::new(false),
-            status: DomRefCell::new(Some(StatusCode::OK)),
+            status: DomRefCell::new(Some(StatusCode::Ok)),
             raw_status: DomRefCell::new(Some((200, b"OK".to_vec()))),
             response_type: DomRefCell::new(DOMResponseType::Default),
             url: DomRefCell::new(None),
@@ -101,7 +99,7 @@ impl Response {
         let r = Response::new(global);
 
         // Step 4
-        *r.status.borrow_mut() = Some(StatusCode::from_u16(init.status).unwrap());
+        *r.status.borrow_mut() = Some(StatusCode::from_u16(init.status));
 
         // Step 5
         *r.raw_status.borrow_mut() = Some((init.status, init.statusText.clone().into()));
@@ -191,7 +189,7 @@ impl Response {
         let r = Response::new(global);
 
         // Step 5
-        *r.status.borrow_mut() = Some(StatusCode::from_u16(status).unwrap());
+        *r.status.borrow_mut() = Some(StatusCode::from_u16(status));
         *r.raw_status.borrow_mut() = Some((status, b"".to_vec()));
 
         // Step 6
@@ -302,7 +300,7 @@ impl ResponseMethods for Response {
     fn Ok(&self) -> bool {
         match *self.status.borrow() {
             Some(s) => {
-                let status_num = s.as_u16();
+                let status_num = s.to_u16();
                 return status_num >= 200 && status_num <= 299;
             },
             None => false,

@@ -2,34 +2,34 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use crate::dom::activation::{synthetic_click_activation, Activatable, ActivationSource};
-use crate::dom::attr::Attr;
-use crate::dom::bindings::codegen::Bindings::HTMLButtonElementBinding;
-use crate::dom::bindings::codegen::Bindings::HTMLButtonElementBinding::HTMLButtonElementMethods;
-use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::root::{DomRoot, MutNullableDom};
-use crate::dom::bindings::str::DOMString;
-use crate::dom::document::Document;
-use crate::dom::element::{AttributeMutation, Element};
-use crate::dom::event::Event;
-use crate::dom::eventtarget::EventTarget;
-use crate::dom::htmlelement::HTMLElement;
-use crate::dom::htmlfieldsetelement::HTMLFieldSetElement;
-use crate::dom::htmlformelement::HTMLFormElement;
-use crate::dom::htmlformelement::{FormControl, FormDatum, FormDatumValue};
-use crate::dom::htmlformelement::{FormSubmitter, ResetFrom, SubmittedFrom};
-use crate::dom::node::{document_from_node, window_from_node, Node, UnbindContext};
-use crate::dom::nodelist::NodeList;
-use crate::dom::validation::Validatable;
-use crate::dom::validitystate::{ValidationFlags, ValidityState};
-use crate::dom::virtualmethods::VirtualMethods;
+use dom::activation::{Activatable, ActivationSource, synthetic_click_activation};
+use dom::attr::Attr;
+use dom::bindings::codegen::Bindings::HTMLButtonElementBinding;
+use dom::bindings::codegen::Bindings::HTMLButtonElementBinding::HTMLButtonElementMethods;
+use dom::bindings::inheritance::Castable;
+use dom::bindings::root::{DomRoot, MutNullableDom};
+use dom::bindings::str::DOMString;
+use dom::document::Document;
+use dom::element::{AttributeMutation, Element};
+use dom::event::Event;
+use dom::eventtarget::EventTarget;
+use dom::htmlelement::HTMLElement;
+use dom::htmlfieldsetelement::HTMLFieldSetElement;
+use dom::htmlformelement::{FormControl, FormDatum, FormDatumValue};
+use dom::htmlformelement::{FormSubmitter, ResetFrom, SubmittedFrom};
+use dom::htmlformelement::HTMLFormElement;
+use dom::node::{Node, UnbindContext, document_from_node, window_from_node};
+use dom::nodelist::NodeList;
+use dom::validation::Validatable;
+use dom::validitystate::{ValidityState, ValidationFlags};
+use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
 use std::cell::Cell;
 use std::default::Default;
 use style::element_state::ElementState;
 
-#[derive(Clone, Copy, JSTraceable, MallocSizeOf, PartialEq)]
+#[derive(Clone, Copy, JSTraceable, MallocSizeOf, PartialEq )]
 enum ButtonType {
     Submit,
     Reset,
@@ -189,8 +189,8 @@ impl HTMLButtonElement {
 }
 
 impl VirtualMethods for HTMLButtonElement {
-    fn super_type(&self) -> Option<&dyn VirtualMethods> {
-        Some(self.upcast::<HTMLElement>() as &dyn VirtualMethods)
+    fn super_type(&self) -> Option<&VirtualMethods> {
+        Some(self.upcast::<HTMLElement>() as &VirtualMethods)
     }
 
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {

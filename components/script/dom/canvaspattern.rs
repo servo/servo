@@ -3,11 +3,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use canvas_traits::canvas::{FillOrStrokeStyle, RepetitionStyle, SurfaceStyle};
-use crate::dom::bindings::codegen::Bindings::CanvasPatternBinding;
-use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
-use crate::dom::bindings::root::DomRoot;
-use crate::dom::canvasgradient::ToFillOrStrokeStyle;
-use crate::dom::globalscope::GlobalScope;
+use dom::bindings::codegen::Bindings::CanvasPatternBinding;
+use dom::bindings::reflector::{Reflector, reflect_dom_object};
+use dom::bindings::root::DomRoot;
+use dom::canvasgradient::ToFillOrStrokeStyle;
+use dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
 use euclid::Size2D;
 
@@ -16,7 +16,7 @@ use euclid::Size2D;
 pub struct CanvasPattern {
     reflector_: Reflector,
     surface_data: Vec<u8>,
-    surface_size: Size2D<u32>,
+    surface_size: Size2D<i32>,
     repeat_x: bool,
     repeat_y: bool,
     origin_clean: bool,
@@ -25,7 +25,7 @@ pub struct CanvasPattern {
 impl CanvasPattern {
     fn new_inherited(
         surface_data: Vec<u8>,
-        surface_size: Size2D<u32>,
+        surface_size: Size2D<i32>,
         repeat: RepetitionStyle,
         origin_clean: bool,
     ) -> CanvasPattern {
@@ -39,7 +39,7 @@ impl CanvasPattern {
         CanvasPattern {
             reflector_: Reflector::new(),
             surface_data: surface_data,
-            surface_size,
+            surface_size: surface_size,
             repeat_x: x,
             repeat_y: y,
             origin_clean: origin_clean,
@@ -48,7 +48,7 @@ impl CanvasPattern {
     pub fn new(
         global: &GlobalScope,
         surface_data: Vec<u8>,
-        surface_size: Size2D<u32>,
+        surface_size: Size2D<i32>,
         repeat: RepetitionStyle,
         origin_clean: bool,
     ) -> DomRoot<CanvasPattern> {

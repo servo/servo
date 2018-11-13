@@ -4,37 +4,35 @@
 
 #![allow(unrooted_must_root)]
 
-use crate::dom::bindings::codegen::Bindings::HTMLTemplateElementBinding::HTMLTemplateElementMethods;
-use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
-use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::root::{Dom, DomRoot};
-use crate::dom::bindings::str::DOMString;
-use crate::dom::comment::Comment;
-use crate::dom::document::Document;
-use crate::dom::documenttype::DocumentType;
-use crate::dom::element::{Element, ElementCreator};
-use crate::dom::htmlformelement::{FormControlElementHelpers, HTMLFormElement};
-use crate::dom::htmlscriptelement::HTMLScriptElement;
-use crate::dom::htmltemplateelement::HTMLTemplateElement;
-use crate::dom::node::Node;
-use crate::dom::processinginstruction::ProcessingInstruction;
-use crate::dom::servoparser::{create_element_for_token, ElementAttribute, ParsingAlgorithm};
-use crate::dom::virtualmethods::vtable_for;
-use html5ever::buffer_queue::BufferQueue;
-use html5ever::tendril::fmt::UTF8;
-use html5ever::tendril::{SendTendril, StrTendril, Tendril};
-use html5ever::tokenizer::{Tokenizer as HtmlTokenizer, TokenizerOpts, TokenizerResult};
-use html5ever::tree_builder::{
-    ElementFlags, NextParserState, NodeOrText as HtmlNodeOrText, QuirksMode, TreeSink,
-};
-use html5ever::tree_builder::{TreeBuilder, TreeBuilderOpts};
+use dom::bindings::codegen::Bindings::HTMLTemplateElementBinding::HTMLTemplateElementMethods;
+use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
+use dom::bindings::inheritance::Castable;
+use dom::bindings::root::{Dom, DomRoot};
+use dom::bindings::str::DOMString;
+use dom::comment::Comment;
+use dom::document::Document;
+use dom::documenttype::DocumentType;
+use dom::element::{Element, ElementCreator};
+use dom::htmlformelement::{FormControlElementHelpers, HTMLFormElement};
+use dom::htmlscriptelement::HTMLScriptElement;
+use dom::htmltemplateelement::HTMLTemplateElement;
+use dom::node::Node;
+use dom::processinginstruction::ProcessingInstruction;
+use dom::servoparser::{ElementAttribute, create_element_for_token, ParsingAlgorithm};
+use dom::virtualmethods::vtable_for;
 use html5ever::{Attribute as HtmlAttribute, ExpandedName, QualName};
+use html5ever::buffer_queue::BufferQueue;
+use html5ever::tendril::{SendTendril, StrTendril, Tendril};
+use html5ever::tendril::fmt::UTF8;
+use html5ever::tokenizer::{Tokenizer as HtmlTokenizer, TokenizerOpts, TokenizerResult};
+use html5ever::tree_builder::{ElementFlags, NodeOrText as HtmlNodeOrText, NextParserState, QuirksMode, TreeSink};
+use html5ever::tree_builder::{TreeBuilder, TreeBuilderOpts};
 use servo_channel::{channel, Receiver, Sender};
 use servo_url::ServoUrl;
 use std::borrow::Cow;
 use std::cell::Cell;
-use std::collections::vec_deque::VecDeque;
 use std::collections::HashMap;
+use std::collections::vec_deque::VecDeque;
 use std::thread;
 use style::context::QuirksMode as ServoQuirksMode;
 
@@ -259,8 +257,7 @@ impl Tokenizer {
                     to_tokenizer_sender,
                     html_tokenizer_receiver,
                 );
-            })
-            .expect("HTML Parser thread spawning failed");
+            }).expect("HTML Parser thread spawning failed");
 
         tokenizer
     }
@@ -276,8 +273,7 @@ impl Tokenizer {
         self.html_tokenizer_sender
             .send(ToHtmlTokenizerMsg::Feed {
                 input: send_tendrils,
-            })
-            .unwrap();
+            }).unwrap();
 
         loop {
             match self
@@ -719,8 +715,7 @@ impl TreeSink for Sink {
             .map(|attr| Attribute {
                 name: attr.name,
                 value: String::from(attr.value),
-            })
-            .collect();
+            }).collect();
 
         self.send_op(ParseOperation::CreateElement {
             node: node.id,
@@ -840,8 +835,7 @@ impl TreeSink for Sink {
             .map(|attr| Attribute {
                 name: attr.name,
                 value: String::from(attr.value),
-            })
-            .collect();
+            }).collect();
         self.send_op(ParseOperation::AddAttrsIfMissing {
             target: target.id,
             attrs,

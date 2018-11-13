@@ -2,15 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::PerformanceObserverEntryListBinding;
-use crate::dom::bindings::codegen::Bindings::PerformanceObserverEntryListBinding::PerformanceObserverEntryListMethods;
-use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
-use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::DOMString;
-use crate::dom::globalscope::GlobalScope;
-use crate::dom::performance::PerformanceEntryList;
-use crate::dom::performanceentry::PerformanceEntry;
+use dom::bindings::cell::DomRefCell;
+use dom::bindings::codegen::Bindings::PerformanceObserverEntryListBinding;
+use dom::bindings::codegen::Bindings::PerformanceObserverEntryListBinding::PerformanceObserverEntryListMethods;
+use dom::bindings::reflector::{Reflector, reflect_dom_object};
+use dom::bindings::root::DomRoot;
+use dom::bindings::str::DOMString;
+use dom::globalscope::GlobalScope;
+use dom::performance::PerformanceEntryList;
+use dom::performanceentry::PerformanceEntry;
 use dom_struct::dom_struct;
 
 #[dom_struct]

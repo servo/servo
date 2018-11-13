@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use crate::flow::{Flow, FlowFlags, GetBaseFlow};
+use flow::{FlowFlags, Flow, GetBaseFlow};
 use style::computed_values::float::T as Float;
 use style::selector_parser::RestyleDamage;
 use style::servo::restyle_damage::ServoRestyleDamage;
@@ -27,7 +27,7 @@ pub trait LayoutDamageComputation {
     fn reflow_entire_document(self);
 }
 
-impl<'a> LayoutDamageComputation for &'a mut dyn Flow {
+impl<'a> LayoutDamageComputation for &'a mut Flow {
     fn compute_layout_damage(self) -> SpecialRestyleDamage {
         let mut special_damage = SpecialRestyleDamage::empty();
         let is_absolutely_positioned = self
@@ -53,7 +53,7 @@ impl<'a> LayoutDamageComputation for &'a mut dyn Flow {
                         .damage_for_child(is_absolutely_positioned, child_is_absolutely_positioned),
                 );
                 {
-                    let kid: &mut dyn Flow = kid;
+                    let kid: &mut Flow = kid;
                     special_damage.insert(kid.compute_layout_damage());
                 }
                 self_base.restyle_damage.insert(

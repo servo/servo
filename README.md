@@ -55,7 +55,7 @@ Please select your operating system:
 
 ``` sh
 brew install automake autoconf@2.13 pkg-config python cmake yasm llvm
-brew install gstreamer gst-plugins-base gst-plugins-good gst-plugins-bad gst-libav gst-rtsp-server --with-orc --with-libogg --with-opus --with-pango --with-theora --with-libvorbis
+brew install gstreamer gst-plugins-base gst-plugins-good       gst-plugins-bad gst-plugins-ugly gst-libav gst-rtsp-server       --with-orc -with-libogg --with-opus --with-pango --with-theora       --with-libvorbis
 pip install virtualenv
 ```
 #### On macOS (MacPorts)
@@ -221,35 +221,19 @@ settings for the installer are fine).
 
 5. Install Visual Studio Community 2017 (https://www.visualstudio.com/vs/community/). You MUST add "Visual C++" to the
 list of installed components. It is not on by default. Visual Studio 2017 MUST installed to the default location or mach.bat will not find it.
-
-##### [Optional] Install LLVM for faster link times
-
-You may experience much faster builds on Windows by following these steps. (Related Rust issue: https://github.com/rust-lang/rust/issues/37543)
-
-1. Download the latest version of LLVM (https://releases.llvm.org/).
-2. Run the installer and choose to add LLVM to the system PATH.
-3. Add the following to your Cargo config (Found at `%USERPROFILE%\.cargo\config`). You may need to change the triple to match your environment.
-
-```
-[target.x86_64-pc-windows-msvc]
-linker = "lld-link.exe"
-```
-
-##### Troubleshooting a Windows environment
-
 > If you encountered errors with the environment above, do the following for a workaround:
 > 1.  Download and install [Build Tools for Visual Studio 2017](https://www.visualstudio.com/thank-you-downloading-visual-studio/?sku=BuildTools&rel=15)
 > 2.  Install `python2.7 x86-x64` and `virtualenv`
 > 3.  Run `mach.bat build -d`.
 
 >If you have troubles with `x64 type` prompt as `mach.bat` set by default:
-> 1. You may need to choose and launch the type manually, such as `x86_x64 Cross Tools Command Prompt for VS 2017` in the Windows menu.)
+> 1. you may need to choose and launch the type manually, such as `x86_x64 Cross Tools Command Prompt for VS 2017` in the Windows menu.)
 > 2. `cd to/the/path/servo`
 > 3. `python mach build -d`
 
 #### Cross-compilation for Android
 
-Run `./mach bootstrap-android --build` to get Android-specific tools. See wiki for
+Run `./mach bootstrap-android` to get Android-specific tools. See wiki for
 [details](https://github.com/servo/servo/wiki/Building-for-Android).
 
 ## The Rust compiler
@@ -358,4 +342,4 @@ There are lots of mach commands you can use. You can list them with `./mach
 --help`.
 
 
-The generated documentation can be found on https://doc.servo.org/servo/index.html
+The generated documentation can be found on http://doc.servo.org/servo/index.html

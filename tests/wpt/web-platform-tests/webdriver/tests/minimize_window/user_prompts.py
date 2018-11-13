@@ -3,7 +3,6 @@
 import pytest
 
 from tests.support.asserts import assert_dialog_handled, assert_error, assert_success
-from tests.support.helpers import document_hidden
 
 
 def minimize(session):
@@ -11,17 +10,23 @@ def minimize(session):
         "POST", "session/{session_id}/window/minimize".format(**vars(session)))
 
 
+def is_minimized(session):
+    return session.execute_script("return document.hidden")
+
+
 @pytest.fixture
 def check_user_prompt_closed_without_exception(session, create_dialog):
     def check_user_prompt_closed_without_exception(dialog_type, retval):
-        assert not document_hidden(session)
+        assert not is_minimized(session)
+
         create_dialog(dialog_type, text=dialog_type)
 
         response = minimize(session)
         assert_success(response)
 
         assert_dialog_handled(session, expected_text=dialog_type, expected_retval=retval)
-        assert document_hidden(session)
+
+        assert is_minimized(session)
 
     return check_user_prompt_closed_without_exception
 
@@ -29,14 +34,16 @@ def check_user_prompt_closed_without_exception(session, create_dialog):
 @pytest.fixture
 def check_user_prompt_closed_with_exception(session, create_dialog):
     def check_user_prompt_closed_with_exception(dialog_type, retval):
-        assert not document_hidden(session)
+        assert not is_minimized(session)
+
         create_dialog(dialog_type, text=dialog_type)
 
         response = minimize(session)
         assert_error(response, "unexpected alert open")
 
         assert_dialog_handled(session, expected_text=dialog_type, expected_retval=retval)
-        assert not document_hidden(session)
+
+        assert not is_minimized(session)
 
     return check_user_prompt_closed_with_exception
 
@@ -44,7 +51,8 @@ def check_user_prompt_closed_with_exception(session, create_dialog):
 @pytest.fixture
 def check_user_prompt_not_closed_but_exception(session, create_dialog):
     def check_user_prompt_not_closed_but_exception(dialog_type):
-        assert not document_hidden(session)
+        assert not is_minimized(session)
+
         create_dialog(dialog_type, text=dialog_type)
 
         response = minimize(session)
@@ -53,7 +61,7 @@ def check_user_prompt_not_closed_but_exception(session, create_dialog):
         assert session.alert.text == dialog_type
         session.alert.dismiss()
 
-        assert not document_hidden(session)
+        assert not is_minimized(session)
 
     return check_user_prompt_not_closed_but_exception
 

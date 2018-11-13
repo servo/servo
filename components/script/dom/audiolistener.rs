@@ -2,15 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use crate::dom::audioparam::AudioParam;
-use crate::dom::baseaudiocontext::BaseAudioContext;
-use crate::dom::bindings::codegen::Bindings::AudioListenerBinding::{self, AudioListenerMethods};
-use crate::dom::bindings::codegen::Bindings::AudioParamBinding::AutomationRate;
-use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
-use crate::dom::bindings::root::{Dom, DomRoot};
-use crate::dom::window::Window;
+use dom::audioparam::AudioParam;
+use dom::baseaudiocontext::BaseAudioContext;
+use dom::bindings::codegen::Bindings::AudioListenerBinding::{self, AudioListenerMethods};
+use dom::bindings::codegen::Bindings::AudioParamBinding::AutomationRate;
+use dom::bindings::reflector::{Reflector, reflect_dom_object};
+use dom::bindings::root::{Dom, DomRoot};
+use dom::window::Window;
 use dom_struct::dom_struct;
-use servo_media::audio::param::{ParamDir, ParamType};
+use servo_media::audio::param::{ParamType, ParamDir};
 use std::f32;
 
 #[dom_struct]

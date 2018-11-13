@@ -4,17 +4,15 @@
 <script src="/resources/testharnessreport.js"></script>
 <script src="resources/test-helpers.sub.js"></script>
 <script>
+var test;
 var scope = 'resources/blank.html?client-id';
 var frame1, frame2;
 
-promise_test(function(t) {
-    return service_worker_unregister_and_register(
+async_test(function(t) {
+    test = t;
+    service_worker_unregister_and_register(
         t, 'resources/client-id-worker.js', scope)
       .then(function(registration) {
-          t.add_cleanup(function() {
-              return service_worker_unregister(t, scope);
-            });
-
           return wait_for_state(t, registration.installing, 'activated');
         })
       .then(function() { return with_iframe(scope + '#1'); })
@@ -27,15 +25,11 @@ promise_test(function(t) {
       .then(function(f) {
           frame2 = f;
           var channel = new MessageChannel();
-
-          return new Promise(function(resolve, reject) {
-              channel.port1.onmessage = resolve;
-              channel.port1.onmessageerror = reject;
-              f.contentWindow.navigator.serviceWorker.controller.postMessage(
-                  {port:channel.port2}, [channel.port2]);
-            });
+          channel.port1.onmessage = t.step_func(on_message);
+          f.contentWindow.navigator.serviceWorker.controller.postMessage(
+              {port:channel.port2}, [channel.port2]);
         })
-      .then(on_message);
+      .catch(unreached_rejection(t));
   }, 'Client.id returns the client\'s ID.');
 
 function on_message(e) {
@@ -56,5 +50,6 @@ function on_message(e) {
   assert_equals(e.data[1], e.data[3]);
   frame1.remove();
   frame2.remove();
+  service_worker_unregister_and_done(test, scope);
 }
 </script>

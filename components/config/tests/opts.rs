@@ -2,7 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use servo_config::opts::{parse_pref_from_command_line, parse_url_or_filename};
+extern crate servo_config;
+
+use servo_config::opts::{parse_url_or_filename, parse_pref_from_command_line};
 use servo_config::prefs::{PrefValue, PREFS};
 use std::path::Path;
 

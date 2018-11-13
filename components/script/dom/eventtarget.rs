@@ -2,46 +2,46 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use crate::dom::beforeunloadevent::BeforeUnloadEvent;
-use crate::dom::bindings::callback::{CallbackContainer, CallbackFunction, ExceptionHandling};
-use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::BeforeUnloadEventBinding::BeforeUnloadEventMethods;
-use crate::dom::bindings::codegen::Bindings::ErrorEventBinding::ErrorEventMethods;
-use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
-use crate::dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
-use crate::dom::bindings::codegen::Bindings::EventHandlerBinding::OnBeforeUnloadEventHandlerNonNull;
-use crate::dom::bindings::codegen::Bindings::EventHandlerBinding::OnErrorEventHandlerNonNull;
-use crate::dom::bindings::codegen::Bindings::EventListenerBinding::EventListener;
-use crate::dom::bindings::codegen::Bindings::EventTargetBinding::AddEventListenerOptions;
-use crate::dom::bindings::codegen::Bindings::EventTargetBinding::EventListenerOptions;
-use crate::dom::bindings::codegen::Bindings::EventTargetBinding::EventTargetMethods;
-use crate::dom::bindings::codegen::Bindings::EventTargetBinding::Wrap;
-use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
-use crate::dom::bindings::codegen::UnionTypes::AddEventListenerOptionsOrBoolean;
-use crate::dom::bindings::codegen::UnionTypes::EventListenerOptionsOrBoolean;
-use crate::dom::bindings::codegen::UnionTypes::EventOrString;
-use crate::dom::bindings::error::{report_pending_exception, Error, Fallible};
-use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
-use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::DOMString;
-use crate::dom::element::Element;
-use crate::dom::errorevent::ErrorEvent;
-use crate::dom::event::{Event, EventBubbles, EventCancelable, EventStatus};
-use crate::dom::globalscope::GlobalScope;
-use crate::dom::node::document_from_node;
-use crate::dom::virtualmethods::VirtualMethods;
-use crate::dom::window::Window;
+use dom::beforeunloadevent::BeforeUnloadEvent;
+use dom::bindings::callback::{CallbackContainer, ExceptionHandling, CallbackFunction};
+use dom::bindings::cell::DomRefCell;
+use dom::bindings::codegen::Bindings::BeforeUnloadEventBinding::BeforeUnloadEventMethods;
+use dom::bindings::codegen::Bindings::ErrorEventBinding::ErrorEventMethods;
+use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
+use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
+use dom::bindings::codegen::Bindings::EventHandlerBinding::OnBeforeUnloadEventHandlerNonNull;
+use dom::bindings::codegen::Bindings::EventHandlerBinding::OnErrorEventHandlerNonNull;
+use dom::bindings::codegen::Bindings::EventListenerBinding::EventListener;
+use dom::bindings::codegen::Bindings::EventTargetBinding::AddEventListenerOptions;
+use dom::bindings::codegen::Bindings::EventTargetBinding::EventListenerOptions;
+use dom::bindings::codegen::Bindings::EventTargetBinding::EventTargetMethods;
+use dom::bindings::codegen::Bindings::EventTargetBinding::Wrap;
+use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
+use dom::bindings::codegen::UnionTypes::AddEventListenerOptionsOrBoolean;
+use dom::bindings::codegen::UnionTypes::EventListenerOptionsOrBoolean;
+use dom::bindings::codegen::UnionTypes::EventOrString;
+use dom::bindings::error::{Error, Fallible, report_pending_exception};
+use dom::bindings::inheritance::Castable;
+use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
+use dom::bindings::root::DomRoot;
+use dom::bindings::str::DOMString;
+use dom::element::Element;
+use dom::errorevent::ErrorEvent;
+use dom::event::{Event, EventBubbles, EventCancelable, EventStatus};
+use dom::globalscope::GlobalScope;
+use dom::node::document_from_node;
+use dom::virtualmethods::VirtualMethods;
+use dom::window::Window;
 use dom_struct::dom_struct;
 use fnv::FnvHasher;
-use js::jsapi::{JSAutoCompartment, JSFunction, JS_GetFunctionObject};
-use js::rust::wrappers::CompileFunction;
+use js::jsapi::{JS_GetFunctionObject, JSAutoCompartment, JSFunction};
 use js::rust::{AutoObjectVectorWrapper, CompileOptionsWrapper};
+use js::rust::wrappers::CompileFunction;
 use libc::{c_char, size_t};
 use servo_atoms::Atom;
 use servo_url::ServoUrl;
-use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::collections::HashMap;
+use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::default::Default;
 use std::ffi::CString;
 use std::hash::BuildHasherDefault;
@@ -302,8 +302,7 @@ impl EventListeners {
                 } else {
                     None
                 }
-            })
-            .collect()
+            }).collect()
     }
 
     fn has_listeners(&self) -> bool {
@@ -733,7 +732,7 @@ impl EventTargetMethods for EventTarget {
 }
 
 impl VirtualMethods for EventTarget {
-    fn super_type(&self) -> Option<&dyn VirtualMethods> {
+    fn super_type(&self) -> Option<&VirtualMethods> {
         None
     }
 }

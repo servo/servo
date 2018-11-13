@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <!-- Programmatically converted from a WebKit Reftest, please forgive resulting idiosyncracies.-->
+    <meta http-equiv="Content-Security-Policy" content="object-src 'self'; script-src 'self' 'unsafe-inline'; connect-src 'self';">
+    <title>object-src-url-allowed</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src='../support/logTest.sub.js?logs=["Pass"]'></script>
+    <script src="../support/alertAssert.sub.js?alerts=[]"></script>
+</head>
+
+<body>
+    <p>This test passes if there is no CSP violation saying the plugin was blocked.</p>
+
+    <script>
+       window.addEventListener('securitypolicyviolation', function(e) {
+            log("Fail");
+       });
+    </script>
+
+    <object data="/content-security-policy/support/pass.png"></object>
+    <div id="log"></div>
+    <script>
+        log("Pass");
+    </script>
+</body>
+
+</html>

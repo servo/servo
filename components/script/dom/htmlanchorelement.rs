@@ -2,28 +2,28 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use crate::dom::activation::Activatable;
-use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
-use crate::dom::bindings::codegen::Bindings::DOMTokenListBinding::DOMTokenListMethods;
-use crate::dom::bindings::codegen::Bindings::HTMLAnchorElementBinding;
-use crate::dom::bindings::codegen::Bindings::HTMLAnchorElementBinding::HTMLAnchorElementMethods;
-use crate::dom::bindings::codegen::Bindings::MouseEventBinding::MouseEventMethods;
-use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
-use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::root::{DomRoot, MutNullableDom};
-use crate::dom::bindings::str::{DOMString, USVString};
-use crate::dom::document::Document;
-use crate::dom::domtokenlist::DOMTokenList;
-use crate::dom::element::Element;
-use crate::dom::event::Event;
-use crate::dom::eventtarget::EventTarget;
-use crate::dom::htmlelement::HTMLElement;
-use crate::dom::htmlimageelement::HTMLImageElement;
-use crate::dom::mouseevent::MouseEvent;
-use crate::dom::node::{document_from_node, Node};
-use crate::dom::urlhelper::UrlHelper;
-use crate::dom::virtualmethods::VirtualMethods;
+use dom::activation::Activatable;
+use dom::bindings::cell::DomRefCell;
+use dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
+use dom::bindings::codegen::Bindings::DOMTokenListBinding::DOMTokenListMethods;
+use dom::bindings::codegen::Bindings::HTMLAnchorElementBinding;
+use dom::bindings::codegen::Bindings::HTMLAnchorElementBinding::HTMLAnchorElementMethods;
+use dom::bindings::codegen::Bindings::MouseEventBinding::MouseEventMethods;
+use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
+use dom::bindings::inheritance::Castable;
+use dom::bindings::root::{DomRoot, MutNullableDom};
+use dom::bindings::str::{DOMString, USVString};
+use dom::document::Document;
+use dom::domtokenlist::DOMTokenList;
+use dom::element::Element;
+use dom::event::Event;
+use dom::eventtarget::EventTarget;
+use dom::htmlelement::HTMLElement;
+use dom::htmlimageelement::HTMLImageElement;
+use dom::mouseevent::MouseEvent;
+use dom::node::{Node, document_from_node};
+use dom::urlhelper::UrlHelper;
+use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
 use net_traits::ReferrerPolicy;
@@ -98,8 +98,8 @@ impl HTMLAnchorElement {
 }
 
 impl VirtualMethods for HTMLAnchorElement {
-    fn super_type(&self) -> Option<&dyn VirtualMethods> {
-        Some(self.upcast::<HTMLElement>() as &dyn VirtualMethods)
+    fn super_type(&self) -> Option<&VirtualMethods> {
+        Some(self.upcast::<HTMLElement>() as &VirtualMethods)
     }
 
     fn parse_plain_attribute(&self, name: &LocalName, value: DOMString) -> AttrValue {
@@ -319,7 +319,7 @@ impl HTMLAnchorElementMethods for HTMLAnchorElement {
             },
             Some(ref url) => {
                 // Step 3.
-                url.origin().ascii_serialization()
+                url.origin().unicode_serialization()
             },
         })
     }

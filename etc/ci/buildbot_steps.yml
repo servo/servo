@@ -3,7 +3,6 @@ env:
   RUSTFLAGS: -Dwarnings
   CARGO_INCREMENTAL: "0"
   SCCACHE_IDLE_TIMEOUT: "1200"
-  GST_DEBUG: '3'
 
 mac-rel-wpt1:
   - ./mach clean-nightlies --keep 3 --force
@@ -116,7 +115,6 @@ linux-dev:
     - ./mach test-unit
     - python ./etc/memory_reports_over_time.py --test
     - ./mach package --dev
-    - ./mach build --libsimpleservo
     - ./mach build --dev --no-default-features --features default-except-unstable -p servo
     - bash ./etc/ci/lockfile_changed.sh
     - bash ./etc/ci/check_no_panic.sh
@@ -180,7 +178,7 @@ android:
   - ./mach clean-nightlies --keep 3 --force
   - ./mach clean-cargo-cache --keep 3 --force
   - ./etc/ci/clean_build_artifacts.sh
-  - ./mach bootstrap-android --accept-all-licences --build
+  - ./etc/ci/bootstrap-android-and-accept-licences.sh
   - env --unset ANDROID_NDK --unset ANDROID_SDK ./mach build --android --dev
   - env --unset ANDROID_NDK --unset ANDROID_SDK ./mach package --android --dev
   - bash ./etc/ci/lockfile_changed.sh
@@ -191,7 +189,7 @@ android-mac:
  commands:
   - ./mach clean-nightlies --keep 3 --force
   - ./mach clean-cargo-cache --keep 3 --force
-  - ./mach bootstrap-android --accept-all-licences --build
+  - ./etc/ci/bootstrap-android-and-accept-licences.sh
   - ./mach build --android --dev
   - ./mach package --android --dev
   - bash ./etc/ci/lockfile_changed.sh
@@ -205,7 +203,7 @@ android-x86:
   - ./mach clean-nightlies --keep 3 --force
   - ./mach clean-cargo-cache --keep 3 --force
   - ./etc/ci/clean_build_artifacts.sh
-  - ./mach bootstrap-android --accept-all-licences --build --emulator-x86
+  - ./etc/ci/bootstrap-android-and-accept-licences.sh
   - env --unset ANDROID_NDK --unset ANDROID_SDK ./mach build --target i686-linux-android --release
   - env --unset ANDROID_NDK --unset ANDROID_SDK ./mach test-android-startup --release
   - env --unset ANDROID_NDK --unset ANDROID_SDK ./mach test-wpt-android --release /_mozilla/mozilla/DOMParser.html /_mozilla/mozilla/webgl/context_creation_error.html
@@ -220,24 +218,10 @@ android-nightly:
   - ./mach clean-nightlies --keep 3 --force
   - ./mach clean-cargo-cache --keep 3 --force
   - ./etc/ci/clean_build_artifacts.sh
-  - ./mach bootstrap-android --accept-all-licences --build
+  - ./etc/ci/bootstrap-android-and-accept-licences.sh
   - env --unset ANDROID_NDK --unset ANDROID_SDK ./mach build --android --release
-  - env --unset ANDROID_NDK --unset ANDROID_SDK ./mach package --android --release --maven
-  - env --unset ANDROID_NDK --unset ANDROID_SDK ./mach build --target=i686-linux-android --release
-  - env --unset ANDROID_NDK --unset ANDROID_SDK ./mach package --target=i686-linux-android --release --maven
+  - env --unset ANDROID_NDK --unset ANDROID_SDK ./mach package --android --release
   - ./mach upload-nightly android
-  - ./mach upload-nightly maven
-  - ./etc/ci/clean_build_artifacts.sh
-
-magicleap:
- env:
-  MAGICLEAP_SDK: /Users/servo/magicleap/v0.17.0
- commands:
-  - ./mach clean-nightlies --keep 3 --force
-  - ./mach clean-cargo-cache --keep 3 --force
-  - ./etc/ci/clean_build_artifacts.sh
-  - ./mach build --magicleap --dev
-  - bash ./etc/ci/lockfile_changed.sh
   - ./etc/ci/clean_build_artifacts.sh
 
 arm32:

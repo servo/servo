@@ -5,28 +5,28 @@
 //! Implements sequential traversals over the DOM and flow trees.
 
 use app_units::Au;
-use crate::context::LayoutContext;
-use crate::display_list::{DisplayListBuildState, StackingContextCollectionState};
-use crate::floats::SpeculatedFloatPlacement;
-use crate::flow::{Flow, FlowFlags, GetBaseFlow, ImmutableFlowUtils};
-use crate::fragment::{CoordinateSystem, FragmentBorderBoxIterator};
-use crate::generated_content::ResolveGeneratedContent;
-use crate::incremental::RelayoutMode;
-use crate::traversal::{AssignBSizes, AssignISizes, BubbleISizes, BuildDisplayList};
-use crate::traversal::{InorderFlowTraversal, PostorderFlowTraversal, PreorderFlowTraversal};
+use context::LayoutContext;
+use display_list::{DisplayListBuildState, StackingContextCollectionState};
 use euclid::{Point2D, Vector2D};
+use floats::SpeculatedFloatPlacement;
+use flow::{Flow, ImmutableFlowUtils, FlowFlags, GetBaseFlow};
+use fragment::{FragmentBorderBoxIterator, CoordinateSystem};
+use generated_content::ResolveGeneratedContent;
+use incremental::RelayoutMode;
 use servo_config::opts;
 use style::servo::restyle_damage::ServoRestyleDamage;
+use traversal::{AssignBSizes, AssignISizes, BubbleISizes, BuildDisplayList};
+use traversal::{InorderFlowTraversal, PostorderFlowTraversal, PreorderFlowTraversal};
 use webrender_api::LayoutPoint;
 
-pub fn resolve_generated_content(root: &mut dyn Flow, layout_context: &LayoutContext) {
+pub fn resolve_generated_content(root: &mut Flow, layout_context: &LayoutContext) {
     ResolveGeneratedContent::new(&layout_context).traverse(root, 0);
 }
 
 /// Run the main layout passes sequentially.
-pub fn reflow(root: &mut dyn Flow, layout_context: &LayoutContext, relayout_mode: RelayoutMode) {
+pub fn reflow(root: &mut Flow, layout_context: &LayoutContext, relayout_mode: RelayoutMode) {
     fn doit(
-        flow: &mut dyn Flow,
+        flow: &mut Flow,
         assign_inline_sizes: AssignISizes,
         assign_block_sizes: AssignBSizes,
         relayout_mode: RelayoutMode,
@@ -70,7 +70,7 @@ pub fn reflow(root: &mut dyn Flow, layout_context: &LayoutContext, relayout_mode
 }
 
 pub fn build_display_list_for_subtree<'a>(
-    flow_root: &mut dyn Flow,
+    flow_root: &mut Flow,
     layout_context: &'a LayoutContext,
 ) -> DisplayListBuildState<'a> {
     let mut state = StackingContextCollectionState::new(layout_context.id);
@@ -83,13 +83,13 @@ pub fn build_display_list_for_subtree<'a>(
 }
 
 pub fn iterate_through_flow_tree_fragment_border_boxes(
-    root: &mut dyn Flow,
-    iterator: &mut dyn FragmentBorderBoxIterator,
+    root: &mut Flow,
+    iterator: &mut FragmentBorderBoxIterator,
 ) {
     fn doit(
-        flow: &mut dyn Flow,
+        flow: &mut Flow,
         level: i32,
-        iterator: &mut dyn FragmentBorderBoxIterator,
+        iterator: &mut FragmentBorderBoxIterator,
         stacking_context_position: &Point2D<Au>,
     ) {
         flow.iterate_through_fragment_border_boxes(iterator, level, stacking_context_position);
@@ -119,7 +119,7 @@ pub fn iterate_through_flow_tree_fragment_border_boxes(
     doit(root, 0, iterator, &Point2D::zero());
 }
 
-pub fn store_overflow(layout_context: &LayoutContext, flow: &mut dyn Flow) {
+pub fn store_overflow(layout_context: &LayoutContext, flow: &mut Flow) {
     if !flow
         .base()
         .restyle_damage
@@ -142,7 +142,7 @@ pub fn store_overflow(layout_context: &LayoutContext, flow: &mut dyn Flow) {
 /// Guesses how much inline size will be taken up by floats on the left and right sides of the
 /// given flow. This is needed to speculatively calculate the inline sizes of block formatting
 /// contexts. The speculation typically succeeds, but if it doesn't we have to lay it out again.
-pub fn guess_float_placement(flow: &mut dyn Flow) {
+pub fn guess_float_placement(flow: &mut Flow) {
     if !flow
         .base()
         .restyle_damage

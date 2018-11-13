@@ -4,6 +4,17 @@
 
 #![deny(unsafe_code)]
 
+extern crate gfx;
+extern crate ipc_channel;
+extern crate metrics;
+extern crate msg;
+extern crate net_traits;
+extern crate profile_traits;
+extern crate script_traits;
+extern crate servo_channel;
+extern crate servo_url;
+extern crate webrender_api;
+
 // This module contains traits in layout used generically
 //   in the rest of Servo.
 // The traits are here instead of in layout so
@@ -16,8 +27,8 @@ use msg::constellation_msg::PipelineId;
 use msg::constellation_msg::TopLevelBrowsingContextId;
 use net_traits::image_cache::ImageCache;
 use profile_traits::{mem, time};
-use script_traits::LayoutMsg as ConstellationMsg;
 use script_traits::{ConstellationControlMsg, LayoutControlMsg};
+use script_traits::LayoutMsg as ConstellationMsg;
 use servo_channel::{Receiver, Sender};
 use servo_url::ServoUrl;
 use std::sync::Arc;
@@ -35,7 +46,7 @@ pub trait LayoutThreadFactory {
         pipeline_port: IpcReceiver<LayoutControlMsg>,
         constellation_chan: IpcSender<ConstellationMsg>,
         script_chan: IpcSender<ConstellationControlMsg>,
-        image_cache: Arc<dyn ImageCache>,
+        image_cache: Arc<ImageCache>,
         font_cache_thread: FontCacheThread,
         time_profiler_chan: time::ProfilerChan,
         mem_profiler_chan: mem::ProfilerChan,

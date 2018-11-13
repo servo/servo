@@ -2,16 +2,16 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use canvas_traits::canvas::{CanvasId, CanvasMsg};
-use crate::AnimationState;
-use crate::AuxiliaryBrowsingContextLoadInfo;
-use crate::DocumentState;
-use crate::IFrameLoadInfo;
-use crate::IFrameLoadInfoWithData;
-use crate::LayoutControlMsg;
-use crate::LoadData;
-use crate::WorkerGlobalScopeInit;
-use crate::WorkerScriptLoadOrigin;
+use AnimationState;
+use AuxiliaryBrowsingContextLoadInfo;
+use DocumentState;
+use IFrameLoadInfo;
+use IFrameLoadInfoWithData;
+use LayoutControlMsg;
+use LoadData;
+use WorkerGlobalScopeInit;
+use WorkerScriptLoadOrigin;
+use canvas_traits::canvas::{CanvasMsg, CanvasId};
 use devtools_traits::{ScriptToDevtoolsControlMsg, WorkerId};
 use embedder_traits::EmbedderMsg;
 use euclid::{Size2D, TypedSize2D};
@@ -19,15 +19,15 @@ use gfx_traits::Epoch;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use msg::constellation_msg::{BrowsingContextId, PipelineId, TopLevelBrowsingContextId};
 use msg::constellation_msg::{HistoryStateId, TraversalDirection};
+use net_traits::CoreResourceMsg;
 use net_traits::request::RequestInit;
 use net_traits::storage_thread::StorageType;
-use net_traits::CoreResourceMsg;
 use servo_url::ImmutableOrigin;
 use servo_url::ServoUrl;
 use std::fmt;
+use style_traits::CSSPixel;
 use style_traits::cursor::CursorKind;
 use style_traits::viewport::ViewportConstraints;
-use style_traits::CSSPixel;
 use webrender_api::{DeviceIntPoint, DeviceUintSize};
 
 /// Messages from the layout to the constellation.
@@ -61,7 +61,7 @@ impl fmt::Debug for LayoutMsg {
 }
 
 /// Whether a DOM event was prevented by web content
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Deserialize, Serialize)]
 pub enum EventResult {
     /// Allowed by web content
     DefaultAllowed,
@@ -103,7 +103,7 @@ pub enum ScriptMsg {
     ChangeRunningAnimationsState(AnimationState),
     /// Requests that a new 2D canvas thread be created. (This is done in the constellation because
     /// 2D canvases may use the GPU and we don't want to give untrusted content access to the GPU.)
-    CreateCanvasPaintThread(Size2D<u32>, IpcSender<(IpcSender<CanvasMsg>, CanvasId)>),
+    CreateCanvasPaintThread(Size2D<i32>, IpcSender<(IpcSender<CanvasMsg>, CanvasId)>),
     /// Notifies the constellation that this frame has received focus.
     Focus,
     /// Requests that the constellation retrieve the current contents of the clipboard
@@ -241,7 +241,7 @@ impl fmt::Debug for ScriptMsg {
 }
 
 /// Entities required to spawn service workers
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize)]
 pub struct ScopeThings {
     /// script resource url
     pub script_url: ServoUrl,
@@ -268,7 +268,7 @@ pub struct SWManagerSenders {
 }
 
 /// Messages sent to Service Worker Manager thread
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Deserialize, Serialize)]
 pub enum ServiceWorkerMsg {
     /// Message to register the service worker
     RegisterServiceWorker(ScopeThings, ServoUrl),
@@ -281,7 +281,7 @@ pub enum ServiceWorkerMsg {
 }
 
 /// Messages outgoing from the Service Worker Manager thread to constellation
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Deserialize, Serialize)]
 pub enum SWManagerMsg {
     /// Provide the constellation with a means of communicating with the Service Worker Manager
     OwnSender(IpcSender<ServiceWorkerMsg>),

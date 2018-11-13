@@ -1,21 +1,46 @@
 var callback = arguments[arguments.length - 1];
-window.opener.testdriver_callback = function(results) {
-  /**
-   * The current window and its opener belong to the same domain, making it
-   * technically possible for data structures to be shared directly.
-   * Unfortunately, some browser/WebDriver implementations incorrectly
-   * serialize Arrays from foreign realms [1]. This issue does not extend to
-   * the behavior of `JSON.stringify` and `JSON.parse` in these
-   * implementations. Use that API to re-create the data structure in the local
-   * realm to avoid the problem in the non-conforming browsers.
-   *
-   * [1] This has been observed in Edge version 17 and/or the corresponding
-   *     release of Edgedriver
-   */
-  try {
-    results = JSON.parse(JSON.stringify(results));
-  } catch (error) {}
 
-  callback(results);
-};
-window.opener.process_next_event();
+function process_event(event) {
+  var data = event.data;
+
+  var payload = undefined;
+
+  switch(data.type) {
+  case "complete":
+    var tests = event.data.tests;
+    var status = event.data.status;
+
+    var subtest_results = tests.map(function(x) {
+      return [x.name, x.status, x.message, x.stack];
+    });
+    payload = [status.status,
+               status.message,
+               status.stack,
+               subtest_results];
+    clearTimeout(window.timer);
+    break;
+
+  case "action":
+    window.setMessageListener(function(event) {
+      window.message_queue.push(event);
+    });
+    payload = data;
+    break;
+  default:
+    return;
+  }
+
+  callback(["%(url)s", data.type, payload]);
+}
+
+window.removeEventListener("message", window.current_listener);
+if (window.message_queue.length) {
+  var next = window.message_queue.shift();
+  process_event(next);
+} else {
+  window.addEventListener(
+    "message", function f(event) {
+      window.removeEventListener("message", f);
+      process_event(event);
+    }, false);
+}

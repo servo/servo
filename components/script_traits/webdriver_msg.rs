@@ -4,14 +4,15 @@
 
 #![allow(missing_docs)]
 
-use cookie::Cookie;
+use cookie_rs::Cookie;
 use euclid::Rect;
 use hyper_serde::Serde;
 use ipc_channel::ipc::IpcSender;
 use msg::constellation_msg::BrowsingContextId;
+use rustc_serialize::json::{Json, ToJson};
 use servo_url::ServoUrl;
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Deserialize, Serialize)]
 pub enum WebDriverScriptCommand {
     AddCookie(
         #[serde(
@@ -41,13 +42,13 @@ pub enum WebDriverScriptCommand {
     GetTitle(IpcSender<String>),
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Deserialize, Serialize)]
 pub enum WebDriverCookieError {
     InvalidDomain,
     UnableToSetCookie,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Deserialize, Serialize)]
 pub enum WebDriverJSValue {
     Undefined,
     Null,
@@ -56,7 +57,7 @@ pub enum WebDriverJSValue {
     String(String), // TODO: Object and WebElement
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Deserialize, Serialize)]
 pub enum WebDriverJSError {
     Timeout,
     UnknownType,
@@ -67,14 +68,26 @@ pub enum WebDriverJSError {
 
 pub type WebDriverJSResult = Result<WebDriverJSValue, WebDriverJSError>;
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Deserialize, Serialize)]
 pub enum WebDriverFrameId {
     Short(u16),
     Element(String),
     Parent,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+impl ToJson for WebDriverJSValue {
+    fn to_json(&self) -> Json {
+        match *self {
+            WebDriverJSValue::Undefined => Json::Null,
+            WebDriverJSValue::Null => Json::Null,
+            WebDriverJSValue::Boolean(ref x) => x.to_json(),
+            WebDriverJSValue::Number(ref x) => x.to_json(),
+            WebDriverJSValue::String(ref x) => x.to_json(),
+        }
+    }
+}
+
+#[derive(Deserialize, Serialize)]
 pub enum LoadStatus {
     LoadComplete,
     LoadTimeout,

@@ -17,40 +17,49 @@
 //! `Servo` is fed events from a generic type that implements the
 //! `WindowMethods` trait.
 
+extern crate env_logger;
+#[cfg(all(not(target_os = "windows"), not(target_os = "ios")))]
+extern crate gaol;
+extern crate gleam;
 #[macro_use]
 extern crate log;
 
-pub use bluetooth;
-pub use bluetooth_traits;
-pub use canvas;
-pub use canvas_traits;
-pub use compositing;
-pub use constellation;
-pub use debugger;
-pub use devtools;
-pub use devtools_traits;
-pub use embedder_traits;
-pub use euclid;
-pub use gfx;
-pub use ipc_channel;
-pub use layout_thread;
-pub use msg;
-pub use net;
-pub use net_traits;
-pub use profile;
-pub use profile_traits;
-pub use script;
-pub use script_layout_interface;
-pub use script_traits;
-pub use servo_channel;
-pub use servo_config;
-pub use servo_geometry;
-pub use servo_url;
-pub use style;
-pub use style_traits;
-pub use webrender_api;
-pub use webvr;
-pub use webvr_traits;
+pub extern crate bluetooth;
+pub extern crate bluetooth_traits;
+pub extern crate canvas;
+pub extern crate canvas_traits;
+pub extern crate compositing;
+pub extern crate constellation;
+pub extern crate debugger;
+pub extern crate devtools;
+pub extern crate devtools_traits;
+pub extern crate embedder_traits;
+pub extern crate euclid;
+pub extern crate gfx;
+pub extern crate ipc_channel;
+pub extern crate layout_thread;
+pub extern crate msg;
+pub extern crate net;
+pub extern crate net_traits;
+pub extern crate profile;
+pub extern crate profile_traits;
+pub extern crate script;
+pub extern crate script_traits;
+pub extern crate script_layout_interface;
+pub extern crate servo_channel;
+pub extern crate servo_config;
+pub extern crate servo_geometry;
+pub extern crate servo_url;
+pub extern crate style;
+pub extern crate style_traits;
+pub extern crate webrender_api;
+pub extern crate webvr;
+pub extern crate webvr_traits;
+
+#[cfg(feature = "webdriver")]
+extern crate webdriver_server;
+
+extern crate webrender;
 
 #[cfg(feature = "webdriver")]
 fn webdriver(port: u16, constellation: Sender<ConstellationMsg>) {
@@ -64,15 +73,16 @@ use bluetooth::BluetoothThreadFactory;
 use bluetooth_traits::BluetoothRequest;
 use canvas::gl_context::GLContextFactory;
 use canvas::webgl_thread::WebGLThreads;
+use compositing::{IOCompositor, ShutdownState, RenderNotifier};
 use compositing::compositor_thread::{CompositorProxy, CompositorReceiver, InitialCompositorState};
 use compositing::windowing::{WindowEvent, WindowMethods};
-use compositing::{IOCompositor, RenderNotifier, ShutdownState};
-#[cfg(all(not(target_os = "windows"), not(target_os = "ios")))]
-use constellation::content_process_sandbox_profile;
 use constellation::{Constellation, InitialConstellationState, UnprivilegedPipelineContent};
 use constellation::{FromCompositorLogger, FromScriptLogger};
+#[cfg(all(not(target_os = "windows"), not(target_os = "ios")))]
+use constellation::content_process_sandbox_profile;
 use embedder_traits::{EmbedderMsg, EmbedderProxy, EmbedderReceiver, EventLoopWaker};
 use env_logger::Builder as EnvLoggerBuilder;
+use euclid::Length;
 #[cfg(all(not(target_os = "windows"), not(target_os = "ios")))]
 use gaol::sandbox::{ChildSandbox, ChildSandboxMethods};
 use gfx::font_cache_thread::FontCacheThread;
@@ -86,20 +96,20 @@ use profile::time as profile_time;
 use profile_traits::mem;
 use profile_traits::time;
 use script_traits::{ConstellationMsg, SWManagerSenders, ScriptToConstellationChan};
-use servo_channel::{channel, Sender};
+use servo_channel::{Sender, channel};
 use servo_config::opts;
 use servo_config::prefs::PREFS;
 use std::borrow::Cow;
 use std::cmp::max;
 use std::path::PathBuf;
 use std::rc::Rc;
-use webrender::{RendererKind, ShaderPrecacheFlags};
-use webvr::{WebVRCompositorHandler, WebVRThread};
+use webrender::RendererKind;
+use webvr::{WebVRThread, WebVRCompositorHandler};
 
 pub use gleam::gl;
-pub use msg::constellation_msg::TopLevelBrowsingContextId as BrowserId;
 pub use servo_config as config;
 pub use servo_url as url;
+pub use msg::constellation_msg::{KeyState, TopLevelBrowsingContextId as BrowserId};
 
 /// The in-process interface to Servo.
 ///
@@ -128,7 +138,7 @@ where
         let opts = opts::get();
 
         // Make sure the gl context is made current.
-        window.prepare_for_composite();
+        window.prepare_for_composite(Length::new(0), Length::new(0));
 
         // Reserving a namespace to create TopLevelBrowserContextId.
         PipelineNamespace::install(PipelineNamespaceId(0));
@@ -161,7 +171,7 @@ where
             let recorder = if opts.webrender_record {
                 let record_path = PathBuf::from("wr-record.bin");
                 let recorder = Box::new(webrender::BinaryRecorder::new(&record_path));
-                Some(recorder as Box<dyn webrender::ApiRecordingReceiver>)
+                Some(recorder as Box<webrender::ApiRecordingReceiver>)
             } else {
                 None
             };
@@ -180,18 +190,13 @@ where
                     enable_aa: opts.enable_text_antialiasing,
                     debug_flags: debug_flags,
                     recorder: recorder,
-                    precache_flags: if opts.precache_shaders {
-                        ShaderPrecacheFlags::FULL_COMPILE
-                    } else {
-                        ShaderPrecacheFlags::empty()
-                    },
+                    precache_shaders: opts.precache_shaders,
+                    enable_scrollbars: opts.output_file.is_none(),
                     renderer_kind: renderer_kind,
                     enable_subpixel_aa: opts.enable_subpixel_text_antialiasing,
                     ..Default::default()
                 },
-                None,
-            )
-            .expect("Unable to initialize webrender!")
+            ).expect("Unable to initialize webrender!")
         };
 
         let webrender_api = webrender_api_sender.create_api();
@@ -311,10 +316,10 @@ where
                 }
             },
 
-            WindowEvent::Keyboard(key_event) => {
-                let msg = ConstellationMsg::Keyboard(key_event);
+            WindowEvent::KeyEvent(ch, key, state, modifiers) => {
+                let msg = ConstellationMsg::KeyEvent(ch, key, state, modifiers);
                 if let Err(e) = self.constellation_chan.send(msg) {
-                    warn!("Sending keyboard event to constellation failed ({:?}).", e);
+                    warn!("Sending key event to constellation failed ({:?}).", e);
                 }
             },
 
@@ -370,10 +375,7 @@ where
             WindowEvent::SendError(ctx, e) => {
                 let msg = ConstellationMsg::SendError(ctx, e);
                 if let Err(e) = self.constellation_chan.send(msg) {
-                    warn!(
-                        "Sending SendError message to constellation failed ({:?}).",
-                        e
-                    );
+                    warn!("Sending SendError message to constellation failed ({:?}).", e);
                 }
             },
         }
@@ -392,8 +394,14 @@ where
 
                 (_, ShutdownState::ShuttingDown) => {},
 
-                (EmbedderMsg::Keyboard(key_event), ShutdownState::NotShuttingDown) => {
-                    let event = (top_level_browsing_context, EmbedderMsg::Keyboard(key_event));
+                (
+                    EmbedderMsg::KeyEvent(ch, key, state, modified),
+                    ShutdownState::NotShuttingDown,
+                ) => {
+                    let event = (
+                        top_level_browsing_context,
+                        EmbedderMsg::KeyEvent(ch, key, state, modified),
+                    );
                     self.embedder_events.push(event);
                 },
 
@@ -449,7 +457,7 @@ where
 }
 
 fn create_embedder_channel(
-    event_loop_waker: Box<dyn EventLoopWaker>,
+    event_loop_waker: Box<EventLoopWaker>,
 ) -> (EmbedderProxy, EmbedderReceiver) {
     let (sender, receiver) = channel();
     (
@@ -462,7 +470,7 @@ fn create_embedder_channel(
 }
 
 fn create_compositor_channel(
-    event_loop_waker: Box<dyn EventLoopWaker>,
+    event_loop_waker: Box<EventLoopWaker>,
 ) -> (CompositorProxy, CompositorReceiver) {
     let (sender, receiver) = channel();
     (
@@ -486,7 +494,7 @@ fn create_constellation(
     webrender: &mut webrender::Renderer,
     webrender_document: webrender_api::DocumentId,
     webrender_api_sender: webrender_api::RenderApiSender,
-    window_gl: Rc<dyn gl::Gl>,
+    window_gl: Rc<gl::Gl>,
 ) -> (Sender<ConstellationMsg>, SWManagerSenders) {
     let bluetooth_thread: IpcSender<BluetoothRequest> =
         BluetoothThreadFactory::new(embedder_proxy.clone());

@@ -11,76 +11,53 @@ fn interpolate_rgba(from: RGBA, to: RGBA, progress: f64) -> RGBA {
     let from = from.to_animated_value();
     let to = to.to_animated_value();
     RGBA::from_animated_value(
-        from.animate(&to, Procedure::Interpolate { progress })
-            .unwrap(),
+        from.animate(&to, Procedure::Interpolate { progress }).unwrap(),
     )
 }
 
 // Color
 #[test]
 fn test_rgba_color_interepolation_preserves_transparent() {
-    assert_eq!(
-        interpolate_rgba(RGBA::transparent(), RGBA::transparent(), 0.5),
-        RGBA::transparent()
-    );
+    assert_eq!(interpolate_rgba(RGBA::transparent(),
+                                RGBA::transparent(), 0.5),
+               RGBA::transparent());
 }
 
 #[test]
 fn test_rgba_color_interepolation_alpha() {
-    assert_eq!(
-        interpolate_rgba(RGBA::new(200, 0, 0, 100), RGBA::new(0, 200, 0, 200), 0.5),
-        RGBA::new(67, 133, 0, 150)
-    );
+    assert_eq!(interpolate_rgba(RGBA::new(200, 0, 0, 100),
+                                RGBA::new(0, 200, 0, 200), 0.5),
+               RGBA::new(67, 133, 0, 150));
 }
 
 #[test]
 fn test_rgba_color_interepolation_out_of_range_1() {
     // Some cubic-bezier functions produce values that are out of range [0, 1].
     // Unclamped cases.
-    assert_eq!(
-        interpolate_rgba(
-            RGBA::from_floats(0.3, 0.0, 0.0, 0.4),
-            RGBA::from_floats(0.0, 1.0, 0.0, 0.6),
-            -0.5
-        ),
-        RGBA::new(154, 0, 0, 77)
-    );
+    assert_eq!(interpolate_rgba(RGBA::from_floats(0.3, 0.0, 0.0, 0.4),
+                                RGBA::from_floats(0.0, 1.0, 0.0, 0.6), -0.5),
+               RGBA::new(154, 0, 0, 77));
 }
 
 #[test]
 fn test_rgba_color_interepolation_out_of_range_2() {
-    assert_eq!(
-        interpolate_rgba(
-            RGBA::from_floats(1.0, 0.0, 0.0, 0.6),
-            RGBA::from_floats(0.0, 0.3, 0.0, 0.4),
-            1.5
-        ),
-        RGBA::new(0, 154, 0, 77)
-    );
+    assert_eq!(interpolate_rgba(RGBA::from_floats(1.0, 0.0, 0.0, 0.6),
+                                RGBA::from_floats(0.0, 0.3, 0.0, 0.4), 1.5),
+               RGBA::new(0, 154, 0, 77));
 }
 
 #[test]
 fn test_rgba_color_interepolation_out_of_range_clamped_1() {
-    assert_eq!(
-        interpolate_rgba(
-            RGBA::from_floats(1.0, 0.0, 0.0, 0.8),
-            RGBA::from_floats(0.0, 1.0, 0.0, 0.2),
-            -0.5
-        ),
-        RGBA::from_floats(1.0, 0.0, 0.0, 1.0)
-    );
+    assert_eq!(interpolate_rgba(RGBA::from_floats(1.0, 0.0, 0.0, 0.8),
+                                RGBA::from_floats(0.0, 1.0, 0.0, 0.2), -0.5),
+               RGBA::from_floats(1.0, 0.0, 0.0, 1.0));
 }
 
 #[test]
 fn test_rgba_color_interepolation_out_of_range_clamped_2() {
-    assert_eq!(
-        interpolate_rgba(
-            RGBA::from_floats(1.0, 0.0, 0.0, 0.8),
-            RGBA::from_floats(0.0, 1.0, 0.0, 0.2),
-            1.5
-        ),
-        RGBA::from_floats(0.0, 0.0, 0.0, 0.0)
-    );
+    assert_eq!(interpolate_rgba(RGBA::from_floats(1.0, 0.0, 0.0, 0.8),
+                                RGBA::from_floats(0.0, 1.0, 0.0, 0.2), 1.5),
+               RGBA::from_floats(0.0, 0.0, 0.0, 0.0));
 }
 
 // Transform
@@ -88,19 +65,16 @@ fn test_rgba_color_interepolation_out_of_range_clamped_2() {
 fn test_transform_interpolation_on_translate() {
     use style::values::computed::{CalcLengthOrPercentage, Length, LengthOrPercentage};
 
-    let from = Transform(vec![TransformOperation::Translate3D(
-        LengthOrPercentage::Length(Length::new(0.)),
-        LengthOrPercentage::Length(Length::new(100.)),
-        Length::new(25.),
-    )]);
-    let to = Transform(vec![TransformOperation::Translate3D(
-        LengthOrPercentage::Length(Length::new(100.)),
-        LengthOrPercentage::Length(Length::new(0.)),
-        Length::new(75.),
-    )]);
+    let from = Transform(vec![
+        TransformOperation::Translate3D(LengthOrPercentage::Length(Length::new(0.)),
+                                        LengthOrPercentage::Length(Length::new(100.)),
+                                        Length::new(25.))]);
+    let to = Transform(vec![
+        TransformOperation::Translate3D(LengthOrPercentage::Length(Length::new(100.)),
+                                        LengthOrPercentage::Length(Length::new(0.)),
+                                        Length::new(75.))]);
     assert_eq!(
-        from.animate(&to, Procedure::Interpolate { progress: 0.5 })
-            .unwrap(),
+        from.animate(&to, Procedure::Interpolate { progress: 0.5 }).unwrap(),
         Transform(vec![TransformOperation::Translate3D(
             LengthOrPercentage::Length(Length::new(50.)),
             LengthOrPercentage::Length(Length::new(50.)),
@@ -113,25 +87,19 @@ fn test_transform_interpolation_on_translate() {
         LengthOrPercentage::Percentage(Percentage(1.0)),
         Length::new(25.),
     )]);
-    let to = Transform(vec![TransformOperation::Translate3D(
-        LengthOrPercentage::Length(Length::new(100.)),
-        LengthOrPercentage::Length(Length::new(50.)),
-        Length::new(75.),
-    )]);
+    let to = Transform(vec![
+        TransformOperation::Translate3D(LengthOrPercentage::Length(Length::new(100.)),
+                                        LengthOrPercentage::Length(Length::new(50.)),
+                                        Length::new(75.))]);
     assert_eq!(
-        from.animate(&to, Procedure::Interpolate { progress: 0.5 })
-            .unwrap(),
+        from.animate(&to, Procedure::Interpolate { progress: 0.5 }).unwrap(),
         Transform(vec![TransformOperation::Translate3D(
             // calc(50px + 25%)
-            LengthOrPercentage::Calc(CalcLengthOrPercentage::new(
-                Length::new(50.),
-                Some(Percentage(0.25))
-            )),
+            LengthOrPercentage::Calc(CalcLengthOrPercentage::new(Length::new(50.),
+                                                                 Some(Percentage(0.25)))),
             // calc(25px + 50%)
-            LengthOrPercentage::Calc(CalcLengthOrPercentage::new(
-                Length::new(25.),
-                Some(Percentage(0.5))
-            )),
+            LengthOrPercentage::Calc(CalcLengthOrPercentage::new(Length::new(25.),
+                                                                 Some(Percentage(0.5)))),
             Length::new(50.),
         )])
     );
@@ -142,8 +110,7 @@ fn test_transform_interpolation_on_scale() {
     let from = Transform(vec![TransformOperation::Scale3D(1.0, 2.0, 1.0)]);
     let to = Transform(vec![TransformOperation::Scale3D(2.0, 4.0, 2.0)]);
     assert_eq!(
-        from.animate(&to, Procedure::Interpolate { progress: 0.5 })
-            .unwrap(),
+        from.animate(&to, Procedure::Interpolate { progress: 0.5 }).unwrap(),
         Transform(vec![TransformOperation::Scale3D(1.5, 3.0, 1.5)])
     );
 }
@@ -152,27 +119,15 @@ fn test_transform_interpolation_on_scale() {
 fn test_transform_interpolation_on_rotate() {
     use style::values::computed::Angle;
 
-    let from = Transform(vec![TransformOperation::Rotate3D(
-        0.0,
-        0.0,
-        1.0,
-        Angle::from_radians(0.0),
-    )]);
-    let to = Transform(vec![TransformOperation::Rotate3D(
-        0.0,
-        0.0,
-        1.0,
-        Angle::from_radians(100.0),
-    )]);
+    let from = Transform(vec![TransformOperation::Rotate3D(0.0, 0.0, 1.0,
+                                                           Angle::from_radians(0.0))]);
+    let to = Transform(vec![TransformOperation::Rotate3D(0.0, 0.0, 1.0,
+                                                         Angle::from_radians(100.0))]);
     assert_eq!(
-        from.animate(&to, Procedure::Interpolate { progress: 0.5 })
-            .unwrap(),
-        Transform(vec![TransformOperation::Rotate3D(
-            0.0,
-            0.0,
-            1.0,
-            Angle::from_radians(50.0)
-        )])
+        from.animate(&to, Procedure::Interpolate { progress: 0.5 }).unwrap(),
+        Transform(vec![
+            TransformOperation::Rotate3D(0.0, 0.0, 1.0, Angle::from_radians(50.0)),
+        ])
     );
 }
 
@@ -180,17 +135,12 @@ fn test_transform_interpolation_on_rotate() {
 fn test_transform_interpolation_on_skew() {
     use style::values::computed::Angle;
 
-    let from = Transform(vec![TransformOperation::Skew(
-        Angle::from_radians(0.0),
-        Some(Angle::from_radians(100.0)),
-    )]);
-    let to = Transform(vec![TransformOperation::Skew(
-        Angle::from_radians(100.0),
-        Some(Angle::from_radians(0.0)),
-    )]);
+    let from = Transform(vec![TransformOperation::Skew(Angle::from_radians(0.0),
+                                                       Some(Angle::from_radians(100.0)))]);
+    let to = Transform(vec![TransformOperation::Skew(Angle::from_radians(100.0),
+                                                     Some(Angle::from_radians(0.0)))]);
     assert_eq!(
-        from.animate(&to, Procedure::Interpolate { progress: 0.5 })
-            .unwrap(),
+        from.animate(&to, Procedure::Interpolate { progress: 0.5 }).unwrap(),
         Transform(vec![TransformOperation::Skew(
             Angle::from_radians(50.0),
             Some(Angle::from_radians(50.0)),
@@ -202,20 +152,14 @@ fn test_transform_interpolation_on_skew() {
 fn test_transform_interpolation_on_mismatched_lists() {
     use style::values::computed::{Angle, Length, LengthOrPercentage};
 
-    let from = Transform(vec![TransformOperation::Rotate3D(
-        0.0,
-        0.0,
-        1.0,
-        Angle::from_radians(100.0),
-    )]);
-    let to = Transform(vec![TransformOperation::Translate3D(
-        LengthOrPercentage::Length(Length::new(100.)),
-        LengthOrPercentage::Length(Length::new(0.)),
-        Length::new(0.),
-    )]);
+    let from = Transform(vec![TransformOperation::Rotate3D(0.0, 0.0, 1.0,
+                                                           Angle::from_radians(100.0))]);
+    let to = Transform(vec![
+        TransformOperation::Translate3D(LengthOrPercentage::Length(Length::new(100.)),
+                                        LengthOrPercentage::Length(Length::new(0.)),
+                                        Length::new(0.))]);
     assert_eq!(
-        from.animate(&to, Procedure::Interpolate { progress: 0.5 })
-            .unwrap(),
+        from.animate(&to, Procedure::Interpolate { progress: 0.5 }).unwrap(),
         Transform(vec![TransformOperation::InterpolateMatrix {
             from_list: from.clone(),
             to_list: to.clone(),

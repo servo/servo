@@ -2,17 +2,17 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::HTMLDialogElementBinding;
-use crate::dom::bindings::codegen::Bindings::HTMLDialogElementBinding::HTMLDialogElementMethods;
-use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::DOMString;
-use crate::dom::document::Document;
-use crate::dom::element::Element;
-use crate::dom::eventtarget::EventTarget;
-use crate::dom::htmlelement::HTMLElement;
-use crate::dom::node::{window_from_node, Node};
+use dom::bindings::cell::DomRefCell;
+use dom::bindings::codegen::Bindings::HTMLDialogElementBinding;
+use dom::bindings::codegen::Bindings::HTMLDialogElementBinding::HTMLDialogElementMethods;
+use dom::bindings::inheritance::Castable;
+use dom::bindings::root::DomRoot;
+use dom::bindings::str::DOMString;
+use dom::document::Document;
+use dom::element::Element;
+use dom::eventtarget::EventTarget;
+use dom::htmlelement::HTMLElement;
+use dom::node::{Node, window_from_node};
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
 

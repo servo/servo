@@ -26,36 +26,29 @@
 //!   similar methods.
 
 use app_units::Au;
-use crate::block::{BlockFlow, FormattingContextType};
-use crate::context::LayoutContext;
-use crate::display_list::items::ClippingAndScrolling;
-use crate::display_list::{DisplayListBuildState, StackingContextCollectionState};
-use crate::flex::FlexFlow;
-use crate::floats::{Floats, SpeculatedFloatPlacement};
-use crate::flow_list::{FlowList, FlowListIterator, MutFlowListIterator};
-use crate::flow_ref::{FlowRef, WeakFlowRef};
-use crate::fragment::{CoordinateSystem, Fragment, FragmentBorderBoxIterator, Overflow};
-use crate::inline::InlineFlow;
-use crate::model::{CollapsibleMargins, IntrinsicISizes, MarginCollapseInfo};
-use crate::multicol::MulticolFlow;
-use crate::parallel::FlowParallelInfo;
-use crate::table::TableFlow;
-use crate::table_caption::TableCaptionFlow;
-use crate::table_cell::TableCellFlow;
-use crate::table_colgroup::TableColGroupFlow;
-use crate::table_row::TableRowFlow;
-use crate::table_rowgroup::TableRowGroupFlow;
-use crate::table_wrapper::TableWrapperFlow;
-use euclid::{Point2D, Rect, Size2D, Vector2D};
-use gfx_traits::print_tree::PrintTree;
+use block::{BlockFlow, FormattingContextType};
+use context::LayoutContext;
+use display_list::{DisplayListBuildState, StackingContextCollectionState};
+use display_list::items::ClippingAndScrolling;
+use euclid::{Point2D, Vector2D, Rect, Size2D};
+use flex::FlexFlow;
+use floats::{Floats, SpeculatedFloatPlacement};
+use flow_list::{FlowList, FlowListIterator, MutFlowListIterator};
+use flow_ref::{FlowRef, WeakFlowRef};
+use fragment::{CoordinateSystem, Fragment, FragmentBorderBoxIterator, Overflow};
 use gfx_traits::StackingContextId;
+use gfx_traits::print_tree::PrintTree;
+use inline::InlineFlow;
+use model::{CollapsibleMargins, IntrinsicISizes, MarginCollapseInfo};
+use multicol::MulticolFlow;
+use parallel::FlowParallelInfo;
 use serde::ser::{Serialize, SerializeStruct, Serializer};
 use servo_geometry::{au_rect_to_f32_rect, f32_rect_to_au_rect, MaxRect};
 use std::fmt;
 use std::iter::Zip;
 use std::slice::IterMut;
-use std::sync::atomic::Ordering;
 use std::sync::Arc;
+use std::sync::atomic::Ordering;
 use style::computed_values::clear::T as Clear;
 use style::computed_values::float::T as Float;
 use style::computed_values::overflow_x::T as StyleOverflow;
@@ -67,6 +60,13 @@ use style::properties::ComputedValues;
 use style::selector_parser::RestyleDamage;
 use style::servo::restyle_damage::ServoRestyleDamage;
 use style::values::computed::LengthOrPercentageOrAuto;
+use table::TableFlow;
+use table_caption::TableCaptionFlow;
+use table_cell::TableCellFlow;
+use table_colgroup::TableColGroupFlow;
+use table_row::TableRowFlow;
+use table_rowgroup::TableRowGroupFlow;
+use table_wrapper::TableWrapperFlow;
 use webrender_api::LayoutTransform;
 
 /// This marker trait indicates that a type is a struct with `#[repr(C)]` whose first field
@@ -255,7 +255,7 @@ pub trait Flow: HasBaseFlow + fmt::Debug + Sync + Send + 'static {
         &mut self,
         layout_context: &LayoutContext,
         _fragmentation_context: Option<FragmentationContext>,
-    ) -> Option<Arc<dyn Flow>> {
+    ) -> Option<Arc<Flow>> {
         fn recursive_assign_block_size<F: ?Sized + Flow + GetBaseFlow>(
             flow: &mut F,
             ctx: &LayoutContext,
@@ -423,13 +423,13 @@ pub trait Flow: HasBaseFlow + fmt::Debug + Sync + Send + 'static {
     /// depth of the flow tree during fragment iteration.
     fn iterate_through_fragment_border_boxes(
         &self,
-        iterator: &mut dyn FragmentBorderBoxIterator,
+        iterator: &mut FragmentBorderBoxIterator,
         level: i32,
         stacking_context_position: &Point2D<Au>,
     );
 
     /// Mutably iterates through fragments in this flow.
-    fn mutate_fragments(&mut self, mutator: &mut dyn FnMut(&mut Fragment));
+    fn mutate_fragments(&mut self, mutator: &mut FnMut(&mut Fragment));
 
     fn compute_collapsible_block_start_margin(
         &mut self,
@@ -502,7 +502,7 @@ pub trait Flow: HasBaseFlow + fmt::Debug + Sync + Send + 'static {
 
     /// Attempts to perform incremental fixup of this flow by replacing its fragment's style with
     /// the new style. This can only succeed if the flow has exactly one fragment.
-    fn repair_style(&mut self, new_style: &crate::ServoArc<ComputedValues>);
+    fn repair_style(&mut self, new_style: &::ServoArc<ComputedValues>);
 
     /// Print any extra children (such as fragments) contained in this Flow
     /// for debugging purposes. Any items inserted into the tree will become
@@ -578,7 +578,7 @@ pub trait ImmutableFlowUtils {
 pub trait MutableFlowUtils {
     /// Calls `repair_style` and `bubble_inline_sizes`. You should use this method instead of
     /// calling them individually, since there is no reason not to perform both operations.
-    fn repair_style_and_bubble_inline_sizes(self, style: &crate::ServoArc<ComputedValues>);
+    fn repair_style_and_bubble_inline_sizes(self, style: &::ServoArc<ComputedValues>);
 }
 
 pub trait MutableOwnedFlowUtils {
@@ -813,8 +813,8 @@ pub struct AbsoluteDescendantIter<'a> {
 }
 
 impl<'a> Iterator for AbsoluteDescendantIter<'a> {
-    type Item = &'a mut dyn Flow;
-    fn next(&mut self) -> Option<&'a mut dyn Flow> {
+    type Item = &'a mut Flow;
+    fn next(&mut self) -> Option<&'a mut Flow> {
         self.iter
             .next()
             .map(|info| FlowRef::deref_mut(&mut info.flow))
@@ -1245,7 +1245,7 @@ impl BaseFlow {
     }
 }
 
-impl<'a> ImmutableFlowUtils for &'a dyn Flow {
+impl<'a> ImmutableFlowUtils for &'a Flow {
     /// Returns true if this flow is a block flow or subclass thereof.
     fn is_block_like(self) -> bool {
         self.class().is_block_like()
@@ -1419,10 +1419,10 @@ impl<'a> ImmutableFlowUtils for &'a dyn Flow {
     }
 }
 
-impl<'a> MutableFlowUtils for &'a mut dyn Flow {
+impl<'a> MutableFlowUtils for &'a mut Flow {
     /// Calls `repair_style` and `bubble_inline_sizes`. You should use this method instead of
     /// calling them individually, since there is no reason not to perform both operations.
-    fn repair_style_and_bubble_inline_sizes(self, style: &crate::ServoArc<ComputedValues>) {
+    fn repair_style_and_bubble_inline_sizes(self, style: &::ServoArc<ComputedValues>) {
         self.repair_style(style);
         self.mut_base().update_flags_if_needed(style);
         self.bubble_inline_sizes();
@@ -1550,8 +1550,8 @@ impl ContainingBlockLink {
 pub struct OpaqueFlow(pub usize);
 
 impl OpaqueFlow {
-    pub fn from_flow(flow: &dyn Flow) -> OpaqueFlow {
-        let object_ptr: *const dyn Flow = flow;
+    pub fn from_flow(flow: &Flow) -> OpaqueFlow {
+        let object_ptr: *const Flow = flow;
         let data_ptr = object_ptr as *const ();
         OpaqueFlow(data_ptr as usize)
     }

@@ -2,8 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use phf_shared;
-use serde_json::{self, Value};
+extern crate cmake;
+extern crate phf_codegen;
+extern crate phf_shared;
+extern crate serde_json;
+
+use serde_json::Value;
 use std::env;
 use std::fmt;
 use std::fs::File;
@@ -65,8 +69,7 @@ fn main() {
     write!(
         &mut phf,
         "pub static MAP: phf::Map<&'static [u8], unsafe fn(*mut JSContext, HandleObject)> = "
-    )
-    .unwrap();
+    ).unwrap();
     map.build(&mut phf).unwrap();
     write!(&mut phf, ";\n").unwrap();
 }
@@ -76,10 +79,9 @@ struct Bytes<'a>(&'a str);
 
 impl<'a> fmt::Debug for Bytes<'a> {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-        // https://github.com/rust-lang/rust/issues/55223
-        // should technically be just `write!(formatter, "b\"{}\"", self.0)
-        // but the referenced issue breaks promotion in the surrounding code
-        write!(formatter, "{{ const FOO: &[u8] = b\"{}\"; FOO }}", self.0)
+        formatter.write_str("b\"")?;
+        formatter.write_str(self.0)?;
+        formatter.write_str("\" as &'static [u8]")
     }
 }
 

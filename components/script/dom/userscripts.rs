@@ -2,13 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::inheritance::Castable;
-use crate::dom::globalscope::GlobalScope;
-use crate::dom::htmlheadelement::HTMLHeadElement;
-use crate::dom::node::Node;
+use dom::bindings::inheritance::Castable;
+use dom::globalscope::GlobalScope;
+use dom::htmlheadelement::HTMLHeadElement;
+use dom::node::Node;
 use js::jsval::UndefinedValue;
 use servo_config::opts;
-use std::fs::{read_dir, File};
+use std::fs::{File, read_dir};
 use std::io::Read;
 use std::path::PathBuf;
 

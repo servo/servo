@@ -2,15 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use super::{
-    constants as webgl, ext_constants as gl, WebGLExtension, WebGLExtensionSpec, WebGLExtensions,
-};
 use canvas_traits::webgl::WebGLVersion;
-use crate::dom::bindings::codegen::Bindings::OESTextureFloatBinding;
-use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
-use crate::dom::bindings::root::DomRoot;
-use crate::dom::webglrenderingcontext::WebGLRenderingContext;
+use dom::bindings::codegen::Bindings::OESTextureFloatBinding;
+use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
+use dom::bindings::root::DomRoot;
+use dom::webglrenderingcontext::WebGLRenderingContext;
 use dom_struct::dom_struct;
+use super::{constants as webgl, ext_constants as gl, WebGLExtension, WebGLExtensions, WebGLExtensionSpec};
 
 #[dom_struct]
 pub struct OESTextureFloat {
@@ -48,8 +46,11 @@ impl WebGLExtension for OESTextureFloat {
     }
 
     fn enable(ext: &WebGLExtensions) {
+        // Enable FLOAT text data type
         ext.enable_tex_type(webgl::FLOAT);
-        if !ext.supports_gl_extension("GL_OES_texture_float") {
+        let needs_replace = !ext.supports_gl_extension("GL_OES_texture_float");
+        if needs_replace {
+            // Special internal formats must be used to avoid clamped float values
             ext.add_effective_tex_internal_format(webgl::RGBA, webgl::FLOAT, gl::RGBA32F);
             ext.add_effective_tex_internal_format(webgl::RGB, webgl::FLOAT, gl::RGB32F);
             ext.add_effective_tex_internal_format(

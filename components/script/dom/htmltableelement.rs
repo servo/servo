@@ -2,30 +2,30 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use crate::dom::attr::Attr;
-use crate::dom::bindings::codegen::Bindings::HTMLCollectionBinding::HTMLCollectionMethods;
-use crate::dom::bindings::codegen::Bindings::HTMLTableElementBinding;
-use crate::dom::bindings::codegen::Bindings::HTMLTableElementBinding::HTMLTableElementMethods;
-use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
-use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
-use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom, RootedReference};
-use crate::dom::bindings::str::DOMString;
-use crate::dom::document::Document;
-use crate::dom::element::{AttributeMutation, Element, RawLayoutElementHelpers};
-use crate::dom::htmlcollection::{CollectionFilter, HTMLCollection};
-use crate::dom::htmlelement::HTMLElement;
-use crate::dom::htmltablecaptionelement::HTMLTableCaptionElement;
-use crate::dom::htmltablecolelement::HTMLTableColElement;
-use crate::dom::htmltablerowelement::HTMLTableRowElement;
-use crate::dom::htmltablesectionelement::HTMLTableSectionElement;
-use crate::dom::node::{document_from_node, window_from_node, Node};
-use crate::dom::virtualmethods::VirtualMethods;
 use cssparser::RGBA;
+use dom::attr::Attr;
+use dom::bindings::codegen::Bindings::HTMLCollectionBinding::HTMLCollectionMethods;
+use dom::bindings::codegen::Bindings::HTMLTableElementBinding;
+use dom::bindings::codegen::Bindings::HTMLTableElementBinding::HTMLTableElementMethods;
+use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
+use dom::bindings::error::{Error, ErrorResult, Fallible};
+use dom::bindings::inheritance::Castable;
+use dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom, RootedReference};
+use dom::bindings::str::DOMString;
+use dom::document::Document;
+use dom::element::{AttributeMutation, Element, RawLayoutElementHelpers};
+use dom::htmlcollection::{CollectionFilter, HTMLCollection};
+use dom::htmlelement::HTMLElement;
+use dom::htmltablecaptionelement::HTMLTableCaptionElement;
+use dom::htmltablecolelement::HTMLTableColElement;
+use dom::htmltablerowelement::HTMLTableRowElement;
+use dom::htmltablesectionelement::HTMLTableSectionElement;
+use dom::node::{Node, document_from_node, window_from_node};
+use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
 use std::cell::Cell;
-use style::attr::{parse_unsigned_integer, AttrValue, LengthOrPercentageOrAuto};
+use style::attr::{AttrValue, LengthOrPercentageOrAuto, parse_unsigned_integer};
 
 #[dom_struct]
 pub struct HTMLTableElement {
@@ -139,8 +139,7 @@ impl HTMLTableElement {
             &local_name!("thead") => self.SetTHead(Some(&section)),
             &local_name!("tfoot") => self.SetTFoot(Some(&section)),
             _ => unreachable!("unexpected section type"),
-        }
-        .expect("unexpected section type");
+        }.expect("unexpected section type");
 
         section
     }
@@ -161,8 +160,7 @@ impl HTMLTableElement {
                 .filter_map(|ref node| {
                     node.downcast::<HTMLTableSectionElement>()
                         .map(|_| Dom::from_ref(&**node))
-                })
-                .collect(),
+                }).collect(),
         }
     }
 }
@@ -447,8 +445,8 @@ impl HTMLTableElementLayoutHelpers for LayoutDom<HTMLTableElement> {
 }
 
 impl VirtualMethods for HTMLTableElement {
-    fn super_type(&self) -> Option<&dyn VirtualMethods> {
-        Some(self.upcast::<HTMLElement>() as &dyn VirtualMethods)
+    fn super_type(&self) -> Option<&VirtualMethods> {
+        Some(self.upcast::<HTMLElement>() as &VirtualMethods)
     }
 
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {

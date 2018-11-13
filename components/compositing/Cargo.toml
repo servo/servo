@@ -3,7 +3,6 @@ name = "compositing"
 version = "0.0.1"
 authors = ["The Servo Project Developers"]
 license = "MPL-2.0"
-edition = "2018"
 publish = false
 build = "build.rs"
 
@@ -22,7 +21,6 @@ gleam = {version = "0.6", optional = true}
 image = "0.19"
 ipc-channel = "0.11"
 libc = "0.2"
-keyboard-types = {version = "0.4.2-servo", features = ["serde"]}
 log = "0.4"
 msg = {path = "../msg"}
 net_traits = {path = "../net_traits"}
@@ -39,3 +37,6 @@ webrender_api = {git = "https://github.com/servo/webrender", features = ["ipc"]}
 
 [build-dependencies]
 toml = "0.4.5"
+
+[dev-dependencies]
+embedder_traits = { path = "../embedder_traits", features = ["tests"]}

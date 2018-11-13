@@ -4,27 +4,29 @@
 
 //! CSS Multi-column layout http://dev.w3.org/csswg/css-multicol/
 
+#![deny(unsafe_code)]
+
+use ServoArc;
 use app_units::Au;
-use crate::block::BlockFlow;
-use crate::context::LayoutContext;
-use crate::display_list::{DisplayListBuildState, StackingContextCollectionState};
-use crate::floats::FloatKind;
-use crate::flow::{Flow, FlowClass, FragmentationContext, GetBaseFlow, OpaqueFlow};
-use crate::fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
-use crate::ServoArc;
+use block::BlockFlow;
+use context::LayoutContext;
+use display_list::{DisplayListBuildState, StackingContextCollectionState};
 use euclid::{Point2D, Vector2D};
+use floats::FloatKind;
+use flow::{Flow, FlowClass, OpaqueFlow, FragmentationContext, GetBaseFlow};
+use fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
 use gfx_traits::print_tree::PrintTree;
-use std::cmp::{max, min};
+use std::cmp::{min, max};
 use std::fmt;
 use std::sync::Arc;
 use style::logical_geometry::LogicalSize;
 use style::properties::ComputedValues;
+use style::values::Either;
 use style::values::computed::{LengthOrPercentageOrAuto, LengthOrPercentageOrNone};
 use style::values::generics::column::ColumnCount;
-use style::values::Either;
 
 #[allow(unsafe_code)]
-unsafe impl crate::flow::HasBaseFlow for MulticolFlow {}
+unsafe impl ::flow::HasBaseFlow for MulticolFlow {}
 
 #[repr(C)]
 pub struct MulticolFlow {
@@ -36,7 +38,7 @@ pub struct MulticolFlow {
 }
 
 #[allow(unsafe_code)]
-unsafe impl crate::flow::HasBaseFlow for MulticolColumnFlow {}
+unsafe impl ::flow::HasBaseFlow for MulticolColumnFlow {}
 
 #[repr(C)]
 pub struct MulticolColumnFlow {
@@ -164,8 +166,7 @@ impl Flow for MulticolFlow {
                     LogicalSize::from_physical(
                         self.block_flow.base.writing_mode,
                         ctx.shared_context().viewport_size(),
-                    )
-                    .block
+                    ).block
                 }
             },
         });
@@ -241,7 +242,7 @@ impl Flow for MulticolFlow {
 
     fn iterate_through_fragment_border_boxes(
         &self,
-        iterator: &mut dyn FragmentBorderBoxIterator,
+        iterator: &mut FragmentBorderBoxIterator,
         level: i32,
         stacking_context_position: &Point2D<Au>,
     ) {
@@ -252,7 +253,7 @@ impl Flow for MulticolFlow {
         );
     }
 
-    fn mutate_fragments(&mut self, mutator: &mut dyn FnMut(&mut Fragment)) {
+    fn mutate_fragments(&mut self, mutator: &mut FnMut(&mut Fragment)) {
         self.block_flow.mutate_fragments(mutator);
     }
 
@@ -295,7 +296,7 @@ impl Flow for MulticolColumnFlow {
         &mut self,
         layout_context: &LayoutContext,
         fragmentation_context: Option<FragmentationContext>,
-    ) -> Option<Arc<dyn Flow>> {
+    ) -> Option<Arc<Flow>> {
         Flow::fragment(&mut self.block_flow, layout_context, fragmentation_context)
     }
 
@@ -345,7 +346,7 @@ impl Flow for MulticolColumnFlow {
 
     fn iterate_through_fragment_border_boxes(
         &self,
-        iterator: &mut dyn FragmentBorderBoxIterator,
+        iterator: &mut FragmentBorderBoxIterator,
         level: i32,
         stacking_context_position: &Point2D<Au>,
     ) {
@@ -356,7 +357,7 @@ impl Flow for MulticolColumnFlow {
         );
     }
 
-    fn mutate_fragments(&mut self, mutator: &mut dyn FnMut(&mut Fragment)) {
+    fn mutate_fragments(&mut self, mutator: &mut FnMut(&mut Fragment)) {
         self.block_flow.mutate_fragments(mutator);
     }
 

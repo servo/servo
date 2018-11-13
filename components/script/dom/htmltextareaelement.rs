@@ -2,33 +2,32 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use crate::dom::attr::Attr;
-use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
-use crate::dom::bindings::codegen::Bindings::HTMLFormElementBinding::SelectionMode;
-use crate::dom::bindings::codegen::Bindings::HTMLTextAreaElementBinding;
-use crate::dom::bindings::codegen::Bindings::HTMLTextAreaElementBinding::HTMLTextAreaElementMethods;
-use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
-use crate::dom::bindings::error::ErrorResult;
-use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::root::{DomRoot, LayoutDom, MutNullableDom};
-use crate::dom::bindings::str::DOMString;
-use crate::dom::document::Document;
-use crate::dom::element::RawLayoutElementHelpers;
-use crate::dom::element::{AttributeMutation, Element};
-use crate::dom::event::{Event, EventBubbles, EventCancelable};
-use crate::dom::globalscope::GlobalScope;
-use crate::dom::htmlelement::HTMLElement;
-use crate::dom::htmlfieldsetelement::HTMLFieldSetElement;
-use crate::dom::htmlformelement::{FormControl, HTMLFormElement};
-use crate::dom::keyboardevent::KeyboardEvent;
-use crate::dom::node::{document_from_node, window_from_node};
-use crate::dom::node::{ChildrenMutation, CloneChildrenFlag, Node, NodeDamage, UnbindContext};
-use crate::dom::nodelist::NodeList;
-use crate::dom::textcontrol::{TextControlElement, TextControlSelection};
-use crate::dom::validation::Validatable;
-use crate::dom::virtualmethods::VirtualMethods;
-use crate::textinput::{Direction, KeyReaction, Lines, SelectionDirection, TextInput};
+use dom::attr::Attr;
+use dom::bindings::cell::DomRefCell;
+use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
+use dom::bindings::codegen::Bindings::HTMLFormElementBinding::SelectionMode;
+use dom::bindings::codegen::Bindings::HTMLTextAreaElementBinding;
+use dom::bindings::codegen::Bindings::HTMLTextAreaElementBinding::HTMLTextAreaElementMethods;
+use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
+use dom::bindings::error::ErrorResult;
+use dom::bindings::inheritance::Castable;
+use dom::bindings::root::{DomRoot, LayoutDom, MutNullableDom};
+use dom::bindings::str::DOMString;
+use dom::document::Document;
+use dom::element::{AttributeMutation, Element};
+use dom::element::RawLayoutElementHelpers;
+use dom::event::{Event, EventBubbles, EventCancelable};
+use dom::globalscope::GlobalScope;
+use dom::htmlelement::HTMLElement;
+use dom::htmlfieldsetelement::HTMLFieldSetElement;
+use dom::htmlformelement::{FormControl, HTMLFormElement};
+use dom::keyboardevent::KeyboardEvent;
+use dom::node::{CloneChildrenFlag, ChildrenMutation, Node, NodeDamage, UnbindContext};
+use dom::node::{document_from_node, window_from_node};
+use dom::nodelist::NodeList;
+use dom::textcontrol::{TextControlElement, TextControlSelection};
+use dom::validation::Validatable;
+use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
 use script_traits::ScriptToConstellationChan;
@@ -37,6 +36,7 @@ use std::default::Default;
 use std::ops::Range;
 use style::attr::AttrValue;
 use style::element_state::ElementState;
+use textinput::{Direction, KeyReaction, Lines, SelectionDirection, TextInput};
 
 #[dom_struct]
 pub struct HTMLTextAreaElement {
@@ -386,8 +386,8 @@ impl HTMLTextAreaElement {
 }
 
 impl VirtualMethods for HTMLTextAreaElement {
-    fn super_type(&self) -> Option<&dyn VirtualMethods> {
-        Some(self.upcast::<HTMLElement>() as &dyn VirtualMethods)
+    fn super_type(&self) -> Option<&VirtualMethods> {
+        Some(self.upcast::<HTMLElement>() as &VirtualMethods)
     }
 
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {

@@ -4,18 +4,16 @@
 
 //! Timing functions.
 
-use crate::heartbeats;
-use crate::trace_dump::TraceDump;
+use heartbeats;
 use influent::client::{Client, Credentials};
 use influent::create_client;
 use influent::measurement::{Measurement, Value};
 use ipc_channel::ipc::{self, IpcReceiver};
 use profile_traits::energy::{energy_interval_ms, read_energy_uj};
-use profile_traits::time::{
-    ProfilerCategory, ProfilerChan, ProfilerData, ProfilerMsg, TimerMetadata,
-};
+use profile_traits::time::{ProfilerCategory, ProfilerChan, ProfilerMsg, ProfilerData, TimerMetadata};
 use profile_traits::time::{TimerMetadataFrameType, TimerMetadataReflowType};
 use servo_config::opts::OutputOptions;
+use std::{f64, thread, u32, u64};
 use std::borrow::ToOwned;
 use std::cmp::Ordering;
 use std::collections::BTreeMap;
@@ -24,9 +22,8 @@ use std::fs::File;
 use std::io::{self, Write};
 use std::path::Path;
 use std::time::Duration;
-use std::{f64, thread, u32, u64};
-use time_crate::precise_time_ns;
-use tokio::prelude::Future;
+use std_time::precise_time_ns;
+use trace_dump::TraceDump;
 
 pub trait Formattable {
     fn format(&self, output: &Option<OutputOptions>) -> String;
@@ -185,8 +182,7 @@ impl Profiler {
                         let trace = file_path.as_ref().and_then(|p| TraceDump::new(p).ok());
                         let mut profiler = Profiler::new(port, trace, Some(outputoption));
                         profiler.start();
-                    })
-                    .expect("Thread spawning failed");
+                    }).expect("Thread spawning failed");
                 // decide if we need to spawn the timer thread
                 match option {
                     &OutputOptions::FileName(_) | &OutputOptions::DB(_, _, _, _) => {
@@ -202,8 +198,7 @@ impl Profiler {
                                 if chan.send(ProfilerMsg::Print).is_err() {
                                     break;
                                 }
-                            })
-                            .expect("Thread spawning failed");
+                            }).expect("Thread spawning failed");
                     },
                 }
             },
@@ -217,8 +212,7 @@ impl Profiler {
                             let trace = file_path.as_ref().and_then(|p| TraceDump::new(p).ok());
                             let mut profiler = Profiler::new(port, trace, None);
                             profiler.start();
-                        })
-                        .expect("Thread spawning failed");
+                        }).expect("Thread spawning failed");
                 } else {
                     // No-op to handle messages when the time profiler is not printing:
                     thread::Builder::new()
@@ -232,8 +226,7 @@ impl Profiler {
                                 },
                                 _ => {},
                             }
-                        })
-                        .expect("Thread spawning failed");
+                        }).expect("Thread spawning failed");
                 }
             },
         }
@@ -286,8 +279,7 @@ impl Profiler {
                         start_time = end_time;
                         start_energy = end_energy;
                     }
-                })
-                .expect("Thread spawning failed");
+                }).expect("Thread spawning failed");
         }
 
         profiler_chan
@@ -329,11 +321,9 @@ impl Profiler {
                 let ms = (t.1 - t.0) as f64 / 1000000f64;
                 self.find_or_insert(k, ms);
             },
-            ProfilerMsg::Print => {
-                if let Some(ProfilerMsg::Time(..)) = self.last_msg {
-                    // only print if more data has arrived since the last printout
-                    self.print_buckets();
-                }
+            ProfilerMsg::Print => if let Some(ProfilerMsg::Time(..)) = self.last_msg {
+                // only print if more data has arrived since the last printout
+                self.print_buckets();
             },
             ProfilerMsg::Get(k, sender) => {
                 let vec_option = self.buckets.get(&k);
@@ -389,8 +379,7 @@ impl Profiler {
                     file,
                     "_category_\t_incremental?_\t_iframe?_\t_url_\t_mean (ms)_\t\
                      _median (ms)_\t_min (ms)_\t_max (ms)_\t_events_\n"
-                )
-                .unwrap();
+                ).unwrap();
                 for (&(ref category, ref meta), ref mut data) in &mut self.buckets {
                     data.sort_by(|a, b| a.partial_cmp(b).expect("No NaN values in profiles"));
                     let data_len = data.len();
@@ -406,8 +395,7 @@ impl Profiler {
                             min,
                             max,
                             data_len
-                        )
-                        .unwrap();
+                        ).unwrap();
                     }
                 }
             },
@@ -427,8 +415,7 @@ impl Profiler {
                     "     _min (ms)_",
                     "     _max (ms)_",
                     "      _events_"
-                )
-                .unwrap();
+                ).unwrap();
                 for (&(ref category, ref meta), ref mut data) in &mut self.buckets {
                     data.sort_by(|a, b| a.partial_cmp(b).expect("No NaN values in profiles"));
                     let data_len = data.len();
@@ -444,8 +431,7 @@ impl Profiler {
                             min,
                             max,
                             data_len
-                        )
-                        .unwrap();
+                        ).unwrap();
                     }
                 }
                 writeln!(&mut lock, "").unwrap();
@@ -484,10 +470,9 @@ impl Profiler {
                         if let Some(ref meta) = *meta {
                             measurement.add_tag("host", meta.url.as_str());
                         };
-
-                        tokio::run(client.write_one(measurement, None).map_err(|e| {
-                            warn!("Could not write measurement to profiler db: {:?}", e)
-                        }));
+                        if client.write_one(measurement, None).is_err() {
+                            warn!("Could not write measurement to profiler db");
+                        }
                     }
                 }
             },

@@ -2,18 +2,23 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+extern crate ipc_channel;
 #[macro_use]
 extern crate lazy_static;
 #[macro_use]
 extern crate log;
+extern crate msg;
 #[macro_use]
 extern crate serde;
+extern crate servo_channel;
+extern crate servo_url;
+extern crate style_traits;
+extern crate webrender_api;
 
 pub mod resources;
 
 use ipc_channel::ipc::IpcSender;
-use keyboard_types::KeyboardEvent;
-use msg::constellation_msg::{InputMethodType, TopLevelBrowsingContextId};
+use msg::constellation_msg::{InputMethodType, Key, KeyModifiers, KeyState, TopLevelBrowsingContextId};
 use servo_channel::{Receiver, Sender};
 use servo_url::ServoUrl;
 use std::fmt::{Debug, Error, Formatter};
@@ -88,7 +93,7 @@ pub enum EmbedderMsg {
     /// Wether or not to unload a document
     AllowUnload(IpcSender<bool>),
     /// Sends an unconsumed key event back to the embedder.
-    Keyboard(KeyboardEvent),
+    KeyEvent(Option<char>, Key, KeyState, KeyModifiers),
     /// Changes the cursor.
     SetCursor(CursorKind),
     /// A favicon was detected
@@ -129,7 +134,7 @@ impl Debug for EmbedderMsg {
             EmbedderMsg::Alert(..) => write!(f, "Alert"),
             EmbedderMsg::AllowUnload(..) => write!(f, "AllowUnload"),
             EmbedderMsg::AllowNavigation(..) => write!(f, "AllowNavigation"),
-            EmbedderMsg::Keyboard(..) => write!(f, "Keyboard"),
+            EmbedderMsg::KeyEvent(..) => write!(f, "KeyEvent"),
             EmbedderMsg::SetCursor(..) => write!(f, "SetCursor"),
             EmbedderMsg::NewFavicon(..) => write!(f, "NewFavicon"),
             EmbedderMsg::HeadParsed => write!(f, "HeadParsed"),

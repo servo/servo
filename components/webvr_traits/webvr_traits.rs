@@ -4,12 +4,12 @@
 
 use ipc_channel::ipc::IpcSender;
 use msg::constellation_msg::PipelineId;
-use rust_webvr_api::*;
+use webvr::*;
 
 pub type WebVRResult<T> = Result<T, String>;
 
 // Messages from Script thread to WebVR thread.
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Deserialize, Serialize)]
 pub enum WebVRMsg {
     RegisterContext(PipelineId),
     UnregisterContext(PipelineId),

@@ -3,8 +3,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use ipc_channel::ipc::IpcSharedMemory;
-use piston_image::{DynamicImage, ImageFormat};
+use piston_image::{self, DynamicImage, ImageFormat};
 use std::fmt;
+use webrender_api;
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, MallocSizeOf, PartialEq, Serialize)]
 pub enum PixelFormat {
@@ -31,11 +32,8 @@ pub struct Image {
 
 impl fmt::Debug for Image {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(
-            f,
-            "Image {{ width: {}, height: {}, format: {:?}, ..., id: {:?} }}",
-            self.width, self.height, self.format, self.id
-        )
+        write!(f, "Image {{ width: {}, height: {}, format: {:?}, ..., id: {:?} }}",
+               self.width, self.height, self.format, self.id)
     }
 }
 
@@ -48,6 +46,24 @@ pub struct ImageMetadata {
 // FIXME: Images must not be copied every frame. Instead we should atomically
 // reference count them.
 
+// TODO(pcwalton): Speed up with SIMD, or better yet, find some way to not do this.
+fn byte_swap_and_premultiply(data: &mut [u8]) {
+    let length = data.len();
+
+    let mut i = 0;
+    while i < length {
+        let r = data[i + 2];
+        let g = data[i + 1];
+        let b = data[i + 0];
+
+        data[i + 0] = r;
+        data[i + 1] = g;
+        data[i + 2] = b;
+
+        i += 4;
+    }
+}
+
 pub fn load_from_memory(buffer: &[u8]) -> Option<Image> {
     if buffer.is_empty() {
         return None;
@@ -59,28 +75,31 @@ pub fn load_from_memory(buffer: &[u8]) -> Option<Image> {
             debug!("{}", msg);
             None
         },
-        Ok(_) => match piston_image::load_from_memory(buffer) {
-            Ok(image) => {
-                let mut rgba = match image {
-                    DynamicImage::ImageRgba8(rgba) => rgba,
-                    image => image.to_rgba(),
-                };
-                pixels::byte_swap_colors_inplace(&mut *rgba);
-                Some(Image {
-                    width: rgba.width(),
-                    height: rgba.height(),
-                    format: PixelFormat::BGRA8,
-                    bytes: IpcSharedMemory::from_bytes(&*rgba),
-                    id: None,
-                })
-            },
-            Err(e) => {
-                debug!("Image decoding error: {:?}", e);
-                None
-            },
+        Ok(_) => {
+            match piston_image::load_from_memory(buffer) {
+                Ok(image) => {
+                    let mut rgba = match image {
+                        DynamicImage::ImageRgba8(rgba) => rgba,
+                        image => image.to_rgba(),
+                    };
+                    byte_swap_and_premultiply(&mut *rgba);
+                    Some(Image {
+                        width: rgba.width(),
+                        height: rgba.height(),
+                        format: PixelFormat::BGRA8,
+                        bytes: IpcSharedMemory::from_bytes(&*rgba),
+                        id: None,
+                    })
+                },
+                Err(e) => {
+                    debug!("Image decoding error: {:?}", e);
+                    None
+                },
+            }
         },
     }
 }
+
 
 // https://developer.mozilla.org/en-US/docs/Web/HTML/Element/img
 pub fn detect_image_format(buffer: &[u8]) -> Result<ImageFormat, &str> {

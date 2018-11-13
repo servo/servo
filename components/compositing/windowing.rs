@@ -8,16 +8,15 @@ use embedder_traits::EventLoopWaker;
 use euclid::TypedScale;
 #[cfg(feature = "gleam")]
 use gleam::gl;
-use keyboard_types::KeyboardEvent;
-use msg::constellation_msg::{TopLevelBrowsingContextId, TraversalDirection};
+use msg::constellation_msg::{Key, KeyModifiers, KeyState, TopLevelBrowsingContextId, TraversalDirection};
 use script_traits::{MouseButton, TouchEventType, TouchId};
-use servo_geometry::DeviceIndependentPixel;
+use servo_geometry::{DeviceIndependentPixel, DeviceUintLength};
 use servo_url::ServoUrl;
 use std::fmt::{Debug, Error, Formatter};
 #[cfg(feature = "gleam")]
 use std::rc::Rc;
 use style_traits::DevicePixel;
-use webrender_api::{DeviceIntPoint, DevicePoint, DeviceUintRect, DeviceUintSize, ScrollLocation};
+use webrender_api::{DeviceIntPoint, DevicePoint, DeviceUintSize, DeviceUintRect, ScrollLocation};
 
 #[derive(Clone)]
 pub enum MouseWindowEvent {
@@ -71,7 +70,7 @@ pub enum WindowEvent {
     /// Sent when the user quits the application
     Quit,
     /// Sent when a key input state changes
-    Keyboard(KeyboardEvent),
+    KeyEvent(Option<char>, Key, KeyState, KeyModifiers),
     /// Sent when Ctr+R/Apple+R is called to reload the current page.
     Reload(TopLevelBrowsingContextId),
     /// Create a new top level browsing context
@@ -95,7 +94,7 @@ impl Debug for WindowEvent {
             WindowEvent::Idle => write!(f, "Idle"),
             WindowEvent::Refresh => write!(f, "Refresh"),
             WindowEvent::Resize => write!(f, "Resize"),
-            WindowEvent::Keyboard(..) => write!(f, "Keyboard"),
+            WindowEvent::KeyEvent(..) => write!(f, "Key"),
             WindowEvent::LoadUrl(..) => write!(f, "LoadUrl"),
             WindowEvent::MouseWindowEventClass(..) => write!(f, "Mouse"),
             WindowEvent::MouseWindowMoveEventClass(..) => write!(f, "MouseMove"),
@@ -129,12 +128,12 @@ pub trait WindowMethods {
     /// Requests that the window system prepare a composite. Typically this will involve making
     /// some type of platform-specific graphics context current. Returns true if the composite may
     /// proceed and false if it should not.
-    fn prepare_for_composite(&self) -> bool;
+    fn prepare_for_composite(&self, width: DeviceUintLength, height: DeviceUintLength) -> bool;
     /// Return the GL function pointer trait.
     #[cfg(feature = "gleam")]
-    fn gl(&self) -> Rc<dyn gl::Gl>;
+    fn gl(&self) -> Rc<gl::Gl>;
     /// Returns a thread-safe object to wake up the window's event loop.
-    fn create_event_loop_waker(&self) -> Box<dyn EventLoopWaker>;
+    fn create_event_loop_waker(&self) -> Box<EventLoopWaker>;
     /// Get the coordinates of the native window, the screen and the framebuffer.
     fn get_coordinates(&self) -> EmbedderCoordinates;
     /// Set whether the application is currently animating.

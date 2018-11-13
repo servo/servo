@@ -4,11 +4,12 @@
 
 use cssparser::SourceLocation;
 use ipc_channel::ipc::IpcSender;
+use log;
 use msg::constellation_msg::PipelineId;
 use script_traits::ConstellationControlMsg;
 use servo_url::ServoUrl;
-use std::sync::{Arc, Mutex};
-use style::error_reporting::{ContextualParseError, ParseErrorReporter};
+use std::sync::{Mutex, Arc};
+use style::error_reporting::{ParseErrorReporter, ContextualParseError};
 
 #[derive(Clone, MallocSizeOf)]
 pub struct CSSErrorReporter {

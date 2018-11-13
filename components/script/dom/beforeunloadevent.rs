@@ -4,16 +4,16 @@
 
 #![allow(dead_code)]
 
-use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::BeforeUnloadEventBinding;
-use crate::dom::bindings::codegen::Bindings::BeforeUnloadEventBinding::BeforeUnloadEventMethods;
-use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
-use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::reflect_dom_object;
-use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::DOMString;
-use crate::dom::event::{Event, EventBubbles, EventCancelable};
-use crate::dom::window::Window;
+use dom::bindings::cell::DomRefCell;
+use dom::bindings::codegen::Bindings::BeforeUnloadEventBinding;
+use dom::bindings::codegen::Bindings::BeforeUnloadEventBinding::BeforeUnloadEventMethods;
+use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
+use dom::bindings::inheritance::Castable;
+use dom::bindings::reflector::reflect_dom_object;
+use dom::bindings::root::DomRoot;
+use dom::bindings::str::DOMString;
+use dom::event::{Event, EventBubbles, EventCancelable};
+use dom::window::Window;
 use dom_struct::dom_struct;
 use servo_atoms::Atom;
 

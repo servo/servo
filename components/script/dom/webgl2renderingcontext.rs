@@ -4,33 +4,31 @@
 
 /// https://www.khronos.org/registry/webgl/specs/latest/2.0/webgl.idl
 use canvas_traits::webgl::WebGLVersion;
-use crate::dom::bindings::codegen::Bindings::WebGL2RenderingContextBinding;
-use crate::dom::bindings::codegen::Bindings::WebGL2RenderingContextBinding::WebGL2RenderingContextMethods;
-use crate::dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLContextAttributes;
-use crate::dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextMethods;
-use crate::dom::bindings::codegen::UnionTypes::ArrayBufferViewOrArrayBuffer;
-use crate::dom::bindings::codegen::UnionTypes::Float32ArrayOrUnrestrictedFloatSequence;
-use crate::dom::bindings::codegen::UnionTypes::ImageDataOrHTMLImageElementOrHTMLCanvasElementOrHTMLVideoElement;
-use crate::dom::bindings::codegen::UnionTypes::Int32ArrayOrLongSequence;
-use crate::dom::bindings::error::{ErrorResult, Fallible};
-use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
-use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom};
-use crate::dom::bindings::str::DOMString;
-use crate::dom::htmlcanvaselement::HTMLCanvasElement;
-use crate::dom::htmliframeelement::HTMLIFrameElement;
-use crate::dom::webglactiveinfo::WebGLActiveInfo;
-use crate::dom::webglbuffer::WebGLBuffer;
-use crate::dom::webglframebuffer::WebGLFramebuffer;
-use crate::dom::webglprogram::WebGLProgram;
-use crate::dom::webglrenderbuffer::WebGLRenderbuffer;
-use crate::dom::webglrenderingcontext::{
-    LayoutCanvasWebGLRenderingContextHelpers, WebGLRenderingContext,
-};
-use crate::dom::webglshader::WebGLShader;
-use crate::dom::webglshaderprecisionformat::WebGLShaderPrecisionFormat;
-use crate::dom::webgltexture::WebGLTexture;
-use crate::dom::webgluniformlocation::WebGLUniformLocation;
-use crate::dom::window::Window;
+use dom::bindings::codegen::Bindings::WebGL2RenderingContextBinding;
+use dom::bindings::codegen::Bindings::WebGL2RenderingContextBinding::WebGL2RenderingContextMethods;
+use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLContextAttributes;
+use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextMethods;
+use dom::bindings::codegen::UnionTypes::ArrayBufferViewOrArrayBuffer;
+use dom::bindings::codegen::UnionTypes::Float32ArrayOrUnrestrictedFloatSequence;
+use dom::bindings::codegen::UnionTypes::ImageDataOrHTMLImageElementOrHTMLCanvasElementOrHTMLVideoElement;
+use dom::bindings::codegen::UnionTypes::Int32ArrayOrLongSequence;
+use dom::bindings::error::{ErrorResult, Fallible};
+use dom::bindings::reflector::{reflect_dom_object, Reflector};
+use dom::bindings::root::{Dom, DomRoot, LayoutDom};
+use dom::bindings::str::DOMString;
+use dom::htmlcanvaselement::HTMLCanvasElement;
+use dom::htmliframeelement::HTMLIFrameElement;
+use dom::webglactiveinfo::WebGLActiveInfo;
+use dom::webglbuffer::WebGLBuffer;
+use dom::webglframebuffer::WebGLFramebuffer;
+use dom::webglprogram::WebGLProgram;
+use dom::webglrenderbuffer::WebGLRenderbuffer;
+use dom::webglrenderingcontext::{LayoutCanvasWebGLRenderingContextHelpers, WebGLRenderingContext};
+use dom::webglshader::WebGLShader;
+use dom::webglshaderprecisionformat::WebGLShaderPrecisionFormat;
+use dom::webgltexture::WebGLTexture;
+use dom::webgluniformlocation::WebGLUniformLocation;
+use dom::window::Window;
 use dom_struct::dom_struct;
 use euclid::Size2D;
 use js::jsapi::{JSContext, JSObject};
@@ -51,7 +49,7 @@ impl WebGL2RenderingContext {
     fn new_inherited(
         window: &Window,
         canvas: &HTMLCanvasElement,
-        size: Size2D<u32>,
+        size: Size2D<i32>,
         attrs: GLContextAttributes,
     ) -> Option<WebGL2RenderingContext> {
         let base = WebGLRenderingContext::new(window, canvas, WebGLVersion::WebGL2, size, attrs)?;
@@ -65,7 +63,7 @@ impl WebGL2RenderingContext {
     pub fn new(
         window: &Window,
         canvas: &HTMLCanvasElement,
-        size: Size2D<u32>,
+        size: Size2D<i32>,
         attrs: GLContextAttributes,
     ) -> Option<DomRoot<WebGL2RenderingContext>> {
         WebGL2RenderingContext::new_inherited(window, canvas, size, attrs).map(|ctx| {
@@ -75,7 +73,7 @@ impl WebGL2RenderingContext {
 }
 
 impl WebGL2RenderingContext {
-    pub fn recreate(&self, size: Size2D<u32>) {
+    pub fn recreate(&self, size: Size2D<i32>) {
         self.base.recreate(size)
     }
 

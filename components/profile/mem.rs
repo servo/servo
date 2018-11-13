@@ -4,16 +4,16 @@
 
 //! Memory profiling functions.
 
-use crate::time::duration_from_seconds;
 use ipc_channel::ipc::{self, IpcReceiver};
 use ipc_channel::router::ROUTER;
-use profile_traits::mem::ReportsChan;
 use profile_traits::mem::{ProfilerChan, ProfilerMsg, ReportKind, Reporter, ReporterRequest};
+use profile_traits::mem::ReportsChan;
 use std::borrow::ToOwned;
 use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::thread;
 use std::time::Instant;
+use time::duration_from_seconds;
 
 pub struct Profiler {
     /// The port through which messages are received.
@@ -43,8 +43,7 @@ impl Profiler {
                     if chan.send(ProfilerMsg::Print).is_err() {
                         break;
                     }
-                })
-                .expect("Thread spawning failed");
+                }).expect("Thread spawning failed");
         }
 
         // Always spawn the memory profiler. If there is no timer thread it won't receive regular
@@ -54,8 +53,7 @@ impl Profiler {
             .spawn(move || {
                 let mut mem_profiler = Profiler::new(port);
                 mem_profiler.start();
-            })
-            .expect("Thread spawning failed");
+            }).expect("Thread spawning failed");
 
         let mem_profiler_chan = ProfilerChan(chan);
 
@@ -386,11 +384,10 @@ impl ReportsForest {
 //---------------------------------------------------------------------------
 
 mod system_reporter {
-    use super::{JEMALLOC_HEAP_ALLOCATED_STR, SYSTEM_HEAP_ALLOCATED_STR};
-    #[cfg(target_os = "linux")]
-    use libc::c_int;
     #[cfg(all(feature = "unstable", not(target_os = "windows")))]
     use libc::{c_void, size_t};
+    #[cfg(target_os = "linux")]
+    use libc::c_int;
     use profile_traits::mem::{Report, ReportKind, ReporterRequest};
     #[cfg(all(feature = "unstable", not(target_os = "windows")))]
     use std::ffi::CString;
@@ -398,8 +395,9 @@ mod system_reporter {
     use std::mem::size_of;
     #[cfg(all(feature = "unstable", not(target_os = "windows")))]
     use std::ptr::null_mut;
+    use super::{JEMALLOC_HEAP_ALLOCATED_STR, SYSTEM_HEAP_ALLOCATED_STR};
     #[cfg(target_os = "macos")]
-    use task_info::task_basic_info::{resident_size, virtual_size};
+    use task_info::task_basic_info::{virtual_size, resident_size};
 
     /// Collects global measurements from the OS and heap allocators.
     pub fn collect_reports(request: ReporterRequest) {
@@ -496,7 +494,7 @@ mod system_reporter {
     }
 
     #[cfg(all(feature = "unstable", not(target_os = "windows")))]
-    use servo_allocator::jemalloc_sys::mallctl;
+    use jemalloc_sys::mallctl;
 
     #[cfg(all(feature = "unstable", not(target_os = "windows")))]
     fn jemalloc_stat(value_name: &str) -> Option<usize> {
@@ -601,10 +599,10 @@ mod system_reporter {
     #[cfg(target_os = "linux")]
     fn resident_segments() -> Vec<(String, usize)> {
         use regex::Regex;
-        use std::collections::hash_map::Entry;
         use std::collections::HashMap;
+        use std::collections::hash_map::Entry;
         use std::fs::File;
-        use std::io::{BufRead, BufReader};
+        use std::io::{BufReader, BufRead};
 
         // The first line of an entry in /proc/<pid>/smaps looks just like an entry
         // in /proc/<pid>/maps:
@@ -625,8 +623,7 @@ mod system_reporter {
 
         let seg_re = Regex::new(
             r"^[:xdigit:]+-[:xdigit:]+ (....) [:xdigit:]+ [:xdigit:]+:[:xdigit:]+ \d+ +(.*)",
-        )
-        .unwrap();
+        ).unwrap();
         let rss_re = Regex::new(r"^Rss: +(\d+) kB").unwrap();
 
         // We record each segment's resident size.

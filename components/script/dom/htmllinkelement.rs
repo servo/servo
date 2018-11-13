@@ -2,27 +2,24 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use crate::dom::attr::Attr;
-use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::DOMTokenListBinding::DOMTokenListBinding::DOMTokenListMethods;
-use crate::dom::bindings::codegen::Bindings::HTMLLinkElementBinding;
-use crate::dom::bindings::codegen::Bindings::HTMLLinkElementBinding::HTMLLinkElementMethods;
-use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::root::{DomRoot, MutNullableDom, RootedReference};
-use crate::dom::bindings::str::DOMString;
-use crate::dom::cssstylesheet::CSSStyleSheet;
-use crate::dom::document::Document;
-use crate::dom::domtokenlist::DOMTokenList;
-use crate::dom::element::{
-    cors_setting_for_element, reflect_cross_origin_attribute, set_cross_origin_attribute,
-};
-use crate::dom::element::{AttributeMutation, Element, ElementCreator};
-use crate::dom::htmlelement::HTMLElement;
-use crate::dom::node::{document_from_node, window_from_node, Node, UnbindContext};
-use crate::dom::stylesheet::StyleSheet as DOMStyleSheet;
-use crate::dom::virtualmethods::VirtualMethods;
-use crate::stylesheet_loader::{StylesheetContextSource, StylesheetLoader, StylesheetOwner};
 use cssparser::{Parser as CssParser, ParserInput};
+use dom::attr::Attr;
+use dom::bindings::cell::DomRefCell;
+use dom::bindings::codegen::Bindings::DOMTokenListBinding::DOMTokenListBinding::DOMTokenListMethods;
+use dom::bindings::codegen::Bindings::HTMLLinkElementBinding;
+use dom::bindings::codegen::Bindings::HTMLLinkElementBinding::HTMLLinkElementMethods;
+use dom::bindings::inheritance::Castable;
+use dom::bindings::root::{DomRoot, MutNullableDom, RootedReference};
+use dom::bindings::str::DOMString;
+use dom::cssstylesheet::CSSStyleSheet;
+use dom::document::Document;
+use dom::domtokenlist::DOMTokenList;
+use dom::element::{AttributeMutation, Element, ElementCreator};
+use dom::element::{cors_setting_for_element, reflect_cross_origin_attribute, set_cross_origin_attribute};
+use dom::htmlelement::HTMLElement;
+use dom::node::{Node, UnbindContext, document_from_node, window_from_node};
+use dom::stylesheet::StyleSheet as DOMStyleSheet;
+use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
 use embedder_traits::EmbedderMsg;
 use html5ever::{LocalName, Prefix};
@@ -37,6 +34,7 @@ use style::parser::ParserContext as CssParserContext;
 use style::str::HTML_SPACE_CHARACTERS;
 use style::stylesheets::{CssRuleType, Stylesheet};
 use style_traits::ParsingMode;
+use stylesheet_loader::{StylesheetLoader, StylesheetContextSource, StylesheetOwner};
 
 #[derive(Clone, Copy, JSTraceable, MallocSizeOf, PartialEq)]
 pub struct RequestGenerationId(u32);
@@ -177,8 +175,8 @@ fn is_favicon(value: &Option<String>) -> bool {
 }
 
 impl VirtualMethods for HTMLLinkElement {
-    fn super_type(&self) -> Option<&dyn VirtualMethods> {
-        Some(self.upcast::<HTMLElement>() as &dyn VirtualMethods)
+    fn super_type(&self) -> Option<&VirtualMethods> {
+        Some(self.upcast::<HTMLElement>() as &VirtualMethods)
     }
 
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {

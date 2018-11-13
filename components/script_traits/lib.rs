@@ -9,35 +9,55 @@
 #![deny(missing_docs)]
 #![deny(unsafe_code)]
 
+extern crate bluetooth_traits;
+extern crate canvas_traits;
+extern crate cookie as cookie_rs;
+extern crate devtools_traits;
+extern crate embedder_traits;
+extern crate euclid;
+extern crate gfx_traits;
+extern crate hyper;
+extern crate hyper_serde;
+extern crate ipc_channel;
+extern crate libc;
 #[macro_use]
 extern crate malloc_size_of;
 #[macro_use]
 extern crate malloc_size_of_derive;
+extern crate msg;
+extern crate net_traits;
+extern crate profile_traits;
+extern crate rustc_serialize;
 #[macro_use]
 extern crate serde;
+extern crate servo_atoms;
+extern crate servo_channel;
+extern crate servo_url;
+extern crate style_traits;
+extern crate time;
+extern crate webrender_api;
+extern crate webvr_traits;
 
 mod script_msg;
 pub mod webdriver_msg;
 
 use bluetooth_traits::BluetoothRequest;
 use canvas_traits::webgl::WebGLPipeline;
-use crate::webdriver_msg::{LoadStatus, WebDriverScriptCommand};
 use devtools_traits::{DevtoolScriptControlMsg, ScriptToDevtoolsControlMsg, WorkerId};
-use euclid::{Length, Point2D, Rect, TypedScale, TypedSize2D, Vector2D};
+use euclid::{Length, Point2D, Vector2D, Rect, TypedSize2D, TypedScale};
 use gfx_traits::Epoch;
-use http::HeaderMap;
-use hyper::Method;
+use hyper::header::Headers;
+use hyper::method::Method;
+use ipc_channel::{Error as IpcError};
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
-use ipc_channel::Error as IpcError;
-use keyboard_types::KeyboardEvent;
 use libc::c_void;
-use msg::constellation_msg::{BrowsingContextId, HistoryStateId, PipelineId};
-use msg::constellation_msg::{PipelineNamespaceId, TopLevelBrowsingContextId, TraversalDirection};
+use msg::constellation_msg::{BrowsingContextId, HistoryStateId, Key, KeyModifiers, KeyState, PipelineId};
+use msg::constellation_msg::{PipelineNamespaceId, TraversalDirection, TopLevelBrowsingContextId};
+use net_traits::{FetchResponseMsg, ReferrerPolicy, ResourceThreads};
 use net_traits::image::base::Image;
 use net_traits::image::base::PixelFormat;
 use net_traits::image_cache::ImageCache;
 use net_traits::storage_thread::StorageType;
-use net_traits::{FetchResponseMsg, ReferrerPolicy, ResourceThreads};
 use profile_traits::mem;
 use profile_traits::time as profile_time;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
@@ -48,18 +68,15 @@ use servo_url::ServoUrl;
 use std::collections::HashMap;
 use std::fmt;
 use std::sync::Arc;
-use style_traits::cursor::CursorKind;
 use style_traits::CSSPixel;
 use style_traits::SpeculativePainter;
-use webrender_api::{
-    DevicePixel, DeviceUintSize, DocumentId, ExternalScrollId, ImageKey, RenderApiSender,
-};
+use style_traits::cursor::CursorKind;
+use webdriver_msg::{LoadStatus, WebDriverScriptCommand};
+use webrender_api::{ExternalScrollId, DevicePixel, DeviceUintSize, DocumentId, ImageKey};
 use webvr_traits::{WebVREvent, WebVRMsg};
 
-pub use crate::script_msg::{
-    DOMMessage, SWManagerMsg, SWManagerSenders, ScopeThings, ServiceWorkerMsg,
-};
-pub use crate::script_msg::{EventResult, LayoutMsg, LogEntry, ScriptMsg};
+pub use script_msg::{LayoutMsg, ScriptMsg, EventResult, LogEntry};
+pub use script_msg::{ServiceWorkerMsg, ScopeThings, SWManagerMsg, SWManagerSenders, DOMMessage};
 
 /// The address of a node. Layout sends these back. They must be validated via
 /// `from_untrusted_node_address` before they can be used, because we do not trust layout.
@@ -93,7 +110,7 @@ impl UntrustedNodeAddress {
 }
 
 /// Messages sent to the layout thread from the constellation and/or compositor.
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Deserialize, Serialize)]
 pub enum LayoutControlMsg {
     /// Requests that this layout thread exit.
     ExitNow,
@@ -129,7 +146,7 @@ pub struct LoadData {
         deserialize_with = "::hyper_serde::deserialize",
         serialize_with = "::hyper_serde::serialize"
     )]
-    pub headers: HeaderMap,
+    pub headers: Headers,
     /// The data.
     pub data: Option<Vec<u8>>,
     /// The result of evaluating a javascript scheme url.
@@ -161,8 +178,8 @@ impl LoadData {
         LoadData {
             url: url,
             creator_pipeline_id: creator_pipeline_id,
-            method: Method::GET,
-            headers: HeaderMap::new(),
+            method: Method::Get,
+            headers: Headers::new(),
             data: None,
             js_eval_result: None,
             referrer_policy: referrer_policy,
@@ -172,7 +189,7 @@ impl LoadData {
 }
 
 /// The initial data required to create a new layout attached to an existing script thread.
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Deserialize, Serialize)]
 pub struct NewLayoutInfo {
     /// The ID of the parent pipeline and frame type, if any.
     /// If `None`, this is a root pipeline.
@@ -198,7 +215,7 @@ pub struct NewLayoutInfo {
 }
 
 /// When a pipeline is closed, should its browsing context be discarded too?
-#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
+#[derive(Clone, Copy, Deserialize, Eq, Hash, PartialEq, Serialize)]
 pub enum DiscardBrowsingContext {
     /// Discard the browsing context
     Yes,
@@ -427,7 +444,7 @@ pub enum MouseButton {
 }
 
 /// The types of mouse events
-#[derive(Debug, Deserialize, MallocSizeOf, Serialize)]
+#[derive(Deserialize, MallocSizeOf, Serialize)]
 pub enum MouseEventType {
     /// Mouse button clicked
     Click,
@@ -438,7 +455,7 @@ pub enum MouseEventType {
 }
 
 /// Events from the compositor that the script thread needs to know about
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Deserialize, Serialize)]
 pub enum CompositorEvent {
     /// The window was resized.
     ResizeEvent(WindowSizeData, WindowSizeType),
@@ -460,11 +477,11 @@ pub enum CompositorEvent {
         Option<UntrustedNodeAddress>,
     ),
     /// A key was pressed.
-    KeyboardEvent(KeyboardEvent),
+    KeyEvent(Option<char>, Key, KeyState, KeyModifiers),
 }
 
 /// Requests a TimerEvent-Message be sent after the given duration.
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Deserialize, Serialize)]
 pub struct TimerEventRequest(
     pub IpcSender<TimerEvent>,
     pub TimerSource,
@@ -473,7 +490,7 @@ pub struct TimerEventRequest(
 );
 
 /// Type of messages that can be sent to the timer scheduler.
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Deserialize, Serialize)]
 pub enum TimerSchedulerMsg {
     /// Message to schedule a new timer event.
     Request(TimerEventRequest),
@@ -552,7 +569,7 @@ pub struct InitialScriptState {
     /// A channel to the bluetooth thread.
     pub bluetooth_thread: IpcSender<BluetoothRequest>,
     /// The image cache for this script thread.
-    pub image_cache: Arc<dyn ImageCache>,
+    pub image_cache: Arc<ImageCache>,
     /// A channel to the time profiler thread.
     pub time_profiler_chan: profile_traits::time::ProfilerChan,
     /// A channel to the memory profiler thread.
@@ -571,8 +588,6 @@ pub struct InitialScriptState {
     pub webvr_chan: Option<IpcSender<WebVRMsg>>,
     /// The Webrender document ID associated with this thread.
     pub webrender_document: DocumentId,
-    /// FIXME(victor): The Webrender API sender in this constellation's pipeline
-    pub webrender_api_sender: RenderApiSender,
 }
 
 /// This trait allows creating a `ScriptThread` without depending on the `script`
@@ -597,7 +612,7 @@ pub enum IFrameSandboxState {
 }
 
 /// Specifies the information required to load an auxiliary browsing context.
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Deserialize, Serialize)]
 pub struct AuxiliaryBrowsingContextLoadInfo {
     /// The pipeline opener browsing context.
     pub opener_pipeline_id: PipelineId,
@@ -610,7 +625,7 @@ pub struct AuxiliaryBrowsingContextLoadInfo {
 }
 
 /// Specifies the information required to load an iframe.
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Deserialize, Serialize)]
 pub struct IFrameLoadInfo {
     /// Pipeline ID of the parent of this iframe
     pub parent_pipeline_id: PipelineId,
@@ -628,7 +643,7 @@ pub struct IFrameLoadInfo {
 }
 
 /// Specifies the information required to load a URL in an iframe.
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Deserialize, Serialize)]
 pub struct IFrameLoadInfoWithData {
     /// The information required to load an iframe.
     pub info: IFrameLoadInfo,
@@ -641,7 +656,7 @@ pub struct IFrameLoadInfoWithData {
 }
 
 /// Specifies whether the script or layout thread needs to be ticked for animation.
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Deserialize, Serialize)]
 pub enum AnimationTickType {
     /// The script thread.
     Script,
@@ -659,7 +674,7 @@ pub struct ScrollState {
 }
 
 /// Data about the window size.
-#[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, Serialize)]
+#[derive(Clone, Copy, Deserialize, MallocSizeOf, Serialize)]
 pub struct WindowSizeData {
     /// The size of the initial layout viewport, before parsing an
     /// <http://www.w3.org/TR/css-device-adapt/#initial-viewport>
@@ -670,7 +685,7 @@ pub struct WindowSizeData {
 }
 
 /// The type of window size change.
-#[derive(Clone, Copy, Debug, Deserialize, Eq, MallocSizeOf, PartialEq, Serialize)]
+#[derive(Clone, Copy, Deserialize, Eq, MallocSizeOf, PartialEq, Serialize)]
 pub enum WindowSizeType {
     /// Initial load.
     Initial,
@@ -679,7 +694,7 @@ pub enum WindowSizeType {
 }
 
 /// Messages to the constellation originating from the WebDriver server.
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Deserialize, Serialize)]
 pub enum WebDriverCommandMsg {
     /// Get the window size.
     GetWindowSize(TopLevelBrowsingContextId, IpcSender<WindowSizeData>),
@@ -691,7 +706,7 @@ pub enum WebDriverCommandMsg {
     /// of a browsing context.
     ScriptCommand(BrowsingContextId, WebDriverScriptCommand),
     /// Act as if keys were pressed in the browsing context with the given ID.
-    SendKeys(BrowsingContextId, Vec<KeyboardEvent>),
+    SendKeys(BrowsingContextId, Vec<(Key, KeyModifiers, KeyState)>),
     /// Set the window size.
     SetWindowSize(
         TopLevelBrowsingContextId,
@@ -719,7 +734,7 @@ pub enum ConstellationMsg {
     /// Query the constellation to see if the current compositor output is stable
     IsReadyToSaveImage(HashMap<PipelineId, Epoch>),
     /// Inform the constellation of a key event.
-    Keyboard(KeyboardEvent),
+    KeyEvent(Option<char>, Key, KeyState, KeyModifiers),
     /// Request to load a page.
     LoadUrl(TopLevelBrowsingContextId, ServoUrl),
     /// Request to traverse the joint session history of the provided browsing context.
@@ -763,7 +778,7 @@ impl fmt::Debug for ConstellationMsg {
             GetPipeline(..) => "GetPipeline",
             GetFocusTopLevelBrowsingContext(..) => "GetFocusTopLevelBrowsingContext",
             IsReadyToSaveImage(..) => "IsReadyToSaveImage",
-            Keyboard(..) => "Keyboard",
+            KeyEvent(..) => "KeyEvent",
             LoadUrl(..) => "LoadUrl",
             TraverseHistory(..) => "TraverseHistory",
             WindowSize(..) => "WindowSize",
@@ -784,7 +799,7 @@ impl fmt::Debug for ConstellationMsg {
 }
 
 /// Resources required by workerglobalscopes
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize)]
 pub struct WorkerGlobalScopeInit {
     /// Chan to a resource thread
     pub resource_threads: ResourceThreads,
@@ -809,7 +824,7 @@ pub struct WorkerGlobalScopeInit {
 }
 
 /// Common entities representing a network load origin
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize)]
 pub struct WorkerScriptLoadOrigin {
     /// referrer url
     pub referrer_url: Option<ServoUrl>,
@@ -840,7 +855,7 @@ pub trait Painter: SpeculativePainter {
     ) -> Result<DrawAPaintImageResult, PaintWorkletError>;
 }
 
-impl fmt::Debug for dyn Painter {
+impl fmt::Debug for Painter {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         fmt.debug_tuple("Painter")
             .field(&format_args!(".."))
@@ -866,7 +881,7 @@ pub struct DrawAPaintImageResult {
 }
 
 /// A Script to Constellation channel.
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize)]
 pub struct ScriptToConstellationChan {
     /// Sender for communicating with constellation thread.
     pub sender: IpcSender<(PipelineId, ScriptMsg)>,

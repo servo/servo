@@ -2,15 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use super::{WebGLExtension, WebGLExtensionSpec, WebGLExtensions};
 use canvas_traits::webgl::WebGLVersion;
-use crate::dom::bindings::codegen::Bindings::ANGLEInstancedArraysBinding;
-use crate::dom::bindings::codegen::Bindings::ANGLEInstancedArraysBinding::ANGLEInstancedArraysConstants;
-use crate::dom::bindings::codegen::Bindings::ANGLEInstancedArraysBinding::ANGLEInstancedArraysMethods;
-use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
-use crate::dom::bindings::root::{Dom, DomRoot};
-use crate::dom::webglrenderingcontext::WebGLRenderingContext;
+use dom::bindings::codegen::Bindings::ANGLEInstancedArraysBinding;
+use dom::bindings::codegen::Bindings::ANGLEInstancedArraysBinding::ANGLEInstancedArraysConstants;
+use dom::bindings::codegen::Bindings::ANGLEInstancedArraysBinding::ANGLEInstancedArraysMethods;
+use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
+use dom::bindings::root::{Dom, DomRoot};
+use dom::webglrenderingcontext::WebGLRenderingContext;
 use dom_struct::dom_struct;
+use super::{WebGLExtension, WebGLExtensions, WebGLExtensionSpec};
 
 #[dom_struct]
 pub struct ANGLEInstancedArrays {

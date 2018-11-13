@@ -67,9 +67,7 @@ function asyncInitTransports() {
       'Expect sctpTransport.transport to be instance of RTCDtlsTransport');
     idlTestObjects.dtlsTransport = dtlsTransport;
 
-    const iceTransport = dtlsTransport.iceTransport;
-    assert_true(iceTransport instanceof RTCIceTransport,
-      'Expect sctpTransport.transport to be instance of RTCDtlsTransport');
+    const iceTransport = dtlsTransport.transport;
     idlTestObjects.iceTransport = iceTransport;
   });
 }

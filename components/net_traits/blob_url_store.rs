@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use crate::filemanager_thread::FileOrigin;
+use filemanager_thread::FileOrigin;
 use servo_url::ServoUrl;
 use std::str::FromStr;
 use url::Url;
@@ -57,6 +57,6 @@ pub fn get_blob_origin(url: &ServoUrl) -> FileOrigin {
         // NOTE: by default this is "null" (Opaque), which is not ideal
         "file://".to_string()
     } else {
-        url.origin().ascii_serialization()
+        url.origin().unicode_serialization()
     }
 }

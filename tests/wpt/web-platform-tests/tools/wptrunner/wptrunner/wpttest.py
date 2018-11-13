@@ -70,7 +70,6 @@ class RunInfo(dict):
     def __init__(self, metadata_root, product, debug,
                  browser_version=None,
                  browser_channel=None,
-                 verify=None,
                  extras=None):
         import mozinfo
         self._update_mozinfo(metadata_root)
@@ -95,10 +94,6 @@ class RunInfo(dict):
             self["browser_version"] = browser_version
         if browser_channel:
             self["browser_channel"] = browser_channel
-
-        self["verify"] = verify
-        if "wasm" not in self:
-            self["wasm"] = False
         if extras is not None:
             self.update(extras)
 
@@ -233,14 +228,6 @@ class Test(object):
                 lsan_allowed.remove(atom_reset)
                 break
         return lsan_allowed
-
-    @property
-    def lsan_max_stack_depth(self):
-        for meta in self.itermeta(None):
-            depth = meta.lsan_max_stack_depth
-            if depth is not None:
-                return depth
-        return None
 
     @property
     def tags(self):

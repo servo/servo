@@ -8,20 +8,19 @@
 
 #![deny(missing_docs)]
 
-pub use cssparser::{serialize_identifier, serialize_name, CowRcStr, Parser};
-pub use cssparser::{SourceLocation, Token, RGBA};
+use Atom;
+pub use cssparser::{serialize_identifier, serialize_name, CowRcStr, Parser, SourceLocation, Token, RGBA};
 use parser::{Parse, ParserContext};
 use selectors::parser::SelectorParseErrorKind;
 use std::fmt::{self, Debug, Write};
 use std::hash;
 use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
 use values::distance::{ComputeSquaredDistance, SquaredDistance};
-use Atom;
 
-#[cfg(feature = "gecko")]
-pub use gecko::url::CssUrl;
 #[cfg(feature = "servo")]
 pub use servo::url::CssUrl;
+#[cfg(feature = "gecko")]
+pub use gecko::url::CssUrl;
 
 pub mod animated;
 pub mod computed;
@@ -241,13 +240,6 @@ impl KeyframesName {
 }
 
 impl Eq for KeyframesName {}
-
-/// A trait that returns whether a given type is the `auto` value or not. So far
-/// only needed for background-size serialization, which special-cases `auto`.
-pub trait IsAuto {
-    /// Returns whether the value is the `auto` value.
-    fn is_auto(&self) -> bool;
-}
 
 impl PartialEq for KeyframesName {
     fn eq(&self, other: &Self) -> bool {

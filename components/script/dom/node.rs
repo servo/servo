@@ -5,69 +5,67 @@
 //! The core DOM types. Defines the basic DOM hierarchy as well as all the HTML elements.
 
 use app_units::Au;
-use crate::document_loader::DocumentLoader;
-use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::CharacterDataBinding::CharacterDataMethods;
-use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
-use crate::dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
-use crate::dom::bindings::codegen::Bindings::HTMLCollectionBinding::HTMLCollectionMethods;
-use crate::dom::bindings::codegen::Bindings::NodeBinding::{NodeConstants, NodeMethods};
-use crate::dom::bindings::codegen::Bindings::NodeListBinding::NodeListMethods;
-use crate::dom::bindings::codegen::Bindings::ProcessingInstructionBinding::ProcessingInstructionMethods;
-use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
-use crate::dom::bindings::codegen::UnionTypes::NodeOrString;
-use crate::dom::bindings::conversions::{self, DerivedFrom};
-use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
-use crate::dom::bindings::inheritance::{Castable, CharacterDataTypeId, ElementTypeId};
-use crate::dom::bindings::inheritance::{EventTargetTypeId, HTMLElementTypeId, NodeTypeId};
-use crate::dom::bindings::inheritance::{SVGElementTypeId, SVGGraphicsElementTypeId};
-use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
-use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom, RootedReference};
-use crate::dom::bindings::str::{DOMString, USVString};
-use crate::dom::bindings::xmlname::namespace_from_domstring;
-use crate::dom::characterdata::{CharacterData, LayoutCharacterDataHelpers};
-use crate::dom::cssstylesheet::CSSStyleSheet;
-use crate::dom::customelementregistry::{try_upgrade_element, CallbackReaction};
-use crate::dom::document::{Document, DocumentSource, HasBrowsingContext, IsHTMLDocument};
-use crate::dom::documentfragment::DocumentFragment;
-use crate::dom::documenttype::DocumentType;
-use crate::dom::element::{CustomElementCreationMode, Element, ElementCreator};
-use crate::dom::eventtarget::EventTarget;
-use crate::dom::globalscope::GlobalScope;
-use crate::dom::htmlbodyelement::HTMLBodyElement;
-use crate::dom::htmlcanvaselement::{HTMLCanvasElement, LayoutHTMLCanvasElementHelpers};
-use crate::dom::htmlcollection::HTMLCollection;
-use crate::dom::htmlelement::HTMLElement;
-use crate::dom::htmliframeelement::{HTMLIFrameElement, HTMLIFrameElementLayoutMethods};
-use crate::dom::htmlimageelement::{HTMLImageElement, LayoutHTMLImageElementHelpers};
-use crate::dom::htmlinputelement::{HTMLInputElement, LayoutHTMLInputElementHelpers};
-use crate::dom::htmllinkelement::HTMLLinkElement;
-use crate::dom::htmlmediaelement::{HTMLMediaElement, LayoutHTMLMediaElementHelpers};
-use crate::dom::htmlmetaelement::HTMLMetaElement;
-use crate::dom::htmlstyleelement::HTMLStyleElement;
-use crate::dom::htmltextareaelement::{HTMLTextAreaElement, LayoutHTMLTextAreaElementHelpers};
-use crate::dom::mutationobserver::{Mutation, MutationObserver, RegisteredObserver};
-use crate::dom::nodelist::NodeList;
-use crate::dom::processinginstruction::ProcessingInstruction;
-use crate::dom::range::WeakRangeVec;
-use crate::dom::svgsvgelement::{LayoutSVGSVGElementHelpers, SVGSVGElement};
-use crate::dom::text::Text;
-use crate::dom::virtualmethods::{vtable_for, VirtualMethods};
-use crate::dom::window::Window;
-use crate::script_thread::ScriptThread;
 use devtools_traits::NodeInfo;
+use document_loader::DocumentLoader;
+use dom::bindings::cell::DomRefCell;
+use dom::bindings::codegen::Bindings::CharacterDataBinding::CharacterDataMethods;
+use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
+use dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
+use dom::bindings::codegen::Bindings::HTMLCollectionBinding::HTMLCollectionMethods;
+use dom::bindings::codegen::Bindings::NodeBinding::{NodeConstants, NodeMethods};
+use dom::bindings::codegen::Bindings::NodeListBinding::NodeListMethods;
+use dom::bindings::codegen::Bindings::ProcessingInstructionBinding::ProcessingInstructionMethods;
+use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
+use dom::bindings::codegen::UnionTypes::NodeOrString;
+use dom::bindings::conversions::{self, DerivedFrom};
+use dom::bindings::error::{Error, ErrorResult, Fallible};
+use dom::bindings::inheritance::{Castable, CharacterDataTypeId, ElementTypeId};
+use dom::bindings::inheritance::{EventTargetTypeId, HTMLElementTypeId, NodeTypeId};
+use dom::bindings::inheritance::{SVGElementTypeId, SVGGraphicsElementTypeId};
+use dom::bindings::reflector::{DomObject, reflect_dom_object};
+use dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom, RootedReference};
+use dom::bindings::str::{DOMString, USVString};
+use dom::bindings::xmlname::namespace_from_domstring;
+use dom::characterdata::{CharacterData, LayoutCharacterDataHelpers};
+use dom::cssstylesheet::CSSStyleSheet;
+use dom::customelementregistry::{CallbackReaction, try_upgrade_element};
+use dom::document::{Document, DocumentSource, HasBrowsingContext, IsHTMLDocument};
+use dom::documentfragment::DocumentFragment;
+use dom::documenttype::DocumentType;
+use dom::element::{CustomElementCreationMode, Element, ElementCreator};
+use dom::eventtarget::EventTarget;
+use dom::globalscope::GlobalScope;
+use dom::htmlbodyelement::HTMLBodyElement;
+use dom::htmlcanvaselement::{HTMLCanvasElement, LayoutHTMLCanvasElementHelpers};
+use dom::htmlcollection::HTMLCollection;
+use dom::htmlelement::HTMLElement;
+use dom::htmliframeelement::{HTMLIFrameElement, HTMLIFrameElementLayoutMethods};
+use dom::htmlimageelement::{HTMLImageElement, LayoutHTMLImageElementHelpers};
+use dom::htmlinputelement::{HTMLInputElement, LayoutHTMLInputElementHelpers};
+use dom::htmllinkelement::HTMLLinkElement;
+use dom::htmlmetaelement::HTMLMetaElement;
+use dom::htmlstyleelement::HTMLStyleElement;
+use dom::htmltextareaelement::{HTMLTextAreaElement, LayoutHTMLTextAreaElementHelpers};
+use dom::mutationobserver::{Mutation, MutationObserver, RegisteredObserver};
+use dom::nodelist::NodeList;
+use dom::processinginstruction::ProcessingInstruction;
+use dom::range::WeakRangeVec;
+use dom::svgsvgelement::{SVGSVGElement, LayoutSVGSVGElementHelpers};
+use dom::text::Text;
+use dom::virtualmethods::{VirtualMethods, vtable_for};
+use dom::window::Window;
 use dom_struct::dom_struct;
-use euclid::{Point2D, Rect, Size2D, Vector2D};
-use html5ever::{Namespace, Prefix, QualName};
+use euclid::{Point2D, Vector2D, Rect, Size2D};
+use html5ever::{Prefix, Namespace, QualName};
 use js::jsapi::{JSContext, JSObject, JSRuntime};
 use libc::{self, c_void, uintptr_t};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use msg::constellation_msg::{BrowsingContextId, PipelineId};
-use net_traits::image::base::{Image, ImageMetadata};
 use ref_slice::ref_slice;
+use script_layout_interface::{HTMLCanvasData, OpaqueStyleAndLayoutData, SVGSVGData};
+use script_layout_interface::{LayoutElementType, LayoutNodeType, TrustedNodeAddress};
 use script_layout_interface::message::Msg;
-use script_layout_interface::{HTMLCanvasData, HTMLMediaData, LayoutElementType, LayoutNodeType};
-use script_layout_interface::{OpaqueStyleAndLayoutData, SVGSVGData, TrustedNodeAddress};
+use script_thread::ScriptThread;
 use script_traits::DocumentActivity;
 use script_traits::UntrustedNodeAddress;
 use selectors::matching::{matches_selector_list, MatchingContext, MatchingMode};
@@ -76,13 +74,12 @@ use servo_arc::Arc;
 use servo_url::ServoUrl;
 use smallvec::SmallVec;
 use std::borrow::ToOwned;
-use std::cell::{Cell, RefMut, UnsafeCell};
+use std::cell::{Cell, UnsafeCell, RefMut};
 use std::cmp;
 use std::default::Default;
 use std::iter;
 use std::mem;
 use std::ops::Range;
-use std::sync::Arc as StdArc;
 use style::context::QuirksMode;
 use style::dom::OpaqueNode;
 use style::selector_parser::{SelectorImpl, SelectorParser};
@@ -384,8 +381,7 @@ impl<'a> Iterator for QuerySelectorIterator {
                     }
                 }
                 None
-            })
-            .next()
+            }).next()
     }
 }
 
@@ -1082,16 +1078,14 @@ pub trait LayoutNodeHelpers {
     unsafe fn children_count(&self) -> u32;
 
     unsafe fn get_style_and_layout_data(&self) -> Option<OpaqueStyleAndLayoutData>;
-    unsafe fn init_style_and_layout_data(&self, _: OpaqueStyleAndLayoutData);
+    unsafe fn init_style_and_layout_data(&self, OpaqueStyleAndLayoutData);
     unsafe fn take_style_and_layout_data(&self) -> OpaqueStyleAndLayoutData;
 
     fn text_content(&self) -> String;
     fn selection(&self) -> Option<Range<usize>>;
     fn image_url(&self) -> Option<ServoUrl>;
     fn image_density(&self) -> Option<f64>;
-    fn image_data(&self) -> Option<(Option<StdArc<Image>>, Option<ImageMetadata>)>;
     fn canvas_data(&self) -> Option<HTMLCanvasData>;
-    fn media_data(&self) -> Option<HTMLMediaData>;
     fn svg_data(&self) -> Option<SVGSVGData>;
     fn iframe_browsing_context_id(&self) -> Option<BrowsingContextId>;
     fn iframe_pipeline_id(&self) -> Option<PipelineId>;
@@ -1238,11 +1232,6 @@ impl LayoutNodeHelpers for LayoutDom<Node> {
     }
 
     #[allow(unsafe_code)]
-    fn image_data(&self) -> Option<(Option<StdArc<Image>>, Option<ImageMetadata>)> {
-        unsafe { self.downcast::<HTMLImageElement>().map(|e| e.image_data()) }
-    }
-
-    #[allow(unsafe_code)]
     fn image_density(&self) -> Option<f64> {
         unsafe {
             self.downcast::<HTMLImageElement>()
@@ -1254,11 +1243,6 @@ impl LayoutNodeHelpers for LayoutDom<Node> {
     fn canvas_data(&self) -> Option<HTMLCanvasData> {
         self.downcast::<HTMLCanvasElement>()
             .map(|canvas| canvas.data())
-    }
-
-    fn media_data(&self) -> Option<HTMLMediaData> {
-        self.downcast::<HTMLMediaElement>()
-            .map(|media| media.data())
     }
 
     fn svg_data(&self) -> Option<SVGSVGData> {
@@ -2616,8 +2600,8 @@ pub fn window_from_node<T: DerivedFrom<Node> + DomObject>(derived: &T) -> DomRoo
 }
 
 impl VirtualMethods for Node {
-    fn super_type(&self) -> Option<&dyn VirtualMethods> {
-        Some(self.upcast::<EventTarget>() as &dyn VirtualMethods)
+    fn super_type(&self) -> Option<&VirtualMethods> {
+        Some(self.upcast::<EventTarget>() as &VirtualMethods)
     }
 
     fn children_changed(&self, mutation: &ChildrenMutation) {
@@ -2836,12 +2820,10 @@ pub struct UnbindContext<'a> {
 
 impl<'a> UnbindContext<'a> {
     /// Create a new `UnbindContext` value.
-    fn new(
-        parent: &'a Node,
-        prev_sibling: Option<&'a Node>,
-        next_sibling: Option<&'a Node>,
-        cached_index: Option<u32>,
-    ) -> Self {
+    fn new(parent: &'a Node,
+           prev_sibling: Option<&'a Node>,
+           next_sibling: Option<&'a Node>,
+           cached_index: Option<u32>) -> Self {
         UnbindContext {
             index: Cell::new(cached_index),
             parent: parent,
@@ -2929,9 +2911,6 @@ impl Into<LayoutElementType> for ElementTypeId {
             ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLImageElement) => {
                 LayoutElementType::HTMLImageElement
             },
-            ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLMediaElement(_)) => {
-                LayoutElementType::HTMLMediaElement
-            },
             ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLInputElement) => {
                 LayoutElementType::HTMLInputElement
             },
@@ -2941,7 +2920,7 @@ impl Into<LayoutElementType> for ElementTypeId {
             ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLParagraphElement) => {
                 LayoutElementType::HTMLParagraphElement
             },
-            ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTableCellElement) => {
+            ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTableCellElement(_)) => {
                 LayoutElementType::HTMLTableCellElement
             },
             ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTableColElement) => {

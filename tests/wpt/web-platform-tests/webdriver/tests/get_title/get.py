@@ -1,6 +1,6 @@
 from tests.support.asserts import assert_error, assert_success
 from tests.support.inline import inline
-from tests.support.sync import Poll
+from tests.support.wait import wait
 
 
 def read_global(session, name):
@@ -39,14 +39,12 @@ def test_title_without_element(session):
 
 
 def test_title_after_modification(session):
-    def title():
-        return read_global(session, "document.title")
-
     session.url = inline("<title>Initial</title><h2>Hello</h2>")
     session.execute_script("document.title = 'Updated'")
 
-    wait = Poll(session, message='Document title does not match "{}"'.format(title()))
-    wait.until(lambda s: assert_success(get_title(s)) == title())
+    wait(session,
+         lambda s: assert_success(get_title(s)) == read_global(session, "document.title"),
+         "Document title doesn't match '{}'".format(read_global(session, "document.title")))
 
 
 def test_title_strip_and_collapse(session):

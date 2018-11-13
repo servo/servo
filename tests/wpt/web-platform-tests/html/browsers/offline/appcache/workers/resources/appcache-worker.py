@@ -91,7 +91,6 @@ initPromise
   .then(importFallbackScriptTest)
   .then(fetchCachedFileTest)
   .then(fetchNotInCacheFileTest)
-  .then(fetchFallbackFileTest)
   .then(_ => postMessage('Done: %s'),
         error => postMessage(error.toString()));
 '''

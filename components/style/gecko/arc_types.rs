@@ -8,7 +8,6 @@
 
 #![allow(non_snake_case, missing_docs)]
 
-use gecko::url::CssUrlData;
 use gecko_bindings::bindings::RawServoCounterStyleRule;
 use gecko_bindings::bindings::RawServoFontFeatureValuesRule;
 use gecko_bindings::bindings::RawServoImportRule;
@@ -23,26 +22,23 @@ use gecko_bindings::bindings::RawServoRuleNodeStrong;
 use gecko_bindings::bindings::RawServoSupportsRule;
 use gecko_bindings::bindings::ServoCssRules;
 use gecko_bindings::structs::RawServoAnimationValue;
-use gecko_bindings::structs::RawServoCssUrlData;
 use gecko_bindings::structs::RawServoDeclarationBlock;
 use gecko_bindings::structs::RawServoFontFaceRule;
 use gecko_bindings::structs::RawServoMediaList;
-use gecko_bindings::structs::RawServoQuotes;
 use gecko_bindings::structs::RawServoStyleRule;
 use gecko_bindings::structs::RawServoStyleSheetContents;
 use gecko_bindings::sugar::ownership::{HasArcFFI, HasFFI, Strong};
 use media_queries::MediaList;
-use properties::animated_properties::AnimationValue;
 use properties::{ComputedValues, PropertyDeclarationBlock};
+use properties::animated_properties::AnimationValue;
 use rule_tree::StrongRuleNode;
 use servo_arc::{Arc, ArcBorrow};
 use shared_lock::Locked;
 use std::{mem, ptr};
-use stylesheets::keyframes_rule::Keyframe;
 use stylesheets::{CounterStyleRule, CssRules, FontFaceRule, FontFeatureValuesRule};
 use stylesheets::{DocumentRule, ImportRule, KeyframesRule, MediaRule, NamespaceRule, PageRule};
 use stylesheets::{StyleRule, StylesheetContents, SupportsRule};
-use values::computed::QuotePair;
+use stylesheets::keyframes_rule::Keyframe;
 
 macro_rules! impl_arc_ffi {
     ($servo_type:ty => $gecko_type:ty[$addref:ident, $release:ident]) => {
@@ -113,12 +109,6 @@ impl_arc_ffi!(Locked<FontFaceRule> => RawServoFontFaceRule
 
 impl_arc_ffi!(Locked<CounterStyleRule> => RawServoCounterStyleRule
               [Servo_CounterStyleRule_AddRef, Servo_CounterStyleRule_Release]);
-
-impl_arc_ffi!(CssUrlData => RawServoCssUrlData
-              [Servo_CssUrlData_AddRef, Servo_CssUrlData_Release]);
-
-impl_arc_ffi!(Box<[QuotePair]> => RawServoQuotes
-              [Servo_Quotes_AddRef, Servo_Quotes_Release]);
 
 // RuleNode is a Arc-like type but it does not use Arc.
 

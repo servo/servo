@@ -4,6 +4,7 @@
 
 //! Specified values for font properties
 
+use Atom;
 use app_units::Au;
 use byteorder::{BigEndian, ByteOrder};
 use cssparser::{Parser, Token};
@@ -14,20 +15,18 @@ use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use parser::{Parse, ParserContext};
 use properties::longhands::system_font::SystemFont;
 use std::fmt::{self, Write};
-use style_traits::values::SequenceWriter;
 use style_traits::{CssWriter, KeywordsCollectFn, ParseError};
 use style_traits::{SpecifiedValueInfo, StyleParseErrorKind, ToCss};
-use values::computed::font::{FamilyName, FontFamilyList, FontStyleAngle, SingleFontFamily};
-use values::computed::{font as computed, Context, Length, NonNegativeLength, ToComputedValue};
-use values::computed::{Angle as ComputedAngle, Percentage as ComputedPercentage};
-use values::generics::font::{self as generics, FeatureTagValue, FontSettings, FontTag};
-use values::generics::font::{KeywordSize, VariationValue};
-use values::generics::NonNegative;
-use values::specified::length::{FontBaseSize, AU_PER_PT, AU_PER_PX};
-use values::specified::{AllowQuirks, Angle, Integer, LengthOrPercentage};
-use values::specified::{NoCalcLength, Number, Percentage};
+use style_traits::values::SequenceWriter;
 use values::CustomIdent;
-use Atom;
+use values::computed::{Angle as ComputedAngle, Percentage as ComputedPercentage};
+use values::computed::{font as computed, Context, Length, NonNegativeLength, ToComputedValue};
+use values::computed::font::{FamilyName, FontFamilyList, FontStyleAngle, SingleFontFamily};
+use values::generics::NonNegative;
+use values::generics::font::{KeywordSize, VariationValue};
+use values::generics::font::{self as generics, FeatureTagValue, FontSettings, FontTag};
+use values::specified::{AllowQuirks, Angle, Integer, LengthOrPercentage, NoCalcLength, Number, Percentage};
+use values::specified::length::{FontBaseSize, AU_PER_PT, AU_PER_PX};
 
 // FIXME(emilio): The system font code is copy-pasta, and should be cleaned up.
 macro_rules! system_font_methods {
@@ -293,16 +292,14 @@ pub const FONT_STYLE_OBLIQUE_MAX_ANGLE_DEGREES: f32 = 90.;
 pub const FONT_STYLE_OBLIQUE_MIN_ANGLE_DEGREES: f32 = -90.;
 
 impl SpecifiedFontStyle {
-    /// Gets a clamped angle in degrees from a specified Angle.
-    pub fn compute_angle_degrees(angle: &Angle) -> f32 {
-        angle
-            .degrees()
-            .max(FONT_STYLE_OBLIQUE_MIN_ANGLE_DEGREES)
-            .min(FONT_STYLE_OBLIQUE_MAX_ANGLE_DEGREES)
-    }
-
-    fn compute_angle(angle: &Angle) -> ComputedAngle {
-        ComputedAngle::from_degrees(Self::compute_angle_degrees(angle))
+    /// Gets a clamped angle from a specified Angle.
+    pub fn compute_angle(angle: &Angle) -> ComputedAngle {
+        ComputedAngle::Deg(
+            angle
+                .degrees()
+                .max(FONT_STYLE_OBLIQUE_MIN_ANGLE_DEGREES)
+                .min(FONT_STYLE_OBLIQUE_MAX_ANGLE_DEGREES),
+        )
     }
 
     /// Parse a suitable angle for font-style: oblique.
@@ -383,7 +380,6 @@ impl Parse for FontStyle {
 /// https://drafts.csswg.org/css-fonts-4/#font-stretch-prop
 #[allow(missing_docs)]
 #[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss)]
-#[repr(u8)]
 pub enum FontStretch {
     Stretch(Percentage),
     Keyword(FontStretchKeyword),
@@ -734,8 +730,7 @@ impl ToComputedValue for KeywordSize {
             KeywordSize::XLarge => Au::from_px(FONT_MEDIUM_PX) * 3 / 2,
             KeywordSize::XXLarge => Au::from_px(FONT_MEDIUM_PX) * 2,
             KeywordSize::XXXLarge => Au::from_px(FONT_MEDIUM_PX) * 3,
-        }
-        .into()
+        }.into()
     }
 
     #[inline]
@@ -755,8 +750,8 @@ impl ToComputedValue for KeywordSize {
         // The tables in this function are originally from
         // nsRuleNode::CalcFontPointSize in Gecko:
         //
-        // https://searchfox.org/mozilla-central/rev/c05d9d61188d32b8/layout/style/nsRuleNode.cpp#3150
-        //
+        // https://dxr.mozilla.org/mozilla-central/rev/35fbf14b9/layout/style/nsRuleNode.cpp#3262-3336
+
         // Mapping from base size and HTML size to pixels
         // The first index is (base_size - 9), the second is the
         // HTML size. "0" is CSS keyword xx-small, not HTML size 0,
@@ -839,8 +834,7 @@ impl FontSize {
                 6 => KeywordSize::XXLarge,
                 // If value is greater than 7, let it be 7.
                 _ => KeywordSize::XXXLarge,
-            }
-            .into(),
+            }.into(),
         )
     }
 
@@ -909,8 +903,7 @@ impl FontSize {
                         .to_computed_value_zoomed(
                             context,
                             FontBaseSize::InheritedStyleButStripEmUnits,
-                        )
-                        .length_component();
+                        ).length_component();
 
                     info = parent.keyword_info.map(|i| i.compose(ratio, abs.into()));
                 }
@@ -2064,29 +2057,6 @@ impl FontLanguageOverride {
         FontLanguageOverride::Normal
     }
 
-    /// The ToComputedValue implementation for non-system-font
-    /// FontLanguageOverride, used for @font-face descriptors.
-    #[inline]
-    pub fn compute_non_system(&self) -> computed::FontLanguageOverride {
-        match *self {
-            FontLanguageOverride::Normal => computed::FontLanguageOverride(0),
-            FontLanguageOverride::Override(ref lang) => {
-                if lang.is_empty() || lang.len() > 4 {
-                    return computed::FontLanguageOverride(0);
-                }
-                let mut bytes = [b' '; 4];
-                for (byte, lang_byte) in bytes.iter_mut().zip(lang.as_bytes()) {
-                    if !lang_byte.is_ascii() {
-                        return computed::FontLanguageOverride(0);
-                    }
-                    *byte = *lang_byte;
-                }
-                computed::FontLanguageOverride(BigEndian::read_u32(&bytes))
-            },
-            FontLanguageOverride::System(..) => unreachable!(),
-        }
-    }
-
     system_font_methods!(FontLanguageOverride, font_language_override);
 }
 
@@ -2096,8 +2066,19 @@ impl ToComputedValue for FontLanguageOverride {
     #[inline]
     fn to_computed_value(&self, context: &Context) -> computed::FontLanguageOverride {
         match *self {
+            FontLanguageOverride::Normal => computed::FontLanguageOverride(0),
+            FontLanguageOverride::Override(ref lang) => {
+                if lang.is_empty() || lang.len() > 4 || !lang.is_ascii() {
+                    return computed::FontLanguageOverride(0);
+                }
+                let mut computed_lang = lang.to_string();
+                while computed_lang.len() < 4 {
+                    computed_lang.push(' ');
+                }
+                let bytes = computed_lang.into_bytes();
+                computed::FontLanguageOverride(BigEndian::read_u32(&bytes))
+            },
             FontLanguageOverride::System(_) => self.compute_system(context),
-            _ => self.compute_non_system(),
         }
     }
     #[inline]
@@ -2112,8 +2093,7 @@ impl ToComputedValue for FontLanguageOverride {
                 String::from_utf8(buf.to_vec()).unwrap()
             } else {
                 unsafe { String::from_utf8_unchecked(buf.to_vec()) }
-            }
-            .into_boxed_str(),
+            }.into_boxed_str(),
         )
     }
 }

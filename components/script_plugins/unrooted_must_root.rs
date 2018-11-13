@@ -2,12 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use crate::utils::{in_derive_expn, match_def_path};
-use rustc::hir::intravisit as visit;
 use rustc::hir::{self, ExprKind};
-use rustc::lint::{LateContext, LateLintPass, LintArray, LintContext, LintPass};
+use rustc::hir::intravisit as visit;
+use rustc::lint::{LateContext, LintPass, LintArray, LateLintPass, LintContext};
 use rustc::ty;
 use syntax::{ast, source_map, symbol::Ident};
+use utils::{match_def_path, in_derive_expn};
 
 declare_lint!(
     UNROOTED_MUST_ROOT,

@@ -5,16 +5,12 @@
 <script src="/common/get-host-info.sub.js"></script>
 <script src="resources/test-helpers.sub.js"></script>
 <script>
-promise_test(function(t) {
+async_test(function(t) {
     var SCOPE = 'resources/iso-latin1-header-iframe.html';
     var SCRIPT = 'resources/iso-latin1-header-worker.js';
     var host_info = get_host_info();
-    return service_worker_unregister_and_register(t, SCRIPT, SCOPE)
+    service_worker_unregister_and_register(t, SCRIPT, SCOPE)
       .then(function(registration) {
-          t.add_cleanup(function() {
-              return service_worker_unregister(t, SCOPE);
-            });
-
           return wait_for_state(t, registration.installing, 'activated');
         })
       .then(function() { return with_iframe(SCOPE); })
@@ -23,18 +19,14 @@ promise_test(function(t) {
           t.add_cleanup(function() {
               frame.remove();
             });
-
-          var onMsg = new Promise(function(resolve) {
-              channel.port1.onmessage = resolve;
+          channel.port1.onmessage = t.step_func(function(e) {
+              assert_equals(e.data.results, 'finish');
+              service_worker_unregister_and_done(t, SCOPE);
             });
-
           frame.contentWindow.postMessage({},
                                           host_info['HTTPS_ORIGIN'],
                                           [channel.port2]);
-          return onMsg;
         })
-      .then(function(e) {
-          assert_equals(e.data.results, 'finish');
-        });
+      .catch(unreached_rejection(t));
   }, 'Verify the response of FetchEvent using XMLHttpRequest');
 </script>

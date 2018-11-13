@@ -526,8 +526,7 @@ impl RuleTree {
             path,
             guards,
             &mut dummy,
-        )
-        .expect("Should return a valid rule node")
+        ).expect("Should return a valid rule node")
     }
 }
 
@@ -731,9 +730,9 @@ unsafe impl Send for RuleTree {}
 #[cfg(feature = "gecko")]
 #[cfg(debug_assertions)]
 mod gecko_leak_checking {
-    use super::RuleNode;
     use std::mem::size_of;
     use std::os::raw::{c_char, c_void};
+    use super::RuleNode;
 
     extern "C" {
         pub fn NS_LogCtor(aPtr: *const c_void, aTypeName: *const c_char, aSize: u32);
@@ -1289,12 +1288,24 @@ impl StrongRuleNode {
             }
         }
 
-        // If author colors are not allowed, don't look at those properties
-        // (except for background-color which is special and we handle below).
+        // If author colors are not allowed, only claim to have author-specified
+        // rules if we're looking at a non-color property or if we're looking at
+        // the background color and it's set to transparent.
+        const IGNORED_WHEN_COLORS_DISABLED: &'static [LonghandId] = &[
+            LonghandId::BackgroundImage,
+            LonghandId::BorderTopColor,
+            LonghandId::BorderRightColor,
+            LonghandId::BorderBottomColor,
+            LonghandId::BorderLeftColor,
+            LonghandId::BorderInlineStartColor,
+            LonghandId::BorderInlineEndColor,
+            LonghandId::BorderBlockStartColor,
+            LonghandId::BorderBlockEndColor,
+        ];
+
         if !author_colors_allowed {
-            properties.remove_all(LonghandIdSet::ignored_when_colors_disabled());
-            if rule_type_mask & NS_AUTHOR_SPECIFIED_BACKGROUND != 0 {
-                properties.insert(LonghandId::BackgroundColor);
+            for id in IGNORED_WHEN_COLORS_DISABLED {
+                properties.remove(*id);
             }
         }
 

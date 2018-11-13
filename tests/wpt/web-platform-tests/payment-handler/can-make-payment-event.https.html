@@ -264,12 +264,14 @@ promise_test(async t => {
 promise_test(async t => {
   const methodName = 'basic-card';
   await registerApp(methodName);
+  const cardType = 'prepaid';
   const cardNetwork = 'mir';
   const request = new PaymentRequest(
     [
       {
         supportedMethods: methodName,
         data: {
+          supportedTypes: [cardType],
           supportedNetworks: [cardNetwork],
         },
       },
@@ -303,12 +305,14 @@ promise_test(async t => {
 
 promise_test(async t => {
   const methodName = 'basic-card';
+  const cardType = 'prepaid';
   const cardNetwork = 'mir';
   const registration = await registerApp(methodName);
   await registration.paymentManager.instruments.set(instrumentKey, {
     name: 'Test Payment Method',
     method: methodName,
     capabilities: {
+      supportedTypes: [cardType],
       supportedNetworks: [cardNetwork],
     },
   });
@@ -317,6 +321,7 @@ promise_test(async t => {
       {
         supportedMethods: methodName,
         data: {
+          supportedTypes: [cardType],
           supportedNetworks: [cardNetwork],
         },
       },
@@ -350,12 +355,14 @@ promise_test(async t => {
 
 promise_test(async t => {
   const methodName = 'basic-card';
+  const cardType = 'prepaid';
   const cardNetwork = 'mir';
   const registration = await registerApp(methodName);
   await registration.paymentManager.instruments.set(instrumentKey, {
     name: 'Test Payment Method',
     method: methodName,
     capabilities: {
+      supportedTypes: [cardType],
       supportedNetworks: [cardNetwork],
     },
   });

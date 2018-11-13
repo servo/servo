@@ -20,10 +20,10 @@ Or to run in a specified copy of Firefox:
 
     ./wpt run --binary ~/local/firefox/firefox firefox dom/historical.html
 
-For details on the supported products and a large number of other options for
-customising the test run:
+`./wpt run --help` lists the supported products.
 
-    ./wpt run --help
+For details on the supported products and a large number of other options for
+customising the test run, see `./wpt run --help`.
 
 Additional browser-specific documentation:
 

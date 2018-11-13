@@ -6,31 +6,29 @@
 
 //! Different kind of helpers to interact with Gecko values.
 
+use Atom;
 use app_units::Au;
 use counter_style::{Symbol, Symbols};
 use cssparser::RGBA;
-use gecko_bindings::structs::{self, nsStyleCoord, CounterStylePtr};
+use gecko_bindings::structs::{self, CounterStylePtr, nsStyleCoord};
 use gecko_bindings::structs::{StyleGridTrackBreadth, StyleShapeRadius};
 use gecko_bindings::sugar::ns_style_coord::{CoordData, CoordDataMut, CoordDataValue};
 use media_queries::Device;
 use nsstring::{nsACString, nsCStr};
 use std::cmp::max;
-use values::computed::basic_shape::ShapeRadius as ComputedShapeRadius;
-use values::computed::FlexBasis as ComputedFlexBasis;
-use values::computed::{Angle, ExtremumLength, Length, LengthOrPercentage};
-use values::computed::{LengthOrPercentageOrAuto, Percentage};
+use values::{Auto, Either, None_, Normal};
+use values::computed::{Angle, ExtremumLength, Length, LengthOrPercentage, LengthOrPercentageOrAuto};
 use values::computed::{LengthOrPercentageOrNone, Number, NumberOrPercentage};
-use values::computed::{MaxLength as ComputedMaxLength, MozLength as ComputedMozLength};
+use values::computed::{MaxLength, MozLength, Percentage};
 use values::computed::{NonNegativeLength, NonNegativeLengthOrPercentage, NonNegativeNumber};
+use values::computed::FlexBasis as ComputedFlexBasis;
+use values::computed::basic_shape::ShapeRadius as ComputedShapeRadius;
+use values::generics::{CounterStyleOrNone, NonNegative};
 use values::generics::basic_shape::ShapeRadius;
 use values::generics::box_::Perspective;
 use values::generics::flex::FlexBasis;
 use values::generics::gecko::ScrollSnapPoint;
 use values::generics::grid::{TrackBreadth, TrackKeyword};
-use values::generics::length::{MaxLength, MozLength};
-use values::generics::{CounterStyleOrNone, NonNegative};
-use values::{Auto, Either, None_, Normal};
-use Atom;
 
 /// A trait that defines an interface to convert from and to `nsStyleCoord`s.
 pub trait GeckoStyleCoordConvertible: Sized {
@@ -76,7 +74,7 @@ impl GeckoStyleCoordConvertible for ComputedFlexBasis {
     }
 
     fn from_gecko_style_coord<T: CoordData>(coord: &T) -> Option<Self> {
-        if let Some(width) = ComputedMozLength::from_gecko_style_coord(coord) {
+        if let Some(width) = MozLength::from_gecko_style_coord(coord) {
             return Some(FlexBasis::Width(width));
         }
 
@@ -327,7 +325,10 @@ impl GeckoStyleCoordConvertible for Angle {
 
     fn from_gecko_style_coord<T: CoordData>(coord: &T) -> Option<Self> {
         match coord.as_value() {
-            CoordDataValue::Degree(val) => Some(Angle::from_degrees(val)),
+            CoordDataValue::Degree(val) => Some(Angle::Deg(val)),
+            CoordDataValue::Grad(val) => Some(Angle::Grad(val)),
+            CoordDataValue::Radian(val) => Some(Angle::Rad(val)),
+            CoordDataValue::Turn(val) => Some(Angle::Turn(val)),
             _ => None,
         }
     }
@@ -408,7 +409,7 @@ impl GeckoStyleCoordConvertible for ExtremumLength {
     }
 }
 
-impl GeckoStyleCoordConvertible for ComputedMozLength {
+impl GeckoStyleCoordConvertible for MozLength {
     fn to_gecko_style_coord<T: CoordDataMut>(&self, coord: &mut T) {
         match *self {
             MozLength::LengthOrPercentageOrAuto(ref lopoa) => lopoa.to_gecko_style_coord(coord),
@@ -425,7 +426,7 @@ impl GeckoStyleCoordConvertible for ComputedMozLength {
     }
 }
 
-impl GeckoStyleCoordConvertible for ComputedMaxLength {
+impl GeckoStyleCoordConvertible for MaxLength {
     fn to_gecko_style_coord<T: CoordDataMut>(&self, coord: &mut T) {
         match *self {
             MaxLength::LengthOrPercentageOrNone(ref lopon) => lopon.to_gecko_style_coord(coord),
@@ -538,8 +539,7 @@ impl CounterStyleOrNone {
                     .map(|symbol| match *symbol {
                         Symbol::String(ref s) => nsCStr::from(s),
                         Symbol::Ident(_) => unreachable!("Should not have identifier in symbols()"),
-                    })
-                    .collect();
+                    }).collect();
                 let symbols: Vec<_> = symbols
                     .iter()
                     .map(|symbol| symbol as &nsACString as *const _)
@@ -559,8 +559,8 @@ impl CounterStyleOrNone {
     /// Convert Gecko CounterStylePtr to CounterStyleOrNone or String.
     pub fn from_gecko_value(gecko_value: &CounterStylePtr) -> Either<Self, String> {
         use gecko_bindings::bindings;
-        use values::generics::SymbolsType;
         use values::CustomIdent;
+        use values::generics::SymbolsType;
 
         let name = unsafe { bindings::Gecko_CounterStyle_GetName(gecko_value) };
         if !name.is_null() {

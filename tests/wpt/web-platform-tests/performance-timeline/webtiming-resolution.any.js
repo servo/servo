@@ -5,9 +5,8 @@ function testTimeResolution(highResTimeFunc, funcString) {
         while (t0 == t1) {
             t1 = highResTimeFunc();
         }
-        const epsilon = 1e-5;
-        assert_greater_than_equal(t1 - t0, 0.005 - epsilon, 'The second ' + funcString + ' should be much greater than the first');
-    }, 'Verifies the resolution of ' + funcString + ' is at least 5 microseconds.');
+        assert_greater_than_equal(t1 - t0, 0.02, 'The second ' + funcString + ' should be much greater than the first');
+    }, 'Verifies the resolution of ' + funcString + ' is at least 20 microseconds.');
 }
 
 function timeByPerformanceNow() {

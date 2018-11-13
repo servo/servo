@@ -3,14 +3,14 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use ipc_channel::ipc::channel;
-use script_traits::{ScriptMsg, ScriptToConstellationChan};
+use script_traits::{ScriptToConstellationChan, ScriptMsg};
 use std::borrow::ToOwned;
 
 pub trait ClipboardProvider {
     // blocking method to get the clipboard contents
     fn clipboard_contents(&mut self) -> String;
     // blocking method to set the clipboard contents
-    fn set_clipboard_contents(&mut self, _: String);
+    fn set_clipboard_contents(&mut self, String);
 }
 
 impl ClipboardProvider for ScriptToConstellationChan {

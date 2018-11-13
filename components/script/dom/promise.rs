@@ -11,12 +11,12 @@
 //! native Promise values that refer to the same JS value yet are distinct native objects
 //! (ie. address equality for the native objects is meaningless).
 
-use crate::dom::bindings::conversions::root_from_object;
-use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::reflector::{DomObject, MutDomObject, Reflector};
-use crate::dom::bindings::utils::AsCCharPtrPtr;
-use crate::dom::globalscope::GlobalScope;
-use crate::dom::promisenativehandler::PromiseNativeHandler;
+use dom::bindings::conversions::root_from_object;
+use dom::bindings::error::{Error, Fallible};
+use dom::bindings::reflector::{DomObject, MutDomObject, Reflector};
+use dom::bindings::utils::AsCCharPtrPtr;
+use dom::globalscope::GlobalScope;
+use dom::promisenativehandler::PromiseNativeHandler;
 use dom_struct::dom_struct;
 use js::conversions::ToJSValConvertible;
 use js::jsapi::{AddRawValueRoot, CallArgs, GetFunctionNativeReserved};
@@ -24,13 +24,11 @@ use js::jsapi::{Heap, JS_ClearPendingException};
 use js::jsapi::{JSAutoCompartment, JSContext, JSObject, JS_GetFunctionObject};
 use js::jsapi::{JS_NewFunction, NewFunctionWithReserved, PromiseState};
 use js::jsapi::{RemoveRawValueRoot, SetFunctionNativeReserved};
-use js::jsval::{Int32Value, JSVal, ObjectValue, UndefinedValue};
-use js::rust::wrappers::{
-    AddPromiseReactions, CallOriginalPromiseReject, CallOriginalPromiseResolve,
-};
-use js::rust::wrappers::{GetPromiseState, IsPromiseObject};
-use js::rust::wrappers::{NewPromiseObject, RejectPromise, ResolvePromise};
+use js::jsval::{JSVal, UndefinedValue, ObjectValue, Int32Value};
 use js::rust::{HandleObject, HandleValue, MutableHandleObject, Runtime};
+use js::rust::wrappers::{AddPromiseReactions, CallOriginalPromiseResolve, CallOriginalPromiseReject};
+use js::rust::wrappers::{GetPromiseState, IsPromiseObject};
+use js::rust::wrappers::{NewPromiseObject, ResolvePromise, RejectPromise};
 use std::ptr;
 use std::rc::Rc;
 
@@ -95,7 +93,7 @@ impl Promise {
     }
 
     #[allow(unsafe_code, unrooted_must_root)]
-    pub unsafe fn new_with_js_promise(obj: HandleObject, cx: *mut JSContext) -> Rc<Promise> {
+    unsafe fn new_with_js_promise(obj: HandleObject, cx: *mut JSContext) -> Rc<Promise> {
         assert!(IsPromiseObject(obj));
         let promise = Promise {
             reflector: Reflector::new(),

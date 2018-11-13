@@ -11,6 +11,7 @@
   // https://w3c.github.io/webrtc-pc/archives/20170605/webrtc.html
 
   // The following helper functions are called from RTCPeerConnection-helper.js:
+  //   generateOffer
   //   generateAnswer
   //   assert_session_desc_similar
 
@@ -64,7 +65,7 @@
     const states = [];
     pc.addEventListener('signalingstatechange', () => states.push(pc.signalingState));
 
-    return generateVideoReceiveOnlyOffer(pc)
+    return pc.createOffer({ offerToReceiveVideo: true })
     .then(offer =>
       pc.setRemoteDescription(offer)
       .then(() => pc.createAnswer())
@@ -96,7 +97,7 @@
 
     t.add_cleanup(() => pc.close());
 
-    return generateVideoReceiveOnlyOffer(pc)
+    return pc.createOffer({ offerToReceiveVideo: true })
     .then(offer =>
       pc.setRemoteDescription(offer)
       .then(() => pc.createAnswer())
@@ -127,7 +128,7 @@
 
     t.add_cleanup(() => pc.close());
 
-    return generateVideoReceiveOnlyOffer(pc)
+    return pc.createOffer({ offerToReceiveVideo: true })
     .then(offer =>
       pc.setRemoteDescription(offer)
       .then(() => generateAnswer(offer))

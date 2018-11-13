@@ -2,18 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use crate::compositor_thread::{CompositorProxy, CompositorReceiver};
-use crate::compositor_thread::{InitialCompositorState, Msg};
-#[cfg(feature = "gleam")]
-use crate::gl;
-use crate::touch::{TouchAction, TouchHandler};
-use crate::windowing::{
-    self, EmbedderCoordinates, MouseWindowEvent, WebRenderDebugOption, WindowMethods,
-};
-use crate::CompositionPipeline;
-use crate::SendableFrameTree;
-use euclid::{TypedPoint2D, TypedScale, TypedVector2D};
+use CompositionPipeline;
+use SendableFrameTree;
+use compositor_thread::{CompositorProxy, CompositorReceiver};
+use compositor_thread::{InitialCompositorState, Msg};
+use euclid::{TypedPoint2D, TypedVector2D, TypedScale};
 use gfx_traits::Epoch;
+#[cfg(feature = "gleam")]
+use gl;
 #[cfg(feature = "gleam")]
 use image::{DynamicImage, ImageFormat};
 use ipc_channel::ipc;
@@ -22,26 +18,30 @@ use msg::constellation_msg::{PipelineId, PipelineIndex, PipelineNamespaceId};
 use net_traits::image::base::Image;
 #[cfg(feature = "gleam")]
 use net_traits::image::base::PixelFormat;
-use profile_traits::time::{self as profile_time, profile, ProfilerCategory};
-use script_traits::CompositorEvent::{MouseButtonEvent, MouseMoveEvent, TouchEvent};
+use profile_traits::time::{self, ProfilerCategory, profile};
 use script_traits::{AnimationState, AnimationTickType, ConstellationMsg, LayoutControlMsg};
 use script_traits::{MouseButton, MouseEventType, ScrollState, TouchEventType, TouchId};
 use script_traits::{UntrustedNodeAddress, WindowSizeData, WindowSizeType};
+use script_traits::CompositorEvent::{MouseMoveEvent, MouseButtonEvent, TouchEvent};
 use servo_channel::Sender;
 use servo_config::opts;
 use servo_geometry::DeviceIndependentPixel;
 use std::collections::HashMap;
 use std::env;
-use std::fs::{create_dir_all, File};
+use std::fs::{File, create_dir_all};
 use std::io::Write;
 use std::num::NonZeroU32;
 use std::rc::Rc;
+use std::time::Instant;
+use style_traits::{CSSPixel, DevicePixel, PinchZoomFactor};
 use style_traits::cursor::CursorKind;
 use style_traits::viewport::ViewportConstraints;
-use style_traits::{CSSPixel, DevicePixel, PinchZoomFactor};
 use time::{now, precise_time_ns, precise_time_s};
+use touch::{TouchHandler, TouchAction};
+use webrender;
 use webrender_api::{self, DeviceIntPoint, DevicePoint, HitTestFlags, HitTestResult};
 use webrender_api::{LayoutVector2D, ScrollLocation};
+use windowing::{self, EmbedderCoordinates, MouseWindowEvent, WebRenderDebugOption, WindowMethods};
 
 #[derive(Debug, PartialEq)]
 enum UnableToComposite {
@@ -151,7 +151,7 @@ pub struct IOCompositor<Window: WindowMethods> {
     constellation_chan: Sender<ConstellationMsg>,
 
     /// The channel on which messages can be sent to the time profiler.
-    time_profiler_chan: profile_time::ProfilerChan,
+    time_profiler_chan: time::ProfilerChan,
 
     /// Touch input state machine
     touch_handler: TouchHandler,
@@ -165,6 +165,11 @@ pub struct IOCompositor<Window: WindowMethods> {
     /// Used by the logic that determines when it is safe to output an
     /// image for the reftest framework.
     ready_to_save_state: ReadyState,
+
+    /// Whether a scroll is in progress; i.e. whether the user's fingers are down.
+    scroll_in_progress: bool,
+
+    in_scroll_transaction: Option<Instant>,
 
     /// The webrender renderer.
     webrender: webrender::Renderer,
@@ -262,7 +267,7 @@ impl RenderNotifier {
 }
 
 impl webrender_api::RenderNotifier for RenderNotifier {
-    fn clone(&self) -> Box<dyn webrender_api::RenderNotifier> {
+    fn clone(&self) -> Box<webrender_api::RenderNotifier> {
         Box::new(RenderNotifier::new(self.compositor_proxy.clone()))
     }
 
@@ -318,6 +323,8 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             time_profiler_chan: state.time_profiler_chan,
             last_composite_time: 0,
             ready_to_save_state: ReadyState::Unknown,
+            scroll_in_progress: false,
+            in_scroll_transaction: None,
             webrender: state.webrender,
             webrender_document: state.webrender_document,
             webrender_api: state.webrender_api,
@@ -367,7 +374,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         // Tell the profiler, memory profiler, and scrolling timer to shut down.
         if let Ok((sender, receiver)) = ipc::channel() {
             self.time_profiler_chan
-                .send(profile_time::ProfilerMsg::Exit(sender));
+                .send(time::ProfilerMsg::Exit(sender));
             let _ = receiver.recv();
         }
 
@@ -499,10 +506,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
             (Msg::GetScreenAvailSize(req), ShutdownState::NotShuttingDown) => {
                 if let Err(e) = req.send(self.embedder_coordinates.screen_avail) {
-                    warn!(
-                        "Sending response to get screen avail size failed ({:?}).",
-                        e
-                    );
+                    warn!("Sending response to get screen avail size failed ({:?}).", e);
                 }
             },
 
@@ -848,15 +852,44 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         match phase {
             TouchEventType::Move => self.on_scroll_window_event(delta, cursor),
             TouchEventType::Up | TouchEventType::Cancel => {
-                self.on_scroll_window_event(delta, cursor);
+                self.on_scroll_end_window_event(delta, cursor);
             },
             TouchEventType::Down => {
-                self.on_scroll_window_event(delta, cursor);
+                self.on_scroll_start_window_event(delta, cursor);
             },
         }
     }
 
     fn on_scroll_window_event(&mut self, scroll_location: ScrollLocation, cursor: DeviceIntPoint) {
+        self.in_scroll_transaction = Some(Instant::now());
+        self.pending_scroll_zoom_events.push(ScrollZoomEvent {
+            magnification: 1.0,
+            scroll_location: scroll_location,
+            cursor: cursor,
+            event_count: 1,
+        });
+    }
+
+    fn on_scroll_start_window_event(
+        &mut self,
+        scroll_location: ScrollLocation,
+        cursor: DeviceIntPoint,
+    ) {
+        self.scroll_in_progress = true;
+        self.pending_scroll_zoom_events.push(ScrollZoomEvent {
+            magnification: 1.0,
+            scroll_location: scroll_location,
+            cursor: cursor,
+            event_count: 1,
+        });
+    }
+
+    fn on_scroll_end_window_event(
+        &mut self,
+        scroll_location: ScrollLocation,
+        cursor: DeviceIntPoint,
+    ) {
+        self.scroll_in_progress = false;
         self.pending_scroll_zoom_events.push(ScrollZoomEvent {
             magnification: 1.0,
             scroll_location: scroll_location,
@@ -1155,19 +1188,15 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     pub fn composite(&mut self) {
         let target = self.composite_target;
         match self.composite_specific_target(target) {
-            Ok(_) => {
-                if opts::get().output_file.is_some() || opts::get().exit_after_load {
-                    println!("Shutting down the Constellation after generating an output file or exit flag specified");
-                    self.start_shutting_down();
-                }
+            Ok(_) => if opts::get().output_file.is_some() || opts::get().exit_after_load {
+                println!("Shutting down the Constellation after generating an output file or exit flag specified");
+                self.start_shutting_down();
             },
-            Err(e) => {
-                if opts::get().is_running_problem_test {
-                    if e != UnableToComposite::NotReadyToPaintImage(
-                        NotReadyToPaint::WaitingOnConstellation,
-                    ) {
-                        println!("not ready to composite: {:?}", e);
-                    }
+            Err(e) => if opts::get().is_running_problem_test {
+                if e != UnableToComposite::NotReadyToPaintImage(
+                    NotReadyToPaint::WaitingOnConstellation,
+                ) {
+                    println!("not ready to composite: {:?}", e);
                 }
             },
         }
@@ -1184,7 +1213,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     ) -> Result<Option<Image>, UnableToComposite> {
         let width = self.embedder_coordinates.framebuffer.width_typed();
         let height = self.embedder_coordinates.framebuffer.height_typed();
-        if !self.window.prepare_for_composite() {
+        if !self.window.prepare_for_composite(width, height) {
             return Err(UnableToComposite::WindowUnprepared);
         }
 
@@ -1259,7 +1288,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                     if let Some(pipeline) = self.pipeline(*id) {
                         // and inform the layout thread with the measured paint time.
                         let msg = LayoutControlMsg::PaintMetric(epoch, paint_time);
-                        if let Err(e) = pipeline.layout_chan.send(msg) {
+                        if let Err(e)  = pipeline.layout_chan.send(msg) {
                             warn!("Sending PaintMetric message to layout failed ({:?}).", e);
                         }
                     }
@@ -1449,8 +1478,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 val.as_ref()
                     .map(|dir| dir.join("capture_webrender").join(&capture_id))
                     .ok()
-            })
-            .find(|val| match create_dir_all(&val) {
+            }).find(|val| match create_dir_all(&val) {
                 Ok(_) => true,
                 Err(err) => {
                     eprintln!("Unable to create path '{:?}' for capture: {:?}", &val, err);

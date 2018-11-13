@@ -2,7 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use crate::text::util::unicode_plane;
+use core_text;
+use text::util::unicode_plane;
 use ucd::{Codepoint, UnicodeBlock};
 
 pub fn for_each_available_family<F>(mut callback: F)
@@ -23,10 +24,9 @@ where
 
     let family_collection = core_text::font_collection::create_for_family(family_name);
     if let Some(family_collection) = family_collection {
-        if let Some(family_descriptors) = family_collection.get_descriptors() {
-            for family_descriptor in family_descriptors.iter() {
-                callback(family_descriptor.font_name());
-            }
+        let family_descriptors = family_collection.get_descriptors();
+        for family_descriptor in family_descriptors.iter() {
+            callback(family_descriptor.font_name());
         }
     }
 }

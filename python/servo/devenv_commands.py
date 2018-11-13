@@ -42,8 +42,6 @@ class MachCommands(CommandBase):
         if check:
             params = ['check'] + params
 
-        self.add_manifest_path(params)
-
         build_start = time()
         status = self.call_rustup_run(["cargo"] + params, env=env)
         elapsed = time() - build_start
@@ -233,6 +231,19 @@ class MachCommands(CommandBase):
         with cd(self.context.topdir):
             return self.call_rustup_run(["cargo", "fetch"], env=self.build_env())
 
+    @Command('rustfmt',
+             description='Format the Rust code using Cargo fmt',
+             category='devenv')
+    @CommandArgument(
+        '--directory', '-d', default=None,
+        help='Command-line argument to specify the directory for formatting')
+    def rustfmt(self, directory=""):
+        if directory == "":
+            directory = self.context.topdir
+
+        with cd(self.context.topdir):
+            return self.call_rustup_run(["cargo", "fmt", "--", directory], env=self.build_env())
+
     @Command('ndk-stack',
              description='Invoke the ndk-stack tool with the expected symbol paths',
              category='devenv')
@@ -305,7 +316,7 @@ class MachCommands(CommandBase):
             ndk_gdb,
             "--adb", adb_path,
             "--project", "support/android/apk/servoapp/src/main/",
-            "--launch", "org.mozilla.servo.MainActivity",
+            "--launch", "com.mozilla.servo.MainActivity",
             "-x", f.name,
             "--verbose",
         ], env=env)

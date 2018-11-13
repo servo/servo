@@ -39,7 +39,6 @@ metadata files are used to store the expected test results.
 def setup_logging(*args, **kwargs):
     global logger
     logger = wptlogging.setup(*args, **kwargs)
-    return logger
 
 
 def get_loader(test_paths, product, debug=None, run_info_extras=None, **kwargs):
@@ -49,7 +48,6 @@ def get_loader(test_paths, product, debug=None, run_info_extras=None, **kwargs):
     run_info = wpttest.get_run_info(kwargs["run_info"], product,
                                     browser_version=kwargs.get("browser_version"),
                                     browser_channel=kwargs.get("browser_channel"),
-                                    verify=kwargs.get("verify"),
                                     debug=debug,
                                     extras=run_info_extras)
 
@@ -126,8 +124,6 @@ def get_pause_after_test(test_loader, **kwargs):
     if kwargs["pause_after_test"] is None:
         if kwargs["repeat_until_unexpected"]:
             return False
-        if kwargs["headless"]:
-            return False
         if kwargs["repeat"] == 1 and kwargs["rerun"] == 1 and total_tests == 1:
             return True
         return False
@@ -150,7 +146,7 @@ def run_tests(config, test_paths, product, **kwargs):
         if kwargs["install_fonts"]:
             env_extras.append(FontInstaller(
                 font_dir=kwargs["font_dir"],
-                ahem=os.path.join(test_paths["/"]["tests_path"], "fonts/Ahem.ttf")
+                ahem=os.path.join(kwargs["tests_root"], "fonts/Ahem.ttf")
             ))
 
         run_info, test_loader = get_loader(test_paths,
@@ -267,23 +263,22 @@ def run_tests(config, test_paths, product, **kwargs):
                                       kwargs["pause_after_test"],
                                       kwargs["pause_on_unexpected"],
                                       kwargs["restart_on_unexpected"],
-                                      kwargs["debug_info"],
-                                      not kwargs["no_capture_stdio"]) as manager_group:
+                                      kwargs["debug_info"]) as manager_group:
                         try:
                             manager_group.run(test_type, run_tests)
                         except KeyboardInterrupt:
                             logger.critical("Main thread got signal")
                             manager_group.stop()
                             raise
-                        test_count += manager_group.test_count()
-                        unexpected_count += manager_group.unexpected_count()
+                    test_count += manager_group.test_count()
+                    unexpected_count += manager_group.unexpected_count()
 
                 test_total += test_count
                 unexpected_total += unexpected_count
                 logger.info("Got %i unexpected results" % unexpected_count)
-                logger.suite_end()
                 if repeat_until_unexpected and unexpected_total > 0:
                     break
+                logger.suite_end()
 
     if test_total == 0:
         if skipped_tests > 0:

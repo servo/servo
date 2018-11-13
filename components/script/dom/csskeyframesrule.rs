@@ -2,23 +2,23 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::codegen::Bindings::CSSKeyframesRuleBinding;
-use crate::dom::bindings::codegen::Bindings::CSSKeyframesRuleBinding::CSSKeyframesRuleMethods;
-use crate::dom::bindings::error::ErrorResult;
-use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
-use crate::dom::bindings::root::{DomRoot, MutNullableDom};
-use crate::dom::bindings::str::DOMString;
-use crate::dom::csskeyframerule::CSSKeyframeRule;
-use crate::dom::cssrule::{CSSRule, SpecificCSSRule};
-use crate::dom::cssrulelist::{CSSRuleList, RulesSource};
-use crate::dom::cssstylesheet::CSSStyleSheet;
-use crate::dom::window::Window;
 use cssparser::{Parser, ParserInput};
+use dom::bindings::codegen::Bindings::CSSKeyframesRuleBinding;
+use dom::bindings::codegen::Bindings::CSSKeyframesRuleBinding::CSSKeyframesRuleMethods;
+use dom::bindings::error::ErrorResult;
+use dom::bindings::inheritance::Castable;
+use dom::bindings::reflector::{DomObject, reflect_dom_object};
+use dom::bindings::root::{DomRoot, MutNullableDom};
+use dom::bindings::str::DOMString;
+use dom::csskeyframerule::CSSKeyframeRule;
+use dom::cssrule::{CSSRule, SpecificCSSRule};
+use dom::cssrulelist::{CSSRuleList, RulesSource};
+use dom::cssstylesheet::CSSStyleSheet;
+use dom::window::Window;
 use dom_struct::dom_struct;
 use servo_arc::Arc;
 use style::shared_lock::{Locked, ToCssWithGuard};
-use style::stylesheets::keyframes_rule::{Keyframe, KeyframeSelector, KeyframesRule};
+use style::stylesheets::keyframes_rule::{KeyframesRule, Keyframe, KeyframeSelector};
 use style::values::KeyframesName;
 
 #[dom_struct]
@@ -146,7 +146,7 @@ impl CSSKeyframesRuleMethods for CSSKeyframesRule {
 
 impl SpecificCSSRule for CSSKeyframesRule {
     fn ty(&self) -> u16 {
-        use crate::dom::bindings::codegen::Bindings::CSSRuleBinding::CSSRuleConstants;
+        use dom::bindings::codegen::Bindings::CSSRuleBinding::CSSRuleConstants;
         CSSRuleConstants::KEYFRAMES_RULE
     }
 

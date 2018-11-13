@@ -5,12 +5,12 @@
   <script src="/resources/testharnessreport.js"></script>
   <script src="support/helper.sub.js"></script>
 
-  <meta http-equiv="Content-Security-Policy" content="trusted-types *">
+  <meta http-equiv="Content-Security-Policy" content="trusted-types">
 </head>
 <body>
 <script>
   // TrustedURL Assignments
-  const URLTestCases = [
+  let testCases = [
     [ 'a', 'href' ],
     [ 'area', 'href' ],
     [ 'base', 'href' ],
@@ -26,7 +26,7 @@
     [ 'track', 'src' ]
   ];
 
-  URLTestCases.forEach(c => {
+  testCases.forEach(c => {
     test(t => {
       assert_element_accepts_trusted_url_explicit_set(window, c, t, c[0], c[1], RESULTS.URL);
       assert_throws_no_trusted_type_explicit_set(c[0], c[1], 'A string');
@@ -35,12 +35,12 @@
   });
 
   // TrustedScriptURL Assignments
-  const scriptURLTestCases = [
+  let scriptTestCases = [
     [ 'embed', 'src' ],
     [ 'script', 'src' ]
   ];
 
-  scriptURLTestCases.forEach(c => {
+  scriptTestCases.forEach(c => {
     test(t => {
       assert_element_accepts_trusted_script_url_explicit_set(window, c, t, c[0], c[1], RESULTS.SCRIPTURL);
       assert_throws_no_trusted_type_explicit_set(c[0], c[1], 'A string');
@@ -49,7 +49,7 @@
   });
 
   // TrustedHTML Assignments
-  const HTMLTestCases = [
+  let HTMLTestCases = [
     [ 'iframe', 'srcdoc' ]
   ];
 
@@ -59,35 +59,6 @@
       assert_throws_no_trusted_type_explicit_set(c[0], c[1], 'A string');
       assert_throws_no_trusted_type_explicit_set(c[0], c[1], null);
     }, c[0] + "." + c[1] + " accepts only TrustedHTML");
-  });
-
-  // After default policy creation string and null assignments implicitly call createXYZ
-  let p = window.TrustedTypes.createPolicy("default", { createURL: createURLJS, createScriptURL: createScriptURLJS, createHTML: createHTMLJS }, true);
-  URLTestCases.forEach(c => {
-    test(t => {
-      assert_element_accepts_trusted_type(c[0], c[1], INPUTS.URL, RESULTS.URL);
-
-      // Properties that actually parse the URLs will resort to the base URL
-      // when given a null or empty URL.
-      assert_element_accepts_trusted_type(c[0], c[1], null, "" + window.location);
-    }, c[0] + "." + c[1] + " accepts string and null after default policy was created.");
-  });
-
-  scriptURLTestCases.forEach(c => {
-    test(t => {
-      assert_element_accepts_trusted_type(c[0], c[1], INPUTS.SCRIPTURL, RESULTS.SCRIPTURL);
-
-      // Properties that actually parse the URLs will resort to the base URL
-      // when given a null or empty URL.
-      assert_element_accepts_trusted_type(c[0], c[1], null, "" + window.location);
-    }, c[0] + "." + c[1] + " accepts string and null after default policy was created.");
-  });
-
-  HTMLTestCases.forEach(c => {
-    test(t => {
-      assert_element_accepts_trusted_type(c[0], c[1], INPUTS.HTML, RESULTS.HTML);
-      assert_element_accepts_trusted_type(c[0], c[1], null, "null");
-    }, c[0] + "." + c[1] + " accepts string and null after default policy was created.");
   });
 
   // Other attributes can be assigned with TrustedTypes or strings or null values
@@ -102,14 +73,4 @@
   test(t => {
     assert_element_accepts_non_trusted_type_explicit_set('a', 'rel', null, 'null');
   }, "a.rel accepts null");
-
-  test(t => {
-    let el = document.createElement('iframe');
-
-    assert_throws(new TypeError(), _ => {
-      el.setAttribute('SrC', INPUTS.URL);
-    });
-
-    assert_equals(el.src, '');
-  }, "`Element.prototype.setAttribute.SrC = string` throws.");
 </script>

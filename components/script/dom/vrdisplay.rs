@@ -3,39 +3,38 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use canvas_traits::webgl::{webgl_channel, WebGLReceiver, WebVRCommand};
-use crate::dom::bindings::callback::ExceptionHandling;
-use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::PerformanceBinding::PerformanceBinding::PerformanceMethods;
-use crate::dom::bindings::codegen::Bindings::VRDisplayBinding;
-use crate::dom::bindings::codegen::Bindings::VRDisplayBinding::VRDisplayMethods;
-use crate::dom::bindings::codegen::Bindings::VRDisplayBinding::VREye;
-use crate::dom::bindings::codegen::Bindings::VRLayerBinding::VRLayer;
-use crate::dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextMethods;
-use crate::dom::bindings::codegen::Bindings::WindowBinding::FrameRequestCallback;
-use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowBinding::WindowMethods;
-use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::num::Finite;
-use crate::dom::bindings::refcounted::Trusted;
-use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
-use crate::dom::bindings::root::{DomRoot, MutDom, MutNullableDom};
-use crate::dom::bindings::str::DOMString;
-use crate::dom::event::Event;
-use crate::dom::eventtarget::EventTarget;
-use crate::dom::globalscope::GlobalScope;
-use crate::dom::promise::Promise;
-use crate::dom::vrdisplaycapabilities::VRDisplayCapabilities;
-use crate::dom::vrdisplayevent::VRDisplayEvent;
-use crate::dom::vreyeparameters::VREyeParameters;
-use crate::dom::vrframedata::VRFrameData;
-use crate::dom::vrpose::VRPose;
-use crate::dom::vrstageparameters::VRStageParameters;
-use crate::dom::webglrenderingcontext::WebGLRenderingContext;
-use crate::script_runtime::CommonScriptMsg;
-use crate::script_runtime::ScriptThreadEventCategory::WebVREvent;
-use crate::task_source::TaskSourceName;
+use dom::bindings::callback::ExceptionHandling;
+use dom::bindings::cell::DomRefCell;
+use dom::bindings::codegen::Bindings::PerformanceBinding::PerformanceBinding::PerformanceMethods;
+use dom::bindings::codegen::Bindings::VRDisplayBinding;
+use dom::bindings::codegen::Bindings::VRDisplayBinding::VRDisplayMethods;
+use dom::bindings::codegen::Bindings::VRDisplayBinding::VREye;
+use dom::bindings::codegen::Bindings::VRLayerBinding::VRLayer;
+use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextMethods;
+use dom::bindings::codegen::Bindings::WindowBinding::FrameRequestCallback;
+use dom::bindings::codegen::Bindings::WindowBinding::WindowBinding::WindowMethods;
+use dom::bindings::inheritance::Castable;
+use dom::bindings::num::Finite;
+use dom::bindings::refcounted::Trusted;
+use dom::bindings::reflector::{DomObject, reflect_dom_object};
+use dom::bindings::root::{DomRoot, MutDom, MutNullableDom};
+use dom::bindings::str::DOMString;
+use dom::event::Event;
+use dom::eventtarget::EventTarget;
+use dom::globalscope::GlobalScope;
+use dom::promise::Promise;
+use dom::vrdisplaycapabilities::VRDisplayCapabilities;
+use dom::vrdisplayevent::VRDisplayEvent;
+use dom::vreyeparameters::VREyeParameters;
+use dom::vrframedata::VRFrameData;
+use dom::vrpose::VRPose;
+use dom::vrstageparameters::VRStageParameters;
+use dom::webglrenderingcontext::WebGLRenderingContext;
 use dom_struct::dom_struct;
 use ipc_channel::ipc::IpcSender;
 use profile_traits::ipc;
+use script_runtime::CommonScriptMsg;
+use script_runtime::ScriptThreadEventCategory::WebVREvent;
 use serde_bytes::ByteBuf;
 use servo_channel::{channel, Sender};
 use std::cell::Cell;
@@ -43,6 +42,7 @@ use std::mem;
 use std::ops::Deref;
 use std::rc::Rc;
 use std::thread;
+use task_source::TaskSourceName;
 use webvr_traits::{WebVRDisplayData, WebVRDisplayEvent, WebVRFrameData, WebVRLayer, WebVRMsg};
 
 #[dom_struct]
@@ -213,8 +213,7 @@ impl VRDisplayMethods for VRDisplay {
                 self.depth_near.get(),
                 self.depth_far.get(),
                 sender,
-            ))
-            .unwrap();
+            )).unwrap();
         return match receiver.recv().unwrap() {
             Ok(data) => {
                 frameData.update(&data);
@@ -240,8 +239,7 @@ impl VRDisplayMethods for VRDisplay {
                 self.global().pipeline_id(),
                 self.DisplayId(),
                 sender,
-            ))
-            .unwrap();
+            )).unwrap();
         if let Ok(data) = receiver.recv().unwrap() {
             // Some VRDisplay data might change after calling ResetPose()
             *self.display.borrow_mut() = data;
@@ -354,8 +352,7 @@ impl VRDisplayMethods for VRDisplay {
                 self.global().pipeline_id(),
                 self.display.borrow().display_id,
                 sender,
-            ))
-            .unwrap();
+            )).unwrap();
         match receiver.recv().unwrap() {
             Ok(()) => {
                 *self.layer.borrow_mut() = layer_bounds;
@@ -390,8 +387,7 @@ impl VRDisplayMethods for VRDisplay {
                 self.global().pipeline_id(),
                 self.display.borrow().display_id,
                 Some(sender),
-            ))
-            .unwrap();
+            )).unwrap();
         match receiver.recv().unwrap() {
             Ok(()) => {
                 self.stop_present();
@@ -561,8 +557,7 @@ impl VRDisplay {
                             task,
                             Some(pipeline_id),
                             TaskSourceName::DOMManipulation,
-                        ))
-                        .unwrap();
+                        )).unwrap();
 
                     // Run Sync Poses in parallell on Render thread
                     let msg = WebVRCommand::SyncPoses(display_id, near, far, sync_sender.clone());
@@ -578,8 +573,7 @@ impl VRDisplay {
                         return;
                     }
                 }
-            })
-            .expect("Thread spawning failed");
+            }).expect("Thread spawning failed");
     }
 
     fn stop_present(&self) {
@@ -601,8 +595,7 @@ impl VRDisplay {
                 self.global().pipeline_id(),
                 self.display.borrow().display_id,
                 None,
-            ))
-            .unwrap();
+            )).unwrap();
         self.stop_present();
     }
 

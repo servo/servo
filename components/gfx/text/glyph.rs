@@ -10,9 +10,9 @@ use euclid::Point2D;
 ))]
 use packed_simd::u32x4;
 use range::{self, EachIndex, Range, RangeIndex};
+use std::{fmt, mem, u16};
 use std::cmp::{Ordering, PartialOrd};
 use std::vec::Vec;
-use std::{fmt, mem, u16};
 
 pub use gfx_traits::ByteIndex;
 
@@ -223,15 +223,16 @@ impl<'a> DetailedGlyphStore {
             entry_offset, glyphs
         );
 
-        // TODO: don't actually assert this until asserts are compiled
-        // in/out based on severity, debug/release, etc. This assertion
-        // would wreck the complexity of the lookup.
-        //
-        // See Rust Issue #3647, #2228, #3627 for related information.
-        //
-        // do self.detail_lookup.borrow |arr| {
-        //     assert !arr.contains(entry)
-        // }
+        /* TODO: don't actually assert this until asserts are compiled
+        in/out based on severity, debug/release, etc. This assertion
+        would wreck the complexity of the lookup.
+
+        See Rust Issue #3647, #2228, #3627 for related information.
+
+        do self.detail_lookup.borrow |arr| {
+            assert !arr.contains(entry)
+        }
+        */
 
         self.detail_lookup.push(entry);
         self.detail_buffer.extend_from_slice(glyphs);
@@ -540,8 +541,7 @@ impl<'a> GlyphStore {
                     data_for_glyphs[i].advance,
                     data_for_glyphs[i].offset,
                 )
-            })
-            .collect();
+            }).collect();
 
         self.has_detailed_glyphs = true;
         self.detail_store

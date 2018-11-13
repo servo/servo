@@ -2,8 +2,9 @@
 importScripts('sw-helpers.js');
 
 async function getFetchResult(record) {
-  const response = await record.responseReady.catch(() => null);
-  if (!response) return null;
+  response = await record.responseReady;
+  if (!response)
+    return Promise.resolve(null);
 
   return {
     url: response.url,
@@ -12,34 +13,11 @@ async function getFetchResult(record) {
   };
 }
 
-function handleBackgroundFetchEvent(event) {
-  let matchFunction = null;
-  switch (event.registration.id) {
-    case 'matchexistingrequest':
-      matchFunction = event.registration.match.bind(
-          event.registration, '/background-fetch/resources/feature-name.txt');
-      break;
-    case 'matchmissingrequest':
-      matchFunction = event.registration.match.bind(
-          event.registration, '/background-fetch/resources/missing.txt');
-      break;
-    default:
-      matchFunction = event.registration.matchAll.bind(event.registration);
-      break;
-  }
-
+function handleBackgroundFetchUpdateEvent(event) {
   event.waitUntil(
-    matchFunction()
-      // Format `match(All)?` function results.
-      .then(records => {
-        if (!records) return [];  // Nothing was matched.
-        if (!records.map) return [records];  // One entry was returned.
-        return records;  // Already in a list.
-      })
-      // Extract responses.
+    event.registration.matchAll()
       .then(records =>
             Promise.all(records.map(record => getFetchResult(record))))
-      // Clone registration and send message.
       .then(results => {
         const registrationCopy = cloneRegistration(event.registration);
         sendMessageToDocument(
@@ -47,6 +25,7 @@ function handleBackgroundFetchEvent(event) {
       }));
 }
 
-self.addEventListener('backgroundfetchsuccess', handleBackgroundFetchEvent);
-self.addEventListener('backgroundfetchfail', handleBackgroundFetchEvent);
-self.addEventListener('backgroundfetchabort', handleBackgroundFetchEvent);
+self.addEventListener('backgroundfetchsuccess', handleBackgroundFetchUpdateEvent);
+self.addEventListener('backgroundfetchfail', handleBackgroundFetchUpdateEvent);
+
+

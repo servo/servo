@@ -9,12 +9,34 @@
 #![deny(unsafe_code)]
 #![feature(associated_type_defaults)]
 
+extern crate app_units;
+extern crate atomic_refcell;
+extern crate canvas_traits;
+extern crate cssparser;
+extern crate euclid;
+extern crate gfx_traits;
 #[macro_use]
 extern crate html5ever;
+extern crate ipc_channel;
+extern crate libc;
 #[macro_use]
 extern crate log;
+extern crate malloc_size_of;
 #[macro_use]
 extern crate malloc_size_of_derive;
+extern crate metrics;
+extern crate msg;
+extern crate net_traits;
+extern crate profile_traits;
+extern crate range;
+extern crate script_traits;
+extern crate selectors;
+extern crate servo_arc;
+extern crate servo_atoms;
+extern crate servo_channel;
+extern crate servo_url;
+extern crate style;
+extern crate webrender_api;
 
 pub mod message;
 pub mod reporter;
@@ -22,7 +44,7 @@ pub mod rpc;
 pub mod wrapper_traits;
 
 use atomic_refcell::AtomicRefCell;
-use canvas_traits::canvas::{CanvasId, CanvasMsg};
+use canvas_traits::canvas::{CanvasMsg, CanvasId};
 use ipc_channel::ipc::IpcSender;
 use libc::c_void;
 use net_traits::image_cache::PendingImageId;
@@ -93,7 +115,6 @@ pub enum LayoutElementType {
     HTMLIFrameElement,
     HTMLImageElement,
     HTMLInputElement,
-    HTMLMediaElement,
     HTMLObjectElement,
     HTMLParagraphElement,
     HTMLTableCellElement,
@@ -148,8 +169,4 @@ pub struct PendingImage {
     pub state: PendingImageState,
     pub node: UntrustedNodeAddress,
     pub id: PendingImageId,
-}
-
-pub struct HTMLMediaData {
-    pub current_frame: Option<(webrender_api::ImageKey, i32, i32)>,
 }

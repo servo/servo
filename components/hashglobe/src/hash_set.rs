@@ -10,12 +10,12 @@
 
 use std::borrow::Borrow;
 use std::fmt;
-use std::hash::{BuildHasher, Hash};
+use std::hash::{Hash, BuildHasher};
 use std::iter::{Chain, FromIterator};
-use std::ops::{BitAnd, BitOr, BitXor, Sub};
+use std::ops::{BitOr, BitAnd, BitXor, Sub};
 
-use super::hash_map::{self, HashMap, Keys, RandomState};
 use super::Recover;
+use super::hash_map::{self, HashMap, Keys, RandomState};
 
 // Future Optimization (FIXME!)
 // =============================
@@ -1258,8 +1258,8 @@ fn assert_covariance() {
 
 #[cfg(test)]
 mod test_set {
-    use super::hash_map::RandomState;
     use super::HashSet;
+    use super::hash_map::RandomState;
 
     #[test]
     fn test_zero_capacities() {

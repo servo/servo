@@ -2,17 +2,17 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
-use crate::dom::bindings::codegen::Bindings::HTMLHeadElementBinding;
-use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::root::{DomRoot, RootedReference};
-use crate::dom::document::{determine_policy_for_token, Document};
-use crate::dom::element::Element;
-use crate::dom::htmlelement::HTMLElement;
-use crate::dom::htmlmetaelement::HTMLMetaElement;
-use crate::dom::node::{document_from_node, Node};
-use crate::dom::userscripts::load_script;
-use crate::dom::virtualmethods::VirtualMethods;
+use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
+use dom::bindings::codegen::Bindings::HTMLHeadElementBinding;
+use dom::bindings::inheritance::Castable;
+use dom::bindings::root::{DomRoot, RootedReference};
+use dom::document::{Document, determine_policy_for_token};
+use dom::element::Element;
+use dom::htmlelement::HTMLElement;
+use dom::htmlmetaelement::HTMLMetaElement;
+use dom::node::{Node, document_from_node};
+use dom::userscripts::load_script;
+use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
 
@@ -78,8 +78,8 @@ impl HTMLHeadElement {
 }
 
 impl VirtualMethods for HTMLHeadElement {
-    fn super_type(&self) -> Option<&dyn VirtualMethods> {
-        Some(self.upcast::<HTMLElement>() as &dyn VirtualMethods)
+    fn super_type(&self) -> Option<&VirtualMethods> {
+        Some(self.upcast::<HTMLElement>() as &VirtualMethods)
     }
     fn bind_to_tree(&self, tree_in_doc: bool) {
         if let Some(ref s) = self.super_type() {

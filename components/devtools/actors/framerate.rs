@@ -2,8 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
-use crate::actors::timeline::HighResolutionStamp;
+use actor::{Actor, ActorMessageStatus, ActorRegistry};
+use actors::timeline::HighResolutionStamp;
 use devtools_traits::DevtoolScriptControlMsg;
 use ipc_channel::ipc::IpcSender;
 use msg::constellation_msg::PipelineId;

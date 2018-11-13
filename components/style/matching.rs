@@ -12,8 +12,8 @@ use context::{SharedStyleContext, StyleContext};
 use data::ElementData;
 use dom::TElement;
 use invalidation::element::restyle_hints::RestyleHint;
-use properties::longhands::display::computed_value::T as Display;
 use properties::ComputedValues;
+use properties::longhands::display::computed_value::T as Display;
 use rule_tree::{CascadeLevel, StrongRuleNode};
 use selector_parser::{PseudoElement, RestyleDamage};
 use selectors::matching::ElementSelectorFlags;
@@ -224,8 +224,7 @@ trait PrivateMatchMethods: TElement {
             context,
             RuleInclusion::All,
             PseudoElementResolution::IfApplicable,
-        )
-        .cascade_style_and_visited_with_default_parents(inputs);
+        ).cascade_style_and_visited_with_default_parents(inputs);
 
         Some(style.0)
     }
@@ -586,7 +585,7 @@ trait PrivateMatchMethods: TElement {
         possibly_expired_animations: &mut Vec<::animation::PropertyAnimation>,
         font_metrics: &::font_metrics::FontMetricsProvider,
     ) {
-        use animation::{self, Animation, AnimationUpdate};
+        use animation::{self, Animation};
         use dom::TNode;
 
         // Finish any expired transitions.
@@ -604,27 +603,30 @@ trait PrivateMatchMethods: TElement {
         }
 
         let mut all_running_animations = context.running_animations.write();
-        for mut running_animation in all_running_animations.get_mut(&this_opaque).unwrap() {
-            if let Animation::Transition(_, _, ref frame) = *running_animation {
-                possibly_expired_animations.push(frame.property_animation.clone());
+        for running_animation in all_running_animations.get_mut(&this_opaque).unwrap() {
+            // This shouldn't happen frequently, but under some circumstances
+            // mainly huge load or debug builds, the constellation might be
+            // delayed in sending the `TickAllAnimations` message to layout.
+            //
+            // Thus, we can't assume all the animations have been already
+            // updated by layout, because other restyle due to script might be
+            // triggered by layout before the animation tick.
+            //
+            // See #12171 and the associated PR for an example where this
+            // happened while debugging other release panic.
+            if running_animation.is_expired() {
                 continue;
             }
 
-            let update = animation::update_style_for_animation::<Self>(
+            animation::update_style_for_animation::<Self>(
                 context,
-                &mut running_animation,
+                running_animation,
                 style,
                 font_metrics,
             );
 
-            match *running_animation {
-                Animation::Transition(..) => unreachable!(),
-                Animation::Keyframes(_, _, _, ref mut state) => match update {
-                    AnimationUpdate::Regular => {},
-                    AnimationUpdate::AnimationCanceled => {
-                        state.expired = true;
-                    },
-                },
+            if let Animation::Transition(_, _, ref frame, _) = *running_animation {
+                possibly_expired_animations.push(frame.property_animation.clone())
             }
         }
     }

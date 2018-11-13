@@ -3,27 +3,29 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use app_units::Au;
-use crate::font::{FontFamilyDescriptor, FontFamilyName, FontSearchScope};
-use crate::font_context::FontSource;
-use crate::font_template::{FontTemplate, FontTemplateDescriptor};
-use crate::platform::font_context::FontContextHandle;
-use crate::platform::font_list::for_each_available_family;
-use crate::platform::font_list::for_each_variation;
-use crate::platform::font_list::system_default_family;
-use crate::platform::font_list::SANS_SERIF_FONT_FAMILY;
-use crate::platform::font_template::FontTemplateData;
+use font::{FontFamilyDescriptor, FontFamilyName, FontSearchScope};
+use font_context::FontSource;
+use font_template::{FontTemplate, FontTemplateDescriptor};
+use fontsan;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
+use net_traits::{CoreResourceThread, FetchResponseMsg, fetch_async};
 use net_traits::request::{Destination, RequestInit};
-use net_traits::{fetch_async, CoreResourceThread, FetchResponseMsg};
+use platform::font_context::FontContextHandle;
+use platform::font_list::SANS_SERIF_FONT_FAMILY;
+use platform::font_list::for_each_available_family;
+use platform::font_list::for_each_variation;
+use platform::font_list::system_default_family;
+use platform::font_template::FontTemplateData;
 use servo_atoms::Atom;
 use servo_url::ServoUrl;
+use std::{fmt, f32, mem, thread};
 use std::borrow::ToOwned;
 use std::collections::HashMap;
 use std::ops::Deref;
 use std::sync::{Arc, Mutex};
-use std::{f32, fmt, mem, thread};
 use style::font_face::{EffectiveSources, Source};
 use style::values::computed::font::FamilyName;
+use webrender_api;
 
 /// A list of font templates that make up a given font family.
 pub struct FontTemplates {
@@ -432,8 +434,7 @@ impl FontCache {
             FontSearchScope::Local => {
                 self.find_font_in_local_family(&template_descriptor, &family_descriptor.name)
             },
-        }
-        .map(|t| self.get_font_template_info(t))
+        }.map(|t| self.get_font_template_info(t))
     }
 }
 
@@ -473,8 +474,7 @@ impl FontCacheThread {
 
                 cache.refresh_local_families();
                 cache.run();
-            })
-            .expect("Thread spawning failed");
+            }).expect("Thread spawning failed");
 
         FontCacheThread { chan: chan }
     }
@@ -490,8 +490,7 @@ impl FontCacheThread {
                 LowercaseString::new(&family.name),
                 sources,
                 sender,
-            ))
-            .unwrap();
+            )).unwrap();
     }
 
     pub fn exit(&self) {
@@ -539,8 +538,7 @@ impl FontSource for FontCacheThread {
                 template_descriptor,
                 family_descriptor,
                 response_chan,
-            ))
-            .expect("failed to send message to font cache thread");
+            )).expect("failed to send message to font cache thread");
 
         let reply = response_port.recv();
 

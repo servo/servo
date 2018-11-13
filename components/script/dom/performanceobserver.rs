@@ -2,21 +2,21 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::callback::ExceptionHandling;
-use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::PerformanceBinding::PerformanceEntryList as DOMPerformanceEntryList;
-use crate::dom::bindings::codegen::Bindings::PerformanceObserverBinding;
-use crate::dom::bindings::codegen::Bindings::PerformanceObserverBinding::PerformanceObserverCallback;
-use crate::dom::bindings::codegen::Bindings::PerformanceObserverBinding::PerformanceObserverInit;
-use crate::dom::bindings::codegen::Bindings::PerformanceObserverBinding::PerformanceObserverMethods;
-use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
-use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::DOMString;
-use crate::dom::globalscope::GlobalScope;
-use crate::dom::performance::PerformanceEntryList;
-use crate::dom::performanceentry::PerformanceEntry;
-use crate::dom::performanceobserverentrylist::PerformanceObserverEntryList;
+use dom::bindings::callback::ExceptionHandling;
+use dom::bindings::cell::DomRefCell;
+use dom::bindings::codegen::Bindings::PerformanceBinding::PerformanceEntryList as DOMPerformanceEntryList;
+use dom::bindings::codegen::Bindings::PerformanceObserverBinding;
+use dom::bindings::codegen::Bindings::PerformanceObserverBinding::PerformanceObserverCallback;
+use dom::bindings::codegen::Bindings::PerformanceObserverBinding::PerformanceObserverInit;
+use dom::bindings::codegen::Bindings::PerformanceObserverBinding::PerformanceObserverMethods;
+use dom::bindings::error::{Error, Fallible};
+use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
+use dom::bindings::root::DomRoot;
+use dom::bindings::str::DOMString;
+use dom::globalscope::GlobalScope;
+use dom::performance::PerformanceEntryList;
+use dom::performanceentry::PerformanceEntry;
+use dom::performanceobserverentrylist::PerformanceObserverEntryList;
 use dom_struct::dom_struct;
 use std::rc::Rc;
 

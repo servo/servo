@@ -3,44 +3,41 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use base64;
-use canvas_traits::canvas::{CanvasId, CanvasMsg, FromScriptMsg};
+use canvas_traits::canvas::{CanvasMsg, CanvasId, FromScriptMsg};
 use canvas_traits::webgl::WebGLVersion;
-use crate::dom::attr::Attr;
-use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::HTMLCanvasElementBinding;
-use crate::dom::bindings::codegen::Bindings::HTMLCanvasElementBinding::{
-    HTMLCanvasElementMethods, RenderingContext,
-};
-use crate::dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLContextAttributes;
-use crate::dom::bindings::conversions::ConversionResult;
-use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::DomObject;
-use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom};
-use crate::dom::bindings::str::{DOMString, USVString};
-use crate::dom::canvasrenderingcontext2d::{
-    CanvasRenderingContext2D, LayoutCanvasRenderingContext2DHelpers,
-};
-use crate::dom::document::Document;
-use crate::dom::element::{AttributeMutation, Element, RawLayoutElementHelpers};
-use crate::dom::globalscope::GlobalScope;
-use crate::dom::htmlelement::HTMLElement;
-use crate::dom::node::{window_from_node, Node};
-use crate::dom::virtualmethods::VirtualMethods;
-use crate::dom::webgl2renderingcontext::WebGL2RenderingContext;
-use crate::dom::webglrenderingcontext::{
-    LayoutCanvasWebGLRenderingContextHelpers, WebGLRenderingContext,
-};
+use dom::attr::Attr;
+use dom::bindings::cell::DomRefCell;
+use dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasRenderingContext2DMethods;
+use dom::bindings::codegen::Bindings::HTMLCanvasElementBinding;
+use dom::bindings::codegen::Bindings::HTMLCanvasElementBinding::{HTMLCanvasElementMethods, RenderingContext};
+use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLContextAttributes;
+use dom::bindings::conversions::ConversionResult;
+use dom::bindings::error::{Error, Fallible};
+use dom::bindings::inheritance::Castable;
+use dom::bindings::num::Finite;
+use dom::bindings::reflector::DomObject;
+use dom::bindings::root::{Dom, DomRoot, LayoutDom};
+use dom::bindings::str::{DOMString, USVString};
+use dom::canvasrenderingcontext2d::{CanvasRenderingContext2D, LayoutCanvasRenderingContext2DHelpers};
+use dom::document::Document;
+use dom::element::{AttributeMutation, Element, RawLayoutElementHelpers};
+use dom::globalscope::GlobalScope;
+use dom::htmlelement::HTMLElement;
+use dom::node::{Node, window_from_node};
+use dom::virtualmethods::VirtualMethods;
+use dom::webgl2renderingcontext::WebGL2RenderingContext;
+use dom::webglrenderingcontext::{LayoutCanvasWebGLRenderingContextHelpers, WebGLRenderingContext};
 use dom_struct::dom_struct;
-use euclid::{Rect, Size2D};
+use euclid::Size2D;
 use html5ever::{LocalName, Prefix};
-use image::png::PNGEncoder;
 use image::ColorType;
+use image::png::PNGEncoder;
 use js::error::throw_type_error;
 use js::jsapi::JSContext;
 use js::rust::HandleValue;
 use offscreen_gl_context::GLContextAttributes;
 use profile_traits::ipc;
+use ref_filter_map;
 use script_layout_interface::{HTMLCanvasData, HTMLCanvasDataSource};
 use servo_config::prefs::PREFS;
 use std::cell::Ref;
@@ -101,8 +98,8 @@ impl HTMLCanvasElement {
         }
     }
 
-    pub fn get_size(&self) -> Size2D<u32> {
-        Size2D::new(self.Width(), self.Height())
+    pub fn get_size(&self) -> Size2D<i32> {
+        Size2D::new(self.Width() as i32, self.Height() as i32)
     }
 
     pub fn origin_is_clean(&self) -> bool {
@@ -280,7 +277,7 @@ impl HTMLCanvasElement {
         self.Height() != 0 && self.Width() != 0
     }
 
-    pub fn fetch_all_data(&self) -> Option<(Vec<u8>, Size2D<u32>)> {
+    pub fn fetch_all_data(&self) -> Option<(Vec<u8>, Size2D<i32>)> {
         let size = self.get_size();
 
         if size.width == 0 || size.height == 0 {
@@ -307,7 +304,7 @@ impl HTMLCanvasElement {
                 // TODO: add a method in WebGL2RenderingContext to get the pixels.
                 return None;
             },
-            None => vec![0; size.height as usize * size.width as usize * 4],
+            None => vec![0; size.height as usize * size.width as usize * 4]
         };
 
         Some((data, size))
@@ -358,8 +355,10 @@ impl HTMLCanvasElementMethods for HTMLCanvasElement {
         _quality: HandleValue,
     ) -> Fallible<USVString> {
         // Step 1.
-        if !self.origin_is_clean() {
-            return Err(Error::Security);
+        if let Some(CanvasContext::Context2d(ref context)) = *self.context.borrow() {
+            if !context.origin_is_clean() {
+                return Err(Error::Security);
+            }
         }
 
         // Step 2.
@@ -368,21 +367,28 @@ impl HTMLCanvasElementMethods for HTMLCanvasElement {
         }
 
         // Step 3.
-        let file = match *self.context.borrow() {
+        let raw_data = match *self.context.borrow() {
             Some(CanvasContext::Context2d(ref context)) => {
-                context.get_rect(Rect::from_size(self.get_size()))
+                let image_data = context.GetImageData(
+                    Finite::wrap(0f64),
+                    Finite::wrap(0f64),
+                    Finite::wrap(self.Width() as f64),
+                    Finite::wrap(self.Height() as f64),
+                )?;
+                image_data.get_data_array()
             },
             Some(CanvasContext::WebGL(ref context)) => {
-                match context.get_image_data(self.get_size()) {
+                match context.get_image_data(self.Width(), self.Height()) {
                     Some(data) => data,
                     None => return Ok(USVString("data:,".into())),
                 }
             },
-            Some(CanvasContext::WebGL2(ref context)) => {
-                match context.base_context().get_image_data(self.get_size()) {
-                    Some(data) => data,
-                    None => return Ok(USVString("data:,".into())),
-                }
+            Some(CanvasContext::WebGL2(ref context)) => match context
+                .base_context()
+                .get_image_data(self.Width(), self.Height())
+            {
+                Some(data) => data,
+                None => return Ok(USVString("data:,".into())),
             },
             None => {
                 // Each pixel is fully-transparent black.
@@ -390,24 +396,25 @@ impl HTMLCanvasElementMethods for HTMLCanvasElement {
             },
         };
 
-        // FIXME: Only handle image/png for now.
-        let mut png = Vec::new();
-        // FIXME(nox): https://github.com/PistonDevelopers/image-png/issues/86
-        // FIXME(nox): https://github.com/PistonDevelopers/image-png/issues/87
-        PNGEncoder::new(&mut png)
-            .encode(&file, self.Width(), self.Height(), ColorType::RGBA(8))
-            .unwrap();
-        let mut url = "data:image/png;base64,".to_owned();
-        // FIXME(nox): Should this use base64::URL_SAFE?
-        // FIXME(nox): https://github.com/alicemaz/rust-base64/pull/56
-        base64::encode_config_buf(&png, base64::STANDARD, &mut url);
-        Ok(USVString(url))
+        // Only handle image/png for now.
+        let mime_type = "image/png";
+
+        let mut encoded = Vec::new();
+        {
+            let encoder: PNGEncoder<&mut Vec<u8>> = PNGEncoder::new(&mut encoded);
+            encoder
+                .encode(&raw_data, self.Width(), self.Height(), ColorType::RGBA(8))
+                .unwrap();
+        }
+
+        let encoded = base64::encode(&encoded);
+        Ok(USVString(format!("data:{};base64,{}", mime_type, encoded)))
     }
 }
 
 impl VirtualMethods for HTMLCanvasElement {
-    fn super_type(&self) -> Option<&dyn VirtualMethods> {
-        Some(self.upcast::<HTMLElement>() as &dyn VirtualMethods)
+    fn super_type(&self) -> Option<&VirtualMethods> {
+        Some(self.upcast::<HTMLElement>() as &VirtualMethods)
     }
 
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
@@ -444,9 +451,9 @@ impl<'a> From<&'a WebGLContextAttributes> for GLContextAttributes {
 }
 
 pub mod utils {
-    use crate::dom::window::Window;
+    use dom::window::Window;
+    use net_traits::image_cache::{ImageResponse, UsePlaceholder, ImageOrMetadataAvailable};
     use net_traits::image_cache::CanRequestImages;
-    use net_traits::image_cache::{ImageOrMetadataAvailable, ImageResponse, UsePlaceholder};
     use servo_url::ServoUrl;
 
     pub fn request_image_from_cache(window: &Window, url: ServoUrl) -> ImageResponse {

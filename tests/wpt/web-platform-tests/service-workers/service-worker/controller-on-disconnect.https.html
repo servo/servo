@@ -5,25 +5,22 @@
 <script src="resources/test-helpers.sub.js"></script>
 <body>
 <script>
-promise_test(function(t) {
+var t = async_test('controller is cleared on disconnected window');
+t.step(function() {
     var url = 'resources/empty-worker.js';
     var scope = 'resources/blank.html';
     var registration;
     var controller;
     var frame;
-    return service_worker_unregister_and_register(t, url, scope)
-      .then(function(swr) {
-          t.add_cleanup(function() {
-              return service_worker_unregister(t, scope);
-            });
-
+    service_worker_unregister_and_register(t, url, scope)
+      .then(t.step_func(function(swr) {
           registration = swr;
           return wait_for_state(t, registration.installing, 'activated');
-        })
-      .then(function() {
+        }))
+      .then(t.step_func(function() {
           return with_iframe(scope)
-        })
-      .then(function(f) {
+        }))
+      .then(t.step_func(function(f) {
           frame = f;
           var w = frame.contentWindow;
           var swc = w.navigator.serviceWorker;
@@ -34,7 +31,10 @@ promise_test(function(t) {
 
           assert_equals(swc.controller, null,
                         'disconnected frame should not be controlled');
-        });
-}, 'controller is cleared on disconnected window');
+
+          service_worker_unregister_and_done(t, scope);
+        }))
+      .catch(unreached_rejection(t));
+  });
 </script>
 </body>

@@ -2,8 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
-use crate::protocol::JsonPacketStream;
+use actor::{Actor, ActorMessageStatus, ActorRegistry};
+use protocol::JsonPacketStream;
 use serde_json::{Map, Value};
 use std::net::TcpStream;
 
@@ -28,13 +28,6 @@ struct WhyMsg {
 
 #[derive(Serialize)]
 struct ThreadResumedReply {
-    from: String,
-    #[serde(rename = "type")]
-    type_: String,
-}
-
-#[derive(Serialize)]
-struct ThreadInterruptedReply {
     from: String,
     #[serde(rename = "type")]
     type_: String,
@@ -95,15 +88,6 @@ impl Actor for ThreadActor {
                 let msg = ThreadResumedReply {
                     from: self.name(),
                     type_: "resumed".to_owned(),
-                };
-                stream.write_json_packet(&msg);
-                ActorMessageStatus::Processed
-            },
-
-            "interrupt" => {
-                let msg = ThreadInterruptedReply {
-                    from: self.name(),
-                    type_: "interrupted".to_owned(),
                 };
                 stream.write_json_packet(&msg);
                 ActorMessageStatus::Processed

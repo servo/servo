@@ -55,10 +55,6 @@ PACKAGES = {
     'macbrew': [
         'target/release/brew/servo.tar.gz',
     ],
-    'maven': [
-        'target/gradle/servoview/maven/org/mozilla/servoview/servoview-armv7/',
-        'target/gradle/servoview/maven/org/mozilla/servoview/servoview-x86/',
-    ],
     'windows-msvc': [
         r'target\release\msi\Servo.exe',
         r'target\release\msi\Servo.zip',
@@ -202,12 +198,7 @@ class PackageCommands(CommandBase):
     @CommandArgument('--flavor', '-f',
                      default=None,
                      help='Package using the given Gradle flavor')
-    @CommandArgument('--maven',
-                     default=None,
-                     action='store_true',
-                     help='Create a local Maven repository')
-    def package(self, release=False, dev=False, android=None, debug=False,
-                debugger=None, target=None, flavor=None, maven=False):
+    def package(self, release=False, dev=False, android=None, debug=False, debugger=None, target=None, flavor=None):
         if android is None:
             android = self.config["build"]["android"]
         if target and android:
@@ -244,13 +235,9 @@ class PackageCommands(CommandBase):
             variant = ":assemble" + flavor_name + build_type + build_mode
             apk_task_name = ":servoapp" + variant
             aar_task_name = ":servoview" + variant
-            maven_task_name = ":servoview:uploadArchive"
-            argv = ["./gradlew", "--no-daemon", apk_task_name, aar_task_name]
-            if maven:
-                argv.append(maven_task_name)
             try:
                 with cd(path.join("support", "android", "apk")):
-                    subprocess.check_call(argv, env=env)
+                    subprocess.check_call(["./gradlew", "--no-daemon", apk_task_name, aar_task_name], env=env)
             except subprocess.CalledProcessError as e:
                 print("Packaging Android exited with return value %d" % e.returncode)
                 return e.returncode
@@ -381,15 +368,16 @@ class PackageCommands(CommandBase):
             except subprocess.CalledProcessError as e:
                 print("WiX light exited with return value %d" % e.returncode)
                 return e.returncode
-            dir_to_installer = path.join(dir_to_msi, "Installer.msi")
-            print("Packaged Servo into " + dir_to_installer)
+            print("Packaged Servo into " + path.join(dir_to_msi, "Installer.msi"))
 
             # Download GStreamer installer. Only once.
-            gstreamer_msi_path = path.join(dir_to_msi, 'Gstreamer.msi')
+            dir_to_gst_deps = path.join(dir_to_msi, 'Gstreamer.msi')
+            gstreamer_msi_path = path.join(target_dir, 'Gstreamer.msi')
             if not os.path.exists(gstreamer_msi_path):
                 print('Fetching GStreamer installer. This may take a while...')
                 gstreamer_url = 'https://gstreamer.freedesktop.org/data/pkg/windows/1.14.2/gstreamer-1.0-x86-1.14.2.msi'
                 urllib.urlretrieve(gstreamer_url, gstreamer_msi_path)
+            shutil.copy(gstreamer_msi_path, dir_to_gst_deps)
 
             # Generate bundle with GStreamer and Servo installers.
             print("Creating bundle")
@@ -416,7 +404,6 @@ class PackageCommands(CommandBase):
 
             print("Cleaning up")
             delete(dir_to_temp)
-            delete(dir_to_installer)
         else:
             dir_to_temp = path.join(target_dir, 'packaging-temp')
             if path.exists(dir_to_temp):
@@ -538,27 +525,6 @@ class PackageCommands(CommandBase):
             }
             s3.copy(copy_source, BUCKET, latest_upload_key)
 
-        def update_maven(directory):
-            s3 = boto3.client('s3')
-            BUCKET = 'servo-builds'
-
-            nightly_dir = 'nightly/maven'
-            dest_key_base = directory.replace("target/gradle/servoview/maven", nightly_dir)
-            if dest_key_base[-1] == '/':
-                dest_key_base = dest_key_base[:-1]
-
-            # Given a directory with subdirectories like 0.0.1.20181005.caa4d190af...
-            for artifact_dir in os.listdir(directory):
-                base_dir = os.path.join(directory, artifact_dir)
-                if not os.path.isdir(base_dir):
-                    continue
-                package_upload_base = "{}/{}".format(dest_key_base, artifact_dir)
-                # Upload all of the files inside the subdirectory.
-                for f in os.listdir(base_dir):
-                    file_upload_key = "{}/{}".format(package_upload_base, f)
-                    print("Uploading %s to %s" % (os.path.join(base_dir, f), file_upload_key))
-                    s3.upload_file(os.path.join(base_dir, f), BUCKET, file_upload_key)
-
         def update_brew(package, timestamp):
             print("Updating brew formula")
 
@@ -612,8 +578,6 @@ class PackageCommands(CommandBase):
 
         timestamp = datetime.utcnow().replace(microsecond=0)
         for package in PACKAGES[platform]:
-            if path.isdir(package):
-                continue
             if not path.isfile(package):
                 print("Could not find package for {} at {}".format(
                     platform,
@@ -621,10 +585,6 @@ class PackageCommands(CommandBase):
                 ), file=sys.stderr)
                 return 1
             upload_to_s3(platform, package, timestamp)
-
-        if platform == 'maven':
-            for package in PACKAGES[platform]:
-                update_maven(package)
 
         if platform == 'macbrew':
             packages = PACKAGES[platform]

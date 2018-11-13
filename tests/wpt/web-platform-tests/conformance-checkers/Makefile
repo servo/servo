@@ -7,12 +7,8 @@ EXPAND=expand
 EXPANDFLAGS=
 GIT=git
 GITFLAGS=
-PYTHON=python
+PYTHON=python3
 PYTHONFLAGS=
-CURL=curl
-CURLFLAGS=
-JAVA=java
-JAVAFLAGS=
 VNU_TEST_REPO=git@github.com:validator/tests.git
 ITS_REPO=git@github.com:w3c/its-2.0-testsuite-inputdata.git
 .PHONY: .FORCE
@@ -28,18 +24,8 @@ README.md: index.html
 	    | $(EXPAND) $(EXPANDFLAGS) > $@
 
 messages.json: .FORCE
-	$(CURL) $(CURLFLAGS) -O \
-	  https://sideshowbarker.net/nightlies/jar/vnu.jar
-	$(JAVA) $(JAVAFLAGS) -cp vnu.jar nu.validator.client.TestRunner \
-	  --ignore=html-its --write-messages $@
-	$(PYTHON) $(PYTHONFLAGS) -mjson.tool $@ > $@.tmp
+	$(PYTHON) $(PYTHONFLAGS) -mjson.tool --sort-keys $@ > $@.tmp
 	mv $@.tmp $@
-
-test: .FORCE
-	$(CURL) $(CURLFLAGS) -O \
-	  https://sideshowbarker.net/nightlies/jar/vnu.jar
-	$(JAVA) $(JAVAFLAGS) -cp vnu.jar nu.validator.client.TestRunner \
-	  --ignore=html-its messages.json
 
 push:
 	cd .. \

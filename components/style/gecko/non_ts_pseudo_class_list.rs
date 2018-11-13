@@ -6,6 +6,7 @@
  * This file contains a helper macro includes all supported non-tree-structural
  * pseudo-classes.
  *
+
  * FIXME: Find a way to autogenerate this file.
  *
  * Expected usage is as follows:

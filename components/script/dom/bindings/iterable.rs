@@ -6,13 +6,13 @@
 
 //! Implementation of `iterable<...>` and `iterable<..., ...>` WebIDL declarations.
 
-use crate::dom::bindings::codegen::Bindings::IterableIteratorBinding::IterableKeyAndValueResult;
-use crate::dom::bindings::codegen::Bindings::IterableIteratorBinding::IterableKeyOrValueResult;
-use crate::dom::bindings::error::Fallible;
-use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
-use crate::dom::bindings::root::{Dom, DomRoot};
-use crate::dom::bindings::trace::{JSTraceable, RootedTraceableBox};
-use crate::dom::globalscope::GlobalScope;
+use dom::bindings::codegen::Bindings::IterableIteratorBinding::IterableKeyAndValueResult;
+use dom::bindings::codegen::Bindings::IterableIteratorBinding::IterableKeyOrValueResult;
+use dom::bindings::error::Fallible;
+use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
+use dom::bindings::root::{Dom, DomRoot};
+use dom::bindings::trace::{JSTraceable, RootedTraceableBox};
+use dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
 use js::conversions::ToJSValConvertible;
 use js::jsapi::{Heap, JSContext, JSObject};

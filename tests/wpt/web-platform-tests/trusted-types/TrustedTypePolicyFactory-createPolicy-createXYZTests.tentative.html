@@ -7,10 +7,8 @@
   //HTML tests
   function createHTMLTest(policyName, policy, expectedHTML, t) {
     let p = window.TrustedTypes.createPolicy(policyName, policy);
-    let html = p.createHTML('whatever');
-    assert_true(html instanceof TrustedHTML);
-    assert_true(TrustedTypes.isHTML(html));
-    assert_equals(html + "", expectedHTML);
+    assert_true(p.createHTML('whatever') instanceof TrustedHTML);
+    assert_equals(p.createHTML('whatever') + "", expectedHTML);
   }
 
   test(t => {
@@ -79,10 +77,8 @@
   //Script tests
   function createScriptTest(policyName, policy, expectedScript, t) {
     let p = window.TrustedTypes.createPolicy(policyName, policy);
-    let script = p.createScript('whatever');
-    assert_true(script instanceof TrustedScript);
-    assert_true(TrustedTypes.isScript(script));
-    assert_equals(script + "", expectedScript);
+    assert_true(p.createScript('whatever') instanceof TrustedScript);
+    assert_equals(p.createScript('whatever') + "", expectedScript);
   }
 
   test(t => {
@@ -154,10 +150,8 @@
   //ScriptURL tests
   function createScriptURLTest(policyName, policy, expectedScriptURL, t) {
     let p = window.TrustedTypes.createPolicy(policyName, policy);
-    let scriptUrl = p.createScriptURL(INPUTS.SCRIPTURL);
-    assert_true(scriptUrl instanceof TrustedScriptURL);
-    assert_true(TrustedTypes.isScriptURL(scriptUrl));
-    assert_equals(scriptUrl + "", expectedScriptURL);
+    assert_true(p.createScriptURL(INPUTS.SCRIPTURL) instanceof TrustedScriptURL);
+    assert_equals(p.createScriptURL(INPUTS.SCRIPTURL) + "", expectedScriptURL);
   }
 
   test(t => {
@@ -229,10 +223,8 @@
   //URL tests
   function createURLTest(policyName, policy, expectedURL, t) {
     let p = window.TrustedTypes.createPolicy(policyName, policy);
-    let url = p.createURL(INPUTS.URL);
-    assert_true(url instanceof TrustedURL);
-    assert_true(TrustedTypes.isURL(url));
-    assert_equals(url + "", expectedURL);
+    assert_true(p.createURL(INPUTS.URL) instanceof TrustedURL);
+    assert_equals(p.createURL(INPUTS.URL) + "", expectedURL);
   }
 
   test(t => {

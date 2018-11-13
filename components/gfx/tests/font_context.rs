@@ -2,11 +2,16 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+extern crate app_units;
+extern crate gfx;
+extern crate servo_arc;
+extern crate servo_atoms;
+extern crate style;
+extern crate webrender_api;
+
 use app_units::Au;
-use gfx::font::{
-    fallback_font_families, FontDescriptor, FontFamilyDescriptor, FontFamilyName, FontSearchScope,
-};
-use gfx::font_cache_thread::{FontTemplateInfo, FontTemplates};
+use gfx::font::{fallback_font_families, FontDescriptor, FontFamilyDescriptor, FontFamilyName, FontSearchScope};
+use gfx::font_cache_thread::{FontTemplates, FontTemplateInfo};
 use gfx::font_context::{FontContext, FontContextHandle, FontSource};
 use gfx::font_template::FontTemplateDescriptor;
 use servo_arc::Arc;
@@ -19,9 +24,7 @@ use std::path::PathBuf;
 use std::rc::Rc;
 use style::properties::longhands::font_variant_caps::computed_value::T as FontVariantCaps;
 use style::properties::style_structs::Font as FontStyleStruct;
-use style::values::computed::font::{
-    FamilyName, FamilyNameSyntax, FontFamily, FontFamilyList, FontSize,
-};
+use style::values::computed::font::{FamilyName, FamilyNameSyntax, FontFamily, FontFamilyList, FontSize};
 use style::values::computed::font::{FontStretch, FontWeight, SingleFontFamily};
 use style::values::generics::font::FontStyle;
 
@@ -116,8 +119,7 @@ fn font_family(names: Vec<&str>) -> FontFamily {
                 name: Atom::from(name),
                 syntax: FamilyNameSyntax::Quoted,
             })
-        })
-        .collect();
+        }).collect();
 
     FontFamily(FontFamilyList::new(names.into_boxed_slice()))
 }

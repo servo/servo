@@ -4,7 +4,6 @@ name = "libservo"
 version = "0.0.1"
 authors = ["The Servo Project Developers"]
 license = "MPL-2.0"
-edition = "2018"
 publish = false
 
 [lib]
@@ -19,7 +18,6 @@ energy-profiling = ["profile_traits/energy-profiling"]
 debugmozjs = ["script/debugmozjs"]
 googlevr = ["webvr/googlevr"]
 js_backtrace = ["script/js_backtrace"]
-disable-native-bluetooth = ["bluetooth/disable-native-bluetooth"]
 webrender_debugger = ["webrender/debugger"]
 oculusvr = ["webvr/oculusvr"]
 unstable = [
@@ -74,3 +72,6 @@ webvr_traits = {path = "../webvr_traits"}
 
 [target.'cfg(all(not(target_os = "windows"), not(target_os = "ios")))'.dependencies]
 gaol = {git = "https://github.com/servo/gaol"}
+
+[dev-dependencies]
+embedder_traits = { path = "../embedder_traits", features = ["tests"] }

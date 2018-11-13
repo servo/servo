@@ -3,7 +3,6 @@ name = "webdriver_server"
 version = "0.0.1"
 authors = ["The Servo Project Developers"]
 license = "MPL-2.0"
-edition = "2018"
 publish = false
 
 [lib]
@@ -11,23 +10,21 @@ name = "webdriver_server"
 path = "lib.rs"
 
 [dependencies]
-base64 = "0.9"
-cookie = "0.11"
+base64 = "0.6"
+cookie = "0.10"
 euclid = "0.19"
-hyper = "0.12"
+hyper = "0.10"
 image = "0.19"
 ipc-channel = "0.11"
-keyboard-types = {version = "0.4.2-servo", features = ["serde"]}
 log = "0.4"
 msg = {path = "../msg"}
 net_traits = {path = "../net_traits"}
 regex = "1.0"
-serde = "1"
-serde_json = "1"
+rustc-serialize = "0.3.4"
 script_traits = {path = "../script_traits"}
 servo_channel = {path = "../channel"}
 servo_config = {path = "../config"}
 servo_url = {path = "../url"}
 url = "1.2"
 uuid = {version = "0.6", features = ["v4"]}
-webdriver = "0.37"
+webdriver = "0.35"

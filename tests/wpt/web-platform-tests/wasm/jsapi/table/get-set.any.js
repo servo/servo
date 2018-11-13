@@ -9,11 +9,15 @@ setup(() => {
 
   builder
     .addFunction("fn", kSig_v_d)
-    .addBody([])
+    .addBody([
+        kExprEnd
+    ])
     .exportFunc();
   builder
     .addFunction("fn2", kSig_v_v)
-    .addBody([])
+    .addBody([
+        kExprEnd
+    ])
     .exportFunc();
 
   const buffer = builder.toBuffer()
@@ -216,11 +220,3 @@ test(() => {
   assert_equals(called, 1);
 }, "Order of argument conversion");
 
-test(() => {
-  const {fn} = functions;
-  const argument = { "element": "anyfunc", "initial": 1 };
-  const table = new WebAssembly.Table(argument);
-
-  assert_equals(table.get(0, {}), null);
-  assert_equals(table.set(0, fn, {}), undefined);
-}, "Stray argument");

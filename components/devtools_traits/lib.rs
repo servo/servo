@@ -13,18 +13,25 @@
 
 #[macro_use]
 extern crate bitflags;
+extern crate hyper;
+extern crate ipc_channel;
+extern crate malloc_size_of;
 #[macro_use]
 extern crate malloc_size_of_derive;
+extern crate msg;
 #[macro_use]
 extern crate serde;
+extern crate servo_url;
+extern crate time;
 
-use http::method::Method;
-use http::HeaderMap;
+use hyper::header::Headers;
+use hyper::method::Method;
 use ipc_channel::ipc::IpcSender;
 use msg::constellation_msg::PipelineId;
 use servo_url::ServoUrl;
 use std::net::TcpStream;
-use time::{self, Duration, Tm};
+use time::Duration;
+use time::Tm;
 
 // Information would be attached to NewGlobal to be received and show in devtools.
 // Extend these fields if we need more information.
@@ -294,7 +301,7 @@ pub enum CachedConsoleMessage {
 pub struct HttpRequest {
     pub url: ServoUrl,
     pub method: Method,
-    pub headers: HeaderMap,
+    pub headers: Headers,
     pub body: Option<Vec<u8>>,
     pub pipeline_id: PipelineId,
     pub startedDateTime: Tm,
@@ -306,7 +313,7 @@ pub struct HttpRequest {
 
 #[derive(Debug, PartialEq)]
 pub struct HttpResponse {
-    pub headers: Option<HeaderMap>,
+    pub headers: Option<Headers>,
     pub status: Option<(u16, Vec<u8>)>,
     pub body: Option<Vec<u8>>,
     pub pipeline_id: PipelineId,

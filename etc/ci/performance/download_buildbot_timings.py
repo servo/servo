@@ -24,14 +24,14 @@ def main():
     )
     parser.add_argument("--index-url",
                         type=str,
-                        default='https://build.servo.org/json',
+                        default='http://build.servo.org/json',
                         help="the URL to get the JSON index data index from. "
-                        "Default: https://build.servo.org/json")
+                        "Default: http://build.servo.org/json")
     parser.add_argument("--build-url",
                         type=str,
-                        default='https://build.servo.org/json/builders/{}/builds/{}',
+                        default='http://build.servo.org/json/builders/{}/builds/{}',
                         help="the URL to get the JSON build data from. "
-                        "Default: https://build.servo.org/json/builders/{}/builds/{}")
+                        "Default: http://build.servo.org/json/builders/{}/builds/{}")
     parser.add_argument("--cache-dir",
                         type=str,
                         default=default_cache_dir,

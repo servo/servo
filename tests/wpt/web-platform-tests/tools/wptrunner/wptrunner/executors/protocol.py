@@ -242,14 +242,6 @@ class SelectorProtocolPart(ProtocolPart):
 
     name = "select"
 
-    def element_by_selector(self, selector):
-        elements = self.elements_by_selector(selector)
-        if len(elements) == 0:
-            raise ValueError("Selector '%s' matches no elements" % selector)
-        elif len(elements) > 1:
-            raise ValueError("Selector '%s' matches multiple elements" % selector)
-        return elements[0]
-
     @abstractmethod
     def elements_by_selector(self, selector):
         """Select elements matching a CSS selector
@@ -284,20 +276,6 @@ class SendKeysProtocolPart(ProtocolPart):
 
         :param element: A protocol-specific handle to an element.
         :param keys: A protocol-specific handle to a string of input keys."""
-        pass
-
-
-class ActionSequenceProtocolPart(ProtocolPart):
-    """Protocol part for performing trusted clicks"""
-    __metaclass__ = ABCMeta
-
-    name = "action_sequence"
-
-    @abstractmethod
-    def send_actions(self, actions):
-        """Send a sequence of actions to the window.
-
-        :param actions: A protocol-specific handle to an array of actions."""
         pass
 
 

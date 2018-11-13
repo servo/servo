@@ -2,9 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::root::{Dom, DomRoot};
-use crate::dom::bindings::trace::JSTraceable;
-use crate::dom::globalscope::GlobalScope;
+use dom::bindings::root::{Dom, DomRoot};
+use dom::bindings::trace::JSTraceable;
+use dom::globalscope::GlobalScope;
 use js::jsapi::GetScriptedCallerGlobal;
 use js::jsapi::HideScriptedCaller;
 use js::jsapi::JSTracer;
@@ -94,8 +94,7 @@ pub fn entry_global() -> DomRoot<GlobalScope> {
                 .rev()
                 .find(|entry| entry.kind == StackEntryKind::Entry)
                 .map(|entry| DomRoot::from_ref(&*entry.global))
-        })
-        .unwrap()
+        }).unwrap()
 }
 
 /// RAII struct that pushes and pops entries from the script settings stack.

@@ -2,30 +2,29 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use crate::document_loader::DocumentLoader;
-use crate::dom::bindings::codegen::Bindings::DOMImplementationBinding;
-use crate::dom::bindings::codegen::Bindings::DOMImplementationBinding::DOMImplementationMethods;
-use crate::dom::bindings::codegen::Bindings::DocumentBinding::{
-    DocumentMethods, ElementCreationOptions,
-};
-use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
-use crate::dom::bindings::error::Fallible;
-use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
-use crate::dom::bindings::root::{Dom, DomRoot};
-use crate::dom::bindings::str::DOMString;
-use crate::dom::bindings::xmlname::{namespace_from_domstring, validate_qualified_name};
-use crate::dom::document::DocumentSource;
-use crate::dom::document::{Document, HasBrowsingContext, IsHTMLDocument};
-use crate::dom::documenttype::DocumentType;
-use crate::dom::htmlbodyelement::HTMLBodyElement;
-use crate::dom::htmlheadelement::HTMLHeadElement;
-use crate::dom::htmlhtmlelement::HTMLHtmlElement;
-use crate::dom::htmltitleelement::HTMLTitleElement;
-use crate::dom::node::Node;
-use crate::dom::text::Text;
-use crate::dom::xmldocument::XMLDocument;
+use document_loader::DocumentLoader;
+use dom::bindings::codegen::Bindings::DOMImplementationBinding;
+use dom::bindings::codegen::Bindings::DOMImplementationBinding::DOMImplementationMethods;
+use dom::bindings::codegen::Bindings::DocumentBinding::{DocumentMethods, ElementCreationOptions};
+use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
+use dom::bindings::error::Fallible;
+use dom::bindings::inheritance::Castable;
+use dom::bindings::reflector::{Reflector, reflect_dom_object};
+use dom::bindings::root::{Dom, DomRoot};
+use dom::bindings::str::DOMString;
+use dom::bindings::xmlname::{namespace_from_domstring, validate_qualified_name};
+use dom::document::{Document, HasBrowsingContext, IsHTMLDocument};
+use dom::document::DocumentSource;
+use dom::documenttype::DocumentType;
+use dom::htmlbodyelement::HTMLBodyElement;
+use dom::htmlheadelement::HTMLHeadElement;
+use dom::htmlhtmlelement::HTMLHtmlElement;
+use dom::htmltitleelement::HTMLTitleElement;
+use dom::node::Node;
+use dom::text::Text;
+use dom::xmldocument::XMLDocument;
 use dom_struct::dom_struct;
+use mime::{Mime, TopLevel, SubLevel};
 use script_traits::DocumentActivity;
 
 // https://dom.spec.whatwg.org/#domimplementation
@@ -83,9 +82,17 @@ impl DOMImplementationMethods for DOMImplementation {
         let namespace = namespace_from_domstring(maybe_namespace.to_owned());
 
         let content_type = match namespace {
-            ns!(html) => "application/xhtml+xml".parse().unwrap(),
-            ns!(svg) => mime::IMAGE_SVG,
-            _ => "application/xml".parse().unwrap(),
+            ns!(html) => Mime(
+                TopLevel::Application,
+                SubLevel::Ext("xhtml+xml".to_string()),
+                vec![],
+            ),
+            ns!(svg) => Mime(
+                TopLevel::Image,
+                SubLevel::Ext("svg+xml".to_string()),
+                vec![],
+            ),
+            _ => Mime(TopLevel::Application, SubLevel::Xml, vec![]),
         };
 
         // Step 1.

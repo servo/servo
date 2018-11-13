@@ -3,60 +3,59 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use app_units::{Au, AU_PER_PX};
-use crate::document_loader::{LoadBlocker, LoadType};
-use crate::dom::activation::Activatable;
-use crate::dom::attr::Attr;
-use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::DOMRectBinding::DOMRectBinding::DOMRectMethods;
-use crate::dom::bindings::codegen::Bindings::ElementBinding::ElementBinding::ElementMethods;
-use crate::dom::bindings::codegen::Bindings::HTMLImageElementBinding;
-use crate::dom::bindings::codegen::Bindings::HTMLImageElementBinding::HTMLImageElementMethods;
-use crate::dom::bindings::codegen::Bindings::MouseEventBinding::MouseEventMethods;
-use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeBinding::NodeMethods;
-use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
-use crate::dom::bindings::error::Fallible;
-use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::refcounted::Trusted;
-use crate::dom::bindings::reflector::DomObject;
-use crate::dom::bindings::root::{DomRoot, LayoutDom, MutNullableDom};
-use crate::dom::bindings::str::DOMString;
-use crate::dom::document::Document;
-use crate::dom::element::{reflect_cross_origin_attribute, set_cross_origin_attribute};
-use crate::dom::element::{AttributeMutation, Element, RawLayoutElementHelpers};
-use crate::dom::event::{Event, EventBubbles, EventCancelable};
-use crate::dom::eventtarget::EventTarget;
-use crate::dom::htmlareaelement::HTMLAreaElement;
-use crate::dom::htmlelement::HTMLElement;
-use crate::dom::htmlformelement::{FormControl, HTMLFormElement};
-use crate::dom::htmlmapelement::HTMLMapElement;
-use crate::dom::htmlpictureelement::HTMLPictureElement;
-use crate::dom::htmlsourceelement::HTMLSourceElement;
-use crate::dom::mouseevent::MouseEvent;
-use crate::dom::node::{document_from_node, window_from_node, Node, NodeDamage, UnbindContext};
-use crate::dom::progressevent::ProgressEvent;
-use crate::dom::values::UNSIGNED_LONG_MAX;
-use crate::dom::virtualmethods::VirtualMethods;
-use crate::dom::window::Window;
-use crate::microtask::{Microtask, MicrotaskRunnable};
-use crate::network_listener::{NetworkListener, PreInvoke};
-use crate::script_thread::ScriptThread;
-use crate::task_source::{TaskSource, TaskSourceName};
 use cssparser::{Parser, ParserInput};
+use document_loader::{LoadType, LoadBlocker};
+use dom::activation::Activatable;
+use dom::attr::Attr;
+use dom::bindings::cell::DomRefCell;
+use dom::bindings::codegen::Bindings::DOMRectBinding::DOMRectBinding::DOMRectMethods;
+use dom::bindings::codegen::Bindings::ElementBinding::ElementBinding::ElementMethods;
+use dom::bindings::codegen::Bindings::HTMLImageElementBinding;
+use dom::bindings::codegen::Bindings::HTMLImageElementBinding::HTMLImageElementMethods;
+use dom::bindings::codegen::Bindings::MouseEventBinding::MouseEventMethods;
+use dom::bindings::codegen::Bindings::NodeBinding::NodeBinding::NodeMethods;
+use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
+use dom::bindings::error::Fallible;
+use dom::bindings::inheritance::Castable;
+use dom::bindings::refcounted::Trusted;
+use dom::bindings::reflector::DomObject;
+use dom::bindings::root::{DomRoot, LayoutDom, MutNullableDom};
+use dom::bindings::str::DOMString;
+use dom::document::Document;
+use dom::element::{AttributeMutation, Element, RawLayoutElementHelpers};
+use dom::element::{reflect_cross_origin_attribute, set_cross_origin_attribute};
+use dom::event::{Event, EventBubbles, EventCancelable};
+use dom::eventtarget::EventTarget;
+use dom::htmlareaelement::HTMLAreaElement;
+use dom::htmlelement::HTMLElement;
+use dom::htmlformelement::{FormControl, HTMLFormElement};
+use dom::htmlmapelement::HTMLMapElement;
+use dom::htmlpictureelement::HTMLPictureElement;
+use dom::htmlsourceelement::HTMLSourceElement;
+use dom::mouseevent::MouseEvent;
+use dom::node::{Node, NodeDamage, document_from_node, window_from_node, UnbindContext};
+use dom::progressevent::ProgressEvent;
+use dom::values::UNSIGNED_LONG_MAX;
+use dom::virtualmethods::VirtualMethods;
+use dom::window::Window;
 use dom_struct::dom_struct;
 use euclid::Point2D;
 use html5ever::{LocalName, Prefix};
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
-use mime::{self, Mime};
+use microtask::{Microtask, MicrotaskRunnable};
+use mime::{Mime, TopLevel, SubLevel};
+use net_traits::{FetchResponseListener, FetchMetadata, NetworkError, FetchResponseMsg};
 use net_traits::image::base::{Image, ImageMetadata};
-use net_traits::image_cache::UsePlaceholder;
 use net_traits::image_cache::{CanRequestImages, ImageCache, ImageOrMetadataAvailable};
 use net_traits::image_cache::{ImageResponder, ImageResponse, ImageState, PendingImageId};
+use net_traits::image_cache::UsePlaceholder;
 use net_traits::request::RequestInit;
-use net_traits::{FetchMetadata, FetchResponseListener, FetchResponseMsg, NetworkError};
+use network_listener::{NetworkListener, PreInvoke};
 use num_traits::ToPrimitive;
-use servo_url::origin::MutableOrigin;
+use script_thread::ScriptThread;
 use servo_url::ServoUrl;
+use servo_url::origin::MutableOrigin;
 use std::cell::{Cell, RefMut};
 use std::char;
 use std::collections::HashSet;
@@ -64,17 +63,16 @@ use std::default::Default;
 use std::i32;
 use std::mem;
 use std::sync::{Arc, Mutex};
-use style::attr::{
-    parse_double, parse_length, parse_unsigned_integer, AttrValue, LengthOrPercentageOrAuto,
-};
+use style::attr::{AttrValue, LengthOrPercentageOrAuto, parse_double, parse_length, parse_unsigned_integer};
 use style::context::QuirksMode;
 use style::media_queries::MediaList;
 use style::parser::ParserContext;
 use style::str::is_ascii_digit;
 use style::stylesheets::{CssRuleType, Origin};
+use style::values::specified::{AbsoluteLength, source_size_list::SourceSizeList};
 use style::values::specified::length::{Length, NoCalcLength};
-use style::values::specified::{source_size_list::SourceSizeList, AbsoluteLength};
 use style_traits::ParsingMode;
+use task_source::{TaskSource, TaskSourceName};
 
 enum ParseState {
     InDescriptor,
@@ -157,7 +155,7 @@ impl HTMLImageElement {
 /// The context required for asynchronously loading an external image.
 struct ImageContext {
     /// Reference to the script thread image cache.
-    image_cache: Arc<dyn ImageCache>,
+    image_cache: Arc<ImageCache>,
     /// Indicates whether the request failed, and why
     status: Result<(), NetworkError>,
     /// The cache ID for this request.
@@ -182,9 +180,13 @@ impl FetchResponseListener for ImageContext {
         // Step 14.5 of https://html.spec.whatwg.org/multipage/#img-environment-changes
         if let Some(metadata) = metadata.as_ref() {
             if let Some(ref content_type) = metadata.content_type {
-                let mime: Mime = content_type.clone().into_inner().into();
-                if mime.type_() == mime::MULTIPART && mime.subtype().as_str() == "x-mixed-replace" {
-                    self.aborted.set(true);
+                match content_type.clone().into_inner().0 {
+                    Mime(TopLevel::Multipart, SubLevel::Ext(s), _) => {
+                        if s == "x-mixed-replace" {
+                            self.aborted.set(true);
+                        }
+                    },
+                    _ => (),
                 }
             }
         }
@@ -229,7 +231,7 @@ impl HTMLImageElement {
     /// Update the current image with a valid URL.
     fn fetch_image(&self, img_url: &ServoUrl) {
         fn add_cache_listener_for_element(
-            image_cache: Arc<dyn ImageCache>,
+            image_cache: Arc<ImageCache>,
             id: PendingImageId,
             elem: &HTMLImageElement,
         ) {
@@ -568,8 +570,8 @@ impl HTMLImageElement {
                 // TODO Handle unsupported mime type
                 let mime = x.value().parse::<Mime>();
                 match mime {
-                    Ok(m) => match m.type_() {
-                        mime::IMAGE => (),
+                    Ok(m) => match m {
+                        Mime(TopLevel::Image, _, _) => (),
                         _ => continue,
                     },
                     _ => continue,
@@ -979,7 +981,7 @@ impl HTMLImageElement {
     fn react_to_environment_changes_sync_steps(&self, generation: u32) {
         // TODO reduce duplicacy of this code
         fn add_cache_listener_for_element(
-            image_cache: Arc<dyn ImageCache>,
+            image_cache: Arc<ImageCache>,
             id: PendingImageId,
             elem: &HTMLImageElement,
             selected_source: String,
@@ -1275,13 +1277,9 @@ impl HTMLImageElement {
     }
 
     pub fn same_origin(&self, origin: &MutableOrigin) -> bool {
-        self.current_request
-            .borrow_mut()
-            .final_url
-            .as_ref()
-            .map_or(false, |url| {
-                url.scheme() == "data" || url.origin().same_origin(origin)
-            })
+        self.current_request.borrow_mut().final_url.as_ref().map_or(false, |url| {
+            url.scheme() == "data" || url.origin().same_origin(origin)
+        })
     }
 }
 
@@ -1330,9 +1328,6 @@ pub trait LayoutHTMLImageElementHelpers {
     #[allow(unsafe_code)]
     unsafe fn image_density(&self) -> Option<f64>;
 
-    #[allow(unsafe_code)]
-    unsafe fn image_data(&self) -> (Option<Arc<Image>>, Option<ImageMetadata>);
-
     fn get_width(&self) -> LengthOrPercentageOrAuto;
     fn get_height(&self) -> LengthOrPercentageOrAuto;
 }
@@ -1354,15 +1349,6 @@ impl LayoutHTMLImageElementHelpers for LayoutDom<HTMLImageElement> {
             .borrow_for_layout()
             .parsed_url
             .clone()
-    }
-
-    #[allow(unsafe_code)]
-    unsafe fn image_data(&self) -> (Option<Arc<Image>>, Option<ImageMetadata>) {
-        let current_request = (*self.unsafe_get()).current_request.borrow_for_layout();
-        (
-            current_request.image.clone(),
-            current_request.metadata.clone(),
-        )
     }
 
     #[allow(unsafe_code)]
@@ -1508,11 +1494,11 @@ impl HTMLImageElementMethods for HTMLImageElement {
         let elem = self.upcast::<Element>();
         let srcset_absent = !elem.has_attribute(&local_name!("srcset"));
         if !elem.has_attribute(&local_name!("src")) && srcset_absent {
-            return true;
+            return true
         }
         let src = elem.get_string_attribute(&local_name!("src"));
         if srcset_absent && src.is_empty() {
-            return true;
+            return true
         }
         let request = self.current_request.borrow();
         let request_state = request.state;
@@ -1576,8 +1562,8 @@ impl HTMLImageElementMethods for HTMLImageElement {
 }
 
 impl VirtualMethods for HTMLImageElement {
-    fn super_type(&self) -> Option<&dyn VirtualMethods> {
-        Some(self.upcast::<HTMLElement>() as &dyn VirtualMethods)
+    fn super_type(&self) -> Option<&VirtualMethods> {
+        Some(self.upcast::<HTMLElement>() as &VirtualMethods)
     }
 
     fn adopting_steps(&self, old_doc: &Document) {
@@ -1588,10 +1574,8 @@ impl VirtualMethods for HTMLImageElement {
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
         self.super_type().unwrap().attribute_mutated(attr, mutation);
         match attr.local_name() {
-            &local_name!("src") |
-            &local_name!("srcset") |
-            &local_name!("width") |
-            &local_name!("crossorigin") |
+            &local_name!("src") | &local_name!("srcset")  |
+            &local_name!("width") | &local_name!("crossorigin") |
             &local_name!("sizes") => self.update_the_image_data(),
             _ => {},
         }

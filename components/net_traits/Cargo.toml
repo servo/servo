@@ -1,11 +1,8 @@
-cargo-features = ["rename-dependency"]
-
 [package]
 name = "net_traits"
 version = "0.0.1"
 authors = ["The Servo Project Developers"]
 license = "MPL-2.0"
-edition = "2018"
 publish = false
 
 [lib]
@@ -15,23 +12,18 @@ test = false
 doctest = false
 
 [dependencies]
-cookie = "0.11"
+cookie = "0.10"
 embedder_traits = { path = "../embedder_traits" }
-headers-core = "0.0.1"
-headers-ext = "0.0.3"
-http = "0.1"
-hyper = "0.12"
-hyper_serde = "0.9"
-piston_image = {package = "image", version = "0.19"}
+hyper = "0.10"
+hyper_serde = "0.8"
+image = "0.19"
 ipc-channel = "0.11"
 lazy_static = "1"
 log = "0.4"
 malloc_size_of = { path = "../malloc_size_of" }
 malloc_size_of_derive = { path = "../malloc_size_of_derive" }
-mime = "0.3"
 msg = {path = "../msg"}
 num-traits = "0.2"
-pixels = {path = "../pixels"}
 serde = "1.0"
 servo_arc = {path = "../servo_arc"}
 servo_config = {path = "../config"}
@@ -41,4 +33,4 @@ uuid = {version = "0.6", features = ["v4", "serde"]}
 webrender_api = {git = "https://github.com/servo/webrender", features = ["ipc"]}
 
 [dev-dependencies]
-std_test_override = { path = "../std_test_override" }
+embedder_traits = { path = "../embedder_traits", features = ["tests"] }

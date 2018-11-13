@@ -2,45 +2,45 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
-use crate::dom::bindings::codegen::Bindings::WebSocketBinding;
-use crate::dom::bindings::codegen::Bindings::WebSocketBinding::{BinaryType, WebSocketMethods};
-use crate::dom::bindings::codegen::UnionTypes::StringOrStringSequence;
-use crate::dom::bindings::conversions::ToJSValConvertible;
-use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
-use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::refcounted::Trusted;
-use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
-use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::{is_token, DOMString, USVString};
-use crate::dom::blob::{Blob, BlobImpl};
-use crate::dom::closeevent::CloseEvent;
-use crate::dom::event::{Event, EventBubbles, EventCancelable};
-use crate::dom::eventtarget::EventTarget;
-use crate::dom::globalscope::GlobalScope;
-use crate::dom::messageevent::MessageEvent;
-use crate::script_runtime::CommonScriptMsg;
-use crate::script_runtime::ScriptThreadEventCategory::WebSocketEvent;
-use crate::task::{TaskCanceller, TaskOnce};
-use crate::task_source::websocket::WebsocketTaskSource;
-use crate::task_source::TaskSource;
+use dom::bindings::cell::DomRefCell;
+use dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
+use dom::bindings::codegen::Bindings::WebSocketBinding;
+use dom::bindings::codegen::Bindings::WebSocketBinding::{BinaryType, WebSocketMethods};
+use dom::bindings::codegen::UnionTypes::StringOrStringSequence;
+use dom::bindings::conversions::ToJSValConvertible;
+use dom::bindings::error::{Error, ErrorResult, Fallible};
+use dom::bindings::inheritance::Castable;
+use dom::bindings::refcounted::Trusted;
+use dom::bindings::reflector::{DomObject, reflect_dom_object};
+use dom::bindings::root::DomRoot;
+use dom::bindings::str::{DOMString, USVString, is_token};
+use dom::blob::{Blob, BlobImpl};
+use dom::closeevent::CloseEvent;
+use dom::event::{Event, EventBubbles, EventCancelable};
+use dom::eventtarget::EventTarget;
+use dom::globalscope::GlobalScope;
+use dom::messageevent::MessageEvent;
 use dom_struct::dom_struct;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use js::jsapi::{JSAutoCompartment, JSObject};
 use js::jsval::UndefinedValue;
 use js::rust::CustomAutoRooterGuard;
 use js::typedarray::{ArrayBuffer, ArrayBufferView, CreateWith};
-use net_traits::request::{RequestInit, RequestMode};
-use net_traits::MessageData;
 use net_traits::{CoreResourceMsg, FetchChannels};
 use net_traits::{WebSocketDomAction, WebSocketNetworkEvent};
+use net_traits::MessageData;
+use net_traits::request::{RequestInit, RequestMode};
 use profile_traits::ipc as ProfiledIpc;
+use script_runtime::CommonScriptMsg;
+use script_runtime::ScriptThreadEventCategory::WebSocketEvent;
 use servo_url::{ImmutableOrigin, ServoUrl};
 use std::borrow::ToOwned;
 use std::cell::Cell;
 use std::ptr;
 use std::thread;
+use task::{TaskOnce, TaskCanceller};
+use task_source::TaskSource;
+use task_source::websocket::WebsocketTaskSource;
 
 #[derive(Clone, Copy, Debug, JSTraceable, MallocSizeOf, PartialEq)]
 enum WebSocketRequestState {
@@ -429,7 +429,7 @@ impl WebSocketMethods for WebSocket {
             WebSocketRequestState::Connecting => {
                 //Connection is not yet established
                 /*By setting the state to closing, the open function
-                will abort connecting the websocket*/
+                  will abort connecting the websocket*/
                 self.ready_state.set(WebSocketRequestState::Closing);
 
                 let address = Trusted::new(self);
@@ -588,8 +588,7 @@ impl TaskOnce for MessageReceivedTask {
                                 cx,
                                 CreateWith::Slice(&data),
                                 array_buffer.handle_mut()
-                            )
-                            .is_ok()
+                            ).is_ok()
                         );
 
                         (*array_buffer).to_jsval(cx, message.handle_mut());

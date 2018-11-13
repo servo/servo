@@ -21,6 +21,7 @@ function test_interpolation(settings, expectations) {
     var animationId = 'anim' + i;
     var targetId = 'target' + i;
     var referenceId = 'reference' + i;
+
     test(function(){
       assert_true(CSS.supports(settings.property, expectation), 'Value "' + expectation + '" is supported by ' + settings.property);
 
@@ -48,9 +49,7 @@ function test_interpolation(settings, expectations) {
       reference.style = '';
 
       assert_equals(getComputedStyle(target)[settings.property], getComputedStyle(reference)[settings.property]);
-    }, (settings.test_prefix ? settings.test_prefix : "") +
-       'Animation between "' + settings.from + '" and "' + settings.to +
-       '" at progress ' + progress);
+    }, 'Animation between "' + settings.from + '" and "' + settings.to + '" at progress ' + progress);
   }
 }
 

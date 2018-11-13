@@ -4,10 +4,10 @@
 
 // https://www.khronos.org/registry/webgl/specs/latest/1.0/webgl.idl
 use canvas_traits::webgl::WebGLProgramId;
-use crate::dom::bindings::codegen::Bindings::WebGLUniformLocationBinding;
-use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
-use crate::dom::bindings::root::DomRoot;
-use crate::dom::window::Window;
+use dom::bindings::codegen::Bindings::WebGLUniformLocationBinding;
+use dom::bindings::reflector::{Reflector, reflect_dom_object};
+use dom::bindings::root::DomRoot;
+use dom::window::Window;
 use dom_struct::dom_struct;
 
 #[dom_struct]

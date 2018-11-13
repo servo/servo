@@ -6,7 +6,6 @@
 //!
 //! [length]: https://drafts.csswg.org/css-values/#lengths
 
-use super::{AllowQuirks, Number, Percentage, ToComputedValue};
 use app_units::Au;
 use cssparser::{Parser, Token};
 use euclid::Size2D;
@@ -14,17 +13,17 @@ use font_metrics::FontMetricsQueryResult;
 use parser::{Parse, ParserContext};
 use std::cmp;
 use std::ops::{Add, Mul};
-use style_traits::values::specified::AllowedNumericType;
 use style_traits::{ParseError, SpecifiedValueInfo, StyleParseErrorKind};
+use style_traits::values::specified::AllowedNumericType;
+use super::{AllowQuirks, Number, Percentage, ToComputedValue};
+use values::{Auto, CSSFloat, Either, Normal};
 use values::computed::{self, CSSPixelLength, Context, ExtremumLength};
-use values::generics::length::{MaxLength as GenericMaxLength, MozLength as GenericMozLength};
 use values::generics::NonNegative;
 use values::specified::calc::CalcNode;
-use values::{Auto, CSSFloat, Either, IsAuto, Normal};
 
+pub use values::specified::calc::CalcLengthOrPercentage;
 pub use super::image::{ColorStop, EndingShape as GradientEndingShape, Gradient};
 pub use super::image::{GradientKind, Image};
-pub use values::specified::calc::CalcLengthOrPercentage;
 
 /// Number of app units per pixel
 pub const AU_PER_PX: CSSFloat = 60.;
@@ -980,13 +979,6 @@ impl Parse for LengthOrPercentageOrAuto {
 /// A wrapper of LengthOrPercentageOrAuto, whose value must be >= 0.
 pub type NonNegativeLengthOrPercentageOrAuto = NonNegative<LengthOrPercentageOrAuto>;
 
-impl IsAuto for NonNegativeLengthOrPercentageOrAuto {
-    #[inline]
-    fn is_auto(&self) -> bool {
-        *self == Self::auto()
-    }
-}
-
 impl NonNegativeLengthOrPercentageOrAuto {
     /// 0
     #[inline]
@@ -1196,8 +1188,18 @@ impl LengthOrNumber {
     }
 }
 
-/// A specified value for `min-width`, `min-height`, `width` or `height` property.
-pub type MozLength = GenericMozLength<LengthOrPercentageOrAuto>;
+/// A value suitable for a `min-width` or `min-height` property.
+///
+/// Unlike `max-width` or `max-height` properties, a MozLength can be `auto`,
+/// and cannot be `none`.
+///
+/// Note that it only accepts non-negative values.
+#[allow(missing_docs)]
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss)]
+pub enum MozLength {
+    LengthOrPercentageOrAuto(LengthOrPercentageOrAuto),
+    ExtremumLength(ExtremumLength),
+}
 
 impl Parse for MozLength {
     fn parse<'i, 't>(
@@ -1217,7 +1219,7 @@ impl MozLength {
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
         let length = LengthOrPercentageOrAuto::parse_non_negative(context, input)?;
-        Ok(GenericMozLength::LengthOrPercentageOrAuto(length))
+        Ok(MozLength::LengthOrPercentageOrAuto(length))
     }
 
     /// Parses, with quirks.
@@ -1227,29 +1229,34 @@ impl MozLength {
         allow_quirks: AllowQuirks,
     ) -> Result<Self, ParseError<'i>> {
         if let Ok(l) = input.try(ExtremumLength::parse) {
-            return Ok(GenericMozLength::ExtremumLength(l));
+            return Ok(MozLength::ExtremumLength(l));
         }
 
         let length =
             LengthOrPercentageOrAuto::parse_non_negative_quirky(context, input, allow_quirks)?;
-        Ok(GenericMozLength::LengthOrPercentageOrAuto(length))
+        Ok(MozLength::LengthOrPercentageOrAuto(length))
     }
 
     /// Returns `auto`.
     #[inline]
     pub fn auto() -> Self {
-        GenericMozLength::LengthOrPercentageOrAuto(LengthOrPercentageOrAuto::auto())
+        MozLength::LengthOrPercentageOrAuto(LengthOrPercentageOrAuto::auto())
     }
 
     /// Returns `0%`.
     #[inline]
     pub fn zero_percent() -> Self {
-        GenericMozLength::LengthOrPercentageOrAuto(LengthOrPercentageOrAuto::zero_percent())
+        MozLength::LengthOrPercentageOrAuto(LengthOrPercentageOrAuto::zero_percent())
     }
 }
 
-/// A specified value for `max-width` or `max-height` property.
-pub type MaxLength = GenericMaxLength<LengthOrPercentageOrNone>;
+/// A value suitable for a `max-width` or `max-height` property.
+#[allow(missing_docs)]
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss)]
+pub enum MaxLength {
+    LengthOrPercentageOrNone(LengthOrPercentageOrNone),
+    ExtremumLength(ExtremumLength),
+}
 
 impl Parse for MaxLength {
     fn parse<'i, 't>(
@@ -1269,7 +1276,7 @@ impl MaxLength {
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
         let length = LengthOrPercentageOrNone::parse_non_negative(context, input)?;
-        Ok(GenericMaxLength::LengthOrPercentageOrNone(length))
+        Ok(MaxLength::LengthOrPercentageOrNone(length))
     }
 
     /// Parses, with quirks.
@@ -1279,11 +1286,11 @@ impl MaxLength {
         allow_quirks: AllowQuirks,
     ) -> Result<Self, ParseError<'i>> {
         if let Ok(l) = input.try(ExtremumLength::parse) {
-            return Ok(GenericMaxLength::ExtremumLength(l));
+            return Ok(MaxLength::ExtremumLength(l));
         }
 
         let length =
             LengthOrPercentageOrNone::parse_non_negative_quirky(context, input, allow_quirks)?;
-        Ok(GenericMaxLength::LengthOrPercentageOrNone(length))
+        Ok(MaxLength::LengthOrPercentageOrNone(length))
     }
 }

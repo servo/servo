@@ -548,7 +548,7 @@ class Http1WebTestRequestHandler(BaseWebTestRequestHandler):
             self.close_connection = True
             return
 
-        except Exception:
+        except Exception as e:
             err = traceback.format_exc()
             if response:
                 response.set_error(500, err)

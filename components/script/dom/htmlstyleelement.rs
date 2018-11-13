@@ -2,23 +2,20 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::HTMLStyleElementBinding;
-use crate::dom::bindings::codegen::Bindings::HTMLStyleElementBinding::HTMLStyleElementMethods;
-use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
-use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::root::{DomRoot, MutNullableDom};
-use crate::dom::cssstylesheet::CSSStyleSheet;
-use crate::dom::document::Document;
-use crate::dom::element::{Element, ElementCreator};
-use crate::dom::htmlelement::HTMLElement;
-use crate::dom::node::{
-    document_from_node, window_from_node, ChildrenMutation, Node, UnbindContext,
-};
-use crate::dom::stylesheet::StyleSheet as DOMStyleSheet;
-use crate::dom::virtualmethods::VirtualMethods;
-use crate::stylesheet_loader::{StylesheetLoader, StylesheetOwner};
 use cssparser::{Parser as CssParser, ParserInput};
+use dom::bindings::cell::DomRefCell;
+use dom::bindings::codegen::Bindings::HTMLStyleElementBinding;
+use dom::bindings::codegen::Bindings::HTMLStyleElementBinding::HTMLStyleElementMethods;
+use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
+use dom::bindings::inheritance::Castable;
+use dom::bindings::root::{DomRoot, MutNullableDom};
+use dom::cssstylesheet::CSSStyleSheet;
+use dom::document::Document;
+use dom::element::{Element, ElementCreator};
+use dom::htmlelement::HTMLElement;
+use dom::node::{ChildrenMutation, Node, UnbindContext, document_from_node, window_from_node};
+use dom::stylesheet::StyleSheet as DOMStyleSheet;
+use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
 use net_traits::ReferrerPolicy;
@@ -26,8 +23,9 @@ use servo_arc::Arc;
 use std::cell::Cell;
 use style::media_queries::MediaList;
 use style::parser::ParserContext as CssParserContext;
-use style::stylesheets::{CssRuleType, Origin, Stylesheet};
+use style::stylesheets::{CssRuleType, Stylesheet, Origin};
 use style_traits::ParsingMode;
+use stylesheet_loader::{StylesheetLoader, StylesheetOwner};
 
 #[dom_struct]
 pub struct HTMLStyleElement {
@@ -169,8 +167,8 @@ impl HTMLStyleElement {
 }
 
 impl VirtualMethods for HTMLStyleElement {
-    fn super_type(&self) -> Option<&dyn VirtualMethods> {
-        Some(self.upcast::<HTMLElement>() as &dyn VirtualMethods)
+    fn super_type(&self) -> Option<&VirtualMethods> {
+        Some(self.upcast::<HTMLElement>() as &VirtualMethods)
     }
 
     fn children_changed(&self, mutation: &ChildrenMutation) {

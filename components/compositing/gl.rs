@@ -14,7 +14,7 @@ pub struct RenderTargetInfo {
 }
 
 pub fn initialize_png(
-    gl: &dyn gl::Gl,
+    gl: &gl::Gl,
     width: DeviceUintLength,
     height: DeviceUintLength,
 ) -> RenderTargetInfo {
@@ -80,7 +80,7 @@ pub fn initialize_png(
 }
 
 pub fn draw_img(
-    gl: &dyn gl::Gl,
+    gl: &gl::Gl,
     render_target_info: RenderTargetInfo,
     width: DeviceUintLength,
     height: DeviceUintLength,

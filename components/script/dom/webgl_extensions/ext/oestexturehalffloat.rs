@@ -2,17 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use super::{
-    constants as webgl, ext_constants as gl, WebGLExtension, WebGLExtensionSpec, WebGLExtensions,
-};
 use canvas_traits::webgl::WebGLVersion;
-use crate::dom::bindings::codegen::Bindings::OESTextureHalfFloatBinding::{
-    self, OESTextureHalfFloatConstants,
-};
-use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
-use crate::dom::bindings::root::DomRoot;
-use crate::dom::webglrenderingcontext::WebGLRenderingContext;
+use dom::bindings::codegen::Bindings::OESTextureHalfFloatBinding::{self, OESTextureHalfFloatConstants};
+use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
+use dom::bindings::root::DomRoot;
+use dom::webglrenderingcontext::WebGLRenderingContext;
 use dom_struct::dom_struct;
+use super::{constants as webgl, ext_constants as gl, WebGLExtension, WebGLExtensions, WebGLExtensionSpec};
 
 #[dom_struct]
 pub struct OESTextureHalfFloat {
@@ -51,9 +47,12 @@ impl WebGLExtension for OESTextureHalfFloat {
     }
 
     fn enable(ext: &WebGLExtensions) {
+        // Enable FLOAT text data type
         let hf = OESTextureHalfFloatConstants::HALF_FLOAT_OES;
         ext.enable_tex_type(hf);
-        if !ext.supports_gl_extension("GL_OES_texture_half_float") {
+        let needs_replace = !ext.supports_gl_extension("GL_OES_texture_float");
+        if needs_replace {
+            // Special internal formats must be used to avoid clamped float values
             ext.add_effective_tex_internal_format(webgl::RGBA, hf, gl::RGBA16F);
             ext.add_effective_tex_internal_format(webgl::RGB, hf, gl::RGB16F);
             ext.add_effective_tex_internal_format(webgl::LUMINANCE, hf, gl::LUMINANCE16F_ARB);

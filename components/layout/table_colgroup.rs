@@ -4,20 +4,22 @@
 
 //! CSS table formatting contexts.
 
+#![deny(unsafe_code)]
+
 use app_units::Au;
-use crate::context::LayoutContext;
-use crate::display_list::{DisplayListBuildState, StackingContextCollectionState};
-use crate::flow::{BaseFlow, Flow, FlowClass, ForceNonfloatedFlag, OpaqueFlow};
-use crate::fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
-use crate::layout_debug;
+use context::LayoutContext;
+use display_list::{DisplayListBuildState, StackingContextCollectionState};
 use euclid::Point2D;
+use flow::{BaseFlow, Flow, FlowClass, ForceNonfloatedFlag, OpaqueFlow};
+use fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
+use layout_debug;
 use std::fmt;
 use style::logical_geometry::LogicalSize;
 use style::properties::ComputedValues;
 use style::values::computed::LengthOrPercentageOrAuto;
 
 #[allow(unsafe_code)]
-unsafe impl crate::flow::HasBaseFlow for TableColGroupFlow {}
+unsafe impl ::flow::HasBaseFlow for TableColGroupFlow {}
 
 /// A table formatting context.
 #[repr(C)]
@@ -100,7 +102,7 @@ impl Flow for TableColGroupFlow {
         self.base.clipping_and_scrolling = Some(state.current_clipping_and_scrolling);
     }
 
-    fn repair_style(&mut self, _: &crate::ServoArc<ComputedValues>) {}
+    fn repair_style(&mut self, _: &::ServoArc<ComputedValues>) {}
 
     fn compute_overflow(&self) -> Overflow {
         Overflow::new()
@@ -112,13 +114,13 @@ impl Flow for TableColGroupFlow {
 
     fn iterate_through_fragment_border_boxes(
         &self,
-        _: &mut dyn FragmentBorderBoxIterator,
+        _: &mut FragmentBorderBoxIterator,
         _: i32,
         _: &Point2D<Au>,
     ) {
     }
 
-    fn mutate_fragments(&mut self, _: &mut dyn FnMut(&mut Fragment)) {}
+    fn mutate_fragments(&mut self, _: &mut FnMut(&mut Fragment)) {}
 }
 
 impl fmt::Debug for TableColGroupFlow {

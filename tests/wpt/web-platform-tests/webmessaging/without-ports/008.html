@@ -5,7 +5,8 @@
 <div id="log"></div>
 <script>
 test(function() {
-  postMessage('');
-  this.done();
- });
- </script>
+  assert_throws(new TypeError(), function() {
+    postMessage('');
+  });
+});
+</script>

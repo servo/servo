@@ -2,58 +2,56 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use crate::dom::analysernode::AnalyserNode;
-use crate::dom::audiobuffer::AudioBuffer;
-use crate::dom::audiobuffersourcenode::AudioBufferSourceNode;
-use crate::dom::audiodestinationnode::AudioDestinationNode;
-use crate::dom::audiolistener::AudioListener;
-use crate::dom::audionode::MAX_CHANNEL_COUNT;
-use crate::dom::bindings::callback::ExceptionHandling;
-use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::AnalyserNodeBinding::AnalyserOptions;
-use crate::dom::bindings::codegen::Bindings::AudioBufferSourceNodeBinding::AudioBufferSourceOptions;
-use crate::dom::bindings::codegen::Bindings::AudioNodeBinding::AudioNodeOptions;
-use crate::dom::bindings::codegen::Bindings::AudioNodeBinding::{
-    ChannelCountMode, ChannelInterpretation,
-};
-use crate::dom::bindings::codegen::Bindings::BaseAudioContextBinding::AudioContextState;
-use crate::dom::bindings::codegen::Bindings::BaseAudioContextBinding::BaseAudioContextMethods;
-use crate::dom::bindings::codegen::Bindings::BaseAudioContextBinding::DecodeErrorCallback;
-use crate::dom::bindings::codegen::Bindings::BaseAudioContextBinding::DecodeSuccessCallback;
-use crate::dom::bindings::codegen::Bindings::BiquadFilterNodeBinding::BiquadFilterOptions;
-use crate::dom::bindings::codegen::Bindings::ChannelMergerNodeBinding::ChannelMergerOptions;
-use crate::dom::bindings::codegen::Bindings::GainNodeBinding::GainOptions;
-use crate::dom::bindings::codegen::Bindings::OscillatorNodeBinding::OscillatorOptions;
-use crate::dom::bindings::codegen::Bindings::PannerNodeBinding::PannerOptions;
-use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
-use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::num::Finite;
-use crate::dom::bindings::refcounted::Trusted;
-use crate::dom::bindings::reflector::DomObject;
-use crate::dom::bindings::root::{DomRoot, MutNullableDom};
-use crate::dom::biquadfilternode::BiquadFilterNode;
-use crate::dom::channelmergernode::ChannelMergerNode;
-use crate::dom::domexception::{DOMErrorName, DOMException};
-use crate::dom::eventtarget::EventTarget;
-use crate::dom::gainnode::GainNode;
-use crate::dom::oscillatornode::OscillatorNode;
-use crate::dom::pannernode::PannerNode;
-use crate::dom::promise::Promise;
-use crate::dom::window::Window;
-use crate::task_source::{TaskSource, TaskSourceName};
+use dom::analysernode::AnalyserNode;
+use dom::audiobuffer::AudioBuffer;
+use dom::audiobuffersourcenode::AudioBufferSourceNode;
+use dom::audiodestinationnode::AudioDestinationNode;
+use dom::audiolistener::AudioListener;
+use dom::audionode::MAX_CHANNEL_COUNT;
+use dom::bindings::callback::ExceptionHandling;
+use dom::bindings::cell::DomRefCell;
+use dom::bindings::codegen::Bindings::AnalyserNodeBinding::AnalyserOptions;
+use dom::bindings::codegen::Bindings::AudioBufferSourceNodeBinding::AudioBufferSourceOptions;
+use dom::bindings::codegen::Bindings::AudioNodeBinding::{ChannelCountMode, ChannelInterpretation};
+use dom::bindings::codegen::Bindings::AudioNodeBinding::AudioNodeOptions;
+use dom::bindings::codegen::Bindings::BaseAudioContextBinding::AudioContextState;
+use dom::bindings::codegen::Bindings::BaseAudioContextBinding::BaseAudioContextMethods;
+use dom::bindings::codegen::Bindings::BaseAudioContextBinding::DecodeErrorCallback;
+use dom::bindings::codegen::Bindings::BaseAudioContextBinding::DecodeSuccessCallback;
+use dom::bindings::codegen::Bindings::BiquadFilterNodeBinding::BiquadFilterOptions;
+use dom::bindings::codegen::Bindings::ChannelMergerNodeBinding::ChannelMergerOptions;
+use dom::bindings::codegen::Bindings::GainNodeBinding::GainOptions;
+use dom::bindings::codegen::Bindings::OscillatorNodeBinding::OscillatorOptions;
+use dom::bindings::codegen::Bindings::PannerNodeBinding::PannerOptions;
+use dom::bindings::error::{Error, ErrorResult, Fallible};
+use dom::bindings::inheritance::Castable;
+use dom::bindings::num::Finite;
+use dom::bindings::refcounted::Trusted;
+use dom::bindings::reflector::DomObject;
+use dom::bindings::root::{DomRoot, MutNullableDom};
+use dom::biquadfilternode::BiquadFilterNode;
+use dom::channelmergernode::ChannelMergerNode;
+use dom::domexception::{DOMErrorName, DOMException};
+use dom::eventtarget::EventTarget;
+use dom::gainnode::GainNode;
+use dom::oscillatornode::OscillatorNode;
+use dom::pannernode::PannerNode;
+use dom::promise::Promise;
+use dom::window::Window;
 use dom_struct::dom_struct;
 use js::rust::CustomAutoRooterGuard;
 use js::typedarray::ArrayBuffer;
+use servo_media::{Backend, ServoMedia};
 use servo_media::audio::context::{AudioContext, AudioContextOptions, ProcessingState};
 use servo_media::audio::context::{OfflineAudioContextOptions, RealTimeAudioContextOptions};
 use servo_media::audio::decoder::AudioDecoderCallbacks;
 use servo_media::audio::graph::NodeId;
-use servo_media::{Backend, ServoMedia};
 use std::cell::Cell;
 use std::collections::{HashMap, VecDeque};
 use std::mem;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
+use task_source::{TaskSource, TaskSourceName};
 use uuid::Uuid;
 
 #[allow(dead_code)]
@@ -350,11 +348,7 @@ impl BaseAudioContextMethods for BaseAudioContext {
 
     /// https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-createbiquadfilter
     fn CreateBiquadFilter(&self) -> Fallible<DomRoot<BiquadFilterNode>> {
-        BiquadFilterNode::new(
-            &self.global().as_window(),
-            &self,
-            &BiquadFilterOptions::empty(),
-        )
+        BiquadFilterNode::new(&self.global().as_window(), &self, &BiquadFilterOptions::empty())
     }
 
     /// https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-createchannelmerger
@@ -438,12 +432,10 @@ impl BaseAudioContextMethods for BaseAudioContext {
                         .lock()
                         .unwrap()
                         .resize(channel_count as usize, Vec::new());
-                })
-                .progress(move |buffer, channel| {
+                }).progress(move |buffer, channel| {
                     let mut decoded_audio = decoded_audio_.lock().unwrap();
                     decoded_audio[(channel - 1) as usize].extend_from_slice((*buffer).as_ref());
-                })
-                .eos(move || {
+                }).eos(move || {
                     let _ = task_source.queue_with_canceller(
                         task!(audio_decode_eos: move || {
                             let this = this.root();
@@ -469,8 +461,7 @@ impl BaseAudioContextMethods for BaseAudioContext {
                         }),
                         &canceller,
                     );
-                })
-                .error(move |error| {
+                }).error(move || {
                     let _ = task_source_.queue_with_canceller(
                         task!(audio_decode_eos: move || {
                         let this = this_.root();
@@ -482,13 +473,11 @@ impl BaseAudioContextMethods for BaseAudioContext {
                                 &DOMException::new(&this.global(), DOMErrorName::DataCloneError),
                                 ExceptionHandling::Report);
                         }
-                        let error = format!("Audio decode error {:?}", error);
-                        resolver.promise.reject_error(Error::Type(error));
+                        resolver.promise.reject_error(Error::Type("Audio decode error".to_owned()));
                     }),
                         &canceller_,
                     );
-                })
-                .build();
+                }).build();
             self.audio_context_impl
                 .decode_audio_data(audio_data, callbacks);
         } else {

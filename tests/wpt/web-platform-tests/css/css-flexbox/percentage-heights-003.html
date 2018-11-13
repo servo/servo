@@ -22,13 +22,13 @@
 }
 
 .flexbox > div {
-    background: teal;
+    background: red;
     flex-grow: 1;
 }
 
-.flexbox span {
+span {
     height: 100%;
-    background: orange;
+    background: green;
     display: block;
 }
 </style>
@@ -38,46 +38,24 @@
 <body onload="checkLayout('.flexbox')">
 <div id=log></div>
 
-<!-- The wrapper divs are here to give the flexbox something to fill  -->
+<p>You should see no red</p>
 
-<!-- definite unwrapped column flexbox -->
+<!-- This wrapper div is solely here to setup the max height so it can be computed consistently since body at 100% won't be consistent across devices  -->
 <div style="height: 100px;">
-    <div class="flexbox column" style="height: 0">
+
+    <div class="flexbox column">
         <div>
             <span data-expected-height="100"></span>
         </div>
     </div>
 </div>
-
-<!-- definite wrapped column flexbox -->
-<div style="height: 100px;">
-    <div class="flexbox column-wrap" style="height: 0">
-       <div>
-            <span data-expected-height="50"></span>
-        </div>
-        <div>
-            <span data-expected-height="50"></span>
-        </div>
-    </div>
-</div>
-
-<!-- indefinite unwrapped column flexbox -->
-<div style="height: 100px;">
-    <div class="flexbox column">
-        <div>
-            <span data-expected-height="0"></span>
-        </div>
-    </div>
-</div>
-
-<!-- indefinite wrapped column flexbox -->
 <div style="height: 100px;">
     <div class="flexbox column-wrap">
        <div>
-            <span data-expected-height="0"></span>
+            <span data-expected-height="50"></span>
         </div>
         <div>
-            <span data-expected-height="0"></span>
+            <span data-expected-height="50"></span>
         </div>
     </div>
 </div>

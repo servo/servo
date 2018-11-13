@@ -1,7 +1,0 @@
-
-USES =  "scenes"  "pipeline/cache/AssetManifest"
-
-DATAS = \
-    fonts.xml : etc/fonts.xml
-
-REFS = Servo2D

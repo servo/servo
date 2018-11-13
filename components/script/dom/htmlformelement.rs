@@ -2,64 +2,61 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
-use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
-use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
-use crate::dom::bindings::codegen::Bindings::HTMLButtonElementBinding::HTMLButtonElementMethods;
-use crate::dom::bindings::codegen::Bindings::HTMLFormControlsCollectionBinding::HTMLFormControlsCollectionMethods;
-use crate::dom::bindings::codegen::Bindings::HTMLFormElementBinding;
-use crate::dom::bindings::codegen::Bindings::HTMLFormElementBinding::HTMLFormElementMethods;
-use crate::dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputElementMethods;
-use crate::dom::bindings::codegen::Bindings::HTMLTextAreaElementBinding::HTMLTextAreaElementMethods;
-use crate::dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementTypeId, NodeTypeId};
-use crate::dom::bindings::refcounted::Trusted;
-use crate::dom::bindings::reflector::DomObject;
-use crate::dom::bindings::root::{Dom, DomOnceCell, DomRoot, RootedReference};
-use crate::dom::bindings::str::DOMString;
-use crate::dom::blob::Blob;
-use crate::dom::document::Document;
-use crate::dom::element::{AttributeMutation, Element};
-use crate::dom::eventtarget::EventTarget;
-use crate::dom::file::File;
-use crate::dom::globalscope::GlobalScope;
-use crate::dom::htmlbuttonelement::HTMLButtonElement;
-use crate::dom::htmlcollection::CollectionFilter;
-use crate::dom::htmldatalistelement::HTMLDataListElement;
-use crate::dom::htmlelement::HTMLElement;
-use crate::dom::htmlfieldsetelement::HTMLFieldSetElement;
-use crate::dom::htmlformcontrolscollection::HTMLFormControlsCollection;
-use crate::dom::htmlimageelement::HTMLImageElement;
-use crate::dom::htmlinputelement::{HTMLInputElement, InputType};
-use crate::dom::htmllabelelement::HTMLLabelElement;
-use crate::dom::htmllegendelement::HTMLLegendElement;
-use crate::dom::htmlobjectelement::HTMLObjectElement;
-use crate::dom::htmloutputelement::HTMLOutputElement;
-use crate::dom::htmlselectelement::HTMLSelectElement;
-use crate::dom::htmltextareaelement::HTMLTextAreaElement;
-use crate::dom::node::{document_from_node, window_from_node};
-use crate::dom::node::{Node, NodeFlags, UnbindContext, VecPreOrderInsertionHelper};
-use crate::dom::validitystate::ValidationFlags;
-use crate::dom::virtualmethods::VirtualMethods;
-use crate::dom::window::Window;
-use crate::script_thread::MainThreadScriptMsg;
-use crate::task_source::TaskSource;
+use dom::bindings::cell::DomRefCell;
+use dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
+use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
+use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
+use dom::bindings::codegen::Bindings::HTMLButtonElementBinding::HTMLButtonElementMethods;
+use dom::bindings::codegen::Bindings::HTMLFormControlsCollectionBinding::HTMLFormControlsCollectionMethods;
+use dom::bindings::codegen::Bindings::HTMLFormElementBinding;
+use dom::bindings::codegen::Bindings::HTMLFormElementBinding::HTMLFormElementMethods;
+use dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputElementMethods;
+use dom::bindings::codegen::Bindings::HTMLTextAreaElementBinding::HTMLTextAreaElementMethods;
+use dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementTypeId, NodeTypeId};
+use dom::bindings::refcounted::Trusted;
+use dom::bindings::reflector::DomObject;
+use dom::bindings::root::{Dom, DomOnceCell, DomRoot, RootedReference};
+use dom::bindings::str::DOMString;
+use dom::blob::Blob;
+use dom::document::Document;
+use dom::element::{AttributeMutation, Element};
+use dom::eventtarget::EventTarget;
+use dom::file::File;
+use dom::globalscope::GlobalScope;
+use dom::htmlbuttonelement::HTMLButtonElement;
+use dom::htmlcollection::CollectionFilter;
+use dom::htmldatalistelement::HTMLDataListElement;
+use dom::htmlelement::HTMLElement;
+use dom::htmlfieldsetelement::HTMLFieldSetElement;
+use dom::htmlformcontrolscollection::HTMLFormControlsCollection;
+use dom::htmlimageelement::HTMLImageElement;
+use dom::htmlinputelement::{HTMLInputElement, InputType};
+use dom::htmllabelelement::HTMLLabelElement;
+use dom::htmllegendelement::HTMLLegendElement;
+use dom::htmlobjectelement::HTMLObjectElement;
+use dom::htmloutputelement::HTMLOutputElement;
+use dom::htmlselectelement::HTMLSelectElement;
+use dom::htmltextareaelement::HTMLTextAreaElement;
+use dom::node::{Node, NodeFlags, UnbindContext, VecPreOrderInsertionHelper};
+use dom::node::{document_from_node, window_from_node};
+use dom::validitystate::ValidationFlags;
+use dom::virtualmethods::VirtualMethods;
+use dom::window::Window;
 use dom_struct::dom_struct;
 use encoding_rs::{Encoding, UTF_8};
-use headers_core::HeaderMapExt;
-use headers_ext::ContentType;
 use html5ever::{LocalName, Prefix};
-use hyper::Method;
-use mime::{self, Mime};
-use net_traits::http_percent_encode;
+use hyper::header::{Charset, ContentDisposition, ContentType, DispositionParam, DispositionType};
+use hyper::method::Method;
+use script_thread::MainThreadScriptMsg;
 use script_traits::LoadData;
 use servo_rand::random;
 use std::borrow::ToOwned;
 use std::cell::Cell;
 use style::attr::AttrValue;
 use style::str::split_html_space_chars;
-use url::form_urlencoded::Serializer;
+use task_source::TaskSource;
 use url::UrlQuery;
+use url::form_urlencoded::Serializer;
 
 #[derive(Clone, Copy, JSTraceable, MallocSizeOf, PartialEq)]
 pub struct GenerationId(u32);
@@ -385,14 +382,12 @@ impl HTMLFormElement {
             ("http", FormMethod::FormGet) |
             ("https", FormMethod::FormGet) |
             ("data", FormMethod::FormGet) => {
-                load_data
-                    .headers
-                    .typed_insert(ContentType::from(mime::APPLICATION_WWW_FORM_URLENCODED));
+                load_data.headers.set(ContentType::form_url_encoded());
                 self.mutate_action_url(&mut form_data, load_data, encoding, &target_window);
             },
             // https://html.spec.whatwg.org/multipage/#submit-body
             ("http", FormMethod::FormPost) | ("https", FormMethod::FormPost) => {
-                load_data.method = Method::POST;
+                load_data.method = Method::Post;
                 self.submit_entity_body(
                     &mut form_data,
                     load_data,
@@ -455,9 +450,7 @@ impl HTMLFormElement {
         let bytes = match enctype {
             FormEncType::UrlEncoded => {
                 let charset = encoding.name();
-                load_data
-                    .headers
-                    .typed_insert(ContentType::from(mime::APPLICATION_WWW_FORM_URLENCODED));
+                load_data.headers.set(ContentType::form_url_encoded());
 
                 self.set_encoding_override(load_data.url.as_mut_url().query_pairs_mut())
                     .clear()
@@ -470,16 +463,12 @@ impl HTMLFormElement {
                 load_data.url.query().unwrap_or("").to_string().into_bytes()
             },
             FormEncType::FormDataEncoded => {
-                let mime: Mime = format!("multipart/form-data; boundary={}", boundary)
-                    .parse()
-                    .unwrap();
-                load_data.headers.typed_insert(ContentType::from(mime));
+                let mime = mime!(Multipart / FormData; Boundary =(&boundary));
+                load_data.headers.set(ContentType(mime));
                 encode_multipart_form_data(form_data, boundary, encoding)
             },
             FormEncType::TextPlainEncoded => {
-                load_data
-                    .headers
-                    .typed_insert(ContentType::from(mime::TEXT_PLAIN));
+                load_data.headers.set(ContentType(mime!(Text / Plain)));
                 self.encode_plaintext(form_data).into_bytes()
             },
         };
@@ -571,8 +560,7 @@ impl HTMLFormElement {
                 } else {
                     None
                 }
-            })
-            .collect::<Vec<FormSubmittableElement>>();
+            }).collect::<Vec<FormSubmittableElement>>();
         // Step 4
         if invalid_controls.is_empty() {
             return Ok(());
@@ -588,8 +576,7 @@ impl HTMLFormElement {
                     return Some(field);
                 }
                 None
-            })
-            .collect::<Vec<FormSubmittableElement>>();
+            }).collect::<Vec<FormSubmittableElement>>();
         // Step 7
         Err(unhandled_invalid_controls)
     }
@@ -1137,8 +1124,8 @@ pub trait FormControl: DomObject {
 }
 
 impl VirtualMethods for HTMLFormElement {
-    fn super_type(&self) -> Option<&dyn VirtualMethods> {
-        Some(self.upcast::<HTMLElement>() as &dyn VirtualMethods)
+    fn super_type(&self) -> Option<&VirtualMethods> {
+        Some(self.upcast::<HTMLElement>() as &VirtualMethods)
     }
 
     fn parse_plain_attribute(&self, name: &LocalName, value: DOMString) -> AttrValue {
@@ -1175,44 +1162,44 @@ impl VirtualMethods for HTMLFormElement {
 }
 
 pub trait FormControlElementHelpers {
-    fn as_maybe_form_control<'a>(&'a self) -> Option<&'a dyn FormControl>;
+    fn as_maybe_form_control<'a>(&'a self) -> Option<&'a FormControl>;
 }
 
 impl FormControlElementHelpers for Element {
-    fn as_maybe_form_control<'a>(&'a self) -> Option<&'a dyn FormControl> {
+    fn as_maybe_form_control<'a>(&'a self) -> Option<&'a FormControl> {
         let node = self.upcast::<Node>();
 
         match node.type_id() {
             NodeTypeId::Element(ElementTypeId::HTMLElement(
                 HTMLElementTypeId::HTMLButtonElement,
-            )) => Some(self.downcast::<HTMLButtonElement>().unwrap() as &dyn FormControl),
+            )) => Some(self.downcast::<HTMLButtonElement>().unwrap() as &FormControl),
             NodeTypeId::Element(ElementTypeId::HTMLElement(
                 HTMLElementTypeId::HTMLFieldSetElement,
-            )) => Some(self.downcast::<HTMLFieldSetElement>().unwrap() as &dyn FormControl),
+            )) => Some(self.downcast::<HTMLFieldSetElement>().unwrap() as &FormControl),
             NodeTypeId::Element(ElementTypeId::HTMLElement(
                 HTMLElementTypeId::HTMLImageElement,
-            )) => Some(self.downcast::<HTMLImageElement>().unwrap() as &dyn FormControl),
+            )) => Some(self.downcast::<HTMLImageElement>().unwrap() as &FormControl),
             NodeTypeId::Element(ElementTypeId::HTMLElement(
                 HTMLElementTypeId::HTMLInputElement,
-            )) => Some(self.downcast::<HTMLInputElement>().unwrap() as &dyn FormControl),
+            )) => Some(self.downcast::<HTMLInputElement>().unwrap() as &FormControl),
             NodeTypeId::Element(ElementTypeId::HTMLElement(
                 HTMLElementTypeId::HTMLLabelElement,
-            )) => Some(self.downcast::<HTMLLabelElement>().unwrap() as &dyn FormControl),
+            )) => Some(self.downcast::<HTMLLabelElement>().unwrap() as &FormControl),
             NodeTypeId::Element(ElementTypeId::HTMLElement(
                 HTMLElementTypeId::HTMLLegendElement,
-            )) => Some(self.downcast::<HTMLLegendElement>().unwrap() as &dyn FormControl),
+            )) => Some(self.downcast::<HTMLLegendElement>().unwrap() as &FormControl),
             NodeTypeId::Element(ElementTypeId::HTMLElement(
                 HTMLElementTypeId::HTMLObjectElement,
-            )) => Some(self.downcast::<HTMLObjectElement>().unwrap() as &dyn FormControl),
+            )) => Some(self.downcast::<HTMLObjectElement>().unwrap() as &FormControl),
             NodeTypeId::Element(ElementTypeId::HTMLElement(
                 HTMLElementTypeId::HTMLOutputElement,
-            )) => Some(self.downcast::<HTMLOutputElement>().unwrap() as &dyn FormControl),
+            )) => Some(self.downcast::<HTMLOutputElement>().unwrap() as &FormControl),
             NodeTypeId::Element(ElementTypeId::HTMLElement(
                 HTMLElementTypeId::HTMLSelectElement,
-            )) => Some(self.downcast::<HTMLSelectElement>().unwrap() as &dyn FormControl),
+            )) => Some(self.downcast::<HTMLSelectElement>().unwrap() as &FormControl),
             NodeTypeId::Element(ElementTypeId::HTMLElement(
                 HTMLElementTypeId::HTMLTextAreaElement,
-            )) => Some(self.downcast::<HTMLTextAreaElement>().unwrap() as &dyn FormControl),
+            )) => Some(self.downcast::<HTMLTextAreaElement>().unwrap() as &FormControl),
             _ => None,
         }
     }
@@ -1244,43 +1231,40 @@ pub fn encode_multipart_form_data(
         // what spec says (that it should start with a '\r\n').
         let mut boundary_bytes = format!("--{}\r\n", boundary).into_bytes();
         result.append(&mut boundary_bytes);
+        let mut content_disposition = ContentDisposition {
+            disposition: DispositionType::Ext("form-data".to_owned()),
+            parameters: vec![DispositionParam::Ext(
+                "name".to_owned(),
+                String::from(entry.name.clone()),
+            )],
+        };
 
-        // TODO(eijebong): Everthing related to content-disposition it to redo once typed headers
-        // are capable of it.
         match entry.value {
             FormDatumValue::String(ref s) => {
-                let content_disposition = format!("form-data; name=\"{}\"", entry.name);
                 let mut bytes =
                     format!("Content-Disposition: {}\r\n\r\n{}", content_disposition, s)
                         .into_bytes();
                 result.append(&mut bytes);
             },
             FormDatumValue::File(ref f) => {
-                let extra = if charset.to_lowercase() == "utf-8" {
-                    format!(
-                        "filename=\"{}\"",
-                        String::from_utf8(f.name().as_bytes().into()).unwrap()
-                    )
-                } else {
-                    format!(
-                        "filename*=\"{}\"''{}",
-                        charset,
-                        http_percent_encode(f.name().as_bytes())
-                    )
-                };
-
-                let content_disposition = format!("form-data; name=\"{}\"; {}", entry.name, extra);
+                content_disposition
+                    .parameters
+                    .push(DispositionParam::Filename(
+                        Charset::Ext(String::from(charset.clone())),
+                        None,
+                        f.name().clone().into(),
+                    ));
                 // https://tools.ietf.org/html/rfc7578#section-4.4
-                let content_type: Mime = f
-                    .upcast::<Blob>()
-                    .Type()
-                    .parse()
-                    .unwrap_or(mime::TEXT_PLAIN);
+                let content_type = ContentType(
+                    f.upcast::<Blob>()
+                        .Type()
+                        .parse()
+                        .unwrap_or(mime!(Text / Plain)),
+                );
                 let mut type_bytes = format!(
                     "Content-Disposition: {}\r\ncontent-type: {}\r\n\r\n",
                     content_disposition, content_type
-                )
-                .into_bytes();
+                ).into_bytes();
                 result.append(&mut type_bytes);
 
                 let mut bytes = f.upcast::<Blob>().get_bytes().unwrap_or(vec![]);

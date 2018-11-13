@@ -4,40 +4,37 @@
 
 //! CSS table formatting contexts.
 
+#![deny(unsafe_code)]
+
 use app_units::Au;
-use crate::block::{BlockFlow, CandidateBSizeIterator, ISizeAndMarginsComputer};
-use crate::block::{ISizeConstraintInput, ISizeConstraintSolution};
-use crate::context::LayoutContext;
-use crate::display_list::{BlockFlowDisplayListBuilding, BorderPaintingMode};
-use crate::display_list::{
-    DisplayListBuildState, StackingContextCollectionFlags, StackingContextCollectionState,
-};
-use crate::flow::{
-    BaseFlow, EarlyAbsolutePositionInfo, Flow, FlowClass, GetBaseFlow, ImmutableFlowUtils,
-    OpaqueFlow,
-};
-use crate::flow_list::{FlowListIterator, MutFlowListIterator};
-use crate::fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
-use crate::layout_debug;
-use crate::model::{IntrinsicISizes, IntrinsicISizesContribution, MaybeAuto};
-use crate::table_cell::TableCellFlow;
-use crate::table_row::{self, CellIntrinsicInlineSize, CollapsedBorder, CollapsedBorderProvenance};
-use crate::table_row::{TableRowFlow, TableRowSizeData};
-use crate::table_wrapper::TableLayout;
+use block::{BlockFlow, CandidateBSizeIterator, ISizeAndMarginsComputer};
+use block::{ISizeConstraintInput, ISizeConstraintSolution};
+use context::LayoutContext;
+use display_list::{BlockFlowDisplayListBuilding, BorderPaintingMode};
+use display_list::{DisplayListBuildState, StackingContextCollectionFlags, StackingContextCollectionState};
 use euclid::Point2D;
+use flow::{BaseFlow, EarlyAbsolutePositionInfo, Flow, FlowClass, ImmutableFlowUtils, GetBaseFlow, OpaqueFlow};
+use flow_list::{FlowListIterator, MutFlowListIterator};
+use fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
 use gfx_traits::print_tree::PrintTree;
+use layout_debug;
+use model::{IntrinsicISizes, IntrinsicISizesContribution, MaybeAuto};
 use std::{cmp, fmt};
 use style::computed_values::{border_collapse, border_spacing, table_layout};
 use style::context::SharedStyleContext;
 use style::logical_geometry::LogicalSize;
-use style::properties::style_structs::Background;
 use style::properties::ComputedValues;
+use style::properties::style_structs::Background;
 use style::servo::restyle_damage::ServoRestyleDamage;
-use style::values::computed::LengthOrPercentageOrAuto;
 use style::values::CSSFloat;
+use style::values::computed::LengthOrPercentageOrAuto;
+use table_cell::TableCellFlow;
+use table_row::{self, CellIntrinsicInlineSize, CollapsedBorder, CollapsedBorderProvenance};
+use table_row::{TableRowFlow, TableRowSizeData};
+use table_wrapper::TableLayout;
 
 #[allow(unsafe_code)]
-unsafe impl crate::flow::HasBaseFlow for TableFlow {}
+unsafe impl ::flow::HasBaseFlow for TableFlow {}
 
 /// A table flow corresponded to the table's internal table fragment under a table wrapper flow.
 /// The properties `position`, `float`, and `margin-*` are used on the table wrapper fragment,
@@ -601,7 +598,7 @@ impl Flow for TableFlow {
         );
     }
 
-    fn repair_style(&mut self, new_style: &crate::ServoArc<ComputedValues>) {
+    fn repair_style(&mut self, new_style: &::ServoArc<ComputedValues>) {
         self.block_flow.repair_style(new_style)
     }
 
@@ -611,7 +608,7 @@ impl Flow for TableFlow {
 
     fn iterate_through_fragment_border_boxes(
         &self,
-        iterator: &mut dyn FragmentBorderBoxIterator,
+        iterator: &mut FragmentBorderBoxIterator,
         level: i32,
         stacking_context_position: &Point2D<Au>,
     ) {
@@ -622,7 +619,7 @@ impl Flow for TableFlow {
         )
     }
 
-    fn mutate_fragments(&mut self, mutator: &mut dyn FnMut(&mut Fragment)) {
+    fn mutate_fragments(&mut self, mutator: &mut FnMut(&mut Fragment)) {
         self.block_flow.mutate_fragments(mutator)
     }
 

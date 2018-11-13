@@ -458,18 +458,15 @@ function setupFonts(func) {
             savedValues[key] = document.body.style.getPropertyValue(key);
             document.body.style.setProperty(key, value);
         });
-        try {
-            func.apply(this, arguments);
-        } finally {
-            each(savedValues, function (key, value) {
-                if (value) {
-                    document.body.style.setProperty(key, value);
-                }
-                else {
-                    document.body.style.removeProperty(key);
-                }
-            });
-        }
+        func.apply(this, arguments);
+        each(fontProperties, function (key, value) {
+            if (value) {
+                document.body.style.setProperty(key, value);
+            }
+            else {
+                document.body.style.removeProperty(key);
+            }
+        });
     };
 }
 

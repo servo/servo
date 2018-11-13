@@ -123,8 +123,8 @@ test(function() {
   check_tag("caption",  1, [HTMLTableCaptionElement]);
   check_tag("textarea", 1, [HTMLTextAreaElement]);
   check_tag("q",        1, [HTMLQuoteElement]);
-  check_tag("th",       1, [HTMLTableCellElement]);
-  check_tag("td",       1, [HTMLTableCellElement]);
+  check_tag("th",       1, [HTMLTableCellElement, HTMLTableHeaderCellElement]);
+  check_tag("td",       1, [HTMLTableCellElement, HTMLTableDataCellElement]);
   check_tag("col",      1, [HTMLTableColElement]);
   check_tag("colgroup", 1, [HTMLTableColElement]);
   check_tag("input",    2, [HTMLInputElement]);

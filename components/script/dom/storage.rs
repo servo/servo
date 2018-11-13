@@ -2,25 +2,25 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::codegen::Bindings::StorageBinding;
-use crate::dom::bindings::codegen::Bindings::StorageBinding::StorageMethods;
-use crate::dom::bindings::error::{Error, ErrorResult};
-use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::refcounted::Trusted;
-use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
-use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::DOMString;
-use crate::dom::event::{Event, EventBubbles, EventCancelable};
-use crate::dom::storageevent::StorageEvent;
-use crate::dom::window::Window;
-use crate::task_source::TaskSource;
+use dom::bindings::codegen::Bindings::StorageBinding;
+use dom::bindings::codegen::Bindings::StorageBinding::StorageMethods;
+use dom::bindings::error::{Error, ErrorResult};
+use dom::bindings::inheritance::Castable;
+use dom::bindings::refcounted::Trusted;
+use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
+use dom::bindings::root::DomRoot;
+use dom::bindings::str::DOMString;
+use dom::event::{Event, EventBubbles, EventCancelable};
+use dom::storageevent::StorageEvent;
+use dom::window::Window;
 use dom_struct::dom_struct;
 use ipc_channel::ipc::IpcSender;
-use net_traits::storage_thread::{StorageThreadMsg, StorageType};
 use net_traits::IpcSend;
+use net_traits::storage_thread::{StorageThreadMsg, StorageType};
 use profile_traits::ipc;
 use script_traits::ScriptMsg;
 use servo_url::ServoUrl;
+use task_source::TaskSource;
 
 #[dom_struct]
 pub struct Storage {
@@ -63,8 +63,7 @@ impl StorageMethods for Storage {
                 sender,
                 self.get_url(),
                 self.storage_type,
-            ))
-            .unwrap();
+            )).unwrap();
         receiver.recv().unwrap() as u32
     }
 
@@ -78,8 +77,7 @@ impl StorageMethods for Storage {
                 self.get_url(),
                 self.storage_type,
                 index,
-            ))
-            .unwrap();
+            )).unwrap();
         receiver.recv().unwrap().map(DOMString::from)
     }
 
@@ -140,8 +138,7 @@ impl StorageMethods for Storage {
                 sender,
                 self.get_url(),
                 self.storage_type,
-            ))
-            .unwrap();
+            )).unwrap();
         if receiver.recv().unwrap() {
             self.broadcast_change_notification(None, None, None);
         }
@@ -156,8 +153,7 @@ impl StorageMethods for Storage {
                 sender,
                 self.get_url(),
                 self.storage_type,
-            ))
-            .unwrap();
+            )).unwrap();
         receiver
             .recv()
             .unwrap()
@@ -228,7 +224,6 @@ impl Storage {
                 event.upcast::<Event>().fire(global.upcast());
             }),
                 global.upcast(),
-            )
-            .unwrap();
+            ).unwrap();
     }
 }

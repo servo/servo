@@ -55,11 +55,10 @@ ${helpers.predefined_type(
     spec="https://www.w3.org/TR/SVG11/painting.html#FillOpacityProperty",
 )}
 
-${helpers.predefined_type(
+${helpers.single_keyword(
     "fill-rule",
-    "FillRule",
-    "Default::default()",
-    needs_context=False,
+    "nonzero evenodd",
+    gecko_enum_prefix="StyleFillRule",
     products="gecko",
     animation_value_type="discrete",
     spec="https://www.w3.org/TR/SVG11/painting.html#FillRuleProperty",
@@ -85,7 +84,7 @@ ${helpers.predefined_type(
 
 ${helpers.predefined_type(
     "stroke-width", "SVGWidth",
-    "computed::SVGWidth::one()",
+    "::values::computed::NonNegativeLength::new(1.).into()",
     products="gecko",
     animation_value_type="::values::computed::SVGWidth",
     spec="https://www.w3.org/TR/SVG2/painting.html#StrokeWidth",
@@ -135,21 +134,19 @@ ${helpers.predefined_type(
 )}
 
 ${helpers.predefined_type(
-    "stroke-dashoffset",
-    "SVGLength",
-    "computed::SVGLength::zero()",
+    "stroke-dashoffset", "SVGLength",
+    "Au(0).into()",
     products="gecko",
     animation_value_type="ComputedValue",
     spec="https://www.w3.org/TR/SVG2/painting.html#StrokeDashing",
 )}
 
 // Section 14 - Clipping, Masking and Compositing
-${helpers.predefined_type(
+${helpers.single_keyword(
     "clip-rule",
-    "FillRule",
-    "Default::default()",
-    needs_context=False,
+    "nonzero evenodd",
     products="gecko",
+    gecko_enum_prefix="StyleFillRule",
     animation_value_type="discrete",
     spec="https://www.w3.org/TR/SVG11/masking.html#ClipRuleProperty",
 )}

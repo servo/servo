@@ -6,6 +6,7 @@
 //!
 //! [custom]: https://drafts.csswg.org/css-variables/
 
+use Atom;
 use cssparser::{Delimiter, Parser, ParserInput, SourcePosition, Token, TokenSerializationType};
 use hash::map::Entry;
 use precomputed_hash::PrecomputedHash;
@@ -19,61 +20,6 @@ use std::cmp;
 use std::fmt::{self, Write};
 use std::hash::Hash;
 use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
-use Atom;
-
-/// The environment from which to get `env` function values.
-///
-/// TODO(emilio): If this becomes a bit more complex we should probably move it
-/// to the `media_queries` module, or something.
-#[derive(Debug, MallocSizeOf)]
-pub struct CssEnvironment;
-
-struct EnvironmentVariable {
-    name: Atom,
-    value: VariableValue,
-}
-
-macro_rules! make_variable {
-    ($name:expr, $value:expr) => {{
-        EnvironmentVariable {
-            name: $name,
-            value: {
-                // TODO(emilio): We could make this be more efficient (though a
-                // bit less convenient).
-                let mut input = ParserInput::new($value);
-                let mut input = Parser::new(&mut input);
-
-                let (first_token_type, css, last_token_type) =
-                    parse_self_contained_declaration_value(&mut input, None).unwrap();
-
-                VariableValue {
-                    css: css.into_owned(),
-                    first_token_type,
-                    last_token_type,
-                    references: Default::default(),
-                    references_environment: false,
-                }
-            },
-        }
-    }};
-}
-
-lazy_static! {
-    static ref ENVIRONMENT_VARIABLES: [EnvironmentVariable; 4] = [
-        make_variable!(atom!("safe-area-inset-top"), "0px"),
-        make_variable!(atom!("safe-area-inset-bottom"), "0px"),
-        make_variable!(atom!("safe-area-inset-left"), "0px"),
-        make_variable!(atom!("safe-area-inset-right"), "0px"),
-    ];
-}
-
-impl CssEnvironment {
-    #[inline]
-    fn get(&self, name: &Atom) -> Option<&VariableValue> {
-        let var = ENVIRONMENT_VARIABLES.iter().find(|var| var.name == *name)?;
-        Some(&var.value)
-    }
-}
 
 /// A custom property name is just an `Atom`.
 ///
@@ -101,12 +47,6 @@ pub struct VariableValue {
 
     first_token_type: TokenSerializationType,
     last_token_type: TokenSerializationType,
-
-    /// Whether a variable value has a reference to an environment variable.
-    ///
-    /// If this is the case, we need to perform variable substitution on the
-    /// value.
-    references_environment: bool,
 
     /// Custom property names in var() functions.
     references: PrecomputedHashSet<Name>,
@@ -231,6 +171,18 @@ where
         self.index.remove(index);
         self.values.remove(key)
     }
+
+    fn remove_set<S>(&mut self, set: &::hash::HashSet<K, S>)
+    where
+        S: ::std::hash::BuildHasher,
+    {
+        if set.is_empty() {
+            return;
+        }
+        self.index.retain(|key| !set.contains(key));
+        self.values.retain(|key, _| !set.contains(key));
+        debug_assert_eq!(self.values.len(), self.index.len());
+    }
 }
 
 /// An iterator for OrderedMap.
@@ -264,14 +216,6 @@ where
     }
 }
 
-/// A struct holding information about the external references to that a custom
-/// property value may have.
-#[derive(Default)]
-struct VarOrEnvReferences {
-    custom_property_references: PrecomputedHashSet<Name>,
-    references_environment: bool,
-}
-
 impl VariableValue {
     fn empty() -> Self {
         Self {
@@ -279,7 +223,6 @@ impl VariableValue {
             last_token_type: TokenSerializationType::nothing(),
             first_token_type: TokenSerializationType::nothing(),
             references: PrecomputedHashSet::default(),
-            references_environment: false,
         }
     }
 
@@ -330,7 +273,7 @@ impl VariableValue {
 
     /// Parse a custom property value.
     pub fn parse<'i, 't>(input: &mut Parser<'i, 't>) -> Result<Arc<Self>, ParseError<'i>> {
-        let mut references = VarOrEnvReferences::default();
+        let mut references = PrecomputedHashSet::default();
 
         let (first_token_type, css, last_token_type) =
             parse_self_contained_declaration_value(input, Some(&mut references))?;
@@ -339,8 +282,7 @@ impl VariableValue {
             css: css.into_owned(),
             first_token_type,
             last_token_type,
-            references: references.custom_property_references,
-            references_environment: references.references_environment,
+            references,
         }))
     }
 }
@@ -355,7 +297,7 @@ pub fn parse_non_custom_with_var<'i, 't>(
 
 fn parse_self_contained_declaration_value<'i, 't>(
     input: &mut Parser<'i, 't>,
-    references: Option<&mut VarOrEnvReferences>,
+    references: Option<&mut PrecomputedHashSet<Name>>,
 ) -> Result<(TokenSerializationType, Cow<'i, str>, TokenSerializationType), ParseError<'i>> {
     let start_position = input.position();
     let mut missing_closing_characters = String::new();
@@ -375,7 +317,7 @@ fn parse_self_contained_declaration_value<'i, 't>(
 /// <https://drafts.csswg.org/css-syntax-3/#typedef-declaration-value>
 fn parse_declaration_value<'i, 't>(
     input: &mut Parser<'i, 't>,
-    references: Option<&mut VarOrEnvReferences>,
+    references: Option<&mut PrecomputedHashSet<Name>>,
     missing_closing_characters: &mut String,
 ) -> Result<(TokenSerializationType, TokenSerializationType), ParseError<'i>> {
     input.parse_until_before(Delimiter::Bang | Delimiter::Semicolon, |input| {
@@ -392,7 +334,7 @@ fn parse_declaration_value<'i, 't>(
 /// invalid at the top level
 fn parse_declaration_value_block<'i, 't>(
     input: &mut Parser<'i, 't>,
-    mut references: Option<&mut VarOrEnvReferences>,
+    mut references: Option<&mut PrecomputedHashSet<Name>>,
     missing_closing_characters: &mut String,
 ) -> Result<(TokenSerializationType, TokenSerializationType), ParseError<'i>> {
     let mut token_start = input.position();
@@ -465,12 +407,6 @@ fn parse_declaration_value_block<'i, 't>(
                         parse_var_function(input, references.as_mut().map(|r| &mut **r))
                     })?;
                     input.reset(&args_start);
-                } else if name.eq_ignore_ascii_case("env") {
-                    let args_start = input.state();
-                    input.parse_nested_block(|input| {
-                        parse_env_function(input, references.as_mut().map(|r| &mut **r))
-                    })?;
-                    input.reset(&args_start);
                 }
                 nested!();
                 check_closed!(")");
@@ -532,48 +468,29 @@ fn parse_declaration_value_block<'i, 't>(
     }
 }
 
-fn parse_fallback<'i, 't>(input: &mut Parser<'i, 't>) -> Result<(), ParseError<'i>> {
-    // Exclude `!` and `;` at the top level
-    // https://drafts.csswg.org/css-syntax/#typedef-declaration-value
-    input.parse_until_before(Delimiter::Bang | Delimiter::Semicolon, |input| {
-        // At least one non-comment token.
-        input.next_including_whitespace()?;
-        // Skip until the end.
-        while let Ok(_) = input.next_including_whitespace_and_comments() {}
-        Ok(())
-    })
-}
-
 // If the var function is valid, return Ok((custom_property_name, fallback))
 fn parse_var_function<'i, 't>(
     input: &mut Parser<'i, 't>,
-    references: Option<&mut VarOrEnvReferences>,
+    references: Option<&mut PrecomputedHashSet<Name>>,
 ) -> Result<(), ParseError<'i>> {
     let name = input.expect_ident_cloned()?;
-    let name = parse_name(&name).map_err(|()| {
+    let name: Result<_, ParseError> = parse_name(&name).map_err(|()| {
         input.new_custom_error(SelectorParseErrorKind::UnexpectedIdent(name.clone()))
-    })?;
+    });
+    let name = name?;
     if input.try(|input| input.expect_comma()).is_ok() {
-        parse_fallback(input)?;
+        // Exclude `!` and `;` at the top level
+        // https://drafts.csswg.org/css-syntax/#typedef-declaration-value
+        input.parse_until_before(Delimiter::Bang | Delimiter::Semicolon, |input| {
+            // At least one non-comment token.
+            input.next_including_whitespace()?;
+            // Skip until the end.
+            while let Ok(_) = input.next_including_whitespace_and_comments() {}
+            Ok(())
+        })?;
     }
     if let Some(refs) = references {
-        refs.custom_property_references.insert(Atom::from(name));
-    }
-    Ok(())
-}
-
-fn parse_env_function<'i, 't>(
-    input: &mut Parser<'i, 't>,
-    references: Option<&mut VarOrEnvReferences>,
-) -> Result<(), ParseError<'i>> {
-    // TODO(emilio): This should be <custom-ident> per spec, but no other
-    // browser does that, see https://github.com/w3c/csswg-drafts/issues/3262.
-    input.expect_ident()?;
-    if input.try(|input| input.expect_comma()).is_ok() {
-        parse_fallback(input)?;
-    }
-    if let Some(references) = references {
-        references.references_environment = true;
+        refs.insert(Atom::from(name));
     }
     Ok(())
 }
@@ -585,26 +502,25 @@ pub struct CustomPropertiesBuilder<'a> {
     may_have_cycles: bool,
     custom_properties: Option<CustomPropertiesMap>,
     inherited: Option<&'a Arc<CustomPropertiesMap>>,
-    environment: &'a CssEnvironment,
 }
 
 impl<'a> CustomPropertiesBuilder<'a> {
     /// Create a new builder, inheriting from a given custom properties map.
-    pub fn new(
-        inherited: Option<&'a Arc<CustomPropertiesMap>>,
-        environment: &'a CssEnvironment,
-    ) -> Self {
+    pub fn new(inherited: Option<&'a Arc<CustomPropertiesMap>>) -> Self {
         Self {
             seen: PrecomputedHashSet::default(),
             may_have_cycles: false,
             custom_properties: None,
             inherited,
-            environment,
         }
     }
 
     /// Cascade a given custom property declaration.
-    pub fn cascade(&mut self, name: &'a Name, specified_value: &CustomDeclarationValue) {
+    pub fn cascade(
+        &mut self,
+        name: &'a Name,
+        specified_value: &CustomDeclarationValue,
+    ) {
         let was_already_present = !self.seen.insert(name);
         if was_already_present {
             return;
@@ -624,26 +540,8 @@ impl<'a> CustomPropertiesBuilder<'a> {
         let map = self.custom_properties.as_mut().unwrap();
         match *specified_value {
             CustomDeclarationValue::Value(ref unparsed_value) => {
-                let has_references = !unparsed_value.references.is_empty();
-                self.may_have_cycles |= has_references;
-
-                // If the variable value has no references and it has an
-                // environment variable here, perform substitution here instead
-                // of forcing a full traversal in `substitute_all` afterwards.
-                let value = if !has_references && unparsed_value.references_environment {
-                    let result =
-                        substitute_references_in_value(unparsed_value, &map, &self.environment);
-                    match result {
-                        Ok(new_value) => Arc::new(new_value),
-                        Err(..) => {
-                            map.remove(name);
-                            return;
-                        },
-                    }
-                } else {
-                    (*unparsed_value).clone()
-                };
-                map.insert(name.clone(), value);
+                self.may_have_cycles |= !unparsed_value.references.is_empty();
+                map.insert(name.clone(), (*unparsed_value).clone());
             },
             CustomDeclarationValue::CSSWideKeyword(keyword) => match keyword {
                 CSSWideKeyword::Initial => {
@@ -655,7 +553,11 @@ impl<'a> CustomPropertiesBuilder<'a> {
         }
     }
 
-    fn value_may_affect_style(&self, name: &Name, value: &CustomDeclarationValue) -> bool {
+    fn value_may_affect_style(
+        &self,
+        name: &Name,
+        value: &CustomDeclarationValue,
+    ) -> bool {
         match *value {
             CustomDeclarationValue::CSSWideKeyword(CSSWideKeyword::Unset) |
             CustomDeclarationValue::CSSWideKeyword(CSSWideKeyword::Inherit) => {
@@ -694,8 +596,8 @@ impl<'a> CustomPropertiesBuilder<'a> {
 
     /// Returns the final map of applicable custom properties.
     ///
-    /// If there was any specified property, we've created a new map and now we
-    /// need to remove any potential cycles, and wrap it in an arc.
+    /// If there was any specified property, we've created a new map and now we need
+    /// to remove any potential cycles, and wrap it in an arc.
     ///
     /// Otherwise, just use the inherited custom properties map.
     pub fn build(mut self) -> Option<Arc<CustomPropertiesMap>> {
@@ -703,8 +605,9 @@ impl<'a> CustomPropertiesBuilder<'a> {
             Some(m) => m,
             None => return self.inherited.cloned(),
         };
+
         if self.may_have_cycles {
-            substitute_all(&mut map, self.environment);
+            substitute_all(&mut map);
         }
         Some(Arc::new(map))
     }
@@ -713,12 +616,24 @@ impl<'a> CustomPropertiesBuilder<'a> {
 /// Resolve all custom properties to either substituted or invalid.
 ///
 /// It does cycle dependencies removal at the same time as substitution.
-fn substitute_all(custom_properties_map: &mut CustomPropertiesMap, environment: &CssEnvironment) {
+fn substitute_all(custom_properties_map: &mut CustomPropertiesMap) {
     // The cycle dependencies removal in this function is a variant
     // of Tarjan's algorithm. It is mostly based on the pseudo-code
     // listed in
     // https://en.wikipedia.org/w/index.php?
     // title=Tarjan%27s_strongly_connected_components_algorithm&oldid=801728495
+    //
+    // FIXME This function currently does at least one addref to names
+    // for each variable regardless whether it has reference. Each
+    // variable with any reference would have an additional addref.
+    // There is another addref for each reference.
+    // Strictly speaking, these addrefs are not necessary, because we
+    // don't add/remove entry from custom properties map, and thus keys
+    // should be alive in the whole process until we start removing
+    // invalids. However, there is no safe way for us to prove this to
+    // the compiler. We may be able to fix this issue at some point if
+    // the standard library can provide some kind of hashmap wrapper
+    // with frozen keys.
 
     /// Struct recording necessary information for each variable.
     struct VarInfo {
@@ -747,8 +662,8 @@ fn substitute_all(custom_properties_map: &mut CustomPropertiesMap, environment: 
         /// all unfinished strong connected components.
         stack: SmallVec<[usize; 5]>,
         map: &'a mut CustomPropertiesMap,
-        /// The environment to substitute `env()` variables.
-        environment: &'a CssEnvironment,
+        /// The set of invalid custom properties.
+        invalid: &'a mut PrecomputedHashSet<Name>,
     }
 
     /// This function combines the traversal for cycle removal and value
@@ -760,9 +675,9 @@ fn substitute_all(custom_properties_map: &mut CustomPropertiesMap, environment: 
     /// in one of the following states:
     /// * It is still in context.stack, which means it is part of an
     ///   potentially incomplete dependency circle.
-    /// * It has been removed from the map.  It can be either that the
-    ///   substitution failed, or it is inside a dependency circle.
-    ///   When this function removes a variable from the map because
+    /// * It has been added into the invalid set. It can be either that
+    ///   the substitution failed, or it is inside a dependency circle.
+    ///   When this function put a variable into the invalid set because
     ///   of dependency circle, it would put all variables in the same
     ///   strong connected component to the set together.
     /// * It doesn't have any reference, because either this variable
@@ -771,18 +686,11 @@ fn substitute_all(custom_properties_map: &mut CustomPropertiesMap, environment: 
     /// * There is no such variable at all.
     fn traverse<'a>(name: Name, context: &mut Context<'a>) -> Option<usize> {
         // Some shortcut checks.
-        let (name, value) = {
-            let value = context.map.get(&name)?;
-
-            // Nothing to resolve.
-            if value.references.is_empty() {
-                debug_assert!(
-                    !value.references_environment,
-                    "Should've been handled earlier"
-                );
+        let (name, value) = if let Some(value) = context.map.get(&name) {
+            // This variable has been resolved. Return the signal value.
+            if value.references.is_empty() || context.invalid.contains(&name) {
                 return None;
             }
-
             // Whether this variable has been visited in this traversal.
             let key;
             match context.index_map.entry(name) {
@@ -794,10 +702,12 @@ fn substitute_all(custom_properties_map: &mut CustomPropertiesMap, environment: 
                     entry.insert(context.count);
                 },
             }
-
             // Hold a strong reference to the value so that we don't
             // need to keep reference to context.map.
             (key, value.clone())
+        } else {
+            // The variable doesn't exist at all.
+            return None;
         };
 
         // Add new entry to the information table.
@@ -840,9 +750,8 @@ fn substitute_all(custom_properties_map: &mut CustomPropertiesMap, environment: 
         if lowlink != index {
             // This variable is in a loop, but it is not the root of
             // this strong connected component. We simply return for
-            // now, and the root would remove it from the map.
-            //
-            // This cannot be removed from the map here, because
+            // now, and the root would add it into the invalid set.
+            // This cannot be added into the invalid set here, because
             // otherwise the shortcut check at the beginning of this
             // function would return the wrong value.
             return Some(index);
@@ -869,29 +778,44 @@ fn substitute_all(custom_properties_map: &mut CustomPropertiesMap, environment: 
                 break;
             }
             // Anything here is in a loop which can traverse to the
-            // variable we are handling, so remove it from the map, it's invalid
-            // at computed-value time.
-            context.map.remove(&var_name);
+            // variable we are handling, so we should add it into
+            // the invalid set. We should never visit the variable
+            // again so it's safe to just take the name away.
+            context.invalid.insert(var_name);
             in_loop = true;
         }
         if in_loop {
             // This variable is in loop. Resolve to invalid.
-            context.map.remove(&name);
+            context.invalid.insert(name);
             return None;
         }
 
         // Now we have shown that this variable is not in a loop, and
         // all of its dependencies should have been resolved. We can
         // start substitution now.
-        let result = substitute_references_in_value(&value, &context.map, &context.environment);
-
-        match result {
-            Ok(computed_value) => {
-                context.map.insert(name, Arc::new(computed_value));
+        let mut computed_value = ComputedValue::empty();
+        let mut input = ParserInput::new(&value.css);
+        let mut input = Parser::new(&mut input);
+        let mut position = (input.position(), value.first_token_type);
+        let result = substitute_block(
+            &mut input,
+            &mut position,
+            &mut computed_value,
+            &mut |name, partial_computed_value| {
+                if let Some(value) = context.map.get(name) {
+                    if !context.invalid.contains(name) {
+                        partial_computed_value.push_variable(value);
+                        return Ok(value.last_token_type);
+                    }
+                }
+                Err(())
             },
-            Err(..) => {
-                context.map.remove(&name);
-            },
+        );
+        if let Ok(last_token_type) = result {
+            computed_value.push_from(position, &input, last_token_type);
+            context.map.insert(name, Arc::new(computed_value));
+        } else {
+            context.invalid.insert(name);
         }
 
         // All resolved, so return the signal value.
@@ -901,6 +825,7 @@ fn substitute_all(custom_properties_map: &mut CustomPropertiesMap, environment: 
     // We have to clone the names so that we can mutably borrow the map
     // in the context we create for traversal.
     let names = custom_properties_map.index.clone();
+    let mut invalid = PrecomputedHashSet::default();
     for name in names.into_iter() {
         let mut context = Context {
             count: 0,
@@ -908,54 +833,33 @@ fn substitute_all(custom_properties_map: &mut CustomPropertiesMap, environment: 
             stack: SmallVec::new(),
             var_info: SmallVec::new(),
             map: custom_properties_map,
-            environment,
+            invalid: &mut invalid,
         };
         traverse(name, &mut context);
     }
-}
 
-/// Replace `var()` and `env()` functions in a pre-existing variable value.
-fn substitute_references_in_value<'i>(
-    value: &'i VariableValue,
-    custom_properties: &CustomPropertiesMap,
-    environment: &CssEnvironment,
-) -> Result<ComputedValue, ParseError<'i>> {
-    debug_assert!(!value.references.is_empty() || value.references_environment);
-
-    let mut input = ParserInput::new(&value.css);
-    let mut input = Parser::new(&mut input);
-    let mut position = (input.position(), value.first_token_type);
-    let mut computed_value = ComputedValue::empty();
-
-    let last_token_type = substitute_block(
-        &mut input,
-        &mut position,
-        &mut computed_value,
-        custom_properties,
-        environment,
-    )?;
-
-    computed_value.push_from(position, &input, last_token_type);
-    Ok(computed_value)
+    custom_properties_map.remove_set(&invalid);
 }
 
 /// Replace `var()` functions in an arbitrary bit of input.
 ///
-/// If the variable has its initial value, the callback should return `Err(())`
-/// and leave `partial_computed_value` unchanged.
-///
+/// The `substitute_one` callback is called for each `var()` function in `input`.
+/// If the variable has its initial value,
+/// the callback should return `Err(())` and leave `partial_computed_value` unchanged.
 /// Otherwise, it should push the value of the variable (with its own `var()` functions replaced)
 /// to `partial_computed_value` and return `Ok(last_token_type of what was pushed)`
 ///
 /// Return `Err(())` if `input` is invalid at computed-value time.
 /// or `Ok(last_token_type that was pushed to partial_computed_value)` otherwise.
-fn substitute_block<'i, 't>(
+fn substitute_block<'i, 't, F>(
     input: &mut Parser<'i, 't>,
     position: &mut (SourcePosition, TokenSerializationType),
     partial_computed_value: &mut ComputedValue,
-    custom_properties: &CustomPropertiesMap,
-    env: &CssEnvironment,
-) -> Result<TokenSerializationType, ParseError<'i>> {
+    substitute_one: &mut F,
+) -> Result<TokenSerializationType, ParseError<'i>>
+where
+    F: FnMut(&Name, &mut ComputedValue) -> Result<TokenSerializationType, ()>,
+{
     let mut last_token_type = TokenSerializationType::nothing();
     let mut set_position_at_next_iteration = false;
     loop {
@@ -979,45 +883,27 @@ fn substitute_block<'i, 't>(
             Err(..) => break,
         };
         match token {
-            Token::Function(ref name)
-                if name.eq_ignore_ascii_case("var") || name.eq_ignore_ascii_case("env") =>
-            {
-                let is_env = name.eq_ignore_ascii_case("env");
-
+            Token::Function(ref name) if name.eq_ignore_ascii_case("var") => {
                 partial_computed_value.push(
                     input.slice(position.0..before_this_token),
                     position.1,
                     last_token_type,
                 );
                 input.parse_nested_block(|input| {
-                    // parse_var_function() / parse_env_function() ensure neither .unwrap() will fail.
-                    let name = {
-                        let name = input.expect_ident().unwrap();
-                        if is_env {
-                            Atom::from(&**name)
-                        } else {
-                            Atom::from(parse_name(&name).unwrap())
-                        }
-                    };
+                    // parse_var_function() ensures neither .unwrap() will fail.
+                    let name = input.expect_ident_cloned().unwrap();
+                    let name = Atom::from(parse_name(&name).unwrap());
 
-                    let value = if is_env {
-                        env.get(&name)
-                    } else {
-                        custom_properties.get(&name).map(|v| &**v)
-                    };
-
-                    if let Some(v) = value {
-                        last_token_type = v.last_token_type;
-                        partial_computed_value.push_variable(v);
+                    if let Ok(last) = substitute_one(&name, partial_computed_value) {
+                        last_token_type = last;
                         // Skip over the fallback, as `parse_nested_block` would return `Err`
-                        // if we don't consume all of `input`.
+                        // if we don’t consume all of `input`.
                         // FIXME: Add a specialized method to cssparser to do this with less work.
-                        while input.next().is_ok() {}
+                        while let Ok(_) = input.next() {}
                     } else {
                         input.expect_comma()?;
                         let after_comma = input.state();
-                        let first_token_type = input
-                            .next_including_whitespace_and_comments()
+                        let first_token_type = input.next_including_whitespace_and_comments()
                             // parse_var_function() ensures that .unwrap() will not fail.
                             .unwrap()
                             .serialization_type();
@@ -1027,29 +913,23 @@ fn substitute_block<'i, 't>(
                             input,
                             &mut position,
                             partial_computed_value,
-                            custom_properties,
-                            env,
+                            substitute_one,
                         )?;
                         partial_computed_value.push_from(position, input, last_token_type);
                     }
                     Ok(())
                 })?;
                 set_position_at_next_iteration = true
-            }
+            },
+
             Token::Function(_) |
             Token::ParenthesisBlock |
             Token::CurlyBracketBlock |
             Token::SquareBracketBlock => {
                 input.parse_nested_block(|input| {
-                    substitute_block(
-                        input,
-                        position,
-                        partial_computed_value,
-                        custom_properties,
-                        env,
-                    )
+                    substitute_block(input, position, partial_computed_value, substitute_one)
                 })?;
-                // It's the same type for CloseCurlyBracket and CloseSquareBracket.
+                // It’s the same type for CloseCurlyBracket and CloseSquareBracket.
                 last_token_type = Token::CloseParenthesis.serialization_type();
             },
 
@@ -1065,30 +945,29 @@ fn substitute_block<'i, 't>(
     Ok(last_token_type)
 }
 
-/// Replace `var()` and `env()` functions for a non-custom property.
-///
+/// Replace `var()` functions for a non-custom property.
 /// Return `Err(())` for invalid at computed time.
 pub fn substitute<'i>(
     input: &'i str,
     first_token_type: TokenSerializationType,
     computed_values_map: Option<&Arc<CustomPropertiesMap>>,
-    env: &CssEnvironment,
 ) -> Result<String, ParseError<'i>> {
     let mut substituted = ComputedValue::empty();
     let mut input = ParserInput::new(input);
     let mut input = Parser::new(&mut input);
     let mut position = (input.position(), first_token_type);
-    let empty_map = CustomPropertiesMap::new();
-    let custom_properties = match computed_values_map {
-        Some(m) => &**m,
-        None => &empty_map,
-    };
     let last_token_type = substitute_block(
         &mut input,
         &mut position,
         &mut substituted,
-        &custom_properties,
-        env,
+        &mut |name, substituted| {
+            if let Some(value) = computed_values_map.and_then(|map| map.get(name)) {
+                substituted.push_variable(value);
+                Ok(value.last_token_type)
+            } else {
+                Err(())
+            }
+        },
     )?;
     substituted.push_from(position, &input, last_token_type);
     Ok(substituted.css)

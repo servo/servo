@@ -2,17 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::codegen::Bindings::CSSKeyframeRuleBinding::{
-    self, CSSKeyframeRuleMethods,
-};
-use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
-use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
-use crate::dom::bindings::str::DOMString;
-use crate::dom::cssrule::{CSSRule, SpecificCSSRule};
-use crate::dom::cssstyledeclaration::{CSSModificationAccess, CSSStyleDeclaration, CSSStyleOwner};
-use crate::dom::cssstylesheet::CSSStyleSheet;
-use crate::dom::window::Window;
+use dom::bindings::codegen::Bindings::CSSKeyframeRuleBinding::{self, CSSKeyframeRuleMethods};
+use dom::bindings::inheritance::Castable;
+use dom::bindings::reflector::{DomObject, reflect_dom_object};
+use dom::bindings::root::{Dom, DomRoot, MutNullableDom};
+use dom::bindings::str::DOMString;
+use dom::cssrule::{CSSRule, SpecificCSSRule};
+use dom::cssstyledeclaration::{CSSModificationAccess, CSSStyleDeclaration, CSSStyleOwner};
+use dom::cssstylesheet::CSSStyleSheet;
+use dom::window::Window;
 use dom_struct::dom_struct;
 use servo_arc::Arc;
 use style::shared_lock::{Locked, ToCssWithGuard};
@@ -75,7 +73,7 @@ impl CSSKeyframeRuleMethods for CSSKeyframeRule {
 
 impl SpecificCSSRule for CSSKeyframeRule {
     fn ty(&self) -> u16 {
-        use crate::dom::bindings::codegen::Bindings::CSSRuleBinding::CSSRuleConstants;
+        use dom::bindings::codegen::Bindings::CSSRuleBinding::CSSRuleConstants;
         CSSRuleConstants::KEYFRAME_RULE
     }
 

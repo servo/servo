@@ -2,26 +2,25 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::codegen::Bindings::HTMLTableElementBinding::HTMLTableElementMethods;
-use crate::dom::bindings::codegen::Bindings::HTMLTableRowElementBinding::{
-    self, HTMLTableRowElementMethods,
-};
-use crate::dom::bindings::codegen::Bindings::HTMLTableSectionElementBinding::HTMLTableSectionElementMethods;
-use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
-use crate::dom::bindings::error::{ErrorResult, Fallible};
-use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::root::{DomRoot, LayoutDom, MutNullableDom, RootedReference};
-use crate::dom::bindings::str::DOMString;
-use crate::dom::document::Document;
-use crate::dom::element::{Element, RawLayoutElementHelpers};
-use crate::dom::htmlcollection::{CollectionFilter, HTMLCollection};
-use crate::dom::htmlelement::HTMLElement;
-use crate::dom::htmltablecellelement::HTMLTableCellElement;
-use crate::dom::htmltableelement::HTMLTableElement;
-use crate::dom::htmltablesectionelement::HTMLTableSectionElement;
-use crate::dom::node::{window_from_node, Node};
-use crate::dom::virtualmethods::VirtualMethods;
 use cssparser::RGBA;
+use dom::bindings::codegen::Bindings::HTMLTableElementBinding::HTMLTableElementMethods;
+use dom::bindings::codegen::Bindings::HTMLTableRowElementBinding::{self, HTMLTableRowElementMethods};
+use dom::bindings::codegen::Bindings::HTMLTableSectionElementBinding::HTMLTableSectionElementMethods;
+use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
+use dom::bindings::error::{ErrorResult, Fallible};
+use dom::bindings::inheritance::Castable;
+use dom::bindings::root::{DomRoot, LayoutDom, MutNullableDom, RootedReference};
+use dom::bindings::str::DOMString;
+use dom::document::Document;
+use dom::element::{Element, RawLayoutElementHelpers};
+use dom::htmlcollection::{CollectionFilter, HTMLCollection};
+use dom::htmlelement::HTMLElement;
+use dom::htmltabledatacellelement::HTMLTableDataCellElement;
+use dom::htmltableelement::HTMLTableElement;
+use dom::htmltableheadercellelement::HTMLTableHeaderCellElement;
+use dom::htmltablesectionelement::HTMLTableSectionElement;
+use dom::node::{Node, window_from_node};
+use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
 use style::attr::AttrValue;
@@ -30,7 +29,7 @@ use style::attr::AttrValue;
 struct CellsFilter;
 impl CollectionFilter for CellsFilter {
     fn filter(&self, elem: &Element, root: &Node) -> bool {
-        (elem.is::<HTMLTableCellElement>()) &&
+        (elem.is::<HTMLTableHeaderCellElement>() || elem.is::<HTMLTableDataCellElement>()) &&
             elem.upcast::<Node>().GetParentNode().r() == Some(root)
     }
 }
@@ -100,14 +99,18 @@ impl HTMLTableRowElementMethods for HTMLTableRowElement {
         node.insert_cell_or_row(
             index,
             || self.Cells(),
-            || HTMLTableCellElement::new(local_name!("td"), None, &node.owner_doc()),
+            || HTMLTableDataCellElement::new(local_name!("td"), None, &node.owner_doc()),
         )
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-tr-deletecell
     fn DeleteCell(&self, index: i32) -> ErrorResult {
         let node = self.upcast::<Node>();
-        node.delete_cell_or_row(index, || self.Cells(), |n| n.is::<HTMLTableCellElement>())
+        node.delete_cell_or_row(
+            index,
+            || self.Cells(),
+            |n| n.is::<HTMLTableDataCellElement>(),
+        )
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-tr-rowindex
@@ -165,8 +168,8 @@ impl HTMLTableRowElementLayoutHelpers for LayoutDom<HTMLTableRowElement> {
 }
 
 impl VirtualMethods for HTMLTableRowElement {
-    fn super_type(&self) -> Option<&dyn VirtualMethods> {
-        Some(self.upcast::<HTMLElement>() as &dyn VirtualMethods)
+    fn super_type(&self) -> Option<&VirtualMethods> {
+        Some(self.upcast::<HTMLElement>() as &VirtualMethods)
     }
 
     fn parse_plain_attribute(&self, local_name: &LocalName, value: DOMString) -> AttrValue {

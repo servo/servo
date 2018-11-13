@@ -31,8 +31,6 @@
   SensorType.ABSOLUTE_ORIENTATION_QUATERNION = SensorType.ABSOLUTE_ORIENTATION_EULER_ANGLES + 1;
   SensorType.RELATIVE_ORIENTATION_EULER_ANGLES = SensorType.ABSOLUTE_ORIENTATION_QUATERNION + 1;
   SensorType.RELATIVE_ORIENTATION_QUATERNION = SensorType.RELATIVE_ORIENTATION_EULER_ANGLES + 1;
-  SensorType.MIN_VALUE = 0,
-  SensorType.MAX_VALUE = 10,
 
   SensorType.isKnownEnumValue = function(value) {
     switch (value) {
@@ -62,8 +60,6 @@
   var ReportingMode = {};
   ReportingMode.ON_CHANGE = 0;
   ReportingMode.CONTINUOUS = ReportingMode.ON_CHANGE + 1;
-  ReportingMode.MIN_VALUE = 0,
-  ReportingMode.MAX_VALUE = 1,
 
   ReportingMode.isKnownEnumValue = function(value) {
     switch (value) {
@@ -692,13 +688,13 @@
   };
 
   SensorProxy.prototype.getDefaultConfiguration = function() {
-    var params_ = new Sensor_GetDefaultConfiguration_Params();
+    var params = new Sensor_GetDefaultConfiguration_Params();
     return new Promise(function(resolve, reject) {
       var builder = new codec.MessageV1Builder(
           kSensor_GetDefaultConfiguration_Name,
           codec.align(Sensor_GetDefaultConfiguration_Params.encodedSize),
           codec.kMessageExpectsResponse, 0);
-      builder.encodeStruct(Sensor_GetDefaultConfiguration_Params, params_);
+      builder.encodeStruct(Sensor_GetDefaultConfiguration_Params, params);
       var message = builder.finish();
       this.receiver_.acceptAndExpectResponse(message).then(function(message) {
         var reader = new codec.MessageReader(message);
@@ -716,14 +712,14 @@
   };
 
   SensorProxy.prototype.addConfiguration = function(configuration) {
-    var params_ = new Sensor_AddConfiguration_Params();
-    params_.configuration = configuration;
+    var params = new Sensor_AddConfiguration_Params();
+    params.configuration = configuration;
     return new Promise(function(resolve, reject) {
       var builder = new codec.MessageV1Builder(
           kSensor_AddConfiguration_Name,
           codec.align(Sensor_AddConfiguration_Params.encodedSize),
           codec.kMessageExpectsResponse, 0);
-      builder.encodeStruct(Sensor_AddConfiguration_Params, params_);
+      builder.encodeStruct(Sensor_AddConfiguration_Params, params);
       var message = builder.finish();
       this.receiver_.acceptAndExpectResponse(message).then(function(message) {
         var reader = new codec.MessageReader(message);
@@ -741,12 +737,12 @@
   };
 
   SensorProxy.prototype.removeConfiguration = function(configuration) {
-    var params_ = new Sensor_RemoveConfiguration_Params();
-    params_.configuration = configuration;
+    var params = new Sensor_RemoveConfiguration_Params();
+    params.configuration = configuration;
     var builder = new codec.MessageV0Builder(
         kSensor_RemoveConfiguration_Name,
         codec.align(Sensor_RemoveConfiguration_Params.encodedSize));
-    builder.encodeStruct(Sensor_RemoveConfiguration_Params, params_);
+    builder.encodeStruct(Sensor_RemoveConfiguration_Params, params);
     var message = builder.finish();
     this.receiver_.accept(message);
   };
@@ -756,11 +752,11 @@
   };
 
   SensorProxy.prototype.suspend = function() {
-    var params_ = new Sensor_Suspend_Params();
+    var params = new Sensor_Suspend_Params();
     var builder = new codec.MessageV0Builder(
         kSensor_Suspend_Name,
         codec.align(Sensor_Suspend_Params.encodedSize));
-    builder.encodeStruct(Sensor_Suspend_Params, params_);
+    builder.encodeStruct(Sensor_Suspend_Params, params);
     var message = builder.finish();
     this.receiver_.accept(message);
   };
@@ -770,11 +766,11 @@
   };
 
   SensorProxy.prototype.resume = function() {
-    var params_ = new Sensor_Resume_Params();
+    var params = new Sensor_Resume_Params();
     var builder = new codec.MessageV0Builder(
         kSensor_Resume_Name,
         codec.align(Sensor_Resume_Params.encodedSize));
-    builder.encodeStruct(Sensor_Resume_Params, params_);
+    builder.encodeStruct(Sensor_Resume_Params, params);
     var message = builder.finish();
     this.receiver_.accept(message);
   };
@@ -784,12 +780,12 @@
   };
 
   SensorProxy.prototype.configureReadingChangeNotifications = function(enabled) {
-    var params_ = new Sensor_ConfigureReadingChangeNotifications_Params();
-    params_.enabled = enabled;
+    var params = new Sensor_ConfigureReadingChangeNotifications_Params();
+    params.enabled = enabled;
     var builder = new codec.MessageV0Builder(
         kSensor_ConfigureReadingChangeNotifications_Name,
         codec.align(Sensor_ConfigureReadingChangeNotifications_Params.encodedSize));
-    builder.encodeStruct(Sensor_ConfigureReadingChangeNotifications_Params, params_);
+    builder.encodeStruct(Sensor_ConfigureReadingChangeNotifications_Params, params);
     var message = builder.finish();
     this.receiver_.accept(message);
   };
@@ -971,11 +967,11 @@
   };
 
   SensorClientProxy.prototype.raiseError = function() {
-    var params_ = new SensorClient_RaiseError_Params();
+    var params = new SensorClient_RaiseError_Params();
     var builder = new codec.MessageV0Builder(
         kSensorClient_RaiseError_Name,
         codec.align(SensorClient_RaiseError_Params.encodedSize));
-    builder.encodeStruct(SensorClient_RaiseError_Params, params_);
+    builder.encodeStruct(SensorClient_RaiseError_Params, params);
     var message = builder.finish();
     this.receiver_.accept(message);
   };
@@ -985,11 +981,11 @@
   };
 
   SensorClientProxy.prototype.sensorReadingChanged = function() {
-    var params_ = new SensorClient_SensorReadingChanged_Params();
+    var params = new SensorClient_SensorReadingChanged_Params();
     var builder = new codec.MessageV0Builder(
         kSensorClient_SensorReadingChanged_Name,
         codec.align(SensorClient_SensorReadingChanged_Params.encodedSize));
-    builder.encodeStruct(SensorClient_SensorReadingChanged_Params, params_);
+    builder.encodeStruct(SensorClient_SensorReadingChanged_Params, params);
     var message = builder.finish();
     this.receiver_.accept(message);
   };

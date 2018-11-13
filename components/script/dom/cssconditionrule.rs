@@ -2,16 +2,16 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::codegen::Bindings::CSSConditionRuleBinding::CSSConditionRuleMethods;
-use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::str::DOMString;
-use crate::dom::cssgroupingrule::CSSGroupingRule;
-use crate::dom::cssmediarule::CSSMediaRule;
-use crate::dom::cssstylesheet::CSSStyleSheet;
-use crate::dom::csssupportsrule::CSSSupportsRule;
+use dom::bindings::codegen::Bindings::CSSConditionRuleBinding::CSSConditionRuleMethods;
+use dom::bindings::inheritance::Castable;
+use dom::bindings::str::DOMString;
+use dom::cssgroupingrule::CSSGroupingRule;
+use dom::cssmediarule::CSSMediaRule;
+use dom::cssstylesheet::CSSStyleSheet;
+use dom::csssupportsrule::CSSSupportsRule;
 use dom_struct::dom_struct;
 use servo_arc::Arc;
-use style::shared_lock::{Locked, SharedRwLock};
+use style::shared_lock::{SharedRwLock, Locked};
 use style::stylesheets::CssRules as StyleCssRules;
 
 #[dom_struct]

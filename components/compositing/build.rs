@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+extern crate toml;
+
 use std::env;
 use std::fs::File;
 use std::io::{Read, Write};
@@ -34,8 +36,7 @@ fn main() {
                         .find(|pkg| {
                             pkg.get("name").and_then(|name| name.as_str()).unwrap_or("") ==
                                 "webrender"
-                        })
-                        .and_then(|pkg| pkg.get("source").and_then(|source| source.as_str()))
+                        }).and_then(|pkg| pkg.get("source").and_then(|source| source.as_str()))
                         .unwrap_or("unknown");
 
                     let parsed: Vec<&str> = source.split("#").collect();

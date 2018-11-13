@@ -2,28 +2,28 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-pub use crate::dom::bindings::str::{ByteString, DOMString};
-pub use crate::dom::headers::normalize_value;
+pub use dom::bindings::str::{ByteString, DOMString};
+pub use dom::headers::normalize_value;
 
 // For compile-fail tests only.
-pub use crate::dom::bindings::cell::DomRefCell;
-pub use crate::dom::bindings::refcounted::TrustedPromise;
-pub use crate::dom::bindings::root::Dom;
-pub use crate::dom::node::Node;
+pub use dom::bindings::cell::DomRefCell;
+pub use dom::bindings::root::Dom;
+pub use dom::node::Node;
+pub use dom::bindings::refcounted::TrustedPromise;
 
 pub mod area {
-    pub use crate::dom::htmlareaelement::{Area, Shape};
+    pub use dom::htmlareaelement::{Area, Shape};
 }
 
 pub mod size_of {
-    use crate::dom::characterdata::CharacterData;
-    use crate::dom::element::Element;
-    use crate::dom::eventtarget::EventTarget;
-    use crate::dom::htmldivelement::HTMLDivElement;
-    use crate::dom::htmlelement::HTMLElement;
-    use crate::dom::htmlspanelement::HTMLSpanElement;
-    use crate::dom::node::Node;
-    use crate::dom::text::Text;
+    use dom::characterdata::CharacterData;
+    use dom::element::Element;
+    use dom::eventtarget::EventTarget;
+    use dom::htmldivelement::HTMLDivElement;
+    use dom::htmlelement::HTMLElement;
+    use dom::htmlspanelement::HTMLSpanElement;
+    use dom::node::Node;
+    use dom::text::Text;
     use std::mem::size_of;
 
     pub fn CharacterData() -> usize {
@@ -60,9 +60,5 @@ pub mod size_of {
 }
 
 pub mod srcset {
-    pub use crate::dom::htmlimageelement::{parse_a_srcset_attribute, Descriptor, ImageSource};
-}
-
-pub mod timeranges {
-    pub use crate::dom::timeranges::TimeRangesContainer;
+    pub use dom::htmlimageelement::{parse_a_srcset_attribute, ImageSource, Descriptor};
 }

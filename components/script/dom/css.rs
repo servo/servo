@@ -2,19 +2,19 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowBinding::WindowMethods;
-use crate::dom::bindings::error::Fallible;
-use crate::dom::bindings::reflector::Reflector;
-use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::DOMString;
-use crate::dom::window::Window;
-use crate::dom::worklet::Worklet;
-use cssparser::{serialize_identifier, Parser, ParserInput};
+use cssparser::{Parser, ParserInput, serialize_identifier};
+use dom::bindings::codegen::Bindings::WindowBinding::WindowBinding::WindowMethods;
+use dom::bindings::error::Fallible;
+use dom::bindings::reflector::Reflector;
+use dom::bindings::root::DomRoot;
+use dom::bindings::str::DOMString;
+use dom::window::Window;
+use dom::worklet::Worklet;
 use dom_struct::dom_struct;
 use style::context::QuirksMode;
 use style::parser::ParserContext;
-use style::stylesheets::supports_rule::{parse_condition_or_declaration, Declaration};
 use style::stylesheets::CssRuleType;
+use style::stylesheets::supports_rule::{Declaration, parse_condition_or_declaration};
 use style_traits::ParsingMode;
 
 #[dom_struct]
@@ -53,21 +53,21 @@ impl CSS {
     pub fn Supports_(win: &Window, condition: DOMString) -> bool {
         let mut input = ParserInput::new(&condition);
         let mut input = Parser::new(&mut input);
-        let cond = match parse_condition_or_declaration(&mut input) {
-            Ok(c) => c,
-            Err(..) => return false,
-        };
-
-        let url = win.Document().url();
-        let context = ParserContext::new_for_cssom(
-            &url,
-            Some(CssRuleType::Style),
-            ParsingMode::DEFAULT,
-            QuirksMode::NoQuirks,
-            None,
-            None,
-        );
-        cond.eval(&context, &Default::default())
+        let cond = parse_condition_or_declaration(&mut input);
+        if let Ok(cond) = cond {
+            let url = win.Document().url();
+            let context = ParserContext::new_for_cssom(
+                &url,
+                Some(CssRuleType::Style),
+                ParsingMode::DEFAULT,
+                QuirksMode::NoQuirks,
+                None,
+                None,
+            );
+            cond.eval(&context)
+        } else {
+            false
+        }
     }
 
     /// <https://drafts.css-houdini.org/css-paint-api-1/#paint-worklet>

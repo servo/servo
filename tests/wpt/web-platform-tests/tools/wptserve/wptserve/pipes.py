@@ -1,6 +1,5 @@
 from cgi import escape
 from collections import deque
-import base64
 import gzip as gzip_module
 import hashlib
 import os
@@ -274,9 +273,8 @@ def slice(request, response, start, end=None):
                 (spelled "null" in a query string) to indicate the end of
                 the file.
     """
-    content = resolve_content(response)[start:end]
-    response.content = content
-    response.headers.set("Content-Length", len(content))
+    content = resolve_content(response)
+    response.content = content[start:end]
     return response
 
 
@@ -394,7 +392,7 @@ class SubFunctions(object):
 
     @staticmethod
     def file_hash(request, algorithm, path):
-        assert isinstance(algorithm, text_type)
+        algorithm = algorithm.decode("ascii")
         if algorithm not in SubFunctions.supported_algorithms:
             raise ValueError("Unsupported encryption algorithm: '%s'" % algorithm)
 
@@ -402,7 +400,7 @@ class SubFunctions(object):
         absolute_path = os.path.join(request.doc_root, path)
 
         try:
-            with open(absolute_path, "rb") as f:
+            with open(absolute_path) as f:
                 hash_obj.update(f.read())
         except IOError:
             # In this context, an unhandled IOError will be interpreted by the
@@ -412,7 +410,7 @@ class SubFunctions(object):
             # the path to the file to be hashed is invalid.
             raise Exception('Cannot open file for hash computation: "%s"' % absolute_path)
 
-        return base64.b64encode(hash_obj.digest()).strip()
+        return hash_obj.digest().encode('base64').strip()
 
 def template(request, content, escape_type="html"):
     #TODO: There basically isn't any error handling here
@@ -427,12 +425,11 @@ def template(request, content, escape_type="html"):
         tokens = deque(tokens)
 
         token_type, field = tokens.popleft()
-        assert isinstance(field, text_type)
+        field = field.decode("ascii")
 
         if token_type == "var":
             variable = field
             token_type, field = tokens.popleft()
-            assert isinstance(field, text_type)
         else:
             variable = None
 
@@ -491,14 +488,9 @@ def template(request, content, escape_type="html"):
         escape_func = {"html": lambda x:escape(x, quote=True),
                        "none": lambda x:x}[escape_type]
 
-        # Should possibly support escaping for other contexts e.g. script
-        # TODO: read the encoding of the response
-        # cgi.escape() only takes text strings in Python 3.
-        if isinstance(value, binary_type):
-            value = value.decode("utf-8")
-        elif isinstance(value, int):
-            value = text_type(value)
-        return escape_func(value).encode("utf-8")
+        #Should possibly support escaping for other contexts e.g. script
+        #TODO: read the encoding of the response
+        return escape_func(text_type(value)).encode("utf-8")
 
     template_regexp = re.compile(br"{{([^}]*)}}")
     new_content = template_regexp.sub(config_replacement, content)

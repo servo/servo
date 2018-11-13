@@ -1,11 +1,8 @@
-cargo-features = ["rename-dependency"]
-
 [package]
 name = "profile"
 version = "0.0.1"
 authors = ["The Servo Project Developers"]
 license = "MPL-2.0"
-edition = "2018"
 publish = false
 
 [lib]
@@ -13,19 +10,18 @@ name = "profile"
 path = "lib.rs"
 
 [features]
-unstable = ["servo_allocator"]
+unstable = ["jemalloc-sys"]
 
 [dependencies]
 profile_traits = {path = "../profile_traits"}
-influent = "0.5"
+influent = "0.4"
 ipc-channel = "0.11"
 heartbeats-simple = "0.4"
 log = "0.4"
 serde = "1.0"
 serde_json = "1.0"
 servo_config = {path = "../config"}
-time_crate = {package = "time", version = "0.1.12"}
-tokio = "0.1"
+time = "0.1.12"
 
 [target.'cfg(target_os = "macos")'.dependencies]
 task_info = {path = "../../support/rust-task_info"}
@@ -35,4 +31,4 @@ regex = "1.0"
 
 [target.'cfg(not(target_os = "windows"))'.dependencies]
 libc = "0.2"
-servo_allocator = {path = "../allocator", optional = true}
+jemalloc-sys = {version = "0.1.3", optional = true}

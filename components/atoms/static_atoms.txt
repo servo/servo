@@ -18,7 +18,6 @@ cursive
 date
 datetime-local
 dir
-durationchange
 email
 emptied
 ended
@@ -66,20 +65,13 @@ range
 readystatechange
 reftest-wait
 reset
-resize
 right
 rtl
 sans-serif
-safe-area-inset-top
-safe-area-inset-bottom
-safe-area-inset-left
-safe-area-inset-right
 scan
 screen
 scroll-position
 search
-seeked
-seeking
 select
 serif
 statechange
@@ -92,7 +84,6 @@ time
 timeupdate
 toggle
 transitionend
-unhandledrejection
 unload
 url
 waiting

@@ -2,31 +2,32 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use crate::body::{consume_body, BodyOperations, BodyType};
-use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::HeadersBinding::{HeadersInit, HeadersMethods};
-use crate::dom::bindings::codegen::Bindings::RequestBinding;
-use crate::dom::bindings::codegen::Bindings::RequestBinding::ReferrerPolicy;
-use crate::dom::bindings::codegen::Bindings::RequestBinding::RequestCache;
-use crate::dom::bindings::codegen::Bindings::RequestBinding::RequestCredentials;
-use crate::dom::bindings::codegen::Bindings::RequestBinding::RequestDestination;
-use crate::dom::bindings::codegen::Bindings::RequestBinding::RequestInfo;
-use crate::dom::bindings::codegen::Bindings::RequestBinding::RequestInit;
-use crate::dom::bindings::codegen::Bindings::RequestBinding::RequestMethods;
-use crate::dom::bindings::codegen::Bindings::RequestBinding::RequestMode;
-use crate::dom::bindings::codegen::Bindings::RequestBinding::RequestRedirect;
-use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
-use crate::dom::bindings::root::{DomRoot, MutNullableDom};
-use crate::dom::bindings::str::{ByteString, DOMString, USVString};
-use crate::dom::bindings::trace::RootedTraceableBox;
-use crate::dom::globalscope::GlobalScope;
-use crate::dom::headers::{Guard, Headers};
-use crate::dom::promise::Promise;
-use crate::dom::xmlhttprequest::Extractable;
+use body::{BodyOperations, BodyType, consume_body};
+use dom::bindings::cell::DomRefCell;
+use dom::bindings::codegen::Bindings::HeadersBinding::{HeadersInit, HeadersMethods};
+use dom::bindings::codegen::Bindings::RequestBinding;
+use dom::bindings::codegen::Bindings::RequestBinding::ReferrerPolicy;
+use dom::bindings::codegen::Bindings::RequestBinding::RequestCache;
+use dom::bindings::codegen::Bindings::RequestBinding::RequestCredentials;
+use dom::bindings::codegen::Bindings::RequestBinding::RequestDestination;
+use dom::bindings::codegen::Bindings::RequestBinding::RequestInfo;
+use dom::bindings::codegen::Bindings::RequestBinding::RequestInit;
+use dom::bindings::codegen::Bindings::RequestBinding::RequestMethods;
+use dom::bindings::codegen::Bindings::RequestBinding::RequestMode;
+use dom::bindings::codegen::Bindings::RequestBinding::RequestRedirect;
+use dom::bindings::error::{Error, Fallible};
+use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
+use dom::bindings::root::{DomRoot, MutNullableDom};
+use dom::bindings::str::{ByteString, DOMString, USVString};
+use dom::bindings::trace::RootedTraceableBox;
+use dom::globalscope::GlobalScope;
+use dom::headers::{Guard, Headers};
+use dom::promise::Promise;
+use dom::xmlhttprequest::Extractable;
 use dom_struct::dom_struct;
-use http::method::InvalidMethod;
-use http::Method as HttpMethod;
+use hyper::method::Method as HttpMethod;
+use net_traits::ReferrerPolicy as MsgReferrerPolicy;
+use net_traits::request::{Origin, Window};
 use net_traits::request::CacheMode as NetTraitsRequestCache;
 use net_traits::request::CredentialsMode as NetTraitsRequestCredentials;
 use net_traits::request::Destination as NetTraitsRequestDestination;
@@ -34,12 +35,9 @@ use net_traits::request::RedirectMode as NetTraitsRequestRedirect;
 use net_traits::request::Referrer as NetTraitsRequestReferrer;
 use net_traits::request::Request as NetTraitsRequest;
 use net_traits::request::RequestMode as NetTraitsRequestMode;
-use net_traits::request::{Origin, Window};
-use net_traits::ReferrerPolicy as MsgReferrerPolicy;
 use servo_url::ServoUrl;
 use std::cell::{Cell, Ref};
 use std::rc::Rc;
-use std::str::FromStr;
 
 #[dom_struct]
 pub struct Request {
@@ -285,8 +283,7 @@ impl Request {
             }
             // Step 25.2
             let method = match init_method.as_str() {
-                Some(s) => normalize_method(s)
-                    .map_err(|e| Error::Type(format!("Method is not valid: {:?}", e)))?,
+                Some(s) => normalize_method(s),
                 None => return Err(Error::Type("Method is not a valid UTF8".to_string())),
             };
             // Step 25.3
@@ -376,12 +373,12 @@ impl Request {
                 let req = r.request.borrow();
                 let req_method = &req.method;
                 match *req_method {
-                    HttpMethod::GET => {
+                    HttpMethod::Get => {
                         return Err(Error::Type(
                             "Init's body is non-null, and request method is GET".to_string(),
                         ))
                     },
-                    HttpMethod::HEAD => {
+                    HttpMethod::Head => {
                         return Err(Error::Type(
                             "Init's body is non-null, and request method is HEAD".to_string(),
                         ))
@@ -476,18 +473,17 @@ fn net_request_from_global(global: &GlobalScope, url: ServoUrl) -> NetTraitsRequ
 }
 
 // https://fetch.spec.whatwg.org/#concept-method-normalize
-fn normalize_method(m: &str) -> Result<HttpMethod, InvalidMethod> {
+fn normalize_method(m: &str) -> HttpMethod {
     match_ignore_ascii_case! { m,
-        "delete" => return Ok(HttpMethod::DELETE),
-        "get" => return Ok(HttpMethod::GET),
-        "head" => return Ok(HttpMethod::HEAD),
-        "options" => return Ok(HttpMethod::OPTIONS),
-        "post" => return Ok(HttpMethod::POST),
-        "put" => return Ok(HttpMethod::PUT),
+        "delete" => return HttpMethod::Delete,
+        "get" => return HttpMethod::Get,
+        "head" => return HttpMethod::Head,
+        "options" => return HttpMethod::Options,
+        "post" => return HttpMethod::Post,
+        "put" => return HttpMethod::Put,
         _ => (),
     }
-    debug!("Method: {:?}", m);
-    HttpMethod::from_str(m)
+    HttpMethod::Extension(m.to_string())
 }
 
 // https://fetch.spec.whatwg.org/#concept-method
@@ -507,7 +503,7 @@ fn is_forbidden_method(m: &ByteString) -> bool {
 
 // https://fetch.spec.whatwg.org/#cors-safelisted-method
 fn is_cors_safelisted_method(m: &HttpMethod) -> bool {
-    m == &HttpMethod::GET || m == &HttpMethod::HEAD || m == &HttpMethod::POST
+    m == &HttpMethod::Get || m == &HttpMethod::Head || m == &HttpMethod::Post
 }
 
 // https://url.spec.whatwg.org/#include-credentials

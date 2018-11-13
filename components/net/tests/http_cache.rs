@@ -11,6 +11,7 @@ use net_traits::request::{Destination, Request, RequestInit};
 use net_traits::response::{Response, ResponseBody};
 use servo_url::ServoUrl;
 use std::sync::mpsc::channel;
+use time;
 
 
 #[test]

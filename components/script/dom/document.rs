@@ -2,134 +2,120 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use cookie::Cookie;
-use crate::document_loader::{DocumentLoader, LoadType};
-use crate::dom::activation::{synthetic_click_activation, ActivationSource};
-use crate::dom::attr::Attr;
-use crate::dom::beforeunloadevent::BeforeUnloadEvent;
-use crate::dom::bindings::callback::ExceptionHandling;
-use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::BeforeUnloadEventBinding::BeforeUnloadEventBinding::BeforeUnloadEventMethods;
-use crate::dom::bindings::codegen::Bindings::DocumentBinding;
-use crate::dom::bindings::codegen::Bindings::DocumentBinding::ElementCreationOptions;
-use crate::dom::bindings::codegen::Bindings::DocumentBinding::{
-    DocumentMethods, DocumentReadyState,
-};
-use crate::dom::bindings::codegen::Bindings::EventBinding::EventBinding::EventMethods;
-use crate::dom::bindings::codegen::Bindings::HTMLIFrameElementBinding::HTMLIFrameElementBinding::HTMLIFrameElementMethods;
-use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
-use crate::dom::bindings::codegen::Bindings::NodeFilterBinding::NodeFilter;
-use crate::dom::bindings::codegen::Bindings::PerformanceBinding::PerformanceMethods;
-use crate::dom::bindings::codegen::Bindings::TouchBinding::TouchMethods;
-use crate::dom::bindings::codegen::Bindings::WindowBinding::{
-    FrameRequestCallback, ScrollBehavior, WindowMethods,
-};
-use crate::dom::bindings::codegen::UnionTypes::NodeOrString;
-use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
-use crate::dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementTypeId, NodeTypeId};
-use crate::dom::bindings::num::Finite;
-use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
-use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
-use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom, RootedReference};
-use crate::dom::bindings::str::{DOMString, USVString};
-use crate::dom::bindings::xmlname::XMLName::InvalidXMLName;
-use crate::dom::bindings::xmlname::{
-    namespace_from_domstring, validate_and_extract, xml_name_type,
-};
-use crate::dom::closeevent::CloseEvent;
-use crate::dom::comment::Comment;
-use crate::dom::cssstylesheet::CSSStyleSheet;
-use crate::dom::customelementregistry::CustomElementDefinition;
-use crate::dom::customevent::CustomEvent;
-use crate::dom::documentfragment::DocumentFragment;
-use crate::dom::documenttype::DocumentType;
-use crate::dom::domimplementation::DOMImplementation;
-use crate::dom::element::CustomElementCreationMode;
-use crate::dom::element::{
-    Element, ElementCreator, ElementPerformFullscreenEnter, ElementPerformFullscreenExit,
-};
-use crate::dom::errorevent::ErrorEvent;
-use crate::dom::event::{Event, EventBubbles, EventCancelable, EventDefault, EventStatus};
-use crate::dom::eventtarget::EventTarget;
-use crate::dom::focusevent::FocusEvent;
-use crate::dom::globalscope::GlobalScope;
-use crate::dom::hashchangeevent::HashChangeEvent;
-use crate::dom::htmlanchorelement::HTMLAnchorElement;
-use crate::dom::htmlareaelement::HTMLAreaElement;
-use crate::dom::htmlbaseelement::HTMLBaseElement;
-use crate::dom::htmlbodyelement::HTMLBodyElement;
-use crate::dom::htmlcollection::{CollectionFilter, HTMLCollection};
-use crate::dom::htmlelement::HTMLElement;
-use crate::dom::htmlembedelement::HTMLEmbedElement;
-use crate::dom::htmlformelement::{FormControl, FormControlElementHelpers, HTMLFormElement};
-use crate::dom::htmlheadelement::HTMLHeadElement;
-use crate::dom::htmlhtmlelement::HTMLHtmlElement;
-use crate::dom::htmliframeelement::HTMLIFrameElement;
-use crate::dom::htmlimageelement::HTMLImageElement;
-use crate::dom::htmlmetaelement::HTMLMetaElement;
-use crate::dom::htmlscriptelement::{HTMLScriptElement, ScriptResult};
-use crate::dom::htmltitleelement::HTMLTitleElement;
-use crate::dom::keyboardevent::KeyboardEvent;
-use crate::dom::location::Location;
-use crate::dom::messageevent::MessageEvent;
-use crate::dom::mouseevent::MouseEvent;
-use crate::dom::node::VecPreOrderInsertionHelper;
-use crate::dom::node::{self, document_from_node, window_from_node, CloneChildrenFlag};
-use crate::dom::node::{LayoutNodeHelpers, Node, NodeDamage, NodeFlags};
-use crate::dom::nodeiterator::NodeIterator;
-use crate::dom::nodelist::NodeList;
-use crate::dom::pagetransitionevent::PageTransitionEvent;
-use crate::dom::popstateevent::PopStateEvent;
-use crate::dom::processinginstruction::ProcessingInstruction;
-use crate::dom::progressevent::ProgressEvent;
-use crate::dom::promise::Promise;
-use crate::dom::range::Range;
-use crate::dom::servoparser::ServoParser;
-use crate::dom::storageevent::StorageEvent;
-use crate::dom::stylesheetlist::StyleSheetList;
-use crate::dom::text::Text;
-use crate::dom::touch::Touch;
-use crate::dom::touchevent::TouchEvent;
-use crate::dom::touchlist::TouchList;
-use crate::dom::treewalker::TreeWalker;
-use crate::dom::uievent::UIEvent;
-use crate::dom::virtualmethods::vtable_for;
-use crate::dom::webglcontextevent::WebGLContextEvent;
-use crate::dom::window::{ReflowReason, Window};
-use crate::dom::windowproxy::WindowProxy;
-use crate::fetch::FetchCanceller;
-use crate::script_runtime::{CommonScriptMsg, ScriptThreadEventCategory};
-use crate::script_thread::{MainThreadScriptMsg, ScriptThread};
-use crate::task_source::{TaskSource, TaskSourceName};
-use crate::timers::OneshotTimerCallback;
+use cookie_rs;
 use devtools_traits::ScriptToDevtoolsControlMsg;
+use document_loader::{DocumentLoader, LoadType};
+use dom::activation::{ActivationSource, synthetic_click_activation};
+use dom::attr::Attr;
+use dom::beforeunloadevent::BeforeUnloadEvent;
+use dom::bindings::callback::ExceptionHandling;
+use dom::bindings::cell::DomRefCell;
+use dom::bindings::codegen::Bindings::BeforeUnloadEventBinding::BeforeUnloadEventBinding::BeforeUnloadEventMethods;
+use dom::bindings::codegen::Bindings::DocumentBinding;
+use dom::bindings::codegen::Bindings::DocumentBinding::{DocumentMethods, DocumentReadyState, ElementCreationOptions};
+use dom::bindings::codegen::Bindings::EventBinding::EventBinding::EventMethods;
+use dom::bindings::codegen::Bindings::HTMLIFrameElementBinding::HTMLIFrameElementBinding::HTMLIFrameElementMethods;
+use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
+use dom::bindings::codegen::Bindings::NodeFilterBinding::NodeFilter;
+use dom::bindings::codegen::Bindings::PerformanceBinding::PerformanceMethods;
+use dom::bindings::codegen::Bindings::TouchBinding::TouchMethods;
+use dom::bindings::codegen::Bindings::WindowBinding::{FrameRequestCallback, ScrollBehavior, WindowMethods};
+use dom::bindings::codegen::UnionTypes::NodeOrString;
+use dom::bindings::error::{Error, ErrorResult, Fallible};
+use dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementTypeId, NodeTypeId};
+use dom::bindings::num::Finite;
+use dom::bindings::refcounted::{Trusted, TrustedPromise};
+use dom::bindings::reflector::{DomObject, reflect_dom_object};
+use dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom, RootedReference};
+use dom::bindings::str::{DOMString, USVString};
+use dom::bindings::xmlname::{namespace_from_domstring, validate_and_extract, xml_name_type};
+use dom::bindings::xmlname::XMLName::InvalidXMLName;
+use dom::closeevent::CloseEvent;
+use dom::comment::Comment;
+use dom::cssstylesheet::CSSStyleSheet;
+use dom::customelementregistry::CustomElementDefinition;
+use dom::customevent::CustomEvent;
+use dom::documentfragment::DocumentFragment;
+use dom::documenttype::DocumentType;
+use dom::domimplementation::DOMImplementation;
+use dom::element::{Element, ElementCreator, ElementPerformFullscreenEnter, ElementPerformFullscreenExit};
+use dom::element::CustomElementCreationMode;
+use dom::errorevent::ErrorEvent;
+use dom::event::{Event, EventBubbles, EventCancelable, EventDefault, EventStatus};
+use dom::eventtarget::EventTarget;
+use dom::focusevent::FocusEvent;
+use dom::globalscope::GlobalScope;
+use dom::hashchangeevent::HashChangeEvent;
+use dom::htmlanchorelement::HTMLAnchorElement;
+use dom::htmlareaelement::HTMLAreaElement;
+use dom::htmlbaseelement::HTMLBaseElement;
+use dom::htmlbodyelement::HTMLBodyElement;
+use dom::htmlcollection::{CollectionFilter, HTMLCollection};
+use dom::htmlelement::HTMLElement;
+use dom::htmlembedelement::HTMLEmbedElement;
+use dom::htmlformelement::{FormControl, FormControlElementHelpers, HTMLFormElement};
+use dom::htmlheadelement::HTMLHeadElement;
+use dom::htmlhtmlelement::HTMLHtmlElement;
+use dom::htmliframeelement::HTMLIFrameElement;
+use dom::htmlimageelement::HTMLImageElement;
+use dom::htmlmetaelement::HTMLMetaElement;
+use dom::htmlscriptelement::{HTMLScriptElement, ScriptResult};
+use dom::htmltitleelement::HTMLTitleElement;
+use dom::keyboardevent::KeyboardEvent;
+use dom::location::Location;
+use dom::messageevent::MessageEvent;
+use dom::mouseevent::MouseEvent;
+use dom::node::{self, CloneChildrenFlag, document_from_node, window_from_node};
+use dom::node::{Node, NodeDamage, NodeFlags, LayoutNodeHelpers};
+use dom::node::VecPreOrderInsertionHelper;
+use dom::nodeiterator::NodeIterator;
+use dom::nodelist::NodeList;
+use dom::pagetransitionevent::PageTransitionEvent;
+use dom::popstateevent::PopStateEvent;
+use dom::processinginstruction::ProcessingInstruction;
+use dom::progressevent::ProgressEvent;
+use dom::promise::Promise;
+use dom::range::Range;
+use dom::servoparser::ServoParser;
+use dom::storageevent::StorageEvent;
+use dom::stylesheetlist::StyleSheetList;
+use dom::text::Text;
+use dom::touch::Touch;
+use dom::touchevent::TouchEvent;
+use dom::touchlist::TouchList;
+use dom::treewalker::TreeWalker;
+use dom::uievent::UIEvent;
+use dom::virtualmethods::vtable_for;
+use dom::webglcontextevent::WebGLContextEvent;
+use dom::window::{ReflowReason, Window};
+use dom::windowproxy::WindowProxy;
 use dom_struct::dom_struct;
 use embedder_traits::EmbedderMsg;
 use encoding_rs::{Encoding, UTF_8};
 use euclid::Point2D;
+use fetch::FetchCanceller;
 use html5ever::{LocalName, Namespace, QualName};
+use hyper::header::{Header, SetCookie};
 use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcSender};
-use js::jsapi::JS_GetRuntime;
 use js::jsapi::{JSContext, JSObject, JSRuntime};
-use keyboard_types::{Key, KeyState, Modifiers};
-use metrics::{
-    InteractiveFlag, InteractiveMetrics, InteractiveWindow, ProfilerMetadataFactory,
-    ProgressiveWebMetric,
-};
-use mime::{self, Mime};
-use msg::constellation_msg::BrowsingContextId;
+use js::jsapi::JS_GetRuntime;
+use metrics::{InteractiveFlag, InteractiveMetrics, InteractiveWindow, ProfilerMetadataFactory, ProgressiveWebMetric};
+use mime::{Mime, TopLevel, SubLevel};
+use msg::constellation_msg::{BrowsingContextId, Key, KeyModifiers, KeyState};
+use net_traits::{FetchResponseMsg, IpcSend, ReferrerPolicy};
+use net_traits::CookieSource::NonHTTP;
+use net_traits::CoreResourceMsg::{GetCookiesForUrl, SetCookiesForUrl};
 use net_traits::pub_domains::is_pub_domain;
 use net_traits::request::RequestInit;
 use net_traits::response::HttpsState;
-use net_traits::CookieSource::NonHTTP;
-use net_traits::CoreResourceMsg::{GetCookiesForUrl, SetCookiesForUrl};
-use net_traits::{FetchResponseMsg, IpcSend, ReferrerPolicy};
 use num_traits::ToPrimitive;
 use profile_traits::ipc as profile_ipc;
 use profile_traits::time::{TimerMetadata, TimerMetadataFrameType, TimerMetadataReflowType};
 use ref_slice::ref_slice;
 use script_layout_interface::message::{Msg, NodesFromPointQueryType, QueryMsg, ReflowGoal};
+use script_runtime::{CommonScriptMsg, ScriptThreadEventCategory};
+use script_thread::{MainThreadScriptMsg, ScriptThread};
 use script_traits::{AnimationState, DocumentActivity, MouseButton, MouseEventType};
 use script_traits::{MsDuration, ScriptMsg, TouchEventType, TouchId, UntrustedNodeAddress};
 use servo_arc::Arc;
@@ -138,8 +124,8 @@ use servo_config::prefs::PREFS;
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use std::borrow::ToOwned;
 use std::cell::{Cell, Ref, RefMut};
-use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::collections::{HashMap, HashSet, VecDeque};
+use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::default::Default;
 use std::fmt;
 use std::mem;
@@ -154,9 +140,12 @@ use style::selector_parser::{RestyleDamage, Snapshot};
 use style::shared_lock::{SharedRwLock as StyleSharedRwLock, SharedRwLockReadGuard};
 use style::str::{split_html_space_chars, str_join};
 use style::stylesheet_set::DocumentStylesheetSet;
-use style::stylesheets::{CssRule, Origin, OriginSet, Stylesheet};
-use url::percent_encoding::percent_decode;
+use style::stylesheets::{CssRule, Stylesheet, Origin, OriginSet};
+use task_source::{TaskSource, TaskSourceName};
+use time;
+use timers::OneshotTimerCallback;
 use url::Host;
+use url::percent_encoding::percent_decode;
 
 /// The number of times we are allowed to see spurious `requestAnimationFrame()` calls before
 /// falling back to fake ones.
@@ -549,8 +538,7 @@ impl Document {
                             );
                         }),
                             self.window.upcast(),
-                        )
-                        .unwrap();
+                        ).unwrap();
                 }
             } else {
                 self.window().suspend();
@@ -781,12 +769,10 @@ impl Document {
         // Step 1 is not handled here; the fragid is already obtained by the calling function
         // Step 2: Simply use None to indicate the top of the document.
         // Step 3 & 4
-        percent_decode(fragid.as_bytes())
-            .decode_utf8()
-            .ok()
-            // Step 5
+        percent_decode(fragid.as_bytes()).decode_utf8().ok()
+        // Step 5
             .and_then(|decoded_fragid| self.get_element_by_id(&Atom::from(decoded_fragid)))
-            // Step 6
+        // Step 6
             .or_else(|| self.get_anchor_by_name(fragid))
         // Step 7 & 8
     }
@@ -819,8 +805,7 @@ impl Document {
                     rect.origin.x.to_nearest_px() as f32,
                     rect.origin.y.to_nearest_px() as f32,
                 )
-            })
-            .or_else(|| {
+            }).or_else(|| {
                 if fragment.is_empty() || fragment.eq_ignore_ascii_case("top") {
                     // FIXME(stshine): this should be the origin of the stacking context space,
                     // which may differ under the influence of writing mode.
@@ -1363,7 +1348,13 @@ impl Document {
     }
 
     /// The entry point for all key processing for web content
-    pub fn dispatch_key_event(&self, keyboard_event: ::keyboard_types::KeyboardEvent) {
+    pub fn dispatch_key_event(
+        &self,
+        ch: Option<char>,
+        key: Key,
+        state: KeyState,
+        modifiers: KeyModifiers,
+    ) {
         let focused = self.get_focused_element();
         let body = self.GetBody();
 
@@ -1373,29 +1364,50 @@ impl Document {
             (&None, &None) => self.window.upcast(),
         };
 
+        let ctrl = modifiers.contains(KeyModifiers::CONTROL);
+        let alt = modifiers.contains(KeyModifiers::ALT);
+        let shift = modifiers.contains(KeyModifiers::SHIFT);
+        let meta = modifiers.contains(KeyModifiers::SUPER);
+
+        let is_composing = false;
+        let is_repeating = state == KeyState::Repeated;
+        let ev_type = DOMString::from(
+            match state {
+                KeyState::Pressed | KeyState::Repeated => "keydown",
+                KeyState::Released => "keyup",
+            }.to_owned(),
+        );
+
+        let props = KeyboardEvent::key_properties(ch, key, modifiers);
+
         let keyevent = KeyboardEvent::new(
             &self.window,
-            DOMString::from(keyboard_event.state.to_string()),
+            ev_type,
             true,
             true,
             Some(&self.window),
             0,
-            keyboard_event.key.clone(),
-            DOMString::from(keyboard_event.code.to_string()),
-            keyboard_event.location as u32,
-            keyboard_event.repeat,
-            keyboard_event.is_composing,
-            keyboard_event.modifiers,
-            0,
-            keyboard_event.key.legacy_keycode(),
+            ch,
+            Some(key),
+            DOMString::from(props.key_string.clone()),
+            DOMString::from(props.code),
+            props.location,
+            is_repeating,
+            is_composing,
+            ctrl,
+            alt,
+            shift,
+            meta,
+            None,
+            props.key_code,
         );
         let event = keyevent.upcast::<Event>();
         event.fire(target);
         let mut cancel_state = event.get_cancel_state();
 
         // https://w3c.github.io/uievents/#keys-cancelable-keys
-        if keyboard_event.state == KeyState::Down &&
-            keyboard_event.key.legacy_charcode() != 0 &&
+        if state != KeyState::Released &&
+            props.is_printable() &&
             cancel_state != EventDefault::Prevented
         {
             // https://w3c.github.io/uievents/#keypress-event-order
@@ -1406,13 +1418,18 @@ impl Document {
                 true,
                 Some(&self.window),
                 0,
-                keyboard_event.key.clone(),
-                DOMString::from(keyboard_event.code.to_string()),
-                keyboard_event.location as u32,
-                keyboard_event.repeat,
-                keyboard_event.is_composing,
-                keyboard_event.modifiers,
-                keyboard_event.key.legacy_charcode(),
+                ch,
+                Some(key),
+                DOMString::from(props.key_string),
+                DOMString::from(props.code),
+                props.location,
+                is_repeating,
+                is_composing,
+                ctrl,
+                alt,
+                shift,
+                meta,
+                props.char_code,
                 0,
             );
             let ev = event.upcast::<Event>();
@@ -1421,7 +1438,7 @@ impl Document {
         }
 
         if cancel_state == EventDefault::Allowed {
-            let msg = EmbedderMsg::Keyboard(keyboard_event.clone());
+            let msg = EmbedderMsg::KeyEvent(ch, key, state, modifiers);
             self.send_to_embedder(msg);
 
             // This behavior is unspecced
@@ -1429,10 +1446,8 @@ impl Document {
             // however *when* we do it is up to us.
             // Here, we're dispatching it after the key event so the script has a chance to cancel it
             // https://www.w3.org/Bugs/Public/show_bug.cgi?id=27337
-            match keyboard_event.key {
-                Key::Character(ref letter)
-                    if letter == " " && keyboard_event.state == KeyState::Up =>
-                {
+            match key {
+                Key::Space if state == KeyState::Released => {
                     let maybe_elem = target.downcast::<Element>();
                     if let Some(el) = maybe_elem {
                         synthetic_click_activation(
@@ -1444,15 +1459,11 @@ impl Document {
                             ActivationSource::NotFromClick,
                         )
                     }
-                }
-                Key::Enter if keyboard_event.state == KeyState::Up => {
+                },
+                Key::Enter if state == KeyState::Released => {
                     let maybe_elem = target.downcast::<Element>();
                     if let Some(el) = maybe_elem {
                         if let Some(a) = el.as_maybe_activatable() {
-                            let ctrl = keyboard_event.modifiers.contains(Modifiers::CONTROL);
-                            let alt = keyboard_event.modifiers.contains(Modifiers::ALT);
-                            let shift = keyboard_event.modifiers.contains(Modifiers::SHIFT);
-                            let meta = keyboard_event.modifiers.contains(Modifiers::META);
                             a.implicit_submission(ctrl, alt, shift, meta);
                         }
                     }
@@ -1915,8 +1926,7 @@ impl Document {
                 }
             }),
                 self.window.upcast(),
-            )
-            .unwrap();
+            ).unwrap();
 
         // Step 8.
         let document = Trusted::new(self);
@@ -1950,8 +1960,7 @@ impl Document {
                     );
                 }),
                     self.window.upcast(),
-                )
-                .unwrap();
+                ).unwrap();
         }
 
         // Step 9.
@@ -2543,12 +2552,14 @@ impl Document {
             implementation: Default::default(),
             content_type: match content_type {
                 Some(mime_data) => mime_data,
-                None => match is_html_document {
+                None => Mime::from(match is_html_document {
                     // https://dom.spec.whatwg.org/#dom-domimplementation-createhtmldocument
-                    IsHTMLDocument::HTMLDocument => mime::TEXT_HTML,
+                    IsHTMLDocument::HTMLDocument => Mime(TopLevel::Text, SubLevel::Html, vec![]),
                     // https://dom.spec.whatwg.org/#concept-document-content-type
-                    IsHTMLDocument::NonHTMLDocument => "application/xml".parse().unwrap(),
-                },
+                    IsHTMLDocument::NonHTMLDocument => {
+                        Mime(TopLevel::Application, SubLevel::Xml, vec![])
+                    },
+                }),
             },
             last_modified: last_modified,
             url: DomRefCell::new(url),
@@ -2793,16 +2804,14 @@ impl Document {
                 owner
                     .upcast::<Node>()
                     .is_before(sheet_in_doc.owner.upcast())
-            })
-            .cloned();
+            }).cloned();
 
         self.window()
             .layout_chan()
             .send(Msg::AddStylesheet(
                 sheet.clone(),
                 insertion_point.as_ref().map(|s| s.sheet.clone()),
-            ))
-            .unwrap();
+            )).unwrap();
 
         let sheet = StyleSheetInDocument {
             sheet,
@@ -3358,10 +3367,8 @@ impl DocumentMethods for Document {
             local_name.make_ascii_lowercase();
         }
 
-        let is_xhtml = self.content_type.type_() == mime::APPLICATION &&
-            self.content_type.subtype().as_str() == "xhtml" &&
-            self.content_type.suffix() == Some(mime::XML);
-
+        let is_xhtml = self.content_type.0 == TopLevel::Application &&
+            self.content_type.1.as_str() == "xhtml+xml";
         let ns = if self.is_html_document || is_xhtml {
             ns!(html)
         } else {
@@ -3636,8 +3643,7 @@ impl DocumentMethods for Document {
                     .child_elements()
                     .find(|node| {
                         node.namespace() == &ns!(svg) && node.local_name() == &local_name!("title")
-                    })
-                    .map(DomRoot::upcast::<Node>)
+                    }).map(DomRoot::upcast::<Node>)
             } else {
                 // Step 2.
                 root.upcast::<Node>()
@@ -3742,8 +3748,7 @@ impl DocumentMethods for Document {
                         HTMLElementTypeId::HTMLFrameSetElement,
                     )) => true,
                     _ => false,
-                })
-                .map(|node| DomRoot::downcast(node).unwrap())
+                }).map(|node| DomRoot::downcast(node).unwrap())
         })
     }
 
@@ -3964,17 +3969,18 @@ impl DocumentMethods for Document {
             return Err(Error::Security);
         }
 
-        let cookies = if let Some(cookie) = Cookie::parse(cookie.to_string()).ok().map(Serde) {
-            vec![cookie]
-        } else {
-            vec![]
-        };
-
-        let _ = self
-            .window
-            .upcast::<GlobalScope>()
-            .resource_threads()
-            .send(SetCookiesForUrl(self.url(), cookies, NonHTTP));
+        if let Ok(cookie_header) = SetCookie::parse_header(&vec![cookie.to_string().into_bytes()]) {
+            let cookies = cookie_header
+                .0
+                .into_iter()
+                .filter_map(|cookie| cookie_rs::Cookie::parse(cookie).ok().map(Serde))
+                .collect();
+            let _ = self
+                .window
+                .upcast::<GlobalScope>()
+                .resource_threads()
+                .send(SetCookiesForUrl(self.url(), cookies, NonHTTP));
+        }
         Ok(())
     }
 
@@ -4176,8 +4182,7 @@ impl DocumentMethods for Document {
                     node::from_untrusted_node_address(js_runtime, untrusted_node_address)
                 };
                 DomRoot::downcast::<Element>(node)
-            })
-            .collect();
+            }).collect();
 
         // Step 4
         if let Some(root_element) = self.GetDocumentElement() {
@@ -4191,117 +4196,149 @@ impl DocumentMethods for Document {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-document-open
-    fn Open(
-        &self,
-        _unused1: Option<DOMString>,
-        _unused2: Option<DOMString>,
-    ) -> Fallible<DomRoot<Document>> {
-        // Step 1
+    fn Open(&self, _type: Option<DOMString>, replace: DOMString) -> Fallible<DomRoot<Document>> {
         if !self.is_html_document() {
+            // Step 1.
             return Err(Error::InvalidState);
         }
 
-        // Step 2
+        // Step 2.
         if self.throw_on_dynamic_markup_insertion_counter.get() > 0 {
             return Err(Error::InvalidState);
         }
 
-        // Step 3
+        if !self.is_active() {
+            // Step 3.
+            return Ok(DomRoot::from_ref(self));
+        }
+
         let entry_responsible_document = GlobalScope::entry().as_window().Document();
 
-        // Step 4
         // This check is same-origin not same-origin-domain.
         // https://github.com/whatwg/html/issues/2282
         // https://github.com/whatwg/html/pull/2288
         if !self.origin.same_origin(&entry_responsible_document.origin) {
+            // Step 4.
             return Err(Error::Security);
         }
 
-        // Step 5
         if self
             .get_current_parser()
             .map_or(false, |parser| parser.is_active())
         {
+            // Step 5.
             return Ok(DomRoot::from_ref(self));
         }
 
-        // Step 6
-        if self.is_prompting_or_unloading() {
-            return Ok(DomRoot::from_ref(self));
-        }
+        // Step 6.
+        // TODO: ignore-opens-during-unload counter check.
+
+        // Step 7, 8.
+        // TODO: check session history's state.
+        let replace = replace.eq_ignore_ascii_case("replace");
+
+        // Step 9.
+        // TODO: salvageable flag.
+
+        // Step 10.
+        // TODO: prompt to unload.
 
         window_from_node(self).set_navigation_start();
 
-        // Step 7
-        // TODO: https://github.com/servo/servo/issues/21937
-        if self.has_browsing_context() {
-            self.abort();
-        }
+        // Step 11.
+        // TODO: unload.
 
-        // Step 8
+        // Step 12.
+        self.abort();
+
+        // Step 13.
         for node in self.upcast::<Node>().traverse_preorder() {
             node.upcast::<EventTarget>().remove_all_listeners();
         }
 
-        // Step 9
-        if self.window.Document() == DomRoot::from_ref(self) {
-            self.window.upcast::<EventTarget>().remove_all_listeners();
-        }
+        // Step 14.
+        // TODO: remove any tasks associated with the Document in any task source.
 
-        // Step 10
-        // TODO: https://github.com/servo/servo/issues/21936
+        // Step 15.
         Node::replace_all(None, self.upcast::<Node>());
 
-        // Step 11
-        if self.is_fully_active() {
-            let mut new_url = entry_responsible_document.url();
-            if entry_responsible_document != DomRoot::from_ref(self) {
-                new_url.set_fragment(None);
-            }
-            // TODO: https://github.com/servo/servo/issues/21939
-            self.set_url(new_url);
-        }
+        // Steps 16, 17.
+        // Let's not?
+        // TODO: https://github.com/whatwg/html/issues/1698
 
-        // Step 12
-        // TODO: https://github.com/servo/servo/issues/21938
+        // Step 18.
+        self.implementation.set(None);
+        self.images.set(None);
+        self.embeds.set(None);
+        self.links.set(None);
+        self.forms.set(None);
+        self.scripts.set(None);
+        self.anchors.set(None);
+        self.applets.set(None);
+        *self.stylesheets.borrow_mut() = DocumentStylesheetSet::new();
+        self.animation_frame_ident.set(0);
+        self.animation_frame_list.borrow_mut().clear();
+        self.pending_restyles.borrow_mut().clear();
+        self.target_element.set(None);
+        *self.last_click_info.borrow_mut() = None;
 
-        // Step 13
-        self.set_quirks_mode(QuirksMode::NoQuirks);
+        // Step 19.
+        // TODO: Set the active document of document's browsing context to document with window.
 
-        // Step 14
+        // Step 20.
+        // TODO: Replace document's singleton objects with new instances of those objects, created in window's Realm.
+
+        // Step 21.
+        self.set_encoding(UTF_8);
+
+        // Step 22.
+        // TODO: reload override buffer.
+
+        // Step 23.
+        // TODO: salvageable flag.
+
+        let url = entry_responsible_document.url();
+
+        // Step 24.
+        self.set_url(url.clone());
+
+        // Step 25.
+        // TODO: mute iframe load.
+
+        // Step 26.
         let resource_threads = self
             .window
             .upcast::<GlobalScope>()
             .resource_threads()
             .clone();
         *self.loader.borrow_mut() =
-            DocumentLoader::new_with_threads(resource_threads, Some(self.url()));
-        ServoParser::parse_html_script_input(self, self.url(), "text/html");
+            DocumentLoader::new_with_threads(resource_threads, Some(url.clone()));
+        ServoParser::parse_html_script_input(self, url, "text/html");
 
-        // Step 15
-        self.ready_state.set(DocumentReadyState::Loading);
+        // Step 27.
+        self.ready_state.set(DocumentReadyState::Interactive);
 
-        // Step 16
-        // Handled when creating the parser in step 14
+        // Step 28.
+        // TODO: remove history traversal tasks.
 
-        // Step 17
+        // Step 29.
+        // TODO: truncate session history.
+
+        // Step 30.
+        // TODO: remove earlier entries.
+
+        if !replace {
+            // Step 31.
+            // TODO: add history entry.
+        }
+
+        // Step 32.
+        // TODO: clear fired unload flag.
+
+        // Step 33 is handled when creating the parser in step 26.
+
+        // Step 34.
         Ok(DomRoot::from_ref(self))
-    }
-
-    // https://html.spec.whatwg.org/multipage/#dom-document-open-window
-    fn Open_(
-        &self,
-        url: DOMString,
-        target: DOMString,
-        features: DOMString,
-    ) -> Fallible<DomRoot<WindowProxy>> {
-        // WhatWG spec states this should always return a WindowProxy, but the spec for WindowProxy.open states
-        // it optionally returns a WindowProxy. Assume an error if window.open returns none.
-        // See https://github.com/whatwg/html/issues/4091
-        let context = self.browsing_context().ok_or(Error::InvalidAccess)?;
-        context
-            .open(url, target, features)
-            .ok_or(Error::InvalidAccess)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-document-write
@@ -4327,14 +4364,13 @@ impl DocumentMethods for Document {
                 // Either there is no parser, which means the parsing ended;
                 // or script nesting level is 0, which means the method was
                 // called from outside a parser-executed script.
-                if self.is_prompting_or_unloading() ||
-                    self.ignore_destructive_writes_counter.get() > 0
-                {
+                if self.ignore_destructive_writes_counter.get() > 0 {
                     // Step 4.
+                    // TODO: handle ignore-opens-during-unload counter.
                     return Ok(());
                 }
                 // Step 5.
-                self.Open(None, None)?;
+                self.Open(None, "".into())?;
                 self.get_current_parser().unwrap()
             },
         };
@@ -4418,7 +4454,7 @@ impl DocumentMethods for Document {
 }
 
 fn update_with_current_time_ms(marker: &Cell<u64>) {
-    if marker.get() == 0 {
+    if marker.get() == Default::default() {
         let time = time::get_time();
         let current_time_ms = time.sec * 1000 + time.nsec as i64 / 1000000;
         marker.set(current_time_ms as u64);

@@ -2,9 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use servo_rand;
 use std::cell::RefCell;
 use std::rc::Rc;
 use url::{Host, Origin};
+use url_serde;
 use uuid::Uuid;
 
 /// The origin of an URL
@@ -86,6 +88,11 @@ impl ImmutableOrigin {
     /// <https://html.spec.whatwg.org/multipage/#ascii-serialisation-of-an-origin>
     pub fn ascii_serialization(&self) -> String {
         self.clone().into_url_origin().ascii_serialization()
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#unicode-serialisation-of-an-origin>
+    pub fn unicode_serialization(&self) -> String {
+        self.clone().into_url_origin().unicode_serialization()
     }
 }
 

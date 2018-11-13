@@ -110,7 +110,7 @@ def call(*args):
 
     Returns a bytestring of the subprocess output if no error.
     """
-    logger.debug(" ".join(args))
+    logger.debug("%s" % " ".join(args))
     try:
         return subprocess.check_output(args)
     except subprocess.CalledProcessError as e:
@@ -118,7 +118,6 @@ def call(*args):
                         (e.cmd, e.returncode))
         logger.critical(e.output)
         raise
-
 
 def fetch_wpt(user, *args):
     git = get_git_cmd(wpt_root)
@@ -273,9 +272,6 @@ def run(venv, wpt_args, **kwargs):
         wpt_kwargs["verify_log_full"] = False
         if wpt_kwargs["repeat"] == 1:
             wpt_kwargs["repeat"] = 10
-        wpt_kwargs["headless"] = False
-
-        wpt_kwargs["log_tbpl"] = [sys.stdout]
 
         wpt_kwargs = setup_wptrunner(venv, **wpt_kwargs)
 

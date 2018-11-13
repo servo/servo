@@ -2,18 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use crate::dom::audionode::{AudioNode, MAX_CHANNEL_COUNT};
-use crate::dom::baseaudiocontext::BaseAudioContext;
-use crate::dom::bindings::codegen::Bindings::AudioNodeBinding::{
-    ChannelCountMode, ChannelInterpretation,
-};
-use crate::dom::bindings::codegen::Bindings::ChannelMergerNodeBinding::{
-    self, ChannelMergerOptions,
-};
-use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::reflector::reflect_dom_object;
-use crate::dom::bindings::root::DomRoot;
-use crate::dom::window::Window;
+use dom::audionode::{AudioNode, MAX_CHANNEL_COUNT};
+use dom::baseaudiocontext::BaseAudioContext;
+use dom::bindings::codegen::Bindings::AudioNodeBinding::{ChannelCountMode, ChannelInterpretation};
+use dom::bindings::codegen::Bindings::ChannelMergerNodeBinding::{self, ChannelMergerOptions};
+use dom::bindings::error::{Error, Fallible};
+use dom::bindings::reflector::reflect_dom_object;
+use dom::bindings::root::DomRoot;
+use dom::window::Window;
 use dom_struct::dom_struct;
 use servo_media::audio::channel_node::ChannelNodeOptions;
 use servo_media::audio::node::AudioNodeInit;

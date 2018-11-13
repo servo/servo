@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>W3C Beacon As Fetch (Fetch KeepAlive) Navigate Test</title>
+</head>
+<body>
+    <script src="beacon-common.sub.js"></script>
+    <script>
+        "use strict";
+
+        // An array should be passed through postMessage to this iFrame, where
+        //     [0] contains a test case id as defined in beacon-common.js.
+        //     [1] is the URL for the keep alive fetch() or sendBeacon().
+        //     [2] string indicating the function to call - "fetch" to call fetch() or "beacon" to call sendBeacon().
+        // The testcase id is returned back to the window through postMesage.
+        var tests = 0;
+        window.onmessage = function(e) {
+            var testCaseId = e.data[0];
+            var url = e.data[1];
+            var func = e.data[2];
+            tests++;
+
+            // Reconstruct enough of the test case to send the keep alive fetch (data and url).
+            var testCase = testLookup[testCaseId];
+            testCase.url = url;
+
+            if (func === "beacon") {
+                // sendData calls sendBeacon
+                sendData(testCase);
+            }
+            else {
+                throw new Error(func + " is an invalid function");
+            }
+
+            // Let the main page continue the test if we don't immediately throw an exception.
+            parent.postMessage(testCaseId, "*");
+
+            // Now navigate ourselves.
+            if (tests == sampleTests.length) {
+                window.location = "http://{{host}}:{{ports[http][0]}}/";
+            }
+        }
+    </script>
+</body>
+</html>

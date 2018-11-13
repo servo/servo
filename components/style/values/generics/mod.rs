@@ -5,12 +5,12 @@
 //! Generic types that share their serialization implementations
 //! for both specified and computed values.
 
-use super::CustomIdent;
 use counter_style::{parse_counter_style_name, Symbols};
 use cssparser::Parser;
 use parser::{Parse, ParserContext};
 use style_traits::{KeywordsCollectFn, ParseError};
 use style_traits::{SpecifiedValueInfo, StyleParseErrorKind};
+use super::CustomIdent;
 
 pub mod background;
 pub mod basic_shape;
@@ -20,7 +20,6 @@ pub mod box_;
 pub mod color;
 pub mod column;
 pub mod counters;
-pub mod easing;
 pub mod effects;
 pub mod flex;
 pub mod font;
@@ -28,7 +27,6 @@ pub mod font;
 pub mod gecko;
 pub mod grid;
 pub mod image;
-pub mod length;
 pub mod position;
 pub mod rect;
 pub mod size;

@@ -2,42 +2,40 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use crate::document_loader::LoadType;
-use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::refcounted::Trusted;
-use crate::dom::bindings::reflector::DomObject;
-use crate::dom::document::Document;
-use crate::dom::element::Element;
-use crate::dom::eventtarget::EventTarget;
-use crate::dom::htmlelement::HTMLElement;
-use crate::dom::htmllinkelement::{HTMLLinkElement, RequestGenerationId};
-use crate::dom::node::{document_from_node, window_from_node};
-use crate::network_listener::{NetworkListener, PreInvoke};
-use crate::task_source::TaskSourceName;
 use cssparser::SourceLocation;
+use document_loader::LoadType;
+use dom::bindings::inheritance::Castable;
+use dom::bindings::refcounted::Trusted;
+use dom::bindings::reflector::DomObject;
+use dom::document::Document;
+use dom::element::Element;
+use dom::eventtarget::EventTarget;
+use dom::htmlelement::HTMLElement;
+use dom::htmllinkelement::{RequestGenerationId, HTMLLinkElement};
+use dom::node::{document_from_node, window_from_node};
 use encoding_rs::UTF_8;
+use hyper::header::ContentType;
+use hyper::mime::{Mime, TopLevel, SubLevel};
+use hyper_serde::Serde;
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
-use mime::{self, Mime};
+use net_traits::{FetchResponseListener, FetchMetadata, FilteredMetadata, Metadata, NetworkError, ReferrerPolicy};
 use net_traits::request::{CorsSettings, CredentialsMode, Destination, RequestInit, RequestMode};
-use net_traits::{
-    FetchMetadata, FetchResponseListener, FilteredMetadata, Metadata, NetworkError, ReferrerPolicy,
-};
+use network_listener::{NetworkListener, PreInvoke};
 use parking_lot::RwLock;
 use servo_arc::Arc;
 use servo_url::ServoUrl;
 use std::mem;
-use std::sync::atomic::AtomicBool;
 use std::sync::Mutex;
+use std::sync::atomic::AtomicBool;
 use style::media_queries::MediaList;
 use style::parser::ParserContext;
 use style::shared_lock::{Locked, SharedRwLock};
-use style::stylesheets::import_rule::ImportSheet;
+use style::stylesheets::{CssRules, ImportRule, Namespaces, Stylesheet, StylesheetContents, Origin};
 use style::stylesheets::StylesheetLoader as StyleStylesheetLoader;
-use style::stylesheets::{
-    CssRules, ImportRule, Namespaces, Origin, Stylesheet, StylesheetContents,
-};
+use style::stylesheets::import_rule::ImportSheet;
 use style::values::CssUrl;
+use task_source::TaskSourceName;
 
 pub trait StylesheetOwner {
     /// Returns whether this element was inserted by the parser (i.e., it should
@@ -119,10 +117,12 @@ impl FetchResponseListener for StylesheetContext {
                 Some(meta) => meta,
                 None => return,
             };
-            let is_css = metadata.content_type.map_or(false, |ct| {
-                let mime: Mime = ct.into_inner().into();
-                mime.type_() == mime::TEXT && mime.subtype() == mime::CSS
-            });
+            let is_css =
+                metadata
+                    .content_type
+                    .map_or(false, |Serde(ContentType(Mime(top, sub, _)))| {
+                        top == TopLevel::Text && sub == SubLevel::Css
+                    });
 
             let data = if is_css {
                 mem::replace(&mut self.data, vec![])

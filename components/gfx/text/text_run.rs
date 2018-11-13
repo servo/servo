@@ -3,17 +3,18 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use app_units::Au;
-use crate::font::{Font, FontHandleMethods, FontMetrics, ShapingFlags};
-use crate::font::{RunMetrics, ShapingOptions};
-use crate::platform::font_template::FontTemplateData;
-use crate::text::glyph::{ByteIndex, GlyphStore};
+use font::{Font, FontHandleMethods, FontMetrics, ShapingFlags};
+use font::{RunMetrics, ShapingOptions};
+use platform::font_template::FontTemplateData;
 use range::Range;
 use std::cell::Cell;
-use std::cmp::{max, Ordering};
+use std::cmp::{Ordering, max};
 use std::slice::Iter;
 use std::sync::Arc;
 use style::str::char_is_whitespace;
+use text::glyph::{ByteIndex, GlyphStore};
 use unicode_bidi as bidi;
+use webrender_api;
 use xi_unicode::LineBreakLeafIter;
 
 thread_local! {
@@ -22,7 +23,7 @@ thread_local! {
 }
 
 /// A single "paragraph" of text in one font size and style.
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize)]
 pub struct TextRun {
     /// The UTF-8 string represented by this text run.
     pub text: Arc<String>,
@@ -50,7 +51,7 @@ impl Drop for TextRun {
 }
 
 /// A single series of glyphs within a text run.
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize)]
 pub struct GlyphRun {
     /// The glyphs.
     pub glyph_store: Arc<GlyphStore>,
@@ -379,8 +380,7 @@ impl<'a> TextRun {
                 );
                 remaining -= slice_advance;
                 slice_index
-            })
-            .sum()
+            }).sum()
     }
 
     /// Returns an iterator that will iterate over all slices of glyphs that represent natural

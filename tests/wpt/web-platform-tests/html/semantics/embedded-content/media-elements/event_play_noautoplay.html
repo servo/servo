@@ -14,26 +14,26 @@
   </video>
   <div id="log"></div>
   <script>
-promise_test(function(t) {
-  var async_t = async_test("calling play() on audio should trigger play event", {timeout:5000});
+test(function() {
+  var t = async_test("calling play() on audio should trigger play event", {timeout:5000});
   var a = document.getElementById("a");
-  a.addEventListener("play", async_t.step_func(function() {
+  a.addEventListener("play", function() {
+    t.done();
     a.pause();
-    async_t.done();
-  }), false);
+  }, false);
   a.src = getAudioURI("/media/sound_5") + "?" + new Date() + Math.random();
-  return promise_rejects(t, "AbortError", a.play(), "pause() should reject all pending play Promises");
+  a.play();
 }, "audio events - play");
 
-promise_test(function(t) {
-  var async_t = async_test("calling play() on video should trigger play event", {timeout:5000});
+test(function() {
+  var t = async_test("calling play() on video should trigger play event", {timeout:5000});
   var v = document.getElementById("v");
-  v.addEventListener("play", async_t.step_func(function() {
+  v.addEventListener("play", function() {
+    t.done();
     v.pause();
-    async_t.done();
-  }), false);
+  }, false);
   v.src = getVideoURI("/media/movie_5") + "?" + new Date() + Math.random();
-  return promise_rejects(t, "AbortError", v.play(), "pause() should reject all pending play Promises");
+  v.play();
 }, "video events - play");
   </script>
  </body>

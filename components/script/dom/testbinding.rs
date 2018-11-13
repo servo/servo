@@ -4,57 +4,41 @@
 
 // check-tidy: no specs after this line
 
-use crate::dom::bindings::callback::ExceptionHandling;
-use crate::dom::bindings::codegen::Bindings::EventListenerBinding::EventListener;
-use crate::dom::bindings::codegen::Bindings::FunctionBinding::Function;
-use crate::dom::bindings::codegen::Bindings::TestBindingBinding::{self, SimpleCallback};
-use crate::dom::bindings::codegen::Bindings::TestBindingBinding::{
-    TestBindingMethods, TestDictionary,
-};
-use crate::dom::bindings::codegen::Bindings::TestBindingBinding::{
-    TestDictionaryDefaults, TestEnum,
-};
-use crate::dom::bindings::codegen::UnionTypes;
-use crate::dom::bindings::codegen::UnionTypes::{
-    BlobOrBlobSequence, BlobOrBoolean, LongOrLongSequenceSequence,
-};
-use crate::dom::bindings::codegen::UnionTypes::{BlobOrString, BlobOrUnsignedLong, EventOrString};
-use crate::dom::bindings::codegen::UnionTypes::{
-    ByteStringOrLong, ByteStringSequenceOrLongOrString,
-};
-use crate::dom::bindings::codegen::UnionTypes::{ByteStringSequenceOrLong, DocumentOrTestTypedef};
-use crate::dom::bindings::codegen::UnionTypes::{
-    EventOrUSVString, HTMLElementOrLong, LongSequenceOrTestTypedef,
-};
-use crate::dom::bindings::codegen::UnionTypes::{
-    HTMLElementOrUnsignedLongOrStringOrBoolean, LongSequenceOrBoolean,
-};
-use crate::dom::bindings::codegen::UnionTypes::{StringOrBoolean, UnsignedLongOrBoolean};
-use crate::dom::bindings::codegen::UnionTypes::{StringOrLongSequence, StringOrStringSequence};
-use crate::dom::bindings::codegen::UnionTypes::{
-    StringOrUnsignedLong, StringSequenceOrUnsignedLong,
-};
-use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::mozmap::MozMap;
-use crate::dom::bindings::num::Finite;
-use crate::dom::bindings::refcounted::TrustedPromise;
-use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
-use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::{ByteString, DOMString, USVString};
-use crate::dom::bindings::trace::RootedTraceableBox;
-use crate::dom::bindings::weakref::MutableWeakRef;
-use crate::dom::blob::{Blob, BlobImpl};
-use crate::dom::globalscope::GlobalScope;
-use crate::dom::promise::Promise;
-use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
-use crate::dom::url::URL;
-use crate::timers::OneshotTimerCallback;
+use dom::bindings::callback::ExceptionHandling;
+use dom::bindings::codegen::Bindings::EventListenerBinding::EventListener;
+use dom::bindings::codegen::Bindings::FunctionBinding::Function;
+use dom::bindings::codegen::Bindings::TestBindingBinding::{self, SimpleCallback};
+use dom::bindings::codegen::Bindings::TestBindingBinding::{TestBindingMethods, TestDictionary};
+use dom::bindings::codegen::Bindings::TestBindingBinding::{TestDictionaryDefaults, TestEnum};
+use dom::bindings::codegen::UnionTypes;
+use dom::bindings::codegen::UnionTypes::{BlobOrBoolean, BlobOrBlobSequence, LongOrLongSequenceSequence};
+use dom::bindings::codegen::UnionTypes::{BlobOrString, BlobOrUnsignedLong, EventOrString};
+use dom::bindings::codegen::UnionTypes::{ByteStringOrLong, ByteStringSequenceOrLongOrString};
+use dom::bindings::codegen::UnionTypes::{ByteStringSequenceOrLong, DocumentOrTestTypedef};
+use dom::bindings::codegen::UnionTypes::{EventOrUSVString, HTMLElementOrLong, LongSequenceOrTestTypedef};
+use dom::bindings::codegen::UnionTypes::{HTMLElementOrUnsignedLongOrStringOrBoolean, LongSequenceOrBoolean};
+use dom::bindings::codegen::UnionTypes::{StringOrLongSequence, StringOrStringSequence, StringSequenceOrUnsignedLong};
+use dom::bindings::codegen::UnionTypes::{StringOrUnsignedLong, StringOrBoolean, UnsignedLongOrBoolean};
+use dom::bindings::error::{Error, Fallible};
+use dom::bindings::mozmap::MozMap;
+use dom::bindings::num::Finite;
+use dom::bindings::refcounted::TrustedPromise;
+use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
+use dom::bindings::root::DomRoot;
+use dom::bindings::str::{ByteString, DOMString, USVString};
+use dom::bindings::trace::RootedTraceableBox;
+use dom::bindings::weakref::MutableWeakRef;
+use dom::blob::{Blob, BlobImpl};
+use dom::globalscope::GlobalScope;
+use dom::promise::Promise;
+use dom::promisenativehandler::{PromiseNativeHandler, Callback};
+use dom::url::URL;
 use dom_struct::dom_struct;
 use js::jsapi::{Heap, JSContext, JSObject};
 use js::jsapi::{JS_NewPlainObject, JS_NewUint8ClampedArray};
 use js::jsval::{JSVal, NullValue};
-use js::rust::CustomAutoRooterGuard;
 use js::rust::{HandleObject, HandleValue};
+use js::rust::CustomAutoRooterGuard;
 use js::typedarray;
 use script_traits::MsDuration;
 use servo_config::prefs::PREFS;
@@ -62,6 +46,7 @@ use std::borrow::ToOwned;
 use std::ptr;
 use std::ptr::NonNull;
 use std::rc::Rc;
+use timers::OneshotTimerCallback;
 
 #[dom_struct]
 pub struct TestBinding {
@@ -569,7 +554,6 @@ impl TestBindingMethods for TestBinding {
             dict: RootedTraceableBox::new(TestDictionaryDefaults {
                 UnrestrictedDoubleValue: 0.0,
                 anyValue: RootedTraceableBox::new(Heap::default()),
-                arrayValue: Vec::new(),
                 booleanValue: false,
                 bytestringValue: ByteString::new(vec![]),
                 byteValue: 0,
@@ -806,7 +790,6 @@ impl TestBindingMethods for TestBinding {
     fn PassOptionalUsvstringWithDefault(&self, _: USVString) {}
     fn PassOptionalBytestringWithDefault(&self, _: ByteString) {}
     fn PassOptionalEnumWithDefault(&self, _: TestEnum) {}
-    fn PassOptionalSequenceWithDefault(&self, _: Vec<i32>) {}
 
     fn PassOptionalNullableBooleanWithDefault(&self, _: Option<bool>) {}
     fn PassOptionalNullableByteWithDefault(&self, _: Option<i8>) {}
@@ -1028,7 +1011,7 @@ impl TestBindingMethods for TestBinding {
             handler: Rc<SimpleCallback>,
         }
         impl SimpleHandler {
-            fn new(callback: Rc<SimpleCallback>) -> Box<dyn Callback> {
+            fn new(callback: Rc<SimpleCallback>) -> Box<Callback> {
                 Box::new(SimpleHandler { handler: callback })
             }
         }

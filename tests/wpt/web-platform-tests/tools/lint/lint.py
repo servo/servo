@@ -458,15 +458,10 @@ def check_parsed(repo_root, path, f):
     if source_file.type == "visual" and not source_file.name_is_visual:
         errors.append(("CONTENT-VISUAL", "Visual test whose filename doesn't end in '-visual'", path, None))
 
-    about_blank_parts = urlsplit("about:blank")
     for reftest_node in source_file.reftest_nodes:
         href = reftest_node.attrib.get("href", "").strip(space_chars)
         parts = urlsplit(href)
-
-        if parts == about_blank_parts:
-            continue
-
-        if (parts.scheme or parts.netloc):
+        if (parts.scheme or parts.netloc) and parts != urlsplit("about:blank"):
             errors.append(("ABSOLUTE-URL-REF",
                      "Reference test with a reference file specified via an absolute URL: '%s'" % href, path, None))
             continue

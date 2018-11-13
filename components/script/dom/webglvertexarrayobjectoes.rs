@@ -2,18 +2,16 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use canvas_traits::webgl::{
-    ActiveAttribInfo, WebGLCommand, WebGLError, WebGLResult, WebGLVertexArrayId,
-};
-use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
-use crate::dom::bindings::codegen::Bindings::WebGLVertexArrayObjectOESBinding;
-use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
-use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
-use crate::dom::webglbuffer::WebGLBuffer;
-use crate::dom::webglobject::WebGLObject;
-use crate::dom::webglrenderingcontext::WebGLRenderingContext;
+use canvas_traits::webgl::{ActiveAttribInfo, WebGLCommand, WebGLError, WebGLResult, WebGLVertexArrayId};
+use dom::bindings::cell::DomRefCell;
+use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
+use dom::bindings::codegen::Bindings::WebGLVertexArrayObjectOESBinding;
+use dom::bindings::inheritance::Castable;
+use dom::bindings::reflector::{DomObject, reflect_dom_object};
+use dom::bindings::root::{Dom, DomRoot, MutNullableDom};
+use dom::webglbuffer::WebGLBuffer;
+use dom::webglobject::WebGLObject;
+use dom::webglrenderingcontext::WebGLRenderingContext;
 use dom_struct::dom_struct;
 use ref_filter_map::ref_filter_map;
 use std::cell::{Cell, Ref};

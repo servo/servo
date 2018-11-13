@@ -12,17 +12,21 @@ extern crate malloc_size_of;
 extern crate malloc_size_of_derive;
 #[macro_use]
 extern crate serde;
+extern crate servo_rand;
+extern crate url;
+extern crate url_serde;
+extern crate uuid;
 
 pub mod origin;
 
-pub use crate::origin::{ImmutableOrigin, MutableOrigin, OpaqueOrigin};
+pub use origin::{OpaqueOrigin, ImmutableOrigin, MutableOrigin};
 
 use std::fmt;
 use std::net::IpAddr;
-use std::ops::{Index, Range, RangeFrom, RangeFull, RangeTo};
+use std::ops::{Range, RangeFrom, RangeTo, RangeFull, Index};
 use std::path::Path;
 use std::sync::Arc;
-use url::{Position, Url};
+use url::{Url, Position};
 
 pub use url::Host;
 

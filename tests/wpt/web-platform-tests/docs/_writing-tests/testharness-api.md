@@ -758,9 +758,6 @@ asserts that the class string of `object` as returned in
 ### `assert_own_property(object, property_name, description)`
 assert that object has own property `property_name`
 
-### `assert_not_own_property(object, property_name, description)`
-assert that object does not have an own property named `property_name`
-
 ### `assert_inherits(object, property_name, description)`
 assert that object does not have an own property named
 `property_name` but that `property_name` is present in the prototype
@@ -795,6 +792,14 @@ asserts that one `assert_func(actual, expected_array_N, extra_arg1, ..., extra_a
   with multiple allowed pass conditions are bad practice unless the spec specifically
   allows multiple behaviours. Test authors should not use this method simply to hide
   UA bugs.
+
+### `assert_exists(object, property_name, description)`
+**deprecated**
+asserts that object has an own property `property_name`
+
+### `assert_not_exists(object, property_name, description)`
+**deprecated**
+assert that object does not have own property `property_name`
 
 ## Metadata ##
 

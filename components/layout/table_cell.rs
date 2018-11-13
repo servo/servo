@@ -4,19 +4,19 @@
 
 //! CSS table formatting contexts.
 
+#![deny(unsafe_code)]
+
 use app_units::Au;
-use crate::block::{BlockFlow, ISizeAndMarginsComputer, MarginsMayCollapseFlag};
-use crate::context::LayoutContext;
-use crate::display_list::{BlockFlowDisplayListBuilding, DisplayListBuildState};
-use crate::display_list::{StackingContextCollectionFlags, StackingContextCollectionState};
-use crate::flow::{Flow, FlowClass, FlowFlags, GetBaseFlow, OpaqueFlow};
-use crate::fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
-use crate::layout_debug;
-use crate::model::MaybeAuto;
-use crate::table::InternalTable;
-use crate::table_row::{CollapsedBorder, CollapsedBorderProvenance};
+use block::{BlockFlow, ISizeAndMarginsComputer, MarginsMayCollapseFlag};
+use context::LayoutContext;
+use display_list::{BlockFlowDisplayListBuilding, DisplayListBuildState};
+use display_list::{StackingContextCollectionFlags, StackingContextCollectionState};
 use euclid::{Point2D, Rect, SideOffsets2D, Size2D};
+use flow::{Flow, FlowClass, FlowFlags, GetBaseFlow, OpaqueFlow};
+use fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
 use gfx_traits::print_tree::PrintTree;
+use layout_debug;
+use model::MaybeAuto;
 use script_layout_interface::wrapper_traits::ThreadSafeLayoutNode;
 use std::fmt;
 use style::logical_geometry::{LogicalMargin, LogicalRect, LogicalSize, WritingMode};
@@ -24,9 +24,11 @@ use style::properties::ComputedValues;
 use style::values::computed::Color;
 use style::values::generics::box_::VerticalAlign;
 use style::values::specified::BorderStyle;
+use table::InternalTable;
+use table_row::{CollapsedBorder, CollapsedBorderProvenance};
 
 #[allow(unsafe_code)]
-unsafe impl crate::flow::HasBaseFlow for TableCellFlow {}
+unsafe impl ::flow::HasBaseFlow for TableCellFlow {}
 
 /// A table formatting context.
 #[derive(Serialize)]
@@ -197,8 +199,7 @@ impl Flow for TableCellFlow {
         let specified_inline_size = MaybeAuto::from_style(
             self.block_flow.fragment.style().content_inline_size(),
             Au(0),
-        )
-        .specified_or_zero();
+        ).specified_or_zero();
         if self
             .block_flow
             .base
@@ -312,7 +313,7 @@ impl Flow for TableCellFlow {
             .collect_stacking_contexts_for_block(state, StackingContextCollectionFlags::empty());
     }
 
-    fn repair_style(&mut self, new_style: &crate::ServoArc<ComputedValues>) {
+    fn repair_style(&mut self, new_style: &::ServoArc<ComputedValues>) {
         self.block_flow.repair_style(new_style)
     }
 
@@ -334,7 +335,7 @@ impl Flow for TableCellFlow {
 
     fn iterate_through_fragment_border_boxes(
         &self,
-        iterator: &mut dyn FragmentBorderBoxIterator,
+        iterator: &mut FragmentBorderBoxIterator,
         level: i32,
         stacking_context_position: &Point2D<Au>,
     ) {
@@ -345,7 +346,7 @@ impl Flow for TableCellFlow {
         )
     }
 
-    fn mutate_fragments(&mut self, mutator: &mut dyn FnMut(&mut Fragment)) {
+    fn mutate_fragments(&mut self, mutator: &mut FnMut(&mut Fragment)) {
         self.block_flow.mutate_fragments(mutator)
     }
 

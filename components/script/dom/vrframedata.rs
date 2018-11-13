@@ -2,18 +2,18 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::codegen::Bindings::VRFrameDataBinding;
-use crate::dom::bindings::codegen::Bindings::VRFrameDataBinding::VRFrameDataMethods;
-use crate::dom::bindings::error::Fallible;
-use crate::dom::bindings::num::Finite;
-use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
-use crate::dom::bindings::root::{Dom, DomRoot};
-use crate::dom::globalscope::GlobalScope;
-use crate::dom::vrpose::VRPose;
-use crate::dom::window::Window;
+use dom::bindings::codegen::Bindings::VRFrameDataBinding;
+use dom::bindings::codegen::Bindings::VRFrameDataBinding::VRFrameDataMethods;
+use dom::bindings::error::Fallible;
+use dom::bindings::num::Finite;
+use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
+use dom::bindings::root::{Dom, DomRoot};
+use dom::globalscope::GlobalScope;
+use dom::vrpose::VRPose;
+use dom::window::Window;
 use dom_struct::dom_struct;
 use js::jsapi::{Heap, JSContext, JSObject};
-use js::typedarray::{CreateWith, Float32Array};
+use js::typedarray::{Float32Array, CreateWith};
 use std::cell::Cell;
 use std::ptr;
 use std::ptr::NonNull;

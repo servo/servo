@@ -5,11 +5,14 @@
 #[cfg(any(target_os = "android", target_os = "windows"))]
 #[allow(non_camel_case_types)]
 pub mod egl {
+    use libc;
     use servo::gl::{Gl, GlesFns};
     use std::ffi::CString;
     #[cfg(not(target_os = "windows"))]
     use std::os::raw::c_void;
     use std::rc::Rc;
+    #[cfg(target_os = "windows")]
+    use winapi;
     #[cfg(target_os = "windows")]
     use winapi::um::libloaderapi::{GetProcAddress, LoadLibraryA};
 
@@ -19,11 +22,7 @@ pub mod egl {
     pub type EGLNativeWindowType = *const libc::c_void;
     #[cfg(target_os = "android")]
     pub type EGLNativeWindowType = *const libc::c_void;
-    #[cfg(any(
-        target_os = "dragonfly",
-        target_os = "freebsd",
-        target_os = "openbsd"
-    ))]
+    #[cfg(any(target_os = "dragonfly", target_os = "freebsd", target_os = "openbsd"))]
     pub type EGLNativeWindowType = *const libc::c_void;
 
     pub type khronos_utime_nanoseconds_t = khronos_uint64_t;
@@ -78,15 +77,11 @@ pub mod egl {
     }
 }
 
-#[cfg(any(
-    target_os = "windows",
-    target_os = "linux",
-    target_os = "macos"
-))]
+#[cfg(any(target_os = "windows", target_os = "linux", target_os = "macos"))]
 pub mod gl {
     use servo::gl::Gl;
     use std::rc::Rc;
-    pub fn init() -> Result<Rc<dyn Gl>, &'static str> {
+    pub fn init() -> Result<Rc<Gl>, &'static str> {
         // FIXME: Add an OpenGL version
         unimplemented!()
     }

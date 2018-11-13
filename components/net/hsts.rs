@@ -3,26 +3,24 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use embedder_traits::resources::{self, Resource};
-use net_traits::pub_domains::reg_suffix;
 use net_traits::IncludeSubdomains;
+use net_traits::pub_domains::reg_suffix;
+use serde_json;
 use servo_url::ServoUrl;
 use std::collections::HashMap;
 use std::net::{Ipv4Addr, Ipv6Addr};
+use time;
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize)]
 pub struct HstsEntry {
     pub host: String,
     pub include_subdomains: bool,
     pub max_age: Option<u64>,
-    pub timestamp: Option<u64>,
+    pub timestamp: Option<u64>
 }
 
 impl HstsEntry {
-    pub fn new(
-        host: String,
-        subdomains: IncludeSubdomains,
-        max_age: Option<u64>,
-    ) -> Option<HstsEntry> {
+    pub fn new(host: String, subdomains: IncludeSubdomains, max_age: Option<u64>) -> Option<HstsEntry> {
         if host.parse::<Ipv4Addr>().is_ok() || host.parse::<Ipv6Addr>().is_ok() {
             None
         } else {
@@ -30,7 +28,7 @@ impl HstsEntry {
                 host: host,
                 include_subdomains: (subdomains == IncludeSubdomains::Included),
                 max_age: max_age,
-                timestamp: Some(time::get_time().sec as u64),
+                timestamp: Some(time::get_time().sec as u64)
             })
         }
     }
@@ -39,9 +37,9 @@ impl HstsEntry {
         match (self.max_age, self.timestamp) {
             (Some(max_age), Some(timestamp)) => {
                 (time::get_time().sec as u64) - timestamp >= max_age
-            },
+            }
 
-            _ => false,
+            _ => false
         }
     }
 
@@ -54,16 +52,14 @@ impl HstsEntry {
     }
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize)]
 pub struct HstsList {
     pub entries_map: HashMap<String, Vec<HstsEntry>>,
 }
 
 impl HstsList {
     pub fn new() -> HstsList {
-        HstsList {
-            entries_map: HashMap::new(),
-        }
+        HstsList { entries_map: HashMap::new() }
     }
 
     /// Create an `HstsList` from the bytes of a JSON preload file.
@@ -111,9 +107,9 @@ impl HstsList {
     }
 
     fn has_subdomain(&self, host: &str, base_domain: &str) -> bool {
-        self.entries_map.get(base_domain).map_or(false, |entries| {
-            entries.iter().any(|e| e.matches_subdomain(host))
-        })
+       self.entries_map.get(base_domain).map_or(false, |entries| {
+           entries.iter().any(|e| e.matches_subdomain(host))
+       })
     }
 
     pub fn push(&mut self, entry: HstsEntry) {
@@ -122,10 +118,7 @@ impl HstsList {
         let have_domain = self.has_domain(&entry.host, base_domain);
         let have_subdomain = self.has_subdomain(&entry.host, base_domain);
 
-        let entries = self
-            .entries_map
-            .entry(base_domain.to_owned())
-            .or_insert(vec![]);
+        let entries = self.entries_map.entry(base_domain.to_owned()).or_insert(vec![]);
         if !have_domain && !have_subdomain {
             entries.push(entry);
         } else if !have_subdomain {
@@ -143,10 +136,7 @@ impl HstsList {
         if url.scheme() != "http" {
             return;
         }
-        if url
-            .domain()
-            .map_or(false, |domain| self.is_host_secure(domain))
-        {
+        if url.domain().map_or(false, |domain| self.is_host_secure(domain)) {
             url.as_mut_url().set_scheme("https").unwrap();
         }
     }

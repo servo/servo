@@ -6,82 +6,58 @@ use app_units::Au;
 use base64;
 use bluetooth_traits::BluetoothRequest;
 use canvas_traits::webgl::WebGLChan;
-use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::DocumentBinding::{
-    DocumentMethods, DocumentReadyState,
-};
-use crate::dom::bindings::codegen::Bindings::FunctionBinding::Function;
-use crate::dom::bindings::codegen::Bindings::HistoryBinding::HistoryBinding::HistoryMethods;
-use crate::dom::bindings::codegen::Bindings::MediaQueryListBinding::MediaQueryListBinding::MediaQueryListMethods;
-use crate::dom::bindings::codegen::Bindings::PermissionStatusBinding::PermissionState;
-use crate::dom::bindings::codegen::Bindings::RequestBinding::RequestInit;
-use crate::dom::bindings::codegen::Bindings::WindowBinding::{
-    self, FrameRequestCallback, WindowMethods,
-};
-use crate::dom::bindings::codegen::Bindings::WindowBinding::{ScrollBehavior, ScrollToOptions};
-use crate::dom::bindings::codegen::UnionTypes::RequestOrUSVString;
-use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
-use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::num::Finite;
-use crate::dom::bindings::refcounted::Trusted;
-use crate::dom::bindings::reflector::DomObject;
-use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
-use crate::dom::bindings::str::{DOMString, USVString};
-use crate::dom::bindings::structuredclone::StructuredCloneData;
-use crate::dom::bindings::trace::RootedTraceableBox;
-use crate::dom::bindings::utils::{GlobalStaticData, WindowProxyHandler};
-use crate::dom::bindings::weakref::DOMTracker;
-use crate::dom::bluetooth::BluetoothExtraPermissionData;
-use crate::dom::crypto::Crypto;
-use crate::dom::cssstyledeclaration::{CSSModificationAccess, CSSStyleDeclaration, CSSStyleOwner};
-use crate::dom::customelementregistry::CustomElementRegistry;
-use crate::dom::document::{AnimationFrameCallback, Document};
-use crate::dom::element::Element;
-use crate::dom::event::Event;
-use crate::dom::eventtarget::EventTarget;
-use crate::dom::globalscope::GlobalScope;
-use crate::dom::hashchangeevent::HashChangeEvent;
-use crate::dom::history::History;
-use crate::dom::location::Location;
-use crate::dom::mediaquerylist::{MediaQueryList, MediaQueryListMatchState};
-use crate::dom::mediaquerylistevent::MediaQueryListEvent;
-use crate::dom::messageevent::MessageEvent;
-use crate::dom::navigator::Navigator;
-use crate::dom::node::{document_from_node, from_untrusted_node_address, Node, NodeDamage};
-use crate::dom::performance::Performance;
-use crate::dom::promise::Promise;
-use crate::dom::screen::Screen;
-use crate::dom::storage::Storage;
-use crate::dom::testrunner::TestRunner;
-use crate::dom::windowproxy::WindowProxy;
-use crate::dom::worklet::Worklet;
-use crate::dom::workletglobalscope::WorkletGlobalScopeType;
-use crate::fetch;
-use crate::layout_image::fetch_image_for_layout;
-use crate::microtask::MicrotaskQueue;
-use crate::script_runtime::{
-    CommonScriptMsg, Runtime, ScriptChan, ScriptPort, ScriptThreadEventCategory,
-};
-use crate::script_thread::{ImageCacheMsg, MainThreadScriptChan, MainThreadScriptMsg};
-use crate::script_thread::{ScriptThread, SendableMainThreadScriptChan};
-use crate::task::TaskCanceller;
-use crate::task_source::dom_manipulation::DOMManipulationTaskSource;
-use crate::task_source::file_reading::FileReadingTaskSource;
-use crate::task_source::history_traversal::HistoryTraversalTaskSource;
-use crate::task_source::media_element::MediaElementTaskSource;
-use crate::task_source::networking::NetworkingTaskSource;
-use crate::task_source::performance_timeline::PerformanceTimelineTaskSource;
-use crate::task_source::remote_event::RemoteEventTaskSource;
-use crate::task_source::user_interaction::UserInteractionTaskSource;
-use crate::task_source::websocket::WebsocketTaskSource;
-use crate::task_source::TaskSourceName;
-use crate::timers::{IsInterval, TimerCallback};
-use crate::webdriver_handlers::jsval_to_webdriver;
 use cssparser::{Parser, ParserInput};
 use devtools_traits::{ScriptToDevtoolsControlMsg, TimelineMarker, TimelineMarkerType};
+use dom::bindings::cell::DomRefCell;
+use dom::bindings::codegen::Bindings::DocumentBinding::{DocumentMethods, DocumentReadyState};
+use dom::bindings::codegen::Bindings::FunctionBinding::Function;
+use dom::bindings::codegen::Bindings::HistoryBinding::HistoryBinding::HistoryMethods;
+use dom::bindings::codegen::Bindings::MediaQueryListBinding::MediaQueryListBinding::MediaQueryListMethods;
+use dom::bindings::codegen::Bindings::PermissionStatusBinding::PermissionState;
+use dom::bindings::codegen::Bindings::RequestBinding::RequestInit;
+use dom::bindings::codegen::Bindings::WindowBinding::{self, FrameRequestCallback, WindowMethods};
+use dom::bindings::codegen::Bindings::WindowBinding::{ScrollBehavior, ScrollToOptions};
+use dom::bindings::codegen::UnionTypes::RequestOrUSVString;
+use dom::bindings::error::{Error, ErrorResult, Fallible};
+use dom::bindings::inheritance::Castable;
+use dom::bindings::num::Finite;
+use dom::bindings::refcounted::Trusted;
+use dom::bindings::reflector::DomObject;
+use dom::bindings::root::{Dom, DomRoot, MutNullableDom};
+use dom::bindings::str::{DOMString, USVString};
+use dom::bindings::structuredclone::StructuredCloneData;
+use dom::bindings::trace::RootedTraceableBox;
+use dom::bindings::utils::{GlobalStaticData, WindowProxyHandler};
+use dom::bindings::weakref::DOMTracker;
+use dom::bluetooth::BluetoothExtraPermissionData;
+use dom::crypto::Crypto;
+use dom::cssstyledeclaration::{CSSModificationAccess, CSSStyleDeclaration, CSSStyleOwner};
+use dom::customelementregistry::CustomElementRegistry;
+use dom::document::{AnimationFrameCallback, Document};
+use dom::element::Element;
+use dom::event::Event;
+use dom::eventtarget::EventTarget;
+use dom::globalscope::GlobalScope;
+use dom::hashchangeevent::HashChangeEvent;
+use dom::history::History;
+use dom::location::Location;
+use dom::mediaquerylist::{MediaQueryList, MediaQueryListMatchState};
+use dom::mediaquerylistevent::MediaQueryListEvent;
+use dom::messageevent::MessageEvent;
+use dom::navigator::Navigator;
+use dom::node::{Node, NodeDamage, document_from_node, from_untrusted_node_address};
+use dom::performance::Performance;
+use dom::promise::Promise;
+use dom::screen::Screen;
+use dom::storage::Storage;
+use dom::testrunner::TestRunner;
+use dom::windowproxy::WindowProxy;
+use dom::worklet::Worklet;
+use dom::workletglobalscope::WorkletGlobalScopeType;
 use dom_struct::dom_struct;
 use embedder_traits::EmbedderMsg;
-use euclid::{Point2D, Rect, Size2D, TypedPoint2D, TypedScale, TypedSize2D, Vector2D};
+use euclid::{Point2D, Vector2D, Rect, Size2D, TypedPoint2D, TypedScale, TypedSize2D};
+use fetch;
 use ipc_channel::ipc::IpcSender;
 use ipc_channel::router::ROUTER;
 use js::jsapi::JSAutoCompartment;
@@ -90,45 +66,50 @@ use js::jsapi::JSPROP_ENUMERATE;
 use js::jsapi::JS_GC;
 use js::jsval::JSVal;
 use js::jsval::UndefinedValue;
-use js::rust::wrappers::JS_DefineProperty;
 use js::rust::HandleValue;
+use js::rust::wrappers::JS_DefineProperty;
+use layout_image::fetch_image_for_layout;
+use libc;
+use microtask::MicrotaskQueue;
 use msg::constellation_msg::PipelineId;
+use net_traits::{ResourceThreads, ReferrerPolicy};
 use net_traits::image_cache::{ImageCache, ImageResponder, ImageResponse};
 use net_traits::image_cache::{PendingImageId, PendingImageResponse};
 use net_traits::storage_thread::StorageType;
-use net_traits::{ReferrerPolicy, ResourceThreads};
 use num_traits::ToPrimitive;
 use profile_traits::ipc as ProfiledIpc;
 use profile_traits::mem::ProfilerChan as MemProfilerChan;
 use profile_traits::time::ProfilerChan as TimeProfilerChan;
-use script_layout_interface::message::{Msg, QueryMsg, Reflow, ReflowGoal, ScriptReflow};
+use script_layout_interface::{TrustedNodeAddress, PendingImageState};
+use script_layout_interface::message::{Msg, Reflow, QueryMsg, ReflowGoal, ScriptReflow};
 use script_layout_interface::reporter::CSSErrorReporter;
 use script_layout_interface::rpc::{ContentBoxResponse, ContentBoxesResponse, LayoutRPC};
-use script_layout_interface::rpc::{
-    NodeScrollIdResponse, ResolvedStyleResponse, TextIndexResponse,
-};
-use script_layout_interface::{PendingImageState, TrustedNodeAddress};
-use script_traits::webdriver_msg::{WebDriverJSError, WebDriverJSResult};
+use script_layout_interface::rpc::{NodeScrollIdResponse, ResolvedStyleResponse, TextIndexResponse};
+use script_runtime::{CommonScriptMsg, ScriptChan, ScriptPort, ScriptThreadEventCategory, Runtime};
+use script_thread::{ImageCacheMsg, MainThreadScriptChan, MainThreadScriptMsg};
+use script_thread::{ScriptThread, SendableMainThreadScriptChan};
 use script_traits::{ConstellationControlMsg, DocumentState, LoadData};
-use script_traits::{ScriptMsg, ScriptToConstellationChan, ScrollState, TimerEvent, TimerEventId};
+use script_traits::{ScriptToConstellationChan, ScriptMsg, ScrollState, TimerEvent, TimerEventId};
 use script_traits::{TimerSchedulerMsg, UntrustedNodeAddress, WindowSizeData, WindowSizeType};
+use script_traits::webdriver_msg::{WebDriverJSError, WebDriverJSResult};
 use selectors::attr::CaseSensitivity;
+use servo_arc;
 use servo_channel::{channel, Sender};
 use servo_config::opts;
 use servo_geometry::{f32_rect_to_au_rect, MaxRect};
-use servo_url::{Host, ImmutableOrigin, MutableOrigin, ServoUrl};
+use servo_url::{Host, MutableOrigin, ImmutableOrigin, ServoUrl};
 use std::borrow::ToOwned;
 use std::cell::Cell;
-use std::collections::hash_map::Entry;
 use std::collections::{HashMap, HashSet};
+use std::collections::hash_map::Entry;
 use std::default::Default;
 use std::env;
 use std::fs;
-use std::io::{stderr, stdout, Write};
+use std::io::{Write, stderr, stdout};
 use std::mem;
 use std::rc::Rc;
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
+use std::sync::atomic::{AtomicBool, Ordering};
 use style::error_reporting::ParseErrorReporter;
 use style::media_queries;
 use style::parser::ParserContext as CssParserContext;
@@ -137,10 +118,21 @@ use style::selector_parser::PseudoElement;
 use style::str::HTML_SPACE_CHARACTERS;
 use style::stylesheets::CssRuleType;
 use style_traits::{CSSPixel, DevicePixel, ParsingMode};
+use task::TaskCanceller;
+use task_source::TaskSourceName;
+use task_source::dom_manipulation::DOMManipulationTaskSource;
+use task_source::file_reading::FileReadingTaskSource;
+use task_source::history_traversal::HistoryTraversalTaskSource;
+use task_source::networking::NetworkingTaskSource;
+use task_source::performance_timeline::PerformanceTimelineTaskSource;
+use task_source::remote_event::RemoteEventTaskSource;
+use task_source::user_interaction::UserInteractionTaskSource;
+use task_source::websocket::WebsocketTaskSource;
+use time;
+use timers::{IsInterval, TimerCallback};
 use url::Position;
-use webrender_api::{
-    DeviceIntPoint, DeviceUintSize, DocumentId, ExternalScrollId, RenderApiSender,
-};
+use webdriver_handlers::jsval_to_webdriver;
+use webrender_api::{ExternalScrollId, DeviceIntPoint, DeviceUintSize, DocumentId};
 use webvr_traits::WebVRMsg;
 
 /// Current state of the window object
@@ -182,8 +174,6 @@ pub struct Window {
     script_chan: MainThreadScriptChan,
     #[ignore_malloc_size_of = "task sources are hard"]
     dom_manipulation_task_source: DOMManipulationTaskSource,
-    #[ignore_malloc_size_of = "task sources are hard"]
-    media_element_task_source: MediaElementTaskSource,
     #[ignore_malloc_size_of = "task sources are hard"]
     user_interaction_task_source: UserInteractionTaskSource,
     #[ignore_malloc_size_of = "task sources are hard"]
@@ -318,9 +308,6 @@ pub struct Window {
 
     /// Flag to identify whether mutation observers are present(true)/absent(false)
     exists_mut_observer: Cell<bool>,
-    /// Webrender API Sender
-    #[ignore_malloc_size_of = "defined in webrender_api"]
-    webrender_api_sender: RenderApiSender,
 }
 
 impl Window {
@@ -369,10 +356,6 @@ impl Window {
         self.dom_manipulation_task_source.clone()
     }
 
-    pub fn media_element_task_source(&self) -> MediaElementTaskSource {
-        self.media_element_task_source.clone()
-    }
-
     pub fn user_interaction_task_source(&self) -> UserInteractionTaskSource {
         self.user_interaction_task_source.clone()
     }
@@ -381,7 +364,7 @@ impl Window {
         self.networking_task_source.clone()
     }
 
-    pub fn history_traversal_task_source(&self) -> Box<dyn ScriptChan + Send> {
+    pub fn history_traversal_task_source(&self) -> Box<ScriptChan + Send> {
         self.history_traversal_task_source.clone()
     }
 
@@ -409,12 +392,12 @@ impl Window {
         self.parent_info
     }
 
-    pub fn new_script_pair(&self) -> (Box<dyn ScriptChan + Send>, Box<dyn ScriptPort + Send>) {
+    pub fn new_script_pair(&self) -> (Box<ScriptChan + Send>, Box<ScriptPort + Send>) {
         let (tx, rx) = channel();
         (Box::new(SendableMainThreadScriptChan(tx)), Box::new(rx))
     }
 
-    pub fn image_cache(&self) -> Arc<dyn ImageCache> {
+    pub fn image_cache(&self) -> Arc<ImageCache> {
         self.image_cache.clone()
     }
 
@@ -443,7 +426,7 @@ impl Window {
         &self.bluetooth_extra_permission_data
     }
 
-    pub fn css_error_reporter(&self) -> Option<&dyn ParseErrorReporter> {
+    pub fn css_error_reporter(&self) -> Option<&ParseErrorReporter> {
         Some(&self.error_reporter)
     }
 
@@ -499,10 +482,6 @@ impl Window {
             },
         }
         self.add_pending_reflow();
-    }
-
-    pub fn get_webrender_api_sender(&self) -> RenderApiSender {
-        self.webrender_api_sender.clone()
     }
 }
 
@@ -1381,8 +1360,7 @@ impl Window {
             .send(Msg::UpdateScrollStateFromScript(ScrollState {
                 scroll_id,
                 scroll_offset: Vector2D::new(-x, -y),
-            }))
-            .unwrap();
+            })).unwrap();
     }
 
     pub fn update_viewport_for_scroll(&self, x: f32, y: f32) {
@@ -1638,7 +1616,7 @@ impl Window {
         )
     }
 
-    pub fn layout(&self) -> &dyn LayoutRPC {
+    pub fn layout(&self) -> &LayoutRPC {
         &*self.layout_rpc
     }
 
@@ -1860,8 +1838,7 @@ impl Window {
                     pipeline_id,
                     LoadData::new(url, Some(pipeline_id), referrer_policy, Some(doc.url())),
                     replace,
-                ))
-                .unwrap();
+                )).unwrap();
         };
     }
 
@@ -2077,7 +2054,6 @@ impl Window {
         runtime: Rc<Runtime>,
         script_chan: MainThreadScriptChan,
         dom_manipulation_task_source: DOMManipulationTaskSource,
-        media_element_task_source: MediaElementTaskSource,
         user_interaction_task_source: UserInteractionTaskSource,
         networking_task_source: NetworkingTaskSource,
         history_traversal_task_source: HistoryTraversalTaskSource,
@@ -2086,7 +2062,7 @@ impl Window {
         remote_event_task_source: RemoteEventTaskSource,
         websocket_task_source: WebsocketTaskSource,
         image_cache_chan: Sender<ImageCacheMsg>,
-        image_cache: Arc<dyn ImageCache>,
+        image_cache: Arc<ImageCache>,
         resource_threads: ResourceThreads,
         bluetooth_thread: IpcSender<BluetoothRequest>,
         mem_profiler_chan: MemProfilerChan,
@@ -2107,9 +2083,8 @@ impl Window {
         webvr_chan: Option<IpcSender<WebVRMsg>>,
         microtask_queue: Rc<MicrotaskQueue>,
         webrender_document: DocumentId,
-        webrender_api_sender: RenderApiSender,
     ) -> DomRoot<Self> {
-        let layout_rpc: Box<dyn LayoutRPC + Send> = {
+        let layout_rpc: Box<LayoutRPC + Send> = {
             let (rpc_send, rpc_recv) = channel();
             layout_chan.send(Msg::GetRPC(rpc_send)).unwrap();
             rpc_recv.recv().unwrap()
@@ -2133,7 +2108,6 @@ impl Window {
             ),
             script_chan,
             dom_manipulation_task_source,
-            media_element_task_source,
             user_interaction_task_source,
             networking_task_source,
             history_traversal_task_source,
@@ -2187,7 +2161,6 @@ impl Window {
             paint_worklet: Default::default(),
             webrender_document,
             exists_mut_observer: Cell::new(false),
-            webrender_api_sender,
         });
 
         unsafe { WindowBinding::Wrap(runtime.cx(), win) }

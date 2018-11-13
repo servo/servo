@@ -7,24 +7,24 @@
 // renderer moves to a sandboxed process.
 
 use app_units::Au;
-use crate::font::{FontHandleMethods, FontMetrics, FontTableMethods};
-use crate::font::{FontTableTag, FractionalPixel};
-use crate::platform::font_template::FontTemplateData;
-use crate::platform::windows::font_context::FontContextHandle;
-use crate::platform::windows::font_list::font_from_atom;
-use crate::text::glyph::GlyphId;
+use dwrote;
 use dwrote::{Font, FontFace, FontFile};
-use dwrote::{FontStretch, FontStyle};
+use dwrote::{FontWeight, FontStretch, FontStyle};
+use font::{FontHandleMethods, FontMetrics, FontTableMethods};
+use font::{FontTableTag, FractionalPixel};
+use platform::font_template::FontTemplateData;
+use platform::windows::font_context::FontContextHandle;
+use platform::windows::font_list::font_from_atom;
 use servo_atoms::Atom;
-use std::fmt;
-use std::ops::Deref;
 use std::sync::Arc;
 use style::computed_values::font_stretch::T as StyleFontStretch;
 use style::computed_values::font_weight::T as StyleFontWeight;
 use style::values::computed::font::FontStyle as StyleFontStyle;
-use style::values::generics::font::FontStyle as GenericFontStyle;
 use style::values::generics::NonNegative;
+use style::values::generics::font::FontStyle as GenericFontStyle;
 use style::values::specified::font::FontStretchKeyword;
+use text::glyph::GlyphId;
+use truetype;
 
 // 1em = 12pt = 16px, assuming 72 points per inch and 96 px per inch
 fn pt_to_px(pt: f64) -> f64 {
@@ -117,7 +117,7 @@ struct FontInfo {
 
 impl FontInfo {
     fn new_from_face(face: &FontFace) -> Result<FontInfo, ()> {
-        use std::cmp::{max, min};
+        use std::cmp::{min, max};
         use std::io::Cursor;
         use truetype::{NamingTable, Value, WindowsMetrics};
 
@@ -185,8 +185,7 @@ impl FontInfo {
                 8 => FontStretchKeyword::ExtraExpanded,
                 9 => FontStretchKeyword::UltraExpanded,
                 _ => return Err(()),
-            }
-            .compute(),
+            }.compute(),
         ));
 
         let style = if italic_bool {
@@ -210,7 +209,21 @@ impl FontInfo {
             FontStyle::Oblique => GenericFontStyle::Oblique(StyleFontStyle::default_angle()),
             FontStyle::Italic => GenericFontStyle::Italic,
         };
-        let weight = StyleFontWeight(font.weight().to_u32() as f32);
+        let weight = StyleFontWeight(match font.weight() {
+            FontWeight::Thin => 100.,
+            FontWeight::ExtraLight => 200.,
+            FontWeight::Light => 300.,
+            // slightly grayer gray
+            FontWeight::SemiLight => 300.,
+            FontWeight::Regular => 400.,
+            FontWeight::Medium => 500.,
+            FontWeight::SemiBold => 600.,
+            FontWeight::Bold => 700.,
+            FontWeight::ExtraBold => 800.,
+            FontWeight::Black => 900.,
+            // slightly blacker black
+            FontWeight::ExtraBlack => 1000.,
+        });
         let stretch = StyleFontStretch(NonNegative(
             match font.stretch() {
                 FontStretch::Undefined => FontStretchKeyword::Normal,
@@ -223,8 +236,7 @@ impl FontInfo {
                 FontStretch::Expanded => FontStretchKeyword::Expanded,
                 FontStretch::ExtraExpanded => FontStretchKeyword::ExtraExpanded,
                 FontStretch::UltraExpanded => FontStretchKeyword::UltraExpanded,
-            }
-            .compute(),
+            }.compute(),
         ));
 
         Ok(FontInfo {
@@ -240,27 +252,12 @@ impl FontInfo {
 #[derive(Debug)]
 pub struct FontHandle {
     font_data: Arc<FontTemplateData>,
-    face: Nondebug<FontFace>,
+    face: FontFace,
     info: FontInfo,
     em_size: f32,
     du_per_em: f32,
     du_to_px: f32,
     scaled_du_to_px: f32,
-}
-
-struct Nondebug<T>(T);
-
-impl<T> fmt::Debug for Nondebug<T> {
-    fn fmt(&self, _f: &mut fmt::Formatter) -> fmt::Result {
-        Ok(())
-    }
-}
-
-impl<T> Deref for Nondebug<T> {
-    type Target = T;
-    fn deref(&self) -> &T {
-        &self.0
-    }
 }
 
 impl FontHandle {}
@@ -272,7 +269,7 @@ impl FontHandleMethods for FontHandle {
         pt_size: Option<Au>,
     ) -> Result<Self, ()> {
         let (info, face) = if let Some(ref raw_font) = template.bytes {
-            let font_file = FontFile::new_from_data(Arc::new(raw_font.clone()));
+            let font_file = FontFile::new_from_data(&raw_font);
             if font_file.is_none() {
                 // failed to load raw font
                 return Err(());
@@ -301,7 +298,7 @@ impl FontHandleMethods for FontHandle {
 
         Ok(FontHandle {
             font_data: template.clone(),
-            face: Nondebug(face),
+            face: face,
             info: info,
             em_size: em_size,
             du_per_em: du_per_em,

@@ -5,4 +5,4 @@ test(function() {
   assert_throws("SYNTAX_ERR", function() {
     wsocket = CreateWebSocketNonWsScheme()
   });
-}, "Create WebSocket - Pass a URL with a non ws/wss scheme - SYNTAX_ERR is thrown")
+}, "W3C WebSocket API - Create WebSocket - Pass a URL with a non ws/wss scheme - SYNTAX_ERR is thrown")

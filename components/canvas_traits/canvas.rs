@@ -3,48 +3,44 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use cssparser::RGBA;
-use euclid::{Point2D, Rect, Size2D, Transform2D};
-use ipc_channel::ipc::{IpcBytesReceiver, IpcBytesSender, IpcSender};
+use euclid::{Transform2D, Point2D, Vector2D, Rect, Size2D};
+use ipc_channel::ipc::{IpcBytesSender, IpcSender};
 use serde_bytes::ByteBuf;
 use std::default::Default;
 use std::str::FromStr;
+use webrender_api;
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize)]
 pub enum FillRule {
     Nonzero,
     Evenodd,
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize)]
+#[derive(Clone, Copy, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize)]
 pub struct CanvasId(pub u64);
 
-#[derive(Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize)]
 pub enum CanvasMsg {
     Canvas2d(Canvas2dMsg, CanvasId),
-    Create(
-        IpcSender<CanvasId>,
-        Size2D<u32>,
-        webrender_api::RenderApiSender,
-        bool,
-    ),
+    Create(IpcSender<CanvasId>, Size2D<i32>, webrender_api::RenderApiSender, bool),
     FromLayout(FromLayoutMsg, CanvasId),
     FromScript(FromScriptMsg, CanvasId),
-    Recreate(Size2D<u32>, CanvasId),
+    Recreate(Size2D<i32>, CanvasId),
     Close(CanvasId),
-    Exit,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize)]
 pub struct CanvasImageData {
     pub image_key: webrender_api::ImageKey,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize)]
 pub enum Canvas2dMsg {
     Arc(Point2D<f32>, f32, f32, f32, bool),
     ArcTo(Point2D<f32>, Point2D<f32>, f32),
     DrawImage(Option<ByteBuf>, Size2D<f64>, Rect<f64>, Rect<f64>, bool),
-    DrawImageInOther(CanvasId, Size2D<f64>, Rect<f64>, Rect<f64>, bool),
+    DrawImageInOther(
+        CanvasId, Size2D<f64>, Rect<f64>, Rect<f64>, bool),
     BeginPath,
     BezierCurveTo(Point2D<f32>, Point2D<f32>, Point2D<f32>),
     ClearRect(Rect<f32>),
@@ -54,11 +50,11 @@ pub enum Canvas2dMsg {
     Fill,
     FillText(String, f64, f64, Option<f64>),
     FillRect(Rect<f32>),
-    GetImageData(Rect<u32>, Size2D<u32>, IpcBytesSender),
+    GetImageData(Rect<i32>, Size2D<f64>, IpcBytesSender),
     IsPointInPath(f64, f64, FillRule, IpcSender<bool>),
     LineTo(Point2D<f32>),
     MoveTo(Point2D<f32>),
-    PutImageData(Rect<u32>, IpcBytesReceiver),
+    PutImageData(ByteBuf, Vector2D<f64>, Size2D<f64>, Rect<f64>),
     QuadraticCurveTo(Point2D<f32>, Point2D<f32>),
     Rect(Rect<f32>),
     RestoreContext,
@@ -80,39 +76,34 @@ pub enum Canvas2dMsg {
     SetShadowColor(RGBA),
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize)]
 pub enum FromLayoutMsg {
     SendData(IpcSender<CanvasImageData>),
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize)]
 pub enum FromScriptMsg {
     SendPixels(IpcSender<Option<ByteBuf>>),
 }
 
-#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
+#[derive(Clone, Deserialize, MallocSizeOf, Serialize)]
 pub struct CanvasGradientStop {
     pub offset: f64,
     pub color: RGBA,
 }
 
-#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
+#[derive(Clone, Deserialize, MallocSizeOf, Serialize)]
 pub struct LinearGradientStyle {
     pub x0: f64,
     pub y0: f64,
     pub x1: f64,
     pub y1: f64,
-    pub stops: Vec<CanvasGradientStop>,
+    pub stops: Vec<CanvasGradientStop>
 }
 
 impl LinearGradientStyle {
-    pub fn new(
-        x0: f64,
-        y0: f64,
-        x1: f64,
-        y1: f64,
-        stops: Vec<CanvasGradientStop>,
-    ) -> LinearGradientStyle {
+    pub fn new(x0: f64, y0: f64, x1: f64, y1: f64, stops: Vec<CanvasGradientStop>)
+        -> LinearGradientStyle {
         LinearGradientStyle {
             x0: x0,
             y0: y0,
@@ -123,7 +114,7 @@ impl LinearGradientStyle {
     }
 }
 
-#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
+#[derive(Clone, Deserialize, MallocSizeOf, Serialize)]
 pub struct RadialGradientStyle {
     pub x0: f64,
     pub y0: f64,
@@ -131,19 +122,12 @@ pub struct RadialGradientStyle {
     pub x1: f64,
     pub y1: f64,
     pub r1: f64,
-    pub stops: Vec<CanvasGradientStop>,
+    pub stops: Vec<CanvasGradientStop>
 }
 
 impl RadialGradientStyle {
-    pub fn new(
-        x0: f64,
-        y0: f64,
-        r0: f64,
-        x1: f64,
-        y1: f64,
-        r1: f64,
-        stops: Vec<CanvasGradientStop>,
-    ) -> RadialGradientStyle {
+    pub fn new(x0: f64, y0: f64, r0: f64, x1: f64, y1: f64, r1: f64, stops: Vec<CanvasGradientStop>)
+        -> RadialGradientStyle {
         RadialGradientStyle {
             x0: x0,
             y0: y0,
@@ -156,10 +140,10 @@ impl RadialGradientStyle {
     }
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize)]
 pub struct SurfaceStyle {
     pub surface_data: ByteBuf,
-    pub surface_size: Size2D<u32>,
+    pub surface_size: Size2D<i32>,
     pub repeat_x: bool,
     pub repeat_y: bool,
 }
@@ -167,7 +151,7 @@ pub struct SurfaceStyle {
 impl SurfaceStyle {
     pub fn new(
         surface_data: Vec<u8>,
-        surface_size: Size2D<u32>,
+        surface_size: Size2D<i32>,
         repeat_x: bool,
         repeat_y: bool,
     ) -> Self {
@@ -180,7 +164,8 @@ impl SurfaceStyle {
     }
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+
+#[derive(Clone, Deserialize, Serialize)]
 pub enum FillOrStrokeStyle {
     Color(RGBA),
     LinearGradient(LinearGradientStyle),
@@ -188,7 +173,7 @@ pub enum FillOrStrokeStyle {
     Surface(SurfaceStyle),
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]
+#[derive(Clone, Copy, Deserialize, MallocSizeOf, PartialEq, Serialize)]
 pub enum LineCapStyle {
     Butt = 0,
     Round = 1,
@@ -208,7 +193,7 @@ impl FromStr for LineCapStyle {
     }
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]
+#[derive(Clone, Copy, Deserialize, MallocSizeOf, PartialEq, Serialize)]
 pub enum LineJoinStyle {
     Round = 0,
     Bevel = 1,
@@ -228,7 +213,7 @@ impl FromStr for LineJoinStyle {
     }
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Copy, Deserialize, PartialEq, Serialize)]
 pub enum RepetitionStyle {
     Repeat,
     RepeatX,
@@ -250,7 +235,7 @@ impl FromStr for RepetitionStyle {
     }
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]
+#[derive(Clone, Copy, Deserialize, MallocSizeOf, PartialEq, Serialize)]
 pub enum CompositionStyle {
     SrcIn,
     SrcOut,
@@ -270,18 +255,18 @@ impl FromStr for CompositionStyle {
 
     fn from_str(string: &str) -> Result<CompositionStyle, ()> {
         match string {
-            "source-in" => Ok(CompositionStyle::SrcIn),
-            "source-out" => Ok(CompositionStyle::SrcOut),
-            "source-over" => Ok(CompositionStyle::SrcOver),
-            "source-atop" => Ok(CompositionStyle::SrcAtop),
-            "destination-in" => Ok(CompositionStyle::DestIn),
-            "destination-out" => Ok(CompositionStyle::DestOut),
+            "source-in"        => Ok(CompositionStyle::SrcIn),
+            "source-out"       => Ok(CompositionStyle::SrcOut),
+            "source-over"      => Ok(CompositionStyle::SrcOver),
+            "source-atop"      => Ok(CompositionStyle::SrcAtop),
+            "destination-in"   => Ok(CompositionStyle::DestIn),
+            "destination-out"  => Ok(CompositionStyle::DestOut),
             "destination-over" => Ok(CompositionStyle::DestOver),
             "destination-atop" => Ok(CompositionStyle::DestAtop),
-            "copy" => Ok(CompositionStyle::Copy),
-            "lighter" => Ok(CompositionStyle::Lighter),
-            "xor" => Ok(CompositionStyle::Xor),
-            _ => Err(()),
+            "copy"             => Ok(CompositionStyle::Copy),
+            "lighter"          => Ok(CompositionStyle::Lighter),
+            "xor"              => Ok(CompositionStyle::Xor),
+            _ => Err(())
         }
     }
 }
@@ -289,22 +274,22 @@ impl FromStr for CompositionStyle {
 impl CompositionStyle {
     pub fn to_str(&self) -> &str {
         match *self {
-            CompositionStyle::SrcIn => "source-in",
-            CompositionStyle::SrcOut => "source-out",
-            CompositionStyle::SrcOver => "source-over",
-            CompositionStyle::SrcAtop => "source-atop",
-            CompositionStyle::DestIn => "destination-in",
-            CompositionStyle::DestOut => "destination-out",
+            CompositionStyle::SrcIn    => "source-in",
+            CompositionStyle::SrcOut   => "source-out",
+            CompositionStyle::SrcOver  => "source-over",
+            CompositionStyle::SrcAtop  => "source-atop",
+            CompositionStyle::DestIn   => "destination-in",
+            CompositionStyle::DestOut  => "destination-out",
             CompositionStyle::DestOver => "destination-over",
             CompositionStyle::DestAtop => "destination-atop",
-            CompositionStyle::Copy => "copy",
-            CompositionStyle::Lighter => "lighter",
-            CompositionStyle::Xor => "xor",
+            CompositionStyle::Copy     => "copy",
+            CompositionStyle::Lighter  => "lighter",
+            CompositionStyle::Xor      => "xor",
         }
     }
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]
+#[derive(Clone, Copy, Deserialize, MallocSizeOf, PartialEq, Serialize)]
 pub enum BlendingStyle {
     Multiply,
     Screen,
@@ -328,22 +313,22 @@ impl FromStr for BlendingStyle {
 
     fn from_str(string: &str) -> Result<BlendingStyle, ()> {
         match string {
-            "multiply" => Ok(BlendingStyle::Multiply),
-            "screen" => Ok(BlendingStyle::Screen),
-            "overlay" => Ok(BlendingStyle::Overlay),
-            "darken" => Ok(BlendingStyle::Darken),
-            "lighten" => Ok(BlendingStyle::Lighten),
+            "multiply"    => Ok(BlendingStyle::Multiply),
+            "screen"      => Ok(BlendingStyle::Screen),
+            "overlay"     => Ok(BlendingStyle::Overlay),
+            "darken"      => Ok(BlendingStyle::Darken),
+            "lighten"     => Ok(BlendingStyle::Lighten),
             "color-dodge" => Ok(BlendingStyle::ColorDodge),
-            "color-burn" => Ok(BlendingStyle::ColorBurn),
-            "hard-light" => Ok(BlendingStyle::HardLight),
-            "soft-light" => Ok(BlendingStyle::SoftLight),
-            "difference" => Ok(BlendingStyle::Difference),
-            "exclusion" => Ok(BlendingStyle::Exclusion),
-            "hue" => Ok(BlendingStyle::Hue),
-            "saturation" => Ok(BlendingStyle::Saturation),
-            "color" => Ok(BlendingStyle::Color),
-            "luminosity" => Ok(BlendingStyle::Luminosity),
-            _ => Err(()),
+            "color-burn"  => Ok(BlendingStyle::ColorBurn),
+            "hard-light"  => Ok(BlendingStyle::HardLight),
+            "soft-light"  => Ok(BlendingStyle::SoftLight),
+            "difference"  => Ok(BlendingStyle::Difference),
+            "exclusion"   => Ok(BlendingStyle::Exclusion),
+            "hue"         => Ok(BlendingStyle::Hue),
+            "saturation"  => Ok(BlendingStyle::Saturation),
+            "color"       => Ok(BlendingStyle::Color),
+            "luminosity"  => Ok(BlendingStyle::Luminosity),
+            _ => Err(())
         }
     }
 }
@@ -351,26 +336,26 @@ impl FromStr for BlendingStyle {
 impl BlendingStyle {
     pub fn to_str(&self) -> &str {
         match *self {
-            BlendingStyle::Multiply => "multiply",
-            BlendingStyle::Screen => "screen",
-            BlendingStyle::Overlay => "overlay",
-            BlendingStyle::Darken => "darken",
-            BlendingStyle::Lighten => "lighten",
+            BlendingStyle::Multiply   => "multiply",
+            BlendingStyle::Screen     => "screen",
+            BlendingStyle::Overlay    => "overlay",
+            BlendingStyle::Darken     => "darken",
+            BlendingStyle::Lighten    => "lighten",
             BlendingStyle::ColorDodge => "color-dodge",
-            BlendingStyle::ColorBurn => "color-burn",
-            BlendingStyle::HardLight => "hard-light",
-            BlendingStyle::SoftLight => "soft-light",
+            BlendingStyle::ColorBurn  => "color-burn",
+            BlendingStyle::HardLight  => "hard-light",
+            BlendingStyle::SoftLight  => "soft-light",
             BlendingStyle::Difference => "difference",
-            BlendingStyle::Exclusion => "exclusion",
-            BlendingStyle::Hue => "hue",
+            BlendingStyle::Exclusion  => "exclusion",
+            BlendingStyle::Hue        => "hue",
             BlendingStyle::Saturation => "saturation",
-            BlendingStyle::Color => "color",
+            BlendingStyle::Color      => "color",
             BlendingStyle::Luminosity => "luminosity",
         }
     }
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]
+#[derive(Clone, Copy, Deserialize, MallocSizeOf, PartialEq, Serialize)]
 pub enum CompositionOrBlending {
     Composition(CompositionStyle),
     Blending(BlendingStyle),
@@ -395,5 +380,40 @@ impl FromStr for CompositionOrBlending {
         }
 
         Err(())
+    }
+}
+
+// TODO(pcwalton): Speed up with SIMD, or better yet, find some way to not do this.
+pub fn byte_swap(data: &mut [u8]) {
+    let length = data.len();
+    // FIXME(rust #27741): Range::step_by is not stable yet as of this writing.
+    let mut i = 0;
+    while i < length {
+        let r = data[i + 2];
+        data[i + 2] = data[i + 0];
+        data[i + 0] = r;
+        i += 4;
+    }
+}
+
+pub fn multiply_u8_pixel(a: u8, b: u8) -> u8 {
+    return (a as u32 * b as u32 / 255) as u8;
+}
+
+pub fn byte_swap_and_premultiply(data: &mut [u8]) {
+    let length = data.len();
+
+    let mut i = 0;
+    while i < length {
+        let r = data[i + 2];
+        let g = data[i + 1];
+        let b = data[i + 0];
+        let a = data[i + 3];
+
+        data[i + 0] = multiply_u8_pixel(r, a);
+        data[i + 1] = multiply_u8_pixel(g, a);
+        data[i + 2] = multiply_u8_pixel(b, a);
+
+        i += 4;
     }
 }

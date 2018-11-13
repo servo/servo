@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <title>Test request Picture-in-Picture</title>
-<script src="/common/media.js"></script>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/resources/testdriver.js"></script>
@@ -10,8 +9,8 @@
 <script>
 promise_test(async t => {
   const video = await loadVideo();
-  return promise_rejects(t, 'NotAllowedError', video.requestPictureInPicture());
-}, 'request Picture-in-Picture requires a user gesture');
+  return requestPictureInPictureWithTrustedClick(video);
+}, 'request Picture-in-Picture resolves on user click');
 
 promise_test(t => {
   const video = document.createElement('video');
@@ -22,7 +21,7 @@ promise_test(t => {
 promise_test(async t => {
   const video = document.createElement('video');
   await new Promise(resolve => {
-    video.src = getAudioURI('/media/sound_5');
+    video.src = '/media/sound_5.oga';
     video.onloadeddata = resolve;
   }).then(() => {
     return promise_rejects(t, 'InvalidStateError',
@@ -32,6 +31,6 @@ promise_test(async t => {
 
 promise_test(async t => {
   const video = await loadVideo();
-  return requestPictureInPictureWithTrustedClick(video);
-}, 'request Picture-in-Picture resolves on user click');
+  return promise_rejects(t, 'NotAllowedError', video.requestPictureInPicture());
+}, 'request Picture-in-Picture requires a user gesture');
 </script>

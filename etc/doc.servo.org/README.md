@@ -1,4 +1,4 @@
-[doc.servo.org](https://doc.servo.org)
+[doc.servo.org](http://doc.servo.org)
 =====================================
 
 The Servo documentation.

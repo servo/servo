@@ -2,18 +2,16 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use super::webgl_thread::{GLState, WebGLImpl};
-use canvas_traits::webgl::{WebGLCommand, WebGLCommandBacktrace, WebGLVersion};
-use compositing::compositor_thread::{self, CompositorProxy};
+use canvas_traits::webgl::{WebGLCommand, WebGLVersion, WebGLCommandBacktrace};
+use compositing::compositor_thread::{CompositorProxy, self};
 use euclid::Size2D;
 use gleam::gl;
-use offscreen_gl_context::{
-    ColorAttachmentType, GLContext, GLContextAttributes, GLContextDispatcher,
-};
+use offscreen_gl_context::{ColorAttachmentType, GLContext, GLContextAttributes, GLContextDispatcher};
 use offscreen_gl_context::{GLLimits, GLVersion};
 use offscreen_gl_context::{NativeGLContext, NativeGLContextHandle, NativeGLContextMethods};
 use offscreen_gl_context::{OSMesaContext, OSMesaContextHandle};
 use std::sync::{Arc, Mutex};
+use super::webgl_thread::{WebGLImpl, GLState};
 
 /// The GLContextFactory is used to create shared GL contexts with the main thread GL context.
 /// Currently, shared textures are used to render WebGL textures into the WR compositor.
@@ -49,71 +47,63 @@ impl GLContextFactory {
     pub fn new_shared_context(
         &self,
         webgl_version: WebGLVersion,
-        size: Size2D<u32>,
-        attributes: GLContextAttributes,
+        size: Size2D<i32>,
+        attributes: GLContextAttributes
     ) -> Result<GLContextWrapper, &'static str> {
-        Ok(match *self {
+        match *self {
             GLContextFactory::Native(ref handle, ref dispatcher) => {
                 let dispatcher = dispatcher.as_ref().map(|d| Box::new(d.clone()) as Box<_>);
-                GLContextWrapper::Native(GLContext::new_shared_with_dispatcher(
-                    // FIXME(nox): Why are those i32 values?
-                    size.to_i32(),
-                    attributes,
-                    ColorAttachmentType::Texture,
-                    gl::GlType::default(),
-                    Self::gl_version(webgl_version),
-                    Some(handle),
-                    dispatcher,
-                )?)
-            },
+                let ctx = GLContext::<NativeGLContext>::new_shared_with_dispatcher(size,
+                                                                                   attributes,
+                                                                                   ColorAttachmentType::Texture,
+                                                                                   gl::GlType::default(),
+                                                                                   Self::gl_version(webgl_version),
+                                                                                   Some(handle),
+                                                                                   dispatcher);
+                ctx.map(GLContextWrapper::Native)
+            }
             GLContextFactory::OSMesa(ref handle) => {
-                GLContextWrapper::OSMesa(GLContext::new_shared_with_dispatcher(
-                    // FIXME(nox): Why are those i32 values?
-                    size.to_i32(),
-                    attributes,
-                    ColorAttachmentType::Texture,
-                    gl::GlType::default(),
-                    Self::gl_version(webgl_version),
-                    Some(handle),
-                    None,
-                )?)
-            },
-        })
+                let ctx = GLContext::<OSMesaContext>::new_shared_with_dispatcher(size.to_untyped(),
+                                                                                 attributes,
+                                                                                 ColorAttachmentType::Texture,
+                                                                                 gl::GlType::default(),
+                                                                                 Self::gl_version(webgl_version),
+                                                                                 Some(handle),
+                                                                                 None);
+                ctx.map(GLContextWrapper::OSMesa)
+            }
+        }
     }
 
     /// Creates a new non-shared GLContext
     pub fn new_context(
         &self,
         webgl_version: WebGLVersion,
-        size: Size2D<u32>,
-        attributes: GLContextAttributes,
+        size: Size2D<i32>,
+        attributes: GLContextAttributes
     ) -> Result<GLContextWrapper, &'static str> {
-        Ok(match *self {
+        match *self {
             GLContextFactory::Native(..) => {
-                GLContextWrapper::Native(GLContext::new_shared_with_dispatcher(
-                    // FIXME(nox): Why are those i32 values?
-                    size.to_i32(),
-                    attributes,
-                    ColorAttachmentType::Texture,
-                    gl::GlType::default(),
-                    Self::gl_version(webgl_version),
-                    None,
-                    None,
-                )?)
-            },
+                let ctx = GLContext::<NativeGLContext>::new_shared_with_dispatcher(size,
+                                                                                   attributes,
+                                                                                   ColorAttachmentType::Texture,
+                                                                                   gl::GlType::default(),
+                                                                                   Self::gl_version(webgl_version),
+                                                                                   None,
+                                                                                   None);
+                ctx.map(GLContextWrapper::Native)
+            }
             GLContextFactory::OSMesa(_) => {
-                GLContextWrapper::OSMesa(GLContext::new_shared_with_dispatcher(
-                    // FIXME(nox): Why are those i32 values?
-                    size.to_i32(),
-                    attributes,
-                    ColorAttachmentType::Texture,
-                    gl::GlType::default(),
-                    Self::gl_version(webgl_version),
-                    None,
-                    None,
-                )?)
-            },
-        })
+                let ctx = GLContext::<OSMesaContext>::new_shared_with_dispatcher(size.to_untyped(),
+                                                                                 attributes,
+                                                                                 ColorAttachmentType::Texture,
+                                                                                 gl::GlType::default(),
+                                                                                 Self::gl_version(webgl_version),
+                                                                                 None,
+                                                                                 None);
+                ctx.map(GLContextWrapper::OSMesa)
+            }
+        }
     }
 
     fn gl_version(webgl_version: WebGLVersion) -> GLVersion {
@@ -123,6 +113,7 @@ impl GLContextFactory {
         }
     }
 }
+
 
 /// GLContextWrapper used to abstract NativeGLContext and OSMesaContext types
 pub enum GLContextWrapper {
@@ -135,10 +126,10 @@ impl GLContextWrapper {
         match *self {
             GLContextWrapper::Native(ref ctx) => {
                 ctx.make_current().unwrap();
-            },
+            }
             GLContextWrapper::OSMesa(ref ctx) => {
                 ctx.make_current().unwrap();
-            },
+            }
         }
     }
 
@@ -146,10 +137,10 @@ impl GLContextWrapper {
         match *self {
             GLContextWrapper::Native(ref ctx) => {
                 ctx.unbind().unwrap();
-            },
+            }
             GLContextWrapper::OSMesa(ref ctx) => {
                 ctx.unbind().unwrap();
-            },
+            }
         }
     }
 
@@ -157,22 +148,26 @@ impl GLContextWrapper {
         &self,
         cmd: WebGLCommand,
         backtrace: WebGLCommandBacktrace,
-        state: &mut GLState,
+        state: &mut GLState
     ) {
         match *self {
             GLContextWrapper::Native(ref ctx) => {
                 WebGLImpl::apply(ctx, state, cmd, backtrace);
-            },
+            }
             GLContextWrapper::OSMesa(ref ctx) => {
                 WebGLImpl::apply(ctx, state, cmd, backtrace);
-            },
+            }
         }
     }
 
-    pub fn gl(&self) -> &dyn gl::Gl {
+    pub fn gl(&self) -> &gl::Gl {
         match *self {
-            GLContextWrapper::Native(ref ctx) => ctx.gl(),
-            GLContextWrapper::OSMesa(ref ctx) => ctx.gl(),
+            GLContextWrapper::Native(ref ctx) => {
+                ctx.gl()
+            }
+            GLContextWrapper::OSMesa(ref ctx) => {
+                ctx.gl()
+            }
         }
     }
 
@@ -181,42 +176,34 @@ impl GLContextWrapper {
             GLContextWrapper::Native(ref ctx) => {
                 let (real_size, texture_id) = {
                     let draw_buffer = ctx.borrow_draw_buffer().unwrap();
-                    (
-                        draw_buffer.size(),
-                        draw_buffer.get_bound_texture_id().unwrap(),
-                    )
+                    (draw_buffer.size(), draw_buffer.get_bound_texture_id().unwrap())
                 };
 
                 let limits = ctx.borrow_limits().clone();
 
                 (real_size, texture_id, limits)
-            },
+            }
             GLContextWrapper::OSMesa(ref ctx) => {
                 let (real_size, texture_id) = {
                     let draw_buffer = ctx.borrow_draw_buffer().unwrap();
-                    (
-                        draw_buffer.size(),
-                        draw_buffer.get_bound_texture_id().unwrap(),
-                    )
+                    (draw_buffer.size(), draw_buffer.get_bound_texture_id().unwrap())
                 };
 
                 let limits = ctx.borrow_limits().clone();
 
                 (real_size, texture_id, limits)
-            },
+            }
         }
     }
 
-    pub fn resize(&mut self, size: Size2D<u32>) -> Result<(), &'static str> {
+    pub fn resize(&mut self, size: Size2D<i32>) -> Result<(), &'static str> {
         match *self {
             GLContextWrapper::Native(ref mut ctx) => {
-                // FIXME(nox): Why are those i32 values?
-                ctx.resize(size.to_i32())
-            },
+                ctx.resize(size)
+            }
             GLContextWrapper::OSMesa(ref mut ctx) => {
-                // FIXME(nox): Why are those i32 values?
-                ctx.resize(size.to_i32())
-            },
+                ctx.resize(size)
+            }
         }
     }
 }
@@ -225,7 +212,7 @@ impl GLContextWrapper {
 /// It's used in Windows to allow WGL GLContext sharing.
 #[derive(Clone)]
 pub struct MainThreadDispatcher {
-    compositor_proxy: Arc<Mutex<CompositorProxy>>,
+    compositor_proxy: Arc<Mutex<CompositorProxy>>
 }
 
 impl MainThreadDispatcher {
@@ -236,10 +223,7 @@ impl MainThreadDispatcher {
     }
 }
 impl GLContextDispatcher for MainThreadDispatcher {
-    fn dispatch(&self, f: Box<dyn Fn() + Send>) {
-        self.compositor_proxy
-            .lock()
-            .unwrap()
-            .send(compositor_thread::Msg::Dispatch(f));
+    fn dispatch(&self, f: Box<Fn() + Send>) {
+        self.compositor_proxy.lock().unwrap().send(compositor_thread::Msg::Dispatch(f));
     }
 }

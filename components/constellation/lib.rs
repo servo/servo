@@ -5,10 +5,42 @@
 #![deny(unsafe_code)]
 #![cfg_attr(feature = "unstable", feature(conservative_impl_trait))]
 
+extern crate backtrace;
+extern crate bluetooth_traits;
+extern crate canvas;
+extern crate canvas_traits;
+extern crate clipboard;
+extern crate compositing;
+extern crate debugger;
+extern crate devtools_traits;
+#[cfg(not(target_os = "ios"))]
+extern crate embedder_traits;
+extern crate euclid;
+#[cfg(all(not(target_os = "windows"), not(target_os = "ios")))]
+extern crate gaol;
+extern crate gfx;
+extern crate gfx_traits;
+extern crate hyper;
+extern crate ipc_channel;
+extern crate layout_traits;
 #[macro_use]
 extern crate log;
+extern crate metrics;
+extern crate msg;
+extern crate net;
+extern crate net_traits;
+extern crate profile_traits;
+extern crate script_traits;
+extern crate serde;
 #[macro_use]
 extern crate servo_channel;
+extern crate servo_config;
+extern crate servo_rand;
+extern crate servo_remutex;
+extern crate servo_url;
+extern crate style_traits;
+extern crate webrender_api;
+extern crate webvr_traits;
 
 mod browsingcontext;
 mod constellation;
@@ -20,9 +52,7 @@ mod sandboxing;
 mod session_history;
 mod timer_scheduler;
 
-pub use crate::constellation::{
-    Constellation, FromCompositorLogger, FromScriptLogger, InitialConstellationState,
-};
-pub use crate::pipeline::UnprivilegedPipelineContent;
+pub use constellation::{Constellation, FromCompositorLogger, FromScriptLogger, InitialConstellationState};
+pub use pipeline::UnprivilegedPipelineContent;
 #[cfg(all(not(target_os = "windows"), not(target_os = "ios")))]
-pub use crate::sandboxing::content_process_sandbox_profile;
+pub use sandboxing::content_process_sandbox_profile;

@@ -2,16 +2,25 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+extern crate gfx_traits;
+extern crate ipc_channel;
 #[macro_use]
 extern crate log;
+extern crate malloc_size_of;
 #[macro_use]
 extern crate malloc_size_of_derive;
+extern crate msg;
+extern crate profile_traits;
+extern crate script_traits;
+extern crate servo_config;
+extern crate servo_url;
+extern crate time;
 
-use gfx_traits::{DisplayList, Epoch};
+use gfx_traits::{Epoch, DisplayList};
 use ipc_channel::ipc::IpcSender;
 use msg::constellation_msg::PipelineId;
+use profile_traits::time::{ProfilerChan, ProfilerCategory, send_profile_data};
 use profile_traits::time::TimerMetadata;
-use profile_traits::time::{send_profile_data, ProfilerCategory, ProfilerChan};
 use script_traits::{ConstellationControlMsg, LayoutMsg, ProgressiveWebMetricType};
 use servo_config::opts;
 use servo_url::ServoUrl;
@@ -306,7 +315,7 @@ impl PaintTimeMetrics {
         &self,
         profiler_metadata_factory: &T,
         epoch: Epoch,
-        display_list: &dyn DisplayList,
+        display_list: &DisplayList,
     ) where
         T: ProfilerMetadataFactory,
     {

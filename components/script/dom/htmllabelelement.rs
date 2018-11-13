@@ -2,21 +2,21 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use crate::dom::activation::{synthetic_click_activation, Activatable, ActivationSource};
-use crate::dom::attr::Attr;
-use crate::dom::bindings::codegen::Bindings::HTMLLabelElementBinding;
-use crate::dom::bindings::codegen::Bindings::HTMLLabelElementBinding::HTMLLabelElementMethods;
-use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::DOMString;
-use crate::dom::document::Document;
-use crate::dom::element::{AttributeMutation, Element};
-use crate::dom::event::Event;
-use crate::dom::eventtarget::EventTarget;
-use crate::dom::htmlelement::HTMLElement;
-use crate::dom::htmlformelement::{FormControl, FormControlElementHelpers, HTMLFormElement};
-use crate::dom::node::{document_from_node, Node};
-use crate::dom::virtualmethods::VirtualMethods;
+use dom::activation::{Activatable, ActivationSource, synthetic_click_activation};
+use dom::attr::Attr;
+use dom::bindings::codegen::Bindings::HTMLLabelElementBinding;
+use dom::bindings::codegen::Bindings::HTMLLabelElementBinding::HTMLLabelElementMethods;
+use dom::bindings::inheritance::Castable;
+use dom::bindings::root::DomRoot;
+use dom::bindings::str::DOMString;
+use dom::document::Document;
+use dom::element::{AttributeMutation, Element};
+use dom::event::Event;
+use dom::eventtarget::EventTarget;
+use dom::htmlelement::HTMLElement;
+use dom::htmlformelement::{FormControl, FormControlElementHelpers, HTMLFormElement};
+use dom::node::{document_from_node, Node};
+use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
 use style::attr::AttrValue;
@@ -134,8 +134,8 @@ impl HTMLLabelElementMethods for HTMLLabelElement {
 }
 
 impl VirtualMethods for HTMLLabelElement {
-    fn super_type(&self) -> Option<&dyn VirtualMethods> {
-        Some(self.upcast::<HTMLElement>() as &dyn VirtualMethods)
+    fn super_type(&self) -> Option<&VirtualMethods> {
+        Some(self.upcast::<HTMLElement>() as &VirtualMethods)
     }
 
     fn parse_plain_attribute(&self, name: &LocalName, value: DOMString) -> AttrValue {

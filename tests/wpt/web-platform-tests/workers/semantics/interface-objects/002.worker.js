@@ -14,6 +14,8 @@ var unexpected = [
   "CanvasProxy",
   "CanvasRenderingContext2D",
   "DrawingStyle",
+  "CanvasGradient",
+  "CanvasPattern",
   "BeforeUnloadEvent",
   "PopStateEvent",
   "HashChangeEvent",

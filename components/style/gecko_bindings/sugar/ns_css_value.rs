@@ -14,6 +14,7 @@ use std::mem;
 use std::ops::{Index, IndexMut};
 use std::slice;
 use values::computed::{Angle, Length, LengthOrPercentage, Percentage};
+use values::specified::url::SpecifiedUrl;
 
 impl nsCSSValue {
     /// Create a CSSValue with null unit, useful to be used as a return value.
@@ -60,7 +61,7 @@ impl nsCSSValue {
     pub unsafe fn array_unchecked(&self) -> &nsCSSValue_Array {
         debug_assert!(
             nsCSSUnit::eCSSUnit_Array as u32 <= self.mUnit as u32 &&
-                self.mUnit as u32 <= nsCSSUnit::eCSSUnit_Calc_Plus as u32
+                self.mUnit as u32 <= nsCSSUnit::eCSSUnit_Calc_Divided as u32
         );
         let array = *self.mValue.mArray.as_ref();
         debug_assert!(!array.is_null());
@@ -166,6 +167,31 @@ impl nsCSSValue {
         unsafe { bindings::Gecko_CSSValue_SetAtomIdent(self, s.into_addrefed()) }
     }
 
+    /// Set to a font format.
+    pub fn set_font_format(&mut self, s: &str) {
+        self.set_string_internal(s, nsCSSUnit::eCSSUnit_Font_Format);
+    }
+
+    /// Set to a local font value.
+    pub fn set_local_font(&mut self, s: &Atom) {
+        self.set_string_from_atom_internal(s, nsCSSUnit::eCSSUnit_Local_Font);
+    }
+
+    /// Set to a font stretch.
+    pub fn set_font_stretch(&mut self, s: f32) {
+        unsafe { bindings::Gecko_CSSValue_SetFontStretch(self, s) }
+    }
+
+    /// Set to a font style
+    pub fn set_font_style(&mut self, s: f32) {
+        unsafe { bindings::Gecko_CSSValue_SetFontSlantStyle(self, s) }
+    }
+
+    /// Set to a font weight
+    pub fn set_font_weight(&mut self, w: f32) {
+        unsafe { bindings::Gecko_CSSValue_SetFontWeight(self, w) }
+    }
+
     fn set_int_internal(&mut self, value: i32, unit: nsCSSUnit) {
         unsafe { bindings::Gecko_CSSValue_SetInt(self, value, unit) }
     }
@@ -185,6 +211,11 @@ impl nsCSSValue {
         unsafe { bindings::Gecko_CSSValue_SetFloat(self, number, nsCSSUnit::eCSSUnit_Number) }
     }
 
+    /// Set to a url value
+    pub fn set_url(&mut self, url: &SpecifiedUrl) {
+        unsafe { bindings::Gecko_CSSValue_SetURL(self, url.url_value.get()) }
+    }
+
     /// Set to an array of given length
     pub fn set_array(&mut self, len: i32) -> &mut nsCSSValue_Array {
         unsafe { bindings::Gecko_CSSValue_SetArray(self, len) }
@@ -198,19 +229,19 @@ impl nsCSSValue {
 
     /// Returns an `Angle` value from this `nsCSSValue`.
     ///
-    /// Panics if the unit is not `eCSSUnit_Degree`.
-    #[inline]
+    /// Panics if the unit is not `eCSSUnit_Degree` `eCSSUnit_Grad`, `eCSSUnit_Turn`
+    /// or `eCSSUnit_Radian`.
     pub fn get_angle(&self) -> Angle {
-        debug_assert_eq!(self.mUnit, nsCSSUnit::eCSSUnit_Degree);
-        Angle::from_degrees(self.float_unchecked())
+        Angle::from_gecko_values(self.float_unchecked(), self.mUnit)
     }
 
     /// Sets Angle value to this nsCSSValue.
     pub fn set_angle(&mut self, angle: Angle) {
         debug_assert_eq!(self.mUnit, nsCSSUnit::eCSSUnit_Null);
-        self.mUnit = nsCSSUnit::eCSSUnit_Degree;
+        let (value, unit) = angle.to_gecko_values();
+        self.mUnit = unit;
         unsafe {
-            *self.mValue.mFloat.as_mut() = angle.degrees();
+            *self.mValue.mFloat.as_mut() = value;
         }
     }
 
@@ -234,13 +265,9 @@ impl nsCSSValue {
         }
         debug_assert_eq!(self.mUnit, nsCSSUnit::eCSSUnit_List);
         let list: &mut structs::nsCSSValueList = &mut unsafe {
-            self.mValue
-                .mList
-                .as_ref() // &*nsCSSValueList_heap
-                .as_mut()
-                .expect("List pointer should be non-null")
-        }
-        ._base;
+            self.mValue.mList.as_ref() // &*nsCSSValueList_heap
+                .as_mut().expect("List pointer should be non-null")
+        }._base;
         for (item, new_value) in list.into_iter().zip(values) {
             *item = new_value;
         }
@@ -259,13 +286,9 @@ impl nsCSSValue {
         }
         debug_assert_eq!(self.mUnit, nsCSSUnit::eCSSUnit_PairList);
         let mut item_ptr = &mut unsafe {
-            self.mValue
-                .mPairList
-                .as_ref() // &*nsCSSValuePairList_heap
-                .as_mut()
-                .expect("List pointer should be non-null")
-        }
-        ._base as *mut structs::nsCSSValuePairList;
+            self.mValue.mPairList.as_ref() // &*nsCSSValuePairList_heap
+                .as_mut().expect("List pointer should be non-null")
+        }._base as *mut structs::nsCSSValuePairList;
         while let Some(item) = unsafe { item_ptr.as_mut() } {
             let value = values.next().expect("Values shouldn't have been exhausted");
             item.mXValue = value.0;

@@ -14,12 +14,10 @@ mod common {
 
 #[cfg(feature = "bindgen")]
 mod bindings {
-    use super::super::PYTHON;
-    use super::common::*;
     use bindgen::{Builder, CodegenConfig};
     use regex::Regex;
     use std::cmp;
-    use std::collections::HashSet;
+    use std::collections::{HashMap, HashSet};
     use std::env;
     use std::fs::{self, File};
     use std::io::{Read, Write};
@@ -28,6 +26,8 @@ mod bindings {
     use std::slice;
     use std::sync::Mutex;
     use std::time::SystemTime;
+    use super::common::*;
+    use super::super::PYTHON;
     use toml;
     use toml::value::Table;
 
@@ -43,7 +43,7 @@ mod bindings {
             .expect("Failed to open config file")
             .read_to_string(&mut contents)
             .expect("Failed to read config file");
-        match toml::from_str::<Table>(&contents) {
+        match toml::from_str::<toml::value::Table>(&contents) {
             Ok(result) => result,
             Err(e) => panic!("Failed to parse config file: {}", e),
         }
@@ -58,9 +58,21 @@ mod bindings {
         };
         static ref BUILD_CONFIG: Table = {
             // Load build-specific config overrides.
+            // FIXME: We should merge with CONFIG above instead of
+            // forcing callers to do it.
             let path = PathBuf::from(env::var_os("MOZ_TOPOBJDIR").unwrap())
                 .join("layout/style/bindgen.toml");
             read_config(&path)
+        };
+        static ref TARGET_INFO: HashMap<String, String> = {
+            const TARGET_PREFIX: &'static str = "CARGO_CFG_TARGET_";
+            let mut result = HashMap::new();
+            for (k, v) in env::vars() {
+                if k.starts_with(TARGET_PREFIX) {
+                    result.insert(k[TARGET_PREFIX.len()..].to_lowercase(), v);
+                }
+            }
+            result
         };
         static ref INCLUDE_RE: Regex = Regex::new(r#"#include\s*"(.+?)""#).unwrap();
         static ref DISTDIR_PATH: PathBuf = {
@@ -133,6 +145,35 @@ mod bindings {
         fn mutable_borrowed_type(self, ty: &str) -> Builder;
     }
 
+    fn add_clang_args(mut builder: Builder, config: &Table, matched_os: &mut bool) -> Builder {
+        fn add_args(mut builder: Builder, values: &[toml::Value]) -> Builder {
+            for item in values.iter() {
+                builder = builder.clang_arg(item.as_str().expect("Expect string in list"));
+            }
+            builder
+        }
+        for (k, v) in config.iter() {
+            if k == "args" {
+                builder = add_args(builder, v.as_array().unwrap().as_slice());
+                continue;
+            }
+            let equal_idx = k.find('=').expect(&format!("Invalid key: {}", k));
+            let (target_type, target_value) = k.split_at(equal_idx);
+            if TARGET_INFO[target_type] != target_value[1..] {
+                continue;
+            }
+            if target_type == "os" {
+                *matched_os = true;
+            }
+            builder = match *v {
+                toml::Value::Table(ref table) => add_clang_args(builder, table, matched_os),
+                toml::Value::Array(ref array) => add_args(builder, array),
+                _ => panic!("Unknown type"),
+            };
+        }
+        builder
+    }
+
     impl BuilderExt for Builder {
         fn get_initial_builder() -> Builder {
             use bindgen::RustTarget;
@@ -166,14 +207,16 @@ mod bindings {
                 builder = builder.clang_arg("-DDEBUG=1").clang_arg("-DJS_DEBUG=1");
             }
 
+            let mut matched_os = false;
+            let build_config = CONFIG["build"].as_table().expect("Malformed config file");
+            builder = add_clang_args(builder, build_config, &mut matched_os);
             let build_config = BUILD_CONFIG["build"]
                 .as_table()
                 .expect("Malformed config file");
-            let extra_bindgen_flags = build_config["args"].as_array().unwrap().as_slice();
-            for item in extra_bindgen_flags.iter() {
-                builder = builder.clang_arg(item.as_str().expect("Expect string in list"));
+            builder = add_clang_args(builder, build_config, &mut matched_os);
+            if !matched_os {
+                panic!("Unknown platform");
             }
-
             builder
         }
         fn include<T: Into<String>>(self, file: T) -> Builder {
@@ -257,56 +300,33 @@ mod bindings {
             .expect("Unable to write output");
     }
 
-    fn get_types(filename: &str, macro_pat: &str) -> Vec<(String, String)> {
+    fn get_arc_types() -> Vec<String> {
         // Read the file
-        let path = DISTDIR_PATH.join("include/mozilla/").join(filename);
-        let mut list_file = File::open(path).expect(&format!("Unable to open {}", filename));
+        let mut list_file = File::open(DISTDIR_PATH.join("include/mozilla/ServoArcTypeList.h"))
+            .expect("Unable to open ServoArcTypeList.h");
         let mut content = String::new();
         list_file
             .read_to_string(&mut content)
-            .expect(&format!("Failed to read {}", filename));
+            .expect("Fail to read ServoArcTypeList.h");
         // Remove comments
         let block_comment_re = Regex::new(r#"(?s)/\*.*?\*/"#).unwrap();
-        let line_comment_re = Regex::new(r#"//.*"#).unwrap();
         let content = block_comment_re.replace_all(&content, "");
-        let content = line_comment_re.replace_all(&content, "");
         // Extract the list
-        let re_string = format!(r#"^({})\(.+,\s*(\w+)\)$"#, macro_pat);
-        let re = Regex::new(&re_string).unwrap();
+        let re = Regex::new(r#"^SERVO_ARC_TYPE\(\w+,\s*(\w+)\)$"#).unwrap();
         content
             .lines()
             .map(|line| line.trim())
             .filter(|line| !line.is_empty())
             .map(|line| {
-                let captures = re
-                    .captures(&line)
-                    .expect(&format!("Unrecognized line in {}: '{}'", filename, line));
-                let macro_name = captures.get(1).unwrap().as_str().to_string();
-                let type_name = captures.get(2).unwrap().as_str().to_string();
-                (macro_name, type_name)
-            })
-            .collect()
-    }
-
-    fn get_borrowed_types() -> Vec<(bool, String)> {
-        get_types("BorrowedTypeList.h", "GECKO_BORROWED_TYPE(?:_MUT)?")
-            .into_iter()
-            .map(|(macro_name, type_name)| (macro_name.ends_with("MUT"), type_name))
-            .collect()
-    }
-
-    fn get_arc_types() -> Vec<String> {
-        get_types("ServoArcTypeList.h", "SERVO_ARC_TYPE")
-            .into_iter()
-            .map(|(_, type_name)| type_name)
-            .collect()
-    }
-
-    fn get_boxed_types() -> Vec<String> {
-        get_types("ServoBoxedTypeList.h", "SERVO_BOXED_TYPE")
-            .into_iter()
-            .map(|(_, type_name)| type_name)
-            .collect()
+                re.captures(&line)
+                    .expect(&format!(
+                        "Unrecognized line in ServoArcTypeList.h: '{}'",
+                        line
+                    )).get(1)
+                    .unwrap()
+                    .as_str()
+                    .to_string()
+            }).collect()
     }
 
     struct BuilderWithConfig<'a> {
@@ -393,12 +413,6 @@ mod bindings {
             .handle_str_items("whitelist-vars", |b, item| b.whitelist_var(item))
             .handle_str_items("whitelist-types", |b, item| b.whitelist_type(item))
             .handle_str_items("opaque-types", |b, item| b.opaque_type(item))
-            .handle_table_items("cbindgen-types", |b, item| {
-                let gecko = item["gecko"].as_str().unwrap();
-                let servo = item["servo"].as_str().unwrap();
-                b.blacklist_type(format!("mozilla::{}", gecko))
-                    .module_raw_line("root::mozilla", format!("pub use {} as {};", servo, gecko))
-            })
             .handle_table_items("mapped-generic-types", |builder, item| {
                 let generic = item["generic"].as_bool().unwrap();
                 let gecko = item["gecko"].as_str().unwrap();
@@ -420,8 +434,7 @@ mod bindings {
                     servo,
                     if generic { "<T>" } else { "" }
                 ))
-            })
-            .get_builder();
+            }).get_builder();
         write_binding_file(builder, STRUCTS_FILE, &fixups);
     }
 
@@ -469,8 +482,7 @@ mod bindings {
                 filter: env::var("STYLO_BUILD_FILTER")
                     .ok()
                     .unwrap_or_else(|| "bindgen".to_owned()),
-            }))
-            .expect("Failed to set logger.");
+            })).expect("Failed to set logger.");
 
             true
         } else {
@@ -489,8 +501,7 @@ mod bindings {
             .handle_common(&mut fixups)
             .handle_str_items("whitelist-functions", |b, item| b.whitelist_function(item))
             .handle_str_items("structs-types", |mut builder, ty| {
-                builder = builder
-                    .blacklist_type(ty)
+                builder = builder.blacklist_type(ty)
                     .raw_line(format!("use gecko_bindings::structs::{};", ty));
                 structs_types.insert(ty);
                 // TODO this is hacky, figure out a better way to do it without
@@ -508,14 +519,23 @@ mod bindings {
             .handle_table_items("array-types", |builder, item| {
                 let cpp_type = item["cpp-type"].as_str().unwrap();
                 let rust_type = item["rust-type"].as_str().unwrap();
-                builder.raw_line(format!(
-                    concat!(
-                        "pub type nsTArrayBorrowed_{}<'a> = ",
-                        "&'a mut ::gecko_bindings::structs::nsTArray<{}>;"
-                    ),
-                    cpp_type,
-                    rust_type
-                ))
+                builder
+                    .raw_line(format!(concat!("pub type nsTArrayBorrowed_{}<'a> = ",
+                                              "&'a mut ::gecko_bindings::structs::nsTArray<{}>;"),
+                                      cpp_type, rust_type))
+            })
+            .handle_table_items("servo-owned-types", |mut builder, item| {
+                let name = item["name"].as_str().unwrap();
+                builder = builder.blacklist_type(format!("{}Owned", name))
+                    .raw_line(format!("pub type {0}Owned = ::gecko_bindings::sugar::ownership::Owned<{0}>;", name))
+                    .blacklist_type(format!("{}OwnedOrNull", name))
+                    .raw_line(format!(concat!("pub type {0}OwnedOrNull = ",
+                                              "::gecko_bindings::sugar::ownership::OwnedOrNull<{0}>;"), name))
+                    .mutable_borrowed_type(name);
+                if item["opaque"].as_bool().unwrap() {
+                    builder = builder.zero_size_type(name, &structs_types);
+                }
+                builder
             })
             .handle_str_items("servo-immutable-borrow-types", |b, ty| b.borrowed_type(ty))
             // Right now the only immutable borrow types are ones which we import
@@ -524,39 +544,13 @@ mod bindings {
             // which _do_ need to be opaque, we'll need a separate mode.
             .handle_str_items("servo-borrow-types", |b, ty| b.mutable_borrowed_type(ty))
             .get_builder();
-        for (is_mut, ty) in get_borrowed_types().iter() {
-            if *is_mut {
-                builder = builder.mutable_borrowed_type(ty);
-            } else {
-                builder = builder.borrowed_type(ty);
-            }
-        }
         for ty in get_arc_types().iter() {
             builder = builder
                 .blacklist_type(format!("{}Strong", ty))
                 .raw_line(format!(
                     "pub type {0}Strong = ::gecko_bindings::sugar::ownership::Strong<{0}>;",
                     ty
-                ))
-                .borrowed_type(ty)
-                .zero_size_type(ty, &structs_types);
-        }
-        for ty in get_boxed_types().iter() {
-            builder = builder
-                .blacklist_type(format!("{}Owned", ty))
-                .raw_line(format!(
-                    "pub type {0}Owned = ::gecko_bindings::sugar::ownership::Owned<{0}>;",
-                    ty
-                ))
-                .blacklist_type(format!("{}OwnedOrNull", ty))
-                .raw_line(format!(
-                    concat!(
-                        "pub type {0}OwnedOrNull = ",
-                        "::gecko_bindings::sugar::ownership::OwnedOrNull<{0}>;"
-                    ),
-                    ty
-                ))
-                .mutable_borrowed_type(ty)
+                )).borrowed_type(ty)
                 .zero_size_type(ty, &structs_types);
         }
         write_binding_file(builder, BINDINGS_FILE, &fixups);
@@ -606,9 +600,9 @@ mod bindings {
 
 #[cfg(not(feature = "bindgen"))]
 mod bindings {
-    use super::common::*;
-    use std::path::{Path, PathBuf};
     use std::{env, fs, io};
+    use std::path::{Path, PathBuf};
+    use super::common::*;
 
     /// Copy contents of one directory into another.
     /// It currently only does a shallow copy.
@@ -633,8 +627,7 @@ mod bindings {
         println!("cargo:rerun-if-changed={}", dir.display());
         copy_dir(&dir, &*OUTDIR_PATH, |path| {
             println!("cargo:rerun-if-changed={}", path.display());
-        })
-        .expect("Fail to copy generated files to out dir");
+        }).expect("Fail to copy generated files to out dir");
     }
 }
 

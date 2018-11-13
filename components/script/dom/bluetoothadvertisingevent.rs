@@ -2,20 +2,18 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::codegen::Bindings::BluetoothAdvertisingEventBinding::BluetoothAdvertisingEventMethods;
-use crate::dom::bindings::codegen::Bindings::BluetoothAdvertisingEventBinding::{
-    self, BluetoothAdvertisingEventInit,
-};
-use crate::dom::bindings::codegen::Bindings::EventBinding::EventBinding::EventMethods;
-use crate::dom::bindings::error::Fallible;
-use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::reflect_dom_object;
-use crate::dom::bindings::root::{Dom, DomRoot, RootedReference};
-use crate::dom::bindings::str::DOMString;
-use crate::dom::bluetoothdevice::BluetoothDevice;
-use crate::dom::event::{Event, EventBubbles, EventCancelable};
-use crate::dom::globalscope::GlobalScope;
-use crate::dom::window::Window;
+use dom::bindings::codegen::Bindings::BluetoothAdvertisingEventBinding::{self, BluetoothAdvertisingEventInit};
+use dom::bindings::codegen::Bindings::BluetoothAdvertisingEventBinding::BluetoothAdvertisingEventMethods;
+use dom::bindings::codegen::Bindings::EventBinding::EventBinding::EventMethods;
+use dom::bindings::error::Fallible;
+use dom::bindings::inheritance::Castable;
+use dom::bindings::reflector::reflect_dom_object;
+use dom::bindings::root::{Dom, DomRoot, RootedReference};
+use dom::bindings::str::DOMString;
+use dom::bluetoothdevice::BluetoothDevice;
+use dom::event::{Event, EventBubbles, EventCancelable};
+use dom::globalscope::GlobalScope;
+use dom::window::Window;
 use dom_struct::dom_struct;
 use servo_atoms::Atom;
 

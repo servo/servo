@@ -3,19 +3,15 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 // https://www.khronos.org/registry/webgl/specs/latest/1.0/webgl.idl
-use canvas_traits::webgl::{
-    is_gles, webgl_channel, WebGLCommand, WebGLError, WebGLRenderbufferId, WebGLResult,
-};
-use crate::dom::bindings::codegen::Bindings::EXTColorBufferHalfFloatBinding::EXTColorBufferHalfFloatConstants;
-use crate::dom::bindings::codegen::Bindings::WEBGLColorBufferFloatBinding::WEBGLColorBufferFloatConstants;
-use crate::dom::bindings::codegen::Bindings::WebGL2RenderingContextBinding::WebGL2RenderingContextConstants;
-use crate::dom::bindings::codegen::Bindings::WebGLRenderbufferBinding;
-use crate::dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
-use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
-use crate::dom::bindings::root::DomRoot;
-use crate::dom::webglobject::WebGLObject;
-use crate::dom::webglrenderingcontext::WebGLRenderingContext;
+use canvas_traits::webgl::{webgl_channel, WebGLCommand, WebGLError, WebGLRenderbufferId, WebGLResult};
+use dom::bindings::codegen::Bindings::WebGL2RenderingContextBinding::WebGL2RenderingContextConstants as WebGl2Constants;
+use dom::bindings::codegen::Bindings::WebGLRenderbufferBinding;
+use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
+use dom::bindings::inheritance::Castable;
+use dom::bindings::reflector::{DomObject, reflect_dom_object};
+use dom::bindings::root::DomRoot;
+use dom::webglobject::WebGLObject;
+use dom::webglrenderingcontext::{WebGLRenderingContext, is_gles};
 use dom_struct::dom_struct;
 use std::cell::Cell;
 
@@ -124,55 +120,34 @@ impl WebGLRenderbuffer {
         // Validate the internal_format, and save it for completeness
         // validation.
         let actual_format = match internal_format {
-            constants::RGBA4 | constants::DEPTH_COMPONENT16 | constants::STENCIL_INDEX8 => {
-                internal_format
-            },
+            constants::RGBA4 |
+            constants::DEPTH_COMPONENT16 |
+            constants::STENCIL_INDEX8 => internal_format,
             // https://www.khronos.org/registry/webgl/specs/latest/1.0/#6.8
-            constants::DEPTH_STENCIL => WebGL2RenderingContextConstants::DEPTH24_STENCIL8,
+            constants::DEPTH_STENCIL => WebGl2Constants::DEPTH24_STENCIL8,
             constants::RGB5_A1 => {
                 // 16-bit RGBA formats are not supported on desktop GL.
                 if is_gles() {
                     constants::RGB5_A1
                 } else {
-                    WebGL2RenderingContextConstants::RGBA8
+                    WebGl2Constants::RGBA8
                 }
-            },
+            }
             constants::RGB565 => {
                 // RGB565 is not supported on desktop GL.
                 if is_gles() {
                     constants::RGB565
                 } else {
-                    WebGL2RenderingContextConstants::RGB8
+                    WebGl2Constants::RGB8
                 }
-            },
-            EXTColorBufferHalfFloatConstants::RGBA16F_EXT |
-            EXTColorBufferHalfFloatConstants::RGB16F_EXT => {
-                if !self
-                    .upcast()
-                    .context()
-                    .extension_manager()
-                    .is_half_float_buffer_renderable()
-                {
-                    return Err(WebGLError::InvalidEnum);
-                }
-                internal_format
-            },
-            WEBGLColorBufferFloatConstants::RGBA32F_EXT => {
-                if !self
-                    .upcast()
-                    .context()
-                    .extension_manager()
-                    .is_float_buffer_renderable()
-                {
-                    return Err(WebGLError::InvalidEnum);
-                }
-                internal_format
-            },
+            }
             _ => return Err(WebGLError::InvalidEnum),
         };
 
         self.internal_format.set(Some(internal_format));
         self.is_initialized.set(false);
+
+        // FIXME: Invalidate completeness after the call
 
         self.upcast::<WebGLObject>()
             .context()
@@ -186,11 +161,5 @@ impl WebGLRenderbuffer {
         self.size.set(Some((width, height)));
 
         Ok(())
-    }
-}
-
-impl Drop for WebGLRenderbuffer {
-    fn drop(&mut self) {
-        self.delete();
     }
 }

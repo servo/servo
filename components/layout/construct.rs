@@ -11,54 +11,37 @@
 //! maybe it's an absolute or fixed position thing that hasn't found its containing block yet.
 //! Construction items bubble up the tree from children to parents until they find their homes.
 
-use crate::block::BlockFlow;
-use crate::context::{with_thread_local_font_context, LayoutContext};
-use crate::data::{LayoutData, LayoutDataFlags};
-use crate::display_list::items::OpaqueNode;
-use crate::flex::FlexFlow;
-use crate::floats::FloatKind;
-use crate::flow::{AbsoluteDescendants, Flow, FlowClass, GetBaseFlow, ImmutableFlowUtils};
-use crate::flow::{FlowFlags, MutableFlowUtils, MutableOwnedFlowUtils};
-use crate::flow_ref::FlowRef;
-use crate::fragment::{
-    CanvasFragmentInfo, Fragment, FragmentFlags, GeneratedContentInfo, IframeFragmentInfo,
-};
-use crate::fragment::{
-    ImageFragmentInfo, InlineAbsoluteFragmentInfo, InlineAbsoluteHypotheticalFragmentInfo,
-};
-use crate::fragment::{
-    InlineBlockFragmentInfo, MediaFragmentInfo, SpecificFragmentInfo, SvgFragmentInfo,
-};
-use crate::fragment::{
-    TableColumnFragmentInfo, UnscannedTextFragmentInfo, WhitespaceStrippingResult,
-};
-use crate::inline::{InlineFlow, InlineFragmentNodeFlags, InlineFragmentNodeInfo};
-use crate::linked_list::prepend_from;
-use crate::list_item::{ListItemFlow, ListStyleTypeContent};
-use crate::multicol::{MulticolColumnFlow, MulticolFlow};
-use crate::parallel;
-use crate::table::TableFlow;
-use crate::table_caption::TableCaptionFlow;
-use crate::table_cell::TableCellFlow;
-use crate::table_colgroup::TableColGroupFlow;
-use crate::table_row::TableRowFlow;
-use crate::table_rowgroup::TableRowGroupFlow;
-use crate::table_wrapper::TableWrapperFlow;
-use crate::text::TextRunScanner;
-use crate::traversal::PostorderNodeMutTraversal;
-use crate::wrapper::{LayoutNodeLayoutData, TextContent, ThreadSafeLayoutNodeHelpers};
-use crate::ServoArc;
-use script_layout_interface::wrapper_traits::{
-    PseudoElementType, ThreadSafeLayoutElement, ThreadSafeLayoutNode,
-};
-use script_layout_interface::{is_image_data, LayoutElementType, LayoutNodeType};
+#![deny(unsafe_code)]
+
+use ServoArc;
+use block::BlockFlow;
+use context::{LayoutContext, with_thread_local_font_context};
+use data::{LayoutDataFlags, LayoutData};
+use display_list::items::OpaqueNode;
+use flex::FlexFlow;
+use floats::FloatKind;
+use flow::{AbsoluteDescendants, Flow, FlowClass, GetBaseFlow, ImmutableFlowUtils};
+use flow::{FlowFlags, MutableFlowUtils, MutableOwnedFlowUtils};
+use flow_ref::FlowRef;
+use fragment::{CanvasFragmentInfo, ImageFragmentInfo, InlineAbsoluteFragmentInfo, SvgFragmentInfo};
+use fragment::{Fragment, GeneratedContentInfo, IframeFragmentInfo, FragmentFlags};
+use fragment::{InlineAbsoluteHypotheticalFragmentInfo, TableColumnFragmentInfo};
+use fragment::{InlineBlockFragmentInfo, SpecificFragmentInfo, UnscannedTextFragmentInfo};
+use fragment::WhitespaceStrippingResult;
+use inline::{InlineFlow, InlineFragmentNodeInfo, InlineFragmentNodeFlags};
+use linked_list::prepend_from;
+use list_item::{ListItemFlow, ListStyleTypeContent};
+use multicol::{MulticolColumnFlow, MulticolFlow};
+use parallel;
+use script_layout_interface::{LayoutElementType, LayoutNodeType, is_image_data};
+use script_layout_interface::wrapper_traits::{PseudoElementType, ThreadSafeLayoutElement, ThreadSafeLayoutNode};
 use servo_config::opts;
 use servo_url::ServoUrl;
 use std::collections::LinkedList;
 use std::marker::PhantomData;
 use std::mem;
-use std::sync::atomic::Ordering;
 use std::sync::Arc;
+use std::sync::atomic::Ordering;
 use style::computed_values::caption_side::T as CaptionSide;
 use style::computed_values::display::T as Display;
 use style::computed_values::empty_cells::T as EmptyCells;
@@ -73,6 +56,16 @@ use style::selector_parser::{PseudoElement, RestyleDamage};
 use style::servo::restyle_damage::ServoRestyleDamage;
 use style::values::generics::counters::ContentItem;
 use style::values::generics::url::UrlOrNone as ImageUrlOrNone;
+use table::TableFlow;
+use table_caption::TableCaptionFlow;
+use table_cell::TableCellFlow;
+use table_colgroup::TableColGroupFlow;
+use table_row::TableRowFlow;
+use table_rowgroup::TableRowGroupFlow;
+use table_wrapper::TableWrapperFlow;
+use text::TextRunScanner;
+use traversal::PostorderNodeMutTraversal;
+use wrapper::{LayoutNodeLayoutData, TextContent, ThreadSafeLayoutNodeHelpers};
 
 /// The results of flow construction for a DOM node.
 #[derive(Clone)]
@@ -195,8 +188,7 @@ impl InlineBlockSplit {
             predecessors: mem::replace(
                 fragment_accumulator,
                 InlineFragmentsAccumulator::from_inline_node(node, style_context),
-            )
-            .to_intermediate_inline_fragments::<ConcreteThreadSafeLayoutNode>(style_context),
+            ).to_intermediate_inline_fragments::<ConcreteThreadSafeLayoutNode>(style_context),
             flow: flow,
         };
 
@@ -413,10 +405,6 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
                     &self.layout_context,
                 ));
                 SpecificFragmentInfo::Image(image_info)
-            },
-            Some(LayoutNodeType::Element(LayoutElementType::HTMLMediaElement)) => {
-                let data = node.media_data().unwrap();
-                SpecificFragmentInfo::Media(Box::new(MediaFragmentInfo::new(data)))
             },
             Some(LayoutNodeType::Element(LayoutElementType::HTMLObjectElement)) => {
                 let image_info = Box::new(ImageFragmentInfo::new(
@@ -1968,7 +1956,6 @@ where
         match self.type_id() {
             Some(LayoutNodeType::Text) |
             Some(LayoutNodeType::Element(LayoutElementType::HTMLImageElement)) |
-            Some(LayoutNodeType::Element(LayoutElementType::HTMLMediaElement)) |
             Some(LayoutNodeType::Element(LayoutElementType::HTMLIFrameElement)) |
             Some(LayoutNodeType::Element(LayoutElementType::HTMLCanvasElement)) |
             Some(LayoutNodeType::Element(LayoutElementType::SVGSVGElement)) => true,

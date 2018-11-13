@@ -16,14 +16,16 @@
 extern crate lazy_static;
 #[macro_use]
 extern crate log;
+extern crate rand;
+extern crate uuid;
 
+pub use rand::{Rand, Rng, SeedableRng};
 #[cfg(target_pointer_width = "64")]
 use rand::isaac::Isaac64Rng as IsaacWordRng;
 #[cfg(target_pointer_width = "32")]
 use rand::isaac::IsaacRng as IsaacWordRng;
 use rand::os::OsRng;
-use rand::reseeding::{Reseeder, ReseedingRng};
-pub use rand::{Rand, Rng, SeedableRng};
+use rand::reseeding::{ReseedingRng, Reseeder};
 use std::cell::RefCell;
 use std::mem;
 use std::rc::Rc;

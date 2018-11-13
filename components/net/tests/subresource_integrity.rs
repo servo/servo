@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use net::subresource_integrity::{get_prioritized_hash_function, get_strongest_metadata, SriEntry};
+use net::subresource_integrity::{SriEntry, get_prioritized_hash_function, get_strongest_metadata};
 use net::subresource_integrity::{is_response_integrity_valid, parsed_metadata};
 use net_traits::response::{Response, ResponseBody};
 use servo_url::ServoUrl;
@@ -72,8 +72,7 @@ fn test_response_integrity_valid() {
     let url: ServoUrl = ServoUrl::parse("http://servo.org").unwrap();
     let response: Response = Response::new(url);
 
-    let integrity_metadata =
-        "sha384-H8BRh8j48O9oYatfu5AZzq6A9RINhZO5H16dQZngK7T62em8MUt1FLm52t+eX6xO";
+    let integrity_metadata = "sha384-H8BRh8j48O9oYatfu5AZzq6A9RINhZO5H16dQZngK7T62em8MUt1FLm52t+eX6xO";
     let response_body = "alert('Hello, world.');".to_owned().into_bytes();
 
     *response.body.lock().unwrap() = ResponseBody::Done(response_body);
@@ -85,8 +84,7 @@ fn test_response_integrity_invalid() {
     let url: ServoUrl = ServoUrl::parse("http://servo.org").unwrap();
     let response: Response = Response::new(url);
 
-    let integrity_metadata =
-        "sha256-H8BRh8j48O9oYatfu5AZzq6A9RINhZO5H16dQZngK7T62em8MUt1FLm52t+eX6xO";
+    let integrity_metadata = "sha256-H8BRh8j48O9oYatfu5AZzq6A9RINhZO5H16dQZngK7T62em8MUt1FLm52t+eX6xO";
     let response_body = "alert('Hello, world.');".to_owned().into_bytes();
 
     *response.body.lock().unwrap() = ResponseBody::Done(response_body);

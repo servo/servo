@@ -2,22 +2,22 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::codegen::Bindings::NavigatorBinding;
-use crate::dom::bindings::codegen::Bindings::NavigatorBinding::NavigatorMethods;
-use crate::dom::bindings::codegen::Bindings::VRBinding::VRBinding::VRMethods;
-use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
-use crate::dom::bindings::root::{DomRoot, MutNullableDom};
-use crate::dom::bindings::str::DOMString;
-use crate::dom::bluetooth::Bluetooth;
-use crate::dom::gamepadlist::GamepadList;
-use crate::dom::mimetypearray::MimeTypeArray;
-use crate::dom::navigatorinfo;
-use crate::dom::permissions::Permissions;
-use crate::dom::pluginarray::PluginArray;
-use crate::dom::promise::Promise;
-use crate::dom::serviceworkercontainer::ServiceWorkerContainer;
-use crate::dom::vr::VR;
-use crate::dom::window::Window;
+use dom::bindings::codegen::Bindings::NavigatorBinding;
+use dom::bindings::codegen::Bindings::NavigatorBinding::NavigatorMethods;
+use dom::bindings::codegen::Bindings::VRBinding::VRBinding::VRMethods;
+use dom::bindings::reflector::{Reflector, DomObject, reflect_dom_object};
+use dom::bindings::root::{DomRoot, MutNullableDom};
+use dom::bindings::str::DOMString;
+use dom::bluetooth::Bluetooth;
+use dom::gamepadlist::GamepadList;
+use dom::mimetypearray::MimeTypeArray;
+use dom::navigatorinfo;
+use dom::permissions::Permissions;
+use dom::pluginarray::PluginArray;
+use dom::promise::Promise;
+use dom::serviceworkercontainer::ServiceWorkerContainer;
+use dom::vr::VR;
+use dom::window::Window;
 use dom_struct::dom_struct;
 use std::rc::Rc;
 
