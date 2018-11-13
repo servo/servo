@@ -15,10 +15,20 @@ cd etc/taskcluster/macos
 ./salt-ssh '*' state.apply test=True
 ```
 
-## Servers
+## (Re)deploying a server
 
-Servers are provisioned manually from MacStadium.
-The `config/roster` file lists them by DNS name.
+* Place an order or file a ticket with MacStadium to get a new hardware or reinstall an OS.
+
+* Change the administrator password to one generated with
+  `</dev/urandom tr -d -c 'a-zA-Z' | head -c 8; echo`
+  (this short because of VNC),
+  and save it in the shared 1Password account.
+
+* Give the public IPv4 address a DNS name through Cloudflare.
+
+* Add a correponding entry in the `config/roster` file.
+
+* Log in through VNC, and run `xcode-select --install`
 
 
 ## Taskcluster secrets
