@@ -27,7 +27,7 @@ import taskcluster
 # Public API
 __all__ = [
     "CONFIG", "SHARED", "Task", "DockerWorkerTask",
-    "GenericWorkerTask", "WindowsGenericWorkerTask",
+    "GenericWorkerTask", "WindowsGenericWorkerTask", "MacOsGenericWorkerTask",
 ]
 
 
@@ -495,6 +495,59 @@ class WindowsGenericWorkerTask(GenericWorkerTask):
         """) \
         .with_path_from_homedir("python2", "python2\\Scripts")
 
+
+class MacOsGenericWorkerTask(GenericWorkerTask):
+    """
+    Task definition for a `generic-worker` task running on macOS.
+
+    Scripts are interpreted with `bash`.
+    """
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.scripts = []
+
+    with_script = chaining(append_to_attr, "scripts")
+    with_early_script = chaining(prepend_to_attr, "scripts")
+
+    def build_command(self):
+        # generic-worker accepts multiple commands, but unlike on Windows
+        # the current directory and environment variables
+        # are not preserved across commands on macOS.
+        # So concatenate scripts and use a single `bash` command instead.
+        return [
+            [
+                "/bin/bash", "--login", "-x", "-e", "-c",
+                deindent("\n".join(self.scripts))
+            ]
+        ]
+
+    def with_repo(self):
+        """
+        Make a shallow clone the git repository at the start of the task.
+        This uses `CONFIG.git_url`, `CONFIG.git_ref`, and `CONFIG.git_sha`,
+        and creates the clone in a `repo` directory in the task’s directory.
+        """
+        return self \
+        .with_env(**git_env()) \
+        .with_early_script("""
+            git init repo
+            cd repo
+            git fetch --depth 1 "$GIT_URL" "$GIT_REF"
+            git reset --hard "$GIT_SHA"
+        """)
+
+    def with_python2(self):
+        return self.with_early_script("""
+            export PATH="$HOME/Library/Python/2.7/bin:$PATH"
+            python -m ensurepip --user
+            pip install --user virtualenv
+        """)
+
+    def with_rustup(self):
+        return self.with_early_script("""
+            export PATH="$HOME/.cargo/bin:$PATH"
+            which rustup || curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain none -y
+        """)
 
 
 class DockerWorkerTask(Task):
