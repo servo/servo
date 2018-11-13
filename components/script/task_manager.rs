@@ -34,7 +34,7 @@ macro_rules! task_source_functions {
 #[derive(MallocSizeOf)]
 pub struct TaskManager {
     #[ignore_malloc_size_of = "task sources are hard"]
-    task_cancellers: DomRefCell<HashMap<TaskSourceName, Arc<AtomicBool>>>,
+    pub task_cancellers: DomRefCell<HashMap<TaskSourceName, Arc<AtomicBool>>>,
     #[ignore_malloc_size_of = "task sources are hard"]
     dom_manipulation_task_source: DOMManipulationTaskSource,
     #[ignore_malloc_size_of = "task sources are hard"]

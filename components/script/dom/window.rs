@@ -118,7 +118,7 @@ use std::fs;
 use std::io::{stderr, stdout, Write};
 use std::mem;
 use std::rc::Rc;
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::Ordering;
 use std::sync::{Arc, Mutex};
 use style::error_reporting::ParseErrorReporter;
 use style::media_queries;
@@ -247,10 +247,6 @@ pub struct Window {
 
     current_viewport: Cell<Rect<Au>>,
 
-    /// A map of flags to prevent events from a given task source from attempting to interact with this window.
-    #[ignore_malloc_size_of = "defined in std"]
-    ignore_further_async_events: DomRefCell<HashMap<TaskSourceName, Arc<AtomicBool>>>,
-
     error_reporter: CSSErrorReporter,
 
     /// A list of scroll offsets for each scrollable element.
@@ -321,7 +317,7 @@ impl Window {
     }
 
     fn ignore_all_events(&self) {
-        let mut ignore_flags = self.ignore_further_async_events.borrow_mut();
+        let mut ignore_flags = self.task_manager.task_cancellers.borrow_mut();
         for task_source_name in TaskSourceName::all() {
             let flag = ignore_flags
                 .entry(task_source_name)
@@ -1186,10 +1182,10 @@ impl Window {
 
     /// Cancels all the tasks associated with that window.
     ///
-    /// This sets the current `ignore_further_async_events` sentinel value to
+    /// This sets the current `task_manager.task_cancellers` sentinel value to
     /// `true` and replaces it with a brand new one for future tasks.
     pub fn cancel_all_tasks(&self) {
-        let mut ignore_flags = self.ignore_further_async_events.borrow_mut();
+        let mut ignore_flags = self.task_manager.task_cancellers.borrow_mut();
         for task_source_name in TaskSourceName::all() {
             let flag = ignore_flags
                 .entry(task_source_name)
@@ -1203,7 +1199,7 @@ impl Window {
     /// This sets the current sentinel value to
     /// `true` and replaces it with a brand new one for future tasks.
     pub fn cancel_all_tasks_from_source(&self, task_source_name: TaskSourceName) {
-        let mut ignore_flags = self.ignore_further_async_events.borrow_mut();
+        let mut ignore_flags = self.task_manager.task_cancellers.borrow_mut();
         let flag = ignore_flags
             .entry(task_source_name)
             .or_insert(Default::default());
@@ -2092,7 +2088,6 @@ impl Window {
             devtools_marker_sender: Default::default(),
             devtools_markers: Default::default(),
             webdriver_script_chan: Default::default(),
-            ignore_further_async_events: Default::default(),
             error_reporter,
             scroll_offsets: Default::default(),
             media_query_lists: DOMTracker::new(),
