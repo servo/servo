@@ -50,10 +50,11 @@ use crate::dom::window::Window;
 use backtrace::Backtrace;
 use canvas_traits::webgl::WebGLError::*;
 use canvas_traits::webgl::{
-    webgl_channel, AlphaTreatment, DOMToTextureCommand, Parameter, TexDataType, TexFormat,
-    TexParameter, WebGLCommand, WebGLCommandBacktrace, WebGLContextShareMode, WebGLError,
-    WebGLFramebufferBindingRequest, WebGLMsg, WebGLMsgSender, WebGLProgramId, WebGLResult,
-    WebGLSLVersion, WebGLSender, WebGLVersion, WebVRCommand, YAxisTreatment,
+    webgl_channel, AlphaTreatment, DOMToTextureCommand, GLContextAttributes, GLLimits, Parameter,
+    TexDataType, TexFormat, TexParameter, WebGLCommand, WebGLCommandBacktrace,
+    WebGLContextShareMode, WebGLError, WebGLFramebufferBindingRequest, WebGLMsg, WebGLMsgSender,
+    WebGLProgramId, WebGLResult, WebGLSLVersion, WebGLSender, WebGLVersion, WebVRCommand,
+    YAxisTreatment,
 };
 use dom_struct::dom_struct;
 use euclid::{Point2D, Rect, Size2D};
@@ -67,7 +68,6 @@ use js::typedarray::{
 };
 use js::typedarray::{TypedArray, TypedArrayElementCreator};
 use net_traits::image_cache::ImageResponse;
-use offscreen_gl_context::{GLContextAttributes, GLLimits};
 use pixels::{self, PixelFormat};
 use script_layout_interface::HTMLCanvasDataSource;
 use serde::{Deserialize, Serialize};
