@@ -4,7 +4,7 @@
 
 use base64;
 use canvas_traits::canvas::{CanvasId, CanvasMsg, FromScriptMsg};
-use canvas_traits::webgl::WebGLVersion;
+use canvas_traits::webgl::{WebGLVersion, GLContextAttributes};
 use crate::dom::attr::Attr;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::HTMLCanvasElementBinding;
@@ -40,7 +40,6 @@ use ipc_channel::ipc::IpcSharedMemory;
 use js::error::throw_type_error;
 use js::jsapi::JSContext;
 use js::rust::HandleValue;
-use offscreen_gl_context::GLContextAttributes;
 use profile_traits::ipc;
 use script_layout_interface::{HTMLCanvasData, HTMLCanvasDataSource};
 use servo_config::prefs::PREFS;

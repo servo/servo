@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 /// https://www.khronos.org/registry/webgl/specs/latest/2.0/webgl.idl
-use canvas_traits::webgl::WebGLVersion;
+use canvas_traits::webgl::{WebGLVersion, GLContextAttributes};
 use crate::dom::bindings::codegen::Bindings::WebGL2RenderingContextBinding;
 use crate::dom::bindings::codegen::Bindings::WebGL2RenderingContextBinding::WebGL2RenderingContextMethods;
 use crate::dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLContextAttributes;
@@ -37,7 +37,6 @@ use js::jsapi::{JSContext, JSObject};
 use js::jsval::JSVal;
 use js::rust::CustomAutoRooterGuard;
 use js::typedarray::ArrayBufferView;
-use offscreen_gl_context::GLContextAttributes;
 use script_layout_interface::HTMLCanvasDataSource;
 use std::ptr::NonNull;
 
