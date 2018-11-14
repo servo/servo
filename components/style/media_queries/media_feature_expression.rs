@@ -10,8 +10,12 @@ use super::media_feature::{KeywordDiscriminant, ParsingRequirements};
 use super::Device;
 use crate::context::QuirksMode;
 #[cfg(feature = "gecko")]
+use crate::gecko::media_features::MEDIA_FEATURES;
+#[cfg(feature = "gecko")]
 use crate::gecko_bindings::structs;
 use crate::parser::{Parse, ParserContext};
+#[cfg(feature = "servo")]
+use crate::servo::media_queries::MEDIA_FEATURES;
 use crate::str::{starts_with_ignore_ascii_case, string_as_ascii_lowercase};
 use crate::stylesheets::Origin;
 use crate::values::computed::{self, ToComputedValue};
@@ -150,14 +154,14 @@ impl RangeOrOperator {
 /// the media query contained, and the range to evaluate.
 #[derive(Clone, Debug, MallocSizeOf)]
 pub struct MediaFeatureExpression {
-    feature: &'static MediaFeatureDescription,
+    feature_index: usize,
     value: Option<MediaExpressionValue>,
     range_or_operator: Option<RangeOrOperator>,
 }
 
 impl PartialEq for MediaFeatureExpression {
     fn eq(&self, other: &Self) -> bool {
-        self.feature as *const _ == other.feature as *const _ &&
+        self.feature_index == other.feature_index &&
             self.value == other.value &&
             self.range_or_operator == other.range_or_operator
     }
@@ -170,8 +174,9 @@ impl ToCss for MediaFeatureExpression {
     {
         dest.write_str("(")?;
 
-        if self
-            .feature
+        let feature = self.feature();
+
+        if feature
             .requirements
             .contains(ParsingRequirements::WEBKIT_PREFIX)
         {
@@ -186,7 +191,7 @@ impl ToCss for MediaFeatureExpression {
         }
 
         // NB: CssStringWriter not needed, feature names are under control.
-        write!(dest, "{}", self.feature.name)?;
+        write!(dest, "{}", feature.name)?;
 
         if let Some(RangeOrOperator::Operator(op)) = self.range_or_operator {
             dest.write_char(' ')?;
@@ -240,15 +245,20 @@ fn consume_operation_or_colon(input: &mut Parser) -> Result<Option<Operator>, ()
 
 impl MediaFeatureExpression {
     fn new(
-        feature: &'static MediaFeatureDescription,
+        feature_index: usize,
         value: Option<MediaExpressionValue>,
         range_or_operator: Option<RangeOrOperator>,
     ) -> Self {
+        debug_assert!(feature_index < MEDIA_FEATURES.len());
         Self {
-            feature,
+            feature_index,
             value,
             range_or_operator,
         }
+    }
+
+    fn feature(&self) -> &'static MediaFeatureDescription {
+        &MEDIA_FEATURES[self.feature_index]
     }
 
     /// Parse a media expression of the form:
@@ -270,12 +280,8 @@ impl MediaFeatureExpression {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
-        #[cfg(feature = "gecko")]
-        use crate::gecko::media_features::MEDIA_FEATURES;
-        #[cfg(feature = "servo")]
-        use crate::servo::media_queries::MEDIA_FEATURES;
-
         // FIXME: remove extra indented block when lifetimes are non-lexical
+        let feature_index;
         let feature;
         let range;
         {
@@ -319,14 +325,15 @@ impl MediaFeatureExpression {
                 };
 
                 let atom = Atom::from(string_as_ascii_lowercase(feature_name));
-                match MEDIA_FEATURES.iter().find(|f| f.name == atom) {
-                    Some(f) => Ok((f, range)),
+                match MEDIA_FEATURES.iter().enumerate().find(|(_, f)| f.name == atom) {
+                    Some((i, f)) => Ok((i, f, range)),
                     None => Err(()),
                 }
             };
 
             match result {
-                Ok((f, r)) => {
+                Ok((i, f, r)) => {
+                    feature_index = i;
                     feature = f;
                     range = r;
                 },
@@ -365,7 +372,7 @@ impl MediaFeatureExpression {
                     );
                 }
 
-                return Ok(Self::new(feature, None, None));
+                return Ok(Self::new(feature_index, None, None));
             },
             Ok(operator) => operator,
         };
@@ -396,7 +403,7 @@ impl MediaFeatureExpression {
                 .new_custom_error(StyleParseErrorKind::MediaQueryExpectedFeatureValue)
         })?;
 
-        Ok(Self::new(feature, Some(value), range_or_operator))
+        Ok(Self::new(feature_index, Some(value), range_or_operator))
     }
 
     /// Returns whether this media query evaluates to true for the given device.
@@ -412,7 +419,7 @@ impl MediaFeatureExpression {
             };
         }
 
-        match self.feature.evaluator {
+        match self.feature().evaluator {
             Evaluator::Length(eval) => {
                 let computed = expect!(Length).map(|specified| {
                     computed::Context::for_media_query_evaluation(device, quirks_mode, |context| {
@@ -492,7 +499,7 @@ impl MediaExpressionValue {
             MediaExpressionValue::IntRatio(ratio) => ratio.to_css(dest),
             MediaExpressionValue::Resolution(ref r) => r.to_css(dest),
             MediaExpressionValue::Ident(ref ident) => serialize_atom_identifier(ident, dest),
-            MediaExpressionValue::Enumerated(value) => match for_expr.feature.evaluator {
+            MediaExpressionValue::Enumerated(value) => match for_expr.feature().evaluator {
                 Evaluator::Enumerated { serializer, .. } => dest.write_str(&*serializer(value)),
                 _ => unreachable!(),
             },
