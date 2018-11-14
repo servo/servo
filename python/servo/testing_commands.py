@@ -609,7 +609,10 @@ class MachCommands(CommandBase):
                 if len(line) == 0:
                     print("EOF without finding the expected line")
                     return 1
-                print(line.rstrip())
+                try:
+                    sys.stdout.write(line)
+                except:
+                    sys.stdout.write("\n---suppressing a line that could not be written---\n")
                 if "JavaScript is running!" in line:
                     break
         finally:
