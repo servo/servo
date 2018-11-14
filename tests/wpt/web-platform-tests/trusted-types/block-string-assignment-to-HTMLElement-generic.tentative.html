@@ -89,4 +89,20 @@
       assert_element_accepts_trusted_type(c[0], c[1], null, "null");
     }, c[0] + "." + c[1] + " accepts string and null after default policy was created");
   });
+
+  // TrustedScript Assignments
+  const scriptTestCases = [
+    [ 'script', 'text' ],
+    [ 'script', 'innerText' ],
+    [ 'script', 'textContent' ]
+  ];
+
+  testnb = 0;
+  scriptTestCases.forEach(c => {
+    test(t => {
+      assert_element_accepts_trusted_script(window, ++testnb, t, c[0], c[1], RESULTS.SCRIPT);
+      assert_throws_no_trusted_type(c[0], c[1], 'A string');
+      assert_throws_no_trusted_type(c[0], c[1], null);
+    }, c[0] + "." + c[1] + " accepts only TrustedScript");
+  });
 </script>

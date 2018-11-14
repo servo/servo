@@ -249,6 +249,19 @@ function createDataChannelPair(
   });
 }
 
+// Wait for RTP and RTCP stats to arrive
+async function waitForRtpAndRtcpStats(pc) {
+  while (true) {
+    const report = await pc.getStats();
+    const stats = [...report.values()].filter(({type}) => type.endsWith("bound-rtp"));
+    // Each RTP and RTCP stat has a reference
+    // to the matching stat in the other direction
+    if (stats.length && stats.every(({localId, remoteId}) => localId || remoteId)) {
+      break;
+    }
+  }
+}
+
 // Wait for a single message event and return
 // a promise that resolve when the event fires
 function awaitMessage(channel) {

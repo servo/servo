@@ -114,6 +114,29 @@ function runImportTests(worklet_type) {
     }, 'Importing a cross origin resource without the ' +
        'Access-Control-Allow-Origin header should reject the given promise');
 
+    promise_test(() => {
+        const kScriptURL = get_host_info().HTTPS_REMOTE_ORIGIN +
+                           '/worklets/resources/empty-worklet-script.js' +
+                           '?pipe=header(Access-Control-Allow-Origin, ' +
+                           location.origin + ')';
+        return worklet.addModule('/common/redirect.py?location=' +
+                                 encodeURIComponent(kScriptURL))
+          .then(undefined_arg => {
+              assert_equals(undefined_arg, undefined);
+          });
+    }, 'Importing a cross-origin-redirected resource with the ' +
+       'Access-Control-Allow-Origin header should resolve the given promise');
+
+    promise_test(t => {
+        const kScriptURL = get_host_info().HTTPS_REMOTE_ORIGIN +
+                           '/worklets/resources/empty-worklet-script.js';
+        return promise_rejects(t, new DOMException('', 'AbortError'),
+                               worklet.addModule(
+                                   '/common/redirect.py?location=' +
+                                   encodeURIComponent(kScriptURL)));
+    }, 'Importing a cross-origin-redirected resource without the ' +
+       'Access-Control-Allow-Origin header should reject the given promise');
+
     promise_test(t => {
         const kScriptURL = 'resources/syntax-error-worklet-script.js';
         return promise_rejects(t, new DOMException('', 'AbortError'),

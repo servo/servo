@@ -5,6 +5,7 @@
 <script src="/resources/testharnessreport.js"></script>
 <script src="RTCIceTransport-extension-helper.js"></script>
 <script src="RTCQuicTransport-helper.js"></script>
+<script src="RTCQuicStream-helper.js"></script>
 <script>
 'use strict';
 
@@ -14,6 +15,8 @@
 // The following helper functions are called from RTCQuicTransport-helper.js:
 //   makeStandaloneQuicTransport
 //   makeTwoConnectedQuicTransports
+// The following helper functions are called from RTCQuicStream-helper.js:
+//   closed_stream_test
 
 promise_test(async t => {
   const [ quicTransport, ] = await makeTwoConnectedQuicTransports(t);
@@ -25,6 +28,8 @@ promise_test(async t => {
       'Expect read buffered amount to be 0.');
   assert_equals(quicStream.writeBufferedAmount, 0,
       'Expect write buffered amount to be 0.');
+  assert_greater_than(quicStream.maxWriteBufferedAmount, 0,
+      'Expect max write buffered amount to be greater than 0.');
 }, 'createStream() returns an RTCQuicStream with initial properties set.');
 
 promise_test(async t => {
@@ -154,5 +159,98 @@ promise_test(async t => {
   await remoteStreamWatcher.wait_for('statechange');
   assert_equals(remoteStream.state, 'closed');
 }, 'finish() then reset() fires two statechange events on the remote side.');
+
+promise_test(async t => {
+  const [ localQuicTransport, remoteQuicTransport ] =
+    await makeTwoConnectedQuicTransports(t);
+  const localStream = localQuicTransport.createStream();
+  localStream.write(new Uint8Array(0));
+  assert_equals(localStream.writeBufferedAmount, 0);
+}, 'write() with an empty array does nothing.');
+
+promise_test(async t => {
+  const [ localQuicTransport, remoteQuicTransport ] =
+    await makeTwoConnectedQuicTransports(t);
+  const localStream = localQuicTransport.createStream();
+  localStream.write(new Uint8Array([65]));
+  assert_equals(localStream.writeBufferedAmount, 1);
+  localStream.write(new Uint8Array([66, 67]));
+  assert_equals(localStream.writeBufferedAmount, 3);
+  localStream.write(new Uint8Array([68, 69, 70]));
+  assert_equals(localStream.writeBufferedAmount, 6);
+}, 'write() adds to writeBufferedAmount each call.');
+
+promise_test(async t => {
+  const [ localQuicTransport, remoteQuicTransport ] =
+      await makeTwoConnectedQuicTransports(t);
+  const localStream = localQuicTransport.createStream();
+  localStream.write(new Uint8Array(localStream.maxWriteBufferedAmount));
+  assert_equals(localStream.writeBufferedAmount,
+      localStream.maxWriteBufferedAmount);
+}, 'write() can write exactly maxWriteBufferedAmount.');
+
+promise_test(async t => {
+  const [ localQuicTransport, remoteQuicTransport ] =
+      await makeTwoConnectedQuicTransports(t);
+  const localStream = localQuicTransport.createStream();
+  assert_throws('OperationError',
+      () =>
+          localStream.write(
+              new Uint8Array(localStream.maxWriteBufferedAmount + 1)));
+  assert_equals(localStream.writeBufferedAmount, 0);
+}, 'write() throws if data longer than maxWriteBufferedAmount.');
+
+promise_test(async t => {
+  const [ localQuicTransport, remoteQuicTransport ] =
+      await makeTwoConnectedQuicTransports(t);
+  const localStream = localQuicTransport.createStream();
+  localStream.write(new Uint8Array(10));
+  assert_throws('OperationError',
+      () =>
+          localStream.write(
+              new Uint8Array(localStream.maxWriteBufferedAmount)));
+  assert_equals(localStream.writeBufferedAmount, 10);
+}, 'write() throws if total write buffered amount would be greater than ' +
+    'maxWriteBufferedAmount.');
+
+promise_test(async t => {
+  const [ localQuicTransport, remoteQuicTransport ] =
+      await makeTwoConnectedQuicTransports(t);
+  const localStream = localQuicTransport.createStream();
+  localStream.finish();
+  assert_throws('InvalidStateError',
+      () => localStream.write(new Uint8Array()));
+}, 'write() throws InvalidStateError if finish() has been called.');
+
+closed_stream_test(async (t, stream) => {
+  assert_throws('InvalidStateError', () => stream.write(new Uint8Array()));
+}, 'write() throws InvalidStateError.');
+
+promise_test(async t => {
+  const [ localQuicTransport, remoteQuicTransport ] =
+      await makeTwoConnectedQuicTransports(t);
+  const localStream = localQuicTransport.createStream();
+  localStream.write(new Uint8Array(10));
+  localStream.reset();
+  assert_equals(localStream.writeBufferedAmount, 0);
+}, 'writeBufferedAmount set to 0 after local reset().');
+
+promise_test(async t => {
+  const [ localQuicTransport, remoteQuicTransport ] =
+      await makeTwoConnectedQuicTransports(t);
+  const localStream = localQuicTransport.createStream();
+  localStream.write(new Uint8Array(10));
+  localQuicTransport.stop();
+  assert_equals(localStream.writeBufferedAmount, 0);
+}, 'writeBufferedAmount set to 0 after local RTCQuicTransport stop().');
+
+promise_test(async t => {
+  const [ localQuicTransport, remoteQuicTransport ] =
+      await makeTwoConnectedQuicTransports(t);
+  const localStream = localQuicTransport.createStream();
+  localStream.write(new Uint8Array(10));
+  localStream.finish();
+  assert_equals(localStream.writeBufferedAmount, 10);
+}, 'writeBufferedAmount maintained after finish() has been called.');
 
 </script>

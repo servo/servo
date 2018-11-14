@@ -14,8 +14,9 @@
   if ('MojoInterfaceInterceptor' in self) {
     let prefix = '/resources/chromium';
     if ('window' in self) {
-      if (window.location.pathname.includes('/LayoutTests/')) {
-        let root = window.location.pathname.match(/.*LayoutTests/);
+      const pathname = window.location.pathname;
+      if (pathname.includes('/LayoutTests/') || pathname.includes('/web_tests/')) {
+        let root = pathname.match(/.*(?:LayoutTests|web_tests)/);
         prefix = `${root}/external/wpt/resources/chromium`;
       }
     }

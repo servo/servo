@@ -37,8 +37,6 @@ def executor_kwargs(test_type, server_config, cache_manager, run_info_data,
 
     capabilities = {
         "browserName": "chrome",
-        "platform": "ANY",
-        "version": "",
         "goog:chromeOptions": {
             "prefs": {
                 "profile": {

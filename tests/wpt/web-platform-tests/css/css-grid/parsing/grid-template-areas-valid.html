@@ -19,11 +19,10 @@ test_valid_value("grid-template-areas", '"1st 2nd 3rd"');
 test_valid_value("grid-template-areas", '"first second" "third fourth"');
 test_valid_value("grid-template-areas", '"first second" "third ." "1st 2nd" "3rd 4th"');
 
-// Firefox preserves specific whitespace and full stop sequences.
-// Other browsers consolidate to ' ' and '.'
-test_valid_value("grid-template-areas", '"  a  \t  b  "', '"a b"'); // Fails in Firefox
-test_valid_value("grid-template-areas", '"c\td"', ['"c d"', '"c\\9 d"']);
-test_valid_value("grid-template-areas", '"first ..."', ['"first ."', '"first ..."']);
+// https://github.com/w3c/csswg-drafts/issues/3261
+test_valid_value("grid-template-areas", '"  a  \t  b  "', '"a b"');
+test_valid_value("grid-template-areas", '"c\td"', '"c d"');
+test_valid_value("grid-template-areas", '"first ..."', '"first ."');
 </script>
 </body>
 </html>

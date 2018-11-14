@@ -1,6 +1,6 @@
 def element_rect(session, element):
     return session.execute_script("""
-        let {devicePixelRatio} = window;
+        let devicePixelRatio = window.devicePixelRatio;
         let rect = arguments[0].getBoundingClientRect();
 
         return {

@@ -107,12 +107,52 @@ function fetchMissingResource(subdomain) {
 }
 
 /*
+ * Fetches a resource that can be cached without validation.
+ */
+
+function getURLForCachedResource(subdomain) {
+  return _getNELResourceURL(subdomain, "cached-for-one-minute.png");
+}
+
+function fetchCachedResource(subdomain) {
+  const url = getURLForCachedResource(subdomain);
+  return fetch(url, {mode: "no-cors"});
+}
+
+/*
+ * Fetches a resource that can be cached but requires validation.
+ */
+
+function getURLForValidatedCachedResource(subdomain) {
+  return _getNELResourceURL(subdomain, "cached-with-validation.py");
+}
+
+function fetchValidatedCachedResource(subdomain) {
+  const url = getURLForValidatedCachedResource(subdomain);
+  return fetch(url, {mode: "no-cors"});
+}
+
+/*
+ * Fetches a resource that redirects once before returning a successful
+ * response.
+ */
+
+function getURLForRedirectedResource(subdomain) {
+  return _getNELResourceURL(subdomain, "redirect.py?id="+reportID);
+}
+
+function fetchRedirectedResource(subdomain) {
+  const url = getURLForRedirectedResource(subdomain);
+  return fetch(url, {mode: "no-cors"});
+}
+
+/*
  * Fetches resources that clear out any existing Reporting or NEL configurations
  * for all origins that any test case might use.
  */
 
 function getURLForClearingConfiguration(subdomain) {
-  return _getNELResourceURL(subdomain, "clear-pass.png?id="+reportID);
+  return _getNELResourceURL(subdomain, "clear-policy-pass.png?id="+reportID);
 }
 
 async function clearReportingAndNELConfigurations(subdomain) {

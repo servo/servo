@@ -22,109 +22,165 @@ function openWindowAndExpectResult(windowURL, scriptURL, type, expectation) {
 // Usage:
 // runContentSecurityPolicyTests("paint");
 function runContentSecurityPolicyTests(workletType) {
-  promise_test(t => {
-    const kWindowURL =
+  runSrcTests(workletType);
+  runMixedContentTests(workletType);
+  runUpgradeInsecureRequestsTests(workletType);
+}
+
+// script-src and worker-src tests.
+function runSrcTests(workletType) {
+  const kWindowConfigs = [
+    {
+      'windowURL':
         'resources/addmodule-window.html?pipe=header(' +
-        'Content-Security-Policy, script-src \'self\' \'unsafe-inline\')';
-    const kScriptURL =
-        get_host_info().HTTPS_REMOTE_ORIGIN +
-        '/worklets/resources/import-empty-worklet-script-with-cors-header.js';
-    return openWindowAndExpectResult(
-        kWindowURL, kScriptURL, workletType, 'REJECTED');
-  }, 'Importing a remote-origin worklet script should be blocked by the ' +
-     'script-src \'self\' directive.');
-
-  promise_test(t => {
-    const kWindowURL =
+        'Content-Security-Policy, script-src \'self\' \'unsafe-inline\')',
+      'crossOriginExpectation': 'REJECTED',
+      'message': 'should be blocked by the script-src \'self\' directive.'
+    },
+    {
+      'windowURL':
         'resources/addmodule-window.html?pipe=header(' +
-        'Content-Security-Policy, script-src \'self\' \'unsafe-inline\')';
-    const kScriptURL = 'import-remote-origin-empty-worklet-script.sub.js';
-    return openWindowAndExpectResult(
-        kWindowURL, kScriptURL, workletType, 'REJECTED');
-  }, 'Importing a remote-origin script from a same-origin worklet script ' +
-     'should be blocked by the script-src \'self\' directive.');
-
-  promise_test(t => {
-    const kWindowURL =
+        'Content-Security-Policy, script-src ' + location.origin + ' ' +
+        get_host_info().HTTPS_REMOTE_ORIGIN + ' \'unsafe-inline\')',
+      'crossOriginExpectation': 'RESOLVED',
+      'message':
+        'should not be blocked because the script-src directive ' +
+        'specifying the origin allows it.'
+    },
+    {
+      'windowURL':
         'resources/addmodule-window.html?pipe=header(' +
-        'Content-Security-Policy, script-src * \'unsafe-inline\')';
-    const kScriptURL =
-        get_host_info().HTTPS_REMOTE_ORIGIN +
-        '/worklets/resources/empty-worklet-script-with-cors-header.js';
-    return openWindowAndExpectResult(
-        kWindowURL, kScriptURL, workletType, 'RESOLVED');
-  }, 'Importing a remote-origin worklet script should not be blocked ' +
-     'because the script-src * directive allows it.');
-
-  promise_test(t => {
-    const kWindowURL =
+        'Content-Security-Policy, script-src * \'unsafe-inline\')',
+      'crossOriginExpectation': 'RESOLVED',
+      'message':
+        'should not be blocked because the script-src * directive allows it.'
+    },
+    {
+      'windowURL':
         'resources/addmodule-window.html?pipe=header(' +
-        'Content-Security-Policy, script-src * \'unsafe-inline\')';
-    // A worklet on HTTPS_REMOTE_ORIGIN will import a child script on
-    // HTTPS_REMOTE_ORIGIN.
-    const kScriptURL =
-        get_host_info().HTTPS_REMOTE_ORIGIN +
-        '/worklets/resources/import-empty-worklet-script-with-cors-header.js';
-    return openWindowAndExpectResult(
-        kWindowURL, kScriptURL, workletType, 'RESOLVED');
-  }, 'Importing a remote-origin script from a remote-origin worklet script '+
-     'should not be blocked because the script-src * directive allows it.');
+        'Content-Security-Policy, worker-src \'self\' \'unsafe-inline\')',
+      'crossOriginExpectation': 'RESOLVED',
+      'message':
+        'should not be blocked by the worker-src directive ' +
+        'because worklets obey the script-src directive.'
+    }
+  ];
+  for (const windowConfig of kWindowConfigs) {
+    promise_test(t => {
+        const kScriptURL =
+          get_host_info().HTTPS_REMOTE_ORIGIN +
+          '/worklets/resources/empty-worklet-script-with-cors-header.js';
+        return openWindowAndExpectResult(
+          windowConfig.windowURL, kScriptURL, workletType,
+          windowConfig.crossOriginExpectation);
+      },
+      'A remote-origin worklet ' + windowConfig.message);
 
-  promise_test(t => {
-    const kWindowURL =
-        'resources/addmodule-window.html?pipe=header(' +
-        'Content-Security-Policy, worker-src \'self\' \'unsafe-inline\')';
-    const kScriptURL =
-        get_host_info().HTTPS_REMOTE_ORIGIN +
-        '/worklets/resources/empty-worklet-script-with-cors-header.js';
-    return openWindowAndExpectResult(
-        kWindowURL, kScriptURL, workletType, 'RESOLVED');
-  }, 'Importing a remote-origin worklet script should not be blocked by ' +
-     'the worker-src directive because worklets obey the script-src ' +
-     'directive.');
+    promise_test(t => {
+        const kScriptURL = 'import-remote-origin-empty-worklet-script.sub.js';
+        return openWindowAndExpectResult(
+          windowConfig.windowURL, kScriptURL, workletType,
+          windowConfig.crossOriginExpectation);
+      },
+      'A same-origin worklet importing a remote-origin script ' +
+      windowConfig.message);
 
-  promise_test(t => {
-    const kWindowURL = 'resources/addmodule-window.html';
-    const kScriptURL =
-        get_host_info().HTTP_ORIGIN +
-        '/worklets/resources/empty-worklet-script.js';
-    return openWindowAndExpectResult(
-        kWindowURL, kScriptURL, workletType, 'REJECTED');
-  }, 'Importing an insecure-origin worklet script should be blocked because ' +
-     'of mixed contents.');
+    promise_test(t => {
+        // A worklet on HTTPS_REMOTE_ORIGIN will import a child script on
+        // HTTPS_REMOTE_ORIGIN.
+        const kScriptURL =
+          get_host_info().HTTPS_REMOTE_ORIGIN +
+          '/worklets/resources/import-empty-worklet-script-with-cors-header.js';
+        return openWindowAndExpectResult(
+          windowConfig.windowURL, kScriptURL, workletType,
+          windowConfig.crossOriginExpectation);
+      },
+      'A remote-origin worklet importing a remote-origin script ' +
+      windowConfig.message);
 
-  promise_test(t => {
-    const kWindowURL = 'resources/addmodule-window.html?pipe=header(' +
-                       'Content-Security-Policy, upgrade-insecure-requests)';
-    // This test relies on some unintuitive cleverness due to WPT's test setup:
-    // 'Upgrade-Insecure-Requests' does not upgrade the port number, so we use
-    // URLs in the form `http://[host]:[https-port]`. If the upgrade fails, the
-    // load will fail, as we don't serve HTTP over the secure port.
-    const kHost = get_host_info().ORIGINAL_HOST;
-    const kPort = get_host_info().HTTPS_PORT;
-    const kScriptURL =
-        `http://${kHost}:${kPort}/worklets/resources/empty-worklet-script.js`;
-    return openWindowAndExpectResult(
-        kWindowURL, kScriptURL, workletType, 'RESOLVED');
-  }, 'Importing an insecure-origin worklet script should not be blocked ' +
-     'because the upgrade-insecure-requests directive translates it as the ' +
-     'secure origin.');
+    promise_test(t => {
+        const kScriptURL =
+          '/common/redirect.py?location=' + encodeURIComponent(
+              get_host_info().HTTPS_REMOTE_ORIGIN +
+              '/worklets/resources/empty-worklet-script-with-cors-header.js');
+        return openWindowAndExpectResult(
+          windowConfig.windowURL, kScriptURL, workletType,
+          windowConfig.crossOriginExpectation);
+      },
+      'A remote-origin-redirected worklet ' + windowConfig.message);
 
-  promise_test(t => {
-    const kWindowURL = 'resources/addmodule-window.html';
-    const kScriptURL = 'import-insecure-origin-empty-worklet-script.sub.js';
-    return openWindowAndExpectResult(
-        kWindowURL, kScriptURL, workletType, 'REJECTED');
-  }, 'Importing an insecure-origin script from a secure-origin worklet ' +
-     'script should be blocked because of mixed contents.');
+    promise_test(t => {
+        const kScriptURL =
+          'import-remote-origin-redirected-empty-worklet-script.sub.js';
+        return openWindowAndExpectResult(
+          windowConfig.windowURL, kScriptURL, workletType,
+          windowConfig.crossOriginExpectation);
+      },
+      'A same-origin worklet importing a remote-origin-redirected script ' +
+      windowConfig.message);
+  }
+}
 
-  promise_test(t => {
-    const kWindowURL = 'resources/addmodule-window.html?pipe=header(' +
-                       'Content-Security-Policy, upgrade-insecure-requests)';
-    const kScriptURL = 'import-insecure-origin-empty-worklet-script.sub.js';
-    return openWindowAndExpectResult(
-        kWindowURL, kScriptURL, workletType, 'RESOLVED');
-  }, 'Importing an insecure-origin script from a secure-origin worklet ' +
-     'script should not be blocked because the upgrade-insecure-requests ' +
-     'directive translates it as the secure origin.');
+// Mixed content tests.
+function runMixedContentTests(workletType) {
+  const kInsecureURL =
+      get_host_info().HTTP_ORIGIN +
+      '/worklets/resources/empty-worklet-script-with-cors-header.js';
+  const kScriptConfigs = [
+    {URL: kInsecureURL,
+     message: 'An insecure-origin worklet'},
+    {URL: '/common/redirect.py?location=' + encodeURIComponent(kInsecureURL),
+     message: 'An insecure-origin-redirected worklet'},
+    {URL: 'import-insecure-origin-empty-worklet-script.sub.js',
+     message: 'A same-origin worklet importing an insecure-origin script'},
+    {URL: 'import-insecure-origin-redirected-empty-worklet-script.sub.js',
+     message: 'A same-origin worklet ' +
+              'importing an insecure-origin-redirected script'}
+  ];
+  for (const scriptConfig of kScriptConfigs) {
+    promise_test(t => {
+        const kWindowURL = 'resources/addmodule-window.html';
+        return openWindowAndExpectResult(
+          kWindowURL, scriptConfig.URL, workletType, 'REJECTED');
+      },
+      scriptConfig.message + ' should be blocked because of mixed contents.');
+  }
+}
+
+// upgrade-insecure-requests tests.
+function runUpgradeInsecureRequestsTests(workletType) {
+  // |kToBeUpgradedURL| is expected to upgraded/loaded successfully with
+  // upgrade-insecure-requests is specified.
+  // This relies on some unintuitive cleverness due to WPT's test setup:
+  // 'Upgrade-Insecure-Requests' does not upgrade the port number, so we use
+  // URLs in the form `http://[host]:[https-port]`. If the upgrade fails, the
+  // load will fail, as we don't serve HTTP over the secure port.
+  const kHost = get_host_info().ORIGINAL_HOST;
+  const kPort = get_host_info().HTTPS_PORT;
+  const kToBeUpgradedURL =
+      `http://${kHost}:${kPort}/worklets/resources/empty-worklet-script-with-cors-header.js`;
+
+  const kScriptConfigs = [
+    {URL: kToBeUpgradedURL,
+     message: 'An insecure-origin worklet'},
+    {URL: '/common/redirect.py?location=' +
+          encodeURIComponent(kToBeUpgradedURL),
+     message: 'An insecure-origin-redirected worklet'},
+    {URL: 'import-insecure-origin-empty-worklet-script.sub.js',
+     message: 'A same-origin worklet importing an insecure-origin script'},
+    {URL: 'import-insecure-origin-redirected-empty-worklet-script.sub.js',
+     message: 'A same-origin worklet ' +
+              'importing an insecure-origin-redirected script'}
+  ];
+  for (const scriptConfig of kScriptConfigs) {
+    promise_test(t => {
+        const kWindowURL =
+          'resources/addmodule-window.html?pipe=header(' +
+          'Content-Security-Policy, upgrade-insecure-requests)';
+        return openWindowAndExpectResult(
+          kWindowURL, scriptConfig.URL, workletType, 'RESOLVED');
+      },
+      scriptConfig.message +
+      ' should not be blocked because of upgrade-insecure-requests.');
+  }
 }

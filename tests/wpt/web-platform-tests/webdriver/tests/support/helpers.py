@@ -1,5 +1,6 @@
 from __future__ import print_function
 
+import math
 import sys
 
 import webdriver
@@ -107,9 +108,31 @@ def clear_all_cookies(session):
 
 def document_dimensions(session):
     return tuple(session.execute_script("""
-        let {width, height} = document.documentElement.getBoundingClientRect();
-        return [width, height];
+        let rect = document.documentElement.getBoundingClientRect();
+        return [rect.width, rect.height];
         """))
+
+
+def center_point(element):
+    """Calculates the in-view center point of a web element."""
+    inner_width, inner_height = element.session.execute_script(
+        "return [window.innerWidth, window.innerHeight]")
+    rect = element.rect
+
+    # calculate the intersection of the rect that is inside the viewport
+    visible = {
+        "left": max(0, min(rect["x"], rect["x"] + rect["width"])),
+        "right": min(inner_width, max(rect["x"], rect["x"] + rect["width"])),
+        "top": max(0, min(rect["y"], rect["y"] + rect["height"])),
+        "bottom": min(inner_height, max(rect["y"], rect["y"] + rect["height"])),
+    }
+
+    # arrive at the centre point of the visible rectangle
+    x = (visible["left"] + visible["right"]) / 2.0
+    y = (visible["top"] + visible["bottom"]) / 2.0
+
+    # convert to CSS pixels, as centre point can be float
+    return (math.floor(x), math.floor(y))
 
 
 def document_hidden(session):
@@ -122,13 +145,13 @@ def document_hidden(session):
 def element_rect(session, element):
     return session.execute_script("""
         let element = arguments[0];
-        let {height, left, top, width} = element.getBoundingClientRect();
+        let rect = element.getBoundingClientRect();
 
         return {
-            x: left + window.pageXOffset,
-            y: top + window.pageYOffset,
-            width: width,
-            height: height,
+            x: rect.left + window.pageXOffset,
+            y: rect.top + window.pageYOffset,
+            width: rect.width,
+            height: rect.height,
         };
         """, args=(element,))
 
@@ -158,3 +181,34 @@ def is_fullscreen(session):
     return session.execute_script("""
         return !!(window.fullScreen || document.webkitIsFullScreen)
         """)
+
+
+def document_dimensions(session):
+    return tuple(session.execute_script("""
+        let {devicePixelRatio} = window;
+        let {width, height} = document.documentElement.getBoundingClientRect();
+        return [width * devicePixelRatio, height * devicePixelRatio];
+        """))
+
+
+def screen_size(session):
+    """Returns the available width/height size of the screen."""
+    return tuple(session.execute_script("""
+        return [
+            screen.availWidth,
+            screen.availHeight,
+        ];
+        """))
+
+
+def available_screen_size(session):
+    """
+    Returns the effective available screen width/height size,
+    excluding any fixed window manager elements.
+    """
+    return tuple(session.execute_script("""
+        return [
+            screen.availWidth - screen.availLeft,
+            screen.availHeight - screen.availTop,
+        ];
+        """))
