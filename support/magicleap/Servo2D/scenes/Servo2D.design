@@ -1,40 +1,57 @@
 <?xml version="1.0" encoding="ASCII"?>
-<design:rootNode xmlns:design="http://www.magicleap.com/uidesigner/rcp/document/design" name="root" nodeTypeId="lumin.root" modelId="lumin" version="1.7.2">
+<design:rootNode xmlns:design="http://www.magicleap.com/uidesigner/rcp/document/design" name="root" nodeTypeId="lumin.root" modelId="lumin" version="1.8.0">
   <property id="name" value="root"/>
-  <node name="content" nodeTypeId="lumin.quad">
-    <property id="color">
-      <property id="rgb" value="1 1 1"/>
-      <property id="alpha" value="1.0"/>
+  <node name="contentPanel" nodeTypeId="lumin.ui.panel">
+    <property id="cursorInitialPosition"/>
+    <property id="edgeConstraint"/>
+    <property id="externalName" value="contentPanel"/>
+    <property id="gravityWellProperties">
+      <property id="boundaryShape">
+        <property id="size"/>
+        <property id="offset"/>
+      </property>
     </property>
-    <property id="externalName" value="content"/>
-    <property id="name" value="content"/>
+    <property id="name" value="contentPanel"/>
+    <property id="panelShape">
+      <property id="size">
+        <property id="x" value="0.5"/>
+        <property id="y" value="0.44"/>
+      </property>
+      <property id="offset"/>
+    </property>
     <property id="position">
-      <property id="x" value="-0.25"/>
-      <property id="y" value="-0.19"/>
+      <property id="y" value="0.06"/>
     </property>
     <property id="rotation"/>
-    <property id="scale">
-      <property id="x" value="1.0"/>
-      <property id="y" value="1.0"/>
-      <property id="z" value="1.0"/>
-    </property>
-    <property id="size">
-      <property id="x" value="0.5"/>
-      <property id="y" value="0.44"/>
-    </property>
-    <property id="texCoords">
-      <property id="x">
-        <property id="y" value="1.0"/>
+    <property id="scale"/>
+    <node name="content" nodeTypeId="lumin.quad">
+      <property id="externalName" value="content"/>
+      <property id="name" value="content"/>
+      <property id="position">
+        <property id="x" value="-0.25"/>
+        <property id="y" value="-0.22"/>
+        <property id="z" value="-0.0"/>
       </property>
-      <property id="y">
-        <property id="x" value="1.0"/>
-        <property id="y" value="1.0"/>
+      <property id="rotation"/>
+      <property id="scale"/>
+      <property id="size">
+        <property id="x" value="0.5"/>
+        <property id="y" value="0.44"/>
       </property>
-      <property id="z">
-        <property id="x" value="1.0"/>
+      <property id="texCoords">
+        <property id="x">
+          <property id="y" value="1.0"/>
+        </property>
+        <property id="y">
+          <property id="x" value="1.0"/>
+          <property id="y" value="1.0"/>
+        </property>
+        <property id="z">
+          <property id="x" value="1.0"/>
+        </property>
+        <property id="w"/>
       </property>
-      <property id="w"/>
-    </property>
+    </node>
   </node>
   <node name="uiLinearLayout1" nodeTypeId="lumin.ui.linearLayout">
     <property id="alignment">
@@ -61,11 +78,7 @@
       <property id="y" value="-0.2"/>
     </property>
     <property id="rotation"/>
-    <property id="scale">
-      <property id="x" value="1.0"/>
-      <property id="y" value="1.0"/>
-      <property id="z" value="1.0"/>
-    </property>
+    <property id="scale"/>
     <property id="size">
       <property id="x" value="0.5"/>
       <property id="y" value="0.05"/>
@@ -79,26 +92,14 @@
         </property>
       </property>
       <property id="height" value="0.1"/>
-      <property id="iconColor">
-        <property id="rgb" value="1 1 1"/>
-        <property id="alpha" value="1.0"/>
-      </property>
       <property id="iconSize"/>
       <property id="name" value="backButton"/>
       <property id="position">
         <property id="y" value="-0.6"/>
       </property>
       <property id="rotation"/>
-      <property id="scale">
-        <property id="x" value="1.0"/>
-        <property id="y" value="1.0"/>
-        <property id="z" value="1.0"/>
-      </property>
+      <property id="scale"/>
       <property id="text" value="Back"/>
-      <property id="textColor">
-        <property id="rgb" value="1 1 1"/>
-        <property id="alpha" value="1.0"/>
-      </property>
       <property id="textSize" value="0.05"/>
       <property id="textSizeChanged" value="true"/>
       <property id="width" value="0.1"/>
@@ -112,24 +113,12 @@
         </property>
       </property>
       <property id="height" value="0.1"/>
-      <property id="iconColor">
-        <property id="rgb" value="1 1 1"/>
-        <property id="alpha" value="1.0"/>
-      </property>
       <property id="iconSize"/>
       <property id="name" value="fwdButton"/>
       <property id="position"/>
       <property id="rotation"/>
-      <property id="scale">
-        <property id="x" value="1.0"/>
-        <property id="y" value="1.0"/>
-        <property id="z" value="1.0"/>
-      </property>
+      <property id="scale"/>
       <property id="text" value="Fwd"/>
-      <property id="textColor">
-        <property id="rgb" value="1 1 1"/>
-        <property id="alpha" value="1.0"/>
-      </property>
       <property id="textSize" value="0.05"/>
       <property id="textSizeChanged" value="true"/>
       <property id="width" value="0.1"/>
@@ -146,24 +135,12 @@
         </property>
       </property>
       <property id="height" value="0.05"/>
-      <property id="hintTextColor">
-        <property id="rgb" value="1 1 1"/>
-        <property id="alpha" value="1.0"/>
-      </property>
       <property id="name" value="urlBar"/>
       <property id="position"/>
       <property id="rotation"/>
-      <property id="scale">
-        <property id="x" value="1.0"/>
-        <property id="y" value="1.0"/>
-        <property id="z" value="1.0"/>
-      </property>
+      <property id="scale"/>
       <property id="scrollBarVisibilityMode" value="Off"/>
       <property id="text" value="https://servo.org/"/>
-      <property id="textColor">
-        <property id="rgb" value="1 1 1"/>
-        <property id="alpha" value="1.0"/>
-      </property>
       <property id="textPadding">
         <property id="top" value="0.003"/>
         <property id="right" value="0.003"/>
@@ -173,5 +150,22 @@
       <property id="textSize" value="0.05"/>
       <property id="width" value="0.6"/>
     </node>
+  </node>
+  <node name="laser" nodeTypeId="lumin.line">
+    <property id="color" value="0 0 0 0"/>
+    <property id="externalName" value="laser"/>
+    <property id="name" value="laser"/>
+    <property id="opaque" value="false"/>
+    <property id="points">
+      <property id="0"/>
+      <property id="1">
+        <property id="x" value="1.0"/>
+        <property id="y" value="1.0"/>
+        <property id="z" value="1.0"/>
+      </property>
+    </property>
+    <property id="position"/>
+    <property id="rotation"/>
+    <property id="scale"/>
   </node>
 </design:rootNode>

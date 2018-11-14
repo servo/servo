@@ -2,16 +2,20 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#include <GLES/gl.h>
 #include <lumin/LandscapeApp.h>
 #include <lumin/Prism.h>
 #include <lumin/event/ServerEvent.h>
 #include <lumin/event/GestureInputEventData.h>
 #include <lumin/event/KeyInputEventData.h>
 #include <lumin/event/ControlTouchPadInputEventData.h>
+#include <lumin/event/ControlPose6DofInputEventData.h>
+#include <lumin/node/LineNode.h>
 #include <lumin/node/QuadNode.h>
 #include <lumin/resource/PlanarResource.h>
 #include <lumin/ui/KeyboardDefines.h>
 #include <lumin/ui/node/UiButton.h>
+#include <lumin/ui/node/UiPanel.h>
 #include <lumin/ui/node/UiTextEdit.h>
 #include <SceneDescriptor.h>
 
@@ -100,22 +104,32 @@ protected:
    * Handle events from the server
    */
   virtual bool eventListener(lumin::ServerEvent* event) override;
-  bool touchpadEventListener(lumin::ControlTouchPadInputEventData* event);
+  bool pose6DofEventListener(lumin::ControlPose6DofInputEventData* event);
   void urlBarEventListener();
   bool gestureEventListener(lumin::GestureInputEventData* event);
 
   /**
-   * Get the current cursor position, with respect to the viewport.
+   * Convert a point in prism coordinates to viewport coordinates
+   * (ignoring the z value).
    */
-  glm::vec2 viewportCursorPosition();
+  glm::vec2 viewportPosition(glm::vec3 prism_pos);
   bool pointInsideViewport(glm::vec2 pt);
+
+  /**
+   * Redraw the laser. Returns the laser endpoint, in viewport coordinates.
+   */
+  glm::vec2 redrawLaser();
 
 private:
   lumin::Prism* prism_ = nullptr;  // represents the bounded space where the App renders.
   lumin::PlanarResource* plane_ = nullptr; // the plane we're rendering into
   lumin::QuadNode* content_node_ = nullptr; // the node containing the plane
+  lumin::ui::UiPanel* content_panel_ = nullptr; // the panel containing the node
   lumin::ui::UiButton* back_button_ = nullptr; // the back button
   lumin::ui::UiButton* fwd_button_ = nullptr; // the forward button
   lumin::ui::UiTextEdit* url_bar_ = nullptr; // the URL bar
+  lumin::LineNode* laser_ = nullptr; // The laser pointer
+  glm::vec3 controller_position_; // The last recorded position of the controller (in world coords)
+  glm::quat controller_orientation_; // The last recorded orientation of the controller (in world coords)
   ServoInstance* servo_ = nullptr; // the servo instance we're embedding
 };
