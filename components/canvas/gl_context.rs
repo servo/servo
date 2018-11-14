@@ -178,6 +178,15 @@ impl GLContextWrapper {
         }
     }
 
+    /// Swap the backing texture for the draw buffer, returning the id of the texture
+    /// now used for reading.
+    pub fn swap_draw_buffer(&mut self) -> u32 {
+        match *self {
+            GLContextWrapper::Native(ref mut ctx) => ctx.swap_draw_buffer().unwrap(),
+            GLContextWrapper::OSMesa(ref mut ctx) => ctx.swap_draw_buffer().unwrap(),
+        }
+    }
+
     pub fn get_info(&self) -> (Size2D<i32>, u32, GLLimits) {
         match *self {
             GLContextWrapper::Native(ref ctx) => {

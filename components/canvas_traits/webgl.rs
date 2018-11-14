@@ -4,7 +4,7 @@
 
 use euclid::{Rect, Size2D};
 use gleam::gl;
-use ipc_channel::ipc::{IpcBytesReceiver, IpcBytesSender, IpcSharedMemory};
+use ipc_channel::ipc::{IpcBytesReceiver, IpcBytesSender, IpcSharedMemory, IpcReceiver};
 use pixels::PixelFormat;
 use serde_bytes::ByteBuf;
 use std::borrow::Cow;
@@ -46,6 +46,8 @@ pub enum WebGLMsg {
     ResizeContext(WebGLContextId, Size2D<u32>, WebGLSender<Result<(), String>>),
     /// Drops a WebGLContext.
     RemoveContext(WebGLContextId),
+    /// Present a WebGL frame to the compositor.
+    PresentWebGLFrame(WebGLContextId),
     /// Runs a WebGLCommand in a specific WebGLContext.
     WebGLCommand(WebGLContextId, WebGLCommand, WebGLCommandBacktrace),
     /// Runs a WebVRCommand in a specific WebGLContext.
@@ -70,7 +72,7 @@ pub enum WebGLMsg {
 }
 
 /// Contains the WebGLCommand sender and information about a WebGLContext
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct WebGLCreateContextResult {
     /// Sender instance to send commands to the specific WebGLContext
     pub sender: WebGLMsgSender,
@@ -80,6 +82,8 @@ pub struct WebGLCreateContextResult {
     pub share_mode: WebGLContextShareMode,
     /// The GLSL version supported by the context.
     pub glsl_version: WebGLSLVersion,
+    /// The WebGL renderer is ready to present another frame.
+    pub ready_to_present: Option<IpcReceiver<()>>,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, Serialize)]
@@ -136,6 +140,13 @@ impl WebGLMsgSender {
     pub fn send(&self, command: WebGLCommand, backtrace: WebGLCommandBacktrace) -> WebGLSendResult {
         self.sender
             .send(WebGLMsg::WebGLCommand(self.ctx_id, command, backtrace))
+    }
+
+    /// Instruct the webgl renderer to present the current frame to the compositor.
+    #[inline]
+    pub fn send_present_frame(&self) -> WebGLSendResult {
+        self.sender
+            .send(WebGLMsg::PresentWebGLFrame(self.ctx_id))
     }
 
     /// Send a WebVRCommand message
