@@ -22,7 +22,7 @@ import colorama
 import toml
 import voluptuous
 import yaml
-from licenseck import MPL, APACHE, COPYRIGHT, licenses_toml, licenses_dep_toml
+from licenseck import OLD_MPL, MPL, APACHE, COPYRIGHT, licenses_toml, licenses_dep_toml
 topdir = os.path.abspath(os.path.dirname(sys.argv[0]))
 wpt = os.path.join(topdir, "tests", "wpt")
 
@@ -235,7 +235,7 @@ def check_license(file_name, lines):
             license_block.append(line)
 
     header = " ".join(license_block)
-    valid_license = MPL in header or is_apache_licensed(header)
+    valid_license = OLD_MPL in header or MPL in header or is_apache_licensed(header)
     acknowledged_bad_license = "xfail-license" in header
     if not (valid_license or acknowledged_bad_license):
         yield (1, "incorrect license")
