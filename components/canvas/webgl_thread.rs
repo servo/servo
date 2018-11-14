@@ -2,16 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use super::gl_context::{GLContextFactory, GLContextWrapper};
+use super::gl_context::{map_attrs_to_script_attrs, GLContextFactory, GLContextWrapper};
 use byteorder::{ByteOrder, NativeEndian, WriteBytesExt};
 use canvas_traits::webgl::*;
 use euclid::Size2D;
 use fnv::FnvHashMap;
 use gleam::gl;
 use half::f16;
-use offscreen_gl_context::{
-    DrawBuffer, GLContext, GLContextAttributes, GLLimits, NativeGLContextMethods,
-};
+use offscreen_gl_context::{DrawBuffer, GLContext, NativeGLContextMethods};
 use pixels::{self, PixelFormat};
 use std::borrow::Cow;
 use std::thread;
@@ -795,9 +793,9 @@ impl WebGLImpl {
         _backtrace: WebGLCommandBacktrace,
     ) {
         match command {
-            WebGLCommand::GetContextAttributes(ref sender) => {
-                sender.send(*ctx.borrow_attributes()).unwrap()
-            },
+            WebGLCommand::GetContextAttributes(ref sender) => sender
+                .send(map_attrs_to_script_attrs(*ctx.borrow_attributes()))
+                .unwrap(),
             WebGLCommand::ActiveTexture(target) => ctx.gl().active_texture(target),
             WebGLCommand::AttachShader(program_id, shader_id) => {
                 ctx.gl().attach_shader(program_id.get(), shader_id.get())

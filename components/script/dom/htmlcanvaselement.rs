@@ -30,7 +30,7 @@ use crate::dom::webglrenderingcontext::{
 };
 use base64;
 use canvas_traits::canvas::{CanvasId, CanvasMsg, FromScriptMsg};
-use canvas_traits::webgl::WebGLVersion;
+use canvas_traits::webgl::{GLContextAttributes, WebGLVersion};
 use dom_struct::dom_struct;
 use euclid::{Rect, Size2D};
 use html5ever::{LocalName, Prefix};
@@ -40,7 +40,6 @@ use ipc_channel::ipc::IpcSharedMemory;
 use js::error::throw_type_error;
 use js::jsapi::JSContext;
 use js::rust::HandleValue;
-use offscreen_gl_context::GLContextAttributes;
 use profile_traits::ipc;
 use script_layout_interface::{HTMLCanvasData, HTMLCanvasDataSource};
 use servo_config::prefs::PREFS;
