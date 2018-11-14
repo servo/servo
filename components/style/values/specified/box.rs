@@ -943,9 +943,6 @@ pub enum Resize {
 /// The value for the `appearance` property.
 ///
 /// https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-appearance
-///
-/// NOTE(emilio): When changing this you may want to regenerate the C++ bindings
-/// (see components/style/cbindgen.toml)
 #[allow(missing_docs)]
 #[derive(
     Clone,
