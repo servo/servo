@@ -290,7 +290,7 @@ uploadArchives {
               licenses {
                   license {
                       name 'The Mozilla Public License, v. 2.0'
-                      url 'http://mozilla.org/MPL/2.0/'
+                      url 'https://mozilla.org/MPL/2.0/'
                       distribution 'repo'
                   }
               }
