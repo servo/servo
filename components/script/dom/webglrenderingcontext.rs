@@ -825,7 +825,9 @@ impl WebGLRenderingContext {
             width,
             height,
             format: format.as_gl_constant(),
-            data_type: data_type.as_gl_constant(),
+            data_type: self
+                .extension_manager
+                .effective_type(data_type.as_gl_constant()),
             receiver,
         });
         sender.send(&pixels).unwrap();
