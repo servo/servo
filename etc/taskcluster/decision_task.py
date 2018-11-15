@@ -13,12 +13,12 @@ def main(task_for, mock=False):
         if CONFIG.git_ref in ["refs/heads/auto", "refs/heads/try", "refs/heads/try-taskcluster"]:
             linux_tidy_unit()
             android_arm32()
-            #android_x86()
             windows_dev()
             if mock:
                 windows_release()
                 linux_wpt()
                 linux_build_task("Indexed by task definition").find_or_create()
+                android_x86()
 
     # https://tools.taskcluster.net/hooks/project-servo/daily
     elif task_for == "daily":
