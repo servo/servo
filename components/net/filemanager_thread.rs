@@ -114,18 +114,16 @@ impl FileManager {
         origin: FileOrigin,
         response: &mut Response,
         range: RangeRequestBounds,
-    ) -> Result<(), String> {
-        self.store
-            .fetch_blob_buf(
-                done_sender,
-                cancellation_listener,
-                &id,
-                &origin,
-                range,
-                check_url_validity,
-                response,
-            )
-            .map_err(|e| format!("{:?}", e))
+    ) -> Result<(), BlobURLStoreError> {
+        self.store.fetch_blob_buf(
+            done_sender,
+            cancellation_listener,
+            &id,
+            &origin,
+            range,
+            check_url_validity,
+            response,
+        )
     }
 
     pub fn promote_memory(
@@ -539,7 +537,13 @@ impl FileManagerStore {
         let file_impl = self.get_impl(id, origin_in, check_url_validity)?;
         match file_impl {
             FileImpl::Memory(buf) => {
-                let range = range.get_final(Some(buf.size));
+                let range = match range.get_final(Some(buf.size)) {
+                    Ok(range) => range,
+                    Err(_) => {
+                        return Err(BlobURLStoreError::InvalidRange);
+                    },
+                };
+
                 let range = range.to_abs_range(buf.size as usize);
                 let len = range.len() as u64;
 
@@ -568,7 +572,13 @@ impl FileManagerStore {
                 let file = File::open(&metadata.path)
                     .map_err(|e| BlobURLStoreError::External(e.to_string()))?;
 
-                let range = range.get_final(Some(metadata.size));
+                let range = match range.get_final(Some(metadata.size)) {
+                    Ok(range) => range,
+                    Err(_) => {
+                        return Err(BlobURLStoreError::InvalidRange);
+                    },
+                };
+
                 let mut reader = BufReader::with_capacity(FILE_CHUNK_SIZE, file);
                 if reader.seek(SeekFrom::Start(range.start as u64)).is_err() {
                     return Err(BlobURLStoreError::External(
@@ -607,7 +617,9 @@ impl FileManagerStore {
                     cancellation_listener,
                     &parent_id,
                     origin_in,
-                    RangeRequestBounds::Final(range.get_final(None).slice_inner(&inner_rel_pos)),
+                    RangeRequestBounds::Final(
+                        RelativePos::full_range().slice_inner(&inner_rel_pos),
+                    ),
                     false,
                     response,
                 );

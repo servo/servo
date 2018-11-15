@@ -17,7 +17,7 @@ use hyper::StatusCode;
 use ipc_channel::ipc::IpcReceiver;
 use mime::{self, Mime};
 use mime_guess::guess_mime_type;
-use net_traits::blob_url_store::parse_blob_url;
+use net_traits::blob_url_store::{parse_blob_url, BlobURLStoreError};
 use net_traits::filemanager_thread::RelativePos;
 use net_traits::request::{CredentialsMode, Destination, Referrer, Request, RequestMode};
 use net_traits::request::{Origin, ResponseTainting, Window};
@@ -499,17 +499,24 @@ pub enum RangeRequestBounds {
 }
 
 impl RangeRequestBounds {
-    pub fn get_final(&self, len: Option<u64>) -> RelativePos {
+    pub fn get_final(&self, len: Option<u64>) -> Result<RelativePos, ()> {
         match self {
-            RangeRequestBounds::Final(pos) => pos.clone(),
-            RangeRequestBounds::Pending(offset) => RelativePos::from_opts(
+            RangeRequestBounds::Final(pos) => {
+                if let Some(len) = len {
+                    if pos.start <= len as i64 {
+                        return Ok(pos.clone());
+                    }
+                }
+                Err(())
+            },
+            RangeRequestBounds::Pending(offset) => Ok(RelativePos::from_opts(
                 if let Some(len) = len {
                     Some((len - u64::min(len, *offset)) as i64)
                 } else {
                     Some(0)
                 },
                 None,
-            ),
+            )),
         }
     }
 }
@@ -536,6 +543,18 @@ fn get_range_request_bounds(range: Option<Range>) -> RangeRequestBounds {
     } else {
         RangeRequestBounds::Final(RelativePos::from_opts(Some(0), None))
     }
+}
+
+fn partial_content(response: &mut Response) {
+    let reason = "Partial Content".to_owned();
+    response.status = Some((StatusCode::PARTIAL_CONTENT, reason.clone()));
+    response.raw_status = Some((StatusCode::PARTIAL_CONTENT.as_u16(), reason.into()));
+}
+
+fn range_not_satisfiable_error(response: &mut Response) {
+    let reason = "Range Not Satisfiable".to_owned();
+    response.status = Some((StatusCode::RANGE_NOT_SATISFIABLE, reason.clone()));
+    response.raw_status = Some((StatusCode::RANGE_NOT_SATISFIABLE.as_u16(), reason.into()));
 }
 
 /// [Scheme fetch](https://fetch.spec.whatwg.org#scheme-fetch)
@@ -582,21 +601,35 @@ fn scheme_fetch(
             }
             if let Ok(file_path) = url.to_file_path() {
                 if let Ok(file) = File::open(file_path.clone()) {
-                    let mut response = Response::new(url);
-
                     // Get range bounds (if any) and try to seek to the requested offset.
                     // If seeking fails, bail out with a NetworkError.
                     let file_size = match file.metadata() {
                         Ok(metadata) => Some(metadata.len()),
                         Err(_) => None,
                     };
-                    let range = get_range_request_bounds(request.headers.typed_get::<Range>());
-                    let range = range.get_final(file_size);
+
+                    let mut response = Response::new(url);
+
+                    let range_header = request.headers.typed_get::<Range>();
+                    let is_range_request = range_header.is_some();
+                    let range = match get_range_request_bounds(range_header).get_final(file_size) {
+                        Ok(range) => range,
+                        Err(_) => {
+                            range_not_satisfiable_error(&mut response);
+                            return response;
+                        },
+                    };
                     let mut reader = BufReader::with_capacity(FILE_CHUNK_SIZE, file);
                     if reader.seek(SeekFrom::Start(range.start as u64)).is_err() {
                         return Response::network_error(NetworkError::Internal(
                             "Unexpected method for file".into(),
                         ));
+                    }
+
+                    // Set response status to 206 if Range header is present.
+                    // At this point we should have already validated the header.
+                    if is_range_request {
+                        partial_content(&mut response);
                     }
 
                     // Set Content-Type header.
@@ -629,7 +662,7 @@ fn scheme_fetch(
         },
 
         "blob" => {
-            println!("Loading blob {}", url.as_str());
+            debug!("Loading blob {}", url.as_str());
             // Step 2.
             if request.method != Method::GET {
                 return Response::network_error(NetworkError::Internal(
@@ -637,7 +670,11 @@ fn scheme_fetch(
                 ));
             }
 
-            let range = get_range_request_bounds(request.headers.typed_get::<Range>());
+            let range_header = request.headers.typed_get::<Range>();
+            let is_range_request = range_header.is_some();
+            // We will get a final version of this range once we have
+            // the length of the data backing the blob.
+            let range = get_range_request_bounds(range_header);
 
             let (id, origin) = match parse_blob_url(&url) {
                 Ok((id, origin)) => (id, origin),
@@ -649,6 +686,10 @@ fn scheme_fetch(
             };
 
             let mut response = Response::new(url);
+            if is_range_request {
+                partial_content(&mut response);
+            }
+
             let (done_sender, done_receiver) = channel();
             *done_chan = Some((done_sender.clone(), done_receiver));
             *response.body.lock().unwrap() = ResponseBody::Receiving(vec![]);
@@ -663,6 +704,13 @@ fn scheme_fetch(
                 range,
             ) {
                 let _ = done_sender.send(Data::Done);
+                let err = match err {
+                    BlobURLStoreError::InvalidRange => {
+                        range_not_satisfiable_error(&mut response);
+                        return response;
+                    },
+                    _ => format!("{:?}", err),
+                };
                 return Response::network_error(NetworkError::Internal(err));
             };
 

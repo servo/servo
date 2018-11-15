@@ -9,7 +9,7 @@ use url::Url;
 use uuid::Uuid;
 
 /// Errors returned to Blob URL Store request
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub enum BlobURLStoreError {
     /// Invalid File UUID
     InvalidFileID,
@@ -17,6 +17,8 @@ pub enum BlobURLStoreError {
     InvalidOrigin,
     /// Invalid entry content
     InvalidEntry,
+    /// Invalid range
+    InvalidRange,
     /// External error, from like file system, I/O etc.
     External(String),
 }

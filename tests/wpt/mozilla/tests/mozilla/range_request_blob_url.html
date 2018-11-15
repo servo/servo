@@ -23,12 +23,10 @@
   range: "bytes=0-100",
   status: 206,
   expected: "abcdefghijklmnopqrstuvwxyz"
-/*}, {
-  XXX(ferjm): Range requests with an out of bounds start throw an exception
-              rather than responding with 416.
+}, {
   range: "bytes=100-",
   status: 416,
-  expected: ""*/
+  expected: ""
 }, {
   range: "bytes=-100",
   status: 206,
@@ -43,11 +41,10 @@
       }
     })
     .then(response => {
-// XXX(ferjm): Responses to range requests to blob urls have status 200 rather than 206.
-//      assert_equals(response.status, test.status);
-//      if (response.status != 206) {
-//        return "";
-//      }
+      assert_equals(response.status, test.status);
+      if (response.status != 206) {
+        return "";
+      }
       return response.text();
     })
     .then(response => {
