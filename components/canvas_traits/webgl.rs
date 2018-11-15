@@ -950,7 +950,7 @@ pub fn rgba8_image_to_tex_image_data(
 pub fn premultiply_inplace(format: TexFormat, data_type: TexDataType, pixels: &mut [u8]) {
     match (format, data_type) {
         (TexFormat::RGBA, TexDataType::UnsignedByte) => {
-            pixels::premultiply_inplace(pixels);
+            pixels::rgba8_premultiply_inplace(pixels);
         },
         (TexFormat::LuminanceAlpha, TexDataType::UnsignedByte) => {
             for la in pixels.chunks_mut(2) {

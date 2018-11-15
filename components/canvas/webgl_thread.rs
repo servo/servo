@@ -635,7 +635,7 @@ impl<VR: WebVRRenderHandler + 'static> WebGLThread<VR> {
             let src_slice = &orig_pixels[src_start..src_start + stride];
             (&mut pixels[dst_start..dst_start + stride]).clone_from_slice(&src_slice[..stride]);
         }
-        pixels::byte_swap_colors_inplace(&mut pixels);
+        pixels::rgba8_byte_swap_colors_inplace(&mut pixels);
         pixels
     }
 

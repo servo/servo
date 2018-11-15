@@ -69,7 +69,7 @@ impl<'a> CanvasData<'a> {
         let source_rect = source_rect.ceil();
         // It discards the extra pixels (if any) that won't be painted
         let image_data = if Rect::from_size(image_size).contains_rect(&source_rect) {
-            pixels::get_rect(&image_data, image_size.to_u32(), source_rect.to_u32()).into()
+            pixels::rgba8_get_rect(&image_data, image_size.to_u32(), source_rect.to_u32()).into()
         } else {
             image_data.into()
         };
@@ -510,7 +510,7 @@ impl<'a> CanvasData<'a> {
     pub fn put_image_data(&mut self, mut imagedata: Vec<u8>, rect: Rect<u32>) {
         assert_eq!(imagedata.len() % 4, 0);
         assert_eq!(rect.size.area() as usize, imagedata.len() / 4);
-        pixels::byte_swap_and_premultiply_inplace(&mut imagedata);
+        pixels::rgba8_byte_swap_and_premultiply_inplace(&mut imagedata);
         let source_surface = self
             .drawtarget
             .create_source_surface_from_data(
@@ -602,7 +602,7 @@ impl<'a> CanvasData<'a> {
             return vec![];
         }
         let data_surface = self.drawtarget.snapshot().get_data_surface();
-        pixels::get_rect(
+        pixels::rgba8_get_rect(
             unsafe { data_surface.data() },
             canvas_size.to_u32(),
             read_rect.to_u32(),
