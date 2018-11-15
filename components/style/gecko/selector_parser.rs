@@ -347,10 +347,7 @@ impl<'a, 'i> ::selectors::Parser<'i> for SelectorParser<'a> {
 
     #[inline]
     fn parse_slotted(&self) -> bool {
-        // NOTE(emilio): Slot assignment and such works per-document, but
-        // getting a document around here is not trivial, and it's not worth
-        // anyway to handle this in a per-doc basis.
-        unsafe { structs::nsContentUtils_sIsShadowDOMEnabled }
+        true
     }
 
     #[inline]
