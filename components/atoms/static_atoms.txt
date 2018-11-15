@@ -65,6 +65,7 @@ radio
 range
 readystatechange
 reftest-wait
+rejectionhandled
 reset
 resize
 right
