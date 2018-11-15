@@ -280,6 +280,7 @@ pub enum WebGLCommand {
         height: u32,
         format: u32,
         data_type: u32,
+        unpacking_alignment: u32,
         receiver: IpcBytesReceiver,
     },
     TexSubImage2D {
@@ -291,6 +292,7 @@ pub enum WebGLCommand {
         height: u32,
         format: u32,
         data_type: u32,
+        unpacking_alignment: u32,
         receiver: IpcBytesReceiver,
     },
     DrawingBufferWidth(WebGLSender<i32>),

@@ -1050,8 +1050,11 @@ impl WebGLImpl {
                 height,
                 format,
                 data_type,
+                unpacking_alignment,
                 ref receiver,
             } => {
+                ctx.gl()
+                    .pixel_store_i(gl::UNPACK_ALIGNMENT, unpacking_alignment as i32);
                 ctx.gl().tex_image_2d(
                     target,
                     level as i32,
@@ -1073,8 +1076,11 @@ impl WebGLImpl {
                 height,
                 format,
                 data_type,
+                unpacking_alignment,
                 ref receiver,
             } => {
+                ctx.gl()
+                    .pixel_store_i(gl::UNPACK_ALIGNMENT, unpacking_alignment as i32);
                 ctx.gl().tex_sub_image_2d(
                     target,
                     level as i32,
