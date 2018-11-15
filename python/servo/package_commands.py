@@ -14,6 +14,7 @@ import hashlib
 import json
 import os
 import os.path as path
+import platform
 import shutil
 import subprocess
 import sys
@@ -54,6 +55,9 @@ PACKAGES = {
     ],
     'macbrew': [
         'target/release/brew/servo.tar.gz',
+    ],
+    'magicleap': [
+        'target/aarch64-linux-android/release/Servo2D.mpk',
     ],
     'maven': [
         'target/gradle/servoview/maven/org/mozilla/servoview/servoview-armv7/',
@@ -196,6 +200,10 @@ class PackageCommands(CommandBase):
                      default=None,
                      action='store_true',
                      help='Package Android')
+    @CommandArgument('--magicleap',
+                     default=None,
+                     action='store_true',
+                     help='Package Magic Leap')
     @CommandArgument('--target', '-t',
                      default=None,
                      help='Package for given target platform')
@@ -206,7 +214,7 @@ class PackageCommands(CommandBase):
                      default=None,
                      action='store_true',
                      help='Create a local Maven repository')
-    def package(self, release=False, dev=False, android=None, debug=False,
+    def package(self, release=False, dev=False, android=None, magicleap=None, debug=False,
                 debugger=None, target=None, flavor=None, maven=False):
         if android is None:
             android = self.config["build"]["android"]
@@ -218,10 +226,34 @@ class PackageCommands(CommandBase):
         else:
             target = self.config["android"]["target"]
         env = self.build_env(target=target)
-        binary_path = self.get_binary_path(release, dev, android=android)
+        binary_path = self.get_binary_path(release, dev, android=android, magicleap=magicleap)
         dir_to_root = self.get_top_dir()
         target_dir = path.dirname(binary_path)
-        if android:
+        if magicleap:
+            if platform.system() not in ["Darwin"]:
+                raise Exception("Magic Leap builds are only supported on macOS.")
+            if not env.get("MAGICLEAP_SDK"):
+                raise Exception("Magic Leap builds need the MAGICLEAP_SDK environment variable")
+            if not env.get("MLCERT"):
+                raise Exception("Magic Leap builds need the MLCERT environment variable")
+            mabu = path.join(env.get("MAGICLEAP_SDK"), "mabu")
+            package = "./support/magicleap/Servo2D/Servo2D.package"
+            if dev:
+                build_type = "lumin_debug"
+            else:
+                build_type = "lumin_release"
+            argv = [
+                mabu,
+                "-o", target_dir,
+                "-t", build_type,
+                package
+            ]
+            try:
+                subprocess.check_call(argv, env=env)
+            except subprocess.CalledProcessError as e:
+                print("Packaging Magic Leap exited with return value %d" % e.returncode)
+                return e.returncode
+        elif android:
             android_target = self.config["android"]["target"]
             if "aarch64" in android_target:
                 build_type = "Arm64"
