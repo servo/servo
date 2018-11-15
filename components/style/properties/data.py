@@ -291,6 +291,7 @@ class Longhand(object):
                 "AlignItems",
                 "AlignSelf",
                 "Appearance",
+                "BreakBetween",
                 "BackgroundRepeat",
                 "BorderImageRepeat",
                 "BorderStyle",

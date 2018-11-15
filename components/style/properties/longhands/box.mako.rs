@@ -437,18 +437,21 @@ ${helpers.single_keyword(
     animation_value_type="discrete",
 )}
 
-// TODO add support for logical values recto and verso
-${helpers.single_keyword(
+${helpers.predefined_type(
     "page-break-after",
-    "auto always avoid left right",
+    "BreakBetween",
+    "computed::BreakBetween::Auto",
+    needs_context=False,
     products="gecko",
     spec="https://drafts.csswg.org/css2/page.html#propdef-page-break-after",
     animation_value_type="discrete",
 )}
 
-${helpers.single_keyword(
+${helpers.predefined_type(
     "page-break-before",
-    "auto always avoid left right",
+    "BreakBetween",
+    "computed::BreakBetween::Auto",
+    needs_context=False,
     products="gecko",
     spec="https://drafts.csswg.org/css2/page.html#propdef-page-break-before",
     animation_value_type="discrete",

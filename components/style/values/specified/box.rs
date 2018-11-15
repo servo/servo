@@ -1289,3 +1289,29 @@ pub enum Appearance {
     #[css(skip)]
     Count,
 }
+
+/// A kind of break between two boxes.
+///
+/// https://drafts.csswg.org/css-break/#break-between
+#[allow(missing_docs)]
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    Eq,
+    Hash,
+    MallocSizeOf,
+    Parse,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToCss,
+    ToComputedValue,
+)]
+#[repr(u8)]
+pub enum BreakBetween {
+    Auto,
+    Always,
+    Avoid,
+    Left,
+    Right,
+}

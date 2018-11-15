@@ -1396,6 +1396,7 @@ impl Clone for ${style_struct.gecko_struct_name} {
 
     # Types used with predefined_type()-defined properties that we can auto-generate.
     predefined_types = {
+        "BreakBetween": impl_simple,
         "Color": impl_color,
         "ColorOrAuto": impl_color,
         "GreaterThanOrEqualToOneNumber": impl_simple,
@@ -3029,8 +3030,7 @@ fn static_assert() {
                           animation-iteration-count animation-timing-function
                           transition-duration transition-delay
                           transition-timing-function transition-property
-                          page-break-before page-break-after rotate
-                          scroll-snap-points-x scroll-snap-points-y
+                          rotate scroll-snap-points-x scroll-snap-points-y
                           scroll-snap-type-x scroll-snap-type-y scroll-snap-coordinate
                           perspective-origin -moz-binding will-change
                           offset-path overscroll-behavior-x overscroll-behavior-y
@@ -3148,35 +3148,6 @@ fn static_assert() {
     }
 
     <%call expr="impl_coord_copy('vertical_align', 'mVerticalAlign')"></%call>
-
-    % for kind in ["before", "after"]:
-    // Temp fix for Bugzilla bug 24000.
-    // Map 'auto' and 'avoid' to false, and 'always', 'left', and 'right' to true.
-    // "A conforming user agent may interpret the values 'left' and 'right'
-    // as 'always'." - CSS2.1, section 13.3.1
-    pub fn set_page_break_${kind}(&mut self, v: longhands::page_break_${kind}::computed_value::T) {
-        use crate::computed_values::page_break_${kind}::T;
-
-        let result = match v {
-            T::Auto   => false,
-            T::Always => true,
-            T::Avoid  => false,
-            T::Left   => true,
-            T::Right  => true
-        };
-        self.gecko.mBreak${kind.title()} = result;
-    }
-
-    ${impl_simple_copy('page_break_' + kind, 'mBreak' + kind.title())}
-
-    // Temp fix for Bugzilla bug 24000.
-    // See set_page_break_before/after for detail.
-    pub fn clone_page_break_${kind}(&self) -> longhands::page_break_${kind}::computed_value::T {
-        use crate::computed_values::page_break_${kind}::T;
-
-        if self.gecko.mBreak${kind.title()} { T::Always } else { T::Auto }
-    }
-    % endfor
 
     ${impl_style_coord("scroll_snap_points_x", "mScrollSnapPointsX")}
     ${impl_style_coord("scroll_snap_points_y", "mScrollSnapPointsY")}

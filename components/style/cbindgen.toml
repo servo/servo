@@ -39,6 +39,7 @@ derive_helper_methods = true
 prefix = "Style"
 include = [
   "Appearance",
+  "BreakBetween",
   "ComputedFontStretchRange",
   "ComputedFontStyleDescriptor",
   "ComputedFontWeightRange",
