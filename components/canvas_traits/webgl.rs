@@ -367,7 +367,7 @@ pub enum WebGLCommand {
     },
 }
 
-macro_rules! define_resource_id_struct {
+macro_rules! define_resource_id {
     ($name:ident) => {
         #[derive(Clone, Copy, Eq, Hash, PartialEq)]
         pub struct $name(NonZeroU32);
@@ -384,12 +384,6 @@ macro_rules! define_resource_id_struct {
                 self.0.get()
             }
         }
-    };
-}
-
-macro_rules! define_resource_id {
-    ($name:ident) => {
-        define_resource_id_struct!($name);
 
         #[allow(unsafe_code)]
         impl<'de> ::serde::Deserialize<'de> for $name {
