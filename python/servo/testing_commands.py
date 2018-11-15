@@ -373,11 +373,20 @@ class MachCommands(CommandBase):
              parser=create_parser_wpt)
     def test_wpt(self, **kwargs):
         self.ensure_bootstrapped()
+        self.set_resources_path()
         ret = self.run_test_list_or_dispatch(kwargs["test_list"], "wpt", self._test_wpt, **kwargs)
         if kwargs["always_succeed"]:
             return 0
         else:
             return ret
+
+    # Create a js file with a constant pointing to the resources dir so tests can
+    # fetch its content using file:// urls.
+    def set_resources_path(self):
+        resources_path = path.join(os.getcwd(), SERVO_TESTS_PATH, 'mozilla', 'resources')
+        resources_file = path.join(resources_path, 'resources.js')
+        with open(resources_file, "w+") as f:
+            f.write("const RESOURCES = '" + resources_path + "';\n")
 
     @Command('test-wpt-android',
              description='Run the web platform test suite in an Android emulator',
@@ -851,7 +860,7 @@ class WebPlatformTestsCreator(CommandBase):
         reference_path = os.path.normpath(os.path.abspath(reference_path))
 
         # If the reference is in the same directory, the URL can just be the
-        # name of the refernce file itself.
+        # name of the reference file itself.
         reference_path_parts = os.path.split(reference_path)
         if reference_path_parts[0] == os.path.split(test_path)[0]:
             return (test_url, reference_path_parts[1])

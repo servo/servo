@@ -11653,6 +11653,11 @@
      {}
     ]
    ],
+   "mozilla/resources/.gitignore": [
+    [
+     {}
+    ]
+   ],
    "mozilla/resources/background-green.css": [
     [
      {}
@@ -11709,6 +11714,11 @@
     ]
    ],
    "mozilla/resources/range_small.txt": [
+    [
+     {}
+    ]
+   ],
+   "mozilla/resources/resources.js": [
     [
      {}
     ]
@@ -27240,7 +27250,7 @@
    "testharness"
   ],
   "mozilla/range_request_file_url.html": [
-   "65fe13fe93d97cebc2846ff7d7deab3eb84c1787",
+   "71e6ea028d0ff1f70a6d9a9a60f208e81b30db35",
    "testharness"
   ],
   "mozilla/referrer-policy/OWNERS": [
@@ -32511,6 +32521,10 @@
    "d61dcbbffde49f735c94f078e480e60747d6ecd6",
    "support"
   ],
+  "mozilla/resources/.gitignore": [
+   "76ff2d08d8989322a1b873d89fba93ab6713b974",
+   "support"
+  ],
   "mozilla/resources/background-green.css": [
    "9d9d772fb468756d1a90f72325f89cd372f812ef",
    "support"
@@ -32557,6 +32571,10 @@
   ],
   "mozilla/resources/range_small.txt": [
    "b0883f382e1a80609b7b2c7904e701fbe6760b14",
+   "support"
+  ],
+  "mozilla/resources/resources.js": [
+   "04451bb98445cac41e0d91b4198c5eb020c422a1",
    "support"
   ],
   "mozilla/resources/ssl.https.html": [
