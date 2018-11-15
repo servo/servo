@@ -13,7 +13,7 @@ def main(task_for, mock=False):
         if CONFIG.git_ref in ["refs/heads/auto", "refs/heads/try", "refs/heads/try-taskcluster"]:
             linux_tidy_unit()
             android_arm32()
-            android_x86()
+            #android_x86()
             windows_dev()
             if mock:
                 windows_release()
