@@ -1042,47 +1042,51 @@ impl WebGLImpl {
             WebGLCommand::SetViewport(x, y, width, height) => {
                 ctx.gl().viewport(x, y, width, height);
             },
-            WebGLCommand::TexImage2D(
+            WebGLCommand::TexImage2D {
                 target,
                 level,
-                internal,
+                internal_format,
                 width,
                 height,
                 format,
                 data_type,
-                ref chan,
-            ) => ctx.gl().tex_image_2d(
+                ref receiver,
+            } => {
+                ctx.gl().tex_image_2d(
+                    target,
+                    level as i32,
+                    internal_format as i32,
+                    width as i32,
+                    height as i32,
+                    0,
+                    format,
+                    data_type,
+                    Some(&receiver.recv().unwrap()),
+                );
+            },
+            WebGLCommand::TexSubImage2D {
                 target,
                 level,
-                internal,
+                xoffset,
+                yoffset,
                 width,
                 height,
-                0,
                 format,
                 data_type,
-                Some(&chan.recv().unwrap()),
-            ),
-            WebGLCommand::TexSubImage2D(
-                target,
-                level,
-                xoffset,
-                yoffset,
-                x,
-                y,
-                width,
-                height,
-                ref chan,
-            ) => ctx.gl().tex_sub_image_2d(
-                target,
-                level,
-                xoffset,
-                yoffset,
-                x,
-                y,
-                width,
-                height,
-                &chan.recv().unwrap(),
-            ),
+                ref receiver,
+            } => {
+                ctx.gl().tex_sub_image_2d(
+                    target,
+                    level as i32,
+                    xoffset,
+                    yoffset,
+                    width as i32,
+                    height as i32,
+                    format,
+                    data_type,
+                    &receiver.recv().unwrap(),
+                );
+            },
             WebGLCommand::DrawingBufferWidth(ref sender) => sender
                 .send(ctx.borrow_draw_buffer().unwrap().size().width)
                 .unwrap(),

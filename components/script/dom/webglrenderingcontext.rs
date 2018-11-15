@@ -739,16 +739,16 @@ impl WebGLRenderingContext {
 
         // TODO(emilio): convert colorspace if requested
         let (sender, receiver) = ipc::bytes_channel().unwrap();
-        self.send_command(WebGLCommand::TexImage2D(
-            target.as_gl_constant(),
-            level as i32,
-            internal_format as i32,
-            width as i32,
-            height as i32,
+        self.send_command(WebGLCommand::TexImage2D {
+            target: target.as_gl_constant(),
+            level,
+            internal_format,
+            width,
+            height,
             format,
-            self.extension_manager.effective_type(data_type),
+            data_type: self.extension_manager.effective_type(data_type),
             receiver,
-        ));
+        });
         sender.send(&pixels).unwrap();
 
         if let Some(fb) = self.bound_framebuffer.get() {
@@ -817,17 +817,17 @@ impl WebGLRenderingContext {
 
         // TODO(emilio): convert colorspace if requested
         let (sender, receiver) = ipc::bytes_channel().unwrap();
-        self.send_command(WebGLCommand::TexSubImage2D(
-            target.as_gl_constant(),
-            level as i32,
+        self.send_command(WebGLCommand::TexSubImage2D {
+            target: target.as_gl_constant(),
+            level,
             xoffset,
             yoffset,
-            width as i32,
-            height as i32,
-            format.as_gl_constant(),
-            data_type.as_gl_constant(),
+            width,
+            height,
+            format: format.as_gl_constant(),
+            data_type: data_type.as_gl_constant(),
             receiver,
-        ));
+        });
         sender.send(&pixels).unwrap();
     }
 
