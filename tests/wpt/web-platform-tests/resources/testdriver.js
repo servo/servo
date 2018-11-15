@@ -192,7 +192,7 @@
          * @returns {Promise} fufiled after the actions are performed, or rejected in
          *                    the cases the WebDriver command errors
          */
-        action_sequence(actions) {
+        action_sequence: function(actions) {
             return window.test_driver_internal.action_sequence(actions);
         }
     };
@@ -233,7 +233,7 @@
         /**
          * Send a sequence of pointer actions
          *
-         * @returns {Promise} fufilled after actions are sent, rejected if any actions
+         * @returns {Promise} fulfilled after actions are sent, rejected if any actions
          *                    fail
          */
         action_sequence: function(actions) {

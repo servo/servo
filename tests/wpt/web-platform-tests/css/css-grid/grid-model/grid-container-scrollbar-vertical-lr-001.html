@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Grid Layout Test: Grid container with scrollbars</title>
+<link rel="author" title="Manuel Rego Casasnovas" href="mailto:rego@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid/#grid-model">
+<link rel="match" href="grid-container-scrollbar-vertical-lr-001-ref.html">
+<meta name="assert" content="This test verifes that scrollbars are properly painted on grid containers, and are shown in the expected position depending on the direction.">
+<link href="support/grid.css" rel="stylesheet">
+<style>
+  .grid {
+    margin: 10px;
+    writing-mode: vertical-lr;
+  }
+
+  .scrollX {
+    overflow-x: scroll;
+  }
+
+  .scrollY {
+    overflow-y: scroll;
+  }
+
+  .fixedSize {
+    width: 200px;
+    height: 50px;
+  }
+
+  .grid > div {
+    background: cyan;
+  }
+</style>
+
+<p>The test passes if it has the same output than the reference.</p>
+
+<div style="float: left; width: 350px;">
+
+  <h2>direction: ltr;</h2>
+
+  <div class="grid scrollX">
+    <div>item</div>
+  </div>
+
+  <div class="grid scrollY">
+    <div>item</div>
+  </div>
+
+  <div class="grid scrollX scrollY">
+    <div>item</div>
+  </div>
+
+  <div class="grid fixedSize scrollX">
+    <div>item</div>
+  </div>
+
+  <div class="grid fixedSize scrollY">
+    <div>item</div>
+  </div>
+
+  <div class="grid fixedSize scrollX scrollY">
+    <div>item</div>
+  </div>
+
+</div>
+
+<div style="float: left; width: 350px;">
+
+  <h2>direction: rtl;</h2>
+
+  <div class="directionRTL grid scrollX">
+    <div>item</div>
+  </div>
+
+  <div class="directionRTL grid scrollY">
+    <div>item</div>
+  </div>
+
+  <div class="directionRTL grid scrollX scrollY">
+    <div>item</div>
+  </div>
+
+  <div class="directionRTL grid fixedSize scrollX">
+    <div>item</div>
+  </div>
+
+  <div class="directionRTL grid fixedSize scrollY">
+    <div>item</div>
+  </div>
+
+  <div class="directionRTL grid fixedSize scrollX scrollY">
+    <div>item</div>
+  </div>
+
+</div>

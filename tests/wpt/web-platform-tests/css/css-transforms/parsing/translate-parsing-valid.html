@@ -17,9 +17,12 @@ test_valid_value("translate", "none");
 test_valid_value("translate", "0px");
 test_valid_value("translate", "100%");
 
+test_valid_value("translate", "100px 0px", "100px");
+test_valid_value("translate", "100px 0%", "100px");
 test_valid_value("translate", "100px 200%");
 test_valid_value("translate", "100% 200px");
 
+test_valid_value("translate", "100px 200px 0px");
 test_valid_value("translate", "100px 200px 300px");
 test_valid_value("translate", "100% 200% 300px");
 

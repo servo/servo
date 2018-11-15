@@ -7,22 +7,70 @@
 <script src="/resources/testharnessreport.js"></script>
 <div id="log"></div>
 <script>
+
+  const INITIAL_VALUE = "  foo\rbar  ";
+
+  // Sanitize algorithm implementations only for values used in this test.
+  function sanitizeText(value) {
+    switch (value) {
+      case INITIAL_VALUE: return "  foobar  ";
+      case "  foobar  ": return value;
+      case "foobar": return value;
+      case "50": return value;
+      case "#000000": return value;
+      case "": return value;
+      default: throw new DOMException(`Internal Error: Should add support of "${value}"`, "NotSupportedError");
+    }
+  }
+  function sanitizeEmailOrUrl(value) {
+    switch (value) {
+      case INITIAL_VALUE: return "foobar";
+      case "  foobar  ": return "foobar";
+      case "foobar": return value;
+      case "50": return value;
+      case "#000000": return value;
+      case "": return value;
+      default: throw new DOMException(`Internal Error: Should add support of "${value}"`, "NotSupportedError");
+    }
+  }
+  function sanitizeTemporal(value) {
+    // We have no test cases using valid temporal values.
+    return "";
+  }
+  function sanitizeNumber(value) {
+    switch (value) {
+      case "50": return value;
+      default:
+      // We have no test cases using valid numbers other than "50".
+        return "";
+    }
+  }
+  function sanitizeRange(value) {
+    // We have no test cases using valid numbers other than "50".
+    return "50";
+  }
+  function sanitizeColor(value) {
+    // We have no test cases using valid colors other than "#000000".
+    return "#000000";
+  }
+
+
   var types = [
     { type: "hidden" },
-    { type: "text", sanitizedValue: "  foobar  " },
-    { type: "search", sanitizedValue: "  foobar  " },
-    { type: "tel", sanitizedValue: "  foobar  " },
-    { type: "url", sanitizedValue: "foobar" },
-    { type: "email", sanitizedValue: "foobar" },
-    { type: "password", sanitizedValue: "  foobar  " },
-    { type: "datetime-local", sanitizedValue: "", overridesSanitization: true },
-    { type: "date", sanitizedValue: "", overridesSanitization: true },
-    { type: "month", sanitizedValue: "", overridesSanitization: true },
-    { type: "week", sanitizedValue: "", overridesSanitization: true },
-    { type: "time", sanitizedValue: "", overridesSanitization: true },
-    { type: "number", sanitizedValue: "", overridesSanitization: true },
-    { type: "range", sanitizedValue: "50", overridesSanitization: true },
-    { type: "color", sanitizedValue: "#000000", overridesSanitization: true },
+    { type: "text", sanitizer: sanitizeText },
+    { type: "search", sanitizer: sanitizeText },
+    { type: "tel", sanitizer: sanitizeText },
+    { type: "url", sanitizer: sanitizeEmailOrUrl },
+    { type: "email", sanitizer: sanitizeEmailOrUrl },
+    { type: "password", sanitizer: sanitizeText },
+    { type: "datetime-local", sanitizer: sanitizeTemporal },
+    { type: "date", sanitizer: sanitizeTemporal },
+    { type: "month", sanitizer: sanitizeTemporal },
+    { type: "week", sanitizer: sanitizeTemporal },
+    { type: "time", sanitizer: sanitizeTemporal },
+    { type: "number", sanitizer: sanitizeNumber },
+    { type: "range", sanitizer: sanitizeRange },
+    { type: "color", sanitizer: sanitizeColor },
     { type: "checkbox", defaultValue: "on" },
     { type: "radio", defaultValue: "on" },
     { type: "file" },
@@ -52,7 +100,7 @@
       if (types[i] != types[j]) {
         test(function() {
           var input = document.createElement("input");
-          var expected = "  foo\rbar  ";
+          var expected = INITIAL_VALUE;
           input.type = types[i].type;
           if (types[i].type === "file") {
             assert_throws("INVALID_STATE_ERR", function() {
@@ -65,6 +113,7 @@
             assert_equals(input.value, "");
           } else {
             input.value = expected;
+            expected = input.value;
 
             const previouslySelectable = (input.selectionStart !== null);
 
@@ -74,16 +123,9 @@
 
             input.type = types[j].type;  // change state
 
-            // type[i] sanitization
-            if (types[i].sanitizedValue || types[i].sanitizedValue === "") {
-              expected = types[i].sanitizedValue;
-            }
-
             // type[j] sanitization
-            if (types[j].sanitizedValue || types[j].sanitizedValue === "") {
-              if ((expected !== "" && !types[i].overridesSanitization) || types[j].overridesSanitization) {
-                expected = types[j].sanitizedValue;
-              }
+            if (types[j].sanitizer) {
+              expected = types[j].sanitizer(expected);
             }
 
             // type[j] defaultValue

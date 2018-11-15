@@ -1,0 +1,42 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <title>
+    Test that NEL reports are sent for cache validation requests
+  </title>
+  <script src='/resources/testharness.js'></script>
+  <script src='/resources/testharnessreport.js'></script>
+  <script src='./support/nel.sub.js'></script>
+</head>
+<body>
+  <script>
+    nel_test(async t => {
+      // Fetch a resource that can be cached, but whose response requires
+      // validation.  Do this *before* fetching the NEL policy for this origin,
+      // to ensure that we don't generate any report about this request.
+      await fetchValidatedCachedResource();
+      // Fetch the NEL policy for this origin.
+      await fetchResourceWithBasicPolicy();
+      // Fetch the now-cached resource again.  Because the response requires
+      // validation, this will result in a network request.
+      await fetchValidatedCachedResource();
+      // We should receive a report about the cache validation request.
+      assert_true(await reportExists({
+        url: getURLForValidatedCachedResource(),
+        user_agent: navigator.userAgent,
+        type: "network-error",
+        body: {
+          method: "GET",
+          sampling_fraction: 1.0,
+          status_code: 304,
+          phase: "application",
+          type: "ok",
+        },
+        metadata: {
+          content_type: "application/reports+json",
+        },
+      }));
+    });
+  </script>
+</body>
+</html>

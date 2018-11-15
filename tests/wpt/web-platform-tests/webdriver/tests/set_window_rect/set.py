@@ -5,7 +5,8 @@ import pytest
 from webdriver.transport import Response
 
 from tests.support.asserts import assert_error, assert_success
-from tests.support.helpers import document_hidden, is_fullscreen
+from tests.support.helpers import (available_screen_size, document_hidden,
+                                   is_fullscreen, screen_size)
 
 
 def set_window_rect(session, rect):
@@ -172,38 +173,31 @@ def test_height_width(session):
     session.window.position = (50, 50)
 
     original = session.window.rect
-    max = session.execute_script("""
-        return {
-          width: window.screen.availWidth,
-          height: window.screen.availHeight,
-        }""")
+    screen_width, screen_height = screen_size(session)
 
     response = set_window_rect(session, {
-        "width": max["width"] - 100,
-        "height": max["height"] - 100
+        "width": screen_width - 100,
+        "height": screen_height - 100
     })
     assert_success(response, {
         "x": original["x"],
         "y": original["y"],
-        "width": max["width"] - 100,
-        "height": max["height"] - 100
+        "width": screen_width - 100,
+        "height": screen_height - 100,
     })
 
 
 def test_height_width_larger_than_max(session):
-    max = session.execute_script("""
-        return {
-          width: window.screen.availWidth,
-          height: window.screen.availHeight,
-        }""")
+    screen_width, screen_height = screen_size(session)
+    avail_width, avail_height = available_screen_size(session)
 
     response = set_window_rect(session, {
-        "width": max["width"] + 100,
-        "height": max["height"] + 100
+        "width": screen_width + 100,
+        "height": screen_height + 100
     })
     rect = assert_success(response)
-    assert rect["width"] >= max["width"]
-    assert rect["height"] >= max["height"]
+    assert rect["width"] >= avail_width
+    assert rect["height"] >= avail_height
 
 
 def test_height_width_as_current(session):

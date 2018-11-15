@@ -1,7 +1,7 @@
 import base64
 import cgi
 from six.moves.http_cookies import BaseCookie
-from six import BytesIO, binary_type, text_type
+from six import BytesIO, binary_type, text_type, iteritems, PY3
 import tempfile
 
 from six.moves.urllib.parse import parse_qsl, urlsplit
@@ -319,9 +319,11 @@ class Request(object):
         if self._cookies is None:
             parser = BaseCookie()
             cookie_headers = self.headers.get("cookie", b"")
+            if PY3:
+                cookie_headers = cookie_headers.decode("iso-8859-1")
             parser.load(cookie_headers)
             cookies = Cookies()
-            for key, value in parser.iteritems():
+            for key, value in iteritems(parser):
                 cookies[key] = CookieValue(value)
             self._cookies = cookies
         return self._cookies
@@ -619,7 +621,7 @@ class Authentication(object):
     header, or None
 
     Both attributes are binary strings (`str` in Py2, `bytes` in Py3), since
-    RFC7617 Section 2.1 does not specify the encoding for username & passsword
+    RFC7617 Section 2.1 does not specify the encoding for username & password
     (as long it's compatible with ASCII). UTF-8 should be a relatively safe
     choice if callers need to decode them as most browsers use it.
     """

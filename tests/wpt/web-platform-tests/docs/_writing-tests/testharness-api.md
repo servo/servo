@@ -434,7 +434,7 @@ is called, the two conditions above apply like normal.
 Dedicated and shared workers don't have an event that corresponds to the `load`
 event in a document. Therefore these worker tests always behave as if the
 `explicit_done` property is set to true. Service workers depend on the
-[install](https://slightlyoff.github.io/ServiceWorker/spec/service_worker/index.html#service-worker-global-scope-install-event)
+[install](https://w3c.github.io/ServiceWorker/#service-worker-global-scope-install-event)
 event which is fired following the completion of [running the
 worker](https://html.spec.whatwg.org/multipage/workers.html#run-a-worker).
 
@@ -610,7 +610,7 @@ capable of accessing the browsing context as either an ancestor or opener.
 
 The `testharness.js` script can be used from within [dedicated workers, shared
 workers](https://html.spec.whatwg.org/multipage/workers.html) and [service
-workers](https://slightlyoff.github.io/ServiceWorker/spec/service_worker/).
+workers](https://w3c.github.io/ServiceWorker/).
 
 Testing from a worker script is different from testing from an HTML document in
 several ways:
@@ -637,7 +637,7 @@ several ways:
   complete](#determining-when-all-tests-are-complete)). So these worker tests
   behave as if they were started with the `explicit_done` option. Service
   workers depend on the
-  [oninstall](https://slightlyoff.github.io/ServiceWorker/spec/service_worker/index.html#service-worker-global-scope-install-event)
+  [oninstall](https://w3c.github.io/ServiceWorker/#service-worker-global-scope-install-event)
   event and don't require an explicit `done` call.
 
 Here's an example that uses a dedicated worker.
@@ -674,7 +674,7 @@ fetch_tests_from_worker(new Worker("worker.js"));
 The argument to the `fetch_tests_from_worker` function can be a
 [`Worker`](https://html.spec.whatwg.org/multipage/workers.html#dedicated-workers-and-the-worker-interface),
 a [`SharedWorker`](https://html.spec.whatwg.org/multipage/workers.html#shared-workers-and-the-sharedworker-interface)
-or a [`ServiceWorker`](https://slightlyoff.github.io/ServiceWorker/spec/service_worker/#service-worker-obj).
+or a [`ServiceWorker`](https://w3c.github.io/ServiceWorker/#serviceworker-interface).
 Once called, the containing document fetches all the tests from the worker and
 behaves as if those tests were running in the containing document itself.
 

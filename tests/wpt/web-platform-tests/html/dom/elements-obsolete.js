@@ -13,9 +13,21 @@ var obsoleteElements = {
     width: "string",
   },
   marquee: {
-    behavior: "string",
+    behavior: {
+      type: {
+        type: "enum",
+        keywords: ["scroll", "slide", "alternate"],
+        defaultVal: "scroll"
+      },
+    },
     bgColor: "string",
-    direction: "string",
+    direction: {
+      type: {
+        type: "enum",
+        keywords: ["up", "right", "down", "left"],
+        defaultVal: "left"
+      },
+    },
     height: "string",
     hspace: "unsigned long",
     scrollAmount: {type: "unsigned long", defaultVal: 6},

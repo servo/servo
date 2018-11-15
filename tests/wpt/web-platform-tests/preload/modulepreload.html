@@ -1,8 +1,10 @@
 <!DOCTYPE html>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
 <body>
 <script>
+host_info = get_host_info();
 
 function verifyNumberOfDownloads(url, number) {
     var numDownloads = 0;
@@ -47,6 +49,116 @@ promise_test(function(t) {
         verifyNumberOfDownloads('resources/dummy.js', 1);
     });
 }, 'link rel=modulepreload');
+
+/**
+ * Begin tests to ensure crossorigin value behaves the same on
+ * link rel=modulepreload as it does script elements.
+ */
+promise_test(function(t) {
+    document.cookie = 'same=1';
+    var link = document.createElement('link');
+    link.rel = 'modulepreload';
+    link.crossorigin = 'anonymous';
+    link.href = 'resources/dummy.js?sameOriginAnonymous';
+    return attachAndWaitForLoad(link).then(() => {
+        verifyNumberOfDownloads('resources/dummy.js?sameOriginAnonymous', 1);
+
+        // Verify that <script> doesn't fetch the module again.
+        var script = document.createElement('script');
+        script.type = 'module';
+        script.crossorigin = 'anonymous';
+        script.src = 'resources/dummy.js?sameOriginAnonymous';
+        return attachAndWaitForLoad(script);
+    }).then(() => {
+        verifyNumberOfDownloads('resources/dummy.js?sameOriginAnonymous', 1);
+    });
+}, 'same-origin link rel=modulepreload crossorigin=anonymous');
+
+promise_test(function(t) {
+    var link = document.createElement('link');
+    link.rel = 'modulepreload';
+    link.crossorigin = 'use-credentials';
+    link.href = 'resources/dummy.js?sameOriginUseCredentials';
+    return attachAndWaitForLoad(link).then(() => {
+        verifyNumberOfDownloads('resources/dummy.js?sameOriginUseCredentials', 1);
+
+        // Verify that <script> doesn't fetch the module again.
+        var script = document.createElement('script');
+        script.type = 'module';
+        script.crossorigin = 'use-credentials';
+        script.src = 'resources/dummy.js?sameOriginUseCredentials';
+        return attachAndWaitForLoad(script);
+    }).then(() => {
+        verifyNumberOfDownloads('resources/dummy.js?sameOriginUseCredentials', 1);
+    });
+}, 'same-origin link rel=modulepreload crossorigin=use-credentials');
+
+promise_test(function(t) {
+    const setCookiePromise = fetch(
+        `${host_info.HTTP_REMOTE_ORIGIN}/cookies/resources/set-cookie.py?name=cross&path=/preload/`,
+        {
+          mode: 'no-cors',
+          credentials: 'include',
+        });
+
+    return setCookiePromise.then(() => {
+        var link = document.createElement('link');
+        link.rel = 'modulepreload';
+        link.href = `${host_info.HTTP_REMOTE_ORIGIN}/preload/resources/cross-origin-module.py?crossOriginNone`;
+        return attachAndWaitForLoad(link);
+    }).then(() => {
+        verifyNumberOfDownloads(`${host_info.HTTP_REMOTE_ORIGIN}/preload/resources/cross-origin-module.py?crossOriginNone`, 1);
+
+        // Verify that <script> doesn't fetch the module again.
+        var script = document.createElement('script');
+        script.type = 'module';
+        script.src = `${host_info.HTTP_REMOTE_ORIGIN}/preload/resources/cross-origin-module.py?crossOriginNone`;
+        return attachAndWaitForLoad(script);
+    }).then(() => {
+        verifyNumberOfDownloads(`${host_info.HTTP_REMOTE_ORIGIN}/preload/resources/cross-origin-module.py?crossOriginNone`, 1);
+    });
+}, 'cross-origin link rel=modulepreload');
+
+promise_test(function(t) {
+    var link = document.createElement('link');
+    link.rel = 'modulepreload';
+    link.crossorigin = 'anonymous';
+    link.href = `${host_info.HTTP_REMOTE_ORIGIN}/preload/resources/cross-origin-module.py?crossOriginAnonymous`;
+    return attachAndWaitForLoad(link).then(() => {
+        verifyNumberOfDownloads(`${host_info.HTTP_REMOTE_ORIGIN}/preload/resources/cross-origin-module.py?crossOriginAnonymous`, 1);
+
+        // Verify that <script> doesn't fetch the module again.
+        var script = document.createElement('script');
+        script.type = 'module';
+        script.crossorigin = 'anonymous';
+        script.src = `${host_info.HTTP_REMOTE_ORIGIN}/preload/resources/cross-origin-module.py?crossOriginAnonymous`;
+        return attachAndWaitForLoad(script);
+    }).then(() => {
+        verifyNumberOfDownloads(`${host_info.HTTP_REMOTE_ORIGIN}/preload/resources/cross-origin-module.py?crossOriginAnonymous`, 1);
+    });
+}, 'cross-origin link rel=modulepreload crossorigin=anonymous');
+
+promise_test(function(t) {
+    var link = document.createElement('link');
+    link.rel = 'modulepreload';
+    link.crossorigin = 'use-credentials';
+    link.href = `${host_info.HTTP_REMOTE_ORIGIN}/preload/resources/cross-origin-module.py?crossOriginUseCredentials`;
+    return attachAndWaitForLoad(link).then(() => {
+        verifyNumberOfDownloads(`${host_info.HTTP_REMOTE_ORIGIN}/preload/resources/cross-origin-module.py?crossOriginUseCredentials`, 1);
+
+        // Verify that <script> doesn't fetch the module again.
+        var script = document.createElement('script');
+        script.type = 'module';
+        script.crossorigin = 'use-credentials';
+        script.src = `${host_info.HTTP_REMOTE_ORIGIN}/preload/resources/cross-origin-module.py?crossOriginUseCredentials`;
+        return attachAndWaitForLoad(script);
+    }).then(() => {
+        verifyNumberOfDownloads(`${host_info.HTTP_REMOTE_ORIGIN}/preload/resources/cross-origin-module.py?crossOriginUseCredentials`, 1);
+    });
+}, 'cross-origin link rel=modulepreload crossorigin=use-credentials');
+/**
+ * End link rel=modulepreload crossorigin attribute tests.
+ */
 
 promise_test(function(t) {
     var link = document.createElement('link');

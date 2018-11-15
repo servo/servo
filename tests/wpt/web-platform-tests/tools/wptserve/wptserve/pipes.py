@@ -329,7 +329,7 @@ def sub(request, response, escape_type="html"):
                         "html" and "none", with "html" the default for historic reasons.
 
     The format is a very limited template language. Substitutions are
-    enclosed by {{ and }}. There are several avaliable substitutions:
+    enclosed by {{ and }}. There are several available substitutions:
 
     host
       A simple string value and represents the primary host from which the

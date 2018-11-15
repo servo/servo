@@ -378,7 +378,6 @@ SUPPORT-WRONG-DIR: css/CSS2/section-index.xht
 SUPPORT-WRONG-DIR: css/CSS2/other-formats/xml/background-18.css
 SUPPORT-WRONG-DIR: css/CSS2/other-formats/xml/background-19-alt.xml
 SUPPORT-WRONG-DIR: css/CSS2/other-formats/xml/background-19.css
-SUPPORT-WRONG-DIR: css/filter-effects/filter-external-002-filter.svg
 SUPPORT-WRONG-DIR: css/vendor-imports/mozilla/mozilla-central-reftests/check-for-references.sh
 SUPPORT-WRONG-DIR: css/vendor-imports/mozilla/mozilla-central-reftests/sync-tests-filter
 SUPPORT-WRONG-DIR: css/vendor-imports/mozilla/mozilla-central-reftests/sync-tests.sh

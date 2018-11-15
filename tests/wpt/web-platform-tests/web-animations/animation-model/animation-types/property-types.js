@@ -1720,7 +1720,7 @@ const rotateListType = {
                        1000);
 
       testAnimationSamples(animation, idlName,
-        [{ time: 500, expected: '0 1 0 45deg' }]);
+        [{ time: 500, expected: 'y 45deg' }]);
     }, `${property} with rotation axes`);
 
     test(t => {
@@ -1733,7 +1733,7 @@ const rotateListType = {
                        1000);
 
       testAnimationSamples(animation, idlName,
-        [{ time: 250, expected: '0 1 0 180deg' }]);
+        [{ time: 250, expected: 'y 180deg' }]);
     }, `${property} with rotation axes and range over 360 degrees`);
 
     test(t => {
@@ -1768,15 +1768,15 @@ const rotateListType = {
       // Rotation specified in transform property should not affect the computed
       // value of |property|.
       target.style.transform = 'rotate(20deg)';
-      target.style[idlName] = '0 1 0 -45deg';
+      target.style[idlName] = 'y -45deg';
       const animation =
         target.animate({ [idlName]: ['0 1 0 90deg',
                                      '0 1 0 180deg'] },
                        { duration: 1000, fill: 'both', composite: 'add' });
 
       testAnimationSamples(animation, idlName,
-        [{ time: 0,    expected: '0 1 0 45deg' },
-         { time: 1000, expected: '0 1 0 135deg' }]);
+        [{ time: 0,    expected: 'y 45deg' },
+         { time: 1000, expected: 'y 135deg' }]);
     }, `${property} with underlying transform`);
 
     test(t => {
@@ -1816,8 +1816,8 @@ const rotateListType = {
                        { duration: 1000, fill: 'both', composite: 'accumulate' });
 
       testAnimationSamples(animation, idlName,
-        [{ time: 0,    expected: '1 0 0 45deg' },
-         { time: 1000, expected: '1 0 0 135deg' }]);
+        [{ time: 0,    expected: 'x 45deg' },
+         { time: 1000, expected: 'x 135deg' }]);
     }, `${property} with underlying transform`);
 
     test(t => {
@@ -1885,7 +1885,7 @@ const translateListType = {
         1000
       );
       testAnimationSamples(animation, idlName,
-        [{ time: 500,  expected: '200px -25.5px 200px' }]);
+        [{ time: 500,  expected: '200px calc(25% - 50.5px) 200px' }]);
     }, `${property} with combination of percentages and lengths`);
   },
   testAddition: function(property, setup) {
@@ -1924,8 +1924,8 @@ const translateListType = {
                                        { duration: 1000, fill: 'both',
                                          composite: 'add' });
       testAnimationSamples(animation, idlName,
-        [ { time: 0,    expected: '-150px' },
-          { time: 1000, expected: '550px' }]);
+        [ { time: 0,    expected: 'calc(50% - 200px)' },
+          { time: 1000, expected: 'calc(50% + 500px)' }]);
 
     }, `${property} with underlying percentage value`);
   },
@@ -2181,7 +2181,7 @@ const filterListType = {
       const animation = target.animate(
         { [idlName]:
           // To make missing filter-function-lists, specified the opacity.
-          ['opoacity(1)',
+          ['opacity(1)',
            'opacity(0) grayscale(1) invert(1) sepia(1) blur(10px)'] },
         1000);
 
