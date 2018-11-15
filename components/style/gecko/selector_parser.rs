@@ -5,7 +5,6 @@
 //! Gecko-specific bits for selector-parsing.
 
 use crate::element_state::{DocumentState, ElementState};
-use crate::gecko_bindings::structs;
 use crate::gecko_bindings::structs::RawServoSelectorList;
 use crate::gecko_bindings::sugar::ownership::{HasBoxFFI, HasFFI, HasSimpleFFI};
 use crate::invalidation::element::document_state::InvalidationMatchingData;
