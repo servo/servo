@@ -1354,6 +1354,13 @@ impl ShorthandId {
         NonCustomPropertyId::from(self).to_nscsspropertyid()
     }
 
+    /// Converts from a nsCSSPropertyID to a ShorthandId.
+    #[cfg(feature = "gecko")]
+    #[inline]
+    pub fn from_nscsspropertyid(prop: nsCSSPropertyID) -> Result<Self, ()> {
+        PropertyId::from_nscsspropertyid(prop)?.as_shorthand().map_err(|_| ())
+    }
+
     /// Get the longhand ids that form this shorthand.
     pub fn longhands(&self) -> NonCustomPropertyIterator<LonghandId> {
         % for property in data.shorthands:
