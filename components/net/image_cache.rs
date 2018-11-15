@@ -59,6 +59,7 @@ fn set_webrender_image_key(webrender_api: &webrender_api::RenderApi, image: &mut
             pixels::rgba8_premultiply_inplace(bytes.as_mut_slice())
         },
         PixelFormat::RGB8 => {
+            bytes.reserve(image.bytes.len() / 3 * 4);
             for bgr in image.bytes.chunks(3) {
                 bytes.extend_from_slice(&[bgr[2], bgr[1], bgr[0], 0xff]);
             }
