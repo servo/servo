@@ -58,5 +58,6 @@ promise_test(async t => {
     assert_equals(ids.root4.pictureInPictureElement, null);
     assert_equals(ids.root5.pictureInPictureElement, null);
   })
+  .then(() => document.exitPictureInPicture());
 });
 </script>

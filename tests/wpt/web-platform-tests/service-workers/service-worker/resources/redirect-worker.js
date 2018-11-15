@@ -114,7 +114,7 @@ self.addEventListener('fetch', function(event) {
       return;
     }
 
-    event.respondWith(waitUntilPromise.then(function() {
+    event.respondWith(waitUntilPromise.then(async () => {
       if (params['sw'] == 'gen') {
         return Response.redirect(params['url']);
       } else if (params['sw'] == 'fetch') {
@@ -126,18 +126,13 @@ self.addEventListener('fetch', function(event) {
       } else if (params['sw'] == 'manual') {
         return fetch(new Request(event.request.url, {redirect: 'manual'}));
       } else if (params['sw'] == 'manualThroughCache') {
-        var url = event.request.url;
-        var cache;
-        return caches.delete(url)
-          .then(function() { return self.caches.open(url); })
-          .then(function(c) {
-            cache = c;
-            return fetch(new Request(url, {redirect: 'manual'}));
-          })
-          .then(function(res) { return cache.put(event.request, res); })
-          .then(function() { return cache.match(url); });
+        const url = event.request.url;
+        await caches.delete(url)
+        const cache = await self.caches.open(url);
+        const response = await fetch(new Request(url, {redirect: 'manual'}));
+        await cache.put(event.request, response);
+        return cache.match(url);
       }
-
       // unexpected... trigger an interception failure
     }));
   });

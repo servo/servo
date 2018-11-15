@@ -146,7 +146,7 @@
         generateVideoReceiveOnlyOffer(pc)
         .then(offer2 =>
           pc.setLocalDescription(offer2)
-          .then(offer2 => {
+          .then(() => {
             assert_session_desc_not_similar(offer1, offer2);
             assert_equals(pc.signalingState, 'have-local-offer');
             assert_session_desc_similar(pc.localDescription, offer2);

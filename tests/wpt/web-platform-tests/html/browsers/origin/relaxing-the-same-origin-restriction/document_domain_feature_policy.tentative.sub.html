@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<body>
+  <script src=/resources/testharness.js></script>
+  <script src=/resources/testharnessreport.js></script>
+  <script src=/feature-policy/resources/featurepolicy.js></script>
+  <script>
+  run_all_fp_tests_allow_all(
+      'http://{{domains[www]}}:{{ports[http][0]}}',
+      'document-domain',
+      'SecurityError',
+      () => {
+        return new Promise((resolve, reject) => {
+          try {
+            document.domain = "{{domains[]}}";
+            resolve();
+          } catch(e) {
+            reject(e);
+          }
+       });
+      });
+  </script>
+</body>

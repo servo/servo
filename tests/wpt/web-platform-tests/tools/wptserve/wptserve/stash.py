@@ -104,6 +104,7 @@ class Stash(object):
 
     _proxy = None
     lock = None
+    _initializing = threading.Lock()
 
     def __init__(self, default_path, address=None, authkey=None):
         self.default_path = default_path
@@ -115,7 +116,16 @@ class Stash(object):
             Stash._proxy = {}
             Stash.lock = threading.Lock()
 
-        if Stash._proxy is None:
+        # Initializing the proxy involves connecting to the remote process and
+        # retrieving two proxied objects. This process is not inherently
+        # atomic, so a lock must be used to make it so. Atomicity ensures that
+        # only one thread attempts to initialize the connection and that any
+        # threads running in parallel correctly wait for initialization to be
+        # fully complete.
+        with Stash._initializing:
+            if Stash.lock:
+                return
+
             manager = ClientDictManager(address, authkey)
             manager.connect()
             Stash._proxy = manager.get_dict()

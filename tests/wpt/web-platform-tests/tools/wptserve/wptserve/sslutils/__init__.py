@@ -11,4 +11,4 @@ def get_cls(name):
     try:
         return environments[name]
     except KeyError:
-        raise ValueError("%s is not a vaid ssl type." % name)
+        raise ValueError("%s is not a valid SSL type." % name)

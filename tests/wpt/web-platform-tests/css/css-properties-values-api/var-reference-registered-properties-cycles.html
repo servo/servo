@@ -25,14 +25,13 @@ test(function() {
     CSS.registerProperty({name: '--registered-1-d', syntax: '<length>', initialValue: '4px', inherits: false});
 
     computedStyle = getComputedStyle(test1);
-    assert_equals(computedStyle.getPropertyValue('--registered-1-a'), '1px');
-    assert_equals(computedStyle.getPropertyValue('--registered-1-b'), '2px');
-
-    assert_equals(computedStyle.getPropertyValue('--registered-1-c'), '2px');
-    assert_equals(computedStyle.getPropertyValue('--registered-1-d'), '2px');
-    assert_equals(computedStyle.getPropertyValue('--unregistered-1-a'), '1px');
-    assert_equals(computedStyle.left, '1px');
-    assert_equals(computedStyle.top, '2px');
+    assert_equals(computedStyle.getPropertyValue('--registered-1-a'), '');
+    assert_equals(computedStyle.getPropertyValue('--registered-1-b'), '');
+    assert_equals(computedStyle.getPropertyValue('--registered-1-c'), '30px');
+    assert_equals(computedStyle.getPropertyValue('--registered-1-d'), '4px');
+    assert_equals(computedStyle.getPropertyValue('--unregistered-1-a'), '');
+    assert_equals(computedStyle.left, '50px');
+    assert_equals(computedStyle.top, '60px');
 }, "A var() cycle between two registered properties is handled correctly.");
 </script>
 
@@ -63,18 +62,18 @@ test(function() {
     CSS.registerProperty({name: '--registered-2-e', syntax: '<length>', initialValue: '5px', inherits: false});
 
     computedStyle = getComputedStyle(test2);
-    assert_equals(computedStyle.getPropertyValue('--registered-2-a'), '1px');
+    assert_equals(computedStyle.getPropertyValue('--registered-2-a'), '');
     assert_equals(computedStyle.getPropertyValue('--unregistered-2-a'), '');
 
-    assert_equals(computedStyle.getPropertyValue('--registered-2-b'), '1px');
-    assert_equals(computedStyle.getPropertyValue('--registered-2-c'), '1px');
+    assert_equals(computedStyle.getPropertyValue('--registered-2-b'), '30px');
+    assert_equals(computedStyle.getPropertyValue('--registered-2-c'), '3px');
     assert_equals(computedStyle.getPropertyValue('--registered-2-d'), '40px');
     assert_equals(computedStyle.getPropertyValue('--registered-2-e'), '5px');
-    assert_equals(computedStyle.getPropertyValue('--unregistered-2-b'), '1px');
-    assert_equals(computedStyle.getPropertyValue('--unregistered-2-c'), '1px');
+    assert_equals(computedStyle.getPropertyValue('--unregistered-2-b'), '50px');
+    assert_equals(computedStyle.getPropertyValue('--unregistered-2-c'), '');
     assert_equals(computedStyle.getPropertyValue('--unregistered-2-d'), '60px');
     assert_equals(computedStyle.getPropertyValue('--unregistered-2-e'), '');
-    assert_equals(computedStyle.left, '1px');
+    assert_equals(computedStyle.left, '70px');
     assert_equals(computedStyle.top, '80px');
 }, "A var() cycle between a registered properties and an unregistered property is handled correctly.");
 </script>

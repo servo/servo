@@ -97,7 +97,7 @@ function check_clients(clients,
   Object.keys(clients).forEach(key => {
     const info = clients[key];
     if (info.found) {
-      assert_true(expected_final_client_tag,
+      assert_true(!!expected_final_client_tag,
                   `${worker_name} client tag exists`);
       assert_equals(key, expected_final_client_tag,
                     `${worker_name} client tag matches`);
@@ -120,10 +120,10 @@ function check_resulting_client_ids(infos, expected_infos, actual_ids, worker) {
     assert_equals(typeof(actual_id), 'string',
                   `resultingClientId for ${url} request to ${worker}`);
     if (expected_id) {
-      assert_equals(requestInfos[0], expected_id,
+      assert_equals(actual_id, expected_id,
                     `resultingClientId for ${url} request to ${worker}`);
     } else {
-      actual_ids[key] = actual_id;
+      actual_ids[tag] = actual_id;
     }
   }
 }
@@ -489,7 +489,7 @@ redirect_test(
     url1,
     url2,
     [[{url: url1, resultingClientIdTag: 'a'}], [], []],
-    'x',
+    null,
     'SW-fallbacked redirect to other-origin out-scope.');
 
 url1 = SCOPE1 + 'url=' + encodeURIComponent(OTHER_ORIGIN_SCOPE);
@@ -530,8 +530,8 @@ url2 = OUT_SCOPE;
 redirect_test(
     url1,
     url2,
-    [[{url: url1, resultingClientIdTag: 'a'}], [], []],
-    null,
+    [[{url: url1, resultingClientIdTag: 'x'}], [], []],
+    'x',
     'SW-generated redirect to same-origin out-scope.');
 
 url1 = SCOPE1 + 'sw=gen&url=' + encodeURIComponent(OUT_SCOPE) + '#ref';

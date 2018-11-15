@@ -3,10 +3,7 @@ import uuid
 import hashlib
 import time
 
-resourcePath = os.getcwd() + "/fetch/sec-metadata/resources/"
-
 def main(request, response):
-
   ## Get the query parameter (key) from URL ##
   ## Tests will record POST requests (CSP Report) and GET (rest) ##
   if request.GET:
@@ -57,7 +54,8 @@ def main(request, response):
     ## Return a valid SharedWorker ##
     if key.startswith("sharedworker"):
       response.headers.set("Content-Type", "application/javascript")
-      file = open(resourcePath + "sharedWorker.js", "r")
+      file = open(os.path.join(request.doc_root, "fetch", "sec-metadata",
+                               "resources", "sharedWorker.js"), "r")
       shared_worker = file.read()
       file.close()
       return shared_worker

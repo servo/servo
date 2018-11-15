@@ -1,8 +1,0 @@
-HTTP/1.1 200 OK
-Access-Control-Allow-Origin: *
-Access-Control-Expose-Headers: not valid
-Access-Control-Expose-Headers: x-custom
-X-Custom: test
-Content-Language: sure
-
-TEST
