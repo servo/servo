@@ -817,7 +817,7 @@ pub fn fetch_file_in_chunks(
                             {
                                 if let Some(end) = range.end {
                                     let remaining_bytes =
-                                        end as usize - range.start as usize - body.len();
+                                        end as usize - range.start as usize - body.len() + 1;
                                     if remaining_bytes <= FILE_CHUNK_SIZE {
                                         // This is the last chunk so we set buffer
                                         // len to 0 to break the reading loop.
@@ -832,8 +832,9 @@ pub fn fetch_file_in_chunks(
                             },
                             buffer.len(),
                         );
-                        body.extend_from_slice(&buffer[0..offset]);
-                        let _ = done_sender.send(Data::Payload(buffer));
+                        let chunk = &buffer[0..offset];
+                        body.extend_from_slice(chunk);
+                        let _ = done_sender.send(Data::Payload(chunk.to_vec()));
                     }
                     buffer_len
                 };
