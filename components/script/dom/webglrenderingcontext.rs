@@ -6,10 +6,10 @@
 use backtrace::Backtrace;
 use canvas_traits::webgl::WebGLError::*;
 use canvas_traits::webgl::{
-    self, webgl_channel, DOMToTextureCommand, Parameter, TexDataType, TexFormat, TexParameter,
-    WebGLCommand, WebGLCommandBacktrace, WebGLContextShareMode, WebGLError,
-    WebGLFramebufferBindingRequest, WebGLMsg, WebGLMsgSender, WebGLProgramId, WebGLResult,
-    WebGLSLVersion, WebGLSender, WebGLVersion, WebVRCommand,
+    self, webgl_channel, AlphaTreatment, DOMToTextureCommand, Parameter, TexDataType, TexFormat,
+    TexParameter, TexSource, WebGLCommand, WebGLCommandBacktrace, WebGLContextShareMode,
+    WebGLError, WebGLFramebufferBindingRequest, WebGLMsg, WebGLMsgSender, WebGLProgramId,
+    WebGLResult, WebGLSLVersion, WebGLSender, WebGLVersion, WebVRCommand, YAxisTreatment,
 };
 use crate::dom::bindings::codegen::Bindings::ANGLEInstancedArraysBinding::ANGLEInstancedArraysConstants;
 use crate::dom::bindings::codegen::Bindings::EXTBlendMinmaxBinding::EXTBlendMinmaxConstants;
@@ -505,7 +505,7 @@ impl WebGLRenderingContext {
             0,
             1,
             true,
-            true,
+            TexSource::FromHtmlElement,
             pixels,
         );
 
@@ -645,28 +645,35 @@ impl WebGLRenderingContext {
         width: u32,
         height: u32,
         unpacking_alignment: u32,
-        source_premultiplied: bool,
-        source_from_image_or_canvas: bool,
+        alpha_treatment: Option<AlphaTreatment>,
+        y_axis_treatment: YAxisTreatment,
+        tex_source: TexSource,
         mut pixels: Vec<u8>,
     ) -> Vec<u8> {
-        let settings = self.texture_unpacking_settings.get();
-        let dest_premultiply = settings.contains(TextureUnpacking::PREMULTIPLY_ALPHA);
-        if !source_premultiplied && dest_premultiply {
-            if source_from_image_or_canvas {
-                // When the pixels come from image or canvas or imagedata, use RGBA8 format
-                webgl::premultiply_inplace(TexFormat::RGBA, TexDataType::UnsignedByte, &mut pixels);
-            } else {
-                webgl::premultiply_inplace(internal_format, data_type, &mut pixels);
-            }
-        } else if source_premultiplied && !dest_premultiply {
-            webgl::unmultiply_inplace(&mut pixels);
+        match alpha_treatment {
+            Some(AlphaTreatment::Premultiply) => {
+                if tex_source == TexSource::FromHtmlElement {
+                    webgl::premultiply_inplace(
+                        TexFormat::RGBA,
+                        TexDataType::UnsignedByte,
+                        &mut pixels,
+                    );
+                } else {
+                    webgl::premultiply_inplace(internal_format, data_type, &mut pixels);
+                }
+            },
+            Some(AlphaTreatment::Unmultiply) => {
+                assert_eq!(tex_source, TexSource::FromHtmlElement);
+                webgl::unmultiply_inplace(&mut pixels);
+            },
+            None => {},
         }
 
-        if source_from_image_or_canvas {
+        if tex_source == TexSource::FromHtmlElement {
             pixels = webgl::rgba8_image_to_tex_image_data(internal_format, data_type, pixels);
         }
 
-        if settings.contains(TextureUnpacking::FLIP_Y_AXIS) {
+        if y_axis_treatment == YAxisTreatment::Flipped {
             // FINISHME: Consider doing premultiply and flip in a single mutable Vec.
             pixels = webgl::flip_pixels_y(
                 internal_format,
@@ -693,17 +700,33 @@ impl WebGLRenderingContext {
         _border: u32,
         unpacking_alignment: u32,
         source_premultiplied: bool,
-        source_from_image_or_canvas: bool,
+        tex_source: TexSource,
         pixels: Vec<u8>,
     ) {
+        let settings = self.texture_unpacking_settings.get();
+        let dest_premultiplied = settings.contains(TextureUnpacking::PREMULTIPLY_ALPHA);
+
+        let alpha_treatment = match (source_premultiplied, dest_premultiplied) {
+            (true, false) => Some(AlphaTreatment::Unmultiply),
+            (false, true) => Some(AlphaTreatment::Premultiply),
+            _ => None,
+        };
+
+        let y_axis_treatment = if settings.contains(TextureUnpacking::FLIP_Y_AXIS) {
+            YAxisTreatment::Flipped
+        } else {
+            YAxisTreatment::AsIs
+        };
+
         let pixels = self.prepare_pixels(
             internal_format,
             data_type,
             width,
             height,
             unpacking_alignment,
-            source_premultiplied,
-            source_from_image_or_canvas,
+            alpha_treatment,
+            y_axis_treatment,
+            tex_source,
             pixels,
         );
 
@@ -760,17 +783,35 @@ impl WebGLRenderingContext {
         data_type: TexDataType,
         unpacking_alignment: u32,
         source_premultiplied: bool,
-        source_from_image_or_canvas: bool,
+        tex_source: TexSource,
         pixels: Vec<u8>,
     ) {
+        let settings = self.texture_unpacking_settings.get();
+
+        let alpha_treatment = match (
+            source_premultiplied,
+            settings.contains(TextureUnpacking::PREMULTIPLY_ALPHA),
+        ) {
+            (true, false) => Some(AlphaTreatment::Unmultiply),
+            (false, true) => Some(AlphaTreatment::Premultiply),
+            _ => None,
+        };
+
+        let y_axis_treatment = if settings.contains(TextureUnpacking::FLIP_Y_AXIS) {
+            YAxisTreatment::Flipped
+        } else {
+            YAxisTreatment::AsIs
+        };
+
         let pixels = self.prepare_pixels(
             format,
             data_type,
             width,
             height,
             unpacking_alignment,
-            source_premultiplied,
-            source_from_image_or_canvas,
+            alpha_treatment,
+            y_axis_treatment,
+            tex_source,
             pixels,
         );
 
@@ -3677,7 +3718,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             border,
             unpacking_alignment,
             false,
-            false,
+            TexSource::FromArray,
             buff,
         );
 
@@ -3752,7 +3793,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             border,
             1,
             pixels.premultiplied,
-            true,
+            TexSource::FromHtmlElement,
             pixels.data,
         );
         Ok(())
@@ -3888,7 +3929,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             data_type,
             unpacking_alignment,
             false,
-            false,
+            TexSource::FromArray,
             buff,
         );
         Ok(())
@@ -3945,7 +3986,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             data_type,
             1,
             pixels.premultiplied,
-            true,
+            TexSource::FromHtmlElement,
             pixels.data,
         );
         Ok(())

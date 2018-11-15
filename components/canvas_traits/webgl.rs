@@ -757,6 +757,24 @@ impl TexDataType {
     }
 }
 
+#[derive(Clone, Copy, Debug, Eq, Hash, MallocSizeOf, PartialEq)]
+pub enum AlphaTreatment {
+    Premultiply,
+    Unmultiply,
+}
+
+#[derive(Clone, Copy, Debug, Eq, Hash, MallocSizeOf, PartialEq)]
+pub enum YAxisTreatment {
+    AsIs,
+    Flipped,
+}
+
+#[derive(Clone, Copy, Debug, Eq, Hash, MallocSizeOf, PartialEq)]
+pub enum TexSource {
+    FromHtmlElement,
+    FromArray,
+}
+
 /// Translates an image in rgba8 (red in the first byte) format to
 /// the format that was requested of TexImage.
 pub fn rgba8_image_to_tex_image_data(
