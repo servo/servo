@@ -34,11 +34,11 @@ use canvas_traits::canvas::{
     CanvasGradientStop, CanvasId, LinearGradientStyle, RadialGradientStyle,
 };
 use canvas_traits::canvas::{CompositionOrBlending, LineCapStyle, LineJoinStyle, RepetitionStyle};
-use canvas_traits::webgl::{ActiveAttribInfo, ActiveUniformInfo, WebGLBufferId, WebGLChan};
-use canvas_traits::webgl::{WebGLContextShareMode, WebGLError, WebGLFramebufferId, WebGLMsgSender};
-use canvas_traits::webgl::{WebGLPipeline, WebGLProgramId, WebGLReceiver, WebGLRenderbufferId};
-use canvas_traits::webgl::{WebGLSLVersion, WebGLSender, WebGLShaderId, WebGLTextureId};
-use canvas_traits::webgl::{WebGLVersion, WebGLVertexArrayId};
+use canvas_traits::webgl::{ActiveAttribInfo, ActiveUniformInfo, TexDataType, TexFormat};
+use canvas_traits::webgl::{WebGLBufferId, WebGLChan, WebGLContextShareMode, WebGLError};
+use canvas_traits::webgl::{WebGLFramebufferId, WebGLMsgSender, WebGLPipeline, WebGLProgramId};
+use canvas_traits::webgl::{WebGLReceiver, WebGLRenderbufferId, WebGLSLVersion, WebGLSender};
+use canvas_traits::webgl::{WebGLShaderId, WebGLTextureId, WebGLVersion, WebGLVertexArrayId};
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
@@ -147,6 +147,8 @@ unsafe_no_jsmanaged_fields!(RefCell<Vec<u8>>);
 unsafe_no_jsmanaged_fields!(Reflector);
 
 unsafe_no_jsmanaged_fields!(Duration);
+
+unsafe_no_jsmanaged_fields!(TexDataType, TexFormat);
 
 /// Trace a `JSVal`.
 pub fn trace_jsval(tracer: *mut JSTracer, description: &str, val: &Heap<JSVal>) {

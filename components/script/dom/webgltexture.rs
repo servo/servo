@@ -4,7 +4,7 @@
 
 // https://www.khronos.org/registry/webgl/specs/latest/1.0/webgl.idl
 
-use canvas_traits::webgl::{webgl_channel, WebGLResult, WebGLTextureId};
+use canvas_traits::webgl::{webgl_channel, TexDataType, TexFormat, WebGLResult, WebGLTextureId};
 use canvas_traits::webgl::{DOMToTextureCommand, WebGLCommand, WebGLError};
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::EXTTextureFilterAnisotropicBinding::EXTTextureFilterAnisotropicConstants;
@@ -13,7 +13,7 @@ use crate::dom::bindings::codegen::Bindings::WebGLTextureBinding;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::webgl_validations::types::{TexDataType, TexFormat, TexImageTarget};
+use crate::dom::webgl_validations::types::TexImageTarget;
 use crate::dom::webglobject::WebGLObject;
 use crate::dom::webglrenderingcontext::WebGLRenderingContext;
 use dom_struct::dom_struct;
