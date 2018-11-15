@@ -5,6 +5,7 @@
 import os
 import sys
 import json
+import base64
 import subprocess
 
 
@@ -18,6 +19,18 @@ def check():
     if "TASKCLUSTER_CLIENT_ID" not in os.environ or "TASKCLUSTER_ACCESS_TOKEN" not in os.environ:
         sys.exit("Taskcluster API credentials not available. Run this command and try again:\n\n"
                  "eval `taskcluster signin`\n")
+
+
+def livelog():
+    win2016 = api("awsProvisioner", "workerType", "servo-win2016")
+    files = win2016["secrets"]["files"]
+    assert all(f["encoding"] == "base64" for f in files)
+    files = {f.get("description"): f["content"] for f in files}
+    return {
+        "livelog_cert": base64.b64decode(files["SSL certificate for livelog"]),
+        "livelog_key": base64.b64decode(files["SSL key for livelog"]),
+        "livelog_secret": win2016["secrets"]["generic-worker"]["config"]["livelogSecret"],
+    }
 
 
 def packet_auth_token():

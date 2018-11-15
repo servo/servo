@@ -1,0 +1,13 @@
+root_dir: .salt
+file_roots:
+  base:
+    - states
+extension_modules: ../modules
+ext_pillar:
+  - taskcluster_secrets:
+roster_defaults:
+    # https://github.com/saltstack/salt/issues/50477
+    minion_opts:
+        providers:
+            user: mac_user
+            group: mac_group

@@ -13,7 +13,8 @@ def main(task_for, mock=False):
         if CONFIG.git_ref in ["refs/heads/auto", "refs/heads/try", "refs/heads/try-taskcluster"]:
             linux_tidy_unit()
             android_arm32()
-            windows_dev()
+            windows_unit()
+            macos_unit()
             if mock:
                 windows_release()
                 linux_wpt()
@@ -40,12 +41,15 @@ build_env = {
     "RUSTFLAGS": "-Dwarnings",
     "CARGO_INCREMENTAL": "0",
 }
-linux_build_env = {
+unix_build_env = {
     "CCACHE": "sccache",
     "RUSTC_WRAPPER": "sccache",
     "SCCACHE_IDLE_TIMEOUT": "1200",
+}
+linux_build_env = {
     "SHELL": "/bin/dash",  # For SpiderMonkey’s build system
 }
+macos_build_env = {}
 windows_build_env = {
     "LIB": "%HOMEDRIVE%%HOMEPATH%\\gst\\gstreamer\\1.0\\x86_64\\lib;%LIB%",
 }
@@ -70,6 +74,15 @@ def linux_tidy_unit():
         ./etc/taskcluster/mock.py
         ./etc/ci/lockfile_changed.sh
         ./etc/ci/check_no_panic.sh
+    """).create()
+
+
+def macos_unit():
+    macos_build_task("macOS x64: dev build + unit tests").with_script("""
+        ./mach build --dev
+        ./mach test-unit
+        ./mach package --dev
+        ./etc/ci/lockfile_changed.sh
     """).create()
 
 
@@ -123,7 +136,7 @@ def android_x86():
     )
 
 
-def windows_dev():
+def windows_unit():
     return (
         windows_build_task("Windows x64: dev build + unit tests")
         .with_script(
@@ -268,6 +281,14 @@ def windows_task(name):
     return WindowsGenericWorkerTask(name).with_worker_type("servo-win2016")
 
 
+def macos_task(name):
+    return (
+        MacOsGenericWorkerTask(name)
+        .with_provisioner_id("proj-servo")
+        .with_worker_type("macos")
+    )
+
+
 def linux_build_task(name):
     return (
         linux_task(name)
@@ -283,7 +304,7 @@ def linux_build_task(name):
         .with_index_and_artifacts_expire_in(build_artifacts_expire_in)
         .with_max_run_time_minutes(60)
         .with_dockerfile(dockerfile_path("build"))
-        .with_env(**build_env, **linux_build_env)
+        .with_env(**build_env, **unix_build_env, **linux_build_env)
         .with_repo()
         .with_index_and_artifacts_expire_in(build_artifacts_expire_in)
     )
@@ -322,6 +343,48 @@ def windows_build_task(name):
             path="wix",
         )
         .with_path_from_homedir("wix")
+    )
+
+
+def macos_build_task(name):
+    return (
+        macos_task(name)
+        # Allow long runtime in case the cache expired for all those Homebrew dependencies
+        .with_max_run_time_minutes(60 * 2)
+        .with_env(**build_env, **unix_build_env, **macos_build_env)
+        .with_repo()
+        .with_python2()
+        .with_rustup()
+        .with_script("""
+            mkdir -p "$HOME/homebrew"
+            export PATH="$HOME/homebrew/bin:$PATH"
+            which homebrew || curl -L https://github.com/Homebrew/brew/tarball/master \
+                | tar xz --strip 1 -C "$HOME/homebrew"
+
+            time brew install automake autoconf@2.13 pkg-config cmake yasm llvm
+            time brew install gstreamer gst-plugins-base gst-plugins-good gst-plugins-bad \
+                gst-libav gst-rtsp-server \
+                --with-orc --with-libogg --with-opus --with-pango --with-theora --with-libvorbis
+            export OPENSSL_INCLUDE_DIR="$(brew --prefix openssl)/include"
+            export OPENSSL_LIB_DIR="$(brew --prefix openssl)/lib"
+        """)
+
+        .with_directory_mount(
+            "https://github.com/mozilla/sccache/releases/download/"
+                "0.2.7/sccache-0.2.7-x86_64-apple-darwin.tar.gz",
+            sha256="f86412abbbcce2d3f23e7d33305469198949f5cf807e6c3258c9e1885b4cb57f",
+            path="sccache",
+        )
+        # Early script in order to run with the initial $PWD
+        .with_early_script("""
+            export PATH="$PWD/sccache/sccache-0.2.7-x86_64-apple-darwin:$PATH"
+        """)
+        # sccache binaries requires OpenSSL 1.1 and are not compatible with 1.0.
+        # "Late" script in order to run after Homebrew is installed.
+        .with_script("""
+            time brew install openssl@1.1
+            export DYLD_LIBRARY_PATH="$HOME/homebrew/opt/openssl@1.1/lib"
+        """)
     )
 
 
