@@ -11,7 +11,7 @@ use crate::values::generics::box_::Perspective as GenericPerspective;
 use crate::values::generics::box_::VerticalAlign as GenericVerticalAlign;
 use crate::values::specified::box_ as specified;
 
-pub use crate::values::specified::box_::{AnimationName, Appearance, BreakBetween};
+pub use crate::values::specified::box_::{AnimationName, Appearance, BreakBetween, BreakWithin};
 pub use crate::values::specified::box_::{Contain, Display, OverflowClipBox};
 pub use crate::values::specified::box_::{Clear as SpecifiedClear, Float as SpecifiedFloat};
 pub use crate::values::specified::box_::{OverscrollBehavior, ScrollSnapType};

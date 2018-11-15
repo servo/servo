@@ -1397,6 +1397,7 @@ impl Clone for ${style_struct.gecko_struct_name} {
     # Types used with predefined_type()-defined properties that we can auto-generate.
     predefined_types = {
         "BreakBetween": impl_simple,
+        "BreakWithin": impl_simple,
         "Color": impl_color,
         "ColorOrAuto": impl_color,
         "GreaterThanOrEqualToOneNumber": impl_simple,

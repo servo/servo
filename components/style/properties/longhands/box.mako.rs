@@ -457,12 +457,13 @@ ${helpers.predefined_type(
     animation_value_type="discrete",
 )}
 
-${helpers.single_keyword(
+${helpers.predefined_type(
     "page-break-inside",
-    "auto avoid",
-    products="gecko",
+    "BreakWithin",
+    "computed::BreakWithin::Auto",
     gecko_ffi_name="mBreakInside",
-    gecko_constant_prefix="NS_STYLE_PAGE_BREAK",
+    needs_context=False,
+    products="gecko",
     spec="https://drafts.csswg.org/css2/page.html#propdef-page-break-inside",
     animation_value_type="discrete",
 )}

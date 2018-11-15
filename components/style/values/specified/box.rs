@@ -1315,3 +1315,26 @@ pub enum BreakBetween {
     Left,
     Right,
 }
+
+/// A kind of break within a box.
+///
+/// https://drafts.csswg.org/css-break/#break-within
+#[allow(missing_docs)]
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    Eq,
+    Hash,
+    MallocSizeOf,
+    Parse,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToCss,
+    ToComputedValue,
+)]
+#[repr(u8)]
+pub enum BreakWithin {
+    Auto,
+    Avoid,
+}
