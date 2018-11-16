@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use crate::dom::bindings::codegen::Bindings::ServiceWorkerBinding::ServiceWorkerState;
+use crate::dom::bindings::codegen::Bindings::ServiceWorkerRegistrationBinding::ServiceWorkerUpdateViaCache;
 use crate::dom::bindings::codegen::Bindings::ServiceWorkerRegistrationBinding::{
     ServiceWorkerRegistrationMethods, Wrap,
 };
@@ -25,6 +26,7 @@ pub struct ServiceWorkerRegistration {
     installing: Option<Dom<ServiceWorker>>,
     waiting: Option<Dom<ServiceWorker>>,
     scope: ServoUrl,
+    update_via_cache: ServiceWorkerUpdateViaCache,
     uninstalling: Cell<bool>,
 }
 
@@ -36,9 +38,11 @@ impl ServiceWorkerRegistration {
             installing: None,
             waiting: None,
             scope: scope,
+            update_via_cache: ServiceWorkerUpdateViaCache::Imports,
             uninstalling: Cell::new(false),
         }
     }
+
     #[allow(unrooted_must_root)]
     pub fn new(
         global: &GlobalScope,
@@ -137,5 +141,10 @@ impl ServiceWorkerRegistrationMethods for ServiceWorkerRegistration {
     // https://w3c.github.io/ServiceWorker/#service-worker-registration-scope-attribute
     fn Scope(&self) -> USVString {
         USVString(self.scope.as_str().to_owned())
+    }
+
+    // https://w3c.github.io/ServiceWorker/#service-worker-registration-updateviacache
+    fn UpdateViaCache(&self) -> ServiceWorkerUpdateViaCache {
+        self.update_via_cache
     }
 }
