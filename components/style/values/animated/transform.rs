@@ -1309,19 +1309,8 @@ impl ComputeSquaredDistance for ComputedTransformOperation {
                 &TransformOperation::Rotate3D(fx, fy, fz, fa),
                 &TransformOperation::Rotate3D(tx, ty, tz, ta),
             ) => {
-                let (fx, fy, fz, angle1) =
-                    transform::get_normalized_vector_and_angle(fx, fy, fz, fa);
-                let (tx, ty, tz, angle2) =
-                    transform::get_normalized_vector_and_angle(tx, ty, tz, ta);
-                if (fx, fy, fz) == (tx, ty, tz) {
-                    angle1.compute_squared_distance(&angle2)
-                } else {
-                    let v1 = DirectionVector::new(fx, fy, fz);
-                    let v2 = DirectionVector::new(tx, ty, tz);
-                    let q1 = Quaternion::from_direction_and_angle(&v1, angle1.radians64());
-                    let q2 = Quaternion::from_direction_and_angle(&v2, angle2.radians64());
-                    q1.compute_squared_distance(&q2)
-                }
+                Rotate::Rotate3D(fx, fy, fz, fa)
+                    .compute_squared_distance(&Rotate::Rotate3D(tx, ty, tz, ta))
             },
             (
                 &TransformOperation::RotateX(fa),
@@ -1390,7 +1379,7 @@ impl ComputedRotate {
         //
         // If the axis is unspecified, it defaults to "0 0 1"
         match *self {
-            Rotate::None => unreachable!("None is handled by the caller"),
+            Rotate::None => (0., 0., 1., Angle::zero()),
             Rotate::Rotate3D(rx, ry, rz, angle) => (rx, ry, rz, angle),
             Rotate::Rotate(angle) => (0., 0., 1., angle),
         }
@@ -1459,6 +1448,49 @@ impl Animate for ComputedRotate {
     }
 }
 
+impl ComputeSquaredDistance for ComputedRotate {
+    #[inline]
+    fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {
+        match (self, other) {
+            (&Rotate::None, &Rotate::None) => Ok(SquaredDistance::from_sqrt(0.)),
+            (&Rotate::Rotate3D(_, _, _, a), &Rotate::None) |
+            (&Rotate::None, &Rotate::Rotate3D(_, _, _, a)) => {
+                a.compute_squared_distance(&Angle::zero())
+            },
+            (&Rotate::Rotate3D(_, ..), _) | (_, &Rotate::Rotate3D(_, ..)) => {
+                let (from, to) = (self.resolve(), other.resolve());
+                let (mut fx, mut fy, mut fz, angle1) =
+                    transform::get_normalized_vector_and_angle(from.0, from.1, from.2, from.3);
+                let (mut tx, mut ty, mut tz, angle2) =
+                    transform::get_normalized_vector_and_angle(to.0, to.1, to.2, to.3);
+
+                if angle1 == Angle::zero() {
+                    fx = tx;
+                    fy = ty;
+                    fz = tz;
+                } else if angle2 == Angle::zero() {
+                    tx = fx;
+                    ty = fy;
+                    tz = fz;
+                }
+
+                if (fx, fy, fz) == (tx, ty, tz) {
+                    angle1.compute_squared_distance(&angle2)
+                } else {
+                    let v1 = DirectionVector::new(fx, fy, fz);
+                    let v2 = DirectionVector::new(tx, ty, tz);
+                    let q1 = Quaternion::from_direction_and_angle(&v1, angle1.radians64());
+                    let q2 = Quaternion::from_direction_and_angle(&v2, angle2.radians64());
+                    q1.compute_squared_distance(&q2)
+                }
+            },
+            (&Rotate::Rotate(_), _) | (_, &Rotate::Rotate(_)) => {
+                self.resolve().3.compute_squared_distance(&other.resolve().3)
+            },
+        }
+    }
+}
+
 /// <https://drafts.csswg.org/css-transforms-2/#propdef-translate>
 impl ComputedTranslate {
     fn resolve(&self) -> (LengthOrPercentage, LengthOrPercentage, Length) {
@@ -1497,6 +1529,18 @@ impl Animate for ComputedTranslate {
                                         from.1.animate(&to.1, procedure)?))
             },
         }
+    }
+}
+
+impl ComputeSquaredDistance for ComputedTranslate {
+    #[inline]
+    fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {
+        let (from, to) = (self.resolve(), other.resolve());
+        Ok(
+            from.0.compute_squared_distance(&to.0)? +
+            from.1.compute_squared_distance(&to.1)? +
+            from.2.compute_squared_distance(&to.2)?
+        )
     }
 }
 
@@ -1552,5 +1596,17 @@ impl Animate for ComputedScale {
                 ))
             },
         }
+    }
+}
+
+impl ComputeSquaredDistance for ComputedScale {
+    #[inline]
+    fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {
+        let (from, to) = (self.resolve(), other.resolve());
+        Ok(
+            from.0.compute_squared_distance(&to.0)? +
+            from.1.compute_squared_distance(&to.1)? +
+            from.2.compute_squared_distance(&to.2)?
+        )
     }
 }

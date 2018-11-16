@@ -530,7 +530,6 @@ pub fn get_normalized_vector_and_angle<T: Zero>(
 
 #[derive(
     Clone,
-    ComputeSquaredDistance,
     Copy,
     Debug,
     MallocSizeOf,
@@ -600,7 +599,6 @@ where
 
 #[derive(
     Clone,
-    ComputeSquaredDistance,
     Copy,
     Debug,
     MallocSizeOf,
@@ -649,7 +647,6 @@ impl<Number: ToCss + PartialEq> ToCss for Scale<Number> {
 
 #[derive(
     Clone,
-    ComputeSquaredDistance,
     Debug,
     MallocSizeOf,
     PartialEq,
