@@ -1444,7 +1444,7 @@ impl From<MatrixDecomposed2D> for Matrix3D {
         rotate_matrix.m22 = cos_angle;
 
         // Multiplication of computed_matrix and rotate_matrix
-        computed_matrix = multiply(rotate_matrix, computed_matrix);
+        computed_matrix = rotate_matrix.multiply(&computed_matrix);
 
         // Scale matrix.
         computed_matrix.m11 *= decomposed.scale.0;
@@ -1544,6 +1544,12 @@ impl Quaternion {
     fn dot(&self, other: &Self) -> f64 {
         self.0 * other.0 + self.1 * other.1 + self.2 * other.2 + self.3 * other.3
     }
+
+    /// Return the scaled quaternion by a factor.
+    #[inline]
+    fn scale(&self, factor: f64) -> Self {
+        Quaternion(self.0 * factor, self.1 * factor, self.2 * factor, self.3 * factor)
+    }
 }
 
 impl Animate for Quaternion {
@@ -1613,12 +1619,8 @@ impl Animate for Quaternion {
         let right_weight = (other_weight * theta).sin() * rsintheta;
         let left_weight = (other_weight * theta).cos() - dot * right_weight;
 
-        let mut left = *self;
-        let mut right = *other;
-        % for i in range(4):
-            left.${i} *= left_weight;
-            right.${i} *= right_weight;
-        % endfor
+        let left = self.scale(left_weight);
+        let right = other.scale(right_weight);
 
         Ok(Quaternion(
             left.0 + right.0,
@@ -1644,7 +1646,6 @@ impl ComputeSquaredDistance for Quaternion {
 /// https://drafts.csswg.org/css-transforms-2/#decomposing-a-3d-matrix
 /// http://www.realtimerendering.com/resources/GraphicsGems/gemsii/unmatrix.c
 fn decompose_3d_matrix(mut matrix: Matrix3D) -> Result<MatrixDecomposed3D, ()> {
-    // Normalize the matrix.
     if matrix.m44 == 0.0 {
         return Err(());
     }
@@ -1652,11 +1653,7 @@ fn decompose_3d_matrix(mut matrix: Matrix3D) -> Result<MatrixDecomposed3D, ()> {
     let scaling_factor = matrix.m44;
 
     // Normalize the matrix.
-    % for i in range(1, 5):
-        % for j in range(1, 5):
-            matrix.m${i}${j} /= scaling_factor;
-        % endfor
-    % endfor
+    matrix.scale_by_factor(1.0 / scaling_factor);
 
     // perspective_matrix is used to solve for perspective, but it also provides
     // an easy way to test for singularity of the upper 3x3 component.
@@ -1694,12 +1691,7 @@ fn decompose_3d_matrix(mut matrix: Matrix3D) -> Result<MatrixDecomposed3D, ()> {
     let translate = Translate3D(matrix.m41, matrix.m42, matrix.m43);
 
     // Now get scale and shear. 'row' is a 3 element array of 3 component vectors
-    let mut row: [[f32; 3]; 3] = [[0.0; 3]; 3];
-    % for i in range(1, 4):
-        row[${i - 1}][0] = matrix.m${i}1;
-        row[${i - 1}][1] = matrix.m${i}2;
-        row[${i - 1}][2] = matrix.m${i}3;
-    % endfor
+    let mut row = matrix.get_matrix_3x3_part();
 
     // Compute X scale factor and normalize first row.
     let row0len = (row[0][0] * row[0][0] + row[0][1] * row[0][1] + row[0][2] * row[0][2]).sqrt();
@@ -1733,12 +1725,7 @@ fn decompose_3d_matrix(mut matrix: Matrix3D) -> Result<MatrixDecomposed3D, ()> {
     // Check for a coordinate system flip.  If the determinant
     // is -1, then negate the matrix and the scaling factors.
     if dot(row[0], cross(row[1], row[2])) < 0.0 {
-        % for i in range(3):
-            scale.${i} *= -1.0;
-            row[${i}][0] *= -1.0;
-            row[${i}][1] *= -1.0;
-            row[${i}][2] *= -1.0;
-        % endfor
+        negate_matrix_3x3_and_scaling_factor(&mut row, &mut scale);
     }
 
     // Now, get the rotations out.
@@ -1766,6 +1753,17 @@ fn decompose_3d_matrix(mut matrix: Matrix3D) -> Result<MatrixDecomposed3D, ()> {
         perspective,
         quaternion,
     })
+}
+
+/// Negate the matrix and the scaling factors.
+#[inline]
+fn negate_matrix_3x3_and_scaling_factor(row: &mut [[f32; 3]; 3], scale: &mut Scale3D) {
+    % for i in range(3):
+        scale.${i} *= -1.0;
+        row[${i}][0] *= -1.0;
+        row[${i}][1] *= -1.0;
+        row[${i}][2] *= -1.0;
+    % endfor
 }
 
 /// Decompose a 2D matrix for Gecko.
@@ -1882,16 +1880,10 @@ impl From<MatrixDecomposed3D> for Matrix3D {
         let mut matrix = Matrix3D::identity();
 
         // Apply perspective
-        % for i in range(1, 5):
-            matrix.m${i}4 = decomposed.perspective.${i - 1};
-        % endfor
+        matrix.set_perspective(&decomposed.perspective);
 
         // Apply translation
-        % for i in range(1, 5):
-            % for j in range(1, 4):
-                matrix.m4${i} += decomposed.translate.${j - 1} * matrix.m${j}${i};
-            % endfor
-        % endfor
+        matrix.apply_translate(&decomposed.translate);
 
         // Apply rotation
         {
@@ -1913,7 +1905,7 @@ impl From<MatrixDecomposed3D> for Matrix3D {
             rotation_matrix.m32 = 2.0 * (y * z - x * w) as f32;
             rotation_matrix.m33 = 1.0 - 2.0 * (x * x + y * y) as f32;
 
-            matrix = multiply(rotation_matrix, matrix);
+            matrix = rotation_matrix.multiply(&matrix);
         }
 
         // Apply skew
@@ -1921,45 +1913,26 @@ impl From<MatrixDecomposed3D> for Matrix3D {
             let mut temp = Matrix3D::identity();
             if decomposed.skew.2 != 0.0 {
                 temp.m32 = decomposed.skew.2;
-                matrix = multiply(temp, matrix);
+                matrix = temp.multiply(&matrix);
                 temp.m32 = 0.0;
             }
 
             if decomposed.skew.1 != 0.0 {
                 temp.m31 = decomposed.skew.1;
-                matrix = multiply(temp, matrix);
+                matrix = temp.multiply(&matrix);
                 temp.m31 = 0.0;
             }
 
             if decomposed.skew.0 != 0.0 {
                 temp.m21 = decomposed.skew.0;
-                matrix = multiply(temp, matrix);
+                matrix = temp.multiply(&matrix);
             }
         }
 
         // Apply scale
-        % for i in range(1, 4):
-        % for j in range(1, 5):
-        matrix.m${i}${j} *= decomposed.scale.${i - 1};
-        % endfor
-        % endfor
+        matrix.apply_scale(&decomposed.scale);
 
         matrix
-    }
-}
-
-// Multiplication of two 4x4 matrices.
-fn multiply(a: Matrix3D, b: Matrix3D) -> Matrix3D {
-    Matrix3D {
-    % for i in range(1, 5):
-    % for j in range(1, 5):
-        m${i}${j}:
-            a.m${i}1 * b.m1${j} +
-            a.m${i}2 * b.m2${j} +
-            a.m${i}3 * b.m3${j} +
-            a.m${i}4 * b.m4${j},
-    % endfor
-    % endfor
     }
 }
 
@@ -2097,6 +2070,72 @@ impl Matrix3D {
             pin[3] * self.m4${i},
         % endfor
         ]
+    }
+
+    /// Multiplication of two 4x4 matrices.
+    fn multiply(&self, other: &Self) -> Self {
+        Matrix3D {
+        % for i in range(1, 5):
+            % for j in range(1, 5):
+                m${i}${j}:
+                    self.m${i}1 * other.m1${j} +
+                    self.m${i}2 * other.m2${j} +
+                    self.m${i}3 * other.m3${j} +
+                    self.m${i}4 * other.m4${j},
+            % endfor
+        % endfor
+        }
+    }
+
+    /// Normalize the matrix.
+    #[inline]
+    fn scale_by_factor(&mut self, scaling_factor: CSSFloat) {
+        % for i in range(1, 5):
+        % for j in range(1, 5):
+            self.m${i}${j} *= scaling_factor;
+        % endfor
+        % endfor
+    }
+
+    /// This is used by retrieving the scale and shear factors
+    /// during decomposing a 3d matrix.
+    #[inline]
+    fn get_matrix_3x3_part(&self) -> [[f32; 3]; 3] {
+        let mut row: [[f32; 3]; 3] = [[0.0; 3]; 3];
+        % for i in range(1, 4):
+            row[${i - 1}][0] = self.m${i}1;
+            row[${i - 1}][1] = self.m${i}2;
+            row[${i - 1}][2] = self.m${i}3;
+        % endfor
+        row
+    }
+
+    /// Set perspective on the matrix.
+    #[inline]
+    fn set_perspective(&mut self, perspective: &Perspective) {
+        % for i in range(1, 5):
+            self.m${i}4 = perspective.${i - 1};
+        % endfor
+    }
+
+    /// Apply translate on the matrix.
+    #[inline]
+    fn apply_translate(&mut self, translate: &Translate3D) {
+        % for i in range(1, 5):
+        % for j in range(1, 4):
+            self.m4${i} += translate.${j - 1} * self.m${j}${i};
+        % endfor
+        % endfor
+    }
+
+    /// Apply scale on the matrix
+    #[inline]
+    fn apply_scale(&mut self, scale: &Scale3D) {
+        % for i in range(1, 4):
+        % for j in range(1, 5):
+            self.m${i}${j} *= scale.${i - 1};
+        % endfor
+        % endfor
     }
 }
 
