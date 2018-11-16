@@ -851,6 +851,10 @@ impl Animate for ComputedTransform {
     fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
         use std::borrow::Cow;
 
+        // Addition for transforms simply means appending to the list of
+        // transform functions. This is different to how we handle the other
+        // animation procedures so we treat it separately here rather than
+        // handling it in TransformOperation.
         if procedure == Procedure::Add {
             let result = self.0.iter().chain(&other.0).cloned().collect::<Vec<_>>();
             return Ok(Transform(result));
@@ -1584,8 +1588,10 @@ impl Animate for ComputedScale {
             (&Scale::None, &Scale::None) => Ok(Scale::None),
             (&Scale::Scale3D(_, ..), _) | (_, &Scale::Scale3D(_, ..)) => {
                 let (from, to) = (self.resolve(), other.resolve());
-                // FIXME(emilio, bug 1464791): why does this do something different than
-                // Scale3D / TransformOperation::Scale3D?
+                // For transform lists, we add by appending to the list of
+                // transform functions. However, ComputedScale cannot be
+                // simply concatenated, so we have to calculate the additive
+                // result here.
                 if procedure == Procedure::Add {
                     // scale(x1,y1,z1)*scale(x2,y2,z2) = scale(x1*x2, y1*y2, z1*z2)
                     return Ok(Scale::Scale3D(from.0 * to.0, from.1 * to.1, from.2 * to.2));
@@ -1598,8 +1604,7 @@ impl Animate for ComputedScale {
             },
             (&Scale::Scale(_, ..), _) | (_, &Scale::Scale(_, ..)) => {
                 let (from, to) = (self.resolve(), other.resolve());
-                // FIXME(emilio, bug 1464791): why does this do something different than
-                // Scale / TransformOperation::Scale?
+                // As with Scale3D, addition needs special handling.
                 if procedure == Procedure::Add {
                     // scale(x1,y1)*scale(x2,y2) = scale(x1*x2, y1*y2)
                     return Ok(Scale::Scale(from.0 * to.0, from.1 * to.1));
