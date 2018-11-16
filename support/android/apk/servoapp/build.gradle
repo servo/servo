@@ -65,28 +65,52 @@ android {
         // Custom build types
         armDebug {
             initWith(debug)
+            ndk {
+                abiFilters getNDKAbi('arm')
+            }
         }
 
         armRelease {
             initWith(release)
+            ndk {
+                abiFilters getNDKAbi('arm')
+            }
         }
         armv7Debug {
             initWith(debug)
+            ndk {
+                abiFilters getNDKAbi('armv7')
+            }
         }
         armv7Release {
             initWith(release)
+            ndk {
+                abiFilters getNDKAbi('armv7')
+            }
         }
         arm64Debug {
             initWith(debug)
+            ndk {
+                abiFilters getNDKAbi('arm64')
+            }
         }
         arm64Release {
             initWith(release)
+            ndk {
+                abiFilters getNDKAbi('arm64')
+            }
         }
         x86Debug {
             initWith(debug)
+            ndk {
+                abiFilters getNDKAbi('x86')
+            }
         }
         x86Release {
             initWith(release)
+            ndk {
+                abiFilters getNDKAbi('x86')
+            }
         }
     }
 
