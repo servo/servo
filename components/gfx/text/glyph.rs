@@ -223,16 +223,7 @@ impl<'a> DetailedGlyphStore {
             entry_offset, glyphs
         );
 
-        // TODO: don't actually assert this until asserts are compiled
-        // in/out based on severity, debug/release, etc. This assertion
-        // would wreck the complexity of the lookup.
-        //
-        // See Rust Issue #3647, #2228, #3627 for related information.
-        //
-        // do self.detail_lookup.borrow |arr| {
-        //     assert !arr.contains(entry)
-        // }
-
+        debug_assert!(!self.detail_lookup.contains(&entry));
         self.detail_lookup.push(entry);
         self.detail_buffer.extend_from_slice(glyphs);
         self.lookup_is_sorted = false;
