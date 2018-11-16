@@ -36,7 +36,7 @@ use crate::fetch::FetchCanceller;
 use crate::microtask::{Microtask, MicrotaskRunnable};
 use crate::network_listener::{NetworkListener, PreInvoke};
 use crate::script_thread::ScriptThread;
-use crate::task_source::{TaskSource, TaskSourceName};
+use crate::task_source::TaskSource;
 use dom_struct::dom_struct;
 use headers_core::HeaderMapExt;
 use headers_ext::ContentLength;
@@ -295,7 +295,7 @@ impl HTMLMediaElement {
 
         let window = window_from_node(self);
         // FIXME(nox): Why are errors silenced here?
-        let task_source = window.media_element_task_source();
+        let task_source = window.task_manager().media_element_task_source();
         if self.Paused() {
             // Step 6.1.
             self.paused.set(false);
@@ -373,7 +373,7 @@ impl HTMLMediaElement {
             let window = window_from_node(self);
             let this = Trusted::new(self);
             let generation_id = self.generation_id.get();
-            let _ = window.media_element_task_source().queue(
+            let _ = window.task_manager().media_element_task_source().queue(
                 task!(internal_pause_steps: move || {
                     let this = this.root();
                     if generation_id != this.generation_id.get() {
@@ -415,7 +415,7 @@ impl HTMLMediaElement {
         let this = Trusted::new(self);
         let generation_id = self.generation_id.get();
         // FIXME(nox): Why are errors silenced here?
-        let _ = window.media_element_task_source().queue(
+        let _ = window.task_manager().media_element_task_source().queue(
             task!(notify_about_playing: move || {
                 let this = this.root();
                 if generation_id != this.generation_id.get() {
@@ -449,7 +449,7 @@ impl HTMLMediaElement {
         }
 
         let window = window_from_node(self);
-        let task_source = window.media_element_task_source();
+        let task_source = window.task_manager().media_element_task_source();
 
         // Step 1.
         match (old_ready_state, ready_state) {
@@ -604,11 +604,10 @@ impl HTMLMediaElement {
 
         // Step 8.
         let window = window_from_node(self);
-        window.media_element_task_source().queue_simple_event(
-            self.upcast(),
-            atom!("loadstart"),
-            &window,
-        );
+        window
+            .task_manager()
+            .media_element_task_source()
+            .queue_simple_event(self.upcast(), atom!("loadstart"), &window);
 
         // Step 9.
         match mode {
@@ -710,10 +709,13 @@ impl HTMLMediaElement {
         let context = Arc::new(Mutex::new(HTMLMediaElementContext::new(self)));
         let (action_sender, action_receiver) = ipc::channel().unwrap();
         let window = window_from_node(self);
+        let (task_source, canceller) = window
+            .task_manager()
+            .networking_task_source_with_canceller();
         let listener = NetworkListener {
             context,
-            task_source: window.networking_task_source(),
-            canceller: Some(window.task_canceller(TaskSourceName::Networking)),
+            task_source,
+            canceller: Some(canceller),
         };
         ROUTER.add_route(
             action_receiver.to_opaque(),
@@ -768,15 +770,15 @@ impl HTMLMediaElement {
 
                     // Step 4.remote.1.2.
                     let window = window_from_node(self);
-                    window.media_element_task_source().queue_simple_event(
-                        self.upcast(),
-                        atom!("suspend"),
-                        &window,
-                    );
+                    window
+                        .task_manager()
+                        .media_element_task_source()
+                        .queue_simple_event(self.upcast(), atom!("suspend"), &window);
 
                     // Step 4.remote.1.3.
                     let this = Trusted::new(self);
                     window
+                        .task_manager()
                         .media_element_task_source()
                         .queue(
                             task!(set_media_delay_load_event_flag_to_false: move || {
@@ -817,7 +819,7 @@ impl HTMLMediaElement {
         let generation_id = self.generation_id.get();
         self.take_pending_play_promises(Err(Error::NotSupported));
         // FIXME(nox): Why are errors silenced here?
-        let _ = window.media_element_task_source().queue(
+        let _ = window.task_manager().media_element_task_source().queue(
             task!(dedicated_media_source_failure_steps: move || {
                 let this = this.root();
                 if generation_id != this.generation_id.get() {
@@ -874,7 +876,7 @@ impl HTMLMediaElement {
         }
 
         let window = window_from_node(self);
-        let task_source = window.media_element_task_source();
+        let task_source = window.task_manager().media_element_task_source();
 
         // Step 5.
         let network_state = self.network_state.get();
@@ -1051,7 +1053,7 @@ impl HTMLMediaElement {
 
         // Step 10.
         let window = window_from_node(self);
-        let task_source = window.media_element_task_source();
+        let task_source = window.task_manager().media_element_task_source();
         task_source.queue_simple_event(self.upcast(), atom!("seeking"), &window);
 
         // Step 11.
@@ -1074,7 +1076,7 @@ impl HTMLMediaElement {
 
         // Step 16.
         let window = window_from_node(self);
-        let task_source = window.media_element_task_source();
+        let task_source = window.task_manager().media_element_task_source();
         task_source.queue_simple_event(self.upcast(), atom!("timeupdate"), &window);
 
         // Step 17.
@@ -1090,8 +1092,9 @@ impl HTMLMediaElement {
 
         let trusted_node = Trusted::new(self);
         let window = window_from_node(self);
-        let task_source = window.media_element_task_source();
-        let task_canceller = window.task_canceller(TaskSourceName::DOMManipulation);
+        let (task_source, canceller) = window
+            .task_manager()
+            .dom_manipulation_task_source_with_canceller();
         ROUTER.add_route(
             action_receiver.to_opaque(),
             Box::new(move |message| {
@@ -1102,7 +1105,7 @@ impl HTMLMediaElement {
                         task!(handle_player_event: move || {
                             this.root().handle_player_event(&event);
                         }),
-                        &task_canceller,
+                        &canceller,
                     )
                     .unwrap();
             }),
@@ -1134,7 +1137,7 @@ impl HTMLMediaElement {
                 }
                 if previous_duration != self.duration.get() {
                     let window = window_from_node(self);
-                    let task_source = window.media_element_task_source();
+                    let task_source = window.task_manager().media_element_task_source();
                     task_source.queue_simple_event(self.upcast(), atom!("durationchange"), &window);
                 }
 
@@ -1147,7 +1150,7 @@ impl HTMLMediaElement {
                         video_elem.set_video_width(metadata.width);
                         video_elem.set_video_height(metadata.height);
                         let window = window_from_node(self);
-                        let task_source = window.media_element_task_source();
+                        let task_source = window.task_manager().media_element_task_source();
                         task_source.queue_simple_event(self.upcast(), atom!("resize"), &window);
                     }
                 }
@@ -1515,11 +1518,10 @@ impl FetchResponseListener for HTMLMediaElementContext {
         // => "If mode is remote" step 2
         if time::get_time() > self.next_progress_event {
             let window = window_from_node(&*elem);
-            window.media_element_task_source().queue_simple_event(
-                elem.upcast(),
-                atom!("progress"),
-                &window,
-            );
+            window
+                .task_manager()
+                .media_element_task_source()
+                .queue_simple_event(elem.upcast(), atom!("progress"), &window);
             self.next_progress_event = time::get_time() + Duration::milliseconds(350);
         }
     }

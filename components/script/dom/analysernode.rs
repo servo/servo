@@ -17,7 +17,7 @@ use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::reflect_dom_object;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::window::Window;
-use crate::task_source::{TaskSource, TaskSourceName};
+use crate::task_source::TaskSource;
 use dom_struct::dom_struct;
 use ipc_channel::ipc::{self, IpcReceiver};
 use ipc_channel::router::ROUTER;
@@ -97,8 +97,9 @@ impl AnalyserNode {
     ) -> Fallible<DomRoot<AnalyserNode>> {
         let (node, recv) = AnalyserNode::new_inherited(window, context, options)?;
         let object = reflect_dom_object(Box::new(node), window, AnalyserNodeBinding::Wrap);
-        let source = window.dom_manipulation_task_source();
-        let canceller = window.task_canceller(TaskSourceName::DOMManipulation);
+        let (source, canceller) = window
+            .task_manager()
+            .dom_manipulation_task_source_with_canceller();
         let this = Trusted::new(&*object);
 
         ROUTER.add_route(

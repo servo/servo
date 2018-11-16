@@ -40,7 +40,7 @@ use crate::dom::window::Window;
 use crate::microtask::{Microtask, MicrotaskRunnable};
 use crate::network_listener::{NetworkListener, PreInvoke};
 use crate::script_thread::ScriptThread;
-use crate::task_source::{TaskSource, TaskSourceName};
+use crate::task_source::TaskSource;
 use cssparser::{Parser, ParserInput};
 use dom_struct::dom_struct;
 use euclid::Point2D;
@@ -237,8 +237,9 @@ impl HTMLImageElement {
             let (responder_sender, responder_receiver) = ipc::channel().unwrap();
 
             let window = window_from_node(elem);
-            let task_source = window.networking_task_source();
-            let task_canceller = window.task_canceller(TaskSourceName::Networking);
+            let (task_source, canceller) = window
+                .task_manager()
+                .networking_task_source_with_canceller();
             let generation = elem.generation.get();
             ROUTER.add_route(
                 responder_receiver.to_opaque(),
@@ -257,7 +258,7 @@ impl HTMLImageElement {
                             element.process_image_response(image);
                         }
                     }),
-                        &task_canceller,
+                        &canceller,
                     );
                 }),
             );
@@ -308,10 +309,14 @@ impl HTMLImageElement {
         }));
 
         let (action_sender, action_receiver) = ipc::channel().unwrap();
+        let (task_source, canceller) = document
+            .window()
+            .task_manager()
+            .networking_task_source_with_canceller();
         let listener = NetworkListener {
-            context: context,
-            task_source: window.networking_task_source(),
-            canceller: Some(window.task_canceller(TaskSourceName::Networking)),
+            context,
+            task_source,
+            canceller: Some(canceller),
         };
         ROUTER.add_route(
             action_receiver.to_opaque(),
@@ -780,7 +785,7 @@ impl HTMLImageElement {
     fn update_the_image_data_sync_steps(&self) {
         let document = document_from_node(self);
         let window = document.window();
-        let task_source = window.dom_manipulation_task_source();
+        let task_source = window.task_manager().dom_manipulation_task_source();
         let this = Trusted::new(self);
         let (src, pixel_density) = match self.select_image_source() {
             // Step 8
@@ -938,7 +943,7 @@ impl HTMLImageElement {
                     current_request.current_pixel_density = pixel_density;
                     let this = Trusted::new(self);
                     let src = String::from(src);
-                    let _ = window.dom_manipulation_task_source().queue(
+                    let _ = window.task_manager().dom_manipulation_task_source().queue(
                         task!(image_load_event: move || {
                             let this = this.root();
                             {
@@ -989,8 +994,9 @@ impl HTMLImageElement {
             let (responder_sender, responder_receiver) = ipc::channel().unwrap();
 
             let window = window_from_node(elem);
-            let task_source = window.networking_task_source();
-            let task_canceller = window.task_canceller(TaskSourceName::Networking);
+            let (task_source, canceller) = window
+                .task_manager()
+                .networking_task_source_with_canceller();
             let generation = elem.generation.get();
             ROUTER.add_route(responder_receiver.to_opaque(), Box::new(move |message| {
                 debug!("Got image {:?}", message);
@@ -1008,7 +1014,7 @@ impl HTMLImageElement {
                             DOMString::from_string(selected_source_clone), generation, selected_pixel_density);
                         }
                     }),
-                    &task_canceller,
+                    &canceller,
                 );
             }));
 
@@ -1133,7 +1139,7 @@ impl HTMLImageElement {
         let this = Trusted::new(self);
         let window = window_from_node(self);
         let src = src.to_string();
-        let _ = window.dom_manipulation_task_source().queue(
+        let _ = window.task_manager().dom_manipulation_task_source().queue(
             task!(image_load_event: move || {
                 let this = this.root();
                 let relevant_mutation = this.generation.get() != generation;

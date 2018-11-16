@@ -20,7 +20,7 @@ use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::offlineaudiocompletionevent::OfflineAudioCompletionEvent;
 use crate::dom::promise::Promise;
 use crate::dom::window::Window;
-use crate::task_source::{TaskSource, TaskSourceName};
+use crate::task_source::TaskSource;
 use dom_struct::dom_struct;
 use servo_media::audio::context::OfflineAudioContextOptions as ServoMediaOfflineAudioContextOptions;
 use std::cell::Cell;
@@ -141,8 +141,9 @@ impl OfflineAudioContextMethods for OfflineAudioContext {
         let this = Trusted::new(self);
         let global = self.global();
         let window = global.as_window();
-        let task_source = window.dom_manipulation_task_source();
-        let canceller = window.task_canceller(TaskSourceName::DOMManipulation);
+        let (task_source, canceller) = window
+            .task_manager()
+            .dom_manipulation_task_source_with_canceller();
         Builder::new()
             .name("OfflineAudioContextResolver".to_owned())
             .spawn(move || {

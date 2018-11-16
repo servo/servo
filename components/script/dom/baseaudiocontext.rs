@@ -40,7 +40,7 @@ use crate::dom::oscillatornode::OscillatorNode;
 use crate::dom::pannernode::PannerNode;
 use crate::dom::promise::Promise;
 use crate::dom::window::Window;
-use crate::task_source::{TaskSource, TaskSourceName};
+use crate::task_source::TaskSource;
 use dom_struct::dom_struct;
 use js::rust::CustomAutoRooterGuard;
 use js::typedarray::ArrayBuffer;
@@ -213,7 +213,7 @@ impl BaseAudioContext {
     pub fn resume(&self) {
         let global = self.global();
         let window = global.as_window();
-        let task_source = window.dom_manipulation_task_source();
+        let task_source = window.task_manager().dom_manipulation_task_source();
         let this = Trusted::new(self);
         // Set the rendering thread state to 'running' and start
         // rendering the audio graph.
@@ -227,7 +227,7 @@ impl BaseAudioContext {
                             if this.state.get() != AudioContextState::Running {
                                 this.state.set(AudioContextState::Running);
                                 let window = DomRoot::downcast::<Window>(this.global()).unwrap();
-                                window.dom_manipulation_task_source().queue_simple_event(
+                                window.task_manager().dom_manipulation_task_source().queue_simple_event(
                                     this.upcast(),
                                     atom!("statechange"),
                                     &window
@@ -428,10 +428,12 @@ impl BaseAudioContextMethods for BaseAudioContext {
             let decoded_audio__ = decoded_audio.clone();
             let this = Trusted::new(self);
             let this_ = this.clone();
-            let task_source = window.dom_manipulation_task_source();
-            let task_source_ = window.dom_manipulation_task_source();
-            let canceller = window.task_canceller(TaskSourceName::DOMManipulation);
-            let canceller_ = window.task_canceller(TaskSourceName::DOMManipulation);
+            let (task_source, canceller) = window
+                .task_manager()
+                .dom_manipulation_task_source_with_canceller();
+            let (task_source_, canceller_) = window
+                .task_manager()
+                .dom_manipulation_task_source_with_canceller();
             let callbacks = AudioDecoderCallbacks::new()
                 .ready(move |channel_count| {
                     decoded_audio
