@@ -23,6 +23,7 @@ rand = [
   "phf_generator",
   "rand",
   "servo_rand",
+  "smithay-client-toolkit",
   "tempfile",
   "tokio-threadpool",
   "uuid",
@@ -32,22 +33,16 @@ rand = [
 [ignore]
 # Ignored packages with duplicated versions
 packages = [
-  "core-graphics",
   "crossbeam-deque",
   "crossbeam-epoch",
   "crossbeam-utils",
-  "gl_generator",
-  "khronos_api",
   "log",
-  # TODO: remove num-rational when https://github.com/PistonDevelopers/image/pull/809 is merged.
-  "num-rational",
   "proc-macro2",
   "quote",
   "rand",
   "syn",
   "unicase",
   "winapi",
-  "xml-rs",
 ]
 # Files that are ignored for all tidy and lint checks.
 files = [
