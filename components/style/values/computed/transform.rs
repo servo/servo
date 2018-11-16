@@ -5,6 +5,7 @@
 //! Computed types for CSS values that are related to transformations.
 
 use super::CSSFloat;
+use crate::values::animated::transform::{Perspective, Scale3D, Translate3D};
 use crate::values::animated::ToAnimatedZero;
 use crate::values::computed::{Angle, Integer, Length, LengthOrPercentage, Number, Percentage};
 use crate::values::generics::transform as generic;
@@ -47,8 +48,8 @@ pub type Matrix = generic::Matrix<Number>;
 // matrices instead of being split across lines
 #[cfg_attr(rustfmt, rustfmt_skip)]
 impl Matrix3D {
-    #[inline]
     /// Get an identity matrix
+    #[inline]
     pub fn identity() -> Self {
         Self {
             m11: 1.0, m12: 0.0, m13: 0.0, m14: 0.0,
@@ -59,6 +60,7 @@ impl Matrix3D {
     }
 
     /// Convert to a 2D Matrix
+    #[inline]
     pub fn into_2d(self) -> Result<Matrix, ()> {
         if self.m13 == 0. && self.m23 == 0. &&
            self.m31 == 0. && self.m32 == 0. &&
@@ -72,6 +74,253 @@ impl Matrix3D {
         } else {
             Err(())
         }
+    }
+
+    /// Return true if this has 3D components.
+    #[inline]
+    pub fn is_3d(&self) -> bool {
+        self.m13 != 0.0 || self.m14 != 0.0 ||
+        self.m23 != 0.0 || self.m24 != 0.0 ||
+        self.m31 != 0.0 || self.m32 != 0.0 ||
+        self.m33 != 1.0 || self.m34 != 0.0 ||
+        self.m43 != 0.0 || self.m44 != 1.0
+    }
+
+    /// Return determinant value.
+    #[inline]
+    pub fn determinant(&self) -> CSSFloat {
+        self.m14 * self.m23 * self.m32 * self.m41 -
+        self.m13 * self.m24 * self.m32 * self.m41 -
+        self.m14 * self.m22 * self.m33 * self.m41 +
+        self.m12 * self.m24 * self.m33 * self.m41 +
+        self.m13 * self.m22 * self.m34 * self.m41 -
+        self.m12 * self.m23 * self.m34 * self.m41 -
+        self.m14 * self.m23 * self.m31 * self.m42 +
+        self.m13 * self.m24 * self.m31 * self.m42 +
+        self.m14 * self.m21 * self.m33 * self.m42 -
+        self.m11 * self.m24 * self.m33 * self.m42 -
+        self.m13 * self.m21 * self.m34 * self.m42 +
+        self.m11 * self.m23 * self.m34 * self.m42 +
+        self.m14 * self.m22 * self.m31 * self.m43 -
+        self.m12 * self.m24 * self.m31 * self.m43 -
+        self.m14 * self.m21 * self.m32 * self.m43 +
+        self.m11 * self.m24 * self.m32 * self.m43 +
+        self.m12 * self.m21 * self.m34 * self.m43 -
+        self.m11 * self.m22 * self.m34 * self.m43 -
+        self.m13 * self.m22 * self.m31 * self.m44 +
+        self.m12 * self.m23 * self.m31 * self.m44 +
+        self.m13 * self.m21 * self.m32 * self.m44 -
+        self.m11 * self.m23 * self.m32 * self.m44 -
+        self.m12 * self.m21 * self.m33 * self.m44 +
+        self.m11 * self.m22 * self.m33 * self.m44
+    }
+
+    /// Transpose a matrix.
+    #[inline]
+    pub fn transpose(&self) -> Self {
+        Self {
+            m11: self.m11, m12: self.m21, m13: self.m31, m14: self.m41,
+            m21: self.m12, m22: self.m22, m23: self.m32, m24: self.m42,
+            m31: self.m13, m32: self.m23, m33: self.m33, m34: self.m43,
+            m41: self.m14, m42: self.m24, m43: self.m34, m44: self.m44,
+        }
+    }
+
+    /// Return inverse matrix.
+    pub fn inverse(&self) -> Result<Matrix3D, ()> {
+        let mut det = self.determinant();
+
+        if det == 0.0 {
+            return Err(());
+        }
+
+        det = 1.0 / det;
+        let x = Matrix3D {
+            m11: det *
+            (self.m23*self.m34*self.m42 - self.m24*self.m33*self.m42 +
+             self.m24*self.m32*self.m43 - self.m22*self.m34*self.m43 -
+             self.m23*self.m32*self.m44 + self.m22*self.m33*self.m44),
+            m12: det *
+            (self.m14*self.m33*self.m42 - self.m13*self.m34*self.m42 -
+             self.m14*self.m32*self.m43 + self.m12*self.m34*self.m43 +
+             self.m13*self.m32*self.m44 - self.m12*self.m33*self.m44),
+            m13: det *
+            (self.m13*self.m24*self.m42 - self.m14*self.m23*self.m42 +
+             self.m14*self.m22*self.m43 - self.m12*self.m24*self.m43 -
+             self.m13*self.m22*self.m44 + self.m12*self.m23*self.m44),
+            m14: det *
+            (self.m14*self.m23*self.m32 - self.m13*self.m24*self.m32 -
+             self.m14*self.m22*self.m33 + self.m12*self.m24*self.m33 +
+             self.m13*self.m22*self.m34 - self.m12*self.m23*self.m34),
+            m21: det *
+            (self.m24*self.m33*self.m41 - self.m23*self.m34*self.m41 -
+             self.m24*self.m31*self.m43 + self.m21*self.m34*self.m43 +
+             self.m23*self.m31*self.m44 - self.m21*self.m33*self.m44),
+            m22: det *
+            (self.m13*self.m34*self.m41 - self.m14*self.m33*self.m41 +
+             self.m14*self.m31*self.m43 - self.m11*self.m34*self.m43 -
+             self.m13*self.m31*self.m44 + self.m11*self.m33*self.m44),
+            m23: det *
+            (self.m14*self.m23*self.m41 - self.m13*self.m24*self.m41 -
+             self.m14*self.m21*self.m43 + self.m11*self.m24*self.m43 +
+             self.m13*self.m21*self.m44 - self.m11*self.m23*self.m44),
+            m24: det *
+            (self.m13*self.m24*self.m31 - self.m14*self.m23*self.m31 +
+             self.m14*self.m21*self.m33 - self.m11*self.m24*self.m33 -
+             self.m13*self.m21*self.m34 + self.m11*self.m23*self.m34),
+            m31: det *
+            (self.m22*self.m34*self.m41 - self.m24*self.m32*self.m41 +
+             self.m24*self.m31*self.m42 - self.m21*self.m34*self.m42 -
+             self.m22*self.m31*self.m44 + self.m21*self.m32*self.m44),
+            m32: det *
+            (self.m14*self.m32*self.m41 - self.m12*self.m34*self.m41 -
+             self.m14*self.m31*self.m42 + self.m11*self.m34*self.m42 +
+             self.m12*self.m31*self.m44 - self.m11*self.m32*self.m44),
+            m33: det *
+            (self.m12*self.m24*self.m41 - self.m14*self.m22*self.m41 +
+             self.m14*self.m21*self.m42 - self.m11*self.m24*self.m42 -
+             self.m12*self.m21*self.m44 + self.m11*self.m22*self.m44),
+            m34: det *
+            (self.m14*self.m22*self.m31 - self.m12*self.m24*self.m31 -
+             self.m14*self.m21*self.m32 + self.m11*self.m24*self.m32 +
+             self.m12*self.m21*self.m34 - self.m11*self.m22*self.m34),
+            m41: det *
+            (self.m23*self.m32*self.m41 - self.m22*self.m33*self.m41 -
+             self.m23*self.m31*self.m42 + self.m21*self.m33*self.m42 +
+             self.m22*self.m31*self.m43 - self.m21*self.m32*self.m43),
+            m42: det *
+            (self.m12*self.m33*self.m41 - self.m13*self.m32*self.m41 +
+             self.m13*self.m31*self.m42 - self.m11*self.m33*self.m42 -
+             self.m12*self.m31*self.m43 + self.m11*self.m32*self.m43),
+            m43: det *
+            (self.m13*self.m22*self.m41 - self.m12*self.m23*self.m41 -
+             self.m13*self.m21*self.m42 + self.m11*self.m23*self.m42 +
+             self.m12*self.m21*self.m43 - self.m11*self.m22*self.m43),
+            m44: det *
+            (self.m12*self.m23*self.m31 - self.m13*self.m22*self.m31 +
+             self.m13*self.m21*self.m32 - self.m11*self.m23*self.m32 -
+             self.m12*self.m21*self.m33 + self.m11*self.m22*self.m33),
+        };
+
+        Ok(x)
+    }
+
+    /// Multiply `pin * self`.
+    #[inline]
+    pub fn pre_mul_point4(&self, pin: &[f32; 4]) -> [f32; 4] {
+        [
+            pin[0] * self.m11 + pin[1] * self.m21 + pin[2] * self.m31 + pin[3] * self.m41,
+            pin[0] * self.m12 + pin[1] * self.m22 + pin[2] * self.m32 + pin[3] * self.m42,
+            pin[0] * self.m13 + pin[1] * self.m23 + pin[2] * self.m33 + pin[3] * self.m43,
+            pin[0] * self.m14 + pin[1] * self.m24 + pin[2] * self.m34 + pin[3] * self.m44,
+        ]
+    }
+
+    /// Return the multiplication of two 4x4 matrices.
+    #[inline]
+    pub fn multiply(&self, other: &Self) -> Self {
+        Matrix3D {
+            m11: self.m11 * other.m11 + self.m12 * other.m21 +
+                 self.m13 * other.m31 + self.m14 * other.m41,
+            m12: self.m11 * other.m12 + self.m12 * other.m22 +
+                 self.m13 * other.m32 + self.m14 * other.m42,
+            m13: self.m11 * other.m13 + self.m12 * other.m23 +
+                 self.m13 * other.m33 + self.m14 * other.m43,
+            m14: self.m11 * other.m14 + self.m12 * other.m24 +
+                 self.m13 * other.m34 + self.m14 * other.m44,
+            m21: self.m21 * other.m11 + self.m22 * other.m21 +
+                 self.m23 * other.m31 + self.m24 * other.m41,
+            m22: self.m21 * other.m12 + self.m22 * other.m22 +
+                 self.m23 * other.m32 + self.m24 * other.m42,
+            m23: self.m21 * other.m13 + self.m22 * other.m23 +
+                 self.m23 * other.m33 + self.m24 * other.m43,
+            m24: self.m21 * other.m14 + self.m22 * other.m24 +
+                 self.m23 * other.m34 + self.m24 * other.m44,
+            m31: self.m31 * other.m11 + self.m32 * other.m21 +
+                 self.m33 * other.m31 + self.m34 * other.m41,
+            m32: self.m31 * other.m12 + self.m32 * other.m22 +
+                 self.m33 * other.m32 + self.m34 * other.m42,
+            m33: self.m31 * other.m13 + self.m32 * other.m23 +
+                 self.m33 * other.m33 + self.m34 * other.m43,
+            m34: self.m31 * other.m14 + self.m32 * other.m24 +
+                 self.m33 * other.m34 + self.m34 * other.m44,
+            m41: self.m41 * other.m11 + self.m42 * other.m21 +
+                 self.m43 * other.m31 + self.m44 * other.m41,
+            m42: self.m41 * other.m12 + self.m42 * other.m22 +
+                 self.m43 * other.m32 + self.m44 * other.m42,
+            m43: self.m41 * other.m13 + self.m42 * other.m23 +
+                 self.m43 * other.m33 + self.m44 * other.m43,
+            m44: self.m41 * other.m14 + self.m42 * other.m24 +
+                 self.m43 * other.m34 + self.m44 * other.m44,
+        }
+    }
+
+    /// Scale the matrix by a factor.
+    #[inline]
+    pub fn scale_by_factor(&mut self, scaling_factor: CSSFloat) {
+        self.m11 *= scaling_factor;
+        self.m12 *= scaling_factor;
+        self.m13 *= scaling_factor;
+        self.m14 *= scaling_factor;
+        self.m21 *= scaling_factor;
+        self.m22 *= scaling_factor;
+        self.m23 *= scaling_factor;
+        self.m24 *= scaling_factor;
+        self.m31 *= scaling_factor;
+        self.m32 *= scaling_factor;
+        self.m33 *= scaling_factor;
+        self.m34 *= scaling_factor;
+        self.m41 *= scaling_factor;
+        self.m42 *= scaling_factor;
+        self.m43 *= scaling_factor;
+        self.m44 *= scaling_factor;
+    }
+
+    /// Return the matrix 3x3 part (top-left corner).
+    /// This is used by retrieving the scale and shear factors
+    /// during decomposing a 3d matrix.
+    #[inline]
+    pub fn get_matrix_3x3_part(&self) -> [[f32; 3]; 3] {
+        [
+            [ self.m11, self.m12, self.m13 ],
+            [ self.m21, self.m22, self.m23 ],
+            [ self.m31, self.m32, self.m33 ],
+        ]
+    }
+
+    /// Set perspective on the matrix.
+    #[inline]
+    pub fn set_perspective(&mut self, perspective: &Perspective) {
+        self.m14 = perspective.0;
+        self.m24 = perspective.1;
+        self.m34 = perspective.2;
+        self.m44 = perspective.3;
+    }
+
+    /// Apply translate on the matrix.
+    #[inline]
+    pub fn apply_translate(&mut self, translate: &Translate3D) {
+        self.m41 += translate.0 * self.m11 + translate.1 * self.m21 + translate.2 * self.m31;
+        self.m42 += translate.0 * self.m12 + translate.1 * self.m22 + translate.2 * self.m32;
+        self.m43 += translate.0 * self.m13 + translate.1 * self.m23 + translate.2 * self.m33;
+        self.m44 += translate.0 * self.m14 + translate.1 * self.m24 + translate.2 * self.m34;
+    }
+
+    /// Apply scale on the matrix.
+    #[inline]
+    pub fn apply_scale(&mut self, scale: &Scale3D) {
+        self.m11 *= scale.0;
+        self.m12 *= scale.0;
+        self.m13 *= scale.0;
+        self.m14 *= scale.0;
+        self.m21 *= scale.1;
+        self.m22 *= scale.1;
+        self.m23 *= scale.1;
+        self.m24 *= scale.1;
+        self.m31 *= scale.2;
+        self.m32 *= scale.2;
+        self.m33 *= scale.2;
+        self.m34 *= scale.2;
     }
 }
 

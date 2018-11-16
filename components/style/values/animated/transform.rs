@@ -286,6 +286,15 @@ pub struct Translate3D(pub f32, pub f32, pub f32);
 #[cfg_attr(feature = "servo", derive(MallocSizeOf))]
 pub struct Scale3D(pub f32, pub f32, pub f32);
 
+impl Scale3D {
+    /// Negate self.
+    fn negate(&mut self) {
+        self.0 *= -1.0;
+        self.1 *= -1.0;
+        self.2 *= -1.0;
+    }
+}
+
 impl Animate for Scale3D {
     fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
         Ok(Scale3D(
@@ -642,7 +651,12 @@ fn decompose_3d_matrix(mut matrix: Matrix3D) -> Result<MatrixDecomposed3D, ()> {
     // Check for a coordinate system flip.  If the determinant
     // is -1, then negate the matrix and the scaling factors.
     if dot(row[0], cross(row[1], row[2])) < 0.0 {
-        Matrix3D::negate_matrix_3x3_and_scaling_factor(&mut row, &mut scale);
+        scale.negate();
+        for i in 0..3 {
+            row[i][0] *= -1.0;
+            row[i][1] *= -1.0;
+            row[i][2] *= -1.0;
+        }
     }
 
     // Now, get the rotations out.
