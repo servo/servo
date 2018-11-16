@@ -40,3 +40,4 @@ def test_stress(session, i):
     t_end = time.time() + 3
     while time.time() < t_end:
         assert session.window.size == size_after_maximize
+        time.sleep(.1)

@@ -12,6 +12,7 @@
 
   // The following helper functions are called from RTCPeerConnection-helper.js:
   //   assert_session_desc_similar()
+  //   generateAudioReceiveOnlyOffer
 
   /*
     4.3.2.  Interface Definition
@@ -115,7 +116,7 @@
     .then(offer1 => {
       return pc1.setLocalDescription(offer1)
        .then(()=> {
-        return pc1.createOffer({ offerToReceiveAudio: true })
+        return generateAudioReceiveOnlyOffer(pc1)
         .then(offer2 => {
           assert_session_desc_not_similar(offer1, offer2);
 

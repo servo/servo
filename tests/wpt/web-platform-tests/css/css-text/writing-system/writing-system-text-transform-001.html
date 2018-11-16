@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang=en>
+<meta charset=utf-8>
+<title>CSS test: text-transform and writing systems</title>
+<link rel=author title="Florian Rivoal" href="https://florian.rivoal.net">
+<link rel=help href="https://drafts.csswg.org/css-text-3/#languages">
+<link rel=help href="https://drafts.csswg.org/css-text-3/#script-tagging">
+<link rel=help href="https://drafts.csswg.org/css-text-3/#propdef-text-transform">
+<link rel=match href="reference/writing-system-text-transform-001-ref.html">
+<meta name=assert content="text transform rules that depend on the language are overriden by a contradicting explicit script tag.">
+<style>
+div {
+  text-transform: lowercase;
+  font-size: 3em;
+}
+</style>
+<p>Test passes if the two words below are identical: there must be a dot on the “i” letter at the beginning of the word.
+<div lang=tr-Cyrl>IСТАНБУЛ</div>
+<div lang=tr-Cyrl>iстанбул</div>

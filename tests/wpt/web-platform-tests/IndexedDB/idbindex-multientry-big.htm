@@ -10,8 +10,8 @@
 
 <script>
     var db,
-        t_add = async_test("Adding one item with 1000 multiEntry keys", { timeout: 10000 }),
-        t_get = async_test("Getting the one item by 1000 indeced keys ", { timeout: 10000 });
+        t_add = async_test("Adding one item with 1000 multiEntry keys"),
+        t_get = async_test("Getting the one item by 1000 indeced keys ");
 
     var open_rq = createdb(t_add);
     var obj = { test: 'yo', idxkeys: [] };

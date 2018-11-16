@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>backdrop-filter: Clip the filter at border box of element</title>
+<link rel="author" title="Mason Freed" href="mailto:masonfreed@chromium.org">
+<link rel="help" href="https://drafts.fxtf.org/filter-effects-2/#BackdropFilterProperty">
+<link rel="match"  href="backdrop-filter-paint-order-ref.html">
+
+<div>
+  <p>Expected: A green box, blurred inside the short, wide white box with a<br>
+  blue border, and not blurred anywhere else. In particular, there should be<br>
+  no blurring inside the tall, narrow white box, or anywhere outside that.</p>
+</div>
+<div class="box"></div>
+<div class="navbar">
+  <div class="menu"></div>
+</div>
+<style>
+div {
+  position: absolute;
+}
+.box {
+  width: 200px;
+  height: 200px;
+  top: 100px;
+  left: 100px;
+  background: green;
+}
+.navbar {
+  width: 300px;
+  height: 50px;
+  top: 150px;
+  left: 50px;
+  border: 1px solid blue;
+  backdrop-filter: blur(20px);
+}
+.menu {
+  width: 100px;
+  height: 150px;
+  top: 50px;
+  left: 95px;
+  border: 1px solid blue;
+}
+</style>

@@ -12,7 +12,7 @@
     var db,
         expected_keys = [1, 2, 2, 3, 3];
 
-    var open_rq = createdb(async_test(document.title, {timeout: 10000}))
+    var open_rq = createdb(async_test(document.title))
 
     open_rq.onupgradeneeded = function(e) {
         db = e.target.result;

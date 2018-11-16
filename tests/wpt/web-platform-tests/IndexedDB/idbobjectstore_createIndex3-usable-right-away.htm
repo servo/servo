@@ -9,7 +9,7 @@
 
 <script>
     var db, aborted,
-      t = async_test(document.title, {timeout:19000})
+      t = async_test(document.title)
 
     var open_rq = createdb(t);
     open_rq.onupgradeneeded = function(e) {

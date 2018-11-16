@@ -11,6 +11,28 @@ function test_interpolation(settings, expectations, name) {
     return 'cubic-bezier(0, ' + y + ', 1, ' + y + ')';
   }
 
+  function RoundMatrix(style) {
+    var matrixMatch = style.match(/^(matrix(3d)?)\(.+\)$/);
+    if (!!matrixMatch) {
+      var matrixType = matrixMatch[1];
+      var matrixArgs = style.substr(matrixType.length);
+      var extractmatrix = function(matrixStr) {
+        var list = [];
+        var regex = /[+\-]?[0-9]+[.]?[0-9]*(e[+/-][0-9]+)?/g;
+        var match = undefined;
+        do {
+          match = regex.exec(matrixStr);
+          if (match) {
+            list.push(parseFloat(parseFloat(match[0]).toFixed(6)));
+          }
+        } while (match);
+        return list;
+      }
+      return matrixType + '(' + extractmatrix(matrixArgs).join(', ') + ')';
+    }
+    return style;
+  }
+
   test(function(){
     assert_true(CSS.supports(settings.property, settings.from), 'Value "' + settings.from + '" is supported by ' + settings.property);
     assert_true(CSS.supports(settings.property, settings.to), 'Value "' + settings.to + '" is supported by ' + settings.property);
@@ -49,7 +71,9 @@ function test_interpolation(settings, expectations, name) {
       document.body.appendChild(reference);
       reference.style = '';
 
-      assert_equals(getComputedStyle(target)[settings.property], getComputedStyle(reference)[settings.property]);
+      var observed = RoundMatrix(getComputedStyle(target)[settings.property]);
+      var expected = RoundMatrix(getComputedStyle(reference)[settings.property]);
+      assert_equals(observed, expected);
     }, message_prefix + 'Animation between "' + settings.from + '" and "' + settings.to + '" at progress ' + progress);
   }
 }
