@@ -194,35 +194,36 @@ unsafe fn get_registers(thread_id: MonitoredThreadId) -> Result<Registers, ()> {
 
 #[cfg(target_os = "macos")]
 #[allow(unsafe_code)]
-unsafe fn resume_thread(thread_id: MonitoredThreadId) {
-    mach::thread_act::thread_resume(thread_id);
+unsafe fn resume_thread(thread_id: MonitoredThreadId) -> Result<(), ()> {
+    check_kern_return(mach::thread_act::thread_resume(thread_id))
 }
 
 #[cfg(target_os = "windows")]
 #[allow(unsafe_code)]
-unsafe fn resume_thread(thread_id: MonitoredThreadId) {
+unsafe fn resume_thread(_thread_id: MonitoredThreadId) -> Result<(), ()> {
     // TODO: use winapi::um::processthreadsapi::ResumeThread
 }
 
 #[cfg(any(target_os = "android", target_os = "linux"))]
-fn resume_thread(thread_id: MonitoredThreadId) {
+fn resume_thread(_thread_id: MonitoredThreadId) -> Result<(), ()> {
     SAMPLER_STATE.store(
         ThreadProfilerState::ObtainedBacktrace as usize,
         Ordering::SeqCst,
     );
     let now = Instant::now();
     // Wait until the samplee has resumed.
-    loop {
+    let result = loop {
         if SAMPLER_STATE.load(Ordering::SeqCst) == ThreadProfilerState::ResumedThread as usize {
-            break;
+            break Ok(());
         }
         if now.elapsed().as_secs() > 5 {
             // The samplee still hasn't resumed, assume failure to resume.
-            break;
+            break Err(());
         }
         thread::yield_now();
-    }
+    };
     SAMPLER_STATE.store(ThreadProfilerState::NotProfiling as usize, Ordering::SeqCst);
+    result
 }
 
 #[allow(unsafe_code)]
@@ -284,7 +285,8 @@ pub unsafe fn suspend_and_sample_thread(thread_id: MonitoredThreadId) -> Option<
         Ok(regs) => Some(frame_pointer_stack_walk(regs)),
         Err(()) => None,
     };
-    resume_thread(thread_id);
+    resume_thread(thread_id)
+        .expect("Background hang monitor failed to resume thread");
     // NOTE: End of "critical section".
     native_stack.map(symbolize_backtrace)
 }
