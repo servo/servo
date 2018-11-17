@@ -10,6 +10,8 @@ use mach;
 use msg::constellation_msg::{HangProfile, HangProfileSymbol};
 #[cfg(any(target_os = "android", target_os = "linux"))]
 use std::mem;
+use std::panic;
+use std::process;
 use std::ptr;
 #[cfg(any(target_os = "android", target_os = "linux"))]
 use std::sync::atomic::{AtomicUsize, Ordering};
@@ -278,6 +280,11 @@ pub unsafe fn suspend_and_sample_thread(thread_id: MonitoredThreadId) -> Option<
     // we must not do any dynamic memory allocation,
     // nor try to acquire any lock
     // or any other unshareable resource.
+    let current_hook = panic::take_hook();
+    panic::set_hook(Box::new(|_| {
+        // Avoiding any allocation or locking as part of standard panicking.
+        process::abort();
+    }));
     if let Err(()) = suspend_thread(thread_id) {
         return None;
     };
@@ -285,8 +292,10 @@ pub unsafe fn suspend_and_sample_thread(thread_id: MonitoredThreadId) -> Option<
         Ok(regs) => Some(frame_pointer_stack_walk(regs)),
         Err(()) => None,
     };
-    resume_thread(thread_id)
-        .expect("Background hang monitor failed to resume thread");
+    if let Err(()) = resume_thread(thread_id) {
+        process::abort();
+    }
+    panic::set_hook(current_hook);
     // NOTE: End of "critical section".
     native_stack.map(symbolize_backtrace)
 }
