@@ -2525,8 +2525,6 @@ dependencies = [
  "malloc_size_of 0.0.1",
  "malloc_size_of_derive 0.0.1",
  "serde 1.0.80 (registry+https://github.com/rust-lang/crates.io-index)",
- "servo_channel 0.0.1",
- "sig 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "size_of_test 0.0.1",
  "webrender_api 0.57.2 (git+https://github.com/servo/webrender)",
 ]
