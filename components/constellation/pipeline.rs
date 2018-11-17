@@ -306,16 +306,10 @@ impl Pipeline {
                 if opts::multiprocess() {
                     let _ = unprivileged_pipeline_content.spawn_multiprocess()?;
                 } else {
-                    // Should not be None unless in multiprocess mode.
-                    match state.background_monitor_register {
-                        Some(register) => {
-                            unprivileged_pipeline_content
-                                .start_all::<Message, LTF, STF>(false, register);
-                        },
-                        None => warn!(
-                            "Couldn't start content, no background monitor has been initiated"
-                        ),
-                    }
+                    // Should not be None in single-process mode.
+                    let register = state.background_monitor_register.unwrap();
+                    unprivileged_pipeline_content
+                        .start_all::<Message, LTF, STF>(false, register);
                 }
 
                 EventLoop::new(script_chan)

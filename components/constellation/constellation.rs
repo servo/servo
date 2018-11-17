@@ -605,6 +605,9 @@ where
                 let background_hang_monitor_receiver =
                     route_ipc_receiver_to_new_mpsc_receiver_preserving_errors(ipc_bhm_receiver);
 
+                // If we are in multiprocess mode,
+                // a dedicated per-process hang monitor will be initialized later inside the content process.
+                // See run_content_process in servo/lib.rs
                 let background_monitor_register = match opts::multiprocess() {
                     true => None,
                     false => Some(HangMonitorRegister::init(

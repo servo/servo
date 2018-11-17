@@ -1270,7 +1270,6 @@ impl ScriptThread {
 
             let category = self.categorize_msg(&msg);
             let pipeline_id = self.message_to_pipeline(&msg);
-            self.notify_activity_to_hang_monitor(&category);
 
             let result = self.profile_event(category, pipeline_id, move || {
                 match msg {
@@ -1462,6 +1461,7 @@ impl ScriptThread {
     where
         F: FnOnce() -> R,
     {
+        self.notify_activity_to_hang_monitor(&category);
         let start = precise_time_ns();
         let value = if opts::get().profile_script_events {
             let profiler_cat = match category {

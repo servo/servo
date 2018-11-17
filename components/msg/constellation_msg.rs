@@ -420,7 +420,7 @@ impl fmt::Debug for HangProfile {
                 write!(fmt, " - <unknown>")?;
             }
 
-            if let (Some(ref file), Some(line)) = (symbol.filename.clone(), symbol.lineno) {
+            if let (Some(ref file), Some(ref line)) = (symbol.filename.as_ref(), symbol.lineno) {
                 write!(fmt, "\n      {:3$}at {}:{}", "", file, line, hex_width)?;
             }
         }
