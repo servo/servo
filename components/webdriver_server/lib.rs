@@ -17,7 +17,7 @@ use euclid::TypedSize2D;
 use hyper::Method;
 use image::{DynamicImage, ImageFormat, RgbImage};
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
-use keyboard_types::webdriver::{send_keys, Event as KeyEvent};
+use keyboard_types::webdriver::send_keys;
 use msg::constellation_msg::{BrowsingContextId, TopLevelBrowsingContextId, TraversalDirection};
 use net_traits::image::base::PixelFormat;
 use regex::Captures;
@@ -1036,19 +1036,12 @@ impl Handler {
             ))
         })?;
 
-        // FIXME: Don't discard composition events.
-        let keys = send_keys(&keys.text)
-            .drain(..)
-            .filter_map(|event| match event {
-                KeyEvent::Keyboard(v) => Some(v),
-                _ => None,
-            })
-            .collect();
+        let input_events = send_keys(&keys.text);
 
         // TODO: there's a race condition caused by the focus command and the
         // send keys command being two separate messages,
         // so the constellation may have changed state between them.
-        let cmd_msg = WebDriverCommandMsg::SendKeys(browsing_context_id, keys);
+        let cmd_msg = WebDriverCommandMsg::SendKeys(browsing_context_id, input_events);
         self.constellation_chan
             .send(ConstellationMsg::WebDriverCommand(cmd_msg))
             .unwrap();

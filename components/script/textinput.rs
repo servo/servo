@@ -6,6 +6,7 @@
 
 use crate::clipboard_provider::ClipboardProvider;
 use crate::dom::bindings::str::DOMString;
+use crate::dom::compositionevent::CompositionEvent;
 use crate::dom::keyboardevent::KeyboardEvent;
 use keyboard_types::{Key, KeyState, Modifiers, ShortcutMatcher};
 use std::borrow::ToOwned;
@@ -829,6 +830,11 @@ impl<T: ClipboardProvider> TextInput<T> {
                 KeyReaction::Nothing
             })
             .unwrap()
+    }
+
+    pub fn handle_compositionend(&mut self, event: &CompositionEvent) -> KeyReaction {
+        self.insert_string(event.data());
+        KeyReaction::DispatchInput
     }
 
     /// Whether the content is empty.
