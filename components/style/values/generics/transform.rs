@@ -538,7 +538,6 @@ pub fn get_normalized_vector_and_angle<T: Zero>(
     SpecifiedValueInfo,
     ToAnimatedZero,
     ToComputedValue,
-    ToCss,
 )]
 /// A value of the `Rotate` property
 ///
@@ -550,6 +549,53 @@ pub enum Rotate<Number, Angle> {
     Rotate(Angle),
     /// '<number>{3} <angle>'
     Rotate3D(Number, Number, Number, Angle),
+}
+
+/// A trait to check if the current 3D vector is parallel to the DirectionVector.
+/// This is especially for serialization on Rotate.
+pub trait IsParallelTo {
+    /// Returns true if this is parallel to the vector.
+    fn is_parallel_to(&self, vector: &computed::transform::DirectionVector) -> bool;
+}
+
+impl<Number, Angle> ToCss for Rotate<Number, Angle>
+where
+    Number: Copy + ToCss,
+    Angle: ToCss,
+    (Number, Number, Number): IsParallelTo,
+{
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: fmt::Write,
+    {
+        use crate::values::computed::transform::DirectionVector;
+        match *self {
+            Rotate::None => dest.write_str("none"),
+            Rotate::Rotate(ref angle) => angle.to_css(dest),
+            Rotate::Rotate3D(x, y, z, ref angle) => {
+                // If a 3d rotation is specified, the property must serialize with an axis
+                // specified. If the axis is parallel with the x, y, or z axises, it must
+                // serialize as the appropriate keyword.
+                // https://drafts.csswg.org/css-transforms-2/#individual-transform-serialization
+                let v = (x, y, z);
+                if v.is_parallel_to(&DirectionVector::new(1., 0., 0.)) {
+                    dest.write_char('x')?;
+                } else if v.is_parallel_to(&DirectionVector::new(0., 1., 0.)) {
+                    dest.write_char('y')?;
+                } else if v.is_parallel_to(&DirectionVector::new(0., 0., 1.)) {
+                    dest.write_char('z')?;
+                } else {
+                    x.to_css(dest)?;
+                    dest.write_char(' ')?;
+                    y.to_css(dest)?;
+                    dest.write_char(' ')?;
+                    z.to_css(dest)?;
+                }
+                dest.write_char(' ')?;
+                angle.to_css(dest)
+            },
+        }
+    }
 }
 
 #[derive(

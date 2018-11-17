@@ -9,7 +9,8 @@ use crate::values::generics::background::BackgroundSize as GenericBackgroundSize
 use crate::values::specified::length::NonNegativeLengthOrPercentageOrAuto;
 use cssparser::Parser;
 use selectors::parser::SelectorParseErrorKind;
-use style_traits::ParseError;
+use std::fmt::{self, Write};
+use style_traits::{CssWriter, ParseError, ToCss};
 
 /// A specified value for the `background-size` property.
 pub type BackgroundSize = GenericBackgroundSize<NonNegativeLengthOrPercentageOrAuto>;
@@ -56,6 +57,7 @@ impl BackgroundSize {
     ToCss,
 )]
 #[allow(missing_docs)]
+#[value_info(other_values = "repeat-x,repeat-y")]
 pub enum BackgroundRepeatKeyword {
     Repeat,
     Space,
@@ -63,24 +65,45 @@ pub enum BackgroundRepeatKeyword {
     NoRepeat,
 }
 
-/// The specified value for the `background-repeat` property.
+/// The value of the `background-repeat` property, with `repeat-x` / `repeat-y`
+/// represented as the combination of `no-repeat` and `repeat` in the opposite
+/// axes.
 ///
 /// https://drafts.csswg.org/css-backgrounds/#the-background-repeat
-#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss)]
-pub enum BackgroundRepeat {
-    /// `repeat-x`
-    RepeatX,
-    /// `repeat-y`
-    RepeatY,
-    /// `[repeat | space | round | no-repeat]{1,2}`
-    Keywords(BackgroundRepeatKeyword, Option<BackgroundRepeatKeyword>),
-}
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue)]
+pub struct BackgroundRepeat(pub BackgroundRepeatKeyword, pub BackgroundRepeatKeyword);
 
 impl BackgroundRepeat {
-    /// Returns the `repeat` value.
-    #[inline]
+    /// Returns the `repeat repeat` value.
     pub fn repeat() -> Self {
-        BackgroundRepeat::Keywords(BackgroundRepeatKeyword::Repeat, None)
+        BackgroundRepeat(
+            BackgroundRepeatKeyword::Repeat,
+            BackgroundRepeatKeyword::Repeat,
+        )
+    }
+}
+
+impl ToCss for BackgroundRepeat {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
+        match (self.0, self.1) {
+            (BackgroundRepeatKeyword::Repeat, BackgroundRepeatKeyword::NoRepeat) => {
+                dest.write_str("repeat-x")
+            },
+            (BackgroundRepeatKeyword::NoRepeat, BackgroundRepeatKeyword::Repeat) => {
+                dest.write_str("repeat-y")
+            },
+            (horizontal, vertical) => {
+                horizontal.to_css(dest)?;
+                if horizontal != vertical {
+                    dest.write_str(" ")?;
+                    vertical.to_css(dest)?;
+                }
+                Ok(())
+            },
+        }
     }
 }
 
@@ -92,8 +115,12 @@ impl Parse for BackgroundRepeat {
         let ident = input.expect_ident_cloned()?;
 
         match_ignore_ascii_case! { &ident,
-            "repeat-x" => return Ok(BackgroundRepeat::RepeatX),
-            "repeat-y" => return Ok(BackgroundRepeat::RepeatY),
+            "repeat-x" => {
+                return Ok(BackgroundRepeat(BackgroundRepeatKeyword::Repeat, BackgroundRepeatKeyword::NoRepeat));
+            },
+            "repeat-y" => {
+                return Ok(BackgroundRepeat(BackgroundRepeatKeyword::NoRepeat, BackgroundRepeatKeyword::Repeat));
+            },
             _ => {},
         }
 
@@ -107,6 +134,6 @@ impl Parse for BackgroundRepeat {
         };
 
         let vertical = input.try(BackgroundRepeatKeyword::parse).ok();
-        Ok(BackgroundRepeat::Keywords(horizontal, vertical))
+        Ok(BackgroundRepeat(horizontal, vertical.unwrap_or(horizontal)))
     }
 }

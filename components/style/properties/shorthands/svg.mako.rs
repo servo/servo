@@ -148,21 +148,32 @@
                 % endfor
 
                 image.to_css(dest)?;
-                dest.write_str(" ")?;
-                mode.to_css(dest)?;
-                dest.write_str(" ")?;
 
-                Position {
-                    horizontal: position_x.clone(),
-                    vertical: position_y.clone()
-                }.to_css(dest)?;
-
-                if *size != mask_size::single_value::get_initial_specified_value() {
-                    dest.write_str(" / ")?;
-                    size.to_css(dest)?;
+                if *mode != mask_mode::single_value::get_initial_specified_value() {
+                    dest.write_str(" ")?;
+                    mode.to_css(dest)?;
                 }
-                dest.write_str(" ")?;
-                repeat.to_css(dest)?;
+
+                if *position_x != PositionComponent::zero() ||
+                    *position_y != PositionComponent::zero() ||
+                    *size != mask_size::single_value::get_initial_specified_value()
+                {
+                    dest.write_str(" ")?;
+                    Position {
+                        horizontal: position_x.clone(),
+                        vertical: position_y.clone()
+                    }.to_css(dest)?;
+
+                    if *size != mask_size::single_value::get_initial_specified_value() {
+                        dest.write_str(" / ")?;
+                        size.to_css(dest)?;
+                    }
+                }
+
+                if *repeat != mask_repeat::single_value::get_initial_specified_value() {
+                    dest.write_str(" ")?;
+                    repeat.to_css(dest)?;
+                }
 
                 if *origin != Origin::BorderBox || *clip != Clip::BorderBox {
                     dest.write_str(" ")?;
@@ -173,8 +184,10 @@
                     }
                 }
 
-                dest.write_str(" ")?;
-                composite.to_css(dest)?;
+                if *composite != mask_composite::single_value::get_initial_specified_value() {
+                    dest.write_str(" ")?;
+                    composite.to_css(dest)?;
+                }
             }
 
             Ok(())

@@ -52,9 +52,6 @@ fn moz_box_display_values_enabled(context: &ParserContext) -> bool {
 /// If you change it, make sure to take a look at the
 /// FrameConstructionDataByDisplay stuff (both the XUL and non-XUL version), and
 /// ensure it's still correct!
-///
-/// Also, when you change this from Gecko you may need to regenerate the
-/// C++-side bindings (see components/style/cbindgen.toml).
 #[allow(missing_docs)]
 #[derive(
     Clone,
@@ -946,9 +943,6 @@ pub enum Resize {
 /// The value for the `appearance` property.
 ///
 /// https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-appearance
-///
-/// NOTE(emilio): When changing this you may want to regenerate the C++ bindings
-/// (see components/style/cbindgen.toml)
 #[allow(missing_docs)]
 #[derive(
     Clone,
@@ -1294,4 +1288,53 @@ pub enum Appearance {
     /// A dummy variant that should be last to let the GTK widget do hackery.
     #[css(skip)]
     Count,
+}
+
+/// A kind of break between two boxes.
+///
+/// https://drafts.csswg.org/css-break/#break-between
+#[allow(missing_docs)]
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    Eq,
+    Hash,
+    MallocSizeOf,
+    Parse,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToCss,
+    ToComputedValue,
+)]
+#[repr(u8)]
+pub enum BreakBetween {
+    Auto,
+    Always,
+    Avoid,
+    Left,
+    Right,
+}
+
+/// A kind of break within a box.
+///
+/// https://drafts.csswg.org/css-break/#break-within
+#[allow(missing_docs)]
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    Eq,
+    Hash,
+    MallocSizeOf,
+    Parse,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToCss,
+    ToComputedValue,
+)]
+#[repr(u8)]
+pub enum BreakWithin {
+    Auto,
+    Avoid,
 }

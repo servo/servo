@@ -2108,7 +2108,7 @@ impl ComputedRotate {
         //
         // If the axis is unspecified, it defaults to "0 0 1"
         match *self {
-            Rotate::None => (0., 0., 1., Angle::zero()),
+            Rotate::None => unreachable!("None is handled by the caller"),
             Rotate::Rotate3D(rx, ry, rz, angle) => (rx, ry, rz, angle),
             Rotate::Rotate(angle) => (0., 0., 1., angle),
         }
@@ -2122,41 +2122,58 @@ impl Animate for ComputedRotate {
         other: &Self,
         procedure: Procedure,
     ) -> Result<Self, ()> {
-        let (from, to) = (self.resolve(), other.resolve());
+        match (self, other) {
+            (&Rotate::None, &Rotate::None) => Ok(Rotate::None),
+            (&Rotate::Rotate3D(fx, fy, fz, fa), &Rotate::None) => {
+                // No need to normalize `none`, so animate angle directly.
+                Ok(Rotate::Rotate3D(fx, fy, fz, fa.animate(&Angle::zero(), procedure)?))
+            },
+            (&Rotate::None, &Rotate::Rotate3D(tx, ty, tz, ta)) => {
+                // No need to normalize `none`, so animate angle directly.
+                Ok(Rotate::Rotate3D(tx, ty, tz, Angle::zero().animate(&ta, procedure)?))
+            },
+            (&Rotate::Rotate3D(_, ..), _) | (_, &Rotate::Rotate3D(_, ..)) => {
+                let (from, to) = (self.resolve(), other.resolve());
+                let (mut fx, mut fy, mut fz, fa) =
+                    transform::get_normalized_vector_and_angle(from.0, from.1, from.2, from.3);
+                let (mut tx, mut ty, mut tz, ta) =
+                    transform::get_normalized_vector_and_angle(to.0, to.1, to.2, to.3);
 
-        let (mut fx, mut fy, mut fz, fa) =
-            transform::get_normalized_vector_and_angle(from.0, from.1, from.2, from.3);
-        let (mut tx, mut ty, mut tz, ta) =
-            transform::get_normalized_vector_and_angle(to.0, to.1, to.2, to.3);
+                if fa == Angle::from_degrees(0.) {
+                    fx = tx;
+                    fy = ty;
+                    fz = tz;
+                } else if ta == Angle::from_degrees(0.) {
+                    tx = fx;
+                    ty = fy;
+                    tz = fz;
+                }
 
-        if fa == Angle::from_degrees(0.) {
-            fx = tx;
-            fy = ty;
-            fz = tz;
-        } else if ta == Angle::from_degrees(0.) {
-            tx = fx;
-            ty = fy;
-            tz = fz;
+                if (fx, fy, fz) == (tx, ty, tz) {
+                    return Ok(Rotate::Rotate3D(fx, fy, fz, fa.animate(&ta, procedure)?));
+                }
+
+                let fv = DirectionVector::new(fx, fy, fz);
+                let tv = DirectionVector::new(tx, ty, tz);
+                let fq = Quaternion::from_direction_and_angle(&fv, fa.radians64());
+                let tq = Quaternion::from_direction_and_angle(&tv, ta.radians64());
+
+                let rq = Quaternion::animate(&fq, &tq, procedure)?;
+                let (x, y, z, angle) = transform::get_normalized_vector_and_angle(
+                    rq.0 as f32,
+                    rq.1 as f32,
+                    rq.2 as f32,
+                    rq.3.acos() as f32 * 2.0,
+                );
+
+                Ok(Rotate::Rotate3D(x, y, z, Angle::from_radians(angle)))
+            },
+            (&Rotate::Rotate(_), _) | (_, &Rotate::Rotate(_)) => {
+                // If this is a 2D rotation, we just animate the <angle>
+                let (from, to) = (self.resolve().3, other.resolve().3);
+                Ok(Rotate::Rotate(from.animate(&to, procedure)?))
+            },
         }
-
-        if (fx, fy, fz) == (tx, ty, tz) {
-            return Ok(Rotate::Rotate3D(fx, fy, fz, fa.animate(&ta, procedure)?));
-        }
-
-        let fv = DirectionVector::new(fx, fy, fz);
-        let tv = DirectionVector::new(tx, ty, tz);
-        let fq = Quaternion::from_direction_and_angle(&fv, fa.radians64());
-        let tq = Quaternion::from_direction_and_angle(&tv, ta.radians64());
-
-        let rq = Quaternion::animate(&fq, &tq, procedure)?;
-        let (x, y, z, angle) = transform::get_normalized_vector_and_angle(
-            rq.0 as f32,
-            rq.1 as f32,
-            rq.2 as f32,
-            rq.3.acos() as f32 * 2.0,
-        );
-
-        Ok(Rotate::Rotate3D(x, y, z, Angle::from_radians(angle)))
     }
 }
 

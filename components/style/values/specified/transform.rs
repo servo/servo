@@ -357,17 +357,38 @@ impl Parse for Rotate {
             return Ok(generic::Rotate::None);
         }
 
-        if let Ok(rx) = input.try(|i| Number::parse(context, i)) {
-            // 'rotate: <number>{3} <angle>'
-            let ry = Number::parse(context, input)?;
-            let rz = Number::parse(context, input)?;
-            let angle = specified::Angle::parse(context, input)?;
-            return Ok(generic::Rotate::Rotate3D(rx, ry, rz, angle));
-        }
+        // Parse <angle> or [ x | y | z | <number>{3} ] && <angle>.
+        //
+        // The rotate axis and angle could be in any order, so we parse angle twice to cover
+        // two cases. i.e. `<number>{3} <angle>` or `<angle> <number>{3}`
+        let angle = input.try(|i| specified::Angle::parse(context, i)).ok();
+        let axis = input
+            .try(|i| {
+                Ok(try_match_ident_ignore_ascii_case! { i,
+                    "x" => (Number::new(1.), Number::new(0.), Number::new(0.)),
+                    "y" => (Number::new(0.), Number::new(1.), Number::new(0.)),
+                    "z" => (Number::new(0.), Number::new(0.), Number::new(1.)),
+                })
+            })
+            .or_else(|_: ParseError| -> Result<_, ParseError> {
+                input.try(|i| {
+                    Ok((
+                        Number::parse(context, i)?,
+                        Number::parse(context, i)?,
+                        Number::parse(context, i)?,
+                    ))
+                })
+            })
+            .ok();
+        let angle = match angle {
+            Some(a) => a,
+            None => specified::Angle::parse(context, input)?,
+        };
 
-        // 'rotate: <angle>'
-        let angle = specified::Angle::parse(context, input)?;
-        Ok(generic::Rotate::Rotate(angle))
+        Ok(match axis {
+            Some((x, y, z)) => generic::Rotate::Rotate3D(x, y, z, angle),
+            None => generic::Rotate::Rotate(angle),
+        })
     }
 }
 
