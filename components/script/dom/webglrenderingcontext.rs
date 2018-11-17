@@ -751,8 +751,7 @@ impl WebGLRenderingContext {
             target: target.as_gl_constant(),
             level,
             internal_format,
-            width: pixels.size.width,
-            height: pixels.size.height,
+            size: pixels.size,
             format,
             data_type: self.extension_manager.effective_type(data_type),
             unpacking_alignment,
@@ -835,8 +834,7 @@ impl WebGLRenderingContext {
             level,
             xoffset,
             yoffset,
-            width: pixels.size.width,
-            height: pixels.size.height,
+            size: pixels.size,
             format: format.as_gl_constant(),
             data_type: self
                 .extension_manager
