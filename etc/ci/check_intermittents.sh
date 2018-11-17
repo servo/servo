@@ -9,16 +9,14 @@ set -o nounset
 set -o pipefail
 REPEAT_COUNT=100
 
-for test_type in wpt css; do
-    while read test_name; do
-        echo "  - Checking ${test_name}"
-        ./mach "test-${test_type}" \
-            --release \
-            --log-raw - \
-            --repeat "${REPEAT_COUNT}" \
-            "${test_name}" \
-            > intermittents.log \
-            < /dev/null
-    done < "etc/ci/former_intermittents_${test_type}.txt"
-done
+while read test_name; do
+    echo "  - Checking ${test_name}"
+    ./mach test-wpt \
+        --release \
+        --log-raw - \
+        --repeat "${REPEAT_COUNT}" \
+        "${test_name}" \
+        > intermittents.log \
+        < /dev/null
+done < "etc/ci/former_intermittents_wpt.txt"
 
