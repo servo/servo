@@ -1358,6 +1358,7 @@ impl ScriptThread {
             ScriptThreadEventCategory::FormPlannedNavigation => {
                 ScriptHangAnnotation::FormPlannedNavigation
             },
+            ScriptThreadEventCategory::HistoryEvent => ScriptHangAnnotation::HistoryEvent,
             ScriptThreadEventCategory::ImageCacheMsg => ScriptHangAnnotation::ImageCacheMsg,
             ScriptThreadEventCategory::InputEvent => ScriptHangAnnotation::InputEvent,
             ScriptThreadEventCategory::NetworkEvent => ScriptHangAnnotation::NetworkEvent,

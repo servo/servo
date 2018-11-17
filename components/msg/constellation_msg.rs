@@ -324,6 +324,7 @@ pub enum ScriptHangAnnotation {
     FormPlannedNavigation,
     ImageCacheMsg,
     InputEvent,
+    HistoryEvent,
     NetworkEvent,
     Resize,
     ScriptEvent,
