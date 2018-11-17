@@ -11,8 +11,9 @@
   // https://w3c.github.io/webrtc-pc/archives/20170605/webrtc.html
 
   // The following helper functions are called from RTCPeerConnection-helper.js:
-  //   generateDataChannelOffer
   //   assert_session_desc_similar
+  //   generateAudioReceiveOnlyOffer
+  //   generateDataChannelOffer
 
   /*
     4.3.2.  Interface Definition
@@ -105,7 +106,7 @@
   promise_test(t => {
     const pc = new RTCPeerConnection();
     t.add_cleanup(() => pc.close());
-    return pc.createOffer({ offerToReceiveAudio: true })
+    return generateAudioReceiveOnlyOffer(pc)
     .then(offer => pc.setRemoteDescription(offer))
     .then(() => pc.setRemoteDescription({
       type: 'rollback',

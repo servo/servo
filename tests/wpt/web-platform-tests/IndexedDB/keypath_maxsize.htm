@@ -11,7 +11,7 @@
 <script>
     function keypath(keypath, objects, expected_keys, desc) {
         var db,
-            t = async_test(document.title + " - " + (desc ? desc : keypath), { timeout: 10000 }),
+            t = async_test(document.title + " - " + (desc ? desc : keypath)),
             open_rq = createdb(t);
 
         open_rq.onupgradeneeded = function(e) {

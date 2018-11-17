@@ -21,4 +21,17 @@ for (const method of methods) {
     controller.abort();
     return promise_rejects(t, 'AbortError', promise, `${method} should reject`);
   }, `${method}() synchronously followed by abort should reject with AbortError`);
+
+  promise_test(async t => {
+    const controller = new AbortController();
+    const signal = controller.signal;
+    return fetch('../incrementer.wasm', { signal })
+    .then(response => {
+      Promise.resolve().then(() => controller.abort());
+      return WebAssembly[method](response);
+    })
+    .catch(err => {
+      assert_true(err.name === "AbortError");
+    });
+  }, `${method}() asynchronously racing with abort should succeed or reject with AbortError`);
 }

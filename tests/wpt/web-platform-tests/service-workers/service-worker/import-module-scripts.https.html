@@ -13,6 +13,7 @@ function import_test(testCase) {
       navigator.serviceWorker.onmessage = resolve;
     });
     await service_worker_unregister(t, testCase.scriptURL);
+    t.add_cleanup(() => service_worker_unregister(t, testCase.scriptURL));
     const registration = await navigator.serviceWorker.register(
       testCase.scriptURL,
       { scope: testCase.scriptURL, type: 'module' });

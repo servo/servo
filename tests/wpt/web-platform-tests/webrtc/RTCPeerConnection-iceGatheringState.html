@@ -11,8 +11,9 @@
   // https://w3c.github.io/webrtc-pc/archives/20170605/webrtc.html
 
   // The following helper functions are called from RTCPeerConnection-helper.js:
-  // exchangeIceCandidates
   // doSignalingHandshake
+  // exchangeIceCandidates
+  // generateAudioReceiveOnlyOffer
 
   /*
     4.3.2.  Interface Definition
@@ -72,7 +73,7 @@
 
     pc.addEventListener('icegatheringstatechange', onIceGatheringStateChange);
 
-    pc.createOffer({ offerToReceiveAudio: true })
+    generateAudioReceiveOnlyOffer(pc)
     .then(offer => pc.setLocalDescription(offer))
     .then(err => t.step_func(err =>
       assert_unreached(`Unhandled rejection ${err.name}: ${err.message}`)));

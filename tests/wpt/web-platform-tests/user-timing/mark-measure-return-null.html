@@ -1,0 +1,46 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>User Timing: L2 APIs return null</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<p>User Timing: L2 APIs return null</p>
+<div id="log"></div>
+<script>
+  async_test(function (t) {
+    self.performance.clearMeasures();
+    const measure = self.performance.measure("measure1");
+    assert_equals(measure, null);
+    t.done();
+  }, "L2: performance.measure(name) should return null.");
+
+  async_test(function (t) {
+    self.performance.clearMeasures();
+    self.performance.mark("1");
+    const measure = self.performance.measure("measure2", 1);
+    assert_equals(measure, null);
+    t.done();
+  }, "L2: performance.measure(name, param1) should return null.");
+
+  async_test(function (t) {
+    self.performance.clearMeasures();
+    self.performance.mark("1");
+    self.performance.mark("2");
+    const measure = self.performance.measure("measure3", 1, 2);
+    assert_equals(measure, null);
+    t.done();
+  }, "L2: performance.measure(name, param1, param2) should return null.");
+
+  async_test(function (t) {
+    self.performance.clearMarks();
+    const mark = self.performance.mark("mark1");
+    assert_equals(mark, null);
+    t.done();
+  }, "L2: performance.mark(name) should return null.");
+
+  async_test(function (t) {
+    self.performance.clearMarks();
+    const mark = self.performance.mark("mark2", { startTime: 34 });
+    assert_equals(mark, null);
+    t.done();
+  }, "L2: performance.mark(name, param) should return null.");
+</script>

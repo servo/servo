@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Test: </title>
+<link rel="help" href="https://svgwg.org/svg2-draft/interact.html#ScriptElement">
+<meta name="assert" content="The same scripts can work on both HTML and SVG elements.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>var total = 0;</script>
+<script>function s0() { total += 100; return s1(); }</script>
+<svg>
+  <script>function s1() { total += 20; return s2(); }</script>
+  <g>
+    <script>function s2() { return s3(); }</script>
+    <circle id="spot"><clipPath id="spot-first-child"/>
+      <script>function s3() { return s4(); }</script>
+    </circle>
+  </g>
+  <desc>
+    <script>function s4() { return s5(); }</script>
+  </desc>
+  <filter>
+    <script>function s5() { return s6(); }</script>
+    <feFlood>
+      <script>function s6() { return s7(); }</script>
+    </feFlood>
+  </filter>
+  <text>
+    <script>function s7() { return s8(); }</script>
+    <tspan>
+      <script>function s8() { return s9(); }</script>
+    </tspan>
+  </text>
+  <use href="spot">
+    <script>function s9() { return s10(); }</script>
+  </use>
+</svg>
+<div id="box"><script id="box-first-child">function s10() { total += 3; return s11(); }</script>
+  <span>
+    <script>function s11() { return 'same'; }</script>
+  </span>
+</div>
+
+<script>
+test(function(){
+  assert_equals(s0(), 'same');
+  assert_equals(total, 123);
+
+  for (let elementName of ['spot', 'box']) {
+    let element = document.getElementById(elementName);
+    let firstChild = element.firstChild;
+    assert_equals(firstChild.id, elementName + '-first-child');
+  }
+}, 'The same scripts work on both HTML and SVG elements');
+</script>

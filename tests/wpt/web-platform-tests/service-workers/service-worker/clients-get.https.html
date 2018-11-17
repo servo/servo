@@ -49,6 +49,162 @@ promise_test(function(t) {
         });
   }, 'Test Clients.get()');
 
+promise_test((t) => {
+  let frame = null;
+  const scope = 'resources/simple.html';
+  const outerSwContainer = navigator.serviceWorker;
+  let innerSwReg = null;
+  let innerSw = null;
+
+  return service_worker_unregister_and_register(
+    t, 'resources/clients-get-resultingClientId-worker.js', scope)
+    .then((registration) => {
+        innerSwReg = registration;
+        add_completion_callback(function() { registration.unregister(); });
+        return wait_for_state(t, registration.installing, 'activated');
+    })
+    .then(() => {
+        // load frame and get resulting client id
+      let channel = new MessageChannel();
+      innerSw = innerSwReg.active;
+
+      let p = new Promise(resolve => {
+        function getResultingClientId(e) {
+          if (e.data.msg == 'getResultingClientId') {
+            const { resultingClientId } = e.data;
+
+            channel.port1.removeEventListener('message', getResultingClientId);
+
+            resolve({ resultingClientId, port: channel.port1 });
+          }
+        }
+
+        channel.port1.onmessage = getResultingClientId;
+      });
+
+
+      return with_iframe(scope).then((iframe) => {
+        innerSw.postMessage(
+          { port: channel.port2, msg: 'getResultingClientId' },
+          [channel.port2],
+        );
+
+        frame = iframe;
+        frame.focus();
+        add_completion_callback(() => iframe.remove());
+
+        return p;
+      });
+    })
+    .then(({ resultingClientId, port }) => {
+      // query service worker for clients.get(resultingClientId)
+      let channel = new MessageChannel();
+
+      let p = new Promise(resolve => {
+        function getIsResultingClientUndefined(e) {
+          if (e.data.msg == 'getIsResultingClientUndefined') {
+            let { isResultingClientUndefined } = e.data;
+
+            port.removeEventListener('message', getIsResultingClientUndefined);
+
+            resolve(isResultingClientUndefined);
+          }
+        }
+
+        port.onmessage = getIsResultingClientUndefined;
+      });
+
+      innerSw.postMessage(
+        { port: channel.port2, msg: 'getIsResultingClientUndefined', resultingClientId },
+        [channel.port2],
+      );
+
+      return p;
+    })
+    .then((isResultingClientUndefined) => {
+      assert_false(isResultingClientUndefined, 'Clients.get(FetchEvent.resultingClientId) resolved with a Client');
+    });
+}, 'Test successful Clients.get(FetchEvent.resultingClientId)');
+
+promise_test((t) => {
+  const scope = 'resources/simple.html?fail';
+  const outerSwContainer = navigator.serviceWorker;
+  let innerSwReg = null;
+  let innerSw = null;
+
+  return service_worker_unregister_and_register(
+    t, 'resources/clients-get-resultingClientId-worker.js', scope)
+    .then((registration) => {
+        innerSwReg = registration;
+        add_completion_callback(function() { registration.unregister(); });
+        return wait_for_state(t, registration.installing, 'activated');
+    })
+    .then(() => {
+        // load frame, destroying it while loading, and get resulting client id
+        innerSw = innerSwReg.active;
+
+        let iframe = document.createElement('iframe');
+        iframe.className = 'test-iframe';
+        iframe.src = scope;
+
+        function destroyIframe(e) {
+          if (e.data.msg == 'destroyResultingClient') {
+            iframe.remove();
+            iframe = null;
+
+            innerSw.postMessage({ msg: 'resultingClientDestroyed' });
+          }
+        }
+
+        outerSwContainer.addEventListener('message', destroyIframe);
+
+        let p = new Promise(resolve => {
+          function resultingClientDestroyedAck(e) {
+            if (e.data.msg == 'resultingClientDestroyedAck') {
+              let { resultingDestroyedClientId } = e.data;
+
+              outerSwContainer.removeEventListener('message', resultingClientDestroyedAck);
+              resolve(resultingDestroyedClientId);
+            }
+          }
+
+          outerSwContainer.addEventListener('message', resultingClientDestroyedAck);
+        });
+
+        document.body.appendChild(iframe);
+
+        return p;
+    })
+    .then((resultingDestroyedClientId) => {
+        // query service worker for clients.get(resultingDestroyedClientId)
+        let channel = new MessageChannel();
+
+        let p = new Promise((resolve, reject) => {
+          function getIsResultingClientUndefined(e) {
+            if (e.data.msg == 'getIsResultingClientUndefined') {
+              let { isResultingClientUndefined } = e.data;
+
+              channel.port1.removeEventListener('message', getIsResultingClientUndefined);
+
+              resolve(isResultingClientUndefined);
+            }
+          }
+
+          channel.port1.onmessage = getIsResultingClientUndefined;
+        });
+
+        innerSw.postMessage(
+          { port: channel.port2, msg: 'getIsResultingClientUndefined', resultingClientId: resultingDestroyedClientId },
+          [channel.port2],
+        );
+
+        return p;
+    })
+    .then((isResultingClientUndefined) => {
+      assert_true(isResultingClientUndefined, 'Clients.get(FetchEvent.resultingClientId) resolved with `undefined`');
+    });
+}, 'Test unsuccessful Clients.get(FetchEvent.resultingClientId)');
+
 function wait_for_clientId() {
   return new Promise(function(resolve, reject) {
       function get_client_id(e) {

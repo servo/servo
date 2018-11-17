@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>CSS Selectors: :is()</title>
+    <link rel="author" title="Victoria Su" href="mailto:victoriaytsu@google.com">
+    <link rel="help" href="https://drafts.csswg.org/selectors-4/#matches">
+    <meta name="assert" content="This tests that the :is() selector is effective when nested">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <style>
+      /* Testing that highest specificity is chosen for class outside of :is() */
+      .a+.b+.c>.e+.d {
+        color: black;
+        font-size: 10px;
+        width: 10px;
+      }
+      .a+:is(.b+.f, .b+:is(*, .c>.e, .g, *))+.d {
+        color: red;
+        font-size: 20px;
+      }
+      .a+.b+.c>.e+.d {
+        color: yellow;
+      }
+      /* Testing specificty of a class within :is() */
+      .a+.c>.e {
+        color: black;
+      }
+      .a+:is(.b+.f, :is(.c>.e, .g)) {
+        color: red;
+      }
+      .c>.e {
+        color: black;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="a">
+    </div>
+    <div class="b" id="b2">
+    </div>
+    <div class="c" id="c2">
+      <div class="e">
+      </div>
+      <div class="d" id="d1">
+        Yellow
+      </div>
+    </div>
+    <div class="a">
+    </div>
+    <div class="c" id="c2">
+      <div class="e" id="e1">
+        Red
+      </div>
+    </div>
+    <script>
+
+      var red = "rgb(255, 0, 0)";
+      var yellow = "rgb(255, 255, 0)";
+
+      test(() => {
+        assert_equals(getComputedStyle(d1).color, yellow);
+        assert_equals(getComputedStyle(d1).fontSize, "20px");
+        assert_equals(getComputedStyle(d1).width, "10px");
+      }, "Test nested :is() chooses highest specificity for class outside :is().");
+
+      test(() => {
+        assert_equals(getComputedStyle(e1).color, red);
+      }, "Test nested :is() specificity for class within arguments.");
+
+    </script>
+  </body>
+</html>

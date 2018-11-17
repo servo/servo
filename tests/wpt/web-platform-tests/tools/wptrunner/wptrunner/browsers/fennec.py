@@ -36,8 +36,9 @@ class FennecProfile(FirefoxProfile):
         "app.normandy.api_url": "",
         # Increase the APZ content response timeout in tests to 1 minute.
         "apz.content_response_timeout": 60000,
-        # Enable output of dump()
+        # Enable output for dump() and chrome console API
         "browser.dom.window.dump.enabled": True,
+        "devtools.console.stdout.chrome": True,
         # Disable safebrowsing components
         "browser.safebrowsing.blockedURIs.enabled": False,
         "browser.safebrowsing.downloads.enabled": False,

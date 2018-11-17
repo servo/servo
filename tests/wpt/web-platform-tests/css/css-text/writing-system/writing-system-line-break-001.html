@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang=en>
+<meta charset=utf-8>
+<title>CSS test: writing system and line breaking</title>
+<link rel=author title="Florian Rivoal" href="https://florian.rivoal.net">
+<link rel=help href="https://drafts.csswg.org/css-text-3/#languages">
+<link rel=help href="https://drafts.csswg.org/css-text-3/#script-tagging">
+<link rel=help href="https://drafts.csswg.org/css-text-3/#propdef-line-break">
+<link rel=match href="reference/writing-system-line-break-001-ref.html">
+<meta name=assert content="breaks before hyphens when line-break is loose are allowed if the content language is Japanese,
+but not when the writing system is Latin.">
+<style>
+div {
+  font-family: monospace;
+  width: 7ch;
+  line-break: loose;
+}
+</style>
+
+<p>The test passes if the first line below ends with a hyphen.
+
+<div lang=ja-Latn>Fushimi&#x2010;ku</div>

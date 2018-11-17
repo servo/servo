@@ -15,6 +15,7 @@ const check_report_format = (reports, observer) => {
   assert_equals(report.type, "feature-policy");
   assert_equals(report.url, document.location.href);
   assert_equals(report.body.feature, "picture-in-picture");
+  assert_equals(report.body.disposition, "enforce");
   assert_equals(report.body.sourceFile, document.location.href);
   assert_equals(typeof report.body.message, "string");
   assert_equals(typeof report.body.lineNumber, "number");

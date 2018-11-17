@@ -9,7 +9,7 @@
 <script>
     var events = [];
 
-    var open_rq = createdb(async_test(document.title, {timeout: 10000}));
+    var open_rq = createdb(async_test(document.title));
     open_rq.onupgradeneeded = function(e) {
         var db = e.target.result;
         var txn = e.target.transaction;

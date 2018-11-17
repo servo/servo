@@ -21,27 +21,7 @@ export function runTests(property, values) {
       style.cssText = "";
       style.setProperty(property, value);
       testCSSValues("logical values in inline style", style, [[property, value]]);
+      testComputedValues("logical values in computed style", style, [[property, value]]);
     }, `Test that '${property}: ${value}' is supported.`);
-
-    const camelCase = value.replace(/-(.)/g, (match, $1) => $1.toUpperCase());
-    for (const writingMode of writingModes) {
-      for (const style of writingMode.styles) {
-        const writingModeDecl = makeDeclaration(style);
-        test(function() {
-          const physicalSide = writingMode[camelCase];
-          let expected;
-          if (physicalSide === writingMode.lineLeft) {
-            expected = "left";
-          } else if (physicalSide === writingMode.lineRight) {
-            expected = "right";
-          } else {
-            expected = physicalSide;
-          }
-          testComputedValues(`computed value`,
-                             `.test { ${writingModeDecl} }`,
-                             [[property, expected]]);
-        }, `Test '${property}: ${value}' with '${writingModeDecl}'.`);
-      }
-    }
   }
 }

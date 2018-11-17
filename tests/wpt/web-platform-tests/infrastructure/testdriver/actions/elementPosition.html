@@ -34,7 +34,7 @@ async_test(t => {
   let div = document.getElementById("test");
   let actions = new test_driver.Actions()
     .pointerMove(0, 0, {origin: test})
-    .pointerDown(0, 0, {origin: test})
+    .pointerDown()
     .pointerUp()
     .send()
     .then(t.step_func_done(() => assert_array_equals(events, [50, 25])))

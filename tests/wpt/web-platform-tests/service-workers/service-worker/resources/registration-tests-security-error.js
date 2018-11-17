@@ -70,9 +70,9 @@ function registration_tests_security_error(register_method, check_error_types) {
       var script = 'filesystem:' + normalizeURL('resources/empty-worker.js');
       var scope = 'resources/scope/filesystem-script-url';
       return promise_rejects(t,
-          check_error_types ? 'SecurityError' : null,
+          check_error_types ? new TypeError : null,
           register_method(script, {scope: scope}),
           'Registering a script which has same-origin filesystem: URL should ' +
-              'fail with SecurityError.');
+              'fail with TypeError.');
     }, 'Script URL is same-origin filesystem: URL');
 }

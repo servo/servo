@@ -9,7 +9,7 @@
 <script>
 
     var db,
-      t = async_test(document.title, {timeout: 10000}),
+      t = async_test(document.title),
       objects = [1, null, {id: 2}, null, 2.00001, 5, null, {id: 6} ],
       expected = [1, 2, 2.00001, 3, 5, 6],
       errors = 0;

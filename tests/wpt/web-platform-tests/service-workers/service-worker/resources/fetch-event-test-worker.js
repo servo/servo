@@ -37,6 +37,16 @@ function handleClientId(event) {
   event.respondWith(new Response(body));
 }
 
+function handleResultingClientId(event) {
+  var body;
+  if (event.resultingClientId !== "") {
+    body = 'Resulting Client ID Found: ' + event.resultingClientId;
+  } else {
+    body = 'Resulting Client ID Not Found';
+  }
+  event.respondWith(new Response(body));
+}
+
 function handleNullBody(event) {
   event.respondWith(new Response());
 }
@@ -155,6 +165,7 @@ self.addEventListener('fetch', function(event) {
       { pattern: '?referrerPolicy', fn: handleReferrerPolicy },
       { pattern: '?referrer', fn: handleReferrer },
       { pattern: '?clientId', fn: handleClientId },
+      { pattern: '?resultingClientId', fn: handleResultingClientId },
       { pattern: '?ignore', fn: function() {} },
       { pattern: '?null', fn: handleNullBody },
       { pattern: '?fetch', fn: handleFetch },
