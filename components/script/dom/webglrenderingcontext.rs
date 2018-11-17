@@ -2588,6 +2588,14 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         shader_type: u32,
         precision_type: u32,
     ) -> Option<DomRoot<WebGLShaderPrecisionFormat>> {
+        match shader_type {
+            constants::FRAGMENT_SHADER | constants::VERTEX_SHADER => (),
+            _ => {
+                self.webgl_error(InvalidEnum);
+                return None;
+            },
+        }
+
         match precision_type {
             constants::LOW_FLOAT |
             constants::MEDIUM_FLOAT |
