@@ -133,7 +133,7 @@ public class ServoView extends GLSurfaceView
 
     public void animationStateChanged(boolean animating) {
         if (!mAnimating && animating) {
-            post(() -> Choreographer.getInstance().postFrameCallback(ServoView.this));
+            post(() -> startLooping());
         }
         mAnimating = animating;
     }
@@ -180,6 +180,13 @@ public class ServoView extends GLSurfaceView
         mGestureDetector = new GestureDetector(context, this);
         mScaleGestureDetector = new ScaleGestureDetector(context, this);
         mScroller = new OverScroller(context);
+    }
+
+    private void startLooping() {
+      // In case we were already drawing.
+      Choreographer.getInstance().removeFrameCallback(this);
+
+      Choreographer.getInstance().postFrameCallback(this);
     }
 
     public void doFrame(long frameTimeNanos) {
@@ -264,9 +271,10 @@ public class ServoView extends GLSurfaceView
                 mCurY = (int) e.getY();
                 mLastY = mCurY;
                 mScroller.forceFinished(true);
+                mFlinging = false;
                 mServo.scrollStart(0, 0, mCurX, mCurY);
                 mScrolling = true;
-                Choreographer.getInstance().postFrameCallback(this);
+                startLooping();
                 return true;
             case (MotionEvent.ACTION_MOVE):
                 mCurX = (int) e.getX();
@@ -305,7 +313,7 @@ public class ServoView extends GLSurfaceView
             mZoomFactor = detector.getScaleFactor();
             mZooming = true;
             mServo.pinchZoomStart(mZoomFactor, 0, 0);
-            Choreographer.getInstance().postFrameCallback(this);
+            startLooping();
             return true;
         } else {
             return false;
