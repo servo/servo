@@ -190,7 +190,7 @@ pub unsafe extern "C" fn heartbeat_servo(servo: *mut ServoInstance) {
 
 // How far does the cursor have to move for it to count as a drag rather than a click?
 // (In device pixels squared, to avoid taking a sqrt when calculating move distance.)
-const DRAG_CUTOFF_SQUARED: f32 = 100.0;
+const DRAG_CUTOFF_SQUARED: f32 = 900.0;
 
 // How much should we scale scrolling by?
 const SCROLL_SCALE: f32 = 3.0;

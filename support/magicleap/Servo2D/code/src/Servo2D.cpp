@@ -22,9 +22,12 @@ const int VIEWPORT_H = 500;
 const float HIDPI = 1.0;
 
 // The prism dimensions (in m).
-const float PRISM_W = 0.5;
-const float PRISM_H = 0.5;
-const float PRISM_D = 0.5;
+const float PRISM_W = 2.0;
+const float PRISM_H = 2.0;
+const float PRISM_D = 2.0;
+
+// The length of the laser pointer (in m).
+const float LASER_LENGTH = 10.0;
 
 // A function which calls the ML logger, suitable for passing into Servo
 typedef void (*MLLogger)(MLLogLevel lvl, char* msg);
@@ -103,6 +106,14 @@ int Servo2D::init() {
   }
   content_node_->setTriggerable(true);
 
+  content_panel_ = lumin::ui::UiPanel::CastFrom(prism_->findNode(Servo2D_exportedNodes::contentPanel, root_node));
+  if (!content_panel_) {
+    ML_LOG(Error, "Servo2D Failed to get content panel");
+    abort();
+    return 1;
+  }
+  lumin::ui::UiPanel::RequestFocus(content_panel_);
+
   lumin::ResourceIDType plane_id = prism_->createPlanarEGLResourceId();
   if (!plane_id) {
     ML_LOG(Error, "Servo2D Failed to create EGL resource");
@@ -161,6 +172,15 @@ int Servo2D::init() {
     return 1;
   }
   url_bar_->onFocusLostSub(std::bind(&Servo2D::urlBarEventListener, this));
+
+  // Add the laser pointer
+  laser_ = lumin::LineNode::CastFrom(prism_->findNode(Servo2D_exportedNodes::laser, root_node));
+  if (!laser_) {
+    ML_LOG(Error, "Servo2D Failed to get laser");
+    abort();
+    return 1;
+  }
+
   return 0;
 }
 
@@ -209,28 +229,28 @@ void Servo2D::instanceInitialScenes() {
 }
 
 bool Servo2D::updateLoop(float fDelta) {
-  // Hook into servo
+  glm::vec2 pos = redrawLaser();
+  move_servo(servo_, pos.x, pos.y);
   heartbeat_servo(servo_);
-
-  // Return true for your app to continue running, false to terminate the app.
   return true;
 }
 
 bool Servo2D::eventListener(lumin::ServerEvent* event) {
   // Dispatch based on event type
-  switch (event->getServerEventType()) {
-    case lumin::ServerEventType::kControlTouchPadInputEvent:
-      return touchpadEventListener(static_cast<lumin::ControlTouchPadInputEventData*>(event));
+  lumin::ServerEventType typ = event->getServerEventType();
+  switch (typ) {
     case lumin::ServerEventType::kGestureInputEvent:
       return gestureEventListener(static_cast<lumin::GestureInputEventData*>(event));
+    case lumin::ServerEventType::kControlPose6DofInputEvent:
+      return pose6DofEventListener(static_cast<lumin::ControlPose6DofInputEventData*>(event));
     default:
       return false;
   }
 }
 
-glm::vec2 Servo2D::viewportCursorPosition() {
+glm::vec2 Servo2D::viewportPosition(glm::vec3 prism_pos) {
   // Get the cursor position relative to the origin of the content node (in m)
-  glm::vec3 pos = lumin::ui::Cursor::GetPosition(prism_) - content_node_->getPrismPosition();
+  glm::vec3 pos = prism_pos - content_node_->getPrismPosition();
 
   // Get the size of the content node (in m)
   glm::vec2 sz = content_node_->getSize();
@@ -246,21 +266,56 @@ bool Servo2D::pointInsideViewport(glm::vec2 pt) {
    return (0 <= pt.x && 0 <= pt.y && pt.x <= VIEWPORT_W && pt.y <= VIEWPORT_H);
 }
 
-bool Servo2D::touchpadEventListener(lumin::ControlTouchPadInputEventData* event) {
-  // Only respond when the cursor is enabled
-  if (!lumin::ui::Cursor::IsEnabled(prism_)) {
-    return false;
+bool Servo2D::pose6DofEventListener(lumin::ControlPose6DofInputEventData* event) {
+  // Get the controller position in world coordinates
+  event->get6DofPosition(controller_position_.x, controller_position_.y, controller_position_.z);
+  // Get the controller orientation
+  event->getQuaternion(controller_orientation_.w, controller_orientation_.x,
+                       controller_orientation_.y, controller_orientation_.z);
+  // Bubble up to any other 6DOF handlers
+  return false;
+}
+
+glm::vec2 Servo2D::redrawLaser() {
+  // Return (-1, -1) if the laser doesn't intersect z=0
+  glm::vec2 result = glm::vec2(-1.0, -1.0);
+
+  // Convert to prism coordinates
+  glm::vec3 position = glm::inverse(prism_->getTransform()) * glm::vec4(controller_position_, 1.0f);
+  glm::quat orientation = glm::inverse(prism_->getRotation()) * controller_orientation_;
+
+  // 1m in the direction of the controller
+  glm::vec3 direction = orientation * glm::vec3(0.0f, 0.0f, -1.0f);
+  // The endpoint of the laser, in prism coordinates
+  glm::vec3 endpoint = position + direction * LASER_LENGTH;
+
+  // The laser color
+  glm::vec4 color = glm::vec4(0.0, 0.0, 0.0, 0.0);
+
+  // Check to see if the cursor is over the content
+  glm::vec2 cursor = viewportPosition(lumin::ui::Cursor::GetPosition(prism_));
+
+  // Is the laser active and does the laser intersect z=0?
+  if (pointInsideViewport(cursor) && ((position.z < 0) ^ (endpoint.z < 0))) {
+    // How far along the laser did it intersect?
+    float ratio = 1.0 / (1.0 - (endpoint.z / position.z));
+    // The intersection point
+    glm::vec3 intersection = ((1 - ratio) * position) + (ratio * endpoint);
+    // Is the intersection inside the viewport?
+    result = viewportPosition(intersection);
+    if (pointInsideViewport(result)) {
+      color = glm::vec4(0.0, 1.0, 0.0, 1.0);
+      endpoint = intersection;
+    } else {
+      color = glm::vec4(1.0, 0.0, 0.0, 1.0);
+    }
   }
 
-  // Only respond when the cursor is inside the viewport
-  glm::vec2 pos = viewportCursorPosition();
-  if (!pointInsideViewport(pos)) {
-    return false;
-  }
-
-  // Inform Servo of the move
-  move_servo(servo_, pos.x, pos.y);
-  return true;
+  laser_->clearPoints();
+  laser_->addPoints(position);
+  laser_->addPoints(endpoint);
+  laser_->setColor(color);
+  return result;
 }
 
 bool Servo2D::gestureEventListener(lumin::GestureInputEventData* event) {
@@ -276,12 +331,13 @@ bool Servo2D::gestureEventListener(lumin::GestureInputEventData* event) {
   }
 
   // Only respond when the cursor is inside the viewport
-  glm::vec2 pos = viewportCursorPosition();
-  if (!pointInsideViewport(pos)) {
+  glm::vec2 cursor = viewportPosition(lumin::ui::Cursor::GetPosition(prism_));
+  if (!pointInsideViewport(cursor)) {
     return false;
   }
 
   // Inform Servo of the trigger
+  glm::vec2 pos = redrawLaser();
   trigger_servo(servo_, pos.x, pos.y, typ == lumin::input::GestureType::TriggerDown);
   return true;
 }

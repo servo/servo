@@ -16,5 +16,6 @@
         ml:portal_folder="Icon/Portal/" />
     </component>
     <uses-privilege ml:name="Internet"/>
+    <uses-privilege ml:name="ControllerPose"/>
   </application>
 </manifest>

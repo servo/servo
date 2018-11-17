@@ -22,10 +22,12 @@
 #include <SceneDescriptor.h>
 
 namespace Servo2D_exportedNodes {
+  extern const std::string contentPanel;
   extern const std::string content;
   extern const std::string backButton;
   extern const std::string fwdButton;
   extern const std::string urlBar;
+  extern const std::string laser;
 }
 
 namespace scenes {
