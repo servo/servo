@@ -83,7 +83,7 @@ pub enum MonitoredComponentMsg {
 /// and keep track of whether the monitor is still listening on the other end.
 pub struct BackgroundHangMonitorChan {
     sender: Sender<(MonitoredComponentId, MonitoredComponentMsg)>,
-    component_id: Option<MonitoredComponentId>,
+    component_id: MonitoredComponentId,
     disconnected: Cell<bool>,
 }
 
@@ -94,7 +94,7 @@ impl BackgroundHangMonitorChan {
     ) -> Self {
         BackgroundHangMonitorChan {
             sender,
-            component_id: Some(component_id),
+            component_id: component_id,
             disconnected: Default::default(),
         }
     }
@@ -103,14 +103,7 @@ impl BackgroundHangMonitorChan {
         if self.disconnected.get() {
             return;
         }
-        let component_id = match self.component_id {
-            Some(ref id) => id,
-            None => {
-                warn!("BackgroundHangMonitorChan cannot send a message without a component_id");
-                return;
-            },
-        };
-        if let Err(_) = self.sender.send((component_id.clone(), msg)) {
+        if let Err(_) = self.sender.send((self.component_id.clone(), msg)) {
             warn!("BackgroundHangMonitor has gone away");
             self.disconnected.set(true);
         }
