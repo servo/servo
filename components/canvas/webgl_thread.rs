@@ -1045,25 +1045,40 @@ impl WebGLImpl {
             WebGLCommand::TexImage2D {
                 target,
                 level,
-                internal_format,
+                effective_internal_format,
                 size,
                 format,
                 data_type,
+                effective_data_type,
                 unpacking_alignment,
+                alpha_treatment,
+                y_axis_treatment,
+                tex_source,
                 ref receiver,
             } => {
+                let pixels = prepare_pixels(
+                    format,
+                    data_type,
+                    size,
+                    unpacking_alignment,
+                    alpha_treatment,
+                    y_axis_treatment,
+                    tex_source,
+                    receiver.recv().unwrap(),
+                );
+
                 ctx.gl()
                     .pixel_store_i(gl::UNPACK_ALIGNMENT, unpacking_alignment as i32);
                 ctx.gl().tex_image_2d(
                     target,
                     level as i32,
-                    internal_format as i32,
+                    effective_internal_format as i32,
                     size.width as i32,
                     size.height as i32,
                     0,
-                    format,
-                    data_type,
-                    Some(&receiver.recv().unwrap()),
+                    format.as_gl_constant(),
+                    effective_data_type,
+                    Some(&pixels),
                 );
             },
             WebGLCommand::TexSubImage2D {
@@ -1074,9 +1089,24 @@ impl WebGLImpl {
                 size,
                 format,
                 data_type,
+                effective_data_type,
                 unpacking_alignment,
+                alpha_treatment,
+                y_axis_treatment,
+                tex_source,
                 ref receiver,
             } => {
+                let pixels = prepare_pixels(
+                    format,
+                    data_type,
+                    size,
+                    unpacking_alignment,
+                    alpha_treatment,
+                    y_axis_treatment,
+                    tex_source,
+                    receiver.recv().unwrap(),
+                );
+
                 ctx.gl()
                     .pixel_store_i(gl::UNPACK_ALIGNMENT, unpacking_alignment as i32);
                 ctx.gl().tex_sub_image_2d(
@@ -1086,9 +1116,9 @@ impl WebGLImpl {
                     yoffset,
                     size.width as i32,
                     size.height as i32,
-                    format,
-                    data_type,
-                    &receiver.recv().unwrap(),
+                    format.as_gl_constant(),
+                    effective_data_type,
+                    &pixels,
                 );
             },
             WebGLCommand::DrawingBufferWidth(ref sender) => sender

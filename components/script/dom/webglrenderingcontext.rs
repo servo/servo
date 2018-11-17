@@ -6,7 +6,7 @@
 use backtrace::Backtrace;
 use canvas_traits::webgl::WebGLError::*;
 use canvas_traits::webgl::{
-    self, webgl_channel, AlphaTreatment, DOMToTextureCommand, Parameter, TexDataType, TexFormat,
+    webgl_channel, AlphaTreatment, DOMToTextureCommand, Parameter, TexDataType, TexFormat,
     TexParameter, TexSource, WebGLCommand, WebGLCommandBacktrace, WebGLContextShareMode,
     WebGLError, WebGLFramebufferBindingRequest, WebGLMsg, WebGLMsgSender, WebGLProgramId,
     WebGLResult, WebGLSLVersion, WebGLSender, WebGLVersion, WebVRCommand, YAxisTreatment,
@@ -643,7 +643,7 @@ impl WebGLRenderingContext {
         texture: &WebGLTexture,
         target: TexImageTarget,
         data_type: TexDataType,
-        internal_format: TexFormat,
+        format: TexFormat,
         level: u32,
         _border: u32,
         unpacking_alignment: u32,
@@ -658,7 +658,7 @@ impl WebGLRenderingContext {
                 pixels.size.width,
                 pixels.size.height,
                 1,
-                internal_format,
+                format,
                 level,
                 Some(data_type)
             )
@@ -679,36 +679,30 @@ impl WebGLRenderingContext {
             YAxisTreatment::AsIs
         };
 
-        let buff = webgl::prepare_pixels(
-            internal_format,
-            data_type,
-            pixels.size,
-            unpacking_alignment,
-            alpha_treatment,
-            y_axis_treatment,
-            tex_source,
-            pixels.data,
-        );
-
-        let format = internal_format.as_gl_constant();
-        let data_type = data_type.as_gl_constant();
-        let internal_format = self
+        let effective_internal_format = self
             .extension_manager
-            .get_effective_tex_internal_format(format, data_type);
+            .get_effective_tex_internal_format(format.as_gl_constant(), data_type.as_gl_constant());
+        let effective_data_type = self
+            .extension_manager
+            .effective_type(data_type.as_gl_constant());
 
         // TODO(emilio): convert colorspace if requested
         let (sender, receiver) = ipc::bytes_channel().unwrap();
         self.send_command(WebGLCommand::TexImage2D {
             target: target.as_gl_constant(),
             level,
-            internal_format,
+            effective_internal_format,
             size: pixels.size,
             format,
-            data_type: self.extension_manager.effective_type(data_type),
+            data_type,
+            effective_data_type,
             unpacking_alignment,
+            alpha_treatment,
+            y_axis_treatment,
+            tex_source,
             receiver,
         });
-        sender.send(&buff).unwrap();
+        sender.send(&pixels.data).unwrap();
 
         if let Some(fb) = self.bound_framebuffer.get() {
             fb.invalidate_texture(&*texture);
@@ -765,16 +759,9 @@ impl WebGLRenderingContext {
             YAxisTreatment::AsIs
         };
 
-        let buff = webgl::prepare_pixels(
-            format,
-            data_type,
-            pixels.size,
-            unpacking_alignment,
-            alpha_treatment,
-            y_axis_treatment,
-            tex_source,
-            pixels.data,
-        );
+        let effective_data_type = self
+            .extension_manager
+            .effective_type(data_type.as_gl_constant());
 
         // TODO(emilio): convert colorspace if requested
         let (sender, receiver) = ipc::bytes_channel().unwrap();
@@ -784,14 +771,16 @@ impl WebGLRenderingContext {
             xoffset,
             yoffset,
             size: pixels.size,
-            format: format.as_gl_constant(),
-            data_type: self
-                .extension_manager
-                .effective_type(data_type.as_gl_constant()),
+            format,
+            data_type,
+            effective_data_type,
             unpacking_alignment,
+            alpha_treatment,
+            y_axis_treatment,
+            tex_source,
             receiver,
         });
-        sender.send(&buff).unwrap();
+        sender.send(&pixels.data).unwrap();
     }
 
     fn get_gl_extensions(&self) -> String {

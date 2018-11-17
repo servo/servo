@@ -275,11 +275,17 @@ pub enum WebGLCommand {
     TexImage2D {
         target: u32,
         level: u32,
-        internal_format: u32,
+        // FIXME(nox): This should be computed on the WebGL thread.
+        effective_internal_format: u32,
         size: Size2D<u32>,
-        format: u32,
-        data_type: u32,
+        format: TexFormat,
+        data_type: TexDataType,
+        // FIXME(nox): This should be computed on the WebGL thread.
+        effective_data_type: u32,
         unpacking_alignment: u32,
+        alpha_treatment: Option<AlphaTreatment>,
+        y_axis_treatment: YAxisTreatment,
+        tex_source: TexSource,
         receiver: IpcBytesReceiver,
     },
     TexSubImage2D {
@@ -288,9 +294,14 @@ pub enum WebGLCommand {
         xoffset: i32,
         yoffset: i32,
         size: Size2D<u32>,
-        format: u32,
-        data_type: u32,
+        format: TexFormat,
+        data_type: TexDataType,
+        // FIXME(nox): This should be computed on the WebGL thread.
+        effective_data_type: u32,
         unpacking_alignment: u32,
+        alpha_treatment: Option<AlphaTreatment>,
+        y_axis_treatment: YAxisTreatment,
+        tex_source: TexSource,
         receiver: IpcBytesReceiver,
     },
     DrawingBufferWidth(WebGLSender<i32>),
@@ -671,7 +682,8 @@ pub fn is_gles() -> bool {
 macro_rules! gl_enums {
     ($(pub enum $name:ident { $($variant:ident = $mod:ident::$constant:ident,)+ })*) => {
         $(
-            #[derive(Clone, Copy, Debug, Eq, Hash, MallocSizeOf, PartialEq)]
+            #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf)]
+            #[derive(PartialEq, Serialize)]
             #[repr(u32)]
             pub enum $name { $($variant = $mod::$constant,)+ }
 
@@ -755,19 +767,19 @@ impl TexDataType {
     }
 }
 
-#[derive(Clone, Copy, Debug, Eq, Hash, MallocSizeOf, PartialEq)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize)]
 pub enum AlphaTreatment {
     Premultiply,
     Unmultiply,
 }
 
-#[derive(Clone, Copy, Debug, Eq, Hash, MallocSizeOf, PartialEq)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize)]
 pub enum YAxisTreatment {
     AsIs,
     Flipped,
 }
 
-#[derive(Clone, Copy, Debug, Eq, Hash, MallocSizeOf, PartialEq)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize)]
 pub enum TexSource {
     FromHtmlElement,
     FromArray,

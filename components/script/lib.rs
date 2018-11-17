@@ -46,6 +46,8 @@ extern crate malloc_size_of_derive;
 #[macro_use]
 extern crate profile_traits;
 #[macro_use]
+extern crate serde;
+#[macro_use]
 extern crate servo_atoms;
 #[macro_use]
 extern crate style;
