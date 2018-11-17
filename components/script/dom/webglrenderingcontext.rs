@@ -638,55 +638,6 @@ impl WebGLRenderingContext {
         }
     }
 
-    fn prepare_pixels(
-        &self,
-        internal_format: TexFormat,
-        data_type: TexDataType,
-        size: Size2D<u32>,
-        unpacking_alignment: u32,
-        alpha_treatment: Option<AlphaTreatment>,
-        y_axis_treatment: YAxisTreatment,
-        tex_source: TexSource,
-        mut pixels: Vec<u8>,
-    ) -> Vec<u8> {
-        match alpha_treatment {
-            Some(AlphaTreatment::Premultiply) => {
-                if tex_source == TexSource::FromHtmlElement {
-                    webgl::premultiply_inplace(
-                        TexFormat::RGBA,
-                        TexDataType::UnsignedByte,
-                        &mut pixels,
-                    );
-                } else {
-                    webgl::premultiply_inplace(internal_format, data_type, &mut pixels);
-                }
-            },
-            Some(AlphaTreatment::Unmultiply) => {
-                assert_eq!(tex_source, TexSource::FromHtmlElement);
-                webgl::unmultiply_inplace(&mut pixels);
-            },
-            None => {},
-        }
-
-        if tex_source == TexSource::FromHtmlElement {
-            pixels = webgl::rgba8_image_to_tex_image_data(internal_format, data_type, pixels);
-        }
-
-        if y_axis_treatment == YAxisTreatment::Flipped {
-            // FINISHME: Consider doing premultiply and flip in a single mutable Vec.
-            pixels = webgl::flip_pixels_y(
-                internal_format,
-                data_type,
-                size.width as usize,
-                size.height as usize,
-                unpacking_alignment as usize,
-                pixels,
-            );
-        }
-
-        pixels
-    }
-
     fn tex_image_2d(
         &self,
         texture: &WebGLTexture,
@@ -699,6 +650,20 @@ impl WebGLRenderingContext {
         tex_source: TexSource,
         pixels: TexPixels,
     ) {
+        // TexImage2D depth is always equal to 1.
+        handle_potential_webgl_error!(
+            self,
+            texture.initialize(
+                target,
+                pixels.size.width,
+                pixels.size.height,
+                1,
+                internal_format,
+                level,
+                Some(data_type)
+            )
+        );
+
         let settings = self.texture_unpacking_settings.get();
         let dest_premultiplied = settings.contains(TextureUnpacking::PREMULTIPLY_ALPHA);
 
@@ -714,7 +679,7 @@ impl WebGLRenderingContext {
             YAxisTreatment::AsIs
         };
 
-        let buff = self.prepare_pixels(
+        let buff = webgl::prepare_pixels(
             internal_format,
             data_type,
             pixels.size,
@@ -723,20 +688,6 @@ impl WebGLRenderingContext {
             y_axis_treatment,
             tex_source,
             pixels.data,
-        );
-
-        // TexImage2D depth is always equal to 1
-        handle_potential_webgl_error!(
-            self,
-            texture.initialize(
-                target,
-                pixels.size.width,
-                pixels.size.height,
-                1,
-                internal_format,
-                level,
-                Some(data_type)
-            )
         );
 
         let format = internal_format.as_gl_constant();
@@ -777,34 +728,6 @@ impl WebGLRenderingContext {
         tex_source: TexSource,
         pixels: TexPixels,
     ) {
-        let settings = self.texture_unpacking_settings.get();
-
-        let alpha_treatment = match (
-            pixels.premultiplied,
-            settings.contains(TextureUnpacking::PREMULTIPLY_ALPHA),
-        ) {
-            (true, false) => Some(AlphaTreatment::Unmultiply),
-            (false, true) => Some(AlphaTreatment::Premultiply),
-            _ => None,
-        };
-
-        let y_axis_treatment = if settings.contains(TextureUnpacking::FLIP_Y_AXIS) {
-            YAxisTreatment::Flipped
-        } else {
-            YAxisTreatment::AsIs
-        };
-
-        let buff = self.prepare_pixels(
-            format,
-            data_type,
-            pixels.size,
-            unpacking_alignment,
-            alpha_treatment,
-            y_axis_treatment,
-            tex_source,
-            pixels.data,
-        );
-
         // We have already validated level
         let image_info = texture.image_info_for_target(&target, level);
 
@@ -826,6 +749,32 @@ impl WebGLRenderingContext {
         {
             return self.webgl_error(InvalidOperation);
         }
+
+        let settings = self.texture_unpacking_settings.get();
+        let dest_premultiplied = settings.contains(TextureUnpacking::PREMULTIPLY_ALPHA);
+
+        let alpha_treatment = match (pixels.premultiplied, dest_premultiplied) {
+            (true, false) => Some(AlphaTreatment::Unmultiply),
+            (false, true) => Some(AlphaTreatment::Premultiply),
+            _ => None,
+        };
+
+        let y_axis_treatment = if settings.contains(TextureUnpacking::FLIP_Y_AXIS) {
+            YAxisTreatment::Flipped
+        } else {
+            YAxisTreatment::AsIs
+        };
+
+        let buff = webgl::prepare_pixels(
+            format,
+            data_type,
+            pixels.size,
+            unpacking_alignment,
+            alpha_treatment,
+            y_axis_treatment,
+            tex_source,
+            pixels.data,
+        );
 
         // TODO(emilio): convert colorspace if requested
         let (sender, receiver) = ipc::bytes_channel().unwrap();

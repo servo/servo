@@ -773,9 +773,53 @@ pub enum TexSource {
     FromArray,
 }
 
+pub fn prepare_pixels(
+    internal_format: TexFormat,
+    data_type: TexDataType,
+    size: Size2D<u32>,
+    unpacking_alignment: u32,
+    alpha_treatment: Option<AlphaTreatment>,
+    y_axis_treatment: YAxisTreatment,
+    tex_source: TexSource,
+    mut pixels: Vec<u8>,
+) -> Vec<u8> {
+    match alpha_treatment {
+        Some(AlphaTreatment::Premultiply) => {
+            if tex_source == TexSource::FromHtmlElement {
+                premultiply_inplace(TexFormat::RGBA, TexDataType::UnsignedByte, &mut pixels);
+            } else {
+                premultiply_inplace(internal_format, data_type, &mut pixels);
+            }
+        },
+        Some(AlphaTreatment::Unmultiply) => {
+            assert_eq!(tex_source, TexSource::FromHtmlElement);
+            unmultiply_inplace(&mut pixels);
+        },
+        None => {},
+    }
+
+    if tex_source == TexSource::FromHtmlElement {
+        pixels = rgba8_image_to_tex_image_data(internal_format, data_type, pixels);
+    }
+
+    if y_axis_treatment == YAxisTreatment::Flipped {
+        // FINISHME: Consider doing premultiply and flip in a single mutable Vec.
+        pixels = flip_pixels_y(
+            internal_format,
+            data_type,
+            size.width as usize,
+            size.height as usize,
+            unpacking_alignment as usize,
+            pixels,
+        );
+    }
+
+    pixels
+}
+
 /// Translates an image in rgba8 (red in the first byte) format to
 /// the format that was requested of TexImage.
-pub fn rgba8_image_to_tex_image_data(
+fn rgba8_image_to_tex_image_data(
     format: TexFormat,
     data_type: TexDataType,
     mut pixels: Vec<u8>,
@@ -978,7 +1022,7 @@ pub fn rgba8_image_to_tex_image_data(
     }
 }
 
-pub fn premultiply_inplace(format: TexFormat, data_type: TexDataType, pixels: &mut [u8]) {
+fn premultiply_inplace(format: TexFormat, data_type: TexDataType, pixels: &mut [u8]) {
     match (format, data_type) {
         (TexFormat::RGBA, TexDataType::UnsignedByte) => {
             pixels::rgba8_premultiply_inplace(pixels);
@@ -1017,7 +1061,7 @@ pub fn premultiply_inplace(format: TexFormat, data_type: TexDataType, pixels: &m
     }
 }
 
-pub fn unmultiply_inplace(pixels: &mut [u8]) {
+fn unmultiply_inplace(pixels: &mut [u8]) {
     for rgba in pixels.chunks_mut(4) {
         let a = (rgba[3] as f32) / 255.0;
         rgba[0] = (rgba[0] as f32 / a) as u8;
@@ -1027,7 +1071,7 @@ pub fn unmultiply_inplace(pixels: &mut [u8]) {
 }
 
 /// Flips the pixels in the Vec on the Y axis.
-pub fn flip_pixels_y(
+fn flip_pixels_y(
     internal_format: TexFormat,
     data_type: TexDataType,
     width: usize,
