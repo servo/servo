@@ -30,7 +30,8 @@ use http::HeaderMap;
 use hyper::Method;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use ipc_channel::Error as IpcError;
-use keyboard_types::KeyboardEvent;
+use keyboard_types::webdriver::Event as WebDriverInputEvent;
+use keyboard_types::{CompositionEvent, KeyboardEvent};
 use libc::c_void;
 use msg::constellation_msg::{BrowsingContextId, HistoryStateId, PipelineId};
 use msg::constellation_msg::{PipelineNamespaceId, TopLevelBrowsingContextId, TraversalDirection};
@@ -461,6 +462,8 @@ pub enum CompositorEvent {
     ),
     /// A key was pressed.
     KeyboardEvent(KeyboardEvent),
+    /// An event from the IME is dispatched.
+    CompositionEvent(CompositionEvent),
 }
 
 /// Requests a TimerEvent-Message be sent after the given duration.
@@ -691,7 +694,7 @@ pub enum WebDriverCommandMsg {
     /// of a browsing context.
     ScriptCommand(BrowsingContextId, WebDriverScriptCommand),
     /// Act as if keys were pressed in the browsing context with the given ID.
-    SendKeys(BrowsingContextId, Vec<KeyboardEvent>),
+    SendKeys(BrowsingContextId, Vec<WebDriverInputEvent>),
     /// Set the window size.
     SetWindowSize(
         TopLevelBrowsingContextId,

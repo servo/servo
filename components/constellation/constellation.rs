@@ -119,6 +119,7 @@ use gfx_traits::Epoch;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
 use ipc_channel::Error as IpcError;
+use keyboard_types::webdriver::Event as WebDriverInputEvent;
 use keyboard_types::KeyboardEvent;
 use layout_traits::LayoutThreadFactory;
 use log::{Level, LevelFilter, Log, Metadata, Record};
@@ -3035,7 +3036,14 @@ where
                     None => return warn!("Pipeline {} SendKeys after closure.", pipeline_id),
                 };
                 for event in cmd {
-                    let event = CompositorEvent::KeyboardEvent(event);
+                    let event = match event {
+                        WebDriverInputEvent::Keyboard(event) => {
+                            CompositorEvent::KeyboardEvent(event)
+                        },
+                        WebDriverInputEvent::Composition(event) => {
+                            CompositorEvent::CompositionEvent(event)
+                        },
+                    };
                     let control_msg = ConstellationControlMsg::SendEvent(pipeline_id, event);
                     if let Err(e) = event_loop.send(control_msg) {
                         return self.handle_send_error(pipeline_id, e);

@@ -64,7 +64,7 @@ image = "0.20"
 ipc-channel = "0.11"
 itertools = "0.7.6"
 jstraceable_derive = {path = "../jstraceable_derive"}
-keyboard-types = "0.4.3"
+keyboard-types = "0.4.4"
 lazy_static = "1"
 libc = "0.2"
 log = "0.4"
