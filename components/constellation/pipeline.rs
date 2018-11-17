@@ -307,10 +307,10 @@ impl Pipeline {
                     let _ = unprivileged_pipeline_content.spawn_multiprocess()?;
                 } else {
                     // Should not be None in single-process mode.
-                    let register = state.background_monitor_register
+                    let register = state
+                        .background_monitor_register
                         .expect("Couldn't start content, no background monitor has been initiated");
-                    unprivileged_pipeline_content
-                        .start_all::<Message, LTF, STF>(false, register);
+                    unprivileged_pipeline_content.start_all::<Message, LTF, STF>(false, register);
                 }
 
                 EventLoop::new(script_chan)

@@ -85,7 +85,7 @@ impl NativeStack {
         stack_ptr: *mut std::ffi::c_void,
     ) -> Result<(), ()> {
         if !(self.count < MAX_NATIVE_FRAMES) {
-            return Err(())
+            return Err(());
         }
         self.instruction_ptrs[self.count] = instruction_ptr;
         self.stack_ptrs[self.count] = stack_ptr;
@@ -260,7 +260,9 @@ fn symbolize_backtrace(native_stack: NativeStack) -> HangProfile {
         }
         backtrace::resolve(*ip, |symbol| {
             // TODO: use the demangled or C++ demangled symbols if available.
-            let name = symbol.name().map(|n| String::from_utf8_lossy(&n.as_bytes()).to_string());
+            let name = symbol
+                .name()
+                .map(|n| String::from_utf8_lossy(&n.as_bytes()).to_string());
             let filename = symbol.filename().map(|n| n.to_string_lossy().to_string());
             let lineno = symbol.lineno();
             profile.backtrace.push(HangProfileSymbol {
