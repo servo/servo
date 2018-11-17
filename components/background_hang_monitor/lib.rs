@@ -4,22 +4,12 @@
 
 #![deny(unsafe_code)]
 
-extern crate backtrace;
-extern crate ipc_channel;
-#[cfg(any(target_os = "android", target_os = "linux"))]
-#[macro_use]
-extern crate lazy_static;
-#[cfg(any(target_os = "android", target_os = "linux"))]
-extern crate libc;
 #[macro_use]
 extern crate log;
-#[cfg(target_os = "macos")]
-extern crate mach;
-extern crate msg;
 #[macro_use]
 extern crate servo_channel;
 
 pub mod background_hang_monitor;
 mod sampler;
 
-pub use background_hang_monitor::*;
+pub use self::background_hang_monitor::*;

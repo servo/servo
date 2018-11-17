@@ -9,8 +9,8 @@ use msg::constellation_msg::{
 };
 use msg::constellation_msg::{HangAlert, HangAnnotation};
 #[cfg(any(target_os = "android", target_os = "linux"))]
-use sampler::install_sigprof_handler;
-use sampler::{get_thread_id, suspend_and_sample_thread, MonitoredThreadId};
+use crate::sampler::install_sigprof_handler;
+use crate::sampler::{get_thread_id, suspend_and_sample_thread, MonitoredThreadId};
 use servo_channel::{base_channel, channel, Receiver, Sender};
 use std::cell::Cell;
 use std::collections::HashMap;
@@ -201,7 +201,7 @@ impl BackgroundHangMonitorWorker {
                 );
             },
             (component_id, MonitoredComponentMsg::NotifyActivity(annotation)) => {
-                let mut component = self
+                let component = self
                     .monitored_components
                     .get_mut(&component_id)
                     .expect("Received NotifyActivity for an unknown component");
@@ -212,7 +212,7 @@ impl BackgroundHangMonitorWorker {
                 component.is_waiting = false;
             },
             (component_id, MonitoredComponentMsg::NotifyWait) => {
-                let mut component = self
+                let component = self
                     .monitored_components
                     .get_mut(&component_id)
                     .expect("Received NotifyWait for an unknown component");
@@ -226,7 +226,7 @@ impl BackgroundHangMonitorWorker {
 
     #[allow(unsafe_code)]
     fn perform_a_hang_monitor_checkpoint(&mut self) {
-        for (component_id, mut monitored) in self.monitored_components.iter_mut() {
+        for (component_id, monitored) in self.monitored_components.iter_mut() {
             if monitored.is_waiting {
                 continue;
             }
