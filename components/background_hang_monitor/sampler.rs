@@ -81,10 +81,14 @@ impl NativeStack {
         &mut self,
         instruction_ptr: *mut std::ffi::c_void,
         stack_ptr: *mut std::ffi::c_void,
-    ) {
+    ) -> Result<(), ()> {
+        if !(self.count < MAX_NATIVE_FRAMES) {
+            return Err(())
+        }
         self.instruction_ptrs[self.count] = instruction_ptr;
         self.stack_ptrs[self.count] = stack_ptr;
         self.count = self.count + 1;
+        Ok(())
     }
 }
 
@@ -229,15 +233,15 @@ unsafe fn frame_pointer_stack_walk(regs: Registers) -> NativeStack {
     let mut native_stack = NativeStack::new();
     let pc = regs.instruction_ptr as *mut std::ffi::c_void;
     let stack = regs.stack_ptr as *mut std::ffi::c_void;
-    native_stack.process_register(pc, stack);
+    let _ = native_stack.process_register(pc, stack);
     let mut current = regs.frame_ptr as *mut *mut std::ffi::c_void;
-    let mut frame_count = 1;
-    while !current.is_null() && frame_count < MAX_NATIVE_FRAMES {
+    while !current.is_null() {
         let next = *current as *mut *mut std::ffi::c_void;
         let pc = current.add(1);
         let stack = current.add(2);
-        native_stack.process_register(*pc, *stack);
-        frame_count = frame_count + 1;
+        if let Err(()) = native_stack.process_register(*pc, *stack) {
+            break;
+        }
         current = next;
     }
     native_stack
@@ -252,21 +256,15 @@ fn symbolize_backtrace(native_stack: NativeStack) -> HangProfile {
             continue;
         }
         backtrace::resolve(*ip, |symbol| {
-            let mut hang_symbol = HangProfileSymbol {
-                name: None,
-                filename: None,
-                lineno: None,
-            };
-            if let Some(symbol_name) = symbol.name() {
-                let bytes = symbol_name.as_bytes();
-                hang_symbol.name = Some(String::from_utf8_lossy(&bytes).to_string());
-            }
-            if let Some(filename) = symbol.filename() {
-                let name = filename.to_string_lossy();
-                hang_symbol.filename = Some(name.to_string());
-            }
-            hang_symbol.lineno = symbol.lineno();
-            profile.backtrace.push(hang_symbol);
+            // TODO: use the demangled or C++ demangled symbols if available.
+            let name = symbol.name().map(|n| String::from_utf8_lossy(&n.as_bytes()).to_string());
+            let filename = symbol.filename().map(|n| n.to_string_lossy().to_string());
+            let lineno = symbol.lineno();
+            profile.backtrace.push(HangProfileSymbol {
+                name,
+                filename,
+                lineno,
+            });
         });
     }
     profile
