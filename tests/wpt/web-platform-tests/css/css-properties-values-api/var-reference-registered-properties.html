@@ -2,6 +2,7 @@
 <link rel="help" href="https://drafts.css-houdini.org/css-properties-values-api/#dom-css-registerproperty" />
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="./resources/utils.js"></script>
 <style>
 div {
     --registered-length-1: 10px;
@@ -134,5 +135,39 @@ test(function(){
     assert_equals(computedStyle.getPropertyValue('--unregistered'), '110px, 120px');
     element.style = '';
 }, 'Lists with relative units are absolutized when substituting');
+
+function test_valid_fallback(syntax, value, fallback) {
+    test(function(){
+        let name = generate_property(syntax);
+        try {
+            element.style = `${name}: ${value}; --x:var(${name},${fallback})`;
+            let computedStyle = getComputedStyle(element);
+            assert_equals(computedStyle.getPropertyValue('--x'), value);
+        } finally {
+            element.style = '';
+        }
+    }, `Valid fallback does not invalidate var()-reference [${syntax}, ${fallback}]`);
+}
+
+function test_invalid_fallback(syntax, value, fallback) {
+    test(function(){
+        let name = generate_property(syntax);
+        try {
+            element.style = `${name}: ${value}; --x:var(${name},${fallback})`;
+            let computedStyle = getComputedStyle(element);
+            assert_equals(computedStyle.getPropertyValue('--x'), '');
+        } finally {
+            element.style = '';
+        }
+    }, `Invalid fallback invalidates var()-reference [${syntax}, ${fallback}]`);
+}
+
+test_valid_fallback('<length>', '40px', '10px');
+test_valid_fallback('<length> | <color>', '40px', 'red');
+test_valid_fallback('<length> | none', '40px', 'none');
+
+test_invalid_fallback('<length>', '40px', 'red');
+test_invalid_fallback('<length> | none', '40px', 'nolength');
+test_invalid_fallback('<length>', '40px', 'var(--novar)');
 
 </script>

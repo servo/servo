@@ -22,14 +22,6 @@
   }
 
   Actions.prototype = {
-    ButtonType: {
-      LEFT: 0,
-      MIDDLE: 1,
-      RIGHT: 2,
-      BACK: 3,
-      FORWARD: 4,
-    },
-
     /**
      * Generate the action sequence suitable for passing to
      * test_driver.action_sequence
@@ -106,7 +98,7 @@
      * @returns {Actions}
      */
     addKeyboard: function(name, set=true) {
-      this.createSource("key", name);
+      this.createSource("key", name, true);
       if (set) {
         this.setKeyboard(name);
       }
@@ -133,7 +125,7 @@
      * @returns {Actions}
      */
     addPointer: function(name, pointerType="mouse", set=true) {
-      this.createSource("pointer", name, {pointerType: pointerType});
+      this.createSource("pointer", name, true, {pointerType: pointerType});
       if (set) {
         this.setPointer(name);
       }
@@ -233,9 +225,9 @@
      *                               pointer source
      * @returns {Actions}
      */
-    pointerDown: function(x, y, {origin="viewport", button=this.ButtonType.LEFT, sourceName=null}={}) {
+    pointerDown: function({button=0, sourceName=null}={}) {
       let source = this.getSource("pointer", sourceName);
-      source.pointerDown(this, button, x, y, origin);
+      source.pointerDown(this, button);
       return this;
     },
 
@@ -247,7 +239,7 @@
      *                               source
      * @returns {Actions}
      */
-    pointerUp: function({button=this.ButtonType.LEFT, sourceName=null}={}) {
+    pointerUp: function({button=0, sourceName=null}={}) {
       let source = this.getSource("pointer", sourceName);
       source.pointerUp(this, button);
       return this;
@@ -367,12 +359,12 @@
       return data;
     },
 
-    pointerDown: function(actions, button, x, y, origin) {
+    pointerDown: function(actions, button) {
       let tick = actions.tickIdx;
       if (this.actions.has(tick)) {
         tick = actions.addTick().tickIdx;
       }
-      this.actions.set(tick, {type: "pointerDown", button, x, y, origin});
+      this.actions.set(tick, {type: "pointerDown", button});
     },
 
     pointerUp: function(actions, button) {

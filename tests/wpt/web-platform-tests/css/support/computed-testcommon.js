@@ -13,10 +13,16 @@ function test_computed_value(property, specified, computed) {
   if (!computed)
     computed = specified;
   test(() => {
+    const target = document.getElementById('target');
     if (!getComputedStyle(target)[property])
       return;
     target.style[property] = '';
     target.style[property] = specified;
     assert_equals(getComputedStyle(target)[property], computed);
+    if (computed !== specified) {
+      target.style[property] = '';
+      target.style[property] = computed;
+      assert_equals(getComputedStyle(target)[property], computed, 'computed value should round-trip');
+    }
   }, "Property " + property + " value '" + specified + "' computes to '" + computed + "'");
 }

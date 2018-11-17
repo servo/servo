@@ -149,12 +149,9 @@ tasks:
                       ${browser.name}
                       ${browser.channel};
                     cd ~/web-platform-tests;
-                    result=0;
                     ./tools/ci/taskcluster-run.py
                       --commit-range HEAD^
                       ${browser.name}
                       --
                       --channel=${browser.channel}
-                      ${operation.extra_args} || result=$?;
-                    echo $result > ../artifacts/run-return-code.txt;
-                    echo "Command exited with code $result (failures are allowed while this task is being vetted)."
+                      ${operation.extra_args};

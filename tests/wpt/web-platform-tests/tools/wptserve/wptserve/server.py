@@ -621,7 +621,7 @@ class WebTestHttpd(object):
 
     .. attribute:: started
 
-      Boolean indictating whether the server is running
+      Boolean indicating whether the server is running
 
     """
     def __init__(self, host="127.0.0.1", port=8000,

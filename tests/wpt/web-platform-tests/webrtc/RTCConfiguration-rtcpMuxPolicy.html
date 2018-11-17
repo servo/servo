@@ -3,6 +3,7 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="RTCConfiguration-helper.js"></script>
+<script src="RTCPeerConnection-helper.js"></script>
 <script>
   'use strict';
 
@@ -188,8 +189,8 @@
     const pc = new RTCPeerConnection({rtcpMuxPolicy: 'require'});
     t.add_cleanup(() => pc.close());
 
-    await pc.createOffer({offerToReceiveAudio: true})
-      .then(offer => pc.setLocalDescription(offer));
+    const offer = await generateAudioReceiveOnlyOffer(pc);
+    await pc.setLocalDescription(offer);
     return promise_rejects(t, 'InvalidAccessError', pc.setRemoteDescription({type: 'answer', sdp}));
   }, 'setRemoteDescription throws InvalidAccessError when called with an answer without rtcp-mux and rtcpMuxPolicy is set to require');
 </script>

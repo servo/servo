@@ -116,13 +116,34 @@ promise_test(t => {
         })
       .then(function(response) { return response.text(); })
       .then(function(response_text) {
-          var new_client_id = response_text.substr(17);
           assert_equals(
             response_text.substr(0, 15),
             'Client ID Found',
             'Service Worker should respond to fetch with an existing client id');
         });
   }, 'Service Worker responds to fetch event with an existing client id');
+
+promise_test(t => {
+    const page_url = 'resources/simple.html?resultingClientId';
+    const expected_found = 'Resulting Client ID Found';
+    const expected_not_found = 'Resulting Client ID Not Found';
+    return with_iframe(page_url)
+      .then(function(frame) {
+          t.add_cleanup(() => { frame.remove(); });
+          assert_equals(
+            frame.contentDocument.body.textContent.substr(0, expected_found.length),
+            expected_found,
+            'Service Worker should respond with an existing resulting client id for non-subresource requests');
+          return frame.contentWindow.fetch('resources/other.html?resultingClientId');
+        })
+      .then(function(response) { return response.text(); })
+      .then(function(response_text) {
+          assert_equals(
+            response_text.substr(0),
+            expected_not_found,
+            'Service Worker should respond with an empty resulting client id for subresource requests');
+        });
+  }, 'Service Worker responds to fetch event with the correct resulting client id');
 
 promise_test(t => {
     const page_url = 'resources/simple.html?ignore';

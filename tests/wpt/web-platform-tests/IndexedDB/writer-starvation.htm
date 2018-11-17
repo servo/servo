@@ -12,7 +12,7 @@
     var write_request_count = 0, write_success_count = 0;
     var RQ_COUNT = 25;
 
-    var open_rq = createdb(async_test(undefined, {timeout: 20000}));
+    var open_rq = createdb(async_test(undefined));
     open_rq.onupgradeneeded = function(e) {
         db = e.target.result;
         db.createObjectStore("s")

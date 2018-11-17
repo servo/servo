@@ -9,15 +9,15 @@
     <script>
 var check_report_format = (reports, observer) => {
   let report = reports[0];
-  assert_equals(report.type, "feature-policy");
+  assert_equals(report.type, "feature-policy-violation");
   assert_equals(report.url, document.location.href);
-  assert_equals(report.body.feature, "unsized-media");
+  assert_equals(report.body.featureId, "unsized-media");
   assert_equals(typeof report.body.message, "string");
 };
 
 async_test(t => {
   new ReportingObserver(t.step_func_done(check_report_format),
-                        {types: ['feature-policy'], buffered: true}).observe();
+                        {types: ['feature-policy-violation'], buffered: true}).observe();
 }, "Unsized-media Report Format");
     </script>
   </body>

@@ -1,0 +1,239 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg"
+     xmlns:h="http://www.w3.org/1999/xhtml">
+  <h:link rel="help" href="https://svgwg.org/svg2-draft/interact.html#ScriptElement"/>
+  <h:meta name="assert" content="The script element is in the content model of all elements."/>
+  <h:script src="/resources/testharness.js"/>
+  <h:script src="/resources/testharnessreport.js"/>
+
+<script>function s0() { return s1(); }</script>
+
+<a>
+  <script>function s1() { return s2(); }</script>
+</a>
+
+<g>
+  <script>function s2() { return s3(); }</script>
+</g>
+
+<animate>
+  <script>function s3() { return s4(); }</script>
+</animate>
+
+<animateMotion>
+  <script>function s4() { return s5(); }</script>
+  <mPath>
+    <script>function s5() { return s6(); }</script>
+  </mPath>
+</animateMotion>
+
+<animateTransform>
+  <script>function s6() { return s7(); }</script>
+</animateTransform>
+
+<circle>
+  <script>function s7() { return s8(); }</script>
+  <clipPath>
+    <script>function s8() { return s9(); }</script>
+  </clipPath>
+</circle>
+
+<defs>
+  <script>function s9() { return s10(); }</script>
+</defs>
+
+<desc>
+  <script>function s10() { return s11(); }</script>
+</desc>
+
+<!-- Becomes https://svgwg.org/svg2-draft/struct.html#UnknownElement
+     if the implementation does not support <discard> -->
+<discard>
+  <script>function s11() { return s12(); }</script>
+</discard>
+
+<ellipse>
+  <script>function s12() { return s13(); }</script>
+</ellipse>
+
+<filter>
+  <script>function s13() { return s14(); }</script>
+  <feBlend>
+    <script>function s14() { return s15(); }</script>
+  </feBlend>
+  <feColorMatrix>
+    <script>function s15() { return s16(); }</script>
+  </feColorMatrix>
+  <feComponentTransfer>
+    <script>function s16() { return s17(); }</script>
+  </feComponentTransfer>
+  <feComposite>
+    <script>function s17() { return s18(); }</script>
+  </feComposite>
+  <feConvolveMatrix>
+    <script>function s18() { return s19(); }</script>
+  </feConvolveMatrix>
+  <feDiffuseLighting>
+    <script>function s19() { return s20(); }</script>
+  </feDiffuseLighting>
+  <feDisplacementMap>
+    <script>function s20() { return s21(); }</script>
+  </feDisplacementMap>
+  <feDistantLight>
+    <script>function s21() { return s22(); }</script>
+  </feDistantLight>
+  <feDropShadow>
+    <script>function s22() { return s23(); }</script>
+  </feDropShadow>
+  <feFlood>
+    <script>function s23() { return s24(); }</script>
+  </feFlood>
+  <feFuncA>
+    <script>function s24() { return s25(); }</script>
+  </feFuncA>
+  <feFuncB>
+    <script>function s25() { return s26(); }</script>
+  </feFuncB>
+  <feFuncG>
+    <script>function s26() { return s27(); }</script>
+  </feFuncG>
+  <feFuncR>
+    <script>function s27() { return s28(); }</script>
+  </feFuncR>
+  <feGaussianBlur>
+    <script>function s28() { return s29(); }</script>
+  </feGaussianBlur>
+  <feImage>
+    <script>function s29() { return s30(); }</script>
+  </feImage>
+  <feMerge>
+    <script>function s30() { return s31(); }</script>
+  </feMerge>
+  <feMergeNode>
+    <script>function s31() { return s32(); }</script>
+  </feMergeNode>
+  <feMorphology>
+    <script>function s32() { return s33(); }</script>
+  </feMorphology>
+  <feOffset>
+    <script>function s33() { return s34(); }</script>
+  </feOffset>
+  <fePointLight>
+    <script>function s34() { return s35(); }</script>
+  </fePointLight>
+  <feSpecularLighting>
+    <script>function s35() { return s36(); }</script>
+  </feSpecularLighting>
+  <feSpotLight>
+    <script>function s36() { return s37(); }</script>
+  </feSpotLight>
+  <feTile>
+    <script>function s37() { return s38(); }</script>
+  </feTile>
+  <feTurbulence>
+    <script>function s38() { return s39(); }</script>
+  </feTurbulence>
+</filter>
+
+<foreignObject>
+  <script>function s39() { return s40(); }</script>
+</foreignObject>
+
+<g>
+  <script>function s40() { return s41(); }</script>
+</g>
+
+<image>
+  <script>function s41() { return s42(); }</script>
+</image>
+
+<line>
+  <script>function s42() { return s43(); }</script>
+</line>
+
+<linearGradient>
+  <script>function s43() { return s44(); }</script>
+</linearGradient>
+
+<marker>
+  <script>function s44() { return s45(); }</script>
+</marker>
+
+<mask>
+  <script>function s45() { return s46(); }</script>
+</mask>
+
+<path>
+  <script>function s46() { return s47(); }</script>
+</path>
+
+<pattern>
+  <script>function s47() { return s48(); }</script>
+</pattern>
+
+<polygon>
+  <script>function s48() { return s49(); }</script>
+</polygon>
+
+<polyline>
+  <script>function s49() { return s50(); }</script>
+</polyline>
+
+<radialGradient>
+  <script>function s50() { return s51(); }</script>
+</radialGradient>
+
+<rect>
+  <script>function s51() { return s52(); }</script>
+</rect>
+
+<set>
+  <script>function s52() { return s53(); }</script>
+</set>
+
+<stop>
+  <script>function s53() { return s54(); }</script>
+</stop>
+
+<svg>
+  <script>function s54() { return s55(); }</script>
+</svg>
+
+<symbol>
+  <script>function s55() { return s56(); }</script>
+</symbol>
+
+<text>
+  <script>function s56() { return s57(); }</script>
+</text>
+
+<textPath>
+  <script>function s57() { return s58(); }</script>
+</textPath>
+
+<title>
+  <script>function s58() { return s59(); }</script>
+</title>
+
+<tspan>
+  <script>function s59() { return s60(); }</script>
+</tspan>
+
+<use>
+  <script>function s60() { return s61(); }</script>
+</use>
+
+<view>
+  <script>function s61() { return s62(); }</script>
+</view>
+
+<script>
+function s62() {
+  return 'success';
+}
+
+test(function(){
+  assert_equals(s0(), 'success');
+}, "script element is in elements' content model");
+</script>
+</svg>

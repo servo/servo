@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/feature-policy/experimental-features/resources/common.js"></script>
+<title> 'layout-animations' Policy : violation reports from CSS keyframes
+</title>
+<body>
+<script>
+  test(() => {
+    document.policy.allowedFeatures().forEach((enabled_feature) => {
+      assert_not_equals(enabled_feature, "layout-animations");
+    });
+  },
+  "Sanity-check: 'layout-animations' is not in document's feature list.");
+
+  promise_test(async () => {
+    let promise = wait_for_violation_in_file(
+      "layout-animations", null /* source not specified */);
+    let style = document.createElement("style");
+    style.innerHTML = `@keyframes animation_property_top {
+                          from { top: 0px }
+                          to { top: 100px }
+                      }`;
+    document.body.appendChild(style);
+    await promise;
+  },
+  "Verify that when 'layout-animations' is disabled, a keyframes which " +
+  "includes a blocked property generates violation report.");
+</script>
+</body>

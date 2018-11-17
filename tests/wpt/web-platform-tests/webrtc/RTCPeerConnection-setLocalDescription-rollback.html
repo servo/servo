@@ -12,6 +12,7 @@
 
   // The following helper functions are called from RTCPeerConnection-helper.js:
   //   assert_session_desc_similar
+  //   generateAudioReceiveOnlyOffer
 
   /*
     4.3.2.  Interface Definition
@@ -105,7 +106,7 @@
   promise_test(t => {
     const pc = new RTCPeerConnection();
     t.add_cleanup(() => pc.close());
-    return pc.createOffer({ offerToReceiveAudio: true })
+    return generateAudioReceiveOnlyOffer(pc)
     .then(offer =>
       pc.setRemoteDescription(offer)
       .then(() => pc.createAnswer()))

@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<title>CSS Reftest Reference</title>
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com" />
+<style>
+.test {
+  display: block;
+  overflow: hidden;
+  width: 300px;
+}
+.inline {
+  display: inline;
+}
+.float, .clear {
+  display: block;
+  overflow: hidden;
+  height: 3px;
+  width: 100px;
+  background: #f0f;
+}
+.clear {
+  background: #0ff;
+}
+</style>
+<body>
+<script>
+function physicalValue(value, containerDirection) {
+  return ((value === "inline-start") === (containerDirection === "ltr")) ? "left" : "right";
+}
+const sides = ["inline-start", "inline-end"];
+const directions = ["ltr", "rtl"];
+for (const floatSide of sides) {
+  for (const clearSide of sides) {
+    for (const containerDirection of directions) {
+      for (const inlineParentDirection of [null, ...directions]) {
+        for (const floatDirection of directions) {
+          for (const clearDirection of directions) {
+            const containerEl = document.createElement("div");
+            containerEl.className = "test";
+            containerEl.style.direction = containerDirection;
+            const floatEl = document.createElement("div");
+            floatEl.className = "float";
+            floatEl.style.direction = floatDirection;
+            floatEl.style.float = physicalValue(floatSide, containerDirection);
+            const clearEl = document.createElement("div");
+            clearEl.className = "clear";
+            clearEl.style.direction = floatDirection;
+            clearEl.style.clear = physicalValue(clearSide, containerDirection);
+            if (inlineParentDirection) {
+              const inlineParent = document.createElement("div");
+              inlineParent.className = "inline";
+              inlineParent.style.direction = inlineParentDirection;
+              inlineParent.appendChild(floatEl);
+              inlineParent.appendChild(clearEl);
+              containerEl.appendChild(inlineParent);
+            } else {
+              containerEl.appendChild(floatEl);
+              containerEl.appendChild(clearEl);
+            }
+            document.body.appendChild(containerEl);
+          }
+        }
+      }
+    }
+  }
+}
+</script>
+</body>

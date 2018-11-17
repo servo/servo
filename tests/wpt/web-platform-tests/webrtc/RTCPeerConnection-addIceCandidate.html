@@ -61,9 +61,9 @@ a=rtcp-rsize
   const sessionDesc = { type: 'offer', sdp };
 
   // valid candidate attributes
-  const sdpMid = 'a1';
-  const sdpMLineIndex = 0;
-  const usernameFragment = 'ETEn';
+  const sdpMid1 = 'a1';
+  const sdpMLineIndex1 = 0;
+  const usernameFragment1 = 'ETEn';
 
   const sdpMid2 = 'v1';
   const sdpMLineIndex2 = 1;
@@ -138,7 +138,9 @@ a=rtcp-rsize
     return promise_rejects(t, 'InvalidStateError',
       pc.addIceCandidate({
         candidate: candidateStr1,
-        sdpMid, sdpMLineIndex, usernameFragment
+        sdpMid: sdpMid1,
+        sdpMLineIndex: sdpMLineIndex1,
+        usernameFragment: usernameFragment1
       }));
   }, 'Add ICE candidate before setting remote description should reject with InvalidStateError');
 
@@ -153,7 +155,9 @@ a=rtcp-rsize
     return pc.setRemoteDescription(sessionDesc)
     .then(() => pc.addIceCandidate({
       candidate: candidateStr1,
-      sdpMid, sdpMLineIndex, usernameFragment
+      sdpMid: sdpMid1,
+      sdpMLineIndex: sdpMLineIndex1,
+      usernameFragement: usernameFragment1
     }));
   }, 'Add ICE candidate after setting remote description should succeed');
 
@@ -165,7 +169,9 @@ a=rtcp-rsize
     return pc.setRemoteDescription(sessionDesc)
     .then(() => pc.addIceCandidate(new RTCIceCandidate({
       candidate: candidateStr1,
-      sdpMid, sdpMLineIndex, usernameFragment
+      sdpMid: sdpMid1,
+      sdpMLineIndex: sdpMLineIndex1,
+      usernameFragement: usernameFragment1
     })));
   }, 'Add ICE candidate with RTCIceCandidate should succeed');
 
@@ -175,7 +181,9 @@ a=rtcp-rsize
     t.add_cleanup(() => pc.close());
 
     return pc.setRemoteDescription(sessionDesc)
-      .then(() => pc.addIceCandidate({ sdpMid }));
+      .then(() => pc.addIceCandidate({
+        candidate: candidateStr1,
+        sdpMid: sdpMid1 }));
   }, 'Add candidate with only valid sdpMid should succeed');
 
   promise_test(t => {
@@ -184,7 +192,9 @@ a=rtcp-rsize
     t.add_cleanup(() => pc.close());
 
     return pc.setRemoteDescription(sessionDesc)
-      .then(() => pc.addIceCandidate({ sdpMLineIndex }));
+      .then(() => pc.addIceCandidate({
+        candidate: candidateStr1,
+        sdpMLineIndex: sdpMLineIndex1 }));
   }, 'Add candidate with only valid sdpMLineIndex should succeed');
 
   /*
@@ -206,7 +216,9 @@ a=rtcp-rsize
     return pc.setRemoteDescription(sessionDesc)
     .then(() => pc.addIceCandidate({
       candidate: candidateStr1,
-      sdpMid, sdpMLineIndex, usernameFragment
+      sdpMid: sdpMid1,
+      sdpMLineIndex: sdpMLineIndex1,
+      usernameFragement: usernameFragment1
     }))
     .then(() => {
       assert_candidate_line_between(pc.remoteDescription.sdp,
@@ -240,8 +252,9 @@ a=rtcp-rsize
     return pc.setRemoteDescription(sessionDesc)
     .then(() => pc.addIceCandidate({
       candidate: candidateStr1,
-      sdpMid, sdpMLineIndex,
-      usernameFragment: null
+      sdpMid: sdpMid1,
+      sdpMLineIndex: sdpMLineIndex1,
+      ufrag: null
     }))
     .then(() => {
       assert_candidate_line_between(pc.remoteDescription.sdp,
@@ -257,7 +270,9 @@ a=rtcp-rsize
     return pc.setRemoteDescription(sessionDesc)
     .then(() => pc.addIceCandidate({
       candidate: candidateStr1,
-      sdpMid, sdpMLineIndex, usernameFragment
+      sdpMid: sdpMid1,
+      sdpMLineIndex: sdpMLineIndex1,
+      usernameFragement: usernameFragment1
     }))
     .then(() => pc.addIceCandidate({
       candidate: candidateStr2,
@@ -296,12 +311,15 @@ a=rtcp-rsize
     return pc.setRemoteDescription(sessionDesc)
     .then(() => pc.addIceCandidate({
       candidate: candidateStr1,
-      sdpMid, sdpMLineIndex, usernameFragment
+      sdpMid: sdpMid1,
+      sdpMLineIndex: sdpMLineIndex1,
+      usernameFragement: usernameFragment1
     }))
     .then(() => pc.addIceCandidate({
       candidate: '',
-      sdpMid, sdpMLineIndex,
-      usernameFragment
+      sdpMid: sdpMid1,
+      sdpMLineIndex: sdpMLineIndex1,
+      usernameFragement: usernameFragment1
     }))
     .then(() => {
       assert_candidate_line_between(pc.remoteDescription.sdp,
@@ -404,7 +422,9 @@ a=rtcp-rsize
       promise_rejects(t, 'OperationError',
         pc.addIceCandidate({
           candidate: candidateStr1,
-          sdpMid: 'invalid', sdpMLineIndex, usernameFragment
+          sdpMid: 'invalid',
+          sdpMLineIndex: sdpMLineIndex1,
+          usernameFragement: usernameFragment1
         })));
   }, 'Add candidate with invalid sdpMid should reject with OperationError');
 
@@ -427,7 +447,7 @@ a=rtcp-rsize
         pc.addIceCandidate({
           candidate: candidateStr1,
           sdpMLineIndex: 2,
-          usernameFragment
+          usernameFragement: usernameFragment1
         })));
   }, 'Add candidate with invalid sdpMLineIndex should reject with OperationError');
 
@@ -441,9 +461,9 @@ a=rtcp-rsize
     return pc.setRemoteDescription(sessionDesc)
     .then(() => pc.addIceCandidate({
       candidate: candidateStr1,
-      sdpMid,
+      sdpMid: sdpMid1,
       sdpMLineIndex: 2,
-      usernameFragment
+      usernameFragement: usernameFragment1
     }));
   }, 'Invalid sdpMLineIndex should be ignored if valid sdpMid is provided');
 
@@ -482,8 +502,9 @@ a=rtcp-rsize
       promise_rejects(t, 'OperationError',
         pc.addIceCandidate({
           candidate: candidateStr1,
-          sdpMid, sdpMLineIndex,
-          usernameFragment: 'invalid'
+          sdpMid: sdpMid1,
+          sdpMLineIndex: sdpMLineIndex1,
+          ufrag: 'invalid'
         })));
   }, 'Add candidate with invalid usernameFragment should reject with OperationError');
 
@@ -504,7 +525,9 @@ a=rtcp-rsize
       promise_rejects(t, 'OperationError',
         pc.addIceCandidate({
           candidate: invalidCandidateStr,
-          sdpMid, sdpMLineIndex, usernameFragment
+          sdpMid: sdpMid1,
+          sdpMLineIndex: sdpMLineIndex1,
+          usernameFragement: usernameFragment1
         })));
   }, 'Add candidate with invalid candidate string should reject with OperationError');
 
@@ -520,7 +543,7 @@ a=rtcp-rsize
           candidate: candidateStr2,
           sdpMid: sdpMid2,
           sdpMLineIndex: sdpMLineIndex2,
-          usernameFragment
+          usernameFragement: usernameFragment1
         })));
   }, 'Add candidate with sdpMid belonging to different usernameFragment should reject with OperationError');
 
