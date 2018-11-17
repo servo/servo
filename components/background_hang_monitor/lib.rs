@@ -4,6 +4,9 @@
 
 #![deny(unsafe_code)]
 
+#[cfg(any(target_os = "android", target_os = "linux"))]
+#[macro_use]
+extern crate lazy_static;
 #[macro_use]
 extern crate log;
 #[macro_use]

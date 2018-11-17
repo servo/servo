@@ -12,7 +12,7 @@ use msg::constellation_msg::{HangProfile, HangProfileSymbol};
 use std::mem;
 use std::ptr;
 #[cfg(any(target_os = "android", target_os = "linux"))]
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicUsize, Ordering};
 #[cfg(any(target_os = "android", target_os = "linux"))]
 use std::thread;
 #[cfg(any(target_os = "android", target_os = "linux"))]
@@ -24,16 +24,21 @@ const MAX_NATIVE_FRAMES: usize = 1024;
 #[cfg(any(target_os = "android", target_os = "linux"))]
 static mut SAMPLEE_CONTEXT: Option<(MonitoredThreadId, libc::mcontext_t)> = None;
 
-/// This is an attempt to implement a protocol similar to:
-/// https://github.com/mozilla/gecko-dev/blob/aaac9a77dd456360551dd764ffba4ca4899dcb56/
-/// tools/profiler/core/platform-linux-android.cpp#L156
 #[cfg(any(target_os = "android", target_os = "linux"))]
 lazy_static! {
-    /// A flag used to coordinate access to SAMPLEE_CONTEXT.
-    static ref SAMPLEE_CONTEXT_READY: AtomicBool = AtomicBool::new(false);
-    /// A flag used to signal when the samplee may resume executing,
-    /// and also used to know when it has resumed.
-    static ref SAMPLEE_MAY_RESUME: AtomicBool = AtomicBool::new(false);
+    /// A state-machine used to coordinate access to SAMPLEE_CONTEXT.
+    static ref SAMPLER_STATE: AtomicUsize = AtomicUsize::new(ThreadProfilerState::NotProfiling as usize);
+}
+
+#[cfg(any(target_os = "android", target_os = "linux"))]
+#[derive(Debug)]
+#[repr(usize)]
+enum ThreadProfilerState {
+    NotProfiling = 0,
+    SuspendedThread,
+    ReadyToObtainBacktrace,
+    ObtainedBacktrace,
+    ResumedThread,
 }
 
 #[cfg(target_os = "macos")]
@@ -86,7 +91,6 @@ impl NativeStack {
 #[cfg(target_os = "macos")]
 fn check_kern_return(kret: mach::kern_return::kern_return_t) -> Result<(), ()> {
     if kret != mach::kern_return::KERN_SUCCESS {
-        warn!("Kern return error: {:?}", kret);
         return Err(());
     }
     Ok(())
@@ -108,12 +112,21 @@ unsafe fn suspend_thread(thread_id: MonitoredThreadId) -> Result<(), ()> {
 #[cfg(any(target_os = "android", target_os = "linux"))]
 #[allow(unsafe_code)]
 unsafe fn suspend_thread(thread_id: MonitoredThreadId) -> Result<(), ()> {
-    // Ensure all flags and data are reset.
-    SAMPLEE_CONTEXT = None;
-    SAMPLEE_CONTEXT_READY.compare_and_swap(true, false, Ordering::SeqCst);
-    SAMPLEE_MAY_RESUME.compare_and_swap(true, false, Ordering::SeqCst);
+    // For now, this is just a sanity check.
+    // If suspend_and_sample_thread is moved to a separate thread,
+    // change this to a loop waiting for that state.
+    assert_eq!(
+        SAMPLER_STATE.load(Ordering::SeqCst),
+        ThreadProfilerState::NotProfiling as usize
+    );
     match libc::pthread_kill(thread_id, libc::SIGPROF) {
-        0 => Ok(()),
+        0 => {
+            SAMPLER_STATE.store(
+                ThreadProfilerState::SuspendedThread as usize,
+                Ordering::SeqCst,
+            );
+            Ok(())
+        },
         _ => Err(()),
     }
 }
@@ -151,12 +164,13 @@ unsafe fn get_registers(thread_id: MonitoredThreadId) -> Result<Registers, ()> {
 unsafe fn get_registers(thread_id: MonitoredThreadId) -> Result<Registers, ()> {
     let now = Instant::now();
     loop {
-        if SAMPLEE_CONTEXT_READY.load(Ordering::SeqCst) {
+        if SAMPLER_STATE.load(Ordering::SeqCst) ==
+            ThreadProfilerState::ReadyToObtainBacktrace as usize
+        {
             break;
         }
         if now.elapsed().as_secs() > 5 {
             // The samplee still hasn't handled the signal, assume failure.
-            warn!("Failed to access registers of hanging thread");
             return Err(());
         }
         thread::yield_now();
@@ -177,12 +191,7 @@ unsafe fn get_registers(thread_id: MonitoredThreadId) -> Result<Registers, ()> {
 #[cfg(target_os = "macos")]
 #[allow(unsafe_code)]
 unsafe fn resume_thread(thread_id: MonitoredThreadId) {
-    if let Err(()) = check_kern_return(mach::thread_act::thread_resume(thread_id)) {
-        warn!(
-            "Background-hang-monitor failed to resume thread: {:?}",
-            thread_id
-        );
-    }
+    mach::thread_act::thread_resume(thread_id);
 }
 
 #[cfg(target_os = "windows")]
@@ -193,24 +202,23 @@ unsafe fn resume_thread(thread_id: MonitoredThreadId) {
 
 #[cfg(any(target_os = "android", target_os = "linux"))]
 fn resume_thread(thread_id: MonitoredThreadId) {
-    SAMPLEE_MAY_RESUME.store(true, Ordering::SeqCst);
+    SAMPLER_STATE.store(
+        ThreadProfilerState::ObtainedBacktrace as usize,
+        Ordering::SeqCst,
+    );
     let now = Instant::now();
-    // Wait until the samplee has indeed resumed,
-    // signaled by setting the flag back to false.
+    // Wait until the samplee has resumed.
     loop {
-        if !SAMPLEE_MAY_RESUME.load(Ordering::SeqCst) {
+        if SAMPLER_STATE.load(Ordering::SeqCst) == ThreadProfilerState::ResumedThread as usize {
             break;
         }
         if now.elapsed().as_secs() > 5 {
             // The samplee still hasn't resumed, assume failure to resume.
-            warn!(
-                "Background-hang-monitor failed to resume thread: {:?}",
-                thread_id
-            );
             break;
         }
         thread::yield_now();
     }
+    SAMPLER_STATE.store(ThreadProfilerState::NotProfiling as usize, Ordering::SeqCst);
 }
 
 #[allow(unsafe_code)]
@@ -308,16 +316,23 @@ pub unsafe fn install_sigprof_handler() {
         unsafe {
             SAMPLEE_CONTEXT = Some((libc::pthread_self(), context.uc_mcontext));
         }
-        SAMPLEE_CONTEXT_READY.store(true, Ordering::SeqCst);
+        SAMPLER_STATE.store(
+            ThreadProfilerState::ReadyToObtainBacktrace as usize,
+            Ordering::SeqCst,
+        );
         loop {
-            if SAMPLEE_MAY_RESUME.load(Ordering::SeqCst) {
+            if SAMPLER_STATE.load(Ordering::SeqCst) ==
+                ThreadProfilerState::ObtainedBacktrace as usize
+            {
                 break;
             }
             thread::yield_now();
         }
-        // Reset flag to false for subsequent usage,
-        // and signal to the monitor that the signal handler is finished.
-        SAMPLEE_MAY_RESUME.store(false, Ordering::SeqCst)
+        // Signal to the monitor that the signal handler is finished.
+        SAMPLER_STATE.store(
+            ThreadProfilerState::ResumedThread as usize,
+            Ordering::SeqCst,
+        );
     }
 
     // Note: this is equivalent to the "signal" macro from the "sig" crate,

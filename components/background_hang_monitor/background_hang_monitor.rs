@@ -2,15 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#[cfg(any(target_os = "android", target_os = "linux"))]
+use crate::sampler::install_sigprof_handler;
+use crate::sampler::{get_thread_id, suspend_and_sample_thread, MonitoredThreadId};
 use ipc_channel::ipc::IpcSender;
 use msg::constellation_msg::MonitoredComponentId;
 use msg::constellation_msg::{
     BackgroundHangMonitor, BackgroundHangMonitorClone, BackgroundHangMonitorRegister,
 };
 use msg::constellation_msg::{HangAlert, HangAnnotation};
-#[cfg(any(target_os = "android", target_os = "linux"))]
-use crate::sampler::install_sigprof_handler;
-use crate::sampler::{get_thread_id, suspend_and_sample_thread, MonitoredThreadId};
 use servo_channel::{base_channel, channel, Receiver, Sender};
 use std::cell::Cell;
 use std::collections::HashMap;
