@@ -5,7 +5,7 @@
 use euclid::{Point2D, Rect, Size2D};
 use std::borrow::Cow;
 
-pub fn get_rect(pixels: &[u8], size: Size2D<u32>, rect: Rect<u32>) -> Cow<[u8]> {
+pub fn rgba8_get_rect(pixels: &[u8], size: Size2D<u32>, rect: Rect<u32>) -> Cow<[u8]> {
     assert!(!rect.is_empty());
     assert!(Rect::from_size(size).contains_rect(&rect));
     assert_eq!(pixels.len() % 4, 0);
@@ -29,7 +29,7 @@ pub fn get_rect(pixels: &[u8], size: Size2D<u32>, rect: Rect<u32>) -> Cow<[u8]> 
 }
 
 // TODO(pcwalton): Speed up with SIMD, or better yet, find some way to not do this.
-pub fn byte_swap_colors_inplace(pixels: &mut [u8]) {
+pub fn rgba8_byte_swap_colors_inplace(pixels: &mut [u8]) {
     assert!(pixels.len() % 4 == 0);
     for rgba in pixels.chunks_mut(4) {
         let b = rgba[0];
@@ -38,7 +38,7 @@ pub fn byte_swap_colors_inplace(pixels: &mut [u8]) {
     }
 }
 
-pub fn byte_swap_and_premultiply_inplace(pixels: &mut [u8]) {
+pub fn rgba8_byte_swap_and_premultiply_inplace(pixels: &mut [u8]) {
     assert!(pixels.len() % 4 == 0);
     for rgba in pixels.chunks_mut(4) {
         let b = rgba[0];
@@ -49,7 +49,7 @@ pub fn byte_swap_and_premultiply_inplace(pixels: &mut [u8]) {
 }
 
 /// Returns true if the pixels were found to be completely opaque.
-pub fn premultiply_inplace(pixels: &mut [u8]) -> bool {
+pub fn rgba8_premultiply_inplace(pixels: &mut [u8]) -> bool {
     assert!(pixels.len() % 4 == 0);
     let mut is_opaque = true;
     for rgba in pixels.chunks_mut(4) {

@@ -30,7 +30,7 @@ libc = "0.2"
 winapi = "0.3.2"
 
 [build-dependencies]
-gl_generator = "0.9"
+gl_generator = "0.10"
 cc = "1.0"
 
 [features]

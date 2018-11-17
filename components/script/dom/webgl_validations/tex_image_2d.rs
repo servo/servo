@@ -2,9 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use super::types::{TexDataType, TexFormat, TexImageTarget};
+use super::types::TexImageTarget;
 use super::WebGLValidator;
-use canvas_traits::webgl::WebGLError::*;
+use canvas_traits::webgl::{TexDataType, TexFormat, WebGLError::*};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::webglrenderingcontext::WebGLRenderingContext;
 use crate::dom::webgltexture::WebGLTexture;

@@ -65,7 +65,7 @@ pub fn load_from_memory(buffer: &[u8]) -> Option<Image> {
                     DynamicImage::ImageRgba8(rgba) => rgba,
                     image => image.to_rgba(),
                 };
-                pixels::byte_swap_colors_inplace(&mut *rgba);
+                pixels::rgba8_byte_swap_colors_inplace(&mut *rgba);
                 Some(Image {
                     width: rgba.width(),
                     height: rgba.height(),

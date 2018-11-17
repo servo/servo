@@ -4,13 +4,13 @@
 
 #[cfg(feature = "webgl_backtrace")]
 use backtrace::Backtrace;
-use byteorder::{ByteOrder, NativeEndian, WriteBytesExt};
 use canvas_traits::webgl::WebGLError::*;
-use canvas_traits::webgl::{webgl_channel, WebGLVersion, WebVRCommand};
-use canvas_traits::webgl::{DOMToTextureCommand, Parameter, WebGLCommandBacktrace};
-use canvas_traits::webgl::{TexParameter, WebGLCommand, WebGLContextShareMode, WebGLError};
-use canvas_traits::webgl::{WebGLFramebufferBindingRequest, WebGLMsg, WebGLMsgSender};
-use canvas_traits::webgl::{WebGLProgramId, WebGLResult, WebGLSLVersion, WebGLSender};
+use canvas_traits::webgl::{
+    self, webgl_channel, AlphaTreatment, DOMToTextureCommand, Parameter, TexDataType, TexFormat,
+    TexParameter, TexSource, WebGLCommand, WebGLCommandBacktrace, WebGLContextShareMode,
+    WebGLError, WebGLFramebufferBindingRequest, WebGLMsg, WebGLMsgSender, WebGLProgramId,
+    WebGLResult, WebGLSLVersion, WebGLSender, WebGLVersion, WebVRCommand, YAxisTreatment,
+};
 use crate::dom::bindings::codegen::Bindings::ANGLEInstancedArraysBinding::ANGLEInstancedArraysConstants;
 use crate::dom::bindings::codegen::Bindings::EXTBlendMinmaxBinding::EXTBlendMinmaxConstants;
 use crate::dom::bindings::codegen::Bindings::OESVertexArrayObjectBinding::OESVertexArrayObjectConstants;
@@ -38,7 +38,7 @@ use crate::dom::webgl_validations::tex_image_2d::{
     CommonTexImage2DValidator, CommonTexImage2DValidatorResult,
 };
 use crate::dom::webgl_validations::tex_image_2d::{TexImage2DValidator, TexImage2DValidatorResult};
-use crate::dom::webgl_validations::types::{TexDataType, TexFormat, TexImageTarget};
+use crate::dom::webgl_validations::types::TexImageTarget;
 use crate::dom::webgl_validations::WebGLValidator;
 use crate::dom::webglactiveinfo::WebGLActiveInfo;
 use crate::dom::webglbuffer::WebGLBuffer;
@@ -57,7 +57,6 @@ use crate::dom::webglvertexarrayobjectoes::WebGLVertexArrayObjectOES;
 use crate::dom::window::Window;
 use dom_struct::dom_struct;
 use euclid::{Point2D, Rect, Size2D};
-use half::f16;
 use ipc_channel::ipc;
 use js::jsapi::{JSContext, JSObject, Type};
 use js::jsval::{BooleanValue, DoubleValue, Int32Value, JSVal, UInt32Value};
@@ -70,6 +69,7 @@ use js::typedarray::{TypedArray, TypedArrayElementCreator};
 use net_traits::image::base::PixelFormat;
 use net_traits::image_cache::ImageResponse;
 use offscreen_gl_context::{GLContextAttributes, GLLimits};
+use pixels;
 use script_layout_interface::HTMLCanvasDataSource;
 use serde::{Deserialize, Serialize};
 use servo_config::prefs::PREFS;
@@ -429,8 +429,7 @@ impl WebGLRenderingContext {
                 target,
                 0,
                 info.internal_format().unwrap_or(TexFormat::RGBA),
-                info.width(),
-                info.height(),
+                Size2D::new(info.width(), info.height()),
                 info.data_type().unwrap_or(TexDataType::UnsignedByte),
             );
         }
@@ -475,8 +474,7 @@ impl WebGLRenderingContext {
         target: TexImageTarget,
         level: u32,
         format: TexFormat,
-        width: u32,
-        height: u32,
+        size: Size2D<u32>,
         data_type: TexDataType,
     ) -> bool {
         if self
@@ -490,15 +488,25 @@ impl WebGLRenderingContext {
         // Handle validation failed: LINEAR filtering not valid for this texture
         // WebGL Conformance tests expect to fallback to [0, 0, 0, 255] RGBA UNSIGNED_BYTE
         let data_type = TexDataType::UnsignedByte;
-        let expected_byte_length = width * height * 4;
+        let expected_byte_length = size.area() * 4;
         let mut pixels = vec![0u8; expected_byte_length as usize];
         for rgba8 in pixels.chunks_mut(4) {
             rgba8[3] = 255u8;
         }
 
-        let pixels = self.prepare_pixels(format, data_type, width, height, 1, true, true, pixels);
+        // TODO(nox): AFAICT here we construct a RGBA8 array and then we
+        // convert it to whatever actual format we need, we should probably
+        // construct the desired format from the start.
         self.tex_image_2d(
-            texture, target, data_type, format, level, width, height, 0, 1, pixels,
+            texture,
+            target,
+            data_type,
+            format,
+            level,
+            0,
+            1,
+            TexSource::FromHtmlElement,
+            TexPixels::new(pixels, size, true),
         );
 
         false
@@ -518,13 +526,10 @@ impl WebGLRenderingContext {
         }
     }
 
-    fn get_image_pixels(
-        &self,
-        source: TexImageSource,
-    ) -> Fallible<Option<(Vec<u8>, Size2D<u32>, bool)>> {
+    fn get_image_pixels(&self, source: TexImageSource) -> Fallible<Option<TexPixels>> {
         Ok(Some(match source {
             TexImageSource::ImageData(image_data) => {
-                (image_data.to_vec(), image_data.get_size(), false)
+                TexPixels::new(image_data.to_vec(), image_data.get_size(), false)
             },
             TexImageSource::HTMLImageElement(image) => {
                 let document = document_from_node(&*self.canvas);
@@ -554,9 +559,9 @@ impl WebGLRenderingContext {
                     _ => unimplemented!(),
                 };
 
-                pixels::byte_swap_colors_inplace(&mut data);
+                pixels::rgba8_byte_swap_colors_inplace(&mut data);
 
-                (data, size, false)
+                TexPixels::new(data, size, false)
             },
             // TODO(emilio): Getting canvas data is implemented in CanvasRenderingContext2D,
             // but we need to refactor it moving it to `HTMLCanvasElement` and support
@@ -567,8 +572,8 @@ impl WebGLRenderingContext {
                 }
                 if let Some((mut data, size)) = canvas.fetch_all_data() {
                     // Pixels got from Canvas have already alpha premultiplied
-                    pixels::byte_swap_colors_inplace(&mut data);
-                    (data, size, true)
+                    pixels::rgba8_byte_swap_colors_inplace(&mut data);
+                    TexPixels::new(data, size, true)
                 } else {
                     return Ok(None);
                 }
@@ -633,131 +638,53 @@ impl WebGLRenderingContext {
         }
     }
 
-    /// Flips the pixels in the Vec on the Y axis if
-    /// UNPACK_FLIP_Y_WEBGL is currently enabled.
-    fn flip_teximage_y(
-        &self,
-        pixels: Vec<u8>,
-        internal_format: TexFormat,
-        data_type: TexDataType,
-        width: usize,
-        height: usize,
-        unpacking_alignment: usize,
-    ) -> Vec<u8> {
-        if !self
-            .texture_unpacking_settings
-            .get()
-            .contains(TextureUnpacking::FLIP_Y_AXIS)
-        {
-            return pixels;
-        }
-
-        let cpp = (data_type.element_size() * internal_format.components() /
-            data_type.components_per_element()) as usize;
-
-        let stride = (width * cpp + unpacking_alignment - 1) & !(unpacking_alignment - 1);
-
-        let mut flipped = Vec::<u8>::with_capacity(pixels.len());
-
-        for y in 0..height {
-            let flipped_y = height - 1 - y;
-            let start = flipped_y * stride;
-
-            flipped.extend_from_slice(&pixels[start..(start + width * cpp)]);
-            flipped.extend(vec![0u8; stride - width * cpp]);
-        }
-
-        flipped
-    }
-
-    /// Performs premultiplication of the pixels if
-    /// UNPACK_PREMULTIPLY_ALPHA_WEBGL is currently enabled.
-    fn premultiply_pixels(&self, format: TexFormat, data_type: TexDataType, pixels: &mut [u8]) {
-        if !self
-            .texture_unpacking_settings
-            .get()
-            .contains(TextureUnpacking::PREMULTIPLY_ALPHA)
-        {
-            return;
-        }
-
-        match (format, data_type) {
-            (TexFormat::RGBA, TexDataType::UnsignedByte) => {
-                pixels::premultiply_inplace(pixels);
-            },
-            (TexFormat::LuminanceAlpha, TexDataType::UnsignedByte) => {
-                for la in pixels.chunks_mut(2) {
-                    la[0] = pixels::multiply_u8_color(la[0], la[1]);
-                }
-            },
-            (TexFormat::RGBA, TexDataType::UnsignedShort5551) => {
-                for rgba in pixels.chunks_mut(2) {
-                    if NativeEndian::read_u16(rgba) & 1 == 0 {
-                        NativeEndian::write_u16(rgba, 0);
-                    }
-                }
-            },
-            (TexFormat::RGBA, TexDataType::UnsignedShort4444) => {
-                for rgba in pixels.chunks_mut(2) {
-                    let pix = NativeEndian::read_u16(rgba);
-                    let extend_to_8_bits = |val| (val | val << 4) as u8;
-                    let r = extend_to_8_bits(pix >> 12 & 0x0f);
-                    let g = extend_to_8_bits(pix >> 8 & 0x0f);
-                    let b = extend_to_8_bits(pix >> 4 & 0x0f);
-                    let a = extend_to_8_bits(pix & 0x0f);
-                    NativeEndian::write_u16(
-                        rgba,
-                        ((pixels::multiply_u8_color(r, a) & 0xf0) as u16) << 8 |
-                            ((pixels::multiply_u8_color(g, a) & 0xf0) as u16) << 4 |
-                            ((pixels::multiply_u8_color(b, a) & 0xf0) as u16) |
-                            ((a & 0x0f) as u16),
-                    );
-                }
-            },
-            // Other formats don't have alpha, so return their data untouched.
-            _ => {},
-        }
-    }
-
     fn prepare_pixels(
         &self,
         internal_format: TexFormat,
         data_type: TexDataType,
-        width: u32,
-        height: u32,
+        size: Size2D<u32>,
         unpacking_alignment: u32,
-        source_premultiplied: bool,
-        source_from_image_or_canvas: bool,
+        alpha_treatment: Option<AlphaTreatment>,
+        y_axis_treatment: YAxisTreatment,
+        tex_source: TexSource,
         mut pixels: Vec<u8>,
     ) -> Vec<u8> {
-        let dest_premultiply = self
-            .texture_unpacking_settings
-            .get()
-            .contains(TextureUnpacking::PREMULTIPLY_ALPHA);
-        if !source_premultiplied && dest_premultiply {
-            if source_from_image_or_canvas {
-                // When the pixels come from image or canvas or imagedata, use RGBA8 format
-                self.premultiply_pixels(TexFormat::RGBA, TexDataType::UnsignedByte, &mut pixels);
-            } else {
-                self.premultiply_pixels(internal_format, data_type, &mut pixels);
-            }
-        } else if source_premultiplied && !dest_premultiply {
-            remove_premultiplied_alpha(&mut pixels);
+        match alpha_treatment {
+            Some(AlphaTreatment::Premultiply) => {
+                if tex_source == TexSource::FromHtmlElement {
+                    webgl::premultiply_inplace(
+                        TexFormat::RGBA,
+                        TexDataType::UnsignedByte,
+                        &mut pixels,
+                    );
+                } else {
+                    webgl::premultiply_inplace(internal_format, data_type, &mut pixels);
+                }
+            },
+            Some(AlphaTreatment::Unmultiply) => {
+                assert_eq!(tex_source, TexSource::FromHtmlElement);
+                webgl::unmultiply_inplace(&mut pixels);
+            },
+            None => {},
         }
 
-        if source_from_image_or_canvas {
-            pixels = rgba8_image_to_tex_image_data(internal_format, data_type, pixels);
+        if tex_source == TexSource::FromHtmlElement {
+            pixels = webgl::rgba8_image_to_tex_image_data(internal_format, data_type, pixels);
         }
 
-        // FINISHME: Consider doing premultiply and flip in a single mutable Vec.
-        self.flip_teximage_y(
-            pixels,
-            internal_format,
-            data_type,
-            width as usize,
-            height as usize,
-            unpacking_alignment as usize,
-        )
+        if y_axis_treatment == YAxisTreatment::Flipped {
+            // FINISHME: Consider doing premultiply and flip in a single mutable Vec.
+            pixels = webgl::flip_pixels_y(
+                internal_format,
+                data_type,
+                size.width as usize,
+                size.height as usize,
+                unpacking_alignment as usize,
+                pixels,
+            );
+        }
+
+        pixels
     }
 
     fn tex_image_2d(
@@ -767,37 +694,50 @@ impl WebGLRenderingContext {
         data_type: TexDataType,
         internal_format: TexFormat,
         level: u32,
-        width: u32,
-        height: u32,
         _border: u32,
         unpacking_alignment: u32,
-        pixels: Vec<u8>,
+        tex_source: TexSource,
+        pixels: TexPixels,
     ) {
-        // NB: pixels should NOT be premultipied
+        let settings = self.texture_unpacking_settings.get();
+        let dest_premultiplied = settings.contains(TextureUnpacking::PREMULTIPLY_ALPHA);
+
+        let alpha_treatment = match (pixels.premultiplied, dest_premultiplied) {
+            (true, false) => Some(AlphaTreatment::Unmultiply),
+            (false, true) => Some(AlphaTreatment::Premultiply),
+            _ => None,
+        };
+
+        let y_axis_treatment = if settings.contains(TextureUnpacking::FLIP_Y_AXIS) {
+            YAxisTreatment::Flipped
+        } else {
+            YAxisTreatment::AsIs
+        };
+
+        let buff = self.prepare_pixels(
+            internal_format,
+            data_type,
+            pixels.size,
+            unpacking_alignment,
+            alpha_treatment,
+            y_axis_treatment,
+            tex_source,
+            pixels.data,
+        );
 
         // TexImage2D depth is always equal to 1
         handle_potential_webgl_error!(
             self,
             texture.initialize(
                 target,
-                width,
-                height,
+                pixels.size.width,
+                pixels.size.height,
                 1,
                 internal_format,
                 level,
                 Some(data_type)
             )
         );
-
-        // Set the unpack alignment.  For textures coming from arrays,
-        // this will be the current value of the context's
-        // GL_UNPACK_ALIGNMENT, while for textures from images or
-        // canvas (produced by rgba8_image_to_tex_image_data()), it
-        // will be 1.
-        self.send_command(WebGLCommand::PixelStorei(
-            constants::UNPACK_ALIGNMENT,
-            unpacking_alignment as i32,
-        ));
 
         let format = internal_format.as_gl_constant();
         let data_type = data_type.as_gl_constant();
@@ -807,17 +747,18 @@ impl WebGLRenderingContext {
 
         // TODO(emilio): convert colorspace if requested
         let (sender, receiver) = ipc::bytes_channel().unwrap();
-        self.send_command(WebGLCommand::TexImage2D(
-            target.as_gl_constant(),
-            level as i32,
-            internal_format as i32,
-            width as i32,
-            height as i32,
+        self.send_command(WebGLCommand::TexImage2D {
+            target: target.as_gl_constant(),
+            level,
+            internal_format,
+            width: pixels.size.width,
+            height: pixels.size.height,
             format,
-            self.extension_manager.effective_type(data_type),
+            data_type: self.extension_manager.effective_type(data_type),
+            unpacking_alignment,
             receiver,
-        ));
-        sender.send(&pixels).unwrap();
+        });
+        sender.send(&buff).unwrap();
 
         if let Some(fb) = self.bound_framebuffer.get() {
             fb.invalidate_texture(&*texture);
@@ -831,13 +772,40 @@ impl WebGLRenderingContext {
         level: u32,
         xoffset: i32,
         yoffset: i32,
-        width: u32,
-        height: u32,
         format: TexFormat,
         data_type: TexDataType,
         unpacking_alignment: u32,
-        pixels: Vec<u8>,
+        tex_source: TexSource,
+        pixels: TexPixels,
     ) {
+        let settings = self.texture_unpacking_settings.get();
+
+        let alpha_treatment = match (
+            pixels.premultiplied,
+            settings.contains(TextureUnpacking::PREMULTIPLY_ALPHA),
+        ) {
+            (true, false) => Some(AlphaTreatment::Unmultiply),
+            (false, true) => Some(AlphaTreatment::Premultiply),
+            _ => None,
+        };
+
+        let y_axis_treatment = if settings.contains(TextureUnpacking::FLIP_Y_AXIS) {
+            YAxisTreatment::Flipped
+        } else {
+            YAxisTreatment::AsIs
+        };
+
+        let buff = self.prepare_pixels(
+            format,
+            data_type,
+            pixels.size,
+            unpacking_alignment,
+            alpha_treatment,
+            y_axis_treatment,
+            tex_source,
+            pixels.data,
+        );
+
         // We have already validated level
         let image_info = texture.image_info_for_target(&target, level);
 
@@ -846,9 +814,9 @@ impl WebGLRenderingContext {
         //   - x offset plus the width is greater than the texture width
         //   - y offset plus the height is greater than the texture height
         if xoffset < 0 ||
-            (xoffset as u32 + width) > image_info.width() ||
+            (xoffset as u32 + pixels.size.width) > image_info.width() ||
             yoffset < 0 ||
-            (yoffset as u32 + height) > image_info.height()
+            (yoffset as u32 + pixels.size.height) > image_info.height()
         {
             return self.webgl_error(InvalidValue);
         }
@@ -860,30 +828,23 @@ impl WebGLRenderingContext {
             return self.webgl_error(InvalidOperation);
         }
 
-        // Set the unpack alignment.  For textures coming from arrays,
-        // this will be the current value of the context's
-        // GL_UNPACK_ALIGNMENT, while for textures from images or
-        // canvas (produced by rgba8_image_to_tex_image_data()), it
-        // will be 1.
-        self.send_command(WebGLCommand::PixelStorei(
-            constants::UNPACK_ALIGNMENT,
-            unpacking_alignment as i32,
-        ));
-
         // TODO(emilio): convert colorspace if requested
         let (sender, receiver) = ipc::bytes_channel().unwrap();
-        self.send_command(WebGLCommand::TexSubImage2D(
-            target.as_gl_constant(),
-            level as i32,
+        self.send_command(WebGLCommand::TexSubImage2D {
+            target: target.as_gl_constant(),
+            level,
             xoffset,
             yoffset,
-            width as i32,
-            height as i32,
-            format.as_gl_constant(),
-            data_type.as_gl_constant(),
+            width: pixels.size.width,
+            height: pixels.size.height,
+            format: format.as_gl_constant(),
+            data_type: self
+                .extension_manager
+                .effective_type(data_type.as_gl_constant()),
+            unpacking_alignment,
             receiver,
-        ));
-        sender.send(&pixels).unwrap();
+        });
+        sender.send(&buff).unwrap();
     }
 
     fn get_gl_extensions(&self) -> String {
@@ -3729,22 +3690,13 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             return Ok(self.webgl_error(InvalidOperation));
         }
 
-        if !self
-            .validate_filterable_texture(&texture, target, level, format, width, height, data_type)
-        {
-            return Ok(()); // The validator sets the correct error for use
-        }
+        let size = Size2D::new(width, height);
 
-        let pixels = self.prepare_pixels(
-            format,
-            data_type,
-            width,
-            height,
-            unpacking_alignment,
-            false,
-            false,
-            buff,
-        );
+        if !self.validate_filterable_texture(&texture, target, level, format, size, data_type) {
+            // FIXME(nox): What is the spec for this? No error is emitted ever
+            // by validate_filterable_texture.
+            return Ok(());
+        }
 
         self.tex_image_2d(
             &texture,
@@ -3752,11 +3704,10 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             data_type,
             format,
             level,
-            width,
-            height,
             border,
             unpacking_alignment,
-            pixels,
+            TexSource::FromArray,
+            TexPixels::from_array(buff, Size2D::new(width, height)),
         );
 
         Ok(())
@@ -3776,8 +3727,8 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             return Ok(self.webgl_error(InvalidEnum));
         }
 
-        let (pixels, size, premultiplied) = match self.get_image_pixels(source)? {
-            Some(triple) => triple,
+        let pixels = match self.get_image_pixels(source)? {
+            Some(pixels) => pixels,
             None => return Ok(()),
         };
 
@@ -3786,8 +3737,8 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             target,
             level,
             internal_format,
-            size.width as i32,
-            size.height as i32,
+            pixels.size.width as i32,
+            pixels.size.height as i32,
             0,
             format,
             data_type,
@@ -3796,37 +3747,39 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         let TexImage2DValidatorResult {
             texture,
             target,
-            width,
-            height,
             level,
             border,
             format,
             data_type,
+            ..
         } = match validator.validate() {
             Ok(result) => result,
             Err(_) => return Ok(()), // NB: The validator sets the correct error for us.
         };
 
-        if !self
-            .validate_filterable_texture(&texture, target, level, format, width, height, data_type)
-        {
-            return Ok(()); // The validator sets the correct error for use
+        if !self.validate_filterable_texture(
+            &texture,
+            target,
+            level,
+            format,
+            pixels.size,
+            data_type,
+        ) {
+            // FIXME(nox): What is the spec for this? No error is emitted ever
+            // by validate_filterable_texture.
+            return Ok(());
         }
 
-        let unpacking_alignment = 1;
-        let pixels = self.prepare_pixels(
-            format,
-            data_type,
-            width,
-            height,
-            unpacking_alignment,
-            premultiplied,
-            true,
-            pixels,
-        );
-
         self.tex_image_2d(
-            &texture, target, data_type, format, level, width, height, border, 1, pixels,
+            &texture,
+            target,
+            data_type,
+            format,
+            level,
+            border,
+            1,
+            TexSource::FromHtmlElement,
+            pixels,
         );
         Ok(())
     }
@@ -3949,30 +3902,17 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             return Ok(self.webgl_error(InvalidOperation));
         }
 
-        let unpacking_alignment = self.texture_unpacking_alignment.get();
-        let pixels = self.prepare_pixels(
-            format,
-            data_type,
-            width,
-            height,
-            unpacking_alignment,
-            false,
-            false,
-            buff,
-        );
-
         self.tex_sub_image_2d(
             texture,
             target,
             level,
             xoffset,
             yoffset,
-            width,
-            height,
             format,
             data_type,
             unpacking_alignment,
-            pixels,
+            TexSource::FromArray,
+            TexPixels::from_array(buff, Size2D::new(width, height)),
         );
         Ok(())
     }
@@ -3988,8 +3928,8 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         data_type: u32,
         source: TexImageSource,
     ) -> ErrorResult {
-        let (pixels, size, premultiplied) = match self.get_image_pixels(source)? {
-            Some(triple) => triple,
+        let pixels = match self.get_image_pixels(source)? {
+            Some(pixels) => pixels,
             None => return Ok(()),
         };
 
@@ -3998,8 +3938,8 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             target,
             level,
             format,
-            size.width as i32,
-            size.height as i32,
+            pixels.size.width as i32,
+            pixels.size.height as i32,
             0,
             format,
             data_type,
@@ -4007,8 +3947,6 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         let TexImage2DValidatorResult {
             texture,
             target,
-            width,
-            height,
             level,
             format,
             data_type,
@@ -4018,20 +3956,17 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             Err(_) => return Ok(()), // NB: The validator sets the correct error for us.
         };
 
-        let unpacking_alignment = 1;
-        let pixels = self.prepare_pixels(
+        self.tex_sub_image_2d(
+            texture,
+            target,
+            level,
+            xoffset,
+            yoffset,
             format,
             data_type,
-            width,
-            height,
-            unpacking_alignment,
-            premultiplied,
-            true,
+            1,
+            TexSource::FromHtmlElement,
             pixels,
-        );
-
-        self.tex_sub_image_2d(
-            texture, target, level, xoffset, yoffset, width, height, format, data_type, 1, pixels,
         );
         Ok(())
     }
@@ -4313,230 +4248,26 @@ impl TextureUnit {
     }
 }
 
-// Remove premultiplied alpha.
-// This is only called when texImage2D is called using a canvas2d source and
-// UNPACK_PREMULTIPLY_ALPHA_WEBGL is disabled. Pixels got from a canvas2D source
-// are always RGBA8 with premultiplied alpha, so we don't have to worry about
-// additional formats as happens in the premultiply_pixels method.
-fn remove_premultiplied_alpha(pixels: &mut [u8]) {
-    for rgba in pixels.chunks_mut(4) {
-        let a = (rgba[3] as f32) / 255.0;
-        rgba[0] = (rgba[0] as f32 / a) as u8;
-        rgba[1] = (rgba[1] as f32 / a) as u8;
-        rgba[2] = (rgba[2] as f32 / a) as u8;
-    }
+struct TexPixels {
+    data: Vec<u8>,
+    size: Size2D<u32>,
+    premultiplied: bool,
 }
 
-/// Translates an image in rgba8 (red in the first byte) format to
-/// the format that was requested of TexImage.
-///
-/// From the WebGL 1.0 spec, 5.14.8:
-///
-///     "The source image data is conceptually first converted to
-///      the data type and format specified by the format and type
-///      arguments, and then transferred to the WebGL
-///      implementation. If a packed pixel format is specified
-///      which would imply loss of bits of precision from the image
-///      data, this loss of precision must occur."
-fn rgba8_image_to_tex_image_data(
-    format: TexFormat,
-    data_type: TexDataType,
-    mut pixels: Vec<u8>,
-) -> Vec<u8> {
-    // hint for vector allocation sizing.
-    let pixel_count = pixels.len() / 4;
+impl TexPixels {
+    fn new(data: Vec<u8>, size: Size2D<u32>, premultiplied: bool) -> Self {
+        Self {
+            data,
+            size,
+            premultiplied,
+        }
+    }
 
-    match (format, data_type) {
-        (TexFormat::RGBA, TexDataType::UnsignedByte) => pixels,
-        (TexFormat::RGB, TexDataType::UnsignedByte) => {
-            for i in 0..pixel_count {
-                let rgb = {
-                    let rgb = &pixels[i * 4..i * 4 + 3];
-                    [rgb[0], rgb[1], rgb[2]]
-                };
-                pixels[i * 3..i * 3 + 3].copy_from_slice(&rgb);
-            }
-            pixels.truncate(pixel_count * 3);
-            pixels
-        },
-        (TexFormat::Alpha, TexDataType::UnsignedByte) => {
-            for i in 0..pixel_count {
-                let p = pixels[i * 4 + 3];
-                pixels[i] = p;
-            }
-            pixels.truncate(pixel_count);
-            pixels
-        },
-        (TexFormat::Luminance, TexDataType::UnsignedByte) => {
-            for i in 0..pixel_count {
-                let p = pixels[i * 4];
-                pixels[i] = p;
-            }
-            pixels.truncate(pixel_count);
-            pixels
-        },
-        (TexFormat::LuminanceAlpha, TexDataType::UnsignedByte) => {
-            for i in 0..pixel_count {
-                let (lum, a) = {
-                    let rgba = &pixels[i * 4..i * 4 + 4];
-                    (rgba[0], rgba[3])
-                };
-                pixels[i * 2] = lum;
-                pixels[i * 2 + 1] = a;
-            }
-            pixels.truncate(pixel_count * 2);
-            pixels
-        },
-        (TexFormat::RGBA, TexDataType::UnsignedShort4444) => {
-            for i in 0..pixel_count {
-                let p = {
-                    let rgba = &pixels[i * 4..i * 4 + 4];
-                    (rgba[0] as u16 & 0xf0) << 8 |
-                        (rgba[1] as u16 & 0xf0) << 4 |
-                        (rgba[2] as u16 & 0xf0) |
-                        (rgba[3] as u16 & 0xf0) >> 4
-                };
-                NativeEndian::write_u16(&mut pixels[i * 2..i * 2 + 2], p);
-            }
-            pixels.truncate(pixel_count * 2);
-            pixels
-        },
-        (TexFormat::RGBA, TexDataType::UnsignedShort5551) => {
-            for i in 0..pixel_count {
-                let p = {
-                    let rgba = &pixels[i * 4..i * 4 + 4];
-                    (rgba[0] as u16 & 0xf8) << 8 |
-                        (rgba[1] as u16 & 0xf8) << 3 |
-                        (rgba[2] as u16 & 0xf8) >> 2 |
-                        (rgba[3] as u16) >> 7
-                };
-                NativeEndian::write_u16(&mut pixels[i * 2..i * 2 + 2], p);
-            }
-            pixels.truncate(pixel_count * 2);
-            pixels
-        },
-        (TexFormat::RGB, TexDataType::UnsignedShort565) => {
-            for i in 0..pixel_count {
-                let p = {
-                    let rgb = &pixels[i * 4..i * 4 + 3];
-                    (rgb[0] as u16 & 0xf8) << 8 |
-                        (rgb[1] as u16 & 0xfc) << 3 |
-                        (rgb[2] as u16 & 0xf8) >> 3
-                };
-                NativeEndian::write_u16(&mut pixels[i * 2..i * 2 + 2], p);
-            }
-            pixels.truncate(pixel_count * 2);
-            pixels
-        },
-        (TexFormat::RGBA, TexDataType::Float) => {
-            let mut rgbaf32 = Vec::<u8>::with_capacity(pixel_count * 16);
-            for rgba8 in pixels.chunks(4) {
-                rgbaf32.write_f32::<NativeEndian>(rgba8[0] as f32).unwrap();
-                rgbaf32.write_f32::<NativeEndian>(rgba8[1] as f32).unwrap();
-                rgbaf32.write_f32::<NativeEndian>(rgba8[2] as f32).unwrap();
-                rgbaf32.write_f32::<NativeEndian>(rgba8[3] as f32).unwrap();
-            }
-            rgbaf32
-        },
-
-        (TexFormat::RGB, TexDataType::Float) => {
-            let mut rgbf32 = Vec::<u8>::with_capacity(pixel_count * 12);
-            for rgba8 in pixels.chunks(4) {
-                rgbf32.write_f32::<NativeEndian>(rgba8[0] as f32).unwrap();
-                rgbf32.write_f32::<NativeEndian>(rgba8[1] as f32).unwrap();
-                rgbf32.write_f32::<NativeEndian>(rgba8[2] as f32).unwrap();
-            }
-            rgbf32
-        },
-
-        (TexFormat::Alpha, TexDataType::Float) => {
-            for rgba8 in pixels.chunks_mut(4) {
-                let p = rgba8[3] as f32;
-                NativeEndian::write_f32(rgba8, p);
-            }
-            pixels
-        },
-
-        (TexFormat::Luminance, TexDataType::Float) => {
-            for rgba8 in pixels.chunks_mut(4) {
-                let p = rgba8[0] as f32;
-                NativeEndian::write_f32(rgba8, p);
-            }
-            pixels
-        },
-
-        (TexFormat::LuminanceAlpha, TexDataType::Float) => {
-            let mut data = Vec::<u8>::with_capacity(pixel_count * 8);
-            for rgba8 in pixels.chunks(4) {
-                data.write_f32::<NativeEndian>(rgba8[0] as f32).unwrap();
-                data.write_f32::<NativeEndian>(rgba8[3] as f32).unwrap();
-            }
-            data
-        },
-
-        (TexFormat::RGBA, TexDataType::HalfFloat) => {
-            let mut rgbaf16 = Vec::<u8>::with_capacity(pixel_count * 8);
-            for rgba8 in pixels.chunks(4) {
-                rgbaf16
-                    .write_u16::<NativeEndian>(f16::from_f32(rgba8[0] as f32).as_bits())
-                    .unwrap();
-                rgbaf16
-                    .write_u16::<NativeEndian>(f16::from_f32(rgba8[1] as f32).as_bits())
-                    .unwrap();
-                rgbaf16
-                    .write_u16::<NativeEndian>(f16::from_f32(rgba8[2] as f32).as_bits())
-                    .unwrap();
-                rgbaf16
-                    .write_u16::<NativeEndian>(f16::from_f32(rgba8[3] as f32).as_bits())
-                    .unwrap();
-            }
-            rgbaf16
-        },
-
-        (TexFormat::RGB, TexDataType::HalfFloat) => {
-            let mut rgbf16 = Vec::<u8>::with_capacity(pixel_count * 6);
-            for rgba8 in pixels.chunks(4) {
-                rgbf16
-                    .write_u16::<NativeEndian>(f16::from_f32(rgba8[0] as f32).as_bits())
-                    .unwrap();
-                rgbf16
-                    .write_u16::<NativeEndian>(f16::from_f32(rgba8[1] as f32).as_bits())
-                    .unwrap();
-                rgbf16
-                    .write_u16::<NativeEndian>(f16::from_f32(rgba8[2] as f32).as_bits())
-                    .unwrap();
-            }
-            rgbf16
-        },
-        (TexFormat::Alpha, TexDataType::HalfFloat) => {
-            for i in 0..pixel_count {
-                let p = f16::from_f32(pixels[i * 4 + 3] as f32).as_bits();
-                NativeEndian::write_u16(&mut pixels[i * 2..i * 2 + 2], p);
-            }
-            pixels.truncate(pixel_count * 2);
-            pixels
-        },
-        (TexFormat::Luminance, TexDataType::HalfFloat) => {
-            for i in 0..pixel_count {
-                let p = f16::from_f32(pixels[i * 4] as f32).as_bits();
-                NativeEndian::write_u16(&mut pixels[i * 2..i * 2 + 2], p);
-            }
-            pixels.truncate(pixel_count * 2);
-            pixels
-        },
-        (TexFormat::LuminanceAlpha, TexDataType::HalfFloat) => {
-            for rgba8 in pixels.chunks_mut(4) {
-                let lum = f16::from_f32(rgba8[0] as f32).as_bits();
-                let a = f16::from_f32(rgba8[3] as f32).as_bits();
-                NativeEndian::write_u16(&mut rgba8[0..2], lum);
-                NativeEndian::write_u16(&mut rgba8[2..4], a);
-            }
-            pixels
-        },
-
-        // Validation should have ensured that we only hit the
-        // above cases, but we haven't turned the (format, type)
-        // into an enum yet so there's a default case here.
-        _ => unreachable!("Unsupported formats {:?} {:?}", format, data_type),
+    fn from_array(data: Vec<u8>, size: Size2D<u32>) -> Self {
+        Self {
+            data,
+            size,
+            premultiplied: false,
+        }
     }
 }

@@ -36,6 +36,8 @@ packages = [
   "crossbeam-deque",
   "crossbeam-epoch",
   "crossbeam-utils",
+  "gl_generator",
+  "khronos_api",
   "log",
   # TODO: remove num-rational when https://github.com/PistonDevelopers/image/pull/809 is merged.
   "num-rational",
@@ -45,6 +47,7 @@ packages = [
   "syn",
   "unicase",
   "winapi",
+  "xml-rs",
 ]
 # Files that are ignored for all tidy and lint checks.
 files = [

@@ -403,7 +403,7 @@ impl CanvasRenderingContext2D {
     ) -> ErrorResult {
         debug!("Fetching image {}.", url);
         let (mut image_data, image_size) = self.fetch_image_data(url).ok_or(Error::InvalidState)?;
-        pixels::premultiply_inplace(&mut image_data);
+        pixels::rgba8_premultiply_inplace(&mut image_data);
         let image_size = image_size.to_f64();
 
         let dw = dw.unwrap_or(image_size.width);

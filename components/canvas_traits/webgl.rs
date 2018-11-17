@@ -2,10 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use byteorder::{ByteOrder, NativeEndian, WriteBytesExt};
 use euclid::{Rect, Size2D};
 use gleam::gl;
+use half::f16;
 use ipc_channel::ipc::{IpcBytesReceiver, IpcBytesSender};
 use offscreen_gl_context::{GLContextAttributes, GLLimits};
+use pixels;
 use serde_bytes::ByteBuf;
 use std::borrow::Cow;
 use std::num::NonZeroU32;
@@ -269,8 +272,29 @@ pub enum WebGLCommand {
     VertexAttribPointer(u32, i32, u32, bool, i32, u32),
     VertexAttribPointer2f(u32, i32, bool, i32, u32),
     SetViewport(i32, i32, i32, i32),
-    TexImage2D(u32, i32, i32, i32, i32, u32, u32, IpcBytesReceiver),
-    TexSubImage2D(u32, i32, i32, i32, i32, i32, u32, u32, IpcBytesReceiver),
+    TexImage2D {
+        target: u32,
+        level: u32,
+        internal_format: u32,
+        width: u32,
+        height: u32,
+        format: u32,
+        data_type: u32,
+        unpacking_alignment: u32,
+        receiver: IpcBytesReceiver,
+    },
+    TexSubImage2D {
+        target: u32,
+        level: u32,
+        xoffset: i32,
+        yoffset: i32,
+        width: u32,
+        height: u32,
+        format: u32,
+        data_type: u32,
+        unpacking_alignment: u32,
+        receiver: IpcBytesReceiver,
+    },
     DrawingBufferWidth(WebGLSender<i32>),
     DrawingBufferHeight(WebGLSender<i32>),
     Finish(WebGLSender<()>),
@@ -343,7 +367,7 @@ pub enum WebGLCommand {
     },
 }
 
-macro_rules! define_resource_id_struct {
+macro_rules! define_resource_id {
     ($name:ident) => {
         #[derive(Clone, Copy, Eq, Hash, PartialEq)]
         pub struct $name(NonZeroU32);
@@ -360,12 +384,6 @@ macro_rules! define_resource_id_struct {
                 self.0.get()
             }
         }
-    };
-}
-
-macro_rules! define_resource_id {
-    ($name:ident) => {
-        define_resource_id_struct!($name);
 
         #[allow(unsafe_code)]
         impl<'de> ::serde::Deserialize<'de> for $name {
@@ -649,4 +667,390 @@ pub fn is_gles() -> bool {
     // TODO: align this with the actual kind of graphics context in use, rather than
     // making assumptions based on platform
     cfg!(any(target_os = "android", target_os = "ios"))
+}
+
+#[macro_export]
+macro_rules! gl_enums {
+    ($(pub enum $name:ident { $($variant:ident = $mod:ident::$constant:ident,)+ })*) => {
+        $(
+            #[derive(Clone, Copy, Debug, Eq, Hash, MallocSizeOf, PartialEq)]
+            #[repr(u32)]
+            pub enum $name { $($variant = $mod::$constant,)+ }
+
+            impl $name {
+                pub fn from_gl_constant(constant: u32) -> Option<Self> {
+                    Some(match constant {
+                        $($mod::$constant => $name::$variant, )+
+                        _ => return None,
+                    })
+                }
+
+                #[inline]
+                pub fn as_gl_constant(&self) -> u32 {
+                    *self as u32
+                }
+            }
+        )*
+    }
+}
+
+gl_enums! {
+    pub enum TexFormat {
+        DepthComponent = gl::DEPTH_COMPONENT,
+        Alpha = gl::ALPHA,
+        RGB = gl::RGB,
+        RGBA = gl::RGBA,
+        Luminance = gl::LUMINANCE,
+        LuminanceAlpha = gl::LUMINANCE_ALPHA,
+    }
+
+    pub enum TexDataType {
+        UnsignedByte = gl::UNSIGNED_BYTE,
+        UnsignedShort4444 = gl::UNSIGNED_SHORT_4_4_4_4,
+        UnsignedShort5551 = gl::UNSIGNED_SHORT_5_5_5_1,
+        UnsignedShort565 = gl::UNSIGNED_SHORT_5_6_5,
+        Float = gl::FLOAT,
+        HalfFloat = gl::HALF_FLOAT_OES,
+    }
+}
+
+impl TexFormat {
+    /// Returns how many components does this format need. For example, RGBA
+    /// needs 4 components, while RGB requires 3.
+    pub fn components(&self) -> u32 {
+        match *self {
+            TexFormat::DepthComponent => 1,
+            TexFormat::Alpha => 1,
+            TexFormat::Luminance => 1,
+            TexFormat::LuminanceAlpha => 2,
+            TexFormat::RGB => 3,
+            TexFormat::RGBA => 4,
+        }
+    }
+}
+
+impl TexDataType {
+    /// Returns the size in bytes of each element of data.
+    pub fn element_size(&self) -> u32 {
+        use self::*;
+        match *self {
+            TexDataType::UnsignedByte => 1,
+            TexDataType::UnsignedShort4444 |
+            TexDataType::UnsignedShort5551 |
+            TexDataType::UnsignedShort565 => 2,
+            TexDataType::Float => 4,
+            TexDataType::HalfFloat => 2,
+        }
+    }
+
+    /// Returns how many components a single element may hold. For example, a
+    /// UnsignedShort4444 holds four components, each with 4 bits of data.
+    pub fn components_per_element(&self) -> u32 {
+        match *self {
+            TexDataType::UnsignedByte => 1,
+            TexDataType::UnsignedShort565 => 3,
+            TexDataType::UnsignedShort5551 => 4,
+            TexDataType::UnsignedShort4444 => 4,
+            TexDataType::Float => 1,
+            TexDataType::HalfFloat => 1,
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, Hash, MallocSizeOf, PartialEq)]
+pub enum AlphaTreatment {
+    Premultiply,
+    Unmultiply,
+}
+
+#[derive(Clone, Copy, Debug, Eq, Hash, MallocSizeOf, PartialEq)]
+pub enum YAxisTreatment {
+    AsIs,
+    Flipped,
+}
+
+#[derive(Clone, Copy, Debug, Eq, Hash, MallocSizeOf, PartialEq)]
+pub enum TexSource {
+    FromHtmlElement,
+    FromArray,
+}
+
+/// Translates an image in rgba8 (red in the first byte) format to
+/// the format that was requested of TexImage.
+pub fn rgba8_image_to_tex_image_data(
+    format: TexFormat,
+    data_type: TexDataType,
+    mut pixels: Vec<u8>,
+) -> Vec<u8> {
+    // hint for vector allocation sizing.
+    let pixel_count = pixels.len() / 4;
+
+    match (format, data_type) {
+        (TexFormat::RGBA, TexDataType::UnsignedByte) => pixels,
+        (TexFormat::RGB, TexDataType::UnsignedByte) => {
+            for i in 0..pixel_count {
+                let rgb = {
+                    let rgb = &pixels[i * 4..i * 4 + 3];
+                    [rgb[0], rgb[1], rgb[2]]
+                };
+                pixels[i * 3..i * 3 + 3].copy_from_slice(&rgb);
+            }
+            pixels.truncate(pixel_count * 3);
+            pixels
+        },
+        (TexFormat::Alpha, TexDataType::UnsignedByte) => {
+            for i in 0..pixel_count {
+                let p = pixels[i * 4 + 3];
+                pixels[i] = p;
+            }
+            pixels.truncate(pixel_count);
+            pixels
+        },
+        (TexFormat::Luminance, TexDataType::UnsignedByte) => {
+            for i in 0..pixel_count {
+                let p = pixels[i * 4];
+                pixels[i] = p;
+            }
+            pixels.truncate(pixel_count);
+            pixels
+        },
+        (TexFormat::LuminanceAlpha, TexDataType::UnsignedByte) => {
+            for i in 0..pixel_count {
+                let (lum, a) = {
+                    let rgba = &pixels[i * 4..i * 4 + 4];
+                    (rgba[0], rgba[3])
+                };
+                pixels[i * 2] = lum;
+                pixels[i * 2 + 1] = a;
+            }
+            pixels.truncate(pixel_count * 2);
+            pixels
+        },
+        (TexFormat::RGBA, TexDataType::UnsignedShort4444) => {
+            for i in 0..pixel_count {
+                let p = {
+                    let rgba = &pixels[i * 4..i * 4 + 4];
+                    (rgba[0] as u16 & 0xf0) << 8 |
+                        (rgba[1] as u16 & 0xf0) << 4 |
+                        (rgba[2] as u16 & 0xf0) |
+                        (rgba[3] as u16 & 0xf0) >> 4
+                };
+                NativeEndian::write_u16(&mut pixels[i * 2..i * 2 + 2], p);
+            }
+            pixels.truncate(pixel_count * 2);
+            pixels
+        },
+        (TexFormat::RGBA, TexDataType::UnsignedShort5551) => {
+            for i in 0..pixel_count {
+                let p = {
+                    let rgba = &pixels[i * 4..i * 4 + 4];
+                    (rgba[0] as u16 & 0xf8) << 8 |
+                        (rgba[1] as u16 & 0xf8) << 3 |
+                        (rgba[2] as u16 & 0xf8) >> 2 |
+                        (rgba[3] as u16) >> 7
+                };
+                NativeEndian::write_u16(&mut pixels[i * 2..i * 2 + 2], p);
+            }
+            pixels.truncate(pixel_count * 2);
+            pixels
+        },
+        (TexFormat::RGB, TexDataType::UnsignedShort565) => {
+            for i in 0..pixel_count {
+                let p = {
+                    let rgb = &pixels[i * 4..i * 4 + 3];
+                    (rgb[0] as u16 & 0xf8) << 8 |
+                        (rgb[1] as u16 & 0xfc) << 3 |
+                        (rgb[2] as u16 & 0xf8) >> 3
+                };
+                NativeEndian::write_u16(&mut pixels[i * 2..i * 2 + 2], p);
+            }
+            pixels.truncate(pixel_count * 2);
+            pixels
+        },
+        (TexFormat::RGBA, TexDataType::Float) => {
+            let mut rgbaf32 = Vec::<u8>::with_capacity(pixel_count * 16);
+            for rgba8 in pixels.chunks(4) {
+                rgbaf32.write_f32::<NativeEndian>(rgba8[0] as f32).unwrap();
+                rgbaf32.write_f32::<NativeEndian>(rgba8[1] as f32).unwrap();
+                rgbaf32.write_f32::<NativeEndian>(rgba8[2] as f32).unwrap();
+                rgbaf32.write_f32::<NativeEndian>(rgba8[3] as f32).unwrap();
+            }
+            rgbaf32
+        },
+
+        (TexFormat::RGB, TexDataType::Float) => {
+            let mut rgbf32 = Vec::<u8>::with_capacity(pixel_count * 12);
+            for rgba8 in pixels.chunks(4) {
+                rgbf32.write_f32::<NativeEndian>(rgba8[0] as f32).unwrap();
+                rgbf32.write_f32::<NativeEndian>(rgba8[1] as f32).unwrap();
+                rgbf32.write_f32::<NativeEndian>(rgba8[2] as f32).unwrap();
+            }
+            rgbf32
+        },
+
+        (TexFormat::Alpha, TexDataType::Float) => {
+            for rgba8 in pixels.chunks_mut(4) {
+                let p = rgba8[3] as f32;
+                NativeEndian::write_f32(rgba8, p);
+            }
+            pixels
+        },
+
+        (TexFormat::Luminance, TexDataType::Float) => {
+            for rgba8 in pixels.chunks_mut(4) {
+                let p = rgba8[0] as f32;
+                NativeEndian::write_f32(rgba8, p);
+            }
+            pixels
+        },
+
+        (TexFormat::LuminanceAlpha, TexDataType::Float) => {
+            let mut data = Vec::<u8>::with_capacity(pixel_count * 8);
+            for rgba8 in pixels.chunks(4) {
+                data.write_f32::<NativeEndian>(rgba8[0] as f32).unwrap();
+                data.write_f32::<NativeEndian>(rgba8[3] as f32).unwrap();
+            }
+            data
+        },
+
+        (TexFormat::RGBA, TexDataType::HalfFloat) => {
+            let mut rgbaf16 = Vec::<u8>::with_capacity(pixel_count * 8);
+            for rgba8 in pixels.chunks(4) {
+                rgbaf16
+                    .write_u16::<NativeEndian>(f16::from_f32(rgba8[0] as f32).as_bits())
+                    .unwrap();
+                rgbaf16
+                    .write_u16::<NativeEndian>(f16::from_f32(rgba8[1] as f32).as_bits())
+                    .unwrap();
+                rgbaf16
+                    .write_u16::<NativeEndian>(f16::from_f32(rgba8[2] as f32).as_bits())
+                    .unwrap();
+                rgbaf16
+                    .write_u16::<NativeEndian>(f16::from_f32(rgba8[3] as f32).as_bits())
+                    .unwrap();
+            }
+            rgbaf16
+        },
+
+        (TexFormat::RGB, TexDataType::HalfFloat) => {
+            let mut rgbf16 = Vec::<u8>::with_capacity(pixel_count * 6);
+            for rgba8 in pixels.chunks(4) {
+                rgbf16
+                    .write_u16::<NativeEndian>(f16::from_f32(rgba8[0] as f32).as_bits())
+                    .unwrap();
+                rgbf16
+                    .write_u16::<NativeEndian>(f16::from_f32(rgba8[1] as f32).as_bits())
+                    .unwrap();
+                rgbf16
+                    .write_u16::<NativeEndian>(f16::from_f32(rgba8[2] as f32).as_bits())
+                    .unwrap();
+            }
+            rgbf16
+        },
+        (TexFormat::Alpha, TexDataType::HalfFloat) => {
+            for i in 0..pixel_count {
+                let p = f16::from_f32(pixels[i * 4 + 3] as f32).as_bits();
+                NativeEndian::write_u16(&mut pixels[i * 2..i * 2 + 2], p);
+            }
+            pixels.truncate(pixel_count * 2);
+            pixels
+        },
+        (TexFormat::Luminance, TexDataType::HalfFloat) => {
+            for i in 0..pixel_count {
+                let p = f16::from_f32(pixels[i * 4] as f32).as_bits();
+                NativeEndian::write_u16(&mut pixels[i * 2..i * 2 + 2], p);
+            }
+            pixels.truncate(pixel_count * 2);
+            pixels
+        },
+        (TexFormat::LuminanceAlpha, TexDataType::HalfFloat) => {
+            for rgba8 in pixels.chunks_mut(4) {
+                let lum = f16::from_f32(rgba8[0] as f32).as_bits();
+                let a = f16::from_f32(rgba8[3] as f32).as_bits();
+                NativeEndian::write_u16(&mut rgba8[0..2], lum);
+                NativeEndian::write_u16(&mut rgba8[2..4], a);
+            }
+            pixels
+        },
+
+        // Validation should have ensured that we only hit the
+        // above cases, but we haven't turned the (format, type)
+        // into an enum yet so there's a default case here.
+        _ => unreachable!("Unsupported formats {:?} {:?}", format, data_type),
+    }
+}
+
+pub fn premultiply_inplace(format: TexFormat, data_type: TexDataType, pixels: &mut [u8]) {
+    match (format, data_type) {
+        (TexFormat::RGBA, TexDataType::UnsignedByte) => {
+            pixels::rgba8_premultiply_inplace(pixels);
+        },
+        (TexFormat::LuminanceAlpha, TexDataType::UnsignedByte) => {
+            for la in pixels.chunks_mut(2) {
+                la[0] = pixels::multiply_u8_color(la[0], la[1]);
+            }
+        },
+        (TexFormat::RGBA, TexDataType::UnsignedShort5551) => {
+            for rgba in pixels.chunks_mut(2) {
+                if NativeEndian::read_u16(rgba) & 1 == 0 {
+                    NativeEndian::write_u16(rgba, 0);
+                }
+            }
+        },
+        (TexFormat::RGBA, TexDataType::UnsignedShort4444) => {
+            for rgba in pixels.chunks_mut(2) {
+                let pix = NativeEndian::read_u16(rgba);
+                let extend_to_8_bits = |val| (val | val << 4) as u8;
+                let r = extend_to_8_bits(pix >> 12 & 0x0f);
+                let g = extend_to_8_bits(pix >> 8 & 0x0f);
+                let b = extend_to_8_bits(pix >> 4 & 0x0f);
+                let a = extend_to_8_bits(pix & 0x0f);
+                NativeEndian::write_u16(
+                    rgba,
+                    ((pixels::multiply_u8_color(r, a) & 0xf0) as u16) << 8 |
+                        ((pixels::multiply_u8_color(g, a) & 0xf0) as u16) << 4 |
+                        ((pixels::multiply_u8_color(b, a) & 0xf0) as u16) |
+                        ((a & 0x0f) as u16),
+                );
+            }
+        },
+        // Other formats don't have alpha, so return their data untouched.
+        _ => {},
+    }
+}
+
+pub fn unmultiply_inplace(pixels: &mut [u8]) {
+    for rgba in pixels.chunks_mut(4) {
+        let a = (rgba[3] as f32) / 255.0;
+        rgba[0] = (rgba[0] as f32 / a) as u8;
+        rgba[1] = (rgba[1] as f32 / a) as u8;
+        rgba[2] = (rgba[2] as f32 / a) as u8;
+    }
+}
+
+/// Flips the pixels in the Vec on the Y axis.
+pub fn flip_pixels_y(
+    internal_format: TexFormat,
+    data_type: TexDataType,
+    width: usize,
+    height: usize,
+    unpacking_alignment: usize,
+    pixels: Vec<u8>,
+) -> Vec<u8> {
+    let cpp = (data_type.element_size() * internal_format.components() /
+        data_type.components_per_element()) as usize;
+
+    let stride = (width * cpp + unpacking_alignment - 1) & !(unpacking_alignment - 1);
+
+    let mut flipped = Vec::<u8>::with_capacity(pixels.len());
+
+    for y in 0..height {
+        let flipped_y = height - 1 - y;
+        let start = flipped_y * stride;
+
+        flipped.extend_from_slice(&pixels[start..(start + width * cpp)]);
+        flipped.extend(vec![0u8; stride - width * cpp]);
+    }
+
+    flipped
 }
