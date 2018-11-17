@@ -14,7 +14,7 @@ use crate::values::generics::basic_shape::{ShapeBox, ShapeSource};
 use crate::values::generics::rect::Rect;
 use crate::values::specified::border::BorderRadius;
 use crate::values::specified::image::Image;
-use crate::values::specified::position::{HorizontalPosition, VerticalPosition, Position};
+use crate::values::specified::position::{HorizontalPosition, Position, VerticalPosition};
 use crate::values::specified::url::SpecifiedUrl;
 use crate::values::specified::LengthOrPercentage;
 use crate::values::specified::SVGPathData;

@@ -362,21 +362,24 @@ impl Parse for Rotate {
         // The rotate axis and angle could be in any order, so we parse angle twice to cover
         // two cases. i.e. `<number>{3} <angle>` or `<angle> <number>{3}`
         let angle = input.try(|i| specified::Angle::parse(context, i)).ok();
-        let axis = input.try(|i| {
-            Ok(try_match_ident_ignore_ascii_case! { i,
-                "x" => (Number::new(1.), Number::new(0.), Number::new(0.)),
-                "y" => (Number::new(0.), Number::new(1.), Number::new(0.)),
-                "z" => (Number::new(0.), Number::new(0.), Number::new(1.)),
+        let axis = input
+            .try(|i| {
+                Ok(try_match_ident_ignore_ascii_case! { i,
+                    "x" => (Number::new(1.), Number::new(0.), Number::new(0.)),
+                    "y" => (Number::new(0.), Number::new(1.), Number::new(0.)),
+                    "z" => (Number::new(0.), Number::new(0.), Number::new(1.)),
+                })
             })
-        }).or_else(|_: ParseError| -> Result<_, ParseError> {
-            input.try(|i| {
-                Ok((
-                    Number::parse(context, i)?,
-                    Number::parse(context, i)?,
-                    Number::parse(context, i)?,
-                ))
+            .or_else(|_: ParseError| -> Result<_, ParseError> {
+                input.try(|i| {
+                    Ok((
+                        Number::parse(context, i)?,
+                        Number::parse(context, i)?,
+                        Number::parse(context, i)?,
+                    ))
+                })
             })
-        }).ok();
+            .ok();
         let angle = match angle {
             Some(a) => a,
             None => specified::Angle::parse(context, input)?,

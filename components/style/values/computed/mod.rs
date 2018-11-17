@@ -4,6 +4,7 @@
 
 //! Computed values.
 
+use self::transform::DirectionVector;
 use super::animated::ToAnimatedValue;
 use super::generics::grid::GridTemplateComponent as GenericGridTemplateComponent;
 use super::generics::grid::{GridLine as GenericGridLine, TrackBreadth as GenericTrackBreadth};
@@ -23,7 +24,6 @@ use crate::Atom;
 #[cfg(feature = "servo")]
 use crate::Prefix;
 use euclid::Size2D;
-use self::transform::DirectionVector;
 use std::cell::RefCell;
 use std::cmp;
 use std::f32;
@@ -467,7 +467,10 @@ impl IsParallelTo for (Number, Number, Number) {
         // If a and b is parallel, the angle between them is 0deg, so
         // a x b = |a|*|b|*sin(0)*n = 0 * n, |a x b| == 0.
         let self_vector = DirectionVector::new(self.0, self.1, self.2);
-        self_vector.cross(*vector).square_length().approx_eq(&0.0f32)
+        self_vector
+            .cross(*vector)
+            .square_length()
+            .approx_eq(&0.0f32)
     }
 }
 

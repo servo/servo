@@ -300,7 +300,10 @@ impl IsParallelTo for (Number, Number, Number) {
         // If a and b is parallel, the angle between them is 0deg, so
         // a x b = |a|*|b|*sin(0)*n = 0 * n, |a x b| == 0.
         let self_vector = DirectionVector::new(self.0.get(), self.1.get(), self.2.get());
-        self_vector.cross(*vector).square_length().approx_eq(&0.0f32)
+        self_vector
+            .cross(*vector)
+            .square_length()
+            .approx_eq(&0.0f32)
     }
 }
 

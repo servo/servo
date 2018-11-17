@@ -325,7 +325,11 @@ impl MediaFeatureExpression {
                 };
 
                 let atom = Atom::from(string_as_ascii_lowercase(feature_name));
-                match MEDIA_FEATURES.iter().enumerate().find(|(_, f)| f.name == atom) {
+                match MEDIA_FEATURES
+                    .iter()
+                    .enumerate()
+                    .find(|(_, f)| f.name == atom)
+                {
                     Some((i, f)) => Ok((i, f, range)),
                     None => Err(()),
                 }

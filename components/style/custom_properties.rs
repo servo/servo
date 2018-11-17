@@ -335,7 +335,8 @@ impl VariableValue {
         let (first_token_type, css, last_token_type) =
             parse_self_contained_declaration_value(input, Some(&mut references))?;
 
-        let custom_property_references = references.custom_property_references
+        let custom_property_references = references
+            .custom_property_references
             .into_iter()
             .collect::<Vec<_>>()
             .into_boxed_slice();
