@@ -132,7 +132,7 @@ dependencies = [
  "euclid 0.19.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.42 (registry+https://github.com/rust-lang/crates.io-index)",
  "servo-freetype-sys 4.0.4 (registry+https://github.com/rust-lang/crates.io-index)",
- "servo-skia 0.30000020.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "servo-skia 0.30000020.0 (git+https://github.com/Eijebong/skia.git)",
 ]
 
 [[package]]
@@ -3543,7 +3543,7 @@ dependencies = [
 [[package]]
 name = "servo-skia"
 version = "0.30000020.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
+source = "git+https://github.com/Eijebong/skia.git#7c08d19481871fec93782089bd114ccba38a25cc"
 dependencies = [
  "cgl 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "cmake 0.1.29 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -5078,7 +5078,7 @@ dependencies = [
 "checksum servo-media-audio 0.1.0 (git+https://github.com/servo/media)" = "<none>"
 "checksum servo-media-gstreamer 0.1.0 (git+https://github.com/servo/media)" = "<none>"
 "checksum servo-media-player 0.1.0 (git+https://github.com/servo/media)" = "<none>"
-"checksum servo-skia 0.30000020.0 (registry+https://github.com/rust-lang/crates.io-index)" = "0b966ab30b181ee1d20a1d2e1c822d07bba70cce87c430d3bce7d2653c612d3e"
+"checksum servo-skia 0.30000020.0 (git+https://github.com/Eijebong/skia.git)" = "<none>"
 "checksum servo_media_derive 0.1.0 (git+https://github.com/servo/media)" = "<none>"
 "checksum sha-1 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)" = "51b9d1f3b5de8a167ab06834a7c883bd197f2191e1dda1a22d9ccfeedbf9aded"
 "checksum sha1 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)" = "2579985fda508104f7587689507983eadd6a6e84dd35d6d115361f530916fa0d"
