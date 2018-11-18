@@ -17,6 +17,7 @@ canvas = {path = "../canvas"}
 clipboard = "0.5"
 canvas_traits = {path = "../canvas_traits"}
 compositing = {path = "../compositing"}
+crossbeam-channel = "0.3"
 debugger = {path = "../debugger"}
 devtools_traits = {path = "../devtools_traits"}
 euclid = "0.19"
@@ -35,7 +36,6 @@ net_traits = {path = "../net_traits"}
 profile_traits = {path = "../profile_traits"}
 script_traits = {path = "../script_traits"}
 serde = "1.0"
-servo_channel = {path = "../channel"}
 style_traits = {path = "../style_traits"}
 servo_config = {path = "../config"}
 servo_rand = {path = "../rand"}

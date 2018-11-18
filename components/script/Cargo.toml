@@ -42,6 +42,7 @@ canvas_traits = {path = "../canvas_traits"}
 caseless = "0.2"
 cookie = "0.11"
 chrono = "0.4"
+crossbeam-channel = "0.3"
 cssparser = "0.25"
 deny_public_fields = {path = "../deny_public_fields"}
 devtools_traits = {path = "../devtools_traits"}
@@ -94,7 +95,6 @@ serde_bytes = "0.10"
 servo_allocator = {path = "../allocator"}
 servo_arc = {path = "../servo_arc"}
 servo_atoms = {path = "../atoms"}
-servo_channel = {path = "../channel"}
 servo_config = {path = "../config"}
 servo_geometry = {path = "../geometry" }
 servo-media = {git = "https://github.com/servo/media"}

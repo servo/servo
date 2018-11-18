@@ -5,6 +5,7 @@
 use app_units::Au;
 use crate::rpc::LayoutRPC;
 use crate::{OpaqueStyleAndLayoutData, PendingImage, TrustedNodeAddress};
+use crossbeam_channel::{Receiver, Sender};
 use euclid::{Point2D, Rect};
 use gfx_traits::Epoch;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
@@ -17,7 +18,6 @@ use script_traits::{ConstellationControlMsg, LayoutControlMsg, LayoutMsg as Cons
 use script_traits::{ScrollState, UntrustedNodeAddress, WindowSizeData};
 use servo_arc::Arc as ServoArc;
 use servo_atoms::Atom;
-use servo_channel::{Receiver, Sender};
 use servo_url::ServoUrl;
 use std::sync::Arc;
 use style::context::QuirksMode;

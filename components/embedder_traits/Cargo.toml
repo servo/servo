@@ -11,13 +11,13 @@ name = "embedder_traits"
 path = "lib.rs"
 
 [dependencies]
+crossbeam-channel = "0.3"
 ipc-channel = "0.11"
 keyboard-types = "0.4.3"
 lazy_static = "1"
 log = "0.4"
 msg = {path = "../msg"}
 serde = "1.0"
-servo_channel = {path = "../channel"}
 servo_url = {path = "../url"}
 style_traits = {path = "../style_traits", features = ["servo"]}
 webrender_api = {git = "https://github.com/servo/webrender", features = ["ipc"]}

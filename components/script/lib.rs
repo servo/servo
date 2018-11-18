@@ -20,6 +20,8 @@
 #[macro_use]
 extern crate bitflags;
 #[macro_use]
+extern crate crossbeam_channel;
+#[macro_use]
 extern crate cssparser;
 #[macro_use]
 extern crate deny_public_fields;
@@ -45,8 +47,6 @@ extern crate malloc_size_of_derive;
 extern crate profile_traits;
 #[macro_use]
 extern crate servo_atoms;
-#[macro_use]
-extern crate servo_channel;
 #[macro_use]
 extern crate style;
 

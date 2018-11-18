@@ -36,6 +36,8 @@ extern crate byteorder;
 #[macro_use]
 #[no_link]
 extern crate cfg_if;
+#[cfg(feature = "servo")]
+extern crate crossbeam_channel;
 #[macro_use]
 extern crate cssparser;
 #[macro_use]
@@ -84,8 +86,6 @@ pub extern crate servo_arc;
 #[cfg(feature = "servo")]
 #[macro_use]
 extern crate servo_atoms;
-#[cfg(feature = "servo")]
-extern crate servo_channel;
 #[cfg(feature = "servo")]
 extern crate servo_config;
 #[cfg(feature = "servo")]

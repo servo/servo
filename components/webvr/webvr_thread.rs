@@ -3,13 +3,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use canvas_traits::webgl;
+use crossbeam_channel::{unbounded, Receiver, Sender};
 use euclid::Size2D;
 use ipc_channel::ipc;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use msg::constellation_msg::PipelineId;
 use rust_webvr::VRServiceManager;
 use script_traits::ConstellationMsg;
-use servo_channel::{channel, Receiver, Sender};
 use servo_config::prefs::PREFS;
 use std::collections::{HashMap, HashSet};
 use std::{thread, time};
@@ -71,7 +71,7 @@ impl WebVRThread {
         vr_compositor_chan: WebVRCompositorSender,
     ) -> (IpcSender<WebVRMsg>, Sender<Sender<ConstellationMsg>>) {
         let (sender, receiver) = ipc::channel().unwrap();
-        let (constellation_sender, constellation_receiver) = channel();
+        let (constellation_sender, constellation_receiver) = unbounded();
         let sender_clone = sender.clone();
         thread::Builder::new()
             .name("WebVRThread".into())
@@ -361,7 +361,7 @@ pub type WebVRCompositorSender = Sender<Option<WebVRCompositor>>;
 
 impl WebVRCompositorHandler {
     pub fn new() -> (Box<WebVRCompositorHandler>, WebVRCompositorSender) {
-        let (sender, receiver) = channel();
+        let (sender, receiver) = unbounded();
         let instance = Box::new(WebVRCompositorHandler {
             compositors: HashMap::new(),
             webvr_thread_receiver: receiver,

@@ -11,11 +11,12 @@ use crate::dom::abstractworker::WorkerScriptMsg;
 use crate::dom::bindings::structuredclone::StructuredCloneData;
 use crate::dom::serviceworkerglobalscope::{ServiceWorkerGlobalScope, ServiceWorkerScriptMsg};
 use crate::dom::serviceworkerregistration::longest_prefix_match;
+use crossbeam_channel::{unbounded, Receiver, RecvError, Sender};
 use devtools_traits::{DevtoolsPageInfo, ScriptToDevtoolsControlMsg};
 use ipc_channel::ipc::{self, IpcSender};
+use ipc_channel::router::ROUTER;
 use net_traits::{CoreResourceMsg, CustomResponseMediator};
 use script_traits::{DOMMessage, SWManagerMsg, SWManagerSenders, ScopeThings, ServiceWorkerMsg};
-use servo_channel::{channel, route_ipc_receiver_to_new_servo_receiver, Receiver, Sender};
 use servo_config::prefs::PREFS;
 use servo_url::ServoUrl;
 use std::collections::HashMap;
@@ -58,8 +59,8 @@ impl ServiceWorkerManager {
         let (own_sender, from_constellation_receiver) = ipc::channel().unwrap();
         let (resource_chan, resource_port) = ipc::channel().unwrap();
         let from_constellation =
-            route_ipc_receiver_to_new_servo_receiver(from_constellation_receiver);
-        let resource_port = route_ipc_receiver_to_new_servo_receiver(resource_port);
+            ROUTER.route_ipc_receiver_to_new_crossbeam_receiver(from_constellation_receiver);
+        let resource_port = ROUTER.route_ipc_receiver_to_new_crossbeam_receiver(resource_port);
         let _ = sw_senders
             .resource_sender
             .send(CoreResourceMsg::NetworkMediator(resource_chan));
@@ -90,7 +91,7 @@ impl ServiceWorkerManager {
     ) -> Option<Sender<ServiceWorkerScriptMsg>> {
         let scope_things = self.registered_workers.get(&scope_url);
         if let Some(scope_things) = scope_things {
-            let (sender, receiver) = channel();
+            let (sender, receiver) = unbounded();
             let (devtools_sender, devtools_receiver) = ipc::channel().unwrap();
             if let Some(ref chan) = scope_things.devtools_chan {
                 let title = format!("ServiceWorker for {}", scope_things.script_url);
@@ -122,7 +123,7 @@ impl ServiceWorkerManager {
     }
 
     fn handle_message(&mut self) {
-        while let Some(message) = self.receive_message() {
+        while let Ok(message) = self.receive_message() {
             let should_continue = match message {
                 Message::FromConstellation(msg) => self.handle_message_from_constellation(msg),
                 Message::FromResource(msg) => self.handle_message_from_resource(msg),
@@ -196,10 +197,10 @@ impl ServiceWorkerManager {
         true
     }
 
-    fn receive_message(&mut self) -> Option<Message> {
+    fn receive_message(&mut self) -> Result<Message, RecvError> {
         select! {
-            recv(self.own_port.select(), msg) => msg.map(Message::FromConstellation),
-            recv(self.resource_receiver.select(), msg) => msg.map(Message::FromResource),
+            recv(self.own_port) -> msg => msg.map(Message::FromConstellation),
+            recv(self.resource_receiver) -> msg => msg.map(Message::FromResource),
         }
     }
 }
