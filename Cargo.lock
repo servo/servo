@@ -1241,7 +1241,7 @@ dependencies = [
  "malloc_size_of 0.0.1",
  "net_traits 0.0.1",
  "ordered-float 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "packed_simd 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "packed_simd 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "range 0.0.1",
  "serde 1.0.80 (registry+https://github.com/rust-lang/crates.io-index)",
  "servo-fontconfig 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -2791,7 +2791,7 @@ dependencies = [
 
 [[package]]
 name = "packed_simd"
-version = "0.1.0"
+version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "cfg-if 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -5016,7 +5016,7 @@ dependencies = [
 "checksum osmesa-sys 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)" = "88cfece6e95d2e717e0872a7f53a8684712ad13822a7979bc760b9c77ec0013b"
 "checksum ovr-mobile-sys 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)" = "a69b517feac6fc640f0679625defa0998bbcb32871a6901e63063c2abf9c4cbe"
 "checksum owning_ref 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)" = "cdf84f41639e037b484f93433aa3897863b561ed65c6e59c7073d7c561710f37"
-"checksum packed_simd 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)" = "896127ce3177896dac9d26ff64d5efe607d1d6993ad141f8e314377dbedda40d"
+"checksum packed_simd 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)" = "25d36de864f7218ec5633572a800109bbe5a1cc8d9d95a967f3daf93ea7e6ddc"
 "checksum parking_lot 0.6.3 (registry+https://github.com/rust-lang/crates.io-index)" = "69376b761943787ebd5cc85a5bc95958651a22609c5c1c2b65de21786baec72b"
 "checksum parking_lot_core 0.2.13 (registry+https://github.com/rust-lang/crates.io-index)" = "538ef00b7317875071d5e00f603f24d16f0b474c1a5fc0ccb8b454ca72eafa79"
 "checksum peeking_take_while 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)" = "19b17cddbe7ec3f8bc800887bab5e717348c95ea2ca0b1bf0837fb964dc67099"
