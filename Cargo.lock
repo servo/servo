@@ -981,7 +981,7 @@ dependencies = [
 
 [[package]]
 name = "encoding_rs"
-version = "0.7.1"
+version = "0.8.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "cfg-if 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -3225,7 +3225,7 @@ dependencies = [
  "dom_struct 0.0.1",
  "domobject_derive 0.0.1",
  "embedder_traits 0.0.1",
- "encoding_rs 0.7.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "encoding_rs 0.8.12 (registry+https://github.com/rust-lang/crates.io-index)",
  "enum-iterator 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "euclid 0.19.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "fnv 1.0.5 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -3823,7 +3823,7 @@ dependencies = [
  "cfg-if 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "crossbeam-channel 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "cssparser 0.25.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "encoding_rs 0.7.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "encoding_rs 0.8.12 (registry+https://github.com/rust-lang/crates.io-index)",
  "euclid 0.19.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "fallible 0.0.1",
  "fxhash 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -4880,7 +4880,7 @@ dependencies = [
 "checksum dtoa-short 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)" = "fe6f727b406462fd57c95fed84d1b0dbfb5f0136fcac005adba9ea0367c05cc8"
 "checksum dwrote 0.6.1 (registry+https://github.com/rust-lang/crates.io-index)" = "18e895b763d82cafef31c7c1e2f4f17fb70f385ac651b0918a46ff5790664a63"
 "checksum either 1.1.0 (registry+https://github.com/rust-lang/crates.io-index)" = "18785c1ba806c258137c937e44ada9ee7e69a37e3c72077542cd2f069d78562a"
-"checksum encoding_rs 0.7.1 (registry+https://github.com/rust-lang/crates.io-index)" = "f5215aabf22b83153be3ee44dfe3f940214541b2ce13d419c55e7a115c8c51a9"
+"checksum encoding_rs 0.8.12 (registry+https://github.com/rust-lang/crates.io-index)" = "ca20350a7cb5aab5b9034731123d6d412caf3e92d4985e739e411ba0955fd0eb"
 "checksum energy-monitor 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)" = "fe872d0664f1cc60db36349af245d892ee67d3c8f78055df0ebc43271fd4e05c"
 "checksum energymon 0.3.0 (git+https://github.com/energymon/energymon-rust.git)" = "<none>"
 "checksum energymon-builder 0.3.0 (git+https://github.com/energymon/energymon-sys.git)" = "<none>"

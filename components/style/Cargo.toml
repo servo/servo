@@ -34,7 +34,7 @@ cfg-if = "0.1.0"
 cssparser = "0.25"
 crossbeam-channel = { version = "0.3", optional = true }
 new_debug_unreachable = "1.0"
-encoding_rs = {version = "0.7", optional = true}
+encoding_rs = {version = "0.8", optional = true}
 euclid = "0.19"
 fallible = { path = "../fallible" }
 fxhash = "0.2"
