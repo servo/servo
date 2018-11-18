@@ -62,6 +62,10 @@ impl ServiceWorkerRegistration {
         )
     }
 
+    pub fn active(&self) -> Option<&Dom<ServiceWorker>> {
+        self.active.as_ref()
+    }
+
     pub fn get_installed(&self) -> &ServiceWorker {
         self.active.as_ref().unwrap()
     }
