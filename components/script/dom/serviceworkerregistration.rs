@@ -7,11 +7,12 @@ use crate::dom::bindings::codegen::Bindings::ServiceWorkerRegistrationBinding::S
 use crate::dom::bindings::codegen::Bindings::ServiceWorkerRegistrationBinding::{
     ServiceWorkerRegistrationMethods, Wrap,
 };
-use crate::dom::bindings::reflector::reflect_dom_object;
-use crate::dom::bindings::root::{Dom, DomRoot};
+use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
+use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::USVString;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
+use crate::dom::navigationpreloadmanager::NavigationPreloadManager;
 use crate::dom::serviceworker::ServiceWorker;
 use crate::dom::workerglobalscope::prepare_workerscope_init;
 use dom_struct::dom_struct;
@@ -25,6 +26,7 @@ pub struct ServiceWorkerRegistration {
     active: Option<Dom<ServiceWorker>>,
     installing: Option<Dom<ServiceWorker>>,
     waiting: Option<Dom<ServiceWorker>>,
+    navigation_preload: MutNullableDom<NavigationPreloadManager>,
     scope: ServoUrl,
     update_via_cache: ServiceWorkerUpdateViaCache,
     uninstalling: Cell<bool>,
@@ -37,6 +39,7 @@ impl ServiceWorkerRegistration {
             active: Some(Dom::from_ref(active_sw)),
             installing: None,
             waiting: None,
+            navigation_preload: MutNullableDom::new(None),
             scope: scope,
             update_via_cache: ServiceWorkerUpdateViaCache::Imports,
             uninstalling: Cell::new(false),
@@ -52,6 +55,7 @@ impl ServiceWorkerRegistration {
         let active_worker =
             ServiceWorker::install_serviceworker(global, script_url.clone(), scope.clone(), true);
         active_worker.set_transition_state(ServiceWorkerState::Installed);
+
         reflect_dom_object(
             Box::new(ServiceWorkerRegistration::new_inherited(
                 &*active_worker,
@@ -62,8 +66,8 @@ impl ServiceWorkerRegistration {
         )
     }
 
-    pub fn active(&self) -> Option<&Dom<ServiceWorker>> {
-        self.active.as_ref()
+    pub fn active(&self) -> Option<&ServiceWorker> {
+        self.active.as_ref().map(|sw| &**sw)
     }
 
     pub fn get_installed(&self) -> &ServiceWorker {
@@ -150,5 +154,11 @@ impl ServiceWorkerRegistrationMethods for ServiceWorkerRegistration {
     // https://w3c.github.io/ServiceWorker/#service-worker-registration-updateviacache
     fn UpdateViaCache(&self) -> ServiceWorkerUpdateViaCache {
         self.update_via_cache
+    }
+
+    // https://w3c.github.io/ServiceWorker/#service-worker-registration-navigationpreload
+    fn NavigationPreload(&self) -> DomRoot<NavigationPreloadManager> {
+        self.navigation_preload
+            .or_init(|| NavigationPreloadManager::new(&self.global(), &self))
     }
 }
