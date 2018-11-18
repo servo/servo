@@ -318,7 +318,6 @@ impl Request {
             Referrer::NoReferrer
         };
         req.referrer_policy = init.referrer_policy;
-        req.pipeline_id = init.pipeline_id;
         req.redirect_mode = init.redirect_mode;
         let mut url_list = init.url_list;
         if url_list.is_empty() {
