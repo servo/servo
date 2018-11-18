@@ -1208,6 +1208,9 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             if let Err(result) = self.is_ready_to_paint_image_output() {
                 return Err(UnableToComposite::NotReadyToPaintImage(result));
             }
+
+            // Ensure that all async scene operations are complete.
+            self.webrender_api.flush_scene_builder();
         }
 
         let rt_info = match target {
