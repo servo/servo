@@ -398,6 +398,7 @@ pub mod mouseevent;
 pub mod mutationobserver;
 pub mod mutationrecord;
 pub mod namednodemap;
+pub mod navigationpreloadmanager;
 pub mod navigator;
 pub mod navigatorinfo;
 pub mod node;
