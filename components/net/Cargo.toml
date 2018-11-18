@@ -17,7 +17,7 @@ doctest = false
 
 [dependencies]
 base64 = "0.9"
-brotli = "2.5"
+brotli = "3"
 bytes = "0.4"
 cookie_rs = {package = "cookie", version = "0.11"}
 crossbeam-channel = "0.3"
