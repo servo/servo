@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+  <meta charset="utf-8">
+  <title>CSS Multi-column Layout Test Reference: columns with list-item, column-span, and overflow</title>
+  <link rel="author" title="Ting-Yu Lin" href="tlin@mozilla.com">
+  <link rel="author" title="Mozilla" href="http://www.mozilla.org/">
+
+  <style>
+  li {
+    width: 300px;
+    outline: 1px solid black;
+    margin-bottom: 1em;
+    overflow: hidden;
+  }
+  h3 {
+    outline: 1px solid blue;
+    margin: 0;
+  }
+  </style>
+
+  <body>
+    <ul>
+      <li style="list-style-position: outside;">
+        bullet outside
+        <h3>spanner</h3>
+      </li>
+      <li style="list-style-position: inside;">
+        bullet inside
+        <h3>spanner</h3>
+      </li>
+      <li style="list-style-position: outside;">
+        <h3>spanner (bullet outside)</h3>
+      </li>
+      <li style="list-style-position: inside;">
+        <h3>spanner (bullet inside)</h3>
+      </li>
+      <li style="list-style-position: outside;">
+        <div>
+          <h3>nested spanner (bullet outside)</h3>
+        </div>
+      </li>
+      <li style="list-style-position: inside;">
+        <div>
+          <h3>nested spanner (bullet inside)</h3>
+        </div>
+      </li>
+    </ul>
+  </body>
+</html>

@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg"
+     xmlns:h="http://www.w3.org/1999/xhtml"
+     width="800px" height="600px">
+  <title>SVG Painting: parsing stroke-width with invalid values</title>
+  <metadata>
+    <h:link rel="help" href="https://svgwg.org/svg2-draft/painting.html#StrokeWidth"/>
+    <h:meta name="assert" content="stroke-width supports only the grammar '&lt;length-percentage&gt;'."/>
+  </metadata>
+  <g id="target"></g>
+  <h:script src="/resources/testharness.js"/>
+  <h:script src="/resources/testharnessreport.js"/>
+  <h:script src="/css/support/parsing-testcommon.js"/>
+  <script><![CDATA[
+
+test_invalid_value("stroke-width", "auto");
+test_invalid_value("stroke-width", "10px 20px");
+test_invalid_value("stroke-width", "-1px");
+test_invalid_value("stroke-width", "-10%");
+
+  ]]></script>
+</svg>

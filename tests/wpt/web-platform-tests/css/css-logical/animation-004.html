@@ -28,14 +28,22 @@ function makeDeclaration(object = {}) {
  *                    element before starting the transition.
  * @param finalStyles  A dictionary object with property names and values towards which
  *                     the element will transition.
+ * @param [transitionStyles]  An optional dictionary object to costumize the transition.
  */
-function transition(t, baseStyles, finalStyles) {
+function transition(t, baseStyles, finalStyles, transitionStyles = {}) {
   // Clear styles from previous test.
   testEl.style.cssText = "";
   testEl.className = "";
   getComputedStyle(testEl).height;
 
-  // Set base styles
+  // Set base and final styles
+  addStyle(t, {
+    "#test": makeDeclaration(baseStyles),
+    "#test.transition": makeDeclaration(finalStyles),
+  });
+  getComputedStyle(testEl).height;
+
+  // Set transition styles
   const defaultTransition = {
     "transition-property": Object.keys(finalStyles).join(", "),
     "transition-timing-function": "linear",
@@ -43,10 +51,8 @@ function transition(t, baseStyles, finalStyles) {
     "transition-delay": "-5s",
   };
   addStyle(t, {
-    "#test": makeDeclaration(Object.assign(defaultTransition, baseStyles)),
-    "#test.transition": makeDeclaration(finalStyles),
+    "#test": makeDeclaration(Object.assign(defaultTransition, transitionStyles)),
   });
-  getComputedStyle(testEl).height;
 
   // Start the transition
   testEl.className = "transition";
@@ -95,22 +101,22 @@ test(t => {
 }, 'Declaration order is respected within declaration blocks');
 
 test(t => {
-  transition(t, {
-    "transition-timing-function": "step-start",
-  }, {
+  transition(t, {}, {
     "margin-top": "200px",
     "margin-block-start": "100px"
+  }, {
+    "transition-timing-function": "step-start",
   });
   assert_equals(getComputedStyle(testEl).marginTop, '100px');
 }, 'Logical properties are able to override physical properties in declaration blocks');
 
 test(t => {
-  transition(t, {
-    "transition-timing-function": "step-start",
-  }, {
+  transition(t, {}, {
     "margin-inline": "200px",
     "margin-inline-start": "0px",
     "margin-inline-start": "100px",
+  }, {
+    "transition-timing-function": "step-start",
   });
   assert_equals(getComputedStyle(testEl).marginLeft, '100px');
 }, 'Declaration order is respected amongst logical properties within declaration blocks');
@@ -153,12 +159,13 @@ test(t => {
 
 promise_test(async t => {
   transition(t, {
-    "transition-delay": "-9.9s",
     "width": "0px",
     "height": "0px",
     "block-size": "0px",
   }, {
     "block-size": "100px",
+  }, {
+    "transition-delay": "-9.9s",
   });
   const watcher = new EventWatcher(t, testEl, [ 'transitionend' ]);
   await watcher.wait_for('transitionend');
@@ -247,4 +254,31 @@ test(t => {
   assert_equals(getComputedStyle(testEl).marginRight, '50px');
 }, 'Transitions update when the direction is changed');
 
+test(t => {
+  transition(t, {
+    "margin-inline-start": "100px",
+  }, {
+    "margin-left": "200px",
+  });
+  assert_equals(getComputedStyle(testEl).marginLeft, '150px');
+  assert_equals(getComputedStyle(testEl).marginRight, '0px');
+
+  testEl.style.direction = 'rtl';
+  assert_equals(getComputedStyle(testEl).marginLeft, '150px');
+  assert_equals(getComputedStyle(testEl).marginRight, '100px');
+}, 'Transitions from logical to physical update when the direction is changed');
+
+test(t => {
+  transition(t, {
+    "margin-left": "200px",
+  }, {
+    "margin-inline-start": "100px",
+  });
+  assert_equals(getComputedStyle(testEl).marginLeft, '150px');
+  assert_equals(getComputedStyle(testEl).marginRight, '0px');
+
+  testEl.style.direction = 'rtl';
+  assert_equals(getComputedStyle(testEl).marginLeft, '200px');
+  assert_equals(getComputedStyle(testEl).marginRight, '50px');
+}, 'Transitions from physical to logical update when the direction is changed');
 </script>
