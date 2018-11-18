@@ -110,7 +110,7 @@ unsafe fn suspend_thread(thread_id: MonitoredThreadId) -> Result<(), ()> {
 
 #[cfg(target_os = "windows")]
 #[allow(unsafe_code)]
-unsafe fn suspend_thread(thread_id: MonitoredThreadId) -> Result<(), ()> {
+unsafe fn suspend_thread(_thread_id: MonitoredThreadId) -> Result<(), ()> {
     // TODO: use winapi::um::processthreadsapi::SuspendThread
     Err(())
 }
@@ -158,7 +158,7 @@ unsafe fn get_registers(thread_id: MonitoredThreadId) -> Result<Registers, ()> {
 
 #[cfg(target_os = "windows")]
 #[allow(unsafe_code)]
-unsafe fn get_registers(thread_id: MonitoredThreadId) -> Result<Registers, ()> {
+unsafe fn get_registers(_thread_id: MonitoredThreadId) -> Result<Registers, ()> {
     // TODO: use winapi::um::processthreadsapi::GetThreadContext
     // and populate registers using the context.
     // See https://dxr.mozilla.org/mozilla-central/source/tools/profiler/core/platform-win32.cpp#129
@@ -204,6 +204,7 @@ unsafe fn resume_thread(thread_id: MonitoredThreadId) -> Result<(), ()> {
 #[allow(unsafe_code)]
 unsafe fn resume_thread(_thread_id: MonitoredThreadId) -> Result<(), ()> {
     // TODO: use winapi::um::processthreadsapi::ResumeThread
+    Err(())
 }
 
 #[cfg(any(target_os = "android", target_os = "linux"))]
