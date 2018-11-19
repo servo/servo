@@ -1,6 +1,6 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 //! Servo's experimental layout system builds a tree of `Flow` and `Fragment` objects and solves
 //! layout constraints to obtain positions and display attributes of tree nodes. Positions are
