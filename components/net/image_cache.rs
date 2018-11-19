@@ -4,11 +4,12 @@
 
 use embedder_traits::resources::{self, Resource};
 use immeta::load_from_buf;
-use net_traits::image::base::{load_from_memory, Image, ImageMetadata, PixelFormat};
+use net_traits::image::base::{load_from_memory, Image, ImageMetadata};
 use net_traits::image_cache::{CanRequestImages, ImageCache, ImageResponder};
 use net_traits::image_cache::{ImageOrMetadataAvailable, ImageResponse, ImageState};
 use net_traits::image_cache::{PendingImageId, UsePlaceholder};
 use net_traits::{FetchMetadata, FetchResponseMsg, NetworkError};
+use pixels::PixelFormat;
 use servo_url::ServoUrl;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::collections::HashMap;

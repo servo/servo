@@ -66,10 +66,9 @@ use js::typedarray::{
     ArrayBufferView, CreateWith, Float32, Float32Array, Int32, Int32Array, Uint32Array,
 };
 use js::typedarray::{TypedArray, TypedArrayElementCreator};
-use net_traits::image::base::PixelFormat;
 use net_traits::image_cache::ImageResponse;
 use offscreen_gl_context::{GLContextAttributes, GLLimits};
-use pixels;
+use pixels::{self, PixelFormat};
 use script_layout_interface::HTMLCanvasDataSource;
 use serde::{Deserialize, Serialize};
 use servo_config::prefs::PREFS;

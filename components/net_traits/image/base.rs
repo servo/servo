@@ -4,19 +4,8 @@
 
 use ipc_channel::ipc::IpcSharedMemory;
 use piston_image::{DynamicImage, ImageFormat};
+use pixels::PixelFormat;
 use std::fmt;
-
-#[derive(Clone, Copy, Debug, Deserialize, Eq, MallocSizeOf, PartialEq, Serialize)]
-pub enum PixelFormat {
-    /// Luminance channel only
-    K8,
-    /// Luminance + alpha
-    KA8,
-    /// RGB, 8 bits per channel
-    RGB8,
-    /// RGB + alpha, 8 bits per channel
-    BGRA8,
-}
 
 #[derive(Clone, Deserialize, MallocSizeOf, Serialize)]
 pub struct Image {

@@ -22,7 +22,7 @@ use libc::c_void;
 use msg::constellation_msg::{PipelineId, PipelineIndex, PipelineNamespaceId};
 use net_traits::image::base::Image;
 #[cfg(feature = "gl")]
-use net_traits::image::base::PixelFormat;
+use pixels::PixelFormat;
 use profile_traits::time::{self as profile_time, profile, ProfilerCategory};
 use script_traits::CompositorEvent::{MouseButtonEvent, MouseMoveEvent, TouchEvent};
 use script_traits::{AnimationState, AnimationTickType, ConstellationMsg, LayoutControlMsg};

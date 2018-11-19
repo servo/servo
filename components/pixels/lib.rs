@@ -2,8 +2,24 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+#[macro_use]
+extern crate serde;
+
 use euclid::{Point2D, Rect, Size2D};
+use malloc_size_of_derive::MallocSizeOf;
 use std::borrow::Cow;
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, MallocSizeOf, PartialEq, Serialize)]
+pub enum PixelFormat {
+    /// Luminance channel only
+    K8,
+    /// Luminance + alpha
+    KA8,
+    /// RGB, 8 bits per channel
+    RGB8,
+    /// RGB + alpha, 8 bits per channel
+    BGRA8,
+}
 
 pub fn rgba8_get_rect(pixels: &[u8], size: Size2D<u32>, rect: Rect<u32>) -> Cow<[u8]> {
     assert!(!rect.is_empty());
