@@ -35,9 +35,6 @@ use net::hsts::HstsEntry;
 use net::test::HttpState;
 use net_traits::request::{Destination, Origin, RedirectMode, Referrer, Request, RequestMode};
 use net_traits::response::{CacheState, Response, ResponseBody, ResponseType};
-use net_traits::IncludeSubdomains;
-use net_traits::NetworkError;
-use net_traits::ReferrerPolicy;
 use net_traits::{
     IncludeSubdomains, NetworkError, ReferrerPolicy, ResourceFetchTiming, ResourceTimingType,
 };

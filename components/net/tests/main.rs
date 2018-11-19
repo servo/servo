@@ -35,7 +35,6 @@ use net::filemanager_thread::FileManager;
 use net::test::HttpState;
 use net_traits::request::Request;
 use net_traits::response::Response;
-use net_traits::FetchTaskTarget;
 use net_traits::{FetchTaskTarget, ResourceFetchTiming, ResourceTimingType};
 use openssl::ssl::{SslAcceptor, SslFiletype, SslMethod};
 use servo_url::ServoUrl;
@@ -114,7 +113,7 @@ fn fetch(request: &mut Request, dc: Option<Sender<DevtoolsControlMsg>>) -> Respo
     fetch_with_context(request, &mut new_fetch_context(dc, None))
 }
 
-fn fetch_with_context(request: &mut Request, context: &mut FetchContext) -> Response {
+fn fetch_with_context(request: &mut Request, mut context: &mut FetchContext) -> Response {
     let (sender, receiver) = unbounded();
     let mut target = FetchResponseCollector { sender: sender };
 
