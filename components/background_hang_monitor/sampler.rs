@@ -289,6 +289,7 @@ pub unsafe fn suspend_and_sample_thread(thread_id: MonitoredThreadId) -> Option<
         process::abort();
     }));
     if let Err(()) = suspend_thread(thread_id) {
+        panic::set_hook(current_hook);
         return None;
     };
     let native_stack = match get_registers(thread_id) {
