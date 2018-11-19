@@ -1,6 +1,6 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 //! [@document rules](https://www.w3.org/TR/2012/WD-css3-conditional-20120911/#at-document)
 //! initially in CSS Conditional Rules Module Level 3, @document has been postponed to the level 4.
