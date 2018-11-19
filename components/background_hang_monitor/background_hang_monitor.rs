@@ -5,13 +5,13 @@
 #[cfg(any(target_os = "android", target_os = "linux"))]
 use crate::sampler::install_sigprof_handler;
 use crate::sampler::{get_thread_id, suspend_and_sample_thread, MonitoredThreadId};
+use crossbeam_channel::{after, unbounded, Receiver, Sender};
 use ipc_channel::ipc::IpcSender;
 use msg::constellation_msg::MonitoredComponentId;
 use msg::constellation_msg::{
     BackgroundHangMonitor, BackgroundHangMonitorClone, BackgroundHangMonitorRegister,
 };
 use msg::constellation_msg::{HangAlert, HangAnnotation};
-use crossbeam_channel::{after, unbounded, Receiver, Sender};
 use std::cell::Cell;
 use std::collections::HashMap;
 use std::thread;
