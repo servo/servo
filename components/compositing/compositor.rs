@@ -4,7 +4,7 @@
 
 use crate::compositor_thread::{CompositorProxy, CompositorReceiver};
 use crate::compositor_thread::{InitialCompositorState, Msg};
-#[cfg(feature = "gleam")]
+#[cfg(feature = "gl")]
 use crate::gl;
 use crate::touch::{TouchAction, TouchHandler};
 use crate::windowing::{
@@ -15,13 +15,13 @@ use crate::SendableFrameTree;
 use crossbeam_channel::Sender;
 use euclid::{TypedPoint2D, TypedScale, TypedVector2D};
 use gfx_traits::Epoch;
-#[cfg(feature = "gleam")]
+#[cfg(feature = "gl")]
 use image::{DynamicImage, ImageFormat};
 use ipc_channel::ipc;
 use libc::c_void;
 use msg::constellation_msg::{PipelineId, PipelineIndex, PipelineNamespaceId};
 use net_traits::image::base::Image;
-#[cfg(feature = "gleam")]
+#[cfg(feature = "gl")]
 use net_traits::image::base::PixelFormat;
 use profile_traits::time::{self as profile_time, profile, ProfilerCategory};
 use script_traits::CompositorEvent::{MouseButtonEvent, MouseMoveEvent, TouchEvent};
@@ -1211,13 +1211,13 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         }
 
         let rt_info = match target {
-            #[cfg(feature = "gleam")]
+            #[cfg(feature = "gl")]
             CompositeTarget::Window => gl::RenderTargetInfo::default(),
-            #[cfg(feature = "gleam")]
+            #[cfg(feature = "gl")]
             CompositeTarget::WindowAndPng | CompositeTarget::PngFile => {
                 gl::initialize_png(&*self.window.gl(), width, height)
             },
-            #[cfg(not(feature = "gleam"))]
+            #[cfg(not(feature = "gl"))]
             _ => (),
         };
 
@@ -1272,7 +1272,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
         let rv = match target {
             CompositeTarget::Window => None,
-            #[cfg(feature = "gleam")]
+            #[cfg(feature = "gl")]
             CompositeTarget::WindowAndPng => {
                 let img = gl::draw_img(&*self.window.gl(), rt_info, width, height);
                 Some(Image {
@@ -1283,7 +1283,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                     id: None,
                 })
             },
-            #[cfg(feature = "gleam")]
+            #[cfg(feature = "gl")]
             CompositeTarget::PngFile => {
                 let gl = &*self.window.gl();
                 profile(
@@ -1307,7 +1307,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 );
                 None
             },
-            #[cfg(not(feature = "gleam"))]
+            #[cfg(not(feature = "gl"))]
             _ => None,
         };
 

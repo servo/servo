@@ -13,6 +13,7 @@ path = "lib.rs"
 
 [features]
 default = []
+gl = ["gleam"]
 
 [dependencies]
 crossbeam-channel = "0.3"

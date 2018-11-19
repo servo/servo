@@ -6,7 +6,7 @@
 
 use embedder_traits::EventLoopWaker;
 use euclid::TypedScale;
-#[cfg(feature = "gleam")]
+#[cfg(feature = "gl")]
 use gleam::gl;
 use keyboard_types::KeyboardEvent;
 use msg::constellation_msg::{TopLevelBrowsingContextId, TraversalDirection};
@@ -14,7 +14,7 @@ use script_traits::{MouseButton, TouchEventType, TouchId};
 use servo_geometry::DeviceIndependentPixel;
 use servo_url::ServoUrl;
 use std::fmt::{Debug, Error, Formatter};
-#[cfg(feature = "gleam")]
+#[cfg(feature = "gl")]
 use std::rc::Rc;
 use style_traits::DevicePixel;
 use webrender_api::{DeviceIntPoint, DevicePoint, DeviceUintRect, DeviceUintSize, ScrollLocation};
@@ -131,7 +131,7 @@ pub trait WindowMethods {
     /// proceed and false if it should not.
     fn prepare_for_composite(&self) -> bool;
     /// Return the GL function pointer trait.
-    #[cfg(feature = "gleam")]
+    #[cfg(feature = "gl")]
     fn gl(&self) -> Rc<dyn gl::Gl>;
     /// Returns a thread-safe object to wake up the window's event loop.
     fn create_event_loop_waker(&self) -> Box<dyn EventLoopWaker>;
