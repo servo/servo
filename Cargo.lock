@@ -2518,10 +2518,6 @@ dependencies = [
 name = "msg"
 version = "0.0.1"
 dependencies = [
- "bitflags 1.0.3 (registry+https://github.com/rust-lang/crates.io-index)",
- "libc 0.2.42 (registry+https://github.com/rust-lang/crates.io-index)",
- "log 0.4.5 (registry+https://github.com/rust-lang/crates.io-index)",
- "mach 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "malloc_size_of 0.0.1",
  "malloc_size_of_derive 0.0.1",
  "serde 1.0.80 (registry+https://github.com/rust-lang/crates.io-index)",
