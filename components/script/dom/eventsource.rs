@@ -424,7 +424,7 @@ impl FetchResponseListener for EventSourceContext {
 
 impl ResourceTimingListener for EventSourceContext {
     fn resource_timing_information(&self) -> (InitiatorType, ServoUrl) {
-         (InitiatorType::Other, self.event_source.root().url().clone())
+        (InitiatorType::Other, self.event_source.root().url().clone())
     }
 
     fn resource_timing_global(&self) -> DomRoot<GlobalScope> {

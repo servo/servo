@@ -32,9 +32,9 @@ use html5ever::{LocalName, Prefix};
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use js::jsval::UndefinedValue;
+use net_traits::request::{CorsSettings, CredentialsMode, Destination, RequestInit, RequestMode};
 use net_traits::{FetchMetadata, FetchResponseListener, Metadata, NetworkError};
 use net_traits::{ResourceFetchTiming, ResourceTimingType};
-use net_traits::request::{CorsSettings, CredentialsMode, Destination, RequestInit, RequestMode};
 use servo_atoms::Atom;
 use servo_config::opts;
 use servo_url::ServoUrl;
@@ -262,7 +262,12 @@ impl FetchResponseListener for ScriptContext {
 impl ResourceTimingListener for ScriptContext {
     fn resource_timing_information(&self) -> (InitiatorType, ServoUrl) {
         let initiator_type = InitiatorType::LocalName(
-            self.elem.root().upcast::<Element>().local_name().to_string());
+            self.elem
+                .root()
+                .upcast::<Element>()
+                .local_name()
+                .to_string(),
+        );
         (initiator_type, self.url.clone())
     }
 

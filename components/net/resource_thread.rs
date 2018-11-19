@@ -22,14 +22,14 @@ use embedder_traits::EmbedderProxy;
 use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcReceiver, IpcReceiverSet, IpcSender};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
-use net_traits::{CookieSource, CoreResourceThread, CoreResourceMsg};
-use net_traits::{CustomResponseMediator, FetchChannels};
-use net_traits::{FetchResponseMsg, ResourceThreads, WebSocketDomAction};
-use net_traits::{ResourceFetchTiming, ResourceTimingType};
-use net_traits::WebSocketNetworkEvent;
 use net_traits::request::{Destination, Request, RequestInit};
 use net_traits::response::{Response, ResponseInit};
 use net_traits::storage_thread::StorageThreadMsg;
+use net_traits::WebSocketNetworkEvent;
+use net_traits::{CookieSource, CoreResourceMsg, CoreResourceThread};
+use net_traits::{CustomResponseMediator, FetchChannels};
+use net_traits::{FetchResponseMsg, ResourceThreads, WebSocketDomAction};
+use net_traits::{ResourceFetchTiming, ResourceTimingType};
 use profile_traits::mem::ProfilerChan as MemProfilerChan;
 use profile_traits::mem::{Report, ReportKind, ReportsChan};
 use profile_traits::time::ProfilerChan;
@@ -462,7 +462,7 @@ impl CoreResourceManager {
                     cancellation_listener: Arc::new(Mutex::new(CancellationListener::new(
                         cancel_chan,
                     ))),
-                   timing: Arc::new(Mutex::new(ResourceFetchTiming::new(request.timing_type()))),
+                    timing: Arc::new(Mutex::new(ResourceFetchTiming::new(request.timing_type()))),
                 };
 
                 match res_init_ {

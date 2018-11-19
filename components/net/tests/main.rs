@@ -33,10 +33,10 @@ use net::fetch::cors_cache::CorsCache;
 use net::fetch::methods::{self, CancellationListener, FetchContext};
 use net::filemanager_thread::FileManager;
 use net::test::HttpState;
-use net_traits::{FetchTaskTarget, ResourceFetchTiming, ResourceTimingType};
 use net_traits::request::Request;
 use net_traits::response::Response;
 use net_traits::FetchTaskTarget;
+use net_traits::{FetchTaskTarget, ResourceFetchTiming, ResourceTimingType};
 use openssl::ssl::{SslAcceptor, SslFiletype, SslMethod};
 use servo_url::ServoUrl;
 use std::net::TcpListener as StdTcpListener;
@@ -94,7 +94,9 @@ fn new_fetch_context(
         devtools_chan: dc,
         filemanager: FileManager::new(sender),
         cancellation_listener: Arc::new(Mutex::new(CancellationListener::new(None))),
-        timing: Arc::new(Mutex::new(ResourceFetchTiming::new(ResourceTimingType::Navigation)))
+        timing: Arc::new(Mutex::new(ResourceFetchTiming::new(
+            ResourceTimingType::Navigation,
+        ))),
     }
 }
 impl FetchTaskTarget for FetchResponseCollector {
@@ -125,7 +127,12 @@ fn fetch_with_cors_cache(request: &mut Request, cache: &mut CorsCache) -> Respon
     let (sender, receiver) = unbounded();
     let mut target = FetchResponseCollector { sender: sender };
 
-    methods::fetch_with_cors_cache(request, cache, &mut target, &mut new_fetch_context(None, None));
+    methods::fetch_with_cors_cache(
+        request,
+        cache,
+        &mut target,
+        &mut new_fetch_context(None, None),
+    );
 
     receiver.recv().unwrap()
 }

@@ -13,7 +13,7 @@ use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::codegen::Bindings::ServoParserBinding;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
-use crate::dom::bindings::reflector::{DomObject, reflect_dom_object, Reflector};
+use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom, RootedReference};
 use crate::dom::bindings::settings_stack::is_execution_stack_empty;
 use crate::dom::bindings::str::DOMString;
@@ -47,7 +47,7 @@ use msg::constellation_msg::PipelineId;
 use net_traits::{FetchMetadata, FetchResponseListener, Metadata, NetworkError};
 use net_traits::{ResourceFetchTiming, ResourceTimingType};
 use profile_traits::time::{
-    profile, ProfilerCategory, TimerMetadata, TimerMetadataFrameType, TimerMetadataReflowType
+    profile, ProfilerCategory, TimerMetadata, TimerMetadataFrameType, TimerMetadataReflowType,
 };
 use script_traits::DocumentActivity;
 use servo_config::prefs::PREFS;
@@ -818,7 +818,9 @@ impl FetchResponseListener for ParserContext {
             Err(err) => debug!("Failed to load page URL {}, error: {:?}", self.url, err),
         }
 
-        parser.document.set_redirect_count(self.resource_timing.redirect_count);
+        parser
+            .document
+            .set_redirect_count(self.resource_timing.redirect_count);
 
         parser.last_chunk_received.set(true);
         if !parser.suspended.get() {
@@ -850,8 +852,12 @@ impl FetchResponseListener for ParserContext {
         let document = &parser.document;
 
         //TODO nav_start and nav_start_precise
-        let performance_entry = PerformanceNavigationTiming::new(&document.global(), 0, 0, &document);
-        document.global().performance().queue_entry(performance_entry.upcast::<PerformanceEntry>(), true);
+        let performance_entry =
+            PerformanceNavigationTiming::new(&document.global(), 0, 0, &document);
+        document
+            .global()
+            .performance()
+            .queue_entry(performance_entry.upcast::<PerformanceEntry>(), true);
     }
 }
 

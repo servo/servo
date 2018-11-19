@@ -150,12 +150,11 @@ impl Performance {
         }
     }
 
-    pub fn new(global: &GlobalScope,
-               navigation_start_precise: u64) -> DomRoot<Performance> {
+    pub fn new(global: &GlobalScope, navigation_start_precise: u64) -> DomRoot<Performance> {
         reflect_dom_object(
             Box::new(Performance::new_inherited(navigation_start_precise)),
             global,
-            PerformanceBinding::Wrap
+            PerformanceBinding::Wrap,
         )
     }
 
@@ -278,7 +277,6 @@ impl Performance {
     fn now(&self) -> f64 {
         (time::precise_time_ns() - self.navigation_start_precise).to_ms()
     }
-
 }
 
 impl PerformanceMethods for Performance {
@@ -287,7 +285,11 @@ impl PerformanceMethods for Performance {
     fn Timing(&self) -> DomRoot<PerformanceNavigationTiming> {
         let entries = self.GetEntriesByType(DOMString::from("navigation"));
         if entries.len() > 0 {
-            return DomRoot::from_ref(entries[0].downcast::<PerformanceNavigationTiming>().unwrap());
+            return DomRoot::from_ref(
+                entries[0]
+                    .downcast::<PerformanceNavigationTiming>()
+                    .unwrap(),
+            );
         }
         unreachable!("Are we trying to expose Performance.timing in workers?");
     }

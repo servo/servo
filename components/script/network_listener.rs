@@ -29,7 +29,10 @@ pub trait ResourceTimingListener {
 
 pub fn submit_timing<T: ResourceTimingListener + FetchResponseListener>(listener: &T) {
     if listener.resource_timing().timing_type != ResourceTimingType::Resource {
-        warn!("Submitting non-resource ({:?}) timing as resource", listener.resource_timing().timing_type);
+        warn!(
+            "Submitting non-resource ({:?}) timing as resource",
+            listener.resource_timing().timing_type
+        );
         return;
     }
 
@@ -41,8 +44,15 @@ pub fn submit_timing<T: ResourceTimingListener + FetchResponseListener>(listener
 
     let global = listener.resource_timing_global();
     let performance_entry = PerformanceResourceTiming::new(
-        &global, url, initiator_type, None, &listener.resource_timing());
-    global.performance().queue_entry(performance_entry.upcast::<PerformanceEntry>(), false);
+        &global,
+        url,
+        initiator_type,
+        None,
+        &listener.resource_timing(),
+    );
+    global
+        .performance()
+        .queue_entry(performance_entry.upcast::<PerformanceEntry>(), false);
 }
 
 impl<Listener: PreInvoke + Send + 'static> NetworkListener<Listener> {

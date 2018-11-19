@@ -277,7 +277,7 @@ impl FetchResponseListener for FetchContext {
     fn submit_resource_timing(&mut self) {
         // navigation submission is handled in servoparser/mod.rs
         match self.resource_timing.timing_type {
-           ResourceTimingType::Resource => network_listener::submit_timing(self),
+            ResourceTimingType::Resource => network_listener::submit_timing(self),
             _ => {},
         };
     }
@@ -285,7 +285,10 @@ impl FetchResponseListener for FetchContext {
 
 impl ResourceTimingListener for FetchContext {
     fn resource_timing_information(&self) -> (InitiatorType, ServoUrl) {
-        (InitiatorType::Fetch, self.resource_timing_global().get_url().clone())
+        (
+            InitiatorType::Fetch,
+            self.resource_timing_global().get_url().clone(),
+        )
     }
 
     fn resource_timing_global(&self) -> DomRoot<GlobalScope> {

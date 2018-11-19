@@ -229,7 +229,12 @@ impl FetchResponseListener for StylesheetContext {
 impl ResourceTimingListener for StylesheetContext {
     fn resource_timing_information(&self) -> (InitiatorType, ServoUrl) {
         let initiator_type = InitiatorType::LocalName(
-            self.elem.root().upcast::<Element>().local_name().to_string());
+            self.elem
+                .root()
+                .upcast::<Element>()
+                .local_name()
+                .to_string(),
+        );
         (initiator_type, self.url.clone())
     }
 

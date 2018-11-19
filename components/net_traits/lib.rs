@@ -235,7 +235,9 @@ impl FetchTaskTarget for IpcSender<FetchResponseMsg> {
         if let Some(e) = response.get_network_error() {
             let _ = self.send(FetchResponseMsg::ProcessResponseEOF(Err(e.clone())));
         } else {
-            let _ = self.send(FetchResponseMsg::ProcessResponseEOF(Ok(response.get_resource_timing().clone())));
+            let _ = self.send(FetchResponseMsg::ProcessResponseEOF(Ok(response
+                .get_resource_timing()
+                .clone())));
         }
     }
 }
@@ -266,9 +268,7 @@ impl<T: FetchResponseListener> Action<T> for FetchResponseMsg {
                     // (e.g. due to a network error) MAY be included as PerformanceResourceTiming
                     // objects in the Performance Timeline and MUST contain initialized attribute
                     // values for processed substeps of the processing model.
-                    Err(e) => {
-                        listener.process_response_eof(Err(e))
-                    },
+                    Err(e) => listener.process_response_eof(Err(e)),
                 }
             },
         }

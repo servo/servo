@@ -103,11 +103,14 @@ use metrics::{PaintTimeMetrics, MAX_TASK_NS};
 use mime::{self, Mime};
 use msg::constellation_msg::{BrowsingContextId, HistoryStateId, PipelineId};
 use msg::constellation_msg::{PipelineNamespace, TopLevelBrowsingContextId};
-use net_traits::{Metadata, NetworkError, ReferrerPolicy, ResourceFetchTiming, ResourceTimingType, ResourceThreads};
 use net_traits::image_cache::{ImageCache, PendingImageResponse};
 use net_traits::request::{CredentialsMode, Destination, RedirectMode, RequestInit};
 use net_traits::storage_thread::StorageType;
 use net_traits::{FetchMetadata, FetchResponseListener, FetchResponseMsg};
+use net_traits::{
+    Metadata, NetworkError, ReferrerPolicy, ResourceFetchTiming, ResourceThreads,
+    ResourceTimingType,
+};
 use profile_traits::mem::{self as profile_mem, OpaqueSender, ReportsChan};
 use profile_traits::time::{self as profile_time, profile, ProfilerCategory};
 use script_layout_interface::message::{self, Msg, NewLayoutThreadInfo, ReflowGoal};
@@ -1466,11 +1469,12 @@ impl ScriptThread {
             ConstellationControlMsg::NavigationResponse(id, fetch_data) => {
                 match fetch_data {
                     FetchResponseMsg::ProcessResponse(metadata) => {
-                        self.handle_fetch_metadata(id, metadata) },
+                        self.handle_fetch_metadata(id, metadata)
+                    },
                     FetchResponseMsg::ProcessResponseChunk(chunk) => {
-                        self.handle_fetch_chunk(id, chunk) },
-                    FetchResponseMsg::ProcessResponseEOF(eof) => {
-                        self.handle_fetch_eof(id, eof) },
+                        self.handle_fetch_chunk(id, chunk)
+                    },
+                    FetchResponseMsg::ProcessResponseEOF(eof) => self.handle_fetch_eof(id, eof),
                     _ => unreachable!(),
                 };
             },

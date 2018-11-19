@@ -38,13 +38,13 @@ use http::{HeaderMap, Request as HyperRequest};
 use hyper::{Body, Client, Method, Response as HyperResponse, StatusCode};
 use hyper_serde::Serde;
 use msg::constellation_msg::{HistoryStateId, PipelineId};
-use net_traits::{CookieSource, FetchMetadata, NetworkError, ReferrerPolicy};
-use net_traits::ResourceAttribute;
 use net_traits::quality::{quality_to_value, Quality, QualityItem};
 use net_traits::request::{CacheMode, CredentialsMode, Destination, Origin};
 use net_traits::request::{RedirectMode, Referrer, Request, RequestMode};
 use net_traits::request::{ResponseTainting, ServiceWorkersMode};
 use net_traits::response::{HttpsState, Response, ResponseBody, ResponseType};
+use net_traits::ResourceAttribute;
+use net_traits::{CookieSource, FetchMetadata, NetworkError, ReferrerPolicy};
 use openssl::ssl::SslConnectorBuilder;
 use servo_url::{ImmutableOrigin, ServoUrl};
 use std::collections::{HashMap, HashSet};
@@ -482,8 +482,7 @@ fn obtain_response(
             })
             .map_err(move |e| NetworkError::from_hyper_error(&e)),
     )
-            // TODO(#21263) response_end (also needs to be set above if fetch is aborted due to an error)
-
+    // TODO(#21263) response_end (also needs to be set above if fetch is aborted due to an error)
 }
 
 /// [HTTP fetch](https://fetch.spec.whatwg.org#http-fetch)
@@ -579,7 +578,11 @@ pub fn http_fetch(
         // TODO(#21256) maybe set redirect_start if this resource initiates the redirect
         // TODO(#21254) also set startTime equal to either fetch_start or redirect_start
         //   (https://w3c.github.io/resource-timing/#dfn-starttime)
-        context.timing.lock().unwrap().set_attribute(ResourceAttribute::RequestStart);
+        context
+            .timing
+            .lock()
+            .unwrap()
+            .set_attribute(ResourceAttribute::RequestStart);
 
         let mut fetch_result = http_network_or_cache_fetch(
             request,
@@ -655,7 +658,13 @@ pub fn http_fetch(
 
     // set back to default
     response.return_internal = true;
-    context.timing.lock().unwrap().set_attribute(ResourceAttribute::RedirectCount(request.redirect_count as u16));
+    context
+        .timing
+        .lock()
+        .unwrap()
+        .set_attribute(ResourceAttribute::RedirectCount(
+            request.redirect_count as u16,
+        ));
 
     let timing = &*context.timing.lock().unwrap();
     response.resource_timing = timing.clone();

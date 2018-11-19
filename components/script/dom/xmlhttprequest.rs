@@ -61,10 +61,10 @@ use js::typedarray::{ArrayBuffer, CreateWith};
 use mime::{self, Mime, Name};
 use net_traits::request::{CredentialsMode, Destination, RequestInit, RequestMode};
 use net_traits::trim_http_whitespace;
-use net_traits::{ResourceFetchTiming, ResourceTimingType};
 use net_traits::CoreResourceMsg::Fetch;
 use net_traits::{FetchChannels, FetchMetadata, FilteredMetadata};
 use net_traits::{FetchResponseListener, NetworkError, ReferrerPolicy};
+use net_traits::{ResourceFetchTiming, ResourceTimingType};
 use script_traits::DocumentActivity;
 use servo_atoms::Atom;
 use servo_url::ServoUrl;
@@ -260,7 +260,10 @@ impl XMLHttpRequest {
                     .process_data_available(self.gen_id, self.buf.borrow().clone());
             }
 
-            fn process_response_eof(&mut self, response: Result<ResourceFetchTiming, NetworkError>) {
+            fn process_response_eof(
+                &mut self,
+                response: Result<ResourceFetchTiming, NetworkError>,
+            ) {
                 let rv = self
                     .xhr
                     .root()
@@ -283,7 +286,10 @@ impl XMLHttpRequest {
 
         impl ResourceTimingListener for XHRContext {
             fn resource_timing_information(&self) -> (InitiatorType, ServoUrl) {
-                (InitiatorType::XMLHttpRequest, self.resource_timing_global().get_url().clone())
+                (
+                    InitiatorType::XMLHttpRequest,
+                    self.resource_timing_global().get_url().clone(),
+                )
             }
 
             fn resource_timing_global(&self) -> DomRoot<GlobalScope> {

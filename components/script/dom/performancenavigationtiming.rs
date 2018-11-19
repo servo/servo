@@ -3,8 +3,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use crate::dom::bindings::codegen::Bindings::PerformanceBinding::DOMHighResTimeStamp;
-use crate::dom::bindings::codegen::Bindings::PerformanceNavigationTimingBinding::{self, NavigationType};
 use crate::dom::bindings::codegen::Bindings::PerformanceNavigationTimingBinding::PerformanceNavigationTimingMethods;
+use crate::dom::bindings::codegen::Bindings::PerformanceNavigationTimingBinding::{
+    self, NavigationType,
+};
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::reflector::reflect_dom_object;
 use crate::dom::bindings::root::{Dom, DomRoot};
@@ -27,16 +29,18 @@ pub struct PerformanceNavigationTiming {
 }
 
 impl PerformanceNavigationTiming {
-    fn new_inherited(nav_start: u64,
-                     nav_start_precise: u64,
-                     document: &Document)
-                         -> PerformanceNavigationTiming {
+    fn new_inherited(
+        nav_start: u64,
+        nav_start_precise: u64,
+        document: &Document,
+    ) -> PerformanceNavigationTiming {
         PerformanceNavigationTiming {
             performanceresourcetiming: PerformanceResourceTiming::new_inherited(
                 document.url(),
                 InitiatorType::Navigation,
                 None,
-                nav_start_precise as f64),
+                nav_start_precise as f64,
+            ),
             navigation_start: nav_start,
             navigation_start_precise: nav_start_precise,
             document: Dom::from_ref(document),
@@ -44,15 +48,21 @@ impl PerformanceNavigationTiming {
         }
     }
 
-    pub fn new(global: &GlobalScope,
-               nav_start: u64,
-               nav_start_precise: u64,
-               document: &Document)
-                         -> DomRoot<PerformanceNavigationTiming> {
+    pub fn new(
+        global: &GlobalScope,
+        nav_start: u64,
+        nav_start_precise: u64,
+        document: &Document,
+    ) -> DomRoot<PerformanceNavigationTiming> {
         reflect_dom_object(
             Box::new(PerformanceNavigationTiming::new_inherited(
-                nav_start, nav_start_precise, document)),
-            global, PerformanceNavigationTimingBinding::Wrap)
+                nav_start,
+                nav_start_precise,
+                document,
+            )),
+            global,
+            PerformanceNavigationTimingBinding::Wrap,
+        )
     }
 }
 

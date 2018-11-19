@@ -15,7 +15,6 @@ use crate::dom::bindings::codegen::Bindings::MediaErrorBinding::MediaErrorMethod
 use crate::dom::bindings::codegen::InheritTypes::{ElementTypeId, HTMLElementTypeId};
 use crate::dom::bindings::codegen::InheritTypes::{HTMLMediaElementTypeId, NodeTypeId};
 use crate::dom::bindings::error::{Error, ErrorResult};
-use crate::dom::globalscope::GlobalScope;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::refcounted::Trusted;
@@ -26,6 +25,7 @@ use crate::dom::blob::Blob;
 use crate::dom::document::Document;
 use crate::dom::element::{AttributeMutation, Element};
 use crate::dom::eventtarget::EventTarget;
+use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::htmlsourceelement::HTMLSourceElement;
 use crate::dom::htmlvideoelement::HTMLVideoElement;
@@ -48,8 +48,8 @@ use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use mime::{self, Mime};
 use net_traits::request::{CredentialsMode, Destination, RequestInit};
-use net_traits::{NetworkError, ResourceFetchTiming, ResourceTimingType};
 use net_traits::{CoreResourceMsg, FetchChannels, FetchMetadata, FetchResponseListener, Metadata};
+use net_traits::{NetworkError, ResourceFetchTiming, ResourceTimingType};
 use script_layout_interface::HTMLMediaData;
 use servo_media::player::frame::{Frame, FrameRenderer};
 use servo_media::player::{PlaybackState, Player, PlayerEvent, StreamType};
@@ -708,8 +708,10 @@ impl HTMLMediaElement {
             ..RequestInit::default()
         };
 
-        let context = Arc::new(Mutex::new(HTMLMediaElementContext::new(self,
-            self.resource_url.borrow().as_ref().unwrap().clone())));
+        let context = Arc::new(Mutex::new(HTMLMediaElementContext::new(
+            self,
+            self.resource_url.borrow().as_ref().unwrap().clone(),
+        )));
         let (action_sender, action_receiver) = ipc::channel().unwrap();
         let window = window_from_node(self);
         let (task_source, canceller) = window
@@ -1603,7 +1605,12 @@ impl FetchResponseListener for HTMLMediaElementContext {
 impl ResourceTimingListener for HTMLMediaElementContext {
     fn resource_timing_information(&self) -> (InitiatorType, ServoUrl) {
         let initiator_type = InitiatorType::LocalName(
-            self.elem.root().upcast::<Element>().local_name().to_string());
+            self.elem
+                .root()
+                .upcast::<Element>()
+                .local_name()
+                .to_string(),
+        );
         (initiator_type, self.url.clone())
     }
 

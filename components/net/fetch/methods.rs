@@ -518,7 +518,8 @@ fn scheme_fetch(
 
         "data" => match decode(&url) {
             Ok((mime, bytes)) => {
-                let mut response = Response::new(url, ResourceFetchTiming::new(request.timing_type()));
+                let mut response =
+                    Response::new(url, ResourceFetchTiming::new(request.timing_type()));
                 *response.body.lock().unwrap() = ResponseBody::Done(bytes);
                 response.headers.typed_insert(ContentType::from(mime));
                 response
@@ -538,7 +539,8 @@ fn scheme_fetch(
                 if let Ok(file) = File::open(file_path.clone()) {
                     let mime = guess_mime_type(file_path);
 
-                    let mut response = Response::new(url, ResourceFetchTiming::new(request.timing_type()));
+                    let mut response =
+                        Response::new(url, ResourceFetchTiming::new(request.timing_type()));
                     response.headers.typed_insert(ContentType::from(mime));
 
                     let (done_sender, done_receiver) = unbounded();
@@ -657,7 +659,8 @@ fn scheme_fetch(
 
             match load_blob_sync(url.clone(), context.filemanager.clone()) {
                 Ok((headers, bytes)) => {
-                    let mut response = Response::new(url, ResourceFetchTiming::new(request.timing_type()));
+                    let mut response =
+                        Response::new(url, ResourceFetchTiming::new(request.timing_type()));
                     response.headers = headers;
                     *response.body.lock().unwrap() = ResponseBody::Done(bytes);
                     response

@@ -51,13 +51,13 @@ use html5ever::{LocalName, Prefix};
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use mime::{self, Mime};
-use net_traits::{FetchMetadata, FetchResponseListener, FetchResponseMsg, NetworkError};
-use net_traits::{ResourceFetchTiming, ResourceTimingType};
 use net_traits::image::base::{Image, ImageMetadata};
 use net_traits::image_cache::UsePlaceholder;
 use net_traits::image_cache::{CanRequestImages, ImageCache, ImageOrMetadataAvailable};
 use net_traits::image_cache::{ImageResponder, ImageResponse, ImageState, PendingImageId};
 use net_traits::request::RequestInit;
+use net_traits::{FetchMetadata, FetchResponseListener, FetchResponseMsg, NetworkError};
+use net_traits::{ResourceFetchTiming, ResourceTimingType};
 use num_traits::ToPrimitive;
 use servo_url::origin::MutableOrigin;
 use servo_url::ServoUrl;
@@ -223,9 +223,8 @@ impl FetchResponseListener for ImageContext {
     }
 
     fn process_response_eof(&mut self, response: Result<ResourceFetchTiming, NetworkError>) {
-        self.image_cache.notify_pending_response(
-            self.id,
-            FetchResponseMsg::ProcessResponseEOF(response));
+        self.image_cache
+            .notify_pending_response(self.id, FetchResponseMsg::ProcessResponseEOF(response));
     }
 
     fn resource_timing_mut(&mut self) -> &mut ResourceFetchTiming {
@@ -243,7 +242,10 @@ impl FetchResponseListener for ImageContext {
 
 impl ResourceTimingListener for ImageContext {
     fn resource_timing_information(&self) -> (InitiatorType, ServoUrl) {
-        (InitiatorType::LocalName("img".to_string()), self.url.clone())
+        (
+            InitiatorType::LocalName("img".to_string()),
+            self.url.clone(),
+        )
     }
 
     fn resource_timing_global(&self) -> DomRoot<GlobalScope> {

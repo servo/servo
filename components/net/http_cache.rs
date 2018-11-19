@@ -18,9 +18,9 @@ use malloc_size_of::Measurable;
 use malloc_size_of::{
     MallocSizeOf, MallocSizeOfOps, MallocUnconditionalShallowSizeOf, MallocUnconditionalSizeOf,
 };
-use net_traits::{Metadata, FetchMetadata, ResourceFetchTiming};
 use net_traits::request::Request;
 use net_traits::response::{HttpsState, Response, ResponseBody};
+use net_traits::{FetchMetadata, Metadata, ResourceFetchTiming};
 use servo_arc::Arc;
 use servo_config::prefs::PREFS;
 use servo_url::ServoUrl;
@@ -303,7 +303,10 @@ fn create_cached_response(
     done_chan: &mut DoneChannel,
 ) -> CachedResponse {
     let resource_timing = ResourceFetchTiming::new(request.timing_type());
-    let mut response = Response::new(cached_resource.data.metadata.data.final_url.clone(), resource_timing);
+    let mut response = Response::new(
+        cached_resource.data.metadata.data.final_url.clone(),
+        resource_timing,
+    );
     response.headers = cached_headers.clone();
     response.body = cached_resource.body.clone();
     if let ResponseBody::Receiving(_) = *cached_resource.body.lock().unwrap() {
@@ -689,8 +692,10 @@ impl HttpCache {
                 // 1. update the headers of the cached resource.
                 // 2. return a response, constructed from the cached resource.
                 let resource_timing = ResourceFetchTiming::new(request.timing_type());
-                let mut constructed_response =
-                    Response::new(cached_resource.data.metadata.data.final_url.clone(), resource_timing);
+                let mut constructed_response = Response::new(
+                    cached_resource.data.metadata.data.final_url.clone(),
+                    resource_timing,
+                );
                 constructed_response.body = cached_resource.body.clone();
                 constructed_response.status = cached_resource.data.status.clone();
                 constructed_response.https_state = cached_resource.data.https_state.clone();

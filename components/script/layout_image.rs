@@ -45,9 +45,8 @@ impl FetchResponseListener for LayoutImageContext {
     }
 
     fn process_response_eof(&mut self, response: Result<ResourceFetchTiming, NetworkError>) {
-        self.cache.notify_pending_response(self.id,
-                                           FetchResponseMsg::ProcessResponseEOF(
-                                           response));
+        self.cache
+            .notify_pending_response(self.id, FetchResponseMsg::ProcessResponseEOF(response));
     }
 
     fn resource_timing_mut(&mut self) -> &mut ResourceFetchTiming {
@@ -65,7 +64,10 @@ impl FetchResponseListener for LayoutImageContext {
 
 impl ResourceTimingListener for LayoutImageContext {
     fn resource_timing_information(&self) -> (InitiatorType, ServoUrl) {
-        (InitiatorType::Other, self.resource_timing_global().get_url().clone())
+        (
+            InitiatorType::Other,
+            self.resource_timing_global().get_url().clone(),
+        )
     }
 
     fn resource_timing_global(&self) -> DomRoot<GlobalScope> {

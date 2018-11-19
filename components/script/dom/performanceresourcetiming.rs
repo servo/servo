@@ -3,7 +3,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use crate::dom::bindings::codegen::Bindings::PerformanceBinding::DOMHighResTimeStamp;
-use crate::dom::bindings::codegen::Bindings::PerformanceResourceTimingBinding::{self, PerformanceResourceTimingMethods};
+use crate::dom::bindings::codegen::Bindings::PerformanceResourceTimingBinding::{
+    self, PerformanceResourceTimingMethods,
+};
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::reflector::reflect_dom_object;
 use crate::dom::bindings::root::DomRoot;
@@ -66,17 +68,19 @@ pub struct PerformanceResourceTiming {
 // TODO(#21262): connect_end
 // TODO(#21263): response_end
 impl PerformanceResourceTiming {
-    pub fn new_inherited(url: ServoUrl,
+    pub fn new_inherited(
+        url: ServoUrl,
         initiator_type: InitiatorType,
         next_hop: Option<DOMString>,
-        fetch_start: f64)
-        -> PerformanceResourceTiming {
+        fetch_start: f64,
+    ) -> PerformanceResourceTiming {
         PerformanceResourceTiming {
             entry: PerformanceEntry::new_inherited(
                 DOMString::from(url.into_string()),
                 DOMString::from("resource"),
                 fetch_start,
-                0.),
+                0.,
+            ),
             initiator_type: initiator_type,
             next_hop: next_hop,
             worker_start: 0.,
@@ -96,17 +100,19 @@ impl PerformanceResourceTiming {
 
     //TODO fetch start should be in RFT
     #[allow(unrooted_must_root)]
-    fn from_resource_timing(url: ServoUrl,
+    fn from_resource_timing(
+        url: ServoUrl,
         initiator_type: InitiatorType,
         next_hop: Option<DOMString>,
-        resource_timing: &ResourceFetchTiming)
-        -> PerformanceResourceTiming {
+        resource_timing: &ResourceFetchTiming,
+    ) -> PerformanceResourceTiming {
         PerformanceResourceTiming {
             entry: PerformanceEntry::new_inherited(
                 DOMString::from(url.into_string()),
                 DOMString::from("resource"),
                 0.,
-                0.),
+                0.,
+            ),
             initiator_type: initiator_type,
             next_hop: next_hop,
             worker_start: 0.,
@@ -124,16 +130,23 @@ impl PerformanceResourceTiming {
         }
     }
 
-    pub fn new(global: &GlobalScope,
+    pub fn new(
+        global: &GlobalScope,
         url: ServoUrl,
         initiator_type: InitiatorType,
         next_hop: Option<DOMString>,
-        resource_timing: &ResourceFetchTiming)
-        -> DomRoot<PerformanceResourceTiming> {
+        resource_timing: &ResourceFetchTiming,
+    ) -> DomRoot<PerformanceResourceTiming> {
         reflect_dom_object(
             Box::new(PerformanceResourceTiming::from_resource_timing(
-                url, initiator_type, next_hop, resource_timing)),
-            global, PerformanceResourceTimingBinding::Wrap)
+                url,
+                initiator_type,
+                next_hop,
+                resource_timing,
+            )),
+            global,
+            PerformanceResourceTimingBinding::Wrap,
+        )
     }
 }
 

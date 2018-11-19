@@ -33,12 +33,14 @@ use net::fetch::methods::{CancellationListener, FetchContext};
 use net::filemanager_thread::FileManager;
 use net::hsts::HstsEntry;
 use net::test::HttpState;
-use net_traits::{IncludeSubdomains, NetworkError, ReferrerPolicy, ResourceFetchTiming, ResourceTimingType};
 use net_traits::request::{Destination, Origin, RedirectMode, Referrer, Request, RequestMode};
 use net_traits::response::{CacheState, Response, ResponseBody, ResponseType};
 use net_traits::IncludeSubdomains;
 use net_traits::NetworkError;
 use net_traits::ReferrerPolicy;
+use net_traits::{
+    IncludeSubdomains, NetworkError, ReferrerPolicy, ResourceFetchTiming, ResourceTimingType,
+};
 use servo_url::{ImmutableOrigin, ServoUrl};
 use std::fs::File;
 use std::io::Read;
@@ -656,7 +658,9 @@ fn test_fetch_with_hsts() {
         devtools_chan: None,
         filemanager: FileManager::new(create_embedder_proxy()),
         cancellation_listener: Arc::new(Mutex::new(CancellationListener::new(None))),
-        timing: Arc::new(Mutex::new(ResourceFetchTiming::new(ResourceTimingType::Navigation)))
+        timing: Arc::new(Mutex::new(ResourceFetchTiming::new(
+            ResourceTimingType::Navigation,
+        ))),
     };
 
     {
