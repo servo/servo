@@ -141,14 +141,14 @@ version = "0.0.1"
 dependencies = [
  "backtrace 0.3.9 (registry+https://github.com/rust-lang/crates.io-index)",
  "bitflags 1.0.3 (registry+https://github.com/rust-lang/crates.io-index)",
- "ipc-channel 0.11.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "crossbeam-channel 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "ipc-channel 0.11.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "lazy_static 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.42 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.4.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "mach 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "msg 0.0.1",
  "serde 1.0.80 (registry+https://github.com/rust-lang/crates.io-index)",
- "servo_channel 0.0.1",
 ]
 
 [[package]]

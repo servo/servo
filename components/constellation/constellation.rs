@@ -946,7 +946,7 @@ where
             recv(self.script_receiver) -> msg => {
                 msg.expect("Unexpected script channel panic in constellation").map(Request::Script)
             }
-            recv(self.background_hang_monitor_receiver, msg) => {
+            recv(self.background_hang_monitor_receiver) -> msg => {
                 msg.expect("Unexpected BHM channel panic in constellation").map(Request::BackgroundHangMonitor)
             }
             recv(self.compositor_receiver) -> msg => {

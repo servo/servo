@@ -19,7 +19,9 @@ ipc-channel = "0.11"
 lazy_static = "1"
 libc = "0.2"
 log = "0.4"
-mach = "0.2.3"
 msg = {path = "../msg"}
 serde = "1.0.60"
-servo_channel = {path = "../channel"}
+crossbeam-channel = "0.3"
+
+[target.'cfg(target_os = "macos")'.dependencies]
+mach = "0.2.3"

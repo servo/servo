@@ -11,7 +11,7 @@ use msg::constellation_msg::{
     BackgroundHangMonitor, BackgroundHangMonitorClone, BackgroundHangMonitorRegister,
 };
 use msg::constellation_msg::{HangAlert, HangAnnotation};
-use servo_channel::{base_channel, channel, Receiver, Sender};
+use crossbeam_channel::{after, unbounded, Receiver, Sender};
 use std::cell::Cell;
 use std::collections::HashMap;
 use std::thread;
@@ -25,7 +25,7 @@ pub struct HangMonitorRegister {
 impl HangMonitorRegister {
     /// Start a new hang monitor worker, and return a handle to register components for monitoring.
     pub fn init(constellation_chan: IpcSender<HangAlert>) -> Box<BackgroundHangMonitorRegister> {
-        let (sender, port) = channel();
+        let (sender, port) = unbounded();
         let _ = thread::Builder::new().spawn(move || {
             let mut monitor = { BackgroundHangMonitorWorker::new(constellation_chan, port) };
             while monitor.run() {
@@ -152,18 +152,18 @@ impl BackgroundHangMonitorWorker {
 
     pub fn run(&mut self) -> bool {
         let received = select! {
-            recv(self.port.select(), event) => {
+            recv(self.port) -> event => {
                 match event {
-                    Some(msg) => Some(msg),
+                    Ok(msg) => Some(msg),
                     // Our sender has been dropped, quit.
-                    None => return false,
+                    Err(_) => return false,
                 }
             },
-            recv(base_channel::after(Duration::from_millis(100))) => None,
+            recv(after(Duration::from_millis(100))) -> _ => None,
         };
         if let Some(msg) = received {
             self.handle_msg(msg);
-            while let Some(another_msg) = self.port.try_recv() {
+            while let Ok(another_msg) = self.port.try_recv() {
                 // Handle any other incoming messages,
                 // before performing a hang checkpoint.
                 self.handle_msg(another_msg);

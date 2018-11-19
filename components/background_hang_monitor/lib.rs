@@ -4,13 +4,13 @@
 
 #![deny(unsafe_code)]
 
+#[macro_use]
+extern crate crossbeam_channel;
 #[cfg(any(target_os = "android", target_os = "linux"))]
 #[macro_use]
 extern crate lazy_static;
 #[macro_use]
 extern crate log;
-#[macro_use]
-extern crate servo_channel;
 
 pub mod background_hang_monitor;
 mod sampler;
