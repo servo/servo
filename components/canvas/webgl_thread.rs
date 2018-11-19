@@ -11,6 +11,7 @@ use gleam::gl;
 use half::f16;
 use offscreen_gl_context::{GLContext, GLContextAttributes, GLLimits, NativeGLContextMethods};
 use pixels::{self, PixelFormat};
+use std::borrow::Cow;
 use std::thread;
 
 /// WebGL Threading API entry point that lives in the constellation.
@@ -1057,7 +1058,7 @@ impl WebGLImpl {
                 alpha_treatment,
                 y_axis_treatment,
                 pixel_format,
-                ref receiver,
+                ref data,
             } => {
                 let pixels = prepare_pixels(
                     format,
@@ -1067,7 +1068,7 @@ impl WebGLImpl {
                     alpha_treatment,
                     y_axis_treatment,
                     pixel_format,
-                    receiver.recv().unwrap(),
+                    Cow::Borrowed(data),
                 );
 
                 ctx.gl()
@@ -1097,7 +1098,7 @@ impl WebGLImpl {
                 alpha_treatment,
                 y_axis_treatment,
                 pixel_format,
-                ref receiver,
+                ref data,
             } => {
                 let pixels = prepare_pixels(
                     format,
@@ -1107,7 +1108,7 @@ impl WebGLImpl {
                     alpha_treatment,
                     y_axis_treatment,
                     pixel_format,
-                    receiver.recv().unwrap(),
+                    Cow::Borrowed(data),
                 );
 
                 ctx.gl()
@@ -1743,8 +1744,8 @@ fn prepare_pixels(
     alpha_treatment: Option<AlphaTreatment>,
     y_axis_treatment: YAxisTreatment,
     pixel_format: Option<PixelFormat>,
-    mut pixels: Vec<u8>,
-) -> Vec<u8> {
+    mut pixels: Cow<[u8]>,
+) -> Cow<[u8]> {
     match alpha_treatment {
         Some(AlphaTreatment::Premultiply) => {
             if let Some(pixel_format) = pixel_format {
@@ -1752,20 +1753,26 @@ fn prepare_pixels(
                     PixelFormat::BGRA8 | PixelFormat::RGBA8 => {},
                     _ => unimplemented!("unsupported pixel format ({:?})", pixel_format),
                 }
-                premultiply_inplace(TexFormat::RGBA, TexDataType::UnsignedByte, &mut pixels);
+                premultiply_inplace(TexFormat::RGBA, TexDataType::UnsignedByte, pixels.to_mut());
             } else {
-                premultiply_inplace(internal_format, data_type, &mut pixels);
+                premultiply_inplace(internal_format, data_type, pixels.to_mut());
             }
         },
         Some(AlphaTreatment::Unmultiply) => {
             assert!(pixel_format.is_some());
-            unmultiply_inplace(&mut pixels);
+            unmultiply_inplace(pixels.to_mut());
         },
         None => {},
     }
 
     if let Some(pixel_format) = pixel_format {
-        pixels = image_to_tex_image_data(pixel_format, internal_format, data_type, pixels);
+        pixels = image_to_tex_image_data(
+            pixel_format,
+            internal_format,
+            data_type,
+            pixels.into_owned(),
+        )
+        .into();
     }
 
     if y_axis_treatment == YAxisTreatment::Flipped {
@@ -1776,8 +1783,9 @@ fn prepare_pixels(
             size.width as usize,
             size.height as usize,
             unpacking_alignment as usize,
-            pixels,
-        );
+            pixels.into_owned(),
+        )
+        .into();
     }
 
     pixels

@@ -4,7 +4,7 @@
 
 use euclid::{Rect, Size2D};
 use gleam::gl;
-use ipc_channel::ipc::{IpcBytesReceiver, IpcBytesSender};
+use ipc_channel::ipc::{IpcBytesReceiver, IpcBytesSender, IpcSharedMemory};
 use offscreen_gl_context::{GLContextAttributes, GLLimits};
 use pixels::PixelFormat;
 use serde_bytes::ByteBuf;
@@ -284,7 +284,7 @@ pub enum WebGLCommand {
         alpha_treatment: Option<AlphaTreatment>,
         y_axis_treatment: YAxisTreatment,
         pixel_format: Option<PixelFormat>,
-        receiver: IpcBytesReceiver,
+        data: IpcSharedMemory,
     },
     TexSubImage2D {
         target: u32,
@@ -300,7 +300,7 @@ pub enum WebGLCommand {
         alpha_treatment: Option<AlphaTreatment>,
         y_axis_treatment: YAxisTreatment,
         pixel_format: Option<PixelFormat>,
-        receiver: IpcBytesReceiver,
+        data: IpcSharedMemory,
     },
     DrawingBufferWidth(WebGLSender<i32>),
     DrawingBufferHeight(WebGLSender<i32>),

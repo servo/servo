@@ -57,7 +57,7 @@ use crate::dom::webglvertexarrayobjectoes::WebGLVertexArrayObjectOES;
 use crate::dom::window::Window;
 use dom_struct::dom_struct;
 use euclid::{Point2D, Rect, Size2D};
-use ipc_channel::ipc;
+use ipc_channel::ipc::{self, IpcSharedMemory};
 use js::jsapi::{JSContext, JSObject, Type};
 use js::jsval::{BooleanValue, DoubleValue, Int32Value, JSVal, UInt32Value};
 use js::jsval::{NullValue, ObjectValue, UndefinedValue};
@@ -504,7 +504,12 @@ impl WebGLRenderingContext {
             level,
             0,
             1,
-            TexPixels::new(pixels, size, PixelFormat::RGBA8, true),
+            TexPixels::new(
+                IpcSharedMemory::from_bytes(&pixels),
+                size,
+                PixelFormat::RGBA8,
+                true,
+            ),
         );
 
         false
@@ -527,7 +532,7 @@ impl WebGLRenderingContext {
     fn get_image_pixels(&self, source: TexImageSource) -> Fallible<Option<TexPixels>> {
         Ok(Some(match source {
             TexImageSource::ImageData(image_data) => TexPixels::new(
-                image_data.to_vec(),
+                image_data.to_shared_memory(),
                 image_data.get_size(),
                 PixelFormat::RGBA8,
                 false,
@@ -554,7 +559,7 @@ impl WebGLRenderingContext {
 
                 let size = Size2D::new(img.width, img.height);
 
-                TexPixels::new(img.bytes.to_vec(), size, img.format, false)
+                TexPixels::new(img.bytes.clone(), size, img.format, false)
             },
             // TODO(emilio): Getting canvas data is implemented in CanvasRenderingContext2D,
             // but we need to refactor it moving it to `HTMLCanvasElement` and support
@@ -564,7 +569,12 @@ impl WebGLRenderingContext {
                     return Err(Error::Security);
                 }
                 if let Some((data, size)) = canvas.fetch_all_data() {
-                    TexPixels::new(data, size, PixelFormat::BGRA8, true)
+                    TexPixels::new(
+                        IpcSharedMemory::from_bytes(&data),
+                        size,
+                        PixelFormat::BGRA8,
+                        true,
+                    )
                 } else {
                     return Ok(None);
                 }
@@ -676,8 +686,7 @@ impl WebGLRenderingContext {
             .extension_manager
             .effective_type(data_type.as_gl_constant());
 
-        // TODO(emilio): convert colorspace if requested
-        let (sender, receiver) = ipc::bytes_channel().unwrap();
+        // TODO(emilio): convert colorspace if requested.
         self.send_command(WebGLCommand::TexImage2D {
             target: target.as_gl_constant(),
             level,
@@ -690,9 +699,8 @@ impl WebGLRenderingContext {
             alpha_treatment,
             y_axis_treatment,
             pixel_format: pixels.pixel_format,
-            receiver,
+            data: pixels.data,
         });
-        sender.send(&pixels.data).unwrap();
 
         if let Some(fb) = self.bound_framebuffer.get() {
             fb.invalidate_texture(&*texture);
@@ -752,8 +760,7 @@ impl WebGLRenderingContext {
             .extension_manager
             .effective_type(data_type.as_gl_constant());
 
-        // TODO(emilio): convert colorspace if requested
-        let (sender, receiver) = ipc::bytes_channel().unwrap();
+        // TODO(emilio): convert colorspace if requested.
         self.send_command(WebGLCommand::TexSubImage2D {
             target: target.as_gl_constant(),
             level,
@@ -767,9 +774,8 @@ impl WebGLRenderingContext {
             alpha_treatment,
             y_axis_treatment,
             pixel_format: pixels.pixel_format,
-            receiver,
+            data: pixels.data,
         });
-        sender.send(&pixels.data).unwrap();
     }
 
     fn get_gl_extensions(&self) -> String {
@@ -3548,6 +3554,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
+    #[allow(unsafe_code)]
     fn TexImage2D(
         &self,
         target: u32,
@@ -3609,8 +3616,8 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         // If data is null, a buffer of sufficient size
         // initialized to 0 is passed.
         let buff = match *pixels {
-            None => vec![0u8; expected_byte_length as usize],
-            Some(ref data) => data.to_vec(),
+            None => IpcSharedMemory::from_bytes(&vec![0u8; expected_byte_length as usize]),
+            Some(ref data) => IpcSharedMemory::from_bytes(unsafe { data.as_slice() }),
         };
 
         // From the WebGL spec:
@@ -3763,6 +3770,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
+    #[allow(unsafe_code)]
     fn TexSubImage2D(
         &self,
         target: u32,
@@ -3808,11 +3816,12 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             Err(()) => return Ok(()),
         };
 
-        // If data is null, a buffer of sufficient size
-        // initialized to 0 is passed.
         let buff = handle_potential_webgl_error!(
             self,
-            pixels.as_ref().map(|p| p.to_vec()).ok_or(InvalidValue),
+            pixels
+                .as_ref()
+                .map(|p| IpcSharedMemory::from_bytes(unsafe { p.as_slice() }))
+                .ok_or(InvalidValue),
             return Ok(())
         );
 
@@ -4163,7 +4172,7 @@ impl TextureUnit {
 }
 
 struct TexPixels {
-    data: Vec<u8>,
+    data: IpcSharedMemory,
     size: Size2D<u32>,
     pixel_format: Option<PixelFormat>,
     premultiplied: bool,
@@ -4171,7 +4180,7 @@ struct TexPixels {
 
 impl TexPixels {
     fn new(
-        data: Vec<u8>,
+        data: IpcSharedMemory,
         size: Size2D<u32>,
         pixel_format: PixelFormat,
         premultiplied: bool,
@@ -4184,7 +4193,7 @@ impl TexPixels {
         }
     }
 
-    fn from_array(data: Vec<u8>, size: Size2D<u32>) -> Self {
+    fn from_array(data: IpcSharedMemory, size: Size2D<u32>) -> Self {
         Self {
             data,
             size,
