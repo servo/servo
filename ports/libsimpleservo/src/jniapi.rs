@@ -231,6 +231,54 @@ pub fn Java_org_mozilla_servoview_JNIServo_scroll(
 }
 
 #[no_mangle]
+pub fn Java_org_mozilla_servoview_JNIServo_touchDown(
+    env: JNIEnv,
+    _: JClass,
+    x: jfloat,
+    y: jfloat,
+    pointer_id: jint,
+) {
+    debug!("touchDown");
+    call(&env, |s| s.touch_down(x, y, pointer_id as i32));
+}
+
+#[no_mangle]
+pub fn Java_org_mozilla_servoview_JNIServo_touchUp(
+    env: JNIEnv,
+    _: JClass,
+    x: jfloat,
+    y: jfloat,
+    pointer_id: jint,
+) {
+    debug!("touchUp");
+    call(&env, |s| s.touch_up(x, y, pointer_id as i32));
+}
+
+#[no_mangle]
+pub fn Java_org_mozilla_servoview_JNIServo_touchMove(
+    env: JNIEnv,
+    _: JClass,
+    x: jfloat,
+    y: jfloat,
+    pointer_id: jint,
+) {
+    debug!("touchMove");
+    call(&env, |s| s.touch_move(x, y, pointer_id as i32));
+}
+
+#[no_mangle]
+pub fn Java_org_mozilla_servoview_JNIServo_touchCancel(
+    env: JNIEnv,
+    _: JClass,
+    x: jfloat,
+    y: jfloat,
+    pointer_id: jint,
+) {
+    debug!("touchCancel");
+    call(&env, |s| s.touch_cancel(x, y, pointer_id as i32));
+}
+
+#[no_mangle]
 pub fn Java_org_mozilla_servoview_JNIServo_pinchZoomStart(
     env: JNIEnv,
     _: JClass,

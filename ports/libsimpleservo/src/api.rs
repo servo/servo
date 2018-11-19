@@ -9,7 +9,7 @@ use servo::embedder_traits::resources::{self, Resource};
 use servo::embedder_traits::EmbedderMsg;
 use servo::euclid::{TypedPoint2D, TypedScale, TypedSize2D, TypedVector2D};
 use servo::msg::constellation_msg::TraversalDirection;
-use servo::script_traits::{MouseButton, TouchEventType};
+use servo::script_traits::{MouseButton, TouchEventType, TouchId};
 use servo::servo_config::opts;
 use servo::servo_config::prefs::{PrefValue, PREFS};
 use servo::servo_url::ServoUrl;
@@ -308,6 +308,46 @@ impl ServoGlue {
             scroll_location,
             TypedPoint2D::new(x as i32, y as i32),
             TouchEventType::Up,
+        );
+        self.process_event(event)
+    }
+
+    /// Touch event: press down
+    pub fn touch_down(&mut self, x: f32, y: f32, pointer_id: i32) -> Result<(), &'static str> {
+        let event = WindowEvent::Touch(
+            TouchEventType::Down,
+            TouchId(pointer_id),
+            TypedPoint2D::new(x as f32, y as f32),
+        );
+        self.process_event(event)
+    }
+
+    /// Touch event: move touching finger
+    pub fn touch_move(&mut self, x: f32, y: f32, pointer_id: i32) -> Result<(), &'static str> {
+        let event = WindowEvent::Touch(
+            TouchEventType::Move,
+            TouchId(pointer_id),
+            TypedPoint2D::new(x as f32, y as f32),
+        );
+        self.process_event(event)
+    }
+
+    /// Touch event: Lift touching finger
+    pub fn touch_up(&mut self, x: f32, y: f32, pointer_id: i32) -> Result<(), &'static str> {
+        let event = WindowEvent::Touch(
+            TouchEventType::Up,
+            TouchId(pointer_id),
+            TypedPoint2D::new(x as f32, y as f32),
+        );
+        self.process_event(event)
+    }
+
+    /// Cancel touch event
+    pub fn touch_cancel(&mut self, x: f32, y: f32, pointer_id: i32) -> Result<(), &'static str> {
+        let event = WindowEvent::Touch(
+            TouchEventType::Cancel,
+            TouchId(pointer_id),
+            TypedPoint2D::new(x as f32, y as f32),
         );
         self.process_event(event)
     }

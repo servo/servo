@@ -206,6 +206,30 @@ pub extern "C" fn scroll(dx: i32, dy: i32, x: i32, y: i32) {
 }
 
 #[no_mangle]
+pub extern "C" fn touch_down(x: f32, y: f32, pointer_id: i32) {
+    debug!("touch down");
+    call(|s| s.touch_down(x, y, pointer_id));
+}
+
+#[no_mangle]
+pub extern "C" fn touch_up(x: f32, y: f32, pointer_id: i32) {
+    debug!("touch up");
+    call(|s| s.touch_up(x, y, pointer_id));
+}
+
+#[no_mangle]
+pub extern "C" fn touch_move(x: f32, y: f32, pointer_id: i32) {
+    debug!("touch move");
+    call(|s| s.touch_move(x, y, pointer_id));
+}
+
+#[no_mangle]
+pub extern "C" fn touch_cancel(x: f32, y: f32, pointer_id: i32) {
+    debug!("touch cancel");
+    call(|s| s.touch_cancel(x, y, pointer_id));
+}
+
+#[no_mangle]
 pub extern "C" fn pinchzoom_start(factor: f32, x: i32, y: i32) {
     debug!("pinchzoom_start");
     call(|s| s.pinchzoom_start(factor, x as u32, y as u32));

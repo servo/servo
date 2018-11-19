@@ -53,7 +53,6 @@ public class ServoView extends GLSurfaceView
     private int mLastY = 0;
     private int mCurY = 0;
     private boolean mFlinging;
-    private boolean mScrolling;
 
     private boolean mZooming;
     private float mZoomFactor = 1;
@@ -199,7 +198,6 @@ public class ServoView extends GLSurfaceView
 
         if (mFlinging && mScroller.isFinished()) {
             mFlinging = false;
-            mScrolling = false;
             mServo.scrollEnd(0, 0, mCurX, mCurY);
         }
 
@@ -215,7 +213,7 @@ public class ServoView extends GLSurfaceView
         mLastX = mCurX;
         mLastY = mCurY;
 
-        boolean scrollNecessary = mScrolling && (dx != 0 || dy != 0);
+        boolean scrollNecessary = mFlinging && (dx != 0 || dy != 0);
         boolean zoomNecessary = mZooming && mZoomFactor != 1;
 
         if (scrollNecessary) {
@@ -231,7 +229,7 @@ public class ServoView extends GLSurfaceView
             mServo.performUpdates();
         }
 
-        if (mZooming || mScrolling || mAnimating) {
+        if (mZooming || mFlinging || mAnimating) {
             Choreographer.getInstance().postFrameCallback(this);
         } else {
             mRedrawing = false;
@@ -251,6 +249,8 @@ public class ServoView extends GLSurfaceView
         mCurY = velocityY < 0 ? mPageHeight : 0;
         mLastY = mCurY;
         mScroller.fling(mCurX, mCurY, (int) velocityX, (int) velocityY, 0, mPageWidth, 0, mPageHeight);
+        mServo.scrollStart(0, 0, mCurX, mCurY);
+        startLooping();
         return true;
     }
 
@@ -264,28 +264,31 @@ public class ServoView extends GLSurfaceView
         mScaleGestureDetector.onTouchEvent(e);
 
         int action = e.getActionMasked();
+        float x = e.getX();
+        
+        float y = e.getY();
+        
+        int pointerIndex = e.getActionIndex();
+        int pointerId = e.getPointerId(pointerIndex);
         switch (action) {
             case (MotionEvent.ACTION_DOWN):
-                mCurX = (int) e.getX();
-                mLastX = mCurX;
-                mCurY = (int) e.getY();
-                mLastY = mCurY;
-                mScroller.forceFinished(true);
+                mServo.touchDown(x, y, pointerId);
                 mFlinging = false;
-                mServo.scrollStart(0, 0, mCurX, mCurY);
-                mScrolling = true;
-                startLooping();
+                mScroller.forceFinished(true);
+                mCurX = (int) x;
+                mLastX = mCurX;
+                mCurY = (int) y;
+                mLastY = mCurY;
                 return true;
             case (MotionEvent.ACTION_MOVE):
-                mCurX = (int) e.getX();
-                mCurY = (int) e.getY();
+                mCurX = (int) x;
+                mCurY = (int) y;
+                mServo.touchMove(x, y, pointerId);
                 return true;
             case (MotionEvent.ACTION_UP):
+                mServo.touchUp(x, y, pointerId);
             case (MotionEvent.ACTION_CANCEL):
-                if (!mFlinging) {
-                    mScrolling = false;
-                    mServo.scrollEnd(0, 0, mCurX, mCurY);
-                }
+                mServo.touchCancel(x, y, pointerId);
                 return true;
             default:
                 return true;
