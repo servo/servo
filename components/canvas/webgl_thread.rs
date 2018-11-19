@@ -10,7 +10,7 @@ use fnv::FnvHashMap;
 use gleam::gl;
 use half::f16;
 use offscreen_gl_context::{GLContext, GLContextAttributes, GLLimits, NativeGLContextMethods};
-use pixels;
+use pixels::{self, PixelFormat};
 use std::thread;
 
 /// WebGL Threading API entry point that lives in the constellation.
@@ -1056,7 +1056,7 @@ impl WebGLImpl {
                 unpacking_alignment,
                 alpha_treatment,
                 y_axis_treatment,
-                tex_source,
+                pixel_format,
                 ref receiver,
             } => {
                 let pixels = prepare_pixels(
@@ -1066,7 +1066,7 @@ impl WebGLImpl {
                     unpacking_alignment,
                     alpha_treatment,
                     y_axis_treatment,
-                    tex_source,
+                    pixel_format,
                     receiver.recv().unwrap(),
                 );
 
@@ -1096,7 +1096,7 @@ impl WebGLImpl {
                 unpacking_alignment,
                 alpha_treatment,
                 y_axis_treatment,
-                tex_source,
+                pixel_format,
                 ref receiver,
             } => {
                 let pixels = prepare_pixels(
@@ -1106,7 +1106,7 @@ impl WebGLImpl {
                     unpacking_alignment,
                     alpha_treatment,
                     y_axis_treatment,
-                    tex_source,
+                    pixel_format,
                     receiver.recv().unwrap(),
                 );
 
@@ -1742,26 +1742,30 @@ fn prepare_pixels(
     unpacking_alignment: u32,
     alpha_treatment: Option<AlphaTreatment>,
     y_axis_treatment: YAxisTreatment,
-    tex_source: TexSource,
+    pixel_format: Option<PixelFormat>,
     mut pixels: Vec<u8>,
 ) -> Vec<u8> {
     match alpha_treatment {
         Some(AlphaTreatment::Premultiply) => {
-            if tex_source == TexSource::FromHtmlElement {
+            if let Some(pixel_format) = pixel_format {
+                match pixel_format {
+                    PixelFormat::BGRA8 | PixelFormat::RGBA8 => {},
+                    _ => unimplemented!("unsupported pixel format ({:?})", pixel_format),
+                }
                 premultiply_inplace(TexFormat::RGBA, TexDataType::UnsignedByte, &mut pixels);
             } else {
                 premultiply_inplace(internal_format, data_type, &mut pixels);
             }
         },
         Some(AlphaTreatment::Unmultiply) => {
-            assert_eq!(tex_source, TexSource::FromHtmlElement);
+            assert!(pixel_format.is_some());
             unmultiply_inplace(&mut pixels);
         },
         None => {},
     }
 
-    if tex_source == TexSource::FromHtmlElement {
-        pixels = rgba8_image_to_tex_image_data(internal_format, data_type, pixels);
+    if let Some(pixel_format) = pixel_format {
+        pixels = image_to_tex_image_data(pixel_format, internal_format, data_type, pixels);
     }
 
     if y_axis_treatment == YAxisTreatment::Flipped {
@@ -1781,13 +1785,20 @@ fn prepare_pixels(
 
 /// Translates an image in rgba8 (red in the first byte) format to
 /// the format that was requested of TexImage.
-fn rgba8_image_to_tex_image_data(
+fn image_to_tex_image_data(
+    pixel_format: PixelFormat,
     format: TexFormat,
     data_type: TexDataType,
     mut pixels: Vec<u8>,
 ) -> Vec<u8> {
     // hint for vector allocation sizing.
     let pixel_count = pixels.len() / 4;
+
+    match pixel_format {
+        PixelFormat::BGRA8 => pixels::rgba8_byte_swap_colors_inplace(&mut pixels),
+        PixelFormat::RGBA8 => {},
+        _ => unimplemented!("unsupported pixel format ({:?})", pixel_format),
+    }
 
     match (format, data_type) {
         (TexFormat::RGBA, TexDataType::UnsignedByte) => pixels,

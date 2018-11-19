@@ -6,6 +6,7 @@ use euclid::{Rect, Size2D};
 use gleam::gl;
 use ipc_channel::ipc::{IpcBytesReceiver, IpcBytesSender};
 use offscreen_gl_context::{GLContextAttributes, GLLimits};
+use pixels::PixelFormat;
 use serde_bytes::ByteBuf;
 use std::borrow::Cow;
 use std::num::NonZeroU32;
@@ -282,7 +283,7 @@ pub enum WebGLCommand {
         unpacking_alignment: u32,
         alpha_treatment: Option<AlphaTreatment>,
         y_axis_treatment: YAxisTreatment,
-        tex_source: TexSource,
+        pixel_format: Option<PixelFormat>,
         receiver: IpcBytesReceiver,
     },
     TexSubImage2D {
@@ -298,7 +299,7 @@ pub enum WebGLCommand {
         unpacking_alignment: u32,
         alpha_treatment: Option<AlphaTreatment>,
         y_axis_treatment: YAxisTreatment,
-        tex_source: TexSource,
+        pixel_format: Option<PixelFormat>,
         receiver: IpcBytesReceiver,
     },
     DrawingBufferWidth(WebGLSender<i32>),
@@ -774,10 +775,4 @@ pub enum AlphaTreatment {
 pub enum YAxisTreatment {
     AsIs,
     Flipped,
-}
-
-#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize)]
-pub enum TexSource {
-    FromHtmlElement,
-    FromArray,
 }

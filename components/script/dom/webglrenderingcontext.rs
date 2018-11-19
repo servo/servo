@@ -7,9 +7,9 @@ use backtrace::Backtrace;
 use canvas_traits::webgl::WebGLError::*;
 use canvas_traits::webgl::{
     webgl_channel, AlphaTreatment, DOMToTextureCommand, Parameter, TexDataType, TexFormat,
-    TexParameter, TexSource, WebGLCommand, WebGLCommandBacktrace, WebGLContextShareMode,
-    WebGLError, WebGLFramebufferBindingRequest, WebGLMsg, WebGLMsgSender, WebGLProgramId,
-    WebGLResult, WebGLSLVersion, WebGLSender, WebGLVersion, WebVRCommand, YAxisTreatment,
+    TexParameter, WebGLCommand, WebGLCommandBacktrace, WebGLContextShareMode, WebGLError,
+    WebGLFramebufferBindingRequest, WebGLMsg, WebGLMsgSender, WebGLProgramId, WebGLResult,
+    WebGLSLVersion, WebGLSender, WebGLVersion, WebVRCommand, YAxisTreatment,
 };
 use crate::dom::bindings::codegen::Bindings::ANGLEInstancedArraysBinding::ANGLEInstancedArraysConstants;
 use crate::dom::bindings::codegen::Bindings::EXTBlendMinmaxBinding::EXTBlendMinmaxConstants;
@@ -504,8 +504,7 @@ impl WebGLRenderingContext {
             level,
             0,
             1,
-            TexSource::FromHtmlElement,
-            TexPixels::new(pixels, size, true),
+            TexPixels::new(pixels, size, PixelFormat::RGBA8, true),
         );
 
         false
@@ -527,9 +526,12 @@ impl WebGLRenderingContext {
 
     fn get_image_pixels(&self, source: TexImageSource) -> Fallible<Option<TexPixels>> {
         Ok(Some(match source {
-            TexImageSource::ImageData(image_data) => {
-                TexPixels::new(image_data.to_vec(), image_data.get_size(), false)
-            },
+            TexImageSource::ImageData(image_data) => TexPixels::new(
+                image_data.to_vec(),
+                image_data.get_size(),
+                PixelFormat::RGBA8,
+                false,
+            ),
             TexImageSource::HTMLImageElement(image) => {
                 let document = document_from_node(&*self.canvas);
                 if !image.same_origin(document.origin()) {
@@ -552,15 +554,7 @@ impl WebGLRenderingContext {
 
                 let size = Size2D::new(img.width, img.height);
 
-                // For now Servo's images are all stored as BGRA8 internally.
-                let mut data = match img.format {
-                    PixelFormat::BGRA8 => img.bytes.to_vec(),
-                    _ => unimplemented!(),
-                };
-
-                pixels::rgba8_byte_swap_colors_inplace(&mut data);
-
-                TexPixels::new(data, size, false)
+                TexPixels::new(img.bytes.to_vec(), size, img.format, false)
             },
             // TODO(emilio): Getting canvas data is implemented in CanvasRenderingContext2D,
             // but we need to refactor it moving it to `HTMLCanvasElement` and support
@@ -569,10 +563,8 @@ impl WebGLRenderingContext {
                 if !canvas.origin_is_clean() {
                     return Err(Error::Security);
                 }
-                if let Some((mut data, size)) = canvas.fetch_all_data() {
-                    // Pixels got from Canvas have already alpha premultiplied
-                    pixels::rgba8_byte_swap_colors_inplace(&mut data);
-                    TexPixels::new(data, size, true)
+                if let Some((data, size)) = canvas.fetch_all_data() {
+                    TexPixels::new(data, size, PixelFormat::BGRA8, true)
                 } else {
                     return Ok(None);
                 }
@@ -646,7 +638,6 @@ impl WebGLRenderingContext {
         level: u32,
         _border: u32,
         unpacking_alignment: u32,
-        tex_source: TexSource,
         pixels: TexPixels,
     ) {
         // TexImage2D depth is always equal to 1.
@@ -698,7 +689,7 @@ impl WebGLRenderingContext {
             unpacking_alignment,
             alpha_treatment,
             y_axis_treatment,
-            tex_source,
+            pixel_format: pixels.pixel_format,
             receiver,
         });
         sender.send(&pixels.data).unwrap();
@@ -718,7 +709,6 @@ impl WebGLRenderingContext {
         format: TexFormat,
         data_type: TexDataType,
         unpacking_alignment: u32,
-        tex_source: TexSource,
         pixels: TexPixels,
     ) {
         // We have already validated level
@@ -776,7 +766,7 @@ impl WebGLRenderingContext {
             unpacking_alignment,
             alpha_treatment,
             y_axis_treatment,
-            tex_source,
+            pixel_format: pixels.pixel_format,
             receiver,
         });
         sender.send(&pixels.data).unwrap();
@@ -3649,7 +3639,6 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             level,
             border,
             unpacking_alignment,
-            TexSource::FromArray,
             TexPixels::from_array(buff, Size2D::new(width, height)),
         );
 
@@ -3714,15 +3703,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         }
 
         self.tex_image_2d(
-            &texture,
-            target,
-            data_type,
-            format,
-            level,
-            border,
-            1,
-            TexSource::FromHtmlElement,
-            pixels,
+            &texture, target, data_type, format, level, border, 1, pixels,
         );
         Ok(())
     }
@@ -3854,7 +3835,6 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             format,
             data_type,
             unpacking_alignment,
-            TexSource::FromArray,
             TexPixels::from_array(buff, Size2D::new(width, height)),
         );
         Ok(())
@@ -3900,16 +3880,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         };
 
         self.tex_sub_image_2d(
-            texture,
-            target,
-            level,
-            xoffset,
-            yoffset,
-            format,
-            data_type,
-            1,
-            TexSource::FromHtmlElement,
-            pixels,
+            texture, target, level, xoffset, yoffset, format, data_type, 1, pixels,
         );
         Ok(())
     }
@@ -4194,14 +4165,21 @@ impl TextureUnit {
 struct TexPixels {
     data: Vec<u8>,
     size: Size2D<u32>,
+    pixel_format: Option<PixelFormat>,
     premultiplied: bool,
 }
 
 impl TexPixels {
-    fn new(data: Vec<u8>, size: Size2D<u32>, premultiplied: bool) -> Self {
+    fn new(
+        data: Vec<u8>,
+        size: Size2D<u32>,
+        pixel_format: PixelFormat,
+        premultiplied: bool,
+    ) -> Self {
         Self {
             data,
             size,
+            pixel_format: Some(pixel_format),
             premultiplied,
         }
     }
@@ -4210,6 +4188,7 @@ impl TexPixels {
         Self {
             data,
             size,
+            pixel_format: None,
             premultiplied: false,
         }
     }

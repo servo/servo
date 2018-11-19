@@ -18,6 +18,8 @@ pub enum PixelFormat {
     /// RGB, 8 bits per channel
     RGB8,
     /// RGB + alpha, 8 bits per channel
+    RGBA8,
+    /// BGR + alpha, 8 bits per channel
     BGRA8,
 }
 

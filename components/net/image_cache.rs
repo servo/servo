@@ -67,7 +67,7 @@ fn set_webrender_image_key(webrender_api: &webrender_api::RenderApi, image: &mut
 
             true
         },
-        PixelFormat::K8 | PixelFormat::KA8 => {
+        PixelFormat::K8 | PixelFormat::KA8 | PixelFormat::RGBA8 => {
             panic!("Not support by webrender yet");
         },
     };
