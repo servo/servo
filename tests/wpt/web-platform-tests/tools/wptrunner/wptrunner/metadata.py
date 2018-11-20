@@ -287,6 +287,7 @@ class ExpectedUpdater(object):
         self.action_map = {"suite_start": self.suite_start,
                            "test_start": self.test_start,
                            "test_status": self.test_status,
+                           "test_result": self.test_result,
                            "test_end": self.test_end,
                            "assertion_count": self.assertion_count,
                            "lsan_leak": self.lsan_leak}
@@ -368,6 +369,34 @@ class ExpectedUpdater(object):
         result = status_intern.store(data["status"])
 
         test_data.set(test_id, subtest, "status", self.run_info, result)
+        if data.get("expected") and data["expected"] != data["status"]:
+            test_data.set_requires_update()
+
+    # This only gets called for WPT errorsummary style logs
+    def test_result(self, data):
+        if data["status"] == "SKIP":
+            return
+
+        test_id = intern(data["test"].encode("utf8"))
+        try:
+            subtest = intern(data["subtest"].encode("utf8"))
+        except AttributeError:
+            # This happens for whole-test results, e.g. crashes
+            subtest = None
+        test_data = self.id_test_map.get(test_id)
+        try:
+            test_data = self.id_test_map[test_id]
+        except KeyError:
+            print "Test not found %s, skipping" % test_id
+            return
+
+        result = status_intern.store(data["status"])
+
+        if not self.run_info:
+            self.run_info = run_info_intern.store({})
+
+        test_data.set(test_id, subtest, "status", self.run_info, result)
+        print subtest, result
         if data.get("expected") and data["expected"] != data["status"]:
             test_data.set_requires_update()
 
