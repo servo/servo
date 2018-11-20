@@ -38,6 +38,7 @@ use crate::dom::bindings::xmlname::{
 };
 use crate::dom::closeevent::CloseEvent;
 use crate::dom::comment::Comment;
+use crate::dom::compositionevent::CompositionEvent;
 use crate::dom::cssstylesheet::CSSStyleSheet;
 use crate::dom::customelementregistry::CustomElementDefinition;
 use crate::dom::customevent::CustomEvent;
@@ -1463,6 +1464,37 @@ impl Document {
         }
 
         self.window.reflow(ReflowGoal::Full, ReflowReason::KeyEvent);
+    }
+
+    pub fn dispatch_composition_event(
+        &self,
+        composition_event: ::keyboard_types::CompositionEvent,
+    ) {
+        // spec: https://w3c.github.io/uievents/#compositionstart
+        // spec: https://w3c.github.io/uievents/#compositionupdate
+        // spec: https://w3c.github.io/uievents/#compositionend
+        // > Event.target : focused element processing the composition
+        let focused = self.get_focused_element();
+        let target = if let Some(elem) = &focused {
+            elem.upcast()
+        } else {
+            // Event is only dispatched if there is a focused element.
+            return;
+        };
+
+        let cancelable = composition_event.state == keyboard_types::CompositionState::Start;
+
+        let compositionevent = CompositionEvent::new(
+            &self.window,
+            DOMString::from(composition_event.state.to_string()),
+            true,
+            cancelable,
+            Some(&self.window),
+            0,
+            DOMString::from(composition_event.data),
+        );
+        let event = compositionevent.upcast::<Event>();
+        event.fire(target);
     }
 
     // https://dom.spec.whatwg.org/#converting-nodes-into-a-node

@@ -17,6 +17,7 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom, RootedReference};
 use crate::dom::bindings::str::DOMString;
+use crate::dom::compositionevent::CompositionEvent;
 use crate::dom::document::Document;
 use crate::dom::element::{
     AttributeMutation, Element, LayoutElementHelpers, RawLayoutElementHelpers,
@@ -1525,6 +1526,23 @@ impl VirtualMethods for HTMLInputElement {
                         EventCancelable::NotCancelable,
                         &window,
                     );
+            }
+        } else if (event.type_() == atom!("compositionstart") ||
+            event.type_() == atom!("compositionupdate") ||
+            event.type_() == atom!("compositionend")) &&
+            self.input_type().is_textual_or_password()
+        {
+            // TODO: Update DOM on start and continue
+            // and generally do proper CompositionEvent handling.
+            if let Some(compositionevent) = event.downcast::<CompositionEvent>() {
+                if event.type_() == atom!("compositionend") {
+                    let _ = self
+                        .textinput
+                        .borrow_mut()
+                        .handle_compositionend(compositionevent);
+                    self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
+                }
+                event.mark_as_handled();
             }
         }
     }

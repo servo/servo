@@ -59,6 +59,10 @@ impl CompositionEvent {
         );
         Ok(event)
     }
+
+    pub fn data(&self) -> &str {
+        &*self.data
+    }
 }
 
 impl CompositionEventMethods for CompositionEvent {

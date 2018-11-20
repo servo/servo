@@ -13,6 +13,9 @@ click
 close
 color
 complete
+compositionend
+compositionstart
+compositionupdate
 controllerchange
 cursive
 date
