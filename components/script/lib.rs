@@ -28,8 +28,6 @@ extern crate deny_public_fields;
 #[macro_use]
 extern crate domobject_derive;
 #[macro_use]
-extern crate enum_iterator;
-#[macro_use]
 extern crate html5ever;
 #[macro_use]
 extern crate js;
