@@ -2,11 +2,18 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use crate::dom::bindings::codegen::Bindings::ElementBinding::ElementBinding::ElementMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLAudioElementBinding;
+use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
+use crate::dom::bindings::error::Fallible;
+use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
+use crate::dom::element::Element;
 use crate::dom::htmlmediaelement::HTMLMediaElement;
 use crate::dom::node::Node;
+use crate::dom::window::Window;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
 
@@ -39,5 +46,24 @@ impl HTMLAudioElement {
             document,
             HTMLAudioElementBinding::Wrap,
         )
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-audio
+    pub fn Audio(window: &Window, src: Option<DOMString>) -> Fallible<DomRoot<HTMLAudioElement>> {
+        let document = window.Document();
+        let audio = HTMLAudioElement::new(local_name!("audio"), None, &document);
+
+        audio
+            .upcast::<Element>()
+            .SetAttribute(DOMString::from("preload"), DOMString::from("auto"))
+            .expect("should be infallible");
+        if let Some(s) = src {
+            audio
+                .upcast::<Element>()
+                .SetAttribute(DOMString::from("src"), s)
+                .expect("should be infallible");
+        }
+
+        Ok(audio)
     }
 }
