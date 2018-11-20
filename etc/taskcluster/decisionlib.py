@@ -43,6 +43,7 @@ class Config:
         self.docker_image_buil_worker_type = None
         self.docker_images_expire_in = "1 month"
         self.repacked_msi_files_expire_in = "1 month"
+        self.treeherder_repo_name = None
 
         # Set by docker-worker:
         # https://docs.taskcluster.net/docs/reference/workers/docker-worker/docs/environment
@@ -58,7 +59,6 @@ class Config:
     def git_sha_is_current_head(self):
         output = subprocess.check_output(["git", "rev-parse", "HEAD"])
         self.git_sha = output.decode("utf8").strip()
-
 
 
 class Shared:
@@ -134,6 +134,37 @@ class Task:
     with_routes = chaining(append_to_attr, "routes")
 
     with_extra = chaining(update_attr, "extra")
+
+    def with_treeherder(self, category, symbol=None):
+        symbol = symbol or self.name
+        assert len(symbol) <= 25, symbol
+        self.name = "%s: %s" % (category, self.name)
+
+        # The message schema does not allow spaces in the platfrom or in labels,
+        # but the UI shows them in that order separated by spaces.
+        # So massage the metadata to get the UI to show the string we want.
+        # `labels` defaults to ["opt"] if not provided or empty,
+        # so use a more neutral underscore instead.
+        parts = category.split(" ")
+        platform = parts[0]
+        labels = parts[1:] or ["_"]
+
+        # https://docs.taskcluster.net/docs/reference/integrations/taskcluster-treeherder/docs/task-treeherder-config
+        self.with_extra(treeherder={
+            "machine": {"platform": platform},
+            "labels": labels,
+            "symbol": symbol,
+        })
+
+        if CONFIG.treeherder_repo_name:
+            assert CONFIG.git_sha
+            suffix = ".v2.%s.%s" % (CONFIG.treeherder_repo_name, CONFIG.git_sha)
+            self.with_routes(
+                "tc-treeherder" + suffix,
+                "tc-treeherder-staging" + suffix,
+            )
+
+        return self
 
     def build_worker_payload(self):  # pragma: no cover
         """
