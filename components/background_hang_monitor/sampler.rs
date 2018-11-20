@@ -35,9 +35,11 @@ lazy_static! {
 #[cfg(any(target_os = "android", target_os = "linux"))]
 #[derive(Debug)]
 #[repr(usize)]
+/// The various states of the SAMPLER_STATE state machine,
+/// used to coordinate access to SAMPLEE_CONTEXT.
 enum ThreadProfilerState {
     NotProfiling = 0,
-    SuspendedThread,
+    ReadyToWriteContext,
     ReadyToObtainBacktrace,
     ObtainedBacktrace,
     ResumedThread,
@@ -125,10 +127,12 @@ unsafe fn suspend_thread(thread_id: MonitoredThreadId) -> Result<(), ()> {
         SAMPLER_STATE.load(Ordering::SeqCst),
         ThreadProfilerState::NotProfiling as usize
     );
+    // Send a SIGPROF message to the samplee.
     match libc::pthread_kill(thread_id, libc::SIGPROF) {
         0 => {
+            // 1: Send a "message" to the samplee that the shared data is ready to be written to.
             SAMPLER_STATE.store(
-                ThreadProfilerState::SuspendedThread as usize,
+                ThreadProfilerState::ReadyToWriteContext as usize,
                 Ordering::SeqCst,
             );
             Ok(())
@@ -169,6 +173,7 @@ unsafe fn get_registers(_thread_id: MonitoredThreadId) -> Result<Registers, ()> 
 #[allow(unsafe_code)]
 unsafe fn get_registers(thread_id: MonitoredThreadId) -> Result<Registers, ()> {
     let now = Instant::now();
+    // 5: wait for the "message" from the samplee that we may access the shared data.
     loop {
         if SAMPLER_STATE.load(Ordering::SeqCst) ==
             ThreadProfilerState::ReadyToObtainBacktrace as usize
@@ -209,12 +214,13 @@ unsafe fn resume_thread(_thread_id: MonitoredThreadId) -> Result<(), ()> {
 
 #[cfg(any(target_os = "android", target_os = "linux"))]
 fn resume_thread(_thread_id: MonitoredThreadId) -> Result<(), ()> {
+    // 6: Send a "message" to the samplee that we are done with the backtrace.
     SAMPLER_STATE.store(
         ThreadProfilerState::ObtainedBacktrace as usize,
         Ordering::SeqCst,
     );
     let now = Instant::now();
-    // Wait until the samplee has resumed.
+    // 9: Wait until the samplee has resumed.
     let result = loop {
         if SAMPLER_STATE.load(Ordering::SeqCst) == ThreadProfilerState::ResumedThread as usize {
             break Ok(());
@@ -326,13 +332,25 @@ pub unsafe fn get_thread_id() -> MonitoredThreadId {
 #[allow(unsafe_code)]
 pub unsafe fn install_sigprof_handler() {
     fn handler(_sig: i32, _info: libc::siginfo_t, context: libc::ucontext_t) {
+        loop {
+            // 2: Wait for the monitor to set the state to ReadyToWriteContext.
+            if SAMPLER_STATE.load(Ordering::SeqCst) ==
+                ThreadProfilerState::ReadyToWriteContext as usize
+            {
+                break;
+            }
+            thread::yield_now();
+        }
+        // 3: Write to the shared data.
         unsafe {
             SAMPLEE_CONTEXT = Some((libc::pthread_self(), context.uc_mcontext));
         }
+        // 4: Send a "message" to te monitor that the shared data is ready to read.
         SAMPLER_STATE.store(
             ThreadProfilerState::ReadyToObtainBacktrace as usize,
             Ordering::SeqCst,
         );
+        // 7: Wait for the monitor to be finished with the backtrace.
         loop {
             if SAMPLER_STATE.load(Ordering::SeqCst) ==
                 ThreadProfilerState::ObtainedBacktrace as usize
@@ -341,7 +359,7 @@ pub unsafe fn install_sigprof_handler() {
             }
             thread::yield_now();
         }
-        // Signal to the monitor that the signal handler is finished.
+        // 8: Signal to the monitor that we're about to resume.
         SAMPLER_STATE.store(
             ThreadProfilerState::ResumedThread as usize,
             Ordering::SeqCst,
