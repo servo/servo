@@ -458,13 +458,13 @@ ${helpers.predefined_type(
 )}
 
 ${helpers.predefined_type(
-    "page-break-inside",
+    "break-inside",
     "BreakWithin",
     "computed::BreakWithin::Auto",
-    gecko_ffi_name="mBreakInside",
     needs_context=False,
     products="gecko",
-    spec="https://drafts.csswg.org/css2/page.html#propdef-page-break-inside",
+    alias="page-break-inside",
+    spec="https://drafts.csswg.org/css-break/#propdef-break-inside",
     animation_value_type="discrete",
 )}
 
