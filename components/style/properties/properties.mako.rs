@@ -948,6 +948,10 @@ bitflags! {
         /// This property's getComputedStyle implementation requires layout
         /// to be flushed.
         const GETCS_NEEDS_LAYOUT_FLUSH = 1 << 6;
+        /// This property is a legacy shorthand.
+        ///
+        /// https://drafts.csswg.org/css-cascade/#legacy-shorthand
+        const IS_LEGACY_SHORTHAND = 1 << 7;
 
         /* The following flags are currently not used in Rust code, they
          * only need to be listed in corresponding properties so that
@@ -1461,17 +1465,24 @@ impl ShorthandId {
         None
     }
 
-    /// Returns PropertyFlags for given shorthand property.
-    pub fn flags(&self) -> PropertyFlags {
-        match *self {
+    /// Returns PropertyFlags for the given shorthand property.
+    #[inline]
+    pub fn flags(self) -> PropertyFlags {
+        const FLAGS: [u8; ${len(data.shorthands)}] = [
             % for property in data.shorthands:
-                ShorthandId::${property.camel_case} =>
-                    % for flag in property.flags:
-                        PropertyFlags::${flag} |
-                    % endfor
-                    PropertyFlags::empty(),
+                % for flag in property.flags:
+                    PropertyFlags::${flag}.bits |
+                % endfor
+                0,
             % endfor
-        }
+        ];
+        PropertyFlags::from_bits_truncate(FLAGS[self as usize])
+    }
+
+    /// Returns whether this property is a legacy shorthand.
+    #[inline]
+    pub fn is_legacy_shorthand(self) -> bool {
+        self.flags().contains(PropertyFlags::IS_LEGACY_SHORTHAND)
     }
 
     /// Returns the order in which this property appears relative to other

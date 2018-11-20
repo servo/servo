@@ -917,6 +917,10 @@ impl PropertyDeclarationBlock {
                 }
                 already_serialized.insert(shorthand.into());
 
+                if shorthand.is_legacy_shorthand() {
+                    continue;
+                }
+
                 // Substep 2 & 3
                 let mut current_longhands = SmallVec::<[_; 10]>::new();
                 let mut important_count = 0;
