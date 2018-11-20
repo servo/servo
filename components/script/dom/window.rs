@@ -812,11 +812,7 @@ impl WindowMethods for Window {
     fn Performance(&self) -> DomRoot<Performance> {
         self.performance.or_init(|| {
             let global_scope = self.upcast::<GlobalScope>();
-            Performance::new(
-                global_scope,
-                self.navigation_start.get(),
-                self.navigation_start_precise.get(),
-            )
+            Performance::new(global_scope, self.navigation_start_precise.get())
         })
     }
 

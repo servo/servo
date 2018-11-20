@@ -7,20 +7,28 @@
 //! no guarantee that the responsible nodes will still exist in the future if the
 //! layout thread holds on to them during asynchronous operations.
 
+use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomObject;
+use crate::dom::bindings::root::DomRoot;
+use crate::dom::document::Document;
+use crate::dom::globalscope::GlobalScope;
 use crate::dom::node::{document_from_node, Node};
-use crate::network_listener::{NetworkListener, PreInvoke};
+use crate::dom::performanceresourcetiming::InitiatorType;
+use crate::network_listener::{self, NetworkListener, PreInvoke, ResourceTimingListener};
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use net_traits::image_cache::{ImageCache, PendingImageId};
 use net_traits::request::{Destination, RequestInit as FetchRequestInit};
 use net_traits::{FetchMetadata, FetchResponseListener, FetchResponseMsg, NetworkError};
+use net_traits::{ResourceFetchTiming, ResourceTimingType};
 use servo_url::ServoUrl;
 use std::sync::{Arc, Mutex};
 
 struct LayoutImageContext {
     id: PendingImageId,
     cache: Arc<dyn ImageCache>,
+    resource_timing: ResourceFetchTiming,
+    doc: Trusted<Document>,
 }
 
 impl FetchResponseListener for LayoutImageContext {
@@ -36,9 +44,34 @@ impl FetchResponseListener for LayoutImageContext {
             .notify_pending_response(self.id, FetchResponseMsg::ProcessResponseChunk(payload));
     }
 
-    fn process_response_eof(&mut self, response: Result<(), NetworkError>) {
+    fn process_response_eof(&mut self, response: Result<ResourceFetchTiming, NetworkError>) {
         self.cache
             .notify_pending_response(self.id, FetchResponseMsg::ProcessResponseEOF(response));
+    }
+
+    fn resource_timing_mut(&mut self) -> &mut ResourceFetchTiming {
+        &mut self.resource_timing
+    }
+
+    fn resource_timing(&self) -> &ResourceFetchTiming {
+        &self.resource_timing
+    }
+
+    fn submit_resource_timing(&mut self) {
+        network_listener::submit_timing(self)
+    }
+}
+
+impl ResourceTimingListener for LayoutImageContext {
+    fn resource_timing_information(&self) -> (InitiatorType, ServoUrl) {
+        (
+            InitiatorType::Other,
+            self.resource_timing_global().get_url().clone(),
+        )
+    }
+
+    fn resource_timing_global(&self) -> DomRoot<GlobalScope> {
+        self.doc.root().global()
     }
 }
 
@@ -50,9 +83,13 @@ pub fn fetch_image_for_layout(
     id: PendingImageId,
     cache: Arc<dyn ImageCache>,
 ) {
+    let document = document_from_node(node);
+
     let context = Arc::new(Mutex::new(LayoutImageContext {
         id: id,
         cache: cache,
+        resource_timing: ResourceFetchTiming::new(ResourceTimingType::Resource),
+        doc: Trusted::new(&document),
     }));
 
     let document = document_from_node(node);

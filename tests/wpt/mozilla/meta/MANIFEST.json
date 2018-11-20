@@ -27064,7 +27064,7 @@
    "testharness"
   ],
   "mozilla/interfaces.html": [
-   "b1de57409ad5e6f9fedeb8a34c9474b4e378ec0a",
+   "ad17e930ddb5bc2daecb86216efe8885ae399173",
    "testharness"
   ],
   "mozilla/interfaces.js": [
@@ -27072,7 +27072,7 @@
    "support"
   ],
   "mozilla/interfaces.worker.js": [
-   "fbd6e92c097dea4f99924de219c9f6aa07a45282",
+   "a5f2e00f234ea66b80e8a9bd4dbbc5433926191f",
    "testharness"
   ],
   "mozilla/invalid-this.html": [
@@ -32904,11 +32904,11 @@
    "testharness"
   ],
   "mozilla/window_performance.html": [
-   "6b96c18b3cdef8b8bce294f1b45ce09192b00cd0",
+   "690870b7080e179481ca0255f7c30337e8b6636a",
    "testharness"
   ],
   "mozilla/window_performance_topLevelDomComplete.html": [
-   "ce2431a7279e7cefa9e8032edabe276ac5deb227",
+   "50bbc2917b5ac900b5061a0b2c30b6c1fef1067e",
    "testharness"
   ],
   "mozilla/window_requestAnimationFrame.html": [

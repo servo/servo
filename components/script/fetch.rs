@@ -14,11 +14,12 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::headers::Guard;
+use crate::dom::performanceresourcetiming::InitiatorType;
 use crate::dom::promise::Promise;
 use crate::dom::request::Request;
 use crate::dom::response::Response;
 use crate::dom::serviceworkerglobalscope::ServiceWorkerGlobalScope;
-use crate::network_listener::{NetworkListener, PreInvoke};
+use crate::network_listener::{self, NetworkListener, PreInvoke, ResourceTimingListener};
 use crate::task_source::TaskSourceName;
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
@@ -28,6 +29,7 @@ use net_traits::request::{Request as NetTraitsRequest, ServiceWorkersMode};
 use net_traits::CoreResourceMsg::Fetch as NetTraitsFetch;
 use net_traits::{FetchChannels, FetchResponseListener, NetworkError};
 use net_traits::{FetchMetadata, FilteredMetadata, Metadata};
+use net_traits::{ResourceFetchTiming, ResourceTimingType};
 use servo_url::ServoUrl;
 use std::mem;
 use std::rc::Rc;
@@ -37,6 +39,7 @@ struct FetchContext {
     fetch_promise: Option<TrustedPromise>,
     response_object: Trusted<Response>,
     body: Vec<u8>,
+    resource_timing: ResourceFetchTiming,
 }
 
 /// RAII fetch canceller object. By default initialized to not having a canceller
@@ -143,6 +146,8 @@ pub fn Fetch(
         },
         Ok(r) => r.get_request(),
     };
+    let timing_type = request.timing_type();
+
     let mut request_init = request_init_from_request(request);
 
     // Step 3
@@ -159,6 +164,7 @@ pub fn Fetch(
         fetch_promise: Some(TrustedPromise::new(promise.clone())),
         response_object: Trusted::new(&*response),
         body: vec![],
+        resource_timing: ResourceFetchTiming::new(timing_type),
     }));
     let listener = NetworkListener {
         context: fetch_context,
@@ -250,7 +256,7 @@ impl FetchResponseListener for FetchContext {
         self.body.append(&mut chunk);
     }
 
-    fn process_response_eof(&mut self, _response: Result<(), NetworkError>) {
+    fn process_response_eof(&mut self, _response: Result<ResourceFetchTiming, NetworkError>) {
         let response = self.response_object.root();
         let global = response.global();
         let cx = global.get_cx();
@@ -258,6 +264,35 @@ impl FetchResponseListener for FetchContext {
         response.finish(mem::replace(&mut self.body, vec![]));
         // TODO
         // ... trailerObject is not supported in Servo yet.
+    }
+
+    fn resource_timing_mut(&mut self) -> &mut ResourceFetchTiming {
+        &mut self.resource_timing
+    }
+
+    fn resource_timing(&self) -> &ResourceFetchTiming {
+        &self.resource_timing
+    }
+
+    fn submit_resource_timing(&mut self) {
+        // navigation submission is handled in servoparser/mod.rs
+        match self.resource_timing.timing_type {
+            ResourceTimingType::Resource => network_listener::submit_timing(self),
+            _ => {},
+        };
+    }
+}
+
+impl ResourceTimingListener for FetchContext {
+    fn resource_timing_information(&self) -> (InitiatorType, ServoUrl) {
+        (
+            InitiatorType::Fetch,
+            self.resource_timing_global().get_url().clone(),
+        )
+    }
+
+    fn resource_timing_global(&self) -> DomRoot<GlobalScope> {
+        self.response_object.root().global()
     }
 }
 

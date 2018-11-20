@@ -13,7 +13,7 @@ use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::codegen::Bindings::ServoParserBinding;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
-use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
+use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom, RootedReference};
 use crate::dom::bindings::settings_stack::is_execution_stack_empty;
 use crate::dom::bindings::str::DOMString;
@@ -28,6 +28,8 @@ use crate::dom::htmlimageelement::HTMLImageElement;
 use crate::dom::htmlscriptelement::{HTMLScriptElement, ScriptResult};
 use crate::dom::htmltemplateelement::HTMLTemplateElement;
 use crate::dom::node::Node;
+use crate::dom::performanceentry::PerformanceEntry;
+use crate::dom::performancenavigationtiming::PerformanceNavigationTiming;
 use crate::dom::processinginstruction::ProcessingInstruction;
 use crate::dom::text::Text;
 use crate::dom::virtualmethods::vtable_for;
@@ -43,8 +45,10 @@ use hyper_serde::Serde;
 use mime::{self, Mime};
 use msg::constellation_msg::PipelineId;
 use net_traits::{FetchMetadata, FetchResponseListener, Metadata, NetworkError};
-use profile_traits::time::{profile, ProfilerCategory, TimerMetadataReflowType};
-use profile_traits::time::{TimerMetadata, TimerMetadataFrameType};
+use net_traits::{ResourceFetchTiming, ResourceTimingType};
+use profile_traits::time::{
+    profile, ProfilerCategory, TimerMetadata, TimerMetadataFrameType, TimerMetadataReflowType,
+};
 use script_traits::DocumentActivity;
 use servo_config::prefs::PREFS;
 use servo_url::ServoUrl;
@@ -656,6 +660,8 @@ pub struct ParserContext {
     id: PipelineId,
     /// The URL for this document.
     url: ServoUrl,
+    /// timing data for this resource
+    resource_timing: ResourceFetchTiming,
 }
 
 impl ParserContext {
@@ -665,6 +671,7 @@ impl ParserContext {
             is_synthesized_document: false,
             id: id,
             url: url,
+            resource_timing: ResourceFetchTiming::new(ResourceTimingType::Navigation),
         }
     }
 }
@@ -792,7 +799,10 @@ impl FetchResponseListener for ParserContext {
         parser.parse_bytes_chunk(payload);
     }
 
-    fn process_response_eof(&mut self, status: Result<(), NetworkError>) {
+    // This method is called via script_thread::handle_fetch_eof, so we must call
+    // submit_resource_timing in this function
+    // Resource listeners are called via net_traits::Action::process, which handles submission for them
+    fn process_response_eof(&mut self, status: Result<ResourceFetchTiming, NetworkError>) {
         let parser = match self.parser.as_ref() {
             Some(parser) => parser.root(),
             None => return,
@@ -801,15 +811,53 @@ impl FetchResponseListener for ParserContext {
             return;
         }
 
-        if let Err(err) = status {
+        match status {
+            // are we throwing this away or can we use it?
+            Ok(_) => (),
             // TODO(Savago): we should send a notification to callers #5463.
-            debug!("Failed to load page URL {}, error: {:?}", self.url, err);
+            Err(err) => debug!("Failed to load page URL {}, error: {:?}", self.url, err),
         }
+
+        parser
+            .document
+            .set_redirect_count(self.resource_timing.redirect_count);
 
         parser.last_chunk_received.set(true);
         if !parser.suspended.get() {
             parser.parse_sync();
         }
+
+        //TODO only submit if this is the current document resource
+        self.submit_resource_timing();
+    }
+
+    fn resource_timing_mut(&mut self) -> &mut ResourceFetchTiming {
+        &mut self.resource_timing
+    }
+
+    fn resource_timing(&self) -> &ResourceFetchTiming {
+        &self.resource_timing
+    }
+
+    // store a PerformanceNavigationTiming entry in the globalscope's Performance buffer
+    fn submit_resource_timing(&mut self) {
+        let parser = match self.parser.as_ref() {
+            Some(parser) => parser.root(),
+            None => return,
+        };
+        if parser.aborted.get() {
+            return;
+        }
+
+        let document = &parser.document;
+
+        //TODO nav_start and nav_start_precise
+        let performance_entry =
+            PerformanceNavigationTiming::new(&document.global(), 0, 0, &document);
+        document
+            .global()
+            .performance()
+            .queue_entry(performance_entry.upcast::<PerformanceEntry>(), true);
     }
 }
 
