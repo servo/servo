@@ -1182,8 +1182,8 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         &mut self,
         target: CompositeTarget,
     ) -> Result<Option<Image>, UnableToComposite> {
-        let width = self.embedder_coordinates.framebuffer.width_typed();
-        let height = self.embedder_coordinates.framebuffer.height_typed();
+        let width = self.embedder_coordinates.framebuffer.to_u32().width_typed();
+        let height = self.embedder_coordinates.framebuffer.to_u32().height_typed();
         if !self.window.prepare_for_composite() {
             return Err(UnableToComposite::WindowUnprepared);
         }

@@ -528,7 +528,7 @@ impl Handler {
         let size = TypedSize2D::new(width as u32, height as u32);
         let top_level_browsing_context_id = self.session()?.top_level_browsing_context_id;
         let cmd_msg =
-            WebDriverCommandMsg::SetWindowSize(top_level_browsing_context_id, size, sender.clone());
+            WebDriverCommandMsg::SetWindowSize(top_level_browsing_context_id, size.to_i32(), sender.clone());
 
         self.constellation_chan
             .send(ConstellationMsg::WebDriverCommand(cmd_msg))

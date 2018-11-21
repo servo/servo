@@ -17,7 +17,7 @@ use std::fmt::{Debug, Error, Formatter};
 #[cfg(feature = "gleam")]
 use std::rc::Rc;
 use style_traits::DevicePixel;
-use webrender_api::{DeviceIntPoint, DevicePoint, DeviceUintRect, DeviceUintSize, ScrollLocation};
+use webrender_api::{DeviceIntPoint, DevicePoint, DeviceIntRect, DeviceIntSize, ScrollLocation};
 
 #[derive(Clone)]
 pub enum MouseWindowEvent {
@@ -149,13 +149,13 @@ pub struct EmbedderCoordinates {
     /// The pixel density of the display.
     pub hidpi_factor: TypedScale<f32, DeviceIndependentPixel, DevicePixel>,
     /// Size of the screen.
-    pub screen: DeviceUintSize,
+    pub screen: DeviceIntSize,
     /// Size of the available screen space (screen without toolbars and docks).
-    pub screen_avail: DeviceUintSize,
+    pub screen_avail: DeviceIntSize,
     /// Size of the native window.
-    pub window: (DeviceUintSize, DeviceIntPoint),
+    pub window: (DeviceIntSize, DeviceIntPoint),
     /// Size of the GL buffer in the window.
-    pub framebuffer: DeviceUintSize,
+    pub framebuffer: DeviceIntSize,
     /// Coordinates of the document within the framebuffer.
-    pub viewport: DeviceUintRect,
+    pub viewport: DeviceIntRect,
 }

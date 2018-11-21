@@ -28,7 +28,7 @@ use std::fmt;
 use style_traits::cursor::CursorKind;
 use style_traits::viewport::ViewportConstraints;
 use style_traits::CSSPixel;
-use webrender_api::{DeviceIntPoint, DeviceUintSize};
+use webrender_api::{DeviceIntPoint, DeviceIntSize};
 
 /// Messages from the layout to the constellation.
 #[derive(Deserialize, Serialize)]
@@ -185,11 +185,11 @@ pub enum ScriptMsg {
     /// Store the data required to activate a service worker for the given scope
     RegisterServiceWorker(ScopeThings, ServoUrl),
     /// Get Window Informations size and position
-    GetClientWindow(IpcSender<(DeviceUintSize, DeviceIntPoint)>),
+    GetClientWindow(IpcSender<(DeviceIntSize, DeviceIntPoint)>),
     /// Get the screen size (pixel)
-    GetScreenSize(IpcSender<(DeviceUintSize)>),
+    GetScreenSize(IpcSender<(DeviceIntSize)>),
     /// Get the available screen size (pixel)
-    GetScreenAvailSize(IpcSender<(DeviceUintSize)>),
+    GetScreenAvailSize(IpcSender<(DeviceIntSize)>),
 }
 
 impl fmt::Debug for ScriptMsg {

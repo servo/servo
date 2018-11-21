@@ -52,7 +52,7 @@ use style_traits::cursor::CursorKind;
 use style_traits::CSSPixel;
 use style_traits::SpeculativePainter;
 use webrender_api::{
-    DevicePixel, DeviceUintSize, DocumentId, ExternalScrollId, ImageKey, RenderApiSender,
+    DevicePixel, DeviceIntSize, DocumentId, ExternalScrollId, ImageKey, RenderApiSender,
 };
 use webvr_traits::{WebVREvent, WebVRMsg};
 
@@ -695,7 +695,7 @@ pub enum WebDriverCommandMsg {
     /// Set the window size.
     SetWindowSize(
         TopLevelBrowsingContextId,
-        DeviceUintSize,
+        DeviceIntSize,
         IpcSender<WindowSizeData>,
     ),
     /// Take a screenshot of the window.

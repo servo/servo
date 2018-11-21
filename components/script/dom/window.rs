@@ -130,7 +130,7 @@ use style::stylesheets::CssRuleType;
 use style_traits::{CSSPixel, DevicePixel, ParsingMode};
 use url::Position;
 use webrender_api::{
-    DeviceIntPoint, DeviceUintSize, DocumentId, ExternalScrollId, RenderApiSender,
+    DeviceIntPoint, DeviceIntSize, DocumentId, ExternalScrollId, RenderApiSender,
 };
 use webvr_traits::WebVRMsg;
 
@@ -1046,7 +1046,7 @@ impl WindowMethods for Window {
         //TODO determine if this operation is allowed
         let dpr = self.device_pixel_ratio();
         let size = TypedSize2D::new(width, height).to_f32() * dpr;
-        self.send_to_embedder(EmbedderMsg::ResizeTo(size.to_u32()));
+        self.send_to_embedder(EmbedderMsg::ResizeTo(size.to_i32()));
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-window-resizeby
@@ -1330,7 +1330,7 @@ impl Window {
     fn client_window(&self) -> (TypedSize2D<u32, CSSPixel>, TypedPoint2D<i32, CSSPixel>) {
         let timer_profile_chan = self.global().time_profiler_chan().clone();
         let (send, recv) =
-            ProfiledIpc::channel::<(DeviceUintSize, DeviceIntPoint)>(timer_profile_chan).unwrap();
+            ProfiledIpc::channel::<(DeviceIntSize, DeviceIntPoint)>(timer_profile_chan).unwrap();
         self.send_to_constellation(ScriptMsg::GetClientWindow(send));
         let (size, point) = recv
             .recv()

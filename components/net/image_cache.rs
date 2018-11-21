@@ -71,7 +71,7 @@ fn set_webrender_image_key(webrender_api: &webrender_api::RenderApi, image: &mut
         },
     };
     let descriptor = webrender_api::ImageDescriptor {
-        size: webrender_api::DeviceUintSize::new(image.width, image.height),
+        size: webrender_api::DeviceIntSize::new(image.width as i32, image.height as i32),
         stride: None,
         format: webrender_api::ImageFormat::BGRA8,
         offset: 0,

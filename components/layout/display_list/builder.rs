@@ -1459,9 +1459,9 @@ impl FragmentDisplayListBuilding for Fragment {
 
         let details = BorderDetails::NinePatch(NinePatchBorder {
             source,
-            width,
-            height,
-            slice: border::image_slice(border_image_slice, width, height),
+            width: width as i32,
+            height: height as i32,
+            slice: border::image_slice(border_image_slice, width as i32, height as i32),
             fill: border_image_fill,
             repeat_horizontal: border_image_repeat.0.to_layout(),
             repeat_vertical: border_image_repeat.1.to_layout(),

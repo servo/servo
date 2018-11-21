@@ -467,7 +467,7 @@ impl<'a> CanvasData<'a> {
         let size = self.drawtarget.get_size();
 
         let descriptor = webrender_api::ImageDescriptor {
-            size: webrender_api::DeviceUintSize::new(size.width as u32, size.height as u32),
+            size: webrender_api::DeviceIntSize::new(size.width, size.height),
             stride: None,
             format: webrender_api::ImageFormat::BGRA8,
             offset: 0,

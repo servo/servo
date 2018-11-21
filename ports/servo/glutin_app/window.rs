@@ -18,7 +18,7 @@ use servo::servo_config::opts;
 use servo::servo_geometry::DeviceIndependentPixel;
 use servo::style_traits::DevicePixel;
 use servo::style_traits::cursor::CursorKind;
-use servo::webrender_api::{DeviceIntPoint, DeviceUintRect, DeviceUintSize, ScrollLocation};
+use servo::webrender_api::{DeviceIntPoint, DeviceIntRect, DeviceUintSize, ScrollLocation};
 use std::cell::{Cell, RefCell};
 #[cfg(any(target_os = "linux", target_os = "macos"))]
 use std::ffi::CString;
@@ -694,7 +694,7 @@ impl WindowMethods for Window {
                     .expect("Failed to get window inner size.");
                 let inner_size = (TypedSize2D::new(width as f32, height as f32) * dpr).to_u32();
 
-                let viewport = DeviceUintRect::new(TypedPoint2D::zero(), inner_size);
+                let viewport = DeviceIntRect::new(TypedPoint2D::zero(), inner_size);
 
                 EmbedderCoordinates {
                     viewport: viewport,
@@ -711,7 +711,7 @@ impl WindowMethods for Window {
                 let size =
                     (TypedSize2D::new(context.width, context.height).to_f32() * dpr).to_u32();
                 EmbedderCoordinates {
-                    viewport: DeviceUintRect::new(TypedPoint2D::zero(), size),
+                    viewport: DeviceIntRect::new(TypedPoint2D::zero(), size),
                     framebuffer: size,
                     window: (size, TypedPoint2D::zero()),
                     screen: size,

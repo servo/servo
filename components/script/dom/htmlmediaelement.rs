@@ -85,8 +85,8 @@ impl MediaFrameRenderer {
 impl FrameRenderer for MediaFrameRenderer {
     fn render(&mut self, frame: Frame) {
         let descriptor = ImageDescriptor::new(
-            frame.get_width() as u32,
-            frame.get_height() as u32,
+            frame.get_width(),
+            frame.get_height(),
             ImageFormat::BGRA8,
             false,
             false,

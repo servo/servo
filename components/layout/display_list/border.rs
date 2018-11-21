@@ -181,18 +181,18 @@ pub fn image_width(
     )
 }
 
-fn resolve_percentage(value: NumberOrPercentage, length: u32) -> u32 {
+fn resolve_percentage(value: NumberOrPercentage, length: i32) -> i32 {
     match value {
-        NumberOrPercentage::Percentage(p) => (p.0 * length as f32).round() as u32,
-        NumberOrPercentage::Number(n) => n.round() as u32,
+        NumberOrPercentage::Percentage(p) => (p.0 * length as f32).round() as i32,
+        NumberOrPercentage::Number(n) => n.round() as i32,
     }
 }
 
 pub fn image_slice(
     border_image_slice: &StyleRect<NumberOrPercentage>,
-    width: u32,
-    height: u32,
-) -> SideOffsets2D<u32> {
+    width: i32,
+    height: i32,
+) -> SideOffsets2D<i32> {
     SideOffsets2D::new(
         resolve_percentage(border_image_slice.0, height),
         resolve_percentage(border_image_slice.1, width),
