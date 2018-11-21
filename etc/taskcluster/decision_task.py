@@ -11,10 +11,15 @@ from decisionlib import *
 def main(task_for, mock=False):
     if task_for == "github-push":
         if CONFIG.git_ref in ["refs/heads/auto", "refs/heads/try", "refs/heads/try-taskcluster"]:
+            CONFIG.treeherder_repo_name = "servo/servo-" + CONFIG.git_ref.split("/")[-1]
+
             linux_tidy_unit()
             android_arm32()
             windows_unit()
             macos_unit()
+
+            # These are disabled in a "real" decision task,
+            # but should still run when testing this Python code. (See `mock.py`.)
             if mock:
                 windows_release()
                 linux_wpt()
@@ -64,26 +69,34 @@ windows_sparse_checkout = [
 
 
 def linux_tidy_unit():
-    return linux_build_task("Linux x64: tidy + dev build + unit tests").with_script("""
-        ./mach test-tidy --no-progress --all
-        ./mach build --dev
-        ./mach test-unit
-        ./mach package --dev
-        ./mach test-tidy --no-progress --self-test
-        ./etc/memory_reports_over_time.py --test
-        ./etc/taskcluster/mock.py
-        ./etc/ci/lockfile_changed.sh
-        ./etc/ci/check_no_panic.sh
-    """).create()
+    return (
+        linux_build_task("Tidy + dev build + unit")
+        .with_treeherder("Linux x64")
+        .with_script("""
+            ./mach test-tidy --no-progress --all
+            ./mach build --dev
+            ./mach test-unit
+            ./mach package --dev
+            ./mach test-tidy --no-progress --self-test
+            ./etc/memory_reports_over_time.py --test
+            ./etc/taskcluster/mock.py
+            ./etc/ci/lockfile_changed.sh
+            ./etc/ci/check_no_panic.sh
+        """).create()
+    )
 
 
 def macos_unit():
-    macos_build_task("macOS x64: dev build + unit tests").with_script("""
-        ./mach build --dev
-        ./mach test-unit
-        ./mach package --dev
-        ./etc/ci/lockfile_changed.sh
-    """).create()
+    return (
+        macos_build_task("Dev build + unit tests")
+        .with_treeherder("macOS x64")
+        .with_script("""
+            ./mach build --dev
+            ./mach test-unit
+            ./mach package --dev
+            ./etc/ci/lockfile_changed.sh
+        """).create()
+    )
 
 
 def with_rust_nightly():
@@ -96,7 +109,8 @@ def with_rust_nightly():
 
 def android_arm32():
     return (
-        android_build_task("Android ARMv7: release build")
+        android_build_task("Release build")
+        .with_treeherder("Android ARMv7")
         .with_script("./mach build --android --release")
         .with_artifacts(
             "/repo/target/armv7-linux-androideabi/release/servoapp.apk",
@@ -108,7 +122,8 @@ def android_arm32():
 
 def android_x86():
     build_task = (
-        android_build_task("Android x86: release build")
+        android_build_task("Release build")
+        .with_treeherder("Android x86")
         .with_script("./mach build --target i686-linux-android --release")
         .with_artifacts(
             "/repo/target/i686-linux-android/release/servoapp.apk",
@@ -117,7 +132,8 @@ def android_x86():
         .find_or_create("build.android_x86_release." + CONFIG.git_sha)
     )
     return (
-        DockerWorkerTask("Android x86: tests in emulator")
+        DockerWorkerTask("WPT")
+        .with_treeherder("Android x86")
         .with_provisioner_id("proj-servo")
         .with_worker_type("docker-worker-kvm")
         .with_capabilities(privileged=True)
@@ -138,7 +154,8 @@ def android_x86():
 
 def windows_unit():
     return (
-        windows_build_task("Windows x64: dev build + unit tests")
+        windows_build_task("Build + unit tests")
+        .with_treeherder("Windows x64", "debug")
         .with_script(
             # Not necessary as this would be done at the start of `build`,
             # but this allows timing it separately.
@@ -156,7 +173,8 @@ def windows_unit():
 
 def windows_release():
     return (
-        windows_build_task("Windows x64: release build")
+        windows_build_task("Release build")
+        .with_treeherder("Windows x64")
         .with_script("mach build --release",
                      "mach package --release")
         .with_artifacts("repo/target/release/msi/Servo.exe",
@@ -175,7 +193,8 @@ def linux_wpt():
 
 def linux_release_build():
     return (
-        linux_build_task("Linux x64: release build")
+        linux_build_task("Release build")
+        .with_treeherder("Linux x64")
         .with_script("""
             ./mach build --release --with-debug-assertions -p servo
             ./etc/ci/lockfile_changed.sh
@@ -190,57 +209,53 @@ def linux_release_build():
 
 
 def wpt_chunk(release_build_task, total_chunks, this_chunk):
-    name = "Linux x64: WPT chunk %s / %s" % (this_chunk, total_chunks)
-    script = """
-        ./mach test-wpt \
-            --release \
-            --processes 24 \
-            --total-chunks "$TOTAL_CHUNKS" \
-            --this-chunk "$THIS_CHUNK" \
-            --log-raw test-wpt.log \
-            --log-errorsummary wpt-errorsummary.log \
-            --always-succeed
-        ./mach filter-intermittents\
-            wpt-errorsummary.log \
-            --log-intermittents intermittents.log \
-            --log-filteredsummary filtered-wpt-errorsummary.log \
-            --tracker-api default
-    """
-    # FIXME: --reporter-api default
-    # IndexError: list index out of range
-    # File "/repo/python/servo/testing_commands.py", line 533, in filter_intermittents
-    #   pull_request = int(last_merge.split(' ')[4][1:])
+    task = (
+        linux_task("WPT chunk %s / %s" % (this_chunk, total_chunks))
+        .with_treeherder("Linux x64", "WPT %s" % this_chunk)
+        .with_dockerfile(dockerfile_path("run"))
+        .with_repo()
+        .with_curl_artifact_script(release_build_task, "target.tar.gz")
+        .with_script("tar -xzf target.tar.gz")
+        .with_index_and_artifacts_expire_in(log_artifacts_expire_in)
+        .with_max_run_time_minutes(60)
+        .with_env(TOTAL_CHUNKS=total_chunks, THIS_CHUNK=this_chunk)
+        .with_script("""
+            ./mach test-wpt \
+                --release \
+                --processes 24 \
+                --total-chunks "$TOTAL_CHUNKS" \
+                --this-chunk "$THIS_CHUNK" \
+                --log-raw test-wpt.log \
+                --log-errorsummary wpt-errorsummary.log \
+                --always-succeed
+            ./mach filter-intermittents\
+                wpt-errorsummary.log \
+                --log-intermittents intermittents.log \
+                --log-filteredsummary filtered-wpt-errorsummary.log \
+                --tracker-api default
+        """)
+        # FIXME: --reporter-api default
+        # IndexError: list index out of range
+        # File "/repo/python/servo/testing_commands.py", line 533, in filter_intermittents
+        #   pull_request = int(last_merge.split(' ')[4][1:])
+    )
     if this_chunk == 1:
-        name += " + extra"
-        script += """
+        task.name += " + extra"
+        task.extra["treeherder"]["symbol"] += "+"
+        task.with_script("""
             ./mach test-wpt-failure
             ./mach test-wpt --release --binary-arg=--multiprocess --processes 24 \
                 --log-raw test-wpt-mp.log \
                 --log-errorsummary wpt-mp-errorsummary.log \
                 eventsource
-        """
-    return (
-        linux_run_task(name, release_build_task, script)
-        .with_env(TOTAL_CHUNKS=total_chunks, THIS_CHUNK=this_chunk)
-        .create()
-    )
-
-
-def linux_run_task(name, build_task, script):
-    return (
-        linux_task(name)
-        .with_dockerfile(dockerfile_path("run"))
-        .with_repo()
-        .with_curl_artifact_script(build_task, "target.tar.gz")
-        .with_script("tar -xzf target.tar.gz")
-        .with_script(script)
-        .with_index_and_artifacts_expire_in(log_artifacts_expire_in)
-        .with_artifacts(*[
-            "/repo/" + word
-            for word in script.split() if word.endswith(".log")
-        ])
-        .with_max_run_time_minutes(60)
-    )
+        """)
+    task.with_artifacts(*[
+        "/repo/" + word
+        for script in task.scripts
+        for word in script.split()
+        if word.endswith(".log")
+    ])
+    task.create()
 
 
 def daily_tasks_setup():

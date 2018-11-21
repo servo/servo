@@ -25,6 +25,15 @@ tasks:
         scopes:
           # Granted to role "repo:github.com/servo/servo:branch:*"
           - "assume:project:servo:decision-task/trusted"
+        routes:
+          # len("refs/heads/") == 11, so event.ref[11:] is the branch name
+          - "tc-treeherder.v2.servo/servo-${event.ref[11:]}.${event.after}"
+          - "tc-treeherder-staging.v2.servo/servo-${event.ref[11:]}.${event.after}"
+        extra:
+          treeherder:
+            machine: {platform: Linux}
+            labels: [x64]
+            symbol: Decision
 
         payload:
           maxRunTime: {$eval: '20 * 60'}
