@@ -17,6 +17,7 @@ use ipc_channel::ipc::{IpcSender, IpcSharedMemory};
 use num_traits::ToPrimitive;
 use std::mem;
 use std::sync::Arc;
+use webrender::api::DirtyRect;
 
 pub struct CanvasData<'a> {
     drawtarget: DrawTarget,
@@ -462,7 +463,7 @@ impl<'a> CanvasData<'a> {
         let size = self.drawtarget.get_size();
 
         let descriptor = webrender_api::ImageDescriptor {
-            size: webrender_api::DeviceUintSize::new(size.width as u32, size.height as u32),
+            size: webrender_api::DeviceIntSize::new(size.width, size.height),
             stride: None,
             format: webrender_api::ImageFormat::BGRA8,
             offset: 0,
@@ -478,7 +479,7 @@ impl<'a> CanvasData<'a> {
         match self.image_key {
             Some(image_key) => {
                 debug!("Updating image {:?}.", image_key);
-                txn.update_image(image_key, descriptor, data, None);
+                txn.update_image(image_key, descriptor, data, &DirtyRect::All);
             },
             None => {
                 self.image_key = Some(self.webrender_api.generate_image_key());

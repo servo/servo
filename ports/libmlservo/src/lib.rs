@@ -392,16 +392,16 @@ impl WindowMethods for WindowInstance {
     fn get_coordinates(&self) -> EmbedderCoordinates {
         EmbedderCoordinates {
             hidpi_factor: TypedScale::new(self.hidpi),
-            screen: TypedSize2D::new(self.width, self.height),
-            screen_avail: TypedSize2D::new(self.width, self.height),
+            screen: TypedSize2D::new(self.width as i32, self.height as i32),
+            screen_avail: TypedSize2D::new(self.width as i32, self.height as i32),
             window: (
-                TypedSize2D::new(self.width, self.height),
+                TypedSize2D::new(self.width as i32, self.height as i32),
                 TypedPoint2D::new(0, 0),
             ),
-            framebuffer: TypedSize2D::new(self.width, self.height),
+            framebuffer: TypedSize2D::new(self.width as i32, self.height as i32),
             viewport: TypedRect::new(
                 TypedPoint2D::new(0, 0),
-                TypedSize2D::new(self.width, self.height),
+                TypedSize2D::new(self.width as i32, self.height as i32),
             ),
         }
     }
