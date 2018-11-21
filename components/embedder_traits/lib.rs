@@ -18,7 +18,7 @@ use msg::constellation_msg::{InputMethodType, TopLevelBrowsingContextId};
 use servo_url::ServoUrl;
 use std::fmt::{Debug, Error, Formatter};
 use style_traits::cursor::CursorKind;
-use webrender_api::{DeviceIntPoint, DeviceUintSize};
+use webrender_api::{DeviceIntPoint, DeviceIntSize};
 
 /// Used to wake up the event loop, provided by the servo port/embedder.
 pub trait EventLoopWaker: 'static + Send {
@@ -76,7 +76,7 @@ pub enum EmbedderMsg {
     /// Move the window to a point
     MoveTo(DeviceIntPoint),
     /// Resize the window to size
-    ResizeTo(DeviceUintSize),
+    ResizeTo(DeviceIntSize),
     // Show an alert message.
     Alert(String, IpcSender<()>),
     /// Wether or not to follow a link

@@ -607,7 +607,7 @@ impl<VR: WebVRRenderHandler + 'static> WebGLThread<VR> {
     /// Helper function to create a `webrender_api::ImageDescriptor`.
     fn image_descriptor(size: Size2D<i32>, alpha: bool) -> webrender_api::ImageDescriptor {
         webrender_api::ImageDescriptor {
-            size: webrender_api::DeviceUintSize::new(size.width as u32, size.height as u32),
+            size: webrender_api::DeviceIntSize::new(size.width, size.height),
             stride: None,
             format: webrender_api::ImageFormat::BGRA8,
             offset: 0,

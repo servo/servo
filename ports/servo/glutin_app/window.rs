@@ -18,7 +18,7 @@ use servo::servo_config::opts;
 use servo::servo_geometry::DeviceIndependentPixel;
 use servo::style_traits::DevicePixel;
 use servo::style_traits::cursor::CursorKind;
-use servo::webrender_api::{DeviceIntPoint, DeviceUintRect, DeviceUintSize, ScrollLocation};
+use servo::webrender_api::{DeviceIntPoint, DeviceIntRect, DeviceIntSize, ScrollLocation};
 use std::cell::{Cell, RefCell};
 #[cfg(any(target_os = "linux", target_os = "macos"))]
 use std::ffi::CString;
@@ -169,8 +169,8 @@ impl Window {
         is_foreground: bool,
         window_size: TypedSize2D<u32, DeviceIndependentPixel>,
     ) -> Rc<Window> {
-        let win_size: DeviceUintSize =
-            (window_size.to_f32() * window_creation_scale_factor()).to_u32();
+        let win_size: DeviceIntSize =
+            (window_size.to_f32() * window_creation_scale_factor()).to_i32();
         let width = win_size.to_untyped().width;
         let height = win_size.to_untyped().height;
 
@@ -183,9 +183,9 @@ impl Window {
         let screen_size;
         let inner_size;
         let window_kind = if opts::get().headless {
-            screen_size = TypedSize2D::new(width, height);
-            inner_size = TypedSize2D::new(width, height);
-            WindowKind::Headless(HeadlessContext::new(width, height))
+            screen_size = TypedSize2D::new(width as u32, height as u32);
+            inner_size = TypedSize2D::new(width as u32, height as u32);
+            WindowKind::Headless(HeadlessContext::new(width as u32, height as u32))
         } else {
             let events_loop = winit::EventsLoop::new();
             let mut window_builder = winit::WindowBuilder::new()
@@ -308,7 +308,7 @@ impl Window {
         }
     }
 
-    pub fn set_inner_size(&self, size: DeviceUintSize) {
+    pub fn set_inner_size(&self, size: DeviceIntSize) {
         if let WindowKind::Window(ref window, _) = self.kind {
             let size = size.to_f32() / self.device_hidpi_factor();
             window.set_inner_size(LogicalSize::new(size.width.into(), size.height.into()))
@@ -685,16 +685,16 @@ impl WindowMethods for Window {
                 let LogicalPosition { x, y } = window
                     .get_position()
                     .unwrap_or(LogicalPosition::new(0., 0.));
-                let win_size = (TypedSize2D::new(width as f32, height as f32) * dpr).to_u32();
+                let win_size = (TypedSize2D::new(width as f32, height as f32) * dpr).to_i32();
                 let win_origin = (TypedPoint2D::new(x as f32, y as f32) * dpr).to_i32();
-                let screen = (self.screen_size.to_f32() * dpr).to_u32();
+                let screen = (self.screen_size.to_f32() * dpr).to_i32();
 
                 let LogicalSize { width, height } = window
                     .get_inner_size()
                     .expect("Failed to get window inner size.");
-                let inner_size = (TypedSize2D::new(width as f32, height as f32) * dpr).to_u32();
+                let inner_size = (TypedSize2D::new(width as f32, height as f32) * dpr).to_i32();
 
-                let viewport = DeviceUintRect::new(TypedPoint2D::zero(), inner_size);
+                let viewport = DeviceIntRect::new(TypedPoint2D::zero(), inner_size);
 
                 EmbedderCoordinates {
                     viewport: viewport,
@@ -709,9 +709,9 @@ impl WindowMethods for Window {
             WindowKind::Headless(ref context) => {
                 let dpr = self.servo_hidpi_factor();
                 let size =
-                    (TypedSize2D::new(context.width, context.height).to_f32() * dpr).to_u32();
+                    (TypedSize2D::new(context.width, context.height).to_f32() * dpr).to_i32();
                 EmbedderCoordinates {
-                    viewport: DeviceUintRect::new(TypedPoint2D::zero(), size),
+                    viewport: DeviceIntRect::new(TypedPoint2D::zero(), size),
                     framebuffer: size,
                     window: (size, TypedPoint2D::zero()),
                     screen: size,
