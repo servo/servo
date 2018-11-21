@@ -1155,10 +1155,11 @@ pub enum Appearance {
     TabScrollArrowBack,
     #[parse(condition = "in_ua_or_chrome_sheet")]
     TabScrollArrowForward,
-    /// A textfield or text area.
+    /// A multi-line text field, e.g. HTML <textarea>.
+    #[parse(aliases = "textfield-multiline")]
+    Textarea,
+    /// A single-line text field, e.g. HTML <input type=text>.
     Textfield,
-    /// A multiline text field.
-    TextfieldMultiline,
     /// A toolbar in an application window.
     #[parse(condition = "in_ua_or_chrome_sheet")]
     Toolbar,
