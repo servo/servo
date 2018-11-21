@@ -12,6 +12,7 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::window::Window;
 use dom_struct::dom_struct;
 use std::fmt;
+use std::rc::Rc;
 
 #[derive(JSTraceable, MallocSizeOf)]
 struct TimeRange {
@@ -127,23 +128,27 @@ impl TimeRangesContainer {
 #[dom_struct]
 pub struct TimeRanges {
     reflector_: Reflector,
-    ranges: DomRefCell<TimeRangesContainer>,
+    #[ignore_malloc_size_of = "Rc"]
+    ranges: Rc<DomRefCell<TimeRangesContainer>>,
 }
 
 //XXX(ferjm) We'll get warnings about unused methods until we use this
 //           on the media element implementation.
 #[allow(dead_code)]
 impl TimeRanges {
-    fn new_inherited() -> TimeRanges {
+    fn new_inherited(ranges: Rc<DomRefCell<TimeRangesContainer>>) -> TimeRanges {
         Self {
             reflector_: Reflector::new(),
-            ranges: DomRefCell::new(TimeRangesContainer::new()),
+            ranges,
         }
     }
 
-    pub fn new(window: &Window) -> DomRoot<TimeRanges> {
+    pub fn new(
+        window: &Window,
+        ranges: Rc<DomRefCell<TimeRangesContainer>>,
+    ) -> DomRoot<TimeRanges> {
         reflect_dom_object(
-            Box::new(TimeRanges::new_inherited()),
+            Box::new(TimeRanges::new_inherited(ranges)),
             window,
             TimeRangesBinding::Wrap,
         )

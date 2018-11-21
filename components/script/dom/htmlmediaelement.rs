@@ -33,6 +33,7 @@ use crate::dom::mediaerror::MediaError;
 use crate::dom::node::{document_from_node, window_from_node, Node, NodeDamage, UnbindContext};
 use crate::dom::performanceresourcetiming::InitiatorType;
 use crate::dom::promise::Promise;
+use crate::dom::timeranges::{TimeRanges, TimeRangesContainer};
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::fetch::FetchCanceller;
 use crate::microtask::{Microtask, MicrotaskRunnable};
@@ -182,6 +183,9 @@ pub struct HTMLMediaElement {
     seeking: Cell<bool>,
     /// URL of the media resource, if any.
     resource_url: DomRefCell<Option<ServoUrl>>,
+    /// https://html.spec.whatwg.org/multipage/#dom-media-played
+    #[ignore_malloc_size_of = "Rc"]
+    played: Rc<DomRefCell<TimeRangesContainer>>,
 }
 
 /// <https://html.spec.whatwg.org/multipage/#dom-media-networkstate>
@@ -233,6 +237,7 @@ impl HTMLMediaElement {
             default_playback_start_position: Cell::new(0.),
             seeking: Cell::new(false),
             resource_url: DomRefCell::new(None),
+            played: Rc::new(DomRefCell::new(TimeRangesContainer::new())),
         }
     }
 
@@ -1186,7 +1191,12 @@ impl HTMLMediaElement {
                 // XXX Steps 12 and 13 require audio and video tracks support.
             },
             PlayerEvent::PositionChanged(position) => {
-                self.playback_position.set(position as f64);
+                let position = position as f64;
+                let _ = self
+                    .played
+                    .borrow_mut()
+                    .add(self.playback_position.get(), position);
+                self.playback_position.set(position);
             },
             PlayerEvent::StateChanged(ref state) => match *state {
                 PlaybackState::Paused => {
@@ -1355,6 +1365,11 @@ impl HTMLMediaElementMethods for HTMLMediaElement {
     // https://html.spec.whatwg.org/multipage/#dom-media-fastseek
     fn FastSeek(&self, time: Finite<f64>) {
         self.seek(*time, /* approximat_for_speed */ true);
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-media-played
+    fn Played(&self) -> DomRoot<TimeRanges> {
+        TimeRanges::new(self.global().as_window(), self.played.clone())
     }
 }
 
