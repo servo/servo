@@ -38,7 +38,7 @@ bluetooth_traits = {path = "../bluetooth_traits"}
 bluetooth = {path = "../bluetooth"}
 canvas = {path = "../canvas"}
 canvas_traits = {path = "../canvas_traits"}
-compositing = {path = "../compositing", features = ["gleam"]}
+compositing = {path = "../compositing", features = ["gl"]}
 constellation = {path = "../constellation"}
 crossbeam-channel = "0.3"
 debugger = {path = "../debugger"}

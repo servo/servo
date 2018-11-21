@@ -34,13 +34,13 @@ use cssparser::{Parser, ParserInput, RGBA};
 use dom_struct::dom_struct;
 use euclid::{vec2, Point2D, Rect, Size2D, Transform2D};
 use ipc_channel::ipc::{self, IpcSender};
-use net_traits::image::base::PixelFormat;
 use net_traits::image_cache::CanRequestImages;
 use net_traits::image_cache::ImageCache;
 use net_traits::image_cache::ImageOrMetadataAvailable;
 use net_traits::image_cache::ImageResponse;
 use net_traits::image_cache::ImageState;
 use net_traits::image_cache::UsePlaceholder;
+use pixels::PixelFormat;
 use profile_traits::ipc as profiled_ipc;
 use script_traits::ScriptMsg;
 use servo_url::ServoUrl;
@@ -444,9 +444,7 @@ impl CanvasRenderingContext2D {
         let image_size = Size2D::new(img.width, img.height);
         let image_data = match img.format {
             PixelFormat::BGRA8 => img.bytes.to_vec(),
-            PixelFormat::K8 => panic!("K8 color type not supported"),
-            PixelFormat::RGB8 => panic!("RGB8 color type not supported"),
-            PixelFormat::KA8 => panic!("KA8 color type not supported"),
+            pixel_format => unimplemented!("unsupported pixel format ({:?})", pixel_format),
         };
 
         Some((image_data, image_size))
@@ -1298,7 +1296,11 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
                     .ok_or(Error::InvalidState)?
             },
             CanvasImageSource::HTMLCanvasElement(ref canvas) => {
-                canvas.fetch_all_data().ok_or(Error::InvalidState)?
+                let (data, size) = canvas.fetch_all_data().ok_or(Error::InvalidState)?;
+                let data = data
+                    .map(|data| data.to_vec())
+                    .unwrap_or_else(|| vec![0; size.area() as usize * 4]);
+                (data, size)
             },
             CanvasImageSource::CSSStyleValue(ref value) => value
                 .get_url(self.base_url.clone())

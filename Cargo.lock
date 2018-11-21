@@ -348,12 +348,14 @@ name = "canvas"
 version = "0.0.1"
 dependencies = [
  "azure 0.35.0 (git+https://github.com/servo/rust-azure)",
+ "byteorder 1.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "canvas_traits 0.0.1",
  "compositing 0.0.1",
  "cssparser 0.25.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "euclid 0.19.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "fnv 1.0.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "gleam 0.6.7 (registry+https://github.com/rust-lang/crates.io-index)",
+ "half 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "ipc-channel 0.11.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.4.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "num-traits 0.2.4 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -369,11 +371,9 @@ dependencies = [
 name = "canvas_traits"
 version = "0.0.1"
 dependencies = [
- "byteorder 1.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "cssparser 0.25.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "euclid 0.19.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "gleam 0.6.7 (registry+https://github.com/rust-lang/crates.io-index)",
- "half 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "ipc-channel 0.11.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "lazy_static 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "malloc_size_of 0.0.1",
@@ -544,6 +544,7 @@ dependencies = [
  "log 0.4.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "msg 0.0.1",
  "net_traits 0.0.1",
+ "pixels 0.0.1",
  "profile_traits 0.0.1",
  "script_traits 0.0.1",
  "servo_config 0.0.1",
@@ -2874,6 +2875,9 @@ name = "pixels"
 version = "0.0.1"
 dependencies = [
  "euclid 0.19.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "malloc_size_of 0.0.1",
+ "malloc_size_of_derive 0.0.1",
+ "serde 1.0.80 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -3357,6 +3361,7 @@ dependencies = [
  "malloc_size_of_derive 0.0.1",
  "msg 0.0.1",
  "net_traits 0.0.1",
+ "pixels 0.0.1",
  "profile_traits 0.0.1",
  "serde 1.0.80 (registry+https://github.com/rust-lang/crates.io-index)",
  "servo_atoms 0.0.1",
@@ -4501,6 +4506,7 @@ dependencies = [
  "log 0.4.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "msg 0.0.1",
  "net_traits 0.0.1",
+ "pixels 0.0.1",
  "regex 1.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "script_traits 0.0.1",
  "serde 1.0.80 (registry+https://github.com/rust-lang/crates.io-index)",

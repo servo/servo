@@ -20,7 +20,7 @@ use style_traits::CSSPixel;
 
 mod compositor;
 pub mod compositor_thread;
-#[cfg(feature = "gleam")]
+#[cfg(feature = "gl")]
 mod gl;
 mod touch;
 pub mod windowing;

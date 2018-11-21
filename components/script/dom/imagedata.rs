@@ -10,6 +10,7 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
 use euclid::{Rect, Size2D};
+use ipc_channel::ipc::IpcSharedMemory;
 use js::jsapi::{Heap, JSContext, JSObject};
 use js::rust::Runtime;
 use js::typedarray::{CreateWith, Uint8ClampedArray};
@@ -156,8 +157,8 @@ impl ImageData {
     }
 
     #[allow(unsafe_code)]
-    pub fn to_vec(&self) -> Vec<u8> {
-        unsafe { self.as_slice().into() }
+    pub fn to_shared_memory(&self) -> IpcSharedMemory {
+        IpcSharedMemory::from_bytes(unsafe { self.as_slice() })
     }
 
     #[allow(unsafe_code)]

@@ -6,10 +6,10 @@
 use backtrace::Backtrace;
 use canvas_traits::webgl::WebGLError::*;
 use canvas_traits::webgl::{
-    self, webgl_channel, AlphaTreatment, DOMToTextureCommand, Parameter, TexDataType, TexFormat,
-    TexParameter, TexSource, WebGLCommand, WebGLCommandBacktrace, WebGLContextShareMode,
-    WebGLError, WebGLFramebufferBindingRequest, WebGLMsg, WebGLMsgSender, WebGLProgramId,
-    WebGLResult, WebGLSLVersion, WebGLSender, WebGLVersion, WebVRCommand, YAxisTreatment,
+    webgl_channel, AlphaTreatment, DOMToTextureCommand, Parameter, TexDataType, TexFormat,
+    TexParameter, WebGLCommand, WebGLCommandBacktrace, WebGLContextShareMode, WebGLError,
+    WebGLFramebufferBindingRequest, WebGLMsg, WebGLMsgSender, WebGLProgramId, WebGLResult,
+    WebGLSLVersion, WebGLSender, WebGLVersion, WebVRCommand, YAxisTreatment,
 };
 use crate::dom::bindings::codegen::Bindings::ANGLEInstancedArraysBinding::ANGLEInstancedArraysConstants;
 use crate::dom::bindings::codegen::Bindings::EXTBlendMinmaxBinding::EXTBlendMinmaxConstants;
@@ -57,7 +57,7 @@ use crate::dom::webglvertexarrayobjectoes::WebGLVertexArrayObjectOES;
 use crate::dom::window::Window;
 use dom_struct::dom_struct;
 use euclid::{Point2D, Rect, Size2D};
-use ipc_channel::ipc;
+use ipc_channel::ipc::{self, IpcSharedMemory};
 use js::jsapi::{JSContext, JSObject, Type};
 use js::jsval::{BooleanValue, DoubleValue, Int32Value, JSVal, UInt32Value};
 use js::jsval::{NullValue, ObjectValue, UndefinedValue};
@@ -66,10 +66,9 @@ use js::typedarray::{
     ArrayBufferView, CreateWith, Float32, Float32Array, Int32, Int32Array, Uint32Array,
 };
 use js::typedarray::{TypedArray, TypedArrayElementCreator};
-use net_traits::image::base::PixelFormat;
 use net_traits::image_cache::ImageResponse;
 use offscreen_gl_context::{GLContextAttributes, GLLimits};
-use pixels;
+use pixels::{self, PixelFormat};
 use script_layout_interface::HTMLCanvasDataSource;
 use serde::{Deserialize, Serialize};
 use servo_config::prefs::PREFS;
@@ -505,8 +504,12 @@ impl WebGLRenderingContext {
             level,
             0,
             1,
-            TexSource::FromHtmlElement,
-            TexPixels::new(pixels, size, true),
+            TexPixels::new(
+                IpcSharedMemory::from_bytes(&pixels),
+                size,
+                PixelFormat::RGBA8,
+                true,
+            ),
         );
 
         false
@@ -528,9 +531,12 @@ impl WebGLRenderingContext {
 
     fn get_image_pixels(&self, source: TexImageSource) -> Fallible<Option<TexPixels>> {
         Ok(Some(match source {
-            TexImageSource::ImageData(image_data) => {
-                TexPixels::new(image_data.to_vec(), image_data.get_size(), false)
-            },
+            TexImageSource::ImageData(image_data) => TexPixels::new(
+                image_data.to_shared_memory(),
+                image_data.get_size(),
+                PixelFormat::RGBA8,
+                false,
+            ),
             TexImageSource::HTMLImageElement(image) => {
                 let document = document_from_node(&*self.canvas);
                 if !image.same_origin(document.origin()) {
@@ -553,15 +559,7 @@ impl WebGLRenderingContext {
 
                 let size = Size2D::new(img.width, img.height);
 
-                // For now Servo's images are all stored as BGRA8 internally.
-                let mut data = match img.format {
-                    PixelFormat::BGRA8 => img.bytes.to_vec(),
-                    _ => unimplemented!(),
-                };
-
-                pixels::rgba8_byte_swap_colors_inplace(&mut data);
-
-                TexPixels::new(data, size, false)
+                TexPixels::new(img.bytes.clone(), size, img.format, false)
             },
             // TODO(emilio): Getting canvas data is implemented in CanvasRenderingContext2D,
             // but we need to refactor it moving it to `HTMLCanvasElement` and support
@@ -570,10 +568,11 @@ impl WebGLRenderingContext {
                 if !canvas.origin_is_clean() {
                     return Err(Error::Security);
                 }
-                if let Some((mut data, size)) = canvas.fetch_all_data() {
-                    // Pixels got from Canvas have already alpha premultiplied
-                    pixels::rgba8_byte_swap_colors_inplace(&mut data);
-                    TexPixels::new(data, size, true)
+                if let Some((data, size)) = canvas.fetch_all_data() {
+                    let data = data.unwrap_or_else(|| {
+                        IpcSharedMemory::from_bytes(&vec![0; size.area() as usize * 4])
+                    });
+                    TexPixels::new(data, size, PixelFormat::BGRA8, true)
                 } else {
                     return Ok(None);
                 }
@@ -638,67 +637,31 @@ impl WebGLRenderingContext {
         }
     }
 
-    fn prepare_pixels(
-        &self,
-        internal_format: TexFormat,
-        data_type: TexDataType,
-        size: Size2D<u32>,
-        unpacking_alignment: u32,
-        alpha_treatment: Option<AlphaTreatment>,
-        y_axis_treatment: YAxisTreatment,
-        tex_source: TexSource,
-        mut pixels: Vec<u8>,
-    ) -> Vec<u8> {
-        match alpha_treatment {
-            Some(AlphaTreatment::Premultiply) => {
-                if tex_source == TexSource::FromHtmlElement {
-                    webgl::premultiply_inplace(
-                        TexFormat::RGBA,
-                        TexDataType::UnsignedByte,
-                        &mut pixels,
-                    );
-                } else {
-                    webgl::premultiply_inplace(internal_format, data_type, &mut pixels);
-                }
-            },
-            Some(AlphaTreatment::Unmultiply) => {
-                assert_eq!(tex_source, TexSource::FromHtmlElement);
-                webgl::unmultiply_inplace(&mut pixels);
-            },
-            None => {},
-        }
-
-        if tex_source == TexSource::FromHtmlElement {
-            pixels = webgl::rgba8_image_to_tex_image_data(internal_format, data_type, pixels);
-        }
-
-        if y_axis_treatment == YAxisTreatment::Flipped {
-            // FINISHME: Consider doing premultiply and flip in a single mutable Vec.
-            pixels = webgl::flip_pixels_y(
-                internal_format,
-                data_type,
-                size.width as usize,
-                size.height as usize,
-                unpacking_alignment as usize,
-                pixels,
-            );
-        }
-
-        pixels
-    }
-
     fn tex_image_2d(
         &self,
         texture: &WebGLTexture,
         target: TexImageTarget,
         data_type: TexDataType,
-        internal_format: TexFormat,
+        format: TexFormat,
         level: u32,
         _border: u32,
         unpacking_alignment: u32,
-        tex_source: TexSource,
         pixels: TexPixels,
     ) {
+        // TexImage2D depth is always equal to 1.
+        handle_potential_webgl_error!(
+            self,
+            texture.initialize(
+                target,
+                pixels.size.width,
+                pixels.size.height,
+                1,
+                format,
+                level,
+                Some(data_type)
+            )
+        );
+
         let settings = self.texture_unpacking_settings.get();
         let dest_premultiplied = settings.contains(TextureUnpacking::PREMULTIPLY_ALPHA);
 
@@ -714,51 +677,28 @@ impl WebGLRenderingContext {
             YAxisTreatment::AsIs
         };
 
-        let buff = self.prepare_pixels(
-            internal_format,
-            data_type,
-            pixels.size,
-            unpacking_alignment,
-            alpha_treatment,
-            y_axis_treatment,
-            tex_source,
-            pixels.data,
-        );
-
-        // TexImage2D depth is always equal to 1
-        handle_potential_webgl_error!(
-            self,
-            texture.initialize(
-                target,
-                pixels.size.width,
-                pixels.size.height,
-                1,
-                internal_format,
-                level,
-                Some(data_type)
-            )
-        );
-
-        let format = internal_format.as_gl_constant();
-        let data_type = data_type.as_gl_constant();
-        let internal_format = self
+        let effective_internal_format = self
             .extension_manager
-            .get_effective_tex_internal_format(format, data_type);
+            .get_effective_tex_internal_format(format.as_gl_constant(), data_type.as_gl_constant());
+        let effective_data_type = self
+            .extension_manager
+            .effective_type(data_type.as_gl_constant());
 
-        // TODO(emilio): convert colorspace if requested
-        let (sender, receiver) = ipc::bytes_channel().unwrap();
+        // TODO(emilio): convert colorspace if requested.
         self.send_command(WebGLCommand::TexImage2D {
             target: target.as_gl_constant(),
             level,
-            internal_format,
-            width: pixels.size.width,
-            height: pixels.size.height,
+            effective_internal_format,
+            size: pixels.size,
             format,
-            data_type: self.extension_manager.effective_type(data_type),
+            data_type,
+            effective_data_type,
             unpacking_alignment,
-            receiver,
+            alpha_treatment,
+            y_axis_treatment,
+            pixel_format: pixels.pixel_format,
+            data: pixels.data,
         });
-        sender.send(&buff).unwrap();
 
         if let Some(fb) = self.bound_framebuffer.get() {
             fb.invalidate_texture(&*texture);
@@ -775,37 +715,8 @@ impl WebGLRenderingContext {
         format: TexFormat,
         data_type: TexDataType,
         unpacking_alignment: u32,
-        tex_source: TexSource,
         pixels: TexPixels,
     ) {
-        let settings = self.texture_unpacking_settings.get();
-
-        let alpha_treatment = match (
-            pixels.premultiplied,
-            settings.contains(TextureUnpacking::PREMULTIPLY_ALPHA),
-        ) {
-            (true, false) => Some(AlphaTreatment::Unmultiply),
-            (false, true) => Some(AlphaTreatment::Premultiply),
-            _ => None,
-        };
-
-        let y_axis_treatment = if settings.contains(TextureUnpacking::FLIP_Y_AXIS) {
-            YAxisTreatment::Flipped
-        } else {
-            YAxisTreatment::AsIs
-        };
-
-        let buff = self.prepare_pixels(
-            format,
-            data_type,
-            pixels.size,
-            unpacking_alignment,
-            alpha_treatment,
-            y_axis_treatment,
-            tex_source,
-            pixels.data,
-        );
-
         // We have already validated level
         let image_info = texture.image_info_for_target(&target, level);
 
@@ -828,23 +739,41 @@ impl WebGLRenderingContext {
             return self.webgl_error(InvalidOperation);
         }
 
-        // TODO(emilio): convert colorspace if requested
-        let (sender, receiver) = ipc::bytes_channel().unwrap();
+        let settings = self.texture_unpacking_settings.get();
+        let dest_premultiplied = settings.contains(TextureUnpacking::PREMULTIPLY_ALPHA);
+
+        let alpha_treatment = match (pixels.premultiplied, dest_premultiplied) {
+            (true, false) => Some(AlphaTreatment::Unmultiply),
+            (false, true) => Some(AlphaTreatment::Premultiply),
+            _ => None,
+        };
+
+        let y_axis_treatment = if settings.contains(TextureUnpacking::FLIP_Y_AXIS) {
+            YAxisTreatment::Flipped
+        } else {
+            YAxisTreatment::AsIs
+        };
+
+        let effective_data_type = self
+            .extension_manager
+            .effective_type(data_type.as_gl_constant());
+
+        // TODO(emilio): convert colorspace if requested.
         self.send_command(WebGLCommand::TexSubImage2D {
             target: target.as_gl_constant(),
             level,
             xoffset,
             yoffset,
-            width: pixels.size.width,
-            height: pixels.size.height,
-            format: format.as_gl_constant(),
-            data_type: self
-                .extension_manager
-                .effective_type(data_type.as_gl_constant()),
+            size: pixels.size,
+            format,
+            data_type,
+            effective_data_type,
             unpacking_alignment,
-            receiver,
+            alpha_treatment,
+            y_axis_treatment,
+            pixel_format: pixels.pixel_format,
+            data: pixels.data,
         });
-        sender.send(&buff).unwrap();
     }
 
     fn get_gl_extensions(&self) -> String {
@@ -3623,6 +3552,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
+    #[allow(unsafe_code)]
     fn TexImage2D(
         &self,
         target: u32,
@@ -3684,8 +3614,8 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         // If data is null, a buffer of sufficient size
         // initialized to 0 is passed.
         let buff = match *pixels {
-            None => vec![0u8; expected_byte_length as usize],
-            Some(ref data) => data.to_vec(),
+            None => IpcSharedMemory::from_bytes(&vec![0u8; expected_byte_length as usize]),
+            Some(ref data) => IpcSharedMemory::from_bytes(unsafe { data.as_slice() }),
         };
 
         // From the WebGL spec:
@@ -3714,7 +3644,6 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             level,
             border,
             unpacking_alignment,
-            TexSource::FromArray,
             TexPixels::from_array(buff, Size2D::new(width, height)),
         );
 
@@ -3779,15 +3708,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         }
 
         self.tex_image_2d(
-            &texture,
-            target,
-            data_type,
-            format,
-            level,
-            border,
-            1,
-            TexSource::FromHtmlElement,
-            pixels,
+            &texture, target, data_type, format, level, border, 1, pixels,
         );
         Ok(())
     }
@@ -3847,6 +3768,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
+    #[allow(unsafe_code)]
     fn TexSubImage2D(
         &self,
         target: u32,
@@ -3892,11 +3814,12 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             Err(()) => return Ok(()),
         };
 
-        // If data is null, a buffer of sufficient size
-        // initialized to 0 is passed.
         let buff = handle_potential_webgl_error!(
             self,
-            pixels.as_ref().map(|p| p.to_vec()).ok_or(InvalidValue),
+            pixels
+                .as_ref()
+                .map(|p| IpcSharedMemory::from_bytes(unsafe { p.as_slice() }))
+                .ok_or(InvalidValue),
             return Ok(())
         );
 
@@ -3919,7 +3842,6 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             format,
             data_type,
             unpacking_alignment,
-            TexSource::FromArray,
             TexPixels::from_array(buff, Size2D::new(width, height)),
         );
         Ok(())
@@ -3965,16 +3887,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         };
 
         self.tex_sub_image_2d(
-            texture,
-            target,
-            level,
-            xoffset,
-            yoffset,
-            format,
-            data_type,
-            1,
-            TexSource::FromHtmlElement,
-            pixels,
+            texture, target, level, xoffset, yoffset, format, data_type, 1, pixels,
         );
         Ok(())
     }
@@ -4257,24 +4170,32 @@ impl TextureUnit {
 }
 
 struct TexPixels {
-    data: Vec<u8>,
+    data: IpcSharedMemory,
     size: Size2D<u32>,
+    pixel_format: Option<PixelFormat>,
     premultiplied: bool,
 }
 
 impl TexPixels {
-    fn new(data: Vec<u8>, size: Size2D<u32>, premultiplied: bool) -> Self {
+    fn new(
+        data: IpcSharedMemory,
+        size: Size2D<u32>,
+        pixel_format: PixelFormat,
+        premultiplied: bool,
+    ) -> Self {
         Self {
             data,
             size,
+            pixel_format: Some(pixel_format),
             premultiplied,
         }
     }
 
-    fn from_array(data: Vec<u8>, size: Size2D<u32>) -> Self {
+    fn from_array(data: IpcSharedMemory, size: Size2D<u32>) -> Self {
         Self {
             data,
             size,
+            pixel_format: None,
             premultiplied: false,
         }
     }

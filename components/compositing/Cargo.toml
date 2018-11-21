@@ -13,6 +13,7 @@ path = "lib.rs"
 
 [features]
 default = []
+gl = ["gleam", "pixels"]
 
 [dependencies]
 crossbeam-channel = "0.3"
@@ -27,6 +28,7 @@ keyboard-types = "0.4.3"
 log = "0.4"
 msg = {path = "../msg"}
 net_traits = {path = "../net_traits"}
+pixels = {path = "../pixels", optional = true}
 profile_traits = {path = "../profile_traits"}
 script_traits = {path = "../script_traits"}
 servo_config = {path = "../config"}

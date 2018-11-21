@@ -13,9 +13,8 @@ use azure::azure_hl::{ExtendMode, GradientStop, LinearGradientPattern, RadialGra
 use canvas_traits::canvas::*;
 use cssparser::RGBA;
 use euclid::{Point2D, Rect, Size2D, Transform2D, Vector2D};
-use ipc_channel::ipc::IpcSender;
+use ipc_channel::ipc::{IpcSender, IpcSharedMemory};
 use num_traits::ToPrimitive;
-use serde_bytes::ByteBuf;
 use std::mem;
 use std::sync::Arc;
 
@@ -451,15 +450,11 @@ impl<'a> CanvasData<'a> {
     }
 
     #[allow(unsafe_code)]
-    pub fn send_pixels(&mut self, chan: IpcSender<Option<ByteBuf>>) {
-        let data = unsafe {
-            self.drawtarget
-                .snapshot()
-                .get_data_surface()
-                .data()
-                .to_vec()
-        };
-        chan.send(Some(data.into())).unwrap();
+    pub fn send_pixels(&mut self, chan: IpcSender<IpcSharedMemory>) {
+        let data = IpcSharedMemory::from_bytes(unsafe {
+            self.drawtarget.snapshot().get_data_surface().data()
+        });
+        chan.send(data).unwrap();
     }
 
     #[allow(unsafe_code)]
