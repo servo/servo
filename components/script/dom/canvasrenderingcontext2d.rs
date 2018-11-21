@@ -1296,7 +1296,11 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
                     .ok_or(Error::InvalidState)?
             },
             CanvasImageSource::HTMLCanvasElement(ref canvas) => {
-                canvas.fetch_all_data().ok_or(Error::InvalidState)?
+                let (data, size) = canvas.fetch_all_data().ok_or(Error::InvalidState)?;
+                let data = data
+                    .map(|data| data.to_vec())
+                    .unwrap_or_else(|| vec![0; size.area() as usize * 4]);
+                (data, size)
             },
             CanvasImageSource::CSSStyleValue(ref value) => value
                 .get_url(self.base_url.clone())

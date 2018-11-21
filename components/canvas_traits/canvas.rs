@@ -4,7 +4,7 @@
 
 use cssparser::RGBA;
 use euclid::{Point2D, Rect, Size2D, Transform2D};
-use ipc_channel::ipc::{IpcBytesReceiver, IpcBytesSender, IpcSender};
+use ipc_channel::ipc::{IpcBytesReceiver, IpcBytesSender, IpcSender, IpcSharedMemory};
 use serde_bytes::ByteBuf;
 use std::default::Default;
 use std::str::FromStr;
@@ -87,7 +87,7 @@ pub enum FromLayoutMsg {
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum FromScriptMsg {
-    SendPixels(IpcSender<Option<ByteBuf>>),
+    SendPixels(IpcSender<IpcSharedMemory>),
 }
 
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]

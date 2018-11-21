@@ -569,12 +569,10 @@ impl WebGLRenderingContext {
                     return Err(Error::Security);
                 }
                 if let Some((data, size)) = canvas.fetch_all_data() {
-                    TexPixels::new(
-                        IpcSharedMemory::from_bytes(&data),
-                        size,
-                        PixelFormat::BGRA8,
-                        true,
-                    )
+                    let data = data.unwrap_or_else(|| {
+                        IpcSharedMemory::from_bytes(&vec![0; size.area() as usize * 4])
+                    });
+                    TexPixels::new(data, size, PixelFormat::BGRA8, true)
                 } else {
                     return Ok(None);
                 }

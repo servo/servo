@@ -36,6 +36,7 @@ use euclid::{Rect, Size2D};
 use html5ever::{LocalName, Prefix};
 use image::png::PNGEncoder;
 use image::ColorType;
+use ipc_channel::ipc::IpcSharedMemory;
 use js::error::throw_type_error;
 use js::jsapi::JSContext;
 use js::rust::HandleValue;
@@ -280,7 +281,7 @@ impl HTMLCanvasElement {
         self.Height() != 0 && self.Width() != 0
     }
 
-    pub fn fetch_all_data(&self) -> Option<(Vec<u8>, Size2D<u32>)> {
+    pub fn fetch_all_data(&self) -> Option<(Option<IpcSharedMemory>, Size2D<u32>)> {
         let size = self.get_size();
 
         if size.width == 0 || size.height == 0 {
@@ -297,7 +298,7 @@ impl HTMLCanvasElement {
                 );
                 context.get_ipc_renderer().send(msg).unwrap();
 
-                receiver.recv().unwrap()?.into()
+                Some(receiver.recv().unwrap())
             },
             Some(&CanvasContext::WebGL(_)) => {
                 // TODO: add a method in WebGLRenderingContext to get the pixels.
@@ -307,7 +308,7 @@ impl HTMLCanvasElement {
                 // TODO: add a method in WebGL2RenderingContext to get the pixels.
                 return None;
             },
-            None => vec![0; size.height as usize * size.width as usize * 4],
+            None => None,
         };
 
         Some((data, size))
