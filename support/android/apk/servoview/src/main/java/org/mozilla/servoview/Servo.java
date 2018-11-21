@@ -107,6 +107,22 @@ public class Servo {
         mRunCallback.inGLThread(() -> mJNI.scrollEnd(dx, dy, x, y));
     }
 
+    public void touchDown(float x, float y, int pointerId) {
+        mRunCallback.inGLThread(() -> mJNI.touchDown(x, y, pointerId));
+    }
+
+    public void touchMove(float x, float y, int pointerId) {
+        mRunCallback.inGLThread(() -> mJNI.touchMove(x, y, pointerId));
+    }
+
+    public void touchUp(float x, float y, int pointerId) {
+        mRunCallback.inGLThread(() -> mJNI.touchUp(x, y, pointerId));
+    }
+
+    public void touchCancel(float x, float y, int pointerId) {
+        mRunCallback.inGLThread(() -> mJNI.touchCancel(x, y, pointerId));
+    }
+
     public void pinchZoomStart(float factor, int x, int y) {
         mRunCallback.inGLThread(() -> mJNI.pinchZoomStart(factor, x, y));
     }

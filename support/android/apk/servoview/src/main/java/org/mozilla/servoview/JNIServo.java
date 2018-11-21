@@ -50,6 +50,14 @@ public class JNIServo {
 
     public native void scrollEnd(int dx, int dy, int x, int y);
 
+    public native void touchDown(float x, float y, int pointer_id);
+
+    public native void touchMove(float x, float y, int pointer_id);
+
+    public native void touchUp(float x, float y, int pointer_id);
+
+    public native void touchCancel(float x, float y, int pointer_id);
+
     public native void pinchZoomStart(float factor, int x, int y);
 
     public native void pinchZoom(float factor, int x, int y);
