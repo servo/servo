@@ -19,6 +19,7 @@ use std::io::{self, Read, Write};
 use std::path::{Path, PathBuf};
 use std::process;
 use std::sync::atomic::{AtomicBool, Ordering, ATOMIC_BOOL_INIT};
+use std::sync::{RwLock, RwLockReadGuard};
 use url::{self, Url};
 
 /// Global flags for Servo, currently set on the command line.
@@ -1049,7 +1050,7 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
         clean_shutdown: opt_match.opt_present("clean-shutdown"),
     };
 
-    set_defaults(opts);
+    set_options(opts);
 
     // These must happen after setting the default options, since the prefs rely on
     // on the resource path.
@@ -1084,34 +1085,18 @@ pub enum ArgumentParsingResult {
 // Make Opts available globally. This saves having to clone and pass
 // opts everywhere it is used, which gets particularly cumbersome
 // when passing through the DOM structures.
-static mut DEFAULT_OPTIONS: *mut Opts = 0 as *mut Opts;
-const INVALID_OPTIONS: *mut Opts = 0x01 as *mut Opts;
-
 lazy_static! {
-    static ref OPTIONS: Opts = {
-        unsafe {
-            let initial = if !DEFAULT_OPTIONS.is_null() {
-                let opts = Box::from_raw(DEFAULT_OPTIONS);
-                *opts
-            } else {
-                default_opts()
-            };
-            DEFAULT_OPTIONS = INVALID_OPTIONS;
-            initial
-        }
-    };
+    static ref OPTIONS: RwLock<Opts> = RwLock::new(default_opts());
 }
 
-pub fn set_defaults(opts: Opts) {
-    // Set the static to the new default value.
+pub fn set_options(opts: Opts) {
     MULTIPROCESS.store(opts.multiprocess, Ordering::SeqCst);
+    *OPTIONS.write().unwrap() = opts;
+}
 
-    unsafe {
-        assert!(DEFAULT_OPTIONS.is_null());
-        assert_ne!(DEFAULT_OPTIONS, INVALID_OPTIONS);
-        let box_opts = Box::new(opts);
-        DEFAULT_OPTIONS = Box::into_raw(box_opts);
-    }
+#[inline]
+pub fn get() -> RwLockReadGuard<'static, Opts> {
+    OPTIONS.read().unwrap()
 }
 
 pub fn parse_pref_from_command_line(pref: &str) {
@@ -1126,11 +1111,6 @@ pub fn parse_pref_from_command_line(pref: &str) {
             Err(_) => PREFS.set(pref_name, PrefValue::String(value.to_string())),
         },
     };
-}
-
-#[inline]
-pub fn get() -> &'static Opts {
-    &OPTIONS
 }
 
 pub fn parse_url_or_filename(cwd: &Path, input: &str) -> Result<ServoUrl, ()> {

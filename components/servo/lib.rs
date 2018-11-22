@@ -631,7 +631,7 @@ pub fn run_content_process(token: String) {
         .unwrap();
 
     let unprivileged_content = unprivileged_content_receiver.recv().unwrap();
-    opts::set_defaults(unprivileged_content.opts());
+    opts::set_options(unprivileged_content.opts());
     PREFS.extend(unprivileged_content.prefs());
     set_logger(unprivileged_content.script_to_constellation_chan().clone());
 
