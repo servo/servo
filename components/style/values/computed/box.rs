@@ -13,7 +13,7 @@ use crate::values::specified::box_ as specified;
 
 pub use crate::values::specified::box_::{AnimationName, Appearance, BreakBetween, BreakWithin};
 pub use crate::values::specified::box_::{Clear as SpecifiedClear, Float as SpecifiedFloat};
-pub use crate::values::specified::box_::{Contain, Display, Overflow, OverflowClipBox};
+pub use crate::values::specified::box_::{Contain, Display, Overflow, OverflowAnchor, OverflowClipBox};
 pub use crate::values::specified::box_::{OverscrollBehavior, ScrollSnapType};
 pub use crate::values::specified::box_::{TouchAction, TransitionProperty, WillChange};
 

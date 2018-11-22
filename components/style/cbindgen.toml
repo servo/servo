@@ -63,6 +63,7 @@ include = [
   "Float",
   "OverscrollBehavior",
   "ScrollSnapType",
+  "OverflowAnchor",
   "OverflowClipBox",
   "Resize",
   "Overflow",
