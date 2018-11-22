@@ -2,9 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#[cfg(any(target_os = "android", target_os = "linux"))]
-use crate::sampler::install_sigprof_handler;
-use crate::sampler::{get_thread_id, suspend_and_sample_thread, MonitoredThreadId};
+use crate::sampler::Sampler;
 use crossbeam_channel::{after, unbounded, Receiver, Sender};
 use ipc_channel::ipc::IpcSender;
 use msg::constellation_msg::MonitoredComponentId;
@@ -40,7 +38,6 @@ impl BackgroundHangMonitorRegister for HangMonitorRegister {
     /// Register a component for monitoring.
     /// Returns a dedicated wrapper around a sender
     /// to be used for communication with the hang monitor worker.
-    #[allow(unsafe_code)]
     fn register_component(
         &self,
         component_id: MonitoredComponentId,
@@ -48,13 +45,16 @@ impl BackgroundHangMonitorRegister for HangMonitorRegister {
         permanent_hang_timeout: Duration,
     ) -> Box<BackgroundHangMonitor> {
         let bhm_chan = BackgroundHangMonitorChan::new(self.sender.clone(), component_id);
-        let thread_id = unsafe {
-            #[cfg(any(target_os = "android", target_os = "linux"))]
-            install_sigprof_handler();
-            get_thread_id()
-        };
+
+        #[cfg(target_os = "windows")]
+        let sampler = crate::sampler_windows::WindowsSampler::new();
+        #[cfg(target_os = "macos")]
+        let sampler = crate::sampler_mac::MacOsSampler::new();
+        #[cfg(any(target_os = "android", target_os = "linux"))]
+        let sampler = crate::sampler_linux::LinuxSampler::new();
+
         bhm_chan.send(MonitoredComponentMsg::Register(
-            thread_id,
+            sampler,
             transient_hang_timeout,
             permanent_hang_timeout,
         ));
@@ -71,7 +71,7 @@ impl BackgroundHangMonitorClone for HangMonitorRegister {
 /// Messages sent from monitored components to the monitor.
 pub enum MonitoredComponentMsg {
     /// Register component for monitoring,
-    Register(MonitoredThreadId, Duration, Duration),
+    Register(Box<Sampler>, Duration, Duration),
     /// Notify start of new activity for a given component,
     NotifyActivity(HangAnnotation),
     /// Notify start of waiting for a new task to come-in for processing.
@@ -122,7 +122,7 @@ impl BackgroundHangMonitor for BackgroundHangMonitorChan {
 }
 
 struct MonitoredComponent {
-    thread_id: MonitoredThreadId,
+    sampler: Box<Sampler>,
     last_activity: Instant,
     last_annotation: Option<HangAnnotation>,
     transient_hang_timeout: Duration,
@@ -178,13 +178,13 @@ impl BackgroundHangMonitorWorker {
             (
                 component_id,
                 MonitoredComponentMsg::Register(
-                    thread_id,
+                    sampler,
                     transient_hang_timeout,
                     permanent_hang_timeout,
                 ),
             ) => {
                 let component = MonitoredComponent {
-                    thread_id,
+                    sampler,
                     last_activity: Instant::now(),
                     last_annotation: None,
                     transient_hang_timeout,
@@ -224,7 +224,6 @@ impl BackgroundHangMonitorWorker {
         }
     }
 
-    #[allow(unsafe_code)]
     fn perform_a_hang_monitor_checkpoint(&mut self) {
         for (component_id, monitored) in self.monitored_components.iter_mut() {
             if monitored.is_waiting {
@@ -235,7 +234,10 @@ impl BackgroundHangMonitorWorker {
                 if monitored.sent_permanent_alert {
                     continue;
                 }
-                let profile = unsafe { suspend_and_sample_thread(monitored.thread_id) };
+                let profile = match monitored.sampler.suspend_and_sample_thread() {
+                    Ok(native_stack) => Some(native_stack.to_hangprofile()),
+                    Err(()) => None,
+                };
                 let _ = self.constellation_chan.send(HangAlert::Permanent(
                     component_id.clone(),
                     last_annotation,

@@ -6,13 +6,16 @@
 
 #[macro_use]
 extern crate crossbeam_channel;
-#[cfg(any(target_os = "android", target_os = "linux"))]
-#[macro_use]
-extern crate lazy_static;
 #[macro_use]
 extern crate log;
 
 pub mod background_hang_monitor;
 mod sampler;
+#[cfg(any(target_os = "android", target_os = "linux"))]
+mod sampler_linux;
+#[cfg(target_os = "macos")]
+mod sampler_mac;
+#[cfg(target_os = "windows")]
+mod sampler_windows;
 
 pub use self::background_hang_monitor::*;
