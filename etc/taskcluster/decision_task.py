@@ -373,13 +373,10 @@ def macos_build_task(name):
         .with_script("""
             mkdir -p "$HOME/homebrew"
             export PATH="$HOME/homebrew/bin:$PATH"
-            which homebrew || curl -L https://github.com/Homebrew/brew/tarball/master \
+            which brew || curl -L https://github.com/Homebrew/brew/tarball/master \
                 | tar xz --strip 1 -C "$HOME/homebrew"
 
-            time brew install automake autoconf@2.13 pkg-config cmake yasm llvm
-            time brew install gstreamer gst-plugins-base gst-plugins-good gst-plugins-bad \
-                gst-libav gst-rtsp-server \
-                --with-orc --with-libogg --with-opus --with-pango --with-theora --with-libvorbis
+            time brew bundle install --no-upgrade --file=etc/taskcluster/macos/Brewfile
             export OPENSSL_INCLUDE_DIR="$(brew --prefix openssl)/include"
             export OPENSSL_LIB_DIR="$(brew --prefix openssl)/lib"
         """)
