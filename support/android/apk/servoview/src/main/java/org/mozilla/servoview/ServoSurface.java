@@ -70,7 +70,9 @@ public class ServoSurface {
 
     public void shutdown() {
         Log.d(LOGTAG, "shutdown");
-        mServo.requestShutdown();
+        mServo.shutdown();
+        mServo = null;
+        mGLThread.shutdown();
         try {
             Log.d(LOGTAG, "Waiting for GL thread to shutdown");
             mGLThread.join();
@@ -228,9 +230,8 @@ public class ServoSurface {
             mMainLooperHandler.post(r);
         }
 
-        public void finalizeShutdown() {
-            Log.d(LOGTAG, "finalizeShutdown");
-            mServo.deinit();
+        public void shutdown() {
+            Log.d(LOGTAG, "GLThread::shutdown");
             mSurface.destroy();
             mGLLooperHandler.getLooper().quitSafely();
         }

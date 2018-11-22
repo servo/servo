@@ -12,6 +12,8 @@ import android.util.Log;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.concurrent.Callable;
+import java.util.concurrent.FutureTask;
 
 import org.freedesktop.gstreamer.GStreamer;
 import org.mozilla.servoview.JNIServo.ServoOptions;
@@ -21,6 +23,8 @@ public class Servo {
     private AssetManager mAssetMgr;
     private JNIServo mJNI = new JNIServo();
     private RunCallback mRunCallback;
+    private boolean mShuttingDown;
+    private boolean mShutdownComplete;
     private boolean mSuspended;
 
     public Servo(
@@ -47,12 +51,33 @@ public class Servo {
         }
     }
 
-    public void requestShutdown() {
-        mRunCallback.inGLThread(() -> mJNI.requestShutdown());
-    }
-
-    public void deinit() {
-        mRunCallback.inGLThread(() -> mJNI.deinit());
+    public void shutdown() {
+        mShuttingDown = true;
+        FutureTask<Void> task = new FutureTask<Void>(new Callable<Void>() {
+            public Void call() throws Exception {
+                mJNI.requestShutdown();
+                // Wait until Servo gets back to us to finalize shutdown.
+                while (!mShutdownComplete) {
+                    try {
+                        Thread.sleep(10);
+                    } catch (Exception e) {
+                        mShutdownComplete = true;
+                        e.printStackTrace();
+                        return null;
+                    }
+                    mJNI.performUpdates();
+                }
+                mJNI.deinit();
+                return null;
+            }
+        });
+        mRunCallback.inGLThread(task);
+        // Block until task is complete.
+        try {
+            task.get();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     public String version() {
@@ -161,8 +186,6 @@ public class Servo {
         void inGLThread(Runnable f);
 
         void inUIThread(Runnable f);
-
-        void finalizeShutdown();
     }
 
     public interface GfxCallbacks {
@@ -184,7 +207,7 @@ public class Servo {
         }
 
         public void wakeup() {
-            if (!mSuspended) {
+            if (!mSuspended && !mShuttingDown) {
                 mRunCallback.inGLThread(() -> mJNI.performUpdates());
             }
         }
@@ -200,7 +223,7 @@ public class Servo {
         }
 
         public void onShutdownComplete() {
-            mRunCallback.finalizeShutdown();
+            mShutdownComplete = true;
         }
 
         public void onAnimatingChanged(boolean animating) {
