@@ -21,6 +21,8 @@ import sys
 import time
 import zipfile
 import urllib2
+import subprocess
+import sys
 
 
 try:
@@ -30,6 +32,7 @@ except ImportError:
 
 # The cafile parameter was added in 2.7.9
 if HAS_SNI and sys.version_info >= (2, 7, 9):
+    subprocess.call([sys.executable, "-m", "pip", "install", "certifi"])
     import certifi
     STATIC_RUST_LANG_ORG_DIST = "https://static.rust-lang.org/dist"
     URLOPEN_KWARGS = {"cafile": certifi.where()}
