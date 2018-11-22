@@ -51,19 +51,18 @@ Please select your operating system:
 * [Android](#cross-compilation-for-android)
 
 #### macOS
-#### On macOS (homebrew)
+##### On macOS (homebrew)
 
 ``` sh
-brew install automake autoconf@2.13 pkg-config python cmake yasm llvm
-brew install gstreamer gst-plugins-base gst-plugins-good gst-plugins-bad gst-libav gst-rtsp-server --with-orc --with-libogg --with-opus --with-pango --with-theora --with-libvorbis
+brew bundle install --file=etc/taskcluster/macos/Brewfile
 pip install virtualenv
 ```
-#### On macOS (MacPorts)
+##### On macOS (MacPorts)
 
 ``` sh
 sudo port install python27 py27-virtualenv cmake yasm llvm
 ```
-#### On macOS >= 10.11 (El Capitan), you also have to install OpenSSL
+##### On macOS >= 10.11 (El Capitan), you also have to install OpenSSL
 
 ``` sh
 brew install openssl
