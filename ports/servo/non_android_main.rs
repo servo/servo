@@ -3,7 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 #[macro_use] extern crate lazy_static;
-#[cfg(feature = "unstable")] #[macro_use] extern crate sig;
+#[cfg(all(feature = "unstable", any(target_os = "macos", target_os = "linux")))]
+#[macro_use] extern crate sig;
 
 // The window backed by glutin
 mod glutin_app;
@@ -13,7 +14,6 @@ mod resources;
 mod browser;
 
 use backtrace::Backtrace;
-use libc::_exit;
 use servo::{Servo, BrowserId};
 use servo::compositing::windowing::WindowEvent;
 use servo::config::opts::{self, ArgumentParsingResult, parse_url_or_filename};
@@ -36,16 +36,17 @@ pub mod platform {
     pub fn deinit() {}
 }
 
-#[cfg(not(feature = "unstable"))]
+#[cfg(any(not(feature = "unstable"), not(any(target_os = "macos", target_os = "linux"))))]
 fn install_crash_handler() {}
 
-#[cfg(feature = "unstable")]
+#[cfg(all(feature = "unstable", any(target_os = "macos", target_os = "linux")))]
 fn install_crash_handler() {
     use backtrace::Backtrace;
+    use libc::_exit;
     use sig::ffi::Sig;
     use std::thread;
 
-    fn handler(_sig: i32) {
+    extern "C" fn handler(sig: i32) {
         let name = thread::current()
             .name()
             .map(|n| format!(" for thread \"{}\"", n))
