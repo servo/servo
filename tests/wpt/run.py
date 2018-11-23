@@ -58,6 +58,9 @@ def set_defaults(kwargs):
     if kwargs["include_manifest"] is None and "include_manifest" in paths:
         kwargs["include_manifest"] = paths["include_manifest"]
 
+    if kwargs["manifest_update"] is None:
+        kwargs["manifest_update"] = False
+
     if kwargs["binary"] is None:
         bin_dir = "release" if kwargs["release"] else "debug"
         bin_name = "servo"
