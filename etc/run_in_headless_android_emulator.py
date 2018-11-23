@@ -27,7 +27,6 @@ def main(avd_name, apk_path, *args):
         "-no-window",
         "-no-snapshot",
         "-no-snapstorage",
-        "-gpu", "guest",
         "-port", emulator_port,
     ]
     with terminate_on_exit(emulator_args, stdout=sys.stderr) as emulator_process:
