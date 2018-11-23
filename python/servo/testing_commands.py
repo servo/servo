@@ -605,7 +605,7 @@ class MachCommands(CommandBase):
         process = subprocess.Popen(args, stdout=subprocess.PIPE)
         try:
             while 1:
-                line = process.stdout.readline()
+                line = process.stdout.readline().decode('ascii', 'replace')
                 if len(line) == 0:
                     print("EOF without finding the expected line")
                     return 1
