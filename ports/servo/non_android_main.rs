@@ -13,6 +13,7 @@ mod resources;
 mod browser;
 
 use backtrace::Backtrace;
+use libc::_exit;
 use servo::{Servo, BrowserId};
 use servo::compositing::windowing::WindowEvent;
 use servo::config::opts::{self, ArgumentParsingResult, parse_url_or_filename};
@@ -42,7 +43,6 @@ fn install_crash_handler() {}
 fn install_crash_handler() {
     use backtrace::Backtrace;
     use sig::ffi::Sig;
-    use std::intrinsics::abort;
     use std::thread;
 
     fn handler(_sig: i32) {
@@ -52,9 +52,7 @@ fn install_crash_handler() {
             .unwrap_or("".to_owned());
         println!("Stack trace{}\n{:?}", name, Backtrace::new());
         unsafe {
-            // N.B. Using process::abort() here causes the crash handler to be
-            //      triggered recursively.
-            abort();
+            _exit(sig);
         }
     }
 
