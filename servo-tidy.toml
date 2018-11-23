@@ -55,6 +55,8 @@ files = [
   "./components/style/gecko/non_ts_pseudo_class_list.rs",
   "./resources/hsts_preload.json",
   "./tests/wpt/metadata/MANIFEST.json",
+  "./tests/wpt/mozilla/meta/MANIFEST.json",
+  "./tests/wpt/webgl/meta/MANIFEST.json",
   "./support/android/openssl.sh",
   "./support/linux/gstreamer/gstreamer.sh",
   # Upstream code from Khronos/WebGL uses tabs for indentation
