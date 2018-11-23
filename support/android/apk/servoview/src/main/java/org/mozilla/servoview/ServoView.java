@@ -69,8 +69,9 @@ public class ServoView extends GLSurfaceView
         init(context);
     }
 
-    protected void onDetachedFromWindow() {
-        mServo.requestShutdown();
+    public void onDetachedFromWindow() {
+        mServo.shutdown();
+        mServo = null;
         super.onDetachedFromWindow();
     }
 
@@ -138,11 +139,6 @@ public class ServoView extends GLSurfaceView
     }
 
     public void makeCurrent() {
-    }
-
-    public void finalizeShutdown() {
-        // shutdown has been requested and completed.
-        mServo.deinit();
     }
 
     public void inGLThread(Runnable f) {
