@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang=en>
 <meta charset=utf-8>
-<title>XMLHttpRequest: upload formdata</title>
+<title>XMLHttpRequest: Construct and upload FormData</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
     <link rel="help" href="https://xhr.spec.whatwg.org/#interface-formdata" data-tested-assertations="following::P[1]" />
@@ -34,6 +34,11 @@
     };
     return fd;
   }
+
+  test(() => {
+    assert_throws(new TypeError(), () => { new FormData(null); });
+    assert_throws(new TypeError(), () => { new FormData("string"); });
+  }, "Constructors");
 
   do_test("empty formdata", new FormData(), '\n');
   do_test("formdata with string", create_formdata(['key', 'value']), 'key=value,\n');

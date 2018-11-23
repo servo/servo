@@ -86,6 +86,13 @@ CookieManager.prototype.resetCookies = () => {
     expireCookie(cookies_to_delete[i].replace(/=.*$/, ""),
                  /*expiry_date=*/null,
                  /*path=*/'/');
+    // Some browsers incorrectly include the final "forward slash" character
+    // when calculating the default path. The expected behavior for default
+    // path calculation is verified elsewhere; this utility accommodates the
+    // non-standard behavior in order to improve the focus of the test suite.
+    expireCookie(cookies_to_delete[i].replace(/=.*$/, ""),
+                 /*expiry_date=*/null,
+                 /*path=*/getLocalResourcesPath() + "/");
   }
 }
 

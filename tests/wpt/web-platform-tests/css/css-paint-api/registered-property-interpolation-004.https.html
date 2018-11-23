@@ -15,7 +15,7 @@
         name: '--prop', syntax: '<length-percentage>'
       });
 
-      expectWorkletValue(target, '--prop', '[CSSMathSum calc(5px + 10%)]');
+      expectWorkletValue(target, '--prop', '[CSSMathSum calc(10% + 5px)]');
     } catch(e) {
       document.body.textContent = e;
       takeScreenshot();

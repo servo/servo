@@ -10,7 +10,7 @@
         <div id="log">FAILED (This TC requires JavaScript enabled)</div>
 
         <script>
-          var t = async_test(undefined, {timeout:4000});
+          var t = async_test();
 
           sources = ["scripts/include-1.js?pipe=trickle(d2)", "scripts/include-2.js?pipe=trickle(d1)"];
           sources.forEach(function(x) {

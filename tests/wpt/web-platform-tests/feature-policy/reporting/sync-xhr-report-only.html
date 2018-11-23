@@ -8,15 +8,15 @@
     <script>
 const check_report_format = ([reports, observer]) => {
   const report = reports[0];
-  assert_equals(report.type, "feature-policy");
-  assert_equals(report.body.feature, "sync-xhr");
+  assert_equals(report.type, "feature-policy-violation");
+  assert_equals(report.body.featureId, "sync-xhr");
   assert_equals(report.body.disposition, "report");
 };
 
 promise_test(async t => {
   const report = new Promise(resolve => {
     new ReportingObserver((reports, observer) => resolve([reports, observer]),
-                          {types: ['feature-policy']}).observe();
+                          {types: ['feature-policy-violation']}).observe();
   });
   const xhr = new XMLHttpRequest();
   xhr.open("GET", document.location.href, false);

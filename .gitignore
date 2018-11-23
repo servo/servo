@@ -2,6 +2,7 @@
 /.cargo/*
 !/.cargo/config.*
 /.servobuild
+/.wpt
 /android-toolchains
 /target
 /ports/android/bin

@@ -60,14 +60,13 @@ def test_partially_visible_does_not_scroll(session, offset):
         <script>
         window.clicks = [];
         let target = document.querySelector("div");
-        target.addEventListener("click", ({{clientX, clientY}}) => window.clicks.push([clientX, clientY]));
+        target.addEventListener("click", function(e) {{ window.clicks.push([e.clientX, e.clientY]); }});
         </script>
         """.format(offset=offset))
     target = session.find.css("div", all=False)
-    assert session.execute_script("return window.scrollY") == 0
-
+    assert session.execute_script("return window.scrollY || document.documentElement.scrollTop") == 0
     response = element_click(session, target)
     assert_success(response)
-    assert session.execute_script("return window.scrollY") == 0
+    assert session.execute_script("return window.scrollY || document.documentElement.scrollTop") == 0
     click_point = assert_one_click(session)
     assert click_point == center_point(target)

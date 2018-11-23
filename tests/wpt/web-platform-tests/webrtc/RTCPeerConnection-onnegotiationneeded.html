@@ -164,10 +164,13 @@
    */
   test_never_resolve(t => {
     const pc = new RTCPeerConnection();
-    const negotiated = awaitNegotiation(pc);
+    let negotiated;
 
     return generateAudioReceiveOnlyOffer(pc)
-    .then(offer => pc.setLocalDescription(offer))
+    .then(offer => {
+      pc.setLocalDescription(offer);
+      negotiated = awaitNegotiation(pc);
+    })
     .then(() => negotiated)
     .then(({nextPromise}) => {
       assert_equals(pc.signalingState, 'have-local-offer');

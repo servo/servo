@@ -9,11 +9,13 @@ var frame_url = scope + '-frame.html';
 var shared_worker_url = scope + '-shared-worker.js';
 var worker_url = scope + '-worker.js';
 var client_ids = [];
+var registration;
 var frame;
 promise_test(function(t) {
     return service_worker_unregister_and_register(
         t, 'resources/clients-get-worker.js', scope)
-      .then(function(registration) {
+      .then(function(r) {
+          registration = r;
           add_completion_callback(function() { registration.unregister(); });
           return wait_for_state(t, registration.installing, 'activated');
         })
@@ -59,12 +61,10 @@ promise_test(function(t) {
         })
       .then(function(client_id) {
           client_ids.push(client_id);
-          var channel = new MessageChannel();
           var saw_message = new Promise(function(resolve) {
-              channel.port1.onmessage = resolve;
+              navigator.serviceWorker.onmessage = resolve;
             });
-          frame.contentWindow.navigator.serviceWorker.controller.postMessage(
-              {port: channel.port2, clientIds: client_ids}, [channel.port2]);
+          registration.active.postMessage({clientIds: client_ids});
           return saw_message;
         })
       .then(function(e) {

@@ -106,7 +106,7 @@
 
       this._exec = f => f();
       if (async) {
-        this._exec = f => setTimeout(f, 0);
+        this._exec = f => step_timeout(f, 0);
       }
     }
 

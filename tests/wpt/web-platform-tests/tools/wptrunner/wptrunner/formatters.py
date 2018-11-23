@@ -51,7 +51,7 @@ def replace_lone_surrogate(data):
 
 
 class WptreportFormatter(BaseFormatter):
-    """Formatter that produces results in the format that wpreport expects."""
+    """Formatter that produces results in the format that wptreport expects."""
 
     def __init__(self):
         self.raw_results = {}

@@ -140,8 +140,8 @@
     test(
       function(){
         var target = document.getElementById("gapCalcFixedPercent");
-        assert_equals(getComputedStyle(target).rowGap, "calc(5px + 10%)");
-        assert_equals(getComputedStyle(target).columnGap, "calc(5px + 10%)");
+        assert_equals(getComputedStyle(target).rowGap, "calc(10% + 5px)");
+        assert_equals(getComputedStyle(target).columnGap, "calc(10% + 5px)");
       }, "gap accepts calc() mixing fixed and percentage values");
     test(
       function(){

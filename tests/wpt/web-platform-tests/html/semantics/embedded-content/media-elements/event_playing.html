@@ -15,7 +15,7 @@
   <div id="log"></div>
   <script>
 test(function() {
-  var t = async_test("setting src attribute on autoplay audio should trigger playing event", {timeout:5000});
+  var t = async_test("setting src attribute on autoplay audio should trigger playing event");
   var a = document.getElementById("a");
   a.addEventListener("error", t.unreached_func());
   a.addEventListener("playing", t.step_func(function() {
@@ -26,7 +26,7 @@ test(function() {
 }, "audio events - playing");
 
 test(function() {
-  var t = async_test("setting src attribute on autoplay video should trigger playing event", {timeout:5000});
+  var t = async_test("setting src attribute on autoplay video should trigger playing event");
   var v = document.getElementById("v");
   v.addEventListener("error", t.unreached_func());
   v.addEventListener("playing", t.step_func(function() {

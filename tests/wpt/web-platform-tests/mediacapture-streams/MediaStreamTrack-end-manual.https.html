@@ -17,7 +17,7 @@ correctly set into inactive state when permission is revoked.</p>
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
 <script>
-var t = async_test("Tests that the video MediaStreamTrack objects are properly ended on permission revocation", {timeout: 20000}); // longer timeout since requires user interaction
+var t = async_test("Tests that the video MediaStreamTrack objects are properly ended on permission revocation");
 t.step(function () {
   navigator.mediaDevices.getUserMedia({audio: true,video: true}).then(t.step_func(function (stream) {
     var vidTrack = stream.getVideoTracks()[0];

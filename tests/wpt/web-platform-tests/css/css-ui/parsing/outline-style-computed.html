@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS UI Level 3: getComputedValue().outlineStyle</title>
+<link rel="help" href="https://drafts.csswg.org/css-ui-3/#outline-style">
+<meta name="assert" content="outline-style computed value is as specified.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+</head>
+<body>
+<div id="target"></div>
+<script>
+test_computed_value("outline-style", "auto");
+
+test_computed_value("outline-style", "none");
+test_computed_value("outline-style", "dotted");
+test_computed_value("outline-style", "dashed");
+test_computed_value("outline-style", "solid");
+test_computed_value("outline-style", "double");
+test_computed_value("outline-style", "groove");
+test_computed_value("outline-style", "ridge");
+test_computed_value("outline-style", "inset");
+test_computed_value("outline-style", "outset");
+</script>
+</body>
+</html>

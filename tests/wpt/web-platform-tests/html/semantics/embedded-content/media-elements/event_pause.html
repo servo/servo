@@ -15,7 +15,7 @@
   <div id="log"></div>
   <script>
 test(function() {
-  var t = async_test("calling pause() on autoplay audio should trigger pause event", {timeout:5000});
+  var t = async_test("calling pause() on autoplay audio should trigger pause event");
   var a = document.getElementById("a");
   a.addEventListener("error", t.unreached_func());
   a.addEventListener("pause", t.step_func_done(), false);
@@ -26,7 +26,7 @@ test(function() {
 }, "audio events - pause");
 
 test(function() {
-  var t = async_test("calling pause() on autoplay video should trigger pause event", {timeout:5000});
+  var t = async_test("calling pause() on autoplay video should trigger pause event");
   var v = document.getElementById("v");
   v.addEventListener("error", t.unreached_func());
   v.addEventListener("pause", t.step_func_done(), false);

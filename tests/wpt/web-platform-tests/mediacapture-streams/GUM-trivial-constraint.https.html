@@ -15,7 +15,7 @@ constraint (width &gt;=0) in getUserMedia works</p>
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
 <script>
-var t = async_test("Tests that setting a trivial mandatory constraint in getUserMedia works", {timeout:10000});
+var t = async_test("Tests that setting a trivial mandatory constraint in getUserMedia works");
 t.step(function() {
   navigator.mediaDevices.getUserMedia({video: {width: {min:0}}})
     .then(t.step_func(function (stream) {

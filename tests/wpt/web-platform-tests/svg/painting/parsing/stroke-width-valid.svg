@@ -19,6 +19,7 @@ test_valid_value("stroke-width", "1px");
 test_valid_value("stroke-width", "calc(2em + 3ex)");
 test_valid_value("stroke-width", "4%");
 test_valid_value("stroke-width", "5vmin");
+test_valid_value("stroke-width", "calc(50% + 60px)");
 
   ]]></script>
 </svg>

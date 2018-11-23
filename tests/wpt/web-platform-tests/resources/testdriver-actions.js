@@ -7,7 +7,7 @@
   function Actions() {
     this.sourceTypes = new Map([["key", KeySource],
                                 ["pointer", PointerSource],
-                                ["general", GeneralSource]]);
+                                ["none", GeneralSource]]);
     this.sources = new Map();
     this.sourceOrder = [];
     for (let sourceType of this.sourceTypes.keys()) {
@@ -17,7 +17,7 @@
     for (let sourceType of this.sourceTypes.keys()) {
       this.currentSources.set(sourceType, null);
     }
-    this.createSource("general");
+    this.createSource("none");
     this.tickIdx = 0;
   }
 
@@ -62,7 +62,7 @@
      * If no name is passed, a new source with the given type is
      * created.
      *
-     * @param {String} type - Source type ('general', 'key', or 'pointer')
+     * @param {String} type - Source type ('none', 'key', or 'pointer')
      * @param {String?} name - Name of the source
      * @returns {Source} Source object for that source.
      */
@@ -187,7 +187,7 @@
      * @returns {Actions}
      */
     pause: function(duration) {
-      this.getSource("general").addPause(this, duration);
+      this.getSource("none").addPause(this, duration);
       return this;
     },
 

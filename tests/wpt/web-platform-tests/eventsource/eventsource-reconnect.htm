@@ -24,7 +24,7 @@
         "200")
 
 
-      var t = async_test(document.title + ", test reconnection events", { timeout: 9000 });
+      var t = async_test(document.title + ", test reconnection events");
       t.step(function() {
         var opened = false, reconnected = false,
             source = new EventSource("resources/status-reconnect.py?status=200&ok_first&id=2");

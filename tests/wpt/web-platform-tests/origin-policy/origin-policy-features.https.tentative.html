@@ -1,0 +1,16 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <script src='/resources/testharness.js'></script>
+  <script src='/resources/testharnessreport.js'></script>
+</head>
+<body>
+  <script>
+    async_test(t => {
+      assert_false(document.policy.allowsFeature('geolocation'));
+      assert_true(document.policy.allowsFeature('camera'));
+      t.done();
+    }, "Origin-Policy-based Feature policy");
+  </script>
+</body>
+</html>

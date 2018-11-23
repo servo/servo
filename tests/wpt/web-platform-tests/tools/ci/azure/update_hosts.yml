@@ -1,0 +1,3 @@
+steps:
+- script: ./wpt make-hosts-file | sudo tee -a /etc/hosts
+  displayName: 'Update /etc/hosts'

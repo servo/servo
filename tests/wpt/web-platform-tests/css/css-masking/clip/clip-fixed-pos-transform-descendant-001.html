@@ -1,0 +1,38 @@
+<!doctype html>
+<title>CSS Masking: Transformed descendants of a fixed pos element under a clipped element get properly clipped</title>
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="author" title="Mozilla" href="https://mozilla.org">
+<link rel="match" href="clip-fixed-pos-transform-descendant-001-ref.html">
+<link rel="help" href="https://drafts.fxtf.org/css-masking/#clip-property">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1495791">
+<style>
+html, body { margin: 0; }
+
+#clip {
+  height: 100px;
+  width: 100px;
+  background: lime;
+  clip: rect(0, auto, auto, 0);
+  position: absolute;
+}
+
+#fixed {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100px;
+  height: 100px;
+}
+
+#clipped {
+  height: 100px;
+  width: 100px;
+  background: red;
+  transform: translateY(100px);
+}
+</style>
+<div id="clip">
+  <div id="fixed">
+    <div id="clipped"></div>
+  </div>
+</div>

@@ -29,5 +29,5 @@ var t = async_test(function(t) {
     ws.onerror = ws.onclose = t.step_func(function(e) {assert_unreached(e.type)});
   });
   document.body.appendChild(iframe);
-}, null, {timeout:9900});
+});
 </script>

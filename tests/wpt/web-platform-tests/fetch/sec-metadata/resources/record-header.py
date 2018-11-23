@@ -63,7 +63,7 @@ def main(request, response):
     ## Return a valid font content and Content-Type ##
     if key.startswith("font"):
       response.headers.set("Content-Type", "application/x-font-ttf")
-      file = open("fonts/Ahem.ttf", "r")
+      file = open(os.path.join(request.doc_root, "fonts", "Ahem.ttf"), "r")
       font = file.read()
       file.close()
       return font
@@ -71,7 +71,7 @@ def main(request, response):
     ## Return a valid audio content and Content-Type ##
     if key.startswith("audio"):
       response.headers.set("Content-Type", "audio/mpeg")
-      file = open("media/sound_5.mp3", "r")
+      file = open(os.path.join(request.doc_root, "media", "sound_5.mp3"), "r")
       audio = file.read()
       file.close()
       return audio
@@ -79,7 +79,7 @@ def main(request, response):
     ## Return a valid video content and Content-Type ##
     if key.startswith("video"):
       response.headers.set("Content-Type", "video/mp4")
-      file = open("media/A4.mp4", "r")
+      file = open(os.path.join(request.doc_root, "media", "A4.mp4"), "r")
       video = file.read()
       file.close()
       return video
@@ -92,7 +92,7 @@ def main(request, response):
     ## Return a valid image content and Content-Type for redirect requests ##
     if key.startswith("redirect"):
       response.headers.set("Content-Type", "image/jpeg")
-      file = open("media/1x1-green.png", "r")
+      file = open(os.path.join(request.doc_root, "media", "1x1-green.png"), "r")
       image = file.read()
       file.close()
       return image

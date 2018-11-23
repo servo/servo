@@ -15,7 +15,7 @@
   <div id="log"></div>
   <script>
 test(function() {
-  var t = async_test("setting src attribute on autoplay audio should trigger loadstart then progress event", {timeout:5000});
+  var t = async_test("setting src attribute on autoplay audio should trigger loadstart then progress event");
   var a = document.getElementById("a");
   var found_loadstart = false;
   a.addEventListener("error", t.unreached_func());
@@ -31,7 +31,7 @@ test(function() {
 }, "audio events - loadstart, then progress");
 
 test(function() {
-  var t = async_test("setting src attribute on autoplay video should trigger loadstart then progress event", {timeout:5000});
+  var t = async_test("setting src attribute on autoplay video should trigger loadstart then progress event");
   var v = document.getElementById("v");
   var found_loadstart = false;
   v.addEventListener("error", t.unreached_func());

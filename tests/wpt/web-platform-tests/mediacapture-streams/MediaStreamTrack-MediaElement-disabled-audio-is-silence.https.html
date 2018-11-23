@@ -18,7 +18,7 @@ Web Audio API</a>.</p>
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
 <script>
-var t = async_test("Tests that a disabled audio track in a MediaStream is rendered as silence", {timeout: 200000});
+var t = async_test("Tests that a disabled audio track in a MediaStream is rendered as silence");
 var aud = document.getElementById("aud");
 t.step(function() {
   navigator.mediaDevices.getUserMedia({audio: true}).then(t.step_func(function (stream) {

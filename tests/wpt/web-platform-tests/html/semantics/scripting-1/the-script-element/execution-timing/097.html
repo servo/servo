@@ -15,7 +15,7 @@
         </script>
         <script>
           log("inline script #2");
-          var t = async_test(undefined, {timeout:3500});
+          var t = async_test();
 
           addEventListener("DOMContentLoaded", t.step_func(function() {assert_array_equals(eventOrder, ["inline script #1", "inline script #2"])}), false);
 

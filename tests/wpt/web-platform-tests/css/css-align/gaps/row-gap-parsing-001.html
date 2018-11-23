@@ -86,7 +86,7 @@
     test(
       function(){
         var target = document.getElementById("rowGapCalcFixedPercent");
-        assert_equals(getComputedStyle(target).rowGap, "calc(5px + 10%)");
+        assert_equals(getComputedStyle(target).rowGap, "calc(10% + 5px)");
       }, "row-gap accepts calc() mixing fixed and percentage values");
     test(
       function(){

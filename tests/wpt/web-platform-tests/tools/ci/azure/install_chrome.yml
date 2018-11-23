@@ -1,0 +1,3 @@
+steps:
+- script: HOMEBREW_NO_AUTO_UPDATE=1 brew cask install Homebrew/homebrew-cask-versions/google-chrome-dev
+  displayName: 'Install Chrome Dev'

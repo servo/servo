@@ -15,7 +15,7 @@
   <div id="log"></div>
   <script>
 test(function() {
-  var t = async_test("calling play() on a sufficiently long audio should trigger timeupdate event", {timeout:5000});
+  var t = async_test("calling play() on a sufficiently long audio should trigger timeupdate event");
   var a = document.getElementById("a");
   a.addEventListener("error", t.unreached_func());
   a.addEventListener("timeupdate", t.step_func(function() {
@@ -27,7 +27,7 @@ test(function() {
 }, "audio events - timeupdate");
 
 test(function() {
-  var t = async_test("calling play() on a sufficiently long video should trigger timeupdate event", {timeout:5000});
+  var t = async_test("calling play() on a sufficiently long video should trigger timeupdate event");
   var v = document.getElementById("v");
   v.addEventListener("error", t.unreached_func());
   v.addEventListener("timeupdate", t.step_func(function() {

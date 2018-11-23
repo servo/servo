@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg"
+     xmlns:h="http://www.w3.org/1999/xhtml"
+     width="800px" height="800px">
+  <title>SVG Painting: parsing stroke-dashoffset with invalid values</title>
+  <metadata>
+    <h:link rel="help" href="https://svgwg.org/svg2-draft/painting.html#StrokeDashoffsetProperty"/>
+    <h:meta name="assert" content="stroke-dashoffset supports only the grammar 'length-percentage'"/>
+  </metadata>
+  <g id="target"></g>
+  <h:script src="/resources/testharness.js"/>
+  <h:script src="/resources/testharnessreport.js"/>
+  <h:script src="/css/support/parsing-testcommon.js"/>
+  <script><![CDATA[
+
+test_invalid_value("stroke-dashoffset", "auto");
+test_invalid_value("stroke-dashoffset", "-10.px");
+test_invalid_value("stroke-dashoffset", "30deg");
+test_invalid_value("stroke-dashoffset", "40px 50%");
+
+  ]]></script>
+</svg>

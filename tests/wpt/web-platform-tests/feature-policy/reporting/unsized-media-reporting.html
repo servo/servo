@@ -12,7 +12,7 @@ var check_report_format = (reports, observer) => {
   assert_equals(report.type, "feature-policy-violation");
   assert_equals(report.url, document.location.href);
   assert_equals(report.body.featureId, "unsized-media");
-  assert_equals(typeof report.body.message, "string");
+  assert_equals(report.body.disposition, "enforce");
 };
 
 async_test(t => {

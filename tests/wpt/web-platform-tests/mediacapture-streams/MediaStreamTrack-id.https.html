@@ -14,7 +14,7 @@
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
 <script>
-var t = async_test("Tests that distinct mediastream tracks have distinct ids ", {timeout: 10000});
+var t = async_test("Tests that distinct mediastream tracks have distinct ids ");
 t.step(function () {
   navigator.mediaDevices.getUserMedia({video: true, audio: true})
     .then(t.step_func(gotStream), t.step_func(function(error) {t.assert_unreached("Access to audio and video stream is granted");}));

@@ -14,7 +14,7 @@
   </video>
   <div id="log"></div>
   <script>
-var ta = async_test("audioElement.networkState should be NETWORK_LOADING during loadstart event", {timeout:5000});
+var ta = async_test("audioElement.networkState should be NETWORK_LOADING during loadstart event");
 var a = document.getElementById("a");
 a.addEventListener("loadstart", function() {
   ta.step(function() {
@@ -26,7 +26,7 @@ a.addEventListener("loadstart", function() {
 }, false);
 a.src = getAudioURI("/media/sound_5") + "?" + new Date() + Math.random();
 
-var tv = async_test("videoElement.networkState should be NETWORK_LOADING during loadstart event", {timeout:5000});
+var tv = async_test("videoElement.networkState should be NETWORK_LOADING during loadstart event");
 var v = document.getElementById("v");
 v.addEventListener("loadstart", function() {
   tv.step(function() {

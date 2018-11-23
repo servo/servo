@@ -20,8 +20,9 @@
 test_computed_value("cx", "-10px");
 test_computed_value("cx", "0.5em", "20px");
 test_computed_value("cx", "calc(10px + 0.5em)", "30px");
+test_computed_value("cx", "calc(10px - 0.5em)", "-10px");
 test_computed_value("cx", "40%");
-test_computed_value("cx", "calc(50% + 60x)");
+test_computed_value("cx", "calc(50% + 60px)");
 
   ]]></script>
 </svg>

@@ -11,7 +11,7 @@
         <iframe id="myFrame"></iframe>
 
         <script>
-          var t = async_test(undefined, {timeout:3500});
+          var t = async_test();
           onload = t.step_func(function() {
             var doc = document.getElementById("myFrame").contentDocument;
             var win = document.getElementById("myFrame").contentWindow;

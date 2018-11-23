@@ -11,7 +11,6 @@ self.onfetch = function(e) {
 };
 
 self.onmessage = function(e) {
-  var port = e.data.port;
   var client_ids = e.data.clientIds;
   var message = [];
 
@@ -23,7 +22,7 @@ self.onmessage = function(e) {
           // No matching client for a given id or a matched client is off-origin
           // from the service worker.
           if (clients.length == 1 && clients[0] == undefined) {
-            port.postMessage(clients[0]);
+            e.source.postMessage(clients[0]);
           } else {
             clients.forEach(function(client) {
                 if (client instanceof Client) {
@@ -36,7 +35,7 @@ self.onmessage = function(e) {
                   message.push(client);
                 }
               });
-            port.postMessage(message);
+            e.source.postMessage(message);
           }
         }));
 };

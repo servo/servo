@@ -1,0 +1,40 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>RTCPeerConnection.prototype.setRemoteDescription - legacy streams without a=msid lines</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+'use strict';
+
+const FINGERPRINT_SHA256 = '00:00:00:00:00:00:00:00:00:00:00:00:00' +
+    ':00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00';
+const ICEUFRAG = 'someufrag';
+const ICEPWD = 'somelongpwdwithenoughrandomness';
+const SDP_BOILERPLATE = 'v=0\r\n' +
+    'o=- 166855176514521964 2 IN IP4 127.0.0.1\r\n' +
+    's=-\r\n' +
+    't=0 0\r\n';
+const MINIMAL_AUDIO_MLINE =
+    'm=audio 9 UDP/TLS/RTP/SAVPF 111\r\n' +
+    'c=IN IP4 0.0.0.0\r\n' +
+    'a=rtcp:9 IN IP4 0.0.0.0\r\n' +
+    'a=ice-ufrag:' + ICEUFRAG + '\r\n' +
+    'a=ice-pwd:' + ICEPWD + '\r\n' +
+    'a=fingerprint:sha-256 ' + FINGERPRINT_SHA256 + '\r\n' +
+    'a=setup:actpass\r\n' +
+    'a=mid:0\r\n' +
+    'a=sendrecv\r\n' +
+    'a=rtcp-mux\r\n' +
+    'a=rtcp-rsize\r\n' +
+    'a=rtpmap:111 opus/48000/2\r\n';
+
+  promise_test(async t => {
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+
+    const haveOntrack = new Promise(r => pc.ontrack = r);
+    await pc.setRemoteDescription({type: 'offer', sdp: SDP_BOILERPLATE + MINIMAL_AUDIO_MLINE});
+    assert_equals((await haveOntrack).streams.length, 1);
+  }, 'setRemoteDescription with an SDP without a=msid lines triggers ontrack with a default stream.');
+
+</script>

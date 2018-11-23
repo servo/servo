@@ -17,7 +17,7 @@ function test_initial_value(reg, expected) {
 }
 
 test_initial_value({ syntax: '<length>', initialValue: 'calc(10px + 15px)' }, '25px');
-test_initial_value({ syntax: '<length-percentage>', initialValue: 'calc(1in + 10% + 4px)' }, 'calc(100px + 10%)');
+test_initial_value({ syntax: '<length-percentage>', initialValue: 'calc(1in + 10% + 4px)' }, 'calc(10% + 100px)');
 test_initial_value({ syntax: '<color>', initialValue: 'pink', inherits: true }, 'rgb(255, 192, 203)');
 test_initial_value({ syntax: '<color>', initialValue: 'purple' }, 'rgb(128, 0, 128)');
 test_initial_value({ syntax: '<transform-function>', initialValue: 'rotate(42deg)' }, 'rotate(42deg)');

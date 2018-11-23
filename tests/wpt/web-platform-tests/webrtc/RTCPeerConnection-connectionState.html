@@ -6,7 +6,6 @@
 <script src="RTCPeerConnection-helper.js"></script>
 <script>
   'use strict';
-
   // Test is based on the following editor draft:
   // https://w3c.github.io/webrtc-pc/archives/20170605/webrtc.htm
 
@@ -76,6 +75,12 @@
     assert_equals(pc.connectionState, 'new');
   }, 'Initial connectionState should be new');
 
+  test(t => {
+    const pc = new RTCPeerConnection();
+    pc.close();
+    assert_equals(pc.connectionState, 'closed');
+  }, 'Closing the connection should set connectionState to closed');
+
   /*
     4.4.3.  RTCPeerConnectionState Enum
       connected
@@ -105,16 +110,42 @@
         pairs and found a connection. If consent checks [RFC7675] subsequently
         fail on all successful candidate pairs, the state transitions to "failed".
    */
+
   async_test(t => {
     const pc1 = new RTCPeerConnection();
     t.add_cleanup(() => pc1.close());
     const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc2.close());
 
+    let had_connecting = false;
+
+    const onConnectionStateChange = t.step_func(() => {
+      const {connectionState} = pc1;
+      if (connectionState === 'connecting') {
+        had_connecting = true;
+      } else if (connectionState === 'connected') {
+        assert_true(had_connecting, "state should pass connecting before reaching connected");
+        t.done();
+      }
+    });
+
+    pc1.createDataChannel('test');
+
+    pc1.addEventListener('connectionstatechange', onConnectionStateChange);
+
+    exchangeIceCandidates(pc1, pc2);
+    doSignalingHandshake(pc1, pc2);
+  }, 'connection with one data channel should eventually have connected connection state');
+
+  async_test(t => {
+    const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    const pc2 = new RTCPeerConnection();
     t.add_cleanup(() => pc2.close());
 
     const onConnectionStateChange = t.step_func(() => {
-      const { connectionState } = pc1;
-      if(connectionState === 'connected') {
+      const {connectionState} = pc1;
+      if (connectionState === 'connected') {
         const sctpTransport = pc1.sctp;
 
         const dtlsTransport = sctpTransport.transport;
@@ -132,14 +163,11 @@
 
     pc1.createDataChannel('test');
 
-    assert_equals(pc1.onconnectionstatechange, null,
-      'Expect connection to have connectionstatechange event');
-
     pc1.addEventListener('connectionstatechange', onConnectionStateChange);
 
     exchangeIceCandidates(pc1, pc2);
     doSignalingHandshake(pc1, pc2);
-  }, 'connection with one data channel should eventually have connected connection state');
+  }, 'connection with one data channel should eventually have transports in connected state');
 
   /*
     TODO

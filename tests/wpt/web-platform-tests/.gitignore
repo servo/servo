@@ -5,19 +5,15 @@ _venv/
 .cache/
 .pytest_cache/
 .tox/
+.coverage*
 
 # Node
 node_modules/
 
 # WPT repo stuff
 /MANIFEST.json
-
-testharness_runner.html
-!/testharness_runner.html
-!/tools/wptrunner/wptrunner/testharness_runner.html
-
-_certs
-config.json
+.wptcache/
+/config.json
 
 # Various OS/editor specific files
 *#

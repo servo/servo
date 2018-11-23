@@ -15,7 +15,7 @@
   <div id="log"></div>
   <script>
 test(function() {
-  var t = async_test("setting src attribute on autoplay audio should trigger canplay then canplaythrough event", {timeout:5000});
+  var t = async_test("setting src attribute on autoplay audio should trigger canplay then canplaythrough event");
   var a = document.getElementById("a");
   var found_canplay = false;
   a.addEventListener("error", t.unreached_func());
@@ -31,7 +31,7 @@ test(function() {
 }, "audio events - canplay, then canplaythrough");
 
 test(function() {
-  var t = async_test("setting src attribute on autoplay video should trigger canplay then canplaythrough event", {timeout:5000});
+  var t = async_test("setting src attribute on autoplay video should trigger canplay then canplaythrough event");
   var v = document.getElementById("v");
   var found_canplay = false;
   v.addEventListener("error", t.unreached_func());

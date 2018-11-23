@@ -14,6 +14,11 @@ from wptrunner.wptcommandline import get_test_paths, set_from_config
 manifest = None
 
 
+servo_root = os.path.join(os.path.dirname(__file__),
+                          os.pardir,
+                          os.pardir)
+
+
 def do_delayed_imports(wpt_dir):
     global manifest
     sys.path.insert(0, os.path.join(wpt_dir, "tools", "manifest"))
@@ -54,16 +59,14 @@ def update(logger, wpt_dir, check_clean=True, rebuild=False):
 def _update(logger, test_paths, rebuild):
     for url_base, paths in test_paths.iteritems():
         manifest_path = os.path.join(paths["metadata_path"], "MANIFEST.json")
-        m = None
-        if not rebuild:
-            try:
-                m = manifest.manifest.load(paths["tests_path"], manifest_path)
-            except manifest.manifest.ManifestVersionMismatch:
-                logger.info("Manifest format changed, rebuilding")
-        if m is None:
-            m = manifest.manifest.Manifest(url_base)
-        manifest.update.update(paths["tests_path"], m, working_copy=True)
-        manifest.manifest.write(m, manifest_path)
+        cache_subdir = os.path.relpath(os.path.dirname(manifest_path),
+                                       os.path.dirname(__file__))
+        manifest.manifest.load_and_update(paths["tests_path"],
+                                          manifest_path,
+                                          url_base,
+                                          working_copy=True,
+                                          cache_root=os.path.join(servo_root, ".wpt",
+                                                                  cache_subdir))
     return 0
 
 

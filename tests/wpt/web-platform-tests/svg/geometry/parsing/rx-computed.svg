@@ -22,8 +22,9 @@ test_computed_value("rx", "auto");
 test_computed_value("rx", "10px");
 test_computed_value("rx", "0.5em", "20px");
 test_computed_value("rx", "calc(10px + 0.5em)", "30px");
+test_computed_value("rx", "calc(10px - 0.5em)", "0px");
 test_computed_value("rx", "40%");
-test_computed_value("rx", "calc(50% + 60x)");
+test_computed_value("rx", "calc(50% + 60px)");
 
   ]]></script>
 </svg>

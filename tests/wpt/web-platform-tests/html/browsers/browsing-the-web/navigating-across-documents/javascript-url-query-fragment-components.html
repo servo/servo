@@ -13,7 +13,7 @@ var c = null;
 <iframe id="c" src='javascript:"%252525 ? %252525 # %252525"'></iframe>
 
 <script>
-var t = async_test("iframes with javascript src", {timeout:1000});
+var t = async_test("iframes with javascript src");
 function check(id, expected) {
   assert_equals(
     document.getElementById(id).contentDocument.body.textContent,

@@ -17,7 +17,7 @@ the success callback in getUserMedia has exactly one audio track.</p>
 <script src=/resources/testharnessreport.js></script>
 <script>
 var astream;
-var t = async_test("Tests that a MediaStream with exactly one audio track is returned", {timeout: 10000});
+var t = async_test("Tests that a MediaStream with exactly one audio track is returned");
 t.step(function() {
   navigator.mediaDevices.getUserMedia({audio:true}).then(t.step_func(function (stream) {
     astream = stream;

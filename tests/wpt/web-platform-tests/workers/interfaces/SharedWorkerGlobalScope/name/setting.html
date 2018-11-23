@@ -14,7 +14,7 @@ addEventListener('connect', function(e) {
 async_test(function() {
   var w1 = new SharedWorker('#1', 'x');
   w1.port.addEventListener('message', this.step_func(function(e) {
-    assert_equals(e.data, 'x');
+    assert_equals(e.data, 1);
     this.done();
   }), false);
   w1.port.start();

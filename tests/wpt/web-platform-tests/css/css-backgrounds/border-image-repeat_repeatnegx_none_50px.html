@@ -22,7 +22,7 @@
     <div id="test"></div>
     <script type="text/javascript">
         var div = document.querySelector("#test");
-        var t = async_test(document.title, { timeout: 500 });
+        var t = async_test(document.title);
         t.step(function () {
             div.style[headProp("border-image-repeat")] = "repeat-x";
             div.style[headProp("height")] = "200px";

@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>TestDriver actions: pause</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<script>
+promise_test(() => {
+  let t0 = performance.now();
+  return new test_driver.Actions()
+    .addTick(1000)
+    .send()
+    .then(() => assert_greater_than(performance.now() - t0, 1000));
+})
+</script>

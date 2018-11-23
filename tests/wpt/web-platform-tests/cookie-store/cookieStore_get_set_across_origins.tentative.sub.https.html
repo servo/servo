@@ -24,10 +24,10 @@ promise_test(async t => {
     name: 'cookie-name',
     value: 'cookie-value',
   }, kCorsBase);
-  t.add_cleanup(() => {
-    cookieStore.delete('cookie-name');
-  });
-
+  t.add_cleanup(() => cookieStore.delete({
+    name: 'cookie-name',
+    domain: '{{host}}',
+  }));
   await waitForMessage();
 
   const cookies = await cookieStore.getAll();
@@ -40,7 +40,11 @@ promise_test(async t => {
   const iframe = await createIframe(kCorsUrl, t);
   assert_true(iframe != null);
 
-  await cookieStore.set('cookie-name', 'cookie-value');
+  await cookieStore.set({
+    name: 'cookie-name',
+    value: 'cookie-value',
+    domain: '{{host}}',
+  });
 
   const cookie = await cookieStore.get('cookie-name');
   assert_equals(cookie.value, 'cookie-value');
@@ -49,9 +53,10 @@ promise_test(async t => {
     opname: 'get-cookie',
     name: 'cookie-name',
   }, kCorsBase);
-  t.add_cleanup(() => {
-    cookieStore.delete('cookie-name');
-  })
+  t.add_cleanup(() => cookieStore.delete({
+    name: 'cookie-name',
+    domain: '{{host}}',
+  }));
 
   const message = await waitForMessage();
 

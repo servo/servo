@@ -8,15 +8,15 @@
     <script>
 var check_report_format = ([reports, observer]) => {
   let report = reports[0];
-  assert_equals(report.type, "feature-policy");
-  assert_equals(report.body.feature, "payment");
+  assert_equals(report.type, "feature-policy-violation");
+  assert_equals(report.body.featureId, "payment");
   assert_equals(report.body.disposition, "report");
 };
 
 promise_test(async t => {
   const report = new Promise(resolve => {
     new ReportingObserver((reports, observer) => resolve([reports, observer]),
-                          {types: ['feature-policy']}).observe();
+                          {types: ['feature-policy-violation']}).observe();
   });
   try {
     const request = new PaymentRequest(

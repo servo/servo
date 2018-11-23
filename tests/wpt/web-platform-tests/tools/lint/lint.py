@@ -16,6 +16,7 @@ from . import fnmatch
 from .. import localpaths
 from ..gitignore.gitignore import PathFilter
 from ..wpt import testfiles
+from ..manifest.vcs import walk
 
 from manifest.sourcefile import SourceFile, js_meta_re, python_meta_re, space_chars, get_any_variants, get_default_any_variants
 from six import binary_type, iteritems, itervalues
@@ -67,14 +68,11 @@ def all_filesystem_paths(repo_root, subdir=None):
         expanded_path = subdir
     else:
         expanded_path = repo_root
-    for dirpath, dirnames, filenames in os.walk(expanded_path):
-        for filename in filenames:
-            path = os.path.relpath(os.path.join(dirpath, filename), repo_root)
-            if path_filter(path):
-                yield path
-        dirnames[:] = [item for item in dirnames if
-                       path_filter(os.path.relpath(os.path.join(dirpath, item) + "/",
-                                                   repo_root)+"/")]
+    for dirpath, dirnames, filenames in path_filter(walk(expanded_path)):
+        for filename, _ in filenames:
+            path = os.path.join(dirpath, filename)
+            yield path
+
 
 def _all_files_equal(paths):
     """

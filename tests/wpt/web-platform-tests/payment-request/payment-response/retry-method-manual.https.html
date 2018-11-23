@@ -55,11 +55,29 @@ function callCompleteWhileRetrying(button) {
   promise_test(async t => {
     const { response } = await getPaymentRequestResponse();
     const retryPromise = response.retry();
+    const completePromise1 = response.complete("success");
+    const completePromise2 = response.complete("fail");
+    assert_not_equals(
+      completePromise1,
+      completePromise2,
+      "complete() must return unique promises"
+    );
     await promise_rejects(
       t,
       "InvalidStateError",
-      response.complete("success"),
+      completePromise1,
       "Calling complete() while retrying rejects with an InvalidStateError"
+    );
+    await promise_rejects(
+      t,
+      "InvalidStateError",
+      completePromise2,
+      "Calling complete() while retrying rejects with an InvalidStateError"
+    );
+    assert_not_equals(
+      completePromise1,
+      completePromise2,
+      "complete() must return unique promises"
     );
     await retryPromise;
     await response.complete("success");
