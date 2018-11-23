@@ -15,6 +15,7 @@ def main(task_for, mock=False):
 
             linux_tidy_unit()
             android_arm32()
+            android_x86()
             windows_unit()
             macos_unit()
 
@@ -24,7 +25,6 @@ def main(task_for, mock=False):
                 windows_release()
                 linux_wpt()
                 linux_build_task("Indexed by task definition").find_or_create()
-                android_x86()
 
     # https://tools.taskcluster.net/hooks/project-servo/daily
     elif task_for == "daily":

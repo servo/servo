@@ -211,6 +211,8 @@ android-x86:
   - ./etc/ci/clean_build_artifacts.sh
   - ./mach bootstrap-android --accept-all-licences --build --emulator-x86
   - env --unset ANDROID_NDK --unset ANDROID_SDK ./mach build --target i686-linux-android --release
+  - env --unset ANDROID_NDK --unset ANDROID_SDK ./mach test-android-startup --release
+  - env --unset ANDROID_NDK --unset ANDROID_SDK ./mach test-wpt-android --release /_mozilla/mozilla/DOMParser.html /_mozilla/mozilla/webgl/context_creation_error.html
   - bash ./etc/ci/lockfile_changed.sh
   - ./etc/ci/clean_build_artifacts.sh
 
