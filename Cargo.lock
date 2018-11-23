@@ -3441,6 +3441,7 @@ dependencies = [
  "glutin 0.19.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "keyboard-types 0.4.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "lazy_static 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "libc 0.2.42 (registry+https://github.com/rust-lang/crates.io-index)",
  "libservo 0.0.1",
  "log 0.4.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "osmesa-src 0.1.0 (git+https://github.com/servo/osmesa-src)",

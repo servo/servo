@@ -48,6 +48,7 @@ glutin = "0.19"
 keyboard-types = "0.4.3"
 lazy_static = "1"
 libservo = {path = "../../components/servo"}
+libc = "0.2"
 log = "0.4"
 tinyfiledialogs = "3.0"
 winit = {version = "0.18", features = ["icon_loading"]}
