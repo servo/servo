@@ -92,6 +92,34 @@ promise_test(t => {
       }
     }));
 }, 'groupId is correctly supported by getUserMedia() for audio devices');
+
+promise_test(async t => {
+  const stream = await navigator.mediaDevices.getUserMedia(
+      { video: {resizeMode: {exact: 'none'}}});
+  const [track] = stream.getVideoTracks();
+  t.add_cleanup(() => track.stop());
+  assert_equals(track.getSettings().resizeMode, 'none');
+}, 'getUserMedia() supports setting none as resizeMode.');
+
+promise_test(async t => {
+  const stream = await navigator.mediaDevices.getUserMedia(
+      { video: {resizeMode: {exact: 'crop-and-scale'}}});
+  const [track] = stream.getVideoTracks();
+  t.add_cleanup(() => track.stop());
+  assert_equals(track.getSettings().resizeMode, 'crop-and-scale');
+}, 'getUserMedia() supports setting crop-and-scale as resizeMode.');
+
+promise_test(async t => {
+  try {
+    let stream = await navigator.mediaDevices.getUserMedia(
+        { video: {resizeMode: {exact: 'INVALID'}}});
+    t.add_cleanup(() => stream.getVideoTracks()[0].stop());
+    t.unreached_func('getUserMedia() should fail with invalid resizeMode')();
+  } catch (e) {
+    assert_equals(e.name, 'OverconstrainedError');
+    assert_equals(e.constraint, 'resizeMode');
+  }
+}, 'getUserMedia() fails with exact invalid resizeMode.');
 </script>
 </body>
 </html>

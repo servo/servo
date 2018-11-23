@@ -1,0 +1,4 @@
+steps:
+- checkout: self
+  fetchDepth: 50
+  submodules: false

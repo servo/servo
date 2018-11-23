@@ -10,7 +10,7 @@
         <div id="log">FAILED (This TC requires JavaScript enabled)</div>
 
         <script>
-          var t = async_test(undefined, {timeout:3500});
+          var t = async_test();
           function test() {
             t.step(function() {
               assert_array_equals(eventOrder, ['external script #8', 'external script #9']);

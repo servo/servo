@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Transitions: getComputedValue().transitionDelay</title>
+<link rel="help" href="https://drafts.csswg.org/css-transitions/#propdef-transition-delay">
+<meta name="assert" content="transition-delay converts to seconds.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+</head>
+<body>
+<div id="target"></div>
+<script>
+test_computed_value("transition-delay", "-500ms, calc(2 * 3s)", "-0.5s, 6s");
+</script>
+</body>
+</html>

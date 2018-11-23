@@ -8,7 +8,7 @@ import sys
 from collections import OrderedDict
 from six import iteritems
 
-from ..manifest import manifest, update
+from ..manifest import manifest
 
 here = os.path.dirname(__file__)
 wpt_root = os.path.abspath(os.path.join(here, os.pardir, os.pardir))
@@ -190,10 +190,8 @@ def _init_manifest_cache():
             return c[manifest_path]
         # cache at most one path:manifest
         c.clear()
-        wpt_manifest = manifest.load(wpt_root, manifest_path)
-        if wpt_manifest is None:
-            wpt_manifest = manifest.Manifest()
-        update.update(wpt_root, wpt_manifest)
+        wpt_manifest = manifest.load_and_update(wpt_root, manifest_path, "/",
+                                                update=True)
         c[manifest_path] = wpt_manifest
         return c[manifest_path]
     return load
@@ -266,8 +264,8 @@ def affected_testfiles(files_changed, skip_tests, manifest_path=None):
                 for interface in interfaces_changed_names:
                     regex = '[\'"]' + interface + '(\\.idl)?[\'"]'
                     if re.search(regex, file_contents):
-                        affected_testfiles.add(test_full_path)
-                        break
+                        return True
+        return False
 
     for root, dirs, fnames in os.walk(wpt_root):
         # Walk top_level_subdir looking for test files containing either the

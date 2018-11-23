@@ -103,25 +103,25 @@ test_computed_value('<length>', 'calc(16px - 7em + 10vh)', length_ref('calc(10vh
 
 test_computed_value('<length-percentage>', '17em', '170px');
 test_computed_value('<length-percentage>', '18%', '18%');
-test_computed_value('<length-percentage>', 'calc(19em - 2%)', 'calc(190px + -2%)');
+test_computed_value('<length-percentage>', 'calc(19em - 2%)', 'calc(-2% + 190px)');
 
 test_computed_value('<length>#', '10px, 3em', '10px, 30px');
 test_computed_value('<length>#', '4em ,9px', '40px, 9px');
 test_computed_value('<length>#', '8em', '80px');
 
 test_computed_value('<length-percentage>#', '3% , 10vmax  , 22px', ['3%', length_ref('10vmax'), '22px'].join(', '));
-test_computed_value('<length-percentage>#', 'calc(50% + 1em), 4px', 'calc(10px + 50%), 4px');
-test_computed_value('<length-percentage>#', 'calc(13% + 37px)', 'calc(37px + 13%)');
+test_computed_value('<length-percentage>#', 'calc(50% + 1em), 4px', 'calc(50% + 10px), 4px');
+test_computed_value('<length-percentage>#', 'calc(13% + 37px)', 'calc(13% + 37px)');
 
 test_computed_value('<length>+', '10px 3em', '10px 30px');
 test_computed_value('<length>+', '4em 9px', '40px 9px');
 
 test_computed_value('<length-percentage>+', '3% 10vmax 22px', ['3%', length_ref('10vmax'), '22px'].join(' '));
-test_computed_value('<length-percentage>+', 'calc(50% + 1em) 4px', 'calc(10px + 50%) 4px');
+test_computed_value('<length-percentage>+', 'calc(50% + 1em) 4px', 'calc(50% + 10px) 4px');
 
 test_computed_value('<transform-function>', 'translateX(2px)', 'translateX(2px)');
 test_computed_value('<transform-function>', 'translateX(10em)', 'translateX(100px)');
-test_computed_value('<transform-function>', 'translateX(calc(11em + 10%))', 'translateX(calc(110px + 10%))');
+test_computed_value('<transform-function>', 'translateX(calc(11em + 10%))', 'translateX(calc(10% + 110px))');
 test_computed_value('<transform-function>+', 'translateX(10%) scale(2)', 'translateX(10%) scale(2)');
 
 test_computed_value('<integer>', '15', '15');

@@ -1,7 +1,10 @@
 # This is the configuration file for Azure Pipelines, used to run tests on
 # macOS. Documentation to help understand this setup:
 # https://docs.microsoft.com/en-us/azure/devops/pipelines/yaml-schema
+# https://docs.microsoft.com/en-us/azure/devops/pipelines/process/multiple-phases
+# https://docs.microsoft.com/en-us/azure/devops/pipelines/process/templates
 # https://docs.microsoft.com/en-us/azure/devops/pipelines/process/variables
+# https://docs.microsoft.com/en-us/azure/devops/pipelines/tasks/index
 #
 # In addition to this configuration file, the "Build pull requests from forks
 # of this repository" setting must also be enabled in the Azure DevOps project:
@@ -10,76 +13,81 @@
 trigger: none # disable builds for branches
 
 jobs:
-- job: macOS
-
+- job: root
+  displayName: './wpt test-jobs'
   pool:
-    vmImage: 'macOS-10.13'
-
+    vmImage: 'ubuntu-16.04'
   steps:
-  - checkout: self
-    fetchDepth: 50
-    submodules: false
-
+  - template: tools/ci/azure/checkout.yml
   - script: |
-      echo "Test jobs:"
       ./wpt test-jobs | while read job; do
         echo "$job"
-        echo "##vso[task.setvariable variable=run_$job]true";
+        echo "##vso[task.setvariable variable=$job;isOutput=true]true";
       done
-    displayName: 'List test jobs'
+    name: test_jobs
+    displayName: 'Run ./wpt test-jobs'
 
-  - script: |
-      sudo easy_install pip
-      sudo pip install -U virtualenv
-    displayName: 'Install Python packages'
-    condition: variables.run_wptrunner_infrastructure
-
-  # Installig Ahem in /Library/Fonts instead of using --install-fonts is a
-  # workaround for https://github.com/web-platform-tests/wpt/issues/13803.
-  - script: sudo cp fonts/Ahem.ttf /Library/Fonts
-    displayName: 'Install Ahem font'
-    condition: variables.run_wptrunner_infrastructure
-
-  - script: |
-      # https://github.com/web-platform-tests/results-collection/blob/master/src/scripts/trust-root-ca.sh
-      sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain tools/certs/cacert.pem
-    displayName: 'Install web-platform.test certificate'
-    condition: variables.run_wptrunner_infrastructure
-
-  - script: HOMEBREW_NO_AUTO_UPDATE=1 brew cask install Homebrew/homebrew-cask-versions/google-chrome-dev
-    displayName: 'Install Chrome Dev'
-    condition: variables.run_wptrunner_infrastructure
-
-  - script: HOMEBREW_NO_AUTO_UPDATE=1 brew cask install Homebrew/homebrew-cask-versions/firefox-nightly
-    displayName: 'Install Firefox Nightly'
-    condition: variables.run_wptrunner_infrastructure
-
-  - script: |
-      # Pin to STP 67, as SafariDriver isn't working in 68:
-      # https://github.com/web-platform-tests/wpt/issues/13800
-      HOMEBREW_NO_AUTO_UPDATE=1 brew cask install https://raw.githubusercontent.com/Homebrew/homebrew-cask-versions/23fae0a88868911913c2ee7d527c89164b6d5720/Casks/safari-technology-preview.rb
-      # https://web-platform-tests.org/running-tests/safari.html
-      sudo "/Applications/Safari Technology Preview.app/Contents/MacOS/safaridriver" --enable
-      defaults write com.apple.Safari WebKitJavaScriptCanOpenWindowsAutomatically 1
-    displayName: 'Install Safari Technology Preview'
-    condition: variables.run_wptrunner_infrastructure
-
-  - script: ./wpt make-hosts-file | sudo tee -a /etc/hosts
-    displayName: 'Update /etc/hosts'
-    condition: variables.run_wptrunner_infrastructure
-
-  - script: ./wpt manifest
-    displayName: 'Update manifest'
-    condition: variables.run_wptrunner_infrastructure
-
+- job: infrastructure_macOS
+  displayName: 'infrastructure/ tests (macOS)'
+  dependsOn: root
+  condition: dependencies.root.outputs['test_jobs.wptrunner_infrastructure']
+  pool:
+    vmImage: 'macOS-10.13'
+  steps:
+  - template: tools/ci/azure/checkout.yml
+  - template: tools/ci/azure/pip_install.yml
+    parameters:
+      packages: virtualenv
+  - template: tools/ci/azure/install_fonts.yml
+  - template: tools/ci/azure/install_certs.yml
+  - template: tools/ci/azure/install_chrome.yml
+  - template: tools/ci/azure/install_firefox.yml
+  - template: tools/ci/azure/install_safari.yml
+  - template: tools/ci/azure/update_hosts.yml
+  - template: tools/ci/azure/update_manifest.yml
   - script: no_proxy='*' ./wpt run --yes --no-manifest-update --manifest MANIFEST.json --metadata infrastructure/metadata/ --channel=dev chrome infrastructure/
-    displayName: 'Run infrastructure/ tests (Chrome Dev)'
-    condition: variables.run_wptrunner_infrastructure
-
+    displayName: 'Run tests (Chrome Dev)'
   - script: no_proxy='*' ./wpt run --yes --no-manifest-update --manifest MANIFEST.json --metadata infrastructure/metadata/ --channel=nightly firefox infrastructure/
-    displayName: 'Run infrastructure/ tests (Firefox Nightly)'
-    condition: variables.run_wptrunner_infrastructure
-
+    displayName: 'Run tests (Firefox Nightly)'
   - script: no_proxy='*' ./wpt run --yes --no-manifest-update --manifest MANIFEST.json --metadata infrastructure/metadata/ --channel=preview safari_webdriver infrastructure/
-    displayName: 'Run infrastructure/ tests (Safari Technology Preview)'
-    condition: variables.run_wptrunner_infrastructure
+    displayName: 'Run tests (Safari Technology Preview)'
+
+- job: tools_unittest_macOS
+  displayName: 'tools/ unittests (macOS)'
+  dependsOn: root
+  condition: dependencies.root.outputs['test_jobs.tools_unittest']
+  pool:
+    vmImage: 'macOS-10.13'
+  steps:
+  - template: tools/ci/azure/checkout.yml
+  - template: tools/ci/azure/tox_pytest.yml
+    parameters:
+      directory: tools/
+      toxenv: py27
+
+- job: wptrunner_unittest_macOS
+  displayName: 'tools/wptrunner/ unittests (macOS)'
+  dependsOn: root
+  condition: dependencies.root.outputs['test_jobs.wptrunner_unittest']
+  pool:
+    vmImage: 'macOS-10.13'
+  steps:
+  - template: tools/ci/azure/checkout.yml
+  - template: tools/ci/azure/tox_pytest.yml
+    parameters:
+      directory: tools/wptrunner/
+
+- job: wpt_integration_macOS
+  displayName: 'tools/wpt/ tests (macOS)'
+  dependsOn: root
+  condition: dependencies.root.outputs['test_jobs.wpt_integration']
+  pool:
+    vmImage: 'macOS-10.13'
+  steps:
+  # full checkout required
+  - template: tools/ci/azure/install_chrome.yml
+  - template: tools/ci/azure/install_firefox.yml
+  - template: tools/ci/azure/update_hosts.yml
+  - template: tools/ci/azure/tox_pytest.yml
+    parameters:
+      directory: tools/wpt/

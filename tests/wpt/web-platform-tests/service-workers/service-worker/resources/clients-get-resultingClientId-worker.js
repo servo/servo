@@ -1,31 +1,27 @@
 let savedPort = null;
 let savedResultingClientId = null;
 
-async function destroyResultingClient(e) {
-  const outer = await self.clients.matchAll({ type: 'window', includeUncontrolled: true })
-    .then((clientList) => {
-    for (let c of clientList) {
-      if (c.url.endsWith('clients-get.https.html')) {
-        c.focus();
-        return c;
-      }
+async function getTestingPage() {
+  const clientList = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+  for (let c of clientList) {
+    if (c.url.endsWith('clients-get.https.html')) {
+      c.focus();
+      return c;
     }
-  });
+  }
+  return null;
+}
 
-  const p = new Promise(resolve => {
-    function resultingClientDestroyed(evt) {
-      if (evt.data.msg == 'resultingClientDestroyed') {
-        self.removeEventListener('message', resultingClientDestroyed);
-        resolve(outer);
+async function destroyResultingClient(testingPage) {
+  const destroyedPromise = new Promise(resolve => {
+    self.addEventListener('message', e => {
+      if (e.data.msg == 'resultingClientDestroyed') {
+        resolve();
       }
-    }
-
-    self.addEventListener('message', resultingClientDestroyed);
+    }, {once: true});
   });
-
-  outer.postMessage({ msg: 'destroyResultingClient' });
-
-  return await p;
+  testingPage.postMessage({ msg: 'destroyResultingClient' });
+  return destroyedPromise;
 }
 
 self.addEventListener('fetch', async (e) => {
@@ -33,32 +29,32 @@ self.addEventListener('fetch', async (e) => {
   savedResultingClientId = resultingClientId;
 
   if (e.request.url.endsWith('simple.html?fail')) {
-    e.waitUntil(new Promise(async (resolve) => {
-        let outer = await destroyResultingClient(e);
-
-        outer.postMessage({ msg: 'resultingClientDestroyedAck',
-                            resultingDestroyedClientId: savedResultingClientId });
-        resolve();
-    }));
-  } else {
-    e.respondWith(fetch(e.request));
+    e.waitUntil((async () => {
+      const testingPage = await getTestingPage();
+      await destroyResultingClient(testingPage);
+      testingPage.postMessage({ msg: 'resultingClientDestroyedAck',
+                                resultingDestroyedClientId: savedResultingClientId });
+    })());
+    return;
   }
+
+  e.respondWith(fetch(e.request));
 });
 
 self.addEventListener('message', (e) => {
-  let { msg, port, resultingClientId } = e.data;
-  savedPort = savedPort || port;
-
-  if (msg == 'getIsResultingClientUndefined') {
-    self.clients.get(resultingClientId).then((client) => {
+  let { msg, resultingClientId } = e.data;
+  e.waitUntil((async () => {
+    if (msg == 'getIsResultingClientUndefined') {
+      const client = await self.clients.get(resultingClientId);
       let isUndefined = typeof client == 'undefined';
-      savedPort.postMessage({ msg: 'getIsResultingClientUndefined',
+      e.source.postMessage({ msg: 'getIsResultingClientUndefined',
         isResultingClientUndefined: isUndefined });
-    });
-  }
-
-  if (msg == 'getResultingClientId') {
-    savedPort.postMessage({ msg: 'getResultingClientId',
-      resultingClientId: savedResultingClientId });
-  }
+      return;
+    }
+    if (msg == 'getResultingClientId') {
+      e.source.postMessage({ msg: 'getResultingClientId',
+                             resultingClientId: savedResultingClientId });
+      return;
+    }
+  })());
 });

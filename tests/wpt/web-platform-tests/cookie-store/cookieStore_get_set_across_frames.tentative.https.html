@@ -15,7 +15,8 @@ promise_test(async t => {
   const frameCookieStore = iframe.contentWindow.cookieStore;
 
   const oldCookie = await frameCookieStore.get('cookie-name');
-  assert_equals(oldCookie, null);
+  assert_equals(oldCookie, null,
+      'Precondition not met: cookie store should be empty');
 
   await cookieStore.set('cookie-name', 'cookie-value');
   t.add_cleanup(() => cookieStore.delete('cookie-name'));
@@ -29,7 +30,8 @@ promise_test(async t => {
   const frameCookieStore = iframe.contentWindow.cookieStore;
 
   const oldCookie = await frameCookieStore.get('cookie-name');
-  assert_equals(oldCookie, null);
+  assert_equals(oldCookie, null,
+      'Precondition not met: cookie store should be empty');
 
   await frameCookieStore.set('cookie-name', 'cookie-value');
   t.add_cleanup(() => frameCookieStore.delete('cookie-name'));

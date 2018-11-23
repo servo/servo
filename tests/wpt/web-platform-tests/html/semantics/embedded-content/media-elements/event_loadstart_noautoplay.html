@@ -15,7 +15,7 @@
   <div id="log"></div>
   <script>
 test(function() {
-  var t = async_test("setting src attribute on non-autoplay audio should trigger loadstart event", {timeout:5000});
+  var t = async_test("setting src attribute on non-autoplay audio should trigger loadstart event");
   var a = document.getElementById("a");
   a.addEventListener("loadstart", function() {
     t.done();
@@ -24,7 +24,7 @@ test(function() {
 }, "audio events - loadstart");
 
 test(function() {
-  var t = async_test("setting src attribute on non-autoplay video should trigger loadstart event", {timeout:5000});
+  var t = async_test("setting src attribute on non-autoplay video should trigger loadstart event");
   var v = document.getElementById("v");
   v.addEventListener("loadstart", function() {
     t.done();

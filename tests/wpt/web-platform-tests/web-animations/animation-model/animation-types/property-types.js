@@ -334,7 +334,7 @@ const lengthPercentageOrCalcType = {
       const animation = target.animate({ [idlName]: ['10px', '20%'] },
                                        { duration: 1000, fill: 'both' });
       testAnimationSamples(animation, idlName,
-                           [{ time: 500,  expected: 'calc(5px + 10%)' }]);
+                           [{ time: 500,  expected: 'calc(10% + 5px)' }]);
     }, `${property} supports animating as combination units "px" and "%"`);
 
     test(t => {
@@ -343,7 +343,7 @@ const lengthPercentageOrCalcType = {
       const animation = target.animate({ [idlName]: ['10%', '2em'] },
                                        { duration: 1000, fill: 'both' });
       testAnimationSamples(animation, idlName,
-                           [{ time: 500,  expected: 'calc(10px + 5%)' }]);
+                           [{ time: 500,  expected: 'calc(5% + 10px)' }]);
     }, `${property} supports animating as combination units "%" and "em"`);
 
     test(t => {
@@ -363,7 +363,7 @@ const lengthPercentageOrCalcType = {
         { duration: 1000, fill: 'both' }
       );
       testAnimationSamples(animation, idlName,
-                           [{ time: 500,  expected: 'calc(10px + 10%)' }]);
+                           [{ time: 500,  expected: 'calc(10% + 10px)' }]);
     }, `${property} supports animating as combination units "px" and "calc"`);
 
     test(t => {
@@ -374,7 +374,7 @@ const lengthPercentageOrCalcType = {
         { duration: 1000, fill: 'both' });
       testAnimationSamples(animation, idlName,
                            [{ time: 500,
-                              expected: 'calc(15px + 15%)' }]);
+                              expected: 'calc(15% + 15px)' }]);
     }, `${property} supports animating as a calc`);
   },
 
@@ -389,7 +389,7 @@ const lengthPercentageOrCalcType = {
       const animation = target.animate({ [idlName]: ['10%', '50%'] },
                                        { duration: 1000, composite });
       testAnimationSamples(animation, idlName,
-                           [{ time: 0, expected: 'calc(10px + 10%)' }]);
+                           [{ time: 0, expected: 'calc(10% + 10px)' }]);
     }, `${property}: units "%" onto "px"`);
 
     test(t => {
@@ -399,7 +399,7 @@ const lengthPercentageOrCalcType = {
       const animation = target.animate({ [idlName]: ['10px', '50px'] },
                                        { duration: 1000, composite });
       testAnimationSamples(animation, idlName,
-                           [{ time: 0, expected: 'calc(10px + 10%)' }]);
+                           [{ time: 0, expected: 'calc(10% + 10px)' }]);
     }, `${property}: units "px" onto "%"`);
 
     test(t => {
@@ -409,7 +409,7 @@ const lengthPercentageOrCalcType = {
       const animation = target.animate({ [idlName]: ['2rem', '5rem'] },
                                        { duration: 1000, composite });
       testAnimationSamples(animation, idlName,
-                           [{ time: 0, expected: 'calc(20px + 10%)' }]);
+                           [{ time: 0, expected: 'calc(10% + 20px)' }]);
     }, `${property}: units "rem" onto "%"`);
 
     test(t => {
@@ -419,7 +419,7 @@ const lengthPercentageOrCalcType = {
       const animation = target.animate({ [idlName]: ['10%', '50%'] },
                                        { duration: 1000, composite });
       testAnimationSamples(animation, idlName,
-                           [{ time: 0, expected: 'calc(20px + 10%)' }]);
+                           [{ time: 0, expected: 'calc(10% + 20px)' }]);
     }, `${property}: units "%" onto "rem"`);
 
     test(t => {
@@ -448,7 +448,7 @@ const lengthPercentageOrCalcType = {
                                                    'calc(5rem + 50%)'] },
                                        { duration: 1000, composite });
       testAnimationSamples(animation, idlName,
-                           [{ time: 0, expected: 'calc(30px + 20%)' }]);
+                           [{ time: 0, expected: 'calc(20% + 30px)' }]);
     }, `${property}: units "calc" onto "px"`);
 
     test(t => {
@@ -459,7 +459,7 @@ const lengthPercentageOrCalcType = {
                                                    'calc(2em + 3rem + 40%)'] },
                                        { duration: 1000, composite });
       testAnimationSamples(animation, idlName,
-                           [{ time: 0, expected: 'calc(30px + 30%)' }]);
+                           [{ time: 0, expected: 'calc(30% + 30px)' }]);
     }, `${property}: calc`);
   },
 

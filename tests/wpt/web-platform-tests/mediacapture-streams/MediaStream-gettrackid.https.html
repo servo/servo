@@ -14,7 +14,7 @@
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
 <script>
-var t = async_test("Tests that MediaStream.getTrackById works as expected", {timeout: 10000});
+var t = async_test("Tests that MediaStream.getTrackById works as expected");
 t.step(function () {
   navigator.mediaDevices.getUserMedia({video: true})
       .then(t.step_func(gotVideo), t.step_func(function (error) {

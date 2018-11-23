@@ -12,12 +12,15 @@ async function runManualTest({ completeWith: result }, button) {
   button.disabled = true;
   const { response, request } = await getPaymentRequestResponse();
   promise_test(async t => {
+    let completePromise;
+    let invalidComplete;
+    let afterComplete;
     try {
       // We .complete() as normal, using the passed test value
-      const completePromise = response.complete(result);
+      completePromise = response.complete(result);
       assert_true(completePromise instanceof Promise, "returns a promise");
       // Immediately calling complete() again yields a rejected promise.
-      const invalidComplete = response.complete(result);
+      invalidComplete = response.complete(result);
       await promise_rejects(t, "InvalidStateError", invalidComplete);
       // but the original promise is unaffected
       const returnedValue = await completePromise;
@@ -28,7 +31,7 @@ async function runManualTest({ completeWith: result }, button) {
       );
       // We now call .complete() again, to force an exception
       // because [[complete]] is true.
-      const afterComplete = response.complete(result);
+      afterComplete = response.complete(result);
       await promise_rejects(t, "InvalidStateError", afterComplete);
       button.innerHTML = `✅  ${button.textContent}`;
     } catch (err) {
@@ -41,7 +44,7 @@ async function runManualTest({ completeWith: result }, button) {
       afterComplete,
     ]);
     assert_equals(
-      allPromises.length,
+      allPromises.size,
       3,
       "Calling complete() multiple times is always a new object."
     );
@@ -68,7 +71,7 @@ async function runManualTest({ completeWith: result }, button) {
     </button>
   </li>
   <li>
-    <button onclick="runManualTest({completeWith: 'unknown'}, this)">
+    <button onclick="runManualTest({completeWith: undefined}, this)">
       Passing no argument defaults to "unknown",
       eventually closing the sheet and doesn't throw.
     </button>
@@ -79,9 +82,17 @@ async function runManualTest({ completeWith: result }, button) {
     </button>
   </li>
   <li>
-    <button onclick="runManualTest({completeWith: 'fail'}, this).then(done)">
+    <button onclick="runManualTest({completeWith: 'fail'}, this)">
       Passing "fail" eventually closes the sheet and doesn't throw.
     </button>
+  </li>
+  <li>
+    <button onclick="runManualTest({completeWith: 'unknown'}, this)">
+      Passing "unknown" eventually closes the sheet and doesn't throw.
+    </button>
+  </li>
+  <li>
+    <button onclick="done()">Done!</button>
   </li>
 </ol>
 <small>

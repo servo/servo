@@ -36,6 +36,6 @@ async_test(function(t) {
     }, ws[i]);
     ws[i].onerror = t.step_func(function() {assert_unreached()});
   }
-}, null, {timeout:25000});
+});
 </script>
 

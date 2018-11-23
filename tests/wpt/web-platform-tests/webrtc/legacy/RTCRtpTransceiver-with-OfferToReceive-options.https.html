@@ -69,9 +69,9 @@
       ]);
 
     const offer = await pc.createOffer();
-    assert_true(offer.sdp.includes("a=msid:" + audioStream.id + " " + audio.id),
+    assert_true(offer.sdp.includes("a=msid:" + audioStream.id),
       "offer contains the expected audio msid");
-    assert_true(offer.sdp.includes("a=msid:" + videoStream.id + " " + video.id),
+    assert_true(offer.sdp.includes("a=msid:" + videoStream.id),
       "offer contains the expected video msid");
   };
 

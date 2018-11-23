@@ -78,7 +78,7 @@ test(function() {
 'age = -1, should not be cached');
 
 (function() {
-    var test = async_test("preflight first request, second from cache, wait, third should preflight again", { timeout: 6000 }),
+    var test = async_test("preflight first request, second from cache, wait, third should preflight again"),
         time = new Date().getTime(),
         dothing = function (url, msg, set_request, func) {
             client = new XMLHttpRequest(),

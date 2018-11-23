@@ -33,12 +33,12 @@
 
       target.style.setProperty('--prop-1', '10%');
       target.style.setProperty('--prop-2', '10px');
-      target.style.setProperty('--prop-3', 'calc(10px + 10%)');
+      target.style.setProperty('--prop-3', 'calc(10% + 10px)');
 
       expectWorkletValues(target, {
         '--prop-1': ['[CSSUnitValue 10%]'],
         '--prop-2': ['[CSSUnitValue 10px]'],
-        '--prop-3': ['[CSSMathSum calc(10px + 10%)]'],
+        '--prop-3': ['[CSSMathSum calc(10% + 10px)]'],
       });
     } catch(e) {
       document.body.textContent = e;

@@ -15,7 +15,7 @@ getUserMedia is handled as optional</p>
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
 <script>
-var t = async_test("Tests that setting an optional constraint in getUserMedia is handled as optional", {timeout:10000});
+var t = async_test("Tests that setting an optional constraint in getUserMedia is handled as optional");
 t.step(function() {
   navigator.mediaDevices.getUserMedia({video: {advanced: [{width: {min:1024, max: 800}}]}})
     .then(t.step_func(function (stream) {

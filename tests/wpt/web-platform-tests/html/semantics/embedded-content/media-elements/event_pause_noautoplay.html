@@ -15,7 +15,7 @@
   <div id="log"></div>
   <script>
 promise_test(function(t) {
-  var async_t = async_test("calling play() then pause() on non-autoplay audio should trigger pause event", {timeout:5000});
+  var async_t = async_test("calling play() then pause() on non-autoplay audio should trigger pause event");
   var a = document.getElementById("a");
   a.addEventListener("pause", function() {
     async_t.done();
@@ -27,7 +27,7 @@ promise_test(function(t) {
 }, "audio events - pause");
 
 promise_test(function(t) {
-  var async_t = async_test("calling play() then pause() on non-autoplay video should trigger pause event", {timeout:5000});
+  var async_t = async_test("calling play() then pause() on non-autoplay video should trigger pause event");
   var v = document.getElementById("v");
   v.addEventListener("pause", function() {
     async_t.done();

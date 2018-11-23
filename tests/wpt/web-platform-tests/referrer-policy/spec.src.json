@@ -455,7 +455,10 @@
       "redirection": "*",
       "delivery_method": "*",
       "origin": "cross-origin",
-      "subresource": "worker-request",
+      "subresource": [
+        "worker-request",
+        "module-worker"
+      ],
       "referrer_url": "*"
     },
     {
@@ -466,7 +469,10 @@
       "delivery_method": "*",
       "redirection": "*",
       "origin": "*",
-      "subresource": "worker-request",
+      "subresource": [
+        "worker-request",
+        "module-worker"
+      ],
       "referrer_url": "*"
     },
     {
@@ -491,6 +497,7 @@
       "subresource": [
         "xhr-request",
         "worker-request",
+        "module-worker",
         "fetch-request"
       ],
       "referrer_url": "*"
@@ -509,6 +516,7 @@
         "script-tag",
         "xhr-request",
         "worker-request",
+        "module-worker",
         "fetch-request",
         "area-tag"
       ],
@@ -533,7 +541,10 @@
       "delivery_method": "*",
       "redirection": "swap-origin-redirect",
       "origin": "*",
-      "subresource": ["worker-request"],
+      "subresource": [
+        "worker-request",
+        "module-worker"
+      ],
       "referrer_url": "*"
     },
     {
@@ -614,6 +625,7 @@
       "area-tag",
       "xhr-request",
       "worker-request",
+      "module-worker",
       "fetch-request"
     ],
 
@@ -632,6 +644,7 @@
     "img-tag": "/referrer-policy/generic/subresource/image.py",
     "script-tag": "/referrer-policy/generic/subresource/script.py",
     "worker-request": "/referrer-policy/generic/subresource/worker.py",
+    "module-worker": "/referrer-policy/generic/subresource/worker.py",
     "xhr-request": "/referrer-policy/generic/subresource/xhr.py"
   }
 }

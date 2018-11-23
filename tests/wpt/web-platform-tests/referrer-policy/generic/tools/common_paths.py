@@ -18,10 +18,11 @@ generated_spec_json_filename = os.path.join(spec_directory, "spec_json.js")
 selection_pattern = '%(delivery_method)s/' + \
                     '%(origin)s/' + \
                     '%(source_protocol)s-%(target_protocol)s/' + \
-                    '%(subresource)s/'
+                    '%(subresource)s/' + \
+                    '%(redirection)s/'
 
 test_file_path_pattern = '%(spec_name)s/' + selection_pattern + \
-                         '%(name)s.%(redirection)s.%(source_protocol)s.html'
+                         '%(name)s.%(source_protocol)s.html'
 
 
 def get_template(basename):

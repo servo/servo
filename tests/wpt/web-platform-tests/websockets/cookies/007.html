@@ -31,5 +31,5 @@ async_test(function(t) {
   if (new RegExp('ws_test_'+cookie_id+'=test').test(document.cookie)) {
     assert_unreached('cookie was set during script execution');
   }
-}, null, {timeout:12000});
+});
 </script>

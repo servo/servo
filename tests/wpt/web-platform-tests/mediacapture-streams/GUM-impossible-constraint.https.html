@@ -16,7 +16,7 @@ constraint (width &gt;=1G) in getUserMedia works</p>
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
 <script>
-var t = async_test("Tests that setting an impossible constraint in getUserMedia fails", {timeout:10000});
+var t = async_test("Tests that setting an impossible constraint in getUserMedia fails");
 t.step(function() {
   // Note - integer conversion is weird for +inf and numbers > 2^32, so we
   // use a number less than 2^32 for testing.

@@ -22,7 +22,7 @@ try {
     <div id="log"></div>
     <script>
       function fetchFail(url) {
-        var test = async_test(document.title + " (" + url + ")", { timeout: 20000 })
+        var test = async_test(document.title + " (" + url + ")")
         test.step(function() {
           var worker = new Worker('#'+encodeURIComponent(url))
           worker.onmessage = function(e) {

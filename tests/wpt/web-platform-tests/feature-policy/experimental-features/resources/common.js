@@ -70,7 +70,7 @@ window.reporting_observer_instance = new ReportingObserver((reports, observer) =
   if (window.reporting_observer_callback) {
     reports.forEach(window.reporting_observer_callback);
   }
-}, {types: ["feature-policy"]});
+}, {types: ["feature-policy-violation"]});
 window.reporting_observer_instance.observe();
 window.reporting_observer_callback = null;
 
@@ -79,7 +79,7 @@ function wait_for_violation_in_file(feature, file_name) {
   return new Promise( (resolve) => {
     assert_equals(null, window.reporting_observer_callback);
     window.reporting_observer_callback = (report) => {
-        var feature_match = (feature === report.body.feature);
+        var feature_match = (feature === report.body.featureId);
         var file_name_match =
             !file_name ||
             (report.body.sourceFile.indexOf(file_name) !== -1);

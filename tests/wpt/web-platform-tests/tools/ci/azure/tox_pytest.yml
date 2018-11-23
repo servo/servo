@@ -1,0 +1,18 @@
+parameters:
+  directory: ''
+  toxenv: 'ALL'
+
+steps:
+- template: pip_install.yml
+  parameters:
+    packages: tox
+
+- script: tox -c ${{ parameters.directory }} -e ${{ parameters.toxenv }} -- --junitxml=results.xml
+  displayName: 'Run tests'
+
+- task: PublishTestResults@2
+  inputs:
+    testResultsFiles: '${{ parameters.directory }}/results.xml'
+    testRunTitle: '${{ parameters.directory }}'
+  displayName: 'Publish results'
+  condition: succeededOrFailed()

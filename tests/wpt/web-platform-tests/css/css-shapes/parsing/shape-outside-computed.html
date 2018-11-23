@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Shapes Module Level 1: getComputedValue().shapeOutside</title>
+<link rel="help" href="https://drafts.csswg.org/css-shapes/#shape-outside-property">
+<meta name="assert" content="shape-outside computed value is as specified.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+</head>
+<body>
+<style>
+  #target {
+    font-size: 40px;
+  }
+</style>
+<div id="target"></div>
+<script>
+test_computed_value("shape-outside", "circle(calc(10px + 0.5em) at -50% 50%) border-box", "circle(30px at -50% 50%) border-box");
+test_computed_value("shape-outside", "circle(calc(10px - 0.5em) at 50% -50%) border-box", "circle(0px at 50% -50%) border-box");
+</script>
+</body>
+</html>

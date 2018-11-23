@@ -15,7 +15,7 @@
   <div id="log"></div>
   <script>
 test(function() {
-  var t = async_test("audio.paused should be true during pause event", {timeout:5000});
+  var t = async_test("audio.paused should be true during pause event");
   var a = document.getElementById("a");
   a.addEventListener("pause", function() {
     t.step(function() {
@@ -30,7 +30,7 @@ test(function() {
 }, "audio events - paused property");
 
 test(function() {
-  var t = async_test("video.paused should be true during pause event", {timeout:5000});
+  var t = async_test("video.paused should be true during pause event");
   var v = document.getElementById("v");
   v.addEventListener("pause", function() {
     t.step(function() {

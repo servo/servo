@@ -23,12 +23,12 @@ enum EffectiveConnectionType {
 };
 
 [NoInterfaceObject, Exposed=(Window,Worker)]
-  interface NavigatorNetworkInformation {
-    readonly attribute NetworkInformation connection;
-  };
+interface mixin NavigatorNetworkInformation {
+  readonly attribute NetworkInformation connection;
+};
 
-  Navigator implements NavigatorNetworkInformation;
-  WorkerNavigator implements NavigatorNetworkInformation;
+Navigator includes NavigatorNetworkInformation;
+WorkerNavigator includes NavigatorNetworkInformation;
 
 [Exposed=(Window,Worker)]
 interface NetworkInformation : EventTarget {

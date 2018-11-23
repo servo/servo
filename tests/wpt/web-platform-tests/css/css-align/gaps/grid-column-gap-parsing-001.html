@@ -86,7 +86,7 @@
     test(
       function(){
         var target = document.getElementById("columnGapCalcFixedPercent");
-        assert_equals(getComputedStyle(target).columnGap, "calc(5px + 10%)");
+        assert_equals(getComputedStyle(target).columnGap, "calc(10% + 5px)");
       }, "grid-column-gap accepts calc() mixing fixed and percentage values");
     test(
       function(){

@@ -8,7 +8,7 @@
 backgroundFetchTest(async (test, backgroundFetch) => {
   const registration = await backgroundFetch.fetch(
       uniqueId(),
-      ['resources/feature-name.txt', '/serviceworker/resources/slow-response.php']);
+      ['resources/feature-name.txt', '/common/slow.py']);
 
   assert_true(await registration.abort());
   assert_false(await registration.abort());
@@ -18,7 +18,7 @@ backgroundFetchTest(async (test, backgroundFetch) => {
 backgroundFetchTest(async (test, backgroundFetch) => {
   const registration = await backgroundFetch.fetch(
       uniqueId(),
-      ['resources/feature-name.txt', '/serviceworker/resources/slow-response.php']);
+      ['resources/feature-name.txt', '/common/slow.py']);
 
   await new Promise(resolve => {
     let aborted = false;
@@ -63,7 +63,7 @@ backgroundFetchTest(async (test, backgroundFetch) => {
 
 backgroundFetchTest(async (test, backgroundFetch) => {
   const registration = await backgroundFetch.fetch(
-      uniqueId(), '/serviceworker/resources/slow-response.php');
+      uniqueId(), '/common/slow.py');
   assert_true(await registration.abort());
 
   const {results} = await getMessageFromServiceWorker();

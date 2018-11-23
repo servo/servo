@@ -15,7 +15,7 @@
   <div id="log"></div>
   <script>
 test(function() {
-  var ta = async_test("audioElement.networkState should be NETWORK_LOADING during progress event", {timeout:5000});
+  var ta = async_test("audioElement.networkState should be NETWORK_LOADING during progress event");
   var a = document.getElementById("a");
   a.addEventListener("error", ta.unreached_func());
   a.addEventListener("progress", ta.step_func(function() {
@@ -27,7 +27,7 @@ test(function() {
 }, "audio events - networkState during progress");
 
 test(function() {
-  var tv = async_test("videoElement.networkState should be NETWORK_LOADING during progress event", {timeout:5000});
+  var tv = async_test("videoElement.networkState should be NETWORK_LOADING during progress event");
   var v = document.getElementById("v");
   v.addEventListener("error", tv.unreached_func());
   v.addEventListener("progress", tv.step_func(function() {

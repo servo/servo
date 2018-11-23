@@ -20,7 +20,7 @@ follows the algorithm set in the spec.</p>
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
 <script>
-let t = async_test("Tests that a MediaStream constructor follows the algorithm set in the spec", {timeout: 10000});
+let t = async_test("Tests that a MediaStream constructor follows the algorithm set in the spec");
 t.step(() => {
   navigator.mediaDevices.getUserMedia({video: true, audio:true})
     .then(t.step_func(stream => {

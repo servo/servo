@@ -179,6 +179,14 @@ function queryWorker(url, callback) {
   };
 }
 
+function queryModuleWorkerTopLevel(url, callback) {
+  var worker = new Worker(url, {type: "module"});
+  worker.onmessage = function(event) {
+    var server_data = event.data;
+    callback(wrapResult(url, server_data), url);
+  };
+}
+
 function queryFetch(url, callback) {
   fetch(url).then(function(response) {
       response.json().then(function(server_data) {

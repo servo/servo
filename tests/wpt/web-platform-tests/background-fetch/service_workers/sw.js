@@ -8,16 +8,24 @@ async function getFetchResult(record) {
   return {
     url: response.url,
     status: response.status,
-    text: await response.text(),
+    text: await response.text().catch(() => 'error'),
   };
 }
 
 function handleBackgroundFetchEvent(event) {
   let matchFunction = null;
+
   switch (event.registration.id) {
     case 'matchexistingrequest':
       matchFunction = event.registration.match.bind(
           event.registration, '/background-fetch/resources/feature-name.txt');
+      break;
+    case 'matchexistingrequesttwice':
+      matchFunction = (async () => {
+        const match1 = await event.registration.match('/background-fetch/resources/feature-name.txt');
+        const match2 = await event.registration.match('/background-fetch/resources/feature-name.txt');
+        return [match1, match2];
+    }).bind(event.registration);
       break;
     case 'matchmissingrequest':
       matchFunction = event.registration.match.bind(
@@ -38,7 +46,7 @@ function handleBackgroundFetchEvent(event) {
       })
       // Extract responses.
       .then(records =>
-            Promise.all(records.map(record => getFetchResult(record))))
+        Promise.all(records.map(record => getFetchResult(record))))
       // Clone registration and send message.
       .then(results => {
         const registrationCopy = cloneRegistration(event.registration);

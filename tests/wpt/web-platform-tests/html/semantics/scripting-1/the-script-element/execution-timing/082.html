@@ -22,7 +22,7 @@
   </script>
   <script type="text/javascript">
   log('inline script #2');
-  var t = async_test(undefined, {timeout:10000})
+  var t = async_test()
 
   function test() {
     assert_array_equals(eventOrder, ['inline script #1', 'end script #1', 'inline script #2', 'external script #1', 'load on include-1.js', 'external script #7', 'load on include-7.js', 'external script #2', 'load on include-2.js']);

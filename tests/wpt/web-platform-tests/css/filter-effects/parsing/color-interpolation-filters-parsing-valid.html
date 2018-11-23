@@ -5,7 +5,9 @@
 <title>Filter Effects Module Level 1: parsing color-interpolation-filters with valid values</title>
 <link rel="author" title="Eric Willigers" href="mailto:ericwilligers@chromium.org">
 <link rel="help" href="https://drafts.fxtf.org/filter-effects/#ColorInterpolationFiltersProperty">
+<link rel="help" href="https://drafts.csswg.org/cssom/#serializing-css-values">
 <meta name="assert" content="color-interpolation-filters supports the full grammar 'auto | sRGB | linearRGB'.">
+<meta name="assert" content="Keywords serialize in lower case.">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/css/support/parsing-testcommon.js"></script>
@@ -13,14 +15,9 @@
 <body>
 <script>
 test_valid_value("color-interpolation-filters", "auto");
-
-// Blink serializes these keywords as mixed case. Firefox serializes as lowercase.
-test_valid_value("color-interpolation-filters", "sRGB", ["sRGB", "srgb"]);
-test_valid_value("color-interpolation-filters", "srgb", ["sRGB", "srgb"]);
-test_valid_value("color-interpolation-filters", "SrGb", ["sRGB", "srgb"]);
-test_valid_value("color-interpolation-filters", "linearRGB", ["linearRGB", "linearrgb"]);
-test_valid_value("color-interpolation-filters", "linearrgb", ["linearRGB", "linearrgb"]);
-test_valid_value("color-interpolation-filters", "LiNeArRgB", ["linearRGB", "linearrgb"]);
+test_valid_value("color-interpolation-filters", "sRGB", "srgb");
+test_valid_value("color-interpolation-filters", "linearRGB", "linearrgb");
+test_valid_value("color-interpolation-filters", "LiNeArRgB", "linearrgb");
 </script>
 </body>
 </html>

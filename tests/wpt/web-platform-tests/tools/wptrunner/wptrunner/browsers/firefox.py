@@ -169,7 +169,7 @@ class FirefoxBrowser(Browser):
                  symbols_path=None, stackwalk_binary=None, certutil_binary=None,
                  ca_certificate_path=None, e10s=False, stackfix_dir=None,
                  binary_args=None, timeout_multiplier=None, leak_check=False, asan=False,
-                 stylo_threads=1, chaos_mode_flags=None, config=None, headless=None):
+                 stylo_threads=1, chaos_mode_flags=None, config=None, headless=None, **kwargs):
         Browser.__init__(self, logger)
         self.binary = binary
         self.prefs_root = prefs_root

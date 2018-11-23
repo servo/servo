@@ -15,7 +15,7 @@
   <div id="log"></div>
   <script>
 test(function() {
-  var t = async_test("setting src attribute on autoplay audio should trigger loadedmetadata then loadeddata event", {timeout:5000});
+  var t = async_test("setting src attribute on autoplay audio should trigger loadedmetadata then loadeddata event");
   var a = document.getElementById("a");
   var found_loadedmetadata = false;
   a.addEventListener("error", t.unreached_func());
@@ -31,7 +31,7 @@ test(function() {
 }, "audio events - loadedmetadata, then loadeddata");
 
 test(function() {
-  var t = async_test("setting src attribute on autoplay video should trigger loadedmetadata then loadeddata event", {timeout:5000});
+  var t = async_test("setting src attribute on autoplay video should trigger loadedmetadata then loadeddata event");
   var v = document.getElementById("v");
   var found_loadedmetadata = false;
   v.addEventListener("error", t.unreached_func());

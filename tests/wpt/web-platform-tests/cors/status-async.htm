@@ -14,7 +14,7 @@
 <script>
 
 function statusRequest(method, code, text, content, type) {
-    async_test("Status on " + method + " " + code, { timeout: 15000 })
+    async_test("Status on " + method + " " + code)
     .step(function() {
         var client = new XMLHttpRequest()
         client.open(method, CROSSDOMAIN + "resources/status.py?code="
@@ -60,7 +60,7 @@ function statusRequestFail(method, code, expect_code, nonsimple) {
     if (expect_code === undefined)
         expect_code = code
 
-    async_test("Status on " + method + " " + code + (nonsimple?' (nonsimple)':''), { timeout: 15000 })
+    async_test("Status on " + method + " " + code + (nonsimple?' (nonsimple)':''))
     .step(function() {
         var client = new XMLHttpRequest()
 

@@ -54,4 +54,26 @@
         });
       }));
   }, 'applyConstraints rejects attempt to switch device using groupId');
+
+  promise_test(async t => {
+    const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+    const [track] = stream.getVideoTracks();
+    t.add_cleanup(() => track.stop());
+    try {
+      await track.applyConstraints({ resizeMode: { exact: "INVALID" } });
+      t.unreached_func('applyConstraints() must fail with invalid resizeMode')();
+    } catch (e) {
+      assert_equals(e.name, 'OverconstrainedError');
+      assert_equals(e.constraint, 'resizeMode');
+    }
+  }, 'applyConstraints rejects invalid resizeMode');
+
+  promise_test(async t => {
+    const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+    const [track] = stream.getVideoTracks();
+    t.add_cleanup(() => track.stop());
+    const resizeMode = track.getSettings().resizeMode;
+    await track.applyConstraints({ resizeMode: "INVALID" });
+    assert_equals(track.getSettings().resizeMode, resizeMode);
+  }, 'applyConstraints accepts invalid ideal resizeMode, does not change setting');
 </script>

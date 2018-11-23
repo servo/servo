@@ -387,6 +387,26 @@
     hasProps(pc.getTransceivers(), []);
   };
 
+  const checkMsidNoTrackId = async t => {
+    const pc1 = new RTCPeerConnection();
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    t.add_cleanup(() => pc2.close());
+    const stream = await navigator.mediaDevices.getUserMedia({audio: true});
+    t.add_cleanup(() => stopTracks(stream));
+    const track = stream.getAudioTracks()[0];
+    pc1.addTrack(track, stream);
+    const offer = await pc1.createOffer();
+    await pc1.setLocalDescription(offer);
+    // Remove track-id from msid
+    offer.sdp = offer.sdp.replace(/(a=msid:[^ \t]+).*\r\n/g, "$1\r\n");
+    assert_true(offer.sdp.includes(`a=msid:${stream.id}\r\n`));
+    await pc2.setRemoteDescription(offer);
+    const answer = await pc2.createAnswer();
+    await pc1.setRemoteDescription(answer);
+    await pc2.setLocalDescription(answer);
+  };
+
   const checkNoMidOffer = async t => {
     const pc1 = new RTCPeerConnection();
     const pc2 = new RTCPeerConnection();

@@ -21,7 +21,7 @@ var t1 = async_test("The keydown event must be targeted at the input element"),
 setup(function () {
   testEle = document.getElementById("test");
   testEle.focus();
-}, {timeout: 10000});
+});
 
 document.onkeydown = t1.step_func_done(function(evt){
   assert_equals(evt.target, testEle, "The keydown events must be targeted at the input element.");

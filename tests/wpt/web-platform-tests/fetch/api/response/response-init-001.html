@@ -15,15 +15,15 @@
                             "url" : "",
                             "ok" : true,
                             "status" : 200,
-                            "statusText" : "OK",
+                            "statusText" : "",
                             "body" : null
       };
 
       var statusCodes = { "givenValues" : [200, 300, 400, 500, 599],
-                       "expectedValues" : [200, 300, 400, 500, 599]
+                          "expectedValues" : [200, 300, 400, 500, 599]
       };
-      var statusTexts = { "givenValues" : ["OK", "with space", String.fromCharCode(0x80)],
-                       "expectedValues" : ["OK", "with space", String.fromCharCode(0x80)]
+      var statusTexts = { "givenValues" : ["", "OK", "with space", String.fromCharCode(0x80)],
+                          "expectedValues" : ["", "OK", "with space", String.fromCharCode(0x80)]
       };
       var initValuesDict = { "status" : statusCodes,
                              "statusText" : statusTexts
@@ -42,7 +42,7 @@
         }, "Check default value for " + attributeName + " attribute");
       }
 
-      for (var attributeName in initValuesDict)
+      for (var attributeName in initValuesDict) {
         test(function() {
           var valuesToTest = initValuesDict[attributeName];
           for (var valueIdx in valuesToTest["givenValues"]) {
@@ -58,19 +58,20 @@
               "Expect response.ok is " + isOkStatus(response.status));
           }
         }, "Check " + attributeName + " init values and associated getter");
+      }
 
-        test(function() {
-          const response1 = new Response("");
-          assert_equals(response1.headers, response1.headers);
+      test(function() {
+        const response1 = new Response("");
+        assert_equals(response1.headers, response1.headers);
 
-          const response2 = new Response("", {"headers": {"X-Foo": "bar"}});
-          assert_equals(response2.headers, response2.headers);
-          const headers = response2.headers;
-          response2.headers.set("X-Foo", "quux");
-          assert_equals(headers, response2.headers);
-          headers.set("X-Other-Header", "baz");
-          assert_equals(headers, response2.headers);
-        }, "Test that Response.headers has the [SameObject] extended attribute");
+        const response2 = new Response("", {"headers": {"X-Foo": "bar"}});
+        assert_equals(response2.headers, response2.headers);
+        const headers = response2.headers;
+        response2.headers.set("X-Foo", "quux");
+        assert_equals(headers, response2.headers);
+        headers.set("X-Other-Header", "baz");
+        assert_equals(headers, response2.headers);
+      }, "Test that Response.headers has the [SameObject] extended attribute");
     </script>
   </body>
 </html>

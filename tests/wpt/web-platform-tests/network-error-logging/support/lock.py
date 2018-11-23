@@ -31,7 +31,7 @@ def lock(request, report_id):
 def unlock(request, report_id):
   with request.server.stash.lock:
     lock_holder = request.server.stash.take(key=_LOCK_KEY)
-    if lock_holder != request_id:
+    if lock_holder != report_id:
       # Return the lock holder to the stash
       request.server.stash.put(key=_LOCK_KEY, value=lock_holder)
       return (503, [], "Cannot release lock held by %s" % lock_holder)

@@ -259,7 +259,7 @@ scheme host and port.""")
     gecko_group.add_argument("--stylo-threads", action="store", type=int, default=1,
                              help="Number of parallel threads to use for stylo")
     gecko_group.add_argument("--reftest-internal", dest="reftest_internal", action="store_true",
-                             default=True, help="Enable reftest runner implemented inside Marionette")
+                             default=None, help="Enable reftest runner implemented inside Marionette")
     gecko_group.add_argument("--reftest-external", dest="reftest_internal", action="store_false",
                              help="Disable reftest runner implemented inside Marionette")
     gecko_group.add_argument("--reftest-screenshot", dest="reftest_screenshot", action="store",
@@ -511,6 +511,9 @@ def check_args(kwargs):
             sys.exit(1)
         kwargs['extra_prefs'] = [tuple(prefarg.split('=', 1)) for prefarg in
                                  kwargs['extra_prefs']]
+
+    if kwargs["reftest_internal"] is None:
+        kwargs["reftest_internal"] = True
 
     return kwargs
 

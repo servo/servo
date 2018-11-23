@@ -8,20 +8,19 @@
     <script>
 const check_report_format = ([reports, observer]) => {
   const report = reports[0];
-  assert_equals(report.type, "feature-policy");
+  assert_equals(report.type, "feature-policy-violation");
   assert_equals(report.url, document.location.href);
-  assert_equals(report.body.feature, "vr");
-  assert_equals(report.body.disposition, "report");
+  assert_equals(report.body.featureId, "vr");
   assert_equals(report.body.sourceFile, document.location.href);
-  assert_equals(typeof report.body.message, "string");
   assert_equals(typeof report.body.lineNumber, "number");
   assert_equals(typeof report.body.columnNumber, "number");
+  assert_equals(report.body.disposition, "report");
 };
 
 promise_test(async t => {
   const report = new Promise(resolve => {
     new ReportingObserver((reports, observer) => resolve([reports, observer]),
-                          {types: ['feature-policy']}).observe();
+                          {types: ['feature-policy-violation']}).observe();
   });
   try {
     await navigator.xr.requestDevice();

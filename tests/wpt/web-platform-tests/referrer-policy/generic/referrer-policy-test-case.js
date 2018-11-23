@@ -21,6 +21,7 @@ function ReferrerPolicyTestCase(scenario, testDescription, sanityChecker) {
     "img-tag":  queryImage,
     "script-tag": queryScript,
     "worker-request": queryWorker,
+    "module-worker": queryModuleWorkerTopLevel,
     "xhr-request": queryXhr
   };
 

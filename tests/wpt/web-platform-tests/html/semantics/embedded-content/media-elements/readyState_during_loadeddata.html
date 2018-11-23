@@ -15,7 +15,7 @@
   <div id="log"></div>
   <script>
 test(function() {
-  var t = async_test("audio.readyState should be >= HAVE_CURRENT_DATA during loadeddata event", {timeout:5000});
+  var t = async_test("audio.readyState should be >= HAVE_CURRENT_DATA during loadeddata event");
   var a = document.getElementById("a");
   a.addEventListener("error", t.unreached_func());
   a.addEventListener("loadeddata", t.step_func(function() {
@@ -27,7 +27,7 @@ test(function() {
 }, "audio events - readyState property during loadeddata");
 
 test(function() {
-  var t = async_test("video.readyState should be >= HAVE_CURRENT_DATA during loadeddata event", {timeout:5000});
+  var t = async_test("video.readyState should be >= HAVE_CURRENT_DATA during loadeddata event");
   var v = document.getElementById("v");
   v.addEventListener("error", t.unreached_func());
   v.addEventListener("loadeddata", t.step_func(function() {

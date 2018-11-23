@@ -7,7 +7,7 @@
               `${label} should not be supported`);
 });
 
-// UTF-32 will be detected as UTF-16LE if leading BOM, or windows-1252 otherwise.
+// UTF-32 will be detected as UTF-16LE if leading BOM, or UTF-8 otherwise (due to XMLHttpRequest).
 ['UTF-32', 'utf-32', 'UTF-32LE', 'utf-32le'].forEach(label => {
   decode_test(label,
               '%FF%FE%00%00%41%00%00%00%42%00%00%00',

@@ -10,7 +10,7 @@
   <div id="log">FAILED (This TC requires JavaScript enabled)</div>
   <div></div>
   <script>
-  var t = async_test(undefined, {timeout:5000})
+  var t = async_test()
   log('inline script #1');
   testlib.addScript('', { src:'scripts/include-1.js?pipe=trickle(d1)&'+Math.random() }, document.getElementsByTagName('head')[0], false );
   log('end script #1');

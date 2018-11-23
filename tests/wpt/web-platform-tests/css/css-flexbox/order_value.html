@@ -24,7 +24,7 @@
     <div id=log></div>
     <div id=test><div id=test01>1</div><div id=test02>2</div><div id=test03>3</div></div>
     <script type="text/javascript">
-        var t = async_test(document.title, {timeout:500});
+        var t = async_test(document.title);
         t.step(function () {
             assert_equals(document.getElementById("test01").offsetTop, document.getElementById("test02").offsetTop, "Rectangle 1 and 2 have the same offsetTop value");
             assert_equals((document.getElementById("test02").offsetLeft >= document.getElementById("test01").offsetLeft), false, "Rectangle 2 have a smaller offsetLeft value than 1.");

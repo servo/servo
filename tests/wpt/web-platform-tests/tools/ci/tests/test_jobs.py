@@ -25,7 +25,8 @@ def test_default():
 
 
 def test_testharness():
-    assert jobs.get_jobs(["resources/testharness.js"]) == default_jobs | set(["resources_unittest"])
+    assert jobs.get_jobs(["resources/testharness.js"]) == default_jobs | set(["resources_unittest",
+                                                                              "wptrunner_infrastructure"])
     assert jobs.get_jobs(["resources/testharness.js"],
                          includes=["resources_unittest"]) == set(["resources_unittest"])
     assert jobs.get_jobs(["tools/wptserve/wptserve/config.py"],

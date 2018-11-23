@@ -19,7 +19,7 @@ MediaStream is rendered as blackness.</p>
 <script>
 var vid = document.getElementById("vid");
 var cv = document.createElement("canvas");
-var t = async_test("Tests that a disabled video track in a MediaStream is rendered as blackness", {timeout: 10000});
+var t = async_test("Tests that a disabled video track in a MediaStream is rendered as blackness");
 t.step(function() {
   navigator.mediaDevices.getUserMedia({video: true})
     .then(t.step_func(function (stream) {
