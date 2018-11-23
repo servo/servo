@@ -129,11 +129,22 @@ impl<VR: WebVRRenderHandler + 'static> WebGLThread<VR> {
                         let glsl_version = Self::get_glsl_version(&data.ctx);
 
                         // FIXME(nox): Should probably be done by offscreen_gl_context.
-                        if (glsl_version.major, glsl_version.minor) < (3, 1) {
-                            data.ctx.gl().enable(gl::POINT_SPRITE);
-                        }
                         if !is_gles() {
+                            // Points sprites are enabled by default in OpenGL 3.2 core
+                            // and in GLES. Rather than doing version detection, it does
+                            // not hurt to enable them anyways.
+
+                            data.ctx.gl().enable(gl::POINT_SPRITE);
+                            let err = data.ctx.gl().get_error();
+                            if err != 0 {
+                                warn!("Error enabling GL point sprites: {}", err);
+                            }
+
                             data.ctx.gl().enable(gl::PROGRAM_POINT_SIZE);
+                            let err = data.ctx.gl().get_error();
+                            if err != 0 {
+                                warn!("Error enabling GL program point size: {}", err);
+                            }
                         }
 
                         WebGLCreateContextResult {
