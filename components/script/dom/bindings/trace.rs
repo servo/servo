@@ -39,6 +39,7 @@ use crate::dom::bindings::utils::WindowProxyHandler;
 use crate::dom::document::PendingRestyle;
 use crate::dom::htmlimageelement::SourceSet;
 use crate::dom::htmlmediaelement::{HTMLMediaElementFetchContext, MediaFrameRenderer};
+use crate::dom::node::Node;
 use crate::task::TaskBox;
 use app_units::Au;
 use canvas_traits::canvas::{
@@ -404,6 +405,7 @@ unsafe impl<A: JSTraceable, B: JSTraceable, C: JSTraceable> JSTraceable for (A, 
 
 unsafe_no_jsmanaged_fields!(ActiveAttribInfo);
 unsafe_no_jsmanaged_fields!(ActiveUniformInfo);
+unsafe_no_jsmanaged_fields!(Box<dyn Fn(&Node) -> Box<dyn Iterator<Item = DomRoot<Node>>> + 'static>);
 unsafe_no_jsmanaged_fields!(bool, f32, f64, String, AtomicBool, AtomicUsize, Uuid, char);
 unsafe_no_jsmanaged_fields!(usize, u8, u16, u32, u64);
 unsafe_no_jsmanaged_fields!(isize, i8, i16, i32, i64);

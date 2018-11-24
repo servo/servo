@@ -16,6 +16,11 @@ use std::cell::Cell;
 #[must_root]
 pub enum NodeListType {
     Simple(Vec<Dom<Node>>),
+    Live(
+        Dom<Node>,
+        #[ignore_malloc_size_of = "boxed trait fns are hard"]
+        Box<dyn Fn(&Node) -> Box<dyn Iterator<Item = DomRoot<Node>>> + 'static>,
+    ),
     Children(ChildrenList),
 }
 
@@ -31,7 +36,7 @@ impl NodeList {
     pub fn new_inherited(list_type: NodeListType) -> NodeList {
         NodeList {
             reflector_: Reflector::new(),
-            list_type: list_type,
+            list_type,
         }
     }
 
@@ -61,6 +66,16 @@ impl NodeList {
         )
     }
 
+    pub fn new_live_list<F>(window: &Window, live_node: &Node, callback: F) -> DomRoot<NodeList>
+    where
+        F: Fn(&Node) -> Box<dyn Iterator<Item = DomRoot<Node>>> + 'static,
+    {
+        NodeList::new(
+            window,
+            NodeListType::Live(Dom::from_ref(live_node), Box::new(callback)),
+        )
+    }
+
     pub fn new_child_list(window: &Window, node: &Node) -> DomRoot<NodeList> {
         NodeList::new(window, NodeListType::Children(ChildrenList::new(node)))
     }
@@ -75,6 +90,7 @@ impl NodeListMethods for NodeList {
     fn Length(&self) -> u32 {
         match self.list_type {
             NodeListType::Simple(ref elems) => elems.len() as u32,
+            NodeListType::Live(ref root, ref callback) => callback(root).count() as u32,
             NodeListType::Children(ref list) => list.len(),
         }
     }
@@ -85,6 +101,7 @@ impl NodeListMethods for NodeList {
             NodeListType::Simple(ref elems) => elems
                 .get(index as usize)
                 .map(|node| DomRoot::from_ref(&**node)),
+            NodeListType::Live(ref root, ref callback) => callback(root).nth(index as usize),
             NodeListType::Children(ref list) => list.item(index),
         }
     }
