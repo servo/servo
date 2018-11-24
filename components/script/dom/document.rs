@@ -143,6 +143,7 @@ use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::default::Default;
 use std::fmt;
+use std::iter;
 use std::mem;
 use std::ptr::NonNull;
 use std::rc::Rc;
@@ -2762,16 +2763,6 @@ impl Document {
         self.redirect_count.set(count)
     }
 
-    fn create_node_list<F: Fn(&Node) -> bool>(&self, callback: F) -> DomRoot<NodeList> {
-        let doc = self.GetDocumentElement();
-        let maybe_node = doc.r().map(Castable::upcast::<Node>);
-        let iter = maybe_node
-            .iter()
-            .flat_map(|node| node.traverse_preorder())
-            .filter(|node| callback(&node));
-        NodeList::new_simple_list(&self.window, iter)
-    }
-
     fn get_html_element(&self) -> Option<DomRoot<HTMLHtmlElement>> {
         self.GetDocumentElement().and_then(DomRoot::downcast)
     }
@@ -3853,18 +3844,28 @@ impl DocumentMethods for Document {
 
     // https://html.spec.whatwg.org/multipage/#dom-document-getelementsbyname
     fn GetElementsByName(&self, name: DOMString) -> DomRoot<NodeList> {
-        self.create_node_list(|node| {
-            let element = match node.downcast::<Element>() {
-                Some(element) => element,
-                None => return false,
-            };
-            if element.namespace() != &ns!(html) {
-                return false;
-            }
-            element
-                .get_attribute(&ns!(), &local_name!("name"))
-                .map_or(false, |attr| &**attr.value() == &*name)
-        })
+        let doc = self.GetDocumentElement();
+        match doc.r().map(Castable::upcast::<Node>) {
+            Some(doc_node) => NodeList::new_live_list(&self.window, doc_node, move |root| {
+                let name = name.clone();
+                Box::new(
+                    root.traverse_preorder()
+                        .filter(move |node| {
+                            let element = match node.downcast::<Element>() {
+                                Some(element) => element,
+                                None => return false,
+                            };
+                            if element.namespace() != &ns!(html) {
+                                return false;
+                            }
+                            element
+                                .get_attribute(&ns!(), &local_name!("name"))
+                                .map_or(false, |attr| &**attr.value() == &*name)
+                        })
+                )
+            }),
+            None => NodeList::new_simple_list(&self.window, iter::empty::<DomRoot<Node>>()),
+        }
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-document-images
