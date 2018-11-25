@@ -7,19 +7,25 @@ use crate::dom::bindings::codegen::Bindings::NodeListBinding;
 use crate::dom::bindings::codegen::Bindings::NodeListBinding::NodeListMethods;
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom, RootedReference};
+use crate::dom::bindings::trace::JSTraceable;
 use crate::dom::node::{ChildrenMutation, Node};
 use crate::dom::window::Window;
 use dom_struct::dom_struct;
-use std::cell::Cell;
+use std::cell::{Cell, Ref};
+
+pub trait LiveListGenerator: JSTraceable {
+    fn get_list(&self) -> Ref<Vec<Dom<Node>>>;
+    fn generate(&self) -> Ref<Vec<Dom<Node>>>;
+    fn invalidate_cache(&self);
+}
 
 #[derive(JSTraceable, MallocSizeOf)]
 #[must_root]
 pub enum NodeListType {
     Simple(Vec<Dom<Node>>),
     Live(
-        Dom<Node>,
-        #[ignore_malloc_size_of = "boxed trait fns are hard"]
-        Box<dyn Fn(&Node) -> Box<dyn Iterator<Item = DomRoot<Node>>> + 'static>,
+        #[ignore_malloc_size_of = "Contains a trait object; can't measure due to #6870"]
+        Box<dyn LiveListGenerator + 'static>,
     ),
     Children(ChildrenList),
 }
@@ -66,14 +72,11 @@ impl NodeList {
         )
     }
 
-    pub fn new_live_list<F>(window: &Window, live_node: &Node, callback: F) -> DomRoot<NodeList>
-    where
-        F: Fn(&Node) -> Box<dyn Iterator<Item = DomRoot<Node>>> + 'static,
-    {
-        NodeList::new(
-            window,
-            NodeListType::Live(Dom::from_ref(live_node), Box::new(callback)),
-        )
+    pub fn new_live_list<T: LiveListGenerator + 'static>(
+        window: &Window,
+        generator: T,
+    ) -> DomRoot<NodeList> {
+        NodeList::new(window, NodeListType::Live(Box::new(generator)))
     }
 
     pub fn new_child_list(window: &Window, node: &Node) -> DomRoot<NodeList> {
@@ -90,7 +93,7 @@ impl NodeListMethods for NodeList {
     fn Length(&self) -> u32 {
         match self.list_type {
             NodeListType::Simple(ref elems) => elems.len() as u32,
-            NodeListType::Live(ref root, ref callback) => callback(root).count() as u32,
+            NodeListType::Live(ref generator) => generator.get_list().len() as u32,
             NodeListType::Children(ref list) => list.len(),
         }
     }
@@ -101,7 +104,10 @@ impl NodeListMethods for NodeList {
             NodeListType::Simple(ref elems) => elems
                 .get(index as usize)
                 .map(|node| DomRoot::from_ref(&**node)),
-            NodeListType::Live(ref root, ref callback) => callback(root).nth(index as usize),
+            NodeListType::Live(ref generator) => generator
+                .get_list()
+                .get(index as usize)
+                .map(|node| DomRoot::from_ref(&**node)),
             NodeListType::Children(ref list) => list.item(index),
         }
     }

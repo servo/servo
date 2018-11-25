@@ -78,7 +78,7 @@ use crate::dom::node::VecPreOrderInsertionHelper;
 use crate::dom::node::{self, document_from_node, window_from_node, CloneChildrenFlag};
 use crate::dom::node::{LayoutNodeHelpers, Node, NodeDamage, NodeFlags};
 use crate::dom::nodeiterator::NodeIterator;
-use crate::dom::nodelist::NodeList;
+use crate::dom::nodelist::{LiveListGenerator, NodeList};
 use crate::dom::pagetransitionevent::PageTransitionEvent;
 use crate::dom::popstateevent::PopStateEvent;
 use crate::dom::processinginstruction::ProcessingInstruction;
@@ -3844,28 +3844,58 @@ impl DocumentMethods for Document {
 
     // https://html.spec.whatwg.org/multipage/#dom-document-getelementsbyname
     fn GetElementsByName(&self, name: DOMString) -> DomRoot<NodeList> {
-        let doc = self.GetDocumentElement();
-        match doc.r().map(Castable::upcast::<Node>) {
-            Some(doc_node) => NodeList::new_live_list(&self.window, doc_node, move |root| {
-                let name = name.clone();
-                Box::new(
-                    root.traverse_preorder()
-                        .filter(move |node| {
-                            let element = match node.downcast::<Element>() {
-                                Some(element) => element,
-                                None => return false,
-                            };
-                            if element.namespace() != &ns!(html) {
-                                return false;
-                            }
-                            element
-                                .get_attribute(&ns!(), &local_name!("name"))
-                                .map_or(false, |attr| &**attr.value() == &*name)
-                        })
-                )
-            }),
-            None => NodeList::new_simple_list(&self.window, iter::empty::<DomRoot<Node>>()),
+        #[derive(JSTraceable, MallocSizeOf)]
+        #[must_root]
+        struct LiveElements {
+            node: Dom<Node>,
+            name: DOMString,
+            cached: DomRefCell<Option<Vec<Dom<Node>>>>,
         }
+
+        impl LiveListGenerator for LiveElements {
+            fn get_list(&self) -> Ref<Vec<Dom<Node>>> {
+                if self.cached.borrow().is_some() {
+                    return Ref::map(self.cached.borrow(), |cached| cached.as_ref().unwrap());
+                }
+                self.generate()
+            }
+
+            fn invalidate_cache(&self) {
+                *self.cached.borrow_mut() = None;
+            }
+
+            fn generate(&self) -> Ref<Vec<Dom<Node>>> {
+                let name = self.name.clone();
+                let iter = self
+                    .node
+                    .traverse_preorder()
+                    .filter(move |node| {
+                        let element = match node.downcast::<Element>() {
+                            Some(element) => element,
+                            None => return false,
+                        };
+                        if element.namespace() != &ns!(html) {
+                            return false;
+                        }
+                        element
+                            .get_attribute(&ns!(), &local_name!("name"))
+                            .map_or(false, |attr| &**attr.value() == &*name)
+                    })
+                    .map(|node| Dom::from_ref(&*node));
+
+                *self.cached.borrow_mut() = Some(iter.collect());
+                Ref::map(self.cached.borrow(), |cached| cached.as_ref().unwrap())
+            }
+        }
+
+        NodeList::new_live_list(
+            &self.window,
+            LiveElements {
+                node: Dom::from_ref(self),
+                name,
+                cached: DomRefCell::new(None),
+            },
+        )
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-document-images
