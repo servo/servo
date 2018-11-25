@@ -680,40 +680,39 @@ impl HTMLElement {
     pub fn labels(&self) -> DomRoot<NodeList> {
         debug_assert!(self.is_labelable_element());
 
-        let element = self.upcast::<Element>();
-        let window = window_from_node(element);
+        let root = self.upcast::<Node>();
+        let window = window_from_node(root);
 
-        // Traverse ancestors for implicitly associated <label> elements
-        // https://html.spec.whatwg.org/multipage/#the-label-element:attr-label-for-4
-        let ancestors = self
-            .upcast::<Node>()
-            .ancestors()
-            .filter_map(DomRoot::downcast::<HTMLElement>)
-            // If we reach a labelable element, we have a guarantee no ancestors above it
-            // will be a label for this HTMLElement
-            .take_while(|elem| !elem.is_labelable_element())
-            .filter_map(DomRoot::downcast::<HTMLLabelElement>)
-            .filter(|elem| !elem.upcast::<Element>().has_attribute(&local_name!("for")))
-            .filter(|elem| elem.first_labelable_descendant().r() == Some(self))
-            .map(DomRoot::upcast::<Node>);
+        NodeList::new_live_list(&window, root, |node| {
+            // Traverse ancestors for implicitly associated <label> elements
+            // https://html.spec.whatwg.org/multipage/#the-label-element:attr-label-for-4
+            let html_element = DomRoot::from_ref(node.downcast::<HTMLElement>().unwrap());
+            let ancestors = node.ancestors()
+                .filter_map(DomRoot::downcast::<HTMLElement>)
+                // If we reach a labelable element, we have a guarantee no ancestors above it
+                // will be a label for this HTMLElement
+                .take_while(|elem| !elem.is_labelable_element())
+                .filter_map(DomRoot::downcast::<HTMLLabelElement>)
+                .filter(|elem| !elem.upcast::<Element>().has_attribute(&local_name!("for")))
+                .filter(move |elem| elem.first_labelable_descendant().r() == Some(&*html_element))
+                .map(DomRoot::upcast::<Node>);
 
-        let id = element.Id();
-        let id = match &id as &str {
-            "" => return NodeList::new_simple_list(&window, ancestors),
-            id => id,
-        };
+            let element = node.downcast::<Element>().unwrap();
+            let id = element.Id();
+            if id.is_empty() { return Box::new(ancestors); }
 
-        // Traverse entire tree for <label> elements with `for` attribute matching `id`
-        let root_element = element.root_element();
-        let root_node = root_element.upcast::<Node>();
-        let children = root_node
-            .traverse_preorder()
-            .filter_map(DomRoot::downcast::<Element>)
-            .filter(|elem| elem.is::<HTMLLabelElement>())
-            .filter(|elem| elem.get_string_attribute(&local_name!("for")) == id)
-            .map(DomRoot::upcast::<Node>);
+            // Traverse entire tree for <label> elements with `for` attribute matching `id`
+            let root_element = element.root_element();
+            let root_node = root_element.upcast::<Node>();
+            let children = root_node
+                .traverse_preorder()
+                .filter_map(DomRoot::downcast::<Element>)
+                .filter(|elem| elem.is::<HTMLLabelElement>())
+                .filter(move |elem| elem.get_string_attribute(&local_name!("for")) == &*id)
+                .map(DomRoot::upcast::<Node>);
 
-        NodeList::new_simple_list(&window, children.chain(ancestors))
+            Box::new(children.chain(ancestors))
+        })
     }
 }
 
