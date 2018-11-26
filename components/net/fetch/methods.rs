@@ -2,10 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::blob_loader::load_blob_sync;
 use crate::data_loader::decode;
 use crate::fetch::cors_cache::CorsCache;
-use crate::filemanager_thread::FileManager;
+use crate::filemanager_thread::{fetch_file_in_chunks, FileManager, FILE_CHUNK_SIZE};
 use crate::http_loader::{determine_request_referrer, http_fetch, HttpState};
 use crate::http_loader::{set_default_accept, set_default_accept_language};
 use crate::subresource_integrity::is_response_integrity_valid;
@@ -19,6 +18,8 @@ use hyper::StatusCode;
 use ipc_channel::ipc::IpcReceiver;
 use mime::{self, Mime};
 use mime_guess::guess_mime_type;
+use net_traits::blob_url_store::{parse_blob_url, BlobURLStoreError};
+use net_traits::filemanager_thread::RelativePos;
 use net_traits::request::{CredentialsMode, Destination, Referrer, Request, RequestMode};
 use net_traits::request::{Origin, ResponseTainting, Window};
 use net_traits::response::{Response, ResponseBody, ResponseType};
@@ -26,20 +27,17 @@ use net_traits::{FetchTaskTarget, NetworkError, ReferrerPolicy, ResourceFetchTim
 use servo_url::ServoUrl;
 use std::borrow::Cow;
 use std::fs::File;
-use std::io::{BufRead, BufReader, Seek, SeekFrom};
+use std::io::{BufReader, Seek, SeekFrom};
 use std::mem;
 use std::ops::Bound;
 use std::str;
 use std::sync::atomic::Ordering;
 use std::sync::{Arc, Mutex};
-use std::thread;
 
 lazy_static! {
     static ref X_CONTENT_TYPE_OPTIONS: HeaderName =
         HeaderName::from_static("x-content-type-options");
 }
-
-const FILE_CHUNK_SIZE: usize = 32768; //32 KB
 
 pub type Target<'a> = &'a mut (dyn FetchTaskTarget + Send);
 
@@ -492,6 +490,74 @@ fn wait_for_response(response: &mut Response, target: Target, done_chan: &mut Do
     }
 }
 
+/// Range header start and end values.
+pub enum RangeRequestBounds {
+    /// The range bounds are known and set to final values.
+    Final(RelativePos),
+    /// We need extra information to set the range bounds.
+    /// i.e. buffer or file size.
+    Pending(u64),
+}
+
+impl RangeRequestBounds {
+    pub fn get_final(&self, len: Option<u64>) -> Result<RelativePos, ()> {
+        match self {
+            RangeRequestBounds::Final(pos) => {
+                if let Some(len) = len {
+                    if pos.start <= len as i64 {
+                        return Ok(pos.clone());
+                    }
+                }
+                Err(())
+            },
+            RangeRequestBounds::Pending(offset) => Ok(RelativePos::from_opts(
+                if let Some(len) = len {
+                    Some((len - u64::min(len, *offset)) as i64)
+                } else {
+                    Some(0)
+                },
+                None,
+            )),
+        }
+    }
+}
+
+/// Get the range bounds if the `Range` header is present.
+fn get_range_request_bounds(range: Option<Range>) -> RangeRequestBounds {
+    if let Some(ref range) = range {
+        let (start, end) = match range
+            .iter()
+            .collect::<Vec<(Bound<u64>, Bound<u64>)>>()
+            .first()
+        {
+            Some(&(Bound::Included(start), Bound::Unbounded)) => (start, None),
+            Some(&(Bound::Included(start), Bound::Included(end))) => {
+                // `end` should be less or equal to `start`.
+                (start, Some(i64::max(start as i64, end as i64)))
+            },
+            Some(&(Bound::Unbounded, Bound::Included(offset))) => {
+                return RangeRequestBounds::Pending(offset);
+            },
+            _ => (0, None),
+        };
+        RangeRequestBounds::Final(RelativePos::from_opts(Some(start as i64), end))
+    } else {
+        RangeRequestBounds::Final(RelativePos::from_opts(Some(0), None))
+    }
+}
+
+fn partial_content(response: &mut Response) {
+    let reason = "Partial Content".to_owned();
+    response.status = Some((StatusCode::PARTIAL_CONTENT, reason.clone()));
+    response.raw_status = Some((StatusCode::PARTIAL_CONTENT.as_u16(), reason.into()));
+}
+
+fn range_not_satisfiable_error(response: &mut Response) {
+    let reason = "Range Not Satisfiable".to_owned();
+    response.status = Some((StatusCode::RANGE_NOT_SATISFIABLE, reason.clone()));
+    response.raw_status = Some((StatusCode::RANGE_NOT_SATISFIABLE.as_u16(), reason.into()));
+}
+
 /// [Scheme fetch](https://fetch.spec.whatwg.org#scheme-fetch)
 fn scheme_fetch(
     request: &mut Request,
@@ -537,106 +603,56 @@ fn scheme_fetch(
             }
             if let Ok(file_path) = url.to_file_path() {
                 if let Ok(file) = File::open(file_path.clone()) {
-                    let mime = guess_mime_type(file_path);
+                    // Get range bounds (if any) and try to seek to the requested offset.
+                    // If seeking fails, bail out with a NetworkError.
+                    let file_size = match file.metadata() {
+                        Ok(metadata) => Some(metadata.len()),
+                        Err(_) => None,
+                    };
 
                     let mut response =
                         Response::new(url, ResourceFetchTiming::new(request.timing_type()));
+
+                    let range_header = request.headers.typed_get::<Range>();
+                    let is_range_request = range_header.is_some();
+                    let range = match get_range_request_bounds(range_header).get_final(file_size) {
+                        Ok(range) => range,
+                        Err(_) => {
+                            range_not_satisfiable_error(&mut response);
+                            return response;
+                        },
+                    };
+                    let mut reader = BufReader::with_capacity(FILE_CHUNK_SIZE, file);
+                    if reader.seek(SeekFrom::Start(range.start as u64)).is_err() {
+                        return Response::network_error(NetworkError::Internal(
+                            "Unexpected method for file".into(),
+                        ));
+                    }
+
+                    // Set response status to 206 if Range header is present.
+                    // At this point we should have already validated the header.
+                    if is_range_request {
+                        partial_content(&mut response);
+                    }
+
+                    // Set Content-Type header.
+                    let mime = guess_mime_type(file_path);
                     response.headers.typed_insert(ContentType::from(mime));
 
+                    // Setup channel to receive cross-thread messages about the file fetch
+                    // operation.
                     let (done_sender, done_receiver) = unbounded();
                     *done_chan = Some((done_sender.clone(), done_receiver));
                     *response.body.lock().unwrap() = ResponseBody::Receiving(vec![]);
 
-                    let res_body = response.body.clone();
+                    fetch_file_in_chunks(
+                        done_sender,
+                        reader,
+                        response.body.clone(),
+                        context.cancellation_listener.clone(),
+                        range,
+                    );
 
-                    let cancellation_listener = context.cancellation_listener.clone();
-
-                    let (start, end) = if let Some(ref range) = request.headers.typed_get::<Range>()
-                    {
-                        match range
-                            .iter()
-                            .collect::<Vec<(Bound<u64>, Bound<u64>)>>()
-                            .first()
-                        {
-                            Some(&(Bound::Included(start), Bound::Unbounded)) => (start, None),
-                            Some(&(Bound::Included(start), Bound::Included(end))) => {
-                                // `end` should be less or equal to `start`.
-                                (start, Some(u64::max(start, end)))
-                            },
-                            Some(&(Bound::Unbounded, Bound::Included(offset))) => {
-                                if let Ok(metadata) = file.metadata() {
-                                    // `offset` cannot be bigger than the file size.
-                                    (metadata.len() - u64::min(metadata.len(), offset), None)
-                                } else {
-                                    (0, None)
-                                }
-                            },
-                            _ => (0, None),
-                        }
-                    } else {
-                        (0, None)
-                    };
-
-                    thread::Builder::new()
-                        .name("fetch file worker thread".to_string())
-                        .spawn(move || {
-                            let mut reader = BufReader::with_capacity(FILE_CHUNK_SIZE, file);
-                            if reader.seek(SeekFrom::Start(start)).is_err() {
-                                warn!("Fetch - could not seek to {:?}", start);
-                            }
-
-                            loop {
-                                if cancellation_listener.lock().unwrap().cancelled() {
-                                    *res_body.lock().unwrap() = ResponseBody::Done(vec![]);
-                                    let _ = done_sender.send(Data::Cancelled);
-                                    return;
-                                }
-                                let length = {
-                                    let buffer = reader.fill_buf().unwrap().to_vec();
-                                    let mut buffer_len = buffer.len();
-                                    if let ResponseBody::Receiving(ref mut body) =
-                                        *res_body.lock().unwrap()
-                                    {
-                                        let offset = usize::min(
-                                            {
-                                                if let Some(end) = end {
-                                                    let remaining_bytes =
-                                                        end as usize - start as usize - body.len();
-                                                    if remaining_bytes <= FILE_CHUNK_SIZE {
-                                                        // This is the last chunk so we set buffer
-                                                        // len to 0 to break the reading loop.
-                                                        buffer_len = 0;
-                                                        remaining_bytes
-                                                    } else {
-                                                        FILE_CHUNK_SIZE
-                                                    }
-                                                } else {
-                                                    FILE_CHUNK_SIZE
-                                                }
-                                            },
-                                            buffer.len(),
-                                        );
-                                        body.extend_from_slice(&buffer[0..offset]);
-                                        let _ = done_sender.send(Data::Payload(buffer));
-                                    }
-                                    buffer_len
-                                };
-                                if length == 0 {
-                                    let mut body = res_body.lock().unwrap();
-                                    let completed_body = match *body {
-                                        ResponseBody::Receiving(ref mut body) => {
-                                            mem::replace(body, vec![])
-                                        },
-                                        _ => vec![],
-                                    };
-                                    *body = ResponseBody::Done(completed_body);
-                                    let _ = done_sender.send(Data::Done);
-                                    break;
-                                }
-                                reader.consume(length);
-                            }
-                        })
-                        .expect("Failed to create fetch file worker thread");
                     response
                 } else {
                     Response::network_error(NetworkError::Internal("Opening file failed".into()))
@@ -649,7 +665,7 @@ fn scheme_fetch(
         },
 
         "blob" => {
-            println!("Loading blob {}", url.as_str());
+            debug!("Loading blob {}", url.as_str());
             // Step 2.
             if request.method != Method::GET {
                 return Response::network_error(NetworkError::Internal(
@@ -657,19 +673,51 @@ fn scheme_fetch(
                 ));
             }
 
-            match load_blob_sync(url.clone(), context.filemanager.clone()) {
-                Ok((headers, bytes)) => {
-                    let mut response =
-                        Response::new(url, ResourceFetchTiming::new(request.timing_type()));
-                    response.headers = headers;
-                    *response.body.lock().unwrap() = ResponseBody::Done(bytes);
-                    response
+            let range_header = request.headers.typed_get::<Range>();
+            let is_range_request = range_header.is_some();
+            // We will get a final version of this range once we have
+            // the length of the data backing the blob.
+            let range = get_range_request_bounds(range_header);
+
+            let (id, origin) = match parse_blob_url(&url) {
+                Ok((id, origin)) => (id, origin),
+                Err(()) => {
+                    return Response::network_error(NetworkError::Internal(
+                        "Invalid blob url".into(),
+                    ));
                 },
-                Err(e) => {
-                    debug!("Failed to load {}: {:?}", url, e);
-                    Response::network_error(e)
-                },
+            };
+
+            let mut response = Response::new(url, ResourceFetchTiming::new(request.timing_type()));
+            if is_range_request {
+                partial_content(&mut response);
             }
+
+            let (done_sender, done_receiver) = unbounded();
+            *done_chan = Some((done_sender.clone(), done_receiver));
+            *response.body.lock().unwrap() = ResponseBody::Receiving(vec![]);
+            let check_url_validity = true;
+            if let Err(err) = context.filemanager.fetch_file(
+                &done_sender,
+                context.cancellation_listener.clone(),
+                id,
+                check_url_validity,
+                origin,
+                &mut response,
+                range,
+            ) {
+                let _ = done_sender.send(Data::Done);
+                let err = match err {
+                    BlobURLStoreError::InvalidRange => {
+                        range_not_satisfiable_error(&mut response);
+                        return response;
+                    },
+                    _ => format!("{:?}", err),
+                };
+                return Response::network_error(NetworkError::Internal(err));
+            };
+
+            response
         },
 
         "ftp" => {
