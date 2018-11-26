@@ -178,30 +178,6 @@ impl Display {
         }
     }
 
-    /// Whether `new_display` should be ignored, given a previous
-    /// `old_display` value.
-    ///
-    /// This is used to ignore `display: -moz-box` declarations after an
-    /// equivalent `display: -webkit-box` declaration, since the former
-    /// has a vastly different meaning. See bug 1107378 and bug 1407701.
-    ///
-    /// FIXME(emilio): This is a pretty decent hack, we should try to
-    /// remove it.
-    pub fn should_ignore_parsed_value(_old_display: Self, _new_display: Self) -> bool {
-        #[cfg(feature = "gecko")]
-        {
-            match (_old_display, _new_display) {
-                (Display::WebkitBox, Display::MozBox) |
-                (Display::WebkitInlineBox, Display::MozInlineBox) => {
-                    return true;
-                },
-                _ => {},
-            }
-        }
-
-        return false;
-    }
-
     /// Returns whether this "display" value is one of the types for
     /// ruby.
     #[cfg(feature = "gecko")]

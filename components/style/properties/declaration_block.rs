@@ -462,22 +462,6 @@ impl PropertyDeclarationBlock {
                     return false;
                 }
 
-                // As a compatibility hack, specially on Android,
-                // don't allow to override a prefixed webkit display
-                // value with an unprefixed version from parsing
-                // code.
-                //
-                // TODO(emilio): Unship.
-                if let PropertyDeclaration::Display(old_display) = *slot {
-                    use crate::properties::longhands::display::computed_value::T as display;
-
-                    if let PropertyDeclaration::Display(new_display) = declaration {
-                        if display::should_ignore_parsed_value(old_display, new_display) {
-                            return false;
-                        }
-                    }
-                }
-
                 index_to_remove = Some(i);
                 break;
             }
