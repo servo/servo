@@ -511,6 +511,124 @@ impl WebGLRenderingContext {
             _ => false,
         }
     }
+    
+    // Remove all the different types of comments from a given shader source
+    fn remove_shader_comments(source: &DOMString) -> DOMString {
+        // Destination string should be as big as the source (worst-case).
+        let mut dest = String::with_capacity(source.len());
+        
+        // Some mutables to help us keep state as we iterate.
+        // This indicates if we are in a single comment (//)
+        let mut single_comment = false;
+        // This indicates if we are in a multi-line, block comment (/* */)
+        let mut multi_comment = false;
+        // This indicates that we have seen a closing asterisk (*)
+        let mut might_end = false;
+        // This indicates that we have seen a starting forward-slash (/).
+        let mut might_start = false;
+        
+        // Now we iterate...
+        for c in source.chars() {
+            // No matter what type of comment we are in, preserve the new-line char.
+            if (single_comment || multi_comment) && c == '\n' {
+                single_comment = false;
+                dest.push(c);
+            // If we are in a block comment and we see an asterisk, it might be
+            // about to end.
+            } else if multi_comment && c == '*' {
+                might_end = true;
+            // If we are in a block comment and might_end is true, this character
+            // may end the block, or it might be something else.
+            } else if multi_comment && might_end {
+                if c == '/' {
+                    multi_comment = false;
+                    might_end = false;
+                } else {
+                    might_end = false;
+                }
+            // If we reach this point, then we are looking at a character that's not
+            // a new-line, so just skip it.
+            } else if single_comment || multi_comment {
+                continue;
+            // If we have seen a starting forward-slash, we may be about to begin a
+            // comment-block, or it might be a stand-alone slash (in which case,
+            // preserve it).
+            } else if might_start {
+                if c == '/' {
+                    single_comment = true;
+                } else if c == '*' {
+                    multi_comment = true;
+                } else {
+                    dest.push('/');
+                    dest.push(c);
+                }
+                might_start = false;
+            // If we are seeing a forward-slash for the first time, the next char
+            // might signal the start of a comment block.
+            } else if c == '/' {
+                might_start = true;
+            // At this point we are definitely outside a comment-block, so just
+            // preserve this character.
+            } else {
+                dest.push(c);
+            }
+        }
+        return DOMString::from_string(dest);
+    }
+
+    // Validate a given shader source.
+    fn validate_glsl_string(&self, source: &DOMString) -> WebGLResult<()> {
+        // First remove all the comments from the source.
+        let source_no_comments = WebGLRenderingContext::remove_shader_comments(&source);
+        // Iterate over each character; if an invalid character is found, error out.
+        for c in source_no_comments.chars() {
+            if  'a' <= c && c <= 'z' ||
+                'A' <= c && c <= 'Z' ||
+                '0' <= c && c <= '9' {
+                return Ok(())
+            } else if c == '\\' && self.webgl_version != WebGLVersion::WebGL2 {
+                return Err(InvalidValue)
+            } else {
+                return match c {
+                    '\x0c'  |
+                    '\x0b'  |
+                    ' '     |
+                    '\t'    |
+                    '\r'    |
+                    '\n'    |
+                    '_'     |
+                    '.'     |
+                    '+'     |
+                    '-'     |
+                    '/'     |
+                    '*'     |
+                    '%'     |
+                    '<'     |
+                    '>'     |
+                    '['     |
+                    ']'     |
+                    '('     |
+                    ')'     |
+                    '{'     |
+                    '}'     |
+                    '^'     |
+                    '|'     |
+                    '&'     |
+                    '~'     |
+                    '='     |
+                    '!'     |
+                    ':'     |
+                    ';'     |
+                    ','     |
+                    '?'     |
+                    '#'     |
+                    '\\'    => Ok(()),
+                    _       => Err(InvalidValue)
+                };
+            }
+        }
+        Ok(())
+    }
 
     fn get_image_pixels(
         &self,
@@ -3014,6 +3132,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
     fn ShaderSource(&self, shader: &WebGLShader, source: DOMString) {
+        handle_potential_webgl_error!(self, self.validate_glsl_string(&source), return);
         handle_potential_webgl_error!(self, self.validate_ownership(shader), return);
         shader.set_source(source)
     }
