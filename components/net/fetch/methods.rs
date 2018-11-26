@@ -610,7 +610,8 @@ fn scheme_fetch(
                         Err(_) => None,
                     };
 
-                    let mut response = Response::new(url, ResourceFetchTiming::new(request.timing_type()));
+                    let mut response =
+                        Response::new(url, ResourceFetchTiming::new(request.timing_type()));
 
                     let range_header = request.headers.typed_get::<Range>();
                     let is_range_request = range_header.is_some();
