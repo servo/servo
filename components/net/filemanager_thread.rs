@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::fetch::methods::{CancellationListener, Data, RangeRequestBounds};
+use crossbeam_channel::Sender;
 use embedder_traits::{EmbedderMsg, EmbedderProxy, FilterPattern};
 use headers_ext::{ContentLength, ContentType, HeaderMap, HeaderMapExt};
 use http::header::{self, HeaderValue};
@@ -17,7 +18,6 @@ use net_traits::filemanager_thread::{
 use net_traits::http_percent_encode;
 use net_traits::response::{Response, ResponseBody};
 use servo_arc::Arc as ServoArc;
-use servo_channel;
 use servo_config::prefs::PREFS;
 use std::collections::HashMap;
 use std::fs::File;
@@ -107,7 +107,7 @@ impl FileManager {
     // in a separate thread.
     pub fn fetch_file(
         &self,
-        done_sender: &servo_channel::Sender<Data>,
+        done_sender: &Sender<Data>,
         cancellation_listener: Arc<Mutex<CancellationListener>>,
         id: Uuid,
         check_url_validity: bool,
@@ -526,7 +526,7 @@ impl FileManagerStore {
 
     fn fetch_blob_buf(
         &self,
-        done_sender: &servo_channel::Sender<Data>,
+        done_sender: &Sender<Data>,
         cancellation_listener: Arc<Mutex<CancellationListener>>,
         id: &Uuid,
         origin_in: &FileOrigin,
@@ -794,7 +794,7 @@ fn read_file_in_chunks(
 }
 
 pub fn fetch_file_in_chunks(
-    done_sender: servo_channel::Sender<Data>,
+    done_sender: Sender<Data>,
     mut reader: BufReader<File>,
     res_body: ServoArc<Mutex<ResponseBody>>,
     cancellation_listener: Arc<Mutex<CancellationListener>>,
@@ -816,6 +816,9 @@ pub fn fetch_file_in_chunks(
                         let offset = usize::min(
                             {
                                 if let Some(end) = range.end {
+                                    // HTTP Range requests are specified with closed ranges,
+                                    // while Rust uses half-open ranges. We add +1 here so
+                                    // we don't skip the last requested byte.
                                     let remaining_bytes =
                                         end as usize - range.start as usize - body.len() + 1;
                                     if remaining_bytes <= FILE_CHUNK_SIZE {

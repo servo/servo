@@ -38,7 +38,6 @@ use net_traits::response::{CacheState, Response, ResponseBody, ResponseType};
 use net_traits::{
     FetchTaskTarget, IncludeSubdomains, NetworkError, ReferrerPolicy, ResourceFetchTiming, ResourceTimingType,
 };
-use servo_channel::{channel, Sender};
 use servo_url::{ImmutableOrigin, ServoUrl};
 use std::fs::File;
 use std::io::Read;
@@ -169,7 +168,7 @@ fn test_fetch_blob() {
 
     let mut request = Request::new(url, Some(Origin::Origin(origin.origin())), None);
 
-    let (sender, receiver) = channel();
+    let (sender, receiver) = unbounded();
 
     let mut target = FetchResponseCollector {
         sender,

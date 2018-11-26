@@ -640,7 +640,7 @@ fn scheme_fetch(
 
                     // Setup channel to receive cross-thread messages about the file fetch
                     // operation.
-                    let (done_sender, done_receiver) = channel();
+                    let (done_sender, done_receiver) = unbounded();
                     *done_chan = Some((done_sender.clone(), done_receiver));
                     *response.body.lock().unwrap() = ResponseBody::Receiving(vec![]);
 
@@ -687,12 +687,12 @@ fn scheme_fetch(
                 },
             };
 
-            let mut response = Response::new(url);
+            let mut response = Response::new(url, ResourceFetchTiming::new(request.timing_type()));
             if is_range_request {
                 partial_content(&mut response);
             }
 
-            let (done_sender, done_receiver) = channel();
+            let (done_sender, done_receiver) = unbounded();
             *done_chan = Some((done_sender.clone(), done_receiver));
             *response.body.lock().unwrap() = ResponseBody::Receiving(vec![]);
             let check_url_validity = true;
