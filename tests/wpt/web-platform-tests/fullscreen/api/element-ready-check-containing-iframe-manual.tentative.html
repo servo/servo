@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<!--
+   Tentative,  due to:
+     https://github.com/whatwg/html/issues/1903
+   Once the issue is resolved, this test would replace the corresponding
+   non-tentative test (element-ready-check-containing-iframe-manual.html)
+-->
+<title>Element ready check for containing iframe</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../trusted-click.js"></script>
+<div id="log"></div>
+<iframe allowfullscreen></iframe>
+<iframe allowfullscreen></iframe>
+<script>
+// wait for load event to avoid https://bugzil.la/1493878
+window.onload = function() {
+  async_test(function(t) {
+      var iframes = document.getElementsByTagName("iframe");
+      trusted_request(t, iframes[0].contentDocument.body, iframes[0].contentDocument.body);
+      iframes[0].contentDocument.onfullscreenchange = t.step_func(function() {
+          assert_equals(document.fullscreenElement, iframes[0]);
+          trusted_request(t, iframes[1].contentDocument.body, iframes[0].contentDocument.body);
+          iframes[1].contentDocument.onfullscreenchange = t.unreached_func("fullscreenchange event");
+          iframes[1].contentDocument.onfullscreenerror = t.step_func_done();
+      });
+  });
+};
+</script>
