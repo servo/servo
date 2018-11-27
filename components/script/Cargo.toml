@@ -49,7 +49,7 @@ devtools_traits = {path = "../devtools_traits"}
 dom_struct = {path = "../dom_struct"}
 domobject_derive = {path = "../domobject_derive"}
 embedder_traits = {path = "../embedder_traits"}
-encoding_rs = "0.7"
+encoding_rs = "0.8"
 enum-iterator = "0.2.0"
 euclid = "0.19"
 fnv = "1.0"
