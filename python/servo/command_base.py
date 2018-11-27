@@ -345,7 +345,7 @@ class CommandBase(object):
 
     def get_apk_path(self, release):
         base_path = self.get_target_dir()
-        base_path = path.join(base_path, self.config["android"]["target"])
+        base_path = path.join(base_path, "android", self.config["android"]["target"])
         apk_name = "servoapp.apk"
         build_type = "release" if release else "debug"
         return path.join(base_path, build_type, apk_name)
@@ -364,7 +364,7 @@ class CommandBase(object):
             base_path = path.join(base_path, "aarch64-linux-android")
             binary_name = "libmlservo.a"
         elif android:
-            base_path = path.join(base_path, self.config["android"]["target"])
+            base_path = path.join(base_path, "android", self.config["android"]["target"])
             binary_name = "libsimpleservo.so"
 
         release_path = path.join(base_path, "release", binary_name)
@@ -700,11 +700,8 @@ install them, let us know by filing a bug!")
     def android_support_dir(self):
         return path.join(self.context.topdir, "support", "android")
 
-    def android_build_dir(self, dev):
-        return path.join(self.get_target_dir(), self.config["android"]["target"], "debug" if dev else "release")
-
     def android_aar_dir(self):
-        return path.join(self.context.topdir, "target", "android_aar")
+        return path.join(self.context.topdir, "target", "android", "aar")
 
     def android_adb_path(self, env):
         if "ANDROID_SDK" in env:

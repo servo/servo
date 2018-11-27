@@ -44,8 +44,8 @@ from servo.util import delete
 
 PACKAGES = {
     'android': [
-        'target/armv7-linux-androideabi/release/servoapp.apk',
-        'target/armv7-linux-androideabi/release/servoview.aar',
+        'target/android/armv7-linux-androideabi/release/servoapp.apk',
+        'target/android/armv7-linux-androideabi/release/servoview.aar',
     ],
     'linux': [
         'target/release/servo-tech-demo.tar.gz',
@@ -60,8 +60,8 @@ PACKAGES = {
         'target/aarch64-linux-android/release/Servo2D.mpk',
     ],
     'maven': [
-        'target/gradle/servoview/maven/org/mozilla/servoview/servoview-armv7/',
-        'target/gradle/servoview/maven/org/mozilla/servoview/servoview-x86/',
+        'target/android/gradle/servoview/maven/org/mozilla/servoview/servoview-armv7/',
+        'target/android/gradle/servoview/maven/org/mozilla/servoview/servoview-x86/',
     ],
     'windows-msvc': [
         r'target\release\msi\Servo.exe',
@@ -578,7 +578,7 @@ class PackageCommands(CommandBase):
             BUCKET = 'servo-builds'
 
             nightly_dir = 'nightly/maven'
-            dest_key_base = directory.replace("target/gradle/servoview/maven", nightly_dir)
+            dest_key_base = directory.replace("target/android/gradle/servoview/maven", nightly_dir)
             if dest_key_base[-1] == '/':
                 dest_key_base = dest_key_base[:-1]
 
