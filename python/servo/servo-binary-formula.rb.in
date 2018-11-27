@@ -4,7 +4,7 @@
 
 class ServoBin < Formula
   desc "Servo, the Parallel Browser Engine Project (binary version)"
-  homepage "http://servo.org"
+  homepage "https://servo.org"
   url "PACKAGEURL"
   version "VERSION"
   sha256 "SHA"
