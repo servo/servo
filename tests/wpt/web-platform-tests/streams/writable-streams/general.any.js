@@ -244,3 +244,27 @@ promise_test(() => {
     });
   });
 }, 'ready promise should fire before closed on releaseLock');
+
+test(() => {
+  class Subclass extends WritableStream {
+    extraFunction() {
+      return true;
+    }
+  }
+  assert_equals(
+      Object.getPrototypeOf(Subclass.prototype), WritableStream.prototype,
+      'Subclass.prototype\'s prototype should be WritableStream.prototype');
+  assert_equals(Object.getPrototypeOf(Subclass), WritableStream,
+                'Subclass\'s prototype should be WritableStream');
+  const sub = new Subclass();
+  assert_true(sub instanceof WritableStream,
+              'Subclass object should be an instance of WritableStream');
+  assert_true(sub instanceof Subclass,
+              'Subclass object should be an instance of Subclass');
+  const lockedGetter = Object.getOwnPropertyDescriptor(
+      WritableStream.prototype, 'locked').get;
+  assert_equals(lockedGetter.call(sub), sub.locked,
+                'Subclass object should pass brand check');
+  assert_true(sub.extraFunction(),
+              'extraFunction() should be present on Subclass object');
+}, 'Subclassing WritableStream should work');

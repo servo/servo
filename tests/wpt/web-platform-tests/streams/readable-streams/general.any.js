@@ -772,11 +772,28 @@ test(() => {
 }, 'ReadableStream: desiredSize when errored');
 
 test(() => {
-   class Extended extends ReadableStream {
-     newMethod() { return 'foo' };
-   };
-   assert_equals((new Extended()).newMethod(), 'foo');
-}, 'ReadableStream: ReadableStream is extendable');
+  class Subclass extends ReadableStream {
+    extraFunction() {
+      return true;
+    }
+  }
+  assert_equals(
+      Object.getPrototypeOf(Subclass.prototype), ReadableStream.prototype,
+      'Subclass.prototype\'s prototype should be ReadableStream.prototype');
+  assert_equals(Object.getPrototypeOf(Subclass), ReadableStream,
+                'Subclass\'s prototype should be ReadableStream');
+  const sub = new Subclass();
+  assert_true(sub instanceof ReadableStream,
+              'Subclass object should be an instance of ReadableStream');
+  assert_true(sub instanceof Subclass,
+              'Subclass object should be an instance of Subclass');
+  const lockedGetter = Object.getOwnPropertyDescriptor(
+      ReadableStream.prototype, 'locked').get;
+  assert_equals(lockedGetter.call(sub), sub.locked,
+                'Subclass object should pass brand check');
+  assert_true(sub.extraFunction(),
+              'extraFunction() should be present on Subclass object');
+}, 'Subclassing ReadableStream should work');
 
 test(() => {
 

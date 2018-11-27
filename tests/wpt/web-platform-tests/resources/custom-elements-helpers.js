@@ -4,7 +4,7 @@ function create_window_in_test(t, srcdoc) {
     f.srcdoc = srcdoc ? srcdoc : '';
     f.onload = (event) => {
       let w = f.contentWindow;
-      t.add_cleanup(() => f.parentNode && f.remove());
+      t.add_cleanup(() => f.remove());
       resolve(w);
     };
     document.body.appendChild(f);
