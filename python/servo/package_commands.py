@@ -57,7 +57,7 @@ PACKAGES = {
         'target/release/brew/servo.tar.gz',
     ],
     'magicleap': [
-        'target/aarch64-linux-android/release/Servo2D.mpk',
+        'target/magicleap/aarch64-linux-android/release/Servo2D.mpk',
     ],
     'maven': [
         'target/android/gradle/servoview/maven/org/mozilla/servoview/servoview-armv7/',

@@ -361,7 +361,7 @@ class CommandBase(object):
         binary_name = "servo" + BIN_SUFFIX
 
         if magicleap:
-            base_path = path.join(base_path, "aarch64-linux-android")
+            base_path = path.join(base_path, "magicleap", "aarch64-linux-android")
             binary_name = "libmlservo.a"
         elif android:
             base_path = path.join(base_path, "android", self.config["android"]["target"])

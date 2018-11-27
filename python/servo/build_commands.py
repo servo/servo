@@ -203,10 +203,26 @@ class MachCommands(CommandBase):
             android = self.config["build"]["android"]
         features = features or self.servo_features()
 
+        if target and android:
+            print("Please specify either --target or --android.")
+            sys.exit(1)
+
+        if android:
+            target = self.config["android"]["target"]
+
+        if not magicleap:
+            features += ["native-bluetooth"]
+
+        if magicleap and not target:
+            target = "aarch64-linux-android"
+
         target_path = base_path = self.get_target_dir()
         if android:
             target_path = path.join(target_path, "android")
-            base_path = path.join(target_path, self.config["android"]["target"])
+            base_path = path.join(target_path, target)
+        elif magicleap:
+            target_path = path.join(target_path, "magicleap")
+            base_path = path.join(target_path, target)
         release_path = path.join(base_path, "release", "servo")
         dev_path = path.join(base_path, "debug", "servo")
 
@@ -231,10 +247,6 @@ class MachCommands(CommandBase):
             print("Please specify either --dev or --release.")
             sys.exit(1)
 
-        if target and android:
-            print("Please specify either --target or --android.")
-            sys.exit(1)
-
         if release:
             opts += ["--release"]
             servo_path = release_path
@@ -247,15 +259,6 @@ class MachCommands(CommandBase):
             opts += ["-v"]
         if very_verbose:
             opts += ["-vv"]
-
-        if android:
-            target = self.config["android"]["target"]
-
-        if not magicleap:
-            features += ["native-bluetooth"]
-
-        if magicleap and not target:
-            target = "aarch64-linux-android"
 
         if target:
             if self.config["tools"]["use-rustup"]:
@@ -525,7 +528,7 @@ class MachCommands(CommandBase):
             env.setdefault("CMAKE_TOOLCHAIN_FILE", path.join(ml_support, "toolchain.cmake"))
 
             # The Open SSL configuration
-            env.setdefault("OPENSSL_DIR", path.join(self.get_target_dir(), target, "magicleap", "openssl"))
+            env.setdefault("OPENSSL_DIR", path.join(target_path, target, "native", "openssl"))
             env.setdefault("OPENSSL_VERSION", "1.0.2k")
             env.setdefault("OPENSSL_STATIC", "1")
 

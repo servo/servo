@@ -9,10 +9,10 @@ SRCS = \
     code/src/Servo2D.cpp
 
 LIBPATHS.debug = \
-    ../../../target/aarch64-linux-android/debug
+    ../../../target/magicleap/aarch64-linux-android/debug
 
 LIBPATHS.release = \
-    ../../../target/aarch64-linux-android/release
+    ../../../target/magicleap/aarch64-linux-android/release
 
 STLIBS = \
     mlservo
