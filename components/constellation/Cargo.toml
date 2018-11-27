@@ -11,6 +11,7 @@ name = "constellation"
 path = "lib.rs"
 
 [dependencies]
+background_hang_monitor = { path = "../background_hang_monitor"}
 backtrace = "0.3"
 bluetooth_traits = { path = "../bluetooth_traits" }
 canvas = {path = "../canvas"}
