@@ -26586,7 +26586,7 @@
    "testharness"
   ], 
   "mozilla/FileAPI/resource/file-submission.py": [
-   "31984a9f0e4fb5c7e759e495bae34788416f0cf4", 
+   "24d5129eb8d38c9415622c78ed401ae344273ce1", 
    "support"
   ], 
   "mozilla/FileAPI/resource/upload.txt": [
@@ -32530,7 +32530,7 @@
    "support"
   ], 
   "mozilla/resources/brotli.py": [
-   "b6f0f9b2a57105db9a76a0cdaee6f5353580b40b", 
+   "ca49df23367e8da5b55e93852ef56c760dc3df6b", 
    "support"
   ], 
   "mozilla/resources/external.js": [
@@ -32554,7 +32554,7 @@
    "support"
   ], 
   "mozilla/resources/no_mime_type.py": [
-   "55304d50081af9c2350399bfe0fbbb2d8c5b33b9", 
+   "ba42a7f24fed3960bce2318ed987ce1b8be32c76", 
    "support"
   ], 
   "mozilla/resources/origin_helpers.js": [
