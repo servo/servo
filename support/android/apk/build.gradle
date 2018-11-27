@@ -14,7 +14,7 @@ allprojects {
     repositories {
         jcenter()
         flatDir {
-            dirs rootDir.absolutePath + "/../../../target/android_aar"
+            dirs rootDir.absolutePath + "/../../../target/android/aar"
         }
         google()
     }
@@ -23,7 +23,7 @@ allprojects {
 // Utility methods
 String getTargetDir(boolean debug, String arch) {
     def basePath = project.rootDir.getParentFile().getParentFile().getParentFile().absolutePath
-    return basePath + '/target/' + getSubTargetDir(debug, arch)
+    return basePath + '/target/android/' + getSubTargetDir(debug, arch)
 }
 
 String getSubTargetDir(boolean debug, String arch) {

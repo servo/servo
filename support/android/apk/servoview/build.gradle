@@ -8,7 +8,7 @@ android {
     compileSdkVersion 27
     buildToolsVersion '27.0.3'
 
-    buildDir = rootDir.absolutePath + "/../../../target/gradle/servoview"
+    buildDir = rootDir.absolutePath + "/../../../target/android/gradle/servoview"
 
     defaultConfig {
         minSdkVersion 18
