@@ -42,7 +42,7 @@ function unsafe_pull_from_upstream() {
 
     # Update the manifest to include the new changes.
     ./mach update-manifest || return 3
-    # Update the manifest again to reach a fixed state (https://github.com/servo/servo/issues/22235).
+    # Update the manifest again to reach a fixed state (https://github.com/servo/servo/issues/22275).
     ./mach update-manifest || return 4
 
     # Amend the existing commit with the new changes from updating the manifest.
