@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Positioned Layout Module Level 3: parsing inset-start with invalid values</title>
+<link rel="help" href="https://drafts.csswg.org/css-position/#propdef-inset-start">
+<meta name="assert" content="inset-start supports only the grammar 'auto | <length-percentage>'.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+test_invalid_value("inset-start", "min-content");
+
+test_invalid_value("inset-start", "60");
+test_invalid_value("inset-start", "10px 20%");
+</script>
+</body>
+</html>

@@ -17,7 +17,7 @@
   test(function() {
     assert_array_equals(
       document.policy.getAllowlistForFeature('fullscreen'),
-      [cross_origin, 'https://www.example.com']);
+      [cross_origin, 'https://www.example.com'].sort());
   }, header_policy + ' -- test allowlist is [cross_origin, https://www.example.com]');
 
   // Test that fullscreen is disallowed on same_origin, allowed on some cross_origin subframes.

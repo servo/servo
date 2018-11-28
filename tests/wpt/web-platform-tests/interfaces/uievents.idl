@@ -96,11 +96,13 @@ dictionary WheelEventInit : MouseEventInit {
 interface InputEvent : UIEvent {
   readonly attribute DOMString? data;
   readonly attribute boolean isComposing;
+  readonly attribute DOMString inputType;
 };
 
 dictionary InputEventInit : UIEventInit {
   DOMString? data = "";
   boolean isComposing = false;
+  DOMString inputType = "";
 };
 
 [Constructor(DOMString type, optional KeyboardEventInit eventInitDict), Exposed=Window]

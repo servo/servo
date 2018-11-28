@@ -18,7 +18,7 @@
 
     var db,
       events = [],
-      t = async_test(document.title)
+      t = async_test()
 
     var open_rq = createdb(t);
     open_rq.onupgradeneeded = function(e) {

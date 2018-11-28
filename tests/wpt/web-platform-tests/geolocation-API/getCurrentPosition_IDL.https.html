@@ -1,5 +1,6 @@
 <!DOCTYPE HTML>
 <meta charset="utf-8">
+<meta name=timeout content=long>
 <title>Geolocation Test: getCurrentPosition tests</title>
 <link rel="help" href="http://www.w3.org/TR/geolocation-API/">
 <script src="/resources/testharness.js"></script>
@@ -125,7 +126,7 @@ function errorCallback(error)
   fail.done();
 }
 
-success = async_test("getCurrentPosition success callback tests", {timeout:20000});
+success = async_test("getCurrentPosition success callback tests");
 
 // with a longer timeout and with the user accepting the position request,
 // this should test the successcallback

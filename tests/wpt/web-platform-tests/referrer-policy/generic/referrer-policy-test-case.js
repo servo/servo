@@ -22,6 +22,7 @@ function ReferrerPolicyTestCase(scenario, testDescription, sanityChecker) {
     "script-tag": queryScript,
     "worker-request": queryWorker,
     "module-worker": queryModuleWorkerTopLevel,
+    "shared-worker": querySharedWorker,
     "xhr-request": queryXhr
   };
 

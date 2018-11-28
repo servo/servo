@@ -18,7 +18,7 @@
     <div id=log></div>
     <div id=test></div>
     <script type="text/javascript">
-        var t = async_test(document.title);
+        var t = async_test();
         t.step(function () {
             assert_equals(window.getComputedStyle(document.querySelector('div#test')).display, "flex", "Display value is");
         });

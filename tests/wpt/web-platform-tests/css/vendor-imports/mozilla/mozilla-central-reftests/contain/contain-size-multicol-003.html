@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <title>CSS Test: 'contain: size' on multicol elements should cause them to be sized and baseline-aligned as if they had no contents.</title>
+  <title>CSS Test: 'contain: size' on multicol elements should cause them to be sized as if they had no contents</title>
   <link rel="author" title="Morgan Rae Reschenberg" href="mailto:mreschenberg@berkeley.edu">
   <link rel="help" href="https://drafts.csswg.org/css-contain/#containment-size">
   <link rel="match" href="contain-size-multicol-003-ref.html">
@@ -37,13 +37,16 @@
   </style>
 </head>
 <body>
-  <!--CSS Test: A size-contained multicol element should perform baseline alignment as if it had no contents.-->
-  <!-- XXX: This chunk needs to move to a separate test (Bug 1507663)
+  <!-- This test verifies that contain:size doesn't interfere with the
+       determination of a multicol element's baseline. -->
   <div class="flexBaselineCheck">
-  outside before<div class="contain"><div class="innerContents">inner</div></div>outside after
+    outside before
+    <div class="contain">
+      <div class="innerContents">inner</div>
+    </div>
+    outside after
   </div>
   <br>
-  -->
 
   <!--The following tests are used to ensure column-gaps and column-widths continue to contribute to the minimum and maximum width of a size-contained multicol element. Each should render as if it had no contents.-->
 

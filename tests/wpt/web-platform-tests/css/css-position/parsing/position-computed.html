@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Positioned Layout Module Level 3: getComputedValue().position</title>
+<link rel="help" href="https://drafts.csswg.org/css-position/#propdef-position">
+<meta name="assert" content="position computed value is as specified.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+</head>
+<body>
+<div id="target"></div>
+<script>
+test_computed_value("position", "static");
+test_computed_value("position", "relative");
+test_computed_value("position", "absolute");
+test_computed_value("position", "sticky");
+test_computed_value("position", "fixed");
+</script>
+</body>
+</html>

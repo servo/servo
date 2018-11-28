@@ -437,3 +437,27 @@ test(() => {
 test(() => {
   assert_throws(new RangeError(), () => new TransformStream({ writableType: 'bytes' }), 'constructor should throw');
 }, 'specifying a defined writableType should throw');
+
+test(() => {
+  class Subclass extends TransformStream {
+    extraFunction() {
+      return true;
+    }
+  }
+  assert_equals(
+      Object.getPrototypeOf(Subclass.prototype), TransformStream.prototype,
+      'Subclass.prototype\'s prototype should be TransformStream.prototype');
+  assert_equals(Object.getPrototypeOf(Subclass), TransformStream,
+                'Subclass\'s prototype should be TransformStream');
+  const sub = new Subclass();
+  assert_true(sub instanceof TransformStream,
+              'Subclass object should be an instance of TransformStream');
+  assert_true(sub instanceof Subclass,
+              'Subclass object should be an instance of Subclass');
+  const readableGetter = Object.getOwnPropertyDescriptor(
+      TransformStream.prototype, 'readable').get;
+  assert_equals(readableGetter.call(sub), sub.readable,
+                'Subclass object should pass brand check');
+  assert_true(sub.extraFunction(),
+              'extraFunction() should be present on Subclass object');
+}, 'Subclassing TransformStream should work');

@@ -1,0 +1,20 @@
+<!doctype html>
+<meta charset=utf-8>
+<title></title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<style type="text/css">
+    :root {
+        pointer-events: none;
+    }
+</style>
+<html>
+    <body>
+    </body>
+</html>
+<script>
+    test(() => {
+        let cs = window.getComputedStyle(document.documentElement).getPropertyValue("pointer-events");
+        assert_equals(cs, 'none');
+    });
+</script>

@@ -1,6 +1,7 @@
 // META: global=worker
 // META: script=../resources/rs-utils.js
 // META: script=../resources/test-utils.js
+// META: script=../resources/recording-streams.js
 'use strict';
 
 function duckTypedPassThroughTransform() {
@@ -56,167 +57,97 @@ promise_test(() => {
 }, 'Piping through a transform errored on the writable end does not cause an unhandled promise rejection');
 
 test(() => {
-  let calledWithArgs;
-  const dummy = {
-    pipeTo(...args) {
-      calledWithArgs = args;
-
-      // Does not return anything, testing the spec's guard against trying to mark [[PromiseIsHandled]] on undefined.
-    }
-  };
-
-  const fakeWritable = { fake: 'writable' };
-  const fakeReadable = { fake: 'readable' };
-  const arg2 = { arg: 'arg2' };
-  const arg3 = { arg: 'arg3' };
-  const result =
-    ReadableStream.prototype.pipeThrough.call(dummy, { writable: fakeWritable, readable: fakeReadable }, arg2, arg3);
-
-  assert_array_equals(calledWithArgs, [fakeWritable, arg2],
-    'The this value\'s pipeTo method should be called with the appropriate arguments');
-  assert_equals(result, fakeReadable, 'return value should be the passed readable property');
-
-}, 'pipeThrough generically calls pipeTo with the appropriate args');
-
-test(() => {
-  const dummy = {
+  let calledPipeTo = false;
+  class BadReadableStream extends ReadableStream {
     pipeTo() {
-      return { not: 'a promise' };
+      calledPipeTo = true;
     }
-  };
-
-  ReadableStream.prototype.pipeThrough.call(dummy, uninterestingReadableWritablePair());
-
-  // Test passes if this doesn't throw or crash.
-
-}, 'pipeThrough can handle calling a pipeTo that returns a non-promise object');
-
-test(() => {
-  const dummy = {
-    pipeTo() {
-      return {
-        then() {},
-        this: 'is not a real promise'
-      };
-    }
-  };
-
-  ReadableStream.prototype.pipeThrough.call(dummy, uninterestingReadableWritablePair());
-
-  // Test passes if this doesn't throw or crash.
-
-}, 'pipeThrough can handle calling a pipeTo that returns a non-promise thenable object');
-
-promise_test(() => {
-  const dummy = {
-    pipeTo() {
-      return Promise.reject(new Error('this rejection should not be reported as unhandled'));
-    }
-  };
-
-  ReadableStream.prototype.pipeThrough.call(dummy, uninterestingReadableWritablePair());
-
-  // The test harness should complain about unhandled rejections by then.
-  return flushAsyncEvents();
-
-}, 'pipeThrough should mark a real promise from a fake readable as handled');
-
-test(() => {
-  let thenCalled = false;
-  let catchCalled = false;
-  const dummy = {
-    pipeTo() {
-      const fakePromise = Object.create(Promise.prototype);
-      fakePromise.then = () => {
-        thenCalled = true;
-      };
-      fakePromise.catch = () => {
-        catchCalled = true;
-      };
-      assert_true(fakePromise instanceof Promise, 'fakePromise fools instanceof');
-      return fakePromise;
-    }
-  };
-
-  // An incorrect implementation which uses an internal method to mark the promise as handled will throw or crash here.
-  ReadableStream.prototype.pipeThrough.call(dummy, uninterestingReadableWritablePair());
-
-  // An incorrect implementation that tries to mark the promise as handled by calling .then() or .catch() on the object
-  // will fail these tests.
-  assert_false(thenCalled, 'then should not be called');
-  assert_false(catchCalled, 'catch should not be called');
-}, 'pipeThrough should not be fooled by an object whose instanceof Promise returns true');
-
-test(() => {
-  const pairs = [
-    {},
-    { readable: undefined, writable: undefined },
-    { readable: 'readable' },
-    { readable: 'readable', writable: undefined },
-    { writable: 'writable' },
-    { readable: undefined, writable: 'writable' }
-  ];
-  for (let i = 0; i < pairs.length; ++i) {
-    const pair = pairs[i];
-    const rs = new ReadableStream();
-    assert_throws(new TypeError(), () => rs.pipeThrough(pair),
-                  `pipeThrough should throw for argument ${JSON.stringify(pair)} (index ${i});`);
   }
-}, 'undefined readable or writable arguments should cause pipeThrough to throw');
 
-test(() => {
-  const invalidArguments = [null, 0, NaN, '', [], {}, false, () => {}];
-  for (const arg of invalidArguments) {
+  const brs = new BadReadableStream({
+    start(controller) {
+      controller.close();
+    }
+  });
+  const readable = new ReadableStream();
+  const writable = new WritableStream();
+  const result = brs.pipeThrough({ readable, writable });
+
+  assert_false(calledPipeTo, 'the overridden pipeTo should not have been called');
+  assert_equals(result, readable, 'return value should be the passed readable property');
+}, 'pipeThrough should not call pipeTo on this');
+
+test(t => {
+  let calledFakePipeTo = false;
+  const realPipeTo = ReadableStream.prototype.pipeTo;
+  t.add_cleanup(() => {
+    ReadableStream.prototype.pipeTo = realPipeTo;
+  });
+  ReadableStream.prototype.pipeTo = () => {
+    calledFakePipeTo = true;
+  };
+  const rs = new ReadableStream();
+  const readable = new ReadableStream();
+  const writable = new WritableStream();
+  const result = rs.pipeThrough({ readable, writable });
+
+  assert_false(calledFakePipeTo, 'the monkey-patched pipeTo should not have been called');
+  assert_equals(result, readable, 'return value should be the passed readable property');
+
+}, 'pipeThrough should not call pipeTo on the ReadableStream prototype');
+
+const badReadables = [null, undefined, 0, NaN, true, 'ReadableStream', Object.create(ReadableStream.prototype)];
+for (const readable of badReadables) {
+  test(() => {
+    assert_throws(new TypeError(),
+                  ReadableStream.prototype.pipeThrough.bind(readable, uninterestingReadableWritablePair()),
+                  'pipeThrough should throw');
+  }, `pipeThrough should brand-check this and not allow '${readable}'`);
+
+  test(() => {
     const rs = new ReadableStream();
-    assert_equals(arg, rs.pipeThrough({ writable: new WritableStream(), readable: arg }),
-                  'pipeThrough() should not throw for readable: ' + JSON.stringify(arg));
-    const rs2 = new ReadableStream();
-    assert_equals(rs2, rs.pipeThrough({ writable: arg, readable: rs2 }),
-                  'pipeThrough() should not throw for writable: ' + JSON.stringify(arg));
-  }
-}, 'invalid but not undefined arguments should not cause pipeThrough to throw');
+    const writable = new WritableStream();
+    let writableGetterCalled = false;
+    assert_throws(new TypeError(), () => rs.pipeThrough({
+      get writable() {
+        writableGetterCalled = true;
+        return new WritableStream();
+      },
+      readable
+    }),
+                  'pipeThrough should brand-check readable');
+    assert_true(writableGetterCalled, 'writable should have been accessed');
+  }, `pipeThrough should brand-check readable and not allow '${readable}'`);
+}
 
-test(() => {
+const badWritables = [null, undefined, 0, NaN, true, 'WritableStream', Object.create(WritableStream.prototype)];
+for (const writable of badWritables) {
+  test(() => {
+    const rs = new ReadableStream({
+      start(c) {
+        c.close();
+      }
+    });
+    let readableGetterCalled = false;
+    assert_throws(new TypeError(), () => rs.pipeThrough({
+      get readable() {
+        readableGetterCalled = true;
+        return new ReadableStream();
+      },
+      writable
+    }),
+                  'pipeThrough should brand-check writable');
+    assert_true(readableGetterCalled, 'readable should have been accessed');
+  }, `pipeThrough should brand-check writable and not allow '${writable}'`);
+}
 
-  const thisValue = {
-    pipeTo() {
-      assert_unreached('pipeTo should not be called');
-    }
-  };
+test(t => {
+  const error = new Error();
+  error.name = 'custom';
 
-  methodThrows(ReadableStream.prototype, 'pipeThrough', thisValue, [undefined, {}]);
-  methodThrows(ReadableStream.prototype, 'pipeThrough', thisValue, [null, {}]);
-
-}, 'pipeThrough should throw when its first argument is not convertible to an object');
-
-test(() => {
-
-  const args = [{ readable: {}, writable: {} }, {}];
-
-  methodThrows(ReadableStream.prototype, 'pipeThrough', undefined, args);
-  methodThrows(ReadableStream.prototype, 'pipeThrough', null, args);
-  methodThrows(ReadableStream.prototype, 'pipeThrough', 1, args);
-  methodThrows(ReadableStream.prototype, 'pipeThrough', { pipeTo: 'test' }, args);
-
-}, 'pipeThrough should throw when "this" has no pipeTo method');
-
-test(() => {
-  const error = new Error('potato');
-
-  const throwingPipeTo = {
-    get pipeTo() {
-      throw error;
-    }
-  };
-  assert_throws(error,
-    () => ReadableStream.prototype.pipeThrough.call(throwingPipeTo, { readable: { }, writable: { } }, {}),
-    'pipeThrough should rethrow the error thrown by pipeTo');
-
-  const thisValue = {
-    pipeTo() {
-      assert_unreached('pipeTo should not be called');
-    }
-  };
+  const rs = new ReadableStream({
+    pull: t.unreached_func('pull should not be called')
+  }, { highWaterMark: 0 });
 
   const throwingWritable = {
     readable: {},
@@ -225,8 +156,8 @@ test(() => {
     }
   };
   assert_throws(error,
-    () => ReadableStream.prototype.pipeThrough.call(thisValue, throwingWritable, {}),
-    'pipeThrough should rethrow the error thrown by the writable getter');
+                () => ReadableStream.prototype.pipeThrough.call(rs, throwingWritable, {}),
+                'pipeThrough should rethrow the error thrown by the writable getter');
 
   const throwingReadable = {
     get readable() {
@@ -235,22 +166,90 @@ test(() => {
     writable: {}
   };
   assert_throws(error,
-    () => ReadableStream.prototype.pipeThrough.call(thisValue, throwingReadable, {}),
-    'pipeThrough should rethrow the error thrown by the readable getter');
+                () => ReadableStream.prototype.pipeThrough.call(rs, throwingReadable, {}),
+                'pipeThrough should rethrow the error thrown by the readable getter');
 
-}, 'pipeThrough should rethrow errors from accessing pipeTo, readable, or writable');
+}, 'pipeThrough should rethrow errors from accessing readable or writable');
+
+const badSignals = [null, 0, NaN, true, 'AbortSignal', Object.create(AbortSignal.prototype)];
+for (const signal of badSignals) {
+  test(() => {
+    const rs = new ReadableStream();
+    assert_throws(new TypeError(), () => rs.pipeThrough(uninterestingReadableWritablePair(), { signal }),
+                  'pipeThrough should throw');
+  }, `invalid values of signal should throw; specifically '${signal}'`);
+}
 
 test(() => {
+  const rs = new ReadableStream();
+  const controller = new AbortController();
+  const signal = controller.signal;
+  rs.pipeThrough(uninterestingReadableWritablePair(), { signal });
+}, 'pipeThrough should accept a real AbortSignal');
 
-  let count = 0;
-  const thisValue = {
-    pipeTo() {
-      ++count;
+test(() => {
+  const rs = new ReadableStream();
+  rs.getReader();
+  assert_throws(new TypeError(), () => rs.pipeThrough(uninterestingReadableWritablePair()),
+                'pipeThrough should throw');
+}, 'pipeThrough should throw if this is locked');
+
+test(() => {
+  const rs = new ReadableStream();
+  const writable = new WritableStream();
+  const readable = new ReadableStream();
+  writable.getWriter();
+  assert_throws(new TypeError(), () => rs.pipeThrough({writable, readable}),
+                'pipeThrough should throw');
+}, 'pipeThrough should throw if writable is locked');
+
+test(() => {
+  const rs = new ReadableStream();
+  const writable = new WritableStream();
+  const readable = new ReadableStream();
+  readable.getReader();
+  assert_equals(rs.pipeThrough({ writable, readable }), readable,
+                'pipeThrough should not throw');
+}, 'pipeThrough should not care if readable is locked');
+
+promise_test(() => {
+  const rs = recordingReadableStream();
+  const writable = new WritableStream({
+    start(controller) {
+      controller.error();
     }
-  };
+  });
+  const readable = new ReadableStream();
+  rs.pipeThrough({ writable, readable }, { preventCancel: true });
+  return flushAsyncEvents(0).then(() => {
+    assert_array_equals(rs.events, ['pull'], 'cancel should not have been called');
+  });
+}, 'preventCancel should work');
 
-  ReadableStream.prototype.pipeThrough.call(thisValue, { readable: {}, writable: {} });
+promise_test(() => {
+  const rs = new ReadableStream({
+    start(controller) {
+      controller.close();
+    }
+  });
+  const writable = recordingWritableStream();
+  const readable = new ReadableStream();
+  rs.pipeThrough({ writable, readable }, { preventClose: true });
+  return flushAsyncEvents(0).then(() => {
+    assert_array_equals(writable.events, [], 'writable should not be closed');
+  });
+}, 'preventClose should work');
 
-  assert_equals(count, 1, 'pipeTo was called once');
-
-}, 'pipeThrough should work with no options argument');
+promise_test(() => {
+  const rs = new ReadableStream({
+    start(controller) {
+      controller.error();
+    }
+  });
+  const writable = recordingWritableStream();
+  const readable = new ReadableStream();
+  rs.pipeThrough({ writable, readable }, { preventAbort: true });
+  return flushAsyncEvents(0).then(() => {
+    assert_array_equals(writable.events, [], 'writable should not be aborted');
+  });
+}, 'preventAbort should work');

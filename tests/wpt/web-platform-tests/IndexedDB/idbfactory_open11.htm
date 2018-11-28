@@ -8,7 +8,7 @@
 <script>
     var db;
     var count_done = 0;
-    var open_rq = createdb(async_test(document.title));
+    var open_rq = createdb(async_test());
 
     open_rq.onupgradeneeded = function(e) {
         db = e.target.result;

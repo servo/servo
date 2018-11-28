@@ -11,7 +11,7 @@
   <body>
     <div id="log"></div>
     <script>
-      var test = async_test(document.title, {timeout:1100})
+      var test = async_test()
       test.step(function() {
         var client = new XMLHttpRequest()
         prepare_xhr_for_event_order_test(client);

@@ -67,7 +67,7 @@ test(() => {
   assert_equals(rs.cancel.length, 1, 'cancel should have 1 parameter');
   assert_equals(rs.constructor.length, 0, 'constructor should have no parameters');
   assert_equals(rs.getReader.length, 0, 'getReader should have no parameters');
-  assert_equals(rs.pipeThrough.length, 2, 'pipeThrough should have 2 parameters');
+  assert_equals(rs.pipeThrough.length, 1, 'pipeThrough should have 1 parameters');
   assert_equals(rs.pipeTo.length, 1, 'pipeTo should have 1 parameter');
   assert_equals(rs.tee.length, 0, 'tee should have no parameters');
 
@@ -772,11 +772,28 @@ test(() => {
 }, 'ReadableStream: desiredSize when errored');
 
 test(() => {
-   class Extended extends ReadableStream {
-     newMethod() { return 'foo' };
-   };
-   assert_equals((new Extended()).newMethod(), 'foo');
-}, 'ReadableStream: ReadableStream is extendable');
+  class Subclass extends ReadableStream {
+    extraFunction() {
+      return true;
+    }
+  }
+  assert_equals(
+      Object.getPrototypeOf(Subclass.prototype), ReadableStream.prototype,
+      'Subclass.prototype\'s prototype should be ReadableStream.prototype');
+  assert_equals(Object.getPrototypeOf(Subclass), ReadableStream,
+                'Subclass\'s prototype should be ReadableStream');
+  const sub = new Subclass();
+  assert_true(sub instanceof ReadableStream,
+              'Subclass object should be an instance of ReadableStream');
+  assert_true(sub instanceof Subclass,
+              'Subclass object should be an instance of Subclass');
+  const lockedGetter = Object.getOwnPropertyDescriptor(
+      ReadableStream.prototype, 'locked').get;
+  assert_equals(lockedGetter.call(sub), sub.locked,
+                'Subclass object should pass brand check');
+  assert_true(sub.extraFunction(),
+              'extraFunction() should be present on Subclass object');
+}, 'Subclassing ReadableStream should work');
 
 test(() => {
 

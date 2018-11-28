@@ -38,6 +38,22 @@ gen-signedexchange \
   -o sxg-location.sxg \
   -miRecordSize 100
 
+# Request method is HEAD.
+gen-signedexchange \
+  -version 1b2 \
+  -method HEAD \
+  -uri $inner_url_origin/signed-exchange/resources/inner-url.html \
+  -status 200 \
+  -content sxg-location.html \
+  -certificate $certfile \
+  -certUrl $cert_url_origin/signed-exchange/resources/$certfile.cbor \
+  -validityUrl $inner_url_origin/signed-exchange/resources/resource.validity.msg \
+  -privateKey $keyfile \
+  -date 2018-04-01T00:00:00Z \
+  -expire 168h \
+  -o sxg-head-request.sxg \
+  -miRecordSize 100
+
 # validityUrl is different origin from request URL.
 gen-signedexchange \
   -version 1b2 \

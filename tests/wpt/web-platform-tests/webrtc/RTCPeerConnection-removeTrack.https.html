@@ -175,7 +175,7 @@
     const offer = await caller.createOffer();
     await caller.setLocalDescription(offer);
     await callee.setRemoteDescription(offer);
-    callee.addTrack(track);
+    callee.addTrack(track, stream);
     const answer = await callee.createAnswer();
     await callee.setLocalDescription(answer);
     await caller.setRemoteDescription(answer);
@@ -244,7 +244,7 @@
     const offer = await caller.createOffer();
     await caller.setLocalDescription(offer);
     await callee.setRemoteDescription(offer);
-    callee.addTrack(track);
+    callee.addTrack(track, stream);
     const answer = await callee.createAnswer();
     await callee.setLocalDescription(answer);
     await caller.setRemoteDescription(answer);

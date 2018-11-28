@@ -19,7 +19,6 @@ if "CURRENT_TOX_ENV" in os.environ:
     tox_env_extra_browsers = {
         "chrome": {"chrome_android"},
         "edge": {"edge_webdriver"},
-        "safari": {"safari_webdriver"},
         "servo": {"servodriver"},
     }
 

@@ -49,7 +49,7 @@ jobs:
     displayName: 'Run tests (Chrome Dev)'
   - script: no_proxy='*' ./wpt run --yes --no-manifest-update --manifest MANIFEST.json --metadata infrastructure/metadata/ --channel=nightly firefox infrastructure/
     displayName: 'Run tests (Firefox Nightly)'
-  - script: no_proxy='*' ./wpt run --yes --no-manifest-update --manifest MANIFEST.json --metadata infrastructure/metadata/ --channel=preview safari_webdriver infrastructure/
+  - script: no_proxy='*' ./wpt run --yes --no-manifest-update --manifest MANIFEST.json --metadata infrastructure/metadata/ --channel=preview safari infrastructure/
     displayName: 'Run tests (Safari Technology Preview)'
 
 - job: tools_unittest_macOS

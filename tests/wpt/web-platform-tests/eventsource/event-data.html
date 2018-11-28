@@ -20,7 +20,7 @@ Process the field using the steps described below, using the whole line as the f
   <body>
     <div id="log"></div>
     <script>
-      var test = async_test(document.title);
+      var test = async_test();
       test.step(function() {
         var source = new EventSource("resources/message2.py"),
             counter = 0;
