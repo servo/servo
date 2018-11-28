@@ -13,10 +13,10 @@ def main(task_for, mock=False):
         if CONFIG.git_ref in ["refs/heads/auto", "refs/heads/try", "refs/heads/try-taskcluster"]:
             CONFIG.treeherder_repo_name = "servo/servo-" + CONFIG.git_ref.split("/")[-1]
 
-            linux_tidy_unit()
-            android_arm32()
-            windows_unit()
-            macos_unit()
+            # linux_tidy_unit()
+            # android_arm32()
+            # windows_unit()
+            # macos_unit()
 
             # These are disabled in a "real" decision task,
             # but should still run when testing this Python code. (See `mock.py`.)
