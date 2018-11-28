@@ -113,14 +113,14 @@ use net_traits::{
 };
 use profile_traits::mem::{self as profile_mem, OpaqueSender, ReportsChan};
 use profile_traits::time::{self as profile_time, profile, ProfilerCategory};
-use script_layout_interface::message::{self, Msg, NewLayoutThreadInfo, ReflowGoal};
+use script_layout_interface::message::{self, Msg, ReflowGoal};
 use script_traits::webdriver_msg::WebDriverScriptCommand;
 use script_traits::CompositorEvent::{
     CompositionEvent, KeyboardEvent, MouseButtonEvent, MouseMoveEvent, ResizeEvent, TouchEvent,
 };
 use script_traits::{CompositorEvent, ConstellationControlMsg};
-use script_traits::{DiscardBrowsingContext, DocumentActivity, EventResult};
-use script_traits::{InitialScriptState, JsEvalResult, LayoutMsg, LoadData};
+use script_traits::{DiscardBrowsingContext, DocumentActivity, EventResult, FrameType};
+use script_traits::{InitialScriptState, JsEvalResult, LayoutMsg, LayoutPerThreadInfo, LoadData};
 use script_traits::{MouseButton, MouseEventType, NewLayoutInfo};
 use script_traits::{Painter, ProgressiveWebMetricType, ScriptMsg, ScriptThreadFactory};
 use script_traits::{ScriptToConstellationChan, TimerEvent, TimerSchedulerMsg};
@@ -1846,20 +1846,23 @@ impl ScriptThread {
             layout_threads,
         } = new_layout_info;
 
-        let layout_pair = unbounded();
-        let layout_chan = layout_pair.0.clone();
+        let (script_to_layout_sender, script_to_layout_receiver) = unbounded();
 
-        let msg = message::Msg::CreateLayoutThread(NewLayoutThreadInfo {
-            id: new_pipeline_id,
-            url: load_data.url.clone(),
-            is_parent: false,
-            layout_pair: layout_pair,
-            pipeline_port: pipeline_port,
-            constellation_chan: self.layout_to_constellation_chan.clone(),
-            script_chan: self.control_chan.clone(),
+        // Proxy IPC messages from the pipeline to the layout thread.
+        let pipeline_receiver = ROUTER.route_ipc_receiver_to_new_crossbeam_receiver(pipeline_port);
+
+        let msg = message::Msg::CreateLayoutThread(LayoutPerThreadInfo {
+            local_pipeline_id: new_pipeline_id,
+            current_url: load_data.url.clone(),
+            frame_type: FrameType::RootWindow,
+            script_to_layout_sender: script_to_layout_sender.clone(),
+            script_to_layout_receiver,
+            pipeline_receiver,
+            constellation_sender: self.layout_to_constellation_chan.clone(),
+            layout_to_script_sender: self.control_chan.clone(),
             image_cache: self.image_cache.clone(),
-            content_process_shutdown_chan: content_process_shutdown_chan,
-            layout_threads: layout_threads,
+            content_process_shutdown_sender: content_process_shutdown_chan,
+            layout_thread_count: layout_threads,
             paint_time_metrics: PaintTimeMetrics::new(
                 new_pipeline_id,
                 self.time_profiler_chan.clone(),
@@ -1896,7 +1899,7 @@ impl ScriptThread {
             top_level_browsing_context_id,
             parent_info,
             opener,
-            layout_chan,
+            script_to_layout_sender,
             window_size,
             load_data.url.clone(),
             origin,

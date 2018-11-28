@@ -18,6 +18,7 @@ metrics = {path = "../metrics"}
 msg = {path = "../msg"}
 net_traits = {path = "../net_traits"}
 profile_traits = {path = "../profile_traits"}
+script_layout_interface = {path = "../script_layout_interface"}
 script_traits = {path = "../script_traits"}
 servo_url = {path = "../url"}
 webrender_api = {git = "https://github.com/servo/webrender", features = ["ipc"]}

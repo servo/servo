@@ -13,9 +13,9 @@ use metrics::PaintTimeMetrics;
 use msg::constellation_msg::PipelineId;
 use net_traits::image_cache::ImageCache;
 use profile_traits::mem::ReportsChan;
-use script_traits::Painter;
 use script_traits::{ConstellationControlMsg, LayoutControlMsg, LayoutMsg as ConstellationMsg};
-use script_traits::{ScrollState, UntrustedNodeAddress, WindowSizeData};
+use script_traits::{LayoutPerThreadInfo, Painter, ScrollState};
+use script_traits::{UntrustedNodeAddress, WindowSizeData};
 use servo_arc::Arc as ServoArc;
 use servo_atoms::Atom;
 use servo_url::ServoUrl;
@@ -81,7 +81,7 @@ pub enum Msg {
     /// Creates a new layout thread.
     ///
     /// This basically exists to keep the script-layout dependency one-way.
-    CreateLayoutThread(NewLayoutThreadInfo),
+    CreateLayoutThread(LayoutPerThreadInfo<Msg, PaintTimeMetrics>),
 
     /// Set the final Url.
     SetFinalUrl(ServoUrl),
@@ -204,18 +204,4 @@ pub struct ScriptReflow {
     pub reflow_goal: ReflowGoal,
     /// The number of objects in the dom #10110
     pub dom_count: u32,
-}
-
-pub struct NewLayoutThreadInfo {
-    pub id: PipelineId,
-    pub url: ServoUrl,
-    pub is_parent: bool,
-    pub layout_pair: (Sender<Msg>, Receiver<Msg>),
-    pub pipeline_port: IpcReceiver<LayoutControlMsg>,
-    pub constellation_chan: IpcSender<ConstellationMsg>,
-    pub script_chan: IpcSender<ConstellationControlMsg>,
-    pub image_cache: Arc<dyn ImageCache>,
-    pub content_process_shutdown_chan: Option<IpcSender<()>>,
-    pub layout_threads: usize,
-    pub paint_time_metrics: PaintTimeMetrics,
 }

@@ -16,9 +16,11 @@ use metrics::PaintTimeMetrics;
 use msg::constellation_msg::PipelineId;
 use msg::constellation_msg::TopLevelBrowsingContextId;
 use net_traits::image_cache::ImageCache;
-use profile_traits::{mem, time};
+use profile_traits::mem::ProfilerChan as MemProfilerSender;
+use profile_traits::time::ProfilerChan as TimeProfilerSender;
+use script_layout_interface::message::Msg;
 use script_traits::LayoutMsg as ConstellationMsg;
-use script_traits::{ConstellationControlMsg, LayoutControlMsg};
+use script_traits::{ConstellationControlMsg, LayoutControlMsg, LayoutPerThreadInfo};
 use servo_url::ServoUrl;
 use std::sync::Arc;
 
@@ -26,23 +28,16 @@ use std::sync::Arc;
 // Here to remove the compositor -> layout dependency
 pub trait LayoutThreadFactory {
     type Message;
-    fn create(
-        id: PipelineId,
-        top_level_browsing_context_id: TopLevelBrowsingContextId,
-        url: ServoUrl,
-        is_iframe: bool,
-        chan: (Sender<Self::Message>, Receiver<Self::Message>),
-        pipeline_port: IpcReceiver<LayoutControlMsg>,
-        constellation_chan: IpcSender<ConstellationMsg>,
-        script_chan: IpcSender<ConstellationControlMsg>,
-        image_cache: Arc<dyn ImageCache>,
-        font_cache_thread: FontCacheThread,
-        time_profiler_chan: time::ProfilerChan,
-        mem_profiler_chan: mem::ProfilerChan,
-        content_process_shutdown_chan: Option<IpcSender<()>>,
-        webrender_api_sender: webrender_api::RenderApiSender,
-        webrender_document: webrender_api::DocumentId,
-        layout_threads: usize,
-        paint_time_metrics: PaintTimeMetrics,
-    );
+    fn create(thread_info: LayoutPerThreadInfo<Self::Message, PaintTimeMetrics>,
+              global_info: LayoutGlobalInfo);
+}
+
+#[derive(Clone)]
+pub struct LayoutGlobalInfo {
+    pub top_level_context_id: TopLevelBrowsingContextId,
+    pub font_cache_thread: FontCacheThread,
+    pub time_profiler_sender: TimeProfilerSender,
+    pub mem_profiler_sender: MemProfilerSender,
+    pub webrender_api_sender: webrender_api::RenderApiSender,
+    pub webrender_document: webrender_api::DocumentId,
 }

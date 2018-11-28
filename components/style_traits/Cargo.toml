@@ -18,6 +18,7 @@ app_units = "0.7"
 cssparser = "0.25"
 bitflags = "1.0"
 euclid = "0.19"
+ipc-channel = "0.11"
 malloc_size_of = { path = "../malloc_size_of" }
 malloc_size_of_derive = { path = "../malloc_size_of_derive" }
 selectors = { path = "../selectors" }

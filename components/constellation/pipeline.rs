@@ -15,7 +15,7 @@ use gfx::font_cache_thread::FontCacheThread;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
 use ipc_channel::Error;
-use layout_traits::LayoutThreadFactory;
+use layout_traits::{LayoutGlobalInfo, LayoutThreadFactory};
 use metrics::PaintTimeMetrics;
 use msg::constellation_msg::TopLevelBrowsingContextId;
 use msg::constellation_msg::{BrowsingContextId, HistoryStateId, PipelineId, PipelineNamespaceId};
@@ -25,8 +25,8 @@ use net_traits::{IpcSend, ResourceThreads};
 use profile_traits::mem as profile_mem;
 use profile_traits::time;
 use script_traits::{ConstellationControlMsg, DiscardBrowsingContext, ScriptToConstellationChan};
-use script_traits::{DocumentActivity, InitialScriptState};
-use script_traits::{LayoutControlMsg, LayoutMsg, LoadData};
+use script_traits::{DocumentActivity, FrameType, InitialScriptState};
+use script_traits::{LayoutControlMsg, LayoutMsg, LayoutPerThreadInfo, LoadData};
 use script_traits::{NewLayoutInfo, SWManagerMsg, SWManagerSenders};
 use script_traits::{ScriptThreadFactory, TimerSchedulerMsg, WindowSizeData};
 use servo_config::opts::{self, Opts};
@@ -493,7 +493,7 @@ impl UnprivilegedPipelineContent {
             self.script_chan.clone(),
             self.load_data.url.clone(),
         );
-        let layout_pair = STF::create(
+        let (script_to_layout_sender, script_to_layout_receiver) = STF::create(
             InitialScriptState {
                 id: self.id,
                 browsing_context_id: self.browsing_context_id,
@@ -522,30 +522,43 @@ impl UnprivilegedPipelineContent {
             self.load_data.clone(),
         );
 
-        LTF::create(
-            self.id,
-            self.top_level_browsing_context_id,
-            self.load_data.url,
-            self.parent_pipeline_id.is_some(),
-            layout_pair,
-            self.pipeline_port,
-            self.layout_to_constellation_chan,
-            self.script_chan,
-            image_cache.clone(),
-            self.font_cache_thread,
-            self.time_profiler_chan,
-            self.mem_profiler_chan,
-            Some(self.layout_content_process_shutdown_chan),
-            self.webrender_api_sender,
-            self.webrender_document,
-            self.prefs
-                .get("layout.threads")
-                .expect("exists")
-                .value()
-                .as_u64()
-                .expect("count") as usize,
+        let frame_type = match self.parent_pipeline_id {
+            None => FrameType::RootWindow,
+            Some(_) => FrameType::IFrame,
+        };
+
+        let layout_thread_count = self.prefs
+                                      .get("layout.threads")
+                                      .expect("exists")
+                                      .value()
+                                      .as_u64()
+                                      .expect("count") as usize;
+
+        // Proxy IPC messages from the pipeline to the layout thread.
+        let pipeline_receiver =
+            ROUTER.route_ipc_receiver_to_new_crossbeam_receiver(self.pipeline_port);
+
+        LTF::create(LayoutPerThreadInfo {
+            local_pipeline_id: self.id,
+            current_url: self.load_data.url,
+            layout_thread_count,
+            frame_type,
+            script_to_layout_sender,
+            script_to_layout_receiver,
+            pipeline_receiver,
+            constellation_sender: self.layout_to_constellation_chan,
+            layout_to_script_sender: self.script_chan,
+            content_process_shutdown_sender: Some(self.layout_content_process_shutdown_chan),
+            image_cache,
             paint_time_metrics,
-        );
+        }, LayoutGlobalInfo {
+            top_level_context_id: self.top_level_browsing_context_id,
+            font_cache_thread: self.font_cache_thread,
+            time_profiler_sender: self.time_profiler_chan,
+            mem_profiler_sender: self.mem_profiler_chan,
+            webrender_api_sender: self.webrender_api_sender,
+            webrender_document: self.webrender_document,
+        });
 
         if wait_for_completion {
             let _ = self.script_content_process_shutdown_port.recv();

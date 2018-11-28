@@ -889,3 +889,28 @@ impl ScriptToConstellationChan {
         self.sender.send((self.pipeline_id, msg))
     }
 }
+
+// TODO(pcwalton): Document.
+#[allow(missing_docs)]
+pub struct LayoutPerThreadInfo<M, PTM> {
+    pub local_pipeline_id: PipelineId,
+    pub current_url: ServoUrl,
+    pub layout_thread_count: usize,
+    pub frame_type: FrameType,
+    pub script_to_layout_sender: Sender<M>,
+    pub script_to_layout_receiver: Receiver<M>,
+    pub pipeline_receiver: Receiver<LayoutControlMsg>,
+    pub constellation_sender: IpcSender<LayoutMsg>,
+    pub layout_to_script_sender: IpcSender<ConstellationControlMsg>,
+    pub image_cache: Arc<dyn ImageCache>,
+    pub content_process_shutdown_sender: Option<IpcSender<()>>,
+    pub paint_time_metrics: PTM,
+}
+
+// TODO(pcwalton): Document.
+#[allow(missing_docs)]
+#[derive(Clone, Copy, PartialEq, Debug)]
+pub enum FrameType {
+    RootWindow,
+    IFrame,
+}
