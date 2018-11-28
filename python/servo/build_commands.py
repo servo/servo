@@ -470,7 +470,9 @@ class MachCommands(CommandBase):
 
         if magicleap:
             if platform.system() not in ["Darwin"]:
-                raise Exception("Magic Leap builds are only supported on macOS.")
+                raise Exception("Magic Leap builds are only supported on macOS. "
+                                "If you only wish to test if your code builds, "
+                                "run ./mach build -p libmlservo.")
 
             ml_sdk = env.get("MAGICLEAP_SDK")
             if not ml_sdk:
