@@ -376,8 +376,6 @@ impl WindowMethods for WindowInstance {
 
     fn prepare_for_composite(&self) -> bool {
         MakeCurrent(self.disp, self.surf, self.surf, self.ctxt);
-        self.gl
-            .viewport(0, 0, self.width as i32, self.height as i32);
         true
     }
 
