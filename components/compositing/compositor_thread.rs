@@ -17,7 +17,7 @@ use profile_traits::time;
 use script_traits::{AnimationState, ConstellationMsg, EventResult};
 use std::fmt::{Debug, Error, Formatter};
 use style_traits::viewport::ViewportConstraints;
-use webrender_api::{self, DeviceIntPoint, DeviceUintSize};
+use webrender_api::{self, DeviceIntPoint, DeviceIntSize};
 
 /// Sends messages to the compositor.
 pub struct CompositorProxy {
@@ -106,11 +106,11 @@ pub enum Msg {
     LoadComplete(TopLevelBrowsingContextId),
 
     /// Get Window Informations size and position.
-    GetClientWindow(IpcSender<(DeviceUintSize, DeviceIntPoint)>),
+    GetClientWindow(IpcSender<(DeviceIntSize, DeviceIntPoint)>),
     /// Get screen size.
-    GetScreenSize(IpcSender<DeviceUintSize>),
+    GetScreenSize(IpcSender<DeviceIntSize>),
     /// Get screen available size.
-    GetScreenAvailSize(IpcSender<DeviceUintSize>),
+    GetScreenAvailSize(IpcSender<DeviceIntSize>),
 }
 
 impl Debug for Msg {

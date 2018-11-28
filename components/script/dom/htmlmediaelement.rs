@@ -88,8 +88,8 @@ impl MediaFrameRenderer {
 impl FrameRenderer for MediaFrameRenderer {
     fn render(&mut self, frame: Frame) {
         let descriptor = ImageDescriptor::new(
-            frame.get_width() as u32,
-            frame.get_height() as u32,
+            frame.get_width(),
+            frame.get_height(),
             ImageFormat::BGRA8,
             false,
             false,
@@ -107,7 +107,12 @@ impl FrameRenderer for MediaFrameRenderer {
             Some((ref image_key, ref mut width, ref mut height))
                 if *width == frame.get_width() && *height == frame.get_height() =>
             {
-                txn.update_image(*image_key, descriptor, image_data, None);
+                txn.update_image(
+                    *image_key,
+                    descriptor,
+                    image_data,
+                    &webrender_api::DirtyRect::All,
+                );
 
                 if let Some(old_image_key) = self.old_frame.take() {
                     txn.delete_image(old_image_key);

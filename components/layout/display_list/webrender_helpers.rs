@@ -104,37 +104,43 @@ impl WebRenderDisplayItemConverter for DisplayItem {
 
         match *self {
             DisplayItem::Rectangle(ref item) => {
-                builder.push_item(SpecificDisplayItem::Rectangle(item.item), &self.prim_info());
+                builder.push_item(
+                    &SpecificDisplayItem::Rectangle(item.item),
+                    &self.prim_info(),
+                );
             },
             DisplayItem::Text(ref item) => {
-                builder.push_item(SpecificDisplayItem::Text(item.item), &self.prim_info());
+                builder.push_item(&SpecificDisplayItem::Text(item.item), &self.prim_info());
                 builder.push_iter(item.data.iter());
             },
             DisplayItem::Image(ref item) => {
-                builder.push_item(SpecificDisplayItem::Image(item.item), &self.prim_info());
+                builder.push_item(&SpecificDisplayItem::Image(item.item), &self.prim_info());
             },
             DisplayItem::Border(ref item) => {
                 if !item.data.is_empty() {
                     builder.push_stops(item.data.as_ref());
                 }
-                builder.push_item(SpecificDisplayItem::Border(item.item), &self.prim_info());
+                builder.push_item(&SpecificDisplayItem::Border(item.item), &self.prim_info());
             },
             DisplayItem::Gradient(ref item) => {
                 builder.push_stops(item.data.as_ref());
-                builder.push_item(SpecificDisplayItem::Gradient(item.item), &self.prim_info());
+                builder.push_item(&SpecificDisplayItem::Gradient(item.item), &self.prim_info());
             },
             DisplayItem::RadialGradient(ref item) => {
                 builder.push_stops(item.data.as_ref());
                 builder.push_item(
-                    SpecificDisplayItem::RadialGradient(item.item),
+                    &SpecificDisplayItem::RadialGradient(item.item),
                     &self.prim_info(),
                 );
             },
             DisplayItem::Line(ref item) => {
-                builder.push_item(SpecificDisplayItem::Line(item.item), &self.prim_info());
+                builder.push_item(&SpecificDisplayItem::Line(item.item), &self.prim_info());
             },
             DisplayItem::BoxShadow(ref item) => {
-                builder.push_item(SpecificDisplayItem::BoxShadow(item.item), &self.prim_info());
+                builder.push_item(
+                    &SpecificDisplayItem::BoxShadow(item.item),
+                    &self.prim_info(),
+                );
             },
             DisplayItem::PushTextShadow(ref item) => {
                 builder.push_shadow(&self.prim_info(), item.shadow);
