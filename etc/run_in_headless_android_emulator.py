@@ -27,6 +27,7 @@ def main(avd_name, apk_path, *args):
         "-no-window",
         "-no-snapshot",
         "-no-snapstorage",
+        "-gpu", "swiftshader_indirect",
         "-port", emulator_port,
     ]
     with terminate_on_exit(emulator_args, stdout=sys.stderr) as emulator_process:
@@ -65,8 +66,8 @@ def main(avd_name, apk_path, *args):
         # in case they say something useful while we wait in subsequent steps.
         logcat_args = [
             "--format=raw",  # Print no metadata, only log messages
-            "simpleservo:D",  # Show (debug level) Rust stdio
-            "*:S",  # Hide everything else
+            #"simpleservo:D",  # Show (debug level) Rust stdio
+            #"*:S",  # Hide everything else
         ]
         with terminate_on_exit(adb + ["logcat"] + logcat_args) as logcat:
 
