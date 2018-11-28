@@ -113,8 +113,8 @@ def android_arm32():
         .with_treeherder("Android ARMv7")
         .with_script("./mach build --android --release")
         .with_artifacts(
-            "/repo/target/armv7-linux-androideabi/release/servoapp.apk",
-            "/repo/target/armv7-linux-androideabi/release/servoview.aar",
+            "/repo/target/android/armv7-linux-androideabi/release/servoapp.apk",
+            "/repo/target/android/armv7-linux-androideabi/release/servoview.aar",
         )
         .find_or_create("build.android_armv7_release." + CONFIG.git_sha)
     )
@@ -126,8 +126,8 @@ def android_x86():
         .with_treeherder("Android x86")
         .with_script("./mach build --target i686-linux-android --release")
         .with_artifacts(
-            "/repo/target/i686-linux-android/release/servoapp.apk",
-            "/repo/target/i686-linux-android/release/servoview.aar",
+            "/repo/target/android/i686-linux-android/release/servoapp.apk",
+            "/repo/target/android/i686-linux-android/release/servoview.aar",
         )
         .find_or_create("build.android_x86_release." + CONFIG.git_sha)
     )
@@ -140,7 +140,7 @@ def android_x86():
         .with_scopes("project:servo:docker-worker-kvm:capability:privileged")
         .with_dockerfile(dockerfile_path("run-android-emulator"))
         .with_repo()
-        .with_curl_artifact_script(build_task, "servoapp.apk", "target/i686-linux-android/release")
+        .with_curl_artifact_script(build_task, "servoapp.apk", "target/android/i686-linux-android/release")
         .with_script("""
             ./mach bootstrap-android --accept-all-licences --emulator-x86
             ./mach test-android-startup --release

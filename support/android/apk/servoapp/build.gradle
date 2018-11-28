@@ -7,7 +7,7 @@ android {
     compileSdkVersion 27
     buildToolsVersion '27.0.3'
 
-    buildDir = rootDir.absolutePath + "/../../../target/gradle/servoapp"
+    buildDir = rootDir.absolutePath + "/../../../target/android/gradle/servoapp"
 
     defaultConfig {
         applicationId "org.mozilla.servo"

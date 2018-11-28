@@ -16,7 +16,7 @@ Build the mlservo library:
 ```
 MAGICLEAP_SDK=*directory*  ./mach build -d --magicleap
 ```
-This builds a static library `target/aarch64-linux-android/debug/libmlservo.a`.
+This builds a static library `target/magicleap/aarch64-linux-android/debug/libmlservo.a`.
 
 ## Building the Servo2D application
 
