@@ -575,6 +575,8 @@ fn scheme_fetch(
                 .headers
                 .typed_insert(ContentType::from(mime::TEXT_HTML_UTF_8));
             *response.body.lock().unwrap() = ResponseBody::Done(vec![]);
+            response.status = Some((StatusCode::OK, "OK".to_string()));
+            response.raw_status = Some((StatusCode::OK.as_u16(), b"OK".to_vec()));
             response
         },
 
@@ -588,6 +590,8 @@ fn scheme_fetch(
                     Response::new(url, ResourceFetchTiming::new(request.timing_type()));
                 *response.body.lock().unwrap() = ResponseBody::Done(bytes);
                 response.headers.typed_insert(ContentType::from(mime));
+                response.status = Some((StatusCode::OK, "OK".to_string()));
+                response.raw_status = Some((StatusCode::OK.as_u16(), b"OK".to_vec()));
                 response
             },
             Err(_) => {
@@ -689,6 +693,9 @@ fn scheme_fetch(
             };
 
             let mut response = Response::new(url, ResourceFetchTiming::new(request.timing_type()));
+            response.status = Some((StatusCode::OK, "OK".to_string()));
+            response.raw_status = Some((StatusCode::OK.as_u16(), b"OK".to_vec()));
+
             if is_range_request {
                 partial_content(&mut response);
             }

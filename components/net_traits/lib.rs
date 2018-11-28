@@ -534,7 +534,7 @@ impl Metadata {
             charset: None,
             headers: None,
             // https://fetch.spec.whatwg.org/#concept-response-status-message
-            status: Some((200, b"OK".to_vec())),
+            status: Some((200, b"".to_vec())),
             https_state: HttpsState::None,
             referrer: None,
             referrer_policy: None,
