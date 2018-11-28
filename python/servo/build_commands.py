@@ -564,8 +564,13 @@ class MachCommands(CommandBase):
         # Do some additional things if the build succeeded
         if status == 0:
             if android and not no_package:
+                flavor = None
+                if "googlevr" in features:
+                    flavor = "googlevr"
+                elif "oculusvr" in features:
+                    flavor = "oculusvr"
                 rv = Registrar.dispatch("package", context=self.context,
-                                        release=release, dev=dev, target=target)
+                                        release=release, dev=dev, target=target, flavor=flavor)
                 if rv:
                     return rv
 
