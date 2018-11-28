@@ -228,7 +228,7 @@
     const localStream =
         await getNoiseStream({audio: true});
     t.add_cleanup(() => localStream.getTracks().forEach(track => track.stop()));
-    caller.addTrack(localStream.getTracks()[0]);
+    caller.addTrack(localStream.getTracks()[0], localStream);
     const ontrackPromise = addEventListenerPromise(t, callee, 'track', e => {
       assert_array_equals(callee.getReceivers(), [e.receiver],
                           'getReceivers() == [e.receiver].');
@@ -245,7 +245,7 @@
     const localStream =
         await getNoiseStream({audio: true});
     t.add_cleanup(() => localStream.getTracks().forEach(track => track.stop()));
-    const sender = caller.addTrack(localStream.getTracks()[0]);
+    const sender = caller.addTrack(localStream.getTracks()[0], localStream);
     const ontrackPromise = addEventListenerPromise(t, callee, 'track');
     await exchangeOfferAnswer(caller, callee);
     await ontrackPromise;

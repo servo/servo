@@ -13,7 +13,7 @@
   <body>
     <div id="log"></div>
     <script>
-      var test = async_test(document.title)
+      var test = async_test()
       var client = new XMLHttpRequest()
       var gotTimeout = false
       client.open("GET", "http://www2." + location.hostname + (location.port ? ":" + location.port : "") +(location.pathname.replace(/[^\/]+$/, '')+'resources/corsenabled.py')+"?delay=2&code=200")

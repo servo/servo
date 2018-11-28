@@ -11,7 +11,7 @@
 
     var db, db_got_versionchange, db2,
         events = [],
-        t = async_test(document.title);
+        t = async_test();
 
     t.step(function() {
         var openrq = indexedDB.open('db', 3);

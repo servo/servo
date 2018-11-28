@@ -457,7 +457,8 @@
       "origin": "cross-origin",
       "subresource": [
         "worker-request",
-        "module-worker"
+        "module-worker",
+        "shared-worker"
       ],
       "referrer_url": "*"
     },
@@ -471,7 +472,8 @@
       "origin": "*",
       "subresource": [
         "worker-request",
-        "module-worker"
+        "module-worker",
+        "shared-worker"
       ],
       "referrer_url": "*"
     },
@@ -498,6 +500,7 @@
         "xhr-request",
         "worker-request",
         "module-worker",
+        "shared-worker",
         "fetch-request"
       ],
       "referrer_url": "*"
@@ -517,6 +520,7 @@
         "xhr-request",
         "worker-request",
         "module-worker",
+        "shared-worker",
         "fetch-request",
         "area-tag"
       ],
@@ -543,7 +547,8 @@
       "origin": "*",
       "subresource": [
         "worker-request",
-        "module-worker"
+        "module-worker",
+        "shared-worker"
       ],
       "referrer_url": "*"
     },
@@ -626,6 +631,7 @@
       "xhr-request",
       "worker-request",
       "module-worker",
+      "shared-worker",
       "fetch-request"
     ],
 
@@ -645,6 +651,7 @@
     "script-tag": "/referrer-policy/generic/subresource/script.py",
     "worker-request": "/referrer-policy/generic/subresource/worker.py",
     "module-worker": "/referrer-policy/generic/subresource/worker.py",
+    "shared-worker": "/referrer-policy/generic/subresource/shared-worker.py",
     "xhr-request": "/referrer-policy/generic/subresource/xhr.py"
   }
 }

@@ -7,6 +7,13 @@
   <style>
   button {
     border: 1em solid green;
+    /* In case the testcase's 'inner' text is taller than the button, don't let
+       it influence its line-box's size.  This lets us more-easily compare
+       sizing between empty buttons vs. contained nonempty buttons. */
+    vertical-align: top;
+  }
+  .vaBaseline {
+    vertical-align: baseline;
   }
   .width-ref {
     width: 50px;
@@ -22,12 +29,18 @@
     float: left;
     width: 50px;
   }
+  br { clear: both }
   .iFlexBasic-ref {
     display: inline-flex;
   }
   .iFlexWidth-ref {
     display: inline-flex;
     width: 50px;
+  }
+  .innerContents {
+    color: transparent;
+    height: 0;
+    width: 0;
   }
   .orthog-ref {
     writing-mode: vertical-lr;
@@ -50,7 +63,7 @@
   <button class="iFlexWidth-ref"></button>
   <br>
 
-  outside before<button></button>outside after
+  outside before<button class="vaBaseline"><div class="innerContents">inner</div></button>outside after
   <br>
 
   <button class="width-ref"></button>
@@ -65,7 +78,7 @@
   <button class="height-ref"></button>
   <br>
 
-  s<button class="orthog-ref"></button>endtext
+  s<button class="orthog-ref vaBaseline"><div class="innerContents">inner</div></button>endtext
   <br>
 
   <button class="height-ref width-ref">inside</button>

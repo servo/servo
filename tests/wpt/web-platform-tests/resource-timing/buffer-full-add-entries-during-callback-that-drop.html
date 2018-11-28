@@ -1,0 +1,51 @@
+<!DOCTYPE HTML>
+<html>
+<head onload>
+<meta charset="utf-8" />
+<title>This test validates that synchronously adding entries in onresourcetimingbufferfull callback results in these entries being properly handled.</title>
+<link rel="help" href="http://www.w3.org/TR/resource-timing/#performanceresourcetiming"/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/buffer-full-utilities.js"></script>
+</head>
+<body>
+<script>
+const resource_timing_buffer_size = 1;
+
+setup(() => {
+    // Get the browser into a consistent state.
+    clearBufferAndSetSize(resource_timing_buffer_size);
+});
+
+let overflowTheBufferAndWaitForEvent = () => {
+    return new Promise(resolve => {
+        var add_entry = () => {
+            performance.setResourceTimingBufferSize(resource_timing_buffer_size + 1);
+            // The sync entry is added to the secondary buffer, so will be the last one there and eventually dropped.
+            xhrScript("resources/empty.js?xhr");
+            resolve();
+        }
+        performance.addEventListener('resourcetimingbufferfull', add_entry);
+        // This resource overflows the entry buffer, and goes into the secondary buffer.
+        appendScript('resources/empty_script.js');
+    });
+};
+
+let testThatBufferContainsTheRightResources = () => {
+    let entries = performance.getEntriesByType('resource');
+    assert_equals(entries.length, 2,
+                  'Both entries should be stored in resource timing buffer since its increases size once it overflows.');
+    assert_true(entries[0].name.includes('empty.js'), "empty.js is in the entries buffer");
+    assert_true(entries[1].name.includes('empty_script.js'), "empty_script.js is in the entries buffer");
+};
+
+promise_test(async () => {
+    await fillUpTheBufferWithSingleResource("resources/empty.js");
+    await overflowTheBufferAndWaitForEvent();
+    // TODO(yoav): Figure out why this task is needed
+    await waitForNextTask();
+    testThatBufferContainsTheRightResources();
+}, "Test that entries synchronously added to the buffer during the callback are dropped");
+</script>
+</body>
+</html>

@@ -192,7 +192,7 @@
          * @returns {Promise} fufiled after the actions are performed, or rejected in
          *                    the cases the WebDriver command errors
          */
-        action_sequence(actions) {
+        action_sequence: function(actions) {
             return window.test_driver_internal.action_sequence(actions);
         }
     };

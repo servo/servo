@@ -59,6 +59,6 @@ async_test(t => {
   .then(() => {
     t.done();
   });
-}, "Performance Resouce Entries in workers");
+}, "Performance Resource Entries in workers");
 
 done();

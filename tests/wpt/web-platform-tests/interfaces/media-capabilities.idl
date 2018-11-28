@@ -10,6 +10,7 @@ dictionary MediaConfiguration {
 
 dictionary MediaDecodingConfiguration : MediaConfiguration {
   required MediaDecodingType type;
+  MediaCapabilitiesKeySystemConfiguration keySystemConfiguration;
 };
 
 dictionary MediaEncodingConfiguration : MediaConfiguration {
@@ -41,11 +42,25 @@ dictionary AudioConfiguration {
   unsigned long samplerate;
 };
 
-[Exposed=(Window, Worker)]
-interface MediaCapabilitiesInfo {
-  readonly attribute boolean supported;
-  readonly attribute boolean smooth;
-  readonly attribute boolean powerEfficient;
+dictionary MediaCapabilitiesKeySystemConfiguration {
+    required DOMString keySystem;
+    DOMString initDataType = "";
+    DOMString audioRobustness = "";
+    DOMString videoRobustness = "";
+    MediaKeysRequirement distinctiveIdentifier = "optional";
+    MediaKeysRequirement persistentState = "optional";
+    sequence<DOMString> sessionTypes;
+  };
+
+dictionary MediaCapabilitiesInfo {
+  required boolean supported;
+  required boolean smooth;
+  required boolean powerEfficient;
+
+};
+
+dictionary MediaCapabilitiesDecodingInfo : MediaCapabilitiesInfo {
+  required MediaKeySystemAccess keySystemAccess;
 };
 
 [Exposed=Window]
@@ -60,7 +75,7 @@ partial interface WorkerNavigator {
 
 [Exposed=(Window, Worker)]
 interface MediaCapabilities {
-  [NewObject] Promise<MediaCapabilitiesInfo> decodingInfo(MediaDecodingConfiguration configuration);
+  [NewObject] Promise<MediaCapabilitiesDecodingInfo> decodingInfo(MediaDecodingConfiguration configuration);
   [NewObject] Promise<MediaCapabilitiesInfo> encodingInfo(MediaEncodingConfiguration configuration);
 };
 

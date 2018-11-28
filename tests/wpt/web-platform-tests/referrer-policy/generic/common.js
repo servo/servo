@@ -187,6 +187,14 @@ function queryModuleWorkerTopLevel(url, callback) {
   };
 }
 
+function querySharedWorker(url, callback) {
+  var worker = new SharedWorker(url);
+  worker.port.onmessage = function(event) {
+    var server_data = event.data;
+    callback(wrapResult(url, server_data), url);
+  };
+}
+
 function queryFetch(url, callback) {
   fetch(url).then(function(response) {
       response.json().then(function(server_data) {

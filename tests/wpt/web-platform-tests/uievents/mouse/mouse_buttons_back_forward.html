@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8" />
+        <title>Mouse Button Back/Forward</title>
+        <link rel="author" title="Google" href="http://www.google.com/" />
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="/resources/testdriver.js"></script>
+        <script src="/resources/testdriver-actions.js"></script>
+        <script src="/resources/testdriver-vendor.js"></script>
+        <script>
+            var testMouseUp = async_test('Tests that the mouseup is preventable.');
+            var received_back = false;
+            var received_forward = false;
+            const backButton = 3;
+            const forwardButton = 4;
+            window.addEventListener('mouseup', function(e) {
+              if (e.button == backButton) {
+                received_back = true;
+                e.preventDefault();
+              } else if (e.button == forwardButton) {
+                received_forward = true;
+                e.preventDefault();
+              }
+              if (received_back && received_forward) {
+                testMouseUp.done();
+              }
+            });
+
+            function inject_input() {
+                // First click on back button and then forward button.
+                var actions = new test_driver.Actions();
+                actions.pointerMove(0, 0, {origin: target})
+                    .pointerDown({button: actions.ButtonType.BACK})
+                    .pointerUp({button: actions.ButtonType.BACK})
+                    .pointerDown({button: actions.ButtonType.FORWARD})
+                    .pointerUp({button: actions.ButtonType.FORWARD})
+                    .send();
+            }
+        </script>
+
+    </head>
+    <body id="target" onload="inject_input()">
+        <h4>Test Description: Tests that the mouseup event is prevented.
+            <ol>
+                <li>Click the back mouse button</li>
+                <li>Click the back mouse forward</li>
+            </ol>
+        </h4>
+    </body>
+</html>

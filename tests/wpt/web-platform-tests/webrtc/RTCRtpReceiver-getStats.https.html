@@ -53,7 +53,7 @@
     const stream = await getNoiseStream({audio:true});
     t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
     const [track] = stream.getTracks();
-    callee.addTrack(track);
+    callee.addTrack(track, stream);
 
     const { receiver } = caller.addTransceiver('audio');
 

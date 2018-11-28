@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Positioned Layout Module Level 3: getComputedValue().insetAfter</title>
+<link rel="help" href="https://drafts.csswg.org/css-position/#propdef-inset-after">
+<meta name="assert" content="inset-after lengths are made absolute.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+</head>
+<body>
+<div id="target"></div>
+<style>
+  #target {
+    font-size: 40px;
+  }
+</style>
+<script>
+test_computed_value("inset-after", "auto");
+
+test_computed_value("inset-after", "calc(10px + 0.5em)", "30px");
+test_computed_value("inset-after", "calc(10px - 0.5em)", "-10px");
+test_computed_value("inset-after", "-40%");
+test_computed_value("inset-after", "calc(50% + 60px)");
+</script>
+</body>
+</html>

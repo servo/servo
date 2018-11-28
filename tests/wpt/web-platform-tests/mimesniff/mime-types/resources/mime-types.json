@@ -367,5 +367,17 @@
   {
     "input": "\u0100/\u0100",
     "output": null
+  },
+  {
+    "input": "text /html",
+    "output": null
+  },
+  {
+    "input": "text/ html",
+    "output": null
+  },
+  {
+    "input": "\"text/html\"",
+    "output": null
   }
 ]

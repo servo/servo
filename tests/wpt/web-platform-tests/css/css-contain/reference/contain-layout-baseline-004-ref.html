@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Containment Test: Reference file</title>
+<link rel="author" title="Manuel Rego Casasnovas" href="mailto:rego@igalia.com">
+<style>
+div {
+  display: inline-block;
+  font: 100px/1 Ahem;
+  width: 100px;
+  height: 100px;
+}
+#first {
+  color: blue;
+  position: relative;
+  top: 20px;
+}
+#second {
+  color: green;
+}
+</style>
+<p>Test passes if there is not a rectangle as the two boxes ("blue" and "green") are not baseline aligned.</p>
+<div id="first">X</div><div id="second">X</div>

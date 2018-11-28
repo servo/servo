@@ -24,7 +24,7 @@
     <script>
       setup({ explicit_timeout: true });
 
-      promise_test(createCookieTest("%s"), "DEBUG", { timeout: 3000 });
+      promise_test(createCookieTest("%s"), "DEBUG");
 
     </script>
   </body>

@@ -43,8 +43,7 @@
       for (const i in TEST_CASES) {
         const t = TEST_CASES[i];
         promise_test(createCookieTest(t.file),
-                     t.file + " - " + t.name,
-                     { timeout: 3000 });
+                     t.file + " - " + t.name);
       }
 
     </script>

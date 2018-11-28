@@ -11,7 +11,7 @@
     <div id="log"></div>
     <script>
       function redirect(code, location) {
-        var test = async_test(document.title + " (" + code + ": " + location + ")", {timeout: 20000})
+        var test = async_test(document.title + " (" + code + ": " + location + ")");
         test.step(function() {
           var client = new XMLHttpRequest()
           client.onreadystatechange = function() {

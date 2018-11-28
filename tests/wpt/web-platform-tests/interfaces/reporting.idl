@@ -46,7 +46,6 @@ interface InterventionReportBody : ReportBody {
 };
 
 interface CrashReportBody : ReportBody {
-  readonly attribute DOMString crashId;
   readonly attribute DOMString? reason;
 };
 
