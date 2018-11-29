@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<title>MediaCapabilities.decodingInfo() for encrypted media</title>
+<script src=/resources/testharness.js></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+
+// Minimal VideoConfiguration that will be allowed per spec. All optional
+// properties are missing.
+var minimalVideoConfiguration = {
+  contentType: 'video/webm; codecs="vp09.00.10.08"',
+  width: 800,
+  height: 600,
+  bitrate: 3000,
+  framerate: 24,
+};
+
+// Minimal AudioConfiguration that will be allowed per spec. All optional
+// properties are missing.
+var minimalAudioConfiguration = {
+  contentType: 'audio/webm; codecs="opus"',
+};
+
+// Minimal MediaCapabilitiesKeySystemConfiguration that will be allowed per
+// spec. All optional properties are missing.
+var minimalKeySystemConfiguration = {
+  keySystem: 'org.w3.clearkey',
+};
+
+promise_test(t => {
+  return navigator.mediaCapabilities.decodingInfo({
+    type: 'file',
+    video: minimalVideoConfiguration,
+    keySystemConfiguration: minimalKeySystemConfiguration,
+  });
+}, "Test that decodingInfo() accepts a stub key system configuration (w/video).");
+
+promise_test(t => {
+  return navigator.mediaCapabilities.decodingInfo({
+    type: 'file',
+    audio: minimalAudioConfiguration,
+    keySystemConfiguration: minimalKeySystemConfiguration,
+  });
+}, "Test that decodingInfo() accepts a stub key system configuration (w/audio).");
+
+promise_test(t => {
+  return navigator.mediaCapabilities.decodingInfo({
+    type: 'file',
+    video: minimalVideoConfiguration,
+    keySystemConfiguration: {
+      keySystem: 'org.w3.clearkey',
+      videoRobustness: '',
+    },
+  });
+}, "Test that decodingInfo() accepts a key system configuration with video info.");
+
+promise_test(t => {
+  return navigator.mediaCapabilities.decodingInfo({
+    type: 'file',
+    audio: minimalAudioConfiguration,
+    keySystemConfiguration: {
+      keySystem: 'org.w3.clearkey',
+      audioRobustness: '',
+    },
+  });
+}, "Test that decodingInfo() accepts a key system configuration with audio info.");
+
+promise_test(t => {
+  return promise_rejects(t, new TypeError(), navigator.mediaCapabilities.decodingInfo({
+    type: 'file',
+    audio: minimalAudioConfiguration,
+    keySystemConfiguration: {
+      keySystem: 'org.w3.clearkey',
+      videoRobustness: '',
+    },
+  }));
+}, "Test that decodingInfo() rejects if robustness and configuration do not match (1).");
+
+promise_test(t => {
+  return promise_rejects(t, new TypeError(), navigator.mediaCapabilities.decodingInfo({
+    type: 'file',
+    video: minimalVideoConfiguration,
+    keySystemConfiguration: {
+      keySystem: 'org.w3.clearkey',
+      audioRobustness: '',
+    },
+  }));
+}, "Test that decodingInfo() rejects if robustness and configuration do not match (2).");
+
+promise_test(t => {
+  return promise_rejects(t, new TypeError(), navigator.mediaCapabilities.decodingInfo({
+    type: 'file',
+    video: minimalVideoConfiguration,
+    keySystemConfiguration: {
+      keySystem: 'org.w3.clearkey',
+      audioRobustness: '',
+      videoRobustness: '',
+    },
+  }));
+}, "Test that decodingInfo() rejects if robustness and configuration do not match (3).");
+
+promise_test(t => {
+  return promise_rejects(t, new TypeError(), navigator.mediaCapabilities.decodingInfo({
+    type: 'file',
+    audio: minimalAudioConfiguration,
+    video: minimalVideoConfiguration,
+    keySystemConfiguration: {
+      keySystem: 'org.w3.clearkey',
+      audioRobustness: '',
+      videoRobustness: '',
+      persistentState: "foobar",
+    },
+  }));
+}, "Test that decodingInfo() rejects if persistentState isn't valid.");
+
+promise_test(t => {
+  return promise_rejects(t, new TypeError(), navigator.mediaCapabilities.decodingInfo({
+    type: 'file',
+    audio: minimalAudioConfiguration,
+    video: minimalVideoConfiguration,
+    keySystemConfiguration: {
+      keySystem: 'org.w3.clearkey',
+      audioRobustness: '',
+      videoRobustness: '',
+      distinctiveIdentifier: "foobar",
+    },
+  }));
+}, "Test that decodingInfo() rejects if distinctiveIdentifier isn't valid.");
+
+promise_test(t => {
+  return promise_rejects(t, new TypeError(), navigator.mediaCapabilities.decodingInfo({
+    type: 'file',
+    audio: minimalAudioConfiguration,
+    video: minimalVideoConfiguration,
+    keySystemConfiguration: {
+      keySystem: 'org.w3.clearkey',
+      audioRobustness: '',
+      videoRobustness: '',
+      sessionTypes: "foobar",
+    },
+  }));
+}, "Test that decodingInfo() rejects if sessionTypes isn't a sequence.");
+
+promise_test(t => {
+  return navigator.mediaCapabilities.decodingInfo({
+    type: 'file',
+    audio: minimalAudioConfiguration,
+    video: minimalVideoConfiguration,
+    keySystemConfiguration: {
+      keySystem: {},
+      initDataType: {},
+      audioRobustness: {},
+      videoRobustness: {},
+    },
+  });
+}, "Test that decodingInfo() does not reject when properties are set to unexpected values.");
+
+promise_test(t => {
+  return navigator.mediaCapabilities.decodingInfo({
+    type: 'file',
+    video: minimalVideoConfiguration,
+    audio: minimalAudioConfiguration,
+    keySystemConfiguration: minimalKeySystemConfiguration,
+  }).then(ability => {
+    assert_equals(typeof ability.supported, "boolean");
+    assert_equals(typeof ability.smooth, "boolean");
+    assert_equals(typeof ability.powerEfficient, "boolean");
+    assert_equals(typeof ability.keySystemAccess, "object");
+  });
+}, "Test that decodingInfo returns a valid MediaCapabilitiesDecodingInfo objects with encrypted media");
+
+promise_test(t => {
+  return navigator.mediaCapabilities.decodingInfo({
+    type: 'file',
+    video: minimalVideoConfiguration,
+    keySystemConfiguration: {
+      keySystem: 'foobar',
+      videoRobustness: '',
+    }
+  }).then(ability => {
+    assert_false(ability.supported);
+    assert_false(ability.smooth);
+    assert_false(ability.powerEfficient);
+    assert_equals(ability.keySystemAccess, null);
+  });
+}, "Test that random key systems are reported as non supported.");
+
+// TODO(mlamouri): this test could be split in two tests for which codec support
+// across browsers is widely compatible: one when all browsers wouldn't support
+// and one where all browsers do support. The current approach is to check that
+// the answer is consistent to the spec.
+promise_test(t => {
+  return navigator.mediaCapabilities.decodingInfo({
+    type: 'file',
+    video: minimalVideoConfiguration,
+    audio: minimalAudioConfiguration,
+    keySystemConfiguration: minimalKeySystemConfiguration,
+  }).then(ability => {
+    if (ability.supported)
+      assert_not_equals(ability.keySystemAccess, null);
+    else
+      assert_equals(ability.keySystemAccess, null);
+  });
+}, "Test that keySystemAccess is only null when not supported if keySystemConfiguration was used.");
+
+</script>

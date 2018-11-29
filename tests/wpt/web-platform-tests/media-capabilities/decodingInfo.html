@@ -286,6 +286,7 @@ promise_test(t => {
     assert_equals(typeof ability.supported, "boolean");
     assert_equals(typeof ability.smooth, "boolean");
     assert_equals(typeof ability.powerEfficient, "boolean");
+    assert_equals(typeof ability.keySystemAccess, "object");
   });
 }, "Test that decodingInfo returns a valid MediaCapabilitiesInfo objects");
 
