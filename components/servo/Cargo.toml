@@ -46,7 +46,7 @@ debugger = {path = "../debugger"}
 devtools = {path = "../devtools"}
 devtools_traits = {path = "../devtools_traits"}
 embedder_traits = {path = "../embedder_traits"}
-env_logger = "0.5"
+env_logger = "0.6"
 euclid = "0.19"
 gfx = {path = "../gfx"}
 gleam = "0.6"
