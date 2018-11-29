@@ -4,6 +4,7 @@ env:
   CARGO_INCREMENTAL: "0"
   SCCACHE_IDLE_TIMEOUT: "1200"
   GST_DEBUG: '3'
+  RUST_LOG: 'net,hyper,openssl'
 
 mac-rel-wpt1:
   - ./mach clean-nightlies --keep 3 --force
