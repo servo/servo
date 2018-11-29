@@ -193,8 +193,7 @@ daily tasks are indexed under the [`project.servo.servo.daily`] namespace.
 
 ## AWS EC2 workers
 
-As of this writing, Servo on Taskcluster can only use the `servo-docker-worker` worker type.
-Tasks scheduled with this worker type run in a Linux environment,
+Tasks scheduled with the `servo-docker-worker` worker type run in a Linux environment,
 in a Docker container, on an AWS EC2 virtual machine.
 
 These machines are short-lived “spot instances”.
@@ -211,6 +210,15 @@ in particular with the types of EC2 instances to be used.
 
 [AWS provisioner]: https://docs.taskcluster.net/docs/reference/integrations/aws-provisioner/references/api
 [worker type definition]: https://tools.taskcluster.net/aws-provisioner/servo-docker-worker/view
+
+
+## Other worker types
+
+See respective `README.md` files for:
+
+* [Windows](windows/README.md), also short-lived workers on EC2
+* [macOS](macos/README.md), Mac Minis hosted by Macstadium
+* [Non-virtualized Linux](packet.net/README.md), hosted by Packet.net
 
 
 ## Self-service, Bugzilla, and IRC

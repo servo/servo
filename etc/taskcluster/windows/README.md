@@ -1,4 +1,8 @@
-# Windows AMIs for Servo on Taskcluster
+# Windows workers for Servo on Taskcluster
+
+The `servo-win2016` worker type runs short-lived Windows 2016 workers on EC2.
+
+## AMIs
 
 Unlike Linux tasks on `docker-worker` where each tasks is executed in a container
 based on a Docker image provided with the task,
