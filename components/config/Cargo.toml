@@ -26,7 +26,7 @@ servo_url = {path = "../url"}
 url = "1.2"
 
 [dev-dependencies]
-env_logger = "0.5"
+env_logger = "0.6"
 std_test_override = { path = "../std_test_override" }
 
 [target.'cfg(not(target_os = "android"))'.dependencies]
