@@ -111,7 +111,7 @@ android {
 
     sourceSets {
         main {
-            assets.srcDirs = ['../../../../resources']
+            assets.srcDirs = [rootDir.absolutePath + "/../../../target/android/resources"]
         }
         armDebug {
             jniLibs.srcDirs = [getJniLibsPath(true, 'arm')]

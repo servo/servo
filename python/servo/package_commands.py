@@ -169,19 +169,24 @@ def copy_windows_dependencies(binary_path, destination):
         shutil.copy(nspr4_path, destination)
 
 
-def change_prefs(resources_path, platform):
+def change_prefs(resources_path, platform, vr=False):
     print("Swapping prefs")
     prefs_path = path.join(resources_path, "prefs.json")
     package_prefs_path = path.join(resources_path, "package-prefs.json")
-    os_type = "os:{}".format(platform)
     with open(prefs_path) as prefs, open(package_prefs_path) as package_prefs:
         prefs = json.load(prefs)
+        pref_sets = []
         package_prefs = json.load(package_prefs)
-        for pref in package_prefs:
-            if os_type in pref:
-                prefs[pref.split(";")[1]] = package_prefs[pref]
-            if pref in prefs:
-                prefs[pref] = package_prefs[pref]
+        if "all" in package_prefs:
+            pref_sets += [package_prefs["all"]]
+        if vr and "vr" in package_prefs:
+            pref_sets += [package_prefs["vr"]]
+        if platform in package_prefs:
+            pref_sets += [package_prefs[platform]]
+        for pref_set in pref_sets:
+            for pref in pref_set:
+                if pref in prefs:
+                    prefs[pref] = pref_set[pref]
         with open(prefs_path, "w") as out:
             json.dump(prefs, out, sort_keys=True, indent=2)
     delete(package_prefs_path)
@@ -275,6 +280,15 @@ class PackageCommands(CommandBase):
             flavor_name = "Main"
             if flavor is not None:
                 flavor_name = flavor.title()
+
+            vr = flavor == "googlevr" or flavor == "oculusvr"
+
+            dir_to_resources = path.join(self.get_top_dir(), 'target', 'android', 'resources')
+            if path.exists(dir_to_resources):
+                delete(dir_to_resources)
+
+            shutil.copytree(path.join(dir_to_root, 'resources'), dir_to_resources)
+            change_prefs(dir_to_resources, "android", vr=vr)
 
             variant = ":assemble" + flavor_name + build_type + build_mode
             apk_task_name = ":servoapp" + variant
