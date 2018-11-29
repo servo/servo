@@ -10,6 +10,7 @@ use crate::dom::bindings::codegen::Bindings::HTMLMediaElementBinding::CanPlayTyp
 use crate::dom::bindings::codegen::Bindings::HTMLMediaElementBinding::HTMLMediaElementConstants;
 use crate::dom::bindings::codegen::Bindings::HTMLMediaElementBinding::HTMLMediaElementMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLSourceElementBinding::HTMLSourceElementMethods;
+use crate::dom::bindings::codegen::Bindings::HTMLVideoElementBinding::HTMLVideoElementBinding::HTMLVideoElementMethods;
 use crate::dom::bindings::codegen::Bindings::MediaErrorBinding::MediaErrorConstants::*;
 use crate::dom::bindings::codegen::Bindings::MediaErrorBinding::MediaErrorMethods;
 use crate::dom::bindings::codegen::InheritTypes::{ElementTypeId, HTMLElementTypeId};
@@ -128,14 +129,11 @@ impl FrameRenderer for MediaFrameRenderer {
                 self.current_frame = Some((image_key, frame.get_width(), frame.get_height()));
             },
         }
-
         self.api.update_resources(txn.resource_updates);
     }
 }
 
 #[dom_struct]
-// FIXME(nox): A lot of tasks queued for this element should probably be in the
-// media element event task source.
 pub struct HTMLMediaElement {
     htmlelement: HTMLElement,
     /// <https://html.spec.whatwg.org/multipage/#dom-media-networkstate>
@@ -171,8 +169,12 @@ pub struct HTMLMediaElement {
     #[ignore_malloc_size_of = "Arc"]
     frame_renderer: Arc<Mutex<MediaFrameRenderer>>,
     fetch_canceller: DomRefCell<FetchCanceller>,
+    /// Image file we can show while no video data is available.
+    poster_frame: DomRefCell<Option<Vec<u8>>>,
     /// https://html.spec.whatwg.org/multipage/#show-poster-flag
     show_poster: Cell<bool>,
+    /// Poster frame fetch request canceller.
+    poster_frame_canceller: DomRefCell<FetchCanceller>,
     /// https://html.spec.whatwg.org/multipage/#dom-media-duration
     duration: Cell<f64>,
     /// https://html.spec.whatwg.org/multipage/#official-playback-position
@@ -231,7 +233,9 @@ impl HTMLMediaElement {
                 document.window().get_webrender_api_sender(),
             ))),
             fetch_canceller: DomRefCell::new(Default::default()),
+            poster_frame: DomRefCell::new(None),
             show_poster: Cell::new(true),
+            poster_frame_canceller: DomRefCell::new(Default::default()),
             duration: Cell::new(f64::NAN),
             playback_position: Cell::new(0.),
             default_playback_start_position: Cell::new(0.),
@@ -1093,6 +1097,88 @@ impl HTMLMediaElement {
         task_source.queue_simple_event(self.upcast(), atom!("seeked"), &window);
     }
 
+    /// https://html.spec.whatwg.org/multipage/media.html#poster-frame
+    pub fn fetch_poster_frame(&self, poster_url: &str) {
+        // Step 1.
+        let cancel_receiver = self.poster_frame_canceller.borrow_mut().initialize();
+
+        // Step 2.
+        if poster_url.is_empty() {
+            return;
+        }
+
+        // Step 3.
+        let poster_url = match ServoUrl::parse(poster_url) {
+            Ok(url) => url,
+            Err(_) => return,
+        };
+
+        // Step 4.
+        let request = RequestInit {
+            url: poster_url.clone(),
+            destination: Destination::Image,
+            credentials_mode: CredentialsMode::Include,
+            use_url_credentials: true,
+            ..RequestInit::default()
+        };
+
+        // Step 5.
+        self.delay_load_event(true);
+
+        *self.poster_frame.borrow_mut() = None;
+
+        let context = Arc::new(Mutex::new(PosterFrameFetchContext::new(self, poster_url)));
+
+        let (action_sender, action_receiver) = ipc::channel().unwrap();
+        let window = window_from_node(self);
+        let (task_source, canceller) = window
+            .task_manager()
+            .networking_task_source_with_canceller();
+        let listener = NetworkListener {
+            context,
+            task_source,
+            canceller: Some(canceller),
+        };
+        ROUTER.add_route(
+            action_receiver.to_opaque(),
+            Box::new(move |message| {
+                listener.notify_fetch(message.to().unwrap());
+            }),
+        );
+        let global = self.global();
+        global
+            .core_resource_thread()
+            .send(CoreResourceMsg::Fetch(
+                request,
+                FetchChannels::ResponseMsg(action_sender, Some(cancel_receiver)),
+            ))
+            .unwrap();
+    }
+
+    fn maybe_render_poster_frame(&self) {
+        if !self.show_poster.get() ||
+            (self.ready_state.get() != ReadyState::HaveNothing &&
+                self.ready_state.get() != ReadyState::HaveMetadata)
+        {
+            return;
+        }
+        let poster_frame = match self.poster_frame.borrow_mut().take() {
+            Some(poster_frame) => poster_frame,
+            None => return,
+        };
+        let video_element = self.downcast::<HTMLVideoElement>().unwrap();
+
+        let data = Arc::new(poster_frame);
+        let frame = Frame::new(
+            video_element.get_video_width() as i32,
+            video_element.get_video_height() as i32,
+            data,
+        );
+        self.frame_renderer.lock().unwrap().render(frame);
+
+        self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
+    }
+
     fn setup_media_player(&self) -> Result<(), ServoMediaError> {
         let (action_sender, action_receiver) = ipc::channel().unwrap();
 
@@ -1381,11 +1467,17 @@ impl VirtualMethods for HTMLMediaElement {
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
         self.super_type().unwrap().attribute_mutated(attr, mutation);
 
+        if mutation.new_value(attr).is_none() {
+            return;
+        }
+
         match attr.local_name() {
             &local_name!("src") => {
-                if mutation.new_value(attr).is_some() {
-                    self.media_element_load_algorithm();
-                }
+                self.media_element_load_algorithm();
+            },
+            &local_name!("poster") => {
+                let video_element = self.downcast::<HTMLVideoElement>().unwrap();
+                self.fetch_poster_frame(video_element.Poster().to_string().as_str());
             },
             _ => (),
         };
@@ -1479,9 +1571,9 @@ struct HTMLMediaElementContext {
     next_progress_event: Timespec,
     /// True if this response is invalid and should be ignored.
     ignore_response: bool,
-    /// timing data for this resource
+    /// Timing data for this resource
     resource_timing: ResourceFetchTiming,
-    /// url for the resource
+    /// Url for the resource
     url: ServoUrl,
 }
 
@@ -1650,7 +1742,116 @@ impl HTMLMediaElementContext {
             next_progress_event: time::get_time() + Duration::milliseconds(350),
             ignore_response: false,
             resource_timing: ResourceFetchTiming::new(ResourceTimingType::Resource),
-            url: url,
+            url,
+        }
+    }
+}
+
+struct PosterFrameFetchContext {
+    /// The element that initiated the request.
+    elem: Trusted<HTMLMediaElement>,
+    /// Poster frame data.
+    data: Option<Vec<u8>>,
+    /// True if this response is invalid and should be ignored.
+    ignore_response: bool,
+    /// Timing data for this resource
+    resource_timing: ResourceFetchTiming,
+    /// Url for the resource
+    url: ServoUrl,
+}
+
+impl FetchResponseListener for PosterFrameFetchContext {
+    fn process_request_body(&mut self) {}
+
+    fn process_request_eof(&mut self) {}
+
+    fn process_response(&mut self, metadata: Result<FetchMetadata, NetworkError>) {
+        let metadata = metadata.ok().map(|m| match m {
+            FetchMetadata::Unfiltered(m) => m,
+            FetchMetadata::Filtered { unsafe_, .. } => unsafe_,
+        });
+
+        let status_is_ok = metadata
+            .as_ref()
+            .and_then(|m| m.status.as_ref())
+            .map_or(true, |s| s.0 >= 200 && s.0 < 300);
+
+        if !status_is_ok {
+            warn!("Could not fetch poster frame {:?}", self.url);
+            // Ensure that the element doesn't receive any further notifications
+            // of the aborted fetch.
+            self.ignore_response = true;
+            let elem = self.elem.root();
+            elem.poster_frame_canceller.borrow_mut().cancel();
+        }
+    }
+
+    fn process_response_chunk(&mut self, mut payload: Vec<u8>) {
+        if self.ignore_response {
+            // An error was received previously, skip processing the payload.
+            return;
+        }
+
+        if self.data.is_none() {
+            self.data = Some(vec![]);
+        }
+        self.data.as_mut().unwrap().append(&mut payload);
+    }
+
+    fn process_response_eof(&mut self, status: Result<ResourceFetchTiming, NetworkError>) {
+        let elem = self.elem.root();
+        if status.is_ok() {
+            *elem.poster_frame.borrow_mut() = self.data.take();
+            elem.maybe_render_poster_frame();
+        }
+        elem.delay_load_event(false);
+    }
+
+    fn resource_timing_mut(&mut self) -> &mut ResourceFetchTiming {
+        &mut self.resource_timing
+    }
+
+    fn resource_timing(&self) -> &ResourceFetchTiming {
+        &self.resource_timing
+    }
+
+    fn submit_resource_timing(&mut self) {
+        network_listener::submit_timing(self)
+    }
+}
+
+impl ResourceTimingListener for PosterFrameFetchContext {
+    fn resource_timing_information(&self) -> (InitiatorType, ServoUrl) {
+        let initiator_type = InitiatorType::LocalName(
+            self.elem
+                .root()
+                .upcast::<Element>()
+                .local_name()
+                .to_string(),
+        );
+        (initiator_type, self.url.clone())
+    }
+
+    fn resource_timing_global(&self) -> DomRoot<GlobalScope> {
+        (document_from_node(&*self.elem.root()).global())
+    }
+}
+
+impl PreInvoke for PosterFrameFetchContext {
+    fn should_invoke(&self) -> bool {
+        // XXX use generation id?
+        true
+    }
+}
+
+impl PosterFrameFetchContext {
+    fn new(elem: &HTMLMediaElement, url: ServoUrl) -> PosterFrameFetchContext {
+        PosterFrameFetchContext {
+            elem: Trusted::new(elem),
+            data: None,
+            ignore_response: false,
+            resource_timing: ResourceFetchTiming::new(ResourceTimingType::Resource),
+            url,
         }
     }
 }

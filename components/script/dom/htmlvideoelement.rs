@@ -5,12 +5,16 @@
 use crate::dom::bindings::codegen::Bindings::HTMLVideoElementBinding;
 use crate::dom::bindings::codegen::Bindings::HTMLVideoElementBinding::HTMLVideoElementMethods;
 use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
 use crate::dom::htmlmediaelement::{HTMLMediaElement, ReadyState};
 use crate::dom::node::Node;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
 use std::cell::Cell;
+
+const DEFAULT_WIDTH: u32 = 300;
+const DEFAULT_HEIGHT: u32 = 150;
 
 #[dom_struct]
 pub struct HTMLVideoElement {
@@ -22,6 +26,7 @@ pub struct HTMLVideoElement {
 }
 
 impl HTMLVideoElement {
+    #[allow(unrooted_must_root)]
     fn new_inherited(
         local_name: LocalName,
         prefix: Option<Prefix>,
@@ -29,8 +34,8 @@ impl HTMLVideoElement {
     ) -> HTMLVideoElement {
         HTMLVideoElement {
             htmlmediaelement: HTMLMediaElement::new_inherited(local_name, prefix, document),
-            video_width: Cell::new(0),
-            video_height: Cell::new(0),
+            video_width: Cell::new(DEFAULT_WIDTH),
+            video_height: Cell::new(DEFAULT_HEIGHT),
         }
     }
 
@@ -82,4 +87,10 @@ impl HTMLVideoElementMethods for HTMLVideoElement {
         }
         self.video_height.get()
     }
+
+    // https://html.spec.whatwg.org/multipage/#dom-video-poster
+    make_getter!(Poster, "poster");
+
+    // https://html.spec.whatwg.org/multipage/#dom-video-poster
+    make_setter!(SetPoster, "poster");
 }
