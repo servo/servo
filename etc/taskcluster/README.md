@@ -221,6 +221,11 @@ See respective `README.md` files for:
 * [Non-virtualized Linux](packet.net/README.md), hosted by Packet.net
 
 
+## Taskcluster − Treeherder integration
+
+See [`treeherder.md`](treeherder.md).
+
+
 ## Self-service, Bugzilla, and IRC
 
 Taskcluster is designed to be “self-service” as much as possible,
