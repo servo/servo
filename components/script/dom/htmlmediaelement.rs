@@ -51,6 +51,8 @@ use http::header::{self, HeaderMap, HeaderValue};
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use mime::{self, Mime};
+use net_traits::image::base::Image;
+use net_traits::image_cache::ImageResponse;
 use net_traits::request::{CredentialsMode, Destination, RequestInit};
 use net_traits::{CoreResourceMsg, FetchChannels, FetchMetadata, FetchResponseListener, Metadata};
 use net_traits::{NetworkError, ResourceFetchTiming, ResourceTimingType};
@@ -84,6 +86,12 @@ impl MediaFrameRenderer {
             current_frame: None,
             old_frame: None,
             very_old_frame: None,
+        }
+    }
+
+    fn render_poster_frame(&mut self, image: Arc<Image>) {
+        if let Some(image_id) = image.id {
+            self.current_frame = Some((image_id, image.width as i32, image.height as i32));
         }
     }
 }
@@ -136,14 +144,11 @@ impl FrameRenderer for MediaFrameRenderer {
                 self.current_frame = Some((image_key, frame.get_width(), frame.get_height()));
             },
         }
-
         self.api.update_resources(txn.resource_updates);
     }
 }
 
 #[dom_struct]
-// FIXME(nox): A lot of tasks queued for this element should probably be in the
-// media element event task source.
 pub struct HTMLMediaElement {
     htmlelement: HTMLElement,
     /// <https://html.spec.whatwg.org/multipage/#dom-media-networkstate>
@@ -277,7 +282,7 @@ impl HTMLMediaElement {
     /// we pass true to that method again.
     ///
     /// <https://html.spec.whatwg.org/multipage/#delaying-the-load-event-flag>
-    fn delay_load_event(&self, delay: bool) {
+    pub fn delay_load_event(&self, delay: bool) {
         let mut blocker = self.delaying_the_load_event_flag.borrow_mut();
         if delay && blocker.is_none() {
             *blocker = Some(LoadBlocker::new(&document_from_node(self), LoadType::Media));
@@ -1110,6 +1115,22 @@ impl HTMLMediaElement {
         task_source.queue_simple_event(self.upcast(), atom!("seeked"), &window);
     }
 
+    /// https://html.spec.whatwg.org/multipage/#poster-frame
+    pub fn process_poster_response(&self, image: ImageResponse) {
+        if !self.show_poster.get() {
+            return;
+        }
+
+        // Step 6.
+        if let ImageResponse::Loaded(image, _) = image {
+            self.frame_renderer
+                .lock()
+                .unwrap()
+                .render_poster_frame(image);
+            self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
+        }
+    }
+
     fn setup_media_player(&self) -> Result<(), ServoMediaError> {
         let (action_sender, action_receiver) = ipc::channel().unwrap();
 
@@ -1455,11 +1476,13 @@ impl VirtualMethods for HTMLMediaElement {
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
         self.super_type().unwrap().attribute_mutated(attr, mutation);
 
+        if mutation.new_value(attr).is_none() {
+            return;
+        }
+
         match attr.local_name() {
             &local_name!("src") => {
-                if mutation.new_value(attr).is_some() {
-                    self.media_element_load_algorithm();
-                }
+                self.media_element_load_algorithm();
             },
             _ => (),
         };
@@ -1553,9 +1576,9 @@ struct HTMLMediaElementContext {
     next_progress_event: Timespec,
     /// True if this response is invalid and should be ignored.
     ignore_response: bool,
-    /// timing data for this resource
+    /// Timing data for this resource
     resource_timing: ResourceFetchTiming,
-    /// url for the resource
+    /// Url for the resource
     url: ServoUrl,
     /// Amount of data fetched.
     bytes_fetched: usize,

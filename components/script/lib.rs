@@ -59,6 +59,7 @@ pub mod document_loader;
 #[macro_use]
 mod dom;
 pub mod fetch;
+mod image_listener;
 mod layout_image;
 mod mem;
 mod microtask;

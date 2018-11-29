@@ -39,12 +39,12 @@ use crate::dom::progressevent::ProgressEvent;
 use crate::dom::values::UNSIGNED_LONG_MAX;
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::dom::window::Window;
+use crate::image_listener::{add_cache_listener_for_element, ImageCacheListener};
 use crate::microtask::{Microtask, MicrotaskRunnable};
 use crate::network_listener::{self, NetworkListener, PreInvoke, ResourceTimingListener};
 use crate::script_thread::ScriptThread;
 use crate::task_source::TaskSource;
 use cssparser::{Parser, ParserInput};
-
 use dom_struct::dom_struct;
 use euclid::Point2D;
 use html5ever::{LocalName, Prefix};
@@ -262,44 +262,6 @@ impl PreInvoke for ImageContext {
 impl HTMLImageElement {
     /// Update the current image with a valid URL.
     fn fetch_image(&self, img_url: &ServoUrl) {
-        fn add_cache_listener_for_element(
-            image_cache: Arc<dyn ImageCache>,
-            id: PendingImageId,
-            elem: &HTMLImageElement,
-        ) {
-            let trusted_node = Trusted::new(elem);
-            let (responder_sender, responder_receiver) = ipc::channel().unwrap();
-
-            let window = window_from_node(elem);
-            let (task_source, canceller) = window
-                .task_manager()
-                .networking_task_source_with_canceller();
-            let generation = elem.generation.get();
-            ROUTER.add_route(
-                responder_receiver.to_opaque(),
-                Box::new(move |message| {
-                    debug!("Got image {:?}", message);
-                    // Return the image via a message to the script thread, which marks
-                    // the element as dirty and triggers a reflow.
-                    let element = trusted_node.clone();
-                    let image = message.to().unwrap();
-                    // FIXME(nox): Why are errors silenced here?
-                    let _ = task_source.queue_with_canceller(
-                        task!(process_image_response: move || {
-                        let element = element.root();
-                        // Ignore any image response for a previous request that has been discarded.
-                        if generation == element.generation.get() {
-                            element.process_image_response(image);
-                        }
-                    }),
-                        &canceller,
-                    );
-                }),
-            );
-
-            image_cache.add_listener(id, ImageResponder::new(responder_sender, id));
-        }
-
         let window = window_from_node(self);
         let image_cache = window.image_cache();
         let response = image_cache.find_image_or_metadata(
@@ -317,7 +279,7 @@ impl HTMLImageElement {
             },
 
             Err(ImageState::Pending(id)) => {
-                add_cache_listener_for_element(image_cache.clone(), id, self);
+                add_cache_listener_for_element(image_cache, id, self);
             },
 
             Err(ImageState::LoadError) => {
@@ -1732,6 +1694,16 @@ impl FormControl for HTMLImageElement {
 
     fn is_listed(&self) -> bool {
         false
+    }
+}
+
+impl ImageCacheListener for HTMLImageElement {
+    fn generation_id(&self) -> u32 {
+        self.generation.get()
+    }
+
+    fn process_image_response(&self, response: ImageResponse) {
+        self.process_image_response(response);
     }
 }
 
