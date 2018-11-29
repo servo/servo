@@ -42,8 +42,8 @@ interface HTMLMediaElement : HTMLElement {
   readonly attribute unrestricted double duration;
   // Date getStartDate();
   readonly attribute boolean paused;
-  // attribute double defaultPlaybackRate;
-  // attribute double playbackRate;
+  attribute double defaultPlaybackRate;
+  attribute double playbackRate;
   readonly attribute TimeRanges played;
   // readonly attribute TimeRanges seekable;
   // readonly attribute boolean ended;

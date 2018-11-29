@@ -164,6 +164,10 @@ pub struct HTMLMediaElement {
     error: MutNullableDom<MediaError>,
     /// <https://html.spec.whatwg.org/multipage/#dom-media-paused>
     paused: Cell<bool>,
+    /// <https://html.spec.whatwg.org/multipage/#dom-media-defaultplaybackrate>
+    defaultPlaybackRate: Cell<f64>,
+    /// <https://html.spec.whatwg.org/multipage/#dom-media-playbackrate>
+    playbackRate: Cell<f64>,
     /// <https://html.spec.whatwg.org/multipage/#attr-media-autoplay>
     autoplaying: Cell<bool>,
     /// <https://html.spec.whatwg.org/multipage/#delaying-the-load-event-flag>
@@ -235,6 +239,8 @@ impl HTMLMediaElement {
             fired_loadeddata_event: Cell::new(false),
             error: Default::default(),
             paused: Cell::new(true),
+            defaultPlaybackRate: Cell::new(1.0),
+            playbackRate: Cell::new(1.0),
             // FIXME(nox): Why is this initialised to true?
             autoplaying: Cell::new(true),
             delaying_the_load_event_flag: Default::default(),
@@ -960,7 +966,7 @@ impl HTMLMediaElement {
         }
 
         // Step 7.
-        // FIXME(nox): Set playbackRate to defaultPlaybackRate.
+        self.playbackRate.set(self.defaultPlaybackRate.get());
 
         // Step 8.
         self.error.set(None);
@@ -1348,6 +1354,38 @@ impl HTMLMediaElementMethods for HTMLMediaElement {
     // https://html.spec.whatwg.org/multipage/#dom-media-paused
     fn Paused(&self) -> bool {
         self.paused.get()
+    }
+
+    /// https://html.spec.whatwg.org/multipage/#dom-media-defaultplaybackrate
+    fn DefaultPlaybackRate(&self) -> Finite<f64> {
+        Finite::wrap(self.defaultPlaybackRate.get())
+    }
+
+    /// https://html.spec.whatwg.org/multipage/#dom-media-defaultplaybackrate
+    fn SetDefaultPlaybackRate(&self, value: Finite<f64>) {
+        if *value != self.defaultPlaybackRate.get() {
+            self.defaultPlaybackRate.set(*value);
+
+            let window = window_from_node(self);
+            let task_source = window.task_manager().media_element_task_source();
+            task_source.queue_simple_event(self.upcast(), atom!("ratechange"), &window);
+        }
+    }
+
+    /// https://html.spec.whatwg.org/multipage/#dom-media-playbackrate
+    fn PlaybackRate(&self) -> Finite<f64> {
+        Finite::wrap(self.playbackRate.get())
+    }
+
+    /// https://html.spec.whatwg.org/multipage/#dom-media-playbackrate
+    fn SetPlaybackRate(&self, value: Finite<f64>) {
+        if *value != self.playbackRate.get() {
+            self.playbackRate.set(*value);
+
+            let window = window_from_node(self);
+            let task_source = window.task_manager().media_element_task_source();
+            task_source.queue_simple_event(self.upcast(), atom!("ratechange"), &window);
+        }
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-media-duration
