@@ -164,6 +164,10 @@ pub struct HTMLMediaElement {
     error: MutNullableDom<MediaError>,
     /// <https://html.spec.whatwg.org/multipage/#dom-media-paused>
     paused: Cell<bool>,
+    /// <https://html.spec.whatwg.org/multipage/#dom-media-defaultplaybackrate>
+    defaultPlaybackRate: Cell<f64>,
+    /// <https://html.spec.whatwg.org/multipage/#dom-media-playbackrate>
+    playbackRate: Cell<f64>,
     /// <https://html.spec.whatwg.org/multipage/#attr-media-autoplay>
     autoplaying: Cell<bool>,
     /// <https://html.spec.whatwg.org/multipage/#delaying-the-load-event-flag>
@@ -235,6 +239,8 @@ impl HTMLMediaElement {
             fired_loadeddata_event: Cell::new(false),
             error: Default::default(),
             paused: Cell::new(true),
+            defaultPlaybackRate: Cell::new(1.0),
+            playbackRate: Cell::new(1.0),
             // FIXME(nox): Why is this initialised to true?
             autoplaying: Cell::new(true),
             delaying_the_load_event_flag: Default::default(),
@@ -888,6 +894,43 @@ impl HTMLMediaElement {
         );
     }
 
+    fn queue_ratechange_event(&self) {
+        let window = window_from_node(self);
+        let task_source = window.task_manager().media_element_task_source();
+        task_source.queue_simple_event(self.upcast(), atom!("ratechange"), &window);
+    }
+
+    // https://html.spec.whatwg.org/multipage/#potentially-playing
+    fn is_potentially_playing(&self) -> bool {
+        !self.paused.get() &&
+        // FIXME: We need https://github.com/servo/servo/pull/22348
+        //              to know whether playback has ended or not
+        // !self.Ended() &&
+        self.error.get().is_none() &&
+        !self.is_blocked_media_element()
+    }
+
+    // https://html.spec.whatwg.org/multipage/#blocked-media-element
+    fn is_blocked_media_element(&self) -> bool {
+        self.ready_state.get() <= ReadyState::HaveCurrentData ||
+            self.is_paused_for_user_interaction() ||
+            self.is_paused_for_in_band_content()
+    }
+
+    // https://html.spec.whatwg.org/multipage/#paused-for-user-interaction
+    fn is_paused_for_user_interaction(&self) -> bool {
+        // FIXME: we will likely be able to fill this placeholder once (if) we
+        //        implement the MediaSession API.
+        false
+    }
+
+    // https://html.spec.whatwg.org/multipage/#paused-for-in-band-content
+    fn is_paused_for_in_band_content(&self) -> bool {
+        // FIXME: we will likely be able to fill this placeholder once (if) we
+        //        implement https://github.com/servo/servo/issues/22314
+        false
+    }
+
     // https://html.spec.whatwg.org/multipage/#media-element-load-algorithm
     fn media_element_load_algorithm(&self) {
         // Reset the flag that signals whether loadeddata was ever fired for
@@ -960,7 +1003,7 @@ impl HTMLMediaElement {
         }
 
         // Step 7.
-        // FIXME(nox): Set playbackRate to defaultPlaybackRate.
+        self.playbackRate.set(self.defaultPlaybackRate.get());
 
         // Step 8.
         self.error.set(None);
@@ -1348,6 +1391,53 @@ impl HTMLMediaElementMethods for HTMLMediaElement {
     // https://html.spec.whatwg.org/multipage/#dom-media-paused
     fn Paused(&self) -> bool {
         self.paused.get()
+    }
+
+    /// https://html.spec.whatwg.org/multipage/#dom-media-defaultplaybackrate
+    fn GetDefaultPlaybackRate(&self) -> Fallible<Finite<f64>> {
+        Ok(Finite::wrap(self.defaultPlaybackRate.get()))
+    }
+
+    /// https://html.spec.whatwg.org/multipage/#dom-media-defaultplaybackrate
+    fn SetDefaultPlaybackRate(&self, value: Finite<f64>) -> ErrorResult {
+        let min_allowed = -64.0;
+        let max_allowed = 64.0;
+        if *value < min_allowed || *value > max_allowed {
+            return Err(Error::NotSupported);
+        }
+
+        if *value != self.defaultPlaybackRate.get() {
+            self.defaultPlaybackRate.set(*value);
+            self.queue_ratechange_event();
+        }
+
+        Ok(())
+    }
+
+    /// https://html.spec.whatwg.org/multipage/#dom-media-playbackrate
+    fn GetPlaybackRate(&self) -> Fallible<Finite<f64>> {
+        Ok(Finite::wrap(self.playbackRate.get()))
+    }
+
+    /// https://html.spec.whatwg.org/multipage/#dom-media-playbackrate
+    fn SetPlaybackRate(&self, value: Finite<f64>) -> ErrorResult {
+        let min_allowed = -64.0;
+        let max_allowed = 64.0;
+        if *value < min_allowed || *value > max_allowed {
+            return Err(Error::NotSupported);
+        }
+
+        if *value != self.playbackRate.get() {
+            self.playbackRate.set(*value);
+            self.queue_ratechange_event();
+            if self.is_potentially_playing() {
+                if let Err(e) = self.player.set_rate(*value) {
+                    warn!("Could not set the playback rate {:?}", e);
+                }
+            }
+        }
+
+        Ok(())
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-media-duration
