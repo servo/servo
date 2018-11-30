@@ -575,7 +575,6 @@ pub fn http_fetch(
         // Generally, we use a persistent connection, so we will also set other PerformanceResourceTiming
         //   attributes to this as well (domain_lookup_start, domain_lookup_end, connect_start, connect_end,
         //   secure_connection_start)
-        // TODO(#21256) maybe set redirect_start if this resource initiates the redirect
         // TODO(#21254) also set startTime equal to either fetch_start or redirect_start
         //   (https://w3c.github.io/resource-timing/#dfn-starttime)
         context
@@ -583,6 +582,16 @@ pub fn http_fetch(
             .lock()
             .unwrap()
             .set_attribute(ResourceAttribute::RequestStart);
+
+        if request.redirect_mode == RedirectMode::Manual ||
+            request.redirect_mode == RedirectMode::Follow
+        {
+            context
+                .timing
+                .lock()
+                .unwrap()
+                .set_attribute(ResourceAttribute::RedirectStart);
+        }
 
         let mut fetch_result = http_network_or_cache_fetch(
             request,
