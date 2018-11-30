@@ -163,6 +163,8 @@ pub struct HTMLMediaElement {
     paused: Cell<bool>,
     /// <https://html.spec.whatwg.org/multipage/#attr-media-autoplay>
     autoplaying: Cell<bool>,
+    /// <https://html.spec.whatwg.org/multipage/media.html#attr-media-loop>
+    loop: Cell<bool>,
     /// <https://html.spec.whatwg.org/multipage/#delaying-the-load-event-flag>
     delaying_the_load_event_flag: DomRefCell<Option<LoadBlocker>>,
     /// <https://html.spec.whatwg.org/multipage/#list-of-pending-play-promises>
@@ -228,6 +230,7 @@ impl HTMLMediaElement {
             paused: Cell::new(true),
             // FIXME(nox): Why is this initialised to true?
             autoplaying: Cell::new(true),
+            loop: Cell::new(false),
             delaying_the_load_event_flag: Default::default(),
             pending_play_promises: Default::default(),
             in_flight_play_promises_queue: Default::default(),
@@ -1217,6 +1220,12 @@ impl HTMLMediaElement {
                 //    an unsupported format, or can otherwise not be rendered at all"
                 if self.ready_state.get() < ReadyState::HaveMetadata {
                     self.queue_dedicated_media_source_failure_steps();
+                }
+                if self.loop.get() {                    
+                    self.seek(
+                        self.default_playback_start_position.get(),
+                        /* approximate_for_speed*/ false,
+                    );
                 }
             },
             PlayerEvent::FrameUpdated => {
