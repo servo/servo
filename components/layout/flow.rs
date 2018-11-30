@@ -39,13 +39,6 @@ use crate::inline::InlineFlow;
 use crate::model::{CollapsibleMargins, IntrinsicISizes, MarginCollapseInfo};
 use crate::multicol::MulticolFlow;
 use crate::parallel::FlowParallelInfo;
-use crate::table::TableFlow;
-use crate::table_caption::TableCaptionFlow;
-use crate::table_cell::TableCellFlow;
-use crate::table_colgroup::TableColGroupFlow;
-use crate::table_row::TableRowFlow;
-use crate::table_rowgroup::TableRowGroupFlow;
-use crate::table_wrapper::TableWrapperFlow;
 use euclid::{Point2D, Rect, Size2D, Vector2D};
 use gfx_traits::print_tree::PrintTree;
 use gfx_traits::StackingContextId;
@@ -146,82 +139,10 @@ pub trait Flow: HasBaseFlow + fmt::Debug + Sync + Send + 'static {
         panic!("called as_mut_inline() on a non-inline flow")
     }
 
-    /// If this is a table wrapper flow, returns the underlying object, borrowed mutably. Fails
-    /// otherwise.
-    fn as_mut_table_wrapper(&mut self) -> &mut TableWrapperFlow {
-        panic!("called as_mut_table_wrapper() on a non-tablewrapper flow")
-    }
-
-    /// If this is a table wrapper flow, returns the underlying object. Fails otherwise.
-    fn as_table_wrapper(&self) -> &TableWrapperFlow {
-        panic!("called as_table_wrapper() on a non-tablewrapper flow")
-    }
-
-    /// If this is a table flow, returns the underlying object, borrowed mutably. Fails otherwise.
-    fn as_mut_table(&mut self) -> &mut TableFlow {
-        panic!("called as_mut_table() on a non-table flow")
-    }
-
-    /// If this is a table flow, returns the underlying object. Fails otherwise.
-    fn as_table(&self) -> &TableFlow {
-        panic!("called as_table() on a non-table flow")
-    }
-
-    /// If this is a table colgroup flow, returns the underlying object, borrowed mutably. Fails
-    /// otherwise.
-    fn as_mut_table_colgroup(&mut self) -> &mut TableColGroupFlow {
-        panic!("called as_mut_table_colgroup() on a non-tablecolgroup flow")
-    }
-
-    /// If this is a table colgroup flow, returns the underlying object. Fails
-    /// otherwise.
-    fn as_table_colgroup(&self) -> &TableColGroupFlow {
-        panic!("called as_table_colgroup() on a non-tablecolgroup flow")
-    }
-
-    /// If this is a table rowgroup flow, returns the underlying object, borrowed mutably. Fails
-    /// otherwise.
-    fn as_mut_table_rowgroup(&mut self) -> &mut TableRowGroupFlow {
-        panic!("called as_mut_table_rowgroup() on a non-tablerowgroup flow")
-    }
-
-    /// If this is a table rowgroup flow, returns the underlying object. Fails otherwise.
-    fn as_table_rowgroup(&self) -> &TableRowGroupFlow {
-        panic!("called as_table_rowgroup() on a non-tablerowgroup flow")
-    }
-
-    /// If this is a table row flow, returns the underlying object, borrowed mutably. Fails
-    /// otherwise.
-    fn as_mut_table_row(&mut self) -> &mut TableRowFlow {
-        panic!("called as_mut_table_row() on a non-tablerow flow")
-    }
-
-    /// If this is a table row flow, returns the underlying object. Fails otherwise.
-    fn as_table_row(&self) -> &TableRowFlow {
-        panic!("called as_table_row() on a non-tablerow flow")
-    }
-
-    /// If this is a table cell flow, returns the underlying object, borrowed mutably. Fails
-    /// otherwise.
-    fn as_mut_table_caption(&mut self) -> &mut TableCaptionFlow {
-        panic!("called as_mut_table_caption() on a non-tablecaption flow")
-    }
-
-    /// If this is a table cell flow, returns the underlying object, borrowed mutably. Fails
-    /// otherwise.
-    fn as_mut_table_cell(&mut self) -> &mut TableCellFlow {
-        panic!("called as_mut_table_cell() on a non-tablecell flow")
-    }
-
     /// If this is a multicol flow, returns the underlying object, borrowed mutably. Fails
     /// otherwise.
     fn as_mut_multicol(&mut self) -> &mut MulticolFlow {
         panic!("called as_mut_multicol() on a non-multicol flow")
-    }
-
-    /// If this is a table cell flow, returns the underlying object. Fails otherwise.
-    fn as_table_cell(&self) -> &TableCellFlow {
-        panic!("called as_table_cell() on a non-tablecell flow")
     }
 
     // Main methods
@@ -311,7 +232,7 @@ pub trait Flow: HasBaseFlow + fmt::Debug + Sync + Send + 'static {
         let mut overflow = self.base().overflow;
 
         match self.class() {
-            FlowClass::Block | FlowClass::TableCaption | FlowClass::TableCell => {},
+            FlowClass::Block => {},
             _ => {
                 overflow.translate(&position.origin.to_vector());
                 return overflow;
@@ -397,7 +318,7 @@ pub trait Flow: HasBaseFlow + fmt::Debug + Sync + Send + 'static {
         // Calculate overflow on a per-fragment basis.
         let mut overflow = self.compute_overflow();
         match self.class() {
-            FlowClass::Block | FlowClass::TableCaption | FlowClass::TableCell => {
+            FlowClass::Block => {
                 for kid in self.mut_base().children.iter_mut() {
                     overflow.union(&kid.get_overflow_in_parent_coordinates());
                 }
@@ -524,30 +445,6 @@ pub trait ImmutableFlowUtils {
     /// Returns true if this flow is a block flow or subclass thereof.
     fn is_block_like(self) -> bool;
 
-    /// Returns true if this flow is a table flow.
-    fn is_table(self) -> bool;
-
-    /// Returns true if this flow is a table caption flow.
-    fn is_table_caption(self) -> bool;
-
-    /// Returns true if this flow is a proper table child.
-    fn is_proper_table_child(self) -> bool;
-
-    /// Returns true if this flow is a table row flow.
-    fn is_table_row(self) -> bool;
-
-    /// Returns true if this flow is a table cell flow.
-    fn is_table_cell(self) -> bool;
-
-    /// Returns true if this flow is a table colgroup flow.
-    fn is_table_colgroup(self) -> bool;
-
-    /// Returns true if this flow is a table rowgroup flow.
-    fn is_table_rowgroup(self) -> bool;
-
-    /// Returns true if this flow is one of table-related flows.
-    fn is_table_kind(self) -> bool;
-
     /// Returns true if this flow has no children.
     fn is_leaf(self) -> bool;
 
@@ -609,13 +506,6 @@ pub enum FlowClass {
     Block,
     Inline,
     ListItem,
-    TableWrapper,
-    Table,
-    TableColGroup,
-    TableRowGroup,
-    TableRow,
-    TableCaption,
-    TableCell,
     Multicol,
     MulticolColumn,
     Flex,
@@ -626,12 +516,6 @@ impl FlowClass {
         match self {
             FlowClass::Block |
             FlowClass::ListItem |
-            FlowClass::Table |
-            FlowClass::TableRowGroup |
-            FlowClass::TableRow |
-            FlowClass::TableCaption |
-            FlowClass::TableCell |
-            FlowClass::TableWrapper |
             FlowClass::Flex => true,
             _ => false,
         }
@@ -1252,81 +1136,6 @@ impl<'a> ImmutableFlowUtils for &'a dyn Flow {
         self.class().is_block_like()
     }
 
-    /// Returns true if this flow is a proper table child.
-    /// 'Proper table child' is defined as table-row flow, table-rowgroup flow,
-    /// table-column-group flow, or table-caption flow.
-    fn is_proper_table_child(self) -> bool {
-        match self.class() {
-            FlowClass::TableRow |
-            FlowClass::TableRowGroup |
-            FlowClass::TableColGroup |
-            FlowClass::TableCaption => true,
-            _ => false,
-        }
-    }
-
-    /// Returns true if this flow is a table row flow.
-    fn is_table_row(self) -> bool {
-        match self.class() {
-            FlowClass::TableRow => true,
-            _ => false,
-        }
-    }
-
-    /// Returns true if this flow is a table cell flow.
-    fn is_table_cell(self) -> bool {
-        match self.class() {
-            FlowClass::TableCell => true,
-            _ => false,
-        }
-    }
-
-    /// Returns true if this flow is a table colgroup flow.
-    fn is_table_colgroup(self) -> bool {
-        match self.class() {
-            FlowClass::TableColGroup => true,
-            _ => false,
-        }
-    }
-
-    /// Returns true if this flow is a table flow.
-    fn is_table(self) -> bool {
-        match self.class() {
-            FlowClass::Table => true,
-            _ => false,
-        }
-    }
-
-    /// Returns true if this flow is a table caption flow.
-    fn is_table_caption(self) -> bool {
-        match self.class() {
-            FlowClass::TableCaption => true,
-            _ => false,
-        }
-    }
-
-    /// Returns true if this flow is a table rowgroup flow.
-    fn is_table_rowgroup(self) -> bool {
-        match self.class() {
-            FlowClass::TableRowGroup => true,
-            _ => false,
-        }
-    }
-
-    /// Returns true if this flow is one of table-related flows.
-    fn is_table_kind(self) -> bool {
-        match self.class() {
-            FlowClass::TableWrapper |
-            FlowClass::Table |
-            FlowClass::TableColGroup |
-            FlowClass::TableRowGroup |
-            FlowClass::TableRow |
-            FlowClass::TableCaption |
-            FlowClass::TableCell => true,
-            _ => false,
-        }
-    }
-
     /// Returns true if this flow has no children.
     fn is_leaf(self) -> bool {
         self.base().children.is_empty()
@@ -1346,7 +1155,7 @@ impl<'a> ImmutableFlowUtils for &'a dyn Flow {
     fn is_block_container(self) -> bool {
         match self.class() {
             // TODO: Change this when inline-blocks are supported.
-            FlowClass::Block | FlowClass::TableCaption | FlowClass::TableCell => {
+            FlowClass::Block => {
                 // FIXME: Actually check the type of the node
                 self.child_count() != 0
             },

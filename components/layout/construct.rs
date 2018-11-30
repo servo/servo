@@ -30,20 +30,13 @@ use crate::fragment::{
     InlineBlockFragmentInfo, MediaFragmentInfo, SpecificFragmentInfo, SvgFragmentInfo,
 };
 use crate::fragment::{
-    TableColumnFragmentInfo, UnscannedTextFragmentInfo, WhitespaceStrippingResult,
+    UnscannedTextFragmentInfo, WhitespaceStrippingResult,
 };
 use crate::inline::{InlineFlow, InlineFragmentNodeFlags, InlineFragmentNodeInfo};
 use crate::linked_list::prepend_from;
 use crate::list_item::{ListItemFlow, ListStyleTypeContent};
 use crate::multicol::{MulticolColumnFlow, MulticolFlow};
 use crate::parallel;
-use crate::table::TableFlow;
-use crate::table_caption::TableCaptionFlow;
-use crate::table_cell::TableCellFlow;
-use crate::table_colgroup::TableColGroupFlow;
-use crate::table_row::TableRowFlow;
-use crate::table_rowgroup::TableRowGroupFlow;
-use crate::table_wrapper::TableWrapperFlow;
 use crate::text::TextRunScanner;
 use crate::traversal::PostorderNodeMutTraversal;
 use crate::wrapper::{LayoutNodeLayoutData, TextContent, ThreadSafeLayoutNodeHelpers};
@@ -59,9 +52,7 @@ use std::marker::PhantomData;
 use std::mem;
 use std::sync::atomic::Ordering;
 use std::sync::Arc;
-use style::computed_values::caption_side::T as CaptionSide;
 use style::computed_values::display::T as Display;
-use style::computed_values::empty_cells::T as EmptyCells;
 use style::computed_values::float::T as Float;
 use style::computed_values::list_style_position::T as ListStylePosition;
 use style::computed_values::position::T as Position;
@@ -124,8 +115,6 @@ pub enum ConstructionItem {
         ServoArc<ComputedValues>,
         RestyleDamage,
     ),
-    /// TableColumn Fragment
-    TableColumnFragment(Fragment),
 }
 
 /// Represents inline fragments and {ib} splits that are bubbling up from an inline.
@@ -427,19 +416,6 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
                 ));
                 SpecificFragmentInfo::Image(image_info)
             },
-            Some(LayoutNodeType::Element(LayoutElementType::HTMLTableElement)) => {
-                SpecificFragmentInfo::TableWrapper
-            },
-            Some(LayoutNodeType::Element(LayoutElementType::HTMLTableColElement)) => {
-                SpecificFragmentInfo::TableColumn(TableColumnFragmentInfo::new(node))
-            },
-            Some(LayoutNodeType::Element(LayoutElementType::HTMLTableCellElement)) => {
-                SpecificFragmentInfo::TableCell
-            },
-            Some(LayoutNodeType::Element(LayoutElementType::HTMLTableRowElement)) |
-            Some(LayoutNodeType::Element(LayoutElementType::HTMLTableSectionElement)) => {
-                SpecificFragmentInfo::TableRow
-            },
             Some(LayoutNodeType::Element(LayoutElementType::HTMLCanvasElement)) => {
                 let data = node.canvas_data().unwrap();
                 SpecificFragmentInfo::Canvas(Box::new(CanvasFragmentInfo::new(data)))
@@ -566,38 +542,30 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
         match kid.get_construction_result() {
             ConstructionResult::None => {},
             ConstructionResult::Flow(kid_flow, kid_abs_descendants) => {
-                // If kid_flow is TableCaptionFlow, kid_flow should be added under
-                // TableWrapperFlow.
-                if flow.is_table() && kid_flow.is_table_caption() {
-                    let construction_result =
-                        ConstructionResult::Flow(kid_flow, AbsoluteDescendants::new());
-                    self.set_flow_construction_result(&kid, construction_result)
-                } else {
-                    if !kid_flow
-                        .base()
-                        .flags
-                        .contains(FlowFlags::IS_ABSOLUTELY_POSITIONED)
-                    {
-                        // Flush any inline fragments that we were gathering up. This allows us to
-                        // handle {ib} splits.
-                        let old_inline_fragment_accumulator = mem::replace(
-                            inline_fragment_accumulator,
-                            InlineFragmentsAccumulator::new(),
-                        );
-                        self.flush_inline_fragments_to_flow(
-                            old_inline_fragment_accumulator,
-                            flow,
-                            abs_descendants,
-                            legalizer,
-                            node,
-                        );
-                    }
-                    legalizer.add_child::<ConcreteThreadSafeLayoutNode::ConcreteElement>(
-                        self.style_context(),
+                if !kid_flow
+                    .base()
+                    .flags
+                    .contains(FlowFlags::IS_ABSOLUTELY_POSITIONED)
+                {
+                    // Flush any inline fragments that we were gathering up. This allows us to
+                    // handle {ib} splits.
+                    let old_inline_fragment_accumulator = mem::replace(
+                        inline_fragment_accumulator,
+                        InlineFragmentsAccumulator::new(),
+                    );
+                    self.flush_inline_fragments_to_flow(
+                        old_inline_fragment_accumulator,
                         flow,
-                        kid_flow,
-                    )
+                        abs_descendants,
+                        legalizer,
+                        node,
+                    );
                 }
+                legalizer.add_child::<ConcreteThreadSafeLayoutNode::ConcreteElement>(
+                    self.style_context(),
+                    flow,
+                    kid_flow,
+                );
                 abs_descendants.push_descendants(kid_abs_descendants);
             },
             ConstructionResult::ConstructionItem(ConstructionItem::InlineFragments(
@@ -669,10 +637,6 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
                     .fragments
                     .fragments
                     .push_back(fragment);
-            },
-            ConstructionResult::ConstructionItem(ConstructionItem::TableColumnFragment(_)) => {
-                // TODO: Implement anonymous table objects for missing parents
-                // CSS 2.1 § 17.2.1, step 3-2
             },
         }
     }
@@ -1004,10 +968,6 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
                     );
                     fragment_accumulator.fragments.fragments.push_back(fragment)
                 },
-                ConstructionResult::ConstructionItem(ConstructionItem::TableColumnFragment(_)) => {
-                    // TODO: Implement anonymous table objects for missing parents
-                    // CSS 2.1 § 17.2.1, step 3-2
-                },
             }
         }
 
@@ -1242,35 +1202,6 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
         }
     }
 
-    /// Places any table captions found under the given table wrapper, if the value of their
-    /// `caption-side` property is equal to the given `side`.
-    fn place_table_caption_under_table_wrapper_on_side(
-        &mut self,
-        table_wrapper_flow: &mut FlowRef,
-        node: &ConcreteThreadSafeLayoutNode,
-        side: CaptionSide,
-    ) {
-        // Only flows that are table captions are matched here.
-        for kid in node.children() {
-            match kid.get_construction_result() {
-                ConstructionResult::Flow(kid_flow, _) => {
-                    if kid_flow.is_table_caption() &&
-                        kid_flow
-                            .as_block()
-                            .fragment
-                            .style()
-                            .get_inherited_table()
-                            .caption_side ==
-                            side
-                    {
-                        table_wrapper_flow.add_new_child(kid_flow);
-                    }
-                },
-                ConstructionResult::None | ConstructionResult::ConstructionItem(_) => {},
-            }
-        }
-    }
-
     /// Builds a flow for a node with `column-count` or `column-width` non-`auto`.
     /// This yields a `MulticolFlow` with a single `MulticolColumnFlow` underneath it.
     fn build_flow_for_multicol(
@@ -1319,158 +1250,6 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
         }
 
         ConstructionResult::Flow(flow, abs_descendants)
-    }
-
-    /// Builds a flow for a node with `display: table`. This yields a `TableWrapperFlow` with
-    /// possibly other `TableCaptionFlow`s or `TableFlow`s underneath it.
-    fn build_flow_for_table(
-        &mut self,
-        node: &ConcreteThreadSafeLayoutNode,
-        float_value: Float,
-    ) -> ConstructionResult {
-        let mut legalizer = Legalizer::new();
-
-        let table_style;
-        let wrapper_style;
-        {
-            let context = self.style_context();
-            table_style = node.style(context);
-            wrapper_style = context
-                .stylist
-                .style_for_anonymous::<ConcreteThreadSafeLayoutNode::ConcreteElement>(
-                    &context.guards,
-                    &PseudoElement::ServoTableWrapper,
-                    &table_style,
-                );
-        }
-        let wrapper_fragment = Fragment::from_opaque_node_and_style(
-            node.opaque(),
-            PseudoElementType::Normal,
-            wrapper_style,
-            node.selected_style(),
-            node.restyle_damage(),
-            SpecificFragmentInfo::TableWrapper,
-        );
-        let wrapper_float_kind = FloatKind::from_property(float_value);
-        let mut wrapper_flow = FlowRef::new(Arc::new(
-            TableWrapperFlow::from_fragment_and_float_kind(wrapper_fragment, wrapper_float_kind),
-        ));
-
-        let table_fragment = Fragment::new(node, SpecificFragmentInfo::Table, self.layout_context);
-        let table_flow = FlowRef::new(Arc::new(TableFlow::from_fragment(table_fragment)));
-
-        // First populate the table flow with its children.
-        let construction_result = self.build_flow_for_block_like(table_flow, node);
-
-        let mut abs_descendants = AbsoluteDescendants::new();
-
-        // The order of the caption and the table are not necessarily the same order as in the DOM
-        // tree. All caption blocks are placed before or after the table flow, depending on the
-        // value of `caption-side`.
-        self.place_table_caption_under_table_wrapper_on_side(
-            &mut wrapper_flow,
-            node,
-            CaptionSide::Top,
-        );
-
-        if let ConstructionResult::Flow(table_flow, table_abs_descendants) = construction_result {
-            legalizer.add_child::<ConcreteThreadSafeLayoutNode::ConcreteElement>(
-                self.style_context(),
-                &mut wrapper_flow,
-                table_flow,
-            );
-            abs_descendants.push_descendants(table_abs_descendants);
-        }
-
-        // If the value of `caption-side` is `bottom`, place it now.
-        self.place_table_caption_under_table_wrapper_on_side(
-            &mut wrapper_flow,
-            node,
-            CaptionSide::Bottom,
-        );
-
-        // The flow is done.
-        legalizer.finish(&mut wrapper_flow);
-        wrapper_flow.finish();
-
-        if wrapper_flow.is_absolute_containing_block() {
-            // This is the containing block for all the absolute descendants.
-            wrapper_flow.set_absolute_descendants(abs_descendants);
-
-            abs_descendants = AbsoluteDescendants::new();
-
-            if wrapper_flow
-                .base()
-                .flags
-                .contains(FlowFlags::IS_ABSOLUTELY_POSITIONED)
-            {
-                // This is now the only absolute flow in the subtree which hasn't yet
-                // reached its containing block.
-                abs_descendants.push(wrapper_flow.clone());
-            }
-        }
-
-        ConstructionResult::Flow(wrapper_flow, abs_descendants)
-    }
-
-    /// Builds a flow for a node with `display: table-caption`. This yields a `TableCaptionFlow`
-    /// with possibly other `BlockFlow`s or `InlineFlow`s underneath it.
-    fn build_flow_for_table_caption(
-        &mut self,
-        node: &ConcreteThreadSafeLayoutNode,
-    ) -> ConstructionResult {
-        let fragment = self.build_fragment_for_block(node);
-        let flow = FlowRef::new(Arc::new(TableCaptionFlow::from_fragment(fragment)));
-        self.build_flow_for_block_like(flow, node)
-    }
-
-    /// Builds a flow for a node with `display: table-row-group`. This yields a `TableRowGroupFlow`
-    /// with possibly other `TableRowFlow`s underneath it.
-    fn build_flow_for_table_rowgroup(
-        &mut self,
-        node: &ConcreteThreadSafeLayoutNode,
-    ) -> ConstructionResult {
-        let fragment = Fragment::new(node, SpecificFragmentInfo::TableRow, self.layout_context);
-        let flow = FlowRef::new(Arc::new(TableRowGroupFlow::from_fragment(fragment)));
-        self.build_flow_for_block_like(flow, node)
-    }
-
-    /// Builds a flow for a node with `display: table-row`. This yields a `TableRowFlow` with
-    /// possibly other `TableCellFlow`s underneath it.
-    fn build_flow_for_table_row(
-        &mut self,
-        node: &ConcreteThreadSafeLayoutNode,
-    ) -> ConstructionResult {
-        let fragment = Fragment::new(node, SpecificFragmentInfo::TableRow, self.layout_context);
-        let flow = FlowRef::new(Arc::new(TableRowFlow::from_fragment(fragment)));
-        self.build_flow_for_block_like(flow, node)
-    }
-
-    /// Builds a flow for a node with `display: table-cell`. This yields a `TableCellFlow` with
-    /// possibly other `BlockFlow`s or `InlineFlow`s underneath it.
-    fn build_flow_for_table_cell(
-        &mut self,
-        node: &ConcreteThreadSafeLayoutNode,
-    ) -> ConstructionResult {
-        let fragment = Fragment::new(node, SpecificFragmentInfo::TableCell, self.layout_context);
-
-        // Determine if the table cell should be hidden. Per CSS 2.1 § 17.6.1.1, this will be true
-        // if the cell has any in-flow elements (even empty ones!) and has `empty-cells` set to
-        // `hide`.
-        let hide = node
-            .style(self.style_context())
-            .get_inherited_table()
-            .empty_cells ==
-            EmptyCells::Hide &&
-            node.children().all(|kid| {
-                let position = kid.style(self.style_context()).get_box().position;
-                !kid.is_content() || position == Position::Absolute || position == Position::Fixed
-            });
-
-        let flow = FlowRef::new(Arc::new(
-            TableCellFlow::from_node_fragment_and_visibility_flag(node, fragment, !hide),
-        ));
-        self.build_flow_for_block_like(flow, node)
     }
 
     /// Builds a flow for a node with `display: list-item`. This yields a `ListItemFlow` with
@@ -1558,61 +1337,6 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
             node,
             initial_fragments,
         )
-    }
-
-    /// Creates a fragment for a node with `display: table-column`.
-    fn build_fragments_for_table_column(
-        &mut self,
-        node: &ConcreteThreadSafeLayoutNode,
-    ) -> ConstructionResult {
-        // CSS 2.1 § 17.2.1. Treat all child fragments of a `table-column` as `display: none`.
-        for kid in node.children() {
-            self.set_flow_construction_result(&kid, ConstructionResult::None)
-        }
-
-        let specific = SpecificFragmentInfo::TableColumn(TableColumnFragmentInfo::new(node));
-        let construction_item = ConstructionItem::TableColumnFragment(Fragment::new(
-            node,
-            specific,
-            self.layout_context,
-        ));
-        ConstructionResult::ConstructionItem(construction_item)
-    }
-
-    /// Builds a flow for a node with `display: table-column-group`.
-    /// This yields a `TableColGroupFlow`.
-    fn build_flow_for_table_colgroup(
-        &mut self,
-        node: &ConcreteThreadSafeLayoutNode,
-    ) -> ConstructionResult {
-        let fragment = Fragment::new(
-            node,
-            SpecificFragmentInfo::TableColumn(TableColumnFragmentInfo::new(node)),
-            self.layout_context,
-        );
-        let mut col_fragments = vec![];
-        for kid in node.children() {
-            // CSS 2.1 § 17.2.1. Treat all non-column child fragments of `table-column-group`
-            // as `display: none`.
-            if let ConstructionResult::ConstructionItem(ConstructionItem::TableColumnFragment(
-                fragment,
-            )) = kid.get_construction_result()
-            {
-                col_fragments.push(fragment)
-            }
-        }
-        if col_fragments.is_empty() {
-            debug!("add SpecificFragmentInfo::TableColumn for empty colgroup");
-            let specific = SpecificFragmentInfo::TableColumn(TableColumnFragmentInfo::new(node));
-            col_fragments.push(Fragment::new(node, specific, self.layout_context));
-        }
-        let mut flow = FlowRef::new(Arc::new(TableColGroupFlow::from_fragments(
-            fragment,
-            col_fragments,
-        )));
-        flow.finish();
-
-        ConstructionResult::Flow(flow, AbsoluteDescendants::new())
     }
 
     /// Builds a flow for a node with 'display: flex'.
@@ -1835,12 +1559,6 @@ where
                 self.set_flow_construction_result(node, ConstructionResult::None);
             },
 
-            // Table items contribute table flow construction results.
-            (Display::Table, float_value, _) => {
-                let construction_result = self.build_flow_for_table(node, float_value);
-                self.set_flow_construction_result(node, construction_result)
-            },
-
             // Absolutely positioned elements will have computed value of
             // `float` as 'none' and `display` as per the table.
             // Only match here for block items. If an item is absolutely
@@ -1879,44 +1597,6 @@ where
             (Display::InlineBlock, Float::None, _) => {
                 let construction_result =
                     self.build_fragment_for_inline_block_or_inline_flex(node, Display::InlineBlock);
-                self.set_flow_construction_result(node, construction_result)
-            },
-
-            // Table items contribute table flow construction results.
-            (Display::TableCaption, _, _) => {
-                let construction_result = self.build_flow_for_table_caption(node);
-                self.set_flow_construction_result(node, construction_result)
-            },
-
-            // Table items contribute table flow construction results.
-            (Display::TableColumnGroup, _, _) => {
-                let construction_result = self.build_flow_for_table_colgroup(node);
-                self.set_flow_construction_result(node, construction_result)
-            },
-
-            // Table items contribute table flow construction results.
-            (Display::TableColumn, _, _) => {
-                let construction_result = self.build_fragments_for_table_column(node);
-                self.set_flow_construction_result(node, construction_result)
-            },
-
-            // Table items contribute table flow construction results.
-            (Display::TableRowGroup, _, _) |
-            (Display::TableHeaderGroup, _, _) |
-            (Display::TableFooterGroup, _, _) => {
-                let construction_result = self.build_flow_for_table_rowgroup(node);
-                self.set_flow_construction_result(node, construction_result)
-            },
-
-            // Table items contribute table flow construction results.
-            (Display::TableRow, _, _) => {
-                let construction_result = self.build_flow_for_table_row(node);
-                self.set_flow_construction_result(node, construction_result)
-            },
-
-            // Table items contribute table flow construction results.
-            (Display::TableCell, _, _) => {
-                let construction_result = self.build_flow_for_table_cell(node);
                 self.set_flow_construction_result(node, construction_result)
             },
 
@@ -2264,10 +1944,6 @@ impl Legalizer {
             }
             self.flush_top_of_stack(parent)
         }
-
-        while !self.try_to_add_child::<E>(context, parent, &mut child) {
-            self.push_next_anonymous_flow::<E>(context, parent)
-        }
     }
 
     /// Flushes all flows we've been gathering up.
@@ -2295,28 +1971,6 @@ impl Legalizer {
         let parent = self.stack.last_mut().unwrap_or(parent);
         let (parent_class, child_class) = (parent.class(), child.class());
         match (parent_class, child_class) {
-            (FlowClass::TableWrapper, FlowClass::Table) |
-            (FlowClass::Table, FlowClass::TableColGroup) |
-            (FlowClass::Table, FlowClass::TableRowGroup) |
-            (FlowClass::Table, FlowClass::TableRow) |
-            (FlowClass::Table, FlowClass::TableCaption) |
-            (FlowClass::TableRowGroup, FlowClass::TableRow) |
-            (FlowClass::TableRow, FlowClass::TableCell) => {
-                parent.add_new_child((*child).clone());
-                true
-            },
-
-            (FlowClass::TableWrapper, _) |
-            (FlowClass::Table, _) |
-            (FlowClass::TableRowGroup, _) |
-            (FlowClass::TableRow, _) |
-            (_, FlowClass::Table) |
-            (_, FlowClass::TableColGroup) |
-            (_, FlowClass::TableRowGroup) |
-            (_, FlowClass::TableRow) |
-            (_, FlowClass::TableCaption) |
-            (_, FlowClass::TableCell) => false,
-
             (FlowClass::Flex, FlowClass::Inline) => {
                 FlowRef::deref_mut(child)
                     .mut_base()
@@ -2373,70 +2027,6 @@ impl Legalizer {
         let mut child = self.stack.pop().expect("flush_top_of_stack(): stack empty");
         child.finish();
         self.stack.last_mut().unwrap_or(parent).add_new_child(child)
-    }
-
-    /// Adds the anonymous flow that would be necessary to make an illegal child of `parent` legal
-    /// to the stack.
-    fn push_next_anonymous_flow<E>(&mut self, context: &SharedStyleContext, parent: &FlowRef)
-    where
-        E: TElement,
-    {
-        let parent_class = self.stack.last().unwrap_or(parent).class();
-        match parent_class {
-            FlowClass::TableRow => self.push_new_anonymous_flow::<E, _>(
-                context,
-                parent,
-                &[PseudoElement::ServoAnonymousTableCell],
-                SpecificFragmentInfo::TableCell,
-                TableCellFlow::from_fragment,
-            ),
-            FlowClass::Table | FlowClass::TableRowGroup => self.push_new_anonymous_flow::<E, _>(
-                context,
-                parent,
-                &[PseudoElement::ServoAnonymousTableRow],
-                SpecificFragmentInfo::TableRow,
-                TableRowFlow::from_fragment,
-            ),
-            FlowClass::TableWrapper => self.push_new_anonymous_flow::<E, _>(
-                context,
-                parent,
-                &[PseudoElement::ServoAnonymousTable],
-                SpecificFragmentInfo::Table,
-                TableFlow::from_fragment,
-            ),
-            _ => self.push_new_anonymous_flow::<E, _>(
-                context,
-                parent,
-                &[
-                    PseudoElement::ServoTableWrapper,
-                    PseudoElement::ServoAnonymousTableWrapper,
-                ],
-                SpecificFragmentInfo::TableWrapper,
-                TableWrapperFlow::from_fragment,
-            ),
-        }
-    }
-
-    /// Creates an anonymous flow and pushes it onto the stack.
-    fn push_new_anonymous_flow<E, F>(
-        &mut self,
-        context: &SharedStyleContext,
-        reference: &FlowRef,
-        pseudos: &[PseudoElement],
-        specific_fragment_info: SpecificFragmentInfo,
-        constructor: fn(Fragment) -> F,
-    ) where
-        E: TElement,
-        F: Flow,
-    {
-        let new_flow = Self::create_anonymous_flow::<E, _>(
-            context,
-            reference,
-            pseudos,
-            specific_fragment_info,
-            constructor,
-        );
-        self.stack.push(new_flow)
     }
 
     /// Creates a new anonymous flow. The new flow is identical to `reference` except with all

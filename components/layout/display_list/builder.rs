@@ -32,7 +32,6 @@ use crate::fragment::{CanvasFragmentSource, CoordinateSystem, Fragment, ScannedT
 use crate::inline::{InlineFlow, InlineFragmentNodeFlags};
 use crate::list_item::ListItemFlow;
 use crate::model::MaybeAuto;
-use crate::table_cell::CollapsedBordersForCell;
 use euclid::{rect, Point2D, Rect, SideOffsets2D, Size2D, TypedRect, TypedSize2D, Vector2D};
 use fnv::FnvHashMap;
 use gfx::text::glyph::ByteIndex;
@@ -1275,7 +1274,7 @@ impl FragmentDisplayListBuilding for Fragment {
         style: &ComputedValues,
         inline_info: Option<InlineNodeBorderInfo>,
         border_painting_mode: BorderPaintingMode,
-        mut bounds: Rect<Au>,
+        bounds: Rect<Au>,
         display_list_section: DisplayListSection,
         clip: Rect<Au>,
     ) {
@@ -1287,38 +1286,22 @@ impl FragmentDisplayListBuilding for Fragment {
 
         match border_painting_mode {
             BorderPaintingMode::Separate => {},
-            BorderPaintingMode::Collapse(collapsed_borders) => {
-                collapsed_borders.adjust_border_widths_for_painting(&mut border)
-            },
             BorderPaintingMode::Hidden => return,
         }
 
         let border_style_struct = style.get_border();
-        let mut colors = SideOffsets2D::new(
+        let colors = SideOffsets2D::new(
             border_style_struct.border_top_color,
             border_style_struct.border_right_color,
             border_style_struct.border_bottom_color,
             border_style_struct.border_left_color,
         );
-        let mut border_style = SideOffsets2D::new(
+        let border_style = SideOffsets2D::new(
             border_style_struct.border_top_style,
             border_style_struct.border_right_style,
             border_style_struct.border_bottom_style,
             border_style_struct.border_left_style,
         );
-
-        if let BorderPaintingMode::Collapse(collapsed_borders) = border_painting_mode {
-            collapsed_borders.adjust_border_colors_and_styles_for_painting(
-                &mut colors,
-                &mut border_style,
-                style.writing_mode,
-            );
-        }
-
-        // If this border collapses, then we draw outside the boundaries we were given.
-        if let BorderPaintingMode::Collapse(collapsed_borders) = border_painting_mode {
-            collapsed_borders.adjust_border_bounds_for_painting(&mut bounds, style.writing_mode)
-        }
 
         // Append the border to the display list.
         let base = state.create_base_display_item(
@@ -1961,10 +1944,6 @@ impl FragmentDisplayListBuilding for Fragment {
             },
             SpecificFragmentInfo::Generic |
             SpecificFragmentInfo::GeneratedContent(..) |
-            SpecificFragmentInfo::Table |
-            SpecificFragmentInfo::TableCell |
-            SpecificFragmentInfo::TableRow |
-            SpecificFragmentInfo::TableWrapper |
             SpecificFragmentInfo::Multicol |
             SpecificFragmentInfo::MulticolColumn |
             SpecificFragmentInfo::InlineBlock(_) |
@@ -2077,9 +2056,6 @@ impl FragmentDisplayListBuilding for Fragment {
             },
             SpecificFragmentInfo::UnscannedText(_) => {
                 panic!("Shouldn't see unscanned fragments here.")
-            },
-            SpecificFragmentInfo::TableColumn(_) => {
-                panic!("Shouldn't see table column fragments here.")
             },
         }
     }
@@ -3320,11 +3296,9 @@ fn modify_border_width_for_inline_sides(
 
 /// Describes how to paint the borders.
 #[derive(Clone, Copy)]
-pub enum BorderPaintingMode<'a> {
+pub enum BorderPaintingMode {
     /// Paint borders separately (`border-collapse: separate`).
     Separate,
-    /// Paint collapsed borders.
-    Collapse(&'a CollapsedBordersForCell),
     /// Paint no borders.
     Hidden,
 }

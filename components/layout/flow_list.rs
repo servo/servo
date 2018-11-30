@@ -32,15 +32,8 @@ impl Serialize for FlowList {
             let data = match f.class() {
                 FlowClass::Block => to_value(f.as_block()).unwrap(),
                 FlowClass::Inline => to_value(f.as_inline()).unwrap(),
-                FlowClass::Table => to_value(f.as_table()).unwrap(),
-                FlowClass::TableWrapper => to_value(f.as_table_wrapper()).unwrap(),
-                FlowClass::TableRowGroup => to_value(f.as_table_rowgroup()).unwrap(),
-                FlowClass::TableRow => to_value(f.as_table_row()).unwrap(),
-                FlowClass::TableCell => to_value(f.as_table_cell()).unwrap(),
                 FlowClass::Flex => to_value(f.as_flex()).unwrap(),
                 FlowClass::ListItem |
-                FlowClass::TableColGroup |
-                FlowClass::TableCaption |
                 FlowClass::Multicol |
                 FlowClass::MulticolColumn => {
                     Value::Null // Not implemented yet

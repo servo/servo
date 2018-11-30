@@ -10,7 +10,7 @@ use crate::context::LayoutContext;
 use crate::display_list::items::{DisplayList, OpaqueNode, ScrollOffsetMap};
 use crate::display_list::IndexableText;
 use crate::flow::{Flow, GetBaseFlow};
-use crate::fragment::{Fragment, FragmentBorderBoxIterator, SpecificFragmentInfo};
+use crate::fragment::{Fragment, FragmentBorderBoxIterator};
 use crate::inline::InlineFragmentNodeFlags;
 use crate::opaque_node::OpaqueNodeMethods;
 use crate::sequential;
@@ -636,8 +636,6 @@ impl FragmentBorderBoxIterator for ParentOffsetBorderBoxIterator {
                 //  2) Is static position *and* is a table or table cell
                 //  3) Is not static position
                 (true, _, _) |
-                (false, Position::Static, &SpecificFragmentInfo::Table) |
-                (false, Position::Static, &SpecificFragmentInfo::TableCell) |
                 (false, Position::Sticky, _) |
                 (false, Position::Absolute, _) |
                 (false, Position::Relative, _) |
@@ -1078,17 +1076,7 @@ fn inner_text_collection_steps<N: LayoutNode>(
         }
 
         match display {
-            Display::TableCell if !is_last_table_cell() => {
-                // Step 6.
-                items.push(InnerTextItem::Text(String::from("\u{0009}" /* tab */)));
-            },
-            Display::TableRow if !is_last_table_row() => {
-                // Step 7.
-                items.push(InnerTextItem::Text(String::from(
-                    "\u{000A}", /* line feed */
-                )));
-            },
-            Display::Block | Display::Flex | Display::TableCaption | Display::Table => {
+            Display::Block | Display::Flex => {
                 // Step 9.
                 items.insert(0, InnerTextItem::RequiredLineBreakCount(1));
                 items.push(InnerTextItem::RequiredLineBreakCount(1));
@@ -1098,14 +1086,4 @@ fn inner_text_collection_steps<N: LayoutNode>(
     }
 
     results.append(&mut items);
-}
-
-fn is_last_table_cell() -> bool {
-    // FIXME(ferjm) Implement this.
-    false
-}
-
-fn is_last_table_row() -> bool {
-    // FIXME(ferjm) Implement this.
-    false
 }

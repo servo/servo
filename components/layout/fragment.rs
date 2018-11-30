@@ -31,9 +31,7 @@ use msg::constellation_msg::{BrowsingContextId, PipelineId};
 use net_traits::image::base::{Image, ImageMetadata};
 use net_traits::image_cache::{ImageOrMetadataAvailable, UsePlaceholder};
 use range::*;
-use script_layout_interface::wrapper_traits::{
-    PseudoElementType, ThreadSafeLayoutElement, ThreadSafeLayoutNode,
-};
+use script_layout_interface::wrapper_traits::{PseudoElementType, ThreadSafeLayoutNode};
 use script_layout_interface::{HTMLCanvasData, HTMLCanvasDataSource, HTMLMediaData, SVGSVGData};
 use serde::ser::{Serialize, SerializeStruct, Serializer};
 use servo_url::ServoUrl;
@@ -195,11 +193,6 @@ pub enum SpecificFragmentInfo {
     InlineAbsolute(InlineAbsoluteFragmentInfo),
 
     ScannedText(Box<ScannedTextFragmentInfo>),
-    Table,
-    TableCell,
-    TableColumn(TableColumnFragmentInfo),
-    TableRow,
-    TableWrapper,
     Multicol,
     MulticolColumn,
     UnscannedText(Box<UnscannedTextFragmentInfo>),
@@ -221,11 +214,6 @@ impl SpecificFragmentInfo {
             SpecificFragmentInfo::Media(_) |
             SpecificFragmentInfo::ScannedText(_) |
             SpecificFragmentInfo::Svg(_) |
-            SpecificFragmentInfo::Table |
-            SpecificFragmentInfo::TableCell |
-            SpecificFragmentInfo::TableColumn(_) |
-            SpecificFragmentInfo::TableRow |
-            SpecificFragmentInfo::TableWrapper |
             SpecificFragmentInfo::Multicol |
             SpecificFragmentInfo::MulticolColumn |
             SpecificFragmentInfo::UnscannedText(_) |
@@ -254,11 +242,6 @@ impl SpecificFragmentInfo {
             SpecificFragmentInfo::InlineBlock(_) => "SpecificFragmentInfo::InlineBlock",
             SpecificFragmentInfo::ScannedText(_) => "SpecificFragmentInfo::ScannedText",
             SpecificFragmentInfo::Svg(_) => "SpecificFragmentInfo::Svg",
-            SpecificFragmentInfo::Table => "SpecificFragmentInfo::Table",
-            SpecificFragmentInfo::TableCell => "SpecificFragmentInfo::TableCell",
-            SpecificFragmentInfo::TableColumn(_) => "SpecificFragmentInfo::TableColumn",
-            SpecificFragmentInfo::TableRow => "SpecificFragmentInfo::TableRow",
-            SpecificFragmentInfo::TableWrapper => "SpecificFragmentInfo::TableWrapper",
             SpecificFragmentInfo::Multicol => "SpecificFragmentInfo::Multicol",
             SpecificFragmentInfo::MulticolColumn => "SpecificFragmentInfo::MulticolColumn",
             SpecificFragmentInfo::UnscannedText(_) => "SpecificFragmentInfo::UnscannedText",
@@ -632,25 +615,6 @@ impl UnscannedTextFragmentInfo {
     }
 }
 
-/// A fragment that represents a table column.
-#[derive(Clone, Copy)]
-pub struct TableColumnFragmentInfo {
-    /// the number of columns a <col> element should span
-    pub span: u32,
-}
-
-impl TableColumnFragmentInfo {
-    /// Create the information specific to an table column fragment.
-    pub fn new<N: ThreadSafeLayoutNode>(node: &N) -> TableColumnFragmentInfo {
-        let element = node.as_element().unwrap();
-        let span = element
-            .get_attr(&ns!(), &local_name!("span"))
-            .and_then(|string| string.parse().ok())
-            .unwrap_or(0);
-        TableColumnFragmentInfo { span: span }
-    }
-}
-
 /// A wrapper for fragments that have been truncated by the `text-overflow` property.
 /// This may have an associated text node, or, if the fragment was completely truncated,
 /// it may act as an invisible marker for incremental reflow.
@@ -881,44 +845,8 @@ impl Fragment {
             SpecificFragmentInfo::Svg(_) => {
                 QuantitiesIncludedInIntrinsicInlineSizes::all()
             }
-            SpecificFragmentInfo::Table => {
-                QuantitiesIncludedInIntrinsicInlineSizes::INTRINSIC_INLINE_SIZE_INCLUDES_SPECIFIED |
-                    QuantitiesIncludedInIntrinsicInlineSizes::INTRINSIC_INLINE_SIZE_INCLUDES_PADDING |
-                    QuantitiesIncludedInIntrinsicInlineSizes::INTRINSIC_INLINE_SIZE_INCLUDES_BORDER
-            }
-            SpecificFragmentInfo::TableCell => {
-                let base_quantities = QuantitiesIncludedInIntrinsicInlineSizes::INTRINSIC_INLINE_SIZE_INCLUDES_PADDING |
-                    QuantitiesIncludedInIntrinsicInlineSizes::INTRINSIC_INLINE_SIZE_INCLUDES_SPECIFIED;
-                if self.style.get_inherited_table().border_collapse ==
-                        BorderCollapse::Separate {
-                    base_quantities | QuantitiesIncludedInIntrinsicInlineSizes::INTRINSIC_INLINE_SIZE_INCLUDES_BORDER
-                } else {
-                    base_quantities
-                }
-            }
-            SpecificFragmentInfo::TableWrapper => {
-                let base_quantities = QuantitiesIncludedInIntrinsicInlineSizes::INTRINSIC_INLINE_SIZE_INCLUDES_MARGINS |
-                    QuantitiesIncludedInIntrinsicInlineSizes::INTRINSIC_INLINE_SIZE_INCLUDES_SPECIFIED;
-                if self.style.get_inherited_table().border_collapse ==
-                        BorderCollapse::Separate {
-                    base_quantities | QuantitiesIncludedInIntrinsicInlineSizes::INTRINSIC_INLINE_SIZE_INCLUDES_BORDER
-                } else {
-                    base_quantities
-                }
-            }
-            SpecificFragmentInfo::TableRow => {
-                let base_quantities =
-                    QuantitiesIncludedInIntrinsicInlineSizes::INTRINSIC_INLINE_SIZE_INCLUDES_SPECIFIED;
-                if self.style.get_inherited_table().border_collapse ==
-                        BorderCollapse::Separate {
-                    base_quantities | QuantitiesIncludedInIntrinsicInlineSizes::INTRINSIC_INLINE_SIZE_INCLUDES_BORDER
-                } else {
-                    base_quantities
-                }
-            }
             SpecificFragmentInfo::TruncatedFragment(_) |
             SpecificFragmentInfo::ScannedText(_) |
-            SpecificFragmentInfo::TableColumn(_) |
             SpecificFragmentInfo::UnscannedText(_) |
             SpecificFragmentInfo::InlineAbsoluteHypothetical(_) |
             SpecificFragmentInfo::InlineBlock(_) |
@@ -1309,10 +1237,6 @@ impl Fragment {
     /// (for example, via constraint solving for blocks).
     pub fn compute_inline_direction_margins(&mut self, containing_block_inline_size: Au) {
         match self.specific {
-            SpecificFragmentInfo::Table |
-            SpecificFragmentInfo::TableCell |
-            SpecificFragmentInfo::TableRow |
-            SpecificFragmentInfo::TableColumn(_) |
             SpecificFragmentInfo::InlineAbsoluteHypothetical(_) => {
                 self.margin.inline_start = Au(0);
                 self.margin.inline_end = Au(0);
@@ -1363,26 +1287,15 @@ impl Fragment {
     /// Do not use this method if the block direction margins are to be computed some other way
     /// (for example, via constraint solving for absolutely-positioned flows).
     pub fn compute_block_direction_margins(&mut self, containing_block_inline_size: Au) {
-        match self.specific {
-            SpecificFragmentInfo::Table |
-            SpecificFragmentInfo::TableCell |
-            SpecificFragmentInfo::TableRow |
-            SpecificFragmentInfo::TableColumn(_) => {
-                self.margin.block_start = Au(0);
-                self.margin.block_end = Au(0)
-            },
-            _ => {
-                // NB: Percentages are relative to containing block inline-size (not block-size)
-                // per CSS 2.1.
-                let margin = self.style().logical_margin();
-                self.margin.block_start =
-                    MaybeAuto::from_style(margin.block_start, containing_block_inline_size)
-                        .specified_or_zero();
-                self.margin.block_end =
-                    MaybeAuto::from_style(margin.block_end, containing_block_inline_size)
-                        .specified_or_zero();
-            },
-        }
+        // NB: Percentages are relative to containing block inline-size (not block-size)
+        // per CSS 2.1.
+        let margin = self.style().logical_margin();
+        self.margin.block_start =
+            MaybeAuto::from_style(margin.block_start, containing_block_inline_size)
+                .specified_or_zero();
+        self.margin.block_end =
+            MaybeAuto::from_style(margin.block_end, containing_block_inline_size)
+                .specified_or_zero();
     }
 
     /// Computes the border and padding in both inline and block directions from the containing
@@ -1396,23 +1309,15 @@ impl Fragment {
         };
 
         // Compute padding from the fragment's style.
-        let padding_from_style = match self.specific {
-            SpecificFragmentInfo::TableColumn(_) |
-            SpecificFragmentInfo::TableRow |
-            SpecificFragmentInfo::TableWrapper => LogicalMargin::zero(self.style.writing_mode),
-            _ => model::padding_from_style(
-                self.style(),
-                containing_block_inline_size,
-                self.style().writing_mode,
-            ),
-        };
+        let padding_from_style = model::padding_from_style(
+            self.style(),
+            containing_block_inline_size,
+            self.style().writing_mode,
+        );
 
         // Compute padding from the inline fragment context.
         let padding_from_inline_fragment_context = match (&self.specific, &self.inline_context) {
-            (_, &None) |
-            (&SpecificFragmentInfo::TableColumn(_), _) |
-            (&SpecificFragmentInfo::TableRow, _) |
-            (&SpecificFragmentInfo::TableWrapper, _) => {
+            (_, &None) => {
                 LogicalMargin::zero(self.style.writing_mode)
             },
             (_, &Some(ref inline_fragment_context)) => {
@@ -1529,24 +1434,7 @@ impl Fragment {
     /// FIXME(#2262, pcwalton): I think this method is pretty bogus, because it won't work for
     /// inlines.
     pub fn inline_start_offset(&self) -> Au {
-        match self.specific {
-            SpecificFragmentInfo::TableWrapper => self.margin.inline_start,
-            SpecificFragmentInfo::Table |
-            SpecificFragmentInfo::TableCell |
-            SpecificFragmentInfo::TableRow => self.border_padding.inline_start,
-            SpecificFragmentInfo::TableColumn(_) => Au(0),
-            _ => self.margin.inline_start + self.border_padding.inline_start,
-        }
-    }
-
-    /// If this is a Column fragment, get the col span
-    ///
-    /// Panics for non-column fragments
-    pub fn column_span(&self) -> u32 {
-        match self.specific {
-            SpecificFragmentInfo::TableColumn(col_fragment) => max(col_fragment.span, 1),
-            _ => panic!("non-table-column fragment inside table column?!"),
-        }
+        self.margin.inline_start + self.border_padding.inline_start
     }
 
     /// Returns true if this element can be split. This is true for text fragments, unless
@@ -1589,11 +1477,6 @@ impl Fragment {
         match self.specific {
             SpecificFragmentInfo::Generic |
             SpecificFragmentInfo::GeneratedContent(_) |
-            SpecificFragmentInfo::Table |
-            SpecificFragmentInfo::TableCell |
-            SpecificFragmentInfo::TableColumn(_) |
-            SpecificFragmentInfo::TableRow |
-            SpecificFragmentInfo::TableWrapper |
             SpecificFragmentInfo::Multicol |
             SpecificFragmentInfo::MulticolColumn |
             SpecificFragmentInfo::InlineAbsoluteHypothetical(_) => {},
@@ -2068,15 +1951,8 @@ impl Fragment {
             SpecificFragmentInfo::TruncatedFragment(ref t) if t.text_info.is_none() => return,
             SpecificFragmentInfo::Generic |
             SpecificFragmentInfo::GeneratedContent(_) |
-            SpecificFragmentInfo::Table |
-            SpecificFragmentInfo::TableCell |
-            SpecificFragmentInfo::TableRow |
-            SpecificFragmentInfo::TableWrapper |
             SpecificFragmentInfo::Multicol |
             SpecificFragmentInfo::MulticolColumn => return,
-            SpecificFragmentInfo::TableColumn(_) => {
-                panic!("Table column fragments do not have inline size")
-            },
             SpecificFragmentInfo::UnscannedText(_) => {
                 panic!("Unscanned text fragments should have been scanned by now!")
             },
@@ -2159,15 +2035,8 @@ impl Fragment {
             SpecificFragmentInfo::TruncatedFragment(ref t) if t.text_info.is_none() => return,
             SpecificFragmentInfo::Generic |
             SpecificFragmentInfo::GeneratedContent(_) |
-            SpecificFragmentInfo::Table |
-            SpecificFragmentInfo::TableCell |
-            SpecificFragmentInfo::TableRow |
-            SpecificFragmentInfo::TableWrapper |
             SpecificFragmentInfo::Multicol |
             SpecificFragmentInfo::MulticolColumn => return,
-            SpecificFragmentInfo::TableColumn(_) => {
-                panic!("Table column fragments do not have block size")
-            },
             SpecificFragmentInfo::UnscannedText(_) => {
                 panic!("Unscanned text fragments should have been scanned by now!")
             },
@@ -2289,11 +2158,6 @@ impl Fragment {
             },
             SpecificFragmentInfo::TruncatedFragment(..) |
             SpecificFragmentInfo::InlineAbsolute(_) => InlineMetrics::new(Au(0), Au(0), Au(0)),
-            SpecificFragmentInfo::Table |
-            SpecificFragmentInfo::TableCell |
-            SpecificFragmentInfo::TableColumn(_) |
-            SpecificFragmentInfo::TableRow |
-            SpecificFragmentInfo::TableWrapper |
             SpecificFragmentInfo::Multicol |
             SpecificFragmentInfo::MulticolColumn |
             SpecificFragmentInfo::UnscannedText(_) => {
@@ -2585,8 +2449,7 @@ impl Fragment {
             SpecificFragmentInfo::InlineBlock(_) |
             SpecificFragmentInfo::InlineAbsoluteHypothetical(_) |
             SpecificFragmentInfo::InlineAbsolute(_) |
-            SpecificFragmentInfo::MulticolColumn |
-            SpecificFragmentInfo::TableWrapper => false,
+            SpecificFragmentInfo::MulticolColumn => false,
             SpecificFragmentInfo::Canvas(_) |
             SpecificFragmentInfo::Generic |
             SpecificFragmentInfo::GeneratedContent(_) |
@@ -2595,10 +2458,6 @@ impl Fragment {
             SpecificFragmentInfo::Media(_) |
             SpecificFragmentInfo::ScannedText(_) |
             SpecificFragmentInfo::Svg(_) |
-            SpecificFragmentInfo::Table |
-            SpecificFragmentInfo::TableCell |
-            SpecificFragmentInfo::TableColumn(_) |
-            SpecificFragmentInfo::TableRow |
             SpecificFragmentInfo::TruncatedFragment(_) |
             SpecificFragmentInfo::Multicol |
             SpecificFragmentInfo::UnscannedText(_) => true,
@@ -3110,12 +2969,7 @@ impl Fragment {
             SpecificFragmentInfo::InlineAbsoluteHypothetical(_) |
             SpecificFragmentInfo::InlineBlock(_) |
             SpecificFragmentInfo::Multicol |
-            SpecificFragmentInfo::MulticolColumn |
-            SpecificFragmentInfo::Table |
-            SpecificFragmentInfo::TableCell |
-            SpecificFragmentInfo::TableColumn(_) |
-            SpecificFragmentInfo::TableRow |
-            SpecificFragmentInfo::TableWrapper => false,
+            SpecificFragmentInfo::MulticolColumn => false,
             SpecificFragmentInfo::Canvas(_) |
             SpecificFragmentInfo::GeneratedContent(_) |
             SpecificFragmentInfo::Iframe(_) |
