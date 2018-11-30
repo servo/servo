@@ -2366,7 +2366,8 @@ impl Document {
             return vec![];
         };
 
-        self.window.layout().nodes_from_point_response()
+        // TODO(pcwalton)
+        return vec![];
     }
 
     /// <https://html.spec.whatwg.org/multipage/#look-up-a-custom-element-definition>

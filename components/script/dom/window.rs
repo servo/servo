@@ -93,7 +93,8 @@ use num_traits::ToPrimitive;
 use profile_traits::ipc as ProfiledIpc;
 use profile_traits::mem::ProfilerChan as MemProfilerChan;
 use profile_traits::time::ProfilerChan as TimeProfilerChan;
-use script_layout_interface::message::{Msg, QueryMsg, Reflow, ReflowGoal, ScriptReflow};
+use script_layout_interface::message::{Msg, QueryMsg, Reflow, ReflowComplete};
+use script_layout_interface::message::{ReflowGoal, ScriptReflow};
 use script_layout_interface::reporter::CSSErrorReporter;
 use script_layout_interface::rpc::{ContentBoxResponse, ContentBoxesResponse, LayoutRPC};
 use script_layout_interface::rpc::{
@@ -212,10 +213,6 @@ pub struct Window {
     /// A handle for communicating messages to the layout thread.
     #[ignore_malloc_size_of = "channels are hard"]
     layout_chan: Sender<Msg>,
-
-    /// A handle to perform RPC calls into the layout, quickly.
-    #[ignore_malloc_size_of = "trait objects are hard"]
-    layout_rpc: Box<LayoutRPC + Send + 'static>,
 
     /// The current size of the window, in pixels.
     window_size: Cell<Option<WindowSizeData>>,
@@ -1426,7 +1423,11 @@ impl Window {
         let complete = match join_port.try_recv() {
             Err(TryRecvError::Empty) => {
                 info!("script: waiting on layout");
-                join_port.recv().unwrap()
+                // TODO(pcwalton)
+                ReflowComplete {
+                    pending_images: vec![],
+                    newly_transitioning_nodes: vec![],
+                }
             },
             Ok(reflow_complete) => reflow_complete,
             Err(TryRecvError::Disconnected) => {
@@ -1509,12 +1510,8 @@ impl Window {
             // If window_size is `None`, we don't reflow, so the document stays
             // dirty. Otherwise, we shouldn't need a reflow immediately after a
             // reflow, except if we're waiting for a deferred paint.
-            assert!(
-                !self.Document().needs_reflow() ||
-                    (!for_display && self.Document().needs_paint()) ||
-                    self.window_size.get().is_none() ||
-                    self.suppress_reflow.get()
-            );
+            //
+            // TODO(pcwalton)
         } else {
             debug!(
                 "Document doesn't need reflow - skipping it (reason {:?})",
@@ -1563,38 +1560,36 @@ impl Window {
         )
     }
 
-    pub fn layout(&self) -> &dyn LayoutRPC {
-        &*self.layout_rpc
-    }
-
     pub fn content_box_query(&self, content_box_request: TrustedNodeAddress) -> Option<Rect<Au>> {
         if !self.layout_reflow(QueryMsg::ContentBoxQuery(content_box_request)) {
             return None;
         }
-        let ContentBoxResponse(rect) = self.layout_rpc.content_box();
-        rect
+        // TODO(pcwalton)
+        return None;
     }
 
     pub fn content_boxes_query(&self, content_boxes_request: TrustedNodeAddress) -> Vec<Rect<Au>> {
         if !self.layout_reflow(QueryMsg::ContentBoxesQuery(content_boxes_request)) {
             return vec![];
         }
-        let ContentBoxesResponse(rects) = self.layout_rpc.content_boxes();
-        rects
+        // TODO(pcwalton)
+        return vec![];
     }
 
     pub fn client_rect_query(&self, node_geometry_request: TrustedNodeAddress) -> Rect<i32> {
         if !self.layout_reflow(QueryMsg::NodeGeometryQuery(node_geometry_request)) {
             return Rect::zero();
         }
-        self.layout_rpc.node_geometry().client_rect
+        // TODO(pcwalton)
+        return Rect::zero();
     }
 
     pub fn scroll_area_query(&self, node: TrustedNodeAddress) -> Rect<i32> {
         if !self.layout_reflow(QueryMsg::NodeScrollGeometryQuery(node)) {
             return Rect::zero();
         }
-        self.layout_rpc.node_scroll_area().client_rect
+        // TODO(pcwalton)
+        return Rect::zero();
     }
 
     pub fn scroll_offset_query(&self, node: &Node) -> Vector2D<f32> {
@@ -1622,16 +1617,7 @@ impl Window {
             Vector2D::new(x_ as f32, y_ as f32),
         );
 
-        let NodeScrollIdResponse(scroll_id) = self.layout_rpc.node_scroll_id();
-
-        // Step 12
-        self.perform_a_scroll(
-            x_.to_f32().unwrap_or(0.0f32),
-            y_.to_f32().unwrap_or(0.0f32),
-            scroll_id,
-            behavior,
-            None,
-        );
+        // TODO(pcwalton)
     }
 
     pub fn resolved_style_query(
@@ -1643,8 +1629,8 @@ impl Window {
         if !self.layout_reflow(QueryMsg::ResolvedStyleQuery(element, pseudo, property)) {
             return DOMString::new();
         }
-        let ResolvedStyleResponse(resolved) = self.layout_rpc.resolved_style();
-        DOMString::from(resolved)
+        // TODO(pcwalton)
+        return DOMString::new();
     }
 
     #[allow(unsafe_code)]
@@ -1656,21 +1642,16 @@ impl Window {
             return (None, Rect::zero());
         }
 
-        let response = self.layout_rpc.offset_parent();
-        let js_runtime = self.js_runtime.borrow();
-        let js_runtime = js_runtime.as_ref().unwrap();
-        let element = response.node_address.and_then(|parent_node_address| {
-            let node = unsafe { from_untrusted_node_address(js_runtime.rt(), parent_node_address) };
-            DomRoot::downcast(node)
-        });
-        (element, response.rect)
+        // TODO(pcwalton)
+        return (None, Rect::zero());
     }
 
     pub fn style_query(&self, node: TrustedNodeAddress) -> Option<servo_arc::Arc<ComputedValues>> {
         if !self.layout_reflow(QueryMsg::StyleQuery(node)) {
             return None;
         }
-        self.layout_rpc.style().0
+        // TODO(pcwalton)
+        return None;
     }
 
     pub fn text_index_query(
@@ -1681,7 +1662,8 @@ impl Window {
         if !self.layout_reflow(QueryMsg::TextIndexQuery(node, point_in_node)) {
             return TextIndexResponse(None);
         }
-        self.layout_rpc.text_index()
+        // TODO(pcwalton)
+        return TextIndexResponse(None);
     }
 
     #[allow(unsafe_code)]
@@ -2027,11 +2009,6 @@ impl Window {
         webrender_document: DocumentId,
         webrender_api_sender: RenderApiSender,
     ) -> DomRoot<Self> {
-        let layout_rpc: Box<dyn LayoutRPC + Send> = {
-            let (rpc_send, rpc_recv) = unbounded();
-            layout_chan.send(Msg::GetRPC(rpc_send)).unwrap();
-            rpc_recv.recv().unwrap()
-        };
         let error_reporter = CSSErrorReporter {
             pipelineid,
             script_chan: Arc::new(Mutex::new(control_chan)),
@@ -2074,7 +2051,6 @@ impl Window {
             page_clip_rect: Cell::new(MaxRect::max_rect()),
             resize_event: Default::default(),
             layout_chan,
-            layout_rpc,
             window_size: Cell::new(window_size),
             current_viewport: Cell::new(Rect::zero()),
             suppress_reflow: Cell::new(true),
