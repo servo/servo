@@ -305,7 +305,7 @@ pub unsafe extern "C" fn navigate_servo(servo: *mut ServoInstance, text: *const 
             .to_str()
             .expect("Failed to convert text to UTF-8");
         let url = ServoUrl::parse(text).unwrap_or_else(|_| {
-            let mut search = ServoUrl::parse("http://google.com/search")
+            let mut search = ServoUrl::parse("https://duckduckgo.com")
                 .expect("Failed to parse search URL")
                 .into_url();
             search.query_pairs_mut().append_pair("q", text);
