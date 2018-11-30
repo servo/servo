@@ -23,19 +23,20 @@ use style_traits::ParseError;
     ToComputedValue,
     ToCss,
 )]
+#[repr(C, u8)]
 /// <https://drafts.csswg.org/css-ui/#propdef-outline-style>
 pub enum OutlineStyle {
     /// auto
     Auto,
     /// <border-style>
-    Other(BorderStyle),
+    BorderStyle(BorderStyle),
 }
 
 impl OutlineStyle {
     #[inline]
     /// Get default value as None
     pub fn none() -> OutlineStyle {
-        OutlineStyle::Other(BorderStyle::None)
+        OutlineStyle::BorderStyle(BorderStyle::None)
     }
 
     #[inline]
@@ -43,7 +44,7 @@ impl OutlineStyle {
     pub fn none_or_hidden(&self) -> bool {
         match *self {
             OutlineStyle::Auto => false,
-            OutlineStyle::Other(ref border_style) => border_style.none_or_hidden(),
+            OutlineStyle::BorderStyle(ref style) => style.none_or_hidden(),
         }
     }
 }
@@ -59,7 +60,7 @@ impl Parse for OutlineStyle {
                     .new_custom_error(SelectorParseErrorKind::UnexpectedIdent("hidden".into())));
             }
 
-            return Ok(OutlineStyle::Other(border_style));
+            return Ok(OutlineStyle::BorderStyle(border_style));
         }
 
         input.expect_ident_matching("auto")?;

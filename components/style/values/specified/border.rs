@@ -21,8 +21,8 @@ use style_traits::{CssWriter, ParseError, ToCss};
 
 /// A specified value for a single side of a `border-style` property.
 ///
-/// The integer values here correspond to the border conflict resolution rules
-/// in CSS 2.1 § 17.6.2.1. Higher values override lower values.
+/// The order here corresponds to the integer values from the border conflict
+/// resolution rules in CSS 2.1 § 17.6.2.1. Higher values override lower values.
 #[allow(missing_docs)]
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
 #[derive(
@@ -39,17 +39,18 @@ use style_traits::{CssWriter, ParseError, ToCss};
     ToComputedValue,
     ToCss,
 )]
+#[repr(u8)]
 pub enum BorderStyle {
-    Hidden = -2,
-    None = -1,
-    Inset = 0,
-    Groove = 1,
-    Outset = 2,
-    Ridge = 3,
-    Dotted = 4,
-    Dashed = 5,
-    Solid = 6,
-    Double = 7,
+    Hidden,
+    None,
+    Inset,
+    Groove,
+    Outset,
+    Ridge,
+    Dotted,
+    Dashed,
+    Solid,
+    Double,
 }
 
 impl BorderStyle {

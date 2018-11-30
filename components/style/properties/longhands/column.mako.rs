@@ -78,13 +78,14 @@ ${helpers.single_keyword(
     extra_prefixes="moz:layout.css.column-span.enabled",
 )}
 
-${helpers.single_keyword(
+${helpers.predefined_type(
     "column-rule-style",
-    "none hidden dotted dashed solid double groove ridge inset outset",
+    "BorderStyle",
+    "computed::BorderStyle::None",
+    needs_context=False,
+    initial_specified_value="specified::BorderStyle::None",
     products="gecko",
     extra_prefixes="moz",
-    gecko_enum_prefix="StyleBorderStyle",
-    gecko_inexhaustive=True,
     animation_value_type="discrete",
     spec="https://drafts.csswg.org/css-multicol/#propdef-column-rule-style",
 )}

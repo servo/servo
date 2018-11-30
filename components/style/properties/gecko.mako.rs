@@ -58,15 +58,14 @@ use std::mem::{forget, uninitialized, transmute, zeroed};
 use std::{cmp, ops, ptr};
 use crate::values::{self, CustomIdent, Either, KeyframesName, None_};
 use crate::values::computed::{NonNegativeLength, Percentage, TransitionProperty};
+use crate::values::computed::BorderStyle;
 use crate::values::computed::font::FontSize;
 use crate::values::computed::effects::{BoxShadow, Filter, SimpleShadow};
-use crate::values::computed::outline::OutlineStyle;
 use crate::values::generics::column::ColumnCount;
 use crate::values::generics::position::ZIndex;
 use crate::values::generics::text::MozTabSize;
 use crate::values::generics::transform::TransformStyle;
 use crate::values::generics::url::UrlOrNone;
-use crate::computed_values::border_style;
 
 pub mod style_structs {
     % for style_struct in data.style_structs:
@@ -333,13 +332,10 @@ impl ${style_struct.gecko_struct_name} {
     }
 </%def>
 
-<%def name="impl_simple_copy(ident, gecko_ffi_name, on_set=None, *kwargs)">
+<%def name="impl_simple_copy(ident, gecko_ffi_name, *kwargs)">
     #[allow(non_snake_case)]
     pub fn copy_${ident}_from(&mut self, other: &Self) {
         self.gecko.${gecko_ffi_name} = other.gecko.${gecko_ffi_name};
-        % if on_set:
-        self.${on_set}();
-        % endif
     }
 
     #[allow(non_snake_case)]
@@ -368,7 +364,7 @@ def set_gecko_property(ffi_name, expr):
     return "self.gecko.%s = %s;" % (ffi_name, expr)
 %>
 
-<%def name="impl_keyword_setter(ident, gecko_ffi_name, keyword, cast_type='u8', on_set=None)">
+<%def name="impl_keyword_setter(ident, gecko_ffi_name, keyword, cast_type='u8')">
     #[allow(non_snake_case)]
     pub fn set_${ident}(&mut self, v: longhands::${ident}::computed_value::T) {
         use crate::properties::longhands::${ident}::computed_value::T as Keyword;
@@ -380,9 +376,6 @@ def set_gecko_property(ffi_name, expr):
             % endfor
         };
         ${set_gecko_property(gecko_ffi_name, "result")}
-        % if on_set:
-        self.${on_set}();
-        % endif
     }
 </%def>
 
@@ -1515,11 +1508,6 @@ fn static_assert() {
 }
 
 
-<% border_style_keyword = Keyword("border-style",
-                                  "none solid double dotted dashed hidden groove ridge inset outset",
-                                  gecko_enum_prefix="StyleBorderStyle",
-                                  gecko_inexhaustive=True) %>
-
 <% skip_border_longhands = " ".join(["border-{0}-{1}".format(x.ident, y)
                                      for x in SIDES
                                      for y in ["color", "style", "width"]] +
@@ -1530,39 +1518,53 @@ fn static_assert() {
                   skip_longhands="${skip_border_longhands} border-image-source border-image-outset
                                   border-image-repeat border-image-width border-image-slice">
     % for side in SIDES:
-    <% impl_keyword("border_%s_style" % side.ident,
-                    "mBorderStyle[%s]" % side.index,
-                    border_style_keyword,
-                    on_set="update_border_%s" % side.ident) %>
+    pub fn set_border_${side.ident}_style(&mut self, v: BorderStyle) {
+        self.gecko.mBorderStyle[${side.index}] = v;
 
-    // This is needed because the initial mComputedBorder value is set to zero.
-    //
-    // In order to compute stuff, we start from the initial struct, and keep
-    // going down the tree applying properties.
-    //
-    // That means, effectively, that when we set border-style to something
-    // non-hidden, we should use the initial border instead.
-    //
-    // Servo stores the initial border-width in the initial struct, and then
-    // adjusts as needed in the fixup phase. This means that the initial struct
-    // is technically not valid without fixups, and that you lose pretty much
-    // any sharing of the initial struct, which is kind of unfortunate.
-    //
-    // Gecko has two fields for this, one that stores the "specified" border,
-    // and other that stores the actual computed one. That means that when we
-    // set border-style, border-width may change and we need to sync back to the
-    // specified one. This is what this function does.
-    //
-    // Note that this doesn't impose any dependency in the order of computation
-    // of the properties. This is only relevant if border-style is specified,
-    // but border-width isn't. If border-width is specified at some point, the
-    // two mBorder and mComputedBorder fields would be the same already.
-    //
-    // Once we're here, we know that we'll run style fixups, so it's fine to
-    // just copy the specified border here, we'll adjust it if it's incorrect
-    // later.
-    fn update_border_${side.ident}(&mut self) {
+        // This is needed because the initial mComputedBorder value is set to
+        // zero.
+        //
+        // In order to compute stuff, we start from the initial struct, and keep
+        // going down the tree applying properties.
+        //
+        // That means, effectively, that when we set border-style to something
+        // non-hidden, we should use the initial border instead.
+        //
+        // Servo stores the initial border-width in the initial struct, and then
+        // adjusts as needed in the fixup phase. This means that the initial
+        // struct is technically not valid without fixups, and that you lose
+        // pretty much any sharing of the initial struct, which is kind of
+        // unfortunate.
+        //
+        // Gecko has two fields for this, one that stores the "specified"
+        // border, and other that stores the actual computed one. That means
+        // that when we set border-style, border-width may change and we need to
+        // sync back to the specified one. This is what this function does.
+        //
+        // Note that this doesn't impose any dependency in the order of
+        // computation of the properties. This is only relevant if border-style
+        // is specified, but border-width isn't. If border-width is specified at
+        // some point, the two mBorder and mComputedBorder fields would be the
+        // same already.
+        //
+        // Once we're here, we know that we'll run style fixups, so it's fine to
+        // just copy the specified border here, we'll adjust it if it's
+        // incorrect later.
         self.gecko.mComputedBorder.${side.ident} = self.gecko.mBorder.${side.ident};
+    }
+
+    pub fn copy_border_${side.ident}_style_from(&mut self, other: &Self) {
+        self.gecko.mBorderStyle[${side.index}] = other.gecko.mBorderStyle[${side.index}];
+        self.gecko.mComputedBorder.${side.ident} = self.gecko.mBorder.${side.ident};
+    }
+
+    pub fn reset_border_${side.ident}_style(&mut self, other: &Self) {
+        self.copy_border_${side.ident}_style_from(other);
+    }
+
+    #[inline]
+    pub fn clone_border_${side.ident}_style(&self) -> BorderStyle {
+        self.gecko.mBorderStyle[${side.index}]
     }
 
     <% impl_color("border_%s_color" % side.ident, "mBorder%sColor" % side.name) %>
@@ -2172,50 +2174,26 @@ fn static_assert() {
 <%self:impl_trait style_struct_name="Outline"
                   skip_longhands="${skip_outline_longhands}">
 
-    #[allow(non_snake_case)]
     pub fn set_outline_style(&mut self, v: longhands::outline_style::computed_value::T) {
-        // FIXME(bholley): Align binary representations and ditch |match| for
-        // cast + static_asserts
-        let result = match v {
-            % for value in border_style_keyword.values_for('gecko'):
-                OutlineStyle::Other(border_style::T::${to_camel_case(value)}) =>
-                    structs::${border_style_keyword.gecko_constant(value)} ${border_style_keyword.maybe_cast("u8")},
-            % endfor
-                OutlineStyle::Auto =>
-                    structs::${border_style_keyword.gecko_constant('auto')} ${border_style_keyword.maybe_cast("u8")},
-        };
-        ${set_gecko_property("mOutlineStyle", "result")}
-
+        self.gecko.mOutlineStyle = v;
         // NB: This is needed to correctly handling the initial value of
         // outline-width when outline-style changes, see the
         // update_border_${side.ident} comment for more details.
         self.gecko.mActualOutlineWidth = self.gecko.mOutlineWidth;
     }
 
-    #[allow(non_snake_case)]
     pub fn copy_outline_style_from(&mut self, other: &Self) {
+        // FIXME(emilio): Why doesn't this need to reset mActualOutlineWidth?
+        // Looks fishy.
         self.gecko.mOutlineStyle = other.gecko.mOutlineStyle;
     }
 
-    #[allow(non_snake_case)]
     pub fn reset_outline_style(&mut self, other: &Self) {
         self.copy_outline_style_from(other)
     }
 
-    #[allow(non_snake_case)]
     pub fn clone_outline_style(&self) -> longhands::outline_style::computed_value::T {
-        // FIXME(bholley): Align binary representations and ditch |match| for cast + static_asserts
-        match ${get_gecko_property("mOutlineStyle")} ${border_style_keyword.maybe_cast("u32")} {
-            % for value in border_style_keyword.values_for('gecko'):
-            structs::${border_style_keyword.gecko_constant(value)} => {
-                OutlineStyle::Other(border_style::T::${to_camel_case(value)})
-            },
-            % endfor
-            structs::${border_style_keyword.gecko_constant('auto')} => OutlineStyle::Auto,
-            % if border_style_keyword.gecko_inexhaustive:
-            _ => panic!("Found unexpected value in style struct for outline_style property"),
-            % endif
-        }
+        self.gecko.mOutlineStyle.clone()
     }
 
     <% impl_non_negative_length("outline_width", "mActualOutlineWidth",
@@ -5412,7 +5390,7 @@ clip-path
 </%self:impl_trait>
 
 <%self:impl_trait style_struct_name="Column"
-                  skip_longhands="column-count column-rule-width">
+                  skip_longhands="column-count column-rule-width column-rule-style">
 
     #[allow(unused_unsafe)]
     pub fn set_column_count(&mut self, v: longhands::column_count::computed_value::T) {
@@ -5441,6 +5419,7 @@ clip-path
 
     <% impl_non_negative_length("column_rule_width", "mColumnRuleWidth",
                                 round_to_pixels=True) %>
+    ${impl_simple('column_rule_style', 'mColumnRuleStyle')}
 </%self:impl_trait>
 
 <%self:impl_trait style_struct_name="Counters"
