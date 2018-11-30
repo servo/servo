@@ -1379,6 +1379,11 @@ impl HTMLMediaElementMethods for HTMLMediaElement {
     fn Played(&self) -> DomRoot<TimeRanges> {
         TimeRanges::new(self.global().as_window(), self.played.clone())
     }
+
+    fn Volume(&self) -> Finite<f64> {
+        Finite::wrap(self.volume.get())
+    }                                   
+
 }
 
 impl VirtualMethods for HTMLMediaElement {
