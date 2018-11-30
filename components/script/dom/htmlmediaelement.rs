@@ -1217,6 +1217,14 @@ impl HTMLMediaElement {
                 //    an unsupported format, or can otherwise not be rendered at all"
                 if self.ready_state.get() < ReadyState::HaveMetadata {
                     self.queue_dedicated_media_source_failure_steps();
+                    return;
+                }
+
+                // XXX(ferjm) We need to identify if the stream is seekable or
+                //            not to decide if we can loop. Ref. #22297
+                if self.Loop() {
+                    self.playback_position
+                        .set(self.default_playback_start_position.get());
                 }
             },
             PlayerEvent::FrameUpdated => {
@@ -1262,6 +1270,11 @@ impl HTMLMediaElementMethods for HTMLMediaElement {
     make_bool_getter!(Autoplay, "autoplay");
     // https://html.spec.whatwg.org/multipage/#dom-media-autoplay
     make_bool_setter!(SetAutoplay, "autoplay");
+
+    // https://html.spec.whatwg.org/multipage/#attr-media-loop
+    make_bool_getter!(Loop, "loop");
+    // https://html.spec.whatwg.org/multipage/#attr-media-loop
+    make_bool_setter!(SetLoop, "loop");
 
     // https://html.spec.whatwg.org/multipage/#dom-media-src
     make_url_getter!(Src, "src");
