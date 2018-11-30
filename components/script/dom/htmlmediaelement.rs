@@ -1382,7 +1382,17 @@ impl HTMLMediaElementMethods for HTMLMediaElement {
 
     fn GetVolume(&self) -> Fallible<Finite<f64>> {
         Ok(Finite::wrap(self.volume.get()))
-    }                                   
+    }                           
+
+    fn SetVolume(&self, value: Finite<f64>) -> ErrorResult {
+        let minimum_volume = 0.0;
+        let maximum_volume = 1.0;
+        if *value < minimum_volume || *value > maximum_volume {
+            return Err(Error::IndexSize);
+        }
+        self.volume.set(*value);
+        return Ok(());
+    }        
 
 }
 
