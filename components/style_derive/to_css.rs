@@ -4,11 +4,12 @@
 
 use crate::cg;
 use darling::util::Override;
-use quote::{ToTokens, Tokens};
+use proc_macro2::TokenStream;
+use quote::{ToTokens, TokenStreamExt};
 use syn::{self, Data, Path, WhereClause};
 use synstructure::{BindingInfo, Structure, VariantInfo};
 
-pub fn derive(mut input: syn::DeriveInput) -> Tokens {
+pub fn derive(mut input: syn::DeriveInput) -> TokenStream {
     let mut where_clause = input.generics.where_clause.take();
     for param in input.generics.type_params() {
         cg::add_predicate(&mut where_clause, parse_quote!(#param: style_traits::ToCss));
@@ -66,9 +67,9 @@ pub fn derive(mut input: syn::DeriveInput) -> Tokens {
     impls
 }
 
-fn derive_variant_arm(variant: &VariantInfo, generics: &mut Option<WhereClause>) -> Tokens {
+fn derive_variant_arm(variant: &VariantInfo, generics: &mut Option<WhereClause>) -> TokenStream {
     let bindings = variant.bindings();
-    let identifier = cg::to_css_identifier(variant.ast().ident.as_ref());
+    let identifier = cg::to_css_identifier(&variant.ast().ident.to_string());
     let ast = variant.ast();
     let variant_attrs = cg::parse_variant_attrs_from_ast::<CssVariantAttrs>(&ast);
     let separator = if variant_attrs.comma { ", " } else { " " };
@@ -118,7 +119,7 @@ fn derive_variant_fields_expr(
     bindings: &[BindingInfo],
     where_clause: &mut Option<WhereClause>,
     separator: &str,
-) -> Tokens {
+) -> TokenStream {
     let mut iter = bindings
         .iter()
         .filter_map(|binding| {
@@ -166,7 +167,7 @@ fn derive_single_field_expr(
     field: &BindingInfo,
     attrs: CssFieldAttrs,
     where_clause: &mut Option<WhereClause>,
-) -> Tokens {
+) -> TokenStream {
     let mut expr = if attrs.iterable {
         if let Some(if_empty) = attrs.if_empty {
             return quote! {
@@ -193,7 +194,7 @@ fn derive_single_field_expr(
             .ident
             .as_ref()
             .expect("Unnamed field with represents_keyword?");
-        let ident = cg::to_css_identifier(ident.as_ref());
+        let ident = cg::to_css_identifier(&ident.to_string());
         quote! {
             if *#field {
                 writer.raw_item(#ident)?;
