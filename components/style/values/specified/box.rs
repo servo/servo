@@ -1286,11 +1286,58 @@ pub enum Appearance {
 )]
 #[repr(u8)]
 pub enum BreakBetween {
-    Auto,
     Always,
+    Auto,
+    Page,
     Avoid,
     Left,
     Right,
+}
+
+impl BreakBetween {
+    /// Parse a legacy break-between value for `page-break-*`.
+    ///
+    /// See https://drafts.csswg.org/css-break/#page-break-properties.
+    #[inline]
+    pub fn parse_legacy<'i>(
+        input: &mut Parser<'i, '_>,
+    ) -> Result<Self, ParseError<'i>> {
+        let location = input.current_source_location();
+        let ident = input.expect_ident()?;
+        let break_value = match BreakBetween::from_ident(ident) {
+            Ok(v) => v,
+            Err(()) => return Err(location.new_custom_error(
+                SelectorParseErrorKind::UnexpectedIdent(ident.clone())
+            )),
+        };
+        match break_value {
+            BreakBetween::Always => Ok(BreakBetween::Page),
+            BreakBetween::Auto |
+            BreakBetween::Avoid |
+            BreakBetween::Left |
+            BreakBetween::Right => Ok(break_value),
+            BreakBetween::Page => {
+                Err(location.new_custom_error(SelectorParseErrorKind::UnexpectedIdent(ident.clone())))
+            }
+        }
+    }
+
+    /// Serialize a legacy break-between value for `page-break-*`.
+    ///
+    /// See https://drafts.csswg.org/css-break/#page-break-properties.
+    pub fn to_css_legacy<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
+        match *self {
+            BreakBetween::Auto |
+            BreakBetween::Avoid |
+            BreakBetween::Left |
+            BreakBetween::Right => self.to_css(dest),
+            BreakBetween::Page => dest.write_str("always"),
+            BreakBetween::Always => Ok(()),
+        }
+    }
 }
 
 /// A kind of break within a box.

@@ -447,3 +447,49 @@ macro_rules! try_parse_one {
         }
     }
 </%helpers:shorthand>
+
+<%helpers:shorthand
+    name="page-break-before"
+    flags="SHORTHAND_IN_GETCS IS_LEGACY_SHORTHAND"
+    sub_properties="break-before"
+    spec="https://drafts.csswg.org/css2/page.html#propdef-page-break-before"
+>
+    pub fn parse_value<'i>(
+        _: &ParserContext,
+        input: &mut Parser<'i, '_>,
+    ) -> Result<Longhands, ParseError<'i>> {
+        use crate::values::specified::box_::BreakBetween;
+        Ok(expanded! {
+            break_before: BreakBetween::parse_legacy(input)?,
+        })
+    }
+
+    impl<'a> ToCss for LonghandsToSerialize<'a> {
+        fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result where W: fmt::Write {
+            self.break_before.to_css_legacy(dest)
+        }
+    }
+</%helpers:shorthand>
+
+<%helpers:shorthand
+    name="page-break-after"
+    flags="SHORTHAND_IN_GETCS IS_LEGACY_SHORTHAND"
+    sub_properties="break-after"
+    spec="https://drafts.csswg.org/css2/page.html#propdef-page-break-after"
+>
+    pub fn parse_value<'i>(
+        _: &ParserContext,
+        input: &mut Parser<'i, '_>,
+    ) -> Result<Longhands, ParseError<'i>> {
+        use crate::values::specified::box_::BreakBetween;
+        Ok(expanded! {
+            break_after: BreakBetween::parse_legacy(input)?,
+        })
+    }
+
+    impl<'a> ToCss for LonghandsToSerialize<'a> {
+        fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result where W: fmt::Write {
+            self.break_after.to_css_legacy(dest)
+        }
+    }
+</%helpers:shorthand>
