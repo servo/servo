@@ -43,7 +43,7 @@ log_artifacts_expire_in = "1 year"
 
 build_env = {
     "RUST_BACKTRACE": "1",
-    "RUSTFLAGS": "-Dwarnings",
+    "RUSTFLAGS": "-Dwarnings",  # If changing this, also adjust with_rust_nightly()
     "CARGO_INCREMENTAL": "0",
 }
 unix_build_env = {
@@ -100,11 +100,21 @@ def macos_unit():
 
 
 def with_rust_nightly():
-    return linux_build_task("Linux x64: with Rust Nightly").with_script("""
-        echo "nightly" > rust-toolchain
-        ./mach build --dev
-        ./mach test-unit
-    """).create()
+    modified_build_env = dict(build_env)
+    flags = build_env.pop("RUSTFLAGS").split(" ")
+    flags.remove("-Dwarnings")
+    if flags:  # pragma: no cover
+        modified_build_env["RUSTFLAGS"] = " ".join(flags)
+
+    return (
+        linux_build_task("Linux x64: with Rust Nightly", build_env=modified_build_env)
+        .with_script("""
+            echo "nightly" > rust-toolchain
+            ./mach build --dev
+            ./mach test-unit
+        """)
+        .create()
+    )
 
 
 def android_arm32():
@@ -304,7 +314,7 @@ def macos_task(name):
     )
 
 
-def linux_build_task(name):
+def linux_build_task(name, *, build_env=build_env):
     return (
         linux_task(name)
         # https://docs.taskcluster.net/docs/reference/workers/docker-worker/docs/caches
