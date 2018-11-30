@@ -37,10 +37,7 @@ packages = [
   "crossbeam-epoch",
   "crossbeam-utils",
   "log",
-  "proc-macro2",
-  "quote",
   "rand",
-  "syn",
   "unicase",
   "winapi",
 ]
