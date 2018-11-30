@@ -24,13 +24,11 @@ use crate::display_list::items::{PopAllTextShadowsDisplayItem, PushTextShadowDis
 use crate::display_list::items::{StackingContext, StackingContextType, StickyFrameData};
 use crate::display_list::items::{TextOrientation, WebRenderImageInfo};
 use crate::display_list::ToLayout;
-use crate::flex::FlexFlow;
 use crate::flow::{BaseFlow, Flow, FlowFlags};
 use crate::flow_ref::FlowRef;
 use crate::fragment::SpecificFragmentInfo;
 use crate::fragment::{CanvasFragmentSource, CoordinateSystem, Fragment, ScannedTextFragmentInfo};
 use crate::inline::{InlineFlow, InlineFragmentNodeFlags};
-use crate::list_item::ListItemFlow;
 use crate::model::MaybeAuto;
 use euclid::{rect, Point2D, Rect, SideOffsets2D, Size2D, TypedRect, TypedSize2D, Vector2D};
 use fnv::FnvHashMap;
@@ -3152,46 +3150,6 @@ impl InlineFlowDisplayListBuilding for InlineFlow {
             self.base
                 .build_display_items_for_debugging_tint(state, self.fragments.fragments[0].node);
         }
-    }
-}
-
-pub trait ListItemFlowDisplayListBuilding {
-    fn build_display_list_for_list_item(&mut self, state: &mut DisplayListBuildState);
-}
-
-impl ListItemFlowDisplayListBuilding for ListItemFlow {
-    fn build_display_list_for_list_item(&mut self, state: &mut DisplayListBuildState) {
-        // Draw the marker, if applicable.
-        for marker in &mut self.marker_fragments {
-            let stacking_relative_border_box = self
-                .block_flow
-                .base
-                .stacking_relative_border_box_for_display_list(marker);
-            marker.build_display_list(
-                state,
-                stacking_relative_border_box,
-                BorderPaintingMode::Separate,
-                DisplayListSection::Content,
-                self.block_flow.base.clip,
-                None,
-            );
-        }
-
-        // Draw the rest of the block.
-        self.block_flow
-            .build_display_list_for_block(state, BorderPaintingMode::Separate)
-    }
-}
-
-pub trait FlexFlowDisplayListBuilding {
-    fn build_display_list_for_flex(&mut self, state: &mut DisplayListBuildState);
-}
-
-impl FlexFlowDisplayListBuilding for FlexFlow {
-    fn build_display_list_for_flex(&mut self, state: &mut DisplayListBuildState) {
-        // Draw the rest of the block.
-        self.as_mut_block()
-            .build_display_list_for_block(state, BorderPaintingMode::Separate)
     }
 }
 

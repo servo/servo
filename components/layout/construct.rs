@@ -15,13 +15,12 @@ use crate::block::BlockFlow;
 use crate::context::{with_thread_local_font_context, LayoutContext};
 use crate::data::{LayoutData, LayoutDataFlags};
 use crate::display_list::items::OpaqueNode;
-use crate::flex::FlexFlow;
 use crate::floats::FloatKind;
-use crate::flow::{AbsoluteDescendants, Flow, FlowClass, GetBaseFlow, ImmutableFlowUtils};
+use crate::flow::{AbsoluteDescendants, Flow, GetBaseFlow, ImmutableFlowUtils};
 use crate::flow::{FlowFlags, MutableFlowUtils, MutableOwnedFlowUtils};
 use crate::flow_ref::FlowRef;
 use crate::fragment::{
-    CanvasFragmentInfo, Fragment, FragmentFlags, GeneratedContentInfo, IframeFragmentInfo,
+    CanvasFragmentInfo, Fragment, GeneratedContentInfo, IframeFragmentInfo,
 };
 use crate::fragment::{
     ImageFragmentInfo, InlineAbsoluteFragmentInfo, InlineAbsoluteHypotheticalFragmentInfo,
@@ -34,8 +33,6 @@ use crate::fragment::{
 };
 use crate::inline::{InlineFlow, InlineFragmentNodeFlags, InlineFragmentNodeInfo};
 use crate::linked_list::prepend_from;
-use crate::list_item::{ListItemFlow, ListStyleTypeContent};
-use crate::multicol::{MulticolColumnFlow, MulticolFlow};
 use crate::parallel;
 use crate::text::TextRunScanner;
 use crate::traversal::PostorderNodeMutTraversal;
@@ -54,16 +51,13 @@ use std::sync::atomic::Ordering;
 use std::sync::Arc;
 use style::computed_values::display::T as Display;
 use style::computed_values::float::T as Float;
-use style::computed_values::list_style_position::T as ListStylePosition;
 use style::computed_values::position::T as Position;
 use style::context::SharedStyleContext;
 use style::dom::TElement;
-use style::logical_geometry::Direction;
 use style::properties::ComputedValues;
 use style::selector_parser::{PseudoElement, RestyleDamage};
 use style::servo::restyle_damage::ServoRestyleDamage;
 use style::values::generics::counters::ContentItem;
-use style::values::generics::url::UrlOrNone as ImageUrlOrNone;
 
 /// The results of flow construction for a DOM node.
 #[derive(Clone)]
@@ -834,10 +828,6 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
         node: &ConcreteThreadSafeLayoutNode,
         float_kind: Option<FloatKind>,
     ) -> ConstructionResult {
-        if node.style(self.style_context()).is_multicol() {
-            return self.build_flow_for_multicol(node, float_kind);
-        }
-
         let fragment = self.build_fragment_for_block(node);
         let flow = FlowRef::new(Arc::new(BlockFlow::from_fragment_and_float_kind(
             fragment, float_kind,
@@ -1089,8 +1079,7 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
     ) -> ConstructionResult {
         let block_flow_result = match display {
             Display::InlineBlock => self.build_flow_for_block(node, None),
-            Display::InlineFlex => self.build_flow_for_flex(node, None),
-            _ => panic!("The flag should be inline-block or inline-flex"),
+            _ => panic!("The flag should be inline-block"),
         };
         let (block_flow, abs_descendants) = match block_flow_result {
             ConstructionResult::Flow(block_flow, abs_descendants) => (block_flow, abs_descendants),
@@ -1200,154 +1189,6 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
             // with it.
             self.build_fragments_for_replaced_inline_content(node)
         }
-    }
-
-    /// Builds a flow for a node with `column-count` or `column-width` non-`auto`.
-    /// This yields a `MulticolFlow` with a single `MulticolColumnFlow` underneath it.
-    fn build_flow_for_multicol(
-        &mut self,
-        node: &ConcreteThreadSafeLayoutNode,
-        float_kind: Option<FloatKind>,
-    ) -> ConstructionResult {
-        let fragment = Fragment::new(node, SpecificFragmentInfo::Multicol, self.layout_context);
-        let mut flow = FlowRef::new(Arc::new(MulticolFlow::from_fragment(fragment, float_kind)));
-
-        let column_fragment = Fragment::new(
-            node,
-            SpecificFragmentInfo::MulticolColumn,
-            self.layout_context,
-        );
-        let column_flow =
-            FlowRef::new(Arc::new(MulticolColumnFlow::from_fragment(column_fragment)));
-
-        // First populate the column flow with its children.
-        let construction_result = self.build_flow_for_block_like(column_flow, node);
-
-        let mut abs_descendants = AbsoluteDescendants::new();
-
-        if let ConstructionResult::Flow(column_flow, column_abs_descendants) = construction_result {
-            flow.add_new_child(column_flow);
-            abs_descendants.push_descendants(column_abs_descendants);
-        }
-
-        // The flow is done.
-        flow.finish();
-        if flow.is_absolute_containing_block() {
-            // This is the containing block for all the absolute descendants.
-            flow.set_absolute_descendants(abs_descendants);
-
-            abs_descendants = AbsoluteDescendants::new();
-
-            if flow
-                .base()
-                .flags
-                .contains(FlowFlags::IS_ABSOLUTELY_POSITIONED)
-            {
-                // This is now the only absolute flow in the subtree which hasn't yet
-                // reached its containing block.
-                abs_descendants.push(flow.clone());
-            }
-        }
-
-        ConstructionResult::Flow(flow, abs_descendants)
-    }
-
-    /// Builds a flow for a node with `display: list-item`. This yields a `ListItemFlow` with
-    /// possibly other `BlockFlow`s or `InlineFlow`s underneath it.
-    fn build_flow_for_list_item(
-        &mut self,
-        node: &ConcreteThreadSafeLayoutNode,
-        flotation: Float,
-    ) -> ConstructionResult {
-        let flotation = FloatKind::from_property(flotation);
-        let marker_fragments = match node.style(self.style_context()).get_list().list_style_image {
-            ImageUrlOrNone::Url(ref url_value) => {
-                let image_info = Box::new(ImageFragmentInfo::new(
-                    url_value.url().map(|u| u.clone()),
-                    None,
-                    node,
-                    &self.layout_context,
-                ));
-                vec![Fragment::new(
-                    node,
-                    SpecificFragmentInfo::Image(image_info),
-                    self.layout_context,
-                )]
-            },
-            ImageUrlOrNone::None => match ListStyleTypeContent::from_list_style_type(
-                node.style(self.style_context()).get_list().list_style_type,
-            ) {
-                ListStyleTypeContent::None => Vec::new(),
-                ListStyleTypeContent::StaticText(ch) => {
-                    let text = format!("{}\u{a0}", ch);
-                    let mut unscanned_marker_fragments = LinkedList::new();
-                    unscanned_marker_fragments.push_back(Fragment::new(
-                        node,
-                        SpecificFragmentInfo::UnscannedText(Box::new(
-                            UnscannedTextFragmentInfo::new(Box::<str>::from(text), None),
-                        )),
-                        self.layout_context,
-                    ));
-                    let marker_fragments =
-                        with_thread_local_font_context(self.layout_context, |mut font_context| {
-                            TextRunScanner::new()
-                                .scan_for_runs(&mut font_context, unscanned_marker_fragments)
-                        });
-                    marker_fragments.fragments
-                },
-                ListStyleTypeContent::GeneratedContent(info) => vec![Fragment::new(
-                    node,
-                    SpecificFragmentInfo::GeneratedContent(info),
-                    self.layout_context,
-                )],
-            },
-        };
-
-        // If the list marker is outside, it becomes the special "outside fragment" that list item
-        // flows have. If it's inside, it's just a plain old fragment. Note that this means that
-        // we adopt Gecko's behavior rather than WebKit's when the marker causes an {ib} split,
-        // which has caused some malaise (Bugzilla #36854) but CSS 2.1 § 12.5.1 lets me do it, so
-        // there.
-        let mut initial_fragments = IntermediateInlineFragments::new();
-        let main_fragment = self.build_fragment_for_block(node);
-        let flow = match node
-            .style(self.style_context())
-            .get_list()
-            .list_style_position
-        {
-            ListStylePosition::Outside => Arc::new(ListItemFlow::from_fragments_and_flotation(
-                main_fragment,
-                marker_fragments,
-                flotation,
-            )),
-            ListStylePosition::Inside => {
-                for marker_fragment in marker_fragments {
-                    initial_fragments.fragments.push_back(marker_fragment)
-                }
-                Arc::new(ListItemFlow::from_fragments_and_flotation(
-                    main_fragment,
-                    vec![],
-                    flotation,
-                ))
-            },
-        };
-
-        self.build_flow_for_block_starting_with_fragments(
-            FlowRef::new(flow),
-            node,
-            initial_fragments,
-        )
-    }
-
-    /// Builds a flow for a node with 'display: flex'.
-    fn build_flow_for_flex(
-        &mut self,
-        node: &ConcreteThreadSafeLayoutNode,
-        float_kind: Option<FloatKind>,
-    ) -> ConstructionResult {
-        let fragment = self.build_fragment_for_block(node);
-        let flow = FlowRef::new(Arc::new(FlexFlow::from_fragment(fragment, float_kind)));
-        self.build_flow_for_block_like(flow, node)
     }
 
     /// Attempts to perform incremental repair to account for recent changes to this node. This
@@ -1570,12 +1411,6 @@ where
                 self.set_flow_construction_result(node, construction_result)
             },
 
-            // List items contribute their own special flows.
-            (Display::ListItem, float_value, _) => {
-                let construction_result = self.build_flow_for_list_item(node, float_value);
-                self.set_flow_construction_result(node, construction_result)
-            },
-
             // Inline items that are absolutely-positioned contribute inline fragment construction
             // results with a hypothetical fragment.
             (Display::Inline, _, Position::Absolute) |
@@ -1597,19 +1432,6 @@ where
             (Display::InlineBlock, Float::None, _) => {
                 let construction_result =
                     self.build_fragment_for_inline_block_or_inline_flex(node, Display::InlineBlock);
-                self.set_flow_construction_result(node, construction_result)
-            },
-
-            // Flex items contribute flex flow construction results.
-            (Display::Flex, float_value, _) => {
-                let float_kind = FloatKind::from_property(float_value);
-                let construction_result = self.build_flow_for_flex(node, float_kind);
-                self.set_flow_construction_result(node, construction_result)
-            },
-
-            (Display::InlineFlex, _, _) => {
-                let construction_result =
-                    self.build_fragment_for_inline_block_or_inline_flex(node, Display::InlineFlex);
                 self.set_flow_construction_result(node, construction_result)
             },
 
@@ -1970,56 +1792,8 @@ impl Legalizer {
     {
         let parent = self.stack.last_mut().unwrap_or(parent);
         let (parent_class, child_class) = (parent.class(), child.class());
-        match (parent_class, child_class) {
-            (FlowClass::Flex, FlowClass::Inline) => {
-                FlowRef::deref_mut(child)
-                    .mut_base()
-                    .flags
-                    .insert(FlowFlags::MARGINS_CANNOT_COLLAPSE);
-                let mut block_wrapper = Legalizer::create_anonymous_flow::<E, _>(
-                    context,
-                    parent,
-                    &[PseudoElement::ServoAnonymousBlock],
-                    SpecificFragmentInfo::Generic,
-                    BlockFlow::from_fragment,
-                );
-
-                {
-                    let flag = if parent.as_flex().main_mode() == Direction::Inline {
-                        FragmentFlags::IS_INLINE_FLEX_ITEM
-                    } else {
-                        FragmentFlags::IS_BLOCK_FLEX_ITEM
-                    };
-                    let block = FlowRef::deref_mut(&mut block_wrapper).as_mut_block();
-                    block.base.flags.insert(FlowFlags::MARGINS_CANNOT_COLLAPSE);
-                    block.fragment.flags.insert(flag);
-                }
-                block_wrapper.add_new_child((*child).clone());
-                block_wrapper.finish();
-                parent.add_new_child(block_wrapper);
-                true
-            },
-
-            (FlowClass::Flex, _) => {
-                {
-                    let flag = if parent.as_flex().main_mode() == Direction::Inline {
-                        FragmentFlags::IS_INLINE_FLEX_ITEM
-                    } else {
-                        FragmentFlags::IS_BLOCK_FLEX_ITEM
-                    };
-                    let block = FlowRef::deref_mut(child).as_mut_block();
-                    block.base.flags.insert(FlowFlags::MARGINS_CANNOT_COLLAPSE);
-                    block.fragment.flags.insert(flag);
-                }
-                parent.add_new_child((*child).clone());
-                true
-            },
-
-            _ => {
-                parent.add_new_child((*child).clone());
-                true
-            },
-        }
+        parent.add_new_child((*child).clone());
+        true
     }
 
     /// Finalizes the flow on the top of the stack.

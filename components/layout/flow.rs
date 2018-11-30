@@ -30,14 +30,12 @@ use crate::block::{BlockFlow, FormattingContextType};
 use crate::context::LayoutContext;
 use crate::display_list::items::ClippingAndScrolling;
 use crate::display_list::{DisplayListBuildState, StackingContextCollectionState};
-use crate::flex::FlexFlow;
 use crate::floats::{Floats, SpeculatedFloatPlacement};
 use crate::flow_list::{FlowList, FlowListIterator, MutFlowListIterator};
 use crate::flow_ref::{FlowRef, WeakFlowRef};
 use crate::fragment::{CoordinateSystem, Fragment, FragmentBorderBoxIterator, Overflow};
 use crate::inline::InlineFlow;
 use crate::model::{CollapsibleMargins, IntrinsicISizes, MarginCollapseInfo};
-use crate::multicol::MulticolFlow;
 use crate::parallel::FlowParallelInfo;
 use euclid::{Point2D, Rect, Size2D, Vector2D};
 use gfx_traits::print_tree::PrintTree;
@@ -118,16 +116,6 @@ pub trait Flow: HasBaseFlow + fmt::Debug + Sync + Send + 'static {
         panic!("called as_mut_block() on a non-block flow")
     }
 
-    /// If this is a flex flow, returns the underlying object. Fails otherwise.
-    fn as_flex(&self) -> &FlexFlow {
-        panic!("called as_flex() on a non-flex flow")
-    }
-
-    /// If this is a flex flow, returns the underlying object, borrowed mutably. Fails otherwise.
-    fn as_mut_flex(&mut self) -> &mut FlexFlow {
-        panic!("called as_mut_flex() on a non-flex flow")
-    }
-
     /// If this is an inline flow, returns the underlying object. Fails otherwise.
     fn as_inline(&self) -> &InlineFlow {
         panic!("called as_inline() on a non-inline flow")
@@ -137,12 +125,6 @@ pub trait Flow: HasBaseFlow + fmt::Debug + Sync + Send + 'static {
     /// otherwise.
     fn as_mut_inline(&mut self) -> &mut InlineFlow {
         panic!("called as_mut_inline() on a non-inline flow")
-    }
-
-    /// If this is a multicol flow, returns the underlying object, borrowed mutably. Fails
-    /// otherwise.
-    fn as_mut_multicol(&mut self) -> &mut MulticolFlow {
-        panic!("called as_mut_multicol() on a non-multicol flow")
     }
 
     // Main methods
@@ -505,18 +487,12 @@ pub trait MutableOwnedFlowUtils {
 pub enum FlowClass {
     Block,
     Inline,
-    ListItem,
-    Multicol,
-    MulticolColumn,
-    Flex,
 }
 
 impl FlowClass {
     fn is_block_like(self) -> bool {
         match self {
-            FlowClass::Block |
-            FlowClass::ListItem |
-            FlowClass::Flex => true,
+            FlowClass::Block => true,
             _ => false,
         }
     }

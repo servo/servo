@@ -5,7 +5,7 @@
 use crate::flow::{Flow, FlowClass};
 use crate::flow_ref::FlowRef;
 use serde::ser::{Serialize, SerializeSeq, Serializer};
-use serde_json::{to_value, Map, Value};
+use serde_json::{to_value, Map};
 use std::collections::{linked_list, LinkedList};
 use std::ops::Deref;
 use std::sync::Arc;
@@ -32,12 +32,6 @@ impl Serialize for FlowList {
             let data = match f.class() {
                 FlowClass::Block => to_value(f.as_block()).unwrap(),
                 FlowClass::Inline => to_value(f.as_inline()).unwrap(),
-                FlowClass::Flex => to_value(f.as_flex()).unwrap(),
-                FlowClass::ListItem |
-                FlowClass::Multicol |
-                FlowClass::MulticolColumn => {
-                    Value::Null // Not implemented yet
-                },
             };
             flow_val.insert("data".to_owned(), data);
             serializer.serialize_element(&flow_val)?;
