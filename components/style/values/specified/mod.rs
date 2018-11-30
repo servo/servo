@@ -34,7 +34,7 @@ pub use self::background::{BackgroundRepeat, BackgroundSize};
 pub use self::basic_shape::FillRule;
 pub use self::border::{BorderCornerRadius, BorderImageSlice, BorderImageWidth};
 pub use self::border::{BorderImageRepeat, BorderImageSideWidth};
-pub use self::border::{BorderRadius, BorderSideWidth, BorderSpacing};
+pub use self::border::{BorderRadius, BorderSideWidth, BorderSpacing, BorderStyle};
 pub use self::box_::{AnimationIterationCount, AnimationName, Contain, Display};
 pub use self::box_::{Appearance, BreakBetween, BreakWithin, Clear, Float};
 pub use self::box_::{OverflowClipBox, OverscrollBehavior, Perspective, Resize};
@@ -150,46 +150,6 @@ fn parse_number_with_clamping_mode<'i, 't>(
         value: result.min(f32::MAX).max(f32::MIN),
         calc_clamping_mode: Some(clamping_mode),
     })
-}
-
-// The integer values here correspond to the border conflict resolution rules in CSS 2.1 §
-// 17.6.2.1. Higher values override lower values.
-//
-// FIXME(emilio): Should move to border.rs
-#[allow(missing_docs)]
-#[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
-#[derive(
-    Clone,
-    Copy,
-    Debug,
-    Eq,
-    MallocSizeOf,
-    Ord,
-    Parse,
-    PartialEq,
-    PartialOrd,
-    SpecifiedValueInfo,
-    ToComputedValue,
-    ToCss,
-)]
-pub enum BorderStyle {
-    None = -1,
-    Solid = 6,
-    Double = 7,
-    Dotted = 4,
-    Dashed = 5,
-    Hidden = -2,
-    Groove = 1,
-    Ridge = 3,
-    Inset = 0,
-    Outset = 2,
-}
-
-impl BorderStyle {
-    /// Whether this border style is either none or hidden.
-    pub fn none_or_hidden(&self) -> bool {
-        matches!(*self, BorderStyle::None | BorderStyle::Hidden)
-    }
 }
 
 /// A CSS `<number>` specified value.
