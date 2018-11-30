@@ -184,7 +184,7 @@ pub struct HTMLMediaElement {
     playback_position: Cell<f64>,
     /// https://html.spec.whatwg.org/multipage/#default-playback-start-position
     default_playback_start_position: Cell<f64>,
-    /// https://html.spec.whatwg.org/multipage/media.html#dom-media-volume
+    /// https://html.spec.whatwg.org/multipage/#dom-media-volume
     volume: Cell<f64>,
     /// https://html.spec.whatwg.org/multipage/#dom-media-seeking
     seeking: Cell<bool>,
