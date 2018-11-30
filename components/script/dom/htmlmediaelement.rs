@@ -14,7 +14,7 @@ use crate::dom::bindings::codegen::Bindings::MediaErrorBinding::MediaErrorConsta
 use crate::dom::bindings::codegen::Bindings::MediaErrorBinding::MediaErrorMethods;
 use crate::dom::bindings::codegen::InheritTypes::{ElementTypeId, HTMLElementTypeId};
 use crate::dom::bindings::codegen::InheritTypes::{HTMLMediaElementTypeId, NodeTypeId};
-use crate::dom::bindings::error::{Error, ErrorResult};
+use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::refcounted::Trusted;
@@ -1380,8 +1380,8 @@ impl HTMLMediaElementMethods for HTMLMediaElement {
         TimeRanges::new(self.global().as_window(), self.played.clone())
     }
 
-    fn Volume(&self) -> Finite<f64> {
-        Finite::wrap(self.volume.get())
+    fn GetVolume(&self) -> Fallible<Finite<f64>> {
+        Ok(Finite::wrap(self.volume.get()))
     }                                   
 
 }
