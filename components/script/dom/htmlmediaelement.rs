@@ -1382,7 +1382,7 @@ impl HTMLMediaElementMethods for HTMLMediaElement {
 
     fn GetVolume(&self) -> Fallible<Finite<f64>> {
         Ok(Finite::wrap(self.volume.get()))
-    }                           
+    }
 
     fn SetVolume(&self, value: Finite<f64>) -> ErrorResult {
         let minimum_volume = 0.0;
@@ -1392,8 +1392,7 @@ impl HTMLMediaElementMethods for HTMLMediaElement {
         }
         self.volume.set(*value);
         return Ok(());
-    }        
-
+    }
 }
 
 impl VirtualMethods for HTMLMediaElement {
