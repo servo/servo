@@ -10,6 +10,7 @@ RUN apt-get -qqy update \
     bzip2 \
     ca-certificates \
     dbus-x11 \
+    earlyoom \
     gdebi \
     git \
     locales \

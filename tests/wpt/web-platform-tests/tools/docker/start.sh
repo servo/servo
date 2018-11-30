@@ -17,6 +17,10 @@ REVISION=${3:-FETCH_HEAD}
 BROWSER=${4:-all}
 CHANNEL=${5:-nightly}
 
+# Start userspace OOM killer: https://github.com/rfjakob/earlyoom
+# It will report memory usage every minute and prefer to kill browsers.
+sudo earlyoom -p -r 60 --prefer '(chrome|firefox)' --avoid 'python' &
+
 cd ~
 
 mkdir web-platform-tests

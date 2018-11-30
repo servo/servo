@@ -31,7 +31,7 @@
     <script type="text/javascript">
 
         if(getLeftPosition("target-block") !== 0) {
-            var test1 = async_test("onclick event fired inside region", {timeout: testTimeout});
+            var test1 = async_test("onclick event fired inside region");
             test1.step(function () {
                 var testTarget = document.getElementById("target-block");
                 testTarget.onclick = test1.step_func(function (evt) {
@@ -46,7 +46,7 @@
                 mouseClick("target-block");
             });
 
-            var test2 = async_test("onclick event fired outside region", {timeout: testTimeout});
+            var test2 = async_test("onclick event fired outside region");
             test2.step(function () {
                 var testTarget = document.getElementById("outside-region");
                 testTarget.onclick = test2.step_func(function (evt) {

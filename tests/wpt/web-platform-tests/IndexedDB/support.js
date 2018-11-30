@@ -1,6 +1,3 @@
-var databaseName = "database";
-var databaseVersion = 1;
-
 /* Delete created databases
  *
  * Go through each finished test, see if it has an associated database. Close
@@ -170,18 +167,18 @@ function is_transaction_active(tx, store_name) {
   }
 }
 
-// Keep the passed transaction alive indefinitely (by making requests
-// against the named store). Returns a function to to let the
-// transaction finish, and asserts that the transaction is not yet
-// finished.
+// Keeps the passed transaction alive indefinitely (by making requests
+// against the named store). Returns a function that asserts that the
+// transaction has not already completed and then ends the request loop so that
+// the transaction may autocommit and complete.
 function keep_alive(tx, store_name) {
   let completed = false;
   tx.addEventListener('complete', () => { completed = true; });
 
-  let pin = true;
+  let keepSpinning = true;
 
   function spin() {
-    if (!pin)
+    if (!keepSpinning)
       return;
     tx.objectStore(store_name).get(0).onsuccess = spin;
   }
@@ -189,6 +186,6 @@ function keep_alive(tx, store_name) {
 
   return () => {
     assert_false(completed, 'Transaction completed while kept alive');
-    pin = false;
+    keepSpinning = false;
   };
 }

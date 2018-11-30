@@ -18,13 +18,13 @@
     </template>
     The following text should be green:
     <div id="elem"><custom-element id="c-e"></custom-element></div>
-    <script type="text/javascript">
+    <script>
       "use strict";
       test(function() {
-        var part = getElementByShadowIds(document, ["c-e", "part"]);
-        var before = window.getComputedStyle(part).color;
+        const part = getElementByShadowIds(document, ["c-e", "part"]);
+        const before = window.getComputedStyle(part).color;
         document.getElementById("elem").setAttribute("id", "new-elem");
-        var after = window.getComputedStyle(part).color;
+        const after = window.getComputedStyle(part).color;
         assert_not_equals(before, after);
       }, "Part in selected host changed color");
     </script>

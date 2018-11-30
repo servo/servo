@@ -42,7 +42,7 @@
     <script type="text/javascript">
         if(getLeftPosition("target-block") !== 0) {
 
-            var test1 = async_test("onkeydown event fired in textfield inside region", {timeout: testTimeout});
+            var test1 = async_test("onkeydown event fired in textfield inside region");
             test1.step(function () {
                 var testTarget = document.getElementById("textfield-inside");
                 testTarget.onkeydown = test1.step_func(function (evt) {

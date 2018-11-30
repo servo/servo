@@ -26,11 +26,11 @@
       <custom-element-inner id="c-e-inner" part="c-e-part"></custom-element-inner>
     </template>
     <custom-element-outer id="c-e-outer"></custom-element-outer>
-    <script type="text/javascript">
+    <script>
       "use strict";
       const colorGreen = "rgb(0, 128, 0)";
       test(function() {
-        var el = getElementByShadowIds(document, ["c-e-outer", "c-e-inner", "part"]);
+        const el = getElementByShadowIds(document, ["c-e-outer", "c-e-inner", "part"]);
         assert_equals(window.getComputedStyle(el).color, colorGreen);
       }, "::part cannot be chained to reach elements in the inner host");
       test(function() {

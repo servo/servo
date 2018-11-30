@@ -31,7 +31,7 @@
     <script type="text/javascript">
 
         if(getLeftPosition("target-block") !== 0) {
-            var test1 = async_test("onmouseover event fired inside region", {timeout: testTimeout});
+            var test1 = async_test("onmouseover event fired inside region");
             test1.step(function () {
                 var testTarget = document.getElementById("target-block");
                 testTarget.onmouseover = test1.step_func(function (evt) {
@@ -46,7 +46,7 @@
                 mouseOver("target-block");
             });
 
-            var test2 = async_test("onmouseout event fired inside region", {timeout: testTimeout});
+            var test2 = async_test("onmouseout event fired inside region");
             test2.step(function () {
                 var testTarget = document.getElementById("target-block");
                 testTarget.onmouseout = test2.step_func(function (evt) {
