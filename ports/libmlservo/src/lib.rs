@@ -200,10 +200,10 @@ pub unsafe extern "C" fn move_servo(servo: *mut ServoInstance, x: f32, y: f32) {
     // Servo's cursor was moved
     if let Some(servo) = servo.as_mut() {
         let point = DevicePoint::new(x, y);
-        let (new_state, window_event) = match servo.scroll_state {
+        let (new_state, window_events) = match servo.scroll_state {
             ScrollState::TriggerUp => (
                 ScrollState::TriggerUp,
-                WindowEvent::MouseWindowMoveEventClass(point),
+                vec![WindowEvent::MouseWindowMoveEventClass(point)],
             ),
             ScrollState::TriggerDown(start)
                 if (start - point).square_length() < DRAG_CUTOFF_SQUARED =>
@@ -212,23 +212,29 @@ pub unsafe extern "C" fn move_servo(servo: *mut ServoInstance, x: f32, y: f32) {
             },
             ScrollState::TriggerDown(start) => (
                 ScrollState::TriggerDragging(start, point),
-                WindowEvent::Scroll(
-                    ScrollLocation::Delta((point - start) * servo.scroll_scale),
-                    start.to_i32(),
-                    TouchEventType::Down,
-                ),
+                vec![
+                    WindowEvent::MouseWindowMoveEventClass(point),
+                    WindowEvent::Scroll(
+                        ScrollLocation::Delta((point - start) * servo.scroll_scale),
+                        start.to_i32(),
+                        TouchEventType::Down,
+                    ),
+                ],
             ),
             ScrollState::TriggerDragging(start, prev) => (
                 ScrollState::TriggerDragging(start, point),
-                WindowEvent::Scroll(
-                    ScrollLocation::Delta((point - prev) * servo.scroll_scale),
-                    start.to_i32(),
-                    TouchEventType::Move,
-                ),
+                vec![
+                    WindowEvent::MouseWindowMoveEventClass(point),
+                    WindowEvent::Scroll(
+                        ScrollLocation::Delta((point - prev) * servo.scroll_scale),
+                        start.to_i32(),
+                        TouchEventType::Move,
+                    ),
+                ],
             ),
         };
         servo.scroll_state = new_state;
-        servo.servo.handle_events(vec![window_event]);
+        servo.servo.handle_events(window_events);
     }
 }
 
