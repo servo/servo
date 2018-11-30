@@ -131,5 +131,6 @@ private:
   lumin::LineNode* laser_ = nullptr; // The laser pointer
   glm::vec3 controller_position_; // The last recorded position of the controller (in world coords)
   glm::quat controller_orientation_; // The last recorded orientation of the controller (in world coords)
+  bool controller_trigger_down_ = false; // Is the controller trigger currently down?
   ServoInstance* servo_ = nullptr; // the servo instance we're embedding
 };
