@@ -184,6 +184,8 @@ pub struct HTMLMediaElement {
     playback_position: Cell<f64>,
     /// https://html.spec.whatwg.org/multipage/#default-playback-start-position
     default_playback_start_position: Cell<f64>,
+    /// https://html.spec.whatwg.org/multipage/media.html#dom-media-volume
+    volume: Cell<f64>,
     /// https://html.spec.whatwg.org/multipage/#dom-media-seeking
     seeking: Cell<bool>,
     /// URL of the media resource, if any.
@@ -240,6 +242,7 @@ impl HTMLMediaElement {
             duration: Cell::new(f64::NAN),
             playback_position: Cell::new(0.),
             default_playback_start_position: Cell::new(0.),
+            volume: Cell::new(1.0),
             seeking: Cell::new(false),
             resource_url: DomRefCell::new(None),
             played: Rc::new(DomRefCell::new(TimeRangesContainer::new())),
