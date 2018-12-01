@@ -186,6 +186,8 @@ pub struct HTMLMediaElement {
     default_playback_start_position: Cell<f64>,
     /// https://html.spec.whatwg.org/multipage/#dom-media-seeking
     seeking: Cell<bool>,
+    /// https://html.spec.whatwg.org/multipage/#dom-media-muted
+    muted: Cell<bool>,
     /// URL of the media resource, if any.
     resource_url: DomRefCell<Option<ServoUrl>>,
     /// https://html.spec.whatwg.org/multipage/#dom-media-played
@@ -241,6 +243,7 @@ impl HTMLMediaElement {
             playback_position: Cell::new(0.),
             default_playback_start_position: Cell::new(0.),
             seeking: Cell::new(false),
+            muted: Cell::new(false),
             resource_url: DomRefCell::new(None),
             played: Rc::new(DomRefCell::new(TimeRangesContainer::new())),
         }
@@ -1263,6 +1266,11 @@ impl HTMLMediaElementMethods for HTMLMediaElement {
     // https://html.spec.whatwg.org/multipage/#dom-media-autoplay
     make_bool_setter!(SetAutoplay, "autoplay");
 
+    // https://html.spec.whatwg.org/multipage/#dom-media-defaultmuted
+    make_bool_getter!(DefaultMuted, "muted");
+    // https://html.spec.whatwg.org/multipage/#dom-media-defaultmuted
+    make_bool_setter!(SetDefaultMuted, "muted");
+
     // https://html.spec.whatwg.org/multipage/#dom-media-src
     make_url_getter!(Src, "src");
 
@@ -1278,6 +1286,21 @@ impl HTMLMediaElementMethods for HTMLMediaElement {
     fn SetSrcObject(&self, value: Option<&Blob>) {
         self.src_object.set(value);
         self.media_element_load_algorithm();
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-media-muted
+    fn GetMuted(&self) -> bool {
+        self.muted.get() as bool
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-media-muted
+    fn SetMuted(&self, value: bool) {
+        self.muted.set(value);
+        let window = window_from_node(&*elem);
+        window
+            .task_manager()
+            .media_element_task_source()
+            .queue_simple_event(self.upcast(), atom!("volumechange"), &window);
     }
 
     // https://html.spec.whatwg.org/multipage/#attr-media-preload
