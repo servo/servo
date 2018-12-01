@@ -478,7 +478,7 @@ fn wait_for_response(response: &mut Response, target: Target, done_chan: &mut Do
             }
         }
     } else {
-        let body = response.body.lock().unwrap();
+        let body = response.actual_response().body.lock().unwrap();
         if let ResponseBody::Done(ref vec) = *body {
             // in case there was no channel to wait for, the body was
             // obtained synchronously via scheme_fetch for data/file/about/etc
