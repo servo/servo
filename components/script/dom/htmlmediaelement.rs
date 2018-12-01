@@ -1245,6 +1245,34 @@ impl HTMLMediaElement {
             },
         }
     }
+
+    // https://html.spec.whatwg.org/multipage/media.html#earliest-possible-position
+    fn earliest_possible_position(&self) -> f64 {
+        self.played.borrow().start(0).unwrap_or_else(|_| self.playback_position.get())
+    }
+}
+
+// XXX Placeholder for [https://github.com/servo/servo/issues/22293]
+#[derive(Clone, Copy, JSTraceable, MallocSizeOf, PartialEq)]
+pub enum PlaybackDirection {
+    Forwards,
+    Backwards,
+}
+
+// XXX Placeholder implementations for:
+//
+// - https://github.com/servo/servo/issues/22293
+// - https://github.com/servo/servo/issues/22321
+impl HTMLMediaElement {
+    // https://github.com/servo/servo/issues/22293
+    pub fn direction_of_playback(&self) -> PlaybackDirection {
+        PlaybackDirection::Forwards
+    }
+
+    // https://github.com/servo/servo/pull/22321
+    pub fn Loop(&self) -> bool {
+        false
+    }
 }
 
 impl HTMLMediaElementMethods for HTMLMediaElement {
@@ -1365,6 +1393,20 @@ impl HTMLMediaElementMethods for HTMLMediaElement {
     // https://html.spec.whatwg.org/multipage/#dom-media-seeking
     fn Seeking(&self) -> bool {
         self.seeking.get()
+    }
+
+    // https://html.spec.whatwg.org/multipage/media.html#ended-playback
+    fn Ended(&self) -> bool {
+        if self.ready_state.get() < ReadyState::HaveMetadata {
+            return false;
+        }
+
+        let playback_pos = self.playback_position.get();
+
+        match self.direction_of_playback() {
+            PlaybackDirection::Forwards => playback_pos >= self.Duration() && !self.Loop(),
+            PlaybackDirection::Backwards => playback_pos <= self.earliest_possible_position(),
+        }
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-media-fastseek

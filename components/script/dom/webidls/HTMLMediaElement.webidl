@@ -46,7 +46,7 @@ interface HTMLMediaElement : HTMLElement {
   // attribute double playbackRate;
   readonly attribute TimeRanges played;
   // readonly attribute TimeRanges seekable;
-  // readonly attribute boolean ended;
+  readonly attribute boolean ended;
   [CEReactions] attribute boolean autoplay;
   // [CEReactions] attribute boolean loop;
   Promise<void> play();
