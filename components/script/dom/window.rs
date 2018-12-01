@@ -604,7 +604,7 @@ impl WindowMethods for Window {
                 // Step 1, prompt to unload.
                 if doc.prompt_to_unload(false) {
                     // Step 2, unload.
-                    doc.unload(false, false);
+                    doc.unload(false);
                     // Step 3, remove from the user interface
                     let _ = self.send_to_embedder(EmbedderMsg::CloseBrowser);
                     // Step 4, discard browsing context.
