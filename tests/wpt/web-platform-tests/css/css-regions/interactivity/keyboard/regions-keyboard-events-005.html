@@ -47,7 +47,7 @@
 
         if(getLeftPosition("target-block") !== 0) {
 
-            var test1 = async_test("onkeydown event fired in textfield outside region", {timeout: testTimeout});
+            var test1 = async_test("onkeydown event fired in textfield outside region");
             test1.step( function() {
                 var testTarget = document.getElementById("textfield-outside");
                 testTarget.onkeydown = test1.step_func(function (evt) {
@@ -66,7 +66,7 @@
                 });
             });
 
-            var test2 = async_test("onkeyup event fired in textarea outside region", {timeout: testTimeout});
+            var test2 = async_test("onkeyup event fired in textarea outside region");
             test2.step(function () {
                 var testTarget = document.getElementById("textarea-outside");
                 testTarget.onkeyup = test2.step_func(function (evt) {
@@ -80,7 +80,7 @@
                 });
             });
 
-            var test3 = async_test("onkeydown event fired in textarea outside region", {timeout: testTimeout});
+            var test3 = async_test("onkeydown event fired in textarea outside region");
             test3.step( function() {
                 var testTarget = document.getElementById("textarea-outside");
                 testTarget.onkeydown = test3.step_func( function(evt) {

@@ -31,7 +31,7 @@
     <script type="text/javascript">
 
         if(getLeftPosition("target-block") !== 0) {
-            var test1 = async_test("onmousedown event fired outside region", {timeout: testTimeout});
+            var test1 = async_test("onmousedown event fired outside region");
             test1.step(function () {
                 var testTarget = document.getElementById("outside-region");
                 testTarget.onmousedown = test1.step_func(function (evt) {

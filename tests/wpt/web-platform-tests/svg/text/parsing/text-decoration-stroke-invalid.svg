@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg"
+     xmlns:h="http://www.w3.org/1999/xhtml"
+     width="800px" height="800px">
+  <title>SVG Text: parsing text-decoration-stroke with invalid values</title>
+  <metadata>
+    <h:link rel="help" href="https://svgwg.org/svg2-draft/text.html#TextDecorationStrokeProperty"/>
+    <h:meta name="assert" content="text-decoration-stroke supports only the paint grammar 'none | color | url [none | color]? | context-fill | context-stroke'."/>
+  </metadata>
+  <g id="target"></g>
+  <h:script src="/resources/testharness.js"/>
+  <h:script src="/resources/testharnessreport.js"/>
+  <h:script src="/css/support/parsing-testcommon.js"/>
+  <script><![CDATA[
+
+test_invalid_value("text-decoration-stroke", "auto");
+test_invalid_value("text-decoration-stroke", "none red");
+test_invalid_value("text-decoration-stroke", 'none url("https://example.com/")');
+test_invalid_value("text-decoration-stroke", 'red url("https://example.com/")');
+test_invalid_value("text-decoration-stroke", 'url("https://example.com/") none red');
+
+  ]]></script>
+</svg>

@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+  <meta charset="utf-8">
+  <title>CSS Multi-column Layout Test Reference: column-span:all should act like column-span:none in different block formatting context</title>
+  <link rel="author" title="Ting-Yu Lin" href="tlin@mozilla.com">
+  <link rel="author" title="Mozilla" href="http://www.mozilla.org/">
+
+  <style>
+  #column {
+    column-count: 3;
+    column-rule: 6px solid;
+    width: 600px;
+    outline: 1px solid black;
+  }
+  h3 {
+    column-span: none;
+    outline: 1px solid blue;
+  }
+  </style>
+
+  <body onload="runTest();">
+    <article id="column">
+      <div>block1</div>
+      <div style="display: inline-block;">
+        <h3>non-spanner</h3>
+      </div>
+      <div style="overflow: hidden;">
+        <h3>non-spanner</h3>
+      </div>
+      <div style="column-span: all; outline: 1px solid green;">
+        Spanner
+        <h3>non-spanner in a spanner</h3>
+      </div>
+      <div>block2</div>
+    </article>
+  </body>
+</html>

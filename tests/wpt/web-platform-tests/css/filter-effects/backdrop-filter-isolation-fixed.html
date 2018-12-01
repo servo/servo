@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>backdrop-filter: Should not filter outside parent stacking context.</title>
+<link rel="author" title="Mason Freed" href="mailto:masonfreed@chromium.org">
+<link rel="help" href="https://drafts.fxtf.org/filter-effects-2/#BackdropFilterProperty">
+<link rel="match"  href="backdrop-filter-isolation-ref.html">
+
+<div class="outside">
+  <div class="stacking-context">
+    <div class="filter">
+    </div>
+  </div>
+</div>
+
+
+<style>
+div {
+  position: absolute;
+  width: 100px;
+  height: 100px;
+  background: green;
+}
+.outside {
+  top: 10px;
+  left: 10px;
+}
+.stacking-context {
+  position: fixed;
+  top: 10px;
+  left: 130px;
+}
+.filter {
+  width: 160px;
+  height: 160px;
+  top: 30px;
+  left: -90px;
+  opacity: 0.3;
+  backdrop-filter: invert(1);
+  background: yellow;
+}
+</style>
+

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg"
+     xmlns:h="http://www.w3.org/1999/xhtml"
+     width="800px" height="800px">
+  <title>SVG Text: parsing text-anchor with valid values</title>
+  <metadata>
+    <h:link rel="help" href="https://svgwg.org/svg2-draft/text.html#TextAnchorProperty"/>
+    <h:meta name="assert" content="text-anchor supports the full grammar 'start | middle | end'."/>
+  </metadata>
+  <g id="target"></g>
+  <h:script src="/resources/testharness.js"/>
+  <h:script src="/resources/testharnessreport.js"/>
+  <h:script src="/css/support/parsing-testcommon.js"/>
+  <script><![CDATA[
+
+test_valid_value("text-anchor", "start");
+test_valid_value("text-anchor", "middle");
+test_valid_value("text-anchor", "end");
+
+  ]]></script>
+</svg>

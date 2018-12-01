@@ -61,7 +61,7 @@ tasks:
               owner: ${event.pusher.email}
               source: ${event.repository.url}
             payload:
-              image: harjgam/web-platform-tests:0.22
+              image: hexcles/web-platform-tests:0.23
               maxRunTime: 7200
               artifacts:
                 public/results:
@@ -125,7 +125,7 @@ tasks:
                 owner: ${event.pull_request.user.login}@users.noreply.github.com
                 source: ${event.repository.url}
               payload:
-                image: harjgam/web-platform-tests:0.22
+                image: hexcles/web-platform-tests:0.23
                 maxRunTime: 7200
                 artifacts:
                   public/results:

@@ -292,7 +292,7 @@ class MarionetteStorageProtocolPart(StorageProtocolPart):
             let principal = ssm.createCodebasePrincipal(uri, {});
             let qms = Components.classes["@mozilla.org/dom/quota-manager-service;1"]
                                 .getService(Components.interfaces.nsIQuotaManagerService);
-            qms.clearStoragesForPrincipal(principal, "default", true);
+            qms.clearStoragesForPrincipal(principal, "default", null, true);
             """ % url
         with self.marionette.using_context(self.marionette.CONTEXT_CHROME):
             self.marionette.execute_script(script)

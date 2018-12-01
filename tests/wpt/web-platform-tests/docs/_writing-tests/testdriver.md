@@ -26,6 +26,41 @@ This function causes a sequence of actions to be sent to the browser. It is base
 The action can be a keyboard action, a pointer action or a pause. It returns a `Promise` that
 resolves after the actions have been sent or rejects if an error was thrown.
 
+Test authors are encouraged to use the builder API to generate the sequence of actions. The builder
+API can be accessed via the `new test_driver.Actions()` object.
+
+Example:
+
+```js
+let text_box = document.getElementById("text");
+
+let actions = new test_driver.Actions()
+    .pointerMove(0, 0, {origin: text_box})
+    .pointerDown()
+    .pointerUp()
+    .addTick()
+    .keyDown("p")
+    .keyUp("p");
+
+actions.send();
+```
+
+Calling into `send()` is going to dispatch the action sequence (via `test_driver.action_sequence`) and also returns a `Promise` which should be handled however is appropriate in the test. The other functions in the `Actions()` object are going to modify the state of the object by adding a new action in the sequence and return the same object. So the functions can be easily chained as shown in the example above. Here is a list of helper functions in the `Actions` class:
+
+```
+pointerDown: Create a pointerDown event for the current default pointer source
+pointerUp: Create a pointerUp event for the current default pointer source
+pointerMove: Create a move event for the current default pointer source
+keyDown: Create a keyDown event for the current default key source
+keyUp: Create a keyUp event for the current default key source
+pause: Add a pause to the current tick
+addTick: Insert a new actions tick
+setPointer: Set the current default pointer source (By detault the pointerType is mouse)
+addPointer: Add a new pointer input source with the given name
+setKeyboard: Set the current default key source
+addKeyboard: Add a new key input source with the given name
+```
+
 ### bless
 
 Usage: `test_driver.bless(intent, action)`

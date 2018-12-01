@@ -47,7 +47,7 @@
 
         if(getLeftPosition("target-block") !== 0) {
 
-            var test1 = async_test("onkeydown event fired in textfield1 inside region", {timeout: testTimeout});
+            var test1 = async_test("onkeydown event fired in textfield1 inside region");
             test1.step(function () {
                 var testTarget = document.getElementById("textfield-inside1");
                 testTarget.onkeydown = test1.step_func(function (evt) {
@@ -66,7 +66,7 @@
                 });
             });
 
-            var test2 = async_test("onkeyup event fired in textfield2 inside region", {timeout: testTimeout});
+            var test2 = async_test("onkeyup event fired in textfield2 inside region");
             test2.step(function () {
                 var testTarget = document.getElementById("textfield-inside2");
                 testTarget.onkeyup = test2.step_func(function (evt) {
@@ -77,7 +77,7 @@
                 });
             });
 
-            var test3 = async_test("onkeydown event fired in textfield2 inside region", {timeout: testTimeout});
+            var test3 = async_test("onkeydown event fired in textfield2 inside region");
             test3.step( function() {
                 var testTarget = document.getElementById("textfield-inside2");
                 testTarget.onkeydown = test3.step_func(function (evt) {
@@ -96,7 +96,7 @@
                 });
             });
 
-            var test4 = async_test("onkeyup event fired in textarea inside region", {timeout: testTimeout});
+            var test4 = async_test("onkeyup event fired in textarea inside region");
             test4.step( function() {
                 var testTarget = document.getElementById("textarea-inside");
                 testTarget.onkeyup = test4.step_func(function (evt) {
@@ -110,7 +110,7 @@
                 });
             });
 
-            var test5 = async_test("onkeydown event fired in textarea inside region", {timeout: testTimeout});
+            var test5 = async_test("onkeydown event fired in textarea inside region");
             test5.step( function() {
                 var testTarget = document.getElementById("textarea-inside");
                 testTarget.onkeydown = test5.step_func(function (evt) {

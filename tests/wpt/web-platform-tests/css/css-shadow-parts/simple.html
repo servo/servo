@@ -18,11 +18,11 @@
     </template>
     The following text should be green:
     <custom-element id="c-e"></custom-element>
-    <script type="text/javascript">
+    <script>
       "use strict";
       const colorGreen = "rgb(0, 128, 0)";
       test(function() {
-        var el = getElementByShadowIds(document, ["c-e", "part"]);
+        const el = getElementByShadowIds(document, ["c-e", "part"]);
         assert_equals(window.getComputedStyle(el).color, colorGreen);
       }, "Part in selected host is styled");
     </script>

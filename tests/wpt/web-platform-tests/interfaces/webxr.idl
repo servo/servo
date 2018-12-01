@@ -5,7 +5,8 @@
 
 [SecureContext, Exposed=Window] interface XR : EventTarget {
   // Methods
-  Promise<XRDevice?> requestDevice();
+  Promise<void> supportsSessionMode(XRSessionMode mode);
+  Promise<XRSession> requestSession(optional XRSessionCreationOptions parameters);
 
   // Events
   attribute EventHandler ondevicechange;
@@ -16,14 +17,14 @@ partial interface Navigator {
   [SameObject] readonly attribute XR xr;
 };
 
-[SecureContext, Exposed=Window] interface XRDevice {
-  // Methods
-  Promise<void> supportsSession(optional XRSessionCreationOptions options);
-  Promise<XRSession> requestSession(optional XRSessionCreationOptions options);
+enum XRSessionMode {
+  "inline",
+  "immersive-vr",
+  "immersive-ar"
 };
 
 dictionary XRSessionCreationOptions {
-  boolean immersive = false;
+  XRSessionMode mode = "inline";
   XRPresentationContext outputContext;
 };
 
@@ -35,8 +36,7 @@ enum XREnvironmentBlendMode {
 
 [SecureContext, Exposed=Window] interface XRSession : EventTarget {
   // Attributes
-  readonly attribute XRDevice device;
-  readonly attribute boolean immersive;
+  readonly attribute XRSessionMode mode;
   readonly attribute XRPresentationContext outputContext;
   readonly attribute XREnvironmentBlendMode environmentBlendMode;
 
@@ -60,6 +60,7 @@ enum XREnvironmentBlendMode {
   attribute EventHandler onresetpose;
   attribute EventHandler onend;
   attribute EventHandler onselect;
+  attribute EventHandler oninputsourceschange;
   attribute EventHandler onselectstart;
   attribute EventHandler onselectend;
 };
@@ -68,10 +69,9 @@ callback XRFrameRequestCallback = void (DOMHighResTimeStamp time, XRFrame frame)
 
 [SecureContext, Exposed=Window] interface XRFrame {
   readonly attribute XRSession session;
-  readonly attribute FrozenArray<XRView> views;
 
-  XRDevicePose? getDevicePose(XRCoordinateSystem coordinateSystem);
-  XRInputPose? getInputPose(XRInputSource inputSource, XRCoordinateSystem coordinateSystem);
+  XRViewerPose? getViewerPose(XRFrameOfReference frameOfRef);
+  XRInputPose? getInputPose(XRInputSource inputSource, XRFrameOfReference frameOfRef);
 };
 
 [SecureContext, Exposed=Window] interface XRCoordinateSystem : EventTarget {
@@ -108,6 +108,7 @@ enum XREye {
 [SecureContext, Exposed=Window] interface XRView {
   readonly attribute XREye eye;
   readonly attribute Float32Array projectionMatrix;
+  readonly attribute Float32Array viewMatrix;
 };
 
 [SecureContext, Exposed=Window] interface XRViewport {
@@ -117,10 +118,9 @@ enum XREye {
   readonly attribute long height;
 };
 
-[SecureContext, Exposed=Window] interface XRDevicePose {
-  readonly attribute Float32Array poseModelMatrix;
-
-  Float32Array getViewMatrix(XRView view);
+[SecureContext, Exposed=Window] interface XRViewerPose {
+  readonly attribute Float32Array poseMatrix;
+  readonly attribute FrozenArray<XRView> views;
 };
 
 enum XRHandedness {
@@ -165,7 +165,6 @@ dictionary XRWebGLLayerInit {
   boolean depth = true;
   boolean stencil = false;
   boolean alpha = true;
-  boolean multiview = false;
   double framebufferScaleFactor = 1.0;
 };
 
@@ -180,7 +179,6 @@ interface XRWebGLLayer : XRLayer {
   readonly attribute boolean depth;
   readonly attribute boolean stencil;
   readonly attribute boolean alpha;
-  readonly attribute boolean multiview;
 
   readonly attribute WebGLFramebuffer framebuffer;
   readonly attribute unsigned long framebufferWidth;
@@ -195,11 +193,11 @@ interface XRWebGLLayer : XRLayer {
 };
 
 partial dictionary WebGLContextAttributes {
-    XRDevice compatibleXRDevice = null;
+    boolean xrCompatible = null;
 };
 
 partial interface mixin WebGLRenderingContextBase {
-    Promise<void> setCompatibleXRDevice(XRDevice device);
+    Promise<void> makeXRCompatible();
 };
 
 [SecureContext, Exposed=Window] interface XRPresentationContext {
