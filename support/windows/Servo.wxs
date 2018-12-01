@@ -6,10 +6,6 @@
     <BootstrapperApplicationRef Id="WixStandardBootstrapperApplication.RtfLicense" />
     <Chain>
       <MsiPackage
-          SourceFile="Gstreamer.msi"
-          DisplayName="GStreamer"
-          ForcePerMachine="yes"/>
-      <MsiPackage
           SourceFile="Installer.msi"
           Compressed="yes"
           DisplayName="Servo"
