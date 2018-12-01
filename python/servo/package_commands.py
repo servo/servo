@@ -19,7 +19,6 @@ import shutil
 import subprocess
 import sys
 import tempfile
-import urllib
 
 from mach.decorators import (
     CommandArgument,
@@ -415,14 +414,7 @@ class PackageCommands(CommandBase):
             dir_to_installer = path.join(dir_to_msi, "Installer.msi")
             print("Packaged Servo into " + dir_to_installer)
 
-            # Download GStreamer installer. Only once.
-            gstreamer_msi_path = path.join(dir_to_msi, 'Gstreamer.msi')
-            if not os.path.exists(gstreamer_msi_path):
-                print('Fetching GStreamer installer. This may take a while...')
-                gstreamer_url = 'https://gstreamer.freedesktop.org/data/pkg/windows/1.14.2/gstreamer-1.0-x86-1.14.2.msi'
-                urllib.urlretrieve(gstreamer_url, gstreamer_msi_path)
-
-            # Generate bundle with GStreamer and Servo installers.
+            # Generate bundle with Servo installer.
             print("Creating bundle")
             shutil.copy(path.join(dir_to_root, 'support', 'windows', 'Servo.wxs'), dir_to_msi)
             bundle_wxs_path = path.join(dir_to_msi, 'Servo.wxs')
@@ -439,7 +431,7 @@ class PackageCommands(CommandBase):
             except subprocess.CalledProcessError as e:
                 print("WiX light exited with return value %d" % e.returncode)
                 return e.returncode
-            print("Packaged Servo into " + path.join(dir_to_msi, "Servo.msi"))
+            print("Packaged Servo into " + path.join(dir_to_msi, "Servo.exe"))
 
             print("Creating ZIP")
             zip_path = path.join(dir_to_msi, "Servo.zip")
