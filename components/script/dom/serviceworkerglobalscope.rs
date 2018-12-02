@@ -292,7 +292,7 @@ impl ServiceWorkerGlobalScope {
                         },
                     };
 
-                let runtime = unsafe { new_rt_and_cx() };
+                let runtime = new_rt_and_cx();
 
                 let (devtools_mpsc_chan, devtools_mpsc_port) = unbounded();
                 ROUTER

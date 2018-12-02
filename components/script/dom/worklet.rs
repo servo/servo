@@ -471,7 +471,7 @@ impl WorkletThread {
                 global_init: init.global_init,
                 global_scopes: HashMap::new(),
                 control_buffer: None,
-                runtime: unsafe { new_rt_and_cx() },
+                runtime: new_rt_and_cx(),
                 should_gc: false,
                 gc_threshold: MIN_GC_THRESHOLD,
             });
