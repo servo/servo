@@ -137,69 +137,69 @@ impl Matrix3D {
         det = 1.0 / det;
         let x = Matrix3D {
             m11: det *
-            (self.m23*self.m34*self.m42 - self.m24*self.m33*self.m42 +
-             self.m24*self.m32*self.m43 - self.m22*self.m34*self.m43 -
-             self.m23*self.m32*self.m44 + self.m22*self.m33*self.m44),
+            (self.m23 * self.m34 * self.m42 - self.m24 * self.m33 * self.m42 +
+             self.m24 * self.m32 * self.m43 - self.m22 * self.m34 * self.m43 -
+             self.m23 * self.m32 * self.m44 + self.m22 * self.m33 * self.m44),
             m12: det *
-            (self.m14*self.m33*self.m42 - self.m13*self.m34*self.m42 -
-             self.m14*self.m32*self.m43 + self.m12*self.m34*self.m43 +
-             self.m13*self.m32*self.m44 - self.m12*self.m33*self.m44),
+            (self.m14 * self.m33 * self.m42 - self.m13 * self.m34 * self.m42 -
+             self.m14 * self.m32 * self.m43 + self.m12 * self.m34 * self.m43 +
+             self.m13 * self.m32 * self.m44 - self.m12 * self.m33 * self.m44),
             m13: det *
-            (self.m13*self.m24*self.m42 - self.m14*self.m23*self.m42 +
-             self.m14*self.m22*self.m43 - self.m12*self.m24*self.m43 -
-             self.m13*self.m22*self.m44 + self.m12*self.m23*self.m44),
+            (self.m13 * self.m24 * self.m42 - self.m14 * self.m23 * self.m42 +
+             self.m14 * self.m22 * self.m43 - self.m12 * self.m24 * self.m43 -
+             self.m13 * self.m22 * self.m44 + self.m12 * self.m23 * self.m44),
             m14: det *
-            (self.m14*self.m23*self.m32 - self.m13*self.m24*self.m32 -
-             self.m14*self.m22*self.m33 + self.m12*self.m24*self.m33 +
-             self.m13*self.m22*self.m34 - self.m12*self.m23*self.m34),
+            (self.m14 * self.m23 * self.m32 - self.m13 * self.m24 * self.m32 -
+             self.m14 * self.m22 * self.m33 + self.m12 * self.m24 * self.m33 +
+             self.m13 * self.m22 * self.m34 - self.m12 * self.m23 * self.m34),
             m21: det *
-            (self.m24*self.m33*self.m41 - self.m23*self.m34*self.m41 -
-             self.m24*self.m31*self.m43 + self.m21*self.m34*self.m43 +
-             self.m23*self.m31*self.m44 - self.m21*self.m33*self.m44),
+            (self.m24 * self.m33 * self.m41 - self.m23 * self.m34 * self.m41 -
+             self.m24 * self.m31 * self.m43 + self.m21 * self.m34 * self.m43 +
+             self.m23 * self.m31 * self.m44 - self.m21 * self.m33 * self.m44),
             m22: det *
-            (self.m13*self.m34*self.m41 - self.m14*self.m33*self.m41 +
-             self.m14*self.m31*self.m43 - self.m11*self.m34*self.m43 -
-             self.m13*self.m31*self.m44 + self.m11*self.m33*self.m44),
+            (self.m13 * self.m34 * self.m41 - self.m14 * self.m33 * self.m41 +
+             self.m14 * self.m31 * self.m43 - self.m11 * self.m34 * self.m43 -
+             self.m13 * self.m31 * self.m44 + self.m11 * self.m33 * self.m44),
             m23: det *
-            (self.m14*self.m23*self.m41 - self.m13*self.m24*self.m41 -
-             self.m14*self.m21*self.m43 + self.m11*self.m24*self.m43 +
-             self.m13*self.m21*self.m44 - self.m11*self.m23*self.m44),
+            (self.m14 * self.m23 * self.m41 - self.m13 * self.m24 * self.m41 -
+             self.m14 * self.m21 * self.m43 + self.m11 * self.m24 * self.m43 +
+             self.m13 * self.m21 * self.m44 - self.m11 * self.m23 * self.m44),
             m24: det *
-            (self.m13*self.m24*self.m31 - self.m14*self.m23*self.m31 +
-             self.m14*self.m21*self.m33 - self.m11*self.m24*self.m33 -
-             self.m13*self.m21*self.m34 + self.m11*self.m23*self.m34),
+            (self.m13 * self.m24 * self.m31 - self.m14 * self.m23 * self.m31 +
+             self.m14 * self.m21 * self.m33 - self.m11 * self.m24 * self.m33 -
+             self.m13 * self.m21 * self.m34 + self.m11 * self.m23 * self.m34),
             m31: det *
-            (self.m22*self.m34*self.m41 - self.m24*self.m32*self.m41 +
-             self.m24*self.m31*self.m42 - self.m21*self.m34*self.m42 -
-             self.m22*self.m31*self.m44 + self.m21*self.m32*self.m44),
+            (self.m22 * self.m34 * self.m41 - self.m24 * self.m32 * self.m41 +
+             self.m24 * self.m31 * self.m42 - self.m21 * self.m34 * self.m42 -
+             self.m22 * self.m31 * self.m44 + self.m21 * self.m32 * self.m44),
             m32: det *
-            (self.m14*self.m32*self.m41 - self.m12*self.m34*self.m41 -
-             self.m14*self.m31*self.m42 + self.m11*self.m34*self.m42 +
-             self.m12*self.m31*self.m44 - self.m11*self.m32*self.m44),
+            (self.m14 * self.m32 * self.m41 - self.m12 * self.m34 * self.m41 -
+             self.m14 * self.m31 * self.m42 + self.m11 * self.m34 * self.m42 +
+             self.m12 * self.m31 * self.m44 - self.m11 * self.m32 * self.m44),
             m33: det *
-            (self.m12*self.m24*self.m41 - self.m14*self.m22*self.m41 +
-             self.m14*self.m21*self.m42 - self.m11*self.m24*self.m42 -
-             self.m12*self.m21*self.m44 + self.m11*self.m22*self.m44),
+            (self.m12 * self.m24 * self.m41 - self.m14 * self.m22 * self.m41 +
+             self.m14 * self.m21 * self.m42 - self.m11 * self.m24 * self.m42 -
+             self.m12 * self.m21 * self.m44 + self.m11 * self.m22 * self.m44),
             m34: det *
-            (self.m14*self.m22*self.m31 - self.m12*self.m24*self.m31 -
-             self.m14*self.m21*self.m32 + self.m11*self.m24*self.m32 +
-             self.m12*self.m21*self.m34 - self.m11*self.m22*self.m34),
+            (self.m14 * self.m22 * self.m31 - self.m12 * self.m24 * self.m31 -
+             self.m14 * self.m21 * self.m32 + self.m11 * self.m24 * self.m32 +
+             self.m12 * self.m21 * self.m34 - self.m11 * self.m22 * self.m34),
             m41: det *
-            (self.m23*self.m32*self.m41 - self.m22*self.m33*self.m41 -
-             self.m23*self.m31*self.m42 + self.m21*self.m33*self.m42 +
-             self.m22*self.m31*self.m43 - self.m21*self.m32*self.m43),
+            (self.m23 * self.m32 * self.m41 - self.m22 * self.m33 * self.m41 -
+             self.m23 * self.m31 * self.m42 + self.m21 * self.m33 * self.m42 +
+             self.m22 * self.m31 * self.m43 - self.m21 * self.m32 * self.m43),
             m42: det *
-            (self.m12*self.m33*self.m41 - self.m13*self.m32*self.m41 +
-             self.m13*self.m31*self.m42 - self.m11*self.m33*self.m42 -
-             self.m12*self.m31*self.m43 + self.m11*self.m32*self.m43),
+            (self.m12 * self.m33 * self.m41 - self.m13 * self.m32 * self.m41 +
+             self.m13 * self.m31 * self.m42 - self.m11 * self.m33 * self.m42 -
+             self.m12 * self.m31 * self.m43 + self.m11 * self.m32 * self.m43),
             m43: det *
-            (self.m13*self.m22*self.m41 - self.m12*self.m23*self.m41 -
-             self.m13*self.m21*self.m42 + self.m11*self.m23*self.m42 +
-             self.m12*self.m21*self.m43 - self.m11*self.m22*self.m43),
+            (self.m13 * self.m22 * self.m41 - self.m12 * self.m23 * self.m41 -
+             self.m13 * self.m21 * self.m42 + self.m11 * self.m23 * self.m42 +
+             self.m12 * self.m21 * self.m43 - self.m11 * self.m22 * self.m43),
             m44: det *
-            (self.m12*self.m23*self.m31 - self.m13*self.m22*self.m31 +
-             self.m13*self.m21*self.m32 - self.m11*self.m23*self.m32 -
-             self.m12*self.m21*self.m33 + self.m11*self.m22*self.m33),
+            (self.m12 * self.m23 * self.m31 - self.m13 * self.m22 * self.m31 +
+             self.m13 * self.m21 * self.m32 - self.m11 * self.m23 * self.m32 -
+             self.m12 * self.m21 * self.m33 + self.m11 * self.m22 * self.m33),
         };
 
         Ok(x)
