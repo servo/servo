@@ -39,7 +39,7 @@ use ipc_channel::ipc::IpcSender;
 use js::jsapi::{JSAutoCompartment, JSContext};
 use js::jsval::UndefinedValue;
 use js::panic::maybe_resume_unwind;
-use js::rust::HandleValue;
+use js::rust::{HandleValue, ParentRuntime};
 use msg::constellation_msg::PipelineId;
 use net_traits::request::{CredentialsMode, Destination, RequestInit as NetRequestInit};
 use net_traits::{load_whole_resource, IpcSend};
@@ -133,6 +133,10 @@ impl WorkerGlobalScope {
             navigation_start_precise: precise_time_ns(),
             performance: Default::default(),
         }
+    }
+
+    pub fn runtime_handle(&self) -> ParentRuntime {
+        self.runtime.prepare_for_new_child()
     }
 
     pub fn from_devtools_sender(&self) -> Option<IpcSender<DevtoolScriptControlMsg>> {
