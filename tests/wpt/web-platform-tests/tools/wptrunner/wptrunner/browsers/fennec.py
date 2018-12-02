@@ -31,60 +31,10 @@ __wptrunner__ = {"product": "fennec",
                  "run_info_extras": "run_info_extras",
                  "update_properties": "update_properties"}
 
-class FennecProfile(FirefoxProfile):
-    # WPT-specific prefs are set in FennecBrowser.start()
-    FirefoxProfile.preferences.update({
-        # Make sure Shield doesn't hit the network.
-        "app.normandy.api_url": "",
-        # Increase the APZ content response timeout in tests to 1 minute.
-        "apz.content_response_timeout": 60000,
-        # Enable output for dump() and chrome console API
-        "browser.dom.window.dump.enabled": True,
-        "devtools.console.stdout.chrome": True,
-        # Disable safebrowsing components
-        "browser.safebrowsing.blockedURIs.enabled": False,
-        "browser.safebrowsing.downloads.enabled": False,
-        "browser.safebrowsing.passwords.enabled": False,
-        "browser.safebrowsing.malware.enabled": False,
-        "browser.safebrowsing.phishing.enabled": False,
-        # Do not restore the last open set of tabs if the browser has crashed
-        "browser.sessionstore.resume_from_crash": False,
-        # Disable Android snippets
-        "browser.snippets.enabled": False,
-        "browser.snippets.syncPromo.enabled": False,
-        "browser.snippets.firstrunHomepage.enabled": False,
-        # Do not allow background tabs to be zombified, otherwise for tests that
-        # open additional tabs, the test harness tab itself might get unloaded
-        "browser.tabs.disableBackgroundZombification": True,
-        # Disable e10s by default
-        "browser.tabs.remote.autostart": False,
-        # Don't warn when exiting the browser
-        "browser.warnOnQuit": False,
-        # Don't send Firefox health reports to the production server
-        "datareporting.healthreport.about.reportUrl": "http://%(server)s/dummy/abouthealthreport/",
-        # Automatically unload beforeunload alerts
-        "dom.disable_beforeunload": True,
-        # Disable the ProcessHangMonitor
-        "dom.ipc.reportProcessHangs": False,
-        # No slow script dialogs
-        "dom.max_chrome_script_run_time": 0,
-        "dom.max_script_run_time": 0,
-        # Make sure opening about:addons won"t hit the network
-        "extensions.webservice.discoverURL": "http://%(server)s/dummy/discoveryURL",
-        # No hang monitor
-        "hangmonitor.timeout": 0,
-
-        "javascript.options.showInConsole": True,
-        # Ensure blocklist updates don't hit the network
-        "services.settings.server": "http://%(server)s/dummy/blocklist/",
-        # Disable password capture, so that tests that include forms aren"t
-        # influenced by the presence of the persistent doorhanger notification
-        "signon.rememberSignons": False,
-    })
-
 
 def check_args(**kwargs):
     pass
+
 
 def browser_kwargs(test_type, run_info_data, config, **kwargs):
     return {"package_name": kwargs["package_name"],
@@ -183,12 +133,23 @@ class FennecBrowser(FirefoxBrowser):
 
         preferences = self.load_prefs()
 
-        self.profile = FennecProfile(preferences=preferences)
+        self.profile = FirefoxProfile(preferences=preferences)
         self.profile.set_preferences({"marionette.port": self.marionette_port,
                                       "dom.disable_open_during_load": False,
                                       "places.history.enabled": False,
                                       "dom.send_after_paint_to_content": True,
                                       "network.preload": True})
+        if self.test_type == "reftest":
+            self.logger.info("Setting android reftest preferences")
+            self.profile.set_preferences({"browser.viewport.desktopWidth": 600,
+                                          # Disable high DPI
+                                          "layout.css.devPixelsPerPx": "1.0",
+                                          # Ensure that the full browser element
+                                          # appears in the screenshot
+                                          "apz.allow_zooming": False,
+                                          "android.widget_paints_background": False,
+                                          # Ensure that scrollbars are always painted
+                                          "ui.scrollbarFadeBeginDelay": 100000})
 
         if self.install_fonts:
             self.logger.debug("Copying Ahem font to profile")

@@ -21,7 +21,7 @@ function runSelectionTest(inSelectionTests, useMouse)
 
 	if( isRegionsEnabled() )
 	{
-		var selectionTest = async_test("Text was selected", {timeout: testTimeout});
+		var selectionTest = async_test("Text was selected");
 		selectionTest.step( function()
 		{
 			var endSelect = document.getElementById("end-select");
