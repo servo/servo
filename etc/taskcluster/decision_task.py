@@ -43,7 +43,7 @@ log_artifacts_expire_in = "1 year"
 
 build_env = {
     "RUST_BACKTRACE": "1",
-    "RUSTFLAGS": "-Dwarnings",  # If changing this, also adjust with_rust_nightly()
+    "RUSTFLAGS": "-Dwarnings",
     "CARGO_INCREMENTAL": "0",
 }
 unix_build_env = {
@@ -101,7 +101,7 @@ def macos_unit():
 
 def with_rust_nightly():
     modified_build_env = dict(build_env)
-    flags = build_env.pop("RUSTFLAGS").split(" ")
+    flags = modified_build_env.pop("RUSTFLAGS").split(" ")
     flags.remove("-Dwarnings")
     if flags:  # pragma: no cover
         modified_build_env["RUSTFLAGS"] = " ".join(flags)
@@ -164,8 +164,8 @@ def android_x86():
 
 def windows_unit():
     return (
-        windows_build_task("Build + unit tests")
-        .with_treeherder("Windows x64", "debug")
+        windows_build_task("Dev build + unit tests")
+        .with_treeherder("Windows x64")
         .with_script(
             # Not necessary as this would be done at the start of `build`,
             # but this allows timing it separately.
