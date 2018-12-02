@@ -42,6 +42,7 @@ use js::panic::wrap_panic;
 use js::rust::wrappers::{GetPromiseIsHandled, GetPromiseResult};
 use js::rust::Handle;
 use js::rust::IntoHandle;
+use js::rust::JSEngine;
 use js::rust::Runtime as RustRuntime;
 use malloc_size_of::MallocSizeOfOps;
 use msg::constellation_msg::PipelineId;
@@ -56,6 +57,7 @@ use std::os;
 use std::os::raw::c_void;
 use std::panic::AssertUnwindSafe;
 use std::ptr;
+use std::sync::Arc;
 use style::thread_state::{self, ThreadState};
 use time::{now, Tm};
 
@@ -322,10 +324,14 @@ impl Deref for Runtime {
     }
 }
 
+lazy_static! {
+    static ref JS_ENGINE: Arc<JSEngine> = JSEngine::init().unwrap();
+}
+
 #[allow(unsafe_code)]
 pub unsafe fn new_rt_and_cx() -> Runtime {
     LiveDOMReferences::initialize();
-    let runtime = RustRuntime::new().unwrap();
+    let runtime = RustRuntime::new(JS_ENGINE.clone());
     let cx = runtime.cx();
 
     JS_AddExtraGCRootsTracer(cx, Some(trace_rust_roots), ptr::null_mut());

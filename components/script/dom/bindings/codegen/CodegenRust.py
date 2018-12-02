@@ -2592,7 +2592,7 @@ class CGConstructorEnabled(CGAbstractMethod):
         return CGList((CGGeneric(cond) for cond in conditions), " &&\n")
 
 
-def CreateBindingJSObject(descriptor, parent=None):
+def CreateBindingJSObject(descriptor):
     assert not descriptor.isGlobal()
     create = "let raw = Box::into_raw(object);\nlet _rt = RootedTraceable::new(&*raw);\n"
     if descriptor.proxy:
@@ -2601,12 +2601,11 @@ let handler = RegisterBindings::PROXY_HANDLERS[PrototypeList::Proxies::%s as usi
 rooted!(in(cx) let private = PrivateValue(raw as *const libc::c_void));
 let obj = NewProxyObject(cx, handler,
                          Handle::from_raw(UndefinedHandleValue),
-                         proto.get(), %s.get(),
-                         ptr::null_mut(), ptr::null_mut());
+                         proto.get());
 assert!(!obj.is_null());
 SetProxyReservedSlot(obj, 0, &private.get());
 rooted!(in(cx) let obj = obj);\
-""" % (descriptor.name, parent)
+""" % (descriptor.name)
     else:
         create += ("rooted!(in(cx) let obj = JS_NewObjectWithGivenProto(\n"
                    "    cx, &Class.base as *const JSClass, proto.handle()));\n"
@@ -2699,7 +2698,7 @@ class CGWrapMethod(CGAbstractMethod):
 
     def definition_body(self):
         unforgeable = CopyUnforgeablePropertiesToInstance(self.descriptor)
-        create = CreateBindingJSObject(self.descriptor, "scope")
+        create = CreateBindingJSObject(self.descriptor)
         return CGGeneric("""\
 let scope = scope.reflector().get_jsobject();
 assert!(!scope.get().is_null());
