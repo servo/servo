@@ -75,6 +75,7 @@ use crate::dom::keyboardevent::KeyboardEvent;
 use crate::dom::location::Location;
 use crate::dom::messageevent::MessageEvent;
 use crate::dom::mouseevent::MouseEvent;
+use crate::dom::mutationobserver::RegisteredObserver;
 use crate::dom::node::{self, document_from_node, window_from_node, CloneChildrenFlag};
 use crate::dom::node::{LayoutNodeHelpers, Node, NodeDamage, NodeFlags, ShadowIncluding};
 use crate::dom::nodeiterator::NodeIterator;
@@ -3973,6 +3974,7 @@ impl DocumentMethods for Document {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-document-getelementsbyname
+    #[allow(unrooted_must_root)]
     fn GetElementsByName(&self, name: DOMString) -> DomRoot<NodeList> {
         #[derive(JSTraceable, MallocSizeOf)]
         #[must_root]
@@ -4018,14 +4020,30 @@ impl DocumentMethods for Document {
             }
         }
 
-        NodeList::new_live_list(
-            &self.window,
-            LiveElements {
-                node: Dom::from_ref(self.upcast()),
-                name,
-                cached: DomRefCell::new(None),
-            },
-        )
+        impl Drop for LiveElements {
+            fn drop(&mut self) {
+                self.node
+                    .registered_mutation_observers_mut()
+                    .retain(|reg_obs| match reg_obs {
+                        RegisteredObserver::LiveDom(gen) => {
+                            &**gen as *const dyn LiveListGenerator !=
+                                self as *const dyn LiveListGenerator
+                        },
+                        _ => false,
+                    });
+            }
+        }
+
+        let live_elements = Rc::new(LiveElements {
+            node: Dom::from_ref(self.upcast::<Node>()),
+            name,
+            cached: DomRefCell::new(None),
+        });
+
+        self.upcast::<Node>()
+            .add_mutation_observer(RegisteredObserver::LiveDom(live_elements.clone()));
+
+        NodeList::new_live_list(&self.window, live_elements)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-document-images

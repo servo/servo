@@ -12,8 +12,9 @@ use crate::dom::node::{ChildrenMutation, Node};
 use crate::dom::window::Window;
 use dom_struct::dom_struct;
 use std::cell::{Cell, Ref};
+use std::rc::Rc;
 
-pub trait LiveListGenerator: JSTraceable {
+pub trait LiveListGenerator: Drop + JSTraceable {
     fn get_list(&self) -> Ref<Vec<Dom<Node>>>;
     fn generate(&self) -> Ref<Vec<Dom<Node>>>;
     fn invalidate_cache(&self);
@@ -25,7 +26,7 @@ pub enum NodeListType {
     Simple(Vec<Dom<Node>>),
     Live(
         #[ignore_malloc_size_of = "Contains a trait object; can't measure due to #6870"]
-        Box<dyn LiveListGenerator + 'static>,
+        Rc<dyn LiveListGenerator + 'static>,
     ),
     Children(ChildrenList),
 }
@@ -72,11 +73,11 @@ impl NodeList {
         )
     }
 
-    pub fn new_live_list<T: LiveListGenerator + 'static>(
+    pub fn new_live_list(
         window: &Window,
-        generator: T,
+        generator: Rc<dyn LiveListGenerator + 'static>,
     ) -> DomRoot<NodeList> {
-        NodeList::new(window, NodeListType::Live(Box::new(generator)))
+        NodeList::new(window, NodeListType::Live(generator))
     }
 
     pub fn new_child_list(window: &Window, node: &Node) -> DomRoot<NodeList> {

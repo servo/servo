@@ -28,6 +28,7 @@ use crate::dom::htmlframesetelement::HTMLFrameSetElement;
 use crate::dom::htmlhtmlelement::HTMLHtmlElement;
 use crate::dom::htmlinputelement::{HTMLInputElement, InputType};
 use crate::dom::htmllabelelement::HTMLLabelElement;
+use crate::dom::mutationobserver::RegisteredObserver;
 use crate::dom::node::{document_from_node, window_from_node};
 use crate::dom::node::{BindContext, Node, NodeFlags, ShadowIncluding};
 use crate::dom::nodelist::{LiveListGenerator, NodeList};
@@ -679,6 +680,7 @@ impl HTMLElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-lfe-labels
+    #[allow(unrooted_must_root)]
     pub fn labels(&self) -> DomRoot<NodeList> {
         debug_assert!(self.is_labelable_element());
 
@@ -741,16 +743,30 @@ impl HTMLElement {
             }
         }
 
+        impl Drop for LiveLabels {
+            fn drop(&mut self) {
+                self.html_element
+                    .upcast::<Node>()
+                    .registered_mutation_observers_mut()
+                    .retain(|reg_obs| match reg_obs {
+                        RegisteredObserver::LiveDom(gen) => {
+                            &**gen as *const dyn LiveListGenerator !=
+                                self as *const dyn LiveListGenerator
+                        },
+                        _ => false,
+                    });
+            }
+        }
+
         let root = self.upcast::<Node>();
         let window = window_from_node(root);
+        let live_labels = Rc::new(LiveLabels {
+            html_element: Dom::from_ref(self),
+            cached: DomRefCell::new(None),
+        });
 
-        NodeList::new_live_list(
-            &window,
-            LiveLabels {
-                html_element: Dom::from_ref(self),
-                cached: DomRefCell::new(None),
-            },
-        )
+        root.add_mutation_observer(RegisteredObserver::LiveDom(live_labels.clone()));
+        NodeList::new_live_list(&window, live_labels)
     }
 }
 
