@@ -11,9 +11,9 @@
 use app_units::Au;
 use crate::gecko::values::GeckoStyleCoordConvertible;
 use crate::gecko_bindings::bindings;
+use crate::gecko_bindings::structs::RawGeckoGfxMatrix4x4;
 use crate::gecko_bindings::structs::{self, nsStyleCoord_CalcValue};
 use crate::gecko_bindings::structs::{nsStyleImage, nsresult, SheetType};
-use crate::gecko_bindings::structs::RawGeckoGfxMatrix4x4;
 use crate::gecko_bindings::sugar::ns_style_coord::{CoordData, CoordDataMut, CoordDataValue};
 use crate::stylesheets::{Origin, RulesMutateError};
 use crate::values::computed::image::LineDirection;
@@ -1145,22 +1145,35 @@ pub unsafe fn string_from_chars_pointer(p: *const u16) -> String {
     String::from_utf16_lossy(char_vec)
 }
 
-impl<'a> From< &'a RawGeckoGfxMatrix4x4> for Matrix3D {
+impl<'a> From<&'a RawGeckoGfxMatrix4x4> for Matrix3D {
     fn from(m: &'a RawGeckoGfxMatrix4x4) -> Matrix3D {
         Matrix3D {
-            m11: m[0],  m12: m[1],  m13: m[2],  m14: m[3],
-            m21: m[4],  m22: m[5],  m23: m[6],  m24: m[7],
-            m31: m[8],  m32: m[9],  m33: m[10], m34: m[11],
-            m41: m[12], m42: m[13], m43: m[14], m44: m[15],
+            m11: m[0],
+            m12: m[1],
+            m13: m[2],
+            m14: m[3],
+            m21: m[4],
+            m22: m[5],
+            m23: m[6],
+            m24: m[7],
+            m31: m[8],
+            m32: m[9],
+            m33: m[10],
+            m34: m[11],
+            m41: m[12],
+            m42: m[13],
+            m43: m[14],
+            m44: m[15],
         }
     }
 }
 
 impl From<Matrix3D> for RawGeckoGfxMatrix4x4 {
     fn from(matrix: Matrix3D) -> RawGeckoGfxMatrix4x4 {
-        [ matrix.m11, matrix.m12, matrix.m13, matrix.m14,
-          matrix.m21, matrix.m22, matrix.m23, matrix.m24,
-          matrix.m31, matrix.m32, matrix.m33, matrix.m34,
-          matrix.m41, matrix.m42, matrix.m43, matrix.m44 ]
+        [
+            matrix.m11, matrix.m12, matrix.m13, matrix.m14, matrix.m21, matrix.m22, matrix.m23,
+            matrix.m24, matrix.m31, matrix.m32, matrix.m33, matrix.m34, matrix.m41, matrix.m42,
+            matrix.m43, matrix.m44,
+        ]
     }
 }
