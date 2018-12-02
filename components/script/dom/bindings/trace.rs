@@ -110,7 +110,7 @@ use std::collections::{BTreeMap, HashMap, HashSet, VecDeque};
 use std::hash::{BuildHasher, Hash};
 use std::ops::{Deref, DerefMut};
 use std::path::PathBuf;
-use std::rc::Rc;
+use std::rc::{Rc, Weak};
 use std::sync::atomic::{AtomicBool, AtomicUsize};
 use std::sync::{Arc, Mutex};
 use std::time::{Instant, SystemTime};
@@ -467,6 +467,14 @@ unsafe_no_jsmanaged_fields!(dyn Player<Error = ServoMediaError>);
 unsafe_no_jsmanaged_fields!(Mutex<MediaFrameRenderer>);
 unsafe_no_jsmanaged_fields!(RenderApiSender);
 unsafe_no_jsmanaged_fields!(ResourceFetchTiming);
+
+// Safe because only the strongly referenced Rc will be traced
+unsafe impl<T: JSTraceable + ?Sized> JSTraceable for Weak<T> {
+    #[inline]
+    unsafe fn trace(&self, _: *mut JSTracer) {
+        // Do nothing
+    }
+}
 
 unsafe impl<'a> JSTraceable for &'a str {
     #[inline]

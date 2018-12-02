@@ -414,10 +414,13 @@ impl Node {
     }
 
     /// Removes the mutation observer for a given node.
-    pub fn remove_mutation_observer(&self, observer: &MutationObserver) {
+    pub fn remove_mutation_observer(&self, obs: &MutationObserver) {
         self.mutation_observers
             .borrow_mut()
-            .retain(|reg_obs| &*reg_obs.observer != observer)
+            .retain(|reg_obs| match reg_obs {
+                RegisteredObserver::Mutation { observer, .. } => &**observer != obs,
+                _ => false,
+            })
     }
 
     /// Dumps the subtree rooted at this node, for debugging.

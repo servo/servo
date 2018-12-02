@@ -74,6 +74,7 @@ use crate::dom::keyboardevent::KeyboardEvent;
 use crate::dom::location::Location;
 use crate::dom::messageevent::MessageEvent;
 use crate::dom::mouseevent::MouseEvent;
+use crate::dom::mutationobserver::RegisteredObserver;
 use crate::dom::node::VecPreOrderInsertionHelper;
 use crate::dom::node::{self, document_from_node, window_from_node, CloneChildrenFlag};
 use crate::dom::node::{LayoutNodeHelpers, Node, NodeDamage, NodeFlags};
@@ -143,10 +144,9 @@ use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::default::Default;
 use std::fmt;
-use std::iter;
 use std::mem;
 use std::ptr::NonNull;
-use std::rc::Rc;
+use std::rc::{Rc, Weak};
 use std::time::{Duration, Instant};
 use style::attr::AttrValue;
 use style::context::QuirksMode;
@@ -3843,6 +3843,7 @@ impl DocumentMethods for Document {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-document-getelementsbyname
+    #[allow(unrooted_must_root)]
     fn GetElementsByName(&self, name: DOMString) -> DomRoot<NodeList> {
         #[derive(JSTraceable, MallocSizeOf)]
         #[must_root]
@@ -3888,14 +3889,19 @@ impl DocumentMethods for Document {
             }
         }
 
-        NodeList::new_live_list(
-            &self.window,
-            LiveElements {
-                node: Dom::from_ref(self),
-                name,
-                cached: DomRefCell::new(None),
-            },
-        )
+        let live_elements = Rc::new(LiveElements {
+            node: Dom::from_ref(self.upcast::<Node>()),
+            name,
+            cached: DomRefCell::new(None),
+        });
+
+        self.upcast::<Node>()
+            .registered_mutation_observers()
+            .push(RegisteredObserver::LiveDom(
+                Rc::downgrade(&live_elements) as Weak<dyn LiveListGenerator>
+            ));
+
+        NodeList::new_live_list(&self.window, live_elements)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-document-images
