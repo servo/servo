@@ -312,3 +312,32 @@ async function deleteAllDatabases(testCase) {
     await eventWatcher.wait_for('success');
   }
 }
+
+// Keeps the passed transaction alive indefinitely (by making requests
+// against the named store). Returns a function that asserts that the
+// transaction has not already completed and then ends the request loop so that
+// the transaction may autocommit and complete.
+function keepAlive(testCase, transaction, storeName) {
+  let completed = false;
+  transaction.addEventListener('complete', () => { completed = true; });
+
+  let keepSpinning = true;
+
+  function spin() {
+    if (!keepSpinning)
+      return;
+    transaction.objectStore(storeName).get(0).onsuccess = spin;
+  }
+  spin();
+
+  return testCase.step_func(() => {
+    assert_false(completed, 'Transaction completed while kept alive');
+    keepSpinning = false;
+  });
+}
+
+// Return a promise that resolves after a setTimeout finishes to break up the
+// scope of a function's execution.
+function timeoutPromise(ms) {
+  return new Promise(resolve => { setTimeout(resolve, ms); });
+}

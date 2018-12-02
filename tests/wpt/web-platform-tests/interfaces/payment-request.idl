@@ -68,6 +68,7 @@ enum PaymentShippingType {
 
 dictionary PaymentOptions {
   boolean requestPayerName = false;
+  boolean requestBillingAddress = false;
   boolean requestPayerEmail = false;
   boolean requestPayerPhone = false;
   boolean requestShipping = false;

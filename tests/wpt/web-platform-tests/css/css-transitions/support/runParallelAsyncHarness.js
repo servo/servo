@@ -81,7 +81,7 @@ root.runParallelAsyncHarness = function(options) {
     options.tests.forEach(function(data, index) {
         data.cases = {};
         cases.forEach(function(name) {
-            data.cases[name] = async_test(data.name + " / " + name, {timeout: options.timeout || 60000});
+            data.cases[name] = async_test(data.name + " / " + name);
         });
     });
 

@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg"
+     xmlns:h="http://www.w3.org/1999/xhtml"
+     width="800px" height="800px">
+  <title>SVG Text: parsing inline-size with invalid values</title>
+  <metadata>
+    <h:link rel="help" href="https://svgwg.org/svg2-draft/text.html#InlineSizeProperty"/>
+    <h:link rel="help" href="https://drafts.csswg.org/css-logical/#dimension-properties"/>
+    <h:meta name="assert" content="inline-size supports only the grammar 'auto | length-percentage'"/>
+  </metadata>
+  <g id="target"></g>
+  <h:script src="/resources/testharness.js"/>
+  <h:script src="/resources/testharnessreport.js"/>
+  <h:script src="/css/support/parsing-testcommon.js"/>
+  <script><![CDATA[
+
+test_invalid_value("inline-size", "none");
+test_invalid_value("inline-size", "-10px");
+test_invalid_value("inline-size", "20");
+test_invalid_value("inline-size", "30deg");
+test_invalid_value("inline-size", "40px 50%");
+
+  ]]></script>
+</svg>

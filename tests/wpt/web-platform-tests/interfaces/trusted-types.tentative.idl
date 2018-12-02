@@ -27,18 +27,18 @@ interface TrustedURL {
 
 [Exposed=Window]
 interface TrustedTypePolicyFactory {
-    TrustedTypePolicy createPolicy(DOMString policyName, TrustedTypePolicyOptions policyOptions);
+    [Unforgeable] TrustedTypePolicy createPolicy(DOMString policyName, TrustedTypePolicyOptions policyOptions);
     // All the policy object names that have been created
-    sequence<DOMString> getPolicyNames();
+    [Unforgeable] sequence<DOMString> getPolicyNames();
 };
 
 [Exposed=Window]
 interface TrustedTypePolicy {
-    readonly attribute DOMString name;
-    TrustedHTML createHTML(DOMString input);
-    TrustedScript createScript(DOMString input);
-    TrustedScriptURL createScriptURL(DOMString input);
-    TrustedURL createURL(DOMString input);
+    [Unforgeable] readonly attribute DOMString name;
+    [Unforgeable] TrustedHTML createHTML(DOMString input);
+    [Unforgeable] TrustedScript createScript(DOMString input);
+    [Unforgeable] TrustedScriptURL createScriptURL(DOMString input);
+    [Unforgeable] TrustedURL createURL(DOMString input);
 };
 
 dictionary TrustedTypePolicyOptions {

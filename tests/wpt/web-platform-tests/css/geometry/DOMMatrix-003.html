@@ -140,6 +140,27 @@
         },"test scale() with offsets");
 
         test(function() {
+          var result = initialDOMMatrix().scaleNonUniform();
+          var expected = initialDOMMatrix()
+                          .scale(1, 1, 1, 0, 0, 0);
+          checkDOMMatrix(result, expected);
+        },"test scaleNonUniform()");
+
+        test(function() {
+          var result = initialDOMMatrix().scaleNonUniform(6);
+          var expected = initialDOMMatrix()
+                          .scale(6, 1, 1, 0, 0, 0);
+          checkDOMMatrix(result, expected);
+        },"test scaleNonUniform() with sx");
+
+        test(function() {
+          var result = initialDOMMatrix().scaleNonUniform(5, 7);
+          var expected = initialDOMMatrix()
+                          .scale(5, 7, 1, 0, 0, 0);
+          checkDOMMatrix(result, expected);
+        },"test scaleNonUniform() with sx, sy");
+
+        test(function() {
           var result = initialDOMMatrix().scale3d(7, 5, 2, 3);
           var expected = initialDOMMatrix()
                           .translate(5, 2, 3)

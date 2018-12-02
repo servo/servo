@@ -44,13 +44,19 @@ promise_test(function(test) {
               assert_greater_than(entry.startTime, 0);
               assert_greater_than(entry.responseEnd, entry.startTime);
           }
-          return new Promise(function(resolve) {
+          return Promise.race([
+            new Promise(function(resolve) {
               performance.onresourcetimingbufferfull = _ => {
                 resolve('bufferfull');
               }
               performance.setResourceTimingBufferSize(expectedResources.length);
-              fetch('dummy.txt');
-          });
+            }),
+
+            // Race the bufferfull event against another fetch.  We should get the
+            // event before this completes.  This allows us to detect a failure
+            // to dispatch the event without timing out the entire test.
+            fetch('dummy.txt').then(resp => resp.text())
+          ]);
         })
       .then(function(result) {
           assert_equals(result, 'bufferfull');

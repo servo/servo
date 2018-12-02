@@ -36,7 +36,6 @@ def executor_kwargs(test_type, server_config, cache_manager, run_info_data,
     executor_kwargs["close_after_done"] = True
 
     capabilities = {
-        "browserName": "chrome",
         "goog:chromeOptions": {
             "prefs": {
                 "profile": {

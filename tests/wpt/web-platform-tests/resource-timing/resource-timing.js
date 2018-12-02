@@ -224,6 +224,44 @@ window.onload =
                 });
             });
 
+        // Ensure that responseStart only measures the time up to the first few
+        // bytes of the header response. This is tested by writing an HTTP 1.1
+        // status line, followed by a flush, then a pause before the end of the
+        // headers. The tests makes sure that responseStart is not delayed by
+        // this pause.
+        [
+            { initiator: "iframe",         response: "(done)",    mime: mimeHtml },
+            { initiator: "xmlhttprequest", response: "(done)",    mime: mimeText },
+            { initiator: "script",         response: '"";',       mime: mimeScript },
+            { initiator: "link",           response: ".unused{}", mime: mimeCss },
+        ]
+        .forEach(function (template) {
+            testCases.push({
+                description: "'" + template.initiator + " " + serverStepDelay + "ms delay in headers does not affect responseStart'",
+                test: function (test) {
+                    initiateFetch(
+                        test,
+                        template.initiator,
+                        getSyntheticUrl("status:200"
+                                        + "&flush"
+                                        + "&" + serverStepDelay + "ms"
+                                        + "&mime:" + template.mime
+                                        + "&send:" + encodeURIComponent(template.response)),
+                        function (initiator, entry) {
+                            // Test that the delay between 'requestStart' and
+                            // 'responseStart' does not include the added delay
+                            // post-statusline.
+                            assert_less_than(
+                                entry.responseStart - entry.requestStart,
+                                serverStepDelay,
+                                "Delay after HTTP/1.1 status should not affect 'responseStart'.");
+
+                            test.done();
+                        });
+                    }
+                });
+            });
+
         // Function to run the next case in the queue.
         var currentTestIndex = -1;
         function runNextCase() {
