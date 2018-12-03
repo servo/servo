@@ -12,6 +12,22 @@ pub trait Sampler: Send {
     fn suspend_and_sample_thread(&self) -> Result<NativeStack, ()>;
 }
 
+#[allow(dead_code)]
+pub struct DummySampler;
+
+impl DummySampler {
+    #[allow(dead_code)]
+    pub fn new() -> Box<Sampler> {
+        Box::new(DummySampler)
+    }
+}
+
+impl Sampler for DummySampler {
+    fn suspend_and_sample_thread(&self) -> Result<NativeStack, ()> {
+        Err(())
+    }
+}
+
 // Several types in this file are currently not used in a Linux or Windows build.
 #[allow(dead_code)]
 pub type Address = *const libc::uint8_t;
