@@ -33,6 +33,9 @@ RUN \
         libglu1-mesa-dev \
         libbz2-dev \
         #
+        # sampling profiler
+        libunwind-dev \
+        #
         #
     && \
     #

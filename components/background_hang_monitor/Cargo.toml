@@ -25,3 +25,7 @@ crossbeam-channel = "0.3"
 
 [target.'cfg(target_os = "macos")'.dependencies]
 mach = "0.2.3"
+
+[target.'cfg(any(target_os = "android", target_os = "linux"))'.dependencies]
+nix = "~0.11.0"
+unwind-sys = "0.1.1"
