@@ -453,6 +453,7 @@ impl RuleTree {
                         StyleSource::from_declarations(pdb.clone_arc()),
                         level,
                     );
+                    *important_rules_changed = true;
                 }
             } else {
                 if pdb.read_with(level.guard(guards)).any_normal() {

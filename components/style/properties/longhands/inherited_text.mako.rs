@@ -337,6 +337,7 @@ ${helpers.single_keyword(
 ${helpers.single_keyword(
     "text-rendering",
     "auto optimizespeed optimizelegibility geometricprecision",
+    gecko_enum_prefix="StyleTextRendering",
     animation_value_type="discrete",
     spec="https://www.w3.org/TR/SVG11/painting.html#TextRenderingProperty",
     servo_restyle_damage="rebuild_and_reflow",

@@ -1499,8 +1499,11 @@ impl FragmentDisplayListBuilding for Fragment {
 
         let outline_style = match style.get_outline().outline_style {
             OutlineStyle::Auto => BorderStyle::Solid,
-            OutlineStyle::Other(BorderStyle::None) => return,
-            OutlineStyle::Other(border_style) => border_style,
+            // FIXME(emilio): I don't think this border-style check is
+            // necessary, since border-style: none implies an outline-width of
+            // zero at computed value time.
+            OutlineStyle::BorderStyle(BorderStyle::None) => return,
+            OutlineStyle::BorderStyle(s) => s,
         };
 
         // Outlines are not accounted for in the dimensions of the border box, so adjust the

@@ -14,6 +14,7 @@ use crate::values::computed::length::CalcLengthOrPercentage;
 use crate::values::computed::url::ComputedUrl;
 use crate::values::computed::Angle as ComputedAngle;
 use crate::values::computed::BorderCornerRadius as ComputedBorderCornerRadius;
+use crate::values::CSSFloat;
 use euclid::{Point2D, Size2D};
 use smallvec::SmallVec;
 use std::cmp;
@@ -23,6 +24,7 @@ pub mod effects;
 mod font;
 mod length;
 mod svg;
+pub mod transform;
 
 /// The category a property falls into for ordering purposes.
 ///
@@ -84,6 +86,15 @@ pub fn compare_property_priority(a: &PropertyId, b: &PropertyId) -> cmp::Orderin
     subprop_count_a
         .cmp(&subprop_count_b)
         .then_with(|| a.idl_name_sort_order().cmp(&b.idl_name_sort_order()))
+}
+
+/// A helper function to animate two multiplicative factor.
+pub fn animate_multiplicative_factor(
+    this: CSSFloat,
+    other: CSSFloat,
+    procedure: Procedure,
+) -> Result<CSSFloat, ()> {
+    Ok((this - 1.).animate(&(other - 1.), procedure)? + 1.)
 }
 
 /// Animate from one value to another.

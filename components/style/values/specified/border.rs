@@ -19,6 +19,48 @@ use cssparser::Parser;
 use std::fmt::{self, Write};
 use style_traits::{CssWriter, ParseError, ToCss};
 
+/// A specified value for a single side of a `border-style` property.
+///
+/// The order here corresponds to the integer values from the border conflict
+/// resolution rules in CSS 2.1 § 17.6.2.1. Higher values override lower values.
+#[allow(missing_docs)]
+#[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    Eq,
+    MallocSizeOf,
+    Ord,
+    Parse,
+    PartialEq,
+    PartialOrd,
+    SpecifiedValueInfo,
+    ToComputedValue,
+    ToCss,
+)]
+#[repr(u8)]
+pub enum BorderStyle {
+    Hidden,
+    None,
+    Inset,
+    Groove,
+    Outset,
+    Ridge,
+    Dotted,
+    Dashed,
+    Solid,
+    Double,
+}
+
+impl BorderStyle {
+    /// Whether this border style is either none or hidden.
+    #[inline]
+    pub fn none_or_hidden(&self) -> bool {
+        matches!(*self, BorderStyle::None | BorderStyle::Hidden)
+    }
+}
+
 /// A specified value for a single side of the `border-width` property.
 #[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss)]
 pub enum BorderSideWidth {
