@@ -1,0 +1,26 @@
+<!doctype html>
+<html>
+<title>Ensure images from available images list can be drawn to a canvas</title>
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+  async_test(function(t) {
+    var i = new Image();
+    i.onerror = t.unreached_func();
+    i.onload = t.step_func(function() {
+      var i2 = new Image();
+      // Start multiple image loading tasks by performing several relevant mutations.
+      i2.crossOrigin = true;
+      i2.src = "3.jpg";
+      i2.onerror = t.unreached_func();
+      i2.onload = t.step_func_done(function() {
+        var c = document.createElement('canvas');
+        var ctx = c.getContext('2d');
+        ctx.drawImage(i2, 0, 0);
+      });
+    });
+    i.src = "3.jpg";
+  });
+</script>
