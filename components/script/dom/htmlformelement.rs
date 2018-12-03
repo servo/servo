@@ -459,7 +459,8 @@ impl HTMLFormElement {
                     .headers
                     .typed_insert(ContentType::from(mime::APPLICATION_WWW_FORM_URLENCODED));
 
-                self.set_encoding_override(load_data.url.as_mut_url().query_pairs_mut())
+                let mut url = load_data.url.clone();
+                self.set_encoding_override(url.as_mut_url().query_pairs_mut())
                     .clear()
                     .extend_pairs(
                         form_data
@@ -467,7 +468,7 @@ impl HTMLFormElement {
                             .map(|field| (field.name.clone(), field.replace_value(charset))),
                     );
 
-                load_data.url.query().unwrap_or("").to_string().into_bytes()
+                url.query().unwrap_or("").to_string().into_bytes()
             },
             FormEncType::FormDataEncoded => {
                 let mime: Mime = format!("multipart/form-data; boundary={}", boundary)
