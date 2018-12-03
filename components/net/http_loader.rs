@@ -1195,6 +1195,13 @@ fn http_network_fetch(
         .as_ref()
         .map(|_| uuid::Uuid::new_v4().to_simple().to_string());
 
+    if log_enabled!(log::Level::Info) {
+        info!("request for {} ({:?})", url, request.method);
+        for header in request.headers.iter() {
+            info!(" - {:?}", header);
+        }
+    }
+
     // XHR uses the default destination; other kinds of fetches (which haven't been implemented yet)
     // do not. Once we support other kinds of fetches we'll need to be more fine grained here
     // since things like image fetches are classified differently by devtools
