@@ -1450,13 +1450,8 @@ fn test_origin_set() {
     );
 
     let origin_url = ServoUrl::parse("http://example.com").unwrap();
-    // XXX: Not sure about the Some(80) here. origin_url.origin() returns 80 for the port but origin_url returns None.
-    origin = Origin::try_from_parts(
-        origin_url.scheme(),
-        origin_url.host_str().unwrap(),
-        Some(80),
-    )
-    .unwrap();
+    origin =
+        Origin::try_from_parts(origin_url.scheme(), origin_url.host_str().unwrap(), None).unwrap();
     // Test Origin header is set on Get request with CORS mode
     let mut request = Request::from_init(RequestInit {
         url: url.clone(),
