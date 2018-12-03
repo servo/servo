@@ -14,7 +14,7 @@ use crate::dom::bindings::codegen::Bindings::MediaErrorBinding::MediaErrorConsta
 use crate::dom::bindings::codegen::Bindings::MediaErrorBinding::MediaErrorMethods;
 use crate::dom::bindings::codegen::InheritTypes::{ElementTypeId, HTMLElementTypeId};
 use crate::dom::bindings::codegen::InheritTypes::{HTMLMediaElementTypeId, NodeTypeId};
-use crate::dom::bindings::error::{Error, ErrorResult};
+use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::refcounted::Trusted;
@@ -184,6 +184,8 @@ pub struct HTMLMediaElement {
     playback_position: Cell<f64>,
     /// https://html.spec.whatwg.org/multipage/#default-playback-start-position
     default_playback_start_position: Cell<f64>,
+    /// https://html.spec.whatwg.org/multipage/#dom-media-volume
+    volume: Cell<f64>,
     /// https://html.spec.whatwg.org/multipage/#dom-media-seeking
     seeking: Cell<bool>,
     /// URL of the media resource, if any.
@@ -240,6 +242,7 @@ impl HTMLMediaElement {
             duration: Cell::new(f64::NAN),
             playback_position: Cell::new(0.),
             default_playback_start_position: Cell::new(0.),
+            volume: Cell::new(1.0),
             seeking: Cell::new(false),
             resource_url: DomRefCell::new(None),
             played: Rc::new(DomRefCell::new(TimeRangesContainer::new())),
@@ -1375,6 +1378,22 @@ impl HTMLMediaElementMethods for HTMLMediaElement {
     // https://html.spec.whatwg.org/multipage/#dom-media-played
     fn Played(&self) -> DomRoot<TimeRanges> {
         TimeRanges::new(self.global().as_window(), self.played.clone())
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-media-volume
+    fn GetVolume(&self) -> Fallible<Finite<f64>> {
+        Ok(Finite::wrap(self.volume.get()))
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-media-volume
+    fn SetVolume(&self, value: Finite<f64>) -> ErrorResult {
+        let minimum_volume = 0.0;
+        let maximum_volume = 1.0;
+        if *value < minimum_volume || *value > maximum_volume {
+            return Err(Error::IndexSize);
+        }
+        self.volume.set(*value);
+        Ok(())
     }
 }
 
