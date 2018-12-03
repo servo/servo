@@ -793,7 +793,11 @@ fn try_immutable_origin_to_hyper_origin(url_origin: &ImmutableOrigin) -> Option<
     match *url_origin {
         ImmutableOrigin::Opaque(_) => Some(HyperOrigin::NULL),
         ImmutableOrigin::Tuple(ref scheme, ref host, ref port) => {
-            HyperOrigin::try_from_parts(&scheme, &host.to_string(), Some(port.clone())).ok()
+            let port = match (scheme.as_ref(), port) {
+                ("http", 80) | ("https", 443) => None,
+                _ => Some(*port),
+            };
+            HyperOrigin::try_from_parts(&scheme, &host.to_string(), port).ok()
         },
     }
 }
