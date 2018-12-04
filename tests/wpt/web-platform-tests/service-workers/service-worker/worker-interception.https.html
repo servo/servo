@@ -12,6 +12,10 @@ promise_test(function(t) {
 
     return service_worker_unregister_and_register(t, service_worker, scope)
       .then(function(r) {
+          t.add_cleanup(function() {
+              return service_worker_unregister(t, scope);
+            });
+
           return wait_for_state(t, r.installing, 'activated');
         })
       .then(function() {
@@ -28,7 +32,6 @@ promise_test(function(t) {
         })
       .then(function(data) {
           assert_equals(data, 'worker loading intercepted by service worker');
-          service_worker_unregister_and_done(t, scope);
         });
   }, 'Verify worker script from uncontrolled document is intercepted by Service Worker');
 
@@ -39,6 +42,10 @@ promise_test(function(t) {
 
     return service_worker_unregister_and_register(t, service_worker, scope)
       .then(function(r) {
+          t.add_cleanup(function() {
+              return service_worker_unregister(t, scope);
+            });
+
           return wait_for_state(t, r.installing, 'activated');
         })
       .then(function() {
@@ -55,7 +62,6 @@ promise_test(function(t) {
         })
       .then(function(data) {
           assert_equals(data, 'dummy-worker-script loaded');
-          service_worker_unregister_and_done(t, scope);
         });
   }, 'Verify worker script intercepted by same-origin response succeeds');
 
@@ -72,10 +78,7 @@ promise_test(function(t) {
           var w = new Worker(worker_url);
           var watcher = new EventWatcher(t, w, ['message', 'error']);
           return watcher.wait_for('error');
-        })
-      .then(function() {
-          service_worker_unregister_and_done(t, scope);
-       });
+        });
   }, 'Verify worker script intercepted by cors response fails');
 
 promise_test(function(t) {
@@ -85,16 +88,17 @@ promise_test(function(t) {
 
     return service_worker_unregister_and_register(t, service_worker, scope)
       .then(function(r) {
+          t.add_cleanup(function() {
+              return service_worker_unregister(t, scope);
+            });
+
           return wait_for_state(t, r.installing, 'activated');
         })
       .then(function() {
           var w = new Worker(worker_url);
           var watcher = new EventWatcher(t, w, ['message', 'error']);
           return watcher.wait_for('error');
-        })
-      .then(function() {
-          service_worker_unregister_and_done(t, scope);
-       });
+        });
   }, 'Verify worker script intercepted by no-cors cross-origin response fails');
 
 promise_test(function(t) {
@@ -110,6 +114,10 @@ promise_test(function(t) {
 
     return service_worker_unregister_and_register(t, service_worker, scope)
       .then(function(r) {
+          t.add_cleanup(function() {
+              return service_worker_unregister(t, scope);
+            });
+
           return wait_for_state(t, r.installing, 'activated');
         })
       .then(function() { return with_iframe(subdoc_url); })
@@ -126,7 +134,6 @@ promise_test(function(t) {
         })
       .then(function(data) {
           assert_equals(data.results, 'finish');
-          service_worker_unregister_and_done(t, scope);
         });
   }, 'Verify worker loads from controlled document are intercepted by Service Worker');
 

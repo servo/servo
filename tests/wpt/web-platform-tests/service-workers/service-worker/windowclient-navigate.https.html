@@ -109,7 +109,7 @@ function navigate_test(override_parameters) {
         });
     }
 
-    var cleanup = function() {
+    test.add_cleanup(function() {
       if (client_frame && client_frame) {
         client_frame.remove();
       }
@@ -127,9 +127,9 @@ function navigate_test(override_parameters) {
       if (registration) {
         return registration.unregister();
       }
-    };
+    });
 
-    var test_body = with_iframe(parameters.src_url)
+    return with_iframe(parameters.src_url)
       .then(function(frame) {
           client_frame = frame;
           return service_worker_unregister_and_register(
@@ -161,17 +161,6 @@ function navigate_test(override_parameters) {
       .then(function(response) {
           assert_equals(response.data, parameters.expected);
         });
-
-    // Ensure that test "clean up" is deferred until after the test body
-    // executes. `Test#add_cleanup` cannot be used for this purpose because the
-    // operation is asynchronous, and `add_cleanup` does not support
-    // asynchronous operations at the time of this writing. See
-    // https://github.com/web-platform-tests/wpt/issues/6075
-    // Ensure also that test failure is not hidden by successful cleanup
-    // operation.
-    return test_body
-      .then(cleanup, cleanup)
-      .then(function() { return test_body; });
   }, parameters.description);
 }
 </script>

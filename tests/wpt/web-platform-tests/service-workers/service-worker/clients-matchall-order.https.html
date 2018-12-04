@@ -123,6 +123,8 @@ function matchAllOrderTest(t, opts) {
   let frameResultList;
   let extraWindowResult;
   return service_worker_unregister_and_register(t, script, opts.scope).then(swr => {
+    t.add_cleanup(() => service_worker_unregister(t, opts.scope));
+
     worker = swr.installing;
     return wait_for_state(t, worker, 'activated');
   }).then(_ => {
@@ -143,8 +145,6 @@ function matchAllOrderTest(t, opts) {
   }).then(_ => {
     frameResultList.forEach(result => result.top.remove());
     extraWindowResult.top.remove();
-  }).then(_ => {
-    return service_worker_unregister_and_done(t, opts.scope);
   }).catch(e => {
     if (frameResultList) {
       frameResultList.forEach(result => result.top.remove());

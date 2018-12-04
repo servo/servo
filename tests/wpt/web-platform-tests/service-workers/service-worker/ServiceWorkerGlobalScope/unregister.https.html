@@ -11,6 +11,10 @@ promise_test(function(t) {
 
     return service_worker_unregister_and_register(t, script, scope)
       .then(function(registration) {
+          t.add_cleanup(function() {
+              return service_worker_unregister(t, scope);
+            });
+
           return wait_for_state(t, registration.installing, 'redundant');
         })
       .then(function() {
@@ -21,7 +25,6 @@ promise_test(function(t) {
             result,
             undefined,
             'After unregister(), the registration should not found');
-          return service_worker_unregister_and_done(t, scope);
         });
   }, 'Unregister on script evaluation');
 
@@ -31,6 +34,10 @@ promise_test(function(t) {
 
     return service_worker_unregister_and_register(t, script, scope)
       .then(function(registration) {
+          t.add_cleanup(function() {
+              return service_worker_unregister(t, scope);
+            });
+
           return wait_for_state(t, registration.installing, 'redundant');
         })
       .then(function() {
@@ -41,7 +48,6 @@ promise_test(function(t) {
             result,
             undefined,
             'After unregister(), the registration should not found');
-          return service_worker_unregister_and_done(t, scope);
         });
   }, 'Unregister on installing event');
 
@@ -51,6 +57,10 @@ promise_test(function(t) {
 
     return service_worker_unregister_and_register(t, script, scope)
       .then(function(registration) {
+          t.add_cleanup(function() {
+              return service_worker_unregister(t, scope);
+            });
+
           return wait_for_state(t, registration.installing, 'redundant');
         })
       .then(function() {
@@ -61,7 +71,6 @@ promise_test(function(t) {
             result,
             undefined,
             'After unregister(), the registration should not found');
-          return service_worker_unregister_and_done(t, scope);
         });
   }, 'Unregister on activate event');
 
@@ -74,6 +83,10 @@ promise_test(function(t) {
 
     return service_worker_unregister_and_register(t, script, scope)
       .then(function(registration) {
+          t.add_cleanup(function() {
+              return service_worker_unregister(t, scope);
+            });
+
           return wait_for_state(t, registration.installing, 'activated');
         })
       .then(function() { return with_iframe(scope); })
@@ -120,7 +133,6 @@ promise_test(function(t) {
 
           frame.remove();
           new_frame.remove();
-          return service_worker_unregister_and_done(t, scope);
         })
   }, 'Unregister controlling service worker');
 

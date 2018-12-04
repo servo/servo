@@ -15,6 +15,10 @@ promise_test(function(t) {
     return service_worker_unregister_and_register(
         t, init_worker_url, init_scope)
       .then(function(registration) {
+          t.add_cleanup(function() {
+              return service_worker_unregister(t, init_scope);
+            });
+
           return wait_for_state(t, registration.installing, 'activated');
         })
       .then(function() {
@@ -35,6 +39,10 @@ promise_test(function(t) {
                                                   {scope: claim_scope});
         })
       .then(function(registration) {
+          t.add_cleanup(function() {
+              return service_worker_unregister(t, claim_scope);
+            });
+
           claim_worker = registration.installing;
           claim_registration = registration;
           return wait_for_state(t, registration.installing, 'activated');
@@ -67,9 +75,6 @@ promise_test(function(t) {
           frame1.remove();
           frame2.remove();
           return claim_registration.unregister();
-        })
-      .then(function() {
-          return service_worker_unregister_and_done(t, init_scope);
         });
   }, 'Test claim client which is not using registration');
 
@@ -86,6 +91,10 @@ promise_test(function(t) {
               claim_worker_url, {scope: claim_scope});
         })
       .then(function(registration) {
+          t.add_cleanup(function() {
+              return service_worker_unregister(t, claim_scope);
+            });
+
           claim_worker = registration.installing;
           return wait_for_state(t, registration.installing, 'activated');
         })
@@ -94,6 +103,10 @@ promise_test(function(t) {
               installing_worker_url, {scope: scope});
         })
       .then(function() {
+          t.add_cleanup(function() {
+              return service_worker_unregister(t, scope);
+            });
+
           var channel = new MessageChannel();
           var saw_message = new Promise(function(resolve) {
               channel.port1.onmessage = t.step_func(function(e) {
@@ -111,10 +124,6 @@ promise_test(function(t) {
               'Frame should not be claimed when a longer-matched ' +
               'registration exists');
           frame.remove();
-          return service_worker_unregister(t, claim_scope);
-        })
-      .then(function() {
-          return service_worker_unregister_and_done(t, scope);
         });
   }, 'Test claim client when there\'s a longer-matched registration not ' +
      'already used by the page');

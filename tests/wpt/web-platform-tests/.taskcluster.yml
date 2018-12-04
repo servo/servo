@@ -61,7 +61,7 @@ tasks:
               owner: ${event.pusher.email}
               source: ${event.repository.url}
             payload:
-              image: hexcles/web-platform-tests:0.23
+              image: harjgam/web-platform-tests:0.25
               maxRunTime: 7200
               artifacts:
                 public/results:

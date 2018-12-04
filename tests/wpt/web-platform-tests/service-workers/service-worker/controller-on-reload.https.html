@@ -13,6 +13,10 @@ promise_test(function(t) {
     var controller;
     return service_worker_unregister(t, scope)
       .then(function() {
+          t.add_cleanup(function() {
+              return service_worker_unregister(t, scope);
+            });
+
           return with_iframe(scope);
         })
       .then(function(f) {
@@ -48,7 +52,6 @@ promise_test(function(t) {
       .then(function(frameRegistration) {
           assert_equals(frameRegistration.active, controller);
           frame.remove();
-          service_worker_unregister_and_done(t, scope);
         });
   }, 'controller is set upon reload after registration');
 </script>

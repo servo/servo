@@ -1,16 +1,14 @@
 // GENERATED CONTENT - DO NOT EDIT
 // Content was automatically extracted by Reffy into reffy-reports
 // (https://github.com/tidoust/reffy-reports)
-// Source: Input Events Level 1 (https://rawgit.com/w3c/input-events/v1/index.html)
+// Source: Input Events Level 1 (https://cdn.staticaly.com/gh/w3c/input-events/v1/index.html)
 
 partial interface InputEvent {
-    readonly attribute DOMString inputType;
-    readonly attribute DataTransfer? dataTransfer;
-    sequence<StaticRange> getTargetRanges();
-};
+                    readonly attribute DataTransfer? dataTransfer;
+                    sequence<StaticRange> getTargetRanges();
+                };
 
-partial dictionary InputEventInit {
-    DOMString inputType = "";
-    DataTransfer? dataTransfer = null;
-    sequence<StaticRange> targetRanges = [];
-};
+                partial dictionary InputEventInit {
+                    DataTransfer? dataTransfer = null;
+                    sequence<StaticRange> targetRanges = [];
+                };
