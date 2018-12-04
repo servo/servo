@@ -60,6 +60,9 @@ function getClientIdByURL(worker, url) {
 
 async function doAsyncTest(t, scope) {
   let reg = await service_worker_unregister_and_register(t, worker, scope);
+
+  t.add_cleanup(() => service_worker_unregister(t, scope));
+
   await wait_for_state(t, reg.installing, 'activated');
 
   // Load the scope as a frame.  We expect this in turn to have a nested
@@ -96,7 +99,6 @@ async function doAsyncTest(t, scope) {
   }
 
   frame.remove();
-  await service_worker_unregister_and_done(t, scope);
 }
 
 promise_test(async function(t) {
@@ -126,6 +128,9 @@ promise_test(async function(t) {
   const scope = 'resources/about-blank-replacement-uncontrolled-nested-frame.html';
 
   let reg = await service_worker_unregister_and_register(t, worker, scope);
+
+  t.add_cleanup(() => service_worker_unregister(t, scope));
+
   await wait_for_state(t, reg.installing, 'activated');
 
   // Load the scope as a frame.  We expect this in turn to have a nested
@@ -147,7 +152,6 @@ promise_test(async function(t) {
                 'nested frame should not be controlled');
 
   frame.remove();
-  await service_worker_unregister_and_done(t, scope);
 }, 'Initial about:blank is controlled, exposed to clients.matchAll(), and ' +
    'final Client is not controlled by a service worker.');
 

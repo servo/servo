@@ -321,6 +321,6 @@ backgroundFetchTest(async (test, backgroundFetch) => {
 
   assert_true(results[1].url.includes('resources/feature-name.txt'));
   assert_equals(results[1].status, 200);
-  assert_equals(results[1].text, 'error');
+  assert_equals(results[1].text, 'Background Fetch');
 
 }, 'Matching multiple times on the same request works as expected.');

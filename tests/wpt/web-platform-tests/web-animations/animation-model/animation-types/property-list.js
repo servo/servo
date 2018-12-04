@@ -1495,12 +1495,34 @@ function testAnimationSamplesWithAnyOrder(animation, idlName, testSamples) {
   }
 }
 
+function RoundMatrix(style) {
+  var matrixMatch = style.match(/^(matrix(3d)?)\(.+\)$/);
+  if (!!matrixMatch) {
+    var matrixType = matrixMatch[1];
+    var matrixArgs = style.substr(matrixType.length);
+    var extractmatrix = function(matrixStr) {
+      var list = [];
+      var regex = /[+\-]?[0-9]+[.]?[0-9]*(e[+/-][0-9]+)?/g;
+      var match = undefined;
+      do {
+        match = regex.exec(matrixStr);
+        if (match) {
+          list.push(parseFloat(parseFloat(match[0]).toFixed(6)));
+        }
+      } while (match);
+      return list;
+    }
+    return matrixType + '(' + extractmatrix(matrixArgs).join(', ') + ')';
+  }
+  return style;
+}
+
 function testAnimationSampleMatrices(animation, idlName, testSamples) {
   const target = animation.effect.target;
   for (const testSample of testSamples) {
     animation.currentTime = testSample.time;
-    const actual = getComputedStyle(target)[idlName];
-    const expected = createMatrixFromArray(testSample.expected);
+    const actual = RoundMatrix(getComputedStyle(target)[idlName]);
+    const expected = RoundMatrix(createMatrixFromArray(testSample.expected));
     assert_matrix_equals(actual, expected,
                          `The value should be ${expected} at`
                          + ` ${testSample.time}ms but got ${actual}`);

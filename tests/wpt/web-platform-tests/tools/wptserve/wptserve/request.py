@@ -577,7 +577,10 @@ class MultiDict(dict):
 
         :param key: The key to lookup
         """
-        return dict.__getitem__(self, key)
+        if key in self:
+            return dict.__getitem__(self, key)
+        else:
+            return []
 
     @classmethod
     def from_field_storage(cls, fs):
