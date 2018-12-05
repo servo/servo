@@ -5,34 +5,34 @@ typedef (DOMString or TrustedScript) ScriptString;
 typedef (DOMString or TrustedScriptURL) ScriptURLString;
 typedef (USVString or TrustedURL) URLString;
 
-[Exposed=Window]
+[Exposed=(Window, Worker)]
 interface TrustedHTML {
     stringifier;
 };
 
-[Exposed=Window]
+[Exposed=(Window, Worker)]
 interface TrustedScript {
     stringifier;
 };
 
-[Exposed=Window]
+[Exposed=(Window, Worker)]
 interface TrustedScriptURL {
     stringifier;
 };
 
-[Exposed=Window]
+[Exposed=(Window, Worker)]
 interface TrustedURL {
     stringifier;
 };
 
-[Exposed=Window]
+[Exposed=(Window, Worker)]
 interface TrustedTypePolicyFactory {
     [Unforgeable] TrustedTypePolicy createPolicy(DOMString policyName, TrustedTypePolicyOptions policyOptions);
     // All the policy object names that have been created
     [Unforgeable] sequence<DOMString> getPolicyNames();
 };
 
-[Exposed=Window]
+[Exposed=(Window, Worker)]
 interface TrustedTypePolicy {
     [Unforgeable] readonly attribute DOMString name;
     [Unforgeable] TrustedHTML createHTML(DOMString input);

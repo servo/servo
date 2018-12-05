@@ -26,6 +26,7 @@ interface PerformanceObserver {
   void observe(PerformanceObserverInit options);
   void disconnect();
   PerformanceEntryList takeRecords();
+  static readonly attribute FrozenArray<DOMString> supportedEntryTypes;
 };
 
 dictionary PerformanceObserverInit {

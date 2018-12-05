@@ -71,6 +71,9 @@ def all_filesystem_paths(repo_root, subdir=None):
     for dirpath, dirnames, filenames in path_filter(walk(expanded_path)):
         for filename, _ in filenames:
             path = os.path.join(dirpath, filename)
+            if subdir:
+                path = os.path.join(subdir, path)
+            assert not os.path.isabs(path), path
             yield path
 
 

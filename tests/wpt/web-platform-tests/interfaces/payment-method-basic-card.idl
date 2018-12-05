@@ -5,14 +5,11 @@
 
 dictionary BasicCardRequest {
   sequence<DOMString> supportedNetworks;
-  sequence<BasicCardType> supportedTypes;
 };
 
 dictionary BasicCardChangeDetails {
   PaymentAddress? billingAddress;
 };
-
-enum BasicCardType { "credit", "debit", "prepaid" };
 
 dictionary BasicCardResponse {
   required DOMString cardNumber;

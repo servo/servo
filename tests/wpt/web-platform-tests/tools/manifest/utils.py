@@ -4,7 +4,7 @@ import os
 from six import BytesIO
 
 def rel_path_to_url(rel_path, url_base="/"):
-    assert not os.path.isabs(rel_path)
+    assert not os.path.isabs(rel_path), rel_path
     if url_base[0] != "/":
         url_base = "/" + url_base
     if url_base[-1] != "/":
