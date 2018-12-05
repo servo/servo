@@ -59,5 +59,10 @@ include = [
   "PathCommand",
   "UnicodeRange",
   "UserSelect",
+  "Float",
+  "OverscrollBehavior",
+  "ScrollSnapType",
+  "OverflowClipBox",
+  "Resize",
 ]
 item_types = ["enums", "structs", "typedefs"]

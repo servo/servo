@@ -39,6 +39,7 @@ pub type Perspective = GenericPerspective<NonNegativeLength>;
 #[derive(
     Clone, Copy, Debug, Eq, Hash, MallocSizeOf, Parse, PartialEq, SpecifiedValueInfo, ToCss,
 )]
+#[repr(u8)]
 /// A computed value for the `float` property.
 pub enum Float {
     Left,
@@ -157,6 +158,7 @@ impl ToComputedValue for SpecifiedClear {
 #[allow(missing_docs)]
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
 #[derive(Clone, Copy, Debug, Eq, Hash, MallocSizeOf, Parse, PartialEq, ToCss)]
+#[repr(u8)]
 pub enum Resize {
     None,
     Both,

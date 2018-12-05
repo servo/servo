@@ -574,6 +574,7 @@ ${helpers.predefined_type(
     alias="-webkit-appearance:layout.css.webkit-appearance.enabled",
     spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-appearance)",
     animation_value_type="discrete",
+    gecko_ffi_name="mAppearance",
 )}
 
 ${helpers.predefined_type(

@@ -1389,8 +1389,14 @@ impl Clone for ${style_struct.gecko_struct_name} {
 
     # Types used with predefined_type()-defined properties that we can auto-generate.
     predefined_types = {
+        "Appearance": impl_simple,
+        "OverscrollBehavior": impl_simple,
+        "OverflowClipBox": impl_simple,
+        "ScrollSnapType": impl_simple,
+        "Float": impl_simple,
         "BreakBetween": impl_simple,
         "BreakWithin": impl_simple,
+        "Resize": impl_simple,
         "Color": impl_color,
         "ColorOrAuto": impl_color,
         "GreaterThanOrEqualToOneNumber": impl_simple,
@@ -3005,20 +3011,18 @@ fn static_assert() {
     }
 </%def>
 
-<% skip_box_longhands= """display -moz-appearance overflow-y vertical-align
+<% skip_box_longhands= """display overflow-y vertical-align
                           animation-name animation-delay animation-duration
                           animation-direction animation-fill-mode animation-play-state
                           animation-iteration-count animation-timing-function
-                          transition-duration transition-delay
+                          clear transition-duration transition-delay
                           transition-timing-function transition-property
                           rotate scroll-snap-points-x scroll-snap-points-y
-                          scroll-snap-type-x scroll-snap-type-y scroll-snap-coordinate
+                          scroll-snap-coordinate
                           perspective-origin -moz-binding will-change
-                          offset-path overscroll-behavior-x overscroll-behavior-y
-                          overflow-clip-box-inline overflow-clip-box-block
-                          perspective-origin -moz-binding will-change
-                          shape-outside contain touch-action translate
-                          scale""" %>
+                          offset-path perspective-origin -moz-binding
+                          will-change shape-outside contain touch-action
+                          translate scale""" %>
 <%self:impl_trait style_struct_name="Box" skip_longhands="${skip_box_longhands}">
     #[inline]
     pub fn set_display(&mut self, v: longhands::display::computed_value::T) {
@@ -3051,11 +3055,6 @@ fn static_assert() {
         self.gecko.mDisplay
     }
 
-    ${impl_simple('_moz_appearance', 'mAppearance')}
-
-    <% float_keyword = Keyword("float", "Left Right None", gecko_enum_prefix="StyleFloat") %>
-    ${impl_keyword('float', 'mFloat', float_keyword)}
-
     <% clear_keyword = Keyword(
         "clear",
         "Left Right None Both",
@@ -3063,9 +3062,6 @@ fn static_assert() {
         gecko_inexhaustive=True,
     ) %>
     ${impl_keyword('clear', 'mBreakType', clear_keyword)}
-
-    <% resize_keyword = Keyword("resize", "None Both Horizontal Vertical") %>
-    ${impl_keyword('resize', 'mResize', resize_keyword)}
 
     <% overflow_x = data.longhands_by_name["overflow-x"] %>
     pub fn set_overflow_y(&mut self, v: longhands::overflow_y::computed_value::T) {
@@ -3397,19 +3393,6 @@ fn static_assert() {
     ${impl_copy_animation_value('iteration_count', 'IterationCount')}
 
     ${impl_animation_timing_function()}
-
-    <% scroll_snap_type_keyword = Keyword("scroll-snap-type", "None Mandatory Proximity") %>
-    ${impl_keyword('scroll_snap_type_y', 'mScrollSnapTypeY', scroll_snap_type_keyword)}
-    ${impl_keyword('scroll_snap_type_x', 'mScrollSnapTypeX', scroll_snap_type_keyword)}
-
-    <% overscroll_behavior_keyword = Keyword("overscroll-behavior", "Auto Contain None",
-                                             gecko_enum_prefix="StyleOverscrollBehavior") %>
-    ${impl_keyword('overscroll_behavior_x', 'mOverscrollBehaviorX', overscroll_behavior_keyword)}
-    ${impl_keyword('overscroll_behavior_y', 'mOverscrollBehaviorY', overscroll_behavior_keyword)}
-
-    <% overflow_clip_box_keyword = Keyword("overflow-clip-box", "padding-box content-box") %>
-    ${impl_keyword('overflow_clip_box_inline', 'mOverflowClipBoxInline', overflow_clip_box_keyword)}
-    ${impl_keyword('overflow_clip_box_block', 'mOverflowClipBoxBlock', overflow_clip_box_keyword)}
 
     pub fn set_perspective_origin(&mut self, v: longhands::perspective_origin::computed_value::T) {
         self.gecko.mPerspectiveOrigin[0].set(v.horizontal);

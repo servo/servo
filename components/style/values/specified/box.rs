@@ -389,6 +389,7 @@ impl Parse for AnimationName {
     ToComputedValue,
     ToCss,
 )]
+#[repr(u8)]
 pub enum ScrollSnapType {
     None,
     Mandatory,
@@ -409,6 +410,7 @@ pub enum ScrollSnapType {
     ToComputedValue,
     ToCss,
 )]
+#[repr(u8)]
 pub enum OverscrollBehavior {
     Auto,
     Contain,
@@ -429,6 +431,7 @@ pub enum OverscrollBehavior {
     ToComputedValue,
     ToCss,
 )]
+#[repr(u8)]
 pub enum OverflowClipBox {
     PaddingBox,
     ContentBox,
