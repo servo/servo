@@ -5,10 +5,11 @@
 		<title>CSS Text Test: line-break - strict and  inseparable characters</title>
 		<!-- inseparable characters -->
 		<link rel="author" title="Taka Oshiyama" href="mailto:takaoshiyama@gmail.com" />
-		<link rel="help" title="5.2. Breaking Rules for Punctuation: the 'line-break' property" href="http://www.w3.org/TR/css-text-3/#line-break" />
+		<link rel="author" title="Shinyu Murakami" href="mailto:murakami@vivliostyle.org" />
+		<link rel="help" title="5.3. Line Breaking Rules: the 'line-break' property" href="https://drafts.csswg.org/css-text-3/#line-break-property" />
 		<link rel="match" href="reference/line-break-strict-015-ref.xht" />
 		<meta http-equiv="content-language" content="en, ja" />
-		<meta name="assert" content="This test verifies that 'line-break: strict' does not allow line breaking before inseparable characters such as TWO DOT LEADER (U+2025) and HORIZONTAL ELLIPSIS (U+2026)." />
+		<meta name="assert" content="This test verifies that 'line-break: strict' does not allow line breaking between inseparable characters such as TWO DOT LEADER (U+2025) and HORIZONTAL ELLIPSIS (U+2026)." />
 		<style type="text/css">
 			@font-face
 			{
@@ -20,13 +21,13 @@
 				*/
 			}
 			.test span {
-				line-break: strict;						// The property to be tested
+				line-break: strict;						/* The property to be tested */
 			}
 			p.test, p.control {
 				border: 1px solid gray;
 				color: blue;
 				font-family: "mplus-1p-regular";
-				width: 10em;
+				width: 10.2em;		/* added extra .2em for some symbols wider than 1em */
 			}
 			span.target {
 				background-color: aqua;
@@ -46,19 +47,19 @@
 		<div class="wrapper">
 			<!-- inseparable characters TWO DOT LEADER -->
 			<p class="test" lang="ja">
-				<span>サンプル文サンプル文<span class="target">&#x2025;</span>サンプル文</span>
+				<span>サンプルサンプル。<span class="target">&#x2025;&#x2025;</span>サンプル文</span>
 			</p>
 			<p class="control" lang="ja">
-				<span>サンプル文サンプル<br />文<span class="target">&#x2025;</span>サンプル文</span>
+				<span>サンプルサンプル。<br /><span class="target">&#x2025;&#x2025;</span>サンプル文</span>
 			</p>
 		</div>
 		<div class="wrapper">
 			<!-- inseparable characters HORIZONTAL ELLIPSIS -->
 			<p class="test" lang="ja">
-				<span>サンプル文サンプル文<span class="target">&#x2026;</span>サンプル文</span>
+				<span>サンプルサンプル。<span class="target">&#x2026;&#x2026;</span>サンプル文</span>
 			</p>
 			<p class="control" lang="ja">
-				<span>サンプル文サンプル<br />文<span class="target">&#x2026;</span>サンプル文</span>
+				<span>サンプルサンプル。<br /><span class="target">&#x2026;&#x2026;</span>サンプル文</span>
 			</p>
 		</div>
 	</body>

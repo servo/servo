@@ -160,11 +160,12 @@ dictionary OverconstrainedErrorEventInit : EventInit {
 };
 
 partial interface Navigator {
-    [SameObject]
+    [SameObject, SecureContext]
     readonly        attribute MediaDevices mediaDevices;
 };
 
-[Exposed=Window]
+[Exposed=Window,
+SecureContext]
 interface MediaDevices : EventTarget {
                     attribute EventHandler ondevicechange;
     Promise<sequence<MediaDeviceInfo>> enumerateDevices();
@@ -190,6 +191,7 @@ enum MediaDeviceKind {
 };
 
 partial interface Navigator {
+    [SecureContext]
     void getUserMedia(MediaStreamConstraints constraints, NavigatorUserMediaSuccessCallback successCallback, NavigatorUserMediaErrorCallback errorCallback);
 };
 

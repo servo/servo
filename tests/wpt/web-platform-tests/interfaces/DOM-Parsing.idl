@@ -4,30 +4,30 @@
 // Source: DOM Parsing and Serialization (https://w3c.github.io/DOM-Parsing/)
 
 [Constructor, Exposed=Window]
-    interface DOMParser {
-      [NewObject] Document parseFromString(DOMString str, SupportedType type);
-    };
+interface DOMParser {
+  [NewObject] Document parseFromString(DOMString str, SupportedType type);
+};
 
-    enum SupportedType {
-      "text/html",
-      "text/xml",
-      "application/xml",
-      "application/xhtml+xml",
-      "image/svg+xml"
-    };
+enum SupportedType {
+  "text/html",
+  "text/xml",
+  "application/xml",
+  "application/xhtml+xml",
+  "image/svg+xml"
+};
 
 [Constructor, Exposed=Window]
 
-      interface XMLSerializer {
-      DOMString serializeToString(Node root);
-    };
+  interface XMLSerializer {
+  DOMString serializeToString(Node root);
+};
 
 partial interface Element {
-      [CEReactions, TreatNullAs=EmptyString] attribute DOMString innerHTML;
-      [CEReactions, TreatNullAs=EmptyString] attribute DOMString outerHTML;
-      [CEReactions] void insertAdjacentHTML(DOMString position, DOMString text);
-    };
+  [CEReactions, TreatNullAs=EmptyString] attribute DOMString innerHTML;
+  [CEReactions, TreatNullAs=EmptyString] attribute DOMString outerHTML;
+  [CEReactions] void insertAdjacentHTML(DOMString position, DOMString text);
+};
 
 partial interface Range {
-      [CEReactions, NewObject] DocumentFragment createContextualFragment(DOMString fragment);
-    };
+  [CEReactions, NewObject] DocumentFragment createContextualFragment(DOMString fragment);
+};

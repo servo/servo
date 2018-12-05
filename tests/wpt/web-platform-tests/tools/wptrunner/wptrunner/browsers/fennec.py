@@ -1,8 +1,5 @@
 import os
-import signal
-import sys
 import tempfile
-import traceback
 
 import moznetwork
 from mozprocess import ProcessHandler
@@ -193,6 +190,7 @@ class FennecBrowser(FirefoxBrowser):
 
         write_hosts_file(self.config, self.runner.device.device)
 
+        self.runner.stop()
         self.runner.start(debug_args=debug_args, interactive=self.debug_info and self.debug_info.interactive)
 
         self.runner.device.device.forward(
@@ -203,22 +201,14 @@ class FennecBrowser(FirefoxBrowser):
 
     def stop(self, force=False):
         if self.runner is not None:
-            try:
-                if self.runner.device.connected:
-                    if len(self.runner.device.device.list_forwards()) > 0:
-                        self.runner.device.device.remove_forwards(
-                            "tcp:{}".format(self.marionette_port))
-            except Exception:
-                traceback.print_exception(*sys.exc_info())
+            if (self.runner.device.connected and
+                len(self.runner.device.device.list_forwards()) > 0):
+                try:
+                    self.runner.device.device.remove_forwards(
+                        "tcp:{}".format(self.marionette_port))
+                except Exception:
+                    self.logger.warning("Failed to remove port forwarding")
             # We assume that stopping the runner prompts the
             # browser to shut down. This allows the leak log to be written
             self.runner.stop()
-            for clean, stop_f in [(True, lambda: self.runner.wait(self.shutdown_timeout)),
-                                  (False, lambda: self.runner.stop(signal.SIGTERM)),
-                                  (False, lambda: self.runner.stop(signal.SIGKILL))]:
-                if not force or not clean:
-                    retcode = stop_f()
-                    if retcode is not None:
-                        self.logger.info("Browser exited with return code %s" % retcode)
-                        break
         self.logger.debug("stopped")
