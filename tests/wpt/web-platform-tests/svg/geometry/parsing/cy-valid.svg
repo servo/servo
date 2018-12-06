@@ -17,6 +17,7 @@ test_valid_value("cy", "0", "0px");
 test_valid_value("cy", "-1px");
 test_valid_value("cy", "calc(2em + 3ex)");
 test_valid_value("cy", "4%");
+test_valid_value("cy", "5rem");
 
   ]]></script>
 </svg>

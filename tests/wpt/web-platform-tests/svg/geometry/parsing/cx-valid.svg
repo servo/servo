@@ -17,6 +17,7 @@ test_valid_value("cx", "0", "0px");
 test_valid_value("cx", "-1px");
 test_valid_value("cx", "calc(2em + 3ex)");
 test_valid_value("cx", "4%");
+test_valid_value("cx", "5ch");
 
   ]]></script>
 </svg>

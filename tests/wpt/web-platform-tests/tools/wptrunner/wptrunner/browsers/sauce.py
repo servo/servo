@@ -133,6 +133,7 @@ class SauceConnect():
         self.sauce_key = kwargs["sauce_key"]
         self.sauce_tunnel_id = kwargs["sauce_tunnel_id"]
         self.sauce_connect_binary = kwargs.get("sauce_connect_binary")
+        self.sauce_connect_args = kwargs.get("sauce_connect_args")
         self.sauce_init_timeout = kwargs.get("sauce_init_timeout")
         self.sc_process = None
         self.temp_dir = None
@@ -171,7 +172,7 @@ class SauceConnect():
             "--readyfile=./sauce_is_ready",
             "--tunnel-domains",
             ",".join(self.env_config.domains_set)
-        ])
+        ] + self.sauce_connect_args)
 
         tot_wait = 0
         while not os.path.exists('./sauce_is_ready') and self.sc_process.poll() is None:

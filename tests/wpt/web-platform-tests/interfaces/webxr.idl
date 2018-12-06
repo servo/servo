@@ -45,7 +45,7 @@ enum XREnvironmentBlendMode {
   attribute XRLayer baseLayer;
 
   // Methods
-  Promise<XRFrameOfReference> requestFrameOfReference(XRFrameOfReferenceType type, optional XRFrameOfReferenceOptions options);
+  Promise<XRReferenceSpace> requestReferenceSpace(XRReferenceSpaceType type, optional XRReferenceSpaceOptions options);
 
   FrozenArray<XRInputSource> getInputSources();
 
@@ -57,7 +57,6 @@ enum XREnvironmentBlendMode {
   // Events
   attribute EventHandler onblur;
   attribute EventHandler onfocus;
-  attribute EventHandler onresetpose;
   attribute EventHandler onend;
   attribute EventHandler onselect;
   attribute EventHandler oninputsourceschange;
@@ -70,34 +69,51 @@ callback XRFrameRequestCallback = void (DOMHighResTimeStamp time, XRFrame frame)
 [SecureContext, Exposed=Window] interface XRFrame {
   readonly attribute XRSession session;
 
-  XRViewerPose? getViewerPose(XRFrameOfReference frameOfRef);
-  XRInputPose? getInputPose(XRInputSource inputSource, XRFrameOfReference frameOfRef);
+  XRViewerPose? getViewerPose(optional XRReferenceSpace referenceSpace);
+  XRInputPose? getInputPose(XRInputSource inputSource, optional XRReferenceSpace referenceSpace);
 };
 
-[SecureContext, Exposed=Window] interface XRCoordinateSystem : EventTarget {
-  Float32Array? getTransformTo(XRCoordinateSystem other);
+[SecureContext, Exposed=Window] interface XRSpace : EventTarget {
+  Float32Array? getTransformTo(XRSpace other);
 };
 
-enum XRFrameOfReferenceType {
-  "head-model",
+enum XRReferenceSpaceType {
+  "stationary",
+  "bounded",
+  "unbounded"
+};
+
+dictionary XRReferenceSpaceOptions {
+  required XRReferenceSpaceType type;
+};
+
+[SecureContext, Exposed=Window] interface XRReferenceSpace : XRSpace {
+  attribute EventHandler onreset;
+};
+
+enum XRStationaryReferenceSpaceSubtype {
   "eye-level",
-  "stage",
+  "floor-level",
+  "position-disabled"
 };
 
-dictionary XRFrameOfReferenceOptions {
-  boolean disableStageEmulation = false;
-  double stageEmulationHeight = 0.0;
+dictionary XRStationaryReferenceSpaceOptions : XRReferenceSpaceOptions {
+  required XRStationaryReferenceSpaceSubtype subtype;
 };
 
-[SecureContext, Exposed=Window] interface XRFrameOfReference : XRCoordinateSystem {
-  readonly attribute XRStageBounds? bounds;
-  readonly attribute double emulatedHeight;
-
-  attribute EventHandler onboundschange;
+[SecureContext, Exposed=Window]
+interface XRStationaryReferenceSpace : XRReferenceSpace {
+  readonly attribute XRStationaryReferenceSpaceSubtype subtype;
 };
 
-[SecureContext, Exposed=Window] interface XRStageBounds {
-  readonly attribute FrozenArray<DOMPointReadOnly> geometry;
+[SecureContext, Exposed=Window]
+interface XRBoundedReferenceSpace : XRReferenceSpace {
+  readonly attribute FrozenArray<DOMPointReadOnly> boundsGeometry;
+};
+
+[SecureContext, Exposed=Window]
+
+interface XRUnboundedReferenceSpace : XRReferenceSpace {
 };
 
 enum XREye {
@@ -224,11 +240,13 @@ dictionary XRInputSourceEventInit : EventInit {
   required XRInputSource inputSource;
 };
 
-[SecureContext, Exposed=Window, Constructor(DOMString type, XRCoordinateSystemEventInit eventInitDict)]
-interface XRCoordinateSystemEvent : Event {
-  readonly attribute XRCoordinateSystem coordinateSystem;
+[SecureContext, Exposed=Window, Constructor(DOMString type, XRReferenceSpaceEventInit eventInitDict)]
+interface XRReferenceSpaceEvent : Event {
+  readonly attribute XRReferenceSpace referenceSpace;
+  readonly attribute Float32Array? transformMatrix;
 };
 
-dictionary XRCoordinateSystemEventInit : EventInit {
-  required XRCoordinateSystem coordinateSystem;
+dictionary XRReferenceSpaceEventInit : EventInit {
+  required XRReferenceSpace referenceSpace;
+  Float32Array transformMatrix;
 };

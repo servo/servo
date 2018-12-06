@@ -61,16 +61,22 @@ registration are lost
      (Dispatch and Process Click 2 (not buffered, observed))
   */
   async_test(function(t) {
-      on_event(window, 'load', () => {
-        clickAndBlockMain('button').then(() => {
-          startObserver(t);
-          clickAndBlockMain('button').then(wait);
-          processingStartMin = performance.now();
-        });
+    // Use a dummy observer to know when the first click has been dispatched.
+    const observerPromise = new Promise((resolve, reject) => {
+      new PerformanceObserver((entryList, observer) => {
+        resolve();
+        observer.disconnect();
+      }).observe({ entryTypes: ['event'] });
+    });
+    on_event(window, 'load', () => {
+      const clickPromise = clickAndBlockMain('button');
+      Promise.all([observerPromise, clickPromise]).then(() => {
+        startObserver(t);
+        clickAndBlockMain('button');
+        processingStartMin = performance.now();
       });
-    },
-    "Event Timing: onload, click, observer, click."
-  );
+    });
+  },"Event Timing: onload, click, observer, click.");
 
 </script>
 </html>
