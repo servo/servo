@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js" ></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/helper.sub.js"></script>
+
+<meta http-equiv="Content-Security-Policy" content="trusted-types *">
+<body>
+<script>
+  // Policy name test
+  test(t => {
+    let policy = TrustedTypes.createPolicy('hidden', { createHTML: s => s }, false );
+    assert_true(policy instanceof TrustedTypePolicy);
+    assert_equals(policy.name, 'hidden');
+  }, "policy.name = name");
+
+  // Duplicate names test
+  test(t => {
+    assert_throws(new TypeError(), _ => {
+      TrustedTypes.createPolicy('hidden', { createURL: s => s } );
+    });
+  }, "duplicate policy name attempt throws");
+
+  // Retrieve policy names tests
+  test(t => {
+    let policy = TrustedTypes.createPolicy('exposed', { createURL: s => s }, true );
+    let names = TrustedTypes.getPolicyNames();
+    assert_equals(names.length, 2);
+    assert_true(names.includes('hidden'));
+    assert_true(names.includes('exposed'));
+  }, "getPolicyNames returns all policy names");
+</script>

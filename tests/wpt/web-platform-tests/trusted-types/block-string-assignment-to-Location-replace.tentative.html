@@ -19,16 +19,20 @@
 
   // String replacements throw.
   test(t => {
+    let href = location.href;
     assert_throws(new TypeError(), _ => {
       location.replace("A string");
     });
+    assert_equals(location.href, href);
   }, "`location.replace = string` throws");
 
   // Null replacement throws.
   test(t => {
+    let href = location.href;
     assert_throws(new TypeError(), _ => {
       location.replace(null);
     });
+    assert_equals(location.href, href);
   }, "`location.replace = null` throws");
 
   // Create default policy. Applies to all subsequent tests.

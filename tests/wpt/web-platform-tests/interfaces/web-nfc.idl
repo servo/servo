@@ -28,12 +28,12 @@ partial interface Navigator {
   [SecureContext, SameObject] readonly attribute NFC nfc;
 };
 
-typedef (DOMString or ArrayBuffer or NFCMessage) NFCPushMessage;
+typedef (DOMString or ArrayBuffer or NFCMessage) NFCMessageSource;
 
 [SecureContext]
 interface NFC {
-  Promise<void> push(NFCPushMessage message, optional NFCPushOptions options);
-  Promise<long> watch(MessageCallback callback, optional NFCWatchOptions options);
+  Promise<void> push(NFCMessageSource message, optional NFCPushOptions options);
+  Promise<void> watch(MessageCallback callback, optional NFCWatchOptions options);
 };
 
 callback MessageCallback = void (NFCMessage message);

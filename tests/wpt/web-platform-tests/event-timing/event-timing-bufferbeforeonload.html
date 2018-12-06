@@ -65,12 +65,22 @@
   async_test(function(t) {
     clickTimeMin = performance.now();
     clickAndBlockMain('button');
+    // Use a dummy observer to know when both clicks have been dispatched.
+    const observerPromise = new Promise((resolve, reject) => {
+      let entryCount = 0;
+      new PerformanceObserver(entryList => {
+        entryCount += entryList.getEntries().length;
+        if (entryCount >= 2)
+          resolve();
+      }).observe({ entryTypes: ['event'] });
+    });
     // Event handlers will be dispatched asynchronously, so this will be called
     // before processing begins.
     processingStartMin = performance.now();
     on_event(window, 'load', e => {
       onloadStart = performance.now();
-      clickAndBlockMain('button').then(wait).then(
+      const clickPromise = clickAndBlockMain('button');
+      Promise.all([observerPromise, clickPromise]).then(
           t.step_func_done(validateEntries));
     });
   }, "Event Timing: click, onload.");

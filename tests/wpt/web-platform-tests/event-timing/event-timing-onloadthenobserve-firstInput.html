@@ -31,8 +31,8 @@
         if (numEventsObserved >= 2) {
           assert_equals(performance.getEntriesByType('event').length, 0,
             "There should be no buffered event entries.");
-          assert_equals(performance.getEntriesByType('firstInput').length, 0,
-            "There should be no buffered firstInput entries.");
+          assert_equals(performance.getEntriesByType('firstInput').length, 1,
+            "There should be a buffered firstInput entry.");
           // There should be 2 event entries and one firstInput entry.
           assert_equals(numEventsObserved, 2,
             "There should be 2 observed event entries.");
@@ -42,8 +42,8 @@
         }
     })).observe({ entryTypes: ['event', 'firstInput'] });
     on_event(window, 'load', () => {
-      clickAndBlockMain('button').then(wait).then(() => {
-        clickAndBlockMain('button').then(wait);
+      clickAndBlockMain('button').then(() => {
+        clickAndBlockMain('button');
       });
     });
   },
