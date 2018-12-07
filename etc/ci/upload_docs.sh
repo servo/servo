@@ -19,8 +19,6 @@ cd "$(dirname ${0})/../.."
 
 env CC=gcc-5 CXX=g++-5 ./mach doc
 
-python components/style/properties/build.py servo html regular
-
 cd components/script
 cmake .
 cmake --build . --target supported-apis

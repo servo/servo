@@ -13,6 +13,7 @@ import json
 import os
 import os.path as path
 import subprocess
+import sys
 from shutil import copytree, rmtree, copy2
 
 from mach.decorators import (
@@ -272,6 +273,9 @@ class PostBuildCommands(CommandBase):
         static = path.join(self.context.topdir, "etc", "doc.servo.org")
         for name in os.listdir(static):
             copy2(path.join(static, name), path.join(docs, name))
+
+        build = path.join(self.context.topdir, "components", "style", "properties", "build.py")
+        subprocess.check_call([sys.executable, build, "servo", "html"])
 
     @Command('browse-doc',
              description='Generate documentation and open it in a web browser',
