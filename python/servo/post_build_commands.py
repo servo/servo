@@ -263,10 +263,15 @@ class PostBuildCommands(CommandBase):
                     else:
                         copy2(full_name, destination)
 
-        return self.call_rustup_run(
+        returncode = self.call_rustup_run(
             ["cargo", "doc", "--manifest-path", self.ports_servo_manifest()] + params,
-            env=self.build_env()
-        )
+            env=self.build_env())
+        if returncode:
+            return returncode
+
+        static = path.join(self.context.topdir, "etc", "doc.servo.org")
+        for name in os.listdir(static):
+            copy2(path.join(static, name), path.join(docs, name))
 
     @Command('browse-doc',
              description='Generate documentation and open it in a web browser',

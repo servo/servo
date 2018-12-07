@@ -18,10 +18,6 @@ cd "$(dirname ${0})/../.."
 ./etc/ci/clean_build_artifacts.sh
 
 env CC=gcc-5 CXX=g++-5 ./mach doc
-# etc/doc.servo.org/index.html overwrites $(mach rust-root)/doc/index.html
-# Use recursive copy here to avoid `cp` returning an error code
-# when it encounters directories.
-cp -r etc/doc.servo.org/* target/doc/
 
 python components/style/properties/build.py servo html regular
 
