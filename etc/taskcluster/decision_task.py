@@ -71,8 +71,8 @@ windows_sparse_checkout = [
 
 def linux_tidy_unit():
     return (
-        linux_build_task("Tidy + dev build + unit")
-        .with_treeherder("Linux x64")
+        linux_build_task("Tidy + dev build + unit tests")
+        .with_treeherder("Linux x64", "Tidy+Unit")
         .with_script("""
             ./mach test-tidy --no-progress --all
             ./mach build --dev
@@ -92,7 +92,7 @@ def linux_tidy_unit():
 def macos_unit():
     return (
         macos_build_task("Dev build + unit tests")
-        .with_treeherder("macOS x64")
+        .with_treeherder("macOS x64", "Unit")
         .with_script("""
             ./mach build --dev
             ./mach test-unit
@@ -136,7 +136,7 @@ def android_arm32_dev():
 def android_arm32_release():
     return (
         android_build_task("Release build")
-        .with_treeherder("Android ARMv7")
+        .with_treeherder("Android ARMv7", "Release")
         .with_script("./mach build --android --release")
         .with_artifacts(
             "/repo/target/android/armv7-linux-androideabi/release/servoapp.apk",
@@ -149,7 +149,7 @@ def android_arm32_release():
 def android_x86_release():
     return (
         android_build_task("Release build")
-        .with_treeherder("Android x86")
+        .with_treeherder("Android x86", "Release")
         .with_script("./mach build --target i686-linux-android --release")
         .with_artifacts(
             "/repo/target/android/i686-linux-android/release/servoapp.apk",
@@ -185,7 +185,7 @@ def android_x86_wpt():
 def windows_unit():
     return (
         windows_build_task("Dev build + unit tests")
-        .with_treeherder("Windows x64")
+        .with_treeherder("Windows x64", "Unit")
         .with_script(
             # Not necessary as this would be done at the start of `build`,
             # but this allows timing it separately.
@@ -204,7 +204,7 @@ def windows_unit():
 def windows_release():
     return (
         windows_build_task("Release build")
-        .with_treeherder("Windows x64")
+        .with_treeherder("Windows x64", "Release")
         .with_script("mach build --release",
                      "mach package --release")
         .with_artifacts("repo/target/release/msi/Servo.exe",
@@ -224,7 +224,7 @@ def linux_wpt():
 def linux_release_build():
     return (
         linux_build_task("Release build")
-        .with_treeherder("Linux x64")
+        .with_treeherder("Linux x64", "Release")
         .with_script("""
             ./mach build --release --with-debug-assertions -p servo
             ./etc/ci/lockfile_changed.sh
@@ -241,7 +241,7 @@ def linux_release_build():
 def wpt_chunk(release_build_task, total_chunks, this_chunk):
     task = (
         linux_task("WPT chunk %s / %s" % (this_chunk, total_chunks))
-        .with_treeherder("Linux x64", "WPT %s" % this_chunk)
+        .with_treeherder("Linux x64", "WPT-%s" % this_chunk)
         .with_dockerfile(dockerfile_path("run"))
         .with_repo()
         .with_curl_artifact_script(release_build_task, "target.tar.gz")
