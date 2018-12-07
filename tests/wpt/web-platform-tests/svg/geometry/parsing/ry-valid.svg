@@ -19,6 +19,7 @@ test_valid_value("rx", "0", "0px");
 test_valid_value("rx", "1px");
 test_valid_value("rx", "calc(2em + 3ex)");
 test_valid_value("rx", "4%");
+test_valid_value("rx", "5vh");
 
   ]]></script>
 </svg>

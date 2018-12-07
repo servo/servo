@@ -17,6 +17,7 @@ test_valid_value("x", "0", "0px");
 test_valid_value("x", "-1px");
 test_valid_value("x", "calc(2em + 3ex)");
 test_valid_value("x", "4%");
+test_valid_value("x", "5cm");
 
   ]]></script>
 </svg>

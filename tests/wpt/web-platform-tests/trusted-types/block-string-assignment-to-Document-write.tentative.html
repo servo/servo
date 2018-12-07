@@ -9,8 +9,9 @@
 </head>
 <body>
 <script>
-  // TrustedHTML assignments do not throw.
+  // TrustedURL assignments do not throw.
   test(t => {
+    document.body.innerText = '';
     let p = createHTML_policy(window, 1);
     let html = p.createHTML(INPUTS.HTML);
     document.write(html);
@@ -19,15 +20,19 @@
 
   // String assignments throw.
   test(t => {
+    const old = document.body.innerText;
     assert_throws(new TypeError(), _ => {
       document.write('A string');
     });
+    assert_equals(document.body.innerText, old);
   }, "`document.write(string)` throws");
 
   // Null assignment throws.
   test(t => {
+    const old = document.body.innerText;
     assert_throws(new TypeError(), _ => {
       document.write(null);
     });
+    assert_equals(document.body.innerText, old);
   }, "`document.write(null)` throws");
 </script>

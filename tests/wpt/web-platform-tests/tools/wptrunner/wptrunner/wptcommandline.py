@@ -302,6 +302,10 @@ scheme host and port.""")
                              help="Number of seconds to wait for Sauce "
                                   "Connect tunnel to be available before "
                                   "aborting")
+    sauce_group.add_argument("--sauce-connect-arg", action="append",
+                             default=[], dest="sauce_connect_args",
+                             help="Command-line argument to forward to the "
+                                  "Sauce Connect binary (repeatable)")
 
     webkit_group = parser.add_argument_group("WebKit-specific")
     webkit_group.add_argument("--webkit-port", dest="webkit_port",

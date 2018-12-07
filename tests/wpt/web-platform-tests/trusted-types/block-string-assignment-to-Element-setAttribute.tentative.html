@@ -104,6 +104,18 @@
   }, "a.rel accepts null");
 
   test(t => {
+    let div = document.createElement('div');
+    let span = document.createElement('span');
+
+    div.setAttribute('src', INPUTS.URL);
+    let attr = div.getAttributeNode('src');
+    div.removeAttributeNode(attr);
+    span.setAttributeNode(attr);
+
+    assert_equals(span.getAttribute('src'), INPUTS.URL);
+  }, "`span.src = setAttributeNode(div.src)` with string works.");
+
+  test(t => {
     let el = document.createElement('iframe');
 
     assert_throws(new TypeError(), _ => {

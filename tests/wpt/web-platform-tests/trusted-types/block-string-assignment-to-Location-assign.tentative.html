@@ -19,16 +19,20 @@
 
   // String assignments throw.
   test(t => {
+    let href = location.href;
     assert_throws(new TypeError(), _ => {
       location.assign("A string");
     });
+    assert_equals(location.href, href);
   }, "`location.assign = string` throws");
 
   // Null assignment throws.
   test(t => {
+    let href = location.href;
     assert_throws(new TypeError(), _ => {
       location.assign(null);
     });
+    assert_equals(location.href, href);
   }, "`location.assign = null` throws");
 
   // Create default policy. Applies to all subsequent tests.
