@@ -825,39 +825,6 @@ impl HTMLMediaElement {
         }
     }
 
-    /// Queues a task to run the dedicated [steps when the media reaches the end][steps]
-    ///
-    /// [steps]: https://html.spec.whatwg.org/multipage/#reaches-the-end
-    fn queue_reaches_the_end_steps(&self) {
-        let window = window_from_node(self);
-        let this = Trusted::new(self);
-
-        let _ = window.task_manager().media_element_task_source().queue(
-            task!(reaches_the_end_steps: move || {
-                let this = this.root();
-                // Step 3.1.
-                this.upcast::<EventTarget>().fire_event(atom!("timeupdate"));
-
-                // Step 3.2.
-                if this.Ended() && !this.Loop() {
-                    // Step 3.2.1.
-                    this.paused.set(true);
-
-                    // Step 3.2.2.
-                    this.upcast::<EventTarget>().fire_event(atom!("pause"));
-
-                    // Step 3.2.3.
-                    this.take_pending_play_promises(Err(Error::Abort));
-                    this.fulfill_in_flight_play_promises(|| ());
-                }
-
-                // Step 3.3.
-                this.upcast::<EventTarget>().fire_event(atom!("ended"));
-            }),
-            window.upcast(),
-        );
-    }
-
     /// Queues a task to run the [dedicated media source failure steps][steps].
     ///
     /// [steps]: https://html.spec.whatwg.org/multipage/#dedicated-media-source-failure-steps
@@ -1266,7 +1233,33 @@ impl HTMLMediaElement {
                                 // the HTMLMediaElementMethods::Ended method
 
                                 // Step 3.
-                                self.queue_reaches_the_end_steps();
+                                let window = window_from_node(self);
+                                let this = Trusted::new(self);
+
+                                let _ = window.task_manager().media_element_task_source().queue(
+                                    task!(reaches_the_end_steps: move || {
+                                        let this = this.root();
+                                        // Step 3.1.
+                                        this.upcast::<EventTarget>().fire_event(atom!("timeupdate"));
+
+                                        // Step 3.2.
+                                        if this.Ended() && !this.Paused() {
+                                            // Step 3.2.1.
+                                            this.paused.set(true);
+
+                                            // Step 3.2.2.
+                                            this.upcast::<EventTarget>().fire_event(atom!("pause"));
+
+                                            // Step 3.2.3.
+                                            this.take_pending_play_promises(Err(Error::Abort));
+                                            this.fulfill_in_flight_play_promises(|| ());
+                                        }
+
+                                        // Step 3.3.
+                                        this.upcast::<EventTarget>().fire_event(atom!("ended"));
+                                    }),
+                                    window.upcast(),
+                                );
                             }
                         },
 
@@ -1321,7 +1314,7 @@ impl HTMLMediaElement {
 
 // XXX Placeholder for [https://github.com/servo/servo/issues/22293]
 #[derive(Clone, Copy, JSTraceable, MallocSizeOf, PartialEq)]
-pub enum PlaybackDirection {
+enum PlaybackDirection {
     Forwards,
     Backwards,
 }
@@ -1332,12 +1325,12 @@ pub enum PlaybackDirection {
 // - https://github.com/servo/servo/issues/22321
 impl HTMLMediaElement {
     // https://github.com/servo/servo/issues/22293
-    pub fn direction_of_playback(&self) -> PlaybackDirection {
+    fn direction_of_playback(&self) -> PlaybackDirection {
         PlaybackDirection::Forwards
     }
 
     // https://github.com/servo/servo/pull/22321
-    pub fn Loop(&self) -> bool {
+    fn Loop(&self) -> bool {
         false
     }
 }
