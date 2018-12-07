@@ -277,6 +277,11 @@ class PostBuildCommands(CommandBase):
         build = path.join(self.context.topdir, "components", "style", "properties", "build.py")
         subprocess.check_call([sys.executable, build, "servo", "html"])
 
+        script = path.join(self.context.topdir, "components", "script")
+        subprocess.check_call(["cmake", "."], cwd=script)
+        subprocess.check_call(["cmake", "--build", ".", "--target", "supported-apis"], cwd=script)
+        copy2(path.join(script, "apis.html"), path.join(docs, "servo", "apis.html"))
+
     @Command('browse-doc',
              description='Generate documentation and open it in a web browser',
              category='post-build')

@@ -19,14 +19,6 @@ cd "$(dirname ${0})/../.."
 
 env CC=gcc-5 CXX=g++-5 ./mach doc
 
-cd components/script
-cmake .
-cmake --build . --target supported-apis
-echo "Copying apis.html."
-cp apis.html ../../target/doc/servo/
-echo "Copied apis.html."
-cd ../..
-
 echo "Starting ghp-import."
 ghp-import -n target/doc
 echo "Finished ghp-import."
