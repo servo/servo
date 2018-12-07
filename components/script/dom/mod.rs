@@ -1,6 +1,6 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 //! The implementation of the DOM.
 //!
@@ -406,6 +406,8 @@ pub mod nodeiterator;
 pub mod nodelist;
 pub mod offlineaudiocompletionevent;
 pub mod offlineaudiocontext;
+pub mod offscreencanvas;
+pub mod offscreencanvasrenderingcontext2d;
 pub mod oscillatornode;
 pub mod pagetransitionevent;
 pub mod paintrenderingcontext2d;
@@ -416,11 +418,10 @@ pub mod performance;
 pub mod performanceentry;
 pub mod performancemark;
 pub mod performancemeasure;
-pub mod performancenavigationtiming;
 pub mod performanceobserver;
 pub mod performanceobserverentrylist;
 pub mod performancepainttiming;
-pub mod performanceresourcetiming;
+pub mod performancetiming;
 pub mod permissions;
 pub mod permissionstatus;
 pub mod plugin;
@@ -430,7 +431,6 @@ pub mod processinginstruction;
 pub mod progressevent;
 pub mod promise;
 pub mod promisenativehandler;
-pub mod promiserejectionevent;
 pub mod radionodelist;
 pub mod range;
 pub mod request;
