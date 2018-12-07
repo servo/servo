@@ -10,9 +10,11 @@ from decisionlib import *
 
 def main(task_for, mock=False):
     if task_for == "github-push":
-        if CONFIG.git_ref in ["refs/heads/auto", "refs/heads/try", "refs/heads/try-taskcluster"]:
-            CONFIG.treeherder_repo_name = "servo-" + CONFIG.git_ref.split("/")[-1]
+        assert CONFIG.git_ref.startswith("refs/heads/")
+        branch = CONFIG.git_ref[len("refs/heads/"):]
+        CONFIG.treeherder_repository_names = ["servo-" + branch]
 
+        if branch in ["auto", "try", "try-taskcluster"]:
             linux_tidy_unit_docs()
             android_arm32_dev()
             android_arm32_release()
@@ -27,6 +29,11 @@ def main(task_for, mock=False):
                 linux_wpt()
                 linux_build_task("Indexed by task definition").find_or_create()
                 android_x86_wpt()
+
+        if branch == "master":
+            # Also show these tasks in https://treeherder.mozilla.org/#/jobs?repo=servo-auto
+            CONFIG.treeherder_repository_names.append("servo-auto")
+            upload_docs()
 
     # https://tools.taskcluster.net/hooks/project-servo/daily
     elif task_for == "daily":
@@ -99,6 +106,31 @@ def linux_tidy_unit_docs():
         .find_or_create("docs." + CONFIG.git_sha)
     )
 
+
+def upload_docs():
+    docs_build_task_id = Task.find("docs." + CONFIG.git_sha)
+    return (
+        linux_task("Upload docs to GitHub Pages")
+        .with_treeherder("Linux x64", "DocUpload")
+        .with_dockerfile(dockerfile_path("base"))
+        .with_curl_artifact_script(docs_build_task_id, "docs.bundle")
+        .with_features("taskclusterProxy")
+        .with_scopes("secrets:get:project/servo/doc.servo.org")
+        .with_env(PY="""if 1:
+            import urllib, json
+            url = "http://taskcluster/secrets/v1/secret/project/servo/doc.servo.org"
+            token = json.load(urllib.urlopen(url))["secret"]["token"]
+            open("/root/.git-credentials", "w").write("https://git:%s@github.com/" % token)
+        """)
+        .with_script("""
+            python -c "$PY"
+            git init --bare
+            git config credential.helper store
+            git fetch --quiet docs.bundle
+            git push --force https://github.com/servo/doc.servo.org FETCH_HEAD:gh-pages
+        """)
+        .create()
+    )
 
 def macos_unit():
     return (

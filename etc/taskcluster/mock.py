@@ -31,7 +31,9 @@ class TaskclusterRestFailure(Exception):
 class Index:
     __init__ = insertTask = lambda *_, **__: None
 
-    def findTask(self, _):
+    def findTask(self, path):
+        if ".docs." in path:
+            return {"taskId": ""}
         raise TaskclusterRestFailure
 
 
@@ -48,6 +50,10 @@ print("\n# Push:")
 decision_task.main("github-push", mock=True)
 
 print("\n# Push with hot caches:")
+decision_task.main("github-push", mock=True)
+
+print("\n# Push to master:")
+decision_task.CONFIG.git_ref = "refs/heads/master"
 decision_task.main("github-push", mock=True)
 
 print("\n# Daily:")
