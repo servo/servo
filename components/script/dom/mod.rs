@@ -407,6 +407,8 @@ pub mod nodeiterator;
 pub mod nodelist;
 pub mod offlineaudiocompletionevent;
 pub mod offlineaudiocontext;
+pub mod offscreencanvas;
+pub mod offscreencanvasrenderingcontext2d;
 pub mod oscillatornode;
 pub mod pagetransitionevent;
 pub mod paintrenderingcontext2d;
