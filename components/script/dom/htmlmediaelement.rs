@@ -1316,6 +1316,7 @@ impl HTMLMediaElement {
 #[derive(Clone, Copy, JSTraceable, MallocSizeOf, PartialEq)]
 enum PlaybackDirection {
     Forwards,
+    #[allow(dead_code)]
     Backwards,
 }
 
