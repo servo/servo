@@ -341,6 +341,34 @@ LINUX_SPECIFIC_BOOTSTRAPPERS = {
 }
 
 
+def get_linux_distribution():
+    distro, version, _ = platform.linux_distribution()
+
+    if distro == 'LinuxMint':
+        major, minor = version.split('.')
+
+        if major == '19':
+            base_version = '18.04'
+        elif major == '18':
+            base_version = '16.04'
+        elif major == '17':
+            base_version = '14.04'
+        else:
+            raise Exception('unsupported version of %s: %s' % (distro, version))
+
+        distro, version = 'Ubuntu', base_version
+    elif distro.lower() not in [
+        'centos',
+        'centos linux',
+        'debian',
+        'fedora',
+        'ubuntu',
+    ]:
+        raise Exception('mach bootstrap does not support %s, please file a bug' % distro)
+
+    return distro, version
+
+
 def bootstrap(context, force=False, specific=None):
     '''Dispatches to the right bootstrapping function for the OS.'''
 
@@ -348,19 +376,11 @@ def bootstrap(context, force=False, specific=None):
     if "windows-msvc" in host_triple():
         bootstrapper = windows_msvc
     elif "linux-gnu" in host_triple():
-        distro, version, _ = platform.linux_distribution()
-        if distro.lower() in [
-            'centos',
-            'centos linux',
-            'debian',
-            'fedora',
-            'ubuntu',
-        ]:
-            context.distro = distro
-            context.distro_version = version
-            bootstrapper = LINUX_SPECIFIC_BOOTSTRAPPERS.get(specific, linux)
-        else:
-            raise Exception("mach bootstrap does not support %s, please file a bug" % distro)
+        distro, version = get_linux_distribution()
+
+        context.distro = distro
+        context.distro_version = version
+        bootstrapper = LINUX_SPECIFIC_BOOTSTRAPPERS.get(specific, linux)
 
     if bootstrapper is None:
         print('Bootstrap support is not yet available for your OS.')
