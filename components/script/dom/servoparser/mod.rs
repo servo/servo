@@ -1194,7 +1194,7 @@ fn create_element_for_token(
 
 #[derive(JSTraceable, MallocSizeOf)]
 struct NetworkDecoder {
-    #[ignore_malloc_size_of = "Defined in html5ever"]
+    #[ignore_malloc_size_of = "Defined in tendril"]
     decoder: Utf8LossyDecoder<NetworkSink>,
 }
 
