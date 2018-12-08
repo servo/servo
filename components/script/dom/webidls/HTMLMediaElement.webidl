@@ -61,6 +61,6 @@ interface HTMLMediaElement : HTMLElement {
   // tracks
   // readonly attribute AudioTrackList audioTracks;
   // readonly attribute VideoTrackList videoTracks;
-  // readonly attribute TextTrackList textTracks;
-  // TextTrack addTextTrack(TextTrackKind kind, optional DOMString label = "", optional DOMString language = "");
+  readonly attribute TextTrackList textTracks;
+  TextTrack addTextTrack(TextTrackKind kind, optional DOMString label = "", optional DOMString language = "");
 };
