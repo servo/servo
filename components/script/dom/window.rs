@@ -74,7 +74,7 @@ use devtools_traits::{ScriptToDevtoolsControlMsg, TimelineMarker, TimelineMarker
 use dom_struct::dom_struct;
 use embedder_traits::EmbedderMsg;
 use euclid::{Point2D, Rect, Size2D, TypedPoint2D, TypedScale, TypedSize2D, Vector2D};
-use ipc_channel::ipc::IpcSender;
+use ipc_channel::ipc::{channel, IpcSender};
 use ipc_channel::router::ROUTER;
 use js::jsapi::JSAutoCompartment;
 use js::jsapi::JSContext;
@@ -1142,6 +1142,12 @@ impl WindowMethods for Window {
 
     fn TestRunner(&self) -> DomRoot<TestRunner> {
         self.test_runner.or_init(|| TestRunner::new(self.upcast()))
+    }
+
+    fn RunningAnimations(&self) -> u32 {
+        let (sender, receiver) = channel().unwrap();
+        let _ = self.layout_chan.send(Msg::GetRunningAnimations(sender));
+        receiver.recv().unwrap_or(0) as u32
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-name

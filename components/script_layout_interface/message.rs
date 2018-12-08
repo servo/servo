@@ -98,6 +98,9 @@ pub enum Msg {
 
     /// Send to layout the precise time when the navigation started.
     SetNavigationStart(u64),
+
+    /// Request the current number of animations that are running.
+    GetRunningAnimations(IpcSender<usize>),
 }
 
 #[derive(Debug, PartialEq)]

@@ -13458,6 +13458,12 @@
      {}
     ]
    ], 
+   "mozilla/animation-removed-node.html": [
+    [
+     "/_mozilla/mozilla/animation-removed-node.html", 
+     {}
+    ]
+   ], 
    "mozilla/binding_keyword.html": [
     [
      "/_mozilla/mozilla/binding_keyword.html", 
@@ -26611,6 +26617,10 @@
   ], 
   "mozilla/adopted_node_is_same_origin_domain.html": [
    "81de5b389c922067c61effe03208ea740ba8e067", 
+   "testharness"
+  ], 
+  "mozilla/animation-removed-node.html": [
+   "4ffebd9d46461609f49184947884ac5295244127", 
    "testharness"
   ], 
   "mozilla/binding_keyword.html": [

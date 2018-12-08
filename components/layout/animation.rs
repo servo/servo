@@ -9,7 +9,7 @@ use crate::display_list::items::OpaqueNode;
 use crate::flow::{Flow, GetBaseFlow};
 use crate::opaque_node::OpaqueNodeMethods;
 use crossbeam_channel::Receiver;
-use fxhash::FxHashMap;
+use fxhash::{FxHashMap, FxHashSet};
 use ipc_channel::ipc::IpcSender;
 use msg::constellation_msg::PipelineId;
 use script_traits::UntrustedNodeAddress;
@@ -28,6 +28,7 @@ pub fn update_animation_state<E>(
     script_chan: &IpcSender<ConstellationControlMsg>,
     running_animations: &mut FxHashMap<OpaqueNode, Vec<Animation>>,
     expired_animations: &mut FxHashMap<OpaqueNode, Vec<Animation>>,
+    mut keys_to_remove: FxHashSet<OpaqueNode>,
     mut newly_transitioning_nodes: Option<&mut Vec<UntrustedNodeAddress>>,
     new_animations_receiver: &Receiver<Animation>,
     pipeline_id: PipelineId,
@@ -74,7 +75,6 @@ pub fn update_animation_state<E>(
     // TODO: Do not expunge Keyframes animations, since we need that state if
     // the animation gets re-triggered. Probably worth splitting in two
     // different maps, or at least using a linked list?
-    let mut keys_to_remove = vec![];
     for (key, running_animations) in running_animations.iter_mut() {
         let mut animations_still_running = vec![];
         for mut running_animation in running_animations.drain(..) {
@@ -116,7 +116,7 @@ pub fn update_animation_state<E>(
         }
 
         if animations_still_running.is_empty() {
-            keys_to_remove.push(*key);
+            keys_to_remove.insert(*key);
         } else {
             *running_animations = animations_still_running
         }
@@ -160,17 +160,36 @@ pub fn update_animation_state<E>(
 }
 
 /// Recalculates style for a set of animations. This does *not* run with the DOM
-/// lock held.
+/// lock held. Returns a set of nodes associated with animations that are no longer
+/// valid.
 pub fn recalc_style_for_animations<E>(
     context: &LayoutContext,
     flow: &mut dyn Flow,
     animations: &FxHashMap<OpaqueNode, Vec<Animation>>,
+) -> FxHashSet<OpaqueNode>
+where
+    E: TElement,
+{
+    let mut invalid_nodes = FxHashSet::default();
+    for node in animations.keys() {
+        invalid_nodes.insert(*node);
+    }
+    do_recalc_style_for_animations::<E>(context, flow, animations, &mut invalid_nodes);
+    invalid_nodes
+}
+
+fn do_recalc_style_for_animations<E>(
+    context: &LayoutContext,
+    flow: &mut dyn Flow,
+    animations: &FxHashMap<OpaqueNode, Vec<Animation>>,
+    invalid_nodes: &mut FxHashSet<OpaqueNode>,
 ) where
     E: TElement,
 {
     let mut damage = RestyleDamage::empty();
     flow.mutate_fragments(&mut |fragment| {
         if let Some(ref animations) = animations.get(&fragment.node) {
+            invalid_nodes.remove(&fragment.node);
             for animation in animations.iter() {
                 let old_style = fragment.style.clone();
                 update_style_for_animation::<E>(
@@ -189,6 +208,6 @@ pub fn recalc_style_for_animations<E>(
     let base = flow.mut_base();
     base.restyle_damage.insert(damage);
     for kid in base.children.iter_mut() {
-        recalc_style_for_animations::<E>(context, kid, animations)
+        do_recalc_style_for_animations::<E>(context, kid, animations, invalid_nodes)
     }
 }
