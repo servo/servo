@@ -345,7 +345,10 @@ def get_linux_distribution():
     distro, version, _ = platform.linux_distribution()
 
     if distro == 'LinuxMint':
-        major, minor = version.split('.')
+        if '.' in version:
+            major, _ = version.split('.', 1)
+        else:
+            major = version
 
         if major == '19':
             base_version = '18.04'
