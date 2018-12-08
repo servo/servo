@@ -11,7 +11,7 @@ from decisionlib import *
 def main(task_for, mock=False):
     if task_for == "github-push":
         if CONFIG.git_ref in ["refs/heads/auto", "refs/heads/try", "refs/heads/try-taskcluster"]:
-            CONFIG.treeherder_repo_name = "servo/servo-" + CONFIG.git_ref.split("/")[-1]
+            CONFIG.treeherder_repo_name = "servo-" + CONFIG.git_ref.split("/")[-1]
 
             linux_tidy_unit()
             android_arm32()
