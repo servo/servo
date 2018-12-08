@@ -553,12 +553,10 @@ impl Metadata {
                 .as_mut()
                 .unwrap()
                 .typed_insert(ContentType::from(mime.clone()));
-            self.content_type = Some(Serde(ContentType::from(mime.clone())));
-            for (name, value) in mime.params() {
-                if mime::CHARSET == name {
-                    self.charset = Some(value.to_string());
-                }
+            if let Some(charset) = mime.get_param(mime::CHARSET) {
+                self.charset = Some(charset.to_string());
             }
+            self.content_type = Some(Serde(ContentType::from(mime.clone())));
         }
     }
 }
