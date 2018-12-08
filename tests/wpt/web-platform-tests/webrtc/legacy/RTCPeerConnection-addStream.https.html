@@ -1,0 +1,74 @@
+<!doctype html>
+<meta charset=utf-8>
+<meta name="timeout" content="long">
+<title>RTCPeerConnection legacy addStream</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../RTCPeerConnection-helper.js"></script>
+<script src="../RTCStats-helper.js"></script>
+<script src="../dictionary-helper.js"></script>
+<script>
+  'use strict';
+
+  // The following helper functions are called from RTCPeerConnection-helper.js:
+  //   getUserMediaTracksAndStreams
+
+  // The following helper functions are called from RTCStats-helper.js
+  // (depends on dictionary-helper.js):
+  //   validateRtcStats
+
+  // TODO(hbos): addStream() is legacy API not in the spec. Based on discussion
+  // whether to standardize in legacy section, consider removing this test or
+  // keeping it until addTrack() has wide support.
+  // https://github.com/w3c/webrtc-pc/issues/1705
+  // https://github.com/w3c/webrtc-pc/issues/1125
+  async_test(t => {
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+    let track;
+    let stream;
+    return getUserMediaTracksAndStreams(1)
+    .then(t.step_func(([tracks, streams]) => {
+      track = tracks[0];
+      stream = streams[0];
+      stream.addTrack(track);
+      pc.addStream(stream);
+      return pc.createOffer();
+    }))
+    .then(t.step_func(offer => {
+      return pc.setLocalDescription(offer);
+    }))
+    .then(t.step_func(() => {
+      return pc.getStats();
+    }))
+    .then(t.step_func(report => {
+      let trackStats = findStatsByTypeAndId(report, 'track', track.id);
+      let streamStats = findStatsByTypeAndId(report, 'stream', stream.id);
+      assert_true(trackStats != null && streamStats != null,
+                  'Has stats for track and stream');
+      assert_array_equals(streamStats.trackIds, [ trackStats.id ],
+                          'streamStats.trackIds == [ trackStats.id ]');
+      validateRtcStats(report, trackStats);
+      validateRtcStats(report, streamStats);
+      t.done();
+    }))
+    .catch(t.step_func(reason => {
+      assert_unreached(reason);
+    }));
+  }, 'Legacy addStream(): Media stream stats references track stats');
+
+  function findStatsByTypeAndId(report, type, identifier) {
+    return findStats(report, stats => {
+      return stats.type == type && stats[type + 'Identifier'] == identifier;
+    });
+  }
+
+  function findStats(report, findFunc) {
+    for (let it = report.values(), n = it.next(); !n.done; n = it.next()) {
+      if (findFunc(n.value))
+        return n.value;
+    }
+    return null;
+  }
+
+</script>
