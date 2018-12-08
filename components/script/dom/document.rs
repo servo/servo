@@ -4340,7 +4340,7 @@ impl DocumentMethods for Document {
             .clone();
         *self.loader.borrow_mut() =
             DocumentLoader::new_with_threads(resource_threads, Some(self.url()));
-        ServoParser::parse_html_script_input(self, self.url(), "text/html");
+        ServoParser::parse_html_script_input(self, self.url());
 
         // Step 15
         self.ready_state.set(DocumentReadyState::Loading);

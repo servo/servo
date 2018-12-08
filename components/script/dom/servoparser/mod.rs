@@ -225,7 +225,7 @@ impl ServoParser {
         }
     }
 
-    pub fn parse_html_script_input(document: &Document, url: ServoUrl, type_: &str) {
+    pub fn parse_html_script_input(document: &Document, url: ServoUrl) {
         let parser = ServoParser::new(
             document,
             Tokenizer::Html(self::html::Tokenizer::new(
@@ -238,10 +238,6 @@ impl ServoParser {
             ParserKind::ScriptCreated,
         );
         document.set_current_parser(Some(&parser));
-        if !type_.eq_ignore_ascii_case("text/html") {
-            parser.parse_string_chunk("<pre>\n".to_owned());
-            parser.tokenizer.borrow_mut().set_plaintext_state();
-        }
     }
 
     pub fn parse_xml_document(document: &Document, input: DOMString, url: ServoUrl) {
