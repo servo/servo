@@ -173,3 +173,8 @@ partial interface Window {
    readonly attribute TestRunner testRunner;
    //readonly attribute EventSender eventSender;
 };
+
+partial interface Window {
+   [Pref="css.animations.testing.enabled"]
+   readonly attribute unsigned long runningAnimationCount;
+};
