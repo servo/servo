@@ -1,15 +1,11 @@
 <!DOCTYPE html>
-<html>
-<head>
-    <script src="/common/get-host-info.sub.js"></script>
-    <script src="/resources/testharness.js"></script>
-    <script src="/resources/testharnessreport.js"></script>
-    <script src="resources/worklet-test-utils.js"></script>
-    <script src="resources/csp-tests.js"></script>
-</head>
-<body>
+<title>ContentSecurityPolicy for Animation Worklets</title>
+<meta name="timeout" content="long">
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/worklet-test-utils.js"></script>
+<script src="resources/csp-tests.js"></script>
 <script>
-    runContentSecurityPolicyTests("animation");
+runContentSecurityPolicyTests("animation");
 </script>
-</body>
-</html>

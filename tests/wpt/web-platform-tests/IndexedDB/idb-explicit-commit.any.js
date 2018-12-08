@@ -8,8 +8,8 @@
  */
 
 promise_test(async testCase => {
-  const db = await createDatabase(testCase, async db => {
-    await createBooksStore(testCase, db);
+  const db = await createDatabase(testCase, db => {
+    createBooksStore(testCase, db);
   });
   const txn = db.transaction(['books'], 'readwrite');
   const objectStore = txn.objectStore('books');
@@ -43,7 +43,7 @@ promise_test(async testCase => {
 
   // Upgrade the versionDB database and explicitly commit its versionchange
   // transaction.
-  db = await migrateDatabase(testCase, 2, async (db, txn) => {
+  db = await migrateDatabase(testCase, 2, (db, txn) => {
     txn.commit();
   });
   assert_equals(2, db.version,
@@ -55,8 +55,8 @@ promise_test(async testCase => {
 
 
 promise_test(async testCase => {
-  const db = await createDatabase(testCase, async db => {
-    await createBooksStore(testCase, db);
+  const db = await createDatabase(testCase, db => {
+    createBooksStore(testCase, db);
   });
   const txn = db.transaction(['books'], 'readwrite');
   const objectStore = txn.objectStore('books');
@@ -69,8 +69,8 @@ promise_test(async testCase => {
 
 
 promise_test(async testCase => {
-  const db = await createDatabase(testCase, async db => {
-    await createBooksStore(testCase, db);
+  const db = await createDatabase(testCase, db => {
+    createBooksStore(testCase, db);
   });
   const txn = db.transaction(['books'], 'readwrite');
   const objectStore = txn.objectStore('books');
@@ -88,8 +88,8 @@ promise_test(async testCase => {
 
 
 promise_test(async testCase => {
-  const db = await createDatabase(testCase, async db => {
-    await createBooksStore(testCase, db);
+  const db = await createDatabase(testCase, db => {
+    createBooksStore(testCase, db);
   });
   const txn = db.transaction(['books'], 'readwrite');
   const objectStore = txn.objectStore('books');
@@ -110,8 +110,8 @@ promise_test(async testCase => {
 
 
 promise_test(async testCase => {
-  const db = await createDatabase(testCase, async db => {
-    await createBooksStore(testCase, db);
+  const db = await createDatabase(testCase, db => {
+    createBooksStore(testCase, db);
   });
   const txn = db.transaction(['books'], 'readwrite');
   const objectStore = txn.objectStore('books');
@@ -124,8 +124,8 @@ promise_test(async testCase => {
 
 
 promise_test(async testCase => {
-  const db = await createDatabase(testCase, async db => {
-    await createBooksStore(testCase, db);
+  const db = await createDatabase(testCase, db => {
+    createBooksStore(testCase, db);
   });
   const txn = db.transaction(['books'], 'readwrite');
   const objectStore = txn.objectStore('books');
@@ -138,8 +138,8 @@ promise_test(async testCase => {
 
 
 promise_test(async testCase => {
-  const db = await createDatabase(testCase, async db => {
-    await createBooksStore(testCase, db);
+  const db = await createDatabase(testCase, db => {
+    createBooksStore(testCase, db);
   });
   const txn = db.transaction(['books'], 'readwrite');
   const objectStore = txn.objectStore('books');
@@ -162,8 +162,8 @@ promise_test(async testCase => {
 
 
 promise_test(async testCase => {
-  const db = await createDatabase(testCase, async db => {
-    await createBooksStore(testCase, db);
+  const db = await createDatabase(testCase, db => {
+    createBooksStore(testCase, db);
   });
   const txn = db.transaction(['books'], 'readwrite');
   const objectStore = txn.objectStore('books');
@@ -179,3 +179,79 @@ promise_test(async testCase => {
   releaseTxnFunction();
   db.close();
 }, 'Calling txn.commit() when txn is inactive should throw.');
+
+
+promise_test(async testCase => {
+  const db = await createDatabase(testCase, db => {
+    createBooksStore(testCase, db);
+    createNotBooksStore(testCase, db);
+  });
+  // Txn1 should commit before txn2, even though txn2 uses commit().
+  const txn1 = db.transaction(['books'], 'readwrite');
+  const objectStore1 = txn1.objectStore('books');
+  const putRequest1 = objectStore1.put({isbn:'one', title:'title1'});
+  const releaseTxnFunction = keepAlive(testCase, txn1, 'books');
+
+  const txn2 = db.transaction(['books'], 'readwrite');
+  const objectStore2 = txn2.objectStore('books');
+  const putRequest2 = objectStore2.put({isbn:'one', title:'title2'});
+  txn2.commit();
+
+  // Exercise the IndexedDB transaction ordering by executing one with a
+  // different scope.
+  const txn3 = db.transaction(['not_books'], 'readwrite');
+  const objectStore3 = txn3.objectStore('not_books');
+  objectStore3.put({'title': 'not_title'}, 'key');
+  txn3.oncomplete = function() {
+    releaseTxnFunction();
+  }
+  await Promise.all([promiseForTransaction(testCase, txn1),
+                     promiseForTransaction(testCase, txn2)]);
+
+  // Read the data back to verify that txn2 executed last.
+  const txn4 = db.transaction(['books'], 'readonly');
+  const objectStore4 = txn4.objectStore('books');
+  const getRequest4 = objectStore4.get('one');
+  await promiseForTransaction(testCase, txn4);
+  assert_equals(getRequest4.result.title, 'title2');
+  db.close();
+}, 'Transactions with same scope should stay in program order, even if one '
+   + 'calls commit.');
+
+
+promise_test(async testCase => {
+  const db = await createDatabase(testCase, db => {
+    createBooksStore(testCase, db);
+  });
+  // Txn1 creates the book 'one' so the 'add()' below fails.
+  const txn1 = db.transaction(['books'], 'readwrite');
+  const objectStore1 = txn1.objectStore('books');
+  const putRequest1 = objectStore1.add({isbn:'one', title:'title1'});
+  txn1.commit();
+  await promiseForTransaction(testCase, txn1);
+
+  // Txn2 should abort, because the 'add' call is invalid, and commit() was
+  // called.
+  const txn2 = db.transaction(['books'], 'readwrite');
+  const objectStore2 = txn2.objectStore('books');
+  objectStore2.put({isbn:'two', title:'title2'});
+  const addRequest2 = objectStore2.add({isbn:'one', title:'title2'});
+  txn2.commit();
+  txn2.oncomplete = assert_unreached(
+    'Transaction with invalid "add" call should not be completed.');
+
+  var addWatcher = requestWatcher(testCase, addRequest2);
+  var txnWatcher = transactionWatcher(testCase, txn2);
+  await Promise.all([addWatcher.wait_for('error'),
+                     txnWatcher.wait_for('error', 'abort')]);
+
+  // Read the data back to verify that txn2 was aborted.
+  const txn3 = db.transaction(['books'], 'readonly');
+  const objectStore3 = txn3.objectStore('books');
+  const getRequest1 = objectStore3.get('one');
+  const getRequest2 = objectStore3.count('two');
+  await promiseForTransaction(testCase, txn3);
+  assert_equals(getRequest1.result.title, 'title1');
+  assert_equals(getRequest2.result, 0);
+  db.close();
+}, 'Transactions that explicitly commit and have errors should abort.');

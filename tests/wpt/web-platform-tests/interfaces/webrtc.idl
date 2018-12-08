@@ -75,22 +75,22 @@ enum RTCIceGatheringState {
 };
 
 enum RTCPeerConnectionState {
+    "closed",
+    "failed",
+    "disconnected",
     "new",
     "connecting",
-    "connected",
-    "disconnected",
-    "failed",
-    "closed"
+    "connected"
 };
 
 enum RTCIceConnectionState {
+    "closed",
+    "failed",
+    "disconnected",
     "new",
     "checking",
-    "connected",
     "completed",
-    "disconnected",
-    "failed",
-    "closed"
+    "connected"
 };
 
 [ Constructor(optional RTCConfiguration configuration), Exposed=Window]
