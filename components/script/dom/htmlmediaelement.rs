@@ -12,6 +12,7 @@ use crate::dom::bindings::codegen::Bindings::HTMLMediaElementBinding::HTMLMediaE
 use crate::dom::bindings::codegen::Bindings::HTMLSourceElementBinding::HTMLSourceElementMethods;
 use crate::dom::bindings::codegen::Bindings::MediaErrorBinding::MediaErrorConstants::*;
 use crate::dom::bindings::codegen::Bindings::MediaErrorBinding::MediaErrorMethods;
+use crate::dom::bindings::codegen::Bindings::TextTrackBinding::{TextTrackKind, TextTrackMode};
 use crate::dom::bindings::codegen::InheritTypes::{ElementTypeId, HTMLElementTypeId};
 use crate::dom::bindings::codegen::InheritTypes::{HTMLMediaElementTypeId, NodeTypeId};
 use crate::dom::bindings::error::{Error, ErrorResult};
@@ -33,6 +34,8 @@ use crate::dom::mediaerror::MediaError;
 use crate::dom::node::{document_from_node, window_from_node, Node, NodeDamage, UnbindContext};
 use crate::dom::performanceresourcetiming::InitiatorType;
 use crate::dom::promise::Promise;
+use crate::dom::texttrack::TextTrack;
+use crate::dom::texttracklist::TextTrackList;
 use crate::dom::timeranges::{TimeRanges, TimeRangesContainer};
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::fetch::FetchCanceller;
@@ -191,6 +194,8 @@ pub struct HTMLMediaElement {
     /// https://html.spec.whatwg.org/multipage/#dom-media-played
     #[ignore_malloc_size_of = "Rc"]
     played: Rc<DomRefCell<TimeRangesContainer>>,
+    /// https://html.spec.whatwg.org/multipage/#dom-media-texttracks
+    text_tracks_list: MutNullableDom<TextTrackList>,
 }
 
 /// <https://html.spec.whatwg.org/multipage/#dom-media-networkstate>
@@ -243,6 +248,7 @@ impl HTMLMediaElement {
             seeking: Cell::new(false),
             resource_url: DomRefCell::new(None),
             played: Rc::new(DomRefCell::new(TimeRangesContainer::new())),
+            text_tracks_list: Default::default(),
         }
     }
 
@@ -1245,6 +1251,16 @@ impl HTMLMediaElement {
             },
         }
     }
+
+    /// Wrapper function for working with the HTMLMediaElement's
+    /// associated [textTracks].
+    ///
+    /// [textTracks]: https://html.spec.whatwg.org/multipage/#dom-media-texttracks
+    pub fn text_tracks(&self) -> DomRoot<TextTrackList> {
+        let window = window_from_node(self);
+        self.text_tracks_list
+            .or_init(|| TextTrackList::new(&window, &[]))
+    }
 }
 
 impl HTMLMediaElementMethods for HTMLMediaElement {
@@ -1375,6 +1391,29 @@ impl HTMLMediaElementMethods for HTMLMediaElement {
     // https://html.spec.whatwg.org/multipage/#dom-media-played
     fn Played(&self) -> DomRoot<TimeRanges> {
         TimeRanges::new(self.global().as_window(), self.played.clone())
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-media-texttracks
+    fn TextTracks(&self) -> DomRoot<TextTrackList> {
+        self.text_tracks()
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-media-addtexttrack
+    fn AddTextTrack(
+        &self,
+        kind: TextTrackKind,
+        label: DOMString,
+        language: DOMString,
+    ) -> DomRoot<TextTrack> {
+        let window = window_from_node(self);
+        let text_tracks = self.text_tracks();
+        // Step 1 & 2
+        // FIXME set the ready state to Loaded
+        let track = TextTrack::new(&window, kind, label, language, TextTrackMode::Hidden);
+        // Step 3 & 4
+        text_tracks.add(&track);
+        // Step 5
+        DomRoot::from_ref(&track)
     }
 }
 
