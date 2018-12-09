@@ -243,7 +243,7 @@ class FirefoxBrowser(Browser):
         self.profile.set_preferences({
             "marionette.port": self.marionette_port,
             "network.dns.localDomains": ",".join(self.config.domains_set),
-
+            "dom.file.createInChild": True,
             # TODO: Remove preferences once Firefox 64 is stable (Bug 905404)
             "network.proxy.type": 0,
             "places.history.enabled": False,
