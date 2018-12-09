@@ -216,7 +216,7 @@ pub struct Window {
     layout_rpc: Box<LayoutRPC + Send + 'static>,
 
     /// The current size of the window, in pixels.
-    window_size: Cell<Option<WindowSizeData>>,
+    window_size: Cell<WindowSizeData>,
 
     /// A handle for communicating messages to the bluetooth thread.
     #[ignore_malloc_size_of = "channels are hard"]
@@ -958,7 +958,9 @@ impl WindowMethods for Window {
     fn InnerHeight(&self) -> i32 {
         self.window_size
             .get()
-            .and_then(|e| e.initial_viewport.height.to_i32())
+            .initial_viewport
+            .height
+            .to_i32()
             .unwrap_or(0)
     }
 
@@ -967,7 +969,9 @@ impl WindowMethods for Window {
     fn InnerWidth(&self) -> i32 {
         self.window_size
             .get()
-            .and_then(|e| e.initial_viewport.width.to_i32())
+            .initial_viewport
+            .width
+            .to_i32()
             .unwrap_or(0)
     }
 
@@ -1245,10 +1249,7 @@ impl Window {
         let xfinite = if x_.is_finite() { x_ } else { 0.0f64 };
         let yfinite = if y_.is_finite() { y_ } else { 0.0f64 };
 
-        // Step 4
-        if self.window_size.get().is_none() {
-            return;
-        }
+        // TODO Step 4 - determine if a window has a viewport
 
         // Step 5
         //TODO remove scrollbar width
@@ -1322,9 +1323,7 @@ impl Window {
     }
 
     pub fn device_pixel_ratio(&self) -> TypedScale<f32, CSSPixel, DevicePixel> {
-        self.window_size
-            .get()
-            .map_or(TypedScale::new(1.0), |data| data.device_pixel_ratio)
+        self.window_size.get().device_pixel_ratio
     }
 
     fn client_window(&self) -> (TypedSize2D<u32, CSSPixel>, TypedPoint2D<i32, CSSPixel>) {
@@ -1369,12 +1368,6 @@ impl Window {
             _ => (),
         }
 
-        // If there is no window size, we have nothing to do.
-        let window_size = match self.window_size.get() {
-            Some(window_size) => window_size,
-            None => return false,
-        };
-
         let for_display = reflow_goal == ReflowGoal::Full;
         if for_display && self.suppress_reflow.get() {
             debug!(
@@ -1417,7 +1410,7 @@ impl Window {
             },
             document: self.Document().upcast::<Node>().to_trusted_node_address(),
             stylesheets_changed,
-            window_size,
+            window_size: self.window_size.get(),
             reflow_goal,
             script_join_chan: join_chan,
             dom_count: self.Document().dom_count(),
@@ -1510,13 +1503,11 @@ impl Window {
         if !for_display || self.Document().needs_reflow() {
             issued_reflow = self.force_reflow(reflow_goal, reason);
 
-            // If window_size is `None`, we don't reflow, so the document stays
-            // dirty. Otherwise, we shouldn't need a reflow immediately after a
+            // We shouldn't need a reflow immediately after a
             // reflow, except if we're waiting for a deferred paint.
             assert!(
                 !self.Document().needs_reflow() ||
                     (!for_display && self.Document().needs_paint()) ||
-                    self.window_size.get().is_none() ||
                     self.suppress_reflow.get()
             );
         } else {
@@ -1801,10 +1792,10 @@ impl Window {
     }
 
     pub fn set_window_size(&self, size: WindowSizeData) {
-        self.window_size.set(Some(size));
+        self.window_size.set(size);
     }
 
-    pub fn window_size(&self) -> Option<WindowSizeData> {
+    pub fn window_size(&self) -> WindowSizeData {
         self.window_size.get()
     }
 
@@ -2021,7 +2012,7 @@ impl Window {
         layout_chan: Sender<Msg>,
         pipelineid: PipelineId,
         parent_info: Option<PipelineId>,
-        window_size: Option<WindowSizeData>,
+        window_size: WindowSizeData,
         origin: MutableOrigin,
         navigation_start: u64,
         navigation_start_precise: u64,

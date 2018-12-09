@@ -194,7 +194,7 @@ impl HTMLIFrameElement {
                     load_data: load_data.unwrap(),
                     pipeline_port: pipeline_receiver,
                     content_process_shutdown_chan: None,
-                    window_size: Some(WindowSizeData {
+                    window_size: WindowSizeData {
                         initial_viewport: {
                             let rect = self.upcast::<Node>().bounding_content_box_or_zero();
                             TypedSize2D::new(
@@ -203,7 +203,7 @@ impl HTMLIFrameElement {
                             )
                         },
                         device_pixel_ratio: window.device_pixel_ratio(),
-                    }),
+                    },
                     layout_threads: PREFS.get("layout.threads").as_u64().expect("count") as usize,
                 };
 

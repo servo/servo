@@ -69,10 +69,8 @@ impl MediaQueryList {
     }
 
     pub fn evaluate(&self) -> bool {
-        self.document.device().map_or(false, |device| {
-            self.media_query_list
-                .evaluate(&device, self.document.quirks_mode())
-        })
+        self.media_query_list
+            .evaluate(&self.document.device(), self.document.quirks_mode())
     }
 }
 
