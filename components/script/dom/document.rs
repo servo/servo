@@ -2800,17 +2800,11 @@ impl Document {
     ///
     /// FIXME(emilio): This really needs to be somehow more in sync with layout.
     /// Feels like a hack.
-    ///
-    /// Also, shouldn't return an option, I'm quite sure.
-    pub fn device(&self) -> Option<Device> {
-        let window_size = self.window().window_size()?;
+    pub fn device(&self) -> Device {
+        let window_size = self.window().window_size();
         let viewport_size = window_size.initial_viewport;
         let device_pixel_ratio = window_size.device_pixel_ratio;
-        Some(Device::new(
-            MediaType::screen(),
-            viewport_size,
-            device_pixel_ratio,
-        ))
+        Device::new(MediaType::screen(), viewport_size, device_pixel_ratio)
     }
 
     /// Remove a stylesheet owned by `owner` from the list of document sheets.
@@ -4177,7 +4171,7 @@ impl DocumentMethods for Document {
         let y = *y as f32;
         let point = &Point2D::new(x, y);
         let window = window_from_node(self);
-        let viewport = window.window_size()?.initial_viewport;
+        let viewport = window.window_size().initial_viewport;
 
         if self.browsing_context().is_none() {
             return None;
@@ -4212,10 +4206,7 @@ impl DocumentMethods for Document {
         let y = *y as f32;
         let point = &Point2D::new(x, y);
         let window = window_from_node(self);
-        let viewport = match window.window_size() {
-            Some(size) => size.initial_viewport,
-            None => return vec![],
-        };
+        let viewport = window.window_size().initial_viewport;
 
         if self.browsing_context().is_none() {
             return vec![];
