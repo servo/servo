@@ -26,6 +26,7 @@ use crate::dom::windowproxy::WindowProxy;
 use crate::script_thread::ScriptThread;
 use crate::task_source::TaskSource;
 use dom_struct::dom_struct;
+use euclid::TypedSize2D;
 use html5ever::{LocalName, Prefix};
 use ipc_channel::ipc;
 use msg::constellation_msg::{BrowsingContextId, PipelineId, TopLevelBrowsingContextId};
@@ -34,6 +35,7 @@ use script_layout_interface::message::ReflowGoal;
 use script_traits::IFrameSandboxState::{IFrameSandboxed, IFrameUnsandboxed};
 use script_traits::{
     IFrameLoadInfo, IFrameLoadInfoWithData, JsEvalResult, LoadData, UpdatePipelineIdReason,
+    WindowSizeData,
 };
 use script_traits::{NewLayoutInfo, ScriptMsg};
 use servo_config::prefs::PREFS;
@@ -192,7 +194,16 @@ impl HTMLIFrameElement {
                     load_data: load_data.unwrap(),
                     pipeline_port: pipeline_receiver,
                     content_process_shutdown_chan: None,
-                    window_size: None,
+                    window_size: Some(WindowSizeData {
+                        initial_viewport: {
+                            let rect = self.upcast::<Node>().bounding_content_box_or_zero();
+                            TypedSize2D::new(
+                                rect.size.width.to_f32_px(),
+                                rect.size.height.to_f32_px(),
+                            )
+                        },
+                        device_pixel_ratio: window.device_pixel_ratio(),
+                    }),
                     layout_threads: PREFS.get("layout.threads").as_u64().expect("count") as usize,
                 };
 
