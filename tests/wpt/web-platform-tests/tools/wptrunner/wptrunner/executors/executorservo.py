@@ -122,7 +122,7 @@ class ServoTestharnessExecutor(ProcessTestExecutor):
                     self.proc.wait()
                 else:
                     self.proc.kill()
-        except KeyboardInterrupt:
+        except:
             self.proc.kill()
             raise
 
