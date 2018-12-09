@@ -45,5 +45,5 @@ servo_url = {path = "../url"}
 webvr_traits = {path = "../webvr_traits"}
 webrender_api = {git = "https://github.com/servo/webrender", features = ["ipc"]}
 
-[target.'cfg(all(not(target_os = "windows"), not(target_os = "ios")))'.dependencies]
+[target.'cfg(all(not(target_os = "windows"), not(target_os = "ios"), not(target_os="android")))'.dependencies]
 gaol = {git = "https://github.com/servo/gaol"}
