@@ -39,9 +39,10 @@ use gfx::text::glyph::ByteIndex;
 use gfx::text::TextRun;
 use gfx_traits::{combine_id_with_fragment_type, FragmentType, StackingContextId};
 use ipc_channel::ipc;
-use msg::constellation_msg::{BrowsingContextId, PipelineId};
+use msg::constellation_msg::PipelineId;
 use net_traits::image_cache::UsePlaceholder;
 use range::Range;
+use script_traits::IFrameSize;
 use servo_config::opts;
 use servo_geometry::MaxRect;
 use std::default::Default;
@@ -64,7 +65,6 @@ use style::values::generics::image::{GradientKind, Image, PaintWorklet};
 use style::values::generics::ui::Cursor;
 use style::values::{Either, RGBA};
 use style_traits::cursor::CursorKind;
-use style_traits::CSSPixel;
 use style_traits::ToCss;
 use webrender_api::{self, BorderDetails, BorderRadius, BorderSide, BoxShadowClipMode, ColorF};
 use webrender_api::{ExternalScrollId, FilterOp, GlyphInstance, ImageRendering, LayoutRect};
@@ -347,7 +347,7 @@ pub struct DisplayListBuildState<'a> {
 
     /// Vector containing iframe sizes, used to inform the constellation about
     /// new iframe sizes
-    pub iframe_sizes: Vec<(BrowsingContextId, TypedSize2D<f32, CSSPixel>)>,
+    pub iframe_sizes: Vec<IFrameSize>,
 
     /// Stores text runs to answer text queries used to place a cursor inside text.
     pub indexable_text: IndexableText,
@@ -2001,9 +2001,10 @@ impl FragmentDisplayListBuilding for Fragment {
                     }));
 
                     let size = Size2D::new(item.bounds().size.width, item.bounds().size.height);
-                    state
-                        .iframe_sizes
-                        .push((browsing_context_id, TypedSize2D::from_untyped(&size)));
+                    state.iframe_sizes.push(IFrameSize {
+                        id: browsing_context_id,
+                        size: TypedSize2D::from_untyped(&size),
+                    });
 
                     state.add_display_item(item);
                 }

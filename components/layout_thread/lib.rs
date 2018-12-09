@@ -68,8 +68,8 @@ use metrics::{PaintTimeMetrics, ProfilerMetadataFactory, ProgressiveWebMetric};
 use msg::constellation_msg::{
     BackgroundHangMonitor, BackgroundHangMonitorRegister, HangAnnotation,
 };
+use msg::constellation_msg::{BrowsingContextId, MonitoredComponentId, TopLevelBrowsingContextId};
 use msg::constellation_msg::{LayoutHangAnnotation, MonitoredComponentType, PipelineId};
-use msg::constellation_msg::{MonitoredComponentId, TopLevelBrowsingContextId};
 use net_traits::image_cache::{ImageCache, UsePlaceholder};
 use parking_lot::RwLock;
 use profile_traits::mem::{self as profile_mem, Report, ReportKind, ReportsChan};
@@ -82,7 +82,7 @@ use script_layout_interface::rpc::{LayoutRPC, OffsetParentResponse, StyleRespons
 use script_layout_interface::wrapper_traits::LayoutNode;
 use script_traits::Painter;
 use script_traits::{ConstellationControlMsg, LayoutControlMsg, LayoutMsg as ConstellationMsg};
-use script_traits::{DrawAPaintImageResult, PaintWorkletError};
+use script_traits::{DrawAPaintImageResult, IFrameSizeMsg, PaintWorkletError, WindowSizeType};
 use script_traits::{ScrollState, UntrustedNodeAddress};
 use selectors::Element;
 use servo_arc::Arc as ServoArc;
@@ -241,6 +241,9 @@ pub struct LayoutThread {
 
     /// The time a layout query has waited before serviced by layout thread.
     layout_query_waiting_time: Histogram,
+
+    /// The sizes of all iframes encountered during the last layout operation.
+    last_iframe_sizes: RefCell<HashMap<BrowsingContextId, TypedSize2D<f32, CSSPixel>>>,
 }
 
 impl LayoutThreadFactory for LayoutThread {
@@ -544,6 +547,7 @@ impl LayoutThread {
             },
             paint_time_metrics: paint_time_metrics,
             layout_query_waiting_time: Histogram::new(),
+            last_iframe_sizes: Default::default(),
         }
     }
 
@@ -1054,9 +1058,41 @@ impl LayoutThread {
                             // it with an empty vector
                             let iframe_sizes =
                                 std::mem::replace(&mut build_state.iframe_sizes, vec![]);
-                            let msg = ConstellationMsg::IFrameSizes(iframe_sizes);
-                            if let Err(e) = self.constellation_chan.send(msg) {
-                                warn!("Layout resize to constellation failed ({}).", e);
+                            // Collect the last frame's iframe sizes to compute any differences.
+                            // Every frame starts with a fresh collection so that any removed
+                            // iframes do not linger.
+                            let last_iframe_sizes = std::mem::replace(
+                                &mut *self.last_iframe_sizes.borrow_mut(),
+                                HashMap::default(),
+                            );
+                            let mut size_messages = vec![];
+                            for new_size in iframe_sizes {
+                                // Only notify the constellation about existing iframes
+                                // that have a new size, or iframes that did not previously
+                                // exist.
+                                if let Some(old_size) = last_iframe_sizes.get(&new_size.id) {
+                                    if *old_size != new_size.size {
+                                        size_messages.push(IFrameSizeMsg {
+                                            data: new_size,
+                                            type_: WindowSizeType::Resize,
+                                        });
+                                    }
+                                } else {
+                                    size_messages.push(IFrameSizeMsg {
+                                        data: new_size,
+                                        type_: WindowSizeType::Initial,
+                                    });
+                                }
+                                self.last_iframe_sizes
+                                    .borrow_mut()
+                                    .insert(new_size.id, new_size.size);
+                            }
+
+                            if !size_messages.is_empty() {
+                                let msg = ConstellationMsg::IFrameSizes(size_messages);
+                                if let Err(e) = self.constellation_chan.send(msg) {
+                                    warn!("Layout resize to constellation failed ({}).", e);
+                                }
                             }
                         }
 

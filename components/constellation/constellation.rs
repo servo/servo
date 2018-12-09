@@ -146,9 +146,9 @@ use script_traits::{DocumentActivity, DocumentState, LayoutControlMsg, LoadData}
 use script_traits::{
     IFrameLoadInfo, IFrameLoadInfoWithData, IFrameSandboxState, TimerSchedulerMsg,
 };
+use script_traits::{IFrameSizeMsg, WindowSizeData, WindowSizeType};
 use script_traits::{LayoutMsg as FromLayoutMsg, ScriptMsg as FromScriptMsg, ScriptThreadFactory};
 use script_traits::{SWManagerMsg, ScopeThings, UpdatePipelineIdReason, WebDriverCommandMsg};
-use script_traits::{WindowSizeData, WindowSizeType};
 use serde::{Deserialize, Serialize};
 use servo_config::opts;
 use servo_config::prefs::PREFS;
@@ -1837,17 +1837,14 @@ where
         }
     }
 
-    fn handle_iframe_size_msg(
-        &mut self,
-        iframe_sizes: Vec<(BrowsingContextId, TypedSize2D<f32, CSSPixel>)>,
-    ) {
-        for (browsing_context_id, size) in iframe_sizes {
+    fn handle_iframe_size_msg(&mut self, iframe_sizes: Vec<IFrameSizeMsg>) {
+        for IFrameSizeMsg { data, type_ } in iframe_sizes {
             let window_size = WindowSizeData {
-                initial_viewport: size,
+                initial_viewport: data.size,
                 device_pixel_ratio: self.window_size.device_pixel_ratio,
             };
 
-            self.resize_browsing_context(window_size, WindowSizeType::Initial, browsing_context_id);
+            self.resize_browsing_context(window_size, type_, data.id);
         }
     }
 
