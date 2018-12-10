@@ -1223,6 +1223,7 @@ impl<Impl: SelectorImpl> ToCss for Component<Impl> {
                     ParsedCaseSensitivity::CaseSensitive |
                     ParsedCaseSensitivity::AsciiCaseInsensitiveIfInHtmlElementInHtmlDocument => {},
                     ParsedCaseSensitivity::AsciiCaseInsensitive => dest.write_str(" i")?,
+                    ParsedCaseSensitivity::ExplicitCaseSensitive => dest.write_str(" s")?,
                 }
                 dest.write_char(']')
             },
@@ -1301,6 +1302,7 @@ impl<Impl: SelectorImpl> ToCss for AttrSelectorWithOptionalNamespace<Impl> {
                     ParsedCaseSensitivity::CaseSensitive |
                     ParsedCaseSensitivity::AsciiCaseInsensitiveIfInHtmlElementInHtmlDocument => {},
                     ParsedCaseSensitivity::AsciiCaseInsensitive => dest.write_str(" i")?,
+                    ParsedCaseSensitivity::ExplicitCaseSensitive => dest.write_str(" i")?,
                 }
             },
         }
@@ -1711,24 +1713,15 @@ where
         AttrSelectorOperator::Suffix => value.is_empty(),
     };
 
-    let mut case_sensitivity = parse_attribute_flags(input)?;
+    let attribute_flags = parse_attribute_flags(input)?;
 
     let value = value.as_ref().into();
     let local_name_lower;
     let local_name_is_ascii_lowercase;
+    let case_sensitivity;
     {
         let local_name_lower_cow = to_ascii_lowercase(&local_name);
-        if let ParsedCaseSensitivity::CaseSensitive = case_sensitivity {
-            if namespace.is_none() && include!(concat!(
-                env!("OUT_DIR"),
-                "/ascii_case_insensitive_html_attributes.rs"
-            ))
-            .contains(&*local_name_lower_cow)
-            {
-                case_sensitivity =
-                    ParsedCaseSensitivity::AsciiCaseInsensitiveIfInHtmlElementInHtmlDocument
-            }
-        }
+        case_sensitivity = attribute_flags.to_case_sensitivity(local_name_lower_cow.as_ref(), namespace.is_some());
         local_name_lower = local_name_lower_cow.as_ref().into();
         local_name_is_ascii_lowercase = matches!(local_name_lower_cow, Cow::Borrowed(..));
     }
@@ -1758,20 +1751,67 @@ where
     }
 }
 
+/// An attribute selector can have 's' or 'i' as flags, or no flags at all.
+enum AttributeFlags {
+    // Matching should be case-sensitive ('s' flag).
+    CaseSensitive,
+    // Matching should be case-insensitive ('i' flag).
+    AsciiCaseInsensitive,
+    // No flags.  Matching behavior depends on the name of the attribute.
+    CaseSensitivityDependsOnName
+}
+
+impl AttributeFlags {
+    fn to_case_sensitivity(
+        self,
+        local_name: &str,
+        have_namespace: bool,
+    ) -> ParsedCaseSensitivity {
+        match self {
+            AttributeFlags::CaseSensitive =>
+                ParsedCaseSensitivity::ExplicitCaseSensitive,
+            AttributeFlags::AsciiCaseInsensitive =>
+                ParsedCaseSensitivity::AsciiCaseInsensitive,
+            AttributeFlags::CaseSensitivityDependsOnName => {
+                if !have_namespace && include!(concat!(
+                    env!("OUT_DIR"),
+                    "/ascii_case_insensitive_html_attributes.rs"
+                ))
+                    .contains(local_name)
+                {
+                    ParsedCaseSensitivity::AsciiCaseInsensitiveIfInHtmlElementInHtmlDocument
+                } else {
+                    ParsedCaseSensitivity::CaseSensitive
+                }
+            }
+        }
+    }
+}
+
 fn parse_attribute_flags<'i, 't>(
     input: &mut CssParser<'i, 't>,
-) -> Result<ParsedCaseSensitivity, BasicParseError<'i>> {
+) -> Result<AttributeFlags, BasicParseError<'i>> {
     let location = input.current_source_location();
-    match input.next() {
-        Err(_) => {
-            // Selectors spec says language-defined, but HTML says sensitive.
-            Ok(ParsedCaseSensitivity::CaseSensitive)
-        },
-        Ok(&Token::Ident(ref value)) if value.eq_ignore_ascii_case("i") => {
-            Ok(ParsedCaseSensitivity::AsciiCaseInsensitive)
-        },
-        Ok(t) => Err(location.new_basic_unexpected_token_error(t.clone())),
-    }
+    let token = match input.next() {
+        Ok(t) => t,
+        Err(..) => {
+            // Selectors spec says language-defined; HTML says it depends on the
+            // exact attribute name.
+            return Ok(AttributeFlags::CaseSensitivityDependsOnName);
+        }
+    };
+
+    let ident = match *token {
+        Token::Ident(ref i) => i,
+        ref other => return Err(location.new_basic_unexpected_token_error(other.clone())),
+    };
+
+    Ok(match_ignore_ascii_case! {
+        ident,
+        "i" => AttributeFlags::AsciiCaseInsensitive,
+        "s" => AttributeFlags::CaseSensitive,
+        _ => return Err(location.new_basic_unexpected_token_error(token.clone())),
+    })
 }
 
 /// Level 3: Parse **one** simple_selector.  (Though we might insert a second

@@ -134,8 +134,13 @@ pub static SELECTOR_WHITESPACE: &'static [char] = &[' ', '\t', '\n', '\r', '\x0C
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ParsedCaseSensitivity {
-    CaseSensitive,
+    // 's' was specified.
+    ExplicitCaseSensitive,
+    // 'i' was specified.
     AsciiCaseInsensitive,
+    // No flags were specified and HTML says this is a case-sensitive attribute.
+    CaseSensitive,
+    // No flags were specified and HTML says this is a case-insensitive attribute.
     AsciiCaseInsensitiveIfInHtmlElementInHtmlDocument,
 }
 
@@ -150,7 +155,10 @@ impl ParsedCaseSensitivity {
             ParsedCaseSensitivity::AsciiCaseInsensitiveIfInHtmlElementInHtmlDocument => {
                 CaseSensitivity::CaseSensitive
             },
-            ParsedCaseSensitivity::CaseSensitive => CaseSensitivity::CaseSensitive,
+            ParsedCaseSensitivity::CaseSensitive |
+            ParsedCaseSensitivity::ExplicitCaseSensitive => {
+                CaseSensitivity::CaseSensitive
+            },
             ParsedCaseSensitivity::AsciiCaseInsensitive => CaseSensitivity::AsciiCaseInsensitive,
         }
     }
