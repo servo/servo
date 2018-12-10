@@ -4034,17 +4034,16 @@ where
 
     /// Send the current frame tree to compositor
     fn send_frame_tree(&mut self, top_level_browsing_context_id: TopLevelBrowsingContextId) {
-        self.active_browser_id = Some(top_level_browsing_context_id);
-        let browsing_context_id = BrowsingContextId::from(top_level_browsing_context_id);
-
         // Note that this function can panic, due to ipc-channel creation failure.
         // avoiding this panic would require a mechanism for dealing
         // with low-resource scenarios.
-        debug!(
-            "Sending frame tree for browsing context {}.",
-            browsing_context_id
-        );
+        let browsing_context_id = BrowsingContextId::from(top_level_browsing_context_id);
         if let Some(frame_tree) = self.browsing_context_to_sendable(browsing_context_id) {
+            debug!(
+                "Sending frame tree for browsing context {}.",
+                browsing_context_id
+            );
+            self.active_browser_id = Some(top_level_browsing_context_id);
             self.compositor_proxy
                 .send(ToCompositorMsg::SetFrameTree(frame_tree));
         }
