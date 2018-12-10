@@ -1159,6 +1159,8 @@ impl WebDriverHandler<ServoExtensionRoute> for Handler {
         _session: &Option<Session>,
         msg: WebDriverMessage<ServoExtensionRoute>,
     ) -> WebDriverResult<WebDriverResponse> {
+        info!("{:?}", msg.command);
+
         // Unless we are trying to create a new session, we need to ensure that a
         // session has previously been created
         match msg.command {
