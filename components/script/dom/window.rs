@@ -1361,6 +1361,7 @@ impl Window {
     /// Returns true if layout actually happened, false otherwise.
     #[allow(unsafe_code)]
     pub fn force_reflow(&self, reflow_goal: ReflowGoal, reason: ReflowReason) -> bool {
+        self.Document().ensure_safe_to_run_script_or_layout();
         // Check if we need to unsuppress reflow. Note that this needs to be
         // *before* any early bailouts, or reflow might never be unsuppresed!
         match reason {
@@ -1497,6 +1498,7 @@ impl Window {
     /// may happen in the only case a query reflow may bail out, that is, if the
     /// viewport size is not present). See #11223 for an example of that.
     pub fn reflow(&self, reflow_goal: ReflowGoal, reason: ReflowReason) -> bool {
+        self.Document().ensure_safe_to_run_script_or_layout();
         let for_display = reflow_goal == ReflowGoal::Full;
 
         let mut issued_reflow = false;
