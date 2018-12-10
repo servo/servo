@@ -623,18 +623,22 @@ impl VirtualMethods for HTMLIFrameElement {
             s.bind_to_tree(tree_in_doc);
         }
 
-        // https://html.spec.whatwg.org/multipage/#the-iframe-element
-        // "When an iframe element is inserted into a document that has
-        // a browsing context, the user agent must create a new
-        // browsing context, set the element's nested browsing context
-        // to the newly-created browsing context, and then process the
-        // iframe attributes for the "first time"."
-        if self.upcast::<Node>().is_in_doc_with_browsing_context() {
-            debug!("iframe bound to browsing context.");
-            debug_assert!(tree_in_doc, "is_in_doc_with_bc, but not tree_in_doc");
-            self.create_nested_browsing_context();
-            self.process_the_iframe_attributes(ProcessingMode::FirstTime);
-        }
+        let iframe = Trusted::new(self);
+        document_from_node(self).add_delayed_task(task!(IFrameDelayedInitialize: move || {
+                let this = iframe.root();
+                // https://html.spec.whatwg.org/multipage/#the-iframe-element
+                // "When an iframe element is inserted into a document that has
+                // a browsing context, the user agent must create a new
+                // browsing context, set the element's nested browsing context
+                // to the newly-created browsing context, and then process the
+                // iframe attributes for the "first time"."
+                if this.upcast::<Node>().is_in_doc_with_browsing_context() {
+                    debug!("iframe bound to browsing context.");
+                    debug_assert!(tree_in_doc, "is_in_doc_with_bc, but not tree_in_doc");
+                    this.create_nested_browsing_context();
+                    this.process_the_iframe_attributes(ProcessingMode::FirstTime);
+                }
+            }));
     }
 
     fn unbind_from_tree(&self, context: &UnbindContext) {
