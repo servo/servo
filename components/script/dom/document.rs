@@ -410,6 +410,8 @@ pub struct Document {
     responsive_images: DomRefCell<Vec<Dom<HTMLImageElement>>>,
     /// Number of redirects for the document load
     redirect_count: Cell<u16>,
+    ///
+    script_and_layout_blockers: Cell<u32>,
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
@@ -2689,7 +2691,25 @@ impl Document {
             fired_unload: Cell::new(false),
             responsive_images: Default::default(),
             redirect_count: Cell::new(0),
+            script_and_layout_blockers: Cell::new(0),
         }
+    }
+
+    pub fn add_script_and_layout_blocker(&self) {
+        self.script_and_layout_blockers.set(
+            self.script_and_layout_blockers.get() + 1
+        );
+    }
+
+    pub fn remove_script_and_layout_blocker(&self) {
+        assert!(self.script_and_layout_blockers.get() > 0);
+        self.script_and_layout_blockers.set(
+            self.script_and_layout_blockers.get() - 1
+        );
+    }
+
+    pub fn ensure_safe_to_run_script_or_layout(&self) {
+        assert_eq!(self.script_and_layout_blockers.get(), 0);
     }
 
     // https://dom.spec.whatwg.org/#dom-document-document

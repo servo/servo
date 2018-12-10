@@ -1504,8 +1504,11 @@ impl Node {
 
     // https://dom.spec.whatwg.org/#concept-node-adopt
     pub fn adopt(node: &Node, document: &Document) {
+        document.add_script_and_layout_blocker();
+
         // Step 1.
         let old_doc = node.owner_doc();
+        old_doc.add_script_and_layout_blocker();
         // Step 2.
         node.remove_self();
         // Step 3.
@@ -1530,6 +1533,9 @@ impl Node {
                 vtable_for(&descendant).adopting_steps(&old_doc);
             }
         }
+
+        old_doc.remove_script_and_layout_blocker();
+        document.remove_script_and_layout_blocker();
     }
 
     // https://dom.spec.whatwg.org/#concept-node-ensure-pre-insertion-validity
@@ -1685,6 +1691,7 @@ impl Node {
         child: Option<&Node>,
         suppress_observers: SuppressObserver,
     ) {
+        node.owner_doc().add_script_and_layout_blocker();
         debug_assert!(&*node.owner_doc() == &*parent.owner_doc());
         debug_assert!(child.map_or(true, |child| Some(parent) == child.GetParentNode().r()));
 
@@ -1774,10 +1781,12 @@ impl Node {
             };
             MutationObserver::queue_a_mutation_record(&parent, mutation);
         }
+        node.owner_doc().remove_script_and_layout_blocker();
     }
 
     // https://dom.spec.whatwg.org/#concept-node-replace-all
     pub fn replace_all(node: Option<&Node>, parent: &Node) {
+        parent.owner_doc().add_script_and_layout_blocker();
         // Step 1.
         if let Some(node) = node {
             Node::adopt(node, &*parent.owner_doc());
@@ -1819,6 +1828,7 @@ impl Node {
             };
             MutationObserver::queue_a_mutation_record(&parent, mutation);
         }
+        parent.owner_doc().remove_script_and_layout_blocker();
     }
 
     // https://dom.spec.whatwg.org/#concept-node-pre-remove
@@ -1839,6 +1849,7 @@ impl Node {
 
     // https://dom.spec.whatwg.org/#concept-node-remove
     fn remove(node: &Node, parent: &Node, suppress_observers: SuppressObserver) {
+        parent.owner_doc().add_script_and_layout_blocker();
         assert!(
             node.GetParentNode()
                 .map_or(false, |node_parent| &*node_parent == parent)
@@ -1884,6 +1895,7 @@ impl Node {
             };
             MutationObserver::queue_a_mutation_record(&parent, mutation);
         }
+        parent.owner_doc().remove_script_and_layout_blocker();
     }
 
     // https://dom.spec.whatwg.org/#concept-node-clone
