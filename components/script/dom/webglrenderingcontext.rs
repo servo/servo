@@ -69,7 +69,7 @@ use js::typedarray::{TypedArray, TypedArrayElementCreator};
 use net_traits::image_cache::ImageResponse;
 use offscreen_gl_context::{GLContextAttributes, GLLimits};
 use pixels::{self, PixelFormat};
-use profile_traits::time::{profile, ProfilerChan};
+use profile_traits::time::{profile, ProfilerCategory};
 use script_layout_interface::HTMLCanvasDataSource;
 use serde::{Deserialize, Serialize};
 use servo_config::prefs::PREFS;

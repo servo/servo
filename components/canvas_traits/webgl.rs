@@ -7,6 +7,7 @@ use gleam::gl;
 use ipc_channel::ipc::{IpcBytesReceiver, IpcBytesSender, IpcSharedMemory};
 use offscreen_gl_context::{GLContextAttributes, GLLimits};
 use pixels::PixelFormat;
+use profile_derive::ToProfile;
 use serde_bytes::ByteBuf;
 use std::borrow::Cow;
 use std::num::NonZeroU32;
@@ -174,7 +175,8 @@ impl WebGLMsgSender {
 }
 
 /// WebGL Commands for a specific WebGLContext
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, ToProfile)]
+#[profile_prefix = "WebGl"]
 pub enum WebGLCommand {
     GetContextAttributes(WebGLSender<GLContextAttributes>),
     ActiveTexture(u32),

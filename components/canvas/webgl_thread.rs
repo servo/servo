@@ -11,8 +11,8 @@ use gleam::gl;
 use half::f16;
 use offscreen_gl_context::{GLContext, GLContextAttributes, GLLimits, NativeGLContextMethods};
 use pixels::{self, PixelFormat};
+use profile_traits::time::{profile, ProfilerChan};
 use std::borrow::Cow;
-use profile_traits::time::{profile, ProfilerCategory, ProfilerChan};
 use std::thread;
 
 /// WebGL Threading API entry point that lives in the constellation.
@@ -102,8 +102,12 @@ impl<VR: WebVRRenderHandler + 'static> WebGLThread<VR> {
         thread::Builder::new()
             .name("WebGLThread".to_owned())
             .spawn(move || {
-                let mut renderer =
-                    WebGLThread::new(gl_factory, webrender_api_sender, webvr_compositor, time_profiler_chan);
+                let mut renderer = WebGLThread::new(
+                    gl_factory,
+                    webrender_api_sender,
+                    webvr_compositor,
+                    time_profiler_chan,
+                );
                 let webgl_chan = WebGLChan(sender);
                 loop {
                     let msg = receiver.recv().unwrap();
@@ -168,11 +172,14 @@ impl<VR: WebVRRenderHandler + 'static> WebGLThread<VR> {
             WebGLMsg::RemoveContext(ctx_id) => {
                 self.remove_webgl_context(ctx_id);
             },
-            WebGLMsg::WebGLCommand(ctx_id, command, backtrace) => {
-                profile(profiler_category(&command), None, self.time_profiler_chan.clone(), || {
+            WebGLMsg::WebGLCommand(ctx_id, command, backtrace) => profile(
+                (&command).into(),
+                None,
+                self.time_profiler_chan.clone(),
+                || {
                     self.handle_webgl_command(ctx_id, command, backtrace);
-                })
-            },
+                },
+            ),
             WebGLMsg::WebVRCommand(ctx_id, command) => {
                 self.handle_webvr_command(ctx_id, command);
             },
@@ -2095,148 +2102,4 @@ fn flip_pixels_y(
     }
 
     flipped
-}
-
-fn profiler_category(webgl_command: &WebGLCommand) -> ProfilerCategory {
-    match webgl_command {
-        WebGLCommand::GetContextAttributes(..) => ProfilerCategory::WebGlGetContextAttributes,
-        WebGLCommand::ActiveTexture(..) => ProfilerCategory::WebGlActiveTexture,
-        WebGLCommand::BlendColor(..) => ProfilerCategory::WebGlBlendColor,
-        WebGLCommand::BlendEquation(..) => ProfilerCategory::WebGlBlendEquation,
-        WebGLCommand::BlendEquationSeparate(..) => ProfilerCategory::WebGlBlendEquationSeparate,
-        WebGLCommand::BlendFunc(..) => ProfilerCategory::WebGlBlendFunc,
-        WebGLCommand::BlendFuncSeparate(..) => ProfilerCategory::WebGlBlendFuncSeparate,
-        WebGLCommand::AttachShader(..) => ProfilerCategory::WebGlAttachShader,
-        WebGLCommand::DetachShader(..) => ProfilerCategory::WebGlDetachShader,
-        WebGLCommand::BindAttribLocation(..) => ProfilerCategory::WebGlBindAttribLocation,
-        WebGLCommand::BufferData(..) => ProfilerCategory::WebGlBufferData,
-        WebGLCommand::BufferSubData(..) => ProfilerCategory::WebGlBufferSubData,
-        WebGLCommand::Clear(..) => ProfilerCategory::WebGlClear,
-        WebGLCommand::ClearColor(..) => ProfilerCategory::WebGlClearColor,
-        WebGLCommand::ClearDepth(..) => ProfilerCategory::WebGlClearDepth,
-        WebGLCommand::ClearStencil(..) => ProfilerCategory::WebGlClearStencil,
-        WebGLCommand::ColorMask(..) => ProfilerCategory::WebGlColorMask,
-        WebGLCommand::CullFace(..) => ProfilerCategory::WebGlCullFace,
-        WebGLCommand::FrontFace(..) => ProfilerCategory::WebGlFrontFace,
-        WebGLCommand::DepthFunc(..) => ProfilerCategory::WebGlDepthFunc,
-        WebGLCommand::DepthMask(..) => ProfilerCategory::WebGlDepthMask,
-        WebGLCommand::DepthRange(..) => ProfilerCategory::WebGlDepthRange,
-        WebGLCommand::Enable(..) => ProfilerCategory::WebGlEnable,
-        WebGLCommand::Disable(..) => ProfilerCategory::WebGlDisable,
-        WebGLCommand::CompileShader(..) => ProfilerCategory::WebGlCompileShader,
-        WebGLCommand::CopyTexImage2D(..) => ProfilerCategory::WebGlCopyTexImage2D,
-        WebGLCommand::CopyTexSubImage2D(..) => ProfilerCategory::WebGlCopyTexSubImage2D,
-        WebGLCommand::CreateBuffer(..) => ProfilerCategory::WebGlCreateBuffer,
-        WebGLCommand::CreateFramebuffer(..) => ProfilerCategory::WebGlCreateFramebuffer,
-        WebGLCommand::CreateRenderbuffer(..) => ProfilerCategory::WebGlCreateRenderbuffer,
-        WebGLCommand::CreateTexture(..) => ProfilerCategory::WebGlCreateTexture,
-        WebGLCommand::CreateProgram(..) => ProfilerCategory::WebGlCreateProgram,
-        WebGLCommand::CreateShader(..) => ProfilerCategory::WebGlCreateShader,
-        WebGLCommand::DeleteBuffer(..) => ProfilerCategory::WebGlDeleteBuffer,
-        WebGLCommand::DeleteFramebuffer(..) => ProfilerCategory::WebGlDeleteFramebuffer,
-        WebGLCommand::DeleteRenderbuffer(..) => ProfilerCategory::WebGlDeleteRenderbuffer,
-        WebGLCommand::DeleteTexture(..) => ProfilerCategory::WebGlDeleteTexture,
-        WebGLCommand::DeleteProgram(..) => ProfilerCategory::WebGlDeleteProgram,
-        WebGLCommand::DeleteShader(..) => ProfilerCategory::WebGlDeleteShader,
-        WebGLCommand::BindBuffer(..) => ProfilerCategory::WebGlBindBuffer,
-        WebGLCommand::BindFramebuffer(..) => ProfilerCategory::WebGlBindFramebuffer,
-        WebGLCommand::BindRenderbuffer(..) => ProfilerCategory::WebGlBindRenderbuffer,
-        WebGLCommand::BindTexture(..) => ProfilerCategory::WebGlBindTexture,
-        WebGLCommand::DisableVertexAttribArray(..) => ProfilerCategory::WebGlDisableVertexAttribArray,
-        WebGLCommand::EnableVertexAttribArray(..) => ProfilerCategory::WebGlEnableVertexAttribArray,
-        WebGLCommand::FramebufferRenderbuffer(..) => ProfilerCategory::WebGlFramebufferRenderbuffer,
-        WebGLCommand::FramebufferTexture2D(..) => ProfilerCategory::WebGlFramebufferTexture2D,
-        WebGLCommand::GetExtensions(..) => ProfilerCategory::WebGlGetExtensions,
-        WebGLCommand::GetShaderPrecisionFormat(..) => ProfilerCategory::WebGlGetShaderPrecisionFormat,
-        WebGLCommand::GetUniformLocation(..) => ProfilerCategory::WebGlGetUniformLocation,
-        WebGLCommand::GetShaderInfoLog(..) => ProfilerCategory::WebGlGetShaderInfoLog,
-        WebGLCommand::GetProgramInfoLog(..) => ProfilerCategory::WebGlGetProgramInfoLog,
-        WebGLCommand::GetFramebufferAttachmentParameter(..) => ProfilerCategory::WebGlGetFramebufferAttachmentParameter,
-        WebGLCommand::GetRenderbufferParameter(..) => ProfilerCategory::WebGlGetRenderbufferParameter,
-        WebGLCommand::PolygonOffset(..) => ProfilerCategory::WebGlPolygonOffset,
-        WebGLCommand::RenderbufferStorage(..) => ProfilerCategory::WebGlRenderbufferStorage,
-        WebGLCommand::ReadPixels(..) => ProfilerCategory::WebGlReadPixels,
-        WebGLCommand::SampleCoverage(..) => ProfilerCategory::WebGlSampleCoverage,
-        WebGLCommand::Scissor(..) => ProfilerCategory::WebGlScissor,
-        WebGLCommand::StencilFunc(..) => ProfilerCategory::WebGlStencilFunc,
-        WebGLCommand::StencilFuncSeparate(..) => ProfilerCategory::WebGlStencilFuncSeparate,
-        WebGLCommand::StencilMask(..) => ProfilerCategory::WebGlStencilMask,
-        WebGLCommand::StencilMaskSeparate(..) => ProfilerCategory::WebGlStencilMaskSeparate,
-        WebGLCommand::StencilOp(..) => ProfilerCategory::WebGlStencilOp,
-        WebGLCommand::StencilOpSeparate(..) => ProfilerCategory::WebGlStencilOpSeparate,
-        WebGLCommand::Hint(..) => ProfilerCategory::WebGlHint,
-        WebGLCommand::LineWidth(..) => ProfilerCategory::WebGlLineWidth,
-        WebGLCommand::PixelStorei(..) => ProfilerCategory::WebGlPixelStorei,
-        WebGLCommand::LinkProgram(..) => ProfilerCategory::WebGlLinkProgram,
-        WebGLCommand::Uniform1f(..) => ProfilerCategory::WebGlUniform1f,
-        WebGLCommand::Uniform1fv(..) => ProfilerCategory::WebGlUniform1fv,
-        WebGLCommand::Uniform1i(..) => ProfilerCategory::WebGlUniform1i,
-        WebGLCommand::Uniform1iv(..) => ProfilerCategory::WebGlUniform1iv,
-        WebGLCommand::Uniform2f(..) => ProfilerCategory::WebGlUniform2f,
-        WebGLCommand::Uniform2fv(..) => ProfilerCategory::WebGlUniform2fv,
-        WebGLCommand::Uniform2i(..) => ProfilerCategory::WebGlUniform2i,
-        WebGLCommand::Uniform2iv(..) => ProfilerCategory::WebGlUniform2iv,
-        WebGLCommand::Uniform3f(..) => ProfilerCategory::WebGlUniform3f,
-        WebGLCommand::Uniform3fv(..) => ProfilerCategory::WebGlUniform3fv,
-        WebGLCommand::Uniform3i(..) => ProfilerCategory::WebGlUniform3i,
-        WebGLCommand::Uniform3iv(..) => ProfilerCategory::WebGlUniform3iv,
-        WebGLCommand::Uniform4f(..) => ProfilerCategory::WebGlUniform4f,
-        WebGLCommand::Uniform4fv(..) => ProfilerCategory::WebGlUniform4fv,
-        WebGLCommand::Uniform4i(..) => ProfilerCategory::WebGlUniform4i,
-        WebGLCommand::Uniform4iv(..) => ProfilerCategory::WebGlUniform4iv,
-        WebGLCommand::UniformMatrix2fv(..) => ProfilerCategory::WebGlUniformMatrix2fv,
-        WebGLCommand::UniformMatrix3fv(..) => ProfilerCategory::WebGlUniformMatrix3fv,
-        WebGLCommand::UniformMatrix4fv(..) => ProfilerCategory::WebGlUniformMatrix4fv,
-        WebGLCommand::UseProgram(..) => ProfilerCategory::WebGlUseProgram,
-        WebGLCommand::ValidateProgram(..) => ProfilerCategory::WebGlValidateProgram,
-        WebGLCommand::VertexAttrib(..) => ProfilerCategory::WebGlVertexAttrib,
-        WebGLCommand::VertexAttribPointer(..) => ProfilerCategory::WebGlVertexAttribPointer,
-        WebGLCommand::VertexAttribPointer2f(..) => ProfilerCategory::WebGlVertexAttribPointer2f,
-        WebGLCommand::SetViewport(..) => ProfilerCategory::WebGlSetViewport,
-        WebGLCommand::TexImage2D { .. } => ProfilerCategory::WebGlTexImage2D,
-        WebGLCommand::TexSubImage2D { .. } => ProfilerCategory::WebGlTexSubImage2D,
-        WebGLCommand::DrawingBufferWidth(..) => ProfilerCategory::WebGlDrawingBufferWidth,
-        WebGLCommand::DrawingBufferHeight(..) => ProfilerCategory::WebGlDrawingBufferHeight,
-        WebGLCommand::Finish(..) => ProfilerCategory::WebGlFinish,
-        WebGLCommand::Flush => ProfilerCategory::WebGlFlush,
-        WebGLCommand::GenerateMipmap(..) => ProfilerCategory::WebGlGenerateMipmap,
-        WebGLCommand::CreateVertexArray(..) => ProfilerCategory::WebGlCreateVertexArray,
-        WebGLCommand::DeleteVertexArray(..) => ProfilerCategory::WebGlDeleteVertexArray,
-        WebGLCommand::BindVertexArray(..) => ProfilerCategory::WebGlBindVertexArray,
-        WebGLCommand::GetParameterBool(..) => ProfilerCategory::WebGlGetParameterBool,
-        WebGLCommand::GetParameterBool4(..) => ProfilerCategory::WebGlGetParameterBool4,
-        WebGLCommand::GetParameterInt(..) => ProfilerCategory::WebGlGetParameterInt,
-        WebGLCommand::GetParameterInt2(..) => ProfilerCategory::WebGlGetParameterInt2,
-        WebGLCommand::GetParameterInt4(..) => ProfilerCategory::WebGlGetParameterInt4,
-        WebGLCommand::GetParameterFloat(..) => ProfilerCategory::WebGlGetParameterFloat,
-        WebGLCommand::GetParameterFloat2(..) => ProfilerCategory::WebGlGetParameterFloat2,
-        WebGLCommand::GetParameterFloat4(..) => ProfilerCategory::WebGlGetParameterFloat4,
-        WebGLCommand::GetProgramValidateStatus(..) => ProfilerCategory::WebGlGetProgramValidateStatus,
-        WebGLCommand::GetProgramActiveUniforms(..) => ProfilerCategory::WebGlGetProgramActiveUniforms,
-        WebGLCommand::GetCurrentVertexAttrib(..) => ProfilerCategory::WebGlGetCurrentVertexAttrib,
-        WebGLCommand::GetTexParameterFloat(..) => ProfilerCategory::WebGlGetTexParameterFloat,
-        WebGLCommand::GetTexParameterInt(..) => ProfilerCategory::WebGlGetTexParameterInt,
-        WebGLCommand::TexParameteri(..) => ProfilerCategory::WebGlTexParameteri,
-        WebGLCommand::TexParameterf(..) => ProfilerCategory::WebGlTexParameterf,
-        WebGLCommand::DrawArrays { .. } => ProfilerCategory::WebGlDrawArrays,
-        WebGLCommand::DrawArraysInstanced { .. } => ProfilerCategory::WebGlDrawArraysInstanced,
-        WebGLCommand::DrawElements { .. } => ProfilerCategory::WebGlDrawElements,
-        WebGLCommand::DrawElementsInstanced { .. } => ProfilerCategory::WebGlDrawElementsInstanced,
-        WebGLCommand::VertexAttribDivisor { .. } => ProfilerCategory::WebGlVertexAttribDivisor,
-        WebGLCommand::GetUniformBool(..) => ProfilerCategory::WebGlGetUniformBool,
-        WebGLCommand::GetUniformBool2(..) => ProfilerCategory::WebGlGetUniformBool2,
-        WebGLCommand::GetUniformBool3(..) => ProfilerCategory::WebGlGetUniformBool3,
-        WebGLCommand::GetUniformBool4(..) => ProfilerCategory::WebGlGetUniformBool4,
-        WebGLCommand::GetUniformInt(..) => ProfilerCategory::WebGlGetUniformInt,
-        WebGLCommand::GetUniformInt2(..) => ProfilerCategory::WebGlGetUniformInt2,
-        WebGLCommand::GetUniformInt3(..) => ProfilerCategory::WebGlGetUniformInt3,
-        WebGLCommand::GetUniformInt4(..) => ProfilerCategory::WebGlGetUniformInt4,
-        WebGLCommand::GetUniformFloat(..) => ProfilerCategory::WebGlGetUniformFloat,
-        WebGLCommand::GetUniformFloat2(..) => ProfilerCategory::WebGlGetUniformFloat2,
-        WebGLCommand::GetUniformFloat3(..) => ProfilerCategory::WebGlGetUniformFloat3,
-        WebGLCommand::GetUniformFloat4(..) => ProfilerCategory::WebGlGetUniformFloat4,
-        WebGLCommand::GetUniformFloat9(..) => ProfilerCategory::WebGlGetUniformFloat9,
-        WebGLCommand::GetUniformFloat16(..) => ProfilerCategory::WebGlGetUniformFloat16,
-        WebGLCommand::InitializeFramebuffer { .. } => ProfilerCategory::WebGlInitializeFramebuffer,
-    }
 }

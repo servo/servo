@@ -23,6 +23,8 @@ malloc_size_of = { path = "../malloc_size_of" }
 malloc_size_of_derive = { path = "../malloc_size_of_derive" }
 offscreen_gl_context = {version = "0.21", features = ["serde"]}
 pixels = {path = "../pixels"}
+profile_derive = {path = "../profile_derive"}
+profile_traits = {path = "../profile_traits"}
 serde = "1.0"
 serde_bytes = "0.10"
 servo_config = {path = "../config"}
