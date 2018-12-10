@@ -101,6 +101,7 @@ use crate::dom::windowproxy::WindowProxy;
 use crate::fetch::FetchCanceller;
 use crate::script_runtime::{CommonScriptMsg, ScriptThreadEventCategory};
 use crate::script_thread::{MainThreadScriptMsg, ScriptThread};
+use crate::task::TaskBox;
 use crate::task_source::{TaskSource, TaskSourceName};
 use crate::timers::OneshotTimerCallback;
 use devtools_traits::ScriptToDevtoolsControlMsg;
@@ -410,8 +411,11 @@ pub struct Document {
     responsive_images: DomRefCell<Vec<Dom<HTMLImageElement>>>,
     /// Number of redirects for the document load
     redirect_count: Cell<u16>,
-    ///
+    /// Number of outstanding requests to prevent JS or layout from running.
     script_and_layout_blockers: Cell<u32>,
+    /// List of tasks to execute as soon as last script/layout blocker is removed.
+    #[ignore_malloc_size_of = "Measuring trait objects is hard"]
+    delayed_tasks: DomRefCell<Vec<Box<dyn TaskBox>>>,
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
@@ -2698,24 +2702,48 @@ impl Document {
             responsive_images: Default::default(),
             redirect_count: Cell::new(0),
             script_and_layout_blockers: Cell::new(0),
+            delayed_tasks: Default::default(),
         }
     }
 
+    /// Prevent any JS or layout from running until the corresponding call to
+    /// `remove_script_and_layout_blocker`. Used to isolate periods in which
+    /// the DOM is in an unstable state and should not be exposed to arbitrary
+    /// web content. Any attempts to invoke content JS or query layout during
+    /// that time will trigger a panic. `add_delayed_task` will cause the
+    /// provided task to be executed as soon as the last blocker is removed.
     pub fn add_script_and_layout_blocker(&self) {
-        self.script_and_layout_blockers.set(
-            self.script_and_layout_blockers.get() + 1
-        );
+        self.script_and_layout_blockers
+            .set(self.script_and_layout_blockers.get() + 1);
     }
 
+    /// Terminate the period in which JS or layout is disallowed from running.
+    /// If no further blockers remain, any delayed tasks in the queue will
+    /// be executed in queue order until the queue is empty.
     pub fn remove_script_and_layout_blocker(&self) {
         assert!(self.script_and_layout_blockers.get() > 0);
-        self.script_and_layout_blockers.set(
-            self.script_and_layout_blockers.get() - 1
-        );
+        self.script_and_layout_blockers
+            .set(self.script_and_layout_blockers.get() - 1);
+        while self.script_and_layout_blockers.get() == 0 && !self.delayed_tasks.borrow().is_empty()
+        {
+            let task = self.delayed_tasks.borrow_mut().remove(0);
+            task.run_box();
+        }
     }
 
+    /// Enqueue a task to run as soon as any JS and layout blockers are removed.
+    pub fn add_delayed_task<T: 'static + TaskBox>(&self, task: T) {
+        self.delayed_tasks.borrow_mut().push(Box::new(task));
+    }
+
+    /// Assert that the DOM is in a state that will allow running content JS or
+    /// performing a layout operation.
     pub fn ensure_safe_to_run_script_or_layout(&self) {
-        assert_eq!(self.script_and_layout_blockers.get(), 0);
+        assert_eq!(
+            self.script_and_layout_blockers.get(),
+            0,
+            "Attempt to use script or layout while DOM not in a stable state"
+        );
     }
 
     // https://dom.spec.whatwg.org/#dom-document-document
