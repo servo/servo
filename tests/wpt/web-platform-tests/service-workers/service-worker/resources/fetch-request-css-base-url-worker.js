@@ -1,27 +1,45 @@
-importScripts('/common/get-host-info.sub.js');
-importScripts('test-helpers.sub.js');
+let source;
+let resolveDone;
+let done = new Promise(resolve => resolveDone = resolve);
 
-var port = undefined;
+// The page messages this worker to ask for the result. Keep the worker alive
+// via waitUntil() until the result is sent.
+self.addEventListener('message', event => {
+  source = event.data.port;
+  source.postMessage('pong');
+  event.waitUntil(done);
+});
 
-self.onmessage = function(e) {
-  var message = e.data;
-  if ('port' in message) {
-    port = message.port;
-    port.postMessage({ready: true});
-  }
-};
+self.addEventListener('fetch', event => {
+  const url = new URL(event.request.url);
 
-self.addEventListener('fetch', function(event) {
-    var url = event.request.url;
-    if (url.indexOf('fetch-request-css-base-url-style.css') != -1) {
-      event.respondWith(fetch(
-        get_host_info()['HTTPS_REMOTE_ORIGIN'] + base_path() +
-        'fetch-request-css-base-url-style.css',
-        {mode: 'no-cors'}));
-    } else if (url.indexOf('dummy.png') != -1) {
-      port.postMessage({
-          url: event.request.url,
-          referrer: event.request.referrer
-        });
+  // For the CSS file, respond in a way that may change the response URL,
+  // depending on |url.search|.
+  const cssPath = 'request-url-path/fetch-request-css-base-url-style.css';
+  if (url.pathname.indexOf(cssPath) != -1) {
+    // Respond with a different URL, deleting "request-url-path/".
+    if (url.search == '?fetch') {
+      event.respondWith(fetch('fetch-request-css-base-url-style.css'));
     }
-  });
+    // Respond with new Response().
+    else if (url.search == '?newResponse') {
+      const styleString = 'body { background-image: url("./dummy.png");}';
+      const headers = {'content-type': 'text/css'};
+      event.respondWith(new Response(styleString, headers));
+    }
+  }
+
+  // The image request indicates what the base URL of the CSS was. Message the
+  // result back to the test page.
+  else if (url.pathname.indexOf('dummy.png') != -1) {
+    // For some reason |source| is undefined here when running the test manually
+    // in Firefox. The test author experimented with both using Client
+    // (event.source) and MessagePort to try to get the test to pass, but
+    // failed.
+    source.postMessage({
+      url: event.request.url,
+      referrer: event.request.referrer
+    });
+    resolveDone();
+  }
+});

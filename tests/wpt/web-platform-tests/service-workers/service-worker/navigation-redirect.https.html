@@ -668,6 +668,24 @@ redirect_test(
     'SW-fetched redirect to other-origin in-scope.');
 
 
+// SW responds with a fetch from a different url.
+// SW: event.respondWith(fetch(params['url']));
+url2 = SCOPE1;
+url1 = SCOPE1 + 'sw=fetch-url&url=' + encodeURIComponent(url2);
+redirect_test(
+    url1,
+    url1,
+    [
+      [
+        {url: url1, resultingClientIdTag: 'x'}
+      ],
+      [],
+      []
+    ],
+    'x',
+    'SW-fetched response from different URL, same-origin same-scope.');
+
+
 // Opaque redirect.
 // SW: event.respondWith(fetch(
 //         new Request(event.request.url, {redirect: 'manual'})));

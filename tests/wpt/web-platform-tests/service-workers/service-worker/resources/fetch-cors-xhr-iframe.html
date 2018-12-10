@@ -26,38 +26,10 @@ function create_test_case_promise(url, with_credentials) {
     });
 }
 
-function create_test_promise(url, with_credentials, expected_result) {
-  return new Promise(function(resolve, reject) {
-      create_test_case_promise(url, with_credentials)
-        .then(function(result) {
-          if (result == expected_result) {
-            resolve();
-          } else {
-            reject('Result of url:' + url + ' ' +
-                   ' with_credentials: ' + with_credentials + ' must be ' +
-                   expected_result + ' but ' + result);
-          }
-        })
-    });
-}
-
-function create_serial_promise(test_cases) {
-  var promise = Promise.resolve();
-  test_cases.forEach(function(test_case) {
-      promise = promise.then(function() {
-          return create_test_promise(test_case[0], test_case[1], test_case[2]);
-        });
-    });
-    return promise;
-}
-
-window.addEventListener('message', function(evt) {
+window.addEventListener('message', async (evt) => {
     var port = evt.ports[0];
     var url = host_info['HTTPS_ORIGIN'] + path;
     var remote_url = host_info['HTTPS_REMOTE_ORIGIN'] + path;
-    // If the 4th value of the item of TEST_CASES is true, the test case outputs
-    // warning messages. So such tests must be executed in serial to match the
-    // expected output text.
     var TEST_CASES = [
       // Reject tests
       [url + '?reject', false, FAIL],
@@ -95,8 +67,8 @@ window.addEventListener('message', function(evt) {
       // Credential test (fallback)
       [url + '?Auth&ignore', false, SUCCESS],
       [url + '?Auth&ignore', true, SUCCESS],
-      [remote_url + '?Auth&ignore', false, FAIL, true],  // Executed in serial.
-      [remote_url + '?Auth&ignore', true, FAIL, true],  // Executed in serial.
+      [remote_url + '?Auth&ignore', false, FAIL],
+      [remote_url + '?Auth&ignore', true, FAIL],
       [
         remote_url + '?Auth&ACAOrigin=' + host_info['HTTPS_ORIGIN'] + '&ignore',
         false, 'STATUS401'
@@ -186,24 +158,13 @@ window.addEventListener('message', function(evt) {
         true, SUCCESS
       ]
     ];
-    var promises = [];
-    var serial_tests = [];
-    for (var i = 0; i < TEST_CASES.length ; ++i) {
-      if (!TEST_CASES[i][3]) {
-        promises.push(create_test_promise(TEST_CASES[i][0],
-                                          TEST_CASES[i][1],
-                                          TEST_CASES[i][2]));
-      } else {
-        serial_tests.push(TEST_CASES[i]);
-      }
+
+    let counter = 0;
+    for (let test of TEST_CASES) {
+      let result = await create_test_case_promise(test[0], test[1]);
+      let testName = 'test ' + (++counter) + ': ' + test[0] + ' with credentials ' + test[1] + ' must be ' + test[2];
+      port.postMessage({testName: testName, result: result === test[2]});
     }
-    promises.push(create_serial_promise(serial_tests));
-    Promise.all(promises)
-      .then(function() {
-          port.postMessage({results: 'finish'});
-        })
-      .catch(function(e) {
-          port.postMessage({results: 'failure:' + e});
-        });
+    port.postMessage('done');
   }, false);
 </script>

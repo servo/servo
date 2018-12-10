@@ -46,7 +46,7 @@
                           Advertise="yes"/>
               </File>
 	      ${include_dependencies()}
-              <Environment Id="PATH" Name="PATH" Value="[GSTINSTALLDIR]\1.0\x86\bin;[GSTINSTALLDIR64]\1.0\x86_64\bin" Permanent="yes" Part="last" Action="set" System="yes" />
+              <Environment Id="PATH" Name="PATH" Value="[GSTINSTALLDIR]1.0\x86\bin;[GSTINSTALLDIR64]1.0\x86_64\bin" Permanent="yes" Part="last" Action="set" System="yes" />
             </Component>
 
             ${include_directory(resources_path, "resources")}

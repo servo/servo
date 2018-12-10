@@ -80,7 +80,7 @@ for (const value of outOfRangeValues) {
 }
 
 test(() => {
-  assert_throws(new RangeError(), () => new WebAssembly.Memory({ "element": "anyfunc", "initial": 10, "maximum": 9 }));
+  assert_throws(new RangeError(), () => new WebAssembly.Memory({ "initial": 10, "maximum": 9 }));
 }, "Initial value exceeds maximum");
 
 test(() => {

@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>ScrollTimeline constructor</title>
+  <link rel="help" href="https://wicg.github.io/scroll-animations/#scrolltimeline-interface">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+.scroller {
+  height: 100px;
+  width: 100px;
+  overflow: scroll;
+}
+
+.content {
+  height: 500px;
+  width: 500px;
+}
+</style>
+
+<div class="scroller">
+  <div class="content"></div>
+</div>
+
+<script>
+'use strict';
+
+// TODO(smcgruer): In many of the tests below, timeRange is specified when it
+// should not need to be. This is an artifact of the initial Chrome
+// implementation which doesn't support timeRange: 'auto'. These should be
+// removed in the future.
+
+// scrollSource
+
+test(t => {
+  const scroller = document.querySelector('.scroller');
+  assert_equals(
+      new ScrollTimeline({scrollSource: scroller, timeRange: 100}).scrollSource,
+      scroller);
+}, 'A ScrollTimeline can be created with a scrollSource');
+
+test(t => {
+  const div = document.createElement('div');
+  assert_equals(
+      new ScrollTimeline({scrollSource: div, timeRange: 100}).scrollSource,
+      div);
+}, 'A ScrollTimeline can be created with a non-scrolling scrollSource');
+
+test(t => {
+  assert_equals(
+      new ScrollTimeline({scrollSource: null, timeRange: 100}).scrollSource,
+      document.scrollingElement);
+  // The default value for scrollSource should also map to the
+  // document.scrollingElement.
+  assert_equals(
+      new ScrollTimeline({timeRange: 100}).scrollSource,
+      document.scrollingElement);
+}, 'A ScrollTimeline created with a null scrollSource should use the document.scrollingElement');
+
+// orientation
+
+test(t => {
+  assert_equals(new ScrollTimeline({timeRange: 100}).orientation, 'block');
+}, 'A ScrollTimeline created with the default orientation should default to \'block\'');
+
+const gValidOrientationValues = [
+  'block',
+  'inline',
+  'horizontal',
+  'vertical',
+];
+
+for (let orientation of gValidOrientationValues) {
+  test(function() {
+    const scrollTimeline =
+        new ScrollTimeline({orientation: orientation, timeRange: 100});
+    assert_equals(scrollTimeline.orientation, orientation);
+  }, '\'' + orientation + '\' is a valid orientation value');
+}
+
+test(t => {
+  let constructorFunc = function() {
+    new ScrollTimeline({orientation: 'nonsense', timeRange: 100})
+  };
+  assert_throws(TypeError(), constructorFunc);
+
+  // 'auto' for orientation was previously in the spec, but was removed. Make
+  // sure that implementations do not support it.
+  constructorFunc = function() {
+    new ScrollTimeline({orientation: 'auto', timeRange: 100})
+  };
+  assert_throws(TypeError(), constructorFunc);
+}, 'Creating a ScrollTimeline with an invalid orientation value should throw');
+
+// startScrollOffset and endScrollOffset
+
+test(t => {
+  assert_equals(new ScrollTimeline({timeRange: 100}).startScrollOffset, 'auto');
+}, 'A ScrollTimeline created with the default startScrollOffset should default to \'auto\'');
+
+test(t => {
+  assert_equals(new ScrollTimeline({timeRange: 100}).endScrollOffset, 'auto');
+}, 'A ScrollTimeline created with the default endScrollOffset should default to \'auto\'');
+
+const gValidScrollOffsetValues = [
+  'auto',
+  0,
+  'calc(100% - 80px)',
+];
+
+const gValidScrollOffsetSuffixes = [
+  // Relative lengths.
+  'em',
+  'ex',
+  'ch',
+  'rem',
+  'vw',
+  'vh',
+  'vmin',
+  'vmax',
+  // Absolute lengths.
+  'cm',
+  'mm',
+  'q',
+  'in',
+  'pc',
+  'pt',
+  'px',
+  // Percentage.
+  '%',
+];
+
+for (let offset of gValidScrollOffsetValues) {
+  test(function() {
+    const scrollTimeline = new ScrollTimeline(
+        {timeRange: 100, startScrollOffset: offset, endScrollOffset: offset});
+
+    // Special case for 0; this is a valid value, but like computed style will
+    // be output as '0px' when queried.
+    if (offset === 0) offset = '0px';
+
+    assert_equals(scrollTimeline.startScrollOffset, offset);
+    assert_equals(scrollTimeline.endScrollOffset, offset);
+  }, '\'' + offset + '\' is a valid scroll offset value');
+}
+
+for (const suffix of gValidScrollOffsetSuffixes) {
+  test(function() {
+    const offset = '75' + suffix;
+    const scrollTimeline = new ScrollTimeline(
+        {timeRange: 100, startScrollOffset: offset, endScrollOffset: offset});
+
+    assert_equals(scrollTimeline.startScrollOffset, offset);
+    assert_equals(scrollTimeline.endScrollOffset, offset);
+  }, '\'' + suffix + '\' is a valid scroll offset unit');
+}
+
+// These are deliberately incomplete, just a random sampling of invalid
+// values/units.
+const gInvalidScrollOffsetValues = [
+  '',
+  'calc(360deg / 4)',
+  'left',
+  '#ff0000',
+  'rgb(0, 128, 0)',
+  'url("http://www.example.com/pinkish.gif")',
+  'this_is_garbage',
+  // Multiple valid values.
+  '100px 5%',
+];
+
+const gInvalidScrollOffsetSuffixes = [
+  'deg',
+  's',
+  'Hz',
+  'dpi',
+];
+
+for (const offset of gInvalidScrollOffsetValues) {
+  test(function() {
+    const constructorFunc = function() {
+      new ScrollTimeline(
+          {timeRange: 100, startScrollOffset: offset, endScrollOffset: offset})
+    };
+    assert_throws(new TypeError(), constructorFunc);
+  }, '\'' + offset + '\' is an invalid scroll offset value');
+}
+
+for (const suffix of gInvalidScrollOffsetSuffixes) {
+  test(function() {
+    const offset = '75' + suffix;
+    const constructorFunc = function() {
+      new ScrollTimeline(
+          {timeRange: 100, startScrollOffset: offset, endScrollOffset: offset});
+    };
+    assert_throws(new TypeError(), constructorFunc);
+  }, '\'' + suffix + '\' is an invalid scroll offset unit');
+}
+
+// timeRange
+
+test(function() {
+  assert_equals(new ScrollTimeline().timeRange, 'auto');
+}, 'A ScrollTimeline created with the default timeRange should default to \'auto\'');
+
+const gValidTimeRangeValues = [
+  'auto',
+  0,
+  -100,
+  100,
+  1234.5678,
+];
+
+for (let timeRange of gValidTimeRangeValues) {
+  test(function() {
+    const scrollTimeline = new ScrollTimeline({timeRange: timeRange});
+    assert_equals(scrollTimeline.timeRange, timeRange);
+  }, '\'' + timeRange + '\' is a valid timeRange value');
+}
+
+const gInvalidTimeRangeValues = [
+  'invalid',
+  Infinity,
+  -Infinity,
+  NaN,
+];
+
+for (let timeRange of gInvalidTimeRangeValues) {
+  test(function() {
+    const constructorFunc = function() {
+      new ScrollTimeline({timeRange: timeRange});
+    };
+    assert_throws(new TypeError(), constructorFunc);
+  }, '\'' + timeRange + '\' is an invalid timeRange value');
+}
+
+// fill
+
+test(function() {
+  assert_equals(new ScrollTimeline({timeRange: 100}).fill, 'none');
+}, 'A ScrollTimeline created with the default fill should default to \'none\'');
+
+const gValidFillValues = [
+  'none',
+  'forwards',
+  'backwards',
+  'both',
+  'auto',
+];
+
+for (let fill of gValidFillValues) {
+  test(function() {
+    const scrollTimeline = new ScrollTimeline({fill: fill, timeRange: 100});
+    assert_equals(scrollTimeline.fill, fill);
+  }, '\'' + fill + '\' is a valid fill value');
+}
+
+test(t => {
+  let constructorFunc = function() {
+    new ScrollTimeline({fill: 'nonsense', timeRange: 100})
+  };
+  assert_throws(TypeError(), constructorFunc);
+}, 'Creating a ScrollTimeline with an invalid fill value should throw');
+</script>

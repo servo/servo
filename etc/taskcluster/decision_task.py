@@ -11,7 +11,7 @@ from decisionlib import *
 def main(task_for, mock=False):
     if task_for == "github-push":
         if CONFIG.git_ref in ["refs/heads/auto", "refs/heads/try", "refs/heads/try-taskcluster"]:
-            CONFIG.treeherder_repo_name = "servo/servo-" + CONFIG.git_ref.split("/")[-1]
+            CONFIG.treeherder_repo_name = "servo-" + CONFIG.git_ref.split("/")[-1]
 
             linux_tidy_unit()
             android_arm32()
@@ -100,11 +100,21 @@ def macos_unit():
 
 
 def with_rust_nightly():
-    return linux_build_task("Linux x64: with Rust Nightly").with_script("""
-        echo "nightly" > rust-toolchain
-        ./mach build --dev
-        ./mach test-unit
-    """).create()
+    modified_build_env = dict(build_env)
+    flags = modified_build_env.pop("RUSTFLAGS").split(" ")
+    flags.remove("-Dwarnings")
+    if flags:  # pragma: no cover
+        modified_build_env["RUSTFLAGS"] = " ".join(flags)
+
+    return (
+        linux_build_task("Linux x64: with Rust Nightly", build_env=modified_build_env)
+        .with_script("""
+            echo "nightly" > rust-toolchain
+            ./mach build --dev
+            ./mach test-unit
+        """)
+        .create()
+    )
 
 
 def android_arm32():
@@ -154,8 +164,8 @@ def android_x86():
 
 def windows_unit():
     return (
-        windows_build_task("Build + unit tests")
-        .with_treeherder("Windows x64", "debug")
+        windows_build_task("Dev build + unit tests")
+        .with_treeherder("Windows x64")
         .with_script(
             # Not necessary as this would be done at the start of `build`,
             # but this allows timing it separately.
@@ -304,7 +314,7 @@ def macos_task(name):
     )
 
 
-def linux_build_task(name):
+def linux_build_task(name, *, build_env=build_env):
     return (
         linux_task(name)
         # https://docs.taskcluster.net/docs/reference/workers/docker-worker/docs/caches

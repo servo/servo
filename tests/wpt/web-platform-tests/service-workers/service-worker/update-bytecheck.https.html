@@ -43,8 +43,11 @@ settings.reduce((p, s) => {
     return Promise.resolve()
       // Register a service worker.
       .then(_ => service_worker_unregister_and_register(t, script, scope))
-      .then(r => swr = r)
-      .then(_ => wait_for_update(t, swr))
+      .then(r => {
+        t.add_cleanup(() => service_worker_unregister(t, scope));
+        swr = r;
+        return wait_for_update(t, swr);
+      })
       .then(w => sw = w)
       .then(_ => wait_for_state(t, sw, 'activated'))
       .then(_ => assert_array_equals([swr.active,
@@ -64,10 +67,7 @@ settings.reduce((p, s) => {
                               swr.waiting,
                               swr.installing],
                              [sw, null, null]);
-      })
-
-      // Unregister the service worker.
-      .then(_ => service_worker_unregister_and_done(t, scope));
+      });
   }, `Test(cors: ${s.cors}, main: ${s.main}, imported: ${s.imported})`));
 }, Promise.resolve());
 

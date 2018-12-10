@@ -7,7 +7,7 @@ version = "0.0.1"
 
 [dependencies]
 quote = "0.6.3"
-syn = { version = "0.14.2", features = ["full"] }
+syn = { version = "0.15", features = ["full"] }
 
 [lib]
 path = "lib.rs"

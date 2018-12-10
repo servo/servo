@@ -21,11 +21,12 @@ cd ~
 
 mkdir web-platform-tests
 cd web-platform-tests
+
 git init
 git remote add origin ${REMOTE}
 
 # Initially we just fetch 50 commits in order to save several minutes of fetching
-git fetch --quiet --depth=50 origin ${REF}
+git fetch --quiet --depth=50 --tags origin ${REF}
 
 if [[ ! `git rev-parse --verify -q ${REVISION}` ]];
 then
@@ -36,27 +37,4 @@ then
 fi
 git checkout -b build ${REVISION}
 
-sudo sh -c './wpt make-hosts-file >> /etc/hosts'
-
-if [[ $BROWSER == "chrome" ]] || [[ "$BROWSER" == all ]]
-then
-    # Install Chrome dev
-    if [[ "$CHANNEL" == "dev" ]] || [[ "$CHANNEL" == "nightly" ]]
-    then
-       deb_archive=google-chrome-unstable_current_amd64.deb
-    elif [[ "$CHANNEL" == "beta" ]]
-    then
-        deb_archive=google-chrome-beta_current_amd64.deb
-    elif [[ "$CHANNEL" == "stable" ]]
-    then
-        deb_archive=google-chrome-stable_current_amd64.deb
-    else
-        echo Unrecognized release channel: $CHANNEL >&2
-        exit 1
-    fi
-    wget https://dl.google.com/linux/direct/$deb_archive
-
-    sudo apt-get -qqy update && sudo gdebi -n $deb_archive
-fi
-
-sudo Xvfb $DISPLAY -screen 0 ${SCREEN_WIDTH}x${SCREEN_HEIGHT}x${SCREEN_DEPTH} &
+source tools/ci/start.sh

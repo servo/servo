@@ -3,7 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use darling::{FromDeriveInput, FromField, FromVariant};
-use quote::Tokens;
+use proc_macro2::{Span, TokenStream};
+use quote::TokenStreamExt;
 use syn::{self, AngleBracketedGenericArguments, Binding, DeriveInput, Field};
 use syn::{GenericArgument, GenericParam, Ident, Path};
 use syn::{PathArguments, PathSegment, QSelf, Type, TypeArray};
@@ -18,9 +19,9 @@ pub fn add_predicate(where_clause: &mut Option<syn::WhereClause>, pred: WherePre
         .push(pred);
 }
 
-pub fn fmap_match<F>(input: &DeriveInput, bind_style: BindStyle, mut f: F) -> Tokens
+pub fn fmap_match<F>(input: &DeriveInput, bind_style: BindStyle, mut f: F) -> TokenStream
 where
-    F: FnMut(BindingInfo) -> Tokens,
+    F: FnMut(BindingInfo) -> TokenStream,
 {
     let mut s = synstructure::Structure::new(input);
     s.variants_mut().iter_mut().for_each(|v| {
@@ -52,7 +53,7 @@ pub fn fmap_trait_output(input: &DeriveInput, trait_path: &Path, trait_output: I
                         GenericArgument::Lifetime(data.lifetime.clone())
                     },
                     &GenericParam::Type(ref data) => {
-                        let ident = data.ident;
+                        let ident = &data.ident;
                         GenericArgument::Type(parse_quote!(<#ident as #trait_path>::#trait_output))
                     },
                     ref arg => panic!("arguments {:?} cannot be mapped yet", arg),
@@ -96,7 +97,7 @@ where
             ref path,
         }) => {
             if let Some(ident) = path_to_ident(path) {
-                if params.iter().any(|param| param.ident == ident) {
+                if params.iter().any(|ref param| &param.ident == ident) {
                     return f(ident);
                 }
             }
@@ -209,7 +210,7 @@ where
     A: FromVariant,
 {
     let v = Variant {
-        ident: *variant.ident,
+        ident: variant.ident.clone(),
         attrs: variant.attrs.to_vec(),
         fields: variant.fields.clone(),
         discriminant: variant.discriminant.clone(),
@@ -227,20 +228,23 @@ where
     }
 }
 
-pub fn ref_pattern<'a>(variant: &'a VariantInfo, prefix: &str) -> (Tokens, Vec<BindingInfo<'a>>) {
+pub fn ref_pattern<'a>(
+    variant: &'a VariantInfo,
+    prefix: &str,
+) -> (TokenStream, Vec<BindingInfo<'a>>) {
     let mut v = variant.clone();
     v.bind_with(|_| BindStyle::Ref);
-    v.bindings_mut()
-        .iter_mut()
-        .for_each(|b| b.binding = Ident::from(format!("{}_{}", b.binding, prefix)));
+    v.bindings_mut().iter_mut().for_each(|b| {
+        b.binding = Ident::new(&format!("{}_{}", b.binding, prefix), Span::call_site())
+    });
     (v.pat(), v.bindings().iter().cloned().collect())
 }
 
-pub fn value<'a>(variant: &'a VariantInfo, prefix: &str) -> (Tokens, Vec<BindingInfo<'a>>) {
+pub fn value<'a>(variant: &'a VariantInfo, prefix: &str) -> (TokenStream, Vec<BindingInfo<'a>>) {
     let mut v = variant.clone();
-    v.bindings_mut()
-        .iter_mut()
-        .for_each(|b| b.binding = Ident::from(format!("{}_{}", b.binding, prefix)));
+    v.bindings_mut().iter_mut().for_each(|b| {
+        b.binding = Ident::new(&format!("{}_{}", b.binding, prefix), Span::call_site())
+    });
     v.bind_with(|_| BindStyle::Move);
     (v.pat(), v.bindings().iter().cloned().collect())
 }

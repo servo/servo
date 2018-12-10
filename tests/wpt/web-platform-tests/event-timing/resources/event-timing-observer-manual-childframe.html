@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset=utf-8 />
+</head>
+<script src=./event-timing-support.js></script>
+<script>
+  function log(message) {
+    const timestamp = performance.now();
+    const elem = document.createElement('div');
+    elem.innerHTML = `${timestamp.toFixed(1)}: ${message}`;
+    const timeline = document.getElementById('timeline');
+    timeline.appendChild(elem);
+  }
+
+  function run() {
+    new PerformanceObserver((entryList) => {
+        entryList.getEntries().forEach(e => {
+          log(`entry observed: ${JSON.stringify(e)}`);
+        });
+      }).observe({ entryTypes: ['event'] });
+    log("observer registered");
+    top.postMessage('CHILD_FRAME_IS_READY', "*");
+  }
+
+  function onMakeBusy() {
+    log("busy start");
+    step_timeout(()=>{
+      mainThreadBusy(2000);
+      log("busy end");
+    }, 0);
+  }
+</script>
+<body onload='run()'>
+  <h3>Actions:</h3>
+  <p>
+    <button id='busy_button' onclick='onMakeBusy()'>Make busy</button>
+    <button id='click_input_button' onclick='1'> click while busy </button>
+  </p>
+  <h3>Timeline:</h3>
+  <p id='timeline'></p>
+</body>
+</html>

@@ -39,6 +39,12 @@
 
         test(function() {
           var matrix = initialMatrix();
+          matrix.scaleNonUniform(1,5);
+          checkDOMMatrix(matrix, initialMatrix());
+        },"test scaleNonUniform() doesn't mutate");
+
+        test(function() {
+          var matrix = initialMatrix();
           matrix.scale3d(3,2,1,1);
           checkDOMMatrix(matrix, initialMatrix());
         },"test scale3d() doesn't mutate");

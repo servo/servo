@@ -164,6 +164,8 @@ class SourceFile(object):
         :param contents: Byte array of the contents of the file or ``None``.
         """
 
+        assert not os.path.isabs(rel_path), rel_path
+
         self.tests_root = tests_root
         if os.name == "nt":
             # do slash normalization on Windows

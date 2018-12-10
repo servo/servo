@@ -32,7 +32,7 @@ for example:
 The test can then do different things based on the URL.
 
 There are two utility scripts in that work well together with variants,
-`/common /subset-tests.js` and `/common/subset-tests-by- key.js`, where
+`/common/subset-tests.js` and `/common/subset-tests-by-key.js`, where
 a test that would otherwise have too many tests to be useful can be
 split up in ranges of subtests. For example:
 

@@ -32,9 +32,13 @@ promise_test(function(t) {
 
     // Register a service worker.
     .then(() => service_worker_unregister_and_register(t, script, scope))
-    .then(r => worker = r.installing)
-    .then(() => wait_for_state(t, worker, 'activated'))
+    .then(r => {
+        t.add_cleanup(() => service_worker_unregister(t, scope));
 
+        worker = r.installing;
+
+        return wait_for_state(t, worker, 'activated');
+      })
     // Let the service worker claim the iframe.
     .then(() => {
       var channel = new MessageChannel();
@@ -62,7 +66,6 @@ promise_test(function(t) {
 
     // Cleanup this testcase.
     .then(() => frame.remove())
-    .then(() => service_worker_unregister_and_done(t, scope));
 }, 'fetch() should be intercepted after the client is claimed.')
 
 </script>

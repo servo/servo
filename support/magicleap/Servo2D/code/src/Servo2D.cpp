@@ -23,11 +23,17 @@ const float HIDPI = 1.0;
 
 // The prism dimensions (in m).
 const float PRISM_W = 2.0;
-const float PRISM_H = 2.0;
+const float PRISM_H = 0.75;
 const float PRISM_D = 2.0;
 
 // The length of the laser pointer (in m).
 const float LASER_LENGTH = 10.0;
+
+// The width of the keyboard
+const float KEYBOARD_W = 0.666;
+
+// The home page
+const char* HOME_PAGE = "https://servo.org/ml-home";
 
 // A function which calls the ML logger, suitable for passing into Servo
 typedef void (*MLLogger)(MLLogLevel lvl, char* msg);
@@ -136,7 +142,7 @@ int Servo2D::init() {
   EGLDisplay dpy = eglGetDisplay(EGL_DEFAULT_DISPLAY);
 
   // Hook into servo
-  servo_ = init_servo(ctx, surf, dpy, this, logger, history, "https://servo.org/", VIEWPORT_H, VIEWPORT_W, HIDPI);
+  servo_ = init_servo(ctx, surf, dpy, this, logger, history, HOME_PAGE, VIEWPORT_W, VIEWPORT_H, HIDPI);
   if (!servo_) {
     ML_LOG(Error, "Servo2D Failed to init servo instance");
     abort();
@@ -171,6 +177,10 @@ int Servo2D::init() {
     abort();
     return 1;
   }
+  lumin::ui::KeyboardProperties keyboard_properties;
+  keyboard_properties.keyboardZPosition = lumin::ui::KeyboardProperties::KeyboardZPosition::kVolumeCursorPlane;
+  keyboard_properties.width = KEYBOARD_W;
+  url_bar_->setKeyboardProperties(keyboard_properties);
   url_bar_->onFocusLostSub(std::bind(&Servo2D::urlBarEventListener, this));
 
   // Add the laser pointer
@@ -290,13 +300,10 @@ glm::vec2 Servo2D::redrawLaser() {
   glm::vec3 endpoint = position + direction * LASER_LENGTH;
 
   // The laser color
-  glm::vec4 color = glm::vec4(0.0, 0.0, 0.0, 0.0);
+  glm::vec4 color = glm::vec4(1.0, 0.0, 0.0, 1.0);
 
-  // Check to see if the cursor is over the content
-  glm::vec2 cursor = viewportPosition(lumin::ui::Cursor::GetPosition(prism_));
-
-  // Is the laser active and does the laser intersect z=0?
-  if (pointInsideViewport(cursor) && ((position.z < 0) ^ (endpoint.z < 0))) {
+  // Does the laser intersect z=0?
+  if ((position.z > 0) && (endpoint.z < 0)) {
     // How far along the laser did it intersect?
     float ratio = 1.0 / (1.0 - (endpoint.z / position.z));
     // The intersection point
@@ -306,8 +313,6 @@ glm::vec2 Servo2D::redrawLaser() {
     if (pointInsideViewport(result)) {
       color = glm::vec4(0.0, 1.0, 0.0, 1.0);
       endpoint = intersection;
-    } else {
-      color = glm::vec4(1.0, 0.0, 0.0, 1.0);
     }
   }
 
@@ -325,20 +330,20 @@ bool Servo2D::gestureEventListener(lumin::GestureInputEventData* event) {
     return false;
   }
 
-  // Only respond when the cursor is enabled
-  if (!lumin::ui::Cursor::IsEnabled(prism_)) {
+  // Only respond to trigger down if the laser is currently in the viewport
+  glm::vec2 pos = redrawLaser();
+  if ((typ == lumin::input::GestureType::TriggerDown) && !pointInsideViewport(pos)) {
     return false;
   }
 
-  // Only respond when the cursor is inside the viewport
-  glm::vec2 cursor = viewportPosition(lumin::ui::Cursor::GetPosition(prism_));
-  if (!pointInsideViewport(cursor)) {
+  // Only respond to trigger up if the trigger down happened inside the viewport
+  if ((typ == lumin::input::GestureType::TriggerUp) && !controller_trigger_down_) {
     return false;
   }
 
   // Inform Servo of the trigger
-  glm::vec2 pos = redrawLaser();
-  trigger_servo(servo_, pos.x, pos.y, typ == lumin::input::GestureType::TriggerDown);
+  controller_trigger_down_ = (typ == lumin::input::GestureType::TriggerDown);
+  trigger_servo(servo_, pos.x, pos.y, controller_trigger_down_);
   return true;
 }
 

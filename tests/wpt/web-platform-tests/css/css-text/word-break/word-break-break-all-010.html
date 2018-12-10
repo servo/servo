@@ -8,9 +8,10 @@
 <meta name="assert" content="The word is broken even if pre-wrap provides a former breaking opportunity in leading white-space.">
 <style>
 div {
-   position: relative;
-   font-size: 20px;
-   font-family: Ahem;
+  position: relative;
+  font-size: 20px;
+  font-family: Ahem;
+  line-height: 1em;
 }
 .red {
   position: absolute;
@@ -23,9 +24,7 @@ div {
 }
 .test {
   color: green;
-  line-height: 1em;
   width: 5ch;
-
   white-space: pre-wrap;
   word-break: break-all;
 }

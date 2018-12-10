@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<title>MediaCapabilities.decodingInfo() for encrypted media (non-secure context)</title>
+<script src=/resources/testharness.js></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+
+// Minimal VideoConfiguration that will be allowed per spec. All optional
+// properties are missing.
+var minimalVideoConfiguration = {
+  contentType: 'video/webm; codecs="vp09.00.10.08"',
+  width: 800,
+  height: 600,
+  bitrate: 3000,
+  framerate: 24,
+};
+
+// Minimal MediaCapabilitiesKeySystemConfiguration that will be allowed per
+// spec. All optional properties are missing.
+var minimalKeySystemConfiguration = {
+  keySystem: 'org.w3.clearkey'
+};
+
+promise_test(t => {
+  return promise_rejects(t, 'SecurityError', navigator.mediaCapabilities.decodingInfo({
+    type: 'file',
+    video: minimalVideoConfiguration,
+    keySystemConfiguration: minimalKeySystemConfiguration,
+  }));
+}, "Test that decodingInfo() with a keySystemConfiguration fails on a non-secure context.");
+
+</script>

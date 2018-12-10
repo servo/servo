@@ -31,6 +31,7 @@ include = ["cssparser"]
 
 [struct]
 derive_eq = true
+derive_neq = true
 
 [enum]
 derive_helper_methods = true
@@ -41,6 +42,8 @@ include = [
   "Appearance",
   "BreakBetween",
   "BreakWithin",
+  "BorderStyle",
+  "OutlineStyle",
   "ComputedFontStretchRange",
   "ComputedFontStyleDescriptor",
   "ComputedFontWeightRange",

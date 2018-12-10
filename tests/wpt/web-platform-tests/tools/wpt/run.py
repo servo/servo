@@ -454,18 +454,20 @@ product_setup = {
 }
 
 
-def setup_logging(kwargs):
+def setup_logging(kwargs, default_config=None):
     import mozlog
     from wptrunner import wptrunner
 
     global logger
 
     # Use the grouped formatter by default where mozlog 3.9+ is installed
-    if hasattr(mozlog.formatters, "GroupingFormatter"):
-        default_formatter = "grouped"
-    else:
-        default_formatter = "mach"
-    wptrunner.setup_logging(kwargs, {default_formatter: sys.stdout})
+    if default_config is None:
+        if hasattr(mozlog.formatters, "GroupingFormatter"):
+            default_formatter = "grouped"
+        else:
+            default_formatter = "mach"
+        default_config = {default_formatter: sys.stdout}
+    wptrunner.setup_logging(kwargs, default_config)
     logger = wptrunner.logger
 
 

@@ -964,6 +964,9 @@ impl HTMLImageElement {
                     CanRequestImages::No,
                 );
                 if let Ok(ImageOrMetadataAvailable::ImageAvailable(image, url)) = response {
+                    // Cancel any outstanding tasks that were queued before the src was
+                    // set on this element.
+                    self.generation.set(self.generation.get() + 1);
                     // Step 6.3
                     let metadata = ImageMetadata {
                         height: image.height,
@@ -971,7 +974,7 @@ impl HTMLImageElement {
                     };
                     // Step 6.3.2 abort requests
                     self.abort_request(State::CompletelyAvailable, ImageRequestPhase::Current);
-                    self.abort_request(State::CompletelyAvailable, ImageRequestPhase::Pending);
+                    self.abort_request(State::Unavailable, ImageRequestPhase::Pending);
                     let mut current_request = self.current_request.borrow_mut();
                     current_request.final_url = Some(url);
                     current_request.image = Some(image.clone());

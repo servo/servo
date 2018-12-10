@@ -38,7 +38,9 @@ use crate::script_thread::ScriptThread;
 use dom_struct::dom_struct;
 use embedder_traits::resources::{self, Resource};
 use html5ever::buffer_queue::BufferQueue;
-use html5ever::tendril::{ByteTendril, IncompleteUtf8, StrTendril};
+use html5ever::tendril::fmt::UTF8;
+use html5ever::tendril::stream::Utf8LossyDecoder;
+use html5ever::tendril::{ByteTendril, StrTendril, TendrilSink};
 use html5ever::tree_builder::{ElementFlags, NextParserState, NodeOrText, QuirksMode, TreeSink};
 use html5ever::{Attribute, ExpandedName, LocalName, QualName};
 use hyper_serde::Serde;
@@ -78,12 +80,11 @@ pub struct ServoParser {
     reflector: Reflector,
     /// The document associated with this parser.
     document: Dom<Document>,
+    /// The decoder used for the network input.
+    network_decoder: DomRefCell<Option<NetworkDecoder>>,
     /// Input received from network.
     #[ignore_malloc_size_of = "Defined in html5ever"]
     network_input: DomRefCell<BufferQueue>,
-    /// Part of an UTF-8 code point spanning input chunks
-    #[ignore_malloc_size_of = "Defined in html5ever"]
-    incomplete_utf8: DomRefCell<Option<IncompleteUtf8>>,
     /// Input received from script. Used only to support document.write().
     #[ignore_malloc_size_of = "Defined in html5ever"]
     script_input: DomRefCell<BufferQueue>,
@@ -401,7 +402,7 @@ impl ServoParser {
         ServoParser {
             reflector: Reflector::new(),
             document: Dom::from_ref(document),
-            incomplete_utf8: DomRefCell::new(None),
+            network_decoder: DomRefCell::new(Some(NetworkDecoder::new())),
             network_input: DomRefCell::new(BufferQueue::new()),
             script_input: DomRefCell::new(BufferQueue::new()),
             tokenizer: DomRefCell::new(tokenizer),
@@ -433,22 +434,15 @@ impl ServoParser {
     }
 
     fn push_bytes_input_chunk(&self, chunk: Vec<u8>) {
-        let mut chunk = ByteTendril::from(&*chunk);
-        let mut network_input = self.network_input.borrow_mut();
-        let mut incomplete_utf8 = self.incomplete_utf8.borrow_mut();
-
-        if let Some(mut incomplete) = incomplete_utf8.take() {
-            let result = incomplete.try_complete(chunk, |s| network_input.push_back(s));
-            match result {
-                Err(()) => {
-                    *incomplete_utf8 = Some(incomplete);
-                    return;
-                },
-                Ok(remaining) => chunk = remaining,
-            }
+        let chunk = self
+            .network_decoder
+            .borrow_mut()
+            .as_mut()
+            .unwrap()
+            .decode(chunk);
+        if !chunk.is_empty() {
+            self.network_input.borrow_mut().push_back(chunk);
         }
-
-        *incomplete_utf8 = chunk.decode_utf8_lossy(|s| network_input.push_back(s));
     }
 
     fn push_string_input_chunk(&self, chunk: String) {
@@ -481,10 +475,11 @@ impl ServoParser {
         // the parser remains unsuspended.
 
         if self.last_chunk_received.get() {
-            if let Some(_) = self.incomplete_utf8.borrow_mut().take() {
-                self.network_input
-                    .borrow_mut()
-                    .push_back(StrTendril::from("\u{FFFD}"))
+            if let Some(decoder) = self.network_decoder.borrow_mut().take() {
+                let chunk = decoder.finish();
+                if !chunk.is_empty() {
+                    self.network_input.borrow_mut().push_back(chunk);
+                }
             }
         }
         self.tokenize(|tokenizer| tokenizer.feed(&mut *self.network_input.borrow_mut()));
@@ -552,7 +547,7 @@ impl ServoParser {
         assert!(self.last_chunk_received.get());
         assert!(self.script_input.borrow().is_empty());
         assert!(self.network_input.borrow().is_empty());
-        assert!(self.incomplete_utf8.borrow().is_none());
+        assert!(self.network_decoder.borrow().is_none());
 
         // Step 1.
         self.document
@@ -1199,4 +1194,50 @@ fn create_element_for_token(
 
     // Step 13.
     element
+}
+
+#[derive(JSTraceable, MallocSizeOf)]
+struct NetworkDecoder {
+    #[ignore_malloc_size_of = "Defined in html5ever"]
+    decoder: Utf8LossyDecoder<NetworkSink>,
+}
+
+impl NetworkDecoder {
+    fn new() -> Self {
+        Self {
+            decoder: Utf8LossyDecoder::new(Default::default()),
+        }
+    }
+
+    fn decode(&mut self, chunk: Vec<u8>) -> StrTendril {
+        self.decoder.process(ByteTendril::from(&*chunk));
+        mem::replace(&mut self.decoder.inner_sink.output, Default::default())
+    }
+
+    fn finish(self) -> StrTendril {
+        self.decoder.finish()
+    }
+}
+
+#[derive(Default, JSTraceable)]
+struct NetworkSink {
+    output: StrTendril,
+}
+
+impl TendrilSink<UTF8> for NetworkSink {
+    type Output = StrTendril;
+
+    fn process(&mut self, t: StrTendril) {
+        if self.output.is_empty() {
+            self.output = t;
+        } else {
+            self.output.push_tendril(&t);
+        }
+    }
+
+    fn error(&mut self, _desc: Cow<'static, str>) {}
+
+    fn finish(self) -> Self::Output {
+        self.output
+    }
 }

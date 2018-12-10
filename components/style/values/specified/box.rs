@@ -178,30 +178,6 @@ impl Display {
         }
     }
 
-    /// Whether `new_display` should be ignored, given a previous
-    /// `old_display` value.
-    ///
-    /// This is used to ignore `display: -moz-box` declarations after an
-    /// equivalent `display: -webkit-box` declaration, since the former
-    /// has a vastly different meaning. See bug 1107378 and bug 1407701.
-    ///
-    /// FIXME(emilio): This is a pretty decent hack, we should try to
-    /// remove it.
-    pub fn should_ignore_parsed_value(_old_display: Self, _new_display: Self) -> bool {
-        #[cfg(feature = "gecko")]
-        {
-            match (_old_display, _new_display) {
-                (Display::WebkitBox, Display::MozBox) |
-                (Display::WebkitInlineBox, Display::MozInlineBox) => {
-                    return true;
-                },
-                _ => {},
-            }
-        }
-
-        return false;
-    }
-
     /// Returns whether this "display" value is one of the types for
     /// ruby.
     #[cfg(feature = "gecko")]
@@ -1155,10 +1131,11 @@ pub enum Appearance {
     TabScrollArrowBack,
     #[parse(condition = "in_ua_or_chrome_sheet")]
     TabScrollArrowForward,
-    /// A textfield or text area.
+    /// A multi-line text field, e.g. HTML <textarea>.
+    #[parse(aliases = "textfield-multiline")]
+    Textarea,
+    /// A single-line text field, e.g. HTML <input type=text>.
     Textfield,
-    /// A multiline text field.
-    TextfieldMultiline,
     /// A toolbar in an application window.
     #[parse(condition = "in_ua_or_chrome_sheet")]
     Toolbar,
@@ -1309,11 +1286,56 @@ pub enum Appearance {
 )]
 #[repr(u8)]
 pub enum BreakBetween {
-    Auto,
     Always,
+    Auto,
+    Page,
     Avoid,
     Left,
     Right,
+}
+
+impl BreakBetween {
+    /// Parse a legacy break-between value for `page-break-*`.
+    ///
+    /// See https://drafts.csswg.org/css-break/#page-break-properties.
+    #[inline]
+    pub fn parse_legacy<'i>(input: &mut Parser<'i, '_>) -> Result<Self, ParseError<'i>> {
+        let location = input.current_source_location();
+        let ident = input.expect_ident()?;
+        let break_value = match BreakBetween::from_ident(ident) {
+            Ok(v) => v,
+            Err(()) => {
+                return Err(location
+                    .new_custom_error(SelectorParseErrorKind::UnexpectedIdent(ident.clone())))
+            },
+        };
+        match break_value {
+            BreakBetween::Always => Ok(BreakBetween::Page),
+            BreakBetween::Auto | BreakBetween::Avoid | BreakBetween::Left | BreakBetween::Right => {
+                Ok(break_value)
+            },
+            BreakBetween::Page => {
+                Err(location
+                    .new_custom_error(SelectorParseErrorKind::UnexpectedIdent(ident.clone())))
+            },
+        }
+    }
+
+    /// Serialize a legacy break-between value for `page-break-*`.
+    ///
+    /// See https://drafts.csswg.org/css-break/#page-break-properties.
+    pub fn to_css_legacy<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
+        match *self {
+            BreakBetween::Auto | BreakBetween::Avoid | BreakBetween::Left | BreakBetween::Right => {
+                self.to_css(dest)
+            },
+            BreakBetween::Page => dest.write_str("always"),
+            BreakBetween::Always => Ok(()),
+        }
+    }
 }
 
 /// A kind of break within a box.

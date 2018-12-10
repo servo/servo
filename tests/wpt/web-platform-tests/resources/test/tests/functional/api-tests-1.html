@@ -190,10 +190,7 @@
 
     async_test("test should timeout (fail) with the default of 2 seconds").step(function(){});
 
-    async_test("test should timeout (fail) with a custom set timeout value of 1 second",
-               {timeout:1000}).step(function(){});
-
-    async_test("async test that is never started, should have status Not Run", {timeout:1000});
+    async_test("async test that is never started, should have status Not Run");
 
 
     test(function(t) {
@@ -344,9 +341,7 @@
       "status_string": "NOTRUN",
       "name": "async test that is never started, should have status Not Run",
       "message": null,
-      "properties": {
-        "timeout": 1000
-      }
+      "properties": {}
     },
     {
       "status_string": "PASS",
@@ -401,14 +396,6 @@
       "name": "test for assert[_not]_own_property and insert_inherits",
       "message": null,
       "properties": {}
-    },
-    {
-      "status_string": "TIMEOUT",
-      "name": "test should timeout (fail) with a custom set timeout value of 1 second",
-      "message": "Test timed out",
-      "properties": {
-        "timeout": 1000
-      }
     },
     {
       "status_string": "TIMEOUT",
