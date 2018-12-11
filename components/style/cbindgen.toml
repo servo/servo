@@ -64,5 +64,6 @@ include = [
   "ScrollSnapType",
   "OverflowClipBox",
   "Resize",
+  "Overflow",
 ]
 item_types = ["enums", "structs", "typedefs"]

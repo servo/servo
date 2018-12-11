@@ -1394,6 +1394,7 @@ impl Clone for ${style_struct.gecko_struct_name} {
         "OverflowClipBox": impl_simple,
         "ScrollSnapType": impl_simple,
         "Float": impl_simple,
+        "Overflow": impl_simple,
         "BreakBetween": impl_simple,
         "BreakWithin": impl_simple,
         "Resize": impl_simple,
@@ -3011,7 +3012,7 @@ fn static_assert() {
     }
 </%def>
 
-<% skip_box_longhands= """display overflow-y vertical-align
+<% skip_box_longhands= """display vertical-align
                           animation-name animation-delay animation-duration
                           animation-direction animation-fill-mode animation-play-state
                           animation-iteration-count animation-timing-function
@@ -3062,28 +3063,6 @@ fn static_assert() {
         gecko_inexhaustive=True,
     ) %>
     ${impl_keyword('clear', 'mBreakType', clear_keyword)}
-
-    <% overflow_x = data.longhands_by_name["overflow-x"] %>
-    pub fn set_overflow_y(&mut self, v: longhands::overflow_y::computed_value::T) {
-        use crate::properties::longhands::overflow_x::computed_value::T as BaseType;
-        // FIXME(bholley): Align binary representations and ditch |match| for cast + static_asserts
-        self.gecko.mOverflowY = match v {
-            % for value in overflow_x.keyword.values_for('gecko'):
-                BaseType::${to_camel_case(value)} => structs::${overflow_x.keyword.gecko_constant(value)} as u8,
-            % endfor
-        };
-    }
-    ${impl_simple_copy('overflow_y', 'mOverflowY')}
-    pub fn clone_overflow_y(&self) -> longhands::overflow_y::computed_value::T {
-        use crate::properties::longhands::overflow_x::computed_value::T as BaseType;
-        // FIXME(bholley): Align binary representations and ditch |match| for cast + static_asserts
-        match self.gecko.mOverflowY as u32 {
-            % for value in overflow_x.keyword.values_for('gecko'):
-            structs::${overflow_x.keyword.gecko_constant(value)} => BaseType::${to_camel_case(value)},
-            % endfor
-            x => panic!("Found unexpected value in style struct for overflow_y property: {}", x),
-        }
-    }
 
     pub fn set_vertical_align(&mut self, v: longhands::vertical_align::computed_value::T) {
         use crate::values::generics::box_::VerticalAlign;

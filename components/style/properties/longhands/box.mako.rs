@@ -100,34 +100,30 @@ ${helpers.single_keyword("-servo-overflow-clip-box", "padding-box content-box",
     )}
 % endfor
 
-<%
-    overflow_custom_consts = { "-moz-hidden-unscrollable": "CLIP" }
-%>
-
 // FIXME(pcwalton, #2742): Implement scrolling for `scroll` and `auto`.
 //
 // We allow it to apply to placeholders for UA sheets, which set it !important.
-${helpers.single_keyword(
+${helpers.predefined_type(
     "overflow-x",
-    "visible hidden scroll auto",
+    "Overflow",
+    "computed::Overflow::Visible",
     animation_value_type="discrete",
-    extra_gecko_values="-moz-hidden-unscrollable",
-    custom_consts=overflow_custom_consts,
-    gecko_constant_prefix="NS_STYLE_OVERFLOW",
     flags="APPLIES_TO_PLACEHOLDER",
     spec="https://drafts.csswg.org/css-overflow/#propdef-overflow-x",
+    needs_context=False,
     servo_restyle_damage = "reflow",
 )}
 
-// FIXME(pcwalton, #2742): Implement scrolling for `scroll` and `auto`.
-//
-// We allow it to apply to placeholders for UA sheets, which set it !important.
-<%helpers:longhand name="overflow-y" animation_value_type="discrete"
-                   flags="APPLIES_TO_PLACEHOLDER",
-                   spec="https://drafts.csswg.org/css-overflow/#propdef-overflow-y"
-                   servo_restyle_damage = "reflow">
-    pub use super::overflow_x::{SpecifiedValue, parse, get_initial_value, computed_value};
-</%helpers:longhand>
+${helpers.predefined_type(
+    "overflow-y",
+    "Overflow",
+    "computed::Overflow::Visible",
+    animation_value_type="discrete",
+    flags="APPLIES_TO_PLACEHOLDER",
+    spec="https://drafts.csswg.org/css-overflow/#propdef-overflow-y",
+    needs_context=False,
+    servo_restyle_damage = "reflow",
+)}
 
 <% transition_extra_prefixes = "moz:layout.css.prefixes.transitions webkit" %>
 

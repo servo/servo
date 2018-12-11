@@ -1363,3 +1363,28 @@ pub enum BreakWithin {
     Auto,
     Avoid,
 }
+
+/// The value for the `overflow-x` / `overflow-y` properties.
+#[allow(missing_docs)]
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    Eq,
+    Hash,
+    MallocSizeOf,
+    Parse,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToCss,
+    ToComputedValue,
+)]
+#[repr(u8)]
+pub enum Overflow {
+    Visible,
+    Hidden,
+    Scroll,
+    Auto,
+    #[cfg(feature = "gecko")]
+    MozHiddenUnscrollable,
+}
