@@ -14,9 +14,6 @@ def main(task_for):
         macos_wpt = magicleap_dev = linux_arm32_dev = linux_arm64_dev = \
             android_arm32_dev_from_macos = lambda: None
 
-        # Implemented but disabled for now:
-        linux_wpt = lambda: None  # Shadows the existing top-level function
-
         all_tests = [
             linux_tidy_unit_docs,
             windows_unit,
