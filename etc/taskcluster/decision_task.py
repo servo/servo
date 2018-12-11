@@ -77,6 +77,8 @@ def linux_tidy_unit():
             ./mach build --dev
             ./mach test-unit
             ./mach package --dev
+            ./mach build --dev --libsimpleservo
+            ./mach build --dev --no-default-features --features default-except-unstable
             ./mach test-tidy --no-progress --self-test
             ./etc/memory_reports_over_time.py --test
             ./etc/taskcluster/mock.py
