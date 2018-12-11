@@ -9,7 +9,7 @@ from six import create_bound_method
 
 wptserve = pytest.importorskip("wptserve")
 from .base import TestUsingServer, TestUsingH2Server, doc_root
-from hyper.h2.exceptions import ProtocolError
+from h2.exceptions import ProtocolError
 
 def send_body_as_header(self):
     if self._response.add_required_headers:

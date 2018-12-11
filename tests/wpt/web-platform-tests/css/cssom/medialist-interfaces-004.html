@@ -32,6 +32,7 @@
 
   <script type="text/javascript">
 
+    // MediaList.appendMedium correctly adds medium to empty MediaList.
     test(function() {
       media_list = setup();
 
@@ -40,9 +41,9 @@
       assert_equals(media_list.length, 1);
       assert_equals(media_list.item(0), "all");
       assert_equals(media_list.mediaText, "all");
-    }, "appendMedium_correctly_appends_medium_to_empty_MediaList",
-    { assert: "MediaList.appendMedium correctly adds medium to empty MediaList." });
+    }, "appendMedium_correctly_appends_medium_to_empty_MediaList");
 
+    // MediaList.appendMedium correctly adds medium to a MediaList that already has a medium.
     test(function() {
       media_list = setup();
 
@@ -56,8 +57,7 @@
       assert_equals(media_list.item(0), "screen");
       assert_equals(media_list.item(1), "all");
       assert_equals(media_list.mediaText, "screen, all");
-    }, "appendMedium_correctly_appends_medium_to_nonempty_MediaList",
-    { assert: "MediaList.appendMedium correctly adds medium to a MediaList that already has a medium." });
+    }, "appendMedium_correctly_appends_medium_to_nonempty_MediaList");
 
   </script>
 </body>

@@ -5,6 +5,7 @@
         <title>window.performance.timing.redirect attributes on a cross-origin server redirected navigation</title>
         <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
         <link rel="help" href="http://www.w3.org/TR/navigation-timing/#sec-navigation-timing-interface"/>
+        <link rel="help" href="http://www.w3.org/TR/navigation-timing/#sec-navigation-info-interface"/>
         <script src="/resources/testharness.js"></script>
         <script src="/resources/testharnessreport.js"></script>
         <script src="/common/performance-timeline-utils.js"></script>
@@ -35,8 +36,8 @@
                 performanceNamespace = document.getElementById("frameContext").contentWindow.performance;
                 test_equals(performanceNamespace.navigation.type,
                         performanceNamespace.navigation.TYPE_NAVIGATE,
-                        'timing.navigation.type is TYPE_NAVIGATE',{help:"http://www.w3.org/TR/navigation-timing/#sec-navigation-info-interface"});
-                test_equals(performanceNamespace.navigation.redirectCount, 0, 'navigation.redirectCount == 0 on a cross-origin server redirected navigation', {help:"http://www.w3.org/TR/navigation-timing/#sec-navigation-info-interface"});
+                        'timing.navigation.type is TYPE_NAVIGATE');
+                test_equals(performanceNamespace.navigation.redirectCount, 0, 'navigation.redirectCount == 0 on a cross-origin server redirected navigation');
 
                 test_timing_greater_than('navigationStart', 0);
 

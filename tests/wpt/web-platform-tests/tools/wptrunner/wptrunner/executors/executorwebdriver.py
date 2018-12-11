@@ -156,7 +156,7 @@ class WebDriverActionSequenceProtocolPart(ActionSequenceProtocolPart):
         self.webdriver = self.parent.webdriver
 
     def send_actions(self, actions):
-        self.webdriver.actions.perform(actions)
+        self.webdriver.actions.perform(actions['actions'])
 
 
 class WebDriverTestDriverProtocolPart(TestDriverProtocolPart):
