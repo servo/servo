@@ -49,9 +49,15 @@ use http::header::{self, HeaderMap, HeaderValue};
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use mime::{self, Mime};
+use net_traits::image::base::Image;
+use net_traits::image_cache::UsePlaceholder;
+use net_traits::image_cache::{CanRequestImages, ImageCache, ImageOrMetadataAvailable};
+use net_traits::image_cache::{ImageResponder, ImageResponse, ImageState, PendingImageId};
 use net_traits::request::{CredentialsMode, Destination, RequestInit};
-use net_traits::{CoreResourceMsg, FetchChannels, FetchMetadata, FetchResponseListener, Metadata};
-use net_traits::{NetworkError, ResourceFetchTiming, ResourceTimingType};
+use net_traits::{
+    CoreResourceMsg, FetchChannels, FetchMetadata, FetchResponseListener, FetchResponseMsg,
+};
+use net_traits::{Metadata, NetworkError, ResourceFetchTiming, ResourceTimingType};
 use script_layout_interface::HTMLMediaData;
 use servo_media::player::frame::{Frame, FrameRenderer};
 use servo_media::player::{PlaybackState, Player, PlayerEvent, StreamType};
@@ -83,6 +89,10 @@ impl MediaFrameRenderer {
             old_frame: None,
             very_old_frame: None,
         }
+    }
+
+    fn render_poster_frame(&mut self, image: Arc<Image>) {
+        self.current_frame = Some((image.id.unwrap(), image.width as i32, image.height as i32));
     }
 }
 
@@ -169,12 +179,12 @@ pub struct HTMLMediaElement {
     #[ignore_malloc_size_of = "Arc"]
     frame_renderer: Arc<Mutex<MediaFrameRenderer>>,
     fetch_canceller: DomRefCell<FetchCanceller>,
-    /// Image file we can show while no video data is available.
-    poster_frame: DomRefCell<Option<Vec<u8>>>,
     /// https://html.spec.whatwg.org/multipage/#show-poster-flag
     show_poster: Cell<bool>,
     /// Poster frame fetch request canceller.
     poster_frame_canceller: DomRefCell<FetchCanceller>,
+    /// Incremented whenever poster frame requests associated with this element are cancelled.
+    poster_generation_id: Cell<u32>,
     /// https://html.spec.whatwg.org/multipage/#dom-media-duration
     duration: Cell<f64>,
     /// https://html.spec.whatwg.org/multipage/#official-playback-position
@@ -233,9 +243,9 @@ impl HTMLMediaElement {
                 document.window().get_webrender_api_sender(),
             ))),
             fetch_canceller: DomRefCell::new(Default::default()),
-            poster_frame: DomRefCell::new(None),
             show_poster: Cell::new(true),
             poster_frame_canceller: DomRefCell::new(Default::default()),
+            poster_generation_id: Cell::new(0),
             duration: Cell::new(f64::NAN),
             playback_position: Cell::new(0.),
             default_playback_start_position: Cell::new(0.),
@@ -1097,10 +1107,46 @@ impl HTMLMediaElement {
         task_source.queue_simple_event(self.upcast(), atom!("seeked"), &window);
     }
 
-    /// https://html.spec.whatwg.org/multipage/media.html#poster-frame
+    /// https://html.spec.whatwg.org/multipage/#poster-frame
     pub fn fetch_poster_frame(&self, poster_url: &str) {
+        fn add_cache_listener_for_poster(
+            image_cache: Arc<dyn ImageCache>,
+            id: PendingImageId,
+            elem: &HTMLMediaElement,
+        ) {
+            let trusted_node = Trusted::new(elem);
+            let (responder_sender, responder_receiver) = ipc::channel().unwrap();
+
+            let window = window_from_node(elem);
+            let (task_source, canceller) = window
+                .task_manager()
+                .networking_task_source_with_canceller();
+            let generation = elem.poster_generation_id.get();
+            ROUTER.add_route(
+                responder_receiver.to_opaque(),
+                Box::new(move |message| {
+                    let element = trusted_node.clone();
+                    let image = message.to().unwrap();
+                    let _ = task_source.queue_with_canceller(
+                        task!(process_image_response: move || {
+                        let element = element.root();
+                        // Ignore any image response for a previous request that has been discarded.
+                        if generation == element.poster_generation_id.get() {
+                            element.process_poster_response(image);
+                        }
+                    }),
+                        &canceller,
+                    );
+                }),
+            );
+
+            image_cache.add_listener(id, ImageResponder::new(responder_sender, id));
+        }
+
         // Step 1.
         let cancel_receiver = self.poster_frame_canceller.borrow_mut().initialize();
+        self.poster_generation_id
+            .set(self.poster_generation_id.get() + 1);
 
         // Step 2.
         if poster_url.is_empty() {
@@ -1114,23 +1160,61 @@ impl HTMLMediaElement {
         };
 
         // Step 4.
+        // We use the image cache for poster frames so we save as much
+        // network activity as possible.
+        let window = window_from_node(self);
+        let image_cache = window.image_cache();
+        let response = image_cache.find_image_or_metadata(
+            poster_url.clone().into(),
+            UsePlaceholder::Yes,
+            CanRequestImages::Yes,
+        );
+        match response {
+            Ok(ImageOrMetadataAvailable::ImageAvailable(image, url)) => {
+                self.process_poster_response(ImageResponse::Loaded(image, url));
+            },
+
+            Err(ImageState::Pending(id)) => {
+                add_cache_listener_for_poster(image_cache.clone(), id, self);
+            },
+
+            Err(ImageState::NotRequested(id)) => {
+                add_cache_listener_for_poster(image_cache, id, self);
+                self.do_fetch_poster_frame(poster_url, id, cancel_receiver);
+            },
+
+            _ => (),
+        }
+    }
+
+    /// https://html.spec.whatwg.org/multipage/#poster-frame
+    fn do_fetch_poster_frame(
+        &self,
+        poster_url: ServoUrl,
+        id: PendingImageId,
+        cancel_receiver: ipc::IpcReceiver<()>,
+    ) {
+        // Continuation of step 4.
+        let document = document_from_node(self);
         let request = RequestInit {
             url: poster_url.clone(),
             destination: Destination::Image,
             credentials_mode: CredentialsMode::Include,
             use_url_credentials: true,
+            origin: document.origin().immutable().clone(),
+            pipeline_id: Some(document.global().pipeline_id()),
             ..RequestInit::default()
         };
 
         // Step 5.
         self.delay_load_event(true);
 
-        *self.poster_frame.borrow_mut() = None;
-
-        let context = Arc::new(Mutex::new(PosterFrameFetchContext::new(self, poster_url)));
+        let window = window_from_node(self);
+        let context = Arc::new(Mutex::new(PosterFrameFetchContext::new(
+            self, poster_url, id,
+        )));
 
         let (action_sender, action_receiver) = ipc::channel().unwrap();
-        let window = window_from_node(self);
         let (task_source, canceller) = window
             .task_manager()
             .networking_task_source_with_canceller();
@@ -1155,28 +1239,20 @@ impl HTMLMediaElement {
             .unwrap();
     }
 
-    fn maybe_render_poster_frame(&self) {
-        if !self.show_poster.get() ||
-            (self.ready_state.get() != ReadyState::HaveNothing &&
-                self.ready_state.get() != ReadyState::HaveMetadata)
-        {
+    /// https://html.spec.whatwg.org/multipage/#poster-frame
+    fn process_poster_response(&self, image: ImageResponse) {
+        if !self.show_poster.get() {
             return;
         }
-        let poster_frame = match self.poster_frame.borrow_mut().take() {
-            Some(poster_frame) => poster_frame,
-            None => return,
-        };
-        let video_element = self.downcast::<HTMLVideoElement>().unwrap();
 
-        let data = Arc::new(poster_frame);
-        let frame = Frame::new(
-            video_element.get_video_width() as i32,
-            video_element.get_video_height() as i32,
-            data,
-        );
-        self.frame_renderer.lock().unwrap().render(frame);
-
-        self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
+        // Step 6.
+        if let ImageResponse::Loaded(image, _) = image {
+            self.frame_renderer
+                .lock()
+                .unwrap()
+                .render_poster_frame(image);
+            self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
+        }
     }
 
     fn setup_media_player(&self) -> Result<(), ServoMediaError> {
@@ -1748,12 +1824,16 @@ impl HTMLMediaElementContext {
 }
 
 struct PosterFrameFetchContext {
+    /// Reference to the script thread image cache.
+    image_cache: Arc<dyn ImageCache>,
     /// The element that initiated the request.
     elem: Trusted<HTMLMediaElement>,
-    /// Poster frame data.
-    data: Option<Vec<u8>>,
+    /// The cache ID for this request.
+    id: PendingImageId,
+    /// Indicates whether the request failed, and why
+    status: Result<(), NetworkError>,
     /// True if this response is invalid and should be ignored.
-    ignore_response: bool,
+    aborted: bool,
     /// Timing data for this resource
     resource_timing: ResourceFetchTiming,
     /// Url for the resource
@@ -1762,48 +1842,64 @@ struct PosterFrameFetchContext {
 
 impl FetchResponseListener for PosterFrameFetchContext {
     fn process_request_body(&mut self) {}
-
     fn process_request_eof(&mut self) {}
 
     fn process_response(&mut self, metadata: Result<FetchMetadata, NetworkError>) {
-        let metadata = metadata.ok().map(|m| match m {
+        self.image_cache
+            .notify_pending_response(self.id, FetchResponseMsg::ProcessResponse(metadata.clone()));
+
+        let metadata = metadata.ok().map(|meta| match meta {
             FetchMetadata::Unfiltered(m) => m,
             FetchMetadata::Filtered { unsafe_, .. } => unsafe_,
         });
 
-        let status_is_ok = metadata
-            .as_ref()
-            .and_then(|m| m.status.as_ref())
-            .map_or(true, |s| s.0 >= 200 && s.0 < 300);
-
-        if !status_is_ok {
-            warn!("Could not fetch poster frame {:?}", self.url);
-            // Ensure that the element doesn't receive any further notifications
-            // of the aborted fetch.
-            self.ignore_response = true;
-            let elem = self.elem.root();
-            elem.poster_frame_canceller.borrow_mut().cancel();
+        // Step 14.5 of https://html.spec.whatwg.org/multipage/#img-environment-changes
+        if let Some(metadata) = metadata.as_ref() {
+            if let Some(ref content_type) = metadata.content_type {
+                let mime: Mime = content_type.clone().into_inner().into();
+                if mime.type_() == mime::MULTIPART && mime.subtype().as_str() == "x-mixed-replace" {
+                    self.aborted = true;
+                    let elem = self.elem.root();
+                    elem.poster_frame_canceller.borrow_mut().cancel();
+                    elem.poster_generation_id
+                        .set(elem.poster_generation_id.get() + 1);
+                }
+            }
         }
+
+        let status_code = metadata
+            .as_ref()
+            .and_then(|m| m.status.as_ref().map(|&(code, _)| code))
+            .unwrap_or(0);
+
+        self.status = match status_code {
+            0 => Err(NetworkError::Internal(
+                "No http status code received".to_owned(),
+            )),
+            200...299 => Ok(()),
+            _ => Err(NetworkError::Internal(format!(
+                "HTTP error code {}",
+                status_code
+            ))),
+        };
     }
 
-    fn process_response_chunk(&mut self, mut payload: Vec<u8>) {
-        if self.ignore_response {
+    fn process_response_chunk(&mut self, payload: Vec<u8>) {
+        if self.aborted {
             // An error was received previously, skip processing the payload.
             return;
         }
 
-        if self.data.is_none() {
-            self.data = Some(vec![]);
+        if self.status.is_ok() {
+            self.image_cache
+                .notify_pending_response(self.id, FetchResponseMsg::ProcessResponseChunk(payload));
         }
-        self.data.as_mut().unwrap().append(&mut payload);
     }
 
-    fn process_response_eof(&mut self, status: Result<ResourceFetchTiming, NetworkError>) {
+    fn process_response_eof(&mut self, response: Result<ResourceFetchTiming, NetworkError>) {
+        self.image_cache
+            .notify_pending_response(self.id, FetchResponseMsg::ProcessResponseEOF(response));
         let elem = self.elem.root();
-        if status.is_ok() {
-            *elem.poster_frame.borrow_mut() = self.data.take();
-            elem.maybe_render_poster_frame();
-        }
         elem.delay_load_event(false);
     }
 
@@ -1839,17 +1935,19 @@ impl ResourceTimingListener for PosterFrameFetchContext {
 
 impl PreInvoke for PosterFrameFetchContext {
     fn should_invoke(&self) -> bool {
-        // XXX use generation id?
-        true
+        !self.aborted
     }
 }
 
 impl PosterFrameFetchContext {
-    fn new(elem: &HTMLMediaElement, url: ServoUrl) -> PosterFrameFetchContext {
+    fn new(elem: &HTMLMediaElement, url: ServoUrl, id: PendingImageId) -> PosterFrameFetchContext {
+        let window = window_from_node(elem);
         PosterFrameFetchContext {
+            image_cache: window.image_cache(),
             elem: Trusted::new(elem),
-            data: None,
-            ignore_response: false,
+            id,
+            status: Ok(()),
+            aborted: false,
             resource_timing: ResourceFetchTiming::new(ResourceTimingType::Resource),
             url,
         }
