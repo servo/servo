@@ -63,6 +63,14 @@ mac-rel-css2:
   - ./mach test-wpt --release --processes 4 --total-chunks 6 --this-chunk 6 --log-raw test-wpt.log --log-errorsummary wpt-errorsummary.log --always-succeed
   - ./mach filter-intermittents wpt-errorsummary.log --log-intermittents intermittents.log --log-filteredsummary filtered-wpt-errorsummary.log --tracker-api default --reporter-api default
 
+mac-rel-bluetooth:
+  - ./mach clean-nightlies --keep 3 --force
+  - ./mach clean-cargo-cache --keep 3 --force
+  - env PKG_CONFIG_PATH=/usr/local/opt/zlib/lib/pkgconfig ./mach build --release
+  - ./mach test-wpt --release --processes=8 --log-raw test-bluetooth.log --log-errorsummary bluetooth-errorsummary.log --always-succeed bluetooth
+  - ./mach filter-intermittents bluetooth-errorsummary.log --log-intermittents bluetooth-intermittents.log --log-filteredsummary filtered-bluetooth-errorsummary.log --tracker-api default --reporter-api default
+  - bash ./etc/ci/lockfile_changed.sh
+
 mac-nightly:
   - ./mach clean-nightlies --keep 3 --force
   - ./mach clean-cargo-cache --keep 3 --force
