@@ -681,7 +681,7 @@ impl FileManagerStore {
                 self.insert(
                     id,
                     FileStoreEntry {
-                        origin: origin.clone(),
+                        origin,
                         file_impl: FileImpl::Memory(blob_buf),
                         refs: AtomicUsize::new(1),
                         is_valid_url: AtomicBool::new(set_valid),

@@ -195,7 +195,7 @@ impl<S: FontSource> FontContext<S> {
             .get_font_instance(info.font_key, actual_pt_size);
         Ok(Font::new(
             handle,
-            descriptor.to_owned(),
+            descriptor,
             actual_pt_size,
             font_instance_key,
         ))

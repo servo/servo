@@ -129,7 +129,7 @@ impl NetworkListener {
                     _ => {
                         // Response should be processed by script thread.
                         self.should_send = true;
-                        self.send(FetchResponseMsg::ProcessResponse(Ok(res_metadata.clone())));
+                        self.send(FetchResponseMsg::ProcessResponse(Ok(res_metadata)));
                     },
                 };
             },
