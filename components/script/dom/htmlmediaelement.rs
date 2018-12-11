@@ -1395,7 +1395,7 @@ impl HTMLMediaElementMethods for HTMLMediaElement {
 
         if *value != self.volume.get() {
             self.volume.set(*value);
-            
+
             let window = window_from_node(self);
             window
                 .task_manager()
