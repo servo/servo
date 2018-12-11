@@ -89,6 +89,7 @@ class ServoWebDriverBrowser(Browser):
         self.command = None
         self.user_stylesheets = user_stylesheets if user_stylesheets else []
         self.headless = headless if headless else False
+        self.ca_certificate_path = server_config.ssl_config["ca_cert_path"]
 
     def start(self, **kwargs):
         self.webdriver_port = get_free_port(4444, exclude=self.used_ports)
@@ -116,6 +117,9 @@ class ServoWebDriverBrowser(Browser):
 
         if self.headless:
             command += ["--headless"]
+
+        if self.ca_certificate_path:
+            command += ["--certificate-path", self.ca_certificate_path]
 
         for stylesheet in self.user_stylesheets:
             command += ["--user-stylesheet", stylesheet]
