@@ -30,7 +30,6 @@ def main(task_for, mock=False):
     elif task_for == "daily":
         daily_tasks_setup()
         with_rust_nightly()
-        android_arm32()
 
     else:  # pragma: no cover
         raise ValueError("Unrecognized $TASK_FOR value: %r", task_for)
