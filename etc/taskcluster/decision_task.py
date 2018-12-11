@@ -16,6 +16,7 @@ def main(task_for, mock=False):
             linux_tidy_unit()
             android_arm32_dev()
             android_arm32_release()
+            android_x86_release()
             windows_unit()
             macos_unit()
 
@@ -25,7 +26,7 @@ def main(task_for, mock=False):
                 windows_release()
                 linux_wpt()
                 linux_build_task("Indexed by task definition").find_or_create()
-                android_x86()
+                android_x86_wpt()
 
     # https://tools.taskcluster.net/hooks/project-servo/daily
     elif task_for == "daily":
@@ -145,8 +146,8 @@ def android_arm32_release():
     )
 
 
-def android_x86():
-    build_task = (
+def android_x86_release():
+    return (
         android_build_task("Release build")
         .with_treeherder("Android x86")
         .with_script("./mach build --target i686-linux-android --release")
@@ -156,6 +157,10 @@ def android_x86():
         )
         .find_or_create("build.android_x86_release." + CONFIG.git_sha)
     )
+
+
+def android_x86_wpt():
+    build_task = android_x86_release()
     return (
         DockerWorkerTask("WPT")
         .with_treeherder("Android x86")
