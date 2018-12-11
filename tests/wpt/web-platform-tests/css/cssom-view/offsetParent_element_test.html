@@ -93,6 +93,7 @@ var caption_element_child = document.getElementById('caption-element-child');
 var table_element_tr = document.getElementById('table-element-tr');
 var table_element = document.getElementById('table-element');
 
+// The offsetParent attribute algorithm rule checking passed!
 test(function() {
     assert_equals(html.offsetParent,null);
     assert_equals(body.offsetParent,null);
@@ -104,10 +105,9 @@ test(function() {
     assert_equals(none_element_child_audio.offsetParent,null);
     assert_equals(none_element_child_canvas.offsetParent,null);
     assert_equals(none_element_child_svg.offsetParent,undefined);
-}, "Valid the algorithm rule of offsetParent check step 1",
-{ assert: "The offsetParent attribute algorithm rule checking passed!" }
-);
+}, "Valid the algorithm rule of offsetParent check step 1");
 
+// The offsetParent attribute algorithm rule checking passed!
 test(function() {
     assert_equals(body_element_child.offsetParent,body);
     assert_equals(window.getComputedStyle(relative_element).position,'relative');
@@ -122,9 +122,7 @@ test(function() {
     assert_equals(caption_element_child.offsetParent,table_element);
     assert_equals(window.getComputedStyle(td_element).position,'static');
     assert_equals(td_element.offsetParent,table_element);
-}, "Valid the algorithm rule of offsetParent check step 2",
-{ assert: "The offsetParent attribute algorithm rule checking passed!" }
-);
+}, "Valid the algorithm rule of offsetParent check step 2");
 
 </script>
 

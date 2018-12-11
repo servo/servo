@@ -1,3 +1,7 @@
+/*
+author: W3C http://www.w3.org/
+help: http://www.w3.org/TR/navigation-timing/#sec-window.performance-attribute
+*/
 var performanceNamespace = window.performance;
 var namespace_check = false;
 function wp_test(func, msg, properties)
@@ -10,7 +14,8 @@ function wp_test(func, msg, properties)
     if (performanceNamespace === undefined || performanceNamespace == null)
     {
       // show a single error that window.performance is undefined
-      test(function() { assert_true(performanceNamespace !== undefined && performanceNamespace != null, "window.performance is defined and not null"); }, "window.performance is defined and not null.", {author:"W3C http://www.w3.org/",help:"http://www.w3.org/TR/navigation-timing/#sec-window.performance-attribute",assert:"The window.performance attribute provides a hosting area for performance related attributes. "});
+      // The window.performance attribute provides a hosting area for performance related attributes.
+      test(function() { assert_true(performanceNamespace !== undefined && performanceNamespace != null, "window.performance is defined and not null"); }, "window.performance is defined and not null.");
     }
   }
 

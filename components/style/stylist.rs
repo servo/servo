@@ -1024,7 +1024,7 @@ impl Stylist {
 
                 ViewportRule {
                     declarations: viewport_rule::Cascade::from_stylesheets(
-                        stylesheets.clone(),
+                        stylesheets,
                         guards,
                         &device,
                     )

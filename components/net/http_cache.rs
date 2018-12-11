@@ -40,7 +40,7 @@ pub struct CacheKey {
 impl CacheKey {
     fn new(request: Request) -> CacheKey {
         CacheKey {
-            url: request.current_url().clone(),
+            url: request.current_url(),
         }
     }
 

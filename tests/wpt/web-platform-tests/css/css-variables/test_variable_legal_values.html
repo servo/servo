@@ -44,8 +44,7 @@ function run() {
            assert_not_equals(initial_cs, red_cs);
            assert_equals(initial_cs, test_cs.backgroundColor);
          },
-         description_to_name(description),
-         { assert: "Value allowed within variable: " + description });
+         description_to_name(description));
   }
 
   function assert_disallowed_balanced_variable_value(value, description) {
@@ -59,8 +58,7 @@ function run() {
            assert_not_equals(green_cs, red_cs);
            assert_equals(green_cs, test_cs.backgroundColor);
          },
-         description_to_name(description),
-         { assert: "Value not allowed within variable: " + description });
+         description_to_name(description));
   }
 
   assert_allowed_variable_value("25%", "percentage");

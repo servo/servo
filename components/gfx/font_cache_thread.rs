@@ -405,7 +405,7 @@ impl FontCache {
                 match (template.bytes_if_in_memory(), template.native_font()) {
                     (Some(bytes), _) => txn.add_raw_font(font_key, bytes, 0),
                     (None, Some(native_font)) => txn.add_native_font(font_key, native_font),
-                    (None, None) => txn.add_raw_font(font_key, template.bytes().clone(), 0),
+                    (None, None) => txn.add_raw_font(font_key, template.bytes(), 0),
                 }
                 webrender_api.update_resources(txn.resource_updates);
                 font_key

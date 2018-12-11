@@ -33,12 +33,13 @@
 
   <script type="text/javascript">
 
+    // MediaList.deleteMedium called without argument throws error.
     test(function() {
       media_list = setup();
       assert_throws(new TypeError, function() { media_list.deleteMedium(); });
-    }, "deleteMedium_called_without_argument",
-    { assert: "MediaList.deleteMedium called without argument throws error." });
+    }, "deleteMedium_called_without_argument");
 
+    // MediaList.deleteMedium removes correct medium and updates corresponding properties.
     test(function() {
       media_list = setup();
 
@@ -50,9 +51,9 @@
       assert_equals(media_list.length, 1);
       assert_equals(media_list.item(0), "all");
       assert_equals(media_list.mediaText, "all");
-    }, "deleteMedium_removes_correct_medium",
-    { assert: "MediaList.deleteMedium removes correct medium and updates corresponding properties." });
+    }, "deleteMedium_removes_correct_medium");
 
+    // MediaList.deleteMedium doesn't modify MediaList when medium is not found.
     test(function() {
       media_list = setup();
 
@@ -63,8 +64,7 @@
       assert_equals(media_list.length, 1);
       assert_equals(media_list.item(0), "all");
       assert_equals(media_list.mediaText, "all");
-    }, "deleteMedium_no_matching_medium_to_remove",
-    { assert: "MediaList.deleteMedium doesn't modify MediaList when medium is not found." });
+    }, "deleteMedium_no_matching_medium_to_remove");
 
   </script>
 </body>

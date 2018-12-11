@@ -5,6 +5,7 @@
         <title>window.performance.timing attributes on an initial navigation</title>
         <link rel="author" title="Google" href="http://www.google.com/" />
         <link rel="help" href="http://www.w3.org/TR/navigation-timing/#sec-navigation-timing-interface"/>
+        <link rel="help" href="http://www.w3.org/TR/navigation-timing/#sec-navigation-info-interface"/>
         <script src="/resources/testharness.js"></script>
         <script src="/resources/testharnessreport.js"></script>
         <script src="/common/performance-timeline-utils.js"></script>
@@ -21,7 +22,7 @@
                 if (performanceNamespace)
                 {
                     test_true(frame.contentWindow.performance.navigation.type == performanceNamespace.navigation.TYPE_NAVIGATE,
-                              'timing.navigation.type is TYPE_NAVIGATE',{help:"http://www.w3.org/TR/navigation-timing/#sec-navigation-info-interface"});
+                              'timing.navigation.type is TYPE_NAVIGATE');
 
                     test_equals(frame.contentWindow.performance.timing.unloadEventStart, 0, 'timing.unloadEventStart == 0 on navigation with no previous document');
                     test_equals(frame.contentWindow.performance.timing.unloadEventEnd, 0, 'timing.unloadEventEnd == 0 navigation with no previous document');
