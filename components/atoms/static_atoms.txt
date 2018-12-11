@@ -99,6 +99,7 @@ transitionend
 unhandledrejection
 unload
 url
+volumechange
 waiting
 webglcontextcreationerror
 week

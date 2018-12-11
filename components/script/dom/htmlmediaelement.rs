@@ -1392,7 +1392,17 @@ impl HTMLMediaElementMethods for HTMLMediaElement {
         if *value < minimum_volume || *value > maximum_volume {
             return Err(Error::IndexSize);
         }
-        self.volume.set(*value);
+
+        if *value != self.volume.get() {
+            self.volume.set(*value);
+            
+            let window = window_from_node(self);
+            window
+                .task_manager()
+                .media_element_task_source()
+                .queue_simple_event(self.upcast(), atom!("volumechange"), &window);
+        }
+
         Ok(())
     }
 }
