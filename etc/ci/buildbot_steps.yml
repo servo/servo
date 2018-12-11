@@ -14,6 +14,7 @@ mac-rel-wpt1:
   - ./mach test-wpt --release --processes 4 --total-chunks 6 --this-chunk 1 --log-raw test-wpt.log --log-errorsummary wpt-errorsummary.log --always-succeed
   - ./mach filter-intermittents wpt-errorsummary.log --log-intermittents intermittents.log --log-filteredsummary filtered-wpt-errorsummary.log --tracker-api default --reporter-api default
   - ./mach test-wpt --release --binary-arg=--multiprocess --processes 8 --log-raw test-wpt-mp.log --log-errorsummary wpt-mp-errorsummary.log eventsource
+  - ./mach test-wpt --release --product=servodriver --headless tests/wpt/mozilla/tests/mozilla/DOMParser.html tests/wpt/mozilla/tests/css/per_glyph_font_fallback_a.html tests/wpt/mozilla/tests/css/img_simple.html tests/wpt/mozilla/tests/mozilla/secure.https.html
   - bash ./etc/ci/lockfile_changed.sh
 
 mac-rel-wpt2:
@@ -141,6 +142,7 @@ linux-rel-wpt:
     - ./mach test-wpt --release --processes 24 --total-chunks 2 --this-chunk 1 --log-raw test-wpt.log --log-errorsummary wpt-errorsummary.log --always-succeed
     - ./mach filter-intermittents wpt-errorsummary.log --log-intermittents intermittents.log --log-filteredsummary filtered-wpt-errorsummary.log --tracker-api default --reporter-api default
     - ./mach test-wpt --release --binary-arg=--multiprocess --processes 24 --log-raw test-wpt-mp.log --log-errorsummary wpt-mp-errorsummary.log eventsource
+    - ./mach test-wpt --release --product=servodriver --headless tests/wpt/mozilla/tests/mozilla/DOMParser.html tests/wpt/mozilla/tests/css/per_glyph_font_fallback_a.html tests/wpt/mozilla/tests/css/img_simple.html tests/wpt/mozilla/tests/mozilla/secure.https.html
     - ./etc/ci/clean_build_artifacts.sh
 
 linux-rel-css:
