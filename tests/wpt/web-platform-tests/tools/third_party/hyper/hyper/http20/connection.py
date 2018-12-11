@@ -5,9 +5,9 @@ hyper/http20/connection
 
 Objects that build hyper's connection-level HTTP/2 abstraction.
 """
-from ..h2 import connection as h2Connection
-from ..h2 import events as h2Events
-from ..h2 import settings as h2Settings
+import h2.connection
+import h2.events
+import h2.settings
 
 from ..compat import ssl
 from ..tls import wrap_socket, H2_NPN_PROTOCOLS, H2C_PROTOCOL
@@ -185,7 +185,7 @@ class HTTP20Connection(object):
         users should be strongly discouraged from messing about with connection
         objects themselves.
         """
-        self._conn = _LockedObject(h2Connection.H2Connection())
+        self._conn = _LockedObject(h2.connection.H2Connection())
 
         # Streams are stored in a dictionary keyed off their stream IDs. We
         # also save the most recent one for easy access without having to walk
@@ -387,7 +387,7 @@ class HTTP20Connection(object):
         with self._conn as conn:
             conn.initiate_upgrade_connection()
             conn.update_settings(
-                {h2Settings.ENABLE_PUSH: int(self._enable_push)}
+                {h2.settings.SettingCodes.ENABLE_PUSH: int(self._enable_push)}
             )
         self._send_outstanding_data()
 
@@ -408,7 +408,7 @@ class HTTP20Connection(object):
         with self._conn as conn:
             conn.initiate_connection()
             conn.update_settings(
-                {h2Settings.ENABLE_PUSH: int(self._enable_push)}
+                {h2.settings.SettingCodes.ENABLE_PUSH: int(self._enable_push)}
             )
         self._send_outstanding_data()
 
@@ -673,10 +673,10 @@ class HTTP20Connection(object):
             self.recent_recv_streams |= stream_ids
 
         for event in events:
-            if isinstance(event, h2Events.DataReceived):
+            if isinstance(event, h2.events.DataReceived):
                 self._adjust_receive_window(event.flow_controlled_length)
                 self.streams[event.stream_id].receive_data(event)
-            elif isinstance(event, h2Events.PushedStreamReceived):
+            elif isinstance(event, h2.events.PushedStreamReceived):
                 if self._enable_push:
                     self._new_stream(event.pushed_stream_id, local_closed=True)
                     self.streams[event.parent_stream_id].receive_push(event)
@@ -686,17 +686,17 @@ class HTTP20Connection(object):
                     # client action undefined when they do it anyway. So we
                     # just refuse the stream and go about our business.
                     self._send_rst_frame(event.pushed_stream_id, 7)
-            elif isinstance(event, h2Events.ResponseReceived):
+            elif isinstance(event, h2.events.ResponseReceived):
                 self.streams[event.stream_id].receive_response(event)
-            elif isinstance(event, h2Events.TrailersReceived):
+            elif isinstance(event, h2.events.TrailersReceived):
                 self.streams[event.stream_id].receive_trailers(event)
-            elif isinstance(event, h2Events.StreamEnded):
+            elif isinstance(event, h2.events.StreamEnded):
                 self.streams[event.stream_id].receive_end_stream(event)
-            elif isinstance(event, h2Events.StreamReset):
+            elif isinstance(event, h2.events.StreamReset):
                 if event.stream_id not in self.reset_streams:
                     self.reset_streams.add(event.stream_id)
                     self.streams[event.stream_id].receive_reset(event)
-            elif isinstance(event, h2Events.ConnectionTerminated):
+            elif isinstance(event, h2.events.ConnectionTerminated):
                 # If we get GoAway with error code zero, we are doing a
                 # graceful shutdown and all is well. Otherwise, throw an
                 # exception.

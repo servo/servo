@@ -5,6 +5,7 @@
         <title>window.performance.timing attributes after a reloaded navigation</title>
         <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
         <link rel="help" href="http://www.w3.org/TR/navigation-timing/#sec-navigation-timing-interface"/>
+        <link rel="help" href="http://www.w3.org/TR/navigation-timing/#sec-navigation-info-interface"/>
         <script src="/resources/testharness.js"></script>
         <script src="/resources/testharnessreport.js"></script>
         <script src="/common/performance-timeline-utils.js"></script>
@@ -56,7 +57,7 @@
                 // ensure the frame reloaded
                 test_equals(reload_frame.contentWindow.performance.navigation.type,
                             performanceNamespace.navigation.TYPE_RELOAD,
-                            "window.performance.navigation.type == TYPE_RELOAD", {help:"http://www.w3.org/TR/navigation-timing/#sec-navigation-info-interface"});
+                            "window.performance.navigation.type == TYPE_RELOAD");
 
                 // ensure reload timings changed
                 var timing = reload_frame.contentWindow.performance.timing;
