@@ -209,7 +209,9 @@ impl Formattable for ProfilerCategory {
             ProfilerCategory::WebGlGetUniformLocation => "WebGlGetUniformLocation",
             ProfilerCategory::WebGlGetShaderInfoLog => "WebGlGetShaderInfoLog",
             ProfilerCategory::WebGlGetProgramInfoLog => "WebGlGetProgramInfoLog",
-            ProfilerCategory::WebGlGetFramebufferAttachmentParameter => "WebGlGetFramebufferAttachmentParameter",
+            ProfilerCategory::WebGlGetFramebufferAttachmentParameter => {
+                "WebGlGetFramebufferAttachmentParameter"
+            },
             ProfilerCategory::WebGlGetRenderbufferParameter => "WebGlGetRenderbufferParameter",
             ProfilerCategory::WebGlPolygonOffset => "WebGlPolygonOffset",
             ProfilerCategory::WebGlRenderbufferStorage => "WebGlRenderbufferStorage",
@@ -302,10 +304,16 @@ impl Formattable for ProfilerCategory {
             ProfilerCategory::WebGlDOMGetParameter => "WebGl DOM GetParameter",
             ProfilerCategory::WebGlDOMGetTexParameter => "WebGL DOM GetTexParameter",
             ProfilerCategory::WebGlDOMGetContextAttributes => "WebGL DOM GetContextAttributes",
-            ProfilerCategory::WebGlDOMGetFramebufferAttachmentParameter => "WebGL DOM GetFBAttachmentParameter",
-            ProfilerCategory::WebGlDOMGetRenderbufferParameter => "WebGL DOM GetRenderbufferParameter",
+            ProfilerCategory::WebGlDOMGetFramebufferAttachmentParameter => {
+                "WebGL DOM GetFBAttachmentParameter"
+            },
+            ProfilerCategory::WebGlDOMGetRenderbufferParameter => {
+                "WebGL DOM GetRenderbufferParameter"
+            },
             ProfilerCategory::WebGlDOMGetProgramParameter => "WebGL DOM GetProgramParameter",
-            ProfilerCategory::WebGlDOMGetShaderPrecisionFormat => "WebGL DOM GetShaderPrecisionFormat",
+            ProfilerCategory::WebGlDOMGetShaderPrecisionFormat => {
+                "WebGL DOM GetShaderPrecisionFormat"
+            },
             ProfilerCategory::WebGlDOMGetVertexAttrib => "WebGL DOM GetVertexAttrib",
             ProfilerCategory::WebGlDOMReadPixels => "WebGL DOM ReadPixels",
             ProfilerCategory::WebGlDOMGetUniform => "WebGL DOM GetUniform",
