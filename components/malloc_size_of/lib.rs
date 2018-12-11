@@ -436,126 +436,89 @@ where
     }
 }
 
-impl<T, S> MallocShallowSizeOf for std::collections::HashSet<T, S>
-where
-    T: Eq + Hash,
-    S: BuildHasher,
-{
-    fn shallow_size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
-        if ops.has_malloc_enclosing_size_of() {
-            // The first value from the iterator gives us an interior pointer.
-            // `ops.malloc_enclosing_size_of()` then gives us the storage size.
-            // This assumes that the `HashSet`'s contents (values and hashes)
-            // are all stored in a single contiguous heap allocation.
-            self.iter()
-                .next()
-                .map_or(0, |t| unsafe { ops.malloc_enclosing_size_of(t) })
-        } else {
-            // An estimate.
-            self.capacity() * (size_of::<T>() + size_of::<usize>())
+macro_rules! malloc_size_of_hash_set {
+    ($ty:ty) => {
+        impl<T, S> MallocShallowSizeOf for $ty
+        where
+            T: Eq + Hash,
+            S: BuildHasher,
+        {
+            fn shallow_size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+                if ops.has_malloc_enclosing_size_of() {
+                    // The first value from the iterator gives us an interior pointer.
+                    // `ops.malloc_enclosing_size_of()` then gives us the storage size.
+                    // This assumes that the `HashSet`'s contents (values and hashes)
+                    // are all stored in a single contiguous heap allocation.
+                    self.iter()
+                        .next()
+                        .map_or(0, |t| unsafe { ops.malloc_enclosing_size_of(t) })
+                } else {
+                    // An estimate.
+                    self.capacity() * (size_of::<T>() + size_of::<usize>())
+                }
+            }
+        }
+
+        impl<T, S> MallocSizeOf for $ty
+        where
+            T: Eq + Hash + MallocSizeOf,
+            S: BuildHasher,
+        {
+            fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+                let mut n = self.shallow_size_of(ops);
+                for t in self.iter() {
+                    n += t.size_of(ops);
+                }
+                n
+            }
         }
     }
 }
 
-impl<T, S> MallocSizeOf for std::collections::HashSet<T, S>
-where
-    T: Eq + Hash + MallocSizeOf,
-    S: BuildHasher,
-{
-    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
-        let mut n = self.shallow_size_of(ops);
-        for t in self.iter() {
-            n += t.size_of(ops);
+malloc_size_of_hash_set!(std::collections::HashSet<T, S>);
+malloc_size_of_hash_set!(hashglobe::hash_set::HashSet<T, S>);
+malloc_size_of_hash_set!(hashglobe::fake::HashSet<T, S>);
+
+macro_rules! malloc_size_of_hash_map {
+    ($ty:ty) => {
+        impl<K, V, S> MallocShallowSizeOf for $ty
+        where
+            K: Eq + Hash,
+            S: BuildHasher,
+        {
+            fn shallow_size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+                // See the implementation for std::collections::HashSet for details.
+                if ops.has_malloc_enclosing_size_of() {
+                    self.values()
+                        .next()
+                        .map_or(0, |v| unsafe { ops.malloc_enclosing_size_of(v) })
+                } else {
+                    self.capacity() * (size_of::<V>() + size_of::<K>() + size_of::<usize>())
+                }
+            }
         }
-        n
-    }
-}
 
-impl<T, S> MallocShallowSizeOf for hashglobe::hash_set::HashSet<T, S>
-where
-    T: Eq + Hash,
-    S: BuildHasher,
-{
-    fn shallow_size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
-        // See the implementation for std::collections::HashSet for details.
-        if ops.has_malloc_enclosing_size_of() {
-            self.iter()
-                .next()
-                .map_or(0, |t| unsafe { ops.malloc_enclosing_size_of(t) })
-        } else {
-            self.capacity() * (size_of::<T>() + size_of::<usize>())
-        }
-    }
-}
-
-impl<T, S> MallocSizeOf for hashglobe::hash_set::HashSet<T, S>
-where
-    T: Eq + Hash + MallocSizeOf,
-    S: BuildHasher,
-{
-    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
-        let mut n = self.shallow_size_of(ops);
-        for t in self.iter() {
-            n += t.size_of(ops);
-        }
-        n
-    }
-}
-
-impl<T, S> MallocShallowSizeOf for hashglobe::fake::HashSet<T, S>
-where
-    T: Eq + Hash,
-    S: BuildHasher,
-{
-    fn shallow_size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
-        use std::ops::Deref;
-        self.deref().shallow_size_of(ops)
-    }
-}
-
-impl<T, S> MallocSizeOf for hashglobe::fake::HashSet<T, S>
-where
-    T: Eq + Hash + MallocSizeOf,
-    S: BuildHasher,
-{
-    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
-        use std::ops::Deref;
-        self.deref().size_of(ops)
-    }
-}
-
-impl<K, V, S> MallocShallowSizeOf for std::collections::HashMap<K, V, S>
-where
-    K: Eq + Hash,
-    S: BuildHasher,
-{
-    fn shallow_size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
-        // See the implementation for std::collections::HashSet for details.
-        if ops.has_malloc_enclosing_size_of() {
-            self.values()
-                .next()
-                .map_or(0, |v| unsafe { ops.malloc_enclosing_size_of(v) })
-        } else {
-            self.capacity() * (size_of::<V>() + size_of::<K>() + size_of::<usize>())
+        impl<K, V, S> MallocSizeOf for $ty
+        where
+            K: Eq + Hash + MallocSizeOf,
+            V: MallocSizeOf,
+            S: BuildHasher,
+        {
+            fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+                let mut n = self.shallow_size_of(ops);
+                for (k, v) in self.iter() {
+                    n += k.size_of(ops);
+                    n += v.size_of(ops);
+                }
+                n
+            }
         }
     }
 }
 
-impl<K, V, S> MallocSizeOf for std::collections::HashMap<K, V, S>
-where
-    K: Eq + Hash + MallocSizeOf,
-    V: MallocSizeOf,
-    S: BuildHasher,
-{
-    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
-        let mut n = self.shallow_size_of(ops);
-        for (k, v) in self.iter() {
-            n += k.size_of(ops);
-            n += v.size_of(ops);
-        }
-        n
-    }
-}
+malloc_size_of_hash_map!(std::collections::HashMap<K, V, S>);
+malloc_size_of_hash_map!(hashglobe::hash_map::HashMap<K, V, S>);
+malloc_size_of_hash_map!(hashglobe::fake::HashMap<K, V, S>);
 
 impl<K, V> MallocShallowSizeOf for std::collections::BTreeMap<K, V>
 where
@@ -584,62 +547,6 @@ where
             n += v.size_of(ops);
         }
         n
-    }
-}
-
-impl<K, V, S> MallocShallowSizeOf for hashglobe::hash_map::HashMap<K, V, S>
-where
-    K: Eq + Hash,
-    S: BuildHasher,
-{
-    fn shallow_size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
-        // See the implementation for std::collections::HashSet for details.
-        if ops.has_malloc_enclosing_size_of() {
-            self.values()
-                .next()
-                .map_or(0, |v| unsafe { ops.malloc_enclosing_size_of(v) })
-        } else {
-            self.capacity() * (size_of::<V>() + size_of::<K>() + size_of::<usize>())
-        }
-    }
-}
-
-impl<K, V, S> MallocSizeOf for hashglobe::hash_map::HashMap<K, V, S>
-where
-    K: Eq + Hash + MallocSizeOf,
-    V: MallocSizeOf,
-    S: BuildHasher,
-{
-    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
-        let mut n = self.shallow_size_of(ops);
-        for (k, v) in self.iter() {
-            n += k.size_of(ops);
-            n += v.size_of(ops);
-        }
-        n
-    }
-}
-
-impl<K, V, S> MallocShallowSizeOf for hashglobe::fake::HashMap<K, V, S>
-where
-    K: Eq + Hash,
-    S: BuildHasher,
-{
-    fn shallow_size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
-        use std::ops::Deref;
-        self.deref().shallow_size_of(ops)
-    }
-}
-
-impl<K, V, S> MallocSizeOf for hashglobe::fake::HashMap<K, V, S>
-where
-    K: Eq + Hash + MallocSizeOf,
-    V: MallocSizeOf,
-    S: BuildHasher,
-{
-    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
-        use std::ops::Deref;
-        self.deref().size_of(ops)
     }
 }
 
