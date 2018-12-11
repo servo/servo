@@ -358,7 +358,7 @@ impl NetworkEventActor {
             let status_text = String::from_utf8_lossy(st).into_owned();
             (StatusCode::from_u16(s).unwrap(), status_text)
         });
-        self.response.body = response.body.clone();
+        self.response.body = response.body;
     }
 
     pub fn event_actor(&self) -> EventActor {

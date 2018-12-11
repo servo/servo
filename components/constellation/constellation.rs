@@ -765,7 +765,7 @@ where
                                 self.event_loops.get(&host).and_then(|weak| weak.upgrade());
                             match event_loop {
                                 None => (None, Some(host)),
-                                Some(event_loop) => (Some(event_loop.clone()), None),
+                                Some(event_loop) => (Some(event_loop), None),
                             }
                         },
                     }
@@ -1238,7 +1238,7 @@ where
                     },
                     None => "".to_owned(),
                 };
-                if let Err(e) = sender.send(contents.to_owned()) {
+                if let Err(e) = sender.send(contents) {
                     warn!("Failed to send clipboard ({})", e);
                 }
             },
@@ -1635,7 +1635,7 @@ where
             None,
             opener,
             window_size,
-            load_data.clone(),
+            load_data,
             sandbox,
             is_private,
             is_visible.unwrap_or(true),
@@ -1716,7 +1716,7 @@ where
         );
         self.embedder_proxy.send(msg);
         let browsing_context_id = BrowsingContextId::from(top_level_browsing_context_id);
-        let load_data = LoadData::new(url.clone(), None, None, None);
+        let load_data = LoadData::new(url, None, None, None);
         let sandbox = IFrameSandboxState::IFrameUnsandboxed;
         let is_private = false;
         let is_visible = true;
@@ -1738,7 +1738,7 @@ where
             None,
             None,
             Some(window_size),
-            load_data.clone(),
+            load_data,
             sandbox,
             is_private,
             is_visible,
@@ -1909,7 +1909,7 @@ where
             Some(parent_pipeline_id),
             None,
             browsing_context.size,
-            load_data.clone(),
+            load_data,
             load_info.sandbox,
             is_private,
             browsing_context.is_visible,
@@ -2235,7 +2235,7 @@ where
                     None,
                     opener,
                     window_size,
-                    load_data.clone(),
+                    load_data,
                     sandbox,
                     is_private,
                     is_visible,
@@ -2555,7 +2555,7 @@ where
                     top_level_browsing_context_id: top_level_id,
                     browsing_context_id: browsing_context_id,
                     new_pipeline_id: new_pipeline_id,
-                    replace: Some(NeedsToReload::Yes(pipeline_id, load_data.clone())),
+                    replace: Some(NeedsToReload::Yes(pipeline_id, load_data)),
                     // Browsing context must exist at this point.
                     new_browsing_context_info: None,
                 });
@@ -3190,7 +3190,7 @@ where
                 .future
                 .iter()
                 .rev()
-                .scan(current_load_data.clone(), &resolve_load_data_future),
+                .scan(current_load_data, &resolve_load_data_future),
         );
         let urls = entries.iter().map(|entry| entry.url.clone()).collect();
         let msg = (

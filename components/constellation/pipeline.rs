@@ -219,9 +219,7 @@ impl Pipeline {
                     load_data: state.load_data.clone(),
                     window_size: window_size,
                     pipeline_port: pipeline_port,
-                    content_process_shutdown_chan: Some(
-                        layout_content_process_shutdown_chan.clone(),
-                    ),
+                    content_process_shutdown_chan: Some(layout_content_process_shutdown_chan),
                     layout_threads: PREFS.get("layout.threads").as_u64().expect("count") as usize,
                 };
 
@@ -552,7 +550,7 @@ impl UnprivilegedPipelineContent {
             background_hang_monitor_register,
             self.layout_to_constellation_chan,
             self.script_chan,
-            image_cache.clone(),
+            image_cache,
             self.font_cache_thread,
             self.time_profiler_chan,
             self.mem_profiler_chan,

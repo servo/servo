@@ -1254,8 +1254,8 @@ fn http_network_fetch(
     };
 
     let devtools_sender = context.devtools_chan.clone();
-    let meta_status = meta.status.clone();
-    let meta_headers = meta.headers.clone();
+    let meta_status = meta.status;
+    let meta_headers = meta.headers;
     let cancellation_listener = context.cancellation_listener.clone();
     if cancellation_listener.lock().unwrap().cancelled() {
         return Response::network_error(NetworkError::Internal("Fetch aborted".into()));
@@ -1281,7 +1281,6 @@ fn http_network_fetch(
         }
     }
 
-    let done_sender = done_sender.clone();
     let done_sender2 = done_sender.clone();
     HANDLE.lock().unwrap().spawn(
         res.into_body()
