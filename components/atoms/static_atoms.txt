@@ -74,6 +74,7 @@ rejectionhandled
 removetrack
 reset
 resize
+resourcetimingbufferfull
 right
 rtl
 sans-serif
