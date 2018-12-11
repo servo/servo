@@ -14,7 +14,8 @@ def main(task_for, mock=False):
             CONFIG.treeherder_repo_name = "servo-" + CONFIG.git_ref.split("/")[-1]
 
             linux_tidy_unit()
-            android_arm32()
+            android_arm32_dev()
+            android_arm32_release()
             windows_unit()
             macos_unit()
 
@@ -118,7 +119,20 @@ def with_rust_nightly():
     )
 
 
-def android_arm32():
+def android_arm32_dev():
+    return (
+        android_build_task("Dev build")
+        .with_treeherder("Android ARMv7")
+        .with_script("""
+            ./mach build --android --dev
+            ./etc/ci/lockfile_changed.sh
+            python ./etc/ci/check_dynamic_symbols.py
+        """)
+        .create()
+    )
+
+
+def android_arm32_release():
     return (
         android_build_task("Release build")
         .with_treeherder("Android ARMv7")
