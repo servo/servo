@@ -32,6 +32,7 @@ def main(task_for):
             "try": all_tests,
             "try-taskcluster": [
                 # Add functions here as needed, in your push to that branch
+                linux_wpt,
             ],
             "master": [
                 # Also show these tasks in https://treeherder.mozilla.org/#/jobs?repo=servo-auto
@@ -291,7 +292,7 @@ def windows_release():
 
 
 def linux_wpt():
-    release_build_task = linux_release_build(with_debug_assertions=True)
+    release_build_task = "P9WU_2MRTGKbVsTxf7RDCw" # linux_release_build(with_debug_assertions=True)
     total_chunks = 2
     for i in range(total_chunks):
         this_chunk = i + 1
@@ -329,9 +330,9 @@ def wpt_chunk(release_build_task, total_chunks, this_chunk):
         .with_script("tar -xzf target.tar.gz")
         .with_index_and_artifacts_expire_in(log_artifacts_expire_in)
         .with_max_run_time_minutes(60)
-        .with_env(TOTAL_CHUNKS=total_chunks, THIS_CHUNK=this_chunk)
+        .with_env(TOTAL_CHUNKS=total_chunks * 10, THIS_CHUNK=this_chunk)
     )
-    if this_chunk == 1:
+    if this_chunk == -1:
         task.name += " + extra"
         task.extra["treeherder"]["symbol"] += "+"
         task.with_script("""
@@ -347,6 +348,11 @@ def wpt_chunk(release_build_task, total_chunks, this_chunk):
                 tests/wpt/mozilla/tests/mozilla/secure.https.html
         """)
     task.with_script("""
+        git log --merges --oneline -1
+        git log --merges --oneline -10
+        git log -10
+        git log --merges -10
+        git log --oneline -10
         ./mach test-wpt \
             --release \
             --processes 24 \
