@@ -45,7 +45,7 @@ use crate::script_thread::ScriptThread;
 use crate::task_source::TaskSource;
 use dom_struct::dom_struct;
 use headers_core::HeaderMapExt;
-use headers_ext::ContentLength;
+use headers_ext::{ContentLength, ContentRange};
 use html5ever::{LocalName, Prefix};
 use http::header::{self, HeaderMap, HeaderValue};
 use ipc_channel::ipc;
@@ -198,6 +198,8 @@ pub struct HTMLMediaElement {
     played: Rc<DomRefCell<TimeRangesContainer>>,
     /// https://html.spec.whatwg.org/multipage/#dom-media-texttracks
     text_tracks_list: MutNullableDom<TextTrackList>,
+    /// Expected content length of the media asset being fetched or played.
+    content_length: Cell<Option<u64>>,
 }
 
 /// <https://html.spec.whatwg.org/multipage/#dom-media-networkstate>
@@ -252,6 +254,7 @@ impl HTMLMediaElement {
             resource_url: DomRefCell::new(None),
             played: Rc::new(DomRefCell::new(TimeRangesContainer::new())),
             text_tracks_list: Default::default(),
+            content_length: Cell::new(None),
         }
     }
 
@@ -1378,7 +1381,7 @@ impl HTMLMediaElementMethods for HTMLMediaElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-media-fastseek
     fn FastSeek(&self, time: Finite<f64>) {
-        self.seek(*time, /* approximat_for_speed */ true);
+        self.seek(*time, /* approximate_for_speed */ true);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-media-played
@@ -1554,6 +1557,8 @@ struct HTMLMediaElementContext {
     resource_timing: ResourceFetchTiming,
     /// url for the resource
     url: ServoUrl,
+    /// Amount of data fetched.
+    bytes_fetched: usize,
 }
 
 // https://html.spec.whatwg.org/multipage/#media-data-processing-steps-list
@@ -1563,6 +1568,8 @@ impl FetchResponseListener for HTMLMediaElementContext {
     fn process_request_eof(&mut self) {}
 
     fn process_response(&mut self, metadata: Result<FetchMetadata, NetworkError>) {
+        let elem = self.elem.root();
+
         self.metadata = metadata.ok().map(|m| match m {
             FetchMetadata::Unfiltered(m) => m,
             FetchMetadata::Filtered { unsafe_, .. } => unsafe_,
@@ -1570,9 +1577,25 @@ impl FetchResponseListener for HTMLMediaElementContext {
 
         if let Some(metadata) = self.metadata.as_ref() {
             if let Some(headers) = metadata.headers.as_ref() {
-                if let Some(content_length) = headers.typed_get::<ContentLength>() {
-                    if let Err(e) = self.elem.root().player.set_input_size(content_length.0) {
-                        eprintln!("Could not set player input size {:?}", e);
+                // For range requests we get the size of the media asset from the Content-Range
+                // header. Otherwise, we get it from the Content-Length header.
+                let content_length =
+                    if let Some(content_range) = headers.typed_get::<ContentRange>() {
+                        content_range.bytes_len()
+                    } else if let Some(content_length) = headers.typed_get::<ContentLength>() {
+                        Some(content_length.0)
+                    } else {
+                        None
+                    };
+
+                // We only set the expected input size if it changes.
+                if content_length != elem.content_length.get() {
+                    if let Some(content_length) = content_length {
+                        if let Err(e) = self.elem.root().player.set_input_size(content_length) {
+                            warn!("Could not set player input size {:?}", e);
+                        } else {
+                            elem.content_length.set(Some(content_length));
+                        }
                     }
                 }
             }
@@ -1589,7 +1612,6 @@ impl FetchResponseListener for HTMLMediaElementContext {
             // Ensure that the element doesn't receive any further notifications
             // of the aborted fetch.
             self.ignore_response = true;
-            let elem = self.elem.root();
             elem.fetch_canceller.borrow_mut().cancel();
             elem.queue_dedicated_media_source_failure_steps();
         }
@@ -1601,8 +1623,9 @@ impl FetchResponseListener for HTMLMediaElementContext {
             return;
         }
 
-        let elem = self.elem.root();
+        self.bytes_fetched += payload.len();
 
+        let elem = self.elem.root();
         // Push input data into the player.
         if let Err(e) = elem.player.push_data(payload) {
             eprintln!("Could not push input data to player {:?}", e);
@@ -1623,18 +1646,17 @@ impl FetchResponseListener for HTMLMediaElementContext {
 
     // https://html.spec.whatwg.org/multipage/#media-data-processing-steps-list
     fn process_response_eof(&mut self, status: Result<ResourceFetchTiming, NetworkError>) {
+        let elem = self.elem.root();
         if self.ignore_response {
-            // An error was received previously, skip processing the payload.
+            // An error was received previously, skip processing the payload
+            // and notify the media backend that we are done pushing data.
+            if let Err(e) = elem.player.end_of_stream() {
+                warn!("Could not signal EOS to player {:?}", e);
+            }
             return;
         }
-        let elem = self.elem.root();
 
-        // Signal the eos to player.
-        if let Err(e) = elem.player.end_of_stream() {
-            eprintln!("Could not signal EOS to player {:?}", e);
-        }
-
-        if status.is_ok() {
+        if status.is_ok() && self.bytes_fetched != 0 {
             if elem.ready_state.get() == ReadyState::HaveNothing {
                 // Make sure that we don't skip the HaveMetadata and HaveCurrentData
                 // states for short streams.
@@ -1721,7 +1743,8 @@ impl HTMLMediaElementContext {
             next_progress_event: time::get_time() + Duration::milliseconds(350),
             ignore_response: false,
             resource_timing: ResourceFetchTiming::new(ResourceTimingType::Resource),
-            url: url,
+            url,
+            bytes_fetched: 0,
         }
     }
 }
