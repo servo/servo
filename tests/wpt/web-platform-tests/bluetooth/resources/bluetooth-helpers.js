@@ -19,7 +19,7 @@ function loadScripts(paths) {
 
 function performChromiumSetup() {
   // Make sure we are actually on Chromium.
-  if (!Mojo) {
+  if (!('Mojo' in this)) {
     return;
   }
 
