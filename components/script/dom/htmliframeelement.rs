@@ -276,8 +276,13 @@ impl HTMLIFrameElement {
         );
 
         let pipeline_id = self.pipeline_id();
-        // If the initial `about:blank` page is the current page, load with replacement enabled.
-        let replace = pipeline_id.is_some() && pipeline_id == self.about_blank_pipeline_id.get();
+        // If the initial `about:blank` page is the current page, load with replacement enabled,
+        // see https://html.spec.whatwg.org/multipage/#the-iframe-element:about:blank-3
+        let is_about_blank =
+            pipeline_id.is_some() && pipeline_id == self.about_blank_pipeline_id.get();
+        // Replacement enabled also takes into account whether the document is "completely loaded",
+        // see https://html.spec.whatwg.org/multipage/#the-iframe-element:completely-loaded
+        let replace = is_about_blank || !document.is_completely_loaded();
         self.navigate_or_reload_child_browsing_context(
             Some(load_data),
             NavigationType::Regular,

@@ -1396,6 +1396,7 @@ impl ScriptThread {
         match *msg {
             MixedMessage::FromConstellation(ref inner_msg) => {
                 match *inner_msg {
+                    StopDelayingLoadEventsMode(id) => Some(id),
                     NavigationResponse(id, _) => Some(id),
                     AttachLayout(ref new_layout_info) => Some(new_layout_info.new_pipeline_id),
                     Resize(id, ..) => Some(id),
@@ -1533,6 +1534,9 @@ impl ScriptThread {
 
     fn handle_msg_from_constellation(&self, msg: ConstellationControlMsg) {
         match msg {
+            ConstellationControlMsg::StopDelayingLoadEventsMode(pipeline_id) => {
+                self.handle_stop_delaying_load_events_mode(pipeline_id)
+            },
             ConstellationControlMsg::NavigationResponse(id, fetch_data) => {
                 match fetch_data {
                     FetchResponseMsg::ProcessResponse(metadata) => {
@@ -2080,6 +2084,13 @@ impl ScriptThread {
         }
     }
 
+    fn handle_stop_delaying_load_events_mode(&self, pipeline_id: PipelineId) {
+        let window = self.documents.borrow().find_window(pipeline_id);
+        if let Some(window) = window {
+            window.window_proxy().stop_delaying_load_events_mode();
+        }
+    }
+
     fn handle_unload_document(&self, pipeline_id: PipelineId) {
         let document = self.documents.borrow().find_document(pipeline_id);
         if let Some(document) = document {
@@ -2166,6 +2177,20 @@ impl ScriptThread {
                         status: Some((204...205, _)),
                         ..
                     }) => {
+                        // If we have an existing window that is being navigated:
+                        if let Some(window) = self.documents.borrow().find_window(id.clone()) {
+                            let window_proxy = window.window_proxy();
+                            // https://html.spec.whatwg.org/multipage/
+                            // #navigating-across-documents:delaying-load-events-mode-2
+                            if window_proxy.parent().is_some() {
+                                // The user agent must take this nested browsing context
+                                // out of the delaying load events mode
+                                // when this navigation algorithm later matures,
+                                // or when it terminates (whether due to having run all the steps,
+                                // or being canceled, or being aborted), whichever happens first.
+                                window_proxy.stop_delaying_load_events_mode();
+                            }
+                        }
                         self.script_sender
                             .send((id.clone(), ScriptMsg::AbortLoadUrl))
                             .unwrap();
@@ -2710,6 +2735,13 @@ impl ScriptThread {
             incomplete.parent_info,
             incomplete.opener,
         );
+        if window_proxy.parent().is_some() {
+            // https://html.spec.whatwg.org/multipage/#navigating-across-documents:delaying-load-events-mode-2
+            // The user agent must take this nested browsing context
+            // out of the delaying load events mode
+            // when this navigation algorithm later matures.
+            window_proxy.stop_delaying_load_events_mode();
+        }
         window.init_window_proxy(&window_proxy);
 
         let last_modified = metadata.headers.as_ref().and_then(|headers| {
