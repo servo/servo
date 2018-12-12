@@ -543,7 +543,7 @@ class MachCommands(CommandBase):
             reported = set()
 
             proc = subprocess.Popen(
-                ["git", "log", "--merges", "--oneline", "-1"],
+                ["git", "log", "--oneline", "-1"],
                 stdout=subprocess.PIPE)
             (last_merge, _) = proc.communicate()
 
