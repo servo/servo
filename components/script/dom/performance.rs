@@ -56,12 +56,12 @@ const INVALID_ENTRY_NAMES: &'static [&'static str] = &[
 #[derive(JSTraceable, MallocSizeOf)]
 pub struct PerformanceEntryList {
     entries: DOMPerformanceEntryList,
-    maxSize:i32,
+    maxSize:usize,
 }
 
 impl PerformanceEntryList {
     pub fn new(entries: DOMPerformanceEntryList) -> Self {
-        PerformanceEntryList { entries,250 } // minimum default size mentioned in the specs was 250
+        PerformanceEntryList { entries,maxsize:250_usize } // minimum default size mentioned in the specs was 250
     }
 
     pub fn get_entries_by_name_and_type(
@@ -114,6 +114,25 @@ impl PerformanceEntryList {
             None => 0.,
         }
     }
+    //clears the buffer
+    fn clearResourceTimings(&mut self){
+         self.entries.clear();
+         
+}
+    //sets the maximum size of the buffer
+    fn setResourceTimingBufferSize(&mut self,maxSize:usize){
+        self.maxSize = maxSize;
+}
+    //event for buffer overflow
+    fn onresourcetimingbufferfull(&self)->bool{
+        if self.entries.len()>self.maxSize{
+            return true;
+        }
+        else{
+            return false;
+        }
+            
+}
 }
 
 impl IntoIterator for PerformanceEntryList {
@@ -406,24 +425,5 @@ impl PerformanceMethods for Performance {
             .borrow_mut()
             .clear_entries_by_name_and_type(measure_name, Some(DOMString::from("measure")));
     }
-    //https://w3c.github.io/resource-timing/#sec-extensions-performance-interface
-    //clears the PerformanceEntryList 
-     fn clearResourceTimings(&mut self){
-         self.entries.entries =  Vec<DomRoot<PerformanceEntry>>;
-         
-}
-    //sets the maximum size of the buffer
-    fn setResourceTimingBufferSize(&mut self,maxSize:i32)-> bool{
-        self.entries.maxSize = maxSize;
-}
-    //event for buffer overflow
-    fn onresourcetimingbufferfull(&self){
-        if self.entries.entries.len()>self.entries.maxSize{
-            return True;
-        }
-        else{
-            return False;
-        }
-            
-} 
+ 
 }
