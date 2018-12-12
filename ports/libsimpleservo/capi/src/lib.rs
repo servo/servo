@@ -2,13 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::api::{self, EventLoopWaker, HostTrait, InitOptions, ReadFileTrait, ServoGlue, SERVO};
-use crate::gl_glue;
-use servo::gl;
+#[macro_use]
+extern crate log;
+
+use simpleservo::{
+    self, gl_glue, EventLoopWaker, HostTrait, InitOptions, ReadFileTrait, ServoGlue, SERVO,
+};
 use std::ffi::{CStr, CString};
 use std::mem;
 use std::os::raw::c_char;
-use std::rc::Rc;
 
 fn call<F>(f: F)
 where
@@ -55,7 +57,7 @@ pub struct CInitOptions {
 /// The returned string is not freed. This will leak.
 #[no_mangle]
 pub extern "C" fn servo_version() -> *const c_char {
-    let v = api::servo_version();
+    let v = simpleservo::servo_version();
     let text = CString::new(v).expect("Can't create string");
     let ptr = text.as_ptr();
     mem::forget(text);
@@ -64,7 +66,7 @@ pub extern "C" fn servo_version() -> *const c_char {
 
 fn init(
     opts: CInitOptions,
-    gl: Rc<dyn gl::Gl>,
+    gl: gl_glue::ServoGl,
     wakeup: extern "C" fn(),
     readfile: extern "C" fn(*const c_char) -> *const c_char,
     callbacks: CHostCallbacks,
@@ -88,7 +90,7 @@ fn init(
     let readfile = Box::new(ReadFileCallback::new(readfile));
     let callbacks = Box::new(HostCallbacks::new(callbacks));
 
-    api::init(opts, gl, wakeup, readfile, callbacks).unwrap();
+    simpleservo::init(opts, gl, wakeup, readfile, callbacks).unwrap();
 }
 
 #[cfg(target_os = "windows")]
@@ -122,7 +124,7 @@ pub extern "C" fn init_with_gl(
 #[no_mangle]
 pub extern "C" fn deinit() {
     debug!("deinit");
-    api::deinit();
+    simpleservo::deinit();
 }
 
 #[no_mangle]
