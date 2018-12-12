@@ -29,7 +29,8 @@ def main(*args):
     env = dict(os.environ)
     env["PACKET_AUTH_TOKEN"] = terraform_vars["packet_api_key"]
     env.update({"TF_VAR_" + k: v for k, v in terraform_vars.items()})
-    sys.exit(subprocess.call(["terraform"] + list(args), env=env))
+    cwd = os.path.abspath(os.path.dirname(__file__))
+    sys.exit(subprocess.call(["terraform"] + list(args), env=env, cwd=cwd))
 
 
 if __name__ == "__main__":
