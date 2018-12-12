@@ -61,7 +61,7 @@ pub struct PerformanceEntryList {
 
 impl PerformanceEntryList {
     pub fn new(entries: DOMPerformanceEntryList) -> Self {
-        PerformanceEntryList { entries,maxsize:250_usize } // minimum default size mentioned in the specs was 250
+        PerformanceEntryList { entries,maxSize:250_usize } // minimum default size mentioned in the specs was 250
     }
 
     pub fn get_entries_by_name_and_type(
