@@ -248,6 +248,10 @@ pub enum UpdatePipelineIdReason {
 /// Messages sent from the constellation or layout to the script thread.
 #[derive(Deserialize, Serialize)]
 pub enum ConstellationControlMsg {
+    /// Takes the associated window proxy out of "delaying-load-events-mode",
+    /// used if a scheduled navigated was refused by the embedder.
+    /// https://html.spec.whatwg.org/multipage/#delaying-load-events-mode
+    StopDelayingLoadEventsMode(PipelineId),
     /// Sends the final response to script thread for fetching after all redirections
     /// have been resolved
     NavigationResponse(PipelineId, FetchResponseMsg),
@@ -340,6 +344,7 @@ impl fmt::Debug for ConstellationControlMsg {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
         use self::ConstellationControlMsg::*;
         let variant = match *self {
+            StopDelayingLoadEventsMode(..) => "StopDelayingLoadsEventMode",
             NavigationResponse(..) => "NavigationResponse",
             AttachLayout(..) => "AttachLayout",
             Resize(..) => "Resize",
