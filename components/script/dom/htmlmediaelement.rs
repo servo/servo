@@ -1614,12 +1614,16 @@ impl FetchResponseListener for HTMLMediaElementContext {
 
     // https://html.spec.whatwg.org/multipage/#media-data-processing-steps-list
     fn process_response_eof(&mut self, status: Result<ResourceFetchTiming, NetworkError>) {
+        let elem = self.elem.root();
         if self.ignore_response {
-            // An error was received previously, skip processing the payload.
+            // An error was received previously, skip processing the payload
+            // and notify the media backend that we are done pushing data. 
+            if let Err(e) = elem.player.end_of_stream() {
+                warn!("Could not signal EOS to player {:?}", e);
+            }
             return;
         }
 
-        let elem = self.elem.root();
         if status.is_ok() {
             if elem.ready_state.get() == ReadyState::HaveNothing {
                 // Make sure that we don't skip the HaveMetadata and HaveCurrentData
