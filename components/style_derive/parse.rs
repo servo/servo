@@ -36,7 +36,7 @@ pub fn derive(input: DeriveInput) -> TokenStream {
         let identifier = cg::to_css_identifier(
             &css_variant_attrs
                 .keyword
-                .unwrap_or(variant.ast().ident.to_string()),
+                .unwrap_or_else(|| variant.ast().ident.to_string()),
         );
         let ident = &variant.ast().ident;
 
@@ -56,7 +56,7 @@ pub fn derive(input: DeriveInput) -> TokenStream {
             None => return body,
         };
 
-        for alias in aliases.split(",") {
+        for alias in aliases.split(',') {
             body = quote! {
                 #body
                 #alias #condition => Ok(#name::#ident),

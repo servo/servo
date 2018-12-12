@@ -29,7 +29,7 @@ where
     });
     s.each_variant(|variant| {
         let (mapped, mapped_fields) = value(variant, "mapped");
-        let fields_pairs = variant.bindings().into_iter().zip(mapped_fields);
+        let fields_pairs = variant.bindings().iter().zip(mapped_fields);
         let mut computations = quote!();
         computations.append_all(fields_pairs.map(|(field, mapped_field)| {
             let expr = f(field.clone());
@@ -237,7 +237,7 @@ pub fn ref_pattern<'a>(
     v.bindings_mut().iter_mut().for_each(|b| {
         b.binding = Ident::new(&format!("{}_{}", b.binding, prefix), Span::call_site())
     });
-    (v.pat(), v.bindings().iter().cloned().collect())
+    (v.pat(), v.bindings().to_vec())
 }
 
 pub fn value<'a>(variant: &'a VariantInfo, prefix: &str) -> (TokenStream, Vec<BindingInfo<'a>>) {
@@ -246,7 +246,7 @@ pub fn value<'a>(variant: &'a VariantInfo, prefix: &str) -> (TokenStream, Vec<Bi
         b.binding = Ident::new(&format!("{}_{}", b.binding, prefix), Span::call_site())
     });
     v.bind_with(|_| BindStyle::Move);
-    (v.pat(), v.bindings().iter().cloned().collect())
+    (v.pat(), v.bindings().to_vec())
 }
 
 /// Transforms "FooBar" to "foo-bar".

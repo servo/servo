@@ -40,12 +40,12 @@ pub fn derive(mut input: DeriveInput) -> TokenStream {
                         continue;
                     }
                     if let Some(aliases) = parse_attrs.aliases {
-                        for alias in aliases.split(",") {
+                        for alias in aliases.split(',') {
                             values.push(alias.to_string());
                         }
                     }
                     if let Some(other_values) = info_attrs.other_values {
-                        for value in other_values.split(",") {
+                        for value in other_values.split(',') {
                             values.push(value.to_string());
                         }
                     }
@@ -61,10 +61,8 @@ pub fn derive(mut input: DeriveInput) -> TokenStream {
                     }
                     if let Some(function) = css_attrs.function {
                         values.push(function.explicit().unwrap_or_else(variant_name));
-                    } else {
-                        if !derive_struct_fields(&v.fields, &mut types, &mut values) {
-                            values.push(variant_name());
-                        }
+                    } else if !derive_struct_fields(&v.fields, &mut types, &mut values) {
+                        values.push(variant_name());
                     }
                 }
             },
@@ -79,7 +77,7 @@ pub fn derive(mut input: DeriveInput) -> TokenStream {
 
     let info_attrs = cg::parse_input_attrs::<ValueInfoInputAttrs>(&input);
     if let Some(other_values) = info_attrs.other_values {
-        for value in other_values.split(",") {
+        for value in other_values.split(',') {
             values.push(value.to_string());
         }
     }
@@ -143,7 +141,7 @@ fn derive_struct_fields<'a>(
     types.extend(fields.filter_map(|field| {
         let info_attrs = cg::parse_field_attrs::<ValueInfoFieldAttrs>(field);
         if let Some(other_values) = info_attrs.other_values {
-            for value in other_values.split(",") {
+            for value in other_values.split(',') {
                 values.push(value.to_string());
             }
         }
