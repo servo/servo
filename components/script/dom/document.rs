@@ -416,6 +416,8 @@ pub struct Document {
     /// List of tasks to execute as soon as last script/layout blocker is removed.
     #[ignore_malloc_size_of = "Measuring trait objects is hard"]
     delayed_tasks: DomRefCell<Vec<Box<dyn TaskBox>>>,
+    /// https://html.spec.whatwg.org/multipage/#completely-loaded
+    completely_loaded: Cell<bool>,
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
@@ -505,6 +507,10 @@ impl Document {
 
     pub fn set_https_state(&self, https_state: HttpsState) {
         self.https_state.set(https_state);
+    }
+
+    pub fn is_completely_loaded(&self) -> bool {
+        self.completely_loaded.get()
     }
 
     pub fn is_fully_active(&self) -> bool {
@@ -1899,7 +1905,21 @@ impl Document {
 
     // https://html.spec.whatwg.org/multipage/#the-end
     pub fn maybe_queue_document_completion(&self) {
-        if self.loader.borrow().is_blocked() {
+        // https://html.spec.whatwg.org/multipage/#delaying-load-events-mode
+        let is_in_delaying_load_events_mode = match self.window.undiscarded_window_proxy() {
+            Some(window_proxy) => window_proxy.is_delaying_load_events_mode(),
+            None => false,
+        };
+
+        // Note: if the document is not fully active, the layout thread will have exited already,
+        // and this method will panic.
+        // The underlying problem might actually be that layout exits while it should be kept alive.
+        // See https://github.com/servo/servo/issues/22507
+        let not_ready_for_load = self.loader.borrow().is_blocked() ||
+            !self.is_fully_active() ||
+            is_in_delaying_load_events_mode;
+
+        if not_ready_for_load {
             // Step 6.
             return;
         }
@@ -1951,8 +1971,6 @@ impl Document {
                 update_with_current_time_ms(&document.load_event_end);
 
                 window.reflow(ReflowGoal::Full, ReflowReason::DocumentLoaded);
-
-                document.notify_constellation_load();
 
                 if let Some(fragment) = document.url().fragment() {
                     document.check_and_scroll_fragment(fragment);
@@ -2008,8 +2026,26 @@ impl Document {
         // Step 11.
         // TODO: ready for post-load tasks.
 
-        // Step 12.
-        // TODO: completely loaded.
+        // Step 12: completely loaded.
+        // https://html.spec.whatwg.org/multipage/#completely-loaded
+        // TODO: fully implement "completely loaded".
+        let document = Trusted::new(self);
+        if document.root().browsing_context().is_some() {
+            self.window
+                .task_manager()
+                .dom_manipulation_task_source()
+                .queue(
+                    task!(completely_loaded: move || {
+                    let document = document.root();
+                    document.completely_loaded.set(true);
+                    // Note: this will, among others, result in the "iframe-load-event-steps" being run.
+                    // https://html.spec.whatwg.org/multipage/#iframe-load-event-steps
+                    document.notify_constellation_load();
+                }),
+                    self.window.upcast(),
+                )
+                .unwrap();
+        }
     }
 
     // https://html.spec.whatwg.org/multipage/#pending-parsing-blocking-script
@@ -2701,6 +2737,7 @@ impl Document {
             fired_unload: Cell::new(false),
             responsive_images: Default::default(),
             redirect_count: Cell::new(0),
+            completely_loaded: Cell::new(false),
             script_and_layout_blockers: Cell::new(0),
             delayed_tasks: Default::default(),
         }
