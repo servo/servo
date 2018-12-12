@@ -6,7 +6,7 @@ tasks:
   - $if: 'tasks_for == "github-push"'
     then:
       $if: >-
-        event.ref in ["refs/heads/auto", "refs/heads/try"] ||
+        event.ref in ["refs/heads/auto", "refs/heads/try", "refs/heads/master"] ||
         event.ref[:15] == "refs/heads/try-"
       then:
 
