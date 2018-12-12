@@ -419,6 +419,9 @@ impl HTMLIFrameElement {
 
         let window = window_from_node(self);
         window.reflow(ReflowGoal::Full, ReflowReason::IFrameLoadEvent);
+
+        // This is necessary in case we're loading because a previous navigation was cancelled by the emebdder.
+        window.window_proxy().stop_delaying_load_events_mode();
     }
 }
 

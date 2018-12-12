@@ -1893,7 +1893,9 @@ impl Document {
 
     // https://html.spec.whatwg.org/multipage/#the-end
     pub fn maybe_queue_document_completion(&self) {
-        if self.loader.borrow().is_blocked() {
+        let not_ready_for_load = self.loader.borrow().is_blocked() ||
+            self.window.window_proxy().is_delaying_load_events_mode();
+        if not_ready_for_load {
             // Step 6.
             return;
         }
@@ -1945,8 +1947,6 @@ impl Document {
                 update_with_current_time_ms(&document.load_event_end);
 
                 window.reflow(ReflowGoal::Full, ReflowReason::DocumentLoaded);
-
-                document.notify_constellation_load();
 
                 if let Some(fragment) = document.url().fragment() {
                     document.check_and_scroll_fragment(fragment);
@@ -2002,8 +2002,26 @@ impl Document {
         // Step 11.
         // TODO: ready for post-load tasks.
 
-        // Step 12.
-        // TODO: completely loaded.
+        // Step 12: completely loaded.
+        // https://html.spec.whatwg.org/multipage/#completely-loaded
+        // TODO: fully implement "completely loaded".
+        let document = Trusted::new(self);
+        if document.root().browsing_context().is_some() {
+            self.window
+                .task_manager()
+                .dom_manipulation_task_source()
+                .queue(
+                    task!(completely_loaded: move || {
+                    let document = document.root();
+                    document.completely_loaded.set(true);
+                    // Note: this will, among others, result in the "iframe-load-event-steps" being run.
+                    // https://html.spec.whatwg.org/multipage/#iframe-load-event-steps
+                    document.notify_constellation_load();
+                }),
+                    self.window.upcast(),
+                )
+                .unwrap();
+        }
     }
 
     // https://html.spec.whatwg.org/multipage/#pending-parsing-blocking-script

@@ -1054,10 +1054,15 @@ where
             // However, if the id is not encompassed by another change, it will be.
             FromCompositorMsg::AllowNavigationResponse(pipeline_id, allowed) => {
                 let pending = self.pending_approval_navigations.remove(&pipeline_id);
-                let top_level_browsing_context_id = self
+                let (browsing_context_id, top_level_browsing_context_id) = self
                     .pipelines
                     .get(&pipeline_id)
-                    .map(|pipeline| pipeline.top_level_browsing_context_id)
+                    .map(|pipeline| {
+                        (
+                            pipeline.browsing_context_id,
+                            pipeline.top_level_browsing_context_id,
+                        )
+                    })
                     .expect("Navigated pipeline doesn't have a top_level_browsing_context");
                 match pending {
                     Some((load_data, replace)) => {
@@ -1068,6 +1073,17 @@ where
                                 load_data,
                                 replace,
                             );
+                        } else {
+                            // If the navigation is refused, and this concerns an iframe,
+                            // we need to take it out of it's "delaying-load-events-mode".
+                            let parent_pipeline_id =
+                                match self.browsing_contexts.get(&browsing_context_id) {
+                                    Some(browsing_context) => browsing_context.parent_pipeline_id,
+                                    None => return,
+                                };
+                            if let Some(_parent_pipeline_id) = parent_pipeline_id {
+                                self.handle_subframe_loaded(pipeline_id);
+                            }
                         }
                     },
                     None => {

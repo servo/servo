@@ -2166,6 +2166,20 @@ impl ScriptThread {
                         status: Some((204...205, _)),
                         ..
                     }) => {
+                        // If we have an existing window that is being navigated:
+                        if let Some(window) = self.documents.borrow().find_window(id.clone()) {
+                            let window_proxy = window.window_proxy();
+                            // https://html.spec.whatwg.org/multipage/
+                            // #navigating-across-documents:delaying-load-events-mode-2
+                            if let Some(_parent) = window_proxy.parent() {
+                                // The user agent must take this nested browsing context
+                                // out of the delaying load events mode
+                                // when this navigation algorithm later matures,
+                                // or when it terminates (whether due to having run all the steps,
+                                // or being canceled, or being aborted), whichever happens first.
+                                window_proxy.stop_delaying_load_events_mode();
+                            }
+                        }
                         self.script_sender
                             .send((id.clone(), ScriptMsg::AbortLoadUrl))
                             .unwrap();
@@ -2708,6 +2722,13 @@ impl ScriptThread {
             incomplete.parent_info,
             incomplete.opener,
         );
+        if let Some(_parent) = window_proxy.parent() {
+            // https://html.spec.whatwg.org/multipage/#navigating-across-documents:delaying-load-events-mode-2
+            // The user agent must take this nested browsing context
+            // out of the delaying load events mode
+            // when this navigation algorithm later matures.
+            window_proxy.stop_delaying_load_events_mode();
+        }
         window.init_window_proxy(&window_proxy);
 
         let last_modified = metadata.headers.as_ref().and_then(|headers| {
