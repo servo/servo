@@ -8,40 +8,75 @@ import os.path
 from decisionlib import *
 
 
-def main(task_for, mock=False):
+def main(task_for):
     if task_for == "github-push":
+        # FIXME https://github.com/servo/servo/issues/22325 implement these:
+        macos_wpt = magicleap_dev = linux_arm32_dev = linux_arm64_dev = \
+            android_arm32_dev_from_macos = lambda: None
+        # FIXME still buggy:
+        linux_wpt = lambda: None  # Shadows the existing top-level function
+
+        all_tests = [
+            linux_tidy_unit_docs,
+            windows_unit,
+            macos_unit,
+            magicleap_dev,
+            android_arm32_dev,
+            android_arm32_release,
+            android_x86_release,
+            linux_arm32_dev,
+            linux_arm64_dev,
+            linux_wpt,
+            macos_wpt,
+        ]
+        by_branch_name = {
+            "auto": all_tests,
+            "try": all_tests,
+            "try-taskcluster": [
+                # Add functions here as needed, in your push to that branch
+            ],
+            "master": [
+                # Also show these tasks in https://treeherder.mozilla.org/#/jobs?repo=servo-auto
+                lambda: CONFIG.treeherder_repository_names.append("servo-auto"),
+                upload_docs,
+            ],
+
+            # The "try-*" keys match those in `servo_try_choosers` in Homu’s config:
+            # https://github.com/servo/saltfs/blob/master/homu/map.jinja
+
+            "try-mac": [macos_unit],
+            "try-linux": [linux_tidy_unit_docs],
+            "try-windows": [windows_unit],
+            "try-magicleap": [magicleap_dev],
+            "try-arm": [linux_arm32_dev, linux_arm64_dev],
+            "try-wpt": [linux_wpt],
+            "try-wpt-mac": [macos_wpt],
+            "try-wpt-android": [android_x86_wpt],
+            "try-android": [
+                android_arm32_dev,
+                android_arm32_dev_from_macos,
+                android_x86_wpt
+            ],
+        }
         assert CONFIG.git_ref.startswith("refs/heads/")
         branch = CONFIG.git_ref[len("refs/heads/"):]
-        CONFIG.treeherder_repository_names = ["servo-" + branch]
-
-        if branch in ["auto", "try", "try-taskcluster"]:
-            linux_tidy_unit_docs()
-            android_arm32_dev()
-            android_arm32_release()
-            android_x86_release()
-            windows_unit()
-            macos_unit()
-
-            # These are disabled in a "real" decision task,
-            # but should still run when testing this Python code. (See `mock.py`.)
-            if mock:
-                windows_release()
-                linux_wpt()
-                linux_build_task("Indexed by task definition").find_or_create()
-                android_x86_wpt()
-
-        if branch == "master":
-            # Also show these tasks in https://treeherder.mozilla.org/#/jobs?repo=servo-auto
-            CONFIG.treeherder_repository_names.append("servo-auto")
-            upload_docs()
+        CONFIG.treeherder_repository_names.append("servo-" + branch)
+        for function in by_branch_name.get(branch, []):
+            function()
 
     # https://tools.taskcluster.net/hooks/project-servo/daily
     elif task_for == "daily":
         daily_tasks_setup()
         with_rust_nightly()
 
-    else:  # pragma: no cover
-        raise ValueError("Unrecognized $TASK_FOR value: %r", task_for)
+
+# These are disabled in a "real" decision task,
+# but should still run when testing this Python code. (See `mock.py`.)
+def mocked_only():
+    windows_release()
+    linux_wpt()
+    android_x86_wpt()
+    linux_build_task("Indexed by task definition").find_or_create()
 
 
 ping_on_daily_task_failure = "SimonSapin, nox, emilio"
