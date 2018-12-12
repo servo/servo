@@ -19,6 +19,8 @@ async function doOfferAnswerExchange(t, caller) {
   const answer = await callee.createAnswer();
   await callee.setLocalDescription(answer);
   await caller.setRemoteDescription(answer);
+
+  return callee;
 }
 
 /*

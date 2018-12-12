@@ -53,6 +53,16 @@
                            "same-origin url should be muted");
     var check5 = test5.step_func_done(() => check(true));
 
+    const test6 = async_test("Non-synthetic errors for same-origin scripts redirected to a " +
+                             "cross-origin URL and redirected back to same-origin should be " +
+                             "muted");
+    const check6 = test6.step_func_done(() => check(true));
+
+    const test7 = async_test("Syntax error for same-origin script redirected to a " +
+                             "cross-origin URL and redirected back to same-origin should be " +
+                             "muted");
+    const check7 = test7.step_func_done(() => check(true));
+
     function unreachable() { log.push("unexpected"); }
 </script>
 <script src="cacheable-script-throw.py" onerror="test1.unreached_func()()" onload="check1()"></script>
@@ -67,3 +77,9 @@ onerror="test4.unreached_func()()" onload="check4()"></script>
 <script src="//{{domains[www2]}}:{{ports[http][0]}}/fetch/api/resources/redirect.py?location=
 //{{host}}:{{ports[http][0]}}/html/semantics/scripting-1/the-script-element/cacheable-script-throw.py?cross-same"
 onerror="test5.unreached_func()()" onload="check5()"></script>
+<script src="//{{domains[www2]}}:{{ports[http][0]}}/fetch/api/resources/redirect.py?location=
+//{{host}}:{{ports[http][0]}}/html/semantics/scripting-1/the-script-element/resources/throw.js"
+onerror="test6.unreached_func()()" onload="check6()"></script>
+<script src="//{{domains[www2]}}:{{ports[http][0]}}/fetch/api/resources/redirect.py?location=
+//{{host}}:{{ports[http][0]}}/html/semantics/scripting-1/the-script-element/resources/syntax-error.js"
+onerror="test7.unreached_func()()" onload="check7()"></script>

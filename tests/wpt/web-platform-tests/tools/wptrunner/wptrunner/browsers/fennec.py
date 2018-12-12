@@ -6,7 +6,7 @@ from mozprocess import ProcessHandler
 from mozprofile import FirefoxProfile
 from mozrunner import FennecEmulatorRunner
 
-from serve.serve import make_hosts_file
+from tools.serve.serve import make_hosts_file
 
 from .base import (get_free_port,
                    cmd_arg,
@@ -26,7 +26,9 @@ __wptrunner__ = {"product": "fennec",
                  "env_extras": "env_extras",
                  "env_options": "env_options",
                  "run_info_extras": "run_info_extras",
-                 "update_properties": "update_properties"}
+                 "update_properties": "update_properties",
+                 "timeout_multiplier": "get_timeout_multiplier"}
+
 
 
 def check_args(**kwargs):

@@ -1,4 +1,5 @@
 from .base import Browser, ExecutorBrowser, require_arg
+from .base import get_timeout_multiplier   # noqa: F401
 from ..webdriver_server import ChromeDriverServer
 from ..executors import executor_kwargs as base_executor_kwargs
 from ..executors.executorwebdriver import (WebDriverTestharnessExecutor,  # noqa: F401
@@ -15,7 +16,8 @@ __wptrunner__ = {"product": "chrome",
                  "browser_kwargs": "browser_kwargs",
                  "executor_kwargs": "executor_kwargs",
                  "env_extras": "env_extras",
-                 "env_options": "env_options"}
+                 "env_options": "env_options",
+                 "timeout_multiplier": "get_timeout_multiplier",}
 
 
 def check_args(**kwargs):
@@ -34,6 +36,7 @@ def executor_kwargs(test_type, server_config, cache_manager, run_info_data,
                                            cache_manager, run_info_data,
                                            **kwargs)
     executor_kwargs["close_after_done"] = True
+    executor_kwargs["supports_eager_pageload"] = False
 
     capabilities = {
         "goog:chromeOptions": {
@@ -47,6 +50,9 @@ def executor_kwargs(test_type, server_config, cache_manager, run_info_data,
             "w3c": True
         }
     }
+
+    if test_type == "testharness":
+        capabilities["pageLoadStrategy"] = "none"
 
     for (kwarg, capability) in [("binary", "binary"), ("binary_args", "args")]:
         if kwargs[kwarg] is not None:

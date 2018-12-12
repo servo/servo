@@ -1,15 +1,11 @@
 <!doctype html>
 <title>document.write</title>
-<script src="/resources/testharness.js"></script><script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
 <script>
-var t = async_test();
-onload = function() {
-  t.step(function() {
-    document.write("<body>Filler Text<div id='log'></div>");
-    assert_equals(document.body.textContent, "Filler Text");
-  });
-  t.done();
-};
+var win;
+var t = async_test(() => {
+  win = window.open("047-1.html");
+});
+t.add_cleanup(() => win.close());
 </script>
-<body>FAIL
-<div id="log"></div>
