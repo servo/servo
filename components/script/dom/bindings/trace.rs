@@ -56,9 +56,6 @@ use encoding_rs::{Decoder, Encoding};
 use euclid::Length as EuclidLength;
 use euclid::{Point2D, Rect, Transform2D, Transform3D, TypedScale, TypedSize2D, Vector2D};
 use html5ever::buffer_queue::BufferQueue;
-use html5ever::tendril::fmt::UTF8;
-use html5ever::tendril::stream::Utf8LossyDecoder;
-use html5ever::tendril::{StrTendril, TendrilSink};
 use html5ever::{LocalName, Namespace, Prefix, QualName};
 use http::header::HeaderMap;
 use hyper::Method;
@@ -128,6 +125,9 @@ use style::stylesheets::keyframes_rule::Keyframe;
 use style::stylesheets::{CssRules, FontFaceRule, KeyframesRule, MediaRule, Stylesheet};
 use style::stylesheets::{ImportRule, NamespaceRule, StyleRule, SupportsRule, ViewportRule};
 use style::values::specified::Length;
+use tendril::fmt::UTF8;
+use tendril::stream::LossyDecoder;
+use tendril::{StrTendril, TendrilSink};
 use time::Duration;
 use uuid::Uuid;
 use webrender_api::{DocumentId, ImageKey, RenderApiSender};
@@ -736,12 +736,12 @@ where
     }
 }
 
-unsafe impl<Sink> JSTraceable for Utf8LossyDecoder<Sink>
+unsafe impl<Sink> JSTraceable for LossyDecoder<Sink>
 where
     Sink: JSTraceable + TendrilSink<UTF8>,
 {
     unsafe fn trace(&self, tracer: *mut JSTracer) {
-        self.inner_sink.trace(tracer);
+        self.inner_sink().trace(tracer);
     }
 }
 
