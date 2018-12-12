@@ -31,7 +31,9 @@ class TaskclusterRestFailure(Exception):
 class Index:
     __init__ = insertTask = lambda *_, **__: None
 
-    def findTask(self, _):
+    def findTask(self, path):
+        if decision_task.CONFIG.git_ref == "refs/heads/master":
+            return {"taskId": ""}
         raise TaskclusterRestFailure
 
 
@@ -45,10 +47,19 @@ os.environ["GIT_REF"] = "refs/heads/auto"
 import decision_task
 
 print("\n# Push:")
-decision_task.main("github-push", mock=True)
+decision_task.main("github-push")
 
 print("\n# Push with hot caches:")
-decision_task.main("github-push", mock=True)
+decision_task.main("github-push")
+
+print("\n# Mocked only:")
+decision_task.mocked_only()
+
+print("\n# Push to master:")
+decision_task.CONFIG.git_ref = "refs/heads/master"
+decision_task.main("github-push")
 
 print("\n# Daily:")
-decision_task.main("daily", mock=True)
+decision_task.main("daily")
+
+print()

@@ -43,7 +43,7 @@ class Config:
         self.docker_image_buil_worker_type = None
         self.docker_images_expire_in = "1 month"
         self.repacked_msi_files_expire_in = "1 month"
-        self.treeherder_repo_name = None
+        self.treeherder_repository_names = []
 
         # Set by docker-worker:
         # https://docs.taskcluster.net/docs/reference/workers/docker-worker/docs/environment
@@ -156,9 +156,9 @@ class Task:
             "symbol": symbol,
         })
 
-        if CONFIG.treeherder_repo_name:
+        for repo in CONFIG.treeherder_repository_names:
             assert CONFIG.git_sha
-            suffix = ".v2._/%s.%s" % (CONFIG.treeherder_repo_name, CONFIG.git_sha)
+            suffix = ".v2._/%s.%s" % (repo, CONFIG.git_sha)
             self.with_routes(
                 "tc-treeherder" + suffix,
                 "tc-treeherder-staging" + suffix,
@@ -223,6 +223,11 @@ class Task:
         print("Scheduled %s" % self.name)
         return task_id
 
+    @staticmethod
+    def find(index_path):
+        full_index_path = "%s.%s" % (CONFIG.index_prefix, index_path)
+        return SHARED.index_service.findTask(full_index_path)["taskId"]
+
     def find_or_create(self, index_path=None):
         """
         Try to find a task in the Index and return its ID.
@@ -240,18 +245,17 @@ class Task:
             worker_type = self.worker_type
             index_by = json.dumps([worker_type, self.build_worker_payload()]).encode("utf-8")
             index_path = "by-task-definition." + hashlib.sha256(index_by).hexdigest()
-        index_path = "%s.%s" % (CONFIG.index_prefix, index_path)
 
         task_id = SHARED.found_or_created_indexed_tasks.get(index_path)
         if task_id is not None:
             return task_id
 
         try:
-            task_id = SHARED.index_service.findTask(index_path)["taskId"]
+            task_id = Task.find(index_path)
         except taskcluster.TaskclusterRestFailure as e:
             if e.status_code != 404:  # pragma: no cover
                 raise
-            self.routes.append("index." + index_path)
+            self.routes.append("index.%s.%s" % (CONFIG.index_prefix, index_path))
             task_id = self.create()
 
         SHARED.found_or_created_indexed_tasks[index_path] = task_id

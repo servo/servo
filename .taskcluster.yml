@@ -25,8 +25,7 @@ tasks:
           owner: &task_owner ${event.pusher.name}@users.noreply.github.com
           source: &task_source ${event.compare}
         scopes:
-          # Granted to role "repo:github.com/servo/servo:branch:*"
-          - "assume:project:servo:decision-task/trusted"
+          - "assume:repo:github.com/servo/servo:branch:${event.ref[11:]}"
         routes:
           # len("refs/heads/") == 11, so event.ref[11:] is the branch name
           - "tc-treeherder.v2.servo/servo-${event.ref[11:]}.${event.after}"

@@ -8,33 +8,75 @@ import os.path
 from decisionlib import *
 
 
-def main(task_for, mock=False):
+def main(task_for):
     if task_for == "github-push":
-        if CONFIG.git_ref in ["refs/heads/auto", "refs/heads/try", "refs/heads/try-taskcluster"]:
-            CONFIG.treeherder_repo_name = "servo-" + CONFIG.git_ref.split("/")[-1]
+        # FIXME https://github.com/servo/servo/issues/22325 implement these:
+        macos_wpt = magicleap_dev = linux_arm32_dev = linux_arm64_dev = \
+            android_arm32_dev_from_macos = lambda: None
+        # FIXME still buggy:
+        linux_wpt = lambda: None  # Shadows the existing top-level function
 
-            linux_tidy_unit()
-            android_arm32_dev()
-            android_arm32_release()
-            android_x86_release()
-            windows_unit()
-            macos_unit()
+        all_tests = [
+            linux_tidy_unit_docs,
+            windows_unit,
+            macos_unit,
+            magicleap_dev,
+            android_arm32_dev,
+            android_arm32_release,
+            android_x86_release,
+            linux_arm32_dev,
+            linux_arm64_dev,
+            linux_wpt,
+            macos_wpt,
+        ]
+        by_branch_name = {
+            "auto": all_tests,
+            "try": all_tests,
+            "try-taskcluster": [
+                # Add functions here as needed, in your push to that branch
+            ],
+            "master": [
+                # Also show these tasks in https://treeherder.mozilla.org/#/jobs?repo=servo-auto
+                lambda: CONFIG.treeherder_repository_names.append("servo-auto"),
+                upload_docs,
+            ],
 
-            # These are disabled in a "real" decision task,
-            # but should still run when testing this Python code. (See `mock.py`.)
-            if mock:
-                windows_release()
-                linux_wpt()
-                linux_build_task("Indexed by task definition").find_or_create()
-                android_x86_wpt()
+            # The "try-*" keys match those in `servo_try_choosers` in Homu’s config:
+            # https://github.com/servo/saltfs/blob/master/homu/map.jinja
+
+            "try-mac": [macos_unit],
+            "try-linux": [linux_tidy_unit_docs],
+            "try-windows": [windows_unit],
+            "try-magicleap": [magicleap_dev],
+            "try-arm": [linux_arm32_dev, linux_arm64_dev],
+            "try-wpt": [linux_wpt],
+            "try-wpt-mac": [macos_wpt],
+            "try-wpt-android": [android_x86_wpt],
+            "try-android": [
+                android_arm32_dev,
+                android_arm32_dev_from_macos,
+                android_x86_wpt
+            ],
+        }
+        assert CONFIG.git_ref.startswith("refs/heads/")
+        branch = CONFIG.git_ref[len("refs/heads/"):]
+        CONFIG.treeherder_repository_names.append("servo-" + branch)
+        for function in by_branch_name.get(branch, []):
+            function()
 
     # https://tools.taskcluster.net/hooks/project-servo/daily
     elif task_for == "daily":
         daily_tasks_setup()
         with_rust_nightly()
 
-    else:  # pragma: no cover
-        raise ValueError("Unrecognized $TASK_FOR value: %r", task_for)
+
+# These are disabled in a "real" decision task,
+# but should still run when testing this Python code. (See `mock.py`.)
+def mocked_only():
+    windows_release()
+    linux_wpt()
+    android_x86_wpt()
+    linux_build_task("Indexed by task definition").find_or_create()
 
 
 ping_on_daily_task_failure = "SimonSapin, nox, emilio"
@@ -69,10 +111,10 @@ windows_sparse_checkout = [
 ]
 
 
-def linux_tidy_unit():
+def linux_tidy_unit_docs():
     return (
-        linux_build_task("Tidy + dev build + unit")
-        .with_treeherder("Linux x64")
+        linux_build_task("Tidy + dev build + unit tests + docs")
+        .with_treeherder("Linux x64", "Tidy+Unit+Doc")
         .with_script("""
             ./mach test-tidy --no-progress --all
             ./mach build --dev
@@ -81,24 +123,61 @@ def linux_tidy_unit():
             ./mach build --dev --libsimpleservo
             ./mach build --dev --no-default-features --features default-except-unstable
             ./mach test-tidy --no-progress --self-test
+
             ./etc/memory_reports_over_time.py --test
             ./etc/taskcluster/mock.py
             ./etc/ci/lockfile_changed.sh
             ./etc/ci/check_no_panic.sh
-        """).create()
+
+            ./mach doc
+            cd target/doc
+            git init
+            time git add .
+            git -c user.name="Taskcluster" -c user.email="" \
+                commit -q -m "Rebuild Servo documentation"
+            git bundle create docs.bundle HEAD
+        """)
+        .with_artifacts("/repo/target/doc/docs.bundle")
+        .find_or_create("docs." + CONFIG.git_sha)
     )
 
+
+def upload_docs():
+    docs_build_task_id = Task.find("docs." + CONFIG.git_sha)
+    return (
+        linux_task("Upload docs to GitHub Pages")
+        .with_treeherder("Linux x64", "DocUpload")
+        .with_dockerfile(dockerfile_path("base"))
+        .with_curl_artifact_script(docs_build_task_id, "docs.bundle")
+        .with_features("taskclusterProxy")
+        .with_scopes("secrets:get:project/servo/doc.servo.org")
+        .with_env(PY="""if 1:
+            import urllib, json
+            url = "http://taskcluster/secrets/v1/secret/project/servo/doc.servo.org"
+            token = json.load(urllib.urlopen(url))["secret"]["token"]
+            open("/root/.git-credentials", "w").write("https://git:%s@github.com/" % token)
+        """)
+        .with_script("""
+            python -c "$PY"
+            git init --bare
+            git config credential.helper store
+            git fetch --quiet docs.bundle
+            git push --force https://github.com/servo/doc.servo.org FETCH_HEAD:gh-pages
+        """)
+        .create()
+    )
 
 def macos_unit():
     return (
         macos_build_task("Dev build + unit tests")
-        .with_treeherder("macOS x64")
+        .with_treeherder("macOS x64", "Unit")
         .with_script("""
             ./mach build --dev
             ./mach test-unit
             ./mach package --dev
             ./etc/ci/lockfile_changed.sh
-        """).create()
+        """)
+        .create()
     )
 
 
@@ -136,7 +215,7 @@ def android_arm32_dev():
 def android_arm32_release():
     return (
         android_build_task("Release build")
-        .with_treeherder("Android ARMv7")
+        .with_treeherder("Android ARMv7", "Release")
         .with_script("./mach build --android --release")
         .with_artifacts(
             "/repo/target/android/armv7-linux-androideabi/release/servoapp.apk",
@@ -149,7 +228,7 @@ def android_arm32_release():
 def android_x86_release():
     return (
         android_build_task("Release build")
-        .with_treeherder("Android x86")
+        .with_treeherder("Android x86", "Release")
         .with_script("./mach build --target i686-linux-android --release")
         .with_artifacts(
             "/repo/target/android/i686-linux-android/release/servoapp.apk",
@@ -185,7 +264,7 @@ def android_x86_wpt():
 def windows_unit():
     return (
         windows_build_task("Dev build + unit tests")
-        .with_treeherder("Windows x64")
+        .with_treeherder("Windows x64", "Unit")
         .with_script(
             # Not necessary as this would be done at the start of `build`,
             # but this allows timing it separately.
@@ -204,7 +283,7 @@ def windows_unit():
 def windows_release():
     return (
         windows_build_task("Release build")
-        .with_treeherder("Windows x64")
+        .with_treeherder("Windows x64", "Release")
         .with_script("mach build --release",
                      "mach package --release")
         .with_artifacts("repo/target/release/msi/Servo.exe",
@@ -224,7 +303,7 @@ def linux_wpt():
 def linux_release_build():
     return (
         linux_build_task("Release build")
-        .with_treeherder("Linux x64")
+        .with_treeherder("Linux x64", "Release")
         .with_script("""
             ./mach build --release --with-debug-assertions -p servo
             ./etc/ci/lockfile_changed.sh
@@ -241,7 +320,7 @@ def linux_release_build():
 def wpt_chunk(release_build_task, total_chunks, this_chunk):
     task = (
         linux_task("WPT chunk %s / %s" % (this_chunk, total_chunks))
-        .with_treeherder("Linux x64", "WPT %s" % this_chunk)
+        .with_treeherder("Linux x64", "WPT-%s" % this_chunk)
         .with_dockerfile(dockerfile_path("run"))
         .with_repo()
         .with_curl_artifact_script(release_build_task, "target.tar.gz")
