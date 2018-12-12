@@ -546,6 +546,7 @@ class MachCommands(CommandBase):
                 ["git", "log", "--merges", "--oneline", "-1"],
                 stdout=subprocess.PIPE)
             (last_merge, _) = proc.communicate()
+            print("Last merge: %r" % last_merge)
 
             # Extract the issue reference from "abcdef Auto merge of #NNN"
             pull_request = int(last_merge.split(' ')[4][1:])
