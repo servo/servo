@@ -37,9 +37,9 @@ use crate::network_listener::PreInvoke;
 use crate::script_thread::ScriptThread;
 use dom_struct::dom_struct;
 use embedder_traits::resources::{self, Resource};
+use encoding_rs::Encoding;
 use html5ever::buffer_queue::BufferQueue;
 use html5ever::tendril::fmt::UTF8;
-use html5ever::tendril::stream::Utf8LossyDecoder;
 use html5ever::tendril::{ByteTendril, StrTendril, TendrilSink};
 use html5ever::tree_builder::{ElementFlags, NextParserState, NodeOrText, QuirksMode, TreeSink};
 use html5ever::{Attribute, ExpandedName, LocalName, QualName};
@@ -58,6 +58,7 @@ use std::borrow::Cow;
 use std::cell::Cell;
 use std::mem;
 use style::context::QuirksMode as ServoQuirksMode;
+use tendril::stream::LossyDecoder;
 
 mod async_html;
 mod html;
@@ -398,7 +399,7 @@ impl ServoParser {
         ServoParser {
             reflector: Reflector::new(),
             document: Dom::from_ref(document),
-            network_decoder: DomRefCell::new(Some(NetworkDecoder::new())),
+            network_decoder: DomRefCell::new(Some(NetworkDecoder::new(document.encoding()))),
             network_input: DomRefCell::new(BufferQueue::new()),
             script_input: DomRefCell::new(BufferQueue::new()),
             tokenizer: DomRefCell::new(tokenizer),
@@ -1195,19 +1196,22 @@ fn create_element_for_token(
 #[derive(JSTraceable, MallocSizeOf)]
 struct NetworkDecoder {
     #[ignore_malloc_size_of = "Defined in tendril"]
-    decoder: Utf8LossyDecoder<NetworkSink>,
+    decoder: LossyDecoder<NetworkSink>,
 }
 
 impl NetworkDecoder {
-    fn new() -> Self {
+    fn new(encoding: &'static Encoding) -> Self {
         Self {
-            decoder: Utf8LossyDecoder::new(Default::default()),
+            decoder: LossyDecoder::new_encoding_rs(encoding, Default::default()),
         }
     }
 
     fn decode(&mut self, chunk: Vec<u8>) -> StrTendril {
         self.decoder.process(ByteTendril::from(&*chunk));
-        mem::replace(&mut self.decoder.inner_sink.output, Default::default())
+        mem::replace(
+            &mut self.decoder.inner_sink_mut().output,
+            Default::default(),
+        )
     }
 
     fn finish(self) -> StrTendril {

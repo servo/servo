@@ -2586,26 +2586,32 @@ impl Document {
         let interactive_time =
             InteractiveMetrics::new(window.time_profiler_chan().clone(), url.clone());
 
+        let content_type = content_type.unwrap_or_else(|| {
+            match is_html_document {
+                // https://dom.spec.whatwg.org/#dom-domimplementation-createhtmldocument
+                IsHTMLDocument::HTMLDocument => mime::TEXT_HTML,
+                // https://dom.spec.whatwg.org/#concept-document-content-type
+                IsHTMLDocument::NonHTMLDocument => "application/xml".parse().unwrap(),
+            }
+        });
+
+        let encoding = content_type
+            .get_param(mime::CHARSET)
+            .and_then(|charset| Encoding::for_label(charset.as_str().as_bytes()))
+            .unwrap_or(UTF_8);
+
         Document {
             node: Node::new_document_node(),
             window: Dom::from_ref(window),
             has_browsing_context: has_browsing_context == HasBrowsingContext::Yes,
             implementation: Default::default(),
-            content_type: match content_type {
-                Some(mime_data) => mime_data,
-                None => match is_html_document {
-                    // https://dom.spec.whatwg.org/#dom-domimplementation-createhtmldocument
-                    IsHTMLDocument::HTMLDocument => mime::TEXT_HTML,
-                    // https://dom.spec.whatwg.org/#concept-document-content-type
-                    IsHTMLDocument::NonHTMLDocument => "application/xml".parse().unwrap(),
-                },
-            },
+            content_type,
             last_modified: last_modified,
             url: DomRefCell::new(url),
             // https://dom.spec.whatwg.org/#concept-document-quirks
             quirks_mode: Cell::new(QuirksMode::NoQuirks),
             // https://dom.spec.whatwg.org/#concept-document-encoding
-            encoding: Cell::new(UTF_8),
+            encoding: Cell::new(encoding),
             is_html_document: is_html_document == IsHTMLDocument::HTMLDocument,
             activity: Cell::new(activity),
             id_map: DomRefCell::new(HashMap::new()),
