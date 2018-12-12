@@ -1070,6 +1070,32 @@ where
                                 load_data,
                                 replace,
                             );
+                        } else {
+                            let pipeline_is_top_level_pipeline = self
+                                .browsing_contexts
+                                .get(&BrowsingContextId::from(top_level_browsing_context_id))
+                                .map(|ctx| ctx.pipeline_id == pipeline_id)
+                                .unwrap_or(false);
+                            // If the navigation is refused, and this concerns an iframe,
+                            // we need to take it out of it's "delaying-load-events-mode".
+                            // https://html.spec.whatwg.org/multipage/#delaying-load-events-mode
+                            if !pipeline_is_top_level_pipeline {
+                                let msg = ConstellationControlMsg::StopDelayingLoadEventsMode(
+                                    pipeline_id,
+                                );
+                                let result = match self.pipelines.get(&pipeline_id) {
+                                    Some(pipeline) => pipeline.event_loop.send(msg),
+                                    None => {
+                                        return warn!(
+                                            "Attempted to navigate {} after closure.",
+                                            pipeline_id
+                                        )
+                                    },
+                                };
+                                if let Err(e) = result {
+                                    self.handle_send_error(pipeline_id, e);
+                                }
+                            }
                         }
                     },
                     None => {
@@ -1837,6 +1863,9 @@ where
             Some(parent_pipeline_id) => parent_pipeline_id,
             None => return warn!("Subframe {} has no parent.", pipeline_id),
         };
+        // https://html.spec.whatwg.org/multipage/#the-iframe-element:completely-loaded
+        // When a Document in an iframe is marked as completely loaded,
+        // the user agent must run the iframe load event steps.
         let msg = ConstellationControlMsg::DispatchIFrameLoadEvent {
             target: browsing_context_id,
             parent: parent_pipeline_id,
