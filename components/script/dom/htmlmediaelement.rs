@@ -1528,6 +1528,8 @@ struct HTMLMediaElementContext {
     resource_timing: ResourceFetchTiming,
     /// url for the resource
     url: ServoUrl,
+    /// Amount of data fetched.
+    bytes_fetched: usize,
 }
 
 // https://html.spec.whatwg.org/multipage/#media-data-processing-steps-list
@@ -1592,8 +1594,9 @@ impl FetchResponseListener for HTMLMediaElementContext {
             return;
         }
 
-        let elem = self.elem.root();
+        self.bytes_fetched += payload.len();
 
+        let elem = self.elem.root();
         // Push input data into the player.
         if let Err(e) = elem.player.push_data(payload) {
             eprintln!("Could not push input data to player {:?}", e);
@@ -1617,14 +1620,14 @@ impl FetchResponseListener for HTMLMediaElementContext {
         let elem = self.elem.root();
         if self.ignore_response {
             // An error was received previously, skip processing the payload
-            // and notify the media backend that we are done pushing data. 
+            // and notify the media backend that we are done pushing data.
             if let Err(e) = elem.player.end_of_stream() {
                 warn!("Could not signal EOS to player {:?}", e);
             }
             return;
         }
 
-        if status.is_ok() {
+        if status.is_ok() && self.bytes_fetched != 0 {
             if elem.ready_state.get() == ReadyState::HaveNothing {
                 // Make sure that we don't skip the HaveMetadata and HaveCurrentData
                 // states for short streams.
@@ -1711,7 +1714,8 @@ impl HTMLMediaElementContext {
             next_progress_event: time::get_time() + Duration::milliseconds(350),
             ignore_response: false,
             resource_timing: ResourceFetchTiming::new(ResourceTimingType::Resource),
-            url: url,
+            url,
+            bytes_fetched: 0,
         }
     }
 }
