@@ -175,7 +175,7 @@ def macos_unit():
             ./mach package --dev
             ./etc/ci/lockfile_changed.sh
         """)
-        .create()
+        .find_or_create("macos_unit." + CONFIG.git_sha)
     )
 
 
@@ -207,7 +207,7 @@ def android_arm32_dev():
             ./etc/ci/lockfile_changed.sh
             python ./etc/ci/check_dynamic_symbols.py
         """)
-        .create()
+        .find_or_create("android_arm32_dev." + CONFIG.git_sha)
     )
 
 
@@ -256,7 +256,7 @@ def android_x86_wpt():
                 /_mozilla/mozilla/DOMParser.html \
                 /_mozilla/mozilla/webgl/context_creation_error.html
         """)
-        .create()
+        .find_or_create("android_x86_release." + CONFIG.git_sha)
     )
 
 
@@ -369,7 +369,7 @@ def wpt_chunk(release_build_task, total_chunks, this_chunk):
         for word in script.split()
         if word.endswith(".log")
     ])
-    return task.create()
+    return task.find_or_create("linux_wpt_%s.%s" % (this_chunk, CONFIG.git_sha))
 
 
 def daily_tasks_setup():
