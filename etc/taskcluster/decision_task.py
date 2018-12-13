@@ -336,17 +336,22 @@ def wpt_chunk(release_build_task, total_chunks, this_chunk):
         task.name += " + extra"
         task.extra["treeherder"]["symbol"] += "+"
         task.with_script("""
-            time ./mach test-wpt-failure
-            time ./mach test-wpt --release --binary-arg=--multiprocess --processes 24 \
+            ./mach test-wpt-failure
+            ./mach test-wpt --release --binary-arg=--multiprocess --processes 24 \
                 --log-raw test-wpt-mp.log \
                 --log-errorsummary wpt-mp-errorsummary.log \
-                eventsource
+                eventsource \
+                | cat
             time ./mach test-wpt --release --product=servodriver --headless  \
                 tests/wpt/mozilla/tests/mozilla/DOMParser.html \
                 tests/wpt/mozilla/tests/css/per_glyph_font_fallback_a.html \
                 tests/wpt/mozilla/tests/css/img_simple.html \
-                tests/wpt/mozilla/tests/mozilla/secure.https.html
+                tests/wpt/mozilla/tests/mozilla/secure.https.html \
+                | cat
         """)
+    # `test-wpt` is piped into `cat` so that stdout is not a TTY
+    # and wptrunner does not use "interactive mode" formatting:
+    # https://github.com/servo/servo/issues/22438
     task.with_script("""
         ./mach test-wpt \
             --release \
@@ -355,7 +360,8 @@ def wpt_chunk(release_build_task, total_chunks, this_chunk):
             --this-chunk "$THIS_CHUNK" \
             --log-raw test-wpt.log \
             --log-errorsummary wpt-errorsummary.log \
-            --always-succeed
+            --always-succeed \
+            | cat
         ./mach filter-intermittents\
             wpt-errorsummary.log \
             --log-intermittents intermittents.log \
